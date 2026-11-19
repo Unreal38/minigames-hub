@@ -140,7 +140,7 @@ function onMsg(m) {
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
     if (!m.room || m.room.code !== prev?.code) chatReset();
-    $chat.hidden = !m.room;
+    $chat.hidden = !m.room; scoresPaint();
     if (!m.room) { unmountGame(); st.lastState = null; go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
@@ -345,13 +345,7 @@ function renderLobby() {
     </div>
     <aside>
       <h2 style="font-size:26px;margin:0">Table scoreboard</h2>
-      ${r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
-          <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36)}
-          <b>${esc(e.name)}</b>
-          <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
-        </li>`).join('')}</ol>
-        <p style="margin:0;font-size:14px;color:var(--muted)">${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.</p>`
-        : `<p style="margin:0;font-size:15px;color:var(--muted)">No games finished yet. Wins and points add up here for as long as the table stays open.</p>`}
+      ${boardHtml(r)}
       <h2 style="font-size:26px;margin:0">Table settings</h2>
       ${gm.settings(pill)}
       <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
@@ -367,6 +361,15 @@ function renderLobby() {
 const $chat = document.getElementById('chat');
 const chat = { log: [], open: false, unread: 0, peekT: 0 };
 const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>';
+const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/></svg>';
+const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
+    <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36)}
+    <b>${esc(e.name)}</b>
+    <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
+  </li>`).join('')}</ol>
+  <p class="boardnote">${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.</p>`
+  : `<p class="boardnote">No games finished yet. Wins and points add up here for as long as the table stays open.</p>`;
+function scoresPaint() { if (st.room) $chat.querySelector('.scorebody').innerHTML = boardHtml(st.room); else $chat.querySelector('.scorepanel').hidden = true; }
 $chat.innerHTML = `
   <div class="chatpanel" hidden role="dialog" aria-label="Table chat">
     <div class="chathead"><b>Table chat</b><button type="button" class="round" data-c="toggle" aria-label="Close chat">×</button></div>
@@ -374,8 +377,16 @@ $chat.innerHTML = `
     <div class="chatemoji">${EMOJI.map((e, i) => `<button type="button" data-c="emo" data-k="${FOODS.length + i}" aria-label="React ${e}">${e}</button>`).join('')}</div>
     <form class="chatform"><input class="field" maxlength="160" placeholder="Say something nice…" autocomplete="off" aria-label="Message"><button class="btn m">Send</button></form>
   </div>
+  <div class="chatpanel scorepanel" hidden role="dialog" aria-label="Table scoreboard">
+    <div class="chathead"><b>Table scoreboard</b><button type="button" class="round" data-c="scores" aria-label="Close scoreboard">×</button></div>
+    <div class="scorebody"></div>
+  </div>
   <div class="chatpeek" hidden></div>
-  <button type="button" class="btn chatbtn" data-c="toggle" aria-label="Open chat">${CHAT_ICON}<span class="lbl">Chat</span><span class="badge" hidden></span></button>`;
+  <div class="chatbtns">
+    <button type="button" class="btn w scorebtn" data-c="scores" aria-label="Table scoreboard">${SCORE_ICON}<span class="lbl">Scores</span></button>
+    <button type="button" class="btn chatbtn" data-c="toggle" aria-label="Open chat">${CHAT_ICON}<span class="lbl">Chat</span><span class="badge" hidden></span></button>
+  </div>`;
+const $scores = $chat.querySelector('.scorepanel');
 const $log = $chat.querySelector('.chatlog'), $panel = $chat.querySelector('.chatpanel'), $peek = $chat.querySelector('.chatpeek');
 const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}">${avatarHtml(m.color, m.av, 30)}<p><b>${esc(m.name)}</b> ${esc(m.text)}</p></div>`;
 function chatPaint() {
@@ -387,10 +398,14 @@ function chatPeek(m) {
   $peek.innerHTML = chatLine(m); $peek.hidden = false;
   clearTimeout(chat.peekT); chat.peekT = setTimeout(() => { $peek.hidden = true; }, 4500);
 }
-function chatReset() { chat.log = []; chat.unread = 0; chat.open = false; $panel.hidden = true; $peek.hidden = true; chatBadge(); chatPaint(); }
+function chatReset() { chat.log = []; chat.unread = 0; chat.open = false; $scores.hidden = true; $panel.hidden = true; $peek.hidden = true; chatBadge(); chatPaint(); }
 $chat.addEventListener('click', e => {
   const b = e.target.closest('[data-c]'); if (!b) return;
-  if (b.dataset.c === 'toggle') {
+  if (b.dataset.c === 'scores') {
+    sfx.click(); $scores.hidden = !$scores.hidden;
+    if (!$scores.hidden && chat.open) { chat.open = false; $panel.hidden = true; }
+  } else if (b.dataset.c === 'toggle') {
+    $scores.hidden = true;
     chat.open = !chat.open; $panel.hidden = !chat.open; $peek.hidden = true; sfx.click();
     if (chat.open) { chat.unread = 0; chatBadge(); $log.scrollTop = $log.scrollHeight; if (matchMedia('(pointer: fine)').matches) $chat.querySelector('input').focus(); }
   } else if (b.dataset.c === 'emo') { sfx.click(); send({ t: 'react', k: +b.dataset.k }); }
@@ -400,7 +415,7 @@ $chat.querySelector('form').addEventListener('submit', e => {
   const inp = e.target.querySelector('input'), text = inp.value.trim(); if (!text) return;
   send({ t: 'chat', text }); inp.value = '';
 });
-$chat.addEventListener('keydown', e => { if (e.key === 'Escape' && chat.open) $chat.querySelector('.chatbtn').click(); });
+$chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (chat.open) $chat.querySelector('.chatbtn').click(); else $scores.hidden = true; });
 
 // ---------- modals ----------
 function modal(html, dismissable = true) {
