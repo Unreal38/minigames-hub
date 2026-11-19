@@ -11,12 +11,12 @@ function face(x, y, s = 1, eye = O, mouth = 0) {
   return `<g>
   <ellipse cx="${x - d - 7.5 * s}" cy="${y + 6.5 * s}" rx="${5.6 * s}" ry="${3.5 * s}" fill="#ff7a8a" opacity=".62"/>
   <ellipse cx="${x + d + 7.5 * s}" cy="${y + 6.5 * s}" rx="${5.6 * s}" ry="${3.5 * s}" fill="#ff7a8a" opacity=".62"/>
-  <ellipse cx="${x - d}" cy="${y}" rx="${e * .84}" ry="${e}" fill="${eye}"/>
+  <g class="fx-eyes"><ellipse cx="${x - d}" cy="${y}" rx="${e * .84}" ry="${e}" fill="${eye}"/>
   <ellipse cx="${x + d}" cy="${y}" rx="${e * .84}" ry="${e}" fill="${eye}"/>
   <circle cx="${x - d + 1.5 * s}" cy="${y - 2.1 * s}" r="${2.1 * s}" fill="${hl}"/>
   <circle cx="${x + d + 1.5 * s}" cy="${y - 2.1 * s}" r="${2.1 * s}" fill="${hl}"/>
   <circle cx="${x - d - 1.8 * s}" cy="${y + 2.3 * s}" r="${1 * s}" fill="${hl}" opacity=".9"/>
-  <circle cx="${x + d - 1.8 * s}" cy="${y + 2.3 * s}" r="${1 * s}" fill="${hl}" opacity=".9"/>
+  <circle cx="${x + d - 1.8 * s}" cy="${y + 2.3 * s}" r="${1 * s}" fill="${hl}" opacity=".9"/></g>
   ${m}</g>`;
 }
 // a snoozing face for the little sidekicks
@@ -25,8 +25,8 @@ function nap(x, y, s = 1, eye = O) {
   <path d="M${x - 8 * s} ${y}q${2.5 * s} ${3 * s} ${5 * s} 0M${x + 3 * s} ${y}q${2.5 * s} ${3 * s} ${5 * s} 0M${x - 1.6 * s} ${y + 4 * s}q${1.6 * s} ${2 * s} ${3.2 * s} 0" fill="none" stroke="${eye}" stroke-width="${1.9 * s}" stroke-linecap="round"/></g>`;
 }
 // a four-point sparkle
-const sp = (x, y, r = 5, col = '#ffd36b') => { const k = r * .32; return `<path d="M${x} ${y - r}L${x + k} ${y - k}L${x + r} ${y}L${x + k} ${y + k}L${x} ${y + r}L${x - k} ${y + k}L${x - r} ${y}L${x - k} ${y - k}z" fill="${col}" stroke="${O}" stroke-width="1.600" stroke-linejoin="round"/>`; };
-const heart = (x, y, k = 1) => `<path d="M${x} ${y + 4 * k}c${-7 * k}${-4.5 * k} ${-5 * k}${-10 * k} 0${-6 * k}c${5 * k}${-4 * k} ${7 * k} ${1.5 * k} 0 ${6 * k}z" fill="#ff7a8a" stroke="${O}" stroke-width="1.600" stroke-linejoin="round"/>`;
+const sp = (x, y, r = 5, col = '#ffd36b') => { const k = r * .32; return `<path class="fx-sp" d="M${x} ${y - r}L${x + k} ${y - k}L${x + r} ${y}L${x + k} ${y + k}L${x} ${y + r}L${x - k} ${y + k}L${x - r} ${y}L${x - k} ${y - k}z" fill="${col}" stroke="${O}" stroke-width="1.600" stroke-linejoin="round"/>`; };
+const heart = (x, y, k = 1) => `<path class="fx-hrt" d="M${x} ${y + 4 * k}c${-7 * k}${-4.5 * k} ${-5 * k}${-10 * k} 0${-6 * k}c${5 * k}${-4 * k} ${7 * k} ${1.5 * k} 0 ${6 * k}z" fill="#ff7a8a" stroke="${O}" stroke-width="1.600" stroke-linejoin="round"/>`;
 const sw = 'stroke="' + O + '" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"';
 const ln = (d, col, w = 3, extra = '') => `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
 const hi = (d, w = 3, o = .75) => ln(d, '#fff', w, `opacity="${o}"`); // glossy highlight

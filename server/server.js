@@ -8,13 +8,14 @@ import { fileURLToPath } from 'node:url';
 import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
+import * as snackswap from './games/snackswap.js';
 import { cleanAv } from '../public/avatar.js';
 import * as store from './store.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles };
+const GAMES = { hotpot, marbles, snackswap };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
@@ -80,6 +81,7 @@ function scoreGame(r) {
     const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
     Object.assign(e, { name: c.name, color: c.color, av: c.av });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
+    if (Number.isFinite(res[i].coins)) e.coins = res[i].coins;
     const gain = store.credit(p, r.game, res[i]);
     send(c, { t: 'me', me: store.me(p), gain });
   });
@@ -131,7 +133,10 @@ function joinRoom(c, r) {
 function startGame(r) {
   r.again = new Set();
   const humans = r.players.map(t => clients.get(t)).slice(0, GAMES[r.game].meta.maxPlayers);
-  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G || r.last);
+  // After a restart there is no previous game, so pretend coins come back from the table scoreboard.
+  const saved = { game: r.game, wallet: {} };
+  for (const c of humans) { const e = r.board?.[store.profileOf(c.token)?.pid]; if (Number.isFinite(e?.coins)) saved.wallet['h:' + c.id] = e.coins; }
+  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G || r.last || (Object.keys(saved.wallet).length ? saved : null));
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
@@ -167,6 +172,12 @@ function handle(c, m) {
       if (!mod.cleanOpts && m.opts?.timer !== undefined && [0, 20, 30, 45, 60].includes(+m.opts.timer)) r.opts.timer = +m.opts.timer;
       if (m.priv !== undefined) r.priv = !!m.priv;
       sendRoom(r); broadcastRooms(); return;
+    }
+    case 'room-act': { // game-specific waiting room actions that any player may take (e.g. adding a prompt)
+      const r = rooms.get(c.room); if (!r || r.G?.ph === 'play') return;
+      const out = GAMES[r.game].roomAct?.(r, { id: c.id, name: c.name, host: r.host === c.id }, m.a);
+      if (out === true) sendRoom(r); else if (typeof out === 'string') send(c, { t: 'err', msg: out });
+      return;
     }
     case 'start': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;

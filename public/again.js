@@ -17,6 +17,6 @@ export function againHtml(ctx, room, label = 'Play again') {
     <button type="button" class="btn big" data-a="again">${label}</button><button type="button" class="btn big w" data-a="lobby">Waiting room</button>${leave}</div></div>`;
   const mine = votes.has(ctx.myId());
   return `<div class="again">${tally}<div class="row">
-    <button type="button" class="btn big${mine ? ' m' : ''}" data-a="vote" aria-pressed="${mine}">${mine ? '✓ I’m in' : label}</button>${leave}</div>
+    <button type="button" class="btn big${mine ? ' m' : ''}" data-a="playagain" aria-pressed="${mine}">${mine ? '✓ I’m in' : label}</button>${leave}</div>
     <p class="wait">${mine ? `Waiting for ${hostName} to start the next round. Tap again to take your vote back.` : `${hostName} starts the next round. Vote so they know you’re in.`}</p></div>`;
 }

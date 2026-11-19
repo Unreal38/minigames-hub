@@ -331,7 +331,7 @@ export function mount(app, ctx) {
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
-    else if (a === 'vote') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
+    else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
   });
   root.addEventListener('pointerover', e => {

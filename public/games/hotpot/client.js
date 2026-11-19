@@ -197,8 +197,9 @@ export function mount(app, ctx) {
       scene?.fly(rel(e.s), 'tile' + rel(e.s), e.c, true);
     } else if (e.t === 'timeout') {
       if (e.s === S.me) { sfx.bad(); ctx.toast("Time's up! We played that turn for you.", true); }
+      scene?.potMood('bang');
     } else if (e.t === 'shuffle') {
-      ctx.toast('Discards stirred back into the pot'); sfx.draw();
+      ctx.toast('Discards stirred back into the pot'); sfx.draw(); scene?.potMood('dizzy');
     } else if (e.t === 'eat') {
       if (e.s === S.me) sfx.win(); else sfx.lose();
       scene?.celebrate(rel(e.s), S.hands?.[e.s] || []);
@@ -259,7 +260,12 @@ export function mount(app, ctx) {
     const i = S ? S.seats.findIndex(p => p.id === id) : -1, r = i >= 0 ? rel(i) : 0;
     return r === 0 ? root.querySelector('.emotes') : root.querySelector(`.opp[data-r="${r}"]`);
   };
-  function react(m) { if (S) floatAt(anchorOf(m.id), m.k); }
+  function react(m) {
+    if (!S) return;
+    floatAt(anchorOf(m.id), m.k);
+    const i = S.seats.findIndex(p => p.id === m.id);
+    if (i >= 0) scene?.emote(rel(i), m.k); // the pot and the avatar react too
+  }
   function say(m) {
     if (!S || S.seats.findIndex(p => p.id === m.id) < 0) return;
     const rc = anchorOf(m.id).getBoundingClientRect(), b = document.createElement('div');
@@ -321,7 +327,7 @@ export function mount(app, ctx) {
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
-    else if (a === 'vote') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
+    else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
   });
   root.addEventListener('pointerover', e => {

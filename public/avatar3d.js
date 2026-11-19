@@ -1,7 +1,8 @@
 // 3D chibi avatar (three.js), shared by every 3D minigame. Purely visual.
 //   avatar3d(color, av)  -> THREE.Group facing +Z. Seat height is y = -0.76, the top of the head is about y = 2.1.
 //                           userData = { head, eyes, body, arms } for animation.
-//   animateAvatar(g, T, { seed, active, hop })  idle sway, blinking, breathing and a squashy hop.
+//   animateAvatar(g, T, { seed, active, hop, look, nod })  idle sway, blinking, breathing and a squashy hop;
+//                           look turns the head (radians), nod dips it (0..1).
 //   disposeAvatar(g)     frees its materials (geometries are shared between avatars).
 import * as THREE from 'three';
 import { SKINS, HAIR_COLS, cleanAv } from './avatar.js';
@@ -199,11 +200,11 @@ export function avatar3d(color, avIn) {
 }
 
 // Call every frame. T is seconds; seed keeps avatars out of sync; hop runs 1 -> 0 during a happy bounce.
-export function animateAvatar(g, T, { seed = 0, active = false, hop = 0 } = {}) {
+export function animateAvatar(g, T, { seed = 0, active = false, hop = 0, look = 0, nod = 0 } = {}) {
   const u = g.userData, ph = (T + seed * 1.37) % 3.8;
   u.head.rotation.z = Math.sin(T * 1.3 + seed) * .08;
-  u.head.rotation.x = Math.sin(T * .9 + seed * 2) * .04 - hop * .18;
-  u.head.rotation.y = Math.sin(T * .45 + seed * 3) * .1;
+  u.head.rotation.x = Math.sin(T * .9 + seed * 2) * .04 - hop * .18 + nod * .4;
+  u.head.rotation.y = Math.sin(T * .45 + seed * 3) * .1 + look;
   const blink = ph < .13 || (seed % 2 && ph > .3 && ph < .4) ? .12 : 1;
   for (const e of u.eyes) e.scale.y = e.userData.sy * blink;
   if (u.body) u.body.scale.y = .9 * (1 + Math.sin(T * 1.8 + seed) * .012);
