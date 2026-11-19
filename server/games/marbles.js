@@ -347,6 +347,6 @@ export function results(G) {
   const n = G.seats.length;
   return G.seats.map((_, i) => {
     const place = G.res.order.indexOf(i);
-    return { pts: (n - 1 - place) * 10 + (G.res.pay[i].won > 0 ? 15 : 0), win: place === 0, place: place + 1 };
+    return { pts: (n - 1 - place) * 10 + (G.res.pay[i].won > 0 ? 15 : 0), win: place === 0, place: place + 1, coins: G.res.pay[i].coins };
   });
 }

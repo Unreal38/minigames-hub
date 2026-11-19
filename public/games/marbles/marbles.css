@@ -119,3 +119,4 @@ body.in-game { overflow: hidden; }
 body:has(.mr) #toasts { top: 118px; }
 .mr .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
 @media (max-width: 1150px) { body:has(.mr) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.mr) .chatbtn .lbl { display: none; } }
+.mr .board li { display: block; background: none; border-radius: 0; padding: 0; outline: none; }

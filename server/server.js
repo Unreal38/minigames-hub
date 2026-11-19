@@ -77,6 +77,7 @@ function scoreGame(r) {
     const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
     Object.assign(e, { name: c.name, color: c.color, av: c.av });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
+    if (Number.isFinite(res[i].coins)) e.coins = res[i].coins;
     const gain = store.credit(p, r.game, res[i]);
     send(c, { t: 'me', me: store.me(p), gain });
   });
@@ -127,7 +128,10 @@ function joinRoom(c, r) {
 
 function startGame(r) {
   const humans = r.players.map(t => clients.get(t)).slice(0, GAMES[r.game].meta.maxPlayers);
-  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G || r.last);
+  // After a restart there is no previous game, so pretend coins come back from the table scoreboard.
+  const saved = { game: r.game, wallet: {} };
+  for (const c of humans) { const e = r.board?.[store.profileOf(c.token)?.pid]; if (Number.isFinite(e?.coins)) saved.wallet['h:' + c.id] = e.coins; }
+  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G || r.last || (Object.keys(saved.wallet).length ? saved : null));
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
