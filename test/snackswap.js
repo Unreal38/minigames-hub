@@ -58,9 +58,8 @@ function game(opts, prev) {
     if (G.ph !== 'end') fail('game did not end');
     if (G.round !== G.rounds) fail('wrong number of rounds');
     const r = ss.results(G);
-    if (r.players.length !== n || r.players[0].place !== 1 || !r.players[0].won) fail('bad results');
-    if (r.players.reduce((t, p) => t + p.points, 0) !== G.pts.reduce((a, b) => a + b, 0)) fail('results and points disagree');
-    for (let i = 1; i < n; i++) if (r.players[i].points > r.players[i - 1].points) fail('results not sorted');
+    if (r.length !== n || !r[G.win].win || r[G.win].place !== 1) fail('bad results');
+    if (r.some((x, i) => x.pts !== G.pts[i] * 10 || (x.win && x.pts < Math.max(...r.map(y => y.pts))))) fail('results and points disagree');
     JSON.stringify(ss.view(G, -1));
     return { G, sawSteal };
   } finally { Date.now = realNow; }

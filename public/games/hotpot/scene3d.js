@@ -34,7 +34,10 @@ function cardTexture(kind) { // kind -1 = back
     if (kind < 0) {
       g.fillStyle = INK; rr(g, 0, 0, 256, 352, 34); g.fill();
       g.fillStyle = '#e5543b'; rr(g, 9, 9, 238, 334, 27); g.fill();
-      g.strokeStyle = '#ffffff33'; g.lineWidth = 6; rr(g, 26, 26, 204, 300, 18); g.stroke();
+      g.save(); rr(g, 9, 9, 238, 334, 27); g.clip(); g.fillStyle = '#ffffff2e';
+      for (let y = 0; y < 8; y++) for (let x = 0; x < 6; x++) { g.beginPath(); g.arc(x * 51 + 26, y * 51 + 26, 9, 0, 7); g.fill(); }
+      g.restore();
+      g.fillStyle = '#fff4e233'; g.beginPath(); g.arc(128, 176, 104, 0, 7); g.fill();
       const im = await svgImg(backSvg('width="200" height="200"'));
       if (im) g.drawImage(im, 28, 76, 200, 200);
     } else {
@@ -46,6 +49,7 @@ function cardTexture(kind) { // kind -1 = back
       g.restore();
       g.fillStyle = '#fff'; g.font = '600 32px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(cat.name, 128, 38);
+      g.globalAlpha = .17; g.fillStyle = cat.col; g.beginPath(); g.arc(128, 178, 104, 0, 7); g.fill(); g.globalAlpha = 1;
       const im = await svgImg(iconSvg(kind, 'width="200" height="200"'));
       if (im) g.drawImage(im, 28, 76, 200, 200);
       g.fillStyle = INK; g.font = '600 31px Fredoka, Nunito, sans-serif';

@@ -195,17 +195,10 @@ function finish(G) {
   pushEv(G, { t: 'end', w: G.res.winners });
 }
 
-// What a finished game hands to lobby scores, stats and XP: one row per seat, best first.
+// Per-seat outcome of a finished game, for lobby scoreboards and player stats: 10 points per point scored.
 export function results(G) {
   if (G.ph !== 'end' || !G.res) return null;
-  return {
-    game: 'snackswap', rounds: G.rounds,
-    players: G.res.order.map(s => ({
-      id: G.seats[s].id, name: G.seats[s].name, bot: !G.seats[s].human,
-      points: G.res.pts[s], place: G.res.places[s], won: G.res.winners.includes(s),
-      roundsWon: G.res.wins[s], votes: G.res.votes[s],
-    })),
-  };
+  return G.seats.map((_, i) => ({ pts: G.res.pts[i] * 10, win: G.res.winners.includes(i), place: G.res.places[i] }));
 }
 
 export function act(G, s, a) {
