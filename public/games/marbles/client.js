@@ -1,6 +1,7 @@
 // Marble Rush game view: HUD over the 3D track. Renders what the server says; sends bets and bananas.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
+import { reactHtml } from '../../react.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -16,7 +17,6 @@ const CHAOS = {
   quake: ['Marblequake!', 'Hold on to something'],
   swap: ['Switcheroo!', ''],
 };
-const REACTS = ['🎉', '😱', '🔥', '😂'];
 const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 
 let cssLoaded = false;
@@ -52,7 +52,7 @@ export function mount(app, ctx) {
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0;
   let stake = 25, follow = 'lead', picking = false, order = [], live = null, tagEls = [], tagKey = '';
-  let resultsTimer = 0, bigTimer = 0, lastCount = -1, lastReact = 0, endsAt = 0, boardAt = 0;
+  let resultsTimer = 0, bigTimer = 0, lastCount = -1, endsAt = 0, boardAt = 0;
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -162,7 +162,6 @@ export function mount(app, ctx) {
     const cam = (k, label, ok = true) => ok ? `<button type="button" data-a="cam" data-k="${k}" aria-pressed="${follow === k}">${label}</button>` : '';
     setHtml(el, `<div class="cams"><span>Camera</span><div class="pills">${cam('lead', 'Leader')}${cam('me', 'Me', !!my && !my.out)}${cam('bet', 'My pick', !!my?.bet && racing(my.bet.m))}</div></div>
       ${my && !my.out ? `<button type="button" class="btn ${picking ? 'w' : 'p'} sab" data-a="sab" ${canSab ? '' : 'disabled'}>${I.banana}${my.sab ? 'Banana thrown' : picking ? 'Cancel' : 'Throw banana'}</button>` : ''}
-      <div class="reacts">${REACTS.map((e, i) => `<button type="button" data-a="react" data-k="${i}" aria-label="React ${e}">${e}</button>`).join('')}</div>
       ${picking ? '<p class="hint">Pick a marble on the left to slip it up. One banana per heat!</p>' : ''}`);
   }
 
@@ -262,11 +261,10 @@ export function mount(app, ctx) {
     if (!S) return;
     const i = S.seats.findIndex(p => p.id === m.id), t = live?.tags?.[i];
     const f = document.createElement('div');
-    f.className = 'floaty'; f.textContent = REACTS[m.k] ?? REACTS[0];
+    f.className = 'floaty'; f.innerHTML = reactHtml(Math.max(0, Math.min(11, m.k | 0)));
     const x = t?.show ? t.x : innerWidth / 2 + (Math.random() * 120 - 60), y = t?.show ? t.y - 30 : innerHeight * .7;
-    f.style.left = `${x}px`; f.style.top = `${y}px`;
+    f.style.left = `${x - 32}px`; f.style.top = `${y - 64}px`;
     root.append(f); setTimeout(() => f.remove(), 1600);
-    sfx.pop();
   }
 
   function confetti() {
@@ -320,7 +318,7 @@ export function mount(app, ctx) {
         if (b.parentElement.classList.contains('hit')) { picking = false; ctx.act({ t: 'sab', m: i }); renderBoard.key = ''; render(); }
         else sfx.bad();
       } else if (racing(i)) { sfx.click(); follow = i; renderRace(); sync(); }
-    } else if (a === 'react') { const now = Date.now(); if (now - lastReact > 800) { lastReact = now; ctx.react(+b.dataset.k); } }
+    }
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }

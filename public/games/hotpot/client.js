@@ -3,11 +3,11 @@ import { CATS, kindOf, catOf, cardName, canWin, bestSets, setVal } from './rules
 import { iconSvg, backSvg } from './icons.js';
 import { cardHtml } from './cards.js';
 import { sfx } from '../../sfx.js';
+import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const REACTS = [16, 3, 10, 13, 0, 7];
 const I = {
   sound: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   mute: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
@@ -41,7 +41,7 @@ export function mount(app, ctx) {
       <div class="mine" id="hp-mine"></div>
       <div class="hand" id="hp-hand"></div>
       <div class="sets" id="hp-sets"></div>
-      <div class="emotes"><span>Send a snack</span><div>${REACTS.map((k, i) => `<button type="button" data-a="react" data-k="${i}" aria-label="React with ${CATS[Math.floor(k / 3)].items[k % 3]}">${iconSvg(k)}</button>`).join('')}</div></div>
+      <div class="emotes"><span>React</span><div>${Array.from({ length: REACT_COUNT }, (_, k) => `<button type="button" class="${k < 6 ? 'food' : 'emoji'}" data-a="react" data-k="${k}" aria-label="React with ${reactLabel(k)}">${reactHtml(k)}</button>`).join('')}</div></div>
       <button type="button" class="btn big r eat" data-a="eat" hidden>Let's Eat!</button>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -247,19 +247,18 @@ export function mount(app, ctx) {
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 
-  // ----- reactions -----
-  function react(m) {
-    if (!S) return;
-    const i = S.seats.findIndex(p => p.id === m.id);
-    const k = REACTS[m.k] ?? REACTS[0];
-    const r = i >= 0 ? rel(i) : 0;
-    const anchor = r === 0 ? root.querySelector('.emotes') : root.querySelector(`.opp[data-r="${r}"]`);
-    const rc = anchor.getBoundingClientRect();
-    const f = document.createElement('div');
-    f.className = 'floaty'; f.innerHTML = iconSvg(k);
-    f.style.left = `${rc.left + rc.width / 2 - 32 + (Math.random() * 30 - 15)}px`; f.style.top = `${rc.top - 10}px`;
-    root.append(f); setTimeout(() => f.remove(), 1600);
-    sfx.pop();
+  // ----- reactions & speech bubbles -----
+  const anchorOf = id => {
+    const i = S ? S.seats.findIndex(p => p.id === id) : -1, r = i >= 0 ? rel(i) : 0;
+    return r === 0 ? root.querySelector('.emotes') : root.querySelector(`.opp[data-r="${r}"]`);
+  };
+  function react(m) { if (S) floatAt(anchorOf(m.id), m.k); }
+  function say(m) {
+    if (!S || S.seats.findIndex(p => p.id === m.id) < 0) return;
+    const rc = anchorOf(m.id).getBoundingClientRect(), b = document.createElement('div');
+    b.className = 'saybubble'; b.textContent = m.text.length > 70 ? m.text.slice(0, 68) + '…' : m.text;
+    b.style.left = `${Math.max(8, Math.min(innerWidth - 268, rc.left))}px`; b.style.top = `${rc.bottom + 8}px`;
+    root.append(b); setTimeout(() => b.remove(), 4200);
   }
 
   // ----- confetti -----
@@ -331,7 +330,7 @@ export function mount(app, ctx) {
   return {
     update,
     room(r) { R = r; if (S) render(); },
-    react,
+    react, say,
     destroy() { destroyed = true; document.body.classList.remove('in-game'); cancelAnimationFrame(raf); clearTimeout(resultsTimer); removeEventListener('keydown', onKey); removeEventListener('resize', onResize); scene?.dispose(); },
   };
 }

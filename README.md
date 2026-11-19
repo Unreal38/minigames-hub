@@ -6,7 +6,8 @@ A small self-hosted website where friends pick a username (no accounts), open or
 
 **Game #2: Marble Rush**, a 3D marble race nobody steers. Every player gets a marble wearing their avatar, bets pretend coins on the winner and watches a randomly generated track (pins, spinners, trapdoors, boost pads) do the rest. It has chaos events, one banana per heat to slip up a rival, and a knockout mode that drops the slowest marble each heat.
 
-- Avatar creator: outfit, skin, hair and extras, shown as portraits in the UI and as the 3D characters at the table.
+- Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
+- Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
 - No dependencies: plain Node.js (20+) server with its own WebSocket code. There is no `npm install` step.
 - The server owns the game state. Each player only receives their own hand, so you can't peek at other hands in devtools.
 - Reconnects are handled: refresh the page and you're back in your seat. If you're gone for 30 s, a bot plays for you until you return.
