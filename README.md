@@ -1,6 +1,6 @@
 # Cozy Table: minigames for friends
 
-A small self-hosted website where friends pick a username (no accounts), open or join a table with a 4-letter code, and play tiny multiplayer games. Empty seats are filled by bots.
+A small self-hosted website where friends pick a username (accounts are optional), open or join a table with a 4-letter code, and play tiny multiplayer games. Empty seats are filled by bots.
 
 **Game #1: Hot Pot**, a fan-made take on the Palia Hotpot card minigame. It has cute SVG food cards, a 3D table (three.js) with a bubbling split-broth pot, sound effects, emotes and a results screen.
 
@@ -89,9 +89,23 @@ sudo systemctl reload caddy
 
 Visit `https://example.com`. To invite friends, host a table and press **Copy invite link**, or tell them the 4-letter code.
 
-**Updating:** `cd /opt/cozy-table && sudo -u cozy git pull && sudo systemctl restart cozy-table`. A restart ends any tables in progress, because the game state is kept in memory.
+**Updating:** `cd /opt/cozy-table && sudo -u cozy git pull && sudo systemctl restart cozy-table`. A restart ends any game in progress, but every open table comes back in its waiting room with its scoreboard and chat, and players are reseated when their browsers reconnect (they have 90 seconds).
+
+**Saved data:** accounts, player stats and open tables live in one file, `cozy-table.json`, inside `DATA_DIR` (`./data` by default, `/var/lib/cozy-table` with the systemd unit). Back that file up to keep everyone's progress. If you installed before scores and accounts existed, copy the unit again once so the server has somewhere it may write:
+
+```bash
+sudo cp /opt/cozy-table/deploy/cozy-table.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl restart cozy-table
+```
 
 **Logs:** `journalctl -u cozy-table -f`
+
+## Scores, ranks and accounts
+
+- **Table scoreboard:** every table keeps wins and points per player across all the games played at it, shown in the waiting room. It lasts as long as the table stays open, restarts included.
+- **Stats, XP and ranks:** each finished game gives 15 XP, plus 35 for a win and up to 20 for points scored. Levels and rank titles are in `public/ranks.js`.
+- **Accounts:** progress is kept per browser by default. A player can create an account with a username and password (no email) to keep it across devices. Passwords are stored as salted scrypt hashes. There is no password reset; to reset one by hand, stop the server, delete that profile's `salt`, `hash` and `user` in `cozy-table.json`, and let them register again.
+- **New games:** export `results(G)` from the server module, returning `{ pts, win }` per seat once the game has ended, and the scoreboard and XP work for it too.
 
 ## Customising
 
@@ -102,7 +116,7 @@ Visit `https://example.com`. To invite friends, host a table and press **Copy in
 ## Adding another minigame
 
 ```
-server/games/<id>.js           # create(players, opts, prev), act(G, seat, a), tick(G, now), view(G, seat), setAway(G, seat, away), meta, optional cleanOpts(opts)
+server/games/<id>.js           # create(players, opts, prev), act(G, seat, a), tick(G, now), view(G, seat), setAway(G, seat, away), meta, optional cleanOpts(opts), optional results(G)
 public/games/<id>/client.js    # mount(appEl, ctx) -> { update(state), room(room), react(msg), destroy() }
 ```
 
@@ -112,11 +126,13 @@ Register the server module in `GAMES` in `server/server.js`, and the client in `
 
 ```
 server/server.js          static files, lobbies, game loop
+server/store.js           saved profiles, accounts and lobby scoreboards
 server/ws.js              tiny WebSocket implementation (RFC 6455)
 server/games/hotpot.js    Hot Pot engine + bots (authoritative)
 server/games/marbles.js   Marble Rush physics, bets, chaos and knockout (authoritative)
 public/index.html         single page app shell
 public/app.js             username, hub, open tables, waiting room
+public/ranks.js           XP curve and rank titles (shared with server)
 public/games/hotpot/      rules (shared with server), SVG food icons, HUD client, 3D scene, styles
 public/games/marbles/     track generator (shared with server), HUD client, 3D scene, styles
 deploy/                   systemd unit + Caddyfile

@@ -1,4 +1,5 @@
-// Cozy Table game server: static files + WebSocket lobbies. No dependencies, no accounts.
+// Cozy Table game server: static files + WebSocket lobbies. No dependencies.
+// Profiles, optional accounts and lobby scoreboards are saved to disk by store.js.
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,6 +9,7 @@ import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
 import { cleanAv } from '../public/avatar.js';
+import * as store from './store.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -16,6 +18,7 @@ const GAMES = { hotpot, marbles };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
+const RESTORE_GRACE_MS = 90_000; // after a restart, players get this long to reconnect before their seat is freed
 
 // ---------- static files ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -53,8 +56,31 @@ function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
-    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock }; }),
+    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, ...store.badge(store.profileOf(t)) }; }),
+    board: boardOf(r), played: r.played || 0,
   };
+}
+// Lobby scoreboard: everyone who has finished a game at this table, best first.
+const boardOf = r => Object.values(r.board || {}).map(({ pid, ...e }) => e)
+  .sort((a, b) => b.wins - a.wins || b.pts - a.pts || a.games - b.games).slice(0, 16);
+
+// Called whenever a game reaches its end screen: updates the table scoreboard and each player's profile.
+function scoreGame(r) {
+  const G = r.G, mod = GAMES[r.game];
+  G.scored = true;
+  const res = mod.results?.(G); if (!res) return;
+  r.played = (r.played || 0) + 1; r.board ||= {};
+  G.seats.forEach((seat, i) => {
+    if (!seat.human || !seat.id) return;
+    const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
+    const p = store.profileOf(c.token); if (!p) return;
+    const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
+    Object.assign(e, { name: c.name, color: c.color, av: c.av });
+    e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
+    const gain = store.credit(p, r.game, res[i]);
+    send(c, { t: 'me', me: store.me(p), gain });
+  });
+  sendRoom(r); store.scheduleSave();
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
   const i = roomInfo(r), h = i.players.find(p => p.id === i.host);
@@ -67,6 +93,7 @@ function broadcastRooms() { const msg = { t: 'rooms', rooms: publicRooms() }; fo
 function sendRoom(r) { const info = roomInfo(r); for (const t of r.players) send(clients.get(t), { t: 'room', room: info }); }
 function sendState(r) {
   if (!r.G) return;
+  if (r.G.ph === 'end' && !r.G.scored) scoreGame(r);
   const mod = GAMES[r.game];
   for (const t of r.players) {
     const c = clients.get(t); if (!c?.sock) continue;
@@ -82,6 +109,7 @@ function leaveRoom(c) {
     const s = r.G.seats.findIndex(x => x.id === c.id);
     if (s >= 0) { GAMES[r.game].setAway(r.G, s, true); r.G.seats[s].name += ' (bot)'; r.G.seats[s].human = false; r.G.seats[s].id = null; }
   }
+  store.scheduleSave();
   if (!r.players.length) rooms.delete(r.code);
   else { if (r.host === c.id) r.host = clients.get(r.players[0]).id; sendRoom(r); sendState(r); }
   broadcastRooms();
@@ -107,6 +135,7 @@ function handle(c, m) {
   switch (m.t) {
     case 'profile': {
       const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
+      store.setLook(c.token, c);
       const r = rooms.get(c.room); if (r) { if (!r.G) sendRoom(r); }
       return;
     }
@@ -159,6 +188,25 @@ function handle(c, m) {
       for (const t of r.players) send(clients.get(t), msg);
       return;
     }
+    case 'register': case 'login': {
+      const now = Date.now(); c.tries = (c.tries || []).filter(x => now - x < 60_000);
+      if (c.tries.length >= 6) return send(c, { t: 'auth', err: 'Too many tries. Wait a minute and try again.' });
+      c.tries.push(now);
+      store[m.t](c.token, m.user, m.pass).then(({ err, p }) => {
+        if (err) return send(c, { t: 'auth', err });
+        if (m.t === 'login') { c.name = p.name; c.color = p.color; if (p.av) c.av = p.av; }
+        else store.setLook(c.token, c);
+        send(c, { t: 'auth', ok: m.t }); send(c, { t: 'me', me: store.me(p) });
+        const r = rooms.get(c.room); if (r) sendRoom(r);
+      }, e => { console.error('auth error', e); send(c, { t: 'auth', err: 'Something went wrong. Try again.' }); });
+      return;
+    }
+    case 'logout': {
+      const p = store.logout(c.token, c); if (!p) return;
+      send(c, { t: 'me', me: store.me(p) });
+      const r = rooms.get(c.room); if (r) sendRoom(r);
+      return;
+    }
     case 'react': { // little food emote shown over your seat
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastReact || 0) < 700) return; c.lastReact = now;
@@ -181,19 +229,22 @@ attach(server, '/ws', sock => {
       const token = typeof m.token === 'string' && /^[a-z0-9]{16,40}$/.test(m.token) ? m.token : crypto.randomBytes(12).toString('hex');
       c = clients.get(token);
       if (c) { if (c.sock && c.sock !== sock) c.sock.close(4000); }
-      else { c = { token, id: crypto.randomBytes(6).toString('hex'), room: null }; clients.set(token, c); }
+      else { c = { token, id: null, room: null }; clients.set(token, c); }
       c.sock = sock; c.lastSeen = Date.now();
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
+      c.id = store.session(token, c).id; store.setLook(token, c); store.scheduleSave();
       send(c, { t: 'welcome', token, id: c.id, name: c.name });
+      send(c, { t: 'me', me: store.me(store.profileOf(token)) });
       const r = rooms.get(c.room);
       if (r) {
         if (r.G) { const s = r.G.seats.findIndex(x => x.id === c.id); if (s >= 0 && GAMES[r.game].setAway(r.G, s, false)) {} }
-        sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r);
+        sendRoom(r); send(c, { t: 'chatlog', log: r.chat });
+        if (r.G) sendState(r); else send(c, { t: 'state', s: null });
       } else { c.room = null; send(c, { t: 'rooms', rooms: publicRooms() }); }
       return;
     }
     c.lastSeen = Date.now();
-    try { handle(c, m); } catch (e) { console.error('handler error', e); }
+    try { handle(c, m); if (m.t !== 'act' && m.t !== 'react' && m.t !== 'rooms') store.scheduleSave(); } catch (e) { console.error('handler error', e); }
   });
   sock.on('close', () => {
     clearInterval(refill);
@@ -202,6 +253,31 @@ attach(server, '/ws', sock => {
     const r = rooms.get(c.room); if (r) sendRoom(r);
   });
 });
+
+// ---------- persistence ----------
+// Lobbies come back after a restart with their scoreboard and chat. A game that was mid-play is lost:
+// the table returns to its waiting room.
+store.setRoomSource(() => [...rooms.values()].map(r => ({
+  code: r.code, game: r.game, host: r.host, priv: r.priv, opts: r.opts, chat: r.chat, created: r.created,
+  board: r.board || {}, played: r.played || 0, players: r.players,
+})));
+for (const d of store.load()) {
+  if (!GAMES[d.game] || rooms.has(d.code)) continue;
+  const players = (d.players || []).filter(t => store.sessions.has(t) && !clients.has(t));
+  if (!players.length) continue;
+  const r = { code: d.code, game: d.game, host: d.host, priv: !!d.priv, opts: d.opts || {}, chat: Array.isArray(d.chat) ? d.chat : [],
+    created: d.created || Date.now(), board: d.board || {}, played: d.played || 0, players, G: null };
+  if (GAMES[r.game].cleanOpts) r.opts = GAMES[r.game].cleanOpts(r.opts);
+  for (const t of players) {
+    const s = store.sessions.get(t), p = store.profiles.get(s.pid);
+    clients.set(t, { token: t, id: s.id, name: p.name, color: p.color, av: cleanAv(p.av), room: r.code, sock: null,
+      lastSeen: Date.now() + RESTORE_GRACE_MS });
+  }
+  if (!players.some(t => clients.get(t).id === r.host)) r.host = clients.get(players[0]).id;
+  rooms.set(r.code, r);
+}
+const bye = () => { store.saveNow(); process.exit(0); };
+process.on('SIGTERM', bye); process.on('SIGINT', bye);
 
 // ---------- game loop & housekeeping ----------
 setInterval(() => {

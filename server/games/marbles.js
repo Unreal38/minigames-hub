@@ -340,3 +340,13 @@ export function view(G, s) {
     res: G.res, ev: G.ev, mult: G.seats.length,
   };
 }
+
+// Per-seat outcome of a finished race: place points (10 per marble beaten) plus 15 for a winning bet.
+export function results(G) {
+  if (G.ph !== 'end' || !G.res) return null;
+  const n = G.seats.length;
+  return G.seats.map((_, i) => {
+    const place = G.res.order.indexOf(i);
+    return { pts: (n - 1 - place) * 10 + (G.res.pay[i].won > 0 ? 15 : 0), win: place === 0, place: place + 1 };
+  });
+}
