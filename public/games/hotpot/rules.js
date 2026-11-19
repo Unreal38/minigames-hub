@@ -27,7 +27,8 @@ export function setVal(t) {
   const [a, b, c] = t.map(kindOf);
   if (a === b && b === c) return PTS_SAME;
   const [x, y, z] = t.map(catOf);
-  if (x === y && y === z) return PTS_CAT;
+  // colour set: same colour, three different ingredients (like Palia's "same colour, not the same food")
+  if (x === y && y === z && a !== b && b !== c && a !== c) return PTS_CAT;
   return 0;
 }
 

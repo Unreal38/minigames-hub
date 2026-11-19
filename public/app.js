@@ -200,7 +200,7 @@ function renderLobby() {
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>
       <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
       ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">Only the host can change settings.</p>`}
-      <div class="howto"><b>How to win</b><br>Hold 8 cards. Each turn draw one (from the deck or a friend's discard), then discard one. Make three sets of three, either the same ingredient or the same colour, and call “Let's Eat!”. <a href="#" data-act="rules">Full rules</a></div>
+      <div class="howto"><b>How to win</b><br>Hold 8 cards. Each turn draw one (from the deck or a friend's discard), then discard one. Make three sets of three, either three of the same ingredient or three different ingredients of one colour, and call “Let's Eat!”. <a href="#" data-act="rules">Full rules</a></div>
     </aside>
   </main>`;
 }
@@ -254,7 +254,7 @@ export function openRules() {
       <li>Everyone holds <b>8 cards</b>. Each card is an ingredient in one of six colours.</li>
       <li>On your turn, <b>draw one</b>: the top of the deck, or the top card a friend just discarded.</li>
       <li>Then <b>discard one</b> card so you're back to 8.</li>
-      <li>A <b>set</b> is three identical ingredients (30 pts) or three ingredients of the same colour (15 pts).</li>
+      <li>A <b>set</b> is three identical ingredients (30 pts) or three <b>different</b> ingredients of the same colour (15 pts).</li>
       <li>Hold <b>three sets</b> after drawing and press <b>Let's Eat!</b> to win (+90 pts).</li>
       <li>No winner after 30 rounds? Everyone scores the sets in their hand.</li>
     </ol></div>
