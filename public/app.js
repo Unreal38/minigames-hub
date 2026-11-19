@@ -3,7 +3,8 @@ import { potLogo, tableArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
-import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS } from './avatar.js';
+import { EMOJI, FOODS, floatAt } from './react.js';
+import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS, EYES, MOUTHS, OUTFITS, DETAILS } from './avatar.js';
 
 export const SITE = 'Cozy Table';
 const COLORS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -58,6 +59,8 @@ function onMsg(m) {
     if (st.view === 'hub') renderTables();
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
+    if (!m.room || m.room.code !== prev?.code) chatReset();
+    $chat.hidden = !m.room;
     if (!m.room) { unmountGame(); st.lastState = null; go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
@@ -70,7 +73,18 @@ function onMsg(m) {
     if (!m.s) { unmountGame(); if (st.room) go('lobby'); return; }
     mountGame().then(g => g?.update(st.lastState));
   } else if (m.t === 'react') {
-    st.game?.react(m);
+    if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
+    sfx.pop();
+  } else if (m.t === 'chatlog') {
+    chat.log = Array.isArray(m.log) ? m.log : []; chatPaint();
+  } else if (m.t === 'chat') {
+    chat.log.push(m); if (chat.log.length > 60) chat.log.shift();
+    chatPaint();
+    if (m.id !== st.id) {
+      sfx.pop();
+      if (!chat.open) { chat.unread++; chatBadge(); chatPeek(m); }
+      st.game?.say?.(m);
+    }
   } else if (m.t === 'err') {
     sfx.bad(); toast(esc(m.msg), true);
   }
@@ -186,7 +200,7 @@ function renderLobby() {
           <span style="font-size:14px;color:var(--muted)">Friends can also type the code on the home page.</span>
         </div>
       </div>
-      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}">
+      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
           ${avatarHtml(p.color, p.av, 64)}
           <div><b>${esc(p.name)}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>A bot sits here if nobody joins</span></div></div>`).join('')}</div>
@@ -206,6 +220,45 @@ function renderLobby() {
     </aside>
   </main>`;
 }
+
+// ---------- chat ----------
+const $chat = document.getElementById('chat');
+const chat = { log: [], open: false, unread: 0, peekT: 0 };
+const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>';
+$chat.innerHTML = `
+  <div class="chatpanel" hidden role="dialog" aria-label="Table chat">
+    <div class="chathead"><b>Table chat</b><button type="button" class="round" data-c="toggle" aria-label="Close chat">×</button></div>
+    <div class="chatlog" aria-live="polite"></div>
+    <div class="chatemoji">${EMOJI.map((e, i) => `<button type="button" data-c="emo" data-k="${FOODS.length + i}" aria-label="React ${e}">${e}</button>`).join('')}</div>
+    <form class="chatform"><input class="field" maxlength="160" placeholder="Say something nice…" autocomplete="off" aria-label="Message"><button class="btn m">Send</button></form>
+  </div>
+  <div class="chatpeek" hidden></div>
+  <button type="button" class="btn chatbtn" data-c="toggle" aria-label="Open chat">${CHAT_ICON}<span class="lbl">Chat</span><span class="badge" hidden></span></button>`;
+const $log = $chat.querySelector('.chatlog'), $panel = $chat.querySelector('.chatpanel'), $peek = $chat.querySelector('.chatpeek');
+const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}">${avatarHtml(m.color, m.av, 30)}<p><b>${esc(m.name)}</b> ${esc(m.text)}</p></div>`;
+function chatPaint() {
+  $log.innerHTML = chat.log.length ? chat.log.map(chatLine).join('') : '<p class="chatempty">No messages yet. Say hi!</p>';
+  $log.scrollTop = $log.scrollHeight;
+}
+function chatBadge() { const b = $chat.querySelector('.badge'); b.hidden = !chat.unread; b.textContent = chat.unread > 9 ? '9+' : chat.unread; }
+function chatPeek(m) {
+  $peek.innerHTML = chatLine(m); $peek.hidden = false;
+  clearTimeout(chat.peekT); chat.peekT = setTimeout(() => { $peek.hidden = true; }, 4500);
+}
+function chatReset() { chat.log = []; chat.unread = 0; chat.open = false; $panel.hidden = true; $peek.hidden = true; chatBadge(); chatPaint(); }
+$chat.addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  if (b.dataset.c === 'toggle') {
+    chat.open = !chat.open; $panel.hidden = !chat.open; $peek.hidden = true; sfx.click();
+    if (chat.open) { chat.unread = 0; chatBadge(); $log.scrollTop = $log.scrollHeight; if (matchMedia('(pointer: fine)').matches) $chat.querySelector('input').focus(); }
+  } else if (b.dataset.c === 'emo') { sfx.click(); send({ t: 'react', k: +b.dataset.k }); }
+});
+$chat.querySelector('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const inp = e.target.querySelector('input'), text = inp.value.trim(); if (!text) return;
+  send({ t: 'chat', text }); inp.value = '';
+});
+$chat.addEventListener('keydown', e => { if (e.key === 'Escape' && chat.open) $chat.querySelector('.chatbtn').click(); });
 
 // ---------- modals ----------
 function modal(html, dismissable = true) {
@@ -231,11 +284,17 @@ function openProfile(first = false) {
         <div class="namecol"><label for="nm">Name</label>
           <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname">
           <button type="button" class="btn w sm" data-rand>Surprise me</button></div></div>
-      <div class="crow"><b>Outfit</b><div class="swatches">${sw('color', COLORS, 'hex')}</div></div>
-      <div class="crow"><b>Skin</b><div class="swatches">${sw(0, SKINS)}</div></div>
-      <div class="crow"><b>Hair</b><div class="pills">${pills(1, HAIRS)}</div></div>
-      <div class="crow"><b>Hair colour</b><div class="swatches">${sw(2, HAIR_COLS)}</div></div>
-      <div class="crow"><b>Extra</b><div class="pills">${pills(3, EXTRAS)}</div></div>
+      <div class="cgrid">
+        <div class="crow"><b>Outfit colour</b><div class="swatches">${sw('color', COLORS, 'hex')}</div></div>
+        <div class="crow"><b>Outfit</b><div class="pills">${pills(6, OUTFITS)}</div></div>
+        <div class="crow"><b>Skin</b><div class="swatches">${sw(0, SKINS)}</div></div>
+        <div class="crow"><b>Hair colour</b><div class="swatches">${sw(2, HAIR_COLS)}</div></div>
+        <div class="crow wide"><b>Hair</b><div class="pills">${pills(1, HAIRS)}</div></div>
+        <div class="crow"><b>Eyes</b><div class="pills">${pills(4, EYES)}</div></div>
+        <div class="crow"><b>Mouth</b><div class="pills">${pills(5, MOUTHS)}</div></div>
+        <div class="crow wide"><b>Extra</b><div class="pills">${pills(3, EXTRAS)}</div></div>
+        <div class="crow wide"><b>Face detail</b><div class="pills">${pills(7, DETAILS)}</div></div>
+      </div>
       <button class="btn big">${first ? "Let's go" : 'Save'}</button>
     </form>`, !first);
   const nm = el.querySelector('#nm'), pv = el.querySelector('#pv');

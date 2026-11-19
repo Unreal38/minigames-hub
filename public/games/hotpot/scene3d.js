@@ -8,8 +8,8 @@ const INK = '#3b2219';
 const TABLE_R = 4.4, POT_Y = .53, BROTH_Y = POT_Y + .52, BROTH_R = 1.47;
 const SEAT = [[0, 5.7], [-5.7, 0], [0, -5.7], [5.7, 0]];
 const rot = ([x, z], r) => { for (let i = 0; i < r; i++) [x, z] = [-z, x]; return [x, z]; };
-const TILE = [0, 1, 2, 3].map(r => rot([1.0, 2.85], r));
-TILE[2] = [-2.2, -3.2]; // the far player's discard sits beside the pot, not hidden behind it
+// Discards sit on the four diagonals (each to its owner's right), so the layout is symmetric and the pot hides none.
+const TILE = [0, 1, 2, 3].map(r => rot([2.3, 2.3], r));
 const BOWL = [0, 1, 2, 3].map(r => rot([-.1, 3.75], r));
 const ease = t => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 const back = t => { const c = 1.7; return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2; };
@@ -93,6 +93,14 @@ function isRed(x, z) {
   if (x * x + (z - .5) ** 2 < .25) return true;
   return x > 0;
 }
+function rugTexture() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 512;
+  const g = cv.getContext('2d');
+  [['#5a2c45', 256], ['#ff8fab', 244], ['#fff4e2', 226], ['#7ed3b2', 214], ['#3d1f33', 200]].forEach(([c, r]) => { g.fillStyle = c; g.beginPath(); g.arc(256, 256, r, 0, 7); g.fill(); });
+  for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; g.fillStyle = i % 2 ? '#ffb547' : '#ff8fab'; g.beginPath(); g.arc(256 + Math.cos(a) * 178, 256 + Math.sin(a) * 178, 9, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 function softDot() {
   const cv = document.createElement('canvas'); cv.width = cv.height = 64;
   const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -131,44 +139,102 @@ function ingredient(kind) {
 
 // ---------- avatar ----------
 function avatar(color, avIn) {
-  const [sk, hair, hc, acc] = cleanAv(avIn);
-  const g = new THREE.Group(), hg = new THREE.Group(); hg.position.y = 1.5;
+  const [sk, hair, hc, acc, ey, mo, fit, det] = cleanAv(avIn);
+  const g = new THREE.Group(), hg = new THREE.Group(), bg = new THREE.Group(), eyes = [];
+  hg.position.y = 1.42; hg.scale.setScalar(1.16); bg.scale.setScalar(.9); // chibi: big head, small body
   const body = M(color, { roughness: .7 }), skin = M(SKINS[sk], { roughness: .8 }), hm = M(HAIR_COLS[hc], { roughness: .75 });
-  const white = M('#ffffff', { roughness: .6 }), ink = M(sk >= 3 ? '#1c0f0a' : '#2a1712', { roughness: .3 });
-  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); hg.add(m); return m; };
+  const white = M('#ffffff', { roughness: .6 }), cream = M('#fff4e2', { roughness: .7 }), ink = M(sk >= 3 ? '#1c0f0a' : '#2a1712', { roughness: .3 });
+  const red = M('#e5543b'), gold = M('#ffc93c', { roughness: .35, metalness: .3 }), pink = M('#ff5d8f', { roughness: .5 }), dark = M('#8a2f2f');
+  const put = (grp, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); grp.add(m); return m; };
+  const add = (geo, mat, x, y, z) => put(hg, geo, mat, x, y, z);
+  const sph = r => new THREE.SphereGeometry(r, 14, 12);
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.62, .7, 6, 18), body); torso.position.y = .1; torso.castShadow = true;
-  add(new THREE.SphereGeometry(.6, 24, 18), skin, 0, 0, 0).castShadow = true;
-  // hair
-  if (hair !== 5) add(new THREE.SphereGeometry(.63, 24, 12, 0, Math.PI * 2, 0, Math.PI * .42), hm, 0, .02, 0).rotation.x = -.35;
-  if (hair === 0 && acc !== 1) add(new THREE.SphereGeometry(.22, 16, 12), hm, 0, .64, -.08);
-  if (hair === 2) for (const s of [-1, 1]) add(new THREE.SphereGeometry(.24, 16, 12), hm, s * .66, -.02, -.05);
-  if (hair === 3) for (let i = 0; i < 6; i++) {
-    const a = i / 6 * Math.PI * 2, c = add(new THREE.ConeGeometry(.17, .42, 8), hm, Math.sin(a) * .3, .6, Math.cos(a) * .26 - .08);
-    c.rotation.set(Math.cos(a) * .55, 0, -Math.sin(a) * .55);
+  bg.add(torso); g.add(bg, hg);
+  for (const s of [-1, 1]) { // little arms reaching for the table, and ears
+    const arm = put(bg, new THREE.CapsuleGeometry(.15, .46, 4, 10), body, s * .6, .46, .32); arm.rotation.set(-1.1, 0, s * .25); arm.castShadow = true;
+    put(bg, sph(.16), skin, s * .52, .28, .72);
+    add(sph(.13), skin, s * .58, -.04, 0);
   }
-  if (hair === 3) add(new THREE.ConeGeometry(.17, .46, 8), hm, 0, .7, -.08);
-  if (hair === 4) add(new THREE.SphereGeometry(.64, 20, 14), hm, 0, -.3, -.2).scale.set(1.02, 1.25, .8);
+  put(bg, new THREE.TorusGeometry(.4, .09, 8, 20), body, 0, .88, 0).rotation.x = Math.PI / 2;
+  add(new THREE.SphereGeometry(.6, 24, 18), skin, 0, 0, 0).castShadow = true;
+  const hat = acc === 1 || acc === 5;
+  // hair
+  if (![3, 5, 9].includes(hair)) add(new THREE.SphereGeometry(.63, 24, 12, 0, Math.PI * 2, 0, Math.PI * .42), hm, 0, .02, 0).rotation.x = -.35;
+  if (hair === 0 && !hat) add(sph(.22), hm, 0, .64, -.08);
+  if (hair === 2) for (const s of [-1, 1]) add(sph(.24), hm, s * .66, -.02, -.05);
+  if (hair === 3) {
+    add(new THREE.SphereGeometry(.63, 24, 12, 0, Math.PI * 2, 0, Math.PI * .42), hm, 0, .02, 0).rotation.x = -.35;
+    for (let i = 0; i < 6; i++) {
+      const a = i / 6 * Math.PI * 2, c = add(new THREE.ConeGeometry(.17, .42, 8), hm, Math.sin(a) * .3, .6, Math.cos(a) * .26 - .08);
+      c.rotation.set(Math.cos(a) * .55, 0, -Math.sin(a) * .55);
+    }
+    add(new THREE.ConeGeometry(.17, .46, 8), hm, 0, .7, -.08);
+  }
+  if (hair === 4) add(sph(.64), hm, 0, -.3, -.2).scale.set(1.02, 1.25, .8);
+  if (hair === 6) add(sph(.66), hm, 0, -.12, -.14).scale.set(1.06, .95, .86);
+  if (hair === 7) { add(sph(.2), hm, 0, .2, -.66); add(sph(.2), hm, 0, -.2, -.82).scale.set(.9, 2, .9); }
+  if (hair === 8) for (let i = 0; i < 14; i++) {
+    const a = i * 2.4, e = .25 + (i % 5) * .22;
+    add(sph(.2), hm, Math.sin(a) * Math.sin(e) * .58, Math.cos(e) * .58 + .04, Math.cos(a) * Math.sin(e) * .58 - .1);
+  }
+  if (hair === 9) for (let i = 0; i < 5; i++) add(new THREE.ConeGeometry(.13, .44, 8), hm, 0, .58 + Math.sin((i + .5) / 5 * Math.PI) * .16, .34 - i * .19).rotation.x = .5 - i * .25;
   // face
   const blushM = new THREE.MeshBasicMaterial({ color: '#ff8a9a', transparent: true, opacity: .7 });
+  const arcGeo = new THREE.TorusGeometry(.075, .022, 6, 12, Math.PI);
   for (const s of [-1, 1]) {
-    add(new THREE.SphereGeometry(.075, 12, 10), ink, s * .2, .02, .54).scale.set(1, 1.25, .6);
     add(new THREE.CircleGeometry(.1, 16), blushM, s * .34, -.14, .5).rotation.y = s * .55;
+    const style = ey === 4 ? (s > 0 ? 1 : 0) : ey;
+    if (style === 1) add(arcGeo, ink, s * .2, -.01, .56);
+    else if (style === 2) add(arcGeo, ink, s * .2, .05, .56).rotation.z = Math.PI;
+    else {
+      const e = add(sph(style === 3 ? .11 : .088), ink, s * .2, .02, .54); e.scale.set(1, 1.25, .6);
+      const hl = add(sph(style === 3 ? .034 : .024), white, s * .2 + .03, .075, .6);
+      eyes.push(e, hl);
+    }
+    if (det === 1) for (const [dx, dy] of [[0, 0], [.07, -.05], [-.05, -.07]]) add(sph(.018), M('#9c5a3c'), s * (.32 + dx), -.06 + dy, .5 - Math.abs(dx) * .3);
   }
-  add(new THREE.TorusGeometry(.07, .022, 6, 12, Math.PI), ink, 0, -.12, .58).rotation.z = Math.PI;
+  const mz = det === 3 ? .645 : .58;
+  const smileM = () => { add(arcGeo, ink, 0, -.12, mz).rotation.z = Math.PI; };
+  if (mo === 0) smileM();
+  if (mo === 1) add(sph(.08), dark, 0, -.17, mz - .03).scale.set(1, .9, .4);
+  if (mo === 2) for (const s of [-1, 1]) add(new THREE.TorusGeometry(.04, .018, 6, 10, Math.PI), ink, s * .04, -.13, mz).rotation.z = Math.PI;
+  if (mo === 3) add(new THREE.TorusGeometry(.035, .018, 6, 12), ink, 0, -.16, mz);
+  if (mo === 4) { smileM(); add(sph(.04), M('#ff7a8a'), 0, -.2, mz).scale.set(1, 1.2, .5); }
+  if (det === 2) for (const s of [-1, 1]) add(sph(.075), hm, s * .085, -.08, .585).scale.set(1.5, .55, .5);
+  if (det === 3) add(new THREE.SphereGeometry(.625, 20, 10, Math.PI * .12, Math.PI * .76, Math.PI * .56, Math.PI * .44), hm, 0, 0, 0);
   // extras
-  if (acc === 1) { add(new THREE.CylinderGeometry(.4, .37, .3, 20), white, 0, .62, -.04); add(new THREE.SphereGeometry(.5, 18, 14), white, 0, .98, -.04).scale.set(1, .72, 1); }
-  if (acc === 2) {
-    for (const s of [-1, 1]) add(new THREE.TorusGeometry(.12, .022, 8, 20), ink, s * .2, .02, .6);
+  if (acc === 1) { add(new THREE.CylinderGeometry(.4, .37, .3, 20), white, 0, .62, -.04); add(sph(.5), white, 0, .98, -.04).scale.set(1, .72, 1); }
+  if (acc === 2 || acc === 8) {
+    for (const s of [-1, 1]) {
+      add(new THREE.TorusGeometry(.12, .022, 8, 20), ink, s * .2, .02, .6);
+      if (acc === 8) add(new THREE.CircleGeometry(.12, 20), ink, s * .2, .02, .6);
+    }
     add(new THREE.CylinderGeometry(.02, .02, .16, 6), ink, 0, .02, .62).rotation.z = Math.PI / 2;
   }
   if (acc === 3) {
-    const pink = M('#ff5d8f', { roughness: .5 });
-    for (const s of [-1, 1]) add(new THREE.SphereGeometry(.16, 12, 10), pink, .3 + s * .17, .56, .2).scale.set(1, .8, .5);
-    add(new THREE.SphereGeometry(.08, 10, 8), M('#ff8fab'), .3, .56, .24);
+    for (const s of [-1, 1]) add(sph(.16), pink, .3 + s * .17, .56, .2).scale.set(1, .8, .5);
+    add(sph(.08), M('#ff8fab'), .3, .56, .24);
   }
   if (acc === 4) for (const s of [-1, 1]) add(new THREE.ConeGeometry(.17, .36, 12), hair === 5 ? body : hm, s * .36, .58, 0).rotation.z = -s * .35;
-  g.add(torso, hg);
-  g.userData = { head: hg };
+  if (acc === 5) {
+    add(new THREE.CylinderGeometry(.36, .33, .18, 20), gold, 0, .6, -.04);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(new THREE.ConeGeometry(.08, .2, 8), gold, Math.sin(a) * .31, .78, Math.cos(a) * .31 - .04); }
+  }
+  if (acc === 6) {
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; add(sph(.075), M('#ff8fab'), .36 + Math.cos(a) * .09, .44 + Math.sin(a) * .09, .32); }
+    add(sph(.06), gold, .36, .44, .36);
+  }
+  if (acc === 7) {
+    add(new THREE.TorusGeometry(.65, .045, 8, 28, Math.PI), ink, 0, 0, 0);
+    for (const s of [-1, 1]) add(new THREE.CylinderGeometry(.19, .19, .14, 18), body, s * .64, -.02, 0).rotation.z = Math.PI / 2;
+  }
+  // outfit
+  if (fit === 1) put(bg, new THREE.CylinderGeometry(.635, .635, .8, 20, 1, true, -.6, 1.2), M('#ffffff', { roughness: .6, side: THREE.DoubleSide }), 0, .1, 0);
+  if (fit === 2) { put(bg, new THREE.TorusGeometry(.45, .13, 10, 24), cream, 0, .9, 0).rotation.x = Math.PI / 2; put(bg, new THREE.BoxGeometry(.2, .5, .1), cream, .2, .62, .52).rotation.x = -.25; }
+  if (fit === 3) for (const y of [.36, .06, -.24]) put(bg, new THREE.TorusGeometry(.625, .03, 6, 28), white, 0, y, 0).rotation.x = Math.PI / 2;
+  if (fit === 4) { for (const s of [-1, 1]) put(bg, new THREE.ConeGeometry(.1, .2, 10), red, s * .12, .78, .5).rotation.z = s * Math.PI / 2; put(bg, sph(.05), gold, 0, .78, .52); }
+  for (const e of eyes) e.userData.sy = e.scale.y;
+  g.userData = { head: hg, eyes };
   return g;
 }
 
@@ -191,6 +257,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   // floor + string lights
   const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), M('#24111c', { roughness: 1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = -2.4; floor.receiveShadow = true; scene.add(floor);
+  const rug = new THREE.Mesh(new THREE.CircleGeometry(9.5, 64), new THREE.MeshStandardMaterial({ map: rugTexture(), roughness: 1 }));
+  rug.rotation.x = -Math.PI / 2; rug.position.y = -2.38; rug.receiveShadow = true; scene.add(rug);
   const bulbs = [];
   const bulbCols = ['#ffb547', '#ff8fab', '#7ed3b2', '#ffd27a', '#ff7a59'];
   [[-9, -7, 9, -7, 6.2], [-10, -3, -6, -10, 5.4], [6, -10, 10, -3, 5.6]].forEach(([x1, z1, x2, z2, y], li) => {
@@ -225,6 +293,15 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   for (const s of [-1, 1]) {
     const h = new THREE.Mesh(new THREE.TorusGeometry(.22, .06, 8, 20, Math.PI), M('#c2c6cc', { metalness: .5, roughness: .3 }));
     h.position.set(s * 1.66, POT_Y + .6, 0); h.rotation.set(Math.PI / 2, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2); scene.add(h);
+  }
+  { // the pot gets a sleepy little face
+    const inkM = M('#3b2219', { roughness: .3 }), wh = M('#ffffff'), bl = new THREE.MeshBasicMaterial({ color: '#ff8a9a', transparent: true, opacity: .75 });
+    for (const s of [-1, 1]) {
+      const e = new THREE.Mesh(new THREE.SphereGeometry(.1, 14, 12), inkM); e.position.set(s * .36, POT_Y + .42, 1.5); e.scale.set(1, 1.25, .5); scene.add(e);
+      const h = new THREE.Mesh(new THREE.SphereGeometry(.03, 8, 8), wh); h.position.set(s * .36 + .035, POT_Y + .47, 1.56); scene.add(h);
+      const c = new THREE.Mesh(new THREE.CircleGeometry(.13, 16), bl); c.position.set(s * .66, POT_Y + .3, 1.41); c.rotation.y = s * .44; scene.add(c);
+    }
+    const sm = new THREE.Mesh(new THREE.TorusGeometry(.09, .026, 6, 12, Math.PI), inkM); sm.position.set(0, POT_Y + .33, 1.56); sm.rotation.z = Math.PI; scene.add(sm);
   }
   const broth = new THREE.Mesh(new THREE.CircleGeometry(BROTH_R, 64), new THREE.MeshStandardMaterial({ map: brothTexture(), roughness: .18, emissive: '#3a0e04', emissiveIntensity: .7 }));
   broth.rotation.x = -Math.PI / 2; broth.position.y = BROTH_Y; scene.add(broth);
@@ -276,12 +353,24 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     const sticks = new THREE.Group();
     for (const o of [-.05, .05]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(.018, .025, 1.05, 6), M('#e9c58f')); st.rotation.z = Math.PI / 2; st.position.z = o; sticks.add(st); }
     const [sx, sz] = rot([.75, 3.75], r); sticks.position.set(sx, .05, sz); sticks.rotation.y = -r * Math.PI / 2 + Math.PI / 2 + .25; scene.add(sticks);
+    { // tea cup with a saucer, and a little sauce dish
+      const [cx, cz] = rot([-1.3, 3.55], r), [dx, dz] = rot([1.5, 3.55], r);
+      const P = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; scene.add(m); return m; };
+      P(new THREE.CylinderGeometry(.3, .26, .03, 20), M('#fff4e2'), cx, .02, cz);
+      P(new THREE.CylinderGeometry(.19, .15, .22, 18), M('#fff4e2', { roughness: .35 }), cx, .14, cz);
+      P(new THREE.CircleGeometry(.165, 18), M('#c98a3c', { roughness: .2 }), cx, .252, cz).rotation.x = -Math.PI / 2;
+      P(new THREE.TorusGeometry(.08, .025, 6, 12), M('#fff4e2'), cx + .2, .14, cz);
+      P(new THREE.CylinderGeometry(.24, .17, .08, 18), M('#ffffff', { roughness: .35 }), dx, .04, dz);
+      P(new THREE.CircleGeometry(.2, 18), M('#8e1d10', { roughness: .2 }), dx, .083, dz).rotation.x = -Math.PI / 2;
+      P(new THREE.SphereGeometry(.035, 8, 8), M('#5cb85c'), dx + .05, .09, dz - .03);
+      P(new THREE.SphereGeometry(.03, 8, 8), M('#fff4e2'), dx - .07, .09, dz + .04);
+    }
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.6, .05, 8, 40), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }));
     ring.rotation.x = Math.PI / 2; ring.position.set(bx, .1, bz); scene.add(ring);
     // discard tile
     const [tx, tz] = TILE[r];
     const tile = new THREE.Group(); tile.position.set(tx, .08, tz); scene.add(tile);
-    const plate = new THREE.Mesh(new THREE.CylinderGeometry(.82, .82, .04, 36), M('#ff8fab', { roughness: .5 }));
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(.74, .74, .04, 36), M('#ff8fab', { roughness: .5 }));
     plate.position.set(tx, .02, tz); plate.scale.set(.86, 1, 1.08); plate.receiveShadow = true; scene.add(plate);
     const stack = new THREE.Mesh(new THREE.BoxGeometry(.78, 1, 1.07), M('#efe3cf')); stack.castShadow = true; stack.receiveShadow = true;
     const top = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
@@ -289,7 +378,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     const halo = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 1.32), new THREE.MeshBasicMaterial({ color: '#7ed3b2', transparent: true, opacity: 0 }));
     halo.rotation.x = -Math.PI / 2; halo.userData.tile = r;
     tile.add(stack, halo, top);
-    return { av, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, take: false, hover: 0, sq: 1, bs: r === 2 ? 1.2 : 1, key: '' };
+    return { av, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, take: false, hover: 0, sq: 1, bs: 1.1, key: '' };
   });
 
   // the pot is the draw pile: its rim glows when you can take from it
@@ -373,7 +462,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   // ---------- sizing & camera: fit the table between the top bar and the hand ----------
   let W = 0, H = 0, camBase = new THREE.Vector3(), camLook = new THREE.Vector3(0, 0, 0), shake = 0;
   const DIR = new THREE.Vector3(0, 1, 1.1).normalize();
-  const FIT = [[0, 2.4, -5.7], [0, 0, 4.7], [-6.3, 1.6, 0], [6.3, 1.6, 0]].map(p => new THREE.Vector3(...p));
+  const FIT = [[0, 2.75, -5.7], [0, 0, 4.7], [-6.3, 1.6, 0], [6.3, 1.6, 0]].map(p => new THREE.Vector3(...p));
   const v = new THREE.Vector3();
   const toPx = p => { v.copy(p).project(camera); return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H]; };
   function place(D) { camera.position.copy(DIR).multiplyScalar(D); camera.lookAt(camLook); camera.updateMatrixWorld(); }
@@ -428,7 +517,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       if (st.t >= st.dur) { st.t = 0; st.dur = 3 + Math.random() * 2; const a = Math.random() * 6.28, r = Math.random() * 1.1; st.x = Math.cos(a) * r; st.z = Math.sin(a) * r; }
       const p = st.t / st.dur;
       st.s.position.set(st.x + Math.sin(T * .7 + st.dur) * .25 * p, BROTH_Y + .1 + p * 3.4, st.z);
-      st.s.scale.setScalar(.7 + p * 2.2); st.s.material.opacity = Math.sin(p * Math.PI) * .2 * Math.min(boil, 1.8);
+      st.s.scale.setScalar(.7 + p * 2.2); st.s.material.opacity = Math.sin(p * Math.PI) * .11 * Math.min(boil, 1.8);
     }
     for (const f of floaters) {
       if (f.flying) continue;
@@ -439,7 +528,10 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     seats.forEach((s, r) => {
       s.hop = Math.max(0, s.hop - dt * 2.2);
       s.av.position.y = -.2 + Math.abs(Math.sin(s.hop * Math.PI * 2)) * .5 * s.hop + (s.active ? Math.abs(Math.sin(T * 3)) * .08 : 0);
-      s.av.userData.head.rotation.z = Math.sin(T * 1.3 + r) * .06;
+      s.av.userData.head.rotation.z = Math.sin(T * 1.3 + r) * .08;
+      s.av.userData.head.rotation.x = Math.sin(T * .9 + r * 2) * .04;
+      const blink = (T + r * 1.37) % 3.8 < .13 ? .12 : 1;
+      for (const e of s.av.userData.eyes) e.scale.y = e.userData.sy * blink;
       s.ring.material.opacity += ((s.active ? .9 : 0) - s.ring.material.opacity) * .15;
       s.ring.scale.setScalar(1 + Math.sin(T * 4) * .05);
       const hv = hover?.tile === r; s.hover += ((hv ? 1 : 0) - s.hover) * .2;

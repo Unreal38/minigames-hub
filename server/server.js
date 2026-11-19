@@ -93,7 +93,7 @@ function joinRoom(c, r) {
   if (r.players.length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
   if (r.players.length >= 8) return send(c, { t: 'err', msg: 'That table is full.' });
   r.players.push(c.token); c.room = r.code;
-  sendRoom(r); sendState(r); broadcastRooms();
+  sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r); broadcastRooms();
 }
 
 function startGame(r) {
@@ -112,7 +112,7 @@ function handle(c, m) {
     case 'rooms': return send(c, { t: 'rooms', rooms: publicRooms() });
     case 'create': {
       if (!GAMES[m.game]) return;
-      const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], G: null, created: Date.now(),
+      const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], G: null, chat: [], created: Date.now(),
         opts: { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
       rooms.set(r.code, r); joinRoom(c, r);
       if (m.solo) startGame(r);
@@ -146,10 +146,19 @@ function handle(c, m) {
       if (GAMES[r.game].act(r.G, s, m.a)) sendState(r);
       return;
     }
+    case 'chat': {
+      const r = rooms.get(c.room); if (!r) return;
+      const now = Date.now(); if (now - (c.lastChat || 0) < 500) return; c.lastChat = now;
+      const text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
+      const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, text };
+      r.chat.push(msg); if (r.chat.length > 40) r.chat.shift();
+      for (const t of r.players) send(clients.get(t), msg);
+      return;
+    }
     case 'react': { // little food emote shown over your seat
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastReact || 0) < 700) return; c.lastReact = now;
-      const k = Math.max(0, Math.min(7, m.k | 0));
+      const k = Math.max(0, Math.min(11, m.k | 0));
       for (const t of r.players) send(clients.get(t), { t: 'react', id: c.id, k });
       return;
     }
@@ -175,7 +184,7 @@ attach(server, '/ws', sock => {
       const r = rooms.get(c.room);
       if (r) {
         if (r.G) { const s = r.G.seats.findIndex(x => x.id === c.id); if (s >= 0 && GAMES[r.game].setAway(r.G, s, false)) {} }
-        sendRoom(r); sendState(r);
+        sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r);
       } else { c.room = null; send(c, { t: 'rooms', rooms: publicRooms() }); }
       return;
     }
