@@ -251,3 +251,13 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .autherr { color: #b3261e !important; font-weight: 700; }
 .btn.ghost-ink { background: transparent; border-color: transparent; box-shadow: none; text-decoration: underline; }
 .btn.ghost-ink:hover:not(:disabled) { box-shadow: none; transform: none; }
+.boardnote { margin: 0; font-size: 14px; color: var(--muted); }
+.chatbtns { display: flex; gap: 8px; align-items: flex-end; }
+body:has(.lobby) .scorebtn { display: none; }
+.scorepanel { height: auto; max-height: min(430px, 62vh); }
+.scorebody { padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.scorepanel .board li { background: #f6e3cb; } .scorepanel .board .pos { color: var(--chili); }
+.scorepanel .board .num, .scorepanel .boardnote { color: #7a5545; } .scorepanel .board .num b { color: var(--ink); }
+.scorepanel .board li:first-child { outline-color: var(--ink); }
+@media (max-width: 760px) { body.in-game .scorebtn .lbl { display: none; } body.in-game .scorebtn { padding: 6px 10px; min-height: 40px; } }
+@media (max-width: 1150px) { body:has(.mr) .scorebtn .lbl { display: none; } }
