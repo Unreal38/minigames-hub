@@ -191,10 +191,13 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
   border-radius: calc(var(--w) * .15); box-shadow: 0 5px 0 var(--ink); display: flex; flex-direction: column; align-items: center;
   overflow: hidden; flex: none; color: var(--ink); padding: 0; position: relative;
 }
-.card .band { width: 100%; background: var(--c); color: #fff; font-family: var(--fd); font-weight: 600; font-size: calc(var(--w) * .12); text-align: center; padding: 2px 0; border-bottom: 3px solid var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card::before { content: ''; position: absolute; left: 9%; right: 9%; top: 23%; aspect-ratio: 1; border-radius: 50%; background: var(--c); opacity: .17; }
+.card > * { position: relative; }
+.card .band { width: 100%; background: linear-gradient(#ffffff38, #ffffff00 60%), var(--c); color: #fff; font-family: var(--fd); font-weight: 600; font-size: calc(var(--w) * .12); text-align: center; padding: 2px 0; border-bottom: 3px solid var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 #3b221955; }
 .card svg { width: 82%; height: auto; margin-top: 2%; }
 .card .nm { font-family: var(--fd); font-weight: 600; font-size: calc(var(--w) * .13); text-align: center; line-height: 1.05; padding: 0 3px; }
-.card.back { background: var(--chili); justify-content: center; }
+.card.back { background: radial-gradient(circle, #ffffff2e 18%, transparent 20%) 0 0 / calc(var(--w) * .2) calc(var(--w) * .2), var(--chili); justify-content: center; }
+.card.back::before { left: 12%; right: 12%; top: auto; background: #fff4e2; opacity: .2; }
 .card.back svg { width: 80%; margin: 0; }
 
 /* keyframes */
