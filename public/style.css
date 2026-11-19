@@ -90,10 +90,15 @@ section h2 { font-size: 32px; margin-bottom: 18px; }
 .empty { border: 3px dashed var(--dash); border-radius: 18px; padding: 22px; text-align: center; color: var(--muted); }
 footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; border-top: 3px solid var(--plum2); margin-top: 48px; }
 
+.gcard .pic.marblepic { background: #3d1f33; padding: 0; }
+.gcard .pic.marblepic svg { width: 100%; height: 100%; display: block; }
+.marblepic .roll { animation: bob 2.2s ease-in-out infinite; animation-delay: var(--d); }
+
 /* ---------- modal ---------- */
 .modal { position: fixed; inset: 0; background: #160a12cc; backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; animation: fade .2s both; }
 .sheet { background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 26px; box-shadow: 0 9px 0 var(--deep); padding: 28px; width: min(460px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 18px; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
 .sheet h2 { font-size: 30px; color: var(--ink); }
+.sheet .rules + h2 { margin-top: 6px; }
 .sheet p { margin: 0; color: #6b4a3c; }
 .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
 .swatches button { width: 46px; height: 46px; border-radius: 50%; border: 3px solid var(--ink); background: var(--c); cursor: pointer; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }

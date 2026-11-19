@@ -4,6 +4,8 @@ A small self-hosted website where friends pick a username (no accounts), open or
 
 **Game #1: Hot Pot**, a fan-made take on the Palia Hotpot card minigame. It has cute SVG food cards, a 3D table (three.js) with a bubbling split-broth pot, sound effects, emotes and a results screen.
 
+**Game #2: Marble Rush**, a 3D marble race nobody steers. Every player gets a marble wearing their avatar, bets pretend coins on the winner and watches a randomly generated track (pins, spinners, trapdoors, boost pads) do the rest. It has chaos events, one banana per heat to slip up a rival, and a knockout mode that drops the slowest marble each heat.
+
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
 - Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
 - No dependencies: plain Node.js (20+) server with its own WebSocket code. There is no `npm install` step.
@@ -14,7 +16,7 @@ A small self-hosted website where friends pick a username (no accounts), open or
 
 ```bash
 node server/server.js          # http://localhost:8080
-npm test                       # simulated 2 players + 2 bots play a full game
+npm test                       # a full Hot Pot game with simulated players, then Marble Rush races
 ```
 
 Open two browser windows (or one normal and one private window) to play against yourself.
@@ -27,6 +29,16 @@ Open two browser windows (or one normal and one private window) to play against 
 - After drawing, if all 9 cards make 3 sets, press **Let's Eat!** to win (+90 pts).
 - After 30 rounds with no winner, everyone scores the sets in their hand.
 - The host chooses Chill or Sharp bots and a turn timer (20/30/45 s or off). When the timer runs out, the turn is played for you.
+
+## Marble Rush rules
+
+- 1 to 8 players. House marbles fill the track up to 4, 6 or 8 (host's choice).
+- Betting is open for 20 seconds, or until the host starts the race. A right pick pays your stake times the number of marbles, and the owner of the winning marble gets 20 coins on top.
+- Everyone starts with 100 pretend coins. They stay with the table from race to race, and anyone who goes broke is spotted 30.
+- Each player has one banana per heat: it slows one marble of your choice for a moment.
+- Chaos events (gravity flip, turbo, marblequake, switcheroo) can be switched off by the host.
+- Knockout runs short heats on a fresh track each time. The last marble home is out until one is left.
+- The server runs the physics and streams positions, so everyone sees the same race and nobody can cheat from devtools.
 
 ## Deploy on an Oracle Cloud server
 
@@ -90,11 +102,11 @@ Visit `https://example.com`. To invite friends, host a table and press **Copy in
 ## Adding another minigame
 
 ```
-server/games/<id>.js           # create(players, opts, prev), act(G, seat, a), tick(G, now), view(G, seat), setAway(G, seat, away), meta
+server/games/<id>.js           # create(players, opts, prev), act(G, seat, a), tick(G, now), view(G, seat), setAway(G, seat, away), meta, optional cleanOpts(opts)
 public/games/<id>/client.js    # mount(appEl, ctx) -> { update(state), room(room), react(msg), destroy() }
 ```
 
-Register the server module in `GAMES` in `server/server.js`, and the client in `GAMES` in `public/app.js`, then add a card for it on the hub. Lobbies, codes, reconnects, bots-on-disconnect and emotes work for every game.
+Register the server module in `GAMES` in `server/server.js`, and the client in `GAMES` in `public/app.js` (name, table settings, rules), then add a card for it on the hub. Lobbies, codes, reconnects, bots-on-disconnect and emotes work for every game.
 
 ## Project layout
 
@@ -102,11 +114,14 @@ Register the server module in `GAMES` in `server/server.js`, and the client in `
 server/server.js          static files, lobbies, game loop
 server/ws.js              tiny WebSocket implementation (RFC 6455)
 server/games/hotpot.js    Hot Pot engine + bots (authoritative)
+server/games/marbles.js   Marble Rush physics, bets, chaos and knockout (authoritative)
 public/index.html         single page app shell
 public/app.js             username, hub, open tables, waiting room
 public/games/hotpot/      rules (shared with server), SVG food icons, HUD client, 3D scene, styles
+public/games/marbles/     track generator (shared with server), HUD client, 3D scene, styles
 deploy/                   systemd unit + Caddyfile
-test/smoke.js             end-to-end server test
+test/smoke.js             end-to-end Hot Pot test
+test/marbles.js           Marble Rush races on a fake clock + a table over WebSocket
 ```
 
 Hot Pot is an unofficial fan project inspired by Palia's Hotpot minigame, and isn't affiliated with Singularity 6.

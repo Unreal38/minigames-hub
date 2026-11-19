@@ -43,3 +43,19 @@ export function tableArt(W = 520, H = 440, icons = [0, 4, 6, 10, 13, 16, 3, 15])
   <circle cx="${cx - P * .55}" cy="${cy + P * .25}" r="4" fill="#7ed37a"/>
   ${bubbles}${steam}</svg>`;
 }
+
+// Three marbles tumbling down a ramp, for the Marble Rush card.
+export function marbleArt() {
+  const ball = (x, y, r, c, d) => `<g class="roll" style="--d:${d}s;transform-origin:${x}px ${y}px">
+    <circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="${ink}" stroke-width="3"/>
+    <path d="M${x - r * .7} ${y + r * .3}q${r * .5} ${-r * .9} ${r * 1.3} ${-r * .8}" fill="none" stroke="#fff" stroke-width="${r * .22}" stroke-linecap="round" opacity=".7"/>
+    <circle cx="${x - r * .28}" cy="${y + r * .1}" r="${r * .11}" fill="${ink}"/><circle cx="${x + r * .28}" cy="${y + r * .1}" r="${r * .11}" fill="${ink}"/>
+    <path d="M${x - r * .16} ${y + r * .36}q${r * .16} ${r * .2} ${r * .32} 0" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round"/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Three smiling marbles rolling down a ramp">
+  <rect width="320" height="150" fill="#3d1f33"/>
+  <circle cx="40" cy="26" r="7" fill="#ffb547"/><circle cx="278" cy="36" r="6" fill="#ff8fab"/><circle cx="168" cy="16" r="5" fill="#7ed3b2"/>
+  <path d="M-10 66L330 132v30H-10z" fill="#f6e3c5" stroke="${ink}" stroke-width="4"/>
+  <path d="M-10 54L330 120" stroke="#e5543b" stroke-width="12" stroke-linecap="round"/><path d="M-10 54L330 120" stroke="${ink}" stroke-width="4" fill="none" transform="translate(0 -7)"/>
+  <circle cx="206" cy="94" r="8" fill="#7ed3b2" stroke="${ink}" stroke-width="3"/>
+  ${ball(70, 46, 24, '#ff8fab', 0)}${ball(150, 66, 20, '#ffb547', .25)}${ball(262, 82, 26, '#9aa8ff', .5)}</svg>`;
+}
