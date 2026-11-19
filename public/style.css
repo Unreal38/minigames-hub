@@ -265,3 +265,4 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .autherr { color: #b3261e !important; font-weight: 700; }
 .btn.ghost-ink { background: transparent; border-color: transparent; box-shadow: none; text-decoration: underline; }
 .btn.ghost-ink:hover:not(:disabled) { box-shadow: none; transform: none; }
+.board li { flex-wrap: wrap; row-gap: 2px; } .board li > b { min-width: 5em; }
