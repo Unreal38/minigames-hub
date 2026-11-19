@@ -2,6 +2,7 @@
 import { potLogo, tableArt, marbleArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
+import { itemHtml } from './games/snackswap/art.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS, EYES, MOUTHS, OUTFITS, DETAILS } from './avatar.js';
@@ -41,6 +42,34 @@ const GAMES = {
       <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>
       <li><b>Knockout</b>: the last marble home each heat is out. Handy for deciding who pays.</li>
       <li>Coins are pretend and stay with the table. If you go broke, the house spots you a few.</li>
+    </ol>`,
+  },
+  snackswap: {
+    name: 'Snack Swap', load: () => import('./games/snackswap/client.js'), start: 'Deal the cards',
+    host: { rounds: 8, timer: 45, chaos: 'on', field: 4, mix: 'all' }, solo: { rounds: 5, timer: 45, chaos: 'on', field: 4, mix: 'all' },
+    openSeat: 'A bot sits here if nobody joins', seats: r => Math.max(r.opts.field || 3, r.players.length, 3),
+    settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 5, '5')}${pill('rounds', 8, '8')}${pill('rounds', 12, '12')}</div></div>
+      <div class="opt"><b>Time to pick and vote</b><div class="pills">${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 60, '60s')}${pill('timer', 90, '90s')}</div></div>
+      <div class="opt"><b>Chaos cards</b><div class="pills">${pill('chaos', 'on', 'On')}${pill('chaos', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots fill the table up to</b><div class="pills">${pill('field', 0, 'No bots')}${pill('field', 4, '4')}${pill('field', 6, '6')}${pill('field', 8, '8')}</div></div>
+      <div class="opt"><b>Prompts</b><div class="pills">${pill('mix', 'all', 'Ours + built-in')}${pill('mix', 'custom', 'Only ours')}</div></div>`,
+    // everyone at the table can add prompts, not just the host
+    lobby: (r, host) => {
+      const list = r.opts.prompts || [];
+      return `<div class="prompts"><b>Your own prompts <small>${list.length ? `${list.length} added · they come up first` : 'inside jokes welcome'}</small></b>
+        <form data-form="prompt"><input class="field" maxlength="90" placeholder="e.g. What ${esc(r.players[0]?.name || 'Kuba')} keeps in the fridge" autocomplete="off" aria-label="New prompt"><button class="btn m">Add</button></form>
+        ${list.length ? `<ul>${list.map((p, i) => `<li><span>${esc(p.text)}</span><small>${esc(p.by)}</small>${host || p.id === st.id ? `<button type="button" data-act="delprompt" data-i="${i}" aria-label="Remove prompt">×</button>` : ''}</li>`).join('')}</ul>`
+          : '<p class="none">Nobody has added one yet. Anyone at the table can.</p>'}</div>`;
+    },
+    howto: `A prompt comes up and everyone secretly plays one silly item from their hand. The cards are shown without names, you vote for the funniest (not your own) and every vote is a point.`,
+    rules: `<ol>
+      <li>Everyone holds <b>6 item cards</b>. Each round a <b>prompt</b> comes up.</li>
+      <li>Secretly <b>play one card</b> that answers the prompt best, or worst.</li>
+      <li>The cards are shown <b>without names</b>. Vote for the funniest. You can't vote for your own.</li>
+      <li><b>Every vote is a point.</b> Most points after the last round wins.</li>
+      <li>You get <b>one chaos card per game</b>: <b>Swap Hands</b> with someone before you play, <b>Double Down</b> to score double this round, or <b>Steal a Vote</b> from the most popular card while voting.</li>
+      <li>In the waiting room <b>anyone can add prompts</b>. Yours come up first.</li>
+      <li>Too slow? A random card from your hand goes in for you.</li>
     </ol>`,
   },
 };
@@ -199,6 +228,14 @@ function renderHub() {
             <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="marbles">Play with bots</button></div>
           </div>
         </article>
+        <article class="gcard">
+          <div class="pic snackpic">${itemHtml(6, { w: 70 })}${itemHtml(15, { w: 78 })}${itemHtml(30, { w: 70 })}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Snack Swap</h3><span class="tag">2–8 players</span></div>
+            <p>A prompt, a hand of silly items and a secret vote for the funniest answer. Add your own inside jokes.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="snackswap">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="snackswap">Play with bots</button></div>
+          </div>
+        </article>
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
       </div>
     </section>
@@ -229,6 +266,7 @@ function renderLobby() {
   const host = r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = gm.seats(r);
   const seats = Array.from({ length: max }, (_, i) => r.players[i] || null);
   const watchers = r.players.slice(max);
+  const draft = $app.querySelector('[data-form="prompt"] input'), draftText = draft?.value, draftFocus = draft && document.activeElement === draft;
   const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${label}</button>`;
   $app.innerHTML = `${topbar()}
   <main class="wrap lobby">
@@ -247,6 +285,7 @@ function renderLobby() {
           <div><b>${esc(p.name)}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => esc(p.name)).join(', ')}</p>` : ''}
+      ${gm.lobby ? gm.lobby(r, host) : ''}
       <div class="row" style="margin-top:6px">
         ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">Waiting for the host to start…</span>`}
         <button type="button" class="btn big ghost" data-act="leave">Leave</button>
@@ -260,6 +299,8 @@ function renderLobby() {
       <div class="howto"><b>How to win</b><br>${gm.howto} <a href="#" data-act="rules">Full rules</a></div>
     </aside>
   </main>`;
+  const input = $app.querySelector('[data-form="prompt"] input'); // keep a half-typed prompt when the room updates
+  if (input && draftText) { input.value = draftText; if (draftFocus) input.focus(); }
 }
 
 // ---------- chat ----------
@@ -391,7 +432,8 @@ $app.addEventListener('click', e => {
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });
-  else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
+  else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field', 'rounds'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
+  else if (act === 'delprompt') send({ t: 'room-act', a: { t: 'delPrompt', i: +b.dataset.i } });
   else if (act === 'copy') {
     const link = `${location.origin}/#${st.room.code}`;
     (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast('Invite link copied!'), () => toast(`Share this: ${esc(link)}`));
@@ -399,6 +441,13 @@ $app.addEventListener('click', e => {
 });
 $app.addEventListener('change', e => { if (e.target.dataset.act === 'priv') send({ t: 'opts', priv: !e.target.checked }); });
 $app.addEventListener('submit', e => {
+  if (e.target.dataset.form === 'prompt') {
+    e.preventDefault();
+    const inp = e.target.querySelector('input'), text = inp.value.trim();
+    if (text.length < 3) { sfx.bad(); toast('Prompts need at least three letters', true); return; }
+    sfx.click(); send({ t: 'room-act', a: { t: 'addPrompt', text } }); inp.value = ''; inp.focus();
+    return;
+  }
   if (e.target.dataset.form !== 'join') return;
   e.preventDefault();
   const code = e.target.querySelector('input').value.toUpperCase().trim();
