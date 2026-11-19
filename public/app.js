@@ -4,6 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
+import { progress } from './ranks.js';
 import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS, EYES, MOUTHS, OUTFITS, DETAILS } from './avatar.js';
 
 export const SITE = 'Cozy Table';
@@ -54,7 +55,7 @@ const LS = {
 const st = {
   name: LS.get('ct_name', ''), color: LS.get('ct_color', COLORS[Math.random() * COLORS.length | 0]),
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
-  token: LS.get('ct_token', ''), id: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null,
+  token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
 let pendingJoin = (location.hash.slice(1) || '').toUpperCase();
@@ -89,6 +90,21 @@ function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
+  } else if (m.t === 'me') {
+    st.me = m.me;
+    let adopted = false;
+    if (adoptLook && m.me.user) { // just logged in: wear the look saved with the account
+      adoptLook = false; adopted = true;
+      st.name = m.me.name || st.name; st.color = m.me.color || st.color; if (m.me.av) st.av = cleanAv(m.me.av);
+      LS.set('ct_name', st.name); LS.set('ct_color', st.color); LS.set('ct_av', JSON.stringify(st.av));
+    }
+    if (m.gain) {
+      toast(`${m.gain.win ? 'Win! ' : ''}+${m.gain.xp} XP`);
+      if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
+    }
+    if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby();
+  } else if (m.t === 'auth') {
+    onAuth?.(m);
   } else if (m.t === 'rooms') {
     st.rooms = m.rooms || [];
     if (st.view === 'hub') renderTables();
@@ -155,10 +171,42 @@ function go(view) {
   else if (view === 'lobby') renderLobby();
 }
 
+let adoptLook = false, onAuth = null;
+const lvChip = (lv, icon, rank) => `<span class="lv" title="${esc(rank)}, level ${lv}">${icon} ${lv}</span>`;
+const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
+
+// "Your progress" card on the hub: rank, XP bar, lifetime numbers and the account buttons.
+function meCard() {
+  const m = st.me; if (!m) return '';
+  const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
+  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id]).map(([id, g]) =>
+    `<li><b>${GAMES[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'win' : 'wins'} in ${g.games} · best ${g.best} pts</span></li>`).join('');
+  return `<div class="mecard">
+    <div class="rankrow">
+      <span class="rankicon">${m.icon}</span>
+      <div class="rankname"><b>${esc(m.rank)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
+      <div class="acct">${m.user
+        ? `<span>Signed in as <b>${esc(m.user)}</b></span><button type="button" class="btn sm ghost" data-act="logout">Log out</button>`
+        : `<span>Playing as a guest. Progress stays on this browser.</span><button type="button" class="btn sm m" data-act="account" data-mode="register">Create account</button><button type="button" class="btn sm w" data-act="account" data-mode="login">Log in</button>`}</div>
+    </div>
+    <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
+    <div class="xpnote"><span>${m.into} / ${m.need} XP to level ${m.level + 1}</span><span>${m.xp} XP in total</span></div>
+    <div class="stats">
+      <div><b>${m.wins}</b><span>Wins</span></div><div><b>${m.games}</b><span>Games</span></div>
+      <div><b>${rate}%</b><span>Win rate</span></div><div><b>${m.pts}</b><span>Points</span></div>
+    </div>
+    ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">Finish a game to earn XP. Wins are worth the most.</p>`}
+  </div>`;
+}
+function paintMe() {
+  const card = document.getElementById('me-card'); if (card) card.innerHTML = meCard();
+  const chip = document.querySelector('.me .lvslot'); if (chip) chip.innerHTML = meChip();
+}
+
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
-  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<small>· change</small></button>
+  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
 </header>`;
 
 function renderHub() {
@@ -167,7 +215,7 @@ function renderHub() {
     <section class="hero">
       <div>
         <h1>Pull up a chair.<br>The pot's already bubbling.</h1>
-        <p>Tiny games for you and your friends. No accounts, no downloads: pick a name, share a four-letter code and play. Empty seats get friendly bots.</p>
+        <p>Tiny games for you and your friends. No downloads and no sign-up needed: pick a name, share a four-letter code and play. Empty seats get friendly bots.</p>
         <div class="row">
           <button type="button" class="btn big" data-act="host">Host a table</button>
           <button type="button" class="btn big w" data-act="solo">Play with bots</button>
@@ -179,6 +227,10 @@ function renderHub() {
         </form>
       </div>
       <div class="art">${tableArt()}</div>
+    </section>
+    <section id="progress" style="margin-bottom:44px">
+      <h2>Your progress</h2>
+      <div id="me-card">${meCard()}</div>
     </section>
     <section id="games">
       <h2>Games on the menu</h2>
@@ -244,7 +296,7 @@ function renderLobby() {
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
           ${avatarHtml(p.color, p.av, 64)}
-          <div><b>${esc(p.name)}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
+          <div><b>${esc(p.name)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => esc(p.name)).join(', ')}</p>` : ''}
       <div class="row" style="margin-top:6px">
@@ -253,6 +305,14 @@ function renderLobby() {
       </div>
     </div>
     <aside>
+      <h2 style="font-size:26px;margin:0">Table scoreboard</h2>
+      ${r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
+          <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36)}
+          <b>${esc(e.name)}</b>
+          <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>
+        </li>`).join('')}</ol>
+        <p style="margin:0;font-size:14px;color:var(--muted)">${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.</p>`
+        : `<p style="margin:0;font-size:15px;color:var(--muted)">No games finished yet. Wins and points add up here for as long as the table stays open.</p>`}
       <h2 style="font-size:26px;margin:0">Table settings</h2>
       ${gm.settings(pill)}
       <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
@@ -337,6 +397,7 @@ function openProfile(first = false) {
         <div class="crow wide"><b>Face detail</b><div class="pills">${pills(7, DETAILS)}</div></div>
       </div>
       <button class="btn big">${first ? "Let's go" : 'Save'}</button>
+      ${first ? '<button type="button" class="btn ghost-ink" data-login>I already have an account</button>' : ''}
     </form>`, !first);
   const nm = el.querySelector('#nm'), pv = el.querySelector('#pv');
   const paint = () => {
@@ -351,6 +412,7 @@ function openProfile(first = false) {
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-k]');
     if (b) { if (b.dataset.k === 'color') color = b.dataset.v; else av[+b.dataset.k] = +b.dataset.v; sfx.pop(); paint(); return; }
+    if (e.target.closest('[data-login]')) { close(); openAccount('login'); return; }
     if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paint(); pv.firstElementChild?.classList.add('spin'); }
   });
   el.querySelector('form').addEventListener('submit', e => {
@@ -362,6 +424,41 @@ function openProfile(first = false) {
     sfx.click(); close();
     if (pendingJoin) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     go(st.view === 'game' ? 'game' : st.view);
+  });
+}
+
+function openAccount(mode = 'register') {
+  const reg = mode === 'register';
+  const { el, close } = modal(`
+    <h2>${reg ? 'Create an account' : 'Log in'}</h2>
+    <p>${reg ? 'Just a username and a password, no email. Your rank, XP and wins so far move into the account, and you can log in from any device.'
+      : 'Pick up your rank, XP and wins on this device.'}</p>
+    <form class="authform">
+      <label for="au">Username</label>
+      <input class="field" id="au" maxlength="16" required autocomplete="username" autocapitalize="none" spellcheck="false">
+      <label for="ap">Password</label>
+      <input class="field" id="ap" type="password" minlength="6" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">
+      <p class="autherr" role="alert" hidden></p>
+      ${reg ? '<p style="font-size:14px">There is no password reset, so pick one you will remember.</p>' : ''}
+      <button class="btn big">${reg ? 'Create account' : 'Log in'}</button>
+      <button type="button" class="btn ghost-ink" data-swap>${reg ? 'I already have an account' : 'I need an account'}</button>
+    </form>`);
+  const err = el.querySelector('.autherr'), btn = el.querySelector('.btn.big');
+  setTimeout(() => el.querySelector('#au').focus(), 50);
+  el.querySelector('[data-swap]').addEventListener('click', () => { close(); onAuth = null; openAccount(reg ? 'login' : 'register'); });
+  el.querySelector('form').addEventListener('submit', e => {
+    e.preventDefault();
+    if (ws?.readyState !== 1) { err.textContent = 'Not connected. Try again in a moment.'; err.hidden = false; return; }
+    btn.disabled = true; err.hidden = true;
+    onAuth = m => {
+      btn.disabled = false;
+      if (m.err) { sfx.bad(); err.textContent = m.err; err.hidden = false; return; }
+      onAuth = null; close(); sfx.join();
+      toast(reg ? 'Account created. Your progress is saved!' : 'Welcome back!');
+      if (st.view === 'lobby') renderLobby();
+    };
+    if (!reg) adoptLook = true;
+    send({ t: mode, user: el.querySelector('#au').value.trim(), pass: el.querySelector('#ap').value });
   });
 }
 
@@ -383,6 +480,8 @@ $app.addEventListener('click', e => {
   else if (act === 'scroll') document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' });
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
+  else if (act === 'account') openAccount(b.dataset.mode);
+  else if (act === 'logout') { send({ t: 'logout' }); toast('Logged out. This browser is a guest again.'); }
   else if (act === 'host' || act === 'solo') {
     if (!st.name) return openProfile(true);
     const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';

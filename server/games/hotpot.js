@@ -167,3 +167,10 @@ export function view(G, s) {
     ev: G.ev.map(e => (e.t === 'draw' && e.src < 0 && e.s !== s && !end) ? { ...e, c: -1 } : e),
   };
 }
+
+// Per-seat outcome of a finished game, for lobby scoreboards and player stats.
+export function results(G) {
+  if (G.ph !== 'end' || !G.res) return null;
+  const pts = G.res.map(r => r.pts), top = Math.max(...pts);
+  return G.seats.map((_, i) => ({ pts: pts[i], win: G.win >= 0 ? G.win === i : top > 0 && pts[i] === top }));
+}

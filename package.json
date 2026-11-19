@@ -7,6 +7,6 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node server/server.js",
-    "test": "node test/smoke.js && node test/marbles.js"
+    "test": "node test/smoke.js && node test/marbles.js && node test/persist.js"
   }
 }

@@ -8,6 +8,9 @@ User=cozy
 WorkingDirectory=/opt/cozy-table
 Environment=PORT=8080
 Environment=HOST=127.0.0.1
+# accounts, stats and open lobbies are saved here (systemd creates /var/lib/cozy-table for the cozy user)
+StateDirectory=cozy-table
+Environment=DATA_DIR=/var/lib/cozy-table
 ExecStart=/usr/bin/node server/server.js
 Restart=always
 RestartSec=2
