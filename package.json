@@ -1,0 +1,12 @@
+{
+  "name": "cozy-table",
+  "version": "1.0.0",
+  "description": "Tiny multiplayer minigames for friends. First game: Hot Pot.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node test/smoke.js"
+  }
+}

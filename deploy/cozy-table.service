@@ -1,0 +1,21 @@
+[Unit]
+Description=Cozy Table minigames server
+After=network.target
+
+[Service]
+Type=simple
+User=cozy
+WorkingDirectory=/opt/cozy-table
+Environment=PORT=8080
+Environment=HOST=127.0.0.1
+ExecStart=/usr/bin/node server/server.js
+Restart=always
+RestartSec=2
+# light hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
