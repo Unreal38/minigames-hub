@@ -324,7 +324,7 @@ const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" 
 const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
     <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36)}
     <b>${esc(e.name)}</b>
-    <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>
+    <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
   </li>`).join('')}</ol>
   <p class="boardnote">${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.</p>`
   : `<p class="boardnote">No games finished yet. Wins and points add up here for as long as the table stays open.</p>`;
