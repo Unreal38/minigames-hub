@@ -4,6 +4,7 @@ A small self-hosted website where friends pick a username (no accounts), open or
 
 **Game #1: Hot Pot**, a fan-made take on the Palia Hotpot card minigame. It has cute SVG food cards, a 3D table (three.js) with a bubbling split-broth pot, sound effects, emotes and a results screen.
 
+- Avatar creator: outfit, skin, hair and extras, shown as portraits in the UI and as the 3D characters at the table.
 - No dependencies: plain Node.js (20+) server with its own WebSocket code. There is no `npm install` step.
 - The server owns the game state. Each player only receives their own hand, so you can't peek at other hands in devtools.
 - Reconnects are handled: refresh the page and you're back in your seat. If you're gone for 30 s, a bot plays for you until you return.
@@ -20,7 +21,7 @@ Open two browser windows (or one normal and one private window) to play against 
 ## Hot Pot rules
 
 - 72 cards: 6 categories (colours) × 3 ingredients × 4 copies. Everyone holds 8.
-- On your turn, **draw** the top of the deck or the top card of another player's discard pile, then **discard** one.
+- On your turn, **draw** a hidden card from the pot or the top card of another player's discard pile, then **discard** one.
 - A **set** is 3 identical ingredients (30 pts) or 3 different ingredients of the same colour (15 pts).
 - After drawing, if all 9 cards make 3 sets, press **Let's Eat!** to win (+90 pts).
 - After 30 rounds with no winner, everyone scores the sets in their hand.

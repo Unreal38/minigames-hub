@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
+import { cleanAv } from '../public/avatar.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -51,12 +52,13 @@ function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
-    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, online: !!c.sock }; }),
+    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock }; }),
   };
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
-  const i = roomInfo(r); return { code: i.code, gameName: i.gameName, state: i.state, n: i.players.length, max: i.max,
-    host: i.players.find(p => p.id === i.host)?.name || '?' };
+  const i = roomInfo(r), h = i.players.find(p => p.id === i.host);
+  return { code: i.code, gameName: i.gameName, state: i.state, n: i.players.length, max: i.max,
+    host: h?.name || '?', hostColor: h?.color, hostAv: h?.av };
 });
 
 function send(c, msg) { c?.sock?.send(msg); }
@@ -96,14 +98,14 @@ function joinRoom(c, r) {
 
 function startGame(r) {
   const humans = r.players.map(t => clients.get(t)).slice(0, GAMES[r.game].meta.maxPlayers);
-  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color })), r.opts, r.G);
+  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G);
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
 function handle(c, m) {
   switch (m.t) {
     case 'profile': {
-      const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color);
+      const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
       const r = rooms.get(c.room); if (r) { if (!r.G) sendRoom(r); }
       return;
     }
@@ -168,7 +170,7 @@ attach(server, '/ws', sock => {
       if (c) { if (c.sock && c.sock !== sock) c.sock.close(4000); }
       else { c = { token, id: crypto.randomBytes(6).toString('hex'), room: null }; clients.set(token, c); }
       c.sock = sock; c.lastSeen = Date.now();
-      c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color);
+      c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
       send(c, { t: 'welcome', token, id: c.id, name: c.name });
       const r = rooms.get(c.room);
       if (r) {

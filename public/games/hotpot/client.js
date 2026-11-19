@@ -3,7 +3,8 @@ import { CATS, kindOf, catOf, cardName, canWin, bestSets, setVal } from './rules
 import { iconSvg, backSvg } from './icons.js';
 import { cardHtml } from './cards.js';
 import { sfx } from '../../sfx.js';
-import { tableArt } from '../../art.js';
+import { tableArt, potLogo } from '../../art.js';
+import { avatarHtml } from '../../avatar.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const REACTS = [16, 3, 10, 13, 0, 7];
@@ -36,8 +37,7 @@ export function mount(app, ctx) {
       <div class="turn" id="hp-turn">
         <svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" class="rb"/><circle cx="22" cy="22" r="18" class="rf" id="hp-ring"/><text x="22" y="27" text-anchor="middle" id="hp-ringt"></text></svg>
         <span id="hp-msg"></span></div>
-      <div class="deck"><button type="button" class="deckbtn" data-a="deck" aria-label="Draw from the deck">
-        <span class="stack"><span class="card back">${backSvg()}</span><span class="card back">${backSvg()}</span></span><span class="btn">Draw</span></button></div>
+      <div class="deck" hidden><button type="button" class="deckbtn btn" data-a="deck" aria-label="Draw from the pot">${potLogo(30, '#3b2219', '#e5543b', '#fff4e2', '#3b2219')}<span>Draw</span></button></div>
       <div class="mine" id="hp-mine"></div>
       <div class="hand" id="hp-hand"></div>
       <div class="sets" id="hp-sets"></div>
@@ -58,7 +58,7 @@ export function mount(app, ctx) {
     scene = m.createScene(canvas, {
       onTile: r => canTake(abs(r)) && take(abs(r)),
       onDeck: () => myDraw() && drawDeck(),
-      onLayout: pts => { layout = pts; placeBadges(); },
+      onLayout: (pts, info) => { layout = pts; potPt = info.pot; placeBadges(); },
     });
     root.classList.add('has3d');
     if (S) syncScene();
@@ -68,9 +68,10 @@ export function mount(app, ctx) {
     root.querySelector('.flatbg').innerHTML = tableArt(700, 470, []);
   });
 
-  let layout = null;
+  let layout = null, potPt = null;
   // In 3D, name tags follow the avatars: under the side seats, beside the far seat.
   function placeBadges() {
+    if (potPt) Object.assign(root.querySelector('.deck').style, { left: potPt.x + 'px', top: potPt.y + 'px' });
     const on = layout && innerWidth >= 760;
     for (let r = 1; r < 4; r++) {
       const el = root.querySelector(`.opp[data-r="${r}"]`);
@@ -98,7 +99,7 @@ export function mount(app, ctx) {
   function render() {
     if (!S) return;
     $('hp-round').textContent = `Round ${Math.min(S.round, S.maxR)} / ${S.maxR}`;
-    $('hp-deckc').textContent = `Deck ${S.dc}`;
+    $('hp-deckc').textContent = `In the pot: ${S.dc}`;
     $('hp-code').textContent = R?.code || '';
     for (let r = 1; r < 4; r++) {
       const i = abs(r), p = S.seats[i], el = root.querySelector(`.opp[data-r="${r}"]`);
@@ -106,7 +107,7 @@ export function mount(app, ctx) {
       el.className = `opp${active ? ' active' : ''}`;
       el.dataset.r = r;
       const status = active ? (S.step === 'draw' ? 'choosing…' : 'discarding…') : p.bot ? (p.human ? 'away (bot)' : 'bot') : 'waiting';
-      el.innerHTML = `<span class="avatar" style="--c:${esc(p.color)};--s:46px">${esc(p.name[0]?.toUpperCase())}</span>
+      el.innerHTML = `${avatarHtml(p.color, p.av, 46)}
         <div class="who"><b>${nameOf(i)}</b><span>${status}${active ? '<i class="dotty"><i></i><i></i><i></i></i>' : ''}</span>
         <span class="mini" aria-label="${p.n} cards">${Array.from({ length: Math.min(p.n, 9) }, () => '<i></i>').join('')}</span></div>
         <div class="pile">${p.top >= 0 ? cardHtml(p.top, { tag: 'button', cls: canTake(i) ? 'takeable' : '', attrs: `data-a="take" data-i="${i}" ${canTake(i) ? '' : 'tabindex="-1"'}` }) : '<span class="slot">empty</span>'}
@@ -116,14 +117,14 @@ export function mount(app, ctx) {
     let msg;
     if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You' : nameOf(S.win)} called Let's Eat!` : 'Out of rounds!';
     else if (S.me < 0) msg = `Watching · ${nameOf(S.turn)}'s turn`;
-    else if (myDraw()) msg = 'Your turn: draw a card';
+    else if (myDraw()) msg = 'Your turn: draw from the pot';
     else if (myDisc()) msg = canWin(S.hand) ? 'Three sets! Eat, or keep going' : 'Tap a card to discard';
     else msg = `${nameOf(S.turn)}'s turn`;
     $('hp-msg').innerHTML = msg;
     $('hp-turn').classList.toggle('myturn', myTurn());
     $('hp-turn').classList.toggle('notimer', !tEnd || S.ph !== 'play');
     root.querySelector('.deckbtn').disabled = !myDraw();
-    root.querySelector('.deck').classList.toggle('hot', myDraw());
+    root.querySelector('.deck').hidden = !myDraw();
     const eat = root.querySelector('.eat');
     eat.hidden = !(myDisc() && canWin(S.hand));
     // my discard pile
@@ -176,9 +177,9 @@ export function mount(app, ctx) {
 
   function syncScene() {
     if (!scene || !S) return;
-    scene.setSeats([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { color: p.color, n: p.n, me: r === 0 && S.me >= 0 }; }), S.ph === 'play' ? rel(S.turn) : -1);
+    scene.setSeats([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { color: p.color, av: p.av, n: p.n, me: r === 0 && S.me >= 0 }; }), S.ph === 'play' ? rel(S.turn) : -1);
     scene.setTiles([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { c: p.top, n: p.dn }; }));
-    scene.setInteract({ tiles: new Set([1, 2, 3].filter(r => canTake(abs(r)))), deck: myDraw(), deckCount: S.dc });
+    scene.setInteract({ tiles: new Set([1, 2, 3].filter(r => canTake(abs(r)))), deck: myDraw() });
   }
 
   // ----- events -> animation & sound -----
@@ -196,7 +197,7 @@ export function mount(app, ctx) {
     } else if (e.t === 'timeout') {
       if (e.s === S.me) { sfx.bad(); ctx.toast("Time's up! We played that turn for you.", true); }
     } else if (e.t === 'shuffle') {
-      ctx.toast('Discards shuffled back into the deck'); sfx.draw();
+      ctx.toast('Discards stirred back into the pot'); sfx.draw();
     } else if (e.t === 'eat') {
       if (e.s === S.me) sfx.win(); else sfx.lose();
       scene?.celebrate(rel(e.s), S.hands?.[e.s] || []);
@@ -236,7 +237,7 @@ export function mount(app, ctx) {
       <h2>${S.win >= 0 ? (S.win === S.me ? 'You win, chef!' : `${nameOf(S.win)} wins!`) : 'The pot ran dry!'}</h2>
       <p>${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.</p>
       <ol class="score">${order.map(({ p, i, r }, n) => `<li class="${i === S.win ? 'won' : ''}" style="animation-delay:${n * 120}ms">
-        <span class="avatar" style="--c:${esc(p.color)};--s:44px">${esc(p.name[0]?.toUpperCase())}</span>
+        ${avatarHtml(p.color, p.av, 48)}
         <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b>
         <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : '<em>no sets</em>'}</div></div>
         <strong>${r.pts}<small>${r.bonus ? ` incl. +${r.bonus}` : ''}</small></strong></li>`).join('')}</ol>

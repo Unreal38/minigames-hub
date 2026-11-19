@@ -3,6 +3,7 @@ import { potLogo, tableArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
+import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS } from './avatar.js';
 
 export const SITE = 'Cozy Table';
 const COLORS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -16,6 +17,7 @@ const LS = {
 };
 const st = {
   name: LS.get('ct_name', ''), color: LS.get('ct_color', COLORS[Math.random() * COLORS.length | 0]),
+  av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   token: LS.get('ct_token', ''), id: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -37,7 +39,7 @@ function connect() {
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   ws.onopen = () => {
     retry = 0; document.getElementById('conn').hidden = true;
-    ws.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color }));
+    ws.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av }));
   };
   ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
   ws.onclose = () => {
@@ -107,7 +109,7 @@ function go(view) {
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
-  <button type="button" class="me" data-act="profile"><span class="avatar" style="--c:${st.color};--s:36px">${esc((st.name || '?')[0].toUpperCase())}</span>${esc(st.name || 'Pick a name')}<small>· change</small></button>
+  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<small>· change</small></button>
 </header>`;
 
 function renderHub() {
@@ -158,7 +160,7 @@ function renderTables() {
   const el = document.getElementById('tables-list'); if (!el) return;
   if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
   el.innerHTML = st.rooms.map(r => `<div class="trow">
-    <span class="avatar" style="--c:var(--mint);--s:44px">${esc(r.host[0]?.toUpperCase())}</span>
+    ${avatarHtml(r.hostColor, r.hostAv, 46)}
     <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
@@ -185,7 +187,7 @@ function renderLobby() {
         </div>
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}">
-          <span class="avatar" style="--c:${esc(p.color)};--s:56px">${esc(p.name[0]?.toUpperCase())}</span>
+          ${avatarHtml(p.color, p.av, 64)}
           <div><b>${esc(p.name)}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>A bot sits here if nobody joins</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => esc(p.name)).join(', ')}</p>` : ''}
@@ -200,7 +202,7 @@ function renderLobby() {
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>
       <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
       ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">Only the host can change settings.</p>`}
-      <div class="howto"><b>How to win</b><br>Hold 8 cards. Each turn draw one (from the deck or a friend's discard), then discard one. Make three sets of three, either three of the same ingredient or three different ingredients of one colour, and call “Let's Eat!”. <a href="#" data-act="rules">Full rules</a></div>
+      <div class="howto"><b>How to win</b><br>Hold 8 cards. Each turn draw one (from the pot or a friend's discard), then discard one. Make three sets of three, either three of the same ingredient or three different ingredients of one colour, and call “Let's Eat!”. <a href="#" data-act="rules">Full rules</a></div>
     </aside>
   </main>`;
 }
@@ -218,29 +220,45 @@ function modal(html, dismissable = true) {
 }
 
 function openProfile(first = false) {
-  let color = st.color;
+  let color = st.color, av = st.av.slice();
+  const sw = (k, list, sel) => list.map((c, i) => `<button type="button" style="--c:${c}" aria-label="Option ${i + 1}" aria-pressed="false" data-k="${k}" data-v="${sel === 'hex' ? c : i}"></button>`).join('');
+  const pills = (k, list) => list.map((n, i) => `<button type="button" aria-pressed="false" data-k="${k}" data-v="${i}">${n}</button>`).join('');
   const { el, close } = modal(`
-    <h2>${first ? 'What should we call you?' : 'Your name tag'}</h2>
-    <p>${first ? 'No account needed. Friends will see this name at the table.' : 'Change how you show up at the table.'}</p>
-    <form data-form="profile" style="display:flex;flex-direction:column;gap:18px">
-      <div class="preview"><span class="avatar" id="pv" style="--c:${color};--s:64px">${esc((st.name || '?')[0].toUpperCase())}</span>
-        <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname" style="flex:1"></div>
-      <div class="swatches" role="group" aria-label="Pick a colour">${COLORS.map(c => `<button type="button" style="--c:${c}" aria-label="Colour ${c}" aria-pressed="${c === color}" data-col="${c}"></button>`).join('')}</div>
+    <h2>${first ? 'Who is joining the table?' : 'Your avatar'}</h2>
+    <p>${first ? 'No account needed. Pick a name and a look; friends see both at the table.' : 'Change your name and how you look at the table.'}</p>
+    <form data-form="profile" class="creator">
+      <div class="preview"><span id="pv"></span>
+        <div class="namecol"><label for="nm">Name</label>
+          <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname">
+          <button type="button" class="btn w sm" data-rand>Surprise me</button></div></div>
+      <div class="crow"><b>Outfit</b><div class="swatches">${sw('color', COLORS, 'hex')}</div></div>
+      <div class="crow"><b>Skin</b><div class="swatches">${sw(0, SKINS)}</div></div>
+      <div class="crow"><b>Hair</b><div class="pills">${pills(1, HAIRS)}</div></div>
+      <div class="crow"><b>Hair colour</b><div class="swatches">${sw(2, HAIR_COLS)}</div></div>
+      <div class="crow"><b>Extra</b><div class="pills">${pills(3, EXTRAS)}</div></div>
       <button class="btn big">${first ? "Let's go" : 'Save'}</button>
     </form>`, !first);
   const nm = el.querySelector('#nm'), pv = el.querySelector('#pv');
-  setTimeout(() => nm.focus(), 50);
-  nm.addEventListener('input', () => { pv.textContent = (nm.value.trim() || '?')[0].toUpperCase(); });
-  el.querySelectorAll('[data-col]').forEach(b => b.addEventListener('click', () => {
-    color = b.dataset.col; sfx.pop();
-    el.querySelectorAll('[data-col]').forEach(x => x.setAttribute('aria-pressed', x === b));
-    pv.style.setProperty('--c', color);
-  }));
+  const paint = () => {
+    pv.innerHTML = avatarHtml(color, av, 112);
+    el.querySelectorAll('[data-k]').forEach(b => {
+      const k = b.dataset.k;
+      b.setAttribute('aria-pressed', k === 'color' ? b.dataset.v === color : av[+k] === +b.dataset.v);
+    });
+  };
+  paint();
+  if (first) setTimeout(() => nm.focus(), 50);
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-k]');
+    if (b) { if (b.dataset.k === 'color') color = b.dataset.v; else av[+b.dataset.k] = +b.dataset.v; sfx.pop(); paint(); return; }
+    if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paint(); pv.firstElementChild?.classList.add('spin'); }
+  });
   el.querySelector('form').addEventListener('submit', e => {
     e.preventDefault();
     const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16); if (!n) return;
-    st.name = n; st.color = color; LS.set('ct_name', n); LS.set('ct_color', color);
-    send({ t: 'profile', name: n, color });
+    st.name = n; st.color = color; st.av = cleanAv(av);
+    LS.set('ct_name', n); LS.set('ct_color', color); LS.set('ct_av', JSON.stringify(st.av));
+    send({ t: 'profile', name: n, color, av: st.av });
     sfx.click(); close();
     if (pendingJoin) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     go(st.view === 'game' ? 'game' : st.view);
@@ -252,7 +270,7 @@ export function openRules() {
     <h2>How to play Hot Pot</h2>
     <div class="rules"><ol>
       <li>Everyone holds <b>8 cards</b>. Each card is an ingredient in one of six colours.</li>
-      <li>On your turn, <b>draw one</b>: the top of the deck, or the top card a friend just discarded.</li>
+      <li>On your turn, <b>draw one</b>: a surprise ingredient from the pot, or the top card a friend just discarded.</li>
       <li>Then <b>discard one</b> card so you're back to 8.</li>
       <li>A <b>set</b> is three identical ingredients (30 pts) or three <b>different</b> ingredients of the same colour (15 pts).</li>
       <li>Hold <b>three sets</b> after drawing and press <b>Let's Eat!</b> to win (+90 pts).</li>

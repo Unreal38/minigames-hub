@@ -2,14 +2,15 @@
 import * as THREE from 'three';
 import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
+import { SKINS, HAIR_COLS, cleanAv } from '../../avatar.js';
 
 const INK = '#3b2219';
 const TABLE_R = 4.4, POT_Y = .53, BROTH_Y = POT_Y + .52, BROTH_R = 1.47;
 const SEAT = [[0, 5.7], [-5.7, 0], [0, -5.7], [5.7, 0]];
 const rot = ([x, z], r) => { for (let i = 0; i < r; i++) [x, z] = [-z, x]; return [x, z]; };
 const TILE = [0, 1, 2, 3].map(r => rot([1.0, 2.85], r));
+TILE[2] = [-2.2, -3.2]; // the far player's discard sits beside the pot, not hidden behind it
 const BOWL = [0, 1, 2, 3].map(r => rot([-.1, 3.75], r));
-const DECK = [-1.15, 2.85];
 const ease = t => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 const back = t => { const c = 1.7; return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2; };
 
@@ -129,23 +130,45 @@ function ingredient(kind) {
 }
 
 // ---------- avatar ----------
-function avatar(color) {
-  const g = new THREE.Group(), body = M(color, { roughness: .7 }), skin = M('#ffe3c8', { roughness: .8 });
+function avatar(color, avIn) {
+  const [sk, hair, hc, acc] = cleanAv(avIn);
+  const g = new THREE.Group(), hg = new THREE.Group(); hg.position.y = 1.5;
+  const body = M(color, { roughness: .7 }), skin = M(SKINS[sk], { roughness: .8 }), hm = M(HAIR_COLS[hc], { roughness: .75 });
+  const white = M('#ffffff', { roughness: .6 }), ink = M(sk >= 3 ? '#1c0f0a' : '#2a1712', { roughness: .3 });
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); hg.add(m); return m; };
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.62, .7, 6, 18), body); torso.position.y = .1; torso.castShadow = true;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(.6, 24, 18), skin); head.position.y = 1.5; head.castShadow = true;
-  const bun = new THREE.Mesh(new THREE.SphereGeometry(.22, 16, 12), body); bun.position.set(0, 2.12, -.08);
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(.62, 24, 12, 0, Math.PI * 2, 0, Math.PI * .42), body); hair.position.y = 1.53; hair.rotation.x = -.35;
-  const eyeM = M('#2a1712', { roughness: .3 }), blushM = new THREE.MeshBasicMaterial({ color: '#ff8a9a', transparent: true, opacity: .7 });
-  const parts = [torso, head, bun, hair];
-  for (const s of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(.075, 12, 10), eyeM); eye.position.set(s * .2, 1.52, .54); eye.scale.set(1, 1.25, .6);
-    const bl = new THREE.Mesh(new THREE.CircleGeometry(.1, 16), blushM); bl.position.set(s * .34, 1.36, .5); bl.rotation.y = s * .55;
-    parts.push(eye, bl);
+  add(new THREE.SphereGeometry(.6, 24, 18), skin, 0, 0, 0).castShadow = true;
+  // hair
+  if (hair !== 5) add(new THREE.SphereGeometry(.63, 24, 12, 0, Math.PI * 2, 0, Math.PI * .42), hm, 0, .02, 0).rotation.x = -.35;
+  if (hair === 0 && acc !== 1) add(new THREE.SphereGeometry(.22, 16, 12), hm, 0, .64, -.08);
+  if (hair === 2) for (const s of [-1, 1]) add(new THREE.SphereGeometry(.24, 16, 12), hm, s * .66, -.02, -.05);
+  if (hair === 3) for (let i = 0; i < 6; i++) {
+    const a = i / 6 * Math.PI * 2, c = add(new THREE.ConeGeometry(.17, .42, 8), hm, Math.sin(a) * .3, .6, Math.cos(a) * .26 - .08);
+    c.rotation.set(Math.cos(a) * .55, 0, -Math.sin(a) * .55);
   }
-  const mouth = new THREE.Mesh(new THREE.TorusGeometry(.07, .022, 6, 12, Math.PI), eyeM); mouth.position.set(0, 1.38, .58); mouth.rotation.z = Math.PI;
-  parts.push(mouth);
-  g.add(...parts);
-  g.userData = { body, head };
+  if (hair === 3) add(new THREE.ConeGeometry(.17, .46, 8), hm, 0, .7, -.08);
+  if (hair === 4) add(new THREE.SphereGeometry(.64, 20, 14), hm, 0, -.3, -.2).scale.set(1.02, 1.25, .8);
+  // face
+  const blushM = new THREE.MeshBasicMaterial({ color: '#ff8a9a', transparent: true, opacity: .7 });
+  for (const s of [-1, 1]) {
+    add(new THREE.SphereGeometry(.075, 12, 10), ink, s * .2, .02, .54).scale.set(1, 1.25, .6);
+    add(new THREE.CircleGeometry(.1, 16), blushM, s * .34, -.14, .5).rotation.y = s * .55;
+  }
+  add(new THREE.TorusGeometry(.07, .022, 6, 12, Math.PI), ink, 0, -.12, .58).rotation.z = Math.PI;
+  // extras
+  if (acc === 1) { add(new THREE.CylinderGeometry(.4, .37, .3, 20), white, 0, .62, -.04); add(new THREE.SphereGeometry(.5, 18, 14), white, 0, .98, -.04).scale.set(1, .72, 1); }
+  if (acc === 2) {
+    for (const s of [-1, 1]) add(new THREE.TorusGeometry(.12, .022, 8, 20), ink, s * .2, .02, .6);
+    add(new THREE.CylinderGeometry(.02, .02, .16, 6), ink, 0, .02, .62).rotation.z = Math.PI / 2;
+  }
+  if (acc === 3) {
+    const pink = M('#ff5d8f', { roughness: .5 });
+    for (const s of [-1, 1]) add(new THREE.SphereGeometry(.16, 12, 10), pink, .3 + s * .17, .56, .2).scale.set(1, .8, .5);
+    add(new THREE.SphereGeometry(.08, 10, 8), M('#ff8fab'), .3, .56, .24);
+  }
+  if (acc === 4) for (const s of [-1, 1]) add(new THREE.ConeGeometry(.17, .36, 12), hair === 5 ? body : hm, s * .36, .58, 0).rotation.z = -s * .35;
+  g.add(torso, hg);
+  g.userData = { head: hg };
   return g;
 }
 
@@ -258,28 +281,25 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     // discard tile
     const [tx, tz] = TILE[r];
     const tile = new THREE.Group(); tile.position.set(tx, .08, tz); scene.add(tile);
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(.82, .82, .04, 36), M('#ff8fab', { roughness: .5 }));
+    plate.position.set(tx, .02, tz); plate.scale.set(.86, 1, 1.08); plate.receiveShadow = true; scene.add(plate);
     const stack = new THREE.Mesh(new THREE.BoxGeometry(.78, 1, 1.07), M('#efe3cf')); stack.castShadow = true; stack.receiveShadow = true;
     const top = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
     top.rotation.x = -Math.PI / 2; top.userData.tile = r;
     const halo = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 1.32), new THREE.MeshBasicMaterial({ color: '#7ed3b2', transparent: true, opacity: 0 }));
     halo.rotation.x = -Math.PI / 2; halo.userData.tile = r;
     tile.add(stack, halo, top);
-    return { av, bowl, ring, tile, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, take: false, hover: 0 };
+    return { av, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, take: false, hover: 0, sq: 1, bs: r === 2 ? 1.2 : 1, key: '' };
   });
 
-  // deck
-  const deck = new THREE.Group(); deck.position.set(DECK[0], .08, DECK[1]); deck.rotation.y = .12; scene.add(deck);
-  const deckBox = new THREE.Mesh(new THREE.BoxGeometry(.78, 1, 1.07), M('#c43e27')); deckBox.castShadow = true;
-  const deckTop = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
-  deckTop.rotation.x = -Math.PI / 2; deckTop.userData.deck = true;
-  const deckHalo = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 1.32), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }));
-  deckHalo.rotation.x = -Math.PI / 2; deckHalo.userData.deck = true;
-  deck.add(deckBox, deckHalo, deckTop);
-  let deckActive = false, deckHover = 0, deckCount = 40;
+  // the pot is the draw pile: its rim glows when you can take from it
+  const potHalo = new THREE.Mesh(new THREE.TorusGeometry(1.72, .08, 10, 64), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }));
+  potHalo.rotation.x = Math.PI / 2; potHalo.position.y = POT_Y + .74; scene.add(potHalo);
+  pot.userData.deck = true; broth.userData.deck = true;
+  let deckActive = false, deckHover = 0;
   const setStack = (box, topM, halo, n) => {
     const h = .015 + Math.min(n, 40) * .006; box.scale.y = h; box.position.y = h / 2; topM.position.y = h + .002; halo.position.y = .004;
   };
-  setStack(deckBox, deckTop, deckHalo, deckCount);
 
   // ---------- tweens ----------
   const tweens = [];
@@ -287,9 +307,9 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
 
   const handPos = r => r === 0 ? new THREE.Vector3(0, 2.6, 6.2) : new THREE.Vector3(SEAT[r][0] * .78, 1.4, SEAT[r][1] * .78);
   const tilePos = r => new THREE.Vector3(TILE[r][0], .1 + seats[r].top.position.y, TILE[r][1]);
-  const deckPos = () => new THREE.Vector3(DECK[0], .1 + deckTop.position.y, DECK[1]);
+  const deckPos = () => new THREE.Vector3((Math.random() - .5) * .8, BROTH_Y + .15, (Math.random() - .5) * .8);
 
-  function flyCard(from, to, kind, faceUp, delay = 0, done) {
+  function flyCard(from, to, kind, faceUp, delay = 0, done, grow = false) {
     const g = new THREE.Group();
     const front = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(kind), roughness: .6, transparent: true }));
     const backM = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
@@ -302,9 +322,16 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       const e = ease(Math.min(1, tt));
       g.position.lerpVectors(from, to, e); g.position.y += Math.sin(e * Math.PI) * lift;
       g.rotation.set(r0 + (r1 - r0) * e, 0, Math.sin(e * Math.PI) * .5);
+      if (grow) g.scale.setScalar(.2 + .8 * Math.min(1, e * 2.4));
     }, () => { scene.remove(g); front.material.dispose(); backM.material.dispose(); front.geometry.dispose(); done?.(); });
   }
-  function squash(obj) { tween(.35, t => { const s = 1 + Math.sin(t * Math.PI) * .18 * (1 - t); obj.scale.set(s, 1, s); }, () => obj.scale.set(1, 1, 1)); }
+  function squash(seat) { tween(.35, t => { seat.sq = 1 + Math.sin(t * Math.PI) * .2 * (1 - t); }, () => { seat.sq = 1; }); }
+  // an ingredient pops out of the broth whenever someone draws
+  function popIngredient(kind) {
+    const g = ingredient(kind >= 0 ? kind : Math.random() * 18 | 0); scene.add(g);
+    const a = Math.random() * 6.28, x = Math.cos(a) * .5, z = Math.sin(a) * .5;
+    tween(.6, t => { g.position.set(x, BROTH_Y + Math.sin(t * Math.PI) * 1.3, z); g.rotation.set(t * 5, t * 3, 0); g.scale.setScalar(1.7 * (1 - t * t) + .01); }, () => scene.remove(g));
+  }
   function puff(at, n = 6, big = 1) {
     for (let i = 0; i < n; i++) {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: '#fff4e2', transparent: true, opacity: .5, depthWrite: false }));
@@ -323,7 +350,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
 
   // ---------- input ----------
   const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
-  const pickables = () => [...seats.flatMap(s => [s.top, s.halo]), deckTop, deckHalo];
+  const pickables = () => [...seats.flatMap(s => [s.top, s.halo]), pot, broth];
   function pick(e) {
     const rc = canvas.getBoundingClientRect();
     ptr.set((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
@@ -375,7 +402,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       const [px, py] = toPx(new THREE.Vector3(x, r === 2 ? 2.4 : -.4, z));
       return { x: px, y: py - (r === 2 ? 0 : 0) };
     });
-    onLayout?.(pts, { w, h });
+    const [potX, potY] = toPx(new THREE.Vector3(0, BROTH_Y + .1, 0));
+    onLayout?.(pts, { w, h, pot: { x: potX, y: potY } });
   }
 
   // ---------- loop ----------
@@ -417,11 +445,12 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       const hv = hover?.tile === r; s.hover += ((hv ? 1 : 0) - s.hover) * .2;
       s.halo.material.opacity += ((s.take ? .55 + Math.sin(T * 5) * .3 : 0) - s.halo.material.opacity) * .2;
       s.tile.position.y = .08 + (s.take ? .06 + Math.sin(T * 4 + r) * .04 : 0) + s.hover * .12;
-      s.tile.scale.x = s.tile.scale.z = 1 + s.hover * .1;
+      s.tile.scale.x = s.tile.scale.z = s.bs * s.sq * (1 + s.hover * .1);
     });
-    const dh = hover?.deck ? 1 : 0; deckHover += (dh - deckHover) * .2;
-    deckHalo.material.opacity += ((deckActive ? .6 + Math.sin(T * 5) * .3 : 0) - deckHalo.material.opacity) * .2;
-    deck.position.y = .08 + (deckActive ? .05 + Math.sin(T * 4) * .04 : 0) + deckHover * .14;
+    deckHover += ((hover?.deck ? 1 : 0) - deckHover) * .2;
+    potHalo.material.opacity += ((deckActive ? .65 + Math.sin(T * 5) * .3 : 0) - potHalo.material.opacity) * .2;
+    potHalo.scale.setScalar(1 + deckHover * .05 + (deckActive ? Math.sin(T * 4) * .015 : 0));
+    if (deckActive) boil = Math.max(boil, 1.6 + deckHover);
     bulbs.forEach((b, i) => b.scale.setScalar(1 + Math.sin(T * 2 + i) * .12));
     glow.intensity = 4.5 + Math.sin(T * 7) * .6 + Math.sin(T * 11.3) * .4;
     shake = Math.max(0, shake - dt * 2);
@@ -436,7 +465,14 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     setSeats(list, turnRel) {
       list.forEach((p, r) => {
         const s = seats[r];
-        s.av.userData.body.color.set(p.color); s.bowl.material.color.set(p.color);
+        const key = p.color + '|' + (p.av || []).join('.');
+        if (key !== s.key) {
+          s.key = key;
+          const [x, z] = SEAT[r];
+          scene.remove(s.av);
+          s.av = avatar(p.color, p.av); s.av.position.set(x, -.2, z); s.av.lookAt(0, -.2, 0); s.av.visible = r !== 0; scene.add(s.av);
+          s.bowl.material.color.set(p.color); s.plate.material.color.set(p.color);
+        }
         s.active = r === turnRel;
       });
     },
@@ -449,10 +485,9 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
         s.top.visible = t.c >= 0 && !s.pending;
       });
     },
-    setInteract({ tiles, deck: d, deckCount: n }) {
+    setInteract({ tiles, deck: d }) {
       seats.forEach((s, r) => { s.take = tiles.has(r); });
       deckActive = d;
-      if (n !== deckCount) { deckCount = n; setStack(deckBox, deckTop, deckHalo, n); deck.visible = n > 0; }
     },
     // from/to: 'deck' | 'tileN' | seat rel number
     fly(from, to, c, faceUp) {
@@ -460,16 +495,18 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       const kind = c >= 0 ? kindOf(c) : -1;
       const toTile = typeof to === 'string' && to.startsWith('tile') ? seats[+to.slice(4)] : null;
       if (toTile) { toTile.pending++; toTile.top.visible = false; }
+      const fromPot = from === 'deck';
+      if (fromPot) { popIngredient(kind); puff(new THREE.Vector3(0, BROTH_Y + .1, 0), 7, .9); boil = 3; }
       flyCard(P(from), P(to), kind, faceUp && kind >= 0, 0, () => {
         if (toTile) {
           toTile.pending = Math.max(0, toTile.pending - 1);
           if (!toTile.pending && toTile.c >= 0) toTile.top.visible = true;
-          squash(toTile.tile); puff(tilePos(+to.slice(4)), 6, .5);
+          squash(toTile); puff(tilePos(+to.slice(4)), 6, .5);
         }
-      });
+      }, fromPot);
     },
     hop(r) { seats[r].hop = 1; },
-    deal() { for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05); },
+    deal() { boil = 3; for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
     celebrate(r, hand) {
       const from = r === 0 ? new THREE.Vector3(0, 1.4, 4.4) : handPos(r);
       (hand.length ? hand : Array.from({ length: 9 }, () => Math.random() * 72 | 0)).forEach((c, i) => hopIngredient(kindOf(c), from, i * 110));

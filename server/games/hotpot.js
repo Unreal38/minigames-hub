@@ -1,6 +1,8 @@
 // Hot Pot: authoritative game engine + bots. Inspired by the Palia Hotpot card minigame.
 import { DECK_SIZE, HAND, PTS_WIN, bestSets, canWin, evalHand } from '../../public/games/hotpot/rules.js';
 
+import { randomAv } from '../../public/avatar.js';
+
 export const meta = { id: 'hotpot', name: 'Hot Pot', minPlayers: 1, maxPlayers: 4 };
 
 const BOT_NAMES = ['Miso', 'Bao', 'Yuzu', 'Sesame', 'Mochi', 'Pepper', 'Dango', 'Tamago'];
@@ -12,9 +14,9 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 export function create(players, opts = {}, prev = null) {
   const used = new Set(players.map(p => p.name));
   const names = shuffle(BOT_NAMES.filter(n => !used.has(n)));
-  const seats = players.slice(0, 4).map(p => ({ id: p.id, name: p.name, color: p.color, bot: false, human: true }));
+  const seats = players.slice(0, 4).map(p => ({ id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true }));
   let bi = 0;
-  while (seats.length < 4) seats.push({ id: null, name: names[bi], color: BOT_COLS[bi++ % BOT_COLS.length], bot: true, human: false });
+  while (seats.length < 4) seats.push({ id: null, name: names[bi], color: BOT_COLS[bi++ % BOT_COLS.length], av: randomAv(), bot: true, human: false });
   const deck = shuffle([...Array(DECK_SIZE).keys()]);
   const start = prev ? (prev.start + 1) % 4 : 0;
   const G = {
@@ -156,7 +158,7 @@ export function view(G, s) {
     ph: G.ph, gid: G.gid, me: s, turn: G.turn, step: G.step, round: G.round, maxR: G.maxR,
     tl: G.tEnd ? Math.max(0, G.tEnd - Date.now()) : 0, tLim: G.tLim, dc: G.deck.length, win: G.win,
     seats: G.seats.map((x, i) => ({
-      name: x.name, color: x.color, bot: x.bot, human: x.human, id: x.id,
+      name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id,
       n: G.hands[i].length, top: G.disc[i].at(-1) ?? -1, dn: G.disc[i].length,
     })),
     hand: s >= 0 ? G.hands[s] : [],
