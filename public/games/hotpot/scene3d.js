@@ -268,7 +268,31 @@ function ingredient(kind) {
         for (const [dx, dz] of [[0, 0], [.05, .03], [-.04, -.03]]) P(S(.013), '#8a6a4e', x + dx, .083 - Math.abs(dx) * .15, z + dz);
       });
   }
+  const F = IFACE[kind];
+  if (F) { // a tiny face on top, looking up at the players
+    const [x, y, z, k] = F, col = kind === 10 || kind === 11 ? '#fff4e2' : '#2a1712';
+    for (const s of [-1, 1]) P(S(.02), col, x + s * .045 * k, y, z - .012 * k, { roughness: .2 }).scale.set(k, .5 * k, 1.2 * k);
+    flat(P(IG('Torus', .022, .007, 4, 8, PI), col, x, y, z + .022 * k, { roughness: .2 })).scale.setScalar(k);
+  }
   return g;
+}
+// where each ingredient's face sits: [x, y, z, size]
+const IFACE = [[0, .022, .02, 1], [0, .04, 0, 1], [0, .056, 0, .9], [.13, .066, 0, .7], [.12, .1, .04, .8], [-.02, .09, 0, .8], [-.08, .066, 0, .7], [.02, .028, 0, 1], [.05, .036, 0, 1],
+  [.17, .046, 0, .6], [0, .1, .1, .8], [0, .036, 0, 1], [0, .1, .1, .7], [-.06, .034, 0, .9], null, [0, .108, 0, 1], [0, .074, .08, .8], [-.09, .088, 0, .7]];
+// little floating symbols for the pot's feelings
+function glyphTextures() {
+  const mk = draw => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const g = cv.getContext('2d'); g.lineJoin = g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 5; draw(g);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  };
+  const text = (ch, col) => g => { g.font = '700 46px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeText(ch, 32, 34); g.fillStyle = col; g.fillText(ch, 32, 34); };
+  return {
+    heart: mk(g => { g.beginPath(); g.moveTo(32, 54); g.bezierCurveTo(4, 36, 8, 10, 32, 22); g.bezierCurveTo(56, 10, 60, 36, 32, 54); g.closePath(); g.stroke(); g.fillStyle = '#ff6f8f'; g.fill(); }),
+    spark: mk(g => { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = i % 2 ? 9 : 26; g.lineTo(32 + Math.sin(a) * r, 32 - Math.cos(a) * r); } g.closePath(); g.stroke(); g.fillStyle = '#ffd36b'; g.fill(); }),
+    drop: mk(g => { g.beginPath(); g.moveTo(32, 8); g.bezierCurveTo(52, 34, 50, 56, 32, 56); g.bezierCurveTo(14, 56, 12, 34, 32, 8); g.closePath(); g.stroke(); g.fillStyle = '#8fd0ff'; g.fill(); }),
+    zzz: mk(text('z', '#fff4e2')), bang: mk(text('!', '#ffd36b')), note: mk(text('♪', '#7ed3b2')),
+  };
 }
 
 export function createScene(canvas, { onTile, onDeck, onLayout }) {
@@ -280,6 +304,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   scene.background = new THREE.Color('#2a1422'); scene.fog = new THREE.Fog('#2a1422', 17, 36);
   const camera = new THREE.PerspectiveCamera(38, 1, .1, 100);
 
+  let T = 0; // seconds since the scene started
   // lights: warm key, cool rim from behind, and soft reflections from a tiny painted room
   scene.environment = envTexture(renderer); scene.environmentIntensity = .3;
   scene.add(new THREE.HemisphereLight('#ffe2c4', '#3a1a2c', 1.25));
@@ -356,19 +381,31 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     h.rotation.set(Math.PI / 2, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2); h.castShadow = true;
     for (const z of [-.24, .24]) put(new THREE.SphereGeometry(.085, 12, 10), steel, s * 1.6, .82, z, potG).scale.x = .6;
   }
-  const potEyes = [];
+  // the pot's face: it looks around, changes expression and reacts to the game
+  const face = { eyes: [], arcs: [], blush: [], look: new THREE.Vector2(), turn: -1, glance: -1, glanceEnd: 0 };
   {
     const inkM = M('#3b2219', { roughness: .15 }), wh = M('#ffffff'), bl = new THREE.MeshBasicMaterial({ color: '#ff8a9a', transparent: true, opacity: .75 });
     for (const s of [-1, 1]) {
-      const e = put(new THREE.SphereGeometry(.12, 16, 12), inkM, s * .4, .58, 1.5, potG); e.scale.set(1, 1.25, .5);
-      const h = put(new THREE.SphereGeometry(.036, 8, 8), wh, s * .4 + .04, .64, 1.555, potG);
-      const h2 = put(new THREE.SphereGeometry(.019, 8, 8), wh, s * .4 - .035, .53, 1.555, potG);
-      put(new THREE.CircleGeometry(.15, 20), bl, s * .74, .43, 1.385, potG).rotation.y = s * .5;
-      potEyes.push(e, h, h2);
+      const eg = new THREE.Group(); eg.position.set(s * .4, .58, 1.5); potG.add(eg);
+      put(new THREE.SphereGeometry(.12, 16, 12), inkM, 0, 0, 0, eg).scale.set(1, 1.25, .5);
+      put(new THREE.SphereGeometry(.036, 8, 8), wh, .04, .06, .055, eg);
+      put(new THREE.SphereGeometry(.019, 8, 8), wh, -.035, -.05, .055, eg);
+      const arc = put(new THREE.TorusGeometry(.1, .03, 8, 14, Math.PI), inkM, s * .4, .55, 1.54, potG); arc.visible = false;
+      const b = put(new THREE.CircleGeometry(.15, 20), bl, s * .74, .43, 1.385, potG); b.rotation.y = s * .5;
+      face.eyes.push(eg); face.arcs.push(arc); face.blush.push(b);
     }
-    for (const e of potEyes) e.userData.sy = e.scale.y;
-    put(new THREE.TorusGeometry(.09, .026, 8, 14, Math.PI), inkM, 0, .45, 1.565, potG).rotation.z = Math.PI;
+    face.smile = put(new THREE.TorusGeometry(.09, .026, 8, 14, Math.PI), inkM, 0, .45, 1.565, potG); face.smile.rotation.z = Math.PI;
+    face.open = put(new THREE.SphereGeometry(.1, 14, 10), M('#8a2f2f', { roughness: .4 }), 0, .4, 1.53, potG); face.open.scale.set(1, 1, .35);
+    face.tongue = put(new THREE.SphereGeometry(.06, 10, 8), M('#ff8fa0'), 0, .35, 1.555, potG); face.tongue.scale.set(1, .6, .3);
+    face.oh = put(new THREE.TorusGeometry(.05, .022, 8, 14), inkM, 0, .41, 1.565, potG);
   }
+  // [eyes, mouth, blush]. eyes: open | wide | happy (closed, smiling) | sleep | wink. mouth: smile | open | oh
+  const MOODS = {
+    idle: ['open', 'smile', 1], peek: ['wide', 'smile', 1.1], happy: ['happy', 'open', 1.25], yum: ['happy', 'open', 1.3], wow: ['wide', 'oh', 1], love: ['happy', 'smile', 1.7],
+    sleepy: ['sleep', 'oh', 1], cry: ['sleep', 'oh', 1.15], fire: ['wide', 'open', 1.5], dizzy: ['wide', 'oh', 1.2], wink: ['wink', 'smile', 1.2], bang: ['wide', 'oh', 1],
+  };
+  const LOOK = [[0, -1], [-1, 0], [0, 1], [1, 0]]; // where each seat is, as the pot sees it
+  let mood = 'idle', moodEnd = 0, lastStir = 0, potSq = 0, potSqV = 0, potTilt = 0, potTiltV = 0, potYaw = 0, potSpin = 0, party = 0, laugh = 0, nextZ = 0, nextJump = 3;
   const broth = new THREE.Mesh(new THREE.CircleGeometry(BROTH_R, 64), new THREE.MeshStandardMaterial({ map: brothTexture(), roughness: .14, envMapIntensity: 1.3, emissive: '#3a0e04', emissiveIntensity: .7 }));
   broth.rotation.x = -Math.PI / 2; broth.position.y = BROTH_Y; scene.add(broth);
   // two slow layers of light drifting over the broth
@@ -409,11 +446,31 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     scene.add(s); steam.push({ s, t: Math.random() * 4, dur: 3 + Math.random() * 2, x: 0, z: 0 });
   }
 
+  // feelings: hearts, sparkles, tears, z's and the odd exclamation mark
+  const glyphs = glyphTextures();
+  const fx = Array.from({ length: 30 }, () => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glyphs.heart, transparent: true, depthWrite: false, fog: false }));
+    sp.visible = false; scene.add(sp); return { s: sp, t: 1, dur: 1 };
+  });
+  let fxI = 0;
+  const emit = (name, n = 1, o = {}) => {
+    for (let i = 0; i < n; i++) {
+      const p = fx[fxI++ % fx.length]; p.s.material.map = glyphs[name]; p.s.visible = false;
+      p.t = -i * (o.gap ?? .09); p.dur = o.dur ?? 1.3; p.ph = Math.random() * 6; p.rise = o.rise ?? 1.6; p.size = (o.size ?? .42) * (.8 + Math.random() * .4);
+      p.x = (o.x ?? 0) + (Math.random() - .5) * (o.spread ?? 2.4); p.y = o.y ?? BROTH_Y + .3; p.z = (o.z ?? .5) + (Math.random() - .5) * (o.spread ?? 2.4) * .5;
+    }
+  };
+  const overSeat = r => ({ x: SEAT[r][0] * .97, z: SEAT[r][1] * .97, y: 2.2, spread: .7, size: .5 });
+  const setMood = (name, dur = 1.6, kick = .9) => { mood = name; moodEnd = T + dur; lastStir = T; potSqV += kick; };
+  const glance = (r, dur = 1.4) => { face.glance = r; face.glanceEnd = T + dur; };
+  // tea steam
+  const wisps = [];
+
   // floating ingredients
   const floaters = [];
   const addFloater = (kind, at) => {
     const g = ingredient(kind);
-    const f = { g, a: Math.random() * 6.28, r: .35 + Math.random() * .8, sp: (.08 + Math.random() * .12) * (Math.random() < .5 ? -1 : 1), ph: Math.random() * 6, spin: (Math.random() - .5) * .8 };
+    const f = { g, a: Math.random() * 6.28, r: .35 + Math.random() * .8, sp: (.08 + Math.random() * .12) * (Math.random() < .5 ? -1 : 1), ph: Math.random() * 6, yaw: (Math.random() - .5) * .9, jump: 0 };
     if (at) g.position.copy(at); scene.add(g); floaters.push(f);
     if (floaters.length > 26) { const old = floaters.shift(); scene.remove(old.g); }
     return f;
@@ -455,6 +512,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       put(saucerGeo, ceramic2, cx, 0, cz).castShadow = true;
       put(cupGeo, ceramic2, cx, 0, cz).castShadow = true;
       put(new THREE.CircleGeometry(.178, 20), M('#c98a3c', { roughness: .12 }), cx, .225, cz).rotation.x = -Math.PI / 2;
+      for (let i = 0; i < 2; i++) { const w = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: '#fff4e2', transparent: true, opacity: 0, depthWrite: false })); scene.add(w); wisps.push({ s: w, x: cx, z: cz, ph: r * 1.7 + i * 1.1 }); }
       put(new THREE.TorusGeometry(.075, .022, 6, 14), ceramic, cx + hx, .15, cz + hz).rotation.y = ry + .28;
       put(dishGeo, ceramicW, dx, 0, dz).castShadow = true;
       put(new THREE.CircleGeometry(.205, 20), M('#8e1d10', { roughness: .15 }), dx, .058, dz).rotation.x = -Math.PI / 2;
@@ -474,7 +532,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     const halo = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 1.32), new THREE.MeshBasicMaterial({ color: '#7ed3b2', transparent: true, opacity: 0 }));
     halo.rotation.x = -Math.PI / 2; halo.userData.tile = r;
     tile.add(stack, halo, top);
-    return { av, stool, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, take: false, hover: 0, sq: 1, bs: 1.1, key: '' };
+    return { av, stool, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, nod: 0, look: 0, take: false, hover: 0, sq: 1, bs: 1.1, key: '' };
   });
 
   // the pot is the draw pile: its rim glows when you can take from it
@@ -593,7 +651,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   }
 
   // ---------- loop ----------
-  const clock = new THREE.Clock(); let raf = 0, T = 0;
+  const clock = new THREE.Clock(); let raf = 0;
   const loop = () => {
     raf = requestAnimationFrame(loop);
     resize();
@@ -619,13 +677,26 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     for (const f of floaters) {
       if (f.flying) continue;
       f.a += f.sp * dt;
-      f.g.position.set(Math.cos(f.a) * f.r, BROTH_Y + .03 + Math.sin(T * 1.6 + f.ph) * .025, Math.sin(f.a) * f.r);
-      f.g.rotation.y += f.spin * dt; f.g.rotation.z = Math.sin(T * 1.3 + f.ph) * .09;
+      const x = Math.cos(f.a) * f.r, z = Math.sin(f.a) * f.r;
+      let y = BROTH_Y + .03 + Math.sin(T * 1.6 + f.ph) * .025, flip = 0;
+      if (f.jump > 0) { // now and then one leaps out of the broth
+        f.jump = Math.max(0, f.jump - dt * 1.5); y += Math.sin((1 - f.jump) * Math.PI) * .6; flip = (1 - f.jump) * Math.PI * 2;
+        if (!f.jump) ripple(x, z, 1.8);
+      }
+      f.g.position.set(x, y, z);
+      f.g.rotation.set(flip, f.yaw + Math.sin(T * .6 + f.ph) * .4, Math.sin(T * 1.3 + f.ph) * .09);
+    }
+    if (T > nextJump && floaters.length) {
+      nextJump = T + 1.6 + Math.random() * 2.6;
+      const f = floaters[Math.random() * floaters.length | 0]; if (!f.flying && !f.jump) { f.jump = 1; ripple(Math.cos(f.a) * f.r, Math.sin(f.a) * f.r, 1.4); }
     }
     seats.forEach((s, r) => {
       s.hop = Math.max(0, s.hop - dt * 2.2);
       s.av.position.y = -.2 + Math.abs(Math.sin(s.hop * Math.PI * 2)) * .5 * s.hop + (s.active ? Math.abs(Math.sin(T * 3)) * .08 : 0);
-      animateAvatar(s.av, T, { seed: r, active: s.active, hop: s.hop });
+      s.nod = Math.max(0, s.nod - dt * 2.4);
+      const d = face.turn < 0 ? 0 : (face.turn - r + 4) % 4; // everyone glances at whoever's turn it is
+      s.look += ((d === 1 ? .45 : d === 3 ? -.45 : 0) - s.look) * .06;
+      animateAvatar(s.av, T, { seed: r, active: s.active, hop: s.hop, look: s.look, nod: Math.sin(s.nod * Math.PI) });
       s.ring.material.opacity += ((s.active ? .9 : 0) - s.ring.material.opacity) * .15;
       s.ring.scale.setScalar(1 + Math.sin(T * 4) * .05);
       const hv = hover?.tile === r; s.hover += ((hv ? 1 : 0) - s.hover) * .2;
@@ -650,12 +721,45 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       }
       fm.instanceMatrix.needsUpdate = true;
     }
-    // the pot blinks, and jiggles while the broth is worked up
-    const pk = Math.sin(T * 19) * Math.min(.012, (boil - 1) * .006), pb = (T + 1.9) % 5.2 < .14 ? .12 : 1;
+    // the pot: springy body, wandering eyes, moods
+    if (mood !== 'idle' && T > moodEnd) mood = 'idle';
+    const asleep = mood === 'idle' && !deckActive && T - lastStir > 16;
+    const [ey, mo, blushK] = MOODS[asleep ? 'sleepy' : mood === 'idle' && deckActive && deckHover > .4 ? 'peek' : mood];
+    if (asleep && T > nextZ) { nextZ = T + 1.5; emit('zzz', 1, { x: .9, z: 1.2, spread: .3, y: POT_Y + 1.1, rise: 1.3, dur: 2, size: .34 }); }
+    if (mood === 'cry' && T > nextZ) { nextZ = T + .25; emit('drop', 1, { x: Math.random() < .5 ? -.5 : .5, z: 1.7, spread: .15, y: POT_Y + .5, rise: -.5, dur: .7, size: .2 }); }
+    const lookR = T < face.glanceEnd ? face.glance : face.turn, [lx, ly] = asleep || lookR < 0 ? [0, 0] : LOOK[lookR];
+    face.look.x += (lx - face.look.x) * .08; face.look.y += (ly - face.look.y) * .08;
+    const blink = (T + 1.9) % 5.2 < .14 || (T + .4) % 9.3 < .12;
+    face.eyes.forEach((eg, i) => {
+      const sd = i ? 1 : -1, open = ey === 'open' || ey === 'wide' || (ey === 'wink' && i === 0), k = ey === 'wide' ? 1.28 : 1;
+      eg.visible = open; face.arcs[i].visible = !open;
+      face.arcs[i].rotation.z = ey === 'sleep' ? Math.PI : 0; face.arcs[i].position.y = ey === 'sleep' ? .62 : .54;
+      eg.scale.set(k, k * (blink ? .12 : 1), 1);
+      eg.position.x = sd * .4 + face.look.x * .06; eg.position.y = .58 + face.look.y * .04;
+      face.blush[i].scale.setScalar(blushK * (1 + Math.sin(T * 3 + i) * .04));
+    });
+    face.smile.visible = mo === 'smile'; face.open.visible = face.tongue.visible = mo === 'open'; face.oh.visible = mo === 'oh';
+    party = Math.max(0, party - dt); laugh = Math.max(0, laugh - dt); potSpin = Math.max(0, potSpin - dt * 1.1);
+    if (party > 0) potSqV += Math.sin(T * 14) * 9 * dt * Math.min(1, party);
+    potSqV += (-potSq * 130 - potSqV * 9) * dt; potSq += potSqV * dt;
+    potTiltV += (-potTilt * 90 - potTiltV * 6) * dt; potTilt += potTiltV * dt;
+    potYaw += (face.look.x * .34 - potYaw) * .07;
+    const pk = potSq + Math.sin(T * 19) * Math.min(.012, (boil - 1) * .006) + Math.sin(T * 1.7) * .006 + (laugh > 0 ? Math.sin(T * 22) * .03 * Math.min(1, laugh * 2) : 0);
     potG.scale.set(1 - pk * .5, 1 + pk, 1 - pk * .5);
-    for (const e of potEyes) e.scale.y = e.userData.sy * pb;
+    potG.rotation.set(0, potYaw + ease(1 - potSpin) * Math.PI * 2, potTilt + (deckActive ? Math.sin(T * 5) * .012 : 0) + (asleep ? Math.sin(T * 1.2) * .02 : 0));
+    for (const p of fx) {
+      if (p.t >= p.dur) { p.s.visible = false; continue; }
+      p.t += dt; if (p.t < 0) continue;
+      const k = p.t / p.dur;
+      p.s.visible = true; p.s.position.set(p.x + Math.sin(T * 3 + p.ph) * .18 * k, p.y + p.rise * k * (2 - k), p.z);
+      p.s.scale.setScalar(p.size * back(Math.min(1, k * 4))); p.s.material.opacity = Math.min(1, (1 - k) * 2.5); p.s.material.rotation = Math.sin(T * 2 + p.ph) * .3;
+    }
+    for (const w of wisps) {
+      const k = (T * .35 + w.ph) % 1;
+      w.s.position.set(w.x + Math.sin(T * 1.3 + w.ph * 5) * .05 * k, .3 + k * .75, w.z); w.s.scale.setScalar(.16 + k * .3); w.s.material.opacity = Math.sin(k * Math.PI) * .2;
+    }
     bulbs.forEach((b, i) => b.scale.setScalar(1 + Math.sin(T * 2 + i) * .12));
-    lanterns.forEach((h, i) => { h.material.opacity = .28 + Math.sin(T * 2.3 + i * 2) * .04 + Math.sin(T * 7.1 + i) * .02; });
+    lanterns.forEach((h, i) => { h.parent.rotation.z = Math.sin(T * .9 + i * 2) * .04; h.material.opacity = .28 + Math.sin(T * 2.3 + i * 2) * .04 + Math.sin(T * 7.1 + i) * .02; });
     glow.intensity = 3 + Math.sin(T * 7) * .45 + Math.sin(T * 11.3) * .3;
     shake = Math.max(0, shake - dt * 2);
     camera.position.set(camBase.x + Math.sin(T * .25) * .2 + (Math.random() - .5) * shake * .3, camBase.y + Math.sin(T * .4) * .06, camBase.z);
@@ -680,6 +784,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
         }
         s.active = r === turnRel;
       });
+      if (turnRel !== face.turn) { face.turn = turnRel; lastStir = T; }
     },
     setTiles(list) {
       list.forEach((t, r) => {
@@ -701,21 +806,46 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       const toTile = typeof to === 'string' && to.startsWith('tile') ? seats[+to.slice(4)] : null;
       if (toTile) { toTile.pending++; toTile.top.visible = false; }
       const fromPot = from === 'deck';
-      if (fromPot) { popIngredient(kind); puff(new THREE.Vector3(0, BROTH_Y + .1, 0), 7, .9); boil = 3; }
+      if (fromPot) { popIngredient(kind); puff(new THREE.Vector3(0, BROTH_Y + .1, 0), 7, .9); boil = 3; setMood('wow', .8, 1.5); }
+      else if (!toTile) { setMood('peek', 1, .4); if (typeof to === 'number') glance(to); } // someone pinched a discard
+      else { lastStir = T; glance(+to.slice(4), 1.2); potTiltV += (TILE[+to.slice(4)][0] > 0 ? -1 : 1) * .5; }
+      const seatTo = typeof to === 'number' ? seats[to] : null;
       flyCard(P(from), P(to), kind, faceUp && kind >= 0, 0, () => {
+        if (seatTo) seatTo.nod = 1; // a pleased little nod for the new card
         if (toTile) {
+          const tp = tilePos(+to.slice(4)); emit('spark', 3, { x: tp.x, z: tp.z, y: .3, spread: .7, rise: .9, dur: .8, size: .26 });
           toTile.pending = Math.max(0, toTile.pending - 1);
           if (!toTile.pending && toTile.c >= 0) toTile.top.visible = true;
           squash(toTile); puff(tilePos(+to.slice(4)), 6, .5);
         }
       }, fromPot);
     },
-    hop(r) { seats[r].hop = 1; },
-    deal() { boil = 3; for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
+    hop(r) { seats[r].hop = 1; potSqV += .35; lastStir = T; },
+    // k indexes the quick reactions: six snacks, then laugh, heart, thumbs up, wow, cry, fire
+    emote(r, k) {
+      const s = seats[r]; s.hop = Math.max(s.hop, .75); glance(r, 1.8);
+      const [m, sym] = k < 6 ? ['yum', 'spark'] : [['happy', 'note'], ['love', 'heart'], ['wink', 'spark'], ['wow', 'bang'], ['cry', 'drop'], ['fire', 'spark']][k - 6] || ['happy', 'spark'];
+      setMood(m, m === 'cry' ? 2.2 : 1.8, m === 'cry' ? -.5 : 1);
+      if (r) emit(sym, 2, overSeat(r));
+      if (m === 'cry') return;
+      emit(sym, m === 'love' ? 7 : 4, m === 'wow' ? { spread: .4, y: POT_Y + 1.4, size: .6 } : {});
+      if (m === 'happy') laugh = 1.4;
+      if (m === 'fire') { boil = 4; shake = Math.max(shake, .4); }
+      if (m === 'wink') potTiltV += .8;
+    },
+    potMood(name) {
+      if (!MOODS[name]) return;
+      setMood(name, name === 'dizzy' ? 1.6 : 1.4);
+      if (name === 'dizzy') { potSpin = 1; boil = 3; emit('spark', 5); }
+      if (name === 'bang') emit('bang', 1, { spread: .3, y: POT_Y + 1.4, size: .6 });
+    },
+    deal() { boil = 3; setMood('happy', 2.2, 1.4); emit('spark', 8, { gap: .12 }); for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
     celebrate(r, hand) {
       const from = r === 0 ? new THREE.Vector3(0, 1.4, 4.4) : handPos(r);
       (hand.length ? hand : Array.from({ length: 9 }, () => Math.random() * 72 | 0)).forEach((c, i) => hopIngredient(kindOf(c), from, i * 110));
       seats[r].hop = 1; setTimeout(() => { seats[r].hop = 1; }, 600);
+      seats.forEach((s, i) => { if (i !== r) setTimeout(() => { s.hop = Math.max(s.hop, .7); }, 900 + i * 160); }); // a wave of cheers
+      setMood('love', 4.5, 1.6); party = 3.2; glance(r, 3); emit('heart', 9, { gap: .22 }); emit('spark', 9, { gap: .2 });
       shake = 1; boil = 4;
       setTimeout(() => puff(new THREE.Vector3(0, BROTH_Y + .2, 0), 14, 2), 1000);
     },

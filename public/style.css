@@ -204,6 +204,17 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .card.back { background: radial-gradient(circle, #ffffff2e 18%, transparent 20%) 0 0 / calc(var(--w) * .2) calc(var(--w) * .2), var(--chili); justify-content: center; }
 .card.back::before { left: 12%; right: 12%; top: auto; background: #fff4e2; opacity: .2; }
 .card.back svg { width: 80%; margin: 0; }
+/* little signs of life in the ingredient art (icons.js): blinking eyes, twinkling sparkles, beating hearts */
+.fx-eyes, .fx-sp, .fx-hrt { transform-box: fill-box; transform-origin: center; }
+.fx-eyes { animation: fxblink 4.6s infinite; }
+.fx-sp { animation: fxtwinkle 1.9s ease-in-out infinite; } .fx-sp + .fx-sp { animation-delay: -.9s; }
+.fx-hrt { animation: fxbeat 1.3s ease-in-out infinite; }
+.card:nth-child(3n) .fx-eyes { animation-delay: -1.4s; } .card:nth-child(3n+1) .fx-eyes { animation-delay: -3.1s; } .card:nth-child(2n) .fx-sp { animation-delay: -.5s; }
+@keyframes fxblink { 0%, 91%, 100% { transform: none; } 94%, 96% { transform: scaleY(.08); } }
+@keyframes fxtwinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(.55) rotate(45deg); } }
+@keyframes fxbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.28); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } }
+@keyframes fxbob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3%) rotate(-1.5deg); } }
+@keyframes fxwiggle { 0%, 100% { transform: rotate(0) scale(1.06); } 25% { transform: rotate(-7deg) scale(1.1); } 75% { transform: rotate(7deg) scale(1.1); } }
 
 /* keyframes */
 @keyframes steam { 0%, 100% { transform: translateY(0); opacity: .9; } 50% { transform: translateY(-4px); opacity: .5; } }
