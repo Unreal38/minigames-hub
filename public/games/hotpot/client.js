@@ -6,6 +6,7 @@ import { sfx } from '../../sfx.js';
 import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
+import { againHtml } from '../../again.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -233,7 +234,6 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end') return;
     const el = root.querySelector('.results');
     const order = S.seats.map((p, i) => ({ p, i, r: S.res[i] })).sort((a, b) => b.r.pts - a.r.pts);
-    const host = ctx.isHost();
     el.innerHTML = `<div class="sheet">
       <h2>${S.win >= 0 ? (S.win === S.me ? 'You win, chef!' : `${nameOf(S.win)} wins!`) : 'The pot ran dry!'}</h2>
       <p>${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.</p>
@@ -242,9 +242,16 @@ export function mount(app, ctx) {
         <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b>
         <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : '<em>no sets</em>'}</div></div>
         <strong>${r.pts}<small>${r.bonus ? ` incl. +${r.bonus}` : ''}</small></strong></li>`).join('')}</ol>
-      <div class="row">${host ? `<button type="button" class="btn big" data-a="again">Play again</button><button type="button" class="btn big w" data-a="lobby">Waiting room</button>`
-        : '<span class="chip">Waiting for the host…</span>'}<button type="button" class="btn big ghost" data-a="leave">Leave</button></div></div>`;
-    el.hidden = false;
+      <div class="againbox">${againHtml(ctx, R, 'Play again')}</div></div>`;
+    el.hidden = false; votes = (R?.again || []).length;
+  }
+  // Votes arrive with room updates: repaint just the buttons so the sheet doesn't replay its entrance.
+  let votes = 0;
+  function paintAgain() {
+    const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    const n = (R?.again || []).length;
+    if (n > votes) sfx.pop();
+    votes = n; box.innerHTML = againHtml(ctx, R, 'Play again');
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 
@@ -320,6 +327,7 @@ export function mount(app, ctx) {
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
+    else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
   });
   root.addEventListener('pointerover', e => {
@@ -335,7 +343,7 @@ export function mount(app, ctx) {
 
   return {
     update,
-    room(r) { R = r; if (S) render(); },
+    room(r) { R = r; if (S) render(); paintAgain(); },
     react, say,
     destroy() { destroyed = true; document.body.classList.remove('in-game'); cancelAnimationFrame(raf); clearTimeout(resultsTimer); removeEventListener('keydown', onKey); removeEventListener('resize', onResize); scene?.dispose(); },
   };

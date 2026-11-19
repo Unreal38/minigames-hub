@@ -1,6 +1,7 @@
 // Snack Swap game view: HUD over the 3D table. Renders what the server says; sends plays, votes and chaos cards.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
+import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { ITEMS, CHAOS } from './deck.js';
 import { itemHtml } from './art.js';
@@ -240,7 +241,7 @@ export function mount(app, ctx) {
   // ----- results -----
   function showResults() {
     if (!S || S.ph !== 'end' || !S.res) return;
-    const el = root.querySelector('.results'), host = ctx.isHost(), R = S.res, w = R.winners;
+    const el = root.querySelector('.results'), R = S.res, w = R.winners;
     const title = w.includes(S.me) ? (w.length > 1 ? 'You share the win!' : 'You are the funniest!') : w.length > 1 ? `${w.map(nameOf).join(' and ')} tie!` : `${nameOf(w[0])} wins!`;
     el.innerHTML = `<div class="sheet">
       <h2>${title}</h2>
@@ -251,9 +252,16 @@ export function mount(app, ctx) {
           <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${plural(R.wins[i], 'round')} won · ${plural(R.votes[i], 'vote')}</span></div>
           <strong>${R.pts[i]}<small>points</small></strong></li>`;
       }).join('')}</ol>
-      <div class="row">${host ? `<button type="button" class="btn big" data-a="again">Play again</button><button type="button" class="btn big w" data-a="lobby">Waiting room</button>`
-        : '<span class="chip">Waiting for the host…</span>'}<button type="button" class="btn big ghost" data-a="leave">Leave</button></div></div>`;
-    el.hidden = false;
+      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+    el.hidden = false; votes = (Rm?.again || []).length;
+  }
+  // Votes arrive with room updates: repaint just the buttons so the sheet doesn't replay its entrance.
+  let votes = 0;
+  function paintAgain() {
+    const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    const n = (Rm?.again || []).length;
+    if (n > votes) sfx.pop();
+    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 
@@ -318,6 +326,7 @@ export function mount(app, ctx) {
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
+    else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
   });
   root.addEventListener('pointerover', e => {
@@ -327,7 +336,7 @@ export function mount(app, ctx) {
 
   return {
     update,
-    room(r) { Rm = r; if (S) render(); },
+    room(r) { Rm = r; if (S) render(); paintAgain(); },
     react,
     destroy() { destroyed = true; document.body.classList.remove('in-game'); clearInterval(timer); clearTimeout(resultsTimer); scene?.dispose(); },
   };

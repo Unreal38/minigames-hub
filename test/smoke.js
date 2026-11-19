@@ -40,4 +40,20 @@ if (b.s.hand.length && a.s.hand.some(c => b.s.hand.includes(c))) fail('hands ove
 const playStates = b.msgs.filter(m => m.t === 'state' && m.s?.ph === 'play');
 if (playStates.some(m => m.s.hands)) fail('leaked hands');
 console.log('OK', playStates.length, 'state updates');
+
+// play-again voting: Bo votes, Ana (host) sees it; Bo can take it back; a new round clears votes
+const boId = b.room.players.find(p => p.name === 'Bo').id;
+const wait = async (ok, what) => { const t = Date.now(); while (!ok()) { await new Promise(r => setTimeout(r, 50)); if (Date.now() - t > 3000) fail(what); } };
+b.send({ t: 'again' });
+await wait(() => a.room.again?.includes(boId), 'host did not see the vote');
+b.send({ t: 'again', on: false });
+await wait(() => a.room.again?.length === 0, 'vote not withdrawn');
+b.send({ t: 'again', on: true });
+await wait(() => a.room.again?.length === 1, 'vote not re-added');
+a.send({ t: 'start' });
+await wait(() => a.s?.ph === 'play' && a.room.again?.length === 0, 'votes not cleared on restart');
+b.send({ t: 'again' });
+await new Promise(r => setTimeout(r, 200));
+if (a.room.again.length) fail('voted during play');
+console.log('OK play-again votes');
 srv.kill(); process.exit(0);

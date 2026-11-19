@@ -59,8 +59,11 @@ function roomInfo(r) {
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
+    again: againOf(r),
   };
 }
+// Play-again votes on the results screen: ids of players still at the table who want another round.
+const againOf = r => r.G?.ph === 'end' && r.again ? r.players.map(t => clients.get(t)?.id).filter(id => r.again.has(id)) : [];
 // Lobby scoreboard: everyone who has finished a game at this table, best first.
 const boardOf = r => Object.values(r.board || {}).map(({ pid, ...e }) => e)
   .sort((a, b) => b.wins - a.wins || b.pts - a.pts || a.games - b.games).slice(0, 16);
@@ -106,7 +109,7 @@ function sendState(r) {
 function leaveRoom(c) {
   const r = rooms.get(c.room); c.room = null;
   if (!r) return;
-  r.players = r.players.filter(t => t !== c.token);
+  r.players = r.players.filter(t => t !== c.token); r.again?.delete(c.id);
   if (r.G && r.G.ph === 'play') {
     const s = r.G.seats.findIndex(x => x.id === c.id);
     if (s >= 0) { GAMES[r.game].setAway(r.G, s, true); r.G.seats[s].name += ' (bot)'; r.G.seats[s].human = false; r.G.seats[s].id = null; }
@@ -128,6 +131,7 @@ function joinRoom(c, r) {
 }
 
 function startGame(r) {
+  r.again = new Set();
   const humans = r.players.map(t => clients.get(t)).slice(0, GAMES[r.game].meta.maxPlayers);
   // After a restart there is no previous game, so pretend coins come back from the table scoreboard.
   const saved = { game: r.game, wallet: {} };
@@ -181,8 +185,14 @@ function handle(c, m) {
     }
     case 'lobby': { // host sends everyone back to the waiting room
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
-      r.last = r.G; r.G = null; for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
+      r.last = r.G; r.G = null; r.again = new Set(); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
       sendRoom(r); broadcastRooms(); return;
+    }
+    case 'again': { // vote to play another round (shown to the host on the results screen)
+      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end') return;
+      r.again ||= new Set();
+      if (m.on === false) r.again.delete(c.id); else r.again.add(c.id);
+      return sendRoom(r);
     }
     case 'act': {
       const r = rooms.get(c.room); if (!r?.G) return;

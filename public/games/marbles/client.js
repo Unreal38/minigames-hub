@@ -1,6 +1,7 @@
 // Marble Rush game view: HUD over the 3D track. Renders what the server says; sends bets and bananas.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
+import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -238,7 +239,7 @@ export function mount(app, ctx) {
   // ----- results -----
   function showResults() {
     if (!S || S.ph !== 'end' || !S.res) return;
-    const el = root.querySelector('.results'), host = ctx.isHost(), w = S.win, my = S.me >= 0 ? S.res.pay[S.me] : null;
+    const el = root.querySelector('.results'), w = S.win, my = S.me >= 0 ? S.res.pay[S.me] : null;
     const line = my ? (my.net > 0 ? `You're up ${I.coin}<b>${my.net}</b> this race.` : my.net < 0 ? `You dropped ${I.coin}<b>${-my.net}</b> this race.` : 'You broke even this race.') : '';
     el.innerHTML = `<div class="sheet">
       <h2>${w === S.me ? 'Your marble wins!' : `${nameOf(w)} wins!`}</h2>
@@ -250,9 +251,16 @@ export function mount(app, ctx) {
           <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${betTxt}${pay.bonus ? ` · +${pay.bonus} winner's purse` : ''}</span></div>
           <strong class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}<small>${I.coin}${pay.coins}</small></strong></li>`;
       }).join('')}</ol>
-      <div class="row">${host ? `<button type="button" class="btn big" data-a="again">Race again</button><button type="button" class="btn big w" data-a="lobby">Waiting room</button>`
-        : '<span class="chip">Waiting for the host…</span>'}<button type="button" class="btn big ghost" data-a="leave">Leave</button></div></div>`;
-    el.hidden = false;
+      <div class="againbox">${againHtml(ctx, Rm, 'Race again')}</div></div>`;
+    el.hidden = false; votes = (Rm?.again || []).length;
+  }
+  // Votes arrive with room updates: repaint just the buttons so the sheet doesn't replay its entrance.
+  let votes = 0;
+  function paintAgain() {
+    const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    const n = (Rm?.again || []).length;
+    if (n > votes) sfx.pop();
+    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Race again');
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 
@@ -323,6 +331,7 @@ export function mount(app, ctx) {
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
+    else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
   });
   root.addEventListener('pointerover', e => {
@@ -332,7 +341,7 @@ export function mount(app, ctx) {
 
   return {
     update,
-    room(r) { Rm = r; if (S) render(); },
+    room(r) { Rm = r; if (S) render(); paintAgain(); },
     react,
     destroy() { destroyed = true; document.body.classList.remove('in-game'); clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); scene?.dispose(); },
   };
