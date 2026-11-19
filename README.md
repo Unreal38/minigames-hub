@@ -32,6 +32,12 @@ These steps assume an Ubuntu 22.04/24.04 instance; the Always Free Ampere A1 sha
 
 **1. Point your domain at the server.** At your registrar, add an `A` record for `example.com` (and `www`) with the instance's public IP.
 
+**No domain yet? Use a free DuckDNS name.** Sign in at duckdns.org and add a subdomain such as `cozytable`. Put your server's public IP in the box and press *update ip*. You now have `cozytable.duckdns.org`; use it wherever these steps say `example.com`, and drop the `www` line from the Caddyfile. Your Oracle IP doesn't change while the instance exists, so no updater is needed. If you ever want one, add this to `crontab -e` on the server (replace the token):
+
+```
+*/10 * * * * curl -s "https://www.duckdns.org/update?domains=cozytable&token=YOUR-TOKEN&ip=" >/dev/null
+```
+
 **2. Open ports 80 and 443.**
 - In the Oracle console, go to Networking → Virtual Cloud Networks → your VCN → Security Lists → Default. Add **ingress rules** for TCP 80 and 443 from `0.0.0.0/0`.
 - Oracle's Ubuntu images also block these ports in iptables, so open them on the VM too:
