@@ -21,6 +21,7 @@ function game(opts, prev) {
       if (G.stage === 'play' && G.round !== lastRound) {
         lastRound = G.round;
         if (v.hand.length !== HAND || v.hand.some(c => !(c >= 0 && c < ITEM_COUNT))) fail('bad hand');
+        if (G.round === 1 && G.hands.some(h => new Set(h).size !== h.length)) fail('twin cards dealt to one hand');
         if (v.slots) fail('cards visible before voting');
         if (ss.act(G, 0, { t: 'play', i: 99 })) fail('played a card that is not in hand');
         if (ss.act(G, 0, { t: 'vote', slot: 0 })) fail('voted before voting opened');

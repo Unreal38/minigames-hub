@@ -97,8 +97,10 @@ export function create(players, optsIn = {}, prev = null) {
 
 function pushEv(G, e) { e.n = ++G.evN; G.ev.push(e); if (G.ev.length > 16) G.ev.shift(); }
 
-function draw(G) {
+// Take the next card from the deck, skipping ones this hand already holds so nobody gets twins.
+function draw(G, hand = []) {
   if (!G.deck.length) { G.deck = shuffle(G.discard); G.discard = []; }
+  for (let i = G.deck.length - 1; i >= 0; i--) if (!hand.includes(G.deck[i])) return G.deck.splice(i, 1)[0];
   return G.deck.pop();
 }
 
@@ -109,7 +111,7 @@ function newRound(G) {
   if (G.prompt.i !== undefined) G.seen.push(G.prompt.i);
   for (let s = 0; s < n; s++) {
     if (G.plays[s]) G.discard.push(G.plays[s].c);
-    while (G.hands[s].length < HAND) { const c = draw(G); if (c === undefined) break; G.hands[s].push(c); }
+    while (G.hands[s].length < HAND) { const c = draw(G, G.hands[s]); if (c === undefined) break; G.hands[s].push(c); }
   }
   G.plays = G.seats.map(() => null); G.votes = G.seats.map(() => null);
   G.dd = G.seats.map(() => false); G.steal = G.seats.map(() => false);

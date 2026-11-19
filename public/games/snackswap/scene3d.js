@@ -175,7 +175,7 @@ export function createScene(canvas, { onFrame }) {
     const fit = halfW / (Math.tan(camera.fov * Math.PI / 360) * asp); // keep the widest seats in frame
     const D = Math.max(portrait ? 15 : 17.5, fit);
     camera.position.set(0, D * .4, D * .92);
-    camera.lookAt(0, -D * (portrait ? .13 : .045), 0); // aim low so the table sits in the top half, above the cards
+    camera.lookAt(0, -D * (portrait ? .13 : .02), 0); // aim low so the table sits in the top half, above the cards
     camera.updateProjectionMatrix();
   }
 
