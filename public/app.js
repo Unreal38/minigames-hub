@@ -152,7 +152,7 @@ function mountGame() {
     st.game = mod.mount($app, {
       act: a => send({ t: 'act', a }), react: k => send({ t: 'react', k }),
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
-      again: () => send({ t: 'start' }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
+      again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
       toast, rules: () => openRules(st.room?.game),
     });
     st.game.room(st.room);
