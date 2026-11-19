@@ -6,12 +6,13 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
+import * as marbles from './games/marbles.js';
 import { cleanAv } from '../public/avatar.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot };
+const GAMES = { hotpot, marbles };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
@@ -98,7 +99,7 @@ function joinRoom(c, r) {
 
 function startGame(r) {
   const humans = r.players.map(t => clients.get(t)).slice(0, GAMES[r.game].meta.maxPlayers);
-  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G);
+  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G || r.last);
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
@@ -113,7 +114,8 @@ function handle(c, m) {
     case 'create': {
       if (!GAMES[m.game]) return;
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], G: null, created: Date.now(),
-        opts: { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
+        opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
+          : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
       rooms.set(r.code, r); joinRoom(c, r);
       if (m.solo) startGame(r);
       return;
@@ -126,8 +128,10 @@ function handle(c, m) {
     case 'leave': if (c.room) leaveRoom(c); send(c, { t: 'room', room: null }); send(c, { t: 'rooms', rooms: publicRooms() }); return;
     case 'opts': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
-      if (m.opts?.bots) r.opts.bots = m.opts.bots === 'sharp' ? 'sharp' : 'chill';
-      if (m.opts?.timer !== undefined && [0, 20, 30, 45, 60].includes(+m.opts.timer)) r.opts.timer = +m.opts.timer;
+      const mod = GAMES[r.game];
+      if (mod.cleanOpts) { if (m.opts && typeof m.opts === 'object') r.opts = mod.cleanOpts({ ...r.opts, ...m.opts }); }
+      else if (m.opts?.bots) r.opts.bots = m.opts.bots === 'sharp' ? 'sharp' : 'chill';
+      if (!mod.cleanOpts && m.opts?.timer !== undefined && [0, 20, 30, 45, 60].includes(+m.opts.timer)) r.opts.timer = +m.opts.timer;
       if (m.priv !== undefined) r.priv = !!m.priv;
       sendRoom(r); broadcastRooms(); return;
     }
@@ -137,7 +141,7 @@ function handle(c, m) {
     }
     case 'lobby': { // host sends everyone back to the waiting room
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
-      r.G = null; for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
+      r.last = r.G; r.G = null; for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
       sendRoom(r); broadcastRooms(); return;
     }
     case 'act': {

@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt } from './art.js';
+import { potLogo, tableArt, marbleArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -7,7 +7,42 @@ import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS } from '
 
 export const SITE = 'Cozy Table';
 const COLORS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
-const GAMES = { hotpot: { name: 'Hot Pot', load: () => import('./games/hotpot/client.js') } };
+const GAMES = {
+  hotpot: {
+    name: 'Hot Pot', load: () => import('./games/hotpot/client.js'), start: 'Start the pot',
+    host: { bots: 'chill', timer: 30 }, solo: { bots: 'chill', timer: 0 },
+    openSeat: 'A bot sits here if nobody joins', seats: r => r.max,
+    settings: pill => `<div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Hold 8 cards. Each turn draw one (from the pot or a friend's discard), then discard one. Make three sets of three, either three of the same ingredient or three different ingredients of one colour, and call “Let's Eat!”.`,
+    rules: `<ol>
+      <li>Everyone holds <b>8 cards</b>. Each card is an ingredient in one of six colours.</li>
+      <li>On your turn, <b>draw one</b>: a surprise ingredient from the pot, or the top card a friend just discarded.</li>
+      <li>Then <b>discard one</b> card so you're back to 8.</li>
+      <li>A <b>set</b> is three identical ingredients (30 pts) or three <b>different</b> ingredients of the same colour (15 pts).</li>
+      <li>Hold <b>three sets</b> after drawing and press <b>Let's Eat!</b> to win (+90 pts).</li>
+      <li>No winner after 30 rounds? Everyone scores the sets in their hand.</li>
+    </ol>`,
+  },
+  marbles: {
+    name: 'Marble Rush', load: () => import('./games/marbles/client.js'), start: 'Open the betting',
+    host: { mode: 'classic', chaos: 'on', field: 6 }, solo: { mode: 'classic', chaos: 'on', field: 6 },
+    openSeat: 'A house marble rolls here if nobody joins', seats: r => Math.max(r.opts.field || 6, r.players.length),
+    settings: pill => `<div class="opt"><b>Race</b><div class="pills">${pill('mode', 'classic', 'Classic')}${pill('mode', 'knockout', 'Knockout')}</div></div>
+      <div class="opt"><b>Chaos events</b><div class="pills">${pill('chaos', 'on', 'On')}${pill('chaos', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Marbles on the track</b><div class="pills">${pill('field', 4, '4')}${pill('field', 6, '6')}${pill('field', 8, '8')}</div></div>`,
+    howto: `Everyone gets a marble with their face on it. Bet pretend coins on the winner, then watch them tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
+    rules: `<ol>
+      <li>Every player gets a <b>marble</b> wearing their avatar. Empty spots are filled by house marbles.</li>
+      <li>Before the gate opens, <b>bet coins</b> on any marble. A right pick pays your stake times the number of marbles.</li>
+      <li>The track is <b>random every race</b>: pins, spinners, trapdoors, boost pads and squeezes. Nobody steers.</li>
+      <li>You get <b>one banana per heat</b>. Throw it at a marble to slip it up.</li>
+      <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>
+      <li><b>Knockout</b>: the last marble home each heat is out. Handy for deciding who pays.</li>
+      <li>Coins are pretend and stay with the table. If you go broke, the house spots you a few.</li>
+    </ol>`,
+  },
+};
 
 const $app = document.getElementById('app');
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -88,7 +123,7 @@ function mountGame() {
       act: a => send({ t: 'act', a }), react: k => send({ t: 'react', k }),
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
       again: () => send({ t: 'start' }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
-      toast, rules: openRules,
+      toast, rules: () => openRules(st.room?.game),
     });
     st.game.room(st.room);
     st.gameLoading = null;
@@ -142,7 +177,14 @@ function renderHub() {
             <div class="row"><button type="button" class="btn" data-act="host">Host a table</button><button type="button" class="btn w" data-act="solo">Play with bots</button></div>
           </div>
         </article>
-        <article class="soon">${backSvg('width="84" height="84"')}<h3>Next game is simmering</h3><p>Coming soon to the table.</p></article>
+        <article class="gcard">
+          <div class="pic marblepic">${marbleArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Marble Rush</h3><span class="tag">1–8 players</span></div>
+            <p>Your avatar on a marble, a random 3D track and pretend coins riding on who rolls home first.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="marbles">Play with bots</button></div>
+          </div>
+        </article>
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
       </div>
     </section>
@@ -151,7 +193,7 @@ function renderHub() {
       <div class="tables" id="tables-list"></div>
     </section>
   </main>
-  <footer>Made for friends. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
+  <footer>Made for friends. Marble Rush coins are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
   renderTables();
   if (!st.name) openProfile(true);
 }
@@ -170,7 +212,7 @@ function renderTables() {
 
 function renderLobby() {
   const r = st.room; if (!r) return go('hub');
-  const host = r.host === st.id, max = r.max;
+  const host = r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = gm.seats(r);
   const seats = Array.from({ length: max }, (_, i) => r.players[i] || null);
   const watchers = r.players.slice(max);
   const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${label}</button>`;
@@ -189,20 +231,19 @@ function renderLobby() {
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}">
           ${avatarHtml(p.color, p.av, 64)}
           <div><b>${esc(p.name)}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
-        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>A bot sits here if nobody joins</span></div></div>`).join('')}</div>
+        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => esc(p.name)).join(', ')}</p>` : ''}
       <div class="row" style="margin-top:6px">
-        ${host ? `<button type="button" class="btn big r" data-act="start">Start the pot</button>` : `<span class="chip">Waiting for the host to start…</span>`}
+        ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">Waiting for the host to start…</span>`}
         <button type="button" class="btn big ghost" data-act="leave">Leave</button>
       </div>
     </div>
     <aside>
       <h2 style="font-size:26px;margin:0">Table settings</h2>
-      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
-      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>
+      ${gm.settings(pill)}
       <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
       ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">Only the host can change settings.</p>`}
-      <div class="howto"><b>How to win</b><br>Hold 8 cards. Each turn draw one (from the pot or a friend's discard), then discard one. Make three sets of three, either three of the same ingredient or three different ingredients of one colour, and call “Let's Eat!”. <a href="#" data-act="rules">Full rules</a></div>
+      <div class="howto"><b>How to win</b><br>${gm.howto} <a href="#" data-act="rules">Full rules</a></div>
     </aside>
   </main>`;
 }
@@ -265,17 +306,10 @@ function openProfile(first = false) {
   });
 }
 
-export function openRules() {
+export function openRules(game) {
+  const ids = GAMES[game] ? [game] : Object.keys(GAMES);
   const { el, close } = modal(`
-    <h2>How to play Hot Pot</h2>
-    <div class="rules"><ol>
-      <li>Everyone holds <b>8 cards</b>. Each card is an ingredient in one of six colours.</li>
-      <li>On your turn, <b>draw one</b>: a surprise ingredient from the pot, or the top card a friend just discarded.</li>
-      <li>Then <b>discard one</b> card so you're back to 8.</li>
-      <li>A <b>set</b> is three identical ingredients (30 pts) or three <b>different</b> ingredients of the same colour (15 pts).</li>
-      <li>Hold <b>three sets</b> after drawing and press <b>Let's Eat!</b> to win (+90 pts).</li>
-      <li>No winner after 30 rounds? Everyone scores the sets in their hand.</li>
-    </ol></div>
+    ${ids.map(id => `<h2>How to play ${GAMES[id].name}</h2><div class="rules">${GAMES[id].rules}</div>`).join('')}
     <button type="button" class="btn big" data-close>Got it</button>`);
   el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); close(); });
 }
@@ -288,14 +322,17 @@ $app.addEventListener('click', e => {
   if (b.tagName === 'BUTTON') sfx.click();
   if (act === 'home') { if (st.room) send({ t: 'leave' }); else go('hub'); }
   else if (act === 'scroll') document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' });
-  else if (act === 'rules') openRules();
+  else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
-  else if (act === 'host') { if (!st.name) return openProfile(true); send({ t: 'create', game: 'hotpot', opts: { bots: 'chill', timer: 30 } }); }
-  else if (act === 'solo') { if (!st.name) return openProfile(true); send({ t: 'create', game: 'hotpot', priv: true, solo: true, opts: { bots: 'chill', timer: 0 } }); }
+  else if (act === 'host' || act === 'solo') {
+    if (!st.name) return openProfile(true);
+    const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
+    send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
+  }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });
-  else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: b.dataset.opt === 'timer' ? +b.dataset.val : b.dataset.val } });
+  else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
   else if (act === 'copy') {
     const link = `${location.origin}/#${st.room.code}`;
     (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast('Invite link copied!'), () => toast(`Share this: ${esc(link)}`));
