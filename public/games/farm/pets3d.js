@@ -201,6 +201,32 @@ export const FEAT = {
     Cy(f, [.6, .6, .1, 9], '#a9a6b0', [0, .3, 0], [PI / 2, 0, 0]);
     for (let i = 0; i < 5; i++) { const a = (i - 2) * .55; Gm(f, .15, '#8a8794', [Math.sin(a) * .58, .3 + Math.cos(a) * .58, 0], null, [a, i, 0]); if (F === 2 || (F && i % 2 === 0)) Oc(f, .075, GL(cs[i % 3], .6), [Math.sin(a) * .36, .3 + Math.cos(a) * .36, .07], [1, 1.5, .5]); }
   } },
+  // themed sets
+  strawbun: { slot: 'top', name: 'a strawberry top', b(g, F) { for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2; leaf(g, [Math.sin(a) * .16, 0, Math.cos(a) * .16], [.3, -a + PI / 2, 0], .7 + F * .1); } Cy(g, [.03, .04, .14, 5], '#4a9a45', [0, .08, 0]); } },
+  chilipup: { slot: 'top', name: 'a chili stem', b(g, F) { Sp(g, .2 + F * .03, '#5fb04a', [0, 0, 0], [1, .5, 1]); for (let i = 0; i < 4; i++) Sp(g, .05 - i * .006, '#4a9a45', [i * .04, .1 + i * .07, -i * i * .02], null, 1); } },
+  melonwhale: { slot: 'back', name: 'a melon slice', b(g, F, K) { const k = [.6, .85, 1.1][F]; Sp(g, .46 * k, '#5fb85a', [0, 0, 0], [.22, 1, 1]); Sp(g, .4 * k, '#ff7a8a', [0, 0, 0], [.26, 1, 1]); for (const s of [-1, 1]) for (let i = 0; i < 3; i++) Sp(g, .03, '#3b2f3a', [s * .1 * k, .14 * k + (i % 2) * .1 * k, (i - 1) * .16 * k], null, 0); } },
+  lemonzest: { slot: 'top', name: 'a peel curl', b(g, F) { for (let i = 0; i < 6 + F * 2; i++) { const a = i * .9, rr = .15 - i * .008; Sp(g, .07 - i * .003, '#f7d23a', [Math.cos(a) * rr, .08 + i * .055, Math.sin(a) * rr], null, 1); } leaf(g, [.14, .03, -.05], [0, 0, -.5], .8); } },
+  coconutkin: { slot: 'back', name: 'a palm sprout', b(g, F) { Cy(g, [.04, .05, .3, 5], '#5fa646', [0, .12, 0]); for (let i = 0; i < 4 + F; i++) { const a = i / (4 + F) * PI * 2; leaf(g, [Math.sin(a) * .2, .3, Math.cos(a) * .2], [.5, -a + PI / 2, 0], 1 + F * .15); } } },
+  pinepine: { slot: 'top', name: 'a pineapple crown', b(g, F) { const n = [5, 8, 11][F]; for (let i = 0; i < n; i++) { const a = i * 2.4, t = i / n; leaf(g, [Math.sin(a) * .16 * (1 - t), t * .3 - .04, Math.cos(a) * .16 * (1 - t)], [.9 - t * .7, -a + PI / 2, 0], 1.2 + F * .2 - t * .3, i % 2 ? '#4a9a45' : '#6cc24f'); } } },
+  croissab: { slot: 'back', name: 'a croissant', b(g, F) { const k = [.6, .85, 1.1][F]; for (let i = -2; i <= 2; i++) { const t = i / 2, rr = (.26 - Math.abs(t) * .13) * k; Sp(g, rr, i % 2 ? '#f2c078' : '#e8a85a', [t * .42 * k, rr * .7, -t * t * .2 * k], [1.1, 1, 1.1], 1); } } },
+  donuseal: { slot: 'top', name: 'a little donut', b(g, F) { const k = [.7, .9, 1.1][F], d = Grp(g, [0, .1, 0], [PI / 2 - .2, 0, 0], k); To(d, [.24, .13, 6, 14], '#e8b878', [0, 0, 0]); To(d, [.24, .11, 6, 14], '#ff9ec4', [0, 0, -.05]); for (let i = 0; i < 7; i++) Bx(d, [.07, .025, .025], ['#ffffff', '#7cc4ee', '#ffd65a'][i % 3], [Math.cos(i * .9) * .24, Math.sin(i * .9) * .24, -.165], [0, 0, i * 2]); } },
+  cupcowl: { slot: 'top', name: 'a frosting swirl', b(g, F) { const k = [.6, .8, 1][F]; for (let i = 0; i < 3; i++) Sp(g, (.5 - i * .13) * k, i % 2 ? '#ffd0e2' : '#ff9ec4', [0, i * .19 * k, 0], [1, .5, 1]); Sp(g, .11 * k + .02, '#e8402a', [0, .56 * k, 0], null, 1); } },
+  pretzelisk: { slot: 'top', name: 'a pretzel bow', b(g, F) { const k = [.7, .9, 1.1][F]; for (const s of [-1, 1]) To(g, [.16 * k, .06 * k, 6, 12], '#c98a4a', [s * .15 * k, .16 * k, 0], [-.3, 0, s * .4]); for (let i = 0; i < 4; i++) Sp(g, .035, '#ffffff', [(i - 1.5) * .12 * k, .26 * k + (i % 2) * .06, .06], null, 0); } },
+  mallowlamb: { slot: 'top', name: 'a toasted marshmallow', b(g, F) { const k = [.7, .9, 1.1][F]; Rb(g, [.4 * k, .3 * k, .4 * k], '#ffffff', [0, .15 * k, 0], [0, .4, .1], .1 * k); Rb(g, [.34 * k, .06 * k, .34 * k], '#e8b878', [0.02, .3 * k, 0], [0, .4, .1], .025 * k); } },
+  candraffe: { slot: 'top', name: 'candy cane horns', b(g, F) { const k = [.8, 1, 1.25][F]; for (const s of [-1, 1]) { const c = Grp(g, [s * .18, -.06, 0], [0, 0, -s * .15], k); Cy(c, [.04, .04, .26, 6], '#ff5a6e', [0, .13, 0]); Cy(c, [.043, .043, .06, 6], '#ffffff', [0, .12, 0]); To(c, [.08, .04, 5, 8, PI], '#ff5a6e', [s * .08, .26, 0]); } } },
+  jellifrog: { slot: 'top', name: 'a wobbly jelly', b(g, F) { const k = [.6, .8, 1][F]; Sp(g, .08 * k + .02, '#ff7a8a', [0, .14 * k, 0], null, 1); Sp(g, .36 * k, TR('#7fe0a0', .62), [0, .12 * k, 0], [1, .8, 1]); } },
+  carrofox: { slot: 'tail', name: 'a carrot tail', b(g, F) { const t = Grp(g, [0, 0, 0], [.5, 0, 0], .7 + F * .25); Co(t, [.3, 1.1, 8], '#ff9a3c', [0, 0, -.5], [-PI / 2, 0, 0]); for (let i = 0; i < 3; i++) To(t, [.25 - i * .07, .025, 4, 10], '#c96a2a', [0, 0, -.2 - i * .27]); } },
+  pumpkit: { slot: 'top', name: 'a pumpkin stem', b(g, F) { Sp(g, .26 + F * .04, '#ff9a2c', [0, -.02, 0], [1, .45, 1]); Cy(g, [.07, .1, .22, 6], '#5fa646', [0, .14, 0], [0, 0, .2]); leaf(g, [.15, .12, 0], [0, 0, -.4], .9); } },
+  peapillar: { slot: 'back', name: 'a pea pod', b(g, F) { const k = [.6, .8, 1][F]; Sp(g, 1, '#5fa84a', [0, .08 * k, 0], [.2 * k, .16 * k, .55 * k]); for (let i = 0; i < 3; i++) Sp(g, .14 * k, '#a8e06a', [0, .2 * k, (i - 1) * .3 * k], null, 1); } },
+  shroomouse: { slot: 'top', name: 'a spotted cap', b(g, F) { const R = [.5, .75, 1][F]; Cy(g, [R * .5, R * .62, .1, 10], '#fff3df', [0, 0, 0]); Sp(g, R, '#8f7fd9', [0, .05, 0], [1, .55, 1]); for (let i = 0; i < 5 + F; i++) { const a = i * 2.4, e = .3 + (i % 3) * .3; Sp(g, R * .14, '#ffffff', [Math.sin(a) * Math.sin(e) * R, .05 + Math.cos(e) * R * .55, Math.cos(a) * Math.sin(e) * R], [1, .5, 1], 1); } } },
+  snowfox: { slot: 'tail', name: 'a snowy tail', b(g, F) { const n = 3 + F; for (let i = 0; i < n; i++) { const t = i / (n - 1); Sp(g, (.26 + Math.sin(t * PI) * .16) * (.8 + F * .15), i === n - 1 ? '#8fd4ff' : '#f4faff', [0, t * .5, -.1 - t * .55]); } } },
+  sunlion: { slot: 'top', name: 'a crown of sun rays', b(g, F) { const n = 5 + F; for (let i = 0; i < n; i++) { const a = (i / (n - 1) - .5) * 2.2; Co(g, [.13, .3 + F * .1, 4], i % 2 ? GL('#ff9a3c', .25) : GL('#ffd21f', .3), [Math.sin(a) * .34, Math.cos(a) * .2 - .05, 0], [0, 0, -a], [1, 1, .5]); } } },
+  dripfrog: { slot: 'top', name: 'a leaf umbrella', b(g, F) { const k = [.6, .8, 1][F]; Cy(g, [.025, .025, .4 * k, 5], '#5fa646', [0, .2 * k, 0]); Sp(g, .5 * k, '#6cc24f', [0, .42 * k, 0], [1, .28, 1]); Oc(g, .05, '#bfe6fb', [.36 * k, .3 * k, .1], [1, 1.8, 1]); } },
+  twistret: { slot: 'tail', name: 'a little whirlwind', b(g, F) { const n = 3 + F; for (let i = 0; i < n; i++) { const rr = .1 + i * .07; Sp(g, 1, i % 2 ? '#eef2f7' : '#b9c2d0', [Math.sin(i * 1.3) * .05, -.1 + i * .15, -.25 + Math.cos(i * 1.3) * .05], [rr, .11, rr]); } } },
+  moonbun: { slot: 'back', name: 'a slice of moon', b(g, F) { const m = Grp(g, [-.2, .25, -.15], [.15, 0, .5], .7 + F * .25); To(m, [.62, .2, 6, 14, PI * 1.25], GL('#ffe27a', .5), [0, 0, 0], [0, 0, PI * .4], [1, 1, .6]); } },
+  starjelly: { slot: 'top', name: 'a lucky star', b(g, F) { const k = [.6, .8, 1][F], s = Grp(g, [0, .12 * k, 0], [-.3, 0, 0], k); Sp(s, .16, GL('#fff3a0', .6), [0, 0, 0], [1, 1, .5], 1); for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2; Co(s, [.12, .3, 4], GL('#fff3a0', .6), [Math.sin(a) * .22, Math.cos(a) * .22, 0], [0, 0, -a], [1, 1, .45]); } } },
+  cometail: { slot: 'tail', name: 'a comet tail', b(g, F) { const n = 6 + F * 2; for (let i = 0; i < n; i++) { const t = i / (n - 1); Sp(g, (.3 + F * .04) * (1 - t * .85), GL(mix('#fff6c8', '#7fd0ff', t), .7 - t * .3), [Math.sin(t * 4) * .06, .1 + t * .5, -.15 - t * (.9 + F * .3)], null, 1); } } },
+  ringbear: { slot: 'back', name: 'a planet ring', b(g, F) { const k = [.5, .7, .9][F], r = Grp(g, [0, .35 * k, -.1], [.5, 0, .25], k); Sp(r, .26, '#f2c9a0', [0, 0, 0]); To(r, [.5, .06, 4, 18], '#c9b5ff', [0, 0, 0], [PI / 2, 0, 0], [1, 1, .35]); Sp(g, .08, '#e9e4ff', [.45 * k, .7 * k, 0], null, 1); } },
   pebblet: { slot: 'back', name: 'pebble spines', b(g, F) {
     const n = [3, 6, 9][F], cs = ['#a9a6b0', '#8a8794', '#c4c1c9'];
     for (let i = 0; i < n; i++) { const row = i % 3 - 1, col = Math.floor(i / 3); const p = [row * .34, .08 - Math.abs(row) * .12 - col * .06, -col * .36]; Gm(g, .2 + (i % 2) * .05, cs[i % 3], p, [1, 1.15, 1], [i, i * 2, 0]); if (F === 2 && i % 2 === 0) Oc(g, .11, GL('#8fe3ff', .6), [p[0], p[1] + .28, p[2]], [1, 1.8, 1]); }
@@ -229,6 +255,37 @@ export const FEAT = {
 // ---------- bodies ----------
 // Each returns anchors: head { p, r }, body { p, r: [rx, ry, rz] }, top, tail, back. X.own(slot) is false when a
 // borrowed part takes that place; X.sig(pos, k) builds the species' own signature part there.
+// ---------- shared shapes for themed pets ----------
+const To = (p, a, c, pos, rot, scl) => V(p, new THREE.Mesh(G('Torus', ...a), mat(c)), pos, rot, scl);
+const dots = (g, c, p, r, n, sz, front = false, d0 = 0) => { for (let i = 0; i < n; i++) { const a = i * 2.4 + d0, e = .45 + ((i * .37) % 1) * 1.5, x = Math.sin(a) * Math.sin(e), y = Math.cos(e), z = Math.cos(a) * Math.sin(e); if (!front && z > .4 && y > -.35) continue; Sp(g, sz, c, [p[0] + x * r[0], p[1] + y * r[1], p[2] + z * r[2]], null, 1); } };
+const earsP = (g, h, c, inn, k = 1) => { for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .62, h.p[1] + h.r * .62, h.p[2] - .03], [0, 0, -s * .28], k); Co(e, [.26, .48, 4], c, [0, .22, 0], [0, PI / 4, 0], [1, 1, .6]); if (inn) Co(e, [.14, .28, 4], inn, [0, .17, .06], [0, PI / 4, 0], [1, 1, .5]); } };
+const earsR = (g, h, c, inn, k = 1) => { for (const s of [-1, 1]) { Sp(g, h.r * .3 * k, c, [s * h.r * .7, h.p[1] + h.r * .72, h.p[2] - .02], [1, 1, .6]); if (inn) Sp(g, h.r * .17 * k, inn, [s * h.r * .7, h.p[1] + h.r * .72, h.p[2] + .08], [1, 1, .4], 1); } };
+const earsL = (g, h, c, inn, len = .8, droop = 0) => { for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * (.35 + droop * .3), h.p[1] + h.r * (.8 - droop * .3), h.p[2] - .05], [-.1, 0, -s * (.16 + droop * 2)]); Cy(e, [.11, .2, len, 4], c, [0, len / 2, 0], [0, PI / 4, 0], [1, 1, .6]); Bx(e, [.13, len * .7, .04], inn, [0, len / 2, .1]); } };
+function sitter(g, F, K, X, { r = [.6, .6, .7][F], hr = [.7, .62, .66][F], feetC = K.a, belly = true, arms = true, faceO = {} } = {}) {
+  const k = F ? 1 : .8, by = F ? r : r * .7, hy = F ? by * 1.75 + hr * .55 : by + hr * .75;
+  const A = { head: { p: [0, hy, .1], r: hr }, body: { p: [0, by, 0], r: [r * k, by, r * .92 * k] } }, b = A.body;
+  Sp(g, 1, K.a, b.p, b.r); if (belly) Sp(g, b.r[0] * .64, K.b, [0, by * .85, b.r[2] * .5], [1, 1.1, .6]);
+  Sp(g, hr, K.a, A.head.p, [1.06, .95, 1]); feet(g, feetC, b.r[0] * .55, b.r[2] * .6, [.3, .18, .42]);
+  if (arms) for (const s of [-1, 1]) Rd(g, [.2, .32, .2], K.a, [s * b.r[0] * .85, by * 1.15, b.r[2] * .45], [-.6, 0, s * .3]);
+  face(g, X.eyes, A.head.p, hr, { eye: [1.35, 1.2, 1.1][F], ...faceO });
+  A.top = [0, hy + hr * .88, .1]; A.tail = [0, by * .5, -b.r[2]]; A.back = [0, by * 1.5, -b.r[2] * .7]; A.fs = [.8, .9, 1][F];
+  return A;
+}
+function walker(g, F, K, X, { w = [.5, .5, .6][F], L = [.5, .66, .82][F], hr = [.64, .58, .6][F], leg = [.16, .36, .46][F], legC = K.a, lw = .22, faceO = {} } = {}) {
+  const by = leg + w * .8, A = { head: { p: [0, by + hr * .45, L * .95], r: hr }, body: { p: [0, by, -.05], r: [w, w * .88, L] } };
+  Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by - w * .25, -.05], [w * .85, w * .66, L * .88]);
+  legs4(g, legC, w * .55, L * .55, -L * .6, leg + .12, lw); Sp(g, hr, K.a, A.head.p, [1.06, .95, 1]);
+  face(g, X.eyes, A.head.p, hr, { eye: [1.35, 1.2, 1.1][F], ...faceO });
+  A.top = [0, A.head.p[1] + hr * .88, A.head.p[2]]; A.tail = [0, by + .1, -.05 - L]; A.back = [0, by + w * .8, -.15]; A.fs = [.8, .9, 1][F];
+  return A;
+}
+function ball(g, F, K, X, { r = [.62, .72, .82][F], h = 1, feetC = K.a, faceO = {}, fy = 0, c = K.a } = {}) {
+  const y = r * h + .08, A = { head: { p: [0, y + fy * r, 0], r: r * .98 }, body: { p: [0, y, 0], r: [r, r * h, r] } };
+  Sp(g, 1, c, A.body.p, A.body.r); if (feetC) feet(g, feetC, r * .42, r * .35, [.26, .16, .34]);
+  face(g, X.eyes, A.head.p, r, { eye: [1.35, 1.2, 1.1][F], ...faceO });
+  A.top = [0, y + r * h * .97, 0]; A.tail = [0, y * .6, -r * .95]; A.back = [0, y + r * h * .7, -r * .65]; A.fs = [.8, .9, 1][F];
+  return A;
+}
 const BODY = {
   acornip(g, F, K, X) { // starts as an acorn with a face, then a squirrel whose tail outgrows the rest of it
     const r = [.64, .58, .66][F], tailC = mix(K.a, '#8a5a3c', .35);
@@ -427,6 +484,267 @@ const BODY = {
     face(g, X.eyes, h.p, h.r, { gap: .42, eye: [1.4, 1.25, 1.15][F], nose: null, y: .1 });
     A.top = [0, h.p[1] + h.r * .86, h.p[2]]; A.tail = [0, A.body.p[1], A.body.p[2] - A.body.r[2]]; A.back = [0, A.body.p[1] + A.body.r[1] * .9, -.15]; A.fs = [.8, .9, 1][F];
     if (X.own('top')) X.sig(A.top, A.fs * h.r / .64);
+    return A;
+  },
+  // ---- themed sets: fruit, bakery, sweets, veggie patch, weather, night sky ----
+  strawbun(g, F, K, X) { // a strawberry bunny: seed freckles, a leafy collar and a calyx between its ears
+    const A = sitter(g, F, K, X, { feetC: K.b }), h = A.head, b = A.body;
+    dots(g, '#ffe98a', b.p, b.r, 18 + F * 4, .05); dots(g, '#ffe98a', h.p, [h.r * 1.04, h.r * .94, h.r], 14, .055);
+    earsL(g, h, K.a, K.b, [.4, .7, .9][F], F === 2 ? .3 : 0);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2; leaf(g, [Math.sin(a) * .16, A.top[1] - .02, h.p[2] + Math.cos(a) * .16], [.3, -a + PI / 2, 0], .7 + F * .1); }
+    Cy(g, [.03, .04, .14, 5], '#4a9a45', [0, A.top[1] + .07, h.p[2]]);
+    if (F) for (let i = 0; i < 7; i++) { const a = i / 7 * PI * 2; leaf(g, [Math.sin(a) * b.r[0] * .7, b.p[1] * 1.72, .05 + Math.cos(a) * b.r[2] * .7], [.2, -a + PI / 2, .5], 1, i % 2 ? '#86cc5a' : '#6cc24f'); }
+    Sp(g, .2 + F * .05, '#ffffff', A.tail);
+    return A;
+  },
+  chilipup(g, F, K, X) { // a sausage dog shaped like a chili pepper: long, glossy and tapering to a curled tip
+    const dk = mix(K.a, '#7a1f1a', .4), A = walker(g, F, K, X, { w: [.36, .36, .4][F], L: [.5, .85, 1.15][F], leg: [.1, .14, .16][F], hr: [.56, .5, .52][F], legC: dk, lw: .2, faceO: { nose: '#3b2f3a', y: .08 } }), h = A.head, b = A.body;
+    Sp(g, h.r * .55, K.a, [0, h.p[1] - h.r * .22, h.p[2] + h.r * .62], [1, .8, 1.5]); Sp(g, h.r * .3, K.b, [0, h.p[1] - h.r * .36, h.p[2] + h.r * 1.1], [1.2, .7, 1]);
+    Sp(g, .07, '#3b2f3a', [0, h.p[1] - h.r * .2, h.p[2] + h.r * 1.42], null, 1);
+    for (const s of [-1, 1]) Rd(g, [.14, .5, .3], dk, [s * h.r * .98, h.p[1] - h.r * .1, h.p[2] - .05], [0, 0, s * .2]);
+    Sp(g, h.r * .32, '#5fb04a', [0, h.p[1] + h.r * .86, h.p[2] - .05], [1, .5, 1]); for (let i = 0; i < 4; i++) Sp(g, .05 - i * .006, '#4a9a45', [i * .04, h.p[1] + h.r * 1.0 + i * .07, h.p[2] - .05 - i * i * .02], null, 1);
+    Sp(g, .14, '#ffffff', [-b.r[0] * .5, b.p[1] + b.r[1] * .7, b.p[2] + b.r[2] * .3], [.5, .3, 1.6], 1);
+    const n = 5 + F; for (let i = 0; i < n; i++) { const t = i / (n - 1), a = t * 2.4; Sp(g, b.r[0] * .8 * (1 - t * .8), K.a, [0, A.tail[1] - .08 + (1 - Math.cos(a)) * .3, A.tail[2] + .12 - Math.sin(a) * .42 * (.7 + F * .15)], null, 1); }
+    if (F === 2) for (let i = 0; i < 3; i++) Sp(g, .1 - i * .02, TR('#ffffff', .7), [0, A.tail[1] + .7 + i * .2, A.tail[2] - .1 - i * .06], null, 1);
+    return A;
+  },
+  melonwhale(g, F, K, X) { // a watermelon whale: striped rind on top, a pink slice of a belly with seeds
+    const r = [.6, .76, .92][F], y = [.9, 1.05, 1.2][F], dk = mix(K.a, '#1f5a2a', .5), A = { head: { p: [0, y, r * .35], r: r * .98 }, body: { p: [0, y, -.1], r: [r, r * .82, r * 1.3] } };
+    Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, '#fffaf0', [0, y - r * .16, 0], [r * .95, r * .7, r * 1.24]); Sp(g, 1, K.b, [0, y - r * .22, .02], [r * .9, r * .66, r * 1.2]);
+    for (let i = 0; i < 4; i++) { const z = .55 - i * .38, k = Math.sqrt(1 - z * z) * 1.02; To(g, [1, .06, 4, 12, PI], dk, [0, y, -.1 + z * r * 1.3], null, [r * k, r * .82 * k, 1]); }
+    for (let i = 0; i < 5 + F * 2; i++) Sp(g, .045, '#3b2f3a', [((i * .37) % 1 - .5) * r * 1.1, y - r * .74 + Math.abs((i * .37) % 1 - .5) * r * .5, r * (.75 - (i % 3) * .3)], [.7, 1, .5], 1);
+    const t = Grp(g, [0, y + .05, -r * 1.25], [.5, 0, 0]); Co(t, [r * .4, r * .9, 5], K.a, [0, 0, -r * .3], [-PI / 2, 0, 0]);
+    for (const s of [-1, 1]) { Rd(t, [r * .62, .12, r * .44], dk, [s * r * .32, 0, -r * .85], [0, s * .5, 0]); Rd(g, [r * .72, .13, r * .42], K.a, [s * r * 1.05, y - r * .35, .1], [0, s * .3, -s * .5]); }
+    for (let i = 0; i < 4 + F; i++) Sp(g, .05, '#3b2f3a', [(i - (3 + F) / 2) * r * .22, y - r * (.5 + (i % 2) * .12), r * (1.02 - Math.abs(i - (3 + F) / 2) * .08)], [.7, 1, .5], 1);
+    face(g, X.eyes, [0, y + .02, r * .32], r, { gap: .5, eye: [1.2, 1.1, 1][F], nose: null, y: -.05, z: .86 });
+    A.top = [0, y + r * .82, 0]; A.tail = [0, y, -r * 1.3]; A.back = [0, y + r * .8, -.3]; A.fs = [.8, 1, 1.25][F];
+    return A;
+  },
+  lemonzest(g, F, K, X) { // a lemon chick that fizzes, with a peel curl on its head
+    const A = ball(g, F, K, X, { h: 1.05, feetC: '#f0a23c', faceO: { nose: null, mouth: false, y: .12 } }), b = A.body, r = b.r[0];
+    Sp(g, r * .3, K.a, [0, b.p[1] + .02, -r * .95], [1, 1, 1.2]); Sp(g, r * .2, K.a, [0, A.top[1] - .03, 0], [1, .9, 1]);
+    Co(g, [.12, .24, 5], '#f0a23c', [0, b.p[1] + r * .02, r * .97], [PI / 2, 0, 0], [1.3, 1, .8]);
+    for (const s of [-1, 1]) Rd(g, [.14, r * .7, r * .6], mix(K.a, '#f0b320', .4), [s * (r + .02), b.p[1] - .05, -.05], [.3, 0, s * .25]);
+    for (let i = 0; i < 6 + F * 2; i++) { const a = i * .9, rr = .15 - i * .008; Sp(g, .07 - i * .003, mix(K.a, '#f0b320', .3), [Math.cos(a) * rr, A.top[1] + .1 + i * .055, Math.sin(a) * rr], null, 1); }
+    leaf(g, [.14, A.top[1] + .05, -.05], [0, 0, -.5], .8);
+    if (F === 2) for (let i = 0; i < 5; i++) Sp(g, .07 + (i % 2) * .03, TR('#fffbe0', .6), [Math.sin(i * 1.4) * (r + .3), b.p[1] + .2 + i * .22, Math.cos(i * 1.4) * (r + .2)], null, 1);
+    return A;
+  },
+  coconutkin(g, F, K, X) { // a coconut armadillo: a hairy brown shell in bands, a white tummy and a palm sprout
+    const A = walker(g, F, K, X, { w: [.55, .58, .68][F], leg: [.1, .16, .2][F], legC: mix(K.a, '#3b2a22', .4), lw: .26, faceO: { nose: null, y: .02 } }), h = A.head, b = A.body, dk = mix(K.a, '#3b2a22', .4);
+    Sp(g, 1, '#fffaf0', [0, b.p[1] - b.r[0] * .28, -.05], [b.r[0] * .87, b.r[0] * .68, b.r[2] * .9]);
+    for (let i = 0; i < 3 + F; i++) { const z = .6 - i * (1.3 / (3 + F)), k = Math.sqrt(1 - z * z) * 1.03; To(g, [1, .05, 4, 12, PI], dk, [0, b.p[1], -.05 + z * b.r[2]], null, [b.r[0] * k, b.r[1] * k, 1]); }
+    Co(g, [h.r * .32, h.r * .55, 6], mix(K.a, '#fff3df', .5), [0, h.p[1] - h.r * .2, h.p[2] + h.r * .95], [PI / 2, 0, 0]); Sp(g, .07, INK, [0, h.p[1] - h.r * .2, h.p[2] + h.r * 1.22], null, 1);
+    for (const s of [-1, 1]) Co(g, [.13, .3, 4], K.a, [s * h.r * .55, h.p[1] + h.r * .85, h.p[2] - .05], [0, 0, -s * .3], [1, 1, .5]);
+    for (const [x, yy] of [[0, .25], [-.2, -.05], [.2, -.05]]) Sp(g, .07, dk, [x * b.r[0], b.p[1] + yy * b.r[1] + .1, -.05 - b.r[2] * .97], [1, 1, .4], 1);
+    if (F) { Cy(g, [.04, .05, .3, 5], '#5fa646', [0, A.back[1] + .1, A.back[2]]); for (let i = 0; i < 3 + F; i++) { const a = i / (3 + F) * PI * 2; leaf(g, [Math.sin(a) * .2, A.back[1] + .28, A.back[2] + Math.cos(a) * .2], [.5, -a + PI / 2, 0], 1 + F * .15); } }
+    return A;
+  },
+  pinepine(g, F, K, X) { // a pineapple hedgehog: diamond scales and a tall leafy crown
+    const r = [.62, .78, .92][F], dk = mix(K.a, '#b06a1a', .5), A = { head: { p: [0, r * .62, r * .62], r: r * .7 }, body: { p: [0, r * .78, -.1], r: [r * .9, r * .98, r * 1.0] } }, b = A.body;
+    Sp(g, 1, K.a, b.p, b.r); Sp(g, 1, K.b, [0, r * .56, .15], [r * .8, r * .6, r * .98]);
+    for (let i = 0; i < 26; i++) { const a = i * 2.4, e = .25 + ((i * .37) % 1) * 1.5, x = Math.sin(a) * Math.sin(e), y = Math.cos(e), z = Math.cos(a) * Math.sin(e); if (z > .35 && y < .5) continue; Oc(g, .13, dk, [x * b.r[0], b.p[1] + y * b.r[1], b.p[2] + z * b.r[2]], [1, 1.3, .45], [-(PI / 2 - e) * Math.cos(a), a, 0]); }
+    Co(g, [r * .28, r * .46, 5], K.b, [0, r * .45, r * 1.15], [PI / 2, 0, 0]); Sp(g, .08, INK, [0, r * .45, r * 1.4], null, 1);
+    for (const s of [-1, 1]) { Sp(g, .13, K.b, [s * r * .5, r * 1.02, r * .52], [1, 1, .5], 1); for (const z of [r * .55, -r * .5]) Rd(g, [.22, .16, .28], dk, [s * r * .5, .07, z]); }
+    const n = [5, 8, 11][F]; for (let i = 0; i < n; i++) { const a = i * 2.4, t = i / n; leaf(g, [Math.sin(a) * .16 * (1 - t), b.p[1] + b.r[1] * .96 + t * .3, b.p[2] + Math.cos(a) * .16 * (1 - t)], [.9 - t * .7, -a + PI / 2, 0], 1.3 + F * .2 - t * .3, i % 2 ? '#4a9a45' : '#6cc24f'); }
+    face(g, X.eyes, [0, r * .7, r * .5], r * .72, { gap: .36, eye: [1.3, 1.15, 1.05][F], nose: null, mouth: false, z: .84 });
+    A.top = [0, b.p[1] + b.r[1], -.1]; A.tail = [0, r * .4, -r * 1.1]; A.back = [0, r * 1.5, -.3]; A.fs = [.8, 1, 1.2][F];
+    return A;
+  },
+  croissab(g, F, K, X) { // a croissant crab: one golden crescent whose two tips are its pincers
+    const w = [.62, .8, .95][F], dk = mix(K.a, '#8a4a1a', .5), cr = w * .52, cy = cr * .92 + .16, A = { head: { p: [0, cy, .1], r: cr }, body: { p: [0, cy, 0], r: [w * 1.3, cr, w * .6] } };
+    for (let i = -3; i <= 3; i++) { const t = i / 3, rr = cr * (1 - Math.abs(t) * .62), p = [t * w * 1.15, .16 + rr * .92, t * t * w * .85 - .05]; if (i) Sp(g, rr, Math.abs(i) % 2 ? mix(K.a, '#fff0c8', .3) : K.a, p, [1.1, 1, 1.1]); if (i) To(g, [rr * 1.0, .04, 4, 12], dk, [p[0] - Math.sign(t) * rr * .55, p[1], p[2] - Math.abs(t) * rr * .5], [0, PI / 2 - t * .9, 0]); }
+    Sp(g, cr, K.a, [0, cy, -.05], [1.1, 1, 1.1]);
+    for (const s of [-1, 1]) { Co(g, [cr * .3, cr * .7, 5], K.b, [s * w * 1.2, .2 + cr * .34, w * .98], [PI / 2, 0, -s * .5]); for (let i = 0; i < 3; i++) Bx(g, [.34, .08, .09], dk, [s * w * (.5 + i * .22), .1, -.3 - i * .05], [0, s * (i - 1) * .4, -s * .8]); }
+    face(g, X.eyes, [0, cy + .02, -.05], cr * 1.08, { eye: [1.4, 1.3, 1.2][F], nose: null });
+    A.top = [0, cy + cr * .95, -.05]; A.tail = [0, cy * .7, -cr]; A.back = [0, cy + cr * .7, -cr * .6]; A.fs = [.7, .85, 1][F];
+    return A;
+  },
+  donuseal(g, F, K, X) { // a seal pup wearing an iced donut like a swim ring
+    const L = [.6, .9, 1.1][F], hr = [.64, .6, .62][F], A = { head: { p: [0, [.72, .95, 1.15][F], L * .6], r: hr }, body: { p: [0, .5, -.1], r: [.6, .46, L] } }, h = A.head;
+    Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, hr, K.a, h.p); if (F === 2) Sp(g, .46, K.a, [0, .85, L * .42], [1, 1.2, 1]);
+    const R = [.5, .54, .6][F], d = Grp(g, [0, .56, -.1 - L * .15], [-.2, 0, 0]);
+    To(d, [R, .22, 8, 18], '#e8b878', [0, 0, 0]); To(d, [R, .18, 8, 18], K.b, [0, 0, .08], null, [1.03, 1.03, 1]);
+    for (let i = 0; i < 12; i++) { const a = i * 2.4 + .4, q = R + ((i % 3) - 1) * .1; if (Math.sin(a) < -.5) continue; Bx(d, [.1, .035, .035], ['#ffffff', '#7cc4ee', '#ffd65a', '#86cc5a'][i % 4], [Math.cos(a) * q, Math.sin(a) * q, .255], [0, 0, a * 3]); }
+    for (const s of [-1, 1]) { Rd(g, [.5, .14, .34], K.a, [s * .7, .16, L * .45], [0, s * .4, -s * .3]); Rd(g, [.26, .1, .5], K.a, [s * .16, .2, -L * 1.05], [.6, s * .45, 0]); Bx(g, [.2, .015, .015], '#8a9aa6', [s * hr * .92, h.p[1] - hr * .16, h.p[2] + hr * .75], [0, -s * .5, s * .12]); }
+    Sp(g, hr * .36, mix(K.a, '#ffffff', .6), [0, h.p[1] - hr * .22, h.p[2] + hr * .78], [1.3, .8, .8]);
+    face(g, X.eyes, [0, h.p[1] + .03, h.p[2]], hr, { eye: [1.35, 1.2, 1.05][F], nose: '#2b2230', z: .93 });
+    A.top = [0, h.p[1] + hr * .9, h.p[2]]; A.tail = [0, .4, -L - .1]; A.back = [0, 1, -.4]; A.fs = [.8, .9, 1][F];
+    return A;
+  },
+  cupcowl(g, F, K, X) { // an owl in a cupcake wrapper with a swirl of frosting and a cherry on top
+    const r = [.64, .72, .8][F], hgt = [1, 1.15, 1.3][F], y = r * hgt, wrap = '#7cc4ee', A = { head: { p: [0, y * 1.14, .03], r: r * .95 }, body: { p: [0, y, 0], r: [r, y, r * .95] } };
+    Sp(g, 1, K.a, A.body.p, A.body.r);
+    Cy(g, [r * 1.05, r * .78, y * .8, 12], wrap, [0, y * .42, 0]); for (let i = 0; i < 12; i++) { const a = i / 12 * PI * 2; Bx(g, [.05, y * .78, .05], mix(wrap, '#ffffff', .5), [Math.sin(a) * r * .94, y * .42, Math.cos(a) * r * .94], [Math.cos(a) * .17, 0, -Math.sin(a) * .17]); }
+    for (let i = 0; i < 3 + (F > 0); i++) Sp(g, r * (.86 - i * .2), i % 2 ? mix(K.b, '#ffffff', .4) : K.b, [0, y * 1.72 + i * r * .27, -.02], [1, .5, 1]);
+    Sp(g, .13 + F * .02, '#e8402a', [0, y * 1.72 + (3 + (F > 0)) * r * .27 - .02, 0], null, 1); Cy(g, [.015, .015, .2, 4], '#4a9a45', [.04, y * 1.72 + (3 + (F > 0)) * r * .27 + .15, 0], [0, 0, -.3]);
+    for (let i = 0; i < 6; i++) Bx(g, [.09, .03, .03], ['#ffd65a', '#ffffff', '#86cc5a'][i % 3], [Math.sin(i * 1.1) * r * .7, y * 1.82, Math.cos(i * 1.1) * r * .7], [0, i, .3]);
+    for (const s of [-1, 1]) { Cy(g, [r * .34, r * .34, .06, 12], '#fff3df', [s * r * .36, y * 1.2, r * .8], [PI / 2 - .1, 0, 0]); Rd(g, [.16, y * .6, .4], mix(K.a, '#b08a5a', .4), [s * (r + .02), y * 1.02, 0], [0, 0, s * .3]); }
+    Co(g, [.1, .2, 4], '#f0a23c', [0, y * 1.08, r * 1.0], [PI / 2 + .5, 0, 0]);
+    face(g, X.eyes, [0, y * 1.16, .04], r, { gap: .36, eye: [1.5, 1.4, 1.3][F], nose: null, mouth: false, y: .04 });
+    A.top = [0, y * 2.4, 0]; A.tail = [0, y * .4, -r * .9]; A.back = [0, y * 1.5, -r * .6]; A.fs = [.9, .95, 1][F];
+    return A;
+  },
+  pretzelisk(g, F, K, X) { // a little snake that ties itself into a pretzel knot, sprinkled with salt
+    const k = [.2, .26, .31][F], hr = [.5, .48, .5][F], n = 34, pts = []; let lo = 9;
+    for (let i = 0; i < n; i++) { const t = -4 + i / (n - 1) * 8, p = [(3.3 - .4 * t * t) * Math.sin(t) * k, (3.3 - .5 * t * t) * Math.cos(t) * k, 0]; lo = Math.min(lo, p[1]); pts.push(p); }
+    const kn = Grp(g, [0, 0, -.25], [-.22, 0, 0]);
+    pts.forEach((p, i) => { p[1] += -lo + .2; p[2] = Math.sin(i * .8) * .05; Sp(kn, k * .78, K.a, p, null, 1); if (i % 3 === 1) Sp(kn, .05, '#ffffff', [p[0], p[1] + .02, p[2] + k * .74], null, 0); });
+    const hp = [0, hr * .95, .32], A = { head: { p: hp, r: hr }, body: { p: [0, 3.3 * k, -.25], r: [3.2 * k, 3.3 * k, .3] } };
+    Sp(g, hr, K.a, hp, [1.05, .9, 1.05]); Sp(g, hr * .5, K.b, [0, hp[1] - hr * .3, hp[2] + hr * .62], [1.2, .6, 1]);
+    Bx(g, [.04, .03, .2], '#e8402a', [0, hp[1] - hr * .42, hp[2] + hr * 1.08]);
+    for (let i = 0; i < 4; i++) Sp(g, .045, '#ffffff', [(i - 1.5) * .14, hp[1] + hr * .84 - Math.abs(i - 1.5) * .05, hp[2] + .05], null, 0);
+    face(g, X.eyes, [0, hp[1] + .02, hp[2]], hr, { eye: [1.35, 1.25, 1.15][F], nose: null, gap: .38 });
+    A.top = [0, hp[1] + hr * .82, hp[2]]; A.tail = [0, .3, -.5]; A.back = [0, 6.2 * k, -.4]; A.fs = [.7, .85, 1][F];
+    return A;
+  },
+  mallowlamb(g, F, K, X) { // a marshmallow lamb: a soft squishy block on stubby legs, toasted on top when grown
+    const w = [.9, 1.1, 1.3][F], hh = [.8, .9, 1.05][F], d = [.9, 1.15, 1.35][F], leg = [.14, .24, .3][F], y = leg + hh / 2, skin = '#f3c9b5';
+    const A = { head: { p: [0, y + hh * .12, d * .5 + .05], r: [.5, .5, .54][F] }, body: { p: [0, y, -.05], r: [w / 2, hh / 2, d / 2] } }, h = A.head;
+    Rb(g, [w, hh, d], K.a, [0, y, -.05], null, .26); if (F === 2) Rb(g, [w * .86, .12, d * .86], '#e8b878', [0, y + hh / 2 - .03, -.05], null, .05);
+    Rb(g, [w * 1.01, hh * .2, d * 1.01], K.b, [0, y - hh * .12, -.05], null, .08);
+    legs4(g, skin, w * .3, d * .28, -d * .35, leg + .1, .18);
+    Sp(g, h.r, skin, h.p, [1, .95, .9]); Sp(g, h.r * .6, K.a, [0, h.p[1] + h.r * .75, h.p[2] - .08], [1.3, .7, 1]);
+    for (const s of [-1, 1]) Rd(g, [.3, .13, .17], skin, [s * (h.r + .1), h.p[1] + .05, h.p[2] - .1], [0, 0, -s * .5]);
+    Sp(g, .16, K.a, [0, y, -.05 - d / 2 - .06]);
+    face(g, X.eyes, h.p, h.r, { eye: [1.3, 1.15, 1.05][F] });
+    A.top = [0, h.p[1] + h.r * 1.05, h.p[2] - .1]; A.tail = [0, y, -.05 - d / 2]; A.back = [0, y + hh / 2, -.2]; A.fs = [.7, .85, 1][F];
+    return A;
+  },
+  candraffe(g, F, K, X) { // a candy cane giraffe: red and white stripes up a long neck, little cane-hook horns
+    const A0 = { w: [.42, .42, .5][F], L: [.42, .52, .62][F], leg: [.3, .6, .85][F], hr: [.58, .5, .5][F] }, nk = [.25, .8, 1.3][F];
+    const w = A0.w, L = A0.L, by = A0.leg + w * .8, hp = [0, by + w * .5 + nk + A0.hr * .6, L * .75 + nk * .22];
+    const A = { head: { p: hp, r: A0.hr }, body: { p: [0, by, -.05], r: [w, w * .88, L] } };
+    Sp(g, 1, K.a, A.body.p, A.body.r);
+    for (const s of [-1, 1]) for (const z of [L * .55, -L * .6]) { Cy(g, [.09, .1, A0.leg + .12, 7], K.a, [s * w * .55, (A0.leg + .12) / 2, z]); for (let i = 0; i < Math.round(A0.leg / .28); i++) Cy(g, [.1, .105, .1, 7], K.b, [s * w * .55, .28 + i * .28, z]); Cy(g, [.11, .12, .12, 7], '#6b5560', [s * w * .55, .06, z]); }
+    const m = Math.max(2, Math.round((nk + w * .6) / .16)); for (let i = 0; i < m; i++) { const t = i / (m - 1); Cy(g, [.2 - t * .04, .21 - t * .04, (nk + w * .6) / m + .01, 8], i % 2 ? K.b : K.a, [0, by + w * .2 + t * (nk + w * .3), L * .6 + t * nk * .22], [.17, 0, 0]); }
+    for (let i = 0; i < 3; i++) To(g, [1, .07, 4, 12, PI], K.b, [0, by, -.05 + (.5 - i * .5) * L], null, [w * Math.sqrt(1 - (.5 - i * .5) ** 2) * 1.02, w * .88 * Math.sqrt(1 - (.5 - i * .5) ** 2) * 1.02, 1]);
+    Sp(g, A0.hr, K.a, hp, [1, .95, 1]); Sp(g, A0.hr * .5, mix(K.a, '#ffd9de', .7), [0, hp[1] - A0.hr * .28, hp[2] + A0.hr * .7], [1.1, .8, 1.2]);
+    for (const s of [-1, 1]) { Rd(g, [.3, .14, .1], K.a, [s * A0.hr * 1.0, hp[1] + A0.hr * .3, hp[2] - .08], [0, 0, s * .4]); const c = Grp(g, [s * A0.hr * .36, hp[1] + A0.hr * .8, hp[2] - .05], [0, 0, -s * .15]); Cy(c, [.04, .04, .26, 6], K.b, [0, .13, 0]); To(c, [.08, .04, 5, 8, PI], K.b, [s * .08, .26, 0]); }
+    Co(g, [.07, .3, 4], K.b, [0, by + .1, -.05 - L - .1], [-2.2, 0, 0]);
+    face(g, X.eyes, hp, A0.hr, { eye: [1.35, 1.2, 1.1][F], nose: null });
+    A.top = [0, hp[1] + A0.hr * .88, hp[2]]; A.tail = [0, by + .1, -.05 - L]; A.back = [0, by + w * .8, -.15]; A.fs = [.7, .8, .9][F];
+    return A;
+  },
+  jellifrog(g, F, K, X) { // a wobbly jelly frog you can see through, with fruit bits inside
+    const r = [.6, .74, .88][F], y = r * .8 + .05, J = TR(K.a, .62), A = { head: { p: [0, y + r * .1, .1], r: r * .98 }, body: { p: [0, y, 0], r: [r * 1.05, r * .8, r] } };
+    for (let i = 0; i < 3 + F; i++) Sp(g, .1 + (i % 2) * .04, ['#ff7a8a', '#ffd65a', '#ff9a3c', '#c9b5ff', '#ffffff'][i], [Math.sin(i * 2.1) * r * .45, y - r * .1 + (i % 3) * r * .2, -.1 + Math.cos(i * 2.1) * r * .4], null, 1);
+    Sp(g, 1, J, A.body.p, A.body.r); Sp(g, 1, K.b, [0, y * .42, 0], [r * .96, r * .22, r * .92]);
+    for (const s of [-1, 1]) { Sp(g, r * .3, J, [s * r * .45, y + r * .72, r * .25]); Sp(g, r * .2, '#ffffff', [s * r * .45, y + r * .76, r * .38], null, 1); eyeAt(g, X.eyes, r * .13, [s * r * .45, y + r * .78, r * .55]); Rd(g, [.4, .16, .5], K.a, [s * r * .85, .08, -.05], [0, s * .5, 0]); Rd(g, [.24, .12, .3], K.a, [s * r * .5, .06, r * .7]); }
+    Bx(g, [r * .5, .03, .03], INK, [0, y + r * .12, r * .98]); for (const s of [-1, 1]) { Bx(g, [.08, .03, .03], INK, [s * r * .27, y + r * .15, r * .96], [0, 0, s * .6]); V(g, new THREE.Mesh(G('Circle', .1, 10), MX('blush#ff8a9a', '#ff8a9a', { transparent: true, opacity: .55 })), [s * r * .62, y + r * .2, r * .8], [0, s * .6, 0]); }
+    A.top = [0, y + r * .8, 0]; A.tail = [0, y * .6, -r]; A.back = [0, y + r * .6, -r * .5]; A.fs = [.8, .9, 1][F];
+    return A;
+  },
+  carrofox(g, F, K, X) { // a fox with a carrot for a tail and a tuft of carrot greens
+    const dk = mix(K.a, '#7a3a1a', .5), A = walker(g, F, K, X, { legC: dk, faceO: { nose: '#3b2f3a' } }), h = A.head;
+    Sp(g, h.r * .42, K.b, [0, h.p[1] - h.r * .28, h.p[2] + h.r * .72], [1.2, .75, 1.2]); earsP(g, h, K.a, dk, .9 + F * .1);
+    const t = Grp(g, A.tail, [.5, 0, 0], .7 + F * .25); Co(t, [.3, 1.1, 8], K.a, [0, 0, -.5], [-PI / 2, 0, 0]); for (let i = 0; i < 3; i++) To(t, [.25 - i * .07, .025, 4, 10], dk, [0, 0, -.2 - i * .27]);
+    Co(t, [.1, .2, 6], K.b, [0, 0, -1.1], [-PI / 2, 0, 0]);
+    for (let i = 0; i < 3 + F; i++) leaf(g, [(i - (2 + F) / 2) * .1, A.top[1] + .1, h.p[2] - .05], [0, i * 1.3, (i - (2 + F) / 2) * -.35], 1 + F * .15, i % 2 ? '#86cc5a' : '#5fb04a');
+    return A;
+  },
+  pumpkit(g, F, K, X) { // a kitten curled inside a pumpkin, with a stem hat and a curly vine tail
+    const r = [.62, .74, .86][F], y = r * .82, dk = mix(K.a, '#b0541a', .45), hr = [.6, .56, .58][F], A = { head: { p: [0, y + r * .55 + hr * .45, r * .2], r: hr }, body: { p: [0, y, 0], r: [r, r * .82, r] } }, h = A.head;
+    for (let i = 0; i < 8; i++) { const a = i / 8 * PI * 2; Sp(g, 1, i % 2 ? K.a : mix(K.a, dk, .35), [Math.sin(a) * r * .5, y, Math.cos(a) * r * .5], [r * .56, r * .82, r * .56]); }
+    Sp(g, hr, K.a, h.p, [1.08, .92, .98]); earsP(g, h, K.a, '#f59ab0', .85 + F * .08);
+    Cy(g, [.07, .1, .22, 6], '#5fa646', [0, h.p[1] + hr * .9, h.p[2]], [0, 0, .2]); leaf(g, [.15, h.p[1] + hr * .88, h.p[2]], [0, 0, -.4], .9);
+    for (const s of [-1, 1]) { Rd(g, [.24, .16, .3], K.b, [s * r * .35, .07, r * .85]); Bx(g, [.3, .02, .02], dk, [s * hr * .95, h.p[1] - hr * .2, h.p[2] + hr * .6], [0, -s * .5, s * .15]); }
+    for (let i = 0; i < 8 + F * 2; i++) { const a = i * .8; Sp(g, .07, '#5fa646', [Math.cos(a) * .14 - r * .2, y * .6 + i * .07, -r * 1.02 - Math.sin(a) * .14 - i * .015], null, 1); }
+    if (F === 2) for (const s of [-1, 1]) Co(g, [.1, .18, 3], '#ffe27a', [s * r * .3, y + r * .1, r * .96], [PI / 2 + .2, 0, s * .2], [1, 1, .4]);
+    face(g, X.eyes, h.p, hr, { eye: [1.35, 1.2, 1.1][F] });
+    A.top = [0, h.p[1] + hr * .86, h.p[2]]; A.tail = [0, y * .6, -r]; A.back = [0, y + r * .7, -r * .5]; A.fs = [.8, .9, 1][F];
+    return A;
+  },
+  peapillar(g, F, K, X) { // three peas in a pod, each with its own face: one, then two, then all three awake
+    const r = [.42, .46, .5][F], n = 3, pod = mix(K.a, '#3f8a3a', .5), A = { head: { p: [0, r + .16, r * .3], r }, body: { p: [0, r + .1, 0], r: [r * 3.1, r, r] } };
+    Sp(g, 1, pod, [0, r * .62 + .08, -.05], [r * 3.5, r * .75, r * 1.25]); Sp(g, 1, mix(pod, '#ffffff', .25), [0, r * .7 + .1, .02], [r * 3.2, r * .5, r * 1.05]);
+    for (let i = 0; i < n; i++) { const x = (i - 1) * r * 1.9, yy = r + .18 - Math.abs(i - 1) * .06, awake = i === 1 || F === 2 || (F === 1 && i === 0); Sp(g, r * (i === 1 ? 1 : .88), i === 1 ? K.a : K.b, [x, yy, .05]);
+      if (awake) face(g, X.eyes, [x, yy, .05], r * (i === 1 ? 1 : .88), { eye: 1.3, nose: null }); else for (const s of [-1, 1]) Bx(g, [.1, .03, .03], INK, [x + s * r * .3, yy, .05 + r * .82], [0, 0, s * .2]); }
+    for (const s of [-1, 1]) Co(g, [r * .3, r * .8, 5], pod, [s * r * 3.5, r * .75, -.05], [0, 0, -s * 1.9]);
+    Cy(g, [.03, .04, .3, 5], '#5fa646', [-r * 3.6, r * 1.2, -.05], [0, 0, .7]); leaf(g, [-r * 3.75, r * 1.45, -.05], [0, 0, .9], 1);
+    for (let i = 0; i < 6; i++) { const a = i * .9; Sp(g, .05, '#86cc5a', [r * 3.7 + i * .05, r + .1 + i * .07, -.05 + Math.sin(a) * .1], null, 1); }
+    A.top = [0, r * 2 + .16, .05]; A.tail = [r * 3.6, r, 0]; A.back = [0, r * 1.2, -r]; A.fs = [.7, .8, .9][F];
+    return A;
+  },
+  shroomouse(g, F, K, X) { // a tiny mouse under a spotted mushroom cap, with big round ears and a long tail
+    const A = sitter(g, F, K, X, { r: [.5, .52, .6][F], feetC: '#f3c9b5' }), h = A.head, b = A.body, cap = '#8f7fd9', R = h.r * [1.15, 1.35, 1.6][F];
+    earsR(g, { p: [h.p[0], h.p[1] - h.r * .25, h.p[2]], r: h.r * 1.45 }, K.a, '#f59ab0', 1.1);
+    Cy(g, [R * .5, R * .62, .1, 10], '#fff3df', [0, A.top[1] - .02, h.p[2] - .05]); Sp(g, R, cap, [0, A.top[1] + .03, h.p[2] - .05], [1, .55, 1]);
+    for (let i = 0; i < 5 + F; i++) { const a = i * 2.4, e = .3 + (i % 3) * .3; Sp(g, R * .14, '#ffffff', [Math.sin(a) * Math.sin(e) * R, A.top[1] + .03 + Math.cos(e) * R * .55, h.p[2] - .05 + Math.cos(a) * Math.sin(e) * R], [1, .5, 1], 1); }
+    for (let i = 0; i < 9 + F * 2; i++) { const t = i / 10; Sp(g, .05, '#f3c9b5', [Math.sin(t * 3) * .25, .1 + t * t * .5, -b.r[2] - t * .6], null, 1); }
+    for (const s of [-1, 1]) Bx(g, [.26, .015, .015], '#8a7a70', [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .12]);
+    return A;
+  },
+  snowfox(g, F, K, X) { // a snow fox with a big fluffy tail, icy ear tips and a snowflake on its forehead
+    const ice = '#8fd4ff', A = walker(g, F, K, X, { legC: mix(K.a, ice, .5), faceO: { nose: '#3b5a7a', blush: '#9fd0ff' } }), h = A.head;
+    Sp(g, h.r * .42, '#ffffff', [0, h.p[1] - h.r * .28, h.p[2] + h.r * .72], [1.2, .75, 1.2]); earsP(g, h, K.a, ice, .9 + F * .1);
+    const n = 3 + F; for (let i = 0; i < n; i++) { const t = i / (n - 1); Sp(g, (.26 + Math.sin(t * PI) * .16) * (.8 + F * .15), i === n - 1 ? ice : K.a, [0, A.tail[1] + t * .5, A.tail[2] - .1 - t * .55]); }
+    const f = Grp(g, [0, h.p[1] + h.r * .5, h.p[2] + h.r * .86], [-.5, 0, 0], .7 + F * .15); for (let i = 0; i < 3; i++) Bx(f, [.3, .05, .03], GL(ice, .5), [0, 0, 0], [0, 0, i * PI / 3]);
+    tuft(g, [0, A.body.p[1] - .05, A.body.p[2] + A.body.r[2] * .95], '#ffffff', 1 + F * .2, [1.9, 0, 0]);
+    if (F === 2) for (let i = 0; i < 4; i++) Oc(g, .07, GL('#ffffff', .6), [Math.sin(i * 1.7) * 1.1, .6 + i * .4, Math.cos(i * 1.7) * .9], [1, 1, .3]);
+    return A;
+  },
+  sunlion(g, F, K, X) { // a lion cub whose mane is a ring of sun rays that grows as it does
+    const A = sitter(g, F, K, X, { faceO: { nose: '#c9703c' } }), h = A.head, n = [8, 12, 14][F];
+    for (let i = 0; i < n; i++) { const a = i / n * PI * 2; Co(g, [.2, [.4, .55, .72][F], 4], i % 2 ? GL('#ff9a3c', .25) : GL('#ffd21f', .3), [Math.sin(a) * h.r * 1.12, h.p[1] + Math.cos(a) * h.r * 1.08, h.p[2] - .02], [0, 0, -a], [1, 1, .5]); }
+    earsR(g, h, K.a, '#ff9a3c', .9); Sp(g, h.r * .4, K.b, [0, h.p[1] - h.r * .26, h.p[2] + h.r * .76], [1.3, .8, .8]);
+    const b = A.body; for (let i = 0; i < 4; i++) Sp(g, .07, K.a, [0, .2 + i * .1, -b.r[2] - i * .12], null, 1); Co(g, [.13, .26, 4], GL('#ff9a3c', .25), [0, .62, -b.r[2] - .52], [-.6, 0, 0]);
+    return A;
+  },
+  dripfrog(g, F, K, X) { // a raindrop-shaped frog; grown up it carries a leaf umbrella
+    const r = [.58, .7, .82][F], y = r * .85 + .05, A = { head: { p: [0, y + r * .05, .05], r: r * .98 }, body: { p: [0, y, 0], r: [r, r * .85, r] } };
+    Sp(g, 1, K.a, A.body.p, A.body.r); Co(g, [r * .72, r * 1.1, 10], K.a, [0, y + r * .95, 0]); Sp(g, 1, K.b, [0, y - r * .25, r * .2], [r * .75, r * .55, r * .8]);
+    Sp(g, r * .16, '#ffffff', [-r * .4, y + r * .6, r * .55], [1, 1.6, .4], 1);
+    for (const s of [-1, 1]) { Sp(g, r * .26, K.a, [s * r * .5, y + r * .6, r * .4]); Sp(g, r * .18, '#ffffff', [s * r * .5, y + r * .63, r * .52], null, 1); eyeAt(g, X.eyes, r * .12, [s * r * .5, y + r * .65, r * .68]); Rd(g, [.4, .16, .5], K.a, [s * r * .82, .08, -.05], [0, s * .5, 0]); Rd(g, [.24, .12, .3], K.a, [s * r * .45, .06, r * .72]); V(g, new THREE.Mesh(G('Circle', .1, 10), MX('blush#ff8a9a', '#ff8a9a', { transparent: true, opacity: .55 })), [s * r * .62, y + r * .15, r * .8], [0, s * .6, 0]); }
+    Bx(g, [r * .4, .03, .03], INK, [0, y + r * .1, r * .99]);
+    if (F === 2) { const u = Grp(g, [r * .95, 0, .2], [0, 0, -.15]); Cy(u, [.03, .03, y * 2.6, 5], '#5fa646', [0, y * 1.3, 0]); Sp(u, .8, '#6cc24f', [0, y * 2.6, 0], [1, .3, 1]); for (let i = 0; i < 3; i++) Oc(g, .06, '#bfe6fb', [r * .95 - .5 + i * .5, y * 2.3 - (i % 2) * .2, .2 + (i - 1) * .5], [1, 1.8, 1]); }
+    A.top = [0, y + r * 1.45, 0]; A.tail = [0, y * .6, -r]; A.back = [0, y + r * .6, -r * .6]; A.fs = [.8, .9, 1][F];
+    return A;
+  },
+  twistret(g, F, K, X) { // a ferret whose body is a little whirlwind, with leaves caught in the spin
+    const n = [4, 6, 8][F], hr = [.58, .54, .56][F], top = .3 + n * .2, A = { head: { p: [0, top + hr * .75, .1], r: hr }, body: { p: [0, top / 2, 0], r: [.6, top / 2, .6] } }, h = A.head;
+    for (let i = 0; i < n; i++) { const t = i / (n - 1 || 1), rr = .16 + t * (.3 + F * .08); Sp(g, 1, i % 2 ? K.b : K.a, [Math.sin(i * 1.3) * .08, .14 + i * .2, Math.cos(i * 1.3) * .08], [rr, .15, rr]); }
+    Sp(g, hr, K.a, h.p, [1.05, .92, 1]); earsR(g, h, K.a, '#f59ab0', .8); Sp(g, hr * .38, '#ffffff', [0, h.p[1] - hr * .26, h.p[2] + hr * .76], [1.3, .8, .8]);
+    for (const s of [-1, 1]) { Sp(g, hr * .22, mix(K.a, '#5b6a80', .5), [s * hr * .36, h.p[1] + hr * .06, h.p[2] + hr * .8], [1.1, 1, .4], 1); Rd(g, [.16, .26, .16], K.a, [s * .34, top - .1, .3], [-.8, 0, s * .3]); }
+    for (let i = 0; i < 2 + F; i++) leaf(g, [Math.sin(i * 2.3) * (.5 + i * .12), .3 + i * .32, Math.cos(i * 2.3) * (.5 + i * .12)], [i, i * 2, .5], .7, i % 2 ? '#ffb14a' : '#86cc5a');
+    face(g, X.eyes, h.p, hr, { eye: [1.3, 1.2, 1.1][F], nose: '#3b2f3a', gap: .36, y: .06 });
+    A.top = [0, h.p[1] + hr * .86, h.p[2]]; A.tail = [0, .15, 0]; A.back = [0, top * .8, -.45]; A.fs = [.8, .9, 1][F];
+    return A;
+  },
+  moonbun(g, F, K, X) { // a sleepy lilac bunny that carries a slice of moon on its back
+    const A = sitter(g, F, K, X, { feetC: K.b }), h = A.head, b = A.body, gold = GL('#ffe27a', .5);
+    earsL(g, h, K.a, K.b, [.45, .75, .95][F], .12);
+    Oc(g, .11 + F * .02, gold, [0, h.p[1] + h.r * .5, h.p[2] + h.r * .84], [1, 1, .3], [-.5, 0, 0]);
+    const m = Grp(g, [-.25, b.p[1] * 1.7, -b.r[2] - .15], [.15, 0, .5], .9 + F * .3); To(m, [.62, .2, 6, 14, PI * 1.25], gold, [0, 0, 0], [0, 0, PI * .4], [1, 1, .6]);
+    Sp(g, .2 + F * .05, '#ffffff', [0, b.p[1] * .5, -b.r[2]]);
+    if (F === 2) for (let i = 0; i < 4; i++) Oc(g, .07, gold, [Math.sin(i * 1.8) * 1.05, .8 + i * .38, Math.cos(i * 1.8) * .8 - .2], [1, 1.5, 1]);
+    return A;
+  },
+  starjelly(g, F, K, X) { // a jellyfish with a five-pointed star for a bell and glowing tips on its tentacles
+    const r = [.56, .68, .8][F], y = [1.0, 1.25, 1.5][F], J = TR(K.a, .8), gold = GL(K.b, .6), A = { head: { p: [0, y, 0], r: r * .98 }, body: { p: [0, y, 0], r: [r, r * .8, r] } };
+    Sp(g, 1, K.a, [0, y, 0], [r, r * .8, r]); Sp(g, 1, J, [0, y - r * .25, 0], [r * 1.12, r * .4, r * 1.12]);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * PI * 2; Co(g, [r * .42, r * .8, 4], gold, [Math.sin(a + .3) * r * 1.1, y - r * .12, Math.cos(a + .3) * r * 1.1], [Math.cos(a + .3) * 1.75, 0, -Math.sin(a + .3) * 1.75], [1, 1, .6]); }
+    const n = [4, 5, 6][F]; for (let i = 0; i < n; i++) { const a = i / n * PI * 2 + .3, len = 3 + F + (i % 2); for (let j = 0; j < len; j++) Sp(g, .075 - j * .006, j === len - 1 ? gold : K.a, [Math.sin(a) * r * .55 + Math.sin(j * 1.2 + i) * .06, y - r * .55 - j * .15, Math.cos(a) * r * .55 + Math.cos(j * 1.2 + i) * .06], null, 1); }
+    face(g, X.eyes, [0, y - .02, 0], r, { eye: [1.3, 1.2, 1.1][F], nose: null, y: -.02 });
+    A.top = [0, y + r * .78, 0]; A.tail = [0, y - r, -r * .4]; A.back = [0, y + r * .5, -r * .6]; A.fs = [.8, .9, 1][F];
+    return A;
+  },
+  cometail(g, F, K, X) { // a slim ferret that streaks about, trailing a glowing comet for a tail
+    const dk = mix(K.a, '#2f3a8a', .5), A = walker(g, F, K, X, { w: [.36, .32, .36][F], L: [.5, .9, 1.2][F], leg: [.1, .16, .2][F], hr: [.56, .48, .5][F], legC: dk, lw: .18, faceO: { nose: '#3b2f3a', y: .08 } }), h = A.head, b = A.body;
+    earsP(g, h, K.a, dk, .55 + F * .05); Sp(g, h.r * .45, '#ffffff', [0, h.p[1] - h.r * .26, h.p[2] + h.r * .7], [1.1, .75, 1.3]);
+    for (const s of [-1, 1]) Sp(g, h.r * .3, dk, [s * h.r * .38, h.p[1] + h.r * .1, h.p[2] + h.r * .74], [1.2, .8, .4], 1);
+    for (let i = 0; i < 2 + F; i++) To(g, [1, .05, 4, 12, PI], dk, [0, b.p[1], b.p[2] + (.3 - i * .4) * b.r[2]], null, [b.r[0] * Math.sqrt(1 - (.3 - i * .4) ** 2) * 1.03, b.r[1] * Math.sqrt(1 - (.3 - i * .4) ** 2) * 1.03, 1]);
+    const n = 6 + F * 2; for (let i = 0; i < n; i++) { const t = i / (n - 1); Sp(g, (.3 + F * .04) * (1 - t * .85), GL(mix('#fff6c8', '#7fd0ff', t), .7 - t * .3), [Math.sin(t * 4) * .06, A.tail[1] + .1 + t * .5, A.tail[2] - .15 - t * (.9 + F * .3)], null, 1); }
+    for (let i = 0; i < 2 + F; i++) Oc(g, .06, GL('#fff3a0', .9), [Math.sin(i * 2) * .3, A.tail[1] + .3 + i * .16, A.tail[2] - .5 - i * .3], [1, 1.5, 1]);
+    Oc(g, .1, GL('#fff3a0', .8), [0, h.p[1] + h.r * .55, h.p[2] + h.r * .82], [1, 1, .3], [-.5, 0, 0]);
+    return A;
+  },
+  ringbear(g, F, K, X) { // a round, dozy bear cub that wears a planet's ring and, later, a tiny moon
+    const A = ball(g, F, K, X, { feetC: mix(K.a, '#8a5a3c', .4), faceO: { nose: '#3b2f3a', y: .12 } }), b = A.body, r = b.r[0];
+    earsR(g, { p: [0, b.p[1] + r * .1, 0], r: r * 1.05 }, K.a, K.b, 1); Sp(g, r * .34, '#fff3df', [0, b.p[1] - r * .12, r * .82], [1.3, .8, .7]);
+    for (let i = 0; i < 2; i++) Sp(g, 1, mix(K.a, '#c98a5a', .3), [0, b.p[1] - r * (.25 + i * .32), -.02], [r * (1.0 - i * .09), .07, r * (1.0 - i * .09)]);
+    const ring = Grp(g, [0, b.p[1] - r * .05, 0], [.3, 0, .22]); To(ring, [r * 1.45, .09, 4, 22], K.b, [0, 0, 0], [PI / 2, 0, 0], [1, 1, .35]); To(ring, [r * 1.22, .06, 4, 22], mix(K.b, '#ffffff', .5), [0, 0, 0], [PI / 2, 0, 0], [1, 1, .35]);
+    if (F) Sp(g, .14 + F * .03, '#e9e4ff', [r * 1.5, b.p[1] + r * .9, .2], null, 1); if (F === 2) Oc(g, .09, GL('#fff3a0', .8), [-r * 1.4, b.p[1] + r * 1.1, -.2], [1, 1.5, 1]);
     return A;
   },
   mossbun(g, F, K, X) {

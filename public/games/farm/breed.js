@@ -11,6 +11,7 @@ export const COAT = {
   zapkit: ['#ffe066', '#fff6c8'], buzzlet: ['#ffd23e', '#fff3c4'], voltvole: ['#f2c9a0', '#fff3df'], glimmoth: ['#d9c9f2', '#fff3df'],
   acornip: ['#c98a55', '#f6dcb8'], lanternail: ['#f2a57a', '#ffe0c2'], ripplet: ['#fff2b0', '#ffffff'], wattbat: ['#8f7fc9', '#e6dcff'], rubblet: ['#b9b2a8', '#8a8794'],
   bambear: ['#fffaf0', '#ffffff'], sizzlet: ['#e8607a', '#fff0c4'], waddlet: ['#5b7fb8', '#ffffff'], oinkwatt: ['#ffc9c0', '#ffe9a8'], tricerock: ['#b5c9a0', '#f0ead0'],
+  strawbun: ['#ff5a6e', '#ffd9de'], chilipup: ['#e8402a', '#ffd0a0'], melonwhale: ['#5fb85a', '#ff7a8a'], lemonzest: ['#ffe14a', '#fff6b0'], coconutkin: ['#8a5a3c', '#fffaf0'], pinepine: ['#ffc93c', '#fff0b0'], croissab: ['#e8a85a', '#fff0c8'], donuseal: ['#eef2f6', '#ff9ec4'], cupcowl: ['#f3e0c0', '#ff9ec4'], pretzelisk: ['#c98a4a', '#fff3df'], mallowlamb: ['#ffffff', '#ffd9e8'], candraffe: ['#ffffff', '#ff5a6e'], jellifrog: ['#7fe0a0', '#c9ffd9'], carrofox: ['#ff9a3c', '#fff3df'], pumpkit: ['#ff9a2c', '#fff3df'], peapillar: ['#8fd45a', '#b9e87a'], shroomouse: ['#e9d9c9', '#fff3df'], snowfox: ['#eaf6ff', '#ffffff'], sunlion: ['#ffc93c', '#fff0b0'], dripfrog: ['#6fb7e8', '#dff4ff'], twistret: ['#b9c2d0', '#eef2f7'], moonbun: ['#d9d0ff', '#fff9d9'], starjelly: ['#c9b5ff', '#fff3a0'], cometail: ['#7fb8ff', '#fff6c8'], ringbear: ['#f2c9a0', '#c9b5ff'],
   pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
 };
 // Coat colour genes. A pet carries two; the one earlier in this list is the one that shows.
@@ -22,7 +23,8 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
   nimbowhale: 'a rain cloud', zapkit: 'a lightning tail', buzzlet: 'buzzy wings', voltvole: 'a spark tuft', glimmoth: 'glowing wings', pebblet: 'pebble spines',
   cragcrab: 'a boulder shell', dustmole: 'a hard hat', geodeer: 'crystal antlers',
   acornip: 'an acorn cap', lanternail: 'a lantern shell', ripplet: 'a wave curl', wattbat: 'bolt ears', rubblet: 'a gem crown',
-  bambear: 'a bamboo shoot', sizzlet: 'dragon wings', waddlet: 'a seashell hat', oinkwatt: 'a curly spark tail', tricerock: 'a stone frill' };
+  bambear: 'a bamboo shoot', sizzlet: 'dragon wings', waddlet: 'a seashell hat', oinkwatt: 'a curly spark tail', tricerock: 'a stone frill',
+  strawbun: 'a strawberry top', chilipup: 'a chili stem', melonwhale: 'a melon slice', lemonzest: 'a peel curl', coconutkin: 'a palm sprout', pinepine: 'a pineapple crown', croissab: 'a croissant', donuseal: 'a little donut', cupcowl: 'a frosting swirl', pretzelisk: 'a pretzel bow', mallowlamb: 'a toasted marshmallow', candraffe: 'candy cane horns', jellifrog: 'a wobbly jelly', carrofox: 'a carrot tail', pumpkit: 'a pumpkin stem', peapillar: 'a pea pod', shroomouse: 'a spotted cap', snowfox: 'a snowy tail', sunlion: 'a crown of sun rays', dripfrog: 'a leaf umbrella', twistret: 'a little whirlwind', moonbun: 'a slice of moon', starjelly: 'a lucky star', cometail: 'a comet tail', ringbear: 'a planet ring' };
 export const TALENTS = [
   { name: 'Early Bird', blurb: 'Always moves first on the first turn of a battle.' },
   { name: 'Forager', blurb: 'Its party brings back 10% more from expeditions.' },
