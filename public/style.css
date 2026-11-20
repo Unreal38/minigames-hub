@@ -311,6 +311,8 @@ body:has(.lobby) .scorebtn { display: none; }
 .gcard .pic.pokerpic svg { width: 100%; height: 100%; display: block; }
 .pokerpic .fan { animation: bob 2.6s ease-in-out infinite; animation-delay: var(--d); }
 
+.gcard .pic.ludopic { background: #3d1f33; padding: 0; }
+.gcard .pic.ludopic svg { width: 100%; height: 100%; display: block; }
 .gcard .pic.farmpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.farmpic svg { width: 100%; height: 100%; display: block; }
 
