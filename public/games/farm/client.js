@@ -127,8 +127,23 @@ export function mount(app, ctx) {
   const petRow = (p, extra = '') => `${face(p)}<b>${esc(p.name)}</b><small>Level ${p.lv}${extra}</small>`;
   function paintPanel() {
     const box = $('pf-panel');
-    if (!panel || mode !== 'farm' || edit) { box.hidden = true; box.innerHTML = ''; return; }
+    if (!panel || mode !== 'farm' || (edit && panel.kind !== 'buy')) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
+    if (panel.kind === 'buy') { // a closer look at something from the build menu before paying for it
+      const type = panel.type, it = ITEMS[type], have = countOf(F, type), up = UPGRADES[type];
+      const why = it.pals && F.palpts < it.pals ? `Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`
+        : it.craft && !countOf(F, 'workshop') ? 'Needs a Workshop on your farm. It is under Buildings.'
+        : it.max && have >= it.max ? `You already have ${it.max === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`
+        : !canAfford(F.inv, it.cost) ? 'You do not have enough materials yet.' : '';
+      const size = it.w === it.h ? (it.w < 1 ? 'Half a tile' : it.w === 1 ? 'One tile' : `${it.w} by ${it.h} tiles`) : `${it.w} by ${it.h} tiles`;
+      box.innerHTML = `<div class="panel tripp buy"><div class="buytop">${thumb(type, it.name)}<div><h2>${it.name}</h2><p>${it.desc}</p></div></div>
+        <p class="hint">${size}${it.walk ? ' · pets can walk over it' : ''}${it.max ? ` · you have ${have} of ${it.max}` : have ? ` · you have ${have}` : ''}${up ? ` · can be improved to level ${UP_MAX}` : ''}</p>
+        <p><b>Price</b></p><div class="cost">${costHtml(it.cost, F.inv)}</div>
+        <p class="hint">${why || 'After buying, drag it to where you want it. Selling it later gives everything back.'}</p>
+        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
+          <button type="button" class="btn big m" data-a="buy" data-type="${type}" ${why ? 'disabled' : ''}>Buy and place</button></div></div>`;
+      return;
+    }
     if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
       const away = F.trip?.pets || [], what = panel.mode === 'defend' ? 'Defence team' : panel.mode === 'live' ? `Live battle with ${esc(panel.foeName)}` : panel.mode === 'arena' ? `Match against ${esc(panel.foeName)}` : 'Practice battle';
       const pets = F.pets.map(p => { const i = panel.pets.indexOf(p.id), out = away.includes(p.id) && panel.mode !== 'defend';
@@ -431,7 +446,7 @@ export function mount(app, ctx) {
     el.hidden = !(mode === 'farm' && edit);
     if (el.hidden) return;
     const g = scene?.ghost();
-    const cards = Object.entries(ITEMS).filter(([, it]) => it.kind === tab && !it.fixed).map(([type, it]) => {
+    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals : it.kind === tab && !it.craft && !it.pals)).map(([type, it]) => {
       const have = countOf(F, type), full = it.max && have >= it.max, poor = !canAfford(F.inv, it.cost), locked = it.craft && !countOf(F, 'workshop'), shy = it.pals && F.palpts < it.pals;
       return `<button type="button" class="item${full || poor || locked || shy ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
         ${thumb(type)}<b>${it.name}</b><span class="cost">${shy ? `<span class="mat">Friendship ${F.palpts} of ${it.pals}</span>` : locked ? '<span class="mat">Needs a Workshop</span>' : full ? `<span class="mat">Have ${have} of ${it.max}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
@@ -441,7 +456,8 @@ export function mount(app, ctx) {
     const keep = el.querySelector('.items')?.scrollLeft || 0;
     el.innerHTML = `<div class="bhead"><div class="pills">
         <button type="button" data-a="tab" data-tab="b" aria-pressed="${tab === 'b'}">Buildings</button>
-        <button type="button" data-a="tab" data-tab="d" aria-pressed="${tab === 'd'}">Decorations</button></div>
+        <button type="button" data-a="tab" data-tab="d" aria-pressed="${tab === 'd'}">Decorations</button>
+        <button type="button" data-a="tab" data-tab="f" aria-pressed="${tab === 'f'}">Fancy</button></div>
       <span class="hint">Tap something on the farm to move it.</span>
       <button type="button" class="btn m" data-a="done">Done</button></div>
       <div class="items">${cards}${land}</div>`;
@@ -508,7 +524,7 @@ export function mount(app, ctx) {
       else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="berries">Pick berries (${F.garden.ripe * BERRIES})</button>` : `<p class="hint">Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.</p>`;
       else if (item.type === 'kitchen') more = `<p class="hint">You have ${F.inv.berries || 0} berries.</p><button type="button" class="btn sm m" data-a="cookopen">Cook treats</button>`;
       else if (item.type === 'barn') more = `<p class="hint">Your farm can hold ${F.cap} of each material.</p>`;
-      else if (item.type === 'workshop') more = '<p class="hint">Its decorations are under Edit farm, Decorations.</p><button type="button" class="btn sm m" data-a="sellopen">Sell spare materials</button>';
+      else if (item.type === 'workshop') more = '<p class="hint">Its decorations are under Edit farm, Fancy.</p><button type="button" class="btn sm m" data-a="sellopen">Sell spare materials</button>';
       else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
         ${up}<button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button>
@@ -647,13 +663,9 @@ export function mount(app, ctx) {
     else if (a === 'tab') { tab = b.dataset.tab; paintBuild(); }
     else if (a === 'expand') { if (b.classList.contains('off')) ctx.toast('Not enough materials to grow the land yet.', true); else ctx.send({ t: 'expand' }); }
     else if (a === 'item') {
-      const type = b.dataset.type, it = ITEMS[type];
-      if (it.pals && F.palpts < it.pals) return ctx.toast(`That unlocks at ${it.pals} friendship points. You earn them by helping out and leaving gifts.`, true);
-      if (it.craft && !countOf(F, 'workshop')) return ctx.toast('Build a Workshop first. It is under Buildings.', true);
-      if (it.max && countOf(F, type) >= it.max) return ctx.toast(`You can only have ${it.max} of those.`, true);
-      if (!canAfford(F.inv, it.cost)) return ctx.toast('Not enough materials for that yet.', true);
-      scene?.ghostNew(type);
+      scene?.ghostCancel(); panel = { kind: 'buy', type: b.dataset.type }; sfx.click(); paintPanel();
     }
+    else if (a === 'buy') { const type = b.dataset.type; panel = null; paintPanel(); scene?.ghostNew(type); }
     else if (a === 'rot') scene?.ghostRotate();
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();

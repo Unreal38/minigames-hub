@@ -143,8 +143,14 @@ const lists = p => { p.friends ||= []; p.reqs ||= []; p.sent ||= []; return p; }
 const drop = (a, x) => { const i = a.indexOf(x); if (i >= 0) a.splice(i, 1); };
 export function friendOp(p, op, user) {
   if (!p?.user) return { err: 'Create an account to add friends.' };
-  const o = profiles.get(users.get(String(user ?? '').trim().toLowerCase()));
-  if (!o) return { err: 'Nobody here has that username.' };
+  const q = String(user ?? '').trim().toLowerCase(); let o = profiles.get(users.get(q));
+  if (!o && q) { // not a username: people often type the name they see on screen, so try that too
+    const named = [...profiles.values()].filter(x => x !== p && String(x.name ?? '').trim().toLowerCase() === q), acc = named.filter(x => x.user);
+    if (acc.length === 1) o = acc[0];
+    else if (acc.length > 1) return { err: 'More than one player uses that name. Ask your friend for their username: it is shown at the top of their Friends list.' };
+    else if (named.length) return { err: 'That player has no account yet. Once they create one, add them by the username they chose.' };
+  }
+  if (!o) return { err: 'Nobody has that username. Your friend can find theirs at the top of their own Friends list.' };
   if (o === p) return { err: 'That is you!' };
   lists(p); lists(o);
   const link = () => { for (const [a, b] of [[p, o], [o, p]]) { drop(a.reqs, b.pid); drop(a.sent, b.pid); if (!a.friends.includes(b.pid)) a.friends.push(b.pid); } };
