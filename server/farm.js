@@ -224,7 +224,7 @@ export function handle(p, a, reply) {
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
     const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     const [pid, x] = hit, id = fid(x);
-    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !x.trip?.pets.includes(q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv })),
+    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !(x.trip?.until > Date.now() && x.trip.pets.includes(q.id))).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv })),
       helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
     if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner
       const h = daily(f, 'help'); if ((h[id] || 0) >= HELPS) return reply({ t: 'farm', err: 'You have helped here as much as you can today.', visit: there(), farm: view(f, p) });
