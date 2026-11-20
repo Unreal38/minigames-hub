@@ -13,6 +13,7 @@ const SESSION_TTL = 180 * 86400_000; // forget unused guest sessions after half 
 export const profiles = new Map(); // pid -> profile
 export const sessions = new Map(); // browser token -> { id, pid, seen }
 const users = new Map();           // lower-case username -> pid
+const visitors = new Set();        // hashed browser tokens of everyone who has ever opened the site
 let savedRooms = [];
 
 const rid = n => crypto.randomBytes(n).toString('hex');
@@ -24,6 +25,8 @@ export function load() {
   catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return []; }
   for (const p of Object.values(d.profiles || {})) { profiles.set(p.pid, p); if (p.user) users.set(p.user.toLowerCase(), p.pid); }
   for (const [t, s] of Object.entries(d.sessions || {})) if (profiles.has(s.pid)) sessions.set(t, s);
+  if (Array.isArray(d.visitors)) for (const v of d.visitors) if (typeof v === 'string') visitors.add(v);
+  for (const t of Object.keys(d.sessions || {})) visitors.add(vkey(t)); // older saves had no visitor list
   savedRooms = Array.isArray(d.rooms) ? d.rooms : [];
   console.log(`loaded ${profiles.size} profiles, ${sessions.size} sessions, ${savedRooms.length} lobbies from ${FILE}`);
   return savedRooms;
@@ -44,7 +47,7 @@ export function saveNow() {
     if (inRoom.has(t) || p.user || p.games) { keepS[t] = s; keepP[p.pid] = p; }
   }
   for (const p of profiles.values()) if (p.user) keepP[p.pid] = p;
-  const data = JSON.stringify({ v: 1, saved: new Date().toISOString(), profiles: keepP, sessions: keepS, rooms });
+  const data = JSON.stringify({ v: 1, saved: new Date().toISOString(), profiles: keepP, sessions: keepS, rooms, visitors: [...visitors] });
   try {
     fs.mkdirSync(DIR, { recursive: true });
     const tmp = FILE + '.tmp';
@@ -56,6 +59,15 @@ export function saveNow() {
     warned = true;
   }
 }
+
+// ---------- visitor count ----------
+// Counts distinct browsers. Only a short hash of each token is kept, so the list can't be used to log in.
+const vkey = t => crypto.createHash('sha256').update(String(t)).digest('hex').slice(0, 16);
+export function visit(token) {
+  const k = vkey(token); if (visitors.has(k)) return false;
+  visitors.add(k); scheduleSave(); return true;
+}
+export const visitorCount = () => visitors.size;
 
 // ---------- profiles & sessions ----------
 function newProfile(look = {}) {
