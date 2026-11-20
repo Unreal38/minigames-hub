@@ -6,7 +6,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, profiles, friendPids } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
-  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS, MATS } from '../public/games/farm/data.js';
+  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS, MATS,
+  GROW_MIN, BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 
@@ -109,7 +110,7 @@ function foes(mine) {
   return out.sort((a, b) => b.pts - a.pts);
 }
 // What the player may see of a fight: everything about their own side, and the other side's faces and health.
-const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
+const battleView = B => ({ juiced: !!B.juiced, mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
   sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
 // ---------- live battles ----------
@@ -193,7 +194,14 @@ function tradesView(pid, f) {
 }
 
 // ---------- what the player sees ----------
+// Gardens ripen on their own. A plot with no time on it (built before berries existed) is ripe straight away.
+const ripeIn = it => Math.max(0, (it.at || 0) + GROW_MIN * 60_000 - Date.now());
+const gardenView = f => { const g = f.items.filter(i => i.type === 'garden'), wait = g.map(ripeIn).filter(n => n > 0);
+  return { ripe: g.length - wait.length, left: wait.length ? Math.min(...wait) : 0 }; };
+// Materials going into storage stop at the cap. Returns how many fitted. Never takes anything away.
+function store(f, k, n) { const room = STORED.includes(k) ? Math.max(0, capOf(f) - (f.inv[k] || 0)) : Infinity, got = Math.min(n, room); f.inv[k] = (f.inv[k] || 0) + got; return got; }
 const view = (f, p) => ({
+  garden: gardenView(f), cap: capOf(f),
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets.map(petView), nest: nestView(f),
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
   album: album(f), coats: f.coats, marks: f.marks, mail: f.mail || [], pals: f.pals || {}, trades: tradesView(p.pid, f),
@@ -232,9 +240,10 @@ export function handle(p, a, reply) {
     if (f.items.length >= MAX_ITEMS) return no('The farm is full. Put something away first.');
     if (it.max && countOf(f, a.type) >= it.max) return no(`You can only have ${it.max} of those.`);
     if (!canAfford(f.inv, it.cost)) return no('Not enough materials for that.');
+    if (it.craft && !countOf(f, 'workshop')) return no('Build a Workshop first.');
     if (!fits(f, a.type, a.x, a.y, a.r)) return no('That spot is taken.');
     pay(f.inv, it.cost);
-    f.items.push({ id: f.nid++, type: a.type, x: a.x, y: a.y, r: a.r });
+    f.items.push({ id: f.nid++, type: a.type, x: a.x, y: a.y, r: a.r, ...(a.type === 'garden' ? { at: Date.now() } : {}) });
     return ok({ did: 'place' });
   }
   if (a.t === 'move') {
@@ -269,11 +278,11 @@ export function handle(p, a, reply) {
     const z = ZONES[a.zone], tr = TRIPS[a.trip];
     if (!z || !tr || !Array.isArray(a.pets)) return;
     if (!countOf(f, 'gate')) return no('Build an Expedition Gate first.');
+    const ids = [...new Set(a.pets)];
     if (nestView(f)?.stage === 'cuddle' && ids.some(id => id === f.nest.a || id === f.nest.b)) return no('One of them is cuddling in the Nest.');
     if (f.trip) return no('Your pets are already out exploring.');
     if (f.pets.some(x => x.held && ids.includes(x.id))) return no('One of them is promised in a trade.');
     if ((f.house || 1) < z.house) return no(`${z.name} opens at farmhouse level ${z.house}.`);
-    const ids = [...new Set(a.pets)];
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
     f.trip = { zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 };
     return ok({ did: 'send' });
@@ -287,7 +296,8 @@ export function handle(p, a, reply) {
       const v = n * (.85 + Math.random() * .3) * (party.some(x => x.talent === 1) ? 1.1 : 1), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
       if (whole > 0) loot[k] = whole;
     }
-    pay(f.inv, loot, 1);
+    let spilt = false;
+    for (const [k, n] of Object.entries(loot)) if (store(f, k, n) < n) spilt = true; // storage is full: the rest is left behind
     const grew = [];
     for (const pet of party) { const g = learn(pet, tr.xp); if (g) grew.push(g); }
     // a wild pet may follow them home, if there is a bed for it. The very first trip always brings one.
@@ -301,7 +311,35 @@ export function handle(p, a, reply) {
       }
     }
     f.trip = null; f.trips = (f.trips || 0) + 1;
-    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full } });
+    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt } });
+  }
+  if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
+    const ripe = f.items.filter(i => i.type === 'garden' && !ripeIn(i)); if (!ripe.length) return no('Nothing is ripe yet.');
+    const got = store(f, 'berries', ripe.length * BERRIES); if (!got) return no('There is no room for more berries. Cook some, or build a Storage Barn.');
+    for (const i of ripe) i.at = Date.now();
+    return ok({ did: 'pick', got });
+  }
+  if (a.t === 'cook') {
+    const r = RECIPES[a.what]; if (!r) return;
+    if (!countOf(f, 'kitchen')) return no('Build a Kitchen first.');
+    if (!canAfford(f.inv, r.cost)) return no('Not enough for that recipe yet.');
+    pay(f.inv, r.cost); f.inv[a.what] = (f.inv[a.what] || 0) + 1;
+    return ok({ did: 'cook', what: a.what });
+  }
+  if (a.t === 'feed') { // a treat for one pet: experience straight away
+    const r = RECIPES[a.what], pet = f.pets.find(x => x.id === a.pet); if (!r?.xp || !pet) return;
+    if (!(f.inv[a.what] > 0)) return no('You have none of those left.');
+    if (pet.lv >= MAX_LV) return no(`${pet.name} is fully grown and just wants cuddles.`);
+    if (f.trip?.until > Date.now() && f.trip.pets.includes(pet.id)) return no(`${pet.name} is away exploring.`);
+    f.inv[a.what]--;
+    return ok({ did: 'feed', what: a.what, pet: pet.id, grew: learn(pet, r.xp) });
+  }
+  if (a.t === 'sell') { // the Workshop buys spare materials in lots of ten
+    const lots = Math.max(1, Math.min(50, a.lots | 0)), price = SELL[a.mat]; if (!price) return;
+    if (!countOf(f, 'workshop')) return no('Build a Workshop first.');
+    if ((f.inv[a.mat] || 0) < lots * SELL_LOT) return no('You do not have that many to sell.');
+    f.inv[a.mat] -= lots * SELL_LOT; f.inv.coins = (f.inv.coins || 0) + lots * price;
+    return ok({ did: 'sell', coins: lots * price });
   }
   if (a.t === 'pair') { // two pets go to the Nest; b may be a friend's pet that is open for playdates
     if (!countOf(f, 'nest')) return no('Build a Nest first.');
@@ -504,7 +542,11 @@ export function handle(p, a, reply) {
     const B = battles.get(p.pid); if (!B) return reply({ t: 'farm', battle: null, farm: view(f, p) });
     let ev = [];
     if (a.t === 'bquit') { if (B.over === null) { B.over = 1; ev = [{ k: 'end', win: 1, quit: true }]; } }
-    else { ev = step(B, a.switch !== undefined ? { switch: a.switch } : { move: a.move }); if (!ev) return reply({ t: 'farm', battle: battleView(B), ev: [], err: 'That is not possible right now.' }); }
+    else {
+      if (a.juice && (!(f.inv.juice > 0) || B.juiced)) return reply({ t: 'farm', battle: battleView(B), ev: [], err: B.juiced ? 'One juice a battle.' : 'You have no Berry Juice.' });
+      ev = step(B, a.juice ? { juice: RECIPES.juice.heal } : a.switch !== undefined ? { switch: a.switch } : { move: a.move });
+      if (ev && a.juice) { f.inv.juice--; B.juiced = true; scheduleSave(); }
+      if (!ev) return reply({ t: 'farm', battle: battleView(B), ev: [], err: 'That is not possible right now.' }); }
     if (B.over === null) return reply({ t: 'farm', battle: battleView(B), ev });
     // the fight is over: hand out rewards, as long as today's rewarded fights are not used up
     battles.delete(p.pid);
@@ -540,5 +582,6 @@ export function testHook(pid, a) {
   if (a.pet && SPECIES[a.pet]) f.pets.push({ ...newPet(a.pet, 'test', true), ...(a.traits || {}) });
   if (a.lv) for (const x of f.pets) x.lv = a.lv;
   if (a.rested) for (const x of f.pets) x.rest = 0;
+  if (a.ripe) for (const i of f.items) if (i.type === 'garden') i.at = 0;
   if (a.egg && f.nest) f.nest.at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;
 }

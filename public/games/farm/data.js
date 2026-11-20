@@ -4,25 +4,25 @@
 export const SIZES = [10, 12, 14, 16, 18];
 // Cost of growing the land to SIZES[i].
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 }];
-export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', coins: 'Coins' };
+export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', coins: 'Coins' };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 export const MAX_ITEMS = 300;
 
 // kind: 'b' building, 'd' decoration. w x h is the footprint before rotation. max = how many a farm may hold.
 // fine: a small prop that snaps to half tiles (its w and h may be .5). Everything else sits on whole tiles.
-// walk: pets can stroll across it. soon: what it will do once that part of the game arrives.
+// walk: pets can stroll across it. craft: a decoration that needs a Workshop on the farm.
 export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
   hut:      { name: 'Pet Hut', kind: 'b', w: 2, h: 2, max: 3, cost: { wood: 30, fiber: 10 }, desc: 'A snug place for four more pets to sleep.' },
   gate:     { name: 'Expedition Gate', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 25, stone: 15 }, desc: 'Pets set off by balloon from here and come back with materials, and sometimes a new friend.' },
-  garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil for growing berries.', soon: 'Berries will grow here soon.' },
-  kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats.', soon: 'Cooking arrives with berries.' },
-  barn:     { name: 'Storage Barn', kind: 'b', w: 2, h: 3, max: 1, cost: { wood: 45, stone: 10 }, desc: 'Room for more materials.', soon: 'Storage limits arrive in a later update.' },
+  garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil. Berries ripen here every hour.' },
+  kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats for your pets.' },
+  barn:     { name: 'Storage Barn', kind: 'b', w: 2, h: 3, max: 1, cost: { wood: 45, stone: 10 }, desc: 'Room for three times as many materials.' },
   nest:     { name: 'Nest', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 20, fiber: 30, crystal: 2 }, desc: 'Two pets rest here and an egg appears.' },
   yard:     { name: 'Training Yard', kind: 'b', w: 3, h: 2, max: 1, cost: { wood: 25, stone: 25 }, desc: 'Pets practise their moves here against friendly partners.' },
   flag:     { name: 'Arena Flag', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 10, fiber: 10 }, desc: 'Challenge other farms here, and choose the team that defends yours.' },
   mailbox:  { name: 'Mailbox', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 8 }, desc: 'Gifts and letters from friends land here.' },
-  workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Crafts fancier decorations.', soon: 'Crafting arrives in a later update.' },
+  workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Unlocks fancier decorations, and buys your spare materials for coins.' },
 
   fence:    { name: 'Fence', kind: 'd', w: 1, h: 1, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
   path:     { name: 'Stone Path', kind: 'd', w: 1, h: 1, walk: true, cost: { stone: 1 }, desc: 'Pets like to stroll along it.' },
@@ -34,6 +34,12 @@ export const ITEMS = {
   pond:     { name: 'Pond', kind: 'd', w: 2, h: 2, cost: { stone: 12 }, desc: 'Cool water with a lily pad.' },
   bench:    { name: 'Bench', kind: 'd', w: 1, h: .5, fine: true, cost: { wood: 8 }, desc: 'For watching pets go by.' },
   rock:     { name: 'Mossy Rock', kind: 'd', w: .5, h: .5, fine: true, cost: { stone: 4 }, desc: 'It has always been here, probably.' },
+  fountain: { name: 'Fountain', kind: 'd', w: 2, h: 2, craft: true, cost: { stone: 30, shells: 8 }, desc: 'Splashes all day long.' },
+  windmill: { name: 'Windmill', kind: 'd', w: 1, h: 1, craft: true, cost: { wood: 30, coal: 5 }, desc: 'Turns slowly in the island breeze.' },
+  arch:     { name: 'Flower Arch', kind: 'd', w: 1, h: 1, walk: true, craft: true, cost: { wood: 10, fiber: 15, shells: 4 }, desc: 'Pets love to walk under it.' },
+  statue:   { name: 'Pet Statue', kind: 'd', w: 1, h: 1, craft: true, cost: { stone: 25, crystal: 1 }, desc: 'A proud little monument.' },
+  glow:     { name: 'Crystal Lamp', kind: 'd', w: .5, h: .5, fine: true, craft: true, cost: { coal: 4, crystal: 1 }, desc: 'Glows softly, day and night.' },
+  tower:    { name: 'Climbing Tower', kind: 'd', w: 1, h: 1, craft: true, cost: { wood: 15, fiber: 10, shells: 3 }, desc: 'Something to climb, scratch and nap on.' },
   ball:     { name: 'Pet Ball', kind: 'd', w: .5, h: .5, fine: true, walk: true, cost: { fiber: 6 }, desc: 'A toy for the pets.' },
 };
 
@@ -76,7 +82,17 @@ export const HOUSE_MAX = 4;
 export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 }];
 
 // What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
-export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, coins: 10 };
+export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1, coins: 10 };
+// Gardens, kitchen, barn and workshop.
+export const GROW_MIN = 60, BERRIES = 3; // each Garden Plot gives 3 berries an hour
+export const RECIPES = {
+  cookie: { name: 'Berry Cookie', cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
+  cake:   { name: 'Honey Cake', cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
+  juice:  { name: 'Berry Juice', cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
+};
+export const STORED = ['wood', 'stone', 'fiber', 'shells', 'coal', 'berries'], CAP = { base: 300, barn: 900 }; // the most a farm can hold of each
+export const capOf = f => countOf(f, 'barn') ? CAP.barn : CAP.base;
+export const SELL = { wood: 4, stone: 4, fiber: 4, shells: 12, coal: 12, berries: 8 }, SELL_LOT = 10; // coins the Workshop pays for a lot of ten
 
 // ---------- expeditions ----------
 // A party of 1 to 3 pets flies to a zone and comes back with materials. Nothing can go wrong on a trip.
