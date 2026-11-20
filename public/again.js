@@ -18,9 +18,9 @@ export function againHtml(ctx, room, label = 'Play again') {
   if (meP?.watch && !ctx.isHost()) { // watching: offer a seat in the next round instead of a vote
     const sitting = (room.sit || []).includes(meP.id), full = players.filter(p => !p.watch).length >= room.max;
     return `<div class="again">${tally}<div class="row">
-    <button type="button" class="btn big${sitting ? ' m' : ''}" data-a="sit" aria-pressed="${sitting}">${sitting ? '✓ Saving you a seat' : 'Take a seat next round'}</button>${leave}</div>
-    <p class="wait">${sitting ? (full ? 'Every seat is taken right now. You get the next one that frees up.' : `You take a bot’s seat when ${hostName} starts the next round. Tap again to keep watching.`)
-      : 'You are watching. Take a seat and you replace a bot when the next round starts.'}</p></div>`;
+    <button type="button" class="btn big${sitting ? ' m' : ''}" data-a="sit" aria-pressed="${sitting}">${sitting ? '✓ Saving you a seat' : 'Play next game'}</button>${leave}</div>
+    <p class="wait">${sitting ? (full ? 'Every seat is taken right now. You get the next one that frees up.' : `You take a bot’s seat when ${hostName} starts the next game. Tap again to keep watching.`)
+      : 'You are watching. Tap to take a bot’s seat when the next game starts.'}</p></div>`;
   }
   if (ctx.isHost()) return `<div class="again">${tally}<div class="row">
     <button type="button" class="btn big" data-a="again">${label}</button><button type="button" class="btn big w" data-a="lobby">Waiting room</button>${leave}</div></div>`;

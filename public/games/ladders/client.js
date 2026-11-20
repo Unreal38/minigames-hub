@@ -161,6 +161,7 @@ export function mount(app, ctx) {
 
   function playEv(e) {
     if (e.t === 'again' && e.s === S.me && S.seats[S.me].pos < S.board.size) { ctx.toast('Bonus roll! Go again.'); sfx.turn(); }
+    else if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Your token, your rolls!' : `${esc(nameOf(e.s))} took over a bot`); }
     else if (e.t === 'nap') ctx.toast(`Zz… ${e.s === S.me ? 'you nap' : nameOf(e.s) + ' naps'} through a turn`);
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); } else sfx.lose();
