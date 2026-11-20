@@ -54,11 +54,11 @@ Open two browser windows (or one normal and one private window) to play against 
 
 ## Pet Farm
 
-A persistent game rather than a table game: every account owns a small low-poly farm that is still there next visit. The farm is a floating island. You pick a starter pet, place and move buildings and decorations on a tile grid, grow the land, and send pets off by balloon on expeditions that take real time (15 minutes to 8 hours). They come back with materials and experience, and sometimes a wild pet follows them home. A bigger farmhouse opens more places to explore. Battles, friends and breeding come in later stages.
+A persistent game rather than a table game: every account owns a small low-poly farm that is still there next visit. The farm is a floating island. You pick a starter pet, place and move buildings and decorations on a tile grid, grow the land, and send pets off by balloon on expeditions that take real time (15 minutes to 8 hours). They come back with materials and experience, and sometimes a wild pet follows them home. A bigger farmhouse opens more places to explore. Pets also fight turn-based battles, up to 3 against 3: practice at the Training Yard, or challenge other farms and three built-in neighbours at the Arena Flag, where everyone fights at level 20 and the other team is played by the game. Friends and breeding come in later stages.
 
 - It needs an account (guests are asked to create one), because the farm is saved to it.
 - Farms are saved in their own file, `pet-farm.json`, next to `cozy-table.json` in `DATA_DIR`. Back up both.
-- Buildings, costs, land sizes, pets, expedition zones, trip lengths and rewards are all in `public/games/farm/data.js`, shared by the server and the browser. The server rules are in `server/farm.js`; models are built in code in `public/games/farm/models.js`.
+- Buildings, costs, land sizes, pets, expedition zones, trip lengths and rewards are all in `public/games/farm/data.js`, shared by the server and the browser. Battle rules, moves and stats are in `public/games/farm/battle.js`. The server rules are in `server/farm.js`; models are built in code in `public/games/farm/models.js`.
 
 ## Deploy on an Oracle Cloud server
 

@@ -3,6 +3,7 @@
 //   mount(app, ctx) -> { msg(m), me(), reopen(), destroy() }
 //   ctx: { send(action), toast, me(), home(), account(mode) }
 import { sfx } from '../../sfx.js';
+import { MOVES, STATUS, STAT_NAME, KIT, ROLE_NAME, movesAt } from './battle.js';
 import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, formOf, xpFor, tripLoot, canAfford, countOf } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -42,6 +43,7 @@ export function mount(app, ctx) {
         <button type="button" class="round" data-a="home" aria-label="Back to the hub">${I.door}</button></div>
       <div class="bl" id="pf-main"></div>
       <div class="pcard" id="pf-card" hidden></div>
+      <div class="bt" id="pf-bt" hidden></div>
       <div class="dock"><div class="ghostbar" id="pf-ghost" hidden></div><div class="build" id="pf-build" hidden></div></div>
     </div>
     <div class="gate" id="pf-panel" hidden></div>
@@ -53,7 +55,8 @@ export function mount(app, ctx) {
   let quiet = 0;
   const say = ctx.send;
   ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', true); }, 4000); } };
-  let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] };
+  let B = null, shown = null, playing = false, foes = null, line = '';
+  let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [];
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -67,18 +70,19 @@ export function mount(app, ctx) {
   // ---------- painting ----------
   function sync() {
     if (F?.trip) F.trip.left = Math.max(0, tripAt - Date.now());
-    paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel();
+    paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel(); paintBattle();
     if (!scene) return;
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
     else { scene.setStarters(null); scene.setFarm(mode === 'farm' ? F : null); scene.setEdit(edit); }
+    scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
   }
   function paintTop() {
-    $('pf-title').textContent = F ? `${F.owner}'s farm` : 'Pet Farm';
-    $('pf-mats').innerHTML = F && mode === 'farm' ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => mat(k, F.inv[k] || 0)).join('') : '';
+    $('pf-title').textContent = B ? (B.mode === 'arena' ? `Match against ${B.foe}` : 'Practice battle') : F ? `${F.owner}'s farm` : 'Pet Farm';
+    $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => mat(k, F.inv[k] || 0)).join('') : '';
   }
   function paintMain() {
     const el = $('pf-main');
-    if (mode !== 'farm' || edit) { el.innerHTML = ''; return; }
+    if (mode !== 'farm' || edit || B) { el.innerHTML = ''; return; }
     const t = F.trip, z = t && ZONES[t.zone];
     const trip = !countOf(F, 'gate') ? '<span class="chip">Build an Expedition Gate to send pets exploring</span>'
       : !t ? '<button type="button" class="btn m" data-a="explore">Send pets exploring</button>'
@@ -92,6 +96,37 @@ export function mount(app, ctx) {
     const box = $('pf-panel');
     if (!panel || mode !== 'farm' || edit) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
+    if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
+      const away = F.trip?.pets || [], what = panel.mode === 'defend' ? 'Defence team' : panel.mode === 'arena' ? `Match against ${esc(panel.foeName)}` : 'Practice battle';
+      const pets = F.pets.map(p => { const i = panel.pets.indexOf(p.id), out = away.includes(p.id) && panel.mode !== 'defend';
+        return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="team" data-id="${p.id}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="num">${i + 1}</span>` : ''}
+          ${petRow(p, out ? ' · exploring' : ' · ' + SPECIES[p.sp].el)}</button>`; }).join('');
+      const note = panel.mode === 'defend' ? 'These pets defend your farm when another player challenges you. They fight at level 20 and are played by the game.'
+        : panel.mode === 'arena' ? `Everyone fights at level 20 with all four moves. ${F.fights.arena > 0 ? `Rewarded matches left today: ${F.fights.arena}.` : 'No rewarded matches left today, so this one is just for fun.'}`
+        : `Your pets fight at their own level against partners of the same level. ${F.fights.practice > 0 ? `Practice fights that give experience today: ${F.fights.practice}.` : 'No more experience from practice today, but you can still fight for fun.'}`;
+      box.innerHTML = `<div class="panel tripp"><h2>${what}</h2><p>Pick up to ${PARTY}. The first one you tap leads.</p>
+        <div class="party">${pets}</div><p class="hint">${note}</p>
+        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
+          <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? 'Save team' : 'Start'}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'foes') {
+      const rows = (foes || []).map(f => `<button type="button" class="foe" data-a="foe" data-id="${esc(f.id)}"><b>${esc(f.name)}</b><small>${f.npc ? 'Neighbour' : 'Player'} · ${f.pts} points</small>
+        <span class="faces">${f.team.map(t => thumb('pet:' + t.sp, SPECIES[t.sp]?.name)).join('')}</span></button>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Arena</h2><p>You have ${F.pts} ladder points. Rewarded matches left today: ${F.fights.arena}.</p>
+        <div class="foes">${foes ? rows : '<p class="hint">Looking for opponents…</p>'}</div>
+        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button><button type="button" class="btn w" data-a="defteam">Choose defence team</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'prize') {
+      const z = panel.prize, who = F.pets.filter(p => panel.ids.includes(p.id));
+      const rows = z.counted ? who.map(p => { const g = z.grew.find(x => x.id === p.id);
+        return `<div class="backpet">${thumb('pet:' + p.sp)}<div><b>${esc(p.name)}</b><small>+${z.xp} experience${g ? ` · <em>${g.form ? `grew up into its ${FORMS[g.form].toLowerCase()} form` : `reached level ${g.lv}`}</em>` : ''}</small></div></div>`; }).join('') : '';
+      box.innerHTML = `<div class="panel tripp back"><h2>${z.won ? 'You won!' : panel.quit ? 'You left the ring' : 'You lost this one'}</h2>
+        ${z.counted ? `<div class="mats">${z.coins ? mat('coins', '+' + z.coins) : ''}${z.pts ? `<span class="mat">+${z.pts} ladder points</span>` : ''}</div>${rows}` : `<p class="hint">${panel.quit ? 'Giving up earns nothing.' : 'No rewards left for today, so that one was just for fun.'}</p>`}
+        <button type="button" class="btn big m" data-a="shut">Back to the farm</button></div>`;
+      return;
+    }
     if (panel.kind === 'send') {
       const z = ZONES[panel.zone], party = F.pets.filter(p => panel.pets.includes(p.id));
       const zones = Object.entries(ZONES).map(([k, zn]) => {
@@ -125,6 +160,60 @@ export function mount(app, ctx) {
         ${b.full ? '<p class="hint">A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.</p>' : ''}
         <button type="button" class="btn big m" data-a="shut">Lovely</button></div>`;
     }
+  }
+  // ---------- battles ----------
+  const side = s => shown.sides[s], act = s => side(s).pets[side(s).on];
+  const who = s => !s ? esc(act(0).name) : B.mode === 'arena' ? `${esc(B.foe)}'s ${esc(act(1).name)}` : `The other side's ${esc(act(1).name)}`;
+  function plate(s) {
+    const u = act(s), pct = Math.round(u.hp / u.max * 100);
+    const tags = [...Object.keys(u.status).map(k => `<span class="st bad" title="${STATUS[k].blurb}">${STATUS[k].name}</span>`),
+      ...Object.entries(u.up).filter(([, n]) => n).map(([k, n]) => `<span class="st ${n > 0 ? 'good' : 'bad'}">${STAT_NAME[k]} ${n > 0 ? '+' : '−'}${Math.abs(n)}</span>`)].join('');
+    return `<div class="bplate ${s ? 'p1' : 'p0'}"><div class="bwho"><b>${esc(u.name)}</b>${elTag(u.el)}<small>Level ${u.lv}</small></div>
+      <div class="bhp${pct < 25 ? ' low' : pct < 55 ? ' mid' : ''}"><i style="width:${pct}%"></i><span>${u.hp} / ${u.max}</span></div>
+      <div class="btags">${tags}<span class="dots">${side(s).pets.map(x => `<i class="${x.hp > 0 ? '' : 'out'}"></i>`).join('')}</span></div></div>`;
+  }
+  function paintBattle() {
+    const el = $('pf-bt');
+    el.hidden = !B || mode !== 'farm';
+    if (el.hidden) { el.innerHTML = ''; return; }
+    const me = side(0), u = act(0), busy = playing || B.over !== null;
+    const moves = u.moves.map(id => { const m = MOVES[id], cd = u.cd[id] || 0;
+      const what = m.pow ? `Power ${m.pow}` : m.heal ? 'Heals' : m.up ? `Raises ${STAT_NAME[m.up]}` : `Lowers their ${STAT_NAME[m.down]}`;
+      return `<button type="button" class="mv" data-a="move" data-move="${id}" style="--c:${ELEMENTS[m.el]}" ${busy || cd || B.need ? 'disabled' : ''}><b>${m.name}</b><small>${cd ? `Ready in ${cd}` : what + (m.status ? ` · ${STATUS[m.status].name}` : '')}</small></button>`; }).join('');
+    const bench = me.pets.map((x, i) => i === me.on ? '' : `<button type="button" class="sw" data-a="swap" data-i="${i}" ${busy || x.hp <= 0 || (u.status.rooted && !B.need) ? 'disabled' : ''}>${thumb('pet:' + x.sp)}<span><b>${esc(x.name)}</b><small>${x.hp > 0 ? `${x.hp} / ${x.max}` : 'Fainted'}</small></span></button>`).join('');
+    el.innerHTML = `${plate(1)}${plate(0)}
+      <div class="bbar"><p class="blog">${line || (B.need ? 'Who comes in next?' : `What should ${esc(u.name)} do?`)}</p>
+        <div class="mvs">${moves}</div>
+        <div class="bench">${bench}<button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
+  }
+  // Plays what the server says happened, one beat at a time, then shows the real state.
+  const beat = ms => new Promise(r => setTimeout(r, ms));
+  async function play(ev, final, after) {
+    playing = true;
+    for (const e of ev) {
+      if (destroyed) return;
+      const u = e.s !== undefined ? act(e.s) : null; let ms = 800;
+      if (e.k === 'switch') { side(e.s).on = e.i; const n = act(e.s); n.up = { atk: 0, def: 0, spd: 0 }; scene?.ringPet(e.s, n); line = e.s ? `${esc(n.name)} steps in for the other side.` : `Go, ${esc(n.name)}!`; sfx.pop(); }
+      else if (e.k === 'move') { line = `${who(e.s)} uses ${MOVES[e.move].name}.`; scene?.ringFx(e.s, MOVES[e.move].pow ? 'lunge' : 'hop'); sfx.click(); ms = 650; }
+      else if (e.k === 'hit') { u.hp = e.hp; line = `${who(e.s)} takes ${e.dmg}.${e.eff > 1 ? ' It hit hard!' : e.eff < 1 ? ' It barely tickled.' : ''}`; scene?.ringFx(e.s, 'hit'); sfx.place(); }
+      else if (e.k === 'burn') { u.hp = e.hp; line = `${who(e.s)} is stung by its burn and takes ${e.dmg}.`; scene?.ringFx(e.s, 'hit'); sfx.place(); }
+      else if (e.k === 'heal') { u.hp = e.hp; line = `${who(e.s)} gets ${e.n} health back.`; sfx.join(); }
+      else if (e.k === 'stat') { if (e.d) u.up[e.stat] += e.d; line = e.d ? `${who(e.s)}'s ${STAT_NAME[e.stat]} goes ${e.d > 0 ? 'up' : 'down'}.` : 'Nothing changes.'; scene?.ringFx(e.s, e.d > 0 ? 'hop' : 'hit'); }
+      else if (e.k === 'status') { u.status[e.st] = 1; line = `${who(e.s)} is ${STATUS[e.st].name.toLowerCase()}. ${STATUS[e.st].blurb}`; ms = 1100; }
+      else if (e.k === 'clear') { delete u.status[e.st]; line = `${who(e.s)} is no longer ${STATUS[e.st].name.toLowerCase()}.`; ms = 600; }
+      else if (e.k === 'dazed') { line = `${who(e.s)} is dazed and loses its turn.`; scene?.ringFx(e.s, 'hit'); }
+      else if (e.k === 'faint') { line = `${who(e.s)} fainted.`; scene?.ringFx(e.s, 'faint'); sfx.lose(); ms = 1100; }
+      else if (e.k === 'end') { line = e.quit ? '' : e.win ? 'The other side wins this time.' : 'You win!'; if (!e.quit) (e.win ? sfx.lose : sfx.win)(); ms = e.quit ? 0 : 1300; }
+      paintBattle(); await beat(ms);
+    }
+    if (destroyed) return;
+    playing = false; line = '';
+    if (after) after(); else { shown = structuredClone(final); B = final; for (const s of [0, 1]) scene?.ringPet(s, act(s)); paintBattle(); }
+  }
+  function openTeam(mode, foe) {
+    if (mode !== 'defend' && !countOf(F, mode === 'arena' ? 'flag' : 'yard')) return;
+    const keep = (mode === 'defend' ? F.def : lastTeam).filter(id => F.pets.some(p => p.id === id) && (mode === 'defend' || !F.trip?.pets.includes(id)));
+    panel = { kind: 'team', mode, foe: foe?.id, foeName: foe?.name, pets: keep }; card = null; sync();
   }
   function openSend() {
     if (!countOf(F, 'gate')) return ctx.toast('Build an Expedition Gate first.', true);
@@ -185,7 +274,7 @@ export function mount(app, ctx) {
   }
   function paintCard() {
     const el = $('pf-card');
-    if (!card || mode !== 'farm' || edit) { el.hidden = true; return; }
+    if (!card || mode !== 'farm' || edit || B) { el.hidden = true; return; }
     el.hidden = false;
     if (card.pet) {
       const p = F.pets.find(x => x.id === card.pet); if (!p) { card = null; el.hidden = true; return; }
@@ -194,7 +283,8 @@ export function mount(app, ctx) {
         <form class="namer"><input class="field" id="pf-name" maxlength="14" value="${esc(p.name)}" aria-label="Pet name" autocomplete="off"><button class="btn sm w">Rename</button></form>
         <p>${elTag(s.el)} ${s.name} · ${FORMS[formOf(p.lv)]} · Level ${p.lv}</p>
         ${p.lv < MAX_LV ? `<div class="xp" title="Experience"><i style="width:${Math.round(p.xp / xpFor(p.lv) * 100)}%"></i><span>${p.xp} of ${xpFor(p.lv)} to level ${p.lv + 1}</span></div>` : ''}
-        <p class="hint">${s.blurb}</p></div>
+        <p class="hint">${s.blurb}</p>
+        <div class="mvlist"><span class="hint">${ROLE_NAME[KIT[p.sp].role]}</span>${movesAt(p.sp, p.lv).map(id => `<span class="el" style="--c:${ELEMENTS[MOVES[id].el]}">${MOVES[id].name}</span>`).join('')}</div></div>
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
     } else {
       const item = F.items.find(x => x.id === card.item), it = item && ITEMS[item.type]; if (!it) { card = null; el.hidden = true; return; }
@@ -208,7 +298,9 @@ export function mount(app, ctx) {
         const t = F.trip;
         more = !t ? '<button type="button" class="btn sm m" data-a="explore">Send pets exploring</button>'
           : t.left > 0 ? `<p class="hint">The party is in ${ZONES[t.zone].name}, back in ${wait(t.left)}.</p>` : '<button type="button" class="btn sm m" data-a="collect">Welcome them back</button>';
-      } else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
+      } else if (item.type === 'yard') more = '<button type="button" class="btn sm m" data-a="practice">Practice battle</button>';
+      else if (item.type === 'flag') more = `<p class="hint">You have ${F.pts} ladder points.</p><button type="button" class="btn sm m" data-a="arena">Find a match</button>`;
+      else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${it.soon ? `<p class="hint">${it.soon}</p>` : ''}${more}
         <button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button></div>
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
@@ -231,7 +323,7 @@ export function mount(app, ctx) {
     ctx.send(g.id ? { t: 'move', id: g.id, x: g.x, y: g.y, r: g.r } : { t: 'place', type: g.type, x: g.x, y: g.y, r: g.r });
     scene.ghostCancel();
   }
-  function setEdit(on) { edit = on; card = null; panel = null; if (!on) scene?.ghostCancel(); sync(); }
+  function setEdit(on) { if (B) return; edit = on; card = null; panel = null; if (!on) scene?.ghostCancel(); sync(); }
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
@@ -243,6 +335,21 @@ export function mount(app, ctx) {
     else if (a === 'start') { if (pick) ctx.send({ t: 'starter', sp: pick }); }
     else if (a === 'edit') setEdit(true);
     else if (a === 'done') setEdit(false);
+    else if (a === 'practice') openTeam('practice');
+    else if (a === 'arena') { foes = null; panel = { kind: 'foes' }; card = null; sync(); ctx.send({ t: 'foes' }); }
+    else if (a === 'foe') { const f = foes?.find(x => x.id === b.dataset.id); if (f) openTeam('arena', f); }
+    else if (a === 'defteam') openTeam('defend');
+    else if (a === 'team') {
+      if (b.classList.contains('off')) return ctx.toast('That pet is away exploring.', true);
+      const id = b.dataset.id, i = panel.pets.indexOf(id);
+      if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= PARTY) return ctx.toast(`A team is ${PARTY} pets at most.`, true); else panel.pets.push(id);
+      paintPanel();
+    }
+    else if (a === 'fight') { lastTeam = [...panel.pets]; ctx.send({ t: 'fight', mode: panel.mode, foe: panel.foe, pets: lastTeam }); }
+    else if (a === 'defend') ctx.send({ t: 'defend', pets: [...panel.pets] });
+    else if (a === 'move') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', move: b.dataset.move }); } }
+    else if (a === 'swap') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', switch: +b.dataset.i }); } }
+    else if (a === 'giveup') { if (!playing) ctx.send({ t: 'bquit' }); }
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect' });
     else if (a === 'shut') { panel = null; sync(); }
@@ -294,16 +401,31 @@ export function mount(app, ctx) {
   function msg(m) {
     clearTimeout(quiet);
     if (m.err) { sfx.bad(); ctx.toast(esc(m.err), true); }
-    if (m.need) { F = null; mode = m.need; edit = false; sync(); return; }
+    if (m.need) { F = null; B = null; mode = m.need; edit = false; sync(); return; }
+    if (m.foes) foes = m.foes;
+    if (m.farm) { F = m.farm; tripAt = Date.now() + (F.trip?.left || 0); }
+    if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
+      const starting = !B && m.battle;
+      if (!m.battle) { B = null; shown = null; playing = false; if (m.farm) { mode = 'farm'; sync(); } return; }
+      if (starting) { B = m.battle; shown = structuredClone(B); playing = false; line = ''; panel = null; card = null; edit = false; mode = 'farm'; sfx.turn(); sync(); return; }
+      if (m.ev?.length) play(m.ev, m.battle); else { playing = false; B = m.battle; shown = structuredClone(B); sync(); }
+      return;
+    }
+    if (m.did === 'fought') { // the last turn: play it out, then show the prize
+      const ids = lastTeam, quit = m.ev.some(e => e.quit);
+      play(m.ev, m.battle, () => { B = null; shown = null; panel = { kind: 'prize', prize: m.prize, ids, quit }; sync(); });
+      return;
+    }
     if (!m.farm) return;
     const first = mode !== 'farm';
-    F = m.farm; mode = 'farm'; tripAt = Date.now() + (F.trip?.left || 0);
+    mode = 'farm';
     if (m.did === 'starter') { sfx.join(); ctx.toast(`${esc(F.pets[0].name)} moved in. Welcome to your farm!`); }
     else if (m.did === 'place' || m.did === 'move') sfx.set();
     else if (m.did === 'remove') sfx.pop();
     else if (m.did === 'expand') { sfx.join(); ctx.toast(`The farm grew to ${F.size} by ${F.size} tiles.`); }
     else if (m.did === 'send') { sfx.turn(); panel = null; ctx.toast(`Off they go to ${ZONES[F.trip.zone].name}!`); }
     else if (m.did === 'collect') { sfx.win(); card = null; panel = { kind: 'back', back: m.back }; }
+    else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');
     if (first) { pick = null; edit = false; }

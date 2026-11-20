@@ -256,6 +256,54 @@ export function createScene(canvas, { onPick, onGhost }) {
     balloon.scale.setScalar(.8);
   }
 
+  // ---------- the battle ring ----------
+  // A separate little scene: a round island with one pet from each side. While a fight is on, this is drawn instead of the farm.
+  const ring = new THREE.Scene(); ring.background = new THREE.Color(SKY_LOW);
+  let fighting = false;
+  const HOME = [new THREE.Vector3(-1.25, 0, 1.1), new THREE.Vector3(1.25, 0, -1.1)], FACE = [2.3, -.75];
+  const bp = [null, null]; // the two pets in the ring: { g, key, base, t, lunge, shake, hop, fall }
+  {
+    ring.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.5));
+    const l = new THREE.DirectionalLight('#fff1d6', 2.1); l.position.set(5, 10, 6); ring.add(l);
+    const add = (g, c, y, o) => { const m = new THREE.Mesh(g, flat(c, o)); m.position.y = y; ring.add(m); return m; };
+    add(new THREE.CylinderGeometry(4.4, 4.2, .4, 10), '#7cc45c', -.2);
+    add(new THREE.CylinderGeometry(3.3, 3.3, .02, 24), '#8fd16a', .011);
+    add(new THREE.RingGeometry(3.25, 3.4, 24), '#ffffff', .03).rotation.x = -Math.PI / 2;
+    add(rough(new THREE.CylinderGeometry(4.2, 2.6, 1.6, 10, 2), .4, .7), '#a87750', -1.2);
+    add(rough(new THREE.ConeGeometry(2.7, 5, 7, 3), .5), '#857a72', -4.4).rotation.x = Math.PI;
+    for (const [a, c] of [[.6, '#d9584e'], [2.3, '#ffc94d'], [3.9, '#5d8fd1'], [5.4, '#86cc5a']]) {
+      const x = Math.cos(a) * 3.9, z = Math.sin(a) * 3.9;
+      add(new THREE.CylinderGeometry(.05, .05, 1.8, 5), '#8a5a3c', .9).position.set(x, .9, z);
+      add(new THREE.BoxGeometry(.5, .34, .04), c, 1.55).position.set(x + .27, 1.55, z);
+    }
+    for (let i = 0; i < 9; i++) { const a = hash(i, 21) * 6.283, d = 14 + hash(i, 22) * 22, c = add(new THREE.IcosahedronGeometry(1, 0), '#ffffff', 0); c.position.set(Math.cos(a) * d, -5 - hash(i, 23) * 6, Math.sin(a) * d - 8); c.scale.set(3.4, 1.6, 2.6).multiplyScalar(.7 + hash(i, 24)); }
+  }
+  function ringPet(s, u) { // u: { id, sp, form } or null
+    const key = u ? u.id + u.sp + u.form : '';
+    if (bp[s]?.key === key) return;
+    if (bp[s]) { ring.remove(bp[s].g, bp[s].blob); disposeModel(bp[s].g); bp[s] = null; }
+    if (!u) return;
+    const g = petModel(u.sp, u.form); g.scale.multiplyScalar(.82);
+    const blob = new THREE.Mesh(blobGeo, blobMat); blob.rotation.x = -Math.PI / 2; blob.position.set(HOME[s].x, .04, HOME[s].z); blob.scale.setScalar(g.scale.x * 3);
+    ring.add(g, blob);
+    bp[s] = { g, blob, key, base: g.scale.x, t: 0, lunge: 0, shake: 0, hop: 0, fall: 0, down: false, seed: s * 3.1 };
+  }
+  function moveRing(dt, T) {
+    for (const s of [0, 1]) {
+      const p = bp[s]; if (!p) continue;
+      p.t += dt; p.lunge = Math.max(0, p.lunge - dt * 2.4); p.shake = Math.max(0, p.shake - dt * 2.2); p.hop = Math.max(0, p.hop - dt * 1.8);
+      if (p.down) p.fall = Math.min(1, p.fall + dt * 1.6);
+      const reach = Math.sin(p.lunge * Math.PI) * .9, to = HOME[1 - s], h = HOME[s];
+      const pop = Math.min(1, p.t * 3.5), k = p.base * pop * (1 - p.fall * .85), breathe = 1 + Math.sin(T * 2.2 + p.seed) * .025;
+      p.g.position.set(h.x + (to.x - h.x) * reach * .45 + Math.sin(T * 55) * .09 * p.shake, Math.abs(Math.sin(p.hop * Math.PI * 2)) * .4 * p.hop + Math.sin(p.lunge * Math.PI) * .25, h.z + (to.z - h.z) * reach * .45);
+      p.g.rotation.set(0, FACE[s], p.fall * 1.3 * (s ? -1 : 1));
+      p.g.scale.set(k / Math.sqrt(breathe), k * breathe, k / Math.sqrt(breathe));
+      const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
+      const fl = p.g.userData.flame; if (fl) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
+      p.blob.visible = p.fall < .5;
+    }
+  }
+
   // ---------- starter line-up ----------
   let starters = false, starSel = null;
   function setStarters(sel) {
@@ -382,8 +430,13 @@ export function createScene(canvas, { onPick, onGhost }) {
   function loop(dt) {
     if (dead) return;
     resize(); T += dt;
-    lift = starters ? .2 : edit ? .13 : 0;
+    lift = fighting ? .1 : starters ? .2 : edit ? .13 : 0;
     if (lift !== liftNow && W) { liftNow = lift; if (lift) camera.setViewOffset(W, H, 0, lift * H, W, H); else camera.clearViewOffset(); }
+    if (fighting) { // a fixed view of the ring, further back on narrow screens
+      const d = Math.max(7.2, 7.4 * H / Math.max(1, W));
+      camera.position.set(-1.2, d * .42, d); camera.lookAt(0, .95, 0);
+      moveRing(dt, T); renderer.render(ring, camera); return;
+    }
     const k = Math.max(1, (starters ? 1.1 : .75) * H / Math.max(1, W)); // narrow screens need to stand further back
     const d = cam.dist * k, ce = Math.cos(cam.el);
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
@@ -421,6 +474,10 @@ export function createScene(canvas, { onPick, onGhost }) {
     ghostCancel: () => ghostCancel(),
     ghost: ghostInfo,
     cheer(id) { const p = pets.get(id); if (p) p.hop = 1; },
+    // the battle ring: show it, put a pet on a side (0 yours, 1 theirs), and play what happens
+    setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); } },
+    ringPet,
+    ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') p.down = true; },
     // Little pictures for the build menu, drawn once with a throwaway renderer.
     thumbs(types, size = 112) {
       const out = {};
