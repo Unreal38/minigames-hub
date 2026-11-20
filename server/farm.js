@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import { DATA_DIR, profiles, friendPids } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS, MATS } from '../public/games/farm/data.js';
-import { unit as rawUnit, newBattle, step } from '../public/games/farm/battle.js';
+import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 
 const unit = (pet, lv) => rawUnit({ ...pet, look: lookOf(pet) }, lv); // battles show each pet as it really looks
@@ -112,6 +112,40 @@ function foes(mine) {
 const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
   sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
+// ---------- live battles ----------
+// Two players who are both here fight each other with the same rules. Each has 30 seconds to choose; a player
+// who runs out of time gets the game's pick. The server reaches the other player through push().
+let push = () => 0;
+export const setPush = fn => { push = fn; };
+const lives = new Map(), invites = new Map(); // profile id -> live battle; invite id -> { from, to, pets, at }
+const TURN_MS = TURN_S * 1000, INVITE_MS = 60_000, LIVE = { win: { coins: 15, xp: 15 }, lose: { coins: 5, xp: 8 } };
+const flipEv = ev => ev.map(e => ({ ...e, ...(e.s !== undefined ? { s: 1 - e.s } : {}), ...(e.win !== undefined ? { win: 1 - e.win } : {}) }));
+function liveView(L, i) {
+  const v = battleView(L.B); if (i) { v.sides.reverse(); if (v.over !== null) v.over = 1 - v.over; }
+  return { ...v, mode: 'live', foe: L.names[1 - i], live: true, waiting: !!L.acts[i], left: Math.max(0, L.deadline - Date.now()) };
+}
+function liveArm(L) { clearTimeout(L.timer); L.deadline = Date.now() + TURN_MS; L.timer = setTimeout(() => liveTurn(L), TURN_MS + 400); }
+function liveTurn(L, quit = null) { // both have chosen, time ran out, or someone left
+  clearTimeout(L.timer);
+  const B = L.B; let ev;
+  if (quit !== null) { B.over = 1 - quit; ev = [{ k: 'end', win: 1 - quit, quit: true }]; }
+  else { ev = step(B, L.acts[0] || pickMove(B, 0), Math.random, L.acts[1]) || step(B, pickMove(B, 0), Math.random, L.acts[1]) || []; }
+  L.acts = [null, null];
+  if (B.over === null) liveArm(L);
+  L.pids.forEach((pid, i) => {
+    const f = farms.get(pid), msg = { t: 'farm', battle: liveView(L, i), ev: i ? flipEv(ev) : ev };
+    if (B.over !== null) {
+      lives.delete(pid);
+      const won = B.over === i, left = quit === i, r = won ? LIVE.win : LIVE.lose, prize = { won, coins: 0, xp: 0, pts: 0, grew: [], counted: !left };
+      if (f && !left) { prize.coins = r.coins; prize.xp = r.xp; f.inv.coins = (f.inv.coins || 0) + r.coins; for (const id of L.ids[i]) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); } }
+      Object.assign(msg, { prize, did: 'fought', farm: f ? view(f, profiles.get(pid)) : null });
+      if (quit !== null) msg.ev = msg.ev.map(e => ({ ...e, quit: left })); // only the one who left sees "you left"
+    }
+    push(pid, msg);
+  });
+  if (B.over !== null) scheduleSave();
+}
+
 // ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
 const byFid = id => [...farms].find(([, x]) => x.fid === id);
@@ -182,7 +216,7 @@ export function handle(p, a, reply) {
   const no = msg => reply({ t: 'farm', err: msg, farm: f ? view(f, p) : null });
 
   if (f) { f.name = p.name; f.seen = Date.now(); } // remembered so other players can see whose farm it is
-  if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
+  if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: lives.has(p.pid) ? liveView(lives.get(p.pid), lives.get(p.pid).pids.indexOf(p.pid)) : battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
     if (!STARTERS.includes(a.sp)) return;
@@ -430,6 +464,41 @@ export function handle(p, a, reply) {
     }
     B.ids = ids; battles.set(p.pid, B);
     return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
+  }
+  if (a.t === 'duel') { // ask another player who is here right now for a live battle
+    const hit = byFid(a.to); if (!hit || hit[1] === f) return no('That farm is not around any more.');
+    const ids = cleanIds(a.pets), mine = ids.map(id => f.pets.find(x => x.id === id));
+    if (!ids.length || mine.some(x => !x)) return no('Pick one to three of your pets.');
+    if (f.trip?.until > Date.now() && ids.some(id => f.trip.pets.includes(id))) return no('One of them is away exploring.');
+    if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
+    if (lives.has(hit[0])) return no('They are in a battle right now.');
+    const id = rid();
+    if (!push(hit[0], { t: 'farm', invite: { id, from: p.name } })) return no(`${nameOf(hit[0], hit[1])} is not here right now. Live battles need both of you online.`);
+    invites.set(id, { from: p.pid, to: hit[0], pets: ids, at: Date.now() });
+    for (const [k, v] of invites) if (Date.now() - v.at > INVITE_MS) invites.delete(k);
+    return ok({ did: 'duel' });
+  }
+  if (a.t === 'duelno' || a.t === 'duelyes') {
+    const inv = invites.get(a.id); invites.delete(a.id);
+    if (!inv || inv.to !== p.pid || Date.now() - inv.at > INVITE_MS) return a.t === 'duelyes' ? no('That invitation has run out.') : ok();
+    const other = farms.get(inv.from);
+    if (a.t === 'duelno' || !other) { push(inv.from, { t: 'farm', note: `${p.name} cannot play right now.` }); return ok(); }
+    const ids = cleanIds(a.pets), mine = ids.map(id => f.pets.find(x => x.id === id)), theirs = inv.pets.map(id => other.pets.find(x => x.id === id)).filter(Boolean);
+    if (!ids.length || mine.some(x => !x) || !theirs.length) return no('Pick one to three of your pets.');
+    if (f.trip?.until > Date.now() && ids.some(id => f.trip.pets.includes(id))) return no('One of them is away exploring.');
+    if (battles.has(p.pid) || lives.has(p.pid) || battles.has(inv.from) || lives.has(inv.from)) return no('One of you is already in a battle.');
+    const L = { B: newBattle(theirs.map(x => unit(x, ARENA_LV)), mine.map(x => unit(x, ARENA_LV)), { mode: 'live', live: true }), pids: [inv.from, p.pid],
+      names: [nameOf(inv.from, other), p.name], ids: [theirs.map(x => x.id), ids], acts: [null, null] };
+    lives.set(inv.from, L); lives.set(p.pid, L); liveArm(L);
+    push(inv.from, { t: 'farm', battle: liveView(L, 0), ev: [], did: 'fight' });
+    return reply({ t: 'farm', battle: liveView(L, 1), ev: [], did: 'fight' });
+  }
+  if ((a.t === 'bact' || a.t === 'bquit') && lives.has(p.pid)) {
+    const L = lives.get(p.pid), i = L.pids.indexOf(p.pid);
+    if (a.t === 'bquit') return liveTurn(L, i);
+    if (!L.acts[i]) L.acts[i] = a.switch !== undefined ? { switch: a.switch | 0 } : { move: String(a.move) };
+    if ((L.acts[0] && L.acts[1]) || !push(L.pids[1 - i], null)) return liveTurn(L); // nobody to wait for if the other one has gone
+    return reply({ t: 'farm', battle: liveView(L, i), ev: [] });
   }
   if (a.t === 'bact' || a.t === 'bquit') {
     const B = battles.get(p.pid); if (!B) return reply({ t: 'farm', battle: null, farm: view(f, p) });

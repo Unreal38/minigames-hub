@@ -185,3 +185,4 @@ body.in-game { overflow: hidden; }
 .pf .tm i { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); } .pf .tm .field { width: 74px; min-height: 36px; padding: 2px 8px; font-size: 16px; border-width: 2px; }
 .pf .letter.deal { flex-direction: column; align-items: stretch; gap: 8px; } .pf .swap { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; } .pf .swap .mats { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
 .pf .swap .kin img, .pf .swap .kin .nothumb { width: 48px; height: 48px; } .pf .dealbtns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.pf .bclock { display: inline-block; min-width: 2.2em; margin-left: 10px; padding: 0 8px; border-radius: 999px; background: #2b2118; color: #fff8e7; font-size: .8em; font-variant-numeric: tabular-nums; }

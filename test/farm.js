@@ -27,7 +27,7 @@ function player(name, token) {
       if (m.t === 'auth') p.auth = m;
       if (m.t === 'friends') p.friends = m;
       if (m.t === 'err') p.err = m.msg;
-      if (m.t === 'farm') { p.last = m; if (m.farm) p.farm = m.farm; }
+      if (m.t === 'farm') { p.last = m; if (m.farm) p.farm = m.farm; if (m.invite) p.invite = m.invite; if (m.battle) p.battle = m.battle; if (m.did === 'fought') p.fought = m; }
       if (m.t === 'me') p.me = m.me;
     };
   });
@@ -408,6 +408,31 @@ r = await b.farmDo({ t: 'tradeans', id: b.farm.trades[0].id, ok: true });
 if (r.err || r.farm.pets.length !== bPets + 1 || r.farm.inv.coins !== bCoins - 2 || !r.farm.pets.some(x => x.id === spare.id && x.first === 'ana' && !x.held)) fail('accept ' + JSON.stringify(r.err));
 r = await a.farmDo({ t: 'open' });
 if (r.farm.pets.length !== aPets - 1 || r.farm.inv.coins !== aCoins + 2 || r.farm.trades.length) fail('trade did not settle for the sender');
+
+// ----- live battles -----
+r = await a.farmDo({ t: 'duel', to: boId, pets: [] });
+if (!r.err) fail('live battle with no team');
+b.invite = null; r = await a.farmDo({ t: 'duel', to: boId, pets: [a.farm.pets[0].id] });
+if (r.err) fail('invite ' + r.err);
+await until(() => b.invite, 'live invite');
+if (b.invite.from !== 'Ana') fail('invite from ' + b.invite.from);
+a.battle = b.battle = null; a.fought = b.fought = null;
+const lc = [a.farm.inv.coins, b.farm.inv.coins];
+b.send({ t: 'farm', a: { t: 'duelyes', id: b.invite.id, pets: [b.farm.pets[0].id] } });
+await until(() => a.battle && b.battle, 'live battle start');
+if (!a.battle.live || a.battle.foe !== 'Bo' || b.battle.foe !== 'Ana' || a.battle.sides[0].pets[0].name !== a.farm.pets[0].name || b.battle.sides[0].pets[0].name !== b.farm.pets[0].name) fail('live view ' + JSON.stringify([a.battle.foe, b.battle.foe]));
+r = await a.farmDo({ t: 'bact', move: a.battle.sides[0].pets[0].moves[0] });
+if (!r.battle?.waiting || r.ev.length) fail('first chooser should wait');
+for (let n = 0; n < 60 && !a.fought; n++) {
+  const turn = a.battle.turn;
+  for (const x of [a, b]) { const u = x.battle.sides[0].pets[x.battle.sides[0].on]; if (!x.battle.waiting) x.send({ t: 'farm', a: { t: 'bact', move: u.moves.find(m => !u.cd[m]) } }); }
+  await until(() => a.fought || (a.battle.turn !== turn && b.battle.turn !== turn), 'live turn ' + n); await wait(40);
+}
+await until(() => a.fought && b.fought, 'live battle end');
+if (a.fought.prize.won === b.fought.prize.won) fail('both won or both lost');
+for (const [i, x] of [a, b].entries()) if (x.fought.farm.inv.coins !== lc[i] + (x.fought.prize.won ? 15 : 5)) fail('live prize coins');
+r = await a.farmDo({ t: 'open' });
+if (r.battle) fail('live battle still running');
 
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);
