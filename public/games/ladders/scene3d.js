@@ -1,6 +1,7 @@
 // Snakes & Ladders 3D view (three.js). Purely visual: it replays the moves the server worked out.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
+import { frameLoop, autoResolution } from '../../frames.js';
 import { cell, COLS, MS as MSv } from './board.js';
 
 const INK = '#3b2219', PLUM = '#2a1422';
@@ -95,7 +96,7 @@ function snakeBody(curve, r0, r1, c0, c1) {
 
 export function createScene(canvas, { onFrame, onCue }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
@@ -281,17 +282,15 @@ export function createScene(canvas, { onFrame, onCue }) {
 
   // ---------- frame loop ----------
   const proj = new THREE.Vector3(), look = new THREE.Vector3(), lookNow = new THREE.Vector3(), want = new THREE.Vector3(), tmp = new THREE.Vector3();
-  let raf = 0, lastT = performance.now(), W = 0, H = 0, dead = false, camInit = false;
+  let W = 0, H = 0, camInit = false;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w === W && h === H) return;
     W = w; H = h; renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix();
   }
-  function loop() {
-    if (dead) return;
-    raf = requestAnimationFrame(loop);
+  function loop(dt) {
     resize();
-    const now = performance.now(), dt = Math.min(.05, (now - lastT) / 1000), T = now / 1000; lastT = now;
+    const now = performance.now(), T = now / 1000;
     if (!B) { renderer.render(scene, camera); return; }
     const t = mv ? now - mvStart : 0;
     // cues for sound and pop-ups
@@ -356,13 +355,13 @@ export function createScene(canvas, { onFrame, onCue }) {
     }
     onFrame?.({ tags: toks.map(tk => tk.tag), busy: !!mv && t < mv.ms });
   }
-  loop();
+  const ticker = frameLoop(loop, { onSlow: () => res.lower() });
 
   return {
     setBoard, setSeats, setMove,
     setTurn(i, s) { turn = i; stage = s; },
     dispose() {
-      dead = true; cancelAnimationFrame(raf);
+      ticker.stop();
       if (boardGroup) disposeTree(boardGroup);
       for (const t of toks) { disposeAvatar(t.av); t.puck.material.dispose(); t.ring.material.dispose(); }
       disposeTree(die); dot.dispose(); table.geometry.dispose(); renderer.dispose();

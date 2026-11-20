@@ -57,13 +57,25 @@ function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
-    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, ...store.badge(store.profileOf(t)) }; }),
+    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
-    again: againOf(r),
+    again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
 }
+// Watchers: people who joined while a game was on (r.spect). They see the game but have no seat.
+// A watcher who taps "Take a seat" goes in r.sit and takes a bot's place when the next round starts.
+const seatedOf = r => r.players.filter(t => !r.spect.has(clients.get(t)?.id));
+// Outside a game, move queued watchers into free seats.
+function fillSeats(r) {
+  if (r.G) return;
+  const max = GAMES[r.game].meta.maxPlayers;
+  for (const t of r.players) {
+    const id = clients.get(t)?.id;
+    if (r.sit.has(id) && seatedOf(r).length < max) { r.spect.delete(id); r.sit.delete(id); }
+  }
+}
 // Play-again votes on the results screen: ids of players still at the table who want another round.
-const againOf = r => r.G?.ph === 'end' && r.again ? r.players.map(t => clients.get(t)?.id).filter(id => r.again.has(id)) : [];
+const againOf = r => r.G?.ph === 'end' && r.again ? r.players.map(t => clients.get(t)?.id).filter(id => r.again.has(id) && !r.spect.has(id)) : [];
 // Lobby scoreboard: everyone who has finished a game at this table, best first.
 const boardOf = r => Object.values(r.board || {}).map(({ pid, ...e }) => e)
   .sort((a, b) => b.wins - a.wins || b.pts - a.pts || a.games - b.games).slice(0, 16);
@@ -89,7 +101,7 @@ function scoreGame(r) {
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
   const i = roomInfo(r), h = i.players.find(p => p.id === i.host);
-  return { code: i.code, gameName: i.gameName, state: i.state, n: i.players.length, max: i.max,
+  return { code: i.code, gameName: i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, w: i.players.filter(p => p.watch).length,
     host: h?.name || '?', hostColor: h?.color, hostAv: h?.av };
 });
 
@@ -109,6 +121,8 @@ function broadcastRooms() { const msg = { t: 'rooms', rooms: publicRooms() }; fo
 function sendRoom(r) { const info = roomInfo(r); for (const t of r.players) send(clients.get(t), { t: 'room', room: info }); }
 function sendState(r) {
   if (!r.G) return;
+  // A game with several hands (seatWatcher hook) may seat a watcher between hands: they stop watching then.
+  if (r.spect.size) for (const seat of r.G.seats) if (seat.id && r.spect.delete(seat.id)) { r.sit.delete(seat.id); sendRoom(r); }
   if (r.G.ph === 'end' && !r.G.scored) scoreGame(r);
   const mod = GAMES[r.game];
   for (const t of r.players) {
@@ -120,14 +134,15 @@ function sendState(r) {
 function leaveRoom(c) {
   const r = rooms.get(c.room); c.room = null;
   if (!r) return;
-  r.players = r.players.filter(t => t !== c.token); r.again?.delete(c.id);
+  r.players = r.players.filter(t => t !== c.token); r.again?.delete(c.id); r.spect.delete(c.id); r.sit.delete(c.id);
+  if (!seatedOf(r).length) { r.spect.clear(); r.sit.clear(); } // only watchers left: they all play the next round
   if (r.G && r.G.ph === 'play') {
     const s = r.G.seats.findIndex(x => x.id === c.id);
     if (s >= 0) { GAMES[r.game].setAway(r.G, s, true); r.G.seats[s].name += ' (bot)'; r.G.seats[s].human = false; r.G.seats[s].id = null; }
   }
   store.scheduleSave();
   if (!r.players.length) rooms.delete(r.code);
-  else { if (r.host === c.id) r.host = clients.get(r.players[0]).id; sendRoom(r); sendState(r); }
+  else { if (r.host === c.id) r.host = clients.get(seatedOf(r)[0] || r.players[0]).id; if (!r.G) fillSeats(r); sendRoom(r); sendState(r); }
   broadcastRooms();
 }
 
@@ -135,15 +150,22 @@ function joinRoom(c, r) {
   if (c.room === r.code) { sendRoom(r); sendState(r); return; }
   if (c.room) leaveRoom(c);
   const mod = GAMES[r.game];
-  if (r.players.length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
-  if (r.players.length >= 8) return send(c, { t: 'err', msg: 'That table is full.' });
+  if (seatedOf(r).length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
+  if (r.players.length >= 12) return send(c, { t: 'err', msg: 'That table is full.' });
   r.players.push(c.token); c.room = r.code;
+  if (r.G) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
   sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r); broadcastRooms();
 }
 
 function startGame(r) {
   r.again = new Set();
-  const humans = r.players.map(t => clients.get(t)).slice(0, GAMES[r.game].meta.maxPlayers);
+  // Everyone already at the table keeps their seat; watchers who asked for a seat fill what's left (bots get the rest).
+  const id = t => clients.get(t)?.id, max = GAMES[r.game].meta.maxPlayers;
+  const humans = [...seatedOf(r), ...r.players.filter(t => r.spect.has(id(t)) && r.sit.has(id(t)))].slice(0, max).map(t => clients.get(t));
+  const inGame = new Set(humans.map(c => c.id));
+  for (const t of r.players) {
+    if (inGame.has(id(t))) { r.spect.delete(id(t)); r.sit.delete(id(t)); } else r.spect.add(id(t));
+  }
   // After a restart there is no previous game, so pretend coins come back from the table scoreboard.
   const saved = { game: r.game, wallet: {} };
   for (const c of humans) { const e = r.board?.[store.profileOf(c.token)?.pid]; if (Number.isFinite(e?.coins)) saved.wallet['h:' + c.id] = e.coins; }
@@ -163,7 +185,7 @@ function handle(c, m) {
     case 'stats': return send(c, statsMsg());
     case 'create': {
       if (!GAMES[m.game]) return;
-      const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], G: null, chat: [], created: Date.now(),
+      const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
         opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
           : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
       rooms.set(r.code, r); joinRoom(c, r);
@@ -191,14 +213,28 @@ function handle(c, m) {
     }
     case 'lobby': { // host sends everyone back to the waiting room
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
-      r.last = r.G; r.G = null; r.again = new Set(); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
+      r.last = r.G; r.G = null; r.again = new Set(); fillSeats(r); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
       sendRoom(r); broadcastRooms(); return;
     }
     case 'again': { // vote to play another round (shown to the host on the results screen)
-      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end') return;
+      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end' || r.spect.has(c.id)) return;
       r.again ||= new Set();
       if (m.on === false) r.again.delete(c.id); else r.again.add(c.id);
       return sendRoom(r);
+    }
+    case 'sit': { // a watcher wants a seat next round (or takes it back); in the waiting room it is immediate
+      const r = rooms.get(c.room); if (!r) return;
+      if (!r.spect.has(c.id)) return;
+      if (m.on === false) r.sit.delete(c.id);
+      else {
+        r.sit.add(c.id); fillSeats(r);
+        if (!r.G && r.spect.has(c.id)) send(c, { t: 'err', msg: 'Every seat is taken. You will get the next free one.' });
+      }
+      // Optional game hook for games made of several hands: seatWatcher(G, player, on) lets the game hand a bot's
+      // seat to this watcher at its next hand (set seat.id/name/color/av, human: true, bot: false). Others wait for startGame.
+      const mod = GAMES[r.game];
+      if (r.G?.ph === 'play' && mod.seatWatcher) { mod.seatWatcher(r.G, { id: c.id, name: c.name, color: c.color, av: c.av }, m.on !== false); }
+      sendRoom(r); broadcastRooms(); return;
     }
     case 'act': {
       const r = rooms.get(c.room); if (!r?.G) return;
@@ -289,13 +325,15 @@ attach(server, '/ws', sock => {
 store.setRoomSource(() => [...rooms.values()].map(r => ({
   code: r.code, game: r.game, host: r.host, priv: r.priv, opts: r.opts, chat: r.chat, created: r.created,
   board: r.board || {}, played: r.played || 0, players: r.players,
+  spect: [...r.spect], sit: [...r.sit],
 })));
 for (const d of store.load()) {
   if (!GAMES[d.game] || rooms.has(d.code)) continue;
   const players = (d.players || []).filter(t => store.sessions.has(t) && !clients.has(t));
   if (!players.length) continue;
   const r = { code: d.code, game: d.game, host: d.host, priv: !!d.priv, opts: d.opts || {}, chat: Array.isArray(d.chat) ? d.chat : [],
-    created: d.created || Date.now(), board: d.board || {}, played: d.played || 0, players, G: null };
+    created: d.created || Date.now(), board: d.board || {}, played: d.played || 0, players, G: null,
+    spect: new Set(Array.isArray(d.spect) ? d.spect : []), sit: new Set(Array.isArray(d.sit) ? d.sit : []) };
   if (GAMES[r.game].cleanOpts) r.opts = GAMES[r.game].cleanOpts(r.opts);
   for (const t of players) {
     const s = store.sessions.get(t), p = store.profiles.get(s.pid);
@@ -303,6 +341,8 @@ for (const d of store.load()) {
       lastSeen: Date.now() + RESTORE_GRACE_MS });
   }
   if (!players.some(t => clients.get(t).id === r.host)) r.host = clients.get(players[0]).id;
+  if (!seatedOf(r).length) r.spect.clear();
+  fillSeats(r);
   rooms.set(r.code, r);
 }
 const bye = () => { store.saveNow(); process.exit(0); };

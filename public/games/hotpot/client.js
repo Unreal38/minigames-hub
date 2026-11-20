@@ -22,6 +22,10 @@ function loadCss() {
   document.head.append(l);
 }
 
+// graphics quality, remembered on this device
+const GFX = { auto: ['Auto', 'Graphics: auto'], low: ['Low', 'Graphics: low. Easier on your laptop and battery.'], high: ['High', 'Graphics: high. Sharpest, and the hardest on your laptop.'] };
+let gfx = (() => { try { const v = localStorage.getItem('ct_gfx'); return GFX[v] ? v : 'auto'; } catch { return 'auto'; } })();
+
 export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
@@ -32,6 +36,7 @@ export function mount(app, ctx) {
       <div class="tl"><span class="chip" id="hp-round"></span><span class="chip" id="hp-deckc"></span></div>
       <div class="tr"><span class="tcode" id="hp-code"></span>
         <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round gfx" data-a="gfx" aria-label="Graphics quality" title="Graphics quality">${GFX[gfx][0]}</button>
         <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
         <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
       <div class="opp" data-r="1"></div><div class="opp" data-r="2"></div><div class="opp" data-r="3"></div>
@@ -57,6 +62,7 @@ export function mount(app, ctx) {
   import('./scene3d.js').then(m => {
     if (destroyed) return;
     scene = m.createScene(canvas, {
+      quality: gfx,
       onTile: r => canTake(abs(r)) && take(abs(r)),
       onDeck: () => myDraw() && drawDeck(),
       onLayout: (pts, info) => { layout = pts; potPt = info.pot; placeBadges(); },
@@ -323,11 +329,16 @@ export function mount(app, ctx) {
     else if (a === 'deck') { if (myDraw()) drawDeck(); }
     else if (a === 'eat') { if (myDisc() && canWin(S.hand)) { sfx.click(); ctx.act({ t: 'eat' }); } }
     else if (a === 'react') { const now = Date.now(); if (now - lastReact > 800) { lastReact = now; ctx.react(+b.dataset.k); } }
+    else if (a === 'gfx') {
+      gfx = { auto: 'low', low: 'high', high: 'auto' }[gfx]; try { localStorage.setItem('ct_gfx', gfx); } catch {}
+      b.textContent = GFX[gfx][0]; scene?.setQuality(gfx); ctx.toast(GFX[gfx][1]);
+    }
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
     else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
+    else if (a === 'sit') { sfx.click(); ctx.sit(b.getAttribute('aria-pressed') !== 'true'); }
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
   });
   root.addEventListener('pointerover', e => {

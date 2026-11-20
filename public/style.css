@@ -213,13 +213,13 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .card.back svg { width: 80%; margin: 0; }
 /* little signs of life in the ingredient art (icons.js): blinking eyes, twinkling sparkles, beating hearts */
 .fx-eyes, .fx-sp, .fx-hrt { transform-box: fill-box; transform-origin: center; }
-.fx-eyes { animation: fxblink 4.6s infinite; }
-.fx-sp { animation: fxtwinkle 1.9s ease-in-out infinite; } .fx-sp + .fx-sp { animation-delay: -.9s; }
-.fx-hrt { animation: fxbeat 1.3s ease-in-out infinite; }
+.fx-eyes { animation: fxblink 4.6s steps(1) infinite; } /* steps: a few repaints a second instead of sixty */
+.fx-sp { animation: fxtwinkle 2.4s steps(1) infinite; } .fx-sp + .fx-sp { animation-delay: -.9s; }
+.fx-hrt { animation: fxbeat 2.4s steps(1) infinite; }
 .card:nth-child(3n) .fx-eyes { animation-delay: -1.4s; } .card:nth-child(3n+1) .fx-eyes { animation-delay: -3.1s; } .card:nth-child(2n) .fx-sp { animation-delay: -.5s; }
-@keyframes fxblink { 0%, 91%, 100% { transform: none; } 94%, 96% { transform: scaleY(.08); } }
-@keyframes fxtwinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(.55) rotate(45deg); } }
-@keyframes fxbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.28); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } }
+@keyframes fxblink { 0%, 96%, 100% { transform: none; } 93% { transform: scaleY(.08); } }
+@keyframes fxtwinkle { 0%, 100% { transform: none; } 50% { transform: scale(.6) rotate(45deg); } }
+@keyframes fxbeat { 0%, 100% { transform: none; } 50% { transform: scale(1.25); } }
 @keyframes fxbob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-3%) rotate(-1.5deg); } }
 @keyframes fxwiggle { 0%, 100% { transform: rotate(0) scale(1.06); } 25% { transform: rotate(-7deg) scale(1.1); } 75% { transform: rotate(7deg) scale(1.1); } }
 
@@ -298,3 +298,10 @@ body:has(.lobby) .scorebtn { display: none; }
 .scorepanel .board li:first-child { outline-color: var(--ink); }
 @media (max-width: 760px) { body.in-game .scorebtn .lbl { display: none; } body.in-game .scorebtn { padding: 6px 10px; min-height: 40px; } }
 @media (max-width: 1150px) { body:has(.mr) .scorebtn .lbl { display: none; } }
+/* watcher bar: shown over a game to people who joined mid-game */
+#watchbar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 12px;
+  background: #fff; color: var(--ink); border: 3px solid #c9a99a; border-radius: 999px; padding: 5px 5px 5px 18px; font-family: var(--fd); font-weight: 600;
+  box-shadow: 0 6px 18px #0004; max-width: calc(100vw - 32px); }
+#watchbar[hidden] { display: none; }
+#watchbar .btn { min-height: 40px; padding: 6px 16px; white-space: nowrap; }
+@media (max-width: 560px) { #watchbar { left: 16px; right: 16px; bottom: max(8px, env(safe-area-inset-bottom)); transform: none; justify-content: space-between; font-size: 14px; padding-left: 14px; } }
