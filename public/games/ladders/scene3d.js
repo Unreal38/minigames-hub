@@ -228,7 +228,8 @@ export function createScene(canvas, { onFrame, onCue }) {
   const die = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), dieMats); die.castShadow = true; scene.add(die);
   const dieQ = new THREE.Quaternion(), dieFrom = new THREE.Quaternion(), dieSpin = new THREE.Vector3();
   let dieVal = 6;
-  const dieRest = () => new THREE.Vector3(HALF + U * 1.1, .31, B ? (B.rows / 2 - 1) * U : 0);
+  let tall = false; // portrait phones: die sits below the board and the camera leans in on whoever is moving
+  const dieRest = () => tall && B ? new THREE.Vector3(HALF - U * .6, .31, B.rows * U / 2 + U * .95) : new THREE.Vector3(HALF + U * 1.1, .31, B ? (B.rows / 2 - 1) * U : 0);
   function setDie(v) {
     dieVal = v;
     const e = UP[v]; dieQ.setFromEuler(new THREE.Euler(e[0], e[1], e[2]));
@@ -334,10 +335,11 @@ export function createScene(canvas, { onFrame, onCue }) {
       else die.quaternion.slerp(dieQ, Math.min(1, (u - .7) / .3 * .6 + .1));
     } else { die.position.lerp(restP, Math.min(1, dt * 6)); die.quaternion.slerp(dieQ, Math.min(1, dt * 8)); }
     // camera: the whole board, drifting a touch towards whoever is moving
-    const D = B.rows * U, hw = HALF + 2.3, hd = D / 2 + 1.1, el = .98, fv = camera.fov * Math.PI / 360;
-    const dist = Math.max(hd * Math.sin(el) / Math.tan(fv), hw / (Math.tan(fv) * camera.aspect)) * 1.04 + hd * Math.cos(el) * .5;
+    tall = camera.aspect < .8;
+    const D = B.rows * U, hw = HALF + (tall ? 1.4 : 2.3), hd = D / 2 + (tall ? 2 : 1.1), el = tall ? 1.08 : .98, fv = camera.fov * Math.PI / 360;
+    const dist = (Math.max(hd * Math.sin(el) / Math.tan(fv), hw / (Math.tan(fv) * camera.aspect)) * 1.04 + hd * Math.cos(el) * .5) * (tall ? .72 : 1);
     const focus = toks[mv && t < mv.ms ? mv.s : turn];
-    look.set(.5, 0, .3); if (focus) look.lerp(focus.cur, .14);
+    look.set(tall ? 0 : .5, 0, tall ? .8 : .3); if (focus) look.lerp(focus.cur, tall ? .5 : .14);
     want.set(look.x, look.y + Math.sin(el) * dist, look.z + Math.cos(el) * dist);
     if (!camInit) { camera.position.copy(want); lookNow.copy(look); camInit = true; }
     camera.position.lerp(want, Math.min(1, dt * 2)); lookNow.lerp(look, Math.min(1, dt * 2)); camera.lookAt(lookNow);
