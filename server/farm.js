@@ -4,12 +4,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { DATA_DIR, profiles, friendPids, me as hubMe, scheduleSave as saveHub } from './store.js';
+import { DATA_DIR, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, palsOf } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
+
+// Coins are the account's, not the farm's: f.inv.coins reads and writes the owner's account balance, so everything
+// below can keep treating coins as one more material. A farm saved before that pays its coins into the account once.
+function bindCoins(pid, f) {
+  if (!profiles.has(pid)) return;
+  if (!f.coinsMoved) { addCoins(pid, +f.inv.coins || 0); f.coinsMoved = true; scheduleSave(); }
+  Object.defineProperty(f.inv, 'coins', { enumerable: true, configurable: true, get: () => coinsOf(pid), set: v => setCoins(pid, +v || 0) });
+}
 
 const unit = (pet, lv) => rawUnit({ ...pet, look: lookOf(pet) }, lv); // battles show each pet as it really looks
 
@@ -23,7 +31,7 @@ export function load() {
   let d;
   try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
   catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return; }
-  for (const [pid, f] of Object.entries(d.farms || {})) if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); farms.set(pid, f); }
+  for (const [pid, f] of Object.entries(d.farms || {})) if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); bindCoins(pid, f); farms.set(pid, f); }
   console.log(`loaded ${farms.size} farms from ${FILE}`);
 }
 let timer = null, dirty = false, warned = false;
@@ -256,7 +264,7 @@ export function handle(p, a, reply) {
     if (!STARTERS.includes(a.sp)) return;
     const nf = { v: 1, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
       name: p.name, pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now() };
-    farms.set(p.pid, nf); scheduleSave();
+    bindCoins(p.pid, nf); farms.set(p.pid, nf); scheduleSave();
     return reply({ t: 'farm', farm: view(nf, p), did: 'starter' });
   }
   if (!f) return reply({ t: 'farm', need: 'starter' });

@@ -4,9 +4,11 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #1: Hot Pot**, a fan-made take on the Palia Hotpot card minigame. It has cute SVG food cards, a 3D table (three.js) with a bubbling split-broth pot, sound effects, emotes and a results screen.
 
-**Game #2: Marble Rush**, a 3D marble race nobody steers. The marbles are plain colours that belong to nobody: every player bets pretend coins on a colour and watches a randomly generated track (pins, spinners, trapdoors, boost pads) do the rest. It has chaos events, one banana per heat to slip up a rival, and a knockout mode that drops the slowest marble each heat.
+**Game #2: Marble Rush**, a 3D marble race nobody steers. The marbles are plain colours that belong to nobody: every player bets their coins on a colour and watches a randomly generated track (pins, spinners, trapdoors, boost pads) do the rest. It has chaos events, one banana per heat to slip up a rival, and a knockout mode that drops the slowest marble each heat.
 
 **Game #3: Texas Hold'em**, cozy no-limit poker for pretend chips at a 3D table with everyone's avatars. Bots fill empty seats, blinds creep up, and the biggest stack after the last hand wins.
+
+**Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush bets them and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
 - Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
@@ -36,7 +38,7 @@ Open two browser windows (or one normal and one private window) to play against 
 
 - 1 to 8 players, with bots betting from empty seats up to 4. The track has 4, 6 or 8 coloured marbles (host's choice) and nobody owns one.
 - The race starts once every player at the table has bet (the host can start it early from then on; players who are away do not hold it up). The winning colour pays your stake times the number of marbles, and several players can back the same colour.
-- Everyone starts with 100 pretend coins. They stay with the table from race to race, and anyone who goes broke is spotted 30.
+- Bets use your account coins (see Coins and the avatar shop). Stakes are 10, 25, 50 or 100, and anyone with under 10 coins is spotted a 10-coin bet.
 - Each player has one banana per heat: it slows one marble of your choice for a moment.
 - Chaos events (gravity flip, turbo, marblequake, switcheroo) can be switched off by the host.
 - Knockout runs short heats on a fresh track each time. The last marble home is out until one is left.
