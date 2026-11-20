@@ -10,6 +10,7 @@
 //     dispose()
 import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { bake, avatar3d, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
 import { itemModel, petModel, balloonModel, disposeModel } from './models.js';
 
@@ -51,16 +52,18 @@ export function createScene(canvas, { onPick, onGhost }) {
     scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
   }
   // clouds: a sea of them below the island and a few far off, all one mesh on a slowly turning ring
-  const clouds = new THREE.Group(); scene.add(clouds);
-  {
+  function cloudLayer() {
+    const grp = new THREE.Group();
     const puffs = [], m = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
     const cloud = (x, y, z, s) => { for (const [dx, dy, dz, r] of [[0, 0, 0, 1], [.9, -.1, .2, .75], [-.9, -.12, -.1, .7], [.2, .3, -.3, .65]]) puffs.push([x + dx * s, y + dy * s, z + dz * s, r * s]); };
     for (let i = 0; i < 46; i++) { const a = hash(i, 1) * 6.283, d = 6 + hash(i, 2) * 90; cloud(Math.cos(a) * d, -11 - hash(i, 3) * 9 - d * .04, Math.sin(a) * d, 2.5 + hash(i, 4) * 3.5); }
     for (let i = 0; i < 12; i++) { const a = hash(i, 5) * 6.283, d = 85 + hash(i, 6) * 50; cloud(Math.cos(a) * d, 4 + hash(i, 7) * 22, Math.sin(a) * d, 4 + hash(i, 8) * 4); }
     const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), flat('#ffffff', { roughness: 1 }), puffs.length);
     puffs.forEach(([x, y, z, r], i) => im.setMatrixAt(i, m.compose(v.set(x, y, z), q, sc.set(r * 1.2, r * .6, r))));
-    im.frustumCulled = false; clouds.add(im);
+    im.frustumCulled = false; grp.add(im);
+    return grp;
   }
+  const clouds = cloudLayer(); scene.add(clouds);
   // little rocks drifting nearby, each with something growing on it
   const drift = [];
   function buildDrift() {
@@ -304,6 +307,59 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
   }
 
+  // ---------- the world map ----------
+  // Everyone's farm as a small island: yours in the middle, the others in rings around it. Each one is a real
+  // miniature built from that farm's layout and merged into a few meshes.
+  const world = new THREE.Scene(); world.background = new THREE.Color(SKY_LOW); world.fog = new THREE.Fog(SKY_LOW, 60, 170);
+  world.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.5));
+  { const l = new THREE.DirectionalLight('#fff1d6', 2.1); l.position.set(9, 16, 7); world.add(l); }
+  const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
+  let mapOn = false, isles = []; // { id, g, y, ph, r }
+  function nameTag(text, mine) {
+    const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 128;
+    x.font = '600 60px Fredoka, "Baloo 2", system-ui, sans-serif'; const w = Math.min(480, x.measureText(text).width + 60);
+    x.fillStyle = mine ? '#ffb547' : '#fff3df'; x.strokeStyle = '#3b2a25'; x.lineWidth = 8;
+    x.beginPath(); x.roundRect((512 - w) / 2, 14, w, 100, 50); x.fill(); x.stroke();
+    x.fillStyle = '#3b2a25'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 256, 68, 440);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, fog: false })); sp.scale.set(4.4, 1.1, 1); sp.userData.dyn = true;
+    return sp;
+  }
+  function miniIsland(f, mine) {
+    const g = new THREE.Group(), land = new THREE.Group(), n = f.size, R = n / 2 * Math.SQRT2;
+    const mk = (geo, c, y) => { const m = new THREE.Mesh(geo, flat(c)); m.position.y = y; land.add(m); return m; };
+    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), '#7cc45c', -.26).rotation.y = Math.PI / 4;
+    mk(new THREE.BoxGeometry(n, .04, n), '#8fd16a', .0);
+    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), '#a87750', -1.5).rotation.y = Math.PI / 4;
+    mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
+    for (const it of f.items.slice(0, 90)) {
+      if (!ITEMS[it.type]) continue;
+      const m = itemModel(it.type), [w, h] = footprint(it.type, it.r);
+      m.position.set(it.x + w / 2 - n / 2, 0, it.y + h / 2 - n / 2); m.rotation.y = -it.r * Math.PI / 2; land.add(m);
+    }
+    bake(land); land.traverse(m => { if (m.isMesh) { m.material.flatShading = true; m.material.roughness = .95; } });
+    const k = (mine ? 6.4 : 4.4) / n; land.scale.setScalar(k); g.add(land);
+    // the owner stands at the front corner, bigger than life so they can be recognised
+    try { const av = avatar3d(f.color || '#ff8fab', f.av, { pose: 'stand' }); av.scale.setScalar(.62); av.position.set(n / 2 * k - .5, .76 * .62, n / 2 * k - .3); av.rotation.y = .5; g.add(av); g.userData.av = av; } catch (e) { console.warn('no avatar', e); }
+    const tag = nameTag(mine ? 'You' : f.name, mine); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
+    return g;
+  }
+  function setWorld(list, me) {
+    for (const i of isles) { world.remove(i.g); if (i.g.userData.av) { i.g.remove(i.g.userData.av); disposeAvatar(i.g.userData.av); } i.g.userData.tag.material.map.dispose(); i.g.userData.tag.material.dispose(); i.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
+    isles = []; mapOn = !!list; liftNow = -1;
+    if (!list) return;
+    const put = (f, x, z, mine, i) => { const g = miniIsland(f, mine), y = mine ? 0 : (hash(i, 31) - .5) * 2.4; g.position.set(x, y, z); world.add(g); isles.push({ id: mine ? null : f.id, g, y, ph: i * 1.7, r: mine ? 3.6 : 2.8 }); };
+    put(me, 0, 0, true, 0);
+    list.forEach((f, i) => { const inner = Math.min(8, list.length), ring = i < 8 ? 0 : 1, cnt = ring ? list.length - 8 : inner, a = ((ring ? i - 8 : i) / cnt) * 6.283 + (ring ? .3 : -.6), d = ring ? 18 : 10.5; put(f, Math.cos(a) * d, Math.sin(a) * d, false, i + 1); });
+    cam.waz = .5;
+  }
+  const _wc = new THREE.Vector3();
+  function isleAt() { // which island the last pointer ray passes closest to
+    let best = null, bd = 1e9;
+    for (const i of isles) { _wc.copy(i.g.position); _wc.y += .8; const d = ray.ray.distanceToPoint(_wc); if (d < i.r && d < bd) { bd = d; best = i; } }
+    return best;
+  }
+
   // ---------- starter line-up ----------
   let starters = false, starSel = null;
   function setStarters(sel) {
@@ -398,7 +454,8 @@ export function createScene(canvas, { onPick, onGhost }) {
       const [w, h] = footprint(ghost.type, ghost.r), st = stepOf(ghost.type);
       const nx = Math.max(0, Math.min(N - w, snap(g.x + N / 2, st) - drag.ox)), ny = Math.max(0, Math.min(N - h, snap(g.z + N / 2, st) - drag.oy));
       if (nx !== ghost.x || ny !== ghost.y) { ghost.x = nx; ghost.y = ny; ghostCheck(); }
-    } else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.16, cam.el + dy * .005)); }
+    } else if (mapOn) { cam.waz -= dx * .006; }
+    else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.16, cam.el + dy * .005)); }
   });
   const up = e => {
     if (!ptrs.delete(e.pointerId)) return;
@@ -406,6 +463,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     const d = drag; drag = null;
     if (!d || d.moved || performance.now() - d.t > 500 || ptrs.size) return;
     const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1;
+    if (fighting) return;
+    if (mapOn) { const i = isleAt(); if (i) onPick?.({ island: i.id }); return; }
     const pid = petAt();
     if (starters) { if (pid) onPick?.({ starter: pid.slice(8) }); return; }
     if (ghost) { // tap a tile: the piece jumps there
@@ -430,12 +489,19 @@ export function createScene(canvas, { onPick, onGhost }) {
   function loop(dt) {
     if (dead) return;
     resize(); T += dt;
-    lift = fighting ? .1 : starters ? .2 : edit ? .13 : 0;
+    lift = mapOn ? 0 : fighting ? .1 : starters ? .2 : edit ? .13 : 0;
     if (lift !== liftNow && W) { liftNow = lift; if (lift) camera.setViewOffset(W, H, 0, lift * H, W, H); else camera.clearViewOffset(); }
     if (fighting) { // a fixed view of the ring, further back on narrow screens
       const d = Math.max(7.2, 7.4 * H / Math.max(1, W));
       camera.position.set(-1.2, d * .42, d); camera.lookAt(0, .95, 0);
       moveRing(dt, T); renderer.render(ring, camera); return;
+    }
+    if (mapOn) { // the neighbourhood from above; drag to turn it
+      const d = (isles.length > 9 ? 50 : isles.length > 1 ? 33 : 17) * Math.max(1, 1.2 * H / Math.max(1, W));
+      camera.position.set(Math.sin(cam.waz) * d * .72, d * .7, Math.cos(cam.waz) * d * .72); camera.lookAt(0, 0, 0);
+      for (const i of isles) i.g.position.y = i.y + Math.sin(T * .7 + i.ph) * .18;
+      wclouds.rotation.y += dt * .006;
+      renderer.render(world, camera); return;
     }
     const k = Math.max(1, (starters ? 1.1 : .75) * H / Math.max(1, W)); // narrow screens need to stand further back
     const d = cam.dist * k, ce = Math.cos(cam.el);
@@ -475,6 +541,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     ghost: ghostInfo,
     cheer(id) { const p = pets.get(id); if (p) p.hop = 1; },
     // the battle ring: show it, put a pet on a side (0 yours, 1 theirs), and play what happens
+    setWorld,
     setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); } },
     ringPet,
     ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') p.down = true; },

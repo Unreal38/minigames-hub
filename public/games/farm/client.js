@@ -4,7 +4,7 @@
 //   ctx: { send(action), toast, me(), home(), account(mode) }
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, ROLE_NAME, movesAt } from './battle.js';
-import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, formOf, xpFor, tripLoot, canAfford, countOf } from './data.js';
+import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, formOf, xpFor, tripLoot, canAfford, countOf } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -55,7 +55,9 @@ export function mount(app, ctx) {
   let quiet = 0;
   const say = ctx.send;
   ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', true); }, 4000); } };
+  let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
   let B = null, shown = null, playing = false, foes = null, line = '';
+  let mapShown = null;
   let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [];
 
   import('./scene3d.js').then(m => {
@@ -73,22 +75,39 @@ export function mount(app, ctx) {
     paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel(); paintBattle();
     if (!scene) return;
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
-    else { scene.setStarters(null); scene.setFarm(mode === 'farm' ? F : null); scene.setEdit(edit); }
+    else { scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
+    const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
+    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av }); }
     scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
   }
   function paintTop() {
-    $('pf-title').textContent = B ? (B.mode === 'arena' ? `Match against ${B.foe}` : 'Practice battle') : F ? `${F.owner}'s farm` : 'Pet Farm';
+    $('pf-title').textContent = B ? (B.mode === 'arena' ? `Match against ${B.foe}` : 'Practice battle') : where === 'map' && F ? 'The neighbourhood' : where === 'visit' && V ? `${V.name}'s farm` : F ? `${F.owner}'s farm` : 'Pet Farm';
     $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => mat(k, F.inv[k] || 0)).join('') : '';
   }
   function paintMain() {
     const el = $('pf-main');
     if (mode !== 'farm' || edit || B) { el.innerHTML = ''; return; }
+    if (where === 'map') {
+      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit' : 'No other farms yet. They appear here when friends start one.'}</span>`;
+      return;
+    }
+    if (where === 'visit' && V) {
+      el.innerHTML = `<button type="button" class="btn big" data-a="map">Back to the map</button>
+        <button type="button" class="btn m" data-a="help" ${V.helps > 0 ? '' : 'disabled'}>Help out (${V.helps} left)</button>
+        <button type="button" class="btn m" data-a="giftopen" ${V.gift ? '' : 'disabled'}>${V.gift ? 'Leave a gift' : 'Gift left today'}</button>
+        ${countOf(F, 'flag') && V.team ? '<button type="button" class="btn w" data-a="duel">Challenge</button>' : ''}
+        ${V.pal ? `<span class="chip">Friendship ${V.pal}</span>` : ''}`;
+      return;
+    }
     const t = F.trip, z = t && ZONES[t.zone];
     const trip = !countOf(F, 'gate') ? '<span class="chip">Build an Expedition Gate to send pets exploring</span>'
       : !t ? '<button type="button" class="btn m" data-a="explore">Send pets exploring</button>'
       : t.left > 0 ? `<span class="chip" id="pf-trip">Back from ${z.name} in ${wait(t.left)}</span>`
       : '<button type="button" class="btn big m" data-a="collect">Welcome them back</button>';
-    el.innerHTML = `<button type="button" class="btn big" data-a="edit">Edit farm</button>${trip}<span class="chip">Pets ${F.pets.length} of ${F.room}</span>`;
+    el.innerHTML = `<button type="button" class="btn big" data-a="edit">Edit farm</button>${trip}
+      <button type="button" class="btn w" data-a="map">World map</button>
+      <button type="button" class="btn w" data-a="album">Pets ${F.pets.length} of ${F.room}</button>
+      ${F.mail.length ? `<button type="button" class="btn w" data-a="mail">Mail ${F.mail.length}</button>` : ''}`;
   }
   // ---------- expeditions ----------
   const petRow = (p, extra = '') => `${thumb('pet:' + p.sp)}<b>${esc(p.name)}</b><small>Level ${p.lv}${extra}</small>`;
@@ -108,6 +127,34 @@ export function mount(app, ctx) {
         <div class="party">${pets}</div><p class="hint">${note}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
           <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? 'Save team' : 'Start'}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'gift') {
+      const rows = Object.entries(GIFTS).filter(([k]) => BASIC.includes(k) || F.inv[k]).map(([k, n]) => `<button type="button" class="zone${(F.inv[k] || 0) < n ? ' off' : ''}" data-a="gift" data-mat="${k}"><b>${n} ${MATS[k].toLowerCase()}</b><small>You have ${F.inv[k] || 0}</small></button>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>A gift for ${esc(V.name)}</h2><p>It comes out of your own stock and lands in their Mailbox. One gift a day for each neighbour.</p>
+        <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'mail') {
+      const box2 = !!countOf(F, 'mailbox');
+      const rows = F.mail.map(m => { const got = m.got && Object.entries(m.got).map(([k, n]) => mat(k, n)).join('');
+        const text = m.k === 'gift' ? `<b>A gift from ${esc(m.from)}</b>` : m.k === 'help' ? `<b>${esc(m.from)} helped out</b><small>${m.n} ${m.n === 1 ? 'time' : 'times'} today. Thank them with a visit.</small>`
+          : `<b>${esc(m.from)} challenged your farm</b><small>${m.held ? 'Your team held. You earned 5 coins.' : 'Your team lost this one. Nothing was taken.'}</small>`;
+        return `<div class="letter"><div>${text}${got ? `<div class="mats">${got}</div>` : ''}</div>${m.got ? `<button type="button" class="btn sm m" data-a="claim" data-id="${m.id}" ${box2 ? '' : 'disabled'}>Open</button>` : ''}</div>`; }).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Mailbox</h2>${box2 ? '' : '<p>Build a Mailbox on your farm to open gifts.</p>'}
+        ${rows || '<p class="hint">Nothing new. Gifts and news from neighbours land here.</p>'}
+        <div class="row end">${box2 && F.mail.some(m => !m.got) ? '<button type="button" class="btn w" data-a="mailread">Clear the news</button>' : ''}<button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'album') {
+      const zoneOf = sp => Object.values(ZONES).find(z => sp in z.wild)?.name;
+      const cells = Object.entries(SPECIES).map(([sp, d]) => { const a = F.album[sp];
+        return a ? `<div class="leaf">${thumb('pet:' + sp, d.name)}<b>${d.name}</b>${elTag(d.el)}<span class="forms" title="Baby, young, adult">${a.map((x, i) => `<i class="${x ? 'on' : ''}" title="${FORMS[i]}"></i>`).join('')}</span></div>`
+          : `<div class="leaf no"><span class="nothumb">?</span><b>Not found yet</b><small>${zoneOf(sp) || ''}</small></div>`; }).join('');
+      const have = Object.keys(F.album).length, total = Object.keys(SPECIES).length + 5;
+      box.innerHTML = `<div class="panel tripp"><h2>Pet Album</h2><p>${have} of ${total} species found. The three dots are the baby, young and adult forms you have raised.</p>
+        <div class="album">${cells}${'<div class="leaf no"><span class="nothumb">?</span><b>Not found yet</b><small>From breeding</small></div>'.repeat(5)}</div>
+        <div class="row end"><button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
       return;
     }
     if (panel.kind === 'foes') {
@@ -276,6 +323,12 @@ export function mount(app, ctx) {
     const el = $('pf-card');
     if (!card || mode !== 'farm' || edit || B) { el.hidden = true; return; }
     el.hidden = false;
+    if (where === 'visit') {
+      const p = V?.pets.find(x => x.id === card.pet), s = p && SPECIES[p.sp]; if (!s) { card = null; el.hidden = true; return; }
+      el.innerHTML = `${thumb('pet:' + p.sp, s.name)}<div class="info"><b>${esc(p.name)}</b><p>${elTag(s.el)} ${s.name} · ${FORMS[formOf(p.lv)]} · Level ${p.lv}</p><p class="hint">${s.blurb}</p></div>
+        <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
+      return;
+    }
     if (card.pet) {
       const p = F.pets.find(x => x.id === card.pet); if (!p) { card = null; el.hidden = true; return; }
       const s = SPECIES[p.sp];
@@ -300,6 +353,7 @@ export function mount(app, ctx) {
           : t.left > 0 ? `<p class="hint">The party is in ${ZONES[t.zone].name}, back in ${wait(t.left)}.</p>` : '<button type="button" class="btn sm m" data-a="collect">Welcome them back</button>';
       } else if (item.type === 'yard') more = '<button type="button" class="btn sm m" data-a="practice">Practice battle</button>';
       else if (item.type === 'flag') more = `<p class="hint">You have ${F.pts} ladder points.</p><button type="button" class="btn sm m" data-a="arena">Find a match</button>`;
+      else if (item.type === 'mailbox') more = `<button type="button" class="btn sm m" data-a="mail">Open mail (${F.mail.length})</button>`;
       else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${it.soon ? `<p class="hint">${it.soon}</p>` : ''}${more}
         <button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button></div>
@@ -311,6 +365,8 @@ export function mount(app, ctx) {
   function onPick(p) {
     if (p.starter) { pick = p.starter; sfx.pop(); sync(); return; }
     if (mode !== 'farm') return;
+    if ('island' in p) { sfx.click(); if (p.island) ctx.send({ t: 'visit', id: p.island }); else goHome(); return; }
+    if (where === 'visit') { if (p.pet) { sfx.pop(); card = { pet: p.pet }; } else card = null; paintCard(); return; }
     if (edit) { if (p.item) { sfx.click(); scene.ghostItem(p.item); } return; }
     if (p.pet) { sfx.pop(); card = { pet: p.pet }; } else if (p.item) { sfx.click(); card = { item: p.item }; } else card = null;
     paintCard();
@@ -323,7 +379,8 @@ export function mount(app, ctx) {
     ctx.send(g.id ? { t: 'move', id: g.id, x: g.x, y: g.y, r: g.r } : { t: 'place', type: g.type, x: g.x, y: g.y, r: g.r });
     scene.ghostCancel();
   }
-  function setEdit(on) { if (B) return; edit = on; card = null; panel = null; if (!on) scene?.ghostCancel(); sync(); }
+  function goHome() { where = 'home'; V = null; card = null; panel = null; sync(); }
+  function setEdit(on) { if (B || where !== 'home') return; edit = on; card = null; panel = null; if (!on) scene?.ghostCancel(); sync(); }
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
@@ -335,6 +392,16 @@ export function mount(app, ctx) {
     else if (a === 'start') { if (pick) ctx.send({ t: 'starter', sp: pick }); }
     else if (a === 'edit') setEdit(true);
     else if (a === 'done') setEdit(false);
+    else if (a === 'map') { where = 'map'; V = null; world = null; card = null; panel = null; sync(); ctx.send({ t: 'world' }); }
+    else if (a === 'gohome') goHome();
+    else if (a === 'help') ctx.send({ t: 'help', id: V.id });
+    else if (a === 'giftopen') { panel = { kind: 'gift' }; card = null; sync(); }
+    else if (a === 'gift') { if (b.classList.contains('off')) return ctx.toast('You do not have enough of that to give.', true); ctx.send({ t: 'gift', id: V.id, mat: b.dataset.mat }); }
+    else if (a === 'duel') openTeam('arena', V);
+    else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
+    else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
+    else if (a === 'claim') ctx.send({ t: 'claim', id: b.dataset.id });
+    else if (a === 'mailread') ctx.send({ t: 'mailread' });
     else if (a === 'practice') openTeam('practice');
     else if (a === 'arena') { foes = null; panel = { kind: 'foes' }; card = null; sync(); ctx.send({ t: 'foes' }); }
     else if (a === 'foe') { const f = foes?.find(x => x.id === b.dataset.id); if (f) openTeam('arena', f); }
@@ -403,6 +470,8 @@ export function mount(app, ctx) {
     if (m.err) { sfx.bad(); ctx.toast(esc(m.err), true); }
     if (m.need) { F = null; B = null; mode = m.need; edit = false; sync(); return; }
     if (m.foes) foes = m.foes;
+    if (m.world) world = m.world;
+    if (m.visit) { V = { ...m.visit, trip: null }; if (where !== 'visit') { where = 'visit'; card = null; panel = null; } }
     if (m.farm) { F = m.farm; tripAt = Date.now() + (F.trip?.left || 0); }
     if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
       const starting = !B && m.battle;
@@ -425,6 +494,9 @@ export function mount(app, ctx) {
     else if (m.did === 'expand') { sfx.join(); ctx.toast(`The farm grew to ${F.size} by ${F.size} tiles.`); }
     else if (m.did === 'send') { sfx.turn(); panel = null; ctx.toast(`Off they go to ${ZONES[F.trip.zone].name}!`); }
     else if (m.did === 'collect') { sfx.win(); card = null; panel = { kind: 'back', back: m.back }; }
+    else if (m.did === 'help') { sfx.set(); ctx.toast(`You tidied up for ${esc(V.name)} and earned 3 coins.`); }
+    else if (m.did === 'gift') { sfx.join(); panel = null; ctx.toast(`Your gift is in ${esc(V.name)}'s Mailbox.`); }
+    else if (m.did === 'claim') { sfx.join(); ctx.toast('You got ' + Object.entries(m.got).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') + '.'); }
     else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');

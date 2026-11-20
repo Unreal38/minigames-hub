@@ -4,9 +4,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { DATA_DIR } from './store.js';
+import { DATA_DIR, profiles } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
-  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf } from '../public/games/farm/data.js';
+  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS } from '../public/games/farm/data.js';
 import { unit, newBattle, step } from '../public/games/farm/battle.js';
 
 const FILE = path.join(DATA_DIR, 'pet-farm.json');
@@ -90,10 +90,26 @@ function foes(mine) {
 const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
   sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
+// ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
+const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
+const byFid = id => [...farms].find(([, x]) => x.fid === id);
+const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key]; };
+function post(f, m) { (f.mail ||= []).unshift({ id: rid(), at: Date.now(), ...m }); f.mail.length = Math.min(f.mail.length, MAIL_MAX); }
+// Remembers every species and form this farm has ever owned.
+function album(f) {
+  f.album ||= {};
+  for (const x of f.pets) { const a = f.album[x.sp] ||= [0, 0, 0]; a[formOf(x.lv)] = 1; }
+  return f.album;
+}
+// A farm as its neighbours see it. Nothing here can be changed by the viewer.
+const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: f.name || 'A farmer', color: pr?.color, av: pr?.av, size: f.size, house: f.house || 1, pts: f.pts || 0,
+  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r })) }; };
+
 // ---------- what the player sees ----------
 const view = (f, p) => ({
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets,
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
+  album: album(f), mail: f.mail || [], pals: f.pals || {},
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f),
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
@@ -112,7 +128,7 @@ export function handle(p, a, reply) {
   const ok = (extra = {}) => { scheduleSave(); reply({ t: 'farm', farm: view(f, p), ...extra }); };
   const no = msg => reply({ t: 'farm', err: msg, farm: f ? view(f, p) : null });
 
-  if (f && f.name !== p.name) { f.name = p.name; } // remembered so other players can see whose farm it is
+  if (f) { f.name = p.name; f.seen = Date.now(); } // remembered so other players can see whose farm it is
   if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
@@ -198,6 +214,48 @@ export function handle(p, a, reply) {
     f.trip = null; f.trips = (f.trips || 0) + 1;
     return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full } });
   }
+  if (a.t === 'world') { // everyone's islands, most recently active first
+    const mine = daily(f, 'help'), gifts = daily(f, 'gift');
+    const others = [...farms].filter(([, x]) => x !== f && x.pets.length).sort((a, b) => (b[1].seen || 0) - (a[1].seen || 0)).slice(0, 24)
+      .map(([pid, x]) => ({ ...look(pid, x), helps: HELPS - (mine[fid(x)] || 0), gift: !gifts[fid(x)], pal: f.pals?.[fid(x)] || 0 }));
+    return reply({ t: 'farm', world: others, farm: view(f, p) });
+  }
+  if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
+    const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
+    const [pid, x] = hit, id = fid(x);
+    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !x.trip?.pets.includes(q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv })),
+      helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
+    if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner
+      const h = daily(f, 'help'); if ((h[id] || 0) >= HELPS) return reply({ t: 'farm', err: 'You have helped here as much as you can today.', visit: there(), farm: view(f, p) });
+      h[id] = (h[id] || 0) + 1; f.inv.coins = (f.inv.coins || 0) + 3;
+      if (x.trip && x.trip.until > Date.now()) x.trip.until -= HELP_CUT; else x.inv.coins = (x.inv.coins || 0) + 2;
+      const m = (x.mail || []).find(q => q.k === 'help' && q.from === p.name && new Date(q.at).toISOString().slice(0, 10) === today());
+      if (m) m.n++; else post(x, { k: 'help', from: p.name, n: 1 });
+      scheduleSave();
+      return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'help' });
+    }
+    if (a.t === 'gift') {
+      const n = GIFTS[a.mat]; if (!n) return;
+      const g = daily(f, 'gift'); if (g[id]) return reply({ t: 'farm', err: 'One gift a day for each neighbour.', visit: there(), farm: view(f, p) });
+      if ((f.inv[a.mat] || 0) < n) return reply({ t: 'farm', err: 'You do not have enough of that to give.', visit: there(), farm: view(f, p) });
+      f.inv[a.mat] -= n; g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
+      post(x, { k: 'gift', from: p.name, got: { [a.mat]: n } });
+      scheduleSave();
+      return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'gift' });
+    }
+    return reply({ t: 'farm', visit: there(), farm: view(f, p) });
+  }
+  if (a.t === 'claim') { // open a gift from the mailbox
+    if (!countOf(f, 'mailbox')) return no('Build a Mailbox to open your mail.');
+    const m = (f.mail || []).find(q => q.id === a.id && q.got); if (!m) return no('That is not in your mailbox any more.');
+    pay(f.inv, m.got, 1); f.mail.splice(f.mail.indexOf(m), 1);
+    return ok({ did: 'claim', got: m.got });
+  }
+  if (a.t === 'mailread') { // throw away everything that is only a note
+    if (!countOf(f, 'mailbox')) return no('Build a Mailbox to open your mail.');
+    f.mail = (f.mail || []).filter(q => q.got);
+    return ok({ did: 'mailread' });
+  }
   if (a.t === 'foes') return reply({ t: 'farm', foes: foes(f), farm: view(f, p) });
   if (a.t === 'defend') { // choose the team that defends this farm
     const ids = Array.isArray(a.pets) ? [...new Set(a.pets)] : [];
@@ -245,7 +303,10 @@ export function handle(p, a, reply) {
       f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
       for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); }
     }
-    if (B.to && !won && !quit) { const d = farms.get(B.to); if (d) { d.inv.coins = (d.inv.coins || 0) + 5; d.wins = (d.wins || 0) + 1; } } // the defender's team held
+    if (B.to && !quit) { // the defender hears about it, and earns a little when their team held
+      const d = farms.get(B.to);
+      if (d) { if (!won) { d.inv.coins = (d.inv.coins || 0) + 5; d.wins = (d.wins || 0) + 1; } post(d, { k: 'battle', from: p.name, held: !won }); }
+    }
     return ok({ battle: battleView(B), ev, prize, did: 'fought' });
   }
   if (a.t === 'petname') {
