@@ -8,6 +8,6 @@
   "scripts": {
     "start": "node server/server.js",
     "gift": "node server/gift.js",
-    "test": "node test/smoke.js && node test/marbles.js && node test/ladders.js && node test/poker.js && node test/ludo.js && node test/persist.js && node test/stats.js && node test/watch.js && node test/watch-games.js && node test/farm.js"
+    "test": "node test/smoke.js && node test/marbles.js && node test/ladders.js && node test/poker.js && node test/ludo.js && node test/persist.js && node test/stats.js && node test/watch.js && node test/watch-games.js && node test/farm.js && node test/shop.js"
   }
 }

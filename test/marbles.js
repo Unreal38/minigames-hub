@@ -15,6 +15,10 @@ function race(opts, prev) {
     if (mb.act(G, 0, { t: 'bet', m: 99, amt: 25 })) fail('bet on a missing marble accepted');
     if (mb.act(G, 1, { t: 'bet', m: 0, amt: 7 })) fail('odd stake accepted');
     if (mb.act(G, 0, { t: 'sab', m: 1 })) fail('banana before the race accepted');
+    if (mb.act(G, 0, { t: 'ready' })) fail('race started before everyone bet');
+    now += 60_000; mb.tick(G, now);
+    if (G.stage !== 'bet') fail('betting closed while a player had not bet');
+    if (mb.act(G, 1, { t: 'bet', m: 0, amt: 10 }) !== true || mb.act(G, 0, { t: 'ready' }) !== true) fail('could not start once everyone bet');
     let threw = false;
     for (let i = 0; i < 40000 && G.ph === 'play'; i++) {
       now += 150; mb.tick(G, now);
@@ -64,7 +68,7 @@ if (room.opts.field !== 8 || room.opts.mode !== 'knockout') bail('option change 
 send({ t: 'start' }); await wait(300);
 if (state?.stage !== 'bet' || state.marbles.length !== 8 || state.seats.length !== 4) bail('race did not open for betting');
 send({ t: 'act', a: { t: 'bet', m: 3, amt: 'all' } }); await wait(200);
-if (state.seats[state.me].bet?.amt !== 100) bail('all-in bet missing');
+if (state.seats[state.me].bet?.amt !== 10) bail('spotted bet missing'); // a new player has no coins yet, so the house spots 10
 send({ t: 'act', a: { t: 'ready' } }); await wait(4500);
 if (state.stage !== 'race' || !state.frames.length || state.seats[state.me].coins !== 0) bail('race did not start');
 console.log('OK');

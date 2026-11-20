@@ -5,7 +5,7 @@ import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { progress } from './ranks.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn } from './avatar.js';
 
 export const SITE = 'Cozy Table';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
@@ -36,15 +36,15 @@ const GAMES = {
     settings: pill => `<div class="opt"><b>Race</b><div class="pills">${pill('mode', 'classic', 'Classic')}${pill('mode', 'knockout', 'Knockout')}</div></div>
       <div class="opt"><b>Chaos events</b><div class="pills">${pill('chaos', 'on', 'On')}${pill('chaos', 'off', 'Off')}</div></div>
       <div class="opt"><b>Marbles on the track</b><div class="pills">${pill('field', 4, '4')}${pill('field', 6, '6')}${pill('field', 8, '8')}</div></div>`,
-    howto: `Nobody owns a marble. Bet pretend coins on a colour, then watch the marbles tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
+    howto: `Nobody owns a marble. Bet your coins on a colour, then watch the marbles tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
     rules: `<ol>
       <li>The marbles are plain <b>colours</b> and belong to nobody. Several players can back the same one.</li>
-      <li>Before the gate opens, <b>bet coins</b> on a colour. The winning colour pays your stake times the number of marbles.</li>
+      <li>Before the gate opens, <b>bet coins</b> on a colour. The race waits until everyone has bet. The winning colour pays your stake times the number of marbles.</li>
       <li>The track is <b>random every race</b>: pins, spinners, trapdoors, boost pads and squeezes. Nobody steers.</li>
       <li>You get <b>one banana per heat</b>. Throw it at any colour to slip it up.</li>
       <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>
       <li><b>Knockout</b>: the last marble home each heat is out. Handy for deciding who pays.</li>
-      <li>Coins are pretend and stay with the table. If you go broke, the house spots you a few.</li>
+      <li>Bets use your real coins, the same ones that buy avatar items in the shop, so bet what you can spare. If you have under 10, the house spots you a 10-coin bet.</li>
     </ol>`,
   },
   ladders: {
@@ -193,8 +193,14 @@ function onMsg(m) {
       st.name = m.me.name || st.name; st.color = m.me.color || st.color; if (m.me.av) st.av = cleanAv(m.me.av);
       LS.set('ct_name', st.name); LS.set('ct_color', st.color); LS.set('ct_av', JSON.stringify(st.av));
     }
+    // Wearing something this profile has not bought (say, after logging out): take it off here too.
+    if (!adopted && !st.creatorOpen && lockedIn(st.av, m.me.owned).length) {
+      st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
+    }
+    st.onMe?.();
     if (m.gain) {
-      toast(`${m.gain.win ? 'Win! ' : ''}+${m.gain.xp} XP`);
+      const cg = m.gain.coins | 0;
+      toast(`${m.gain.win ? 'Win! ' : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
@@ -245,6 +251,8 @@ function onMsg(m) {
       if (!chat.open) { chat.unread++; chatBadge(); chatPeek(m); }
       st.game?.say?.(m);
     }
+  } else if (m.t === 'bought') {
+    sfx.join(); const [k, i] = m.id.split(':'); toast(`Bought ${esc(itemName(k, +i))}! It's yours to keep.`);
   } else if (m.t === 'err') {
     sfx.bad(); toast(esc(m.msg), true);
   }
@@ -320,6 +328,7 @@ function meCard() {
     <div class="stats">
       <div><b>${m.wins}</b><span>Wins</span></div><div><b>${m.games}</b><span>Games</span></div>
       <div><b>${rate}%</b><span>Win rate</span></div><div><b>${m.pts}</b><span>Points</span></div>
+      <div><b>${m.coins}</b><span>Coins</span></div>
     </div>
     ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">Finish a game to earn XP. Wins are worth the most.</p>`}
   </div>`;
@@ -327,12 +336,14 @@ function meCard() {
 function paintMe() {
   const card = document.getElementById('me-card'); if (card) card.innerHTML = meCard();
   const chip = document.querySelector('.me .lvslot'); if (chip) chip.innerHTML = meChip();
+  const cs = document.querySelector('.coinslot'); if (cs && st.me) cs.textContent = st.me.coins;
 }
 
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
+  <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
 </header>`;
 
@@ -375,7 +386,7 @@ function renderHub() {
           <div class="pic marblepic">${marbleArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Marble Rush</h3><span class="tag">1–8 players</span></div>
-            <p>Pick a colour, bet your pretend coins and watch the marbles tumble down a random 3D track.</p>
+            <p>Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="marbles">Play with bots</button></div>
           </div>
         </article>
@@ -419,7 +430,7 @@ function renderHub() {
       <div class="tables" id="tables-list"></div>
     </section>
   </main>
-  <footer>Made for friends. Marble Rush coins and poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
+  <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
   renderTables();
   if (!st.name) openProfile(true);
 }
@@ -630,12 +641,20 @@ function modal(html, dismissable = true) {
   api.close = close; return api;
 }
 
-function openProfile(first = false) {
-  let color = st.color, av = st.av.slice(), tab = 0;
+// The coin shop lives inside the creator: paid items show their price, can be tried on, and are bought one by one.
+const coinIco = '<i class="cn" aria-hidden="true"></i>';
+const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
+const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
+const SHOP_ORDER = ['hat', 'glasses', 'neck', 'top', 'shoes', 'hairC', 'eyes', 'eyeC', 'mouth', 'marks', 'botC', 'shoeC'];
+const SHOP_ROWS = SHOP_ORDER.filter(k => OPT[k].some((_, i) => priceOf(k, i))).map(k => [k, ROW_LABEL[k]]);
+
+function openProfile(first = false, startTab = 0) {
+  let color = st.color, av = st.av.slice(), tab = startTab;
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
+  const TABS = [...AV_TABS.map(([n]) => n), 'Shop'];
   const sheet = modal(`
     <h2>${first ? 'Who is joining the table?' : 'Your avatar'}</h2>
-    <p>${first ? 'No account needed. Pick a name and a look; friends see both at the table.' : 'Change your name and how you look at the table.'}</p>
+    <p>${first ? 'No account needed. Pick a name and a look; friends see both at the table.' : 'Change your name and how you look at the table. Items with a price come from the shop: try them on, then buy them with the coins you earn by playing.'}</p>
     <form data-form="profile" class="creator">
       <div class="cmain">
         <div class="pvcol">
@@ -648,48 +667,67 @@ function openProfile(first = false) {
         <div class="optcol">
           <div class="namecol"><label for="nm">Name</label>
             <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname"></div>
-          <div class="ctabs" role="tablist">${AV_TABS.map(([n], i) => `<button type="button" role="tab" data-tab="${i}">${n}</button>`).join('')}</div>
+          <div class="ctabs" role="tablist">${TABS.map((n, i) => `<button type="button" role="tab" data-tab="${i}"${i === AV_TABS.length ? ' class="shoptab"' : ''}>${i === AV_TABS.length ? coinIco : ''}${n}</button>`).join('')}</div>
           <div class="crows"></div>
         </div>
       </div>
+      <div class="cart" aria-live="polite"></div>
       <button class="btn big">${first ? "Let's go" : 'Save'}</button>
       ${first ? '<button type="button" class="btn ghost-ink" data-login>I already have an account</button>' : ''}
     </form>`, !first);
   const { el, close } = sheet;
-  const nm = el.querySelector('#nm'), pv = el.querySelector('#pv'), rows = el.querySelector('.crows');
+  const nm = el.querySelector('#nm'), pv = el.querySelector('#pv'), rows = el.querySelector('.crows'), cart = el.querySelector('.cart');
   let view = P3?.creatorPreview(pv) || null, open = true;
-  sheet.onClose = () => { open = false; view?.dispose(); };
+  st.creatorOpen = true;
+  sheet.onClose = () => { open = false; st.creatorOpen = false; st.onMe = null; view?.dispose(); };
   if (!P3) p3Ready.then(() => { if (!open || !P3) return; pv.innerHTML = ''; view = P3.creatorPreview(pv); show(); });
   const show = () => { if (view) view.set(color, av); else pv.innerHTML = avatarHtml(color, av, 150); };
   const val = k => k === 'color' ? color : av[KI[k]];
+  const owned = () => st.me?.owned || [], coins = () => st.me?.coins || 0;
+  const isLocked = (k, i) => priceOf(k, i) > 0 && !owned().includes(k + ':' + i);
+  const tag = (k, i) => { const p = priceOf(k, i); return !p ? '' : isLocked(k, i) ? ` data-p="${p}" class="lk"` : ' class="own"'; };
+  const rowHtml = (k, label, only) => {
+    const hex = k === 'color', list = hex ? COLORS : OPT[k], sw = hex || AV_COLOR_KEYS.includes(k);
+    const idx = list.map((_, i) => i).filter(i => !only || priceOf(k, i));
+    return `<div class="crow"><b>${label}</b><div class="${sw ? 'swatches' : 'pills'}">${idx.map(i => { const v = list[i]; return sw
+      ? `<button type="button" style="--c:${v}" aria-label="${label} ${i + 1}${priceOf(k, i) ? (isLocked(k, i) ? `, ${priceOf(k, i)} coins` : ', owned') : ''}" aria-pressed="${val(k) === (hex ? v : i)}" data-k="${k}" data-v="${hex ? v : i}"${hex ? '' : tag(k, i)}></button>`
+      : `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}"${tag(k, i)}>${v}${isLocked(k, i) ? ` <small class="pr">${coinIco}${priceOf(k, i)}</small>` : ''}</button>`; }).join('')}</div></div>`;
+  };
   const paintRows = () => {
     el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
-    rows.innerHTML = AV_TABS[tab][1].map(([k, label]) => {
-      const hex = k === 'color', list = hex ? COLORS : OPT[k], sw = hex || AV_COLOR_KEYS.includes(k);
-      return `<div class="crow"><b>${label}</b><div class="${sw ? 'swatches' : 'pills'}">${list.map((v, i) => sw
-        ? `<button type="button" style="--c:${v}" aria-label="${label} ${i + 1}" aria-pressed="${val(k) === (hex ? v : i)}" data-k="${k}" data-v="${hex ? v : i}"></button>`
-        : `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}">${v}</button>`).join('')}</div></div>`;
-    }).join('');
+    rows.innerHTML = tab === AV_TABS.length
+      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays 5, a win 10 more, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
+      : AV_TABS[tab][1].map(([k, label]) => rowHtml(k, label)).join('');
   };
-  paintRows(); show();
+  const paintCart = () => {
+    const ids = lockedIn(av, owned());
+    cart.innerHTML = ids.length ? `<div class="cartlist"><b>Trying on</b>${ids.map(id => { const [k, i] = id.split(':'), p = priceOf(k, +i), short = p - coins();
+      return `<span class="cartitem">${AV_COLOR_KEYS.includes(k) ? `<i class="dot" style="--c:${OPT[k][+i]}"></i>` : ''}${esc(itemName(k, +i))}<button type="button" class="btn sm" data-buy="${id}" ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more` : `Buy ${coinIco}${p}`}</button></span>`; }).join('')}</div>
+      <small>You have ${coinIco}${coins()}. Saving takes off anything you have not bought.</small>` : '';
+  };
+  st.onMe = () => { if (open) { paintRows(); paintCart(); } };
+  paintRows(); paintCart(); show();
   if (first) setTimeout(() => nm.focus(), 50);
   el.addEventListener('click', e => {
+    const by = e.target.closest('[data-buy]');
+    if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
     const b = e.target.closest('[data-k]');
     if (b) {
       const k = b.dataset.k; if (k === 'color') color = b.dataset.v; else av[KI[k]] = +b.dataset.v;
       rows.querySelectorAll(`[data-k="${k}"]`).forEach(x => x.setAttribute('aria-pressed', x === b));
-      sfx.pop(); show(); return;
+      sfx.pop(); show(); paintCart(); return;
     }
     const tb = e.target.closest('[data-tab]'); if (tb) { tab = +tb.dataset.tab; sfx.click(); paintRows(); view?.face(tab === 1); camBtns(tab === 1); return; }
     const cb = e.target.closest('[data-cam]'); if (cb) { view?.face(cb.dataset.cam === '1'); camBtns(cb.dataset.cam === '1'); return; }
     if (e.target.closest('[data-login]')) { close(); openAccount('login'); return; }
-    if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paintRows(); show(); }
+    if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paintRows(); paintCart(); show(); }
   });
   const camBtns = face => el.querySelectorAll('[data-cam]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.cam === '1') === face));
   el.querySelector('form').addEventListener('submit', e => {
     e.preventDefault();
     const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16); if (!n) return;
-    st.name = n; st.color = color; st.av = cleanAv(av);
+    if (lockedIn(av, owned()).length) toast('Took off the items you have not bought yet.');
+    st.name = n; st.color = color; st.av = wearable(av, owned());
     LS.set('ct_name', n); LS.set('ct_color', color); LS.set('ct_av', JSON.stringify(st.av));
     send({ t: 'profile', name: n, color, av: st.av });
     sfx.click(); close();
@@ -751,6 +789,7 @@ $app.addEventListener('click', e => {
   else if (act === 'scroll') document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' });
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
+  else if (act === 'shop') { if (!st.name) return openProfile(true); openProfile(false, AV_TABS.length); }
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'logout') { send({ t: 'logout' }); toast('Logged out. This browser is a guest again.'); }
   else if (act === 'host' || act === 'solo') {
