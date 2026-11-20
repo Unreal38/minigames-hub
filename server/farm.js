@@ -123,10 +123,10 @@ function foes(mine) {
   for (const [pid, f] of farms) if (f !== mine && f.pets.length) out.push({ id: fid(f), name: nameOf(pid, f), pts: f.pts || 0, team: defenders(f).map(p => ({ sp: p.sp, lv: p.lv, name: p.name })) });
   return out.sort((a, b) => b.pts - a.pts);
 }
-// The ladder: every farm and the three neighbours, most ladder points first. Ties go to the higher best pet.
+// The ladder: every player's farm (never the computer neighbours), most ladder points first. Ties go to the higher best pet.
 function ranks(mine) {
   const row = (f, name, me) => ({ name, me, pts: f.pts || 0, top: Math.max(0, ...f.pets.map(p => p.lv)), pets: f.pets.length, team: defenders(f).map(p => ({ sp: p.sp })) });
-  const out = Object.values(NPCS).map(n => ({ name: n.name, npc: true, pts: n.pts, top: ARENA_LV, pets: n.team.length, team: n.team.map(sp => ({ sp })) }));
+  const out = [];
   for (const [pid, f] of farms) if (f.pets.length) out.push(row(f, nameOf(pid, f), f === mine));
   return out.sort((a, b) => b.pts - a.pts || b.top - a.top).slice(0, 100);
 }

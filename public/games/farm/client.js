@@ -325,9 +325,9 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'ranks') {
-      const rows = (ranks || []).map((r, i) => `<div class="rk${r.me ? ' you' : ''}"><span class="rkn${i < 3 ? ' top' + (i + 1) : ''}">${i + 1}</span><div><b>${esc(r.name)}${r.me ? ' (you)' : ''}</b><small>${r.npc ? 'Neighbour' : 'Player'} · best pet level ${r.top} · ${r.pets} ${r.pets === 1 ? 'pet' : 'pets'}</small></div>
+      const rows = (ranks || []).map((r, i) => `<div class="rk${r.me ? ' you' : ''}"><span class="rkn${i < 3 ? ' top' + (i + 1) : ''}">${i + 1}</span><div><b>${esc(r.name)}${r.me ? ' (you)' : ''}</b><small>Best pet level ${r.top} · ${r.pets} ${r.pets === 1 ? 'pet' : 'pets'}</small></div>
         <span class="faces">${r.team.map(t => thumb('pet:' + t.sp, SPECIES[t.sp]?.name)).join('')}</span><span class="rkp"><b>${r.pts}</b><small>points</small></span></div>`).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>Ranking</h2><p>Everyone's ladder points, highest first. ${countOf(F, 'flag') ? 'Win Arena matches to climb: 10 points for a win, 2 for a loss.' : 'Build an Arena Flag to fight for ladder points.'}</p>
+      box.innerHTML = `<div class="panel tripp"><h2>Ranking</h2><p>Every player's ladder points, highest first. ${countOf(F, 'flag') ? 'Win Arena matches to climb: 10 points for a win, 2 for a loss.' : 'Build an Arena Flag to fight for ladder points.'}</p>
         <div class="rks">${ranks ? rows : '<p class="hint">Counting points…</p>'}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Close</button>${countOf(F, 'flag') ? '<button type="button" class="btn m" data-a="arena">Find a match</button>' : ''}</div></div>`;
       return;
