@@ -36,11 +36,59 @@ const cyl = (p, rt, rb, h, seg, c, x = 0, y = 0, z = 0) => put(p, G('Cylinder', 
 const cone = (p, r, h, seg, c, x = 0, y = 0, z = 0) => put(p, G('Cone', r, h, seg), M(c), x, y + h / 2, z);
 const ico = (p, r, c, x = 0, y = 0, z = 0, d = 0) => put(p, G('Icosahedron', r, d), M(c), x, y, z);
 
-// Merges a finished model and keeps the faceted look (bake() makes plain smooth materials).
-export function finish(g) {
+// ---------- the toon look ----------
+// Everything is drawn with flat cartoon shading in three steps and a dark outline around each model.
+const RAMP = (() => { const t = new THREE.DataTexture(new Uint8Array([150, 150, 150, 255, 215, 215, 215, 255, 255, 255, 255, 255]), 3, 1); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+const _hsl = {}, _tc = new THREE.Color();
+const tint = c => { c.getHSL(_hsl); return c.setHSL(_hsl.h, Math.min(1, _hsl.s * 1.12 + (_hsl.s > .04 ? .04 : 0)), Math.min(.97, _hsl.l * 1.05 + .03)); }; // a brighter, more saturated palette
+// The toon material that stands in for a plain one. Kept, so equal surfaces share one.
+export function toonMat(old) {
+  const key = 'toon' + [old.color.getHexString(), +!!old.vertexColors, +!!old.transparent, old.opacity, old.emissive?.getHexString(), old.emissiveIntensity, old.side, +old.depthWrite].join();
+  let m = mats.get(key);
+  if (!m) mats.set(key, m = new THREE.MeshToonMaterial({ color: old.vertexColors ? '#ffffff' : tint(old.color.clone()), vertexColors: !!old.vertexColors, transparent: old.transparent, opacity: old.opacity, depthWrite: old.depthWrite,
+    emissive: old.emissive?.clone() || new THREE.Color(0), emissiveIntensity: old.emissiveIntensity ?? 1, side: old.side, gradientMap: RAMP }));
+  return m;
+}
+const inkMat = t => { const key = 'ink' + t; let m = mats.get(key);
+  if (!m) { m = new THREE.MeshBasicMaterial({ color: '#5a3a2e', side: THREE.BackSide }); m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normalize(normal) * ${t.toFixed(4)};`); }; m.customProgramCacheKey = () => key; mats.set(key, m); }
+  return m; };
+// One hull around a whole model: every solid part merged, corners welded so the line has no gaps, drawn inside out.
+const _iv = new THREE.Matrix4(), _im = new THREE.Matrix4(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+function inkHull(root, t) {
+  root.updateWorldMatrix(true, true); _iv.copy(root.matrixWorld).invert();
+  const parts = []; let n = 0;
+  root.traverse(m => { if (!m.isMesh || m.isInstancedMesh || m.material.transparent || m.material.emissiveIntensity > 0 && m.material.emissive?.getHex() || m.userData.noInk) return;
+    const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(_im.multiplyMatrices(_iv, m.matrixWorld)); parts.push(g.attributes.position.array); n += g.attributes.position.count; g.dispose(); });
+  if (!n) return null;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), sum = new Map(); let o = 0; for (const p of parts) { pos.set(p, o); o += p.length; }
+  const keyOf = i => Math.round(pos[i * 3] * 400) + ',' + Math.round(pos[i * 3 + 1] * 400) + ',' + Math.round(pos[i * 3 + 2] * 400), keys = new Array(n);
+  for (let i = 0; i < n; i += 3) {
+    _a.fromArray(pos, i * 3); _b.fromArray(pos, i * 3 + 3).sub(_a); _c.fromArray(pos, i * 3 + 6).sub(_a); _b.cross(_c).normalize();
+    for (let k = 0; k < 3; k++) { const key = keys[i + k] = keyOf(i + k); let v = sum.get(key); if (!v) sum.set(key, v = [0, 0, 0]); v[0] += _b.x; v[1] += _b.y; v[2] += _b.z; }
+  }
+  for (let i = 0; i < n; i++) { const v = sum.get(keys[i]), l = Math.hypot(v[0], v[1], v[2]) || 1; nor[i * 3] = v[0] / l; nor[i * 3 + 1] = v[1] / l; nor[i * 3 + 2] = v[2] / l; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  const hull = new THREE.Mesh(g, inkMat(t)); hull.userData = { baked: true, ink: true, toon: true }; hull.castShadow = hull.receiveShadow = false;
+  return hull;
+}
+// Gives a whole model the toon look. ink: how thick the outline is in the model's own units (0 for none).
+export function toonify(root, ink = 0) {
+  root.traverse(m => {
+    if (!m.isMesh || m.userData.toon || !m.material.isMeshStandardMaterial) return;
+    const old = m.material, C = old.vertexColors && m.userData.baked && m.geometry.attributes.color;
+    if (C) { for (let i = 0; i < C.count; i++) { tint(_tc.setRGB(C.getX(i), C.getY(i), C.getZ(i))); C.setXYZ(i, _tc.r, _tc.g, _tc.b); } C.needsUpdate = true; }
+    m.material = toonMat(old); m.userData.toon = true;
+    if (!mats.has('keep' + old.uuid) && ![...mats.values()].includes(old)) old.dispose();
+  });
+  if (ink) { const h = inkHull(root, ink); if (h) root.add(h); }
+  return root;
+}
+
+// Merges a finished model into a few meshes. raw: leave it plain (for the map, which merges whole islands again).
+export function finish(g, raw = false) {
   bake(g);
-  g.traverse(m => { if (m.isMesh) { m.material.flatShading = true; m.material.roughness = .92; m.castShadow = true; m.receiveShadow = true; } });
-  return g;
+  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+  return raw ? g : toonify(g, .028);
 }
 
 const C = { wood: '#b07a4f', woodD: '#8a5a3c', cream: '#f4e3c1', red: '#d9584e', redD: '#b8433c', stone: '#a9a6b0', stoneD: '#8a8794',
@@ -355,17 +403,17 @@ export function signModel(kind) {
     for (const d of [-1, 1]) { const v = box(g, .34, .04, .07, C.red, d * .135, .06, .01); v.rotation.z = -d * .6; }
     put(g, G('Cylinder', .12, .12, .06, 8), MX('dot', '#ff5a5f', { emissive: '#ff5a5f', emissiveIntensity: .6 }), .28, .2, 0).rotation.x = Math.PI / 2; }
   else { put(g, G('Cylinder', .22, .22, .08, 8), MX('sign', C.yellow, { emissive: '#ffb547', emissiveIntensity: .5 }), 0, 0, 0).rotation.x = Math.PI / 2; box(g, .07, .2, .1, C.woodD, 0, -.02, 0); box(g, .07, .07, .1, C.woodD, 0, -.14, 0); }
-  g.traverse(m => { if (m.isMesh) m.castShadow = false; });
+  toonify(g, .03); g.traverse(m => { if (m.isMesh) m.castShadow = false; });
   const o = new THREE.Group(); g.scale.setScalar(1.35); o.add(g);
   return o;
 }
 
 // live: for the farm itself, where the moving parts stay loose. g.userData.tick(T, st, g) moves them.
-export function itemModel(type, live = false) {
+export function itemModel(type, live = false, raw = false) {
   const g = new THREE.Group();
   (BUILD[type] || BUILD.rock)(g, live);
-  finish(g);
-  if (live && FX[type]) { const fx = new THREE.Group(); g.add(fx); g.userData.tick = FX[type](fx); fx.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); }
+  finish(g, raw);
+  if (live && FX[type]) { const fx = new THREE.Group(); g.add(fx); g.userData.tick = FX[type](fx); toonify(fx); fx.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); }
   return g;
 }
 
