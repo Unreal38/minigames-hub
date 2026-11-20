@@ -1,4 +1,4 @@
-// Pet Farm 3D scene: a low-poly island with a tile grid, the player's buildings and their wandering pets.
+// Pet Farm 3D scene: a low-poly island floating in the sky, with a tile grid, the player's buildings and their wandering pets.
 // Purely visual plus picking: it never decides rules. The client tells it what the farm looks like.
 //   createScene(canvas, { onPick, onGhost }) ->
 //     setFarm(farm)            show this farm (null = empty island)
@@ -13,14 +13,24 @@ import { frameLoop, autoResolution } from '../../frames.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
 import { itemModel, petModel, disposeModel } from './models.js';
 
-const SKY = '#bfe8ff';
+const SKY_TOP = '#4aa6ea', SKY_LOW = '#c9ecff';
+const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+// Nudge every corner of a shape a little so rock looks rough. Corners above keepY stay put.
+function rough(geo, amt, keepY = Infinity) {
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = Math.round(x * 10) * 7 + Math.round(y * 10) * 13 + Math.round(z * 10) * 29;
+    if (y < keepY) p.setXYZ(i, x + (hash(k, 1) - .5) * amt, y + (hash(k, 2) - .5) * amt * .6, z + (hash(k, 3) - .5) * amt);
+  }
+  geo.computeVertexNormals(); return geo;
+}
 
 export function createScene(canvas, { onPick, onGhost }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY);
-  const camera = new THREE.PerspectiveCamera(36, 1, .5, 200);
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 70, 190);
+  const camera = new THREE.PerspectiveCamera(36, 1, .5, 500);
   scene.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.5));
   const sun = new THREE.DirectionalLight('#fff1d6', 2.1); sun.position.set(9, 16, 7); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -.0005; sun.shadow.normalBias = .03; scene.add(sun, sun.target);
@@ -33,14 +43,39 @@ export function createScene(canvas, { onPick, onGhost }) {
   // ---------- the island ----------
   let land = null, gridLines = null, fineLines = null;
   const snap = (v, st) => Math.floor(v / st + 1e-6) * st;
-  const sea = new THREE.Mesh(new THREE.CircleGeometry(90, 24), new THREE.MeshStandardMaterial({ color: '#7fcdf0', roughness: .6, flatShading: true }));
-  sea.rotation.x = -Math.PI / 2; sea.position.y = -1.5; scene.add(sea);
-  const clouds = [];
-  for (let i = 0; i < 6; i++) {
-    const c = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, flatShading: true });
-    for (const [x, r] of [[0, 1.2], [1.3, .9], [-1.2, .8]]) { const p = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), m); p.position.set(x, 0, 0); p.scale.y = .6; c.add(p); }
-    c.scale.setScalar(2.4); c.position.set(-70 + i * 26, 1 + (i % 3) * 4, i % 2 ? -52 - i * 3 : 56 + i * 3); c.userData.v = .5 + (i % 3) * .2; scene.add(c); clouds.push(c);
+  const flat = (c, o) => new THREE.MeshStandardMaterial({ color: c, roughness: .95, flatShading: true, ...o });
+  { // sky: deep blue overhead, pale at the horizon and below
+    const g = new THREE.SphereGeometry(300, 16, 10), p = g.attributes.position, col = [], top = new THREE.Color(SKY_TOP), low = new THREE.Color(SKY_LOW), c = new THREE.Color();
+    for (let i = 0; i < p.count; i++) { c.copy(low).lerp(top, Math.min(1, Math.max(0, p.getY(i) / 300 * 1.6 + .25))); col.push(c.r, c.g, c.b); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
   }
+  // clouds: a sea of them below the island and a few far off, all one mesh on a slowly turning ring
+  const clouds = new THREE.Group(); scene.add(clouds);
+  {
+    const puffs = [], m = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    const cloud = (x, y, z, s) => { for (const [dx, dy, dz, r] of [[0, 0, 0, 1], [.9, -.1, .2, .75], [-.9, -.12, -.1, .7], [.2, .3, -.3, .65]]) puffs.push([x + dx * s, y + dy * s, z + dz * s, r * s]); };
+    for (let i = 0; i < 46; i++) { const a = hash(i, 1) * 6.283, d = 6 + hash(i, 2) * 90; cloud(Math.cos(a) * d, -11 - hash(i, 3) * 9 - d * .04, Math.sin(a) * d, 2.5 + hash(i, 4) * 3.5); }
+    for (let i = 0; i < 12; i++) { const a = hash(i, 5) * 6.283, d = 85 + hash(i, 6) * 50; cloud(Math.cos(a) * d, 4 + hash(i, 7) * 22, Math.sin(a) * d, 4 + hash(i, 8) * 4); }
+    const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), flat('#ffffff', { roughness: 1 }), puffs.length);
+    puffs.forEach(([x, y, z, r], i) => im.setMatrixAt(i, m.compose(v.set(x, y, z), q, sc.set(r * 1.2, r * .6, r))));
+    im.frustumCulled = false; clouds.add(im);
+  }
+  // little rocks drifting nearby, each with something growing on it
+  const drift = [];
+  function buildDrift() {
+    for (const d of drift) { scene.remove(d); d.traverse(o => { o.geometry?.dispose(); }); }
+    drift.length = 0;
+    const e = N / 2 + 4;
+    for (const [x, y, z, t, s] of [[e, 1.2, e - 3, 'pine', 1], [-e - 1, 2.4, 1, 'tree', 1.2], [-2, 1.8, -e - 2, 'bush', .9], [e + 2, 3.2, -e + 1, 'tree', .8], [-e, .4, e + 1, 'rock', 1]]) {
+      const g = new THREE.Group(); g.position.set(x, y, z); g.scale.setScalar(s); g.userData = { y, ph: x + z };
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(.85, .65, .3, 6), flat('#7cc45c')); g.add(top);
+      const under = new THREE.Mesh(rough(new THREE.ConeGeometry(.66, 1.5, 6, 2), .22), flat('#857a72')); under.rotation.x = Math.PI; under.position.y = -.9; g.add(under);
+      const m = itemModel(t); m.position.y = .15; g.add(m);
+      scene.add(g); drift.push(g);
+    }
+  }
+  let fall = null;
   function buildLand() {
     if (land) { scene.remove(land); land.traverse(o => { o.geometry?.dispose(); o.material?.dispose?.(); }); }
     land = new THREE.Group();
@@ -57,8 +92,21 @@ export function createScene(canvas, { onPick, onGhost }) {
     const mk = (g, c, y) => { const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: c, roughness: .95, flatShading: true })); m.position.y = y; m.receiveShadow = true; land.add(m); return m; };
     const R = N / 2 * Math.SQRT2;
     mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), '#7cc45c', -.26).rotation.y = Math.PI / 4;
-    mk(new THREE.CylinderGeometry(R + .7, R * .55, 1.6, 4), '#b98a5e', -1.3).rotation.y = Math.PI / 4;
-    mk(new THREE.CylinderGeometry(R * .55, R * .2, 1.4, 4), '#9a6f4a', -2.8).rotation.y = Math.PI / 4;
+    // the underside: a band of earth, then rock tapering to a point, with loose stones hanging about
+    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), '#a87750', -1.5).rotation.y = Math.PI / 4;
+    const deep = N * .7;
+    mk(rough(new THREE.ConeGeometry(R * .47, deep, 7, 3), N * .05), '#857a72', -2.4 - deep / 2).rotation.x = Math.PI;
+    for (let i = 0; i < 6; i++) {
+      const a = hash(i, N) * 6.283, d = R * (.35 + hash(i, 9) * .35), st = mk(new THREE.IcosahedronGeometry(.3 + hash(i, 3) * .5, 0), '#857a72', -3.4 - hash(i, 4) * deep * .5);
+      st.position.x = Math.cos(a) * d; st.position.z = Math.sin(a) * d; st.scale.y = 1.4;
+    }
+    // a spring on the rim that spills over the edge
+    const side = N / 2 + .78;
+    mk(new THREE.CylinderGeometry(.5, .55, .1, 6), '#b9b3aa', .0).position.set(side - .55, 0, 1.5);
+    mk(new THREE.BoxGeometry(.9, .06, .5), '#49a9e6', .03).position.set(side - .35, .03, 1.5);
+    const fl = N * .9;
+    const water = mk(new THREE.BoxGeometry(.12, fl, .5), '#9ad8ff', -fl / 2); water.position.set(side + .06, -fl / 2 + .04, 1.5); water.material.transparent = true; water.material.opacity = .8; water.receiveShadow = false;
+    fall = mk(new THREE.BoxGeometry(.16, fl, .16), '#ffffff', -fl / 2); fall.position.set(side + .08, -fl / 2 + .04, 1.5); fall.material.transparent = true; fall.material.opacity = .7; fall.receiveShadow = false;
     // a few things on the rim so the edge doesn't look bare
     const rim = N / 2 + .55;
     for (const [x, z, t] of [[-rim, -rim + 1, 'pine'], [rim, -rim + 2.5, 'tree'], [-rim, rim - 2, 'bush'], [rim - 1.5, rim, 'rock'], [-rim + 3, -rim, 'bush'], [rim, rim - .5, 'pine']]) {
@@ -74,7 +122,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (let i = 0; i < N; i++) { const v = i + .5 - N / 2, e = N / 2; fp.push(v, .02, -e, v, .02, e, -e, .02, v, e, .02, v); }
     const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3));
     fineLines = new THREE.LineSegments(fg, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: .28 })); land.add(fineLines); gridVis();
-    scene.add(land);
+    scene.add(land); buildDrift();
     const s = N / 2 + 3; Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 50 }); sun.shadow.camera.updateProjectionMatrix();
     cam.dist = Math.min(Math.max(cam.dist, N * 1.6), N * 2.6);
   }
@@ -275,7 +323,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const [w, h] = footprint(ghost.type, ghost.r), st = stepOf(ghost.type);
       const nx = Math.max(0, Math.min(N - w, snap(g.x + N / 2, st) - drag.ox)), ny = Math.max(0, Math.min(N - h, snap(g.z + N / 2, st) - drag.oy));
       if (nx !== ghost.x || ny !== ghost.y) { ghost.x = nx; ghost.y = ny; ghostCheck(); }
-    } else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.3, cam.el + dy * .005)); }
+    } else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.16, cam.el + dy * .005)); }
   });
   const up = e => {
     if (!ptrs.delete(e.pointerId)) return;
@@ -315,7 +363,9 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
     movePets(dt, T);
-    for (const c of clouds) { c.position.x += c.userData.v * dt; if (c.position.x > 80) c.position.x = -80; }
+    clouds.rotation.y += dt * .006;
+    for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
+    if (fall) fall.position.z = 1.5 + Math.sin(T * 9) * .14;
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
     renderer.render(scene, camera);
   }
