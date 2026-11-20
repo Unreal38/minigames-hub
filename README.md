@@ -6,6 +6,8 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #2: Marble Rush**, a 3D marble race nobody steers. Every player gets a marble wearing their avatar, bets pretend coins on the winner and watches a randomly generated track (pins, spinners, trapdoors, boost pads) do the rest. It has chaos events, one banana per heat to slip up a rival, and a knockout mode that drops the slowest marble each heat.
 
+**Game #3: Texas Hold'em**, cozy no-limit poker for pretend chips at a 3D table with everyone's avatars. Bots fill empty seats, blinds creep up, and the biggest stack after the last hand wins.
+
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
 - Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
 - No dependencies: plain Node.js (20+) server with its own WebSocket code. There is no `npm install` step.
@@ -16,7 +18,7 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 ```bash
 node server/server.js          # http://localhost:8080
-npm test                       # a full Hot Pot game with simulated players, then Marble Rush races
+npm test                       # a full Hot Pot game with simulated players, Marble Rush races, poker games, persistence
 ```
 
 Open two browser windows (or one normal and one private window) to play against yourself.
@@ -39,6 +41,16 @@ Open two browser windows (or one normal and one private window) to play against 
 - Chaos events (gravity flip, turbo, marblequake, switcheroo) can be switched off by the host.
 - Knockout runs short heats on a fresh track each time. The last marble home is out until one is left.
 - The server runs the physics and streams positions, so everyone sees the same race and nobody can cheat from devtools.
+
+## Texas Hold'em rules
+
+- 1 to 6 players; bots fill the table up to 2, 4 or 6 seats (host's choice). Chill bots play loose and friendly, Sharp bots bet their good hands and bluff now and then.
+- Everyone starts with 1000 pretend chips. Blinds start at 10/20 and go up every 4 hands.
+- Standard no-limit hold'em: fold, check, call, bet or raise any amount up to your stack. Side pots are handled for all-ins.
+- A game is 10 hands, 20 hands, or "last one standing". The biggest stack at the end wins; anyone who runs out of chips is out.
+- The turn timer (20/30/45 s or off) checks for you if it's free, otherwise folds.
+- Someone who joins mid-game can take over a bot's seat (and its chips) from the next hand.
+- The server deals and keeps every hand secret until the showdown, so nobody can peek from devtools.
 
 ## Deploy on an Oracle Cloud server
 
