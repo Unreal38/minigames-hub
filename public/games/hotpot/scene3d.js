@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
+import { frameLoop, autoResolution, FPS } from '../../frames.js';
 
 const INK = '#3b2219';
 const TABLE_R = 4.4, TILE_Y = .05, POT_Y = .53, BROTH_Y = POT_Y + .76, BROTH_R = 1.47;
@@ -303,7 +304,7 @@ function glyphTextures() {
   };
 }
 
-// quality: 'auto' (default), 'low' (no shadows, 1x resolution, 30 fps) or 'high' (full resolution, always 60 fps)
+// Always 60 fps (see frames.js). quality: 'auto' (default), 'low' (no shadows, 1x resolution, 30 fps battery saver) or 'high' (full resolution)
 export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto' }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; // shadows are refreshed a few times a second, not every frame
@@ -618,7 +619,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     return seats[r]?.take ? { tile: r } : null;
   }
   let hover = null;
-  let busyUntil = 0; // the scene draws at 60 fps while something is happening, and relaxes to 30 when it is just simmering
+  let busyUntil = 0; // shadows refresh often while something is happening, and rarely when the pot is just simmering
   const stir = (sec = 2.5) => { busyUntil = Math.max(busyUntil, T + sec); };
   const onMove = e => {
     stir(1.2);
@@ -667,29 +668,19 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   }
 
   // ---------- loop ----------
-  const clock = new THREE.Clock(); let raf = 0;
-  let lastDraw = 0, shadowIn = 0, dprScale = 1, rafN = 0, rafT = 0, slow = 0;
+  let shadowIn = 0, frames = null;
+  const res = autoResolution(renderer);
   const applyQuality = () => {
-    const cap = quality === 'high' ? 2 : quality === 'low' ? 1 : 1.5;
-    renderer.setPixelRatio(Math.max(1, Math.min(devicePixelRatio, cap) * dprScale));
+    res.setCap(quality === 'high' ? 2 : quality === 'low' ? 1 : 1.5);
+    frames?.setFps(quality === 'low' ? 30 : FPS);
     key.castShadow = quality !== 'low'; renderer.shadowMap.needsUpdate = true;
     steam.forEach((st, i) => { st.s.visible = quality !== 'low' || i < 8; });
   };
   applyQuality();
-  const loop = now => {
-    raf = requestAnimationFrame(loop);
-    if (document.hidden) return;
-    // if the display itself can't keep up, quietly drop the resolution a step (auto only)
-    rafN++;
-    if (now - rafT >= 1000) {
-      slow = rafN < 40 ? slow + 1 : 0; rafN = 0; rafT = now;
-      if (quality === 'auto' && slow >= 3 && dprScale > .67) { dprScale *= .82; slow = 0; applyQuality(); }
-    }
+  const loop = dt => {
     const busy = tweens.length > 0 || T < busyUntil || seats.some(s => s.hop > 0);
-    if (now - lastDraw < (quality === 'high' || (busy && quality !== 'low') ? 1000 / 60 : 1000 / 30) - 4) return;
-    lastDraw = now;
     resize();
-    const dt = Math.min(clock.getDelta(), .05); T += dt;
+    T += dt;
     for (let i = tweens.length - 1; i >= 0; i--) {
       const tw = tweens[i]; tw.t += dt; const p = Math.min(1, tw.t / tw.dur); tw.fn(p);
       if (p >= 1) { tweens.splice(i, 1); tw.done?.(); }
@@ -803,7 +794,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     if (shadowIn <= 0 && key.castShadow) { renderer.shadowMap.needsUpdate = true; shadowIn = busy ? .05 : .25; }
     renderer.render(scene, camera);
   };
-  raf = requestAnimationFrame(loop);
+  // if the device can't hold the frame rate, quietly drop the resolution a step (auto only)
+  frames = frameLoop(loop, { fps: quality === 'low' ? 30 : FPS, onSlow: () => { if (quality === 'auto') res.lower(); } });
 
   // ---------- API ----------
   return {
@@ -859,8 +851,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       }, fromPot);
     },
     hop(r) { seats[r].hop = 1; potSqV += .35; lastStir = T; stir(); },
-    setQuality(q) { quality = q; dprScale = 1; applyQuality(); },
-    stats: () => ({ ...renderer.info.render, geometries: renderer.info.memory.geometries, dpr: renderer.getPixelRatio() }),
+    setQuality(q) { quality = q; applyQuality(); },
+    stats: () => ({ ...renderer.info.render, fps: frames.fps(), geometries: renderer.info.memory.geometries, dpr: renderer.getPixelRatio() }),
     // k indexes the quick reactions: six snacks, then laugh, heart, thumbs up, wow, cry, fire
     emote(r, k) {
       const s = seats[r]; s.hop = Math.max(s.hop, .75); glance(r, 1.8);
@@ -890,7 +882,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       setTimeout(() => puff(new THREE.Vector3(0, BROTH_Y + .2, 0), 14, 2), 1000);
     },
     dispose() {
-      cancelAnimationFrame(raf);
+      frames.stop();
       canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('click', onClick);
       renderer.dispose();
     },
