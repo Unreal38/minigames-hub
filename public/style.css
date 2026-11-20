@@ -97,6 +97,8 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 
 .gcard .pic.marblepic { background: #3d1f33; padding: 0; }
 .gcard .pic.marblepic svg { width: 100%; height: 100%; display: block; }
+.gcard .pic.ladderpic { background: #3d1f33; padding: 0; }
+.gcard .pic.ladderpic svg { width: 100%; height: 100%; display: block; }
 .marblepic .roll { animation: bob 2.2s ease-in-out infinite; animation-delay: var(--d); }
 
 /* ---------- modal ---------- */

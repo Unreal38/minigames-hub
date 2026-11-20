@@ -1,0 +1,55 @@
+// Snakes & Ladders board: shared by the server (rules) and the client (3D layout).
+// Tiles are numbered 1..N, snaking left-right then right-left up a 10-wide grid.
+export const COLS = 10;
+export const SIZES = { short: 60, classic: 100 };
+export const SPECIALS = ['boost', 'again', 'swap', 'nap'];
+// How long each part of a move takes to play out on screen. The server waits this long before the next turn.
+export const MS = { die: 950, step: 250, ladder: 1150, snake: 1350, special: 850, swap: 1000, end: 450 };
+
+export function rng(seed) {
+  let a = seed >>> 0 || 1;
+  return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+// Grid cell of a tile: col 0..9 from the left, row 0 at the start edge.
+export function cell(n) {
+  const i = n - 1, row = i / COLS | 0, c = i % COLS;
+  return { row, col: row % 2 ? COLS - 1 - c : c };
+}
+
+export const tileAt = (row, col) => row * COLS + (row % 2 ? COLS - 1 - col : col) + 1;
+
+// A fresh random board. Every endpoint sits on its own tile; tile 1 and the goal stay clear.
+export function makeBoard(seed, size = 100, party = true) {
+  const R = rng(seed), N = size, rows = N / COLS, used = new Set([1, N]);
+  const free = n => n > 1 && n < N && !used.has(n);
+  const rowOf = n => cell(n).row;
+  const pick = (lo, hi) => lo + (R() * (hi - lo + 1) | 0);
+  const ladders = [], snakes = [];
+  const nL = size === 100 ? 7 : 4, nS = size === 100 ? 8 : 5;
+  for (let tries = 0; ladders.length < nL && tries < 400; tries++) {
+    const a = pick(2, N - COLS - 1), ca = cell(a), up = pick(1, Math.min(3, rows - 1 - ca.row));
+    const b = tileAt(ca.row + up, Math.max(0, Math.min(COLS - 1, ca.col + pick(-2, 2))));
+    if (!free(a) || !free(b) || rowOf(b) <= rowOf(a)) continue;
+    used.add(a); used.add(b); ladders.push({ from: a, to: b });
+  }
+  for (let tries = 0; snakes.length < nS && tries < 400; tries++) {
+    const h = pick(COLS + 2, N - 1), ch = cell(h), down = pick(1, Math.min(3, ch.row));
+    const t = tileAt(ch.row - down, Math.max(0, Math.min(COLS - 1, ch.col + pick(-2, 2))));
+    if (!free(h) || !free(t) || rowOf(t) >= rowOf(h)) continue;
+    used.add(h); used.add(t); snakes.push({ from: h, to: t });
+  }
+  const specials = [];
+  if (party) {
+    const nP = size === 100 ? 8 : 5;
+    for (let tries = 0; specials.length < nP && tries < 400; tries++) {
+      const n = pick(4, N - 4);
+      if (!free(n)) continue;
+      used.add(n); specials.push({ at: n, k: SPECIALS[specials.length % SPECIALS.length] });
+    }
+  }
+  return { seed, size: N, rows, ladders, snakes, specials };
+}
+
+export const jumpAt = (B, n) => B.ladders.find(l => l.from === n) || B.snakes.find(s => s.from === n) || null;
+export const specialAt = (B, n) => B.specials.find(s => s.at === n)?.k || null;
