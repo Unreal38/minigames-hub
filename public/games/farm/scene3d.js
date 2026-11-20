@@ -211,6 +211,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   const pets = new Map(); // id -> { g, x, z, path, wait, hop, seed, blob }
   const blobGeo = new THREE.CircleGeometry(.3, 10), blobMat = new THREE.MeshBasicMaterial({ color: '#23401c', transparent: true, opacity: .28, depthWrite: false });
   let walkGrid = new Uint8Array(100);
+  const heartGeo = new THREE.OctahedronGeometry(.12, 0), heartMat = new THREE.MeshStandardMaterial({ color: '#ff6f91', emissive: '#ff6f91', emissiveIntensity: .45, flatShading: true });
   const PET_SIZE = .42;
   // A tiny second renderer for pictures of single models. It is made on first use and kept.
   const shots = new Map(); let shotR = null, shotS = null, shotC = null;
@@ -236,7 +237,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form + lookKey(look), face: 0 };
     pets.set(id, p); return p;
   }
-  function dropPet(id) { const p = pets.get(id); if (!p) return; scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
+  function dropPet(id) { const p = pets.get(id); if (!p) return; if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
   const tileOf = p => [Math.max(0, Math.min(N - 1, Math.floor(p.x + N / 2))), Math.max(0, Math.min(N - 1, Math.floor(p.z + N / 2)))];
   function freeTileNear(tx, ty) {
     let best = null, bd = 1e9;
@@ -259,6 +260,7 @@ export function createScene(canvas, { onPick, onGhost }) {
         const t = freeTileNear(hx, hy) || [0, 0];
         p = addPet(pet.id, pet.sp, form, wx(t[0]), wz(t[1]), pet.look);
       }
+      p.open = !!pet.open;
       // standing where something was just built: step aside
       const [tx, ty] = tileOf(p);
       if (walkGrid[ty * N + tx]) { const t = freeTileNear(tx, ty); if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = []; }
@@ -302,6 +304,8 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
       const blink = (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
+      if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
+      if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
       p.blob.position.set(p.x, .015, p.z); p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
     }
   }
@@ -313,17 +317,36 @@ export function createScene(canvas, { onPick, onGhost }) {
   // The egg sits in the Nest for everyone to see, and rocks harder as hatching gets close.
   let egg = null;
   // The owner stands on their farm, near the farmhouse door.
-  let owner = null, ownerAv = null, ownerKey = '', ownerTile = null;
+  // The owner walks about their farm; on a visit your own avatar comes along as the guest.
+  let owner = null, guest = null;
+  const people = new Map(); // 'owner' | 'guest' -> { g, key, x, z, path, wait, face, seed }
   function syncOwner() {
-    const key = farm && owner ? JSON.stringify([owner.color, owner.av]) : '';
-    if (key !== ownerKey) { if (ownerAv) { scene.remove(ownerAv); disposeAvatar(ownerAv); ownerAv = null; } ownerKey = key; ownerTile = null;
-      if (key) try { ownerAv = avatar3d(owner.color || '#ff8fab', owner.av, { pose: 'stand' }); ownerAv.scale.setScalar(.5); scene.add(ownerAv); } catch (e) { console.warn('no avatar', e); } }
-    if (!ownerAv) return;
-    ownerAv.visible = true;
-    if (!ownerTile || walkGrid[ownerTile[1] * N + ownerTile[0]] || ownerTile[0] >= N || ownerTile[1] >= N) {
-      const h = farm.items.find(i => i.type === 'house'), [w, d] = h ? footprint('house', h.r) : [1, 1];
-      ownerTile = freeTileNear(Math.min(N - 1, h ? h.x + (w >> 1) : N >> 1), Math.min(N - 1, h ? h.y + d : N >> 1)); if (!ownerTile) { ownerAv.visible = false; return; }
-      ownerAv.position.set(wx(ownerTile[0]), .76 * .5, wz(ownerTile[1])); ownerAv.rotation.y = .4;
+    const house = farm?.items.find(i => i.type === 'house'), gate = farm?.items.find(i => i.type === 'gate');
+    for (const [who, o, by] of [['owner', owner, house], ['guest', guest, gate || house]]) {
+      const key = farm && o && !starters ? JSON.stringify([o.color, o.av]) : ''; let p = people.get(who);
+      if (p && p.key !== key) { scene.remove(p.g); disposeAvatar(p.g); people.delete(who); p = null; }
+      if (!key) continue;
+      if (!p) { try { const g = avatar3d(o.color || '#ff8fab', o.av, { pose: 'stand' }); g.scale.setScalar(.5); scene.add(g); p = { g, key, x: 1e9, z: 0, path: [], wait: 2 + Math.random() * 3, face: .4, seed: Math.random() * 10 }; people.set(who, p); } catch (e) { console.warn('no avatar', e); continue; } }
+      const [tx, ty] = p.x > 1e8 ? [-1, -1] : tileOf(p);
+      if (tx < 0 || walkGrid[ty * N + tx]) { // new here, or something was built where they stood
+        const [w, d] = by ? footprint(by.type, by.r) : [1, 1];
+        const t = freeTileNear(Math.min(N - 1, by ? by.x + (w >> 1) + (who === 'guest' ? 1 : 0) : N >> 1), Math.min(N - 1, by ? by.y + d : N >> 1));
+        p.g.visible = !!t; if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = [];
+      } else { const cut = p.path.findIndex(([x, y]) => walkGrid[y * N + x]); if (cut >= 0) p.path.length = cut; }
+    }
+  }
+  function movePeople(dt, T) {
+    for (const p of people.values()) {
+      if (!p.g.visible) continue; let moving = false;
+      if (p.path.length) {
+        const [tx, ty] = p.path[0], gx = wx(tx), gz = wz(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = .95 * dt;
+        if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) p.wait = 3 + Math.random() * 6; }
+        else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
+        moving = true;
+      } else if (!edit && (p.wait -= dt) <= 0) { stroll(p); if (!p.path.length) p.wait = 3; }
+      p.g.position.set(p.x, .38 + (moving ? Math.abs(Math.sin(T * 8 + p.seed)) * .05 : 0), p.z);
+      let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 7);
+      p.g.rotation.z = moving ? Math.sin(T * 8 + p.seed) * .07 : 0; // a little waddle
     }
   }
   function syncEgg() {
@@ -410,6 +433,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   world.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.5));
   { const l = new THREE.DirectionalLight('#fff1d6', 2.1); l.position.set(9, 16, 7); world.add(l); }
   const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
+  let flights = [], flyTo = null; // balloons on their way, and the island the camera is swooping to
   let mapFar = 33, mapOn = false, isles = []; // { id, g, y, ph, r }
   function nameTag(text, mine, friend, sub) { // sub: a second, smaller line saying what can be done there
     const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 192;
@@ -439,6 +463,16 @@ export function createScene(canvas, { onPick, onGhost }) {
     // the owner stands at the front corner, bigger than life so they can be recognised
     try { const av = avatar3d(f.color || '#ff8fab', f.av, { pose: 'stand' }); av.scale.setScalar(.62); av.position.set(n / 2 * k - .5, .76 * .62, n / 2 * k - .3); av.rotation.y = .5; g.add(av); g.userData.av = av; } catch (e) { console.warn('no avatar', e); }
     const todo = mine ? '' : [f.gift && 'gift', f.helps > 0 && 'help', f.open && 'playdate', f.egg && 'egg'].filter(Boolean).join(' · ');
+    const icons = new THREE.Group(); g.add(icons); g.userData.icons = icons; // what waits there, seen from afar
+    if (!mine) {
+      const ic = [];
+      if (f.gift) { const b = new THREE.Group(); b.add(new THREE.Mesh(new THREE.BoxGeometry(.5, .42, .5), flat('#ff9fb8')), new THREE.Mesh(new THREE.BoxGeometry(.54, .12, .16), flat('#fff3df')), new THREE.Mesh(new THREE.BoxGeometry(.16, .12, .54), flat('#fff3df'))); b.children[1].position.y = b.children[2].position.y = .22; ic.push(b); }
+      if (f.helps > 0) { const b = new THREE.Group(), h = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .6, 5), flat('#8a5a3c')), t = new THREE.Mesh(new THREE.BoxGeometry(.4, .22, .12), flat('#a9a6b0')); t.position.y = .3; b.add(h, t); b.rotation.z = .5; ic.push(b); }
+      if (f.open) { const h = new THREE.Mesh(new THREE.OctahedronGeometry(.3, 0), flat('#ff6f91', { emissive: '#ff6f91', emissiveIntensity: .4 })); h.scale.set(1.2, 1, .5); ic.push(h); }
+      if (f.egg) { const e = new THREE.Mesh(new THREE.IcosahedronGeometry(.26, 1), flat('#fff3df')); e.scale.y = 1.3; ic.push(e); }
+      ic.forEach((m, i) => { m.position.set((i - (ic.length - 1) / 2) * .8, 0, 0); icons.add(m); });
+      icons.position.y = 2.5;
+    }
     const tag = nameTag(mine ? 'You' : f.name, mine, f.friend, todo); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
     return g;
   }
@@ -455,23 +489,27 @@ export function createScene(canvas, { onPick, onGhost }) {
       else if (z.el === 'Ember') { mk(new THREE.ConeGeometry(.6, .9 + i * .2, 6), '#7a4a3a', x, .5, zz); if (i > 2) mk(new THREE.OctahedronGeometry(.16), '#ffb547', x, 1.3 + i * .1, zz); }
       else { mk(new THREE.ConeGeometry(.12, .7, 4), '#ffc94d', x, .35, zz); mk(new THREE.ConeGeometry(.1, .5, 4), '#86cc5a', x + .3, .25, zz + .2); }
     });
-    if (z.out) { const b = balloonModel(); b.position.set(0, 1.2, 0); b.scale.setScalar(.8); land.add(b); }
     bake(land); land.traverse(m => { if (m.isMesh) { m.material.flatShading = true; m.material.roughness = .95; } }); g.add(land);
-    const tag = nameTag(z.name, false, false, z.note); tag.position.y = z.out ? 4.6 : 3; tag.scale.multiplyScalar(1.15); g.add(tag); g.userData.tag = tag;
+    const tag = nameTag(z.name, false, false, z.note); tag.position.y = 3; tag.scale.multiplyScalar(1.15); g.add(tag); g.userData.tag = tag;
     return g;
   }
   function setWorld(list, me, zones = []) {
     for (const i of isles) { world.remove(i.g); if (i.g.userData.av) { i.g.remove(i.g.userData.av); disposeAvatar(i.g.userData.av); } i.g.userData.tag.material.map.dispose(); i.g.userData.tag.material.dispose(); i.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
+    for (const f of flights) { world.remove(f.b); disposeModel(f.b); } flights = []; flyTo = null;
     isles = []; mapOn = !!list; liftNow = -1;
     if (!list) return;
     const put = (f, x, z, mine, i) => { const g = miniIsland(f, mine), y = mine ? 0 : (hash(i, 31) - .5) * 2.4; g.position.set(x, y, z); world.add(g); isles.push({ id: mine ? null : f.id, g, y, ph: i * 1.7, r: mine ? 3.6 : 2.8 }); };
     put(me, 0, 0, true, 0);
     list.forEach((f, i) => { const inner = Math.min(8, list.length), ring = i < 8 ? 0 : 1, cnt = ring ? list.length - 8 : inner, a = ((ring ? i - 8 : i) / cnt) * 6.283 + (ring ? .3 : -.6), d = ring ? 18 : 10.5; put(f, Math.cos(a) * d, Math.sin(a) * d, false, i + 1); });
     const R = list.length > 8 ? 23 : list.length ? 14.5 : 8; mapFar = list.length > 8 ? 55 : list.length ? 38 : 26;
-    zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = -1 + (hash(i, 77) - .5); g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 }); });
+    zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = -1 + (hash(i, 77) - .5); g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 });
+      if (z.out) { // the party's balloon flies out to the zone, waits there, and is home again when the time is up
+        const b = balloonModel(); b.scale.setScalar(.7); world.add(b);
+        flights.push({ b, to: g.position, end: performance.now() + (z.fly?.left || 0), total: z.fly?.total || 1 }); }
+    });
     cam.waz = .5;
   }
-  const _wc = new THREE.Vector3();
+  const _wc = new THREE.Vector3(), _look = new THREE.Vector3();
   function isleAt() { // which island the last pointer ray passes closest to
     let best = null, bd = 1e9;
     for (const i of isles) { _wc.copy(i.g.position); _wc.y += .8; const d = ray.ray.distanceToPoint(_wc); if (d < i.r && d < bd) { bd = d; best = i; } }
@@ -582,7 +620,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!d || d.moved || performance.now() - d.t > 500 || ptrs.size) return;
     const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1;
     if (fighting) return;
-    if (mapOn) { const i = isleAt(); if (i) onPick?.(i.zone ? { zone: i.zone } : { island: i.id }); return; }
+    if (mapOn) { const i = isleAt(); if (i && !flyTo) { if (i.zone) onPick?.({ zone: i.zone }); else flyTo = { i, t: 0 }; } return; }
     const pid = petAt();
     if (starters) { if (pid) onPick?.({ starter: pid.slice(8) }); return; }
     if (ghost) { // tap a tile: the piece jumps there
@@ -616,8 +654,18 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
     if (mapOn) { // the neighbourhood from above; drag to turn it
       const d = mapFar * Math.max(1, 1.2 * H / Math.max(1, W));
-      camera.position.set(Math.sin(cam.waz) * d * .72, d * .7, Math.cos(cam.waz) * d * .72); camera.lookAt(0, 0, 0);
-      for (const i of isles) i.g.position.y = i.y + Math.sin(T * .7 + i.ph) * .18;
+      camera.position.set(Math.sin(cam.waz) * d * .72, d * .7, Math.cos(cam.waz) * d * .72); _look.set(0, 0, 0);
+      if (flyTo) { // swoop towards the island that was tapped, then open it
+        flyTo.t = Math.min(1, flyTo.t + dt / .55); const u = flyTo.t * flyTo.t * (3 - 2 * flyTo.t), p = flyTo.i.g.position;
+        _look.lerp(p, u); _wc.set(p.x + Math.sin(cam.waz) * 9, p.y + 8, p.z + Math.cos(cam.waz) * 9); camera.position.lerp(_wc, u);
+        if (flyTo.t >= 1 && !flyTo.done) { flyTo.done = true; onPick?.({ island: flyTo.i.id }); }
+      }
+      camera.lookAt(_look);
+      for (const i of isles) { i.g.position.y = i.y + Math.sin(T * .7 + i.ph) * .18; const ic = i.g.userData.icons; if (ic) { ic.rotation.y = T * 1.2; ic.position.y = 2.5 + Math.sin(T * 2 + i.ph) * .12; } }
+      for (const f of flights) { // a tenth of the trip flying out, a tenth flying home, the rest spent there
+        const left = Math.max(0, f.end - performance.now()), u = 1 - left / f.total, k = left <= 0 ? 0 : u < .1 ? u / .1 : u > .9 ? (1 - u) / .1 : 1, e = k * k * (3 - 2 * k);
+        f.b.position.set(f.to.x * e, 2.2 + (f.to.y + 1.4 - 2.2) * e + Math.sin(e * Math.PI) * 3 + Math.sin(T * 1.3) * .12, f.to.z * e); f.b.rotation.y = Math.sin(T * .5) * .3;
+      }
       wclouds.rotation.y += dt * .006;
       renderer.render(world, camera); return;
     }
@@ -626,7 +674,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
-    movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T);
+    movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T); movePeople(dt, T);
     if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
     clouds.rotation.y += dt * .006;
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
@@ -648,7 +696,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (ghost) ghostCheck();
     },
     setStarters,
-    setOwner(o) { owner = o; if (farm) syncOwner(); },
+    setOwner(o, g = null) { owner = o; guest = g; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
     ghostNew(type, near = null, r = 0) { if (!farm || !ITEMS[type]) return; const [x, y] = firstSpot(type, near, r); ghostStart(type, null, x, y, r); },
     ghostItem(id) { const it = farm?.items.find(i => i.id === id); if (it) ghostStart(it.type, it.id, it.x, it.y, it.r); },
@@ -682,6 +730,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       ghostCancel(true);
       for (const id of [...pets.keys()]) dropPet(id);
       for (const e of items.values()) disposeModel(e.g);
+      for (const q of people.values()) disposeAvatar(q.g);
       scene.traverse(o => { if (o.isMesh || o.isLineSegments) { o.geometry?.dispose?.(); } });
       renderer.dispose();
     },

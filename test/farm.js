@@ -575,6 +575,20 @@ for (const [i, x] of [a, b].entries()) if (x.fought.farm.inv.coins !== lc[i] + (
 r = await a.farmDo({ t: 'open' });
 if (r.battle) fail('live battle still running');
 
+// a wild pet met on the way home: one short battle, and it joins on a win if there is a bed
+r = await a.farmDo({ t: 'open', test: { wild: 'acornip', lv: 20, rested: true } });
+if (r.farm.wild?.sp !== 'acornip') fail('no wild pet waiting');
+if (!r.farm.garden.grow) fail('no garden growth in the view');
+const nPets = r.farm.pets.length;
+r = await a.farmDo({ t: 'fight', mode: 'wild' });
+if (r.err || r.battle.mode !== 'wild' || r.battle.sides[1].pets.length !== 1) fail('wild battle start ' + JSON.stringify(r.err));
+r = await playOut(r);
+if (!r.prize) fail('wild battle did not end');
+if (r.prize.won && !r.prize.joined && !r.prize.noroom) fail('won but nothing happened');
+if (r.prize.joined && r.farm.pets.length !== nPets + 1) fail('wild pet did not move in');
+if (r.farm.wild) fail('wild pet still waiting');
+if (!r.farm.album.acornip) fail('acornip not in the album');
+
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);
 await stop(); await boot();

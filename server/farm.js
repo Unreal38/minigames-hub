@@ -99,9 +99,9 @@ function learn(pet, xp) {
 // ---------- battles ----------
 // A battle lives in memory only. If the server restarts mid-fight it is simply gone, and nothing was at stake yet.
 const battles = new Map(); // profile id -> battle
-const ARENA_LV = 20, DAILY = { arena: 5, practice: 3 };
-const WIN = { arena: { coins: 25, xp: 20, pts: 10 }, practice: { coins: 0, xp: 12, pts: 0 } };
-const LOSE = { arena: { coins: 5, xp: 8, pts: 2 }, practice: { coins: 0, xp: 5, pts: 0 } };
+const ARENA_LV = 20, DAILY = { arena: 5, practice: 3, wild: 999 }, WILD_CHANCE = .3, WILD_MS = 30 * 60_000;
+const WIN = { arena: { coins: 25, xp: 20, pts: 10 }, practice: { coins: 0, xp: 12, pts: 0 }, wild: { coins: 4, xp: 15, pts: 0 } };
+const LOSE = { arena: { coins: 5, xp: 8, pts: 2 }, practice: { coins: 0, xp: 5, pts: 0 }, wild: { coins: 0, xp: 6, pts: 0 } };
 const today = () => new Date().toISOString().slice(0, 10);
 const used = (f, mode) => f.fights?.day === today() ? f.fights[mode] || 0 : 0;
 // Three neighbours who are always up for a match, so the arena works before friends join.
@@ -170,6 +170,9 @@ export const fidOf = pid => { const f = farms.get(pid); return f?.pets.length ? 
 const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key] ||= {}; };
 function post(f, m) { (f.mail ||= []).unshift({ id: rid(), at: Date.now(), ...m }); f.mail.length = Math.min(f.mail.length, MAIL_MAX); }
 // Remembers every species and form this farm has ever owned.
+// A species met at a friend's or across the ring gets an album page before the player owns one.
+const saw = (f, sps) => { f.album ||= {}; for (const sp of sps) if (SPECIES[sp]) f.album[sp] ||= [0, 0, 0]; };
+const wildOf = f => f.wild && f.wild.until > Date.now() ? f.wild : null;
 function album(f) {
   f.album ||= {};
   f.coats ||= []; f.marks ||= [];
@@ -232,6 +235,7 @@ function trainTick(f) {
   scheduleSave();
 }
 const view = (f, p) => ({
+  wild: wildOf(f) ? { sp: f.wild.sp, lv: f.wild.lv, left: f.wild.until - Date.now() } : null,
   garden: gardenView(f), cap: capOf(f), stash: f.stash || {}, palpts: palsOf(f),
   train: { ids: f.train?.ids || [], slots: topLv(f, 'yard'), left: f.train?.ids.length ? Math.max(0, f.train.at + HOUR - Date.now()) : 0 },
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets.map(petView), nest: nestView(f),
@@ -366,8 +370,15 @@ export function handle(p, a, reply) {
         found = newPet(sp, p.user, true); found.from = t.zone; f.pets.push(found);
       }
     }
+    // Sometimes a wild pet stands in the way instead: a short battle the party can take or leave.
+    let wild = null;
+    if (f.trips && !found && party.length && Math.random() < WILD_CHANCE) {
+      const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
+      const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0], lv = Math.min(MAX_LV, Math.max(2, Math.round(party.reduce((n, x) => n + x.lv, 0) / party.length) + 2));
+      f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS }; wild = { sp, lv };
+    }
     parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1;
-    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt } });
+    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt, wild } });
   }
   if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
     const ripe = f.items.filter(i => i.type === 'garden' && !ripeIn(i)); if (!ripe.length) return no('Nothing is ripe yet.');
@@ -501,6 +512,7 @@ export function handle(p, a, reply) {
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
     const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     const [pid, x] = hit, id = fid(x);
+    saw(f, x.pets.filter(q => !away(x, q.id)).map(q => q.sp));
     const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x), nests: SLOTS.map(q => nestView(x, q)).filter(Boolean), garden: gardenView(x), train: { ids: x.train?.ids || [] }, trips: parties(x).map(t => ({ left: Math.max(1, t.until - Date.now()) })).filter(t => t.left > 1),
       album: album(x),
       helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
@@ -555,6 +567,16 @@ export function handle(p, a, reply) {
     return ok({ did: 'defend' });
   }
   if (a.t === 'fight') { // start a battle: practice at the Training Yard, or a match at the Arena Flag
+    if (a.mode === 'wild') { // the wild pet met on the way home: one try, with the party that met it
+      const w = wildOf(f); if (!w) return no('The wild pet has wandered off.');
+      const mine = w.pets.map(id => f.pets.find(x => x.id === id)).filter(x => x && !away(f, x.id));
+      if (!mine.length) return no('The pets that met it are busy right now.');
+      if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
+      f.wild = null; saw(f, [w.sp]);
+      const B = newBattle(mine.map(x => unit(x)), [unit(bot(w.sp, w.lv, 0))], { mode: 'wild', foe: `a wild ${SPECIES[w.sp].name}` });
+      B.ids = mine.map(x => x.id); B.wild = w; battles.set(p.pid, B);
+      return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
+    }
     const mode = a.mode === 'arena' ? 'arena' : 'practice';
     if (!countOf(f, mode === 'arena' ? 'flag' : 'yard')) return no(mode === 'arena' ? 'Put up an Arena Flag first.' : 'Build a Training Yard first.');
     const ids = Array.isArray(a.pets) ? [...new Set(a.pets)] : [];
@@ -569,6 +591,7 @@ export function handle(p, a, reply) {
         const hit = [...farms].find(([, x]) => x !== f && x.fid === a.foe && x.pets.length); if (!hit) return no('That farm is not around any more.');
         to = hit[0]; foe = nameOf(hit[0], hit[1]); team = defenders(hit[1]).map(x => unit(x, ARENA_LV));
       }
+      saw(f, team.map(u => u.sp));
       B = newBattle(mine.map(x => unit(x, ARENA_LV)), team, { mode, foe, to });
     } else { // practice partners match the party's size and average level
       const lv = Math.max(1, Math.round(mine.reduce((n, x) => n + x.lv, 0) / mine.length)), all = Object.keys(SPECIES);
@@ -599,6 +622,7 @@ export function handle(p, a, reply) {
     if (!ids.length || mine.some(x => !x) || !theirs.length) return no('Pick one to three of your pets.');
     if (ids.some(id => away(f, id))) return no('One of them is away exploring.');
     if (battles.has(p.pid) || lives.has(p.pid) || battles.has(inv.from) || lives.has(inv.from)) return no('One of you is already in a battle.');
+    saw(f, theirs.map(x => x.sp)); saw(other, mine.map(x => x.sp));
     const L = { B: newBattle(theirs.map(x => unit(x, ARENA_LV)), mine.map(x => unit(x, ARENA_LV)), { mode: 'live', live: true }), pids: [inv.from, p.pid],
       names: [nameOf(inv.from, other), p.name], ids: [theirs.map(x => x.id), ids], acts: [null, null] };
     lives.set(inv.from, L); lives.set(p.pid, L); liveArm(L);
@@ -631,6 +655,10 @@ export function handle(p, a, reply) {
       f.fights[B.mode] = (f.fights[B.mode] || 0) + 1;
       Object.assign(prize, { coins: r.coins, xp: r.xp, pts: r.pts });
       if (won && B.mode === 'arena') { prize.rank = RANK_XP.arena; hubXp(p, RANK_XP.arena); }
+      if (won && B.mode === 'wild') { // beaten fairly, it asks to come along, if there is a bed
+        if (f.pets.length < petRoom(f)) { const pet = newPet(B.wild.sp, p.user, true); pet.from = B.wild.zone; f.pets.push(pet); prize.joined = pet.id; }
+        else { prize.noroom = true; r.coins && (f.inv.coins = (f.inv.coins || 0) + 6, prize.coins += 6); }
+      }
       f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
       for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); }
     }
@@ -678,5 +706,6 @@ export function testHook(pid, a) {
   if (a.pals) (f.pals ||= {}).test = a.pals;
   if (a.trained && f.train) f.train.at -= a.trained * HOUR;
   if (a.ripe) for (const i of f.items) if (i.type === 'garden') i.at = 0;
+  if (a.wild && SPECIES[a.wild]) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS };
   if (a.egg) for (const s of SLOTS) if (f[s]) f[s].at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;
 }

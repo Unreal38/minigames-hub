@@ -83,13 +83,13 @@ export function mount(app, ctx) {
     paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel(); paintBattle();
     if (!scene) return;
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
-    else { scene.setOwner(where === 'visit' && V ? { color: V.color, av: V.av } : { color: ctx.me()?.color, av: ctx.me()?.av }); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
+    else { const meAv = { color: ctx.me()?.color, av: ctx.me()?.av }; if (where === 'visit' && V) scene.setOwner({ color: V.color, av: V.av }, meAv); else scene.setOwner(meAv); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
     const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
-    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, out: F.trips.some(t => t.zone === key), note: F.trips.some(t => t.zone === key) ? (F.trips.some(t => t.zone === key && t.left > 0) ? 'your party is here' : 'your party is back') : F.house < z.house ? `farmhouse level ${z.house}` : 'tap to explore' })) : []); }
+    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, out: F.trips.some(t => t.zone === key), fly: F.trips.filter(t => t.zone === key).map(t => ({ left: t.left, total: TRIPS[t.trip].min * 60000 }))[0], note: F.trips.some(t => t.zone === key) ? (F.trips.some(t => t.zone === key && t.left > 0) ? 'your party is here' : 'your party is back') : F.house < z.house ? `farmhouse level ${z.house}` : 'tap to explore' })) : []); }
     scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
   }
   function paintTop() {
-    $('pf-title').textContent = B ? (B.mode === 'live' ? `Live battle with ${B.foe}` : B.mode === 'arena' ? `Match against ${B.foe}` : 'Practice battle') : where === 'map' && F ? 'The neighbourhood' : where === 'visit' && V ? `${V.name}'s farm` : F ? `${F.owner}'s farm` : 'Pet Farm';
+    $('pf-title').textContent = B ? (B.mode === 'live' ? `Live battle with ${B.foe}` : B.mode === 'arena' ? `Match against ${B.foe}` : B.mode === 'wild' ? `Meeting ${B.foe}` : 'Practice battle') : where === 'map' && F ? 'The neighbourhood' : where === 'visit' && V ? `${V.name}'s farm` : F ? `${F.owner}'s farm` : 'Pet Farm';
     $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${MATS[k]}. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}">${mat(k, F.inv[k] || 0)}</button>`).join('') : '';
   }
   function paintMain() {
@@ -112,6 +112,7 @@ export function mount(app, ctx) {
     }
     const trip = !countOf(F, 'gate') ? '<span class="chip">Build an Expedition Gate to send pets exploring</span>'
       : F.trips.map(t => t.left > 0 ? `<span class="chip">Back from ${ZONES[t.zone].name} in ${wait(t.left)}</span>` : `<button type="button" class="btn big m" data-a="collect" data-id="${t.id}">Welcome them back${F.trips.length > 1 ? ` from ${ZONES[t.zone].name}` : ''}</button>`).join('')
+        + (F.wild ? `<button type="button" class="btn m" data-a="wildfight">Battle the wild ${SPECIES[F.wild.sp].name}</button>` : '')
         + (F.trips.length < F.partyMax ? `<button type="button" class="btn m" data-a="explore">${F.trips.length ? 'Send another party' : 'Send pets exploring'}</button>` : '');
     el.innerHTML = `<button type="button" class="btn big" data-a="edit">Edit farm</button>${trip}
       ${F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">Pick berries (${F.garden.ripe * BERRIES})</button>` : ''}
@@ -300,10 +301,11 @@ export function mount(app, ctx) {
     if (panel.kind === 'album') {
       const zoneOf = sp => Object.values(ZONES).find(z => sp in z.wild)?.name;
       const total = Object.keys(SPECIES).length, own = sp => F.album[sp]?.some(Boolean), have = Object.keys(SPECIES).filter(own).length;
-      if (panel.sp && own(panel.sp)) { // one page of the album
-        const sp = panel.sp, d = SPECIES[sp], a = F.album[sp], k = KIT[sp], mine = F.pets.filter(x => x.sp === sp);
+      if (panel.sp && F.album[panel.sp]) { // one page of the album: owned, or only seen so far
+        const sp = panel.sp, d = SPECIES[sp], a = F.album[sp], seen = !own(sp), k = KIT[sp], mine = F.pets.filter(x => x.sp === sp);
         box.innerHTML = `<div class="panel tripp"><h2>${d.name}</h2>
-          <div class="leafpage">${thumb('pet:' + sp, d.name)}<div><p>${elTag(d.el)}${d.el2 ? elTag(d.el2) : ''} ${RARITY[d.rare] || ''} · ${ROLE_NAME[k.role] || ''}</p><p class="hint">${d.blurb}</p></div></div>
+          <div class="leafpage${seen ? ' seen' : ''}">${thumb('pet:' + sp, d.name)}<div><p>${elTag(d.el)}${d.el2 ? elTag(d.el2) : ''} ${RARITY[d.rare] || ''} · ${ROLE_NAME[k.role] || ''}</p><p class="hint">${d.blurb}</p></div></div>
+          ${seen ? `<p><b>Seen, not raised yet.</b> You met one at a neighbour's farm or in a battle. ${zoneOf(sp) ? 'Send a party to its home to find your own.' : d.hint || ''}</p>` : ''}
           <p><b>Lives in</b> ${zoneOf(sp) || 'no wild place: it only hatches from eggs'}. <b>On your farm:</b> ${mine.length ? mine.map(x => `${esc(x.name)} (level ${x.lv})`).join(', ') : 'none right now'}.</p>
           <div class="formrow">${FORMS.map((f, i) => `<span class="chip ${a[i] ? 'got' : 'not'}">${f}${a[i] ? ' ✓' : ''}</span>`).join('')}</div>
           <p><b>Moves</b></p><div class="mvlist">${k.moves.map((m, i) => `<span class="chip">${MOVES[m].name}<small> level ${LEARN[i]}</small></span>`).join('')}</div>
@@ -312,8 +314,9 @@ export function mount(app, ctx) {
       }
       const cells = Object.entries(SPECIES).map(([sp, d]) => { const a = F.album[sp];
         return own(sp) ? `<button type="button" class="leaf" data-a="leaf" data-sp="${sp}">${thumb('pet:' + sp, d.name)}<b>${d.name}</b>${elTag(d.el)}<span class="forms" title="Baby, young, adult">${a.map((x, i) => `<i class="${x ? 'on' : ''}" title="${FORMS[i]}"></i>`).join('')}</span></button>`
-          : `<div class="leaf no"><span class="nothumb">?</span><b>${a ? d.name : 'Not found yet'}</b><small>${a ? "Seen at a friend's" : zoneOf(sp) || d.hint || ''}</small></div>`; }).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>Pet Album</h2><p>${have} of ${total} species found. Tap a pet to read its page. The three dots are the baby, young and adult forms you have raised. Your farm has room for ${F.room} pets and ${F.pets.length} live there now. Coats found: ${F.coats.length} of ${COATS.length}. Markings found: ${F.marks.length} of ${Object.keys(PATTERNS).length}.</p>
+          : a ? `<button type="button" class="leaf seen" data-a="leaf" data-sp="${sp}">${thumb('pet:' + sp, d.name)}<b>${d.name}</b><small>Seen, not raised yet</small></button>`
+          : `<div class="leaf no"><span class="nothumb">?</span><b>Not found yet</b><small>${zoneOf(sp) || d.hint || ''}</small></div>`; }).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Pet Album</h2><p>${have} of ${total} species found${Object.keys(F.album).length > have ? ` and ${Object.keys(F.album).length - have} more seen` : ''}. Tap a pet to read its page. The three dots are the baby, young and adult forms you have raised. Your farm has room for ${F.room} pets and ${F.pets.length} live there now. Coats found: ${F.coats.length} of ${COATS.length}. Markings found: ${F.marks.length} of ${Object.keys(PATTERNS).length}.</p>
         <div class="album">${cells}</div>
         <div class="row end"><button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
       return;
@@ -338,7 +341,7 @@ export function mount(app, ctx) {
       const rows = z.counted ? who.map(p => { const g = z.grew.find(x => x.id === p.id);
         return `<div class="backpet">${thumb('pet:' + p.sp)}<div><b>${esc(p.name)}</b><small>+${z.xp} experience${g ? ` · <em>${g.form ? `grew up into its ${FORMS[g.form].toLowerCase()} form` : `reached level ${g.lv}`}</em>` : ''}</small></div></div>`; }).join('') : '';
       box.innerHTML = `<div class="panel tripp back"><h2>${z.won ? 'You won!' : panel.quit ? 'You left the ring' : 'You lost this one'}</h2>
-        ${z.counted ? `<div class="mats">${z.coins ? mat('coins', '+' + z.coins) : ''}${z.rank ? `<span class="mat">+${z.rank} rank experience</span>` : ''}${z.pts ? `<span class="mat">+${z.pts} ladder points</span>` : ''}</div>${rows}` : `<p class="hint">${panel.quit ? 'Giving up earns nothing.' : 'No rewards left for today, so that one was just for fun.'}</p>`}
+        ${z.counted ? `<div class="mats">${z.coins ? mat('coins', '+' + z.coins) : ''}${z.rank ? `<span class="mat">+${z.rank} rank experience</span>` : ''}${z.pts ? `<span class="mat">+${z.pts} ladder points</span>` : ''}</div>${rows}${z.joined && F.pets.find(p => p.id === z.joined) ? `<div class="backpet found">${thumb('pet:' + F.pets.find(p => p.id === z.joined).sp)}<div><b>The wild ${SPECIES[F.pets.find(p => p.id === z.joined).sp].name} came home with you!</b><small>It has moved in on your farm.</small></div></div>` : ''}${z.noroom ? '<p class="hint">It wanted to come along, but every bed is taken. Build a Pet Hut to make room.</p>' : ''}` : `<p class="hint">${panel.quit ? 'Giving up earns nothing.' : 'No rewards left for today, so that one was just for fun.'}</p>`}
         <button type="button" class="btn big m" data-a="shut">Back to the farm</button></div>`;
       return;
     }
@@ -372,6 +375,7 @@ export function mount(app, ctx) {
         <div class="mats">${Object.entries(b.loot).map(([k, n]) => mat(k, '+' + n)).join('') || '<span class="hint">They came back empty-handed this time.</span>'}</div>
         ${rows}
         ${found ? `<div class="backpet found">${thumb('pet:' + found.sp)}<div><b>A wild ${SPECIES[found.sp].name} followed them home!</b><small>${elTag(SPECIES[found.sp].el)} ${RARITY[SPECIES[found.sp].rare]} · ${SPECIES[found.sp].blurb}</small></div></div>` : ''}
+        ${b.wild && F.wild ? `<div class="backpet found">${thumb('pet:' + b.wild.sp)}<div><b>A wild ${SPECIES[b.wild.sp].name} stood in their way!</b><small>Level ${b.wild.lv}. Win a short battle and it may come home with you. Losing costs nothing. It waits for half an hour.</small></div><button type="button" class="btn sm m" data-a="wildfight">Battle it</button></div>` : ''}
         ${b.spilt ? `<p class="hint">Your storage is full (${F.cap} of each), so some of it was left behind. ${countOf(F, 'barn') ? 'Spend or sell some to make room.' : 'A Storage Barn makes room for more.'}</p>` : ''}
         ${b.full ? '<p class="hint">A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.</p>' : ''}
         <button type="button" class="btn big m" data-a="shut">Lovely</button></div>`;
@@ -676,6 +680,7 @@ export function mount(app, ctx) {
       paintPanel();
     }
     else if (a === 'fight' && panel.mode === 'live') { lastTeam = [...panel.pets]; ctx.send(panel.invite ? { t: 'duelyes', id: panel.invite, pets: lastTeam } : { t: 'duel', to: panel.foe, pets: lastTeam }); }
+    else if (a === 'wildfight') { panel = null; ctx.send({ t: 'fight', mode: 'wild' }); }
     else if (a === 'fight') { lastTeam = [...panel.pets]; ctx.send({ t: 'fight', mode: panel.mode, foe: panel.foe, pets: lastTeam }); }
     else if (a === 'defend') ctx.send({ t: 'defend', pets: [...panel.pets] });
     else if (a === 'move') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', move: b.dataset.move }); } }

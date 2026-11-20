@@ -208,3 +208,4 @@ body.in-game { overflow: hidden; }
 .pf .buy .buytop { display: flex; gap: 14px; align-items: center; } .pf .buy .buytop img, .pf .buy .buytop .nothumb { width: 96px; height: 96px; border-radius: 16px; background: #d8f0d2; border: 3px solid var(--ink); }
 .pf .buy .buytop h2 { margin: 0 0 4px; } .pf .buy .buytop p { margin: 0; } .pf .buy .cost { display: flex; flex-wrap: wrap; gap: 6px; }
 .pf .matbtn { all: unset; cursor: pointer; display: inline-flex; border-radius: 999px; } .pf .matbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; } .pf .matbtn:hover .mat { transform: translateY(-1px); }
+.pf .leaf.seen { background: #f3ece2; border-style: dashed; } .pf .leaf.seen img, .pf .leafpage.seen img { filter: grayscale(1) opacity(.6); }
