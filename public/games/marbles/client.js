@@ -66,21 +66,24 @@ export function mount(app, ctx) {
 
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
-  const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
-  const av = (i, size) => avatarHtml(S.seats[i].color, S.seats[i].av, size);
-  const racing = i => !S.seats[i].out;
+  const myPick = () => me()?.bet?.m ?? -1;
+  const mName = i => esc(S.marbles[i]?.name);
+  const ball = (i, size = 28) => `<i class="ball" style="--c:${S.marbles[i].color};--z:${size}px"></i>`;
+  const racing = i => !S.marbles[i].out;
+  const backers = i => S.seats.map((p, k) => (p.bet?.m === i ? k : -1)).filter(k => k >= 0);
+  const backerHtml = (i, size) => backers(i).map(k => `<i title="${esc(S.seats[k].name)} bet ${S.seats[k].bet.amt}">${avatarHtml(S.seats[k].color, S.seats[k].av, size)}</i>`).join('');
+  const yours = i => (i === myPick() ? 'Your pick, ' : '');
 
   // ----- 3D sync -----
   function sync() {
     if (!scene || !S) return;
     scene.setTrack(S.seed, S.short);
-    scene.setMarbles(S.seats);
-    scene.setMe(S.me);
+    scene.setMarbles(S.marbles);
+    scene.setMe(myPick());
     scene.setStage(S.stage);
     scene.pushFrames(S.frames || [], S.simT, S.stage === 'race');
     scene.setChaos(S.stage === 'race' ? S.chaos?.k : null);
-    const f = follow === 'me' ? S.me : follow === 'bet' ? (me()?.bet?.m ?? -1) : Number.isInteger(follow) ? follow : -1;
+    const f = follow === 'bet' ? myPick() : Number.isInteger(follow) ? follow : -1;
     scene.setFollow(f >= 0 && racing(f) ? f : -1);
     root.querySelector('.tint').className = 'tint' + (S.stage === 'race' && S.chaos ? ' ' + S.chaos.k : '');
   }
@@ -91,7 +94,7 @@ export function mount(app, ctx) {
     if (!S) return;
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
-      if (!t.show || i === S.me) { if (!el.hidden) el.hidden = true; continue; }
+      if (!t.show || el.dataset.e) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
       const sc = Math.max(.62, Math.min(1.1, 11 / t.d));
       el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%) scale(${sc.toFixed(2)})`;
@@ -101,25 +104,28 @@ export function mount(app, ctx) {
     if (S.stage === 'race' && now - boardAt > 200) { boardAt = now; renderBoard(); }
   }
 
+  // A marble's tag shows who has coins on it. Your own pick gets the bobbing arrow instead.
   function buildTags() {
-    const key = S.seats.map(p => p.name + p.color + p.av.join('')).join('|') + S.me + '/' + (me()?.bet?.m ?? '');
+    const key = S.seats.map(p => p.color + p.av.join('') + (p.bet?.m ?? '')).join('|') + S.me + '/' + S.marbles.length;
     if (key === tagKey) return; tagKey = key;
-    const bet = me()?.bet?.m;
-    // Your own marble gets the bobbing arrow in the 3D scene instead of a tag.
-    tagsEl.innerHTML = S.seats.map((p, i) => i === S.me ? '<i hidden></i>' : `<div class="mtag${i === bet ? ' mtag-bet' : ''}" hidden>${avatarHtml(p.color, p.av, 26)}<b>${esc(p.name)}</b>${i === bet ? I.coin : ''}</div>`).join('');
+    const pick = myPick();
+    tagsEl.innerHTML = S.marbles.map((_, i) => {
+      const h = i === pick ? '' : backerHtml(i, 24);
+      return h ? `<div class="mtag" hidden>${h}</div>` : '<i hidden data-e="1"></i>';
+    }).join('');
     tagEls = [...tagsEl.children];
   }
 
   // ----- rendering -----
   function liveOrder() {
-    const idx = S.seats.map((_, i) => i).filter(racing);
+    const idx = S.marbles.map((_, i) => i).filter(racing);
     const s = live?.s || [];
     idx.sort((a, b) => {
-      const A = S.seats[a], B = S.seats[b];
+      const A = S.marbles[a], B = S.marbles[b];
       if (S.stage !== 'bet' && S.stage !== 'count' && (A.place || B.place)) return (A.place || 99) - (B.place || 99);
       return (s[b] ?? 0) - (s[a] ?? 0);
     });
-    const outs = S.seats.map((_, i) => i).filter(i => !racing(i)).sort((a, b) => S.seats[b].out - S.seats[a].out);
+    const outs = S.marbles.map((_, i) => i).filter(i => !racing(i)).sort((a, b) => S.marbles[b].out - S.marbles[a].out);
     return [...idx, ...outs];
   }
 
@@ -127,16 +133,16 @@ export function mount(app, ctx) {
     const el = $('mr-board');
     if (S.stage === 'bet') { el.hidden = true; return; }
     el.hidden = false;
-    const ord = liveOrder(), key = ord.join(',') + '|' + S.seats.map(p => `${p.place}${p.out}${p.sab ? 1 : 0}`).join('') + '|' + (live?.target ?? '') + picking + (live?.st || []).join('');
+    const ord = liveOrder(), key = ord.join(',') + '|' + S.marbles.map(p => `${p.place}${p.out}`).join('') + '|' + S.seats.map(p => p.bet?.m ?? '').join() + '|' + (live?.target ?? '') + picking + (live?.st || []).join('');
     if (key === renderBoard.key) return; renderBoard.key = key;
-    const bet = me()?.bet?.m, canHit = i => picking && i !== S.me && racing(i) && !S.seats[i].place && live?.st?.[i] === 0;
+    const pick = myPick(), canHit = i => picking && racing(i) && !S.marbles[i].place && live?.st?.[i] === 0;
     el.innerHTML = ord.map((i, n) => {
-      const p = S.seats[i], out = !racing(i);
+      const p = S.marbles[i], out = !racing(i);
       const status = out ? 'out' : p.place && S.stage !== 'count' ? '🏁' : live?.st?.[i] === 1 ? 'oops!' : '';
-      return `<li class="${out ? 'out' : ''}${i === S.me ? ' me' : ''}${live?.target === i && S.stage === 'race' ? ' cam' : ''}${canHit(i) ? ' hit' : ''}">
-        <button type="button" data-a="row" data-i="${i}" aria-label="${canHit(i) ? 'Throw banana at' : 'Watch'} ${esc(p.name)}">
-        <i class="pos">${out ? '✕' : n + 1}</i>${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}</b>
-        ${i === bet ? I.coin : ''}<span>${status}</span></button></li>`;
+      return `<li class="${out ? 'out' : ''}${i === pick ? ' me' : ''}${live?.target === i && S.stage === 'race' ? ' cam' : ''}${canHit(i) ? ' hit' : ''}">
+        <button type="button" data-a="row" data-i="${i}" aria-label="${canHit(i) ? 'Throw banana at' : 'Watch'} ${p.name}">
+        <i class="pos">${out ? '✕' : n + 1}</i>${ball(i, 26)}<b>${p.name}</b>
+        <span class="backers">${backerHtml(i, 20)}</span><span>${status}</span></button></li>`;
     }).join('');
     order = ord;
   }
@@ -145,14 +151,13 @@ export function mount(app, ctx) {
     const el = $('mr-bet'), my = me();
     el.hidden = S.stage !== 'bet';
     if (el.hidden) return;
-    const backers = i => S.seats.map((p, k) => (p.bet?.m === i ? k : -1)).filter(k => k >= 0);
     const coins = my ? my.coins : 0;
-    setHtml(el, `<div class="bethead"><h2>Who takes it?</h2><span>A right pick pays <b>${S.mult}×</b>${my ? ` · you have ${I.coin}<b>${coins}</b>` : ''}</span></div>
-      <div class="picks">${S.seats.map((p, i) => `<button type="button" class="pick${my?.bet?.m === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${my ? '' : 'disabled'} aria-pressed="${my?.bet?.m === i}">
-        ${avatarHtml(p.color, p.av, 44)}<b>${esc(p.name)}</b><small>${i === S.me ? 'your marble' : p.human ? 'player' : 'house marble'}</small>
-        <span class="backers">${backers(i).map(k => `<i title="${nameOf(k)} bet ${S.seats[k].bet.amt}">${avatarHtml(S.seats[k].color, S.seats[k].av, 20)}</i>`).join('')}</span></button>`).join('')}</div>
+    setHtml(el, `<div class="bethead"><h2>Pick a colour</h2><span>The winning colour pays <b>${S.mult}×</b>${my ? ` · you have ${I.coin}<b>${coins}</b>` : ''}</span></div>
+      <div class="picks">${S.marbles.map((p, i) => `<button type="button" class="pick${my?.bet?.m === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${my ? '' : 'disabled'} aria-pressed="${my?.bet?.m === i}">
+        ${ball(i, 46)}<b>${p.name}</b>
+        <span class="backers">${backerHtml(i, 20)}</span></button>`).join('')}</div>
       ${my ? `<div class="stakes"><span>Stake</span><div class="pills">${[10, 25, 50, 'all'].map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v !== 'all' && v > coins ? 'disabled' : ''}>${v === 'all' ? 'All in' : v}</button>`).join('')}</div>
-        ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> on ${nameOf(my.bet.m)} <button type="button" class="link" data-a="nobet">remove</button></span>` : '<span class="mybet">Tap a marble to bet. Betting is optional.</span>'}
+        ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> on ${mName(my.bet.m)} <button type="button" class="link" data-a="nobet">remove</button></span>` : '<span class="mybet">Tap a marble to bet on its colour.</span>'}
         ${ctx.isHost() ? '<button type="button" class="btn m" data-a="ready">Start the race</button>' : ''}</div>` : '<div class="stakes"><span class="mybet">You are watching this race.</span></div>'}`);
   }
 
@@ -160,12 +165,12 @@ export function mount(app, ctx) {
     const el = $('mr-race'), my = me();
     el.hidden = !(S.stage === 'race' || S.stage === 'count' || S.stage === 'gap');
     if (el.hidden) return;
-    const canSab = my && S.stage === 'race' && !my.sab && !my.out && !my.place;
+    const canSab = my && S.stage === 'race' && !my.sab;
     if (!canSab) picking = false;
     const cam = (k, label, ok = true) => ok ? `<button type="button" data-a="cam" data-k="${k}" aria-pressed="${follow === k}">${label}</button>` : '';
-    setHtml(el, `<div class="cams"><span>Camera</span><div class="pills">${cam('lead', 'Leader')}${cam('me', 'Me', !!my && !my.out)}${cam('bet', 'My pick', !!my?.bet && racing(my.bet.m))}</div></div>
-      ${my && !my.out ? `<button type="button" class="btn ${picking ? 'w' : 'p'} sab" data-a="sab" ${canSab ? '' : 'disabled'}>${I.banana}${my.sab ? 'Banana thrown' : picking ? 'Cancel' : 'Throw banana'}</button>` : ''}
-      ${picking ? '<p class="hint">Pick a marble on the left to slip it up. One banana per heat!</p>' : ''}`);
+    setHtml(el, `<div class="cams"><span>Camera</span><div class="pills">${cam('lead', 'Leader')}${cam('bet', 'My pick', !!my?.bet && racing(my.bet.m))}</div></div>
+      ${my ? `<button type="button" class="btn ${picking ? 'w' : 'p'} sab" data-a="sab" ${canSab ? '' : 'disabled'}>${I.banana}${my.sab ? 'Banana thrown' : picking ? 'Cancel' : 'Throw banana'}</button>` : ''}
+      ${picking ? '<p class="hint">Pick a colour on the left to slip it up. One banana per heat!</p>' : ''}`);
   }
 
   function render() {
@@ -184,10 +189,10 @@ export function mount(app, ctx) {
     if (S.stage === 'bet') msg = `Place your bets · ${secs}s`;
     else if (S.stage === 'count') msg = S.mode === 'knockout' ? `Heat ${S.heat}: last marble home is out` : 'Marbles at the gate…';
     else if (S.stage === 'race') {
-      const done = S.seats.filter(p => p.place && !p.out).length;
-      msg = S.chaos ? CHAOS[S.chaos.k][0] : done ? `${done} home, ${S.seats.filter(p => !p.out).length - done} to go` : S.mode === 'knockout' ? `Heat ${S.heat} of ${S.heats}` : 'They\'re rolling!';
-    } else if (S.stage === 'gap') { const o = S.seats.findIndex(p => p.out === S.heat); msg = o >= 0 ? `${youOr(o)} ${o === S.me ? 'are' : 'is'} out! Next heat in ${secs}s` : ''; }
-    else msg = S.win >= 0 ? `${youOr(S.win)} win${S.win === S.me ? '' : 's'}!` : '';
+      const done = S.marbles.filter(p => p.place && !p.out).length;
+      msg = S.chaos ? CHAOS[S.chaos.k][0] : done ? `${done} home, ${S.marbles.filter(p => !p.out).length - done} to go` : S.mode === 'knockout' ? `Heat ${S.heat} of ${S.heats}` : 'They\'re rolling!';
+    } else if (S.stage === 'gap') { const o = S.marbles.findIndex(p => p.out === S.heat); msg = o >= 0 ? `${mName(o)} is out! Next heat in ${secs}s` : ''; }
+    else msg = S.win >= 0 ? `${mName(S.win)} wins!` : '';
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', S.stage === 'race' && !!S.chaos);
   }
@@ -204,20 +209,21 @@ export function mount(app, ctx) {
     if (e.t === 'count') { lastCount = -1; hideResults(); }
     else if (e.t === 'go') { big('GO!', '', 900); sfx.win(); }
     else if (e.t === 'chaos') {
-      const sub = e.k === 'swap' ? `${youOr(e.a)} and ${youOr(e.b)} trade places` : CHAOS[e.k][1];
+      const sub = e.k === 'swap' ? `${mName(e.a)} and ${mName(e.b)} trade places` : CHAOS[e.k][1];
       big(CHAOS[e.k][0], sub, 1900); sfx.set(); sfx.plop();
       if (e.k === 'swap') { scene?.burst(e.a, '#e8a0e0', 18); scene?.burst(e.b, '#e8a0e0', 18); }
     } else if (e.t === 'sab') {
       sfx.bad(); sfx.plop(); scene?.burst(e.m, '#ffd84a', 16);
-      if (e.m === S.me || e.by === S.me || e.m === me()?.bet?.m) ctx.toast(`${I.banana}${youOr(e.by)} slipped ${e.m === S.me ? 'you' : nameOf(e.m)} a banana!`, e.m === S.me);
-    } else if (e.t === 'fall') { sfx.plop(); if (e.m === S.me) ctx.toast('Trapdoor! Back you go.', true); }
+      const mine = e.m === myPick();
+      if (mine || e.by === S.me) ctx.toast(`${I.banana}${e.by === S.me ? 'You' : esc(S.seats[e.by]?.name)} slipped ${mine ? 'your pick' : mName(e.m)} a banana!`, mine && e.by !== S.me);
+    } else if (e.t === 'fall') { sfx.plop(); if (e.m === myPick()) ctx.toast(`Trapdoor! ${mName(e.m)} goes back a bit.`, true); }
     else if (e.t === 'fin') {
-      if (e.place === 1) { sfx.turn(); big(`${youOr(e.m)} cross${e.m === S.me ? '' : 'es'} first!`, '', 1600); } else sfx.place();
-      scene?.burst(e.m, S.seats[e.m].color, 12);
-    } else if (e.t === 'out') { sfx.lose(); big(`${youOr(e.m)} ${e.m === S.me ? 'are' : 'is'} out!`, 'Slowest marble of the heat', 2200); }
+      if (e.place === 1) { sfx.turn(); big(`${mName(e.m)} crosses first!`, e.m === myPick() ? 'That is your pick!' : '', 1600); } else sfx.place();
+      scene?.burst(e.m, S.marbles[e.m].color, 12);
+    } else if (e.t === 'out') { sfx.lose(); big(`${mName(e.m)} is out!`, e.m === myPick() ? 'There goes your pick' : 'Slowest marble of the heat', 2200); }
     else if (e.t === 'end') {
       const mine = S.res?.pay?.[S.me];
-      if (e.w === S.me || mine?.won) { sfx.win(); confetti(); } else sfx.lose();
+      if (mine?.won) { sfx.win(); confetti(); } else sfx.lose();
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2400);
     }
   }
@@ -243,14 +249,15 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end' || !S.res) return;
     const el = root.querySelector('.results'), w = S.win, my = S.me >= 0 ? S.res.pay[S.me] : null;
     const line = my ? (my.net > 0 ? `You're up ${I.coin}<b>${my.net}</b> this race.` : my.net < 0 ? `You dropped ${I.coin}<b>${-my.net}</b> this race.` : 'You broke even this race.') : '';
+    const seats = S.seats.map((_, i) => i).sort((a, b) => S.res.pay[b].net - S.res.pay[a].net);
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'Your marble wins!' : `${nameOf(w)} wins!`}</h2>
+      <h2>${ball(w, 34)}${mName(w)} wins!</h2>
+      <ol class="finish" aria-label="Finishing order">${S.res.order.map((i, n) => `<li class="${i === myPick() ? 'me' : ''}" title="${ORD(n + 1)}: ${mName(i)}"><small>${n + 1}</small>${ball(i, 26)}</li>`).join('')}</ol>
       <p>${line} Coins stay with this table for the next race.</p>
-      <ol class="score">${S.res.order.map((i, n) => {
+      <ol class="score">${seats.map((i, n) => {
         const p = S.seats[i], pay = S.res.pay[i], b = pay.bet;
-        const betTxt = b ? `bet ${b.amt} on ${i === b.m ? 'themselves' : nameOf(b.m)}` : 'no bet';
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${betTxt}${pay.bonus ? ` · +${pay.bonus} winner's purse` : ''}</span></div>
+        return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44)}
+          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${b ? `bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}` : 'no bet'}</span></div>
           <strong class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}<small>${I.coin}${pay.coins}</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Race again')}</div></div>`;
@@ -266,10 +273,10 @@ export function mount(app, ctx) {
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 
-  // ----- reactions float up from the sender's marble tag -----
+  // ----- reactions float up from the marble the sender bet on -----
   function react(m) {
     if (!S) return;
-    const i = S.seats.findIndex(p => p.id === m.id), t = live?.tags?.[i];
+    const i = S.seats.find(p => p.id === m.id)?.bet?.m ?? -1, t = live?.tags?.[i];
     const f = document.createElement('div');
     f.className = 'floaty'; f.innerHTML = reactHtml(Math.max(0, Math.min(11, m.k | 0)));
     const x = t?.show ? t.x : innerWidth / 2 + (Math.random() * 120 - 60), y = t?.show ? t.y - 30 : innerHeight * .7;
