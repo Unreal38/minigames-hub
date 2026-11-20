@@ -114,17 +114,18 @@ function onMsg(m) {
     const prev = st.room; st.room = m.room;
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; go('hub'); return; }
+    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
       if (joined.length) { sfx.join(); joined.forEach(p => toast(`${esc(p.name)} pulled up a chair`)); }
     }
     if (st.game) st.game.room(m.room); else go('lobby');
+    watchPaint();
   } else if (m.t === 'state') {
     st.lastState = m.s;
-    if (!m.s) { unmountGame(); if (st.room) go('lobby'); return; }
-    mountGame().then(g => g?.update(st.lastState));
+    if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
+    mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
   } else if (m.t === 'react') {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
@@ -154,7 +155,7 @@ function mountGame() {
     st.game = mod.mount($app, {
       act: a => send({ t: 'act', a }), react: k => send({ t: 'react', k }),
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
-      again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
+      again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), sit: on => send({ t: 'sit', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
       toast, rules: () => openRules(st.room?.game),
     });
     st.game.room(st.room);
@@ -280,7 +281,7 @@ function renderTables() {
   if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
   el.innerHTML = st.rooms.map(r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
-    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}</span></div>
+    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take a bot’s seat next round' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
     <button type="button" class="btn ${r.n < r.max && r.state === 'lobby' ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${r.n < r.max && r.state === 'lobby' ? 'Join' : 'Watch'}</button>
@@ -290,8 +291,10 @@ function renderTables() {
 function renderLobby() {
   const r = st.room; if (!r) return go('hub');
   const host = r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = gm.seats(r);
-  const seats = Array.from({ length: max }, (_, i) => r.players[i] || null);
-  const watchers = r.players.slice(max);
+  const seated = r.players.filter(p => !p.watch);
+  const seats = Array.from({ length: max }, (_, i) => seated[i] || null);
+  const watchers = [...seated.slice(max), ...r.players.filter(p => p.watch)];
+  const meWatch = r.players.find(p => p.id === st.id)?.watch, saving = (r.sit || []).includes(st.id);
   const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${label}</button>`;
   $app.innerHTML = `${topbar()}
   <main class="wrap lobby">
@@ -310,6 +313,7 @@ function renderLobby() {
           <div><b>${esc(p.name)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => esc(p.name)).join(', ')}</p>` : ''}
+      ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? '✓ Next free seat is yours' : 'Take a seat'}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
         ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">Waiting for the host to start…</span>`}
         <button type="button" class="btn big ghost" data-act="leave">Leave</button>
@@ -326,6 +330,24 @@ function renderLobby() {
     </aside>
   </main>`;
 }
+
+// ---------- watching ----------
+// While a game is on, a watcher gets a small bar: tap to replace a bot when the next round starts.
+const $watch = document.createElement('div');
+$watch.id = 'watchbar'; $watch.hidden = true; $watch.setAttribute('aria-live', 'polite');
+document.body.append($watch);
+function watchPaint() {
+  const r = st.room, me = r?.players.find(p => p.id === st.id);
+  const on = !!(st.game && me?.watch && st.lastState?.ph === 'play');
+  $watch.hidden = !on; if (!on) return;
+  const saving = (r.sit || []).includes(st.id), full = r.players.filter(p => !p.watch).length >= r.max;
+  $watch.innerHTML = `<span>${saving ? (full ? 'Every seat is taken. You get the next free one.' : 'You take a bot’s seat next round.') : 'You’re watching.'}</span>
+    <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${saving ? 'Just watch' : full ? 'Get the next free seat' : 'Play next round'}</button>`;
+}
+$watch.addEventListener('click', e => {
+  const b = e.target.closest('[data-w="sit"]'); if (!b) return;
+  sfx.click(); send({ t: 'sit', on: b.getAttribute('aria-pressed') !== 'true' });
+});
 
 // ---------- chat ----------
 const $chat = document.getElementById('chat');
@@ -516,6 +538,7 @@ $app.addEventListener('click', e => {
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });
+  else if (act === 'sit') send({ t: 'sit', on: b.getAttribute('aria-pressed') !== 'true' });
   else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
   else if (act === 'copy') {
     const link = `${location.origin}/#${st.room.code}`;

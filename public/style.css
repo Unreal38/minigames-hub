@@ -296,3 +296,10 @@ body:has(.lobby) .scorebtn { display: none; }
 .scorepanel .board li:first-child { outline-color: var(--ink); }
 @media (max-width: 760px) { body.in-game .scorebtn .lbl { display: none; } body.in-game .scorebtn { padding: 6px 10px; min-height: 40px; } }
 @media (max-width: 1150px) { body:has(.mr) .scorebtn .lbl { display: none; } }
+/* watcher bar: shown over a game to people who joined mid-game */
+#watchbar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 12px;
+  background: #fff; color: var(--ink); border: 3px solid #c9a99a; border-radius: 999px; padding: 5px 5px 5px 18px; font-family: var(--fd); font-weight: 600;
+  box-shadow: 0 6px 18px #0004; max-width: calc(100vw - 32px); }
+#watchbar[hidden] { display: none; }
+#watchbar .btn { min-height: 40px; padding: 6px 16px; white-space: nowrap; }
+@media (max-width: 560px) { #watchbar { left: 16px; right: 16px; bottom: max(8px, env(safe-area-inset-bottom)); transform: none; justify-content: space-between; font-size: 14px; padding-left: 14px; } }
