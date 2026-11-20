@@ -240,6 +240,14 @@ export function createScene(canvas, { onFrame }) {
   }
 
   // ---------- marbles ----------
+  // A small arrow that bobs and spins over your own marble.
+  const arrow = new THREE.Group(), arrowM = new THREE.MeshStandardMaterial({ color: '#ffb547', emissive: '#ffb547', emissiveIntensity: .45, roughness: .4, flatShading: true });
+  {
+    const head = new THREE.Mesh(new THREE.ConeGeometry(.2, .3, 4), arrowM); head.rotation.x = Math.PI; head.position.y = .15;
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(.11, .22, .11), arrowM); shaft.position.y = .4;
+    arrow.add(head, shaft); arrow.visible = false; scene.add(arrow);
+  }
+  let mine = -1;
   function setMarbles(seats) {
     const key = seats.map(p => p.color + p.av.join('') + p.name).join('|');
     if (key === seatsKey) return;
@@ -367,8 +375,14 @@ export function createScene(canvas, { onFrame }) {
       const b = bursts[i]; b.t += dt; b.v.y -= 12 * dt; b.s.position.addScaledVector(b.v, dt); b.s.material.opacity = 1 - b.t / .8;
       if (b.t > .8) { scene.remove(b.s); b.s.material.dispose(); bursts.splice(i, 1); }
     }
+    const mm = marbles[mine];
+    arrow.visible = !!mm && mm.mesh.visible;
+    if (arrow.visible) {
+      arrow.position.copy(mm.pos); arrow.position.y += R + .16 + (reduced ? 0 : Math.sin(t * 3.2) * .09);
+      arrow.rotation.y = reduced ? 0 : t * 2.4;
+    }
     renderer.render(scene, camera);
-    // name tags
+    // screen positions of the marbles (reactions float up from them)
     for (const m of marbles) {
       if (!m.mesh.visible) { m.tag.show = false; continue; }
       proj.copy(m.pos); proj.y += R + .25; proj.project(camera);
@@ -384,6 +398,7 @@ export function createScene(canvas, { onFrame }) {
     setTrack, setMarbles, pushFrames, burst,
     setStage(s) { stage = s; },
     setFollow(i) { follow = i; },
+    setMe(i) { mine = i; },
     setChaos(k) {
       fx.rollTo = k === 'flip' && !reduced ? Math.PI : 0;
       fx.shake = k === 'quake' ? 1 : 0;
@@ -393,7 +408,7 @@ export function createScene(canvas, { onFrame }) {
       ticker.stop();
       if (trackGroup) disposeTree(trackGroup);
       for (const m of marbles) { m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
-      sharedGeo.dispose(); dot.dispose(); renderer.dispose();
+      sharedGeo.dispose(); dot.dispose(); arrow.traverse(o => o.geometry?.dispose()); arrowM.dispose(); renderer.dispose();
     },
   };
 }
