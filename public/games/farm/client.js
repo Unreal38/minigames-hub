@@ -45,6 +45,7 @@ export function mount(app, ctx) {
       <div class="bl" id="pf-main"></div>
       <div class="pcard" id="pf-card" hidden></div>
       <div class="bt" id="pf-bt" hidden></div>
+      <div class="bfl" id="pf-fl"></div>
       <div class="dock"><div class="ghostbar" id="pf-ghost" hidden></div><div class="build" id="pf-build" hidden></div></div>
     </div>
     <div class="gate" id="pf-panel" hidden></div>
@@ -57,7 +58,8 @@ export function mount(app, ctx) {
   const say = ctx.send;
   ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', true); }, 4000); } };
   let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
-  let B = null, shown = null, playing = false, foes = null, line = '';
+  let B = null, shown = null, playing = false, foes = null, line = '', blogs = [], lastEl = null, ranks = null;
+  let logOpen = (() => { try { const v = localStorage.getItem('pf_blog'); return v ? v === '1' : innerWidth > 900; } catch { return innerWidth > 900; } })();
   let mapShown = null, counter = null; // counter: an offer to pre-fill once we have walked to the other farm
   let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [], liveAt = 0, gardenAt = 0, heldInvite = null;
 
@@ -96,7 +98,7 @@ export function mount(app, ctx) {
     const el = $('pf-main');
     if (mode !== 'farm' || edit || B) { el.innerHTML = ''; return; }
     if (where === 'map') {
-      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><button type="button" class="btn w" data-a="friends">Friends</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit' : 'No other farms yet. They appear here when friends start one.'}</span>`;
+      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><button type="button" class="btn w" data-a="friends">Friends</button><button type="button" class="btn w" data-a="ranks">Ranking</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit' : 'No other farms yet. They appear here when friends start one.'}</span>`;
       return;
     }
     if (where === 'visit' && V) {
@@ -118,6 +120,7 @@ export function mount(app, ctx) {
       ${F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">Pick berries (${F.garden.ripe * BERRIES})</button>` : ''}
       <button type="button" class="btn w" data-a="map">World map</button>
       <button type="button" class="btn w" data-a="friends">Friends</button>
+      <button type="button" class="btn w" data-a="ranks">Ranking</button>
       <button type="button" class="btn w" data-a="album">Pet Album</button>
       ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">Mail ${F.mail.length + F.trades.filter(t => t.dir === 'in').length || ''}</button>` : ''}
       ${F.nests.map(n => n.stage === 'ready' ? `<button type="button" class="btn m" data-a="hatch" data-slot="${n.slot}">Hatch the egg</button>` : `<span class="chip">${n.stage === 'cuddle' ? 'Egg in' : 'Hatches in'} ${wait(n.left)}</span>`).join('')}`;
@@ -321,6 +324,14 @@ export function mount(app, ctx) {
         <div class="row end"><button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
       return;
     }
+    if (panel.kind === 'ranks') {
+      const rows = (ranks || []).map((r, i) => `<div class="rk${r.me ? ' you' : ''}"><span class="rkn${i < 3 ? ' top' + (i + 1) : ''}">${i + 1}</span><div><b>${esc(r.name)}${r.me ? ' (you)' : ''}</b><small>${r.npc ? 'Neighbour' : 'Player'} · best pet level ${r.top} · ${r.pets} ${r.pets === 1 ? 'pet' : 'pets'}</small></div>
+        <span class="faces">${r.team.map(t => thumb('pet:' + t.sp, SPECIES[t.sp]?.name)).join('')}</span><span class="rkp"><b>${r.pts}</b><small>points</small></span></div>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Ranking</h2><p>Everyone's ladder points, highest first. ${countOf(F, 'flag') ? 'Win Arena matches to climb: 10 points for a win, 2 for a loss.' : 'Build an Arena Flag to fight for ladder points.'}</p>
+        <div class="rks">${ranks ? rows : '<p class="hint">Counting points…</p>'}</div>
+        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Close</button>${countOf(F, 'flag') ? '<button type="button" class="btn m" data-a="arena">Find a match</button>' : ''}</div></div>`;
+      return;
+    }
     if (panel.kind === 'foes') {
       const rows = (foes || []).map(f => `<button type="button" class="foe" data-a="foe" data-id="${esc(f.id)}"><b>${esc(f.name)}</b><small>${f.npc ? 'Neighbour' : 'Player'} · ${f.pts} points</small>
         <span class="faces">${f.team.map(t => thumb('pet:' + t.sp, SPECIES[t.sp]?.name)).join('')}</span></button>`).join('');
@@ -396,37 +407,48 @@ export function mount(app, ctx) {
     const el = $('pf-bt');
     el.hidden = !B || mode !== 'farm';
     if (el.hidden) { el.innerHTML = ''; return; }
+    for (const s of [0, 1]) scene?.ringState(s, act(s).hp > 0 ? Object.keys(act(s).status) : []);
     const me = side(0), u = act(0), busy = playing || B.over !== null || (B.live && B.waiting);
     const clock = B.live && B.over === null && !playing ? `<span class="bclock" id="pf-clock">${Math.max(0, Math.ceil((liveAt - Date.now()) / 1000))}</span>` : '';
     const moves = u.moves.map(id => { const m = MOVES[id], cd = u.cd[id] || 0;
       const what = m.pow ? `Power ${m.pow}` : m.heal ? 'Heals' : m.up ? `Raises ${STAT_NAME[m.up]}` : `Lowers their ${STAT_NAME[m.down]}`;
       return `<button type="button" class="mv" data-a="move" data-move="${id}" style="--c:${ELEMENTS[m.el]}" ${busy || cd || B.need ? 'disabled' : ''}><b>${m.name}</b><small>${cd ? `Ready in ${cd}` : what + (m.status ? ` · ${STATUS[m.status].name}` : '')}</small></button>`; }).join('');
     const bench = me.pets.map((x, i) => i === me.on ? '' : `<button type="button" class="sw" data-a="swap" data-i="${i}" ${busy || x.hp <= 0 || (u.status.rooted && !B.need) ? 'disabled' : ''}>${thumb('pet:' + x.sp)}<span><b>${esc(x.name)}</b><small>${x.hp > 0 ? `${x.hp} / ${x.max}` : 'Fainted'}</small></span></button>`).join('');
-    el.innerHTML = `${plate(1)}${plate(0)}
+    const logBox = logOpen ? `<div class="blogbox" id="pf-blog" aria-live="off"><h3>Battle log <button type="button" class="blx" data-a="blog" aria-label="Hide the battle log">×</button></h3><div class="bll">${blogs.map(l => l.turn ? `<p class="blt">Turn ${l.turn}</p>` : `<p class="${l.c}">${l.h}</p>`).join('') || '<p class="bln">Everything that happens in this fight is written down here.</p>'}</div></div>` : '';
+    el.innerHTML = `${plate(1)}${plate(0)}${logBox}
       <div class="bbar"><p class="blog">${line || (B.live && B.waiting ? `Waiting for ${esc(B.foe)} to choose…` : B.need ? 'Who comes in next?' : `What should ${esc(u.name)} do?`)}${clock}</p>
         <div class="mvs">${moves}</div>
-        <div class="bench">${bench}${!B.live && F.inv.juice ? `<button type="button" class="btn sm m" data-a="juice" ${busy || B.need || B.juiced || u.hp >= u.max ? 'disabled' : ''}>Berry Juice (${F.inv.juice})</button>` : ''}<button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
+        <div class="bench">${bench}${!B.live && F.inv.juice ? `<button type="button" class="btn sm m" data-a="juice" ${busy || B.need || B.juiced || u.hp >= u.max ? 'disabled' : ''}>Berry Juice (${F.inv.juice})</button>` : ''}<button type="button" class="btn sm w" data-a="blog" aria-pressed="${logOpen}">${logOpen ? 'Hide battle log' : 'Battle log'}</button><button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
+    const bl = el.querySelector('.bll'); if (bl) bl.scrollTop = bl.scrollHeight;
   }
+  // A word or number that floats up from a pet in the ring.
+  function floatUp(s, text, cls = '', dy = 0) {
+    const at = scene?.ringSpot?.(s), box = $('pf-fl'); if (!at || !box) return;
+    const n = document.createElement('span'); n.className = 'bfn ' + cls; n.textContent = text; n.style.left = at.x + 'px'; n.style.top = at.y + dy + 'px';
+    n.addEventListener('animationend', () => n.remove()); box.appendChild(n); setTimeout(() => n.remove(), 2200);
+  }
+  const note = (s, c = '') => { if (line) blogs.push({ h: line, c: 'bl' + (s === undefined ? 'n' : s) + (c ? ' ' + c : '') }); };
   // Plays what the server says happened, one beat at a time, then shows the real state.
   const beat = ms => new Promise(r => setTimeout(r, ms));
   async function play(ev, final, after) {
     playing = true;
+    if (ev.some(e => e.k === 'move' || e.k === 'juice' || e.k === 'dazed') && shown) blogs.push({ turn: shown.turn });
     for (const e of ev) {
       if (destroyed) return;
       const u = e.s !== undefined ? act(e.s) : null; let ms = 800;
       if (e.k === 'switch') { side(e.s).on = e.i; const n = act(e.s); n.up = { atk: 0, def: 0, spd: 0 }; scene?.ringPet(e.s, n); line = e.s ? (B.live ? `${esc(B.foe)} sends in ${esc(n.name)}.` : `${esc(n.name)} steps in for the other side.`) : `Go, ${esc(n.name)}!`; sfx.pop(); }
-      else if (e.k === 'move') { line = `${who(e.s)} uses ${MOVES[e.move].name}.`; scene?.ringFx(e.s, MOVES[e.move].pow ? 'lunge' : 'hop'); sfx.click(); ms = 650; }
-      else if (e.k === 'hit') { u.hp = e.hp; line = `${who(e.s)} takes ${e.dmg}.${e.eff > 1 ? ' It hit hard!' : e.eff < 1 ? ' It barely tickled.' : ''}`; scene?.ringFx(e.s, 'hit'); sfx.place(); }
-      else if (e.k === 'burn') { u.hp = e.hp; line = `${who(e.s)} is stung by its burn and takes ${e.dmg}.`; scene?.ringFx(e.s, 'hit'); sfx.place(); }
-      else if (e.k === 'juice') { u.hp = e.hp; F.inv.juice = Math.max(0, (F.inv.juice || 0) - 1); line = `${who(e.s)} drinks a Berry Juice and gets ${e.n} health back.`; scene?.ringFx(e.s, 'hop'); sfx.join(); }
-      else if (e.k === 'heal') { u.hp = e.hp; line = `${who(e.s)} gets ${e.n} health back.`; sfx.join(); }
-      else if (e.k === 'stat') { if (e.d) u.up[e.stat] += e.d; line = e.d ? `${who(e.s)}'s ${STAT_NAME[e.stat]} goes ${e.d > 0 ? 'up' : 'down'}.` : 'Nothing changes.'; scene?.ringFx(e.s, e.d > 0 ? 'hop' : 'hit'); }
-      else if (e.k === 'status') { u.status[e.st] = 1; line = `${who(e.s)} is ${STATUS[e.st].name.toLowerCase()}. ${STATUS[e.st].blurb}`; ms = 1100; }
+      else if (e.k === 'move') { const m = MOVES[e.move]; lastEl = m.el; line = `${who(e.s)} uses <b style="color:${ELEMENTS[m.el]}">${m.name}</b>.`; floatUp(e.s, m.name, 'call el' + m.el, -34); ms = (scene?.ringMove(e.s, e.move) ?? 500) + 40; sfx.click(); }
+      else if (e.k === 'hit') { u.hp = e.hp; line = `${who(e.s)} takes <b>${e.dmg}</b>.${e.eff > 1 ? ' It hit hard!' : e.eff < 1 ? ' It barely tickled.' : ''}`; scene?.ringHit(e.s, 'hit', lastEl, e.eff); floatUp(e.s, '−' + e.dmg, 'dmg' + (e.eff > 1 ? ' big' : e.eff < 1 ? ' weak' : '')); if (e.eff !== 1) floatUp(e.s, e.eff > 1 ? 'Hit hard!' : 'Barely tickled', e.eff > 1 ? 'say hard' : 'say', 30); sfx.place(); ms = 850; }
+      else if (e.k === 'burn') { u.hp = e.hp; line = `${who(e.s)} is stung by its burn and takes <b>${e.dmg}</b>.`; scene?.ringHit(e.s, 'burn'); floatUp(e.s, '−' + e.dmg, 'dmg burn'); sfx.place(); }
+      else if (e.k === 'juice') { u.hp = e.hp; F.inv.juice = Math.max(0, (F.inv.juice || 0) - 1); line = `${who(e.s)} drinks a Berry Juice and gets <b>${e.n}</b> health back.`; scene?.ringFx(e.s, 'hop'); scene?.ringHit(e.s, 'heal'); floatUp(e.s, '+' + e.n, 'heal'); sfx.join(); }
+      else if (e.k === 'heal') { u.hp = e.hp; line = `${who(e.s)} gets <b>${e.n}</b> health back.`; scene?.ringHit(e.s, 'heal'); floatUp(e.s, '+' + e.n, 'heal'); sfx.join(); }
+      else if (e.k === 'stat') { if (e.d) u.up[e.stat] += e.d; line = e.d ? `${who(e.s)}'s ${STAT_NAME[e.stat]} goes ${e.d > 0 ? 'up' : 'down'}.` : 'Nothing changes.'; scene?.ringHit(e.s, 'stat', e.d); if (e.d) floatUp(e.s, `${STAT_NAME[e.stat]} ${e.d > 0 ? '▲' : '▼'}`, e.d > 0 ? 'say up' : 'say down'); }
+      else if (e.k === 'status') { u.status[e.st] = 1; line = `${who(e.s)} is ${STATUS[e.st].name.toLowerCase()}. ${STATUS[e.st].blurb}`; scene?.ringHit(e.s, 'status', e.st); floatUp(e.s, STATUS[e.st].name + '!', 'say down', 30); ms = 1100; }
       else if (e.k === 'clear') { delete u.status[e.st]; line = `${who(e.s)} is no longer ${STATUS[e.st].name.toLowerCase()}.`; ms = 600; }
-      else if (e.k === 'dazed') { line = `${who(e.s)} is dazed and loses its turn.`; scene?.ringFx(e.s, 'hit'); }
+      else if (e.k === 'dazed') { line = `${who(e.s)} is dazed and loses its turn.`; scene?.ringHit(e.s, 'dazed'); floatUp(e.s, 'Dazed!', 'say down'); }
       else if (e.k === 'faint') { line = `${who(e.s)} fainted.`; scene?.ringFx(e.s, 'faint'); sfx.lose(); ms = 1100; }
       else if (e.k === 'end') { line = e.quit ? '' : e.win ? (B.live ? `${esc(B.foe)} wins this time.` : 'The other side wins this time.') : 'You win!'; if (!e.quit) (e.win ? sfx.lose : sfx.win)(); ms = e.quit ? 0 : 1300; }
-      paintBattle(); await beat(ms);
+      note(e.k === 'end' ? undefined : e.s, e.k === 'faint' || e.k === 'end' ? 'key' : ''); paintBattle(); await beat(ms);
     }
     if (destroyed) return;
     playing = false; line = '';
@@ -670,6 +692,7 @@ export function mount(app, ctx) {
     else if (a === 'claim') ctx.send({ t: 'claim', id: b.dataset.id });
     else if (a === 'mailread') ctx.send({ t: 'mailread' });
     else if (a === 'practice') openTeam('practice');
+    else if (a === 'ranks') { ranks = null; panel = { kind: 'ranks' }; card = null; sync(); ctx.send({ t: 'ranks' }); }
     else if (a === 'arena') { foes = null; panel = { kind: 'foes' }; card = null; sync(); ctx.send({ t: 'foes' }); }
     else if (a === 'foe') { const f = foes?.find(x => x.id === b.dataset.id); if (f) openTeam('arena', f); }
     else if (a === 'defteam') openTeam('defend');
@@ -686,6 +709,7 @@ export function mount(app, ctx) {
     else if (a === 'move') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', move: b.dataset.move }); } }
     else if (a === 'swap') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', switch: +b.dataset.i }); } }
     else if (a === 'juice') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', juice: true }); } }
+    else if (a === 'blog') { logOpen = !logOpen; try { localStorage.setItem('pf_blog', logOpen ? '1' : '0'); } catch {} paintBattle(); }
     else if (a === 'giveup') { if (!playing) ctx.send({ t: 'bquit' }); }
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect', id: b.dataset.id });
@@ -756,6 +780,7 @@ export function mount(app, ctx) {
     if (m.err) { sfx.bad(); ctx.toast(esc(m.err), true); }
     if (m.need) { F = null; B = null; mode = m.need; edit = false; sync(); return; }
     if (m.foes) foes = m.foes;
+    if (m.ranks) { ranks = m.ranks; if (panel?.kind === 'ranks') sync(); }
     if (m.world) world = m.world;
     if (m.visit) { V = { ...m.visit, trip: null }; if (where !== 'visit') { where = 'visit'; card = null; panel = null; } if (counter) { panel = { kind: 'trade', ...counter }; counter = null; } }
     if (m.note) ctx.toast(esc(m.note));
@@ -768,7 +793,7 @@ export function mount(app, ctx) {
     if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
       const starting = !B && m.battle;
       if (!m.battle) { B = null; shown = null; playing = false; if (m.farm) { mode = 'farm'; sync(); } return; }
-      if (starting) { B = m.battle; shown = structuredClone(B); playing = false; line = ''; panel = null; card = null; edit = false; mode = 'farm'; sfx.turn(); sync(); return; }
+      if (starting) { B = m.battle; shown = structuredClone(B); playing = false; line = ''; blogs = []; $('pf-fl').innerHTML = ''; panel = null; card = null; edit = false; mode = 'farm'; sfx.turn(); sync(); return; }
       if (m.ev?.length) play(m.ev, m.battle); else { playing = false; B = m.battle; shown = structuredClone(B); sync(); }
       return;
     }

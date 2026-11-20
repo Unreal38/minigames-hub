@@ -245,6 +245,8 @@ if (!r.prize || r.prize.won || r.prize.counted || r.farm.fights.practice !== 2) 
 r = await a.farmDo({ t: 'foes' });
 const bo = r.foes.find(x => !x.npc);
 if (r.foes.filter(x => x.npc).length !== 3 || !bo || bo.name !== 'Bo' || bo.team[0].sp !== 'puddlepup' || JSON.stringify(r.foes).includes(b.me?.pid || 'no-pid')) fail('foes ' + JSON.stringify(r.foes));
+r = await a.farmDo({ t: 'ranks' });
+if (!r.ranks || r.ranks.filter(x => x.npc).length !== 3 || r.ranks.filter(x => x.me).length !== 1 || !r.ranks.some(x => x.name === 'Bo' && !x.me) || r.ranks.some((x, i) => i && x.pts > r.ranks[i - 1].pts)) fail('ranks ' + JSON.stringify(r.ranks));
 r = await a.farmDo({ t: 'fight', mode: 'arena', foe: 'nobody', pets: [mine[0]] });
 if (!r.err) fail('fought a farm that does not exist');
 r = await a.farmDo({ t: 'fight', mode: 'arena', foe: bo.id, pets: mine.slice(0, 2) });
