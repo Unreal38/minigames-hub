@@ -4,13 +4,13 @@
 export const SIZES = [10, 12, 14, 16, 18];
 // Cost of growing the land to SIZES[i].
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 }];
-export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', coins: 'Coins' };
+export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', coins: 'Coins' };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 export const MAX_ITEMS = 300;
 
 // kind: 'b' building, 'd' decoration. w x h is the footprint before rotation. max = how many a farm may hold.
 // fine: a small prop that snaps to half tiles (its w and h may be .5). Everything else sits on whole tiles.
-// walk: pets can stroll across it. craft: a decoration that needs a Workshop on the farm.
+// walk: pets can stroll across it. craft: a decoration that needs a Workshop of that level on the farm.
 export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
   hut:      { name: 'Pet Hut', kind: 'b', w: 2, h: 2, max: 3, cost: { wood: 30, fiber: 10 }, desc: 'A snug place for four more pets to sleep.' },
@@ -34,12 +34,12 @@ export const ITEMS = {
   pond:     { name: 'Pond', kind: 'd', w: 2, h: 2, cost: { stone: 12 }, desc: 'Cool water with a lily pad.' },
   bench:    { name: 'Bench', kind: 'd', w: 1, h: .5, fine: true, cost: { wood: 8 }, desc: 'For watching pets go by.' },
   rock:     { name: 'Mossy Rock', kind: 'd', w: .5, h: .5, fine: true, cost: { stone: 4 }, desc: 'It has always been here, probably.' },
-  fountain: { name: 'Fountain', kind: 'd', w: 2, h: 2, craft: true, cost: { stone: 30, shells: 8 }, desc: 'Splashes all day long.' },
-  windmill: { name: 'Windmill', kind: 'd', w: 1, h: 1, craft: true, cost: { wood: 30, coal: 5 }, desc: 'Turns slowly in the island breeze.' },
-  arch:     { name: 'Flower Arch', kind: 'd', w: 1, h: 1, walk: true, craft: true, cost: { wood: 10, fiber: 15, shells: 4 }, desc: 'Pets love to walk under it.' },
-  statue:   { name: 'Pet Statue', kind: 'd', w: 1, h: 1, craft: true, cost: { stone: 25, crystal: 1 }, desc: 'A proud little monument.' },
-  glow:     { name: 'Crystal Lamp', kind: 'd', w: .5, h: .5, fine: true, craft: true, cost: { coal: 4, crystal: 1 }, desc: 'Glows softly, day and night.' },
-  tower:    { name: 'Climbing Tower', kind: 'd', w: 1, h: 1, craft: true, cost: { wood: 15, fiber: 10, shells: 3 }, desc: 'Something to climb, scratch and nap on.' },
+  fountain: { name: 'Fountain', kind: 'd', w: 2, h: 2, craft: 1, cost: { stone: 30, shells: 8 }, desc: 'Splashes all day long.' },
+  windmill: { name: 'Windmill', kind: 'd', w: 1, h: 1, craft: 1, cost: { wood: 30, coal: 5 }, desc: 'Turns slowly in the island breeze.' },
+  arch:     { name: 'Flower Arch', kind: 'd', w: 1, h: 1, walk: true, craft: 1, cost: { wood: 10, fiber: 15, shells: 4 }, desc: 'Pets love to walk under it.' },
+  statue:   { name: 'Pet Statue', kind: 'd', w: 1, h: 1, craft: 2, cost: { stone: 25, crystal: 1 }, desc: 'A proud little monument.' },
+  glow:     { name: 'Crystal Lamp', kind: 'd', w: .5, h: .5, fine: true, craft: 2, cost: { coal: 4, crystal: 1 }, desc: 'Glows softly, day and night.' },
+  tower:    { name: 'Climbing Tower', kind: 'd', w: 1, h: 1, craft: 1, cost: { wood: 15, fiber: 10, shells: 3 }, desc: 'Something to climb, scratch and nap on.' },
   cherry:   { name: 'Cherry Tree', kind: 'd', w: .5, h: .5, fine: true, cost: { coins: 15 }, desc: 'Pink blossom all year round.' },
   well:     { name: 'Wishing Well', kind: 'd', w: 1, h: 1, cost: { stone: 18, wood: 8 }, desc: 'Drop a coin in and make a wish.' },
   scarecrow:{ name: 'Scarecrow', kind: 'd', w: .5, h: .5, fine: true, cost: { wood: 6, fiber: 8 }, desc: 'Scares nobody. The pets think it is a friend.' },
@@ -48,12 +48,12 @@ export const ITEMS = {
   picnic:   { name: 'Picnic Blanket', kind: 'd', w: 1, h: 1, walk: true, cost: { fiber: 12 }, desc: 'A basket, a blanket and a sunny afternoon.' },
   birdbath: { name: 'Bird Bath', kind: 'd', w: .5, h: .5, fine: true, cost: { stone: 8 }, desc: 'A small bird has already moved in.' },
   haybale:  { name: 'Hay Bales', kind: 'd', w: .5, h: .5, fine: true, cost: { fiber: 6 }, desc: 'Stacked up and good for climbing.' },
-  gazebo:   { name: 'Gazebo', kind: 'd', w: 2, h: 2, craft: true, cost: { wood: 40, shells: 10 }, desc: 'A shady pavilion for the middle of the farm.' },
-  swing:    { name: 'Garden Swing', kind: 'd', w: 1, h: 1, craft: true, cost: { wood: 18, fiber: 8, shells: 2 }, desc: 'Sways gently, even with nobody on it.' },
-  lighthouse:{ name: 'Little Lighthouse', kind: 'd', w: 1, h: 1, craft: true, cost: { stone: 30, coal: 6, shells: 6 }, desc: 'Helps balloons find their way home.' },
-  hotspring:{ name: 'Hot Spring', kind: 'd', w: 2, h: 2, craft: true, cost: { stone: 30, coal: 10 }, desc: 'Warm water and rising steam.' },
-  rainbow:  { name: 'Rainbow Arch', kind: 'd', w: 2, h: 1, walk: true, craft: true, cost: { shells: 12, crystal: 2 }, desc: 'A rainbow that stays put.' },
-  treehouse:{ name: 'Tree House', kind: 'd', w: 2, h: 2, craft: true, cost: { wood: 60, fiber: 20, coal: 5 }, desc: 'A hideout up in the branches.' },
+  gazebo:   { name: 'Gazebo', kind: 'd', w: 2, h: 2, craft: 2, cost: { wood: 40, shells: 10 }, desc: 'A shady pavilion for the middle of the farm.' },
+  swing:    { name: 'Garden Swing', kind: 'd', w: 1, h: 1, craft: 1, cost: { wood: 18, fiber: 8, shells: 2 }, desc: 'Sways gently, even with nobody on it.' },
+  lighthouse:{ name: 'Little Lighthouse', kind: 'd', w: 1, h: 1, craft: 2, cost: { stone: 30, coal: 6, shells: 6 }, desc: 'Helps balloons find their way home.' },
+  hotspring:{ name: 'Hot Spring', kind: 'd', w: 2, h: 2, craft: 3, cost: { stone: 30, coal: 10 }, desc: 'Warm water and rising steam.' },
+  rainbow:  { name: 'Rainbow Arch', kind: 'd', w: 2, h: 1, walk: true, craft: 3, cost: { shells: 12, crystal: 2 }, desc: 'A rainbow that stays put.' },
+  treehouse:{ name: 'Tree House', kind: 'd', w: 2, h: 2, craft: 3, cost: { wood: 60, fiber: 20, coal: 5 }, desc: 'A hideout up in the branches.' },
   palbench: { name: "Friends' Bench", kind: 'd', w: 1, h: 1, pals: 5, cost: { wood: 12 }, desc: 'A bench for two. Unlocked by friendship.' },
   palflag:  { name: 'Friendship Flag', kind: 'd', w: .5, h: .5, fine: true, pals: 15, cost: { wood: 6, fiber: 10 }, desc: 'Bunting that says friends live here.' },
   ball:     { name: 'Pet Ball', kind: 'd', w: .5, h: .5, fine: true, walk: true, cost: { fiber: 6 }, desc: 'A toy for the pets.' },
@@ -95,15 +95,18 @@ export const xpFor = lv => 10 + lv * 10; // experience needed to go from lv to l
 export const UP_MAX = 3;
 export const UPGRADES = {
   hut:    { what: 'Two more beds', cost: [{ wood: 40, fiber: 20 }, { wood: 80, fiber: 40, shells: 10 }] },
-  gate:   { what: 'Parties bring back 15% more', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
-  garden: { what: 'Berries ripen 15 minutes sooner', cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
+  gate:   { what: 'One more party can be out exploring', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
+  kitchen:  { what: ['A new recipe: Sunberry Pie', 'A new recipe: Rest Tonic'], cost: [{ wood: 40, stone: 30, shells: 6 }, { wood: 80, stone: 60, coal: 12 }] },
+  workshop: { what: ['A second set of decorations', 'The grandest decorations'], cost: [{ wood: 50, stone: 40, shells: 8 }, { wood: 100, stone: 80, coal: 15, crystal: 1 }] },
+  garden: { what: ['Ripens 15 minutes sooner, and grows a Sunberry each time', 'Ripens 15 minutes sooner again, and grows two Sunberries'], cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
-  nest:   { what: 'Eggs hatch a quarter sooner', cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
+  nest:   { what: ['A second egg slot', 'Eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
   yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
 };
 export const lvOf = item => Math.min(UP_MAX, Math.max(1, item?.lv | 0 || 1));
 export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none
 export const upCost = item => UPGRADES[item.type]?.cost[lvOf(item) - 1] || null; // what the next level costs
+export const whatUp = item => { const w = UPGRADES[item.type]?.what; return Array.isArray(w) ? w[lvOf(item) - 1] : w; }; // what the next level gives
 export const TRAIN_XP = 6; // experience an hour for each pet training at the Training Yard
 export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n + v, 0); // every friendship point earned
 export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
@@ -120,6 +123,8 @@ export const RECIPES = {
   cookie: { name: 'Berry Cookie', cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
   cake:   { name: 'Honey Cake', cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
   juice:  { name: 'Berry Juice', cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
+  pie:    { name: 'Sunberry Pie', lv: 2, cost: { sunberry: 3, berries: 6 }, xp: 220, desc: 'Feed it to a pet for 220 experience.' },
+  tonic:  { name: 'Rest Tonic', lv: 3, cost: { sunberry: 4, crystal: 1 }, rest: true, desc: 'A pet that drinks it is rested at once and can go to the Nest again.' },
 };
 export const STORED = ['wood', 'stone', 'fiber', 'shells', 'coal', 'berries'], CAP = { base: 300, barn: 900 }; // the most a farm can hold of each
 export const capOf = f => { const lv = topLv(f, 'barn'); return lv ? CAP.barn + 600 * (lv - 1) : CAP.base; };
