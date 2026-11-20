@@ -10,6 +10,7 @@ export const COAT = {
   puddlepup: ['#e6eef4', '#c3d2de'], bubblefin: ['#ffb14a', '#ffe7b8'], axolily: ['#ffc4d6', '#ffe3ec'], nimbowhale: ['#7fb4e6', '#eaf4ff'],
   zapkit: ['#ffe066', '#fff6c8'], buzzlet: ['#ffd23e', '#fff3c4'], voltvole: ['#f2c9a0', '#fff3df'], glimmoth: ['#d9c9f2', '#fff3df'],
   acornip: ['#c98a55', '#f6dcb8'], lanternail: ['#f2a57a', '#ffe0c2'], ripplet: ['#fff2b0', '#ffffff'], wattbat: ['#8f7fc9', '#e6dcff'], rubblet: ['#b9b2a8', '#8a8794'],
+  bambear: ['#fffaf0', '#ffffff'], sizzlet: ['#e8607a', '#fff0c4'], waddlet: ['#5b7fb8', '#ffffff'], oinkwatt: ['#ffc9c0', '#ffe9a8'], tricerock: ['#b5c9a0', '#f0ead0'],
   pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
 };
 // Coat colour genes. A pet carries two; the one earlier in this list is the one that shows.
@@ -20,7 +21,8 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
   toastoad: 'a pat of butter', flickit: 'a candle flame', magmutt: 'lava rocks', puddlepup: 'seal flippers', bubblefin: 'a sail fin', axolily: 'a lily pad',
   nimbowhale: 'a rain cloud', zapkit: 'a lightning tail', buzzlet: 'buzzy wings', voltvole: 'a spark tuft', glimmoth: 'glowing wings', pebblet: 'pebble spines',
   cragcrab: 'a boulder shell', dustmole: 'a hard hat', geodeer: 'crystal antlers',
-  acornip: 'an acorn cap', lanternail: 'a lantern shell', ripplet: 'a wave curl', wattbat: 'bolt ears', rubblet: 'a gem crown' };
+  acornip: 'an acorn cap', lanternail: 'a lantern shell', ripplet: 'a wave curl', wattbat: 'bolt ears', rubblet: 'a gem crown',
+  bambear: 'a bamboo shoot', sizzlet: 'dragon wings', waddlet: 'a seashell hat', oinkwatt: 'a curly spark tail', tricerock: 'a stone frill' };
 export const TALENTS = [
   { name: 'Early Bird', blurb: 'Always moves first on the first turn of a battle.' },
   { name: 'Forager', blurb: 'Its party brings back 10% more from expeditions.' },
