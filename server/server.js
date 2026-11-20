@@ -8,14 +8,13 @@ import { fileURLToPath } from 'node:url';
 import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
-import * as snackswap from './games/snackswap.js';
 import { cleanAv } from '../public/avatar.js';
 import * as store from './store.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, snackswap };
+const GAMES = { hotpot, marbles };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
@@ -172,12 +171,6 @@ function handle(c, m) {
       if (!mod.cleanOpts && m.opts?.timer !== undefined && [0, 20, 30, 45, 60].includes(+m.opts.timer)) r.opts.timer = +m.opts.timer;
       if (m.priv !== undefined) r.priv = !!m.priv;
       sendRoom(r); broadcastRooms(); return;
-    }
-    case 'room-act': { // game-specific waiting room actions that any player may take (e.g. adding a prompt)
-      const r = rooms.get(c.room); if (!r || r.G?.ph === 'play') return;
-      const out = GAMES[r.game].roomAct?.(r, { id: c.id, name: c.name, host: r.host === c.id }, m.a);
-      if (out === true) sendRoom(r); else if (typeof out === 'string') send(c, { t: 'err', msg: out });
-      return;
     }
     case 'start': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;

@@ -6,8 +6,6 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #2: Marble Rush**, a 3D marble race nobody steers. Every player gets a marble wearing their avatar, bets pretend coins on the winner and watches a randomly generated track (pins, spinners, trapdoors, boost pads) do the rest. It has chaos events, one banana per heat to slip up a rival, and a knockout mode that drops the slowest marble each heat.
 
-**Game #3: Snack Swap**, a party card game. A prompt comes up ("Worst thing to bring to a first date"), everyone secretly plays one silly item card, the cards are shown without names and the table votes for the funniest. It has 36 cute SVG item cards, three chaos cards, custom prompts that anyone can add in the waiting room, and a 3D table where everyone's avatar sits.
-
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
 - Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
 - No dependencies: plain Node.js (20+) server with its own WebSocket code. There is no `npm install` step.
@@ -18,7 +16,7 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 ```bash
 node server/server.js          # http://localhost:8080
-npm test                       # a full Hot Pot game with simulated players, Marble Rush races, then Snack Swap games
+npm test                       # a full Hot Pot game with simulated players, then Marble Rush races
 ```
 
 Open two browser windows (or one normal and one private window) to play against yourself.
@@ -41,15 +39,6 @@ Open two browser windows (or one normal and one private window) to play against 
 - Chaos events (gravity flip, turbo, marblequake, switcheroo) can be switched off by the host.
 - Knockout runs short heats on a fresh track each time. The last marble home is out until one is left.
 - The server runs the physics and streams positions, so everyone sees the same race and nobody can cheat from devtools.
-
-## Snack Swap rules
-
-- 2 to 8 players (or solo against bots). Bots fill the table up to 4, 6 or 8 seats, or stay out when the host picks "No bots". A table always has at least three seats so there is someone to vote for.
-- Everyone holds 6 item cards. Each round has a prompt; play one card, then vote for the funniest card that isn't yours. Every vote is a point.
-- The host chooses 5, 8 or 12 rounds and 30 to 90 seconds to pick and vote. If you run out of time, a random card goes in for you.
-- One chaos card per game each: **Swap Hands** with another player before you play, **Double Down** to score double that round, or **Steal a Vote** from the most popular card while voting. If there is nothing to steal you keep the card.
-- Anyone at the table can add prompts in the waiting room (up to 30). They come up before the built-in ones, and the host can play with only the table's own prompts.
-- Finished games feed the table scoreboard, player stats and XP like the other games: 10 points per vote-point, and a win for whoever tops the table.
 
 ## Deploy on an Oracle Cloud server
 
@@ -141,17 +130,14 @@ server/store.js           saved profiles, accounts and lobby scoreboards
 server/ws.js              tiny WebSocket implementation (RFC 6455)
 server/games/hotpot.js    Hot Pot engine + bots (authoritative)
 server/games/marbles.js   Marble Rush physics, bets, chaos and knockout (authoritative)
-server/games/snackswap.js Snack Swap rounds, votes, chaos cards and custom prompts (authoritative)
 public/index.html         single page app shell
 public/app.js             username, hub, open tables, waiting room
 public/ranks.js           XP curve and rank titles (shared with server)
 public/games/hotpot/      rules (shared with server), SVG food icons, HUD client, 3D scene, styles
 public/games/marbles/     track generator (shared with server), HUD client, 3D scene, styles
-public/games/snackswap/   deck and prompts (shared with server), SVG item cards, HUD client, 3D scene, styles
 deploy/                   systemd unit + Caddyfile
 test/smoke.js             end-to-end Hot Pot test
 test/marbles.js           Marble Rush races on a fake clock + a table over WebSocket
-test/snackswap.js         Snack Swap games on a fake clock + a table with custom prompts over WebSocket
 ```
 
 Hot Pot is an unofficial fan project inspired by Palia's Hotpot minigame, and isn't affiliated with Singularity 6.
