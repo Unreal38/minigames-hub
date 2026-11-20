@@ -16,6 +16,7 @@ export function cleanOpts(o = {}) {
     pawns: +o.pawns === 2 ? 2 : 4,
     head: o.head === 'off' ? 'off' : 'on',
     timer: [0, 10, 20].includes(+o.timer) ? +o.timer : 20,
+    hard: o.hard === 'on' ? 'on' : 'off',
   };
 }
 
@@ -49,6 +50,7 @@ export function create(players, optsIn = {}) {
 
 function pushEv(G, e) { e.n = ++G.evN; G.ev.push(e); if (G.ev.length > 14) G.ev.shift(); }
 const timed = G => G.opts.timer > 0;
+const hard = G => G.opts.hard === 'on';
 const waitFor = (G, now, botMs) => (G.seats[G.turn].bot ? now + botMs : timed(G) ? now + G.opts.timer * 1000 : 0);
 
 function beginTurn(G, now) { G.stage = 'roll'; G.legal = []; G.stageEnd = waitFor(G, now, BOT_MS); }
@@ -60,15 +62,17 @@ export function legalMoves(G, s, die) {
     if (p === HOME || seen.has(p)) return;
     const to = p < 0 ? (die === 6 ? 0 : -1) : p + die;
     if (to < 0 || to > HOME) return; // needs a six to leave the yard; needs the exact number to get home
+    if (hard(G) && to < HOME && G.toks[s].includes(to)) return; // hard mode, one pawn per cell: your own pawn is in the way
     seen.add(p); out.push({ k, from: p, to });
   });
   return out;
 }
 
 // Opposing pawns that would be sent home by seat s landing on place `to`. Two or more together are a block.
+// In hard mode no cell is safe: whoever is standing there is captured.
 function capturesAt(G, s, to) {
   const i = ringIndex(G.seats[s].corner, to);
-  if (i < 0 || safeIndex(i)) return [];
+  if (i < 0 || (safeIndex(i) && !hard(G))) return [];
   const caps = [];
   G.seats.forEach((o, os) => {
     if (os === s) return;
@@ -81,7 +85,7 @@ function capturesAt(G, s, to) {
 // How close an opposing pawn is behind ring cell i (1..6 means it could land here with one roll).
 function threat(G, s, to) {
   const i = ringIndex(G.seats[s].corner, to);
-  if (i < 0 || safeIndex(i)) return 0;
+  if (i < 0 || (safeIndex(i) && !hard(G))) return 0;
   let n = 0;
   G.seats.forEach((o, os) => {
     if (os === s) return;
@@ -234,7 +238,7 @@ export function view(G, s) {
   const now = Date.now();
   return {
     game: 'ludo', ph: G.ph, stage: G.stage, gid: G.gid, me: s, turn: G.turn, round: G.round,
-    left: G.stageEnd ? Math.max(0, G.stageEnd - now) : -1, timer: G.opts.timer, pawns: G.opts.pawns, tries: G.tries,
+    left: G.stageEnd ? Math.max(0, G.stageEnd - now) : -1, timer: G.opts.timer, pawns: G.opts.pawns, tries: G.tries, hard: hard(G),
     seats: G.seats.map((x, i) => ({ name: x.name, color: x.color, col: x.col, corner: x.corner, av: x.av, bot: x.bot, human: x.human, id: x.id, toks: G.toks[i], st: G.st[i] })),
     roll: G.roll ? { ...G.roll, ago: now - G.roll.at } : null,
     move: G.move ? { ...G.move, ago: now - G.move.at } : null,

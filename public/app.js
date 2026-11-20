@@ -91,11 +91,12 @@ const GAMES = {
   },
   ludo: {
     name: 'Ludo', load: () => import('./games/ludo/client.js'), start: 'Start the game',
-    host: { seats: 4, pawns: 4, head: 'on', timer: 20 }, solo: { seats: 4, pawns: 4, head: 'on', timer: 0 },
+    host: { seats: 4, pawns: 4, head: 'on', timer: 20, hard: 'off' }, solo: { seats: 4, pawns: 4, head: 'on', timer: 0, hard: 'off' },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
       <div class="opt"><b>Pawns each</b><div class="pills">${pill('pawns', 4, 'Classic 4')}${pill('pawns', 2, 'Quick 2')}</div></div>
       <div class="opt"><b>Head start</b><div class="pills">${pill('head', 'on', 'One pawn out')}${pill('head', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Hard mode</b><div class="pills">${pill('hard', 'off', 'Off')}${pill('hard', 'on', 'On')}</div></div>
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 0, 'Off')}</div></div>`,
     howto: `Everyone's avatar sits in their own corner with a set of pawns. Roll the die, walk your pawns once round the board and up your home lane. Land on a rival to send them back to their yard. First to get every pawn home wins.`,
     rules: `<ol>
@@ -106,6 +107,7 @@ const GAMES = {
       <li>Pawns are <b>safe</b> on the star cells and on the coloured start cells. Two of your pawns on the same cell are a <b>block</b> that cannot be captured.</li>
       <li>A <b>6</b>, a capture, or getting a pawn home earns a <b>bonus roll</b>. Three sixes in a row and the turn is over.</li>
       <li>After a full lap a pawn turns up its <b>home lane</b>. It needs the exact number to step into the middle.</li>
+      <li><b>Hard mode</b>: only <b>one pawn per cell</b>, and <b>nowhere is safe</b>. You cannot move onto your own pawn, so there are no blocks. Any rival you land on is captured, even on a star or a start cell. If no pawn has a free cell to go to, the roll is lost.</li>
       <li>First to bring <b>every pawn home</b> wins. Everyone else is ranked by how far their pawns got.</li>
     </ol>`,
   },
@@ -826,6 +828,6 @@ addEventListener('hashchange', () => {
   if (validCode(c) && st.name) { send({ t: 'join', code: c }); history.replaceState(null, '', location.pathname); }
 });
 
+const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
 go('hub');
 connect();
-const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
