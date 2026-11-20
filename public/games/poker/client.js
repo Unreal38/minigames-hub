@@ -3,7 +3,7 @@ import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { score, handName, bestFive } from './rules.js';
+import { score, handName, bestFive, catOf, HAND_ORDER } from './rules.js';
 import { cardHtml } from './cards.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -14,6 +14,12 @@ const I = {
   chip: '<svg class="chipi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#7ed3b2" stroke="#3b2219" stroke-width="2.4"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#fff4e2" stroke-width="2.2" stroke-dasharray="3 2.4"/></svg>',
 };
 const STREET = { pre: 'Pre-flop', flop: 'The flop', turn: 'The turn', river: 'The river', show: 'Showdown', deal: 'Shuffling up', end: 'Game over' };
+// Example hands for the rankings panel: [cards, how many of them make the hand] (the rest are dimmed kickers)
+const EX = [['Ah Kh Qh Jh Th', 5], ['9s 8s 7s 6s 5s', 5], ['Qc Qd Qh Qs 7d', 4], ['Kh Kd Ks 4c 4h', 5], ['Ad Jd 8d 6d 2d', 5],
+  ['Tc 9d 8h 7s 6c', 5], ['7h 7c 7d Ks 2h', 3], ['Jc Jh 5d 5s Ah', 4], ['Ts Th 9c 4d 2s', 2], ['As Jd 8c 5h 3s', 1]]
+  .map(([t, n]) => [t.split(' ').map(x => '23456789TJQKA'.indexOf(x[0]) + 13 * 'hdcs'.indexOf(x[1])), n]);
+const RANKS_KEY = 'ct_pk_ranks';
+const store = { get() { try { return localStorage.getItem(RANKS_KEY); } catch { return null; } }, set(v) { try { localStorage.setItem(RANKS_KEY, v); } catch {} } };
 const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 
 let cssLoaded = false;
@@ -36,6 +42,7 @@ export function mount(app, ctx) {
         <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
         <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+      <aside class="ranks" id="pk-ranks" aria-label="Poker hand rankings"></aside>
       <div class="banner" id="pk-banner" aria-live="polite"></div>
       <div class="shout" id="pk-big" aria-live="assertive"></div>
       <div class="dock" id="pk-dock">
@@ -51,10 +58,13 @@ export function mount(app, ctx) {
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0;
   let tagEls = [], tagKey = '', layout = null, raising = false, raiseTo = 0, endsAt = 0, lastTick = -1, myTurnSeen = false;
   let resultsTimer = 0, bigTimer = 0, flat = false;
+  const saved = store.get();
+  let ranksOpen = saved ? saved === '1' : innerWidth > 1100, ranksKey = '';
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
     scene = m.createScene(canvas, { onFrame });
+    ranksKey = ''; renderRanks();
     if (S) { scene.sync(S); dockSize(); }
   }).catch(err => {
     console.warn('3D unavailable', err);
@@ -152,6 +162,25 @@ export function mount(app, ctx) {
     const sl = el.querySelector('input[type=range]'); if (sl && +sl.value !== raiseTo) sl.value = raiseTo;
   }
 
+  // ----- hand rankings panel (left side) -----
+  function myHandIdx() {
+    const my = me(), cards = my?.cards || [];
+    if (!my || my.fold || cards.length !== 2 || cards[0] < 0) return -1;
+    const all = [...cards, ...S.board];
+    if (all.length < 5) return cards[0] % 13 === cards[1] % 13 ? 8 : 9; // pre-flop: a pocket pair or high card
+    const v = score(all), cat = catOf(v);
+    return cat === 8 ? (Math.floor(v / 13 ** 4) % 13 === 12 ? 0 : 1) : 9 - cat;
+  }
+  function renderRanks() {
+    const el = $('pk-ranks'), hi = S ? myHandIdx() : -1, key = ranksOpen + ':' + hi;
+    if (key === ranksKey) return; ranksKey = key;
+    el.classList.toggle('open', ranksOpen);
+    el.innerHTML = `<button type="button" class="rhead" data-a="ranks" aria-expanded="${ranksOpen}"><span>Hand rankings</span><i aria-hidden="true">${ranksOpen ? '−' : '+'}</i></button>
+      ${ranksOpen ? `<ol>${HAND_ORDER.map(([name, how], i) => `<li class="${i === hi ? 'now' : ''}" title="${esc(how)}"><div class="rn"><em>${i + 1}</em><b>${esc(name)}</b>${i === hi ? '<span class="you">You</span>' : ''}</div>
+        <div class="rc">${EX[i][0].map((c, k) => cardHtml(c, { cls: `xs${k >= EX[i][1] ? ' dim' : ''}` })).join('')}</div></li>`).join('')}</ol>` : ''}`;
+    scene?.setInset?.(ranksOpen && innerWidth > 1100 ? el.offsetWidth + 14 : 0);
+  }
+
   function dockSize() {
     const d = $('pk-dock'); if (!d || !scene) return;
     const sizer = d.querySelector('.row2'); // opening the raise slider shouldn't make the table jump
@@ -188,7 +217,7 @@ export function mount(app, ctx) {
 
   function render() {
     if (!S) return;
-    buildTags(); renderTop(); paintTags(); renderMine(); renderActs(); renderBanner();
+    buildTags(); renderTop(); paintTags(); renderMine(); renderRanks(); renderActs(); renderBanner();
     if (flat) onFrame(flatLayout());
     requestAnimationFrame(dockSize);
   }
@@ -310,6 +339,7 @@ export function mount(app, ctx) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a, o = S?.opt;
+    if (a === 'ranks') { sfx.click(); ranksOpen = !ranksOpen; store.set(ranksOpen ? '1' : '0'); renderRanks(); return; }
     if (a === 'fold') { sfx.click(); send({ t: (o?.toCall ?? 0) <= 0 ? 'check' : 'fold' }); if ((o?.toCall ?? 0) <= 0) ctx.toast('No bet to you, so you checked for free.'); }
     else if (a === 'call') { sfx.click(); send({ t: (o?.toCall ?? 0) <= 0 ? 'check' : 'call' }); }
     else if (a === 'raise') {
@@ -345,7 +375,7 @@ export function mount(app, ctx) {
     const b = e.target.closest('.btn, .round, .pills button');
     if (b && !b.disabled && !b.contains(e.relatedTarget)) sfx.hover();
   });
-  const onResize = () => { if (flat && S) onFrame(flatLayout()); dockSize(); };
+  const onResize = () => { if (flat && S) onFrame(flatLayout()); ranksKey = ''; renderRanks(); dockSize(); };
   addEventListener('resize', onResize);
 
   return {
