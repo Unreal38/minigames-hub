@@ -8,6 +8,8 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #3: Texas Hold'em**, cozy no-limit poker for pretend chips at a 3D table with everyone's avatars. Bots fill empty seats, blinds creep up, and the biggest stack after the last hand wins.
 
+**Game #4: Ludo**, the classic race round the board in chunky low-poly 3D, with everyone's avatar sitting in their own corner. Bots fill empty corners, and landing on a rival sends their pawn back to the yard.
+
 **Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush bets them and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
@@ -20,7 +22,7 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 ```bash
 node server/server.js          # http://localhost:8080
-npm test                       # a full Hot Pot game with simulated players, Marble Rush races, poker games, persistence
+npm test                       # a full Hot Pot game with simulated players, Marble Rush races, poker and Ludo games, persistence
 ```
 
 Open two browser windows (or one normal and one private window) to play against yourself.
@@ -53,6 +55,16 @@ Open two browser windows (or one normal and one private window) to play against 
 - The turn timer (20/30/45 s or off) checks for you if it's free, otherwise folds.
 - Someone who joins mid-game can take over a bot's seat (and its chips) from the next hand.
 - The server deals and keeps every hand secret until the showdown, so nobody can peek from devtools.
+
+## Ludo rules
+
+- 1 to 4 players; bots fill the board up to 2, 3 or 4 corners (host's choice). Each corner takes its player's colour (a spare colour if two are too alike).
+- Classic is 4 pawns each, Quick is 2. With "head start" on, everyone begins with one pawn already on the board.
+- A pawn needs a 6 to leave the yard. With nothing on the board you get up to three tries. If more than one pawn can move you choose; otherwise it moves by itself.
+- Landing on a single rival pawn sends it back to its yard. Star cells and start cells are safe, and two of your own pawns on one cell cannot be captured.
+- A 6, a capture or a pawn getting home earns a bonus roll; three sixes in a row ends the turn.
+- A pawn needs the exact number to step home. First to get every pawn home wins, and the rest are ranked by how far their pawns got.
+- Someone who joins mid-game can take over a bot's corner when the current round of turns ends.
 
 ## Pet Farm
 

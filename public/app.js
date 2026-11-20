@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, farmArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -87,6 +87,26 @@ const GAMES = {
       <li>Best to worst: royal flush, straight flush, four of a kind, full house, flush, straight, three of a kind, two pair, pair, high card.</li>
       <li>Blinds go up every 4 hands. Lose all your chips and you're out. After the last hand (or when one player has everything) the biggest stack wins.</li>
       <li>Your best hand is shown under your cards. Shortcuts: <b>F</b> fold, <b>C</b> check or call, <b>R</b> raise.</li>
+    </ol>`,
+  },
+  ludo: {
+    name: 'Ludo', load: () => import('./games/ludo/client.js'), start: 'Start the game',
+    host: { seats: 4, pawns: 4, head: 'on', timer: 20 }, solo: { seats: 4, pawns: 4, head: 'on', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Pawns each</b><div class="pills">${pill('pawns', 4, 'Classic 4')}${pill('pawns', 2, 'Quick 2')}</div></div>
+      <div class="opt"><b>Head start</b><div class="pills">${pill('head', 'on', 'One pawn out')}${pill('head', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Everyone's avatar sits in their own corner with a set of pawns. Roll the die, walk your pawns once round the board and up your home lane. Land on a rival to send them back to their yard. First to get every pawn home wins.`,
+    rules: `<ol>
+      <li>Every player has a <b>corner</b> in their own colour with their avatar and their pawns. Empty corners are played by bots.</li>
+      <li>On your turn, <b>roll the die</b>. A pawn needs a <b>6</b> to leave the yard. With nothing on the board you get up to three tries.</li>
+      <li>If more than one pawn can move, <b>tap the one you want</b> (or use the buttons). If only one can move, it goes by itself.</li>
+      <li>Land on a single rival pawn to <b>capture</b> it: it goes back to its yard.</li>
+      <li>Pawns are <b>safe</b> on the star cells and on the coloured start cells. Two of your pawns on the same cell are a <b>block</b> that cannot be captured.</li>
+      <li>A <b>6</b>, a capture, or getting a pawn home earns a <b>bonus roll</b>. Three sixes in a row and the turn is over.</li>
+      <li>After a full lap a pawn turns up its <b>home lane</b>. It needs the exact number to step into the middle.</li>
+      <li>First to bring <b>every pawn home</b> wins. Everyone else is ranked by how far their pawns got.</li>
     </ol>`,
   },
 };
@@ -387,6 +407,14 @@ function renderHub() {
           </div>
         </article>
         <article class="gcard">
+          <div class="pic ludopic">${ludoArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Ludo</h3><span class="tag">1–4 players</span></div>
+            <p>Race your pawns round a chunky 3D board and bump your friends back to their yard. Sixes, stars and sweet revenge.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="ludo">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="ludo">Play with bots</button></div>
+          </div>
+        </article>
+        <article class="gcard">
           <div class="pic farmpic">${farmArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Pet Farm</h3><span class="tag">Your own farm</span></div>
@@ -480,7 +508,7 @@ function watchPaint() {
   const on = !!(st.game && me?.watch && st.lastState?.ph === 'play');
   $watch.hidden = !on; if (!on) return;
   // When a watcher gets in depends on the game: Hot Pot and Marble Rush at the next game,
-  // Snakes & Ladders when the current round of turns ends, poker at the next hand.
+  // Snakes & Ladders and Ludo when the current round of turns ends, poker at the next hand.
   const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
   const bots = (st.lastState.seats || []).filter(s => !s.human).length;
   const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;

@@ -105,6 +105,31 @@ export function pokerArt() {
   ${stack(54, 118, 4, '#ff8fab', '#fff4e2')}${stack(86, 128, 2, '#7ed3b2', '#fff4e2')}${stack(262, 120, 5, '#3b2219', '#ffb547')}${stack(234, 132, 2, '#9b6fd6', '#fff4e2')}</svg>`;
 }
 
+// Ludo card: the cross-shaped board from above with a few chunky pawns and a die.
+export function ludoArt() {
+  const cols = ['#ff6b6b', '#4db5ff', '#ffc93c', '#5fd08a'], u = 9, o = `stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"`;
+  let cells = '';
+  for (let r = 0; r < 15; r++) for (let c = 0; c < 15; c++) {
+    const arm = (c > 5 && c < 9) || (r > 5 && r < 9); if (!arm || (c > 5 && c < 9 && r > 5 && r < 9)) continue;
+    const lane = r === 7 ? (c < 6 && c > 0 ? 0 : c > 8 && c < 14 ? 2 : -1) : c === 7 ? (r < 6 && r > 0 ? 1 : r > 8 && r < 14 ? 3 : -1) : -1;
+    const start = c === 1 && r === 6 ? 0 : c === 8 && r === 1 ? 1 : c === 13 && r === 8 ? 2 : c === 6 && r === 13 ? 3 : -1;
+    cells += `<rect x="${c * u}" y="${r * u}" width="${u}" height="${u}" fill="${lane >= 0 ? cols[lane] : start >= 0 ? cols[start] : (r + c) % 2 ? '#f3e0c6' : '#e8cfae'}" stroke="#3b221944" stroke-width="1"/>`;
+  }
+  const yard = (x, y, c) => `<rect x="${x + 3}" y="${y + 3}" width="48" height="48" rx="5" fill="${c}" ${o}/><rect x="${x + 13}" y="${y + 13}" width="28" height="28" rx="3" fill="#fff4e2"/>`;
+  const pawn = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" ${o}><path d="M-11 0h22v6h-22zM-7 0l4-16h6l4 16zM0-31l8 6-3 9h-10l-3-9z" fill="${c}"/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A Ludo board with coloured corners, chunky pawns and a die">
+  <rect width="320" height="150" fill="#3d1f33"/>
+  <circle cx="26" cy="24" r="6" fill="#ffc93c"/><circle cx="298" cy="122" r="6" fill="#5fd08a"/><circle cx="290" cy="22" r="5" fill="#ff6b6b"/>
+  <g transform="translate(92 6) rotate(-6 68 68)">
+    <rect x="-5" y="-5" width="145" height="145" rx="9" fill="#7a4a2b" ${o}/>
+    ${yard(0, 0, cols[0])}${yard(81, 0, cols[1])}${yard(81, 81, cols[2])}${yard(0, 81, cols[3])}${cells}
+    <path d="M54 54l13.5 13.5L54 81z" fill="${cols[0]}"/><path d="M54 54h27L67.5 67.5z" fill="${cols[1]}"/><path d="M81 54v27L67.5 67.5z" fill="${cols[2]}"/><path d="M54 81h27L67.5 67.5z" fill="${cols[3]}"/>
+    <rect x="54" y="54" width="27" height="27" fill="none" stroke="${ink}" stroke-width="2"/>
+  </g>
+  ${pawn(58, 112, cols[0], 1.25)}${pawn(196, 66, cols[2], .8)}${pawn(126, 46, cols[1], .7)}${pawn(152, 118, cols[3], .85)}
+  <g transform="translate(262 84) rotate(12)" ${o}><rect x="-17" y="-17" width="34" height="34" rx="5" fill="#fff8ec"/><g fill="${ink}" stroke="none"><rect x="-11" y="-11" width="6" height="6"/><rect x="5" y="-11" width="6" height="6"/><rect x="-3" y="-3" width="6" height="6"/><rect x="-11" y="5" width="6" height="6"/><rect x="5" y="5" width="6" height="6"/></g></g></svg>`;
+}
+
 // Pet Farm card: a low-poly island with a farmhouse and a Mossbun.
 export function farmArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
