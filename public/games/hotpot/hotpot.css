@@ -149,7 +149,7 @@ body.in-game #toasts { top: 26%; }
 body.in-game #chat { right: 14px; bottom: 14px; }
 @media (max-width: 760px) { body.in-game #chat { right: 8px; bottom: calc(clamp(40px, 10.6vw, 64px) * 1.38 + 50px); } body.in-game .chatbtn .lbl { display: none; } body.in-game .chatbtn { padding: 6px 10px; min-height: 40px; } }
 
-/* cards in your hand breathe a little, and wiggle when you point at them */
-.hand .card svg { animation: fxbob 3.2s ease-in-out infinite; } .hand .card:nth-child(2n) svg { animation-delay: -1.1s; } .hand .card:nth-child(3n) svg { animation-delay: -2.2s; }
+/* cards wiggle when you point at them */
 .hand.pick .card:hover svg, .card.takeable:hover svg { animation: fxwiggle .5s ease-in-out infinite; }
 .emotes button:hover svg { animation: fxwiggle .5s ease-in-out infinite; }
+.round.gfx { font-family: var(--fd); font-weight: 600; font-size: 13px; }

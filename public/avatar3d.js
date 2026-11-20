@@ -3,7 +3,8 @@
 //                           userData = { head, eyes, body, arms } for animation.
 //   animateAvatar(g, T, { seed, active, hop, look, nod })  idle sway, blinking, breathing and a squashy hop;
 //                           look turns the head (radians), nod dips it (0..1).
-//   disposeAvatar(g)     frees its materials (geometries are shared between avatars).
+//   disposeAvatar(g)     frees its materials and baked geometry.
+//   bake(root)           merges a group's static meshes into a few (see below); any 3D game can use it on its props.
 import * as THREE from 'three';
 import { SKINS, HAIR_COLS, cleanAv } from './avatar.js';
 
@@ -15,7 +16,7 @@ const geo = (type, ...a) => {
   if (!g) geos.set(k, g = new THREE[type + 'Geometry'](...a));
   return g;
 };
-const sph = r => geo('Sphere', r, 20, 16);
+const sph = r => geo('Sphere', r, r < .1 ? 10 : 14, r < .1 ? 8 : 10);
 
 // Pear-shaped torso profile [radius, y], smoothed. Outfit pieces hug it through rAt().
 const TORSO = new THREE.SplineCurve([[0, -.84], [.34, -.83], [.56, -.74], [.67, -.52], [.7, -.26], [.67, .02], [.6, .3], [.5, .55], [.41, .74], [.36, .86], [.28, .94], [0, .97]]
@@ -40,6 +41,45 @@ const band = (y0, y1, off = .012, phi0 = 0, len = Math.PI * 2) => {
 };
 
 const shade = (c, k) => { const o = new THREE.Color(c); return k < 1 ? o.multiplyScalar(k) : o.lerp(new THREE.Color('#ffffff'), k - 1); };
+
+// Merge the plain meshes under root into one mesh per kind of surface, with the paint moved into vertex colours.
+// A model made of 70 little parts then costs a handful of draw calls instead of 70. Skips anything flagged
+// userData.dyn (and everything inside it), hidden meshes, textured or non-standard materials and instanced meshes.
+const _m = new THREE.Matrix4(), _inv = new THREE.Matrix4();
+export function bake(root) {
+  root.updateWorldMatrix(true, true); _inv.copy(root.matrixWorld).invert();
+  const buckets = new Map(), gone = [];
+  const walk = o => {
+    for (const c of o.children) {
+      if (c.userData.dyn || !c.visible) continue;
+      const mt = c.material;
+      if (c.isMesh && !c.isInstancedMesh && !c.children.length && mt.isMeshStandardMaterial && !mt.map && !mt.vertexColors) {
+        const rough = Math.round(mt.roughness * 5) / 5, metal = Math.round(mt.metalness * 4) / 4, op = mt.transparent ? mt.opacity : 1;
+        const key = [rough, metal, mt.side, op, mt.envMapIntensity, c.castShadow, c.receiveShadow].join();
+        let b = buckets.get(key);
+        if (!b) buckets.set(key, b = { parts: [], n: 0, rough, metal, side: mt.side, op, env: mt.envMapIntensity, cast: c.castShadow, recv: c.receiveShadow });
+        const g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone();
+        g.applyMatrix4(_m.multiplyMatrices(_inv, c.matrixWorld));
+        b.parts.push([g.attributes.position.array, g.attributes.normal.array, mt.color]); b.n += g.attributes.position.count; g.dispose(); gone.push(c);
+      } else walk(c);
+    }
+  };
+  walk(root);
+  for (const m of gone) m.parent.remove(m);
+  for (const b of buckets.values()) {
+    const pos = new Float32Array(b.n * 3), nor = new Float32Array(b.n * 3), col = new Float32Array(b.n * 3); let o = 0;
+    for (const [p, n, c] of b.parts) {
+      pos.set(p, o); nor.set(n, o);
+      for (let i = 0; i < p.length; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; }
+      o += p.length;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: b.rough, metalness: b.metal, side: b.side, transparent: b.op < 1, opacity: b.op, envMapIntensity: b.env }));
+    mesh.castShadow = b.cast; mesh.receiveShadow = b.recv; mesh.userData.baked = true; root.add(mesh);
+  }
+  return root;
+}
 
 export function avatar3d(color, avIn) {
   const [sk, hair, hc, acc, ey, mo, fit, det] = cleanAv(avIn);
@@ -194,8 +234,14 @@ export function avatar3d(color, avIn) {
     }
   }
   g.traverse(m => { if (m.isMesh && !m.material.transparent) m.castShadow = true; });
-  for (const e of eyes) e.userData.sy = e.scale.y;
-  g.userData = { head: hg, eyes, body: bg, arms };
+  for (const e of eyes) { e.userData.sy = e.scale.y; e.userData.dyn = true; e.castShadow = false; }
+  // everything that moves as one piece becomes one mesh per surface: body, head, each arm
+  const used = new Set(); g.traverse(m => { if (m.isMesh && !m.userData.dyn && m.material.isMeshStandardMaterial) used.add(m.material); });
+  for (const a of arms) a.userData.dyn = true;
+  bake(bg); bake(hg);
+  for (const a of arms) { a.userData.dyn = false; bake(a); }
+  for (const m of used) m.dispose();
+  g.userData = { head: hg, eyes, body: bg, arms, dyn: true };
   return g;
 }
 
@@ -217,5 +263,9 @@ export function animateAvatar(g, T, { seed = 0, active = false, hop = 0, look = 
 
 export function disposeAvatar(g) {
   const seen = new Set();
-  g.traverse(m => { if (m.isMesh && !seen.has(m.material)) { seen.add(m.material); m.material.dispose(); } });
+  g.traverse(m => {
+    if (!m.isMesh) return;
+    if (m.userData.baked) m.geometry.dispose();
+    if (!seen.has(m.material)) { seen.add(m.material); m.material.dispose(); }
+  });
 }
