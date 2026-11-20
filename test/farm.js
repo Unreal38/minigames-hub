@@ -377,6 +377,38 @@ if (!r.world[0].friend || r.world[0].name !== 'Bo') fail('friends are not first 
 r = await a.farmDo({ t: 'visit', id: a.friends.friends[0].farm });
 if (r.err || r.visit.name !== 'Bo') fail('visit from the friends list');
 
+// ----- trading -----
+r = await a.farmDo({ t: 'open', test: { give: { wood: 50 }, rested: true } });
+const boId = a.friends.friends[0].farm, tWood = r.farm.inv.wood, spare = r.farm.pets.find(x => !r.farm.def.includes(x.id) && !x.held);
+r = await a.farmDo({ t: 'offer', to: boId, give: {}, want: {} });
+if (!r.err) fail('empty offer accepted');
+r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 99999 } }, want: {} });
+if (!r.err) fail('offered more than owned');
+r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 20 } }, want: { mats: { coins: 1 } } });
+if (r.err || r.farm.inv.wood !== tWood - 20 || r.farm.trades[0]?.dir !== 'out') fail('offer ' + JSON.stringify(r.err || r.farm.trades));
+r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 1 } }, want: {} });
+if (!r.err) fail('two offers to one farm');
+r = await b.farmDo({ t: 'open' });
+const offer1 = r.farm.trades.find(x => x.dir === 'in');
+if (!offer1 || offer1.who !== 'Ana' || offer1.give.mats.wood !== 20) fail('incoming offer ' + JSON.stringify(r.farm.trades));
+r = await b.farmDo({ t: 'tradeans', id: offer1.id, ok: false });
+if (r.err || r.farm.trades.length) fail('decline ' + r.err);
+r = await a.farmDo({ t: 'open' });
+if (r.farm.inv.wood !== tWood || r.farm.trades.length) fail('declined offer did not come back');
+if (!spare) fail('no spare pet to trade');
+r = await a.farmDo({ t: 'offer', to: boId, give: { pets: [spare.id], mats: { wood: 5 } }, want: { mats: { coins: 2 } } });
+if (r.err || !r.farm.pets.find(x => x.id === spare.id).held) fail('pet offer ' + r.err);
+r = await a.farmDo({ t: 'tradecancel', id: r.farm.trades[0].id });
+if (r.err || r.farm.pets.find(x => x.id === spare.id).held || r.farm.inv.wood !== tWood) fail('cancel ' + r.err);
+r = await a.farmDo({ t: 'offer', to: boId, give: { pets: [spare.id], mats: { wood: 5 } }, want: { mats: { coins: 2 } } });
+await b.farmDo({ t: 'open', test: { give: { wood: 100, stone: 100, coins: 10 } } });
+r = { err: 1 }; for (let y = 0; y < 9 && r.err; y++) for (let x = 0; x < 9 && r.err; x++) { r = await b.farmDo({ t: 'place', type: 'hut', x, y, r: 0 }); await wait(30); }
+const bCoins = b.farm.inv.coins, bPets = b.farm.pets.length, aPets = a.farm.pets.length, aCoins = a.farm.inv.coins;
+r = await b.farmDo({ t: 'tradeans', id: b.farm.trades[0].id, ok: true });
+if (r.err || r.farm.pets.length !== bPets + 1 || r.farm.inv.coins !== bCoins - 2 || !r.farm.pets.some(x => x.id === spare.id && x.first === 'ana' && !x.held)) fail('accept ' + JSON.stringify(r.err));
+r = await a.farmDo({ t: 'open' });
+if (r.farm.pets.length !== aPets - 1 || r.farm.inv.coins !== aCoins + 2 || r.farm.trades.length) fail('trade did not settle for the sender');
+
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);
 await stop(); await boot();

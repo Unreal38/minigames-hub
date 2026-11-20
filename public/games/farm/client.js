@@ -58,7 +58,7 @@ export function mount(app, ctx) {
   ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', true); }, 4000); } };
   let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
   let B = null, shown = null, playing = false, foes = null, line = '';
-  let mapShown = null;
+  let mapShown = null, counter = null; // counter: an offer to pre-fill once we have walked to the other farm
   let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [];
 
   import('./scene3d.js').then(m => {
@@ -103,6 +103,7 @@ export function mount(app, ctx) {
       el.innerHTML = `<button type="button" class="btn big" data-a="map">Back to the map</button>
         <button type="button" class="btn m" data-a="help" ${V.helps > 0 ? '' : 'disabled'}>Help out (${V.helps} left)</button>
         <button type="button" class="btn m" data-a="giftopen" ${V.gift ? '' : 'disabled'}>${V.gift ? 'Leave a gift' : 'Gift left today'}</button>
+        <button type="button" class="btn w" data-a="trade">Trade</button>
         ${countOf(F, 'flag') && V.team ? '<button type="button" class="btn w" data-a="duel">Challenge</button>' : ''}
         ${V.pal ? `<span class="chip">Friendship ${V.pal}</span>` : ''}`;
       return;
@@ -116,7 +117,7 @@ export function mount(app, ctx) {
       <button type="button" class="btn w" data-a="map">World map</button>
       <button type="button" class="btn w" data-a="friends">Friends</button>
       <button type="button" class="btn w" data-a="album">Pet Album</button>
-      ${F.mail.length ? `<button type="button" class="btn w" data-a="mail">Mail ${F.mail.length}</button>` : ''}
+      ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">Mail ${F.mail.length + F.trades.filter(t => t.dir === 'in').length || ''}</button>` : ''}
       ${F.nest ? (F.nest.stage === 'ready' ? '<button type="button" class="btn m" data-a="hatch">Hatch the egg</button>' : `<span class="chip" id="pf-nest">${F.nest.stage === 'cuddle' ? 'Egg in' : 'Hatches in'} ${wait(F.nest.left)}</span>`) : ''}`;
   }
   // ---------- expeditions ----------
@@ -145,14 +146,31 @@ export function mount(app, ctx) {
         <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button></div></div>`;
       return;
     }
+    if (panel.kind === 'trade') { // build an offer for the farm being visited
+      const T = panel, away = F.trip?.left > 0 ? F.trip.pets : [];
+      const petBtn = (x, sideKey, off) => `<button type="button" class="pickpet${off ? ' off' : ''}" data-a="tradepet" data-side="${sideKey}" data-id="${x.id}" aria-pressed="${T[sideKey].pets.includes(x.id)}">${petRow(x, off ? ' · ' + off : '')}</button>`;
+      const mats = (sideKey, inv) => Object.keys(MATS).filter(k => BASIC.includes(k) || (inv ? inv[k] : true)).map(k => `<label class="tm"><i style="background:${MAT_COL[k]}"></i>${MATS[k]}<input class="field" type="number" inputmode="numeric" min="0" max="${inv ? inv[k] || 0 : 9999}" data-tm="${sideKey}" data-mat="${k}" value="${T[sideKey].mats[k] || ''}" placeholder="0" aria-label="${MATS[k]}"></label>`).join('');
+      const mine = F.pets.map(x => petBtn(x, 'give', x.held ? 'promised' : away.includes(x.id) ? 'exploring' : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
+      const theirs = V.pets.map(x => petBtn(x, 'want', x.can ? '' : 'staying')).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Trade with ${esc(V.name)}</h2>
+        <p>Offer pets, materials or coins and say what you would like back. What you offer is set aside until ${esc(V.name)} answers from their Mailbox, or for a week.</p>
+        <p><b>You give</b></p><div class="party">${mine}</div><div class="tmrow">${mats('give', F.inv)}</div>
+        <p><b>You ask for</b></p><div class="party">${theirs || '<span class="hint">Their pets are all away.</span>'}</div><div class="tmrow">${mats('want', null)}</div>
+        <div class="row end stick"><button type="button" class="btn w" data-a="shut">Not now</button><button type="button" class="btn big m" data-a="offer">Send the offer</button></div></div>`;
+      return;
+    }
     if (panel.kind === 'mail') {
       const box2 = !!countOf(F, 'mailbox');
       const rows = F.mail.map(m => { const got = m.got && Object.entries(m.got).map(([k, n]) => mat(k, n)).join('');
-        const text = m.k === 'gift' ? `<b>A gift from ${esc(m.from)}</b>` : m.k === 'help' ? `<b>${esc(m.from)} helped out</b><small>${m.n} ${m.n === 1 ? 'time' : 'times'} today. Thank them with a visit.</small>`
+        const text = m.k === 'gift' ? `<b>A gift from ${esc(m.from)}</b>` : m.k === 'note' ? `<b>${esc(m.text)}</b>` : m.k === 'date' ? `<b>${esc(m.from)} came for a playdate with ${esc(m.pet)}</b><small>A thank-you is inside.</small>` : m.k === 'help' ? `<b>${esc(m.from)} helped out</b><small>${m.n} ${m.n === 1 ? 'time' : 'times'} today. Thank them with a visit.</small>`
           : `<b>${esc(m.from)} challenged your farm</b><small>${m.held ? 'Your team held. You earned 5 coins.' : 'Your team lost this one. Nothing was taken.'}</small>`;
         return `<div class="letter"><div>${text}${got ? `<div class="mats">${got}</div>` : ''}</div>${m.got ? `<button type="button" class="btn sm m" data-a="claim" data-id="${m.id}" ${box2 ? '' : 'disabled'}>Open</button>` : ''}</div>`; }).join('');
+      const side = x => [...x.pets.map(q => q ? `<span class="kin">${face(q)}<small>${esc(q.name)}<br>level ${q.lv}</small></span>` : '<span class="kin"><span class="nothumb">?</span><small>a pet that moved on</small></span>'), ...Object.entries(x.mats).map(([k, n]) => mat(k, n))].join('') || '<span class="hint">nothing</span>';
+      const deals = F.trades.map(t => `<div class="letter deal"><div><b>${t.dir === 'in' ? `${esc(t.who)} offers a trade` : `Your offer to ${esc(t.who)}`}</b><small>${t.dir === 'in' ? 'Answer' : 'Waits'} for ${t.left > 36 * 3600000 ? Math.round(t.left / 86400000) + ' days' : wait(t.left)} more.</small>
+          <div class="swap"><div><small>${t.dir === 'in' ? 'You get' : 'You give'}</small><div class="mats">${side(t.give)}</div></div><div><small>${t.dir === 'in' ? 'You give' : 'You get'}</small><div class="mats">${side(t.want)}</div></div></div></div>
+          <div class="dealbtns">${t.dir === 'in' ? `<button type="button" class="btn sm m" data-a="tradeyes" data-id="${t.id}">Accept</button><button type="button" class="btn sm w" data-a="tradecounter" data-id="${t.id}">Counter</button><button type="button" class="btn sm ghost-ink" data-a="tradeno" data-id="${t.id}">Decline</button>` : `<button type="button" class="btn sm w" data-a="tradecancel" data-id="${t.id}">Take it back</button>`}</div></div>`).join('');
       box.innerHTML = `<div class="panel tripp"><h2>Mailbox</h2>${box2 ? '' : '<p>Build a Mailbox on your farm to open gifts.</p>'}
-        ${rows || '<p class="hint">Nothing new. Gifts and news from neighbours land here.</p>'}
+        ${deals}${rows || (deals ? '' : '<p class="hint">Nothing new. Gifts, trade offers and news from neighbours land here.</p>')}
         <div class="row end">${box2 && F.mail.some(m => !m.got) ? '<button type="button" class="btn w" data-a="mailread">Clear the news</button>' : ''}<button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
       return;
     }
@@ -460,6 +478,11 @@ export function mount(app, ctx) {
   }
   function goHome() { where = 'home'; V = null; card = null; panel = null; sync(); }
   function setEdit(on) { if (B || where !== 'home') return; edit = on; card = null; panel = null; if (!on) scene?.ghostCancel(); sync(); }
+  root.addEventListener('input', e => { // amounts in a trade offer: remembered without repainting, so typing is not interrupted
+    const i = e.target.closest('[data-tm]'); if (!i || panel?.kind !== 'trade') return;
+    const n = Math.max(0, Math.min(+i.max || 9999, Math.floor(+i.value || 0))), m = panel[i.dataset.tm].mats;
+    if (n) m[i.dataset.mat] = n; else delete m[i.dataset.mat];
+  });
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
@@ -473,6 +496,22 @@ export function mount(app, ctx) {
     else if (a === 'done') setEdit(false);
     else if (a === 'map') { where = 'map'; V = null; world = null; card = null; panel = null; sync(); ctx.send({ t: 'world' }); }
     else if (a === 'gohome') goHome();
+    else if (a === 'trade') { panel = { kind: 'trade', give: { pets: [], mats: {} }, want: { pets: [], mats: {} } }; card = null; sync(); }
+    else if (a === 'tradepet') {
+      if (b.classList.contains('off')) return ctx.toast('That pet cannot be traded right now.', true);
+      const list = panel[b.dataset.side].pets, i = list.indexOf(b.dataset.id);
+      if (i >= 0) list.splice(i, 1); else if (list.length < 3) list.push(b.dataset.id); else return ctx.toast('Three pets a side at most.', true);
+      sync();
+    }
+    else if (a === 'offer') ctx.send({ t: 'offer', to: V.id, give: panel.give, want: panel.want });
+    else if (a === 'tradeyes') ctx.send({ t: 'tradeans', id: b.dataset.id, ok: true });
+    else if (a === 'tradeno') ctx.send({ t: 'tradeans', id: b.dataset.id, ok: false });
+    else if (a === 'tradecancel') ctx.send({ t: 'tradecancel', id: b.dataset.id });
+    else if (a === 'tradecounter') { // say no, walk over and start a new offer the other way round
+      const t = F.trades.find(x => x.id === b.dataset.id); if (!t) return;
+      counter = { give: { pets: t.want.pets.filter(Boolean).map(x => x.id), mats: { ...t.want.mats } }, want: { pets: t.give.pets.map(x => x.id), mats: { ...t.give.mats } } };
+      ctx.send({ t: 'tradeans', id: t.id, ok: false }); setTimeout(() => ctx.send({ t: 'visit', id: t.fid }), 150);
+    }
     else if (a === 'friends') ctx.friends?.();
     else if (a === 'help') ctx.send({ t: 'help', id: V.id });
     else if (a === 'giftopen') { panel = { kind: 'gift' }; card = null; sync(); }
@@ -574,7 +613,7 @@ export function mount(app, ctx) {
     if (m.need) { F = null; B = null; mode = m.need; edit = false; sync(); return; }
     if (m.foes) foes = m.foes;
     if (m.world) world = m.world;
-    if (m.visit) { V = { ...m.visit, trip: null }; if (where !== 'visit') { where = 'visit'; card = null; panel = null; } }
+    if (m.visit) { V = { ...m.visit, trip: null }; if (where !== 'visit') { where = 'visit'; card = null; panel = null; } if (counter) { panel = { kind: 'trade', ...counter }; counter = null; } }
     if (m.farm) { F = m.farm; tripAt = Date.now() + (F.trip?.left || 0); nestAt = Date.now() + (F.nest?.left || 0); }
     if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
       const starting = !B && m.battle;
@@ -603,6 +642,10 @@ export function mount(app, ctx) {
     else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');
+    else if (m.did === 'offer') { sfx.join(); panel = null; ctx.toast(`Your offer is on its way to ${esc(V?.name || 'them')}.`); }
+    else if (m.did === 'tradeyes') { sfx.win(); ctx.toast('Trade done! Your new things are on the farm.'); }
+    else if (m.did === 'tradeno' && !counter) ctx.toast('Offer declined. Everything went back.');
+    else if (m.did === 'tradecancel') ctx.toast('You took the offer back.');
     else if (m.did === 'pair') { sfx.join(); panel = null; if (where === 'visit') goHome(); ctx.toast(`They are cuddling in the Nest. An egg appears in ${CUDDLE_H} hours.`); }
     else if (m.did === 'hatch') { sfx.win(); card = null; panel = { kind: 'born', id: m.born }; }
     if (first) { pick = null; edit = false; }
