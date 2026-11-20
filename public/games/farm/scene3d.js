@@ -248,7 +248,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!farm) { for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); return; }
     walkGrid = blockedTiles(farm);
     const seen = new Set();
-    const house = farm.items.find(i => i.type === 'house');
+    const house = farm.items.find(i => i.type === 'house'), yard = farm.items.find(i => i.type === 'yard');
     for (const pet of farm.pets) {
       if ((farm.trips || (farm.trip ? [farm.trip] : [])).some(t => t.pets.includes(pet.id))) continue; // away on an expedition
       seen.add(pet.id);
@@ -261,6 +261,13 @@ export function createScene(canvas, { onPick, onGhost }) {
         p = addPet(pet.id, pet.sp, form, wx(t[0]), wz(t[1]), pet.look);
       }
       p.open = !!pet.open;
+      // in training: it has a spot of its own at the Training Yard and stays there
+      const ti = yard ? (farm.train?.ids || []).indexOf(pet.id) : -1;
+      if (ti >= 0) {
+        const [lx, lz, f] = [[-.15, -.2, -Math.PI / 2], [.7, .62, Math.PI], [.35, -.55, -Math.PI / 2]][ti % 3], [w, h] = footprint('yard', yard.r), a = -yard.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a);
+        p.train = { x: wx(yard.x, w) + lx * c + lz * sn, z: wz(yard.y, h) - lx * sn + lz * c, face: f + a, k: ti }; p.path = []; continue;
+      }
+      p.train = null;
       // standing where something was just built: step aside
       const [tx, ty] = tileOf(p);
       if (walkGrid[ty * N + tx]) { const t = freeTileNear(tx, ty); if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = []; }
@@ -289,7 +296,13 @@ export function createScene(canvas, { onPick, onGhost }) {
   function movePets(dt, T) {
     for (const p of pets.values()) {
       let moving = false;
+      let drill = 0;
       if (p.fixed) { /* starter on show */ }
+      else if (p.train) { // drills on the spot: a run-up hop at the dummy, a jump over the hurdle, or quick hops
+        const t = p.train, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
+        if (d > .05) { const step = Math.min(d, 2.5 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = true; }
+        else { const u = (T * (t.k === 1 ? .9 : 1.3) + p.seed) % 1; p.face = t.face; drill = Math.sin(u * Math.PI) * (t.k === 1 ? .45 : .22); if (t.k !== 1) { const lunge = Math.sin(u * Math.PI) * .22; p.lx = Math.sin(t.face) * lunge; p.lz = Math.cos(t.face) * lunge; } }
+      }
       else if (p.path.length) {
         const [tx, ty] = p.path[0], gx = wx(tx), gz = wz(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = 1.25 * dt;
         if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) p.wait = 1.5 + Math.random() * 4; }
@@ -299,7 +312,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.hop = Math.max(0, p.hop - dt * 1.6);
       const bounce = moving ? Math.abs(Math.sin(T * 9 + p.seed)) * .1 : 0, cheer = p.hop ? Math.abs(Math.sin(p.hop * Math.PI * 3)) * .35 * p.hop : 0;
       const breathe = 1 + Math.sin(T * 2.2 + p.seed) * .025, b = p.g.userData.base;
-      p.g.position.set(p.x, bounce + cheer, p.z);
+      p.g.position.set(p.x + (drill ? p.lx || 0 : 0), bounce + cheer + drill, p.z + (drill ? p.lz || 0 : 0));
       let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 8);
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
       const blink = (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
