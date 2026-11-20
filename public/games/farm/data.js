@@ -69,6 +69,9 @@ export const petRoom = farm => 2 + 4 * farm.items.filter(i => i.type === 'hut').
 export const HOUSE_MAX = 4;
 export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 }];
 
+// What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
+export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, coins: 10 };
+
 // ---------- expeditions ----------
 // A party of 1 to 3 pets flies to a zone and comes back with materials. Nothing can go wrong on a trip.
 // gives: materials per pet per hour. house: farmhouse level that opens the zone. wild: species found there and how often.

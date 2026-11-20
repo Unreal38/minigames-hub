@@ -258,6 +258,56 @@ if (r.err || r.farm.def.length !== 1 || r.farm.def[0] !== mine[1]) fail('defend'
 r = await a.farmDo({ t: 'defend', pets: ['nope'] });
 if (!r.err) fail('defend with a stranger');
 
+// neighbours: world map, visiting, helping, gifts and mail
+b.farmDo = async x => { b.last = null; b.send({ t: 'farm', a: x }); await until(() => b.last, 'farm reply to ' + x.t); return b.last; };
+r = await b.farmDo({ t: 'open' });
+if (r.farm.mail.length !== 1 || r.farm.mail[0].k !== 'battle' || r.farm.mail[0].from !== 'Ana') fail('defender got no battle report ' + JSON.stringify(r.farm.mail));
+r = await b.farmDo({ t: 'world' });
+const ana = r.world.find(x => x.name === 'Ana');
+if (r.world.length !== 1 || !ana || ana.helps !== 5 || !ana.gift || ana.items.length !== a.farm.items.length || JSON.stringify(r.world).includes('"inv"')) fail('world ' + JSON.stringify(r.world).slice(0, 300));
+r = await b.farmDo({ t: 'visit', id: 'nobody' });
+if (!r.err) fail('visited a farm that does not exist');
+r = await b.farmDo({ t: 'visit', id: ana.id });
+if (r.err || r.visit.name !== 'Ana' || r.visit.pets.length !== a.farm.pets.length || r.visit.pets[0].xp !== undefined) fail('visit ' + JSON.stringify(r));
+// helping: coins for the helper, and Ana's party comes home sooner
+await a.farmDo({ t: 'send', zone: 'woods', trip: 'outing', pets: [mine[0]] });
+const left0 = a.farm.trip.left, bc = b.farm.inv.coins;
+for (let i = 0; i < 5; i++) { r = await b.farmDo({ t: 'help', id: ana.id }); if (r.err) fail('help ' + i + ' ' + r.err); }
+if (r.visit.helps !== 0 || r.farm.inv.coins !== bc + 15) fail('help count or coins');
+r = await b.farmDo({ t: 'help', id: ana.id });
+if (!r.err || r.farm.inv.coins !== bc + 15) fail('sixth help accepted');
+r = await a.farmDo({ t: 'open' });
+if (r.farm.trip.left > left0 - 49 * 60_000) fail('helps did not shorten the trip: ' + (left0 - r.farm.trip.left));
+if (r.farm.mail.filter(m => m.k === 'help').length !== 1 || r.farm.mail.find(m => m.k === 'help').n !== 5) fail('help note ' + JSON.stringify(r.farm.mail));
+await a.farmDo({ t: 'collect', test: { home: true, trips: 5 } });
+// gifts: paid by the giver, opened from the mailbox
+const bw = b.farm.inv.wood, aw = a.farm.inv.wood;
+r = await b.farmDo({ t: 'gift', id: ana.id, mat: 'crystal' });
+if (!r.err) fail('gave crystal without having any');
+r = await b.farmDo({ t: 'gift', id: ana.id, mat: 'wood' });
+if (r.err || r.farm.inv.wood !== bw - 10 || r.visit.gift || r.visit.pal !== 1 || r.farm.pals[ana.id] !== 1) fail('gift ' + JSON.stringify(r.err));
+r = await b.farmDo({ t: 'gift', id: ana.id, mat: 'wood' });
+if (!r.err || r.farm.inv.wood !== bw - 10) fail('second gift the same day');
+r = await a.farmDo({ t: 'open' });
+const gift = r.farm.mail.find(m => m.k === 'gift');
+if (!gift || gift.got.wood !== 10 || gift.from !== 'Bo') fail('gift not in the mailbox');
+for (const i of a.farm.items.filter(i => i.type === 'mailbox')) await a.farmDo({ t: 'remove', id: i.id });
+r = await a.farmDo({ t: 'claim', id: gift.id });
+if (!r.err) fail('opened mail without a mailbox');
+await a.farmDo({ t: 'open', test: { give: { wood: 50 } } });
+for (let y = 0; y < 12 && (y === 0 || r.err); y++) for (let x = 0; x < 12 && (x + y === 0 || r.err); x++) r = await a.farmDo({ t: 'place', type: 'mailbox', x, y, r: 0 });
+if (r.err) fail('no room for a mailbox');
+const w1 = a.farm.inv.wood;
+r = await a.farmDo({ t: 'claim', id: gift.id });
+if (r.err || r.farm.inv.wood !== w1 + 10 || r.farm.mail.some(m => m.k === 'gift')) fail('claim ' + JSON.stringify(r.err));
+r = await a.farmDo({ t: 'claim', id: gift.id });
+if (!r.err) fail('opened the same gift twice');
+r = await a.farmDo({ t: 'mailread' });
+if (r.farm.mail.length) fail('notes not cleared');
+// the album remembers every species and form owned
+const sp0 = a.farm.pets.find(x => x.id === mine[0]).sp;
+if (!a.farm.album[sp0]?.[0] || Object.keys(a.farm.album).length < 1) fail('album ' + JSON.stringify(a.farm.album));
+
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);
 await stop(); await boot();
