@@ -49,6 +49,10 @@ export function mount(app, ctx) {
   </div>`;
   const root = app.querySelector('.pf'), $ = id => root.querySelector('#' + id), canvas = root.querySelector('.g3d');
   let F = null, scene = null, destroyed = false, mode = 'load', edit = false, tab = 'b', pick = null, card = null, panel = null, tripAt = 0, lastType = null, lastSpot = null;
+  // Every request gets an answer. If none comes, say so instead of leaving a button that seems dead.
+  let quiet = 0;
+  const say = ctx.send;
+  ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', true); }, 4000); } };
   let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] };
 
   import('./scene3d.js').then(m => {
@@ -288,6 +292,7 @@ export function mount(app, ctx) {
 
   // ---------- from the server ----------
   function msg(m) {
+    clearTimeout(quiet);
     if (m.err) { sfx.bad(); ctx.toast(esc(m.err), true); }
     if (m.need) { F = null; mode = m.need; edit = false; sync(); return; }
     if (!m.farm) return;
@@ -317,6 +322,6 @@ export function mount(app, ctx) {
     // the account changed (signed in, out, or registered): ask again
     me() { const u = ctx.me()?.user || null; if (u !== user) { user = u; mode = 'load'; F = null; edit = false; sync(); ctx.send({ t: 'open' }); } },
     reopen() { ctx.send({ t: 'open' }); },
-    destroy() { destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); scene?.dispose(); },
+    destroy() { destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearTimeout(quiet); scene?.dispose(); },
   };
 }
