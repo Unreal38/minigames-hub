@@ -1,8 +1,8 @@
 // Playing cards as HTML (for your hand and the results) and the suit shapes the 3D cards share.
 import { RANKS, rankOf, suitOf, cardLabel } from './rules.js';
 
-// Four-colour deck: hearts red, diamonds orange, clubs green, spades ink. Easier to spot a flush.
-export const SUIT_COLS = ['#e5543b', '#f08a24', '#2f8a5a', '#3b2219'];
+// Classic two-colour deck: hearts and diamonds red, clubs and spades black (well, cozy ink).
+export const SUIT_COLS = ['#d8402a', '#d8402a', '#3b2219', '#3b2219'];
 // 24×24 paths. Clubs are drawn as three circles plus this stem.
 export const SUIT_PATHS = [
   'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z',

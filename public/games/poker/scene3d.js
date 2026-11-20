@@ -39,11 +39,15 @@ function cardTexture(c) { // c = -1 is the back
     } else {
       const r = rankOf(c), s = suitOf(c);
       g.fillStyle = '#fff8ec'; rr(g, 10, 10, 236, 344, 22); g.fill();
-      g.fillStyle = SUIT_COLS[s]; g.font = '700 82px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-      g.fillText(RANKS[r], 62, 92, 96);
-      suitPath(g, s, 32, 104, 60);
-      suitPath(g, s, 104, 170, 140);
-      g.save(); g.translate(256, 364); g.rotate(Math.PI); g.fillText(RANKS[r], 62, 92, 96); g.restore();
+      // corner index (rank over a small suit) top-left and, upside down, bottom-right; one big pip in the middle
+      const corner = () => {
+        g.fillStyle = SUIT_COLS[s]; g.font = '700 82px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+        g.fillText(RANKS[r], 50, 88, 76);
+        suitPath(g, s, 29, 98, 42);
+      };
+      corner();
+      g.save(); g.translate(256, 364); g.rotate(Math.PI); corner(); g.restore();
+      suitPath(g, s, 128 - 52, 182 - 52, 104);
     }
     tex.needsUpdate = true;
   };
