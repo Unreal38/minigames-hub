@@ -108,6 +108,8 @@ const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
 });
 
 function send(c, msg) { c?.sock?.send(msg); }
+// Pet Farm reaches a player who is not the one asking (live battles) through this. Returns how many screens got it.
+farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
 const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);
 function sendFriends(p, news = null) {

@@ -186,7 +186,8 @@ function onMsg(m) {
   } else if (m.t === 'friended') {
     toast(m.op === 'add' ? (m.now ? `You and ${esc(m.user)} are now friends!` : `Asked ${esc(m.user)} to be friends.`) : m.op === 'accept' ? `You and ${esc(m.user)} are now friends!` : m.op === 'remove' ? `${esc(m.user)} was removed from your friends.` : 'Request declined.');
   } else if (m.t === 'farm') {
-    st.farm?.msg(m);
+    if (st.farm) st.farm.msg(m);
+    else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
   } else if (m.t === 'stats') {
     st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats();
   } else if (m.t === 'auth') {
@@ -252,7 +253,7 @@ function mountGame() {
 function unmountGame() { st.game?.destroy(); st.game = null; }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
-let farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
+let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
 function openFarm() {
   if (st.farm || farmLoading) return;
   st.view = 'farm'; document.title = `Pet Farm · ${SITE}`;
@@ -263,6 +264,7 @@ function openFarm() {
     st.farm = mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode), friends: () => openFriends() });
     st.farm.reopen();
     if (farmVisit) { st.farm.visit(farmVisit); farmVisit = null; }
+    if (farmInvite) { st.farm.msg(farmInvite); farmInvite = null; }
   }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
 }
 function closeFarm() { st.farm?.destroy(); st.farm = null; }

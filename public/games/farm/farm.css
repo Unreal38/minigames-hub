@@ -180,3 +180,9 @@ body.in-game { overflow: hidden; }
 .pf .branch { display: flex; flex-direction: column; align-items: center; gap: 6px; } .pf .gp { display: flex; gap: 8px; padding-top: 6px; border-top: 3px solid var(--ink); } .pf .gp .kin img { width: 44px; height: 44px; }
 .pf .tree .plus { align-self: center; font-family: var(--fd); font-size: 26px; font-weight: 700; }
 .pf .born { text-align: center; } .pf .born .bornpic { align-self: center; margin: 0 auto; } .pf .born .row.end { justify-content: center; } .pf .bornpic img { width: 148px; height: 148px; border-radius: 20px; background: #d8f0d2; border: 3px solid var(--ink); }
+/* trading */
+.pf .tmrow { display: flex; flex-wrap: wrap; gap: 8px; } .pf .tm { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 4px 6px 4px 10px; }
+.pf .tm i { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); } .pf .tm .field { width: 74px; min-height: 36px; padding: 2px 8px; font-size: 16px; border-width: 2px; }
+.pf .letter.deal { flex-direction: column; align-items: stretch; gap: 8px; } .pf .swap { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; } .pf .swap .mats { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.pf .swap .kin img, .pf .swap .kin .nothumb { width: 48px; height: 48px; } .pf .dealbtns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.pf .bclock { display: inline-block; min-width: 2.2em; margin-left: 10px; padding: 0 8px; border-radius: 999px; background: #2b2118; color: #fff8e7; font-size: .8em; font-variant-numeric: tabular-nums; }

@@ -115,14 +115,16 @@ export function pickMove(B, s, rnd = Math.random) {
 
 // Plays one turn. act: { move: id } or { switch: index } for side 0. Returns the list of things that happened,
 // in order, for the screen to show. Returns null if the action is not allowed.
-export function step(B, act, rnd = Math.random) {
+export const TURN_S = 30; // seconds each player has to choose in a live battle
+export function step(B, act, rnd = Math.random, act1 = null) { // act1: the other side's choice in a live battle between two players
   if (B.over !== null || !act) return null;
   const ev = [];
   const swap = (s, i) => { const old = on(B, s); old.up = { atk: 0, def: 0, spd: 0 }; B.sides[s].on = i; ev.push({ k: 'switch', s, i }); };
   const fallen = s => { // the active pet of side s just fainted
     ev.push({ k: 'faint', s });
     if (!alive(B, s)) { B.over = 1 - s; ev.push({ k: 'end', win: 1 - s }); return; }
-    if (s === 0) B.need = true;
+    if (B.live) swap(s, B.sides[s].pets.findIndex(u => u.hp > 0)); // live battles keep moving: the next pet in line steps in
+    else if (s === 0) B.need = true;
     else { const foe = on(B, 0), pets = B.sides[1].pets; let best = -1; pets.forEach((u, i) => { if (u.hp > 0 && (best < 0 || hitOn(foe.el, u) < hitOn(foe.el, pets[best]))) best = i; }); swap(1, best); }
   };
   if (B.need) { // choosing who comes in after a faint is free
@@ -130,7 +132,8 @@ export function step(B, act, rnd = Math.random) {
     B.need = false; swap(0, act.switch); return ev;
   }
   if (act.switch !== undefined ? !canSwitch(B, 0, act.switch) : !ready(on(B, 0)).includes(act.move)) return null;
-  const acts = [act, pickMove(B, 1, rnd)];
+  const fine1 = act1 && (act1.switch !== undefined ? canSwitch(B, 1, act1.switch) : ready(on(B, 1)).includes(act1.move));
+  const acts = [act, fine1 ? act1 : pickMove(B, 1, rnd)];
   for (const s of [0, 1]) if (acts[s].switch !== undefined) swap(s, acts[s].switch);
   const order = [0, 1].filter(s => acts[s].move).sort((a, b) => (B.turn === 1 ? (on(B, b).early ? 1 : 0) - (on(B, a).early ? 1 : 0) : 0) || stat(on(B, b), 'spd') - stat(on(B, a), 'spd') || rnd() - .5);
   for (const s of order) {

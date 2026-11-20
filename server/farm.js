@@ -6,8 +6,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, profiles, friendPids } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
-  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS } from '../public/games/farm/data.js';
-import { unit as rawUnit, newBattle, step } from '../public/games/farm/battle.js';
+  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS, MATS } from '../public/games/farm/data.js';
+import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 
 const unit = (pet, lv) => rawUnit({ ...pet, look: lookOf(pet) }, lv); // battles show each pet as it really looks
@@ -112,6 +112,40 @@ function foes(mine) {
 const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
   sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
+// ---------- live battles ----------
+// Two players who are both here fight each other with the same rules. Each has 30 seconds to choose; a player
+// who runs out of time gets the game's pick. The server reaches the other player through push().
+let push = () => 0;
+export const setPush = fn => { push = fn; };
+const lives = new Map(), invites = new Map(); // profile id -> live battle; invite id -> { from, to, pets, at }
+const TURN_MS = TURN_S * 1000, INVITE_MS = 60_000, LIVE = { win: { coins: 15, xp: 15 }, lose: { coins: 5, xp: 8 } };
+const flipEv = ev => ev.map(e => ({ ...e, ...(e.s !== undefined ? { s: 1 - e.s } : {}), ...(e.win !== undefined ? { win: 1 - e.win } : {}) }));
+function liveView(L, i) {
+  const v = battleView(L.B); if (i) { v.sides.reverse(); if (v.over !== null) v.over = 1 - v.over; }
+  return { ...v, mode: 'live', foe: L.names[1 - i], live: true, waiting: !!L.acts[i], left: Math.max(0, L.deadline - Date.now()) };
+}
+function liveArm(L) { clearTimeout(L.timer); L.deadline = Date.now() + TURN_MS; L.timer = setTimeout(() => liveTurn(L), TURN_MS + 400); }
+function liveTurn(L, quit = null) { // both have chosen, time ran out, or someone left
+  clearTimeout(L.timer);
+  const B = L.B; let ev;
+  if (quit !== null) { B.over = 1 - quit; ev = [{ k: 'end', win: 1 - quit, quit: true }]; }
+  else { ev = step(B, L.acts[0] || pickMove(B, 0), Math.random, L.acts[1]) || step(B, pickMove(B, 0), Math.random, L.acts[1]) || []; }
+  L.acts = [null, null];
+  if (B.over === null) liveArm(L);
+  L.pids.forEach((pid, i) => {
+    const f = farms.get(pid), msg = { t: 'farm', battle: liveView(L, i), ev: i ? flipEv(ev) : ev };
+    if (B.over !== null) {
+      lives.delete(pid);
+      const won = B.over === i, left = quit === i, r = won ? LIVE.win : LIVE.lose, prize = { won, coins: 0, xp: 0, pts: 0, grew: [], counted: !left };
+      if (f && !left) { prize.coins = r.coins; prize.xp = r.xp; f.inv.coins = (f.inv.coins || 0) + r.coins; for (const id of L.ids[i]) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); } }
+      Object.assign(msg, { prize, did: 'fought', farm: f ? view(f, profiles.get(pid)) : null });
+      if (quit !== null) msg.ev = msg.ev.map(e => ({ ...e, quit: left })); // only the one who left sees "you left"
+    }
+    push(pid, msg);
+  });
+  if (B.over !== null) scheduleSave();
+}
+
 // ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
 const byFid = id => [...farms].find(([, x]) => x.fid === id);
@@ -134,11 +168,35 @@ function album(f) {
 const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, size: f.size, house: f.house || 1, pts: f.pts || 0,
   items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r })) }; };
 
+// ---------- trading ----------
+// An offer lives on the sender's farm. What they offer is set aside at once (materials leave the stock, pets are
+// marked as promised) and comes back if the offer is declined, cancelled or a week old.
+const TRADE_MS = 7 * 24 * HOUR, TRADE_OPEN = 5, TRADE_PETS = 3;
+const cuddling = (f, id) => !!f.nest && nestView(f).stage === 'cuddle' && (f.nest.a === id || f.nest.b === id);
+const tradable = (f, x) => !x.held && f.pets.length > 1 && !(f.trip?.until > Date.now() && f.trip.pets.includes(x.id)) && !cuddling(f, x.id) && !(f.def || []).includes(x.id);
+const cleanMats = m => { const out = {}; for (const [k, n] of Object.entries(m && typeof m === 'object' ? m : {})) if (MATS[k] && Number.isInteger(n) && n > 0 && n <= 9999) out[k] = n; return out; };
+const cleanIds = a => Array.isArray(a) ? [...new Set(a.map(String))].slice(0, TRADE_PETS) : [];
+function release(f, o) { // hand back what an offer was holding
+  pay(f.inv, o.give.mats, 1);
+  for (const x of f.pets) if (x.held === o.id) delete x.held;
+  f.offers.splice(f.offers.indexOf(o), 1);
+}
+function sweep(f) { for (const o of [...(f.offers || [])]) if (Date.now() - o.at > TRADE_MS || !farms.has(o.to)) release(f, o); }
+const tiny = x => x ? { id: x.id, sp: x.sp, name: x.name, lv: x.lv, look: lookOf(x) } : null;
+function tradesView(pid, f) {
+  const card = (o, dir, from, to, otherPid, other) => ({ id: o.id, dir, who: nameOf(otherPid, other), fid: fid(other), left: Math.max(0, o.at + TRADE_MS - Date.now()),
+    give: { pets: o.give.pets.map(id => tiny(from.pets.find(x => x.id === id))).filter(Boolean), mats: o.give.mats },
+    want: { pets: o.want.pets.map(id => tiny(to.pets.find(x => x.id === id))), mats: o.want.mats } });
+  const out = [];
+  for (const [spid, x] of farms) { sweep(x); for (const o of x.offers || []) { if (x === f) out.push(card(o, 'out', f, farms.get(o.to), o.to, farms.get(o.to))); else if (o.to === pid) out.push(card(o, 'in', x, f, spid, x)); } }
+  return out;
+}
+
 // ---------- what the player sees ----------
 const view = (f, p) => ({
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets.map(petView), nest: nestView(f),
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
-  album: album(f), coats: f.coats, marks: f.marks, mail: f.mail || [], pals: f.pals || {},
+  album: album(f), coats: f.coats, marks: f.marks, mail: f.mail || [], pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f),
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
@@ -158,7 +216,7 @@ export function handle(p, a, reply) {
   const no = msg => reply({ t: 'farm', err: msg, farm: f ? view(f, p) : null });
 
   if (f) { f.name = p.name; f.seen = Date.now(); } // remembered so other players can see whose farm it is
-  if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
+  if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: lives.has(p.pid) ? liveView(lives.get(p.pid), lives.get(p.pid).pids.indexOf(p.pid)) : battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
     if (!STARTERS.includes(a.sp)) return;
@@ -213,6 +271,7 @@ export function handle(p, a, reply) {
     if (!countOf(f, 'gate')) return no('Build an Expedition Gate first.');
     if (nestView(f)?.stage === 'cuddle' && ids.some(id => id === f.nest.a || id === f.nest.b)) return no('One of them is cuddling in the Nest.');
     if (f.trip) return no('Your pets are already out exploring.');
+    if (f.pets.some(x => x.held && ids.includes(x.id))) return no('One of them is promised in a trade.');
     if ((f.house || 1) < z.house) return no(`${z.name} opens at farmhouse level ${z.house}.`);
     const ids = [...new Set(a.pets)];
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
@@ -256,6 +315,7 @@ export function handle(p, a, reply) {
       d[a.friend] = 1; friend = { id: a.friend, name: nameOf(hit[0], host) };
     } else Bp = f.pets.find(x => x.id === a.b);
     if (!A || !Bp || A === Bp) return no('Pick two different pets.');
+    if (A.held || (!friend && Bp.held)) return no('One of them is promised in a trade.');
     if (A.lv < BREED_LV || Bp.lv < BREED_LV) return no(`Both pets need to be level ${BREED_LV} or higher.`);
     const now = Date.now();
     if ((A.rest || 0) > now || (!friend && (Bp.rest || 0) > now)) return no('One of them is still resting.');
@@ -287,6 +347,50 @@ export function handle(p, a, reply) {
     pet.open = !pet.open;
     return ok({ did: 'petopen' });
   }
+  if (a.t === 'offer') { // propose a swap to another farm
+    const hit = byFid(a.to); if (!hit || hit[1] === f) return no('That farm is not around any more.');
+    const [tpid, x] = hit, give = { pets: cleanIds(a.give?.pets), mats: cleanMats(a.give?.mats) }, want = { pets: cleanIds(a.want?.pets), mats: cleanMats(a.want?.mats) };
+    if (!give.pets.length && !want.pets.length && !Object.keys(give.mats).length && !Object.keys(want.mats).length) return no('Put something in the offer first.');
+    if ((f.offers || []).length >= TRADE_OPEN) return no('You have five offers waiting already.');
+    if ((f.offers || []).some(o => o.to === tpid)) return no('You already have an offer waiting with them.');
+    const mine = give.pets.map(id => f.pets.find(q => q.id === id));
+    if (mine.some(q => !q || !tradable(f, q)) || f.pets.length - mine.length < 1) return no('One of those pets cannot be traded right now.');
+    if (want.pets.some(id => { const q = x.pets.find(y => y.id === id); return !q || !tradable(x, q); })) return no('One of their pets cannot be traded right now.');
+    if (!canAfford(f.inv, give.mats)) return no('You do not have that much to offer.');
+    const o = { id: rid(), to: tpid, give, want, at: Date.now() };
+    pay(f.inv, give.mats); for (const q of mine) { q.held = o.id; q.open = false; }
+    (f.offers ||= []).push(o);
+    post(x, { k: 'note', text: `${p.name} sent you a trade offer.` });
+    return ok({ did: 'offer' });
+  }
+  if (a.t === 'tradecancel') {
+    const o = (f.offers || []).find(q => q.id === a.id); if (!o) return no('That offer is gone.');
+    release(f, o);
+    return ok({ did: 'tradecancel' });
+  }
+  if (a.t === 'tradeans') { // accept or decline an offer made to me
+    let from = null, o = null, fpid = null;
+    for (const [spid, x] of farms) { const q = (x.offers || []).find(y => y.id === a.id && y.to === p.pid); if (q) { from = x; o = q; fpid = spid; } }
+    if (!o) return no('That offer is gone.');
+    if (!a.ok) { release(from, o); post(from, { k: 'note', text: `${p.name} said no to your trade offer. Everything came back.` }); return ok({ did: 'tradeno' }); }
+    const theirs = o.give.pets.map(id => from.pets.find(q => q.id === id)), mine = o.want.pets.map(id => f.pets.find(q => q.id === id));
+    if (theirs.some(q => !q)) { release(from, o); return no('That offer is gone.'); }
+    if (mine.some(q => !q || !tradable(f, q))) return no('One of the pets they ask for cannot be traded right now.');
+    if (!canAfford(f.inv, o.want.mats)) return no('You do not have what they ask for.');
+    const net = theirs.length - mine.length;
+    if (f.pets.length + net > petRoom(f)) return no('You need another bed first. Build a Pet Hut.');
+    if (from.pets.length - net > petRoom(from)) return no('Their farm has no bed free for your pet.');
+    if (f.pets.length + net < 1 || from.pets.length - net < 1) return no('Every farm keeps at least one pet.');
+    const move = (q, a2, b2) => { a2.pets.splice(a2.pets.indexOf(q), 1); delete q.held; q.open = false; if (a2.def) a2.def = a2.def.filter(id => id !== q.id); b2.pets.push(q); };
+    for (const q of theirs) move(q, from, f);
+    for (const q of mine) move(q, f, from);
+    pay(f.inv, o.give.mats, 1); pay(f.inv, o.want.mats); pay(from.inv, o.want.mats, 1);
+    from.offers.splice(from.offers.indexOf(o), 1);
+    post(from, { k: 'note', text: `${p.name} accepted your trade. Your new things are on the farm.` });
+    for (const side of [f, from]) { side.pals ||= {}; }
+    f.pals[fid(from)] = (f.pals[fid(from)] || 0) + 1; from.pals[fid(f)] = (from.pals[fid(f)] || 0) + 1;
+    return ok({ did: 'tradeyes' });
+  }
   if (a.t === 'world') { // everyone's islands, most recently active first
     const mine = daily(f, 'help'), gifts = daily(f, 'gift');
     const pals = new Set(friendPids(p.pid));
@@ -298,7 +402,7 @@ export function handle(p, a, reply) {
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
     const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     const [pid, x] = hit, id = fid(x);
-    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !(x.trip?.until > Date.now() && x.trip.pets.includes(q.id))).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x),
+    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !(x.trip?.until > Date.now() && x.trip.pets.includes(q.id))).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x),
       helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
     if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner
       const h = daily(f, 'help'); if ((h[id] || 0) >= HELPS) return reply({ t: 'farm', err: 'You have helped here as much as you can today.', visit: there(), farm: view(f, p) });
@@ -360,6 +464,41 @@ export function handle(p, a, reply) {
     }
     B.ids = ids; battles.set(p.pid, B);
     return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
+  }
+  if (a.t === 'duel') { // ask another player who is here right now for a live battle
+    const hit = byFid(a.to); if (!hit || hit[1] === f) return no('That farm is not around any more.');
+    const ids = cleanIds(a.pets), mine = ids.map(id => f.pets.find(x => x.id === id));
+    if (!ids.length || mine.some(x => !x)) return no('Pick one to three of your pets.');
+    if (f.trip?.until > Date.now() && ids.some(id => f.trip.pets.includes(id))) return no('One of them is away exploring.');
+    if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
+    if (lives.has(hit[0])) return no('They are in a battle right now.');
+    const id = rid();
+    if (!push(hit[0], { t: 'farm', invite: { id, from: p.name } })) return no(`${nameOf(hit[0], hit[1])} is not here right now. Live battles need both of you online.`);
+    invites.set(id, { from: p.pid, to: hit[0], pets: ids, at: Date.now() });
+    for (const [k, v] of invites) if (Date.now() - v.at > INVITE_MS) invites.delete(k);
+    return ok({ did: 'duel' });
+  }
+  if (a.t === 'duelno' || a.t === 'duelyes') {
+    const inv = invites.get(a.id); invites.delete(a.id);
+    if (!inv || inv.to !== p.pid || Date.now() - inv.at > INVITE_MS) return a.t === 'duelyes' ? no('That invitation has run out.') : ok();
+    const other = farms.get(inv.from);
+    if (a.t === 'duelno' || !other) { push(inv.from, { t: 'farm', note: `${p.name} cannot play right now.` }); return ok(); }
+    const ids = cleanIds(a.pets), mine = ids.map(id => f.pets.find(x => x.id === id)), theirs = inv.pets.map(id => other.pets.find(x => x.id === id)).filter(Boolean);
+    if (!ids.length || mine.some(x => !x) || !theirs.length) return no('Pick one to three of your pets.');
+    if (f.trip?.until > Date.now() && ids.some(id => f.trip.pets.includes(id))) return no('One of them is away exploring.');
+    if (battles.has(p.pid) || lives.has(p.pid) || battles.has(inv.from) || lives.has(inv.from)) return no('One of you is already in a battle.');
+    const L = { B: newBattle(theirs.map(x => unit(x, ARENA_LV)), mine.map(x => unit(x, ARENA_LV)), { mode: 'live', live: true }), pids: [inv.from, p.pid],
+      names: [nameOf(inv.from, other), p.name], ids: [theirs.map(x => x.id), ids], acts: [null, null] };
+    lives.set(inv.from, L); lives.set(p.pid, L); liveArm(L);
+    push(inv.from, { t: 'farm', battle: liveView(L, 0), ev: [], did: 'fight' });
+    return reply({ t: 'farm', battle: liveView(L, 1), ev: [], did: 'fight' });
+  }
+  if ((a.t === 'bact' || a.t === 'bquit') && lives.has(p.pid)) {
+    const L = lives.get(p.pid), i = L.pids.indexOf(p.pid);
+    if (a.t === 'bquit') return liveTurn(L, i);
+    if (!L.acts[i]) L.acts[i] = a.switch !== undefined ? { switch: a.switch | 0 } : { move: String(a.move) };
+    if ((L.acts[0] && L.acts[1]) || !push(L.pids[1 - i], null)) return liveTurn(L); // nobody to wait for if the other one has gone
+    return reply({ t: 'farm', battle: liveView(L, i), ev: [] });
   }
   if (a.t === 'bact' || a.t === 'bquit') {
     const B = battles.get(p.pid); if (!B) return reply({ t: 'farm', battle: null, farm: view(f, p) });
