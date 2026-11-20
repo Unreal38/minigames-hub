@@ -82,18 +82,23 @@ export const SPECIES = {
   mossbun:   { name: 'Mossbun', el: 'Leaf', rare: 0, blurb: 'A bunny whose back grows a coat of moss.' },
   sproutle:  { name: 'Sproutle', el: 'Leaf', rare: 0, blurb: 'A turtle with a sprout growing on its shell.' },
   petalpuff: { name: 'Petalpuff', el: 'Leaf', rare: 1, blurb: 'A fluffy sheep that wears a crown of flowers.' },
+  acornip:   { name: 'Acornip', el: 'Leaf', rare: 1, blurb: 'A squirrel that hatches looking just like an acorn.' },
   cindercub: { name: 'Cindercub', el: 'Ember', rare: 0, blurb: 'A fox cub with a tail that flickers like a flame.' },
   toastoad:  { name: 'Toastoad', el: 'Ember', rare: 0, blurb: 'A toad as warm and golden as fresh toast.' },
   flickit:   { name: 'Flickit', el: 'Ember', rare: 2, blurb: 'A chick with a candle flame on its head.' },
+  lanternail: { name: 'Lanternail', el: 'Ember', rare: 1, blurb: 'A snail that carries a warm lantern for a shell.' },
   puddlepup: { name: 'Puddlepup', el: 'Tide', rare: 0, blurb: 'A seal pup that carries its own puddle around.' },
   bubblefin: { name: 'Bubblefin', el: 'Tide', rare: 0, blurb: 'A round fish that floats along in a bubble.' },
   axolily:   { name: 'Axolily', el: 'Tide', rare: 2, blurb: 'An axolotl with lily pads for gills.' },
+  ripplet:   { name: 'Ripplet', el: 'Tide', rare: 1, blurb: 'A duckling with a little wave curling on its head.' },
   zapkit:    { name: 'Zapkit', el: 'Spark', rare: 0, blurb: 'A kitten with a lightning bolt for a tail.' },
   buzzlet:   { name: 'Buzzlet', el: 'Spark', rare: 1, blurb: 'A chubby bee covered in static fuzz.' },
   voltvole:  { name: 'Voltvole', el: 'Spark', rare: 2, blurb: 'A hamster whose cheeks glow when it is happy.' },
+  wattbat:   { name: 'Wattbat', el: 'Spark', rare: 1, blurb: 'A fluffy bat with lightning bolts for ears.' },
   pebblet:   { name: 'Pebblet', el: 'Stone', rare: 0, blurb: 'A hedgehog with pebbles for spines.' },
   cragcrab:  { name: 'Cragcrab', el: 'Stone', rare: 1, blurb: 'A crab that carries a boulder for a shell.' },
   dustmole:  { name: 'Dustmole', el: 'Stone', rare: 2, blurb: 'A mole that never takes off its tiny hard hat.' },
+  rubblet:   { name: 'Rubblet', el: 'Stone', rare: 1, blurb: 'A boulder that stacks itself into a gentle little golem.' },
   // breeding only: two elements, never found in the wild. hint is all the Pet Album gives away.
   truffowl:   { name: 'Truffowl', el: 'Leaf', el2: 'Tide', rare: 3, blurb: 'A round owl that grows its own mushroom cap.', hint: 'Hatches where moss meets the tide.' },
   magmutt:    { name: 'Magmutt', el: 'Ember', el2: 'Stone', rare: 3, blurb: 'A lava puppy in a coat of cracked rock.', hint: 'Hatches where fire warms the stone.' },
@@ -152,11 +157,11 @@ export const SELL = { wood: 4, stone: 4, fiber: 4, shells: 12, coal: 12, berries
 // A party of 1 to 3 pets flies to a zone and comes back with materials. Nothing can go wrong on a trip.
 // gives: materials per pet per hour. house: farmhouse level that opens the zone. wild: species found there and how often.
 export const ZONES = {
-  woods:  { name: 'Mossy Woods', el: 'Leaf', house: 1, gives: { wood: 14, fiber: 10, stone: 5, coins: 3 }, wild: { mossbun: 5, sproutle: 5, petalpuff: 2 }, blurb: 'Tall trees and soft moss.' },
-  cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, axolily: 1 }, blurb: 'Warm pools full of shells.' },
-  ridge:  { name: 'Pebble Ridge', el: 'Stone', house: 2, gives: { stone: 16, wood: 4, crystal: .5, coins: 3 }, wild: { pebblet: 5, cragcrab: 2, dustmole: 1 }, blurb: 'Rocky paths and a glint of crystal.' },
-  hills:  { name: 'Ember Hills', el: 'Ember', house: 3, gives: { coal: 8, stone: 9, wood: 5, coins: 4 }, wild: { cindercub: 5, toastoad: 5, flickit: 1 }, blurb: 'Warm slopes that glow at night.' },
-  meadow: { name: 'Thunder Meadow', el: 'Spark', house: 4, gives: { wood: 12, fiber: 6, crystal: 1, coins: 5 }, wild: { zapkit: 5, buzzlet: 2, voltvole: 1 }, blurb: 'Tall grass that crackles before rain.' },
+  woods:  { name: 'Mossy Woods', el: 'Leaf', house: 1, gives: { wood: 14, fiber: 10, stone: 5, coins: 3 }, wild: { mossbun: 5, sproutle: 5, petalpuff: 2, acornip: 2 }, blurb: 'Tall trees and soft moss.' },
+  cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, ripplet: 2, axolily: 1 }, blurb: 'Warm pools full of shells.' },
+  ridge:  { name: 'Pebble Ridge', el: 'Stone', house: 2, gives: { stone: 16, wood: 4, crystal: .5, coins: 3 }, wild: { pebblet: 5, cragcrab: 2, rubblet: 2, dustmole: 1 }, blurb: 'Rocky paths and a glint of crystal.' },
+  hills:  { name: 'Ember Hills', el: 'Ember', house: 3, gives: { coal: 8, stone: 9, wood: 5, coins: 4 }, wild: { cindercub: 5, toastoad: 5, lanternail: 2, flickit: 1 }, blurb: 'Warm slopes that glow at night.' },
+  meadow: { name: 'Thunder Meadow', el: 'Spark', house: 4, gives: { wood: 12, fiber: 6, crystal: 1, coins: 5 }, wild: { zapkit: 5, buzzlet: 2, wattbat: 2, voltvole: 1 }, blurb: 'Tall grass that crackles before rain.' },
 };
 // find: chance that a wild pet follows the party home. xp: what every pet in the party learns.
 export const TRIPS = {
