@@ -24,13 +24,14 @@ export class Socket extends EventEmitter {
     if (!this.open) return;
     const b = Buffer.alloc(2); b.writeUInt16BE(code);
     this._frame(8, b);
-    this.sock.end();
-    this._closed();
+    this.sock.end(); // flush the close frame (and anything queued before it) before tearing down
+    this._closed(false);
+    setTimeout(() => this.sock.destroy(), 2000).unref();
   }
-  _closed() {
+  _closed(destroy = true) {
     if (!this.open) return;
     this.open = false;
-    this.sock.destroy();
+    if (destroy) this.sock.destroy();
     this.emit('close');
   }
   _frame(op, payload) {
@@ -51,7 +52,7 @@ export class Socket extends EventEmitter {
       let len = b[1] & 0x7f, off = 2;
       if (len === 126) { if (b.length < 4) return; len = b.readUInt16BE(2); off = 4; }
       else if (len === 127) { if (b.length < 10) return; len = Number(b.readBigUInt64BE(2)); off = 10; }
-      if (!masked || len > MAX_MSG) return this.close(1009);
+      if (!masked || len > MAX_MSG) { console.warn(`ws: closing ${this.ip}: ${masked ? `frame of ${len} bytes` : 'unmasked frame'}`); return this.close(1009); }
       if (b.length < off + 4 + len) return;
       const mask = b.subarray(off, off + 4);
       const payload = Buffer.from(b.subarray(off + 4, off + 4 + len));
@@ -64,7 +65,7 @@ export class Socket extends EventEmitter {
         if (op !== 0) this.fragOp = op;
         this.frag.push(payload);
         const total = this.frag.reduce((s, p) => s + p.length, 0);
-        if (total > MAX_MSG) return this.close(1009);
+        if (total > MAX_MSG) { console.warn(`ws: closing ${this.ip}: message of ${total} bytes`); return this.close(1009); }
         if (fin) {
           const msg = Buffer.concat(this.frag); this.frag = [];
           if (this.fragOp === 1) this.emit('message', msg.toString('utf8'));

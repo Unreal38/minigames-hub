@@ -111,19 +111,48 @@ export function toast(html, bad = false) {
 }
 
 // ---------- network ----------
-let ws = null, retry = 0;
+// One live connection per browser token. Tabs share the token through localStorage, so a second tab
+// takes the seat over and the first one is told it was replaced. A replaced tab stays quiet until the
+// player clicks "Play here" (reconnecting on its own would kick the other tab, which would kick back...).
+let ws = null, retry = 0, replaced = false, retryT = 0, stableT = 0;
+const $conn = document.getElementById('conn');
+function connBar(mode) {
+  if (!mode) { $conn.hidden = true; return; }
+  $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced');
+  if (mode === 'replaced') {
+    $conn.innerHTML = 'Cozy Table is open in another tab. <button type="button">Play here</button>';
+    $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
+  } else $conn.textContent = 'Reconnecting…';
+}
 function connect() {
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-  ws.onopen = () => {
-    retry = 0; document.getElementById('conn').hidden = true;
-    ws.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av }));
+  clearTimeout(retryT); retryT = 0;
+  if (replaced || (ws && ws.readyState <= 1)) return;
+  const s = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  s.onopen = () => {
+    s.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av }));
   };
-  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
-  ws.onclose = () => {
-    document.getElementById('conn').hidden = false;
-    setTimeout(connect, Math.min(5000, 400 * 2 ** retry++));
+  s.onmessage = e => {
+    if (s !== ws) return;
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === 'replaced') { replaced = true; return; }
+    if (m.t === 'welcome') { connBar(null); clearTimeout(stableT); stableT = setTimeout(() => { retry = 0; }, 10_000); }
+    onMsg(m);
+  };
+  s.onclose = e => {
+    if (s !== ws) return;
+    clearTimeout(stableT);
+    console.warn(`[cozy] connection closed: code ${e.code}${e.reason ? ' ' + e.reason : ''}${replaced ? ' (replaced by another tab)' : ''}`);
+    if (replaced || e.code === 4000) { replaced = true; connBar('replaced'); return; }
+    connBar('reconnecting');
+    // back off with jitter so a flaky network or a restarting server isn't hammered
+    const wait = Math.min(10_000, 500 * 2 ** Math.min(retry++, 5)) * (0.7 + Math.random() * 0.6);
+    retryT = setTimeout(connect, wait);
   };
 }
+// coming back to the tab or the network: try right away instead of waiting out the backoff
+const reconnectNow = () => { if (!replaced && retryT) { retry = 0; connect(); } };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reconnectNow(); });
+addEventListener('online', reconnectNow);
 export function send(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
 
 function onMsg(m) {
