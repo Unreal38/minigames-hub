@@ -354,7 +354,8 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   for (const s of [-1, 1]) sph(hg, .085, skin, s * hr(.4) * .97, .4, -.02).scale.set(.6, 1, .8);
   // hair: a shell over the skull plus chunky clumps and pointed bangs
   const hat = a.hat, tallHat = [1, 2, 3, 9, 11, 13, 14, 17, 20, 21, 22, 26, 27].includes(hat), hs = tallHat && [0, 3, 9, 12, 13].includes(a.hair) ? 1 : a.hair, A = 1.3;
-  const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 8; j++) { const y = ya + (yb - ya) * j / 8; p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
+  // rings get closer together towards the crown, where the skull curves fastest, so the shell never dips below it
+  const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 14; j++) { const y = ya + (yb - ya) * Math.sin(j / 14 * PI / 2); p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
   const base = (hf, hb, off = .065, c = hair) => { part(hg, shellPts(hf, 1, off), c, 0, A); part(hg, shellPts(hb, 1, off), c, PI, PI - A); };
   const bangs = (nb = 5, len = .26, skew = 0, spread = 1.2) => {
     for (let i = 0; i < nb; i++) {
@@ -408,7 +409,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     box(hg, .07, .014, .014, fr, 0, ey + .01, fz(0, ey, .02));
   }
   // hats
-  if (hat === 1) { lathe(hg, shellPts(.7, 1, .1), topC); lathe(hg, shellPts(.63, .76, .125).slice(0, 9), shade(topC, .8)); sph(hg, .1, '#ffffff', 0, 1.2, 0); }
+  if (hat === 1) { lathe(hg, shellPts(.7, 1, .1), topC); lathe(hg, shellPts(.63, .76, .125), shade(topC, .8)); sph(hg, .1, '#ffffff', 0, 1.2, 0); }
   if (hat === 2) { lathe(hg, shellPts(.74, 1, .09), topC); const br = cyl(hg, .34, .34, .03, shade(topC, .8), 0, .76, .44); br.scale.set(1, 1, .9); br.rotation.x = .14; sph(hg, .04, shade(topC, .8), 0, 1.1, 0); }
   if (hat === 3) { cyl(hg, .37, .35, .28, '#ffffff', 0, 1.02, -.02); for (let i = 0; i < 5; i++) { const an = i / 5 * PI * 2; sph(hg, .24, i % 2 ? '#ffffff' : '#ece8df', Math.sin(an) * .24, 1.28, Math.cos(an) * .24 - .02); } sph(hg, .26, '#ffffff', 0, 1.38, -.02); }
   if (hat === 4) { cyl(hg, .3, .28, .12, gold, 0, 1.06, -.02); for (let i = 0; i < 6; i++) { const an = i / 6 * PI * 2; cone(hg, .07, .16, gold, Math.sin(an) * .26, 1.19, Math.cos(an) * .26 - .02); sph(hg, .03, i % 2 ? '#e5543b' : '#7ed3b2', Math.sin(an) * .3, 1.06, Math.cos(an) * .3 - .02); } }
