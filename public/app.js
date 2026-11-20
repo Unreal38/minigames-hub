@@ -107,7 +107,7 @@ const GAMES = {
       <li>Pawns are <b>safe</b> on the star cells and on the coloured start cells. Two of your pawns on the same cell are a <b>block</b> that cannot be captured.</li>
       <li>A <b>6</b>, a capture, or getting a pawn home earns a <b>bonus roll</b>. Three sixes in a row and the turn is over.</li>
       <li>After a full lap a pawn turns up its <b>home lane</b>. It needs the exact number to step into the middle.</li>
-      <li><b>Hard mode</b>: only <b>one pawn per cell</b>. You cannot move onto your own pawn, so there are no blocks, and you cannot move onto a rival standing on a safe cell. One exception: a pawn leaving the yard captures whoever is standing on its start cell. If no pawn has a free cell to go to, the roll is lost.</li>
+      <li><b>Hard mode</b>: only <b>one pawn per cell</b>, and <b>nowhere is safe</b>. You cannot move onto your own pawn, so there are no blocks. Any rival you land on is captured, even on a star or a start cell. If no pawn has a free cell to go to, the roll is lost.</li>
       <li>First to bring <b>every pawn home</b> wins. Everyone else is ranked by how far their pawns got.</li>
     </ol>`,
   },

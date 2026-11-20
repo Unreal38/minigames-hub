@@ -62,23 +62,17 @@ export function legalMoves(G, s, die) {
     if (p === HOME || seen.has(p)) return;
     const to = p < 0 ? (die === 6 ? 0 : -1) : p + die;
     if (to < 0 || to > HOME) return; // needs a six to leave the yard; needs the exact number to get home
-    if (hard(G) && to < HOME) {
-      // hard mode, one pawn per cell: your own pawn is in the way, and so is a rival on a safe cell
-      // (except that a pawn leaving the yard kicks out whoever is standing on its start cell)
-      if (G.toks[s].includes(to)) return;
-      const i = ringIndex(G.seats[s].corner, to);
-      if (i >= 0 && safeIndex(i) && p >= 0 && G.seats.some((o, os) => os !== s && G.toks[os].some(q => ringIndex(o.corner, q) === i))) return;
-    }
+    if (hard(G) && to < HOME && G.toks[s].includes(to)) return; // hard mode, one pawn per cell: your own pawn is in the way
     seen.add(p); out.push({ k, from: p, to });
   });
   return out;
 }
 
 // Opposing pawns that would be sent home by seat s landing on place `to`. Two or more together are a block.
-// In hard mode a pawn leaving the yard also captures on its own start cell.
-function capturesAt(G, s, to, from = 0) {
+// In hard mode no cell is safe: whoever is standing there is captured.
+function capturesAt(G, s, to) {
   const i = ringIndex(G.seats[s].corner, to);
-  if (i < 0 || (safeIndex(i) && !(hard(G) && from < 0))) return [];
+  if (i < 0 || (safeIndex(i) && !hard(G))) return [];
   const caps = [];
   G.seats.forEach((o, os) => {
     if (os === s) return;
@@ -91,7 +85,7 @@ function capturesAt(G, s, to, from = 0) {
 // How close an opposing pawn is behind ring cell i (1..6 means it could land here with one roll).
 function threat(G, s, to) {
   const i = ringIndex(G.seats[s].corner, to);
-  if (i < 0 || safeIndex(i)) return 0;
+  if (i < 0 || (safeIndex(i) && !hard(G))) return 0;
   let n = 0;
   G.seats.forEach((o, os) => {
     if (os === s) return;
@@ -107,7 +101,7 @@ function threat(G, s, to) {
 function botPick(G, s, moves) {
   let best = moves[0], top = -1e9;
   for (const m of moves) {
-    const caps = capturesAt(G, s, m.to, m.from);
+    const caps = capturesAt(G, s, m.to);
     let v = Math.random() * 6 + (m.to - Math.max(0, m.from)) * .5 + m.to * .15;
     for (const c of caps) v += 60 + c.from;
     if (m.to === HOME) v += 55;
@@ -132,7 +126,7 @@ function roll(G, s, now, die = 1 + (Math.random() * 6 | 0)) {
 }
 
 function doMove(G, s, m, now) {
-  const caps = capturesAt(G, s, m.to, m.from), die = G.roll.die;
+  const caps = capturesAt(G, s, m.to), die = G.roll.die;
   G.toks[s][m.k] = m.to;
   for (const c of caps) { G.toks[c.s][c.k] = -1; G.st[c.s].lost++; G.st[s].caps++; }
   const ms = (m.from < 0 ? MS.out : (m.to - m.from) * MS.step) + (caps.length ? MS.cap : 0) + (m.to === HOME ? MS.home : 0) + MS.end;
