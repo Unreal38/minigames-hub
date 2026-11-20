@@ -26,6 +26,7 @@ function player(name, token) {
       if (m.t === 'me') p.me = m.me;
       if (m.t === 'auth') p.auth = m;
       if (m.t === 'farm') { p.last = m; if (m.farm) p.farm = m.farm; }
+      if (m.t === 'me') p.me = m.me;
     };
   });
   // send a farm action and wait for its answer
@@ -195,6 +196,67 @@ const b = player('Bo'); await b.ready;
 b.send({ t: 'register', user: 'bob', pass: 'hunter22' }); await until(() => b.auth, 'register b');
 r = await b.farmDo({ t: 'starter', sp: 'puddlepup' });
 if (r.farm.items.length !== 1 || r.farm.pets[0].sp !== 'puddlepup') fail('second farm');
+
+// battles
+const mine = a.farm.pets.map(x => x.id);
+r = await a.farmDo({ t: 'fight', mode: 'practice', pets: [mine[0]] });
+if (!r.err || r.battle) fail('practice without a Training Yard');
+await a.farmDo({ t: 'open', test: { give: { wood: 300, stone: 300, fiber: 300 } } });
+for (const type of ['yard', 'flag']) {
+  for (let y = 0; y < 12 && (y === 0 || r.err); y++) for (let x = 0; x < 10 && (x + y === 0 || r.err); x++) r = await a.farmDo({ t: 'place', type, x, y, r: 0 });
+  if (r.err) fail('no room for ' + type);
+}
+for (const bad of [[], ['nope'], [mine[0], mine[0]]]) { r = await a.farmDo({ t: 'fight', mode: 'practice', pets: bad }); if (!r.err || r.battle) fail('bad team accepted ' + bad); }
+// plays a fight to the end with the first thing that is allowed each turn
+async function playOut(first) {
+  let x = first, turns = 0;
+  while (x.battle && x.battle.over === null) {
+    const me = x.battle.sides[0], u = me.pets[me.on];
+    const act = x.battle.need ? { switch: me.pets.findIndex((q, i) => q.hp > 0 && i !== me.on) } : { move: u.moves.find(m => !u.cd[m]) };
+    await wait(60); // the server allows about 20 messages a second
+    x = await a.farmDo({ t: 'bact', ...act });
+    if (x.err) fail('legal action refused: ' + JSON.stringify(act));
+    if (++turns > 300) fail('battle never ended');
+  }
+  return x;
+}
+r = await a.farmDo({ t: 'fight', mode: 'practice', pets: mine.slice(0, 2) });
+if (r.err || r.battle.sides[0].pets.length !== 2 || r.battle.sides[1].pets.length !== 2 || r.battle.sides[0].pets[0].hp <= 0) fail('practice start ' + JSON.stringify(r));
+let bad = await a.farmDo({ t: 'bact', move: 'boulderroll' });
+if (!bad.err && !r.battle.sides[0].pets[0].moves.includes('boulderroll')) fail('used a move it does not know');
+bad = await a.farmDo({ t: 'bact', switch: 0 });
+if (!bad.err) fail('switched to the pet already out');
+const lv0 = a.farm.pets.find(x => x.id === mine[0]).lv, xp0 = a.farm.pets.find(x => x.id === mine[0]).xp;
+r = await playOut(bad);
+if (!r.prize || !r.prize.counted || r.prize.xp <= 0 || r.farm.fights.practice !== 2) fail('practice prize ' + JSON.stringify(r.prize));
+const after = r.farm.pets.find(x => x.id === mine[0]);
+if (after.lv === lv0 && after.xp !== xp0 + r.prize.xp) fail('practice xp not added');
+if (!r.ev.some(e => e.k === 'end')) fail('no end event');
+r = await a.farmDo({ t: 'bact', move: 'leafflick' });
+if (r.battle) fail('battle should be gone after it ends');
+// giving up counts as a loss and earns nothing
+await a.farmDo({ t: 'fight', mode: 'practice', pets: [mine[0]] });
+r = await a.farmDo({ t: 'bquit' });
+if (!r.prize || r.prize.won || r.prize.counted || r.farm.fights.practice !== 2) fail('quit ' + JSON.stringify(r.prize));
+// the arena: neighbours and other players, everyone at level 20
+r = await a.farmDo({ t: 'foes' });
+const bo = r.foes.find(x => !x.npc);
+if (r.foes.filter(x => x.npc).length !== 3 || !bo || bo.name !== 'Bo' || bo.team[0].sp !== 'puddlepup' || JSON.stringify(r.foes).includes(b.me?.pid || 'no-pid')) fail('foes ' + JSON.stringify(r.foes));
+r = await a.farmDo({ t: 'fight', mode: 'arena', foe: 'nobody', pets: [mine[0]] });
+if (!r.err) fail('fought a farm that does not exist');
+r = await a.farmDo({ t: 'fight', mode: 'arena', foe: bo.id, pets: mine.slice(0, 2) });
+if (r.err || r.battle.sides[0].pets[0].lv !== 20 || r.battle.sides[1].pets[0].lv !== 20 || r.battle.sides[0].pets[0].moves.length !== 4 || r.battle.foe !== 'Bo') fail('arena start ' + JSON.stringify(r.err));
+const coins0 = a.farm.inv.coins;
+r = await playOut(r);
+if (!r.prize.counted || r.farm.inv.coins !== coins0 + r.prize.coins || r.farm.pts !== r.prize.pts || r.farm.fights.arena !== 4) fail('arena prize ' + JSON.stringify(r.prize));
+r = await a.farmDo({ t: 'fight', mode: 'arena', foe: 'npc:hazel', pets: mine.slice(0, 2) });
+if (r.err || r.battle.sides[1].pets.length !== 3) fail('npc fight');
+await a.farmDo({ t: 'bquit' });
+// defence team
+r = await a.farmDo({ t: 'defend', pets: [mine[1]] });
+if (r.err || r.farm.def.length !== 1 || r.farm.def[0] !== mine[1]) fail('defend');
+r = await a.farmDo({ t: 'defend', pets: ['nope'] });
+if (!r.err) fail('defend with a stranger');
 
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);

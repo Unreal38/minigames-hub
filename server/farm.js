@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import { DATA_DIR } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf } from '../public/games/farm/data.js';
+import { unit, newBattle, step } from '../public/games/farm/battle.js';
 
 const FILE = path.join(DATA_DIR, 'pet-farm.json');
 const farms = new Map(); // profile id -> farm
@@ -51,9 +52,48 @@ function newPet(sp, owner) {
   };
 }
 
+// Adds experience. Returns { id, lv, form } if the pet went up a level (form is set when it grew into a new one).
+function learn(pet, xp) {
+  const before = pet.lv; pet.xp += xp;
+  while (pet.lv < MAX_LV && pet.xp >= xpFor(pet.lv)) { pet.xp -= xpFor(pet.lv); pet.lv++; }
+  if (pet.lv >= MAX_LV) pet.xp = 0;
+  return pet.lv > before ? { id: pet.id, lv: pet.lv, form: formOf(pet.lv) > formOf(before) ? formOf(pet.lv) : 0 } : null;
+}
+
+// ---------- battles ----------
+// A battle lives in memory only. If the server restarts mid-fight it is simply gone, and nothing was at stake yet.
+const battles = new Map(); // profile id -> battle
+const ARENA_LV = 20, DAILY = { arena: 5, practice: 3 };
+const WIN = { arena: { coins: 25, xp: 20, pts: 10 }, practice: { coins: 0, xp: 12, pts: 0 } };
+const LOSE = { arena: { coins: 5, xp: 8, pts: 2 }, practice: { coins: 0, xp: 5, pts: 0 } };
+const today = () => new Date().toISOString().slice(0, 10);
+const used = (f, mode) => f.fights?.day === today() ? f.fights[mode] || 0 : 0;
+// Three neighbours who are always up for a match, so the arena works before friends join.
+const NPCS = {
+  hazel: { name: 'Farmer Hazel', pts: 40, team: ['mossbun', 'sproutle', 'petalpuff'] },
+  bruno: { name: 'Bruno', pts: 90, team: ['pebblet', 'toastoad', 'puddlepup'] },
+  mira: { name: 'Mira', pts: 150, team: ['zapkit', 'axolily', 'flickit'] },
+};
+const bot = (sp, lv, i) => ({ id: 'bot' + i, sp, name: SPECIES[sp].name, lv, stars: [3, 3, 3, 3] });
+// The team that defends a farm: the one its owner chose, or the three highest levels.
+function defenders(f) {
+  const picked = (f.def || []).map(id => f.pets.find(p => p.id === id)).filter(Boolean);
+  return (picked.length ? picked : [...f.pets].sort((a, b) => b.lv - a.lv)).slice(0, PARTY);
+}
+const fid = f => f.fid ||= rid(); // a farm's public name tag, so profile ids never leave the server
+function foes(mine) {
+  const out = Object.entries(NPCS).map(([k, n]) => ({ id: 'npc:' + k, name: n.name, pts: n.pts, npc: true, team: n.team.map(sp => ({ sp, lv: ARENA_LV })) }));
+  for (const [pid, f] of farms) if (f !== mine && f.pets.length) out.push({ id: fid(f), name: f.name || 'A farmer', pts: f.pts || 0, team: defenders(f).map(p => ({ sp: p.sp, lv: p.lv, name: p.name })) });
+  return out.sort((a, b) => b.pts - a.pts);
+}
+// What the player may see of a fight: everything about their own side, and the other side's faces and health.
+const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
+  sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
+
 // ---------- what the player sees ----------
 const view = (f, p) => ({
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets,
+  pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f),
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
@@ -72,12 +112,13 @@ export function handle(p, a, reply) {
   const ok = (extra = {}) => { scheduleSave(); reply({ t: 'farm', farm: view(f, p), ...extra }); };
   const no = msg => reply({ t: 'farm', err: msg, farm: f ? view(f, p) : null });
 
-  if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p) } : { t: 'farm', need: 'starter' });
+  if (f && f.name !== p.name) { f.name = p.name; } // remembered so other players can see whose farm it is
+  if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
     if (!STARTERS.includes(a.sp)) return;
     const nf = { v: 1, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
-      pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now() };
+      name: p.name, pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now() };
     farms.set(p.pid, nf); scheduleSave();
     return reply({ t: 'farm', farm: view(nf, p), did: 'starter' });
   }
@@ -143,12 +184,7 @@ export function handle(p, a, reply) {
     }
     pay(f.inv, loot, 1);
     const grew = [];
-    for (const pet of party) {
-      const before = pet.lv; pet.xp += tr.xp;
-      while (pet.lv < MAX_LV && pet.xp >= xpFor(pet.lv)) { pet.xp -= xpFor(pet.lv); pet.lv++; }
-      if (pet.lv >= MAX_LV) pet.xp = 0;
-      if (pet.lv > before) grew.push({ id: pet.id, lv: pet.lv, form: formOf(pet.lv) > formOf(before) ? formOf(pet.lv) : 0 });
-    }
+    for (const pet of party) { const g = learn(pet, tr.xp); if (g) grew.push(g); }
     // a wild pet may follow them home, if there is a bed for it. The very first trip always brings one.
     let found = null, full = false;
     if (!f.trips || Math.random() < tr.find) {
@@ -161,6 +197,56 @@ export function handle(p, a, reply) {
     }
     f.trip = null; f.trips = (f.trips || 0) + 1;
     return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full } });
+  }
+  if (a.t === 'foes') return reply({ t: 'farm', foes: foes(f), farm: view(f, p) });
+  if (a.t === 'defend') { // choose the team that defends this farm
+    const ids = Array.isArray(a.pets) ? [...new Set(a.pets)] : [];
+    if (!ids.length || ids.length > PARTY || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
+    f.def = ids;
+    return ok({ did: 'defend' });
+  }
+  if (a.t === 'fight') { // start a battle: practice at the Training Yard, or a match at the Arena Flag
+    const mode = a.mode === 'arena' ? 'arena' : 'practice';
+    if (!countOf(f, mode === 'arena' ? 'flag' : 'yard')) return no(mode === 'arena' ? 'Put up an Arena Flag first.' : 'Build a Training Yard first.');
+    const ids = Array.isArray(a.pets) ? [...new Set(a.pets)] : [];
+    const mine = ids.map(id => f.pets.find(x => x.id === id));
+    if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || mine.some(x => !x)) return no('Pick one to three of your pets.');
+    if (f.trip && ids.some(id => f.trip.pets.includes(id))) return no('One of them is away exploring.');
+    let B;
+    if (mode === 'arena') {
+      let foe, team, to = null;
+      if (String(a.foe).startsWith('npc:')) { const n = NPCS[String(a.foe).slice(4)]; if (!n) return; foe = n.name; team = n.team.map((sp, i) => unit(bot(sp, ARENA_LV, i))); }
+      else {
+        const hit = [...farms].find(([, x]) => x !== f && x.fid === a.foe && x.pets.length); if (!hit) return no('That farm is not around any more.');
+        to = hit[0]; foe = hit[1].name || 'A farmer'; team = defenders(hit[1]).map(x => unit(x, ARENA_LV));
+      }
+      B = newBattle(mine.map(x => unit(x, ARENA_LV)), team, { mode, foe, to });
+    } else { // practice partners match the party's size and average level
+      const lv = Math.max(1, Math.round(mine.reduce((n, x) => n + x.lv, 0) / mine.length)), all = Object.keys(SPECIES);
+      B = newBattle(mine.map(x => unit(x)), mine.map((_, i) => unit(bot(all[rnd(all.length)], lv, i))), { mode, foe: 'Practice partners' });
+    }
+    B.ids = ids; battles.set(p.pid, B);
+    return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
+  }
+  if (a.t === 'bact' || a.t === 'bquit') {
+    const B = battles.get(p.pid); if (!B) return reply({ t: 'farm', battle: null, farm: view(f, p) });
+    let ev = [];
+    if (a.t === 'bquit') { if (B.over === null) { B.over = 1; ev = [{ k: 'end', win: 1, quit: true }]; } }
+    else { ev = step(B, a.switch !== undefined ? { switch: a.switch } : { move: a.move }); if (!ev) return reply({ t: 'farm', battle: battleView(B), ev: [], err: 'That is not possible right now.' }); }
+    if (B.over === null) return reply({ t: 'farm', battle: battleView(B), ev });
+    // the fight is over: hand out rewards, as long as today's rewarded fights are not used up
+    battles.delete(p.pid);
+    const won = B.over === 0, quit = ev.some(e => e.quit), left = DAILY[B.mode] - used(f, B.mode), r = won ? WIN[B.mode] : LOSE[B.mode];
+    const prize = { won, coins: 0, xp: 0, pts: 0, grew: [], counted: left > 0 && !quit };
+    if (prize.counted) {
+      if (f.fights?.day !== today()) f.fights = { day: today() };
+      f.fights[B.mode] = (f.fights[B.mode] || 0) + 1;
+      Object.assign(prize, { coins: r.coins, xp: r.xp, pts: r.pts });
+      f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
+      for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); }
+    }
+    if (B.to && !won && !quit) { const d = farms.get(B.to); if (d) { d.inv.coins = (d.inv.coins || 0) + 5; d.wins = (d.wins || 0) + 1; } } // the defender's team held
+    return ok({ battle: battleView(B), ev, prize, did: 'fought' });
   }
   if (a.t === 'petname') {
     const pet = f.pets.find(x => x.id === a.id), name = cleanPetName(a.name);

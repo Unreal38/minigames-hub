@@ -1,0 +1,158 @@
+// Pet Farm battles: every rule of a 3 against 3 turn-based fight, shared by the server (which runs it) and the
+// browser (which only needs the names and numbers). Nothing here touches the network or the save file.
+// Side 0 is the player. Side 1 is the other team, always played by pickMove() below.
+import { SPECIES, formOf } from './data.js';
+
+// Each element is strong against the next one in this ring and weak against the one before it.
+export const STRONG = { Tide: 'Ember', Ember: 'Leaf', Leaf: 'Stone', Stone: 'Spark', Spark: 'Tide' };
+export const effect = (moveEl, targetEl) => STRONG[moveEl] === targetEl ? 1.5 : STRONG[targetEl] === moveEl ? .75 : 1;
+
+// pow: hit strength. cd: turns before it can be used again. heal: share of full health. up / down: a stat of
+// yours raised, or of the other pet lowered, by one step. status: what a hit leaves behind.
+export const MOVES = {
+  leafflick:   { name: 'Leaf Flick', el: 'Leaf', pow: 40 },
+  rootgrab:    { name: 'Root Grab', el: 'Leaf', pow: 30, cd: 2, status: 'rooted' },
+  sunnap:      { name: 'Sun Nap', el: 'Leaf', heal: .3, cd: 3 },
+  sweetscent:  { name: 'Sweet Scent', el: 'Leaf', down: 'atk', cd: 2 },
+  bloomburst:  { name: 'Bloom Burst', el: 'Leaf', pow: 85, cd: 3 },
+  sparknip:    { name: 'Spark Nip', el: 'Ember', pow: 40 },
+  singe:       { name: 'Singe', el: 'Ember', pow: 30, cd: 2, status: 'singed' },
+  warmup:      { name: 'Warm Up', el: 'Ember', up: 'atk', cd: 2 },
+  blazedash:   { name: 'Blaze Dash', el: 'Ember', pow: 85, cd: 3 },
+  splash:      { name: 'Splash', el: 'Tide', pow: 40 },
+  soak:        { name: 'Soak', el: 'Tide', pow: 30, cd: 2, status: 'soaked' },
+  bubbleshield: { name: 'Bubble Shield', el: 'Tide', up: 'def', cd: 2 },
+  mend:        { name: 'Mend', el: 'Tide', heal: .35, cd: 3 },
+  tidalbump:   { name: 'Tidal Bump', el: 'Tide', pow: 85, cd: 3 },
+  zap:         { name: 'Zap', el: 'Spark', pow: 40 },
+  dazeflash:   { name: 'Daze Flash', el: 'Spark', pow: 25, cd: 2, status: 'dazed' },
+  quickstep:   { name: 'Quick Step', el: 'Spark', up: 'spd', cd: 2 },
+  thunderpounce: { name: 'Thunder Pounce', el: 'Spark', pow: 85, cd: 3 },
+  pebbletoss:  { name: 'Pebble Toss', el: 'Stone', pow: 40 },
+  dustcloud:   { name: 'Dust Cloud', el: 'Stone', down: 'atk', cd: 2 },
+  harden:      { name: 'Harden', el: 'Stone', up: 'def', cd: 2 },
+  boulderroll: { name: 'Boulder Roll', el: 'Stone', pow: 85, cd: 3 },
+};
+// Statuses: how long they last and what they do, in words for the player.
+export const STATUS = {
+  rooted: { name: 'Rooted', turns: 3, blurb: 'Half speed and cannot switch out.' },
+  singed: { name: 'Singed', turns: 3, blurb: 'Loses a little health every turn.' },
+  soaked: { name: 'Soaked', turns: 3, blurb: 'Defence is lowered.' },
+  dazed:  { name: 'Dazed', turns: 2, blurb: 'May lose its turn.' },
+};
+export const STAT_NAME = { atk: 'attack', def: 'defence', spd: 'speed' };
+
+// Base numbers by role: health, attack, defence, speed.
+const ROLE = { balanced: [100, 50, 50, 50], tank: [125, 42, 62, 35], support: [105, 44, 52, 48], fast: [85, 56, 42, 66],
+  glass: [78, 66, 38, 58], trickster: [90, 48, 46, 60], bruiser: [110, 58, 48, 40], healer: [105, 40, 54, 45] };
+// What each species fights like. Moves are learnt in this order, at the levels in LEARN.
+export const KIT = {
+  mossbun:   { role: 'balanced', moves: ['leafflick', 'sunnap', 'rootgrab', 'bloomburst'] },
+  sproutle:  { role: 'tank', moves: ['leafflick', 'harden', 'rootgrab', 'bloomburst'] },
+  petalpuff: { role: 'support', moves: ['leafflick', 'sweetscent', 'sunnap', 'bloomburst'] },
+  cindercub: { role: 'fast', moves: ['sparknip', 'quickstep', 'singe', 'blazedash'] },
+  toastoad:  { role: 'tank', moves: ['sparknip', 'harden', 'singe', 'blazedash'] },
+  flickit:   { role: 'glass', moves: ['sparknip', 'warmup', 'singe', 'blazedash'] },
+  puddlepup: { role: 'balanced', moves: ['splash', 'bubbleshield', 'soak', 'tidalbump'] },
+  bubblefin: { role: 'support', moves: ['splash', 'soak', 'bubbleshield', 'tidalbump'] },
+  axolily:   { role: 'healer', moves: ['splash', 'mend', 'soak', 'tidalbump'] },
+  zapkit:    { role: 'fast', moves: ['zap', 'quickstep', 'dazeflash', 'thunderpounce'] },
+  buzzlet:   { role: 'trickster', moves: ['zap', 'dustcloud', 'dazeflash', 'thunderpounce'] },
+  voltvole:  { role: 'glass', moves: ['zap', 'warmup', 'dazeflash', 'thunderpounce'] },
+  pebblet:   { role: 'tank', moves: ['pebbletoss', 'harden', 'dustcloud', 'boulderroll'] },
+  cragcrab:  { role: 'bruiser', moves: ['pebbletoss', 'warmup', 'dustcloud', 'boulderroll'] },
+  dustmole:  { role: 'trickster', moves: ['pebbletoss', 'quickstep', 'dustcloud', 'boulderroll'] },
+};
+export const LEARN = [1, 1, 5, 10];
+export const ROLE_NAME = { balanced: 'Balanced', tank: 'Tank', support: 'Support', fast: 'Fast attacker', glass: 'Glass cannon', trickster: 'Trickster', bruiser: 'Bruiser', healer: 'Healer' };
+export const movesAt = (sp, lv) => (KIT[sp]?.moves || []).filter((_, i) => lv >= LEARN[i]);
+
+// A pet's numbers at a level. Each star above the first adds 5% to its stat.
+export function statsOf(pet, lv = pet.lv) {
+  const b = ROLE[KIT[pet.sp]?.role] || ROLE.balanced, st = pet.stars || [3, 3, 3, 3], g = [.05, .07, .05, .05];
+  const [hp, atk, def, spd] = b.map((v, i) => Math.round(v * (1 + (lv - 1) * g[i]) * (1 + ((st[i] || 1) - 1) * .05)));
+  return { hp, atk, def, spd };
+}
+// A pet ready to fight. lv may be higher than its real level when a battle scales everyone up.
+export function unit(pet, lv = pet.lv) {
+  const s = statsOf(pet, lv);
+  return { id: pet.id, sp: pet.sp, name: pet.name, el: SPECIES[pet.sp].el, lv, form: formOf(pet.lv), max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
+    moves: movesAt(pet.sp, lv), cd: {}, up: { atk: 0, def: 0, spd: 0 }, status: {} };
+}
+export const newBattle = (mine, theirs, meta = {}) => ({ ...meta, sides: [{ pets: mine, on: 0 }, { pets: theirs, on: 0 }], turn: 1, need: false, over: null });
+
+const on = (B, s) => B.sides[s].pets[B.sides[s].on];
+const stat = (u, k) => u[k] * Math.pow(1.3, u.up[k]) * (k === 'def' && u.status.soaked ? .75 : 1) * (k === 'spd' && u.status.rooted ? .5 : 1);
+const ready = u => u.moves.filter(m => !u.cd[m]);
+const alive = (B, s) => B.sides[s].pets.some(u => u.hp > 0);
+export const canSwitch = (B, s, i) => { const t = B.sides[s].pets[i]; return !!t && t.hp > 0 && i !== B.sides[s].on && (!on(B, s).status.rooted || on(B, s).hp <= 0); };
+
+// The other team's brain: beatable but not silly.
+export function pickMove(B, s, rnd = Math.random) {
+  const me = on(B, s), foe = on(B, 1 - s), rdy = ready(me);
+  const worth = m => (MOVES[m].pow || 0) * effect(MOVES[m].el, foe.el) * (MOVES[m].el === me.el ? 1.2 : 1);
+  // sometimes step out of a bad match-up
+  if (effect(foe.el, me.el) > 1 && rnd() < .3) {
+    const i = B.sides[s].pets.findIndex((u, j) => canSwitch(B, s, j) && effect(foe.el, u.el) <= 1);
+    if (i >= 0) return { switch: i };
+  }
+  const hits = rdy.filter(m => MOVES[m].pow).sort((a, b) => worth(b) - worth(a));
+  if (hits[0] && effect(MOVES[hits[0]].el, foe.el) > 1) return { move: hits[0] };
+  const heal = rdy.find(m => MOVES[m].heal); if (heal && me.hp < me.max * .4) return { move: heal };
+  const util = rdy.filter(m => (MOVES[m].up && me.up[MOVES[m].up] < 2) || (MOVES[m].down && foe.up[MOVES[m].down] > -2));
+  if (util.length && rnd() < .2) return { move: util[rnd() * util.length | 0] };
+  return { move: hits[0] || rdy[0] || me.moves[0] };
+}
+
+// Plays one turn. act: { move: id } or { switch: index } for side 0. Returns the list of things that happened,
+// in order, for the screen to show. Returns null if the action is not allowed.
+export function step(B, act, rnd = Math.random) {
+  if (B.over !== null || !act) return null;
+  const ev = [];
+  const swap = (s, i) => { const old = on(B, s); old.up = { atk: 0, def: 0, spd: 0 }; B.sides[s].on = i; ev.push({ k: 'switch', s, i }); };
+  const fallen = s => { // the active pet of side s just fainted
+    ev.push({ k: 'faint', s });
+    if (!alive(B, s)) { B.over = 1 - s; ev.push({ k: 'end', win: 1 - s }); return; }
+    if (s === 0) B.need = true;
+    else { const foe = on(B, 0), pets = B.sides[1].pets; let best = -1; pets.forEach((u, i) => { if (u.hp > 0 && (best < 0 || effect(foe.el, u.el) < effect(foe.el, pets[best].el))) best = i; }); swap(1, best); }
+  };
+  if (B.need) { // choosing who comes in after a faint is free
+    if (act.switch === undefined || !canSwitch(B, 0, act.switch)) return null;
+    B.need = false; swap(0, act.switch); return ev;
+  }
+  if (act.switch !== undefined ? !canSwitch(B, 0, act.switch) : !ready(on(B, 0)).includes(act.move)) return null;
+  const acts = [act, pickMove(B, 1, rnd)];
+  for (const s of [0, 1]) if (acts[s].switch !== undefined) swap(s, acts[s].switch);
+  const order = [0, 1].filter(s => acts[s].move).sort((a, b) => stat(on(B, b), 'spd') - stat(on(B, a), 'spd') || rnd() - .5);
+  for (const s of order) {
+    if (B.over !== null || B.need) break;
+    const u = on(B, s), t = on(B, 1 - s), id = acts[s].move, m = MOVES[id];
+    if (u.hp <= 0 || t.hp <= 0) continue;
+    if (u.status.dazed && rnd() < .4) { ev.push({ k: 'dazed', s }); continue; }
+    ev.push({ k: 'move', s, move: id });
+    if (m.cd) u.cd[id] = m.cd + 1;
+    if (m.pow) {
+      const eff = effect(m.el, t.el);
+      const dmg = Math.max(1, Math.round(m.pow * .6 * stat(u, 'atk') / stat(t, 'def') * eff * (m.el === u.el ? 1.2 : 1) * (.9 + rnd() * .2)));
+      t.hp = Math.max(0, t.hp - dmg); ev.push({ k: 'hit', s: 1 - s, dmg, eff, hp: t.hp });
+      if (t.hp > 0 && m.status && !t.status[m.status]) { t.status[m.status] = STATUS[m.status].turns + 1; ev.push({ k: 'status', s: 1 - s, st: m.status }); }
+      if (t.hp <= 0) fallen(1 - s);
+    } else if (m.heal) { const n = Math.min(u.max - u.hp, Math.round(u.max * m.heal)); u.hp += n; ev.push({ k: 'heal', s, n, hp: u.hp }); }
+    else if (m.up) { const can = u.up[m.up] < 2; if (can) u.up[m.up]++; ev.push({ k: 'stat', s, stat: m.up, d: can ? 1 : 0 }); }
+    else if (m.down) { const can = t.up[m.down] > -2; if (can) t.up[m.down]--; ev.push({ k: 'stat', s: 1 - s, stat: m.down, d: can ? -1 : 0 }); }
+  }
+  // end of the turn: burns sting, statuses and cooldowns run down
+  for (const s of [0, 1]) {
+    const u = on(B, s);
+    if (B.over === null && u.hp > 0 && u.status.singed) {
+      const dmg = Math.max(1, Math.round(u.max * .06)); u.hp = Math.max(0, u.hp - dmg); ev.push({ k: 'burn', s, dmg, hp: u.hp });
+      if (u.hp <= 0) fallen(s);
+    }
+    for (const x of B.sides[s].pets) {
+      for (const k of Object.keys(x.cd)) if (--x.cd[k] <= 0) delete x.cd[k];
+      for (const k of Object.keys(x.status)) if (--x.status[k] <= 0) { delete x.status[k]; if (x.hp > 0 && x === on(B, s)) ev.push({ k: 'clear', s, st: k }); }
+    }
+  }
+  B.turn++;
+  return ev;
+}
