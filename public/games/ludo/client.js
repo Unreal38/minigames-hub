@@ -109,13 +109,13 @@ export function mount(app, ctx) {
   // ----- what each choice of pawn would do -----
   function describe(m) {
     const seat = S.seats[S.me];
-    if (m.from < 0) return 'Bring a pawn out';
     if (m.to === HOME) return 'Take a pawn home';
     const i = ringIndex(seat.corner, m.to);
-    if (i >= 0 && !safeIndex(i)) {
+    if (i >= 0 && (!safeIndex(i) || (S.hard && m.from < 0))) {
       const hit = S.seats.map((o, os) => (os !== S.me && o.toks.filter(p => ringIndex(o.corner, p) === i).length === 1 ? os : -1)).filter(x => x >= 0);
-      if (hit.length) return `Capture ${hit.map(nameOf).join(' and ')}`;
+      if (hit.length) return `${m.from < 0 ? 'Come out and capture' : 'Capture'} ${hit.map(nameOf).join(' and ')}`;
     }
+    if (m.from < 0) return 'Bring a pawn out';
     const left = HOME - m.to, tail = `${left} to go`;
     if (m.to > LAST) return `Into the home lane · ${tail}`;
     if (i >= 0 && safeIndex(i)) return `To a safe spot · ${tail}`;
@@ -165,7 +165,7 @@ export function mount(app, ctx) {
 
   function render() {
     if (!S) return;
-    $('lu-round').textContent = `Round ${S.round} · ${S.pawns} pawns each`;
+    $('lu-round').textContent = `${S.hard ? 'Hard · ' : ''}Round ${S.round} · ${S.pawns} pawns each`;
     $('lu-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderRoll(); renderBanner();
   }
