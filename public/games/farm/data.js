@@ -8,9 +8,10 @@ export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', coins: 'Coin
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 // Until expeditions exist, a supply crate keeps builders stocked.
 export const CRATE = { every: 4 * 3600_000, gives: { wood: 40, stone: 30, fiber: 20, coins: 15 } };
-export const MAX_ITEMS = 220;
+export const MAX_ITEMS = 300;
 
 // kind: 'b' building, 'd' decoration. w x h is the footprint before rotation. max = how many a farm may hold.
+// fine: a small prop that snaps to half tiles (its w and h may be .5). Everything else sits on whole tiles.
 // walk: pets can stroll across it. soon: what it will do once that part of the game arrives.
 export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. Its level will decide how far everything else can be upgraded.' },
@@ -27,15 +28,15 @@ export const ITEMS = {
 
   fence:    { name: 'Fence', kind: 'd', w: 1, h: 1, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
   path:     { name: 'Stone Path', kind: 'd', w: 1, h: 1, walk: true, cost: { stone: 1 }, desc: 'Pets like to stroll along it.' },
-  tree:     { name: 'Leafy Tree', kind: 'd', w: 1, h: 1, cost: { coins: 8 }, desc: 'A bit of shade.' },
-  pine:     { name: 'Pine Tree', kind: 'd', w: 1, h: 1, cost: { coins: 8 }, desc: 'Smells like a walk in the woods.' },
-  bush:     { name: 'Bush', kind: 'd', w: 1, h: 1, cost: { coins: 4 }, desc: 'Round and friendly.' },
-  flowers:  { name: 'Flower Bed', kind: 'd', w: 1, h: 1, walk: true, cost: { fiber: 3 }, desc: 'A splash of colour.' },
-  lamp:     { name: 'Lantern', kind: 'd', w: 1, h: 1, cost: { wood: 4, stone: 2 }, desc: 'A warm little light.' },
+  tree:     { name: 'Leafy Tree', kind: 'd', w: .5, h: .5, fine: true, cost: { coins: 8 }, desc: 'A bit of shade.' },
+  pine:     { name: 'Pine Tree', kind: 'd', w: .5, h: .5, fine: true, cost: { coins: 8 }, desc: 'Smells like a walk in the woods.' },
+  bush:     { name: 'Bush', kind: 'd', w: .5, h: .5, fine: true, cost: { coins: 4 }, desc: 'Round and friendly.' },
+  flowers:  { name: 'Flower Bed', kind: 'd', w: .5, h: .5, fine: true, walk: true, cost: { fiber: 3 }, desc: 'A splash of colour.' },
+  lamp:     { name: 'Lantern', kind: 'd', w: .5, h: .5, fine: true, cost: { wood: 4, stone: 2 }, desc: 'A warm little light.' },
   pond:     { name: 'Pond', kind: 'd', w: 2, h: 2, cost: { stone: 12 }, desc: 'Cool water with a lily pad.' },
-  bench:    { name: 'Bench', kind: 'd', w: 1, h: 1, cost: { wood: 8 }, desc: 'For watching pets go by.' },
-  rock:     { name: 'Mossy Rock', kind: 'd', w: 1, h: 1, cost: { stone: 4 }, desc: 'It has always been here, probably.' },
-  ball:     { name: 'Pet Ball', kind: 'd', w: 1, h: 1, walk: true, cost: { fiber: 6 }, desc: 'A toy for the pets.' },
+  bench:    { name: 'Bench', kind: 'd', w: 1, h: .5, fine: true, cost: { wood: 8 }, desc: 'For watching pets go by.' },
+  rock:     { name: 'Mossy Rock', kind: 'd', w: .5, h: .5, fine: true, cost: { stone: 4 }, desc: 'It has always been here, probably.' },
+  ball:     { name: 'Pet Ball', kind: 'd', w: .5, h: .5, fine: true, walk: true, cost: { fiber: 6 }, desc: 'A toy for the pets.' },
 };
 
 export const ELEMENTS = { Leaf: '#3f9a52', Ember: '#e0592f', Tide: '#2f86cc', Spark: '#d9a400', Stone: '#8a7f76' };
@@ -53,24 +54,34 @@ export const footprint = (type, r) => { const it = ITEMS[type]; return r % 2 ? [
 export const canAfford = (inv, cost) => Object.entries(cost || {}).every(([k, n]) => (inv[k] || 0) >= n);
 export const costText = cost => Object.entries(cost || {}).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') || 'Free';
 
-// Tiles taken by items. With walkable = true, items pets can cross count as free.
+// Placement is checked on a grid of half tiles, so small props can share a tile.
+// Returns that grid (2n x 2n). With walkable = true, items pets can cross count as free.
 export function occupied(farm, { ignore = null, walkable = false } = {}) {
-  const n = farm.size, g = new Uint8Array(n * n);
+  const n = farm.size * 2, g = new Uint8Array(n * n);
   for (const it of farm.items) {
     if (it.id === ignore || !ITEMS[it.type] || (walkable && ITEMS[it.type].walk)) continue;
-    const [w, h] = footprint(it.type, it.r);
-    for (let y = it.y; y < it.y + h; y++) for (let x = it.x; x < it.x + w; x++) if (x >= 0 && y >= 0 && x < n && y < n) g[y * n + x] = 1;
+    const [w, h] = footprint(it.type, it.r), x0 = Math.round(it.x * 2), y0 = Math.round(it.y * 2);
+    for (let y = y0; y < y0 + h * 2; y++) for (let x = x0; x < x0 + w * 2; x++) if (x >= 0 && y >= 0 && x < n && y < n) g[y * n + x] = 1;
   }
   return g;
 }
+// Whole tiles a pet cannot walk on: any tile with something solid on part of it.
+export function blockedTiles(farm) {
+  const n = farm.size, h = occupied(farm, { walkable: true }), g = new Uint8Array(n * n);
+  for (let y = 0; y < n * 2; y++) for (let x = 0; x < n * 2; x++) if (h[y * n * 2 + x]) g[(y >> 1) * n + (x >> 1)] = 1;
+  return g;
+}
+export const stepOf = type => ITEMS[type]?.fine ? .5 : 1;
 
 // Would this item fit at (x, y)? ignore = id of the item being moved.
 export function fits(farm, type, x, y, r, ignore = null) {
-  if (!ITEMS[type] || ![x, y, r].every(Number.isInteger) || r < 0 || r > 3) return false;
+  if (!ITEMS[type] || !Number.isInteger(r) || r < 0 || r > 3) return false;
+  const st = stepOf(type);
+  if (![x, y].every(v => typeof v === 'number' && Number.isInteger(v / st))) return false;
   const [w, h] = footprint(type, r), n = farm.size;
   if (x < 0 || y < 0 || x + w > n || y + h > n) return false;
-  const g = occupied(farm, { ignore });
-  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (g[j * n + i]) return false;
+  const g = occupied(farm, { ignore }), n2 = n * 2;
+  for (let j = y * 2; j < (y + h) * 2; j++) for (let i = x * 2; i < (x + w) * 2; i++) if (g[j * n2 + i]) return false;
   return true;
 }
 export const countOf = (farm, type) => farm.items.filter(i => i.type === type).length;
