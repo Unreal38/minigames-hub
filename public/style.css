@@ -64,6 +64,11 @@ h1, h2, h3 { font-family: var(--fd); font-weight: 600; margin: 0; line-height: 1
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .codeform { align-self: flex-start; display: flex; gap: 8px; align-items: center; background: var(--plum2); border: 3px solid var(--line); border-radius: 18px; padding: 6px 6px 6px 16px; }
 .codeform label { font-family: var(--fd); font-size: 15px; color: var(--soft); }
+.livestats { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 14px 0 0; font-size: 15px; color: var(--muted); min-height: 1.4em; }
+.livestats b { color: var(--cream); font-family: var(--fd); font-weight: 600; }
+.livestats .on i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--mint); margin-right: 7px; vertical-align: 1px; box-shadow: 0 0 0 3px rgba(126,211,178,.22); animation: livepulse 2s ease-in-out infinite; }
+@keyframes livepulse { 50% { box-shadow: 0 0 0 6px rgba(126,211,178,0); } }
+@media (prefers-reduced-motion: reduce) { .livestats .on i { animation: none; } }
 .code-in { width: 104px; text-align: center; letter-spacing: 5px; text-transform: uppercase; font-size: 22px; font-weight: 700; padding: 6px 8px; }
 section h2 { font-size: 32px; margin-bottom: 18px; }
 .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
