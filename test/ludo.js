@@ -119,7 +119,8 @@ play({ seats: 4, timer: 10 }, false); // nobody touches anything: the turn timer
   G = fresh(); G.toks[0] = [0, -1, -1, -1];
   if (ludo.legalMoves(G, 0, 6).some(m => m.from < 0)) fail('hard: left the yard onto your own pawn');
   G = fresh(); G.toks[0] = [5, -1, -1, -1]; G.toks[1] = [34, -1, -1, -1]; // rival on the star at ring cell 8
-  if (ludo.legalMoves(G, 0, 3).length) fail('hard: moved onto a rival on a star');
+  ludo._roll(G, 0, now, 3); end(G);
+  if (G.toks[0][0] !== 8 || G.toks[1][0] !== -1) fail('hard: a rival on a star should be captured');
   G = fresh(); G.toks[0] = [-1, -1, -1, -1]; G.toks[1] = [26, -1, -1, -1]; // rival standing on seat 0's start cell
   ludo._roll(G, 0, now, 6); end(G);
   if (G.toks[0].filter(p => p === 0).length !== 1 || G.toks[1][0] !== -1) fail('hard: leaving the yard should capture on the start cell');

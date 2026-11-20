@@ -63,7 +63,7 @@ Open two browser windows (or one normal and one private window) to play against 
 - A pawn needs a 6 to leave the yard. With nothing on the board you get up to three tries. If more than one pawn can move you choose; otherwise it moves by itself.
 - Landing on a single rival pawn sends it back to its yard. Star cells and start cells are safe, and two of your own pawns on one cell cannot be captured.
 - A 6, a capture or a pawn getting home earns a bonus roll; three sixes in a row ends the turn.
-- Hard mode (off by default) allows only one pawn per cell: you cannot move onto your own pawn or onto a rival on a safe cell, and a pawn leaving the yard captures whoever stands on its start cell.
+- Hard mode (off by default) allows only one pawn per cell and has no safe cells: you cannot move onto your own pawn, and any rival you land on is captured, even on a star or a start cell.
 - A pawn needs the exact number to step home. First to get every pawn home wins, and the rest are ranked by how far their pawns got.
 - Someone who joins mid-game can take over a bot's corner when the current round of turns ends.
 

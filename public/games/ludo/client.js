@@ -111,14 +111,14 @@ export function mount(app, ctx) {
     const seat = S.seats[S.me];
     if (m.to === HOME) return 'Take a pawn home';
     const i = ringIndex(seat.corner, m.to);
-    if (i >= 0 && (!safeIndex(i) || (S.hard && m.from < 0))) {
+    if (i >= 0 && (!safeIndex(i) || S.hard)) {
       const hit = S.seats.map((o, os) => (os !== S.me && o.toks.filter(p => ringIndex(o.corner, p) === i).length === 1 ? os : -1)).filter(x => x >= 0);
       if (hit.length) return `${m.from < 0 ? 'Come out and capture' : 'Capture'} ${hit.map(nameOf).join(' and ')}`;
     }
     if (m.from < 0) return 'Bring a pawn out';
     const left = HOME - m.to, tail = `${left} to go`;
     if (m.to > LAST) return `Into the home lane · ${tail}`;
-    if (i >= 0 && safeIndex(i)) return `To a safe spot · ${tail}`;
+    if (i >= 0 && safeIndex(i) && !S.hard) return `To a safe spot · ${tail}`;
     return `Move ${m.to - m.from} · ${tail}`;
   }
 
