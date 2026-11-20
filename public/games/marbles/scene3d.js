@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { makeTrack, world, at, spinAngle, trapOpen, R, DS, DISH, WALL_H, GATE_S } from './track.js';
 import { avatarSvg } from '../../avatar.js';
+import { frameLoop, autoResolution } from '../../frames.js';
 
 const INK = '#3b2219', PLUM = '#2a1422';
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
@@ -93,7 +94,7 @@ function ribbon(rails, vScale = 1) {
 
 export function createScene(canvas, { onFrame }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
@@ -296,7 +297,7 @@ export function createScene(canvas, { onFrame }) {
   // ---------- frame loop ----------
   const q = new THREE.Quaternion(), axis = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), prev = new THREE.Vector3(), look = new THREE.Vector3(), want = new THREE.Vector3(), proj = new THREE.Vector3();
   const lookNow = new THREE.Vector3();
-  let raf = 0, lastT = performance.now(), W = 0, H = 0, dead = false;
+  let W = 0, H = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w === W && h === H) return;
@@ -308,10 +309,8 @@ export function createScene(canvas, { onFrame }) {
     if (best < 0) for (let i = 0; i < marbles.length; i++) { const m = marbles[i]; if (m.st !== 3 && m.s > bs) { bs = m.s; best = i; } }
     return best;
   }
-  function loop() {
-    if (dead) return;
-    raf = requestAnimationFrame(loop);
-    const now = performance.now(), dt = Math.min(.05, (now - lastT) / 1000), t = now / 1000; lastT = now;
+  function loop(dt, now) {
+    const t = now / 1000;
     resize();
     if (!T) { renderer.render(scene, camera); return; }
     sample();
@@ -379,7 +378,7 @@ export function createScene(canvas, { onFrame }) {
     }
     onFrame?.({ tags: marbles.map(m => m.tag), s: marbles.map(m => m.s), st: marbles.map(m => m.st), target, L: T.L });
   }
-  loop();
+  const ticker = frameLoop(loop, { onSlow: () => res.lower() });
 
   return {
     setTrack, setMarbles, pushFrames, burst,
@@ -391,7 +390,7 @@ export function createScene(canvas, { onFrame }) {
       fx.fovTo = k === 'turbo' ? 62 : 48;
     },
     dispose() {
-      dead = true; cancelAnimationFrame(raf);
+      ticker.stop();
       if (trackGroup) disposeTree(trackGroup);
       for (const m of marbles) { m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
       sharedGeo.dispose(); dot.dispose(); renderer.dispose();
