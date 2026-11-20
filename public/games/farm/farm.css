@@ -187,3 +187,7 @@ body.in-game { overflow: hidden; }
 .pf .swap .kin img, .pf .swap .kin .nothumb { width: 48px; height: 48px; } .pf .dealbtns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .pf .bclock { display: inline-block; min-width: 2.2em; margin-left: 10px; padding: 0 8px; border-radius: 999px; background: #2b2118; color: #fff8e7; font-size: .8em; font-variant-numeric: tabular-nums; }
 .pf .zone .cost { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.pf .cmp { display: grid; grid-template-columns: 1fr 64px 64px; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px dashed rgba(60, 40, 30, .2); font-size: 14px; }
+.pf .cmp span { display: flex; align-items: center; gap: 8px; } .pf .cmp b { text-align: center; opacity: .4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pf .cmp b.got, .pf .cmp.head b { opacity: 1; }
+.pf .cmp img, .pf .cmplist img, .pf .cmp .nothumb { width: 30px; height: 30px; flex: none; }
+.pf .cmprows { max-height: 32vh; overflow: auto; } .pf .cmplist { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; } .pf .cmplist .chip { display: inline-flex; align-items: center; gap: 6px; }

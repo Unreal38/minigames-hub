@@ -5,7 +5,7 @@
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex } from './breed.js';
-import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
+import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -83,9 +83,9 @@ export function mount(app, ctx) {
     paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel(); paintBattle();
     if (!scene) return;
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
-    else { scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
+    else { scene.setOwner(where === 'visit' && V ? { color: V.color, av: V.av } : { color: ctx.me()?.color, av: ctx.me()?.av }); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
     const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
-    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av }); }
+    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, out: F.trip?.zone === key, note: F.trip?.zone === key ? (F.trip.left > 0 ? 'your party is here' : 'your party is back') : F.house < z.house ? `farmhouse level ${z.house}` : 'tap to explore' })) : []); }
     scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
   }
   function paintTop() {
@@ -106,6 +106,7 @@ export function mount(app, ctx) {
         <button type="button" class="btn w" data-a="trade">Trade</button>
         ${countOf(F, 'flag') && V.team ? '<button type="button" class="btn w" data-a="duel">Challenge</button>' : ''}
         <button type="button" class="btn w" data-a="livego">Live battle</button>
+        <button type="button" class="btn w" data-a="compare">Compare albums</button>
         ${V.pal ? `<span class="chip">Friendship ${V.pal}</span>` : ''}`;
       return;
     }
@@ -141,6 +142,27 @@ export function mount(app, ctx) {
         <div class="party">${pets}</div><p class="hint">${note}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
           <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? 'Save team' : panel.mode === 'live' ? (panel.invite ? 'Join the battle' : 'Send the invitation') : 'Start'}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'train') {
+      const pets = F.pets.map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV;
+        return `<button type="button" class="pickpet${full ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" aria-pressed="${on}">${petRow(p, full ? ' · fully grown' : ' · level ' + p.lv)}</button>`; }).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Who trains at the yard?</h2><p>Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. Pets out exploring take a break from training.</p>
+        <div class="party">${pets}</div>
+        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button><button type="button" class="btn big m" data-a="trainsave">Save</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'compare') { // my album next to the neighbour's: who could help whom
+      const has = (al, sp) => al?.[sp]?.some(Boolean), all = Object.keys(SPECIES);
+      const theirs = all.filter(sp => has(V.album, sp) && !has(F.album, sp)), mine = all.filter(sp => has(F.album, sp) && !has(V.album, sp));
+      const names = l => l.length ? l.map(sp => `<span class="chip">${thumb('pet:' + sp)}${SPECIES[sp].name}</span>`).join('') : '<span class="hint">Nothing right now.</span>';
+      const rows = all.map(sp => `<div class="cmp"><span>${has(F.album, sp) || has(V.album, sp) ? thumb('pet:' + sp) + SPECIES[sp].name : '<span class="nothumb">?</span>Not found yet'}</span><b class="${has(F.album, sp) ? 'got' : ''}">${has(F.album, sp) ? '✓' : '–'}</b><b class="${has(V.album, sp) ? 'got' : ''}">${has(V.album, sp) ? '✓' : '–'}</b></div>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Your album and ${esc(V.name)}'s</h2>
+        <p><b>${esc(V.name)} has found, and you have not:</b></p><div class="cmplist">${names(theirs)}</div>
+        <p><b>You have found, and ${esc(V.name)} has not:</b></p><div class="cmplist">${names(mine)}</div>
+        <p class="hint">A trade or a playdate can fill the gaps.</p>
+        <div class="cmp head"><span>Pet</span><b>You</b><b>${esc(V.name)}</b></div><div class="cmprows">${rows}</div>
+        <div class="row end"><button type="button" class="btn big m" data-a="shut">Close</button></div></div>`;
       return;
     }
     if (panel.kind === 'cook') {
@@ -410,9 +432,9 @@ export function mount(app, ctx) {
     if (el.hidden) return;
     const g = scene?.ghost();
     const cards = Object.entries(ITEMS).filter(([, it]) => it.kind === tab && !it.fixed).map(([type, it]) => {
-      const have = countOf(F, type), full = it.max && have >= it.max, poor = !canAfford(F.inv, it.cost), locked = it.craft && !countOf(F, 'workshop');
-      return `<button type="button" class="item${full || poor || locked ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
-        ${thumb(type)}<b>${it.name}</b><span class="cost">${locked ? '<span class="mat">Needs a Workshop</span>' : full ? `<span class="mat">Have ${have} of ${it.max}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
+      const have = countOf(F, type), full = it.max && have >= it.max, poor = !canAfford(F.inv, it.cost), locked = it.craft && !countOf(F, 'workshop'), shy = it.pals && F.palpts < it.pals;
+      return `<button type="button" class="item${full || poor || locked || shy ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
+        ${thumb(type)}<b>${it.name}</b><span class="cost">${shy ? `<span class="mat">Friendship ${F.palpts} of ${it.pals}</span>` : locked ? '<span class="mat">Needs a Workshop</span>' : full ? `<span class="mat">Have ${have} of ${it.max}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
     }).join('');
     const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) ? '' : ' off'}" data-a="expand">
         <span class="nothumb grow">${F.next.size}</span><b>More land</b><span class="cost">${costHtml(F.next.cost, F.inv)}</span></button>` : '';
@@ -462,7 +484,13 @@ export function mount(app, ctx) {
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
     } else {
       const item = F.items.find(x => x.id === card.item), it = item && ITEMS[item.type]; if (!it) { card = null; el.hidden = true; return; }
-      let more = '', name = it.name;
+      let more = '', name = it.name, up = '';
+      if (UPGRADES[item.type]) { // buildings that can be improved
+        const lv = lvOf(item), cost = upCost(item);
+        name += ` · Level ${lv}`;
+        up = lv >= UP_MAX ? '' : F.house < lv + 1 ? `<p class="hint">Level ${lv + 1} needs a level ${lv + 1} farmhouse.</p>`
+          : `<p class="hint">Level ${lv + 1}: ${UPGRADES[item.type].what.toLowerCase()}.</p><div class="cost">${costHtml(cost, F.inv)}</div><button type="button" class="btn sm m" data-a="upgrade" data-id="${item.id}">Improve to level ${lv + 1}</button>`;
+      }
       if (item.type === 'house') {
         name += ` · Level ${F.house}`;
         const opens = list(Object.values(ZONES).filter(z => z.house === F.house + 1).map(z => z.name));
@@ -472,7 +500,7 @@ export function mount(app, ctx) {
         const t = F.trip;
         more = !t ? '<button type="button" class="btn sm m" data-a="explore">Send pets exploring</button>'
           : t.left > 0 ? `<p class="hint">The party is in ${ZONES[t.zone].name}, back in ${wait(t.left)}.</p>` : '<button type="button" class="btn sm m" data-a="collect">Welcome them back</button>';
-      } else if (item.type === 'yard') more = '<button type="button" class="btn sm m" data-a="practice">Practice battle</button>';
+      } else if (item.type === 'yard') more = `<p class="hint">${F.train.ids.length ? `Training: ${list(F.train.ids.map(id => esc(F.pets.find(p => p.id === id)?.name || '')).filter(Boolean))}.` : `Nobody is training. Pets left here earn ${TRAIN_XP} experience an hour.`}</p><button type="button" class="btn sm m" data-a="practice">Practice battle</button><button type="button" class="btn sm m" data-a="trainopen">Choose who trains</button>`;
       else if (item.type === 'flag') more = `<p class="hint">You have ${F.pts} ladder points.</p><button type="button" class="btn sm m" data-a="arena">Find a match</button>`;
       else if (item.type === 'mailbox') more = `<button type="button" class="btn sm m" data-a="mail">Open mail (${F.mail.length})</button>`;
       else if (item.type === 'nest') more = !F.nest ? '<button type="button" class="btn sm m" data-a="nest">Choose two pets</button>'
@@ -483,7 +511,7 @@ export function mount(app, ctx) {
       else if (item.type === 'workshop') more = '<p class="hint">Its decorations are under Edit farm, Decorations.</p><button type="button" class="btn sm m" data-a="sellopen">Sell spare materials</button>';
       else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
-        <button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button>
+        ${up}<button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button>
         ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">Sell (${costText(it.cost)} back)</button>`}</div>
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
     }
@@ -493,6 +521,13 @@ export function mount(app, ctx) {
   function onPick(p) {
     if (p.starter) { pick = p.starter; sfx.pop(); sync(); return; }
     if (mode !== 'farm') return;
+    if (p.zone) { // a place to explore on the map: go home and get a party ready for it
+      sfx.click(); const z = ZONES[p.zone];
+      if (!countOf(F, 'gate')) return ctx.toast('Build an Expedition Gate on your farm first.', true);
+      if (F.house < z.house) return ctx.toast(`${z.name} opens at farmhouse level ${z.house}.`, true);
+      if (F.trip) return ctx.toast(F.trip.left > 0 ? `Your party is in ${ZONES[F.trip.zone].name}, back in ${wait(F.trip.left)}.` : 'Your party is back. Welcome them home on your farm.', true);
+      goHome(); panel = { zone: p.zone }; openSend(); return;
+    }
     if ('island' in p) { sfx.click(); if (p.island) ctx.send({ t: 'visit', id: p.island }); else goHome(); return; }
     if (where === 'visit') { if (p.pet) { sfx.pop(); card = { pet: p.pet }; } else card = null; paintCard(); return; }
     if (edit) { if (p.item) { sfx.click(); scene.ghostItem(p.item); } return; }
@@ -613,6 +648,7 @@ export function mount(app, ctx) {
     else if (a === 'expand') { if (b.classList.contains('off')) ctx.toast('Not enough materials to grow the land yet.', true); else ctx.send({ t: 'expand' }); }
     else if (a === 'item') {
       const type = b.dataset.type, it = ITEMS[type];
+      if (it.pals && F.palpts < it.pals) return ctx.toast(`That unlocks at ${it.pals} friendship points. You earn them by helping out and leaving gifts.`, true);
       if (it.craft && !countOf(F, 'workshop')) return ctx.toast('Build a Workshop first. It is under Buildings.', true);
       if (it.max && countOf(F, type) >= it.max) return ctx.toast(`You can only have ${it.max} of those.`, true);
       if (!canAfford(F.inv, it.cost)) return ctx.toast('Not enough materials for that yet.', true);
@@ -621,6 +657,16 @@ export function mount(app, ctx) {
     else if (a === 'rot') scene?.ghostRotate();
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
+    else if (a === 'upgrade') { const it = F.items.find(x => x.id === +b.dataset.id); if (it && !canAfford(F.inv, upCost(it))) return ctx.toast('Not enough materials for that yet.', true); ctx.send({ t: 'upgrade', id: +b.dataset.id }); }
+    else if (a === 'trainopen') { panel = { kind: 'train', pets: [...F.train.ids] }; card = null; sync(); }
+    else if (a === 'trainpick') {
+      if (b.classList.contains('off')) return ctx.toast('That pet is fully grown already.', true);
+      const id = b.dataset.id, i = panel.pets.indexOf(id);
+      if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= F.train.slots) return ctx.toast(F.train.slots < UP_MAX ? `The yard has ${F.train.slots} training ${F.train.slots > 1 ? 'spots' : 'spot'}. Improve it for more.` : `The yard has ${F.train.slots} training spots.`, true); else panel.pets.push(id);
+      paintPanel();
+    }
+    else if (a === 'trainsave') ctx.send({ t: 'train', pets: [...panel.pets] });
+    else if (a === 'compare') { panel = { kind: 'compare' }; card = null; sync(); }
     else if (a === 'sellitem') { card = null; ctx.send({ t: 'remove', id: +b.dataset.id }); }
     else if (a === 'away') { const g = scene?.ghost(); if (g?.id) { ctx.send({ t: 'remove', id: g.id }); scene.ghostCancel(); } }
     else if (a === 'close') { card = null; paintCard(); }
@@ -695,6 +741,8 @@ export function mount(app, ctx) {
     else if (m.did === 'cook') { sfx.set(); ctx.toast(`One ${RECIPES[m.what].name} is ready.`); }
     else if (m.did === 'sell') { sfx.join(); ctx.toast(`Sold for ${m.coins} coins.`); }
     else if (m.did === 'feed') { sfx.win(); const p = F.pets.find(x => x.id === m.pet); scene?.cheer(m.pet); ctx.toast(`${esc(p.name)} loved it.${m.grew ? (m.grew.form ? ` It grew up into its ${FORMS[m.grew.form].toLowerCase()} form!` : ` It reached level ${m.grew.lv}!`) : ''}`); }
+    else if (m.did === 'upgrade') { sfx.win(); const it = F.items.find(x => x.id === m.id); ctx.toast(`${ITEMS[it.type].name} is now level ${lvOf(it)}.`); }
+    else if (m.did === 'train') { sfx.set(); panel = null; ctx.toast(F.train.ids.length ? 'Training plan saved.' : 'Nobody is training now.'); }
     else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');

@@ -453,6 +453,29 @@ if (r.battle && r.battle.over === null && !r.battle.need) {
 r = await a.farmDo({ t: 'bquit' }); await wait(50);
 r = await a.farmDo({ t: 'open', test: { ripe: true } });
 
+// ----- building levels, training, friendship decorations, album compare -----
+r = await a.farmDo({ t: 'open', test: { give: { wood: 400, stone: 400, fiber: 300, shells: 40, coal: 40 } } });
+const hut1 = r.farm.items.find(i => i.type === 'hut'), room1 = r.farm.room, house1 = r.farm.house;
+r = await a.farmDo({ t: 'upgrade', id: hut1.id });
+if (house1 < 2 ? !r.err : (r.err || r.farm.room !== room1 + 2 || r.farm.items.find(i => i.id === hut1.id).lv !== 2)) fail('hut upgrade ' + r.err + ' house ' + house1);
+r = await a.farmDo({ t: 'upgrade', id: r.farm.items.find(i => i.type === 'house').id });
+if (!r.err) fail('upgraded the farmhouse as a building');
+if (!a.farm.items.some(i => i.type === 'yard')) await spot('yard');
+const trainee = a.farm.pets.find(x => x.lv < 15), tx0 = [trainee.lv, trainee.xp];
+r = await a.farmDo({ t: 'train', pets: a.farm.pets.map(x => x.id) });
+if (r.err || r.farm.train.ids.length !== r.farm.train.slots || r.farm.train.slots !== 1) fail('train ' + JSON.stringify(r.err || r.farm.train));
+r = await a.farmDo({ t: 'train', pets: [trainee.id] });
+r = await a.farmDo({ t: 'open', test: { trained: 3 } }); r = await a.farmDo({ t: 'open' });
+const tr1 = r.farm.pets.find(x => x.id === trainee.id);
+if (tr1.lv === tx0[0] && tr1.xp < tx0[1] + 18) fail('training gave no experience ' + JSON.stringify([tx0, tr1.lv, tr1.xp]));
+r = await a.farmDo({ t: 'train', pets: [] });
+r = await a.farmDo({ t: 'place', type: 'palflag', x: 0, y: 0, r: 0, test: { pals: 0 } });
+if (a.farm.palpts < 15 && !r.err) fail('friendship decoration without the points');
+r = await a.farmDo({ t: 'open', test: { pals: 20 } });
+if (r.farm.palpts < 20) fail('friendship points ' + r.farm.palpts);
+r = await a.farmDo({ t: 'visit', id: boId });
+if (r.err || !r.visit.album || !Object.keys(r.visit.album).length) fail('no album on a visit');
+
 // ----- live battles -----
 r = await a.farmDo({ t: 'duel', to: boId, pets: [] });
 if (!r.err) fail('live battle with no team');

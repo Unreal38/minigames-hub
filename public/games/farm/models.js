@@ -196,6 +196,16 @@ const BUILD = {
     cyl(g, .32, .32, .08, 6, C.lilac, .12, .6); cyl(g, .28, .28, .08, 6, C.pink, -.08, 1.36);
     box(g, .3, .22, .3, C.wood, .2, .1, .2); ico(g, .07, C.yellow, -.3, .9, .1);
   },
+  palbench(g) {
+    box(g, .9, .08, .4, C.pink, 0, .3); box(g, .9, .4, .07, C.pink, 0, .38, -.17);
+    for (const x of [-.38, .38]) box(g, .08, .3, .36, C.woodD, x);
+    put(g, G('Octahedron', .1, 0), M(C.red), 0, .95, -.17).scale.set(1.2, 1, .5);
+  },
+  palflag(g) {
+    for (const x of [-.2, .2]) cyl(g, .025, .025, .9, 5, C.woodD, x);
+    [C.pink, C.yellow, C.lilac, C.leafL].forEach((c, i) => { const t = cone(g, .07, .14, 3, c, -.15 + i * .1, .66); t.rotation.x = Math.PI; });
+    box(g, .42, .02, .02, C.cream, 0, .86);
+  },
   ball(g) { ico(g, .22, C.red, 0, .22, 0, 1); put(g, G('Cylinder', .224, .224, .07, 10), M(C.white), 0, .22, 0); },
 };
 
