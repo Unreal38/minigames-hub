@@ -3,7 +3,7 @@
 import { makeBoard, jumpAt, specialAt, SIZES, MS } from '../../public/games/ladders/board.js';
 import { randomAv } from '../../public/avatar.js';
 
-export const meta = { id: 'ladders', name: 'Snakes & Ladders', minPlayers: 1, maxPlayers: 6 };
+export const meta = { id: 'ladders', name: 'Snakes & Ladders', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -33,7 +33,7 @@ export function create(players, optsIn = {}) {
     game: 'ladders', ph: 'play', stage: 'roll', gid: Math.random().toString(36).slice(2, 8), seats, opts, board: B,
     pos: seats.map(() => 0), nap: seats.map(() => 0), st: seats.map(() => ({ ladders: 0, snakes: 0, sixes: 0 })),
     turn: Math.random() * n | 0, sixRun: 0, extra: false, round: 1, first: 0, stageEnd: 0,
-    move: null, moveN: 0, ev: [], evN: 0, res: null, win: -1, endAt: 0,
+    move: null, moveN: 0, ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
   };
   G.first = G.turn;
   beginTurn(G, Date.now());
@@ -109,7 +109,7 @@ function nextTurn(G, now) {
   let t = G.turn;
   for (let guard = 0; guard < n * 2; guard++) {
     t = (t + 1) % n;
-    if (t === G.first) G.round++;
+    if (t === G.first) { G.round++; seatQueued(G); }
     if (G.nap[t]) { G.nap[t] = 0; pushEv(G, { t: 'nap', s: t }); continue; }
     break;
   }
@@ -153,6 +153,25 @@ export function setAway(G, s, away) {
   seat.bot = away;
   if (G.ph === 'play' && G.stage === 'roll' && G.turn === s) beginTurn(G, Date.now());
   return true;
+}
+
+// Someone watching can take over a bot's token from the start of the next round (when the turn comes back
+// round to the first player). Called by the server when a watcher taps "Play" (on = true) or changes their mind.
+export function seatWatcher(G, p, on = true) {
+  if (!p?.id) return false;
+  G.queue ||= [];
+  G.queue = G.queue.filter(q => q.id !== p.id);
+  if (on && G.ph === 'play' && !G.seats.some(s => s.id === p.id)) G.queue.push({ id: p.id, name: p.name, color: p.color, av: p.av });
+  return true;
+}
+function seatQueued(G) {
+  while (G.queue?.length) {
+    const i = G.seats.findIndex(s => !s.human); // a bot, or the token of someone who left
+    if (i < 0) break; // every seat is a person: they get a seat in the next game instead
+    const p = G.queue.shift();
+    Object.assign(G.seats[i], { id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true });
+    pushEv(G, { t: 'sit', s: i });
+  }
 }
 
 export function view(G, s) {

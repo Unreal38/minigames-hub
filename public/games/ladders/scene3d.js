@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { cell, COLS, MS as MSv } from './board.js';
 
 const INK = '#3b2219', PLUM = '#2a1422';
@@ -115,7 +116,8 @@ export function createScene(canvas, { onFrame, onCue }) {
 
   const dot = softDot(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let B = null, boardGroup = null, snakes = [], ladders = [], toks = [], seatsKey = '', seats = [];
-  let mv = null, mvStart = 0, mvPlan = null, cueAt = 0, turn = -1, stage = 'roll';
+  let mv = null, mvStart = 0, mvPlan = null, cueAt = 0, turn = -1, stage = 'roll', me = -1;
+  const arrow = youArrow(); arrow.visible = false; scene.add(arrow);
   const bursts = [];
 
   function disposeTree(o) {
@@ -323,6 +325,10 @@ export function createScene(canvas, { onFrame, onCue }) {
       tk.av.scale.multiplyScalar(TOKEN);
       tk.ring.material.emissive.set(active ? '#ffb547' : '#000000'); tk.ring.material.emissiveIntensity = active ? .6 + Math.sin(T * 5) * .3 : 0;
     });
+    // your own token wears a little bobbing arrow
+    const mine = toks[me];
+    arrow.visible = !!mine;
+    if (mine) { arrow.position.copy(mine.cur); arrow.position.y += 1.3 + mine.wrap.position.y; animateArrow(arrow, T); }
     // snakes flick their tongues
     for (const s of snakes) { const ph = (T * 1.3 + s.k * .7) % 3; s.tongue.scale.z = ph < .3 ? 1 + Math.sin(ph / .3 * Math.PI) * 1.2 : 1; s.head.rotation.z = Math.sin(T * 1.2 + s.k) * .08; }
     // the die: tumbles while the move starts, otherwise rests by the board
@@ -364,11 +370,12 @@ export function createScene(canvas, { onFrame, onCue }) {
   return {
     setBoard, setSeats, setMove,
     setTurn(i, s) { turn = i; stage = s; },
+    setMe(i) { me = i; },
     dispose() {
       ticker.stop();
       if (boardGroup) disposeTree(boardGroup);
       for (const t of toks) { disposeAvatar(t.av); t.puck.material.dispose(); t.ring.material.dispose(); }
-      disposeTree(die); dot.dispose(); table.geometry.dispose(); renderer.dispose();
+      disposeArrow(arrow); disposeTree(die); dot.dispose(); table.geometry.dispose(); renderer.dispose();
     },
   };
 }

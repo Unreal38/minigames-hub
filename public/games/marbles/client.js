@@ -76,6 +76,7 @@ export function mount(app, ctx) {
     if (!scene || !S) return;
     scene.setTrack(S.seed, S.short);
     scene.setMarbles(S.seats);
+    scene.setMe(S.me);
     scene.setStage(S.stage);
     scene.pushFrames(S.frames || [], S.simT, S.stage === 'race');
     scene.setChaos(S.stage === 'race' ? S.chaos?.k : null);
@@ -90,7 +91,7 @@ export function mount(app, ctx) {
     if (!S) return;
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
-      if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
+      if (!t.show || i === S.me) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
       const sc = Math.max(.62, Math.min(1.1, 11 / t.d));
       el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%) scale(${sc.toFixed(2)})`;
@@ -104,7 +105,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color + p.av.join('')).join('|') + S.me + '/' + (me()?.bet?.m ?? '');
     if (key === tagKey) return; tagKey = key;
     const bet = me()?.bet?.m;
-    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tag${i === S.me ? ' mine' : ''}${i === bet ? ' backed' : ''}" hidden>${avatarHtml(p.color, p.av, 26)}<b>${esc(p.name)}</b>${i === bet ? I.coin : ''}</div>`).join('');
+    // Your own marble gets the bobbing arrow in the 3D scene instead of a tag.
+    tagsEl.innerHTML = S.seats.map((p, i) => i === S.me ? '<i hidden></i>' : `<div class="mtag${i === bet ? ' mtag-bet' : ''}" hidden>${avatarHtml(p.color, p.av, 26)}<b>${esc(p.name)}</b>${i === bet ? I.coin : ''}</div>`).join('');
     tagEls = [...tagsEl.children];
   }
 

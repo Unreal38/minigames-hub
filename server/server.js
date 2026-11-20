@@ -37,11 +37,11 @@ const server = http.createServer((req, res) => {
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) { res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found'); return; }
     const ext = path.extname(file);
-    res.writeHead(200, {
-      'content-type': MIME[ext] || 'application/octet-stream',
-      'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=300',
-      'x-content-type-options': 'nosniff',
-    });
+    // Always revalidate, so a browser never mixes old and new client files after a deploy.
+    const etag = `"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`;
+    const head = { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': 'no-cache', etag, 'x-content-type-options': 'nosniff' };
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }
+    res.writeHead(200, head);
     fs.createReadStream(file).pipe(res);
   });
 });
@@ -57,7 +57,7 @@ const newCode = () => { let c; do { c = Array.from({ length: 4 }, () => CODE_CHA
 
 function roomInfo(r) {
   return {
-    code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, host: r.host, priv: r.priv,
+    code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
@@ -296,9 +296,17 @@ attach(server, '/ws', sock => {
     if (!m || typeof m !== 'object') return;
     if (!c) {
       if (m.t !== 'hello') return;
+      try { hello(m); } catch (e) { console.error('hello error', e); }
+      return;
+    }
+    c.lastSeen = Date.now();
+    try { handle(c, m); if (m.t !== 'act' && m.t !== 'react' && m.t !== 'rooms') store.scheduleSave(); } catch (e) { console.error('handler error', e); }
+  });
+  function hello(m) {
+    {
       const token = typeof m.token === 'string' && /^[a-z0-9]{16,40}$/.test(m.token) ? m.token : crypto.randomBytes(12).toString('hex');
       c = clients.get(token);
-      if (c) { if (c.sock && c.sock !== sock) c.sock.close(4000); }
+      if (c) { if (c.sock && c.sock !== sock) { console.log(`ws: ${c.id} opened a second connection (${sock.ip}), closing the older one (${c.sock.ip})`); c.sock.send({ t: 'replaced' }); c.sock.close(4000); } }
       else { c = { token, id: null, room: null }; clients.set(token, c); }
       c.sock = sock; c.lastSeen = Date.now();
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
@@ -313,11 +321,8 @@ attach(server, '/ws', sock => {
         sendRoom(r); send(c, { t: 'chatlog', log: r.chat });
         if (r.G) sendState(r); else send(c, { t: 'state', s: null });
       } else { c.room = null; send(c, { t: 'rooms', rooms: publicRooms() }); }
-      return;
     }
-    c.lastSeen = Date.now();
-    try { handle(c, m); if (m.t !== 'act' && m.t !== 'react' && m.t !== 'rooms') store.scheduleSave(); } catch (e) { console.error('handler error', e); }
-  });
+  }
   sock.on('close', () => {
     clearInterval(refill);
     if (!c || c.sock !== sock) return;
@@ -381,7 +386,7 @@ setInterval(() => {
 setInterval(() => { // heartbeat + forget long-gone clients
   const now = Date.now();
   for (const [t, c] of clients) {
-    if (c.sock) { if (!c.sock.alive) { c.sock.close(); continue; } c.sock.alive = false; c.sock.ping(); }
+    if (c.sock) { if (!c.sock.alive) { console.log(`ws: ${c.id} missed a heartbeat, closing`); c.sock.close(); continue; } c.sock.alive = false; c.sock.ping(); }
     else if (!c.room && now - c.lastSeen > 3600_000) clients.delete(t);
   }
 }, 25_000);

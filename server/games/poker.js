@@ -4,7 +4,7 @@
 import { score, handName, rankOf, suitOf } from '../../public/games/poker/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
-export const meta = { id: 'poker', name: "Texas Hold'em", minPlayers: 1, maxPlayers: 6 };
+export const meta = { id: 'poker', name: "Texas Hold'em", minPlayers: 1, maxPlayers: 6, joinAt: 'hand' };
 
 const BOT_NAMES = ['Truffle', 'Waffles', 'Clover', 'Nugget', 'Pudding', 'Maple', 'Toffee', 'Sprout'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];

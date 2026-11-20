@@ -111,19 +111,48 @@ export function toast(html, bad = false) {
 }
 
 // ---------- network ----------
-let ws = null, retry = 0;
+// One live connection per browser token. Tabs share the token through localStorage, so a second tab
+// takes the seat over and the first one is told it was replaced. A replaced tab stays quiet until the
+// player clicks "Play here" (reconnecting on its own would kick the other tab, which would kick back...).
+let ws = null, retry = 0, replaced = false, retryT = 0, stableT = 0;
+const $conn = document.getElementById('conn');
+function connBar(mode) {
+  if (!mode) { $conn.hidden = true; return; }
+  $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced');
+  if (mode === 'replaced') {
+    $conn.innerHTML = 'Cozy Table is open in another tab. <button type="button">Play here</button>';
+    $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
+  } else $conn.textContent = 'Reconnecting…';
+}
 function connect() {
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-  ws.onopen = () => {
-    retry = 0; document.getElementById('conn').hidden = true;
-    ws.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av }));
+  clearTimeout(retryT); retryT = 0;
+  if (replaced || (ws && ws.readyState <= 1)) return;
+  const s = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  s.onopen = () => {
+    s.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av }));
   };
-  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch { return; } onMsg(m); };
-  ws.onclose = () => {
-    document.getElementById('conn').hidden = false;
-    setTimeout(connect, Math.min(5000, 400 * 2 ** retry++));
+  s.onmessage = e => {
+    if (s !== ws) return;
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === 'replaced') { replaced = true; return; }
+    if (m.t === 'welcome') { connBar(null); clearTimeout(stableT); stableT = setTimeout(() => { retry = 0; }, 10_000); }
+    onMsg(m);
+  };
+  s.onclose = e => {
+    if (s !== ws) return;
+    clearTimeout(stableT);
+    console.warn(`[cozy] connection closed: code ${e.code}${e.reason ? ' ' + e.reason : ''}${replaced ? ' (replaced by another tab)' : ''}`);
+    if (replaced || e.code === 4000) { replaced = true; connBar('replaced'); return; }
+    connBar('reconnecting');
+    // back off with jitter so a flaky network or a restarting server isn't hammered
+    const wait = Math.min(10_000, 500 * 2 ** Math.min(retry++, 5)) * (0.7 + Math.random() * 0.6);
+    retryT = setTimeout(connect, wait);
   };
 }
+// coming back to the tab or the network: try right away instead of waiting out the backoff
+const reconnectNow = () => { if (!replaced && retryT) { retry = 0; connect(); } };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reconnectNow(); });
+addEventListener('online', reconnectNow);
 export function send(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
 
 function onMsg(m) {
@@ -364,7 +393,7 @@ function renderTables() {
   if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
   el.innerHTML = st.rooms.map(r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
-    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take a bot’s seat next round' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
+    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take over a bot' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
     <button type="button" class="btn ${r.n < r.max && r.state === 'lobby' ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${r.n < r.max && r.state === 'lobby' ? 'Join' : 'Watch'}</button>
@@ -415,7 +444,7 @@ function renderLobby() {
 }
 
 // ---------- watching ----------
-// While a game is on, a watcher gets a small bar: tap to replace a bot when the next round starts.
+// While a game is on, a watcher gets a small bar: tap to take over a bot's seat.
 const $watch = document.createElement('div');
 $watch.id = 'watchbar'; $watch.hidden = true; $watch.setAttribute('aria-live', 'polite');
 document.body.append($watch);
@@ -423,9 +452,19 @@ function watchPaint() {
   const r = st.room, me = r?.players.find(p => p.id === st.id);
   const on = !!(st.game && me?.watch && st.lastState?.ph === 'play');
   $watch.hidden = !on; if (!on) return;
-  const saving = (r.sit || []).includes(st.id), full = r.players.filter(p => !p.watch).length >= r.max;
-  $watch.innerHTML = `<span>${saving ? (full ? 'Every seat is taken. You get the next free one.' : 'You take a bot’s seat next round.') : 'You’re watching.'}</span>
-    <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${saving ? 'Just watch' : full ? 'Get the next free seat' : 'Play next round'}</button>`;
+  // When a watcher gets in depends on the game: Hot Pot and Marble Rush at the next game,
+  // Snakes & Ladders when the current round of turns ends, poker at the next hand.
+  const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
+  const bots = (st.lastState.seats || []).filter(s => !s.human).length;
+  const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
+  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand' }[when] || 'when the next game starts';
+  const msg = !saving ? 'You’re watching.'
+    : full ? (when === 'game' ? 'Every seat is taken. You get the next free one.' : 'Every seat has a player. You get one next game.')
+    : `You take over a bot ${soon}.`;
+  const btn = saving ? 'Just watch' : full && when === 'game' ? 'Get the next free seat'
+    : when === 'round' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : 'Play next game';
+  $watch.innerHTML = `<span>${msg}</span>
+    <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
 }
 $watch.addEventListener('click', e => {
   const b = e.target.closest('[data-w="sit"]'); if (!b) return;

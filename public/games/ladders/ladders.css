@@ -6,10 +6,11 @@ body.in-game { overflow: hidden; }
 .sl.flat::before { content: 'The 3D board could not load on this device. You can still roll and follow the tiles on the left.'; position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--muted); font-family: var(--fd); font-size: 18px; }
 
 .sl .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.sl .tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 10px 2px 4px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #160a1299; will-change: transform; }
-.sl .tag i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); }
-.sl .tag b { font-weight: 600; max-width: 8em; overflow: hidden; text-overflow: ellipsis; }
-.sl .tag.now { background: var(--lantern); }
+.sl .sl-tag { bottom: auto; right: auto; width: max-content; height: auto; flex-direction: row; position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 10px 2px 4px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #160a1299; will-change: transform; }
+.sl .sl-tag i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); }
+.sl .sl-tag b { font-weight: 600; max-width: 8em; overflow: hidden; text-overflow: ellipsis; }
+.sl .sl-tag[hidden] { display: none; }
+.sl .sl-tag.now { background: var(--lantern); }
 
 .sl .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .sl .hud > * { pointer-events: auto; }

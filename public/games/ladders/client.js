@@ -70,6 +70,7 @@ export function mount(app, ctx) {
     scene.setSeats(S.seats);
     scene.setMove(S.move);
     scene.setTurn(S.turn, S.stage);
+    scene.setMe(S.me);
   }
 
   function onFrame(info) {
@@ -77,7 +78,7 @@ export function mount(app, ctx) {
     if (busy !== info.busy) { busy = info.busy; renderList(); renderRoll(); renderBanner(); }
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
-      const want = t.show && (i === S.turn || i === S.me);
+      const want = t.show && i === S.turn && i !== S.me && S.ph === 'play'; // your own token has the 3D arrow instead
       if (!want) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
       el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
@@ -88,7 +89,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tag${i === S.me ? ' mine' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : esc(p.name)}</b></div>`).join('');
+    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="sl-tag${i === S.me ? ' sl-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${esc(p.name)}</b></div>`).join('');
     tagEls = [...tagsEl.children];
   }
 
@@ -160,6 +161,7 @@ export function mount(app, ctx) {
 
   function playEv(e) {
     if (e.t === 'again' && e.s === S.me && S.seats[S.me].pos < S.board.size) { ctx.toast('Bonus roll! Go again.'); sfx.turn(); }
+    else if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Your token, your rolls!' : `${esc(nameOf(e.s))} took over a bot`); }
     else if (e.t === 'nap') ctx.toast(`Zz… ${e.s === S.me ? 'you nap' : nameOf(e.s) + ' naps'} through a turn`);
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); } else sfx.lose();
