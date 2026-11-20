@@ -274,7 +274,7 @@ function handle(c, m) {
       return;
     }
     case 'farm': { // Pet Farm: a persistent game with no table, so it is handled outside the rooms
-      if (m.a?.t === 'crate' && m.a.skip) farm.testSkipCrate(store.profileOf(c.token)?.pid);
+      if (m.a?.test) farm.testHook(store.profileOf(c.token)?.pid, m.a.test);
       return farm.handle(store.profileOf(c.token), m.a, msg => send(c, msg));
     }
     case 'react': { // little food emote shown over your seat

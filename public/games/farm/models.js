@@ -171,6 +171,19 @@ export function itemModel(type) {
   return finish(g);
 }
 
+// The expedition balloon. Its basket floor is at y = 0.
+export function balloonModel() {
+  const g = new THREE.Group();
+  box(g, .5, .32, .5, C.wood, 0, 0, 0); box(g, .56, .06, .56, C.woodD, 0, .3, 0);
+  for (const [x, z] of [[-.22, -.22], [.22, -.22], [-.22, .22], [.22, .22]]) box(g, .03, .75, .03, C.woodD, x, .3, z);
+  cyl(g, .42, .24, .4, 6, C.yellow, 0, .95, 0);
+  const env = ico(g, 1, C.red, 0, 2.15, 0, 1); env.scale.set(1, 1.12, 1);
+  put(g, G('Cylinder', 1.0, 1.0, .3, 10), M(C.cream), 0, 2.2, 0);
+  put(g, G('Cone', .3, .3, 6), M(C.yellow), 0, 3.35, 0);
+  finish(g); g.traverse(m => { if (m.isMesh) m.receiveShadow = false; });
+  return g;
+}
+
 // ---------- pets ----------
 // form: 0 baby, 1 young, 2 adult. Each form is the same character, bigger and with more of its signature feature.
 const FORM = [{ k: .6, f: 0, eye: 1.3 }, { k: .8, f: .55, eye: 1.12 }, { k: 1, f: 1, eye: 1 }];
@@ -181,9 +194,9 @@ function face(g, eyes, { y = 1, z = .89, gap = .34, eye = 1, blush = '#ff8a9a', 
     const e = put(g, G('Cylinder', .12 * eye, .12 * eye, .06, 6), ink, s * gap, y, z); e.rotation.set(Math.PI / 2, 0, -s * .33); eyes.push(e);
     put(g, G('Box', .055, .055, .02), M('#ffffff'), s * gap + .03, y + .05, z + .04);
     const b = put(g, G('Circle', .12, 6), bl, s * (gap + .26), y - .17, z - .09); b.rotation.y = s * .62;
-    put(g, G('Box', .1, .03, .03), ink, s * .04, mouthY, z + .055).rotation.z = s * .5;
+    if (mouthY < 2.5) put(g, G('Box', .1, .03, .03), ink, s * .04, mouthY, z + .055).rotation.z = s * .5;
   }
-  put(g, G('Box', .07, .05, .04), M(nose), 0, noseY, z + .065);
+  if (noseY < 2.5) put(g, G('Box', .07, .05, .04), M(nose), 0, noseY, z + .065);
 }
 
 const PETS = {
@@ -244,6 +257,168 @@ const PETS = {
     }
     if (S.f) for (const [x, y, z] of [[-.3, 1.62, -.2], [.25, 1.66, -.3], [0, 1.6, .2]].slice(0, S.f === 1 ? 3 : 2)) ico(g, .12, grey, x, y, z).scale.y = .4;
     face(g, eyes, { eye: S.eye, nose: '#2b2230', y: .98, z: .94, mouthY: .82, noseY: .9 });
+  },
+  // ----- found on expeditions -----
+  sproutle(g, S, eyes) {
+    const skin = '#a9d98a', shell = '#7a9a55';
+    const sh = ico(g, 1, shell, 0, .8, -.15, 1); sh.scale.set(1.05, .78, 1.1);
+    put(g, G('Cylinder', 1.02, 1.1, .16, 7), M('#e9dcae'), 0, .42, -.15);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283; ico(g, .26, '#8fb36a', Math.sin(a) * .5, 1.42 - (i ? .12 : 0), -.15 + Math.cos(a) * .5).scale.y = .4; }
+    ico(g, .56, skin, 0, .82, .78, 1);
+    for (const [x, z] of [[-.7, .45], [.7, .45], [-.7, -.7], [.7, -.7]]) box(g, .34, .3, .36, skin, x, 0, z);
+    cone(g, .14, .3, 4, skin, 0, .45, -1.2).rotation.x = -1.2;
+    // the sprout: two leaves on a baby, a small bush with a flower on an adult
+    const st = new THREE.Group(); st.position.set(0, 1.5, -.2); g.add(st);
+    cyl(st, .05, .06, .3 + S.f * .3, 4, '#5fb04a');
+    for (let i = 0; i < 2 + Math.round(S.f * 3); i++) { const a = i * 2.4, l = put(st, G('Octahedron', .2 + S.f * .08, 0), M(i % 2 ? '#86cc5a' : '#5fb04a'), Math.sin(a) * .2, .3 + S.f * .3 + (i % 3) * .08, Math.cos(a) * .2); l.scale.set(1.2, .35, .8); l.rotation.y = a; }
+    if (S.f === 1) put(st, G('Octahedron', .16, 0), M('#ff9fb8'), 0, .85, 0);
+    face(g, eyes, { eye: S.eye * .8, y: .92, z: 1.3, gap: .24, mouthY: .72, noseY: .8, nose: '#7a9a55' });
+  },
+  petalpuff(g, S, eyes) {
+    const wool = '#fff6ea', skin = '#f3d2c1';
+    ico(g, 1, wool, 0, .98, -.1, 1);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; ico(g, .42, i % 2 ? '#ffffff' : wool, Math.sin(a) * .78, 1 + Math.cos(a * 2) * .2, -.1 + Math.cos(a) * .78); }
+    ico(g, .5, wool, 0, 1.85, 0); ico(g, .34, '#ffffff', 0, .7, -1.05);
+    const hd = ico(g, .6, skin, 0, 1, .68, 1); hd.scale.set(1, .92, .8);
+    for (const s of [-1, 1]) { box(g, .36, .14, .2, skin, s * .7, 1.12, .6).rotation.z = -s * .5; box(g, .24, .3, .26, '#6b5a66', s * .4, 0, .3); box(g, .24, .3, .26, '#6b5a66', s * .4, 0, -.6); }
+    // the flower crown: one bud, then a full ring
+    const n = 1 + Math.round(S.f * 5), cols = ['#ff9fb8', '#ffc94d', '#c8a2f2', '#ff7a7a', '#ffffff', '#ffb36b'];
+    for (let i = 0; i < n; i++) { const a = n === 1 ? 0 : (i / (n - 1) - .5) * 2.4, f = new THREE.Group(); f.position.set(Math.sin(a) * .52, 1.58, .62 + Math.cos(a) * .22); g.add(f);
+      put(f, G('Octahedron', .15, 0), M(cols[i]), 0, 0, 0).scale.y = .55; put(f, G('Box', .08, .1, .08), M('#fff3a0'), 0, .05, 0); }
+    face(g, eyes, { eye: S.eye * .85, y: 1.06, z: 1.13, gap: .25, mouthY: .86, noseY: .93 });
+  },
+  toastoad(g, S, eyes) {
+    const crust = '#c98d4f', crumb = '#f6dba6';
+    box(g, 1.8, 1.3, 1.5, crust, 0, .12, 0); ico(g, .98, crumb, 0, .78, .12, 1).scale.set(.82, .62, .78);
+    for (const s of [-1, 1]) { ico(g, .36, crust, s * .5, 1.55, .35, 1); box(g, .5, .2, .6, crust, s * .85, 0, .35).rotation.y = s * .5; box(g, .44, .34, .5, crust, s * .8, 0, -.5); }
+    // butter melts on top once it is older
+    if (S.f) { box(g, .5 + S.f * .2, .12, .5 + S.f * .2, '#ffe07a', 0, 1.42, -.25).rotation.y = .4; if (S.f === 1) box(g, .9, .05, .7, '#ffe9a0', .1, 1.4, -.2).rotation.y = .4; }
+    for (const [x, y] of [[-.5, .5], [.55, .7], [-.2, .35], [.3, .4]].slice(0, 2 + Math.round(S.f * 2))) put(g, G('Box', .12, .12, .04), M('#a86f3a'), x, y, .76);
+    const ink = M('#2b2230', { roughness: .5 });
+    for (const s of [-1, 1]) { const e = put(g, G('Cylinder', .13 * S.eye, .13 * S.eye, .06, 6), ink, s * .5, 1.6, .7); e.rotation.x = Math.PI / 2; eyes.push(e); put(g, G('Box', .05, .05, .02), M('#ffffff'), s * .5 + .04, 1.65, .74);
+      put(g, G('Circle', .12, 6), new THREE.MeshBasicMaterial({ color: '#ff8a9a', transparent: true, opacity: .6 }), s * .6, 1.0, .77); }
+    put(g, G('Box', .5, .05, .04), ink, 0, 1.08, .77);
+  },
+  flickit(g, S, eyes) {
+    const down = '#ffe27a';
+    const body = ico(g, .95, down, 0, .95, 0, 1); body.scale.set(1, .98, .95);
+    for (const s of [-1, 1]) { box(g, .2, .5 + S.f * .2, .5, '#ffd24d', s * .92, .6, -.05).rotation.z = s * .35; box(g, .22, .08, .34, '#ff9a3c', s * .3, 0, .3); }
+    cone(g, .14, .3, 4, '#ff9a3c', 0, .8, .95).rotation.x = Math.PI / 2;
+    cone(g, .2, .4, 4, down, 0, .6, -.9).rotation.x = -2;
+    // the candle flame: a spark on a baby, a tall flame on an adult
+    const t = new THREE.Group(), fk = .45 + S.f * .65; t.position.set(0, 1.85, 0); t.scale.setScalar(fk); t.userData.flame = true; g.add(t);
+    cyl(t, .1, .12, .2, 5, '#fff6ea', 0, -.1, 0);
+    put(t, G('Cone', .3, .9, 5), M('#ff8a3c', { emissive: '#ff5a1c', emissiveIntensity: .4 }), 0, .55, 0);
+    put(t, G('Cone', .17, .5, 5), M('#ffd65a', { emissive: '#ffb020', emissiveIntensity: .6 }), 0, .4, .08);
+    face(g, eyes, { eye: S.eye, y: 1.12, z: .86, gap: .32, mouthY: 2.9, noseY: 2.9 });
+  },
+  bubblefin(g, S, eyes) {
+    const sc = '#ff9d6b', fin = '#ffcf7a';
+    const body = ico(g, .8, sc, 0, 1.05, 0, 1); body.scale.set(.85, 1, 1.05);
+    const tl = put(g, G('Cone', .5, .6, 4), M(fin), 0, 1.05, -1.05); tl.rotation.x = Math.PI / 2; tl.scale.x = .35;
+    const top = put(g, G('Cone', .36, .5 + S.f * .3, 4), M(fin), 0, 1.9, -.1); top.scale.x = .3;
+    for (const s of [-1, 1]) { const f = box(g, .08, .34, .4, fin, s * .72, .8, .05); f.rotation.z = s * .7; }
+    // its bubble, with more little ones as it grows
+    put(g, G('Icosahedron', 1.25, 1), M('#bfeaff', { transparent: true, opacity: .32, roughness: .2 }), 0, 1.1, 0);
+    for (const [x, y, z, r] of [[.9, 2.3, .2, .16], [-.8, 2.5, -.3, .12], [.3, 2.75, -.5, .1]].slice(0, Math.round(S.f * 3))) put(g, G('Icosahedron', r, 0), M('#bfeaff', { transparent: true, opacity: .5 }), x, y, z);
+    face(g, eyes, { eye: S.eye, y: 1.15, z: .78, gap: .3, mouthY: .95, noseY: 2.9 });
+  },
+  axolily(g, S, eyes) {
+    const skin = '#ffc2d4', pad = '#6fbf73';
+    const body = ico(g, .8, skin, 0, .7, -.5, 1); body.scale.set(.9, .75, 1.3);
+    const hd = ico(g, .78, skin, 0, 1, .5, 1); hd.scale.set(1.2, .9, .9);
+    const tl = put(g, G('Cone', .4, 1, 4), M('#ffa9c2'), 0, .6, -1.7); tl.rotation.x = -Math.PI / 2; tl.scale.x = .3;
+    for (const [x, z] of [[-.6, .1], [.6, .1], [-.6, -1], [.6, -1]]) box(g, .3, .2, .3, skin, x, 0, z);
+    // lily pad gills: three little pads a side, growing into wide ones with a blossom
+    const r = .2 + S.f * .16;
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const l = put(g, G('Cylinder', r, r, .05, 6), M(i === 1 ? '#86cc5a' : pad), s * (.95 + (i === 1 ? .2 : 0)), 1 + (i - 1) * .42, .35); l.rotation.set(0, 0, s * (1.1 - (i - 1) * .35)); }
+    if (S.f === 1) { const f = new THREE.Group(); f.position.set(.3, 1.75, .45); g.add(f); for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283; put(f, G('Octahedron', .12, 0), M('#ffffff'), Math.cos(a) * .13, 0, Math.sin(a) * .13).scale.y = .5; } put(f, G('Box', .1, .1, .1), M('#ffc94d'), 0, .04, 0); }
+    face(g, eyes, { eye: S.eye * .9, y: 1.08, z: 1.17, gap: .42, mouthY: .86, noseY: 2.9 });
+  },
+  zapkit(g, S, eyes) {
+    const fur = '#ffe066', dark = '#5a4a3a';
+    const body = new THREE.Group(); body.position.y = .95; body.scale.set(1.02, .93, .96); g.add(body); ico(body, 1, fur, 0, 0, 0, 1);
+    for (const s of [-1, 1]) {
+      const e = put(g, G('Cone', .32, .6, 4), M(fur), s * .55, 1.85, 0); e.rotation.y = Math.PI / 4; e.rotation.z = -s * .25; e.scale.z = .6;
+      const t = put(g, G('Cone', .16, .28, 4), M(dark), s * .59, 2.03, 0); t.rotation.y = Math.PI / 4; t.rotation.z = -s * .25; t.scale.z = .62;
+      box(g, .32, .2, .44, fur, s * .4, 0, .6);
+      for (let i = 0; i < 2; i++) put(g, G('Box', .28, .015, .015), M('#ffffff'), s * .72, .9 + i * .1, .78).rotation.set(0, -s * .5, s * (i ? .15 : -.1));
+    }
+    for (const x of [-.25, 0, .25].slice(0, 1 + Math.round(S.f * 2))) put(g, G('Box', .12, .3, .05), M(dark), x, 1.75, .5).rotation.x = -.5;
+    // the lightning tail: one kink on a baby, three on an adult
+    const t = new THREE.Group(); t.position.set(.2, .4, -.9); t.rotation.set(-.4, 0, -.2); g.add(t);
+    const bolt = M('#ffd21f', { emissive: '#ffb300', emissiveIntensity: .5 }), n = 2 + Math.round(S.f * 2);
+    for (let i = 0; i < n; i++) put(t, G('Box', .16, .5, .1), bolt, i % 2 ? .14 : -.14, .2 + i * .36, 0).rotation.z = i % 2 ? .6 : -.6;
+    put(t, G('Cone', .14, .3, 4), bolt, n % 2 ? -.2 : .2, .2 + n * .36, 0);
+    face(g, eyes, { eye: S.eye, y: 1.02 });
+  },
+  buzzlet(g, S, eyes) {
+    const fuzz = '#ffd447', stripe = '#4a3a34';
+    const body = ico(g, .95, fuzz, 0, 1.15, 0, 1); body.scale.set(1, .95, 1.05);
+    for (const z of [-.15, -.6].slice(0, 1 + Math.round(S.f))) put(g, G('Cylinder', .93 - Math.abs(z + .1) * .35, .93 - Math.abs(z + .1) * .35, .22, 7), M(stripe), 0, 1.15, z).rotation.x = Math.PI / 2;
+    cone(g, .14, .3, 4, stripe, 0, 1, -1.05).rotation.x = -Math.PI / 2;
+    for (const s of [-1, 1]) {
+      const w = put(g, G('Cylinder', .45 + S.f * .15, .45 + S.f * .15, .04, 6), M('#e6f6ff', { transparent: true, opacity: .7 }), s * .7, 2, -.2); w.rotation.set(.3, 0, s * .9); w.scale.z = .6;
+      const an = box(g, .04, .4, .04, stripe, s * .25, 1.9, .5); an.rotation.set(.5, 0, -s * .3); ico(g, .09, stripe, s * .34, 2.3, .72);
+      box(g, .1, .25, .1, stripe, s * .35, .15, .3);
+    }
+    // static fuzz sticks out more with age
+    for (let i = 0; i < Math.round(S.f * 6); i++) { const a = i * 1.05, sp = put(g, G('Cone', .07, .28, 3), M('#fff3a0'), Math.sin(a) * .9, 1.2 + Math.cos(a * 1.7) * .5, -.2 + Math.cos(a) * .8); sp.lookAt(0, 1.15, 0); sp.rotateX(-Math.PI / 2); }
+    face(g, eyes, { eye: S.eye, y: 1.22, z: .88, gap: .32, mouthY: 1.04, noseY: 2.9 });
+  },
+  voltvole(g, S, eyes) {
+    const fur = '#f2c9a0', belly = '#fff3df';
+    const body = new THREE.Group(); body.position.y = .92; body.scale.set(1.08, .9, .96); g.add(body); ico(body, 1, fur, 0, 0, 0, 1);
+    ico(g, .6, belly, 0, .6, .52, 1).scale.set(1.1, .75, .7);
+    for (const s of [-1, 1]) {
+      ico(g, .24, fur, s * .55, 1.72, .05).scale.z = .5; ico(g, .13, '#f59ab0', s * .55, 1.72, .12).scale.z = .5;
+      box(g, .26, .16, .36, '#f59ab0', s * .4, 0, .62); box(g, .16, .22, .16, '#f59ab0', s * .45, .5, .88);
+      // glowing cheeks, bigger and brighter with age
+      const c = put(g, G('Icosahedron', .22 + S.f * .14, 0), M('#ffe14d', { emissive: '#ffc400', emissiveIntensity: .3 + S.f * .6 }), s * .78, .82, .55); c.scale.z = .7;
+      if (S.f === 1) put(g, G('Box', .1, .3, .05), M('#ffe14d', { emissive: '#ffc400', emissiveIntensity: .8 }), s * 1.2, 1.15, .5).rotation.z = -s * .6;
+    }
+    ico(g, .16, fur, 0, .5, -.98);
+    face(g, eyes, { eye: S.eye, y: 1.08, gap: .28, blush: '#ffe14d', mouthY: .9, noseY: .98 });
+  },
+  pebblet(g, S, eyes) {
+    const skin = '#ead9c0', st = ['#a9a6b0', '#8a8794', '#bdb9c4'];
+    const body = ico(g, .95, '#8f8a86', 0, .9, -.15, 1); body.scale.set(1.02, .9, 1.05);
+    const hd = ico(g, .7, skin, 0, .78, .5, 1); hd.scale.set(1, .9, .9);
+    cone(g, .16, .34, 4, skin, 0, .56, 1.12).rotation.x = Math.PI / 2; ico(g, .08, '#2b2230', 0, .74, 1.4);
+    for (const s of [-1, 1]) { ico(g, .15, skin, s * .5, 1.3, .55); box(g, .26, .18, .34, skin, s * .4, 0, .5); box(g, .26, .18, .3, skin, s * .4, 0, -.6); }
+    // pebble spines: a few bumps, then a full coat of stones
+    const n = 5 + Math.round(S.f * 9);
+    for (let i = 0; i < n; i++) { const a = i * 2.4, v = .25 + (i / n) * 1.05, r = .2 + S.f * .08 + (i % 3) * .03;
+      const p = put(g, G('Dodecahedron', r, 0), M(st[i % 3]), Math.sin(a) * Math.sin(v) * .93, .9 + Math.cos(v) * .86, -.15 - Math.abs(Math.cos(a)) * Math.sin(v) * .95); p.rotation.set(a, v, 0); }
+    face(g, eyes, { eye: S.eye * .85, y: .92, z: 1.07, gap: .27, mouthY: 2.9, noseY: 2.9 });
+  },
+  cragcrab(g, S, eyes) {
+    const shell = '#e2705a', rock = '#8f8a92';
+    const b = ico(g, .9, shell, 0, .62, 0, 1); b.scale.set(1.25, .6, .9);
+    // the boulder on its back grows and gathers moss
+    const r = .7 + S.f * .3, bo = put(g, G('Dodecahedron', r, 0), M(rock), 0, .95 + r * .55, -.15); bo.scale.set(1.15, .85, 1);
+    if (S.f) { ico(g, .3, '#a9a6b0', .5, 1.2 + r, -.1); put(g, G('Box', .5, .08, .4), M('#5fb04a'), -.2, .98 + r * 1.28, -.1).rotation.y = .5; }
+    if (S.f === 1) cone(g, .12, .5, 4, '#bfeaff', .1, 1.25 + r, -.4);
+    for (const s of [-1, 1]) {
+      const arm = box(g, .5, .16, .16, shell, s * 1.15, .55, .45); arm.rotation.y = -s * .5;
+      const c = put(g, G('Dodecahedron', .32 + S.f * .1, 0), M('#f08a72'), s * 1.45, .75, .8); c.scale.set(1, .8, 1.2);
+      for (let i = 0; i < 3; i++) box(g, .5, .1, .1, shell, s * 1.2, .12, -.45 + i * .35).rotation.z = s * .7;
+      box(g, .08, .4, .08, shell, s * .3, .95, .65); const e = put(g, G('Icosahedron', .15 * S.eye, 0), M('#2b2230', { roughness: .5 }), s * .3, 1.42, .68); eyes.push(e);
+      put(g, G('Box', .05, .05, .02), M('#ffffff'), s * .3 + .04, 1.47, .8);
+    }
+    put(g, G('Box', .3, .05, .04), M('#2b2230'), 0, .62, .86);
+  },
+  dustmole(g, S, eyes) {
+    const fur = '#8a6f63', paw = '#f3c9b5';
+    const body = new THREE.Group(); body.position.y = .88; body.scale.set(1.05, .88, 1); g.add(body); ico(body, 1, fur, 0, 0, 0, 1);
+    ico(g, .5, '#a58a7d', 0, .55, .6, 1).scale.set(1.1, .7, .7);
+    cone(g, .26, .5, 5, paw, 0, .72, 1.05).rotation.x = Math.PI / 2; ico(g, .1, '#ff8fa6', 0, .98, 1.3);
+    for (const s of [-1, 1]) { const h = box(g, .42, .12, .46, paw, s * .92, .45, .5); h.rotation.set(0, s * .5, -s * .4); for (let i = 0; i < 3; i++) cone(g, .05, .16, 3, '#fff3df', s * (.95 + i * .12), .42, .82 - i * .05).rotation.x = Math.PI / 2; box(g, .3, .14, .36, paw, s * .4, 0, -.2); }
+    // the hard hat: too big for a baby, with a lamp once grown
+    const hat = new THREE.Group(); hat.position.set(0, 1.62, .1); hat.rotation.x = -.12; hat.scale.setScalar(1.15 - S.f * .2); g.add(hat);
+    put(hat, G('Sphere', .62, 7, 3, 0, 6.284, 0, 1.571), M('#ffc94d')); put(hat, G('Cylinder', .78, .78, .07, 8), M('#f2b632'), 0, .02, .08); box(hat, .12, .5, .1, '#f2b632', 0, .15, 0).rotation.x = Math.PI / 2;
+    if (S.f) put(hat, G('Cylinder', .14, .16, .12, 6), M('#fff6c0', { emissive: '#ffe680', emissiveIntensity: S.f }), 0, .3, .58).rotation.x = Math.PI / 2;
+    face(g, eyes, { eye: S.eye * .6, y: 1.12, z: .86, gap: .26, mouthY: 2.9, noseY: 2.9 });
   },
 };
 
