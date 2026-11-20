@@ -68,7 +68,7 @@ if (room.opts.field !== 8 || room.opts.mode !== 'knockout') bail('option change 
 send({ t: 'start' }); await wait(300);
 if (state?.stage !== 'bet' || state.marbles.length !== 8 || state.seats.length !== 4) bail('race did not open for betting');
 send({ t: 'act', a: { t: 'bet', m: 3, amt: 'all' } }); await wait(200);
-if (state.seats[state.me].bet?.amt !== 100) bail('all-in bet missing');
+if (state.seats[state.me].bet?.amt !== 10) bail('spotted bet missing'); // a new player has no coins yet, so the house spots 10
 send({ t: 'act', a: { t: 'ready' } }); await wait(4500);
 if (state.stage !== 'race' || !state.frames.length || state.seats[state.me].coins !== 0) bail('race did not start');
 console.log('OK');

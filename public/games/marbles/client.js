@@ -157,7 +157,7 @@ export function mount(app, ctx) {
       <div class="picks">${S.marbles.map((p, i) => `<button type="button" class="pick${my?.bet?.m === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${my ? '' : 'disabled'} aria-pressed="${my?.bet?.m === i}">
         ${ball(i, 46)}<b>${p.name}</b>
         <span class="backers">${backerHtml(i, 20)}</span></button>`).join('')}</div>
-      ${my ? `<div class="stakes"><span>Stake</span><div class="pills">${[10, 25, 50, 'all'].map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v !== 'all' && v > coins ? 'disabled' : ''}>${v === 'all' ? 'All in' : v}</button>`).join('')}</div>
+      ${my ? `<div class="stakes"><span>Stake</span><div class="pills">${[10, 25, 50, 100].map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins && v > 10 ? 'disabled' : ''}>${v}</button>`).join('')}</div>
         ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> on ${mName(my.bet.m)} <button type="button" class="link" data-a="nobet">remove</button></span>` : '<span class="mybet">Tap a marble to bet on its colour. The race starts once everyone has bet.</span>'}
         ${ctx.isHost() ? `<button type="button" class="btn m" data-a="ready" ${undecided().length ? 'disabled' : ''}>${undecided().length ? 'Waiting for bets' : 'Start the race'}</button>` : ''}</div>` : '<div class="stakes"><span class="mybet">You are watching this race.</span></div>'}`);
   }
@@ -327,7 +327,7 @@ export function mount(app, ctx) {
     const a = b.dataset.a;
     if (a === 'bet') { sfx.pop(); ctx.act({ t: 'bet', m: +b.dataset.i, amt: stake }); }
     else if (a === 'stake') {
-      stake = b.dataset.v === 'all' ? 'all' : +b.dataset.v; sfx.click();
+      stake = +b.dataset.v; sfx.click();
       const cur = me()?.bet; if (cur) ctx.act({ t: 'bet', m: cur.m, amt: stake }); else renderBet();
     } else if (a === 'nobet') { sfx.click(); ctx.act({ t: 'nobet' }); }
     else if (a === 'ready') { sfx.click(); ctx.act({ t: 'ready' }); }

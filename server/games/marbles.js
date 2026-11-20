@@ -1,10 +1,10 @@
 // Marble Rush: authoritative marble race. The server runs the physics and streams positions;
 // clients only draw. The marbles are neutral colours that nobody owns: players only bet on one.
-// Bets use pretend coins that stay with the table between races.
+// Bets use the players' real account coins (the server fills in each balance at the start of a race, meta.bank).
 import { makeTrack, at, rng, spinAngle, trapOpen, R, DISH, GATE_S } from '../../public/games/marbles/track.js';
 import { randomAv } from '../../public/avatar.js';
 
-export const meta = { id: 'marbles', name: 'Marble Rush', minPlayers: 1, maxPlayers: 8 };
+export const meta = { id: 'marbles', name: 'Marble Rush', minPlayers: 1, maxPlayers: 8, bank: true };
 
 const BOT_NAMES = ['Pebble', 'Gumdrop', 'Comet', 'Biscuit', 'Wobble', 'Zoomie', 'Button', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -12,7 +12,7 @@ const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e
 export const MARBLES = [['Red', '#e5543b'], ['Blue', '#4f9df0'], ['Yellow', '#ffd23f'], ['Green', '#4fc27a'],
   ['Purple', '#a070f0'], ['Orange', '#ff8a2a'], ['Pink', '#ff8fc0'], ['White', '#f6efe4']];
 const MIN_SEATS = 4; // bots fill the table up to this many bettors
-const START_COINS = 100, REFILL = 30, STAKES = [10, 25, 50];
+const START_COINS = 100, REFILL = 30, STAKES = [10, 25, 50, 100];
 const BET_MS = 20_000, COUNT_MS = 3200, GAP_MS = 4500, AFTER_FIRST_MS = 22_000, HEAT_MAX_MS = 100_000;
 const DT = 1 / 60, FRAME_EVERY = 3, KEEP_FRAMES = 18;
 const G_ACC = 16, ROLL = .714;
@@ -43,7 +43,7 @@ export function create(players, optsIn = {}, prev = null) {
     const k = walletKey(s);
     let c = prev?.game === 'marbles' ? prev.wallet[k] : undefined;
     if (c === undefined) c = START_COINS;
-    if (c < STAKES[0]) c = REFILL; // the house spots you a few coins
+    if (c < STAKES[0]) c = s.bot ? REFILL : STAKES[0]; // the house spots you a small bet
     wallet[k] = c;
   }
   const n = opts.field, now = Date.now(), marbles = MARBLES.slice(0, n).map(([name, color]) => ({ name, color }));
@@ -255,7 +255,7 @@ export function act(G, s, a) {
     if (G.stage !== 'bet') return false;
     const m = +a.m, coins = G.wallet[walletKey(G.seats[s])];
     if (!Number.isInteger(m) || !G.m[m]) return false;
-    const amt = Math.min(coins, a.amt === 'all' ? coins : STAKES.includes(+a.amt) ? +a.amt : 0);
+    const amt = Math.min(coins, a.amt === 'all' ? STAKES.at(-1) : STAKES.includes(+a.amt) ? +a.amt : 0); // older pages may still send 'all'
     if (amt <= 0) return false;
     G.bets[s] = { m, amt };
     return true;
@@ -354,6 +354,6 @@ export function results(G) {
   const n = G.m.length;
   return G.seats.map((_, i) => {
     const pay = G.res.pay[i], place = pay.bet ? G.res.order.indexOf(pay.bet.m) : n - 1;
-    return { pts: pay.bet ? (n - 1 - place) * 10 + (pay.won > 0 ? 15 : 0) : 0, win: pay.won > 0, place: place + 1, coins: pay.coins };
+    return { pts: pay.bet ? (n - 1 - place) * 10 + (pay.won > 0 ? 15 : 0) : 0, win: pay.won > 0, place: place + 1, coins: pay.coins, idle: !pay.bet, coinNet: pay.net };
   });
 }

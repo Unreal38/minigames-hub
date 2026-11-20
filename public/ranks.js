@@ -29,4 +29,8 @@ export function progress(xp = 0) {
 
 // XP for one finished game: showing up, winning, and a little for points scored.
 export const XP = { play: 15, win: 35, perPt: 0.1, maxPts: 20 };
+// Coins for one finished game: the account currency that buys avatar items in the creator's shop.
+export const COINS = { play: 5, win: 10 };
+export const coinsFor = ({ win }) => COINS.play + (win ? COINS.win : 0);
+
 export const xpFor = ({ win, pts }) => Math.round(XP.play + (win ? XP.win : 0) + Math.min(XP.maxPts, Math.max(0, pts) * XP.perPt));

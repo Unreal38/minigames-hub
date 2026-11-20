@@ -95,7 +95,7 @@ function scoreGame(r) {
     const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
     Object.assign(e, { name: c.name, color: c.color, av: c.av });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
-    if (Number.isFinite(res[i].coins)) e.coins = res[i].coins;
+    delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
     const gain = store.credit(p, r.game, res[i]);
     send(c, { t: 'me', me: store.me(p), gain });
   });
@@ -109,6 +109,9 @@ const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
 
 function send(c, msg) { c?.sock?.send(msg); }
 // Pet Farm reaches a player who is not the one asking (live battles) through this. Returns how many screens got it.
+// Coins changed (a game paid out, the shop, Pet Farm): refresh the balance on every screen of that player.
+const coinWait = new Map();
+store.onCoins(pid => { if (!coinWait.has(pid)) coinWait.set(pid, setTimeout(() => { coinWait.delete(pid); const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) send(c, { t: 'me', me: store.me(p) }); }, 250)); });
 farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
 const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);
@@ -178,22 +181,30 @@ function startGame(r) {
   for (const t of r.players) {
     if (inGame.has(id(t))) { r.spect.delete(id(t)); r.sit.delete(id(t)); } else r.spect.add(id(t));
   }
-  // After a restart there is no previous game, so pretend coins come back from the table scoreboard.
-  const saved = { game: r.game, wallet: {} };
-  for (const c of humans) { const e = r.board?.[store.profileOf(c.token)?.pid]; if (Number.isFinite(e?.coins)) saved.wallet['h:' + c.id] = e.coins; }
-  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, r.G || r.last || (Object.keys(saved.wallet).length ? saved : null));
+  // Games that bet coins (Marble Rush) start every round from each player's account balance; bots keep their own.
+  let prev = r.G || r.last || null;
+  if (GAMES[r.game].meta.bank) {
+    prev = { ...(prev?.game === r.game ? prev : { game: r.game }), wallet: { ...(prev?.game === r.game ? prev.wallet : {}) } };
+    for (const c of humans) prev.wallet['h:' + c.id] = store.profileOf(c.token)?.coins || 0;
+  }
+  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, prev);
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
 function handle(c, m) {
   switch (m.t) {
     case 'profile': {
-      const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
+      const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color); c.av = store.allowedAv(store.profileOf(c.token), m.av);
       store.setLook(c.token, c);
       const r = rooms.get(c.room); if (r) { if (!r.G) sendRoom(r); }
       return;
     }
     case 'rooms': return send(c, { t: 'rooms', rooms: publicRooms() });
+    case 'buy': { // the avatar shop
+      const p = store.profileOf(c.token), r = store.buy(p, String(m.k ?? ''), m.i);
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      return send(c, { t: 'bought', id: r.id, price: r.price });
+    }
     case 'stats': return send(c, statsMsg());
     case 'create': {
       if (!GAMES[m.game]) return;
@@ -278,6 +289,7 @@ function handle(c, m) {
     }
     case 'logout': {
       const p = store.logout(c.token, c); if (!p) return;
+      c.av = store.allowedAv(p, c.av); store.setLook(c.token, c);
       send(c, { t: 'me', me: store.me(p) });
       const r = rooms.get(c.room); if (r) sendRoom(r);
       return;
@@ -327,7 +339,7 @@ attach(server, '/ws', sock => {
       else { c = { token, id: null, room: null }; clients.set(token, c); }
       c.sock = sock; c.lastSeen = Date.now();
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
-      c.id = store.session(token, c).id; store.setLook(token, c); store.scheduleSave();
+      c.id = store.session(token, c).id; c.av = store.allowedAv(store.profileOf(token), c.av); store.setLook(token, c); store.scheduleSave();
       store.visit(token);
       send(c, { t: 'welcome', token, id: c.id, name: c.name });
       send(c, statsMsg()); broadcastStats();
