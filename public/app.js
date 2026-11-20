@@ -32,16 +32,16 @@ const GAMES = {
   marbles: {
     name: 'Marble Rush', load: () => import('./games/marbles/client.js'), start: 'Open the betting',
     host: { mode: 'classic', chaos: 'on', field: 6 }, solo: { mode: 'classic', chaos: 'on', field: 6 },
-    openSeat: 'A house marble rolls here if nobody joins', seats: r => Math.max(r.opts.field || 6, r.players.length),
+    openSeat: 'A bot bets from this seat if nobody joins', seats: r => Math.max(4, r.players.length),
     settings: pill => `<div class="opt"><b>Race</b><div class="pills">${pill('mode', 'classic', 'Classic')}${pill('mode', 'knockout', 'Knockout')}</div></div>
       <div class="opt"><b>Chaos events</b><div class="pills">${pill('chaos', 'on', 'On')}${pill('chaos', 'off', 'Off')}</div></div>
       <div class="opt"><b>Marbles on the track</b><div class="pills">${pill('field', 4, '4')}${pill('field', 6, '6')}${pill('field', 8, '8')}</div></div>`,
-    howto: `Everyone gets a marble with their face on it. Bet pretend coins on the winner, then watch them tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
+    howto: `Nobody owns a marble. Bet pretend coins on a colour, then watch the marbles tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
     rules: `<ol>
-      <li>Every player gets a <b>marble</b> wearing their avatar. Empty spots are filled by house marbles.</li>
-      <li>Before the gate opens, <b>bet coins</b> on any marble. A right pick pays your stake times the number of marbles.</li>
+      <li>The marbles are plain <b>colours</b> and belong to nobody. Several players can back the same one.</li>
+      <li>Before the gate opens, <b>bet coins</b> on a colour. The winning colour pays your stake times the number of marbles.</li>
       <li>The track is <b>random every race</b>: pins, spinners, trapdoors, boost pads and squeezes. Nobody steers.</li>
-      <li>You get <b>one banana per heat</b>. Throw it at a marble to slip it up.</li>
+      <li>You get <b>one banana per heat</b>. Throw it at any colour to slip it up.</li>
       <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>
       <li><b>Knockout</b>: the last marble home each heat is out. Handy for deciding who pays.</li>
       <li>Coins are pretend and stay with the table. If you go broke, the house spots you a few.</li>
@@ -344,7 +344,7 @@ function renderHub() {
           <div class="pic marblepic">${marbleArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Marble Rush</h3><span class="tag">1–8 players</span></div>
-            <p>Your avatar on a marble, a random 3D track and pretend coins riding on who rolls home first.</p>
+            <p>Pick a colour, bet your pretend coins and watch the marbles tumble down a random 3D track.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="marbles">Play with bots</button></div>
           </div>
         </article>

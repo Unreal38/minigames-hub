@@ -1,7 +1,6 @@
 // Marble Rush 3D view (three.js). Purely visual: it replays the positions the server streams.
 import * as THREE from 'three';
 import { makeTrack, world, at, spinAngle, trapOpen, R, DS, DISH, WALL_H, GATE_S } from './track.js';
-import { portrait } from '../../portraits.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 
 const INK = '#3b2219', PLUM = '#2a1422';
@@ -9,28 +8,17 @@ const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const tmp = [0, 0, 0];
 
-// The marble wears its owner's outfit colour and has their avatar's face on both sides.
-function marbleTexture(color, av) {
+// A plain glass marble in one colour with a pale swirl, so you can see it spin.
+function marbleTexture(color) {
   const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256;
   const g = cv.getContext('2d');
+  g.fillStyle = color; g.fillRect(0, 0, 512, 256);
+  g.strokeStyle = '#ffffff8c'; g.lineWidth = 26;
+  for (let k = -1; k < 3; k++) { g.beginPath(); g.moveTo(k * 256, 256); g.bezierCurveTo(k * 256 + 90, 170, k * 256 + 170, 90, k * 256 + 256, 0); g.stroke(); }
+  g.strokeStyle = '#00000026'; g.lineWidth = 8;
+  for (let k = -1; k < 3; k++) { g.beginPath(); g.moveTo(k * 256 + 40, 256); g.bezierCurveTo(k * 256 + 130, 170, k * 256 + 210, 90, k * 256 + 296, 0); g.stroke(); }
+  g.fillStyle = '#00000022'; g.fillRect(0, 0, 512, 22); g.fillRect(0, 234, 512, 22);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-  const base = () => {
-    g.fillStyle = color; g.fillRect(0, 0, 512, 256);
-    g.strokeStyle = '#ffffff66'; g.lineWidth = 16;
-    for (let k = -1; k < 3; k++) { g.beginPath(); g.moveTo(k * 256, 256); g.bezierCurveTo(k * 256 + 90, 170, k * 256 + 170, 90, k * 256 + 256, 0); g.stroke(); }
-    g.fillStyle = '#00000022'; g.fillRect(0, 0, 512, 22); g.fillRect(0, 234, 512, 22);
-  };
-  base();
-  const face = portrait(color, av);
-  (face ? new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = face; }) : Promise.resolve(null)).then(im => {
-    if (!im) return;
-    for (const cx of [128, 384]) {
-      g.save(); g.beginPath(); g.ellipse(cx, 128, 74, 92, 0, 0, 6.3); g.closePath();
-      g.fillStyle = '#fff4e2'; g.fill(); g.lineWidth = 7; g.strokeStyle = INK; g.stroke(); g.clip();
-      g.drawImage(im, cx - 88, 128 - 84, 176, 176); g.restore();
-    }
-    tex.needsUpdate = true;
-  });
   return tex;
 }
 
@@ -244,12 +232,12 @@ export function createScene(canvas, { onFrame }) {
   }
   let mine = -1;
   function setMarbles(seats) {
-    const key = seats.map(p => p.color + p.av.join('') + p.name).join('|');
+    const key = seats.map(p => p.color + p.name).join('|');
     if (key === seatsKey) return;
     seatsKey = key;
     for (const m of marbles) { scene.remove(m.mesh); m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
     marbles = seats.map(p => {
-      const mesh = new THREE.Mesh(sharedGeo, new THREE.MeshPhysicalMaterial({ map: marbleTexture(p.color, p.av), roughness: .18, clearcoat: 1, clearcoatRoughness: .08 }));
+      const mesh = new THREE.Mesh(sharedGeo, new THREE.MeshPhysicalMaterial({ map: marbleTexture(p.color), roughness: .18, clearcoat: 1, clearcoatRoughness: .08 }));
       mesh.castShadow = true; mesh.rotation.y = -Math.PI / 2; scene.add(mesh);
       return { mesh, s: 0, u: 0, st: 0, fall: 0, pop: 1, has: false, pos: new THREE.Vector3(), color: p.color, tag: { x: 0, y: 0, show: false } };
     });
