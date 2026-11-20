@@ -5,6 +5,23 @@ export const SIZES = [10, 12, 14, 16, 18];
 // Cost of growing the land to SIZES[i].
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 }];
 export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', coins: 'Coins' };
+// What each thing in the top bar is: where it comes from, and what it is for.
+export const MAT_INFO = {
+  wood:     ['Expeditions, most of all Mossy Woods.', 'Most buildings and decorations.'],
+  stone:    ['Expeditions, most of all Pebble Ridge.', 'Buildings, paths and stone decorations.'],
+  fiber:    ['Expeditions to Mossy Woods and Tidepool Cove.', 'Huts, the Nest, soft decorations and Honey Cakes.'],
+  shells:   ['Expeditions to Tidepool Cove (farmhouse level 2).', 'Improving buildings and fancy decorations.'],
+  coal:     ['Expeditions to Ember Hills (farmhouse level 3).', 'Higher building levels and fancy decorations.'],
+  crystal:  ['Rare. Expeditions to Pebble Ridge (farmhouse level 2) and Thunder Meadow (level 4). Longer trips with more pets find more.', 'The Nest, top building levels and the fanciest decorations.'],
+  berries:  ['Garden Plots grow them every hour. Tap "Pick berries".', 'Cooking treats in the Kitchen. Spare ones sell at the Workshop.'],
+  sunberry: ['Garden Plots of level 2 or 3 grow them with each harvest.', 'The best Kitchen recipes: Sunberry Pie and Rest Tonic.'],
+  cookie:   ['Cooked in the Kitchen from 4 berries.', 'Tap a pet and feed it one for 30 experience.'],
+  cake:     ['Cooked in the Kitchen from 10 berries and 5 fiber.', 'Tap a pet and feed it one for 90 experience.'],
+  juice:    ['Cooked in the Kitchen from 6 berries.', 'Drink one in a practice or arena battle to heal 40%, once a battle.'],
+  pie:      ['Cooked in a level 2 Kitchen.', 'Tap a pet and feed it one for 220 experience.'],
+  tonic:    ['Cooked in a level 3 Kitchen.', 'Give it to a resting pet so it can go to the Nest again at once.'],
+  coins:    ['Battles, helping neighbours, selling materials at the Workshop, and the other games on the site.', 'Trees and bushes here, trades with friends, and the avatar shop on the main page.'],
+};
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 export const MAX_ITEMS = 300;
 

@@ -193,3 +193,4 @@ body.in-game { overflow: hidden; }
 .pf .cmprows { max-height: 32vh; overflow: auto; } .pf .cmplist { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; } .pf .cmplist .chip { display: inline-flex; align-items: center; gap: 6px; }
 .pf .buy .buytop { display: flex; gap: 14px; align-items: center; } .pf .buy .buytop img, .pf .buy .buytop .nothumb { width: 96px; height: 96px; border-radius: 16px; background: #d8f0d2; border: 3px solid var(--ink); }
 .pf .buy .buytop h2 { margin: 0 0 4px; } .pf .buy .buytop p { margin: 0; } .pf .buy .cost { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf .matbtn { all: unset; cursor: pointer; display: inline-flex; border-radius: 999px; } .pf .matbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; } .pf .matbtn:hover .mat { transform: translateY(-1px); }

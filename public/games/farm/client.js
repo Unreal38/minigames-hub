@@ -5,7 +5,7 @@
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex } from './breed.js';
-import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
+import { MAT_INFO, ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -90,7 +90,7 @@ export function mount(app, ctx) {
   }
   function paintTop() {
     $('pf-title').textContent = B ? (B.mode === 'live' ? `Live battle with ${B.foe}` : B.mode === 'arena' ? `Match against ${B.foe}` : 'Practice battle') : where === 'map' && F ? 'The neighbourhood' : where === 'visit' && V ? `${V.name}'s farm` : F ? `${F.owner}'s farm` : 'Pet Farm';
-    $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => mat(k, F.inv[k] || 0)).join('') : '';
+    $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${MATS[k]}. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}">${mat(k, F.inv[k] || 0)}</button>`).join('') : '';
   }
   function paintMain() {
     const el = $('pf-main');
@@ -177,6 +177,14 @@ export function mount(app, ctx) {
         <p class="hint">A trade or a playdate can fill the gaps.</p>
         <div class="cmp head"><span>Pet</span><b>You</b><b>${esc(V.name)}</b></div><div class="cmprows">${rows}</div>
         <div class="row end"><button type="button" class="btn big m" data-a="shut">Close</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'mat') { // what a material is, where it comes from and what it is for
+      const k = panel.mat, cap = k !== 'coins' && F.cap && ['wood', 'stone', 'fiber', 'shells', 'coal', 'berries'].includes(k);
+      box.innerHTML = `<div class="panel tripp"><h2>${MATS[k]}</h2><div class="mats">${mat(k, F.inv[k] || 0)}</div>
+        <p><b>Where it comes from</b><br>${MAT_INFO[k][0]}</p><p><b>What it is for</b><br>${MAT_INFO[k][1]}</p>
+        ${cap ? `<p class="hint">Your farm can hold ${F.cap} of these. A Storage Barn holds more.</p>` : ''}
+        <div class="row end"><button type="button" class="btn big m" data-a="shut">Got it</button></div></div>`;
       return;
     }
     if (panel.kind === 'cook') {
@@ -606,6 +614,7 @@ export function mount(app, ctx) {
     else if (a === 'duelno') { ctx.send({ t: 'duelno', id: panel.id }); panel = null; sync(); }
     else if (a === 'duelpick') openTeam('live', { name: panel.from, invite: panel.id });
     else if (a === 'berries') ctx.send({ t: 'pick' });
+    else if (a === 'matinfo') { if (edit || B) return; panel = { kind: 'mat', mat: b.dataset.mat }; card = null; sfx.click(); sync(); }
     else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
     else if (a === 'sellopen') { panel = { kind: 'sell' }; card = null; sync(); }
     else if (a === 'cook') { if (b.dataset.lv) return ctx.toast(`Improve the Kitchen to level ${b.dataset.lv} for that recipe.`, true); if (b.classList.contains('off')) return ctx.toast('Not enough for that yet. Garden Plots grow more every hour, and better plots grow Sunberries.', true); ctx.send({ t: 'cook', what: b.dataset.what }); }
