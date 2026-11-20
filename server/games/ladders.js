@@ -1,13 +1,13 @@
 // Snakes & Ladders: authoritative turns. The server rolls the die and works out every hop, ladder,
 // snake and party tile; clients replay the move as a little animation.
-import { makeBoard, jumpAt, specialAt, SIZES, MS } from '../../public/games/ladders/board.js';
+import { makeBoard, jumpAt, specialAt, midTile, SIZES, MS } from '../../public/games/ladders/board.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'ladders', name: 'Snakes & Ladders', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
-const BOT_MS = 1100, MAX_ROUNDS = 80;
+const BOT_MS = 1100, MAX_ROUNDS = 80, CRACK_CHANCE = .3;
 
 export function cleanOpts(o = {}) {
   return {
@@ -16,6 +16,7 @@ export function cleanOpts(o = {}) {
     bounce: o.bounce === 'off' ? 'off' : 'on',
     seats: [2, 4, 6].includes(+o.seats) ? +o.seats : 4,
     timer: [0, 10, 20].includes(+o.timer) ? +o.timer : 20,
+    hard: o.hard === 'on' ? 'on' : 'off',
   };
 }
 
@@ -28,7 +29,7 @@ export function create(players, optsIn = {}) {
   const cols = [...BOT_COLS.filter(c => !taken.has(c)), ...BOT_COLS];
   let bi = 0;
   while (seats.length < opts.seats) seats.push({ id: null, name: names[bi], color: cols[bi++ % cols.length], av: randomAv(), bot: true, human: false });
-  const n = seats.length, B = makeBoard(Math.random() * 2 ** 31 | 0, SIZES[opts.size], opts.party === 'on');
+  const n = seats.length, B = makeBoard(Math.random() * 2 ** 31 | 0, SIZES[opts.size], opts.party === 'on', opts.hard === 'on');
   const G = {
     game: 'ladders', ph: 'play', stage: 'roll', gid: Math.random().toString(36).slice(2, 8), seats, opts, board: B,
     pos: seats.map(() => 0), nap: seats.map(() => 0), st: seats.map(() => ({ ladders: 0, snakes: 0, sixes: 0 })),
@@ -65,11 +66,21 @@ function roll(G, s, now, die = 1 + (Math.random() * 6 | 0)) {
   let p = G.pos[s];
   const start = p;
   const go = k => { const t = walk(G, p, k); if (t.length) { segs.push({ t: 'walk', tiles: t }); p = t.at(-1); } };
+  const hard = G.opts.hard === 'on';
+  let stuck = false;
   const slide = () => {
     const j = jumpAt(B, p); if (!j) return false;
-    const kind = j.to > j.from ? 'ladder' : 'snake';
-    segs.push({ t: kind, from: j.from, to: j.to }); p = j.to;
-    if (kind === 'ladder') me.ladders++; else me.snakes++;
+    if (j.kind === 'ladder' && j.broken) { // only gets you halfway, and you're stuck there a turn
+      const mid = midTile(j.from, j.to);
+      segs.push({ t: 'broken', from: j.from, to: mid, top: j.to }); p = mid; stuck = true; me.ladders++;
+      return true;
+    }
+    segs.push({ t: j.kind, from: j.from, to: j.to, up: j.up || undefined }); p = j.to;
+    if (j.kind === 'ladder') {
+      me.ladders++;
+      if (hard && Math.random() < CRACK_CHANCE) { j.ref.broken = true; segs.push({ t: 'crack', at: j.from }); }
+    } else if (j.up) stuck = true; // riding a reversed snake up costs a turn
+    else me.snakes++;
     return true;
   };
   go(die); slide();
@@ -82,8 +93,12 @@ function roll(G, s, now, die = 1 + (Math.random() * 6 | 0)) {
   else if (k === 'swap') {
     segs.push({ t: 'special', k, at: p });
     const ahead = G.pos.map((q, i) => i).filter(i => i !== s && G.pos[i] > p).sort((a, b) => G.pos[a] - G.pos[b]);
-    if (ahead.length) { const o = ahead[0]; segs.push({ t: 'swap', with: o, a: G.pos[o], b: p }); G.pos[o] = p; p = segs.at(-1).a; }
+    // hard mode: whoever lands here must swap, so the leader trades with the player just behind
+    const behind = hard ? G.pos.map((q, i) => i).filter(i => i !== s && G.pos[i] < p).sort((a, b) => G.pos[b] - G.pos[a]) : [];
+    const o = ahead.length ? ahead[0] : behind[0];
+    if (o !== undefined) { segs.push({ t: 'swap', with: o, a: G.pos[o], b: p }); G.pos[o] = p; p = segs.at(-1).a; }
   }
+  if (stuck && p < N) { segs.push({ t: 'stuck', at: p }); G.nap[s] = 1; extra = false; }
   G.pos[s] = p;
   G.extra = extra && p < N;
   const ms = segs.reduce((t, g) => t + (g.t === 'walk' ? g.tiles.length * MS.step : MS[g.t]), MS.die + MS.end);
@@ -179,7 +194,7 @@ export function view(G, s) {
   return {
     game: 'ladders', ph: G.ph, stage: G.stage, gid: G.gid, me: s, turn: G.turn, round: G.round,
     left: G.stageEnd ? Math.max(0, G.stageEnd - now) : -1, timer: G.opts.timer,
-    board: G.board, bounce: G.opts.bounce === 'on', party: G.opts.party === 'on',
+    board: G.board, bounce: G.opts.bounce === 'on', party: G.opts.party === 'on', hard: G.opts.hard === 'on',
     seats: G.seats.map((x, i) => ({ name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id, pos: G.pos[i], nap: G.nap[i], st: G.st[i] })),
     move: G.move ? { ...G.move, ago: now - G.move.at } : null,
     res: G.res, win: G.win, ev: G.ev,

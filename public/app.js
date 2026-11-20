@@ -49,10 +49,11 @@ const GAMES = {
   },
   ladders: {
     name: 'Snakes & Ladders', load: () => import('./games/ladders/client.js'), start: 'Start the game',
-    host: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 20 }, solo: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 0 },
+    host: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 20, hard: 'off' }, solo: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 0, hard: 'off' },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
     settings: pill => `<div class="opt"><b>Board</b><div class="pills">${pill('size', 'classic', 'Classic 100')}${pill('size', 'short', 'Quick 60')}</div></div>
       <div class="opt"><b>Party tiles</b><div class="pills">${pill('party', 'on', 'On')}${pill('party', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Hard mode</b><div class="pills">${pill('hard', 'off', 'Off')}${pill('hard', 'on', 'On')}</div></div>
       <div class="opt"><b>Exact roll to finish</b><div class="pills">${pill('bounce', 'on', 'Yes')}${pill('bounce', 'off', 'No')}</div></div>
       <div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
       <div class="opt"><b>Roll timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 0, 'Off')}</div></div>`,
@@ -65,6 +66,7 @@ const GAMES = {
       <li><b>Party tiles</b>: green zooms you 3 tiles on, orange gives a bonus roll, pink swaps you with the player just ahead, blue makes you nap through your next turn.</li>
       <li>With <b>exact roll</b> on, you need the right number to land on the last tile. Too much and you bounce back.</li>
       <li>First to the last tile wins. Everyone else is ranked by how far they got.</li>
+      <li><b>Hard mode</b>: some ladders are <b>broken</b> (warning sign at the foot): you only climb halfway and you're stuck for a turn. Any ladder can <b>crack</b> after someone climbs it. <b>Golden snakes</b> face the other way: ride up them, but it costs a turn. On a swap tile you <b>must</b> swap, so the leader trades with the player just behind.</li>
     </ol>`,
   },
   poker: {
