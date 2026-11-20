@@ -164,6 +164,38 @@ const BUILD = {
     const r = put(g, G('Dodecahedron', .34, 0), M(C.stone), 0, .2, 0); r.scale.set(1.2, .8, 1);
     ico(g, .16, C.stoneD, .3, .1, .22); put(g, G('Box', .3, .06, .26), M(C.leaf), -.05, .46, 0).rotation.y = .5;
   },
+  fountain(g) {
+    cyl(g, .92, .96, .3, 8, C.stone); cyl(g, .8, .8, .34, 8, C.water);
+    cyl(g, .16, .22, .8, 6, C.stoneD, 0, .3); cyl(g, .46, .3, .12, 8, C.stone, 0, 1.0); cyl(g, .38, .38, .14, 8, C.water, 0, 1.02);
+    put(g, G('Octahedron', .12, 0), MX('fount', C.white, { transparent: true, opacity: .8 }), 0, 1.32, 0);
+    for (const a of [0, 2.1, 4.2]) put(g, G('Octahedron', .06, 0), M(C.white), Math.cos(a) * .5, .5, Math.sin(a) * .5);
+  },
+  windmill(g) {
+    cyl(g, .26, .4, 1.5, 6, C.cream); cone(g, .34, .4, 6, C.red, 0, 1.5);
+    box(g, .2, .34, .04, C.woodD, 0, 0, .37); box(g, .16, .16, .04, C.glass, 0, .8, .32);
+    const hub = new THREE.Group(); hub.position.set(0, 1.4, .36); hub.rotation.z = .5; g.add(hub);
+    for (let i = 0; i < 4; i++) { const b = put(hub, G('Box', .16, .7, .03), M(C.white), 0, .4, 0); const arm = new THREE.Group(); arm.rotation.z = i * Math.PI / 2; hub.add(arm); arm.add(b); }
+    put(hub, G('Box', .12, .12, .08), M(C.woodD));
+  },
+  arch(g) {
+    for (const x of [-.4, .4]) box(g, .1, 1.1, .1, C.wood, x); box(g, .96, .1, .12, C.wood, 0, 1.1);
+    for (const [x, y, c] of [[-.4, .5, C.pink], [-.4, .9, C.leafL], [-.2, 1.2, C.yellow], [0, 1.24, C.pink], [.2, 1.2, C.lilac], [.4, .9, C.leafL], [.4, .5, C.yellow], [-.4, .2, C.leaf], [.4, .2, C.leaf]]) ico(g, .11, c, x, y, 0);
+  },
+  statue(g) {
+    box(g, .7, .2, .7, C.stoneD); box(g, .54, .3, .54, C.stone, 0, .2);
+    ico(g, .26, C.cream, 0, .76, 0, 1); ico(g, .2, C.cream, 0, 1.1, .04, 1);
+    for (const x of [-.12, .12]) cone(g, .07, .2, 4, C.cream, x, 1.22);
+    put(g, G('Octahedron', .07, 0), MX('glow', '#8fe3f5', { emissive: '#8fe3f5', emissiveIntensity: .8 }), 0, .42, .29);
+  },
+  glow(g) {
+    cyl(g, .12, .16, .1, 6, C.stoneD); cyl(g, .03, .03, .5, 5, C.stoneD, 0, .1);
+    put(g, G('Octahedron', .17, 0), MX('glow', '#8fe3f5', { emissive: '#8fe3f5', emissiveIntensity: .8 }), 0, .78, 0).scale.set(1, 1.4, 1);
+  },
+  tower(g) {
+    cyl(g, .4, .44, .1, 6, C.woodD); cyl(g, .09, .09, 1.3, 6, C.straw, 0, .1);
+    cyl(g, .32, .32, .08, 6, C.lilac, .12, .6); cyl(g, .28, .28, .08, 6, C.pink, -.08, 1.36);
+    box(g, .3, .22, .3, C.wood, .2, .1, .2); ico(g, .07, C.yellow, -.3, .9, .1);
+  },
   ball(g) { ico(g, .22, C.red, 0, .22, 0, 1); put(g, G('Cylinder', .224, .224, .07, 10), M(C.white), 0, .22, 0); },
 };
 

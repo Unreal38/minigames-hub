@@ -409,6 +409,50 @@ if (r.err || r.farm.pets.length !== bPets + 1 || r.farm.inv.coins !== bCoins - 2
 r = await a.farmDo({ t: 'open' });
 if (r.farm.pets.length !== aPets - 1 || r.farm.inv.coins !== aCoins + 2 || r.farm.trades.length) fail('trade did not settle for the sender');
 
+// ----- gardens, kitchen, storage, workshop -----
+r = await a.farmDo({ t: 'open', test: { give: { wood: 200, stone: 200, fiber: 100, coal: 20 } } });
+const spot = async type => { let q = { err: 1 }; for (let y = 0; y < 12 && q.err; y++) for (let x = 0; x < 12 && q.err; x++) { q = await a.farmDo({ t: 'place', type, x, y, r: 0 }); await wait(30); } if (q.err) fail('no room for ' + type); return q; };
+if (!a.farm.items.some(i => i.type === 'garden')) await spot('garden');
+r = await a.farmDo({ t: 'place', type: 'windmill', x: 0, y: 0, r: 0 });
+if (!r.err && !a.farm.items.some(i => i.type === 'workshop')) fail('crafted decoration without a Workshop');
+r = await a.farmDo({ t: 'open', test: { ripe: true } });
+const plots = r.farm.items.filter(i => i.type === 'garden').length, b0 = r.farm.inv.berries || 0;
+if (r.farm.garden.ripe !== plots) fail('gardens not ripe');
+r = await a.farmDo({ t: 'pick' });
+if (r.err || r.farm.inv.berries !== b0 + plots * 3 || r.farm.garden.ripe || !(r.farm.garden.left > 3500_000)) fail('pick ' + JSON.stringify(r.err || r.farm.garden));
+r = await a.farmDo({ t: 'pick' });
+if (!r.err) fail('picked unripe berries');
+r = await a.farmDo({ t: 'cook', what: 'cookie', test: { give: { berries: 30 } } });
+if (!a.farm.items.some(i => i.type === 'kitchen')) { if (!r.err) fail('cooked without a Kitchen'); await spot('kitchen'); r = await a.farmDo({ t: 'cook', what: 'cookie' }); }
+if (r.err || r.farm.inv.cookie !== 1) fail('cook ' + r.err);
+const eater = r.farm.pets.find(x => x.lv < 20), eat0 = [eater.lv, eater.xp];
+r = await a.farmDo({ t: 'feed', what: 'cookie', pet: eater.id });
+const ate = r.farm.pets.find(x => x.id === eater.id);
+if (r.err || r.farm.inv.cookie || (ate.lv === eat0[0] && ate.xp <= eat0[1])) fail('feed ' + r.err);
+r = await a.farmDo({ t: 'feed', what: 'cookie', pet: eater.id });
+if (!r.err) fail('fed a treat that was not there');
+r = await a.farmDo({ t: 'sell', mat: 'wood', lots: 2 });
+if (!a.farm.items.some(i => i.type === 'workshop')) { if (!r.err) fail('sold without a Workshop'); await spot('workshop'); r = await a.farmDo({ t: 'open' }); const w0 = [r.farm.inv.wood, r.farm.inv.coins]; r = await a.farmDo({ t: 'sell', mat: 'wood', lots: 2 }); if (r.err || r.farm.inv.wood !== w0[0] - 20 || r.farm.inv.coins !== w0[1] + 8) fail('sell ' + r.err); }
+await spot('windmill');
+if (a.farm.cap !== (a.farm.items.some(i => i.type === 'barn') ? 900 : 300)) fail('storage cap ' + a.farm.cap);
+// a juice in a practice battle heals once
+r = await a.farmDo({ t: 'cook', what: 'juice' }); r = await a.farmDo({ t: 'cook', what: 'juice' });
+if (r.err || r.farm.inv.juice !== 2) fail('juice ' + r.err);
+r = await a.farmDo({ t: 'fight', mode: 'practice', pets: [a.farm.pets[0].id] });
+if (r.err || !r.battle) fail('practice for juice ' + r.err);
+r = await a.farmDo({ t: 'bact', juice: true });
+if (!r.err) fail('juice at full health');
+for (let n = 0; n < 30 && r.battle && r.battle.over === null && r.battle.sides[0].pets[r.battle.sides[0].on].hp >= r.battle.sides[0].pets[r.battle.sides[0].on].max; n++) {
+  const u = r.battle.sides[0].pets[r.battle.sides[0].on]; r = await a.farmDo({ t: 'bact', move: u.moves.find(m => !u.cd[m]) }); await wait(30); }
+if (r.battle && r.battle.over === null && !r.battle.need) {
+  const hp = r.battle.sides[0].pets[r.battle.sides[0].on].hp;
+  r = await a.farmDo({ t: 'bact', juice: true });
+  if (r.err || !r.ev.some(e => e.k === 'juice' && e.hp > hp)) fail('juice did not heal ' + r.err);
+  if (r.did !== 'fought') { r = await a.farmDo({ t: 'bact', juice: true }); if (!r.err) fail('two juices in one battle'); }
+}
+r = await a.farmDo({ t: 'bquit' }); await wait(50);
+r = await a.farmDo({ t: 'open', test: { ripe: true } });
+
 // ----- live battles -----
 r = await a.farmDo({ t: 'duel', to: boId, pets: [] });
 if (!r.err) fail('live battle with no team');

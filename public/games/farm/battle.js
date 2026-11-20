@@ -131,10 +131,11 @@ export function step(B, act, rnd = Math.random, act1 = null) { // act1: the othe
     if (act.switch === undefined || !canSwitch(B, 0, act.switch)) return null;
     B.need = false; swap(0, act.switch); return ev;
   }
-  if (act.switch !== undefined ? !canSwitch(B, 0, act.switch) : !ready(on(B, 0)).includes(act.move)) return null;
+  if (act.juice ? B.live || on(B, 0).hp >= on(B, 0).max : act.switch !== undefined ? !canSwitch(B, 0, act.switch) : !ready(on(B, 0)).includes(act.move)) return null;
   const fine1 = act1 && (act1.switch !== undefined ? canSwitch(B, 1, act1.switch) : ready(on(B, 1)).includes(act1.move));
   const acts = [act, fine1 ? act1 : pickMove(B, 1, rnd)];
   for (const s of [0, 1]) if (acts[s].switch !== undefined) swap(s, acts[s].switch);
+  if (act.juice) { const u = on(B, 0), n = Math.min(u.max - u.hp, Math.round(u.max * act.juice)); u.hp += n; ev.push({ k: 'juice', s: 0, n, hp: u.hp }); } // a drink takes the turn
   const order = [0, 1].filter(s => acts[s].move).sort((a, b) => (B.turn === 1 ? (on(B, b).early ? 1 : 0) - (on(B, a).early ? 1 : 0) : 0) || stat(on(B, b), 'spd') - stat(on(B, a), 'spd') || rnd() - .5);
   for (const s of order) {
     if (B.over !== null || B.need) break;

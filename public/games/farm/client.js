@@ -5,7 +5,7 @@
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex } from './breed.js';
-import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, formOf, xpFor, tripLoot, canAfford, countOf } from './data.js';
+import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, formOf, xpFor, tripLoot, canAfford, countOf } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -16,7 +16,7 @@ const I = {
   turn: svg('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>'),
 };
 // Small material badges: a coloured block with the amount beside it.
-const MAT_COL = { wood: '#b07a4f', stone: '#a9a6b0', fiber: '#86cc5a', shells: '#ffb6c9', coal: '#4a4550', crystal: '#8fe3f5', coins: '#ffc94d' };
+const MAT_COL = { wood: '#b07a4f', stone: '#a9a6b0', fiber: '#86cc5a', shells: '#ffb6c9', coal: '#4a4550', crystal: '#8fe3f5', berries: '#d9455f', cookie: '#d9a066', cake: '#ffd98a', juice: '#c86bd6', coins: '#ffc94d' };
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
 const mat = (k, n, cls = '') => `<span class="mat ${cls}" title="${MATS[k]}"><i style="background:${MAT_COL[k]}"></i>${n}<small>${MATS[k].toLowerCase()}</small></span>`;
 const costHtml = (cost, inv) => Object.keys(cost || {}).length ? Object.entries(cost).map(([k, n]) => mat(k, n, inv && (inv[k] || 0) < n ? 'short' : '')).join('') : '<span class="mat">Free</span>';
@@ -59,7 +59,7 @@ export function mount(app, ctx) {
   let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
   let B = null, shown = null, playing = false, foes = null, line = '';
   let mapShown = null, counter = null; // counter: an offer to pre-fill once we have walked to the other farm
-  let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [], liveAt = 0, heldInvite = null;
+  let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [], liveAt = 0, gardenAt = 0, heldInvite = null;
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -115,6 +115,7 @@ export function mount(app, ctx) {
       : t.left > 0 ? `<span class="chip" id="pf-trip">Back from ${z.name} in ${wait(t.left)}</span>`
       : '<button type="button" class="btn big m" data-a="collect">Welcome them back</button>';
     el.innerHTML = `<button type="button" class="btn big" data-a="edit">Edit farm</button>${trip}
+      ${F.garden.ripe ? `<button type="button" class="btn m" data-a="pick">Pick berries (${F.garden.ripe * BERRIES})</button>` : ''}
       <button type="button" class="btn w" data-a="map">World map</button>
       <button type="button" class="btn w" data-a="friends">Friends</button>
       <button type="button" class="btn w" data-a="album">Pet Album</button>
@@ -140,6 +141,18 @@ export function mount(app, ctx) {
         <div class="party">${pets}</div><p class="hint">${note}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
           <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? 'Save team' : panel.mode === 'live' ? (panel.invite ? 'Join the battle' : 'Send the invitation') : 'Start'}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'cook') {
+      const rows = Object.entries(RECIPES).map(([k, r]) => `<button type="button" class="zone${canAfford(F.inv, r.cost) ? '' : ' off'}" data-a="cook" data-what="${k}"><b>${r.name}</b><small>${r.desc}</small><span class="cost">${costHtml(r.cost, F.inv)}</span><small>You have ${F.inv[k] || 0}</small></button>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Kitchen</h2><p>You have ${F.inv.berries || 0} berries. To feed a treat, tap a pet on your farm.</p>
+        <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">Done</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'sell') {
+      const rows = Object.entries(SELL).map(([k, n]) => `<button type="button" class="zone${(F.inv[k] || 0) < SELL_LOT ? ' off' : ''}" data-a="sell" data-mat="${k}"><b>${SELL_LOT} ${MATS[k].toLowerCase()} for ${n} coins</b><small>You have ${F.inv[k] || 0}</small></button>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Sell spare materials</h2><p>The Workshop pays coins for materials you do not need. You have ${F.inv.coins || 0} coins.</p>
+        <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">Done</button></div></div>`;
       return;
     }
     if (panel.kind === 'gift') {
@@ -306,6 +319,7 @@ export function mount(app, ctx) {
         <div class="mats">${Object.entries(b.loot).map(([k, n]) => mat(k, '+' + n)).join('') || '<span class="hint">They came back empty-handed this time.</span>'}</div>
         ${rows}
         ${found ? `<div class="backpet found">${thumb('pet:' + found.sp)}<div><b>A wild ${SPECIES[found.sp].name} followed them home!</b><small>${elTag(SPECIES[found.sp].el)} ${RARITY[SPECIES[found.sp].rare]} · ${SPECIES[found.sp].blurb}</small></div></div>` : ''}
+        ${b.spilt ? `<p class="hint">Your storage is full (${F.cap} of each), so some of it was left behind. ${countOf(F, 'barn') ? 'Spend or sell some to make room.' : 'A Storage Barn makes room for more.'}</p>` : ''}
         ${b.full ? '<p class="hint">A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.</p>' : ''}
         <button type="button" class="btn big m" data-a="shut">Lovely</button></div>`;
     }
@@ -334,7 +348,7 @@ export function mount(app, ctx) {
     el.innerHTML = `${plate(1)}${plate(0)}
       <div class="bbar"><p class="blog">${line || (B.live && B.waiting ? `Waiting for ${esc(B.foe)} to choose…` : B.need ? 'Who comes in next?' : `What should ${esc(u.name)} do?`)}${clock}</p>
         <div class="mvs">${moves}</div>
-        <div class="bench">${bench}<button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
+        <div class="bench">${bench}${!B.live && F.inv.juice ? `<button type="button" class="btn sm m" data-a="juice" ${busy || B.need || B.juiced || u.hp >= u.max ? 'disabled' : ''}>Berry Juice (${F.inv.juice})</button>` : ''}<button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
   }
   // Plays what the server says happened, one beat at a time, then shows the real state.
   const beat = ms => new Promise(r => setTimeout(r, ms));
@@ -347,6 +361,7 @@ export function mount(app, ctx) {
       else if (e.k === 'move') { line = `${who(e.s)} uses ${MOVES[e.move].name}.`; scene?.ringFx(e.s, MOVES[e.move].pow ? 'lunge' : 'hop'); sfx.click(); ms = 650; }
       else if (e.k === 'hit') { u.hp = e.hp; line = `${who(e.s)} takes ${e.dmg}.${e.eff > 1 ? ' It hit hard!' : e.eff < 1 ? ' It barely tickled.' : ''}`; scene?.ringFx(e.s, 'hit'); sfx.place(); }
       else if (e.k === 'burn') { u.hp = e.hp; line = `${who(e.s)} is stung by its burn and takes ${e.dmg}.`; scene?.ringFx(e.s, 'hit'); sfx.place(); }
+      else if (e.k === 'juice') { u.hp = e.hp; F.inv.juice = Math.max(0, (F.inv.juice || 0) - 1); line = `${who(e.s)} drinks a Berry Juice and gets ${e.n} health back.`; scene?.ringFx(e.s, 'hop'); sfx.join(); }
       else if (e.k === 'heal') { u.hp = e.hp; line = `${who(e.s)} gets ${e.n} health back.`; sfx.join(); }
       else if (e.k === 'stat') { if (e.d) u.up[e.stat] += e.d; line = e.d ? `${who(e.s)}'s ${STAT_NAME[e.stat]} goes ${e.d > 0 ? 'up' : 'down'}.` : 'Nothing changes.'; scene?.ringFx(e.s, e.d > 0 ? 'hop' : 'hit'); }
       else if (e.k === 'status') { u.status[e.st] = 1; line = `${who(e.s)} is ${STATUS[e.st].name.toLowerCase()}. ${STATUS[e.st].blurb}`; ms = 1100; }
@@ -395,9 +410,9 @@ export function mount(app, ctx) {
     if (el.hidden) return;
     const g = scene?.ghost();
     const cards = Object.entries(ITEMS).filter(([, it]) => it.kind === tab && !it.fixed).map(([type, it]) => {
-      const have = countOf(F, type), full = it.max && have >= it.max, poor = !canAfford(F.inv, it.cost);
-      return `<button type="button" class="item${full || poor ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
-        ${thumb(type)}<b>${it.name}</b><span class="cost">${full ? `<span class="mat">Have ${have} of ${it.max}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
+      const have = countOf(F, type), full = it.max && have >= it.max, poor = !canAfford(F.inv, it.cost), locked = it.craft && !countOf(F, 'workshop');
+      return `<button type="button" class="item${full || poor || locked ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
+        ${thumb(type)}<b>${it.name}</b><span class="cost">${locked ? '<span class="mat">Needs a Workshop</span>' : full ? `<span class="mat">Have ${have} of ${it.max}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
     }).join('');
     const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) ? '' : ' off'}" data-a="expand">
         <span class="nothumb grow">${F.next.size}</span><b>More land</b><span class="cost">${costHtml(F.next.cost, F.inv)}</span></button>` : '';
@@ -442,6 +457,7 @@ export function mount(app, ctx) {
         ${p.lv < MAX_LV ? `<div class="xp" title="Experience"><i style="width:${Math.round(p.xp / xpFor(p.lv) * 100)}%"></i><span>${p.xp} of ${xpFor(p.lv)} to level ${p.lv + 1}</span></div>` : ''}
         <p class="hint">${s.blurb}</p>
         <div class="mvlist"><span class="hint">${ROLE_NAME[KIT[p.sp].role]}</span>${movesAt(p.sp, p.lv, p.xmove).map(id => `<span class="el" style="--c:${ELEMENTS[MOVES[id].el]}">${MOVES[id].name}</span>`).join('')}</div>
+        ${p.lv < MAX_LV ? Object.entries(RECIPES).filter(([k, r]) => r.xp && F.inv[k]).map(([k, r]) => `<button type="button" class="btn sm m" data-a="feed" data-what="${k}" data-id="${p.id}">Give a ${r.name} (${F.inv[k]} left)</button>`).join('') : ''}
         <button type="button" class="btn sm w" data-a="petpage" data-id="${p.id}">Traits and family</button></div>
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
     } else {
@@ -461,8 +477,12 @@ export function mount(app, ctx) {
       else if (item.type === 'mailbox') more = `<button type="button" class="btn sm m" data-a="mail">Open mail (${F.mail.length})</button>`;
       else if (item.type === 'nest') more = !F.nest ? '<button type="button" class="btn sm m" data-a="nest">Choose two pets</button>'
         : `<p class="hint">${nestTxt(F.nest)}</p>${F.nest.stage === 'ready' ? '<button type="button" class="btn sm m" data-a="hatch">Hatch the egg</button>' : ''}`;
+      else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="pick">Pick berries (${F.garden.ripe * BERRIES})</button>` : `<p class="hint">Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.</p>`;
+      else if (item.type === 'kitchen') more = `<p class="hint">You have ${F.inv.berries || 0} berries.</p><button type="button" class="btn sm m" data-a="cookopen">Cook treats</button>`;
+      else if (item.type === 'barn') more = `<p class="hint">Your farm can hold ${F.cap} of each material.</p>`;
+      else if (item.type === 'workshop') more = '<p class="hint">Its decorations are under Edit farm, Decorations.</p><button type="button" class="btn sm m" data-a="sellopen">Sell spare materials</button>';
       else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
-      el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${it.soon ? `<p class="hint">${it.soon}</p>` : ''}${more}
+      el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
         <button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button></div>
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
     }
@@ -530,6 +550,12 @@ export function mount(app, ctx) {
     else if (a === 'livego') openTeam('live', V);
     else if (a === 'duelno') { ctx.send({ t: 'duelno', id: panel.id }); panel = null; sync(); }
     else if (a === 'duelpick') openTeam('live', { name: panel.from, invite: panel.id });
+    else if (a === 'pick') ctx.send({ t: 'pick' });
+    else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
+    else if (a === 'sellopen') { panel = { kind: 'sell' }; card = null; sync(); }
+    else if (a === 'cook') { if (b.classList.contains('off')) return ctx.toast('Not enough berries for that yet. Garden Plots grow more every hour.', true); ctx.send({ t: 'cook', what: b.dataset.what }); }
+    else if (a === 'sell') { if (b.classList.contains('off')) return ctx.toast(`You need at least ${SELL_LOT} to sell.`, true); ctx.send({ t: 'sell', mat: b.dataset.mat, lots: 1 }); }
+    else if (a === 'feed') ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id });
     else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
     else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
     else if (a === 'nest') { if (F.nest) return; panel = { kind: 'nest', pick: [] }; card = null; sync(); }
@@ -568,6 +594,7 @@ export function mount(app, ctx) {
     else if (a === 'defend') ctx.send({ t: 'defend', pets: [...panel.pets] });
     else if (a === 'move') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', move: b.dataset.move }); } }
     else if (a === 'swap') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', switch: +b.dataset.i }); } }
+    else if (a === 'juice') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', juice: true }); } }
     else if (a === 'giveup') { if (!playing) ctx.send({ t: 'bquit' }); }
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect' });
@@ -585,6 +612,7 @@ export function mount(app, ctx) {
     else if (a === 'expand') { if (b.classList.contains('off')) ctx.toast('Not enough materials to grow the land yet.', true); else ctx.send({ t: 'expand' }); }
     else if (a === 'item') {
       const type = b.dataset.type, it = ITEMS[type];
+      if (it.craft && !countOf(F, 'workshop')) return ctx.toast('Build a Workshop first. It is under Buildings.', true);
       if (it.max && countOf(F, type) >= it.max) return ctx.toast(`You can only have ${it.max} of those.`, true);
       if (!canAfford(F.inv, it.cost)) return ctx.toast('Not enough materials for that yet.', true);
       scene?.ghostNew(type);
@@ -616,6 +644,7 @@ export function mount(app, ctx) {
     else if (chip) chip.textContent = `Back from ${ZONES[F.trip.zone].name} in ${wait(left)}`;
   }, 5000);
   const liveTimer = setInterval(() => { const c = $('pf-clock'); if (c) c.textContent = Math.max(0, Math.ceil((liveAt - Date.now()) / 1000)); }, 500);
+  const gardenTimer = setInterval(() => { if (mode === 'farm' && F && gardenAt && gardenAt - Date.now() <= 0) { gardenAt = 0; ctx.send({ t: 'open' }); } }, 5000);
   const nestTimer = setInterval(() => {
     if (mode !== 'farm' || !F?.nest || F.nest.stage === 'ready') return;
     if (nestAt - Date.now() <= 0) ctx.send({ t: 'open' }); else { const chip = $('pf-nest'); if (chip) chip.textContent = `${F.nest.stage === 'cuddle' ? 'Egg in' : 'Hatches in'} ${wait(nestAt - Date.now())}`; }
@@ -634,7 +663,7 @@ export function mount(app, ctx) {
     if (m.invite && !F && !B) { heldInvite = m.invite; return; } // arrived before the farm loaded: show it once it has
     if (m.invite && F && !B) { sfx.turn(); panel = { kind: 'invite', ...m.invite }; card = null; edit = false; scene?.ghostCancel(); if (mode === 'farm') sync(); }
     if (m.battle) liveAt = Date.now() + (m.battle.left || 0);
-    if (m.farm) { F = m.farm; tripAt = Date.now() + (F.trip?.left || 0); nestAt = Date.now() + (F.nest?.left || 0); }
+    if (m.farm) { F = m.farm; tripAt = Date.now() + (F.trip?.left || 0); nestAt = Date.now() + (F.nest?.left || 0); gardenAt = F.garden.left ? Date.now() + F.garden.left : 0; }
     if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
       const starting = !B && m.battle;
       if (!m.battle) { B = null; shown = null; playing = false; if (m.farm) { mode = 'farm'; sync(); } return; }
@@ -660,6 +689,10 @@ export function mount(app, ctx) {
     else if (m.did === 'gift') { sfx.join(); panel = null; ctx.toast(`Your gift is in ${esc(V.name)}'s Mailbox.`); }
     else if (m.did === 'claim') { sfx.join(); ctx.toast('You got ' + Object.entries(m.got).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') + '.'); }
     else if (m.did === 'duel') { sfx.join(); panel = null; ctx.toast(`Invitation sent. The battle starts as soon as ${esc(V?.name || 'they')} says yes.`); }
+    else if (m.did === 'pick') { sfx.join(); card = null; ctx.toast(`You picked ${m.got} berries.`); }
+    else if (m.did === 'cook') { sfx.set(); ctx.toast(`One ${RECIPES[m.what].name} is ready.`); }
+    else if (m.did === 'sell') { sfx.join(); ctx.toast(`Sold for ${m.coins} coins.`); }
+    else if (m.did === 'feed') { sfx.win(); const p = F.pets.find(x => x.id === m.pet); scene?.cheer(m.pet); ctx.toast(`${esc(p.name)} loved it.${m.grew ? (m.grew.form ? ` It grew up into its ${FORMS[m.grew.form].toLowerCase()} form!` : ` It reached level ${m.grew.lv}!`) : ''}`); }
     else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');
@@ -688,6 +721,6 @@ export function mount(app, ctx) {
     reopen() { ctx.send({ t: 'open' }); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast('Finish the battle first.', true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
-    destroy() { destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
+    destroy() { destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
   };
 }
