@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -62,6 +62,26 @@ const GAMES = {
       <li><b>Party tiles</b>: green zooms you 3 tiles on, orange gives a bonus roll, pink swaps you with the player just ahead, blue makes you nap through your next turn.</li>
       <li>With <b>exact roll</b> on, you need the right number to land on the last tile. Too much and you bounce back.</li>
       <li>First to the last tile wins. Everyone else is ranked by how far they got.</li>
+    </ol>`,
+  },
+  poker: {
+    name: "Texas Hold'em", load: () => import('./games/poker/client.js'), start: 'Deal the cards',
+    host: { bots: 'chill', field: 6, hands: 10, timer: 30 }, solo: { bots: 'chill', field: 6, hands: 10, timer: 0 },
+    openSeat: 'A bot sits here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.field || 6, r.players.length)),
+    settings: pill => `<div class="opt"><b>Seats at the table</b><div class="pills">${pill('field', 2, '2')}${pill('field', 4, '4')}${pill('field', 6, '6')}</div></div>
+      <div class="opt"><b>Game length</b><div class="pills">${pill('hands', 10, '10 hands')}${pill('hands', 20, '20 hands')}${pill('hands', 0, 'Last one standing')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Classic no-limit Texas Hold'em with pretend chips. Make the best five-card hand from your two cards and the five on the table, or bet so big everyone else folds. Most chips after the last hand wins.`,
+    rules: `<ol>
+      <li>Everyone starts with <b>1000 pretend chips</b>. Empty seats get bots.</li>
+      <li>Each hand you get <b>two secret cards</b>. Two players post the <b>blinds</b> (small forced bets) to get things going.</li>
+      <li>Betting goes round the table: <b>fold</b> (give up), <b>check</b> (pass when nobody has bet), <b>call</b> (match the bet) or <b>raise</b>.</li>
+      <li>Five shared cards come out: the <b>flop</b> (three), the <b>turn</b> and the <b>river</b>, with a round of betting after each.</li>
+      <li>At the <b>showdown</b> the best five-card hand from your two plus the five shared cards wins the pot.</li>
+      <li>Best to worst: royal flush, straight flush, four of a kind, full house, flush, straight, three of a kind, two pair, pair, high card.</li>
+      <li>Blinds go up every 4 hands. Lose all your chips and you're out. After the last hand (or when one player has everything) the biggest stack wins.</li>
+      <li>Your best hand is shown under your cards. Shortcuts: <b>F</b> fold, <b>C</b> check or call, <b>R</b> raise.</li>
     </ol>`,
   },
 };
@@ -283,6 +303,14 @@ function renderHub() {
             <div class="row"><button type="button" class="btn" data-act="host" data-game="ladders">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="ladders">Play with bots</button></div>
           </div>
         </article>
+        <article class="gcard">
+          <div class="pic pokerpic">${pokerArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Texas Hold'em</h3><span class="tag">1–6 players</span></div>
+            <p>Cozy no-limit poker for pretend chips. Bluff your friends, out-read the bots and stack the whole table.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="poker">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="poker">Play with bots</button></div>
+          </div>
+        </article>
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
       </div>
     </section>
@@ -291,7 +319,7 @@ function renderHub() {
       <div class="tables" id="tables-list"></div>
     </section>
   </main>
-  <footer>Made for friends. Marble Rush coins are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
+  <footer>Made for friends. Marble Rush coins and poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
   renderTables();
   if (!st.name) openProfile(true);
 }
@@ -567,7 +595,7 @@ $app.addEventListener('click', e => {
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });
   else if (act === 'sit') send({ t: 'sit', on: b.getAttribute('aria-pressed') !== 'true' });
-  else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
+  else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field', 'hands'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
   else if (act === 'copy') {
     const link = `${location.origin}/#${st.room.code}`;
     (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast('Invite link copied!'), () => toast(`Share this: ${esc(link)}`));

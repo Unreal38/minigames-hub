@@ -9,13 +9,14 @@ import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
 import * as ladders from './games/ladders.js';
+import * as poker from './games/poker.js';
 import { cleanAv } from '../public/avatar.js';
 import * as store from './store.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders };
+const GAMES = { hotpot, marbles, ladders, poker };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
@@ -137,6 +138,7 @@ function leaveRoom(c) {
   r.players = r.players.filter(t => t !== c.token); r.again?.delete(c.id); r.spect.delete(c.id); r.sit.delete(c.id);
   if (!seatedOf(r).length) { r.spect.clear(); r.sit.clear(); } // only watchers left: they all play the next round
   if (r.G && r.G.ph === 'play') {
+    GAMES[r.game].seatWatcher?.(r.G, { id: c.id }, false); // a watcher waiting for a seat changed their mind
     const s = r.G.seats.findIndex(x => x.id === c.id);
     if (s >= 0) { GAMES[r.game].setAway(r.G, s, true); r.G.seats[s].name += ' (bot)'; r.G.seats[s].human = false; r.G.seats[s].id = null; }
   }

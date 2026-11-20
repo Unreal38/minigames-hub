@@ -84,3 +84,24 @@ export function laddersArt() {
     <circle cx="200" cy="98" r="11" fill="#ffb547" stroke="${ink}" stroke-width="3"/><circle cx="196" cy="96" r="1.8" fill="${ink}"/><circle cx="204" cy="96" r="1.8" fill="${ink}"/>
   </g></svg>`;
 }
+
+// Three fanned cards and a few chips on green felt, for the Texas Hold'em card.
+export function pokerArt() {
+  const suit = {
+    h: ['#e5543b', 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z'],
+    s: ['#3b2219', 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z'],
+    d: ['#f08a24', 'M12 1.8l7.6 10.2L12 22.2 4.4 12z'],
+  };
+  const card = (x, y, rot, r, s, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
+    <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
+    <text x="${x + 8}" y="${y + 24}" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="22" fill="${suit[s][0]}">${r}</text>
+    <path d="${suit[s][1]}" fill="${suit[s][0]}" transform="translate(${x + 22} ${y + 36}) scale(1.45)"/></g></g>`;
+  const chip = (x, y, c, e) => `<ellipse cx="${x}" cy="${y + 5}" rx="17" ry="7" fill="#00000044"/><ellipse cx="${x}" cy="${y}" rx="17" ry="7" fill="${c}" stroke="${ink}" stroke-width="2.5"/><ellipse cx="${x}" cy="${y}" rx="8" ry="3.2" fill="none" stroke="${e}" stroke-width="2" stroke-dasharray="3 2"/>`;
+  const stack = (x, y, n, c, e) => Array.from({ length: n }, (_, i) => chip(x, y - i * 6, c, e)).join('');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Three playing cards fanned out next to stacks of chips on a green table">
+  <rect width="320" height="150" fill="#2b7a5e"/>
+  <ellipse cx="160" cy="160" rx="210" ry="96" fill="#3f9c7a"/>
+  <ellipse cx="160" cy="160" rx="176" ry="74" fill="none" stroke="#fff4e255" stroke-width="3" stroke-dasharray="10 8"/>
+  ${card(92, 34, -16, 'A', 'h', 0)}${card(130, 26, 0, 'K', 's', .2)}${card(168, 34, 16, 'Q', 'd', .4)}
+  ${stack(54, 118, 4, '#ff8fab', '#fff4e2')}${stack(86, 128, 2, '#7ed3b2', '#fff4e2')}${stack(262, 120, 5, '#3b2219', '#ffb547')}${stack(234, 132, 2, '#9b6fd6', '#fff4e2')}</svg>`;
+}
