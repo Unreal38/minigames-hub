@@ -366,7 +366,7 @@ function renderTables() {
   if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
   el.innerHTML = st.rooms.map(r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
-    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take a bot’s seat next round' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
+    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take over a bot' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
     <button type="button" class="btn ${r.n < r.max && r.state === 'lobby' ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${r.n < r.max && r.state === 'lobby' ? 'Join' : 'Watch'}</button>
@@ -417,7 +417,7 @@ function renderLobby() {
 }
 
 // ---------- watching ----------
-// While a game is on, a watcher gets a small bar: tap to replace a bot when the next round starts.
+// While a game is on, a watcher gets a small bar: tap to take over a bot's seat.
 const $watch = document.createElement('div');
 $watch.id = 'watchbar'; $watch.hidden = true; $watch.setAttribute('aria-live', 'polite');
 document.body.append($watch);
@@ -425,9 +425,19 @@ function watchPaint() {
   const r = st.room, me = r?.players.find(p => p.id === st.id);
   const on = !!(st.game && me?.watch && st.lastState?.ph === 'play');
   $watch.hidden = !on; if (!on) return;
-  const saving = (r.sit || []).includes(st.id), full = r.players.filter(p => !p.watch).length >= r.max;
-  $watch.innerHTML = `<span>${saving ? (full ? 'Every seat is taken. You get the next free one.' : 'You take a bot’s seat next round.') : 'You’re watching.'}</span>
-    <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${saving ? 'Just watch' : full ? 'Get the next free seat' : 'Play next round'}</button>`;
+  // When a watcher gets in depends on the game: Hot Pot and Marble Rush at the next game,
+  // Snakes & Ladders when the current round of turns ends, poker at the next hand.
+  const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
+  const bots = (st.lastState.seats || []).filter(s => !s.human).length;
+  const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
+  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand' }[when] || 'when the next game starts';
+  const msg = !saving ? 'You’re watching.'
+    : full ? (when === 'game' ? 'Every seat is taken. You get the next free one.' : 'Every seat has a player. You get one next game.')
+    : `You take over a bot ${soon}.`;
+  const btn = saving ? 'Just watch' : full && when === 'game' ? 'Get the next free seat'
+    : when === 'round' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : 'Play next game';
+  $watch.innerHTML = `<span>${msg}</span>
+    <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
 }
 $watch.addEventListener('click', e => {
   const b = e.target.closest('[data-w="sit"]'); if (!b) return;

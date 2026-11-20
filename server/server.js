@@ -56,7 +56,7 @@ const newCode = () => { let c; do { c = Array.from({ length: 4 }, () => CODE_CHA
 
 function roomInfo(r) {
   return {
-    code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, host: r.host, priv: r.priv,
+    code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
