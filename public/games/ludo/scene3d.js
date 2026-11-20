@@ -79,7 +79,7 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
   const dot = softDot(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const W = ([c, r], y = 0, out = new THREE.Vector3()) => out.set(c - 7, y, r - 7);
 
-  let seats = [], T = 4, boardKey = '', avKey = '', boardGroup = null, tiles = null;
+  let noStars = false, seats = [], T = 4, boardKey = '', avKey = '', boardGroup = null, tiles = null;
   let pawnMesh = null, lineMesh = null, pawnGeom = null, pawns = [], avatars = [];
   let rl = null, rlStart = 0, mv = null, mvStart = 0, mvPlan = null, cueAt = 0, dieCue = false;
   let turn = -1, stage = 'roll', me = -1, legal = [], hover = -1, spin = 0, spinInit = false;
@@ -99,7 +99,7 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
     // track and home lanes: one instanced block per cell
     const cells = [];
     RING_CELLS.forEach((c, i) => {
-      const k = i / GAP | 0, col = i % GAP === 0 ? (colOf[k] || EMPTY) : i % GAP === STAR ? CREAM : i % 2 ? '#f3e0c6' : '#e8cfae';
+      const k = i / GAP | 0, col = i % GAP === 0 ? (colOf[k] || EMPTY) : i % GAP === STAR && !noStars ? CREAM : i % 2 ? '#f3e0c6' : '#e8cfae';
       cells.push([c, col]);
     });
     for (let k = 0; k < 4; k++) for (let i = 1; i <= 5; i++) cells.push([lane(k, i), colOf[k] ? mix(colOf[k], '#ffffff', .22) : EMPTY]);
@@ -107,8 +107,8 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
     const m4 = new THREE.Matrix4(), c3 = new THREE.Color();
     cells.forEach(([c, col], i) => { m4.makeTranslation(c[0] - 7, -.13, c[1] - 7); tiles.setMatrixAt(i, m4); tiles.setColorAt(i, c3.set(col)); });
     tiles.receiveShadow = true; g.add(tiles);
-    // a star on each safe cell
-    for (let k = 0; k < 4; k++) { const [c, r] = RING_CELLS[k * GAP + STAR]; add(starGeo(), '#ffb547', c - 7, 0, r - 7); }
+    // a star on each safe cell (hard mode has no safe cells, so no stars)
+    if (!noStars) for (let k = 0; k < 4; k++) { const [c, r] = RING_CELLS[k * GAP + STAR]; add(starGeo(), '#ffb547', c - 7, 0, r - 7); }
     // yards: a raised pad with four pawn spots and a stool for the avatar. Corners nobody plays grow trees instead.
     for (let k = 0; k < 4; k++) {
       const [yc, yr] = yardCentre(k), x = yc - 7, z = yr - 7, col = colOf[k];
@@ -167,9 +167,9 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
     });
   }
 
-  function setSeats(list, nPawns) {
-    seats = list; T = nPawns || 4;
-    const bk = list.map(s => s.col + s.corner).join('|') + T;
+  function setSeats(list, nPawns, hard = false) {
+    seats = list; T = nPawns || 4; noStars = !!hard;
+    const bk = list.map(s => s.col + s.corner).join('|') + T + noStars;
     if (bk !== boardKey) { boardKey = bk; buildBoard(); buildPawns(); }
     const ak = list.map(s => s.color + s.corner + s.av.join('')).join('|');
     if (ak !== avKey) { avKey = ak; buildAvatars(); renderer.shadowMap.needsUpdate = true; }

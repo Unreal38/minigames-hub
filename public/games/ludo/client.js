@@ -64,7 +64,7 @@ export function mount(app, ctx) {
 
   function sync() {
     if (!scene || !S) return;
-    scene.setSeats(S.seats, S.pawns);
+    scene.setSeats(S.seats, S.pawns, S.hard);
     scene.setMe(S.me);
     scene.setTurn(S.turn, S.stage);
     scene.setRoll(S.roll);
