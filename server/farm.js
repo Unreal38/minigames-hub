@@ -603,6 +603,24 @@ export function handle(p, a, reply) {
 }
 
 // Test hooks, only when FARM_TEST is set: bring the party home at once, or hand out materials.
+// A present from the people running the server, for every farm: it waits in each Mailbox. Sent with `npm run gift`,
+// which leaves gift-all.json in the data folder; the running server picks it up within a few seconds.
+const GIFT_FILE = path.join(DATA_DIR, 'gift-all.json');
+export function giftAll(mats, text = '') {
+  const got = {}; for (const [k, n] of Object.entries(mats || {})) if (MATS[k] && Number.isInteger(n) && n > 0 && n <= 100000) got[k] = n;
+  if (!Object.keys(got).length) return 0;
+  for (const [pid, f] of farms) {
+    post(f, { k: 'gift', from: 'Cozy Table', got: { ...got }, ...(text ? { text: String(text).slice(0, 120) } : {}) });
+    const p = profiles.get(pid); if (p) push(pid, { t: 'farm', farm: view(f, p), note: 'A gift for everyone just landed in your Mailbox!' });
+  }
+  scheduleSave();
+  return farms.size;
+}
+setInterval(() => {
+  if (!fs.existsSync(GIFT_FILE)) return;
+  try { const g = JSON.parse(fs.readFileSync(GIFT_FILE, 'utf8')); fs.unlinkSync(GIFT_FILE); console.log(`gift for everyone: ${JSON.stringify(g.mats)} sent to ${giftAll(g.mats, g.text)} farms`); }
+  catch (e) { console.error('gift-all.json could not be read', e.message); try { fs.unlinkSync(GIFT_FILE); } catch {} }
+}, 5000).unref();
 export function testHook(pid, a) {
   const f = farms.get(pid); if (!f || !process.env.FARM_TEST || !a) return;
   if (a.home && f.trip) f.trip.until = 0;
