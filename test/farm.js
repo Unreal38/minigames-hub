@@ -80,6 +80,31 @@ if (!r.err) fail('fence placed inside the rotated barn');
 r = await a.farmDo({ t: 'place', type: 'barn', x: 0, y: 5, r: 0 });
 if (!r.err) fail('second barn accepted (max 1)');
 
+// small props snap to half tiles and can share a tile; everything else stays on whole tiles
+for (const [x, y] of [[5, 5], [5.5, 5], [5, 5.5], [5.5, 5.5]]) { r = await a.farmDo({ t: 'place', type: 'flowers', x, y, r: 0 }); if (r.err) fail(`flowers at ${x},${y}: ${r.err}`); }
+r = await a.farmDo({ t: 'place', type: 'rock', x: 5.5, y: 5.5, r: 0 });
+if (!r.err) fail('rock placed on top of flowers');
+r = await a.farmDo({ t: 'place', type: 'fence', x: 4, y: 5, r: 0 });
+if (r.err) fail('fence beside the flowers: ' + r.err);
+r = await a.farmDo({ t: 'place', type: 'bench', x: 3.5, y: 6.5, r: 1 }); // a bench is 1 x .5, turned it is .5 x 1
+if (r.err) fail('turned bench on half tiles: ' + r.err);
+r = await a.farmDo({ t: 'place', type: 'rock', x: 3.5, y: 7, r: 0 });
+if (!r.err) fail('rock placed inside the turned bench');
+r = await a.farmDo({ t: 'place', type: 'rock', x: 4, y: 7, r: 0 });
+if (r.err) fail('rock right beside the bench: ' + r.err);
+const small = a.farm.items.length;
+for (const [what, act] of [
+  ['fence on a half tile', { t: 'place', type: 'fence', x: 6.5, y: 6, r: 0 }],
+  ['quarter tile', { t: 'place', type: 'rock', x: 6.25, y: 6, r: 0 }],
+  ['text coordinate', { t: 'place', type: 'rock', x: '6', y: 6, r: 0 }],
+  ['half off the edge', { t: 'place', type: 'bench', x: 9.5, y: 0, r: 0 }],
+]) {
+  a.last = null; a.send({ t: 'farm', a: act }); await wait(120);
+  if (a.last && !a.last.err) fail('accepted a bad placement: ' + what);
+  if (a.farm.items.length !== small) fail('item count changed after: ' + what);
+}
+for (const i of a.farm.items.filter(i => !['house', 'hut', 'barn'].includes(i.type))) await a.farmDo({ t: 'remove', id: i.id });
+
 // moving and putting away
 r = await a.farmDo({ t: 'move', id: hut.id, x: 0, y: 4, r: 2 });
 if (r.err || r.farm.items.find(i => i.id === hut.id).y !== 4) fail('move hut');

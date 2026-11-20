@@ -10,7 +10,7 @@
 //     dispose()
 import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
-import { ITEMS, STARTERS, footprint, fits, occupied, formOf } from './data.js';
+import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
 import { itemModel, petModel, disposeModel } from './models.js';
 
 const SKY = '#bfe8ff';
@@ -31,7 +31,8 @@ export function createScene(canvas, { onPick, onGhost }) {
   const wx = (x, w = 1) => x + w / 2 - N / 2, wz = (y, h = 1) => y + h / 2 - N / 2;
 
   // ---------- the island ----------
-  let land = null, gridLines = null;
+  let land = null, gridLines = null, fineLines = null;
+  const snap = (v, st) => Math.floor(v / st + 1e-6) * st;
   const sea = new THREE.Mesh(new THREE.CircleGeometry(90, 24), new THREE.MeshStandardMaterial({ color: '#7fcdf0', roughness: .6, flatShading: true }));
   sea.rotation.x = -Math.PI / 2; sea.position.y = -1.5; scene.add(sea);
   const clouds = [];
@@ -68,6 +69,11 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (let i = 0; i <= N; i++) { const v = i - N / 2, e = N / 2; lp.push(v, .02, -e, v, .02, e, -e, .02, v, e, .02, v); }
     const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3));
     gridLines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: .55 })); gridLines.visible = edit; land.add(gridLines);
+    // half-tile lines, shown while a small prop is being placed
+    const fp = [];
+    for (let i = 0; i < N; i++) { const v = i + .5 - N / 2, e = N / 2; fp.push(v, .02, -e, v, .02, e, -e, .02, v, e, .02, v); }
+    const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3));
+    fineLines = new THREE.LineSegments(fg, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: .28 })); land.add(fineLines); gridVis();
     scene.add(land);
     const s = N / 2 + 3; Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 50 }); sun.shadow.camera.updateProjectionMatrix();
     cam.dist = Math.min(Math.max(cam.dist, N * 1.6), N * 2.6);
@@ -115,7 +121,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   function syncPets() {
     if (!farm) { for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); return; }
-    walkGrid = occupied(farm, { walkable: true });
+    walkGrid = blockedTiles(farm);
     const seen = new Set();
     const house = farm.items.find(i => i.type === 'house');
     for (const pet of farm.pets) {
@@ -192,6 +198,7 @@ export function createScene(canvas, { onPick, onGhost }) {
 
   // ---------- the piece being placed ----------
   let ghost = null; // { type, id, x, y, r, ok, g, pad }
+  function gridVis() { if (gridLines) gridLines.visible = edit; if (fineLines) fineLines.visible = edit && !!ghost && stepOf(ghost.type) < 1; }
   const padMat = new THREE.MeshBasicMaterial({ color: '#7dff8a', transparent: true, opacity: .5, depthWrite: false });
   function ghostCheck() {
     if (!ghost) return;
@@ -212,20 +219,20 @@ export function createScene(canvas, { onPick, onGhost }) {
     ghost = { type, id, x, y, r, g, pad, ok: false };
     for (const [iid, e] of items) e.g.visible = iid !== id;
     renderer.shadowMap.needsUpdate = true;
-    ghostCheck();
+    gridVis(); ghostCheck();
   }
   function ghostCancel(quiet) {
     if (!ghost) return;
     scene.remove(ghost.g, ghost.pad); disposeModel(ghost.g); ghost.pad.geometry.dispose(); ghost = null;
     for (const e of items.values()) e.g.visible = true;
-    renderer.shadowMap.needsUpdate = true;
+    renderer.shadowMap.needsUpdate = true; gridVis();
     if (!quiet) onGhost?.(null);
   }
   // A good first spot for a new piece: the free place nearest the middle of the view.
   function firstSpot(type, near, r) {
-    const [w, h] = footprint(type, r), cx = near ? near[0] : Math.round(N / 2 - w / 2), cy = near ? near[1] : Math.round(N / 2 - h / 2);
+    const [w, h] = footprint(type, r), st = stepOf(type), cx = near ? near[0] : snap(N / 2 - w / 2, st), cy = near ? near[1] : snap(N / 2 - h / 2, st);
     let best = null, bd = 1e9;
-    for (let y = 0; y <= N - h; y++) for (let x = 0; x <= N - w; x++) { const d = (x - cx) ** 2 + (y - cy) ** 2; if (d < bd && fits(farm, type, x, y, r)) { bd = d; best = [x, y]; } }
+    for (let y = 0; y <= N - h; y += st) for (let x = 0; x <= N - w; x += st) { const d = (x - cx) ** 2 + (y - cy) ** 2; if (d < bd && fits(farm, type, x, y, r)) { bd = d; best = [x, y]; } }
     return best || [Math.max(0, Math.min(N - w, cx)), Math.max(0, Math.min(N - h, cy))];
   }
 
@@ -248,9 +255,9 @@ export function createScene(canvas, { onPick, onGhost }) {
   canvas.addEventListener('pointerdown', e => {
     canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e);
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); drag = null; return; }
-    const g = groundAt(e), tx = g ? Math.floor(g.x + N / 2) : -1, ty = g ? Math.floor(g.z + N / 2) : -1;
+    const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1, st = ghost ? stepOf(ghost.type) : 1; // tx, ty: where on the grid, in tiles
     drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false,
-      mode: ghost && inGhost(tx, ty) ? 'ghost' : 'orbit', ox: tx - (ghost?.x || 0), oy: ty - (ghost?.y || 0) };
+      mode: ghost && inGhost(tx, ty) ? 'ghost' : 'orbit', ox: snap(tx, st) - (ghost?.x || 0), oy: snap(ty, st) - (ghost?.y || 0) };
   });
   canvas.addEventListener('pointermove', e => {
     if (!ptrs.has(e.pointerId)) return;
@@ -265,8 +272,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!drag.moved) return;
     if (drag.mode === 'ghost') {
       const g = groundAt(e); if (!g) return;
-      const [w, h] = footprint(ghost.type, ghost.r);
-      const nx = Math.max(0, Math.min(N - w, Math.floor(g.x + N / 2) - drag.ox)), ny = Math.max(0, Math.min(N - h, Math.floor(g.z + N / 2) - drag.oy));
+      const [w, h] = footprint(ghost.type, ghost.r), st = stepOf(ghost.type);
+      const nx = Math.max(0, Math.min(N - w, snap(g.x + N / 2, st) - drag.ox)), ny = Math.max(0, Math.min(N - h, snap(g.z + N / 2, st) - drag.oy));
       if (nx !== ghost.x || ny !== ghost.y) { ghost.x = nx; ghost.y = ny; ghostCheck(); }
     } else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.3, cam.el + dy * .005)); }
   });
@@ -275,13 +282,13 @@ export function createScene(canvas, { onPick, onGhost }) {
     pinch = 0;
     const d = drag; drag = null;
     if (!d || d.moved || performance.now() - d.t > 500 || ptrs.size) return;
-    const g = groundAt(e), tx = g ? Math.floor(g.x + N / 2) : -1, ty = g ? Math.floor(g.z + N / 2) : -1;
+    const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1;
     const pid = petAt();
     if (starters) { if (pid) onPick?.({ starter: pid.slice(8) }); return; }
     if (ghost) { // tap a tile: the piece jumps there
       if (tx < 0 || ty < 0 || tx >= N || ty >= N) return;
-      const [w, h] = footprint(ghost.type, ghost.r);
-      ghost.x = Math.max(0, Math.min(N - w, tx - (w - 1 >> 1))); ghost.y = Math.max(0, Math.min(N - h, ty - (h - 1 >> 1))); ghostCheck(); return;
+      const [w, h] = footprint(ghost.type, ghost.r), st = stepOf(ghost.type); // centre the piece on the tapped spot
+      ghost.x = Math.max(0, Math.min(N - w, snap(tx - (w - st) / 2, st))); ghost.y = Math.max(0, Math.min(N - h, snap(ty - (h - st) / 2, st))); ghostCheck(); return;
     }
     if (pid && !edit) { pets.get(pid).hop = 1; onPick?.({ pet: pid }); return; }
     const it = tx >= 0 && itemAt(tx, ty);
@@ -325,7 +332,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (ghost) ghostCheck();
     },
     setStarters,
-    setEdit(on) { edit = !!on; if (gridLines) gridLines.visible = edit; if (!edit) ghostCancel(); },
+    setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
     ghostNew(type, near = null, r = 0) { if (!farm || !ITEMS[type]) return; const [x, y] = firstSpot(type, near, r); ghostStart(type, null, x, y, r); },
     ghostItem(id) { const it = farm?.items.find(i => i.id === id); if (it) ghostStart(it.type, it.id, it.x, it.y, it.r); },
     ghostRotate() {
