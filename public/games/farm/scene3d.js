@@ -12,7 +12,8 @@ import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
-import { itemModel, petModel, balloonModel, disposeModel } from './models.js';
+import { itemModel, balloonModel, disposeModel } from './models.js';
+import { petModel, eggModel } from './pets3d.js';
 
 const SKY_TOP = '#4aa6ea', SKY_LOW = '#c9ecff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -156,11 +157,28 @@ export function createScene(canvas, { onPick, onGhost }) {
   const blobGeo = new THREE.CircleGeometry(.3, 10), blobMat = new THREE.MeshBasicMaterial({ color: '#23401c', transparent: true, opacity: .28, depthWrite: false });
   let walkGrid = new Uint8Array(100);
   const PET_SIZE = .42;
-  function addPet(id, sp, form, x, z) {
-    const g = petModel(sp, form); g.scale.multiplyScalar(PET_SIZE); g.userData.base = g.scale.x;
+  // A tiny second renderer for pictures of single models. It is made on first use and kept.
+  const shots = new Map(); let shotR = null, shotS = null, shotC = null;
+  function photo(g, pet, size) {
+    try {
+      if (!shotR) {
+        const cv = document.createElement('canvas'); shotR = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true }); shotR.setPixelRatio(1);
+        shotS = new THREE.Scene(); shotC = new THREE.PerspectiveCamera(30, 1, .1, 50);
+        shotS.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.6)); const l = new THREE.DirectionalLight('#fff1d6', 2); l.position.set(3, 6, 4); shotS.add(l);
+      }
+      shotR.setSize(size, size, false); shotS.add(g);
+      const box = new THREE.Box3().setFromObject(g), ctr = box.getCenter(new THREE.Vector3()), rad = box.getSize(new THREE.Vector3()).length() / 2;
+      const d = rad / Math.sin(15 * Math.PI / 180) * (pet ? .78 : 1.02);
+      shotC.position.set(ctr.x + d * .5, ctr.y + d * .42, ctr.z + d * .75); shotC.lookAt(ctr);
+      shotR.render(shotS, shotC); const u = shotR.domElement.toDataURL('image/png'); shotS.remove(g); return u;
+    } catch (e) { console.warn('no picture', e); return null; }
+  }
+  const lookKey = l => l ? JSON.stringify(l) : '';
+  function addPet(id, sp, form, x, z, look = null) {
+    const g = petModel(sp, form, look); g.scale.multiplyScalar(PET_SIZE); g.userData.base = g.scale.x;
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.rotation.x = -Math.PI / 2; blob.position.y = .015;
     scene.add(g, blob);
-    const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form, face: 0 };
+    const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form + lookKey(look), face: 0 };
     pets.set(id, p); return p;
   }
   function dropPet(id) { const p = pets.get(id); if (!p) return; scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
@@ -180,11 +198,11 @@ export function createScene(canvas, { onPick, onGhost }) {
       seen.add(pet.id);
       const form = formOf(pet.lv);
       let p = pets.get(pet.id);
-      if (p && p.key !== pet.sp + form) { dropPet(pet.id); p = null; }
+      if (p && p.key !== pet.sp + form + lookKey(pet.look)) { dropPet(pet.id); p = null; }
       if (!p) {
         const [hx, hy] = house ? [house.x + 1, house.y + 3] : [N / 2 | 0, N / 2 | 0];
         const t = freeTileNear(hx, hy) || [0, 0];
-        p = addPet(pet.id, pet.sp, form, wx(t[0]), wz(t[1]));
+        p = addPet(pet.id, pet.sp, form, wx(t[0]), wz(t[1]), pet.look);
       }
       // standing where something was just built: step aside
       const [tx, ty] = tileOf(p);
@@ -228,7 +246,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 8);
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
       const blink = (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
-      const fl = p.g.userData.flame; if (fl) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
+      for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
       p.blob.position.set(p.x, .015, p.z); p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
     }
   }
@@ -286,7 +304,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (bp[s]?.key === key) return;
     if (bp[s]) { ring.remove(bp[s].g, bp[s].blob); disposeModel(bp[s].g); bp[s] = null; }
     if (!u) return;
-    const g = petModel(u.sp, u.form); g.scale.multiplyScalar(.82);
+    const g = petModel(u.sp, u.form, u.look); g.scale.multiplyScalar(.82);
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.rotation.x = -Math.PI / 2; blob.position.set(HOME[s].x, .04, HOME[s].z); blob.scale.setScalar(g.scale.x * 3);
     ring.add(g, blob);
     bp[s] = { g, blob, key, base: g.scale.x, t: 0, lunge: 0, shake: 0, hop: 0, fall: 0, down: false, seed: s * 3.1 };
@@ -302,7 +320,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.g.rotation.set(0, FACE[s], p.fall * 1.3 * (s ? -1 : 1));
       p.g.scale.set(k / Math.sqrt(breathe), k * breathe, k / Math.sqrt(breathe));
       const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
-      const fl = p.g.userData.flame; if (fl) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
+      for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
       p.blob.visible = p.fall < .5;
     }
   }
@@ -545,29 +563,16 @@ export function createScene(canvas, { onPick, onGhost }) {
     setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); } },
     ringPet,
     ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') p.down = true; },
+    // One pet as it really looks (form, coat, markings), for cards and the family tree. Kept, so each look is drawn once.
+    portrait(sp, form = 0, look = null) { const k = sp + form + lookKey(look); if (!shots.has(k)) { const g = petModel(sp, form, look); shots.set(k, photo(g, true, 128) || ''); disposeModel(g); } return shots.get(k); },
     // Little pictures for the build menu, drawn once with a throwaway renderer.
     thumbs(types, size = 112) {
       const out = {};
-      try {
-        const cv = document.createElement('canvas'); cv.width = cv.height = size;
-        const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); r.setPixelRatio(1); r.setSize(size, size, false);
-        const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(30, 1, .1, 50);
-        s.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.6)); const l = new THREE.DirectionalLight('#fff1d6', 2); l.position.set(3, 6, 4); s.add(l);
-        for (const t of types) {
-          const pet = t.startsWith('pet:'), g = pet ? petModel(t.slice(4), 0) : itemModel(t);
-          s.add(g);
-          const box = new THREE.Box3().setFromObject(g), ctr = box.getCenter(new THREE.Vector3()), rad = box.getSize(new THREE.Vector3()).length() / 2;
-          const d = rad / Math.sin(15 * Math.PI / 180) * (pet ? .72 : 1.02);
-          c.position.set(ctr.x + d * .55, ctr.y + d * .5, ctr.z + d * .68); c.lookAt(ctr);
-          r.render(s, c); out[t] = cv.toDataURL('image/png');
-          s.remove(g); disposeModel(g);
-        }
-        r.dispose(); r.forceContextLoss?.();
-      } catch (e) { console.warn('no thumbnails', e); }
+      for (const t of types) { const pet = t.startsWith('pet:'), g = pet ? petModel(t.slice(4), 0) : itemModel(t); const u = photo(g, pet, size); if (u) out[t] = u; disposeModel(g); }
       return out;
     },
     dispose() {
-      dead = true; ticker.stop();
+      dead = true; ticker.stop(); if (shotR) { shotR.dispose(); shotR.forceContextLoss?.(); shotR = null; }
       ghostCancel(true);
       for (const id of [...pets.keys()]) dropPet(id);
       for (const e of items.values()) disposeModel(e.g);
