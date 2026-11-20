@@ -160,9 +160,9 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'train') {
-      const pets = F.pets.map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV;
-        return `<button type="button" class="pickpet${full ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" aria-pressed="${on}">${petRow(p, full ? ' · fully grown' : ' · level ' + p.lv)}</button>`; }).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>Who trains at the yard?</h2><p>Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. Pets out exploring take a break from training.</p>
+      const gone = outAll(), pets = F.pets.map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = gone.includes(p.id);
+        return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out ? 'out' : ''}" aria-pressed="${on}">${petRow(p, out ? ' · exploring' : full ? ' · fully grown' : ' · level ' + p.lv)}</button>`; }).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Who trains at the yard?</h2><p>Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring cannot train, and sending a pet exploring ends its training.</p>
         <div class="party">${pets}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button><button type="button" class="btn big m" data-a="trainsave">Save</button></div></div>`;
       return;
@@ -710,9 +710,9 @@ export function mount(app, ctx) {
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
     else if (a === 'upgrade') { const it = F.items.find(x => x.id === +b.dataset.id); if (it && !canAfford(F.inv, upCost(it))) return ctx.toast('Not enough materials for that yet.', true); ctx.send({ t: 'upgrade', id: +b.dataset.id }); }
-    else if (a === 'trainopen') { panel = { kind: 'train', pets: [...F.train.ids] }; card = null; sync(); }
+    else if (a === 'trainopen') { panel = { kind: 'train', pets: F.train.ids.filter(id => !outAll().includes(id)) }; card = null; sync(); }
     else if (a === 'trainpick') {
-      if (b.classList.contains('off')) return ctx.toast('That pet is fully grown already.', true);
+      if (b.classList.contains('off')) return ctx.toast(b.dataset.why === 'out' ? 'That pet is out exploring. Welcome it home first.' : 'That pet is fully grown already.', true);
       const id = b.dataset.id, i = panel.pets.indexOf(id);
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= F.train.slots) return ctx.toast(F.train.slots < UP_MAX ? `The yard has ${F.train.slots} training ${F.train.slots > 1 ? 'spots' : 'spot'}. Improve it for more.` : `The yard has ${F.train.slots} training spots.`, true); else panel.pets.push(id);
       paintPanel();

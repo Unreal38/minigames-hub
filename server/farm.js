@@ -314,6 +314,7 @@ export function handle(p, a, reply) {
   if (a.t === 'train') { // choose who trains at the Training Yard: slow experience every hour
     const slots = topLv(f, 'yard'); if (!slots) return no('Build a Training Yard first.');
     const ids = cleanIds(a.pets).slice(0, slots); if (ids.some(id => !f.pets.some(x => x.id === id))) return;
+    if (ids.some(id => away(f, id, true) && !f.train?.ids.includes(id))) return no('A pet that is out exploring cannot start training. Welcome it home first.');
     f.train = { ids, at: Date.now() };
     return ok({ did: 'train' });
   }
@@ -345,6 +346,7 @@ export function handle(p, a, reply) {
     if ((f.house || 1) < z.house) return no(`${z.name} opens at farmhouse level ${z.house}.`);
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
     parties(f).push({ id: rid(), zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 });
+    if (f.train?.ids.some(id => ids.includes(id))) { trainTick(f); f.train.ids = f.train.ids.filter(id => !ids.includes(id)); } // leaving on a trip ends its training
     return ok({ did: 'send' });
   }
   if (a.t === 'collect') { // the party is back: unpack what it found
