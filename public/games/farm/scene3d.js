@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
-import { itemModel, petModel, disposeModel } from './models.js';
+import { itemModel, petModel, balloonModel, disposeModel } from './models.js';
 
 const SKY_TOP = '#4aa6ea', SKY_LOW = '#c9ecff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -173,6 +173,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const seen = new Set();
     const house = farm.items.find(i => i.type === 'house');
     for (const pet of farm.pets) {
+      if (farm.trip?.pets.includes(pet.id)) continue; // away on an expedition
       seen.add(pet.id);
       const form = formOf(pet.lv);
       let p = pets.get(pet.id);
@@ -227,6 +228,32 @@ export function createScene(canvas, { onPick, onGhost }) {
       const fl = p.g.userData.flame; if (fl) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
       p.blob.position.set(p.x, .015, p.z); p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
     }
+  }
+
+  // ---------- the expedition balloon ----------
+  // It waits above the gate, flies off with the party, and comes back when they are done.
+  const balloon = balloonModel(); balloon.visible = false; scene.add(balloon);
+  const bal = { state: 'none', t: 9, from: new THREE.Vector3(), home: new THREE.Vector3(), far: new THREE.Vector3() };
+  function syncBalloon() {
+    const gate = farm?.items.find(i => i.type === 'gate');
+    const state = !gate || starters ? 'none' : !farm.trip ? 'home' : farm.trip.left > 0 ? 'away' : 'back';
+    if (gate) { const [w, h] = footprint('gate', gate.r); bal.home.set(wx(gate.x, w), 1.75, wz(gate.y, h)); bal.far.set(bal.home.x + N * 2.2, 13, bal.home.z - N * 2.4); }
+    if (state === bal.state) return;
+    // only a real departure or return is flown; anything else just appears in place
+    const fly = (bal.state === 'home' && state === 'away') || (bal.state === 'away' && state === 'back');
+    bal.t = fly ? 0 : 9; bal.from.copy(state === 'away' ? bal.home : bal.far); bal.state = state;
+  }
+  function moveBalloon(dt, T) {
+    if (bal.state === 'none') { balloon.visible = false; return; }
+    bal.t += dt;
+    const k = Math.min(1, bal.t / 6), e = k * k * (3 - 2 * k), away = bal.state === 'away';
+    balloon.visible = !(away && k >= 1);
+    if (!balloon.visible) return;
+    const to = away ? bal.far : bal.home;
+    balloon.position.lerpVectors(bal.from, to, k < 1 ? e : 1);
+    balloon.position.y += Math.sin(T * 1.3) * .08 + (bal.state === 'back' && k >= 1 ? Math.abs(Math.sin(T * 3.2)) * .25 : 0);
+    balloon.rotation.y = Math.sin(T * .4) * .3;
+    balloon.scale.setScalar(.8);
   }
 
   // ---------- starter line-up ----------
@@ -362,7 +389,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
-    movePets(dt, T);
+    movePets(dt, T); moveBalloon(dt, T);
     clouds.rotation.y += dt * .006;
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
     if (fall) fall.position.z = 1.5 + Math.sin(T * 9) * .14;
@@ -378,7 +405,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const size = f?.size || 10;
       farm = f;
       if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); }
-      syncItems(); syncPets();
+      syncItems(); syncPets(); syncBalloon();
       if (ghost) ghostCheck();
     },
     setStarters,
