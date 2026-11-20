@@ -7,7 +7,10 @@ import crypto from 'node:crypto';
 import { DATA_DIR, profiles } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS } from '../public/games/farm/data.js';
-import { unit, newBattle, step } from '../public/games/farm/battle.js';
+import { unit as rawUnit, newBattle, step } from '../public/games/farm/battle.js';
+import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
+
+const unit = (pet, lv) => rawUnit({ ...pet, look: lookOf(pet) }, lv); // battles show each pet as it really looks
 
 const FILE = path.join(DATA_DIR, 'pet-farm.json');
 const farms = new Map(); // profile id -> farm
@@ -19,7 +22,7 @@ export function load() {
   let d;
   try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
   catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return; }
-  for (const [pid, f] of Object.entries(d.farms || {})) if (f && Array.isArray(f.items) && Array.isArray(f.pets)) farms.set(pid, f);
+  for (const [pid, f] of Object.entries(d.farms || {})) if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); farms.set(pid, f); }
   console.log(`loaded ${farms.size} farms from ${FILE}`);
 }
 let timer = null, dirty = false, warned = false;
@@ -41,20 +44,38 @@ export function saveNow() {
 
 // ---------- pets ----------
 // Every pet is rolled with its full set of traits from day one, so breeding has something to work with later.
-function newPet(sp, owner) {
-  return {
+function newPet(sp, owner, wild = false) {
+  const pet = {
     id: rid(), sp, name: SPECIES[sp].name, lv: 1, xp: 0,
-    col: [0, rnd(6)],                 // colour genes: shown, hidden
-    pat: 0,                           // pattern
+    col: [wild && Math.random() < .1 ? rnd(6) : 0, rnd(6)].sort((a, b) => a - b), // colour genes: the first one shows
+    pat: wild && Math.random() < .2 ? [Object.keys(PATTERNS)[rnd(4)]] : [],      // markings
     stars: [1, 1, 1, 1].map(() => 2 + rnd(3)), // health, attack, defence, speed (1-5)
-    talent: rnd(6), sparkle: false,
-    first: owner, parents: null, born: Date.now(),
+    talent: process.env.FARM_TEST ? 2 : rnd(TALENTS.length), sparkle: wild && Math.random() < 1 / 64, // tests need pets that all learn at the same pace
+    first: owner, born: Date.now(),
   };
+  return pet;
+}
+// Pets saved by older versions: markings were a number, colour genes were not in showing order.
+function fixPet(x) {
+  if (!Array.isArray(x.pat)) x.pat = [];
+  x.col = Array.isArray(x.col) ? [x.col[0] | 0, x.col[1] | 0].sort((a, b) => a - b) : [0, 0];
+  if (!Array.isArray(x.stars)) x.stars = [3, 3, 3, 3];
+  x.talent = (x.talent | 0) % TALENTS.length;
+}
+// A pet as its owner sees it. The hidden colour gene only shows once the pet has had two babies.
+const HOUR = 3_600_000;
+const petView = x => ({ ...x, look: lookOf(x), col: (x.kids || 0) >= 2 ? x.col : [x.col[0]], rest: Math.max(0, (x.rest || 0) - Date.now()) });
+// The Nest: two pets cuddle, then an egg sits until it hatches. Times are worked out from when it started.
+function nestView(f) {
+  const n = f.nest; if (!n) return null;
+  const now = Date.now(), egg = n.at + CUDDLE_H * HOUR, done = egg + n.hours * HOUR;
+  return { a: n.a, b: n.b, friend: n.friend || null, shell: n.shell, stage: now < egg ? 'cuddle' : now < done ? 'egg' : 'ready', left: Math.max(0, (now < egg ? egg : done) - now), cheers: n.cheers || 0 };
 }
 
 // Adds experience. Returns { id, lv, form } if the pet went up a level (form is set when it grew into a new one).
 function learn(pet, xp) {
   const before = pet.lv; pet.xp += xp;
+  if (pet.talent === 3) pet.xp += Math.ceil(xp * .1);
   while (pet.lv < MAX_LV && pet.xp >= xpFor(pet.lv)) { pet.xp -= xpFor(pet.lv); pet.lv++; }
   if (pet.lv >= MAX_LV) pet.xp = 0;
   return pet.lv > before ? { id: pet.id, lv: pet.lv, form: formOf(pet.lv) > formOf(before) ? formOf(pet.lv) : 0 } : null;
@@ -94,12 +115,17 @@ const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need,
 // ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
 const byFid = id => [...farms].find(([, x]) => x.fid === id);
-const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key]; };
+const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key] ||= {}; };
 function post(f, m) { (f.mail ||= []).unshift({ id: rid(), at: Date.now(), ...m }); f.mail.length = Math.min(f.mail.length, MAIL_MAX); }
 // Remembers every species and form this farm has ever owned.
 function album(f) {
   f.album ||= {};
-  for (const x of f.pets) { const a = f.album[x.sp] ||= [0, 0, 0]; a[formOf(x.lv)] = 1; }
+  f.coats ||= []; f.marks ||= [];
+  for (const x of f.pets) {
+    const a = f.album[x.sp] ||= [0, 0, 0]; a[formOf(x.lv)] = 1;
+    if (!f.coats.includes(x.col[0])) f.coats.push(x.col[0]);
+    for (const k of x.pat) if (!f.marks.includes(k)) f.marks.push(k);
+  }
   return f.album;
 }
 // A farm as its neighbours see it. Nothing here can be changed by the viewer.
@@ -108,9 +134,9 @@ const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), na
 
 // ---------- what the player sees ----------
 const view = (f, p) => ({
-  owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets,
+  owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets.map(petView), nest: nestView(f),
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
-  album: album(f), mail: f.mail || [], pals: f.pals || {},
+  album: album(f), coats: f.coats, marks: f.marks, mail: f.mail || [], pals: f.pals || {},
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f),
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
@@ -183,6 +209,7 @@ export function handle(p, a, reply) {
     const z = ZONES[a.zone], tr = TRIPS[a.trip];
     if (!z || !tr || !Array.isArray(a.pets)) return;
     if (!countOf(f, 'gate')) return no('Build an Expedition Gate first.');
+    if (nestView(f)?.stage === 'cuddle' && ids.some(id => id === f.nest.a || id === f.nest.b)) return no('One of them is cuddling in the Nest.');
     if (f.trip) return no('Your pets are already out exploring.');
     if ((f.house || 1) < z.house) return no(`${z.name} opens at farmhouse level ${z.house}.`);
     const ids = [...new Set(a.pets)];
@@ -196,7 +223,7 @@ export function handle(p, a, reply) {
     const party = f.pets.filter(x => t.pets.includes(x.id)), z = ZONES[t.zone], tr = TRIPS[t.trip];
     const loot = {};
     for (const [k, n] of Object.entries(tripLoot(t.zone, t.trip, party))) {
-      const v = n * (.85 + Math.random() * .3), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
+      const v = n * (.85 + Math.random() * .3) * (party.some(x => x.talent === 1) ? 1.1 : 1), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
       if (whole > 0) loot[k] = whole;
     }
     pay(f.inv, loot, 1);
@@ -204,16 +231,59 @@ export function handle(p, a, reply) {
     for (const pet of party) { const g = learn(pet, tr.xp); if (g) grew.push(g); }
     // a wild pet may follow them home, if there is a bed for it. The very first trip always brings one.
     let found = null, full = false;
-    if (!f.trips || Math.random() < tr.find) {
+    if (!f.trips || Math.random() < tr.find + (party.some(x => x.talent === 4) ? .08 : 0)) {
       if (f.pets.length >= petRoom(f)) full = true;
       else {
         const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
         const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0];
-        found = newPet(sp, p.user); found.from = t.zone; f.pets.push(found);
+        found = newPet(sp, p.user, true); found.from = t.zone; f.pets.push(found);
       }
     }
     f.trip = null; f.trips = (f.trips || 0) + 1;
     return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full } });
+  }
+  if (a.t === 'pair') { // two pets go to the Nest; b may be a friend's pet that is open for playdates
+    if (!countOf(f, 'nest')) return no('Build a Nest first.');
+    if (f.nest) return no('The Nest is busy.');
+    const A = f.pets.find(x => x.id === a.a); let Bp, friend = null, host = null;
+    if (a.friend) {
+      const hit = byFid(a.friend); if (!hit || hit[1] === f) return no('That farm is not around any more.');
+      host = hit[1]; Bp = host.pets.find(x => x.id === a.b && x.open);
+      if (!Bp) return no('That pet is not open for playdates.');
+      const d = daily(f, 'date'); if (d[a.friend]) return no('One playdate a day with each friend.');
+      d[a.friend] = 1; friend = { id: a.friend, name: nameOf(hit[0], host) };
+    } else Bp = f.pets.find(x => x.id === a.b);
+    if (!A || !Bp || A === Bp) return no('Pick two different pets.');
+    if (A.lv < BREED_LV || Bp.lv < BREED_LV) return no(`Both pets need to be level ${BREED_LV} or higher.`);
+    const now = Date.now();
+    if ((A.rest || 0) > now || (!friend && (Bp.rest || 0) > now)) return no('One of them is still resting.');
+    if (f.trip?.until > now && [A.id, Bp.id].some(id => f.trip.pets.includes(id))) return no('One of them is away exploring.');
+    const kid = makeBaby(A, Bp);
+    kid.par = [A, Bp].map((x, i) => ({ ...snapshot(x, i && friend ? friend.name : p.name), par: (x.par || []).map(g => ({ name: g.name, sp: g.sp, lv: g.lv, look: g.look, own: g.own })) }));
+    f.nest = { a: A.id, b: friend ? snapshot(Bp, friend.name) : Bp.id, friend, at: now, hours: hatchHours(kid.sp), shell: shellOf(A, Bp), kid };
+    const rest = x => { x.rest = now + (CUDDLE_H + REST_H * (x.talent === 5 ? .5 : 1)) * HOUR; x.kids = (x.kids || 0) + 1; };
+    rest(A); if (!friend) rest(Bp);
+    if (host) { // the friend's pet never leaves home; its owner gets a thank-you and a new album entry
+      host.album ||= {}; host.album[kid.sp] ||= [0, 0, 0];
+      post(host, { k: 'date', from: p.name, pet: Bp.name, got: { coins: 15 } });
+      f.pals ||= {}; f.pals[a.friend] = (f.pals[a.friend] || 0) + 1;
+    }
+    return ok({ did: 'pair' });
+  }
+  if (a.t === 'hatch') {
+    const v = nestView(f); if (!v) return no('There is no egg.');
+    if (v.stage !== 'ready') return no('The egg is not ready yet.');
+    if (f.pets.length >= petRoom(f)) return no('There is no bed for the baby. Build a Pet Hut first.');
+    const kid = { id: rid(), name: SPECIES[f.nest.kid.sp].name, ...f.nest.kid, first: p.user, born: Date.now(), bred: true };
+    f.pets.push(kid); f.nest = null;
+    return ok({ did: 'hatch', born: kid.id });
+  }
+  if (a.t === 'petopen') { // let visiting friends pick this pet for a playdate (up to three)
+    const pet = f.pets.find(x => x.id === a.id); if (!pet) return;
+    if (!pet.open && pet.lv < BREED_LV) return no(`It needs to be level ${BREED_LV} first.`);
+    if (!pet.open && f.pets.filter(x => x.open).length >= 3) return no('Three pets can be open for playdates at once.');
+    pet.open = !pet.open;
+    return ok({ did: 'petopen' });
   }
   if (a.t === 'world') { // everyone's islands, most recently active first
     const mine = daily(f, 'help'), gifts = daily(f, 'gift');
@@ -224,12 +294,12 @@ export function handle(p, a, reply) {
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
     const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     const [pid, x] = hit, id = fid(x);
-    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !(x.trip?.until > Date.now() && x.trip.pets.includes(q.id))).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv })),
-      helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
+    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !(x.trip?.until > Date.now() && x.trip.pets.includes(q.id))).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x),
+      helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
     if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner
       const h = daily(f, 'help'); if ((h[id] || 0) >= HELPS) return reply({ t: 'farm', err: 'You have helped here as much as you can today.', visit: there(), farm: view(f, p) });
       h[id] = (h[id] || 0) + 1; f.inv.coins = (f.inv.coins || 0) + 3;
-      if (x.trip && x.trip.until > Date.now()) x.trip.until -= HELP_CUT; else x.inv.coins = (x.inv.coins || 0) + 2;
+      if (x.trip && x.trip.until > Date.now()) x.trip.until -= HELP_CUT; else if (x.nest && nestView(x).stage !== 'ready') { x.nest.at -= HELP_CUT; x.nest.cheers = (x.nest.cheers || 0) + 1; } else x.inv.coins = (x.inv.coins || 0) + 2;
       const m = (x.mail || []).find(q => q.k === 'help' && q.from === p.name && new Date(q.at).toISOString().slice(0, 10) === today());
       if (m) m.n++; else post(x, { k: 'help', from: p.name, n: 1 });
       scheduleSave();
@@ -324,4 +394,8 @@ export function testHook(pid, a) {
   if (a.home && f.trip) f.trip.until = 0;
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
+  if (a.pet && SPECIES[a.pet]) f.pets.push({ ...newPet(a.pet, 'test', true), ...(a.traits || {}) });
+  if (a.lv) for (const x of f.pets) x.lv = a.lv;
+  if (a.rested) for (const x of f.pets) x.rest = 0;
+  if (a.egg && f.nest) f.nest.at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;
 }

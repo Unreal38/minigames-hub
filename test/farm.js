@@ -308,6 +308,59 @@ if (r.farm.mail.length) fail('notes not cleared');
 const sp0 = a.farm.pets.find(x => x.id === mine[0]).sp;
 if (!a.farm.album[sp0]?.[0] || Object.keys(a.farm.album).length < 1) fail('album ' + JSON.stringify(a.farm.album));
 
+// ----- breeding -----
+r = await a.farmDo({ t: 'pair', a: mine[0], b: mine[1] });
+if (!r.err) fail('paired without a nest');
+await a.farmDo({ t: 'open', test: { give: { wood: 100, fiber: 100, crystal: 5 }, lv: 3, home: true } });
+r = { err: 1 }; for (let y = 0; y < 11 && r.err; y++) for (let x = 0; x < 11 && r.err; x++) { r = await a.farmDo({ t: 'place', type: 'nest', x, y, r: 0 }); await wait(30); }
+if (r.err) fail('no room for a nest');
+if (a.farm.trip) await a.farmDo({ t: 'collect' });
+const kin = a.farm.pets.slice(0, 2).map(x => x.id);
+r = await a.farmDo({ t: 'pair', a: kin[0], b: kin[1] });
+if (!r.err) fail('paired pets that are too young');
+await a.farmDo({ t: 'open', test: { lv: 6 } });
+r = await a.farmDo({ t: 'pair', a: kin[0], b: kin[0] });
+if (!r.err) fail('paired a pet with itself');
+r = await a.farmDo({ t: 'pair', a: kin[0], b: kin[1] });
+if (r.err || r.farm.nest?.stage !== 'cuddle' || !r.farm.nest.shell) fail('pair ' + JSON.stringify(r.err || r.farm.nest));
+if (!(r.farm.pets.find(x => x.id === kin[0]).rest > 0)) fail('parents are not resting');
+if (r.farm.pets.find(x => x.id === kin[0]).col.length !== 1) fail('hidden colour gene shown too early');
+r = await a.farmDo({ t: 'hatch' });
+if (!r.err) fail('hatched before there was an egg');
+r = await a.farmDo({ t: 'pair', a: kin[0], b: kin[1] });
+if (!r.err) fail('nest used twice');
+r = await a.farmDo({ t: 'open', test: { egg: 'laid' } });
+if (r.farm.nest.stage !== 'egg') fail('no egg after the cuddle: ' + r.farm.nest.stage);
+// a neighbour cheers the egg on
+r = await a.farmDo({ t: 'open', test: { egg: 'ready', give: { wood: 200, stone: 100 } } });
+if (r.farm.nest.stage !== 'ready') fail('egg not ready');
+const petsBefore = r.farm.pets.length;
+if (r.farm.pets.length >= r.farm.room) { let q = { err: 1 }; for (let y = 0; y < 11 && q.err; y++) for (let x = 0; x < 11 && q.err; x++) { q = await a.farmDo({ t: 'place', type: 'hut', x, y, r: 0 }); await wait(30); } if (q.err) fail('no room for a hut'); }
+r = await a.farmDo({ t: 'hatch' });
+if (r.err || r.farm.pets.length !== petsBefore + 1 || r.farm.nest) fail('hatch ' + JSON.stringify(r.err));
+const kid = r.farm.pets.find(x => x.id === r.born);
+if (!kid || kid.lv !== 1 || kid.par?.length !== 2 || !kid.par.every(x => x.sp && x.name) || !Array.isArray(kid.stars) || kid.stars.some(n => n < 1 || n > 5)) fail('baby ' + JSON.stringify(kid));
+if (![a.farm.pets.find(x => x.id === kin[0]).sp, a.farm.pets.find(x => x.id === kin[1]).sp, 'truffowl', 'magmutt', 'nimbowhale', 'glimmoth', 'geodeer'].includes(kid.sp)) fail('baby species ' + kid.sp);
+// playdate: Bo opens a pet, Ana pairs with it
+r = await b.farmDo({ t: 'petopen', id: b.farm.pets[0].id });
+if (!r.err) fail('opened a pet that is too young');
+await b.farmDo({ t: 'open', test: { lv: 7 } });
+r = await b.farmDo({ t: 'petopen', id: b.farm.pets[0].id });
+if (r.err || !r.farm.pets[0].open) fail('petopen ' + r.err);
+await a.farmDo({ t: 'open', test: { rested: true } });
+r = await a.farmDo({ t: 'visit', id: (await b.farmDo({ t: 'world' })).world.length ? (await a.farmDo({ t: 'world' })).world.find(x => x.name === 'Bo').id : '' });
+const boFarm = r.visit, openPet = boFarm.pets.find(x => x.open);
+if (!openPet) fail('visitor cannot see the open pet');
+r = await a.farmDo({ t: 'pair', a: kin[0], friend: boFarm.id, b: openPet.id });
+if (r.err || !r.farm.nest?.friend) fail('playdate ' + JSON.stringify(r.err));
+r = await b.farmDo({ t: 'open' });
+if (!r.farm.mail.some(m => m.k === 'date')) fail('no thank-you for the playdate');
+await a.farmDo({ t: 'open', test: { egg: 'ready', rested: true, give: { wood: 200, stone: 100 } } });
+if (a.farm.pets.length >= a.farm.room) { let q = { err: 1 }; for (let y = 0; y < 11 && q.err; y++) for (let x = 0; x < 11 && q.err; x++) { q = await a.farmDo({ t: 'place', type: 'hut', x, y, r: 0 }); await wait(30); } }
+r = await a.farmDo({ t: 'hatch' });
+if (r.err || r.farm.nest) fail('playdate hatch ' + JSON.stringify(r.err));
+await a.farmDo({ t: 'open', test: { rested: true } });
+
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);
 await stop(); await boot();

@@ -18,10 +18,10 @@ export const ITEMS = {
   garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil for growing berries.', soon: 'Berries will grow here soon.' },
   kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats.', soon: 'Cooking arrives with berries.' },
   barn:     { name: 'Storage Barn', kind: 'b', w: 2, h: 3, max: 1, cost: { wood: 45, stone: 10 }, desc: 'Room for more materials.', soon: 'Storage limits arrive in a later update.' },
-  nest:     { name: 'Nest', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 20, fiber: 30 }, desc: 'Two pets rest here and an egg appears.', soon: 'Breeding arrives in a later update.' },
+  nest:     { name: 'Nest', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 20, fiber: 30, crystal: 2 }, desc: 'Two pets rest here and an egg appears.' },
   yard:     { name: 'Training Yard', kind: 'b', w: 3, h: 2, max: 1, cost: { wood: 25, stone: 25 }, desc: 'Pets practise their moves here against friendly partners.' },
   flag:     { name: 'Arena Flag', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 10, fiber: 10 }, desc: 'Challenge other farms here, and choose the team that defends yours.' },
-  mailbox:  { name: 'Mailbox', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 8 }, desc: 'Gifts and letters from friends land here.', soon: 'Friends arrive in a later update.' },
+  mailbox:  { name: 'Mailbox', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 8 }, desc: 'Gifts and letters from friends land here.' },
   workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Crafts fancier decorations.', soon: 'Crafting arrives in a later update.' },
 
   fence:    { name: 'Fence', kind: 'd', w: 1, h: 1, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
@@ -55,8 +55,14 @@ export const SPECIES = {
   pebblet:   { name: 'Pebblet', el: 'Stone', rare: 0, blurb: 'A hedgehog with pebbles for spines.' },
   cragcrab:  { name: 'Cragcrab', el: 'Stone', rare: 1, blurb: 'A crab that carries a boulder for a shell.' },
   dustmole:  { name: 'Dustmole', el: 'Stone', rare: 2, blurb: 'A mole that never takes off its tiny hard hat.' },
+  // breeding only: two elements, never found in the wild. hint is all the Pet Album gives away.
+  truffowl:   { name: 'Truffowl', el: 'Leaf', el2: 'Tide', rare: 3, blurb: 'A round owl that grows its own mushroom cap.', hint: 'Hatches where moss meets the tide.' },
+  magmutt:    { name: 'Magmutt', el: 'Ember', el2: 'Stone', rare: 3, blurb: 'A lava puppy in a coat of cracked rock.', hint: 'Hatches where fire warms the stone.' },
+  nimbowhale: { name: 'Nimbowhale', el: 'Tide', el2: 'Spark', rare: 3, blurb: 'A tiny whale that carries its own rain cloud.', hint: 'Hatches where rain meets lightning.' },
+  glimmoth:   { name: 'Glimmoth', el: 'Spark', el2: 'Leaf', rare: 3, blurb: 'A moth whose wings glow after dark.', hint: 'Hatches where a spark lands on a leaf.' },
+  geodeer:    { name: 'Geodeer', el: 'Stone', el2: 'Tide', rare: 3, blurb: 'A fawn with antlers of clear crystal.', hint: 'Hatches where water wears the stone.' },
 };
-export const RARITY = ['Common', 'Uncommon', 'Rare'];
+export const RARITY = ['Common', 'Uncommon', 'Rare', 'Breeding only'];
 export const STARTERS = ['mossbun', 'cindercub', 'puddlepup'];
 export const FORMS = ['Baby', 'Young', 'Adult'];
 export const formOf = lv => lv < 5 ? 0 : lv < 12 ? 1 : 2;
