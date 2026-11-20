@@ -25,6 +25,8 @@ function player(name, token) {
       if (m.t === 'welcome') { p.token = m.token; res(); }
       if (m.t === 'me') p.me = m.me;
       if (m.t === 'auth') p.auth = m;
+      if (m.t === 'friends') p.friends = m;
+      if (m.t === 'err') p.err = m.msg;
       if (m.t === 'farm') { p.last = m; if (m.farm) p.farm = m.farm; }
       if (m.t === 'me') p.me = m.me;
     };
@@ -360,6 +362,20 @@ if (a.farm.pets.length >= a.farm.room) { let q = { err: 1 }; for (let y = 0; y <
 r = await a.farmDo({ t: 'hatch' });
 if (r.err || r.farm.nest) fail('playdate hatch ' + JSON.stringify(r.err));
 await a.farmDo({ t: 'open', test: { rested: true } });
+
+// ----- friends (the site-wide list) -----
+a.err = null; a.send({ t: 'friend', op: 'add', user: 'nobody-here' }); await until(() => a.err, 'unknown friend refused');
+a.err = null; a.send({ t: 'friend', op: 'add', user: 'ana' }); await until(() => a.err, 'adding yourself refused');
+b.friends = null; a.send({ t: 'friend', op: 'add', user: 'BOB' }); await until(() => b.friends, 'friend request');
+if (b.friends.reqs[0]?.user !== 'ana' || b.friends.friends.length) fail('request ' + JSON.stringify(b.friends));
+r = await a.farmDo({ t: 'world' });
+if (r.world.some(x => x.friend)) fail('friends before the request was accepted');
+a.friends = null; b.send({ t: 'friend', op: 'accept', user: 'ana' }); await until(() => a.friends?.friends.length, 'friend accepted');
+if (a.friends.friends[0].user !== 'bob' || !a.friends.friends[0].online || !a.friends.friends[0].farm) fail('friend card ' + JSON.stringify(a.friends.friends));
+r = await a.farmDo({ t: 'world' });
+if (!r.world[0].friend || r.world[0].name !== 'Bo') fail('friends are not first on the map');
+r = await a.farmDo({ t: 'visit', id: a.friends.friends[0].farm });
+if (r.err || r.visit.name !== 'Bo') fail('visit from the friends list');
 
 // restart: the farm is still there, and logging in from a new browser finds it
 const snapshot = JSON.stringify(a.farm);

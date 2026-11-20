@@ -178,6 +178,13 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
+    if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
+  } else if (m.t === 'friends') {
+    st.friends = { friends: m.friends || [], reqs: m.reqs || [], sent: m.sent || [] };
+    if (m.news) { sfx.join(); toast(m.news.now ? `${esc(m.news.from)} and you are now friends!` : `${esc(m.news.from)} wants to be friends. Open Friends to answer.`); }
+    paintFriends();
+  } else if (m.t === 'friended') {
+    toast(m.op === 'add' ? (m.now ? `You and ${esc(m.user)} are now friends!` : `Asked ${esc(m.user)} to be friends.`) : m.op === 'accept' ? `You and ${esc(m.user)} are now friends!` : m.op === 'remove' ? `${esc(m.user)} was removed from your friends.` : 'Request declined.');
   } else if (m.t === 'farm') {
     st.farm?.msg(m);
   } else if (m.t === 'stats') {
@@ -245,7 +252,7 @@ function mountGame() {
 function unmountGame() { st.game?.destroy(); st.game = null; }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
-let farmLoading = null;
+let farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
 function openFarm() {
   if (st.farm || farmLoading) return;
   st.view = 'farm'; document.title = `Pet Farm · ${SITE}`;
@@ -253,8 +260,9 @@ function openFarm() {
   farmLoading = import('./games/farm/client.js').then(mod => {
     farmLoading = null;
     if (st.view !== 'farm') return;
-    st.farm = mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode) });
+    st.farm = mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode), friends: () => openFriends() });
     st.farm.reopen();
+    if (farmVisit) { st.farm.visit(farmVisit); farmVisit = null; }
   }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
 }
 function closeFarm() { st.farm?.destroy(); st.farm = null; }
@@ -302,6 +310,7 @@ function paintMe() {
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
+  <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
 </header>`;
 
@@ -536,6 +545,48 @@ $chat.querySelector('form').addEventListener('submit', e => {
 });
 $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (chat.open) $chat.querySelector('.chatbtn').click(); else $scores.hidden = true; });
 
+// ---------- friends ----------
+// One list for the whole site. Friends are added by username, and anything a game does with friends reads this list.
+let friendsSheet = null;
+function friendsHtml() {
+  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40)}<span class="frname"><b>${esc(x.name)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
+  if (!st.me?.user) return `<h2>Friends</h2><p>Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.</p>
+    <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">Create account</button><button type="button" class="btn w" data-fr="account" data-mode="login">Log in</button></div>`;
+  if (!f) return '<h2>Friends</h2><p>Loading…</p>';
+  return `<h2>Friends</h2>
+    <form class="fradd"><input class="field" id="fruser" maxlength="16" placeholder="A friend's username" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="A friend's username"><button class="btn m">Add</button></form>
+    <p style="font-size:14px">Your username is <b>${esc(st.me.user)}</b>. Share it so friends can add you.</p>
+    ${f.reqs.length ? `<h3>Wants to be your friend</h3><ul class="frlist">${f.reqs.map(x => `<li>${who(x)}<span class="fract"><button type="button" class="btn sm m" data-fr="accept" data-user="${esc(x.user)}">Accept</button><button type="button" class="btn sm ghost-ink" data-fr="decline" data-user="${esc(x.user)}">No thanks</button></span></li>`).join('')}</ul>` : ''}
+    ${f.friends.length ? `<ul class="frlist">${f.friends.map(x => `<li>${who(x)}<span class="frdot ${x.online ? 'on' : ''}">${x.online ? 'Here now' : 'Away'}</span>
+      <span class="fract">${x.farm ? `<button type="button" class="btn sm" data-fr="visit" data-farm="${esc(x.farm)}">Visit farm</button>` : ''}<button type="button" class="btn sm ghost-ink" data-fr="remove" data-user="${esc(x.user)}" aria-label="Remove ${esc(x.name)}">Remove</button></span></li>`).join('')}</ul>`
+      : '<p>No friends yet. Add someone by their username.</p>'}
+    ${f.sent.length ? `<p style="font-size:14px">Waiting for an answer from ${f.sent.map(x => `<b>${esc(x.user)}</b>`).join(', ')}.</p>` : ''}`;
+}
+function paintFriends() {
+  for (const b of document.querySelectorAll('.frbadge')) { const n = st.friends?.reqs.length || 0; b.hidden = !n; b.textContent = n || ''; }
+  if (!friendsSheet) return;
+  const box = friendsSheet.el.querySelector('.frbody'), typed = box.querySelector('#fruser')?.value || '';
+  box.innerHTML = friendsHtml();
+  const inp = box.querySelector('#fruser'); if (inp) inp.value = typed;
+}
+function openFriends() {
+  if (friendsSheet) return;
+  friendsSheet = modal('<div class="frbody"></div><button type="button" class="btn ghost-ink" data-fr="close">Close</button>');
+  friendsSheet.onClose = () => { friendsSheet = null; };
+  const el = friendsSheet.el;
+  paintFriends(); if (st.me?.user) send({ t: 'friends' });
+  el.addEventListener('submit', e => { e.preventDefault(); const u = el.querySelector('#fruser').value.trim(); if (!u) return; el.querySelector('#fruser').value = ''; send({ t: 'friend', op: 'add', user: u }); });
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-fr]'); if (!b) return;
+    const a = b.dataset.fr; sfx.click();
+    if (a === 'close') friendsSheet.close();
+    else if (a === 'account') { friendsSheet.close(); openAccount(b.dataset.mode); }
+    else if (a === 'visit') { friendsSheet.close(); if (st.farm) st.farm.visit(b.dataset.farm); else if (st.room) toast('Leave this table first, then visit.', true); else { farmVisit = b.dataset.farm; openFarm(); } }
+    else if (a === 'remove') { if (b.dataset.sure) send({ t: 'friend', op: 'remove', user: b.dataset.user }); else { b.dataset.sure = 1; b.textContent = 'Really remove?'; } }
+    else send({ t: 'friend', op: a, user: b.dataset.user });
+  });
+}
+
 // ---------- modals ----------
 function modal(html, dismissable = true) {
   const m = document.createElement('div');
@@ -677,6 +728,7 @@ $app.addEventListener('click', e => {
     const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
+  else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });

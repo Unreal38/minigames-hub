@@ -342,14 +342,15 @@ export function createScene(canvas, { onPick, onGhost }) {
   { const l = new THREE.DirectionalLight('#fff1d6', 2.1); l.position.set(9, 16, 7); world.add(l); }
   const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
   let mapOn = false, isles = []; // { id, g, y, ph, r }
-  function nameTag(text, mine) {
-    const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 128;
-    x.font = '600 60px Fredoka, "Baloo 2", system-ui, sans-serif'; const w = Math.min(480, x.measureText(text).width + 60);
-    x.fillStyle = mine ? '#ffb547' : '#fff3df'; x.strokeStyle = '#3b2a25'; x.lineWidth = 8;
+  function nameTag(text, mine, friend, sub) { // sub: a second, smaller line saying what can be done there
+    const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 192;
+    x.font = '600 60px Fredoka, "Baloo 2", system-ui, sans-serif'; const w = Math.min(490, x.measureText(text).width + 60);
+    x.fillStyle = mine ? '#ffb547' : friend ? '#9fe3c4' : '#fff3df'; x.strokeStyle = '#3b2a25'; x.lineWidth = 8;
     x.beginPath(); x.roundRect((512 - w) / 2, 14, w, 100, 50); x.fill(); x.stroke();
     x.fillStyle = '#3b2a25'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 256, 68, 440);
+    if (sub) { x.font = '600 40px Fredoka, "Baloo 2", system-ui, sans-serif'; x.lineWidth = 9; x.strokeStyle = '#fff3df'; x.strokeText(sub, 256, 152, 500); x.fillText(sub, 256, 152, 500); }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, fog: false })); sp.scale.set(4.4, 1.1, 1); sp.userData.dyn = true;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, fog: false })); sp.scale.set(4.4, 1.65, 1); sp.center.set(.5, .7); sp.userData.dyn = true;
     return sp;
   }
   function miniIsland(f, mine) {
@@ -368,7 +369,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     const k = (mine ? 6.4 : 4.4) / n; land.scale.setScalar(k); g.add(land);
     // the owner stands at the front corner, bigger than life so they can be recognised
     try { const av = avatar3d(f.color || '#ff8fab', f.av, { pose: 'stand' }); av.scale.setScalar(.62); av.position.set(n / 2 * k - .5, .76 * .62, n / 2 * k - .3); av.rotation.y = .5; g.add(av); g.userData.av = av; } catch (e) { console.warn('no avatar', e); }
-    const tag = nameTag(mine ? 'You' : f.name, mine); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
+    const todo = mine ? '' : [f.gift && 'gift', f.helps > 0 && 'help', f.open && 'playdate', f.egg && 'egg'].filter(Boolean).join(' · ');
+    const tag = nameTag(mine ? 'You' : f.name, mine, f.friend, todo); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
     return g;
   }
   function setWorld(list, me) {

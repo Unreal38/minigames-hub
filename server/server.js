@@ -108,6 +108,13 @@ const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
 });
 
 function send(c, msg) { c?.sock?.send(msg); }
+// Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
+const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);
+function sendFriends(p, news = null) {
+  if (!p) return;
+  const view = p.user ? store.friendsView(p, pid => clientsOf(pid).length > 0, pid => ({ farm: farm.fidOf(pid) })) : { friends: [], reqs: [], sent: [] };
+  for (const c of clientsOf(p.pid)) send(c, { t: 'friends', ...view, news });
+}
 // Live "playing now" + all-time visitor numbers for the hub. Batched so a burst of joins sends one update.
 const statsMsg = () => ({ t: 'stats', online: [...clients.values()].filter(c => c.sock).length, visitors: store.visitorCount() });
 let statsTimer = null, lastStats = '';
@@ -271,6 +278,14 @@ function handle(c, m) {
       const p = store.logout(c.token, c); if (!p) return;
       send(c, { t: 'me', me: store.me(p) });
       const r = rooms.get(c.room); if (r) sendRoom(r);
+      return;
+    }
+    case 'friends': return sendFriends(store.profileOf(c.token));
+    case 'friend': { // add by username, accept, decline or remove
+      const p = store.profileOf(c.token), r = store.friendOp(p, m.op, m.user);
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      send(c, { t: 'friended', op: m.op, user: r.other.user, now: r.now });
+      sendFriends(p); sendFriends(r.other, m.op === 'add' || m.op === 'accept' ? { from: p.name, now: r.now } : null);
       return;
     }
     case 'farm': { // Pet Farm: a persistent game with no table, so it is handled outside the rooms
