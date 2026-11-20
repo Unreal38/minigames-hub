@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, profiles, friendPids } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
-  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS, MATS,
+  xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   GROW_MIN, BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
@@ -256,8 +256,10 @@ export function handle(p, a, reply) {
     const i = f.items.findIndex(x => x.id === a.id); if (i < 0) return no('That is not on the farm any more.');
     const it = ITEMS[f.items[i].type];
     if (it.fixed) return no('The farmhouse stays, but you can move it.');
+    if (f.items[i].type === 'nest' && f.nest) return no('The Nest is in use right now.');
+    if (f.items[i].type === 'gate' && f.trip) return no('Your pets are still out exploring.');
     pay(f.inv, it.cost, 1); f.items.splice(i, 1);
-    return ok({ did: 'remove' });
+    return ok({ did: 'remove', got: Object.keys(it.cost).length ? costText(it.cost) : '' });
   }
   if (a.t === 'expand') {
     const i = SIZES.indexOf(f.size) + 1; if (i >= SIZES.length) return no('The farm is as big as it gets.');
