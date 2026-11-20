@@ -53,7 +53,7 @@ export function makeBoard(seed, size = 100, party = true, hard = false) {
   if (hard) {
     const nB = size === 100 ? 2 : 1;
     ladders.slice(0, nB).forEach(l => { l.broken = true; });
-    // reversed snakes: you step on the tail end and ride up to the head
+    // reversed snakes face down the board: you step on the head at the bottom and climb up to the tail
     snakes.slice(0, nB).forEach(s => { const h = s.from; s.from = s.to; s.to = h; s.up = true; });
   }
   return { seed, size: N, rows, ladders, snakes, specials, hard };

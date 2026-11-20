@@ -79,7 +79,7 @@ function roll(G, s, now, die = 1 + (Math.random() * 6 | 0)) {
     if (j.kind === 'ladder') {
       me.ladders++;
       if (hard && Math.random() < CRACK_CHANCE) { j.ref.broken = true; segs.push({ t: 'crack', at: j.from }); }
-    } else if (j.up) stuck = true; // riding a reversed snake up costs a turn
+    } else if (j.up) stuck = true; // climbing a reversed snake (head down, tail up) costs a turn
     else me.snakes++;
     return true;
   };
