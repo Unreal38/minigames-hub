@@ -59,3 +59,28 @@ export function marbleArt() {
   <circle cx="206" cy="94" r="8" fill="#7ed3b2" stroke="${ink}" stroke-width="3"/>
   ${ball(70, 46, 24, '#ff8fab', 0)}${ball(150, 66, 20, '#ffb547', .25)}${ball(262, 82, 26, '#9aa8ff', .5)}</svg>`;
 }
+
+// A tiny tilted board with a ladder and a smiling snake, for the Snakes & Ladders card.
+export function laddersArt() {
+  const cols = ['#fff4e2', '#ffd9c2', '#d8f0e2', '#ffe9a8', '#e6defc'];
+  let tiles = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+    tiles += `<rect x="${c * 34}" y="${r * 30}" width="34" height="30" fill="${(r + c) % 2 ? cols[0] : cols[1 + (r + (c >> 1)) % 4]}" stroke="#3b221933" stroke-width="1.5"/>`;
+  }
+  const rungs = [0, 1, 2, 3, 4, 5].map(i => { const t = (i + .5) / 6, x = 46 + t * 70, y = 108 - t * 84; return `<path d="M${x - 9} ${y - 5}L${x + 9} ${y + 5}" stroke="#f0c27a" stroke-width="4" stroke-linecap="round"/>`; }).join('');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little board with a wooden ladder and a smiling green snake">
+  <rect width="320" height="150" fill="#3d1f33"/>
+  <circle cx="30" cy="22" r="6" fill="#ffb547"/><circle cx="292" cy="28" r="7" fill="#ff8fab"/><circle cx="300" cy="120" r="5" fill="#7ed3b2"/>
+  <g transform="translate(40 12) skewX(-8)">
+    <rect x="-6" y="-6" width="284" height="132" rx="10" fill="#c4885a" stroke="${ink}" stroke-width="4"/>
+    ${tiles}
+    <path d="M40 112L106 18M58 120L124 26" stroke="#c98b4f" stroke-width="6" stroke-linecap="round"/>${rungs}
+    <path d="M232 22c-40 6-10 30-46 38s-8 34-44 44" fill="none" stroke="#3f8f4a" stroke-width="15" stroke-linecap="round"/>
+    <path d="M232 22c-40 6-10 30-46 38s-8 34-44 44" fill="none" stroke="#7ed37a" stroke-width="10" stroke-linecap="round" stroke-dasharray="10 9"/>
+    <ellipse cx="238" cy="21" rx="15" ry="12" fill="#7ed37a" stroke="${ink}" stroke-width="3"/>
+    <circle cx="234" cy="17" r="3" fill="${ink}"/><circle cx="244" cy="17" r="3" fill="${ink}"/>
+    <path d="M235 25q4 3 8 0" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M252 23l9 1m-9-1l8 4" stroke="#e5543b" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="200" cy="98" r="11" fill="#ffb547" stroke="${ink}" stroke-width="3"/><circle cx="196" cy="96" r="1.8" fill="${ink}"/><circle cx="204" cy="96" r="1.8" fill="${ink}"/>
+  </g></svg>`;
+}

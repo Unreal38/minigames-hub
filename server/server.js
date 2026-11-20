@@ -8,13 +8,14 @@ import { fileURLToPath } from 'node:url';
 import { attach } from './ws.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
+import * as ladders from './games/ladders.js';
 import { cleanAv } from '../public/avatar.js';
 import * as store from './store.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles };
+const GAMES = { hotpot, marbles, ladders };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;

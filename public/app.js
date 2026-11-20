@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -42,6 +42,26 @@ const GAMES = {
       <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>
       <li><b>Knockout</b>: the last marble home each heat is out. Handy for deciding who pays.</li>
       <li>Coins are pretend and stay with the table. If you go broke, the house spots you a few.</li>
+    </ol>`,
+  },
+  ladders: {
+    name: 'Snakes & Ladders', load: () => import('./games/ladders/client.js'), start: 'Start the game',
+    host: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 20 }, solo: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
+    settings: pill => `<div class="opt"><b>Board</b><div class="pills">${pill('size', 'classic', 'Classic 100')}${pill('size', 'short', 'Quick 60')}</div></div>
+      <div class="opt"><b>Party tiles</b><div class="pills">${pill('party', 'on', 'On')}${pill('party', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Exact roll to finish</b><div class="pills">${pill('bounce', 'on', 'Yes')}${pill('bounce', 'off', 'No')}</div></div>
+      <div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Roll timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Everyone's avatar sits on a token at the start. Take turns rolling the die: ladders whisk you up, snakes slide you down. First to the star on the last tile wins.`,
+    rules: `<ol>
+      <li>Every player gets a <b>token</b> wearing their avatar. Empty seats are played by bots.</li>
+      <li>On your turn, <b>roll the die</b> and hop that many tiles. The board is new every game.</li>
+      <li>Land on the foot of a <b>ladder</b> to climb it. Land on a <b>snake's head</b> and you slide down to its tail.</li>
+      <li>Roll a <b>6</b> and you roll again (up to twice in a row).</li>
+      <li><b>Party tiles</b>: green zooms you 3 tiles on, orange gives a bonus roll, pink swaps you with the player just ahead, blue makes you nap through your next turn.</li>
+      <li>With <b>exact roll</b> on, you need the right number to land on the last tile. Too much and you bounce back.</li>
+      <li>First to the last tile wins. Everyone else is ranked by how far they got.</li>
     </ol>`,
   },
 };
@@ -252,6 +272,14 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Marble Rush</h3><span class="tag">1–8 players</span></div>
             <p>Your avatar on a marble, a random 3D track and pretend coins riding on who rolls home first.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="marbles">Play with bots</button></div>
+          </div>
+        </article>
+        <article class="gcard">
+          <div class="pic ladderpic">${laddersArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Snakes &amp; Ladders</h3><span class="tag">1–6 players</span></div>
+            <p>The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="ladders">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="ladders">Play with bots</button></div>
           </div>
         </article>
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
