@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
-import { itemModel, balloonModel, disposeModel } from './models.js';
+import { itemModel, balloonModel, disposeModel, signModel } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
 
 const SKY_TOP = '#4aa6ea', SKY_LOW = '#c9ecff';
@@ -37,6 +37,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   const sun = new THREE.DirectionalLight('#fff1d6', 2.1); sun.position.set(9, 16, 7); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -.0005; sun.shadow.normalBias = .03; scene.add(sun, sun.target);
 
+  let seenOnce = false, farmKey = '';
   let farm = null, N = 10, edit = false, dead = false, W = 0, H = 0;
   const cam = { az: .6, el: .82, dist: 19, tx: 0, tz: 0 };
   let lift = 0, liftNow = -1; // how far the picture is pushed up to clear the panels at the bottom (share of the height)
@@ -144,12 +145,66 @@ export function createScene(canvas, { onPick, onGhost }) {
       const key = [it.type, it.x, it.y, it.r, N].join();
       let e = items.get(it.id);
       if (e && e.key === key) continue;
-      if (!e || e.type !== it.type) { if (e) { scene.remove(e.g); disposeModel(e.g); } e = { g: itemModel(it.type), type: it.type }; scene.add(e.g); items.set(it.id, e); }
+      if (!e || e.type !== it.type) {
+        if (e) { scene.remove(e.g); disposeModel(e.g); }
+        const g = itemModel(it.type, true), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
+        e = { g: hold, m: g, type: it.type, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
+        scene.add(hold); items.set(it.id, e);
+      }
       e.key = key; placeModel(e.g, it.type, it.x, it.y, it.r);
     }
+    if (farm) seenOnce = true;
+    itemStates();
     for (const [id, e] of items) if (!seen.has(id)) { scene.remove(e.g); disposeModel(e.g); items.delete(id); }
     for (const [id, e] of items) e.g.visible = !(ghost && ghost.id === id);
     renderer.shadowMap.needsUpdate = true;
+  }
+
+  // What every building is up to, read from the farm: busy, how far along, and whether it wants a sign over it.
+  function itemStates() {
+    if (!farm) return;
+    const mail = (farm.mail?.length || 0) + (farm.trades?.filter(t => t.dir === 'in').length || 0);
+    const out = (farm.trips || []).some(t => t.left > 0), back = (farm.trips || []).some(t => t.left <= 0);
+    const nests = farm.nests || (farm.nest ? [farm.nest] : []);
+    const full = farm.cap && ['wood', 'stone', 'fiber'].some(k => (farm.inv?.[k] || 0) >= farm.cap);
+    let firstNest = true, firstGate = true, firstBarn = true;
+    for (const it of farm.items) {
+      const e = items.get(it.id); if (!e) continue; let on = false, n = 1, sign = '';
+      if (it.type === 'mailbox') { on = mail > 0; if (on) sign = 'mail'; }
+      else if (it.type === 'garden') n = farm.garden?.grow?.[it.id] ?? 1;
+      else if (it.type === 'yard') on = !!farm.train?.ids?.length;
+      else if (it.type === 'nest') { on = nests.some(q => q.stage === 'cuddle'); if (firstNest && nests.some(q => q.stage === 'ready')) sign = 'ready'; firstNest = false; }
+      else if (it.type === 'gate') { on = out; if (firstGate && back) sign = 'ready'; firstGate = false; }
+      else if (it.type === 'barn') { on = false; if (firstBarn && full) sign = 'ready'; firstBarn = false; }
+      e.st.on = on; e.st.n = n;
+      if ((e.sign?.kind || '') !== sign) {
+        if (e.sign) { e.g.remove(e.sign.g); disposeModel(e.sign.g); e.sign = null; }
+        if (sign) { e.sign = { kind: sign, g: signModel(sign) }; e.g.add(e.sign.g); }
+      }
+    }
+  }
+  function moveItems(dt, T) {
+    for (const e of items.values()) {
+      if (e.burst > 0) e.burst = Math.max(0, e.burst - dt); e.st.burst = e.burst;
+      e.m.userData.tick?.(T, e.st, e.m);
+      if (e.pop > 0) { e.pop = Math.max(0, e.pop - dt * 2.4); const u = 1 - e.pop, s = 1 + Math.sin(u * Math.PI * 2.2) * .22 * e.pop; e.g.scale.set(2 - s, s, 2 - s); if (!e.pop) e.g.scale.setScalar(1); }
+      if (e.sign) { const s = e.sign.g; s.position.y = e.top + .55 + Math.abs(Math.sin(T * 3)) * .16; s.rotation.y = cam.az - e.g.rotation.y; s.scale.setScalar(1 + Math.sin(T * 6) * .06); }
+    }
+  }
+  // Butterflies that wander over the island.
+  const flies = [];
+  { const wing = new THREE.PlaneGeometry(.12, .16); wing.translate(.06, 0, 0);
+    ['#ffd95a', '#ff9fb8', '#bfe6fb', '#c8a2f2'].forEach((c, i) => {
+      const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide });
+      const a = new THREE.Mesh(wing, m), b = new THREE.Mesh(wing, m); b.scale.x = -1; g.add(a, b); scene.add(g); flies.push({ g, a, b, ph: i * 1.7, r: .25 + i * .12 });
+    }); }
+  function moveFlies(T) {
+    for (const f of flies) {
+      f.g.visible = !!farm && !starters; if (!f.g.visible) continue;
+      const t = T * .22 + f.ph, R = N * f.r, x = Math.sin(t) * R + Math.sin(t * 2.7) * .8, z = Math.cos(t * 1.3 + f.ph) * R;
+      f.g.rotation.y = Math.atan2(x - f.g.position.x, z - f.g.position.z) + Math.PI / 2; f.g.position.set(x, 1.3 + Math.sin(t * 5) * .35, z);
+      const w = Math.sin(T * 22 + f.ph) * 1.0; f.a.rotation.z = w; f.b.rotation.z = -w; f.a.rotation.x = f.b.rotation.x = -Math.PI / 2;
+    }
   }
 
   // ---------- pets ----------
@@ -571,7 +626,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
-    movePets(dt, T); moveBalloon(dt, T);
+    movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T);
     if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
     clouds.rotation.y += dt * .006;
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
@@ -586,6 +641,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   return {
     setFarm(f) {
       const size = f?.size || 10;
+      const fk = f ? f.id || f.owner || f.name || '?' : ''; if (fk !== farmKey) { farmKey = fk; seenOnce = false; }
       farm = f;
       if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); }
       syncItems(); syncPets(); syncBalloon(); syncEgg(); syncOwner();
@@ -604,6 +660,9 @@ export function createScene(canvas, { onPick, onGhost }) {
     },
     ghostCancel: () => ghostCancel(),
     ghost: ghostInfo,
+    // a short flurry at every building of a kind (cooking, crafting), or a hop for one building
+    work(type, secs = 6) { for (const e of items.values()) if (e.type === type) e.burst = secs; },
+    pop(id) { const e = items.get(id); if (e) e.pop = 1; },
     cheer(id) { const p = pets.get(id); if (p) p.hop = 1; },
     // the battle ring: show it, put a pet on a side (0 yours, 1 theirs), and play what happens
     setWorld,

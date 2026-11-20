@@ -181,8 +181,22 @@ body.in-game { overflow: hidden; }
 .pf .tree .plus { align-self: center; font-family: var(--fd); font-size: 26px; font-weight: 700; }
 .pf .born { text-align: center; } .pf .born .bornpic { align-self: center; margin: 0 auto; } .pf .born .row.end { justify-content: center; } .pf .bornpic img { width: 148px; height: 148px; border-radius: 20px; background: #d8f0d2; border: 3px solid var(--ink); }
 /* trading */
-.pf .tmrow { display: flex; flex-wrap: wrap; gap: 8px; } .pf .tm { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 4px 6px 4px 10px; }
-.pf .tm i { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); } .pf .tm .field { width: 74px; min-height: 36px; padding: 2px 8px; font-size: 16px; border-width: 2px; }
+.pf .tmrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.pf .tm { display: flex; align-items: center; gap: 8px; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 5px 6px 5px 10px; }
+.pf .tm.on { background: var(--lantern); }
+.pf .tmn { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; } .pf .tmn b { font-family: var(--fd); font-weight: 600; font-size: 15px; overflow-wrap: anywhere; } .pf .tmn small { font-size: 12px; color: #6b4a3c; white-space: nowrap; }
+.pf .step { display: flex; align-items: center; gap: 4px; flex: none; }
+.pf .step button { width: 40px; height: 40px; border-radius: 12px; border: 3px solid var(--ink); background: var(--cream); color: var(--ink); font-family: var(--fd); font-weight: 700; font-size: 22px; line-height: 1; cursor: pointer; }
+.pf .step button:active { transform: scale(.94); } .pf .step button:focus-visible, .pf .tm .field:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.pf .tm .field { width: 52px; min-height: 40px; padding: 2px 4px; font-size: 17px; font-weight: 600; text-align: center; border-width: 2px; -moz-appearance: textfield; appearance: textfield; }
+.pf .tm .field::-webkit-outer-spin-button, .pf .tm .field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pf .tside { border: 3px solid var(--ink); border-radius: 18px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.pf .tside.give { background: #fff3e2; } .pf .tside.want { background: #e9f7ef; }
+.pf .tside h3 { margin: 0; font-family: var(--fd); font-size: 20px; } .pf .tside .hint { margin: 0; } .pf .tside > .btn { align-self: flex-start; }
+.pf .tsum { background: #fff; border: 3px dashed var(--ink); border-radius: 14px; padding: 8px 12px; font-size: 15px; line-height: 1.5; }
+.pf .mi { flex: none; display: block; } .pf .icoh { display: flex; align-items: center; gap: 10px; }
+.pf .zone > .mi, .pf .zone > img { flex: none; } .pf .zone > img { width: 40px; height: 40px; }
+.pf .item .mat .mi { width: 15px; height: 15px; }
 .pf .letter.deal { flex-direction: column; align-items: stretch; gap: 8px; } .pf .swap { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; } .pf .swap .mats { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
 .pf .swap .kin img, .pf .swap .kin .nothumb { width: 48px; height: 48px; } .pf .dealbtns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .pf .bclock { display: inline-block; min-width: 2.2em; margin-left: 10px; padding: 0 8px; border-radius: 999px; background: #2b2118; color: #fff8e7; font-size: .8em; font-variant-numeric: tabular-nums; }
