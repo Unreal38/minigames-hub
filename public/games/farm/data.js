@@ -40,6 +40,8 @@ export const ITEMS = {
   statue:   { name: 'Pet Statue', kind: 'd', w: 1, h: 1, craft: true, cost: { stone: 25, crystal: 1 }, desc: 'A proud little monument.' },
   glow:     { name: 'Crystal Lamp', kind: 'd', w: .5, h: .5, fine: true, craft: true, cost: { coal: 4, crystal: 1 }, desc: 'Glows softly, day and night.' },
   tower:    { name: 'Climbing Tower', kind: 'd', w: 1, h: 1, craft: true, cost: { wood: 15, fiber: 10, shells: 3 }, desc: 'Something to climb, scratch and nap on.' },
+  palbench: { name: "Friends' Bench", kind: 'd', w: 1, h: 1, pals: 5, cost: { wood: 12 }, desc: 'A bench for two. Unlocked by friendship.' },
+  palflag:  { name: 'Friendship Flag', kind: 'd', w: .5, h: .5, fine: true, pals: 15, cost: { wood: 6, fiber: 10 }, desc: 'Bunting that says friends live here.' },
   ball:     { name: 'Pet Ball', kind: 'd', w: .5, h: .5, fine: true, walk: true, cost: { fiber: 6 }, desc: 'A toy for the pets.' },
 };
 
@@ -75,7 +77,22 @@ export const formOf = lv => lv < 5 ? 0 : lv < 12 ? 1 : 2;
 export const MAX_LV = 20;
 export const xpFor = lv => 10 + lv * 10; // experience needed to go from lv to lv + 1
 // The farmhouse sleeps two pets and every Pet Hut four more.
-export const petRoom = farm => 2 + 4 * farm.items.filter(i => i.type === 'hut').length;
+// Building levels. Each building starts at level 1 and can be improved twice; level n needs a farmhouse of level n.
+export const UP_MAX = 3;
+export const UPGRADES = {
+  hut:    { what: 'Two more beds', cost: [{ wood: 40, fiber: 20 }, { wood: 80, fiber: 40, shells: 10 }] },
+  gate:   { what: 'Parties bring back 15% more', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
+  garden: { what: 'Berries ripen 15 minutes sooner', cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
+  barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
+  nest:   { what: 'Eggs hatch a quarter sooner', cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
+  yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
+};
+export const lvOf = item => Math.min(UP_MAX, Math.max(1, item?.lv | 0 || 1));
+export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none
+export const upCost = item => UPGRADES[item.type]?.cost[lvOf(item) - 1] || null; // what the next level costs
+export const TRAIN_XP = 6; // experience an hour for each pet training at the Training Yard
+export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n + v, 0); // every friendship point earned
+export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
 
 // The farmhouse: HOUSE_UP[n] is the cost of reaching level n.
 export const HOUSE_MAX = 4;
@@ -91,7 +108,8 @@ export const RECIPES = {
   juice:  { name: 'Berry Juice', cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
 };
 export const STORED = ['wood', 'stone', 'fiber', 'shells', 'coal', 'berries'], CAP = { base: 300, barn: 900 }; // the most a farm can hold of each
-export const capOf = f => countOf(f, 'barn') ? CAP.barn : CAP.base;
+export const capOf = f => { const lv = topLv(f, 'barn'); return lv ? CAP.barn + 600 * (lv - 1) : CAP.base; };
+export const growMin = item => GROW_MIN - 15 * (lvOf(item) - 1);
 export const SELL = { wood: 4, stone: 4, fiber: 4, shells: 12, coal: 12, berries: 8 }, SELL_LOT = 10; // coins the Workshop pays for a lot of ten
 
 // ---------- expeditions ----------

@@ -257,6 +257,20 @@ export function createScene(canvas, { onPick, onGhost }) {
   const bal = { state: 'none', t: 9, from: new THREE.Vector3(), home: new THREE.Vector3(), far: new THREE.Vector3() };
   // The egg sits in the Nest for everyone to see, and rocks harder as hatching gets close.
   let egg = null;
+  // The owner stands on their farm, near the farmhouse door.
+  let owner = null, ownerAv = null, ownerKey = '', ownerTile = null;
+  function syncOwner() {
+    const key = farm && owner ? JSON.stringify([owner.color, owner.av]) : '';
+    if (key !== ownerKey) { if (ownerAv) { scene.remove(ownerAv); disposeAvatar(ownerAv); ownerAv = null; } ownerKey = key; ownerTile = null;
+      if (key) try { ownerAv = avatar3d(owner.color || '#ff8fab', owner.av, { pose: 'stand' }); ownerAv.scale.setScalar(.5); scene.add(ownerAv); } catch (e) { console.warn('no avatar', e); } }
+    if (!ownerAv) return;
+    ownerAv.visible = true;
+    if (!ownerTile || walkGrid[ownerTile[1] * N + ownerTile[0]] || ownerTile[0] >= N || ownerTile[1] >= N) {
+      const h = farm.items.find(i => i.type === 'house'), [w, d] = h ? footprint('house', h.r) : [1, 1];
+      ownerTile = freeTileNear(Math.min(N - 1, h ? h.x + (w >> 1) : N >> 1), Math.min(N - 1, h ? h.y + d : N >> 1)); if (!ownerTile) { ownerAv.visible = false; return; }
+      ownerAv.position.set(wx(ownerTile[0]), .76 * .5, wz(ownerTile[1])); ownerAv.rotation.y = .4;
+    }
+  }
   function syncEgg() {
     const n = farm?.nest, nest = n && n.stage !== 'cuddle' && farm.items.find(i => i.type === 'nest'), key = nest ? n.shell.base + n.shell.speck : '';
     if (egg && egg.key !== key) { scene.remove(egg.g); disposeModel(egg.g); egg = null; }
@@ -341,7 +355,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   world.add(new THREE.HemisphereLight('#ffffff', '#b9d6a8', 1.5));
   { const l = new THREE.DirectionalLight('#fff1d6', 2.1); l.position.set(9, 16, 7); world.add(l); }
   const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
-  let mapOn = false, isles = []; // { id, g, y, ph, r }
+  let mapFar = 33, mapOn = false, isles = []; // { id, g, y, ph, r }
   function nameTag(text, mine, friend, sub) { // sub: a second, smaller line saying what can be done there
     const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 192;
     x.font = '600 60px Fredoka, "Baloo 2", system-ui, sans-serif'; const w = Math.min(490, x.measureText(text).width + 60);
@@ -373,13 +387,33 @@ export function createScene(canvas, { onPick, onGhost }) {
     const tag = nameTag(mine ? 'You' : f.name, mine, f.friend, todo); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
     return g;
   }
-  function setWorld(list, me) {
+  // A place to explore, shown at the edge of the map. z: { key, name, el, note, out }
+  function zoneIsle(z) {
+    const g = new THREE.Group(), land = new THREE.Group(), top = { Leaf: '#6fbf5a', Tide: '#ead9a0', Stone: '#a9a6b0', Ember: '#b5553c', Spark: '#c9d65a' }[z.el] || '#8fd16a';
+    const mk = (geo, c, x = 0, y = 0, zz = 0) => { const m = new THREE.Mesh(geo, flat(c)); m.position.set(x, y, zz); land.add(m); return m; };
+    mk(new THREE.CylinderGeometry(2.3, 1.9, .5, 7), top, 0, -.25); mk(rough(new THREE.ConeGeometry(1.9, 2.6, 7, 2), .3), '#857a72', 0, -1.8).rotation.x = Math.PI;
+    const spots = [[-1, -.6], [.9, -.9], [-.3, .9], [1.1, .6], [0, -.1]];
+    spots.forEach(([x, zz], i) => {
+      if (z.el === 'Leaf') { mk(new THREE.CylinderGeometry(.09, .09, .5, 5), '#8a5a3c', x, .25, zz); mk(new THREE.ConeGeometry(.5, 1.1 + i * .12, 6), i % 2 ? '#4a9a45' : '#5fb04a', x, 1, zz); }
+      else if (z.el === 'Tide') { if (i < 2) mk(new THREE.CylinderGeometry(.6, .6, .06, 7), '#6fb7e8', x, .03, zz); else mk(new THREE.OctahedronGeometry(.2), i % 2 ? '#ffb6c9' : '#fff3df', x, .16, zz); }
+      else if (z.el === 'Stone') { mk(rough(new THREE.DodecahedronGeometry(.45 + i * .08), .08), i % 2 ? '#8a8794' : '#a9a6b0', x, .35, zz); if (i === 4) mk(new THREE.OctahedronGeometry(.22), '#8fe3f5', x, 1, zz); }
+      else if (z.el === 'Ember') { mk(new THREE.ConeGeometry(.6, .9 + i * .2, 6), '#7a4a3a', x, .5, zz); if (i > 2) mk(new THREE.OctahedronGeometry(.16), '#ffb547', x, 1.3 + i * .1, zz); }
+      else { mk(new THREE.ConeGeometry(.12, .7, 4), '#ffc94d', x, .35, zz); mk(new THREE.ConeGeometry(.1, .5, 4), '#86cc5a', x + .3, .25, zz + .2); }
+    });
+    if (z.out) { const b = balloonModel(); b.position.set(0, 1.2, 0); b.scale.setScalar(.8); land.add(b); }
+    bake(land); land.traverse(m => { if (m.isMesh) { m.material.flatShading = true; m.material.roughness = .95; } }); g.add(land);
+    const tag = nameTag(z.name, false, false, z.note); tag.position.y = z.out ? 4.6 : 3; tag.scale.multiplyScalar(1.15); g.add(tag); g.userData.tag = tag;
+    return g;
+  }
+  function setWorld(list, me, zones = []) {
     for (const i of isles) { world.remove(i.g); if (i.g.userData.av) { i.g.remove(i.g.userData.av); disposeAvatar(i.g.userData.av); } i.g.userData.tag.material.map.dispose(); i.g.userData.tag.material.dispose(); i.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
     isles = []; mapOn = !!list; liftNow = -1;
     if (!list) return;
     const put = (f, x, z, mine, i) => { const g = miniIsland(f, mine), y = mine ? 0 : (hash(i, 31) - .5) * 2.4; g.position.set(x, y, z); world.add(g); isles.push({ id: mine ? null : f.id, g, y, ph: i * 1.7, r: mine ? 3.6 : 2.8 }); };
     put(me, 0, 0, true, 0);
     list.forEach((f, i) => { const inner = Math.min(8, list.length), ring = i < 8 ? 0 : 1, cnt = ring ? list.length - 8 : inner, a = ((ring ? i - 8 : i) / cnt) * 6.283 + (ring ? .3 : -.6), d = ring ? 18 : 10.5; put(f, Math.cos(a) * d, Math.sin(a) * d, false, i + 1); });
+    const R = list.length > 8 ? 23 : list.length ? 14.5 : 8; mapFar = list.length > 8 ? 55 : list.length ? 38 : 26;
+    zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = -1 + (hash(i, 77) - .5); g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 }); });
     cam.waz = .5;
   }
   const _wc = new THREE.Vector3();
@@ -493,7 +527,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!d || d.moved || performance.now() - d.t > 500 || ptrs.size) return;
     const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1;
     if (fighting) return;
-    if (mapOn) { const i = isleAt(); if (i) onPick?.({ island: i.id }); return; }
+    if (mapOn) { const i = isleAt(); if (i) onPick?.(i.zone ? { zone: i.zone } : { island: i.id }); return; }
     const pid = petAt();
     if (starters) { if (pid) onPick?.({ starter: pid.slice(8) }); return; }
     if (ghost) { // tap a tile: the piece jumps there
@@ -526,7 +560,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       moveRing(dt, T); renderer.render(ring, camera); return;
     }
     if (mapOn) { // the neighbourhood from above; drag to turn it
-      const d = (isles.length > 9 ? 50 : isles.length > 1 ? 33 : 17) * Math.max(1, 1.2 * H / Math.max(1, W));
+      const d = mapFar * Math.max(1, 1.2 * H / Math.max(1, W));
       camera.position.set(Math.sin(cam.waz) * d * .72, d * .7, Math.cos(cam.waz) * d * .72); camera.lookAt(0, 0, 0);
       for (const i of isles) i.g.position.y = i.y + Math.sin(T * .7 + i.ph) * .18;
       wclouds.rotation.y += dt * .006;
@@ -554,10 +588,11 @@ export function createScene(canvas, { onPick, onGhost }) {
       const size = f?.size || 10;
       farm = f;
       if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); }
-      syncItems(); syncPets(); syncBalloon(); syncEgg();
+      syncItems(); syncPets(); syncBalloon(); syncEgg(); syncOwner();
       if (ghost) ghostCheck();
     },
     setStarters,
+    setOwner(o) { owner = o; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
     ghostNew(type, near = null, r = 0) { if (!farm || !ITEMS[type]) return; const [x, y] = firstSpot(type, near, r); ghostStart(type, null, x, y, r); },
     ghostItem(id) { const it = farm?.items.find(i => i.id === id); if (it) ghostStart(it.type, it.id, it.x, it.y, it.r); },
