@@ -72,6 +72,7 @@ export function mount(app, ctx) {
   const racing = i => !S.marbles[i].out;
   const backers = i => S.seats.map((p, k) => (p.bet?.m === i ? k : -1)).filter(k => k >= 0);
   const backerHtml = (i, size) => backers(i).map(k => `<i title="${esc(S.seats[k].name)} bet ${S.seats[k].bet.amt}">${avatarHtml(S.seats[k].color, S.seats[k].av, size)}</i>`).join('');
+  const undecided = () => S.seats.map((_, i) => i).filter(i => S.seats[i].human && !S.seats[i].bot && !S.seats[i].bet);
   const yours = i => (i === myPick() ? 'Your pick, ' : '');
 
   // ----- 3D sync -----
@@ -157,8 +158,8 @@ export function mount(app, ctx) {
         ${ball(i, 46)}<b>${p.name}</b>
         <span class="backers">${backerHtml(i, 20)}</span></button>`).join('')}</div>
       ${my ? `<div class="stakes"><span>Stake</span><div class="pills">${[10, 25, 50, 'all'].map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v !== 'all' && v > coins ? 'disabled' : ''}>${v === 'all' ? 'All in' : v}</button>`).join('')}</div>
-        ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> on ${mName(my.bet.m)} <button type="button" class="link" data-a="nobet">remove</button></span>` : '<span class="mybet">Tap a marble to bet on its colour.</span>'}
-        ${ctx.isHost() ? '<button type="button" class="btn m" data-a="ready">Start the race</button>' : ''}</div>` : '<div class="stakes"><span class="mybet">You are watching this race.</span></div>'}`);
+        ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> on ${mName(my.bet.m)} <button type="button" class="link" data-a="nobet">remove</button></span>` : '<span class="mybet">Tap a marble to bet on its colour. The race starts once everyone has bet.</span>'}
+        ${ctx.isHost() ? `<button type="button" class="btn m" data-a="ready" ${undecided().length ? 'disabled' : ''}>${undecided().length ? 'Waiting for bets' : 'Start the race'}</button>` : ''}</div>` : '<div class="stakes"><span class="mybet">You are watching this race.</span></div>'}`);
   }
 
   function renderRace() {
@@ -186,7 +187,10 @@ export function mount(app, ctx) {
   function renderBanner() {
     const el = $('mr-banner'); let msg = '';
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
-    if (S.stage === 'bet') msg = `Place your bets · ${secs}s`;
+    if (S.stage === 'bet') {
+      const w = undecided();
+      msg = !secs && w.length ? (w.includes(S.me) ? 'Pick a colour to start the race' : `Waiting for ${w.slice(0, 3).map(i => S.seats[i].name).join(', ')}${w.length > 3 ? '…' : ''} to bet`) : `Place your bets · ${secs}s`;
+    }
     else if (S.stage === 'count') msg = S.mode === 'knockout' ? `Heat ${S.heat}: last marble home is out` : 'Marbles at the gate…';
     else if (S.stage === 'race') {
       const done = S.marbles.filter(p => p.place && !p.out).length;

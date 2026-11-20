@@ -39,7 +39,7 @@ const GAMES = {
     howto: `Nobody owns a marble. Bet pretend coins on a colour, then watch the marbles tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
     rules: `<ol>
       <li>The marbles are plain <b>colours</b> and belong to nobody. Several players can back the same one.</li>
-      <li>Before the gate opens, <b>bet coins</b> on a colour. The winning colour pays your stake times the number of marbles.</li>
+      <li>Before the gate opens, <b>bet coins</b> on a colour. The race waits until everyone has bet. The winning colour pays your stake times the number of marbles.</li>
       <li>The track is <b>random every race</b>: pins, spinners, trapdoors, boost pads and squeezes. Nobody steers.</li>
       <li>You get <b>one banana per heat</b>. Throw it at any colour to slip it up.</li>
       <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>

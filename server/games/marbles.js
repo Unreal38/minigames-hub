@@ -261,20 +261,22 @@ export function act(G, s, a) {
     return true;
   }
   if (a.t === 'nobet') { if (G.stage !== 'bet' || !G.bets[s]) return false; G.bets[s] = null; return true; }
-  if (a.t === 'ready') { // host can close betting early
-    if (G.stage !== 'bet') return false;
+  if (a.t === 'ready') { // host can close betting early, once everyone at the table has bet
+    if (G.stage !== 'bet' || undecided(G).length) return false;
     G.stageEnd = Math.min(G.stageEnd, Date.now()); return true;
   }
   if (a.t === 'sab') return sabotage(G, s, +a.m);
   return false;
 }
 
+// Players who are here and have not bet yet. The race waits for them; away players don't hold it up.
+const undecided = G => G.seats.map((_, i) => i).filter(i => G.seats[i].human && !G.seats[i].bot && !G.bets[i]);
+
 export function tick(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
   if (G.stage === 'bet') {
-    const humans = G.seats.map((x, i) => i).filter(i => G.seats[i].human && !G.seats[i].bot);
-    const allIn = humans.length && humans.every(i => G.bets[i]) && G.stageEnd - now > 3000;
-    if (allIn) G.stageEnd = now + 3000;
+    if (undecided(G).length) return false; // betting stays open until everyone here has bet
+    if (G.seats.some(x => x.human && !x.bot) && G.stageEnd - now > 3000) G.stageEnd = now + 3000;
     if (now < G.stageEnd) return false;
     for (let s = 0; s < G.seats.length; s++) { // stakes leave the wallet when betting closes
       const b = G.bets[s]; if (!b) continue;

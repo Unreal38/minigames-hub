@@ -35,7 +35,7 @@ Open two browser windows (or one normal and one private window) to play against 
 ## Marble Rush rules
 
 - 1 to 8 players, with bots betting from empty seats up to 4. The track has 4, 6 or 8 coloured marbles (host's choice) and nobody owns one.
-- Betting is open for 20 seconds, or until the host starts the race. The winning colour pays your stake times the number of marbles, and several players can back the same colour.
+- The race starts once every player at the table has bet (the host can start it early from then on; players who are away do not hold it up). The winning colour pays your stake times the number of marbles, and several players can back the same colour.
 - Everyone starts with 100 pretend coins. They stay with the table from race to race, and anyone who goes broke is spotted 30.
 - Each player has one banana per heat: it slows one marble of your choice for a moment.
 - Chaos events (gravity flip, turbo, marblequake, switcheroo) can be switched off by the host.

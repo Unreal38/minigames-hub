@@ -15,6 +15,10 @@ function race(opts, prev) {
     if (mb.act(G, 0, { t: 'bet', m: 99, amt: 25 })) fail('bet on a missing marble accepted');
     if (mb.act(G, 1, { t: 'bet', m: 0, amt: 7 })) fail('odd stake accepted');
     if (mb.act(G, 0, { t: 'sab', m: 1 })) fail('banana before the race accepted');
+    if (mb.act(G, 0, { t: 'ready' })) fail('race started before everyone bet');
+    now += 60_000; mb.tick(G, now);
+    if (G.stage !== 'bet') fail('betting closed while a player had not bet');
+    if (mb.act(G, 1, { t: 'bet', m: 0, amt: 10 }) !== true || mb.act(G, 0, { t: 'ready' }) !== true) fail('could not start once everyone bet');
     let threw = false;
     for (let i = 0; i < 40000 && G.ph === 'play'; i++) {
       now += 150; mb.tick(G, now);
