@@ -255,6 +255,15 @@ export function createScene(canvas, { onPick, onGhost }) {
   // It waits above the gate, flies off with the party, and comes back when they are done.
   const balloon = balloonModel(); balloon.visible = false; scene.add(balloon);
   const bal = { state: 'none', t: 9, from: new THREE.Vector3(), home: new THREE.Vector3(), far: new THREE.Vector3() };
+  // The egg sits in the Nest for everyone to see, and rocks harder as hatching gets close.
+  let egg = null;
+  function syncEgg() {
+    const n = farm?.nest, nest = n && n.stage !== 'cuddle' && farm.items.find(i => i.type === 'nest'), key = nest ? n.shell.base + n.shell.speck : '';
+    if (egg && egg.key !== key) { scene.remove(egg.g); disposeModel(egg.g); egg = null; }
+    if (!nest) return;
+    if (!egg) { egg = { g: eggModel(n.shell.base, n.shell.speck), key }; egg.g.scale.setScalar(.62); scene.add(egg.g); }
+    const [w, h] = footprint('nest', nest.r); egg.g.position.set(wx(nest.x) + (w - 1) / 2, .22, wz(nest.y) + (h - 1) / 2); egg.ready = n.stage === 'ready';
+  }
   function syncBalloon() {
     const gate = farm?.items.find(i => i.type === 'gate');
     const state = !gate || starters ? 'none' : !farm.trip ? 'home' : farm.trip.left > 0 ? 'away' : 'back';
@@ -527,6 +536,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
     movePets(dt, T); moveBalloon(dt, T);
+    if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
     clouds.rotation.y += dt * .006;
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
     if (fall) fall.position.z = 1.5 + Math.sin(T * 9) * .14;
@@ -542,7 +552,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const size = f?.size || 10;
       farm = f;
       if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); }
-      syncItems(); syncPets(); syncBalloon();
+      syncItems(); syncPets(); syncBalloon(); syncEgg();
       if (ghost) ghostCheck();
     },
     setStarters,

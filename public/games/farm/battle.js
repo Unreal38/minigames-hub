@@ -6,6 +6,9 @@ import { SPECIES, formOf } from './data.js';
 // Each element is strong against the next one in this ring and weak against the one before it.
 export const STRONG = { Tide: 'Ember', Ember: 'Leaf', Leaf: 'Stone', Stone: 'Spark', Spark: 'Tide' };
 export const effect = (moveEl, targetEl) => STRONG[moveEl] === targetEl ? 1.5 : STRONG[targetEl] === moveEl ? .75 : 1;
+// Against a pet (which may have two elements). A move that is strong against one and weak against the other evens out.
+const hitOn = (moveEl, u) => effect(moveEl, u.el) * (u.el2 ? effect(moveEl, u.el2) : 1);
+const own = (moveEl, u) => moveEl === u.el || moveEl === u.el2;
 
 // pow: hit strength. cd: turns before it can be used again. heal: share of full health. up / down: a stat of
 // yours raised, or of the other pet lowered, by one step. status: what a hit leaves behind.
@@ -62,22 +65,28 @@ export const KIT = {
   pebblet:   { role: 'tank', moves: ['pebbletoss', 'harden', 'dustcloud', 'boulderroll'] },
   cragcrab:  { role: 'bruiser', moves: ['pebbletoss', 'warmup', 'dustcloud', 'boulderroll'] },
   dustmole:  { role: 'trickster', moves: ['pebbletoss', 'quickstep', 'dustcloud', 'boulderroll'] },
+  truffowl:   { role: 'trickster', moves: ['leafflick', 'soak', 'sweetscent', 'tidalbump'] },
+  magmutt:    { role: 'bruiser', moves: ['sparknip', 'harden', 'singe', 'boulderroll'] },
+  nimbowhale: { role: 'tank', moves: ['splash', 'bubbleshield', 'dazeflash', 'thunderpounce'] },
+  glimmoth:   { role: 'support', moves: ['zap', 'sunnap', 'sweetscent', 'bloomburst'] },
+  geodeer:    { role: 'fast', moves: ['pebbletoss', 'quickstep', 'soak', 'tidalbump'] },
 };
 export const LEARN = [1, 1, 5, 10];
 export const ROLE_NAME = { balanced: 'Balanced', tank: 'Tank', support: 'Support', fast: 'Fast attacker', glass: 'Glass cannon', trickster: 'Trickster', bruiser: 'Bruiser', healer: 'Healer' };
-export const movesAt = (sp, lv) => (KIT[sp]?.moves || []).filter((_, i) => lv >= LEARN[i]);
+export const movesAt = (sp, lv, extra) => [...(KIT[sp]?.moves || []).filter((_, i) => lv >= LEARN[i]), ...(extra && MOVES[extra] && lv >= XMOVE_LV ? [extra] : [])];
+export const XMOVE_LV = 5; // a move handed down by a parent of another species wakes up at this level
 
 // A pet's numbers at a level. Each star above the first adds 5% to its stat.
 export function statsOf(pet, lv = pet.lv) {
   const b = ROLE[KIT[pet.sp]?.role] || ROLE.balanced, st = pet.stars || [3, 3, 3, 3], g = [.05, .07, .05, .05];
-  const [hp, atk, def, spd] = b.map((v, i) => Math.round(v * (1 + (lv - 1) * g[i]) * (1 + ((st[i] || 1) - 1) * .05)));
+  const [hp, atk, def, spd] = b.map((v, i) => Math.round(v * (1 + (lv - 1) * g[i]) * (1 + ((st[i] || 1) - 1) * .05) * (i === 0 && pet.talent === 2 ? 1.1 : 1)));
   return { hp, atk, def, spd };
 }
 // A pet ready to fight. lv may be higher than its real level when a battle scales everyone up.
 export function unit(pet, lv = pet.lv) {
   const s = statsOf(pet, lv);
-  return { id: pet.id, sp: pet.sp, name: pet.name, el: SPECIES[pet.sp].el, lv, form: formOf(pet.lv), look: pet.look || null, max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
-    moves: movesAt(pet.sp, lv), cd: {}, up: { atk: 0, def: 0, spd: 0 }, status: {} };
+  return { id: pet.id, sp: pet.sp, name: pet.name, el: SPECIES[pet.sp].el, el2: SPECIES[pet.sp].el2 || null, lv, form: formOf(pet.lv), look: pet.look || null, early: pet.talent === 0, max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
+    moves: movesAt(pet.sp, lv, pet.xmove), cd: {}, up: { atk: 0, def: 0, spd: 0 }, status: {} };
 }
 export const newBattle = (mine, theirs, meta = {}) => ({ ...meta, sides: [{ pets: mine, on: 0 }, { pets: theirs, on: 0 }], turn: 1, need: false, over: null });
 
@@ -90,14 +99,14 @@ export const canSwitch = (B, s, i) => { const t = B.sides[s].pets[i]; return !!t
 // The other team's brain: beatable but not silly.
 export function pickMove(B, s, rnd = Math.random) {
   const me = on(B, s), foe = on(B, 1 - s), rdy = ready(me);
-  const worth = m => (MOVES[m].pow || 0) * effect(MOVES[m].el, foe.el) * (MOVES[m].el === me.el ? 1.2 : 1);
+  const worth = m => (MOVES[m].pow || 0) * hitOn(MOVES[m].el, foe) * (own(MOVES[m].el, me) ? 1.2 : 1);
   // sometimes step out of a bad match-up
-  if (effect(foe.el, me.el) > 1 && rnd() < .3) {
-    const i = B.sides[s].pets.findIndex((u, j) => canSwitch(B, s, j) && effect(foe.el, u.el) <= 1);
+  if (hitOn(foe.el, me) > 1 && rnd() < .3) {
+    const i = B.sides[s].pets.findIndex((u, j) => canSwitch(B, s, j) && hitOn(foe.el, u) <= 1);
     if (i >= 0) return { switch: i };
   }
   const hits = rdy.filter(m => MOVES[m].pow).sort((a, b) => worth(b) - worth(a));
-  if (hits[0] && effect(MOVES[hits[0]].el, foe.el) > 1) return { move: hits[0] };
+  if (hits[0] && hitOn(MOVES[hits[0]].el, foe) > 1) return { move: hits[0] };
   const heal = rdy.find(m => MOVES[m].heal); if (heal && me.hp < me.max * .4) return { move: heal };
   const util = rdy.filter(m => (MOVES[m].up && me.up[MOVES[m].up] < 2) || (MOVES[m].down && foe.up[MOVES[m].down] > -2));
   if (util.length && rnd() < .2) return { move: util[rnd() * util.length | 0] };
@@ -114,7 +123,7 @@ export function step(B, act, rnd = Math.random) {
     ev.push({ k: 'faint', s });
     if (!alive(B, s)) { B.over = 1 - s; ev.push({ k: 'end', win: 1 - s }); return; }
     if (s === 0) B.need = true;
-    else { const foe = on(B, 0), pets = B.sides[1].pets; let best = -1; pets.forEach((u, i) => { if (u.hp > 0 && (best < 0 || effect(foe.el, u.el) < effect(foe.el, pets[best].el))) best = i; }); swap(1, best); }
+    else { const foe = on(B, 0), pets = B.sides[1].pets; let best = -1; pets.forEach((u, i) => { if (u.hp > 0 && (best < 0 || hitOn(foe.el, u) < hitOn(foe.el, pets[best]))) best = i; }); swap(1, best); }
   };
   if (B.need) { // choosing who comes in after a faint is free
     if (act.switch === undefined || !canSwitch(B, 0, act.switch)) return null;
@@ -123,7 +132,7 @@ export function step(B, act, rnd = Math.random) {
   if (act.switch !== undefined ? !canSwitch(B, 0, act.switch) : !ready(on(B, 0)).includes(act.move)) return null;
   const acts = [act, pickMove(B, 1, rnd)];
   for (const s of [0, 1]) if (acts[s].switch !== undefined) swap(s, acts[s].switch);
-  const order = [0, 1].filter(s => acts[s].move).sort((a, b) => stat(on(B, b), 'spd') - stat(on(B, a), 'spd') || rnd() - .5);
+  const order = [0, 1].filter(s => acts[s].move).sort((a, b) => (B.turn === 1 ? (on(B, b).early ? 1 : 0) - (on(B, a).early ? 1 : 0) : 0) || stat(on(B, b), 'spd') - stat(on(B, a), 'spd') || rnd() - .5);
   for (const s of order) {
     if (B.over !== null || B.need) break;
     const u = on(B, s), t = on(B, 1 - s), id = acts[s].move, m = MOVES[id];
@@ -132,8 +141,8 @@ export function step(B, act, rnd = Math.random) {
     ev.push({ k: 'move', s, move: id });
     if (m.cd) u.cd[id] = m.cd + 1;
     if (m.pow) {
-      const eff = effect(m.el, t.el);
-      const dmg = Math.max(1, Math.round(m.pow * .6 * stat(u, 'atk') / stat(t, 'def') * eff * (m.el === u.el ? 1.2 : 1) * (.9 + rnd() * .2)));
+      const eff = hitOn(m.el, t);
+      const dmg = Math.max(1, Math.round(m.pow * .6 * stat(u, 'atk') / stat(t, 'def') * eff * (own(m.el, u) ? 1.2 : 1) * (.9 + rnd() * .2)));
       t.hp = Math.max(0, t.hp - dmg); ev.push({ k: 'hit', s: 1 - s, dmg, eff, hp: t.hp });
       if (t.hp > 0 && m.status && !t.status[m.status]) { t.status[m.status] = STATUS[m.status].turns + 1; ev.push({ k: 'status', s: 1 - s, st: m.status }); }
       if (t.hp <= 0) fallen(1 - s);

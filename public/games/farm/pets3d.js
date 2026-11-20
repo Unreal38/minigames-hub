@@ -7,6 +7,7 @@
 // Each species also owns one signature part (ears, tail, cap...) in FEAT, which a baby can borrow from a parent.
 import * as THREE from 'three';
 import { M, MX, G } from './models.js';
+import { COAT } from './breed.js';
 
 const mat = c => typeof c === 'string' ? M(c) : c;
 const V = (p, o, pos, rot, scl) => { if (pos) o.position.set(...pos); if (rot) o.rotation.set(...rot); if (scl) o.scale.set(...(scl.length ? scl : [scl, scl, scl])); p.add(o); return o; };
@@ -471,14 +472,6 @@ const BODY = {
   },
 };
 
-// Natural coats: main colour and second colour (belly, wool tips, flippers).
-export const COAT = {
-  mossbun: ['#f7ecd0', '#ffffff'], sproutle: ['#bfd98a', '#e6d9a0'], petalpuff: ['#fff6ec', '#ffe3ee'], truffowl: ['#e9d3b0', '#fff3df'],
-  cindercub: ['#f59a48', '#fff3df'], toastoad: ['#f1c27a', '#f7dba4'], flickit: ['#ffe27a', '#fff6c8'], magmutt: ['#c96a3c', '#f3c9a0'],
-  puddlepup: ['#e6eef4', '#c3d2de'], bubblefin: ['#ffb14a', '#ffe7b8'], axolily: ['#ffc4d6', '#ffe3ec'], nimbowhale: ['#7fb4e6', '#eaf4ff'],
-  zapkit: ['#ffe066', '#fff6c8'], buzzlet: ['#ffd23e', '#fff3c4'], voltvole: ['#f2c9a0', '#fff3df'], glimmoth: ['#d9c9f2', '#fff3df'],
-  pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
-};
 export const coatOf = (sp, look) => { const n = COAT[sp] || COAT.mossbun, a = look?.coat || n[0]; return { a, b: look?.coat2 || (look?.coat ? mix(a, '#ffffff', .6) : n[1]) }; };
 
 // Markings sit on the body (spots, stripes) or the head (star, patch) and stack.
