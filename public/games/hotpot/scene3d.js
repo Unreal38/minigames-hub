@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
-import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
+import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 
 const INK = '#3b2219';
 const TABLE_R = 4.4, TILE_Y = .05, POT_Y = .53, BROTH_Y = POT_Y + .76, BROTH_R = 1.47;
@@ -171,11 +171,19 @@ const lathe = (pts, seg = 32) => new THREE.LatheGeometry(pts.map(([x, y]) => new
 const igeo = new Map(), imat = new Map();
 const IG = (type, ...a) => { const k = type + a.join(); if (!igeo.has(k)) igeo.set(k, new THREE[type + 'Geometry'](...a)); return igeo.get(k); };
 const IM = (c, o) => { const k = c + (o ? JSON.stringify(o) : ''); if (!imat.has(k)) imat.set(k, M(c, o)); return imat.get(k); };
-function ingredient(kind) {
+const ibaked = new Map();
+function ingredient(kind) { // each kind is modelled once, merged, and then stamped out cheaply
+  let parts = ibaked.get(kind);
+  if (!parts) ibaked.set(kind, parts = bake(modelIngredient(kind)).children.map(m => [m.geometry, m.material]));
+  const g = new THREE.Group(); g.userData.dyn = true;
+  for (const [gm, mt] of parts) g.add(new THREE.Mesh(gm, mt));
+  return g;
+}
+function modelIngredient(kind) {
   const g = new THREE.Group(), PI = Math.PI;
   const P = (gm, col, x = 0, y = 0, z = 0, o) => { const m = new THREE.Mesh(gm, IM(col, o)); m.position.set(x, y, z); g.add(m); return m; };
   const flat = m => { m.rotation.x = PI / 2; return m; };
-  const S = r => IG('Sphere', r, 14, 10);
+  const S = r => IG('Sphere', r, 10, 8);
   switch (kind) {
     case 0: { // beef slice: thin, marbled, with a rim of fat
       P(IG('Cylinder', .21, .21, .035, 20), '#d9584a').scale.set(1.25, 1, .8);
@@ -295,10 +303,11 @@ function glyphTextures() {
   };
 }
 
-export function createScene(canvas, { onTile, onDeck, onLayout }) {
+// quality: 'auto' (default), 'low' (no shadows, 1x resolution, 30 fps) or 'high' (full resolution, always 60 fps)
+export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto' }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; // shadows are refreshed a few times a second, not every frame
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#2a1422'); scene.fog = new THREE.Fog('#2a1422', 17, 36);
@@ -310,7 +319,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   scene.add(new THREE.HemisphereLight('#ffe2c4', '#3a1a2c', 1.25));
   const small = matchMedia('(max-width: 760px)').matches;
   const key = new THREE.DirectionalLight('#ffe6c8', 2.1); key.position.set(5, 12, 7); key.castShadow = true;
-  key.shadow.mapSize.setScalar(small ? 1024 : 2048); Object.assign(key.shadow.camera, { left: -7.6, right: 7.6, top: 7.6, bottom: -7.6, near: 1, far: 30 });
+  key.shadow.mapSize.setScalar(small ? 1024 : 1536); Object.assign(key.shadow.camera, { left: -7.6, right: 7.6, top: 7.6, bottom: -7.6, near: 1, far: 30 });
   key.shadow.bias = -.0006; key.shadow.normalBias = .02; scene.add(key);
   const rimL = new THREE.DirectionalLight('#9db4ff', .8); rimL.position.set(-6, 7, -9); scene.add(rimL);
   const glow = new THREE.PointLight('#ff8a45', 3.4, 6, 1.5); glow.position.set(0, .7, 0); scene.add(glow);
@@ -338,7 +347,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     const l = new THREE.PointLight('#ffb070', 6, 14, 1.4); l.position.copy(pts[7]); scene.add(l);
   });
   const lanterns = [[-5.5, -6.3, 1], [5.5, -6.3, .85]].map(([x, z, k]) => {
-    const g = new THREE.Group(); g.position.set(x, -2.4, z); g.scale.setScalar(k); scene.add(g);
+    const g = new THREE.Group(); g.position.set(x, -2.4, z); g.scale.setScalar(k); g.userData.dyn = true; scene.add(g);
     const dk = M('#3b2219', { roughness: .6 });
     put(new THREE.SphereGeometry(.55, 20, 14), new THREE.MeshBasicMaterial({ color: '#ffd9a0', fog: false, toneMapped: false }), 0, .78, 0, g).scale.y = 1.15;
     for (const y of [-.34, 0, .34]) put(new THREE.TorusGeometry(Math.sqrt(.3025 - (y / 1.15) ** 2) + .005, .014, 5, 24), dk, 0, .78 + y, 0, g).rotation.x = Math.PI / 2;
@@ -372,10 +381,10 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   const dummy = new THREE.Object3D(); dummy.rotation.order = 'YXZ';
 
   // pot: brushed steel with a rolled rim, riveted handles and a sleepy little face
-  const potG = new THREE.Group(); potG.position.y = POT_Y; scene.add(potG);
+  const potG = new THREE.Group(); potG.position.y = POT_Y; potG.userData.dyn = true; scene.add(potG);
   const steel = M('#eef0f3', { metalness: .3, roughness: .32, envMapIntensity: 1.8, side: THREE.DoubleSide });
-  const pot = put(lathe([[0, 0], [1.2, 0], [1.38, .05], [1.5, .2], [1.555, .84], [1.6, .9], [1.66, .93], [1.69, .97], [1.66, 1.01], [1.58, 1.01], [1.5, .96], [1.47, .84], [1.44, .3]], 72), steel, 0, 0, 0, potG);
-  pot.castShadow = true;
+  const pot = put(lathe([[0, 0], [1.2, 0], [1.38, .05], [1.5, .2], [1.555, .84], [1.6, .9], [1.66, .93], [1.69, .97], [1.66, 1.01], [1.58, 1.01], [1.5, .96], [1.47, .84], [1.44, .3]], 48), steel, 0, 0, 0, potG);
+  pot.castShadow = true; pot.userData.dyn = true;
   for (const s of [-1, 1]) {
     const h = put(new THREE.TorusGeometry(.24, .06, 10, 24, Math.PI), steel, s * 1.68, .82, 0, potG);
     h.rotation.set(Math.PI / 2, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2); h.castShadow = true;
@@ -399,6 +408,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     face.tongue = put(new THREE.SphereGeometry(.06, 10, 8), M('#ff8fa0'), 0, .35, 1.555, potG); face.tongue.scale.set(1, .6, .3);
     face.oh = put(new THREE.TorusGeometry(.05, .022, 8, 14), inkM, 0, .41, 1.565, potG);
   }
+  potG.traverse(o => { if (o !== potG && o !== pot && (o.isGroup || o.position.z > 1)) o.userData.dyn = true; }); // the face stays live
+  bake(potG);
   // [eyes, mouth, blush]. eyes: open | wide | happy (closed, smiling) | sleep | wink. mouth: smile | open | oh
   const MOODS = {
     idle: ['open', 'smile', 1], peek: ['wide', 'smile', 1.1], happy: ['happy', 'open', 1.25], yum: ['happy', 'open', 1.3], wow: ['wide', 'oh', 1], love: ['happy', 'smile', 1.7],
@@ -422,15 +433,15 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
   }
 
   // bubbles, and the ripples they leave when they pop
-  const bubRed = M('#ff7b5a', { roughness: .1, transparent: true, opacity: .85 }), bubCream = M('#fffaf0', { roughness: .1, transparent: true, opacity: .9 });
-  const bubGeo = new THREE.SphereGeometry(.07, 10, 8), bubbles = [];
+  const BUB = 46, bubCol = [new THREE.Color('#ff7b5a'), new THREE.Color('#fffaf0')], bd = new THREE.Object3D(), bubbles = [];
+  const bubMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(.07, 10, 8), M('#ffffff', { roughness: .1, transparent: true, opacity: .88 }), BUB);
+  bubMesh.frustumCulled = false; scene.add(bubMesh);
   const spawnBubble = b => {
     const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * (BROTH_R - .15);
     b.x = Math.cos(a) * r; b.z = Math.sin(a) * r; b.t = 0; b.dur = .6 + Math.random() * 1.2; b.size = .5 + Math.random() * .9;
-    b.m.material = isRed(b.x / BROTH_R, b.z / BROTH_R) ? bubRed : bubCream;
-    b.m.position.set(b.x, BROTH_Y, b.z);
+    bubMesh.setColorAt(b.i, bubCol[isRed(b.x / BROTH_R, b.z / BROTH_R) ? 0 : 1]); bubMesh.instanceColor.needsUpdate = true;
   };
-  for (let i = 0; i < 46; i++) { const m = new THREE.Mesh(bubGeo, bubRed); scene.add(m); const b = { m }; spawnBubble(b); b.t = Math.random() * b.dur; bubbles.push(b); }
+  for (let i = 0; i < BUB; i++) { const b = { i }; spawnBubble(b); b.t = Math.random() * b.dur; bubbles.push(b); }
   const ripGeo = new THREE.RingGeometry(.86, 1, 24); let ripI = 0;
   const ripples = Array.from({ length: 14 }, () => {
     const m = new THREE.Mesh(ripGeo, new THREE.MeshBasicMaterial({ color: '#fff4e2', transparent: true, opacity: 0, depthWrite: false }));
@@ -441,7 +452,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
 
   // steam
   const steam = [];
-  for (let i = 0; i < 34; i++) {
+  for (let i = 0; i < 18; i++) {
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: '#fff4e2', transparent: true, opacity: 0, depthWrite: false }));
     scene.add(s); steam.push({ s, t: Math.random() * 4, dur: 3 + Math.random() * 2, x: 0, z: 0 });
   }
@@ -461,7 +472,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     }
   };
   const overSeat = r => ({ x: SEAT[r][0] * .97, z: SEAT[r][1] * .97, y: 2.2, spread: .7, size: .5 });
-  const setMood = (name, dur = 1.6, kick = .9) => { mood = name; moodEnd = T + dur; lastStir = T; potSqV += kick; };
+  const setMood = (name, dur = 1.6, kick = .9) => { stir(dur + 1); mood = name; moodEnd = T + dur; lastStir = T; potSqV += kick; };
   const glance = (r, dur = 1.4) => { face.glance = r; face.glanceEnd = T + dur; };
   // tea steam
   const wisps = [];
@@ -492,14 +503,14 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     let stool = null;
     if (r) { // your own seat is behind the camera
       const g = new THREE.Group(); g.position.set(x, -.97, z); scene.add(g);
-      stool = put(stoolGeo, M('#ff8fab', { roughness: .8 }), 0, 0, 0, g); stool.castShadow = true;
+      stool = put(stoolGeo, M('#ff8fab', { roughness: .8 }), 0, 0, 0, g); stool.castShadow = true; stool.userData.dyn = true;
       put(new THREE.CylinderGeometry(.56, .5, .07, 24), woodD, 0, -.195, 0, g);
       put(new THREE.TorusGeometry(.4, .03, 6, 24), woodD, 0, -.85, 0, g).rotation.x = Math.PI / 2;
       for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4, l = put(new THREE.CylinderGeometry(.05, .04, 1.24, 8), woodD, Math.cos(a) * .4, -.81, Math.sin(a) * .4, g); l.rotation.set(Math.sin(a) * .09, 0, -Math.cos(a) * .09); l.castShadow = true; }
     }
     const [bx, bz] = BOWL[r];
     const mat = new THREE.Mesh(new THREE.RingGeometry(3.08, 4.2, 28, 1, Math.atan2(-z, x) - .4, .8), matM); mat.rotation.x = -Math.PI / 2; mat.position.y = .006; mat.receiveShadow = true; scene.add(mat);
-    const bowl = put(bowlGeo, M('#ff8fab', { side: THREE.DoubleSide, roughness: .28 }), bx, 0, bz); bowl.castShadow = true;
+    const bowl = put(bowlGeo, M('#ff8fab', { side: THREE.DoubleSide, roughness: .28 }), bx, 0, bz); bowl.castShadow = true; bowl.userData.dyn = true;
     put(new THREE.TorusGeometry(.432, .016, 6, 32), ceramic, bx, .405, bz).rotation.x = Math.PI / 2;
     put(new THREE.CircleGeometry(.39, 28), M('#f3dfb6', { roughness: .15 }), bx, .3, bz).rotation.x = -Math.PI / 2;
     for (const [gx, gz, col] of [[.12, .08, '#6fbf5a'], [-.1, -.12, '#6fbf5a'], [-.14, .1, '#d9402a']]) put(new THREE.TorusGeometry(.035, .014, 5, 10), M(col), bx + gx, .305, bz + gz).rotation.x = Math.PI / 2;
@@ -523,9 +534,9 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     ring.rotation.x = Math.PI / 2; ring.position.set(bx, .1, bz); scene.add(ring);
     // discard tile
     const [tx, tz] = TILE[r];
-    const tile = new THREE.Group(); tile.position.set(tx, TILE_Y, tz); scene.add(tile);
+    const tile = new THREE.Group(); tile.position.set(tx, TILE_Y, tz); tile.userData.dyn = true; scene.add(tile);
     const plate = put(plateGeo, M('#ff8fab', { roughness: .3, side: THREE.DoubleSide }), tx, 0, tz);
-    plate.scale.set(.86, 1, 1.08); plate.receiveShadow = true; plate.castShadow = true;
+    plate.scale.set(.86, 1, 1.08); plate.receiveShadow = true; plate.castShadow = true; plate.userData.dyn = true;
     const stack = new THREE.Mesh(new THREE.BoxGeometry(.78, 1, 1.07), M('#efe3cf')); stack.castShadow = true; stack.receiveShadow = true;
     const top = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
     top.rotation.x = -Math.PI / 2; top.userData.tile = r;
@@ -534,6 +545,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     tile.add(stack, halo, top);
     return { av, stool, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, nod: 0, look: 0, take: false, hover: 0, sq: 1, bs: 1.1, key: '' };
   });
+
+  bake(scene); // every prop that never moves (stove, place settings, stool legs...) collapses into a few meshes
 
   // the pot is the draw pile: its rim glows when you can take from it
   const potHalo = new THREE.Mesh(new THREE.TorusGeometry(1.72, .08, 10, 64), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }));
@@ -605,7 +618,10 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     return seats[r]?.take ? { tile: r } : null;
   }
   let hover = null;
+  let busyUntil = 0; // the scene draws at 60 fps while something is happening, and relaxes to 30 when it is just simmering
+  const stir = (sec = 2.5) => { busyUntil = Math.max(busyUntil, T + sec); };
   const onMove = e => {
+    stir(1.2);
     hover = pick(e);
     canvas.style.cursor = hover ? 'pointer' : '';
   };
@@ -652,8 +668,26 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
 
   // ---------- loop ----------
   const clock = new THREE.Clock(); let raf = 0;
-  const loop = () => {
+  let lastDraw = 0, shadowIn = 0, dprScale = 1, rafN = 0, rafT = 0, slow = 0;
+  const applyQuality = () => {
+    const cap = quality === 'high' ? 2 : quality === 'low' ? 1 : 1.5;
+    renderer.setPixelRatio(Math.max(1, Math.min(devicePixelRatio, cap) * dprScale));
+    key.castShadow = quality !== 'low'; renderer.shadowMap.needsUpdate = true;
+    steam.forEach((st, i) => { st.s.visible = quality !== 'low' || i < 8; });
+  };
+  applyQuality();
+  const loop = now => {
     raf = requestAnimationFrame(loop);
+    if (document.hidden) return;
+    // if the display itself can't keep up, quietly drop the resolution a step (auto only)
+    rafN++;
+    if (now - rafT >= 1000) {
+      slow = rafN < 40 ? slow + 1 : 0; rafN = 0; rafT = now;
+      if (quality === 'auto' && slow >= 3 && dprScale > .67) { dprScale *= .82; slow = 0; applyQuality(); }
+    }
+    const busy = tweens.length > 0 || T < busyUntil || seats.some(s => s.hop > 0);
+    if (now - lastDraw < (quality === 'high' || (busy && quality !== 'low') ? 1000 / 60 : 1000 / 30) - 4) return;
+    lastDraw = now;
     resize();
     const dt = Math.min(clock.getDelta(), .05); T += dt;
     for (let i = tweens.length - 1; i >= 0; i--) {
@@ -665,14 +699,15 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
       b.t += dt * boil;
       if (b.t >= b.dur) { if (b.size > .8) ripple(b.x, b.z, b.size); spawnBubble(b); }
       const p = b.t / b.dur, s = p < .8 ? p / .8 * b.size : b.size * (1 + (p - .8) * 4) * (1 - (p - .8) * 5);
-      b.m.scale.setScalar(Math.max(.001, s)); b.m.position.y = BROTH_Y + s * .03;
+      bd.position.set(b.x, BROTH_Y + s * .03, b.z); bd.scale.setScalar(Math.max(.001, s)); bd.updateMatrix(); bubMesh.setMatrixAt(b.i, bd.matrix);
     }
+    bubMesh.instanceMatrix.needsUpdate = true;
     for (const st of steam) {
       st.t += dt * (.7 + boil * .3);
       if (st.t >= st.dur) { st.t = 0; st.dur = 3 + Math.random() * 2; const a = Math.random() * 6.28, r = Math.random() * 1.1; st.x = Math.cos(a) * r; st.z = Math.sin(a) * r; }
       const p = st.t / st.dur;
       st.s.position.set(st.x + Math.sin(T * .7 + st.dur) * .25 * p, BROTH_Y + .1 + p * 3.4, st.z);
-      st.s.scale.setScalar(.7 + p * 2.2); st.s.material.opacity = Math.sin(p * Math.PI) * .11 * Math.min(boil, 1.8);
+      st.s.scale.setScalar(.7 + p * 2.2); st.s.material.opacity = Math.sin(p * Math.PI) * .17 * Math.min(boil, 1.8);
     }
     for (const f of floaters) {
       if (f.flying) continue;
@@ -764,9 +799,11 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     shake = Math.max(0, shake - dt * 2);
     camera.position.set(camBase.x + Math.sin(T * .25) * .2 + (Math.random() - .5) * shake * .3, camBase.y + Math.sin(T * .4) * .06, camBase.z);
     camera.lookAt(camLook);
+    shadowIn -= dt;
+    if (shadowIn <= 0 && key.castShadow) { renderer.shadowMap.needsUpdate = true; shadowIn = busy ? .05 : .25; }
     renderer.render(scene, camera);
   };
-  loop();
+  raf = requestAnimationFrame(loop);
 
   // ---------- API ----------
   return {
@@ -803,6 +840,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
     fly(from, to, c, faceUp) {
       const P = x => x === 'deck' ? deckPos() : typeof x === 'string' ? tilePos(+x.slice(4)) : handPos(x);
       const kind = c >= 0 ? kindOf(c) : -1;
+      stir();
       const toTile = typeof to === 'string' && to.startsWith('tile') ? seats[+to.slice(4)] : null;
       if (toTile) { toTile.pending++; toTile.top.visible = false; }
       const fromPot = from === 'deck';
@@ -820,7 +858,9 @@ export function createScene(canvas, { onTile, onDeck, onLayout }) {
         }
       }, fromPot);
     },
-    hop(r) { seats[r].hop = 1; potSqV += .35; lastStir = T; },
+    hop(r) { seats[r].hop = 1; potSqV += .35; lastStir = T; stir(); },
+    setQuality(q) { quality = q; dprScale = 1; applyQuality(); },
+    stats: () => ({ ...renderer.info.render, geometries: renderer.info.memory.geometries, dpr: renderer.getPixelRatio() }),
     // k indexes the quick reactions: six snacks, then laugh, heart, thumbs up, wow, cry, fire
     emote(r, k) {
       const s = seats[r]; s.hop = Math.max(s.hop, .75); glance(r, 1.8);
