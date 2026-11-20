@@ -124,7 +124,7 @@ export function createScene(canvas, { onFrame }) {
   function setTrack(seed, short) {
     if (T && T.seed === seed && T.short === short) return;
     if (trackGroup) { scene.remove(trackGroup); disposeTree(trackGroup); }
-    T = makeTrack(seed, short); anim = []; camInit = false;
+    T = makeTrack(seed, short); anim = []; camInit = false; frames = []; clockAt = 0;
     const g = trackGroup = new THREE.Group(); scene.add(g);
     const step = 2, cnt = Math.floor((T.n - 1) / step) + 1;
     const rail = (uf, lift) => Array.from({ length: cnt }, (_, i) => {
@@ -254,6 +254,9 @@ export function createScene(canvas, { onFrame }) {
   // ---------- playback ----------
   function pushFrames(list, simT, isPlaying) {
     if (playing !== isPlaying) { playing = isPlaying; if (!isPlaying) frames = []; }
+    // Between races the server sends one frame: where the marbles stand now. A new race restarts
+    // its frame numbers, so never compare against frames kept from the race before.
+    if (!playing) frames = [];
     for (const f of list) {
       if (frames.length && f.i <= frames[frames.length - 1].i) continue;
       if (frames.length && f.t < frames[frames.length - 1].t) frames = []; // a new heat started
