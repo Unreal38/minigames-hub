@@ -89,7 +89,7 @@ function foes(mine) {
 }
 // What the player may see of a fight: everything about their own side, and the other side's faces and health.
 const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
-  sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
+  sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
 // ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;

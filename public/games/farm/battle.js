@@ -76,7 +76,7 @@ export function statsOf(pet, lv = pet.lv) {
 // A pet ready to fight. lv may be higher than its real level when a battle scales everyone up.
 export function unit(pet, lv = pet.lv) {
   const s = statsOf(pet, lv);
-  return { id: pet.id, sp: pet.sp, name: pet.name, el: SPECIES[pet.sp].el, lv, form: formOf(pet.lv), max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
+  return { id: pet.id, sp: pet.sp, name: pet.name, el: SPECIES[pet.sp].el, lv, form: formOf(pet.lv), look: pet.look || null, max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
     moves: movesAt(pet.sp, lv), cd: {}, up: { atk: 0, def: 0, spd: 0 }, status: {} };
 }
 export const newBattle = (mine, theirs, meta = {}) => ({ ...meta, sides: [{ pets: mine, on: 0 }, { pets: theirs, on: 0 }], turn: 1, need: false, over: null });
