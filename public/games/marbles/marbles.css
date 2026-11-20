@@ -10,13 +10,12 @@ body.in-game { overflow: hidden; }
 .mr .tint.quake { opacity: 1; background: radial-gradient(ellipse at center, #e5543b00 45%, #e5543b55); }
 .mr .tint.swap { opacity: 1; background: radial-gradient(ellipse at center, #e8a0e000 45%, #e8a0e066); }
 
-/* name tags that follow the marbles */
+/* name tags that follow the other marbles. Class names are unique on purpose: other games' styles stay loaded. */
 .mr .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.mr .tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 9px 2px 2px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #160a1299; will-change: transform; transform-origin: 50% 100%; }
-.mr .tag .avatar { border-width: 2px; }
-.mr .tag b { font-weight: 600; max-width: 8em; overflow: hidden; text-overflow: ellipsis; }
-.mr .tag.mine { background: var(--lantern); }
-.mr .tag.backed { box-shadow: 0 0 0 3px var(--mint), 0 3px 0 #160a1299; }
+.mr .mtag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 9px 2px 2px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #160a1299; will-change: transform; transform-origin: 50% 100%; }
+.mr .mtag .avatar { border-width: 2px; }
+.mr .mtag b { font-weight: 600; max-width: 8em; overflow: hidden; text-overflow: ellipsis; }
+.mr .mtag-bet { box-shadow: 0 0 0 3px var(--mint), 0 3px 0 #160a1299; }
 .mr .coin { flex: none; vertical-align: -4px; }
 
 .mr .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
@@ -114,7 +113,7 @@ body.in-game { overflow: hidden; }
   .mr .cams .pills { flex-wrap: nowrap; gap: 5px; }
   .mr .cams .pills button { padding: 4px 9px; font-size: 14px; }
   .mr .sab { font-size: 15px; padding: 6px 12px; min-height: 42px; }
-    .mr .tag { font-size: 12px; }
+    .mr .mtag { font-size: 12px; }
 }
 body:has(.mr) #toasts { top: 118px; }
 .mr .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
