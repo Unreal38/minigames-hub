@@ -88,9 +88,9 @@ export function laddersArt() {
 // Three fanned cards and a few chips on green felt, for the Texas Hold'em card.
 export function pokerArt() {
   const suit = {
-    h: ['#e5543b', 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z'],
+    h: ['#d8402a', 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z'],
     s: ['#3b2219', 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z'],
-    d: ['#f08a24', 'M12 1.8l7.6 10.2L12 22.2 4.4 12z'],
+    d: ['#d8402a', 'M12 1.8l7.6 10.2L12 22.2 4.4 12z'],
   };
   const card = (x, y, rot, r, s, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
     <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
