@@ -14,6 +14,7 @@ import { bake, avatar3d, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
 import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
+import { createBattleFx } from './battlefx.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -412,26 +413,32 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
     for (let i = 0; i < 9; i++) { const a = hash(i, 21) * 6.283, d = 14 + hash(i, 22) * 22, c = add(new THREE.IcosahedronGeometry(1, 0), '#ffffff', 0); c.position.set(Math.cos(a) * d, -5 - hash(i, 23) * 6, Math.sin(a) * d - 8); c.scale.set(3.4, 1.6, 2.6).multiplyScalar(.7 + hash(i, 24)); }
   }
+  const fx = createBattleFx(ring, HOME, tflat), _o = {}, _d = new THREE.Vector3(), _sp = new THREE.Vector3();
   function ringPet(s, u) { // u: { id, sp, form } or null
     const key = u ? u.id + u.sp + u.form : '';
     if (bp[s]?.key === key) return;
     if (bp[s]) { ring.remove(bp[s].g, bp[s].blob); disposeModel(bp[s].g); bp[s] = null; }
     if (!u) return;
+    if (fighting) fx.enter(s);
     const g = petModel(u.sp, u.form, u.look); g.scale.multiplyScalar(.82);
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.rotation.x = -Math.PI / 2; blob.position.set(HOME[s].x, .04, HOME[s].z); blob.scale.setScalar(g.scale.x * 3);
     ring.add(g, blob);
     bp[s] = { g, blob, key, base: g.scale.x, t: 0, lunge: 0, shake: 0, hop: 0, fall: 0, down: false, seed: s * 3.1 };
   }
   function moveRing(dt, T) {
+    fx.update(dt);
     for (const s of [0, 1]) {
       const p = bp[s]; if (!p) continue;
       p.t += dt; p.lunge = Math.max(0, p.lunge - dt * 2.4); p.shake = Math.max(0, p.shake - dt * 2.2); p.hop = Math.max(0, p.hop - dt * 1.8);
       if (p.down) p.fall = Math.min(1, p.fall + dt * 1.6);
       const reach = Math.sin(p.lunge * Math.PI) * .9, to = HOME[1 - s], h = HOME[s];
       const pop = Math.min(1, p.t * 3.5), k = p.base * pop * (1 - p.fall * .85), breathe = 1 + Math.sin(T * 2.2 + p.seed) * .025;
-      p.g.position.set(h.x + (to.x - h.x) * reach * .45 + Math.sin(T * 55) * .09 * p.shake, Math.abs(Math.sin(p.hop * Math.PI * 2)) * .4 * p.hop + Math.sin(p.lunge * Math.PI) * .25, h.z + (to.z - h.z) * reach * .45);
-      p.g.rotation.set(0, FACE[s], p.fall * 1.3 * (s ? -1 : 1));
-      p.g.scale.set(k / Math.sqrt(breathe), k * breathe, k / Math.sqrt(breathe));
+      const o = fx.pose(s, _o), f = reach * .45 + o.f, sy = breathe * o.sy, kk = k * o.k; _d.set(to.x - h.x, 0, to.z - h.z);
+      const px = -_d.z / _d.length() * o.side, pz = _d.x / _d.length() * o.side; // sideways steps
+      p.g.position.set(h.x + _d.x * f + px + Math.sin(T * 55) * .09 * p.shake, Math.abs(Math.sin(p.hop * Math.PI * 2)) * .4 * p.hop + Math.sin(p.lunge * Math.PI) * .25 + o.y, h.z + _d.z * f + pz);
+      p.g.rotation.set(o.rx, FACE[s] + o.ry, p.fall * 1.3 * (s ? -1 : 1) + o.rz, 'YXZ');
+      p.g.scale.set(kk / Math.sqrt(sy), kk * sy, kk / Math.sqrt(sy));
+      p.blob.position.set(p.g.position.x, .04, p.g.position.z); p.blob.scale.setScalar(p.base * 3 / (1 + p.g.position.y * .5));
       const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
       p.blob.visible = p.fall < .5;
@@ -668,7 +675,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (lift !== liftNow && W) { liftNow = lift; if (lift) camera.setViewOffset(W, H, 0, lift * H, W, H); else camera.clearViewOffset(); }
     if (fighting) { // a fixed view of the ring, further back on narrow screens
       const d = Math.max(7.2, 7.4 * H / Math.max(1, W));
-      camera.position.set(-1.2, d * .42, d); camera.lookAt(0, .95, 0);
+      const sk = fx.shake * .12; camera.position.set(-1.2 + Math.sin(T * 61) * sk, d * .42 + Math.sin(T * 47) * sk, d); camera.lookAt(0, .95, 0);
       moveRing(dt, T); renderer.render(ring, camera); return;
     }
     if (mapOn) { // the neighbourhood from above; drag to turn it
@@ -733,9 +740,16 @@ export function createScene(canvas, { onPick, onGhost }) {
     cheer(id) { const p = pets.get(id); if (p) p.hop = 1; },
     // the battle ring: show it, put a pet on a side (0 yours, 1 theirs), and play what happens
     setWorld,
-    setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); } },
+    setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); fx.clear(); } },
     ringPet,
-    ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') p.down = true; },
+    ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') { p.down = true; fx.faint(s); } },
+    // a move played out in the ring: returns the milliseconds until it lands
+    ringMove(s, id) { return bp[s] ? Math.round(fx.move(s, id) * 1000) : 300; },
+    // what happens to the pet on side s: 'hit' (el, eff), 'burn', 'heal', 'stat' (d), 'status' (st), 'dazed'
+    ringHit(s, what, a, b) { const p = bp[s]; if (!p) return; if (what === 'hit') { p.shake = .6; fx.hit(s, a, b); } else if (what === 'burn') { p.shake = .4; fx.burn(s); } else if (what === 'heal') fx.heal(s); else if (what === 'stat') fx.stat(s, a); else if (what === 'status') fx.status(s, a); else if (what === 'dazed') fx.dazed(s); },
+    ringState(s, list) { fx.state(s, list); },
+    // where the pet on side s is on the screen, for numbers that float up from it
+    ringSpot(s) { _sp.set(HOME[s].x, 1.25, HOME[s].z).project(camera); return { x: (_sp.x + 1) / 2 * W, y: (1 - _sp.y) / 2 * H }; },
     // One pet as it really looks (form, coat, markings), for cards and the family tree. Kept, so each look is drawn once.
     portrait(sp, form = 0, look = null) { const k = sp + form + lookKey(look); if (!shots.has(k)) { const g = petModel(sp, form, look); shots.set(k, photo(g, true, 128) || ''); disposeModel(g); } return shots.get(k); },
     // Little pictures for the build menu, drawn once with a throwaway renderer.

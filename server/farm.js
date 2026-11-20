@@ -123,6 +123,13 @@ function foes(mine) {
   for (const [pid, f] of farms) if (f !== mine && f.pets.length) out.push({ id: fid(f), name: nameOf(pid, f), pts: f.pts || 0, team: defenders(f).map(p => ({ sp: p.sp, lv: p.lv, name: p.name })) });
   return out.sort((a, b) => b.pts - a.pts);
 }
+// The ladder: every farm and the three neighbours, most ladder points first. Ties go to the higher best pet.
+function ranks(mine) {
+  const row = (f, name, me) => ({ name, me, pts: f.pts || 0, top: Math.max(0, ...f.pets.map(p => p.lv)), pets: f.pets.length, team: defenders(f).map(p => ({ sp: p.sp })) });
+  const out = Object.values(NPCS).map(n => ({ name: n.name, npc: true, pts: n.pts, top: ARENA_LV, pets: n.team.length, team: n.team.map(sp => ({ sp })) }));
+  for (const [pid, f] of farms) if (f.pets.length) out.push(row(f, nameOf(pid, f), f === mine));
+  return out.sort((a, b) => b.pts - a.pts || b.top - a.top).slice(0, 100);
+}
 // What the player may see of a fight: everything about their own side, and the other side's faces and health.
 const battleView = B => ({ juiced: !!B.juiced, mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
   sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
@@ -562,6 +569,7 @@ export function handle(p, a, reply) {
     return ok({ did: 'mailread' });
   }
   if (a.t === 'foes') return reply({ t: 'farm', foes: foes(f), farm: view(f, p) });
+  if (a.t === 'ranks') return reply({ t: 'farm', ranks: ranks(f), farm: view(f, p) });
   if (a.t === 'defend') { // choose the team that defends this farm
     const ids = Array.isArray(a.pets) ? [...new Set(a.pets)] : [];
     if (!ids.length || ids.length > PARTY || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
