@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, farmArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -95,7 +95,7 @@ const LS = {
 const st = {
   name: LS.get('ct_name', ''), color: LS.get('ct_color', COLORS[Math.random() * COLORS.length | 0]),
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
-  token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null,
+  token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
 let pendingJoin = (location.hash.slice(1) || '').toUpperCase();
@@ -159,6 +159,7 @@ function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
+    st.farm?.reopen(); // back after a dropped connection
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -171,7 +172,9 @@ function onMsg(m) {
       toast(`${m.gain.win ? 'Win! ' : ''}+${m.gain.xp} XP`);
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
-    if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby();
+    if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
+  } else if (m.t === 'farm') {
+    st.farm?.msg(m);
   } else if (m.t === 'stats') {
     st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats();
   } else if (m.t === 'auth') {
@@ -181,9 +184,10 @@ function onMsg(m) {
     if (st.view === 'hub') renderTables();
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
+    if (m.room) closeFarm();
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); go('hub'); return; }
+    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
@@ -234,6 +238,21 @@ function mountGame() {
   return st.gameLoading;
 }
 function unmountGame() { st.game?.destroy(); st.game = null; }
+
+// Pet Farm is a persistent game with no table: it opens straight from the hub.
+let farmLoading = null;
+function openFarm() {
+  if (st.farm || farmLoading) return;
+  st.view = 'farm'; document.title = `Pet Farm · ${SITE}`;
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">Walking to the farm…</p></main>';
+  farmLoading = import('./games/farm/client.js').then(mod => {
+    farmLoading = null;
+    if (st.view !== 'farm') return;
+    st.farm = mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode) });
+    st.farm.reopen();
+  }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
+}
+function closeFarm() { st.farm?.destroy(); st.farm = null; }
 
 // ---------- views ----------
 function go(view) {
@@ -338,6 +357,14 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Texas Hold'em</h3><span class="tag">1–6 players</span></div>
             <p>Cozy no-limit poker for pretend chips. Bluff your friends, out-read the bots and stack the whole table.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="poker">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="poker">Play with bots</button></div>
+          </div>
+        </article>
+        <article class="gcard">
+          <div class="pic farmpic">${farmArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Pet Farm</h3><span class="tag">Your own farm</span></div>
+            <p>Build a little low-poly farm and raise pets on it. It keeps going between visits, so it needs an account.</p>
+            <div class="row"><button type="button" class="btn" data-act="farm">Visit my farm</button></div>
           </div>
         </article>
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
@@ -630,6 +657,7 @@ $app.addEventListener('click', e => {
     const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
+  else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });

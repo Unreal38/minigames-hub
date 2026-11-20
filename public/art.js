@@ -105,3 +105,22 @@ export function pokerArt() {
   ${card(92, 34, -16, 'A', 'h', 0)}${card(130, 26, 0, 'K', 's', .2)}${card(168, 34, 16, 'Q', 'd', .4)}
   ${stack(54, 118, 4, '#ff8fab', '#fff4e2')}${stack(86, 128, 2, '#7ed3b2', '#fff4e2')}${stack(262, 120, 5, '#3b2219', '#ffb547')}${stack(234, 132, 2, '#9b6fd6', '#fff4e2')}</svg>`;
 }
+
+// Pet Farm card: a low-poly island with a farmhouse and a Mossbun.
+export function farmArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="320" height="150" fill="#bfe8ff"/>
+    <path d="M36 40l14-8 16 4 8 10-10 8H44z" fill="#fff"/><path d="M236 28l12-6 14 4 6 8-8 6h-18z" fill="#fff"/>
+    <path d="M0 122h320v28H0z" fill="#7fcdf0"/>
+    <path d="M30 104l40-22h190l34 22-40 26H74z" fill="#8fd16a" ${o}/>
+    <path d="M30 104l44 26h180l40-26v10l-40 26H74l-44-26z" fill="#b98a5e" ${o}/>
+    <g ${o}><path d="M196 92V62h54v30z" fill="#f4e3c1"/><path d="M188 64l35-24 35 24z" fill="#d9584e"/><path d="M216 92V74h14v18z" fill="#8a5a3c"/><path d="M236 70h9v9h-9z" fill="#bfe6fb"/></g>
+    <g ${o}><path d="M278 96V84" fill="none"/><path d="M266 86l12-22 12 22z" fill="#4a9a45"/></g>
+    <g ${o}><path d="M70 58l4-26 9 2 1 24zM96 58l1-24 9-2 4 26z" fill="#f7ecd0"/>
+      <path d="M52 86l8-20 18-10h24l18 10 8 20-8 20-18 10H78l-18-10z" fill="#f7ecd0"/>
+      <path d="M58 72l6-8 14-8h24l14 8 6 8-10 2-8-6-10 6-8-6-10 6-8-6z" fill="#5fb04a"/></g>
+    <path d="M74 86l5-4 5 4-5 4zM96 86l5-4 5 4-5 4z" fill="#2b2230"/><path d="M85 96l5 4 5-4" fill="none" stroke="#2b2230" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M62 96h8v5h-8zM110 96h8v5h-8z" fill="#ff8a9a" opacity=".7"/>
+  </svg>`;
+}
