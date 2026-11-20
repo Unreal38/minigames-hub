@@ -194,7 +194,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const seen = new Set();
     const house = farm.items.find(i => i.type === 'house');
     for (const pet of farm.pets) {
-      if (farm.trip?.pets.includes(pet.id)) continue; // away on an expedition
+      if ((farm.trips || (farm.trip ? [farm.trip] : [])).some(t => t.pets.includes(pet.id))) continue; // away on an expedition
       seen.add(pet.id);
       const form = formOf(pet.lv);
       let p = pets.get(pet.id);
@@ -272,7 +272,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
   }
   function syncEgg() {
-    const n = farm?.nest, nest = n && n.stage !== 'cuddle' && farm.items.find(i => i.type === 'nest'), key = nest ? n.shell.base + n.shell.speck : '';
+    const n = farm?.nests?.find(q => q.stage !== 'cuddle') || farm?.nest, nest = n && n.stage !== 'cuddle' && farm.items.find(i => i.type === 'nest'), key = nest ? n.shell.base + n.shell.speck : '';
     if (egg && egg.key !== key) { scene.remove(egg.g); disposeModel(egg.g); egg = null; }
     if (!nest) return;
     if (!egg) { egg = { g: eggModel(n.shell.base, n.shell.speck), key }; egg.g.scale.setScalar(.62); scene.add(egg.g); }

@@ -10,6 +10,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
 const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1' }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
+const lvOfItem = (farm, id) => farm.items.find(i => i.id === id)?.lv || 1;
 const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(30); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };
 
@@ -484,6 +485,70 @@ if (sg.got.wood !== 7 || sg.got.nonsense || sg.text !== 'Happy weekend' || fs.ex
 r = await b.farmDo({ t: 'open' });
 if (!r.farm.mail.some(m => m.from === 'Cozy Table')) fail('server gift missed a farm');
 if (a.farm.items.some(i => i.type === 'mailbox')) { r = await a.farmDo({ t: 'claim', id: sg.id }); if (r.err || r.farm.inv.wood !== sgw + 7) fail('claim server gift ' + r.err); }
+
+// ----- several parties and a second Nest slot -----
+r = await a.farmDo({ t: 'open', test: { give: { wood: 500, stone: 500, fiber: 500, shells: 60, coal: 60, crystal: 9 }, home: true, lv: 8, rested: true, egg: 'ready' } });
+for (const q of r.farm.trips) { await a.farmDo({ t: 'collect', id: q.id }); await wait(40); }
+while (a.farm.nests.length) { r = await a.farmDo({ t: 'hatch', slot: a.farm.nests[0].slot }); if (r.err) fail('clearing the nest ' + r.err); await wait(40); }
+while (a.farm.pets.length < 6) { await a.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(40); }
+r = await a.farmDo({ t: 'open', test: { lv: 8, rested: true } });
+const P = r.farm.pets.map(x => x.id), gate = r.farm.items.find(i => i.type === 'gate'), nestB = r.farm.items.find(i => i.type === 'nest');
+if (!gate || !nestB) fail('the test farm needs a gate and a nest');
+r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [P[0]] });
+if (r.err || r.farm.trips.length !== 1) fail('first party ' + r.err);
+r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [P[1]] });
+if (r.farm.partyMax === 1 && !r.err) fail('second party from a level 1 gate');
+while (lvOfItem(a.farm, gate.id) < 2) { r = await a.farmDo({ t: 'upgrade', id: gate.id }); if (r.err) { r = await a.farmDo({ t: 'houseup', test: { give: { wood: 300, stone: 300, fiber: 200, shells: 30, coal: 30, crystal: 5 } } }); if (r.err) fail('could not raise the farmhouse: ' + r.err); } await wait(40); }
+r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [P[0]] });
+if (!r.err) fail('one pet in two parties');
+r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'outing', pets: [P[1]] });
+if (r.err || r.farm.trips.length !== 2 || r.farm.partyMax !== 2) fail('second party ' + r.err);
+r = await a.farmDo({ t: 'open', test: { home: true } });
+const two = r.farm.trips.map(q => q.id);
+r = await a.farmDo({ t: 'collect', id: two[1] });
+if (r.err || r.farm.trips.length !== 1 || r.farm.trips[0].id !== two[0] || r.back.trip !== 'outing') fail('collect the second party ' + r.err);
+r = await a.farmDo({ t: 'collect', id: two[0] });
+if (r.err || r.farm.trips.length) fail('collect the first party ' + r.err);
+r = await a.farmDo({ t: 'open', test: { rested: true } });
+r = await a.farmDo({ t: 'pair', a: P[2], b: P[3] });
+if (r.err || r.farm.nests.length !== 1) fail('first nest slot ' + r.err);
+r = await a.farmDo({ t: 'pair', a: P[4], b: P[5] });
+if (r.farm.nestMax === 1 && !r.err) fail('second egg in a level 1 nest');
+while (lvOfItem(a.farm, nestB.id) < 2) { r = await a.farmDo({ t: 'upgrade', id: nestB.id }); if (r.err) fail('nest upgrade ' + r.err); await wait(40); }
+r = await a.farmDo({ t: 'pair', a: P[2], b: P[4] });
+if (!r.err) fail('a pet in both nest slots');
+r = await a.farmDo({ t: 'pair', a: P[4], b: P[5] });
+if (r.err || r.farm.nests.length !== 2 || r.farm.nests[1].slot !== 'nest2') fail('second nest slot ' + r.err);
+r = await a.farmDo({ t: 'open', test: { egg: 'ready', give: { wood: 200, fiber: 100 } } });
+while (a.farm.pets.length + 2 > a.farm.room) { await spot('hut'); }
+r = await a.farmDo({ t: 'hatch', slot: 'nest2' });
+if (r.err || r.farm.nests.length !== 1 || r.farm.nests[0].slot !== 'nest') fail('hatch slot two ' + r.err);
+r = await a.farmDo({ t: 'hatch', slot: 'nest' });
+if (r.err || r.farm.nests.length || r.farm.nest) fail('hatch slot one ' + r.err);
+r = await a.farmDo({ t: 'open', test: { rested: true } });
+
+// ----- decorations as gifts, kitchen levels, sunberries, rank experience -----
+r = await b.farmDo({ t: 'visit', id: ana.id, test: { give: { wood: 50 } } });
+r = await b.farmDo({ t: 'gift', id: ana.id, item: 'fence' });
+if (r.err && !/One gift a day/.test(r.err)) fail('decoration gift ' + r.err);
+if (!r.err) {
+  r = await a.farmDo({ t: 'open' }); const dg = r.farm.mail.find(m => m.item === 'fence'); if (!dg) fail('gifted decoration not in the mailbox');
+  if (!a.farm.items.some(i => i.type === 'mailbox')) await spot('mailbox');
+  r = await a.farmDo({ t: 'claim', id: dg.id }); if (r.err || r.farm.stash.fence !== 1) fail('claim decoration ' + r.err);
+  const fw = r.farm.inv.wood; r = { err: 1 }; for (let y = 0; y < 12 && r.err; y++) for (let x = 0; x < 12 && r.err; x++) { r = await a.farmDo({ t: 'place', type: 'fence', x, y, r: 0 }); await wait(30); }
+  if (r.err || r.farm.inv.wood !== fw || r.farm.stash.fence) fail('gifted decoration was not free ' + r.err);
+}
+r = await a.farmDo({ t: 'cook', what: 'pie', test: { give: { sunberry: 10, berries: 30 } } });
+if (!r.err) fail('level 2 recipe in a level 1 kitchen');
+r = await a.farmDo({ t: 'upgrade', id: a.farm.items.find(i => i.type === 'kitchen').id, test: { give: { wood: 100, stone: 100, shells: 10 } } });
+if (r.err) fail('kitchen upgrade ' + r.err);
+r = await a.farmDo({ t: 'cook', what: 'pie' });
+if (r.err || r.farm.inv.pie !== 1) fail('pie ' + r.err);
+r = await a.farmDo({ t: 'upgrade', id: a.farm.items.find(i => i.type === 'garden').id, test: { ripe: true } });
+const sun0 = r.farm.inv.sunberry || 0; r = await a.farmDo({ t: 'pick' });
+if (r.err || r.farm.inv.sunberry !== sun0 + 1) fail('sunberries ' + r.err);
+if (!(a.me?.xp >= 15)) fail('no rank experience from the album ' + JSON.stringify(a.me));
+r = await a.farmDo({ t: 'open', test: { ripe: true } });
 
 // ----- live battles -----
 r = await a.farmDo({ t: 'duel', to: boId, pets: [] });
