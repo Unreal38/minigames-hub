@@ -5,7 +5,7 @@
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex } from './breed.js';
-import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, formOf, xpFor, tripLoot, canAfford, countOf } from './data.js';
+import { ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -115,7 +115,7 @@ export function mount(app, ctx) {
       : t.left > 0 ? `<span class="chip" id="pf-trip">Back from ${z.name} in ${wait(t.left)}</span>`
       : '<button type="button" class="btn big m" data-a="collect">Welcome them back</button>';
     el.innerHTML = `<button type="button" class="btn big" data-a="edit">Edit farm</button>${trip}
-      ${F.garden.ripe ? `<button type="button" class="btn m" data-a="pick">Pick berries (${F.garden.ripe * BERRIES})</button>` : ''}
+      ${F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">Pick berries (${F.garden.ripe * BERRIES})</button>` : ''}
       <button type="button" class="btn w" data-a="map">World map</button>
       <button type="button" class="btn w" data-a="friends">Friends</button>
       <button type="button" class="btn w" data-a="album">Pet Album</button>
@@ -432,7 +432,7 @@ export function mount(app, ctx) {
     const it = ITEMS[g.type];
     el.innerHTML = `<b>${it.name}</b><span class="hint">${g.ok ? 'Drag it, or tap a tile.' : 'It does not fit there.'}</span>
       <button type="button" class="btn sm w" data-a="rot" aria-label="Turn">${I.turn}Turn</button>
-      ${g.id && !it.fixed ? '<button type="button" class="btn sm p" data-a="away">Put away</button>' : ''}
+      ${g.id && !it.fixed ? `<button type="button" class="btn sm p" data-a="away">Sell (${costText(it.cost)} back)</button>` : ''}
       <button type="button" class="btn sm ghost" data-a="cancel">Cancel</button>
       <button type="button" class="btn sm m" data-a="ok" ${g.ok ? '' : 'disabled'}>${g.id ? 'Move here' : 'Place'}</button>`;
     el.classList.toggle('bad', !g.ok);
@@ -477,13 +477,14 @@ export function mount(app, ctx) {
       else if (item.type === 'mailbox') more = `<button type="button" class="btn sm m" data-a="mail">Open mail (${F.mail.length})</button>`;
       else if (item.type === 'nest') more = !F.nest ? '<button type="button" class="btn sm m" data-a="nest">Choose two pets</button>'
         : `<p class="hint">${nestTxt(F.nest)}</p>${F.nest.stage === 'ready' ? '<button type="button" class="btn sm m" data-a="hatch">Hatch the egg</button>' : ''}`;
-      else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="pick">Pick berries (${F.garden.ripe * BERRIES})</button>` : `<p class="hint">Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.</p>`;
+      else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="berries">Pick berries (${F.garden.ripe * BERRIES})</button>` : `<p class="hint">Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.</p>`;
       else if (item.type === 'kitchen') more = `<p class="hint">You have ${F.inv.berries || 0} berries.</p><button type="button" class="btn sm m" data-a="cookopen">Cook treats</button>`;
       else if (item.type === 'barn') more = `<p class="hint">Your farm can hold ${F.cap} of each material.</p>`;
       else if (item.type === 'workshop') more = '<p class="hint">Its decorations are under Edit farm, Decorations.</p><button type="button" class="btn sm m" data-a="sellopen">Sell spare materials</button>';
       else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
-        <button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button></div>
+        <button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button>
+        ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">Sell (${costText(it.cost)} back)</button>`}</div>
         <button type="button" class="round x" data-a="close" aria-label="Close">×</button>`;
     }
   }
@@ -550,7 +551,7 @@ export function mount(app, ctx) {
     else if (a === 'livego') openTeam('live', V);
     else if (a === 'duelno') { ctx.send({ t: 'duelno', id: panel.id }); panel = null; sync(); }
     else if (a === 'duelpick') openTeam('live', { name: panel.from, invite: panel.id });
-    else if (a === 'pick') ctx.send({ t: 'pick' });
+    else if (a === 'berries') ctx.send({ t: 'pick' });
     else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
     else if (a === 'sellopen') { panel = { kind: 'sell' }; card = null; sync(); }
     else if (a === 'cook') { if (b.classList.contains('off')) return ctx.toast('Not enough berries for that yet. Garden Plots grow more every hour.', true); ctx.send({ t: 'cook', what: b.dataset.what }); }
@@ -620,6 +621,7 @@ export function mount(app, ctx) {
     else if (a === 'rot') scene?.ghostRotate();
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
+    else if (a === 'sellitem') { card = null; ctx.send({ t: 'remove', id: +b.dataset.id }); }
     else if (a === 'away') { const g = scene?.ghost(); if (g?.id) { ctx.send({ t: 'remove', id: g.id }); scene.ghostCancel(); } }
     else if (a === 'close') { card = null; paintCard(); }
     else if (a === 'grab') { const id = +b.dataset.id; setEdit(true); scene?.ghostItem(id); }
@@ -681,7 +683,7 @@ export function mount(app, ctx) {
     mode = 'farm';
     if (m.did === 'starter') { sfx.join(); ctx.toast(`${esc(F.pets[0].name)} moved in. Welcome to your farm!`); }
     else if (m.did === 'place' || m.did === 'move') sfx.set();
-    else if (m.did === 'remove') sfx.pop();
+    else if (m.did === 'remove') { sfx.pop(); ctx.toast(m.got ? `Sold. You got ${esc(m.got)} back.` : 'Put away.'); }
     else if (m.did === 'expand') { sfx.join(); ctx.toast(`The farm grew to ${F.size} by ${F.size} tiles.`); }
     else if (m.did === 'send') { sfx.turn(); panel = null; ctx.toast(`Off they go to ${ZONES[F.trip.zone].name}!`); }
     else if (m.did === 'collect') { sfx.win(); card = null; panel = { kind: 'back', back: m.back }; }
