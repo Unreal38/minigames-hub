@@ -80,10 +80,11 @@ function defenders(f) {
   const picked = (f.def || []).map(id => f.pets.find(p => p.id === id)).filter(Boolean);
   return (picked.length ? picked : [...f.pets].sort((a, b) => b.lv - a.lv)).slice(0, PARTY);
 }
+const nameOf = (pid, f) => f.name || profiles.get(pid)?.name || 'A farmer'; // farms saved before names were kept fall back to the profile
 const fid = f => f.fid ||= rid(); // a farm's public name tag, so profile ids never leave the server
 function foes(mine) {
   const out = Object.entries(NPCS).map(([k, n]) => ({ id: 'npc:' + k, name: n.name, pts: n.pts, npc: true, team: n.team.map(sp => ({ sp, lv: ARENA_LV })) }));
-  for (const [pid, f] of farms) if (f !== mine && f.pets.length) out.push({ id: fid(f), name: f.name || 'A farmer', pts: f.pts || 0, team: defenders(f).map(p => ({ sp: p.sp, lv: p.lv, name: p.name })) });
+  for (const [pid, f] of farms) if (f !== mine && f.pets.length) out.push({ id: fid(f), name: nameOf(pid, f), pts: f.pts || 0, team: defenders(f).map(p => ({ sp: p.sp, lv: p.lv, name: p.name })) });
   return out.sort((a, b) => b.pts - a.pts);
 }
 // What the player may see of a fight: everything about their own side, and the other side's faces and health.
@@ -102,7 +103,7 @@ function album(f) {
   return f.album;
 }
 // A farm as its neighbours see it. Nothing here can be changed by the viewer.
-const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: f.name || 'A farmer', color: pr?.color, av: pr?.av, size: f.size, house: f.house || 1, pts: f.pts || 0,
+const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, size: f.size, house: f.house || 1, pts: f.pts || 0,
   items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r })) }; };
 
 // ---------- what the player sees ----------
@@ -276,7 +277,7 @@ export function handle(p, a, reply) {
       if (String(a.foe).startsWith('npc:')) { const n = NPCS[String(a.foe).slice(4)]; if (!n) return; foe = n.name; team = n.team.map((sp, i) => unit(bot(sp, ARENA_LV, i))); }
       else {
         const hit = [...farms].find(([, x]) => x !== f && x.fid === a.foe && x.pets.length); if (!hit) return no('That farm is not around any more.');
-        to = hit[0]; foe = hit[1].name || 'A farmer'; team = defenders(hit[1]).map(x => unit(x, ARENA_LV));
+        to = hit[0]; foe = nameOf(hit[0], hit[1]); team = defenders(hit[1]).map(x => unit(x, ARENA_LV));
       }
       B = newBattle(mine.map(x => unit(x, ARENA_LV)), team, { mode, foe, to });
     } else { // practice partners match the party's size and average level
