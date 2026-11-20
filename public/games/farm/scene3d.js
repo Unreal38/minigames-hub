@@ -490,12 +490,19 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   // A place to explore, shown at the edge of the map. z: { key, name, el, note, out }
   function zoneIsle(z) {
-    const g = new THREE.Group(), land = new THREE.Group(), top = { Leaf: '#6fbf5a', Tide: '#ead9a0', Stone: '#a9a6b0', Ember: '#b5553c', Spark: '#c9d65a' }[z.el] || '#8fd16a';
+    const g = new THREE.Group(), land = new THREE.Group(), top = { Leaf: '#6fbf5a', Tide: '#ead9a0', Stone: '#a9a6b0', Ember: '#b5553c', Spark: '#c9d65a' }[z.el] || '#8fd16a', th = z.theme,
+      top2 = { fruit: '#8fd16a', veggie: '#9a6a4a', bakery: '#e8c890', sweets: '#ffc4dc', weather: '#eef6ff', night: '#5a4a8a' }[th] || top;
     const mk = (geo, c, x = 0, y = 0, zz = 0) => { const m = new THREE.Mesh(geo, flat(c)); m.position.set(x, y, zz); land.add(m); return m; };
-    mk(new THREE.CylinderGeometry(2.3, 1.9, .5, 7), top, 0, -.25); mk(rough(new THREE.ConeGeometry(1.9, 2.6, 7, 2), .3), '#857a72', 0, -1.8).rotation.x = Math.PI;
+    mk(new THREE.CylinderGeometry(2.3, 1.9, .5, 7), top2, 0, -.25); mk(rough(new THREE.ConeGeometry(1.9, 2.6, 7, 2), .3), '#857a72', 0, -1.8).rotation.x = Math.PI;
     const spots = [[-1, -.6], [.9, -.9], [-.3, .9], [1.1, .6], [0, -.1]];
     spots.forEach(([x, zz], i) => {
-      if (z.el === 'Leaf') { mk(new THREE.CylinderGeometry(.09, .09, .5, 5), '#8a5a3c', x, .25, zz); mk(new THREE.ConeGeometry(.5, 1.1 + i * .12, 6), i % 2 ? '#4a9a45' : '#5fb04a', x, 1, zz); }
+      if (th === 'fruit') { mk(new THREE.CylinderGeometry(.09, .11, .6, 5), '#8a5a3c', x, .3, zz); mk(new THREE.IcosahedronGeometry(.55, 1), i % 2 ? '#5fb04a' : '#6cc24f', x, 1, zz); for (let k = 0; k < 4; k++) mk(new THREE.IcosahedronGeometry(.13, 1), ['#ff5a6e', '#ffc93c', '#ff9a3c'][i % 3], x + Math.sin(k * 1.7 + i) * .45, .85 + (k % 2) * .3, zz + Math.cos(k * 1.7 + i) * .45); }
+      else if (th === 'veggie') { mk(new THREE.BoxGeometry(1.1, .1, .3), '#7a4f36', x, .05, zz); for (let k = -1; k <= 1; k++) mk(new THREE.ConeGeometry(.1, .3, 4), '#6cc24f', x + k * .34, .25, zz); if (i === 4) { mk(new THREE.IcosahedronGeometry(.42, 1), '#ff9a2c', x, .34, zz + .5).scale.y = .8; mk(new THREE.CylinderGeometry(.04, .06, .16, 5), '#5fa646', x, .72, zz + .5); } }
+      else if (th === 'bakery') { if (i === 4) { mk(new THREE.BoxGeometry(1, .7, .9), '#c9703c', x, .35, zz); mk(new THREE.IcosahedronGeometry(.56, 1), '#b8603a', x, .7, zz).scale.set(1, .7, .85); mk(new THREE.BoxGeometry(.4, .34, .1), '#3b2a22', x, .28, zz + .46); mk(new THREE.BoxGeometry(.2, .6, .2), '#8a8794', x + .3, 1.2, zz - .2); } else { mk(new THREE.IcosahedronGeometry(.28, 1), i % 2 ? '#e8a85a' : '#c98a4a', x, .16, zz).scale.set(1.5, .7, 1); } }
+      else if (th === 'sweets') { mk(new THREE.CylinderGeometry(.04, .04, .9 + i * .1, 5), '#ffffff', x, .45 + i * .05, zz); const d = mk(new THREE.CylinderGeometry(.34, .34, .1, 12), ['#ff5a6e', '#7cc4ee', '#ffd65a', '#c9b5ff', '#86cc5a'][i], x, 1 + i * .1, zz); d.rotation.x = Math.PI / 2; const e = mk(new THREE.CylinderGeometry(.18, .18, .12, 10), '#ffffff', x, 1 + i * .1, zz); e.rotation.x = Math.PI / 2; }
+      else if (th === 'weather') { if (i < 2) mk(new THREE.ConeGeometry(.6, 1.1 + i * .3, 6), '#cfe0f0', x, .55, zz); else if (i === 2) { mk(new THREE.IcosahedronGeometry(.34, 1), '#ffd21f', x, 1.9, zz); } else if (i === 3) { for (let k = 0; k < 3; k++) mk(new THREE.IcosahedronGeometry(.3 - k * .04, 1), '#ffffff', x + (k - 1) * .34, 1.5 + (k % 2) * .12, zz); mk(new THREE.OctahedronGeometry(.07), '#6fb7e8', x, 1.05, zz).scale.y = 1.8; } else mk(new THREE.CylinderGeometry(.5, .5, .05, 7), '#8fd4ff', x, .03, zz); }
+      else if (th === 'night') { mk(new THREE.OctahedronGeometry(.14 + (i % 2) * .05), '#fff3a0', x, 1 + i * .25, zz).scale.y = 1.5; mk(rough(new THREE.DodecahedronGeometry(.28), .06), '#7a6ab0', x * .8, .2, zz * .8); if (i === 4) { const m = mk(new THREE.TorusGeometry(.5, .16, 6, 12, Math.PI * 1.2), '#ffe27a', 0, 2, 0); m.rotation.z = 1.2; m.scale.z = .6; } }
+      else if (z.el === 'Leaf') { mk(new THREE.CylinderGeometry(.09, .09, .5, 5), '#8a5a3c', x, .25, zz); mk(new THREE.ConeGeometry(.5, 1.1 + i * .12, 6), i % 2 ? '#4a9a45' : '#5fb04a', x, 1, zz); }
       else if (z.el === 'Tide') { if (i < 2) mk(new THREE.CylinderGeometry(.6, .6, .06, 7), '#6fb7e8', x, .03, zz); else mk(new THREE.OctahedronGeometry(.2), i % 2 ? '#ffb6c9' : '#fff3df', x, .16, zz); }
       else if (z.el === 'Stone') { mk(rough(new THREE.DodecahedronGeometry(.45 + i * .08), .08), i % 2 ? '#8a8794' : '#a9a6b0', x, .35, zz); if (i === 4) mk(new THREE.OctahedronGeometry(.22), '#8fe3f5', x, 1, zz); }
       else if (z.el === 'Ember') { mk(new THREE.ConeGeometry(.6, .9 + i * .2, 6), '#7a4a3a', x, .5, zz); if (i > 2) mk(new THREE.OctahedronGeometry(.16), '#ffb547', x, 1.3 + i * .1, zz); }
@@ -513,7 +520,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const put = (f, x, z, mine, i) => { const g = miniIsland(f, mine), y = mine ? 0 : (hash(i, 31) - .5) * 2.4; g.position.set(x, y, z); world.add(g); isles.push({ id: mine ? null : f.id, g, y, ph: i * 1.7, r: mine ? 3.6 : 2.8 }); };
     put(me, 0, 0, true, 0);
     list.forEach((f, i) => { const inner = Math.min(8, list.length), ring = i < 8 ? 0 : 1, cnt = ring ? list.length - 8 : inner, a = ((ring ? i - 8 : i) / cnt) * 6.283 + (ring ? .3 : -.6), d = ring ? 18 : 10.5; put(f, Math.cos(a) * d, Math.sin(a) * d, false, i + 1); });
-    const R = list.length > 8 ? 23 : list.length ? 14.5 : 8; mapFar = list.length > 8 ? 55 : list.length ? 38 : 26;
+    const big = list.length > 8, R = big ? 23 : list.length ? 15.5 : 11; mapFar = (big ? 55 : list.length ? 40 : 32) * (zones.length > 6 ? 1.3 : 1);
     zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = -1 + (hash(i, 77) - .5); g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 });
       if (z.out) { // the party's balloon flies out to the zone, waits there, and is home again when the time is up
         const b = balloonModel(); b.scale.setScalar(.7); world.add(b);
