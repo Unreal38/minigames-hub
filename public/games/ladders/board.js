@@ -4,7 +4,7 @@ export const COLS = 10;
 export const SIZES = { short: 60, classic: 100 };
 export const SPECIALS = ['boost', 'again', 'swap', 'nap'];
 // How long each part of a move takes to play out on screen. The server waits this long before the next turn.
-export const MS = { die: 950, step: 250, ladder: 1150, snake: 1350, special: 850, swap: 1000, end: 450 };
+export const MS = { die: 950, step: 250, ladder: 1150, snake: 1350, special: 850, swap: 1000, end: 450, broken: 1500, crack: 800, stuck: 800 };
 
 export function rng(seed) {
   let a = seed >>> 0 || 1;
@@ -20,7 +20,9 @@ export function cell(n) {
 export const tileAt = (row, col) => row * COLS + (row % 2 ? COLS - 1 - col : col) + 1;
 
 // A fresh random board. Every endpoint sits on its own tile; tile 1 and the goal stay clear.
-export function makeBoard(seed, size = 100, party = true) {
+// Hard mode: a few ladders start broken (you only get halfway and you're stuck a turn) and a few snakes face
+// the other way (you ride up them, but it costs you a turn).
+export function makeBoard(seed, size = 100, party = true, hard = false) {
   const R = rng(seed), N = size, rows = N / COLS, used = new Set([1, N]);
   const free = n => n > 1 && n < N && !used.has(n);
   const rowOf = n => cell(n).row;
@@ -48,8 +50,20 @@ export function makeBoard(seed, size = 100, party = true) {
       used.add(n); specials.push({ at: n, k: SPECIALS[specials.length % SPECIALS.length] });
     }
   }
-  return { seed, size: N, rows, ladders, snakes, specials };
+  if (hard) {
+    const nB = size === 100 ? 2 : 1;
+    ladders.slice(0, nB).forEach(l => { l.broken = true; });
+    // reversed snakes: you step on the tail end and ride up to the head
+    snakes.slice(0, nB).forEach(s => { const h = s.from; s.from = s.to; s.to = h; s.up = true; });
+  }
+  return { seed, size: N, rows, ladders, snakes, specials, hard };
 }
 
-export const jumpAt = (B, n) => B.ladders.find(l => l.from === n) || B.snakes.find(s => s.from === n) || null;
+export const jumpAt = (B, n) => {
+  const l = B.ladders.find(x => x.from === n); if (l) return { ...l, kind: 'ladder', ref: l };
+  const s = B.snakes.find(x => x.from === n); if (s) return { ...s, kind: 'snake', ref: s };
+  return null;
+};
+// Where a broken ladder drops you: halfway along it, counted in tiles.
+export const midTile = (from, to) => from + Math.max(1, Math.round((to - from) / 2));
 export const specialAt = (B, n) => B.specials.find(s => s.at === n)?.k || null;

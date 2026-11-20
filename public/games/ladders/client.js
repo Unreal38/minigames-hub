@@ -100,7 +100,11 @@ export function mount(app, ctx) {
     if (c.k === 'die') { sfx.draw(); }
     else if (c.k === 'hop') sfx.pop();
     else if (c.k === 'ladder') { sfx.set(); big('Ladder!', `${who} climb${c.s === S.me ? '' : 's'} up to ${c.b}`, 1500); }
+    else if (c.k === 'snake' && c.up) { sfx.set(); big('Snake ride!', `${who} ride${c.s === S.me ? '' : 's'} up to ${c.b}`, 1500); }
     else if (c.k === 'snake') { sfx.bad(); sfx.lose(); big('Snake!', `${who} slide${c.s === S.me ? '' : 's'} down to ${c.b}`, 1600); }
+    else if (c.k === 'broken') { sfx.bad(); big('Broken ladder!', `${who} only get${c.s === S.me ? '' : 's'} halfway, to ${c.b}`, 1600); }
+    else if (c.k === 'crack') { sfx.plop(); big('Crack!', 'That ladder just broke', 1300); }
+    else if (c.k === 'stuck') { sfx.lose(); big('Stuck!', `${who} skip${c.s === S.me ? '' : 's'} the next turn`, 1300); }
     else if (c.k === 'special') { sfx.turn(); const t = SP[c.sp][1](c.s === S.me); big(SP[c.sp][0], t && `${who} ${t}`, 1300); }
     else if (c.k === 'swap') { sfx.plop(); big('Switcheroo!', `${who} and ${youOr(c.other)} trade places`, 1500); }
   }
@@ -147,7 +151,7 @@ export function mount(app, ctx) {
 
   function render() {
     if (!S) return;
-    $('sl-round').textContent = `Round ${S.round} · first to ${S.board.size}`;
+    $('sl-round').textContent = `${S.hard ? 'Hard · ' : ''}Round ${S.round} · first to ${S.board.size}`;
     $('sl-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderRoll(); renderBanner();
   }

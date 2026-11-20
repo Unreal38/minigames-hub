@@ -9,7 +9,7 @@ const INK = '#3b2219', PLUM = '#2a1422';
 const U = 1.2, HALF = COLS * U / 2, TOKEN = .3;
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
 const TILE_COLS = ['#fff4e2', '#ffd9c2', '#d8f0e2', '#ffe9a8', '#e6defc'];
-const SNAKE_COLS = [['#6cc96a', '#c8f2b4'], ['#ff7aa0', '#ffd0dc'], ['#8a98ff', '#d8dcff'], ['#ffaa3a', '#ffe2a8'], ['#5cc4e0', '#c8f0fa'], ['#d88ad0', '#f6d4f2']];
+const SNAKE_COLS = [['#6cc96a', '#c8f2b4'], ['#ff7aa0', '#ffd0dc'], ['#8a98ff', '#d8dcff'], ['#7ed3b2', '#d8f6ea'], ['#5cc4e0', '#c8f0fa'], ['#d88ad0', '#f6d4f2']];
 const SP_COL = { boost: '#7ed3b2', again: '#ffb547', swap: '#e8a0e0', nap: '#9aa8ff' };
 // die faces in BoxGeometry material order (+x, -x, +y, -y, +z, -z) and the turn that puts each value on top
 const FACES = [3, 4, 1, 6, 2, 5];
@@ -60,6 +60,16 @@ function boardTexture(B) {
       g.fillStyle = '#3b2219b0'; g.font = `600 ${n === B.size ? 30 : 26}px Fredoka, system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'top';
       g.fillText(String(n), x + 10, y + 8);
       if (k) { g.globalAlpha = .85; drawSpecial(g, k, x + px / 2, y + px * .58, px); g.globalAlpha = 1; }
+      if (B.ladders.some(l => l.broken && l.from === n)) { // a little warning sign at the foot of a broken ladder
+        const cx = x + px - 26, cy = y + px - 26;
+        g.fillStyle = '#ff7a59'; g.strokeStyle = INK; g.lineWidth = 4; g.beginPath(); g.moveTo(cx, cy - 18); g.lineTo(cx + 18, cy + 14); g.lineTo(cx - 18, cy + 14); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = INK; g.fillRect(cx - 2.5, cy - 7, 5, 11); g.fillRect(cx - 2.5, cy + 6, 5, 5);
+      }
+      if (B.snakes.some(sn => sn.up && sn.from === n)) { // gold up-arrow where a reversed snake can be ridden
+        const cx = x + px - 26, cy = y + px - 24;
+        g.fillStyle = '#ffc93c'; g.strokeStyle = INK; g.lineWidth = 4; g.beginPath();
+        g.moveTo(cx, cy - 18); g.lineTo(cx + 15, cy); g.lineTo(cx + 6, cy); g.lineTo(cx + 6, cy + 14); g.lineTo(cx - 6, cy + 14); g.lineTo(cx - 6, cy); g.lineTo(cx - 15, cy); g.closePath(); g.fill(); g.stroke();
+      }
       if (n === B.size) {
         g.fillStyle = '#fff4e2'; g.strokeStyle = INK; g.lineWidth = 5; g.beginPath();
         for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 18 : 40; g.lineTo(x + px / 2 + Math.cos(a) * r, y + px * .58 + Math.sin(a) * r); }
@@ -132,8 +142,13 @@ export function createScene(canvas, { onFrame, onCue }) {
   }
 
   // ---------- board ----------
+  let pendingBoard = null;
+  const sigOf = b => b.seed + '/' + b.size + '/' + b.ladders.map(l => (l.broken ? 1 : 0)).join('');
   function setBoard(b) {
-    if (B && B.seed === b.seed && B.size === b.size) return;
+    if (B && sigOf(B) === sigOf(b)) return;
+    // a ladder that just cracked: keep showing it whole until the climb that broke it has played out
+    if (B && B.seed === b.seed && mv && performance.now() - mvStart < mv.ms) { pendingBoard = b; return; }
+    pendingBoard = null;
     if (boardGroup) { scene.remove(boardGroup); disposeTree(boardGroup); }
     B = b; snakes = []; ladders = [];
     const g = boardGroup = new THREE.Group(); scene.add(g);
@@ -149,16 +164,26 @@ export function createScene(canvas, { onFrame, onCue }) {
     const matTop = new THREE.Mesh(new THREE.CircleGeometry(U * .5, 32), M('#fff4e2', { map: canvasTex(128, 128, c => { c.fillStyle = '#fff4e2'; c.fillRect(0, 0, 128, 128); c.fillStyle = INK; c.font = '700 30px Fredoka, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('START', 64, 66); }) }));
     matTop.rotation.x = -Math.PI / 2; matTop.position.set(mat.position.x, -.195, mat.position.z); g.add(matTop);
     // ladders: two rails arching a little off the board, with rungs
-    const wood = M('#c98b4f', { roughness: .55 }), rung = M('#f0c27a', { roughness: .55 });
+    const wood = M('#c98b4f', { roughness: .55 }), rung = M('#f0c27a', { roughness: .55 }), cracked = M('#a0714a', { roughness: .7 }), splinter = M('#f6d3a0', { roughness: .8 });
     for (const l of B.ladders) {
       const a = tileXZ(l.from), b = tileXZ(l.to), d = b.clone().sub(a), len = d.length(); d.normalize();
       const side = new THREE.Vector3(-d.z, 0, d.x).multiplyScalar(.24);
       const lift = .18 + len * .025, at = (t, s, out = new THREE.Vector3()) => out.copy(a).lerp(b, t).addScaledVector(side, s).setY(.08 + Math.sin(Math.PI * t) * lift);
       const railCurve = s => new THREE.CatmullRomCurve3(Array.from({ length: 9 }, (_, i) => at(i / 8, s)));
-      for (const s of [-1, 1]) { const m = new THREE.Mesh(new THREE.TubeGeometry(railCurve(s), 32, .065, 8), wood); m.castShadow = true; g.add(m); }
+      const railCurve2 = (s, t0, t1) => new THREE.CatmullRomCurve3(Array.from({ length: 6 }, (_, i) => at(t0 + (t1 - t0) * i / 5, s)));
+      const gap = l.broken ? [.4, .6] : null, mat = l.broken ? cracked : wood;
+      for (const s of [-1, 1]) {
+        const parts = gap ? [railCurve2(s, 0, gap[0]), railCurve2(s, gap[1], 1)] : [railCurve(s)];
+        for (const c of parts) { const m = new THREE.Mesh(new THREE.TubeGeometry(c, 20, .065, 8), mat); m.castShadow = true; g.add(m); }
+        if (gap) for (const [t, dirn] of [[gap[0], 1], [gap[1], -1]]) { // splintered ends pointing into the gap
+          const p0 = at(t, s), p1 = at(t + dirn * .04, s), sp = new THREE.Mesh(new THREE.ConeGeometry(.07, .2, 5), splinter);
+          sp.position.copy(p0); sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.sub(p0).normalize()); sp.position.addScaledVector(sp.up.clone().applyQuaternion(sp.quaternion), .09); g.add(sp);
+        }
+      }
       const nR = Math.max(3, Math.round(len / .42));
       for (let i = 1; i < nR; i++) {
         const t = i / nR, p0 = at(t, -1), p1 = at(t, 1), mid = p0.clone().add(p1).multiplyScalar(.5);
+        if (gap && t > gap[0] - .03 && t < gap[1] + .03) continue;
         const m = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, p0.distanceTo(p1), 8), rung);
         m.position.copy(mid); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.clone().sub(p0).normalize()); m.castShadow = true; g.add(m);
       }
@@ -166,15 +191,16 @@ export function createScene(canvas, { onFrame, onCue }) {
     }
     // snakes: a wiggly stripy body from head to tail, with a cute face
     B.snakes.forEach((s, k) => {
-      const a = tileXZ(s.from), b = tileXZ(s.to), d = b.clone().sub(a), len = d.length(); d.normalize();
+      // a is the head end; a reversed snake has its head at the top and is golden so it stands out
+      const a = tileXZ(s.up ? s.to : s.from), b = tileXZ(s.up ? s.from : s.to), d = b.clone().sub(a), len = d.length(); d.normalize();
       const side = new THREE.Vector3(-d.z, 0, d.x), waves = Math.max(2, Math.round(len / 2.2)), amp = Math.min(.7, .3 + len * .04);
       const nP = waves * 2 + 3, pts = Array.from({ length: nP }, (_, i) => {
         const t = i / (nP - 1);
         return a.clone().lerp(b, t).addScaledVector(side, Math.sin(t * waves * Math.PI) * amp * (t < .08 ? 0 : 1)).setY(.13 + Math.sin(t * Math.PI) * .12);
       });
       const curve = new THREE.CatmullRomCurve3(pts);
-      const [c0, c1] = SNAKE_COLS[k % SNAKE_COLS.length];
-      const body = new THREE.Mesh(snakeBody(curve, .17, .07, c0, c1), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .45 }));
+      const [c0, c1] = s.up ? ['#ffc93c', '#fff4e2'] : SNAKE_COLS[k % SNAKE_COLS.length];
+      const body = new THREE.Mesh(snakeBody(curve, .17, .07, c0, c1), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: s.up ? .3 : .45, metalness: s.up ? .25 : 0, emissive: s.up ? '#5a3a00' : '#000000' }));
       body.castShadow = true; g.add(body);
       const head = new THREE.Group(), dir = curve.getTangentAt(0).negate();
       head.position.copy(a).setY(.2);
@@ -222,7 +248,9 @@ export function createScene(canvas, { onFrame, onCue }) {
     let tile = m.from;
     for (const s of m.segs) {
       if (s.t === 'walk') for (const t of s.tiles) { P.push({ k: 'hop', d: MSv.step, a: tile, b: t }); tile = t; }
-      else if (s.t === 'ladder' || s.t === 'snake') { P.push({ k: s.t, d: MSv[s.t], a: s.from, b: s.to }); tile = s.to; }
+      else if (s.t === 'ladder' || s.t === 'snake') { P.push({ k: s.t, d: MSv[s.t], a: s.from, b: s.to, up: s.up }); tile = s.to; }
+      else if (s.t === 'broken') { P.push({ k: 'broken', d: MSv.broken, a: s.from, b: s.to }); tile = s.to; }
+      else if (s.t === 'crack' || s.t === 'stuck') P.push({ k: s.t, d: MSv[s.t], a: s.at ?? tile, tile });
       else if (s.t === 'special') P.push({ k: 'special', d: MSv.special, sp: s.k, a: tile });
       else if (s.t === 'swap') { P.push({ k: 'swap', d: MSv.swap, a: s.b, b: s.a, other: s.with }); tile = s.a; }
     }
@@ -271,7 +299,17 @@ export function createScene(canvas, { onFrame, onCue }) {
     if (cur.k === 'die') return { tile: mv.from, p: tileXZ(mv.from, out) };
     if (cur.k === 'hop') { tileXZ(cur.a, tA); tileXZ(cur.b, tB); out.copy(tA).lerp(tB, u); out.y = Math.sin(Math.PI * u) * .55; return { tile: cur.b, p: out, air: true, hop: 1 - u }; }
     if (cur.k === 'ladder') { const L = ladders.find(l => l.from === cur.a); L.path.getPointAt(ease(u), out); return { tile: cur.b, p: out, air: true }; }
-    if (cur.k === 'snake') { const S = snakes.find(s => s.from === cur.a); S.path.getPointAt(u < .15 ? 0 : ease((u - .15) / .85), out); out.y += .1; return { tile: cur.b, p: out, air: true, wob: u }; }
+    if (cur.k === 'snake') {
+      const S = snakes.find(s => s.from === cur.a), v = u < .15 ? 0 : ease((u - .15) / .85);
+      S.path.getPointAt(S.up ? 1 - v : v, out); out.y += .1; return { tile: cur.b, p: out, air: true, wob: u };
+    }
+    if (cur.k === 'broken') { // climb to the gap, then drop through it onto the tile halfway
+      const L = ladders.find(l => l.from === cur.a);
+      if (u < .62) { L.path.getPointAt(ease(u / .62) * .42, out); return { tile: cur.b, p: out, air: true }; }
+      const v = (u - .62) / .38; L.path.getPointAt(.42, tA); tileXZ(cur.b, tB);
+      out.copy(tA).lerp(tB, v); out.y = tA.y * (1 - v * v) + Math.sin(Math.PI * v) * .3; return { tile: cur.b, p: out, air: true, wob: u };
+    }
+    if (cur.k === 'crack' || cur.k === 'stuck') { tileXZ(cur.tile, out); return { tile: cur.tile, p: out, wob: cur.k === 'stuck' ? u : undefined }; }
     if (cur.k === 'special') return { tile: cur.a, p: tileXZ(cur.a, out), spin: u, sp: cur.sp };
     if (cur.k === 'swap') { tileXZ(cur.a, tA); tileXZ(cur.b, tB); out.copy(tA).lerp(tB, ease(u)); out.y = Math.sin(Math.PI * u) * 1.6; return { tile: cur.b, p: out, air: true }; }
     return null;
@@ -299,12 +337,14 @@ export function createScene(canvas, { onFrame, onCue }) {
     const now = performance.now(), T = now / 1000;
     if (!B) { renderer.render(scene, camera); return; }
     const t = mv ? now - mvStart : 0;
+    if (pendingBoard && (!mv || t >= mv.ms)) setBoard(pendingBoard);
     // cues for sound and pop-ups
     if (mv && mvPlan) while (cueAt < mvPlan.length && t >= mvPlan[cueAt].t0) {
       const p = mvPlan[cueAt++];
-      onCue?.({ k: p.k, s: mv.s, die: mv.die, sp: p.sp, other: p.other, a: p.a, b: p.b, last: !mvPlan[cueAt] });
+      onCue?.({ k: p.k, s: mv.s, die: mv.die, sp: p.sp, other: p.other, a: p.a, b: p.b, up: p.up, last: !mvPlan[cueAt] });
       if (p.k === 'ladder') burstAt(tileXZ(p.b, tmp), '#ffc93c', 16);
-      if (p.k === 'snake') burstAt(tileXZ(p.a, tmp), '#7ed37a', 12);
+      if (p.k === 'snake') burstAt(tileXZ(p.a, tmp), p.up ? '#ffc93c' : '#7ed37a', 12);
+      if (p.k === 'crack' || p.k === 'broken') burstAt(tileXZ(p.a, tmp), '#f6d3a0', 16);
       if (p.k === 'special') burstAt(tileXZ(p.a, tmp), SP_COL[p.sp], 16);
     }
     // where everyone stands: resting tokens share tiles politely
