@@ -66,6 +66,27 @@ body.in-game { overflow: hidden; }
 .pk .shout.show { animation: pkbig 2.2s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes pkbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
+/* hand rankings, left side */
+.pk .ranks { position: absolute; left: 14px; top: 66px; width: 214px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; background: var(--plum2); border: 3px solid var(--line); border-radius: 18px; box-shadow: 0 5px 0 var(--deep); overflow: hidden; z-index: 2; }
+.pk .ranks:not(.open) { width: auto; border-radius: 999px; }
+.pk .ranks:empty { display: none; }
+.pk .rhead { all: unset; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 14px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); flex: none; }
+.pk .rhead:focus-visible { outline: 3px solid var(--lantern); outline-offset: -3px; border-radius: 999px; }
+.pk .rhead i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--line); display: grid; place-items: center; font-size: 17px; line-height: 1; }
+.pk .ranks ol { list-style: none; margin: 0; padding: 0 6px 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.pk .ranks li { padding: 4px 8px 6px; border-radius: 12px; border: 2px solid transparent; }
+.pk .ranks li.now { background: var(--lantern); border-color: var(--ink); color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
+.pk .ranks .rn { display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 1.2; margin-bottom: 3px; }
+.pk .ranks .rn em { font-style: normal; font-family: var(--fd); font-weight: 700; opacity: .55; width: 16px; text-align: right; flex: none; }
+.pk .ranks .rn b { font-family: var(--fd); font-weight: 600; }
+.pk .ranks .you { margin-left: auto; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background: var(--ink); color: var(--lantern); border-radius: 999px; padding: 1px 7px; }
+.pk .ranks .rc { display: flex; gap: 3px; padding-left: 22px; }
+.pcard.xs { --w: 25px; border-width: 1.5px; box-shadow: 0 2px 0 #160a1266; padding: 1px 2px; }
+.pcard.xs b { font-size: 11px; letter-spacing: -.5px; }
+.pcard.xs .ps svg { width: 9px; height: 9px; }
+.pcard.xs .pbig svg { width: 12px; height: 12px; }
+.pcard.dim { opacity: .4; }
+
 /* your cards and buttons */
 .pk .dock { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 14px 22px; flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100vw - 20px); }
 @media (min-width: 1151px) { .pk .dock { max-width: calc(100vw - 600px); min-width: 300px; } }
@@ -124,6 +145,9 @@ body.in-game { overflow: hidden; }
   .pk .acts .row1 .btn { min-width: 0; padding: 10px 16px; font-size: 18px; min-height: 52px; }
   .pk .meinfo .stack { font-size: 17px; }
   .pk .meinfo .hn { font-size: 14px; }
+  .pk .ranks { left: 10px; top: 94px; max-height: calc(100vh - 250px); }
+  .pk .rhead { font-size: 13px; padding: 3px 5px 3px 11px; }
+  .pk .rhead i { width: 19px; height: 19px; font-size: 15px; }
 }
 body:has(.pk) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.pk) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.pk) .chatbtn .lbl, body:has(.pk) .scorebtn .lbl { display: none; } }

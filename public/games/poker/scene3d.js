@@ -347,7 +347,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   // ---------- sizing ----------
-  let W = 0, H = 0, hudBottom = 230;
+  let W = 0, H = 0, hudBottom = 230, hudLeft = 0;
   const camBase = new THREE.Vector3(), camLook = new THREE.Vector3(0, 0, -.3);
   const DIR = new THREE.Vector3(0, 1.05, 1).normalize();
   const v = new THREE.Vector3();
@@ -365,12 +365,12 @@ export function createScene(canvas, { onFrame } = {}) {
     for (let i = 0; i < 32; i++) {
       const D = (lo + hi) / 2; place(D);
       const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]), [lx] = toPx(FIT[2]), [rx] = toPx(FIT[3]);
-      if (fy - ty <= bottom - top && lx >= 4 && rx <= w - 4) hi = D; else lo = D;
+      if (fy - ty <= bottom - top && lx + hudLeft / 2 >= hudLeft + 4 && rx + hudLeft / 2 <= w - 4) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
     scene.fog.near = hi + 2; scene.fog.far = hi + 24;
     const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
-    camera.setViewOffset(w, h, 0, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
+    camera.setViewOffset(w, h, -hudLeft / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
   }
 
   // ---------- loop ----------
@@ -424,6 +424,7 @@ export function createScene(canvas, { onFrame } = {}) {
     hop(i) { if (seats[i]) seats[i].hop = 1; },
     nod(i) { if (seats[i]) seats[i].nod = 1; },
     sparkleAt(i, col) { const s = seats[i]; if (s) sparkle(s.av.position.clone().add(new THREE.Vector3(0, 2.2, 0)), col); },
+    setInset(px) { if (px !== hudLeft) { hudLeft = px; resize(true); } }, // the open hand-rankings panel on the left
     setHud(px) { if (px !== hudBottom) { hudBottom = px; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
