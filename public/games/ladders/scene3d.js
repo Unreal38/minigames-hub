@@ -178,11 +178,13 @@ export function createScene(canvas, { onFrame, onCue }) {
       body.castShadow = true; g.add(body);
       const head = new THREE.Group(), dir = curve.getTangentAt(0).negate();
       head.position.copy(a).setY(.2);
-      head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(dir.x, 0, dir.z).normalize());
+      // the face always turns towards the camera (+z), leaning the way the snake points, and tips up a little so the eyes show
+      head.rotation.order = 'YXZ';
+      head.rotation.set(-.32, Math.max(-1, Math.min(1, Math.atan2(dir.x, Math.abs(dir.z) + .2))), 0);
       const skull = new THREE.Mesh(new THREE.SphereGeometry(.26, 20, 16), M(c0, { roughness: .45 })); skull.scale.set(1.05, .78, 1.3); skull.castShadow = true; head.add(skull);
       for (const sx of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(.085, 12, 10), M('#ffffff', { roughness: .3 })); eye.position.set(sx * .12, .15, .1); head.add(eye);
-        const pup = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), M(INK, { roughness: .2 })); pup.position.set(sx * .125, .17, .17); head.add(pup);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(.085, 12, 10), M('#ffffff', { roughness: .3 })); eye.position.set(sx * .12, .16, .12); head.add(eye);
+        const pup = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), M(INK, { roughness: .2 })); pup.position.set(sx * .125, .18, .19); head.add(pup);
         const blush = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), M('#ff8fab')); blush.scale.set(1, .5, .6); blush.position.set(sx * .2, .02, .2); head.add(blush);
       }
       const tongue = new THREE.Mesh(new THREE.BoxGeometry(.05, .015, .2), M('#e5543b')); tongue.position.set(0, -.04, .38); head.add(tongue);
