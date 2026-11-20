@@ -366,7 +366,7 @@ await a.farmDo({ t: 'open', test: { rested: true } });
 // ----- friends (the site-wide list) -----
 a.err = null; a.send({ t: 'friend', op: 'add', user: 'nobody-here' }); await until(() => a.err, 'unknown friend refused');
 a.err = null; a.send({ t: 'friend', op: 'add', user: 'ana' }); await until(() => a.err, 'adding yourself refused');
-b.friends = null; a.send({ t: 'friend', op: 'add', user: 'BOB' }); await until(() => b.friends, 'friend request');
+b.friends = null; a.send({ t: 'friend', op: 'add', user: 'bo' }); /* the name shown on screen works as well as the username */ await until(() => b.friends, 'friend request');
 if (b.friends.reqs[0]?.user !== 'ana' || b.friends.friends.length) fail('request ' + JSON.stringify(b.friends));
 r = await a.farmDo({ t: 'world' });
 if (r.world.some(x => x.friend)) fail('friends before the request was accepted');
