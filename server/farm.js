@@ -212,7 +212,7 @@ function tradesView(pid, f) {
 // Gardens ripen on their own. A plot with no time on it (built before berries existed) is ripe straight away.
 const ripeIn = it => Math.max(0, (it.at || 0) + growMin(it) * 60_000 - Date.now());
 const gardenView = f => { const g = f.items.filter(i => i.type === 'garden'), wait = g.map(ripeIn).filter(n => n > 0);
-  return { ripe: g.length - wait.length, left: wait.length ? Math.min(...wait) : 0 }; };
+  return { ripe: g.length - wait.length, left: wait.length ? Math.min(...wait) : 0, grow: Object.fromEntries(g.map(i => [i.id, +(1 - ripeIn(i) / (growMin(i) * 60_000)).toFixed(2)])) }; };
 // Materials going into storage stop at the cap. Returns how many fitted. Never takes anything away.
 function store(f, k, n) { const room = STORED.includes(k) ? Math.max(0, capOf(f) - (f.inv[k] || 0)) : Infinity, got = Math.min(n, room); f.inv[k] = (f.inv[k] || 0) + got; return got; }
 // Pet Farm feeds the site-wide rank: a little for battles won against other players, more for each new species.
@@ -501,7 +501,7 @@ export function handle(p, a, reply) {
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
     const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     const [pid, x] = hit, id = fid(x);
-    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x),
+    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x), nests: SLOTS.map(q => nestView(x, q)).filter(Boolean), garden: gardenView(x), train: { ids: x.train?.ids || [] }, trips: parties(x).map(t => ({ left: Math.max(1, t.until - Date.now()) })).filter(t => t.left > 1),
       album: album(x),
       helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
     if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner
