@@ -6,7 +6,7 @@
 //   eggModel(base, speck) -> THREE.Group
 // Each species also owns one signature part (ears, tail, cap...) in FEAT, which a baby can borrow from a parent.
 import * as THREE from 'three';
-import { M, MX, G } from './models.js';
+import { M, MX, G, toonify } from './models.js';
 import { COAT } from './breed.js';
 
 const mat = c => typeof c === 'string' ? M(c) : c;
@@ -617,6 +617,7 @@ export function petModel(sp, form = 0, look = null) {
   if (borrowed) FEAT[borrowed].b(Grp(g, A[FEAT[borrowed].slot], null, A.fs || 1), F, K);
   markings(g, A, look?.pat, K);
   if (look?.spark) for (let i = 0; i < 5; i++) { const a = i * 1.3; Oc(g, .09, GL('#fff6c8', 1), [Math.sin(a) * 1.1, .5 + i * .38, Math.cos(a) * 1.1], [1, 1.7, 1]); }
+  toonify(g, .045);
   g.traverse(m => { if (m.isMesh) m.castShadow = false; });
   g.scale.setScalar(SCALE[F]);
   g.userData = { eyes, k: SCALE[F], flame: null, flames: [] };
@@ -629,6 +630,7 @@ export function eggModel(base = '#fff3df', speck = '#c9a27c') {
   const g = new THREE.Group();
   Sp(g, .5, base, [0, .58, 0], [1, 1.3, 1]);
   for (let i = 0; i < 9; i++) { const a = i * 2.4, e = .5 + (i % 4) * .55; Gm(g, .09, speck, [Math.sin(a) * Math.sin(e) * .49, .58 + Math.cos(e) * .63, Math.cos(a) * Math.sin(e) * .49], [1, .5, 1], [e * Math.cos(a), 0, -e * Math.sin(a)]); }
+  toonify(g, .03);
   return g;
 }
 export const BODYKEYS = Object.keys(BODY);
