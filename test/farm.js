@@ -476,6 +476,15 @@ if (r.farm.palpts < 20) fail('friendship points ' + r.farm.palpts);
 r = await a.farmDo({ t: 'visit', id: boId });
 if (r.err || !r.visit.album || !Object.keys(r.visit.album).length) fail('no album on a visit');
 
+// ----- a gift for every farm, sent from the server's command line -----
+fs.writeFileSync(path.join(DATA_DIR, 'gift-all.json'), JSON.stringify({ mats: { wood: 7, nonsense: 5 }, text: 'Happy weekend' }));
+await until(() => a.farm.mail.some(m => m.from === 'Cozy Table'), 'server-wide gift', 9000);
+const sg = a.farm.mail.find(m => m.from === 'Cozy Table'), sgw = a.farm.inv.wood;
+if (sg.got.wood !== 7 || sg.got.nonsense || sg.text !== 'Happy weekend' || fs.existsSync(path.join(DATA_DIR, 'gift-all.json'))) fail('server gift ' + JSON.stringify(sg));
+r = await b.farmDo({ t: 'open' });
+if (!r.farm.mail.some(m => m.from === 'Cozy Table')) fail('server gift missed a farm');
+if (a.farm.items.some(i => i.type === 'mailbox')) { r = await a.farmDo({ t: 'claim', id: sg.id }); if (r.err || r.farm.inv.wood !== sgw + 7) fail('claim server gift ' + r.err); }
+
 // ----- live battles -----
 r = await a.farmDo({ t: 'duel', to: boId, pets: [] });
 if (!r.err) fail('live battle with no team');

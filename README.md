@@ -60,6 +60,7 @@ The hub has one **friends list** for the whole site (the Friends button in the t
 
 - It needs an account (guests are asked to create one), because the farm is saved to it.
 - Farms are saved in their own file, `pet-farm.json`, next to `cozy-table.json` in `DATA_DIR`. Back up both.
+- To send every player a gift, run `npm run gift -- wood=50 coins=20 "Happy weekend!"` on the machine the server runs on. It lands in every Mailbox within a few seconds, offline players included. If the server uses its own `DATA_DIR` (the systemd unit uses `/var/lib/cozy-table`), run it as `sudo DATA_DIR=/var/lib/cozy-table npm run gift -- ...`.
 - Buildings, costs, land sizes, pets, expedition zones, trip lengths and rewards are all in `public/games/farm/data.js`, shared by the server and the browser. Battle rules, moves and stats are in `public/games/farm/battle.js`, breeding rules in `public/games/farm/breed.js`, and pet models in `public/games/farm/pets3d.js`. The server rules are in `server/farm.js`; models are built in code in `public/games/farm/models.js`.
 
 ## Deploy on an Oracle Cloud server
