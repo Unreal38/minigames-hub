@@ -35,6 +35,32 @@ export const OPT = {
   glasses: ['None', 'Glasses', 'Round glasses', 'Sunglasses'],
   neck: ['None', 'Scarf', 'Bow tie', 'Necklace', 'Tie'],
 };
+
+// ---------- the coin shop ----------
+// Everything above is free forever. Items added here cost coins (the account currency earned by playing) and are
+// appended after the free ones, so saved avatars keep their indexes. PRICE['hat:14'] = 120; no entry means free.
+export const PRICE = {};
+const shop = (k, items, cols) => { for (const [v, price] of items) { (cols || OPT[k]).push(v); PRICE[k + ':' + (OPT[k].length - 1)] = price; } };
+shop('hat', [['Top hat', 120], ['Party hat', 60], ['Pirate hat', 150], ['Viking helmet', 180], ['Halo', 250], ['Propeller cap', 140],
+  ['Frog hat', 160], ['Santa hat', 90], ['Wizard hat', 160], ['Flower crown', 110], ['Devil horns', 120], ['Antennae', 80],
+  ['Cowboy hat', 150], ['Mushroom cap', 140], ['Unicorn horn', 220]]);
+shop('glasses', [['Star glasses', 90], ['Heart glasses', 90], ['Monocle', 110], ['Eye patch', 70], ['Goggles', 120]]);
+shop('neck', [['Gold medal', 150], ['Hero cape', 200], ['Flower lei', 100], ['Bell collar', 70], ['Pearls', 120], ['Bandana', 70]]);
+shop('top', [['Flower shirt', 110], ['Tuxedo', 180], ['Hero suit', 200], ['Knight armour', 220], ['Space suit', 200]]);
+shop('eyes', [['Spiral', 80], ['Closed X', 60], ['Starry', 90]]);
+shop('marks', [['Star sticker', 50], ['Heart cheeks', 60], ['Bandage', 50], ['Whiskers', 70]]);
+shop('mouth', [['Fangs', 60], ['Tongue out', 50], ['Wavy', 40]]);
+shop('shoes', [['Rain boots', 80], ['Roller skates', 140]]);
+shop('hairC', [['#9ff0d0', 60], ['#c9b3ff', 60], ['#ffd700', 80], ['#2bb5a8', 60], ['#c2185b', 60], ['#bcd6f0', 70]]);
+shop('eyeC', [['#e33b3b', 50], ['#ff9ad5', 50], ['#20c4c4', 50], ['#ffd23f', 60]]);
+shop('botC', [['#ff8fab', 30], ['#ffc94d', 30], ['#111111', 30]]);
+shop('shoeC', [['#ff8fab', 30], ['#7ed3b2', 30], ['#a070f0', 30]]);
+
+export const priceOf = (k, i) => PRICE[k + ':' + i] || 0;
+// Takes off anything paid that is not in owned (a list like ['hat:14']), so nobody wears what they have not bought.
+export const wearable = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => PRICE[AV_KEYS[i] + ':' + v] && !have.has(AV_KEYS[i] + ':' + v) ? 0 : v); };
+export const lockedIn = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => AV_KEYS[i] + ':' + v).filter(id => PRICE[id] && !have.has(id)); };
+
 export const AV_KEYS = Object.keys(OPT);
 export const AV_COLOR_KEYS = ['skin', 'eyeC', 'hairC', 'botC', 'shoeC'];
 export const AV_MAX = AV_KEYS.map(k => OPT[k].length - 1);
@@ -69,7 +95,7 @@ function fromOld(a) {
 export const cleanAv = a => Array.isArray(a) && a.length === AV_KEYS.length ? AV_MAX.map((m, i) => int(a[i], m)) : fromOld(a);
 
 export const randomAv = () => {
-  const o = AV_MAX.map(m => Math.random() * (m + 1) | 0), r = (k, p) => { if (Math.random() < p) o[IX[k]] = 0; };
+  const o = AV_KEYS.map(k => { let v; do v = Math.random() * OPT[k].length | 0; while (PRICE[k + ':' + v]); return v; }), r = (k, p) => { if (Math.random() < p) o[IX[k]] = 0; };
   r('facial', .6); r('hat', .6); r('glasses', .65); r('neck', .65); r('marks', .6);
   if (Math.random() < .7) o[IX.hairC] = [0, 1, 2, 3, 10, 11][Math.random() * 6 | 0];
   return o;
