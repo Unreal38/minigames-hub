@@ -66,7 +66,7 @@ const GAMES = {
       <li><b>Party tiles</b>: green zooms you 3 tiles on, orange gives a bonus roll, pink swaps you with the player just ahead, blue makes you nap through your next turn.</li>
       <li>With <b>exact roll</b> on, you need the right number to land on the last tile. Too much and you bounce back.</li>
       <li>First to the last tile wins. Everyone else is ranked by how far they got.</li>
-      <li><b>Hard mode</b>: some ladders are <b>broken</b> (warning sign at the foot): you only climb halfway and you're stuck for a turn. Any ladder can <b>crack</b> after someone climbs it. <b>Golden snakes</b> face the other way: ride up them, but it costs a turn. On a swap tile you <b>must</b> swap, so the leader trades with the player just behind.</li>
+      <li><b>Hard mode</b>: some ladders are <b>broken</b> (warning sign at the foot): you only climb halfway and you're stuck for a turn. Any ladder can <b>crack</b> after someone climbs it. <b>Golden snakes</b> face down the board: land on the head to climb up to the tail, but it costs a turn. On a swap tile you <b>must</b> swap, so the leader trades with the player just behind.</li>
     </ol>`,
   },
   poker: {

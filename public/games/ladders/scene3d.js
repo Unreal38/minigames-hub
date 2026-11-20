@@ -65,7 +65,7 @@ function boardTexture(B) {
         g.fillStyle = '#ff7a59'; g.strokeStyle = INK; g.lineWidth = 4; g.beginPath(); g.moveTo(cx, cy - 18); g.lineTo(cx + 18, cy + 14); g.lineTo(cx - 18, cy + 14); g.closePath(); g.fill(); g.stroke();
         g.fillStyle = INK; g.fillRect(cx - 2.5, cy - 7, 5, 11); g.fillRect(cx - 2.5, cy + 6, 5, 5);
       }
-      if (B.snakes.some(sn => sn.up && sn.from === n)) { // gold up-arrow where a reversed snake can be ridden
+      if (B.snakes.some(sn => sn.up && sn.from === n)) { // gold up-arrow at the head of a reversed snake, where you climb on
         const cx = x + px - 26, cy = y + px - 24;
         g.fillStyle = '#ffc93c'; g.strokeStyle = INK; g.lineWidth = 4; g.beginPath();
         g.moveTo(cx, cy - 18); g.lineTo(cx + 15, cy); g.lineTo(cx + 6, cy); g.lineTo(cx + 6, cy + 14); g.lineTo(cx - 6, cy + 14); g.lineTo(cx - 6, cy); g.lineTo(cx - 15, cy); g.closePath(); g.fill(); g.stroke();
@@ -191,8 +191,9 @@ export function createScene(canvas, { onFrame, onCue }) {
     }
     // snakes: a wiggly stripy body from head to tail, with a cute face
     B.snakes.forEach((s, k) => {
-      // a is the head end; a reversed snake has its head at the top and is golden so it stands out
-      const a = tileXZ(s.up ? s.to : s.from), b = tileXZ(s.up ? s.from : s.to), d = b.clone().sub(a), len = d.length(); d.normalize();
+      // a is the head end (where you step on). A reversed snake faces down the board, head at the bottom and
+      // tail up top, so you climb it from its head to its tail; it is golden so it stands out.
+      const a = tileXZ(s.from), b = tileXZ(s.to), d = b.clone().sub(a), len = d.length(); d.normalize();
       const side = new THREE.Vector3(-d.z, 0, d.x), waves = Math.max(2, Math.round(len / 2.2)), amp = Math.min(.7, .3 + len * .04);
       const nP = waves * 2 + 3, pts = Array.from({ length: nP }, (_, i) => {
         const t = i / (nP - 1);
@@ -301,7 +302,7 @@ export function createScene(canvas, { onFrame, onCue }) {
     if (cur.k === 'ladder') { const L = ladders.find(l => l.from === cur.a); L.path.getPointAt(ease(u), out); return { tile: cur.b, p: out, air: true }; }
     if (cur.k === 'snake') {
       const S = snakes.find(s => s.from === cur.a), v = u < .15 ? 0 : ease((u - .15) / .85);
-      S.path.getPointAt(S.up ? 1 - v : v, out); out.y += .1; return { tile: cur.b, p: out, air: true, wob: u };
+      S.path.getPointAt(v, out); out.y += .1; return { tile: cur.b, p: out, air: true, wob: u };
     }
     if (cur.k === 'broken') { // climb to the gap, then drop through it onto the tile halfway
       const L = ladders.find(l => l.from === cur.a);
