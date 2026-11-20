@@ -1,0 +1,88 @@
+/* Pet Farm: sticker HUD over a bright low-poly farm */
+body.in-game { overflow: hidden; }
+.pf { position: fixed; inset: 0; overflow: hidden; background: #bfe8ff; user-select: none; }
+.pf .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.pf .g3d:active { cursor: grabbing; }
+.pf.flat .g3d { display: none; }
+.pf.flat::before { content: 'The 3D farm could not load on this device.'; position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+
+.pf .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.pf .hud > * { pointer-events: auto; }
+.pf .tl, .pf .tr { position: absolute; top: max(14px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; }
+.pf .tl { left: 14px; flex-wrap: wrap; max-width: calc(100vw - 140px); } .pf .tr { right: 14px; }
+.pf .chip { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.pf .round { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.pf .mats { display: flex; gap: 6px; flex-wrap: wrap; }
+.pf .mat { display: inline-flex; align-items: center; gap: 5px; font-family: var(--fd); font-weight: 600; font-size: 15px; white-space: nowrap; color: var(--ink); }
+.pf .mat i { width: 14px; height: 14px; border-radius: 4px; border: 2px solid var(--ink); flex: none; }
+.pf .mat small { font-size: 12px; font-weight: 500; opacity: .75; }
+.pf .mat.short { color: #c13a26; }
+.pf .mats .mat { background: var(--cream); border: 3px solid var(--ink); border-radius: 999px; padding: 3px 12px 3px 8px; box-shadow: 0 3px 0 #23401c55; }
+.pf .hint { font-size: 14px; color: #6b4a3c; }
+.pf .el { display: inline-block; font-family: var(--fd); font-weight: 600; font-size: 13px; color: #fff; background: var(--c); border-radius: 999px; padding: 1px 10px; }
+.pf img, .pf .nothumb { width: 56px; height: 56px; flex: none; display: block; }
+.pf .nothumb { border-radius: 12px; background: #d8f0d2; }
+.pf .nothumb.grow { display: grid; place-items: center; font-family: var(--fd); font-weight: 700; font-size: 22px; color: var(--ink); background: #8fd16a; border: 3px dashed var(--ink); }
+
+.pf .bl { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: calc(100vw - 28px); }
+
+/* info card for a pet or a building */
+.pf .pcard { position: absolute; right: 14px; bottom: max(16px, env(safe-area-inset-bottom)); width: min(380px, calc(100vw - 28px)); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 6px 0 #23401c66; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+.pf .pcard img { width: 72px; height: 72px; background: #d8f0d2; border-radius: 14px; border: 3px solid var(--ink); }
+.pf .pcard .info { flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.pf .pcard b { font-family: var(--fd); font-size: 20px; font-weight: 600; }
+.pf .pcard p { margin: 0; font-size: 15px; }
+.pf .pcard .x { position: absolute; top: -14px; right: -10px; width: 36px; height: 36px; }
+.pf .namer { display: flex; gap: 6px; width: 100%; }
+.pf .namer .field { flex: 1; min-height: 40px; padding: 4px 10px; font-size: 17px; }
+
+/* edit mode */
+.pf .hud > .dock { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+.pf .dock > * { pointer-events: auto; }
+.pf .build { align-self: stretch; background: var(--cream); color: var(--ink); border-top: 3px solid var(--ink); padding: 10px 14px max(12px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
+.pf .bhead { display: flex; align-items: center; gap: 10px; }
+.pf .bhead .hint { flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf .bhead .pills { flex-wrap: nowrap; gap: 6px; }
+.pf .bhead .pills button { color: var(--ink); border-color: #c9a99a; min-height: 40px; padding: 4px 14px; font-size: 15px; }
+.pf .bhead .pills button[aria-pressed=true] { border-color: var(--ink); }
+.pf .bhead .btn { min-height: 40px; padding: 4px 18px; box-shadow: 0 3px 0 var(--ink); }
+.pf .items { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
+.pf .item { flex: none; width: 124px; background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: 14px; padding: 6px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; text-align: center; transition: transform .12s; }
+.pf .item:active { transform: scale(.95); }
+.pf .item b { font-family: var(--fd); font-weight: 600; font-size: 14px; line-height: 1.15; }
+.pf .item .cost { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; }
+.pf .item .mat { font-size: 13px; } .pf .item .mat small { display: none; } .pf .item .mat i { width: 11px; height: 11px; border-radius: 3px; }
+.pf .item.off { background: #efe2d2; } .pf .item.off img { opacity: .5; }
+.pf .item[aria-pressed=true] { background: var(--lantern); }
+
+.pf .ghostbar { margin-bottom: 4px; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 #23401c66; padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 20px); }
+.pf .ghostbar b { font-family: var(--fd); font-weight: 600; font-size: 17px; }
+.pf .ghostbar.bad .hint { color: #c13a26; font-weight: 700; }
+.pf .ghostbar .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.pf .ghostbar .btn svg { width: 18px; height: 18px; }
+
+/* account and starter panels */
+.pf .gate { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; padding: 16px; background: #bfe8ffaa; }
+.pf .gate.low { align-items: flex-end; background: none; pointer-events: none; }
+.pf .panel { pointer-events: auto; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 8px 0 #23401c66; padding: 22px; width: min(480px, 100%); display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.pf .panel h2 { font-size: 28px; color: var(--ink); }
+.pf .panel p { margin: 0; color: #6b4a3c; }
+.pf .panel.starter { width: min(760px, 100%); padding: 16px 18px; gap: 10px; }
+.pf .starters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.pf .pickpet { background: #fff; color: var(--ink); border: 3px solid var(--ink); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; text-align: center; }
+.pf .pickpet b { font-family: var(--fd); font-weight: 600; font-size: 19px; }
+.pf .pickpet small { font-size: 13px; color: #6b4a3c; line-height: 1.3; }
+.pf .pickpet[aria-pressed=true] { background: var(--lantern); box-shadow: 0 4px 0 var(--ink); transform: translateY(-3px); }
+.pf .panel.starter > .btn { align-self: stretch; }
+
+@media (max-width: 640px) {
+  .pf .mats .mat small { display: none; }
+  .pf .bhead .hint { display: none; } .pf .bhead { justify-content: space-between; }
+  .pf .item { width: 104px; }
+  .pf .pickpet small { display: none; }
+  .pf .pickpet { padding: 8px 4px; } .pf .pickpet b { font-size: 16px; }
+  .pf .pickpet img { width: 44px; height: 44px; }
+  .pf .panel h2 { font-size: 23px; }
+  .pf .pcard { left: 14px; right: 14px; bottom: 92px; width: auto; }
+  .pf .ghostbar .hint { display: none; }
+}

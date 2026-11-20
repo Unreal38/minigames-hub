@@ -12,6 +12,7 @@ import * as ladders from './games/ladders.js';
 import * as poker from './games/poker.js';
 import { cleanAv } from '../public/avatar.js';
 import * as store from './store.js';
+import * as farm from './farm.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -272,6 +273,10 @@ function handle(c, m) {
       const r = rooms.get(c.room); if (r) sendRoom(r);
       return;
     }
+    case 'farm': { // Pet Farm: a persistent game with no table, so it is handled outside the rooms
+      if (m.a?.t === 'crate' && m.a.skip) farm.testSkipCrate(store.profileOf(c.token)?.pid);
+      return farm.handle(store.profileOf(c.token), m.a, msg => send(c, msg));
+    }
     case 'react': { // little food emote shown over your seat
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastReact || 0) < 700) return; c.lastReact = now;
@@ -347,7 +352,8 @@ for (const d of store.load()) {
   fillSeats(r);
   rooms.set(r.code, r);
 }
-const bye = () => { store.saveNow(); process.exit(0); };
+farm.load();
+const bye = () => { store.saveNow(); farm.saveNow(); process.exit(0); };
 process.on('SIGTERM', bye); process.on('SIGINT', bye);
 
 // ---------- game loop & housekeeping ----------

@@ -52,6 +52,14 @@ Open two browser windows (or one normal and one private window) to play against 
 - Someone who joins mid-game can take over a bot's seat (and its chips) from the next hand.
 - The server deals and keeps every hand secret until the showdown, so nobody can peek from devtools.
 
+## Pet Farm
+
+A persistent game rather than a table game: every account owns a small low-poly farm that is still there next visit. So far you pick a starter pet, place and move buildings and decorations on a tile grid, grow the land, and watch your pet wander. Expeditions, battles, friends and breeding come in later stages.
+
+- It needs an account (guests are asked to create one), because the farm is saved to it.
+- Farms are saved in their own file, `pet-farm.json`, next to `cozy-table.json` in `DATA_DIR`. Back up both.
+- Buildings, costs, land sizes and the starter pets are all in `public/games/farm/data.js`, shared by the server and the browser. The server rules are in `server/farm.js`; models are built in code in `public/games/farm/models.js`.
+
 ## Deploy on an Oracle Cloud server
 
 These steps assume an Ubuntu 22.04/24.04 instance; the Always Free Ampere A1 shape is plenty. Replace `example.com` with your domain.

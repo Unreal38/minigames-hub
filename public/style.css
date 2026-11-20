@@ -308,3 +308,6 @@ body:has(.lobby) .scorebtn { display: none; }
 .gcard .pic.pokerpic { background: #2b7a5e; padding: 0; }
 .gcard .pic.pokerpic svg { width: 100%; height: 100%; display: block; }
 .pokerpic .fan { animation: bob 2.6s ease-in-out infinite; animation-delay: var(--d); }
+
+.gcard .pic.farmpic { background: #bfe8ff; padding: 0; }
+.gcard .pic.farmpic svg { width: 100%; height: 100%; display: block; }

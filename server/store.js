@@ -6,7 +6,8 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, levelOf, progress } from '../public/ranks.js';
 
-const DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
+export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
+const DIR = DATA_DIR;
 const FILE = path.join(DIR, 'cozy-table.json');
 const SESSION_TTL = 180 * 86400_000; // forget unused guest sessions after half a year
 
