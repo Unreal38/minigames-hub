@@ -1,6 +1,6 @@
 // Snakes & Ladders 3D view (three.js). Purely visual: it replays the moves the server worked out.
 import * as THREE from 'three';
-import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
+import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { cell, COLS, MS as MSv } from './board.js';
 
@@ -96,8 +96,8 @@ function snakeBody(curve, r0, r1, c0, c1) {
 
 export function createScene(canvas, { onFrame, onCue }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const res = autoResolution(renderer, 1.5); // steps the resolution down if the device can't hold 60 fps
+  renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PLUM); scene.fog = new THREE.Fog(PLUM, 30, 80);
@@ -184,9 +184,11 @@ export function createScene(canvas, { onFrame, onCue }) {
         const blush = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), M('#ff8fab')); blush.scale.set(1, .5, .6); blush.position.set(sx * .2, .02, .2); head.add(blush);
       }
       const tongue = new THREE.Mesh(new THREE.BoxGeometry(.05, .015, .2), M('#e5543b')); tongue.position.set(0, -.04, .38); head.add(tongue);
-      g.add(head);
+      head.userData.dyn = true; g.add(head);
       snakes.push({ ...s, path: curve, head, tongue, k });
     });
+    bake(g); // ladders, rungs, frame and mat collapse into a few meshes
+    renderer.shadowMap.needsUpdate = true;
     seatsKey = ''; // rebuild tokens so they land on the new board
     setSeats(seats);
   }
@@ -282,7 +284,7 @@ export function createScene(canvas, { onFrame, onCue }) {
 
   // ---------- frame loop ----------
   const proj = new THREE.Vector3(), look = new THREE.Vector3(), lookNow = new THREE.Vector3(), want = new THREE.Vector3(), tmp = new THREE.Vector3();
-  let W = 0, H = 0, camInit = false;
+  let W = 0, H = 0, camInit = false, shadowIn = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w === W && h === H) return;
@@ -347,6 +349,8 @@ export function createScene(canvas, { onFrame, onCue }) {
       const b = bursts[i]; b.t += dt; b.v.y -= 9 * dt; b.s.position.addScaledVector(b.v, dt); b.s.material.opacity = 1 - b.t / .9;
       if (b.t > .9) { scene.remove(b.s); b.s.material.dispose(); bursts.splice(i, 1); }
     }
+    shadowIn -= dt; // shadows refresh a few times a second, more often while a token is moving
+    if (shadowIn <= 0) { renderer.shadowMap.needsUpdate = true; shadowIn = mv && t < mv.ms + 300 ? .05 : .3; }
     renderer.render(scene, camera);
     for (const tk of toks) {
       proj.copy(tk.cur); proj.y += 1.1; proj.project(camera);
