@@ -136,6 +136,42 @@ export function logout(token, look) {
   return profiles.get(s.pid);
 }
 
+// ---------- friends ----------
+// Friends are added by username. One side asks, the other accepts; asking someone who already asked you accepts at once.
+const MAX_FRIENDS = 100;
+const lists = p => { p.friends ||= []; p.reqs ||= []; p.sent ||= []; return p; };
+const drop = (a, x) => { const i = a.indexOf(x); if (i >= 0) a.splice(i, 1); };
+export function friendOp(p, op, user) {
+  if (!p?.user) return { err: 'Create an account to add friends.' };
+  const o = profiles.get(users.get(String(user ?? '').trim().toLowerCase()));
+  if (!o) return { err: 'Nobody here has that username.' };
+  if (o === p) return { err: 'That is you!' };
+  lists(p); lists(o);
+  const link = () => { for (const [a, b] of [[p, o], [o, p]]) { drop(a.reqs, b.pid); drop(a.sent, b.pid); if (!a.friends.includes(b.pid)) a.friends.push(b.pid); } };
+  if (op === 'add') {
+    if (p.friends.includes(o.pid)) return { err: `You and ${o.user} are already friends.` };
+    if (p.friends.length >= MAX_FRIENDS) return { err: 'Your friends list is full.' };
+    if (p.reqs.includes(o.pid)) link();
+    else if (p.sent.includes(o.pid)) return { err: `You already asked ${o.user}.` };
+    else { if (o.reqs.length >= MAX_FRIENDS) return { err: 'They have too many requests waiting.' }; p.sent.push(o.pid); o.reqs.push(p.pid); }
+  } else if (op === 'accept') { if (!p.reqs.includes(o.pid)) return { err: 'That request is gone.' }; link(); }
+  else if (op === 'decline' || op === 'remove') { for (const [a, b] of [[p, o], [o, p]]) { drop(a.reqs, b.pid); drop(a.sent, b.pid); drop(a.friends, b.pid); } }
+  else return { err: 'Unknown.' };
+  scheduleSave();
+  return { other: o, now: p.friends.includes(o.pid) };
+}
+export const areFriends = (a, b) => !!profiles.get(a)?.friends?.includes(b);
+export const friendPids = pid => profiles.get(pid)?.friends || [];
+// What a player sees of their friends list. online(pid) and extra(pid) are filled in by the server.
+export function friendsView(p, online = () => false, extra = () => ({})) {
+  lists(p);
+  const card = pid => { const o = profiles.get(pid); return o?.user ? { user: o.user, name: o.name, color: o.color, av: o.av, lv: levelOf(o.xp) } : null; };
+  return {
+    friends: p.friends.map(pid => { const c = card(pid); return c && { ...c, online: online(pid), ...extra(pid) }; }).filter(Boolean).sort((a, b) => b.online - a.online || a.name.localeCompare(b.name)),
+    reqs: p.reqs.map(card).filter(Boolean), sent: p.sent.map(card).filter(Boolean),
+  };
+}
+
 // ---------- scoring ----------
 // Credits one finished game to a profile. Returns what changed, for the "+XP" toast.
 export function credit(p, game, { pts = 0, win = false }) {

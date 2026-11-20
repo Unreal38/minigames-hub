@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { DATA_DIR, profiles } from './store.js';
+import { DATA_DIR, profiles, friendPids } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, GIFTS } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step } from '../public/games/farm/battle.js';
@@ -115,6 +115,8 @@ const battleView = B => ({ mode: B.mode, foe: B.foe, turn: B.turn, need: B.need,
 // ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
 const byFid = id => [...farms].find(([, x]) => x.fid === id);
+// A player's farm tag, for the hub's friends list (null if they have not started a farm).
+export const fidOf = pid => { const f = farms.get(pid); return f?.pets.length ? fid(f) : null; };
 const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key] ||= {}; };
 function post(f, m) { (f.mail ||= []).unshift({ id: rid(), at: Date.now(), ...m }); f.mail.length = Math.min(f.mail.length, MAIL_MAX); }
 // Remembers every species and form this farm has ever owned.
@@ -287,8 +289,10 @@ export function handle(p, a, reply) {
   }
   if (a.t === 'world') { // everyone's islands, most recently active first
     const mine = daily(f, 'help'), gifts = daily(f, 'gift');
-    const others = [...farms].filter(([, x]) => x !== f && x.pets.length).sort((a, b) => (b[1].seen || 0) - (a[1].seen || 0)).slice(0, 24)
-      .map(([pid, x]) => ({ ...look(pid, x), helps: HELPS - (mine[fid(x)] || 0), gift: !gifts[fid(x)], pal: f.pals?.[fid(x)] || 0 }));
+    const pals = new Set(friendPids(p.pid));
+    const others = [...farms].filter(([, x]) => x !== f && x.pets.length).sort((a, b) => pals.has(b[0]) - pals.has(a[0]) || (b[1].seen || 0) - (a[1].seen || 0)).slice(0, 30)
+      .map(([pid, x]) => ({ ...look(pid, x), friend: pals.has(pid), helps: HELPS - (mine[fid(x)] || 0), gift: !gifts[fid(x)], pal: f.pals?.[fid(x)] || 0,
+        open: x.pets.some(q => q.open), egg: !!x.nest && nestView(x).stage !== 'cuddle' }));
     return reply({ t: 'farm', world: others, farm: view(f, p) });
   }
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {

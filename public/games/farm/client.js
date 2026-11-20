@@ -96,7 +96,7 @@ export function mount(app, ctx) {
     const el = $('pf-main');
     if (mode !== 'farm' || edit || B) { el.innerHTML = ''; return; }
     if (where === 'map') {
-      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit' : 'No other farms yet. They appear here when friends start one.'}</span>`;
+      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><button type="button" class="btn w" data-a="friends">Friends</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit' : 'No other farms yet. They appear here when friends start one.'}</span>`;
       return;
     }
     if (where === 'visit' && V) {
@@ -114,6 +114,7 @@ export function mount(app, ctx) {
       : '<button type="button" class="btn big m" data-a="collect">Welcome them back</button>';
     el.innerHTML = `<button type="button" class="btn big" data-a="edit">Edit farm</button>${trip}
       <button type="button" class="btn w" data-a="map">World map</button>
+      <button type="button" class="btn w" data-a="friends">Friends</button>
       <button type="button" class="btn w" data-a="album">Pet Album</button>
       ${F.mail.length ? `<button type="button" class="btn w" data-a="mail">Mail ${F.mail.length}</button>` : ''}
       ${F.nest ? (F.nest.stage === 'ready' ? '<button type="button" class="btn m" data-a="hatch">Hatch the egg</button>' : `<span class="chip" id="pf-nest">${F.nest.stage === 'cuddle' ? 'Egg in' : 'Hatches in'} ${wait(F.nest.left)}</span>`) : ''}`;
@@ -472,6 +473,7 @@ export function mount(app, ctx) {
     else if (a === 'done') setEdit(false);
     else if (a === 'map') { where = 'map'; V = null; world = null; card = null; panel = null; sync(); ctx.send({ t: 'world' }); }
     else if (a === 'gohome') goHome();
+    else if (a === 'friends') ctx.friends?.();
     else if (a === 'help') ctx.send({ t: 'help', id: V.id });
     else if (a === 'giftopen') { panel = { kind: 'gift' }; card = null; sync(); }
     else if (a === 'gift') { if (b.classList.contains('off')) return ctx.toast('You do not have enough of that to give.', true); ctx.send({ t: 'gift', id: V.id, mat: b.dataset.mat }); }
@@ -619,6 +621,8 @@ export function mount(app, ctx) {
     // the account changed (signed in, out, or registered): ask again
     me() { const u = ctx.me()?.user || null; if (u !== user) { user = u; mode = 'load'; F = null; edit = false; sync(); ctx.send({ t: 'open' }); } },
     reopen() { ctx.send({ t: 'open' }); },
+    // walk straight to a friend's farm (from the site's friends list)
+    visit(id) { if (B) return ctx.toast('Finish the battle first.', true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
     destroy() { destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearTimeout(quiet); scene?.dispose(); },
   };
 }
