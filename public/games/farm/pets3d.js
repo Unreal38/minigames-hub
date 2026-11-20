@@ -176,6 +176,31 @@ export const FEAT = {
     if (F === 2) Cy(g, [.4, .42, .09, 8], '#f0b320', [0, -.03, 0]);
     for (let i = 0; i < n; i++) { const a = n === 1 ? 0 : (i / (n - 1) - .5) * 1.9; Oc(g, .13 + (i === n >> 1 ? .05 : 0), GL(cs[i % 3], .6), [Math.sin(a) * .34, .02 + Math.cos(a) * .14, .05], [1, 1.9, 1], [0, 0, -a * .5]); }
   } },
+  bambear: { slot: 'top', name: 'a bamboo shoot', b(g, F) {
+    const n = F + 1;
+    for (let i = 0; i < n; i++) { Cy(g, [.07, .08, .2, 6], i % 2 ? '#86cc5a' : '#6cc24f', [0, .1 + i * .21, 0]); Cy(g, [.088, .088, .03, 6], '#4a9a45', [0, .2 + i * .21, 0]); }
+    leaf(g, [.14, n * .21 + .02, 0], [0, 0, -.6], .8); if (F) leaf(g, [-.14, n * .21 - .08, 0], [0, PI, -.6], .7, '#86cc5a');
+  } },
+  sizzlet: { slot: 'back', name: 'dragon wings', b(g, F, K) {
+    const k = [.5, .85, 1.25][F], c = mix(K.a, '#7a2a2a', .3), m = mix(K.b, '#ffb14a', .4);
+    for (const s of [-1, 1]) { const w = Grp(g, [s * .14, .02, 0], [.25, s * .5, -s * .55], k); Cy(w, [.035, .05, .7, 5], c, [0, .32, 0]); for (let i = 0; i < 3; i++) Oc(w, .3, m, [s * (.15 + i * .1), .44 - i * .17, 0], [1, .55, .08], [0, 0, -s * (.5 + i * .45)]); Co(w, [.05, .14, 4], '#fff3df', [0, .72, 0]); }
+  } },
+  waddlet: { slot: 'top', name: 'a seashell hat', b(g, F) {
+    const s = Grp(g, [0, -.04, 0], [-.25, 0, 0], [.75, .95, 1.15][F]);
+    Sp(s, .34, '#ffb9c4', [0, .1, 0], [1, .6, 1]);
+    for (let i = 0; i < 5; i++) { const a = (i - 2) * .5; Bx(s, [.04, .04, .44], '#fff3f0', [Math.sin(a) * .15, .275 - Math.abs(i - 2) * .035, .02], [0, a, 0]); }
+    Sp(s, .08, '#ffffff', [0, .1, -.32], null, 1); if (F === 2) Sp(s, .09, GL('#fff6ff', .5), [.2, .3, .12], null, 1);
+  } },
+  oinkwatt: { slot: 'tail', name: 'a curly spark tail', b(g, F) {
+    const y = GL('#ffd21f', .6), t = Grp(g, [0, 0, 0], [-.6, 0, 0], [.6, .85, 1.1][F]), n = 7 + F * 2;
+    for (let i = 0; i < n; i++) { const a = i * .9, rr = .16 - i * .008; Sp(t, .078 - i * .003, y, [Math.cos(a) * rr, .06 + i * .06, Math.sin(a) * rr], null, 1); }
+    if (F === 2) Oc(t, .1, GL('#fff3a0', .9), [0, .1 + n * .06, 0], [1, 1.6, 1]);
+  } },
+  tricerock: { slot: 'top', name: 'a stone frill', b(g, F) {
+    const f = Grp(g, [0, -.34, -.3], [-.45, 0, 0], [.65, .85, 1][F]), cs = ['#8fe3ff', '#ffb3d1', '#c9b5ff'];
+    Cy(f, [.6, .6, .1, 9], '#a9a6b0', [0, .3, 0], [PI / 2, 0, 0]);
+    for (let i = 0; i < 5; i++) { const a = (i - 2) * .55; Gm(f, .15, '#8a8794', [Math.sin(a) * .58, .3 + Math.cos(a) * .58, 0], null, [a, i, 0]); if (F === 2 || (F && i % 2 === 0)) Oc(f, .075, GL(cs[i % 3], .6), [Math.sin(a) * .36, .3 + Math.cos(a) * .36, .07], [1, 1.5, .5]); }
+  } },
   pebblet: { slot: 'back', name: 'pebble spines', b(g, F) {
     const n = [3, 6, 9][F], cs = ['#a9a6b0', '#8a8794', '#c4c1c9'];
     for (let i = 0; i < n; i++) { const row = i % 3 - 1, col = Math.floor(i / 3); const p = [row * .34, .08 - Math.abs(row) * .12 - col * .06, -col * .36]; Gm(g, .2 + (i % 2) * .05, cs[i % 3], p, [1, 1.15, 1], [i, i * 2, 0]); if (F === 2 && i % 2 === 0) Oc(g, .11, GL('#8fe3ff', .6), [p[0], p[1] + .28, p[2]], [1, 1.8, 1]); }
@@ -301,6 +326,107 @@ const BODY = {
     if (F) { Oc(g, .13 + F * .03, GL('#8fe3ff', .6), [0, by * 1.25, w * .86], [1, 1.4, .5]); for (const [x, yy, zr] of [[-.3, 1.0, .6], [.34, .7, -.5]]) Bx(g, [.03, .22, .03], st, [x * w, by * yy, w * .88], [0, 0, zr]); }
     A.top = [0, hy + hr * .88, .05]; A.tail = [0, .4, -w * .8]; A.back = [0, by * 1.7, -w * .7]; A.fs = [0, .9, 1][F];
     if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  bambear(g, F, K, X) { // a panda: a ball with ears, then sitting up, then munching on a bamboo stick
+    const dk = '#544a60', r = [.74, .62, .72][F];
+    let A;
+    if (!F) { A = { head: { p: [0, r, 0], r }, body: { p: [0, r, 0], r: [r, r * .95, r] } }; Sp(g, 1, K.a, A.body.p, A.body.r); feet(g, dk, .34, .4, [.28, .18, .34]); }
+    else {
+      const by = r, hr = [0, .62, .66][F], hy = by * 1.75 + hr * .55;
+      A = { head: { p: [0, hy, .12], r: hr }, body: { p: [0, by, 0], r: [r, by, r * .92] } };
+      Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, hr, K.a, A.head.p, [1.08, .95, 1]); Sp(g, r * .62, K.b, [0, by * .85, r * .5], [1, 1.1, .6]);
+      for (const s of [-1, 1]) { Rd(g, [.3, .52, .3], dk, [s * r * .8, by * 1.2, r * .35], [-.7, 0, s * .35]); Rd(g, [.36, .3, .5], dk, [s * r * .55, .16, r * .62]); Sp(g, .07, '#f59ab0', [s * r * .55, .17, r * .9], [1, 1, .4], 1); }
+      if (F === 2) { const st = Grp(g, [r * .5, by * 1.2, r * .85], [.25, 0, -.55]); for (let i = 0; i < 3; i++) Cy(st, [.07, .07, .3, 6], i % 2 ? '#86cc5a' : '#6cc24f', [0, i * .31, 0]); leaf(st, [.14, .78, 0], [0, 0, -.6], .8); }
+    }
+    const h = A.head;
+    Sp(g, .17, dk, [0, .42, -A.body.r[2] * .95]);
+    for (const s of [-1, 1]) { Sp(g, h.r * .3, dk, [s * h.r * .68, h.p[1] + h.r * .72, h.p[2] - .02], [1, 1, .6]); Sp(g, h.r * .25, dk, [s * h.r * .37, h.p[1] + h.r * .05, h.p[2] + h.r * .78], [.9, 1.2, .45], 1).rotation.z = s * .4; }
+    face(g, X.eyes, h.p, h.r, { gap: .36, y: .06, eye: [1.15, 1.05, 1][F], nose: '#3b2f3a' });
+    A.top = [0, h.p[1] + h.r * .88, h.p[2]]; A.tail = [0, .42, -A.body.r[2]]; A.back = [0, A.body.p[1] + A.body.r[1] * .7, -r * .7]; A.fs = [.8, .9, 1][F];
+    if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  sizzlet(g, F, K, X) { // a dragon hatchling: mostly head, then a pot belly, then a first little flame
+    const r = [.5, .64, .72][F], by = [.5, .72, .86][F], hr = [.66, .62, .64][F], horn = '#fff3df', rz = r * .95;
+    const hy = F ? by * 1.75 + hr * .5 : 1.0, hz = .15;
+    const A = { head: { p: [0, hy, hz], r: hr }, body: { p: [0, by, -.05], r: [r, by, rz] } };
+    Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by * .9, rz * .4], [r * .72, by * .78, rz * .72]);
+    Sp(g, hr, K.a, A.head.p, [1.05, .92, 1]); Sp(g, hr * .5, K.a, [0, hy - hr * .25, hz + hr * .75], [1.25, .7, 1]);
+    for (const s of [-1, 1]) {
+      Sp(g, .035, INK, [s * hr * .2, hy - hr * .12, hz + hr * 1.2], null, 1);
+      Co(g, [.09, .26 + F * .08, 5], horn, [s * hr * .45, hy + hr * .82, hz - .1], [-.25, 0, -s * .35]);
+      Rd(g, [.2, .3, .2], K.a, [s * r * .85, by * 1.15, rz * .5], [-.6, 0, s * .3]); Rd(g, [.32, .2, .44], K.a, [s * r * .6, .1, rz * .5]);
+      for (let i = 0; i < 3; i++) Co(g, [.035, .09, 4], horn, [s * r * .6 + (i - 1) * .09, .08, rz * .5 + .25], [PI / 2, 0, 0]);
+    }
+    const tn = 3 + F; for (let i = 0; i < tn; i++) Sp(g, .22 - i * .035, K.a, [0, .2 + i * i * .012, -rz * .8 - i * .2], null, 1);
+    Oc(g, .1, '#ffb14a', [0, .24 + tn * tn * .012, -rz * .8 - tn * .2], [.5, 1.2, 1.4]);
+    for (let i = 0; i < F * 2; i++) { const a = .75 + i * .42; Co(g, [.07, .18, 4], '#ffb14a', [0, by + by * Math.cos(a) * 1.02, -.05 - rz * Math.sin(a) * 1.02], [-a, 0, 0]); }
+    if (F === 2) flame(g, [0, hy - hr * .3, hz + hr * 1.25], .32, [1.35, 0, 0]);
+    face(g, X.eyes, [0, hy + .03, hz], hr, { gap: .4, eye: [1.35, 1.2, 1.1][F], nose: null, mouth: false });
+    A.top = [0, hy + hr * .82, hz - .03]; A.tail = [0, .25, -rz * .8 - tn * .2]; A.back = [0, by * 1.5, -rz * .75]; A.fs = [.7, .9, 1.1][F];
+    if (X.own('back')) X.sig(A.back, A.fs);
+    return A;
+  },
+  waddlet(g, F, K, X) { // a penguin: a grey ball of fluff, then an egg with flippers, then a proud one with yellow crests
+    const r = [.64, .62, .7][F], hgt = [1, 1.3, 1.45][F], y = r * hgt, beak = '#f0a23c', coat = F ? K.a : mix(K.a, '#d5dae2', .7);
+    const A = { head: { p: [0, y * 1.25, .02], r: r * .95 }, body: { p: [0, y, 0], r: [r, y, r * .92] } };
+    Sp(g, 1, coat, A.body.p, A.body.r); Sp(g, 1, K.b, [0, y * .8, r * .2], [r * .8, y * .74, r * .8]);
+    for (const s of [-1, 1]) {
+      Sp(g, r * .42, K.b, [s * r * .3, y * 1.27, r * .58], [1, 1.05, .5]);
+      Rd(g, [.15, y * .8, .4], coat, [s * (r + .03), y * .98, 0], [0, 0, s * (.25 + F * .15)]); Rd(g, [.3, .1, .4], beak, [s * .26, .05, .26]);
+      if (F === 2) Co(g, [.05, .34, 4], '#ffd65a', [s * r * .55, y * 1.66, r * .35], [.2, 0, -s * 1.15]);
+    }
+    Co(g, [.12, .24, 5], beak, [0, y * 1.14, r * .97], [PI / 2, 0, 0], [1.3, 1, .8]);
+    if (!F) tuft(g, [0, y * 1.95, 0], coat, 1); else Co(g, [.14, .3, 4], coat, [0, y * .3, -r * .9], [-2.0, 0, 0], [1.4, 1, .5]);
+    face(g, X.eyes, [0, y * 1.25, .02], r * .95, { gap: .34, eye: [1.4, 1.25, 1.15][F], nose: null, mouth: false, y: .04 });
+    A.top = [0, y * 1.97, 0]; A.tail = [0, y * .35, -r * .9]; A.back = [0, y * 1.5, -r * .6]; A.fs = [.85, .9, 1][F];
+    if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  oinkwatt(g, F, K, X) { // a piglet: a ball with a snout, then four trotters, then a round hog with sparking cheeks
+    const r = [.7, .66, .8][F], hoof = '#e0a84a', pink = mix(K.a, '#ff8fa8', .5);
+    let A;
+    if (!F) { A = { head: { p: [0, r, 0], r }, body: { p: [0, r, 0], r: [r, r * .92, r] }, tail: [0, .55, -r * .95] }; Sp(g, 1, K.a, A.body.p, A.body.r); feet(g, hoof, .3, .35, [.24, .16, .28]); }
+    else {
+      const L = r * 1.15, by = r * .85 + .16;
+      A = { head: { p: [0, by + r * .35, L * .75], r: r * .82 }, body: { p: [0, by, -.1], r: [r, r * .88, L] }, tail: [0, by + .2, -.1 - L * .97] };
+      Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by - r * .25, -.1], [r * .85, r * .68, L * .85]);
+      for (const s of [-1, 1]) for (const z of [L * .45, -L * .6]) { Cy(g, [.14, .12, .3, 7], K.a, [s * r * .5, .2, z]); Cy(g, [.115, .125, .12, 7], hoof, [s * r * .5, .06, z]); }
+      Sp(g, A.head.r, K.a, A.head.p, [1.05, .95, .95]);
+    }
+    const h = A.head;
+    Cy(g, [h.r * .3, h.r * .34, .16, 10], pink, [0, h.p[1] - h.r * .16, h.p[2] + h.r * .92], [PI / 2, 0, 0], [1.2, 1, .9]);
+    for (const s of [-1, 1]) {
+      Sp(g, .04, '#c96a80', [s * h.r * .12, h.p[1] - h.r * .16, h.p[2] + h.r * .92 + .08], [1, 1.3, .5], 1);
+      const e = Grp(g, [s * h.r * .6, h.p[1] + h.r * .7, h.p[2] + .02], [.9, 0, -s * .5]); Co(e, [.2, .36, 4], K.a, [0, .16, 0], null, [1, 1, .5]); Co(e, [.11, .22, 4], pink, [0, .13, .05], null, [1, 1, .4]);
+      if (F) Oc(g, .07 + F * .02, GL('#ffd21f', .7), [s * h.r * 1.08, h.p[1] - h.r * .05, h.p[2] + h.r * .25], [.6, 1.8, .6], [0, 0, s * .5]);
+    }
+    if (F === 2) tuft(g, [0, h.p[1] + h.r * .88, h.p[2] + .1], pink, 1, [.4, 0, 0]);
+    face(g, X.eyes, [h.p[0], h.p[1] + .06, h.p[2]], h.r, { gap: .38, y: .1, eye: [1.3, 1.15, 1.05][F], nose: null, mouth: false });
+    A.top = [0, h.p[1] + h.r * .86, h.p[2]]; A.back = [0, A.body.p[1] + A.body.r[1] * .9, -.15]; A.fs = [.8, .9, 1][F];
+    if (X.own('tail')) X.sig(A.tail);
+    return A;
+  },
+  tricerock(g, F, K, X) { // a baby three-horn: all head and one nub, then four stumpy legs, then proper horns
+    const horn = '#fff3df', st = '#a9a6b0';
+    let A;
+    if (!F) { A = { head: { p: [0, .72, .18], r: .66 }, body: { p: [0, .42, -.3], r: [.46, .4, .52] } }; Sp(g, 1, K.a, A.body.p, A.body.r); feet(g, K.a, .3, .1, [.26, .18, .3]); Co(g, [.2, .4, 5], K.a, [0, .32, -.85], [-PI / 2 - .2, 0, 0]); }
+    else {
+      const L = [0, .7, .88][F], w = [0, .56, .68][F], by = w * .9 + .34;
+      A = { head: { p: [0, by + .22, L * .95], r: [0, .6, .64][F] }, body: { p: [0, by, -.05], r: [w, w * .9, L] } };
+      Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by - w * .28, -.05], [w * .85, w * .66, L * .88]);
+      for (const s of [-1, 1]) for (const z of [L * .5, -L * .55]) { Cy(g, [.17, .19, .46, 7], K.a, [s * w * .55, .23, z]); for (let i = 0; i < 3; i++) Sp(g, .05, horn, [s * w * .55 + (i - 1) * .1, .05, z + .17], null, 1); }
+      Co(g, [w * .5, L * .9, 6], K.a, [0, by - .1, -L - .2], [-PI / 2 - .25, 0, 0]);
+      for (let i = 0; i < F + 2; i++) { const t = .1 - i * .32; Gm(g, .15 - i * .015, st, [0, by + w * .9 * Math.sqrt(1 - t * t) + .03, -.05 + t * L], [1, 1.1, 1], [i, i * 2, 0]); }
+    }
+    const h = A.head;
+    Sp(g, h.r, K.a, h.p, [1.05, .95, 1]); Sp(g, h.r * .5, mix(K.a, '#fff3df', .55), [0, h.p[1] - h.r * .25, h.p[2] + h.r * .72], [1.1, .8, 1.1]);
+    Co(g, [.09, [.14, .22, .3][F], 5], horn, [0, h.p[1] - h.r * .0, h.p[2] + h.r * 1.08], [1.0, 0, 0]);
+    if (F) for (const s of [-1, 1]) Co(g, [.08, [0, .3, .5][F], 5], horn, [s * h.r * .5, h.p[1] + h.r * .78, h.p[2] + h.r * .42], [.7, 0, -s * .3]);
+    face(g, X.eyes, h.p, h.r, { gap: .42, eye: [1.4, 1.25, 1.15][F], nose: null, y: .1 });
+    A.top = [0, h.p[1] + h.r * .86, h.p[2]]; A.tail = [0, A.body.p[1], A.body.p[2] - A.body.r[2]]; A.back = [0, A.body.p[1] + A.body.r[1] * .9, -.15]; A.fs = [.8, .9, 1][F];
+    if (X.own('top')) X.sig(A.top, A.fs * h.r / .64);
     return A;
   },
   mossbun(g, F, K, X) {
