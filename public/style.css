@@ -313,3 +313,29 @@ body:has(.lobby) .scorebtn { display: none; }
 
 .gcard .pic.farmpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.farmpic svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- avatar creator: 3D preview on the left, tabs of options on the right ---------- */
+.avatar { background-size: cover; background-position: center; }
+.sheet:has(.creator) { width: min(860px, 100%); }
+.creator .cmain { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.creator .pvcol { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 0; }
+.creator .pv3d { aspect-ratio: 4 / 5; border-radius: 18px; border: 3px solid var(--ink); background: linear-gradient(#ffe9d2, #ffd3b8); overflow: hidden; touch-action: pan-y; cursor: grab; display: flex; align-items: center; justify-content: center; }
+.creator .pv3d canvas { width: 100%; height: 100%; display: block; }
+.creator .pvbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.creator .pvseg { display: inline-flex; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; }
+.creator .pvseg button { font-family: var(--fd); font-weight: 600; font-size: 15px; padding: 5px 12px; min-height: 36px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+.creator .pvseg button[aria-pressed=true] { background: var(--ink); color: var(--cream); }
+.creator .optcol { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.creator .ctabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 3px dashed #e6cfbd; padding-bottom: 10px; }
+.creator .ctabs button { font-family: var(--fd); font-weight: 600; font-size: 16px; padding: 6px 14px; min-height: 40px; border-radius: 12px; border: 3px solid transparent; background: transparent; color: #6b4a3c; cursor: pointer; }
+.creator .ctabs button[aria-selected=true] { background: var(--ink); color: var(--cream); }
+.creator .crows { display: flex; flex-direction: column; gap: 12px; }
+.creator .pills { gap: 6px; }
+.creator .pills button { min-height: 36px; padding: 3px 11px; font-size: 14.5px; border-width: 2.5px; }
+.creator button:focus-visible { outline: 3px solid var(--chili); outline-offset: 2px; }
+@media (max-width: 700px) {
+  .creator .cmain { grid-template-columns: minmax(0, 1fr); }
+  .creator .pvcol { top: -28px; z-index: 2; background: var(--cream); padding: 8px 0; border-bottom: 3px dashed #e6cfbd; flex-direction: row; align-items: center; }
+  .creator .pv3d { width: 132px; flex: none; }
+  .creator .pvbar { flex-direction: column; align-items: flex-start; }
+}

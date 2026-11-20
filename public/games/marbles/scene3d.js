@@ -1,19 +1,13 @@
 // Marble Rush 3D view (three.js). Purely visual: it replays the positions the server streams.
 import * as THREE from 'three';
 import { makeTrack, world, at, spinAngle, trapOpen, R, DS, DISH, WALL_H, GATE_S } from './track.js';
-import { avatarSvg } from '../../avatar.js';
+import { portrait } from '../../portraits.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 
 const INK = '#3b2219', PLUM = '#2a1422';
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const tmp = [0, 0, 0];
-
-const svgImg = svg => new Promise(res => {
-  const im = new Image();
-  im.onload = () => res(im); im.onerror = () => res(null);
-  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-});
 
 // The marble wears its owner's outfit colour and has their avatar's face on both sides.
 function marbleTexture(color, av) {
@@ -27,12 +21,13 @@ function marbleTexture(color, av) {
     g.fillStyle = '#00000022'; g.fillRect(0, 0, 512, 22); g.fillRect(0, 234, 512, 22);
   };
   base();
-  svgImg(avatarSvg(color, av).replace('<svg ', '<svg width="200" height="200" ')).then(im => {
+  const face = portrait(color, av);
+  (face ? new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = face; }) : Promise.resolve(null)).then(im => {
     if (!im) return;
     for (const cx of [128, 384]) {
       g.save(); g.beginPath(); g.ellipse(cx, 128, 74, 92, 0, 0, 6.3); g.closePath();
       g.fillStyle = '#fff4e2'; g.fill(); g.lineWidth = 7; g.strokeStyle = INK; g.stroke(); g.clip();
-      g.drawImage(im, cx - 80, 128 - 100, 160, 200); g.restore();
+      g.drawImage(im, cx - 88, 128 - 84, 176, 176); g.restore();
     }
     tex.needsUpdate = true;
   });

@@ -5,9 +5,12 @@ import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { progress } from './ranks.js';
-import { avatarHtml, cleanAv, randomAv, SKINS, HAIR_COLS, HAIRS, EXTRAS, EYES, MOUTHS, OUTFITS, DETAILS } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS } from './avatar.js';
 
 export const SITE = 'Cozy Table';
+// The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
+// (with flat stand-in heads) if that fails.
+let P3 = null;
 const COLORS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 const GAMES = {
   hotpot: {
@@ -535,56 +538,71 @@ $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (cha
 function modal(html, dismissable = true) {
   const m = document.createElement('div');
   m.className = 'modal'; m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
-  const close = () => { m.remove(); document.removeEventListener('keydown', onKey); };
+  const api = { el: m, onClose: null };
+  const close = () => { m.remove(); document.removeEventListener('keydown', onKey); api.onClose?.(); api.onClose = null; };
   const onKey = e => { if (e.key === 'Escape' && dismissable) close(); };
   if (dismissable) m.addEventListener('click', e => { if (e.target === m) close(); });
   document.addEventListener('keydown', onKey);
   document.body.append(m);
-  return { el: m, close };
+  api.close = close; return api;
 }
 
 function openProfile(first = false) {
-  let color = st.color, av = st.av.slice();
-  const sw = (k, list, sel) => list.map((c, i) => `<button type="button" style="--c:${c}" aria-label="Option ${i + 1}" aria-pressed="false" data-k="${k}" data-v="${sel === 'hex' ? c : i}"></button>`).join('');
-  const pills = (k, list) => list.map((n, i) => `<button type="button" aria-pressed="false" data-k="${k}" data-v="${i}">${n}</button>`).join('');
-  const { el, close } = modal(`
+  let color = st.color, av = st.av.slice(), tab = 0;
+  const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
+  const sheet = modal(`
     <h2>${first ? 'Who is joining the table?' : 'Your avatar'}</h2>
     <p>${first ? 'No account needed. Pick a name and a look; friends see both at the table.' : 'Change your name and how you look at the table.'}</p>
     <form data-form="profile" class="creator">
-      <div class="preview"><span id="pv"></span>
-        <div class="namecol"><label for="nm">Name</label>
-          <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname">
-          <button type="button" class="btn w sm" data-rand>Surprise me</button></div></div>
-      <div class="cgrid">
-        <div class="crow"><b>Outfit colour</b><div class="swatches">${sw('color', COLORS, 'hex')}</div></div>
-        <div class="crow"><b>Outfit</b><div class="pills">${pills(6, OUTFITS)}</div></div>
-        <div class="crow"><b>Skin</b><div class="swatches">${sw(0, SKINS)}</div></div>
-        <div class="crow"><b>Hair colour</b><div class="swatches">${sw(2, HAIR_COLS)}</div></div>
-        <div class="crow wide"><b>Hair</b><div class="pills">${pills(1, HAIRS)}</div></div>
-        <div class="crow"><b>Eyes</b><div class="pills">${pills(4, EYES)}</div></div>
-        <div class="crow"><b>Mouth</b><div class="pills">${pills(5, MOUTHS)}</div></div>
-        <div class="crow wide"><b>Extra</b><div class="pills">${pills(3, EXTRAS)}</div></div>
-        <div class="crow wide"><b>Face detail</b><div class="pills">${pills(7, DETAILS)}</div></div>
+      <div class="cmain">
+        <div class="pvcol">
+          <div class="pv3d" id="pv"></div>
+          <div class="pvbar">
+            <span class="pvseg"><button type="button" data-cam="0" aria-pressed="true">Body</button><button type="button" data-cam="1" aria-pressed="false">Face</button></span>
+            <button type="button" class="btn w sm" data-rand>Surprise me</button>
+          </div>
+        </div>
+        <div class="optcol">
+          <div class="namecol"><label for="nm">Name</label>
+            <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname"></div>
+          <div class="ctabs" role="tablist">${AV_TABS.map(([n], i) => `<button type="button" role="tab" data-tab="${i}">${n}</button>`).join('')}</div>
+          <div class="crows"></div>
+        </div>
       </div>
       <button class="btn big">${first ? "Let's go" : 'Save'}</button>
       ${first ? '<button type="button" class="btn ghost-ink" data-login>I already have an account</button>' : ''}
     </form>`, !first);
-  const nm = el.querySelector('#nm'), pv = el.querySelector('#pv');
-  const paint = () => {
-    pv.innerHTML = avatarHtml(color, av, 112);
-    el.querySelectorAll('[data-k]').forEach(b => {
-      const k = b.dataset.k;
-      b.setAttribute('aria-pressed', k === 'color' ? b.dataset.v === color : av[+k] === +b.dataset.v);
-    });
+  const { el, close } = sheet;
+  const nm = el.querySelector('#nm'), pv = el.querySelector('#pv'), rows = el.querySelector('.crows');
+  let view = P3?.creatorPreview(pv) || null, open = true;
+  sheet.onClose = () => { open = false; view?.dispose(); };
+  if (!P3) p3Ready.then(() => { if (!open || !P3) return; pv.innerHTML = ''; view = P3.creatorPreview(pv); show(); });
+  const show = () => { if (view) view.set(color, av); else pv.innerHTML = avatarHtml(color, av, 150); };
+  const val = k => k === 'color' ? color : av[KI[k]];
+  const paintRows = () => {
+    el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
+    rows.innerHTML = AV_TABS[tab][1].map(([k, label]) => {
+      const hex = k === 'color', list = hex ? COLORS : OPT[k], sw = hex || AV_COLOR_KEYS.includes(k);
+      return `<div class="crow"><b>${label}</b><div class="${sw ? 'swatches' : 'pills'}">${list.map((v, i) => sw
+        ? `<button type="button" style="--c:${v}" aria-label="${label} ${i + 1}" aria-pressed="${val(k) === (hex ? v : i)}" data-k="${k}" data-v="${hex ? v : i}"></button>`
+        : `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}">${v}</button>`).join('')}</div></div>`;
+    }).join('');
   };
-  paint();
+  paintRows(); show();
   if (first) setTimeout(() => nm.focus(), 50);
   el.addEventListener('click', e => {
     const b = e.target.closest('[data-k]');
-    if (b) { if (b.dataset.k === 'color') color = b.dataset.v; else av[+b.dataset.k] = +b.dataset.v; sfx.pop(); paint(); return; }
+    if (b) {
+      const k = b.dataset.k; if (k === 'color') color = b.dataset.v; else av[KI[k]] = +b.dataset.v;
+      rows.querySelectorAll(`[data-k="${k}"]`).forEach(x => x.setAttribute('aria-pressed', x === b));
+      sfx.pop(); show(); return;
+    }
+    const tb = e.target.closest('[data-tab]'); if (tb) { tab = +tb.dataset.tab; sfx.click(); paintRows(); view?.face(tab === 1); camBtns(tab === 1); return; }
+    const cb = e.target.closest('[data-cam]'); if (cb) { view?.face(cb.dataset.cam === '1'); camBtns(cb.dataset.cam === '1'); return; }
     if (e.target.closest('[data-login]')) { close(); openAccount('login'); return; }
-    if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paint(); pv.firstElementChild?.classList.add('spin'); }
+    if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paintRows(); show(); }
   });
+  const camBtns = face => el.querySelectorAll('[data-cam]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.cam === '1') === face));
   el.querySelector('form').addEventListener('submit', e => {
     e.preventDefault();
     const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16); if (!n) return;
@@ -687,3 +705,4 @@ addEventListener('hashchange', () => {
 
 go('hub');
 connect();
+const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
