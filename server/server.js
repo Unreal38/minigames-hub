@@ -105,6 +105,17 @@ const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
 });
 
 function send(c, msg) { c?.sock?.send(msg); }
+// Live "playing now" + all-time visitor numbers for the hub. Batched so a burst of joins sends one update.
+const statsMsg = () => ({ t: 'stats', online: [...clients.values()].filter(c => c.sock).length, visitors: store.visitorCount() });
+let statsTimer = null, lastStats = '';
+function broadcastStats() {
+  if (statsTimer) return;
+  statsTimer = setTimeout(() => {
+    statsTimer = null;
+    const msg = statsMsg(), key = msg.online + '/' + msg.visitors; if (key === lastStats) return; lastStats = key;
+    for (const c of clients.values()) send(c, msg);
+  }, 1000);
+}
 function broadcastRooms() { const msg = { t: 'rooms', rooms: publicRooms() }; for (const c of clients.values()) if (c.sock && !c.room) send(c, msg); }
 function sendRoom(r) { const info = roomInfo(r); for (const t of r.players) send(clients.get(t), { t: 'room', room: info }); }
 function sendState(r) {
@@ -170,6 +181,7 @@ function handle(c, m) {
       return;
     }
     case 'rooms': return send(c, { t: 'rooms', rooms: publicRooms() });
+    case 'stats': return send(c, statsMsg());
     case 'create': {
       if (!GAMES[m.game]) return;
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
@@ -283,7 +295,9 @@ attach(server, '/ws', sock => {
       c.sock = sock; c.lastSeen = Date.now();
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
       c.id = store.session(token, c).id; store.setLook(token, c); store.scheduleSave();
+      store.visit(token);
       send(c, { t: 'welcome', token, id: c.id, name: c.name });
+      send(c, statsMsg()); broadcastStats();
       send(c, { t: 'me', me: store.me(store.profileOf(token)) });
       const r = rooms.get(c.room);
       if (r) {
@@ -299,7 +313,7 @@ attach(server, '/ws', sock => {
   sock.on('close', () => {
     clearInterval(refill);
     if (!c || c.sock !== sock) return;
-    c.sock = null; c.lastSeen = Date.now();
+    c.sock = null; c.lastSeen = Date.now(); broadcastStats();
     const r = rooms.get(c.room); if (r) sendRoom(r);
   });
 });

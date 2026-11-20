@@ -103,6 +103,8 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby();
+  } else if (m.t === 'stats') {
+    st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats();
   } else if (m.t === 'auth') {
     onAuth?.(m);
   } else if (m.t === 'rooms') {
@@ -226,6 +228,7 @@ function renderHub() {
           <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
           <button class="btn m">Join</button>
         </form>
+        <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
       </div>
       <div class="art">${tableArt()}</div>
     </section>
@@ -264,6 +267,14 @@ function renderHub() {
   renderTables();
   if (!st.name) openProfile(true);
 }
+
+// "3 playing now · 128 visitors so far" under the hero buttons.
+function statsHtml() {
+  const s = st.stats; if (!s) return '';
+  const n = x => x.toLocaleString();
+  return `<span class="on"><i></i><b>${n(s.online)}</b> ${s.online === 1 ? 'person' : 'people'} here now</span><span><b>${n(s.visitors)}</b> ${s.visitors === 1 ? 'visitor' : 'visitors'} so far</span>`;
+}
+function paintStats() { const el = document.getElementById('live-stats'); if (el) el.innerHTML = statsHtml(); }
 
 function renderTables() {
   const el = document.getElementById('tables-list'); if (!el) return;
