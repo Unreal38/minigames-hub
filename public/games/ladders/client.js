@@ -88,7 +88,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tag${i === S.me ? ' mine' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : esc(p.name)}</b></div>`).join('');
+    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="sl-tag${i === S.me ? ' sl-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : esc(p.name)}</b></div>`).join('');
     tagEls = [...tagsEl.children];
   }
 
