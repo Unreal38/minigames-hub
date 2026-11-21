@@ -366,20 +366,31 @@ function paintMe() {
   const cs = document.querySelector('.coinslot'); if (cs && st.me) cs.textContent = st.me.coins;
 }
 
+// Day or night: the sky look comes in both. Saved per browser; first visit follows the system setting.
+let heroMod = null; // the hub's 3D hero module, loaded on first visit to the hub
+const isNight = () => document.body.classList.contains('night');
+function setNight(on, save) {
+  document.body.classList.toggle('night', on);
+  if (save) LS.set('ct_theme', on ? 'night' : 'day');
+  document.querySelectorAll('.themebtn').forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? 'Switch to day' : 'Switch to night'; });
+  heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {});
+}
+{ const t = LS.get('ct_theme', ''); setNight(t ? t === 'night' : matchMedia('(prefers-color-scheme: dark)').matches, false); }
+
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
+  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
-let heroMod = null;
 function mountSkyHero() {
   const box = document.querySelector('.hero .art'); if (!box) return;
   box.classList.add('sky3d');
-  (heroMod ||= import('./hero3d.js')).then(m => { if (box.isConnected) m.mountHero(box, st.color, st.av); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av); }).catch(() => {});
 }
 function renderHub() {
   $app.innerHTML = `${topbar()}
@@ -556,7 +567,7 @@ function renderTables() {
 }
 
 function renderLobby() {
-  document.body.classList.remove('sky');
+  document.body.classList.add('sky');
   const r = st.room; if (!r) return go('hub');
   const host = r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = gm.seats(r);
   const seated = r.players.filter(p => !p.watch);
@@ -899,6 +910,7 @@ $app.addEventListener('click', e => {
     const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
+  else if (act === 'theme') { setNight(!isNight(), true); sfx.click(); }
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });

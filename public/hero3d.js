@@ -6,7 +6,8 @@ import { avatar3d, animateAvatar, disposeAvatar } from './avatar3d.js';
 import { toonify, toonMat, island, birds, petals, createFx, CONF } from './scenery3d.js';
 import { frameLoop, autoResolution } from './frames.js';
 
-let H = null;
+let H = null, night = false;
+export function setHeroNight(on) { night = on; H?.setNight(on); }
 
 function build() {
   const canvas = document.createElement('canvas'); canvas.className = 'hero3d'; canvas.setAttribute('aria-hidden', 'true');
@@ -14,7 +15,7 @@ function build() {
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, .1, 200);
-  scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2));
+  const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2); scene.add(hemi);
   const key = new THREE.DirectionalLight('#ffffff', 1.5); key.position.set(5, 12, 8); key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 40 }); key.shadow.normalBias = .03; scene.add(key);
 
@@ -71,7 +72,12 @@ function build() {
     renderer.render(scene, camera);
   };
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
-  return { canvas, setAvatar, ticker };
+  function setNight(on) { // moonlight: cooler and dimmer, lamps glowing
+    hemi.color.set(on ? '#9aa6ff' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : '#ffe9c9'); hemi.intensity = on ? 1.35 : 2;
+    key.color.set(on ? '#c8d0ff' : '#ffffff'); key.intensity = on ? .9 : 1.5;
+  }
+  setNight(night);
+  return { canvas, setAvatar, setNight, ticker };
 }
 
 export function mountHero(box, color, av) {
