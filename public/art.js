@@ -51,7 +51,7 @@ export function marbleArt() {
     <path d="M${x - r * .7} ${y + r * .3}q${r * .5} ${-r * .9} ${r * 1.3} ${-r * .8}" fill="none" stroke="#fff" stroke-width="${r * .22}" stroke-linecap="round" opacity=".7"/>
     <circle cx="${x - r * .34}" cy="${y - r * .38}" r="${r * .14}" fill="#fff" opacity=".85"/></g>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Three coloured marbles rolling down a ramp">
-  <rect width="320" height="150" fill="#bfe8ff"/><path d="M196 30l14-8 16 4 8 10-10 8h-24z" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" fill="#fff"/>
+  <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g><path d="M196 30l14-8 16 4 8 10-10 8h-24z" class="artcloud" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" class="artcloud" fill="#fff"/>
   <circle cx="40" cy="26" r="7" fill="#ffb547"/><circle cx="278" cy="36" r="6" fill="#ff8fab"/><circle cx="168" cy="16" r="5" fill="#7ed3b2"/>
   <path d="M-10 66L330 132v30H-10z" fill="#f6e3c5" stroke="${ink}" stroke-width="4"/>
   <path d="M-10 54L330 120" stroke="#e5543b" stroke-width="12" stroke-linecap="round"/><path d="M-10 54L330 120" stroke="${ink}" stroke-width="4" fill="none" transform="translate(0 -7)"/>
@@ -68,7 +68,7 @@ export function laddersArt() {
   }
   const rungs = [0, 1, 2, 3, 4, 5].map(i => { const t = (i + .5) / 6, x = 46 + t * 70, y = 108 - t * 84; return `<path d="M${x - 9} ${y - 5}L${x + 9} ${y + 5}" stroke="#f0c27a" stroke-width="4" stroke-linecap="round"/>`; }).join('');
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little board with a wooden ladder and a smiling green snake">
-  <rect width="320" height="150" fill="#bfe8ff"/><path d="M196 30l14-8 16 4 8 10-10 8h-24z" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" fill="#fff"/>
+  <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g><path d="M196 30l14-8 16 4 8 10-10 8h-24z" class="artcloud" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" class="artcloud" fill="#fff"/>
   <circle cx="30" cy="22" r="6" fill="#ffb547"/><circle cx="292" cy="28" r="7" fill="#ff8fab"/><circle cx="300" cy="120" r="5" fill="#7ed3b2"/>
   <g transform="translate(40 12) skewX(-8)">
     <rect x="-6" y="-6" width="284" height="132" rx="10" fill="#c4885a" stroke="${ink}" stroke-width="4"/>
@@ -118,7 +118,7 @@ export function ludoArt() {
   const yard = (x, y, c) => `<rect x="${x + 3}" y="${y + 3}" width="48" height="48" rx="5" fill="${c}" ${o}/><rect x="${x + 13}" y="${y + 13}" width="28" height="28" rx="3" fill="#fff4e2"/>`;
   const pawn = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" ${o}><path d="M-11 0h22v6h-22zM-7 0l4-16h6l4 16zM0-31l8 6-3 9h-10l-3-9z" fill="${c}"/></g>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A Ludo board with coloured corners, chunky pawns and a die">
-  <rect width="320" height="150" fill="#bfe8ff"/><path d="M196 30l14-8 16 4 8 10-10 8h-24z" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" fill="#fff"/>
+  <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g><path d="M196 30l14-8 16 4 8 10-10 8h-24z" class="artcloud" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" class="artcloud" fill="#fff"/>
   <circle cx="26" cy="24" r="6" fill="#ffc93c"/><circle cx="298" cy="122" r="6" fill="#5fd08a"/><circle cx="290" cy="22" r="5" fill="#ff6b6b"/>
   <g transform="translate(92 6) rotate(-6 68 68)">
     <rect x="-5" y="-5" width="145" height="145" rx="9" fill="#7a4a2b" ${o}/>
@@ -134,9 +134,9 @@ export function ludoArt() {
 export function farmArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <rect width="320" height="150" fill="#bfe8ff"/>
-    <path d="M36 40l14-8 16 4 8 10-10 8H44z" fill="#fff"/><path d="M236 28l12-6 14 4 6 8-8 6h-18z" fill="#fff"/>
-    <path d="M0 122h320v28H0z" fill="#7fcdf0"/>
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M36 40l14-8 16 4 8 10-10 8H44z" class="artcloud" fill="#fff"/><path d="M236 28l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 122h320v28H0z" class="artsea" fill="#7fcdf0"/>
     <path d="M30 104l40-22h190l34 22-40 26H74z" fill="#8fd16a" ${o}/>
     <path d="M30 104l44 26h180l40-26v10l-40 26H74l-44-26z" fill="#b98a5e" ${o}/>
     <g ${o}><path d="M196 92V62h54v30z" fill="#f4e3c1"/><path d="M188 64l35-24 35 24z" fill="#d9584e"/><path d="M216 92V74h14v18z" fill="#8a5a3c"/><path d="M236 70h9v9h-9z" fill="#bfe6fb"/></g>
@@ -156,9 +156,9 @@ export function stackArt() {
   // an isometric-ish block: front face plus a lighter top
   const blk = (x, y, c) => `<path d="M${x} ${y}h52v15h-52z" fill="${c}" ${o}/><path d="M${x} ${y}l9-7h52l-9 7z" fill="#fff" fill-opacity=".45" ${o}/><path d="M${x + 52} ${y}l9-7v15l-9 7z" fill="#3b2219" fill-opacity=".22" ${o}/>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A wobbly tower of coloured blocks with another block floating down on a balloon">
-    <rect width="320" height="150" fill="#bfe8ff"/>
-    <path d="M30 44l14-8 16 4 8 10-10 8H38z" fill="#fff"/><path d="M246 34l12-6 14 4 6 8-8 6h-18z" fill="#fff"/><path d="M262 104l10-5 12 3 5 7-7 5h-15z" fill="#fff"/>
-    <path d="M0 128h320v22H0z" fill="#7fcdf0"/>
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M30 44l14-8 16 4 8 10-10 8H38z" class="artcloud" fill="#fff"/><path d="M246 34l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/><path d="M262 104l10-5 12 3 5 7-7 5h-15z" class="artcloud" fill="#fff"/>
+    <path d="M0 128h320v22H0z" class="artsea" fill="#7fcdf0"/>
     <path d="M70 124l30-12h110l30 12-34 16h-102z" fill="#8fd16a" ${o}/>
     <path d="M118 112h74v12h-74z" fill="#a9a6b0" ${o}/>
     ${off.map((d, i) => blk(129 + d, 97 - i * 15, cols[i])).join('')}
@@ -174,8 +174,8 @@ export function golfArt() {
   let tiles = '';
   for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) tiles += `<path d="M${62 + c * 24 - r * 12} ${78 + r * 16}h24l-12 16h-24z" fill="${(r + c) % 2 ? '#7fd457' : '#8cdc62'}"/>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A blocky mini golf green with a flag, a windmill and a ball rolling to the cup">
-    <rect width="320" height="150" fill="#8fd6f7"/>
-    <path d="M30 34h34v10H30zM46 26h26v10H46z" fill="#fff"/><path d="M244 22h30v9h-30zM232 30h28v9h-28z" fill="#fff"/>
+    <rect class="artsky" width="320" height="150" fill="#8fd6f7"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M30 34h34v10H30zM46 26h26v10H46z" class="artcloud" fill="#fff"/><path d="M244 22h30v9h-30zM232 30h28v9h-28z" class="artcloud" fill="#fff"/>
     <path d="M26 126l36-48h216l-36 48z" fill="#5fbf58" ${o}/><path d="M26 126h216v12H26z" fill="#a86a42" ${o}/><path d="M242 126l36-48v12l-36 48z" fill="#8a5433" ${o}/>
     ${tiles}
     <path d="M26 126l36-48h216l-36 48z" fill="none" stroke="#f7e3c0" stroke-width="7" stroke-linejoin="round"/><path d="M26 126l36-48h216l-36 48z" fill="none" ${o}/>
@@ -192,8 +192,8 @@ export function diceArt() {
   const pip = (x, y, r = 3.2, c = '#3b2219') => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
   const die = (x, y, rot, pips, cls = '') => `<g class="${cls}" transform="rotate(${rot} ${x + 17} ${y + 17})"><rect x="${x}" y="${y}" width="34" height="34" rx="8" fill="#fff8ec" ${o}/>${pips.map(([px, py, r, c]) => pip(x + px, y + py, r, c)).join('')}</g>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A dice cup tipped over a round table with three dice tumbling out">
-    <rect width="320" height="150" fill="#bfe8ff"/>
-    <path d="M26 40l14-8 16 4 8 10-10 8H34z" fill="#fff"/><path d="M250 30l12-6 14 4 6 8-8 6h-18z" fill="#fff"/>
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M26 40l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M250 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
     <ellipse cx="160" cy="132" rx="150" ry="34" fill="#b9794a" ${o}/><ellipse cx="160" cy="126" rx="138" ry="28" fill="#3f9f96" ${o}/>
     <g class="dcup" style="transform-origin:96px 96px"><path d="M58 104l22-62 54 20-30 58z" fill="#ff8fab" ${o}/><path d="M64 88l50 18-6 11-48-17z" fill="#3b2219" fill-opacity=".22"/><ellipse cx="81" cy="112" rx="26" ry="11" transform="rotate(20 81 112)" fill="#c95f7c" ${o}/></g>
     ${die(140, 92, -12, [[10, 10], [24, 24], [17, 17]])}${die(188, 80, 14, [[17, 17, 5, '#e5543b']], 'ddie')}${die(232, 98, -6, [[10, 10], [24, 10], [10, 24], [24, 24], [17, 17]])}
