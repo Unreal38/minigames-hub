@@ -375,3 +375,32 @@ body:has(.lobby) .scorebtn { display: none; }
 @media (max-width: 560px) { .me.coinbtn small { display: none; } }
 .creator .cart { position: sticky; bottom: -18px; z-index: 3; box-shadow: 0 -8px 0 var(--cream); }
 .creator .cartitem .btn .cn { margin-right: .3em; }
+
+/* ---------- global rankings on the hub ---------- */
+.rkcard { background: var(--plum2); border: 3px solid var(--line); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.rktabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 2px 4px 4px; }
+.rktabs::-webkit-scrollbar { display: none; }
+.rktabs button { flex: none; font-family: var(--fd); font-weight: 600; font-size: 15px; padding: 8px 14px; min-height: 44px; border-radius: 12px; border: 3px solid var(--dash); background: transparent; color: var(--cream); cursor: pointer; white-space: nowrap; }
+.rktabs button[aria-selected=true] { border-color: var(--ink); background: var(--lantern); color: var(--ink); }
+.rknote { margin: 0; font-size: 14px; color: var(--muted); }
+.rk { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rk li { display: grid; grid-template-columns: 30px 36px minmax(0, 1fr) auto; grid-template-areas: "pos av who main" "pos av who sub"; align-items: center; column-gap: 12px; row-gap: 2px; background: var(--plum); border-radius: 14px; padding: 8px 14px 8px 10px; min-height: 56px; }
+.rk li.you { outline: 3px solid var(--lantern); background: var(--deep); }
+.rk li.gap { display: block; min-height: 0; padding: 0; background: none; text-align: center; color: var(--muted); letter-spacing: 4px; }
+.rk .pos { grid-area: pos; font-family: var(--fd); font-weight: 700; font-size: 18px; text-align: center; color: var(--lantern); font-variant-numeric: tabular-nums; }
+.rk .avatar { grid-area: av; }
+.rk .who { grid-area: who; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rk .who > b { font-family: var(--fd); font-weight: 600; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk .who em { font-style: normal; color: var(--lantern); font-weight: 600; }
+.rk .who > span { display: flex; gap: 6px; align-items: center; }
+.rk .who i { font-style: normal; font-size: 12px; color: var(--muted); border: 1px solid var(--dash); border-radius: 999px; padding: 1px 7px; }
+.rk .lv { font-size: 12px; padding: 2px 7px; }
+.rk .main { grid-area: main; justify-self: end; align-self: end; font-family: var(--fd); font-weight: 600; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rk .sub { grid-area: sub; justify-self: end; align-self: start; font-size: 13px; color: var(--muted); white-space: nowrap; }
+@media (max-width: 520px) {
+  .rkcard { padding: 12px; border-radius: 20px; }
+  .rk li { grid-template-columns: 24px 36px minmax(0, 1fr) auto; grid-template-areas: "pos av who main" "pos av sub sub"; column-gap: 8px; padding: 8px 10px 8px 6px; }
+  .rk .pos { font-size: 16px; }
+  .rk .main { font-size: 16px; align-self: center; }
+  .rk .sub { justify-self: start; font-size: 12px; white-space: normal; }
+}

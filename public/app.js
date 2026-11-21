@@ -122,6 +122,7 @@ const LS = {
 const st = {
   name: LS.get('ct_name', ''), color: LS.get('ct_color', COLORS[Math.random() * COLORS.length | 0]),
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
+  rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -187,6 +188,7 @@ function onMsg(m) {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); // back after a dropped connection
+    if (st.view === 'hub') send({ t: 'rankings', game: st.rkTab });
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -216,6 +218,8 @@ function onMsg(m) {
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
+  } else if (m.t === 'rankings') {
+    st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
   } else if (m.t === 'stats') {
     st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats();
   } else if (m.t === 'auth') {
@@ -343,7 +347,7 @@ function paintMe() {
 
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
-  <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
+  <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
@@ -427,6 +431,13 @@ function renderHub() {
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
       </div>
     </section>
+    <section id="rankings" style="margin-top:44px">
+      <div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:14px"><h2 style="margin:0">Rankings</h2><span style="font-size:14px;color:var(--muted)">Everyone on Cozy Table · bots don't count</span></div>
+      <div class="rkcard">
+        <div class="rktabs" role="tablist" aria-label="Rankings by game">${RK_TABS.map(([id, n]) => `<button type="button" role="tab" data-act="rktab" data-tab="${id}" aria-selected="${id === st.rkTab}">${n}</button>`).join('')}</div>
+        <div id="rk-body" role="tabpanel">${rankingsHtml()}</div>
+      </div>
+    </section>
     <section id="tables" style="margin-top:44px">
       <div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:14px"><h2 style="margin:0">Open tables</h2><span style="font-size:14px;color:var(--muted)">Updates live</span></div>
       <div class="tables" id="tables-list"></div>
@@ -434,7 +445,46 @@ function renderHub() {
   </main>
   <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
   renderTables();
+  send({ t: 'rankings', game: st.rkTab });
   if (!st.name) openProfile(true);
+}
+
+// ---------- global rankings ----------
+// One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
+const RK_TABS = [['overall', 'Overall'], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['farm', 'Pet Farm']];
+const RK_NOTE = {
+  overall: 'Ranked by XP from every game. Wins earn the most.',
+  marbles: 'Ranked by bets won, then by coins won overall.',
+  farm: 'The Pet Farm ladder: points from Arena battles against other farms.',
+  default: 'Ranked by wins, then win rate.',
+};
+const plural = (n, one, many = one + 's') => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+function rkStat(game, r) {
+  if (game === 'overall') return [`${r.xp.toLocaleString()} XP`, `${plural(r.wins, 'win')} · ${plural(r.games, 'game')}`];
+  if (game === 'farm') return [plural(r.pts, 'pt'), `${plural(r.pets, 'pet')} · best Lv ${r.top}`];
+  if (game === 'marbles') return [plural(r.wins, 'bet') + ' won', `${plural(r.games, 'race')} · ${r.net >= 0 ? '+' : '−'}${Math.abs(r.net).toLocaleString()} coins`];
+  return [plural(r.wins, 'win'), `${plural(r.games, 'game')} · ${r.rate}%${r.best ? ` · best ${r.best} pts` : ''}`];
+}
+function rkRow(game, r) {
+  const [main, sub] = rkStat(game, r), medal = ['🥇', '🥈', '🥉'][r.pos - 1];
+  return `<li class="${r.me ? 'you' : ''}">
+    <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36)}
+    <span class="who"><b>${esc(r.name)}${r.me ? ' <em>(you)</em>' : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${r.guest ? '<i>guest</i>' : ''}</span></span>
+    <b class="main">${main}</b><span class="sub">${sub}</span>
+  </li>`;
+}
+function rankingsHtml() {
+  if (!RK_TABS.some(([id]) => id === st.rkTab)) st.rkTab = 'overall';
+  const g = st.rkTab, d = st.rk[g];
+  if (!d) return `<p class="rknote">Loading…</p>`;
+  const note = `<p class="rknote">${RK_NOTE[g] || RK_NOTE.default}${d.total > d.rows.length ? ` Top ${d.rows.length} of ${d.total.toLocaleString()} players.` : ''}</p>`;
+  if (!d.rows.length) return note + `<div class="empty">${g === 'farm' ? 'No farms with pets yet. Visit your farm to be the first!' : 'Nobody has finished a game here yet. Play one to take first place!'}</div>`;
+  return note + `<ol class="rk">${d.rows.map(r => rkRow(g, r)).join('')}${d.mine ? `<li class="gap" aria-hidden="true">…</li>${rkRow(g, d.mine)}` : ''}</ol>`
+    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'farm' ? 'Raise a pet on your farm to join this ladder.' : 'Finish a game to get on this board.'}</p>`);
+}
+function paintRankings() {
+  const el = document.getElementById('rk-body'); if (el) el.innerHTML = rankingsHtml();
+  document.querySelectorAll('[data-act="rktab"]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === st.rkTab));
 }
 
 // "3 playing now · 128 visitors so far" under the hero buttons.
@@ -789,6 +839,7 @@ $app.addEventListener('click', e => {
   if (b.tagName === 'BUTTON') sfx.click();
   if (act === 'home') { if (st.room) send({ t: 'leave' }); else go('hub'); }
   else if (act === 'scroll') document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' });
+  else if (act === 'rktab') { st.rkTab = b.dataset.tab; LS.set('ct_rk', st.rkTab); sfx.click(); paintRankings(); send({ t: 'rankings', game: st.rkTab }); }
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
   else if (act === 'shop') { if (!st.name) return openProfile(true); openProfile(false, AV_TABS.length); }
