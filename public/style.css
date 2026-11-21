@@ -325,6 +325,10 @@ body:has(.lobby) .scorebtn { display: none; }
 .gcard .pic.dicepic svg { width: 100%; height: 100%; display: block; }
 .dicepic .dcup { animation: dcup 2.8s ease-in-out infinite; }
 .dicepic .ddie { animation: bob 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.gcard .pic.pawpic { background: #bfe8ff; padding: 0; }
+.gcard .pic.pawpic svg { width: 100%; height: 100%; display: block; }
+.pawpic .pwbun { animation: bob 2.4s ease-in-out infinite; }
+.pawpic .pwbone { animation: dcup 3s ease-in-out infinite; }
 @keyframes dcup { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }
 
 /* ---------- avatar creator: 3D preview on the left, tabs of options on the right ---------- */
