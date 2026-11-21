@@ -15,6 +15,7 @@ import * as stack from './games/stack.js';
 import * as golf from './games/golf.js';
 import * as dice from './games/dice.js';
 import * as paw from './games/paw.js';
+import * as kart from './games/kart.js';
 import * as dig from './games/dig.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
@@ -24,7 +25,7 @@ import * as farm from './farm.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, dig };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, dig };
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
@@ -426,6 +427,12 @@ setInterval(() => {
     }
   }
 }, 150);
+
+// Real-time games (Kart Island Race) export fast(G, now): it runs twenty times a second and streams the race.
+setInterval(() => {
+  const now = Date.now();
+  for (const r of rooms.values()) { const mod = GAMES[r.game]; if (r.G && mod.fast && mod.fast(r.G, now)) sendState(r); }
+}, 50);
 
 setInterval(() => { // heartbeat + forget long-gone clients
   const now = Date.now();

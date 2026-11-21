@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, digArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, digArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -208,6 +208,28 @@ const GAMES = {
       <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, upgrades and then shops are sold back at half price, and anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>
+    </ol>`,
+  },
+  kart: {
+    name: 'Kart Island Race', load: () => import('./games/kart/client.js'), start: 'Start your engines',
+    host: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' }, solo: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' },
+    openSeat: 'A bot drives here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 6, r.players.length)),
+    settings: pill => `<div class="opt"><b>Track</b><div class="pills">${pill('track', 'random', 'Random')}${pill('track', 'meadow', 'Meadow Loop')}${pill('track', 'bakery', 'Sugar Bridges')}${pill('track', 'peaks', 'Twisty Peaks')}</div></div>
+      <div class="opt"><b>Laps</b><div class="pills">${pill('laps', 2, 'Quick 2')}${pill('laps', 3, '3')}${pill('laps', 5, '5')}</div></div>
+      <div class="opt"><b>Karts on the grid</b><div class="pills">${pill('seats', 4, '4')}${pill('seats', 6, '6')}${pill('seats', 8, '8')}</div></div>
+      <div class="opt"><b>Power-ups</b><div class="pills">${pill('items', 'on', 'On')}${pill('items', 'chaos', 'Chaos')}${pill('items', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone's avatar drives a little kart round roads that hop between floating islands. Grab gift boxes for silly power-ups, drift round the corners for a boost, and don't drive off the edge. First over the line after the last lap wins.`,
+    rules: `<ol>
+      <li>Everyone drives their own kart with their avatar at the wheel. Empty spots on the grid are bots.</li>
+      <li>Your kart <b>speeds up by itself</b>. Steer with <b>← →</b> or <b>A D</b>, brake or reverse with <b>↓</b>. On a phone, use the arrow pads in the bottom corners.</li>
+      <li><b>Drift</b>: hold <b>Space</b> (or the Drift pad) while turning at speed. Keep it up until the sparks glow, then let go for a speed boost. Orange sparks give a longer one.</li>
+      <li>Orange <b>boost pads</b> on the road shoot you forward. The grass at the side slows you down, and past the grass is the <b>edge of the island</b>: drive off and a cloud carries you back, a few seconds later. Bridges have rails.</li>
+      <li>Drive through a <b>gift box</b> to get a power-up, then press <b>E</b> (or tap it) to use it:
+        <b>Banana peel</b> drops behind you, <b>Wobbly jelly</b> bounces after the kart just ahead, <b>Chili boost</b> is a burst of speed, <b>Bubble shield</b> blocks the next hit, and the <b>Sleepy cloud</b> slows everyone ahead of you. The further back you are, the better the power-ups.</li>
+      <li>Once the first kart finishes, everyone else has <b>25 seconds</b> to cross the line. After that the rest are placed by how far round they got.</li>
+      <li><b>Chaos</b> power-ups rain banana peels from the sky and hand out more jellies and clouds.</li>
+      <li>Coins go by your finishing place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   dig: {
@@ -616,6 +638,14 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Pawperty</h3><span class="tag">1–6 players</span></div>
             <p>Adopt pet shops round a cozy 3D board and collect rent in treats. Mind the Zoomies cards, Bath Time and the pets napping on the job.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="paw">Host a table</button></div>
+          </div>
+        </article>
+        <article class="gcard">
+          <div class="pic kartpic">${kartArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Kart Island Race</h3><span class="tag">1–8 players</span></div>
+            <p>Race little low-poly karts round roads that hop between floating islands. Drift for boosts, grab gift boxes and throw silly power-ups at your friends.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="kart">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">

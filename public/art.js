@@ -219,6 +219,29 @@ export function pawArt() {
   </svg>`;
 }
 
+// Kart Island Race card: a little kart zooming along a road over a floating island, past an item box.
+export function kartArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A kart racing along a road on a floating island past a gift-wrapped item box">
+    <rect class="artsky" width="320" height="150" fill="#8fd6f7"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M34 30h34v10H34zM50 22h26v10H50z" class="artcloud" fill="#fff"/><path d="M240 20h30v9h-30zM228 28h28v9h-28z" class="artcloud" fill="#fff"/>
+    <path d="M8 112c40-26 260-26 304 0l-16 14c-30 14-240 14-272 0z" fill="#8bca60" ${o}/>
+    <path d="M24 126c34 16 238 16 272 0l-30 20H52z" fill="#c98a5a" ${o}/>
+    <path d="M18 116c46-18 238-18 284 0l-10 6c-44-14-220-14-264 0z" fill="#8b8192" ${o}/>
+    <path d="M40 114l12-3M84 106l14-2M136 102h16M188 102l16 1M240 106l14 2M280 112l10 3" stroke="#fff4e2" stroke-width="3" stroke-linecap="round"/>
+    <g class="krbox"><rect x="236" y="62" width="30" height="30" rx="5" fill="#9aa8ff" ${o}/><path d="M251 62v30M236 77h30" stroke="#ffd23f" stroke-width="6"/><path d="M236 77h30M251 62v30" stroke="#3b2219" stroke-width="1.2" opacity=".4"/><path d="M244 58c2-6 6-6 7 4 1-10 5-10 7-4" fill="#ffd23f" ${o}/></g>
+    <g class="krkart">
+      <path d="M58 92h10M50 100h14M54 84h8" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+      <path d="M86 98l6-18h56l14 10 4 10z" fill="#ff8fab" ${o}/><path d="M80 100h92v8H80z" fill="#fff4e2" ${o}/>
+      <circle cx="96" cy="108" r="10" fill="#3b2219"/><circle cx="96" cy="108" r="4" fill="#fff4e2"/><circle cx="156" cy="108" r="10" fill="#3b2219"/><circle cx="156" cy="108" r="4" fill="#fff4e2"/>
+      <path d="M104 80c0-10 6-16 14-16" fill="none" stroke="#3b2219" stroke-width="3"/>
+      <path d="M108 86c0-12 4-18 14-18s14 6 14 18z" fill="#7ed3b2" ${o}/><path d="M132 76l12 6" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M132 76l12 6" stroke="#7ed3b2" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="122" cy="56" r="15" fill="#f7cba6" ${o}/><path d="M107 54c2-12 26-14 30-2-8-4-20-4-30 2z" fill="#5b3a2a" ${o}/>
+      <circle cx="118" cy="58" r="2" fill="#3b2219"/><circle cx="127" cy="58" r="2" fill="#3b2219"/><path d="M119 64c2 2 5 2 7 0" stroke="#3b2219" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M72 94c-6-2-12-2-16 2 6 2 10 4 16 2z" fill="#ffb547" ${o}/>
+    </g></svg>`;
+}
+
 // Treasure Dig card: a grass field with dug tiles, numbers, a gem popping out and a shovel stuck in the dirt.
 export function digArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
