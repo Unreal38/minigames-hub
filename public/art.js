@@ -218,3 +218,21 @@ export function pawArt() {
     <g transform="rotate(12 300 84)"><rect x="288" y="72" width="24" height="24" rx="6" fill="#fff8ec" ${o}/><circle cx="300" cy="84" r="4" fill="#e5543b"/></g>
   </svg>`;
 }
+
+// Cozy Kitchen Rush card: a counter on a sky island with a steaming soup pot, a burger and a chopping board.
+export function kitchenArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little kitchen counter with a steaming soup pot, a burger and a tomato on a chopping board">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M24 40l14-8 16 4 8 10-10 8H32z" class="artcloud" fill="#fff"/><path d="M252 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 150l20-36h280l20 36z" fill="#a5dc86" ${o}/>
+    <g ${o}><path d="M30 34h260v14H30z" fill="#fff4e2"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => `<path d="M${30 + i * 20} 48h20l-3 12h-14z" fill="${i % 2 ? '#fff' : '#ff7a59'}"/>`).join('')}</g>
+    <path d="M40 92h240v32H40z" fill="#e9d3b0" ${o}/><path d="M34 84h252v10H34z" fill="#fff8ec" ${o}/>
+    <path d="M58 100h22v18H58zM100 100h22v18h-22zM198 100h22v18h-22zM240 100h22v18h-22z" fill="#d7b98f" stroke="#3b2219" stroke-width="2"/>
+    <g class="krsteam" style="transform-origin:88px 40px"><path d="M80 52c-6-8 6-10 0-18M94 50c-6-8 6-10 0-18" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></g>
+    <g ${o}><path d="M64 58h48v24a6 6 0 0 1-6 6H70a6 6 0 0 1-6-6z" fill="#9aa4b0"/><path d="M58 58h60" /><ellipse cx="88" cy="60" rx="22" ry="4" fill="#e8603f"/><path d="M58 66h-6M118 66h6"/></g>
+    <g class="krbun" style="transform-origin:160px 84px" ${o}><path d="M138 66a22 16 0 0 1 44 0z" fill="#e8a95b"/><path d="M135 66h50l-3 5h-44z" fill="#7ccc5c"/><rect x="136" y="71" width="48" height="8" rx="4" fill="#8a4b2a"/><path d="M138 79h44v6h-44z" fill="#e8a95b"/></g>
+    <path d="M150 58h.5M160 55h.5M170 58h.5" stroke="#fff4e2" stroke-width="3" stroke-linecap="round"/>
+    <g ${o}><path d="M204 76h60v8h-60z" fill="#e8c48f"/><circle cx="226" cy="68" r="10" fill="#e5543b"/><path d="M222 58l4 3 4-3" fill="none" stroke="#4a9a45" stroke-width="3"/><path d="M246 80l18-22 4 3-16 20z" fill="#d9dde3"/></g>
+  </svg>`;
+}
