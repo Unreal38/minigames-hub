@@ -485,6 +485,9 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Tower Stack</h3><span class="tag">1–6 players</span></div>
             <p>Take turns dropping swinging blocks on one shared, wobbly tower. Stack it high, and don't be the one who knocks it down.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="stack">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="stack">Play with bots</button></div>
+          </div>
+        </article>
+        <article class="gcard">
           <div class="pic golfpic">${golfArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>

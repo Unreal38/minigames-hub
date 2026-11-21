@@ -578,9 +578,6 @@ body.sky.night:not(.in-game) .tcode, body.sky.night:not(.in-game) .rk .pos, body
 body.sky.night:not(.in-game) .rk li.you { outline-color: var(--lantern); }
 body.sky.night:not(.in-game) .dots i { border-color: var(--tx); } body.sky.night:not(.in-game) .dots i.on { background: var(--tx); }
 body.sky.night:not(.in-game) .modal { background: #0b061899; }
-body.sky.night:not(.in-game) .gcard .pic.marblepic, body.sky.night:not(.in-game) .gcard .pic.ladderpic, body.sky.night:not(.in-game) .gcard .pic.ludopic { background: #2c1846; }
-body.sky.night:not(.in-game) .gcard .pic svg > rect:first-child { fill: #2c1846; }
-body.sky.night:not(.in-game) .gcard .pic svg > rect:first-child + path, body.sky.night:not(.in-game) .gcard .pic svg > rect:first-child + path + path { opacity: .18; }
 body.sky.night:not(.in-game) .howto a { color: var(--lantern); }
 /* the switch itself */
 .themebtn { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer;
