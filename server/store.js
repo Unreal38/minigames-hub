@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
-import { PRICE, priceOf, wearable, AV_KEYS, OPT } from '../public/avatar.js';
+import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
 const DIR = DATA_DIR;
@@ -106,6 +106,9 @@ export function setLook(token, { name, color, av }) {
 // same balance. onCoins lets the server tell every open screen when it changes.
 let coinHook = () => {};
 export const onCoins = fn => { coinHook = fn; };
+// Tests move the shop's calendar with SHOP_DATE (e.g. 2026-07-01), so seasonal drops can be checked any day of the year.
+const now = () => process.env.SHOP_DATE ? Date.parse(process.env.SHOP_DATE + 'T12:00') : Date.now();
+export const shopDate = () => { const d = new Date(now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 export const coinsOf = pid => profiles.get(pid)?.coins || 0;
 export function addCoins(pid, n) {
   const p = profiles.get(pid); if (!p || !Number.isFinite(n) || !n) return p?.coins || 0;
@@ -120,6 +123,7 @@ export function buy(p, k, i) {
   if (!AV_KEYS.includes(k) || !OPT[k][i] || !price) return { err: 'That is not in the shop.' };
   p.owned ||= [];
   if (p.owned.includes(id)) return { err: 'You already have that.' };
+  if (!onSale(k, i, new Date(now()))) return { err: `That is part of the ${SEASONS[seasonOf(k, i)].name}. It is back in ${SEASONS[seasonOf(k, i)].back}.` };
   if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
   p.coins -= price; p.owned.push(id); scheduleSave(); coinHook(p.pid);
   return { id, price };
@@ -128,7 +132,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], ...progress(p.xp) };
+  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], today: shopDate(), ...progress(p.xp) };
 }
 // Cosmetic name flair shown next to a name in the hub chat (name colour, title...). Hook for the cosmetics shop:
 // return small, already-validated fields here and the chat carries them as `fl`. Nothing yet.
