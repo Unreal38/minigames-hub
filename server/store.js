@@ -134,6 +134,9 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 export function me(p) {
   return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], today: shopDate(), ...progress(p.xp) };
 }
+// Cosmetic name flair shown next to a name in the hub chat (name colour, title...). Hook for the cosmetics shop:
+// return small, already-validated fields here and the chat carries them as `fl`. Nothing yet.
+export function flair(p) { return {}; }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon }; }
 
