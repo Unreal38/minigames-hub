@@ -296,3 +296,24 @@ export function bricksArt() {
     <path d="M60 84l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>
   </svg>`;
 }
+
+// Beanstalk Bounce card: a climber leaping between leaf ledges on a beanstalk, a storm cloud rumbling below.
+export function beanArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const ledge = (x, y, w, c) => `<path d="M${x} ${y}h${w}a7 7 0 0 1 0 14h-${w}a7 7 0 0 1 0-14z" fill="${c}" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little climber jumping between leaf ledges on a giant beanstalk above a storm cloud">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="262" cy="62" r="1.5"/><circle cx="68" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M64 30h34v10H64zM80 22h26v10H80z" class="artcloud" fill="#fff"/><path d="M226 44h30v9h-30zM214 52h28v9h-28z" class="artcloud" fill="#fff"/>
+    <path d="M14 -4c10 30-8 50 2 80s-6 50 0 80h26c-8-30 8-52 0-80s8-50-2-80z" fill="#5aad4c" ${o}/><path d="M40 40c14-10 28-8 36 2-12 8-26 8-36-2z" fill="#7ed067" ${o}/>
+    <path d="M280 -4c-10 30 8 50-2 80s6 50 0 80h26c-8-30 8-52 0-80s8-50-2-80z" fill="#5aad4c" ${o}/><path d="M280 76c-14-10-28-8-36 2 12 8 26 8 36-2z" fill="#7ed067" ${o}/>
+    ${ledge(70, 104, 70, '#9be06a')}${ledge(170, 76, 62, '#ffc4dc')}${ledge(96, 40, 56, '#ffdca8')}
+    <g class="bbshroom"><rect x="202" y="64" width="8" height="12" fill="#fff4e2" ${o}/><path d="M192 66c0-14 28-14 28 0z" fill="#ef5a4c" ${o}/><circle cx="201" cy="60" r="2.4" fill="#fff"/><circle cx="211" cy="61" r="2" fill="#fff"/></g>
+    <g class="bbstorm"><path d="M-10 150v-18c10-10 26-8 34 0 8-12 30-12 38 0 10-10 30-10 38 0 8-10 28-10 36 0 8-12 30-12 38 0 10-10 30-10 38 0 8-10 28-10 36 0 8-10 26-10 34 0 10-8 28-8 38 0v18z" fill="#5a4b8c" ${o}/><path d="M150 126l-8 12h7l-4 12 12-16h-7z" fill="#ffe36b" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></g>
+    <g class="bbhop">
+      <path d="M138 96l-6 8M150 96l8 6" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M138 96l-6 8M150 96l8 6" stroke="#5b6fd6" stroke-width="3" stroke-linecap="round"/>
+      <path d="M134 78c0-8 20-8 20 0v16h-20z" fill="#ff8fab" ${o}/><path d="M134 80l-10-8M154 80l10-10" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M134 80l-10-8M154 80l10-10" stroke="#ff8fab" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="144" cy="62" r="14" fill="#f7cba6" ${o}/><path d="M130 60c2-12 26-14 28-2-8-4-18-4-28 2z" fill="#5b3a2a" ${o}/>
+      <circle cx="140" cy="64" r="2" fill="#3b2219"/><circle cx="149" cy="64" r="2" fill="#3b2219"/><path d="M141 69c2 2 5 2 7 0" stroke="#3b2219" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M126 104l4 6M144 108v7M160 104l-4 6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+    </g></svg>`;
+}
