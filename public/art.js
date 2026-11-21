@@ -318,6 +318,24 @@ export function beanArt() {
     </g></svg>`;
 }
 
+// Tysiąc card: a king and queen of hearts (a marriage) with an ace behind them, and "1000" chalked on a slate.
+export function tysArt() {
+  const red = '#d8402a', heart = 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z',
+    spade = 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z';
+  const card = (x, y, rot, r, col, path, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
+    <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
+    <text x="${x + 8}" y="${y + 24}" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="22" fill="${col}">${r}</text>
+    <path d="${path}" fill="${col}" transform="translate(${x + 22} ${y + 36}) scale(1.45)"/></g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A king and queen of hearts with an ace of spades, next to a slate that says 1000">
+  <rect width="320" height="150" fill="#b8433f"/>
+  <path d="M0 0h320v150H0z" fill="url(#tysp)"/><defs><pattern id="tysp" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M14 4l5 5-5 5-5-5z" fill="#fff4e222"/><circle cx="0" cy="21" r="2.4" fill="#fff4e222"/><circle cx="28" cy="21" r="2.4" fill="#fff4e222"/></pattern></defs>
+  <ellipse cx="160" cy="166" rx="210" ry="92" fill="#3f9c7a" stroke="${ink}" stroke-width="3"/>
+  ${card(52, 40, -18, 'A', ink, spade, .4)}${card(88, 30, -4, 'K', red, heart, 0)}${card(126, 34, 12, 'Q', red, heart, .2)}
+  <g transform="rotate(5 250 78)"><rect x="204" y="46" width="94" height="64" rx="8" fill="#3b2f3a" stroke="#8a5a3c" stroke-width="6"/>
+    <text x="251" y="90" text-anchor="middle" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="34" fill="#fff4e2">1000</text>
+    <path d="M222 98h58" stroke="#fff4e288" stroke-width="3" stroke-linecap="round"/></g></svg>`;
+}
+
 // Pan card: the nine of hearts on a blue table with a climbing fan of cards on top of it.
 export function panArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';

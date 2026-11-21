@@ -310,7 +310,7 @@ export function mount(app, ctx) {
     if (!S || !info) return;
     const i = info.findIndex(p => p.id === m.id), t = tagEls[i];
     const f = document.createElement('div');
-    f.className = 'floaty'; f.innerHTML = reactHtml(Math.max(0, Math.min(11, m.k | 0)));
+    f.className = 'floaty'; f.innerHTML = reactHtml(m.k);
     const r = t && !t.hidden ? t.getBoundingClientRect() : null;
     const x = r ? r.left + r.width / 2 : innerWidth / 2 + (Math.random() * 120 - 60), y = r ? r.top - 10 : innerHeight * .6;
     f.style.left = `${x - 32}px`; f.style.top = `${y - 64}px`;
