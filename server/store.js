@@ -94,6 +94,7 @@ export const profileOf = token => profiles.get(sessions.get(token)?.pid);
 export function setLook(token, { name, color, av }) {
   const p = profileOf(token); if (!p) return;
   if (name) p.name = name; if (color) p.color = color; if (av) p.av = av;
+  board = null;
 }
 
 // ---------- coins & the avatar shop ----------
@@ -144,7 +145,7 @@ export async function register(token, user, pass) {
   const salt = rid(16), hash = await hashPass(pass, salt);
   if (users.has(u.toLowerCase())) return { err: 'That username is taken.' };
   Object.assign(p, { user: u, salt, hash });
-  users.set(u.toLowerCase(), p.pid);
+  users.set(u.toLowerCase(), p.pid); board = null;
   scheduleSave();
   return { p };
 }
@@ -215,7 +216,43 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
   p.xp += gain; p.games++; p.pts += Math.max(0, pts); if (win) p.wins++;
   const g = p.byGame[game] ||= { games: 0, wins: 0, best: 0 };
   g.games++; if (win) g.wins++; g.best = Math.max(g.best, pts);
+  g.pts = (g.pts || 0) + Math.max(0, pts); // added for the global rankings; older saves start counting from here
+  if (Number.isFinite(coinNet) && coinNet) g.net = (g.net || 0) + coinNet; // Marble Rush: coins won minus coins lost on bets
+  board = null;
   const had = p.coins || 0; addCoins(p.pid, coins);
   scheduleSave();
   return { xp: gain, win, pts, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
+}
+
+// ---------- global rankings ----------
+// One leaderboard per minigame (plus an overall one by XP) across every profile on the server. Only people are in
+// it: bots never get a profile. Guests are included, except a guest who shares a name with an account (most often
+// the same person before they logged in on that browser). Profile ids never leave the server.
+const TOP = 25;
+let board = null; // cached rows per game, thrown away whenever a game is credited
+const ORDER = {
+  overall: (a, b) => b.xp - a.xp || b.wins - a.wins,
+  marbles: (a, b) => b.wins - a.wins || b.net - a.net || a.games - b.games,
+  default: (a, b) => b.wins - a.wins || b.rate - a.rate || b.best - a.best || a.games - b.games,
+};
+function boardRows(game) {
+  board ||= {};
+  if (board[game]) return board[game];
+  const accounts = new Set([...profiles.values()].filter(p => p.user).map(p => String(p.name ?? '').trim().toLowerCase()));
+  const rows = [];
+  for (const p of profiles.values()) {
+    if (!p.user && accounts.has(String(p.name ?? '').trim().toLowerCase())) continue;
+    const g = game === 'overall' ? { games: p.games || 0, wins: p.wins || 0, best: 0, pts: p.pts || 0 } : p.byGame?.[game];
+    if (!g?.games) continue;
+    rows.push({ pid: p.pid, name: p.name || 'Guest', color: p.color, av: p.av, guest: !p.user, ...badge(p), xp: p.xp || 0,
+      games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
+  }
+  rows.sort(ORDER[game] || ORDER.default);
+  return board[game] = rows;
+}
+// The top of one leaderboard for the hub, plus the asker's own place when they are further down.
+export function leaderboard(game, pid) {
+  const rows = boardRows(game), strip = ({ pid: id, ...r }, i) => ({ ...r, pos: i + 1, me: id === pid });
+  const at = rows.findIndex(r => r.pid === pid);
+  return { game, total: rows.length, rows: rows.slice(0, TOP).map(strip), mine: at >= TOP ? strip(rows[at], at) : null };
 }

@@ -173,6 +173,14 @@ function liveTurn(L, quit = null) { // both have chosen, time ran out, or someon
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
 const byFid = id => [...farms].find(([, x]) => x.fid === id);
 // A player's farm tag, for the hub's friends list (null if they have not started a farm).
+// The Pet Farm ladder for the hub's rankings: the same order as in the game, with each farmer's avatar.
+export function ladder(pid) {
+  const mine = farms.get(pid), rows = [];
+  for (const [id, f] of farms) if (f.pets.length) { const pr = profiles.get(id); rows.push({ f, name: nameOf(id, f), color: pr?.color, av: pr?.av, me: f === mine, pts: f.pts || 0, top: Math.max(0, ...f.pets.map(p => p.lv)), pets: f.pets.length }); }
+  rows.sort((a, b) => b.pts - a.pts || b.top - a.top);
+  const strip = ({ f, ...r }, i) => ({ ...r, pos: i + 1 }), at = rows.findIndex(r => r.me);
+  return { game: 'farm', total: rows.length, rows: rows.slice(0, 25).map(strip), mine: at >= 25 ? strip(rows[at], at) : null };
+}
 export const fidOf = pid => { const f = farms.get(pid); return f?.pets.length ? fid(f) : null; };
 const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key] ||= {}; };
 function post(f, m) { (f.mail ||= []).unshift({ id: rid(), at: Date.now(), ...m }); f.mail.length = Math.min(f.mail.length, MAIL_MAX); }
