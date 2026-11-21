@@ -131,7 +131,13 @@ body.in-game { overflow: hidden; }
 .pf .bplate .bwho { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
 .pf .bplate b { font-family: var(--fd); font-weight: 600; font-size: 18px; } .pf .bplate small { font-size: 13px; }
 .pf .bhp { position: relative; align-self: stretch; width: 100%; height: 20px; border: 3px solid var(--ink); border-radius: 999px; background: #fff; overflow: hidden; }
-.pf .bhp i { position: absolute; inset: 0 auto 0 0; background: #6fcf6a; transition: width .35s; } .pf .bhp.mid i { background: #ffc94d; } .pf .bhp.low i { background: #e2604e; }
+.pf .bhp i { position: absolute; inset: 0 auto 0 0; background: #6fcf6a; transition: width .3s cubic-bezier(.2, .8, .3, 1); }
+.pf .bhp u { position: absolute; inset: 0 auto 0 0; background: #fff; box-shadow: inset 0 0 0 20px #ffb3a6; transition: width .6s ease-in .35s; }
+.pf .bplate.hurt { animation: pf-hurt .4s; }
+@keyframes pf-hurt { 0%, 100% { transform: none; } 15% { transform: translate(-7px, 2px) rotate(-1.5deg); } 35% { transform: translate(6px, -2px) rotate(1.2deg); } 55% { transform: translate(-4px, 1px); } 75% { transform: translate(2px, 0); } }
+.pf .bfl::after { content: ''; position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.pf .bfl.flash::after { animation: pf-flash .22s ease-out; } .pf .bfl.flashbig::after { animation: pf-flashbig .34s ease-out; }
+@keyframes pf-flash { 0% { opacity: .28; } 100% { opacity: 0; } } @keyframes pf-flashbig { 0% { opacity: .6; } 100% { opacity: 0; } } .pf .bhp.mid i { background: #ffc94d; } .pf .bhp.low i { background: #e2604e; }
 .pf .bhp span { position: relative; display: block; text-align: center; font-size: 12px; font-weight: 700; line-height: 14px; }
 .pf .bplate .btags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 14px; }
 .pf .st { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 8px; color: #fff; } .pf .st.bad { background: #c1583f; } .pf .st.good { background: #3f9a52; }
@@ -243,3 +249,9 @@ body.in-game { overflow: hidden; }
   .pf .bfn { font-size: 26px; } .pf .bfn.big { font-size: 36px; }
   .pf .rk .faces { display: none; }
 }
+/* panels and cards arrive with a small pop */
+.pf .gate:not([hidden]) { animation: pf-fade .2s ease-out; }
+.pf .pcard:not([hidden]) { animation: pf-gate .2s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes pf-fade { 0% { opacity: 0; } }
+@keyframes pf-gate { 0% { opacity: 0; transform: scale(.94) translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { .pf .gate:not([hidden]), .pf .pcard:not([hidden]), .pf .bplate.hurt { animation: none; } }

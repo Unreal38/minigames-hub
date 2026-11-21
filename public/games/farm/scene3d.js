@@ -187,7 +187,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (const e of items.values()) {
       if (e.burst > 0) e.burst = Math.max(0, e.burst - dt); e.st.burst = e.burst;
       e.m.userData.tick?.(T, e.st, e.m);
-      if (e.pop > 0) { e.pop = Math.max(0, e.pop - dt * 2.4); const u = 1 - e.pop, s = 1 + Math.sin(u * Math.PI * 2.2) * .22 * e.pop; e.g.scale.set(2 - s, s, 2 - s); if (!e.pop) e.g.scale.setScalar(1); }
+      if (e.pop > 0) { e.pop = Math.max(0, e.pop - dt * 2.4); const u = 1 - e.pop, s = 1 + Math.sin(u * Math.PI * 2.2) * .22 * e.pop; e.g.scale.set(2 - s, s, 2 - s); if (!e.pop) { e.g.scale.setScalar(1); renderer.shadowMap.needsUpdate = true; } } // shadows are drawn once: redo them now it has settled
       if (e.sign) { const s = e.sign.g; s.position.y = e.top + .55 + Math.abs(Math.sin(T * 3)) * .16; s.rotation.y = cam.az - e.g.rotation.y; s.scale.setScalar(1 + Math.sin(T * 6) * .06); }
     }
   }
@@ -206,6 +206,69 @@ export function createScene(canvas, { onPick, onGhost }) {
       const w = Math.sin(T * 22 + f.ph) * 1.0; f.a.rotation.z = w; f.b.rotation.z = -w; f.a.rotation.x = f.b.rotation.x = -Math.PI / 2;
     }
   }
+
+  // Small things that live for a moment on the farm: dust under paws, sleepy Zs, hearts, sparkles.
+  const bits = [];
+  const shapeGeo = (pts, depth) => { const sh = new THREE.Shape(); pts.forEach(([x, y], i) => i ? sh.lineTo(x, y) : sh.moveTo(x, y)); const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: false }); g.translate(0, 0, -depth / 2); return g; };
+  const BIT = {
+    ball: new THREE.IcosahedronGeometry(1, 1),
+    z: shapeGeo([[-1, 1], [1, 1], [1, .6], [-.3, -.6], [1, -.6], [1, -1], [-1, -1], [-1, -.6], [.3, .6], [-1, .6]], .3),
+    star: shapeGeo(Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? .45 : 1, a = i / 10 * 6.283 + Math.PI / 2; return [Math.cos(a) * r, Math.sin(a) * r]; }), .3),
+    heart: shapeGeo(Array.from({ length: 24 }, (_, i) => { const t = i / 24 * 6.283; return [Math.sin(t) ** 3, (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16]; }), .35),
+  };
+  const BM = { dust: tflat('#efe4cf'), z: new THREE.MeshBasicMaterial({ color: '#6f8fe0' }), star: new THREE.MeshBasicMaterial({ color: '#ffd84a' }), heart: new THREE.MeshBasicMaterial({ color: '#ff6f91' }) };
+  function bit(geo, mat, life, upd) { const m = new THREE.Mesh(geo, mat); m.visible = false; scene.add(m); bits.push({ m, t: 0, life, upd }); }
+  function moveBits(dt) { for (let i = bits.length - 1; i >= 0; i--) { const b = bits[i]; b.t += dt; if (b.t >= b.life) { scene.remove(b.m); bits.splice(i, 1); } else { b.m.visible = true; b.upd(b.m, b.t / b.life, b.t); } } }
+  const dustAt = (x, z, n = 2) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, k = .05 + Math.random() * .04; bit(BIT.ball, BM.dust, .45, (m, u) => { m.position.set(x + Math.cos(a) * u * .22, .05 + u * .14, z + Math.sin(a) * u * .22); m.scale.setScalar(k * Math.sin(Math.PI * Math.sqrt(u))); }); } };
+  const floatUp = (geo, mat, x, y, z, size, life = 1.4) => { const ph = Math.random() * 6; bit(geo, mat, life, (m, u, t) => { m.position.set(x + Math.sin(t * 3 + ph) * .08 + u * .12, y + u * .55, z); m.rotation.set(0, cam.az, Math.sin(t * 2 + ph) * .25); m.scale.setScalar(size * (.5 + u * .7) * Math.min(1, (1 - u) * 4)); }); };
+
+  // Grass tufts that sway, on every free patch of lawn. One mesh for all of them.
+  const TUFTS = 420, tuftGeo = new THREE.BufferGeometry();
+  { const v = []; for (const [a, h, w] of [[0, .2, .05], [2.1, .15, .045], [4.2, .17, .05]]) { const c = Math.cos(a), sn = Math.sin(a); v.push(c * .03 - sn * w, 0, sn * .03 + c * w, c * .03 + sn * w, 0, sn * .03 - c * w, c * .09, h, sn * .09); }
+    tuftGeo.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); tuftGeo.computeVertexNormals(); }
+  const tufts = new THREE.InstancedMesh(tuftGeo, new THREE.MeshBasicMaterial({ color: '#6ab94a', side: THREE.DoubleSide }), TUFTS); tufts.frustumCulled = false; tufts.count = 0; scene.add(tufts);
+  let tuftAt = [];
+  function placeTufts() {
+    tuftAt = [];
+    const taken = new Uint8Array(N * N); // nothing grows under a building, a path or the training sand
+    for (const it of farm?.items || []) { const [w, h] = footprint(it.type, it.r); for (let y = it.y; y < it.y + h; y++) for (let x = it.x; x < it.x + w; x++) if (x >= 0 && y >= 0 && x < N && y < N) taken[y * N + x] = 1; }
+    for (let i = 0; i < TUFTS && tuftAt.length < N * N * .9; i++) {
+      const x = (hash(i, 71) - .5) * (N - .3), z = (hash(i, 72) - .5) * (N - .3), tx = Math.floor(x + N / 2), ty = Math.floor(z + N / 2);
+      if (taken[ty * N + tx]) continue;
+      tuftAt.push([x, z, .7 + hash(i, 73) * .9, hash(i, 74) * 6.283]);
+    }
+    tufts.count = tuftAt.length;
+  }
+  const _tm = new THREE.Matrix4(), _tq = new THREE.Quaternion(), _te = new THREE.Euler(), _tv = new THREE.Vector3(), _ts = new THREE.Vector3();
+  function moveTufts(T) {
+    tufts.visible = !edit; if (edit) return;
+    for (let i = 0; i < tuftAt.length; i++) {
+      const [x, z, k, ph] = tuftAt[i]; let bend = Math.sin(T * 1.6 + x * .7 + z * .5) * .16 + Math.sin(T * 3.7 + ph) * .05, bz = 0;
+      for (const p of pets.values()) { const dx = x - p.x, dz = z - p.z, d2 = dx * dx + dz * dz; if (d2 < .2) { const w = (1 - d2 / .2) * .8; bend += dx * w * 2; bz += dz * w * 2; } } // pets push the grass aside
+      _tm.compose(_tv.set(x, 0, z), _tq.setFromEuler(_te.set(bz, ph, -bend)), _ts.set(k, k, k)); tufts.setMatrixAt(i, _tm);
+    }
+    tufts.instanceMatrix.needsUpdate = true;
+  }
+  // Petals and leaves drifting over the island on the breeze, and a few birds far off.
+  const petals = [];
+  { const g = new THREE.OctahedronGeometry(1, 0).scale(.5, .08, 1);
+    ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8', '#ffc1dc', '#ffffff'].forEach((c, i) => { const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: c })); scene.add(m); petals.push({ m, ph: i * 2.37, sp: .5 + hash(i, 81) * .5 }); }); }
+  function movePetals(T) {
+    const span = N + 8;
+    for (const p of petals) {
+      p.m.visible = !!farm && !starters; if (!p.m.visible) continue;
+      const u = ((T * p.sp * .09 + p.ph * .13) % 1 + 1) % 1, lane = Math.floor(T * p.sp * .09 + p.ph * .13);
+      p.m.position.set(-span / 2 + u * span + Math.sin(T * 1.1 + p.ph) * .5, 3.2 - u * 2.9 + Math.sin(T * 2.3 + p.ph) * .25, (hash(lane, p.ph) - .5) * N + Math.sin(T * .8 + p.ph) * .6);
+      p.m.rotation.set(T * 2.1 + p.ph, T * 1.3, Math.sin(T * 3 + p.ph)); p.m.scale.setScalar(.09 * Math.min(1, u * 8, (1 - u) * 8));
+    }
+  }
+  function makeBirds(parent, R, y, n = 3, size = 1) {
+    const wing = new THREE.BufferGeometry(); wing.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -.12, 0, 0, .12, .5, 0, 0], 3));
+    const mt = new THREE.MeshBasicMaterial({ color: '#ffffff', side: THREE.DoubleSide, fog: false }), list = [];
+    for (let i = 0; i < n; i++) { const g = new THREE.Group(), a = new THREE.Mesh(wing, mt), b = new THREE.Mesh(wing, mt); b.scale.x = -1; g.add(a, b); g.scale.setScalar(size); parent.add(g); list.push({ g, a, b, ph: i * 2.1 }); }
+    return T => { for (const b of list) { const t = T * .12 + b.ph, r = R * (1 + Math.sin(b.ph * 3) * .2), x = Math.cos(t) * r, z = Math.sin(t) * r; b.g.position.set(x, y + Math.sin(t * 3 + b.ph) * 1.2, z); b.g.rotation.y = -t; const w = Math.sin(T * 7 + b.ph * 5) * .7; b.a.rotation.z = w; b.b.rotation.z = -w; } };
+  }
+  const farmBirds = makeBirds(scene, 15, 6.5, 4, 1.1);
 
   // ---------- pets ----------
   const pets = new Map(); // id -> { g, x, z, path, wait, hop, seed, blob }
@@ -293,6 +356,20 @@ export function createScene(canvas, { onPick, onGhost }) {
     while (c !== start) { path.unshift([c % N, c / N | 0]); c = prev[c]; }
     p.path = path;
   }
+  // Chooses what a pet does now that it has stopped walking, and for how long.
+  function rest(p) {
+    p.topY ??= new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y;
+    const r = Math.random(); let k = null, dur = 2;
+    const pal = [...pets.values()].find(o => o !== p && !o.path.length && !o.train && !o.fixed && (!o.act || o.act.k === 'sit' || o.act.k === 'look') && Math.hypot(o.x - p.x, o.z - p.z) < 1.7);
+    if (pal && r < .5) { k = 'greet'; dur = 2.2; pal.act = { k: 'greet', t: 0, dur, pal: p, done: true }; pal.wait = Math.max(pal.wait, dur + .5); }
+    else if (r < .2) { k = 'sit'; dur = 3 + Math.random() * 3; }
+    else if (r < .34) { k = 'nap'; dur = 6 + Math.random() * 6; }
+    else if (r < .52) { k = 'look'; dur = 2.5 + Math.random() * 2; }
+    else if (r < .66) { k = 'joy'; dur = 1.5; }
+    else if (r < .76) { k = 'twirl'; dur = .9; }
+    p.act = k ? { k, t: 0, dur, pal, z: .4 } : null;
+    p.wait = (k ? dur : 0) + .8 + Math.random() * 2.5;
+  }
   function movePets(dt, T) {
     for (const p of pets.values()) {
       let moving = false;
@@ -304,18 +381,32 @@ export function createScene(canvas, { onPick, onGhost }) {
         else { const u = (T * (t.k === 1 ? .9 : 1.3) + p.seed) % 1; p.face = t.face; drill = Math.sin(u * Math.PI) * (t.k === 1 ? .45 : .22); if (t.k !== 1) { const lunge = Math.sin(u * Math.PI) * .22; p.lx = Math.sin(t.face) * lunge; p.lz = Math.cos(t.face) * lunge; } }
       }
       else if (p.path.length) {
-        const [tx, ty] = p.path[0], gx = wx(tx), gz = wz(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = 1.25 * dt;
-        if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) p.wait = 1.5 + Math.random() * 4; }
+        const [tx, ty] = p.path[0], gx = wx(tx), gz = wz(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = (p.run ? 2.3 : 1.25) * dt;
+        if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) rest(p); }
         else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
         moving = true;
-      } else if ((p.wait -= dt) <= 0) { stroll(p); if (!p.path.length) p.wait = 2; }
+      } else if ((p.wait -= dt) <= 0) { p.act = null; stroll(p); p.run = Math.random() < .22; if (!p.path.length) p.wait = 2; }
       p.hop = Math.max(0, p.hop - dt * 1.6);
-      const bounce = moving ? Math.abs(Math.sin(T * 9 + p.seed)) * .1 : 0, cheer = p.hop ? Math.abs(Math.sin(p.hop * Math.PI * 3)) * .35 * p.hop : 0;
-      const breathe = 1 + Math.sin(T * 2.2 + p.seed) * .025, b = p.g.userData.base;
-      p.g.position.set(p.x + (drill ? p.lx || 0 : 0), bounce + cheer + drill, p.z + (drill ? p.lz || 0 : 0));
-      let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 8);
+      const pace = p.run ? 13 : 9, stepPh = Math.sin(T * pace + p.seed), bounce = moving ? Math.abs(stepPh) * (p.run ? .16 : .1) : 0, cheer = p.hop ? Math.abs(Math.sin(p.hop * Math.PI * 3)) * .35 * p.hop : 0;
+      if (moving && !p.train && (p.stepWas || 0) * stepPh < 0 && !starters) dustAt(p.x, p.z, p.run ? 2 : 1); p.stepWas = stepPh; // a puff each time the paws come down
+      // what it is doing while it rests: sitting, napping, looking about, a happy hop, a twirl, or greeting a friend
+      const A = !moving && !p.train && !p.fixed ? p.act : null; let sit = 0, tilt = 0, turn = 0, up = 0, asleep = false;
+      if (A) {
+        A.t += dt; const u = Math.min(1, A.t / A.dur), ease = Math.min(1, A.t * 3, (A.dur - A.t) * 3);
+        if (A.k === 'sit') sit = .14 * ease;
+        else if (A.k === 'nap') { sit = .26 * ease; tilt = .14 * ease; asleep = ease > .5; if (asleep && (A.z -= dt) <= 0) { A.z = 1.2; floatUp(BIT.z, BM.z, p.x + .12, (p.topY || .5) * .8, p.z, .07, 1.6); } }
+        else if (A.k === 'look') turn = Math.sin(A.t * 2.1) * .75 * ease;
+        else if (A.k === 'joy') { up = Math.abs(Math.sin(A.t * 6.5)) * .2 * ease; if (!A.done) { A.done = true; for (let i = 0; i < 3; i++) floatUp(BIT.star, BM.star, p.x + (i - 1) * .16, (p.topY || .5) + .05, p.z, .05, 1); } }
+        else if (A.k === 'twirl') { turn = u * u * (3 - 2 * u) * 6.283; up = Math.sin(u * Math.PI) * .12; }
+        else if (A.k === 'greet') { p.face = Math.atan2(A.pal.x - p.x, A.pal.z - p.z); up = Math.abs(Math.sin(A.t * 6)) * .14 * ease; if (!A.done && A.t > .5) { A.done = true; floatUp(BIT.heart, BM.heart, (p.x + A.pal.x) / 2, (p.topY || .5) + .15, (p.z + A.pal.z) / 2, .07, 1.5); } }
+        if (A.t >= A.dur) p.act = null;
+      }
+      const breathe = (1 + Math.sin(T * (asleep ? 1.3 : 2.2) + p.seed) * (asleep ? .045 : .025)) * (1 - sit) * (moving ? 1 + (Math.abs(stepPh) - .6) * .12 : 1), b = p.g.userData.base;
+      p.g.position.set(p.x + (drill ? p.lx || 0 : 0), bounce + cheer + drill + up, p.z + (drill ? p.lz || 0 : 0));
+      let da = p.face - (p.yaw ?? p.face); da = Math.atan2(Math.sin(da), Math.cos(da)); p.yaw = (p.yaw ?? p.face) + da * Math.min(1, dt * 8);
+      p.g.rotation.set(moving ? (p.run ? .16 : .06) : 0, p.yaw + turn, tilt + (moving ? stepPh * .07 : 0), 'YXZ');
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
-      const blink = (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
+      const blink = asleep || (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
       if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
       if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
@@ -397,21 +488,58 @@ export function createScene(canvas, { onPick, onGhost }) {
   let fighting = false;
   const HOME = [new THREE.Vector3(-1.25, 0, 1.1), new THREE.Vector3(1.25, 0, -1.1)], FACE = [2.3, -.75];
   const bp = [null, null]; // the two pets in the ring: { g, key, base, t, lunge, shake, hop, fall }
+  const flags = [], fans = []; let cheer = 0; // flags that flutter, and the little onlookers who hop when something lands
   {
     ring.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
     const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(5, 10, 6); ring.add(l);
-    const add = (g, c, y, o) => { const m = new THREE.Mesh(g, tflat(c, o)); m.position.y = y; ring.add(m); return m; };
-    add(new THREE.CylinderGeometry(4.4, 4.2, .4, 10), '#7cc45c', -.2);
-    add(new THREE.CylinderGeometry(3.3, 3.3, .02, 24), '#8fd16a', .011);
-    add(new THREE.RingGeometry(3.25, 3.4, 24), '#ffffff', .03).rotation.x = -Math.PI / 2;
-    add(rough(new THREE.CylinderGeometry(4.2, 2.6, 1.6, 10, 2), .4, .7), '#a87750', -1.2);
-    add(rough(new THREE.ConeGeometry(2.7, 5, 7, 3), .5), '#857a72', -4.4).rotation.x = Math.PI;
-    for (const [a, c] of [[.6, '#d9584e'], [2.3, '#ffc94d'], [3.9, '#5d8fd1'], [5.4, '#86cc5a']]) {
-      const x = Math.cos(a) * 3.9, z = Math.sin(a) * 3.9;
-      add(new THREE.CylinderGeometry(.05, .05, 1.8, 5), '#8a5a3c', .9).position.set(x, .9, z);
-      add(new THREE.BoxGeometry(.5, .34, .04), c, 1.55).position.set(x + .27, 1.55, z);
+    { // the same sky as the farm, and a sun low behind the ring
+      const g = new THREE.SphereGeometry(200, 16, 10), p = g.attributes.position, col = [], top = new THREE.Color(SKY_TOP), low = new THREE.Color(SKY_LOW), c = new THREE.Color();
+      for (let i = 0; i < p.count; i++) { c.copy(low).lerp(top, Math.min(1, Math.max(0, p.getY(i) / 200 * 1.9 + .12))); col.push(c.r, c.g, c.b); }
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      ring.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
+      for (const [r, o] of [[5, 1], [7.5, .35], [11, .16]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 28), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.position.set(34, 26, -90); m.lookAt(0, 2, 0); ring.add(m); }
     }
-    for (let i = 0; i < 9; i++) { const a = hash(i, 21) * 6.283, d = 14 + hash(i, 22) * 22, c = add(new THREE.IcosahedronGeometry(1, 0), '#ffffff', 0); c.position.set(Math.cos(a) * d, -5 - hash(i, 23) * 6, Math.sin(a) * d - 8); c.scale.set(3.4, 1.6, 2.6).multiplyScalar(.7 + hash(i, 24)); }
+    const deco = new THREE.Group(), put = (g, c, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(g, flat(c)); m.position.set(x, y, z); deco.add(m); return m; };
+    // the island: a wide grassy top with mown rings, on a rough rock that tapers away below
+    put(new THREE.CylinderGeometry(5.3, 5.05, .4, 14), '#74bd55', 0, -.2);
+    { // mown rings and the chalk line: painted on the grass, so no outline
+      const lawn = new THREE.Group(), pl = (g, c, y) => { const m = new THREE.Mesh(g, flat(c)); m.position.y = y; m.rotation.x = -Math.PI / 2; lawn.add(m); };
+      pl(new THREE.CircleGeometry(3.3, 36), '#8fd16a', .011); pl(new THREE.CircleGeometry(2.35, 32), '#9bdb74', .016); pl(new THREE.CircleGeometry(1.4, 28), '#8fd16a', .021);
+      pl(new THREE.RingGeometry(3.25, 3.42, 36), '#ffffff', .03); pl(new THREE.RingGeometry(.5, .6, 24), '#d9f5b8', .028); pl(new THREE.CircleGeometry(.16, 5), '#d9f5b8', .028);
+      bake(lawn); toonify(lawn); ring.add(lawn);
+    }
+    put(rough(new THREE.CylinderGeometry(5.05, 3.1, 1.8, 12, 2), .45, .8), '#a87750', 0, -1.3);
+    put(rough(new THREE.ConeGeometry(3.2, 5.5, 7, 3), .55), '#857a72', 0, -4.9).rotation.x = Math.PI;
+    // a rope fence on short posts all the way round
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, x = Math.cos(a) * 4.1, z = Math.sin(a) * 4.1; put(new THREE.CylinderGeometry(.08, .1, .5, 6), '#9a6a45', x, .25, z); put(new THREE.SphereGeometry(.1, 6, 5), '#b98556', x, .52, z); }
+    put(new THREE.TorusGeometry(4.1, .028, 4, 42), '#e9d7b0', 0, .38).rotation.x = Math.PI / 2;
+    put(new THREE.TorusGeometry(4.1, .028, 4, 42), '#e9d7b0', 0, .2).rotation.x = Math.PI / 2;
+    // bushes, flowers, rocks and a few pines on the rim (kept low in front, so nothing hides the fight)
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * 6.283 + .2, back = Math.sin(a) < .2, r = 4.62 + hash(i, 41) * .3, x = Math.cos(a) * r, z = Math.sin(a) * r, k = hash(i, 42);
+      if (back && i % 4 === 0) { put(new THREE.CylinderGeometry(.09, .12, .5, 5), '#8a5a3c', x, .25, z); for (let t = 0; t < 3; t++) put(new THREE.ConeGeometry(.62 - t * .15, .75, 7), t % 2 ? '#3f9a52' : '#4aa85c', x, .75 + t * .45, z); }
+      else if (k < .55) { for (let b = 0; b < 3; b++) put(new THREE.IcosahedronGeometry(.26 + hash(i, 43 + b) * .14, 1), b % 2 ? '#58b35a' : '#4aa551', x + (b - 1) * .26, .18 + (b === 1 ? .1 : 0), z + (hash(i, 46 + b) - .5) * .2); if (k < .3) for (let f = 0; f < 3; f++) put(new THREE.SphereGeometry(.06, 5, 4), ['#ff8fbd', '#ffe066', '#ffffff'][f], x + (f - 1) * .2, .42, z + .12); }
+      else if (k < .8) put(rough(new THREE.IcosahedronGeometry(.3 + k * .12, 0), .12), '#a39a90', x, .16, z);
+      else for (let f = 0; f < 4; f++) { const fx_ = x + (hash(i, 50 + f) - .5) * .7, fz = z + (hash(i, 54 + f) - .5) * .5; put(new THREE.CylinderGeometry(.015, .015, .22, 4), '#3f9a52', fx_, .11, fz); put(new THREE.SphereGeometry(.07, 6, 4), ['#ff8fbd', '#ffe066', '#ffffff', '#b79cff'][f], fx_, .25, fz); }
+    }
+    // far islands, for depth
+    for (const [x, y, z, k] of [[-17, -2, -26, 2.4], [14, -1, -34, 3], [27, -4, -18, 1.8], [-30, -1.5, -14, 2]]) { put(new THREE.CylinderGeometry(k, k * .9, k * .22, 8), '#86cc5a', x, y, z); put(rough(new THREE.ConeGeometry(k * .92, k * 1.7, 7, 2), k * .18), '#a08a78', x, y - k * .95, z).rotation.x = Math.PI; put(new THREE.ConeGeometry(k * .3, k * .7, 6), '#4aa85c', x + k * .3, y + k * .45, z); }
+    for (let i = 0; i < 11; i++) { const a = hash(i, 21) * 6.283, d = 15 + hash(i, 22) * 24, c = put(new THREE.IcosahedronGeometry(1, 1), '#ffffff', Math.cos(a) * d, -5 - hash(i, 23) * 6, Math.sin(a) * d - 8); c.scale.set(3.4, 1.6, 2.6).multiplyScalar(.7 + hash(i, 24)); }
+    for (const [a] of [[.6], [2.3], [3.9], [5.4]]) put(new THREE.CylinderGeometry(.05, .06, 2.1, 6), '#8a5a3c', Math.cos(a) * 4.1, 1.05, Math.sin(a) * 4.1);
+    bake(deco); toonify(deco, .028); ring.add(deco);
+    // flags on the four tall poles: they flutter
+    for (const [a, c] of [[.6, '#d9584e'], [2.3, '#ffc94d'], [3.9, '#5d8fd1'], [5.4, '#86cc5a']]) {
+      const hinge = new THREE.Group(), cloth = new THREE.Mesh(new THREE.BoxGeometry(.62, .4, .04).translate(.33, 0, 0), tflat(c));
+      hinge.add(cloth); hinge.position.set(Math.cos(a) * 4.1, 1.85, Math.sin(a) * 4.1); ring.add(hinge); flags.push({ g: hinge, ph: a * 3 });
+    }
+    // onlookers: small round critters sitting behind the rope
+    [[3.55, '#ffb7d5'], [4.05, '#ffd98a'], [4.45, '#a5dcff'], [4.95, '#c7b6ff'], [5.3, '#a8ec8f'], [5.75, '#ffb38a'], [3.2, '#fff1d6']].forEach(([a, c], i) => {
+      const g = new THREE.Group(), r = .2 + hash(i, 61) * .06, b = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, flat(col)); m.position.set(x, y, z); g.add(m); return m; };
+      b(new THREE.IcosahedronGeometry(r, 2), c, 0, r, 0).scale.y = .92;
+      for (const sx of [-1, 1]) { b(new THREE.SphereGeometry(r * .13, 6, 5), '#3b2a22', sx * r * .34, r * 1.12, r * .86); b(i % 2 ? new THREE.ConeGeometry(r * .24, r * .5, 5) : new THREE.SphereGeometry(r * .26, 6, 5), c, sx * r * .55, r * 1.85, 0); }
+      bake(g); toonify(g, .016);
+      const x = Math.cos(a) * 4.62, z = Math.sin(a) * 4.62; g.position.set(x, 0, z); g.rotation.y = Math.atan2(-x, -z); ring.add(g); fans.push({ g, ph: i * 1.9, r });
+    });
   }
   const fx = createBattleFx(ring, HOME, tflat), _o = {}, _d = new THREE.Vector3(), _sp = new THREE.Vector3();
   function ringPet(s, u) { // u: { id, sp, form } or null
@@ -419,27 +547,37 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (bp[s]?.key === key) return;
     if (bp[s]) { ring.remove(bp[s].g, bp[s].blob); disposeModel(bp[s].g); bp[s] = null; }
     if (!u) return;
-    if (fighting) fx.enter(s);
+    if (fighting) fx.enter(s, .3);
     const g = petModel(u.sp, u.form, u.look); g.scale.multiplyScalar(.82);
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.rotation.x = -Math.PI / 2; blob.position.set(HOME[s].x, .04, HOME[s].z); blob.scale.setScalar(g.scale.x * 3);
     ring.add(g, blob);
-    bp[s] = { g, blob, key, base: g.scale.x, t: 0, lunge: 0, shake: 0, hop: 0, fall: 0, down: false, seed: s * 3.1 };
+    bp[s] = { g, blob, key, base: g.scale.x, t: 0, lunge: 0, shake: 0, hop: 0, fall: 0, down: false, low: false, win: false, seed: s * 3.1 };
   }
   function moveRing(dt, T) {
+    if (fx.hold > 0) { fx.hold -= dt; dt *= .06; } // a hard hit freezes everything for a blink
     fx.update(dt);
+    cheer = Math.max(fx.shake, cheer - dt * .9);
+    for (const f of flags) f.g.rotation.y = Math.sin(T * 3.1 + f.ph) * .35 + Math.sin(T * 7.3 + f.ph) * .1 - .3;
+    for (const f of fans) { const hop = Math.abs(Math.sin(T * 9 + f.ph)) * .34 * Math.min(1, cheer * 1.6), br = 1 + Math.sin(T * 2.4 + f.ph) * .04; f.g.position.y = hop; f.g.scale.set(1 / Math.sqrt(br), br, 1 / Math.sqrt(br)); }
     for (const s of [0, 1]) {
       const p = bp[s]; if (!p) continue;
       p.t += dt; p.lunge = Math.max(0, p.lunge - dt * 2.4); p.shake = Math.max(0, p.shake - dt * 2.2); p.hop = Math.max(0, p.hop - dt * 1.8);
       if (p.down) p.fall = Math.min(1, p.fall + dt * 1.6);
       const reach = Math.sin(p.lunge * Math.PI) * .9, to = HOME[1 - s], h = HOME[s];
-      const pop = Math.min(1, p.t * 3.5), k = p.base * pop * (1 - p.fall * .85), breathe = 1 + Math.sin(T * 2.2 + p.seed) * .025;
-      const o = fx.pose(s, _o), f = reach * .45 + o.f, sy = breathe * o.sy, kk = k * o.k; _d.set(to.x - h.x, 0, to.z - h.z);
+      // arriving: it drops in from above and squashes as it lands
+      const q = Math.min(1, p.t / .3), drop = 2.6 * (1 - q * q), land = p.t > .3 && p.t < .62 ? Math.sin((p.t - .3) / .32 * Math.PI) : 0;
+      // standing: breathing, a small sway, and now and then a happy hop. Tired pets droop and pant; winners bounce.
+      const calm = !p.down && !p.win, slow = p.low ? .55 : 1, ph = (T * slow + p.seed * 1.7) % 5.2;
+      const breathe = 1 + Math.sin(T * (p.low ? 5.5 : 2.2) + p.seed) * (p.low ? .045 : .028);
+      const idleHop = calm && !p.low && ph < .5 ? Math.sin(ph / .5 * Math.PI) * .16 : 0, joy = p.win ? Math.abs(Math.sin(p.t * 7)) * .5 : 0;
+      const k = p.base * (1 - p.fall * .85);
+      const o = fx.pose(s, _o), f = reach * .45 + o.f, sy = breathe * o.sy * (1 - land * .28) * (1 + (drop > 0 ? .12 : 0)), kk = k * o.k; _d.set(to.x - h.x, 0, to.z - h.z);
       const px = -_d.z / _d.length() * o.side, pz = _d.x / _d.length() * o.side; // sideways steps
-      p.g.position.set(h.x + _d.x * f + px + Math.sin(T * 55) * .09 * p.shake, Math.abs(Math.sin(p.hop * Math.PI * 2)) * .4 * p.hop + Math.sin(p.lunge * Math.PI) * .25 + o.y, h.z + _d.z * f + pz);
-      p.g.rotation.set(o.rx, FACE[s] + o.ry, p.fall * 1.3 * (s ? -1 : 1) + o.rz, 'YXZ');
+      p.g.position.set(h.x + _d.x * f + px + Math.sin(T * 55) * .09 * p.shake, Math.abs(Math.sin(p.hop * Math.PI * 2)) * .4 * p.hop + Math.sin(p.lunge * Math.PI) * .25 + o.y + drop + idleHop + joy, h.z + _d.z * f + pz);
+      p.g.rotation.set(o.rx + (p.low && calm ? .13 : 0), FACE[s] + o.ry + (calm ? Math.sin(T * .9 + p.seed) * .07 : 0) + (p.win ? Math.sin(p.t * 3.5) * .5 : 0), p.fall * 1.3 * (s ? -1 : 1) + o.rz + (p.low && calm ? Math.sin(T * 1.3 + p.seed) * .04 : 0), 'YXZ');
       p.g.scale.set(kk / Math.sqrt(sy), kk * sy, kk / Math.sqrt(sy));
       p.blob.position.set(p.g.position.x, .04, p.g.position.z); p.blob.scale.setScalar(p.base * 3 / (1 + p.g.position.y * .5));
-      const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
+      const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : p.low ? .6 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
       p.blob.visible = p.fall < .5;
     }
@@ -452,6 +590,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   world.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
   { const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(9, 16, 7); world.add(l); }
   const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
+  const mapBirds = makeBirds(world, 19, 6, 5, 1.7);
   let flights = [], flyTo = null; // balloons on their way, and the island the camera is swooping to
   let mapFar = 33, mapOn = false, isles = []; // { id, g, y, ph, r }
   function nameTag(text, mine, friend, sub) { // sub: a second, smaller line saying what can be done there
@@ -675,7 +814,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (lift !== liftNow && W) { liftNow = lift; if (lift) camera.setViewOffset(W, H, 0, lift * H, W, H); else camera.clearViewOffset(); }
     if (fighting) { // a fixed view of the ring, further back on narrow screens
       const d = Math.max(7.2, 7.4 * H / Math.max(1, W));
-      const sk = fx.shake * .12; camera.position.set(-1.2 + Math.sin(T * 61) * sk, d * .42 + Math.sin(T * 47) * sk, d); camera.lookAt(0, .95, 0);
+      const sk = fx.shake * .12, v = fx.view, z = 1 - v.zoom, sway = Math.sin(T * .23) * .45; // drifts a little, leans in on the action
+      camera.position.set((-1.2 + sway) * z + v.x * .3 + Math.sin(T * 61) * sk, d * .42 * z + Math.sin(T * 47) * sk, d * z + v.z * .3); camera.lookAt(v.x * .45, .95, v.z * .45);
       moveRing(dt, T); renderer.render(ring, camera); return;
     }
     if (mapOn) { // the neighbourhood from above; drag to turn it
@@ -693,6 +833,7 @@ export function createScene(canvas, { onPick, onGhost }) {
         f.b.position.set(f.to.x * e, 2.2 + (f.to.y + 1.4 - 2.2) * e + Math.sin(e * Math.PI) * 3 + Math.sin(T * 1.3) * .12, f.to.z * e); f.b.rotation.y = Math.sin(T * .5) * .3;
       }
       wclouds.rotation.y += dt * .006;
+      mapBirds(T);
       renderer.render(world, camera); return;
     }
     const k = Math.max(1, (starters ? 1.1 : .75) * H / Math.max(1, W)); // narrow screens need to stand further back
@@ -700,7 +841,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
-    movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T); movePeople(dt, T);
+    movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T); movePeople(dt, T); moveBits(dt); moveTufts(T); movePetals(T); farmBirds(T);
     if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
     clouds.rotation.y += dt * .006;
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
@@ -718,7 +859,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const fk = f ? f.id || f.owner || f.name || '?' : ''; if (fk !== farmKey) { farmKey = fk; seenOnce = false; }
       farm = f;
       if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); }
-      syncItems(); syncPets(); syncBalloon(); syncEgg(); syncOwner();
+      syncItems(); syncPets(); placeTufts(); syncBalloon(); syncEgg(); syncOwner();
       if (ghost) ghostCheck();
     },
     setStarters,
@@ -742,12 +883,12 @@ export function createScene(canvas, { onPick, onGhost }) {
     setWorld,
     setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); fx.clear(); } },
     ringPet,
-    ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') { p.down = true; fx.faint(s); } },
+    ringFx(s, what) { const p = bp[s]; if (!p) return; if (what === 'lunge') p.lunge = 1; else if (what === 'hit') p.shake = 1; else if (what === 'hop') p.hop = 1; else if (what === 'faint') { p.down = true; fx.faint(s); } else if (what === 'win') { p.win = true; p.t = 0.7; fx.win(s); } },
     // a move played out in the ring: returns the milliseconds until it lands
-    ringMove(s, id) { return bp[s] ? Math.round(fx.move(s, id) * 1000) : 300; },
+    ringMove(s, id, el) { return bp[s] ? Math.round(fx.move(s, id, el) * 1000) : 300; },
     // what happens to the pet on side s: 'hit' (el, eff), 'burn', 'heal', 'stat' (d), 'status' (st), 'dazed'
     ringHit(s, what, a, b) { const p = bp[s]; if (!p) return; if (what === 'hit') { p.shake = .6; fx.hit(s, a, b); } else if (what === 'burn') { p.shake = .4; fx.burn(s); } else if (what === 'heal') fx.heal(s); else if (what === 'stat') fx.stat(s, a); else if (what === 'status') fx.status(s, a); else if (what === 'dazed') fx.dazed(s); },
-    ringState(s, list) { fx.state(s, list); },
+    ringState(s, list, low) { if (bp[s]) bp[s].low = !!low && !bp[s].down; fx.state(s, low && bp[s] && !bp[s].down ? [...list, 'tired'] : list); },
     // where the pet on side s is on the screen, for numbers that float up from it
     ringSpot(s) { _sp.set(HOME[s].x, 1.25, HOME[s].z).project(camera); return { x: (_sp.x + 1) / 2 * W, y: (1 - _sp.y) / 2 * H }; },
     // One pet as it really looks (form, coat, markings), for cards and the family tree. Kept, so each look is drawn once.
