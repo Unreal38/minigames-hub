@@ -278,6 +278,25 @@ export function digArt() {
   </svg>`;
 }
 
+// Sky Bricks card: a well of pastel bricks on a floating island, one brick falling in and a stone flying off.
+export function bricksArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const C = { p: '#ff8fab', l: '#c8e66b', b: '#9aa8ff', a: '#ffb547', t: '#59d6c2', c: '#ff7a59', v: '#c59bff', s: '#a7a2b3' };
+  const rows = ['sss.sssss', 'pvvaa.ttb', 'ppv.accbb', '.pl..ac..', '..l......'];
+  const cell = (x, y, k) => `<rect x="${106 + x * 12}" y="${110 - y * 12}" width="12" height="12" fill="${C[k]}" stroke="#3b2219" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A well of colourful bricks on a floating island with one brick falling in">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="42" cy="18" r="1.6"/><circle cx="270" cy="14" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="246" cy="44" r="1.1"/><circle cx="74" cy="50" r="1.2"/></g>
+    <path d="M22 44l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M250 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M56 126c30-12 178-12 208 0l-14 10c-30 8-150 8-180 0z" fill="#8bca60" ${o}/><path d="M70 136c30 8 150 8 180 0l-34 16h-112z" fill="#c98a5a" ${o}/>
+    <rect x="104" y="26" width="112" height="98" fill="#465396" ${o}/>
+    <rect x="94" y="22" width="12" height="104" fill="#b9794a" ${o}/><rect x="214" y="22" width="12" height="104" fill="#b9794a" ${o}/><rect x="88" y="122" width="144" height="10" rx="3" fill="#a86a42" ${o}/>
+    ${rows.map((r, y) => [...r].map((k, x) => (k === '.' ? '' : cell(x, y, k))).join('')).join('')}
+    <g class="sbfall">${[[0, 0], [1, 0], [2, 0], [1, 1]].map(([x, y]) => `<rect x="${154 + x * 12}" y="${48 - y * 12}" width="12" height="12" fill="#ffd84a" stroke="#3b2219" stroke-width="2"/>`).join('')}</g>
+    <g class="sbstone"><rect x="252" y="76" width="16" height="16" rx="2" fill="#a7a2b3" ${o} transform="rotate(18 260 84)"/><path d="M236 96l8-5M240 104l7-3" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>
+    <path d="M60 84l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`;
+}
+
 // Beanstalk Bounce card: a climber leaping between leaf ledges on a beanstalk, a storm cloud rumbling below.
 export function beanArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';

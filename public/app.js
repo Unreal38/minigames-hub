@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -271,6 +271,26 @@ const GAMES = {
       <li>A <b>trap</b> takes <b>4 points</b> (never below zero) and ends your turn.</li>
       <li>When the <b>last gem</b> is found, the game ends and the field is shown. <b>Most points wins</b>. A tie goes to whoever found more, then whoever hit fewer traps.</li>
       <li>If the turn timer runs out, the game digs a careful guess for you. Keyboard: arrow keys move, <b>Enter</b> or <b>Space</b> digs.</li>
+    </ol>`,
+  },
+  bricks: {
+    name: 'Sky Bricks', load: () => import('./games/bricks/client.js'), start: 'Start stacking',
+    host: { seats: 4, speed: 'normal', bots: 'chill' }, solo: { seats: 4, speed: 'normal', bots: 'chill' },
+    openSeat: 'A bot stacks here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Speed</b><div class="pills">${pill('speed', 'chill', 'Chill')}${pill('speed', 'normal', 'Normal')}${pill('speed', 'fast', 'Fast')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone stacks falling bricks in their own well at the same time. Fill a row and it vanishes. Clear two or more rows at once and stone lines rise under somebody else. Fill your well to the top and you are out. The last one stacking wins.`,
+    rules: `<ol>
+      <li>Everyone has their <b>own well</b> and plays at the <b>same time</b>, with the same bricks in the same order. Empty seats are played by bots.</li>
+      <li>Move a brick with <b>← →</b>, turn it with <b>↑</b> (or <b>Z</b> and <b>X</b>), make it fall faster with <b>↓</b> and drop it at once with <b>Space</b>. On a phone, use the pads in the bottom corners.</li>
+      <li>Fill a <b>whole row</b> and it vanishes. The faint outline shows where the brick will land.</li>
+      <li><b>Set aside</b> (<b>C</b>): swap the falling brick with the one you saved earlier. Once per brick.</li>
+      <li>Clear <b>two rows at once</b> and one <b>stone line</b> rises under another player. Three rows send two, four rows send four. Clearing rows with several bricks in a row sends extra.</li>
+      <li>Stone lines wait in the <b>red bar</b> beside your well and come up when your next brick lands without clearing anything. Clear rows first and you <b>knock them back</b> instead.</li>
+      <li>The bricks fall <b>faster every 20 seconds</b>. Late in the game the <b>stone tide</b> starts: lines rise for everyone, quicker and quicker.</li>
+      <li>When a new brick has no room to appear, you are <b>out</b>. The <b>last player stacking wins</b>.</li>
+      <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   bean: {
@@ -707,6 +727,14 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Treasure Dig</h3><span class="tag">1–6 players</span></div>
             <p>Take turns digging up a grass field for gems and a golden chest. Read the numbers to dodge the traps, like Minesweeper with friends.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="dig">Host a table</button></div>
+          </div>
+        </article>
+        <article class="gcard">
+          <div class="pic brickspic">${bricksArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Sky Bricks</h3><span class="tag">1–6 players</span></div>
+            <p>Stack falling bricks in your own well while your friends do the same. Clear rows to send stone lines their way. Last one stacking wins.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="bricks">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
