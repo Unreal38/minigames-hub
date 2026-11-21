@@ -44,11 +44,13 @@ function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
       }
       if (G.stage === 'play') {
         const b = G.balls[0];
-        if (!b.sunk && !b.out && now >= b.busy) { // seat 0 putts roughly at the cup, seat 1 never plays
+        if (G.turn !== 0 && golf.act(G, 0, { t: 'shot', ang: 0, pow: .5 })) fail('putted out of turn');
+        if (G.turn === 0 && now >= G.turnFrom) { // seat 0 putts roughly at the cup, seat 1 never plays (the game putts for them)
           const H = G.H, before = b.strokes;
           if (golf.act(G, 0, { t: 'shot', ang: 99, pow: 3 }) || golf.act(G, 0, { t: 'shot', ang: 'x', pow: .5 })) fail('bad shot accepted');
           if (!golf.act(G, 0, { t: 'shot', ang: Math.atan2(H.cup.x - b.x, -(H.cup.z - b.z)) + (Math.random() - .5) * .3, pow: .25 + Math.random() * .5 })) fail('shot refused');
           if (golf.act(G, 0, { t: 'shot', ang: 0, pow: .5 })) fail('putted while the ball was rolling');
+          if (G.turn >= 0 && G.turn !== 0 && G.turn !== (G.balls.findIndex((x, i) => i > 0 && !x.sunk && !x.out))) fail('turn did not pass to the next ball');
           if (b.strokes <= before || b.strokes > MAX_STROKES) fail('stroke count wrong');
           if (!tileAt(H, b.x, b.z)) fail('ball rests off the course');
         }
@@ -56,7 +58,7 @@ function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
       const was = G.stage; golf.tick(G, now);
       if (was === 'play' && G.stage === 'done') {
         const R = G.holeRes;
-        if (R.scores.some(s => s < 1 || s > CAP_SCORE) || R.scores[1] !== CAP_SCORE) fail('bad hole scores');
+        if (R.scores.some(s => s < 1 || s > CAP_SCORE)) fail('bad hole scores');
         if (R.win >= 0 && R.scores[R.win] !== Math.min(...R.scores)) fail('hole winner did not have the fewest strokes');
         if (betOn >= 0) {
           const want = start - 25 + (R.win < 0 ? 25 : R.win === betOn ? 25 * G.seats.length : 0);
@@ -114,8 +116,9 @@ if (state?.game !== 'golf' || state.seats.length !== 2 || state.stage !== 'bet' 
 send({ t: 'act', a: { t: 'skip' } });
 for (let i = 0; i < 20 && state.stage !== 'play'; i++) await wait(300);
 if (state.stage !== 'play') bail('hole never opened');
-send({ t: 'act', a: { t: 'shot', ang: 0, pow: .5 } }); await wait(300);
+for (let i = 0; i < 80 && state.seats[state.me].strokes < 1; i++) { await wait(300); send({ t: 'act', a: { t: 'shot', ang: 0, pow: .5 } }); }
+await wait(300);
 const me = state.seats[state.me];
-if (me.strokes < 1 || !me.shot?.path?.length) bail('putt did not happen');
+if (!('turn' in state) || me.strokes < 1 || !me.shot?.path?.length) bail('putt did not happen');
 console.log('OK');
 srv.kill(); process.exit(0);

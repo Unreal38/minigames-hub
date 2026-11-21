@@ -42,6 +42,8 @@ body.in-game { overflow: hidden; }
 .mg .list em.out { background: #e5543b; color: #fff; }
 .mg .list .avatar { border-width: 2px; }
 .mg .list .mg-me { background: #ffb54733; }
+.mg .list .turn { box-shadow: inset 0 0 0 2.5px var(--butter, #ffb547); }
+.mg .mg-tag.turn { background: #ffb547; opacity: 1; transform-origin: 50% 100%; }
 
 /* betting before a hole */
 .mg .betbox { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(760px, calc(100vw - 24px)); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; max-height: 58vh; overflow: auto; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }

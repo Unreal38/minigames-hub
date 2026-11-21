@@ -140,12 +140,13 @@ const GAMES = {
       <div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
       <div class="opt"><b>Coin bets on each hole</b><div class="pills">${pill('bets', 'on', 'On')}${pill('bets', 'off', 'Off')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
-    howto: `Everyone putts the same hole at the same time, each with their own ball. Drag back and let go to putt. Fewest strokes over the round wins, and before each hole you can bet coins on who will take it.`,
+    howto: `Everyone plays the same hole and takes turns, one putt each, with their own ball. Drag back and let go to putt. Fewest strokes over the round wins, and before each hole you can bet coins on who will take it.`,
     rules: `<ol>
-      <li>Everyone plays the <b>same hole at once</b>. You each have your own ball, and balls pass through each other, so nobody waits for a turn.</li>
+      <li>Everyone plays the same hole and <b>takes turns</b>, one putt each, until every ball is in. You each have your own ball, and balls pass through each other. Whoever took the last hole tees off first.</li>
+      <li>You have <b>25 seconds</b> for a putt. If the time runs out, the game makes a clumsy putt for you.</li>
       <li><b>Drag back</b> anywhere on the screen and <b>let go</b> to putt: the further you pull, the harder the hit. On a keyboard, use the arrow keys to aim and set the power, then space.</li>
       <li>Watch for <b>windmills</b>, <b>bumper posts</b>, <b>ramps</b> and <b>sand</b> (it slows the ball a lot). A ball in the <b>water</b> costs a stroke and goes back where you hit it from.</li>
-      <li>You get <b>7 strokes</b> and 90 seconds a hole. Not in by then and you score 8.</li>
+      <li>You get <b>7 strokes</b> a hole. Not in by then and you score 8.</li>
       <li>The hole goes to the <b>fewest strokes</b>. A tie goes to whoever holed out first.</li>
       <li>With bets on, before each hole you can <b>bet coins</b> on who will take it, yourself included. A right call pays your stake times the number of players. It is optional, and it uses your real coins, the ones that buy avatar items.</li>
       <li>After the last hole the <b>fewest strokes in total</b> wins the round. Empty seats are played by bots.</li>
@@ -513,7 +514,7 @@ function renderHub() {
           <div class="pic golfpic">${golfArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>
-            <p>Everyone putts the same blocky 3D hole at once. Dodge the windmill, sink it first, and bet coins on who takes each hole.</p>
+            <p>Take turns putting the same blocky 3D hole. Dodge the windmill, sink it in the fewest putts, and bet coins on who takes each hole.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="golf">Host a table</button></div>
           </div>
         </article>
