@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, digArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -230,6 +230,27 @@ const GAMES = {
       <li>Once the first kart finishes, everyone else has <b>25 seconds</b> to cross the line. After that the rest are placed by how far round they got.</li>
       <li><b>Chaos</b> power-ups rain banana peels from the sky and hand out more jellies and clouds.</li>
       <li>Coins go by your finishing place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  kitchen: {
+    name: 'Cozy Kitchen Rush', load: () => import('./games/kitchen/client.js'), start: 'Open the kitchen',
+    host: { seats: 3, time: 180, map: 'diner', bots: 'chill' }, solo: { seats: 3, time: 180, map: 'diner', bots: 'chill' },
+    openSeat: 'A bot cooks here if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
+    settings: pill => `<div class="opt"><b>Cooks</b><div class="pills">${pill('seats', 1, '1')}${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Kitchen</b><div class="pills">${pill('map', 'diner', 'Sunny Diner')}${pill('map', 'split', 'Pass-Through')}</div></div>
+      <div class="opt"><b>Shift</b><div class="pills">${pill('time', 120, '2 min')}${pill('time', 180, '3 min')}${pill('time', 240, '4 min')}</div></div>
+      <div class="opt"><b>Bot cooks</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone cooks together in one little kitchen. Grab ingredients from the crates, chop them, cook soups and patties, plate them up and serve the orders before their tickets run out. The whole kitchen earns tips and stars, and whoever had a hand in the most tips is the star cook.`,
+    rules: `<ol>
+      <li>Everyone works in the <b>same kitchen</b> against the clock. Empty spots are bot cooks.</li>
+      <li>Walk with <b>WASD</b> or the arrow keys (on a phone, drag anywhere on the left of the screen). <b>Space</b> grabs or puts down whatever is on the counter in front of you, which lights up. <b>E</b> chops.</li>
+      <li>Take a <b>tomato</b>, <b>lettuce</b>, <b>mushroom</b>, <b>bun</b> or <b>patty</b> from its crate. Vegetables go on a <b>chopping board</b> and need chopping before they can be used.</li>
+      <li>Soup: three chopped tomatoes or three chopped mushrooms in a <b>pot</b>. It cooks by itself, then ladle it out with a plate. Leave it too long and it <b>burns</b>.</li>
+      <li>Patties fry in a <b>pan</b>. Take them off when they are brown, before they burn. Burnt food goes in the <b>bin</b>.</li>
+      <li>Take a <b>plate</b> from the rack and put the right things on it: a <b>salad</b> is lettuce and tomato, a <b>burger</b> is a bun and a patty, a <b>deluxe burger</b> has lettuce and tomato too.</li>
+      <li>Hand the plate in at the <b>serving window</b>. Quick service earns a bigger tip. An order that runs out costs the kitchen 10 tips.</li>
+      <li>The kitchen earns up to <b>three stars</b> for its tips. In <b>Pass-Through</b> the stoves are on the other side of a counter: pass things across, or walk round by the door.</li>
+      <li>Every dish's tip is shared by everyone who touched it. Coins go by how much of the tips you earned, so help out everywhere.</li>
     </ol>`,
   },
   dig: {
@@ -649,6 +670,14 @@ function renderHub() {
           </div>
         </article>
         <article class="gcard">
+          <div class="pic kitchenpic">${kitchenArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Kitchen Rush</h3><span class="tag">Co-op · 1–4</span></div>
+            <p>Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out. Don't burn the soup!</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="kitchen">Host a table</button></div>
+          </div>
+        </article>
+        <article class="gcard">
           <div class="pic digpic">${digArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Treasure Dig</h3><span class="tag">1–6 players</span></div>
@@ -812,12 +841,12 @@ function watchPaint() {
   const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
   const bots = (st.lastState.seats || []).filter(s => !s.human).length;
   const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
-  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand', hole: 'from the next hole' }[when] || 'when the next game starts';
+  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand', hole: 'from the next hole', now: 'right away' }[when] || 'when the next game starts';
   const msg = !saving ? 'You’re watching.'
     : full ? (when === 'game' ? 'Every seat is taken. You get the next free one.' : 'Every seat has a player. You get one next game.')
     : `You take over a bot ${soon}.`;
   const btn = saving ? 'Just watch' : full && when === 'game' ? 'Get the next free seat'
-    : when === 'round' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : when === 'hole' ? 'Play from next hole' : 'Play next game';
+    : when === 'round' || when === 'now' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : when === 'hole' ? 'Play from next hole' : 'Play next game';
   $watch.innerHTML = `<span>${msg}</span>
     <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
 }
