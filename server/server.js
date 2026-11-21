@@ -207,6 +207,12 @@ function handle(c, m) {
       return send(c, { t: 'bought', id: r.id, price: r.price });
     }
     case 'stats': return send(c, statsMsg());
+    case 'rankings': { // the hub's global leaderboards, one per minigame
+      const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
+      if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
+      if (g !== 'overall' && !GAMES[g]) return;
+      return send(c, { t: 'rankings', ...store.leaderboard(g, pid) });
+    }
     case 'create': {
       if (!GAMES[m.game]) return;
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
