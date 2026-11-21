@@ -69,7 +69,7 @@ function play(opts, { slip = 0, every = 900, cheat = null } = {}) {
         else if (m.locks === C.st.locks) { C.st.pend = m.pend.map(([id, hole]) => ({ id, hole })); if (R.encode(C.st.b) !== v.b[s]) fail('browser and server wells differ'); if (m.cur !== C.st.cur || m.nx !== C.st.nx) fail('browser and server bricks differ'); }
         if (v.stage !== 'go' || C.st.dead || now - C.last < every) continue;
         C.last = now;
-        if (cheat && s === 0 && !cheated && C.st.locks > 3) { cheated = true; cheat(G, C, v); continue; }
+        if (cheat && s === 0 && !cheated && C.st.locks > 3 && cheat(G, C, v) !== false) { cheated = true; continue; } // false: not this brick, try the next
         if (s === 1 && C.st.can && C.st.locks % 7 === 3) { R.doHold(C.st); sb.act(G, s, { t: 'h', y0: C.sync }); if (C.st.dead) continue; }
         const mv = sb.bestMove(C.st, slip); if (!mv) continue;
         const g = Math.min(C.st.pend.length, R.MAXG);
@@ -98,7 +98,7 @@ if (c.G.res.ms > 15 * 60000) fail('a duel dragged on');
 for (const cheat of [
   (G, C) => sb.act(G, 0, { t: 'l', y0: C.sync, n: C.st.locks + 1, r: 0, x: 3, y: 12, g: 0 }),                       // a brick hanging in the air
   (G, C) => sb.act(G, 0, { t: 'l', y0: C.sync, n: C.st.locks + 5, r: 0, x: 3, y: 0, g: 0 }),                        // skipping bricks
-  (G, C) => { G.st[0].pend.push({ id: 99, hole: 1, at: 0 }); const m = sb.bestMove(G.st[0]); if (sb.wouldClear?.(G.st[0], m)) return; sb.act(G, 0, { t: 'l', y0: C.sync, n: C.st.locks + 1, r: m.r, x: m.x, y: m.y, g: 0 }); }, // ducking an old stone line
+  (G, C) => { const m = sb.bestMove(G.st[0]); if (sb.wouldClear(G.st[0], m)) return false; G.st[0].pend.push({ id: 99, hole: 1, at: 0 }); sb.act(G, 0, { t: 'l', y0: C.sync, n: C.st.locks + 1, r: m.r, x: m.x, y: m.y, g: 0 }); }, // ducking an old stone line
   (G, C) => sb.act(G, 0, { t: 'l', y0: C.sync, n: C.st.locks + 1, r: 'x', x: null, y: {}, g: -3 }),                 // nonsense
 ]) { const r = play({ seats: 3 }, { cheat }); if (r.resyncs < 1) fail('a bad move was not put right'); }
 { // stale messages from before a resync are dropped quietly
