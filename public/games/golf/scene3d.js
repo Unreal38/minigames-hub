@@ -1,7 +1,7 @@
 // Mini Golf Party 3D view (three.js). Purely visual: it draws the hole the server picked, replays the ball
 // paths the server worked out, and turns a drag on the screen into an aim and a power for your next putt.
 import * as THREE from 'three';
-import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
+import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
@@ -10,6 +10,7 @@ import { buildHole, ground, pathAt, spinAngle, BALL_R, CUP_R } from './course.js
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', BASE = -.14, AV = .46, WALL_H = .24;
 const ease = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const WIND = 240; // ms of backswing shown before another player's ball sets off
 
 // Collects flat-shaded, vertex-coloured boxes, prisms and quads into one geometry: the whole course is one draw call.
 function mesher() {
@@ -73,14 +74,14 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   const putterMats = [toonMat(new THREE.MeshStandardMaterial({ color: '#d9dde3' })), toonMat(new THREE.MeshStandardMaterial({ color: '#5b4636' }))];
   const ballGeo = new THREE.IcosahedronGeometry(BALL_R, 2), inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
   let H = null, holeG = null, holeKey = '', spinMeshes = [], blades = [], flag = null, water = null;
-  let players = [], seatsKey = '', me = -1, turn = -1, stage = 'bet', clockBase = performance.now(), frozen = 0;
+  let players = [], seatsKey = '', me = -1, turn = -1, turnAt = 0, stage = 'bet', clockBase = performance.now(), frozen = 0;
   const arrow = youArrow(); arrow.visible = false; arrow.scale.setScalar(.7); scene.add(arrow);
 
   // aim arrow: a strip that grows with the power, plus a row of dots showing the line
   const aimG = new THREE.Group(); aimG.visible = false; scene.add(aimG);
   const aimMat = new THREE.MeshBasicMaterial({ color: '#7ed957', transparent: true, opacity: .95, depthTest: false });
   const aimStrip = new THREE.Mesh(new THREE.BoxGeometry(.11, .02, 1), aimMat); aimStrip.renderOrder = 5; aimG.add(aimStrip);
-  const aimTip = new THREE.Mesh(new THREE.ConeGeometry(.16, .3, 4), aimMat); aimTip.rotation.x = -Math.PI / 2; aimTip.renderOrder = 5; aimG.add(aimTip);
+  const aimTip = new THREE.Mesh(new THREE.ConeGeometry(.16, .3, 4), aimMat); aimTip.rotation.x = Math.PI / 2; aimTip.renderOrder = 5; aimG.add(aimTip);
   const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .75, depthTest: false });
   const aimDots = Array.from({ length: 7 }, () => { const m = new THREE.Mesh(new THREE.CircleGeometry(.045, 8), dotMat); m.rotation.x = -Math.PI / 2; m.renderOrder = 4; aimG.add(m); return m; });
   const ring = new THREE.Mesh(new THREE.RingGeometry(BALL_R + .06, BALL_R + .12, 20), new THREE.MeshBasicMaterial({ color: '#fff4e2', transparent: true, opacity: .9, depthTest: false }));
@@ -91,7 +92,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
 
   // ---------- the hole ----------
   function setHole(def) {
-    const key = def.i + '/' + (def.mirror ? 1 : 0);
+    const key = def.key ?? def.i + '/' + (def.mirror ? 1 : 0);
     if (key === holeKey) return;
     holeKey = key;
     if (holeG) { scene.remove(holeG); disposeToon(holeG); }
@@ -101,7 +102,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     spinMeshes = []; blades = [];
     // the floating island under the course, with trees and flowers round its rim
     const iw = cols + 1.2, id = rows + 2.6;
-    const land = island(iw, id, { rim: 2.3, seed: def.i + 3, props: 16, flowers: 46, size: 1.15 }); land.position.set(0, BASE - .1, -.5); g.add(land);
+    const land = island(iw, id, { rim: 2.3, seed: (typeof def.i === 'number' ? def.i : H.rows * 7 + H.cols + H.name.length) + 3, props: 16, flowers: 46, size: 1.15 }); land.position.set(0, BASE - .1, -.5); g.add(land);
     // tiles
     for (const row of H.t) for (const T of row) {
       if (!T) continue;
@@ -186,15 +187,18 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const out = new THREE.Mesh(ballGeo, inkMat); out.scale.setScalar(1.16); ball.add(out);
       const av = avatar3d(s.color, s.av, { pose: 'stand' });
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av);
-      // putter: pivots at the hands, in front of the body; the head rests on the grass beside the ball
-      const putter = new THREE.Group(); putter.position.set(0, .22, .42);
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.08, 5), putterMats[0]);
-      shaft.position.set(0, -.46, .26); shaft.rotation.x = -.52;
-      const head = new THREE.Mesh(new THREE.BoxGeometry(.3, .12, .12), putterMats[1]); head.position.set(.08, -.93, .53);
-      putter.add(shaft, head); wrap.add(putter);
+      // putter: held in both hands. Each frame the grip goes to the hands and the head swings past the ball.
+      const putter = new THREE.Group();
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 1, 5), putterMats[0]);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(.36, .15, .15), putterMats[1]);
+      putter.add(shaft, head); putter.userData = { shaft, head }; wrap.add(putter);
+      for (const arm of av.userData.arms) { // where the hand is along the arm, from the arm's own shape
+        let lo = 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } });
+        arm.userData.hand = lo + .06; arm.userData.rz = arm.rotation.z;
+      }
       scene.add(wrap, ball);
       return { i, ball, av, wrap, putter, cur: new THREE.Vector3(), rest: { x: 0, z: 0 }, pos: new THREE.Vector3(), face: 0, shot: null, shotN: -1, t0: 0, cue: 0, phase: '',
-        sunk: false, out: false, hidden: false, init: false, hop: 0, walk: 0, swing: 9, tag: { x: 0, y: 0, show: false }, btag: { x: 0, y: 0 } };
+        sunk: false, out: false, hidden: false, init: false, hop: 0, walk: 0, swing: 9, mood: 0, moodT: 0, spin: 0, tag: { x: 0, y: 0, show: false }, btag: { x: 0, y: 0 } };
     });
   }
 
@@ -203,6 +207,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     if (!H) return;
     me = S.me; stage = S.stage; turn = S.stage === 'play' ? S.turn : -1;
     const now = performance.now();
+    turnAt = now + (S.tin || 0);
     if (S.stage === 'play') { const b = now - S.clock; if (Math.abs(b - clockBase) > 120) clockBase = b; frozen = 0; }
     else if (S.stage === 'bet') { frozen = 1; }
     S.seats.forEach((s, i) => {
@@ -212,7 +217,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       if (!sh) { p.shot = null; p.shotN = -1; p.phase = ''; p.hidden = false; return; }
       if (sh.n === p.shotN) return;
       p.shotN = sh.n;
-      if (sh.path && sh.ago < sh.ms + 1400) { p.shot = sh; p.t0 = now - sh.ago; p.cue = 0; p.phase = 'fly'; p.swing = sh.ago / 1000; p.hidden = false; if (sh.ago < 200) { onCue?.({ k: 'putt', s: i, pow: sh.pow }); if (!reduced) fx.puff(at(sh.x0, hAt(sh.x0, sh.z0), sh.z0), { n: 5, size: .16 + sh.pow * .14, speed: 1 + sh.pow * 1.5, life: .35 }); } }
+      if (sh.path && sh.ago < sh.ms + 1400) { p.shot = sh; p.t0 = now - sh.ago + (i === me ? 90 : WIND); p.cue = 0; p.phase = 'fly'; p.struck = false; p.hidden = false; }
       else { p.shot = null; p.phase = ''; p.hidden = false; }
     });
   }
@@ -268,6 +273,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   addEventListener('keydown', key);
 
   // ---------- frame loop ----------
+  const grip = new THREE.Vector3(), hand = new THREE.Vector3(), rest = new THREE.Vector3(), headP = new THREE.Vector3(), dir = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
   const proj = new THREE.Vector3(), look = new THREE.Vector3(), lookNow = new THREE.Vector3(), want = new THREE.Vector3(), tmp = { x: 0, z: 0, done: false };
   const lowC = new THREE.Color('#7ed957'), midC = new THREE.Color('#ffd23f'), hiC = new THREE.Color('#e5543b');
   let W = 0, Hh = 0, camInit = false, shadowIn = 0, orbit = 0;
@@ -288,22 +294,27 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     cloudRing.rotation.y = T * .006; flyBirds(T); blow(T);
     if (water) { water.position.y = Math.sin(T * 1.6) * .012; waterMat.emissive.setScalar(.04 + Math.sin(T * 2.3) * .03); }
     const n = players.length;
+    const watch = players.findIndex(q => q.shot) >= 0 ? players.findIndex(q => q.shot) : turn; // whose ball everyone is looking at
     players.forEach((p, i) => {
       // --- the ball ---
       let bx = p.rest.x, bz = p.rest.z, by = 0, show = !p.sunk && !p.out, flying = false;
       const sh = p.shot;
       if (sh) {
-        const t = now - p.t0;
+        const t = Math.max(0, now - p.t0);
+        if (!p.struck && now >= p.t0) { // the club meets the ball
+          p.struck = true; p.swing = 0; onCue?.({ k: 'putt', s: i, pow: sh.pow });
+          if (!reduced) fx.puff(at(sh.x0, hAt(sh.x0, sh.z0), sh.z0), { n: 5, size: .16 + sh.pow * .14, speed: 1 + sh.pow * 1.5, life: .35 });
+        }
         pathAt(sh.path, t, tmp); bx = tmp.x; bz = tmp.z; flying = !tmp.done; show = true;
-        while (sh.fx && p.cue < sh.fx.length && t >= sh.fx[p.cue][0] * 1000 / 30) { const kind = sh.fx[p.cue++][1]; onCue?.({ k: 'hit', s: i, kind }); if (!reduced) fx.puff(at(bx, hAt(bx, bz), bz), kind === 'w' ? { n: 4, size: .16, speed: 1, life: .3 } : { n: 7, size: .2, speed: 1.6, life: .4, color: ['#ffffff', '#ffd0d0'] }); }
+        while (sh.fx && p.cue < sh.fx.length && t >= sh.fx[p.cue][0] * 1000 / 30) { const kind = sh.fx[p.cue++][1]; onCue?.({ k: 'hit', s: i, kind }); if (kind === 'c') { p.mood = -1; p.moodT = 1.4; } if (!reduced) fx.puff(at(bx, hAt(bx, bz), bz), kind === 'w' ? { n: 4, size: .16, speed: 1, life: .3 } : { n: 7, size: .2, speed: 1.6, life: .4, color: ['#ffffff', '#ffd0d0'] }); }
         if (tmp.done) {
           const over = t - sh.ms;
           if (sh.sunk) { // drops into the cup
-            if (p.phase === 'fly') { p.phase = 'in'; p.hop = 1; if (!reduced) { const c = at(H.cup.x, H.cup.h, H.cup.z); fx.burst(c, { n: 24, colors: [p.ball.userData.col, '#ffd84a', '#ffffff'], speed: 3, up: 4.5, size: .26, life: 1, y: .15, shape: [STAR, CONF, HEART] }); fx.ring(c, { color: '#ffd84a', size: 1.6 }); if (i === me) { fx.confetti(c, { n: 60, w: 3, h: 3 }); shake.kick(.08); } } onCue?.({ k: 'sunk', s: i }); }
+            if (p.phase === 'fly') { p.phase = 'in'; p.hop = 1; p.spin = 1; for (const q of players) if (q !== p) { q.mood = 1; q.moodT = 1.8; } if (!reduced) { const c = at(H.cup.x, H.cup.h, H.cup.z); fx.burst(c, { n: 24, colors: [p.ball.userData.col, '#ffd84a', '#ffffff'], speed: 3, up: 4.5, size: .26, life: 1, y: .15, shape: [STAR, CONF, HEART] }); fx.ring(c, { color: '#ffd84a', size: 1.6 }); if (i === me) { fx.confetti(c, { n: 60, w: 3, h: 3 }); shake.kick(.08); } } onCue?.({ k: 'sunk', s: i }); }
             by = -Math.min(1, over / 220) * .3; show = over < 260;
             const u = Math.min(1, over / 160); bx += (H.cup.x - bx) * u; bz += (H.cup.z - bz) * u;
           } else if (sh.water) { // splash, then back where it was hit from
-            if (p.phase === 'fly') { p.phase = 'wet'; if (!reduced) { const c = at(bx, hAt(bx, bz), bz); fx.burst(c, { n: 20, colors: ['#bfe8ff', '#4fb8ef', '#ffffff'], speed: 2.4, up: 4, size: .22, life: .7, shape: DOT }); fx.ring(c, { color: '#ffffff', size: 1.3 }); } onCue?.({ k: 'water', s: i }); }
+            if (p.phase === 'fly') { p.phase = 'wet'; p.mood = -1; p.moodT = 1.8; if (!reduced) { const c = at(bx, hAt(bx, bz), bz); fx.burst(c, { n: 20, colors: ['#bfe8ff', '#4fb8ef', '#ffffff'], speed: 2.4, up: 4, size: .22, life: .7, shape: DOT }); fx.ring(c, { color: '#ffffff', size: 1.3 }); } onCue?.({ k: 'water', s: i }); }
             if (over < 700) { by = -Math.min(1, over / 200) * .4; show = over < 200; }
             else { bx = sh.x0; bz = sh.z0; show = true; if (over > 1100) { p.shot = null; p.phase = ''; } }
           } else {
@@ -320,42 +331,67 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       if (flying) { p.ball.rotation.x += dt * 9; p.ball.rotation.z += dt * 5; }
       // --- the golfer ---
       const done = (p.sunk || p.out) && !flying && p.phase !== 'fly';
+      const upNow = i === turn && now >= turnAt; // their putt, and the ball before theirs has stopped
       let tx, tz, face, waiting = false;
-      if (done && !(sh && sh.sunk && now - p.t0 - sh.ms < 900)) { // off to the gallery behind the green to cheer
+      if (done && !(sh && sh.sunk && now - p.t0 - sh.ms < 1300)) { // off to the gallery behind the green to cheer
         tx = (i - (n - 1) / 2) * .78; tz = -H.rows / 2 - 1.2; face = 0;
-      } else if (i !== turn && !sh) { // not their putt: wait in a line beside the course, out of the way
+      } else if (!upNow && !sh) { // not their putt: wait in a line beside the course, out of the way, watching the ball in play
         waiting = true;
-        if (W < Hh) { tx = (i - (n - 1) / 2) * .8; tz = H.rows / 2 + 1.05; face = Math.PI; } // tall screen: in front of the tee, where there is room
-        else { tx = -H.cols / 2 - .95; tz = H.rows / 2 - .5 - i * .8; face = Math.PI / 2; }
+        if (W < Hh) { tx = (i - (n - 1) / 2) * .8; tz = H.rows / 2 + 1.05; } // tall screen: in front of the tee, where there is room
+        else { tx = -H.cols / 2 - .95; tz = H.rows / 2 - .5 - i * .8; }
+        const w = players[watch] || p; face = Math.atan2(w.cur.x - tx, w.cur.z - tz);
       } else {
-        const ax = flying || sh ? (sh.x0 ?? bx) : bx, az = flying || sh ? (sh.z0 ?? bz) : bz;
-        let ang = flying || sh ? sh.ang : Math.atan2(H.cup.x - ax, -(H.cup.z - az));
+        const ax = sh ? (sh.x0 ?? bx) : bx, az = sh ? (sh.z0 ?? bz) : bz;
+        let ang = sh ? sh.ang : Math.atan2(H.cup.x - ax, -(H.cup.z - az));
         if (i === me && aim.on) ang = aim.ang;
-        else if (!sh && Math.hypot(ax - H.tee.x, az - H.tee.z) < .05) ang += (i - (n - 1) / 2) * 2.2 / n; // everyone starts on the tee: fan out round it
         const dx = Math.sin(ang), dz = -Math.cos(ang);
         tx = ax + dz * .46; tz = az - dx * .46; face = Math.atan2(-dz, dx); p.side = 1; // stands side on, facing the ball
         if (!ground(H, tx, tz).tile || ground(H, tx, tz).tile.k === 'w') { tx = ax - dz * .46; tz = az + dx * .46; face = Math.atan2(dz, -dx); p.side = -1; } // no room that side: stand on the other
+        p.bx = ax; p.bz = az;
       }
       if (!p.init) { p.pos.set(tx, 0, tz); p.face = face; p.init = true; }
       const ddx = tx - p.pos.x, ddz = tz - p.pos.z, dist = Math.hypot(ddx, ddz);
       let walking = false;
       if (dist > .02) {
-        const stepLen = Math.min(dist, dt * (3.2 + dist * 1.2)); p.pos.x += ddx / dist * stepLen; p.pos.z += ddz / dist * stepLen;
-        if (dist > .25) { walking = true; face = Math.atan2(ddx, ddz); moving = true; }
+        const stepLen = Math.min(dist, dt * (2.6 + dist * .9)); p.pos.x += ddx / dist * stepLen; p.pos.z += ddz / dist * stepLen;
+        if (dist > .25) { walking = true; face = Math.atan2(ddx, ddz); moving = true; p.walk += stepLen * 9; }
       }
-      let df = face - p.face; df = Math.atan2(Math.sin(df), Math.cos(df)); p.face += df * Math.min(1, dt * 12);
-      p.walk = walking ? p.walk + dt * 9 : 0;
+      p.moodT = Math.max(0, p.moodT - dt); p.spin = Math.max(0, p.spin - dt * 1.3);
+      const glad = p.moodT > 0 && p.mood > 0 && !walking, sad = p.moodT > 0 && p.mood < 0 && !walking;
+      let df = face - p.face; df = Math.atan2(Math.sin(df), Math.cos(df)); p.face += df * Math.min(1, dt * 10);
       p.hop = Math.max(0, p.hop - dt * 1.1);
-      const bob = walking ? Math.abs(Math.sin(p.walk)) * .16 : 0, cheer = done && !reduced ? Math.abs(Math.sin(T * 3.2 + i)) * .07 : 0;
-      p.wrap.position.set(p.pos.x, hAt(p.pos.x, p.pos.z) + .76 * AV + bob + cheer, p.pos.z);
-      p.wrap.rotation.y = p.face;
-      animateAvatar(p.av, T, { seed: i, active: done || walking, hop: p.hop });
-      // arms forward on the putter; a follow-through when the ball is struck
-      p.swing += dt;
-      const sw = p.swing < .45 ? Math.sin(Math.min(1, p.swing / .45) * Math.PI) * .9 : i === me && aim.on ? -aim.pow * .55 : 0;
-      p.putter.visible = !done && !waiting && !walking;
-      p.putter.rotation.z = sw * (p.side || 1);
-      if (p.putter.visible) for (const a of p.av.userData.arms) a.rotation.x = a.userData.rx - .62;
+      const bob = walking ? Math.abs(Math.sin(p.walk)) * .1 : 0, cheer = (done || glad) && !reduced ? Math.abs(Math.sin(T * (glad ? 7 : 3.2) + i)) * (glad ? .1 : .07) : 0;
+      const jump = Math.sin(p.hop * Math.PI) * .3;
+      p.wrap.position.set(p.pos.x, hAt(p.pos.x, p.pos.z) + .76 * AV + bob + cheer + jump, p.pos.z);
+      p.wrap.rotation.y = p.face + (reduced ? 0 : (1 - (1 - p.spin) ** 2) * Math.PI * 2 * (p.spin > 0 ? 1 : 0));
+      animateAvatar(p.av, T, { seed: i, active: done || glad, hop: p.hop, nod: sad ? Math.min(1, p.moodT * 3) * .9 : 0 });
+      walkAvatar(p.av, p.walk, walking ? 1 : 0);
+      // --- the putter: gripped in both hands, swinging like a pendulum past the ball ---
+      const hold = !done && !waiting && !walking && dist < .1;
+      p.putter.visible = hold;
+      const arms = p.av.userData.arms;
+      if (hold) {
+        p.swing += dt;
+        let th;
+        if (sh && !p.struck) { const u = clamp(1 - (p.t0 - now) / WIND, 0, 1), back = .3 + sh.pow * .75; th = -back * Math.sin(u * Math.PI / 2); p.back = back; } // backswing
+        else if (i === me && aim.on) { th = -(.22 + aim.pow * .8); p.back = -th; p.swing = 9; }
+        else if (p.swing < 1.1) { const b = p.back || .5, u = p.swing; th = u < .14 ? -b + (b * 2.1) * (u / .14) : b * 1.1 * Math.max(0, 1 - (u - .14) / .96) ** 2; } // through the ball, then settle
+        else th = Math.sin(T * 2.6 + i) * .035; // a little waggle over the ball
+        const ph = th * (p.side || 1);
+        for (const a of arms) { const sg = Math.sign(a.position.x) || 1; a.rotation.x = a.userData.rx - .78; a.rotation.z = -sg * .42 + ph * .3; }
+        p.wrap.updateMatrixWorld(true);
+        grip.set(0, 0, 0);
+        for (const a of arms) { hand.set(0, a.userData.hand, 0); a.localToWorld(hand); grip.add(hand); }
+        grip.multiplyScalar(.5); p.wrap.worldToLocal(grip);
+        // the head rests on the grass just behind the ball; the swing turns it round the grip
+        rest.set(p.bx, hAt(p.bx, p.bz) + .04, p.bz); p.wrap.worldToLocal(rest); rest.x -= (p.side || 1) * .42;
+        const vx = rest.x - grip.x, vy = rest.y - grip.y, c = Math.cos(ph), sn = Math.sin(ph);
+        headP.set(grip.x + vx * c - vy * sn, grip.y + vx * sn + vy * c, rest.z);
+        const { shaft, head } = p.putter.userData;
+        dir.copy(headP).sub(grip); const len = dir.length(); dir.normalize();
+        shaft.position.copy(grip).addScaledVector(dir, len / 2 - .08); shaft.scale.y = len + .16; shaft.quaternion.setFromUnitVectors(UP, dir);
+        head.position.copy(headP); head.rotation.set(0, Math.PI / 2, 0); head.position.y += .03;
+      } else for (const a of arms) a.rotation.z = a.userData.rz;
     });
     // your ball: a ring when it is your shot, the bobbing arrow over your head
     const mine = players[me], can = !!mine && !!canAim?.();

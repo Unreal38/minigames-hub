@@ -134,9 +134,10 @@ const GAMES = {
   },
   golf: {
     name: 'Mini Golf Party', load: () => import('./games/golf/client.js'), start: 'Tee off',
-    host: { holes: 6, seats: 4, bets: 'on', bots: 'chill' }, solo: { holes: 6, seats: 4, bets: 'on', bots: 'chill' },
+    host: { holes: 6, seats: 4, bets: 'on', bots: 'chill', course: 'random' }, solo: { holes: 6, seats: 4, bets: 'on', bots: 'chill', course: 'random' },
     openSeat: 'A bot putts here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
-    settings: pill => `<div class="opt"><b>Holes</b><div class="pills">${pill('holes', 3, 'Quick 3')}${pill('holes', 6, '6')}${pill('holes', 9, 'All 9')}</div></div>
+    settings: pill => `<div class="opt"><b>Holes</b><div class="pills">${pill('holes', 3, 'Quick 3')}${pill('holes', 6, '6')}${pill('holes', 9, '9')}</div></div>
+      <div class="opt"><b>Course</b><div class="pills">${pill('course', 'random', 'Random')}${pill('course', 'classic', 'Classic')}</div></div>
       <div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
       <div class="opt"><b>Coin bets on each hole</b><div class="pills">${pill('bets', 'on', 'On')}${pill('bets', 'off', 'Off')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
@@ -147,6 +148,8 @@ const GAMES = {
       <li><b>Drag back</b> anywhere on the screen and <b>let go</b> to putt: the further you pull, the harder the hit. On a keyboard, use the arrow keys to aim and set the power, then space.</li>
       <li>Watch for <b>windmills</b>, <b>bumper posts</b>, <b>ramps</b> and <b>sand</b> (it slows the ball a lot). A ball in the <b>water</b> costs a stroke and goes back where you hit it from.</li>
       <li>You get <b>7 strokes</b> a hole. Not in by then and you score 8.</li>
+      <li>Hit it <b>too hard</b> and the ball skips right over the hole, so slow down near the cup.</li>
+      <li><b>Random</b> courses are built fresh every round, so no two are the same. <b>Classic</b> plays the nine hand-made holes.</li>
       <li>The hole goes to the <b>fewest strokes</b>. A tie goes to whoever holed out first.</li>
       <li>With bets on, before each hole you can <b>bet coins</b> on who will take it, yourself included. A right call pays your stake times the number of players. It is optional, and it uses your real coins, the ones that buy avatar items.</li>
       <li>After the last hole the <b>fewest strokes in total</b> wins the round. Empty seats are played by bots.</li>

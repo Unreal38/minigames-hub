@@ -150,9 +150,10 @@ export const HOLES = [
 
 const level = (def, r, c) => +((def.lv?.[r] || '')[c] || 0);
 
-// Build hole `i`, mirrored left to right when `mirror` is set, into everything the physics and the scene need.
+// Build hole `i` (a number in HOLES, or a hole written the same way, such as a generated one), mirrored left to right
+// when `mirror` is set, into everything the physics and the scene need.
 export function buildHole(i, mirror = false) {
-  const def = HOLES[i];
+  const def = typeof i === 'object' ? i : HOLES[i];
   const rows = def.map.length, cols = Math.max(...def.map.map(s => s.length));
   const ch = (r, c) => { if (r < 0 || r >= rows || c < 0 || c >= cols) return '#'; const cc = mirror ? cols - 1 - c : c; return def.map[r][cc] || '#'; };
   const lvl = (r, c) => level(def, r, mirror ? cols - 1 - c : c);
@@ -242,7 +243,7 @@ export function simulate(H, x, z, ang, pow, t0 = 0, seed = 1) {
   const sp = POW_MIN + Math.max(0, Math.min(1, pow)) * (POW_MAX - POW_MIN);
   let vx = Math.sin(ang) * sp, vz = -Math.cos(ang) * sp, t = 0, step = 0;
   const path = [Math.round(x * 100), Math.round(z * 100)], fx = [], g = { h: 0, gx: 0, gz: 0, tile: null };
-  let sunk = false, water = false, lastFx = -1;
+  let sunk = false, water = false, lastFx = -1, lip = false;
   const hit = (kind, v) => { const i = path.length / 2; if (v > .8 && i !== lastFx && fx.length < 40) { fx.push([i, kind]); lastFx = i; } };
   const R = BALL_R + WALL_T;
   while (t < MAX_T) {
@@ -294,11 +295,13 @@ export function simulate(H, x, z, ang, pow, t0 = 0, seed = 1) {
     const cd2 = Math.hypot(H.cup.x - x, H.cup.z - z), v = Math.hypot(vx, vz);
     if (cd2 < CUP_R) {
       if (v < SINK_V) { sunk = true; break; }
-      if (cd2 < CUP_R * .55) { // too fast: it hops the hole and lips out a bit slower
-        const k = (rnd() - .5) * .9, c = Math.cos(k), s = Math.sin(k);
-        [vx, vz] = [(vx * c - vz * s) * .62, (vx * s + vz * c) * .62];
+      if (!lip) { // too fast: it skips over the hole, knocked a little off line and a little slower, and rolls on
+        lip = true;
+        const k = (rnd() - .5) * .7, c = Math.cos(k), s = Math.sin(k);
+        [vx, vz] = [(vx * c - vz * s) * .86, (vx * s + vz * c) * .86];
+        hit('c', 9);
       }
-    }
+    } else lip = false;
     if (tileAt(H, x, z)?.k === 'w') { water = true; break; }
     // stopped (not on a slope it would roll down, and not where a windmill bar will sweep through)
     if (v < .05) {
