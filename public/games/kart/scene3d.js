@@ -92,7 +92,7 @@ function buildTrackMesh(T) {
     const pad = padAt(i), road = pad ? (i % 2 ? '#ffb547' : '#ffc96b') : (i >> 2) % 2 ? '#948a9a' : '#8b8192';
     M.quad(P(i, -ROAD), P(i, ROAD), P(j, ROAD), P(j, -ROAD), road, UP);
     if (pad) { // chevrons pointing the way
-      const a = P(i, -2.2, .02), b = P(i, 2.2, .02), tip = P(j, 0, .02); if (i % 2 === 0) M.tri3(a, b, tip, '#fff4e2', UP);
+      const a = P(i, -2.8, .02), b = P(i, 2.8, .02), tip = P(j, 0, .02); if (i % 2 === 0) M.tri3(a, b, tip, '#fff4e2', UP);
     } else if (i % 6 < 3) M.quad(P(i, -.14, .01), P(i, .14, .01), P(j, .14, .01), P(j, -.14, .01), '#fff4e2', UP);
     for (const sd of [-1, 1]) {
       const r0 = ROAD * sd, r1 = (ROAD + .7) * sd, out = sd > 0 ? lft : rgt, cc = (i >> 1) % 2 ? '#e5543b' : '#fff4e2';
@@ -147,7 +147,7 @@ function buildDeco(T, sky) {
   const spots = [];
   for (let i = 0; i < n; i += 9) {
     for (const sd of [-1, 1]) {
-      const dist = 20 + hash(i, sd + 40) * 26, p = at(T, i, sd * dist), size = 5 + hash(i, sd + 41) * 8;
+      const dist = 24 + hash(i, sd + 40) * 36, p = at(T, i, sd * dist), size = 6 + hash(i, sd + 41) * 11;
       let ok = true;
       for (let k = 0; k < n && ok; k += 2) if (Math.hypot(T.x[k] - p.x, T.z[k] - p.z) < size + SHOULDER + 7) ok = false;
       for (const q of spots) if (Math.hypot(q.x - p.x, q.z - p.z) < q.size + size + 6) ok = false;
@@ -155,7 +155,7 @@ function buildDeco(T, sky) {
     }
   }
   spots.sort((a, b) => hash(a.i, 5) - hash(b.i, 5));
-  for (const s of spots.slice(0, 11)) {
+  for (const s of spots.slice(0, 13)) {
     const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: 20, size: 1.4, grass: sky === 1 ? '#9fd36a' : '#8bca60' });
     isl.position.set(s.x, s.y, s.z); isl.rotation.y = hash(s.i, 8) * 6.28; isl.userData.bob = hash(s.i, 9) * 6.28; grp.add(isl);
   }
@@ -215,7 +215,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(62, 1, .1, 700);
+  const camera = new THREE.PerspectiveCamera(62, 1, .1, 1100);
   const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#ffffff', 1.5); sun.position.set(-40, 80, 30); scene.add(sun);
   const fx = createFx(scene, { max: 1400 }), shake = shaker(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -242,10 +242,10 @@ export function createScene(canvas, { onFrame, step } = {}) {
     if (skyM) { scene.remove(skyM); skyM.geometry.dispose(); }
     if (cloudG) scene.remove(cloudG);
     const [top, low] = SKIES[T.def.sky] || SKIES[0];
-    scene.background = new THREE.Color(low); scene.fog = new THREE.Fog(low, 110, 330);
-    skyM = skyDome(scene, top, low, { r: 420 }); skyM.position.set(cx, 0, cz);
-    cloudG = cloudSea({ min: 30, max: 170, below: -14, near: 60, far: 16, seed: T.def.sky * 17 }); cloudG.position.set(cx, 0, cz); scene.add(cloudG);
-    if (!flyBirds) { const bg = new THREE.Group(); scene.add(bg); bg.position.set(cx, 0, cz); flyBirds = { g: bg, f: birds(bg, 60, 14, 5, 1.6) }; } else flyBirds.g.position.set(cx, 0, cz);
+    scene.background = new THREE.Color(low); scene.fog = new THREE.Fog(low, 160, 520);
+    skyM = skyDome(scene, top, low, { r: 650 }); skyM.position.set(cx, 0, cz);
+    cloudG = cloudSea({ min: 40, max: 270, below: -16, near: 90, far: 20, seed: T.def.sky * 17 }); cloudG.position.set(cx, 0, cz); scene.add(cloudG);
+    if (!flyBirds) { const bg = new THREE.Group(); scene.add(bg); bg.position.set(cx, 0, cz); flyBirds = { g: bg, f: birds(bg, 90, 16, 6, 2) }; } else flyBirds.g.position.set(cx, 0, cz);
     scene.userData.dayNight = null; nightScene(scene);
     // item boxes
     if (boxesMesh) { scene.remove(boxesMesh, ribbonMesh); }

@@ -160,7 +160,7 @@ function moveJellies(G, dt, now) {
     if (tk && (G.st[O.tgt].fin || tk.prog < O.d - 6)) { O.tgt = -1; tk = null; } // it got past them
     O.d += JELLY_V * dt;
     if (tk) { const want = tk.lat, dl = want - O.lat; O.lat += Math.max(-9 * dt, Math.min(9 * dt, dl)); if (O.d > tk.prog - 1) O.d = Math.min(O.d, tk.prog + 1); }
-    const s = ((O.d % T.L) + T.L) % T.L, i = Math.floor(s / T.step), p = at(T, i, Math.max(-3.5, Math.min(3.5, O.lat)));
+    const s = ((O.d % T.L) + T.L) % T.L, i = Math.floor(s / T.step), p = at(T, i, Math.max(-4.4, Math.min(4.4, O.lat)));
     O.x = p.x; O.z = p.z; O.y = p.y;
     for (let k = 0; k < G.seats.length; k++) {
       if (k === O.owner && now - O.born < 600) continue;

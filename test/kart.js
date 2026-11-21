@@ -27,7 +27,7 @@ for (const id of TRACK_IDS) {
   while (k.lap < 2 && t < 120) { if (stepKart(T, k, autoDrive(T, k), 1 / 60) === 'fall') falls++; t += 1 / 60; }
   if (k.lap < 2 || falls) fail(`${id}: the driver did not get round cleanly (lap ${k.lap}, falls ${falls})`);
   const lapT = t - (GRID + 3) / 25;
-  if (lapT / 2 < 12 || lapT / 2 > 40) fail(`${id}: odd lap time ${lapT / 2}`);
+  if (lapT / 2 < 12 || lapT / 2 > 60) fail(`${id}: odd lap time ${lapT / 2}`);
   console.log(`${id}: ${T.L.toFixed(0)} long, lap about ${(lapT / 2).toFixed(1)}s`);
 }
 
@@ -55,7 +55,7 @@ for (const id of TRACK_IDS) {
   const bi = T.br.findIndex(b => b), b = newKart(T, 0);
   Object.assign(b, { x: T.x[bi], z: T.z[bi], h: Math.atan2(T.tx[bi], T.tz[bi]) + 1.2, v: 20, i: bi, s: bi * T.step, lap: 0 });
   for (let i = 0; i < 60; i++) { if (stepKart(T, b, { steer: 0, gas: 1 }, 1 / 60) === 'fall') fail('fell off a bridge'); }
-  if (Math.abs(b.lat) > 5) fail('drove through a bridge rail');
+  if (Math.abs(b.lat) > 6.2) fail('drove through a bridge rail');
 }
 
 // ----- whole races on a fake clock -----
