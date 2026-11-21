@@ -249,7 +249,16 @@ function trainTick(f) {
   for (const id of t.ids) { const pet = f.pets.find(x => x.id === id); if (!away(f, id, true)) learn(pet, hours * TRAIN_XP); }
   scheduleSave();
 }
+// Who is walking about on someone's farm right now, so the owner sees their visitors too.
+const calls = new Map(), CALL_MS = 10 * 60_000; // visitor pid -> { host pid, at }
+const guestsOf = pid => { const out = []; for (const [v, c] of calls) { if (Date.now() - c.at > CALL_MS || !push(v, null)) calls.delete(v); else if (c.host === pid && out.length < 3) { const pr = profiles.get(v); out.push({ name: pr?.name || 'A friend', color: pr?.color, av: pr?.av }); } } return out; };
+function callOn(p, host) { // host is a pid, or null when the visitor heads home
+  const was = calls.get(p.pid); if (was?.host === host) { was.at = Date.now(); return; }
+  if (host) calls.set(p.pid, { host, at: Date.now() }); else calls.delete(p.pid);
+  for (const h of [was?.host, host]) { const x = h && farms.get(h), pr = h && profiles.get(h); if (x && pr) push(h, { t: 'farm', farm: view(x, pr), ...(h === host ? { note: `${p.name} dropped by your farm.` } : {}) }); }
+}
 const view = (f, p) => ({
+  guests: guestsOf(p.pid),
   wild: wildOf(f) ? { sp: f.wild.sp, lv: f.wild.lv, left: f.wild.until - Date.now() } : null,
   garden: gardenView(f), cap: capOf(f), stash: f.stash || {}, palpts: palsOf(f),
   train: { ids: f.train?.ids || [], slots: topLv(f, 'yard'), left: f.train?.ids.length ? Math.max(0, f.train.at + HOUR - Date.now()) : 0 },
@@ -518,7 +527,7 @@ export function handle(p, a, reply) {
     f.pals[fid(from)] = (f.pals[fid(from)] || 0) + 1; from.pals[fid(f)] = (from.pals[fid(f)] || 0) + 1;
     return ok({ did: 'tradeyes' });
   }
-  if (a.t === 'world') { // everyone's islands, most recently active first
+  if (a.t === 'world') { callOn(p, null); // everyone's islands, most recently active first
     const mine = daily(f, 'help'), gifts = daily(f, 'gift');
     const pals = new Set(friendPids(p.pid));
     const others = [...farms].filter(([, x]) => x !== f && x.pets.length).sort((a, b) => pals.has(b[0]) - pals.has(a[0]) || (b[1].seen || 0) - (a[1].seen || 0)).slice(0, 30)
@@ -526,9 +535,11 @@ export function handle(p, a, reply) {
         open: x.pets.some(q => q.open), egg: SLOTS.some(s => x[s] && nestView(x, s).stage !== 'cuddle') }));
     return reply({ t: 'farm', world: others, farm: view(f, p) });
   }
+  if (a.t === 'leave') { callOn(p, null); return; }
   if (a.t === 'visit' || a.t === 'help' || a.t === 'gift') {
     const hit = byFid(a.id); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     const [pid, x] = hit, id = fid(x);
+    callOn(p, pid);
     saw(f, x.pets.filter(q => !away(x, q.id)).map(q => q.sp));
     const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x), nests: SLOTS.map(q => nestView(x, q)).filter(Boolean), garden: gardenView(x), train: { ids: x.train?.ids || [] }, trips: parties(x).map(t => ({ left: Math.max(1, t.until - Date.now()) })).filter(t => t.left > 1),
       album: album(x),

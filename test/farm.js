@@ -274,6 +274,13 @@ r = await b.farmDo({ t: 'visit', id: 'nobody' });
 if (!r.err) fail('visited a farm that does not exist');
 r = await b.farmDo({ t: 'visit', id: ana.id });
 if (r.err || r.visit.name !== 'Ana' || r.visit.pets.length !== a.farm.pets.length || r.visit.pets[0].xp !== undefined) fail('visit ' + JSON.stringify(r));
+// the owner sees who is visiting, until they head off again
+r = await a.farmDo({ t: 'open' });
+if (r.farm.guests?.length !== 1 || r.farm.guests[0].name !== 'Bo') fail('owner does not see the visitor ' + JSON.stringify(r.farm.guests));
+await b.farmDo({ t: 'world' });
+r = await a.farmDo({ t: 'open' });
+if (r.farm.guests.length) fail('visitor still shown after leaving');
+await b.farmDo({ t: 'visit', id: ana.id });
 // helping: coins for the helper, and Ana's party comes home sooner
 await a.farmDo({ t: 'send', zone: 'woods', trip: 'outing', pets: [mine[0]] });
 const left0 = a.farm.trip.left, bc = b.farm.inv.coins;
@@ -606,7 +613,7 @@ if (r.farm.wild) fail('wild pet still waiting');
 if (!r.farm.album.acornip) fail('acornip not in the album');
 
 // restart: the farm is still there, and logging in from a new browser finds it
-const snapshot = JSON.stringify(a.farm);
+const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved
 await stop(); await boot();
 if (!fs.existsSync(path.join(DATA_DIR, 'pet-farm.json'))) fail('pet-farm.json not written');
 const a2 = player('Ana again'); await a2.ready;

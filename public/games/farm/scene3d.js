@@ -300,7 +300,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form + lookKey(look), face: 0 };
     pets.set(id, p); return p;
   }
-  function dropPet(id) { const p = pets.get(id); if (!p) return; if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
+  function dropPet(id) { const p = pets.get(id); if (!p) return; if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
   const tileOf = p => [Math.max(0, Math.min(N - 1, Math.floor(p.x + N / 2))), Math.max(0, Math.min(N - 1, Math.floor(p.z + N / 2)))];
   function freeTileNear(tx, ty) {
     let best = null, bd = 1e9;
@@ -312,8 +312,9 @@ export function createScene(canvas, { onPick, onGhost }) {
     walkGrid = blockedTiles(farm);
     const seen = new Set();
     const house = farm.items.find(i => i.type === 'house'), yard = farm.items.find(i => i.type === 'yard');
+    const nestItem = farm.items.find(i => i.type === 'nest'), nestsNow = (farm.nests || (farm.nest ? [farm.nest] : [])).filter(Boolean);
     for (const pet of farm.pets) {
-      if ((farm.trips || (farm.trip ? [farm.trip] : [])).some(t => t.pets.includes(pet.id))) continue; // away on an expedition
+      if ((farm.trips || (farm.trip ? [farm.trip] : [])).some(t => t.pets?.includes(pet.id))) continue; // away on an expedition (a visited farm lists its trips without the pets: those are left out already)
       seen.add(pet.id);
       const form = formOf(pet.lv);
       let p = pets.get(pet.id);
@@ -331,6 +332,14 @@ export function createScene(canvas, { onPick, onGhost }) {
         p.train = { x: wx(yard.x, w) + lx * c + lz * sn, z: wz(yard.y, h) - lx * sn + lz * c, face: f + a, k: ti }; p.path = []; continue;
       }
       p.train = null;
+      // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
+      const ni = nestItem ? nestsNow.findIndex(n => (n.a === pet.id || n.b === pet.id) && (n.stage === 'cuddle' || n.a === pet.id)) : -1;
+      if (ni >= 0) {
+        const n = nestsNow[ni], [w, h] = footprint('nest', nestItem.r), cx = wx(nestItem.x, w), cz = wz(nestItem.y, h), sd = n.a === pet.id ? -1 : 1, egg = n.stage !== 'cuddle', off = ni ? .32 : 0;
+        p.nest = egg ? { x: cx + .46, z: cz + .1 + off, y: .16, face: -Math.PI / 2, egg: true, sd: 0 } : { x: cx + sd * .21, z: cz + .05 + (ni ? -.3 : nestsNow.length > 1 ? .22 : 0), y: .16, face: sd * -.35, sd };
+        p.path = []; endUse(p); p.act = null; continue;
+      }
+      p.nest = null;
       // standing where something was just built: step aside
       const [tx, ty] = tileOf(p);
       if (walkGrid[ty * N + tx]) { const t = freeTileNear(tx, ty); if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = []; }
@@ -344,21 +353,48 @@ export function createScene(canvas, { onPick, onGhost }) {
     prev[start] = start;
     for (let i = 0; i < q.length; i++) {
       const c = q[i], cx = c % N, cy = c / N | 0;
-      if (dist[c] >= 7) continue;
+      if (dist[c] >= 11) continue;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const x = cx + dx, y = cy + dy, n = y * N + x;
         if (x < 0 || y < 0 || x >= N || y >= N || prev[n] >= 0 || walkGrid[n]) continue;
-        prev[n] = c; dist[n] = dist[c] + 1; q.push(n); if (dist[n] >= 2) reach.push(n);
+        prev[n] = c; dist[n] = dist[c] + 1; q.push(n); if (dist[n] >= 2 && dist[n] <= 7) reach.push(n);
       }
     }
     if (!reach.length) return;
     let c = reach[Math.random() * reach.length | 0]; const path = [];
+    p.goal = null;
+    if (farm && !starters && Math.random() < .55) { // pick a building or decoration that is free, and the closest tile to it that can be walked to
+      const list = farm.items.filter(it => USE[it.type] && items.get(it.id) && !items.get(it.id).user);
+      for (let tries = 0; tries < 4 && list.length && !p.goal; tries++) {
+        const it = list[Math.random() * list.length | 0], e = items.get(it.id), [w, h] = footprint(it.type, it.r), gx = e.g.position.x, gz = e.g.position.z, lim = Math.max(w, h) / 2 + 1.05;
+        let best = -1, bd = 1e9;
+        for (const n of q) { if (n === start) continue; const d = Math.hypot(wx(n % N) - gx, wz(n / N | 0) - gz); if (d < bd) { bd = d; best = n; } }
+        if (best >= 0 && bd <= lim) { c = best; p.goal = { id: it.id, type: it.type, key: e.key }; }
+      }
+    }
     while (c !== start) { path.unshift([c % N, c / N | 0]); c = prev[c]; }
     p.path = path;
   }
+  // What a pet does at each building or decoration, and for about how many seconds.
+  const USE = { house: ['nap', 9], hut: ['nap', 9], treehouse: ['nap', 9], tree: ['nap', 8], pine: ['nap', 8], cherry: ['nap', 8], gazebo: ['nap', 8],
+    gate: ['look', 3.5], workshop: ['look', 3], windmill: ['look', 3.5], lighthouse: ['look', 3.5], lamp: ['look', 3], glow: ['look', 3], statue: ['look', 3], barn: ['look', 3],
+    flag: ['cheer', 2.4], mailbox: ['cheer', 2.4], rainbow: ['cheer', 2.4], arch: ['cheer', 2.4], kitchen: ['beg', 3.5], nest: ['peek', 3.5], scarecrow: ['hug', 2.6],
+    garden: ['sniff', 4], flowers: ['sniff', 3.5], bush: ['sniff', 3.5], shrooms: ['dance', 4.5],
+    pond: ['soak', 9], hotspring: ['soak', 11], fountain: ['drink', 4], birdbath: ['drink', 3.5], well: ['drink', 4],
+    bench: ['sit', 8], palbench: ['sit', 8], picnic: ['sit', 8], campfire: ['warm', 9],
+    tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5] };
+  const SEAT = { bench: .24, palbench: .24, picnic: .04, pond: -.1, hotspring: -.12 }; // how high a pet sits on or in something
+  const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
+  const splash = (x, y, z, n = 3) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = .5 + Math.random() * .5; bit(BIT.ball, BM2.drop, .5, (m, u, t) => { m.position.set(x + Math.cos(a) * t * v, y + t * 1.6 - t * t * 4, z + Math.sin(a) * t * v); m.scale.setScalar(.035 * (1 - u)); }); } };
+  const endUse = p => { if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; };
   // Chooses what a pet does now that it has stopped walking, and for how long.
   function rest(p) {
     p.topY ??= new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y;
+    const goal = p.goal, ge = goal && items.get(goal.id); p.goal = null;
+    if (ge && ge.key === goal.key && !ge.user) { // arrived at something: use it
+      const [use, secs] = USE[goal.type], dur = secs * (.8 + Math.random() * .5);
+      ge.user = p; p.act = { k: 'use', use, t: 0, dur, e: ge, id: goal.id, key: ge.key, z: .6, gx: ge.g.position.x, gz: ge.g.position.z }; p.wait = dur + .6 + Math.random() * 2; return;
+    }
     const r = Math.random(); let k = null, dur = 2;
     const pal = [...pets.values()].find(o => o !== p && !o.path.length && !o.train && !o.fixed && (!o.act || o.act.k === 'sit' || o.act.k === 'look') && Math.hypot(o.x - p.x, o.z - p.z) < 1.7);
     if (pal && r < .5) { k = 'greet'; dur = 2.2; pal.act = { k: 'greet', t: 0, dur, pal: p, done: true }; pal.wait = Math.max(pal.wait, dur + .5); }
@@ -375,6 +411,11 @@ export function createScene(canvas, { onPick, onGhost }) {
       let moving = false;
       let drill = 0;
       if (p.fixed) { /* starter on show */ }
+      else if (p.nest) { // walks to its place in the Nest and stays there
+        const t = p.nest, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
+        if (d > .04) { const step = Math.min(d, 1.8 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = d > .5; }
+        else p.face = t.face;
+      }
       else if (p.train) { // drills on the spot: a run-up hop at the dummy, a jump over the hurdle, or quick hops
         const t = p.train, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
         if (d > .05) { const step = Math.min(d, 2.5 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = true; }
@@ -385,12 +426,17 @@ export function createScene(canvas, { onPick, onGhost }) {
         if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) rest(p); }
         else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
         moving = true;
-      } else if ((p.wait -= dt) <= 0) { p.act = null; stroll(p); p.run = Math.random() < .22; if (!p.path.length) p.wait = 2; }
+      } else if ((p.wait -= dt) <= 0) { endUse(p); p.act = null; stroll(p); p.run = Math.random() < .22; if (!p.path.length) p.wait = 2; }
       p.hop = Math.max(0, p.hop - dt * 1.6);
       const pace = p.run ? 13 : 9, stepPh = Math.sin(T * pace + p.seed), bounce = moving ? Math.abs(stepPh) * (p.run ? .16 : .1) : 0, cheer = p.hop ? Math.abs(Math.sin(p.hop * Math.PI * 3)) * .35 * p.hop : 0;
       if (moving && !p.train && (p.stepWas || 0) * stepPh < 0 && !starters) dustAt(p.x, p.z, p.run ? 2 : 1); p.stepWas = stepPh; // a puff each time the paws come down
       // what it is doing while it rests: sitting, napping, looking about, a happy hop, a twirl, or greeting a friend
-      const A = !moving && !p.train && !p.fixed ? p.act : null; let sit = 0, tilt = 0, turn = 0, up = 0, asleep = false;
+      const A = !moving && !p.train && !p.fixed && !p.nest ? p.act : null; let sit = 0, tilt = 0, turn = 0, up = 0, asleep = false, ox = 0, oz = 0, pitch = 0;
+      if (p.nest && !moving) { // snuggled together: leaning in, breathing slowly, a heart now and then
+        const t = p.nest, near = Math.min(1, Math.max(0, 1 - Math.hypot(t.x - p.x, t.z - p.z) * 2)); up = t.y * near; sit = .1 * near;
+        tilt = (-t.sd * .2 + Math.sin(T * 1.1 + p.seed) * .03) * near; asleep = !t.egg && (T * .13 + p.seed) % 1 < .45;
+        if (near > .9 && (p.hz = (p.hz ?? 1 + Math.random() * 2) - dt) <= 0) { p.hz = t.egg ? 4.5 : 2.6 + Math.random(); floatUp(BIT.heart, BM.heart, p.x - t.sd * .2, (p.topY ??= new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y) + t.y + .1, p.z, .075, 1.7); }
+      }
       if (A) {
         A.t += dt; const u = Math.min(1, A.t / A.dur), ease = Math.min(1, A.t * 3, (A.dur - A.t) * 3);
         if (A.k === 'sit') sit = .14 * ease;
@@ -399,18 +445,44 @@ export function createScene(canvas, { onPick, onGhost }) {
         else if (A.k === 'joy') { up = Math.abs(Math.sin(A.t * 6.5)) * .2 * ease; if (!A.done) { A.done = true; for (let i = 0; i < 3; i++) floatUp(BIT.star, BM.star, p.x + (i - 1) * .16, (p.topY || .5) + .05, p.z, .05, 1); } }
         else if (A.k === 'twirl') { turn = u * u * (3 - 2 * u) * 6.283; up = Math.sin(u * Math.PI) * .12; }
         else if (A.k === 'greet') { p.face = Math.atan2(A.pal.x - p.x, A.pal.z - p.z); up = Math.abs(Math.sin(A.t * 6)) * .14 * ease; if (!A.done && A.t > .5) { A.done = true; floatUp(BIT.heart, BM.heart, (p.x + A.pal.x) / 2, (p.topY || .5) + .15, (p.z + A.pal.z) / 2, .07, 1.5); } }
-        if (A.t >= A.dur) p.act = null;
+        else if (A.k === 'use') {
+          if (items.get(A.id) !== A.e || A.e.key !== A.key) { endUse(p); p.act = null; } // it was moved or sold
+          else {
+            const U = A.use, hx = A.gx - p.x, hz = A.gz - p.z, hop = Math.min(1, A.t / .45) * Math.min(1, Math.max(0, (A.dur - A.t) / .45)), arc = Math.sin(Math.min(1, A.t / .45) * Math.PI) + Math.sin(Math.min(1, Math.max(0, 1 - (A.dur - A.t) / .45)) * Math.PI);
+            const say = (geo, mat, n = 1, size = .055) => { for (let i = 0; i < n; i++) floatUp(geo, mat, p.x + ox + (i - (n - 1) / 2) * .16, (p.topY || .5) + up + .08, p.z + oz, size, 1.3); };
+            p.face = Math.atan2(hx, hz);
+            if (U === 'nap') { p.face += Math.PI * .8; sit = .26 * ease; tilt = .14 * ease; asleep = ease > .5; if (asleep && (A.z -= dt) <= 0) { A.z = 1.2; say(BIT.z, BM.z, 1, .07); } }
+            else if (U === 'look') { pitch = -.24 * ease; turn = Math.sin(A.t * 1.6) * .3 * ease; }
+            else if (U === 'cheer') { up = Math.abs(Math.sin(A.t * 6.5)) * .2 * ease; if (!A.done) { A.done = true; say(BIT.star, BM.star, 3, .05); } }
+            else if (U === 'beg') { up = Math.abs(Math.sin(A.t * 5)) * .1 * ease; pitch = -.2 * ease; if (!A.done && u > .6) { A.done = true; say(BIT.heart, BM.heart, 1, .07); } }
+            else if (U === 'peek' || U === 'hug') { pitch = (U === 'hug' ? .12 : .22) * ease; up = U === 'hug' ? Math.abs(Math.sin(A.t * 6)) * .12 * ease : 0; turn = Math.sin(A.t * 2) * .15 * ease; if (!A.done && u > .4) { A.done = true; say(BIT.heart, BM.heart, 1, .07); } }
+            else if (U === 'sniff') { pitch = (.3 + Math.sin(A.t * 6) * .08) * ease; turn = Math.sin(A.t * 1.3) * .25 * ease; if ((A.z -= dt) <= 0) { A.z = 1.1; dustAt(p.x + hx * .35, p.z + hz * .35, 1); } }
+            else if (U === 'drink') { pitch = (.34 + Math.sin(A.t * 4.5) * .1) * ease; if ((A.z -= dt) <= 0) { A.z = .8; splash(p.x + hx * .5, .35, p.z + hz * .5, 2); } }
+            else if (U === 'dance') { const a = Math.atan2(-hx, -hz) + u * 12.566, r = Math.hypot(hx, hz); ox = (hx + Math.sin(a) * r) * hop; oz = (hz + Math.cos(a) * r) * hop; p.face = a + Math.PI / 2; up = Math.abs(Math.sin(A.t * 7)) * .14 * ease; if ((A.z -= dt) <= 0) { A.z = 1.2; say(BIT.star, BM.star, 1, .05); } }
+            else if (U === 'play') { up = Math.abs(Math.sin(A.t * 5.5)) * .22 * ease; ox = hx * .3 * Math.abs(Math.sin(A.t * 2.75)) * ease; oz = hz * .3 * Math.abs(Math.sin(A.t * 2.75)) * ease; if ((A.z -= dt) <= 0) { A.z = 1.14; A.e.pop = 1; } }
+            else if (U === 'warm') { sit = .16 * ease; turn = Math.sin(A.t * .9) * .12 * ease; tilt = Math.sin(A.t * 1.3) * .05 * ease; }
+            else { // onto or into it: a hop there, a stay, and a hop back
+              const top = U === 'perch' ? Math.min(1.5, A.e.top - .02) : U === 'swing' ? .36 : SEAT[A.e.type] ?? .2;
+              ox = hx * hop; oz = hz * hop; up = top * hop + arc * .3; sit = .14 * ease;
+              if (U === 'swing') { const ang = Math.sin(T * 1.7) * .22, ry = A.e.g.rotation.y, k = hop * .82; ox += Math.sin(ry) * -Math.sin(ang) * k; oz += Math.cos(ry) * -Math.sin(ang) * k; up += (1 - Math.cos(ang)) * k; p.face = ry; pitch = ang * hop; }
+              else if (U === 'perch') { p.face += Math.PI; turn = Math.sin(A.t * 1.2) * .6 * ease; }
+              else if (U === 'soak') { p.face += Math.sin(A.t * .4) * 1.5; up += Math.sin(T * 2.2 + p.seed) * .02; if (hop > .95 && (A.z -= dt) <= 0) { A.z = 1; if (A.e.type === 'hotspring') floatUp(BIT.ball, BM2.steam, p.x + ox, .5, p.z + oz, .06, 1.5); else splash(p.x + ox, .12, p.z + oz, 2); } if (!A.wet && hop > .9) { A.wet = true; splash(p.x + ox, .15, p.z + oz, 7); } }
+              else if (U === 'sit') { p.face += Math.PI; turn = Math.sin(A.t * .8) * .3 * ease; }
+            }
+          }
+        }
+        if (p.act && A.t >= A.dur) { endUse(p); p.act = null; }
       }
       const breathe = (1 + Math.sin(T * (asleep ? 1.3 : 2.2) + p.seed) * (asleep ? .045 : .025)) * (1 - sit) * (moving ? 1 + (Math.abs(stepPh) - .6) * .12 : 1), b = p.g.userData.base;
-      p.g.position.set(p.x + (drill ? p.lx || 0 : 0), bounce + cheer + drill + up, p.z + (drill ? p.lz || 0 : 0));
+      p.g.position.set(p.x + (drill ? p.lx || 0 : 0) + ox, bounce + cheer + drill + up, p.z + (drill ? p.lz || 0 : 0) + oz);
       let da = p.face - (p.yaw ?? p.face); da = Math.atan2(Math.sin(da), Math.cos(da)); p.yaw = (p.yaw ?? p.face) + da * Math.min(1, dt * 8);
-      p.g.rotation.set(moving ? (p.run ? .16 : .06) : 0, p.yaw + turn, tilt + (moving ? stepPh * .07 : 0), 'YXZ');
+      p.g.rotation.set((moving ? (p.run ? .16 : .06) : 0) + pitch, p.yaw + turn, tilt + (moving ? stepPh * .07 : 0), 'YXZ');
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
       const blink = asleep || (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
       if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
       if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
-      p.blob.position.set(p.x, .015, p.z); p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
+      p.blob.position.set(p.x + ox, .015, p.z + oz); p.blob.visible = up < .3; p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
     }
   }
 
@@ -422,11 +494,11 @@ export function createScene(canvas, { onPick, onGhost }) {
   let egg = null;
   // The owner stands on their farm, near the farmhouse door.
   // The owner walks about their farm; on a visit your own avatar comes along as the guest.
-  let owner = null, guest = null;
+  let owner = null, guests = [];
   const people = new Map(); // 'owner' | 'guest' -> { g, key, x, z, path, wait, face, seed }
   function syncOwner() {
     const house = farm?.items.find(i => i.type === 'house'), gate = farm?.items.find(i => i.type === 'gate');
-    for (const [who, o, by] of [['owner', owner, house], ['guest', guest, gate || house]]) {
+    for (const [who, o, by] of [['owner', owner, house], ...[0, 1, 2].map(i => ['guest' + i, guests[i], gate || house])]) {
       const key = farm && o && !starters ? JSON.stringify([o.color, o.av]) : ''; let p = people.get(who);
       if (p && p.key !== key) { scene.remove(p.g); disposeAvatar(p.g); people.delete(who); p = null; }
       if (!key) continue;
@@ -434,7 +506,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const [tx, ty] = p.x > 1e8 ? [-1, -1] : tileOf(p);
       if (tx < 0 || walkGrid[ty * N + tx]) { // new here, or something was built where they stood
         const [w, d] = by ? footprint(by.type, by.r) : [1, 1];
-        const t = freeTileNear(Math.min(N - 1, by ? by.x + (w >> 1) + (who === 'guest' ? 1 : 0) : N >> 1), Math.min(N - 1, by ? by.y + d : N >> 1));
+        const t = freeTileNear(Math.min(N - 1, by ? by.x + (w >> 1) + (who === 'owner' ? 0 : 1 + +who[5]) : N >> 1), Math.min(N - 1, by ? by.y + d : N >> 1));
         p.g.visible = !!t; if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = [];
       } else { const cut = p.path.findIndex(([x, y]) => walkGrid[y * N + x]); if (cut >= 0) p.path.length = cut; }
     }
@@ -751,6 +823,55 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (const [id, p] of pets) { const c = p.g.position.clone(); c.y += .3 * (p.g.userData.base / PET_SIZE); const d = ray.ray.distanceToPoint(c); if (d < bd * (p.fixed ? 1.6 : 1)) { bd = d; best = id; } }
     return best;
   }
+  // ---------- highlights ----------
+  // What the mouse is over gets a white rim and a ring on the ground; what is selected (its card is open) gets a
+  // golden rim and a turning ring. Both are a second, slightly larger copy of the model's own outline.
+  const markGeo = new THREE.RingGeometry(.86, 1, 40), dashGeo = new THREE.RingGeometry(.84, 1, 40, 1, 0, .5);
+  const marks = { hover: { c: '#ffffff', o: .85 }, pick: { c: '#ffd84a', o: 1 } };
+  for (const m of Object.values(marks)) {
+    m.rim = new THREE.MeshBasicMaterial({ color: m.c, side: THREE.BackSide }); m.uT = { value: .06 }; m.rim.onBeforeCompile = sh => { sh.uniforms.uT = m.uT; sh.vertexShader = 'uniform float uT;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize(normal) * uT;'); }; m.rim.customProgramCacheKey = () => 'pfrim';
+    m.ring = new THREE.Group(); m.ring.visible = false; m.ring.rotation.x = -Math.PI / 2; scene.add(m.ring);
+    const mt = new THREE.MeshBasicMaterial({ color: m.c, transparent: true, opacity: m.o, depthWrite: false });
+    if (m === marks.pick) for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(dashGeo, mt); d.rotation.z = i * 1.0472; m.ring.add(d); } else m.ring.add(new THREE.Mesh(markGeo, mt));
+    m.key = ''; m.glow = null;
+  }
+  const keyOf = t => !t ? '' : t.pet ? 'p' + t.pet : t.item ? 'i' + t.item : '';
+  function setMark(kind, t) {
+    const m = marks[kind], key = keyOf(t); if (m.key === key && (!key || m.alive?.())) return;
+    if (m.glow) { m.glow.parent?.remove(m.glow); m.glow = null; }
+    m.key = key; m.t = t; m.ring.visible = false; m.alive = null;
+    const p = t?.pet && pets.get(t.pet), e = t?.item && items.get(t.item), root = p ? p.g : e ? e.g : null; if (!root) { m.key = ''; return; }
+    let hull = null; root.traverse(o => { if (!hull && o.userData.ink && o !== marks.hover.glow && o !== marks.pick.glow) hull = o; });
+    if (hull) { m.glow = new THREE.Mesh(hull.geometry, m.rim); m.glow.scale.copy(hull.scale); m.uT.value = (kind === 'pick' ? .085 : .06) / (hull.getWorldScale(new THREE.Vector3()).x || 1); m.glow.position.copy(hull.position); m.glow.quaternion.copy(hull.quaternion); m.glow.userData.noInk = true; hull.parent.add(m.glow); }
+    const it = e && farm?.items.find(i => i.id === t.item), [w, h] = it ? footprint(it.type, it.r) : [0, 0];
+    m.size = p ? [.42 * p.g.userData.base / PET_SIZE, .42 * p.g.userData.base / PET_SIZE] : [w / 2 + .12, h / 2 + .12];
+    m.alive = p ? () => pets.get(t.pet) === p : () => items.get(t.item) === e; m.root = root; m.ring.visible = true;
+  }
+  function moveMarks(T) {
+    for (const [kind, m] of Object.entries(marks)) {
+      if (!m.key) continue;
+      if (!m.alive()) { setMark(kind, null); continue; }
+      const pulse = kind === 'pick' ? 1 + Math.sin(T * 4) * .04 : 1, sq = Math.max(m.size[0], m.size[1]), rnd = m.t.pet || Math.abs(m.size[0] - m.size[1]) < .01;
+      m.ring.visible = !(kind === 'hover' && marks.pick.key === m.key) && m.root.visible;
+      m.ring.position.set(m.root.position.x, .03 + (kind === 'pick' ? .005 : 0), m.root.position.z);
+      m.ring.scale.set((rnd ? sq : m.size[0]) * 1.2 * pulse, (rnd ? sq : m.size[1]) * 1.2 * pulse, 1); m.ring.rotation.z = kind === 'pick' ? T * .8 : 0;
+      if (m.glow) m.glow.visible = !(kind === 'hover' && marks.pick.key === m.key);
+    }
+  }
+  // what the pointer is over right now (mouse only: a finger has nothing to hover with)
+  let hoverEv = null, hoverIsle = null;
+  canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') hoverEv = e; });
+  canvas.addEventListener('pointerleave', () => { hoverEv = null; setMark('hover', null); hoverIsle = null; canvas.style.cursor = ''; });
+  function hoverNow() {
+    if (!hoverEv || drag?.moved || fighting) { if (!hoverEv || fighting) { setMark('hover', null); hoverIsle = null; canvas.style.cursor = ''; } return; }
+    const g = groundAt(hoverEv), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1;
+    if (mapOn) { hoverIsle = flyTo ? null : isleAt(); setMark('hover', null); canvas.style.cursor = hoverIsle ? 'pointer' : ''; return; }
+    hoverIsle = null;
+    if (ghost) { setMark('hover', null); canvas.style.cursor = ''; return; }
+    const pid = petAt(), it = !pid && tx >= 0 && itemAt(tx, ty), t = pid && !edit ? { pet: pid } : it && !starters ? { item: it.id } : null;
+    setMark('hover', t); canvas.style.cursor = t ? 'pointer' : '';
+  }
+
   const ptrs = new Map(); let drag = null, pinch = 0;
   canvas.addEventListener('pointerdown', e => {
     canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e);
@@ -795,6 +916,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
     if (pid && !edit) { pets.get(pid).hop = 1; onPick?.({ pet: pid }); return; }
     const it = tx >= 0 && itemAt(tx, ty);
+    if (it && !edit) { const e = items.get(it.id); if (e && e.pop <= 0) e.pop = .45; } // a little squash to show the tap landed
     onPick?.(it ? { item: it.id } : { nothing: true });
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
@@ -827,7 +949,8 @@ export function createScene(canvas, { onPick, onGhost }) {
         if (flyTo.t >= 1 && !flyTo.done) { flyTo.done = true; onPick?.({ island: flyTo.i.id }); }
       }
       camera.lookAt(_look);
-      for (const i of isles) { i.g.position.y = i.y + Math.sin(T * .7 + i.ph) * .18; const ic = i.g.userData.icons; if (ic) { ic.rotation.y = T * 1.2; ic.position.y = 2.5 + Math.sin(T * 2 + i.ph) * .12; } }
+      hoverNow();
+      for (const i of isles) { i.hs = (i.hs || 1) + ((i === hoverIsle ? 1.1 : 1) - (i.hs || 1)) * Math.min(1, dt * 12); i.g.scale.setScalar(i.hs); i.g.position.y = i.y + Math.sin(T * .7 + i.ph) * .18 + (i.hs - 1) * 4; const ic = i.g.userData.icons; if (ic) { ic.rotation.y = T * 1.2; ic.position.y = 2.5 + Math.sin(T * 2 + i.ph) * .12; } }
       for (const f of flights) { // a tenth of the trip flying out, a tenth flying home, the rest spent there
         const left = Math.max(0, f.end - performance.now()), u = 1 - left / f.total, k = left <= 0 ? 0 : u < .1 ? u / .1 : u > .9 ? (1 - u) / .1 : 1, e = k * k * (3 - 2 * k);
         f.b.position.set(f.to.x * e, 2.2 + (f.to.y + 1.4 - 2.2) * e + Math.sin(e * Math.PI) * 3 + Math.sin(T * 1.3) * .12, f.to.z * e); f.b.rotation.y = Math.sin(T * .5) * .3;
@@ -841,7 +964,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
-    movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T); movePeople(dt, T); moveBits(dt); moveTufts(T); movePetals(T); farmBirds(T);
+    hoverNow(); movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T); movePeople(dt, T); moveBits(dt); moveTufts(T); movePetals(T); farmBirds(T); moveMarks(T);
     if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
     clouds.rotation.y += dt * .006;
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
@@ -863,8 +986,10 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (ghost) ghostCheck();
     },
     setStarters,
-    setOwner(o, g = null) { owner = o; guest = g; if (farm) syncOwner(); },
+    setOwner(o, g = []) { owner = o; guests = g; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
+    // the pet or building whose card is open: { pet: id } or { item: id } or null
+    select(t) { setMark('pick', t); },
     ghostNew(type, near = null, r = 0) { if (!farm || !ITEMS[type]) return; const [x, y] = firstSpot(type, near, r); ghostStart(type, null, x, y, r); },
     ghostItem(id) { const it = farm?.items.find(i => i.id === id); if (it) ghostStart(it.type, it.id, it.x, it.y, it.r); },
     ghostRotate() {

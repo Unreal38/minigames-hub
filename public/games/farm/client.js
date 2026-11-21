@@ -85,7 +85,7 @@ export function mount(app, ctx) {
     paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel(); paintBattle();
     if (!scene) return;
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
-    else { const meAv = { color: ctx.me()?.color, av: ctx.me()?.av }; if (where === 'visit' && V) scene.setOwner({ color: V.color, av: V.av }, meAv); else scene.setOwner(meAv); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
+    else { const meAv = { color: ctx.me()?.color, av: ctx.me()?.av }; if (where === 'visit' && V) scene.setOwner({ color: V.color, av: V.av }, [meAv]); else scene.setOwner(meAv, where === 'home' ? F?.guests || [] : []); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
     const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
     if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, theme: z.theme, out: F.trips.some(t => t.zone === key), fly: F.trips.filter(t => t.zone === key).map(t => ({ left: t.left, total: TRIPS[t.trip].min * 60000 }))[0], note: F.trips.some(t => t.zone === key) ? (F.trips.some(t => t.zone === key && t.left > 0) ? 'your party is here' : 'your party is back') : F.house < z.house ? `farmhouse level ${z.house}` : 'tap to explore' })) : []); }
     scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
@@ -306,11 +306,13 @@ export function mount(app, ctx) {
       const total = Object.keys(SPECIES).length, own = sp => F.album[sp]?.some(Boolean), have = Object.keys(SPECIES).filter(own).length;
       if (panel.sp && F.album[panel.sp]) { // one page of the album: owned, or only seen so far
         const sp = panel.sp, d = SPECIES[sp], a = F.album[sp], seen = !own(sp), k = KIT[sp], mine = F.pets.filter(x => x.sp === sp);
+        const fm = a[panel.form] ? panel.form : Math.max(0, a.lastIndexOf(1)), pic = !seen && scene?.portrait?.(sp, fm, null); // the stage on show: any one already raised
         box.innerHTML = `<div class="panel tripp"><h2>${d.name}</h2>
-          <div class="leafpage${seen ? ' seen' : ''}">${thumb('pet:' + sp, d.name)}<div><p>${elTag(d.el)}${d.el2 ? elTag(d.el2) : ''} ${RARITY[d.rare] || ''} · ${ROLE_NAME[k.role] || ''}</p><p class="hint">${d.blurb}</p></div></div>
+          <div class="leafpage${seen ? ' seen' : ''}">${pic ? `<img class="formpic" src="${pic}" alt="${d.name}, ${FORMS[fm].toLowerCase()}" width="96" height="96">` : thumb('pet:' + sp, d.name)}<div><p>${elTag(d.el)}${d.el2 ? elTag(d.el2) : ''} ${RARITY[d.rare] || ''} · ${ROLE_NAME[k.role] || ''}</p><p class="hint">${d.blurb}</p></div></div>
           ${seen ? `<p><b>Seen, not raised yet.</b> You met one at a neighbour's farm or in a battle. ${zoneOf(sp) ? 'Send a party to its home to find your own.' : d.hint || ''}</p>` : ''}
           <p><b>Lives in</b> ${zoneOf(sp) || 'no wild place: it only hatches from eggs'}. <b>On your farm:</b> ${mine.length ? mine.map(x => `${esc(x.name)} (level ${x.lv})`).join(', ') : 'none right now'}.</p>
-          <div class="formrow">${FORMS.map((f, i) => `<span class="chip ${a[i] ? 'got' : 'not'}">${f}${a[i] ? ' ✓' : ''}</span>`).join('')}</div>
+          <div class="formrow">${FORMS.map((f, i) => a[i] ? `<button type="button" class="chip got${i === fm ? ' on' : ''}" data-a="leafform" data-form="${i}" aria-pressed="${i === fm}" title="Show the ${f.toLowerCase()} form">${f} ✓</button>` : `<span class="chip not" title="Not raised yet">${f}</span>`).join('')}</div>
+          ${a.filter(Boolean).length > 1 ? '<p class="hint">Tap a stage to see how it looks.</p>' : ''}
           <p><b>Moves</b></p><div class="mvlist">${k.moves.map((m, i) => `<span class="chip">${MOVES[m].name}<small> level ${LEARN[i]}</small></span>`).join('')}</div>
           <div class="row end"><button type="button" class="btn w" data-a="album">All pets</button><button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
         return;
@@ -523,6 +525,7 @@ export function mount(app, ctx) {
   }
   function paintCard() {
     const el = $('pf-card');
+    scene?.select?.(card && mode === 'farm' && !edit && !B ? card : null);
     if (!card || mode !== 'farm' || edit || B) { el.hidden = true; return; }
     el.hidden = false;
     if (where === 'visit') {
@@ -604,7 +607,7 @@ export function mount(app, ctx) {
     ctx.send(g.id ? { t: 'move', id: g.id, x: g.x, y: g.y, r: g.r } : { t: 'place', type: g.type, x: g.x, y: g.y, r: g.r });
     scene.ghostCancel();
   }
-  function goHome() { where = 'home'; V = null; card = null; panel = null; sync(); }
+  function goHome() { if (where === 'visit') ctx.send({ t: 'leave' }); where = 'home'; V = null; card = null; panel = null; sync(); }
   function setEdit(on) { if (B || where !== 'home') return; edit = on; card = null; panel = null; if (!on) scene?.ghostCancel(); sync(); }
   // The trade offer in plain words, shown under the two sides and kept up to date while amounts change.
   const tradeEmpty = () => !['give', 'want'].some(k => panel[k].pets.length || Object.keys(panel[k].mats).length);
@@ -692,6 +695,7 @@ export function mount(app, ctx) {
     else if (a === 'hatch') ctx.send({ t: 'hatch', slot: b.dataset.slot });
     else if (a === 'petpage') { panel = { kind: 'pet', id: b.dataset.id }; card = null; sync(); }
     else if (a === 'petopen') ctx.send({ t: 'petopen', id: b.dataset.id });
+    else if (a === 'leafform') { panel.form = +b.dataset.form; sfx.click(); paintPanel(); }
     else if (a === 'leaf') { panel = { kind: 'album', sp: b.dataset.sp }; sync(); }
     else if (a === 'claim') ctx.send({ t: 'claim', id: b.dataset.id });
     else if (a === 'mailread') ctx.send({ t: 'mailread' });
@@ -854,6 +858,6 @@ export function mount(app, ctx) {
     reopen() { ctx.send({ t: 'open' }); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast('Finish the battle first.', true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
-    destroy() { destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
+    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
   };
 }
