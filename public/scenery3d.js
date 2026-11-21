@@ -214,7 +214,9 @@ export function createFx(scene, { max = 900 } = {}) {
         vec4 t = texture2D(map, vec2((vK + p.x) / 5., 1. - p.y)); if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb, t.a * vA); }`,
   });
   const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts);
-  let n = 0; const col = new THREE.Color();
+  let n = 0, ringI = 0; const col = new THREE.Color();
+  const ringGeo = new THREE.RingGeometry(.78, 1, 32); ringGeo.rotateX(-Math.PI / 2);
+  const rings = Array.from({ length: 8 }, () => { const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false })); m.visible = false; m.renderOrder = 4; scene.add(m); return { m, t: 1, life: .4, size: 1 }; });
   function add(x, y, z, vx, vy, vz, c, o) {
     if (n >= max) return;
     const i = n++; P[i * 3] = x; P[i * 3 + 1] = y; P[i * 3 + 2] = z; col.set(c); C[i * 3] = col.r; C[i * 3 + 1] = col.g; C[i * 3 + 2] = col.b;
@@ -241,14 +243,17 @@ export function createFx(scene, { max = 900 } = {}) {
     sparkle(p, { n: cnt = 8, colors = '#fff1a8', r = .6, size = .22, life = .9 } = {}) {
       for (let k = 0; k < cnt; k++) add(p.x + (Math.random() - .5) * r * 2, p.y + Math.random() * r, p.z + (Math.random() - .5) * r * 2, 0, .6, 0, pick(colors), { shape: STAR, size, life, grav: 0, drag: 2, spin: 3, grow: -.3 });
     },
-    // a widening ring on the ground
-    ring(p, { color = '#ffffff', size = 1.4, life = .45 } = {}) { add(p.x, p.y + .05, p.z, 0, 0, 0, color, { shape: RING, size: size * .3, life, grav: 0, drag: 0, spin: 0, grow: 5 }); st[n - 1] && (st[n - 1].max = life); },
+    // a widening ring lying flat on the ground
+    ring(p, { color = '#ffffff', size = 1.4, life = .45 } = {}) {
+      const r = rings[ringI++ % rings.length]; r.t = 0; r.life = life; r.size = size; r.m.material.color.set(color); r.m.position.set(p.x, p.y + .04, p.z); r.m.visible = true;
+    },
     // things drifting upwards (steam, embers, bubbles, fireflies); one at a time, call as often as you like
     rise(p, { color = '#ffffff', size = .3, life = 1.6, speed = .8, wobble = .3, shape = DOT, grow = 1 } = {}) {
       add(p.x, p.y, p.z, (Math.random() - .5) * wobble, speed * (.7 + Math.random() * .6), (Math.random() - .5) * wobble, pick(color), { shape, size, life, grav: 0, drag: .2, spin: 1, grow, flutter: wobble * 2, fade: .6 });
     },
     update(dt, camera, H) {
       mat.uniforms.scale.value = H / (2 * Math.tan(camera.fov * Math.PI / 360));
+      for (const r of rings) { if (!r.m.visible) continue; r.t += dt; const u = Math.min(1, r.t / r.life), e = 1 - (1 - u) * (1 - u); r.m.scale.setScalar(r.size * (.25 + e * .75)); r.m.material.opacity = .85 * (1 - u); if (u >= 1) r.m.visible = false; }
       for (let i = 0; i < n; i++) {
         const s = st[i]; s.life += dt;
         if (s.life >= s.max) { // swap the last one in
@@ -266,7 +271,7 @@ export function createFx(scene, { max = 900 } = {}) {
       pts.visible = n > 0;
     },
     count: () => n,
-    dispose() { scene.remove(pts); geo.dispose(); mat.dispose(); tex.dispose(); },
+    dispose() { scene.remove(pts); geo.dispose(); mat.dispose(); tex.dispose(); for (const r of rings) { scene.remove(r.m); r.m.material.dispose(); } ringGeo.dispose(); },
   };
   return api;
 }
