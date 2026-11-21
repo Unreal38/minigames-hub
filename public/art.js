@@ -200,3 +200,21 @@ export function diceArt() {
     <path d="M150 66l-6-9M172 58l1-11M204 60l7-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Pawperty card: a strip of the board with a pet waiting in its box, a little palace, a bone and two dice.
+export function pawArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const tile = (x, c) => `<g><path d="M${x} 128l14-40h58l8 40z" fill="#fff6e4" ${o}/><path d="M${x + 14} 88h58l2.6 13H${x + 9.4}z" fill="${c}" ${o}/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A board of pet shops with a bunny in a box, a little palace, a bone and two dice">
+    <rect width="320" height="150" fill="#bfe8ff"/>
+    <path d="M30 34l14-8 16 4 8 10-10 8H38z" fill="#fff"/><path d="M236 26l12-6 14 4 6 8-8 6h-18z" fill="#fff"/>
+    <path d="M0 150l26-66h268l26 66z" fill="#a5dc86" ${o}/>
+    ${tile(22, '#ff7a8a')}${tile(98, '#ffa24a')}${tile(174, '#c98bff')}${tile(250, '#4db5ff')}
+    <g class="pwbun" style="transform-origin:60px 100px"><path d="M50 70c-6-18 0-26 4-26s8 10 6 26M66 70c0-18 6-26 10-24s4 12-4 26" fill="#ffd0dc" ${o}/><ellipse cx="60" cy="84" rx="19" ry="17" fill="#fff" ${o}/><circle cx="53" cy="82" r="2.6" fill="#3b2219"/><circle cx="67" cy="82" r="2.6" fill="#3b2219"/><path d="M57 89q3 3 6 0" fill="none" stroke="#3b2219" stroke-width="2.4" stroke-linecap="round"/><circle cx="48" cy="88" r="3" fill="#ff8fab"/><circle cx="72" cy="88" r="3" fill="#ff8fab"/></g>
+    <path d="M36 92h48l-4 28H40z" fill="#d2a56e" ${o}/><path d="M36 92l-8 10h14zM84 92l8 10H78z" fill="#b98a55" ${o}/><rect x="50" y="101" width="20" height="10" rx="2" fill="#fff6e4" stroke="#3b2219" stroke-width="2"/>
+    <g ${o}><rect x="196" y="62" width="34" height="40" fill="#fff6e4"/><path d="M190 64l23-22 23 22z" fill="#c98bff"/><rect x="186" y="56" width="10" height="46" fill="#fff6e4"/><path d="M184 58l7-14 7 14z" fill="#c98bff"/><rect x="230" y="56" width="10" height="46" fill="#fff6e4"/><path d="M228 58l7-14 7 14z" fill="#c98bff"/><rect x="207" y="82" width="12" height="20" fill="#8a5a3c"/></g>
+    <g class="pwbone" style="transform-origin:140px 60px"><path d="M122 50a7 7 0 0 1 12 4l14 10a7 7 0 1 1 4 12 7 7 0 1 1-12-4l-14-10a7 7 0 1 1-4-12z" fill="#e2a868" ${o}/></g>
+    <g transform="rotate(-10 276 66)"><rect x="262" y="52" width="28" height="28" rx="7" fill="#fff8ec" ${o}/><circle cx="270" cy="60" r="2.8" fill="#3b2219"/><circle cx="282" cy="72" r="2.8" fill="#3b2219"/><circle cx="276" cy="66" r="2.8" fill="#3b2219"/></g>
+    <g transform="rotate(12 300 84)"><rect x="288" y="72" width="24" height="24" rx="6" fill="#fff8ec" ${o}/><circle cx="300" cy="84" r="4" fill="#e5543b"/></g>
+  </svg>`;
+}
