@@ -1,6 +1,6 @@
 // Avatar options shared by the server (validation), the creator, the 3D model and the little round pictures.
 //
-// An avatar is a list of 21 numbers, one per entry of AV_KEYS, each an index into the list of the same name in OPT.
+// An avatar is a list of 22 numbers, one per entry of AV_KEYS, each an index into the list of the same name in OPT.
 // The player's own colour is the top colour, so it is not stored here.
 // Only append to these lists: saved avatars store indexes.
 //
@@ -34,13 +34,16 @@ export const OPT = {
   hat: ['None', 'Beanie', 'Cap', 'Chef hat', 'Crown', 'Cat ears', 'Headphones', 'Flower', 'Bow', 'Bucket hat', 'Beret', 'Straw hat', 'Bunny ears', 'Witch hat'],
   glasses: ['None', 'Glasses', 'Round glasses', 'Sunglasses'],
   neck: ['None', 'Scarf', 'Bow tie', 'Necklace', 'Tie'],
+  back: ['None'], // things worn on the back: all from the shop. Added later, so avatars saved with 21 numbers get 0 here.
 };
 
 // ---------- the coin shop ----------
 // Everything above is free forever. Items added here cost coins (the account currency earned by playing) and are
 // appended after the free ones, so saved avatars keep their indexes. PRICE['hat:14'] = 120; no entry means free.
-export const PRICE = {};
-const shop = (k, items, cols) => { for (const [v, price] of items) { (cols || OPT[k]).push(v); PRICE[k + ':' + (OPT[k].length - 1)] = price; } };
+// A third entry makes an item seasonal: SEASON['hat:37'] = 'winter'. It is only sold while that season's drop is on
+// (see SEASONS); whoever bought it keeps it and can wear it all year.
+export const PRICE = {}, SEASON = {};
+const shop = (k, items) => { for (const [v, price, season] of items) { OPT[k].push(v); const id = k + ':' + (OPT[k].length - 1); PRICE[id] = price; if (season) SEASON[id] = season; } };
 shop('hat', [['Top hat', 120], ['Party hat', 60], ['Pirate hat', 150], ['Viking helmet', 180], ['Halo', 250], ['Propeller cap', 140],
   ['Frog hat', 160], ['Santa hat', 90], ['Wizard hat', 160], ['Flower crown', 110], ['Devil horns', 120], ['Antennae', 80],
   ['Cowboy hat', 150], ['Mushroom cap', 140], ['Unicorn horn', 220]]);
@@ -55,6 +58,34 @@ shop('hairC', [['#9ff0d0', 60], ['#c9b3ff', 60], ['#ffd700', 80], ['#2bb5a8', 60
 shop('eyeC', [['#e33b3b', 50], ['#ff9ad5', 50], ['#20c4c4', 50], ['#ffd23f', 60]]);
 shop('botC', [['#ff8fab', 30], ['#ffc94d', 30], ['#111111', 30]]);
 shop('shoeC', [['#ff8fab', 30], ['#7ed3b2', 30], ['#a070f0', 30]]);
+
+// The fun wardrobe: silly hats, whole costumes (a costume is a top that also dresses the legs and, with no hat on,
+// pulls its hood up), things for your back, and four seasonal drops.
+shop('hat', [['Traffic cone', 130], ['Frog bucket hat', 150], ['Giant headphones', 140], ['Astronaut helmet', 200], ['Knight helmet', 190],
+  ['Rubber duck', 170], ['Cheese wedge', 120], ['Pumpkin head', 160, 'halloween'], ['Reindeer antlers', 110, 'winter'], ['Earmuffs', 90, 'winter'],
+  ['Pineapple hat', 140, 'summer'], ['Tulip hat', 120, 'spring']]);
+shop('glasses', [['3D glasses', 80], ['Clown nose', 70], ['Snorkel mask', 110, 'summer']]);
+shop('neck', [['Candy scarf', 100, 'winter']]);
+shop('top', [['Dino onesie', 260], ['Banana suit', 240], ['Ghost sheet', 220, 'halloween'], ['Bee costume', 220, 'spring'], ['Ugly sweater', 130, 'winter'],
+  ['Bear hoodie', 170], ['Skeleton suit', 200, 'halloween'], ['Duck floatie', 150, 'summer']]);
+shop('back', [['Backpack', 90], ['Angel wings', 220], ['Fairy wings', 180], ['Jetpack', 240], ['Turtle shell', 150], ['Balloon', 100],
+  ['Bat wings', 160, 'halloween'], ['Gift sack', 120, 'winter'], ['Surfboard', 150, 'summer'], ['Butterfly wings', 170, 'spring']]);
+
+// Seasonal drops: [first month, day, last month, day], both ends included. Winter runs over the new year.
+export const SEASONS = {
+  winter: { name: 'Winter drop', span: [11, 15, 2, 28], ends: 'the end of February', back: 'mid-November' },
+  spring: { name: 'Spring drop', span: [3, 1, 5, 31], ends: 'the end of May', back: 'March' },
+  summer: { name: 'Summer drop', span: [6, 1, 8, 31], ends: 'the end of August', back: 'June' },
+  halloween: { name: 'Halloween drop', span: [10, 1, 11, 7], ends: '7 November', back: 'October' },
+};
+export const seasonOn = (name, now = new Date()) => {
+  const s = SEASONS[name]; if (!s) return true;
+  const [m0, d0, m1, d1] = s.span, at = (now.getMonth() + 1) * 100 + now.getDate(), a = m0 * 100 + d0, b = m1 * 100 + d1;
+  return a <= b ? at >= a && at <= b : at >= a || at <= b;
+};
+export const seasonOf = (k, i) => SEASON[k + ':' + i] || null;
+// Can this item be bought right now? (Anything not seasonal always can.)
+export const onSale = (k, i, now) => seasonOn(SEASON[k + ':' + i], now);
 
 export const priceOf = (k, i) => PRICE[k + ':' + i] || 0;
 // Takes off anything paid that is not in owned (a list like ['hat:14']), so nobody wears what they have not bought.
@@ -73,7 +104,7 @@ export const AV_TABS = [
   ['Face', [['face', 'Face shape'], ['eyes', 'Eyes'], ['eyeC', 'Eye colour'], ['brows', 'Brows'], ['nose', 'Nose'], ['mouth', 'Mouth'], ['marks', 'Face marks']]],
   ['Hair', [['hair', 'Hair style'], ['hairC', 'Hair colour'], ['facial', 'Facial hair']]],
   ['Outfit', [['top', 'Top'], ['color', 'Top colour'], ['bottom', 'Bottom'], ['botC', 'Bottom colour'], ['shoes', 'Shoes'], ['shoeC', 'Shoe colour']]],
-  ['Extras', [['hat', 'Hat'], ['glasses', 'Glasses'], ['neck', 'Neck']]],
+  ['Extras', [['hat', 'Hat'], ['glasses', 'Glasses'], ['neck', 'Neck'], ['back', 'Back']]],
 ];
 
 const int = (v, max) => { v = +v; return Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0; };
@@ -92,7 +123,8 @@ function fromOld(a) {
   return o;
 }
 
-export const cleanAv = a => Array.isArray(a) && a.length === AV_KEYS.length ? AV_MAX.map((m, i) => int(a[i], m)) : fromOld(a);
+// Lists from before a slot was added are shorter (21 numbers before 'back'): the missing slots are 0.
+export const cleanAv = a => Array.isArray(a) && a.length >= 21 && a.length <= AV_KEYS.length ? AV_MAX.map((m, i) => int(a[i] ?? 0, m)) : fromOld(a);
 
 export const randomAv = () => {
   const o = AV_KEYS.map(k => { let v; do v = Math.random() * OPT[k].length | 0; while (PRICE[k + ':' + v]); return v; }), r = (k, p) => { if (Math.random() < p) o[IX[k]] = 0; };

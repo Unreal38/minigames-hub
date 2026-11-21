@@ -678,3 +678,8 @@ body.sky.night:not(.in-game) .gcard .pic.marblepic, body.sky.night:not(.in-game)
 body.sky.night:not(.in-game) .gcard .pic.golfpic, body.sky.night:not(.in-game) .gcard .pic.farmpic, body.sky.night:not(.in-game) .gcard .pic.stackpic,
 body.sky.night:not(.in-game) .gcard .pic.dicepic, body.sky.night:not(.in-game) .gcard .pic.kitchenpic, body.sky.night:not(.in-game) .gcard .pic.digpic { background: #2b2d6e; }
 body.sky.night:not(.in-game) .gcard .pic:not([class*="pic "]) { background: #b8442f; }
+/* seasonal drops in the avatar shop */
+.creator .crow.drop { border: 2.5px solid var(--edge, #c9a99a); border-radius: 14px; padding: 9px 11px 11px; background: var(--chip, #fff7ec); }
+.creator .crow.drop b small { display: block; font: 500 13px/1.3 var(--fb, inherit); color: var(--tx2, #6b4a3c); }
+.creator .crow.drop.off { border-style: dashed; background: transparent; }
+.creator .crow.drop.off .pills button:disabled { opacity: 1; border-style: dotted; color: var(--muted2, #8a7468); }

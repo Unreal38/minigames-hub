@@ -5,7 +5,7 @@ import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { progress } from './ranks.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Cozy Table';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
@@ -974,7 +974,7 @@ function modal(html, dismissable = true) {
 const coinIco = '<i class="cn" aria-hidden="true"></i>';
 const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
-const SHOP_ORDER = ['hat', 'glasses', 'neck', 'top', 'shoes', 'hairC', 'eyes', 'eyeC', 'mouth', 'marks', 'botC', 'shoeC'];
+const SHOP_ORDER = ['top', 'hat', 'back', 'glasses', 'neck', 'shoes', 'hairC', 'eyes', 'eyeC', 'mouth', 'marks', 'botC', 'shoeC'];
 const SHOP_ROWS = SHOP_ORDER.filter(k => OPT[k].some((_, i) => priceOf(k, i))).map(k => [k, ROW_LABEL[k]]);
 
 function openProfile(first = false, startTab = 0) {
@@ -1015,17 +1015,31 @@ function openProfile(first = false, startTab = 0) {
   const owned = () => st.me?.owned || [], coins = () => st.me?.coins || 0;
   const isLocked = (k, i) => priceOf(k, i) > 0 && !owned().includes(k + ':' + i);
   const tag = (k, i) => { const p = priceOf(k, i); return !p ? '' : isLocked(k, i) ? ` data-p="${p}" class="lk"` : ' class="own"'; };
+  // Seasonal items are sold only while their drop is on (the server's date decides). Out of season they are hidden
+  // from the normal rows unless you own them, and the Shop tab lists them as "back in ...".
+  const today = () => st.me?.today ? new Date(st.me.today + 'T12:00') : new Date();
+  const away = (k, i) => !!seasonOf(k, i) && isLocked(k, i) && !onSale(k, i, today());
+  const pill = (k, i) => `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}"${tag(k, i)}>${OPT[k][i]}${isLocked(k, i) ? ` <small class="pr">${coinIco}${priceOf(k, i)}</small>` : ''}</button>`;
   const rowHtml = (k, label, only) => {
     const hex = k === 'color', list = hex ? COLORS : OPT[k], sw = hex || AV_COLOR_KEYS.includes(k);
-    const idx = list.map((_, i) => i).filter(i => !only || priceOf(k, i));
+    const idx = list.map((_, i) => i).filter(i => hex || (only ? priceOf(k, i) && !seasonOf(k, i) : !away(k, i)));
+    if (!idx.length) return '';
     return `<div class="crow"><b>${label}</b><div class="${sw ? 'swatches' : 'pills'}">${idx.map(i => { const v = list[i]; return sw
       ? `<button type="button" style="--c:${v}" aria-label="${label} ${i + 1}${priceOf(k, i) ? (isLocked(k, i) ? `, ${priceOf(k, i)} coins` : ', owned') : ''}" aria-pressed="${val(k) === (hex ? v : i)}" data-k="${k}" data-v="${hex ? v : i}"${hex ? '' : tag(k, i)}></button>`
-      : `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}"${tag(k, i)}>${v}${isLocked(k, i) ? ` <small class="pr">${coinIco}${priceOf(k, i)}</small>` : ''}</button>`; }).join('')}</div></div>`;
+      : pill(k, i); }).join('')}</div></div>`;
+  };
+  const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
+  const dropsHtml = () => {
+    const by = {}; for (const [id, sn] of Object.entries(SEASON)) { const [k, i] = id.split(':'); (by[sn] ||= []).push([k, +i]); }
+    const on = Object.keys(SEASONS).filter(sn => by[sn] && seasonOn(sn, today())), off = Object.keys(SEASONS).filter(sn => by[sn] && !seasonOn(sn, today()));
+    return on.map(sn => `<div class="crow drop"><b>${SEASON_ICO[sn]} ${SEASONS[sn].name} <small>Limited: on sale until ${SEASONS[sn].ends}. What you buy is yours to keep.</small></b><div class="pills">${by[sn].map(([k, i]) => pill(k, i)).join('')}</div></div>`).join('')
+      + (off.length ? `<div class="crow drop off"><b>Other seasons <small>These come back with their season.</small></b><div class="pills">${off.map(sn => by[sn].map(([k, i]) => isLocked(k, i)
+        ? `<button type="button" disabled title="Back in ${SEASONS[sn].back}">${SEASON_ICO[sn]} ${OPT[k][i]} <small class="pr">${SEASONS[sn].back}</small></button>` : pill(k, i)).join('')).join('')}</div></div>` : '');
   };
   const paintRows = () => {
     el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
     rows.innerHTML = tab === AV_TABS.length
-      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
+      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + dropsHtml() + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
       : AV_TABS[tab][1].map(([k, label]) => rowHtml(k, label)).join('');
   };
   const paintCart = () => {
