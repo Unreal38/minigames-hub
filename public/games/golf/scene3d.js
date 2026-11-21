@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
-import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
+import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
 import { buildHole, ground, pathAt, spinAngle, BALL_R, CUP_R } from './course.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', BASE = -.14, AV = .46, WALL_H = .24;
@@ -65,6 +65,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   // the shared sky-island look: gradient sky, a sea of clouds, birds and drifting petals
   skyDome(scene, SKY_TOP, SKY_LOW);
   const cloudRing = cloudSea({ min: 15, max: 85, below: -10 }); scene.add(cloudRing);
+  nightScene(scene); // the website's night mode carries into the game
   const flyBirds = birds(scene, 20, 6, 4, 1.1), blow = petals(scene, 24, 4, { n: 9, size: .12 });
   const fx = createFx(scene), shake = shaker(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const flat = (o = {}) => new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .85, ...o });

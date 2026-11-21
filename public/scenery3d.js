@@ -84,13 +84,49 @@ export function shell(mesh, grow = 1.1, color = '#4a2c22') {
   const o = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ color, side: THREE.BackSide })); o.scale.setScalar(grow); o.userData = { ink: true, noInk: true }; mesh.add(o); return o;
 }
 
+// ---------- night ----------
+// The website's day/night switch (body.night) carries into the games: call nightScene(scene) once the lights,
+// sky and clouds exist. In the day it does nothing; at night it turns the sky to a starry navy, swaps sunlight
+// for moonlight, tints the clouds and adds a moon. Islands built while it is night get lamp posts.
+export const isNight = () => typeof document !== 'undefined' && document.body.classList.contains('night');
+export const NIGHT_TOP = '#0c1236', NIGHT_LOW = '#2d2b63';
+export function nightScene(scene, { top = NIGHT_TOP, low = NIGHT_LOW, stars = 320, moon = true } = {}) {
+  if (!isNight()) return false;
+  const T = new THREE.Color(top), L = new THREE.Color(low), c = new THREE.Color(), moonC = new THREE.Color('#c9d2ff');
+  if (scene.background?.isColor) scene.background.copy(L);
+  if (scene.fog) scene.fog.color.copy(L);
+  scene.traverse(o => {
+    if (o.isHemisphereLight) { o.color.lerp(new THREE.Color('#8f9cff'), .75); o.groundColor.set('#3b2f5e'); o.intensity *= .55; }
+    else if (o.isDirectionalLight) { o.color.lerp(moonC, .8); o.intensity *= .55; }
+    else if (o.isAmbientLight) { o.color.lerp(moonC, .6); o.intensity *= .6; }
+    else if (o.isMesh && o.userData.sky) { // repaint the dome's gradient
+      const g = o.geometry, p = g.attributes.position, col = g.attributes.color, r = g.boundingSphere?.radius || (g.computeBoundingSphere(), g.boundingSphere.radius);
+      for (let i = 0; i < p.count; i++) { c.copy(L).lerp(T, Math.min(1, Math.max(0, p.getY(i) / r * 1.5 + .1))); col.setXYZ(i, c.r, c.g, c.b); }
+      col.needsUpdate = true;
+    } else if (o.isInstancedMesh && o.userData.cloud) { o.material = o.material.clone(); o.material.color.set('#6d72b4'); }
+  });
+  if (stars) { // a fixed dome of stars, far out past the fog
+    const pos = new Float32Array(stars * 3);
+    for (let i = 0; i < stars; i++) { const a = hash(i, 71) * 6.283, e = .04 + hash(i, 72) * 1.45, r = 260; pos.set([Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r], i * 3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff6d8', size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: .9, depthWrite: false }));
+    pts.renderOrder = -9; scene.add(pts);
+  }
+  if (moon) {
+    const grp = new THREE.Group(); grp.position.set(-120, 120, -170); grp.lookAt(0, 0, 0);
+    for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.renderOrder = -8; grp.add(m); }
+    scene.add(grp);
+  }
+  return true;
+}
+
 // ---------- sky and clouds ----------
 export function skyDome(scene, top, low, { r = 300, k = 1.6, off = .25 } = {}) {
   const g = new THREE.SphereGeometry(r, 16, 10), p = g.attributes.position, col = [], T = new THREE.Color(top), L = new THREE.Color(low), c = new THREE.Color();
   for (let i = 0; i < p.count; i++) { c.copy(L).lerp(T, Math.min(1, Math.max(0, p.getY(i) / r * k + off))); col.push(c.r, c.g, c.b); }
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
-  m.renderOrder = -10; scene.add(m); return m;
+  m.renderOrder = -10; m.userData.sky = true; scene.add(m); return m;
 }
 // near: a sea of clouds below; far: a few big ones round the horizon.
 export function clouds({ near = 40, far = 12, below = -9, min = 6, max = 80, color = '#ffffff', seed = 0 } = {}) {
@@ -100,7 +136,7 @@ export function clouds({ near = 40, far = 12, below = -9, min = 6, max = 80, col
   for (let i = 0; i < far; i++) { const a = hash(i + seed, 5) * 6.283, d = max + 10 + hash(i, 6) * 50; cloud(Math.cos(a) * d, 4 + hash(i, 7) * 22, Math.sin(a) * d, 4 + hash(i, 8) * 4); }
   const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), toonMat(flat(color)), puffs.length);
   puffs.forEach(([x, y, z, r], i) => im.setMatrixAt(i, m.compose(v.set(x, y, z), q, sc.set(r * 1.2, r * .6, r))));
-  im.frustumCulled = false; grp.add(im);
+  im.frustumCulled = false; im.userData.cloud = true; grp.add(im);
   return grp;
 }
 
@@ -128,6 +164,7 @@ export const PROPS = {
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
 export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1 } = {}) {
+  if (!lamps && isNight()) lamps = Math.max(3, Math.round((w + d) / 5)); // lamp posts light the island at night
   const root = new THREE.Group(), deco = new THREE.Group();
   const W = w / 2 + rim, D = d / 2 + rim, R = round ? Math.max(W, D) : Math.hypot(W, D);
   // the top: a rounded slab of lawn

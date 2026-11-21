@@ -4,7 +4,7 @@ import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js'
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { cell, COLS, MS as MSv } from './board.js';
-import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, CONF } from '../../scenery3d.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff';
 const U = 1.2, HALF = COLS * U / 2, TOKEN = .3;
@@ -121,6 +121,7 @@ export function createScene(canvas, { onFrame, onCue }) {
   // the world: a sunny sky, a sea of clouds, and a floating meadow the board sits on (built once the board size is known)
   skyDome(scene, SKY_TOP, SKY_LOW);
   const cloudRing = clouds({ min: 14, max: 85, below: -10 }); scene.add(cloudRing);
+  nightScene(scene); // the website's night mode carries into the game
   let land = null;
   const flyBirds = birds(scene, 20, 7, 4, 1.2), blow = petals(scene, 26, 4.5, { n: 10, size: .12 });
   const fx = createFx(scene), shake = shaker();

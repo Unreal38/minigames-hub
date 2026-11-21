@@ -7,6 +7,7 @@ import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { M, finish, toonMat } from '../farm/models.js';
 import { swingPos, height, MS } from './rules.js';
+import { nightScene } from '../../scenery3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff', INK = '#5a3a2e';
 const GROUND = -.55, GAP = 2.3, GRAV = 21, AV = .8, ARC = 6.3, CAM_AZ = Math.PI / 4, CAM_EL = .5;
@@ -60,8 +61,9 @@ export function createScene(canvas, { onFrame, onCue }) {
     for (let i = 0; i < 26; i++) { const a = hash(i, 5) * 6.283, d = 26 + hash(i, 6) * 70; cloud(Math.cos(a) * d, 2 + hash(i, 7) * 40, Math.sin(a) * d, 2.2 + hash(i, 8) * 3.6); }
     const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), toon('#ffffff'), puffs.length);
     puffs.forEach(([x, y, z, r], i) => im.setMatrixAt(i, m.compose(v.set(x, y, z), q, sc.set(r * 1.2, r * .6, r))));
-    im.frustumCulled = false; clouds.add(im); scene.add(clouds);
+    im.frustumCulled = false; im.userData.cloud = true; clouds.add(im); scene.add(clouds);
   }
+  nightScene(scene); // the website's night mode carries into the game
 
   // ---------- the island ----------
   const put = (p, geo, c, x = 0, y = 0, z = 0, ry = 0) => { const o = new THREE.Mesh(geo, M(c)); o.position.set(x, y, z); o.rotation.y = ry; p.add(o); return o; };
