@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { attach } from './ws.js';
+import { allow, blocked, note } from './limits.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
 import * as ladders from './games/ladders.js';
@@ -27,6 +28,7 @@ const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig };
+const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
 const END_IDLE_MS = 10 * 60_000;
@@ -36,10 +38,33 @@ const RESTORE_GRACE_MS = 90_000; // after a restart, players get this long to re
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 
+// Safety headers for every response. The page itself also gets a Content Security Policy: scripts may only come
+// from this site and jsDelivr (three.js), so even if someone sneaks markup into a name or chat line, the browser
+// refuses to run it. The one inline script (the import map) is allowed by its hash, worked out from index.html.
+const BASE_HEAD = { 'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'same-origin',
+  'cross-origin-opener-policy': 'same-origin', 'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()' };
+let inline = { at: 0, src: '' };
+function cspFor(req) {
+  try {
+    const file = path.join(ROOT, 'index.html'), at = fs.statSync(file).mtimeMs;
+    if (at !== inline.at) {
+      const html = fs.readFileSync(file, 'utf8'), hashes = [];
+      for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) hashes.push(`'sha256-${crypto.createHash('sha256').update(m[1]).digest('base64')}'`);
+      inline = { at, src: hashes.join(' ') };
+    }
+  } catch {}
+  const host = String(req.headers.host || '').replace(/[^a-z0-9.:\[\]-]/gi, '');
+  return [`default-src 'self'`, `script-src 'self' https://cdn.jsdelivr.net ${inline.src}`, `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+    `font-src 'self' https://fonts.gstatic.com`, `img-src 'self' data: blob:`, `connect-src 'self'${host ? ` wss://${host} ws://${host}` : ''}`,
+    `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`, `frame-ancestors 'none'`].join('; ');
+}
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, 'http://x');
+  if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { allow: 'GET, HEAD', ...BASE_HEAD }).end(); return; }
+  let url, p;
+  try { url = new URL(req.url, 'http://x'); p = decodeURIComponent(url.pathname); }
+  catch { res.writeHead(400, BASE_HEAD).end(); return; } // a broken address like /%E0 used to crash the whole server
   if (url.pathname === '/health') { res.end('ok'); return; }
-  let p = decodeURIComponent(url.pathname);
+  if (p.includes('\0')) { res.writeHead(400, BASE_HEAD).end(); return; }
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(ROOT, path.normalize(p));
   if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
@@ -48,10 +73,13 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(file);
     // Always revalidate, so a browser never mixes old and new client files after a deploy.
     const etag = `"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`;
-    const head = { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': 'no-cache', etag, 'x-content-type-options': 'nosniff' };
+    const head = { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': 'no-cache', etag, ...BASE_HEAD };
+    if (ext === '.html') head['content-security-policy'] = cspFor(req);
+    if (req.headers['x-forwarded-proto'] === 'https') head['strict-transport-security'] = 'max-age=31536000'; // behind Caddy: browsers stick to HTTPS
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }
     res.writeHead(200, head);
-    fs.createReadStream(file).pipe(res);
+    if (req.method === 'HEAD') { res.end(); return; }
+    fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
   });
 });
 
@@ -59,7 +87,7 @@ const server = http.createServer((req, res) => {
 const clients = new Map();  // token -> client {token, id, name, color, sock, room, lastSeen}
 const rooms = new Map();    // code -> room
 
-const cleanName = s => String(s ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 16);
+const cleanName = s => store.safeText(s).trim().slice(0, 16);
 const cleanColor = s => /^#[0-9a-f]{6}$/i.test(s) ? s : '#ff8fab';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const newCode = () => { let c; do { c = Array.from({ length: 4 }, () => CODE_CHARS[Math.random() * CODE_CHARS.length | 0]).join(''); } while (rooms.has(c)); return c; };
@@ -220,11 +248,12 @@ function handle(c, m) {
     case 'rankings': { // the hub's global leaderboards, one per minigame
       const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
       if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
-      if (g !== 'overall' && !GAMES[g]) return;
+      if (g !== 'overall' && !isGame(g)) return;
       return send(c, { t: 'rankings', ...store.leaderboard(g, pid) });
     }
     case 'create': {
-      if (!GAMES[m.game]) return;
+      if (!isGame(m.game)) return; // an unknown game name used to leave a broken table that emptied everyone's table list
+      if (!allow('create:' + c.token, 20, 60_000)) return send(c, { t: 'err', msg: 'Slow down a little: too many new tables.' });
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
         opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
           : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
@@ -233,8 +262,10 @@ function handle(c, m) {
       return;
     }
     case 'join': {
+      const key = 'join:' + (c.sock?.ip || c.token);
+      if (blocked(key, 30, 10 * 60_000)) return send(c, { t: 'err', msg: 'Too many wrong codes. Wait a few minutes and try again.' });
       const r = rooms.get(String(m.code || '').toUpperCase().trim());
-      if (!r) return send(c, { t: 'err', msg: 'No table with that code. Check the letters?' });
+      if (!r) { note(key, 10 * 60_000); return send(c, { t: 'err', msg: 'No table with that code. Check the letters?' }); } // so private tables can't be found by guessing
       return joinRoom(c, r);
     }
     case 'leave': if (c.room) leaveRoom(c); send(c, { t: 'room', room: null }); send(c, { t: 'rooms', rooms: publicRooms() }); return;
@@ -291,19 +322,7 @@ function handle(c, m) {
       for (const t of r.players) send(clients.get(t), msg);
       return;
     }
-    case 'register': case 'login': {
-      const now = Date.now(); c.tries = (c.tries || []).filter(x => now - x < 60_000);
-      if (c.tries.length >= 6) return send(c, { t: 'auth', err: 'Too many tries. Wait a minute and try again.' });
-      c.tries.push(now);
-      store[m.t](c.token, m.user, m.pass).then(({ err, p }) => {
-        if (err) return send(c, { t: 'auth', err });
-        if (m.t === 'login') { c.name = p.name; c.color = p.color; if (p.av) c.av = p.av; }
-        else store.setLook(c.token, c);
-        send(c, { t: 'auth', ok: m.t }); send(c, { t: 'me', me: store.me(p) });
-        const r = rooms.get(c.room); if (r) sendRoom(r);
-      }, e => { console.error('auth error', e); send(c, { t: 'auth', err: 'Something went wrong. Try again.' }); });
-      return;
-    }
+    case 'register': case 'login': case 'passwd': case 'recode': case 'recover': return auth(c, m);
     case 'logout': {
       const p = store.logout(c.token, c); if (!p) return;
       c.av = store.allowedAv(p, c.av); store.setLook(c.token, c);
@@ -333,11 +352,57 @@ function handle(c, m) {
   }
 }
 
+// ---------- accounts ----------
+// Logins, password changes and recovery are limited per address and per username, so nobody can try password after
+// password (or code after code). Only wrong tries count, so friends sharing a home connection are not slowed down.
+const AUTH_WIN = 15 * 60_000, AUTH_MAX = { pw: [10, 20], rec: [6, 10] }; // wrong tries per 15 minutes: [per address, per username]
+function auth(c, m) {
+  const now = Date.now(), ip = c.sock?.ip || '?';
+  c.tries = (c.tries || []).filter(x => now - x < 60_000);
+  if (c.tries.length >= 6) return send(c, { t: 'auth', op: m.t, err: 'Too many tries. Wait a minute and try again.' });
+  c.tries.push(now);
+  const kind = m.t === 'recover' ? 'rec' : 'pw', [perIp, perUser] = AUTH_MAX[kind];
+  const user = (m.t === 'login' || m.t === 'recover' ? String(m.user ?? '').trim() : store.profileOf(c.token)?.user || '').toLowerCase();
+  const kIp = `${kind}:ip:${ip}`, kUser = `${kind}:u:${user}`;
+  if (blocked(kIp, perIp, AUTH_WIN) || (user && blocked(kUser, perUser, AUTH_WIN)))
+    return send(c, { t: 'auth', op: m.t, err: 'Too many wrong tries. Wait 15 minutes and try again.' });
+  if (m.t === 'register' && blocked('reg:' + ip, 6, 3600_000)) return send(c, { t: 'auth', op: m.t, err: 'Lots of new accounts were made from here just now. Try again in an hour.' });
+  const run = {
+    register: () => store.register(c.token, m.user, m.pass),
+    login: () => store.login(c.token, m.user, m.pass),
+    passwd: () => store.changePassword(c.token, m.old, m.pass),
+    recode: () => store.recoveryCode(c.token, m.pass),
+    recover: () => store.recover(c.token, m.user, m.code, m.pass),
+  }[m.t];
+  run().then(r => {
+    if (r.err) {
+      if (m.t === 'login' || r.wrong) { note(kIp, AUTH_WIN); if (user) note(kUser, AUTH_WIN); }
+      return send(c, { t: 'auth', op: m.t, err: r.err });
+    }
+    const p = r.p;
+    if (m.t === 'register') { note('reg:' + ip, 3600_000); store.setLook(c.token, c); }
+    if (m.t === 'login' || m.t === 'recover') { c.name = p.name; c.color = p.color; if (p.av) c.av = p.av; }
+    for (const t of r.out || []) signedOut(t);
+    send(c, { t: 'auth', ok: m.t, code: r.code }); send(c, { t: 'me', me: store.me(p) });
+    const room = rooms.get(c.room); if (room) sendRoom(room);
+  }, e => { console.error('auth error', e); send(c, { t: 'auth', op: m.t, err: 'Something went wrong. Try again.' }); });
+}
+// A browser that was signed in to an account whose password just changed: it is a guest again.
+function signedOut(t) {
+  const o = clients.get(t); if (!o) return;
+  const p = store.profileOf(t); if (!p) return;
+  o.av = store.allowedAv(p, o.av); store.setLook(t, o);
+  send(o, { t: 'me', me: store.me(p) });
+  send(o, { t: 'err', msg: 'The password of your account was changed, so this device was logged out. Log in again with the new password.' });
+  const r = rooms.get(o.room); if (r) sendRoom(r);
+}
+
 attach(server, '/ws', sock => {
-  let c = null, budget = 40;
-  const refill = setInterval(() => { budget = Math.min(40, budget + 20); }, 1000);
+  let c = null, budget = 40, dropped = 0;
+  const refill = setInterval(() => { budget = Math.min(40, budget + 20); dropped = Math.max(0, dropped - 20); }, 1000);
+  const late = setTimeout(() => { if (!c) sock.close(1008); }, 15_000); // connected but never said hello
   sock.on('message', raw => {
-    if (--budget < 0) return;
+    if (--budget < 0) { if (++dropped > 400) { console.warn(`ws: ${sock.ip} flooded messages, closing`); sock.close(1008); } return; } // ~20 s of flooding
     let m; try { m = JSON.parse(raw); } catch { return; }
     if (!m || typeof m !== 'object') return;
     if (!c) {
@@ -350,7 +415,12 @@ attach(server, '/ws', sock => {
   });
   function hello(m) {
     {
-      const token = typeof m.token === 'string' && /^[a-z0-9]{16,40}$/.test(m.token) ? m.token : crypto.randomBytes(12).toString('hex');
+      let token = typeof m.token === 'string' && /^[a-z0-9]{16,40}$/.test(m.token) ? m.token : null;
+      // A new browser makes a new guest profile. One address may make plenty (a party at someone's house), not thousands.
+      if (!token || (!clients.has(token) && !store.sessions.has(token))) {
+        if (!allow('new:' + sock.ip, 60, 3600_000)) { console.warn(`ws: ${sock.ip} made too many new guests, closing`); sock.close(1008); return; }
+        token = token || crypto.randomBytes(12).toString('hex');
+      }
       c = clients.get(token);
       if (c) { if (c.sock && c.sock !== sock) { console.log(`ws: ${c.id} opened a second connection (${sock.ip}), closing the older one (${c.sock.ip})`); c.sock.send({ t: 'replaced' }); c.sock.close(4000); } }
       else { c = { token, id: null, room: null }; clients.set(token, c); }
@@ -370,7 +440,7 @@ attach(server, '/ws', sock => {
     }
   }
   sock.on('close', () => {
-    clearInterval(refill);
+    clearInterval(refill); clearTimeout(late);
     if (!c || c.sock !== sock) return;
     c.sock = null; c.lastSeen = Date.now(); broadcastStats();
     const r = rooms.get(c.room); if (r) sendRoom(r);
@@ -411,7 +481,8 @@ process.on('SIGTERM', bye); process.on('SIGINT', bye);
 setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {
-    if (r.G && GAMES[r.game].tick(r.G, now)) sendState(r);
+    try { if (r.G && GAMES[r.game].tick(r.G, now)) sendState(r); }
+    catch (e) { console.error(`tick error in ${r.game} table ${r.code}`, e); } // one broken game must not stop every other table
     for (const t of [...r.players]) {
       const c = clients.get(t);
       if (c.sock) continue;
@@ -432,7 +503,10 @@ setInterval(() => {
 // Real-time games (Kart Island Race) export fast(G, now): it runs twenty times a second and streams the race.
 setInterval(() => {
   const now = Date.now();
-  for (const r of rooms.values()) { const mod = GAMES[r.game]; if (r.G && mod.fast && mod.fast(r.G, now)) sendState(r); }
+  for (const r of rooms.values()) {
+    const mod = GAMES[r.game];
+    try { if (r.G && mod.fast && mod.fast(r.G, now)) sendState(r); } catch (e) { console.error(`fast tick error in ${r.game} table ${r.code}`, e); }
+  }
 }, 50);
 
 setInterval(() => { // heartbeat + forget long-gone clients
@@ -442,5 +516,9 @@ setInterval(() => { // heartbeat + forget long-gone clients
     else if (!c.room && now - c.lastSeen > 3600_000) clients.delete(t);
   }
 }, 25_000);
+setInterval(() => { // forget guest profiles that never played, once their browser has been gone an hour
+  const n = store.prune(t => { const c = clients.get(t); return !!(c && (c.sock || c.room)); });
+  if (n > 20) console.log(`forgot ${n} empty guest profiles`);
+}, 10 * 60_000).unref();
 
 server.listen(PORT, HOST, () => console.log(`Cozy Table running on http://${HOST}:${PORT}`));

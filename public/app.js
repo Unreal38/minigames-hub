@@ -489,7 +489,7 @@ function meCard() {
       <span class="rankicon">${m.icon}</span>
       <div class="rankname"><b>${esc(m.rank)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
       <div class="acct">${m.user
-        ? `<span>Signed in as <b>${esc(m.user)}</b></span><button type="button" class="btn sm ghost" data-act="logout">Log out</button>`
+        ? `<span>Signed in as <b>${esc(m.user)}</b></span><button type="button" class="btn sm ghost" data-act="security">Password</button><button type="button" class="btn sm ghost" data-act="logout">Log out</button>`
         : `<span>Playing as a guest. Progress stays on this browser.</span><button type="button" class="btn sm m" data-act="account" data-mode="register">Create account</button><button type="button" class="btn sm w" data-act="account" data-mode="login">Log in</button>`}</div>
     </div>
     <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
@@ -1077,27 +1077,120 @@ function openAccount(mode = 'register') {
       <label for="ap">Password</label>
       <input class="field" id="ap" type="password" minlength="6" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">
       <p class="autherr" role="alert" hidden></p>
-      ${reg ? '<p style="font-size:14px">There is no password reset, so pick one you will remember.</p>' : ''}
+      ${reg ? '<p style="font-size:14px">Next you get a recovery code. Keep it somewhere safe: it lets you set a new password if you ever forget this one.</p>' : ''}
       <button class="btn big">${reg ? 'Create account' : 'Log in'}</button>
+      ${reg ? '' : '<button type="button" class="btn ghost-ink" data-forgot>Forgot your password?</button>'}
       <button type="button" class="btn ghost-ink" data-swap>${reg ? 'I already have an account' : 'I need an account'}</button>
     </form>`);
-  const err = el.querySelector('.autherr'), btn = el.querySelector('.btn.big');
   setTimeout(() => el.querySelector('#au').focus(), 50);
   el.querySelector('[data-swap]').addEventListener('click', () => { close(); onAuth = null; openAccount(reg ? 'login' : 'register'); });
+  el.querySelector('[data-forgot]')?.addEventListener('click', () => { const u = el.querySelector('#au').value.trim(); close(); onAuth = null; openRecover(u); });
+  authForm(el, () => {
+    if (!reg) adoptLook = true;
+    return { t: mode, user: el.querySelector('#au').value.trim(), pass: el.querySelector('#ap').value };
+  }, m => {
+    close(); sfx.join();
+    if (reg) showRecoveryCode(m.code, true); else toast('Welcome back!');
+    if (st.view === 'lobby') renderLobby();
+  });
+}
+
+// Shared by the account forms: sends what msg() builds, shows the server's error under the form, or calls done().
+function authForm(el, msg, done) {
+  const err = el.querySelector('.autherr'), btn = el.querySelector('.btn.big');
   el.querySelector('form').addEventListener('submit', e => {
     e.preventDefault();
     if (ws?.readyState !== 1) { err.textContent = 'Not connected. Try again in a moment.'; err.hidden = false; return; }
+    const m = msg(); if (!m) return;
     btn.disabled = true; err.hidden = true;
-    onAuth = m => {
+    onAuth = r => {
       btn.disabled = false;
-      if (m.err) { sfx.bad(); err.textContent = m.err; err.hidden = false; return; }
-      onAuth = null; close(); sfx.join();
-      toast(reg ? 'Account created. Your progress is saved!' : 'Welcome back!');
-      if (st.view === 'lobby') renderLobby();
+      if (r.err) { sfx.bad(); err.textContent = r.err; err.hidden = false; return; }
+      onAuth = null; done(r);
     };
-    if (!reg) adoptLook = true;
-    send({ t: mode, user: el.querySelector('#au').value.trim(), pass: el.querySelector('#ap').value });
+    send(m);
   });
+}
+const showErr = (el, text) => { const err = el.querySelector('.autherr'); err.textContent = text; err.hidden = false; sfx.bad(); };
+
+// Forgot the password: username + recovery code (or a reset code from the host) + a new password.
+function openRecover(user = '') {
+  const { el, close } = modal(`
+    <h2>Set a new password</h2>
+    <p>Type your username and your recovery code (you got it when you made the account). Lost the code too? Ask the
+      person who runs this site for a reset code and type that instead.</p>
+    <form class="authform">
+      <label for="ru">Username</label>
+      <input class="field" id="ru" maxlength="16" required autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(user)}">
+      <label for="rc">Recovery or reset code</label>
+      <input class="field" id="rc" maxlength="40" required autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-JKLM-NPQR">
+      <label for="rp">New password</label>
+      <input class="field" id="rp" type="password" minlength="6" maxlength="72" required autocomplete="new-password">
+      <p class="autherr" role="alert" hidden></p>
+      <button class="btn big">Set new password</button>
+      <button type="button" class="btn ghost-ink" data-back>Back to log in</button>
+    </form>`);
+  setTimeout(() => el.querySelector(user ? '#rc' : '#ru').focus(), 50);
+  el.querySelector('[data-back]').addEventListener('click', () => { close(); onAuth = null; openAccount('login'); });
+  authForm(el, () => { adoptLook = true; return { t: 'recover', user: el.querySelector('#ru').value.trim(), code: el.querySelector('#rc').value, pass: el.querySelector('#rp').value }; }, m => {
+    close(); sfx.join(); toast('New password set. You are logged in, and other devices were logged out.');
+    showRecoveryCode(m.code, false, 'Your old code is used up, so here is a new one.');
+    if (st.view === 'lobby') renderLobby();
+  });
+}
+
+// Shows a recovery code once, with a copy button. The server keeps only a scrambled copy, so it can't show it again.
+function showRecoveryCode(code, fresh, note = '') {
+  if (!code) return;
+  const { el, close } = modal(`
+    <h2>${fresh ? 'Account created!' : 'Your recovery code'}</h2>
+    <p>${note ? note + ' ' : ''}If you ever forget your password, this code lets you set a new one. Save it in a password manager,
+      a note on your phone, or on paper. It is shown only this once.</p>
+    <p class="rcode" aria-label="Recovery code">${esc(code)}</p>
+    <div class="row"><button type="button" class="btn w" data-copy>Copy code</button><button type="button" class="btn big" data-close>I saved it</button></div>`, false);
+  el.querySelector('[data-copy]').addEventListener('click', e => {
+    navigator.clipboard?.writeText(code).then(() => { e.target.textContent = 'Copied!'; }, () => { e.target.textContent = 'Select the code and copy it'; });
+  });
+  el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); close(); if (fresh) toast('Your progress is saved!'); });
+}
+
+// Signed in: change the password, or make a new recovery code. Both ask for the current password.
+function openSecurity() {
+  const { el, close } = modal(`
+    <h2>Password and recovery</h2>
+    <p>Signed in as <b>${esc(st.me?.user)}</b>.</p>
+    <form class="authform" data-f="pw">
+      <h3>Change password</h3>
+      <input type="text" autocomplete="username" value="${esc(st.me?.user)}" hidden>
+      <label for="po">Current password</label>
+      <input class="field" id="po" type="password" maxlength="72" required autocomplete="current-password">
+      <label for="pn">New password</label>
+      <input class="field" id="pn" type="password" minlength="6" maxlength="72" required autocomplete="new-password">
+      <label for="pn2">New password again</label>
+      <input class="field" id="pn2" type="password" minlength="6" maxlength="72" required autocomplete="new-password">
+      <p class="autherr" role="alert" hidden></p>
+      <p style="font-size:14px">Any other phone or computer signed in to this account is logged out.</p>
+      <button class="btn big">Change password</button>
+    </form>
+    <form class="authform" data-f="rc">
+      <h3>Recovery code</h3>
+      <p style="font-size:14px">Lost your recovery code? Make a new one. The old one stops working.</p>
+      <label for="pr">Password</label>
+      <input class="field" id="pr" type="password" maxlength="72" required autocomplete="current-password">
+      <p class="autherr" role="alert" hidden></p>
+      <button class="btn big w">Make a new recovery code</button>
+    </form>
+    <button type="button" class="btn ghost-ink" data-close>Close</button>`);
+  const pw = el.querySelector('[data-f="pw"]'), rc = el.querySelector('[data-f="rc"]');
+  setTimeout(() => el.querySelector('#po').focus(), 50);
+  el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); onAuth = null; close(); });
+  const scoped = f => ({ querySelector: q => q === 'form' ? f : f.querySelector(q) }); // authForm looks inside one form
+  authForm(scoped(pw), () => {
+    const a = pw.querySelector('#pn').value, b = pw.querySelector('#pn2').value;
+    if (a !== b) { showErr(pw, 'The two new passwords are not the same.'); return null; }
+    return { t: 'passwd', old: pw.querySelector('#po').value, pass: a };
+  }, () => { close(); sfx.join(); toast('Password changed. Other devices were logged out.'); });
+  authForm(scoped(rc), () => ({ t: 'recode', pass: rc.querySelector('#pr').value }), m => { close(); showRecoveryCode(m.code, false); });
 }
 
 export function openRules(game) {
@@ -1121,6 +1214,7 @@ $app.addEventListener('click', e => {
   else if (act === 'profile') openProfile();
   else if (act === 'shop') { if (!st.name) return openProfile(true); openProfile(false, AV_TABS.length); }
   else if (act === 'account') openAccount(b.dataset.mode);
+  else if (act === 'security') openSecurity();
   else if (act === 'logout') { send({ t: 'logout' }); toast('Logged out. This browser is a guest again.'); }
   else if (act === 'host' || act === 'solo') {
     if (!st.name) return openProfile(true);

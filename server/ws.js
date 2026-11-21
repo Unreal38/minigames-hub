@@ -1,9 +1,27 @@
 // Minimal dependency-free WebSocket server (RFC 6455): text frames, ping/pong, close.
 import crypto from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { allow } from './limits.js';
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const MAX_MSG = 16 * 1024;
+const PER_IP = 20;          // open connections from one address at once (a house full of friends shares one)
+const NEW_PER_MIN = 60;     // new connections from one address per minute
+const open = new Map();     // ip -> open connections
+
+// The address of the person on the other end. The server only listens on 127.0.0.1 behind Caddy, which puts the real
+// address last in X-Forwarded-For (it replaces whatever the browser sent). The header is only believed when the
+// connection really comes from this machine, so nobody can fake it from outside. With Cloudflare in front, set
+// TRUST_CLOUDFLARE=1 so its CF-Connecting-IP header is used instead (only do that if the server is reachable through
+// Cloudflare alone).
+export function ipOf(req) {
+  const peer = req.socket.remoteAddress || '';
+  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)) return peer;
+  const cf = process.env.TRUST_CLOUDFLARE && req.headers['cf-connecting-ip'];
+  if (cf) return String(cf).trim();
+  const xff = req.headers['x-forwarded-for'];
+  return xff ? String(xff).split(',').pop().trim() : peer;
+}
 
 export class Socket extends EventEmitter {
   constructor(sock, ip) {
@@ -78,15 +96,22 @@ export class Socket extends EventEmitter {
 // Attach to an http.Server; calls onConnect(socket, req) for each upgrade on `path`.
 export function attach(server, path, onConnect) {
   server.on('upgrade', (req, sock) => {
+    sock.on('error', () => {}); // a client vanishing mid-handshake must not crash the server
     const url = new URL(req.url, 'http://x');
     const key = req.headers['sec-websocket-key'];
     if (url.pathname !== path || !key || (req.headers.upgrade || '').toLowerCase() !== 'websocket') {
       sock.end('HTTP/1.1 400 Bad Request\r\n\r\n'); return;
     }
+    const ip = ipOf(req);
+    if ((open.get(ip) || 0) >= PER_IP || !allow('conn:' + ip, NEW_PER_MIN, 60_000)) {
+      sock.end('HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n'); return;
+    }
     const accept = crypto.createHash('sha1').update(key + GUID).digest('base64');
     sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
       `Sec-WebSocket-Accept: ${accept}\r\n\r\n`);
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-    onConnect(new Socket(sock, ip), req);
+    const ws = new Socket(sock, ip);
+    open.set(ip, (open.get(ip) || 0) + 1);
+    ws.once('close', () => { const n = (open.get(ip) || 1) - 1; if (n > 0) open.set(ip, n); else open.delete(ip); });
+    onConnect(ws, req);
   });
 }
