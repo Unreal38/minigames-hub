@@ -374,6 +374,13 @@ const topbar = () => `<header class="top">
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
 </header>`;
 
+// The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
+let heroMod = null;
+function mountSkyHero() {
+  const box = document.querySelector('.hero .art'); if (!box) return;
+  box.classList.add('sky3d');
+  (heroMod ||= import('./hero3d.js')).then(m => { if (box.isConnected) m.mountHero(box, st.color, st.av); }).catch(() => {});
+}
 function renderHub() {
   $app.innerHTML = `${topbar()}
   <main class="wrap hubgrid">
@@ -483,6 +490,8 @@ function renderHub() {
   </main>
   <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
   renderTables();
+  document.body.classList.add('sky');
+  mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   if (!st.name) openProfile(true);
 }
@@ -547,6 +556,7 @@ function renderTables() {
 }
 
 function renderLobby() {
+  document.body.classList.remove('sky');
   const r = st.room; if (!r) return go('hub');
   const host = r.host === st.id, gm = GAMES[r.game] || GAMES.hotpot, max = gm.seats(r);
   const seated = r.players.filter(p => !p.watch);
