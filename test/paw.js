@@ -9,11 +9,11 @@ const fail = m => { console.error('FAIL', m); process.exit(1); };
 const players = [{ id: 'a', name: 'Ana', color: '#ff8fab', av: [0, 0, 0, 0] }, { id: 'b', name: 'Bo', color: '#7ed3b2', av: [1, 1, 1, 1] }];
 
 // ----- the board -----
-if (TILES.length !== N || SHOP_TILES.length !== 18 || STREET.length !== GROUPS.length || STREET.some(s => s.length !== 3)) fail('board layout wrong');
+if (TILES.length !== N || SHOP_TILES.length !== 24 || STREET.length !== GROUPS.length || STREET.some(s => s.length !== 3)) fail('board layout wrong');
 if (new Set(TILES.map((_, i) => cellOf(i).join())).size !== N) fail('two tiles share a cell');
 if (TILES[START].k !== 'start' || TILES[BATH].k !== 'bath' || TILES[LOST].k !== 'lost' || TILES[MUD].k !== 'mud') fail('corners wrong');
 for (const i of SHOP_TILES) { const t = TILES[i]; if (!(t.rent[0] < t.rent[1] && t.rent[1] < t.rent[2] && t.rent[2] * 2 < t.rent[3]) || t.up <= 0 || !t.pet) fail('rents must rise with every upgrade: ' + t.name); }
-if (new Set(SHOP_TILES.map(i => TILES[i].pet)).size !== 18) fail('every shop needs its own pet');
+if (new Set(SHOP_TILES.map(i => TILES[i].pet)).size !== 24) fail('every shop needs its own pet');
 { const own = Array(N).fill(-1), lv = Array(N).fill(0), [a, b, c] = STREET[0];
   own[a] = 0; if (rentOf(a, own, lv) !== TILES[a].rent[0] || rentOf(b, own, lv) !== 0) fail('plain rent wrong');
   own[b] = own[c] = 0; if (!fullStreet(0, 0, own) || rentOf(a, own, lv) !== TILES[a].rent[0] * 2) fail('whole street should double the rent');
@@ -65,7 +65,7 @@ function play(opts, humanPlays = true) {
   } finally { Date.now = realNow; }
 }
 const seen = new Set(); let builds = 0, sold = 0;
-for (const opts of [{ seats: 2, rounds: 8 }, { seats: 4, rounds: 15, bots: 'sharp' }, { seats: 6, rounds: 15 }, { seats: 3, rounds: 25, naps: 'off', bots: 'sharp' }, { seats: 4, rounds: 8, timer: 20 }]) {
+for (const opts of [{ seats: 2, rounds: 10 }, { seats: 4, rounds: 20, bots: 'sharp' }, { seats: 6, rounds: 20 }, { seats: 3, rounds: 30, naps: 'off', bots: 'sharp' }, { seats: 4, rounds: 10, timer: 20 }]) {
   for (let k = 0; k < 6; k++) {
     const r = play(opts, k % 2 === 0);
     for (const c of r.cards) seen.add(c);
@@ -81,7 +81,7 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
 // ----- rules, with chosen dice -----
 {
   let now = realNow(); Date.now = () => now;
-  const G = pw.create(players, { seats: 2, rounds: 25, naps: 'off', timer: 0 });
+  const G = pw.create(players, { seats: 2, rounds: 30, naps: 'off', timer: 0 });
   const run = (until, max = 4000) => { for (let i = 0; i < max && !until(); i++) { now += 50; if (G.stage === 'done') pw.act(G, G.turn, { t: 'end' }); else if (G.stage === 'buy') pw.act(G, G.turn, { t: 'pass' }); pw.tick(G, now); } if (!until()) fail('rules walk-through got stuck in ' + G.stage); };
   const s = G.turn, o = 1 - s, A = G.seats[s], B = G.seats[o];
   const myRoll = (who, d) => { run(() => G.turn === who && G.stage === 'roll'); pw._roll(G, who, now, d); };
@@ -100,14 +100,14 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
   if (pw.act(G, s, { t: 'build', i: 3 })) fail('built a palace without the whole street');
   if (pw.act(G, s, { t: 'build', i: 4 })) fail('upgraded a shop that is not mine');
   // a napping pet charges nothing
-  G.nap[3] = true; B.pos = 0; A.pos = 10;
+  G.nap[3] = true; B.pos = 0; A.pos = BATH;
   pw._roll(G, s, now, [1, 3]); run(() => G.stage === 'buy' || (G.turn === o && G.stage === 'roll')); if (G.stage === 'buy') pw.act(G, s, { t: 'pass' });
   run(() => G.turn === o && G.stage === 'roll');
   const c0 = B.cash; pw._roll(G, o, now, [1, 2]); run(() => G.turn === s && G.stage === 'roll');
   if (B.cash !== c0) fail('rent was charged while the pet was napping');
   G.nap[3] = false;
   // three doubles in a row: off to the bath, and the turn passes
-  A.pos = 8; G.own[10] = G.own[12] = G.own[16] = o; // land on the other player's shops so nothing is offered
+  A.pos = BATH; G.own[BATH + 2] = G.own[BATH + 4] = o; // land on the other player's shops so nothing is offered
   pw._roll(G, s, now, [1, 1]); run(() => G.turn === s && G.stage === 'roll'); if (G.dbl !== 1) fail('doubles should roll again');
   pw._roll(G, s, now, [1, 1]); run(() => G.turn === s && G.stage === 'roll');
   pw._roll(G, s, now, [2, 2]); run(() => G.turn === o && G.stage === 'roll');
@@ -123,11 +123,11 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
   const jar = G.jar, c1 = A.cash;
   if (!pw.act(G, s, { t: 'pay' }) || A.inBath || A.cash !== c1 - BATH_FEE || G.jar !== jar + BATH_FEE) fail('paying out of the bath went wrong');
   if (pw.act(G, s, { t: 'pay' })) fail('paid the bath fee twice');
-  // the Vet (2 after the bath) fills the jar; the Lost & Found corner empties it
-  pw._roll(G, s, now, [1, 1]); run(() => G.stage !== 'walk');
-  if (A.pos !== 9 || G.jar !== jar + BATH_FEE + VET_FEE) fail('vet fee did not go in the jar');
+  // the Vet (just before the Lost & Found) fills the jar; the Lost & Found corner empties it
+  A.pos = LOST - 3; pw._roll(G, s, now, [1, 1]); run(() => G.stage !== 'walk');
+  if (A.pos !== LOST - 1 || TILES[A.pos].k !== 'vet' || G.jar !== jar + BATH_FEE + VET_FEE) fail('vet fee did not go in the jar');
   run(() => G.turn === s && G.stage === 'roll');
-  const jar2 = G.jar, c2 = A.cash; pw._roll(G, s, now, [2, 3]); run(() => G.turn === o && G.stage === 'roll');
+  A.pos = LOST - 5; const jar2 = G.jar, c2 = A.cash; pw._roll(G, s, now, [2, 3]); run(() => G.turn === o && G.stage === 'roll');
   if (A.pos !== LOST || G.jar !== 0 || A.cash !== c2 + jar2) fail('the Lost & Found jar was not handed over');
   // the Muddy Puddle sends you to the bath; passing the Welcome Mat pays
   B.pos = MUD - 3; pw._roll(G, o, now, [1, 2]); run(() => G.turn === s && G.stage === 'roll');
@@ -142,7 +142,7 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
   if (G.own[1] !== -1 || B.cash !== Math.max(0, paid - TILES[3].rent[2]) || A.cash !== c4 + Math.min(paid, TILES[3].rent[2])) fail('a broke player should sell up and pay what they can');
   if (G.ph !== 'play' || B.cash < 0) fail('a broke player must stay in the game');
   // the timer plays for a player who is not looking, and a watcher gets a bot's seat at the next round
-  const H = pw.create([players[0]], { seats: 3, rounds: 25, timer: 20 });
+  const H = pw.create([players[0]], { seats: 3, rounds: 30, timer: 20 });
   for (let i = 0; i < 4000 && !(H.turn === 0 && H.stage === 'roll'); i++) { now += 50; pw.tick(H, now); }
   const n0 = H.rollN; now += 20100; pw.tick(H, now); if (H.rollN === n0) fail('the timer did not roll');
   pw.seatWatcher(H, { id: 'c', name: 'Cy', color: '#9aa8ff', av: [2] });
@@ -165,11 +165,11 @@ ws.onopen = () => send({ t: 'hello', name: 'Ana', color: '#ff8fab' });
 ws.onmessage = e => { const msg = JSON.parse(e.data); if (msg.t === 'room') room = msg.room; if (msg.t === 'state') state = msg.s; if (msg.t === 'me' && msg.gain) me = msg; };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await wait(300);
-send({ t: 'create', game: 'paw', opts: { seats: 6, rounds: 25, naps: 'off', timer: 20, size: 'huge' } });
+send({ t: 'create', game: 'paw', opts: { seats: 6, rounds: 30, naps: 'off', timer: 20, size: 'huge' } });
 await wait(300);
 if (room?.game !== 'paw' || room.opts.seats !== 6 || room.opts.naps !== 'off' || 'size' in room.opts) bail('room options wrong');
-send({ t: 'opts', opts: { seats: 3, rounds: 8 } }); await wait(200);
-if (room.opts.seats !== 3 || room.opts.rounds !== 8 || room.opts.naps !== 'off' || room.opts.timer !== 20) bail('option change lost');
+send({ t: 'opts', opts: { seats: 3, rounds: 10 } }); await wait(200);
+if (room.opts.seats !== 3 || room.opts.rounds !== 10 || room.opts.naps !== 'off' || room.opts.timer !== 20) bail('option change lost');
 send({ t: 'start' }); await wait(300);
 if (state?.game !== 'paw' || state.seats.length !== 3 || state.seats[state.me].cash !== START_CASH || state.own.length !== N) bail('game did not start');
 let acts = 0;
