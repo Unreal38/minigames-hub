@@ -270,6 +270,12 @@ if (r.farm.mail.length !== 1 || r.farm.mail[0].k !== 'battle' || r.farm.mail[0].
 r = await b.farmDo({ t: 'world' });
 const ana = r.world.find(x => x.name === 'Ana');
 if (r.world.length !== 1 || !ana || ana.helps !== 5 || !ana.gift || ana.items.length !== a.farm.items.length || JSON.stringify(r.world).includes('"inv"')) fail('world ' + JSON.stringify(r.world).slice(0, 300));
+// a new look reaches the player's own screen and the map others see
+b.me = null; b.send({ t: 'profile', name: 'Bo', color: '#7bd389', av: [1, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+await until(() => b.me, 'me after a profile change');
+if (b.me.color !== '#7bd389' || !Array.isArray(b.me.av)) fail('new look not sent back ' + JSON.stringify(b.me));
+r = await a.farmDo({ t: 'world' });
+if (r.world.find(x => x.name === 'Bo')?.color !== '#7bd389') fail('map shows the old look ' + JSON.stringify(r.world).slice(0, 200));
 r = await b.farmDo({ t: 'visit', id: 'nobody' });
 if (!r.err) fail('visited a farm that does not exist');
 r = await b.farmDo({ t: 'visit', id: ana.id });

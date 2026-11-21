@@ -86,6 +86,7 @@ function build() {
   function setNight(on) { // moonlight: cooler and dimmer, lamps glowing
     hemi.color.set(on ? '#9aa6ff' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : '#ffe9c9'); hemi.intensity = on ? 1.35 : 2;
     key.color.set(on ? '#c8d0ff' : '#ffffff'); key.intensity = on ? .9 : 1.5;
+    land.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
   }
   setNight(night);
   return { canvas, setAvatar, setNight, ticker };

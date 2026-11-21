@@ -89,6 +89,50 @@ if (score(C('Ah Ad 9c 9s 4d 4h Kc')) !== score(C('Ah Ad 9c 9s Kd 3h 2c'))) fail(
   console.log('watcher seated at', i);
 }
 
+// ----- Mango Poker: three cards, throw one away, the flop is made of thrown-away cards -----
+{
+  if (pk.cleanOpts({ variant: 'mango', field: 2 }).field !== 4) fail('mango should need 4 seats');
+  if (pk.cleanOpts({ variant: 'nope' }).variant !== 'holdem') fail('unknown variant should fall back to holdem');
+  const realNow = Date.now; let now = realNow(); Date.now = () => now;
+  const G = pk.create([ana, bo], { variant: 'mango', field: 4, hands: 10, timer: 20 });
+  now += 2000; pk.tick(G, now);
+  if (G.stage !== 'drop' || G.st.some(x => x.cards.length !== 3)) fail('mango hand should start with 3 cards and a drop');
+  if (pk.act(G, 0, { t: 'call' })) fail('betting allowed before everyone threw a card away');
+  const v = pk.view(G, 1);
+  if (!v.drop || v.drop.need.length !== 4 || v.seats[0].cards.length !== 3 || v.seats[0].cards.some(c => c >= 0)) fail('drop view wrong');
+  const thrown = G.st[0].cards[1];
+  if (pk.act(G, 0, { t: 'drop', c: 99 })) fail('dropped a card you do not have');
+  if (!pk.act(G, 0, { t: 'drop', c: thrown }) || G.st[0].cards.length !== 2) fail('drop refused');
+  if (pk.act(G, 0, { t: 'drop', c: G.st[0].cards[0] })) fail('dropped twice');
+  // seat 1 is human and does nothing: the timer picks for them; bots pick on their own
+  for (let i = 0; i < 200 && G.stage === 'drop'; i++) { now += 250; pk.tick(G, now); }
+  if (G.stage !== 'pre' || G.st.some(x => x.cards.length !== 2) || G.pile.length !== 4) fail('drop did not finish: ' + G.stage + ' pile ' + G.pile.length);
+  const pile = new Set(G.pile);
+  // everyone calls / checks to the flop
+  for (let i = 0; i < 400 && G.board.length < 3; i++) {
+    now += 250;
+    if (G.turn >= 0 && !G.seats[G.turn].bot && !G.next) pk.act(G, G.turn, { t: 'call' });
+    pk.tick(G, now);
+  }
+  if (G.board.length < 3 || !G.board.slice(0, 3).every(c => pile.has(c))) fail('flop was not made from the thrown-away cards: ' + G.board);
+  Date.now = realNow;
+  // whole mango games: chips add up, never a duplicate card, games end
+  for (const [field, bots] of [[4, 'chill'], [6, 'sharp']]) {
+    let now2 = realNow(); Date.now = () => now2;
+    const H = pk.create([ana], { variant: 'mango', field, hands: 10, bots, timer: 20 }); const n = H.seats.length;
+    for (let i = 0; i < 300000 && H.ph === 'play'; i++) {
+      now2 += 250; pk.tick(H, now2);
+      if (H.ph === 'play' && H.stage !== 'show' && H.st.reduce((a, x) => a + x.stack + x.in, 0) !== n * pk.START) fail('mango chips appeared or vanished');
+      const all = [...H.board, ...H.st.flatMap(x => x.cards)];
+      if (new Set(all).size !== all.length) fail('a card is in two places');
+      if (H.ph === 'play' && H.stage !== 'show' && !H.runout && pk.view(H, 1).seats[0].cards.some(c => c >= 0)) fail('mango leaked my cards');
+    }
+    if (H.ph !== 'end') fail('mango game did not end');
+    console.log(`mango ${field} seats: ${H.hand} hands, winner ${H.seats[H.win].name}`);
+    Date.now = realNow;
+  }
+}
+
 // ----- over the wire -----
 const PORT = 19980 + (Math.random() * 900 | 0);
 const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: '/tmp/cozy-poker-test-' + PORT }, stdio: 'inherit' });

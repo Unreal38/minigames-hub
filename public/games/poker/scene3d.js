@@ -222,6 +222,9 @@ export function createScene(canvas, { onFrame } = {}) {
   const board = []; // 3D board cards
   const boardPos = k => new THREE.Vector3((k - 2) * (CW + .12), .02, -.15);
   const deckPos = new THREE.Vector3(0, .3, -.15);
+  // Mango Poker: thrown-away cards gather face down in the middle, and the flop is dealt out of them
+  const pilePos = new THREE.Vector3(0, .02, -.15), pile = [];
+  function clearPile() { for (const c of pile) scene.remove(c); pile.length = 0; }
 
   // ---------- chips ----------
   const chipGeo = new THREE.CylinderGeometry(.2, .2, .07, 24);
@@ -300,10 +303,15 @@ export function createScene(canvas, { onFrame } = {}) {
     // board
     const bl = S.board.length;
     if (fresh || bl < board.length) { for (const c of board) scene.remove(c); board.length = 0; }
-    const k0 = board.length;
+    if (fresh) clearPile();
+    const k0 = board.length, fromPile = k0 === 0 && bl >= 3 && pile.length > 0;
+    if (fromPile) { // the flop spreads out of the pile; the cards nobody got stay hidden and slide away
+      for (const c of pile) { const from = c.position.clone(), to = new THREE.Vector3(0, .02, -1.0); tween(.5, t => { c.position.lerpVectors(from, to, ease(t)); c.scale.setScalar(1 - t * .8); }, () => scene.remove(c), .45); }
+      pile.length = 0;
+    }
     for (let k = k0; k < bl; k++) {
       const c = makeCard(S.board[k]), j = k - k0; scene.add(c); board.push(c);
-      c.rotation.z = Math.PI; flyCard(c, deckPos, boardPos(k), false, j * .12, () => pfx.sparkle(boardPos(k), { n: 4, colors: ['#fff1a8', '#ffffff'], r: .35, size: .18, life: .6 }));
+      c.rotation.z = Math.PI; flyCard(c, fromPile && k < 3 ? pilePos.clone().setY(.06) : deckPos, boardPos(k), false, j * .12, () => pfx.sparkle(boardPos(k), { n: 4, colors: ['#fff1a8', '#ffffff'], r: .35, size: .18, life: .6 }));
       flip(c, true, .47 + j * .12);
     }
     // hole cards
@@ -314,10 +322,18 @@ export function createScene(canvas, { onFrame } = {}) {
       while (s.cards.length < want) {
         const k = s.cards.length, c = makeCard(p.cards[k]);
         c.rotation.z = Math.PI; s.cardsG.add(c); s.cards.push(c);
-        const to = new THREE.Vector3((k - .5) * .5, .01 + k * .01, 0);
+        const to = new THREE.Vector3((k - (want - 1) / 2) * .5, .01 + k * .01, 0);
         const from = s.cardsG.worldToLocal(deckPos.clone());
         const order = (rel(i) + n - (S.dealer >= 0 ? rel(S.dealer) : 0)) % n;
         flyCard(c, from, to, false, (k * n + order) * .07); c.rotation.y = (k - .5) * .12;
+      }
+      if (!fresh && s.cards.length > want && want > 0) { // Mango: one card thrown into the middle pile
+        const c = s.cards.pop();
+        const from = s.cardsG.localToWorld(c.position.clone()); s.cardsG.remove(c);
+        setFace(c, -1); c.rotation.set(0, Math.random() * .8 - .4, Math.PI); c.scale.setScalar(.82); scene.add(c);
+        const to = pilePos.clone().add(new THREE.Vector3((Math.random() - .5) * .25, .012 * pile.length, (Math.random() - .5) * .2));
+        pile.push(c); flyCard(c, from, to, false);
+        s.cards.forEach((h, k) => { const a = h.position.clone(), b = new THREE.Vector3((k - (want - 1) / 2) * .5, .01 + k * .01, 0); tween(.3, t => h.position.lerpVectors(a, b, ease(t)), null, .1); h.rotation.y = (k - .5) * .12; });
       }
       s.cards.forEach((c, k) => {
         const v = p.cards[k];
