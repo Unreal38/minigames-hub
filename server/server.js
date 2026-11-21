@@ -15,6 +15,7 @@ import * as stack from './games/stack.js';
 import * as golf from './games/golf.js';
 import * as dice from './games/dice.js';
 import { cleanAv } from '../public/avatar.js';
+import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
 import * as farm from './farm.js';
 
@@ -90,7 +91,8 @@ const boardOf = r => Object.values(r.board || {}).map(({ pid, ...e }) => e)
 function scoreGame(r) {
   const G = r.G, mod = GAMES[r.game];
   G.scored = true;
-  const res = mod.results?.(G); if (!res) return;
+  const raw = mod.results?.(G); if (!raw) return;
+  const res = withPlaces(raw), of = fieldOf(raw); // coins are paid by final place, the same scale for every game
   r.played = (r.played || 0) + 1; r.board ||= {};
   G.seats.forEach((seat, i) => {
     if (!seat.human || !seat.id) return;
@@ -100,7 +102,7 @@ function scoreGame(r) {
     Object.assign(e, { name: c.name, color: c.color, av: c.av });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
-    const gain = store.credit(p, r.game, res[i]);
+    const gain = store.credit(p, r.game, { ...res[i], of });
     send(c, { t: 'me', me: store.me(p), gain });
   });
   sendRoom(r); store.scheduleSave();

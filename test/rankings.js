@@ -61,6 +61,16 @@ const p = store.profiles.get('mia');
 store.credit(p, 'marbles', { pts: 25, win: true, coinNet: 40 });
 store.credit(p, 'marbles', { pts: 0, win: false, coinNet: -25 });
 if (p.byGame.marbles.pts !== 25 || p.byGame.marbles.net !== 105 || p.byGame.marbles.wins !== 3) fail('credit totals ' + JSON.stringify(p.byGame.marbles));
+// Coins are paid by final place: 10 for 1st, spread evenly down to 1 for last.
+const R = await import('../public/ranks.js');
+const scale = n => Array.from({ length: n }, (_, i) => R.placeCoins(i + 1, n)).join('/');
+if (scale(2) !== '10/1' || scale(3) !== '10/6/1' || scale(4) !== '10/7/4/1' || scale(6) !== '10/8/6/5/3/1') fail('place scale ' + [2, 3, 4, 6].map(scale));
+const placed = R.withPlaces([{ pts: 5 }, { pts: 9 }, { pts: 2, win: true }, { pts: 5 }, { pts: 1, place: 2 }]).map(r => r.place).join();
+if (placed !== '3,2,1,3,2') fail('places from win and points ' + placed);
+const c0 = p.coins, g2 = store.credit(p, 'ludo', { pts: 10, place: 2, of: 4 });
+if (g2.coins !== 7 || p.coins !== c0 + 7) fail('2nd of 4 should pay 7 ' + JSON.stringify(g2));
+if (store.credit(p, 'golf', { pts: 0, place: 1, of: 3, idle: true }).coins !== 0) fail('idle player was paid');
+if (store.credit(p, 'stack', { pts: 0, win: true }).coins !== 10) fail('a win with no place should pay 1st');
 const after = store.leaderboard('marbles', 'mia');
 if (after.rows[0].net !== 105 || after.rows[0].games !== 11) fail('board not refreshed after credit');
 console.log('rankings ok');

@@ -271,7 +271,8 @@ function onMsg(m) {
     st.onMe?.();
     if (m.gain) {
       const cg = m.gain.coins | 0;
-      toast(`${m.gain.win ? 'Win! ' : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
+      const pl = m.gain.place, ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
+      toast(`${m.gain.win ? 'Win! ' : pl > 1 && m.gain.of > 1 ? `${ord(pl)} place · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
@@ -887,7 +888,7 @@ function openProfile(first = false, startTab = 0) {
   const paintRows = () => {
     el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
     rows.innerHTML = tab === AV_TABS.length
-      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays 5, a win 10 more, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
+      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
       : AV_TABS[tab][1].map(([k, label]) => rowHtml(k, label)).join('');
   };
   const paintCart = () => {

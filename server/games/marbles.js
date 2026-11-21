@@ -353,7 +353,7 @@ export function results(G) {
   if (G.ph !== 'end' || !G.res) return null;
   const n = G.m.length;
   return G.seats.map((_, i) => {
-    const pay = G.res.pay[i], place = pay.bet ? G.res.order.indexOf(pay.bet.m) : n - 1;
-    return { pts: pay.bet ? (n - 1 - place) * 10 + (pay.won > 0 ? 15 : 0) : 0, win: pay.won > 0, place: place + 1, coins: pay.coins, idle: !pay.bet, coinNet: pay.net };
+    const pay = G.res.pay[i], place = pay.bet ? G.res.order.indexOf(pay.bet.m) : n - 1; // place/of: your colour's finish pays the coins
+    return { pts: pay.bet ? (n - 1 - place) * 10 + (pay.won > 0 ? 15 : 0) : 0, win: pay.won > 0, place: place + 1, of: n, coins: pay.coins, idle: !pay.bet, coinNet: pay.net };
   });
 }
