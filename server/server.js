@@ -19,16 +19,19 @@ import * as paw from './games/paw.js';
 import * as kart from './games/kart.js';
 import * as kitchen from './games/kitchen.js';
 import * as dig from './games/dig.js';
+import * as bricks from './games/bricks.js';
+import * as bean from './games/bean.js';
 import * as tys from './games/tys.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
 import * as farm from './farm.js';
+import * as hubchat from './hubchat.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, tys };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, bean, tys };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -323,6 +326,19 @@ function handle(c, m) {
       for (const t of r.players) send(clients.get(t), msg);
       return;
     }
+    case 'hubchat': { // the hub's global chat: no text = send me the conversation
+      const p = store.profileOf(c.token);
+      if (m.text === undefined) return send(c, { t: 'hubchat', log: hubchat.history(p), max: hubchat.MAX_LEN });
+      const r = hubchat.post(p, c, c.sock?.ip || '?', m.text);
+      if (r.err) return send(c, { t: 'hubchat', err: r.err });
+      if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+      return;
+    }
+    case 'hubdel': {
+      const id = String(m.id ?? '');
+      if (hubchat.remove(store.profileOf(c.token), id)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
+      return;
+    }
     case 'register': case 'login': case 'passwd': case 'recode': case 'recover': return auth(c, m);
     case 'logout': {
       const p = store.logout(c.token, c); if (!p) return;
@@ -475,7 +491,8 @@ for (const d of store.load()) {
   rooms.set(r.code, r);
 }
 farm.load();
-const bye = () => { store.saveNow(); farm.saveNow(); process.exit(0); };
+hubchat.load();
+const bye = () => { store.saveNow(); farm.saveNow(); hubchat.saveNow(); process.exit(0); };
 process.on('SIGTERM', bye); process.on('SIGINT', bye);
 
 // ---------- game loop & housekeeping ----------
@@ -501,7 +518,7 @@ setInterval(() => {
   }
 }, 150);
 
-// Real-time games (Kart Island Race) export fast(G, now): it runs twenty times a second and streams the race.
+// Real-time games (Kart Island Race, Sky Bricks, Beanstalk Bounce) export fast(G, now): it runs twenty times a second and streams the race.
 setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {

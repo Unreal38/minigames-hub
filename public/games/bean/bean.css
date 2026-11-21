@@ -1,0 +1,118 @@
+/* Beanstalk Bounce view. Every class is under .bb, because other games' styles stay loaded. */
+body.in-game { overflow: hidden; }
+.bb { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#8fd6f7, #d6f1ff); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.bb .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.bb.flat .g3d { display: none; }
+.bb.flat::before { content: 'The 3D climb could not load on this device.'; position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+
+/* the storm is close: the edges of the screen pulse */
+.bb .bb-vig { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 -90px 120px -40px #6a3fd0, inset 0 0 90px #6a3fd055; opacity: 0; transition: opacity .3s; }
+.bb.danger .bb-vig { opacity: 1; animation: bbdanger .6s ease-in-out infinite alternate; }
+@keyframes bbdanger { to { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .bb.danger .bb-vig { animation: none; } }
+
+.bb .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bb .bb-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; opacity: .92; }
+.bb .bb-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
+.bb .bb-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+.bb .bb-tag[hidden] { display: none; }
+
+.bb .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.bb .hud > * { pointer-events: auto; }
+.bb .tl, .bb .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
+.bb .tl { left: 14px; } .bb .tr { right: 14px; }
+.bb .chip { color: var(--cream); display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.bb .chip:empty { display: none; }
+.bb .chip b { color: var(--lantern); }
+.bb .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
+
+.bb .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; }
+.bb .banner:empty { display: none; }
+.bb .shout { position: absolute; left: 50%; top: 27%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; }
+.bb .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, 8vw, 78px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.bb .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 3vw, 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.bb .shout.show { animation: bbbig 1.5s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes bbbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
+
+/* who is highest, down the left */
+.bb .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: #2a1422c4; border: 3px solid var(--line); border-radius: 18px; width: 200px; max-height: calc(100vh - 330px); overflow: auto; pointer-events: none !important; }
+.bb .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--cream); }
+.bb .list em { font-style: normal; width: 18px; text-align: center; color: var(--lantern); font-variant-numeric: tabular-nums; }
+.bb .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.bb .list span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: var(--mint); font-variant-numeric: tabular-nums; }
+.bb .list .avatar { border-width: 2px; flex: none; }
+.bb .list .bb-me { background: #ffb54740; box-shadow: inset 0 0 0 2px var(--lantern); }
+.bb .list .bb-out b, .bb .list .bb-out .avatar { opacity: .55; }
+
+/* the height bar on the right: the storm fills it from the bottom, a dot for every climber */
+.bb .bb-alt { position: absolute; right: 22px; top: 86px; bottom: 150px; width: 16px; border-radius: 999px; background: #fff4e2cc; border: 3px solid var(--ink); pointer-events: none !important; box-shadow: 0 4px 0 #160a1240; }
+.bb .bb-alt .bb-storm { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 999px 999px; background: repeating-linear-gradient(-45deg, #5a4b8c 0 6px, #6f5fa6 6px 12px); border-top: 3px solid var(--ink); min-height: 6px; }
+.bb .bb-alt .bb-dots { position: absolute; inset: 0; }
+.bb .bb-alt .bb-dots span { position: absolute; left: 50%; width: 16px; height: 16px; margin: 0 0 -8px -8px; border-radius: 50%; border: 2.5px solid var(--ink); transition: bottom .12s linear; }
+.bb .bb-alt .bb-dots span[hidden] { display: none; }
+.bb .bb-alt .bb-dots .bb-mine { width: 22px; height: 22px; margin: 0 0 -11px -11px; border-color: var(--cream); outline: 2.5px solid var(--ink); z-index: 1; }
+
+/* streak meter */
+.bb .bb-streak { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); min-width: 220px; display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; background: var(--cream); color: var(--ink); border: 3.5px solid var(--ink); border-radius: 18px; padding: 5px 14px 9px; font-family: var(--fd); box-shadow: 0 5px 0 var(--deep); pointer-events: none !important; }
+.bb .bb-streak[hidden] { display: none; }
+.bb .bb-streak b { font-weight: 700; font-size: 20px; }
+.bb .bb-streak span { font-weight: 600; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bb .bb-streak i { grid-column: 1 / 3; height: 8px; border-radius: 999px; background: #e7d3c2; overflow: hidden; margin-top: 3px; }
+.bb .bb-streak u { display: block; height: 100%; background: #7ed067; transform-origin: 0 50%; }
+.bb .bb-streak.hot { background: #fff8d6; }
+.bb .bb-streak.hot u { background: linear-gradient(90deg, #ff8fab, #ffb547, #ffd84a); }
+.bb .banner:not(:empty) ~ .bb-streak { top: 62px; }
+
+/* touch controls */
+.bb .pads { position: absolute; inset: auto 0 0 0; height: 0; pointer-events: none !important; }
+.bb .pads[hidden], .bb:not(.touch) .pads { display: none; }
+.bb .pads button { pointer-events: auto; touch-action: none; border: 3.5px solid var(--ink); background: #fff4e2e6; color: var(--ink); border-radius: 26px; font-family: var(--fd); font-weight: 700; font-size: 18px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 0 #160a1266; -webkit-user-select: none; user-select: none; }
+.bb .pads button.on { transform: translateY(4px); box-shadow: 0 2px 0 #160a1266; background: var(--lantern); }
+.bb .pads .steer { position: absolute; left: 14px; bottom: 18px; display: flex; gap: 12px; }
+.bb .pads .steer button { width: 88px; height: 88px; }
+.bb .pads .acts { position: absolute; right: 14px; bottom: 18px; }
+.bb .pads .acts button { width: 124px; height: 96px; }
+.bb.touch .keys { display: none; }
+.bb .keys { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; background: #2a1422b8; color: var(--soft); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
+.bb .keys b { color: var(--cream); font-family: var(--fd); }
+.bb.watching .keys { display: none; }
+
+/* final results */
+.bb .confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.bb .results { position: absolute; inset: 0; background: #160a12b0; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; animation: fade .25s both; }
+.bb .results[hidden] { display: none; }
+.bb .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; gap: 12px; }
+.bb .results h2 { display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.bb .results h2 svg { width: 28px; height: 28px; flex: none; }
+.bb .results .sheet > p { text-align: center; margin: 0; color: #6b4a3c; }
+.bb .bb-podium { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.bb .bb-podium li { display: grid; grid-template-columns: 24px auto 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: #fff; border: 2.5px solid #c9a99a; border-radius: 14px; padding: 4px 12px 4px 6px; font-family: var(--fd); animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.bb .bb-podium li > :nth-child(-n+3) { grid-row: 1 / 3; }
+.bb .bb-podium em { font-style: normal; font-weight: 700; font-size: 19px; text-align: center; grid-column: 1; }
+.bb .bb-podium li > :nth-child(2) { grid-column: 2; }
+.bb .bb-podium b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; grid-column: 3; }
+.bb .bb-podium strong { grid-row: 1; grid-column: 4; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bb .bb-podium small { grid-row: 2; grid-column: 4; text-align: right; font-size: 12px; color: #6b4a3c; }
+.bb .bb-podium .won { background: var(--lantern); border-color: var(--ink); }
+.bb .bb-podium .bb-me b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.bb .bb-podium .avatar { border-width: 2px; }
+.bb .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+
+@media (max-width: 700px) {
+  .bb .tcode { display: none; }
+  .bb .tl { left: 8px; gap: 5px; } .bb .tr { right: 8px; gap: 5px; }
+  .bb .tl .chip { font-size: 13px; padding: 4px 8px; gap: 4px; }
+  .bb .banner { top: 62px; left: 8px; transform: none; font-size: 13px; padding: 4px 12px; max-width: calc(100vw - 16px); }
+  .bb .list { top: 104px; left: 8px; width: 132px; padding: 3px; gap: 1px; border-width: 2px; max-height: 30vh; background: #2a1422a8; }
+  .bb .list li { font-size: 12px; gap: 4px; padding: 1px 4px 1px 2px; }
+  .bb .list .avatar { width: 20px !important; height: 20px !important; }
+  .bb .bb-alt { right: 10px; top: 130px; bottom: 150px; width: 13px; }
+  .bb .results { align-items: flex-start; padding-top: 124px; }
+  .bb .results .sheet { max-height: calc(100vh - 140px); }
+  .bb .bb-streak, .bb .banner:not(:empty) ~ .bb-streak { top: auto; bottom: 130px; min-width: 200px; }
+  .bb .bb-tag { font-size: 11px; }
+  .bb .pads .steer button { width: 78px; height: 78px; }
+  .bb .pads .acts button { width: 108px; height: 84px; }
+}
+body:has(.bb) #toasts { top: 118px; }
+@media (max-width: 1150px) { body:has(.bb) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.bb) .chatbtn .lbl { display: none; } }
