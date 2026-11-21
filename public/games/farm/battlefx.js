@@ -22,7 +22,7 @@ function flatShape(pts, depth) { // a flat outline given a little thickness, cen
 export function createBattleFx(ring, HOME, tflat) {
   const G = {
     ball: new THREE.IcosahedronGeometry(1, 1), rock: new THREE.IcosahedronGeometry(1, 0), cone: new THREE.ConeGeometry(.5, 1, 6), box: new THREE.BoxGeometry(1, 1, 1),
-    ring: new THREE.TorusGeometry(1, .07, 5, 22), leaf: new THREE.OctahedronGeometry(1, 0).scale(.45, .1, 1),
+    ring: new THREE.TorusGeometry(1, .07, 5, 22), disc: new THREE.CircleGeometry(1, 24), leaf: new THREE.OctahedronGeometry(1, 0).scale(.45, .1, 1),
     drop: new THREE.ConeGeometry(.5, 1.4, 6).translate(0, .3, 0),
     star: flatShape(Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? .45 : 1, a = i / 10 * TAU + Math.PI / 2; return [Math.cos(a) * r, Math.sin(a) * r]; }), .3),
     plus: flatShape([[-.3, 1], [.3, 1], [.3, .3], [1, .3], [1, -.3], [.3, -.3], [.3, -1], [-.3, -1], [-.3, -.3], [-1, -.3], [-1, .3], [-.3, .3]], .4),
@@ -34,10 +34,14 @@ export function createBattleFx(ring, HOME, tflat) {
   const mat = c => typeof c === 'string' ? M(c) : c;
 
   const parts = [], later = [], anims = [null, null], states = [[], []];
-  let shake = 0, drip = 0;
+  let shake = 0, drip = 0, hold = 0;
+  const ink = new THREE.MeshBasicMaterial({ color: '#5a3a2e', side: THREE.BackSide }); // the same dark outline the pets have
+  const view = { x: 0, z: 0, zoom: 0 }, aim = { x: 0, z: 0, zoom: 0, t: 0 };
+  const look = (p, zoom, secs) => { aim.x = p.x; aim.z = p.z; aim.zoom = zoom; aim.t = secs; };
   // One shape that lives for `life` seconds. upd(mesh, u, t) moves it; u runs 0 to 1.
   function P(geo, c, life, upd, delay = 0) {
     const m = new THREE.Mesh(geo, mat(c)); m.visible = false; ring.add(m);
+    if (!m.material.userData.own && geo !== G.ring && geo !== G.disc && geo !== G.leaf) { const line = new THREE.Mesh(geo, ink); line.scale.setScalar(1.16); m.add(line); }
     parts.push({ m, t: -delay, life, upd }); return m;
   }
   const at = (delay, fn) => later.push({ t: delay, fn });
@@ -270,11 +274,20 @@ export function createBattleFx(ring, HOME, tflat) {
     singed: s => { const p = spot(s, rnd(.4, .8)).add(V(rnd(-.25, .25), 0, rnd(-.25, .25))); P(G.cone, rnd() < .5 ? '#ff8a3c' : '#ffd84a', .6, (m, u) => { m.position.set(p.x, p.y + u * .5, p.z); m.scale.set(.1 * (1 - u), .22 * pop(u), .1 * (1 - u)); }); puff(V(p.x, p.y + .5, p.z), 1, '#9c948e', { size: .09, life: .7, lift: .6, delay: .3 }); },
     soaked: s => { const p = spot(s, 1.05).add(V(rnd(-.3, .3), 0, rnd(-.3, .3))); P(G.drop, '#4fb3ff', .55, (m, u) => { m.position.set(p.x, p.y - u * u * .9, p.z); m.scale.setScalar(.06 * Math.min(1, u * 6) * (1 - seg(u, .85, 1))); }); },
     dazed: s => stars(s, 2, .9),
+    tired: s => { const sd = rnd() < .5 ? -1 : 1, p = spot(s, 1).add(V(sd * .32, 0, .1)); P(G.drop, '#bfe6ff', .6, (m, u) => { m.position.set(p.x + sd * u * .25, p.y + Math.sin(u * Math.PI) * .2 - u * .2, p.z); m.scale.setScalar(.07 * pop(u) ** .5); }); },
   };
 
   return {
-    get shake() { return shake; },
-    move(s, id) { const a = spot(s), b = spot(1 - s); return MOVE[id] ? MOVE[id](s, a, b, dir(s), perp(s)) : .5; },
+    get shake() { return shake; }, view,
+    get hold() { return hold; }, set hold(v) { hold = v; },
+    move(s, id, el) { // a glowing circle in the move's colour gathers under the pet, then the move itself plays
+      const a = spot(s), b = spot(1 - s), g = spot(s, .05), c = EL_COL[el] || '#ffffff', dm = glow(c, .5);
+      P(G.disc, dm, .55, (m, u) => { m.position.copy(g); m.rotation.x = -Math.PI / 2; m.scale.setScalar(.95 * out(seg(u, 0, .4))); dm.opacity = .5 * (1 - seg(u, .5, 1)); });
+      wave(g, c, 1, .45, 0, 2);
+      const t = MOVE[id] ? MOVE[id](s, a, b, dir(s), perp(s)) : .5;
+      look(a, .04, t * .6); at(t * .6, () => look(spot(s, 0, .6), .07, .8));
+      return t;
+    },
     hit(s, el, eff = 1) { // the pet on side s is struck
       const p = spot(s, .6), c = EL_COL[el] || '#ffffff', big = eff > 1, d = dir(s);
       anim(s, .45, (u, o) => { o.f = -.16 * pop(u) * (big ? 1.5 : 1); o.rx = -.3 * pop(u); o.sy = 1 - .12 * pop(seg(u, 0, .5)); });
@@ -282,7 +295,7 @@ export function createBattleFx(ring, HOME, tflat) {
       P(G.star, sm, .28, (m, u, t) => { m.position.copy(p).addScaledVector(d, .3); m.position.y += .2; m.scale.setScalar((big ? .7 : .45) * out(u)); m.rotation.set(0, Math.atan2(d.x, d.z), t * 4); sm.opacity = 1 - u * u; });
       burst(p, big ? 10 : eff < 1 ? 3 : 6, [c, '#ffffff'], G.rock, { size: big ? .13 : .09, sp: big ? 3 : 2.2 });
       if (big) wave(p, c, 1.3, .4);
-      rattle(big ? .6 : eff < 1 ? .1 : .3);
+      rattle(big ? .6 : eff < 1 ? .1 : .3); hold = big ? .13 : eff < 1 ? 0 : .07; look(spot(s, 0, -.3), big ? .08 : .05, .6);
     },
     burn(s) { const p = spot(s, .5); anim(s, .4, (u, o) => { o.side = Math.sin(u * 50) * .05 * (1 - u); o.sy = 1 - .1 * pop(u); }); for (let i = 0; i < 4; i++) TROUBLE.singed(s); burst(p, 5, ['#ff8a3c', '#ffd84a'], G.rock, { size: .05, sp: 1.4 }); },
     heal(s) { const g = spot(s, .1); anim(s, .7, (u, o) => { o.y = pop(u) * .18; o.k = 1 + pop(u) * .06; }); rise(g, 5, ['#7ee08a', '#9ff0d0'], G.plus, { size: .14, h: 1.4, life: .8, rad: .6, turns: .6, gap: .06 }); wave(V(g.x, .06, g.z), '#7ee08a', 1, .5); },
@@ -295,12 +308,18 @@ export function createBattleFx(ring, HOME, tflat) {
     },
     status(s, st) { for (let i = 0; i < 4; i++) at(i * .12, () => TROUBLE[st]?.(s)); if (st === 'dazed') stars(s, 3, 1); },
     dazed(s) { stars(s, 4, .9); anim(s, .9, (u, o) => { o.rz = Math.sin(u * TAU * 2) * .22 * (1 - u); o.side = Math.sin(u * TAU * 2) * .1; }); },
-    faint(s) { const p = spot(s, .3); at(.45, () => { puff(p, 7, '#ffffff', { size: .3, life: .8, spread: .5 }); for (let i = 0; i < 3; i++) P(G.star, '#ffe066', 1, (m, u, t) => { m.position.set(p.x + Math.sin(t * 3 + i * 2) * .3, .4 + u * 1.2, p.z + Math.cos(t * 3 + i * 2) * .3); m.scale.setScalar(.1 * pop(u)); m.rotation.z = t * 3; }, i * .12); }); },
-    enter(s) { const g = spot(s, .06); puff(V(g.x, .25, g.z), 6, '#ffffff', { size: .26, life: .5, spread: .5 }); wave(g, '#ffffff', 1.1, .45); anims[s] = null; },
+    faint(s) { const p = spot(s, .3); look(spot(s, 0, -.2), .09, 1.2); rattle(.35); at(.45, () => { puff(p, 7, '#ffffff', { size: .3, life: .8, spread: .5 }); for (let i = 0; i < 3; i++) P(G.star, '#ffe066', 1, (m, u, t) => { m.position.set(p.x + Math.sin(t * 3 + i * 2) * .3, .4 + u * 1.2, p.z + Math.cos(t * 3 + i * 2) * .3); m.scale.setScalar(.1 * pop(u)); m.rotation.z = t * 3; }, i * .12); }); },
+    enter(s, delay = 0) { const g = spot(s, .06); anims[s] = null; at(delay, () => { puff(V(g.x, .2, g.z), 7, '#f3ead8', { size: .26, life: .5, spread: .6 }); wave(g, '#ffffff', 1.2, .45, 0, 2); rattle(.15); }); },
+    win(s) { // confetti and stars over the winner
+      const p = spot(s, 1.6); look(spot(s, 0, .3), .12, 4);
+      for (let i = 0; i < 3; i++) at(i * .35, () => { burst(p, 14, ['#ff8fbd', '#ffd84a', '#7ee08a', '#4fb3ff', '#c7b6ff'], G.box, { size: .1, sp: 2.6, up: 3, grav: 4, life: 1.3 }); burst(p, 4, '#ffe066', G.star, { size: .14, sp: 2, up: 2.6, grav: 3, life: 1.2 }); });
+      rattle(.5);
+    },
     state(s, list) { states[s] = list || []; },
     pose(s, o) { o.f = 0; o.side = 0; o.y = 0; o.ry = 0; o.rx = 0; o.rz = 0; o.sy = 1; o.k = 1; const A = anims[s]; if (A) A.fn(Math.min(1, A.t / A.dur), o); return o; },
     update(dt) {
       shake = Math.max(0, shake - dt * 2.6);
+      if (aim.t > 0) aim.t -= dt; const on = aim.t > 0 ? 1 : 0, kq = Math.min(1, dt * 4.5); view.x += (aim.x * on - view.x) * kq; view.z += (aim.z * on - view.z) * kq; view.zoom += (aim.zoom * on - view.zoom) * kq;
       for (const s of [0, 1]) { const A = anims[s]; if (A && (A.t += dt) >= A.dur) anims[s] = null; }
       for (let i = later.length - 1; i >= 0; i--) if ((later[i].t -= dt) <= 0) later.splice(i, 1)[0].fn();
       for (let i = parts.length - 1; i >= 0; i--) {
@@ -309,6 +328,6 @@ export function createBattleFx(ring, HOME, tflat) {
       }
       if ((drip -= dt) <= 0) { drip = .42; for (const s of [0, 1]) for (const st of states[s]) TROUBLE[st]?.(s); }
     },
-    clear() { for (const p of parts) { ring.remove(p.m); if (p.m.material.userData.own) p.m.material.dispose(); } parts.length = later.length = 0; anims[0] = anims[1] = null; states[0] = []; states[1] = []; shake = 0; },
+    clear() { for (const p of parts) { ring.remove(p.m); if (p.m.material.userData.own) p.m.material.dispose(); } parts.length = later.length = 0; anims[0] = anims[1] = null; states[0] = []; states[1] = []; shake = hold = 0; aim.t = 0; view.x = view.z = view.zoom = 0; },
   };
 }

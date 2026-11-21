@@ -394,20 +394,23 @@ export function mount(app, ctx) {
   }
   // ---------- battles ----------
   const side = s => shown.sides[s], act = s => side(s).pets[side(s).on];
+  const hpWas = [null, null]; let hurt = -1;
+  const flash = big => { const f = $('pf-fl'); if (!f) return; f.classList.remove('flash', 'flashbig'); f.offsetWidth; f.classList.add(big ? 'flashbig' : 'flash'); };
   const who = s => !s ? esc(act(0).name) : B.mode === 'arena' || B.live ? `${esc(B.foe)}'s ${esc(act(1).name)}` : `The other side's ${esc(act(1).name)}`;
   function plate(s) {
     const u = act(s), pct = Math.round(u.hp / u.max * 100);
     const tags = [...Object.keys(u.status).map(k => `<span class="st bad" title="${STATUS[k].blurb}">${STATUS[k].name}</span>`),
       ...Object.entries(u.up).filter(([, n]) => n).map(([k, n]) => `<span class="st ${n > 0 ? 'good' : 'bad'}">${STAT_NAME[k]} ${n > 0 ? '+' : '−'}${Math.abs(n)}</span>`)].join('');
-    return `<div class="bplate ${s ? 'p1' : 'p0'}"><div class="bwho"><b>${esc(u.name)}</b>${elTag(u.el)}<small>Level ${u.lv}</small></div>
-      <div class="bhp${pct < 25 ? ' low' : pct < 55 ? ' mid' : ''}"><i style="width:${pct}%"></i><span>${u.hp} / ${u.max}</span></div>
+    const was = hpWas[s]?.id === u.id ? hpWas[s].pct : pct; hpWas[s] = { id: u.id, pct };
+    return `<div class="bplate ${s ? 'p1' : 'p0'}${hurt === s ? ' hurt' : ''}"><div class="bwho"><b>${esc(u.name)}</b>${elTag(u.el)}<small>Level ${u.lv}</small></div>
+      <div class="bhp${pct < 25 ? ' low' : pct < 55 ? ' mid' : ''}"><u style="width:${was}%" data-to="${pct}"></u><i style="width:${was}%" data-to="${pct}"></i><span>${u.hp} / ${u.max}</span></div>
       <div class="btags">${tags}<span class="dots">${side(s).pets.map(x => `<i class="${x.hp > 0 ? '' : 'out'}"></i>`).join('')}</span></div></div>`;
   }
   function paintBattle() {
     const el = $('pf-bt');
     el.hidden = !B || mode !== 'farm';
     if (el.hidden) { el.innerHTML = ''; return; }
-    for (const s of [0, 1]) scene?.ringState(s, act(s).hp > 0 ? Object.keys(act(s).status) : []);
+    for (const s of [0, 1]) scene?.ringState(s, act(s).hp > 0 ? Object.keys(act(s).status) : [], act(s).hp > 0 && act(s).hp < act(s).max * .25);
     const me = side(0), u = act(0), busy = playing || B.over !== null || (B.live && B.waiting);
     const clock = B.live && B.over === null && !playing ? `<span class="bclock" id="pf-clock">${Math.max(0, Math.ceil((liveAt - Date.now()) / 1000))}</span>` : '';
     const moves = u.moves.map(id => { const m = MOVES[id], cd = u.cd[id] || 0;
@@ -420,6 +423,7 @@ export function mount(app, ctx) {
         <div class="mvs">${moves}</div>
         <div class="bench">${bench}${!B.live && F.inv.juice ? `<button type="button" class="btn sm m" data-a="juice" ${busy || B.need || B.juiced || u.hp >= u.max ? 'disabled' : ''}>Berry Juice (${F.inv.juice})</button>` : ''}<button type="button" class="btn sm w" data-a="blog" aria-pressed="${logOpen}">${logOpen ? 'Hide battle log' : 'Battle log'}</button><button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
     const bl = el.querySelector('.bll'); if (bl) bl.scrollTop = bl.scrollHeight;
+    hurt = -1; el.offsetWidth; for (const b of el.querySelectorAll('.bhp [data-to]')) b.style.width = b.dataset.to + '%'; // bars slide from where they were
   }
   // A word or number that floats up from a pet in the ring.
   function floatUp(s, text, cls = '', dy = 0) {
@@ -437,9 +441,9 @@ export function mount(app, ctx) {
       if (destroyed) return;
       const u = e.s !== undefined ? act(e.s) : null; let ms = 800;
       if (e.k === 'switch') { side(e.s).on = e.i; const n = act(e.s); n.up = { atk: 0, def: 0, spd: 0 }; scene?.ringPet(e.s, n); line = e.s ? (B.live ? `${esc(B.foe)} sends in ${esc(n.name)}.` : `${esc(n.name)} steps in for the other side.`) : `Go, ${esc(n.name)}!`; sfx.pop(); }
-      else if (e.k === 'move') { const m = MOVES[e.move]; lastEl = m.el; line = `${who(e.s)} uses <b style="color:${ELEMENTS[m.el]}">${m.name}</b>.`; floatUp(e.s, m.name, 'call el' + m.el, -34); ms = (scene?.ringMove(e.s, e.move) ?? 500) + 40; sfx.click(); }
-      else if (e.k === 'hit') { u.hp = e.hp; line = `${who(e.s)} takes <b>${e.dmg}</b>.${e.eff > 1 ? ' It hit hard!' : e.eff < 1 ? ' It barely tickled.' : ''}`; scene?.ringHit(e.s, 'hit', lastEl, e.eff); floatUp(e.s, '−' + e.dmg, 'dmg' + (e.eff > 1 ? ' big' : e.eff < 1 ? ' weak' : '')); if (e.eff !== 1) floatUp(e.s, e.eff > 1 ? 'Hit hard!' : 'Barely tickled', e.eff > 1 ? 'say hard' : 'say', 30); sfx.place(); ms = 850; }
-      else if (e.k === 'burn') { u.hp = e.hp; line = `${who(e.s)} is stung by its burn and takes <b>${e.dmg}</b>.`; scene?.ringHit(e.s, 'burn'); floatUp(e.s, '−' + e.dmg, 'dmg burn'); sfx.place(); }
+      else if (e.k === 'move') { const m = MOVES[e.move]; lastEl = m.el; line = `${who(e.s)} uses <b style="color:${ELEMENTS[m.el]}">${m.name}</b>.`; floatUp(e.s, m.name, 'call el' + m.el, -34); ms = (scene?.ringMove(e.s, e.move, m.el) ?? 500) + 40; sfx.click(); }
+      else if (e.k === 'hit') { u.hp = e.hp; line = `${who(e.s)} takes <b>${e.dmg}</b>.${e.eff > 1 ? ' It hit hard!' : e.eff < 1 ? ' It barely tickled.' : ''}`; scene?.ringHit(e.s, 'hit', lastEl, e.eff); hurt = e.s; if (e.eff >= 1) flash(e.eff > 1); floatUp(e.s, '−' + e.dmg, 'dmg' + (e.eff > 1 ? ' big' : e.eff < 1 ? ' weak' : '')); if (e.eff !== 1) floatUp(e.s, e.eff > 1 ? 'Hit hard!' : 'Barely tickled', e.eff > 1 ? 'say hard' : 'say', 30); sfx.place(); ms = 850; }
+      else if (e.k === 'burn') { u.hp = e.hp; line = `${who(e.s)} is stung by its burn and takes <b>${e.dmg}</b>.`; scene?.ringHit(e.s, 'burn'); hurt = e.s; floatUp(e.s, '−' + e.dmg, 'dmg burn'); sfx.place(); }
       else if (e.k === 'juice') { u.hp = e.hp; F.inv.juice = Math.max(0, (F.inv.juice || 0) - 1); line = `${who(e.s)} drinks a Berry Juice and gets <b>${e.n}</b> health back.`; scene?.ringFx(e.s, 'hop'); scene?.ringHit(e.s, 'heal'); floatUp(e.s, '+' + e.n, 'heal'); sfx.join(); }
       else if (e.k === 'heal') { u.hp = e.hp; line = `${who(e.s)} gets <b>${e.n}</b> health back.`; scene?.ringHit(e.s, 'heal'); floatUp(e.s, '+' + e.n, 'heal'); sfx.join(); }
       else if (e.k === 'stat') { if (e.d) u.up[e.stat] += e.d; line = e.d ? `${who(e.s)}'s ${STAT_NAME[e.stat]} goes ${e.d > 0 ? 'up' : 'down'}.` : 'Nothing changes.'; scene?.ringHit(e.s, 'stat', e.d); if (e.d) floatUp(e.s, `${STAT_NAME[e.stat]} ${e.d > 0 ? '▲' : '▼'}`, e.d > 0 ? 'say up' : 'say down'); }
@@ -447,7 +451,7 @@ export function mount(app, ctx) {
       else if (e.k === 'clear') { delete u.status[e.st]; line = `${who(e.s)} is no longer ${STATUS[e.st].name.toLowerCase()}.`; ms = 600; }
       else if (e.k === 'dazed') { line = `${who(e.s)} is dazed and loses its turn.`; scene?.ringHit(e.s, 'dazed'); floatUp(e.s, 'Dazed!', 'say down'); }
       else if (e.k === 'faint') { line = `${who(e.s)} fainted.`; scene?.ringFx(e.s, 'faint'); sfx.lose(); ms = 1100; }
-      else if (e.k === 'end') { line = e.quit ? '' : e.win ? (B.live ? `${esc(B.foe)} wins this time.` : 'The other side wins this time.') : 'You win!'; if (!e.quit) (e.win ? sfx.lose : sfx.win)(); ms = e.quit ? 0 : 1300; }
+      else if (e.k === 'end') { line = e.quit ? '' : e.win ? (B.live ? `${esc(B.foe)} wins this time.` : 'The other side wins this time.') : 'You win!'; if (!e.quit) { (e.win ? sfx.lose : sfx.win)(); scene?.ringFx(e.win, 'win'); } ms = e.quit ? 0 : 2200; }
       note(e.k === 'end' ? undefined : e.s, e.k === 'faint' || e.k === 'end' ? 'key' : ''); paintBattle(); await beat(ms);
     }
     if (destroyed) return;
