@@ -28,7 +28,19 @@ function build() {
   const add = (mesh, r, a, y, spin) => { const g = new THREE.Group(); g.add(mesh); toonify(g, .04); world.add(g); bits.push({ g, r, a, y, spin }); };
   [['#ff8fab', .32], ['#7ed3b2', .26], ['#8fb8ff', .3]].forEach(([c, s], i) => add(new THREE.Mesh(new THREE.SphereGeometry(s, 20, 14), M(c)), 2.7 + i * .2, i * 2.1, 1.5 + i * .45, 0));
   const die = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, .5), M('#fff4e2'));
-  for (const [x, y, z] of [[0, .26, 0], [.26, 0, .1], [.26, 0, -.1], [-.12, -.1, .26], [.12, .1, .26], [0, 0, .26]]) { const p = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 6), M('#3b2219')); p.position.set(x, y, z); die.add(p); }
+  { // a proper die: 1 to 6 pips, opposite faces adding up to 7
+    const pip = new THREE.SphereGeometry(.042, 8, 6), pipM = M('#3b2219'), h = .251, o = .13;
+    const LAY = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [-1, 0], [-1, 1], [1, -1], [1, 0], [1, 1]] };
+    const FACES = [[1, [0, 0, 1]], [6, [0, 0, -1]], [2, [1, 0, 0]], [5, [-1, 0, 0]], [3, [0, 1, 0]], [4, [0, -1, 0]]];
+    for (const [n, nrm] of FACES) {
+      const ax = nrm[0] ? [0, 1, 0] : [1, 0, 0], ay = nrm[2] ? [0, 1, 0] : nrm[1] ? [0, 0, 1] : [0, 0, 1];
+      for (const [u, v] of LAY[n]) {
+        const p = new THREE.Mesh(pip, pipM);
+        p.position.set(nrm[0] * h + (ax[0] * u + ay[0] * v) * o, nrm[1] * h + (ax[1] * u + ay[1] * v) * o, nrm[2] * h + (ax[2] * u + ay[2] * v) * o);
+        p.scale.set(nrm[0] ? .45 : 1, nrm[1] ? .45 : 1, nrm[2] ? .45 : 1); die.add(p);
+      }
+    }
+  }
   add(die, 2.9, 1.05, 2.3, 1);
   const pawn = new THREE.Group(); pawn.add(new THREE.Mesh(new THREE.CylinderGeometry(.18, .26, .2, 16), M('#ffb547')));
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(.09, .16, .34, 14), M('#ffb547')); neck.position.y = .26; pawn.add(neck);
