@@ -187,7 +187,7 @@ function makeKart(color, av) {
   toonify(body, .035);
   const wm = toonMat(new THREE.MeshStandardMaterial({ color: ink })), hm = toonMat(new THREE.MeshStandardMaterial({ color: cream }));
   const wheels = [[.82, .33, .78], [-.82, .33, .78], [.82, .33, -.8], [-.82, .33, -.8]].map(([x, y, z]) => {
-    const w = new THREE.Group(); w.position.set(x, y, z); const t = new THREE.Mesh(WHEEL, wm), h = new THREE.Mesh(HUB, hm); w.add(t, h); body.add(w); return w;
+    const w = new THREE.Group(); w.position.set(x, y, z); w.rotation.order = 'YXZ'; /* steer about the upright axis first, then roll */ const t = new THREE.Mesh(WHEEL, wm), h = new THREE.Mesh(HUB, hm); w.add(t, h); body.add(w); return w;
   });
   const driver = avatar3d(color, av, { pose: 'sit' });
   driver.scale.setScalar(AV_K); driver.position.set(0, .62 + .76 * AV_K, -.2); driver.userData.tilt = 0;
