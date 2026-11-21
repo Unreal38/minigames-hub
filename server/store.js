@@ -153,6 +153,13 @@ export function wear(p, k, i) {
   (p.cos ||= {})[k] = i; board = null; scheduleSave();
   return { ok: true };
 }
+// The Pet Farm pet that sits beside the player in waiting rooms ('' for none). The caller checks it is theirs.
+export function companion(p, id) {
+  if (!p?.user) return { err: 'Log in to bring a pet along.' };
+  if (id) (p.cos ||= {}).pet = id; else if (p.cos) delete p.cos.pet;
+  scheduleSave();
+  return { ok: true };
+}
 // What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
 export const flair = p => p ? flairOf(p) : {};
 // May this profile send reaction k? The first twelve are free, the rest come in sticker packs.

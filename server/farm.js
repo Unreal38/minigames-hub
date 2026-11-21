@@ -218,6 +218,9 @@ function release(f, o) { // hand back what an offer was holding
 }
 function sweep(f) { for (const o of [...(f.offers || [])]) if (Date.now() - o.at > TRADE_MS || !farms.has(o.to)) release(f, o); }
 const tiny = x => x ? { id: x.id, sp: x.sp, name: x.name, lv: x.lv, look: lookOf(x) } : null;
+// For the rest of the site: a player's pets (to pick a companion from) and one of them by id, or null once it has moved on.
+export const petsOf = pid => (farms.get(pid)?.pets || []).map(tiny);
+export const petOf = (pid, id) => (id && tiny(farms.get(pid)?.pets.find(x => x.id === id))) || null;
 function tradesView(pid, f) {
   const card = (o, dir, from, to, otherPid, other) => ({ id: o.id, dir, who: nameOf(otherPid, other), fid: fid(other), left: Math.max(0, o.at + TRADE_MS - Date.now()),
     give: { pets: o.give.pets.map(id => tiny(from.pets.find(x => x.id === id))).filter(Boolean), mats: o.give.mats },

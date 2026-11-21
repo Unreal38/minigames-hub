@@ -1,5 +1,6 @@
 // Texas Hold'em 3D table (three.js). Purely visual: it draws the state the HUD hands it and animates the changes.
 import * as THREE from 'three';
+import { paintBack } from '../../skins.js';
 import { rankOf, suitOf, RANKS } from './rules.js';
 import { SUIT_COLS, SUIT_PATHS, CLUB_DOTS } from './cards.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
@@ -20,7 +21,7 @@ export function suitPath(g, s, x, y, size) {
   g.fill(new Path2D(SUIT_PATHS[s])); g.restore();
 }
 const texCache = new Map();
-export function cardTexture(c) { // c = -1 is the back (Tysiąc draws its cards with this too)
+export function cardTexture(c) { // c below 0 is a back: -1 the classic one, -1 - k the card back k from the shop (skins.js) (Tysiąc draws its cards with this too)
   if (texCache.has(c)) return texCache.get(c);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 364;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -30,10 +31,7 @@ export function cardTexture(c) { // c = -1 is the back (Tysiąc draws its cards 
     g.clearRect(0, 0, 256, 364);
     g.fillStyle = INK; rr(g, 0, 0, 256, 364, 30); g.fill();
     if (c < 0) {
-      g.fillStyle = '#e5543b'; rr(g, 10, 10, 236, 344, 22); g.fill();
-      g.save(); rr(g, 10, 10, 236, 344, 22); g.clip(); g.fillStyle = '#ffffff30';
-      for (let y = 0; y < 9; y++) for (let x = 0; x < 6; x++) { g.beginPath(); g.arc(x * 46 + (y % 2 ? 40 : 18), y * 42 + 22, 7, 0, 7); g.fill(); }
-      g.restore();
+      g.save(); rr(g, 10, 10, 236, 344, 22); g.clip(); paintBack(g, 256, 364, -1 - c); g.restore();
       g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(128, 182, 62, 0, 7); g.fill();
       g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
       suitPath(g, 0, 128 - 38, 182 - 36, 76);
@@ -210,14 +208,14 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- cards ----------
   const cardGeo = new THREE.PlaneGeometry(CW, CH); cardGeo.rotateX(-Math.PI / 2);
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
-  function makeCard(c) {
-    const g = new THREE.Group();
-    const front = new THREE.Mesh(cardGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c >= 0 ? c : -1), roughness: .55 })));
-    const back = new THREE.Mesh(backGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .55 })));
-    front.castShadow = true; g.add(front, back); g.userData = { c, front };
+  function makeCard(c, bk = 0) { // bk: the owner's card back
+    const g = new THREE.Group(), bc = -1 - (bk | 0);
+    const front = new THREE.Mesh(cardGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c >= 0 ? c : bc), roughness: .55 })));
+    const back = new THREE.Mesh(backGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(bc), roughness: .55 })));
+    front.castShadow = true; g.add(front, back); g.userData = { c, front, bc };
     return g;
   }
-  function setFace(card, c) { if (card.userData.c === c) return; card.userData.c = c; card.userData.front.material.map = cardTexture(c >= 0 ? c : -1); card.userData.front.material.needsUpdate = true; }
+  function setFace(card, c) { if (card.userData.c === c) return; card.userData.c = c; card.userData.front.material.map = cardTexture(c >= 0 ? c : card.userData.bc); card.userData.front.material.needsUpdate = true; }
 
   const board = []; // 3D board cards
   const boardPos = k => new THREE.Vector3((k - 2) * (CW + .12), .02, -.15);
@@ -320,7 +318,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (fresh) { for (const c of s.cards) s.cardsG.remove(c); s.cards = []; s.fold = false; }
       const want = p.cards?.length || 0;
       while (s.cards.length < want) {
-        const k = s.cards.length, c = makeCard(p.cards[k]);
+        const k = s.cards.length, c = makeCard(p.cards[k], p.fl?.cb);
         c.rotation.z = Math.PI; s.cardsG.add(c); s.cards.push(c);
         const to = new THREE.Vector3((k - (want - 1) / 2) * .5, .01 + k * .01, 0);
         const from = s.cardsG.worldToLocal(deckPos.clone());

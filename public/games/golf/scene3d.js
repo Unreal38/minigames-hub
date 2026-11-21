@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
+import { ballLook } from '../../skins.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
 import { buildHole, ground, pathAt, spinAngle, BALL_R, CUP_R } from './course.js';
 
@@ -178,12 +179,12 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
 
   // ---------- players: a ball each, and their avatar standing beside it with a putter ----------
   function setSeats(list) {
-    const k = list.map(p => p.color + p.av.join('')).join('|');
+    const k = list.map(p => p.color + p.av.join('') + (p.fl?.gb | 0)).join('|');
     if (k === seatsKey) return;
     seatsKey = k;
     for (const p of players) { scene.remove(p.wrap, p.ball); disposeAvatar(p.av); p.putter.traverse(m => m.geometry?.dispose()); }
     players = list.map((s, i) => {
-      const ball = new THREE.Mesh(ballGeo, toonMat(new THREE.MeshStandardMaterial({ color: s.color }))); ball.castShadow = true; ball.userData.col = s.color;
+      const ball = new THREE.Mesh(ballGeo, toonMat(new THREE.MeshStandardMaterial(ballLook(s.fl?.gb, s.color)))); ball.rotation.y = -Math.PI / 2; /* a painted ball shows its face to the camera */ ball.castShadow = true; ball.userData.col = s.color;
       const out = new THREE.Mesh(ballGeo, inkMat); out.scale.setScalar(1.16); ball.add(out);
       const av = avatar3d(s.color, s.av, { pose: 'stand' });
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av);

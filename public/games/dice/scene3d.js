@@ -2,6 +2,7 @@
 // dice cup in their colour. Purely visual: it draws what the server sends. Other players' dice do not exist
 // here until the cups lift, because the server never sends them before that.
 import * as THREE from 'three';
+import { diceTint } from '../../skins.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
@@ -95,8 +96,11 @@ export function createScene(canvas, { onFrame } = {}) {
   const cupGeo = new THREE.LatheGeometry([[.7, 0], [.72, .04], [.55, CUP_H - .05], [.5, CUP_H], [0, CUP_H]].map(p => new THREE.Vector2(...p)), 14);
   const bandGeo = new THREE.CylinderGeometry(.685, .725, .14, 14, 1, true); bandGeo.translate(0, .2, 0);
   const ringGeo = new THREE.TorusGeometry(.9, .05, 6, 32); ringGeo.rotateX(Math.PI / 2);
-  function makeDie(geo, v, yaw) {
-    const m = new THREE.Mesh(geo, dieMat); m.castShadow = true; faceUp(m, v, yaw);
+  // Dice skins from the shop (skins.js): a tinted copy of the dice material per skin, and its dimmed twin.
+  const skinMats = new Map();
+  const skinOf = k => { const c = diceTint(k); if (!c) return null; if (!skinMats.has(c)) { const a = dieMat.clone(); a.color.set(c); const b = dieMat.clone(); b.color.set(c).multiplyScalar(.6); skinMats.set(c, [a, b]); } return skinMats.get(c); };
+  function makeDie(geo, v, yaw, mat = dieMat) {
+    const m = new THREE.Mesh(geo, mat); m.castShadow = true; faceUp(m, v, yaw);
     const o = new THREE.Mesh(geo, inkMat); o.scale.setScalar(1.12); m.add(o);
     return m;
   }
@@ -138,7 +142,7 @@ export function createScene(canvas, { onFrame } = {}) {
     if (s.diceKey === key) return; s.diceKey = key;
     for (const d of s.dice) s.g.remove(d.m);
     const spots = SPOTS[Math.min(6, vals.length)] || [];
-    s.dice = vals.slice(0, 6).map((v, k) => { const m = makeDie(dieGeo, v, Math.sin(k * 12.9 + v * 4.1 + s.g.position.x) * .3); m.position.set(spots[k][0], DIE / 2 + .02, spots[k][1]); s.g.add(m); return { m, v, hop: 0, hit: false }; });
+    s.dice = vals.slice(0, 6).map((v, k) => { const m = makeDie(dieGeo, v, Math.sin(k * 12.9 + v * 4.1 + s.g.position.x) * .3, s.skin?.[0]); m.position.set(spots[k][0], DIE / 2 + .02, spots[k][1]); s.g.add(m); return { m, v, hop: 0, hit: false }; });
   }
 
   // ---------- state from the server ----------
@@ -166,7 +170,8 @@ export function createScene(canvas, { onFrame } = {}) {
     list.forEach((p, i) => {
       const s = seats[i];
       s.n = p.n; s.active = st.turn === i && st.stage === 'bid';
-      setDice(s, p.dice || [], rk + (p.dice ? p.dice.join('') : ''));
+      s.skin = skinOf(p.fl?.dc);
+      setDice(s, p.dice || [], rk + (p.dice ? p.dice.join('') : '') + (p.fl?.dc | 0));
     });
     // the bid die in the middle
     const bk = st.bid ? rk + st.bid.q + '/' + st.bid.f + '/' + st.hist.length : '';
@@ -225,7 +230,7 @@ export function createScene(canvas, { onFrame } = {}) {
     // count the matching dice one at a time, then show who was wrong
     if (showing && S) {
       const t = now - showAt - S.ms.lift;
-      if (t > -200 && !dimmed) { dimmed = true; for (const s of seats) for (const d of s.dice) if (!d.hit) d.m.material = dimMat; }
+      if (t > -200 && !dimmed) { dimmed = true; for (const s of seats) for (const d of s.dice) if (!d.hit) d.m.material = s.skin?.[1] || dimMat; }
       while (counted < order.length && t >= (counted + 1) * S.ms.each) {
         const { d, i } = order[counted++]; d.hop = 1;
         pfx.burst(d.m.getWorldPosition(tv), { n: 7, colors: ['#ffd84a', '#ffffff', seats[i].key.slice(0, 7)], speed: 1.8, up: 2.6, size: .2, life: .6, shape: STAR });
@@ -290,7 +295,7 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
-      pfx.dispose(); diceMap.dispose(); dieMat.dispose(); dimMat.dispose(); inkMat.dispose();
+      pfx.dispose(); diceMap.dispose(); dieMat.dispose(); dimMat.dispose(); for (const ms of skinMats.values()) for (const m of ms) m.dispose(); inkMat.dispose();
       for (const g of [dieGeo, bigGeo, cupGeo, bandGeo, ringGeo]) g.dispose();
       renderer.dispose();
     },

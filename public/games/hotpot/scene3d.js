@@ -1,5 +1,6 @@
 // Hot Pot 3D table (three.js). Purely visual: the HUD owns the rules.
 import * as THREE from 'three';
+import { paintBack } from '../../skins.js';
 import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
@@ -24,7 +25,11 @@ const svgImg = svg => new Promise(res => {
 });
 function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
 const texCache = new Map();
+// The card back this player picked in the shop (skins.js). Hot Pot shows every face-down card with the viewer's own back.
+let backK = 0;
+export const setCardBack = k => { backK = k | 0; };
 function cardTexture(kind) { // kind -1 = back
+  if (kind < 0) kind = -1 - backK;
   if (texCache.has(kind)) return texCache.get(kind);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 352;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -35,10 +40,7 @@ function cardTexture(kind) { // kind -1 = back
     g.clearRect(0, 0, 256, 352);
     if (kind < 0) {
       g.fillStyle = INK; rr(g, 0, 0, 256, 352, 34); g.fill();
-      g.fillStyle = '#e5543b'; rr(g, 9, 9, 238, 334, 27); g.fill();
-      g.save(); rr(g, 9, 9, 238, 334, 27); g.clip(); g.fillStyle = '#ffffff2e';
-      for (let y = 0; y < 8; y++) for (let x = 0; x < 6; x++) { g.beginPath(); g.arc(x * 51 + 26, y * 51 + 26, 9, 0, 7); g.fill(); }
-      g.restore();
+      g.save(); rr(g, 9, 9, 238, 334, 27); g.clip(); paintBack(g, 256, 352, -1 - kind); g.restore();
       g.fillStyle = '#fff4e233'; g.beginPath(); g.arc(128, 176, 104, 0, 7); g.fill();
       const im = await svgImg(backSvg('width="200" height="200"'));
       if (im) g.drawImage(im, 28, 76, 200, 200);
