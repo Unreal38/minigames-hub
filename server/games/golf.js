@@ -1,5 +1,5 @@
-// Mini Golf Party: everyone putts the same hole at the same time, each with their own ball (balls pass through
-// each other). The server works out every shot with the shared physics and sends the path; clients replay it.
+// Mini Golf Party: everyone plays the same hole and takes turns, one putt each, each with their own ball (balls
+// pass through each other). The server works out every shot with the shared physics and sends the path; clients replay it.
 // Before each hole players may bet account coins on who will win it (meta.bank fills in the balances).
 import { HOLES, buildHole, simulate, spotScore, MAX_STROKES, CAP_SCORE } from '../../public/games/golf/course.js';
 import { randomAv } from '../../public/avatar.js';
@@ -10,7 +10,7 @@ const BOT_NAMES = ['Bogey', 'Divot', 'Putters', 'Mulligan', 'Chip', 'Birdie', 'C
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 export const STAKES = [10, 25, 50];
 const NOISE = { chill: [.25, .34], sharp: [.16, .22] }; // how much a bot's aim (radians) and power wobble
-const BET_MS = 15_000, LOOK_MS = 3500, HOLE_MS = 90_000, DONE_MS = 6500, SETTLE_MS = 900;
+const BET_MS = 15_000, LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS = 350, DONE_MS = 6500, SETTLE_MS = 900;
 
 export function cleanOpts(o = {}) {
   return {
@@ -40,6 +40,7 @@ export function create(players, optsIn = {}, prev = null) {
     order, mirror: order.map(() => Math.random() < .5), hi: -1, H: null, holeAt: 0, stageEnd: 0,
     balls: [], cards: seats.map(() => []), wins: seats.map(() => 0), shots: seats.map(() => 0), net: seats.map(() => 0),
     bets: seats.map(() => null), holeRes: null, shotN: 0, queue: [],
+    turn: -1, turnFrom: 0, turnEnd: 0, first: -1, slow: seats.map(() => false),
     ev: [], evN: 0, res: null, win: -1, endAt: 0,
   };
   nextHole(G, Date.now());
@@ -69,20 +70,33 @@ function startPlay(G, now) {
     b.amt = Math.min(b.amt, G.wallet[k]); G.wallet[k] -= b.amt;
     if (b.amt <= 0) G.bets[s] = null;
   }
-  G.stage = 'play'; G.holeAt = now; G.stageEnd = now + HOLE_MS;
-  G.balls.forEach((b, i) => { b.think = now + 2600 + Math.random() * 3000 + i * 200; });
+  G.stage = 'play'; G.holeAt = now;
+  // whoever took the last hole tees off first; otherwise the start moves round the table
+  const n = G.seats.length, w = G.first >= 0 ? G.first : G.hi % n;
+  beginTurn(G, w, now + 1400);
   pushEv(G, { t: 'go', i: G.hi });
+}
+
+// Seat s may putt from `from` (when the ball before has stopped). Someone who let their last turn run out gets less time.
+function beginTurn(G, s, from) {
+  G.turn = s; G.turnFrom = from; G.turnEnd = from + (G.slow[s] ? SLOW_MS : TURN_MS); G.stageEnd = G.turnEnd;
+  if (s >= 0) G.balls[s].think = from + 900 + Math.random() * 1400;
+}
+function nextTurn(G, s, from) {
+  const n = G.seats.length;
+  for (let k = 1; k <= n; k++) { const i = (s + k) % n; if (!doneBall(G.balls[i])) return beginTurn(G, i, from); }
+  beginTurn(G, -1, from);
 }
 
 const doneBall = b => b.sunk || b.out;
 const scoreOf = b => (b.sunk ? b.strokes : CAP_SCORE);
 
-function shoot(G, s, ang, pow, now) {
+function shoot(G, s, ang, pow, now, auto = false) {
   const b = G.balls[s];
-  if (G.stage !== 'play' || !b || doneBall(b) || now < b.busy || b.strokes >= MAX_STROKES) return false;
+  if (G.stage !== 'play' || G.turn !== s || now < G.turnFrom || !b || doneBall(b) || now < b.busy || b.strokes >= MAX_STROKES) return false;
   const t0 = (now - G.holeAt) / 1000;
   const r = simulate(G.H, b.x, b.z, ang, pow, t0, (Math.random() * 2 ** 31) | 0);
-  b.strokes++; G.shots[s]++;
+  b.strokes++; if (!auto) { G.shots[s]++; G.slow[s] = false; }
   const from = { x: b.x, z: b.z };
   if (r.water) { b.strokes = Math.min(MAX_STROKES, b.strokes + 1); } // a splash costs a stroke and the ball goes back
   else { b.x = r.x; b.z = r.z; }
@@ -90,14 +104,15 @@ function shoot(G, s, ang, pow, now) {
   if (r.sunk) b.sunk = now + r.ms;
   else if (b.strokes >= MAX_STROKES) b.out = true;
   b.shot = { n: ++G.shotN, path: r.path, fx: r.fx, ms: r.ms, at: now, sunk: r.sunk, water: r.water, x0: from.x, z0: from.z, ang, pow };
-  b.think = b.busy + 1800 + Math.random() * 2200;
+  nextTurn(G, s, b.busy + GAP_MS);
   return true;
 }
 
 // A bot tries a fan of shots with the real physics and takes the best one, with a wobble in its hands.
-function botShot(G, s, now) {
-  const b = G.balls[s], H = G.H, sharp = G.opts.bots === 'sharp', t0 = (now - G.holeAt) / 1000;
-  const [na, np] = G._noise || (sharp ? NOISE.sharp : NOISE.chill);
+function botShot(G, s, now, late = false) {
+  // a putt made for someone who ran out of time is a clumsy one, so waiting it out never pays
+  const b = G.balls[s], H = G.H, sharp = !late && G.opts.bots === 'sharp', t0 = (now - G.holeAt) / 1000;
+  const [na, np] = late ? [.45, .45] : G._noise || (sharp ? NOISE.sharp : NOISE.chill);
   const toCup = Math.atan2(H.cup.x - b.x, -(H.cup.z - b.z)), cands = [];
   const score = (ang, pow) => {
     const r = simulate(H, b.x, b.z, ang, pow, t0, 7);
@@ -114,7 +129,7 @@ function botShot(G, s, now) {
     if (!best || worst < best.w) best = { ...c, w: worst };
   }
   const g = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
-  return shoot(G, s, best.ang + g() * na, Math.max(.05, Math.min(1, best.pow * (1 + g() * np))), now);
+  return shoot(G, s, best.ang + g() * na, Math.max(.05, Math.min(1, best.pow * (1 + g() * np))), now, true);
 }
 
 function endHole(G, now) {
@@ -124,6 +139,7 @@ function endHole(G, now) {
   G.balls.forEach((b, i) => { if (b.sunk && b.sunk <= now && (w < 0 || scores[i] < scores[w] || (scores[i] === scores[w] && b.sunk < G.balls[w].sunk))) w = i; });
   scores.forEach((sc, i) => G.cards[i].push(sc));
   if (w >= 0) G.wins[w]++;
+  G.first = w; G.turn = -1;
   const pay = G.seats.map((seat, s) => {
     const b = G.bets[s]; if (!b) return null;
     const won = w < 0 ? b.amt : b.on === w ? b.amt * n : 0; // no winner: stakes come back
@@ -175,13 +191,14 @@ export function tick(G, now = Date.now()) {
   }
   if (G.stage === 'play') {
     let changed = false;
-    for (let s = 0; s < G.seats.length; s++) {
-      const b = G.balls[s];
-      if (!G.seats[s].bot || doneBall(b) || now < b.busy || now < b.think) continue;
-      if (botShot(G, s, now)) { changed = true; break; } // one bot shot per tick keeps the server snappy
+    const t = G.turn;
+    if (t >= 0 && now >= G.turnFrom) {
+      // a bot putts after a short think; a player who runs out of time gets a putt made for them
+      if (G.seats[t].bot) { if (now >= G.balls[t].think) changed = botShot(G, t, now); }
+      else if (now >= G.turnEnd) { G.slow[t] = true; changed = botShot(G, t, now, true); if (changed) pushEv(G, { t: 'late', s: t }); }
     }
     const settled = G.balls.every(b => doneBall(b) && now >= b.busy + SETTLE_MS);
-    if (settled || now >= G.stageEnd) { endHole(G, now); return true; }
+    if (settled) { endHole(G, now); return true; }
     return changed;
   }
   if (G.stage === 'done') {
@@ -197,7 +214,9 @@ export function setAway(G, s, away) {
   const seat = G.seats[s];
   if (!seat || !seat.human || seat.bot === away) return false;
   seat.bot = away;
-  if (away && G.balls[s]) G.balls[s].think = Date.now() + 1500;
+  const now = Date.now();
+  if (away && G.balls[s]) G.balls[s].think = Math.max(G.turnFrom, now) + 1500;
+  if (!away && G.turn === s && G.stage === 'play') { G.turnEnd = Math.max(G.turnEnd, now + 10_000); G.stageEnd = G.turnEnd; } // back in time for your own putt
   return true;
 }
 
@@ -226,6 +245,7 @@ export function view(G, s) {
     hdef: { i: G.order[G.hi], mirror: G.mirror[G.hi] }, par: G.H.par, name: G.H.name,
     pars: G.order.map(i => HOLES[i].par), left: Math.max(0, G.stageEnd - now), clock: G.stage === 'play' ? now - G.holeAt : 0,
     bets: betting(G), mult: G.seats.length, max: MAX_STROKES, cap: CAP_SCORE,
+    turn: G.stage === 'play' ? G.turn : -1, tin: G.stage === 'play' ? Math.max(0, G.turnFrom - now) : 0,
     seats: G.seats.map((x, i) => {
       const b = G.balls[i], sh = b.shot;
       return {

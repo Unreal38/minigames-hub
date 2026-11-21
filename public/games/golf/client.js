@@ -55,7 +55,7 @@ export function mount(app, ctx) {
   const root = app.querySelector('.mg'), $ = id => root.querySelector('#' + id);
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
-  let stake = 10, tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, readyAt = 0, power = 0, aiming = false, keys = false, rolling = false, sentAt = 0;
+  let stake = 10, tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, readyAt = 0, power = 0, aiming = false, keys = false, rolling = false, sentAt = 0, turnAt = 0;
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -68,10 +68,11 @@ export function mount(app, ctx) {
   const nameOf = i => esc(S.seats[i]?.name);
   const youOr = i => (i === S.me ? 'You' : nameOf(i));
   const parSoFar = n => S.pars.slice(0, n).reduce((a, b) => a + b, 0);
-  // your ball is still and waiting for you
+  // it is your turn and the ball before yours has stopped
+  const turnOpen = () => S.turn >= 0 && performance.now() >= turnAt;
   function canAim() {
     const my = me();
-    return !!my && S.ph === 'play' && S.stage === 'play' && !my.bot && !my.sunk && !my.out && performance.now() >= readyAt && performance.now() - sentAt > 400 && !rolling;
+    return !!my && S.ph === 'play' && S.stage === 'play' && S.turn === S.me && turnOpen() && !my.bot && !my.sunk && !my.out && performance.now() >= readyAt && performance.now() - sentAt > 400 && !rolling;
   }
   function onShot(ang, pow) { if (!canAim()) return; sentAt = performance.now(); ctx.act({ t: 'shot', ang, pow }); }
   function onAim(p, on, kb = false) { power = p; aiming = on; keys = kb; renderPutt(); }
@@ -117,6 +118,8 @@ export function mount(app, ctx) {
     tagEls = [...tagsEl.children];
   }
 
+  function renderTags() { tagEls.forEach((el, i) => el.classList?.toggle('turn', S.stage === 'play' && S.turn === i && turnOpen())); }
+
   // ----- rendering -----
   function renderList() {
     const done = S.seats[0]?.card.length || 0, par = parSoFar(done);
@@ -124,7 +127,7 @@ export function mount(app, ctx) {
     setHtml($('mg-list'), ord.map(i => {
       const p = S.seats[i], playing = S.stage === 'play';
       const now = playing ? (p.sunk ? `<em class="in">${I.check}${p.strokes}</em>` : p.out ? `<em class="out">${S.cap}</em>` : `<em>${p.strokes}</em>`) : '';
-      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
+      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && S.turn === i ? ' turn' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
     }).join(''));
   }
 
@@ -152,7 +155,8 @@ export function mount(app, ctx) {
     else if (my.out) html = `<p>Picked up after ${S.max} strokes. That counts as ${S.cap}.</p>`;
     else if (my.bot) html = '<p>A bot is putting for you. Welcome back!</p>';
     else if (aiming) html = `<div class="power" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(power * 100)}"><i style="width:${Math.round(power * 100)}%"></i></div><p>${keys ? 'Left and right to aim, up and down for power, space to putt' : power < .04 ? 'Pull further back, or let go to cancel' : 'Let go to putt'} · ${Math.round(power * 100)}%</p>`;
-    else if (rolling || !canAim()) html = `<p>Rolling… <span class="strokes">Stroke ${my.strokes} of ${S.max}</span></p>`;
+    else if (S.turn !== S.me) html = S.turn >= 0 ? `<p><b>${nameOf(S.turn)}</b> ${turnOpen() ? 'is putting' : 'is up next'}. You have taken <b>${my.strokes}</b> of ${S.max} strokes.</p>` : '<p>Rolling…</p>';
+    else if (rolling || !canAim()) html = `<p>${turnOpen() ? 'Rolling…' : 'You are up next.'} <span class="strokes">Stroke ${my.strokes} of ${S.max}</span></p>`;
     else html = `<p><b>Your putt.</b> Drag back anywhere and let go. <span class="strokes">Stroke ${my.strokes + 1} of ${S.max}</span></p>`;
     setHtml(el, html);
   }
@@ -175,9 +179,9 @@ export function mount(app, ctx) {
     const left = Math.max(0, endsAt - performance.now());
     if (S.ph !== 'play') msg = S.win >= 0 ? `${nameOf(S.win)} wins the round!` : '';
     else if (S.stage === 'bet') msg = S.bets ? `Place your bets · ${Math.ceil(left / 1000)}s` : `Hole ${S.hole}: ${S.name} · Par ${S.par}`;
-    else if (S.stage === 'play') { const inn = S.seats.filter(p => p.sunk || p.out).length; msg = `${S.name} · ${mmss(left)}${inn ? ` · ${inn}/${S.seats.length} done` : ''}`; }
+    else if (S.stage === 'play') msg = S.turn >= 0 && turnOpen() ? `${S.turn === S.me ? 'Your putt' : `${S.seats[S.turn]?.name}'s putt`} · ${Math.ceil(left / 1000)}s` : S.name;
     if (el.textContent !== msg) el.textContent = msg;
-    el.classList.toggle('hot', S.ph === 'play' && S.stage === 'play' && left < 10_000);
+    el.classList.toggle('hot', S.ph === 'play' && S.stage === 'play' && S.turn === S.me && turnOpen() && left < 6000);
   }
 
   function render() {
@@ -187,7 +191,7 @@ export function mount(app, ctx) {
     setHtml($('mg-coins'), my ? `${I.coin}${my.coins ?? 0}` : 'Watching');
     $('mg-coins').hidden = !S.bets;
     $('mg-code').textContent = Rm?.code || '';
-    buildTags(); renderList(); renderBet(); renderPutt(); renderDone(); renderBanner();
+    buildTags(); renderTags(); renderList(); renderBet(); renderPutt(); renderDone(); renderBanner();
   }
 
   function big(text, sub = '', ms = 1400) {
@@ -201,6 +205,7 @@ export function mount(app, ctx) {
     if (e.t === 'hole') { hideResults(); sfx.draw(); if (!S.bets) big(`Hole ${S.hole}`, `${esc(S.name)} · Par ${S.par}`, 2000); }
     else if (e.t === 'go') { big('Tee off!', `${esc(S.name)} · Par ${S.par}`, 1300); sfx.turn(); }
     else if (e.t === 'holeEnd') { const R = S.holeRes, my = R?.pay?.[S.me]; if (my?.net > 0) { sfx.win(); confetti(); } else if (R?.win === S.me) sfx.set(); else sfx.pop(); }
+    else if (e.t === 'late') { if (e.s === S.me) ctx.toast('Out of time, so the game putted for you.'); }
     else if (e.t === 'sit') ctx.toast(`${nameOf(e.s)} joins the round.`);
     else if (e.t === 'end') {
       if (S.win === S.me) { sfx.win(); confetti(); } else sfx.lose();
@@ -217,7 +222,7 @@ export function mount(app, ctx) {
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
       if (s.ph === 'end') showResults(); else sfx.draw();
     }
-    endsAt = performance.now() + s.left;
+    endsAt = performance.now() + s.left; turnAt = performance.now() + (s.tin || 0);
     const my = me();
     if (my) { readyAt = performance.now() + my.wait; if (stake > (my.coins || 0)) stake = 10; }
     render(); sync();
@@ -281,13 +286,14 @@ export function mount(app, ctx) {
   }
 
   // clock: the banner, the last-seconds ticks, and the moment your ball is ready again
-  let wasReady = false;
+  let wasReady = false, wasOpen = false;
   const timer = setInterval(() => {
     if (!S || S.ph !== 'play') return;
     renderBanner();
     const n = Math.ceil((endsAt - performance.now()) / 1000);
-    if (n !== lastTick && n <= 5 && n > 0 && (S.stage === 'play' || (S.stage === 'bet' && S.bets))) { lastTick = n; sfx.tick(); }
-    const r = canAim(); if (r !== wasReady) { wasReady = r; renderPutt(); }
+    if (n !== lastTick && n <= 5 && n > 0 && ((S.stage === 'play' && S.turn === S.me && turnOpen()) || (S.stage === 'bet' && S.bets))) { lastTick = n; sfx.tick(); }
+    const r = canAim(), o = S.stage === 'play' && turnOpen();
+    if (r !== wasReady || o !== wasOpen) { if (r && !wasReady) sfx.turn(); wasReady = r; wasOpen = o; renderPutt(); renderTags(); renderList(); }
   }, 100);
 
   root.addEventListener('click', e => {
