@@ -7,6 +7,7 @@
 //                           userData = { head, eyes, body, arms, headY, headH } for animation and framing.
 //   animateAvatar(g, T, { seed, active, hop, look, nod })  idle sway, blinking, a little arm swing and a squashy hop;
 //                           look turns the head (radians), nod dips it (0..1).
+//   walkAvatar(g, ph, amt) call after animateAvatar on a standing avatar: ph is the stride phase, amt 0..1 blends it in.
 //   disposeAvatar(g)     frees its textures, materials and merged geometry.
 //   bake(root)           merges a group's static meshes into a few (see below); any 3D game can use it on its props.
 import * as THREE from 'three';
@@ -301,7 +302,7 @@ function fitHat(hg, hH, hT, hat, hr) {
 
 export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const a = avObj(avIn), seated = pose !== 'stand';
-  const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], eyes: [], dyn: true }; root.add(g);
+  const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], legs: [], eyes: [], dyn: true }; root.add(g);
   const H = 2.4 * [.93, 1, 1.07][a.height], B = BODIES[a.body];
   const topC = /^#[0-9a-f]{6}$/i.test(color) ? color : '#ff8fab';
   const skin = SKINS[a.skin], hair = HAIR_COLS[a.hairC], hD = shade(hair, .8), botC = BOTTOM_COLS[a.botC], shoeC = SHOE_COLS[a.shoeC], gold = '#ffc93c';
@@ -397,6 +398,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
       if (so === 3) { cyl(kn, lb * 1.32, lb * 1.3, sl * .34, shoeC, 0, -sl * .84, 0); cyl(kn, lb * 1.36, lb * 1.36, sl * .07, '#ffffff', 0, -sl * .7, 0); }
     }
     if (seated) { leg.rotation.x = -PI / 2; kn.rotation.x = .5; }
+    else { leg.userData.own = kn.userData.own = true; leg.userData.kn = kn; ud.legs.push(leg); } // standing legs are their own pieces, so they can walk
   }
   if (skirt) {
     const c = dress ? topC : botC, sLen = top === 15 ? 1.7 : dress ? .75 : bot === 6 ? 1.6 : bot === 5 ? .5 : .6, yE = hipY - tl * sLen, rE = hi * (top === 15 ? 1.22 : 1.22 + .28 * Math.min(1, sLen)), kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
@@ -538,6 +540,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   merge(hp, mat, [{ pos: fg.attributes.position.array, nor: fg.attributes.normal.array }]); fg.dispose();
   for (const t of tmpGeo) t.dispose();
   for (const arm of ud.arms) merge(arm, mat);
+  for (const leg of ud.legs) { merge(leg.userData.kn, mat); merge(leg, mat); }
   merge(g, mat);
   ud.head = hp; ud.tilt = seated ? -.26 : 0; hp.rotation.x = ud.tilt; ud.body = g; ud.k = k; ud.faceMat = faceMat; ud.to = to; ud.tc = tc; ud.mat = mat;
   ud.headH = headH * k; ud.headY = g.position.y + (shY + neckL + .03 * H + headH * .48) * k;
@@ -559,6 +562,16 @@ export function animateAvatar(g, T, { seed = 0, active = false, hop = 0, look = 
   });
   const k = Math.sin(hop * Math.PI * 4) * .07 * hop; // squash and stretch
   g.scale.set(1 - k * .6, 1 + k, 1 - k * .6);
+}
+
+// A walk cycle for a standing avatar: legs stride from the hip with a knee bend on the way forward, arms swing
+// against the legs, the head stays level. ph: stride phase in radians (advance it with distance); amt: 0 standing, 1 walking.
+export function walkAvatar(g, ph, amt = 1) {
+  const u = g.userData;
+  u.legs.forEach((l, i) => { const p = ph + i * Math.PI, s = Math.sin(p), c = Math.cos(p);
+    l.rotation.x = -s * .62 * amt; l.userData.kn.rotation.x = (Math.max(0, c) * .95 + Math.max(0, -s) * .25) * amt; });
+  u.arms.forEach((a, i) => { a.rotation.x += Math.sin(ph + i * Math.PI) * .55 * amt - .12 * amt; });
+  u.head.rotation.x -= .07 * amt; u.head.rotation.z *= 1 - amt * .6;
 }
 
 export function disposeAvatar(g) {

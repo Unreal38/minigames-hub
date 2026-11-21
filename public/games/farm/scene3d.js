@@ -10,7 +10,7 @@
 //     dispose()
 import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
-import { bake, avatar3d, disposeAvatar } from '../../avatar3d.js';
+import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
 import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
@@ -520,9 +520,15 @@ export function createScene(canvas, { onPick, onGhost }) {
         else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
         moving = true;
       } else if (!edit && (p.wait -= dt) <= 0) { stroll(p); if (!p.path.length) p.wait = 3; }
-      p.g.position.set(p.x, .38 + (moving ? Math.abs(Math.sin(T * 8 + p.seed)) * .05 : 0), p.z);
+      // a real walk: striding legs, swinging arms, a bob on each step and a small lean into it; standing, they breathe and look about
+      p.walk = Math.max(0, Math.min(1, (p.walk || 0) + (moving ? dt * 6 : -dt * 5))); if (p.walk > 0) p.ph = (p.ph || 0) + dt * 8.2; else p.ph = 0;
+      const w = p.walk * p.walk * (3 - 2 * p.walk);
+      animateAvatar(p.g, T, { seed: p.seed }); walkAvatar(p.g, p.ph, w);
+      if (moving && Math.sin(p.ph) * (p.stepWas || 0) < 0) dustAt(p.x, p.z, 1); p.stepWas = Math.sin(p.ph);
+      p.g.scale.setScalar(.5);
+      p.g.position.set(p.x, .38 + Math.abs(Math.cos(p.ph)) * .035 * w, p.z);
       let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 7);
-      p.g.rotation.z = moving ? Math.sin(T * 8 + p.seed) * .07 : 0; // a little waddle
+      p.g.rotation.z = Math.sin(p.ph) * .045 * w; p.g.rotation.x = .09 * w;
     }
   }
   function syncEgg() {
