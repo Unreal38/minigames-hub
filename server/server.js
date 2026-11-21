@@ -202,6 +202,7 @@ function handle(c, m) {
     case 'profile': {
       const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color); c.av = store.allowedAv(store.profileOf(c.token), m.av);
       store.setLook(c.token, c);
+      { const p = store.profileOf(c.token); if (p) send(c, { t: 'me', me: store.me(p) }); } // so every screen (Pet Farm too) wears the new look
       const r = rooms.get(c.room); if (r) { if (!r.G) sendRoom(r); }
       return;
     }
