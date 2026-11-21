@@ -6,12 +6,13 @@
 // buildTrack() samples it every STEP units: x/z/y, the direction of travel (tx/tz) and whether it is a bridge.
 
 export const STEP = 1;        // sample spacing along the track
-export const ROAD = 4.4;      // half width of the road
-export const SHOULDER = 7.6;  // on land: grass from ROAD out to here, then you fall off the island
-export const RAIL = 4.9;      // on bridges: rails at this half width
+export const ROAD = 5.4;      // half width of the road
+export const SHOULDER = 9.4;  // on land: grass from ROAD out to here, then you fall off the island
+export const RAIL = 6;      // on bridges: rails at this half width
 export const KART_R = .95;    // karts bump as circles of this radius
 export const MAX_V = 25;      // top speed on the road, units a second
 export const GRID = 22;       // the starting grid starts this far behind the line
+export const SCALE = 1.65;    // the control points below are multiplied by this (heights by a little less): how roomy the tracks are
 
 // Item boxes sit in rows across the road at these fractions of a lap; pads give a short boost.
 export const TRACKS = {
@@ -42,7 +43,7 @@ const cache = new Map();
 export function buildTrack(id) {
   if (!TRACKS[id]) id = TRACK_IDS[0];
   if (cache.has(id)) return cache.get(id);
-  const def = TRACKS[id], P = def.pts, m = P.length;
+  const def = TRACKS[id], P = def.pts.map(p => [p[0] * SCALE, p[1] * SCALE, p[2] * 1.4, p[3]]), m = P.length;
   // dense samples, then resampled evenly by distance
   const dx = [], dz = [], dy = [], db = [], dl = [0];
   for (let k = 0; k < m; k++) {
@@ -64,8 +65,8 @@ export function buildTrack(id) {
   for (let i = 0; i < n; i++) { const a = (i - 1 + n) % n, b = (i + 1) % n, ex = x[b] - x[a], ez = z[b] - z[a], l = Math.hypot(ex, ez) || 1; tx[i] = ex / l; tz[i] = ez / l; }
   // a bridge never starts or ends right on a corner of land: keep at least 3 samples of land either side of the line
   const T = { id, name: def.name, def, n, step, L: L0, x, z, y, tx, tz, br };
-  T.boxes = []; for (const f of def.boxes) { const i = Math.round(f * n) % n; for (const lat of [-3, -1, 1, 3]) T.boxes.push(at(T, i, lat)); }
-  T.pads = def.pads.map(f => { const i = Math.round(f * n) % n; return { i, len: 4, ...at(T, i, 0) }; });
+  T.boxes = []; for (const f of def.boxes) { const i = Math.round(f * n) % n; for (const lat of [-3.9, -1.3, 1.3, 3.9]) T.boxes.push(at(T, i, lat)); }
+  T.pads = def.pads.map(f => { const i = Math.round(f * n) % n; return { i, len: 5, ...at(T, i, 0) }; });
   T.boxes.forEach((b, k) => { b.k = k; });
   cache.set(id, T);
   return T;
@@ -100,7 +101,7 @@ export function locate(T, x, z, hint = -1) {
 // ---------- a kart ----------
 // k: { x, z, y, h, v, i, s, lat, lap, prog, boost, slow, spin, fall, ghost, drift, dr, charge, grass, bonk }
 export function newKart(T, slot) {
-  const row = slot >> 1, side = slot % 2 ? -2.2 : 2.2;
+  const row = slot >> 1, side = slot % 2 ? -2.7 : 2.7;
   const p = at(T, Math.round((T.L - GRID - row * 5 - (slot % 2) * 1.6) / T.step), side);
   const k = { x: p.x, z: p.z, y: p.y, h: p.h, v: 0, i: p.i, s: p.i * T.step, lat: side, lap: -1, prog: 0, boost: 0, slow: 0, spin: 0, fall: 0, ghost: 0, dr: 0, charge: 0, grass: 0, bonk: 0, mt: 0 };
   k.prog = progOf(T, k);
@@ -171,7 +172,7 @@ export function stepKart(T, k, inp, dt, top = 1) {
     if (al > SHOULDER) { k.fall = 1.5; k.dr = 0; k.charge = 0; cue = 'fall'; }
   }
   // boost pads
-  for (const p of T.pads) { const d = (k.i - p.i + T.n) % T.n; if (d < p.len && Math.abs(k.lat) < 2.8 && k.boost < .9) { k.boost = 1.2; cue = 'pad'; } }
+  for (const p of T.pads) { const d = (k.i - p.i + T.n) % T.n; if (d < p.len && Math.abs(k.lat) < 3.4 && k.boost < .9) { k.boost = 1.2; cue = 'pad'; } }
   // laps: crossing the line (s wraps from the end of the loop back to 0)
   if (prevS > T.L * .75 && k.s < T.L * .25) k.lap++;
   else if (prevS < T.L * .25 && k.s > T.L * .75) k.lap--;

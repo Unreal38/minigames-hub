@@ -166,14 +166,14 @@ export function mount(app, ctx) {
     if (key === mapKey) return; mapKey = key;
     let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9, d = '';
     for (let i = 0; i < T.n; i += 3) { x0 = Math.min(x0, T.x[i]); x1 = Math.max(x1, T.x[i]); z0 = Math.min(z0, T.z[i]); z1 = Math.max(z1, T.z[i]); d += (i ? 'L' : 'M') + T.x[i].toFixed(1) + ' ' + T.z[i].toFixed(1); }
-    const pad = 10, el = $('kr-map');
+    const pad = 16, el = $('kr-map');
     el.setAttribute('viewBox', `${x0 - pad} ${z0 - pad} ${x1 - x0 + pad * 2} ${z1 - z0 + pad * 2}`);
     const bridges = []; let st = -1;
     for (let i = 0; i <= T.n; i++) { const b = T.br[i % T.n]; if (b && st < 0) st = i; if ((!b || i === T.n) && st >= 0) { let p = ''; for (let k = st; k <= i; k++) p += (k === st ? 'M' : 'L') + T.x[k % T.n].toFixed(1) + ' ' + T.z[k % T.n].toFixed(1); bridges.push(p); st = -1; } }
     const order = info.map((_, i) => i).sort((a, b) => (a === S.me) - (b === S.me));
     el.innerHTML = `<path d="${d}Z" class="mroad"/><path d="${d}Z" class="mline"/>${bridges.map(p => `<path d="${p}" class="mbridge"/>`).join('')}
-      <rect x="${T.x[0] - 3}" y="${T.z[0] - 3}" width="6" height="6" class="mstart" transform="rotate(${-Math.atan2(T.tx[0], T.tz[0]) * 180 / Math.PI} ${T.x[0]} ${T.z[0]})"/>
-      ${order.map(i => `<circle r="${i === S.me ? 5 : 3.6}" fill="${info[i].color}" class="${i === S.me ? 'mme' : ''}" data-i="${i}"/>`).join('')}`;
+      <rect x="${T.x[0] - 5}" y="${T.z[0] - 5}" width="10" height="10" class="mstart" transform="rotate(${-Math.atan2(T.tx[0], T.tz[0]) * 180 / Math.PI} ${T.x[0]} ${T.z[0]})"/>
+      ${order.map(i => `<circle r="${i === S.me ? 8 : 6}" fill="${info[i].color}" class="${i === S.me ? 'mme' : ''}" data-i="${i}"/>`).join('')}`;
     mapDots = []; for (const c of el.querySelectorAll('circle')) mapDots[+c.dataset.i] = c;
   }
 
