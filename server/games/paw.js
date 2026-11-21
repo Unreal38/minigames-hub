@@ -1,7 +1,7 @@
 // Pawperty: a cozy pet-shop property game. The server rolls, walks tokens, charges rent, deals Zoomies cards and
 // runs the bots; clients only animate what it sends. Nobody is knocked out: a player who runs dry sells upgrades
 // and shops back at half price, and whatever is still missing is let off. After the last round the richest wins.
-import { N, START, BATH, LOST, MUD, PASS_GO, START_CASH, BATH_FEE, VET_FEE, RUB, JAR_START, NAP_CHANCE, LV_MAX,
+import { N, START, BATH, LOST, MUD, PASS_GO, START_CASH, BATH_FEE, VET_FEE, RUB, BOWL, JAR_START, NAP_CHANCE, LV_MAX,
   TILES, SHOP_TILES, STREET, CARDS, MS as MS_SHOWN, rentOf, fullStreet, worthOf } from '../../public/games/paw/board.js';
 import { randomAv } from '../../public/avatar.js';
 
@@ -16,7 +16,7 @@ const FAST = Math.max(1, +process.env.PAW_FAST || 1), MS = Object.fromEntries(Ob
 export function cleanOpts(o = {}) {
   return {
     seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
-    rounds: [8, 15, 25].includes(+o.rounds) ? +o.rounds : 15,
+    rounds: [10, 20, 30].includes(+o.rounds) ? +o.rounds : 20,
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     naps: o.naps === 'off' ? 'off' : 'on',
     timer: [0, 20, 30].includes(+o.timer) ? +o.timer : 30,
@@ -131,7 +131,7 @@ function roll(G, s, now, d = [1 + (Math.random() * 6 | 0), 1 + (Math.random() * 
     else if (++seat.tries >= 3) { pay(G, s, JAR, BATH_FEE); seat.inBath = false; G.noAgain = true; pushEv(G, { t: 'free', s, how: 'fee', amt: BATH_FEE }); }
     else { pushEv(G, { t: 'soak', s, left: 3 - seat.tries }); G.stage = 'stay'; G.stageEnd = now + MS.roll + MS.pause * 2; return true; }
   } else if (dbl && ++G.dbl >= 3) { pushEv(G, { t: 'three', s }); toBath(G, s, now, MS.roll); return true; }
-  walking(G, now, walk(G, s, sum, now, MS.roll), 'land');
+  walking(G, now, walk(G, s, sum, now, MS.roll + MS.aim), 'land');
   return true;
 }
 
@@ -150,6 +150,7 @@ function land(G, s, now) {
   }
   if (t.k === 'zoom') return drawCard(G, s, now);
   if (t.k === 'vet') { const amt = pay(G, s, JAR, VET_FEE); pushEv(G, { t: 'vet', s, amt }); return pause(G, now); }
+  if (t.k === 'bowl') { gain(G, s, BOWL); pushEv(G, { t: 'bowl', s, amt: BOWL }); return pause(G, now); }
   if (t.k === 'lost') { const amt = G.jar; G.jar = 0; gain(G, s, amt); pushEv(G, { t: 'lost', s, amt }); return pause(G, now, amt ? MS.pay * 1.4 : MS.pause); }
   if (t.k === 'mud') { pushEv(G, { t: 'mud', s }); return toBath(G, s, now, MS.pause); }
   afterLand(G, s, now);

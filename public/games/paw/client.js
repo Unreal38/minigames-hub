@@ -41,6 +41,7 @@ export function mount(app, ctx) {
       <ol class="pw-list" id="pw-list" aria-label="Players and their treats"></ol>
       <div class="pw-log" id="pw-log" aria-hidden="true"></div>
       <div class="pw-deed" id="pw-deed" hidden></div>
+      <div class="pw-aim" id="pw-aim" hidden></div>
       <div class="pw-zoom" id="pw-zoom" hidden></div>
       <div class="shout" id="pw-big" aria-live="assertive"></div>
       <div class="pw-dock" id="pw-dock"><div class="pw-build" id="pw-build"></div><div class="pw-ctl" id="pw-ctl"></div></div>
@@ -55,11 +56,20 @@ export function mount(app, ctx) {
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
-    scene = m.createScene(canvas, { onFrame: info => { live = info; }, onStep: s => { if (S && (s === S.me || s === S.turn)) sfx.tick(); }, onThumbs: t => { pics = t; if (S) render(); } });
+    scene = m.createScene(canvas, { onFrame: info => { live = info; paintAim(info); }, onStep: s => { if (S && (s === S.me || s === S.turn)) sfx.tick(); }, onThumbs: t => { pics = t; if (S) render(); } });
     layout(); if (S) scene.setState(S);
     globalThis.__pwDebug?.(scene);
   }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
 
+  // a little flag over the tile the roll leads to
+  let aimKey = '';
+  function paintAim(info) {
+    const el = $('pw-aim'), on = !!(info.aimOn && S && S.ph === 'play' && info.aim);
+    if (!on) { if (aimKey) { aimKey = ''; el.hidden = true; } return; }
+    const a = info.aim, key = a.i + '/' + a.s;
+    if (key !== aimKey) { aimKey = key; const t = TILES[a.i]; el.innerHTML = `${a.s === S.me ? 'You land on' : 'Lands on'} <b>${esc(t.name)}</b>`; el.style.setProperty('--c', S.seats[a.s]?.color || '#fff'); el.hidden = false; }
+    el.style.transform = `translate(${Math.round(Math.max(90, Math.min(info.w - 90, a.x)))}px, ${Math.round(Math.max(70, a.y))}px) translate(-50%, -100%)`;
+  }
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
@@ -92,6 +102,7 @@ export function mount(app, ctx) {
       case 'rub': return `${petName(i)} was happy to see ${s ? 'you' : nameOf(e.s)}: +${e.amt}`;
       case 'card': return `${A} drew a Zoomies card`;
       case 'vet': return `${A} paid the vet ${e.amt}`;
+      case 'bowl': return `${A} found a full treat bowl: +${e.amt}`;
       case 'lost': return e.amt ? `${A} found ${e.amt} treats in the Lost & Found!` : `The Lost & Found jar was empty`;
       case 'mud': return `${A} jumped in a muddy puddle`;
       case 'bath': return `${A} ${s ? 'are' : 'is'} off to Bath Time`;
@@ -217,6 +228,7 @@ export function mount(app, ctx) {
     else if (e.t === 'tiptoe') { sfx.pop(); if (s || e.o === S.me) big('Shh…', `${petName(e.i)} is napping: no rent`, 1400); }
     else if (e.t === 'eyes') { sfx.pop(); if (s) big('Puppy eyes!', 'No rent this time', 1300); }
     else if (e.t === 'rub') { sfx.pop(); scene?.effect('hearts', { i: e.i }); }
+    else if (e.t === 'bowl') { sfx.set(); scene?.effect('coins', { s: e.s }); }
     else if (e.t === 'go') { sfx.set(); scene?.effect('coins', { s: e.s }); }
     else if (e.t === 'lost') { if (e.amt) { scene?.effect('jar'); scene?.effect('coins', { s: e.s, n: 24 }); s ? sfx.win() : sfx.set(); if (s) big(`+${e.amt}`, 'Finders keepers!', 1500); } }
     else if (e.t === 'bath' || e.t === 'mud' || e.t === 'three') { sfx.warn(); if (s && e.t !== 'mud') big('Bath Time!', e.t === 'three' ? 'Three doubles in a row' : 'Into the tub you go', 1400); }

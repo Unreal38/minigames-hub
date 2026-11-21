@@ -7,15 +7,15 @@ import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, sha
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { petModel } from '../farm/pets3d.js';
-import { N, TILES, GROUPS, SHOP_TILES, cellOf, sideOf, isCorner, BATH, LOST, MUD, START, MS } from './board.js';
+import { N, GRID, TILES, GROUPS, SHOP_TILES, cellOf, sideOf, isCorner, BATH, LOST, MUD, START, MS } from './board.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
-const CELL = 2.2, HALF = CELL * 4, TOK = .6, PET = .6, PX = 256;
+const CELL = 2.2, HALF = CELL * GRID / 2, TOK = .6, PET = .6, PX = 256;
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const FD = () => (getComputedStyle(document.body).getPropertyValue('--fd') || 'sans-serif').trim();
 
 // ---------- where things are ----------
-const centre = i => { const [c, r] = cellOf(i); return new THREE.Vector3((c - 3.5) * CELL, 0, (3.5 - r) * CELL); };
+const centre = i => { const [c, r] = cellOf(i); return new THREE.Vector3((c - (GRID - 1) / 2) * CELL, 0, ((GRID - 1) / 2 - r) * CELL); };
 const OUT = [[0, 1], [-1, 0], [0, -1], [1, 0]];
 function outDir(i) {
   const s = sideOf(i), a = OUT[s];
@@ -29,8 +29,9 @@ const TUB = CEN[BATH].clone().addScaledVector(DIR[BATH], .62);
 
 // ---------- the board picture: one canvas for every tile ----------
 function boardTexture() {
-  const S = PX * 8, cv = document.createElement('canvas'); cv.width = cv.height = S;
-  const g = cv.getContext('2d'), fd = FD();
+  // drawn in units of PX a tile, on a canvas no bigger than 2048 so phones can hold it
+  const S = PX * GRID, R = Math.min(2048, S), cv = document.createElement('canvas'); cv.width = cv.height = R;
+  const g = cv.getContext('2d'), fd = FD(); g.scale(R / S, R / S);
   const paw = (x, y, r, rot, col) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col;
     g.beginPath(); g.ellipse(0, r * .25, r * .62, r * .5, 0, 0, 7); g.fill();
     for (const [dx, dy] of [[-.62, -.3], [-.22, -.68], [.22, -.68], [.62, -.3]]) { g.beginPath(); g.ellipse(dx * r, dy * r, r * .2, r * .26, dx * .5, 0, 7); g.fill(); }
@@ -39,25 +40,29 @@ function boardTexture() {
     if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.strokeText(t, x, y); } g.fillStyle = fill; g.fillText(t, x, y); };
   // the lawn in the middle
   g.fillStyle = '#a5dc86'; g.fillRect(0, 0, S, S);
-  for (let i = 0; i < 26; i++) { const a = i * 2.39996, r = 130 + (i % 7) * 86; paw(S / 2 + Math.cos(a) * r, S / 2 + Math.sin(a) * r * .9, 30 + (i % 3) * 8, a, '#98d279'); }
-  g.save(); g.translate(S / 2, S / 2 - 40); g.rotate(-.06);
-  text('Pawperty', 0, 0, 250, '#fff6e4', INK, 34); g.restore();
-  paw(S / 2 + 520, S / 2 + 170, 62, .4, '#ffb547'); paw(S / 2 - 540, S / 2 + 190, 50, -.5, '#ff8fab');
-  text('adopt · upgrade · nap', S / 2, S / 2 + 150, 62, '#3f7a3a');
+  for (let i = 0; i < 44; i++) { const a = i * 2.39996, r = 150 + (i % 9) * 92; paw(S / 2 + Math.cos(a) * r, S / 2 + Math.sin(a) * r * .9, 34 + (i % 3) * 10, a, '#98d279'); }
+  g.save(); g.translate(S / 2, S / 2 - 110); g.rotate(-.06);
+  text('Pawperty', 0, 0, 350, '#fff6e4', INK, 46); g.restore();
+  paw(S / 2 + 740, S / 2 + 150, 84, .4, '#ffb547'); paw(S / 2 - 760, S / 2 + 180, 70, -.5, '#ff8fab');
+  text('adopt · upgrade · nap', S / 2, S / 2 + 150, 86, '#3f7a3a');
 
   for (const t of TILES) {
-    const [c, r] = cellOf(t.i), x = c * PX, y = (7 - r) * PX, side = sideOf(t.i), cx = x + PX / 2, cy = y + PX / 2;
+    const [c, r] = cellOf(t.i), x = c * PX, y = (GRID - 1 - r) * PX, side = sideOf(t.i), cx = x + PX / 2, cy = y + PX / 2;
     g.save(); g.beginPath(); g.roundRect(x + 7, y + 7, PX - 14, PX - 14, 30); g.clip();
-    g.fillStyle = t.k === 'shop' ? '#fff6e4' : t.k === 'zoom' ? '#ffe2ef' : t.k === 'vet' ? '#e3f4ff' : t.k === 'bath' ? '#cdeeff' : t.k === 'mud' ? '#e9cfa6' : t.k === 'lost' ? '#fff0b8' : '#d9f5c4';
+    g.fillStyle = t.k === 'shop' ? '#fff6e4' : t.k === 'zoom' ? '#ffe2ef' : t.k === 'vet' ? '#e3f4ff' : t.k === 'bowl' ? '#ffe9c4' : t.k === 'bath' ? '#cdeeff' : t.k === 'mud' ? '#e9cfa6' : t.k === 'lost' ? '#fff0b8' : '#d9f5c4';
     g.fillRect(x, y, PX, PX);
     if (t.k === 'shop') {
       const G = GROUPS[t.g], B = 60; g.fillStyle = G.col;
       if (isCorner(t.i)) {} else if (side === 0) g.fillRect(x, y, PX, B); else if (side === 2) g.fillRect(x, y + PX - B, PX, B); else if (side === 1) g.fillRect(x + PX - B, y, B, PX); else g.fillRect(x, y, B, PX);
       paw(cx, cy, 56, .2, '#f6e6cc');
       const bx = side === 1 ? x + PX - B / 2 : side === 3 ? x + B / 2 : cx, by = side === 0 ? y + B / 2 + 2 : side === 2 ? y + PX - B / 2 + 2 : cy;
-      text(String(t.price), bx, by, side % 2 ? 30 : 40, '#fff', G.ink, 8);
+      // on the left and right sides the band is narrow, so the price runs along it
+      g.save(); g.translate(bx, by); if (side % 2) g.rotate(side === 1 ? Math.PI / 2 : -Math.PI / 2); text(String(t.price), 0, 0, 40, '#fff', G.ink, 8); g.restore();
     } else if (t.k === 'zoom') { text('?', cx, cy - 22, 150, '#ff5d92', '#fff', 14); text('Zoomies!', cx, cy + 82, 44, '#b02a5c'); }
     else if (t.k === 'vet') { g.fillStyle = '#e5543b'; g.beginPath(); g.roundRect(cx - 22, cy - 86, 44, 124, 10); g.roundRect(cx - 62, cy - 46, 124, 44, 10); g.fill(); text('Vet Visit', cx, cy + 82, 42, '#14507a'); }
+    else if (t.k === 'bowl') { g.fillStyle = '#d9a066'; for (const [dx, dy] of [[-40, -44], [0, -62], [40, -44], [-20, -34], [22, -30]]) { g.beginPath(); g.arc(cx + dx, cy + dy, 24, 0, 7); g.fill(); }
+      g.fillStyle = '#4db5ff'; g.beginPath(); g.moveTo(cx - 84, cy - 30); g.lineTo(cx + 84, cy - 30); g.lineTo(cx + 62, cy + 36); g.lineTo(cx - 62, cy + 36); g.closePath(); g.fill(); g.strokeStyle = INK; g.lineWidth = 6; g.stroke();
+      text('Treat Bowl', cx, cy + 82, 40, '#8a4a10'); }
     else if (t.k === 'start') { text('Welcome', cx - 12, cy - 88, 44, '#2f6b2a'); text('Mat', cx - 12, cy - 46, 44, '#2f6b2a'); }
     else if (t.k === 'bath') { text('Bath', cx + 30, cy - 88, 46, '#14507a'); text('Time', cx + 30, cy - 46, 46, '#14507a'); }
     else if (t.k === 'lost') { text('Lost &', cx + 24, cy + 50, 46, '#8a5a10'); text('Found', cx + 24, cy + 92, 46, '#8a5a10'); }
@@ -67,7 +72,7 @@ function boardTexture() {
     // shop names sit on the lawn just inside the ring, where no pet or token stands on them
     if (t.k === 'shop') {
       const words = t.name.split(' '), lines = words.length > 1 ? [words.slice(0, -1).join(' '), words[words.length - 1]] : words;
-      const px = 37, lh = 40, col = '#2c4a22', halo = '#d6f2c2';
+      const px = 44, lh = 46, col = '#2c4a22', halo = '#d6f2c2';
       if (side === 0) lines.forEach((l, k) => text(l, cx, y - 24 - (lines.length - 1 - k) * lh, px, col, halo, 9));
       else if (side === 2) lines.forEach((l, k) => text(l, cx, y + PX + 30 + k * lh, px, col, halo, 9));
       else lines.forEach((l, k) => text(l, side === 1 ? x + PX + 16 : x - 16, cy + (k - (lines.length - 1) / 2) * lh, px, col, halo, 9, side === 1 ? 'left' : 'right'));
@@ -169,7 +174,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
   const small = matchMedia('(max-width: 760px)').matches, reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
   const sun = new THREE.DirectionalLight('#ffffff', 1.55); sun.position.set(9, 20, 11); sun.castShadow = true;
-  sun.shadow.mapSize.setScalar(small ? 1024 : 2048); Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 60 });
+  sun.shadow.mapSize.setScalar(small ? 1024 : 2048); { const e = HALF * 1.55; Object.assign(sun.shadow.camera, { left: -e, right: e, top: e, bottom: -e, near: 1, far: 70 }); }
   sun.shadow.bias = -.0006; sun.shadow.normalBias = .04; scene.add(sun);
 
   skyDome(scene, SKY_TOP, SKY_LOW);
@@ -267,6 +272,13 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
   const markMat = new THREE.MeshBasicMaterial({ color: '#3b2219', transparent: true, opacity: .9, depthWrite: false });
   const mark = new THREE.Mesh(frameGeo, markMat); mark.visible = false; mark.renderOrder = 3; scene.add(mark);
   let markTile = -1;
+  // where the roll leads: the tile lights up in the roller's colour, an arrow bobs over it and dots mark the way
+  const aimMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false });
+  const aimFrame = new THREE.Mesh(new THREE.PlaneGeometry(CELL - .2, CELL - .2).rotateX(-Math.PI / 2), aimMat); aimFrame.renderOrder = 2; aimFrame.visible = false; scene.add(aimFrame);
+  const aimPin = new THREE.Group(); { const cg = new THREE.ConeGeometry(.5, .85, 4).rotateX(Math.PI); const c = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: '#ffffff' })); const o = new THREE.Mesh(cg, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide })); o.scale.setScalar(1.22); aimPin.add(c, o); aimPin.userData.c = c; } aimPin.visible = false; scene.add(aimPin);
+  const AIM_DOTS = 12, dotGeo = new THREE.CircleGeometry(.2, 14).rotateX(-Math.PI / 2), dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false });
+  const aimDots = new THREE.InstancedMesh(dotGeo, dotMat, AIM_DOTS); aimDots.frustumCulled = false; aimDots.renderOrder = 2; aimDots.visible = false; scene.add(aimDots);
+  let aimA = 0, aimTile = -1;
 
   // ---------- tokens ----------
   let toks = [], seatKey = '', me = -1, S = null;
@@ -365,8 +377,8 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
   function pick(x, y) {
     const r = canvas.getBoundingClientRect(); ndc.set((x - r.left) / r.width * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera); if (!ray.ray.intersectPlane(ground, hit)) return -1;
-    const c = Math.floor(hit.x / CELL + 4), rr = Math.floor(4 - hit.z / CELL);
-    if (c < 0 || c > 7 || rr < 0 || rr > 7) return -1;
+    const c = Math.floor(hit.x / CELL + GRID / 2), rr = Math.floor(GRID / 2 - hit.z / CELL);
+    if (c < 0 || c >= GRID || rr < 0 || rr >= GRID) return -1;
     for (let i = 0; i < N; i++) { const [a, b] = cellOf(i); if (a === c && b === rr) return i; }
     return -1;
   }
@@ -427,6 +439,20 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
       const o = info.toks[i] ||= { x: 0, y: 0 }; tv.copy(t.g.position); tv.y += 1.55; tv.project(camera); o.x = (tv.x + 1) / 2 * W; o.y = (1 - tv.y) / 2 * H;
     });
     info.toks.length = toks.length; info.w = W; info.h = H;
+    // the tile the walking player is heading for, from the moment the dice settle until they arrive
+    { const wt = S?.ph === 'play' ? toks[S.turn] : null, a = wt?.anim, on = !!a && !a.jump && a.path.length > 1 && now >= a.t0 - MS.aim;
+      if (on) {
+        const dest = a.path[a.path.length - 1], col = S.seats[S.turn].color;
+        if (dest !== aimTile || !aimA) { aimTile = dest; aimMat.color.set(col); dotMat.color.set(col); aimPin.userData.c.material.color.set(col); aimFrame.position.copy(CEN[dest]).setY(.03); }
+        let n = 0; for (let j = Math.max(1, wt.step + 2); j < a.path.length - 1 && n < AIM_DOTS; j++) { const q = lane(a.path[j]); aimDots.setMatrixAt(n++, _cm.makeTranslation(q.x, .03, q.z)); }
+        aimDots.count = n; aimDots.instanceMatrix.needsUpdate = true;
+      }
+      aimA += ((on ? 1 : 0) - aimA) * Math.min(1, dt * (on ? 14 : 6)); if (aimA < .02 && !on) aimA = 0;
+      const vis = aimA > 0 && aimTile >= 0; aimFrame.visible = aimPin.visible = aimDots.visible = vis;
+      if (vis) { aimMat.opacity = aimA * (.5 + Math.sin(T * 9) * .18); dotMat.opacity = aimA * .9;
+        aimPin.position.copy(CEN[aimTile]).setY(2.5 + Math.abs(Math.sin(T * 5)) * .35); aimPin.rotation.y = T * 2.4; aimPin.scale.setScalar(aimA);
+        tv.copy(CEN[aimTile]).setY(3.5); tv.project(camera); info.aim = info.aim || {}; info.aim.i = aimTile; info.aim.s = S.turn; info.aim.x = (tv.x + 1) / 2 * W; info.aim.y = (1 - tv.y) / 2 * H; info.aimOn = on; }
+      else info.aimOn = false; }
     if (me >= 0 && toks[me] && S?.ph === 'play') { arrow.visible = true; arrow.position.copy(toks[me].g.position); arrow.position.y += 1.5; animateArrow(arrow, T); } else arrow.visible = false;
     // pets: breathe, hop when something nice happens, lie down and snore when napping
     for (const s of shops.values()) {
@@ -474,7 +500,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
       for (const t of toks) { disposeAvatar(t.av); t.ring.material.dispose(); }
       for (const s of shops.values()) { if (s.pet) freePet(s.pet); s.frame.material.dispose(); if (s.prop) disposeToon(s.prop); }
       disposeArrow(arrow); disposeToon(crateProto); disposeToon(deco); disposeToon(land);
-      pfx.dispose(); blobGeo.dispose(); blobMat.dispose(); for (const im of crates) im.dispose(); diceMap.dispose(); dieMat.dispose(); inkMat.dispose(); dieGeo.dispose(); frameGeo.dispose(); ringGeo.dispose(); zTex.dispose(); zMat.dispose(); markMat.dispose();
+      pfx.dispose(); blobGeo.dispose(); blobMat.dispose(); for (const im of crates) im.dispose(); diceMap.dispose(); dieMat.dispose(); inkMat.dispose(); dieGeo.dispose(); frameGeo.dispose(); ringGeo.dispose(); zTex.dispose(); zMat.dispose(); markMat.dispose(); aimFrame.geometry.dispose(); aimMat.dispose(); aimPin.traverse(m => { if (m.isMesh) m.material.dispose(); }); aimPin.userData.c.geometry.dispose(); dotGeo.dispose(); dotMat.dispose(); aimDots.dispose();
       topMat.map?.dispose(); topMat.dispose(); jarFill.geometry.dispose();
       renderer.dispose();
     },

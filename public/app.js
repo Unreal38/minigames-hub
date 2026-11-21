@@ -188,20 +188,20 @@ const GAMES = {
   },
   paw: {
     name: 'Pawperty', load: () => import('./games/paw/client.js'), start: 'Open the shops',
-    host: { seats: 4, rounds: 15, naps: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, rounds: 15, naps: 'on', bots: 'chill', timer: 0 },
+    host: { seats: 4, rounds: 20, naps: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, rounds: 20, naps: 'on', bots: 'chill', timer: 0 },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
-      <div class="opt"><b>Game length</b><div class="pills">${pill('rounds', 8, 'Quick 8 rounds')}${pill('rounds', 15, '15 rounds')}${pill('rounds', 25, 'Long 25')}</div></div>
+      <div class="opt"><b>Game length</b><div class="pills">${pill('rounds', 10, 'Quick 10 rounds')}${pill('rounds', 20, '20 rounds')}${pill('rounds', 30, 'Long 30')}</div></div>
       <div class="opt"><b>Napping pets</b><div class="pills">${pill('naps', 'on', 'On')}${pill('naps', 'off', 'Off')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
     howto: `Walk your avatar round a board of pet shops, adopt the pets you land on and collect rent in treats when friends visit. Upgrade your shops, dodge Bath Time and draw silly Zoomies cards. Nobody gets knocked out: after the last round the richest player wins.`,
     rules: `<ol>
-      <li>Everyone starts with <b>600 treats</b> on the Welcome Mat. Roll two dice and walk that many tiles. Passing the Welcome Mat pays <b>100</b>. Empty seats are played by bots.</li>
+      <li>Everyone starts with <b>600 treats</b> on the Welcome Mat. Roll two dice and walk that many tiles. Passing the Welcome Mat pays <b>150</b>. After the dice land, the tile you are heading for lights up. Empty seats are played by bots.</li>
       <li>Land on a pet waiting in a box and you can <b>adopt</b> it: the shop is yours. Anyone else who lands there pays you <b>rent</b>.</li>
       <li><b>Napping pets charge no rent.</b> Each round every pet has a one in five chance of dozing off, so visitors tiptoe past for free.</li>
       <li>On your turn you can <b>upgrade</b> any shop you own: a <b>Pet Bed</b>, then a <b>Toy Box</b>. Each one raises the rent and your pet grows up.</li>
-      <li>The board has six streets of three shops. Own a <b>whole street</b> and its rent doubles, and you can build the <b>Pet Palace</b> for the biggest rent of all.</li>
+      <li>The board has ten places along each side and eight streets of three shops. Own a <b>whole street</b> and its rent doubles, and you can build the <b>Pet Palace</b> for the biggest rent of all.</li>
       <li>Land on your own shop and your pet is happy to see you: <b>+10</b>.</li>
       <li><b>Zoomies!</b> tiles deal a silly card. <b>Vet Visit</b> costs 40, which goes in the <b>Lost &amp; Found</b> jar. Land on the jar's corner to take everything in it.</li>
       <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. You still collect rent in the tub.</li>
