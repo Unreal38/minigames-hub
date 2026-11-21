@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { DATA_DIR, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
+import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, palsOf, weatherAt } from '../public/games/farm/data.js';
@@ -66,6 +66,7 @@ function newPet(sp, owner, wild = false) {
 }
 // Pets saved by older versions: markings were a number, colour genes were not in showing order.
 function fixPet(x) {
+  if (typeof x.name === 'string') x.name = safeText(x.name);
   if (!Array.isArray(x.pat)) x.pat = [];
   x.col = Array.isArray(x.col) ? [x.col[0] | 0, x.col[1] | 0].sort((a, b) => a - b) : [0, 0];
   if (!Array.isArray(x.stars)) x.stars = [3, 3, 3, 3];
@@ -208,7 +209,7 @@ const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), na
 const TRADE_MS = 7 * 24 * HOUR, TRADE_OPEN = 5, TRADE_PETS = 3;
 const cuddling = (f, id) => SLOTS.some(s => f[s] && nestView(f, s).stage === 'cuddle' && (f[s].a === id || f[s].b === id));
 const tradable = (f, x) => !x.held && f.pets.length > 1 && !away(f, x.id) && !cuddling(f, x.id) && !(f.def || []).includes(x.id);
-const cleanMats = m => { const out = {}; for (const [k, n] of Object.entries(m && typeof m === 'object' ? m : {})) if (MATS[k] && Number.isInteger(n) && n > 0 && n <= 9999) out[k] = n; return out; };
+const cleanMats = m => { const out = {}; for (const [k, n] of Object.entries(m && typeof m === 'object' ? m : {})) if (own(MATS, k) && Number.isInteger(n) && n > 0 && n <= 9999) out[k] = n; return out; };
 const cleanIds = a => Array.isArray(a) ? [...new Set(a.map(String))].slice(0, TRADE_PETS) : [];
 function release(f, o) { // hand back what an offer was holding
   pay(f.inv, o.give.mats, 1);
@@ -278,7 +279,10 @@ const view = (f, p) => ({
 });
 
 const pay = (inv, cost, sign = -1) => { for (const [k, n] of Object.entries(cost || {})) inv[k] = Math.max(0, (inv[k] || 0) + sign * n); };
-const cleanPetName = s => String(s ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 14);
+const cleanPetName = s => safeText(s).trim().slice(0, 14);
+// Looks a player's choice up in one of the game's tables. Only the table's own entries count, never built-in
+// names like 'constructor' or 'toString' that every object has.
+const own = (t, k) => typeof k === 'string' && Object.hasOwn(t, k) ? t[k] : undefined;
 
 // One request from a signed-in or guest player. reply(msg) sends back to that player only.
 export function handle(p, a, reply) {
@@ -302,7 +306,7 @@ export function handle(p, a, reply) {
   if (!f) return reply({ t: 'farm', need: 'starter' });
 
   if (a.t === 'place') {
-    const it = ITEMS[a.type]; if (!it || it.fixed) return;
+    const it = own(ITEMS, a.type); if (!it || it.fixed) return;
     if (f.items.length >= MAX_ITEMS) return no('The farm is full. Put something away first.');
     if (it.max && countOf(f, a.type) >= it.max) return no(`You can only have ${it.max} of those.`);
     const gifted = f.stash?.[a.type] > 0; // a decoration a friend gave: placed for free, whatever it normally needs
@@ -363,7 +367,7 @@ export function handle(p, a, reply) {
     return ok({ did: 'houseup' });
   }
   if (a.t === 'send') { // a party sets off on an expedition
-    const z = ZONES[a.zone], tr = TRIPS[a.trip];
+    const z = own(ZONES, a.zone), tr = own(TRIPS, a.trip);
     if (!z || !tr || !Array.isArray(a.pets)) return;
     if (!countOf(f, 'gate')) return no('Build an Expedition Gate first.');
     const ids = [...new Set(a.pets)];
@@ -421,7 +425,7 @@ export function handle(p, a, reply) {
     return ok({ did: 'pick', got, sun, wet });
   }
   if (a.t === 'cook') {
-    const r = RECIPES[a.what]; if (!r) return;
+    const r = own(RECIPES, a.what); if (!r) return;
     if (!countOf(f, 'kitchen')) return no('Build a Kitchen first.');
     if (topLv(f, 'kitchen') < (r.lv || 1)) return no(`That recipe needs a level ${r.lv} Kitchen.`);
     if (!canAfford(f.inv, r.cost)) return no('Not enough for that recipe yet.');
@@ -429,7 +433,7 @@ export function handle(p, a, reply) {
     return ok({ did: 'cook', what: a.what });
   }
   if (a.t === 'feed') { // a treat for one pet: experience straight away
-    const r = RECIPES[a.what], pet = f.pets.find(x => x.id === a.pet); if (!(r?.xp || r?.rest) || !pet) return;
+    const r = own(RECIPES, a.what), pet = f.pets.find(x => x.id === a.pet); if (!(r?.xp || r?.rest) || !pet) return;
     if (!(f.inv[a.what] > 0)) return no('You have none of those left.');
     if (r.rest) { if (!((pet.rest || 0) > Date.now())) return no(`${pet.name} is not tired.`); if (cuddling(f, pet.id)) return no(`${pet.name} is busy in the Nest.`); f.inv[a.what]--; pet.rest = 0; return ok({ did: 'feed', what: a.what, pet: pet.id, grew: null }); }
     if (pet.lv >= MAX_LV) return no(`${pet.name} is fully grown and just wants cuddles.`);
@@ -438,7 +442,7 @@ export function handle(p, a, reply) {
     return ok({ did: 'feed', what: a.what, pet: pet.id, grew: learn(pet, r.xp) });
   }
   if (a.t === 'sell') { // the Workshop buys spare materials in lots of ten
-    const lots = Math.max(1, Math.min(50, a.lots | 0)), price = SELL[a.mat]; if (!price) return;
+    const lots = Math.max(1, Math.min(50, a.lots | 0)), price = own(SELL, a.mat); if (!price) return;
     if (!countOf(f, 'workshop')) return no('Build a Workshop first.');
     if ((f.inv[a.mat] || 0) < lots * SELL_LOT) return no('You do not have that many to sell.');
     f.inv[a.mat] -= lots * SELL_LOT; f.inv.coins = (f.inv.coins || 0) + lots * price;
@@ -566,7 +570,7 @@ export function handle(p, a, reply) {
     if (a.t === 'gift') {
       const g = daily(f, 'gift'); if (g[id]) return reply({ t: 'farm', err: 'One gift a day for each neighbour.', visit: there(), farm: view(f, p) });
       if (a.item) { // a decoration: the giver pays for it, the friend places it for free
-        const it = ITEMS[a.item]; if (!it || it.kind !== 'd' || it.pals) return;
+        const it = own(ITEMS, a.item); if (!it || it.kind !== 'd' || it.pals) return;
         if (it.craft && topLv(f, 'workshop') < it.craft) return reply({ t: 'farm', err: 'Your Workshop cannot make that yet.', visit: there(), farm: view(f, p) });
         if (!canAfford(f.inv, it.cost)) return reply({ t: 'farm', err: 'You do not have the materials for that.', visit: there(), farm: view(f, p) });
         pay(f.inv, it.cost); g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
@@ -574,7 +578,7 @@ export function handle(p, a, reply) {
         scheduleSave();
         return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'gift' });
       }
-      const n = GIFTS[a.mat]; if (!n) return;
+      const n = own(GIFTS, a.mat); if (!n) return;
       if ((f.inv[a.mat] || 0) < n) return reply({ t: 'farm', err: 'You do not have enough of that to give.', visit: there(), farm: view(f, p) });
       f.inv[a.mat] -= n; g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
       post(x, { k: 'gift', from: p.name, got: { [a.mat]: n } });
@@ -624,7 +628,7 @@ export function handle(p, a, reply) {
     let B;
     if (mode === 'arena') {
       let foe, team, to = null;
-      if (String(a.foe).startsWith('npc:')) { const n = NPCS[String(a.foe).slice(4)]; if (!n) return; foe = n.name; team = n.team.map((sp, i) => unit(bot(sp, ARENA_LV, i))); }
+      if (String(a.foe).startsWith('npc:')) { const n = own(NPCS, String(a.foe).slice(4)); if (!n) return; foe = n.name; team = n.team.map((sp, i) => unit(bot(sp, ARENA_LV, i))); }
       else {
         const hit = [...farms].find(([, x]) => x !== f && x.fid === a.foe && x.pets.length); if (!hit) return no('That farm is not around any more.');
         to = hit[0]; foe = nameOf(hit[0], hit[1]); team = defenders(hit[1]).map(x => unit(x, ARENA_LV));
@@ -721,7 +725,7 @@ export function handle(p, a, reply) {
 // which leaves gift-all.json in the data folder; the running server picks it up within a few seconds.
 const GIFT_FILE = path.join(DATA_DIR, 'gift-all.json');
 export function giftAll(mats, text = '') {
-  const got = {}; for (const [k, n] of Object.entries(mats || {})) if (MATS[k] && Number.isInteger(n) && n > 0 && n <= 100000) got[k] = n;
+  const got = {}; for (const [k, n] of Object.entries(mats || {})) if (own(MATS, k) && Number.isInteger(n) && n > 0 && n <= 100000) got[k] = n;
   if (!Object.keys(got).length) return 0;
   for (const [pid, f] of farms) {
     post(f, { k: 'gift', from: 'Cozy Table', got: { ...got }, ...(text ? { text: String(text).slice(0, 120) } : {}) });
@@ -742,12 +746,12 @@ export function testHook(pid, a) {
   if (a.home) for (const t of parties(f)) t.until = 0;
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
-  if (a.pet && SPECIES[a.pet]) f.pets.push({ ...newPet(a.pet, 'test', true), ...(a.traits || {}) });
+  if (a.pet && own(SPECIES, a.pet)) f.pets.push({ ...newPet(a.pet, 'test', true), ...(a.traits || {}) });
   if (a.lv) for (const x of f.pets) x.lv = a.lv;
   if (a.rested) for (const x of f.pets) x.rest = 0;
   if (a.pals) (f.pals ||= {}).test = a.pals;
   if (a.trained && f.train) f.train.at -= a.trained * HOUR;
   if (a.ripe) for (const i of f.items) if (i.type === 'garden') i.at = 0;
-  if (a.wild && SPECIES[a.wild]) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS };
+  if (a.wild && own(SPECIES, a.wild)) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS };
   if (a.egg) for (const s of SLOTS) if (f[s]) f[s].at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;
 }

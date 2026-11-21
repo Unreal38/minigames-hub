@@ -156,8 +156,21 @@ sudo systemctl daemon-reload && sudo systemctl restart cozy-table
 
 - **Table scoreboard:** every table keeps wins and points per player across all the games played at it, shown in the waiting room. It lasts as long as the table stays open, restarts included.
 - **Stats, XP and ranks:** each finished game gives 15 XP, plus 35 for a win and up to 20 for points scored. Levels and rank titles are in `public/ranks.js`.
-- **Accounts:** progress is kept per browser by default. A player can create an account with a username and password (no email) to keep it across devices. Passwords are stored as salted scrypt hashes. There is no password reset; to reset one by hand, stop the server, delete that profile's `salt`, `hash` and `user` in `cozy-table.json`, and let them register again.
+- **Accounts:** progress is kept per browser by default. A player can create an account with a username and password (no email) to keep it across devices. Passwords are stored as salted scrypt hashes.
+- **Changing and recovering passwords:** signed-in players change their password from the **Password** button on their progress card (other devices get logged out). Every new account gets a recovery code, shown once; with it, *Log in → Forgot your password?* sets a new password. Players can make a new code from the same Password window. If someone loses the code too, the host makes a one-time reset code (valid 24 hours) on the server and sends it to them privately:
+
+  ```bash
+  cd /opt/cozy-table && sudo DATA_DIR=/var/lib/cozy-table npm run reset-password -- <username>
+  ```
 - **New games:** export `results(G)` from the server module, returning `{ pts, win }` per seat once the game has ended, and the scoreboard and XP work for it too.
+
+## Security
+
+- Logins, password changes and recovery codes are limited per address and per username (10 wrong tries per address and 20 per username in 15 minutes for passwords, fewer for codes). Only wrong tries count.
+- One address may hold 20 connections at once and open 60 a minute; a connection that floods messages is closed. Wrong table codes are limited so private tables can't be found by guessing.
+- The page sends a Content Security Policy (scripts only from this site and jsDelivr), plus `X-Frame-Options`, `nosniff` and, behind HTTPS, HSTS. Names have quotes and angle brackets neutralised on the server.
+- The server trusts `X-Forwarded-For` only from Caddy on the same machine. If you put Cloudflare in front, add `Environment=TRUST_CLOUDFLARE=1` to the unit so the real visitor address is used, and only allow Cloudflare's addresses to reach ports 80/443.
+- Large floods (DDoS) can't be stopped inside the app; that needs a shield in front of the server, such as Cloudflare's free plan.
 
 ## Customising
 

@@ -19,6 +19,9 @@ const visitors = new Set();        // hashed browser tokens of everyone who has 
 let savedRooms = [];
 
 const rid = n => crypto.randomBytes(n).toString('hex');
+// Text other players see (names): no control characters or angle brackets, and straight quotes become curly ones,
+// so a name can never break out of the page's HTML even where a screen forgets to escape it.
+export const safeText = s => String(s ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/"/g, '”').replace(/'/g, '’');
 
 // ---------- load / save ----------
 export function load() {
@@ -27,6 +30,7 @@ export function load() {
   catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return []; }
   for (const p of Object.values(d.profiles || {})) {
     profiles.set(p.pid, p); if (p.user) users.set(p.user.toLowerCase(), p.pid);
+    if (typeof p.name === 'string') p.name = safeText(p.name);
     // Coins arrived after people had already played: everyone starts with what their past games would have paid.
     if (!Number.isFinite(p.coins)) p.coins = 5 * (p.games || 0) + 10 * (p.wins || 0); // the old rate: 5 a game, 10 more a win
   }
@@ -130,41 +134,139 @@ export function me(p) {
 export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon }; }
 
 // ---------- username + password accounts ----------
+// Passwords are never stored: only a scrypt hash with a random salt per account. Recovery codes and host reset
+// codes are long random codes, so a plain SHA-256 of them is enough (and they can only be tried a few times a minute).
 export const cleanUser = s => { const u = String(s ?? '').trim(); return /^[A-Za-z0-9_.-]{3,16}$/.test(u) ? u : null; };
 const hashPass = (pass, salt) => new Promise((res, rej) => crypto.scrypt(String(pass), salt, 32, (e, k) => e ? rej(e) : res(k.toString('hex'))));
+const passErr = pass => typeof pass !== 'string' || pass.length < 6 || pass.length > 72 ? 'Passwords need 6 to 72 characters.' : null;
+const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+async function passOk(p, pass) {
+  const hash = await hashPass(String(pass ?? ''), p?.salt || 'x'.repeat(32)); // same work either way
+  return !!p?.hash && same(hash, p.hash);
+}
+async function setPass(p, pass) { const salt = rid(16); Object.assign(p, { salt, hash: await hashPass(pass, salt) }); }
+
+// Codes are groups of letters and digits that are hard to mix up (no I, O, 0 or 1). Typing is forgiving: case,
+// spaces and dashes don't matter.
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const newCode = (groups = 4) => Array.from({ length: groups }, () => Array.from({ length: 4 }, () => CODE_CHARS[crypto.randomInt(32)]).join('')).join('-');
+export const codeHash = code => crypto.createHash('sha256').update(String(code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')).digest('hex');
+function giveRecovery(p) { const code = newCode(); p.rc = codeHash(code); scheduleSave(); return code; }
+
+// Every other browser signed in to this account becomes a guest again (after a password change or reset).
+// Returns their tokens so the server can tell those screens.
+export function signOutOthers(p, keep) {
+  const out = [];
+  for (const [t, s] of sessions) if (s.pid === p.pid && t !== keep) { s.pid = newProfile({ name: p.name, color: p.color }).pid; out.push(t); }
+  if (out.length) scheduleSave();
+  return out;
+}
 
 // Turns this browser's guest profile into an account, keeping everything it has earned.
+// Also hands out the account's first recovery code, which the player is asked to keep somewhere safe.
 export async function register(token, user, pass) {
   const u = cleanUser(user);
   if (!u) return { err: 'Usernames are 3–16 letters, numbers, dots, dashes or underscores.' };
-  if (typeof pass !== 'string' || pass.length < 6 || pass.length > 72) return { err: 'Passwords need 6 to 72 characters.' };
+  const bad = passErr(pass); if (bad) return { err: bad };
   if (users.has(u.toLowerCase())) return { err: 'That username is taken.' };
   const p = profileOf(token);
   if (!p) return { err: 'Not connected.' };
   if (p.user) return { err: `You're already signed in as ${p.user}.` };
   const salt = rid(16), hash = await hashPass(pass, salt);
   if (users.has(u.toLowerCase())) return { err: 'That username is taken.' };
+  if (p.user) return { err: `You're already signed in as ${p.user}.` };
   Object.assign(p, { user: u, salt, hash });
   users.set(u.toLowerCase(), p.pid); board = null;
   scheduleSave();
-  return { p };
+  return { p, code: giveRecovery(p) };
 }
 
 export async function login(token, user, pass) {
-  const pid = users.get(String(user ?? '').trim().toLowerCase()), p = profiles.get(pid);
-  const salt = p?.salt || 'x'.repeat(32), hash = await hashPass(String(pass ?? ''), salt); // same work either way
-  if (!p || !crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(p.hash, 'hex'))) return { err: 'Wrong username or password.' };
+  const p = profiles.get(users.get(String(user ?? '').trim().toLowerCase()));
+  if (!(await passOk(p, pass))) return { err: 'Wrong username or password.' };
   const s = sessions.get(token); if (!s) return { err: 'Not connected.' };
   s.pid = p.pid;
   scheduleSave();
   return { p };
 }
 
+// Signed in, knows the current password, picks a new one. Other devices are signed out.
+export async function changePassword(token, old, pass) {
+  const p = profileOf(token);
+  if (!p?.user) return { err: 'Log in first.' };
+  const bad = passErr(pass); if (bad) return { err: bad };
+  if (!(await passOk(p, old))) return { err: 'Your current password is not right.', wrong: true };
+  await setPass(p, pass); delete p.resets;
+  scheduleSave();
+  return { p, out: signOutOthers(p, token) };
+}
+
+// A fresh recovery code for a signed-in player (asks for the password, so nobody at an unlocked screen can take it).
+// The old code stops working.
+export async function recoveryCode(token, pass) {
+  const p = profileOf(token);
+  if (!p?.user) return { err: 'Log in first.' };
+  if (!(await passOk(p, pass))) return { err: 'That password is not right.', wrong: true };
+  return { p, code: giveRecovery(p) };
+}
+
+// Forgot the password: username + a recovery code (or a one-time code from the host) + a new password.
+// Logs this browser in, signs every other device out, and hands out a new recovery code (the old one is used up).
+export async function recover(token, user, code, pass) {
+  const p = profiles.get(users.get(String(user ?? '').trim().toLowerCase()));
+  const bad = passErr(pass); if (bad) return { err: bad };
+  const h = codeHash(code), now = Date.now();
+  const reset = p?.resets?.find(r => r.exp > now && same(r.h, h));
+  if (!p || !(reset || same(p.rc, h))) return { err: 'That username and code do not match.', wrong: true };
+  const s = sessions.get(token); if (!s) return { err: 'Not connected.' };
+  await setPass(p, pass); delete p.resets;
+  s.pid = p.pid;
+  const out = signOutOthers(p, token);
+  return { p, out, code: giveRecovery(p) };
+}
+
+// The host can make a one-time reset code on the server with `npm run reset-password -- <username>` (server/reset.js).
+// That script drops a small file in the data folder; the running server picks it up here.
+export const RESET_TTL = 24 * 3600_000;
+export function addReset(user, h, exp) {
+  const p = profiles.get(users.get(String(user ?? '').toLowerCase()));
+  if (!p || !/^[0-9a-f]{64}$/.test(h)) return false;
+  p.resets = [...(p.resets || []).filter(r => r.exp > Date.now()), { h, exp: Math.min(+exp || 0, Date.now() + RESET_TTL) }].slice(-3);
+  scheduleSave();
+  return true;
+}
+setInterval(() => {
+  let files; try { files = fs.readdirSync(DIR).filter(f => /^reset-[a-z0-9]+\.json$/.test(f)); } catch { return; }
+  for (const f of files) {
+    const file = path.join(DIR, f);
+    try { const r = JSON.parse(fs.readFileSync(file, 'utf8')); console.log(addReset(r.user, r.h, r.exp) ? `password reset code made for ${r.user}` : `reset file for unknown user ${r.user} ignored`); }
+    catch (e) { console.error(f, 'could not be read', e.message); }
+    try { fs.unlinkSync(file); } catch {}
+  }
+}, 3000).unref();
+
 export function logout(token, look) {
   const s = sessions.get(token); if (!s) return null;
   s.pid = newProfile(look).pid;
   scheduleSave();
   return profiles.get(s.pid);
+}
+
+// Guest profiles that never did anything are kept only in memory. Forget them (and their browser sessions) once they
+// have been gone an hour, so someone opening thousands of connections can't slowly fill the server's memory.
+// active(token) says whether the server still has that browser connected or seated somewhere.
+export function prune(active) {
+  const now = Date.now(), held = new Map();
+  for (const s of sessions.values()) held.set(s.pid, (held.get(s.pid) || 0) + 1);
+  const empty = p => !p.user && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length;
+  let n = 0;
+  for (const [t, s] of sessions) {
+    const p = profiles.get(s.pid);
+    if (!p || !empty(p) || active(t) || now - s.seen < 3600_000 || held.get(s.pid) > 1) continue;
+    sessions.delete(t); profiles.delete(p.pid); n++;
+  }
+  for (const [pid, p] of profiles) if (empty(p) && !held.has(pid) && now - (p.created || 0) > 3600_000) { profiles.delete(pid); n++; }
+  return n;
 }
 
 // ---------- friends ----------
