@@ -279,12 +279,16 @@ function fitHat(hg, hH, hT, hat, hr) {
     for (let i = 0; i < p.count; i++) near = Math.min(near, v.fromBufferAttribute(p, i).applyMatrix4(o.matrix).sub(HC).dot(d));
     return { d, over: dd => dd.dot(d) > cos, sk: skullT(hr, d), near: Math.max(.1, near) };
   });
-  // How much thicker than usual the hair is over the top of the head. Only hair that is big all over (an afro, curls)
-  // counts, since a quiff, a bun or spikes are only a small part of it; the hat then moves out by that much, and
+  // How much thicker than usual the hair is over the top of the head: the outer surface of the hair (the farthest
+  // point in each of a set of directions) in the middle direction. Only hair that is big all over (an afro, curls)
+  // counts, since a quiff, a bun or spikes cover only a few directions; the hat then moves out by that much, and
   // whatever still sticks up under it is pressed down instead.
-  const r = [];
-  for (const h of hair) for (let i = 0; i < h.pts.length; i += 3) { v.set(h.pts[i], h.pts[i + 1], h.pts[i + 2]).sub(HC); const L = v.length(); if (L < 1e-4) continue; d.copy(v).divideScalar(L); if (d.y > .5) r.push(L / skullT(hr, d)); }
-  const x = r.length ? (r.sort((a, b) => a - b), r[Math.floor(r.length * .7)]) : 0;
+  const far = new Float32Array(36);
+  for (const h of hair) for (let i = 0; i < h.pts.length; i += 3) {
+    v.set(h.pts[i], h.pts[i + 1], h.pts[i + 2]).sub(HC); const L = v.length(); if (L < 1e-4) continue; d.copy(v).divideScalar(L); if (d.y <= .5) continue;
+    const b = Math.min(2, Math.floor((d.y - .5) / .5 * 3)) * 12 + Math.floor((Math.atan2(d.x, d.z) + PI) / (2 * PI) * 12) % 12; far[b] = Math.max(far[b], L / skullT(hr, d));
+  }
+  const x = [...far].sort((a, b) => a - b)[18];
   let s = 1;
   for (const p of pieces) s = Math.max(s, 1 + Math.max(0, x - SHELL) * p.sk / p.near);
   s = Math.max(1, Math.min(s, 1.9));
