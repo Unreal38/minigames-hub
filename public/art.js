@@ -51,7 +51,7 @@ export function marbleArt() {
     <path d="M${x - r * .7} ${y + r * .3}q${r * .5} ${-r * .9} ${r * 1.3} ${-r * .8}" fill="none" stroke="#fff" stroke-width="${r * .22}" stroke-linecap="round" opacity=".7"/>
     <circle cx="${x - r * .34}" cy="${y - r * .38}" r="${r * .14}" fill="#fff" opacity=".85"/></g>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Three coloured marbles rolling down a ramp">
-  <rect width="320" height="150" fill="#3d1f33"/>
+  <rect width="320" height="150" fill="#bfe8ff"/><path d="M196 30l14-8 16 4 8 10-10 8h-24z" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" fill="#fff"/>
   <circle cx="40" cy="26" r="7" fill="#ffb547"/><circle cx="278" cy="36" r="6" fill="#ff8fab"/><circle cx="168" cy="16" r="5" fill="#7ed3b2"/>
   <path d="M-10 66L330 132v30H-10z" fill="#f6e3c5" stroke="${ink}" stroke-width="4"/>
   <path d="M-10 54L330 120" stroke="#e5543b" stroke-width="12" stroke-linecap="round"/><path d="M-10 54L330 120" stroke="${ink}" stroke-width="4" fill="none" transform="translate(0 -7)"/>
@@ -68,7 +68,7 @@ export function laddersArt() {
   }
   const rungs = [0, 1, 2, 3, 4, 5].map(i => { const t = (i + .5) / 6, x = 46 + t * 70, y = 108 - t * 84; return `<path d="M${x - 9} ${y - 5}L${x + 9} ${y + 5}" stroke="#f0c27a" stroke-width="4" stroke-linecap="round"/>`; }).join('');
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little board with a wooden ladder and a smiling green snake">
-  <rect width="320" height="150" fill="#3d1f33"/>
+  <rect width="320" height="150" fill="#bfe8ff"/><path d="M196 30l14-8 16 4 8 10-10 8h-24z" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" fill="#fff"/>
   <circle cx="30" cy="22" r="6" fill="#ffb547"/><circle cx="292" cy="28" r="7" fill="#ff8fab"/><circle cx="300" cy="120" r="5" fill="#7ed3b2"/>
   <g transform="translate(40 12) skewX(-8)">
     <rect x="-6" y="-6" width="284" height="132" rx="10" fill="#c4885a" stroke="${ink}" stroke-width="4"/>
@@ -118,7 +118,7 @@ export function ludoArt() {
   const yard = (x, y, c) => `<rect x="${x + 3}" y="${y + 3}" width="48" height="48" rx="5" fill="${c}" ${o}/><rect x="${x + 13}" y="${y + 13}" width="28" height="28" rx="3" fill="#fff4e2"/>`;
   const pawn = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" ${o}><path d="M-11 0h22v6h-22zM-7 0l4-16h6l4 16zM0-31l8 6-3 9h-10l-3-9z" fill="${c}"/></g>`;
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A Ludo board with coloured corners, chunky pawns and a die">
-  <rect width="320" height="150" fill="#3d1f33"/>
+  <rect width="320" height="150" fill="#bfe8ff"/><path d="M196 30l14-8 16 4 8 10-10 8h-24z" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" fill="#fff"/>
   <circle cx="26" cy="24" r="6" fill="#ffc93c"/><circle cx="298" cy="122" r="6" fill="#5fd08a"/><circle cx="290" cy="22" r="5" fill="#ff6b6b"/>
   <g transform="translate(92 6) rotate(-6 68 68)">
     <rect x="-5" y="-5" width="145" height="145" rx="9" fill="#7a4a2b" ${o}/>

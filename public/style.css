@@ -465,3 +465,121 @@ body:has(.lobby) .scorebtn { display: none; }
   .hubside .rktabs button { font-size: 15px; padding: 6px 12px; min-height: 40px; }
   .hubside .rk .main { font-size: 18px; } .hubside .rk .sub { font-size: 13px; }
 }
+
+/* ---------- sky look for the hub, waiting room and pop-ups (matches the 3D games: daytime sky, floating islands, cream stickers) ---------- */
+body.sky:not(.in-game) {
+  --sky1: #6fbdf2; --sky2: #bfe6ff; --sky3: #e3f5ff; --grass: #7cc35a; --earth: #c98a5a; --rock: #857a72;
+  --pan: #fff4e2; --pan2: #ffe9cf; --muted2: #8a6a5c; --edge: #e3c7ad; --tx: #3b2219; --tx2: #2f4a63; --chip: #fff; --you: #fff0c9; --glass: #ffffff4d;
+  background: linear-gradient(180deg, var(--sky1) 0, var(--sky2) 900px, var(--sky3) 1600px) fixed;
+  color: var(--tx); color-scheme: light; transition: background .4s;
+}
+body.sky:not(.in-game)::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .95;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='520'%3E%3Cg fill='%23ffffff'%3E%3Cpolygon points='60,120 110,82 170,90 210,60 280,78 320,118 300,140 80,140'/%3E%3Cpolygon points='520,300 560,270 620,276 650,250 720,262 760,300 740,320 540,320' opacity='.85'/%3E%3Cpolygon points='300,430 330,410 380,414 400,396 450,406 470,440 320,440' opacity='.7'/%3E%3C/g%3E%3Cg fill='%23d9effc'%3E%3Cpolygon points='80,140 300,140 320,118 260,132 150,128'/%3E%3Cpolygon points='540,320 740,320 760,300 700,312 600,310' opacity='.85'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1300' height='760'%3E%3Cg fill='%23ffffff' opacity='.6'%3E%3Cpolygon points='900,90 930,70 980,74 1000,56 1050,66 1075,96 920,96'/%3E%3Cpolygon points='160,560 190,540 240,546 262,528 310,540 330,574 180,574'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x; background-position: 0 40px, 0 140px; animation: skydrift 140s linear infinite; }
+@keyframes skydrift { to { background-position: 900px 40px, -1300px 140px; } }
+@media (prefers-reduced-motion: reduce) { body.sky:not(.in-game)::before { animation: none; } }
+body.sky:not(.in-game) .top { border-bottom: 0; }
+body.sky:not(.in-game) .brand, body.sky:not(.in-game) section h2, body.sky:not(.in-game) .sidehead h2 { color: #fff; paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink); text-shadow: 0 3px 0 var(--ink); letter-spacing: .5px; }
+body.sky:not(.in-game) .brand { -webkit-text-stroke-width: 5px; }
+body.sky:not(.in-game) .rk .who em { color: #d9532f; }
+body.sky:not(.in-game) .navl a { color: #fff; font-weight: 600; text-shadow: 0 2px 0 #3b221999; } body.sky:not(.in-game) .navl a:hover { color: #fff6a8; }
+body.sky:not(.in-game) .me { background: var(--pan); border-color: var(--tx); color: var(--tx); box-shadow: 0 4px 0 var(--ink); }
+body.sky:not(.in-game) .hero h1 { color: #fff; paint-order: stroke fill; -webkit-text-stroke: 7px var(--ink); text-shadow: 0 5px 0 var(--ink); letter-spacing: 1px; }
+body.sky:not(.in-game) .hero p { color: var(--tx2); font-weight: 600; }
+body.sky:not(.in-game) .codeform { background: var(--pan); border-color: var(--tx); box-shadow: 0 5px 0 var(--ink); } body.sky:not(.in-game) .codeform label { color: var(--tx); }
+body.sky:not(.in-game) .livestats { color: var(--tx2); } body.sky:not(.in-game) .livestats b { color: var(--tx); }
+body.sky:not(.in-game) .hero .art.sky3d { position: relative; min-height: 340px; }
+body.sky:not(.in-game) .hero3d { position: absolute; inset: -30px -20px -10px; width: calc(100% + 40px); height: calc(100% + 40px); display: block; cursor: pointer; touch-action: pan-y; }
+/* cream sticker panels */
+body.sky:not(.in-game) .mecard, body.sky:not(.in-game) .rkcard, body.sky:not(.in-game) .trow { background: var(--pan); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); color: var(--tx); }
+body.sky:not(.in-game) .rankname span, body.sky:not(.in-game) .xpnote, body.sky:not(.in-game) .acct, body.sky:not(.in-game) .stats span, body.sky:not(.in-game) .pergame span, body.sky:not(.in-game) .rknote, body.sky:not(.in-game) .trow .who span { color: var(--muted2); }
+body.sky:not(.in-game) .acct b { color: var(--tx); }
+body.sky:not(.in-game) .stats div { background: var(--pan2); border: 2px solid var(--edge); }
+body.sky:not(.in-game) .xpbar { background: var(--edge); }
+body.sky:not(.in-game) .rankicon { box-shadow: 0 4px 0 var(--ink); }
+body.sky:not(.in-game) .btn.ghost { color: var(--tx); border-color: var(--edge); } body.sky:not(.in-game) .btn.ghost:hover { background: #3b22190d; }
+body.sky:not(.in-game) .dots i { border-color: var(--tx); } body.sky:not(.in-game) .dots i.on { background: var(--ink); }
+body.sky:not(.in-game) .tcode { color: #d9532f; }
+body.sky:not(.in-game) .sidenote { color: var(--tx2); font-weight: 600; }
+body.sky:not(.in-game) .empty { border-color: #ffffffcc; color: var(--tx2); background: var(--glass); }
+body.sky:not(.in-game) .rktabs button { color: var(--tx); border-color: var(--edge); background: var(--chip); }
+body.sky:not(.in-game) .rktabs button[aria-selected=true] { border-color: var(--tx); background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+body.sky:not(.in-game) .rk li { background: var(--chip); border: 2px solid var(--edge); }
+body.sky:not(.in-game) .rk li.you { outline: 3px solid var(--ink); background: var(--you); border-color: transparent; }
+body.sky:not(.in-game) .rk .pos { color: #d9532f; } body.sky:not(.in-game) .rk .sub, body.sky:not(.in-game) .rk .who i { color: var(--muted2); } body.sky:not(.in-game) .rk .who i { border-color: var(--edge); }
+body.sky:not(.in-game) .rk li.gap { background: none; border: 0; }
+/* game cards float like little islands: a strip of grass and a rocky underside */
+body.sky:not(.in-game) .games { row-gap: 64px; padding-bottom: 30px; }
+body.sky:not(.in-game) .gcard { position: relative; overflow: visible; box-shadow: 0 6px 0 var(--ink), 0 14px 0 var(--grass), 0 17px 0 var(--ink); animation: cardbob 5s ease-in-out infinite; }
+body.sky:not(.in-game) .gcard:nth-child(2n) { animation-delay: -1.6s; } body.sky:not(.in-game) .gcard:nth-child(3n) { animation-delay: -3.1s; }
+body.sky:not(.in-game) .gcard .pic { border-radius: 19px 19px 0 0; overflow: hidden; }
+body.sky:not(.in-game) .gcard::after { content: ''; position: absolute; left: 14%; right: 14%; top: calc(100% + 17px); height: 46px; z-index: -1;
+  background: linear-gradient(180deg, var(--earth) 0 38%, var(--rock) 38%); clip-path: polygon(0 0, 100% 0, 86% 45%, 74% 52%, 62% 100%, 48% 70%, 36% 82%, 22% 46%, 10% 40%); filter: drop-shadow(0 0 0 var(--ink)); }
+body.sky:not(.in-game) .gcard:hover { transform: translateY(-6px); }
+@keyframes cardbob { 50% { translate: 0 -5px; } }
+@media (prefers-reduced-motion: reduce) { body.sky:not(.in-game) .gcard { animation: none; } }
+body.sky:not(.in-game) .soon { border-color: #ffffffcc; background: var(--glass); color: var(--tx2); } body.sky:not(.in-game) .soon h3 { color: var(--tx); }
+body.sky:not(.in-game) footer { color: #4d6a84; border-top-color: #ffffff99; }
+
+/* the pieces at the edges of the hub look up at the sky too */
+body.sky:not(.in-game) .gcard .pic.marblepic, body.sky:not(.in-game) .gcard .pic.ladderpic, body.sky:not(.in-game) .gcard .pic.ludopic { background: #bfe8ff; }
+body.sky:not(.in-game) .round { background: var(--pan); border-color: var(--tx); color: var(--tx); }
+body.sky:not(.in-game) .chip { background: var(--pan); border-color: var(--tx); color: var(--tx); }
+/* waiting room */
+body.sky:not(.in-game) .lobby aside { background: var(--pan); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); color: var(--tx); }
+body.sky:not(.in-game) .crumb { color: var(--tx2); }
+body.sky:not(.in-game) .lobby .main > .row span, body.sky:not(.in-game) .lobby .main [style*="color:var(--muted)"] { color: var(--tx2) !important; }
+body.sky:not(.in-game) .codetiles span { box-shadow: 0 6px 0 var(--ink); }
+body.sky:not(.in-game) .seats { row-gap: 40px; padding-bottom: 18px; }
+body.sky:not(.in-game) .seat.full { position: relative; box-shadow: 0 6px 0 var(--ink), 0 12px 0 var(--grass), 0 15px 0 var(--ink); }
+body.sky:not(.in-game) .seat.full::after { content: ''; position: absolute; left: 22%; right: 22%; top: calc(100% + 15px); height: 26px; z-index: -1;
+  background: linear-gradient(180deg, var(--earth) 0 40%, var(--rock) 40%); clip-path: polygon(0 0, 100% 0, 84% 50%, 68% 100%, 50% 62%, 32% 90%, 14% 44%); }
+body.sky:not(.in-game) .seat.full { background: var(--pan); color: var(--tx); }
+body.sky:not(.in-game) .seat.full span { color: var(--muted2); }
+body.sky:not(.in-game) .codetiles span { color: var(--ink) !important; background: #fff4e2; }
+body.sky:not(.in-game) .seat.full .lv, body.sky:not(.in-game) .rk .lv, body.sky:not(.in-game) .me .lv { color: var(--ink); }
+body.sky:not(.in-game) .seat.open { border-color: #ffffffcc; background: var(--glass); color: var(--tx2); }
+body.sky:not(.in-game) .seat.open b { color: var(--tx); }
+body.sky:not(.in-game) .pills button { color: var(--tx); border-color: var(--edge); background: var(--chip); }
+body.sky:not(.in-game) .pills button[aria-pressed=true] { border-color: var(--tx); background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+body.sky:not(.in-game) .toggle input { background: var(--edge); }
+body.sky:not(.in-game) .howto { background: var(--pan2); color: var(--tx); border: 2px solid var(--edge); }
+body.sky:not(.in-game) .howto b { color: #d9532f; }
+/* pop-ups, toasts and chat: cream stickers with ink shadows on a soft blue veil */
+body.sky:not(.in-game) .modal { background: var(--tx2)99; }
+body.sky:not(.in-game) .sheet, body.sky:not(.in-game) .toast, body.sky:not(.in-game) .chatpanel, body.sky:not(.in-game) .chatpeek .cl p { box-shadow: 0 7px 0 var(--ink); }
+body.sky:not(.in-game) .floaty { filter: drop-shadow(0 4px 0 #3b221955); }
+body.sky:not(.in-game) .rktabs button[aria-selected=true], body.sky:not(.in-game) .pills button[aria-pressed=true] { color: var(--ink); }
+body.sky:not(.in-game) .boardnote { color: var(--muted2); }
+body.sky:not(.in-game) .howto a { color: #d9532f; }
+body.sky:not(.in-game) .btn.ghost { color: var(--tx); }
+body.sky:not(.in-game) .lobby .opt b, body.sky:not(.in-game) .toggle { color: var(--tx); }
+
+/* ---------- night: the same world after dark (the day/night switch in the top bar) ---------- */
+body.sky.night:not(.in-game) {
+  --sky1: #160d2e; --sky2: #2c1846; --sky3: #4a2652;
+  --pan: #3d1f33; --pan2: #2a1422; --muted2: #e0bccd; --edge: #6b3d58; --tx: #fff4e2; --tx2: #e7d3f0; --chip: #2a1422; --you: #160a12; --glass: #ffffff12;
+  color-scheme: dark;
+}
+body.sky.night:not(.in-game)::before { opacity: .16; }
+body.sky.night:not(.in-game)::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(1.6px 1.6px at 20px 30px, #fff, transparent), radial-gradient(1.2px 1.2px at 140px 90px, #fff9, transparent), radial-gradient(2px 2px at 260px 50px, #ffe9a8, transparent), radial-gradient(1.2px 1.2px at 330px 160px, #fffc, transparent), radial-gradient(1.6px 1.6px at 90px 200px, #fff8, transparent), radial-gradient(1px 1px at 210px 240px, #fff, transparent);
+  background-size: 380px 280px; animation: twinkle 4s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: .55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { body.sky.night:not(.in-game)::after { animation: none; } }
+body.sky.night:not(.in-game) .navl a { text-shadow: 0 2px 0 #000a; }
+body.sky.night:not(.in-game) .tcode, body.sky.night:not(.in-game) .rk .pos, body.sky.night:not(.in-game) .rk .who em { color: var(--lantern); }
+body.sky.night:not(.in-game) .rk li.you { outline-color: var(--lantern); }
+body.sky.night:not(.in-game) .dots i { border-color: var(--tx); } body.sky.night:not(.in-game) .dots i.on { background: var(--tx); }
+body.sky.night:not(.in-game) .modal { background: #0b061899; }
+body.sky.night:not(.in-game) .gcard .pic.marblepic, body.sky.night:not(.in-game) .gcard .pic.ladderpic, body.sky.night:not(.in-game) .gcard .pic.ludopic { background: #2c1846; }
+body.sky.night:not(.in-game) .gcard .pic svg > rect:first-child { fill: #2c1846; }
+body.sky.night:not(.in-game) .gcard .pic svg > rect:first-child + path, body.sky.night:not(.in-game) .gcard .pic svg > rect:first-child + path + path { opacity: .18; }
+body.sky.night:not(.in-game) .howto a { color: var(--lantern); }
+/* the switch itself */
+.themebtn { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; border-radius: 50%; font-size: 22px; line-height: 1; cursor: pointer;
+  background: var(--plum2); border: 3px solid var(--line); color: var(--cream); transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); }
+.themebtn:hover { transform: rotate(-14deg) scale(1.06); } .themebtn:active { transform: scale(.9); }
+body.sky:not(.in-game) .themebtn { background: var(--pan); border-color: var(--ink); box-shadow: 0 4px 0 var(--ink); }
