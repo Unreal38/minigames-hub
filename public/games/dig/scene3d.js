@@ -10,6 +10,8 @@ import { homeOf as homeAt, standOf } from './rules.js';
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TOP = .34;                 // grass tile height
 const AV = .42;                  // avatar scale
+const FEET = .76 * AV;           // a standing avatar's feet are this far below its middle
+const LAWN = -.22;               // the island's grass, a little lower than the plot
 const FOOT = .3;                 // how far an avatar's body reaches from its middle
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const GEM_COL = { 11: '#4db5ff', 12: '#ff5c8a', 13: '#ffc93c' };
@@ -369,8 +371,8 @@ export function createScene(canvas, { onFrame } = {}) {
         else face(Math.atan2(-s.g.position.x, -s.g.position.z), 5);
       }
       { // stand on whatever is highest under your feet, so nobody sinks into a grass tile they are brushing past
-        let top = 0;
-        for (let k = 0; k < 5 && !top; k++) {
+        let top = Math.abs(s.g.position.x) < w / 2 + .45 && Math.abs(s.g.position.z) < h / 2 + .45 ? 0 : LAWN;
+        for (let k = 0; k < 5 && top < TOP; k++) {
           const gx = Math.round(s.g.position.x + (k === 1 ? FOOT : k === 2 ? -FOOT : 0) + (w - 1) / 2), gz = Math.round(s.g.position.z + (k === 3 ? FOOT : k === 4 ? -FOOT : 0) + (h - 1) / 2);
           const cell = gx >= 0 && gz >= 0 && gx < w && gz < h ? gz * w + gx : -1;
           if (cell >= 0 && shownHidden[cell] && !(pending?.landed && pending.i === cell)) top = TOP;
@@ -378,7 +380,7 @@ export function createScene(canvas, { onFrame } = {}) {
         s.y += (top - s.y) * Math.min(1, rdt * 16); s.g.position.y = s.y + (walking ? Math.abs(Math.sin(s.ph)) * .04 : 0);
       }
       s.hop = Math.max(0, s.hop - dt * 1.6); s.nod = Math.max(0, s.nod - dt * .8); s.knock = Math.max(0, (s.knock || 0) - dt * 1.5);
-      s.av.position.y = Math.abs(Math.sin(s.hop * Math.PI * 2)) * .35 * s.hop;
+      s.av.position.y = FEET + Math.abs(Math.sin(s.hop * Math.PI * 2)) * .35 * s.hop;
       s.av.rotation.x = -Math.sin((s.knock || 0) * Math.PI) * .5;
       animateAvatar(s.av, T, { seed: i, active: s.active && !walking, hop: s.hop, nod: Math.sin(Math.min(1, s.nod) * Math.PI) * .9 });
       walkAvatar(s.av, s.ph, walking);
@@ -412,7 +414,7 @@ export function createScene(canvas, { onFrame } = {}) {
           else if (c >= .26 && !pending.fx) { pfx.puff(tilePos(pending.i, .1, tv), { n: 7, color: ['#a8744a', '#d6a46c', '#7cc45a'], size: .24, speed: 1.8 }); shake.kick(.025); }
         }
       } else { s.digStage = -1; for (const a of arms) a.rotation.z = a.userData.rz; }
-      s.ring.position.set(s.g.position.x, .05, s.g.position.z);
+      s.ring.position.set(s.g.position.x, s.y + .05, s.g.position.z);
       s.ring.material.opacity += ((s.active && S.stage === 'turn' ? .9 : 0) - s.ring.material.opacity) * .15;
       s.ring.scale.setScalar(1 + Math.sin(T * 4) * .05);
     });
@@ -425,7 +427,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
     seats.forEach((s, i) => {
       const tg = info.tags[i] ||= { x: 0, y: 0 };
-      tv.copy(s.g.position); tv.y += AV * 2.75 + s.av.position.y; tv.project(camera); tg.x = (tv.x + 1) / 2 * W; tg.y = (1 - tv.y) / 2 * H;
+      tv.copy(s.g.position); tv.y += AV * 2.75 + s.av.position.y - FEET * .5; tv.project(camera); tg.x = (tv.x + 1) / 2 * W; tg.y = (1 - tv.y) / 2 * H;
     });
     info.tags.length = seats.length;
     if (pending) { tilePos(pending.i, .9, tv).project(camera); info.dig.x = (tv.x + 1) / 2 * W; info.dig.y = (1 - tv.y) / 2 * H; }
