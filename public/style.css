@@ -315,6 +315,8 @@ body:has(.lobby) .scorebtn { display: none; }
 .gcard .pic.ludopic svg { width: 100%; height: 100%; display: block; }
 .gcard .pic.farmpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.farmpic svg { width: 100%; height: 100%; display: block; }
+.gcard .pic.stackpic { background: #bfe8ff; padding: 0; }
+.gcard .pic.stackpic svg { width: 100%; height: 100%; display: block; }
 
 /* ---------- avatar creator: 3D preview on the left, tabs of options on the right ---------- */
 .avatar { background-size: cover; background-position: center; }
