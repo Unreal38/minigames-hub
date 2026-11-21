@@ -18,6 +18,24 @@ for (let i = 0; i < HOLES.length; i++) for (const mirror of [false, true]) {
     if (r.sunk && Math.hypot(r.x - H.cup.x, r.z - H.cup.z) > .01) fail('sunk ball is not in the cup');
   }
 }
+// random holes: always playable, with a sensible par, and not all alike
+{
+  const names = new Set(), used = [];
+  for (let k = 0; k < 25; k++) {
+    const spec = golf.makeHole(used), H = buildHole(spec);
+    if (!H.tee || !H.cup || spec.par < 2 || spec.par > 5) fail('random hole is broken');
+    for (const row of H.t) for (const T of row) if (T && H.dist[T.r * H.cols + T.c] > 1e8) fail('random hole: a tile cannot reach the cup');
+    names.add(spec.name);
+  }
+  if (names.size < 25) fail('random holes repeat a name in one round');
+}
+// a ball going far too fast skips over the cup instead of dropping in
+{
+  const H = buildHole(0), r = simulate(H, H.cup.x, H.cup.z + 1.5, 0, 1, 0, 3);
+  if (r.sunk && r.path.length < 30) fail('a full power putt dropped straight in');
+  const slow = simulate(H, H.cup.x, H.cup.z + 1.5, 0, .2, 0, 3);
+  if (!slow.sunk) fail('a gentle straight putt did not drop');
+}
 // the same shot always gives the same path
 {
   const H = buildHole(6), a = simulate(H, H.tee.x, H.tee.z, .2, .8, 1, 5), b = simulate(H, H.tee.x, H.tee.z, .2, .8, 1, 5);
@@ -76,9 +94,11 @@ function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
     return G;
   } finally { Date.now = realNow; }
 }
-const g1 = play({ holes: 3, seats: 4, bets: 'on' });
+const g1 = play({ holes: 3, seats: 4, bets: 'on', course: 'classic' });
+const g3 = play({ holes: 3, seats: 4, bets: 'on' });
+if (g3.opts.course !== 'random' || g3.order.some(o => typeof o !== 'object')) fail('default course is not random');
 console.log('3 holes with bets: winner', g1.seats[g1.win].name, 'totals', g1.res.totals.join(' '));
-const g2 = play({ holes: 9, seats: 6, bets: 'off', bots: 'sharp' });
+const g2 = play({ holes: 9, seats: 6, bets: 'off', bots: 'sharp', course: 'classic' });
 if (g2.wallet['h:a'] !== 100) fail('coins moved with bets off');
 console.log('9 holes, sharp bots: winner', g2.seats[g2.win].name, 'totals', g2.res.totals.join(' '), 'par', g2.res.par);
 // bots finish holes in a sensible number of strokes
@@ -111,7 +131,8 @@ await wait(300);
 if (room?.game !== 'golf' || room.opts.holes !== 3 || room.opts.seats !== 6 || 'timer' in room.opts) bail('room options wrong');
 send({ t: 'opts', opts: { seats: 2 } }); await wait(200);
 if (room.opts.seats !== 2 || room.opts.holes !== 3) bail('option change lost');
-send({ t: 'start' }); await wait(300);
+send({ t: 'start' });
+for (let i = 0; i < 40 && state?.game !== 'golf'; i++) await wait(250); // a random hole takes a moment to make
 if (state?.game !== 'golf' || state.seats.length !== 2 || state.stage !== 'bet' || state.holes !== 3) bail('game did not start');
 send({ t: 'act', a: { t: 'skip' } });
 for (let i = 0; i < 20 && state.stage !== 'play'; i++) await wait(300);

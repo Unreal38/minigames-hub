@@ -3,6 +3,7 @@
 // Before each hole players may bet account coins on who will win it (meta.bank fills in the balances).
 import { HOLES, buildHole, simulate, spotScore, MAX_STROKES, CAP_SCORE } from '../../public/games/golf/course.js';
 import { randomAv } from '../../public/avatar.js';
+import { genSpec } from './golfgen.js';
 
 export const meta = { id: 'golf', name: 'Mini Golf Party', minPlayers: 1, maxPlayers: 6, bank: true, joinAt: 'hole' };
 
@@ -10,7 +11,7 @@ const BOT_NAMES = ['Bogey', 'Divot', 'Putters', 'Mulligan', 'Chip', 'Birdie', 'C
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 export const STAKES = [10, 25, 50];
 const NOISE = { chill: [.25, .34], sharp: [.16, .22] }; // how much a bot's aim (radians) and power wobble
-const BET_MS = 15_000, LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS = 350, DONE_MS = 6500, SETTLE_MS = 900;
+const BET_MS = 15_000, LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS = 500, DONE_MS = 6500, SETTLE_MS = 900;
 
 export function cleanOpts(o = {}) {
   return {
@@ -18,6 +19,7 @@ export function cleanOpts(o = {}) {
     seats: [2, 4, 6].includes(+o.seats) ? +o.seats : 4,
     bets: o.bets === 'off' ? 'off' : 'on',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
+    course: o.course === 'classic' ? 'classic' : 'random',
   };
 }
 
@@ -33,6 +35,8 @@ export function create(players, optsIn = {}, prev = null) {
   // which holes: all nine in order, or a random handful that still starts easy and ends on a harder one
   let order = HOLES.map((_, i) => i);
   if (opts.holes < order.length) order = order.sort(() => Math.random() - .5).slice(0, opts.holes).sort((a, b) => a - b);
+  // a random course is made fresh for every round
+  if (opts.course === 'random') order = order.map(() => null); // each one is made when the round gets to it
   const wallet = {};
   for (const s of seats) wallet[s.wk] = s.human ? Math.max(0, prev?.wallet?.[s.wk] | 0) : 0;
   const G = {
@@ -54,7 +58,9 @@ const betting = G => G.opts.bets === 'on' && G.seats.length > 1;
 function nextHole(G, now) {
   G.hi++;
   seatQueued(G);
+  if (G.order[G.hi] == null) { G.order[G.hi] = makeHole(G.names ||= []); G.mirror[G.hi] = false; }
   G.H = buildHole(G.order[G.hi], G.mirror[G.hi]);
+  G.H.key = G.gid + ':' + G.hi;
   G.balls = G.seats.map(() => ({ x: G.H.tee.x, z: G.H.tee.z, strokes: 0, sunk: 0, out: false, busy: 0, shot: null, think: 0 }));
   // someone who cannot afford the smallest stake has nothing to decide, so betting does not wait for them
   G.bets = G.seats.map(x => (x.human && (G.wallet[x.wk] || 0) < STAKES[0] ? 'skip' : null));
@@ -100,7 +106,7 @@ function shoot(G, s, ang, pow, now, auto = false) {
   const from = { x: b.x, z: b.z };
   if (r.water) { b.strokes = Math.min(MAX_STROKES, b.strokes + 1); } // a splash costs a stroke and the ball goes back
   else { b.x = r.x; b.z = r.z; }
-  b.busy = now + r.ms + (r.sunk ? 500 : r.water ? 1100 : 250);
+  b.busy = now + r.ms + (r.sunk ? 800 : r.water ? 1350 : 500); // the clients show a short backswing before the ball sets off
   if (r.sunk) b.sunk = now + r.ms;
   else if (b.strokes >= MAX_STROKES) b.out = true;
   b.shot = { n: ++G.shotN, path: r.path, fx: r.fx, ms: r.ms, at: now, sunk: r.sunk, water: r.water, x0: from.x, z0: from.z, ang, pow };
@@ -109,27 +115,71 @@ function shoot(G, s, ang, pow, now, auto = false) {
 }
 
 // A bot tries a fan of shots with the real physics and takes the best one, with a wobble in its hands.
-function botShot(G, s, now, late = false) {
-  // a putt made for someone who ran out of time is a clumsy one, so waiting it out never pays
-  const b = G.balls[s], H = G.H, sharp = !late && G.opts.bots === 'sharp', t0 = (now - G.holeAt) / 1000;
-  const [na, np] = late ? [.45, .45] : G._noise || (sharp ? NOISE.sharp : NOISE.chill);
-  const toCup = Math.atan2(H.cup.x - b.x, -(H.cup.z - b.z)), cands = [];
+const parOf = i => (i == null ? 0 : typeof i === 'object' ? i : HOLES[i]).par || 0;
+
+// The best putt from (x, z): try a fan of shots with the real physics, then of the best few take the one that still
+// works out if the hands wobble by `na` radians (so bots stay clear of the water).
+function planShot(H, x, z, t0, sharp, na) {
+  const toCup = Math.atan2(H.cup.x - x, -(H.cup.z - z)), cands = [];
   const score = (ang, pow) => {
-    const r = simulate(H, b.x, b.z, ang, pow, t0, 7);
+    const r = simulate(H, x, z, ang, pow, t0, 7);
     return r.sunk ? -100 + pow : r.water ? 60 : spotScore(H, r.x, r.z);
   };
   const NA = sharp ? 28 : 12;
   for (let a = 0; a < NA; a++) for (const p of sharp ? [.18, .36, .56, .8] : [.22, .45, .7]) { const ang = toCup + a / NA * Math.PI * 2; cands.push({ ang, pow: p, sc: score(ang, p) }); }
   cands.sort((x, y) => x.sc - y.sc);
   if (sharp) { const c = cands[0]; for (const da of [-.06, -.03, .03, .06]) for (const dp of [-.08, 0, .08]) { const pow = Math.max(.05, Math.min(1, c.pow + dp)); cands.push({ ang: c.ang + da, pow, sc: score(c.ang + da, pow) }); } cands.sort((x, y) => x.sc - y.sc); }
-  // of the best few, take the one that still works out if the hands wobble (so bots stay clear of the water)
   let best = null;
   for (const c of cands.slice(0, sharp ? 6 : 14)) {
     const worst = Math.max(Math.min(c.sc, 0) * .3 + Math.max(c.sc, 0), score(c.ang - na * .6, c.pow), score(c.ang + na * .6, c.pow)) + c.sc * .5;
     if (!best || worst < best.w) best = { ...c, w: worst };
   }
+  return best;
+}
+
+// A bot's putt: the planned shot with a wobble in its hands.
+function botShot(G, s, now, late = false) {
+  // a putt made for someone who ran out of time is a clumsy one, so waiting it out never pays
+  const b = G.balls[s], sharp = !late && G.opts.bots === 'sharp';
+  const [na, np] = late ? [.45, .45] : G._noise || (sharp ? NOISE.sharp : NOISE.chill);
+  const best = planShot(G.H, b.x, b.z, (now - G.holeAt) / 1000, sharp, na);
   const g = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
   return shoot(G, s, best.ang + g() * na, Math.max(.05, Math.min(1, best.pow * (1 + g() * np))), now, true);
+}
+
+// A fresh random hole that can really be played: every tile reaches the cup, and a steady hand gets round in a few
+// putts. Par is two more than that steady round. `used` keeps the names in a round different.
+export function makeHole(used = []) {
+  for (let n = 0; n < 60; n++) {
+    const spec = genSpec();
+    if (used.includes(spec.name)) continue;
+    let H; try { H = buildHole(spec); } catch { continue; }
+    if (!H.tee || !H.cup || H.rows > 15 || H.cols < 3) continue;
+    let ok = true;
+    for (const row of H.t) for (const T of row) if (T && H.dist[T.r * H.cols + T.c] > 1e8) ok = false;
+    if (!ok) continue;
+    let x = H.tee.x, z = H.tee.z, t = 2, k = 0, sunk = false;
+    while (k < 5 && !sunk) {
+      const c = planShot(H, x, z, t, true, .16), r = simulate(H, x, z, c.ang, c.pow, t, 7);
+      k++; t += r.ms / 1000 + 4;
+      if (r.sunk) sunk = true; else if (r.water) k++; else { x = r.x; z = r.z; }
+    }
+    if (!sunk || k > 3) continue;
+    // and a wobbly hand must get round too, or the hole is just mean
+    const g = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+    let n2 = 0; x = H.tee.x; z = H.tee.z; t = 2; sunk = false;
+    while (n2 < MAX_STROKES && !sunk) {
+      const c = planShot(H, x, z, t, false, .25), r = simulate(H, x, z, c.ang + g() * .25, Math.max(.05, Math.min(1, c.pow * (1 + g() * .34))), t, 7);
+      n2++; t += r.ms / 1000 + 4;
+      if (r.sunk) sunk = true; else if (r.water) n2++; else { x = r.x; z = r.z; }
+    }
+    if (!sunk || n2 > k + 4) continue;
+    spec.par = k === 1 && H.rows <= 10 ? 2 : k + 2; // a steady hand needs k putts; ordinary hands need a couple more
+    used.push(spec.name);
+    return spec;
+  }
+  const i = Math.floor(Math.random() * HOLES.length); // never happens in practice: fall back to a hand-made hole
+  return { ...HOLES[i] };
 }
 
 function endHole(G, now) {
@@ -155,7 +205,7 @@ const totalOf = (G, i) => G.cards[i].reduce((a, b) => a + b, 0);
 function finish(G, now) {
   const order = G.seats.map((_, i) => i).sort((a, b) => totalOf(G, a) - totalOf(G, b) || G.wins[b] - G.wins[a] || a - b);
   G.ph = 'end'; G.stage = 'end'; G.win = order[0]; G.endAt = now;
-  G.res = { order, totals: G.seats.map((_, i) => totalOf(G, i)), par: G.order.reduce((a, i) => a + HOLES[i].par, 0) };
+  G.res = { order, totals: G.seats.map((_, i) => totalOf(G, i)), par: G.order.reduce((a, i) => a + parOf(i), 0) };
   pushEv(G, { t: 'end', w: G.win });
 }
 
@@ -242,8 +292,8 @@ export function view(G, s) {
   const now = Date.now();
   return {
     game: 'golf', ph: G.ph, stage: G.stage, gid: G.gid, me: s, hole: G.hi + 1, holes: G.order.length,
-    hdef: { i: G.order[G.hi], mirror: G.mirror[G.hi] }, par: G.H.par, name: G.H.name,
-    pars: G.order.map(i => HOLES[i].par), left: Math.max(0, G.stageEnd - now), clock: G.stage === 'play' ? now - G.holeAt : 0,
+    hdef: { key: G.H.key, i: G.order[G.hi], mirror: G.mirror[G.hi] }, par: G.H.par, name: G.H.name,
+    pars: G.order.filter(i => i != null).map(parOf), left: Math.max(0, G.stageEnd - now), clock: G.stage === 'play' ? now - G.holeAt : 0,
     bets: betting(G), mult: G.seats.length, max: MAX_STROKES, cap: CAP_SCORE,
     turn: G.stage === 'play' ? G.turn : -1, tin: G.stage === 'play' ? Math.max(0, G.turnFrom - now) : 0,
     seats: G.seats.map((x, i) => {

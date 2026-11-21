@@ -102,7 +102,7 @@ export function mount(app, ctx) {
     if (!S) return;
     const mine = c.s === S.me;
     if (c.k === 'putt') { if (mine) sfx.place(); else sfx.tick(); }
-    else if (c.k === 'hit') { if (mine) (c.kind === 'p' ? sfx.pop : sfx.tick)(); }
+    else if (c.k === 'hit') { if (c.kind === 'c') { sfx.pop(); if (mine) big('Too fast!', 'It skipped right over the hole', 1500); } else if (mine) (c.kind === 'p' ? sfx.pop : sfx.tick)(); }
     else if (c.k === 'water') { sfx.plop(); if (mine) { big('Splash!', 'One stroke, and back you go', 1500); sfx.bad(); } }
     else if (c.k === 'sunk') {
       const p = S.seats[c.s]; if (!p) return;
