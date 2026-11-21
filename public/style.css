@@ -678,3 +678,39 @@ body.sky.night:not(.in-game) .gcard .pic.marblepic, body.sky.night:not(.in-game)
 body.sky.night:not(.in-game) .gcard .pic.golfpic, body.sky.night:not(.in-game) .gcard .pic.farmpic, body.sky.night:not(.in-game) .gcard .pic.stackpic,
 body.sky.night:not(.in-game) .gcard .pic.dicepic, body.sky.night:not(.in-game) .gcard .pic.kitchenpic, body.sky.night:not(.in-game) .gcard .pic.digpic { background: #2b2d6e; }
 body.sky.night:not(.in-game) .gcard .pic:not([class*="pic "]) { background: #b8442f; }
+
+/* ---------- hub chat (left column, under open tables) ---------- */
+#hubchat { margin-top: 28px; }
+.hccard { display: flex; flex-direction: column; background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); overflow: hidden; }
+.hclog { height: 340px; overflow-y: auto; overscroll-behavior: contain; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.hcl { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 8px; padding: 4px 26px 2px 2px; border-radius: 12px; }
+.hcl:not(.cont) { margin-top: 8px; } .hcl:first-child { margin-top: 0; }
+.hcl:hover { background: var(--glass, #ffffff12); }
+.hcav .avatar { border-width: 2.5px; }
+.hcmeta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; min-width: 0; }
+.hcname { font-family: var(--fd); font-weight: 600; font-size: 15px; color: #c2492b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.hcl.own .hcname { color: #2f7d4f; }
+.hcmeta .lv { font-size: 11px; padding: 1px 6px; }
+.hcmeta time { font-size: 12px; color: var(--muted2, var(--muted)); font-variant-numeric: tabular-nums; }
+.hcl p { margin: 1px 0 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; color: var(--tx, var(--cream)); }
+.hcdel { position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; border: 0; border-radius: 8px; background: transparent; color: var(--muted2, var(--muted)); font-size: 18px; line-height: 1; cursor: pointer; opacity: 0; }
+.hcl:hover .hcdel, .hcdel:focus-visible { opacity: 1; } .hcdel:hover { background: var(--chip, #0002); color: var(--tx); }
+@media (hover: none) { .hcdel { opacity: .6; } }
+.hcempty { margin: auto; text-align: center; padding: 12px; font-size: 15px; color: var(--muted2, var(--muted)); }
+.hcfoot { border-top: 3px solid var(--ink); background: var(--pan2, var(--plum)); }
+.hcfoot:empty { display: none; }
+.hcform { display: flex; gap: 6px; padding: 8px; }
+.hcform .field { flex: 1; min-width: 0; min-height: 44px; padding: 6px 12px; font-size: 16px; font-family: inherit; font-weight: 600; background: var(--chip, #fff); color: var(--tx, var(--ink)); border-color: var(--edge, var(--ink)); }
+.hcform .field::placeholder { color: var(--muted2, #8a6a5c); opacity: .85; }
+.hcform .btn { min-height: 44px; padding: 6px 14px; box-shadow: 0 3px 0 var(--ink); }
+.hcguest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--tx2, var(--cream)); }
+.hcguest span { flex: 1 1 100%; }
+body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:not(.in-game) .hcl.own .hcname { color: #8fe3b0; }
+@media (min-width: 1300px) {
+  .hubside.left { height: calc(100vh - 110px); } /* the chat fills what the table list leaves, and its send box is on screen without scrolling */
+  .hubside.left section#tables { flex: 0 1 auto; max-height: 44%; }
+  .hubside.left section#hubchat { flex: 1 1 0; min-height: 300px; margin-top: 22px; }
+  .hubside.left .hccard { flex: 1; min-height: 0; }
+  .hubside.left .hclog { height: auto; flex: 1; min-height: 0; }
+}
+@media (max-width: 600px) { .hclog { height: 300px; } }
