@@ -418,6 +418,24 @@ function setNight(on, save) {
   document.querySelectorAll('.themebtn').forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? 'Switch to day' : 'Switch to night'; });
   heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {});
 }
+// The switch animates: night (or day) spreads out in a circle from the button where the browser can do
+// view transitions, and colours fade across everywhere else. Reduced motion gets an instant switch.
+function switchTheme(btn) {
+  const on = !isNight();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return setNight(on, true);
+  const r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const far = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  if (document.startViewTransition) {
+    const vt = document.startViewTransition(() => setNight(on, true));
+    vt.ready.then(() => document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${far}px at ${x}px ${y}px)`] },
+      { duration: 750, easing: 'cubic-bezier(.4, 0, .2, 1)', pseudoElement: '::view-transition-new(root)' })).catch(() => {});
+    return;
+  }
+  document.body.classList.add('theming');
+  setNight(on, true);
+  clearTimeout(switchTheme.t); switchTheme.t = setTimeout(() => document.body.classList.remove('theming'), 700);
+}
 { const t = LS.get('ct_theme', ''); setNight(t ? t === 'night' : matchMedia('(prefers-color-scheme: dark)').matches, false); }
 
 const topbar = () => `<header class="top">
@@ -968,7 +986,7 @@ $app.addEventListener('click', e => {
     const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
-  else if (act === 'theme') { setNight(!isNight(), true); sfx.click(); }
+  else if (act === 'theme') { switchTheme(b); sfx.click(); }
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });

@@ -595,3 +595,10 @@ body.sky:not(.in-game) .themebtn { background: var(--pan); border-color: var(--i
 .gcard .body > .row:first-child h3 { flex: 1 1 auto; min-width: 0; font-size: clamp(20px, 1.6vw + 8px, 26px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gcard .body > .row:first-child .tag { flex: none; font-size: 13px; padding: 3px 8px; }
 .gcard .body > .row:last-child { margin-top: auto; padding-top: 4px; }
+/* day/night switch animation: the circle reveal is drawn by the view transition, so turn off its default crossfade */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+/* browsers without view transitions: colours fade across instead */
+body.theming, body.theming * { transition: background-color .6s ease, color .6s ease, border-color .6s ease, box-shadow .6s ease, fill .6s ease !important; }
+body.theming::before, body.theming::after { transition: opacity .6s ease !important; }
+.themebtn { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1); }
+body.night .themebtn { transform: rotate(360deg); }
