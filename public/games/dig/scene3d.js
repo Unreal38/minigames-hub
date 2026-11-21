@@ -12,6 +12,7 @@ const TOP = .34;                 // grass tile height
 const AV = 1;                    // avatar scale (animateAvatar sets the avatar's own scale, so it has to stay 1 without a wrapper)
 const FEET = .76 * AV;           // a standing avatar's feet are this far below its middle
 const LAWN = -.22;               // the island's grass, a little lower than the plot
+const SPADE = 1.15;              // from the blade's tip to the hands
 const FOOT = .4;                 // how far an avatar's body reaches from its middle
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const GEM_COL = { 11: '#4db5ff', 12: '#ff5c8a', 13: '#ffc93c' };
@@ -180,7 +181,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function makeShovel() {
     const g = new THREE.Group();
     const handle = new THREE.Mesh(shovelGeo[0], shovelMats[0]), blade = new THREE.Mesh(shovelGeo[1], shovelMats[1]), tee = new THREE.Mesh(shovelGeo[2], shovelMats[0]);
-    handle.position.y = .36;
+    handle.position.y = .36; handle.scale.y = SPADE - .36 + .22; tee.position.y = .36 + handle.scale.y;
     for (const m of [handle, blade, tee]) { const o = new THREE.Mesh(m.geometry, inkMat); o.scale.set(1.5, 1.04, 1.5); if (m !== handle) o.scale.setScalar(1.14); m.add(o); m.castShadow = true; g.add(m); }
     g.userData = { handle, tee }; scene.add(g); return g;
   }
@@ -401,11 +402,12 @@ export function createScene(canvas, { onFrame } = {}) {
         grip.set(0, 0, 0); for (const a of arms) { hand.set(0, a.userData.hand, 0); a.localToWorld(hand); grip.add(hand); } grip.multiplyScalar(.5);
         // a rigid shovel gripped part way up the handle. The blade points down at the tile ahead, drives in, then swings up and out sideways
         const rest = 1 - push;
-        dirV.set(toss * .95 * side, -1 + rest * .25 + toss * .95, .75 + rest * .35 - toss * .2).normalize();
-        const reach = (grip.y - (pending.landed ? .08 : TOP - .1)) / Math.max(.3, -dirV.y), len = Math.max(.8, Math.min(1.6, 1.05 + (reach - 1.05) * push)); // long enough to reach the ground from the hands
-        bladeP.copy(grip).addScaledVector(dirV, len); 
+        // a fixed length: the hands tilt it so the tip reaches the ground on the push, then swings up and out on the toss
+        const dx = toss * .7 * side, down = Math.min(.97, Math.max(.3, (grip.y - (pending.landed ? .08 : TOP - .1)) / SPADE));
+        const dy = -(rest * .55 + push * down) * (1 - toss) + toss * .1;
+        dirV.set(dx, dy, Math.sqrt(Math.max(.01, 1 - dx * dx - dy * dy)));
+        bladeP.copy(grip).addScaledVector(dirV, SPADE);
         s.shovel.position.copy(bladeP); dirV.negate(); s.shovel.quaternion.setFromUnitVectors(UP, dirV);
-        const { handle, tee } = s.shovel.userData; handle.scale.y = len - .36 + .22; tee.position.y = .36 + handle.scale.y;
         // dirt: a puff as the blade goes in, a clod thrown off as it swings out
         const stage = (digU >= .5 ? 2 : 0) + (c >= .26 ? 1 : 0) + (c >= .62 ? 1 : 0) * 10;
         if (stage !== s.digStage && digU < 1) {
