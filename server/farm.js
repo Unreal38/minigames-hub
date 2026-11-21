@@ -339,6 +339,7 @@ export function handle(p, a, reply) {
     const slots = topLv(f, 'yard'); if (!slots) return no('Build a Training Yard first.');
     const ids = cleanIds(a.pets).slice(0, slots); if (ids.some(id => !f.pets.some(x => x.id === id))) return;
     if (ids.some(id => away(f, id, true) && !f.train?.ids.includes(id))) return no('A pet that is out exploring cannot start training. Welcome it home first.');
+    if (ids.some(id => cuddling(f, id))) return no('A pet that is cuddling in the Nest cannot train.');
     f.train = { ids, at: Date.now() };
     return ok({ did: 'train' });
   }
@@ -455,6 +456,7 @@ export function handle(p, a, reply) {
     if ((A.rest || 0) > now || (!friend && (Bp.rest || 0) > now)) return no('One of them is still resting.');
     if (away(f, A.id) || (!friend && away(f, Bp.id))) return no('One of them is away exploring.');
     if (cuddling(f, A.id) || (!friend && cuddling(f, Bp.id))) return no('One of them is already in the Nest.');
+    if (f.train?.ids.some(id => id === A.id || (!friend && id === Bp.id))) return no('One of them is training at the yard. Take it off training first.');
     const kid = makeBaby(A, Bp);
     kid.par = [A, Bp].map((x, i) => ({ ...snapshot(x, i && friend ? friend.name : p.name), par: (x.par || []).map(g => ({ name: g.name, sp: g.sp, lv: g.lv, look: g.look, own: g.own })) }));
     f[slot] = { a: A.id, b: friend ? snapshot(Bp, friend.name) : Bp.id, friend, at: now, hours: hatchHours(kid.sp) * (topLv(f, 'nest') >= 3 ? .75 : 1), shell: shellOf(A, Bp), kid };
@@ -598,7 +600,7 @@ export function handle(p, a, reply) {
   if (a.t === 'fight') { // start a battle: practice at the Training Yard, or a match at the Arena Flag
     if (a.mode === 'wild') { // the wild pet met on the way home: one try, with the party that met it
       const w = wildOf(f); if (!w) return no('The wild pet has wandered off.');
-      const mine = w.pets.map(id => f.pets.find(x => x.id === id)).filter(x => x && !away(f, x.id));
+      const mine = w.pets.map(id => f.pets.find(x => x.id === id)).filter(x => x && !away(f, x.id) && !cuddling(f, x.id));
       if (!mine.length) return no('The pets that met it are busy right now.');
       if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
       f.wild = null; saw(f, [w.sp]);
@@ -612,6 +614,7 @@ export function handle(p, a, reply) {
     const mine = ids.map(id => f.pets.find(x => x.id === id));
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || mine.some(x => !x)) return no('Pick one to three of your pets.');
     if (ids.some(id => away(f, id, true))) return no('One of them is away exploring.');
+    if (ids.some(id => cuddling(f, id))) return no('One of them is cuddling in the Nest.');
     let B;
     if (mode === 'arena') {
       let foe, team, to = null;
@@ -634,6 +637,7 @@ export function handle(p, a, reply) {
     const ids = cleanIds(a.pets), mine = ids.map(id => f.pets.find(x => x.id === id));
     if (!ids.length || mine.some(x => !x)) return no('Pick one to three of your pets.');
     if (ids.some(id => away(f, id))) return no('One of them is away exploring.');
+    if (ids.some(id => cuddling(f, id))) return no('One of them is cuddling in the Nest.');
     if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
     if (lives.has(hit[0])) return no('They are in a battle right now.');
     const id = rid();
@@ -650,6 +654,7 @@ export function handle(p, a, reply) {
     const ids = cleanIds(a.pets), mine = ids.map(id => f.pets.find(x => x.id === id)), theirs = inv.pets.map(id => other.pets.find(x => x.id === id)).filter(Boolean);
     if (!ids.length || mine.some(x => !x) || !theirs.length) return no('Pick one to three of your pets.');
     if (ids.some(id => away(f, id))) return no('One of them is away exploring.');
+    if (ids.some(id => cuddling(f, id))) return no('One of them is cuddling in the Nest.');
     if (battles.has(p.pid) || lives.has(p.pid) || battles.has(inv.from) || lives.has(inv.from)) return no('One of you is already in a battle.');
     saw(f, theirs.map(x => x.sp)); saw(other, mine.map(x => x.sp));
     const L = { B: newBattle(theirs.map(x => unit(x, ARENA_LV)), mine.map(x => unit(x, ARENA_LV)), { mode: 'live', live: true }), pids: [inv.from, p.pid],

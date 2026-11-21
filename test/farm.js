@@ -341,6 +341,13 @@ r = await a.farmDo({ t: 'hatch' });
 if (!r.err) fail('hatched before there was an egg');
 r = await a.farmDo({ t: 'pair', a: kin[0], b: kin[1] });
 if (!r.err) fail('nest used twice');
+// one job at a time: a pet cuddling in the Nest cannot explore, fight or train
+r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [kin[0]] });
+if (!/Nest/.test(r.err || '')) fail('a cuddling pet went exploring: ' + r.err);
+r = await a.farmDo({ t: 'fight', mode: 'practice', pets: [kin[0]] });
+if (!/Nest/.test(r.err || '') || r.battle) fail('a cuddling pet went to fight: ' + r.err);
+r = await a.farmDo({ t: 'train', pets: [kin[1]] });
+if (!/Nest/.test(r.err || '')) fail('a cuddling pet started training: ' + r.err);
 r = await a.farmDo({ t: 'open', test: { egg: 'laid' } });
 if (r.farm.nest.stage !== 'egg') fail('no egg after the cuddle: ' + r.farm.nest.stage);
 // a neighbour cheers the egg on

@@ -77,7 +77,11 @@ export function mount(app, ctx) {
   const stars = n => `<span class="stars" aria-label="${n} of 5 stars">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
   const swatch = (c, name) => `<span class="sw" title="${name}"><i style="background:${c}"></i>${name}</span>`;
   const nestTxt = n => n.stage === 'cuddle' ? `An egg will appear in ${wait(n.left)}.` : n.stage === 'egg' ? `The egg hatches in ${wait(n.left)}.` : 'The egg is ready to hatch!';
-  const cannotPair = p => p.lv < BREED_LV ? `Needs level ${BREED_LV}` : p.rest > 0 ? `Resting for ${wait(p.rest)}` : outNow().includes(p.id) ? 'Away exploring' : F.nests.some(n => n.stage === 'cuddle' && (n.a === p.id || n.b === p.id)) ? 'Already in the Nest' : '';
+  const cannotPair = p => p.lv < BREED_LV ? `Needs level ${BREED_LV}` : p.rest > 0 ? `Resting for ${wait(p.rest)}` : outNow().includes(p.id) ? 'Away exploring' : inNest(p.id) ? 'Already in the Nest' : F.train.ids.includes(p.id) ? 'Training at the yard' : '';
+  // One job at a time: why a pet cannot be picked for something right now ('' when it can).
+  const inNest = id => F.nests.some(n => n.stage === 'cuddle' && (n.a === id || n.b === id));
+  const busyFor = (p, job) => job === 'defend' ? '' : outAll().includes(p.id) ? 'exploring' : inNest(p.id) ? 'cuddling in the Nest' : job === 'send' && p.held ? 'promised in a trade' : '';
+  const freeFor = job => id => { const p = F.pets.find(x => x.id === id); return p && !busyFor(p, job); };
   const outNow = () => F.trips.filter(t => t.left > 0).flatMap(t => t.pets), outAll = () => F.trips.flatMap(t => t.pets); // away right now; away or waiting to be welcomed
   // ---------- painting ----------
   function sync() {
@@ -149,9 +153,9 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
       const away = outAll(), what = panel.mode === 'defend' ? 'Defence team' : panel.mode === 'live' ? `Live battle with ${esc(panel.foeName)}` : panel.mode === 'arena' ? `Match against ${esc(panel.foeName)}` : 'Practice battle';
-      const pets = F.pets.map(p => { const i = panel.pets.indexOf(p.id), out = away.includes(p.id) && panel.mode !== 'defend';
-        return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="team" data-id="${p.id}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="num">${i + 1}</span>` : ''}
-          ${petRow(p, out ? ' · exploring' : ' · ' + SPECIES[p.sp].el)}</button>`; }).join('');
+      const pets = F.pets.map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
+        return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="team" data-id="${p.id}" data-why="${out}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="num">${i + 1}</span>` : ''}
+          ${petRow(p, out ? ' · ' + out : ' · ' + SPECIES[p.sp].el)}</button>`; }).join('');
       const note = panel.mode === 'live' ? `You both play at the same time, with ${TURN_S} seconds to choose each turn. Everyone fights at level 20. ${panel.invite ? '' : `${esc(panel.foeName)} has to be online to say yes.`}`
         : panel.mode === 'defend' ? 'These pets defend your farm when another player challenges you. They fight at level 20 and are played by the game.'
         : panel.mode === 'arena' ? `Everyone fights at level 20 with all four moves. ${F.fights.arena > 0 ? `Rewarded matches left today: ${F.fights.arena}.` : 'No rewarded matches left today, so this one is just for fun.'}`
@@ -163,9 +167,9 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'train') {
-      const gone = outAll(), pets = F.pets.map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = gone.includes(p.id);
-        return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out ? 'out' : ''}" aria-pressed="${on}">${petRow(p, out ? ' · exploring' : full ? ' · fully grown' : ' · level ' + p.lv)}</button>`; }).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>Who trains at the yard?</h2><p>Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring cannot train, and sending a pet exploring ends its training.</p>
+      const gone = outAll(), pets = F.pets.map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = busyFor(p, 'train');
+        return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out}" aria-pressed="${on}">${petRow(p, out ? ' · ' + out : full ? ' · fully grown' : ' · level ' + p.lv)}</button>`; }).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Who trains at the yard?</h2><p>Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring or cuddling in the Nest cannot train, and sending a pet exploring ends its training.</p>
         <div class="party">${pets}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button><button type="button" class="btn big m" data-a="trainsave">Save</button></div></div>`;
       return;
@@ -220,7 +224,7 @@ export function mount(app, ctx) {
       const mats = (sideKey, inv) => Object.keys(MATS).filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
         return `<div class="tm${n ? ' on' : ''}">${matIcon(k, 30)}<span class="tmn"><b>${MATS[k]}</b>${inv ? `<small>You have ${inv[k] || 0}</small>` : ''}</span>
           <span class="step"><button type="button" data-a="tmstep" data-d="-1" aria-label="Less ${MATS[k]}">−</button><input class="field" type="number" inputmode="numeric" min="0" max="${max}" data-tm="${sideKey}" data-mat="${k}" value="${n || ''}" placeholder="0" aria-label="${MATS[k]}, how many"><button type="button" data-a="tmstep" data-d="1" aria-label="More ${MATS[k]}">+</button></span></div>`; }).join('');
-      const mine = F.pets.map(x => petBtn(x, 'give', x.held ? 'promised' : away.includes(x.id) ? 'exploring' : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
+      const mine = F.pets.map(x => petBtn(x, 'give', x.held ? 'promised' : away.includes(x.id) ? 'exploring' : inNest(x.id) ? 'in the Nest' : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
       const theirs = V.pets.map(x => petBtn(x, 'want', x.can ? '' : 'staying')).join('');
       box.innerHTML = `<div class="panel tripp trade"><h2>Trade with ${esc(V.name)}</h2>
         <p>Choose what you give and what you want back. Your side is set aside until ${esc(V.name)} answers from their Mailbox, or for a week.</p>
@@ -366,8 +370,8 @@ export function mount(app, ctx) {
           <b>${zn.name}</b>${elTag(zn.el)}<small>${locked ? `Opens at farmhouse level ${zn.house}` : list(Object.keys(zn.gives).filter(m => m !== 'coins').map(m => MATS[m].toLowerCase()))}</small></button>`;
       }).join('');
       const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
-      const gone = outAll(), pets = F.pets.map(p => `<button type="button" class="pickpet${gone.includes(p.id) ? ' off' : ''}" data-a="party" data-id="${p.id}" aria-pressed="${panel.pets.includes(p.id)}">
-        ${petRow(p, gone.includes(p.id) ? ' · with another party' : SPECIES[p.sp].el === z.el ? ' · +25% here' : '')}</button>`).join('');
+      const pets = F.pets.map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
+        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? ' · training (ends if sent)' : SPECIES[p.sp].el === z.el ? ' · +25% here' : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
       const full = F.pets.length >= F.room;
       box.innerHTML = `<div class="panel tripp"><h2>Send pets exploring</h2>
@@ -462,14 +466,14 @@ export function mount(app, ctx) {
   }
   function openTeam(mode, foe) {
     if (mode !== 'defend' && mode !== 'live' && !countOf(F, mode === 'arena' ? 'flag' : 'yard')) return;
-    const keep = (mode === 'defend' ? F.def : lastTeam).filter(id => F.pets.some(p => p.id === id) && (mode === 'defend' || !outAll().includes(id)));
+    const keep = (mode === 'defend' ? F.def : lastTeam).filter(id => F.pets.some(p => p.id === id) && freeFor(mode)(id));
     panel = { kind: 'team', mode, foe: foe?.id, foeName: foe?.name, invite: foe?.invite, pets: keep }; card = null; sync();
   }
   function openSend() {
     if (!countOf(F, 'gate')) return ctx.toast('Build an Expedition Gate first.', true);
     if (F.trips.length >= F.partyMax) return;
     const zone = panel?.zone || lastTrip.zone, ok = ZONES[zone] && F.house >= ZONES[zone].house;
-    panel = { kind: 'send', zone: ok ? zone : 'woods', trip: lastTrip.trip, pets: lastTrip.pets.filter(id => F.pets.some(p => p.id === id) && !outAll().includes(id)) };
+    panel = { kind: 'send', zone: ok ? zone : 'woods', trip: lastTrip.trip, pets: lastTrip.pets.filter(freeFor('send')) };
     card = null; sync();
   }
   function paintGate() {
@@ -705,7 +709,7 @@ export function mount(app, ctx) {
     else if (a === 'foe') { const f = foes?.find(x => x.id === b.dataset.id); if (f) openTeam('arena', f); }
     else if (a === 'defteam') openTeam('defend');
     else if (a === 'team') {
-      if (b.classList.contains('off')) return ctx.toast('That pet is away exploring.', true);
+      if (b.classList.contains('off')) return ctx.toast(`That pet is ${b.dataset.why}.`, true);
       const id = b.dataset.id, i = panel.pets.indexOf(id);
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= PARTY) return ctx.toast(`A team is ${PARTY} pets at most.`, true); else panel.pets.push(id);
       paintPanel();
@@ -725,7 +729,7 @@ export function mount(app, ctx) {
     else if (a === 'zone') { if (b.classList.contains('off')) return ctx.toast(`${ZONES[b.dataset.zone].name} opens at farmhouse level ${ZONES[b.dataset.zone].house}. Tap your farmhouse to improve it.`, true); panel.zone = b.dataset.zone; paintPanel(); }
     else if (a === 'trip') { panel.trip = b.dataset.trip; paintPanel(); }
     else if (a === 'party') {
-      if (b.classList.contains('off')) return ctx.toast('That pet is out with another party.', true);
+      if (b.classList.contains('off')) return ctx.toast(`That pet is ${b.dataset.why}.`, true);
       const id = b.dataset.id, i = panel.pets.indexOf(id);
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= PARTY) return ctx.toast(`A party is ${PARTY} pets at most.`, true); else panel.pets.push(id);
       const keep = $('pf-panel').querySelector('.party')?.scrollLeft || 0; paintPanel(); const row = $('pf-panel').querySelector('.party'); if (row) row.scrollLeft = keep;
@@ -742,9 +746,9 @@ export function mount(app, ctx) {
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
     else if (a === 'upgrade') { const it = F.items.find(x => x.id === +b.dataset.id); if (it && !canAfford(F.inv, upCost(it))) return ctx.toast('Not enough materials for that yet.', true); ctx.send({ t: 'upgrade', id: +b.dataset.id }); }
-    else if (a === 'trainopen') { panel = { kind: 'train', pets: F.train.ids.filter(id => !outAll().includes(id)) }; card = null; sync(); }
+    else if (a === 'trainopen') { panel = { kind: 'train', pets: F.train.ids.filter(freeFor('train')) }; card = null; sync(); }
     else if (a === 'trainpick') {
-      if (b.classList.contains('off')) return ctx.toast(b.dataset.why === 'out' ? 'That pet is out exploring. Welcome it home first.' : 'That pet is fully grown already.', true);
+      if (b.classList.contains('off')) return ctx.toast(b.dataset.why ? `That pet is ${b.dataset.why}.` : 'That pet is fully grown already.', true);
       const id = b.dataset.id, i = panel.pets.indexOf(id);
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= F.train.slots) return ctx.toast(F.train.slots < UP_MAX ? `The yard has ${F.train.slots} training ${F.train.slots > 1 ? 'spots' : 'spot'}. Improve it for more.` : `The yard has ${F.train.slots} training spots.`, true); else panel.pets.push(id);
       paintPanel();
