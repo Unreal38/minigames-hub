@@ -5,7 +5,7 @@ import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { progress } from './ranks.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Cozy Table';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
@@ -304,6 +304,7 @@ const st = {
   name: LS.get('ct_name', ''), color: LS.get('ct_color', COLORS[Math.random() * COLORS.length | 0]),
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
+  hc: { log: null, max: 200, for: undefined }, // the hub's global chat
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -369,7 +370,7 @@ function onMsg(m) {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); // back after a dropped connection
-    if (st.view === 'hub') send({ t: 'rankings', game: st.rkTab });
+    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); }
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -390,6 +391,7 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
+    if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
     st.friends = { friends: m.friends || [], reqs: m.reqs || [], sent: m.sent || [] };
@@ -402,6 +404,8 @@ function onMsg(m) {
     else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
   } else if (m.t === 'rankings') {
     st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
+  } else if (m.t === 'hubchat') {
+    onHubChat(m);
   } else if (m.t === 'stats') {
     st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats();
   } else if (m.t === 'auth') {
@@ -568,7 +572,7 @@ function switchTheme(btn) {
 
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
-  <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
+  <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#hubchat" data-act="scroll" data-to="hubchat">Chat</a><a href="#" data-act="rules">How to play</a></nav>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
@@ -731,6 +735,14 @@ function renderHub() {
         <div class="tables" id="tables-list"></div>
         <button type="button" class="btn w sidehost" data-act="host">Host a table</button>
       </section>
+      <section id="hubchat" aria-label="Hub chat">
+        <div class="sidehead"><h2>Chat</h2></div>
+        <p class="sidenote">One room for everyone on ${SITE}.</p>
+        <div class="hccard">
+          <div class="hclog" id="hc-log" role="log" aria-live="polite">${hubLogHtml()}</div>
+          <div class="hcfoot" id="hc-foot">${hubFootHtml()}</div>
+        </div>
+      </section>
     </aside>
     <aside class="hubside right" aria-label="Rankings">
       <section id="rankings">
@@ -748,6 +760,7 @@ function renderHub() {
   document.body.classList.add('sky');
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
+  send({ t: 'hubchat' }); hubScrollEnd();
   if (!st.name) openProfile(true);
 }
 
@@ -788,6 +801,67 @@ function paintRankings() {
   const el = document.getElementById('rk-body'); if (el) el.innerHTML = rankingsHtml();
   document.querySelectorAll('[data-act="rktab"]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === st.rkTab));
 }
+
+// ---------- hub chat ----------
+// One site-wide room on the hub. Everyone can read it, accounts can write. The server cleans and rate limits every
+// line; here every piece of text still goes through esc(), so nothing a player types can become markup.
+// Name flair (colours, titles from the cosmetics shop) arrives as `fl` on each line; flairName paints it.
+export const flairName = (name, fl) => esc(name);
+const hcTime = at => {
+  const d = new Date(at), today = new Date().toDateString() === d.toDateString();
+  const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return today ? t : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${t}`;
+};
+const hcSame = (a, b) => a && b && a.user === b.user && b.at - a.at < 3 * 60_000;
+function hubLine(m, prev) {
+  const cont = hcSame(prev, m);
+  return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}">
+    ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34)}</span>`}
+    <div class="hcbody">
+      ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
+      <p>${esc(m.text)}</p>
+    </div>
+    ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="Remove this message" title="Remove">×</button>` : ''}
+  </div>`;
+}
+function hubLogHtml() {
+  const L = st.hc.log;
+  if (!L) return '<p class="hcempty">Loading…</p>';
+  if (!L.length) return '<p class="hcempty">Nobody has said anything yet. Say hi to everyone!</p>';
+  return L.map((m, i) => hubLine(m, L[i - 1])).join('');
+}
+function hubFootHtml() {
+  if (!st.me) return '';
+  if (!st.me.user) return `<div class="hcguest"><span>Make a free account to join the chat.</span>
+    <button type="button" class="btn sm m" data-act="account" data-mode="register">Create account</button><button type="button" class="btn sm w" data-act="account" data-mode="login">Log in</button></div>`;
+  return `<form class="hcform" data-form="hubchat"><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="Say something to everyone…" autocomplete="off" enterkeyhint="send" aria-label="Message to everyone"><button class="btn m">Send</button></form>`;
+}
+const $hcLog = () => document.getElementById('hc-log');
+const hubAtEnd = () => { const el = $hcLog(); return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 60; };
+function hubScrollEnd() { const el = $hcLog(); if (el) el.scrollTop = el.scrollHeight; }
+function paintHubLog() { const el = $hcLog(); if (el) { el.innerHTML = hubLogHtml(); hubScrollEnd(); } }
+function paintHubFoot() { const el = document.getElementById('hc-foot'); if (el && !el.contains(document.activeElement)) el.innerHTML = hubFootHtml(); }
+function onHubChat(m) {
+  const hc = st.hc;
+  if (m.err) { sfx.bad(); toast(esc(m.err), true); const inp = document.getElementById('hc-in'); if (inp && !inp.value && hc.pending) inp.value = hc.pending; return; }
+  if (Array.isArray(m.log)) { hc.log = m.log; hc.max = m.max || 200; paintHubLog(); paintHubFoot(); return; }
+  if (m.gone) { if (hc.log) hc.log = hc.log.filter(x => x.id !== m.gone); paintHubLog(); return; }
+  if (!m.msg || !hc.log) return;
+  const end = hubAtEnd() || m.msg.own, prev = hc.log.at(-1);
+  hc.log.push(m.msg); if (hc.log.length > 120) hc.log.shift();
+  if (m.msg.own) hc.pending = '';
+  const el = $hcLog(); if (!el) return;
+  if (hc.log.length === 1) el.innerHTML = '';
+  el.insertAdjacentHTML('beforeend', hubLine(m.msg, prev));
+  while (el.children.length > 120) el.firstElementChild.remove();
+  if (end) hubScrollEnd();
+}
+$app.addEventListener('submit', e => {
+  if (e.target.dataset.form !== 'hubchat') return;
+  e.preventDefault();
+  const inp = e.target.querySelector('input'), text = inp.value.trim(); if (!text) return;
+  st.hc.pending = text; send({ t: 'hubchat', text }); inp.value = '';
+});
 
 // "3 playing now · 128 visitors so far" under the hero buttons.
 function statsHtml() {
@@ -1001,7 +1075,7 @@ function modal(html, dismissable = true) {
 const coinIco = '<i class="cn" aria-hidden="true"></i>';
 const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
-const SHOP_ORDER = ['hat', 'glasses', 'neck', 'top', 'shoes', 'hairC', 'eyes', 'eyeC', 'mouth', 'marks', 'botC', 'shoeC'];
+const SHOP_ORDER = ['top', 'hat', 'back', 'glasses', 'neck', 'shoes', 'hairC', 'eyes', 'eyeC', 'mouth', 'marks', 'botC', 'shoeC'];
 const SHOP_ROWS = SHOP_ORDER.filter(k => OPT[k].some((_, i) => priceOf(k, i))).map(k => [k, ROW_LABEL[k]]);
 
 function openProfile(first = false, startTab = 0) {
@@ -1042,17 +1116,31 @@ function openProfile(first = false, startTab = 0) {
   const owned = () => st.me?.owned || [], coins = () => st.me?.coins || 0;
   const isLocked = (k, i) => priceOf(k, i) > 0 && !owned().includes(k + ':' + i);
   const tag = (k, i) => { const p = priceOf(k, i); return !p ? '' : isLocked(k, i) ? ` data-p="${p}" class="lk"` : ' class="own"'; };
+  // Seasonal items are sold only while their drop is on (the server's date decides). Out of season they are hidden
+  // from the normal rows unless you own them, and the Shop tab lists them as "back in ...".
+  const today = () => st.me?.today ? new Date(st.me.today + 'T12:00') : new Date();
+  const away = (k, i) => !!seasonOf(k, i) && isLocked(k, i) && !onSale(k, i, today());
+  const pill = (k, i) => `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}"${tag(k, i)}>${OPT[k][i]}${isLocked(k, i) ? ` <small class="pr">${coinIco}${priceOf(k, i)}</small>` : ''}</button>`;
   const rowHtml = (k, label, only) => {
     const hex = k === 'color', list = hex ? COLORS : OPT[k], sw = hex || AV_COLOR_KEYS.includes(k);
-    const idx = list.map((_, i) => i).filter(i => !only || priceOf(k, i));
+    const idx = list.map((_, i) => i).filter(i => hex || (only ? priceOf(k, i) && !seasonOf(k, i) : !away(k, i)));
+    if (!idx.length) return '';
     return `<div class="crow"><b>${label}</b><div class="${sw ? 'swatches' : 'pills'}">${idx.map(i => { const v = list[i]; return sw
       ? `<button type="button" style="--c:${v}" aria-label="${label} ${i + 1}${priceOf(k, i) ? (isLocked(k, i) ? `, ${priceOf(k, i)} coins` : ', owned') : ''}" aria-pressed="${val(k) === (hex ? v : i)}" data-k="${k}" data-v="${hex ? v : i}"${hex ? '' : tag(k, i)}></button>`
-      : `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}"${tag(k, i)}>${v}${isLocked(k, i) ? ` <small class="pr">${coinIco}${priceOf(k, i)}</small>` : ''}</button>`; }).join('')}</div></div>`;
+      : pill(k, i); }).join('')}</div></div>`;
+  };
+  const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
+  const dropsHtml = () => {
+    const by = {}; for (const [id, sn] of Object.entries(SEASON)) { const [k, i] = id.split(':'); (by[sn] ||= []).push([k, +i]); }
+    const on = Object.keys(SEASONS).filter(sn => by[sn] && seasonOn(sn, today())), off = Object.keys(SEASONS).filter(sn => by[sn] && !seasonOn(sn, today()));
+    return on.map(sn => `<div class="crow drop"><b>${SEASON_ICO[sn]} ${SEASONS[sn].name} <small>Limited: on sale until ${SEASONS[sn].ends}. What you buy is yours to keep.</small></b><div class="pills">${by[sn].map(([k, i]) => pill(k, i)).join('')}</div></div>`).join('')
+      + (off.length ? `<div class="crow drop off"><b>Other seasons <small>These come back with their season.</small></b><div class="pills">${off.map(sn => by[sn].map(([k, i]) => isLocked(k, i)
+        ? `<button type="button" disabled title="Back in ${SEASONS[sn].back}">${SEASON_ICO[sn]} ${OPT[k][i]} <small class="pr">${SEASONS[sn].back}</small></button>` : pill(k, i)).join('')).join('')}</div></div>` : '');
   };
   const paintRows = () => {
     el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
     rows.innerHTML = tab === AV_TABS.length
-      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
+      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + dropsHtml() + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
       : AV_TABS[tab][1].map(([k, label]) => rowHtml(k, label)).join('');
   };
   const paintCart = () => {
@@ -1242,6 +1330,7 @@ $app.addEventListener('click', e => {
   else if (act === 'shop') { if (!st.name) return openProfile(true); openProfile(false, AV_TABS.length); }
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
+  else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
   else if (act === 'logout') { send({ t: 'logout' }); toast('Logged out. This browser is a guest again.'); }
   else if (act === 'host' || act === 'solo') {
     if (!st.name) return openProfile(true);
