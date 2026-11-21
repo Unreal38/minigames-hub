@@ -112,8 +112,9 @@ function merge(root, mat, extra = []) {
 }
 
 // ---------- the head: a round shape with the face painted on, like an anime figure ----------
-const FSH = [{ R: .5, a: 1.9, b: .6, h: 1 }, { R: .465, a: 1.7, b: .64, h: 1.05 }, { R: .5, a: 3, b: .5, h: .97 }, { R: .5, a: 1.4, b: .72, h: 1 }, { R: .45, a: 1.9, b: .6, h: 1.12 }];
-const headR = (f, y) => { const F = FSH[f], c = .47; if (y >= c) return F.R * Math.sqrt(Math.max(0, 1 - Math.pow((y - c) / (1 - c), 2.3))); return F.R * Math.pow(Math.max(0, 1 - Math.pow((c - y) / c, F.a)), F.b); };
+// A "marshmallow" head: full cheeks, a nearly flat underside and a flattish top, so the jaw never narrows to a cone at the neck.
+const FSH = [{ R: .5, a: 4.56, b: .33, h: 1 }, { R: .465, a: 4.08, b: .352, h: 1.05 }, { R: .5, a: 7.2, b: .275, h: .97 }, { R: .5, a: 2.7, b: .44, h: 1 }, { R: .45, a: 4.56, b: .33, h: 1.12 }];
+const headR = (f, y) => { const F = FSH[f], c = .47; if (y >= c) return F.R * Math.pow(Math.max(0, 1 - Math.pow((y - c) / (1 - c), 3)), .45); return F.R * Math.pow(Math.max(0, 1 - Math.pow((c - y) / c, F.a)), F.b); };
 const EYE = [[.072, .1], [.09, .072], [.09, .05], [.086, .118], [.074, .1], [.078, .106], [.08, .09], [.03, .04], [.07, .06], [.082, .09], [.072, .098], [.072, .1], [.076, .102], [.08, .1], [.07, .07], [.084, .11]];
 const TILT = [0, .24, .06, 0, 0, 0, -.24, 0, 0, .16, 0, 0, 0, 0, 0, 0];
 
@@ -413,7 +414,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (nk === 10) { ring(g, lb * 1.65, lb * .45, '#d9342b', 0, shY + .005 * H, 0).rotation.x = PI / 2; const bd = cone(g, lb * 1.6, .2 * t, '#d9342b', 0, chestY + .12 * t, tz(chestY + .12 * t) + .02); bd.rotation.x = PI; bd.scale.z = .3; for (const k of [-1, 0, 1]) sph(g, .014, '#ffffff', k * lb * .6, chestY + .17 * t, tz(chestY + .17 * t) + .04); }
 
   // head: modelled 1 unit tall with the chin at 0, inside a pivot at the neck so it can turn and nod
-  const hp = new THREE.Group(); hp.userData.own = true; hp.position.y = shY + neckL - .02 * H; g.add(hp);
+  const hp = new THREE.Group(); hp.userData.own = true; hp.position.y = shY + neckL + .012 * H; g.add(hp); // the flat chin rides a little above the shoulders, so scarves and ties show
   const hg = new THREE.Group(), DZ = .94; hg.scale.set(headH * P.hw, headH, headH * P.hw * DZ); hp.add(hg);
   const hr = y => headR(a.face, y), HP = []; for (let j = 0; j <= 16; j++) { const y = (1 - Math.cos(j * PI / 16)) / 2; HP.push([hr(y), y]); }
   const fz = (x, y, o = 0) => Math.sqrt(Math.max(0, hr(y) * hr(y) - x * x)) + o;
@@ -446,7 +447,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (hs === 10) base(.8, .5, .02);
   if (hs === 11) { base(.74, .44); bangs(5, .3, .55, 1.15); clump(.2, -.36, .9, .1, 1, .6, 1.2, hD); }
   if (hs === 12) { base(.8, .46); clump(.26, 0, 1.02, .26, 1.2, .8, 1); cone(hH, .2, .4, hD, 0, 1.1, .38).rotation.x = -1.0; }
-  if (hs === 13) clump(.7, 0, .74, -.06, 1, .93, .96);
+  if (hs === 13) { base(.76, .4); clump(.66, 0, .93, -.1, 1.02, .86, .98); for (let i = 0; i < 5; i++) clump(.13, (i - 2) * .17, .8 - Math.abs(i - 2) * .03, hr(.8) - .03, 1, 1, .6, i % 2 ? hD : hair); } // sits high, so it never hangs over the face
   if (hs === 14) { base(.76, .42); bangs(5, .26); for (const s of [-1, 1]) { for (let i = 0; i < 5; i++) clump(.085, s * .5, .36 - i * .15, .1 + i * .015, 1, 1, 1, i % 2 ? hD : hair); box(hH, .06, .06, .06, tieC, s * .5, -.4, .17); } }
   if (hs === 15) { base(.74, .2, .08); bangs(5, .28, .15); for (const s of [-1, 1]) { clump(.2, s * .5, .12, -.06, .8, 1.2, 1, hD); clump(.18, s * .52, -.14, -.02, .8, 1.1, 1); } clump(.36, 0, -.02, -.36, 1.3, 1, .6, hD); }
   // glasses
@@ -523,7 +524,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   for (const arm of ud.arms) merge(arm, mat);
   merge(g, mat);
   ud.head = hp; ud.tilt = seated ? -.26 : 0; hp.rotation.x = ud.tilt; ud.body = g; ud.k = k; ud.faceMat = faceMat; ud.to = to; ud.tc = tc; ud.mat = mat;
-  ud.headH = headH * k; ud.headY = g.position.y + (shY + neckL + headH * .48) * k;
+  ud.headH = headH * k; ud.headY = g.position.y + (shY + neckL + .03 * H + headH * .48) * k;
   root.userData = ud;
   return root;
 }
