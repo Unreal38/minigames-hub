@@ -13,7 +13,7 @@ const I = {
   door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
   chip: '<svg class="chipi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#7ed3b2" stroke="#3b2219" stroke-width="2.4"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="#fff4e2" stroke-width="2.2" stroke-dasharray="3 2.4"/></svg>',
 };
-const STREET = { pre: 'Pre-flop', flop: 'The flop', turn: 'The turn', river: 'The river', show: 'Showdown', deal: 'Shuffling up', end: 'Game over' };
+const STREET = { drop: 'Throw one away', pre: 'Pre-flop', flop: 'The flop', turn: 'The turn', river: 'The river', show: 'Showdown', deal: 'Shuffling up', end: 'Game over' };
 // Example hands for the rankings panel: [cards, how many of them make the hand] (the rest are dimmed kickers)
 const EX = [['Ah Kh Qh Jh Th', 5], ['9s 8s 7s 6s 5s', 5], ['Qc Qd Qh Qs 7d', 4], ['Kh Kd Ks 4c 4h', 5], ['Ad Jd 8d 6d 2d', 5],
   ['Tc 9d 8h 7s 6c', 5], ['7h 7c 7d Ks 2h', 3], ['Jc Jh 5d 5s Ah', 4], ['Ts Th 9c 4d 2s', 2], ['As Jd 8c 5h 3s', 1]]
@@ -128,6 +128,12 @@ export function mount(app, ctx) {
     const my = me(), el = $('pk-mine');
     if (!my) { setHtml(el, ''); return; } // watchers get the hub's "take a seat" bar instead
     const cards = my.cards || [], all = [...cards, ...S.board];
+    const picking = S.stage === 'drop' && cards.length === 3 && cards[0] >= 0;
+    if (picking) { // Mango: tap the card to throw away
+      setHtml(el, `<div class="hole drop">${cards.map(c => `<button type="button" class="pick" data-a="drop" data-c="${c}" aria-label="Throw away this card">${cardHtml(c, { cls: 'big' })}<i>Throw</i></button>`).join('')}</div>
+        <div class="meinfo"><span class="stack">${I.chip}<b>${my.stack}</b></span><span class="hn">Pick a card to throw away</span></div>`);
+      return;
+    }
     const best = cards.length === 2 && cards[0] >= 0 ? (all.length >= 5 ? handName(score(all)) : cards[0] % 13 === cards[1] % 13 ? `Pair of ${['Twos', 'Threes', 'Fours', 'Fives', 'Sixes', 'Sevens', 'Eights', 'Nines', 'Tens', 'Jacks', 'Queens', 'Kings', 'Aces'][cards[0] % 13]}` : '') : '';
     const five = all.length >= 5 ? new Set(bestFive(all)) : new Set();
     setHtml(el, `<div class="hole${my.fold ? ' folded' : ''}">${cards.length ? cards.map((c, k) => cardHtml(c, { cls: `big${five.has(c) && S.stage === 'show' ? ' lit' : ''}`, k })).join('') : '<span class="pcard ghost big"></span><span class="pcard ghost big"></span>'}</div>
@@ -140,7 +146,8 @@ export function mount(app, ctx) {
     if (!my || !o || S.ph !== 'play') {
       raising = false;
       let msg = '';
-      if (my && S.ph === 'play' && !my.fold && !my.out && S.turn >= 0) msg = my.allin ? 'You\'re all in. Fingers crossed!' : `Waiting for ${nameOf(S.turn)}…`;
+      if (my && S.stage === 'drop' && !my.out) msg = my.cards?.length === 3 ? 'Thrown-away cards go face down in the middle. Three of them become the flop!' : `You threw one away. Waiting for ${S.drop?.need?.length || 'the others'}…`;
+      else if (my && S.ph === 'play' && !my.fold && !my.out && S.turn >= 0) msg = my.allin ? 'You\'re all in. Fingers crossed!' : `Waiting for ${nameOf(S.turn)}…`;
       setHtml(el, msg ? `<p class="wait">${msg}</p>` : '');
       return;
     }
@@ -188,7 +195,7 @@ export function mount(app, ctx) {
   }
 
   function renderTop() {
-    $('pk-hand').textContent = S.hands ? `Hand ${Math.max(1, S.hand)} of ${S.hands}` : `Hand ${Math.max(1, S.hand)} · last one standing`;
+    $('pk-hand').textContent = (S.variant === 'mango' ? 'Mango · ' : '') + (S.hands ? `Hand ${Math.max(1, S.hand)} of ${S.hands}` : `Hand ${Math.max(1, S.hand)} · last one standing`);
     const left = S.levelHands - ((Math.max(1, S.hand) - 1) % S.levelHands) - 1;
     $('pk-blinds').innerHTML = `Blinds ${S.sb}/${S.bb}${S.next && S.next[1] !== S.bb && (!S.hands || S.hand + left < S.hands) ? `<small> · up ${left ? `in ${left}` : 'next hand'}</small>` : ''}`;
     $('pk-code').textContent = Rm?.code || '';
@@ -202,6 +209,7 @@ export function mount(app, ctx) {
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
     if (S.ph === 'end') msg = S.win >= 0 ? `${youOr(S.win)} win${S.win === S.me ? '' : 's'} the game!` : 'Game over';
     else if (S.stage === 'deal') msg = 'Shuffling up and dealing…';
+    else if (S.stage === 'drop') msg = `Everyone throws one card away${S.left ? ` · ${secs}s` : ''}`;
     else if (S.stage === 'show' && S.handRes) {
       const p = S.handRes.pots[0], w = p.win;
       msg = w.length > 1 ? `Split pot: ${w.map(youOr).join(' & ')}` : `${youOr(w[0])} win${w[0] === S.me ? '' : 's'} ${S.handRes.pots.reduce((a, x) => a + x.amt, 0)}${p.name ? ` with ${p.name.replace(/^./, c => c.toLowerCase())}` : ''}`;
@@ -232,12 +240,14 @@ export function mount(app, ctx) {
   // ----- events -> sound & effects -----
   function playEv(e) {
     if (e.t === 'hand') { sfx.draw(); hideResults(); }
+    else if (e.t === 'drop') { if (me()?.cards?.length === 3) { sfx.turn(); big('Throw one away', 'Three of the thrown-away cards make the flop', 1800); } }
+    else if (e.t === 'dropped') { sfx.place(); scene?.nod(e.s); }
     else if (e.t === 'act') {
       if (e.a === 'fold') sfx.draw();
       else if (e.a === 'check') sfx.tick();
       else if (e.a === 'allin') { sfx.place(); sfx.set(); scene?.hop(e.s); if (e.s !== S.me) big(`${nameOf(e.s)} is all in!`, '', 1300); }
       else { sfx.place(); if (e.a === 'raise' || e.a === 'bet') scene?.nod(e.s); }
-    } else if (e.t === 'street') { sfx.draw(); setTimeout(() => sfx.place(), 400); }
+    } else if (e.t === 'street') { sfx.draw(); setTimeout(() => sfx.place(), 400); if (e.pile) big('Mango flop!', 'Straight from the thrown-away pile', 1500); }
     else if (e.t === 'reveal') { sfx.set(); big('Cards up!', 'Everyone still in is all in', 1500); }
     else if (e.t === 'show') {
       const won = e.pots.some(p => p.win.includes(S.me));
@@ -328,7 +338,7 @@ export function mount(app, ctx) {
   const timer = setInterval(() => {
     if (!S || S.ph !== 'play') return;
     renderBanner();
-    if (S.turn === S.me && S.left) {
+    if ((S.turn === S.me || (S.stage === 'drop' && S.drop?.need?.includes(S.me))) && S.left) {
       const n = Math.ceil((endsAt - performance.now()) / 1000);
       if (n !== lastTick && n <= 5 && n > 0) { lastTick = n; sfx.warn(); }
     }
@@ -339,6 +349,7 @@ export function mount(app, ctx) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a, o = S?.opt;
+    if (a === 'drop') { sfx.click(); ctx.act({ t: 'drop', c: +b.dataset.c }); return; }
     if (a === 'ranks') { sfx.click(); ranksOpen = !ranksOpen; store.set(ranksOpen ? '1' : '0'); renderRanks(); return; }
     if (a === 'fold') { sfx.click(); send({ t: (o?.toCall ?? 0) <= 0 ? 'check' : 'fold' }); if ((o?.toCall ?? 0) <= 0) ctx.toast('No bet to you, so you checked for free.'); }
     else if (a === 'call') { sfx.click(); send({ t: (o?.toCall ?? 0) <= 0 ? 'check' : 'call' }); }

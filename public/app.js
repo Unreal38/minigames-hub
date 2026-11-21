@@ -71,9 +71,10 @@ const GAMES = {
   },
   poker: {
     name: "Texas Hold'em", load: () => import('./games/poker/client.js'), start: 'Deal the cards',
-    host: { bots: 'chill', field: 6, hands: 10, timer: 30 }, solo: { bots: 'chill', field: 6, hands: 10, timer: 0 },
+    host: { variant: 'holdem', bots: 'chill', field: 6, hands: 10, timer: 30 }, solo: { variant: 'holdem', bots: 'chill', field: 6, hands: 10, timer: 0 },
     openSeat: 'A bot sits here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.field || 6, r.players.length)),
-    settings: pill => `<div class="opt"><b>Seats at the table</b><div class="pills">${pill('field', 2, '2')}${pill('field', 4, '4')}${pill('field', 6, '6')}</div></div>
+    settings: (pill, r) => `<div class="opt"><b>Game</b><div class="pills">${pill('variant', 'holdem', "Texas Hold'em")}${pill('variant', 'mango', 'Mango Poker')}</div></div>
+      <div class="opt"><b>Seats at the table</b><div class="pills">${r?.opts.variant === 'mango' ? '' : pill('field', 2, '2')}${pill('field', 4, '4')}${pill('field', 6, '6')}</div></div>
       <div class="opt"><b>Game length</b><div class="pills">${pill('hands', 10, '10 hands')}${pill('hands', 20, '20 hands')}${pill('hands', 0, 'Last one standing')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
@@ -87,6 +88,13 @@ const GAMES = {
       <li>Best to worst: royal flush, straight flush, four of a kind, full house, flush, straight, three of a kind, two pair, pair, high card.</li>
       <li>Blinds go up every 4 hands. Lose all your chips and you're out. After the last hand (or when one player has everything) the biggest stack wins.</li>
       <li>Your best hand is shown under your cards. Shortcuts: <b>F</b> fold, <b>C</b> check or call, <b>R</b> raise.</li>
+    </ol>
+    <h3>Mango Poker</h3>
+    <ol>
+      <li>Pick <b>Mango Poker</b> under Game in the table settings. It needs at least 4 seats (bots fill any empty ones).</li>
+      <li>Everyone gets <b>three secret cards</b> and throws one away, face down, before the first round of betting.</li>
+      <li>The <b>flop is three cards picked at random from the thrown-away pile</b>. Nobody knows whose they were, so the card you threw might come back to help you, or someone else.</li>
+      <li>The turn and the river come from the deck as usual, and the rest is normal Hold'em.</li>
     </ol>`,
   },
   ludo: {
@@ -512,7 +520,7 @@ function renderHub() {
           <div class="pic pokerpic">${pokerArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Texas Hold'em</h3><span class="tag">1–6 players</span></div>
-            <p>Cozy no-limit poker for pretend chips. Bluff your friends, out-read the bots and stack the whole table.</p>
+            <p>Cozy no-limit poker for pretend chips. Bluff your friends, out-read the bots and stack the whole table. New: <b>Mango Poker</b>, where the flop comes from the cards you all throw away.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="poker">Host a table</button></div>
           </div>
         </article>
@@ -682,7 +690,7 @@ function renderLobby() {
       <h2 style="font-size:26px;margin:0">Table scoreboard</h2>
       ${boardHtml(r)}
       <h2 style="font-size:26px;margin:0">Table settings</h2>
-      ${gm.settings(pill)}
+      ${gm.settings(pill, r)}
       <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
       ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">Only the host can change settings.</p>`}
       <div class="howto"><b>How to win</b><br>${gm.howto} <a href="#" data-act="rules">Full rules</a></div>

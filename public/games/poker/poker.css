@@ -93,6 +93,13 @@ body.in-game { overflow: hidden; }
 .pk .mine:empty { display: none; }
 .pk .mine { display: flex; align-items: flex-end; gap: 12px; }
 .pk .hole { display: flex; gap: 6px; }
+.pk .hole.drop { gap: 10px; }
+.pk .hole .pick { position: relative; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 12px; transition: transform .15s; }
+.pk .hole .pick i { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); font: 700 12px/1 var(--fd); font-style: normal; background: var(--ink); color: #fff4e2; padding: 4px 8px; border-radius: 99px; opacity: 0; transition: opacity .15s; }
+.pk .hole .pick:hover, .pk .hole .pick:focus-visible { transform: translateY(-8px) rotate(-3deg); outline: none; }
+.pk .hole .pick:hover i, .pk .hole .pick:focus-visible i { opacity: 1; }
+.pk .hole .pick:focus-visible .pcard { box-shadow: 0 0 0 4px var(--lantern), 0 5px 0 var(--ink); }
+@media (hover: none) { .pk .hole .pick i { opacity: 1; } }
 .pk .hole .pcard:nth-child(1) { transform: rotate(-5deg); } .pk .hole .pcard:nth-child(2) { transform: rotate(5deg) translateY(-2px); }
 .pk .hole .pcard.lit:nth-child(1) { transform: rotate(-5deg) translateY(-8px); } .pk .hole .pcard.lit:nth-child(2) { transform: rotate(5deg) translateY(-10px); }
 .pk .hole.folded { opacity: .45; filter: grayscale(.5); }
