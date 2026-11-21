@@ -333,6 +333,10 @@ body:has(.lobby) .scorebtn { display: none; }
 .gcard .pic.digpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.digpic svg { width: 100%; height: 100%; display: block; }
 .digpic .dgem { animation: bob 2.2s ease-in-out infinite; }
+.gcard .pic.beanpic { background: #bfe8ff; padding: 0; }
+.gcard .pic.beanpic svg { width: 100%; height: 100%; display: block; }
+.beanpic .bbhop { animation: bob 1.1s ease-in-out infinite; }
+.beanpic .bbstorm { animation: bob 2.6s ease-in-out infinite; }
 .gcard .pic.pawpic svg { width: 100%; height: 100%; display: block; }
 .gcard .pic.kitchenpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.kitchenpic svg { width: 100%; height: 100%; display: block; }
@@ -676,7 +680,8 @@ body.sky.night:not(.in-game) .gcard .pic .artsea { fill: #3d4d9a; }
 body.sky.night:not(.in-game) .gcard .pic .artstars { display: inline; }
 body.sky.night:not(.in-game) .gcard .pic.marblepic, body.sky.night:not(.in-game) .gcard .pic.ladderpic, body.sky.night:not(.in-game) .gcard .pic.ludopic,
 body.sky.night:not(.in-game) .gcard .pic.golfpic, body.sky.night:not(.in-game) .gcard .pic.farmpic, body.sky.night:not(.in-game) .gcard .pic.stackpic,
-body.sky.night:not(.in-game) .gcard .pic.dicepic, body.sky.night:not(.in-game) .gcard .pic.kitchenpic, body.sky.night:not(.in-game) .gcard .pic.digpic { background: #2b2d6e; }
+body.sky.night:not(.in-game) .gcard .pic.dicepic, body.sky.night:not(.in-game) .gcard .pic.kitchenpic, body.sky.night:not(.in-game) .gcard .pic.digpic,
+body.sky.night:not(.in-game) .gcard .pic.beanpic { background: #2b2d6e; }
 body.sky.night:not(.in-game) .gcard .pic:not([class*="pic "]) { background: #b8442f; }
 
 /* ---------- hub chat (left column, under open tables) ---------- */
