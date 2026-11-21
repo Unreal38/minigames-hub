@@ -30,7 +30,24 @@ export function progress(xp = 0) {
 // XP for one finished game: showing up, winning, and a little for points scored.
 export const XP = { play: 15, win: 35, perPt: 0.1, maxPts: 20 };
 // Coins for one finished game: the account currency that buys avatar items in the creator's shop.
-export const COINS = { play: 5, win: 10 };
-export const coinsFor = ({ win }) => COINS.play + (win ? COINS.win : 0);
+// Paid by where you finished: 1st place gets COINS.top, last place COINS.last, and the places in between are spread
+// evenly and rounded. 2 players: 10 / 1. 3: 10 / 6 / 1. 4: 10 / 7 / 4 / 1. 6: 10 / 8 / 6 / 5 / 3 / 1.
+// Bots take up places but never get coins (they have no profile). Shared places (ties) pay the same.
+export const COINS = { top: 10, last: 1 };
+export const placeCoins = (place, n) => {
+  if (!(n > 1)) return COINS.top;
+  const p = Math.min(n, Math.max(1, Math.round(place) || n));
+  return Math.round(COINS.last + (COINS.top - COINS.last) * (n - p) / (n - 1));
+};
+// Fills in a 1-based place for every seat of a game's results() that did not say one: the winner(s) first, then by
+// points, higher first. Seats with the same win and points share a place. Every game goes through this, so a new
+// game only has to return { pts, win } (or its own place) to get placement coins.
+export function withPlaces(res) {
+  const key = r => [r.win ? 1 : 0, Number(r.pts) || 0];
+  const better = (a, b) => { const [wa, pa] = key(a), [wb, pb] = key(b); return wa > wb || (wa === wb && pa > pb); };
+  return res.map(r => Number.isFinite(r.place) && r.place >= 1 ? r : { ...r, place: 1 + res.filter(o => better(o, r)).length });
+}
+// How many places a game's results() hands out: the seats, or more when the game says so (Marble Rush bets on marbles).
+export const fieldOf = res => Math.max(res.length, ...res.map(r => (Number.isFinite(r.of) ? r.of : 0)));
 
 export const xpFor = ({ win, pts }) => Math.round(XP.play + (win ? XP.win : 0) + Math.min(XP.maxPts, Math.max(0, pts) * XP.perPt));

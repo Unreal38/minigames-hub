@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { xpFor, coinsFor, levelOf, progress } from '../public/ranks.js';
+import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
 import { PRICE, priceOf, wearable, AV_KEYS, OPT } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -28,7 +28,7 @@ export function load() {
   for (const p of Object.values(d.profiles || {})) {
     profiles.set(p.pid, p); if (p.user) users.set(p.user.toLowerCase(), p.pid);
     // Coins arrived after people had already played: everyone starts with what their past games would have paid.
-    if (!Number.isFinite(p.coins)) p.coins = coinsFor({}) * (p.games || 0) + (coinsFor({ win: true }) - coinsFor({})) * (p.wins || 0);
+    if (!Number.isFinite(p.coins)) p.coins = 5 * (p.games || 0) + 10 * (p.wins || 0); // the old rate: 5 a game, 10 more a win
   }
   for (const [t, s] of Object.entries(d.sessions || {})) if (profiles.has(s.pid)) sessions.set(t, s);
   if (Array.isArray(d.visitors)) for (const v of d.visitors) if (typeof v === 'string') visitors.add(v);
@@ -211,8 +211,11 @@ export function friendsView(p, online = () => false, extra = () => ({})) {
 
 // ---------- scoring ----------
 // Credits one finished game to a profile. Returns what changed, for the "+XP" toast.
-export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0 }) {
-  const before = levelOf(p.xp), gain = xpFor({ pts, win }), coins = (idle ? 0 : coinsFor({ win })) + (Number.isFinite(coinNet) ? coinNet : 0);
+// place / of: where this player finished out of how many places (see placeCoins in ranks.js). Without a place a win
+// counts as 1st and anything else as last.
+export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1 }) {
+  if (!Number.isFinite(place)) place = win ? 1 : Math.max(1, of);
+  const before = levelOf(p.xp), gain = xpFor({ pts, win }), coins = (idle ? 0 : placeCoins(place, of)) + (Number.isFinite(coinNet) ? coinNet : 0);
   p.xp += gain; p.games++; p.pts += Math.max(0, pts); if (win) p.wins++;
   const g = p.byGame[game] ||= { games: 0, wins: 0, best: 0 };
   g.games++; if (win) g.wins++; g.best = Math.max(g.best, pts);
@@ -221,7 +224,7 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
   board = null;
   const had = p.coins || 0; addCoins(p.pid, coins);
   scheduleSave();
-  return { xp: gain, win, pts, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
+  return { xp: gain, win, pts, place, of, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
 }
 
 // ---------- global rankings ----------

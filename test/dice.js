@@ -136,7 +136,7 @@ for (let i = 0; i < 1200 && state.ph === 'play'; i++) {
 }
 if (state.ph !== 'end') bail('game over the server did not finish');
 await wait(300);
-if (!me?.gain || me.gain.coins < 5) bail('no coins or XP paid at the end: ' + JSON.stringify(me?.gain));
+if (!me?.gain || me.gain.coins < 1 || me.gain.coins !== (me.gain.place === 1 ? 10 : 1)) bail('no coins or XP paid at the end: ' + JSON.stringify(me?.gain));
 if (!room.board?.length) bail('table scoreboard empty');
 console.log('OK server game:', turns, 'turns,', state.win === state.me ? 'won' : 'lost', '· gained', JSON.stringify(me.gain));
 srv.kill(); process.exit(0);
