@@ -4,9 +4,10 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
+import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
 import { buildHole, ground, pathAt, spinAngle, BALL_R, CUP_R } from './course.js';
 
-const INK = '#3b2219', SKY = '#8fd6f7', BASE = -.14, AV = .46, WALL_H = .24;
+const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', BASE = -.14, AV = .46, WALL_H = .24;
 const ease = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -49,34 +50,30 @@ function mesher() {
   }
   return { quad, box, prism, build };
 }
-function softDot() {
-  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
-  const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, '#ffffffff'); gr.addColorStop(.6, '#ffffffff'); gr.addColorStop(1, '#ffffff00'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
-function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-
 export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(SKY); scene.fog = new THREE.Fog(SKY, 40, 110);
-  const camera = new THREE.PerspectiveCamera(38, 1, .1, 200);
-  scene.add(new THREE.HemisphereLight('#ffffff', '#7fb86a', 1.9));
-  const sun = new THREE.DirectionalLight('#fff3d6', 2.2); sun.position.set(-7, 16, 8); sun.castShadow = true;
+  scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 70, 190);
+  const camera = new THREE.PerspectiveCamera(38, 1, .1, 400);
+  scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
+  const sun = new THREE.DirectionalLight('#ffffff', 1.6); sun.position.set(-7, 18, 9); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: 1, far: 50 });
   sun.shadow.bias = -.0006; sun.shadow.normalBias = .02; scene.add(sun);
 
-  const dot = softDot(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // the shared sky-island look: gradient sky, a sea of clouds, birds and drifting petals
+  skyDome(scene, SKY_TOP, SKY_LOW);
+  const cloudRing = cloudSea({ min: 15, max: 85, below: -10 }); scene.add(cloudRing);
+  const flyBirds = birds(scene, 20, 6, 4, 1.1), blow = petals(scene, 24, 4, { n: 9, size: .12 });
+  const fx = createFx(scene), shake = shaker(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const flat = (o = {}) => new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .85, ...o });
   const courseMat = flat(), waterMat = new THREE.MeshStandardMaterial({ color: '#4fb8ef', roughness: .25, flatShading: true, transparent: true, opacity: .88 });
+  const putterMats = [toonMat(new THREE.MeshStandardMaterial({ color: '#d9dde3' })), toonMat(new THREE.MeshStandardMaterial({ color: '#5b4636' }))];
   const ballGeo = new THREE.IcosahedronGeometry(BALL_R, 2), inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
-  let H = null, holeG = null, holeKey = '', spinMeshes = [], blades = [], flag = null, clouds = null, water = null;
+  let H = null, holeG = null, holeKey = '', spinMeshes = [], blades = [], flag = null, water = null;
   let players = [], seatsKey = '', me = -1, stage = 'bet', clockBase = performance.now(), frozen = 0;
   const arrow = youArrow(); arrow.visible = false; arrow.scale.setScalar(.7); scene.add(arrow);
-  const bursts = [];
 
   // aim arrow: a strip that grows with the power, plus a row of dots showing the line
   const aimG = new THREE.Group(); aimG.visible = false; scene.add(aimG);
@@ -89,45 +86,41 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   ring.rotation.x = -Math.PI / 2; ring.renderOrder = 3; ring.visible = false; scene.add(ring);
   const aim = { on: false, ang: 0, pow: 0, drag: false, kb: false, p0: new THREE.Vector3(), sx: 0, sy: 0 };
 
-  function disposeTree(o) { o.traverse(x => { if (x.geometry && x.geometry !== ballGeo) x.geometry.dispose(); }); }
-  const hAt = (x, z) => { const g = ground(H, x, z); return g.tile ? g.h : BASE; };
+  const hAt = (x, z) => { const g = ground(H, x, z); return g.tile ? g.h : BASE - .02; };
 
   // ---------- the hole ----------
   function setHole(def) {
     const key = def.i + '/' + (def.mirror ? 1 : 0);
     if (key === holeKey) return;
     holeKey = key;
-    if (holeG) { scene.remove(holeG); disposeTree(holeG); }
+    if (holeG) { scene.remove(holeG); disposeToon(holeG); }
     H = buildHole(def.i, def.mirror);
     const g = holeG = new THREE.Group(); scene.add(g);
-    const M = mesher(), W = mesher(), { rows, cols } = H, rnd = rng(def.i * 977 + 13);
+    const M = mesher(), W = mesher(), { rows, cols } = H;
     spinMeshes = []; blades = [];
-    // the floating island under the course
-    const iw = cols + 3.4, id = rows + 4;
-    M.box(0, BASE - .3, -.3, iw, .6, id, '#5fbf58', 0, '#69c95e');
-    M.box(0, BASE - 1.1, -.3, iw - 1, 1, id - 1, '#a86a42');
-    M.box(.3, BASE - 2.1, -.2, iw - 3, 1, id - 3.4, '#8a5433');
-    M.box(-.2, BASE - 3, -.4, iw - 5.2, .9, id - 6.6, '#7a4a2b');
+    // the floating island under the course, with trees and flowers round its rim
+    const iw = cols + 1.2, id = rows + 2.6;
+    const land = island(iw, id, { rim: 2.3, seed: def.i + 3, props: 16, flowers: 46, size: 1.15 }); land.position.set(0, BASE - .1, -.5); g.add(land);
     // tiles
     for (const row of H.t) for (const T of row) {
       if (!T) continue;
       const x0 = T.x - .5, x1 = T.x + .5, z0 = T.z - .5, z1 = T.z + .5, [nw, ne, se, sw] = T.h, wet = T.k === 'w';
       const dark = (T.r + T.c) % 2, ramp = T.k === 'r' || T.k === 'R';
       const hi = Math.max(nw, ne, se, sw) > .01 && !ramp; // raised greens are a touch brighter, so the levels read from above
-      const top = T.k === 's' ? (dark ? '#f1d590' : '#f6dea0') : ramp ? (dark ? '#62c248' : '#6dca50') : hi ? (dark ? '#98e06a' : '#a6e877') : dark ? '#7fd457' : '#8cdc62';
+      const top = T.k === 's' ? (dark ? '#f1d590' : '#f6dea0') : ramp ? (dark ? '#62c248' : '#6dca50') : hi ? (dark ? '#9ad84e' : '#a8e05c') : dark ? '#7fd457' : '#8cdc62';
       const d = wet ? -.07 : 0;
       (wet ? W : M).quad([x0, nw + d, z0], [x0, sw + d, z1], [x1, se + d, z1], [x1, ne + d, z0], wet ? '#4fb8ef' : top, [0, 1, 0]);
       const side = wet ? '#3a94d6' : '#4fa646';
-      M.quad([x0, BASE, z1], [x1, BASE, z1], [x1, se, z1], [x0, sw, z1], side, [0, 0, 1]);
-      M.quad([x0, BASE, z0], [x1, BASE, z0], [x1, ne, z0], [x0, nw, z0], side, [0, 0, -1]);
-      M.quad([x1, BASE, z0], [x1, BASE, z1], [x1, se, z1], [x1, ne, z0], side, [1, 0, 0]);
-      M.quad([x0, BASE, z0], [x0, BASE, z1], [x0, sw, z1], [x0, nw, z0], side, [-1, 0, 0]);
+      M.quad([x0, BASE - .1, z1], [x1, BASE - .1, z1], [x1, se, z1], [x0, sw, z1], side, [0, 0, 1]);
+      M.quad([x0, BASE - .1, z0], [x1, BASE - .1, z0], [x1, ne, z0], [x0, nw, z0], side, [0, 0, -1]);
+      M.quad([x1, BASE - .1, z0], [x1, BASE - .1, z1], [x1, se, z1], [x1, ne, z0], side, [1, 0, 0]);
+      M.quad([x0, BASE - .1, z0], [x0, BASE - .1, z1], [x0, sw, z1], [x0, nw, z0], side, [-1, 0, 0]);
       if (T.k === 'T') { M.box(T.x, nw + .012, T.z, .62, .024, .62, '#fff4e2'); M.box(T.x - .42, nw + .06, T.z + .1, .1, .12, .1, '#ff8fab'); M.box(T.x + .42, nw + .06, T.z + .1, .1, .12, .1, '#ff8fab'); }
     }
     // walls: chunky cream boards with a wooden cap, and a post wherever boards meet
     const seen = new Set();
     for (const w of H.walls) {
-      const horiz = w.az === w.bz, cx = (w.ax + w.bx) / 2, cz = (w.az + w.bz) / 2, y0 = Math.min(BASE, w.lo), y1 = w.hi + WALL_H;
+      const horiz = w.az === w.bz, cx = (w.ax + w.bx) / 2, cz = (w.az + w.bz) / 2, y0 = Math.min(BASE - .1, w.lo), y1 = w.hi + WALL_H;
       M.box(cx, (y0 + y1) / 2, cz, horiz ? 1 : .15, y1 - y0, horiz ? .15 : 1, '#f7e3c0');
       M.box(cx, y1 + .025, cz, horiz ? 1 : .19, .05, horiz ? .19 : 1, '#d9955b');
       for (const [px, pz] of [[w.ax, w.az], [w.bx, w.bz]]) {
@@ -141,63 +134,41 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       M.prism(p.x, y, y + .14, p.z, p.r, p.r, 8, '#e5543b'); M.prism(p.x, y + .14, y + .26, p.z, p.r, p.r, 8, '#fff4e2');
       M.prism(p.x, y + .26, y + .4, p.z, p.r, p.r * .8, 8, '#e5543b', '#ff8fab');
     }
-    // trees, rocks and flowers on the grass around the course
-    const free = (x, z) => { for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (ground(H, x + dx * .75, z + dz * .75).tile) return false; return true; };
-    for (let n = 0, tries = 0; n < 16 && tries < 400; tries++) {
-      const x = (rnd() - .5) * (iw - 1), z = -.3 + (rnd() - .5) * (id - 1);
-      if (!free(x, z) || (z > rows / 2 + .2 && Math.abs(x) < cols / 2)) continue; // keep the camera side clear
-      if (z < -rows / 2 - .4 && Math.abs(x) < cols / 2 + .5) continue;            // and the gallery behind the green
-      n++;
-      const k = rnd();
-      if (k < .5) { // tree: two stacked cones
-        const s = .7 + rnd() * .5, c1 = rnd() < .5 ? '#3f9d55' : '#4fb563';
-        M.prism(x, BASE, BASE + .5 * s, z, .1 * s, .08 * s, 5, '#8a5433');
-        M.prism(x, BASE + .4 * s, BASE + 1.2 * s, z, .5 * s, 0, 6, c1, c1, rnd() * 3);
-        M.prism(x, BASE + .9 * s, BASE + 1.7 * s, z, .36 * s, 0, 6, '#5cc470', '#5cc470', rnd() * 3);
-      } else if (k < .72) M.box(x, BASE + .12, z, .3 + rnd() * .3, .26 + rnd() * .2, .3 + rnd() * .2, '#b9b4ad', rnd() * 3, '#cfcac3');
-      else { const fc = ['#ff8fab', '#ffd23f', '#fff4e2', '#e8a0e0'][rnd() * 4 | 0]; M.box(x, BASE + .09, z, .04, .18, .04, '#3f9d55'); M.box(x, BASE + .2, z, .14, .08, .14, fc, rnd() * 3); }
-    }
     // a little windmill tower stands beside the first windmill bar
     if (H.spins.length) {
       const s = H.spins[0], side = s.x <= 0 ? 1 : -1; let tx = s.x + side * 1.2;
       const clear = x => { for (let a = 0; a < 12; a++) if (ground(H, x + Math.cos(a * .5236) * .85, s.z + Math.sin(a * .5236) * .85).tile) return false; return !ground(H, x, s.z).tile; };
       while (!clear(tx) && Math.abs(tx) < iw / 2) tx += side * .2;
-      tx = clamp(tx, -iw / 2 + .8, iw / 2 - .8);
+      tx = clamp(tx, -iw / 2 - .9, iw / 2 + .9);
       M.prism(tx, BASE, BASE + 1.5, s.z, .52, .34, 6, '#fff4e2'); M.prism(tx, BASE + 1.5, BASE + 2.1, s.z, .46, 0, 6, '#e5543b', '#e5543b');
       M.box(tx, BASE + .28, s.z + .44, .22, .5, .06, '#8a5433');
       const bg = new THREE.Group(), bm = mesher();
       for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; bm.box(Math.cos(a) * .5, Math.sin(a) * .5, 0, i % 2 ? .16 : .9, i % 2 ? .9 : .16, .04, '#ffb547'); }
       bm.box(0, 0, 0, .16, .16, .1, '#3b2219');
-      const mesh = new THREE.Mesh(bm.build(), courseMat); mesh.castShadow = true; bg.add(mesh);
-      bg.position.set(tx, BASE + 1.45, s.z + .5); g.add(bg); blades.push(bg);
+      const mesh = new THREE.Mesh(bm.build(), courseMat); mesh.castShadow = true; mesh.userData.baked = true; bg.add(mesh);
+      bg.position.set(tx, BASE + 1.45, s.z + .5); bg.userData.dyn = true; toonify(bg, .03); g.add(bg); blades.push(bg);
     }
-    const course = new THREE.Mesh(M.build(), courseMat); course.castShadow = course.receiveShadow = true; g.add(course);
-    water = new THREE.Mesh(W.build(), waterMat); water.receiveShadow = true; g.add(water);
+    const cg = new THREE.Group(), course = new THREE.Mesh(M.build(), courseMat); course.castShadow = course.receiveShadow = true; course.userData.baked = true; cg.add(course);
+    toonify(cg, .035); g.add(cg); // cartoon shading and one dark outline round the whole course
+    water = new THREE.Mesh(W.build(), waterMat); water.receiveShadow = true; water.userData.noInk = true; g.add(water);
     // windmill bars
     for (const s of H.spins) {
       const sg = new THREE.Group(), sm = mesher(), y = hAt(s.x, s.z);
       sm.box(0, .15, 0, s.hl * 2, .16, .16, '#e5543b', 0, '#ff7a59');
       sm.box(-s.hl + .12, .15, 0, .24, .18, .18, '#fff4e2'); sm.box(s.hl - .12, .15, 0, .24, .18, .18, '#fff4e2');
       sm.prism(0, 0, .3, 0, .13, .13, 8, '#3b2219', '#ffb547');
-      const mesh = new THREE.Mesh(sm.build(), courseMat); mesh.castShadow = true; sg.add(mesh);
-      sg.position.set(s.x, y, s.z); g.add(sg); spinMeshes.push({ g: sg, s });
+      const mesh = new THREE.Mesh(sm.build(), courseMat); mesh.castShadow = true; mesh.userData.baked = true; sg.add(mesh);
+      sg.position.set(s.x, y, s.z); sg.userData.dyn = true; toonify(sg, .03); g.add(sg); spinMeshes.push({ g: sg, s });
     }
     // the cup and its flag
     const cy = H.cup.h;
     const hole = new THREE.Mesh(new THREE.CircleGeometry(CUP_R, 20), new THREE.MeshBasicMaterial({ color: '#2a1422' })); hole.rotation.x = -Math.PI / 2; hole.position.set(H.cup.x, cy + .006, H.cup.z); g.add(hole);
     const rim = new THREE.Mesh(new THREE.RingGeometry(CUP_R, CUP_R + .04, 20), new THREE.MeshBasicMaterial({ color: '#fff4e2' })); rim.rotation.x = -Math.PI / 2; rim.position.set(H.cup.x, cy + .007, H.cup.z); g.add(rim);
     const fm = mesher(); fm.box(0, .7, 0, .035, 1.4, .035, '#fff4e2');
-    const pole = new THREE.Mesh(fm.build(), courseMat); pole.castShadow = true; pole.position.set(H.cup.x, cy, H.cup.z); g.add(pole);
+    const pole = new THREE.Mesh(fm.build(), toonMat(courseMat)); pole.castShadow = true; pole.position.set(H.cup.x, cy, H.cup.z); g.add(pole);
     const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute([0, 1.4, 0, 0, 1.02, 0, .52, 1.21, 0], 3)); fg.computeVertexNormals();
-    flag = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color: '#e5543b', side: THREE.DoubleSide, flatShading: true })); flag.position.copy(pole.position); flag.castShadow = true; g.add(flag);
-    // clouds drifting past
-    const cm = mesher();
-    for (let i = 0; i < 6; i++) {
-      const a = rnd() * 6.28, r = Math.max(iw, id) * .62 + rnd() * 5, x = Math.cos(a) * r, z = Math.sin(a) * r, y = -2.5 + rnd() * 3.5, s = .8 + rnd();
-      cm.box(x, y, z, 1.8 * s, .5 * s, 1.1 * s, '#ffffff'); cm.box(x + .5 * s, y + .35 * s, z, 1 * s, .5 * s, .9 * s, '#ffffff'); cm.box(x - .7 * s, y + .2 * s, z + .2, .8 * s, .4 * s, .7 * s, '#f3fbff');
-    }
-    clouds = new THREE.Mesh(cm.build(), flat({ roughness: 1 })); g.add(clouds);
-    const span = Math.max(cols, rows) / 2 + 2.5;
+    flag = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ color: '#f0563c', side: THREE.DoubleSide })); flag.position.copy(pole.position); flag.castShadow = true; g.add(flag);
+    const span = Math.max(cols, rows) / 2 + 4;
     Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span }); sun.shadow.camera.updateProjectionMatrix();
     renderer.shadowMap.needsUpdate = true; camInit = false;
     for (const p of players) Object.assign(p, { shot: null, shotN: -1, init: false, hidden: false });
@@ -208,17 +179,17 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     const k = list.map(p => p.color + p.av.join('')).join('|');
     if (k === seatsKey) return;
     seatsKey = k;
-    for (const p of players) { scene.remove(p.wrap, p.ball); disposeAvatar(p.av); p.ball.material.dispose(); p.putter.traverse(m => { m.geometry?.dispose(); m.material?.dispose(); }); }
+    for (const p of players) { scene.remove(p.wrap, p.ball); disposeAvatar(p.av); p.putter.traverse(m => m.geometry?.dispose()); }
     players = list.map((s, i) => {
-      const ball = new THREE.Mesh(ballGeo, new THREE.MeshStandardMaterial({ color: s.color, roughness: .35, flatShading: true })); ball.castShadow = true;
+      const ball = new THREE.Mesh(ballGeo, toonMat(new THREE.MeshStandardMaterial({ color: s.color }))); ball.castShadow = true; ball.userData.col = s.color;
       const out = new THREE.Mesh(ballGeo, inkMat); out.scale.setScalar(1.16); ball.add(out);
       const av = avatar3d(s.color, s.av, { pose: 'stand' });
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av);
       // putter: pivots at the hands, in front of the body; the head rests on the grass beside the ball
       const putter = new THREE.Group(); putter.position.set(0, .22, .42);
-      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.08, 5), new THREE.MeshStandardMaterial({ color: '#d9dde3', roughness: .4 }));
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.08, 5), putterMats[0]);
       shaft.position.set(0, -.46, .26); shaft.rotation.x = -.52;
-      const head = new THREE.Mesh(new THREE.BoxGeometry(.3, .12, .12), new THREE.MeshStandardMaterial({ color: INK, roughness: .5 })); head.position.set(.08, -.93, .53);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(.3, .12, .12), putterMats[1]); head.position.set(.08, -.93, .53);
       putter.add(shaft, head); wrap.add(putter);
       scene.add(wrap, ball);
       return { i, ball, av, wrap, putter, cur: new THREE.Vector3(), rest: { x: 0, z: 0 }, pos: new THREE.Vector3(), face: 0, shot: null, shotN: -1, t0: 0, cue: 0, phase: '',
@@ -240,19 +211,12 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       if (!sh) { p.shot = null; p.shotN = -1; p.phase = ''; p.hidden = false; return; }
       if (sh.n === p.shotN) return;
       p.shotN = sh.n;
-      if (sh.path && sh.ago < sh.ms + 1400) { p.shot = sh; p.t0 = now - sh.ago; p.cue = 0; p.phase = 'fly'; p.swing = sh.ago / 1000; p.hidden = false; if (sh.ago < 200) onCue?.({ k: 'putt', s: i, pow: sh.pow }); }
+      if (sh.path && sh.ago < sh.ms + 1400) { p.shot = sh; p.t0 = now - sh.ago; p.cue = 0; p.phase = 'fly'; p.swing = sh.ago / 1000; p.hidden = false; if (sh.ago < 200) { onCue?.({ k: 'putt', s: i, pow: sh.pow }); if (!reduced) fx.puff(at(sh.x0, hAt(sh.x0, sh.z0), sh.z0), { n: 5, size: .16 + sh.pow * .14, speed: 1 + sh.pow * 1.5, life: .35 }); } }
       else { p.shot = null; p.phase = ''; p.hidden = false; }
     });
   }
 
-  function burstAt(x, y, z, color, n = 14, up = 4) {
-    if (reduced) return;
-    for (let k = 0; k < n; k++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color, transparent: true, depthWrite: false }));
-      s.position.set(x, y, z); s.scale.setScalar(.16); scene.add(s);
-      bursts.push({ s, v: new THREE.Vector3((Math.random() - .5) * 3, Math.random() * up + 1.2, (Math.random() - .5) * 3), t: 0 });
-    }
-  }
+  const V = new THREE.Vector3(), at = (x, y, z) => V.set(x, y, z);
 
   // ---------- aiming ----------
   const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), ndc = new THREE.Vector2(), hitP = new THREE.Vector3();
@@ -320,7 +284,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     for (const m of spinMeshes) m.g.rotation.y = -spinAngle(m.s, ht);
     for (const b of blades) b.rotation.z = T * 1.1;
     if (flag) flag.rotation.y = Math.sin(T * 2.2) * .35 - .2;
-    if (clouds) clouds.rotation.y = T * .012;
+    cloudRing.rotation.y = T * .006; flyBirds(T); blow(T);
     if (water) { water.position.y = Math.sin(T * 1.6) * .012; waterMat.emissive.setScalar(.04 + Math.sin(T * 2.3) * .03); }
     const n = players.length;
     players.forEach((p, i) => {
@@ -330,15 +294,15 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       if (sh) {
         const t = now - p.t0;
         pathAt(sh.path, t, tmp); bx = tmp.x; bz = tmp.z; flying = !tmp.done; show = true;
-        while (sh.fx && p.cue < sh.fx.length && t >= sh.fx[p.cue][0] * 1000 / 30) onCue?.({ k: 'hit', s: i, kind: sh.fx[p.cue++][1] });
+        while (sh.fx && p.cue < sh.fx.length && t >= sh.fx[p.cue][0] * 1000 / 30) { const kind = sh.fx[p.cue++][1]; onCue?.({ k: 'hit', s: i, kind }); if (!reduced) fx.puff(at(bx, hAt(bx, bz), bz), kind === 'w' ? { n: 4, size: .16, speed: 1, life: .3 } : { n: 7, size: .2, speed: 1.6, life: .4, color: ['#ffffff', '#ffd0d0'] }); }
         if (tmp.done) {
           const over = t - sh.ms;
           if (sh.sunk) { // drops into the cup
-            if (p.phase === 'fly') { p.phase = 'in'; p.hop = 1; burstAt(H.cup.x, H.cup.h + .1, H.cup.z, '#ffd23f', 18); burstAt(H.cup.x, H.cup.h + .1, H.cup.z, p.ball.material.color, 10); onCue?.({ k: 'sunk', s: i }); }
+            if (p.phase === 'fly') { p.phase = 'in'; p.hop = 1; if (!reduced) { const c = at(H.cup.x, H.cup.h, H.cup.z); fx.burst(c, { n: 24, colors: [p.ball.userData.col, '#ffd84a', '#ffffff'], speed: 3, up: 4.5, size: .26, life: 1, y: .15, shape: [STAR, CONF, HEART] }); fx.ring(c, { color: '#ffd84a', size: 1.6 }); if (i === me) { fx.confetti(c, { n: 60, w: 3, h: 3 }); shake.kick(.08); } } onCue?.({ k: 'sunk', s: i }); }
             by = -Math.min(1, over / 220) * .3; show = over < 260;
             const u = Math.min(1, over / 160); bx += (H.cup.x - bx) * u; bz += (H.cup.z - bz) * u;
           } else if (sh.water) { // splash, then back where it was hit from
-            if (p.phase === 'fly') { p.phase = 'wet'; burstAt(bx, hAt(bx, bz), bz, '#bfe8ff', 16, 3); burstAt(bx, hAt(bx, bz), bz, '#4fb8ef', 10, 2); onCue?.({ k: 'water', s: i }); }
+            if (p.phase === 'fly') { p.phase = 'wet'; if (!reduced) { const c = at(bx, hAt(bx, bz), bz); fx.burst(c, { n: 20, colors: ['#bfe8ff', '#4fb8ef', '#ffffff'], speed: 2.4, up: 4, size: .22, life: .7, shape: DOT }); fx.ring(c, { color: '#ffffff', size: 1.3 }); } onCue?.({ k: 'water', s: i }); }
             if (over < 700) { by = -Math.min(1, over / 200) * .4; show = over < 200; }
             else { bx = sh.x0; bz = sh.z0; show = true; if (over > 1100) { p.shot = null; p.phase = ''; } }
           } else {
@@ -357,11 +321,12 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const done = (p.sunk || p.out) && !flying && p.phase !== 'fly';
       let tx, tz, face;
       if (done && !(sh && sh.sunk && now - p.t0 - sh.ms < 900)) { // off to the gallery behind the green to cheer
-        tx = (i - (n - 1) / 2) * .78; tz = -H.rows / 2 - .95; face = 0;
+        tx = (i - (n - 1) / 2) * .78; tz = -H.rows / 2 - 1.2; face = 0;
       } else {
         const ax = flying || sh ? (sh.x0 ?? bx) : bx, az = flying || sh ? (sh.z0 ?? bz) : bz;
         let ang = flying || sh ? sh.ang : Math.atan2(H.cup.x - ax, -(H.cup.z - az));
         if (i === me && aim.on) ang = aim.ang;
+        else if (!sh && Math.hypot(ax - H.tee.x, az - H.tee.z) < .05) ang += (i - (n - 1) / 2) * 2.2 / n; // everyone starts on the tee: fan out round it
         const dx = Math.sin(ang), dz = -Math.cos(ang);
         tx = ax + dz * .46; tz = az - dx * .46; face = Math.atan2(-dz, dx); p.side = 1; // stands side on, facing the ball
         if (!ground(H, tx, tz).tile || ground(H, tx, tz).tile.k === 'w') { tx = ax - dz * .46; tz = az + dx * .46; face = Math.atan2(dz, -dx); p.side = -1; } // no room that side: stand on the other
@@ -385,8 +350,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const sw = p.swing < .45 ? Math.sin(Math.min(1, p.swing / .45) * Math.PI) * .9 : i === me && aim.on ? -aim.pow * .55 : 0;
       p.putter.visible = !done && !walking;
       p.putter.rotation.z = sw * (p.side || 1);
-      if (p.putter.visible) p.av.userData.arms.forEach((a, k) => { a.rotation.x = a.userData.rx - .62; a.rotation.z = (a.userData.rz0 ??= a.rotation.z) + (k ? -1 : 1) * .0; });
-      else p.av.userData.arms.forEach(a => { if (a.userData.rz0 !== undefined) a.rotation.z = a.userData.rz0; });
+      if (p.putter.visible) for (const a of p.av.userData.arms) a.rotation.x = a.userData.rx - .62;
     });
     // your ball: a ring when it is your shot, the bobbing arrow over your head
     const mine = players[me], can = !!mine && !!canAim?.();
@@ -413,13 +377,10 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     if (mine && !tall && stage === 'play') { look.x += mine.cur.x * .08; look.z += mine.cur.z * .05; }
     want.set(look.x + Math.sin(yaw) * Math.cos(el) * dist, look.y + Math.sin(el) * dist, look.z + Math.cos(yaw) * Math.cos(el) * dist);
     if (!camInit) { camera.position.copy(want); lookNow.copy(look); camInit = true; }
-    camera.position.lerp(want, Math.min(1, dt * 2.5)); lookNow.lerp(look, Math.min(1, dt * 2.5)); camera.lookAt(lookNow);
-    for (let i = bursts.length - 1; i >= 0; i--) {
-      const b = bursts[i]; b.t += dt; b.v.y -= 9 * dt; b.s.position.addScaledVector(b.v, dt); b.s.material.opacity = 1 - b.t / .8;
-      if (b.t > .8) { scene.remove(b.s); b.s.material.dispose(); bursts.splice(i, 1); }
-    }
+    camera.position.lerp(want, Math.min(1, dt * 2.5)); lookNow.lerp(look, Math.min(1, dt * 2.5)); camera.lookAt(lookNow); if (!reduced) shake.apply(camera, dt);
     shadowIn -= dt;
     if (shadowIn <= 0) { renderer.shadowMap.needsUpdate = true; shadowIn = moving ? .034 : .25; }
+    fx.update(dt, camera, Hh);
     renderer.render(scene, camera);
     for (const p of players) {
       proj.copy(p.wrap.position); proj.y += 1.75 * AV; proj.project(camera);
@@ -438,9 +399,9 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move);
       canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', cancel);
       removeEventListener('keydown', key);
-      if (holeG) disposeTree(holeG);
-      for (const p of players) { disposeAvatar(p.av); p.ball.material.dispose(); }
-      disposeArrow(arrow); dot.dispose(); ballGeo.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
+      if (holeG) disposeToon(holeG);
+      for (const p of players) disposeAvatar(p.av);
+      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
     },
   };
 }

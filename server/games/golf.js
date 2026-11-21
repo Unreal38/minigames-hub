@@ -55,7 +55,8 @@ function nextHole(G, now) {
   seatQueued(G);
   G.H = buildHole(G.order[G.hi], G.mirror[G.hi]);
   G.balls = G.seats.map(() => ({ x: G.H.tee.x, z: G.H.tee.z, strokes: 0, sunk: 0, out: false, busy: 0, shot: null, think: 0 }));
-  G.bets = G.seats.map(() => null);
+  // someone who cannot afford the smallest stake has nothing to decide, so betting does not wait for them
+  G.bets = G.seats.map(x => (x.human && (G.wallet[x.wk] || 0) < STAKES[0] ? 'skip' : null));
   G.holeRes = null;
   G.stage = 'bet'; G.stageEnd = now + (betting(G) ? BET_MS : LOOK_MS);
   pushEv(G, { t: 'hole', i: G.hi });

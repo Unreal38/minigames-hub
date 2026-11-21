@@ -124,7 +124,7 @@ export function mount(app, ctx) {
     setHtml($('mg-list'), ord.map(i => {
       const p = S.seats[i], playing = S.stage === 'play';
       const now = playing ? (p.sunk ? `<em class="in">${I.check}${p.strokes}</em>` : p.out ? `<em class="out">${S.cap}</em>` : `<em>${p.strokes}</em>`) : '';
-      return `<li class="${i === S.me ? 'me' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
+      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
     }).join(''));
   }
 
@@ -235,7 +235,7 @@ export function mount(app, ctx) {
       <div class="cardwrap"><table class="mg-card"><thead><tr><th>Hole</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>Total</th></tr>
         <tr class="par"><th>Par</th>${S.pars.map(p => `<td>${p}</td>`).join('')}<td>${R.par}</td></tr></thead>
         <tbody>${R.order.map((i, n) => { const p = S.seats[i];
-          return `<tr class="${i === S.me ? 'me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b></span></th>
+          return `<tr class="${i === S.me ? 'mg-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b></span></th>
             ${p.card.map((sc, h) => `<td class="${sc < S.pars[h] ? 'under' : sc > S.pars[h] ? 'over' : ''}">${sc}</td>`).join('')}<td><strong>${R.totals[i]}</strong><small>${vsPar(R.totals[i] - R.par)}</small></td></tr>`; }).join('')}</tbody></table></div>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
