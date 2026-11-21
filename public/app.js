@@ -355,7 +355,7 @@ const topbar = () => `<header class="top">
 
 function renderHub() {
   $app.innerHTML = `${topbar()}
-  <main class="wrap">
+  <main class="wrap hubgrid">
     <section class="hero">
       <div>
         <h1>Pull up a chair.<br>The pot's already bubbling.</h1>
@@ -373,6 +373,7 @@ function renderHub() {
       </div>
       <div class="art">${tableArt()}</div>
     </section>
+    <div class="hubmid">
     <section id="progress" style="margin-bottom:44px">
       <h2>Your progress</h2>
       <div id="me-card">${meCard()}</div>
@@ -431,17 +432,25 @@ function renderHub() {
         <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
       </div>
     </section>
-    <section id="rankings" style="margin-top:44px">
-      <div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:14px"><h2 style="margin:0">Rankings</h2><span style="font-size:14px;color:var(--muted)">Everyone on Cozy Table · bots don't count</span></div>
-      <div class="rkcard">
-        <div class="rktabs" role="tablist" aria-label="Rankings by game">${RK_TABS.map(([id, n]) => `<button type="button" role="tab" data-act="rktab" data-tab="${id}" aria-selected="${id === st.rkTab}">${n}</button>`).join('')}</div>
-        <div id="rk-body" role="tabpanel">${rankingsHtml()}</div>
-      </div>
-    </section>
-    <section id="tables" style="margin-top:44px">
-      <div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:14px"><h2 style="margin:0">Open tables</h2><span style="font-size:14px;color:var(--muted)">Updates live</span></div>
-      <div class="tables" id="tables-list"></div>
-    </section>
+    </div>
+    <aside class="hubside left" aria-label="Open tables">
+      <section id="tables">
+        <div class="sidehead"><h2>Open tables</h2><span class="tcount" id="tables-count"></span></div>
+        <p class="sidenote"><span class="livedot"></span>Updates live. Join a seat or watch a game.</p>
+        <div class="tables" id="tables-list"></div>
+        <button type="button" class="btn w sidehost" data-act="host">Host a table</button>
+      </section>
+    </aside>
+    <aside class="hubside right" aria-label="Rankings">
+      <section id="rankings">
+        <div class="sidehead"><h2>Rankings</h2></div>
+        <p class="sidenote">Everyone on Cozy Table. Bots don't count.</p>
+        <div class="rkcard">
+          <div class="rktabs" role="tablist" aria-label="Rankings by game">${RK_TABS.map(([id, n]) => `<button type="button" role="tab" data-act="rktab" data-tab="${id}" aria-selected="${id === st.rkTab}">${n}</button>`).join('')}</div>
+          <div id="rk-body" role="tabpanel">${rankingsHtml()}</div>
+        </div>
+      </section>
+    </aside>
   </main>
   <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
   renderTables();
@@ -497,6 +506,7 @@ function paintStats() { const el = document.getElementById('live-stats'); if (el
 
 function renderTables() {
   const el = document.getElementById('tables-list'); if (!el) return;
+  const cnt = document.getElementById('tables-count'); if (cnt) cnt.textContent = st.rooms.length || '';
   if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
   el.innerHTML = st.rooms.map(r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}

@@ -404,3 +404,56 @@ body:has(.lobby) .scorebtn { display: none; }
   .rk .main { font-size: 16px; align-self: center; }
   .rk .sub { justify-self: start; font-size: 12px; white-space: normal; }
 }
+
+/* ---------- hub: three columns (open tables | main | rankings) ---------- */
+.wrap.hubgrid { max-width: 1760px; display: grid; column-gap: 32px; align-items: start;
+  grid-template-columns: minmax(0, 1fr); grid-template-areas: "hero" "left" "mid" "right"; }
+.hubgrid > .hero { grid-area: hero; } .hubgrid > .hubmid { grid-area: mid; }
+.hubgrid > .hubside.left { grid-area: left; } .hubgrid > .hubside.right { grid-area: right; }
+.hubside > section { display: flex; flex-direction: column; gap: 12px; }
+.hubside.left { margin-bottom: 40px; } .hubside.right { margin-top: 44px; }
+.sidehead { display: flex; align-items: center; gap: 10px; } .sidehead h2 { margin: 0; }
+.tcount:not(:empty) { font-family: var(--fd); font-weight: 700; font-size: 15px; background: var(--mint); color: var(--ink); border-radius: 999px; padding: 2px 10px; }
+.sidenote { margin: -4px 0 2px; font-size: 14px; color: var(--muted); }
+.livedot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); margin-right: 7px; vertical-align: 1px; }
+.sidehost { align-self: flex-start; }
+/* two columns: tables and rankings side by side under the hero, games below */
+@media (min-width: 980px) and (max-width: 1299px) {
+  .wrap.hubgrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "hero hero" "left right" "mid mid"; }
+  .hubside.right { margin-top: 0; margin-bottom: 40px; }
+  .hubside .rk { max-height: 460px; overflow-y: auto; }
+}
+/* three columns: open tables left, main in the middle, rankings right; the side columns stay in view */
+@media (min-width: 1300px) {
+  .wrap.hubgrid { grid-template-columns: 300px minmax(0, 1fr) 340px; grid-template-areas: "left hero right" "left mid right"; }
+  .hubside { grid-row: 1 / span 2; position: sticky; top: 16px; padding-top: 32px; margin: 0 !important; max-height: 100vh; display: flex; flex-direction: column; }
+  .hubside > section { min-height: 0; }
+  .hubside.left .tables { overflow-y: auto; min-height: 0; padding: 3px; margin: -3px; }
+  .hubside .rkcard { min-height: 0; padding: 12px; border-radius: 20px; }
+  .hubside #rk-body { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 3px; margin: -3px; }
+  .hubside .rktabs { flex-wrap: wrap; overflow: visible; gap: 6px; }
+  .hubside .rktabs button { font-size: 14px; padding: 4px 10px; min-height: 36px; border-radius: 10px; }
+  .hubside.right .rkcard { flex: 1; }
+  .hubside.right section, .hubside.left section { flex: 1; }
+  .hubgrid .hero { padding-top: 32px; }
+}
+/* narrow table rows and ranking rows inside the side columns */
+.hubside .trow { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; grid-template-areas: "av who who" "av dots code" "btn btn btn"; gap: 6px 12px; padding: 12px; }
+.hubside .trow > .avatar { grid-area: av; align-self: start; } .hubside .trow .who { grid-area: who; }
+.hubside .trow .who b { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hubside .trow .who span { display: block; line-height: 1.35; }
+.hubside .trow .dots { grid-area: dots; align-self: center; flex-wrap: wrap; gap: 4px; } .hubside .trow .dots i { width: 13px; height: 13px; border-width: 2px; }
+.hubside .trow .tcode { grid-area: code; font-size: 16px; }
+.hubside .trow .btn { grid-area: btn; width: 100%; min-height: 40px; padding-block: 6px; margin-top: 4px; }
+.hubside .empty { padding: 18px; font-size: 15px; }
+@media (min-width: 1300px) {
+  .hubside .rk li { grid-template-columns: 24px 36px minmax(0, 1fr) auto; grid-template-areas: "pos av who main" "pos av sub sub"; column-gap: 8px; padding: 8px 10px 8px 6px; }
+  .hubside .rk .pos { font-size: 16px; }
+  .hubside .rk .main { font-size: 16px; align-self: center; }
+  .hubside .rk .sub { justify-self: start; font-size: 12px; white-space: normal; }
+}
+@media (min-width: 1300px) {
+  .wrap.hubgrid { padding-inline: 24px; column-gap: 28px; grid-template-columns: 290px minmax(0, 1fr) 330px; }
+  .hubgrid .hero > div { flex-basis: 340px; } .hubgrid .hero .art { flex-basis: 240px; height: clamp(280px, 26vw, 430px); }
+  .hubgrid .hero h1 { font-size: clamp(36px, 3.3vw, 54px); }
+}
