@@ -420,7 +420,6 @@ function renderHub() {
         <p>Tiny games for you and your friends. No downloads and no sign-up needed: pick a name, share a four-letter code and play. Empty seats get friendly bots.</p>
         <div class="row">
           <button type="button" class="btn big" data-act="host">Host a table</button>
-          <button type="button" class="btn big w" data-act="solo">Play with bots</button>
         </div>
         <form class="codeform" data-form="join">
           <label for="code">Got a code?</label>
@@ -444,7 +443,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Hot Pot</h3><span class="tag">1–4 players</span></div>
             <p>Draw, swap and collect three sets of three ingredients, then call “Let's Eat!” before anyone else.</p>
-            <div class="row"><button type="button" class="btn" data-act="host">Host a table</button><button type="button" class="btn w" data-act="solo">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -452,7 +451,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Marble Rush</h3><span class="tag">1–8 players</span></div>
             <p>Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="marbles">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -460,7 +459,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Snakes &amp; Ladders</h3><span class="tag">1–6 players</span></div>
             <p>The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="ladders">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="ladders">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="ladders">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -468,7 +467,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Texas Hold'em</h3><span class="tag">1–6 players</span></div>
             <p>Cozy no-limit poker for pretend chips. Bluff your friends, out-read the bots and stack the whole table.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="poker">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="poker">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="poker">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -476,7 +475,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Ludo</h3><span class="tag">1–4 players</span></div>
             <p>Race your pawns round a chunky 3D board and bump your friends back to their yard. Sixes, stars and sweet revenge.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="ludo">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="ludo">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="ludo">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -484,7 +483,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Tower Stack</h3><span class="tag">1–6 players</span></div>
             <p>Take turns dropping swinging blocks on one shared, wobbly tower. Stack it high, and don't be the one who knocks it down.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="stack">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="stack">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="stack">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -492,7 +491,7 @@ function renderHub() {
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>
             <p>Everyone putts the same blocky 3D hole at once. Dodge the windmill, sink it first, and bet coins on who takes each hole.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="golf">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="golf">Play with bots</button></div>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="golf">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
