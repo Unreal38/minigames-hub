@@ -228,6 +228,72 @@ const BODIES = [ // shoulder, chest, waist, hip (radius / height), limb radius, 
   { sh: .145, ch: .128, wa: .118, hi: .112, lb: .033, dz: .68 }, { sh: .106, ch: .1, wa: .074, hi: .106, lb: .026, dz: .64 }, { sh: .126, ch: .118, wa: .116, hi: .118, lb: .031, dz: .74 }];
 const SIT_K = 1.48, STAND_K = 1.2; // model units -> scene units, so a seated head tops out near y = 2.1
 
+// ---------- hats over hair ----------
+// Hair styles are free-form, so instead of a hand-made offset for every hat and hair pair the hair is fitted to the hat:
+// a hat that covers the skull squashes all the hair above its brim onto a thin shell just over the skull (hair below
+// the brim, like bangs, tails and braids, stays as it is), and a small topper (ears, crown, horns...) sitting on big hair
+// is moved out to the hair's surface, with any hair still poking up through it pressed down under it.
+// All in head space (chin at 0, crown at 1); C is roughly the middle of the skull.
+const HAT_BRIM = { 1: .72, 2: .76, 3: .88, 9: .8, 10: .86, 11: .87, 13: .9, 14: .93, 16: .82, 17: .72, 19: .76, 20: .64, 21: .86, 22: .92, 26: .87, 27: .62 };
+const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28], HC = new THREE.Vector3(0, .47, 0), SHELL = 1.12;
+// How far from C along the unit direction d you can go and still be inside the skull grown sideways by o, the way
+// hair and hat shells are made (shellPts), closed over the crown by a low cone. skullT is the bare skull.
+const envT = (hr, d, o) => { let lo = 0, hi = 1.4; for (let i = 0; i < 18; i++) { const t = (lo + hi) / 2, y = HC.y + d.y * t, r = Math.hypot(d.x * t, d.z * t); if (y >= 0 && (y <= 1 ? r <= hr(y) + o : r <= o - (y - 1))) lo = t; else hi = t; } return lo; };
+const skullT = (hr, d) => envT(hr, d, 0);
+function fitHat(hg, hH, hT, hat, hr) {
+  const brim = HAT_BRIM[hat], top = HAT_TOP.includes(hat), made = [];
+  if (brim == null && !top) return made;
+  hg.updateWorldMatrix(true, true); const inv = new THREE.Matrix4().copy(hg.matrixWorld).invert(), m = new THREE.Matrix4(), v = new THREE.Vector3(), d = new THREE.Vector3();
+  // every hair vertex in head space, mesh by mesh
+  const hair = []; hH.traverse(o => { if (o.isMesh) { m.multiplyMatrices(inv, o.matrixWorld); hair.push({ o, m: m.clone() }); } });
+  for (const h of hair) { const p = h.o.geometry.attributes.position, pts = new Float32Array(p.count * 3); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(h.m); pts.set([v.x, v.y, v.z], i * 3); } h.pts = pts; }
+  // limit(x, y, z, d) -> the farthest from C that point may be, or Infinity
+  const squash = (limit, under = () => true) => { for (const h of hair) {
+    let hit = false; const q = h.pts, hid = [];
+    for (let i = 0; i < q.length; i += 3) {
+      v.set(q[i], q[i + 1], q[i + 2]).sub(HC); const L = v.length(); if (L < 1e-4) continue; d.copy(v).divideScalar(L);
+      const T = limit(q[i], q[i + 1], q[i + 2], d); if (L <= T) continue;
+      const oy = q[i + 1]; q[i] = HC.x + d.x * T; q[i + 1] = HC.y + d.y * T; q[i + 2] = HC.z + d.z * T; hit = true; if (under(oy)) hid.push(i, -d.x, -d.y, -d.z);
+    }
+    if (!hit) continue;
+    // swap in a squashed copy of the shape, already placed, so the shared shape stays untouched
+    const g = h.o.geometry.clone(); g.attributes.position.array.set(q); g.attributes.position.needsUpdate = true; g.computeVertexNormals(); made.push(g);
+    // pressed points are hidden under the hat; turn their normals inward so their outline cannot show through it
+    const nr = g.attributes.normal.array; for (let j = 0; j < hid.length; j += 4) nr.set([hid[j + 1], hid[j + 2], hid[j + 3]], hid[j]);
+    const o = h.o; o.geometry = g; o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); hH.add(o);
+  } };
+  if (brim != null) {
+    // fade in over a short band at the brim so a clump crossing it does not get a hard step
+    squash((x, y, z, d) => y < brim - .06 ? Infinity : envT(hr, d, y > brim ? .012 : .012 + (brim - y) / .06 * .25), y => y > brim);
+    return made;
+  }
+  // toppers: find how far out the hair reaches under each piece and move the whole hat out by the most any piece needs
+  // a piece centred on the head (the headphone band) arches over it, so it is checked straight up against its own reach
+  // Each piece looks along its own direction d from C; seat is how close to C it comes along d, as a multiple of the
+  // skull there. A piece centred on the head (the headphone band) arches over it, so it looks straight up.
+  const up = new THREE.Vector3(0, 1, 0), pieces = hT.children.filter(o => o.isMesh).map(o => {
+    o.geometry.boundingSphere || o.geometry.computeBoundingSphere(); const c = o.position.clone().sub(HC), L = c.length(), br = o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z);
+    if (L < .2) return { d: up, over: dd => dd.y > .25 && Math.abs(dd.z) < .14, sk: skullT(hr, up), near: br - .05 };
+    const d = c.divideScalar(L), cos = Math.cos(Math.max(.3, Math.min(.5, Math.atan2(br, L)))), p = o.geometry.attributes.position; o.updateMatrix(); let near = Infinity;
+    for (let i = 0; i < p.count; i++) near = Math.min(near, v.fromBufferAttribute(p, i).applyMatrix4(o.matrix).sub(HC).dot(d));
+    return { d, over: dd => dd.dot(d) > cos, sk: skullT(hr, d), near: Math.max(.1, near) };
+  });
+  // How much thicker than usual the hair is over the top of the head. Only hair that is big all over (an afro, curls)
+  // counts, since a quiff, a bun or spikes are only a small part of it; the hat then moves out by that much, and
+  // whatever still sticks up under it is pressed down instead.
+  const r = [];
+  for (const h of hair) for (let i = 0; i < h.pts.length; i += 3) { v.set(h.pts[i], h.pts[i + 1], h.pts[i + 2]).sub(HC); const L = v.length(); if (L < 1e-4) continue; d.copy(v).divideScalar(L); if (d.y > .5) r.push(L / skullT(hr, d)); }
+  const x = r.length ? (r.sort((a, b) => a - b), r[Math.floor(r.length * .7)]) : 0;
+  let s = 1;
+  for (const p of pieces) s = Math.max(s, 1 + Math.max(0, x - SHELL) * p.sk / p.near);
+  s = Math.max(1, Math.min(s, 1.9));
+  if (s > 1.02) { hT.scale.setScalar(s); hT.position.copy(HC).multiplyScalar(1 - s); }
+  // whatever still pokes up under a piece (spikes, a bun) is pressed down to just under it
+  const lifted = s > 1.02 ? s : 1;
+  squash((x, y, z, dd) => { for (const p of pieces) if (p.over(dd)) return skullT(hr, dd) * (Math.max(p.near * lifted / p.sk, SHELL) - .02); return Infinity; });
+  return made;
+}
+
 export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const a = avObj(avIn), seated = pose !== 'stand';
   const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], eyes: [], dyn: true }; root.add(g);
@@ -353,33 +419,35 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const fz = (x, y, o = 0) => Math.sqrt(Math.max(0, hr(y) * hr(y) - x * x)) + o;
   for (const s of [-1, 1]) sph(hg, .085, skin, s * hr(.4) * .97, .4, -.02).scale.set(.6, 1, .8);
   // hair: a shell over the skull plus chunky clumps and pointed bangs
-  const hat = a.hat, tallHat = [1, 2, 3, 9, 11, 13, 14, 17, 20, 21, 22, 26, 27].includes(hat), hs = tallHat && [0, 3, 9, 12, 13].includes(a.hair) ? 1 : a.hair, A = 1.3;
+  // An afro is too big to tuck under a covering hat (or inside a flower crown), so it shows as curls there.
+  // Hair goes in hH and the hat in hT, so fitHat() can squash the hair under a hat or lift a small topper onto big hair.
+  const hat = a.hat, hs = a.hair === 13 && (HAT_BRIM[hat] != null || hat === 23) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
   // rings get closer together towards the crown, where the skull curves fastest, so the shell never dips below it
   const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 14; j++) { const y = ya + (yb - ya) * Math.sin(j / 14 * PI / 2); p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
-  const base = (hf, hb, off = .065, c = hair) => { part(hg, shellPts(hf, 1, off), c, 0, A); part(hg, shellPts(hb, 1, off), c, PI, PI - A); };
+  const base = (hf, hb, off = .065, c = hair) => { part(hH, shellPts(hf, 1, off), c, 0, A); part(hH, shellPts(hb, 1, off), c, PI, PI - A); };
   const bangs = (nb = 5, len = .26, skew = 0, spread = 1.2) => {
     for (let i = 0; i < nb; i++) {
-      const f = nb > 1 ? i / (nb - 1) - .5 : 0, pv = new THREE.Group(); pv.rotation.y = f * 2 * spread; hg.add(pv);
+      const f = nb > 1 ? i / (nb - 1) - .5 : 0, pv = new THREE.Group(); pv.rotation.y = f * 2 * spread; hH.add(pv);
       const l = len * (1 - Math.abs(f) * .25) * (i % 2 ? .86 : 1), c = cone(pv, spread / nb * .62 + .05, l, i % 2 ? hD : hair, 0, .8 - l * .5, hr(.7) + .035); c.rotation.set(PI + .16, 0, skew); c.scale.z = .42;
     }
   };
-  const clump = (r, x, y, z, sx = 1, sy = 1, sz = 1, c = hair) => { const o = sph(hg, r, c, x, y, z); o.scale.set(sx, sy, sz); return o; };
-  const tail = (r, l, x, y, z, rx = 0, rz = 0, c = hair) => { const o = cone(hg, r, l, c, x, y, z); o.rotation.set(PI + rx, 0, rz); return o; };
+  const clump = (r, x, y, z, sx = 1, sy = 1, sz = 1, c = hair) => { const o = sph(hH, r, c, x, y, z); o.scale.set(sx, sy, sz); return o; };
+  const tail = (r, l, x, y, z, rx = 0, rz = 0, c = hair) => { const o = cone(hH, r, l, c, x, y, z); o.rotation.set(PI + rx, 0, rz); return o; };
   const tieC = '#ff8fab';
   if (hs === 0) { base(.74, .42); bangs(5, .24); clump(.2, 0, 1.1, -.16); }
   if (hs === 1) { base(.74, .46); bangs(4, .2, .3); }
-  if (hs === 2) { base(.74, .42); bangs(5, .26); for (const s of [-1, 1]) { clump(.15, s * .52, .74, -.1); tail(.17, .7, s * .64, .34, -.12, 0, s * .28, hD); box(hg, .07, .07, .07, tieC, s * .47, .82, -.08); } }
-  if (hs === 3) { base(.76, .46); for (let i = 0; i < 9; i++) { const an = i / 9 * PI * 2, c = cone(hg, .17, .4, i % 2 ? hD : hair, Math.sin(an) * .3, 1.0, Math.cos(an) * .27 - .06); c.rotation.set(Math.cos(an) * .75, 0, -Math.sin(an) * .75); } cone(hg, .17, .4, hair, 0, 1.14, -.06); bangs(5, .3, 0, 1.25); }
-  if (hs === 4) { base(.74, .36); part(hg, [[.57, .55], [.6, .1], [.56, -.4], [.44, -.72], [.3, -.74]], hD, PI, 1.9); bangs(6, .3); for (const s of [-1, 1]) tail(.12, .62, s * .5, .32, .14, 0, s * .1); }
+  if (hs === 2) { base(.74, .42); bangs(5, .26); for (const s of [-1, 1]) { clump(.15, s * .52, .74, -.1); tail(.17, .7, s * .64, .34, -.12, 0, s * .28, hD); box(hH, .07, .07, .07, tieC, s * .47, .82, -.08); } }
+  if (hs === 3) { base(.76, .46); for (let i = 0; i < 9; i++) { const an = i / 9 * PI * 2, c = cone(hH, .17, .4, i % 2 ? hD : hair, Math.sin(an) * .3, 1.0, Math.cos(an) * .27 - .06); c.rotation.set(Math.cos(an) * .75, 0, -Math.sin(an) * .75); } cone(hH, .17, .4, hair, 0, 1.14, -.06); bangs(5, .3, 0, 1.25); }
+  if (hs === 4) { base(.74, .36); part(hH, [[.57, .55], [.6, .1], [.56, -.4], [.44, -.72], [.3, -.74]], hD, PI, 1.9); bangs(6, .3); for (const s of [-1, 1]) tail(.12, .62, s * .5, .32, .14, 0, s * .1); }
   if (hs === 6) { base(.74, .1, .085); bangs(6, .28); }
-  if (hs === 7) { base(.76, .42); bangs(5, .24, -.2); clump(.14, 0, .84, -.56); box(hg, .1, .08, .1, tieC, 0, .86, -.5); tail(.18, .8, 0, .42, -.72, -.25, 0, hD); }
+  if (hs === 7) { base(.76, .42); bangs(5, .24, -.2); clump(.14, 0, .84, -.56); box(hH, .1, .08, .1, tieC, 0, .86, -.5); tail(.18, .8, 0, .42, -.72, -.25, 0, hD); }
   if (hs === 8) { base(.78, .4); for (let i = 0; i < 22; i++) { const an = i * 2.4, e = .3 + (i % 5) * .3; clump(.16, Math.sin(an) * Math.sin(e) * .5, .58 + Math.cos(e) * .5, Math.cos(an) * Math.sin(e) * .48 - .04, 1, 1, 1, i % 3 ? hair : hD); } for (let i = 0; i < 4; i++) clump(.1, (i - 1.5) * .17, .76, hr(.76) - .02, 1, 1, .6, i % 2 ? hD : hair); }
-  if (hs === 9) { base(.86, .6, .016, hD); for (let i = 0; i < 6; i++) { const o = cone(hg, .12, .36 + Math.sin((i + .5) / 6 * PI) * .14, i % 2 ? hD : hair, 0, 1.12 + Math.sin((i + .5) / 6 * PI) * .04, .34 - i * .15); o.rotation.x = .5 - i * .22; o.scale.x = .6; } }
+  if (hs === 9) { base(.86, .6, .016, hD); for (let i = 0; i < 6; i++) { const o = cone(hH, .12, .36 + Math.sin((i + .5) / 6 * PI) * .14, i % 2 ? hD : hair, 0, 1.12 + Math.sin((i + .5) / 6 * PI) * .04, .34 - i * .15); o.rotation.x = .5 - i * .22; o.scale.x = .6; } }
   if (hs === 10) base(.8, .5, .02);
   if (hs === 11) { base(.74, .44); bangs(5, .3, .55, 1.15); clump(.2, -.36, .9, .1, 1, .6, 1.2, hD); }
-  if (hs === 12) { base(.8, .46); clump(.26, 0, 1.02, .26, 1.2, .8, 1); cone(hg, .2, .4, hD, 0, 1.1, .38).rotation.x = -1.0; }
+  if (hs === 12) { base(.8, .46); clump(.26, 0, 1.02, .26, 1.2, .8, 1); cone(hH, .2, .4, hD, 0, 1.1, .38).rotation.x = -1.0; }
   if (hs === 13) clump(.7, 0, .74, -.06, 1, .93, .96);
-  if (hs === 14) { base(.76, .42); bangs(5, .26); for (const s of [-1, 1]) { for (let i = 0; i < 5; i++) clump(.085, s * .5, .36 - i * .15, .1 + i * .015, 1, 1, 1, i % 2 ? hD : hair); box(hg, .06, .06, .06, tieC, s * .5, -.4, .17); } }
+  if (hs === 14) { base(.76, .42); bangs(5, .26); for (const s of [-1, 1]) { for (let i = 0; i < 5; i++) clump(.085, s * .5, .36 - i * .15, .1 + i * .015, 1, 1, 1, i % 2 ? hD : hair); box(hH, .06, .06, .06, tieC, s * .5, -.4, .17); } }
   if (hs === 15) { base(.74, .2, .08); bangs(5, .28, .15); for (const s of [-1, 1]) { clump(.2, s * .5, .12, -.06, .8, 1.2, 1, hD); clump(.18, s * .52, -.14, -.02, .8, 1.1, 1); } clump(.36, 0, -.02, -.36, 1.3, 1, .6, hD); }
   // glasses
   const gl = a.glasses, ex = .18, ey = .4, gz = fz(ex, ey, .035);
@@ -409,34 +477,35 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     box(hg, .07, .014, .014, fr, 0, ey + .01, fz(0, ey, .02));
   }
   // hats
-  if (hat === 1) { lathe(hg, shellPts(.7, 1, .1), topC); lathe(hg, shellPts(.63, .76, .125), shade(topC, .8)); sph(hg, .1, '#ffffff', 0, 1.2, 0); }
-  if (hat === 2) { lathe(hg, shellPts(.74, 1, .09), topC); const br = cyl(hg, .34, .34, .03, shade(topC, .8), 0, .76, .44); br.scale.set(1, 1, .9); br.rotation.x = .14; sph(hg, .04, shade(topC, .8), 0, 1.1, 0); }
-  if (hat === 3) { cyl(hg, .37, .35, .28, '#ffffff', 0, 1.02, -.02); for (let i = 0; i < 5; i++) { const an = i / 5 * PI * 2; sph(hg, .24, i % 2 ? '#ffffff' : '#ece8df', Math.sin(an) * .24, 1.28, Math.cos(an) * .24 - .02); } sph(hg, .26, '#ffffff', 0, 1.38, -.02); }
-  if (hat === 4) { cyl(hg, .3, .28, .12, gold, 0, 1.06, -.02); for (let i = 0; i < 6; i++) { const an = i / 6 * PI * 2; cone(hg, .07, .16, gold, Math.sin(an) * .26, 1.19, Math.cos(an) * .26 - .02); sph(hg, .03, i % 2 ? '#e5543b' : '#7ed3b2', Math.sin(an) * .3, 1.06, Math.cos(an) * .3 - .02); } }
-  if (hat === 5) for (const s of [-1, 1]) { const e = cone(hg, .16, .32, a.hair === 5 ? topC : hair, s * .3, 1.06, 0); e.rotation.z = -s * .3; e.scale.z = .6; const i2 = cone(hg, .09, .2, '#ffb3c4', s * .3, 1.04, .05); i2.rotation.z = -s * .3; i2.scale.z = .5; }
-  if (hat === 6) { ring(hg, .6, .035, '#2b2b2b', 0, .46, 0, PI); for (const s of [-1, 1]) cyl(hg, .16, .16, .12, topC, s * .6, .44, 0).rotation.z = PI / 2; }
-  if (hat === 7) { for (let i = 0; i < 5; i++) { const an = i / 5 * PI * 2; sph(hg, .065, '#ff8fab', .4 + Math.cos(an) * .08, .82 + Math.sin(an) * .08, .3); } sph(hg, .05, gold, .4, .82, .33); }
-  if (hat === 8) { for (const s of [-1, 1]) { const b = cone(hg, .17, .3, '#ff5d8f', s * .17, 1.08, .05); b.rotation.z = s * PI / 2; b.scale.z = .6; } sph(hg, .07, '#ff8fab', 0, 1.08, .06); }
-  if (hat === 9) { cyl(hg, .38, .5, .3, topC, 0, .96, -.02); cyl(hg, .7, .76, .04, shade(topC, .82), 0, .8, -.02); }
-  if (hat === 10) { const b = sph(hg, .42, topC, .07, 1.0, -.02); b.scale.set(1.15, .36, 1.1); b.rotation.z = -.22; sph(hg, .03, shade(topC, .7), .1, 1.16, -.02); }
-  if (hat === 11) { cyl(hg, .37, .44, .24, '#e8c860', 0, 1.0, -.02); cyl(hg, .8, .82, .035, '#d9b54a', 0, .86, -.02); cyl(hg, .43, .445, .07, topC, 0, .92, -.02); }
-  if (hat === 12) for (const s of [-1, 1]) { const e = sph(hg, .1, '#ffffff', s * .2, 1.3, -.02); e.scale.set(1, 3.2, .5); e.rotation.z = -s * .14; const i2 = sph(hg, .06, '#ffb3c4', s * .2, 1.3, .02); i2.scale.set(1, 3.6, .4); i2.rotation.z = -s * .14; }
-  if (hat === 14) { cyl(hg, .3, .3, .5, '#2b2730', 0, 1.18, -.02); cyl(hg, .54, .54, .035, '#2b2730', 0, .94, -.02).scale.z = .9; cyl(hg, .305, .305, .09, topC, 0, 1.0, -.02); }
-  if (hat === 15) { cone(hg, .26, .6, topC, 0, 1.28, 0); for (const [y, r] of [[1.13, .2], [1.3, .125]]) ring(hg, r, .025, '#ffffff', 0, y, 0).rotation.x = PI / 2; sph(hg, .08, '#ffd23f', 0, 1.6, 0); }
-  if (hat === 16) { sph(hg, .45, '#2b2228', 0, 1.0, -.02).scale.set(1.35, .45, 1.0); const br = cyl(hg, .62, .62, .04, '#2b2228', 0, .93, -.02); br.scale.z = .75; sph(hg, .065, '#ffffff', 0, 1.06, .43).scale.z = .4; for (const s of [-1, 1]) box(hg, .1, .018, .02, '#ffffff', 0, .98, .44).rotation.z = s * .6; }
-  if (hat === 17) { lathe(hg, shellPts(.72, 1, .1), '#9aa3ad'); lathe(hg, shellPts(.66, .78, .125).slice(0, 9), '#c8a050'); for (const s of [-1, 1]) { const hn = cone(hg, .1, .36, '#f4ecd8', s * .52, 1.08, 0); hn.rotation.z = -s * .55; } }
-  if (hat === 18) ring(hg, .3, .035, gold, 0, 1.32, 0).rotation.x = PI / 2;
-  if (hat === 19) { lathe(hg, shellPts(.74, 1, .09), topC); const br = cyl(hg, .34, .34, .03, shade(topC, .8), 0, .76, .44); br.scale.set(1, 1, .9); br.rotation.x = .14; cyl(hg, .015, .015, .14, '#555055', 0, 1.15, 0); box(hg, .62, .02, .08, '#e5543b', 0, 1.22, 0).rotation.y = .6; box(hg, .08, .02, .62, '#4f9df0', 0, 1.22, 0).rotation.y = .6; sph(hg, .035, gold, 0, 1.24, 0); }
-  if (hat === 20) { sph(hg, .5, '#6cc76a', 0, .92, -.02).scale.set(1.08, .62, 1.02); for (const s of [-1, 1]) { sph(hg, .12, '#ffffff', s * .22, 1.2, .22); sph(hg, .055, '#1a1014', s * .22, 1.22, .33); } }
-  if (hat === 21) { cone(hg, .36, .62, '#d9342b', 0, 1.2, -.05).rotation.x = -.35; cyl(hg, .42, .42, .12, '#ffffff', 0, .93, -.02); sph(hg, .09, '#ffffff', 0, 1.49, -.16); }
-  if (hat === 22) { cone(hg, .4, .9, '#3b5bb5', 0, 1.4, -.02); cyl(hg, .76, .8, .035, '#2e4a96', 0, .93, -.02); for (const [y, an] of [[1.15, .3], [1.32, -.9], [1.5, .8], [1.06, -.4]]) { const r = .4 * (1 - (y - .95) / .9) + .01; sph(hg, .035, gold, Math.sin(an) * r, y, Math.cos(an) * r - .02); } }
-  if (hat === 23) { ring(hg, .44, .02, '#4fa85a', 0, .86, -.02).rotation.x = PI / 2; for (let i = 0; i < 9; i++) { const an = i / 9 * PI * 2; sph(hg, .072, ['#ff8fab', '#ffd23f', '#ffffff', '#c9b3ff'][i % 4], Math.sin(an) * .45, .87, Math.cos(an) * .44 - .02); } }
-  if (hat === 24) for (const s of [-1, 1]) cone(hg, .07, .22, '#d9342b', s * .25, 1.06, .1).rotation.z = -s * .35;
-  if (hat === 25) for (const s of [-1, 1]) { cyl(hg, .012, .012, .34, '#2b2b2b', s * .16, 1.12, 0).rotation.z = -s * .3; sph(hg, .06, topC, s * .21, 1.28, 0); }
-  if (hat === 26) { cyl(hg, .34, .38, .3, '#9a6234', 0, 1.02, -.02); const br = cyl(hg, .82, .82, .035, '#8a5428', 0, .88, -.02); br.scale.z = .85; cyl(hg, .385, .385, .06, '#4a2f2a', 0, .9, -.02); }
-  if (hat === 27) { sph(hg, .62, '#e5402f', 0, .92, -.02).scale.set(1, .55, 1); for (const [ph, th] of [[.15, 0], [.6, .5], [.6, 2.6], [.7, 4.4], [.9, 1.5], [.95, 3.5], [.85, 5.6]]) sph(hg, .07, '#ffffff', .62 * Math.sin(ph) * Math.sin(th), .92 + .34 * Math.cos(ph), .62 * Math.sin(ph) * Math.cos(th) - .02).scale.y = .5; }
-  if (hat === 28) { const h = cone(hg, .1, .5, '#fff4c8', 0, 1.16, .3); h.rotation.x = .5; for (const [k, r] of [[.0, .09], [.14, .065]]) ring(hg, r, .018, gold, 0, .97 + k * Math.cos(.5), .18 + k * Math.sin(.5)).rotation.x = PI / 2 + .5; }
-  if (hat === 13) { cone(hg, .38, .8, '#4b3a6b', 0, 1.36, -.02); cyl(hg, .74, .78, .035, '#3d2f58', 0, .9, -.02); cyl(hg, .345, .375, .07, gold, 0, .98, -.02); }
+  if (hat === 1) { lathe(hT, shellPts(.7, 1, .1), topC); lathe(hT, shellPts(.63, .76, .125), shade(topC, .8)); sph(hT, .1, '#ffffff', 0, 1.2, 0); }
+  if (hat === 2) { lathe(hT, shellPts(.74, 1, .09), topC); const br = cyl(hT, .34, .34, .03, shade(topC, .8), 0, .76, .44); br.scale.set(1, 1, .9); br.rotation.x = .14; sph(hT, .04, shade(topC, .8), 0, 1.1, 0); }
+  if (hat === 3) { cyl(hT, .37, .35, .28, '#ffffff', 0, 1.02, -.02); for (let i = 0; i < 5; i++) { const an = i / 5 * PI * 2; sph(hT, .24, i % 2 ? '#ffffff' : '#ece8df', Math.sin(an) * .24, 1.28, Math.cos(an) * .24 - .02); } sph(hT, .26, '#ffffff', 0, 1.38, -.02); }
+  if (hat === 4) { cyl(hT, .3, .28, .12, gold, 0, 1.06, -.02); for (let i = 0; i < 6; i++) { const an = i / 6 * PI * 2; cone(hT, .07, .16, gold, Math.sin(an) * .26, 1.19, Math.cos(an) * .26 - .02); sph(hT, .03, i % 2 ? '#e5543b' : '#7ed3b2', Math.sin(an) * .3, 1.06, Math.cos(an) * .3 - .02); } }
+  if (hat === 5) for (const s of [-1, 1]) { const e = cone(hT, .16, .32, a.hair === 5 ? topC : hair, s * .3, 1.06, 0); e.rotation.z = -s * .3; e.scale.z = .6; const i2 = cone(hT, .09, .2, '#ffb3c4', s * .3, 1.04, .05); i2.rotation.z = -s * .3; i2.scale.z = .5; }
+  if (hat === 6) { ring(hT, .6, .035, '#2b2b2b', 0, .46, 0, PI); for (const s of [-1, 1]) cyl(hT, .16, .16, .12, topC, s * .6, .44, 0).rotation.z = PI / 2; }
+  if (hat === 7) { for (let i = 0; i < 5; i++) { const an = i / 5 * PI * 2; sph(hT, .065, '#ff8fab', .4 + Math.cos(an) * .08, .82 + Math.sin(an) * .08, .3); } sph(hT, .05, gold, .4, .82, .33); }
+  if (hat === 8) { for (const s of [-1, 1]) { const b = cone(hT, .17, .3, '#ff5d8f', s * .17, 1.08, .05); b.rotation.z = s * PI / 2; b.scale.z = .6; } sph(hT, .07, '#ff8fab', 0, 1.08, .06); }
+  if (hat === 9) { cyl(hT, .38, .5, .3, topC, 0, .96, -.02); cyl(hT, .7, .76, .04, shade(topC, .82), 0, .8, -.02); }
+  if (hat === 10) { const b = sph(hT, .42, topC, .07, 1.0, -.02); b.scale.set(1.15, .36, 1.1); b.rotation.z = -.22; sph(hT, .03, shade(topC, .7), .1, 1.16, -.02); }
+  if (hat === 11) { cyl(hT, .37, .44, .24, '#e8c860', 0, 1.0, -.02); cyl(hT, .8, .82, .035, '#d9b54a', 0, .86, -.02); cyl(hT, .43, .445, .07, topC, 0, .92, -.02); }
+  if (hat === 12) for (const s of [-1, 1]) { const e = sph(hT, .1, '#ffffff', s * .2, 1.3, -.02); e.scale.set(1, 3.2, .5); e.rotation.z = -s * .14; const i2 = sph(hT, .06, '#ffb3c4', s * .2, 1.3, .02); i2.scale.set(1, 3.6, .4); i2.rotation.z = -s * .14; }
+  if (hat === 14) { cyl(hT, .3, .3, .5, '#2b2730', 0, 1.18, -.02); cyl(hT, .54, .54, .035, '#2b2730', 0, .94, -.02).scale.z = .9; cyl(hT, .305, .305, .09, topC, 0, 1.0, -.02); }
+  if (hat === 15) { cone(hT, .26, .6, topC, 0, 1.28, 0); for (const [y, r] of [[1.13, .2], [1.3, .125]]) ring(hT, r, .025, '#ffffff', 0, y, 0).rotation.x = PI / 2; sph(hT, .08, '#ffd23f', 0, 1.6, 0); }
+  if (hat === 16) { sph(hT, .45, '#2b2228', 0, 1.0, -.02).scale.set(1.35, .45, 1.0); const br = cyl(hT, .62, .62, .04, '#2b2228', 0, .93, -.02); br.scale.z = .75; sph(hT, .065, '#ffffff', 0, 1.06, .43).scale.z = .4; for (const s of [-1, 1]) box(hT, .1, .018, .02, '#ffffff', 0, .98, .44).rotation.z = s * .6; }
+  if (hat === 17) { lathe(hT, shellPts(.72, 1, .1), '#9aa3ad'); lathe(hT, shellPts(.66, .78, .125).slice(0, 9), '#c8a050'); for (const s of [-1, 1]) { const hn = cone(hT, .1, .36, '#f4ecd8', s * .52, 1.08, 0); hn.rotation.z = -s * .55; } }
+  if (hat === 18) ring(hT, .3, .035, gold, 0, 1.32, 0).rotation.x = PI / 2;
+  if (hat === 19) { lathe(hT, shellPts(.74, 1, .09), topC); const br = cyl(hT, .34, .34, .03, shade(topC, .8), 0, .76, .44); br.scale.set(1, 1, .9); br.rotation.x = .14; cyl(hT, .015, .015, .14, '#555055', 0, 1.15, 0); box(hT, .62, .02, .08, '#e5543b', 0, 1.22, 0).rotation.y = .6; box(hT, .08, .02, .62, '#4f9df0', 0, 1.22, 0).rotation.y = .6; sph(hT, .035, gold, 0, 1.24, 0); }
+  if (hat === 20) { sph(hT, .5, '#6cc76a', 0, .92, -.02).scale.set(1.08, .62, 1.02); for (const s of [-1, 1]) { sph(hT, .12, '#ffffff', s * .22, 1.2, .22); sph(hT, .055, '#1a1014', s * .22, 1.22, .33); } }
+  if (hat === 21) { cone(hT, .36, .62, '#d9342b', 0, 1.2, -.05).rotation.x = -.35; cyl(hT, .42, .42, .12, '#ffffff', 0, .93, -.02); sph(hT, .09, '#ffffff', 0, 1.49, -.16); }
+  if (hat === 22) { cone(hT, .4, .9, '#3b5bb5', 0, 1.4, -.02); cyl(hT, .76, .8, .035, '#2e4a96', 0, .93, -.02); for (const [y, an] of [[1.15, .3], [1.32, -.9], [1.5, .8], [1.06, -.4]]) { const r = .4 * (1 - (y - .95) / .9) + .01; sph(hT, .035, gold, Math.sin(an) * r, y, Math.cos(an) * r - .02); } }
+  if (hat === 23) { ring(hT, .44, .02, '#4fa85a', 0, .86, -.02).rotation.x = PI / 2; for (let i = 0; i < 9; i++) { const an = i / 9 * PI * 2; sph(hT, .072, ['#ff8fab', '#ffd23f', '#ffffff', '#c9b3ff'][i % 4], Math.sin(an) * .45, .87, Math.cos(an) * .44 - .02); } }
+  if (hat === 24) for (const s of [-1, 1]) cone(hT, .07, .22, '#d9342b', s * .25, 1.06, .1).rotation.z = -s * .35;
+  if (hat === 25) for (const s of [-1, 1]) { cyl(hT, .012, .012, .34, '#2b2b2b', s * .16, 1.12, 0).rotation.z = -s * .3; sph(hT, .06, topC, s * .21, 1.28, 0); }
+  if (hat === 26) { cyl(hT, .34, .38, .3, '#9a6234', 0, 1.02, -.02); const br = cyl(hT, .82, .82, .035, '#8a5428', 0, .88, -.02); br.scale.z = .85; cyl(hT, .385, .385, .06, '#4a2f2a', 0, .9, -.02); }
+  if (hat === 27) { sph(hT, .62, '#e5402f', 0, .92, -.02).scale.set(1, .55, 1); for (const [ph, th] of [[.15, 0], [.6, .5], [.6, 2.6], [.7, 4.4], [.9, 1.5], [.95, 3.5], [.85, 5.6]]) sph(hT, .07, '#ffffff', .62 * Math.sin(ph) * Math.sin(th), .92 + .34 * Math.cos(ph), .62 * Math.sin(ph) * Math.cos(th) - .02).scale.y = .5; }
+  if (hat === 28) { const h = cone(hT, .1, .5, '#fff4c8', 0, 1.16, .3); h.rotation.x = .5; for (const [k, r] of [[.0, .09], [.14, .065]]) ring(hT, r, .018, gold, 0, .97 + k * Math.cos(.5), .18 + k * Math.sin(.5)).rotation.x = PI / 2 + .5; }
+  if (hat === 13) { cone(hT, .38, .8, '#4b3a6b', 0, 1.36, -.02); cyl(hT, .74, .78, .035, '#3d2f58', 0, .9, -.02); cyl(hT, .345, .375, .07, gold, 0, .98, -.02); }
+  const tmpGeo = fitHat(hg, hH, hT, hat, hr);
 
   // ----- turn the loose parts into a few meshes: body, head, two arms, and the painted face -----
   const k = seated ? SIT_K : STAND_K;
@@ -450,6 +519,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   // the face joins the head's outline so the whole head gets one clean rim
   const fg = faceGeo.toNonIndexed(); fg.applyMatrix4(new THREE.Matrix4().copy(hp.matrixWorld).invert().multiply(face.matrixWorld));
   merge(hp, mat, [{ pos: fg.attributes.position.array, nor: fg.attributes.normal.array }]); fg.dispose();
+  for (const t of tmpGeo) t.dispose();
   for (const arm of ud.arms) merge(arm, mat);
   merge(g, mat);
   ud.head = hp; ud.tilt = seated ? -.26 : 0; hp.rotation.x = ud.tilt; ud.body = g; ud.k = k; ud.faceMat = faceMat; ud.to = to; ud.tc = tc; ud.mat = mat;
