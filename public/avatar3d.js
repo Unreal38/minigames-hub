@@ -130,15 +130,16 @@ function paintFace(a, closed) {
     x.save(); x.translate(X(p), V(py)); x.scale(W / (2 * PI * r), -2 * H / (PI * Math.sin(th))); x.lineCap = 'round'; x.lineJoin = 'round'; fn(); x.restore();
   };
   const ex = .18, ey = .4, [hw, hh] = EYE[a.eyes], fh = a.facial;
-  // facial hair that covers skin
-  x.fillStyle = hair;
-  if (fh === 1) { const g = x.createLinearGradient(0, V(.3), 0, V(.16)); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, mix(skin, hair, .3)); x.fillStyle = g; x.fillRect(X(-1.9), V(.3), X(1.9) - X(-1.9), H); x.fillStyle = hair; }
-  if (fh === 4) {
-    x.beginPath(); x.moveTo(X(-1.75), V(.46)); x.quadraticCurveTo(X(-1.2), V(.24), X(-.35), V(.27)); x.lineTo(X(.35), V(.27)); x.quadraticCurveTo(X(1.2), V(.24), X(1.75), V(.46)); x.lineTo(X(1.75), H); x.lineTo(X(-1.75), H); x.fill();
-    at(0, .19, () => { x.fillStyle = skin; x.beginPath(); x.ellipse(0, 0, .075, .04, 0, 0, PI * 2); x.fill(); });
+  // stubble is painted as speckles over the jaw (the other facial hair is modelled, see beardGeo)
+  if (fh === 1) {
+    x.fillStyle = mix(skin, hair, a.skin >= 4 && a.skin !== 6 ? .7 : .5);
+    for (let i = 0; i < 420; i++) {
+      const p = ((i * .618034) % 1 - .5) * 3.1, py = .025 + ((i * .754877) % 1) * .4, k = Math.min(1, Math.max(0, (Math.abs(p) - .55) / .6)), r = headR(a.face, py);
+      if (py > .285 + k * k * (3 - 2 * k) * .14) continue;                                                  // under the nose at the front, up to the ears at the sides
+      const px = Math.sin(p) * r; if (Math.abs(p) < .5 && Math.hypot(px / .085, (py - .19) / .042) < 1) continue; // not on the lips
+      x.beginPath(); x.ellipse(X(p), V(py), 1.7, 1.7 * Math.min(2.2, 1 / Math.sin(Math.acos(1 - 2 * py))), 0, 0, PI * 2); x.fill();
+    }
   }
-  if (fh === 5) { x.strokeStyle = hair; x.lineWidth = 30; x.lineJoin = 'round'; x.beginPath(); x.moveTo(X(-1.6), V(.5)); x.quadraticCurveTo(X(-1.5), V(.1), X(-.5), V(.07)); x.lineTo(X(.5), V(.07)); x.quadraticCurveTo(X(1.5), V(.1), X(1.6), V(.5)); x.stroke(); }
-  if (fh === 3) at(0, .085, () => { x.fillStyle = hair; x.beginPath(); x.ellipse(0, 0, .06, .05, 0, 0, PI * 2); x.fill(); });
   // blush, freckles, mole
   for (const s of [-1, 1]) at(s * (ex + .07), ey - .15, () => { const g = x.createRadialGradient(0, 0, 0, 0, 0, .07); g.addColorStop(0, 'rgba(255,105,130,' + (a.marks === 2 ? .75 : .38) + ')'); g.addColorStop(1, 'rgba(255,105,130,0)'); x.fillStyle = g; x.scale(1, .62); x.beginPath(); x.arc(0, 0, .07, 0, PI * 2); x.fill(); });
   if (a.marks === 1) for (const s of [-1, 1]) for (const [dx, dy] of [[0, 0], [.04, -.02], [-.035, -.025], [.01, -.045]]) at(s * (ex + .05 + dx), ey - .13 + dy, () => { x.fillStyle = shade(skin, .68); x.beginPath(); x.arc(0, 0, .008, 0, PI * 2); x.fill(); });
@@ -211,16 +212,26 @@ function paintFace(a, closed) {
     if (m === 9) { x.moveTo(-.05, 0); for (let i = 1; i <= 5; i++) x.lineTo(-.05 + i * .02, i % 2 ? -.012 : 0); x.stroke(); }
     if (m === 6) { x.moveTo(-.05, .012); x.quadraticCurveTo(-.025, -.03, 0, .01); x.quadraticCurveTo(.025, -.03, .05, .012); x.stroke(); }
   });
-  // moustaches
-  if ([2, 3, 4, 6].includes(fh)) at(0, .24, () => {
-    x.fillStyle = fh === 4 ? shade(hair, .8) : hair; x.strokeStyle = x.fillStyle;
-    for (const s of [-1, 1]) {
-      x.beginPath(); x.moveTo(0, .012); x.quadraticCurveTo(s * .05, .03, s * .085, -.012); x.quadraticCurveTo(s * .04, -.012, 0, -.008); x.fill();
-      if (fh === 6) { x.lineWidth = .014; x.beginPath(); x.moveTo(s * .075, -.006); x.quadraticCurveTo(s * .12, -.02, s * .115, .03); x.stroke(); }
-    }
-  });
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
+
+// Beards are modelled like the hair: a chunky shell hugging the jaw. Its upper edge is `front` under the mouth and rises to
+// `side` (sideburns) between the angles th0 and th1; it ends at tmax, just in front of the ears. `drop` is how far it
+// hangs below the chin, `jag` cuts the lower edge into tufts.
+const beardGeo = (f, front, side, th0, th1, tmax, off, drop, jag) => G('fh' + [f, front, side, th0, th1, tmax, off, drop, jag].map(f3), () => {
+  const NU = 20, NV = 5, pos = [], idx = [];
+  for (let i = 0; i <= NU; i++) {
+    const th = (i / NU * 2 - 1) * tmax, at = Math.abs(th), k = Math.min(1, Math.max(0, (at - th0) / (th1 - th0))), sm = k * k * (3 - 2 * k);
+    const top = front + (side - front) * sm, bot = -(drop + (i % 2 ? jag : 0)) * (1 - sm) + .03 * sm, edge = Math.min(1, (tmax - at) / .1);
+    for (let j = 0; j <= NV; j++) {
+      const v = j / NV, y = bot + (top - bot) * v, under = y < 0 ? 1 - .5 * Math.pow(y / bot, 2) * (1 - sm) : 1;
+      const o = j === NV ? -.012 : j === 0 ? off * .35 * edge : off * (v > .7 ? .75 : 1) * edge - .012 * (1 - edge);
+      const r = headR(f, Math.max(y, .07)) * under + o; pos.push(Math.sin(th) * r, y, Math.cos(th) * r);
+      if (i < NU && j < NV) { const q = i * (NV + 1) + j; idx.push(q, q + NV + 1, q + 1, q + 1, q + NV + 1, q + NV + 2); }
+    }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+});
 
 // ---------- the avatar ----------
 // Pocket chibi proportions: 2.5 heads tall.
@@ -457,6 +468,16 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (hs === 13) { base(.76, .4); clump(.66, 0, .93, -.1, 1.02, .86, .98); for (let i = 0; i < 5; i++) clump(.13, (i - 2) * .17, .8 - Math.abs(i - 2) * .03, hr(.8) - .03, 1, 1, .6, i % 2 ? hD : hair); } // sits high, so it never hangs over the face
   if (hs === 14) { base(.76, .42); bangs(5, .26); for (const s of [-1, 1]) { for (let i = 0; i < 5; i++) clump(.085, s * .5, .36 - i * .15, .1 + i * .015, 1, 1, 1, i % 2 ? hD : hair); box(hH, .06, .06, .06, tieC, s * .5, -.4, .17); } }
   if (hs === 15) { base(.74, .2, .08); bangs(5, .28, .15); for (const s of [-1, 1]) { clump(.2, s * .5, .12, -.06, .8, 1.2, 1, hD); clump(.18, s * .52, -.14, -.02, .8, 1.1, 1); } clump(.36, 0, -.02, -.36, 1.3, 1, .6, hD); }
+  // facial hair: modelled, so it has the same chunky look as the hair (stubble is painted on the face)
+  const fh = a.facial, tash = (curl) => { for (const s of [-1, 1]) {
+    const m = sph(hg, .1, hD, s * .075, .252, fz(.075, .252, .012)); m.scale.set(1, .42, .5); m.rotation.set(0, s * .3, -s * .32);
+    const tip = sph(hg, .05, hD, s * (curl ? .17 : .15), curl ? .285 : .215, fz(.16, .25, .004)); tip.scale.set(curl ? .8 : 1, curl ? 1 : .75, .55);
+  } };
+  if (fh === 2 || fh === 3 || fh === 4) tash(false);
+  if (fh === 6) tash(true);
+  if (fh === 3) sph(hg, .11, hair, 0, .045, fz(0, .08, -.035)).scale.set(1, .95, .6);
+  if (fh === 4) put(hg, beardGeo(a.face, .125, .44, .5, 1.05, 1.46, .06, .07, .035), hair);
+  if (fh === 5) put(hg, beardGeo(a.face, .075, .44, 1.0, 1.3, 1.46, .03, .012, 0), hair);
   // glasses
   const gl = a.glasses, ex = .18, ey = .4, gz = fz(ex, ey, .035);
   // a thin bar from point a to point b, and a path of them through several points
