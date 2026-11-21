@@ -268,7 +268,8 @@ body.in-game { overflow: hidden; }
 .pf .wxrow b { display: block; font-family: var(--fd); } .pf .wxrow small { color: var(--pf-muted, #6b4a3c); } .pf .wxnow { background: #c9efb4; border-radius: 12px; padding: 8px 10px; }
 
 /* night: the website's dark mode reaches Pet Farm's panels and buttons only; the farm's own sky and weather stay as they are */
-body.night .pf { --pf-bg: #3d1f33; --pf-tx: #fff4e2; --pf-ontx: #fff4e2; --pf-chip: #2a1422; --pf-muted: #e0bccd; --pf-soft: #2a1422; }
+body.night .pf { --pf-bg: #2b2856; --pf-tx: #f5f2ff; --pf-ontx: #f5f2ff; --pf-chip: #1c1a3a; --pf-muted: #bcbfeb; --pf-soft: #201d44; }
+body.night .pf .btn:disabled { opacity: 1; background: #201d44; color: #bcbfeb; box-shadow: none; }
 body.night .pf .btn, body.night .pf .btn * { color: var(--ink); }
 body.night .pf .btn.r, body.night .pf .btn.r * { color: #fff; }
 body.night .pf .btn.ghost-ink { color: var(--pf-tx); }
