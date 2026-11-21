@@ -9,8 +9,8 @@ import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, c
 import { kitchen, CRATES, T } from './rules.js';
 
 const SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', AV = .4, TOP = .62, BASE = .12; // the kitchen floor sits BASE above the lawn
-const FOOD = { tomato: '#e5543b', lettuce: '#7ccc5c', mushroom: '#d9b48a', bun: '#e8a95b', patty: '#e98b8b', cooked: '#8a4b2a', burnt: '#2e2320' };
-const SOUP = { tomato: '#e8603f', mushroom: '#c79a6a', burnt: '#3a2a22' };
+const FOOD = { tomato: '#e5543b', lettuce: '#7ccc5c', mushroom: '#d9b48a', bun: '#e8a95b', patty: '#f08f9a', cooked: '#8a4b2a', burnt: '#2e2320' };
+const SOUP = { tomato: '#e8603f', mushroom: '#b9a3ea', burnt: '#3a2a22' };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 const mats = new Map();
@@ -33,15 +33,17 @@ function food(g, k, ch, ck, y = 0) {
     if (ch) flakes(g, FOOD.lettuce, 7, y + .03);
     else { put(g, Gm('Icosahedron', .18, 0), FOOD.lettuce, 0, y + .15, 0).scale.y = .8; put(g, Gm('Icosahedron', .12, 0), '#a8e08a', .03, y + .24, .02); }
   } else if (k === 'mushroom') {
-    if (ch) for (let i = 0; i < 4; i++) { const a = i * 1.6; put(g, Gm('Sphere', .07, 6, 3, 0, 6.3, 0, 1.6), '#b98a5e', Math.cos(a) * .08, y + .02, Math.sin(a) * .08, Math.PI / 2, a, 0); }
-    else { put(g, Gm('Cylinder', .05, .065, .14, 6), '#fff4e2', 0, y + .07, 0); put(g, Gm('Sphere', .15, 8, 4, 0, 6.3, 0, 1.6), '#b98a5e', 0, y + .12, 0); }
+    if (ch) for (let i = 0; i < 4; i++) { const a = i * 1.6; put(g, Gm('Sphere', .07, 6, 3, 0, 6.3, 0, 1.6), '#a98be8', Math.cos(a) * .08, y + .02, Math.sin(a) * .08, Math.PI / 2, a, 0); }
+    else { put(g, Gm('Cylinder', .05, .065, .14, 6), '#fff4e2', 0, y + .07, 0); put(g, Gm('Sphere', .16, 8, 4, 0, 6.3, 0, 1.6), '#a98be8', 0, y + .12, 0); for (let i = 0; i < 3; i++) put(g, Gm('Icosahedron', .035, 0), '#ffffff', Math.cos(i * 2.1) * .09, y + .22, Math.sin(i * 2.1) * .09); }
   } else if (k === 'bun') {
     put(g, Gm('Cylinder', .16, .15, .06, 9), FOOD.bun, 0, y + .03, 0);
     put(g, Gm('Sphere', .16, 9, 4, 0, 6.3, 0, 1.5), FOOD.bun, 0, y + .07, 0);
     for (let i = 0; i < 4; i++) put(g, Gm('Box', .025, .015, .015), '#fff4e2', Math.cos(i * 1.7) * .07, y + .2, Math.sin(i * 1.7) * .07);
   } else if (k === 'patty') {
     const c = ck >= T.pattyBurn ? FOOD.burnt : ck >= 1 ? FOOD.cooked : FOOD.patty;
-    put(g, Gm('Cylinder', .15, .15, .07, 9), c, 0, y + .035, 0);
+    put(g, Gm('Cylinder', .16, .16, .07, 9), c, 0, y + .035, 0);
+    if (ck < 1) for (let i = 0; i < 3; i++) put(g, Gm('Box', .09, .012, .025), '#ffe1dc', Math.cos(i * 2.2) * .06, y + .072, Math.sin(i * 2.2) * .06, 0, i * 1.1);
+    else if (ck < T.pattyBurn) for (const dx of [-.06, 0, .06]) put(g, Gm('Box', .02, .012, .22), '#5e2f19', dx, y + .072, 0, 0, .5);
   }
 }
 function plateModel(g, has, soup) {
@@ -117,7 +119,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
     box(room, 1.02, .08, 1.02, ch === 'S' || ch === 'F' ? '#6f6a78' : ch === 'C' ? '#c99763' : ch === 'W' ? '#fff8ec' : ['#f6e2c4', '#f2dcbb'][(r + c) % 2], x, TOP - .08, z);
     if (CRATES[ch]) { // a wooden crate with the ingredient peeking out
       box(room, .74, .22, .74, '#b07a4f', x, TOP, z); box(room, .78, .04, .78, '#8a5a3c', x, TOP + .2, z);
-      const g = new THREE.Group(); food(g, CRATES[ch], 0, 0); for (const [dx, dz] of [[-.17, -.14], [.16, -.1], [0, .15]]) { const k = g.clone(); k.position.set(x + dx, TOP + .12, z + dz); k.scale.setScalar(.8); room.add(k); }
+      const g = new THREE.Group(); food(g, CRATES[ch], 0, 0); for (const [dx, dz] of [[-.17, -.14], [.16, -.1], [0, .15]]) { const k = g.clone(); k.position.set(x + dx * 1.1, TOP + .14, z + dz * 1.1); k.scale.setScalar(1.05); room.add(k); }
     } else if (ch === 'C') {
       box(room, .7, .05, .54, '#e8c48f', x, TOP, z); box(room, .06, .02, .3, '#d9dde3', x + .28, TOP + .05, z, .3); box(room, .05, .03, .12, '#5b4636', x + .31, TOP + .05, z - .2, .3);
     } else if (ch === 'S' || ch === 'F') {
@@ -169,7 +171,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
     for (const p of people) { scene.remove(p.g); disposeAvatar(p.av); if (p.held) p.hand.remove(p.held); }
     people = list.map((s, i) => {
       const g = new THREE.Group(), av = avatar3d(s.color, s.av, { pose: 'stand' }); av.scale.setScalar(AV); g.add(av);
-      const hand = new THREE.Group(); hand.position.set(0, TOP - .04, .5); hand.scale.setScalar(1.15); g.add(hand);
+      const hand = new THREE.Group(); hand.position.set(0, TOP - .04, .5); hand.scale.setScalar(1.35); g.add(hand);
       const old = people[i];
       if (old) g.position.copy(old.g.position); else if (S?.pl[i]) W(S.pl[i].x, S.pl[i].z, 0, g.position);
       scene.add(g);
@@ -189,7 +191,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
       if (cur) scene.remove(cur.g);
       const [cx, cr] = key.split(',').map(Number), g = look(c.item), k = K.t[cr][cx];
       W(cx + .5, cr + .5, TOP + (k === 'F' ? .06 : k === 'C' ? .05 : 0), g.position);
-      if (k === 'F') g.scale.setScalar(.95);
+      g.scale.setScalar(k === 'F' ? 1.15 : 1.3);
       scene.add(g); onCell.set(key, { g, key: lk });
       if (!cur && !reduced) fx.puff(g.position, { n: 5, size: .18, speed: .9, life: .35 });
     }
@@ -228,7 +230,8 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
   // ---------- frame loop ----------
   let Wd = 0, Hd = 0, T0 = 0, az = 0, dist = 20;
   const look_ = new THREE.Vector3(), proj = new THREE.Vector3(), tmp = new THREE.Vector3();
-  const info = { tags: [], bars: [], fwd: [0, -1], right: [1, 0] };
+  const crates = K.cells.filter(c => CRATES[c.k]);
+  const info = { tags: [], bars: [], labels: [], fwd: [0, -1], right: [1, 0] };
   const EL = .9;
   function fit() {
     // portrait screens turn the kitchen a quarter so its long side runs up the screen
@@ -306,6 +309,15 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
       const t = p.tag; t.show = proj.z < 1; t.x = (proj.x + 1) / 2 * Wd; t.y = (1 - proj.y) / 2 * Hd; info.tags[i] = t;
     });
     info.tags.length = people.length;
+    // sticker labels: one over every crate, one over every loose bit of food (on a counter, in a pan or carried)
+    info.labels.length = 0;
+    const label = (v, it, crate) => { v.project(camera); info.labels.push({ it, crate, x: (v.x + 1) / 2 * Wd, y: (1 - v.y) / 2 * Hd }); };
+    for (const c of crates) label(W(c.c + .5, c.r + .5, TOP + .75, proj), { k: CRATES[c.k] }, true);
+    if (S) {
+      for (const [key, c] of Object.entries(S.cells)) if (c.item && (c.item.k !== 'plate' || c.item.has.length || c.item.soup)) { const [cx, cr] = key.split(',').map(Number); label(W(cx + .5, cr + .5, TOP + .42, proj), c.item, false); }
+      for (const [key, c] of Object.entries(S.cells)) if (c.pot) { const [cx, cr] = key.split(',').map(Number); label(W(cx + .5, cr + .5, TOP + .55, proj), c.pot.cook >= T.soupBurn ? { k: 'plate', has: [], soup: 'burnt' } : c.pot.cook >= 1 ? { k: 'plate', has: [], soup: c.pot.kind } : { k: 'plate', has: Array(c.pot.n).fill(c.pot.kind), soup: null }, false); }
+      people.forEach((p, i) => { const h = S.pl[i]?.hold; if (h && (h.k !== 'plate' || h.has.length || h.soup)) { p.hand.getWorldPosition(proj); proj.y += .42; label(proj, h, false); } });
+    }
     info.bars.length = 0;
     if (S) for (const [key, c] of Object.entries(S.cells)) {
       let p = -1, kind = '';
@@ -314,7 +326,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
       else if (c.pot) { if (c.pot.n < 3) { p = c.pot.n / 3; kind = 'fill'; } else if (c.pot.cook < 1) { p = c.pot.cook; kind = 'cook'; } else if (c.pot.cook < T.soupBurn) { p = (c.pot.cook - 1) / (T.soupBurn - 1); kind = 'hot'; } else { p = 1; kind = 'burnt'; } }
       if (p < 0) continue;
       const [cx, cr] = key.split(',').map(Number);
-      W(cx + .5, cr + .5, TOP + .6, proj).project(camera);
+      W(cx + .5, cr + .5, TOP + .95, proj).project(camera);
       info.bars.push({ key, kind, p: clamp(p, 0, 1), x: (proj.x + 1) / 2 * Wd, y: (1 - proj.y) / 2 * Hd });
     }
     onFrame?.(info);

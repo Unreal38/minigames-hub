@@ -6,7 +6,7 @@ import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { placeCoins } from '../../ranks.js';
 import { kitchen, RECIPES, CHOPPABLE, SPEED, T, move, target } from './rules.js';
-import { part, dish, tool } from './icons.js';
+import { part, dish, tool, sticker } from './icons.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -132,7 +132,7 @@ export function mount(app, ctx) {
   };
 
   // ----- each frame -----
-  let barEls = [];
+  let barEls = [], lblEls = [];
   function onFrame(info) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
@@ -148,6 +148,15 @@ export function mount(app, ctx) {
       if (el._k !== b.kind) { el._k = b.kind; el.className = 'kr-bar ' + b.kind; }
       el.style.transform = `translate(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px) translate(-50%, -100%)`;
       el.firstChild.style.width = `${Math.round(b.p * 100)}%`;
+    });
+    while (lblEls.length < info.labels.length) { const d = document.createElement('div'); d.className = 'kr-lbl'; barsEl.prepend(d); lblEls.push(d); }
+    lblEls.forEach((el, i) => {
+      const b = info.labels[i];
+      if (!b) { if (!el.hidden) el.hidden = true; return; }
+      el.hidden = false;
+      const key = b.crate ? 'c' + b.it.k : JSON.stringify([b.it.k, b.it.ch, b.it.k === 'patty' ? (b.it.ck >= T.pattyBurn ? 2 : b.it.ck >= 1 ? 1 : 0) : 0, b.it.has, b.it.soup]);
+      if (el._k !== key) { el._k = key; const s = b.crate ? { icons: [part(b.it.k, 26)], cls: 'crate' } : sticker(b.it, T); el.className = 'kr-lbl ' + s.cls; el.innerHTML = s.icons.join(''); }
+      el.style.transform = `translate(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px) translate(-50%, -100%)`;
     });
     const lbl = useLabel(), el = $('kr-uselbl'); if (el.textContent !== lbl) el.textContent = lbl;
     const cb = root.querySelector('.kr-chop'), on = canChop(); if (cb.classList.contains('on') !== on) cb.classList.toggle('on', on);

@@ -13,6 +13,14 @@ body.in-game { overflow: hidden; }
 .kr-tag[hidden] { display: none; }
 .kr-bar { position: absolute; left: 0; top: 0; width: 46px; height: 11px; border: 2.5px solid var(--ink); border-radius: 999px; background: #fff4e2; overflow: hidden; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
 .kr-bar[hidden] { display: none; }
+/* stickers that say what each crate and each bit of food is */
+.kr-lbl { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 1px; padding: 2px 4px; background: #fffdf6; border: 2.5px solid var(--ink); border-radius: 10px; line-height: 0; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
+.kr-lbl[hidden] { display: none; }
+.kr-lbl.crate { border-radius: 50%; padding: 4px; background: var(--cream); }
+.kr-lbl.todo { border-style: dashed; background: #fff4e2; }
+.kr-lbl.done { border-color: #3f9a4f; }
+.kr-lbl.bad { border-color: var(--chili); background: #ffe1dc; }
+@media (max-width: 900px) { .kr-lbl { padding: 1px 3px; border-width: 2px; } .kr-lbl svg { width: 15px; height: 15px; } .kr-lbl.crate svg { width: 18px; height: 18px; } .kr-lbl.crate { padding: 2px; } }
 .kr-bar i { display: block; height: 100%; width: 0; background: var(--mint); }
 .kr-bar.fill i { background: #ffb547; }
 .kr-bar.cook i { background: #7ed957; }
