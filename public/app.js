@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -130,6 +130,25 @@ const GAMES = {
       <li>The taller it gets, the <b>faster</b> the swing and the <b>wobblier</b> the tower: lower blocks hold less and less overhang.</li>
       <li>After a crash a new tower starts. Reach 40 blocks and everyone gets +20. After the last tower, the most points wins.</li>
       <li><b>Mixed shapes</b> deals planks, cubes and wide slabs as well as plain blocks.</li>
+    </ol>`,
+  },
+  golf: {
+    name: 'Mini Golf Party', load: () => import('./games/golf/client.js'), start: 'Tee off',
+    host: { holes: 6, seats: 4, bets: 'on', bots: 'chill' }, solo: { holes: 6, seats: 4, bets: 'on', bots: 'chill' },
+    openSeat: 'A bot putts here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
+    settings: pill => `<div class="opt"><b>Holes</b><div class="pills">${pill('holes', 3, 'Quick 3')}${pill('holes', 6, '6')}${pill('holes', 9, 'All 9')}</div></div>
+      <div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Coin bets on each hole</b><div class="pills">${pill('bets', 'on', 'On')}${pill('bets', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone putts the same hole at the same time, each with their own ball. Drag back and let go to putt. Fewest strokes over the round wins, and before each hole you can bet coins on who will take it.`,
+    rules: `<ol>
+      <li>Everyone plays the <b>same hole at once</b>. You each have your own ball, and balls pass through each other, so nobody waits for a turn.</li>
+      <li><b>Drag back</b> anywhere on the screen and <b>let go</b> to putt: the further you pull, the harder the hit. On a keyboard, use the arrow keys to aim and set the power, then space.</li>
+      <li>Watch for <b>windmills</b>, <b>bumper posts</b>, <b>ramps</b> and <b>sand</b> (it slows the ball a lot). A ball in the <b>water</b> costs a stroke and goes back where you hit it from.</li>
+      <li>You get <b>7 strokes</b> and 90 seconds a hole. Not in by then and you score 8.</li>
+      <li>The hole goes to the <b>fewest strokes</b>. A tie goes to whoever holed out first.</li>
+      <li>With bets on, before each hole you can <b>bet coins</b> on who will take it, yourself included. A right call pays your stake times the number of players. It is optional, and it uses your real coins, the ones that buy avatar items.</li>
+      <li>After the last hole the <b>fewest strokes in total</b> wins the round. Empty seats are played by bots.</li>
     </ol>`,
   },
 };
@@ -466,6 +485,11 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Tower Stack</h3><span class="tag">1–6 players</span></div>
             <p>Take turns dropping swinging blocks on one shared, wobbly tower. Stack it high, and don't be the one who knocks it down.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="stack">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="stack">Play with bots</button></div>
+          <div class="pic golfpic">${golfArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>
+            <p>Everyone putts the same blocky 3D hole at once. Dodge the windmill, sink it first, and bet coins on who takes each hole.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="golf">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="golf">Play with bots</button></div>
           </div>
         </article>
         <article class="gcard">
@@ -624,12 +648,12 @@ function watchPaint() {
   const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
   const bots = (st.lastState.seats || []).filter(s => !s.human).length;
   const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
-  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand' }[when] || 'when the next game starts';
+  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand', hole: 'from the next hole' }[when] || 'when the next game starts';
   const msg = !saving ? 'You’re watching.'
     : full ? (when === 'game' ? 'Every seat is taken. You get the next free one.' : 'Every seat has a player. You get one next game.')
     : `You take over a bot ${soon}.`;
   const btn = saving ? 'Just watch' : full && when === 'game' ? 'Get the next free seat'
-    : when === 'round' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : 'Play next game';
+    : when === 'round' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : when === 'hole' ? 'Play from next hole' : 'Play next game';
   $watch.innerHTML = `<span>${msg}</span>
     <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
 }

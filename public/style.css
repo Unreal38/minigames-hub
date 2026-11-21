@@ -313,6 +313,10 @@ body:has(.lobby) .scorebtn { display: none; }
 
 .gcard .pic.ludopic { background: #3d1f33; padding: 0; }
 .gcard .pic.ludopic svg { width: 100%; height: 100%; display: block; }
+.gcard .pic.golfpic { background: #8fd6f7; padding: 0; }
+.gcard .pic.golfpic svg { width: 100%; height: 100%; display: block; }
+.gfmill { animation: gfmill 6s steps(24) infinite; }
+@keyframes gfmill { to { transform: rotate(360deg); } }
 .gcard .pic.farmpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.farmpic svg { width: 100%; height: 100%; display: block; }
 .gcard .pic.stackpic { background: #bfe8ff; padding: 0; }

@@ -167,3 +167,21 @@ export function stackArt() {
     <path d="M206 62l-7 3M204 50l-8-1M208 74l-6 4" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Mini Golf Party card: a blocky green with a flag, a windmill and a ball rolling for the cup.
+export function golfArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  let tiles = '';
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) tiles += `<path d="M${62 + c * 24 - r * 12} ${78 + r * 16}h24l-12 16h-24z" fill="${(r + c) % 2 ? '#7fd457' : '#8cdc62'}"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A blocky mini golf green with a flag, a windmill and a ball rolling to the cup">
+    <rect width="320" height="150" fill="#8fd6f7"/>
+    <path d="M30 34h34v10H30zM46 26h26v10H46z" fill="#fff"/><path d="M244 22h30v9h-30zM232 30h28v9h-28z" fill="#fff"/>
+    <path d="M26 126l36-48h216l-36 48z" fill="#5fbf58" ${o}/><path d="M26 126h216v12H26z" fill="#a86a42" ${o}/><path d="M242 126l36-48v12l-36 48z" fill="#8a5433" ${o}/>
+    ${tiles}
+    <path d="M26 126l36-48h216l-36 48z" fill="none" stroke="#f7e3c0" stroke-width="7" stroke-linejoin="round"/><path d="M26 126l36-48h216l-36 48z" fill="none" ${o}/>
+    <g ${o}><path d="M176 96l8-44h20l8 44z" fill="#fff4e2"/><path d="M180 52l14-16 14 16z" fill="#e5543b"/>
+      <g class="gfmill" style="transform-origin:194px 56px"><path d="M191 56h6v-30h-6zM191 56h6v30h-6zM194 53v6h30v-6zM194 53v6h-30v-6z" fill="#ffb547"/></g><circle cx="194" cy="56" r="4" fill="#3b2219"/></g>
+    <ellipse cx="96" cy="94" rx="11" ry="6" fill="#2a1422"/><path d="M96 94V40" stroke="#3b2219" stroke-width="4" stroke-linecap="round"/><path d="M98 42l26 9-26 10z" fill="#e5543b" ${o}/>
+    <path d="M236 112c-30 4-60 0-92-8" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+    <circle cx="140" cy="103" r="8" fill="#ff8fab" ${o}/><circle cx="137" cy="100" r="2.4" fill="#fff"/></svg>`;
+}
