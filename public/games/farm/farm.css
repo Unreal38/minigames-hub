@@ -98,6 +98,12 @@ body.in-game { overflow: hidden; }
 .pf .party { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
 .pf .party .pickpet { flex: none; width: 112px; padding: 6px; }
 .pf .party .pickpet b { font-size: 15px; } .pf .party .pickpet small { display: block; font-size: 12px; }
+/* On a wide screen the pet pickers use the room: cards wrap into rows instead of one scrolling strip. */
+@media (min-width: 641px) {
+  .pf .panel.tripp { width: min(860px, 100%); }
+  .pf .party { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); overflow-x: visible; padding-bottom: 2px; }
+  .pf .party .pickpet { width: auto; }
+}
 .pf .est { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 34px; }
 .pf .tripp .row.end { justify-content: flex-end; position: sticky; bottom: -18px; background: var(--pf-bg, var(--cream)); padding: 8px 0 18px; margin-bottom: -18px; }
 .pf .backpet { display: flex; gap: 10px; align-items: center; }
