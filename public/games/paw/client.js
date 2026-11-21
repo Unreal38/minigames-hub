@@ -143,7 +143,7 @@ export function mount(app, ctx) {
       : `<p class="pw-own"><i style="background:${esc(S.seats[o].color)}"></i>${o === S.me ? 'Yours' : `${nameOf(o)}’s`}${S.nap[i] ? ' · napping, no rent' : ` · rent now ${treats(rentOf(i, S.own, S.lv))}`}</p>`;
     return `<div class="pw-dhead" style="background:${G.col};color:${G.ink}"><span>${G.name}</span><b>${esc(t.name)}</b></div>
       <div class="pw-dbody"><div>${pic(i)}<p class="pw-run">Run by <b>${petName(i)}</b></p>${who}
-        <ul class="pw-rents">${row(0, 'Rent' + (full && lv === 0 ? ' (whole street ×2)' : ''), t.rent[0] * (full ? 2 : 1))}${row(1, 'With a Pet Bed', t.rent[1] * (full ? 2 : 1))}${row(2, 'With a Toy Box', t.rent[2] * (full ? 2 : 1))}${row(3, 'Pet Palace', t.rent[3])}</ul>
+        <ul class="pw-rents">${row(0, full ? 'Rent (street ×2)' : 'Rent', t.rent[0] * (full ? 2 : 1))}${row(1, 'Pet Bed', t.rent[1] * (full ? 2 : 1))}${row(2, 'Toy Box', t.rent[2] * (full ? 2 : 1))}${row(3, 'Pet Palace', t.rent[3])}</ul>
         <p class="pw-small">Costs ${treats(t.price)} · each upgrade ${treats(t.up)} · ${o < 0 || o === S.me ? `you have ${have} of 3 on this street` : `${have} of 3 on this street`}</p></div></div>`;
   }
   function renderDeed() {
@@ -161,7 +161,7 @@ export function mount(app, ctx) {
     const t = S.seats[S.turn];
     if (myTurn() && !busy()) {
       if (S.stage === 'roll' && p.inBath) setHtml(ctl, `<p class="pw-hint">You are in the tub. Roll doubles to hop out${p.tries ? ` (${3 - p.tries} tr${3 - p.tries === 1 ? 'y' : 'ies'} left)` : ''}, or pay your way out.</p>
-        <div class="pw-go"><button type="button" class="btn big" data-a="roll">Roll for doubles</button><button type="button" class="btn big w" data-a="pay">Pay ${treats(BATH_FEE)} and hop out</button></div>`);
+        <div class="pw-go"><button type="button" class="btn big" data-a="roll">Roll for doubles</button><button type="button" class="btn big w" data-a="pay">Pay ${treats(BATH_FEE)} to hop out</button></div>`);
       else if (S.stage === 'roll') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big pw-pulse" data-a="roll">Roll the dice</button></div>`);
       else if (S.stage === 'buy') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="buy">Adopt for ${treats(TILES[S.offer].price)}</button><button type="button" class="btn big w" data-a="pass">No thanks</button></div>`);
       else setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="end">End turn</button></div>`);
@@ -180,7 +180,7 @@ export function mount(app, ctx) {
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.left >= 0 && myTurn() ? ` · ${secs}s` : '';
     if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You are top dog' : nameOf(S.win) + ' is top dog'}!` : '';
-    else if (myTurn()) msg = (S.stage === 'buy' ? `Adopt ${petName(S.offer)}?` : S.stage === 'done' ? 'Upgrade a shop or end your turn' : me().inBath ? 'Your turn · you are in the tub' : S.dbl ? 'Doubles! Roll again' : 'Your turn · roll the dice') + t;
+    else if (myTurn()) msg = (S.stage === 'buy' ? `Adopt ${petName(S.offer)}?` : S.stage === 'done' ? 'Upgrade or end your turn' : me().inBath ? 'Your turn · you are in the tub' : S.dbl ? 'Doubles! Roll again' : 'Your turn · roll the dice') + t;
     else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn`;
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());

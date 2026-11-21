@@ -98,7 +98,7 @@ body.in-game { overflow: hidden; }
 .pw-ups { display: flex; gap: 7px; overflow-x: auto; max-width: min(720px, calc(100vw - 40px)); padding: 2px 2px 5px; }
 .pw-ups button { display: flex; align-items: center; gap: 7px; flex: none; background: #fff; border: 2.5px solid var(--ink); border-left: 9px solid var(--g); border-radius: 14px; padding: 4px 10px 4px 6px; cursor: pointer; color: var(--ink); text-align: left; box-shadow: 0 3px 0 var(--ink); transition: transform .12s; font: inherit; }
 .pw-ups button:hover { transform: translateY(-2px); } .pw-ups button:active { transform: translateY(2px); box-shadow: none; }
-.pw-ups span { display: flex; flex-direction: column; line-height: 1.15; } .pw-ups b { font-family: var(--fd); font-size: 15px; } .pw-ups small { font-size: 12.5px; color: #6b4a3c; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.pw-ups button > span { display: flex; flex-direction: column; line-height: 1.15; } .pw-ups b { font-family: var(--fd); font-size: 15px; } .pw-ups small { font-size: 12.5px; color: #6b4a3c; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 
 /* results */
 .pw .confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
@@ -133,10 +133,16 @@ body.in-game { overflow: hidden; }
   /* second row: the banner, beside the chat and score buttons. third row: everyone's treats */
   .pw .banner { top: calc(max(14px, env(safe-area-inset-top)) + 58px); font-size: 15px; left: 10px; transform: none; max-width: calc(100vw - 150px); padding: 5px 13px; }
   .pw-list { top: calc(max(14px, env(safe-area-inset-top)) + 108px); max-width: calc(100vw - 12px); width: max-content; flex-wrap: wrap; justify-content: center; overflow: visible; }
-  .pw-list li { padding: 2px 6px 2px 3px; } .pw-row { font-size: 14px; }
-  .pw-dock { width: calc(100vw - 16px); gap: 6px; }
-  .pw-go { width: 100%; gap: 7px; flex-wrap: nowrap; } .pw-go .btn { flex: 1 1 0; font-size: 16px; padding: 10px 6px; min-height: 54px; min-width: 0; white-space: normal; line-height: 1.15; }
-  .pw-rents { font-size: 13px; } .pw-dhead b { font-size: 19px; }
+  .pw-list { padding: 3px; gap: 2px; } .pw-list li { padding: 2px 5px 2px 2px; gap: 3px; border-width: 2px; } .pw-row { font-size: 13.5px; gap: 2px; }
+  .pw-list .avatar { --s: 24px !important; width: 24px; height: 24px; box-shadow: 0 0 0 2px var(--c); } .pw-list .pw-ico { width: 15px; height: 15px; }
+  .pw-dock { width: calc(100vw - 16px); gap: 6px; } .pw-ctl { width: 100%; }
+  .pw-go { width: 100%; gap: 7px; flex-wrap: nowrap; } .pw-go .btn { flex: 1 1 0; font-size: 15.5px; padding: 10px 4px; min-height: 54px; min-width: 0; gap: 4px; }
+  /* a short card on a phone, so most of the board stays in view */
+  .pw-dhead { flex-direction: row; align-items: baseline; gap: 8px; padding: 5px 44px 5px 12px; } .pw-dhead b { font-size: 18px; order: -1; }
+  .pw-dbody { padding: 7px 10px 8px; } .pw-dbody .pw-pet { width: 48px; height: 48px; border-radius: 12px; }
+  .pw-rents { font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; } .pw-rents li { padding: 0 5px; }
+  .pw-own { min-height: 0; } .pw-small { font-size: 12px; }
+  .pw-deed.offer .pw-small { display: none; }
   .pw-zcard p { font-size: 19px; }
   .pw .shout { top: 40%; }
 }
