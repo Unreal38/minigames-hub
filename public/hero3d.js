@@ -65,7 +65,6 @@ function build() {
     look += (lookWant - look) * Math.min(1, dt * 4); hop = Math.max(0, hop - dt * 1.2);
     if (av) {
       animateAvatar(av, T, { hop, look: look - world.rotation.y });
-      const wave = av.userData.arms[1]; if (wave) { wave.rotation.x = -2.5 + Math.sin(T * 2) * .08; wave.rotation.z = Math.sin(T * 7) * .35 - .25; } // a friendly wave
     }
     camera.position.copy(camAt); camera.position.x += Math.sin(T * .2) * .4; camera.lookAt(target);
     flyBirds(T); blow(T); fx.update(dt, camera, Hh);
