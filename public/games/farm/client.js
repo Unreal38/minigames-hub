@@ -72,6 +72,7 @@ export function mount(app, ctx) {
   let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
   let B = null, shown = null, playing = false, foes = null, line = '', blogs = [], lastEl = null, ranks = null;
   let logOpen = (() => { try { const v = localStorage.getItem('pf_blog'); return v ? v === '1' : innerWidth > 900; } catch { return innerWidth > 900; } })();
+  const lookKey = () => JSON.stringify([ctx.me()?.color, ctx.me()?.av]); let look = lookKey();
   let mapShown = null, counter = null; // counter: an offer to pre-fill once we have walked to the other farm
   let user = ctx.me()?.user || null, lastTrip = { zone: 'woods', trip: 'stroll', pets: [] }, lastTeam = [], liveAt = 0, gardenAt = 0, heldInvite = null;
 
@@ -893,7 +894,7 @@ export function mount(app, ctx) {
   return {
     msg,
     // the account changed (signed in, out, or registered): ask again
-    me() { const u = ctx.me()?.user || null; if (u !== user) { user = u; mode = 'load'; F = null; edit = false; sync(); ctx.send({ t: 'open' }); } },
+    me() { const u = ctx.me()?.user || null; if (u !== user) { user = u; mode = 'load'; F = null; edit = false; sync(); ctx.send({ t: 'open' }); } else { const k = lookKey(); if (k !== look) { look = k; mapShown = null; sync(); } } }, // same player in a new look: redraw the avatar
     reopen() { ctx.send({ t: 'open' }); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast('Finish the battle first.', true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
