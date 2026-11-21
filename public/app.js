@@ -354,7 +354,7 @@ function mountGame() {
       again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), sit: on => send({ t: 'sit', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
       toast, rules: () => openRules(st.room?.game),
     });
-    st.game.room(st.room);
+    st.game.room(st.room); placeGameSwitch();
     st.gameLoading = null;
     return st.game;
   }).catch(err => { console.error(err); st.gameLoading = null; toast('Could not load the game. Refresh?', true); return null; });
@@ -372,7 +372,7 @@ function openFarm() {
     farmLoading = null;
     if (st.view !== 'farm') return;
     st.farm = mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode), friends: () => openFriends() });
-    st.farm.reopen();
+    st.farm.reopen(); placeGameSwitch();
     if (farmVisit) { st.farm.visit(farmVisit); farmVisit = null; }
     if (farmInvite) { st.farm.msg(farmInvite); farmInvite = null; }
   }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
@@ -427,8 +427,18 @@ const isNight = () => document.body.classList.contains('night');
 function setNight(on, save) {
   document.body.classList.toggle('night', on);
   if (save) LS.set('ct_theme', on ? 'night' : 'day');
-  document.querySelectorAll('.themebtn').forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? 'Switch to day' : 'Switch to night'; });
+  [...document.querySelectorAll('.themebtn'), gameSwitch].forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? 'Switch to day' : 'Switch to night'; });
   heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {});
+  if (document.body.classList.contains('in-game')) import('./scenery3d.js').then(m => m.setScenesNight(on)).catch(() => {}); // repaint the game's sky live
+}
+// Inside the games (which draw their own screens, without the top bar) the switch joins the game's round
+// buttons at the top right, just before the sound button.
+const gameSwitch = document.createElement('button');
+gameSwitch.type = 'button'; gameSwitch.className = 'round gamesw';
+gameSwitch.addEventListener('click', e => { e.stopPropagation(); switchTheme(gameSwitch); sfx.click(); });
+function placeGameSwitch() {
+  const tr = $app.querySelector('.tr'); if (!tr || tr.contains(gameSwitch)) return;
+  tr.insertBefore(gameSwitch, tr.querySelector('[data-a="mute"]'));
 }
 // The switch animates: night (or day) spreads out in a circle from the button where the browser can do
 // view transitions, and colours fade across everywhere else. Reduced motion gets an instant switch.
@@ -453,10 +463,10 @@ function switchTheme(btn) {
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
-  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
   <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
+  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.

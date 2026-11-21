@@ -539,7 +539,7 @@ body.sky:not(.in-game) .chip { background: var(--pan); border-color: var(--tx); 
 /* waiting room */
 body.sky:not(.in-game) .lobby aside { background: var(--pan); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); color: var(--tx); }
 body.sky:not(.in-game) .crumb { color: var(--tx2); }
-body.sky:not(.in-game) .lobby .main > .row span, body.sky:not(.in-game) .lobby .main [style*="color:var(--muted)"] { color: var(--tx2) !important; }
+body.sky:not(.in-game) .lobby .main [style*="color:var(--muted)"] { color: var(--tx2) !important; }
 body.sky:not(.in-game) .codetiles span { box-shadow: 0 6px 0 var(--ink); }
 body.sky:not(.in-game) .seats { row-gap: 40px; padding-bottom: 18px; }
 body.sky:not(.in-game) .seat.full { position: relative; box-shadow: 0 6px 0 var(--ink), 0 12px 0 var(--grass), 0 15px 0 var(--ink); }
@@ -568,8 +568,11 @@ body.sky:not(.in-game) .lobby .opt b, body.sky:not(.in-game) .toggle { color: va
 
 /* ---------- night: the same world after dark (the day/night switch in the top bar) ---------- */
 body.sky.night:not(.in-game) {
-  --sky1: #160d2e; --sky2: #2c1846; --sky3: #4a2652;
-  --pan: #3d1f33; --pan2: #2a1422; --muted2: #e0bccd; --edge: #6b3d58; --tx: #fff4e2; --tx2: #e7d3f0; --chip: #2a1422; --you: #160a12; --glass: #ffffff12;
+  /* one cool indigo family: panels sit a step lighter than the sky, outlines are near-black navy, text is soft white,
+     secondary text stays above 7:1 on the panels, lantern yellow is the only warm accent */
+  --sky1: #110e2b; --sky2: #221b48; --sky3: #352760;
+  --pan: #2b2856; --pan2: #201d44; --edge: #4d4a8c; --chip: #1c1a3a; --you: #3a3479; --glass: #ffffff12;
+  --tx: #f5f2ff; --tx2: #dcdcff; --muted2: #bcbfeb; --ink: #0e0c22;
   color-scheme: dark;
 }
 body.sky.night:not(.in-game)::before { opacity: .16; }
@@ -602,3 +605,42 @@ body.theming, body.theming * { transition: background-color .6s ease, color .6s 
 body.theming::before, body.theming::after { transition: opacity .6s ease !important; }
 .themebtn { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1); }
 body.night .themebtn { transform: rotate(360deg); }
+
+/* night: disabled and read-only controls stay readable (no fading to 45%) but look flat and quiet */
+body.sky.night:not(.in-game) .btn:disabled { opacity: 1; background: var(--pan2); color: var(--muted2); border-color: var(--edge); box-shadow: none; }
+body.sky.night:not(.in-game) .pills button:disabled:not([aria-pressed=true]) { color: var(--muted2); }
+body.sky.night:not(.in-game) .offline { opacity: .7; }
+body.sky.night:not(.in-game) footer { color: var(--muted2); border-top-color: var(--edge); }
+body.sky.night:not(.in-game) .me small { opacity: .85; }
+body.sky.night:not(.in-game) .tag { background: #ffe2a8; color: #3b2219; }
+/* night: pop-ups go dark with the rest instead of staying cream */
+body.sky.night:not(.in-game) .sheet { background: var(--pan); color: var(--tx); }
+body.sky.night:not(.in-game) .sheet h2, body.sky.night:not(.in-game) .rules b, body.sky.night:not(.in-game) .frname b { color: var(--tx); }
+body.sky.night:not(.in-game) .sheet p, body.sky.night:not(.in-game) .rules, body.sky.night:not(.in-game) .creator .namecol label, body.sky.night:not(.in-game) .crow b,
+body.sky.night:not(.in-game) .creator .shopnote, body.sky.night:not(.in-game) .creator .cart small, body.sky.night:not(.in-game) .frname small { color: var(--muted2); }
+body.sky.night:not(.in-game) .sheet .field { background: var(--chip); color: var(--tx); border-color: var(--edge); }
+body.sky.night:not(.in-game) .sheet .field::placeholder { color: #8d8fc4; }
+body.sky.night:not(.in-game) .creator .preview, body.sky.night:not(.in-game) .creator .pvcol { background: var(--pan); }
+body.sky.night:not(.in-game) .creator .preview, body.sky.night:not(.in-game) .creator .ctabs, body.sky.night:not(.in-game) .creator .pvcol { border-color: var(--edge); }
+body.sky.night:not(.in-game) .creator .ctabs button { color: var(--tx); }
+body.sky.night:not(.in-game) .creator .ctabs button[aria-selected=true], body.sky.night:not(.in-game) .creator .pvseg button[aria-pressed=true] { background: var(--lantern); color: #3b2219; }
+body.sky.night:not(.in-game) .creator .pvseg { border-color: var(--edge); } body.sky.night:not(.in-game) .creator .pvseg button { color: var(--tx); }
+body.sky.night:not(.in-game) .creator .pv3d { border-color: var(--edge); background: linear-gradient(#3a3479, #2b2856); }
+body.sky.night:not(.in-game) .sheet .pills button { border-color: var(--edge); }
+body.sky.night:not(.in-game) .creator .shoptab { color: var(--lantern); }
+body.sky.night:not(.in-game) .creator .cart { background: #2f2a1c; border-color: #8a6d2a; }
+body.sky.night:not(.in-game) .sheet .chip, body.sky.night:not(.in-game) .frlist li { background: var(--chip); color: var(--tx); border-color: var(--edge); }
+body.sky.night:not(.in-game) .sheet .btn.ghost-ink { color: var(--tx); }
+body.sky.night:not(.in-game) .autherr { color: #ff9b8a !important; }
+body.sky.night:not(.in-game) .chatpanel { background: var(--pan); color: var(--tx); }
+body.sky.night:not(.in-game) .cl p { background: var(--chip); color: var(--tx); border-color: var(--edge); } body.sky.night:not(.in-game) .cl.own p { background: #3a3479; }
+body.sky.night:not(.in-game) .cl p b { color: var(--lantern); } body.sky.night:not(.in-game) .chatempty { color: var(--muted2); }
+body.sky.night:not(.in-game) .chatform { background: var(--pan2); } body.sky.night:not(.in-game) .chatform .field { background: var(--chip); color: var(--tx); border-color: var(--edge); }
+body.sky.night:not(.in-game) .chatemoji { border-color: var(--edge); }
+body.sky.night:not(.in-game) .toast { background: var(--pan); color: var(--tx); } body.sky.night:not(.in-game) .toast.bad { background: #5a2333; }
+body.sky.night:not(.in-game) .howto b { color: var(--lantern); }
+
+/* the day/night switch inside the games sits in the game's own row of round buttons; the emoji needs no stroke colour */
+.gamesw { font-size: 19px; line-height: 1; }
+/* phones: the switch stays on the right end of the second row of the top bar */
+@media (max-width: 600px) { .top .me[data-act=profile] > small { display: none; } .top .themebtn { width: 44px; height: 44px; font-size: 20px; } }

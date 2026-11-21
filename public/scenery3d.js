@@ -86,38 +86,67 @@ export function shell(mesh, grow = 1.1, color = '#4a2c22') {
 
 // ---------- night ----------
 // The website's day/night switch (body.night) carries into the games: call nightScene(scene) once the lights,
-// sky and clouds exist. In the day it does nothing; at night it turns the sky to a starry navy, swaps sunlight
-// for moonlight, tints the clouds and adds a moon. Islands built while it is night get lamp posts.
+// sky and clouds exist. It notes the scene's daytime look, then paints it for the current mode: at night a
+// starry navy sky, moonlight for sunlight, tinted clouds, a moon, and the islands' lamp posts. The switch can be
+// flipped mid-game: setScenesNight(on) repaints every live scene both ways.
 export const isNight = () => typeof document !== 'undefined' && document.body.classList.contains('night');
 export const NIGHT_TOP = '#0c1236', NIGHT_LOW = '#2d2b63';
+const liveScenes = new Set(); // WeakRefs, so a finished game's scene can still be collected
 export function nightScene(scene, { top = NIGHT_TOP, low = NIGHT_LOW, stars = 320, moon = true } = {}) {
-  if (!isNight()) return false;
-  const T = new THREE.Color(top), L = new THREE.Color(low), c = new THREE.Color(), moonC = new THREE.Color('#c9d2ff');
-  if (scene.background?.isColor) scene.background.copy(L);
-  if (scene.fog) scene.fog.color.copy(L);
-  scene.traverse(o => {
+  if (!scene.userData.dayNight) {
+    const S = scene.userData.dayNight = { top: new THREE.Color(top), low: new THREE.Color(low), stars, moon, lights: [], domes: [], clouds: [], on: false,
+      bg: scene.background?.isColor ? scene.background.clone() : null, fog: scene.fog ? scene.fog.color.clone() : null };
+    scene.traverse(o => {
+      if (o.isHemisphereLight || o.isDirectionalLight || o.isAmbientLight) S.lights.push({ o, c: o.color.clone(), g: o.groundColor?.clone(), i: o.intensity });
+      else if (o.isMesh && o.userData.sky) S.domes.push({ o, day: o.geometry.attributes.color.array.slice() });
+      else if (o.isInstancedMesh && o.userData.cloud) { const night = o.material.clone(); night.color.set('#6d72b4'); S.clouds.push({ o, day: o.material, night }); }
+    });
+    if (typeof WeakRef !== 'undefined') liveScenes.add(new WeakRef(scene));
+  }
+  applyNight(scene, isNight());
+  return isNight();
+}
+export function setScenesNight(on) {
+  for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, on); else liveScenes.delete(r); }
+}
+function applyNight(scene, on) {
+  const S = scene.userData.dayNight; if (!S) return;
+  scene.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // island lamps
+  if (S.on === on) return; S.on = on;
+  const moonC = new THREE.Color('#c9d2ff'), c = new THREE.Color();
+  if (S.bg && scene.background?.isColor) scene.background.copy(on ? S.low : S.bg);
+  if (S.fog && scene.fog) scene.fog.color.copy(on ? S.low : S.fog);
+  for (const { o, c: dc, g, i } of S.lights) {
+    o.color.copy(dc); if (g) o.groundColor.copy(g); o.intensity = i;
+    if (!on) continue;
     if (o.isHemisphereLight) { o.color.lerp(new THREE.Color('#8f9cff'), .75); o.groundColor.set('#3b2f5e'); o.intensity *= .55; }
     else if (o.isDirectionalLight) { o.color.lerp(moonC, .8); o.intensity *= .55; }
-    else if (o.isAmbientLight) { o.color.lerp(moonC, .6); o.intensity *= .6; }
-    else if (o.isMesh && o.userData.sky) { // repaint the dome's gradient
-      const g = o.geometry, p = g.attributes.position, col = g.attributes.color, r = g.boundingSphere?.radius || (g.computeBoundingSphere(), g.boundingSphere.radius);
-      for (let i = 0; i < p.count; i++) { c.copy(L).lerp(T, Math.min(1, Math.max(0, p.getY(i) / r * 1.5 + .1))); col.setXYZ(i, c.r, c.g, c.b); }
-      col.needsUpdate = true;
-    } else if (o.isInstancedMesh && o.userData.cloud) { o.material = o.material.clone(); o.material.color.set('#6d72b4'); }
-  });
-  if (stars) { // a fixed dome of stars, far out past the fog
-    const pos = new Float32Array(stars * 3);
-    for (let i = 0; i < stars; i++) { const a = hash(i, 71) * 6.283, e = .04 + hash(i, 72) * 1.45, r = 260; pos.set([Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r], i * 3); }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff6d8', size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: .9, depthWrite: false }));
-    pts.renderOrder = -9; scene.add(pts);
+    else { o.color.lerp(moonC, .6); o.intensity *= .6; }
   }
-  if (moon) {
-    const grp = new THREE.Group(); grp.position.set(-120, 120, -170); grp.lookAt(0, 0, 0);
-    for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.renderOrder = -8; grp.add(m); }
-    scene.add(grp);
+  for (const { o, day } of S.domes) { // repaint the dome's gradient
+    const g = o.geometry, p = g.attributes.position, col = g.attributes.color;
+    if (!on) col.array.set(day);
+    else { const r = g.boundingSphere?.radius || (g.computeBoundingSphere(), g.boundingSphere.radius);
+      for (let i = 0; i < p.count; i++) { c.copy(S.low).lerp(S.top, Math.min(1, Math.max(0, p.getY(i) / r * 1.5 + .1))); col.setXYZ(i, c.r, c.g, c.b); } }
+    col.needsUpdate = true;
   }
-  return true;
+  for (const k of S.clouds) k.o.material = on ? k.night : k.day;
+  if (on && !S.sky) { // stars and moon are made the first time night falls, then just shown and hidden
+    S.sky = new THREE.Group(); S.sky.userData.nightOnly = true; scene.add(S.sky);
+    if (S.stars) { // a fixed dome of stars, far out past the fog
+      const pos = new Float32Array(S.stars * 3);
+      for (let i = 0; i < S.stars; i++) { const a = hash(i, 71) * 6.283, e = .04 + hash(i, 72) * 1.45, r = 260; pos.set([Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r], i * 3); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff6d8', size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: .9, depthWrite: false }));
+      pts.renderOrder = -9; S.sky.add(pts);
+    }
+    if (S.moon) {
+      const grp = new THREE.Group(); grp.position.set(-120, 120, -170); grp.lookAt(0, 0, 0);
+      for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.renderOrder = -8; grp.add(m); }
+      S.sky.add(grp);
+    }
+  }
+  if (S.sky) S.sky.visible = on;
 }
 
 // ---------- sky and clouds ----------
@@ -164,7 +193,8 @@ export const PROPS = {
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
 export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1 } = {}) {
-  if (!lamps && isNight()) lamps = Math.max(3, Math.round((w + d) / 5)); // lamp posts light the island at night
+  const autoLamps = !lamps; // lamp posts light the island at night: built always, shown only at night (nightScene toggles them)
+  if (autoLamps) lamps = Math.max(3, Math.round((w + d) / 5));
   const root = new THREE.Group(), deco = new THREE.Group();
   const W = w / 2 + rim, D = d / 2 + rim, R = round ? Math.max(W, D) : Math.hypot(W, D);
   // the top: a rounded slab of lawn
@@ -198,7 +228,7 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
     if (round) { x *= k; z *= k; } else { const s = Math.min((W - .55) / Math.abs(x || 1e-6), (D - .55) / Math.abs(z || 1e-6)); x *= s; z *= s; }
     const g = new THREE.Group(), kind = kinds[(i + seed) % kinds.length]; PROPS[kind](g, (.7 + hash(i, seed + 61) * .5) * size); g.position.set(x, 0, z); g.rotation.y = hash(i, 62) * 6.283; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); root.add(g);
   }
-  for (let i = 0; i < lamps; i++) { const a = (i + .5) / lamps * 6.283, g = new THREE.Group(); PROPS.lamp(g, 1); let x = Math.cos(a), z = Math.sin(a); const s = round ? R - .5 : Math.min((W - .4) / Math.abs(x || 1e-6), (D - .4) / Math.abs(z || 1e-6)); g.position.set(x * s, 0, z * s); root.add(g); }
+  for (let i = 0; i < lamps; i++) { const a = (i + .5) / lamps * 6.283, g = new THREE.Group(); PROPS.lamp(g, 1); let x = Math.cos(a), z = Math.sin(a); const s = round ? R - .5 : Math.min((W - .4) / Math.abs(x || 1e-6), (D - .4) / Math.abs(z || 1e-6)); g.position.set(x * s, 0, z * s); if (autoLamps) { g.userData.nightOnly = true; g.visible = isNight(); } root.add(g); }
   bake(root);
   root.traverse(m => { if (m.isMesh && m.userData.baked) m.receiveShadow = true; });
   return toonify(root, .05);
