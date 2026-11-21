@@ -14,13 +14,13 @@ const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .
 
 // ---------- textures ----------
 function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
-function suitPath(g, s, x, y, size) {
+export function suitPath(g, s, x, y, size) {
   g.save(); g.translate(x, y); g.scale(size / 24, size / 24); g.fillStyle = SUIT_COLS[s];
   if (s === 2) for (const [cx, cy, r] of CLUB_DOTS) { g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); }
   g.fill(new Path2D(SUIT_PATHS[s])); g.restore();
 }
 const texCache = new Map();
-function cardTexture(c) { // c = -1 is the back
+export function cardTexture(c) { // c = -1 is the back (Tysiąc and Pan draw their cards with this too)
   if (texCache.has(c)) return texCache.get(c);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 364;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
