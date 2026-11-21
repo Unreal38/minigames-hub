@@ -218,3 +218,21 @@ export function pawArt() {
     <g transform="rotate(12 300 84)"><rect x="288" y="72" width="24" height="24" rx="6" fill="#fff8ec" ${o}/><circle cx="300" cy="84" r="4" fill="#e5543b"/></g>
   </svg>`;
 }
+
+// Treasure Dig card: a grass field with dug tiles, numbers, a gem popping out and a shovel stuck in the dirt.
+export function digArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const tile = (x, y, dug, n, c) => `<g><path d="M${x} ${y}h34l-5 -18h-24z" fill="${dug ? '#d6a46c' : '#7cc45a'}" ${o}/>${dug ? '' : `<path d="M${x} ${y}h34v6h-34z" fill="#5a9a3c" ${o}/>`}${n ? `<text x="${x + 17}" y="${y - 4}" text-anchor="middle" font-family="Fredoka, system-ui, sans-serif" font-weight="700" font-size="14" fill="${c}" stroke="#fff4e2" stroke-width="3" paint-order="stroke">${n}</text>` : ''}</g>`;
+  const rows = [[118, 0], [100, 1], [82, 2]], tiles = [];
+  rows.forEach(([y, r]) => { for (let k = 0; k < 7; k++) { const x = 46 + k * 34 + r * 5; const dug = (r === 0 && k > 1 && k < 5) || (r === 1 && k > 2 && k < 5) || (r === 2 && k === 3); const n = dug && (r === 0 && k === 2 ? 1 : r === 1 && k === 4 ? 2 : r === 0 && k === 4 ? 1 : 0); tiles.push(tile(x, y, dug, n, n === 2 ? '#2f9a4a' : '#2f7fd8')); } });
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A grass field with dug tiles showing numbers, a gem popping out and a shovel">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="40" r="1.5"/><circle cx="18" cy="50" r="1.2"/></g>
+    <path d="M26 36l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M246 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M18 150l26-74h252l26 74z" fill="#8a5a3c" ${o}/>
+    ${tiles.reverse().join('')}
+    <g class="dgem" style="transform-origin:168px 52px"><path d="M152 50l6-9h20l6 9-16 20z" fill="#ff5c8a" ${o}/><path d="M158 50l4-6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></g>
+    <path d="M168 28l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>
+    <g transform="rotate(18 262 70)"><rect x="258" y="22" width="8" height="54" rx="3" fill="#a86a42" ${o}/><rect x="252" y="18" width="20" height="8" rx="3" fill="#a86a42" ${o}/><path d="M250 74h24v14q-12 10-24 0z" fill="#c9ccd6" ${o}/></g>
+    <g transform="translate(60 52)"><circle r="11" fill="#2b2430" ${o}/><path d="M7 -8l5 -7" stroke="#8a5a3c" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="-16" r="3" fill="#ffd84a"/></g>
+  </svg>`;
+}
