@@ -20,7 +20,7 @@ function suitPath(g, s, x, y, size) {
   g.fill(new Path2D(SUIT_PATHS[s])); g.restore();
 }
 const texCache = new Map();
-function cardTexture(c) { // c = -1 is the back
+export function cardTexture(c) { // c = -1 is the back (Pan draws its cards with this too)
   if (texCache.has(c)) return texCache.get(c);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 364;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;

@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, panArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -271,6 +271,25 @@ const GAMES = {
       <li>A <b>trap</b> takes <b>4 points</b> (never below zero) and ends your turn.</li>
       <li>When the <b>last gem</b> is found, the game ends and the field is shown. <b>Most points wins</b>. A tie goes to whoever found more, then whoever hit fewer traps.</li>
       <li>If the turn timer runs out, the game digs a careful guess for you. Keyboard: arrow keys move, <b>Enter</b> or <b>Space</b> digs.</li>
+    </ol>`,
+  },
+  pan: {
+    name: 'Pan', load: () => import('./games/pan/client.js'), start: 'Deal the cards',
+    host: { seats: 4, bots: 'chill', timer: 30 }, solo: { seats: 4, bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays this hand if nobody joins', seats: r => [2, 3, 4, 6].find(n => n >= Math.max(r.opts.seats || 4, r.players.length)) || 6,
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `The Polish card game with the 24 cards from nine to ace. Put down a card at least as high as the one on top, or pick up three from the pile. Get rid of all your cards to be safe: the last one still holding cards is the Pan.`,
+    rules: `<ol>
+      <li>The <b>24 cards</b> from nine to ace are dealt out evenly. Whoever holds the <b>nine of hearts</b> starts by putting it down. Empty seats are played by bots.</li>
+      <li>On your turn, put down <b>one card that is the same or higher</b> than the card on top of the pile. Suits do not matter.</li>
+      <li>If you hold <b>all four</b> cards of a rank that fits, you can put them down together. The three other nines can go together straight onto the nine of hearts.</li>
+      <li>Instead of playing you can <b>pick up the top three cards</b> of the pile. You have to when nothing you hold fits. The nine of hearts always stays at the bottom.</li>
+      <li>The pile only ever climbs, so a low card can only go after someone picks the pile back down. Picking up on purpose is part of the game.</li>
+      <li>Run out of cards and you are <b>safe</b>. The first one out wins, and the <b>last player still holding cards is the Pan</b>.</li>
+      <li>Five players sit at a table for six: a bot takes the spare hand, so the cards still share out evenly.</li>
+      <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
     </ol>`,
   },
 };
@@ -683,6 +702,14 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Treasure Dig</h3><span class="tag">1–6 players</span></div>
             <p>Take turns digging up a grass field for gems and a golden chest. Read the numbers to dodge the traps, like Minesweeper with friends.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="dig">Host a table</button></div>
+          </div>
+        </article>
+        <article class="gcard">
+          <div class="pic panpic">${panArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Pan</h3><span class="tag">1–6 players</span></div>
+            <p>The Polish card game: nine of hearts starts, play the same or higher, or pick up three. Don't be the last one holding cards!</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="pan">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
