@@ -10,6 +10,8 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #4: Ludo**, the classic race round the board in chunky low-poly 3D, with everyone's avatar sitting in their own corner. Bots fill empty corners, and landing on a rival sends their pawn back to the yard.
 
+**Game #5: Tower Stack**, one shared wobbly tower on a sky island. Take turns dropping a swinging block: stack it straight for points, and don't be the one who knocks it over. Rules live in `public/games/stack/rules.js`.
+
 **Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush bets them and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
