@@ -261,3 +261,8 @@ body.in-game { overflow: hidden; }
 .pf .formrow button.chip { font: inherit; cursor: pointer; transition: transform .12s; } .pf .formrow button.chip:hover { transform: translateY(-2px); }
 .pf .formrow button.chip.on { background: #8fd16a; box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--ink); }
 .pf .leafpage .formpic { animation: pf-formpop .25s ease-out; } @keyframes pf-formpop { from { transform: scale(.7); opacity: .3; } }
+
+/* weather */
+.pf .wxchip svg { flex: none; } .pf .wxlist { display: grid; gap: 6px; margin: 8px 0; }
+.pf .wxrow { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 12px; background: #fff; } .pf .wxrow.on { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+.pf .wxrow b { display: block; font-family: var(--fd); } .pf .wxrow small { color: #6b4a3c; } .pf .wxnow { background: #c9efb4; border-radius: 12px; padding: 8px 10px; }
