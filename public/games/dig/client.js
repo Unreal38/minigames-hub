@@ -193,9 +193,9 @@ export function mount(app, ctx) {
     }
     endsAt = performance.now() + Math.max(0, s.tLeft);
     if (s.dig && s.dig.n !== digN) { // a new dig: tell what came out once the shovel is done
-      digN = s.dig.n; const d = s.dig, wait = s.ms.hop + s.ms.dig - d.ago;
+      digN = s.dig.n; const d = s.dig, wait = d.walk + s.ms.dig - d.ago;
       revealed = wait <= 0; clearTimeout(revealTimer);
-      if (wait > 0) { revealTimer = setTimeout(() => !destroyed && reveal(d, false), wait); setTimeout(() => !destroyed && sfx.click(), Math.max(0, s.ms.hop - d.ago)); }
+      if (wait > 0) { revealTimer = setTimeout(() => !destroyed && reveal(d, false), wait); for (const k of [.2, .6]) { const at = d.walk + s.ms.dig * k - d.ago; if (at > 0) setTimeout(() => !destroyed && sfx.plop(), at); } }
       else reveal(d, wait < -800);
       touchPick = -1;
     }

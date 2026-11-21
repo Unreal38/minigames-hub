@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, HEART, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { homeOf as homeAt, standOf } from './rules.js';
 
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TOP = .34;                 // grass tile height
@@ -101,7 +102,7 @@ export function createScene(canvas, { onFrame } = {}) {
     for (let i = 0; i < w * h; i++) {
       const p0 = pops.get(i), p = p0 === undefined ? undefined : (performance.now() - p0) / 1000, hid = shownHidden[i] && !(pending?.landed && pending.i === i && !pending.done);
       if (!hid && p === undefined) sv.setScalar(0);
-      else if (p !== undefined) { const t = Math.max(0, Math.min(1, p / .45)); sv.set(1 + t * .4, Math.max(0, 1 - t), 1 + t * .4); }
+      else if (p !== undefined) { const t = Math.max(0, Math.min(1, p / .45)); sv.set(1 + t * .15, Math.max(0, 1 - t), 1 + t * .15); }
       else sv.setScalar(1);
       tilePos(i, p !== undefined ? Math.max(0, Math.min(1, p / .45)) * .6 : 0, pv);
       grass.setMatrixAt(i, mtx.compose(pv, q0, sv));
@@ -169,25 +170,26 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- avatars ----------
   let seats = [], seatKey = '', me = -1;
-  function homeOf(k, n) { // spread round the back and the two sides of the plot, never in front of it
-    const L = h + .6, side = w + 1.8, total = 2 * L + side, d = (k + .5) / n * total, ex = w / 2 + 1.05, ez = h / 2 + 1.05;
-    if (d < L) return new THREE.Vector3(-ex, 0, h / 2 - .3 - d);
-    if (d < L + side) return new THREE.Vector3(-ex + (d - L) / side * 2 * ex, 0, -ez);
-    return new THREE.Vector3(ex, 0, -h / 2 + .3 + (d - L - side));
-  }
-  const shovelGeo = [new THREE.CylinderGeometry(.035, .035, 1, 6).translate(0, .5, 0), new THREE.BoxGeometry(.26, .3, .05).translate(0, -.12, 0)];
+  const homeOf = (k, n) => { const p = homeAt(k, n, w, h); return new THREE.Vector3(p.x, 0, p.z); }; // shared with the server, which times the walk
+  // the shovel: the blade's tip is the origin, the handle runs up +y to the hands (stretched each frame to reach them)
+  const shovelGeo = [new THREE.CylinderGeometry(.042, .042, 1, 6).translate(0, .5, 0), new THREE.BoxGeometry(.34, .38, .06).translate(0, .19, 0), new THREE.BoxGeometry(.26, .07, .08)];
+  const shovelMats = [toonMat(M('#a86a42')), toonMat(M('#c9ccd6'))];
   function makeShovel() {
     const g = new THREE.Group();
-    const a = new THREE.Mesh(shovelGeo[0], toonMat(M('#a86a42'))), b = new THREE.Mesh(shovelGeo[1], toonMat(M('#c9ccd6')));
-    for (const m of [a, b]) { const o = new THREE.Mesh(m.geometry, inkMat); o.scale.setScalar(1.15); m.add(o); g.add(m); }
-    g.scale.setScalar(AV * 1.5); scene.add(g); return g;
+    const handle = new THREE.Mesh(shovelGeo[0], shovelMats[0]), blade = new THREE.Mesh(shovelGeo[1], shovelMats[1]), tee = new THREE.Mesh(shovelGeo[2], shovelMats[0]);
+    handle.position.y = .36;
+    for (const m of [handle, blade, tee]) { const o = new THREE.Mesh(m.geometry, inkMat); o.scale.set(1.5, 1.04, 1.5); if (m !== handle) o.scale.setScalar(1.14); m.add(o); m.castShadow = true; g.add(m); }
+    g.userData = { handle, tee }; scene.add(g); return g;
+  }
+  function handsOf(av) { // where the hand is along each arm, from the arm's own shape (as Mini Golf does for the putter)
+    for (const arm of av.userData.arms) { let lo = 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } }); arm.userData.hand = lo + .06; arm.userData.rz = arm.rotation.z; }
   }
   function freeSeat(s) { scene.remove(s.g, s.ring, s.shovel); disposeAvatar(s.av); s.ring.material.dispose(); }
   const ringGeo = new THREE.RingGeometry(.5, .64, 28); ringGeo.rotateX(-Math.PI / 2);
   function buildSeats(list) {
     for (const s of seats) freeSeat(s);
     seats = list.map((p, i) => {
-      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); av.scale.setScalar(AV); g.add(av);
+      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); av.scale.setScalar(AV); g.add(av); handsOf(av);
       const home = homeOf(i, list.length); g.position.copy(home); g.lookAt(0, 0, 0); scene.add(g);
       const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false })); ring.position.y = .05; scene.add(ring);
       const shovel = makeShovel(); shovel.visible = false;
@@ -212,7 +214,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (st.seats.length !== seats.length) buildSeats(st.seats);
       else st.seats.forEach((p, i) => { // someone took over a bot: swap the avatar
         const s = seats[i], k = p.color + (p.av || []).join(''); if (s.key === k) return;
-        s.g.remove(s.av); disposeAvatar(s.av); s.av = avatar3d(p.color, p.av, { pose: 'stand' }); s.av.scale.setScalar(AV); s.g.add(s.av); s.key = k; s.hop = 1;
+        s.g.remove(s.av); disposeAvatar(s.av); s.av = avatar3d(p.color, p.av, { pose: 'stand' }); s.av.scale.setScalar(AV); s.g.add(s.av); handsOf(s.av); s.key = k; s.hop = 1;
       });
       seatKey = key;
     }
@@ -220,13 +222,12 @@ export function createScene(canvas, { onFrame } = {}) {
     // a new dig: the tile stays covered until the shovel has done its work
     if (st.dig && st.dig.n !== digN) {
       digN = st.dig.n; digAt = now() - st.dig.ago;
-      pending = { ...st.dig, cells: [st.dig.i, ...st.dig.opened], revealAt: digAt + st.ms.hop + st.ms.dig, done: false, fx: false };
+      pending = { ...st.dig, cells: [st.dig.i, ...st.dig.opened], walk: st.dig.walk || 600, revealAt: digAt + (st.dig.walk || 600) + st.ms.dig, done: false, fx: false };
       const s = seats[st.dig.s];
       if (s) { // land just behind the tile and dig it facing the camera, so the find is not hidden behind the digger
-        const back = st.dig.i >= st.w ? st.dig.i - st.w : -1;
-        s.from.copy(s.g.position); tilePos(st.dig.i, 0, s.to); s.to.z -= .5; s.to.y = back >= 0 && st.tiles[back] < 0 ? TOP : 0; s.hopT = digAt;
+        const sp = standOf(st.dig.i, st.w, st.h); s.from.copy(s.g.position).setY(0); s.to.set(sp.x, 0, sp.z); s.hopT = digAt;
       }
-      if (st.dig.ago > st.ms.hop + st.ms.dig + 400) pending.fx = true; // too late to show the fireworks
+      if (st.dig.ago > pending.walk + st.ms.dig + 400) pending.fx = true; // too late to show the fireworks
     }
     shownHidden = st.tiles.map((t, i) => ((t < 0 && !endOpen.has(i)) || (pending && !pending.done && pending.cells.includes(i))));
     if (st.ph === 'end' && st.all) {
@@ -279,6 +280,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- loop ----------
   let T = 0, dead = false, lastT = 0;
+  const grip = new THREE.Vector3(), hand = new THREE.Vector3(), bladeP = new THREE.Vector3(), dirV = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
   const tv = new THREE.Vector3(), info = { tags: [], dig: { x: 0, y: 0 } };
   function loop(dt) {
     if (dead) return;
@@ -288,7 +290,7 @@ export function createScene(canvas, { onFrame } = {}) {
     // the start: the middle of the field pops open
     if (!startBurst && S.startAgo < 2500) { startBurst = true; if (!reduced) for (let i = 0; i < w * h; i++) if (S.tiles[i] >= 0 && S.dig === null) popAt(i, (i % w + ((i / w) | 0)) * .04); }
     // the dig in progress: the grass comes off when the digger lands, what is under it shows after the digging
-    if (pending && !pending.landed && t >= pending.revealAt - S.ms.dig) { pending.landed = true; if (!pending.done) { popAt(pending.i); if (!pending.fx) pfx.puff(tilePos(pending.i, .2, tv), { n: 10, color: ['#7cc45a', '#8fd068'], size: .26, speed: 2 }); } }
+    if (pending && !pending.landed && t >= pending.revealAt - S.ms.dig * .7) { /* the first scoop lifts the turf */ pending.landed = true; if (!pending.done) { popAt(pending.i); if (!pending.fx) pfx.puff(tilePos(pending.i, .2, tv), { n: 10, color: ['#7cc45a', '#8fd068'], size: .26, speed: 2 }); } }
     if (pending && !pending.done && t >= pending.revealAt) {
       pending.done = true;
       for (const i of pending.cells) { shownHidden[i] = false; if (i !== pending.i) popAt(i); }
@@ -350,35 +352,61 @@ export function createScene(canvas, { onFrame } = {}) {
       s.active = S.ph === 'play' && S.turn === i && S.stage !== 'start';
       const digging = pending && pending.s === i && S.ph !== 'end' && (t < pending.revealAt + 900 || (S.turn === i && S.stage !== 'start'));
       let walking = 0;
+      let digU = -1; // 0..1 through the digging once the walk is done
+      const face = (yaw, k) => { let dr = yaw - s.g.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); s.g.rotation.set(0, s.g.rotation.y + dr * Math.min(1, rdt * k), 0); };
       if (digging && s.hopT > 0) {
-        const u = Math.min(1, (t - s.hopT) / S.ms.hop);
-        s.g.position.lerpVectors(s.from, s.to, u); s.g.position.y += Math.sin(u * Math.PI) * 1.1;
-        if (u < 1) { tv.copy(s.to).setY(s.g.position.y); if (s.g.position.distanceTo(tv) > .05) s.g.lookAt(tv); }
-        else { s.g.position.y = s.to.y; let dr = -s.g.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); s.g.rotation.y += dr * Math.min(1, rdt * 10); } // turn to face the camera while digging
-        s.y = s.g.position.y;
+        // walk to just behind the tile, in exactly the time the server allows for it
+        const u = Math.min(1, (t - s.hopT) / pending.walk), e = u * u * (3 - 2 * u) * .35 + u * .65;
+        tv.lerpVectors(s.from, s.to, e); const step = Math.hypot(tv.x - s.g.position.x, tv.z - s.g.position.z);
+        if (u < 1) { if (step > 1e-4) face(Math.atan2(tv.x - s.g.position.x, tv.z - s.g.position.z), 14); walking = 1; s.ph += step * 7; }
+        else { face(0, 10); digU = Math.min(1, (t - s.hopT - pending.walk) / S.ms.dig); } // turn to the camera and dig the tile in front
+        s.g.position.x = tv.x; s.g.position.z = tv.z;
       } else {
         // walk back to your spot by the plot
         const target = s.home, d = tv.copy(target).sub(s.g.position).setY(0), dist = d.length();
-        if (dist > .04) { const step = Math.min(dist, rdt * 3.4); s.g.position.addScaledVector(d.normalize(), step); s.g.lookAt(target.x, s.g.position.y, target.z); walking = 1; s.ph += step * 7; }
-        else { tv.set(0, 0, 0); const want = Math.atan2(-s.g.position.x, -s.g.position.z); let dr = want - s.g.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); s.g.rotation.y += dr * .08; }
-        // stepping over grass tiles on the way
+        if (dist > .04) { const step = Math.min(dist, rdt * 4.6); d.normalize(); face(Math.atan2(d.x, d.z), 12); s.g.position.addScaledVector(d, step); walking = 1; s.ph += step * 7; }
+        else face(Math.atan2(-s.g.position.x, -s.g.position.z), 5);
+      }
+      { // step up and down the grass tiles on the way
         const gx = Math.round(s.g.position.x + (w - 1) / 2), gz = Math.round(s.g.position.z + (h - 1) / 2), cell = gx >= 0 && gz >= 0 && gx < w && gz < h ? gz * w + gx : -1;
-        s.y += ((cell >= 0 && shownHidden[cell] ? TOP : 0) - s.y) * Math.min(1, dt * 14); s.g.position.y = s.y;
+        const gone = cell >= 0 && (!shownHidden[cell] || (pending?.landed && pending.i === cell));
+        s.y += ((cell >= 0 && !gone ? TOP : 0) - s.y) * Math.min(1, rdt * 16); s.g.position.y = s.y + (walking ? Math.abs(Math.sin(s.ph)) * .04 : 0);
       }
       s.hop = Math.max(0, s.hop - dt * 1.6); s.nod = Math.max(0, s.nod - dt * .8); s.knock = Math.max(0, (s.knock || 0) - dt * 1.5);
       s.av.position.y = Math.abs(Math.sin(s.hop * Math.PI * 2)) * .35 * s.hop;
       s.av.rotation.x = -Math.sin((s.knock || 0) * Math.PI) * .5;
       animateAvatar(s.av, T, { seed: i, active: s.active && !walking, hop: s.hop, nod: Math.sin(Math.min(1, s.nod) * Math.PI) * .9 });
       walkAvatar(s.av, s.ph, walking);
-      // the shovel: out while digging
-      const dig = digging && pending && t >= s.hopT + S.ms.hop - 100 && t < pending.revealAt + 300;
-      s.shovel.visible = dig;
-      if (dig) {
-        const u = (t - s.hopT - S.ms.hop) / S.ms.dig, stab = Math.abs(Math.sin(u * Math.PI * 2));
-        tv.set(.28, .1 + stab * .35, .32).applyQuaternion(s.g.quaternion).add(s.g.position); s.shovel.position.copy(tv);
-        s.shovel.quaternion.copy(s.g.quaternion); s.shovel.rotateX(.5 + stab * .4); s.shovel.rotateZ(-.15);
-        if (Math.random() < dt * 12) pfx.puff(tv.copy(s.g.position).setY(.1).add(new THREE.Vector3(0, 0, .3).applyQuaternion(s.g.quaternion)), { n: 2, color: ['#a8744a', '#d6a46c'], size: .18, speed: 1.6 });
-      }
+      // --- the shovel: held in both hands. Two scoops: push it into the tile, lever it, then lift and toss the dirt aside ---
+      const arms = s.av.userData.arms, hold = digU >= 0 && t < pending.revealAt + 350;
+      s.shovel.visible = hold;
+      if (hold) {
+        const c = (digU * 2) % 1;
+        // push: 0 raised .. 1 driven in; toss: 0 .. 1 swinging the load out to the side
+        const push = digU >= 1 ? 0 : c < .3 ? (c / .3) ** 2 : c < .5 ? 1 : Math.max(0, 1 - (c - .5) / .22);
+        const toss = digU >= 1 ? 0 : c < .5 ? 0 : Math.sin(Math.min(1, (c - .5) / .42) * Math.PI);
+        const lever = c >= .3 && c < .5 ? Math.sin((c - .3) / .2 * Math.PI) : 0;
+        const side = i % 2 ? -1 : 1;
+        s.av.rotation.x = push * .2 + lever * .05 - toss * .08;            // lean into it
+        s.av.position.y -= push * .04 * AV;
+        arms.forEach(a => { const sg = Math.sign(a.position.x) || 1; a.rotation.x = a.userData.rx - .5 - push * .28 - toss * .6 + lever * .12; a.rotation.z = -sg * .3 + toss * .4 * side; });
+        s.g.updateMatrixWorld(true);
+        grip.set(0, 0, 0); for (const a of arms) { hand.set(0, a.userData.hand, 0); a.localToWorld(hand); grip.add(hand); } grip.multiplyScalar(.5);
+        // a rigid shovel gripped part way up the handle. The blade points down at the tile ahead, drives in, then swings up and out sideways
+        const rest = 1 - push;
+        dirV.set(toss * .95 * side, -1 + rest * .25 + toss * .95, .3 + rest * .45 - toss * .1).normalize();
+        const len = .5 + push * .1;
+        bladeP.copy(grip).addScaledVector(dirV, len); if (bladeP.y < .06) bladeP.y = .06;
+        s.shovel.position.copy(bladeP); dirV.negate(); s.shovel.quaternion.setFromUnitVectors(UP, dirV);
+        const { handle, tee } = s.shovel.userData; handle.scale.y = len - .36 + .22; tee.position.y = .36 + handle.scale.y;
+        // dirt: a puff as the blade goes in, a clod thrown off as it swings out
+        const stage = (digU >= .5 ? 2 : 0) + (c >= .26 ? 1 : 0) + (c >= .62 ? 1 : 0) * 10;
+        if (stage !== s.digStage && digU < 1) {
+          s.digStage = stage;
+          if (c >= .62 && !pending.fx) pfx.burst(bladeP, { n: 9, colors: ['#a8744a', '#8a5a3c', '#d6a46c'], speed: 2.2, up: 2.6, size: .2, life: .7, shape: DOT, spread: .8 });
+          else if (c >= .26 && !pending.fx) { pfx.puff(tilePos(pending.i, .1, tv), { n: 7, color: ['#a8744a', '#d6a46c', '#7cc45a'], size: .24, speed: 1.8 }); shake.kick(.025); }
+        }
+      } else { s.digStage = -1; for (const a of arms) a.rotation.z = a.userData.rz; }
       s.ring.position.set(s.g.position.x, .05, s.g.position.z);
       s.ring.material.opacity += ((s.active && S.stage === 'turn' ? .9 : 0) - s.ring.material.opacity) * .15;
       s.ring.scale.setScalar(1 + Math.sin(T * 4) * .05);
