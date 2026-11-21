@@ -44,6 +44,14 @@ function chevronTexture() {
   for (const y of [28, 92]) { g.beginPath(); g.moveTo(14, y + 22); g.lineTo(64, y - 18); g.lineTo(114, y + 22); g.stroke(); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 }
+// What you see down a trapdoor: open sky with a cloud, shaded round the rim so the hole reads as deep.
+function holeTexture() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const g = cv.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#6fbdf2'); gr.addColorStop(1, '#c9ecff'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  g.fillStyle = '#ffffff'; for (const [x, y, r] of [[44, 78, 17], [64, 70, 22], [86, 80, 16], [30, 36, 9], [42, 33, 11]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  g.fillStyle = '#3b221988'; g.fillRect(0, 0, 128, 16); g.fillStyle = '#3b221955'; g.fillRect(0, 16, 12, 112); g.fillRect(116, 16, 12, 112); g.fillStyle = '#3b221933'; g.fillRect(0, 16, 128, 8);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
 function floorTexture() {
   const cv = document.createElement('canvas'); cv.width = 64; cv.height = 256;
   const g = cv.getContext('2d'); g.fillStyle = '#f6e3c5'; g.fillRect(0, 0, 64, 256);
@@ -180,60 +188,132 @@ export function createScene(canvas, { onFrame }) {
       o.userData.y = o.position.y; g.add(o);
       anim.push(t => { o.position.y = o.userData.y + Math.sin(t * .8 + k) * .35; if (k % 3 !== 1) o.rotation.y = Math.sin(t * .3 + k) * .4; });
     }
-    // pins
-    const pinGeo = new THREE.CylinderGeometry(1, 1, 1, 16), pinM = M('#7ed3b2', { roughness: .35 }), capM = M('#fff4e2', { roughness: .4 });
-    for (const p of T.pins) {
-      const m = new THREE.Mesh(pinGeo, pinM); m.scale.set(p.r, .95, p.r); place(m, p.s, p.u, .47); m.castShadow = true; solid.add(m);
-      const c = new THREE.Mesh(new THREE.SphereGeometry(p.r * 1.12, 12, 8), capM); place(c, p.s, p.u, .95); solid.add(c);
-    }
-    // spinners
-    for (const sp of T.spinners) {
-      const hub = new THREE.Group(); place(hub, sp.s, sp.u, 0); g.add(hub);
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(.2, .26, .8, 14), M('#fff4e2')); post.position.y = .4; hub.add(post);
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(.32, .34, sp.hl * 2), M('#ffb547', { map: stripeTexture('#ffb547', '#e5543b', 6), roughness: .45 }));
-      bar.position.y = .36; bar.castShadow = true; hub.add(bar); shell(bar, 1).scale.set(1.25, 1.22, 1 + .08 / sp.hl);
-      const knob = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), M('#e5543b')); knob.position.y = .82; hub.add(knob); bar.userData.dyn = true; toonify(hub, .035);
-      anim.push((t, st) => { bar.rotation.y = spinAngle(sp, st); });
-    }
-    // trapdoors: a hazard-striped lid slides away over a dark pit
-    for (const tr of T.traps) {
-      const len = tr.s1 - tr.s0, wid = tr.u1 - tr.u0, mid = (tr.s0 + tr.s1) / 2, um = (tr.u0 + tr.u1) / 2;
-      const pit = new THREE.Mesh(new THREE.PlaneGeometry(wid, len), new THREE.MeshBasicMaterial({ color: '#0d0509' }));
-      pit.rotation.x = -Math.PI / 2; const pg = new THREE.Group(); pg.add(pit); place(pg, mid, um, .03 + DISH * um * um * .5); g.add(pg);
-      const tex = stripeTexture('#ffb547', INK, 6); tex.repeat.set(1, 1);
-      const lid = new THREE.Mesh(new THREE.BoxGeometry(wid, .06, len), M('#ffffff', { map: tex, roughness: .5 }));
-      const lg = new THREE.Group(); lg.add(lid); place(lg, mid, um, .07 + DISH * um * um * .5); g.add(lg);
-      let k = 1;
+    // pins: springy mushroom bumpers. Stems are part of the merged scenery; the caps squash when a marble bumps them.
+    {
+      const stemM = M('#fff4e2'), ringM = M('#ffb547'), n = T.pins.length;
+      const capGeo = new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI * .55); capGeo.translate(0, -.12, 0);
+      const caps = new THREE.InstancedMesh(capGeo, toonMat(M('#ffffff')), Math.max(1, n)), capInk = new THREE.InstancedMesh(capGeo, new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.BackSide }), Math.max(1, n));
+      const dotGeo = new THREE.SphereGeometry(.2, 8, 6), dots = new THREE.InstancedMesh(dotGeo, toonMat(M('#fff4e2')), Math.max(1, n * 3));
+      caps.count = capInk.count = n; dots.count = n * 3; caps.castShadow = true; caps.frustumCulled = capInk.frustumCulled = dots.frustumCulled = false; g.add(capInk, caps, dots);
+      const d = new THREE.Object3D(), d2 = new THREE.Object3D(), c3 = new THREE.Color(), capCols = ['#ff7a59', '#7ed3b2', '#ff8fab', '#8a98ff'], bump = new Float32Array(n);
+      d.add(d2);
+      T.pins.forEach((p, i) => {
+        const st = new THREE.Mesh(new THREE.CylinderGeometry(p.r * .62, p.r * .8, .7, 10), stemM); place(st, p.s, p.u, .35); solid.add(st);
+        const rg = new THREE.Mesh(new THREE.CylinderGeometry(p.r * 1.25, p.r * 1.35, .08, 12), ringM); place(rg, p.s, p.u, .04); solid.add(rg);
+        caps.setColorAt(i, c3.set(capCols[i % 4]));
+      });
+      const setCaps = () => T.pins.forEach((p, i) => {
+        const b = bump[i], sq = 1 - Math.sin(b * Math.PI) * .32 * b, wide = 1 + Math.sin(b * Math.PI) * .22 * b;
+        place(d, p.s, p.u, .78 - (1 - sq) * .2); d.scale.set(p.r * 1.75 * wide, p.r * 1.75 * sq, p.r * 1.75 * wide); d.updateMatrixWorld(true); caps.setMatrixAt(i, d.matrix);
+        for (let k = 0; k < 3; k++) { const a = k * 2.094 + i; d2.position.set(Math.cos(a) * .62, .52, Math.sin(a) * .62); d2.scale.setScalar(1); d2.updateMatrixWorld(true); dots.setMatrixAt(i * 3 + k, d2.matrixWorld); }
+        d.scale.multiplyScalar(1.13); d.position.y -= .01; d.updateMatrix(); capInk.setMatrixAt(i, d.matrix);
+      });
+      setCaps(); if (caps.instanceColor) caps.instanceColor.needsUpdate = true;
       anim.push((t, st, dt) => {
-        const to = trapOpen(tr, st) ? 0 : 1; k += (to - k) * Math.min(1, dt * 14);
-        lid.scale.z = Math.max(.02, k); lid.position.z = -(1 - k) * len / 2; lid.visible = k > .04;
+        let live = false;
+        for (let i = 0; i < n; i++) {
+          const p = T.pins[i];
+          if (bump[i] <= 0 && playing) for (const m of marbles) if (m.st === 0 && Math.abs(m.s - p.s) < p.r + R + .16 && Math.abs(m.u - p.u) < p.r + R + .16) { bump[i] = 1; if (!reduced) { world(T, p.s, p.u, .9, tmp); pfx.burst(tv.set(tmp[0], tmp[1], tmp[2]), { n: 5, colors: [capCols[i % 4], '#ffffff'], speed: 2.2, up: 2.5, size: .26, life: .5 }); } break; }
+          if (bump[i] > 0) { bump[i] = Math.max(0, bump[i] - dt * 3.2); live = true; }
+        }
+        if (live || anim.capsDirty) { setCaps(); caps.instanceMatrix.needsUpdate = capInk.instanceMatrix.needsUpdate = dots.instanceMatrix.needsUpdate = true; anim.capsDirty = live; }
       });
     }
-    // boost pads
+    // spinners: a striped paddle with rubber bumpers on its ends, turning on a bolted hub over a warning ring
+    for (const sp of T.spinners) {
+      const hub = new THREE.Group(); place(hub, sp.s, sp.u, 0); g.add(hub);
+      const warn = new THREE.Mesh(new THREE.RingGeometry(sp.hl - .12, sp.hl + .1, 40), new THREE.MeshBasicMaterial({ map: stripeTexture('#ffb547', INK, 12), transparent: true, opacity: .55 })); warn.rotation.x = -Math.PI / 2; warn.position.y = .15; hub.add(warn);
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(.5, .56, .1, 16), M('#8a8794')); plate.position.y = .05; hub.add(plate);
+      for (let k = 0; k < 6; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 5), M('#5b4636')); b.position.set(Math.cos(k * 1.047) * .41, .11, Math.sin(k * 1.047) * .41); hub.add(b); }
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.2, .26, .8, 14), M('#fff4e2')); post.position.y = .4; hub.add(post);
+      const arm = new THREE.Group(); arm.userData.dyn = true; arm.position.y = .36; hub.add(arm);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(.32, .34, sp.hl * 2 - .3), M('#ffb547', { map: stripeTexture('#ffb547', '#e5543b', 6), roughness: .45 }));
+      bar.castShadow = true; arm.add(bar); shell(bar, 1).scale.set(1.25, 1.22, 1 + .08 / sp.hl);
+      for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.26, 12, 9), M('#e5543b')); e.position.z = sd * (sp.hl - .2); e.castShadow = true; arm.add(e); shell(e, 1.16); }
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), M('#e5543b')); knob.position.y = .82; hub.add(knob);
+      const star = new THREE.Mesh(new THREE.ConeGeometry(.16, .22, 5), M('#ffd84a')); star.position.y = 1.18; hub.add(star);
+      toonify(arm); toonify(hub, .035);
+      anim.push((t, st) => { arm.rotation.y = spinAngle(sp, st); star.rotation.y = -t * 2; });
+    }
+    // trapdoors: a framed hole in the track with the sky showing through, a hazard lid that slides shut, and
+    // lamps that flash just before it opens
+    for (const tr of T.traps) {
+      const len = tr.s1 - tr.s0, wid = tr.u1 - tr.u0, mid = (tr.s0 + tr.s1) / 2, um = (tr.u0 + tr.u1) / 2;
+      const pg = new THREE.Group(); place(pg, mid, um, .03 + DISH * um * um * .5); g.add(pg);
+      const pit = new THREE.Mesh(new THREE.PlaneGeometry(wid, len), new THREE.MeshBasicMaterial({ map: holeTexture() })); pit.rotation.x = -Math.PI / 2; pg.add(pit);
+      const frameM = M('#ffffff', { map: stripeTexture('#ffb547', INK, 8), roughness: .5 }), fr = new THREE.Group(); pg.add(fr);
+      for (const [w, d, x, z] of [[wid + .36, .18, 0, -len / 2 - .09], [wid + .36, .18, 0, len / 2 + .09], [.18, len, -wid / 2 - .09, 0], [.18, len, wid / 2 + .09, 0]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, .12, d), frameM); b.position.set(x, .05, z); fr.add(b); }
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(wid + .46, .1, len + .46), new THREE.MeshBasicMaterial({ color: '#4a2c22' })); edge.position.y = .0; fr.add(edge); pit.position.y = .056;
+      const lamps = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => { const l = new THREE.Mesh(new THREE.SphereGeometry(.11, 8, 6), new THREE.MeshBasicMaterial({ color: '#7ed3b2' })); l.position.set(sx * (wid / 2 + .09), .17, sz * (len / 2 + .09)); pg.add(l); return l; });
+      const tex = stripeTexture('#ffb547', INK, 6); tex.repeat.set(1, 1);
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(wid, .07, len), M('#ffffff', { map: tex, roughness: .5 })); lid.position.y = .09; pg.add(lid);
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(wid * .5, .05, .16), M('#8a8794')); grip.position.set(0, .06, len / 2 - .3); lid.add(grip);
+      let k = 1, was = false;
+      anim.push((t, st, dt) => {
+        const open = trapOpen(tr, st), ph = ((st + tr.ph) % tr.per) / tr.per, soon = !open && ph > .78;
+        const to = open ? 0 : 1; k += (to - k) * Math.min(1, dt * 14);
+        lid.scale.z = Math.max(.02, k); lid.position.z = -(1 - k) * len / 2; lid.visible = k > .04;
+        if (soon && !reduced) lid.position.x = Math.sin(t * 60) * .025; else lid.position.x = 0; // it rattles before it goes
+        const col = open ? '#ff5a3c' : soon ? (Math.sin(t * 22) > 0 ? '#ff5a3c' : '#ffd84a') : '#7ed3b2';
+        for (const l of lamps) { l.material.color.set(col); l.scale.setScalar(open || soon ? 1.25 : 1); }
+        if (open !== was) { was = open; if (!reduced && playing) { world(T, mid, um, .2, tmp); pfx.puff(tv.set(tmp[0], tmp[1], tmp[2]), { n: 8, size: .4, speed: 2.4, life: .4 }); } }
+      });
+    }
+    // boost pads: scrolling chevrons, glowing hoops to fly through and arrow signs on the rails
     for (const b of T.boosts) {
       const len = b.s1 - b.s0, tex = chevronTexture(); tex.repeat.set(2, 1.5);
       const pad = new THREE.Mesh(new THREE.PlaneGeometry(4.3, len), new THREE.MeshBasicMaterial({ map: tex }));
       pad.rotation.x = -Math.PI / 2; pad.rotation.z = Math.PI; const pg = new THREE.Group(); pg.add(pad); place(pg, (b.s0 + b.s1) / 2, 0, .1); g.add(pg);
-      anim.push(t => { tex.offset.y = -t * 1.6; });
+      const edgeM = new THREE.MeshBasicMaterial({ color: '#b8ffe6' });
+      for (const sd of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(.1, .05, len), edgeM); e.position.set(sd * 2.2, .02, 0); pg.add(e); }
+      const hoops = [.12, .5, .88].map((f, i) => {
+        const hg = new THREE.Group(); place(hg, b.s0 + len * f, 0, 0); g.add(hg);
+        const mat = new THREE.MeshBasicMaterial({ color: '#7ed3b2' });
+        const arc = new THREE.Mesh(new THREE.TorusGeometry(2.85, .11, 8, 28, Math.PI), mat); arc.position.y = WALL_H; hg.add(arc);
+        const ink = new THREE.Mesh(new THREE.TorusGeometry(2.85, .17, 8, 28, Math.PI), new THREE.MeshBasicMaterial({ color: '#1f6f5a', side: THREE.BackSide })); ink.position.y = WALL_H; hg.add(ink);
+        for (const sd of [-1, 1]) { const f2 = new THREE.Mesh(new THREE.BoxGeometry(.36, .2, .36), M('#1f6f5a')); f2.position.set(sd * 2.85, WALL_H + .06, 0); hg.add(f2); }
+        toonify(hg);
+        return { mat, i };
+      });
+      const cA = new THREE.Color('#2fae8c'), cB = new THREE.Color('#eafff7');
+      anim.push(t => { tex.offset.y = -t * 1.6; for (const h of hoops) h.mat.color.copy(cA).lerp(cB, Math.max(0, Math.sin(t * 7 - h.i * 1.3)) ** 2); edgeM.color.copy(cA).lerp(cB, .5 + Math.sin(t * 7) * .5); });
     }
-    // finish arch + line
+    // finish: a chequered arch with bunting, balloons on the posts and a chequered line
     {
       const fg = new THREE.Group(); place(fg, T.L, 0, 0); g.add(fg);
-      const postM2 = M('#fff4e2');
-      for (const sd of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 4.2, 12), postM2); p.position.set(sd * 2.95, 2.1, 0); fg.add(p); const b = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), M('#ffb547')); b.position.set(sd * 2.95, 4.3, 0); fg.add(b); }
+      const postM2 = M('#fff4e2'), band = M('#e5543b');
+      for (const sd of [-1, 1]) {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(.18, .2, 4.2, 12), postM2); p.position.set(sd * 2.95, 2.1, 0); fg.add(p);
+        for (const y of [.5, 1.5, 2.5]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .4, 12), band); r.position.set(sd * 2.95, y, 0); fg.add(r); }
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(.34, .42, .3, 12), M('#8a8794')); foot.position.set(sd * 2.95, .15, 0); fg.add(foot);
+        [['#ff7a59', 0, 0], ['#ffd84a', .38, .3], ['#7ed3b2', -.36, .26]].forEach(([c, dx, dy], k) => {
+          const bl = new THREE.Group(); bl.userData.dyn = true; bl.position.set(sd * 2.95 + dx, 4.95 + dy, 0); fg.add(bl);
+          const m = new THREE.Mesh(new THREE.SphereGeometry(.34, 12, 10), M(c)); m.scale.y = 1.2; bl.add(m); shell(m, 1.12); toonify(bl);
+          anim.push(t => { bl.position.y = 4.95 + dy + Math.sin(t * 1.6 + k * 2 + sd) * .09; bl.rotation.z = Math.sin(t * 1.1 + k + sd) * .12; });
+        });
+      }
       const ct = checkTexture(); ct.wrapS = THREE.RepeatWrapping; ct.repeat.set(1.5, 1);
       const ban = new THREE.Mesh(new THREE.BoxGeometry(6.1, 1, .12), M('#ffffff', { map: ct, roughness: .6 })); ban.position.y = 3.7; fg.add(ban);
+      const flagCols = ['#ff7a59', '#ffd84a', '#7ed3b2', '#8a98ff', '#ff8fab'];
+      for (let k = 0; k < 11; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.2, .42, 3), M(flagCols[k % 5])); f.rotation.x = Math.PI; f.scale.z = .25; f.position.set(-2.5 + k * .5, 2.98, 0); fg.add(f); }
       const line = new THREE.Mesh(new THREE.PlaneGeometry(5, .9), new THREE.MeshBasicMaterial({ map: checkTexture() }));
       line.rotation.x = -Math.PI / 2; line.position.y = .12; fg.add(line); shell(ban, 1).scale.set(1.03, 1.16, 2.2); toonify(fg, .04);
     }
-    // start gate
+    // start gate: a striped bar between two posts whose lamps go from red to green
     {
       const gg = new THREE.Group(); place(gg, GATE_S + .12, 0, 0); g.add(gg);
       const bar = new THREE.Mesh(new THREE.BoxGeometry(5, .5, .14), M('#ffb547', { map: stripeTexture('#ffb547', INK, 10), roughness: .5 }));
-      bar.position.y = .38; gg.add(bar);
+      bar.position.y = .38; bar.userData.dyn = true; gg.add(bar);
+      const lampM = new THREE.MeshBasicMaterial({ color: '#ff5a3c' });
+      for (const sd of [-1, 1]) {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(.13, .16, 1.1, 10), M('#fff4e2')); p.position.set(sd * 2.65, WALL_H + .55, 0); gg.add(p);
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, .22, 10), M('#e5543b')); band.position.set(sd * 2.65, WALL_H + .5, 0); gg.add(band);
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(.22, .15, .14, 10), M('#5b4636')); cup.position.set(sd * 2.65, WALL_H + 1.13, 0); gg.add(cup);
+        const l = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 9), lampM); l.position.set(sd * 2.65, WALL_H + 1.32, 0); gg.add(l);
+      }
       let k = 0;
-      anim.push((t, st, dt) => { const to = playing ? 1 : 0; k += (to - k) * Math.min(1, dt * 9); bar.position.y = .38 + k * 2.6; });
-      shell(bar, 1).scale.set(1.02, 1.22, 1.9);
+      anim.push((t, st, dt) => { const to = playing ? 1 : 0; k += (to - k) * Math.min(1, dt * 9); bar.position.y = .38 + k * 2.6; lampM.color.set(playing ? '#5ee08a' : stage === 'count' ? (Math.sin(t * 10) > 0 ? '#ffd84a' : '#ff5a3c') : '#ff5a3c'); });
+      shell(bar, 1).scale.set(1.02, 1.22, 1.9); toonify(gg, .04);
     }
     bake(solid); solid.traverse(o => { if (o.isMesh) o.castShadow = true; }); toonify(solid, .045);
     toonify(g); // flat cartoon shading on the track itself
