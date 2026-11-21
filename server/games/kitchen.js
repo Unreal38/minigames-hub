@@ -1,6 +1,6 @@
 // Cozy Kitchen Rush: everyone cooks together in one kitchen against the clock. Real time: each player's screen
 // moves its own avatar and sends where it is; the server owns every counter, pot, pan and order, checks each
-// grab is in reach, cooks the food, runs the bots and sends the whole kitchen out on every tick.
+// grab is in reach, cooks the food, runs the bots and streams the whole kitchen twenty times a second.
 import { kitchen, CRATES, CHOPPABLE, SOUPS, RECIPES, T, SPEED, REACH, move, pushOut, isFloor, inReach, token, fits, matches, goals } from '../../public/games/kitchen/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
@@ -196,7 +196,9 @@ function cook(G, dt, now) {
   });
 }
 
-export function tick(G, now = Date.now()) {
+// Real time: the server's fast loop (twenty times a second) runs the kitchen and streams it; the slow tick has nothing to do.
+export const tick = () => false;
+export function fast(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
   const dt = Math.min(.5, Math.max(0, (now - G.last) / 1000)); G.last = now;
   if (G.stage === 'count') {

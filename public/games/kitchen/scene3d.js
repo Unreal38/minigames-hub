@@ -271,7 +271,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
       if (i === me && local) ({ x, z, f } = local);
       else { x = sp.x; z = sp.z; f = sp.f; }
       W(x, z, 0, tmp);
-      const k = i === me && local ? 1 : Math.min(1, dt * 10);
+      const k = i === me && local ? 1 : Math.min(1, dt * 14);
       p.g.position.lerp(tmp, k);
       const moved = p.g.position.distanceTo(p.last) / Math.max(dt, 1e-3); p.last.copy(p.g.position);
       // turn smoothly the short way round

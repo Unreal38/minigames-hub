@@ -43,7 +43,7 @@ const realNow = Date.now;
 function kit(opts = {}) {
   let now = realNow(); Date.now = () => now;
   const G = kr.create(players.slice(0, 1), { seats: 1, ...opts }, null, now);
-  const clock = ms => { const end = now + ms; while (now < end) { now += 100; kr.tick(G, now); } };
+  const clock = ms => { const end = now + ms; while (now < end) { now += 100; kr.fast(G, now); } };
   clock(T.count * 1000 + 200);
   if (G.stage !== 'cook') fail('shift did not start after the countdown');
   const K = kitchen(G.map), at = k => K.cells.filter(c => c.k === k);
@@ -126,7 +126,7 @@ function shift(opts) {
     if (G.seats.length !== Math.max(2, opts.seats)) fail('seats not filled with bots');
     kr.setAway(G, 0, true); kr.setAway(G, 1, true); // both players are away: bots cook for them
     while (G.ph === 'play') {
-      now += 150; kr.tick(G, now);
+      now += 150; kr.fast(G, now);
       for (const p of G.pl) if (!isFloor(kitchen(G.map), Math.floor(p.x), Math.floor(p.z))) fail('a bot walked into a counter at ' + p.x + ',' + p.z);
     }
     const r = kr.results(G);
