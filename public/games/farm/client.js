@@ -102,7 +102,7 @@ export function mount(app, ctx) {
     const el = $('pf-main');
     if (mode !== 'farm' || edit || B) { el.innerHTML = ''; return; }
     if (where === 'map') {
-      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><button type="button" class="btn w" data-a="friends">Friends</button><button type="button" class="btn w" data-a="ranks">Ranking</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit' : 'No other farms yet. They appear here when friends start one.'}</span>`;
+      el.innerHTML = `<button type="button" class="btn big" data-a="gohome">Back to my farm</button><button type="button" class="btn w" data-a="friends">Friends</button><button type="button" class="btn w" data-a="ranks">Ranking</button><span class="chip">${!world ? 'Looking around…' : world.length ? 'Tap an island to visit. Drag to turn, scroll or pinch to zoom.' : 'No other farms yet. They appear here when friends start one.'}</span>`;
       return;
     }
     if (where === 'visit' && V) {

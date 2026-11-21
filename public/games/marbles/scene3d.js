@@ -2,8 +2,10 @@
 import * as THREE from 'three';
 import { makeTrack, world, at, spinAngle, trapOpen, R, DS, DISH, WALL_H, GATE_S } from './track.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { bake } from '../../avatar3d.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, createFx, shaker, disposeToon, STAR, DOT, CONF } from '../../scenery3d.js';
 
-const INK = '#3b2219', PLUM = '#2a1422';
+const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff';
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const tmp = [0, 0, 0];
@@ -79,21 +81,24 @@ export function createScene(canvas, { onFrame }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(PLUM); scene.fog = new THREE.Fog(PLUM, 40, 170);
-  const camera = new THREE.PerspectiveCamera(48, 1, .1, 400);
-  scene.add(new THREE.HemisphereLight('#ffe2c4', '#4a2338', 1.7));
-  const key = new THREE.DirectionalLight('#ffe6c8', 2.2); key.castShadow = true;
+  scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 90, 330);
+  const camera = new THREE.PerspectiveCamera(48, 1, .1, 900);
+  scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
+  const key = new THREE.DirectionalLight('#ffffff', 1.6); key.castShadow = true;
+  // the world: the track winds through a sunny sky, over a sea of clouds, past little floating islands and balloons
+  const sky = skyDome(scene, SKY_TOP, SKY_LOW, { r: 600 });
+  const cloudSea = clouds({ near: 90, far: 16, min: 8, max: 190, below: 0 }); scene.add(cloudSea);
+  const birdG = new THREE.Group(); scene.add(birdG); const flyBirds = birds(birdG, 26, 9, 5, 1.6);
+  const pfx = createFx(scene, { max: 1200 }), shake = shaker();
   key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 70 });
   key.shadow.bias = -.0006; scene.add(key, key.target);
 
-  const dot = softDot();
   let T = null, trackGroup = null, anim = [], marbles = [], seatsKey = '';
   let frames = [], renderT = 0, clockAt = 0, clockT = 0, playing = false;
   let stage = 'bet', follow = -1, camS = 0, camU = 0, camInit = false, flyT = 0, endT = 0;
   let fx = { roll: 0, rollTo: 0, shake: 0, fov: 48, fovTo: 48 };
-  const bursts = [];
+  let won = false, emitIn = 0;
   const sharedGeo = new THREE.SphereGeometry(R, 32, 24);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -107,7 +112,7 @@ export function createScene(canvas, { onFrame }) {
   // ---------- track ----------
   function setTrack(seed, short) {
     if (T && T.seed === seed && T.short === short) return;
-    if (trackGroup) { scene.remove(trackGroup); disposeTree(trackGroup); }
+    if (trackGroup) { scene.remove(trackGroup); disposeToon(trackGroup); }
     T = makeTrack(seed, short); anim = []; camInit = false; frames = []; clockAt = 0;
     const g = trackGroup = new THREE.Group(); scene.add(g);
     const step = 2, cnt = Math.floor((T.n - 1) / step) + 1;
@@ -121,7 +126,7 @@ export function createScene(canvas, { onFrame }) {
     for (let k = 0; k <= 8; k++) fl.push(rail(hw => -hw + 2 * hw * k / 8, 0));
     const floor = new THREE.Mesh(ribbon(fl, .25), M('#ffffff', { map: floorTexture(), roughness: .5, side: THREE.DoubleSide }));
     floor.receiveShadow = true; g.add(floor);
-    const wallM = M('#e5543b', { roughness: .55, side: THREE.DoubleSide }), topM = M('#fff4e2', { roughness: .5, side: THREE.DoubleSide }), underM = M('#5a2a3c', { roughness: .9, side: THREE.DoubleSide });
+    const trimM = new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.DoubleSide }), wallM = M('#e5543b', { roughness: .55, side: THREE.DoubleSide }), topM = M('#fff4e2', { roughness: .5, side: THREE.DoubleSide }), underM = M('#5a2a3c', { roughness: .9, side: THREE.DoubleSide });
     for (const sd of [-1, 1]) {
       const inner = hw => sd * hw, outer = hw => sd * (hw + .3);
       const fix = lift => (hw) => lift - DISH * (hw + .3) ** 2 + edge(hw); // keep outer faces level with the inner ones
@@ -129,6 +134,9 @@ export function createScene(canvas, { onFrame }) {
       const w1 = new THREE.Mesh(ribbon([a, b]), wallM), w2 = new THREE.Mesh(ribbon([b, c]), topM), w3 = new THREE.Mesh(ribbon([c, d]), wallM);
       w1.receiveShadow = true; w1.castShadow = w3.castShadow = true;
       g.add(w1, w2, w3);
+      // dark trim along both edges of the rail top: the track's outline
+      const up = WALL_H + .035;
+      g.add(new THREE.Mesh(ribbon([rail(inner, up), rail(hw => sd * (hw + .07), fix(up))]), trimM), new THREE.Mesh(ribbon([rail(hw => sd * (hw + .23), fix(up)), rail(hw => sd * (hw + .31), fix(up - .03))]), trimM));
     }
     const fixB = hw => -.45 - DISH * (hw + .3) ** 2 + edge(hw);
     g.add(new THREE.Mesh(ribbon([rail(hw => -(hw + .3), fixB), rail(hw => hw + .3, fixB)]), underM));
@@ -141,39 +149,50 @@ export function createScene(canvas, { onFrame }) {
     let minY = 0; for (let i = 0; i < T.n; i++) minY = Math.min(minY, T.y[i]);
     const groundY = minY - 7;
     const cx = (T.x[0] + T.x[T.n - 1]) / 2, cz = (T.z[0] + T.z[T.n - 1]) / 2;
-    const ground = new THREE.Mesh(new THREE.CircleGeometry(260, 48), M('#24111c', { roughness: 1 }));
-    ground.rotation.x = -Math.PI / 2; ground.position.set(cx, groundY, cz); ground.receiveShadow = true; g.add(ground);
-    const postM = M('#7a4628', { roughness: .8 });
+    cloudSea.position.set(cx, groundY + 3, cz); sky.position.set(cx, groundY, cz); birdG.position.set(cx, (T.y[0] + minY) / 2, cz);
+    const solid = new THREE.Group(); g.add(solid); // everything still and chunky: merged, then outlined in one go
+    const postM = M('#b07a4f', { roughness: .8 });
     for (let s = 3; s < T.end; s += 9) {
       world(T, s, 0, -.5, tmp);
-      const hgt = tmp[1] - groundY, post = new THREE.Mesh(new THREE.CylinderGeometry(.22, .3, hgt, 10), postM);
-      post.position.set(tmp[0], groundY + hgt / 2, tmp[2]); g.add(post);
+      const hgt = tmp[1] - groundY, post = new THREE.Mesh(new THREE.CylinderGeometry(.22, .3, hgt, 8), postM);
+      post.position.set(tmp[0], groundY + hgt / 2, tmp[2]); solid.add(post);
+      const brace = new THREE.Mesh(new THREE.BoxGeometry(1.5, .16, .5), postM); brace.position.set(tmp[0], tmp[1] - .1, tmp[2]); solid.add(brace);
     }
-    // lanterns floating beside the track
-    const cols = ['#ffb547', '#ff8fab', '#7ed3b2', '#ffd27a', '#ff7a59'];
+    // floating islands and balloons drifting beside the track
+    const cols = ['#ffb547', '#ff8fab', '#7ed3b2', '#8a98ff', '#ff7a59'];
     for (let s = 6, k = 0; s < T.end; s += 13, k++) {
       const side = k % 2 ? 1 : -1;
-      world(T, s, side * (8 + (k * 37 % 5)), 2.5 + (k * 53 % 4), tmp);
-      const l = new THREE.Mesh(new THREE.SphereGeometry(.45, 14, 10), new THREE.MeshBasicMaterial({ color: cols[k % 5] }));
-      l.position.set(tmp[0], tmp[1], tmp[2]); g.add(l);
-      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: cols[k % 5], transparent: true, opacity: .35, depthWrite: false }));
-      halo.position.copy(l.position); halo.scale.setScalar(3); g.add(halo);
-      anim.push(t => { l.position.y = halo.position.y = l.userData.y + Math.sin(t * .8 + k) * .35; });
-      l.userData.y = l.position.y;
+      world(T, s, side * (8 + (k * 37 % 5)), 1.5 + (k * 53 % 4), tmp);
+      // keep clear of every other stretch of track
+      let near = 1e9; for (let i = 0; i < T.n; i += 4) near = Math.min(near, Math.hypot(T.x[i] - tmp[0], T.z[i] - tmp[2]) + Math.max(0, Math.abs(T.y[i] - tmp[1]) - 5));
+      if (near < 6.5) continue;
+      let o;
+      if (k % 3 === 1) { o = island(2.2, 2.2, { round: true, rim: .9, seed: k + 2, props: 5, size: 1.5, flowers: 6, depth: .5 }); o.position.set(tmp[0], tmp[1] - 2.5, tmp[2]); }
+      else {
+        o = new THREE.Group(); const c = cols[k % 5];
+        const bal = new THREE.Mesh(new THREE.IcosahedronGeometry(.95, 1), M(c, { flatShading: true })); bal.scale.y = 1.15; bal.position.y = 1.5; o.add(bal);
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(.98, .98, .28, 12), M('#fff4e2')); band.position.y = 1.5; o.add(band);
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(.3, .2, .3, 8), M(c)); neck.position.y = .42; o.add(neck);
+        const basket = new THREE.Mesh(new THREE.BoxGeometry(.42, .32, .42), M('#b07a4f')); basket.position.y = -.25; o.add(basket);
+        for (const [x, z] of [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .6, 4), M('#5b4636')); r.position.set(x, .12, z); o.add(r); }
+        bake(o); toonify(o, .045); o.position.set(tmp[0], tmp[1] + 1, tmp[2]);
+      }
+      o.userData.y = o.position.y; g.add(o);
+      anim.push(t => { o.position.y = o.userData.y + Math.sin(t * .8 + k) * .35; if (k % 3 !== 1) o.rotation.y = Math.sin(t * .3 + k) * .4; });
     }
     // pins
     const pinGeo = new THREE.CylinderGeometry(1, 1, 1, 16), pinM = M('#7ed3b2', { roughness: .35 }), capM = M('#fff4e2', { roughness: .4 });
     for (const p of T.pins) {
-      const m = new THREE.Mesh(pinGeo, pinM); m.scale.set(p.r, .95, p.r); place(m, p.s, p.u, .47); m.castShadow = true; g.add(m);
-      const c = new THREE.Mesh(new THREE.SphereGeometry(p.r * 1.12, 12, 8), capM); place(c, p.s, p.u, .95); g.add(c);
+      const m = new THREE.Mesh(pinGeo, pinM); m.scale.set(p.r, .95, p.r); place(m, p.s, p.u, .47); m.castShadow = true; solid.add(m);
+      const c = new THREE.Mesh(new THREE.SphereGeometry(p.r * 1.12, 12, 8), capM); place(c, p.s, p.u, .95); solid.add(c);
     }
     // spinners
     for (const sp of T.spinners) {
       const hub = new THREE.Group(); place(hub, sp.s, sp.u, 0); g.add(hub);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(.2, .26, .8, 14), M('#fff4e2')); post.position.y = .4; hub.add(post);
       const bar = new THREE.Mesh(new THREE.BoxGeometry(.32, .34, sp.hl * 2), M('#ffb547', { map: stripeTexture('#ffb547', '#e5543b', 6), roughness: .45 }));
-      bar.position.y = .36; bar.castShadow = true; hub.add(bar);
-      const knob = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), M('#e5543b')); knob.position.y = .82; hub.add(knob);
+      bar.position.y = .36; bar.castShadow = true; hub.add(bar); shell(bar, 1).scale.set(1.25, 1.22, 1 + .08 / sp.hl);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), M('#e5543b')); knob.position.y = .82; hub.add(knob); bar.userData.dyn = true; toonify(hub, .035);
       anim.push((t, st) => { bar.rotation.y = spinAngle(sp, st); });
     }
     // trapdoors: a hazard-striped lid slides away over a dark pit
@@ -201,11 +220,11 @@ export function createScene(canvas, { onFrame }) {
     {
       const fg = new THREE.Group(); place(fg, T.L, 0, 0); g.add(fg);
       const postM2 = M('#fff4e2');
-      for (const sd of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 4.2, 12), postM2); p.position.set(sd * 2.95, 2.1, 0); fg.add(p); }
+      for (const sd of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 4.2, 12), postM2); p.position.set(sd * 2.95, 2.1, 0); fg.add(p); const b = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), M('#ffb547')); b.position.set(sd * 2.95, 4.3, 0); fg.add(b); }
       const ct = checkTexture(); ct.wrapS = THREE.RepeatWrapping; ct.repeat.set(1.5, 1);
       const ban = new THREE.Mesh(new THREE.BoxGeometry(6.1, 1, .12), M('#ffffff', { map: ct, roughness: .6 })); ban.position.y = 3.7; fg.add(ban);
       const line = new THREE.Mesh(new THREE.PlaneGeometry(5, .9), new THREE.MeshBasicMaterial({ map: checkTexture() }));
-      line.rotation.x = -Math.PI / 2; line.position.y = .12; fg.add(line);
+      line.rotation.x = -Math.PI / 2; line.position.y = .12; fg.add(line); shell(ban, 1).scale.set(1.03, 1.16, 2.2); toonify(fg, .04);
     }
     // start gate
     {
@@ -214,7 +233,10 @@ export function createScene(canvas, { onFrame }) {
       bar.position.y = .38; gg.add(bar);
       let k = 0;
       anim.push((t, st, dt) => { const to = playing ? 1 : 0; k += (to - k) * Math.min(1, dt * 9); bar.position.y = .38 + k * 2.6; });
+      shell(bar, 1).scale.set(1.02, 1.22, 1.9);
     }
+    bake(solid); solid.traverse(o => { if (o.isMesh) o.castShadow = true; }); toonify(solid, .045);
+    toonify(g); // flat cartoon shading on the track itself
   }
   // Put an object on the track, facing along it and tilted with the slope.
   function place(o, s, u, lift) {
@@ -237,8 +259,8 @@ export function createScene(canvas, { onFrame }) {
     seatsKey = key;
     for (const m of marbles) { scene.remove(m.mesh); m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
     marbles = seats.map(p => {
-      const mesh = new THREE.Mesh(sharedGeo, new THREE.MeshPhysicalMaterial({ map: marbleTexture(p.color), roughness: .18, clearcoat: 1, clearcoatRoughness: .08 }));
-      mesh.castShadow = true; mesh.rotation.y = -Math.PI / 2; scene.add(mesh);
+      const mesh = new THREE.Mesh(sharedGeo, toonMat(new THREE.MeshStandardMaterial({ map: marbleTexture(p.color) })));
+      shell(mesh, 1.09); mesh.castShadow = true; mesh.rotation.y = -Math.PI / 2; scene.add(mesh);
       return { mesh, s: 0, u: 0, st: 0, fall: 0, pop: 1, has: false, pos: new THREE.Vector3(), color: p.color, tag: { x: 0, y: 0, show: false } };
     });
   }
@@ -278,15 +300,12 @@ export function createScene(canvas, { onFrame }) {
 
   function burst(i, color, n = 14) {
     const m = marbles[i]; if (!m || reduced) return;
-    for (let k = 0; k < n; k++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color, transparent: true, depthWrite: false }));
-      s.position.copy(m.pos); s.scale.setScalar(.5); scene.add(s);
-      bursts.push({ s, v: new THREE.Vector3((Math.random() - .5) * 7, Math.random() * 6 + 1, (Math.random() - .5) * 7), t: 0 });
-    }
+    pfx.burst(m.pos, { n, colors: [color, '#ffffff'], speed: 5.5, up: 5, size: .42, life: .8, grav: 12 }); pfx.ring(m.pos, { color, size: 2.2 });
   }
+  const onBoost = s => T.boosts.some(b => s >= b.s0 && s <= b.s1);
 
   // ---------- frame loop ----------
-  const q = new THREE.Quaternion(), axis = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), prev = new THREE.Vector3(), look = new THREE.Vector3(), want = new THREE.Vector3(), proj = new THREE.Vector3();
+  const q = new THREE.Quaternion(), axis = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), prev = new THREE.Vector3(), look = new THREE.Vector3(), want = new THREE.Vector3(), proj = new THREE.Vector3(), tv = new THREE.Vector3(), camAt = new THREE.Vector3();
   const lookNow = new THREE.Vector3();
   let W = 0, H = 0;
   function resize() {
@@ -307,19 +326,31 @@ export function createScene(canvas, { onFrame }) {
     sample();
     const st = renderT / 1000;
     for (const f of anim) f(t, st, dt);
+    emitIn -= dt; const emit = emitIn <= 0; if (emit) emitIn = .07;
     // marbles
     for (const m of marbles) {
       if (!m.has || m.st === 3) { m.mesh.visible = false; m.tag.show = false; continue; }
       prev.copy(m.pos);
       world(T, m.s, m.u, R, tmp); m.pos.set(tmp[0], tmp[1], tmp[2]);
       let vis = true;
-      if (m.st === 1) { m.fall += dt; m.pos.y -= 9 * m.fall * m.fall; vis = m.fall < .9; }
+      if (m.st === 1) { if (!m.fall && !reduced) { pfx.puff(m.pos, { n: 10, size: .5, speed: 3 }); pfx.ring(m.pos, { color: '#ffffff', size: 2 }); } m.fall += dt; m.pos.y -= 9 * m.fall * m.fall; vis = m.fall < .9; }
+      if (m.pop < 1 && !m.popped && !reduced) { m.popped = true; pfx.ring(m.pos, { color: '#ffffff', size: 2.2 }); pfx.burst(m.pos, { n: 10, colors: ['#ffffff', m.color], speed: 3, up: 3, size: .3 }); } else if (m.pop >= 1) m.popped = false;
       if (m.pop < 1) m.pop = Math.min(1, m.pop + dt * 4);
       m.mesh.visible = vis; m.mesh.scale.setScalar(m.pop < 1 ? .3 + .7 * (1 + .6 * Math.sin(m.pop * Math.PI)) * m.pop : 1);
       m.mesh.position.copy(m.pos);
       axis.subVectors(m.pos, prev); const d = axis.length();
       if (d > 1e-4 && d < 2 && m.st !== 1) { axis.crossVectors(up, axis).normalize(); q.setFromAxisAngle(axis, d / R); m.mesh.quaternion.premultiply(q); }
+      // trails: sparks on a boost pad, dust when rolling fast, and a pop of stars over the finish line
+      if (playing && !reduced && vis && m.st !== 1 && emit) {
+        if (onBoost(m.s)) pfx.rise(m.pos, { color: ['#b8ffe6', '#ffffff', '#7ed3b2'], shape: STAR, size: .34, life: .5, speed: 1.6, wobble: 1.2, grow: -.4 });
+        else if (d / Math.max(dt, .001) > 7) pfx.rise(tv.copy(m.pos).setY(m.pos.y - R * .8), { color: '#fff4e2', size: .26, life: .4, speed: .3, wobble: .5, grow: 1.2 });
+      }
+      if (playing && m.s >= T.L && !m.done) { m.done = true;
+        if (!reduced) { pfx.burst(m.pos, { n: 18, colors: [m.color, '#ffffff', '#ffd84a'], speed: 5, up: 6, size: .4, life: 1 });
+          if (!won) { won = true; pfx.confetti(m.pos, { n: 150, w: 9, h: 6, size: .32, life: 3 }); shake.kick(.25); } }
+      } else if (m.s < T.L - 2) m.done = false;
     }
+    if (!playing || marbles.every(m => m.s < T.L - 2)) won = false;
     // camera
     const lead = leader(), target = follow >= 0 && marbles[follow] && marbles[follow].st !== 3 ? follow : lead;
     const tm = marbles[target];
@@ -343,9 +374,9 @@ export function createScene(canvas, { onFrame }) {
     }
     if (stage !== 'end' && stage !== 'gap') endT = 0;
     if (stage !== 'bet') flyT = 0;
-    if (!camInit) { camera.position.copy(want); lookNow.copy(look); camInit = true; if (tm) { camS = tm.s; camU = tm.u; } }
+    if (!camInit) { camAt.copy(want); lookNow.copy(look); camInit = true; if (tm) { camS = tm.s; camU = tm.u; } }
     const kk = Math.min(1, dt * (stage === 'race' ? 6 : 2.5));
-    camera.position.lerp(want, kk); lookNow.lerp(look, kk);
+    camAt.lerp(want, kk); lookNow.lerp(look, kk); camera.position.copy(camAt);
     camera.up.set(0, 1, 0); camera.lookAt(lookNow);
     fx.roll += (fx.rollTo - fx.roll) * Math.min(1, dt * 4);
     if (Math.abs(fx.roll) > .002) camera.rotateZ(fx.roll);
@@ -353,11 +384,9 @@ export function createScene(canvas, { onFrame }) {
     fx.fov += (fx.fovTo - fx.fov) * Math.min(1, dt * 4);
     if (Math.abs(camera.fov - fx.fov) > .05) { camera.fov = fx.fov; camera.updateProjectionMatrix(); }
     key.target.position.copy(lookNow); key.position.set(lookNow.x + 9, lookNow.y + 24, lookNow.z - 7);
-    // sparkles
-    for (let i = bursts.length - 1; i >= 0; i--) {
-      const b = bursts[i]; b.t += dt; b.v.y -= 12 * dt; b.s.position.addScaledVector(b.v, dt); b.s.material.opacity = 1 - b.t / .8;
-      if (b.t > .8) { scene.remove(b.s); b.s.material.dispose(); bursts.splice(i, 1); }
-    }
+    shake.apply(camera, dt);
+    cloudSea.rotation.y = t * .004; flyBirds(t); // (the birds circle the world's middle)
+    pfx.update(dt, camera, H);
     const mm = marbles[mine];
     arrow.visible = !!mm && mm.mesh.visible;
     if (arrow.visible) {
@@ -389,9 +418,9 @@ export function createScene(canvas, { onFrame }) {
     },
     dispose() {
       ticker.stop();
-      if (trackGroup) disposeTree(trackGroup);
+      if (trackGroup) disposeToon(trackGroup); pfx.dispose();
       for (const m of marbles) { m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
-      sharedGeo.dispose(); dot.dispose(); arrow.traverse(o => o.geometry?.dispose()); arrowM.dispose(); renderer.dispose();
+      sharedGeo.dispose(); arrow.traverse(o => o.geometry?.dispose()); arrowM.dispose(); renderer.dispose();
     },
   };
 }

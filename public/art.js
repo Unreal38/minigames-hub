@@ -149,6 +149,25 @@ export function farmArt() {
   </svg>`;
 }
 
+// Tower Stack card: a leaning tower of toy blocks on a sky island, with one more block coming down on a balloon.
+export function stackArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const cols = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#ff7a59', '#c8e66b'], off = [0, 5, -3, 7, 12];
+  // an isometric-ish block: front face plus a lighter top
+  const blk = (x, y, c) => `<path d="M${x} ${y}h52v15h-52z" fill="${c}" ${o}/><path d="M${x} ${y}l9-7h52l-9 7z" fill="#fff" fill-opacity=".45" ${o}/><path d="M${x + 52} ${y}l9-7v15l-9 7z" fill="#3b2219" fill-opacity=".22" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A wobbly tower of coloured blocks with another block floating down on a balloon">
+    <rect width="320" height="150" fill="#bfe8ff"/>
+    <path d="M30 44l14-8 16 4 8 10-10 8H38z" fill="#fff"/><path d="M246 34l12-6 14 4 6 8-8 6h-18z" fill="#fff"/><path d="M262 104l10-5 12 3 5 7-7 5h-15z" fill="#fff"/>
+    <path d="M0 128h320v22H0z" fill="#7fcdf0"/>
+    <path d="M70 124l30-12h110l30 12-34 16h-102z" fill="#8fd16a" ${o}/>
+    <path d="M118 112h74v12h-74z" fill="#a9a6b0" ${o}/>
+    ${off.map((d, i) => blk(129 + d, 97 - i * 15, cols[i])).join('')}
+    <g transform="translate(52 -16) rotate(8 190 20)"><path d="M190 30v-2" ${o} fill="none"/><path d="M190 4c11 0 17 8 17 16s-9 15-17 18c-8-3-17-10-17-18s6-16 17-16z" fill="#ff7a59" ${o}/>
+      <path d="M190 38v20" fill="none" stroke="#3b2219" stroke-width="2.5"/>${blk(164, 65, '#7fd1e8')}</g>
+    <path d="M206 62l-7 3M204 50l-8-1M208 74l-6 4" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Mini Golf Party card: a blocky green with a flag, a windmill and a ball rolling for the cup.
 export function golfArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';

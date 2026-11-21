@@ -4,8 +4,9 @@ import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js'
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { cell, COLS, MS as MSv } from './board.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, CONF } from '../../scenery3d.js';
 
-const INK = '#3b2219', PLUM = '#2a1422';
+const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff';
 const U = 1.2, HALF = COLS * U / 2, TOKEN = .3;
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
 const TILE_COLS = ['#fff4e2', '#ffd9c2', '#d8f0e2', '#ffe9a8', '#e6defc'];
@@ -109,26 +110,26 @@ export function createScene(canvas, { onFrame, onCue }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   const res = autoResolution(renderer, 1.5); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(PLUM); scene.fog = new THREE.Fog(PLUM, 30, 80);
-  const camera = new THREE.PerspectiveCamera(40, 1, .1, 200);
-  scene.add(new THREE.HemisphereLight('#ffe2c4', '#4a2338', 1.6));
-  const key = new THREE.DirectionalLight('#ffe6c8', 2.3); key.position.set(6, 16, 9); key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: 1, far: 50 });
-  key.shadow.bias = -.0008; scene.add(key);
-  const rim = new THREE.PointLight('#ff8fab', 30, 40); rim.position.set(-9, 6, -8); scene.add(rim);
+  scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 70, 190);
+  const camera = new THREE.PerspectiveCamera(40, 1, .1, 500);
+  scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
+  const key = new THREE.DirectionalLight('#ffffff', 1.6); key.position.set(6, 16, 9); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 50 });
+  key.shadow.bias = -.0005; key.shadow.normalBias = .03; scene.add(key);
 
-  // the table everything sits on
-  const table = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, .8, 64), M('#a86a42', { roughness: .75 }));
-  table.position.y = -.62; table.receiveShadow = true; scene.add(table);
-  const tableRing = new THREE.Mesh(new THREE.TorusGeometry(15, .18, 8, 64), M('#7a4a2b')); tableRing.rotation.x = Math.PI / 2; tableRing.position.y = -.22; scene.add(tableRing);
+  // the world: a sunny sky, a sea of clouds, and a floating meadow the board sits on (built once the board size is known)
+  skyDome(scene, SKY_TOP, SKY_LOW);
+  const cloudRing = clouds({ min: 14, max: 85, below: -10 }); scene.add(cloudRing);
+  let land = null;
+  const flyBirds = birds(scene, 20, 7, 4, 1.2), blow = petals(scene, 26, 4.5, { n: 10, size: .12 });
+  const fx = createFx(scene), shake = shaker();
 
-  const dot = softDot(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let B = null, boardGroup = null, snakes = [], ladders = [], toks = [], seatsKey = '', seats = [];
   let mv = null, mvStart = 0, mvPlan = null, cueAt = 0, turn = -1, stage = 'roll', me = -1;
   const arrow = youArrow(); arrow.visible = false; scene.add(arrow);
-  const bursts = [];
+  const later = []; // effects booked for a moment later in the current move: [ms, fn]
 
   function disposeTree(o) {
     o.traverse(x => { x.geometry?.dispose(); for (const m of [].concat(x.material || [])) { m.map?.dispose(); m.dispose(); } });
@@ -149,10 +150,12 @@ export function createScene(canvas, { onFrame, onCue }) {
     // a ladder that just cracked: keep showing it whole until the climb that broke it has played out
     if (B && B.seed === b.seed && mv && performance.now() - mvStart < mv.ms) { pendingBoard = b; return; }
     pendingBoard = null;
-    if (boardGroup) { scene.remove(boardGroup); disposeTree(boardGroup); }
+    if (boardGroup) { scene.remove(boardGroup); disposeToon(boardGroup); }
+    const grew = !B || B.rows !== b.rows;
     B = b; snakes = []; ladders = [];
     const g = boardGroup = new THREE.Group(); scene.add(g);
     const D = B.rows * U;
+    if (grew) { if (land) { scene.remove(land); disposeToon(land); } land = island(COLS * U + 3.9, D + 1.5, { seed: 3, props: 18, rim: 1.25, size: 1.5 }); land.position.y = -.42; scene.add(land); }
     const frame = new THREE.Mesh(new THREE.BoxGeometry(COLS * U + .7, .36, D + .7), M('#c4885a', { roughness: .7 }));
     frame.position.y = -.2; frame.receiveShadow = frame.castShadow = true; g.add(frame);
     const lip = new THREE.Mesh(new THREE.BoxGeometry(COLS * U + .9, .14, D + .9), M('#7a4a2b')); lip.position.y = -.34; g.add(lip);
@@ -201,7 +204,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       });
       const curve = new THREE.CatmullRomCurve3(pts);
       const [c0, c1] = s.up ? ['#ffc93c', '#fff4e2'] : SNAKE_COLS[k % SNAKE_COLS.length];
-      const body = new THREE.Mesh(snakeBody(curve, .17, .07, c0, c1), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: s.up ? .3 : .45, metalness: s.up ? .25 : 0, emissive: s.up ? '#5a3a00' : '#000000' }));
+      const body = new THREE.Mesh(snakeBody(curve, .17, .07, c0, c1), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .45 }));
       body.castShadow = true; g.add(body);
       const head = new THREE.Group(), dir = curve.getTangentAt(0).negate();
       head.position.copy(a).setY(.2);
@@ -215,10 +218,12 @@ export function createScene(canvas, { onFrame, onCue }) {
         const blush = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), M('#ff8fab')); blush.scale.set(1, .5, .6); blush.position.set(sx * .2, .02, .2); head.add(blush);
       }
       const tongue = new THREE.Mesh(new THREE.BoxGeometry(.05, .015, .2), M('#e5543b')); tongue.position.set(0, -.04, .38); head.add(tongue);
-      head.userData.dyn = true; g.add(head);
+      toonify(head, .022); head.userData.dyn = true; g.add(head);
       snakes.push({ ...s, path: curve, head, tongue, k });
     });
     bake(g); // ladders, rungs, frame and mat collapse into a few meshes
+    g.traverse(m => { if (m.isMesh && m.userData.baked) m.castShadow = m.receiveShadow = true; });
+    toonify(g, .03); // cartoon shading and one dark outline round the lot
     renderer.shadowMap.needsUpdate = true;
     seatsKey = ''; // rebuild tokens so they land on the new board
     setSeats(seats);
@@ -231,10 +236,11 @@ export function createScene(canvas, { onFrame, onCue }) {
     const k = list.map(p => p.color + p.av.join('')).join('|');
     if (k !== seatsKey) {
       seatsKey = k;
-      for (const t of toks) { scene.remove(t.g); disposeAvatar(t.av); t.puck.material.dispose(); t.ring.material.dispose(); }
+      for (const t of toks) { scene.remove(t.g); disposeAvatar(t.av); t.ring.material.dispose(); }
       toks = list.map((p, i) => {
         const g = new THREE.Group();
-        const puck = new THREE.Mesh(new THREE.CylinderGeometry(.34, .38, .14, 28), M(p.color, { roughness: .5 })); puck.position.y = .07; puck.castShadow = true;
+        const puck = new THREE.Mesh(new THREE.CylinderGeometry(.34, .38, .14, 28), toonMat(M(p.color, { roughness: .5 }))); puck.position.y = .07; puck.castShadow = true;
+        const edge = new THREE.Mesh(new THREE.CylinderGeometry(.375, .415, .17, 28), new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.BackSide })); puck.add(edge);
         const ring = new THREE.Mesh(new THREE.TorusGeometry(.34, .035, 8, 28), M('#fff4e2')); ring.rotation.x = Math.PI / 2; ring.position.y = .14;
         const av = avatar3d(p.color, p.av); av.scale.setScalar(TOKEN); av.position.y = .14 + .76 * TOKEN;
         const wrap = new THREE.Group(); wrap.add(av); g.add(puck, ring, wrap); scene.add(g);
@@ -256,12 +262,13 @@ export function createScene(canvas, { onFrame, onCue }) {
       else if (s.t === 'swap') { P.push({ k: 'swap', d: MSv.swap, a: s.b, b: s.a, other: s.with }); tile = s.a; }
     }
     let t = 0; for (const p of P) { p.t0 = t; t += p.d; }
+    P.end = tile;
     return P;
   }
 
   // die
-  const dieMats = FACES.map(v => new THREE.MeshStandardMaterial({ map: pipTex(v), roughness: .35 }));
-  const die = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), dieMats); die.castShadow = true; scene.add(die);
+  const dieMats = FACES.map(v => toonMat(new THREE.MeshStandardMaterial({ map: pipTex(v), roughness: .35 })));
+  const die = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), dieMats); die.castShadow = true; scene.add(die); shell(die, 1.09);
   const dieQ = new THREE.Quaternion(), dieFrom = new THREE.Quaternion(), dieSpin = new THREE.Vector3();
   let dieVal = 6;
   let tall = false; // portrait phones: die sits below the board and the camera leans in on whoever is moving
@@ -276,7 +283,7 @@ export function createScene(canvas, { onFrame, onCue }) {
   function setMove(m) {
     if (!m) { mv = null; return; }
     if (mv && mv.n === m.n) return;
-    mv = m; mvPlan = plan(m); mvStart = performance.now() - m.ago; cueAt = 0;
+    mv = m; mvPlan = plan(m); mvStart = performance.now() - m.ago; cueAt = 0; later.length = 0;
     if (m.ago > m.ms) { cueAt = mvPlan.length; setDie(m.die); die.quaternion.copy(dieQ); return; } // old news: just show the end
     dieFrom.copy(die.quaternion); setDie(m.die);
     dieSpin.set(Math.random() * 14 + 8, Math.random() * 10, Math.random() * 14 + 8);
@@ -316,17 +323,44 @@ export function createScene(canvas, { onFrame, onCue }) {
     return null;
   }
 
-  function burstAt(p, color, n = 14) {
+  // ---------- effects ----------
+  const GOLD = ['#ffd84a', '#fff1a8', '#ffffff'], LEAF = ['#7ed37a', '#c8f2b4', '#ffffff'], WOOD = ['#f6d3a0', '#c98b4f', '#8a5a3c'];
+  const at = (n, y = 0) => { const v = tileXZ(n, new THREE.Vector3()); v.y = y; return v; };
+  function cueFx(p, t) {
     if (reduced) return;
-    for (let k = 0; k < n; k++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color, transparent: true, depthWrite: false }));
-      s.position.copy(p); s.position.y += .5; s.scale.setScalar(.35); scene.add(s);
-      bursts.push({ s, v: new THREE.Vector3((Math.random() - .5) * 4, Math.random() * 4 + 1.5, (Math.random() - .5) * 4), t: 0 });
-    }
+    const book = (ms, fn) => later.push([t + ms, fn]);
+    if (p.k === 'die') book(MSv.die * .55, () => { fx.puff(die.position.clone().setY(0), { n: 8, size: .3 }); shake.kick(.05); });
+    else if (p.k === 'hop') book(p.d, () => fx.puff(at(p.b), { n: 6, size: .22, speed: 1.6, life: .4 }));
+    else if (p.k === 'ladder') {
+      fx.ring(at(p.a), { color: '#ffd84a' }); fx.burst(at(p.a, .3), { n: 8, colors: GOLD, speed: 2, up: 3, size: .2 });
+      for (let k = 1; k < 8; k++) book(p.d * k / 8, () => { const tk = toks[mv?.s]; if (tk) fx.sparkle(tk.cur, { n: 2, colors: GOLD, r: .35, size: .2, life: .6 }); });
+      book(p.d, () => { fx.burst(at(p.b, .5), { n: 22, colors: GOLD, speed: 3.5, up: 4.5, size: .28, life: 1 }); fx.ring(at(p.b), { color: '#fff1a8', size: 1.8 }); shake.kick(.08); });
+    } else if (p.k === 'snake') {
+      if (p.up) { fx.burst(at(p.a, .4), { n: 14, colors: GOLD, speed: 3, up: 4 }); book(p.d, () => { fx.burst(at(p.b, .5), { n: 22, colors: GOLD, speed: 3.5, up: 4.5, size: .28, life: 1 }); shake.kick(.08); }); }
+      else {
+        fx.burst(at(p.a, .4), { n: 14, colors: LEAF, speed: 3.2, up: 3.5, shape: [STAR, DOT] }); fx.ring(at(p.a), { color: '#ff7a59', size: 1.6 }); shake.kick(.22);
+        for (let k = 2; k < 9; k++) book(p.d * k / 9, () => { const tk = toks[mv?.s]; if (tk) fx.puff(tk.cur, { n: 2, size: .2, speed: .8, life: .35, color: '#ffffff' }); });
+        book(p.d, () => { fx.puff(at(p.b), { n: 12, size: .34 }); fx.burst(at(p.b, .9), { n: 6, colors: ['#ffd84a', '#ffffff'], speed: 1.2, up: 1.5, grav: 0, life: 1.1, size: .2 }); shake.kick(.14); });
+      }
+    } else if (p.k === 'crack' || p.k === 'broken') {
+      const hit = () => { fx.burst(at(p.a, .5), { n: 18, colors: WOOD, speed: 3.5, up: 3.5, shape: CONF, size: .2, spin: 16 }); fx.puff(at(p.a), { n: 10, color: '#f6d3a0' }); shake.kick(.25); };
+      if (p.k === 'broken') { book(p.d * .62, hit); book(p.d, () => { fx.puff(at(p.b), { n: 12, size: .34 }); shake.kick(.12); }); } else hit();
+    } else if (p.k === 'stuck') fx.burst(at(p.a, .9), { n: 5, colors: ['#9aa8ff', '#ffffff'], speed: .8, up: 1.4, grav: 0, life: 1.2, size: .2 });
+    else if (p.k === 'special') {
+      const c = SP_COL[p.sp]; fx.ring(at(p.a), { color: c, size: 1.8 });
+      fx.burst(at(p.a, .5), { n: 18, colors: [c, '#ffffff', '#fff1a8'], speed: 3, up: 4, size: .26, shape: p.sp === 'nap' ? DOT : STAR });
+    } else if (p.k === 'swap') { for (const n of [p.a, p.b]) { fx.ring(at(n), { color: '#e8a0e0', size: 1.8 }); fx.burst(at(n, .4), { n: 12, colors: ['#e8a0e0', '#ffffff', '#ffd84a'], speed: 2.6, up: 4, shape: [STAR, HEART] }); }
+      book(p.d, () => { for (const n of [p.a, p.b]) fx.puff(at(n), { n: 10 }); shake.kick(.1); }); }
+  }
+  // reaching the last tile: a shower of confetti over the board
+  function party(n) {
+    if (reduced) return;
+    const c = at(n, 0); fx.confetti(c, { n: 110, w: 7, h: 5 }); fx.burst(c.clone().setY(.6), { n: 30, colors: GOLD, speed: 5, up: 6, size: .32, life: 1.3 }); shake.kick(.18);
+    later.push([(mv ? performance.now() - mvStart : 0) + 500, () => fx.confetti(at(n, 0), { n: 80, w: 9, h: 5 })]);
   }
 
   // ---------- frame loop ----------
-  const proj = new THREE.Vector3(), look = new THREE.Vector3(), lookNow = new THREE.Vector3(), want = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const proj = new THREE.Vector3(), look = new THREE.Vector3(), lookNow = new THREE.Vector3(), want = new THREE.Vector3(), camAt = new THREE.Vector3(), tmp = new THREE.Vector3();
   let W = 0, H = 0, camInit = false, shadowIn = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -343,11 +377,10 @@ export function createScene(canvas, { onFrame, onCue }) {
     if (mv && mvPlan) while (cueAt < mvPlan.length && t >= mvPlan[cueAt].t0) {
       const p = mvPlan[cueAt++];
       onCue?.({ k: p.k, s: mv.s, die: mv.die, sp: p.sp, other: p.other, a: p.a, b: p.b, up: p.up, last: !mvPlan[cueAt] });
-      if (p.k === 'ladder') burstAt(tileXZ(p.b, tmp), '#ffc93c', 16);
-      if (p.k === 'snake') burstAt(tileXZ(p.a, tmp), p.up ? '#ffc93c' : '#7ed37a', 12);
-      if (p.k === 'crack' || p.k === 'broken') burstAt(tileXZ(p.a, tmp), '#f6d3a0', 16);
-      if (p.k === 'special') burstAt(tileXZ(p.a, tmp), SP_COL[p.sp], 16);
+      cueFx(p, p.t0);
+      if (!mvPlan[cueAt] && mvPlan.end === B.size) later.push([mv.ms - 40, () => party(B.size)]);
     }
+    if (later.length) { if (!mv) later.length = 0; else for (let i = later.length - 1; i >= 0; i--) if (t >= later[i][0]) { const f = later[i][1]; later.splice(i, 1); f(); } }
     // where everyone stands: resting tokens share tiles politely
     const rest = new Map(), info = toks.map((_, i) => moveAt(i, t, new THREE.Vector3()));
     seats.forEach((p, i) => { if (!info[i]) { const k = p.pos; if (!rest.has(k)) rest.set(k, []); rest.get(k).push(i); } });
@@ -386,18 +419,17 @@ export function createScene(canvas, { onFrame, onCue }) {
     } else { die.position.lerp(restP, Math.min(1, dt * 6)); die.quaternion.slerp(dieQ, Math.min(1, dt * 8)); }
     // camera: the whole board, drifting a touch towards whoever is moving
     tall = camera.aspect < .8;
-    const D = B.rows * U, hw = HALF + (tall ? 1.4 : 2.3), hd = D / 2 + (tall ? 2 : 1.1), el = tall ? 1.08 : .98, fv = camera.fov * Math.PI / 360;
+    const D = B.rows * U, hw = HALF + (tall ? 1.4 : 2.6), hd = D / 2 + (tall ? 2 : 1.6), el = tall ? 1.08 : .98, fv = camera.fov * Math.PI / 360;
     const dist = (Math.max(hd * Math.sin(el) / Math.tan(fv), hw / (Math.tan(fv) * camera.aspect)) * 1.04 + hd * Math.cos(el) * .5) * (tall ? .72 : 1);
     const focus = toks[mv && t < mv.ms ? mv.s : turn];
     look.set(tall ? 0 : .5, 0, tall ? .8 : .3); if (focus) look.lerp(focus.cur, tall ? .5 : .14);
     want.set(look.x, look.y + Math.sin(el) * dist, look.z + Math.cos(el) * dist);
-    if (!camInit) { camera.position.copy(want); lookNow.copy(look); camInit = true; }
-    camera.position.lerp(want, Math.min(1, dt * 2)); lookNow.lerp(look, Math.min(1, dt * 2)); camera.lookAt(lookNow);
-    // sparkles
-    for (let i = bursts.length - 1; i >= 0; i--) {
-      const b = bursts[i]; b.t += dt; b.v.y -= 9 * dt; b.s.position.addScaledVector(b.v, dt); b.s.material.opacity = 1 - b.t / .9;
-      if (b.t > .9) { scene.remove(b.s); b.s.material.dispose(); bursts.splice(i, 1); }
-    }
+    if (!camInit) { camAt.copy(want); lookNow.copy(look); camInit = true; }
+    camAt.lerp(want, Math.min(1, dt * 2)); lookNow.lerp(look, Math.min(1, dt * 2)); camera.position.copy(camAt);
+    if (!reduced) { camera.position.x += Math.sin(T * .22) * .35; camera.position.y += Math.sin(T * .31) * .12; } // a slow, gentle drift
+    camera.lookAt(lookNow); shake.apply(camera, dt);
+    cloudRing.rotation.y = T * .006; flyBirds(T); blow(T);
+    fx.update(dt, camera, H);
     shadowIn -= dt; // shadows refresh a few times a second, more often while a token is moving
     if (shadowIn <= 0) { renderer.shadowMap.needsUpdate = true; shadowIn = mv && t < mv.ms + 300 ? .05 : .3; }
     renderer.render(scene, camera);
@@ -416,9 +448,9 @@ export function createScene(canvas, { onFrame, onCue }) {
     setMe(i) { me = i; },
     dispose() {
       ticker.stop();
-      if (boardGroup) disposeTree(boardGroup);
-      for (const t of toks) { disposeAvatar(t.av); t.puck.material.dispose(); t.ring.material.dispose(); }
-      disposeArrow(arrow); disposeTree(die); dot.dispose(); table.geometry.dispose(); renderer.dispose();
+      if (boardGroup) disposeToon(boardGroup); if (land) disposeToon(land); fx.dispose();
+      for (const t of toks) { disposeAvatar(t.av); t.ring.material.dispose(); }
+      disposeArrow(arrow); disposeTree(die); renderer.dispose();
     },
   };
 }

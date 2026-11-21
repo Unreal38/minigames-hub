@@ -10,7 +10,7 @@
 //     dispose()
 import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
-import { bake, avatar3d, disposeAvatar } from '../../avatar3d.js';
+import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
 import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
@@ -520,9 +520,15 @@ export function createScene(canvas, { onPick, onGhost }) {
         else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
         moving = true;
       } else if (!edit && (p.wait -= dt) <= 0) { stroll(p); if (!p.path.length) p.wait = 3; }
-      p.g.position.set(p.x, .38 + (moving ? Math.abs(Math.sin(T * 8 + p.seed)) * .05 : 0), p.z);
+      // a real walk: striding legs, swinging arms, a bob on each step and a small lean into it; standing, they breathe and look about
+      p.walk = Math.max(0, Math.min(1, (p.walk || 0) + (moving ? dt * 6 : -dt * 5))); if (p.walk > 0) p.ph = (p.ph || 0) + dt * 8.2; else p.ph = 0;
+      const w = p.walk * p.walk * (3 - 2 * p.walk);
+      animateAvatar(p.g, T, { seed: p.seed }); walkAvatar(p.g, p.ph, w);
+      if (moving && Math.sin(p.ph) * (p.stepWas || 0) < 0) dustAt(p.x, p.z, 1); p.stepWas = Math.sin(p.ph);
+      p.g.scale.setScalar(.5);
+      p.g.position.set(p.x, .38 + Math.abs(Math.cos(p.ph)) * .035 * w, p.z);
       let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 7);
-      p.g.rotation.z = moving ? Math.sin(T * 8 + p.seed) * .07 : 0; // a little waddle
+      p.g.rotation.z = Math.sin(p.ph) * .045 * w; p.g.rotation.x = .09 * w;
     }
   }
   function syncEgg() {
@@ -664,7 +670,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
   const mapBirds = makeBirds(world, 19, 6, 5, 1.7);
   let flights = [], flyTo = null; // balloons on their way, and the island the camera is swooping to
-  let mapFar = 33, mapOn = false, isles = []; // { id, g, y, ph, r }
+  let mapFar = 33, mapOut = 11, mapZoom = 1, mapOn = false, isles = []; // { id, g, y, ph, r }
   function nameTag(text, mine, friend, sub) { // sub: a second, smaller line saying what can be done there
     const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 192;
     x.font = '600 60px Fredoka, "Baloo 2", system-ui, sans-serif'; const w = Math.min(490, x.measureText(text).width + 60);
@@ -737,8 +743,14 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!list) return;
     const put = (f, x, z, mine, i) => { const g = miniIsland(f, mine), y = mine ? 0 : (hash(i, 31) - .5) * 2.4; g.position.set(x, y, z); world.add(g); isles.push({ id: mine ? null : f.id, g, y, ph: i * 1.7, r: mine ? 3.6 : 2.8 }); };
     put(me, 0, 0, true, 0);
-    list.forEach((f, i) => { const inner = Math.min(8, list.length), ring = i < 8 ? 0 : 1, cnt = ring ? list.length - 8 : inner, a = ((ring ? i - 8 : i) / cnt) * 6.283 + (ring ? .3 : -.6), d = ring ? 18 : 10.5; put(f, Math.cos(a) * d, Math.sin(a) * d, false, i + 1); });
-    const big = list.length > 8, R = big ? 23 : list.length ? 15.5 : 11; mapFar = (big ? 55 : list.length ? 40 : 32) * (zones.length > 6 ? 1.3 : 1);
+    // Rings that never crowd: the closest farms (friends come first) sit round yours, the places to explore make the
+    // next ring, and any more farms fill wider rings beyond. Each ring only takes as many islands as fit side by side.
+    const GAP = 7.6, cap = r => Math.max(1, Math.floor(6.283 * r / GAP)), rings = []; let left = list.length, at = 0, r = 10.5;
+    const R = list.length ? r + GAP : 12;                         // the zone ring
+    while (left > 0) { if (rings.length === 1) r = R + GAP; const n = Math.min(left, cap(r)); rings.push({ r, n, at }); at += n; left -= n; r += GAP; }
+    rings.forEach((g, k) => { for (let j = 0; j < g.n; j++) { const a = j / g.n * 6.283 - .6 + k * .37; put(list[g.at + j], Math.cos(a) * g.r, Math.sin(a) * g.r, false, g.at + j + 1); } });
+    mapOut = Math.max(zones.length ? R : 0, rings.length ? rings[rings.length - 1].r : 0, 8); mapFar = (mapOut + 4.5) * 2.75;
+    mapZoom = Math.min(1, 62 / mapFar);                           // a big neighbourhood opens a little closer in; scroll or pinch for the rest
     zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = -1 + (hash(i, 77) - .5); g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 });
       if (z.out) { // the party's balloon flies out to the zone, waits there, and is home again when the time is up
         const b = balloonModel(); b.scale.setScalar(.7); world.add(b);
@@ -885,7 +897,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     ptrs.set(e.pointerId, e);
     if (ptrs.size === 2) {
       const [a, b] = [...ptrs.values()], d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-      if (pinch) cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * pinch / d)); pinch = d; return;
+      if (pinch) { if (mapOn) zoomMap(pinch / d); else cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * pinch / d)); } pinch = d; return;
     }
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
@@ -920,7 +932,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     onPick?.(it ? { item: it.id } : { nothing: true });
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-  canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * Math.exp(e.deltaY * .0012))); }, { passive: false });
+  const zoomMap = k => { mapZoom = Math.min(1, Math.max(Math.min(1, 26 / mapFar), mapZoom * k)); };
+  canvas.addEventListener('wheel', e => { e.preventDefault(); if (mapOn) return zoomMap(Math.exp(e.deltaY * .0012)); cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * Math.exp(e.deltaY * .0012))); }, { passive: false });
 
   // ---------- frame ----------
   function resize() {
@@ -941,8 +954,8 @@ export function createScene(canvas, { onPick, onGhost }) {
       moveRing(dt, T); renderer.render(ring, camera); return;
     }
     if (mapOn) { // the neighbourhood from above; drag to turn it
-      const d = mapFar * Math.max(1, 1.2 * H / Math.max(1, W));
-      camera.position.set(Math.sin(cam.waz) * d * .72, d * .7, Math.cos(cam.waz) * d * .72); _look.set(0, 0, 0);
+      const d = mapFar * mapZoom * Math.max(1, 1.2 * H / Math.max(1, W)), off = mapOut * (1 - mapZoom) * .8; // zoomed in, the view slides to the near side: turn the map to bring islands round
+      _look.set(Math.sin(cam.waz) * off, 0, Math.cos(cam.waz) * off); camera.position.set(_look.x + Math.sin(cam.waz) * d * .72, d * .7, _look.z + Math.cos(cam.waz) * d * .72);
       if (flyTo) { // swoop towards the island that was tapped, then open it
         flyTo.t = Math.min(1, flyTo.t + dt / .55); const u = flyTo.t * flyTo.t * (3 - 2 * flyTo.t), p = flyTo.i.g.position;
         _look.lerp(p, u); _wc.set(p.x + Math.sin(cam.waz) * 9, p.y + 8, p.z + Math.cos(cam.waz) * 9); camera.position.lerp(_wc, u);

@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, golfArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -109,6 +109,27 @@ const GAMES = {
       <li>After a full lap a pawn turns up its <b>home lane</b>. It needs the exact number to step into the middle.</li>
       <li><b>Hard mode</b>: only <b>one pawn per cell</b>, and <b>nowhere is safe</b>. You cannot move onto your own pawn, so there are no blocks. Any rival you land on is captured, even on a star or a start cell. If no pawn has a free cell to go to, the roll is lost.</li>
       <li>First to bring <b>every pawn home</b> wins. Everyone else is ranked by how far their pawns got.</li>
+    </ol>`,
+  },
+  stack: {
+    name: 'Tower Stack', load: () => import('./games/stack/client.js'), start: 'Start building',
+    host: { seats: 4, towers: 3, blocks: 'classic', bots: 'chill', timer: 10 }, solo: { seats: 4, towers: 3, blocks: 'classic', bots: 'chill', timer: 0 },
+    openSeat: 'A bot stacks here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Towers</b><div class="pills">${pill('towers', 1, '1')}${pill('towers', 3, '3')}${pill('towers', 5, '5')}</div></div>
+      <div class="opt"><b>Blocks</b><div class="pills">${pill('blocks', 'classic', 'All the same')}${pill('blocks', 'mixed', 'Mixed shapes')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Drop timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Everyone builds one wobbly tower together. On your turn a block swings over the top: tap to drop it. Stack it straight for points, but whoever knocks the tower over loses a big chunk. Most points after the last tower wins.`,
+    rules: `<ol>
+      <li>Everyone stands round the same tower. Empty spots are played by bots.</li>
+      <li>On your turn a block in your colour <b>swings</b> over the top of the tower. <b>Tap</b> (or press space) to drop it.</li>
+      <li>A block that lands on the tower scores <b>10</b>. Drop it right in the middle for a <b>Perfect</b>: it snaps straight and scores <b>15</b>.</li>
+      <li>Hang it too far over the edge and it <b>slips off</b> (−5). Miss the tower completely and it's −5 too.</li>
+      <li>The tower stays up while the weight of everything above each block rests over the block below. Lean it too far and it <b>crashes</b>: whoever dropped the last block loses <b>30</b>.</li>
+      <li>The taller it gets, the <b>faster</b> the swing and the <b>wobblier</b> the tower: lower blocks hold less and less overhang.</li>
+      <li>After a crash a new tower starts. Reach 40 blocks and everyone gets +20. After the last tower, the most points wins.</li>
+      <li><b>Mixed shapes</b> deals planks, cubes and wide slabs as well as plain blocks.</li>
     </ol>`,
   },
   golf: {
@@ -441,6 +462,11 @@ function renderHub() {
           </div>
         </article>
         <article class="gcard">
+          <div class="pic stackpic">${stackArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Tower Stack</h3><span class="tag">1–6 players</span></div>
+            <p>Take turns dropping swinging blocks on one shared, wobbly tower. Stack it high, and don't be the one who knocks it down.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="stack">Host a table</button><button type="button" class="btn w" data-act="solo" data-game="stack">Play with bots</button></div>
           <div class="pic golfpic">${golfArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>
