@@ -259,7 +259,7 @@ export function mount(app, ctx) {
     if (!S) return;
     const i = S.seats.findIndex(p => p.id === m.id), t = live?.tags?.[i];
     const f = document.createElement('div');
-    f.className = 'floaty'; f.innerHTML = reactHtml(Math.max(0, Math.min(11, m.k | 0)));
+    f.className = 'floaty'; f.innerHTML = reactHtml(m.k);
     const x = t?.show ? t.x : innerWidth / 2 + (Math.random() * 120 - 60), y = t?.show ? t.y - 20 : innerHeight * .7;
     f.style.left = `${x - 32}px`; f.style.top = `${y - 64}px`;
     root.append(f); setTimeout(() => f.remove(), 1600);

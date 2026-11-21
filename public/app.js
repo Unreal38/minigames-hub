@@ -4,6 +4,8 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
+import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
+import { playWinFx } from './winfx.js';
 import { progress } from './ranks.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -363,7 +365,7 @@ function onMsg(m) {
     if (!adopted && !st.creatorOpen && lockedIn(st.av, m.me.owned).length) {
       st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
     }
-    st.onMe?.();
+    st.onMe?.(); emojiPaint();
     if (m.gain) {
       const cg = m.gain.coins | 0;
       const pl = m.gain.place, ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
@@ -421,7 +423,9 @@ function onMsg(m) {
       st.game?.say?.(m);
     }
   } else if (m.t === 'bought') {
-    sfx.join(); const [k, i] = m.id.split(':'); toast(`Bought ${esc(itemName(k, +i))}! It's yours to keep.`);
+    sfx.join(); const [k, i] = m.id.split(':'); toast(`Bought ${esc(COS[k] ? `${cosItem(k, +i).n} (${COS[k].label.toLowerCase()})` : itemName(k, +i))}! It's yours to keep.`);
+  } else if (m.t === 'winfx') {
+    playWinFx(m.k, { banner: m.id === st.id ? '' : `${m.name} wins!` });
   } else if (m.t === 'err') {
     sfx.bad(); toast(esc(m.msg), true);
   }
@@ -552,7 +556,8 @@ const topbar = () => `<header class="top">
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#" data-act="rules">How to play</a></nav>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
-  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38)}${esc(st.name || 'Pick a name')}<span class="lvslot">${meChip()}</span><small>· change</small></button>
+  <button type="button" class="me stylebtn" data-act="style" title="Style: name colours, frames, titles, win effects and stickers" aria-label="Style: name colours, frames, titles, win effects and stickers">✨</button>
+  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}<span class="lvslot">${meChip()}</span><small>· change</small></button>
   <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
 
@@ -743,8 +748,8 @@ function rkStat(game, r) {
 function rkRow(game, r) {
   const [main, sub] = rkStat(game, r), medal = ['🥇', '🥈', '🥉'][r.pos - 1];
   return `<li class="${r.me ? 'you' : ''}">
-    <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36)}
-    <span class="who"><b>${esc(r.name)}${r.me ? ' <em>(you)</em>' : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${r.guest ? '<i>guest</i>' : ''}</span></span>
+    <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
+    <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ' <em>(you)</em>' : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${titleHtml(r.fl)}${r.guest ? '<i>guest</i>' : ''}</span></span>
     <b class="main">${main}</b><span class="sub">${sub}</span>
   </li>`;
 }
@@ -805,10 +810,10 @@ function renderLobby() {
         </div>
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
-          ${avatarHtml(p.color, p.av, 64)}
-          <div><b>${esc(p.name)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b><span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
+          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}
+          <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
-      ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => esc(p.name)).join(', ')}</p>` : ''}
+      ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
       ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? '✓ Next free seat is yours' : 'Take a seat'}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
         ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">Waiting for the host to start…</span>`}
@@ -861,8 +866,8 @@ const chat = { log: [], open: false, unread: 0, peekT: 0 };
 const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>';
 const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/></svg>';
 const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
-    <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36)}
-    <b>${esc(e.name)}</b>
+    <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36, frameCls(e.fl))}
+    <b>${nameHtml(e.name, e.fl)}</b>
     <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
   </li>`).join('')}</ol>
   <p class="boardnote">${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.</p>`
@@ -872,7 +877,7 @@ $chat.innerHTML = `
   <div class="chatpanel" hidden role="dialog" aria-label="Table chat">
     <div class="chathead"><b>Table chat</b><button type="button" class="round" data-c="toggle" aria-label="Close chat">×</button></div>
     <div class="chatlog" aria-live="polite"></div>
-    <div class="chatemoji">${EMOJI.map((e, i) => `<button type="button" data-c="emo" data-k="${FOODS.length + i}" aria-label="React ${e}">${e}</button>`).join('')}</div>
+    <div class="chatemoji"></div>
     <form class="chatform"><input class="field" maxlength="160" placeholder="Say something nice…" autocomplete="off" aria-label="Message"><button class="btn m">Send</button></form>
   </div>
   <div class="chatpanel scorepanel" hidden role="dialog" aria-label="Table scoreboard">
@@ -885,8 +890,16 @@ $chat.innerHTML = `
     <button type="button" class="btn chatbtn" data-c="toggle" aria-label="Open chat">${CHAT_ICON}<span class="lbl">Chat</span><span class="badge" hidden></span></button>
   </div>`;
 const $scores = $chat.querySelector('.scorepanel');
+emojiPaint();
 const $log = $chat.querySelector('.chatlog'), $panel = $chat.querySelector('.chatpanel'), $peek = $chat.querySelector('.chatpeek');
-const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}">${avatarHtml(m.color, m.av, 30)}<p><b>${esc(m.name)}</b> ${esc(m.text)}</p></div>`;
+const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}">${avatarHtml(m.color, m.av, 30, frameCls(m.fl))}<p><b>${nameHtml(m.name, m.fl)}</b> ${esc(m.text)}</p></div>`;
+// The reaction row: the six free emoji, then the stickers from packs this player has bought.
+function emojiPaint() {
+  const mine = stickersOf(st.me);
+  const row = $chat.querySelector('.chatemoji'); row.classList.toggle('more', mine.length > 0);
+  row.innerHTML = EMOJI.map((e, i) => `<button type="button" data-c="emo" data-k="${FOODS.length + i}" aria-label="React ${e}">${e}</button>`).join('')
+    + mine.map(s => `<button type="button" data-c="emo" data-k="${s.k}" aria-label="Sticker ${s.e}">${s.e}</button>`).join('');
+}
 function chatPaint() {
   $log.innerHTML = chat.log.length ? chat.log.map(chatLine).join('') : '<p class="chatempty">No messages yet. Say hi!</p>';
   $log.scrollTop = $log.scrollHeight;
@@ -919,7 +932,7 @@ $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (cha
 // One list for the whole site. Friends are added by username, and anything a game does with friends reads this list.
 let friendsSheet = null;
 function friendsHtml() {
-  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40)}<span class="frname"><b>${esc(x.name)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
+  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
   if (!st.me?.user) return `<h2>Friends</h2><p>Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.</p>
     <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">Create account</button><button type="button" class="btn w" data-fr="account" data-mode="login">Log in</button></div>`;
   if (!f) return '<h2>Friends</h2><p>Loading…</p>';
@@ -1039,7 +1052,7 @@ function openProfile(first = false, startTab = 0) {
   const paintRows = () => {
     el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
     rows.innerHTML = tab === AV_TABS.length
-      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p>` + dropsHtml() + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
+      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p><button type="button" class="btn sm w tostyle" data-tostyle>✨ Name colours, frames, titles, win effects and stickers</button>` + dropsHtml() + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
       : AV_TABS[tab][1].map(([k, label]) => rowHtml(k, label)).join('');
   };
   const paintCart = () => {
@@ -1063,6 +1076,7 @@ function openProfile(first = false, startTab = 0) {
     const tb = e.target.closest('[data-tab]'); if (tb) { tab = +tb.dataset.tab; sfx.click(); paintRows(); view?.face(tab === 1); camBtns(tab === 1); return; }
     const cb = e.target.closest('[data-cam]'); if (cb) { view?.face(cb.dataset.cam === '1'); camBtns(cb.dataset.cam === '1'); return; }
     if (e.target.closest('[data-login]')) { close(); openAccount('login'); return; }
+    if (e.target.closest('[data-tostyle]')) { close(); openStyle(); return; }
     if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paintRows(); paintCart(); show(); }
   });
   const camBtns = face => el.querySelectorAll('[data-cam]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.cam === '1') === face));
@@ -1076,6 +1090,58 @@ function openProfile(first = false, startTab = 0) {
     sfx.click(); close();
     if (pendingJoin) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     go(st.view === 'game' ? 'game' : st.view);
+  });
+}
+
+// Account style: name colour, profile frame, title, win effect and sticker packs (public/cosmetics.js). What you own
+// goes on with one tap; anything else can be tried on the preview card first and bought from the bar underneath.
+function openStyle() {
+  const pick = {}; // kinds where a not-yet-owned entry is being tried on: k -> i
+  const sheet = modal(`
+    <h2>Your style</h2>
+    <p>How your name and picture look to everyone: in waiting rooms, chat and the rankings. Titles with a goal are earned by playing, the rest cost coins.</p>
+    <div class="creator stylebox">
+      <div class="stylecard"></div>
+      <div class="crows stylerows"></div>
+      <div class="cart" aria-live="polite"></div>
+      <div class="row"><button type="button" class="btn big" data-done>Done</button><button type="button" class="btn big w" data-toshop>${coinIco}Avatar shop</button></div>
+    </div>`);
+  sheet.el.querySelector('.sheet').classList.add('wide');
+  const { el, close } = sheet, card = el.querySelector('.stylecard'), rows = el.querySelector('.stylerows'), cart = el.querySelector('.cart');
+  let open = true;
+  const me = () => st.me || {}, coins = () => me().coins || 0, today = () => me().today ? new Date(me().today + 'T12:00') : new Date();
+  const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
+  const pill = (k, i) => {
+    const it = cosItem(k, i), own = has(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i, pr = earnProgress(it, me());
+    const look = k === 'nm' ? nameHtml(it.n, { nm: i }) : k === 'sp' ? `${esc(it.n)} <span class="stk">${it.e.slice(0, 6).join('') || EMOJI.join('')}</span>` : esc(it.n);
+    if (!own && pr) return `<button type="button" disabled class="goal" title="${esc(pr[2])}">${look} <small class="pr">${pr[0]}/${pr[1]} · ${esc(pr[2])}</small></button>`;
+    if (!own && !cosOnSale(k, i, today())) return `<button type="button" disabled title="Back in ${cosSeason(k, i).back}">${look} <small class="pr">back in ${cosSeason(k, i).back}</small></button>`;
+    return `<button type="button" aria-pressed="${on}" data-k="${k}" data-v="${i}" class="${own ? (i && it.p ? 'own' : '') : 'lk'}">${look}${own ? '' : ` <small class="pr">${coinIco}${it.p}</small>`}${it.s && !own ? ` <small class="pr">· ${cosSeason(k, i).name}</small>` : ''}</button>`;
+  };
+  const paint = () => {
+    for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
+    const fl = Object.fromEntries(WORN.map(k => [k, worn(k)]));
+    card.innerHTML = `${avatarHtml(st.color, st.av, 84, frameCls(fl))}<div><b>${nameHtml(st.name, fl)} ${meChip()}</b>${titleHtml(fl) || '<span class="ttl none">no title</span>'}<small>${fl.wn ? `Win effect: ${esc(cosItem('wn', fl.wn).n)}` : 'No win effect'}</small></div>`;
+    rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
+    const want = Object.entries(pick);
+    cart.innerHTML = want.length ? `<div class="cartlist"><b>Trying on</b>${want.map(([k, i]) => { const it = cosItem(k, i), short = it.p - coins();
+      return `<span class="cartitem">${esc(it.n)} <small>${esc(COS[k].label.toLowerCase())}</small><button type="button" class="btn sm" data-buy="${k}:${i}" ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more` : `Buy ${coinIco}${it.p}`}</button></span>`; }).join('')}</div>
+      <small>You have ${coinIco}${coins()}. Only what you buy is shown to others.</small>` : '';
+  };
+  st.onMe = () => { if (open) paint(); };
+  sheet.onClose = () => { open = false; st.onMe = null; if (st.view === 'hub' || st.view === 'lobby') go(st.view); };
+  paint();
+  el.addEventListener('click', e => {
+    if (e.target.closest('[data-done]')) return close();
+    if (e.target.closest('[data-toshop]')) { close(); return openProfile(false, AV_TABS.length); }
+    const by = e.target.closest('[data-buy]');
+    if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
+    const b = e.target.closest('[data-k]'); if (!b) return;
+    const k = b.dataset.k, i = +b.dataset.v; sfx.pop();
+    if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
+    if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
+    else if (pick[k] === i) delete pick[k]; else pick[k] = i;
+    paint();
   });
 }
 
@@ -1226,6 +1292,7 @@ $app.addEventListener('click', e => {
   else if (act === 'rktab') { st.rkTab = b.dataset.tab; LS.set('ct_rk', st.rkTab); sfx.click(); paintRankings(); send({ t: 'rankings', game: st.rkTab }); }
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
+  else if (act === 'style') { if (!st.name) return openProfile(true); openStyle(); }
   else if (act === 'shop') { if (!st.name) return openProfile(true); openProfile(false, AV_TABS.length); }
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();

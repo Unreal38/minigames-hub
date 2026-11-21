@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
+import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -119,6 +120,7 @@ export const setCoins = (pid, v) => addCoins(pid, Math.round(v) - coinsOf(pid));
 export const allowedAv = (p, av) => wearable(av, p?.owned || []);
 export function buy(p, k, i) {
   if (!p) return { err: 'Not connected.' };
+  if (Object.hasOwn(COS, k)) return buyCos(p, k, i);
   i = Math.floor(+i); const id = k + ':' + i, price = priceOf(k, i);
   if (!AV_KEYS.includes(k) || !OPT[k][i] || !price) return { err: 'That is not in the shop.' };
   p.owned ||= [];
@@ -128,11 +130,38 @@ export function buy(p, k, i) {
   p.coins -= price; p.owned.push(id); scheduleSave(); coinHook(p.pid);
   return { id, price };
 }
+// Account cosmetics (public/cosmetics.js): name colours, frames, titles, win effects, sticker packs.
+// Buying one puts it on straight away.
+function buyCos(p, k, i) {
+  i = Math.floor(+i); const id = k + ':' + i, it = cosItem(k, i), price = cosPrice(k, i);
+  if (!it || !price) return { err: 'That is not in the shop.' };
+  p.owned ||= [];
+  if (p.owned.includes(id)) return { err: 'You already have that.' };
+  if (!cosOnSale(k, i, new Date(now()))) return { err: `That is part of the ${cosSeason(k, i).name}. It is back in ${cosSeason(k, i).back}.` };
+  if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
+  p.coins -= price; p.owned.push(id);
+  if (WORN.includes(k)) (p.cos ||= {})[k] = i;
+  board = null; scheduleSave(); coinHook(p.pid);
+  return { id, price, cos: true };
+}
+// Put on (or take off, with 0) something the player has bought or earned.
+export function wear(p, k, i) {
+  if (!p) return { err: 'Not connected.' };
+  i = Math.floor(+i);
+  if (!WORN.includes(k) || !cosItem(k, i)) return { err: 'Unknown.' };
+  if (!cosHas(p, k, i)) return { err: 'You have not unlocked that yet.' };
+  (p.cos ||= {})[k] = i; board = null; scheduleSave();
+  return { ok: true };
+}
+// What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
+export const flair = p => p ? flairOf(p) : {};
+// May this profile send reaction k? The first twelve are free, the rest come in sticker packs.
+export const mayReact = (p, k) => k < 12 || cosHas(p, 'sp', stickerPack(k));
 export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], today: shopDate(), ...progress(p.xp) };
+  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, today: shopDate(), ...progress(p.xp) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon }; }
@@ -308,7 +337,7 @@ export const friendPids = pid => profiles.get(pid)?.friends || [];
 // What a player sees of their friends list. online(pid) and extra(pid) are filled in by the server.
 export function friendsView(p, online = () => false, extra = () => ({})) {
   lists(p);
-  const card = pid => { const o = profiles.get(pid); return o?.user ? { user: o.user, name: o.name, color: o.color, av: o.av, lv: levelOf(o.xp) } : null; };
+  const card = pid => { const o = profiles.get(pid); return o?.user ? { user: o.user, name: o.name, color: o.color, av: o.av, lv: levelOf(o.xp), fl: flair(o) } : null; };
   return {
     friends: p.friends.map(pid => { const c = card(pid); return c && { ...c, online: online(pid), ...extra(pid) }; }).filter(Boolean).sort((a, b) => b.online - a.online || a.name.localeCompare(b.name)),
     reqs: p.reqs.map(card).filter(Boolean), sent: p.sent.map(card).filter(Boolean),
@@ -353,7 +382,7 @@ function boardRows(game) {
     if (!p.user && accounts.has(String(p.name ?? '').trim().toLowerCase())) continue;
     const g = game === 'overall' ? { games: p.games || 0, wins: p.wins || 0, best: 0, pts: p.pts || 0 } : p.byGame?.[game];
     if (!g?.games) continue;
-    rows.push({ pid: p.pid, name: p.name || 'Guest', color: p.color, av: p.av, guest: !p.user, ...badge(p), xp: p.xp || 0,
+    rows.push({ pid: p.pid, name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0,
       games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
   }
   rows.sort(ORDER[game] || ORDER.default);
