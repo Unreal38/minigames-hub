@@ -53,7 +53,7 @@ export function mount(app, ctx) {
       <div class="shout" id="kr-big" aria-live="assertive"></div>
       <ol class="list" id="kr-list" aria-label="Race order"></ol>
       <div class="place" id="kr-place" aria-live="polite"></div>
-      <button type="button" class="slot" id="kr-slot" data-a="use" aria-label="Use your item"></button>
+      <button type="button" class="kr-item" id="kr-slot" data-a="use" aria-label="Use your item"></button>
       <svg class="map" id="kr-map" aria-hidden="true"></svg>
       <div class="pads" id="kr-pads">
         <div class="steer"><button type="button" data-k="left" aria-label="Steer left">${I.left}</button><button type="button" data-k="right" aria-label="Steer right">${I.right}</button></div>
@@ -195,7 +195,7 @@ export function mount(app, ctx) {
     const el = $('kr-slot'), it = myItem(), off = S.items === 'off' || S.me < 0;
     el.hidden = off;
     if (off) return;
-    if (!it) { setHtml(el, '<span class="empty">?</span>'); el.classList.remove('ready', 'rolling'); el._k = null; return; }
+    if (!it) { setHtml(el, '<span class="kr-none">?</span>'); el.classList.remove('ready', 'rolling'); el._k = null; return; }
     const ready = itemReady();
     el.classList.toggle('rolling', !ready); el.classList.toggle('ready', ready);
     if (ready) { if (el._k !== it[0]) { el._k = it[0]; setHtml(el, `${ITEM_INFO[it[0]].svg}<small>${ITEM_INFO[it[0]].name}</small><kbd>${touch ? 'tap' : 'E'}</kbd>`); sfx.set(); } }
