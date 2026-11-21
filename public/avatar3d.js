@@ -247,14 +247,18 @@ const SIT_K = 1.48, STAND_K = 1.2; // model units -> scene units, so a seated he
 // the brim, like bangs, tails and braids, stays as it is), and a small topper (ears, crown, horns...) sitting on big hair
 // is moved out to the hair's surface, with any hair still poking up through it pressed down under it.
 // All in head space (chin at 0, crown at 1); C is roughly the middle of the skull.
-const HAT_BRIM = { 1: .72, 2: .76, 3: .88, 9: .8, 10: .86, 11: .87, 13: .9, 14: .93, 16: .82, 17: .72, 19: .76, 20: .64, 21: .86, 22: .92, 26: .87, 27: .62 };
-const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28], HC = new THREE.Vector3(0, .47, 0), SHELL = 1.12;
+const HAT_BRIM = { 1: .72, 2: .76, 3: .88, 9: .8, 10: .86, 11: .87, 13: .9, 14: .93, 16: .82, 17: .72, 19: .76, 20: .64, 21: .86, 22: .92, 26: .87, 27: .62,
+  29: .9, 30: .8, 32: .74, 33: .72, 36: .66, 39: .8, 40: .8, hood: .76 };
+// Helmets and hoods also wrap the back and sides of the head, so hair there is pressed flat as well ('hood' is the
+// pulled-up hood of a costume top, which has no hat number).
+const HAT_WRAP = [32, 33, 'hood'];
+const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38], HC = new THREE.Vector3(0, .47, 0), SHELL = 1.12;
 // How far from C along the unit direction d you can go and still be inside the skull grown sideways by o, the way
 // hair and hat shells are made (shellPts), closed over the crown by a low cone. skullT is the bare skull.
 const envT = (hr, d, o) => { let lo = 0, hi = 1.4; for (let i = 0; i < 18; i++) { const t = (lo + hi) / 2, y = HC.y + d.y * t, r = Math.hypot(d.x * t, d.z * t); if (y >= 0 && (y <= 1 ? r <= hr(y) + o : r <= o - (y - 1))) lo = t; else hi = t; } return lo; };
 const skullT = (hr, d) => envT(hr, d, 0);
 function fitHat(hg, hH, hT, hat, hr) {
-  const brim = HAT_BRIM[hat], top = HAT_TOP.includes(hat), made = [];
+  const brim = HAT_BRIM[hat], top = HAT_TOP.includes(hat), wrap = HAT_WRAP.includes(hat), made = [];
   if (brim == null && !top) return made;
   hg.updateWorldMatrix(true, true); const inv = new THREE.Matrix4().copy(hg.matrixWorld).invert(), m = new THREE.Matrix4(), v = new THREE.Vector3(), d = new THREE.Vector3();
   // every hair vertex in head space, mesh by mesh
@@ -266,7 +270,7 @@ function fitHat(hg, hH, hT, hat, hr) {
     for (let i = 0; i < q.length; i += 3) {
       v.set(q[i], q[i + 1], q[i + 2]).sub(HC); const L = v.length(); if (L < 1e-4) continue; d.copy(v).divideScalar(L);
       const T = limit(q[i], q[i + 1], q[i + 2], d); if (L <= T) continue;
-      const oy = q[i + 1]; q[i] = HC.x + d.x * T; q[i + 1] = HC.y + d.y * T; q[i + 2] = HC.z + d.z * T; hit = true; if (under(oy)) hid.push(i, -d.x, -d.y, -d.z);
+      const oy = q[i + 1], oz = q[i + 2]; q[i] = HC.x + d.x * T; q[i + 1] = HC.y + d.y * T; q[i + 2] = HC.z + d.z * T; hit = true; if (under(oy, oz)) hid.push(i, -d.x, -d.y, -d.z);
     }
     if (!hit) continue;
     // swap in a squashed copy of the shape, already placed, so the shared shape stays untouched
@@ -277,7 +281,7 @@ function fitHat(hg, hH, hT, hat, hr) {
   } };
   if (brim != null) {
     // fade in over a short band at the brim so a clump crossing it does not get a hard step
-    squash((x, y, z, d) => y < brim - .06 ? Infinity : envT(hr, d, y > brim ? .012 : .012 + (brim - y) / .06 * .25), y => y > brim);
+    squash((x, y, z, d) => wrap && z < .12 && y < brim ? envT(hr, d, .012) : y < brim - .06 ? Infinity : envT(hr, d, y > brim ? .012 : .012 + (brim - y) / .06 * .25), (y, z) => y > brim || (wrap && z < .12));
     return made;
   }
   // toppers: find how far out the hair reaches under each piece and move the whole hat out by the most any piece needs
@@ -316,11 +320,14 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], legs: [], eyes: [], dyn: true }; root.add(g);
   const H = 2.4 * [.93, 1, 1.07][a.height], B = BODIES[a.body];
   const topC = /^#[0-9a-f]{6}$/i.test(color) ? color : '#ff8fab';
-  const skin = SKINS[a.skin], hair = HAIR_COLS[a.hairC], hD = shade(hair, .8), botC = BOTTOM_COLS[a.botC], shoeC = SHOE_COLS[a.shoeC], gold = '#ffc93c';
+  const skin = SKINS[a.skin], hair = HAIR_COLS[a.hairC], hD = shade(hair, .8), shoeC = SHOE_COLS[a.shoeC], gold = '#ffc93c';
   const headH = H / P.N * FSH[a.face].h, legLen = H * P.leg, neckL = H * .008, hipY = legLen, shY = H - headH - neckL;
   const W = P.wide, sh = B.sh * H * W, ch = B.ch * H * W, wa = B.wa * H * W, hi = B.hi * H * W, lb = B.lb * H * P.limb, dz = B.dz + .16;
-  const top = a.top, bot = a.bottom, dress = top === 6 || top === 15, skirt = [3, 5, 6].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
-  const bodyC = top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : topC, slvC = top === 14 || top === 16 ? '#ffffff' : bodyC, dk = shade(topC, .62);
+  // A costume (suit) dresses the legs too, whatever bottom was picked, and has a hood that goes up when no hat is worn.
+  const top = a.top, suit = { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 29: '#1c1a22' }[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC }[top] : null;
+  const bot = suit ? 7 : a.bottom, botC = suit || BOTTOM_COLS[a.botC];
+  const dress = top === 6 || top === 15, skirt = [3, 5, 6].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
+  const bodyC = top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : top === 26 ? '#ffc93c' : top === 27 ? '#c8342b' : suit || topC, slvC = top === 14 || top === 16 ? '#ffffff' : top === 26 ? '#2b2228' : bodyC, dk = shade(topC, .62);
 
   // torso: a soft bean. Hips take the bottom colour.
   const y0 = hipY - .05 * H, t = shY - y0, wy = y0 + .42 * t, yT = shY + .015 * H;
@@ -342,8 +349,8 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const bow = (c, y, z, r = .06) => { for (const s of [-1, 1]) { const b = cone(g, r, r * 2, c, s * r, y, z); b.rotation.z = s * PI / 2; b.scale.z = .6; } };
   if (top === 4) for (const k of [.5, .62, .74, .86]) band(y0 + k * t - .022 * t, y0 + k * t + .022 * t, '#ffffff');
   if (top === 3) { band(wy, wy + .08 * t, shade(topC, .82)); collar(shade(topC, .82)); }
-  if (top === 1) {
-    const hd = ring(g, lb * 1.9, lb * .85, shade(topC, .9), 0, shY + .01 * H, -lb * .8); hd.rotation.x = PI / 2; hd.scale.set(1, .9, 1.1);
+  if (top === 1 || top === 28) {
+    if (!hoodC) { const hd = ring(g, lb * 1.9, lb * .85, shade(topC, .9), 0, shY + .01 * H, -lb * .8); hd.rotation.x = PI / 2; hd.scale.set(1, .9, 1.1); }
     panel(wy + .05 * t, wy + .2 * t, shade(topC, .86), .55);
     for (const s of [-1, 1]) { cyl(g, .012, .012, .14 * t, '#ffffff', s * lb * .8, chestY + .02 * t, front(lb * .8, chestY + .02 * t) + .01); sph(g, .022, '#ffffff', s * lb * .8, chestY - .06 * t, front(lb * .8, chestY - .06 * t) + .014); }
   }
@@ -369,6 +376,65 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (top === 20) { band(wy - .02 * t, wy + .06 * t, gold, .016); const d = cyl(g, .1, .1, .02, gold, 0, chestY, tz(chestY) + .012); d.rotation.x = PI / 2; const d2 = cyl(g, .06, .06, .02, shade(topC, .55), 0, chestY, tz(chestY) + .022); d2.rotation.x = PI / 2; if (a.neck === 0) cape(shade(topC, .6)); }
   if (top === 21) { for (const k of [.3, .5, .7]) band(y0 + k * t - .015 * t, y0 + k * t + .015 * t, '#7d858f', .014); collar(gold, 1.2); box(g, .045, .3 * t, .02, '#d9342b', 0, chestY - .02 * t, tz(chestY) + .015); box(g, .16, .045, .02, '#d9342b', 0, chestY + .04 * t, tz(chestY) + .015); }
   if (top === 22) { band(wy - .02 * t, wy + .05 * t, topC, .016); panel(chestY - .1 * t, chestY + .08 * t, '#c9ccd2', .3, .016); ['#e5543b', '#4f9df0', '#ffd23f'].forEach((c, i) => sph(g, .02, c, (i - 1) * .05, chestY, tz(chestY) + .03)); ring(g, lb * 2.1, lb * .5, '#c9ccd2', 0, shY + .01 * H, 0).rotation.x = PI / 2; }
+  // ----- the fun wardrobe -----
+  // a point on the torso's surface: an is the angle round it (0 is the front), y the height, o how far it stands off
+  const round = (an, y, o = 0) => [Math.sin(an) * (rAt(TP, y) + o), y, Math.cos(an) * (rAt(DP, y) + o)];
+  const bz = y => -(rAt(DP, y) + .012); // the back of the torso
+  if (top === 23) { // dino onesie: pale belly, spikes down the back, a tail
+    panel(y0 + .1 * t, chestY + .06 * t, '#d9f2a6', .55, .012);
+    for (const k of [.3, .5, .7, .88]) { const sp = cone(g, .07, .15, '#3f9a4a', 0, y0 + k * t, bz(y0 + k * t) - .05); sp.rotation.x = -PI / 2 + .5; sp.scale.x = .55; }
+    const tl2 = cone(g, hi * .55, .42 * t + .2, suit, 0, y0 + .1 * t, bz(y0 + .14 * t) - .16); tl2.rotation.x = -PI / 2 - .35;
+  }
+  if (top === 24) { // banana suit: ridges down the sides, peel flaps over the shoulders, a brown tip
+    for (const s of [-1, 1]) side(y0 + .04 * t, yT - .06 * t, '#eab420', s * PI / 2, .1, .012);
+    for (const an of [-.75, .75, PI - .8, PI + .8]) { const f = cone(g, .11, .36 * t, '#fff3a6', ...round(an, yT - .2 * t, .028)); f.rotation.order = 'YXZ'; f.rotation.set(PI, an, 0); f.scale.z = .3; }
+  }
+  if (top === 25) { // ghost sheet: one big drape from the shoulders with a scalloped hem
+    const yE = seated ? hipY - .02 * H : hipY - legLen * .34, rE = hi * 1.45;
+    lathe(g, [[rE, yE], [hi * 1.2, hipY + .06 * t], [ch + .03, y0 + .72 * t], [sh * .9, y0 + .9 * t], [sh * .5, yT + .004]], suit).scale.z = Math.max(dz, .8);
+    for (let i = 0; i < 12; i++) { const an = i / 12 * PI * 2; sph(g, rE * .27, suit, Math.sin(an) * rE * .97, yE, Math.cos(an) * rE * .97 * Math.max(dz, .8)).scale.y = .8; }
+  }
+  if (top === 26) { // bee: black stripes and a sting
+    for (const k of [.2, .46, .72]) band(y0 + k * t - .05 * t, y0 + k * t + .05 * t, '#2b2228', .008);
+    collar('#2b2228', 1.15); cone(g, .06, .2, '#2b2228', 0, y0 + .08 * t, bz(y0 + .1 * t) - .08).rotation.x = -PI / 2 - .3;
+  }
+  if (top === 27) { // ugly sweater: zigzags, little trees and far too many bobbles
+    collar('#ffffff', 1.1); band(wy - .02 * t, wy + .05 * t, '#2f8a4a', .012);
+    for (const [k, c] of [[.56, '#ffffff'], [.9, '#ffffff']]) band(y0 + k * t - .014 * t, y0 + k * t + .014 * t, c, .012);
+    for (let i = 0; i < 12; i++) { const an = i / 12 * PI * 2 + .26, y = y0 + .73 * t;
+      if (i % 2) { const tr = cone(g, .055, .13, '#2f8a4a', ...round(an, y, .012)); tr.rotation.y = an; tr.scale.z = .5; }
+      else sph(g, .034, ['#ffd23f', '#ffffff', '#7fd1e8'][(i / 2) % 3], ...round(an, y, .012)); }
+    for (let i = 0; i < 9; i++) { const an = i / 9 * PI * 2; const z2 = cone(g, .04, .07, '#ffd23f', ...round(an, y0 + .52 * t, .008)); z2.rotation.set(PI, an, 0); z2.scale.z = .4; }
+  }
+  if (top === 29) { // skeleton: ribs, spine and hips painted on black
+    for (const k of [.58, .68, .78]) panel(y0 + k * t - .022 * t, y0 + k * t + .022 * t, '#f4f1ea', .62 - (k - .58) * .5, .01);
+    panel(y0 + .3 * t, y0 + .9 * t, '#f4f1ea', .07, .012); panel(y0 + .12 * t, y0 + .26 * t, '#f4f1ea', .5, .01); panel(y0 + .16 * t, y0 + .27 * t, suit, .14, .014);
+  }
+  if (top === 30) { // duck floatie: a swim ring round the waist with a duck's head
+    const fl = ring(g, hi * 1.42, hi * .5, '#ffd93b', 0, wy - .06 * t, 0); fl.rotation.x = PI / 2; fl.scale.y = Math.max(dz, .78);
+    const fzz = hi * 1.42 * Math.max(dz, .78) + hi * .35, fy = wy + .1 * t;
+    sph(g, hi * .52, '#ffd93b', 0, fy, fzz); const bk = cone(g, hi * .2, hi * .4, '#ff8a2a', 0, fy - .01, fzz + hi * .58); bk.rotation.x = PI / 2; bk.scale.y = 1; bk.scale.x = 1.3;
+    for (const s of [-1, 1]) sph(g, hi * .08, '#1a1014', s * hi * .24, fy + hi * .2, fzz + hi * .4);
+    collar(shade(topC, .82));
+  }
+  // things on the back
+  const bk = a.back, flat = (r, c, x, y, z, sx, sy, sz = .1) => { const o = sph(g, r, c, x, y, z); o.scale.set(sx, sy, sz); return o; };
+  if (bk === 1) { box(g, sh * 1.25, .5 * t, .16, '#e5543b', 0, y0 + .62 * t, bz(chestY) - .07); box(g, sh * .9, .2 * t, .06, '#b8433c', 0, y0 + .5 * t, bz(chestY) - .17); box(g, sh * 1.3, .1 * t, .17, '#b8433c', 0, y0 + .86 * t, bz(chestY) - .07);
+    for (const s of [-1, 1]) { side(wy + .1 * t, yT - .01 * t, '#b8433c', s * .5, .09, .016); side(wy + .1 * t, yT - .01 * t, '#b8433c', PI + s * .62, .09, .016); } sph(g, .03, gold, 0, y0 + .5 * t, bz(chestY) - .2); }
+  if (bk === 2) for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const w = flat(.2, i === 1 ? '#f1ede6' : '#ffffff', s * (.16 + i * .13), chestY + .16 * t - i * .13 * t, bz(chestY) - .05 + i * .012, 1.5 - i * .15, .55, .16); w.rotation.set(0, -s * .3, s * (.75 - i * .5)); }
+  if (bk === 3) for (const s of [-1, 1]) { const u = flat(.2, '#ffc4e0', s * .3, chestY + .2 * t, bz(chestY) - .04, 1.15, 1.7, .08); u.rotation.set(0, -s * .4, -s * .6); const l = flat(.15, '#c9b3ff', s * .24, chestY - .16 * t, bz(chestY) - .04, 1.1, 1.4, .08); l.rotation.set(0, -s * .4, -s * 2.2); sph(g, .03, '#ffffff', s * .36, chestY + .3 * t, bz(chestY) - .06); }
+  if (bk === 4) { for (const s of [-1, 1]) { cyl(g, .085, .085, .4 * t, '#c9ccd2', s * .1, y0 + .6 * t, bz(chestY) - .09); cone(g, .085, .1, '#e5543b', s * .1, y0 + .8 * t + .05, bz(chestY) - .09); cyl(g, .05, .075, .06, '#5a5f68', s * .1, y0 + .4 * t - .03, bz(chestY) - .09); cone(g, .06, .2, '#ff9a2a', s * .1, y0 + .4 * t - .16, bz(chestY) - .09).rotation.x = PI; cone(g, .032, .12, '#ffe066', s * .1, y0 + .4 * t - .12, bz(chestY) - .09).rotation.x = PI; }
+    box(g, .3, .1 * t, .05, '#8a8f98', 0, y0 + .62 * t, bz(chestY) - .04); for (const s of [-1, 1]) side(wy + .1 * t, yT - .01 * t, '#5a5f68', s * .5, .07, .016); }
+  if (bk === 5) { flat(sh * 1.25, '#3f8a4f', 0, y0 + .55 * t, bz(chestY) - .02, 1, 1.25, .55); flat(sh * 1.3, '#d9c27a', 0, y0 + .55 * t, bz(chestY) + .01, 1, 1.25, .3);
+    for (const [fx, fy] of [[0, .55], [-.5, .7], [.5, .7], [-.5, .4], [.5, .4], [0, .86], [0, .24]]) flat(sh * .3, '#63b06f', fx * sh, y0 + fy * t, bz(chestY) - .02 - sh * .58 * Math.sqrt(Math.max(.1, 1 - fx * fx * .7 - ((fy - .55) / .5) ** 2)), 1, 1, .5); }
+  if (bk === 6) { const top6 = shY + headH + .3 * H / 2.4, by = y0 + .8 * t, bx = sh * .6, len = Math.hypot(.28, top6 - by); const st = cyl(g, .008, .008, len, '#ffffff', bx + .14, (top6 + by) / 2, bz(chestY) - .06); st.rotation.z = -Math.atan2(.28, top6 - by);
+    sph(g, .24, '#e5352b', bx + .28, top6 + .22, bz(chestY) - .06).scale.y = 1.15; cone(g, .04, .06, '#b82a22', bx + .28, top6 - .04, bz(chestY) - .06); sph(g, .05, '#ff8a80', bx + .2, top6 + .32, bz(chestY) + .1).scale.z = .4; }
+  if (bk === 7) for (const s of [-1, 1]) { for (let i = 0; i < 3; i++) { const f = cone(g, .15, .52 - i * .07, '#3a2a4a', s * (.2 + i * .12), chestY + .02 * t - i * .02, bz(chestY) - .04); f.scale.z = .14; f.rotation.set(0, -s * .3, s * (2.0 - i * .5) + PI); } flat(.2, '#4a3660', s * .2, chestY + .12 * t, bz(chestY) - .035, 1.3, .6, .1).rotation.set(0, -s * .3, s * .5); }
+  if (bk === 8) { flat(sh * 1.15, '#c8342b', 0, y0 + .45 * t, bz(chestY) - .14, 1, 1.15, .85); cyl(g, sh * .3, sh * .55, .1 * t, '#c8342b', 0, y0 + .82 * t, bz(chestY) - .12); ring(g, sh * .36, .02, '#ffffff', 0, y0 + .8 * t, bz(chestY) - .12).rotation.x = PI / 2;
+    box(g, .13, .13, .13, '#4fa85a', .06, y0 + .9 * t, bz(chestY) - .14).rotation.z = .3; box(g, .14, .035, .135, gold, .06, y0 + .9 * t, bz(chestY) - .14).rotation.z = .3; flat(sh * .3, '#a8271f', -sh * .3, y0 + .4 * t, bz(chestY) - .14 - sh * .88, 1, 1, .3); side(chestY, yT, '#ffffff', -.5, .05, .016); }
+  if (bk === 9) { const sb = flat(.3, '#4fc3e8', 0, y0 + .62 * t, bz(chestY) - .06, .75, 2.5, .12); sb.rotation.z = .4; const st = flat(.3, '#ffffff', 0, y0 + .62 * t, bz(chestY) - .075, .16, 2.45, .1); st.rotation.z = .4; const fn = cone(g, .07, .14, '#ff8a2a', .19, y0 + .62 * t - .42, bz(chestY) - .12); fn.rotation.x = -PI / 2; fn.scale.x = .3; }
+  if (bk === 10) for (const s of [-1, 1]) { const u = flat(.22, '#ff9a3c', s * .32, chestY + .2 * t, bz(chestY) - .04, 1.25, 1.3, .08); u.rotation.set(0, -s * .4, -s * .5); const l = flat(.17, '#ffd23f', s * .26, chestY - .16 * t, bz(chestY) - .04, 1.1, 1.1, .08); l.rotation.set(0, -s * .4, s * .4);
+    sph(g, .045, '#2b2228', s * .44, chestY + .3 * t, bz(chestY) - .055).scale.z = .3; sph(g, .035, '#ffffff', s * .34, chestY - .2 * t, bz(chestY) - .055).scale.z = .3; }
   if ((bot === 0 || bot === 1 || bot === 8) && !dress) band(wy - .035 * t, wy + .012 * t, shade(botC, .7), .01);
 
   // arms: stubby, with mitten hands. Each arm is its own piece so it can swing.
@@ -383,6 +449,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     if (top === 15) cyl(el, lb * 1.0, lb * 2.0, fa * .9, slvC, 0, -fa * .45, 0); else cyl(el, lb * .94, lb * .86, fa, longSl ? slvC : skin, 0, -fa / 2, 0);
     if (longSl && top !== 15) cyl(el, lb * 1.0, lb * 1.0, fa * .16, cuff, 0, -fa * .92, 0);
     sph(el, lb * 1.22, skin, 0, -fa - lb * .5, 0);
+    if (top === 29) { box(arm, lb * .55, ua * .75, .02, '#f4f1ea', 0, -ua * .5, lb * 1.1); box(el, lb * .5, fa * .7, .02, '#f4f1ea', 0, -fa * .5, lb * .98); }
     if (seated) { arm.rotation.x = -.45; el.rotation.x = -.95; }
     arm.userData.rx = arm.rotation.x; ud.arms.push(arm);
   }
@@ -394,6 +461,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     cyl(leg, lb * (wide ? 1.7 : 1.55), lb * (wide ? 1.55 : 1.3), tl, skirt ? skin : botC, 0, -tl / 2, 0);
     const kn = new THREE.Group(); kn.position.y = -tl; leg.add(kn);
     const lc = skirt || shortLeg ? skin : botC; sph(kn, lb * (wide ? 1.5 : 1.28), lc, 0, 0, 0); cyl(kn, lb * (wide ? 1.5 : 1.26), lb * (wide ? 1.75 : 1.05), sl, lc, 0, -sl / 2, 0);
+    if (top === 29) { box(leg, lb * .7, tl * .7, .02, '#f4f1ea', 0, -tl * .5, lb * 1.52); box(kn, lb * .6, sl * .7, .02, '#f4f1ea', 0, -sl * .5, lb * 1.22); }
     if (shortLeg) cyl(leg, lb * 1.42, lb * 1.46, tl * .14, shade(botC, .8), 0, -tl * .9, 0);
     if (bot === 1 && !skirt) cyl(kn, lb * 1.14, lb * 1.14, sl * .14, shade(botC, 1.3), 0, -sl * .9, 0);
     if (bot === 4 && !skirt) cyl(kn, lb * 1.1, lb * 1.1, sl * .14, '#f4f1ea', 0, -sl * .9, 0);
@@ -431,6 +499,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (nk === 9) beads(18, .022, '#fbf6ec', .04 * H);
   if (nk === 10) { ring(g, lb * 1.65, lb * .45, '#d9342b', 0, shY + .005 * H, 0).rotation.x = PI / 2; const bd = cone(g, lb * 1.6, .2 * t, '#d9342b', 0, chestY + .12 * t, tz(chestY + .12 * t) + .02); bd.rotation.x = PI; bd.scale.z = .3; for (const k of [-1, 0, 1]) sph(g, .014, '#ffffff', k * lb * .6, chestY + .17 * t, tz(chestY + .17 * t) + .04); }
 
+  if (nk === 11) { const sc = ring(g, lb * 1.8, lb * .85, '#e5352b', 0, shY + .01 * H, 0); sc.rotation.x = PI / 2; sc.scale.z = 1.1; for (let i = 0; i < 5; i++) box(g, lb * 1.6, .06 * t, .05, i % 2 ? '#ffffff' : '#e5352b', lb * 1.2 + i * .004, chestY + .1 * t - i * .06 * t, front(lb * 1.2, chestY) + .026); }
   // head: modelled 1 unit tall with the chin at 0, inside a pivot at the neck so it can turn and nod
   const hp = new THREE.Group(); hp.userData.own = true; hp.position.y = shY + neckL + .012 * H; g.add(hp); // the flat chin rides a little above the shoulders, so scarves and ties show
   const hg = new THREE.Group(), DZ = .94; hg.scale.set(headH * P.hw, headH, headH * P.hw * DZ); hp.add(hg);
@@ -440,7 +509,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   // hair: a shell over the skull plus chunky clumps and pointed bangs
   // An afro is too big to tuck under a covering hat (or inside a flower crown), so it shows as curls there.
   // Hair goes in hH and the hat in hT, so fitHat() can squash the hair under a hat or lift a small topper onto big hair.
-  const hat = a.hat, hs = a.hair === 13 && (HAT_BRIM[hat] != null || hat === 23) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
+  const hat = a.hat, hatKey = hoodC ? 'hood' : hat, hs = a.hair === 13 && (HAT_BRIM[hatKey] != null || hat === 23) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
   // rings get closer together towards the crown, where the skull curves fastest, so the shell never dips below it
   const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 14; j++) { const y = ya + (yb - ya) * Math.sin(j / 14 * PI / 2); p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
   const base = (hf, hb, off = .065, c = hair) => { part(hH, shellPts(hf, 1, off), c, 0, A); part(hH, shellPts(hb, 1, off), c, PI, PI - A); };
@@ -507,6 +576,12 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (gl === 6) { ring(hg, .1, .014, gold, ex, ey, gz).rotation.y = .36; path([[.08, -.07], [.1, -.15], [.15, -.21], [.22, -.24]].map(([dx, dy]) => new THREE.Vector3(ex + dx, ey + dy, fz(ex + dx, ey + dy, .014))), .009, gold); }
   if (gl === 7) { lens('dk', () => new THREE.CircleGeometry(.105, 18), '#17100d', -ex).scale.y = .86; strap('#17100d'); }
   if (gl === 8) { for (const s of [-1, 1]) { ring(hg, .1, .035, '#8a5a3c', s * ex, ey, gz).rotation.y = s * .36; lens('dk', () => new THREE.CircleGeometry(.105, 18), '#7fd1e8', s * ex, -.005); } strap('#5a3a22'); }
+  if (gl === 9) { for (const s of [-1, 1]) { lens('sq1', () => new THREE.PlaneGeometry(.23, .17), '#ffffff', s * ex); lens('sq2', () => new THREE.PlaneGeometry(.18, .12), s < 0 ? '#e33b3b' : '#20c4c4', s * ex, .006); arm(s, .11, '#ffffff'); } box(hg, .09, .05, .014, '#ffffff', 0, ey + .02, fz(0, ey, .03)); }
+  if (gl === 10) sph(hg, .08, '#e5352b', 0, .3, fz(0, .3, .05));
+  if (gl === 11) { // pushed up on the forehead, so the eyes stay in view
+    const my = .74, mz = fz(.1, my, .05), fr = ring(hg, .17, .035, '#ffd23f', 0, my, mz); fr.scale.set(1.5, .8, 1); fr.rotation.x = -.25; const ln = put(hg, G('dk2', () => new THREE.CircleGeometry(.17, 20)), '#7fd1e8', 0, my, mz - .004); ln.scale.set(1.5, .8, 1); ln.rotation.x = -.25;
+    const sr = ring(hg, hr(my) + .03, .02, '#2b2b2b', 0, my, 0); sr.rotation.x = PI / 2;
+    path([[.5, .3, .2], [.56, .5, .04], [.56, .95, 0], [.56, 1.2, 0]].map(([x1, y1, z1]) => new THREE.Vector3(x1, y1, z1)), .055, '#ffd23f'); sph(hg, .05, '#ff8a2a', .56, 1.24, 0); }
   if (gl >= 1 && gl <= 3) {
     const dark = a.glasses === 3, fr = dark ? '#17100d' : '#4a2f2a', rr = .105;
     for (const s of [-1, 1]) {
@@ -545,7 +620,37 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (hat === 27) { sph(hT, .62, '#e5402f', 0, .92, -.02).scale.set(1, .55, 1); for (const [ph, th] of [[.15, 0], [.6, .5], [.6, 2.6], [.7, 4.4], [.9, 1.5], [.95, 3.5], [.85, 5.6]]) sph(hT, .07, '#ffffff', .62 * Math.sin(ph) * Math.sin(th), .92 + .34 * Math.cos(ph), .62 * Math.sin(ph) * Math.cos(th) - .02).scale.y = .5; }
   if (hat === 28) { const h = cone(hT, .1, .5, '#fff4c8', 0, 1.16, .3); h.rotation.x = .5; for (const [k, r] of [[.0, .09], [.14, .065]]) ring(hT, r, .018, gold, 0, .97 + k * Math.cos(.5), .18 + k * Math.sin(.5)).rotation.x = PI / 2 + .5; }
   if (hat === 13) { cone(hT, .38, .8, '#4b3a6b', 0, 1.36, -.02); cyl(hT, .74, .78, .035, '#3d2f58', 0, .9, -.02); cyl(hT, .345, .375, .07, gold, 0, .98, -.02); }
-  const tmpGeo = fitHat(hg, hH, hT, hat, hr);
+  // a helmet or hood: a shell over the top and round the back and sides of the head, open at the face
+  const wrapShell = (c, off = .1, hf = .76, hb = .1) => { part(hT, shellPts(hf, 1, off), c, 0, A); part(hT, shellPts(hb, 1, off), c, PI, PI - A); };
+  const flat2 = (p, r, c, x, y, z) => { const o = sph(p, r, c, x, y, z); o.scale.set(1.5, .3, .8); o.rotation.z = .4; return o; };
+  const eyesOn = (r, y, z, x = .2) => { for (const s of [-1, 1]) { sph(hT, r, '#ffffff', s * x, y, z); sph(hT, r * .45, '#1a1014', s * x, y + r * .15, z + r * .82); } };
+  if (hat === 29) { cone(hT, .36, .9, '#ff7a1a', 0, 1.33, -.02); box(hT, .86, .05, .86, '#ff7a1a', 0, .885, -.02); for (const y of [1.1, 1.34]) { const r = .36 * (1 - (y - .88) / .9); cyl(hT, r - .018, r + .03, .12, '#ffffff', 0, y, -.02); } }
+  if (hat === 30) { cyl(hT, .38, .5, .3, '#6cc76a', 0, .96, -.02); cyl(hT, .7, .76, .04, '#58b356', 0, .8, -.02); eyesOn(.13, 1.16, .2); for (const s of [-1, 1]) sph(hT, .04, '#ff8fab', s * .34, .98, .36).scale.z = .4; }
+  if (hat === 31) { ring(hT, .66, .06, '#2b2b2b', 0, .46, 0, PI); for (const s of [-1, 1]) { cyl(hT, .22, .22, .14, topC, s * .66, .44, 0).rotation.z = PI / 2; cyl(hT, .18, .18, .08, '#2b2b2b', s * .57, .44, 0).rotation.z = PI / 2; sph(hT, .09, shade(topC, 1.4), s * .73, .44, 0).scale.x = .4; } }
+  if (hat === 32) { wrapShell('#f4f1ea', .17, .74, .04); part(hT, shellPts(.7, .78, .19), gold, 0, A + .05); ring(hT, .5, .08, '#c9ccd2', 0, .03, -.03).rotation.x = PI / 2; for (const s of [-1, 1]) cyl(hT, .12, .12, .08, '#e5543b', s * .66, .45, 0).rotation.z = PI / 2;
+    cyl(hT, .012, .012, .22, '#8a8f98', .3, 1.2, -.1); sph(hT, .04, '#e5543b', .3, 1.32, -.1); }
+  if (hat === 33) { wrapShell('#a8b0ba', .12, .72, .08); part(hT, shellPts(.66, .76, .14), '#7d858f', 0, A + .05); box(hT, .06, .34, .04, '#7d858f', 0, .55, hr(.55) + .1);
+    for (let i = 0; i < 8; i++) { const an = -.45 + i * .3; sph(hT, .13 - i * .006, i % 2 ? '#b8271f' : '#d9342b', 0, .47 + Math.cos(an) * .78, -Math.sin(an) * .7 - .02).scale.x = .7; } }
+  if (hat === 34) { sph(hT, .24, '#ffd93b', 0, 1.2, -.04).scale.set(1, .8, 1.25); sph(hT, .16, '#ffd93b', 0, 1.44, .12); const bk2 = cone(hT, .07, .14, '#ff8a2a', 0, 1.42, .3); bk2.rotation.x = PI / 2; bk2.scale.x = 1.5; for (const s of [-1, 1]) sph(hT, .025, '#1a1014', s * .08, 1.49, .24); cone(hT, .1, .16, '#ffd93b', 0, 1.3, -.34).rotation.x = -PI / 2 + .6; }
+  if (hat === 35) { const w = put(hT, G('wedge', () => new THREE.CylinderGeometry(.46, .46, .3, 3)), '#ffc93c', 0, 1.2, -.02); w.rotation.y = PI; for (const [x1, y1, z1, r] of [[.12, 1.36, .05, .07], [-.14, 1.36, -.12, .05], [0, 1.2, .215, .06], [.2, 1.24, -.14, .05], [-.24, 1.16, -.02, .06]]) sph(hT, r, '#e8a820', x1, y1, z1).scale.y = .5; }
+  if (hat === 36) { sph(hT, .6, '#f08a24', 0, .95, -.02).scale.set(1, .62, 1); for (let i = 0; i < 4; i++) { const rb = sph(hT, .6, '#dd7616', 0, .95, -.02); rb.scale.set(.2, .64, 1.03); rb.rotation.y = i * PI / 4; }
+    const stm = cyl(hT, .05, .07, .2, '#5a8a3a', .03, 1.38, -.02); stm.rotation.z = -.3; flat2(hT, .12, '#63b06f', .2, 1.36, -.02); }
+  if (hat === 37) for (const s of [-1, 1]) { cyl(hT, .03, .04, .36, '#8a5a3c', s * .26, 1.2, 0).rotation.z = -s * .35; cyl(hT, .024, .028, .18, '#8a5a3c', s * .4, 1.3, 0).rotation.z = -s * 1.1; cyl(hT, .024, .028, .16, '#8a5a3c', s * .22, 1.33, 0).rotation.z = s * .5; const er = sph(hT, .08, '#b98a5e', s * .44, 1.0, 0); er.scale.set(1.4, .7, .5); er.rotation.z = s * .4; }
+  if (hat === 38) { ring(hT, .57, .03, '#e5543b', 0, .46, 0, PI); for (const s of [-1, 1]) sph(hT, .2, '#fff4f7', s * .58, .44, 0).scale.x = .7; }
+  if (hat === 39) { sph(hT, .5, '#f2b632', 0, 1.0, -.02).scale.set(.98, .74, .98); for (let i = 0; i < 14; i++) { const an = i * 2.4, e = .5 + (i % 4) * .28; sph(hT, .05, '#c98a1a', Math.sin(an) * Math.sin(e) * .49, 1.0 + Math.cos(e) * .37, Math.cos(an) * Math.sin(e) * .49 - .02).scale.y = .6; }
+    for (let i = 0; i < 6; i++) { const an = i / 6 * PI * 2, lf = cone(hT, .09, .4, i % 2 ? '#3f8a4f' : '#58b356', Math.sin(an) * .1, 1.5, Math.cos(an) * .1 - .02); lf.rotation.set(Math.cos(an) * .5, 0, -Math.sin(an) * .5); } cone(hT, .08, .46, '#58b356', 0, 1.58, -.02); }
+  if (hat === 40) { lathe(hT, shellPts(.8, 1, .09), '#ff7fa8'); for (let i = 0; i < 6; i++) { const an = i / 6 * PI * 2, pt = cone(hT, .26, .46, i % 2 ? '#ff5d8f' : '#ff7fa8', Math.sin(an) * .44, .86, Math.cos(an) * .44 - .02); pt.rotation.set(PI + Math.cos(an) * .55, 0, -Math.sin(an) * .55); pt.scale.set(1, 1, 1); }
+    cyl(hT, .035, .045, .3, '#58b356', 0, 1.22, -.02); const lf = sph(hT, .1, '#63b06f', .1, 1.24, -.02); lf.scale.set(1.5, .3, .7); lf.rotation.z = .5; }
+  // the pulled-up hood of a costume top (only when no hat is worn)
+  if (hoodC) {
+    wrapShell(hoodC, .1, .76, .12);
+    if (top === 23) { eyesOn(.11, 1.1, .3, .22); for (let i = 0; i < 4; i++) { const an = .1 + i * .5, sp = cone(hT, .07, .17, '#3f9a4a', 0, .47 + Math.cos(an) * .7, -Math.sin(an) * .64 - .02); sp.rotation.x = -an; sp.scale.x = .55; } for (let i = 0; i < 6; i++) { const an = (i - 2.5) * .34; cone(hT, .035, .09, '#ffffff', Math.sin(an) * (hr(.76) + .1), .73, Math.cos(an) * (hr(.76) + .1)).rotation.x = PI; } }
+    if (top === 24) { const st = cyl(hT, .05, .09, .26, '#8a6a2a', 0, 1.2, -.04); st.rotation.x = -.3; sph(hT, .055, '#5a3a22', 0, 1.33, -.08); }
+    if (top === 25) { const tp = cone(hT, .2, .42, hoodC, 0, 1.12, -.2); tp.rotation.x = -.9; }
+    if (top === 26) for (const s of [-1, 1]) { cyl(hT, .014, .014, .3, '#2b2228', s * .16, 1.2, .1).rotation.z = -s * .3; sph(hT, .06, '#ffc93c', s * .21, 1.35, .1); }
+    if (top === 28) for (const s of [-1, 1]) { sph(hT, .15, hoodC, s * .34, 1.06, 0).scale.z = .6; sph(hT, .09, shade(hoodC, 1.5), s * .34, 1.06, .06).scale.z = .5; }
+  }
+  const tmpGeo = fitHat(hg, hH, hT, hatKey, hr);
 
   // ----- turn the loose parts into a few meshes: body, head, two arms, and the painted face -----
   const k = seated ? SIT_K : STAND_K;
