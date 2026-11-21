@@ -7,6 +7,7 @@ import { bake } from '../../avatar3d.js';
 
 const mats = new Map();
 export const M = (c, o) => {
+  if (c === '#bfe6fb' && !o) return MX('glass', c, { roughness: .4 }); // window glass bakes into a mesh of its own, so it can light up at night
   if (o) return new THREE.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true, ...o });
   let m = mats.get(c);
   if (!m) mats.set(c, m = new THREE.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true }));
@@ -92,10 +93,15 @@ export function toonify(root, ink = 0) {
 }
 
 // Merges a finished model into a few meshes. raw: leave it plain (for the map, which merges whole islands again).
+// Every window in the game shares this: the scene turns its glow up after dark.
+export const WINDOW = new THREE.MeshToonMaterial({ color: '#ffffff', vertexColors: true, gradientMap: RAMP, emissive: new THREE.Color('#e88a14'), emissiveIntensity: 0 });
+mats.set('window', WINDOW); // shared, so never disposed with a model
 export function finish(g, raw = false) {
   bake(g);
-  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
-  return raw ? g : toonify(g, .028);
+  const panes = []; g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; if (m.userData.baked && Math.abs(m.material.roughness - .4) < .01) panes.push(m); } });
+  if (raw) return g;
+  toonify(g, .028); for (const m of panes) m.material = WINDOW;
+  return g;
 }
 
 const C = { wood: '#b07a4f', woodD: '#8a5a3c', cream: '#f4e3c1', red: '#d9584e', redD: '#b8433c', stone: '#a9a6b0', stoneD: '#8a8794',

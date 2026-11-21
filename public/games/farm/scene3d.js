@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
-import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify } from './models.js';
+import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 
@@ -272,7 +272,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   const bow = new THREE.Group(); ['#e8615a', '#ffb547', '#ffe066', '#7fd08a', '#6fb7e8', '#b79cf0'].forEach((c, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(58 - i * 2.2, 1.15, 4, 40, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, fog: false, depthWrite: false })); bow.add(m); });
   bow.visible = false; // it arches over the far side of the island, wherever the view is turned
   // a warm pool of light on the grass round anything that glows, once it gets dark
-  const GLOWS = { lamp: 1.5, campfire: 1.7, house: 2.3, kitchen: 1.8, workshop: 1.6, glow: 1.2, lighthouse: 1.6, hut: 1.3, gate: 1.3, hotspring: 1.3 };
+  const GLOWS = { lamp: 1.5, campfire: 1.7, glow: 1.2, lighthouse: 1.6 }; // buildings light their windows instead (WINDOW in models.js)
   const glowGeo = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2); { const p = glowGeo.attributes.position, c = []; for (let i = 0; i < p.count; i++) { const v = Math.pow(Math.max(0, 1 - Math.hypot(p.getX(i), p.getZ(i))), 1) ; c.push(v, v, v); } glowGeo.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); } // bright in the middle, fading to nothing
   const glows = new THREE.InstancedMesh(glowGeo, new THREE.MeshBasicMaterial({ color: '#ffb85a', vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }), 28);
   glows.frustumCulled = false; glows.count = 0; glows.renderOrder = 2; scene.add(stars, rain, bow, glows);
@@ -303,6 +303,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (farm && !starters && Math.random() < dt * 14 * air.rain) { const x = (Math.random() - .5) * N, z = (Math.random() - .5) * N; bit(BIT.ball, BM2.drop, .35, (m, v) => { m.position.set(x, .04, z); m.scale.set(.05 + v * .16, .012, .05 + v * .16); }); }
     }
     bow.visible = air.bow > .02 && !starters; if (bow.visible) { bow.scale.setScalar(N * .46 / 58); bow.position.set(-Math.sin(cam.az) * N * .52, -1.2, -Math.cos(cam.az) * N * .52); bow.rotation.y = cam.az; bow.children.forEach(m => { m.material.opacity = air.bow * .6 * (1 - air.night * .8); }); } // always arching over the far side
+    WINDOW.emissiveIntensity = Math.min(1, air.night * 1.4) * (.92 + Math.sin(T * 2.3) * .05);
     let n = 0; const lit = air.night > .08 && farm && !starters;
     if (lit) for (const e of items.values()) { const r = GLOWS[e.type]; if (!r || n >= 28) continue; _tm.compose(_tv.set(e.g.position.x, .03, e.g.position.z), _tq.identity(), _ts.set(r, 1, r).multiplyScalar(1 + Math.sin(T * 3 + n) * .03)); glows.setMatrixAt(n++, _tm); }
     glows.count = n; if (n) { glows.instanceMatrix.needsUpdate = true; glows.material.opacity = air.night * .55; }
