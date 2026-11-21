@@ -34,7 +34,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 70, 190);
   const camera = new THREE.PerspectiveCamera(36, 1, .5, 500);
-  scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
+  const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#ffffff', 1.6); sun.position.set(9, 16, 7); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -.0005; sun.shadow.normalBias = .03; scene.add(sun, sun.target);
 
@@ -49,11 +49,12 @@ export function createScene(canvas, { onPick, onGhost }) {
   const snap = (v, st) => Math.floor(v / st + 1e-6) * st;
   const flat = (c, o) => new THREE.MeshStandardMaterial({ color: c, roughness: .95, flatShading: true, ...o }); // plain, for things that get merged first
   const tflat = (c, o) => toonMat(flat(c, o));
+  let skyGeo;
   { // sky: deep blue overhead, pale at the horizon and below
     const g = new THREE.SphereGeometry(300, 16, 10), p = g.attributes.position, col = [], top = new THREE.Color(SKY_TOP), low = new THREE.Color(SKY_LOW), c = new THREE.Color();
     for (let i = 0; i < p.count; i++) { c.copy(low).lerp(top, Math.min(1, Math.max(0, p.getY(i) / 300 * 1.6 + .25))); col.push(c.r, c.g, c.b); }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
+    skyGeo = g; scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
   }
   // clouds: a sea of them below the island and a few far off, all one mesh on a slowly turning ring
   function cloudLayer() {
@@ -226,6 +227,8 @@ export function createScene(canvas, { onPick, onGhost }) {
   const TUFTS = 420, tuftGeo = new THREE.BufferGeometry();
   { const v = []; for (const [a, h, w] of [[0, .2, .05], [2.1, .15, .045], [4.2, .17, .05]]) { const c = Math.cos(a), sn = Math.sin(a); v.push(c * .03 - sn * w, 0, sn * .03 + c * w, c * .03 + sn * w, 0, sn * .03 - c * w, c * .09, h, sn * .09); }
     tuftGeo.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); tuftGeo.computeVertexNormals(); }
+  const dayMats = []; // unlit bits that should dim with the day: [material, its own colour]
+  const dims = m => { dayMats.push([m, m.color.clone()]); return m; };
   const tufts = new THREE.InstancedMesh(tuftGeo, new THREE.MeshBasicMaterial({ color: '#6ab94a', side: THREE.DoubleSide }), TUFTS); tufts.frustumCulled = false; tufts.count = 0; scene.add(tufts);
   let tuftAt = [];
   function placeTufts() {
@@ -243,21 +246,76 @@ export function createScene(canvas, { onPick, onGhost }) {
   function moveTufts(T) {
     tufts.visible = !edit; if (edit) return;
     for (let i = 0; i < tuftAt.length; i++) {
-      const [x, z, k, ph] = tuftAt[i]; let bend = Math.sin(T * 1.6 + x * .7 + z * .5) * .16 + Math.sin(T * 3.7 + ph) * .05, bz = 0;
+      const [x, z, k, ph] = tuftAt[i]; let bend = (Math.sin(T * (1.6 + air.wind * 2.4) + x * .7 + z * .5) * .16 + Math.sin(T * 3.7 + ph) * .05) * (1 + air.wind * 1.6) + air.wind * .35, bz = 0;
       for (const p of pets.values()) { const dx = x - p.x, dz = z - p.z, d2 = dx * dx + dz * dz; if (d2 < .2) { const w = (1 - d2 / .2) * .8; bend += dx * w * 2; bz += dz * w * 2; } } // pets push the grass aside
       _tm.compose(_tv.set(x, 0, z), _tq.setFromEuler(_te.set(bz, ph, -bend)), _ts.set(k, k, k)); tufts.setMatrixAt(i, _tm);
     }
     tufts.instanceMatrix.needsUpdate = true;
   }
+  // ---------- time of day and weather ----------
+  // The sky, the light and a few extras follow the hour and the weather set from outside, easing from one to the next.
+  // hour, sky tint, horizon and fog, sky light, its strength, sun (or moon) light, its strength, how much night it is
+  const NIGHT = ['#141b4d', '#27306a', '#a3b3ff', 1.05, '#b4c2ff', .6, 1], DAY = [SKY_TOP, SKY_LOW, '#ffffff', 1.9, '#ffffff', 1.6, 0];
+  const SKYKEYS = [[0, ...NIGHT], [4.6, ...NIGHT], [6.2, '#7fb2ee', '#ffd9c0', '#ffe6d6', 1.6, '#ffc392', 1.3, .2], [8, ...DAY], [17, ...DAY],
+    [19, '#6f8ee0', '#ffcfa8', '#ffe0cc', 1.65, '#ffa468', 1.35, .15], [20.6, '#2a2f72', '#5a4f96', '#b9bdf5', 1.2, '#c0c4ff', .75, .8], [21.6, ...NIGHT], [24, ...NIGHT]];
+  const WX = { sunny: [1, 1, 1, 0, 0, 0], cloudy: [.8, .92, .62, 0, 0, 0], rain: [.6, .86, .42, 1, .25, 0], wind: [.95, 1, 1, 0, 1, 0], rainbow: [1, 1, 1, 0, 0, 1] }; // sky dim, light dim, sun dim, rain, wind, rainbow
+  const airTo = { hour: 12, w: 'sunny' }, air = { set: false, tint: new THREE.Color('#ffffff'), low: new THREE.Color(SKY_LOW), hc: new THREE.Color('#ffffff'), hi: 1.9, sc: new THREE.Color('#ffffff'), si: 1.6, night: 0, rain: 0, wind: 0, windT: 0, bow: 0, shade: -1 };
+  const _k1 = new THREE.Color(), _k2 = new THREE.Color(), _grey = new THREE.Color('#8f9bb3');
+  const stars = (() => { const n = 240, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = hash(i, 91) * 6.283, e = .12 + hash(i, 92) * 1.35, r = 280; pos[i * 3] = Math.cos(a) * Math.cos(e) * r; pos[i * 3 + 1] = Math.sin(e) * r; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const grp = new THREE.Group(); grp.add(new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff8d8', size: 2.4, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false })));
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(9, 14, 10), new THREE.MeshBasicMaterial({ color: '#fff6d2', transparent: true, opacity: 0, fog: false, depthWrite: false })); moon.position.set(-110, 150, -190); grp.add(moon);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(14, 14, 10), new THREE.MeshBasicMaterial({ color: '#fff6d2', transparent: true, opacity: 0, fog: false, depthWrite: false })); halo.position.copy(moon.position); grp.add(halo);
+    grp.visible = false; return grp; })();
+  const DROPS = 280, rainPos = new Float32Array(DROPS * 6), rainAt = Array.from({ length: DROPS }, (_, i) => [hash(i, 93), hash(i, 94), hash(i, 95), .8 + hash(i, 96) * .5]);
+  const rain = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: '#d6ecff', transparent: true, opacity: 0, fog: false, depthWrite: false })); rain.geometry.setAttribute('position', new THREE.BufferAttribute(rainPos, 3)); rain.frustumCulled = false; rain.visible = false;
+  const bow = new THREE.Group(); ['#e8615a', '#ffb547', '#ffe066', '#7fd08a', '#6fb7e8', '#b79cf0'].forEach((c, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(58 - i * 2.2, 1.15, 4, 40, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, fog: false, depthWrite: false })); bow.add(m); });
+  bow.visible = false; // it arches over the far side of the island, wherever the view is turned
+  // a warm pool of light on the grass round anything that glows, once it gets dark
+  const GLOWS = { lamp: 1.5, campfire: 1.7, house: 2.3, kitchen: 1.8, workshop: 1.6, glow: 1.2, lighthouse: 1.6, hut: 1.3, gate: 1.3, hotspring: 1.3 };
+  const glowGeo = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2); { const p = glowGeo.attributes.position, c = []; for (let i = 0; i < p.count; i++) { const v = Math.pow(Math.max(0, 1 - Math.hypot(p.getX(i), p.getZ(i))), 1) ; c.push(v, v, v); } glowGeo.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); } // bright in the middle, fading to nothing
+  const glows = new THREE.InstancedMesh(glowGeo, new THREE.MeshBasicMaterial({ color: '#ffb85a', vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }), 28);
+  glows.frustumCulled = false; glows.count = 0; glows.renderOrder = 2; scene.add(stars, rain, bow, glows);
+  dims(tufts.material);
+  function moveAir(dt, T, map = false) {
+    // where the sky should be for this hour and weather
+    const h = ((airTo.hour % 24) + 24) % 24; let i = 0; while (i < SKYKEYS.length - 2 && SKYKEYS[i + 1][0] <= h) i++;
+    const A = SKYKEYS[i], B = SKYKEYS[i + 1], u = Math.min(1, Math.max(0, (h - A[0]) / Math.max(.001, B[0] - A[0]))), mix = (a, b) => a + (b - a) * u, wx = WX[airTo.w] || WX.sunny;
+    const k = air.set ? Math.min(1, dt * 1.2) : 1; air.set = true;
+    _k1.set(A[1]).lerp(_k2.set(B[1]), u).lerp(_grey, 1 - wx[0]); air.tint.lerp(_k1, k);
+    _k1.set(A[2]).lerp(_k2.set(B[2]), u); _k1.lerp(_k2.copy(_grey).lerp(_k1, .45), 1 - wx[0]); air.low.lerp(_k1, k);
+    _k1.set(A[3]).lerp(_k2.set(B[3]), u); air.hc.lerp(_k1, k); air.hi += (mix(A[4], B[4]) * wx[1] - air.hi) * k;
+    _k1.set(A[5]).lerp(_k2.set(B[5]), u); air.sc.lerp(_k1, k); air.si += (mix(A[6], B[6]) * wx[2] - air.si) * k;
+    air.night += (mix(A[7], B[7]) - air.night) * k; air.rain += (wx[3] - air.rain) * k; air.bow += (wx[5] - air.bow) * k;
+    const gust = wx[4] * (.75 + Math.sin(T * .7) * .25 + Math.sin(T * 2.3) * .12); air.wind += (gust - air.wind) * Math.min(1, dt * 2); air.windT += (wx[4] - air.windT) * k;
+    for (const [sc, hm, sn] of [[scene, hemi, sun], [world, whemi, wsun]]) { sc.background.copy(air.low); sc.fog.color.copy(air.low); hm.color.copy(air.hc); hm.intensity = air.hi; sn.color.copy(air.sc); sn.intensity = air.si; }
+    const sk = air.tint.getHex() * 7 + air.low.getHex(); if (sk !== air.sk) { air.sk = sk; const p = skyGeo.attributes.position, c = skyGeo.attributes.color; for (let v = 0; v < p.count; v++) { _k1.copy(air.low).lerp(air.tint, Math.min(1, Math.max(0, p.getY(v) / 300 * 1.6 + .25))); c.setXYZ(v, _k1.r, _k1.g, _k1.b); } c.needsUpdate = true; }
+    const amb = Math.min(1, air.hi / 1.9 + .12); if (Math.abs(amb - air.shade) > .004) { air.shade = amb; for (const [m, c] of dayMats) m.color.copy(c).multiplyScalar(amb); }
+    if (map) return;
+    const starry = air.night * (1 - (1 - wx[0]) * 1.6); stars.visible = starry > .02;
+    if (stars.visible) { stars.children[0].material.opacity = starry * (.8 + Math.sin(T * 1.7) * .08); stars.children[1].material.opacity = starry; stars.children[2].material.opacity = starry * .16; stars.rotation.y = T * .003; }
+    rain.visible = air.rain > .02;
+    if (rain.visible) { // streaks falling through a box that follows the view
+      rain.material.opacity = air.rain * .5; const span = N + 10, top = 11;
+      for (let d = 0; d < DROPS; d++) { const [rx, ry, rz, sp] = rainAt[d], y = top - ((T * 13 * sp + ry * top) % top), x = cam.tx + (rx - .5) * span - (top - y) * .12, z = cam.tz + (rz - .5) * span, o = d * 6;
+        rainPos[o] = x; rainPos[o + 1] = y; rainPos[o + 2] = z; rainPos[o + 3] = x + .06; rainPos[o + 4] = y + .5; rainPos[o + 5] = z; }
+      rain.geometry.attributes.position.needsUpdate = true;
+      if (farm && !starters && Math.random() < dt * 14 * air.rain) { const x = (Math.random() - .5) * N, z = (Math.random() - .5) * N; bit(BIT.ball, BM2.drop, .35, (m, v) => { m.position.set(x, .04, z); m.scale.set(.05 + v * .16, .012, .05 + v * .16); }); }
+    }
+    bow.visible = air.bow > .02 && !starters; if (bow.visible) { bow.scale.setScalar(N * .46 / 58); bow.position.set(-Math.sin(cam.az) * N * .52, -1.2, -Math.cos(cam.az) * N * .52); bow.rotation.y = cam.az; bow.children.forEach(m => { m.material.opacity = air.bow * .6 * (1 - air.night * .8); }); } // always arching over the far side
+    let n = 0; const lit = air.night > .08 && farm && !starters;
+    if (lit) for (const e of items.values()) { const r = GLOWS[e.type]; if (!r || n >= 28) continue; _tm.compose(_tv.set(e.g.position.x, .03, e.g.position.z), _tq.identity(), _ts.set(r, 1, r).multiplyScalar(1 + Math.sin(T * 3 + n) * .03)); glows.setMatrixAt(n++, _tm); }
+    glows.count = n; if (n) { glows.instanceMatrix.needsUpdate = true; glows.material.opacity = air.night * .55; }
+  }
   // Petals and leaves drifting over the island on the breeze, and a few birds far off.
   const petals = [];
   { const g = new THREE.OctahedronGeometry(1, 0).scale(.5, .08, 1);
-    ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8', '#ffc1dc', '#ffffff'].forEach((c, i) => { const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: c })); scene.add(m); petals.push({ m, ph: i * 2.37, sp: .5 + hash(i, 81) * .5 }); }); }
+    ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8', '#ffc1dc', '#ffffff'].forEach((c, i) => { const m = new THREE.Mesh(g, dims(new THREE.MeshBasicMaterial({ color: c }))); scene.add(m); petals.push({ m, ph: i * 2.37, sp: .5 + hash(i, 81) * .5 }); }); }
   function movePetals(T) {
     const span = N + 8;
     for (const p of petals) {
       p.m.visible = !!farm && !starters; if (!p.m.visible) continue;
-      const u = ((T * p.sp * .09 + p.ph * .13) % 1 + 1) % 1, lane = Math.floor(T * p.sp * .09 + p.ph * .13);
+      const pt = T * (1 + air.windT * 2.2), u = ((pt * p.sp * .09 + p.ph * .13) % 1 + 1) % 1, lane = Math.floor(pt * p.sp * .09 + p.ph * .13);
       p.m.position.set(-span / 2 + u * span + Math.sin(T * 1.1 + p.ph) * .5, 3.2 - u * 2.9 + Math.sin(T * 2.3 + p.ph) * .25, (hash(lane, p.ph) - .5) * N + Math.sin(T * .8 + p.ph) * .6);
       p.m.rotation.set(T * 2.1 + p.ph, T * 1.3, Math.sin(T * 3 + p.ph)); p.m.scale.setScalar(.09 * Math.min(1, u * 8, (1 - u) * 8));
     }
@@ -398,6 +456,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const r = Math.random(); let k = null, dur = 2;
     const pal = [...pets.values()].find(o => o !== p && !o.path.length && !o.train && !o.fixed && (!o.act || o.act.k === 'sit' || o.act.k === 'look') && Math.hypot(o.x - p.x, o.z - p.z) < 1.7);
     if (pal && r < .5) { k = 'greet'; dur = 2.2; pal.act = { k: 'greet', t: 0, dur, pal: p, done: true }; pal.wait = Math.max(pal.wait, dur + .5); }
+    else if (air.night > .6 && r < .6) { k = 'nap'; dur = 9 + Math.random() * 9; } // sleepy after dark
     else if (r < .2) { k = 'sit'; dur = 3 + Math.random() * 3; }
     else if (r < .34) { k = 'nap'; dur = 6 + Math.random() * 6; }
     else if (r < .52) { k = 'look'; dur = 2.5 + Math.random() * 2; }
@@ -665,8 +724,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   // Everyone's farm as a small island: yours in the middle, the others in rings around it. Each one is a real
   // miniature built from that farm's layout and merged into a few meshes.
   const world = new THREE.Scene(); world.background = new THREE.Color(SKY_LOW); world.fog = new THREE.Fog(SKY_LOW, 60, 170);
-  world.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
-  { const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(9, 16, 7); world.add(l); }
+  const whemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9), wsun = new THREE.DirectionalLight('#ffffff', 1.6); wsun.position.set(9, 16, 7); world.add(whemi, wsun);
   const wclouds = cloudLayer(); wclouds.position.y = -4; world.add(wclouds);
   const mapBirds = makeBirds(world, 19, 6, 5, 1.7);
   let flights = [], flyTo = null; // balloons on their way, and the island the camera is swooping to
@@ -968,7 +1026,7 @@ export function createScene(canvas, { onPick, onGhost }) {
         const left = Math.max(0, f.end - performance.now()), u = 1 - left / f.total, k = left <= 0 ? 0 : u < .1 ? u / .1 : u > .9 ? (1 - u) / .1 : 1, e = k * k * (3 - 2 * k);
         f.b.position.set(f.to.x * e, 2.2 + (f.to.y + 1.4 - 2.2) * e + Math.sin(e * Math.PI) * 3 + Math.sin(T * 1.3) * .12, f.to.z * e); f.b.rotation.y = Math.sin(T * .5) * .3;
       }
-      wclouds.rotation.y += dt * .006;
+      wclouds.rotation.y += dt * .006 * (1 + air.wind * 6); moveAir(dt, T, true);
       mapBirds(T);
       renderer.render(world, camera); return;
     }
@@ -979,7 +1037,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (starters) for (const sp of STARTERS) { const p = pets.get('starter:' + sp); if (p) { p.face = 0; if (sp === starSel && p.hop <= 0) p.hop = 1; } }
     hoverNow(); movePets(dt, T); moveBalloon(dt, T); moveItems(dt, T); moveFlies(T); movePeople(dt, T); moveBits(dt); moveTufts(T); movePetals(T); farmBirds(T); moveMarks(T);
     if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
-    clouds.rotation.y += dt * .006;
+    clouds.rotation.y += dt * .006 * (1 + air.wind * 6); moveAir(dt, T);
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
     if (fall) fall.position.z = 1.5 + Math.sin(T * 9) * .14;
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
@@ -999,6 +1057,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (ghost) ghostCheck();
     },
     setStarters,
+    setSky(hour, weather) { airTo.hour = hour; airTo.w = weather; },
     setOwner(o, g = []) { owner = o; guests = g; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
     // the pet or building whose card is open: { pet: id } or { item: id } or null

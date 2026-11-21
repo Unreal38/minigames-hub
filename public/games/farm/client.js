@@ -7,6 +7,7 @@ import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TUR
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex } from './breed.js';
 import { MAT_INFO, ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 import { matIcon } from './icons.js';
+import { WEATHER, weatherAt } from './data.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -18,6 +19,17 @@ const I = {
 };
 // Small material badges: a coloured block with the amount beside it.
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
+// Weather and time of day: tiny pictures for the chip at the top and the window behind it.
+const WX_ICON = {
+  sunny: '<circle cx="12" cy="12" r="5" fill="#ffc94d" stroke="#5a3a2e" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
+  cloudy: '<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 18z" fill="#fff" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
+  rain: '<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 14z" fill="#cfe0f0" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/><path d="M8 17l-1 4M12 17l-1 4M16 17l-1 4" stroke="#4f9df0" stroke-width="2" stroke-linecap="round"/>',
+  wind: '<path d="M3 9h10a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6" fill="none" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
+  rainbow: '<path d="M3 18a9 9 0 0 1 18 0" fill="none" stroke="#e8615a" stroke-width="2.4"/><path d="M6 18a6 6 0 0 1 12 0" fill="none" stroke="#ffc94d" stroke-width="2.4"/><path d="M9 18a3 3 0 0 1 6 0" fill="none" stroke="#6fb7e8" stroke-width="2.4"/>',
+  moon: '<path d="M16 3a9 9 0 1 0 5 13A7.5 7.5 0 0 1 16 3z" fill="#fff3b8" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
+};
+const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
+const dayPart = h => h < 4.6 || h >= 21 ? 'Night' : h < 8 ? 'Morning' : h < 17 ? 'Daytime' : h < 19.5 ? 'Sunset' : 'Evening';
 const mat = (k, n, cls = '') => `<span class="mat ${cls}" title="${MATS[k]}">${matIcon(k)}${n}<small>${MATS[k].toLowerCase()}</small></span>`;
 const costHtml = (cost, inv) => Object.keys(cost || {}).length ? Object.entries(cost).map(([k, n]) => mat(k, n, inv && (inv[k] || 0) < n ? 'short' : '')).join('') : '<span class="mat">Free</span>';
 const wait = ms => { const m = Math.ceil(ms / 60000); return m >= 60 ? `${m / 60 | 0}h ${m % 60}m` : `${m}m`; };
@@ -78,6 +90,11 @@ export function mount(app, ctx) {
   const swatch = (c, name) => `<span class="sw" title="${name}"><i style="background:${c}"></i>${name}</span>`;
   const nestTxt = n => n.stage === 'cuddle' ? `An egg will appear in ${wait(n.left)}.` : n.stage === 'egg' ? `The egg hatches in ${wait(n.left)}.` : 'The egg is ready to hatch!';
   const cannotPair = p => p.lv < BREED_LV ? `Needs level ${BREED_LV}` : p.rest > 0 ? `Resting for ${wait(p.rest)}` : outNow().includes(p.id) ? 'Away exploring' : inNest(p.id) ? 'Already in the Nest' : F.train.ids.includes(p.id) ? 'Training at the yard' : '';
+  // The hour is the player's own clock; the weather is the same for everyone (a test or the pf_sky setting can pin both).
+  const skyNow = () => { const d = new Date(); let hour = d.getHours() + d.getMinutes() / 60, w = { ...weatherAt(), ...(WEATHER[F?.weather] ? { kind: F.weather, ...WEATHER[F.weather] } : {}) };
+    try { const [h, k] = (localStorage.getItem('pf_sky') || '').split(','); if (h !== '' && !isNaN(+h)) hour = +h; if (WEATHER[k]) w = { ...w, kind: k, ...WEATHER[k] }; } catch { /* no storage */ }
+    return { hour, w }; };
+  let skyKey = '';
   // One job at a time: why a pet cannot be picked for something right now ('' when it can).
   const inNest = id => F.nests.some(n => n.stage === 'cuddle' && (n.a === id || n.b === id));
   const busyFor = (p, job) => job === 'defend' ? '' : outAll().includes(p.id) ? 'exploring' : inNest(p.id) ? 'cuddling in the Nest' : job === 'send' && p.held ? 'promised in a trade' : '';
@@ -88,6 +105,7 @@ export function mount(app, ctx) {
     if (F) for (const t of [...F.trips, F.trip, ...F.nests, F.nest]) if (t && t.due) t.left = Math.max(0, t.due - Date.now());
     paintGate(); paintTop(); paintMain(); paintBuild(); paintCard(); paintPanel(); paintBattle();
     if (!scene) return;
+    { const { hour, w } = skyNow(); scene.setSky(hour, w.kind); skyKey = w.kind + dayPart(hour); }
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
     else { const meAv = { color: ctx.me()?.color, av: ctx.me()?.av }; if (where === 'visit' && V) scene.setOwner({ color: V.color, av: V.av }, [meAv]); else scene.setOwner(meAv, where === 'home' ? F?.guests || [] : []); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
     const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
@@ -96,7 +114,7 @@ export function mount(app, ctx) {
   }
   function paintTop() {
     $('pf-title').textContent = B ? (B.mode === 'live' ? `Live battle with ${B.foe}` : B.mode === 'arena' ? `Match against ${B.foe}` : B.mode === 'wild' ? `Meeting ${B.foe}` : 'Practice battle') : where === 'map' && F ? 'The neighbourhood' : where === 'visit' && V ? `${V.name}'s farm` : F ? `${F.owner}'s farm` : 'Pet Farm';
-    $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${MATS[k]}. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}">${mat(k, F.inv[k] || 0)}</button>`).join('') : '';
+    $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${MATS[k]}. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}">${mat(k, F.inv[k] || 0)}</button>`).join('') + (() => { const { hour, w } = skyNow(), night = dayPart(hour) === 'Night'; return `<button type="button" class="matbtn" data-a="wxinfo" title="${w.name}. ${w.bonus}"><span class="mat wxchip">${wxIcon(night && w.kind === 'sunny' ? 'moon' : w.kind)}${night && w.kind === 'sunny' ? 'Clear night' : w.name}</span></button>`; })() : '';
   }
   function paintMain() {
     const el = $('pf-main');
@@ -185,6 +203,16 @@ export function mount(app, ctx) {
         <p class="hint">A trade or a playdate can fill the gaps.</p>
         <div class="cmp head"><span>Pet</span><b>You</b><b>${esc(V.name)}</b></div><div class="cmprows">${rows}</div>
         <div class="row end"><button type="button" class="btn big m" data-a="shut">Close</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'wx') { // the weather now, what it gives, and the other kinds
+      const { hour, w } = skyNow();
+      box.innerHTML = `<div class="panel tripp"><h2 class="icoh">${wxIcon(w.kind, 40)}${w.name}</h2>
+        <p><b>${dayPart(hour)}</b> on your clock. The weather is the same for everyone and changes in about ${wait(w.left)}.</p>
+        <p class="wxnow"><b>Right now:</b> ${w.bonus}</p>
+        <p class="hint">Weather never takes anything away. Each kind only adds a little something.</p>
+        <div class="wxlist">${Object.entries(WEATHER).map(([k, x]) => `<div class="wxrow${k === w.kind ? ' on' : ''}">${wxIcon(k, 28)}<div><b>${x.name}</b><small>${x.bonus}</small></div></div>`).join('')}</div>
+        <div class="row end"><button type="button" class="btn big m" data-a="shut">Got it</button></div></div>`;
       return;
     }
     if (panel.kind === 'mat') { // what a material is, where it comes from and what it is for
@@ -381,6 +409,7 @@ export function mount(app, ctx) {
         <div class="party">${pets}</div>
         <div class="est">${party.length ? `<span class="hint">Should bring back</span><div class="mats">${est}</div>` : '<span class="hint">Tap a pet to add it to the party.</span>'}</div>
         <p class="hint">${full ? 'Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.' : `Chance a wild pet follows them home: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}</p>
+        ${(() => { const w = skyNow().w; return ['sunny', 'wind', 'rainbow'].includes(w.kind) ? `<p class="wxnow">${wxIcon(w.kind)} <b>${w.name}:</b> ${w.bonus}</p>` : ''; })()}
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
           <button type="button" class="btn big m" data-a="send" ${party.length ? '' : 'disabled'}>Send ${party.length ? list(party.map(p => esc(p.name))) : 'them'}</button></div></div>`;
     } else {
@@ -388,7 +417,8 @@ export function mount(app, ctx) {
       const who = F.pets.filter(p => b.pets.includes(p.id));
       const rows = who.map(p => { const g = b.grew.find(x => x.id === p.id);
         return `<div class="backpet">${thumb('pet:' + p.sp)}<div><b>${esc(p.name)}</b><small>+${b.xp} experience${g ? ` · <em>${g.form ? `grew up into its ${FORMS[g.form].toLowerCase()} form` : `reached level ${g.lv}`}</em>` : ''}</small></div></div>`; }).join('');
-      box.innerHTML = `<div class="panel tripp back"><h2>Back from ${z.name}</h2>
+      const wnote = b.w === 'sunny' ? 'They set off in the sun and carried 20% more.' : b.w === 'wind' ? 'A tailwind brought them home sooner.' : b.w === 'rainbow' ? 'They set off under a rainbow, so wild pets were easier to meet.' : '';
+      box.innerHTML = `<div class="panel tripp back"><h2>Back from ${z.name}</h2>${wnote ? `<p class="hint">${wxIcon(b.w)} ${wnote}</p>` : ''}
         <div class="mats">${Object.entries(b.loot).map(([k, n]) => mat(k, '+' + n)).join('') || '<span class="hint">They came back empty-handed this time.</span>'}</div>
         ${rows}
         ${found ? `<div class="backpet found">${thumb('pet:' + found.sp)}<div><b>A wild ${SPECIES[found.sp].name} followed them home!</b><small>${elTag(SPECIES[found.sp].el)} ${RARITY[SPECIES[found.sp].rare]} · ${SPECIES[found.sp].blurb}</small></div></div>` : ''}
@@ -673,6 +703,7 @@ export function mount(app, ctx) {
     else if (a === 'duelno') { ctx.send({ t: 'duelno', id: panel.id }); panel = null; sync(); }
     else if (a === 'duelpick') openTeam('live', { name: panel.from, invite: panel.id });
     else if (a === 'berries') ctx.send({ t: 'pick' });
+    else if (a === 'wxinfo') { if (edit || B) return; panel = { kind: 'wx' }; card = null; sfx.click(); sync(); }
     else if (a === 'matinfo') { if (edit || B) return; panel = { kind: 'mat', mat: b.dataset.mat }; card = null; sfx.click(); sync(); }
     else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
     else if (a === 'sellopen') { panel = { kind: 'sell' }; card = null; sync(); }
@@ -780,6 +811,10 @@ export function mount(app, ctx) {
     if (F.trips.filter(t => t.left > 0).length < was) { sfx.turn(); ctx.toast('Your pets are back from their expedition!'); sync(); } else paintMain();
   }, 5000);
   const liveTimer = setInterval(() => { const c = $('pf-clock'); if (c) c.textContent = Math.max(0, Math.ceil((liveAt - Date.now()) / 1000)); }, 500);
+  const skyTimer = setInterval(() => { // the sky follows the clock; say so when the weather turns
+    if (destroyed || !scene || mode !== 'farm' || !F) return; const { hour, w } = skyNow(), key = w.kind + dayPart(hour); scene.setSky(hour, w.kind);
+    if (key !== skyKey) { if (skyKey && !skyKey.startsWith(w.kind) && !B) ctx.toast(`${w.name} now. ${w.bonus}`); skyKey = key; paintTop(); if (panel?.kind === 'wx') paintPanel(); }
+  }, 20000);
   const gardenTimer = setInterval(() => { if (mode === 'farm' && F && gardenAt && gardenAt - Date.now() <= 0) { gardenAt = 0; ctx.send({ t: 'open' }); } }, 5000);
   const nestTimer = setInterval(() => {
     if (mode !== 'farm' || !F || !F.nests.some(n => n.stage !== 'ready')) return;
@@ -828,7 +863,7 @@ export function mount(app, ctx) {
     else if (m.did === 'claim' && m.item) { sfx.join(); ctx.toast(`${ITEMS[m.item].name} is yours. Find it under Edit farm and place it for free.`); }
     else if (m.did === 'claim') { sfx.join(); ctx.toast('You got ' + Object.entries(m.got).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') + '.'); }
     else if (m.did === 'duel') { sfx.join(); panel = null; ctx.toast(`Invitation sent. The battle starts as soon as ${esc(V?.name || 'they')} says yes.`); }
-    else if (m.did === 'pick') { sfx.join(); card = null; ctx.toast(`You picked ${m.got} berries${m.sun ? ` and ${m.sun} ${m.sun > 1 ? 'sunberries' : 'sunberry'}` : ''}.`); }
+    else if (m.did === 'pick') { sfx.join(); card = null; ctx.toast(`You picked ${m.got} berries${m.wet ? ` (${m.wet} extra thanks to the rain)` : ''}${m.sun ? ` and ${m.sun} ${m.sun > 1 ? 'sunberries' : 'sunberry'}` : ''}.`); }
     else if (m.did === 'cook') { sfx.set(); scene?.work('kitchen'); ctx.toast(`One ${RECIPES[m.what].name} is ready.`); }
     else if (m.did === 'sell') { sfx.join(); scene?.work('workshop'); ctx.toast(`Sold for ${m.coins} coins.`); }
     else if (m.did === 'feed') { sfx.win(); const p = F.pets.find(x => x.id === m.pet); scene?.cheer(m.pet); ctx.toast(m.what === 'tonic' ? `${esc(p.name)} feels fresh and rested.` : `${esc(p.name)} loved it.${m.grew ? (m.grew.form ? ` It grew up into its ${FORMS[m.grew.form].toLowerCase()} form!` : ` It reached level ${m.grew.lv}!`) : ''}`); }
@@ -862,6 +897,6 @@ export function mount(app, ctx) {
     reopen() { ctx.send({ t: 'open' }); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast('Finish the battle first.', true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
-    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
+    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
   };
 }

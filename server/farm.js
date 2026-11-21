@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import { DATA_DIR, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
-  BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, palsOf } from '../public/games/farm/data.js';
+  BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 
@@ -160,7 +160,7 @@ function liveTurn(L, quit = null) { // both have chosen, time ran out, or someon
       lives.delete(pid);
       const won = B.over === i, left = quit === i, r = won ? LIVE.win : LIVE.lose, prize = { won, coins: 0, xp: 0, pts: 0, grew: [], counted: !left };
       if (f && won && !left) { prize.rank = RANK_XP.live; hubXp(profiles.get(pid), RANK_XP.live); }
-      if (f && !left) { prize.coins = r.coins; prize.xp = r.xp; f.inv.coins = (f.inv.coins || 0) + r.coins; for (const id of L.ids[i]) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); } }
+      if (f && !left) { prize.coins = r.coins; prize.xp = Math.round(r.xp * (wx() === 'cloudy' ? 1.25 : 1)); f.inv.coins = (f.inv.coins || 0) + r.coins; for (const id of L.ids[i]) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); } }
       Object.assign(msg, { prize, did: 'fought', farm: f ? view(f, profiles.get(pid)) : null });
       if (quit !== null) msg.ev = msg.ev.map(e => ({ ...e, quit: left })); // only the one who left sees "you left"
     }
@@ -257,7 +257,11 @@ function callOn(p, host) { // host is a pid, or null when the visitor heads home
   if (host) calls.set(p.pid, { host, at: Date.now() }); else calls.delete(p.pid);
   for (const h of [was?.host, host]) { const x = h && farms.get(h), pr = h && profiles.get(h); if (x && pr) push(h, { t: 'farm', farm: view(x, pr), ...(h === host ? { note: `${p.name} dropped by your farm.` } : {}) }); }
 }
+// The weather right now. It only ever adds a small bonus (see WEATHER in data.js). Tests can pin it.
+let wxPin = null;
+const wx = () => wxPin || weatherAt().kind;
 const view = (f, p) => ({
+  ...(wxPin && wxPin !== 'none' ? { weather: wxPin } : {}),
   guests: guestsOf(p.pid),
   wild: wildOf(f) ? { sp: f.wild.sp, lv: f.wild.lv, left: f.wild.until - Date.now() } : null,
   garden: gardenView(f), cap: capOf(f), stash: f.stash || {}, palpts: palsOf(f),
@@ -370,7 +374,8 @@ export function handle(p, a, reply) {
     if (f.pets.some(x => x.held && ids.includes(x.id))) return no('One of them is promised in a trade.');
     if ((f.house || 1) < z.house) return no(`${z.name} opens at farmhouse level ${z.house}.`);
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
-    parties(f).push({ id: rid(), zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 });
+    const w = wx(); // the weather they set off in travels with them: more loot in the sun, a tailwind, rainbow luck
+    parties(f).push({ id: rid(), zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 * (w === 'wind' ? .8 : 1), ...(w === 'sunny' || w === 'rainbow' || w === 'wind' ? { w } : {}) });
     if (f.train?.ids.some(id => ids.includes(id))) { trainTick(f); f.train.ids = f.train.ids.filter(id => !ids.includes(id)); } // leaving on a trip ends its training
     return ok({ did: 'send' });
   }
@@ -380,7 +385,7 @@ export function handle(p, a, reply) {
     const party = f.pets.filter(x => t.pets.includes(x.id)), z = ZONES[t.zone], tr = TRIPS[t.trip];
     const loot = {};
     for (const [k, n] of Object.entries(tripLoot(t.zone, t.trip, party))) {
-      const v = n * (.85 + Math.random() * .3) * (party.some(x => x.talent === 1) ? 1.1 : 1), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
+      const v = n * (.85 + Math.random() * .3) * (party.some(x => x.talent === 1) ? 1.1 : 1) * (t.w === 'sunny' ? 1.2 : 1), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
       if (whole > 0) loot[k] = whole;
     }
     let spilt = false;
@@ -389,7 +394,7 @@ export function handle(p, a, reply) {
     for (const pet of party) { const g = learn(pet, tr.xp); if (g) grew.push(g); }
     // a wild pet may follow them home, if there is a bed for it. The very first trip always brings one.
     let found = null, full = false;
-    if (!f.trips || Math.random() < tr.find + (party.some(x => x.talent === 4) ? .08 : 0)) {
+    if (!f.trips || Math.random() < tr.find * (t.w === 'rainbow' ? 2 : 1) + (party.some(x => x.talent === 4) ? .08 : 0)) {
       if (f.pets.length >= petRoom(f)) full = true;
       else {
         const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
@@ -405,14 +410,15 @@ export function handle(p, a, reply) {
       f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS }; wild = { sp, lv };
     }
     parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1;
-    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt, wild } });
+    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt, wild } });
   }
   if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
     const ripe = f.items.filter(i => i.type === 'garden' && !ripeIn(i)); if (!ripe.length) return no('Nothing is ripe yet.');
-    const got = store(f, 'berries', ripe.length * BERRIES); if (!got) return no('There is no room for more berries. Cook some, or build a Storage Barn.');
+    const wet = wx() === 'rain' ? ripe.length : 0; // rain-fed plots give one more each
+    const got = store(f, 'berries', ripe.length * BERRIES + wet); if (!got) return no('There is no room for more berries. Cook some, or build a Storage Barn.');
     const sun = ripe.reduce((n, i) => n + lvOf(i) - 1, 0); if (sun) f.inv.sunberry = (f.inv.sunberry || 0) + sun; // better plots also grow Sunberries
     for (const i of ripe) i.at = Date.now();
-    return ok({ did: 'pick', got, sun });
+    return ok({ did: 'pick', got, sun, wet });
   }
   if (a.t === 'cook') {
     const r = RECIPES[a.what]; if (!r) return;
@@ -687,14 +693,14 @@ export function handle(p, a, reply) {
     if (prize.counted) {
       if (f.fights?.day !== today()) f.fights = { day: today() };
       f.fights[B.mode] = (f.fights[B.mode] || 0) + 1;
-      Object.assign(prize, { coins: r.coins, xp: r.xp, pts: r.pts });
+      Object.assign(prize, { coins: r.coins, xp: Math.round(r.xp * (wx() === 'cloudy' ? 1.25 : 1)), pts: r.pts });
       if (won && B.mode === 'arena') { prize.rank = RANK_XP.arena; hubXp(p, RANK_XP.arena); }
       if (won && B.mode === 'wild') { // beaten fairly, it asks to come along, if there is a bed
         if (f.pets.length < petRoom(f)) { const pet = newPet(B.wild.sp, p.user, true); pet.from = B.wild.zone; f.pets.push(pet); prize.joined = pet.id; }
         else { prize.noroom = true; r.coins && (f.inv.coins = (f.inv.coins || 0) + 6, prize.coins += 6); }
       }
       f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
-      for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, r.xp); if (g) prize.grew.push(g); }
+      for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); }
     }
     if (B.to && !quit) { // the defender hears about it, and earns a little when their team held
       const d = farms.get(B.to);
@@ -730,7 +736,9 @@ setInterval(() => {
   catch (e) { console.error('gift-all.json could not be read', e.message); try { fs.unlinkSync(GIFT_FILE); } catch {} }
 }, 5000).unref();
 export function testHook(pid, a) {
-  const f = farms.get(pid); if (!f || !process.env.FARM_TEST || !a) return;
+  if (!process.env.FARM_TEST || !a) return;
+  if (a.weather !== undefined) wxPin = a.weather || null; // 'none' switches the bonuses off
+  const f = farms.get(pid); if (!f) return;
   if (a.home) for (const t of parties(f)) t.until = 0;
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;

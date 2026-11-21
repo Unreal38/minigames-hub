@@ -254,3 +254,21 @@ export function fits(farm, type, x, y, r, ignore = null) {
   return true;
 }
 export const countOf = (farm, type) => farm.items.filter(i => i.type === type).length;
+
+// ---------- weather ----------
+// The same for everyone: it is worked out from the clock alone, in 40 minute spells. A rainbow follows rain.
+// Weather never takes anything away. Each kind gives one small bonus while it lasts.
+export const WEATHER = {
+  sunny:   { name: 'Sunny', bonus: 'Parties that set off now bring home 20% more.' },
+  cloudy:  { name: 'Cloudy', bonus: 'Cool air: battles give 25% more experience.' },
+  rain:    { name: 'Rain', bonus: 'Each garden plot you pick gives one extra berry.' },
+  wind:    { name: 'Windy', bonus: 'A tailwind: parties that set off now are back 20% sooner.' },
+  rainbow: { name: 'Rainbow', bonus: 'Lucky: parties that set off now are far more likely to meet a wild pet.' },
+};
+export const WEATHER_MS = 40 * 60_000;
+const wHash = n => { let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
+const wRaw = n => { const r = wHash(n); return r < .42 ? 'sunny' : r < .62 ? 'cloudy' : r < .8 ? 'rain' : 'wind'; };
+export function weatherAt(ms = Date.now()) {
+  const n = Math.floor(ms / WEATHER_MS), raw = wRaw(n), kind = raw !== 'rain' && wRaw(n - 1) === 'rain' ? 'rainbow' : raw;
+  return { kind, left: (n + 1) * WEATHER_MS - ms, ...WEATHER[kind] };
+}

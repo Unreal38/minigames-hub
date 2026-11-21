@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, xpFor, tripLoot } from '../public/games/farm/data.js';
+import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, xpFor, tripLoot, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
 const PORT = 20900 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -39,7 +39,7 @@ function player(name, token) {
 
 await boot();
 const a = player('Ana'); await a.ready;
-let r = await a.farmDo({ t: 'open' });
+let r = await a.farmDo({ t: 'open', test: { weather: 'none' } }); // the weather's bonuses are checked on their own further down
 if (r.need !== 'account') fail('guests must be asked for an account ' + JSON.stringify(r));
 r = await a.farmDo({ t: 'starter', sp: 'mossbun' });
 if (r.need !== 'account' || r.farm) fail('guest got a farm');
@@ -620,6 +620,14 @@ if (r.farm.wild) fail('wild pet still waiting');
 if (!r.farm.album.acornip) fail('acornip not in the album');
 
 // restart: the farm is still there, and logging in from a new browser finds it
+// weather only ever adds: rain gives a berry more from each plot, wind brings a party home sooner
+r = await a.farmDo({ t: 'open', test: { weather: 'rain', ripe: true } });
+if (r.farm.weather !== 'rain') fail('weather not pinned');
+const wetPlots = r.farm.items.filter(i => i.type === 'garden').length;
+if (wetPlots) { r = await a.farmDo({ t: 'pick' }); if (!r.err && r.wet !== wetPlots) fail('rain gave no extra berries: ' + JSON.stringify([r.wet, wetPlots, r.err])); }
+{ const w1 = weatherAt(0), w2 = weatherAt(0); if (w1.kind !== w2.kind || !WEATHER[w1.kind] || !(w1.left > 0 && w1.left <= WEATHER_MS)) fail('weather is not a steady function of the clock'); }
+{ const seen = new Set(); for (let i = 0; i < 400; i++) seen.add(weatherAt(i * WEATHER_MS).kind); if (seen.size !== 5) fail('some weather never happens: ' + [...seen]); }
+r = await a.farmDo({ t: 'open', test: { weather: 'none', ripe: true } });
 const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved
 await stop(); await boot();
 if (!fs.existsSync(path.join(DATA_DIR, 'pet-farm.json'))) fail('pet-farm.json not written');
