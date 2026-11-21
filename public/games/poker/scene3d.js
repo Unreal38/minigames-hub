@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { rankOf, suitOf, RANKS } from './rules.js';
 import { SUIT_COLS, SUIT_PATHS, CLUB_DOTS } from './cards.js';
-import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
+import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
+import { toonify, toonMat, skyDome, clouds, island, createFx, shaker, STAR, DOT, HEART } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 
 const INK = '#3b2219';
@@ -84,15 +85,15 @@ function floorTexture() {
   const g = cv.getContext('2d');
   for (let row = 0; row < 4; row++) {
     let x = -Math.random() * 120;
-    while (x < 256) { const w = 90 + Math.random() * 110; g.fillStyle = `hsl(325 34% ${8 + Math.random() * 4}%)`; g.fillRect(x, row * 64, w, 64); g.fillStyle = '#00000055'; g.fillRect(x, row * 64, 2, 64); x += w; }
-    g.fillStyle = '#00000066'; g.fillRect(0, row * 64, 256, 2);
+    while (x < 256) { const w = 90 + Math.random() * 110; g.fillStyle = `hsl(27 40% ${40 + Math.random() * 6}%)`; g.fillRect(x, row * 64, w, 64); g.fillStyle = '#4a2c2277'; g.fillRect(x, row * 64, 2, 64); x += w; }
+    g.fillStyle = '#4a2c2288'; g.fillRect(0, row * 64, 256, 2);
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(9, 9); return t;
 }
 function rugTexture() {
   const cv = document.createElement('canvas'); cv.width = cv.height = 512;
   const g = cv.getContext('2d');
-  [['#5a2c45', 256], ['#ffb547', 244], ['#fff4e2', 228], ['#ff8fab', 216], ['#3d1f33', 202]].forEach(([c, r]) => { g.fillStyle = c; g.beginPath(); g.arc(256, 256, r, 0, 7); g.fill(); });
+  [['#7a4a8a', 256], ['#ffb547', 244], ['#fff4e2', 228], ['#ff8fab', 216], ['#5c3f86', 202]].forEach(([c, r]) => { g.fillStyle = c; g.beginPath(); g.arc(256, 256, r, 0, 7); g.fill(); });
   for (let i = 0; i < 32; i++) { const a = i / 32 * Math.PI * 2; g.globalAlpha = .5; suitPath(g, i % 4, 256 + Math.cos(a) * 180 - 10, 256 + Math.sin(a) * 180 - 10, 20); }
   g.globalAlpha = 1;
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
@@ -118,27 +119,29 @@ export function createScene(canvas, { onFrame } = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#2a1422'); scene.fog = new THREE.Fog('#2a1422', 18, 40);
-  const camera = new THREE.PerspectiveCamera(38, 1, .1, 100);
-  scene.add(new THREE.HemisphereLight('#ffe2c4', '#3a1a2c', 1.3));
+  const SKY_TOP = '#141a4a', SKY_LOW = '#5a4fae'; // a card night under the stars
+  scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 30, 130);
+  const camera = new THREE.PerspectiveCamera(38, 1, .1, 500);
+  scene.add(new THREE.HemisphereLight('#e6e9ff', '#a79be0', 1.35));
   const small = matchMedia('(max-width: 760px)').matches;
-  const key = new THREE.DirectionalLight('#ffe6c8', 2); key.position.set(4, 13, 6); key.castShadow = true;
+  const key = new THREE.DirectionalLight('#f3efff', 1.25); key.position.set(4, 13, 6); key.castShadow = true;
   key.shadow.mapSize.setScalar(small ? 1024 : 2048); Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 34 });
   key.shadow.bias = -.0006; key.shadow.normalBias = .02; scene.add(key);
-  const rimL = new THREE.DirectionalLight('#9db4ff', .7); rimL.position.set(-6, 7, -9); scene.add(rimL);
-  const lamp = new THREE.PointLight('#ffc27a', 9, 14, 1.3); lamp.position.set(0, 4.6, 0); scene.add(lamp);
+  const rimL = new THREE.DirectionalLight('#9db4ff', .3); rimL.position.set(-6, 7, -9); scene.add(rimL);
+  const lamp = new THREE.PointLight('#ffc27a', 4, 14, 1.3); lamp.position.set(0, 4.6, 0); scene.add(lamp);
   const dot = softDot();
-  const put = (geo, mat, x = 0, y = 0, z = 0, parent = scene) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  const room = new THREE.Group(); scene.add(room); // everything that never moves: merged and outlined together below
+  const put = (geo, mat, x = 0, y = 0, z = 0, parent = room) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
 
   // room: floor, rug, a hanging lamp and string lights
-  const floor = put(new THREE.CircleGeometry(34, 48), M('#ffffff', { map: floorTexture(), roughness: .85 }), 0, -2.4, 0);
+  const floorMap = floorTexture(); floorMap.repeat.set(3.6, 3.6);
+  const floor = put(new THREE.CircleGeometry(11.6, 48), M('#ffffff', { map: floorMap, roughness: .85 }), 0, -2.39, 0); // a round wooden deck on the grass
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
   const rug = put(new THREE.CircleGeometry(9.8, 64), new THREE.MeshStandardMaterial({ map: rugTexture(), roughness: 1 }), 0, -2.38, 0);
   rug.rotation.x = -Math.PI / 2; rug.scale.y = .78; rug.receiveShadow = true;
   { // a fabric lampshade over the table
-    const g = new THREE.Group(); g.position.set(0, 6.4, -.4); scene.add(g);
+    const g = new THREE.Group(); g.position.set(0, 6.4, -.4); room.add(g);
     const shade = put(new THREE.CylinderGeometry(.7, 1.5, 1, 32, 1, true), M('#ff8fab', { side: THREE.DoubleSide, roughness: .9, emissive: '#ff8fab', emissiveIntensity: .25 }), 0, 0, 0, g);
     put(new THREE.TorusGeometry(1.5, .05, 6, 32), M('#ffb547'), 0, -.5, 0, g).rotation.x = Math.PI / 2;
     put(new THREE.SphereGeometry(.32, 16, 12), new THREE.MeshBasicMaterial({ color: '#fff1cf', fog: false }), 0, -.35, 0, g);
@@ -150,8 +153,8 @@ export function createScene(canvas, { onFrame } = {}) {
   [[-10, -7, 10, -7, 6.4], [-11, -2, -7, -10, 5.6], [7, -10, 11, -2, 5.8]].forEach(([x1, z1, x2, z2, y], li) => {
     const pts = [];
     for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push(new THREE.Vector3(x1 + (x2 - x1) * t, y - Math.sin(t * Math.PI) * 1.1, z1 + (z2 - z1) * t)); }
-    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#1a0c14' })));
-    pts.forEach((p, i) => { if (i % 2) return; const col = bulbCols[(i / 2 + li) % 5]; const b = put(bulbGeo, new THREE.MeshBasicMaterial({ color: col }), p.x, p.y - .16, p.z); const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: col, transparent: true, opacity: .35, depthWrite: false })); h.scale.setScalar(1.1); b.add(h); bulbs.push(b); });
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#2a1f4a' })));
+    pts.forEach((p, i) => { if (i % 2) return; const col = bulbCols[(i / 2 + li) % 5]; const b = put(bulbGeo, new THREE.MeshBasicMaterial({ color: col }), p.x, p.y - .16, p.z, scene); const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: col, transparent: true, opacity: .35, depthWrite: false })); h.scale.setScalar(1.1); b.add(h); bulbs.push(b); });
   });
 
   // table: wooden base, padded rail, felt
@@ -167,6 +170,19 @@ export function createScene(canvas, { onFrame } = {}) {
   put(trimGeo, M('#ffb547', { roughness: .35, metalness: .3 }), 0, .03, 0);
   const leg = put(new THREE.CylinderGeometry(.9, 1.6, 1.9, 28), M('#5a3019', { roughness: .5 }), 0, -1.45, 0); leg.castShadow = true;
 
+  bake(room); toonify(room, .035);
+
+  // the world outside: a floating meadow at night, with stars, a moon, lilac clouds, lamp posts and fireflies
+  skyDome(scene, SKY_TOP, SKY_LOW, { k: 1.3, off: .05 });
+  { const N = 260, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const a = Math.random() * 6.283, e = .05 + Math.random() * 1.4, r = 270; pos.set([Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r], i * 3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff6d8', size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: .9 })));
+    for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.position.set(-70, 60, -200); m.lookAt(0, 0, 0); scene.add(m); } }
+  const cloudRing = clouds({ min: 24, max: 95, below: -13, color: '#a9a2ea' }); scene.add(cloudRing);
+  const land = island(19, 19, { round: true, rim: 4.6, seed: 11, props: 18, size: 1.8, flowers: 60, lamps: 6, grass: '#6fb476', patch: '#62a56c' }); land.position.y = -2.4; scene.add(land);
+  const pfx = createFx(scene), shake = shaker();
+  let flyIn = 0, punch = 0;
+
   // ---------- seats ----------
   let n = 0, me = -1, seats = [], seatKey = '';
   const seatAngle = r => Math.PI / 2 + r * Math.PI * 2 / n;
@@ -181,9 +197,9 @@ export function createScene(canvas, { onFrame } = {}) {
       const av = avatar3d(p.color, p.av); av.position.set(out.x, -.15, out.z); av.lookAt(0, -.15, 0); av.visible = !(me >= 0 && r === 0); scene.add(av);
       const stool = new THREE.Group(); stool.position.set(out.x, -.95, out.z); scene.add(stool);
       put(new THREE.CylinderGeometry(.58, .5, .2, 24), M(p.color, { roughness: .8 }), 0, 0, 0, stool).castShadow = true;
-      put(new THREE.CylinderGeometry(.08, .1, 1.3, 8), M('#5a3019'), 0, -.75, 0, stool);
+      put(new THREE.CylinderGeometry(.08, .1, 1.3, 8), M('#5a3019'), 0, -.75, 0, stool); toonify(stool, .035);
       stool.visible = av.visible;
-      const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }));
+      const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }), 0, 0, 0, scene);
       const rp = onRim(r, .8); ring.position.set(rp.x, .02, rp.z); ring.rotation.x = Math.PI / 2; ring.scale.set(1, 1, .8);
       const chips = new THREE.Group(); const cp = onRim(r, .6); chips.position.set(cp.x, .01, cp.z); scene.add(chips);
       const cardsG = new THREE.Group(); const hp = onRim(r, .8); cardsG.position.set(hp.x, .02, hp.z); cardsG.rotation.y = -a + Math.PI / 2; cardsG.scale.setScalar(.82); scene.add(cardsG); cardsG.updateMatrixWorld();
@@ -196,8 +212,8 @@ export function createScene(canvas, { onFrame } = {}) {
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   function makeCard(c) {
     const g = new THREE.Group();
-    const front = new THREE.Mesh(cardGeo, new THREE.MeshStandardMaterial({ map: cardTexture(c >= 0 ? c : -1), roughness: .55 }));
-    const back = new THREE.Mesh(backGeo, new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .55 }));
+    const front = new THREE.Mesh(cardGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c >= 0 ? c : -1), roughness: .55 })));
+    const back = new THREE.Mesh(backGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .55 })));
     front.castShadow = true; g.add(front, back); g.userData = { c, front };
     return g;
   }
@@ -209,7 +225,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- chips ----------
   const chipGeo = new THREE.CylinderGeometry(.2, .2, .07, 24);
-  const chipMats = DENOM.map(([, c, e]) => { const t = chipTexture(c, e); return [M(c, { roughness: .4 }), M('#ffffff', { map: t, roughness: .4 }), M('#ffffff', { map: t, roughness: .4 })]; });
+  const chipMats = DENOM.map(([, c, e]) => { const t = chipTexture(c, e); return [M(c, { roughness: .4 }), M('#ffffff', { map: t, roughness: .4 }), M('#ffffff', { map: t, roughness: .4 })].map(toonMat); });
   function chipStack(amt, group) {
     while (group.children.length) group.remove(group.children[0]);
     let left = amt, col = 0, h = 0;
@@ -230,24 +246,19 @@ export function createScene(canvas, { onFrame } = {}) {
   const pot = new THREE.Group(); pot.position.set(0, .01, -1.45); scene.add(pot); let potAmt = -1;
   const dealerBtn = new THREE.Group(); scene.add(dealerBtn);
   { const t = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d'); g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(64, 64, 64, 0, 7); g.fill(); g.fillStyle = INK; g.font = '700 70px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('D', 64, 70); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; document.fonts?.ready.then(() => { g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(64, 64, 64, 0, 7); g.fill(); g.fillStyle = INK; g.fillText('D', 64, 70); tx.needsUpdate = true; }); return tx; })();
-    const b = put(new THREE.CylinderGeometry(.26, .26, .08, 28), [M('#e5543b'), M('#ffffff', { map: t }), M('#e5543b')], 0, .045, 0, dealerBtn); b.castShadow = true; }
+    const b = put(new THREE.CylinderGeometry(.26, .26, .08, 28), [M('#e5543b'), M('#ffffff', { map: t }), M('#e5543b')].map(toonMat), 0, .045, 0, dealerBtn); b.castShadow = true; }
 
   // ---------- tweens & sparkles ----------
   const tweens = [];
   const tween = (dur, fn, done, delay = 0) => tweens.push({ t: -delay, dur, fn, done });
-  const sparks = [];
   function sparkle(at, col = '#ffd27a', k = 14) {
-    for (let i = 0; i < k; i++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-      s.position.copy(at); s.scale.setScalar(.35); scene.add(s);
-      sparks.push({ s, v: new THREE.Vector3((Math.random() - .5) * 4, Math.random() * 4 + 1.5, (Math.random() - .5) * 4), t: 0 });
-    }
+    pfx.burst(at, { n: k + 6, colors: [col, '#ffffff', '#fff1a8'], speed: 3.5, up: 4.5, size: .28, life: 1 });
   }
   // a little flying stack of chips from one spot to another
   function flyChips(from, to, amt, delay = 0, done) {
     if (amt <= 0) { done?.(); return; }
     const g = new THREE.Group(); chipStack(Math.min(amt, 400), g); g.scale.setScalar(.85); g.visible = false; scene.add(g);
-    tween(.55, t => { g.visible = true; const e = ease(t); g.position.lerpVectors(from, to, e); g.position.y += Math.sin(e * Math.PI) * 1.1; }, () => { scene.remove(g); done?.(); }, delay);
+    tween(.55, t => { g.visible = true; const e = ease(t); g.position.lerpVectors(from, to, e); g.position.y += Math.sin(e * Math.PI) * 1.1; }, () => { scene.remove(g); pfx.puff(to, { n: 7, size: .22, speed: 1.6, life: .4 }); pfx.ring(to, { color: '#ffd84a', size: 1.2 }); if (amt >= 200) shake.kick(.06); done?.(); }, delay);
   }
   function flyCard(card, from, to, faceUp, delay = 0, done) {
     card.visible = false; card.rotation.z = faceUp ? 0 : Math.PI; card.userData.y = to.y;
@@ -292,7 +303,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const k0 = board.length;
     for (let k = k0; k < bl; k++) {
       const c = makeCard(S.board[k]), j = k - k0; scene.add(c); board.push(c);
-      c.rotation.z = Math.PI; flyCard(c, deckPos, boardPos(k), false, j * .12);
+      c.rotation.z = Math.PI; flyCard(c, deckPos, boardPos(k), false, j * .12, () => pfx.sparkle(boardPos(k), { n: 4, colors: ['#fff1a8', '#ffffff'], r: .35, size: .18, life: .6 }));
       flip(c, true, .47 + j * .12);
     }
     // hole cards
@@ -339,7 +350,7 @@ export function createScene(canvas, { onFrame } = {}) {
         potAmt = 0; chipStack(0, pot);
         res.forEach((p, k) => p.win.forEach((w, j) => {
           const to = onRim(rel(w), .85);
-          flyChips(pot.position.clone(), to, p.paid?.[j] ?? p.amt, k * .35 + j * .1, () => { seats[w].hop = 1; sparkle(seats[w].av.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#ffd27a', 12); });
+          flyChips(pot.position.clone(), to, p.paid?.[j] ?? p.amt, k * .35 + j * .1, () => { seats[w].hop = 1; const top = seats[w].av.position.clone().add(new THREE.Vector3(0, 2.2, 0)); sparkle(top, '#ffd27a', 12); pfx.confetti(top, { n: k ? 30 : 70, w: 3.5, h: 2.5 }); if (!k && !j) { punch = 1; shake.kick(.12); } });
         }));
       }, S.handRes.fold ? 400 : 1400);
     }
@@ -368,7 +379,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (fy - ty <= bottom - top && lx + hudLeft / 2 >= hudLeft + 4 && rx + hudLeft / 2 <= w - 4) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
-    scene.fog.near = hi + 2; scene.fog.far = hi + 24;
+    scene.fog.near = hi + 14; scene.fog.far = hi + 120;
     const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
     camera.setViewOffset(w, h, -hudLeft / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
   }
@@ -398,14 +409,15 @@ export function createScene(canvas, { onFrame } = {}) {
       s.ring.material.opacity += ((s.active ? .9 : 0) - s.ring.material.opacity) * .15;
       s.ring.scale.set(1 + Math.sin(T * 4) * .05, 1 + Math.sin(T * 4) * .05, .8);
     });
-    for (let i = sparks.length - 1; i >= 0; i--) {
-      const b = sparks[i]; b.t += dt; b.v.y -= 7 * dt; b.s.position.addScaledVector(b.v, dt); b.s.material.opacity = 1 - b.t / 1.1;
-      if (b.t > 1.1) { scene.remove(b.s); b.s.material.dispose(); sparks.splice(i, 1); }
-    }
     bulbs.forEach((b, i) => b.scale.setScalar(1 + Math.sin(T * 2 + i) * .12));
-    lamp.intensity = 9 + Math.sin(T * 1.3) * .4;
-    camera.position.set(camBase.x + Math.sin(T * .22) * .18, camBase.y + Math.sin(T * .37) * .05, camBase.z);
-    camera.lookAt(camLook);
+    lamp.intensity = 4 + Math.sin(T * 1.3) * .2;
+    punch = Math.max(0, punch - dt * 1.4);
+    const zoom = 1 - Math.sin(Math.min(1, punch) * Math.PI) * .04; // a little push in when a pot is won
+    camera.position.set(camBase.x * zoom + Math.sin(T * .22) * .18, camBase.y * zoom + Math.sin(T * .37) * .05, camBase.z * zoom);
+    camera.lookAt(camLook); shake.apply(camera, dt);
+    cloudRing.rotation.y = T * .005;
+    flyIn -= dt; if (flyIn <= 0) { flyIn = .2; const a = Math.random() * 6.283, r = 7 + Math.random() * 7; pfx.rise(v.set(Math.cos(a) * r, -2 + Math.random() * 4, Math.sin(a) * r), { color: ['#fff1a8', '#d8ffb0'], size: .17, life: 3.2, speed: .22, wobble: .5, grow: 0 }); } // fireflies
+    pfx.update(dt, camera, H);
     renderer.render(scene, camera);
     // where the HUD should draw name tags, the pot label and the board
     const tags = seats.map((s, i) => {
@@ -429,7 +441,7 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) disposeAvatar(s.av);
-      renderer.dispose();
+      pfx.dispose(); renderer.dispose();
     },
   };
 }
