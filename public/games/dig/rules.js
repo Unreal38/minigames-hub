@@ -27,7 +27,7 @@ export function homeOf(k, n, w, h) { // spread round the back and the two sides 
   return { x: ex, z: -h / 2 + .3 + (d - L - side) };
 }
 // The digger stands on the back of the tile and digs the front of it, facing the camera.
-export const standOf = (i, w, h) => ({ x: i % w - (w - 1) / 2, z: ((i / w) | 0) - (h - 1) / 2 - .62 });
+export const standOf = (i, w, h) => ({ x: i % w - (w - 1) / 2, z: ((i / w) | 0) - (h - 1) / 2 - 1 });
 export const walkMs = (from, to) => Math.round(Math.max(WALK.min, Math.min(WALK.max, Math.hypot(to.x - from.x, to.z - from.z) / WALK.speed * 1000)));
 
 export const idx = (x, y, w) => y * w + x;
