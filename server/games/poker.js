@@ -11,15 +11,26 @@ const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e
 export const START = 1000;
 export const BLINDS = [[10, 20], [20, 40], [30, 60], [50, 100], [100, 200], [150, 300], [250, 500], [400, 800], [600, 1200], [1000, 2000]];
 export const LEVEL_HANDS = 4; // blinds go up every this many hands
+const DROP_BOT_MS = [900, 2600]; // bots take this long to pick a card to throw away
 const STREET_MS = 900, RUNOUT_MS = 1700, SHOW_MS = 6000, FOLDWIN_MS = 2600, FIRST_MS = 1500;
 
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const rnd = (a, b) => a + Math.random() * (b - a);
 
+// Which poker game the table plays. Each variant says how many hole cards you get; Hold'em is the default.
+export const VARIANTS = {
+  holdem: { name: "Texas Hold'em", hole: 2 },
+  // Mango Poker (Kuba's house game): three cards each, everyone throws one away before the betting starts,
+  // and the flop is three cards picked at random from that thrown-away pile. Needs at least 4 seats.
+  mango: { name: 'Mango Poker', hole: 3, drop: true, minSeats: 4 },
+};
+const variantOf = G => VARIANTS[G.opts.variant] || VARIANTS.holdem;
+
 export function cleanOpts(o = {}) {
   return {
+    variant: VARIANTS[o.variant] ? o.variant : 'holdem',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
-    field: [2, 4, 6].includes(+o.field) ? +o.field : 6,
+    field: Math.max(VARIANTS[o.variant]?.minSeats || 2, [2, 4, 6].includes(+o.field) ? +o.field : 6),
     hands: [10, 20, 0].includes(+o.hands) ? +o.hands : 10,
     timer: [0, 20, 30, 45].includes(+o.timer) ? +o.timer : 30,
   };
@@ -42,7 +53,7 @@ export function create(players, optsIn = {}, prev = null) {
     dealer: prev?.game === 'poker' && Number.isInteger(prev.dealer) ? prev.dealer % n : Math.random() * n | 0,
     sbI: -1, bbI: -1, stage: 'deal', board: [], deck: [], turn: -1, cur: 0, minRaise: 0,
     next: null, stageEnd: Date.now() + FIRST_MS, tEnd: 0, botAt: 0, bustN: 0,
-    handRes: null, ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
+    handRes: null, pile: [], ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
   };
   return G;
 }
@@ -68,13 +79,19 @@ function startHand(G, now = Date.now()) {
   const heads = alive.length === 2;
   G.sbI = heads ? G.dealer : nextFrom(G, G.dealer, i => live(G, i));
   G.bbI = nextFrom(G, G.sbI, i => live(G, i));
-  G.deck = shuffle([...Array(52).keys()]); G.board = []; G.handRes = null;
-  for (let r = 0; r < 2; r++) for (let k = 1; k <= G.seats.length; k++) { const i = (G.dealer + k) % G.seats.length; if (live(G, i)) G.st[i].cards.push(G.deck.pop()); }
+  G.deck = shuffle([...Array(52).keys()]); G.board = []; G.pile = []; G.handRes = null;
+  for (let r = 0; r < variantOf(G).hole; r++) for (let k = 1; k <= G.seats.length; k++) { const i = (G.dealer + k) % G.seats.length; if (live(G, i)) G.st[i].cards.push(G.deck.pop()); }
   post(G, G.sbI, G.sb); post(G, G.bbI, G.bb);
   G.st[G.sbI].last = 'Small blind'; G.st[G.bbI].last = 'Big blind';
   G.cur = G.bb; G.minRaise = G.bb; G.stage = 'pre'; G.next = null;
   pushEv(G, { t: 'hand', hand: G.hand, dealer: G.dealer, sb: G.sbI, bb: G.bbI });
   G.turn = -1;
+  if (variantOf(G).drop) return startDrop(G, now);
+  startBetting(G, now);
+}
+
+function startBetting(G, now = Date.now()) {
+  G.stage = 'pre';
   const first = nextFrom(G, G.bbI, i => canAct(G, i));
   if (first < 0 || needers(G).length === 0) return streetOver(G, now);
   setTurn(G, first, now);
@@ -123,12 +140,18 @@ function streetOver(G, now = Date.now()) {
 function dealStreet(G, now = Date.now()) {
   const k = G.next; G.next = null;
   if (k === 'show') return showdown(G, now);
-  G.deck.pop(); // burn
   const n = k === 'flop' ? 3 : 1;
-  for (let i = 0; i < n; i++) G.board.push(G.deck.pop());
+  let fromPile = 0;
+  if (k === 'flop' && G.pile.length) { // Mango: the flop comes out of the thrown-away cards (topped up from the deck if too few are left in the game)
+    shuffle(G.pile);
+    while (G.board.length < 3 && G.pile.length) { G.board.push(G.pile.pop()); fromPile++; }
+  }
+  if (fromPile < n) G.deck.pop(); // burn
+  const want = k === 'flop' ? 3 : G.board.length + 1;
+  while (G.board.length < want) G.board.push(G.deck.pop());
   G.stage = k;
   for (const x of G.st) if (!x.fold && !x.allin && !x.out) x.last = '';
-  pushEv(G, { t: 'street', k, cards: G.board.slice(-n) });
+  pushEv(G, { t: 'street', k, cards: G.board.slice(-n), pile: fromPile });
   if (G.runout) { G.next = G.board.length < 5 ? (G.board.length === 3 ? 'turn' : 'river') : 'show'; G.stageEnd = now + RUNOUT_MS; return; }
   const first = nextFrom(G, G.dealer, i => canAct(G, i));
   if (first < 0 || !needers(G).length) return streetOver(G, now);
@@ -208,6 +231,36 @@ function finish(G) {
   pushEv(G, { t: 'end', w: G.win });
 }
 
+// ---------- Mango: throw one card away ----------
+// Everyone still in the hand picks at the same time. Humans get the turn timer; bots and away players pick on their own.
+const dropping = G => G.seats.map((_, i) => i).filter(i => live(G, i) && G.st[i].cards.length > 2);
+function startDrop(G, now = Date.now()) {
+  G.stage = 'drop'; G.turn = -1;
+  G.tEnd = G.opts.timer ? now + G.opts.timer * 1000 + 3000 : 0; // a bit longer than a bet: it's a new kind of choice
+  G.dropAt = G.seats.map(() => now + rnd(...DROP_BOT_MS));
+  pushEv(G, { t: 'drop' });
+}
+function doDrop(G, s, c) {
+  const x = G.st[s], k = x.cards.indexOf(c);
+  if (G.stage !== 'drop' || k < 0 || x.cards.length <= 2) return false;
+  x.cards.splice(k, 1); G.pile.push(c);
+  pushEv(G, { t: 'dropped', s });
+  if (!dropping(G).length) {
+    pushEv(G, { t: 'pile', n: G.pile.length });
+    G.tEnd = 0; startBetting(G);
+  }
+  return true;
+}
+// Which card a bot (or a timed-out player) throws away: the one whose loss hurts the other two least.
+export function botDrop(cards, sims = 120) {
+  let best = cards[0], bestEq = -1;
+  for (const c of cards) {
+    const keep = cards.filter(k => k !== c), eq = equity(keep, [], 3, sims);
+    if (eq > bestEq) { bestEq = eq; best = c; }
+  }
+  return best;
+}
+
 // ---------- actions ----------
 function doAct(G, s, a, now = Date.now()) {
   const x = G.st[s], toCall = G.cur - x.bet;
@@ -252,6 +305,7 @@ function doAct(G, s, a, now = Date.now()) {
 
 export function act(G, s, a) {
   if (!a || typeof a !== 'object' || s < 0 || !G.seats[s] || G.seats[s].bot) return false;
+  if (a.t === 'drop') return G.ph === 'play' && doDrop(G, s, +a.c);
   if (G.ph !== 'play' || G.turn !== s || G.next) return false;
   if (!['fold', 'check', 'call', 'raise', 'allin'].includes(a.t)) return false;
   return doAct(G, s, { t: a.t, to: a.to, force: true });
@@ -315,6 +369,13 @@ export function tick(G, now = Date.now()) {
   if (G.stage === 'deal') { if (now < G.stageEnd) return false; startHand(G, now); return true; }
   if (G.stage === 'show') { if (now < G.stageEnd) return false; endHand(G, now); return true; }
   if (G.next) { if (now < G.stageEnd) return false; dealStreet(G, now); return true; }
+  if (G.stage === 'drop') {
+    const late = G.tEnd && now >= G.tEnd;
+    const s = dropping(G).find(i => (G.seats[i].bot && now >= G.dropAt[i]) || late);
+    if (s === undefined) return false;
+    doDrop(G, s, botDrop(G.st[s].cards, G.opts.bots === 'sharp' && G.seats[s].bot ? 160 : 90));
+    return true;
+  }
   const s = G.turn; if (s < 0) return false;
   if (G.seats[s].bot) { if (now < G.botAt) return false; botMove(G, s, now); return true; }
   if (G.tEnd && now >= G.tEnd) { // out of time: check if you can, fold if you can't
@@ -357,7 +418,7 @@ function seatQueued(G) {
 export function view(G, s) {
   const now = Date.now(), showAll = G.ph === 'end';
   const v = {
-    game: 'poker', ph: G.ph, stage: G.stage, gid: G.gid, me: s, hand: G.hand, hands: G.hands,
+    game: 'poker', variant: G.opts.variant, variantName: variantOf(G).name, ph: G.ph, stage: G.stage, gid: G.gid, me: s, hand: G.hand, hands: G.hands,
     sb: G.sb, bb: G.bb, level: G.level, levelHands: LEVEL_HANDS, next: BLINDS[Math.min(BLINDS.length - 1, G.level + 1)],
     dealer: G.dealer, sbI: G.sbI, bbI: G.bbI, turn: G.turn, cur: G.cur, minRaise: G.minRaise,
     left: G.turn >= 0 && G.tEnd ? Math.max(0, G.tEnd - now) : 0, timer: G.opts.timer, botsLevel: G.opts.bots,
@@ -373,6 +434,10 @@ export function view(G, s) {
     handRes: G.handRes, res: G.res, win: G.win, ev: G.ev,
     queued: G.queue.map(q => q.id),
   };
+  if (G.stage === 'drop') {
+    v.drop = { need: dropping(G), pile: G.pile.length };
+    v.left = G.tEnd ? Math.max(0, G.tEnd - now) : 0;
+  }
   if (s >= 0 && G.turn === s && !G.next) {
     const x = G.st[s], max = x.bet + x.stack;
     v.opt = { toCall: Math.min(G.cur - x.bet, x.stack), minTo: Math.min(max, G.cur + G.minRaise), maxTo: max, canRaise: max > G.cur };
