@@ -457,3 +457,9 @@ body:has(.lobby) .scorebtn { display: none; }
   .hubgrid .hero > div { flex-basis: 340px; } .hubgrid .hero .art { flex-basis: 240px; height: clamp(280px, 26vw, 430px); }
   .hubgrid .hero h1 { font-size: clamp(36px, 3.3vw, 54px); }
 }
+/* big screens (2K and up): use the width instead of leaving empty sides */
+@media (min-width: 1800px) {
+  .wrap.hubgrid { max-width: 2400px; padding-inline: 40px; column-gap: 40px; grid-template-columns: 360px minmax(0, 1fr) 420px; }
+  .hubside .rktabs button { font-size: 15px; padding: 6px 12px; min-height: 40px; }
+  .hubside .rk .main { font-size: 18px; } .hubside .rk .sub { font-size: 13px; }
+}
