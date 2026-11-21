@@ -9,10 +9,10 @@ import { homeOf as homeAt, standOf } from './rules.js';
 
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TOP = .34;                 // grass tile height
-const AV = .42;                  // avatar scale
+const AV = 1;                    // avatar scale (animateAvatar sets the avatar's own scale, so it has to stay 1 without a wrapper)
 const FEET = .76 * AV;           // a standing avatar's feet are this far below its middle
 const LAWN = -.22;               // the island's grass, a little lower than the plot
-const FOOT = .3;                 // how far an avatar's body reaches from its middle
+const FOOT = .4;                 // how far an avatar's body reaches from its middle
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const GEM_COL = { 11: '#4db5ff', 12: '#ff5c8a', 13: '#ffc93c' };
 const NUM_COL = ['', '#2f7fd8', '#2f9a4a', '#e5543b', '#7a4fc9', '#b5482b', '#1f9aa0', '#3b2219', '#6b6b6b'];
@@ -192,7 +192,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function buildSeats(list) {
     for (const s of seats) freeSeat(s);
     seats = list.map((p, i) => {
-      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); av.scale.setScalar(AV); g.add(av); handsOf(av);
+      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); g.add(av); handsOf(av);
       const home = homeOf(i, list.length); g.position.copy(home); g.lookAt(0, 0, 0); scene.add(g);
       const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false })); ring.position.y = .05; scene.add(ring);
       const shovel = makeShovel(); shovel.visible = false;
@@ -395,15 +395,15 @@ export function createScene(canvas, { onFrame } = {}) {
         const lever = c >= .3 && c < .5 ? Math.sin((c - .3) / .2 * Math.PI) : 0;
         const side = i % 2 ? -1 : 1;
         s.av.rotation.x = push * .2 + lever * .05 - toss * .08;            // lean into it
-        s.av.position.y -= push * .04 * AV;
+        s.av.position.y -= push * .02;
         arms.forEach(a => { const sg = Math.sign(a.position.x) || 1; a.rotation.x = a.userData.rx - .5 - push * .28 - toss * .6 + lever * .12; a.rotation.z = -sg * .3 + toss * .4 * side; });
         s.g.updateMatrixWorld(true);
         grip.set(0, 0, 0); for (const a of arms) { hand.set(0, a.userData.hand, 0); a.localToWorld(hand); grip.add(hand); } grip.multiplyScalar(.5);
         // a rigid shovel gripped part way up the handle. The blade points down at the tile ahead, drives in, then swings up and out sideways
         const rest = 1 - push;
         dirV.set(toss * .95 * side, -1 + rest * .25 + toss * .95, .75 + rest * .35 - toss * .2).normalize();
-        const len = .62 + push * .12;
-        bladeP.copy(grip).addScaledVector(dirV, len); if (bladeP.y < .06) bladeP.y = .06;
+        const reach = (grip.y - (pending.landed ? .08 : TOP - .1)) / Math.max(.3, -dirV.y), len = Math.max(.8, Math.min(1.6, 1.05 + (reach - 1.05) * push)); // long enough to reach the ground from the hands
+        bladeP.copy(grip).addScaledVector(dirV, len); 
         s.shovel.position.copy(bladeP); dirV.negate(); s.shovel.quaternion.setFromUnitVectors(UP, dirV);
         const { handle, tee } = s.shovel.userData; handle.scale.y = len - .36 + .22; tee.position.y = .36 + handle.scale.y;
         // dirt: a puff as the blade goes in, a clod thrown off as it swings out
@@ -427,7 +427,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
     seats.forEach((s, i) => {
       const tg = info.tags[i] ||= { x: 0, y: 0 };
-      tv.copy(s.g.position); tv.y += AV * 2.75 + s.av.position.y - FEET * .5; tv.project(camera); tg.x = (tv.x + 1) / 2 * W; tg.y = (1 - tv.y) / 2 * H;
+      tv.copy(s.g.position); tv.y += 1.15 + s.av.position.y; tv.project(camera); tg.x = (tv.x + 1) / 2 * W; tg.y = (1 - tv.y) / 2 * H;
     });
     info.tags.length = seats.length;
     if (pending) { tilePos(pending.i, .9, tv).project(camera); info.dig.x = (tv.x + 1) / 2 * W; info.dig.y = (1 - tv.y) / 2 * H; }
