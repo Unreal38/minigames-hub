@@ -4,6 +4,7 @@ import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { frameLoop, autoResolution, FPS } from '../../frames.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, rim as rimGlow, STAR, DOT, HEART, CONF } from '../../scenery3d.js';
 
 const INK = '#3b2219';
 const TABLE_R = 4.4, TILE_Y = .05, POT_Y = .53, BROTH_Y = POT_Y + .76, BROTH_R = 1.47;
@@ -101,24 +102,24 @@ function isRed(x, z) {
 function rugTexture() {
   const cv = document.createElement('canvas'); cv.width = cv.height = 512;
   const g = cv.getContext('2d');
-  [['#5a2c45', 256], ['#ff8fab', 244], ['#fff4e2', 226], ['#7ed3b2', 214], ['#3d1f33', 200]].forEach(([c, r]) => { g.fillStyle = c; g.beginPath(); g.arc(256, 256, r, 0, 7); g.fill(); });
+  [['#9a4f76', 256], ['#ff8fab', 244], ['#fff4e2', 226], ['#7ed3b2', 214], ['#7a4470', 200]].forEach(([c, r]) => { g.fillStyle = c; g.beginPath(); g.arc(256, 256, r, 0, 7); g.fill(); });
   for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2; g.fillStyle = i % 2 ? '#ffb547' : '#ff8fab'; g.beginPath(); g.arc(256 + Math.cos(a) * 178, 256 + Math.sin(a) * 178, 9, 0, 7); g.fill(); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
-function floorTexture() { // dark floorboards
+function floorTexture() { // warm deck boards
   const cv = document.createElement('canvas'); cv.width = cv.height = 256;
   const g = cv.getContext('2d');
   for (let row = 0; row < 4; row++) {
     let x = -Math.random() * 120;
     while (x < 256) {
       const w = 90 + Math.random() * 110, l = 8 + Math.random() * 4;
-      g.fillStyle = `hsl(325 34% ${l}%)`; g.fillRect(x, row * 64, w, 64);
-      g.fillStyle = '#00000055'; g.fillRect(x, row * 64, 2, 64);
+      g.fillStyle = `hsl(27 46% ${l * 1.4 + 42}%)`; g.fillRect(x, row * 64, w, 64);
+      g.fillStyle = '#5b3a2277'; g.fillRect(x, row * 64, 2, 64);
       x += w;
     }
-    g.fillStyle = '#00000066'; g.fillRect(0, row * 64, 256, 2);
-    for (let i = 0; i < 9; i++) { g.fillStyle = '#ffffff07'; g.fillRect(Math.random() * 256, row * 64 + 6 + Math.random() * 52, 30 + Math.random() * 80, 1); }
+    g.fillStyle = '#5b3a2288'; g.fillRect(0, row * 64, 256, 2);
+    for (let i = 0; i < 9; i++) { g.fillStyle = '#ffffff22'; g.fillRect(Math.random() * 256, row * 64 + 6 + Math.random() * 52, 30 + Math.random() * 80, 1); }
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -175,7 +176,7 @@ const IM = (c, o) => { const k = c + (o ? JSON.stringify(o) : ''); if (!imat.has
 const ibaked = new Map();
 function ingredient(kind) { // each kind is modelled once, merged, and then stamped out cheaply
   let parts = ibaked.get(kind);
-  if (!parts) ibaked.set(kind, parts = bake(modelIngredient(kind)).children.map(m => [m.geometry, m.material]));
+  if (!parts) ibaked.set(kind, parts = toonify(bake(modelIngredient(kind)), .014).children.map(m => [m.geometry, m.material]));
   const g = new THREE.Group(); g.userData.dyn = true;
   for (const [gm, mt] of parts) g.add(new THREE.Mesh(gm, mt));
   return g;
@@ -309,29 +310,28 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; // shadows are refreshed a few times a second, not every frame
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#2a1422'); scene.fog = new THREE.Fog('#2a1422', 17, 36);
-  const camera = new THREE.PerspectiveCamera(38, 1, .1, 100);
+  const SKY_TOP = '#5a4fa8', SKY_LOW = '#ffc2a6'; // dinner at sunset
+  scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 30, 120);
+  const camera = new THREE.PerspectiveCamera(38, 1, .1, 500);
 
   let T = 0; // seconds since the scene started
   // lights: warm key, cool rim from behind, and soft reflections from a tiny painted room
-  scene.environment = envTexture(renderer); scene.environmentIntensity = .3;
-  scene.add(new THREE.HemisphereLight('#ffe2c4', '#3a1a2c', 1.25));
+  scene.add(new THREE.HemisphereLight('#fff0e4', '#ffc9ae', 1.55));
   const small = matchMedia('(max-width: 760px)').matches;
-  const key = new THREE.DirectionalLight('#ffe6c8', 2.1); key.position.set(5, 12, 7); key.castShadow = true;
+  const key = new THREE.DirectionalLight('#fff1dd', 1.5); key.position.set(5, 12, 7); key.castShadow = true;
   key.shadow.mapSize.setScalar(small ? 1024 : 1536); Object.assign(key.shadow.camera, { left: -7.6, right: 7.6, top: 7.6, bottom: -7.6, near: 1, far: 30 });
   key.shadow.bias = -.0006; key.shadow.normalBias = .02; scene.add(key);
-  const rimL = new THREE.DirectionalLight('#9db4ff', .8); rimL.position.set(-6, 7, -9); scene.add(rimL);
-  const glow = new THREE.PointLight('#ff8a45', 3.4, 6, 1.5); glow.position.set(0, .7, 0); scene.add(glow);
+  const rimL = new THREE.DirectionalLight('#c7b4ff', .35); rimL.position.set(-6, 7, -9); scene.add(rimL);
+  const glow = new THREE.PointLight('#ff8a45', 1.6, 6, 1.5); glow.position.set(0, .7, 0); scene.add(glow);
   const dot = softDot();
   const halo = (col, size, op) => new THREE.Sprite(new THREE.SpriteMaterial({ map: dot, color: col, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending }));
   const put = (geo, mat, x = 0, y = 0, z = 0, parent = scene) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
 
   // floor, rug, string lights, paper lanterns
   const floorMap = floorTexture(); floorMap.wrapS = floorMap.wrapT = THREE.RepeatWrapping; floorMap.repeat.set(9, 9);
-  const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 48), M('#ffffff', { map: floorMap, roughness: .85 }));
-  floor.rotation.x = -Math.PI / 2; floor.position.y = -2.4; floor.receiveShadow = true; scene.add(floor);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(10.6, 48), M('#ffffff', { map: floorMap, roughness: .85 })); floorMap.repeat.set(3.2, 3.2); // a round wooden deck on the grass
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -2.39; floor.receiveShadow = true; scene.add(floor);
   const rug = new THREE.Mesh(new THREE.CircleGeometry(9.5, 64), new THREE.MeshStandardMaterial({ map: rugTexture(), roughness: 1 }));
   rug.rotation.x = -Math.PI / 2; rug.position.y = -2.38; rug.receiveShadow = true; scene.add(rug);
   const bulbs = [], bulbGeo = new THREE.SphereGeometry(.13, 12, 10);
@@ -339,13 +339,13 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   [[-9, -7, 9, -7, 6.2], [-10, -3, -6, -10, 5.4], [6, -10, 10, -3, 5.6]].forEach(([x1, z1, x2, z2, y], li) => {
     const pts = [];
     for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push(new THREE.Vector3(x1 + (x2 - x1) * t, y - Math.sin(t * Math.PI) * 1.1, z1 + (z2 - z1) * t)); }
-    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#1a0c14' })));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#4a2c22' })));
     pts.forEach((p, i) => {
       if (i % 2) return;
       const col = bulbCols[(i / 2 + li) % 5], b = put(bulbGeo, new THREE.MeshBasicMaterial({ color: col }), p.x, p.y - .16, p.z);
       const h = halo(col, 1, .35); h.scale.setScalar(1.1); b.add(h); bulbs.push(b);
     });
-    const l = new THREE.PointLight('#ffb070', 6, 14, 1.4); l.position.copy(pts[7]); scene.add(l);
+    const l = new THREE.PointLight('#ffb070', 2.5, 14, 1.4); l.position.copy(pts[7]); scene.add(l);
   });
   const lanterns = [[-5.5, -6.3, 1], [5.5, -6.3, .85]].map(([x, z, k]) => {
     const g = new THREE.Group(); g.position.set(x, -2.4, z); g.scale.setScalar(k); g.userData.dyn = true; scene.add(g);
@@ -549,6 +549,25 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
 
   bake(scene); // every prop that never moves (stove, place settings, stool legs...) collapses into a few meshes
 
+  // the toon look: flat cartoon shading and dark outlines, like the rest of the site
+  const own = (m, grow, sx = 1, sy = 1, sz = 1) => { m.material = toonMat(m.material).clone(); m.userData.toon = true; shell(m, grow).scale.multiply(new THREE.Vector3(sx, sy, sz)); }; // things that get recoloured keep a material of their own
+  for (const st of seats) {
+    own(st.bowl, 1.07); own(st.plate, 1.05, 1, 1.6, 1); if (st.stool) own(st.stool, 1.07);
+    st.edge = shell(st.stack, 1); st.edge.scale.set(1.09, 1, 1.07); st.edge.material = new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.BackSide }); toonify(st.tile);
+  }
+  for (const h of lanterns) toonify(h.parent, .03);
+  pot.userData.dyn = false; toonify(potG, .04); pot.userData.dyn = true;
+  toonify(scene, .03);
+  const potRim = rimGlow('#ffe27a', .09);
+
+  // the world outside: a floating meadow at sunset, pink clouds, lamp posts, birds heading home and fireflies
+  skyDome(scene, SKY_TOP, SKY_LOW, { k: 1.25, off: .1 });
+  const cloudRing = clouds({ min: 22, max: 90, below: -13, color: '#ffe3da' }); scene.add(cloudRing);
+  const land = island(17.5, 17.5, { round: true, rim: 4.4, seed: 7, props: 18, size: 1.7, flowers: 70, lamps: 5, grass: '#8cc866', patch: '#7dbb5c' }); land.position.y = -2.4; scene.add(land);
+  const flyBirds = birds(scene, 26, 6, 4, 1.3), blow = petals(scene, 22, 3, { n: 8, size: .09, colors: ['#ffc1dc', '#fff1a8', '#ffffff', '#ffd9ea'] });
+  const pfx = createFx(scene);
+  let flyIn = 0, punch = 0;
+
   // the pot is the draw pile: its rim glows when you can take from it
   const potHalo = new THREE.Mesh(new THREE.TorusGeometry(1.72, .08, 10, 64), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }));
   potHalo.rotation.x = Math.PI / 2; potHalo.position.y = POT_Y + .98; scene.add(potHalo);
@@ -568,8 +587,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
 
   function flyCard(from, to, kind, faceUp, delay = 0, done, grow = false) {
     const g = new THREE.Group();
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(kind), roughness: .6, transparent: true }));
-    const backM = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind), roughness: .6, transparent: true })));
+    const backM = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true })));
     backM.rotation.y = Math.PI; g.add(front, backM); g.visible = false; scene.add(g);
     const lift = 1.2 + from.distanceTo(to) * .12;
     const r0 = faceUp ? -Math.PI / 2 + 1.1 : Math.PI / 2, r1 = faceUp ? -Math.PI / 2 : Math.PI / 2 - .6;
@@ -653,7 +672,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       if (fy - ty <= bottom - top && lx >= 6) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
-    scene.fog.near = hi; scene.fog.far = hi + 19; // small screens pull the camera back, and the fog goes with it
+    scene.fog.near = hi + 14; scene.fog.far = hi + 110; // small screens pull the camera back, and the fog goes with it
     const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
     const off = (ty + fy) / 2 - (top + bottom) / 2;
     camera.setViewOffset(w, h, 0, off, w, h); camera.updateProjectionMatrix();
@@ -729,7 +748,9 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       s.halo.material.opacity += ((s.take ? .55 + Math.sin(T * 5) * .3 : 0) - s.halo.material.opacity) * .2;
       s.tile.position.y = TILE_Y + (s.take ? .06 + Math.sin(T * 4 + r) * .04 : 0) + s.hover * .12;
       s.tile.scale.x = s.tile.scale.z = s.bs * s.sq * (1 + s.hover * .1);
+      s.edge.material.color.set(hv ? '#ffffff' : s.take ? '#ffd84a' : '#4a2c22'); s.edge.scale.set(hv || s.take ? 1.14 : 1.09, 1, hv || s.take ? 1.11 : 1.07); // a bright rim on a discard you can take
     });
+    potRim.show(deckActive ? potG : null); if (deckActive) potRim.pulse(T, .7 + deckHover * .3);
     deckHover += ((hover?.deck ? 1 : 0) - deckHover) * .2;
     potHalo.material.opacity += ((deckActive ? .65 + Math.sin(T * 5) * .3 : 0) - potHalo.material.opacity) * .2;
     potHalo.scale.setScalar(1 + deckHover * .05 + (deckActive ? Math.sin(T * 4) * .015 : 0));
@@ -786,9 +807,13 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     }
     bulbs.forEach((b, i) => b.scale.setScalar(1 + Math.sin(T * 2 + i) * .12));
     lanterns.forEach((h, i) => { h.parent.rotation.z = Math.sin(T * .9 + i * 2) * .04; h.material.opacity = .28 + Math.sin(T * 2.3 + i * 2) * .04 + Math.sin(T * 7.1 + i) * .02; });
-    glow.intensity = 3 + Math.sin(T * 7) * .45 + Math.sin(T * 11.3) * .3;
-    shake = Math.max(0, shake - dt * 2);
-    camera.position.set(camBase.x + Math.sin(T * .25) * .2 + (Math.random() - .5) * shake * .3, camBase.y + Math.sin(T * .4) * .06, camBase.z);
+    glow.intensity = 1.5 + Math.sin(T * 7) * .22 + Math.sin(T * 11.3) * .15;
+    shake = Math.max(0, shake - dt * 2); punch = Math.max(0, punch - dt * 1.6);
+    const zoom = 1 - Math.sin(Math.min(1, punch) * Math.PI) * .035; // a little push in on big moments
+    camera.position.set(camBase.x * zoom + Math.sin(T * .25) * .2 + (Math.random() - .5) * shake * .3, camBase.y * zoom + Math.sin(T * .4) * .06, camBase.z * zoom);
+    cloudRing.rotation.y = T * .005; flyBirds(T); blow(T);
+    flyIn -= dt; if (flyIn <= 0 && quality !== 'low') { flyIn = .22; const a = Math.random() * 6.283, r = 6 + Math.random() * 6; pfx.rise(v.set(Math.cos(a) * r, -2 + Math.random() * 4, Math.sin(a) * r), { color: ['#fff1a8', '#ffe27a'], size: .16, life: 3.2, speed: .22, wobble: .5, grow: 0 }); } // fireflies
+    pfx.update(dt, camera, H);
     camera.lookAt(camLook);
     shadowIn -= dt;
     if (shadowIn <= 0 && key.castShadow) { renderer.shadowMap.needsUpdate = true; shadowIn = busy ? .05 : .25; }
@@ -836,7 +861,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       const toTile = typeof to === 'string' && to.startsWith('tile') ? seats[+to.slice(4)] : null;
       if (toTile) { toTile.pending++; toTile.top.visible = false; }
       const fromPot = from === 'deck';
-      if (fromPot) { popIngredient(kind); puff(new THREE.Vector3(0, BROTH_Y + .1, 0), 7, .9); boil = 3; setMood('wow', .8, 1.5); }
+      if (fromPot) { popIngredient(kind); puff(new THREE.Vector3(0, BROTH_Y + .1, 0), 7, .9); boil = 3; setMood('wow', .8, 1.5); pfx.burst(v.set(0, BROTH_Y + .1, 0), { n: 12, colors: ['#ff7b5a', '#ffd9a8', '#fffaf0'], shape: DOT, speed: 2.2, up: 3.6, size: .16, life: .7 }); }
       else if (!toTile) { setMood('peek', 1, .4); if (typeof to === 'number') glance(to); } // someone pinched a discard
       else { lastStir = T; glance(+to.slice(4), 1.2); potTiltV += (TILE[+to.slice(4)][0] > 0 ? -1 : 1) * .5; }
       const seatTo = typeof to === 'number' ? seats[to] : null;
@@ -846,7 +871,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
           const tp = tilePos(+to.slice(4)); emit('spark', 3, { x: tp.x, z: tp.z, y: .3, spread: .7, rise: .9, dur: .8, size: .26 });
           toTile.pending = Math.max(0, toTile.pending - 1);
           if (!toTile.pending && toTile.c >= 0) toTile.top.visible = true;
-          squash(toTile); puff(tilePos(+to.slice(4)), 6, .5);
+          squash(toTile); puff(tilePos(+to.slice(4)), 6, .5); pfx.ring(tilePos(+to.slice(4)), { color: '#ffffff', size: 1.3 });
         }
       }, fromPot);
     },
@@ -862,7 +887,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       if (m === 'cry') return;
       emit(sym, m === 'love' ? 7 : 4, m === 'wow' ? { spread: .4, y: POT_Y + 1.4, size: .6 } : {});
       if (m === 'happy') laugh = 1.4;
-      if (m === 'fire') { boil = 4; shake = Math.max(shake, .4); }
+      if (m === 'fire') { boil = 4; shake = Math.max(shake, .4); pfx.burst(v.set(0, BROTH_Y + .2, 0), { n: 18, colors: ['#ff7a3c', '#ffd84a', '#ff5a3c'], shape: DOT, speed: 2, up: 5, size: .22, life: .8, grav: 3 }); }
       if (m === 'wink') potTiltV += .8;
     },
     potMood(name) {
@@ -871,20 +896,23 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       if (name === 'dizzy') { potSpin = 1; boil = 3; emit('spark', 5); }
       if (name === 'bang') emit('bang', 1, { spread: .3, y: POT_Y + 1.4, size: .6 });
     },
-    deal() { boil = 3; setMood('happy', 2.2, 1.4); emit('spark', 8, { gap: .12 }); for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
+    deal() { boil = 3; setMood('happy', 2.2, 1.4); emit('spark', 8, { gap: .12 }); punch = 1; pfx.burst(v.set(0, BROTH_Y + .3, 0), { n: 24, colors: ['#ffd84a', '#fff1a8', '#ffffff'], speed: 4, up: 5, size: .26, life: 1 }); for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
     celebrate(r, hand) {
       const from = r === 0 ? new THREE.Vector3(0, 1.4, 4.4) : handPos(r);
       (hand.length ? hand : Array.from({ length: 9 }, () => Math.random() * 72 | 0)).forEach((c, i) => hopIngredient(kindOf(c), from, i * 110));
       seats[r].hop = 1; setTimeout(() => { seats[r].hop = 1; }, 600);
       seats.forEach((s, i) => { if (i !== r) setTimeout(() => { s.hop = Math.max(s.hop, .7); }, 900 + i * 160); }); // a wave of cheers
       setMood('love', 4.5, 1.6); party = 3.2; glance(r, 3); emit('heart', 9, { gap: .22 }); emit('spark', 9, { gap: .2 });
-      shake = 1; boil = 4;
+      shake = 1; boil = 4; punch = 1;
+      const sp = new THREE.Vector3(SEAT[r][0] * .8, 1.2, SEAT[r][1] * .8);
+      pfx.burst(sp, { n: 30, colors: ['#ffd84a', '#ff9fb8', '#ffffff'], speed: 4.5, up: 5.5, size: .3, life: 1.1, shape: [STAR, HEART] });
+      pfx.confetti(new THREE.Vector3(0, 1, 0), { n: 140, w: 10, h: 5 }); setTimeout(() => pfx.confetti(new THREE.Vector3(0, 1, 0), { n: 100, w: 11, h: 5 }), 700);
       setTimeout(() => puff(new THREE.Vector3(0, BROTH_Y + .2, 0), 14, 2), 1000);
     },
     dispose() {
       frames.stop();
       canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('click', onClick);
-      renderer.dispose();
+      pfx.dispose(); potRim.dispose(); renderer.dispose();
     },
   };
 }
