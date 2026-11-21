@@ -584,3 +584,9 @@ body.sky.night:not(.in-game) .howto a { color: var(--lantern); }
   background: var(--plum2); border: 3px solid var(--line); color: var(--cream); transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); }
 .themebtn:hover { transform: rotate(-14deg) scale(1.06); } .themebtn:active { transform: scale(.9); }
 body.sky:not(.in-game) .themebtn { background: var(--pan); border-color: var(--ink); box-shadow: 0 4px 0 var(--ink); }
+/* game cards: title and player tag always share one line, and the buttons sit at the bottom so a row of cards lines up */
+.gcard .body { flex: 1; }
+.gcard .body > .row:first-child { flex-wrap: nowrap; gap: 8px; }
+.gcard .body > .row:first-child h3 { flex: 1 1 auto; min-width: 0; font-size: clamp(20px, 1.6vw + 8px, 26px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gcard .body > .row:first-child .tag { flex: none; font-size: 13px; padding: 3px 8px; }
+.gcard .body > .row:last-child { margin-top: auto; padding-top: 4px; }
