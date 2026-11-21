@@ -10,6 +10,7 @@ import { homeOf as homeAt, standOf } from './rules.js';
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TOP = .34;                 // grass tile height
 const AV = .42;                  // avatar scale
+const FOOT = .3;                 // how far an avatar's body reaches from its middle
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const GEM_COL = { 11: '#4db5ff', 12: '#ff5c8a', 13: '#ffc93c' };
 const NUM_COL = ['', '#2f7fd8', '#2f9a4a', '#e5543b', '#7a4fc9', '#b5482b', '#1f9aa0', '#3b2219', '#6b6b6b'];
@@ -224,7 +225,7 @@ export function createScene(canvas, { onFrame } = {}) {
       digN = st.dig.n; digAt = now() - st.dig.ago;
       pending = { ...st.dig, cells: [st.dig.i, ...st.dig.opened], walk: st.dig.walk || 600, revealAt: digAt + (st.dig.walk || 600) + st.ms.dig, done: false, fx: false };
       const s = seats[st.dig.s];
-      if (s) { // land just behind the tile and dig it facing the camera, so the find is not hidden behind the digger
+      if (s) { // stand on the tile behind and dig it facing the camera, so the find is not hidden behind the digger
         const sp = standOf(st.dig.i, st.w, st.h); s.from.copy(s.g.position).setY(0); s.to.set(sp.x, 0, sp.z); s.hopT = digAt;
       }
       if (st.dig.ago > pending.walk + st.ms.dig + 400) pending.fx = true; // too late to show the fireworks
@@ -355,7 +356,7 @@ export function createScene(canvas, { onFrame } = {}) {
       let digU = -1; // 0..1 through the digging once the walk is done
       const face = (yaw, k) => { let dr = yaw - s.g.rotation.y; dr = Math.atan2(Math.sin(dr), Math.cos(dr)); s.g.rotation.set(0, s.g.rotation.y + dr * Math.min(1, rdt * k), 0); };
       if (digging && s.hopT > 0) {
-        // walk to just behind the tile, in exactly the time the server allows for it
+        // walk to the tile behind it, in exactly the time the server allows for it
         const u = Math.min(1, (t - s.hopT) / pending.walk), e = u * u * (3 - 2 * u) * .35 + u * .65;
         tv.lerpVectors(s.from, s.to, e); const step = Math.hypot(tv.x - s.g.position.x, tv.z - s.g.position.z);
         if (u < 1) { if (step > 1e-4) face(Math.atan2(tv.x - s.g.position.x, tv.z - s.g.position.z), 14); walking = 1; s.ph += step * 7; }
@@ -367,10 +368,14 @@ export function createScene(canvas, { onFrame } = {}) {
         if (dist > .04) { const step = Math.min(dist, rdt * 4.6); d.normalize(); face(Math.atan2(d.x, d.z), 12); s.g.position.addScaledVector(d, step); walking = 1; s.ph += step * 7; }
         else face(Math.atan2(-s.g.position.x, -s.g.position.z), 5);
       }
-      { // step up and down the grass tiles on the way
-        const gx = Math.round(s.g.position.x + (w - 1) / 2), gz = Math.round(s.g.position.z + (h - 1) / 2), cell = gx >= 0 && gz >= 0 && gx < w && gz < h ? gz * w + gx : -1;
-        const gone = cell >= 0 && (!shownHidden[cell] || (pending?.landed && pending.i === cell));
-        s.y += ((cell >= 0 && !gone ? TOP : 0) - s.y) * Math.min(1, rdt * 16); s.g.position.y = s.y + (walking ? Math.abs(Math.sin(s.ph)) * .04 : 0);
+      { // stand on whatever is highest under your feet, so nobody sinks into a grass tile they are brushing past
+        let top = 0;
+        for (let k = 0; k < 5 && !top; k++) {
+          const gx = Math.round(s.g.position.x + (k === 1 ? FOOT : k === 2 ? -FOOT : 0) + (w - 1) / 2), gz = Math.round(s.g.position.z + (k === 3 ? FOOT : k === 4 ? -FOOT : 0) + (h - 1) / 2);
+          const cell = gx >= 0 && gz >= 0 && gx < w && gz < h ? gz * w + gx : -1;
+          if (cell >= 0 && shownHidden[cell] && !(pending?.landed && pending.i === cell)) top = TOP;
+        }
+        s.y += (top - s.y) * Math.min(1, rdt * 16); s.g.position.y = s.y + (walking ? Math.abs(Math.sin(s.ph)) * .04 : 0);
       }
       s.hop = Math.max(0, s.hop - dt * 1.6); s.nod = Math.max(0, s.nod - dt * .8); s.knock = Math.max(0, (s.knock || 0) - dt * 1.5);
       s.av.position.y = Math.abs(Math.sin(s.hop * Math.PI * 2)) * .35 * s.hop;
@@ -394,8 +399,8 @@ export function createScene(canvas, { onFrame } = {}) {
         grip.set(0, 0, 0); for (const a of arms) { hand.set(0, a.userData.hand, 0); a.localToWorld(hand); grip.add(hand); } grip.multiplyScalar(.5);
         // a rigid shovel gripped part way up the handle. The blade points down at the tile ahead, drives in, then swings up and out sideways
         const rest = 1 - push;
-        dirV.set(toss * .95 * side, -1 + rest * .25 + toss * .95, .3 + rest * .45 - toss * .1).normalize();
-        const len = .5 + push * .1;
+        dirV.set(toss * .95 * side, -1 + rest * .25 + toss * .95, .75 + rest * .35 - toss * .2).normalize();
+        const len = .62 + push * .12;
         bladeP.copy(grip).addScaledVector(dirV, len); if (bladeP.y < .06) bladeP.y = .06;
         s.shovel.position.copy(bladeP); dirV.negate(); s.shovel.quaternion.setFromUnitVectors(UP, dirV);
         const { handle, tee } = s.shovel.userData; handle.scale.y = len - .36 + .22; tee.position.y = .36 + handle.scale.y;
