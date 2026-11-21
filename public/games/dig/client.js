@@ -99,13 +99,14 @@ export function mount(app, ctx) {
     for (const el of tagEls) el._w = el.offsetWidth;
   }
   // points as the screen shows them: the latest dig only counts once its tile has been dug open
+  const shownFinds = i => gemsOf(S.seats[i].st) - (!revealed && S.dig?.s === i && S.dig.kind >= 1 && S.dig.kind <= 3 ? 1 : 0);
   const shownPts = i => S.seats[i].pts - (!revealed && S.dig?.s === i ? S.dig.pts : 0);
 
   function renderList() {
     const order = S.seats.map((_, i) => i);
     setHtml($('td-list'), order.map(i => {
       const p = S.seats[i], st = p.st, now = i === S.turn && S.ph === 'play' && S.stage !== 'start';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? 'You' : esc(p.name)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${gemsOf(st)} finds">${gemSvg(1)}${gemsOf(st)}</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? 'You' : esc(p.name)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${shownFinds(i)} finds">${gemSvg(1)}${shownFinds(i)}</span></li>`;
     }).join(''));
   }
 
