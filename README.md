@@ -12,7 +12,7 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #5: Tower Stack**, one shared wobbly tower on a sky island. Take turns dropping a swinging block: stack it straight for points, and don't be the one who knocks it over. Rules live in `public/games/stack/rules.js`.
 
-**Game #6: Mini Golf Party**, nine blocky 3D holes on sky islands that everyone putts at the same time, each with their own ball. Drag back and let go to putt past windmills, bumper posts, ramps, sand and water. Before each hole you can bet coins on who will take it. The holes and the ball physics are shared by the server and the client in `public/games/golf/course.js` (a hole is a small text map, so adding one is a few lines).
+**Game #6: Mini Golf Party**, nine blocky 3D holes on sky islands that everyone plays together, taking turns with their own ball. Drag back and let go to putt past windmills, bumper posts, ramps, sand and water. Before each hole you can bet coins on who will take it. The holes and the ball physics are shared by the server and the client in `public/games/golf/course.js` (a hole is a small text map, so adding one is a few lines).
 
 **Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush and Mini Golf Party bet them, and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
