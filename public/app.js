@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -149,6 +149,29 @@ const GAMES = {
       <li>The hole goes to the <b>fewest strokes</b>. A tie goes to whoever holed out first.</li>
       <li>With bets on, before each hole you can <b>bet coins</b> on who will take it, yourself included. A right call pays your stake times the number of players. It is optional, and it uses your real coins, the ones that buy avatar items.</li>
       <li>After the last hole the <b>fewest strokes in total</b> wins the round. Empty seats are played by bots.</li>
+    </ol>`,
+  },
+  dice: {
+    name: "Liar's Dice", load: () => import('./games/dice/client.js'), start: 'Shake the cups',
+    host: { seats: 4, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 0 },
+    openSeat: 'A bot bluffs from this seat if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Dice each</b><div class="pills">${pill('dice', 5, 'Classic 5')}${pill('dice', 3, 'Quick 3')}</div></div>
+      <div class="opt"><b>Ones are wild</b><div class="pills">${pill('wild', 'on', 'On')}${pill('wild', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Spot on calls</b><div class="pills">${pill('spot', 'on', 'On')}${pill('spot', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Everyone rolls in secret under a cup. Take turns bidding how many dice of one face there are on the whole table, always going higher. Think the last bid is a bluff? Call “Liar!”. Whoever is wrong loses a die, and the last player with dice wins.`,
+    rules: `<ol>
+      <li>Everyone starts with <b>five dice</b> under a cup. Each round you all roll, and you can only see <b>your own</b>. Empty seats are played by bots.</li>
+      <li>Take turns <b>bidding</b> on all the dice at the table together, for example “four fives”: at least four dice show a five.</li>
+      <li>Every bid has to go <b>higher</b>: more dice of any face, or the same number of a higher face.</li>
+      <li>Instead of bidding you can call <b>Liar!</b> on the bid before you. All cups lift and the dice are counted.</li>
+      <li>If there are <b>fewer</b> than the bid, the bidder loses a die. If the bid was good, the one who called loses a die.</li>
+      <li><b>Ones are wild</b>: a 1 counts as whatever face was bid, so you cannot bid on ones.</li>
+      <li><b>Spot on!</b> is the risky call: you say the bid is <b>exactly</b> right. If it is, everyone else loses a die. If not, you lose one.</li>
+      <li>Whoever lost a die opens the next round. Run out of dice and you are out. The <b>last player with dice</b> wins.</li>
+      <li>Shortcuts: arrow keys change the bid, <b>Enter</b> bids, <b>L</b> calls liar, <b>S</b> calls spot on.</li>
     </ol>`,
   },
 };
@@ -492,6 +515,14 @@ function renderHub() {
             <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>
             <p>Everyone putts the same blocky 3D hole at once. Dodge the windmill, sink it first, and bet coins on who takes each hole.</p>
             <div class="row"><button type="button" class="btn" data-act="host" data-game="golf">Host a table</button></div>
+          </div>
+        </article>
+        <article class="gcard">
+          <div class="pic dicepic">${diceArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Liar's Dice</h3><span class="tag">1–6 players</span></div>
+            <p>Roll in secret under your cup, bid on everyone's dice and bluff with a straight face. Call “Liar!” when you smell one.</p>
+            <div class="row"><button type="button" class="btn" data-act="host" data-game="dice">Host a table</button></div>
           </div>
         </article>
         <article class="gcard">
