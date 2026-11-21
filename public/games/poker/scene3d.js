@@ -21,7 +21,7 @@ export function suitPath(g, s, x, y, size) {
   g.fill(new Path2D(SUIT_PATHS[s])); g.restore();
 }
 const texCache = new Map();
-export function cardTexture(c) { // c below 0 is a back: -1 the classic one, -1 - k the card back k from the shop (skins.js) (Tysiąc draws its cards with this too)
+export function cardTexture(c) { // c below 0 is a back: -1 the classic one, -1 - k the card back k from the shop (skins.js) (Tysiąc and Pan draw their cards with this too)
   if (texCache.has(c)) return texCache.get(c);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 364;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;

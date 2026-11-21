@@ -335,3 +335,18 @@ export function tysArt() {
     <text x="251" y="90" text-anchor="middle" font-family="Fredoka, Nunito, sans-serif" font-weight="700" font-size="34" fill="#fff4e2">1000</text>
     <path d="M222 98h58" stroke="#fff4e288" stroke-width="3" stroke-linecap="round"/></g></svg>`;
 }
+
+// Pan card: the nine of hearts on a blue table with a climbing fan of cards on top of it.
+export function panArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const heart = (x, y, k, c = '#d8402a') => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z" fill="${c}"/>`;
+  const spade = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z" fill="#3b2219"/>`;
+  const card = (x, y, rot, label, pip, cls = '') => `<g class="${cls}" style="animation-delay:${-x * 9}ms"><g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="#fff8ec" ${o}/><text x="${x + 7}" y="${y + 23}" font-family="Fredoka, system-ui, sans-serif" font-weight="700" font-size="21" fill="${pip === 's' ? '#3b2219' : '#d8402a'}">${label}</text>${pip === 's' ? spade(x + 16, y + 30, 1.25) : heart(x + 16, y + 30, 1.25)}</g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="The nine of hearts on a blue table with a ten, a king and an ace fanned on top">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#4f6fc4" ${o}/>
+    ${card(74, 52, -14, '9', 'h')}${card(118, 44, -5, '10', 's', 'pfan')}${card(162, 42, 5, 'K', 'h', 'pfan')}${card(206, 46, 14, 'A', 's', 'pfan')}
+    <path d="M262 62l10-8M268 80h13M96 34l-5-10" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
