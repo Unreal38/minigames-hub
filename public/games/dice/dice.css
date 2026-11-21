@@ -1,0 +1,153 @@
+/* Liar's Dice: sticker HUD over a bright sky island */
+body.in-game { overflow: hidden; }
+.ld { position: fixed; inset: 0; overflow: hidden; background: #c9ecff; user-select: none; -webkit-tap-highlight-color: transparent; }
+.ld .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
+.ld.flat .g3d { display: none; }
+.ld.flat::before { content: 'The 3D table could not load on this device. You can still play: your dice and everyone\'s bids are shown here.'; position: absolute; left: 50%; top: 22%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+
+/* dice pictures */
+.ld-die { width: 1em; height: 1em; flex: none; vertical-align: -.16em; overflow: visible; }
+.ld-die rect { fill: #fff8ec; stroke: var(--ink); stroke-width: 2.2; }
+.ld-die circle { fill: var(--ink); }
+.ld-die .one { fill: var(--chili); }
+.ld-die path { fill: none; stroke: #b79d8c; stroke-width: 2.2; stroke-linecap: round; }
+.ld-die.dim { opacity: .38; }
+.ld-die.hit rect { fill: #ffd84a; }
+.ld-die.hit { animation: ldhit .4s cubic-bezier(.3, 1.8, .5, 1) both; }
+.ld-die.pick rect { fill: #ffe9a8; }
+@keyframes ldhit { 0% { transform: scale(1); } 45% { transform: scale(1.55) rotate(-8deg); } 100% { transform: scale(1.12); } }
+
+/* name tags over the avatars */
+.ld .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.ld-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--ink); }
+.ld-tag[hidden] { display: none; }
+.ld-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.ld-tag .plate i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
+.ld-tag .plate b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+.ld-tag .plate span { display: inline-flex; align-items: center; gap: 3px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px 0 5px; font-size: 13px; }
+.ld-tag .plate span .ld-die rect { stroke: var(--cream); fill: var(--cream); } .ld-tag .plate span .ld-die path { stroke: none; }
+.ld-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+.ld-tag.out { opacity: .6; }
+.ld-tag .bub:empty { display: none; }
+.ld-tag .bub span { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 9px; font-size: 16px; opacity: .72; }
+.ld-tag .bub .top { opacity: 1; background: var(--lantern); font-size: 19px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ld-tag .bub .call { opacity: 1; background: var(--chili); color: #fff; font-size: 19px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ld .ld-pts { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -100%); font-family: var(--fd); font-weight: 700; font-size: 34px; color: #3fae5d; -webkit-text-stroke: 5px var(--cream); paint-order: stroke fill; animation: ldup 1.5s ease-out both; }
+.ld .ld-pts.bad { color: var(--chili); }
+@keyframes ldup { 0% { opacity: 0; margin-top: 10px; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; margin-top: -70px; } }
+
+.ld .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.ld .hud > * { pointer-events: auto; }
+.ld .tl, .ld .tr { position: absolute; top: max(14px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; }
+.ld .tl { left: 14px; } .ld .tr { right: 14px; }
+.ld .chip, .ld .round { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.ld .round:disabled { opacity: .4; cursor: default; transform: none; }
+.ld .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
+
+.ld .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 3px 0 #23401c55; }
+.ld .banner:empty { display: none; }
+.ld .banner.hot { background: var(--lantern); box-shadow: 0 5px 0 var(--ink); }
+
+/* the bid on the table */
+.ld-bid { position: absolute; left: 50%; top: 34%; transform: translate(-50%, 0); display: flex; flex-direction: column; align-items: center; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 16px; padding: 1px 14px 3px; font-family: var(--fd); box-shadow: 0 4px 0 var(--ink); pointer-events: none !important; white-space: nowrap; }
+.ld-bid[hidden] { display: none; }
+.ld-bid b { font-size: 28px; font-weight: 700; line-height: 1.1; display: inline-flex; align-items: center; gap: 7px; }
+.ld-bid em { font-style: normal; font-weight: 700; font-size: 15px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 12px; margin: 1px 0 3px; }
+.ld-bid em.yes { background: #3fae5d; } .ld-bid em.no { background: var(--chili); }
+
+.ld .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
+.ld .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, 9vw, 80px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.ld .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, 3vw, 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.ld .shout span:empty { display: none; }
+.ld .shout .ld-die rect { stroke: var(--cream); }
+.ld .shout.show { animation: ldbig var(--ms, 1.6s) cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes ldbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 12%, 82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
+
+/* players and their dice */
+.ld-side { position: absolute; left: 14px; top: 70px; width: 226px; }
+.ld-list { margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; max-height: calc(100vh - 250px); overflow: auto; }
+.ld-list li { display: flex; align-items: center; gap: 8px; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--ink); }
+.ld-list li > div { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.2; }
+.ld-list b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.ld-list em { font-style: normal; font-size: 13px; color: #7a5545; }
+.ld-list .avatar { border-width: 2px; }
+.ld-row { display: flex; align-items: center; gap: 3px; font-size: 18px; min-height: 22px; }
+.ld-row.open { font-size: 22px; }
+.ld-row u { text-decoration: none; color: var(--chili); font-weight: 700; margin-left: 4px; font-size: 16px; animation: popin .3s both; }
+.ld-list .ld-me { background: #ffb54740; }
+.ld-list .now { border-color: var(--ink); background: var(--lantern); }
+.ld-list .out { opacity: .55; }
+.ld-list .lose { background: #e5543b2e; }
+
+/* your dice and the controls */
+.ld-dock { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw - 20px); }
+.ld-mine { display: flex; align-items: center; gap: 12px; background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 18px; padding: 6px 14px; box-shadow: 0 3px 0 #23401c55; font-family: var(--fd); font-weight: 600; color: var(--ink); }
+.ld-mine:empty, .ld-ctl:empty { display: none; }
+.ld-mine .lbl { font-size: 15px; }
+.ld-hand { display: flex; gap: 6px; font-size: 46px; }
+.ld-hand .ld-die { animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ld-hand.shaking .ld-die { animation: ldshake .28s linear infinite; } .ld-hand.shaking .ld-die:nth-child(2n) { animation-delay: -.14s; }
+@keyframes ldshake { 0%, 100% { transform: translate(0, 0) rotate(-9deg); } 25% { transform: translate(2px, -5px) rotate(7deg); } 50% { transform: translate(-2px, 1px) rotate(-5deg); } 75% { transform: translate(1px, -3px) rotate(10deg); } }
+.ld-ctl { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #fff4e2f2; border: 3px solid var(--ink); border-radius: 22px; padding: 10px 14px; box-shadow: 0 4px 0 #23401c55; max-width: 100%; }
+.ld-ctl:has(.ld-wait) { background: none; border: 0; box-shadow: none; padding: 0; }
+.ld-pick { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.ld-qty { display: flex; align-items: center; gap: 6px; }
+.ld-qty b { font-family: var(--fd); font-weight: 700; font-size: 32px; color: var(--ink); min-width: 1.5em; text-align: center; }
+.ld-qty .round { font-size: 26px; }
+.ld-faces { display: flex; gap: 5px; }
+.ld-faces button { font-size: 40px; line-height: 0; padding: 3px; border: 3px solid transparent; border-radius: 13px; background: none; cursor: pointer; transition: transform .12s cubic-bezier(.3, 1.6, .5, 1); }
+.ld-faces button:hover:not(:disabled) { transform: translateY(-3px); }
+.ld-faces button[aria-pressed=true] { border-color: var(--ink); background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+.ld-faces button:disabled { opacity: .3; cursor: default; }
+.ld-go { display: flex; gap: 10px; justify-content: center; }
+.ld-go .btn { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.ld-go .btn:disabled { opacity: .45; cursor: default; }
+.ld-hint { margin: 0; font-size: 14px; color: #6b4a3c; text-align: center; }
+.ld-hint b { font-family: var(--fd); color: var(--ink); }
+.ld-wait { display: inline-flex; align-items: center; gap: 10px; background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px 6px 8px; font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--ink); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.ld-wait .avatar { border-width: 2px; }
+
+/* results */
+.ld .confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.ld .results { position: absolute; inset: 0; background: #160a12b0; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; animation: fade .25s both; }
+.ld .results[hidden] { display: none; }
+.ld .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+.ld .score { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ld .score li { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid #c9a99a; border-radius: 16px; padding: 7px 12px 7px 8px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ld .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); }
+.ld .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
+.ld .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.ld .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld .score .who span { font-size: 13px; color: #7a5545; }
+.ld .score strong { font-family: var(--fd); font-weight: 700; font-size: 20px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.ld .score strong span { display: inline-flex; align-items: center; gap: 4px; } .ld .score strong .ld-die path { stroke: none; }
+.ld .score small { font-size: 12px; font-weight: 600; color: #6b4a3c; }
+.ld .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+
+@media (max-width: 1279px) {
+  /* no room for the list beside the table: it comes out for the reveal only */
+  .ld-side { display: none; left: 0; right: 0; margin: 0 auto; top: calc(max(14px, env(safe-area-inset-top)) + 104px); width: min(300px, calc(100vw - 28px)); z-index: 2; }
+  .ld.showing .ld-side { display: block; animation: popin .3s both; }
+  .ld-list { max-height: none; background: #fff4e2f5; }
+  .ld.showing .shout { top: auto; bottom: calc(max(14px, env(safe-area-inset-bottom)) + 96px); }
+  .ld.showing .shout b { font-size: clamp(34px, 9vw, 60px); }
+  @keyframes ldbig { 0% { opacity: 0; transform: translate(-50%, 0) scale(.4) rotate(-6deg); } 12%, 82% { opacity: 1; transform: translate(-50%, 0) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -10%) scale(1.1); } }
+}
+@media (max-width: 700px) {
+  .ld .tcode { display: none; }
+  .ld .tl .chip { font-size: 13px; padding: 4px 10px; }
+  .ld .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 150px); padding: 5px 14px; }
+  .ld-tag .plate { font-size: 12px; } .ld-tag .plate b { max-width: 4.5em; } .ld-tag .plate span { font-size: 12px; padding: 0 6px 0 4px; }
+  .ld-tag .bub span { font-size: 14px; } .ld-tag .bub .top, .ld-tag .bub .call { font-size: 16px; }
+  .ld-bid b { font-size: 22px; }
+  .ld-dock { gap: 6px; width: calc(100vw - 16px); }
+  .ld-mine { padding: 5px 12px; gap: 10px; } .ld-mine .lbl { font-size: 13px; } .ld-hand { font-size: 38px; gap: 5px; }
+  .ld-ctl { padding: 8px 8px 9px; gap: 7px; width: 100%; box-sizing: border-box; }
+  .ld-pick { gap: 6px 12px; } .ld-faces { gap: 2px; } .ld-faces button { font-size: 36px; padding: 2px; }
+  .ld-qty b { font-size: 28px; min-width: 1.3em; }
+  .ld-go { gap: 7px; width: 100%; } .ld-go .btn { flex: 1 1 0; justify-content: center; font-size: 17px; padding: 10px 6px; min-height: 52px; min-width: 0; }
+  .ld-go .btn:first-child { flex: 1.5 1 0; }
+  .ld-hint { font-size: 12.5px; line-height: 1.3; }
+}
+body:has(.ld) #toasts { top: 118px; }
+@media (max-width: 1150px) { body:has(.ld) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.ld) .chatbtn .lbl, body:has(.ld) .scorebtn .lbl { display: none; } }

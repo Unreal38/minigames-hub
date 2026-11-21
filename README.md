@@ -14,6 +14,8 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #6: Mini Golf Party**, nine blocky 3D holes on sky islands that everyone plays together, taking turns with their own ball. Drag back and let go to putt past windmills, bumper posts, ramps, sand and water. Before each hole you can bet coins on who will take it. The holes and the ball physics are shared by the server and the client in `public/games/golf/course.js` (a hole is a small text map, so adding one is a few lines).
 
+**Game #7: Liar's Dice**, the bluffing game at a round 3D table on a sky island. Everyone rolls in secret under a cup in their colour, bids go round on how many dice of one face there are in total, and calling "Liar!" lifts every cup. The server never sends a player anyone else's dice until the cups lift. Rules and odds shared by server and client live in `public/games/dice/rules.js`; bot personalities are the `BOTS` table in `server/games/dice.js`.
+
 **Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush and Mini Golf Party bet them, and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.

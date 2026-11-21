@@ -185,3 +185,18 @@ export function golfArt() {
     <path d="M236 112c-30 4-60 0-92-8" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
     <circle cx="140" cy="103" r="8" fill="#ff8fab" ${o}/><circle cx="137" cy="100" r="2.4" fill="#fff"/></svg>`;
 }
+
+// Liar's Dice card: a tilted dice cup with dice tumbling out on a round table, under a sky.
+export function diceArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pip = (x, y, r = 3.2, c = '#3b2219') => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+  const die = (x, y, rot, pips, cls = '') => `<g class="${cls}" transform="rotate(${rot} ${x + 17} ${y + 17})"><rect x="${x}" y="${y}" width="34" height="34" rx="8" fill="#fff8ec" ${o}/>${pips.map(([px, py, r, c]) => pip(x + px, y + py, r, c)).join('')}</g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A dice cup tipped over a round table with three dice tumbling out">
+    <rect width="320" height="150" fill="#bfe8ff"/>
+    <path d="M26 40l14-8 16 4 8 10-10 8H34z" fill="#fff"/><path d="M250 30l12-6 14 4 6 8-8 6h-18z" fill="#fff"/>
+    <ellipse cx="160" cy="132" rx="150" ry="34" fill="#b9794a" ${o}/><ellipse cx="160" cy="126" rx="138" ry="28" fill="#3f9f96" ${o}/>
+    <g class="dcup" style="transform-origin:96px 96px"><path d="M58 104l22-62 54 20-30 58z" fill="#ff8fab" ${o}/><path d="M64 88l50 18-6 11-48-17z" fill="#3b2219" fill-opacity=".22"/><ellipse cx="81" cy="112" rx="26" ry="11" transform="rotate(20 81 112)" fill="#c95f7c" ${o}/></g>
+    ${die(140, 92, -12, [[10, 10], [24, 24], [17, 17]])}${die(188, 80, 14, [[17, 17, 5, '#e5543b']], 'ddie')}${die(232, 98, -6, [[10, 10], [24, 10], [10, 24], [24, 24], [17, 17]])}
+    <path d="M150 66l-6-9M172 58l1-11M204 60l7-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
