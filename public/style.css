@@ -639,3 +639,8 @@ body.sky.night:not(.in-game) .chatform { background: var(--pan2); } body.sky.nig
 body.sky.night:not(.in-game) .chatemoji { border-color: var(--edge); }
 body.sky.night:not(.in-game) .toast { background: var(--pan); color: var(--tx); } body.sky.night:not(.in-game) .toast.bad { background: #5a2333; }
 body.sky.night:not(.in-game) .howto b { color: var(--lantern); }
+
+/* the day/night switch inside the games sits in the game's own row of round buttons; the emoji needs no stroke colour */
+.gamesw { font-size: 19px; line-height: 1; }
+/* phones: the switch stays on the right end of the second row of the top bar */
+@media (max-width: 600px) { .top .me[data-act=profile] > small { display: none; } .top .themebtn { width: 44px; height: 44px; font-size: 20px; } }
