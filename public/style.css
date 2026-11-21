@@ -330,6 +330,9 @@ body:has(.lobby) .scorebtn { display: none; }
 .dicepic .dcup { animation: dcup 2.8s ease-in-out infinite; }
 .dicepic .ddie { animation: bob 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .gcard .pic.pawpic { background: #bfe8ff; padding: 0; }
+.gcard .pic.tyspic { background: #b8433f; padding: 0; }
+.gcard .pic.tyspic svg { width: 100%; height: 100%; display: block; }
+.tyspic .fan { animation: bob 2.6s ease-in-out infinite; animation-delay: var(--d); }
 .gcard .pic.digpic { background: #bfe8ff; padding: 0; }
 .gcard .pic.digpic svg { width: 100%; height: 100%; display: block; }
 .digpic .dgem { animation: bob 2.2s ease-in-out infinite; }
