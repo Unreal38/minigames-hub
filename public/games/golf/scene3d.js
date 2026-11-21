@@ -72,7 +72,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   const putterMats = [toonMat(new THREE.MeshStandardMaterial({ color: '#d9dde3' })), toonMat(new THREE.MeshStandardMaterial({ color: '#5b4636' }))];
   const ballGeo = new THREE.IcosahedronGeometry(BALL_R, 2), inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
   let H = null, holeG = null, holeKey = '', spinMeshes = [], blades = [], flag = null, water = null;
-  let players = [], seatsKey = '', me = -1, stage = 'bet', clockBase = performance.now(), frozen = 0;
+  let players = [], seatsKey = '', me = -1, turn = -1, stage = 'bet', clockBase = performance.now(), frozen = 0;
   const arrow = youArrow(); arrow.visible = false; arrow.scale.setScalar(.7); scene.add(arrow);
 
   // aim arrow: a strip that grows with the power, plus a row of dots showing the line
@@ -200,7 +200,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   // Everything the server said about the balls. Shots are replayed from where they are now (ago ms in).
   function setState(S) {
     if (!H) return;
-    me = S.me; stage = S.stage;
+    me = S.me; stage = S.stage; turn = S.stage === 'play' ? S.turn : -1;
     const now = performance.now();
     if (S.stage === 'play') { const b = now - S.clock; if (Math.abs(b - clockBase) > 120) clockBase = b; frozen = 0; }
     else if (S.stage === 'bet') { frozen = 1; }
@@ -319,9 +319,13 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       if (flying) { p.ball.rotation.x += dt * 9; p.ball.rotation.z += dt * 5; }
       // --- the golfer ---
       const done = (p.sunk || p.out) && !flying && p.phase !== 'fly';
-      let tx, tz, face;
+      let tx, tz, face, waiting = false;
       if (done && !(sh && sh.sunk && now - p.t0 - sh.ms < 900)) { // off to the gallery behind the green to cheer
         tx = (i - (n - 1) / 2) * .78; tz = -H.rows / 2 - 1.2; face = 0;
+      } else if (i !== turn && !sh) { // not their putt: wait in a line beside the course, out of the way
+        waiting = true;
+        if (W < Hh) { tx = (i - (n - 1) / 2) * .8; tz = H.rows / 2 + 1.05; face = Math.PI; } // tall screen: in front of the tee, where there is room
+        else { tx = -H.cols / 2 - .95; tz = H.rows / 2 - .5 - i * .8; face = Math.PI / 2; }
       } else {
         const ax = flying || sh ? (sh.x0 ?? bx) : bx, az = flying || sh ? (sh.z0 ?? bz) : bz;
         let ang = flying || sh ? sh.ang : Math.atan2(H.cup.x - ax, -(H.cup.z - az));
@@ -348,7 +352,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       // arms forward on the putter; a follow-through when the ball is struck
       p.swing += dt;
       const sw = p.swing < .45 ? Math.sin(Math.min(1, p.swing / .45) * Math.PI) * .9 : i === me && aim.on ? -aim.pow * .55 : 0;
-      p.putter.visible = !done && !walking;
+      p.putter.visible = !done && !waiting && !walking;
       p.putter.rotation.z = sw * (p.side || 1);
       if (p.putter.visible) for (const a of p.av.userData.arms) a.rotation.x = a.userData.rx - .62;
     });
