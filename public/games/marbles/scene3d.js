@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { makeTrack, world, at, spinAngle, trapOpen, R, DS, DISH, WALL_H, GATE_S } from './track.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake } from '../../avatar3d.js';
-import { toonify, toonMat, shell, skyDome, clouds, island, birds, createFx, shaker, disposeToon, STAR, DOT, CONF } from '../../scenery3d.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, createFx, shaker, disposeToon, STAR, DOT, CONF, nightScene } from '../../scenery3d.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff';
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
@@ -97,6 +97,7 @@ export function createScene(canvas, { onFrame }) {
   // the world: the track winds through a sunny sky, over a sea of clouds, past little floating islands and balloons
   const sky = skyDome(scene, SKY_TOP, SKY_LOW, { r: 600 });
   const cloudSea = clouds({ near: 90, far: 16, min: 8, max: 190, below: 0 }); scene.add(cloudSea);
+  nightScene(scene); // the website's night mode carries into the game
   const birdG = new THREE.Group(); scene.add(birdG); const flyBirds = birds(birdG, 26, 9, 5, 1.6);
   const pfx = createFx(scene, { max: 1200 }), shake = shaker();
   key.shadow.mapSize.set(2048, 2048); Object.assign(key.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 70 });

@@ -3,7 +3,7 @@
 // here until the cups lift, because the server never sends them before that.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT } from '../../scenery3d.js';
+import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { matches } from './rules.js';
 
@@ -57,6 +57,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the island and the table ----------
   skyDome(scene, SKY_TOP, SKY_LOW);
   const cloudRing = clouds({ min: 22, max: 90, below: -12 }); scene.add(cloudRing);
+  nightScene(scene); // the website's night mode carries into the game
   const land = island(15, 15, { round: true, rim: 4.4, seed: 5, props: 16, size: 1.7, flowers: 56 }); land.position.y = -2.4; scene.add(land);
   const flyBirds = birds(scene, 46, 13, 4, 1.6), drift = petals(scene, 22, 5, { n: small ? 6 : 10 });
   const room = new THREE.Group(); scene.add(room);
