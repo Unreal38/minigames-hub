@@ -2,7 +2,7 @@
 // A dug tile with nothing in it shows how many traps are next to it (like Minesweeper) and sparkles if a gem is
 // still buried next door. Find a gem and you dig again; hit a trap and you lose points. When the last gem is
 // found, the most points wins. Nothing under the grass is ever sent to a player before it is dug.
-import { KIND, PTS, TRAP, SIZES, MS, waitFor, around, isGem } from '../../public/games/dig/rules.js';
+import { KIND, PTS, TRAP, SIZES, MS, waitFor, around, isGem, homeOf, standOf, walkMs } from '../../public/games/dig/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'dig', name: 'Treasure Dig', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
@@ -48,7 +48,7 @@ export function create(players, optsIn = {}) {
     game: 'dig', ph: 'play', stage: 'start', gid: Math.random().toString(36).slice(2, 8), seats, opts,
     w: F.w, h: F.h, cells: F.cells, num: F.num, open: new Array(F.w * F.h).fill(0), by: new Array(F.w * F.h).fill(-1),
     pts: seats.map(() => 0), st: seats.map(() => ({ gems: 0, big: 0, chest: 0, traps: 0, digs: 0, best: 0 })),
-    turn: Math.random() * seats.length | 0, chain: 0, dig: null, digN: 0, stageEnd: now + MS.start, startAt: now,
+    turn: Math.random() * seats.length | 0, chain: 0, at: seats.map(() => null), dig: null, digN: 0, stageEnd: now + MS.start, startAt: now,
     tEnd: 0, botAt: 0, ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
   };
   flood(G, F.mid, -1);
@@ -86,7 +86,10 @@ function doDig(G, s, i, now, late = false) {
   G.pts[s] += pts; st.digs++;
   if (isGem(kind)) st.best = Math.max(st.best, G.chain);
   G.dig = { s, i, kind, pts, opened, at: now, n: ++G.digN, chain: isGem(kind) ? G.chain : 0, late };
-  G.stage = 'dig'; G.tEnd = 0; G.stageEnd = now + waitFor(kind);
+  // how long the walk to the tile takes: from the digger's spot by the plot, or from the last tile in a chain of finds
+  const to = standOf(i, G.w, G.h), walk = walkMs(G.at[s] || homeOf(s, G.seats.length, G.w, G.h), to);
+  G.at[s] = isGem(kind) ? to : null; G.dig.walk = walk;
+  G.stage = 'dig'; G.tEnd = 0; G.stageEnd = now + waitFor(kind, walk);
   pushEv(G, { t: 'dig', s, i, kind, pts, chain: G.dig.chain });
   return true;
 }

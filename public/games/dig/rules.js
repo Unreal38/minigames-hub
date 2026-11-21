@@ -14,8 +14,21 @@ export const SIZES = {
 };
 
 // Animation times (ms) the server waits for before the next dig, so every screen sees it play out.
-export const MS = { hop: 600, dig: 700, dirt: 500, gem: 1100, chest: 1600, trap: 1700, start: 1800 };
-export const waitFor = kind => MS.hop + MS.dig + (kind === KIND.trap ? MS.trap : kind === KIND.chest ? MS.chest : kind ? MS.gem : MS.dirt);
+export const MS = { dig: 1500, dirt: 500, gem: 1100, chest: 1600, trap: 1700, start: 1800 };
+export const waitFor = (kind, walk) => walk + MS.dig + (kind === KIND.trap ? MS.trap : kind === KIND.chest ? MS.chest : kind ? MS.gem : MS.dirt);
+
+// Where avatars stand (field units, one tile = 1, middle of the field = 0,0). The server uses the same spots to
+// know how far a digger has to walk, so it can wait for exactly that long.
+export const WALK = { speed: 4.2, min: 350, max: 2600 }; // tiles a second; shortest and longest walk in ms
+export function homeOf(k, n, w, h) { // spread round the back and the two sides of the plot, never in front of it
+  const L = h + .6, side = w + 1.8, total = 2 * L + side, d = (k + .5) / n * total, ex = w / 2 + 1.05, ez = h / 2 + 1.05;
+  if (d < L) return { x: -ex, z: h / 2 - .3 - d };
+  if (d < L + side) return { x: -ex + (d - L) / side * 2 * ex, z: -ez };
+  return { x: ex, z: -h / 2 + .3 + (d - L - side) };
+}
+// The digger stands on the back of the tile and digs the front of it, facing the camera.
+export const standOf = (i, w, h) => ({ x: i % w - (w - 1) / 2, z: ((i / w) | 0) - (h - 1) / 2 - .62 });
+export const walkMs = (from, to) => Math.round(Math.max(WALK.min, Math.min(WALK.max, Math.hypot(to.x - from.x, to.z - from.z) / WALK.speed * 1000)));
 
 export const idx = (x, y, w) => y * w + x;
 export function around(i, w, h) {
