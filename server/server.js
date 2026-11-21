@@ -100,7 +100,7 @@ function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
-    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), ...store.badge(store.profileOf(t)) }; }),
+    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
@@ -135,12 +135,16 @@ function scoreGame(r) {
     const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
     const p = store.profileOf(c.token); if (!p) return;
     const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
-    Object.assign(e, { name: c.name, color: c.color, av: c.av });
+    Object.assign(e, { name: c.name, color: c.color, av: c.av, fl: store.flair(p) });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
     const gain = store.credit(p, r.game, { ...res[i], of });
     send(c, { t: 'me', me: store.me(p), gain });
   });
+  // The winner's win effect plays on every screen at the table (the first human winner with one on).
+  const wi = G.seats.findIndex((seat, i) => seat.human && seat.id && res[i].win), wc = wi >= 0 && r.players.map(t => clients.get(t)).find(x => x?.id === G.seats[wi].id);
+  const fx = wc && store.flair(store.profileOf(wc.token)).wn;
+  if (fx) for (const t of r.players) send(clients.get(t), { t: 'winfx', id: wc.id, name: wc.name, k: fx });
   sendRoom(r); store.scheduleSave();
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
@@ -246,7 +250,16 @@ function handle(c, m) {
     case 'buy': { // the avatar shop
       const p = store.profileOf(c.token), r = store.buy(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
-      return send(c, { t: 'bought', id: r.id, price: r.price });
+      send(c, { t: 'bought', id: r.id, price: r.price });
+      if (r.cos) { send(c, { t: 'me', me: store.me(p) }); const room = rooms.get(c.room); if (room) sendRoom(room); }
+      return;
+    }
+    case 'wear': { // put on a name colour, frame, title or win effect
+      const p = store.profileOf(c.token), r = store.wear(p, String(m.k ?? ''), m.i);
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      send(c, { t: 'me', me: store.me(p) });
+      const room = rooms.get(c.room); if (room) sendRoom(room);
+      return;
     }
     case 'stats': return send(c, statsMsg());
     case 'rankings': { // the hub's global leaderboards, one per minigame
@@ -321,7 +334,7 @@ function handle(c, m) {
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastChat || 0) < 500) return; c.lastChat = now;
       const text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
-      const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, text };
+      const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), text };
       r.chat.push(msg); if (r.chat.length > 40) r.chat.shift();
       for (const t of r.players) send(clients.get(t), msg);
       return;
@@ -362,7 +375,7 @@ function handle(c, m) {
     case 'react': { // little food emote shown over your seat
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastReact || 0) < 700) return; c.lastReact = now;
-      const k = Math.max(0, Math.min(11, m.k | 0));
+      const k = Math.max(0, m.k | 0); if (!store.mayReact(store.profileOf(c.token), k)) return; // stickers past the free twelve come in packs
       for (const t of r.players) send(clients.get(t), { t: 'react', id: c.id, k });
       return;
     }
