@@ -294,3 +294,4 @@ body.night .pf .btn.ghost-ink { color: var(--pf-tx); }
 @keyframes pf-bye { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
 @media (prefers-reduced-motion: reduce) { .pf .byeface { animation: none; } }
 .pf .freeask .row.end { position: static; background: none; margin: 0; padding: 0; box-shadow: none; }
+.pf .byeface > * { transform: scale(2); margin: 26px 0 30px; }
