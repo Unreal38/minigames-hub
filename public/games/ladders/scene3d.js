@@ -8,7 +8,7 @@ import { cell, COLS, MS as MSv } from './board.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff';
-const U = 1.2, HALF = COLS * U / 2, TOKEN = .3;
+const U = 1.2, HALF = COLS * U / 2, TOKEN = .3, LIFT = .035; /* LIFT: tokens hover just clear of the board, so their base and its outline never share a plane with it */
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .6, ...o });
 const TILE_COLS = ['#fff4e2', '#ffd9c2', '#d8f0e2', '#ffe9a8', '#e6defc'];
 const SNAKE_COLS = [['#6cc96a', '#c8f2b4'], ['#ff7aa0', '#ffd0dc'], ['#8a98ff', '#d8dcff'], ['#7ed3b2', '#d8f6ea'], ['#5cc4e0', '#c8f0fa'], ['#d88ad0', '#f6d4f2']];
@@ -232,10 +232,10 @@ export function createScene(canvas, { onFrame, onCue }) {
       for (const t of toks) { scene.remove(t.g); disposeAvatar(t.av); t.ring.material.dispose(); }
       toks = list.map((p, i) => {
         const g = new THREE.Group();
-        const puck = new THREE.Mesh(new THREE.CylinderGeometry(.34, .38, .14, 28), toonMat(M(p.color, { roughness: .5 }))); puck.position.y = .07; puck.castShadow = true;
+        const puck = new THREE.Mesh(new THREE.CylinderGeometry(.34, .38, .14, 28), toonMat(M(p.color, { roughness: .5 }))); puck.position.y = .07 + LIFT; puck.castShadow = true;
         const edge = new THREE.Mesh(new THREE.CylinderGeometry(.375, .415, .17, 28), new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.BackSide })); puck.add(edge);
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(.34, .035, 8, 28), M('#fff4e2')); ring.rotation.x = Math.PI / 2; ring.position.y = .14;
-        const av = avatar3d(p.color, p.av); av.scale.setScalar(TOKEN); av.position.y = .14 + (.76 + .17) * TOKEN; /* seated: the shoes hang .17 below the seat, so sit that much higher and they rest on the token */
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(.34, .035, 8, 28), M('#fff4e2')); ring.rotation.x = Math.PI / 2; ring.position.y = .14 + LIFT;
+        const av = avatar3d(p.color, p.av); av.scale.setScalar(TOKEN); av.position.y = .14 + LIFT + (.76 + .17) * TOKEN; /* seated: the shoes hang .17 below the seat, so sit that much higher and they rest on the token */
         const wrap = new THREE.Group(); wrap.add(av); g.add(puck, ring, wrap); scene.add(g);
         return { g, puck, ring, av, wrap, pos: new THREE.Vector3(), cur: new THREE.Vector3(), init: false, hop: 0, spin: 0, tag: { x: 0, y: 0, show: false } };
       });
