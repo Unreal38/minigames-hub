@@ -6,7 +6,7 @@ import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../
 import { frameLoop, autoResolution } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, flat, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
-import { R, ORDER, MS, landing, wobbleR, HAND } from './rules.js';
+import { R, ORDER, MS, landing, wobbleR, HAND, spot } from './rules.js';
 
 const SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', INK = '#3b2219';
 const BS = .8, BY = 1.95, BZ = 0;            // board size (world units per board unit), centre height, face z
@@ -119,6 +119,9 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
   const cross = new THREE.Group();
   for (const [w, h] of [[.16, .012], [.012, .16]]) cross.add(over(new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: INK, opacity: .75 }))));
   aimG.add(ringIn, ring, cross, dotInk, dot);
+  // the bed to go for when a finish is on: a glowing ring that pulses
+  const hintG = over(new THREE.Mesh(new THREE.RingGeometry(.05, .095, 28), new THREE.MeshBasicMaterial({ color: '#ffe27a', opacity: .9 }))); hintG.visible = false; scene.add(hintG);
+  let hint = null;
   const cLoose = new THREE.Color('#fff4e2'), cSteady = new THREE.Color('#5fe08a'), cTired = new THREE.Color('#ff6b5a'), cNow = new THREE.Color();
 
   // ---------- darts ----------
@@ -279,6 +282,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
       if (f.t > 1.2) { scene.remove(f.g); falling.splice(i, 1); }
     }
     // --- the aim ---
+    if (hint && aiming) { const [hx, hy] = spot(hint.n, hint.m), k = reduced ? 1 : 1 + Math.sin(T * 5) * .18; boardPt(hx, hy, v); hintG.position.set(v.x, v.y, BZ + .015); hintG.scale.setScalar(k * (hint.n === 25 ? .7 : 1)); hintG.material.opacity = reduced ? .95 : .85 + Math.sin(T * 5) * .12; hintG.visible = true; } else hintG.visible = false;
     info.aimLab = null;
     if (aiming && S.turn === me && aimSrc && S.dart) {
       const ms = dartMs(), [lx, ly] = landing(S.dart.seed, [aimSrc.x, aimSrc.y], ms, aimSrc.hold), r = wobbleR(aimSrc.hold);
@@ -338,6 +342,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
   return {
     setSeats, setState, toBoard, pxPerUnit, dartMs,
     setAim(a) { aimSrc = a; },
+    setHint(t) { hint = t; },
     dispose() {
       frames.stop();
       for (const a of avs) disposeAvatar(a.av);

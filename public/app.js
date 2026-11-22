@@ -162,7 +162,7 @@ const GAMES = {
       <li>The thin <b>outer ring</b> scores <b>double</b> the number, the thin <b>inner ring</b> scores <b>treble</b>. The green ring round the middle is <b>25</b> and the red <b>bull</b> is <b>50</b>.</li>
       <li><b>Aiming:</b> your hand is never quite still, so the yellow dot wanders round where you point. <b>Hold</b> the mouse button (or your finger, or space) to steady it: the ring shrinks and turns green. <b>Let go</b> to throw. The dart lands exactly where the dot is. Hold too long and your arm gets tired and shaky again.</li>
       <li>On a phone, <b>drag</b> anywhere to move your aim, keep your finger still to steady, and <b>lift</b> to throw. On a keyboard, use the arrow keys and hold space.</li>
-      <li>The first to reach <b>exactly zero</b> wins the leg. With <b>On a double</b>, your last dart must land in a double (the bull counts).</li>
+      <li>The first to reach <b>exactly zero</b> wins the leg. With <b>On a double</b>, your last dart must land in a double (the bull counts): with 20 left you need <b>double 10</b>, and a plain 20 is a bust. The board glows on the spot to go for. Pick <b>Any dart</b> in the table settings for an easier game.</li>
       <li>Score more than you have left (or leave yourself on 1 when you need a double) and you go <b>bust</b>: the turn is over and your score goes back to what it was before the turn.</li>
       <li>When you can finish this turn, the game shows you a way out, like <b>T20 D20</b> (treble 20, then double 20).</li>
       <li>If nobody is out after the last round (15 rounds for 301, 20 for 501), whoever has the <b>least left</b> takes the leg.</li>
