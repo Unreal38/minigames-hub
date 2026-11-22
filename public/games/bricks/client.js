@@ -1,5 +1,6 @@
 // Sky Bricks game view: plays your own well right here in the browser (the rules in rules.js), tells the server
 // about every brick you set down, and draws the HUD over the 3D wells: level, lines, name tags, touch pads, results.
+import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
@@ -316,7 +317,8 @@ export function mount(app, ctx) {
     root.append(f); setTimeout(() => f.remove(), 1600);
   }
 
-  function confetti() {
+  function confetti(own = true) {
+    if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);

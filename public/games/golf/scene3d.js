@@ -311,7 +311,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
         if (tmp.done) {
           const over = t - sh.ms;
           if (sh.sunk) { // drops into the cup
-            if (p.phase === 'fly') { p.phase = 'in'; p.hop = 1; p.spin = 1; for (const q of players) if (q !== p) { q.mood = 1; q.moodT = 1.8; } if (!reduced) { const c = at(H.cup.x, H.cup.h, H.cup.z); fx.burst(c, { n: 24, colors: [p.ball.userData.col, '#ffd84a', '#ffffff'], speed: 3, up: 4.5, size: .26, life: 1, y: .15, shape: [STAR, CONF, HEART] }); fx.ring(c, { color: '#ffd84a', size: 1.6 }); if (i === me) { fx.confetti(c, { n: 60, w: 3, h: 3 }); shake.kick(.08); } } onCue?.({ k: 'sunk', s: i }); }
+            if (p.phase === 'fly') { p.phase = 'in'; p.hop = 1; p.spin = 1; for (const q of players) if (q !== p) { q.mood = 1; q.moodT = 1.8; } if (!reduced) { const c = at(H.cup.x, H.cup.h, H.cup.z); fx.burst(c, { n: 24, colors: [p.ball.userData.col, '#ffd84a', '#ffffff'], speed: 3, up: 4.5, size: .26, life: 1, y: .15, shape: [STAR, CONF, HEART] }); fx.ring(c, { color: '#ffd84a', size: 1.6 }); if (i === me) { fx.confetti(c, { n: 60, w: 3, h: 3, s: i }); shake.kick(.08); } } onCue?.({ k: 'sunk', s: i }); }
             by = -Math.min(1, over / 220) * .3; show = over < 260;
             const u = Math.min(1, over / 160); bx += (H.cup.x - bx) * u; bz += (H.cup.z - bz) * u;
           } else if (sh.water) { // splash, then back where it was hit from

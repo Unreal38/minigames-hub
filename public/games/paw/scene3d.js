@@ -342,7 +342,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
     else if (kind === 'hearts') { const s = shops.get(a.i); if (s) { s.hop = 1; pfx.burst(_v.copy(s.petAt).setY(.8), { n: 9, colors: ['#ff8fab', '#ff5d92'], shape: HEART, speed: 1.4, up: 2.6, size: .3 }); } }
     else if (kind === 'splash') { pfx.burst(_v.copy(TUB).setY(.6), { n: 26, colors: ['#8fd4ff', '#ffffff', '#cdeeff'], shape: DOT, speed: 3, up: 5, size: .26 }); shake.kick(.12); }
     else if (kind === 'card') { pfx.burst(fxAt(a.s, 1.4), { n: 18, colors: ['#ff8fab', '#ffd84a', '#ffffff', '#c58bff'], shape: STAR, speed: 3, up: 4, size: .28 }); }
-    else if (kind === 'party') { const p = fxAt(a.s, 1.6); pfx.confetti(p, { n: 110, w: 5, h: 4 }); pfx.burst(p, { n: 24, colors: ['#ffd84a', '#ffffff'], speed: 4, up: 5 }); if (toks[a.s]) toks[a.s].hop = 1; }
+    else if (kind === 'party') { const p = fxAt(a.s, 1.6); pfx.confetti(p, { n: 110, w: 5, h: 4, s: a.s }); pfx.burst(p, { n: 24, colors: ['#ffd84a', '#ffffff'], speed: 4, up: 5 }); if (toks[a.s]) toks[a.s].hop = 1; }
     else if (kind === 'jar') { pfx.burst(_v.copy(jarFill.position).setY(1.3), { n: 30, colors: ['#d9a066', '#ffd84a'], shape: DOT, speed: 3.4, up: 5, size: .28 }); }
   }
 

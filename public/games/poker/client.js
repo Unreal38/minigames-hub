@@ -1,4 +1,5 @@
 // Texas Hold'em game view: HUD over the 3D table. Renders what the server says and sends your bets.
+import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
@@ -321,7 +322,8 @@ export function mount(app, ctx) {
     if (i >= 0) scene?.hop(i);
   }
 
-  function confetti() {
+  function confetti(own = true) {
+    if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);

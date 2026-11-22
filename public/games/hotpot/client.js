@@ -1,4 +1,5 @@
 // Hot Pot game view: HUD + 3D table. Renders whatever the server says; sends intents.
+import { myBurst } from '../../winfx.js';
 import { CATS, kindOf, catOf, cardName, canWin, bestSets, setVal } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
 import { cardHtml } from './cards.js';
@@ -210,8 +211,8 @@ export function mount(app, ctx) {
       ctx.toast('Discards stirred back into the pot'); sfx.draw(); scene?.potMood('dizzy');
     } else if (e.t === 'eat') {
       if (e.s === S.me) sfx.win(); else sfx.lose();
-      scene?.celebrate(rel(e.s), S.hands?.[e.s] || []);
-      confetti();
+      scene?.celebrate(rel(e.s), S.hands?.[e.s] || [], e.s);
+      confetti(e.s === S.me);
     } else if (e.t === 'end') {
       if (e.w < 0) { sfx.lose(); ctx.toast('30 rounds done, time to count sets!'); }
       clearTimeout(resultsTimer);
@@ -284,7 +285,8 @@ export function mount(app, ctx) {
   }
 
   // ----- confetti -----
-  function confetti() {
+  function confetti(own = true) {
+    if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);

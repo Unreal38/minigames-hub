@@ -15,6 +15,7 @@
 //   rim(color)                a hover or selection rim: show(root) wraps root's outline hull in a glowing copy.
 import * as THREE from 'three';
 import { bake } from './avatar3d.js';
+import { fxOf } from './winfx.js';
 
 export const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
@@ -255,17 +256,28 @@ export function petals(parent, span, y = 3, { n = 10, colors = ['#ffc1dc', '#fff
 }
 
 // ---------- particles ----------
-// Shapes in the sprite sheet: 0 soft dot, 1 star, 2 confetti square, 3 heart, 4 ring.
-export const DOT = 0, STAR = 1, CONF = 2, HEART = 3, RING = 4;
+// Shapes in the sprite sheet: 0 soft dot, 1 star, 2 confetti square, 3 heart, 4 ring, 5 fish, 6 coin, 7 snowflake.
+export const DOT = 0, STAR = 1, CONF = 2, HEART = 3, RING = 4, FISH = 5, COIN = 6, FLAKE = 7;
 function sheet() {
-  const cv = document.createElement('canvas'); cv.width = 320; cv.height = 64; const g = cv.getContext('2d');
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 64; const g = cv.getContext('2d');
   let gr = g.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, '#fff'); gr.addColorStop(.45, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   g.fillStyle = '#fff'; g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 11 : 29; g.lineTo(96 + Math.cos(a) * r, 33 + Math.sin(a) * r); } g.closePath(); g.fill();
   g.beginPath(); g.roundRect(128 + 14, 20, 36, 24, 5); g.fill();
   g.beginPath(); g.moveTo(224, 52); g.bezierCurveTo(196, 34, 198, 10, 214, 12); g.bezierCurveTo(220, 12, 224, 18, 224, 22); g.bezierCurveTo(224, 18, 228, 12, 234, 12); g.bezierCurveTo(250, 10, 252, 34, 224, 52); g.fill();
   g.lineWidth = 7; g.strokeStyle = '#fff'; g.beginPath(); g.arc(288, 32, 24, 0, 6.3); g.stroke();
+  g.beginPath(); g.ellipse(346, 32, 19, 12, 0, 0, 6.3); g.fill(); g.beginPath(); g.moveTo(362, 32); g.lineTo(378, 19); g.lineTo(378, 45); g.closePath(); g.fill(); g.fillStyle = '#555'; g.beginPath(); g.arc(336, 29, 3, 0, 6.3); g.fill(); // fish
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(416, 32, 24, 0, 6.3); g.fill(); g.lineWidth = 5; g.strokeStyle = '#bbb'; g.beginPath(); g.arc(416, 32, 21, 0, 6.3); g.stroke(); g.beginPath(); g.arc(416, 32, 10, 0, 6.3); g.stroke(); // coin
+  g.lineWidth = 5; g.lineCap = 'round'; g.strokeStyle = '#fff'; for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(480 - Math.cos(a) * 24, 32 - Math.sin(a) * 24); g.lineTo(480 + Math.cos(a) * 24, 32 + Math.sin(a) * 24); g.stroke(); } // snowflake
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+// How each win effect (cosmetics.js, kind wn) looks as an in-game shower. 4 (fireworks) is drawn as bursts instead.
+const WINLOOK = {
+  1: { colors: ['#ff5d8f', '#ffc93c', '#4fc3e8', '#7ed37a', '#c9b3ff', '#ff8a2a'], shape: CONF, n: 1, size: 1, grav: 2.2, spin: 10, flutter: 2.2 },
+  2: { colors: ['#ff5d8f', '#ff8fb3', '#e5243b', '#ffc2d6'], shape: HEART, n: .6, size: 1.7, grav: 1.5, spin: 1.5, flutter: 1.6 },
+  3: { colors: ['#4fc3e8', '#ff9a3c', '#ffd84a', '#7ed3b2'], shape: FISH, n: .55, size: 2, grav: 3, spin: 2.5, flutter: 1 },
+  5: { colors: ['#ffc93c', '#ffd84a', '#f2b01e'], shape: COIN, n: .6, size: 1.5, grav: 4.5, spin: 1, flutter: .6 },
+  6: { colors: ['#ffffff', '#dff1ff', '#bcdcff'], shape: FLAKE, n: .7, size: 1.5, grav: .9, spin: 2, flutter: 2.4, life: 1.25 },
+};
 export function createFx(scene, { max = 900 } = {}) {
   const P = new Float32Array(max * 3), C = new Float32Array(max * 3), S = new Float32Array(max), A = new Float32Array(max), R = new Float32Array(max), K = new Float32Array(max);
   const st = []; // per live particle: { v, life, max, s0, s1, grav, drag, spin, flut }
@@ -281,7 +293,7 @@ export function createFx(scene, { max = 900 } = {}) {
     fragmentShader: `uniform sampler2D map; varying vec3 vC; varying float vA; varying float vR; varying float vK;
       void main() { vec2 p = gl_PointCoord - .5; float c = cos(vR), s = sin(vR); p = vec2(c * p.x - s * p.y, s * p.x + c * p.y) + .5;
         if (p.x < 0. || p.x > 1. || p.y < 0. || p.y > 1.) discard;
-        vec4 t = texture2D(map, vec2((vK + p.x) / 5., 1. - p.y)); if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb, t.a * vA); }`,
+        vec4 t = texture2D(map, vec2((vK + p.x) / 8., 1. - p.y)); if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb, t.a * vA); }`,
   });
   const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts);
   let n = 0, ringI = 0; const col = new THREE.Color();
@@ -306,7 +318,21 @@ export function createFx(scene, { max = 900 } = {}) {
         add(p.x + Math.cos(a) * .15, p.y + .05, p.z + Math.sin(a) * .15, Math.cos(a) * speed, .4 + Math.random() * .5, Math.sin(a) * speed, pick(color), { shape: DOT, size, life, grav: 0, drag: 4, spin: 0, grow: 1.4, fade: .7 }); }
     },
     // confetti raining down over an area, fluttering as it falls
-    confetti(p, { n: cnt = 80, w = 6, h = 4, colors = ['#ff7a59', '#ffc93c', '#7ed3b2', '#8a98ff', '#ff9fb8', '#ffffff'], size = .22, life = 2.6 } = {}) {
+    // Pass s (a seat number, or 'me') and it becomes that player's win effect from the Wardrobe: hearts, fish, coins...
+    confetti(p, { n: cnt = 80, w = 6, h = 4, colors = ['#ff7a59', '#ffc93c', '#7ed3b2', '#8a98ff', '#ff9fb8', '#ffffff'], size = .22, life = 2.6, s } = {}) {
+      const k = s == null ? 0 : fxOf(s), L = WINLOOK[k];
+      if (k === 4) { // fireworks: a few rings of stars going off above the spot
+        const per = Math.max(10, Math.min(26, cnt / 4 | 0));
+        for (let b = 0; b < 4; b++) { const cx = p.x + (Math.random() - .5) * w * .8, cy = p.y + h * (.5 + Math.random() * .6), cz = p.z + (Math.random() - .5) * w * .8, c = WINLOOK[1].colors[(b * 2) % 6];
+          for (let j = 0; j < per; j++) { const a = Math.random() * 6.283, e = (Math.random() - .5) * 3.14, sp = 2.6 + Math.random() * 1.6;
+            add(cx, cy, cz, Math.cos(a) * Math.cos(e) * sp, Math.sin(e) * sp + 1, Math.sin(a) * Math.cos(e) * sp, Math.random() < .2 ? '#ffffff' : c, { shape: STAR, size: size * 1.3, life: 1.1, grav: 2.5, drag: 1.6, spin: 4, grow: -.5 }); } }
+        return;
+      }
+      if (L) { // bigger pictures, so fewer of them: the same cost or less than plain confetti
+        for (let j = 0, m = Math.ceil(cnt * L.n); j < m; j++) add(p.x + (Math.random() - .5) * w, p.y + h * (.6 + Math.random() * .6), p.z + (Math.random() - .5) * w, (Math.random() - .5) * 1.5, Math.random() * 2, (Math.random() - .5) * 1.5, pick(L.colors),
+          { shape: L.shape, size: size * L.size, life: life * (L.life || 1), grav: L.grav, drag: 1.4, spin: L.spin, flutter: L.flutter });
+        return;
+      }
       for (let k = 0; k < cnt; k++) add(p.x + (Math.random() - .5) * w, p.y + h * (.6 + Math.random() * .6), p.z + (Math.random() - .5) * w, (Math.random() - .5) * 1.5, Math.random() * 2, (Math.random() - .5) * 1.5, pick(colors), { shape: CONF, size, life, grav: 2.2, drag: 1.4, spin: 10, flutter: 2.2 });
     },
     // a few twinkles hanging round a spot

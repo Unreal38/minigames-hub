@@ -328,7 +328,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
       else if (L.m === 3) fx.burst(p, { n: 18, colors: ['#ffe27a', '#ffffff'], shape: STAR, speed: 2, up: 1.4, size: .14, grav: 3 });
       else if (L.m === 2) fx.burst(p, { n: 14, colors: ['#ff9fb8', '#ffffff'], shape: HEART, speed: 1.8, up: 1.2, size: .13, grav: 3 });
       else if (L.v) fx.burst(p, { n: 6, colors: '#fff4e2', shape: DOT, speed: 1.1, up: .6, size: .08, grav: 2 });
-      if (L.out) { fx.confetti(v.set(0, BY + 1.2, 1.2), { n: 110, w: 5, h: 2 }); for (const a of avs) a.hop = 1; }
+      if (L.out) { fx.confetti(v.set(0, BY + 1.2, 1.2), { n: 110, w: 5, h: 2, s: L.s }); for (const a of avs) a.hop = 1; }
     }
     if (avs[L.s] && (L.m === 3 || L.out || (L.num === 25 && L.m === 2))) avs[L.s].hop = Math.max(avs[L.s].hop, .7);
     onCue?.({ k: 'hit', ...L, sx, sy });
