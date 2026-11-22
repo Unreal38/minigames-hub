@@ -37,6 +37,13 @@ function player(name, token) {
   return p;
 }
 
+// cats: a kitten of two cat species takes its build from one and its coat from either; other pets never get a cat coat
+{ const { makeBaby, lookOf, catCoat } = await import('../public/games/farm/breed.js'); const seen = new Set();
+  for (let i = 0; i < 300; i++) { const k = makeBaby({ sp: 'munchmew' }, { sp: 'siamew' }); if (!['munchmew', 'siamew'].includes(k.sp)) fail('odd kitten ' + k.sp); if (k.cat === k.sp) fail('bad cat coat ' + JSON.stringify(k)); seen.add(k.sp + ':' + catCoat(k)); if (k.cat && lookOf(k)?.cat !== k.cat) fail('cat coat not drawn'); }
+  for (const want of ['munchmew:siamew', 'munchmew:munchmew', 'siamew:munchmew', 'siamew:siamew']) if (!seen.has(want)) fail('never hatched ' + want);
+  const g = makeBaby({ sp: 'gingersnap', cat: 'tuxpurr' }, { sp: 'gingersnap', cat: 'tuxpurr' }); if (g.sp !== 'gingersnap' || g.cat !== 'tuxpurr') fail('a coat should pass down ' + JSON.stringify(g));
+  for (let i = 0; i < 50; i++) if (makeBaby({ sp: 'mossbun' }, { sp: 'siamew' }).cat) fail('a bunny parent gave a cat coat'); }
+
 await boot();
 const a = player('Ana'); await a.ready;
 let r = await a.farmDo({ t: 'open', test: { weather: 'none' } }); // the weather's bonuses are checked on their own further down
