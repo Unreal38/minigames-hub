@@ -8,18 +8,9 @@
 // - On faster screens (120, 144, 240 Hz) it draws every 2nd, 3rd... refresh instead of burning the GPU
 //   at the full rate: never below the target where the screen allows it, and never uneven.
 // - Does nothing while the tab is hidden.
-// - While a results screen covers the game (a visible .results overlay, which is blurred and dimmed), it draws only
-//   a few frames a second: the scene behind barely shows, and redrawing it 60 times a second also makes the browser
-//   re-blur the whole screen every frame, which is what made the results and win effects stutter.
-// - Calls onSlow() when the device has missed the target for three seconds running, so the scene
-//   can drop its resolution a step instead of stuttering.
+// - Results screens over a scene (.results) don't blur it (see style.css): a backdrop blur over a live 3D canvas has
+//   to be redone every frame and dragged the whole page down, so the scene keeps its full frame rate under them.
 export const FPS = 60;
-const COVERED_MS = 250; // one frame per this while a results screen is up
-let coverEl = null;
-const covered = () => {
-  if (!coverEl?.isConnected) coverEl = document.querySelector('.results');
-  return !!coverEl && !coverEl.hidden && coverEl.childElementCount > 0;
-};
 
 export function frameLoop(draw, { fps = FPS, onSlow } = {}) {
   let raf = 0, dead = false, last = 0, lastDraw = 0, skip = 0;
@@ -36,10 +27,6 @@ export function frameLoop(draw, { fps = FPS, onSlow } = {}) {
     const every = Math.max(1, Math.floor(1000 / refresh / (fps - 2)));
     if (++skip < every) return;
     skip = 0;
-    if (covered()) { // results up: keep the scene ticking slowly, and don't count it as running slow
-      if (now - lastDraw < COVERED_MS) return;
-      secAt = now; drawn = 0; slow = 0;
-    }
     const dt = Math.min(.05, (now - lastDraw) / 1000); lastDraw = now;
     drawn++;
     if (now - secAt >= 1000) {
