@@ -164,7 +164,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const g = new THREE.Group();
     const body = new THREE.Mesh(new THREE.BoxGeometry(.98, BH, .86, 1, 1, 1), M('#e8c25a')); body.position.y = BH / 2; body.castShadow = true; body.receiveShadow = true; g.add(body);
     const top = new THREE.Mesh(new THREE.BoxGeometry(.9, .05, .78), M('#f2d374')); top.position.y = BH + .01; g.add(top);
-    for (const x of [-.24, .24]) { const band = new THREE.Mesh(new THREE.BoxGeometry(.06, BH + .04, .9), M('#a8742f')); band.position.set(x, BH / 2, 0); g.add(band); }
+    for (const x of [-.24, .24]) { const band = new THREE.Mesh(new THREE.BoxGeometry(.06, BH + .07, .9), M('#a8742f')); band.position.set(x, BH / 2 + .02, 0); g.add(band); }
     for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(.22, .025, .03), M('#f5dc85')); st.position.set(-.35 + i * .14, BH * (.3 + (i % 3) * .2), .44); st.rotation.z = (i % 2 ? .4 : -.3); st.userData.noInk = true; g.add(st); }
     return toonify(g, .035);
   })();
@@ -196,7 +196,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const r = i / N | 0, c = i % N, x = cx(c), z = cz(r);
     const bale = baleTpl.clone(true); bale.position.set(x, 0, z); bale.rotation.y = (Math.sin(i * 7.3) * .08); scene.add(bale);
     const cv = document.createElement('canvas'); cv.width = cv.height = 128; const mt = tex(cv);
-    const mark = new THREE.Mesh(markGeo, new THREE.MeshBasicMaterial({ map: mt, transparent: true, depthWrite: false })); mark.position.y = BH + .05; mark.visible = false; bale.add(mark);
+    const mark = new THREE.Mesh(markGeo, new THREE.MeshBasicMaterial({ map: mt, transparent: true, depthWrite: false })); mark.position.y = BH + .07; mark.visible = false; bale.add(mark);
     return { i, x, z, bale, mark, mcv: cv, mt, marks: 0, shown: -1, what: null, flipT: -1, under: null, hover: 0, wake: 0 };
   });
   const petCache = new Map();
