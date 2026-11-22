@@ -299,3 +299,6 @@ body.night .pf .btn.ghost-ink { color: var(--pf-tx); }
 /* helpers at buildings */
 .pf .helpon { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 8px; border-radius: 12px; background: rgba(120, 200, 150, .22); }
 .pf .helpon > :first-child { flex: none; }
+html[lang=pl] .pf.flat::before { content: 'Na tym urządzeniu nie udało się wczytać farmy 3D.'; }
+html[lang=pl] .pf .elsvg .eln { font-size: 10.5px; }
+html[lang=pl] .pf .elduel { gap: 4px; } html[lang=pl] .pf .elduel .el { padding: 1px 6px; white-space: nowrap; } html[lang=pl] .pf .elduel small { font-size: 11px; line-height: 1.15; }

@@ -47,5 +47,5 @@ const d = visit(); await d.ready;
 if (d.stats.visitors !== 3) fail('new visitor after restart ' + JSON.stringify(d.stats));
 c.close(); d.close();
 await stop();
-fs.rmSync(DATA_DIR, { recursive: true, force: true });
+fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 console.log('stats ok');

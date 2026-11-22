@@ -91,4 +91,4 @@ if (c.me.xp !== xpA || c.me.name !== 'Ana') fail('login did not bring stats');
 c.send({ t: 'logout' }); await until(() => c.me.user === null, 'logout');
 if (c.me.xp !== 0) fail('logout kept stats');
 console.log('OK persistence, accounts, restart');
-await stop(); fs.rmSync(DATA_DIR, { recursive: true, force: true }); process.exit(0);
+await stop(); fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); process.exit(0);

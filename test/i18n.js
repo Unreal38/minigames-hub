@@ -112,6 +112,22 @@ for (const f of ['server.js', 'store.js', 'hubchat.js', 'daily.js', 'hay.js']) {
   }
 }
 ok(seen > 50, `only ${seen} server messages were found`);
+
+// Pet Farm: every table in its data has Polish, and so does everything its server code can say.
+const farmPl = await import('../public/lang/farm-pl.js');
+const farmEn = { ...await import('../public/games/farm/data.js'), ...await import('../public/games/farm/breed.js'), ...await import('../public/games/farm/battle.js') };
+for (const [table, pl] of Object.entries(farmPl.COVER)) for (const key of Object.keys(farmEn[table])) ok(key in pl, `Pet Farm ${table}.${key} has no Polish`);
+const { addServerText } = await import('../public/lang/server.js');
+addServerText(farmPl.SRV_TEXT, farmPl.SRV_FORMS);
+let farmSeen = 0;
+const farmSrc = fs.readFileSync(new URL('../server/farm.js', import.meta.url), 'utf8');
+for (const m of farmSrc.matchAll(/(?:\bno\(|(?:note|text): )(?:'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`)/g)) {
+  const text = (m[1] ?? m[2]).replace(/\$\{w\.el\}/g, 'Leaf').replace(/\$\{z\.name\}/g, 'Mossy Woods').replace(/\$\{ITEMS\[[^}]*\}/g, 'Kitchen').replace(/\$\{[^}]*(max|pals|lvOf|house|\.lv|BREED_LV)[^}]*\}/g, '3').replace(/\$\{[^}]*\}/g, 'Ola');
+  ok(srvText(text) !== text, `farm.js: “${text}” has no Polish`);
+  farmSeen++;
+}
+ok(farmSeen > 80, `only ${farmSeen} Pet Farm server messages were found`);
+ok(srvText('Mossy Woods opens at farmhouse level 2.') === 'Omszały Las otwiera się, gdy dom ma poziom 2.', 'zone names in server messages');
 ok(srvText('Passwords need 6 to 72 characters.') !== 'Passwords need 6 to 72 characters.', 'password rule');
 ok(srvText('🐾 Mystery Pet #12: solved in 3 guesses · 🔥 4 days in a row') === '🐾 Mystery Pet #12: 3 próby · 🔥 4 dni z rzędu', 'shared Mystery Pet line');
 console.log('i18n: all good');

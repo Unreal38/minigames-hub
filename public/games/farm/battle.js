@@ -2,6 +2,7 @@
 // browser (which only needs the names and numbers). Nothing here touches the network or the save file.
 // Side 0 is the player. Side 1 is the other team, always played by pickMove() below.
 import { SPECIES, formOf, elOf } from './data.js';
+import { PL } from '../../i18n.js';
 
 // Each element is strong against the next one in this ring and weak against the one before it.
 export const STRONG = { Tide: 'Ember', Ember: 'Leaf', Leaf: 'Stone', Stone: 'Spark', Spark: 'Tide' };
@@ -234,3 +235,5 @@ export function step(B, act, rnd = Math.random, act1 = null) { // act1: the othe
   B.turn++;
   return ev;
 }
+
+if (PL) (await import('../../lang/farm-pl.js')).plBattle({ MOVES, STATUS, STAT_NAME, ROLE_NAME });

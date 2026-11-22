@@ -137,5 +137,5 @@ console.table(results);
 console.log(`machine: ${os.cpus().length} × ${os.cpus()[0]?.model}, ${Math.round(os.totalmem() / 1e9)} GB. The server uses one core: 100% cpu means it is full.`);
 for (const p of all) { clearInterval(p.timer); p.ws.close(); }
 srv.kill(); await wait(500);
-fs.rmSync(DATA_DIR, { recursive: true, force: true });
+fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 process.exit(0);

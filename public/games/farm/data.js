@@ -1,6 +1,8 @@
 // Pet Farm: everything the server and the client must agree on. Balance changes are edits to this file.
 // A farm is a square grid of tiles. An item sits at tile (x, y) with a rotation r (0-3, quarter turns).
 
+import { L, PL } from '../../i18n.js';
+
 export const SIZES = [10, 12, 14, 16, 18];
 // Cost of growing the land to SIZES[i].
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 }];
@@ -275,7 +277,7 @@ export function tripLoot(zone, trip, pets) {
 
 export const footprint = (type, r) => { const it = ITEMS[type]; return r % 2 ? [it.h, it.w] : [it.w, it.h]; };
 export const canAfford = (inv, cost) => Object.entries(cost || {}).every(([k, n]) => (inv[k] || 0) >= n);
-export const costText = cost => Object.entries(cost || {}).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') || 'Free';
+export const costText = cost => Object.entries(cost || {}).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') || L('Free', 'Za darmo');
 
 // Placement is checked on a grid of half tiles, so small props can share a tile.
 // Returns that grid (2n x 2n). With walkable = true, items pets can cross count as free.
@@ -326,3 +328,9 @@ export function weatherAt(ms = Date.now()) {
   const n = Math.floor(ms / WEATHER_MS), raw = wRaw(n), kind = raw !== 'rain' && wRaw(n - 1) === 'rain' ? 'rainbow' : raw;
   return { kind, left: (n + 1) * WEATHER_MS - ms, ...WEATHER[kind] };
 }
+
+// The page in Polish: the same tables with Polish text (the server always keeps the English).
+const EL_PL = PL ? (await import('../../lang/farm-pl.js')).EL_PL : null;
+/** An element's name as shown to the player. The English name stays the key everywhere. */
+export const elName = e => EL_PL?.[e] || e;
+if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS, WEATHER });

@@ -105,6 +105,6 @@ await start();
 const back = await player('Gus', guest.token).connect();
 if ((await back.history()).length !== kept) fail('history lost on restart');
 srv.kill(); await wait(500);
-fs.rmSync(DATA_DIR, { recursive: true, force: true });
+fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 console.log('hub chat ok');
 process.exit(0);
