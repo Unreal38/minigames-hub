@@ -1,7 +1,7 @@
 // Tysiąc ("Thousand"), the Polish card game for three: bid for the right to play, take the three face-down
 // cards (the musik), announce king-queen marriages to set trumps, and be first to 1000 points.
 // With four at the table the dealer sits the hand out. Nobody is ever sent another player's cards.
-import { DECK, MELD, SUITS, MIN_BID, STEP, suitOf, power, value, queen, king, ace, ten, hasMeld, melds, canMeld, maxBid, round10, FOLD_PAY, sortHand, beats, winnerOf, legal } from '../../public/games/tys/rules.js';
+import { DECK, MELD, SUITS, MIN_BID, STEP, suitOf, power, value, queen, king, ace, ten, hasMeld, melds, canMeld, maxBid, round10, FOLD_PAY, FOLDS, sortHand, beats, winnerOf, legal } from '../../public/games/tys/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'tys', name: 'Tysiąc', minPlayers: 1, maxPlayers: 4, joinAt: 'round' };
@@ -20,6 +20,7 @@ export function cleanOpts(o = {}) {
     target: [500, 1000].includes(+o.target) ? +o.target : 1000,
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 20, 30, 45].includes(+o.timer) ? +o.timer : 30,
+    fold: FOLDS.includes(o.fold) ? o.fold : FOLDS[0],
   };
 }
 
@@ -113,14 +114,18 @@ function doGive(G, s, cs, v, now) {
   return true;
 }
 
-// The declarer may fold instead ("bomba"): nothing is played, they score nothing and each opponent scores 60.
+// The declarer may fold instead ("bomba"), if the table allows it: nothing is played, they score nothing and each
+// opponent scores 60. With the 'free' option a player's first fold of the match pays the others nothing.
+const foldMode = G => G.opts.fold || 'on'; // tables started before the option existed always paid 60
+export const foldPay = (G, s) => (foldMode(G) === 'off' ? -1 : foldMode(G) === 'free' && !G.st[s].folds ? 0 : FOLD_PAY);
 function doFold(G, s, now) {
+  const pay = foldPay(G, s); if (pay < 0) return false;
   const delta = G.seats.map(() => 0);
-  for (const i of G.active) if (i !== s) delta[i] = Math.max(0, Math.min(FOLD_PAY, G.barrel - G.score[i]));
+  for (const i of G.active) if (i !== s) delta[i] = Math.max(0, Math.min(pay, G.barrel - G.score[i]));
   G.st[s].played++; G.st[s].folds = (G.st[s].folds || 0) + 1;
   G.seats.forEach((_, i) => { G.score[i] += delta[i]; });
-  G.sum = { hand: G.hand, decl: s, contract: G.contract, made: false, fold: true, pts: [...G.pts], delta, score: [...G.score], active: [...G.active] };
-  G.log.push({ decl: s, contract: G.contract, made: false, fold: true, took: 0, delta }); if (G.log.length > 80) G.log.shift();
+  G.sum = { hand: G.hand, decl: s, contract: G.contract, made: false, fold: true, free: !pay, pts: [...G.pts], delta, score: [...G.score], active: [...G.active] };
+  G.log.push({ decl: s, contract: G.contract, made: false, fold: true, free: !pay, took: 0, delta }); if (G.log.length > 80) G.log.shift();
   G.turn = -1; G.tEnd = 0; setStage(G, 'score', now, MS.score);
   pushEv(G, { t: 'fold', s, v: G.contract });
   return true;
@@ -222,7 +227,8 @@ function botGive(G, s, now, B) {
   const cs = [...hand].sort((a, b) => keepWorth(a) - keepWorth(b)).slice(0, 2);
   if (Math.random() < .5) cs.reverse();
   const keep = hand.filter(c => !cs.includes(c));
-  if (B.fold && estimate(keep) < G.contract - B.fold) return doFold(G, s, now); // hopeless: cheaper to fold than to lose the contract
+  const pay = foldPay(G, s); // hopeless: cheaper to fold than to lose the contract (and a free fold is worth using sooner)
+  if (B.fold && pay >= 0 && estimate(keep) < G.contract - (pay ? B.fold : B.fold / 2)) return doFold(G, s, now);
   let v = G.contract;
   if (B.raise) v = Math.max(v, Math.min(maxBid(keep), Math.floor((estimate(keep) - B.raise) / STEP) * STEP));
   return doGive(G, s, cs, v, now);
@@ -312,7 +318,7 @@ export function view(G, s) {
   const now = Date.now(), mine = s >= 0 ? G.hands[s] : [], myTurn = G.turn === s && s >= 0;
   return {
     game: 'tys', ph: G.ph, stage: G.stage, gid: G.gid, me: s, hand: G.hand, dealer: G.dealer, active: G.active,
-    target: G.target, barrel: G.barrel, timer: G.opts.timer, botsLevel: G.opts.bots, ms: MS,
+    target: G.target, barrel: G.barrel, timer: G.opts.timer, botsLevel: G.opts.bots, ms: MS, fold: foldMode(G), foldPay: s >= 0 ? foldPay(G, s) : -1,
     turn: G.turn, lead: G.lead, bid: G.bid, decl: G.decl, contract: G.contract, trump: G.trump,
     trick: G.trick, lastTrick: G.lastTrick, ago: now - G.stageAt,
     tLeft: G.tEnd && G.turn >= 0 ? Math.max(0, G.tEnd - now) : -1,
