@@ -201,6 +201,18 @@ export const lvOf = item => Math.min(UP_MAX, Math.max(1, item?.lv | 0 || 1));
 export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none
 export const upCost = item => UPGRADES[item.type]?.cost[lvOf(item) - 1] || null; // what the next level costs
 export const whatUp = item => { const w = UPGRADES[item.type]?.what; return Array.isArray(w) ? w[lvOf(item) - 1] : w; }; // what the next level gives
+// Helpers: one pet of the right element can work at each of these buildings. Its boost grows with its level and one of
+// its stars (stat: 0 Health, 1 Attack, 2 Defence, 3 Speed). A hybrid counts for both of its elements.
+export const WORK = {
+  garden:  { el: 'Tide', stat: 3, job: 'waters the plots', what: n => `Berries ripen ${n}% sooner` },
+  nest:    { el: 'Leaf', stat: 0, job: 'keeps the Nest cosy', what: n => `New eggs hatch ${n}% sooner` },
+  yard:    { el: 'Stone', stat: 2, job: 'coaches at the yard', what: n => `Training gives ${n}% more experience` },
+  gate:    { el: 'Spark', stat: 3, job: 'charges the balloon', what: n => `New parties come home ${n}% sooner` },
+  kitchen: { el: 'Ember', stat: 1, job: 'tends the oven', what: n => `${n}% chance of a second treat for free` },
+};
+export const elsOf = p => { const d = SPECIES[p.sp]; return d?.el2 ? [d.el, d.el2] : [elOf(p)]; };
+export const canWork = (p, type) => !!WORK[type] && elsOf(p).includes(WORK[type].el);
+export const workPct = (p, type) => canWork(p, type) ? 5 + p.lv + 3 * (p.stars?.[WORK[type].stat] || 3) : 0; // 9% for a level 1 with one star, 40% at level 20 with five
 export const TRAIN_XP = 6; // experience an hour for each pet training at the Training Yard
 export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n + v, 0); // every friendship point earned
 export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);

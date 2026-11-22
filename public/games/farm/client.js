@@ -5,7 +5,7 @@
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
+import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 import { matIcon } from './icons.js';
 import { WEATHER, weatherAt } from './data.js';
 
@@ -152,6 +152,10 @@ export function mount(app, ctx) {
       ${F.nests.map(n => n.stage === 'ready' ? `<button type="button" class="btn m" data-a="hatch" data-slot="${n.slot}">Hatch the egg</button>` : `<span class="chip">${n.stage === 'cuddle' ? 'Egg in' : 'Hatches in'} ${wait(n.left)}</span>`).join('')}`;
   }
   // ---------- expeditions ----------
+  const helperOf = type => F.pets.find(p => p.id === F.work?.[type]);
+  const helpRow = type => { const w = WORK[type], h = helperOf(type); // the helper line on a building's card
+    return h ? `<p class="helpon">${face(h)}<span><b>${esc(h.name)}</b> ${w.job}. ${w.what(workPct(h, type))}.</span></p><button type="button" class="btn sm w" data-a="workopen" data-type="${type}">Change helper</button>`
+      : `<p class="hint">${elTag(w.el)} pets can help here.</p><button type="button" class="btn sm w" data-a="workopen" data-type="${type}">Choose a helper</button>`; };
   const petRow = (p, extra = '') => `${face(p)}<b>${esc(p.name)}</b><small>Level ${p.lv}${extra}</small>`;
   function paintPanel() {
     const box = $('pf-panel');
@@ -186,6 +190,16 @@ export function mount(app, ctx) {
         <div class="party">${pets}</div><p class="hint">${note}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">Not now</button>
           <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? 'Save team' : panel.mode === 'live' ? (panel.invite ? 'Join the battle' : 'Send the invitation') : 'Start'}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'work') { // who helps at this building
+      const type = panel.type, w = WORK[type], now = helperOf(type), jobs = Object.entries(F.work || {});
+      const pets = F.pets.filter(p => canWork(p, type)).sort((a, b) => workPct(b, type) - workPct(a, type)).map(p => { const out = busyFor(p, 'train'), other = jobs.find(([k, id]) => id === p.id && k !== type);
+        return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="workpick" data-id="${p.id}" data-why="${out}" aria-pressed="${now?.id === p.id}">${petRow(p, ` · ${STAR_NAME[w.stat]} ${p.stars?.[w.stat] || 3}★ · <b>${workPct(p, type)}%</b>` + (out ? ' · ' + out : other ? ` · leaves the ${ITEMS[other[0]].name}` : F.train.ids.includes(p.id) ? ' · stops training' : ''))}</button>`; }).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>Helper at the ${ITEMS[type].name}</h2>
+        <p>One ${elTag(w.el)} pet can work here. ${w.what('X')}, where X grows with the pet's level and its ${STAR_NAME[w.stat]} stars. A pet has one job at a time: sending it exploring, training or to the Nest ends its work here.</p>
+        <div class="party">${pets || `<p class="hint">You have no ${w.el} pets yet. ${Object.values(ZONES).filter(z => z.el === w.el).slice(0, 2).map(z => z.name).join(' and ')} are good places to look.</p>`}</div>
+        <div class="row end">${now ? `<button type="button" class="btn w" data-a="workoff" data-type="${type}">Send ${esc(now.name)} home</button>` : ''}<button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
       return;
     }
     if (panel.kind === 'train') {
@@ -423,7 +437,7 @@ export function mount(app, ctx) {
       }).join('');
       const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
       const pets = F.pets.map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
-        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? ' · training (ends if sent)' : atHome(z, p.sp, elOf(p)) ? ' · +25% here' : '')}</button>`).join('');
+        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? ' · training (ends if sent)' : Object.values(F.work || {}).includes(p.id) ? ' · helping at a building (ends if sent)' : atHome(z, p.sp, elOf(p)) ? ' · +25% here' : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
       const full = F.pets.length >= F.room;
       box.innerHTML = `<div class="panel tripp"><h2>Send pets exploring</h2>
@@ -615,6 +629,7 @@ export function mount(app, ctx) {
         <p>${elTags(p)} ${s.name} · ${FORMS[formOf(p.lv)]} · Level ${p.lv}</p>
         ${p.lv < MAX_LV ? `<div class="xp" title="Experience"><i style="width:${Math.round(p.xp / xpFor(p.lv) * 100)}%"></i><span>${p.xp} of ${xpFor(p.lv)} to level ${p.lv + 1}</span></div>` : ''}
         <p class="hint">${s.blurb}</p>
+        ${Object.entries(F.work || {}).filter(([, id]) => id === p.id).map(([k]) => `<p class="hint">Helper at the ${ITEMS[k].name}: ${WORK[k].what(workPct(p, k)).toLowerCase()}.</p>`).join('')}
         <div class="mvlist"><span class="hint">${ROLE_NAME[KIT[p.sp].role]}</span>${movesAt(p.sp, p.lv, p.xmove, elOf(p)).map(id => `<span class="el" style="--c:${ELEMENTS[MOVES[id].el]}">${MOVES[id].name}</span>`).join('')}</div>
         ${Object.entries(RECIPES).filter(([k, r]) => F.inv[k] && (r.xp ? p.lv < MAX_LV : r.rest && p.rest > 0)).map(([k, r]) => `<button type="button" class="btn sm m" data-a="feed" data-what="${k}" data-id="${p.id}">Give a ${r.name} (${F.inv[k]} left)</button>`).join('')}
         <button type="button" class="btn sm w" data-a="petpage" data-id="${p.id}">Traits and family</button></div>
@@ -646,6 +661,7 @@ export function mount(app, ctx) {
       else if (item.type === 'barn') more = `<p class="hint">Your farm can hold ${F.cap} of each material.</p>`;
       else if (item.type === 'workshop') more = '<p class="hint">Its decorations are under Edit farm, Fancy.</p><button type="button" class="btn sm m" data-a="sellopen">Sell spare materials</button>';
       else if (item.type === 'hut') more = `<p class="hint">Your farm has room for ${F.room} pets.</p>`;
+      if (WORK[item.type]) more += helpRow(item.type);
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
         ${up}<button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">Move it</button>
         ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">Sell (${costText(it.cost)} back)</button>`}</div>
@@ -819,6 +835,9 @@ export function mount(app, ctx) {
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
     else if (a === 'upgrade') { const it = F.items.find(x => x.id === +b.dataset.id); if (it && !canAfford(F.inv, upCost(it))) return ctx.toast('Not enough materials for that yet.', true); ctx.send({ t: 'upgrade', id: +b.dataset.id }); }
+    else if (a === 'workopen') { panel = { kind: 'work', type: b.dataset.type }; card = null; sync(); }
+    else if (a === 'workpick') { if (b.classList.contains('off')) return ctx.toast(`That pet is ${b.dataset.why}.`, true); ctx.send({ t: 'work', type: panel.type, id: b.dataset.id }); }
+    else if (a === 'workoff') ctx.send({ t: 'work', type: b.dataset.type });
     else if (a === 'trainopen') { panel = { kind: 'train', pets: F.train.ids.filter(freeFor('train')) }; card = null; sync(); }
     else if (a === 'trainpick') {
       if (b.classList.contains('off')) return ctx.toast(b.dataset.why ? `That pet is ${b.dataset.why}.` : 'That pet is fully grown already.', true);
@@ -909,7 +928,7 @@ export function mount(app, ctx) {
     else if (m.did === 'claim') { sfx.join(); ctx.toast('You got ' + Object.entries(m.got).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') + '.'); }
     else if (m.did === 'duel') { sfx.join(); panel = null; ctx.toast(`Invitation sent. The battle starts as soon as ${esc(V?.name || 'they')} says yes.`); }
     else if (m.did === 'pick') { sfx.join(); card = null; ctx.toast(`You picked ${m.got} berries${m.wet ? ` (${m.wet} extra thanks to the rain)` : ''}${m.sun ? ` and ${m.sun} ${m.sun > 1 ? 'sunberries' : 'sunberry'}` : ''}.`); }
-    else if (m.did === 'cook') { sfx.set(); scene?.work('kitchen'); ctx.toast(`One ${RECIPES[m.what].name} is ready.`); }
+    else if (m.did === 'cook') { sfx.set(); scene?.work('kitchen'); ctx.toast(m.extra ? `${esc(helperOf('kitchen')?.name || 'Your helper')} baked a second one for free! Two ${RECIPES[m.what].name}s are ready.` : `One ${RECIPES[m.what].name} is ready.`); }
     else if (m.did === 'sell') { sfx.join(); scene?.work('workshop'); ctx.toast(`Sold for ${m.coins} coins.`); }
     else if (m.did === 'feed') { sfx.win(); const p = F.pets.find(x => x.id === m.pet); scene?.cheer(m.pet); ctx.toast(m.what === 'tonic' ? `${esc(p.name)} feels fresh and rested.` : `${esc(p.name)} loved it.${m.grew ? (m.grew.form ? ` It grew up into its ${FORMS[m.grew.form].toLowerCase()} form!` : ` It reached level ${m.grew.lv}!`) : ''}`); }
     else if (m.did === 'upgrade') { sfx.win(); scene?.pop(m.id); const it = F.items.find(x => x.id === m.id); ctx.toast(`${ITEMS[it.type].name} is now level ${lvOf(it)}.`); }
@@ -917,6 +936,7 @@ export function mount(app, ctx) {
     else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');
+    else if (m.did === 'work') { sfx.set(); panel = null; const h = m.pet && F.pets.find(x => x.id === m.pet); if (h) scene?.cheer(h.id); ctx.toast(h ? `${esc(h.name)} ${WORK[m.type].job} now. ${WORK[m.type].what(workPct(h, m.type))}.` : `Nobody helps at the ${ITEMS[m.type].name} now.`); }
     else if (m.did === 'free') { sfx.turn(); card = null; panel = { kind: 'bye', gone: m.gone, got: m.got }; }
     else if (m.did === 'offer') { sfx.join(); panel = null; ctx.toast(`Your offer is on its way to ${esc(V?.name || 'them')}.`); }
     else if (m.did === 'tradeyes') { sfx.win(); ctx.toast('Trade done! Your new things are on the farm.'); }

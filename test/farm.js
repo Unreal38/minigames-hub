@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, xpFor, tripLoot, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
+import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, xpFor, tripLoot, canWork, workPct, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
 const PORT = 20900 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -657,6 +657,25 @@ const wetPlots = r.farm.items.filter(i => i.type === 'garden').length;
 if (wetPlots) { r = await a.farmDo({ t: 'pick' }); if (!r.err && r.wet !== wetPlots) fail('rain gave no extra berries: ' + JSON.stringify([r.wet, wetPlots, r.err])); }
 { const w1 = weatherAt(0), w2 = weatherAt(0); if (w1.kind !== w2.kind || !WEATHER[w1.kind] || !(w1.left > 0 && w1.left <= WEATHER_MS)) fail('weather is not a steady function of the clock'); }
 { const seen = new Set(); for (let i = 0; i < 400; i++) seen.add(weatherAt(i * WEATHER_MS).kind); if (seen.size !== 5) fail('some weather never happens: ' + [...seen]); }
+// helpers at buildings: the right element only, boost from level and stars, one job at a time
+r = await a.farmDo({ t: 'open', test: { pet: 'puddlepup', ripe: true } });
+r = await a.farmDo({ t: 'open', test: { pet: 'cindercub' } });
+{ const tide = r.farm.pets.at(-2), ember = r.farm.pets.at(-1);
+  if (tide.sp !== 'puddlepup' || ember.sp !== 'cindercub') fail('test pets missing');
+  r = await a.farmDo({ t: 'pick' }); const left0 = r.farm.garden.left;
+  r = await a.farmDo({ t: 'work', type: 'garden', id: ember.id });
+  if (!r.err || r.farm.work.garden) fail('an Ember pet waters the garden');
+  r = await a.farmDo({ t: 'work', type: 'garden', id: tide.id });
+  const pct = workPct(tide, 'garden');
+  if (r.err || r.farm.work.garden !== tide.id || pct < 9 || pct > 40) fail('work ' + r.err + ' ' + pct);
+  if (Math.abs(r.farm.garden.left - left0 * (1 - pct / 100)) > 5000) fail('garden boost: ' + [left0, r.farm.garden.left, pct]);
+  if (workPct({ ...tide, lv: tide.lv + 5 }, 'garden') !== pct + 5 || workPct({ ...tide, stars: [3, 3, 3, 5] }, 'garden') <= workPct({ ...tide, stars: [3, 3, 3, 1] }, 'garden')) fail('boost ignores level or stars');
+  if (!canWork({ sp: 'kettlephant' }, 'garden') || !canWork({ sp: 'kettlephant' }, 'kitchen') || canWork({ sp: 'kettlephant' }, 'nest')) fail('hybrid helper elements');
+  r = await a.farmDo({ t: 'work', type: 'garden' });
+  if (r.err || r.farm.work.garden || Math.abs(r.farm.garden.left - left0) > 5000) fail('helper sent home but the boost stayed');
+  r = await a.farmDo({ t: 'work', type: 'garden', id: tide.id });
+  if (r.farm.train.slots) { r = await a.farmDo({ t: 'train', pets: [tide.id] }); if (r.err || r.farm.work.garden) fail('a training pet still waters the garden ' + r.err); await a.farmDo({ t: 'train', pets: [] }); }
+  r = await a.farmDo({ t: 'work', type: 'garden', id: tide.id }); if (r.err) fail('work again ' + r.err); }
 // letting a pet go free: it leaves, berries arrive, the album keeps its page
 r = await a.farmDo({ t: 'free', id: 'nobody' });
 if (!r.err) fail('freed a pet that does not exist');

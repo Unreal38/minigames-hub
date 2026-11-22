@@ -295,3 +295,7 @@ body.night .pf .btn.ghost-ink { color: var(--pf-tx); }
 @media (prefers-reduced-motion: reduce) { .pf .byeface { animation: none; } }
 .pf .freeask .row.end { position: static; background: none; margin: 0; padding: 0; box-shadow: none; }
 .pf .byeface > * { transform: scale(2); margin: 26px 0 30px; }
+
+/* helpers at buildings */
+.pf .helpon { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 8px; border-radius: 12px; background: rgba(120, 200, 150, .22); }
+.pf .helpon > :first-child { flex: none; }

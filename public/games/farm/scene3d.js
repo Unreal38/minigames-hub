@@ -397,6 +397,9 @@ export function createScene(canvas, { onPick, onGhost }) {
         const [lx, lz, f] = [[-.15, -.2, -Math.PI / 2], [.7, .62, Math.PI], [.35, -.55, -Math.PI / 2]][ti % 3], [w, h] = footprint('yard', yard.r), a = -yard.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a);
         p.train = { x: wx(yard.x, w) + lx * c + lz * sn, z: wz(yard.y, h) - lx * sn + lz * c, face: f + a, k: ti }; p.path = []; continue;
       }
+      // a helper stands in front of the building it works at and keeps busy there
+      const wk = Object.keys(farm.work || {}).find(k => farm.work[k] === pet.id), wi = wk && farm.items.find(i => i.type === wk);
+      if (wi) { const [w, h] = footprint(wk, wi.r); p.train = { x: wx(wi.x, w), z: wz(wi.y, h) + h / 2 + .35, face: Math.PI, k: 2 }; p.path = []; continue; }
       p.train = null;
       // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
       const ni = nestItem ? nestsNow.findIndex(n => (n.a === pet.id || n.b === pet.id) && (n.stage === 'cuddle' || n.a === pet.id)) : -1;
