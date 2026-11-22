@@ -3,6 +3,7 @@ import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -114,7 +115,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => (i === S.me ? '<i hidden data-e="1"></i>' : `<div class="mg-tag" hidden><i style="background:${p.color}"></i><b>${esc(p.name)}</b></div>`)).join('');
+    tagsEl.innerHTML = S.seats.map((p, i) => (i === S.me ? '<i hidden data-e="1"></i>' : `<div class="mg-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`)).join('');
     tagEls = [...tagsEl.children];
   }
 
@@ -127,7 +128,7 @@ export function mount(app, ctx) {
     setHtml($('mg-list'), ord.map(i => {
       const p = S.seats[i], playing = S.stage === 'play';
       const now = playing ? (p.sunk ? `<em class="in">${I.check}${p.strokes}</em>` : p.out ? `<em class="out">${S.cap}</em>` : `<em>${p.strokes}</em>`) : '';
-      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && S.turn === i ? ' turn' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
+      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && S.turn === i ? ' turn' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
     }).join(''));
   }
 
@@ -139,7 +140,7 @@ export function mount(app, ctx) {
     const coins = my.coins || 0, bet = my.bet && my.bet !== 'skip' ? my.bet : null, poor = coins < STAKES[0];
     setHtml(el, `<div class="bethead"><h2>Who takes hole ${S.hole}?</h2><span>Fewest strokes wins it. A right call pays <b>${S.mult}×</b> · you have ${I.coin}<b>${coins}</b></span></div>
       <div class="picks">${S.seats.map((p, i) => `<button type="button" class="pick${bet?.on === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${poor ? 'disabled' : ''} aria-pressed="${bet?.on === i}">
-        ${avatarHtml(p.color, p.av, 44)}<b>${i === S.me ? 'Me' : esc(p.name)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'new'}</span></button>`).join('')}</div>
+        ${avatarHtml(p.color, p.av, 44)}<b>${i === S.me ? 'Me' : nameHtml(p.name, p.fl)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'new'}</span></button>`).join('')}</div>
       <div class="stakes"><span>Stake</span><div class="pills">${STAKES.map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins ? 'disabled' : ''}>${v}</button>`).join('')}</div>
         <span class="mybet">${poor ? 'You need 10 coins to bet. Finish the round to earn some.' : bet ? `${I.coin}<b>${bet.amt}</b> on ${bet.on === S.me ? 'yourself' : nameOf(bet.on)}` : my.bet === 'skip' ? 'No bet this hole.' : 'Tap a player to bet on them. Betting is optional.'}</span>
         <button type="button" class="btn ${my.bet === 'skip' || poor ? 'w' : 'm'}" data-a="skip" ${my.bet === 'skip' ? 'disabled' : ''}>${bet ? 'Remove bet' : my.bet === 'skip' ? 'Waiting for the others' : 'No bet, just play'}</button></div>`);
@@ -169,7 +170,7 @@ export function mount(app, ctx) {
     const my = S.me >= 0 ? R.pay[S.me] : null;
     setHtml(el, `<h2>${R.win >= 0 ? `${youOr(R.win)} take${R.win === S.me ? '' : 's'} hole ${S.hole}` : `Nobody holed out on hole ${S.hole}`}</h2>
       <ol>${ord.map(i => { const p = S.seats[i], sc = R.scores[i], pay = R.pay[i];
-        return `<li class="${i === R.win ? 'won' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}</b><span>${sc >= S.cap ? 'picked up' : scoreName(sc, R.par).replace('!', '')}</span><strong>${sc}</strong>${pay ? `<small class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}${I.coin}</small>` : ''}</li>`; }).join('')}</ol>
+        return `<li class="${i === R.win ? 'won' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${sc >= S.cap ? 'picked up' : scoreName(sc, R.par).replace('!', '')}</span><strong>${sc}</strong>${pay ? `<small class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}${I.coin}</small>` : ''}</li>`; }).join('')}</ol>
       ${my ? `<p>${my.net > 0 ? `Your bet came in: +${my.net} coins.` : my.net < 0 ? `Your bet on ${my.on === S.me ? 'yourself' : nameOf(my.on)} lost ${-my.net} coins.` : 'Nobody won the hole, so your stake came back.'}</p>` : ''}
       <p class="next">${S.hole < S.holes ? 'Next hole coming up…' : 'That was the last hole!'}</p>`);
   }
@@ -240,7 +241,7 @@ export function mount(app, ctx) {
       <div class="cardwrap"><table class="mg-card"><thead><tr><th>Hole</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>Total</th></tr>
         <tr class="par"><th>Par</th>${S.pars.map(p => `<td>${p}</td>`).join('')}<td>${R.par}</td></tr></thead>
         <tbody>${R.order.map((i, n) => { const p = S.seats[i];
-          return `<tr class="${i === S.me ? 'mg-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b></span></th>
+          return `<tr class="${i === S.me ? 'mg-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b></span></th>
             ${p.card.map((sc, h) => `<td class="${sc < S.pars[h] ? 'under' : sc > S.pars[h] ? 'over' : ''}">${sc}</td>`).join('')}<td><strong>${R.totals[i]}</strong><small>${vsPar(R.totals[i] - R.par)}</small></td></tr>`; }).join('')}</tbody></table></div>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;

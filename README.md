@@ -16,7 +16,7 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #7: Liar's Dice**, the bluffing game at a round 3D table on a sky island. Everyone rolls in secret under a cup in their colour, bids go round on how many dice of one face there are in total, and calling "Liar!" lifts every cup. The server never sends a player anyone else's dice until the cups lift. Rules and odds shared by server and client live in `public/games/dice/rules.js`; bot personalities are the `BOTS` table in `server/games/dice.js`.
 
-**Game #8: Pawperty**, a cozy pet-shop property game on a 3D ring board. Walk your avatar round a 40-tile board with eight streets of shops (one per Pet Farm island), adopt the pet waiting in each box and collect rent in treats. Pets nap on the job (no rent while asleep), Zoomies cards cause chaos, Bath Time stands in for jail, and nobody is knocked out: the richest player after 10, 20 or 30 rounds wins. The board, prices, cards and timings shared by server and client live in `public/games/paw/board.js`; rules and bots are in `server/games/paw.js`.
+**Game #8: Pawperty**, a cozy pet-shop property game on a 3D ring board. Walk your avatar round a 40-tile board with eight streets of shops (one per colour, each run by Pet Farm pets of that colour), adopt the pet waiting in each box and collect rent in treats. Pets nap on the job (no rent while asleep), Zoomies cards cause chaos, Bath Time stands in for jail, and nobody is knocked out: the richest player after 10, 20 or 30 rounds wins. The board, prices, cards and timings shared by server and client live in `public/games/paw/board.js`; rules and bots are in `server/games/paw.js`.
 
 **Game #9: Kart Island Race**, short low-poly kart races on roads that hop between floating islands, with everyone's avatar at the wheel. Drift for boosts, hit the boost pads, grab gift boxes for silly power-ups (banana peels, a homing jelly, a chili boost, a bubble shield and a sleepy cloud) and try not to drive off the edge. It is the hub's first real-time game: each browser drives its own kart with the physics in `public/games/kart/track.js` and reports its position; `server/games/kart.js` checks the reports, counts laps, drives the bots, owns the power-ups and streams the race twenty times a second through the `fast()` game hook in `server/server.js`. Tracks are a list of points in `TRACKS` in track.js.
 
@@ -88,6 +88,12 @@ Open two browser windows (or one normal and one private window) to play against 
 - Hard mode (off by default) allows only one pawn per cell and has no safe cells: you cannot move onto your own pawn, and any rival you land on is captured, even on a star or a start cell.
 - A pawn needs the exact number to step home. First to get every pawn home wins, and the rest are ranked by how far their pawns got.
 - Someone who joins mid-game can take over a bot's corner when the current round of turns ends.
+
+## Mystery Pet (daily puzzle)
+
+Every day at midnight in Warsaw one Pet Farm pet is picked as the **Mystery Pet**, the same for everybody. Guess any pet and six clues come back right, close or wrong: element, home island, rarity (with an arrow), fighting style, coat colour and how many moves it shares with the answer. After 3, 5 and 7 wrong guesses you get its outline, its baby form and a blurry photo. Solving pays 20 coins on the first guess and two fewer for each guess after it (never under 5), a streak counts the days in a row, and 7 in a row unlocks the "Pet Detective" title. The result can be posted to the hub chat as a grid of squares with no spoilers, and the pop-up lists everyone who solved it today. It needs an account.
+
+Everything is worked out from the Pet Farm tables (`SPECIES`, `ZONES`, `KIT`, `COAT`), so a new pet joins the puzzle by itself. The rules live in `server/daily.js` (reward, hint steps, days before a pet may repeat), the page in `public/daily.js`, and each day's answer is written to `DATA_DIR/mystery-pet.json`.
 
 ## Pet Farm
 

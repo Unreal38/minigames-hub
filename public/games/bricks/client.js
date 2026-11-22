@@ -5,6 +5,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { MAXG, LOCK_MS, MAX_RESETS, SOFT_MS, fits, spawn, turned, dropY, pieceAt, lock, doHold, decode, encode, fallMs, levelAt } from './rules.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -173,7 +174,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + focus;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="sb-tag" hidden><i style="background:${p.color}"></i><b>${esc(p.name)}</b><span></span></div>`).join('')
+    tagsEl.innerHTML = info.map(p => `<div class="sb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div>`).join('')
       + `<div class="sb-lab" hidden>Set aside${touch ? '' : ' <kbd>C</kbd>'}</div><div class="sb-lab" hidden>Next</div>`;
     tagEls = [...tagsEl.querySelectorAll('.sb-tag')]; [labHold, labNext] = tagsEl.querySelectorAll('.sb-lab');
   }
@@ -183,7 +184,7 @@ export function mount(app, ctx) {
       const x = S.x[i], dead = !!x[0];
       el.classList.toggle('out', dead); el.classList.toggle('hot', !dead && x[3] >= 4);
       setHtml(el.querySelector('span'), dead ? (x[4] ? ord(x[4]) : 'out') : String(x[1]));
-      setHtml(el.querySelector('b'), esc(p.name) + (p.bot && p.human ? ' (away)' : ''));
+      setHtml(el.querySelector('b'), nameHtml(p.name, p.fl) + (p.bot && p.human ? ' (away)' : ''));
     });
   }
 
@@ -288,7 +289,7 @@ export function mount(app, ctx) {
       <h2>${I.crown}${w === S.me ? 'You win!' : `${nameOf(w)} wins!`}</h2>
       <p>Last one standing after ${clock(R.ms)}</p>
       <ol class="sb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b>
+        return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
           <strong>${R.lines[i]} line${R.lines[i] === 1 ? '' : 's'}</strong><small>sent ${R.sent[i]}${R.time[i] ? ' · out at ' + clock(R.time[i]) : ''}</small></li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;

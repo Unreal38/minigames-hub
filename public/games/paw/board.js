@@ -1,6 +1,6 @@
 // Pawperty board: shared by the server (rules) and the client (labels, 3D board). Restart the server after editing.
-// 40 tiles round an 11 x 11 square: ten places along every side. Eight streets of three pet shops, each street
-// one Pet Farm island, each shop run by one of that island's pets.
+// 40 tiles round an 11 x 11 square: ten places along every side. Eight streets of three pet shops, one street
+// per colour, each shop run by a Pet Farm pet of that colour.
 
 export const SIDE = 10, N = SIDE * 4, GRID = SIDE + 1; // a corner every SIDE tiles; the board is GRID x GRID cells
 export const START = 0, BATH = SIDE, LOST = SIDE * 2, MUD = SIDE * 3;
@@ -13,29 +13,31 @@ export const LV_MAX = 3;
 const LV_RENT = [1, 2.5, 5, 12]; // rent multiplier for each upgrade level
 export const STREET_BONUS = 2;    // owning the whole street doubles rent below Pet Palace, and lets you build the palace
 
+// Streets go round the board in colour order, and every pet has the colour of its street.
 export const GROUPS = [
-  { id: 'meadow', name: 'Starter Meadow',  col: '#3fc7a8', ink: '#0f5a4c', price: 50 },
-  { id: 'grove',  name: 'Fruit Grove',     col: '#ff7a8a', ink: '#8f2236', price: 70 },
-  { id: 'patch',  name: 'Veggie Patch',    col: '#ffa24a', ink: '#8a4a10', price: 100 },
-  { id: 'cove',   name: 'Tropic Cove',     col: '#6cc24a', ink: '#2c5e16', price: 130 },
-  { id: 'bakery', name: 'Bakery Bluff',    col: '#e8c34a', ink: '#7a5a10', price: 150 },
-  { id: 'sweets', name: 'Sweet Shop Isle', col: '#c98bff', ink: '#5b2a8f', price: 180 },
-  { id: 'peak',   name: 'Weather Peak',    col: '#4db5ff', ink: '#14507a', price: 210 },
-  { id: 'night',  name: 'Starfall Isle',   col: '#5c6ad8', ink: '#232a70', price: 250 },
+  { id: 'cocoa',  name: 'Cocoa Corner', col: '#c2905c', ink: '#5e3a1a', price: 50 },
+  { id: 'snow',   name: 'Snowy Lane',   col: '#cfdbe8', ink: '#44566b', price: 70 },
+  { id: 'rosy',   name: 'Rosy Row',     col: '#ff7a8a', ink: '#8f2236', price: 100 },
+  { id: 'orange', name: 'Orange Grove', col: '#ffa24a', ink: '#8a4a10', price: 130 },
+  { id: 'sunny',  name: 'Sunny Side',   col: '#e8c34a', ink: '#7a5a10', price: 150 },
+  { id: 'green',  name: 'Green Glade',  col: '#6cc24a', ink: '#2c5e16', price: 180 },
+  { id: 'blue',   name: 'Blue Bay',     col: '#4db5ff', ink: '#14507a', price: 210 },
+  { id: 'violet', name: 'Violet Hill',  col: '#b08bff', ink: '#4b2a8f', price: 250 },
 ];
 
 // [street, shop name, pet species from Pet Farm]
 const SHOPS = [
-  [0, 'Moss Garden', 'mossbun'], [0, 'Campfire Café', 'cindercub'], [0, 'Splash Pad', 'puddlepup'],
-  [1, 'Smoothie Hut', 'strawbun'], [1, 'Fizz Stand', 'lemonzest'], [1, 'Pamper Spa', 'pinepine'],
-  [2, 'Crunch Café', 'carrofox'], [2, 'Pod Hotel', 'peapillar'], [2, 'Nap Barn', 'pumpkit'],
-  [3, 'Melon Lagoon', 'melonwhale'], [3, 'Coco Bowling', 'coconutkin'], [3, 'Spicy Grill', 'chilipup'],
-  [4, 'Crumb Shack', 'croissab'], [4, 'Ring Bakery', 'donuseal'], [4, 'Frosting Tower', 'cupcowl'],
-  [5, 'Toastery', 'mallowlamb'], [5, 'Wobble Bar', 'jellifrog'], [5, 'Stripe Store', 'candraffe'],
-  [6, 'Puddle Pool', 'dripfrog'], [6, 'Ski Lodge', 'snowfox'], [6, 'Sunbed Resort', 'sunlion'],
-  [7, 'Glow Gallery', 'starjelly'], [7, 'Dream Inn', 'moonbun'], [7, 'Rocket Rides', 'cometail'],
+  [0, 'Coco Bowling', 'coconutkin'], [0, 'Crumb Shack', 'croissab'], [0, 'Twist Bakery', 'pretzelisk'],
+  [1, 'Toastery', 'mallowlamb'], [1, 'Ring Bakery', 'donuseal'], [1, 'Ski Lodge', 'snowfox'],
+  [2, 'Smoothie Hut', 'strawbun'], [2, 'Spicy Grill', 'chilipup'], [2, 'Dragon Diner', 'sizzlet'],
+  [3, 'Crunch Café', 'carrofox'], [3, 'Nap Barn', 'pumpkit'], [3, 'Campfire Café', 'cindercub'],
+  [4, 'Fizz Stand', 'lemonzest'], [4, 'Pamper Spa', 'pinepine'], [4, 'Sunbed Resort', 'sunlion'],
+  [5, 'Pod Hotel', 'peapillar'], [5, 'Melon Lagoon', 'melonwhale'], [5, 'Wobble Bar', 'jellifrog'],
+  [6, 'Puddle Pool', 'dripfrog'], [6, 'Shell Shop', 'waddlet'], [6, 'Rocket Rides', 'cometail'],
+  [7, 'Glow Gallery', 'starjelly'], [7, 'Dream Inn', 'moonbun'], [7, 'Night Café', 'wattbat'],
 ];
 export const PET_NAME = {
+  pretzelisk: 'Pretzelisk', sizzlet: 'Sizzlet', waddlet: 'Waddlet', wattbat: 'Wattbat',
   mossbun: 'Mossbun', cindercub: 'Cindercub', puddlepup: 'Puddlepup', melonwhale: 'Melonwhale', coconutkin: 'Coconutkin', chilipup: 'Chilipup',
   strawbun: 'Strawbun', lemonzest: 'Lemonzest', pinepine: 'Pinepine', carrofox: 'Carrofox', peapillar: 'Peapillar', pumpkit: 'Pumpkit',
   croissab: 'Croissab', donuseal: 'Donuseal', cupcowl: 'Cupcowl', mallowlamb: 'Mallowlamb', jellifrog: 'Jellifrog', candraffe: 'Candraffe',
@@ -50,7 +52,7 @@ const LAYOUT = ['start', 0, 'zoom', 1, 2, 3, 'vet', 4, 5, 'bowl',
   'mud', 18, 19, 'zoom', 20, 21, 'bowl', 22, 23, 'zoom'];
 const SPECIAL = {
   start: { name: 'Welcome Mat', blurb: `Collect ${PASS_GO} treats every time you pass.` },
-  bath: { name: 'Bath Time', blurb: `Stuck in the tub: roll doubles to hop out, or pay ${BATH_FEE} treats.` },
+  bath: { name: 'Bath Time', blurb: `Stuck in the tub: roll doubles to hop out, or pay ${BATH_FEE} treats. Your pets nap (no rent) while you soak.` },
   lost: { name: 'Lost & Found', blurb: 'Grab every treat that was dropped in the jar.' },
   mud: { name: 'Muddy Puddle', blurb: 'Splash! Straight off to Bath Time.' },
   zoom: { name: 'Zoomies!', blurb: 'Draw a Zoomies card.' },

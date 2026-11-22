@@ -29,6 +29,7 @@ import * as store from './store.js';
 import * as farm from './farm.js';
 import * as hay from './hay.js';
 import * as hubchat from './hubchat.js';
+import * as daily from './daily.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -102,7 +103,7 @@ function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
-    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
+    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pt: store.tagOf(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
@@ -137,7 +138,7 @@ function scoreGame(r) {
     const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
     const p = store.profileOf(c.token); if (!p) return;
     const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
-    Object.assign(e, { name: c.name, color: c.color, av: c.av, fl: store.flair(p) });
+    Object.assign(e, { name: c.name, color: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p) });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
     const gain = store.credit(p, r.game, { ...res[i], of });
@@ -161,7 +162,9 @@ function send(c, msg) { c?.sock?.send(msg); }
 const coinWait = new Map();
 store.onCoins(pid => { if (!coinWait.has(pid)) coinWait.set(pid, setTimeout(() => { coinWait.delete(pid); const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) send(c, { t: 'me', me: store.me(p) }); }, 250)); });
 // The Pet Farm pet a player has brought along, as others see it (no ids), or undefined.
-const palOf = p => { const x = p?.user && p.cos?.pet && farm.petOf(p.pid, p.cos.pet); return x ? { sp: x.sp, name: x.name, lv: x.lv, look: x.look } : undefined; };
+const palView = x => ({ sp: x.sp, name: x.name, lv: x.lv, look: x.look });
+const palsOf = p => (p?.user ? store.showPets(p).map(id => farm.petOf(p.pid, id)).filter(Boolean).map(palView) : []); // every pet they show off on their isle
+const palOf = p => palsOf(p)[0];
 farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
 const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);
@@ -259,10 +262,16 @@ function handle(c, m) {
       return;
     }
     case 'pets': { const p = store.profileOf(c.token); return send(c, { t: 'pets', pets: p?.user ? farm.petsOf(p.pid) : [] }); } // to pick a companion from
-    case 'wear': { // put on a name colour, frame, title or win effect, or bring a Pet Farm pet along
-      const p = store.profileOf(c.token), pal = m.k === 'pet';
-      if (pal && m.i && !farm.petOf(p?.pid, String(m.i))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
-      const r = pal ? store.companion(p, m.i ? String(m.i) : '') : store.wear(p, String(m.k ?? ''), m.i);
+    case 'player': { // another player's profile card, by their public tag
+      if (!allow('prof:' + c.id, 30, 60_000)) return;
+      const o = store.byTag(m.pt); if (!o) return send(c, { t: 'err', msg: 'That player is not around any more.' });
+      return send(c, { t: 'player', p: { ...store.publicProfile(o), pets: palsOf(o), online: clientsOf(o.pid).length > 0, me: o === store.profileOf(c.token), rel: store.relation(store.profileOf(c.token), o) } });
+    }
+    case 'wear': { // put on a name colour, frame, title or win effect, or pick the Pet Farm pets to show off
+      const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
+      const ids = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
+      if (pal && ids.some(id => !farm.petOf(p?.pid, id))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
+      const r = pal ? store.companion(p, ids) : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
       const room = rooms.get(c.room); if (room) sendRoom(room);
@@ -341,7 +350,7 @@ function handle(c, m) {
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastChat || 0) < 500) return; c.lastChat = now;
       const text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
-      const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), text };
+      const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), pt: store.tagOf(store.profileOf(c.token)), text };
       r.chat.push(msg); if (r.chat.length > 40) r.chat.shift();
       for (const t of r.players) send(clients.get(t), msg);
       return;
@@ -353,6 +362,15 @@ function handle(c, m) {
       if (r.err) return send(c, { t: 'hubchat', err: r.err });
       if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
       return;
+    }
+    case 'daily': { // Mystery Pet: the daily guess-the-pet puzzle (server/daily.js)
+      const p = store.profileOf(c.token);
+      if (m.test) daily.testHook(m.test, msg => send(c, msg));
+      return daily.handle(p, m, msg => send(c, msg), (text, grid) => {
+        const r = hubchat.post(p, c, c.sock?.ip || '?', text, grid);
+        if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+        return r.err || null;
+      });
     }
     case 'hubdel': {
       const id = String(m.id ?? '');
@@ -369,9 +387,11 @@ function handle(c, m) {
     }
     case 'friends': return sendFriends(store.profileOf(c.token));
     case 'friend': { // add by username, accept, decline or remove
-      const p = store.profileOf(c.token), r = store.friendOp(p, m.op, m.user);
+      const p = store.profileOf(c.token), tagged = m.pt ? store.byTag(m.pt) : null; // pt: picked from a profile card
+      if (m.pt && !tagged) return send(c, { t: 'err', msg: 'That player is not around any more.' });
+      const r = store.friendOp(p, m.op, m.user, tagged);
       if (r.err) return send(c, { t: 'err', msg: r.err });
-      send(c, { t: 'friended', op: m.op, user: r.other.user, now: r.now });
+      send(c, { t: 'friended', op: m.op, user: tagged ? r.other.name : r.other.user, now: r.now });
       sendFriends(p); sendFriends(r.other, m.op === 'add' || m.op === 'accept' ? { from: p.name, now: r.now } : null);
       return;
     }
@@ -520,6 +540,7 @@ for (const d of store.load()) {
 }
 farm.load();
 hubchat.load();
+daily.load();
 const bye = () => { store.saveNow(); farm.saveNow(); hubchat.saveNow(); process.exit(0); };
 process.on('SIGTERM', bye); process.on('SIGINT', bye);
 

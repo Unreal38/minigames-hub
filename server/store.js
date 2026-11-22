@@ -154,11 +154,35 @@ export function wear(p, k, i) {
   return { ok: true };
 }
 // The Pet Farm pet that sits beside the player in waiting rooms ('' for none). The caller checks it is theirs.
-export function companion(p, id) {
+export function companion(p, ids) {
   if (!p?.user) return { err: 'Log in to bring a pet along.' };
-  if (id) (p.cos ||= {}).pet = id; else if (p.cos) delete p.cos.pet;
+  ids = [...new Set(ids)].slice(0, PET_SLOTS);
+  p.cos ||= {};
+  if (ids.length) { p.cos.pets = ids; p.cos.pet = ids[0]; } else { delete p.cos.pets; delete p.cos.pet; }
   scheduleSave();
   return { ok: true };
+}
+export const PET_SLOTS = 3; // pets shown off on the player's isle; the first one also sits beside them in waiting rooms
+export const showPets = p => (p?.cos?.pets || (p?.cos?.pet ? [p.cos.pet] : [])).slice(0, PET_SLOTS);
+
+// A profile's public name tag: what the site hands out so anyone can open that player's profile card.
+// Profile ids and usernames never leave the server.
+let tags = null;
+export function tagOf(p) {
+  if (!p) return undefined;
+  if (!p.tag) { p.tag = rid(6); tags?.set(p.tag, p); scheduleSave(); }
+  return p.tag;
+}
+export function byTag(tag) {
+  if (typeof tag !== 'string' || !/^[0-9a-f]{12}$/.test(tag)) return null;
+  if (!tags) { tags = new Map(); for (const p of profiles.values()) if (p.tag) tags.set(p.tag, p); }
+  const p = tags.get(tag); return p && profiles.get(p.pid) === p ? p : null;
+}
+// The profile card other players may open: the look, the rank and how they have done in each game. Nothing private.
+export function publicProfile(p) {
+  const games = Object.entries(p.byGame || {}).filter(([, g]) => g?.games).map(([g, x]) => ({ g, games: x.games, wins: x.wins || 0, best: x.best || 0 }))
+    .sort((a, b) => b.wins - a.wins || b.games - a.games).slice(0, 4);
+  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games };
 }
 // What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
 export const flair = p => p ? flairOf(p) : {};
@@ -168,7 +192,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, today: shopDate(), ...progress(p.xp) };
+  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, today: shopDate(), ...progress(p.xp) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon }; }
@@ -314,9 +338,10 @@ export function prune(active) {
 const MAX_FRIENDS = 100;
 const lists = p => { p.friends ||= []; p.reqs ||= []; p.sent ||= []; return p; };
 const drop = (a, x) => { const i = a.indexOf(x); if (i >= 0) a.splice(i, 1); };
-export function friendOp(p, op, user) {
+export function friendOp(p, op, user, target = null) { // target: the other profile, when it was picked from a profile card instead of typed
   if (!p?.user) return { err: 'Create an account to add friends.' };
-  const q = String(user ?? '').trim().toLowerCase(); let o = profiles.get(users.get(q));
+  if (target && !target.user) return { err: 'That player has no account yet, so they cannot be added.' };
+  const q = target ? '' : String(user ?? '').trim().toLowerCase(); let o = target || profiles.get(users.get(q));
   if (!o && q) { // not a username: people often type the name they see on screen, so try that too
     const named = [...profiles.values()].filter(x => x !== p && String(x.name ?? '').trim().toLowerCase() === q), acc = named.filter(x => x.user);
     if (acc.length === 1) o = acc[0];
@@ -340,11 +365,18 @@ export function friendOp(p, op, user) {
   return { other: o, now: p.friends.includes(o.pid) };
 }
 export const areFriends = (a, b) => !!profiles.get(a)?.friends?.includes(b);
+// How the viewer stands with another player, for the button on their profile card.
+export function relation(p, o) {
+  if (!p || !o || p === o) return 'me';
+  if (!p.user) return 'guest'; if (!o.user) return 'noacc';
+  lists(p);
+  return p.friends.includes(o.pid) ? 'friend' : p.sent.includes(o.pid) ? 'sent' : p.reqs.includes(o.pid) ? 'req' : 'none';
+}
 export const friendPids = pid => profiles.get(pid)?.friends || [];
 // What a player sees of their friends list. online(pid) and extra(pid) are filled in by the server.
 export function friendsView(p, online = () => false, extra = () => ({})) {
   lists(p);
-  const card = pid => { const o = profiles.get(pid); return o?.user ? { user: o.user, name: o.name, color: o.color, av: o.av, lv: levelOf(o.xp), fl: flair(o) } : null; };
+  const card = pid => { const o = profiles.get(pid); return o?.user ? { user: o.user, pt: tagOf(o), name: o.name, color: o.color, av: o.av, lv: levelOf(o.xp), fl: flair(o) } : null; };
   return {
     friends: p.friends.map(pid => { const c = card(pid); return c && { ...c, online: online(pid), ...extra(pid) }; }).filter(Boolean).sort((a, b) => b.online - a.online || a.name.localeCompare(b.name)),
     reqs: p.reqs.map(card).filter(Boolean), sent: p.sent.map(card).filter(Boolean),
@@ -391,7 +423,7 @@ function boardRows(game) {
     if (!p.user && accounts.has(String(p.name ?? '').trim().toLowerCase())) continue;
     const g = game === 'overall' ? { games: p.games || 0, wins: p.wins || 0, best: 0, pts: p.pts || 0 } : p.byGame?.[game];
     if (!g?.games) continue;
-    rows.push({ pid: p.pid, name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0,
+    rows.push({ pid: p.pid, pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0,
       games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, top: g.top || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
   }
   rows.sort(ORDER[game] || ORDER.default);

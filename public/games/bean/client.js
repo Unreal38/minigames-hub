@@ -5,6 +5,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTower, newClimber, stepClimber, stormY, newRun, land, expire, streakPts, cheer, zoneOf, zoneName, floorAt, PACES, FLOOR_H, STREAK_MS, SPRING } from './tower.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -150,7 +151,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${esc(p.name)}</b></div>`).join('');
+    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
     tagEls = [...tagsEl.children];
   }
 
@@ -158,7 +159,7 @@ export function mount(app, ctx) {
   function renderList() {
     setHtml($('bb-list'), S.place.map((i, n) => {
       const p = info[i], out = S.out[i];
-      return `<li class="${i === S.me ? 'bb-me' : ''}${out ? ' bb-out' : ''}"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 26)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b><span>${out ? I.bolt : ''}${S.sc[i]}</span></li>`;
+      return `<li class="${i === S.me ? 'bb-me' : ''}${out ? ' bb-out' : ''}"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 26)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b><span>${out ? I.bolt : ''}${S.sc[i]}</span></li>`;
     }).join(''));
   }
   // things that change every moment: the streak meter, the height bar, the countdown
@@ -261,7 +262,7 @@ export function mount(app, ctx) {
       <h2>${I.leaf}${w === S.me ? 'You climbed' : `${nameOf(w)} climbed`} the highest!</h2>
       <p>Floor ${R.floor[w]} · ${esc(zoneName(zoneOf(R.floor[w])))}</p>
       <ol class="bb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b>
+        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
           <strong>${R.score[i]} pts</strong><small>floor ${R.floor[i]}${R.bonus[i] ? ` · streaks +${R.bonus[i]}` : ''}</small></li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Climb again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;

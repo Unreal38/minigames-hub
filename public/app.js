@@ -7,6 +7,7 @@ import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
+import { skinPic, skinPicNow } from './skinpic.js';
 import { progress } from './ranks.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -204,10 +205,10 @@ const GAMES = {
       <li>Land on a pet waiting in a box and you can <b>adopt</b> it: the shop is yours. Anyone else who lands there pays you <b>rent</b>.</li>
       <li><b>Napping pets charge no rent.</b> Each round every pet has a one in five chance of dozing off, so visitors tiptoe past for free.</li>
       <li>On your turn you can <b>upgrade</b> any shop you own: a <b>Pet Bed</b>, then a <b>Toy Box</b>. Each one raises the rent and your pet grows up.</li>
-      <li>The board has ten places along each side and eight streets of three shops. Own a <b>whole street</b> and its rent doubles, and you can build the <b>Pet Palace</b> for the biggest rent of all.</li>
+      <li>The board has ten places along each side and eight streets of three shops, one per colour, and each pet matches the colour of its street. Own a <b>whole street</b> and its rent doubles, and you can build the <b>Pet Palace</b> for the biggest rent of all.</li>
       <li>Land on your own shop and your pet is happy to see you: <b>+10</b>.</li>
       <li><b>Zoomies!</b> tiles deal a silly card. <b>Vet Visit</b> costs 40, which goes in the <b>Lost &amp; Found</b> jar. Land on the jar's corner to take everything in it.</li>
-      <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. You still collect rent in the tub.</li>
+      <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. While you sit in the tub all your pets nap, so you collect no rent.</li>
       <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, upgrades and then shops are sold back at half price, and anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>
@@ -451,9 +452,11 @@ function onMsg(m) {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); st.hay?.reopen(); // back after a dropped connection
-    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); }
+    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
-    st.pets = m.pets || []; st.onMe?.();
+    st.pets = m.pets || []; st.onMe?.(); if (st.view === 'hub') mountSkyHero();
+  } else if (m.t === 'player') {
+    openPlayer(m.p);
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -474,6 +477,7 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
+    if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
@@ -481,12 +485,15 @@ function onMsg(m) {
     if (m.news) { sfx.join(); toast(m.news.now ? `${esc(m.news.from)} and you are now friends!` : `${esc(m.news.from)} wants to be friends. Open Friends to answer.`); }
     paintFriends();
   } else if (m.t === 'friended') {
+    if (playerSheet?.pt) send({ t: 'player', pt: playerSheet.pt }); // the open profile card shows the new state
     toast(m.op === 'add' ? (m.now ? `You and ${esc(m.user)} are now friends!` : `Asked ${esc(m.user)} to be friends.`) : m.op === 'accept' ? `You and ${esc(m.user)} are now friends!` : m.op === 'remove' ? `${esc(m.user)} was removed from your friends.` : 'Request declined.');
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
+  } else if (m.t === 'daily') {
+    st.dailyInfo = m; st.daily?.msg(m); paintDailyCard();
   } else if (m.t === 'rankings') {
     st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
   } else if (m.t === 'hubchat') {
@@ -513,7 +520,8 @@ function onMsg(m) {
     watchPaint();
   } else if (m.t === 'state') {
     // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
-    if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])); for (const seat of m.s.seats) if (seat) seat.fl = (seat.id && by.get(seat.id)) || {}; }
+    if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])), nm = new Map(st.room.players.map(p => [p.name + '|' + p.color, p.fl])); // by seat id, or by name and colour where a game's seats carry no id
+      for (const seat of m.s.seats) if (seat) seat.fl = (seat.id ? by.get(seat.id) : seat.bot && !seat.human ? null : nm.get(seat.name + '|' + seat.color)) || {}; }
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
@@ -593,6 +601,34 @@ function openHay() {
   }).catch(err => { console.error(err); hayLoading = null; toast('Could not load Hay Hunch. Refresh?', true); go('hub'); });
 }
 function closeHay() { st.hay?.destroy(); st.hay = null; }
+// Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
+function dailyCard() {
+  const d = st.dailyInfo, pill = (b, t) => `<span class="dcpill"><b>${b}</b> ${t}</span>`;
+  const state = !d ? '' : d.guest ? pill('🔒', 'needs an account') : d.done ? pill('✓', `solved in ${d.guesses.length}`) + pill('🔥 ' + d.streak, d.streak === 1 ? 'day in a row' : 'days in a row')
+    : (d.guesses.length ? pill(d.guesses.length, d.guesses.length === 1 ? 'guess so far' : 'guesses so far') : pill('New', 'not tried yet')) + pill('🔥 ' + d.streak, d.streak === 1 ? 'day in a row' : 'days in a row');
+  return `<div class="dailycard${d?.done ? ' done' : ''}">
+    <div class="dcart" aria-hidden="true"><svg viewBox="0 0 120 120" width="96" height="96"><ellipse cx="60" cy="104" rx="34" ry="7" fill="#0003"/><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg></div>
+    <div class="dcbody"><h3>Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}</h3>
+      <p>One Pet Farm pet hides here every day, the same for everybody. Guess it from the clues: fewer guesses pay more coins.</p>
+      <div class="dcstate">${state}${d ? pill(d.board.total, d.board.total === 1 ? 'player solved it today' : 'players solved it today') : ''}</div></div>
+    <button type="button" class="btn ${d?.done ? 'w' : ''}" data-act="daily">${d?.done ? 'See my result' : d?.guesses?.length ? 'Keep guessing' : 'Guess today’s pet'}</button>
+  </div>`;
+}
+function paintDailyCard() { const el = document.getElementById('daily-card'); if (el) el.innerHTML = dailyCard(); }
+function openDaily() {
+  if (st.daily) return;
+  const sheet = modal('<div class="mpbox"><p class="mpload">Looking for today’s pet…</p></div>');
+  sheet.el.querySelector('.sheet').classList.add('wide', 'mpsheet');
+  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', '<button type="button" class="mpclose" aria-label="Close">×</button>');
+  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
+  let open = true;
+  sheet.onClose = () => { open = false; st.daily?.destroy(); st.daily = null; };
+  st.daily = { msg() {}, destroy() {} }; // holds the place while the pictures' code loads
+  import('./daily.js').then(mod => {
+    if (!open) return;
+    st.daily = mod.mount(sheet.el.querySelector('.mpbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close() });
+  }).catch(err => { console.error(err); sheet.close(); toast('Could not load Mystery Pet. Refresh?', true); });
+}
 
 // ---------- views ----------
 function go(view) {
@@ -690,8 +726,15 @@ const topbar = () => `<header class="top">
 function mountSkyHero() {
   const box = document.querySelector('.hero .art'); if (!box) return;
   box.classList.add('sky3d');
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow()); }).catch(() => {});
+  if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
+// The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
+let petsAsked = false;
+const PET_SLOTS = 3;
+const showIds = () => { const c = st.me?.cos || {}; return (c.pets || (c.pet ? [c.pet] : [])).slice(0, PET_SLOTS); };
+const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id)).filter(Boolean);
+const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open that player's profile card
 function renderHub() {
   $app.innerHTML = `${topbar()}
   <main class="wrap hubgrid">
@@ -712,6 +755,10 @@ function renderHub() {
       <div class="art">${tableArt()}</div>
     </section>
     <div class="hubmid">
+    <section id="daily" style="margin-bottom:44px">
+      <h2>Today's puzzle</h2>
+      <div id="daily-card">${dailyCard()}</div>
+    </section>
     <section id="progress" style="margin-bottom:44px">
       <h2>Your progress</h2>
       <div id="me-card">${meCard()}</div>
@@ -903,6 +950,7 @@ function renderHub() {
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   send({ t: 'hubchat' }); hubScrollEnd();
+  send({ t: 'daily' });
   if (!st.name) openProfile(true);
 }
 
@@ -926,7 +974,7 @@ function rkStat(game, r) {
 }
 function rkRow(game, r) {
   const [main, sub] = rkStat(game, r), medal = ['🥇', '🥈', '🥉'][r.pos - 1];
-  return `<li class="${r.me ? 'you' : ''}">
+  return `<li class="${r.me ? 'you' : ''}"${prof(r)}>
     <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
     <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ' <em>(you)</em>' : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${titleHtml(r.fl)}${r.guest ? '<i>guest</i>' : ''}</span></span>
     <b class="main">${main}</b><span class="sub">${sub}</span>
@@ -957,13 +1005,15 @@ const hcTime = at => {
   return today ? t : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${t}`;
 };
 const hcSame = (a, b) => a && b && a.user === b.user && b.at - a.at < 3 * 60_000;
+// A shared Mystery Pet result: one row of squares per guess. Only the letters g, y and r ever become markup.
+const gridHtml = g => `<pre class="mpgrid" aria-label="Their clues, without spoilers">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyr'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">and ${g.length - 10} more</small>` : ''}`;
 function hubLine(m, prev) {
   const cont = hcSame(prev, m);
-  return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}">
+  return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}"${prof(m)}>
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
       ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
-      <p>${esc(m.text)}</p>
+      <p>${esc(m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
     </div>
     ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="Remove this message" title="Remove">×</button>` : ''}
   </div>`;
@@ -1067,7 +1117,7 @@ function renderLobby() {
           <span style="font-size:14px;color:var(--muted)">Friends can also type the code on the home page.</span>
         </div>
       </div>
-      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
+      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}"${prof(p)}>
           ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
@@ -1124,7 +1174,7 @@ const $chat = document.getElementById('chat');
 const chat = { log: [], open: false, unread: 0, peekT: 0 };
 const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>';
 const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/></svg>';
-const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
+const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li${prof(e)}>
     <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36, frameCls(e.fl))}
     <b>${nameHtml(e.name, e.fl)}</b>
     <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
@@ -1151,7 +1201,7 @@ $chat.innerHTML = `
 const $scores = $chat.querySelector('.scorepanel');
 emojiPaint();
 const $log = $chat.querySelector('.chatlog'), $panel = $chat.querySelector('.chatpanel'), $peek = $chat.querySelector('.chatpeek');
-const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}">${avatarHtml(m.color, m.av, 30, frameCls(m.fl))}<p><b>${nameHtml(m.name, m.fl)}</b> ${esc(m.text)}</p></div>`;
+const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}"${prof(m)}>${avatarHtml(m.color, m.av, 30, frameCls(m.fl))}<p><b>${nameHtml(m.name, m.fl)}</b> ${esc(m.text)}</p></div>`;
 // The reaction row: the six free emoji, then the stickers from packs this player has bought.
 function emojiPaint() {
   const mine = stickersOf(st.me);
@@ -1191,7 +1241,7 @@ $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (cha
 // One list for the whole site. Friends are added by username, and anything a game does with friends reads this list.
 let friendsSheet = null;
 function friendsHtml() {
-  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
+  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
   if (!st.me?.user) return `<h2>Friends</h2><p>Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.</p>
     <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">Create account</button><button type="button" class="btn w" data-fr="account" data-mode="login">Log in</button></div>`;
   if (!f) return '<h2>Friends</h2><p>Loading…</p>';
@@ -1360,13 +1410,13 @@ function openStyle() {
     <h2>Your style</h2>
     <p>How your name and picture look to everyone: in waiting rooms, chat and the rankings. Titles with a goal are earned by playing, the rest cost coins.</p>
     <div class="creator stylebox">
-      <div class="stylecard"></div>
+      <div class="styletop"><div class="stylecard"></div><div class="stylekit" aria-label="How your things look in the games"></div></div>
       <div class="crows stylerows"></div>
       <div class="cart" aria-live="polite"></div>
       <div class="row"><button type="button" class="btn big" data-done>Done</button><button type="button" class="btn big w" data-toshop>${coinIco}Avatar shop</button></div>
     </div>`);
   sheet.el.querySelector('.sheet').classList.add('wide');
-  const { el, close } = sheet, card = el.querySelector('.stylecard'), rows = el.querySelector('.stylerows'), cart = el.querySelector('.cart');
+  const { el, close } = sheet, kitEl = el.querySelector('.stylekit'), card = el.querySelector('.stylecard'), rows = el.querySelector('.stylerows'), cart = el.querySelector('.cart');
   let open = true;
   const me = () => st.me || {}, coins = () => me().coins || 0, today = () => me().today ? new Date(me().today + 'T12:00') : new Date();
   const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
@@ -1382,12 +1432,16 @@ function openStyle() {
     const fl = Object.fromEntries(WORN.map(k => [k, worn(k)]));
     card.innerHTML = `${avatarHtml(st.color, st.av, 84, frameCls(fl))}<div><b>${nameHtml(st.name, fl)} ${meChip()}</b>${titleHtml(fl) || '<span class="ttl none">no title</span>'}<small>${fl.wn ? `Win effect: ${esc(cosItem('wn', fl.wn).n)}` : 'No win effect'}</small></div>`;
     rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : c.where ? ` <small>${c.where}</small>` : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
-    const pal = me().cos?.pet || '', pets = st.pets || [];
-    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Lobby companion <small>One of your Pet Farm pets sits beside you in waiting rooms.</small></b><div class="pills palpills">${
-      !me().user ? '<small>Log in and start a Pet Farm to bring a pet along.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
-      : `<button type="button" aria-pressed="${!pets.some(x => x.id === pal)}" data-pal="">None</button>` + pets.map(x => `<button type="button" aria-pressed="${x.id === pal}" data-pal="${esc(x.id)}">${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`).join('')}</div></div>`);
+    // the table kit: a picture of each table theme as chosen (or tried on) right now
+    kitEl.innerHTML = ['cb', 'dc', 'gb', 'kp'].map(k => { const i = fl[k] | 0, u = skinPicNow(k, i, st.color, st.av);
+      return `<figure class="${pick[k] != null ? 'try' : ''}"><img width="84" height="84" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i).n)}</figcaption></figure>`; }).join('');
+    for (const im of kitEl.querySelectorAll('img:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, st.color, st.av).then(u => { if (u && im.isConnected) im.src = u; }); }
+    const show = showIds(), pets = st.pets || [];
+    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Isle pets <small>Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.</small></b><div class="pills palpills">${
+      !me().user ? '<small>Log in and start a Pet Farm to show off your pets.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
+      : pets.map(x => { const n = show.indexOf(x.id); return `<button type="button" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`; }).join('')}</div></div>`);
     petPics(rows);
-    const myPal = pets.find(x => x.id === pal);
+    const myPal = pets.find(x => x.id === show[0]);
     if (myPal) { card.insertAdjacentHTML('afterbegin', petImg(myPal, 64)); card.prepend(card.children[1]); petPics(card); }
     const want = Object.entries(pick);
     cart.innerHTML = want.length ? `<div class="cartlist"><b>Trying on</b>${want.map(([k, i]) => { const it = cosItem(k, i), short = it.p - coins();
@@ -1404,7 +1458,11 @@ function openStyle() {
     const by = e.target.closest('[data-buy]');
     if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
     const pl = e.target.closest('[data-pal]');
-    if (pl) { sfx.pop(); (st.me.cos ||= {}).pet = pl.dataset.pal; send({ t: 'wear', k: 'pet', i: pl.dataset.pal }); return paint(); }
+    if (pl) { // tap to add a pet to the next free slot, tap again to take it off
+      const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);
+      if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
+      sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); return paint();
+    }
     const b = e.target.closest('[data-k]'); if (!b) return;
     const k = b.dataset.k, i = +b.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
@@ -1413,6 +1471,50 @@ function openStyle() {
     paint();
   });
 }
+
+// Another player's profile card: their isle with the pets they show off, their rank and best games, and their table kit.
+let playerSheet = null;
+function openPlayer(p) {
+  if (!p) return; playerSheet?.close();
+  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp'];
+  const sheet = playerSheet = modal(`
+    <div class="pcard">
+      <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>lv ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
+      <div class="pinfo">
+        <div class="phead">${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
+          ${titleHtml(p.fl)}<small>${p.me ? 'This is you' : p.online ? '<i class="dot on"></i>Online now' : 'Not online'}${p.guest ? ' · guest' : ''} · ${esc(p.rank || '')}</small></div></div>
+        <div class="pstats"><span><b>${p.games.toLocaleString()}</b>games</span><span><b>${p.wins.toLocaleString()}</b>wins</span><span><b>${rate}%</b>win rate</span><span><b>${p.xp.toLocaleString()}</b>XP</span></div>
+        ${p.top.length ? `<h3>Best games</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || g.g)}</b><span>${plural(g.wins, 'win')} · ${plural(g.games, 'game')}</span></li>`).join('')}</ul>` : '<p>No finished games yet.</p>'}
+        <h3>Table kit</h3>
+        <div class="stylekit pkit">${kit.map(k => { const i = p.fl[k] | 0, u = skinPicNow(k, i, p.color, p.av); return `<figure><img width="54" height="54" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i)?.n || 'Classic')}</figcaption></figure>`; }).join('')}</div>
+      </div>
+    </div>
+    <div class="row"><button type="button" class="btn big" data-done>Close</button>${p.me ? '<button type="button" class="btn big w" data-style>✨ Change your style</button>' : ''}${
+      p.rel === 'none' ? '<button type="button" class="btn big m" data-fr="add">Add friend</button>'
+      : p.rel === 'req' ? '<button type="button" class="btn big m" data-fr="accept">Accept friend request</button>'
+      : p.rel === 'sent' ? '<button type="button" class="btn big w" disabled>Friend request sent</button>'
+      : p.rel === 'friend' ? '<span class="chip pfriend">✓ Friends</span>'
+      : p.rel === 'guest' && !p.guest ? '<button type="button" class="btn big w" data-fr="account">Create an account to add friends</button>' : ''}</div>`);
+  sheet.pt = p.pt;
+  const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
+  petPics(el);
+  for (const im of el.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, p.color, p.av).then(u => { if (u && im.isConnected) im.src = u; }); }
+  const box = el.querySelector('.pisle .art');
+  box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets); }).catch(() => {});
+  sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; };
+  el.addEventListener('click', e => {
+    const fr = e.target.closest('[data-fr]');
+    if (fr?.dataset.fr === 'account') { sheet.close(); return openAccount('register'); }
+    if (fr) { fr.disabled = true; sfx.pop(); return send({ t: 'friend', op: fr.dataset.fr, pt: p.pt }); }
+    if (e.target.closest('[data-done]')) sheet.close(); else if (e.target.closest('[data-style]')) { sheet.close(); openStyle(); }
+  });
+}
+document.addEventListener('click', e => {
+  const row = e.target.closest('[data-prof]'); if (!row) return;
+  const hit = e.target.closest('button, a, input, label'); if (hit && row.contains(hit)) return;
+  sfx.click(); send({ t: 'player', pt: row.dataset.prof });
+});
 
 function openAccount(mode = 'register') {
   const reg = mode === 'register';
@@ -1578,6 +1680,7 @@ $app.addEventListener('click', e => {
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
+  else if (act === 'daily') { if (!st.name) return openProfile(true); openDaily(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });

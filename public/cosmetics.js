@@ -6,7 +6,7 @@
 // profile as cos = { nm: 3, fr: 1, ... } and bought entries as ids like 'nm:3' in owned (next to avatar items).
 // Only append to these lists: saved choices are indexes.
 //   p: price in coins            s: seasonal drop (see SEASONS in avatar.js)
-//   earn: unlocked by playing instead of bought: { g: game id, w: wins there } or { w: wins overall } or { n: games played }
+//   earn: unlocked by playing instead of bought: { g: game id, w: wins there } or { w: wins overall } or { n: games played } or { d: days in a row solving the Mystery Pet }
 import { seasonOn, SEASONS } from './avatar.js';
 
 export const COS = {
@@ -22,7 +22,7 @@ export const COS = {
     { n: 'Regular', earn: { n: 25 } }, { n: 'Champion', earn: { w: 50 } },
     { n: 'Snack Lord', p: 100 }, { n: 'Lucky Duck', p: 100 }, { n: 'Just Vibing', p: 80 }, { n: 'Sore Loser', p: 80 }, { n: 'Bot Bully', p: 120 },
     { n: 'Certified Goblin', p: 150 }, { n: 'Big Spender', p: 400 },
-    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }] },
+    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }] },
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }] },
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
@@ -46,6 +46,7 @@ export const cosSeason = (k, i) => SEASONS[cosItem(k, i)?.s] || null;
 // How far along an earned entry is: [have, need, what]. me is a profile or the client's own "me".
 export function earnProgress(it, me) {
   const e = it?.earn; if (!e) return null;
+  if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, `${e.d} Mystery Pets solved in a row`];
   if (e.g) return [Math.min(e.w, me?.byGame?.[e.g]?.wins || 0), e.w, `${e.w} wins in ${GAME_NAMES[e.g] || e.g}`];
   if (e.w) return [Math.min(e.w, me?.wins || 0), e.w, `${e.w} wins in any games`];
   return [Math.min(e.n, me?.games || 0), e.n, `${e.n} games played`];

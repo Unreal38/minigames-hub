@@ -192,7 +192,7 @@ export const PROPS = {
   lamp(g, s = 1) { put(g, new THREE.CylinderGeometry(.04 * s, .06 * s, 1.1 * s, 6), flat('#5b4636'), 0, .55 * s); put(g, new THREE.BoxGeometry(.2 * s, .05 * s, .2 * s), flat('#5b4636'), 0, 1.24 * s); const l = put(g, new THREE.BoxGeometry(.16 * s, .2 * s, .16 * s), flat('#ffe27a', { emissive: '#ffb547', emissiveIntensity: .8 }), 0, 1.11 * s); l.userData.noInk = true; put(g, new THREE.BoxGeometry(.2 * s, .04 * s, .2 * s), flat('#5b4636'), 0, 1 * s); },
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
-export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1 } = {}) {
+export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0 } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props
   const autoLamps = !lamps; // lamp posts light the island at night: built always, shown only at night (nightScene toggles them)
   if (autoLamps) lamps = Math.max(3, Math.round((w + d) / 5));
   const root = new THREE.Group(), deco = new THREE.Group();
@@ -226,6 +226,7 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
     const a = (i + hash(i, seed + 60) * .6) / props * 6.283;
     let x = Math.cos(a), z = Math.sin(a); const k = round ? R - .6 : 1;
     if (round) { x *= k; z *= k; } else { const s = Math.min((W - .55) / Math.abs(x || 1e-6), (D - .55) / Math.abs(z || 1e-6)); x *= s; z *= s; }
+    if (open && z > (R - .6) * (1 - open)) continue;
     const g = new THREE.Group(), kind = kinds[(i + seed) % kinds.length]; PROPS[kind](g, (.7 + hash(i, seed + 61) * .5) * size); g.position.set(x, 0, z); g.rotation.y = hash(i, 62) * 6.283; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); root.add(g);
   }
   for (let i = 0; i < lamps; i++) { const a = (i + .5) / lamps * 6.283, g = new THREE.Group(); PROPS.lamp(g, 1); let x = Math.cos(a), z = Math.sin(a); const s = round ? R - .5 : Math.min((W - .4) / Math.abs(x || 1e-6), (D - .4) / Math.abs(z || 1e-6)); g.position.set(x * s, 0, z * s); if (autoLamps) { g.userData.nightOnly = true; g.visible = isNight(); } root.add(g); }

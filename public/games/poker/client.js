@@ -5,6 +5,7 @@ import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { score, handName, bestFive, catOf, HAND_ORDER } from './rules.js';
 import { cardHtml } from './cards.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -112,7 +113,7 @@ export function mount(app, ctx) {
       el.classList.toggle('won', !!res && res.pots.some(pt => pt.win.includes(i)) && S.stage === 'show');
       el.classList.toggle('hide', i === S.me);
       const badge = i === S.dealer ? '<i class="dl" title="Dealer">D</i>' : '';
-      setHtml(el.querySelector('.tx b'), `${esc(p.name)}${p.bot && p.human ? ' <small>(away)</small>' : ''}${badge}`);
+      setHtml(el.querySelector('.tx b'), `${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' <small>(away)</small>' : ''}${badge}`);
       setHtml(el.querySelector('.stk'), p.out ? 'Out' : `${I.chip}${p.stack}`);
       const bub = el.querySelector('.bub');
       const say = p.allin && !p.out ? 'All in!' : p.last || '';
@@ -292,7 +293,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = S.res.stacks[i], net = st - start;
         return `<li class="${k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${p.out ? 'knocked out' : `${st} chips`}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${p.out ? 'knocked out' : `${st} chips`}</span></div>
           <strong class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${net > 0 ? '+' : ''}${net}</strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Deal again')}</div></div>`;
