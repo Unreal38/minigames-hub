@@ -131,6 +131,6 @@ if (d.streak !== 1 || d.best !== 7) fail('streak after a miss');
 console.log('streak ok');
 
 srv.kill();
-fs.rmSync(DATA_DIR, { recursive: true, force: true });
+fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 console.log('mystery pet test passed');
 process.exit(0);

@@ -2,6 +2,7 @@
 // the browser (which shows the odds and draws the looks). Nothing here touches the network or the save file.
 import { SPECIES, familyOf, kin, elOf, variantOf } from './data.js';
 import { KIT } from './battle.js';
+import { L, PL } from '../../i18n.js';
 
 // Natural coats: main colour and second colour (belly, wool tips, flippers).
 export const COAT = {
@@ -39,7 +40,7 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
 // The cats' coats have their own names and markings; every other family swaps its colours.
 export const CATS = { siamew: 'Siamese points', gingersnap: 'Tabby stripes', patchkit: 'Calico patches', tuxpurr: 'Tuxedo', fluffcoon: 'Maine Coon brown', munchmew: 'Golden cream', glazemew: 'Golden cream' };
 export const kinCoat = p => familyOf(p.sp) ? (p.cat && kin(p.cat, p.sp) ? p.cat : p.sp) : null;
-export const coatName = sp => CATS[sp] ? `a ${CATS[sp].toLowerCase()} coat` : `${SPECIES[sp].name} colours`;
+export const coatName = sp => CATS[sp] ? L(`a ${CATS[sp].toLowerCase()} coat`, CATS[sp].toLowerCase()) : L(`${SPECIES[sp].name} colours`, `barwy gatunku ${SPECIES[sp].name}`);
 export const TALENTS = [
   { name: 'Early Bird', blurb: 'Always moves first on the first turn of a battle.' },
   { name: 'Forager', blurb: 'Its party brings back 10% more from expeditions.' },
@@ -125,3 +126,5 @@ export function makeBaby(a, b, rnd = Math.random) {
   kid.sparkle = rnd() < (a.sparkle && b.sparkle ? 1 / 4 : a.sparkle || b.sparkle ? 1 / 16 : 1 / 64);
   return kid;
 }
+
+if (PL) (await import('../../lang/farm-pl.js')).plBreed({ COATS, PATTERNS, PART, CATS, TALENTS, STAR_NAME });

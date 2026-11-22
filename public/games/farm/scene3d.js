@@ -15,6 +15,7 @@ import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from '
 import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
+import { L } from '../../i18n.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -817,7 +818,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const k = (mine ? 6.4 : 4.4) / n; land.scale.setScalar(k); g.add(land);
     // the owner stands at the front corner, bigger than life so they can be recognised
     try { const av = avatar3d(f.color || '#ff8fab', f.av, { pose: 'stand' }); av.scale.setScalar(.62); av.position.set(n / 2 * k - .5, .76 * .62, n / 2 * k - .3); av.rotation.y = .5; g.add(av); g.userData.av = av; } catch (e) { console.warn('no avatar', e); }
-    const todo = mine ? '' : [f.gift && 'gift', f.helps > 0 && 'help', f.open && 'playdate', f.egg && 'egg'].filter(Boolean).join(' · ');
+    const todo = mine ? '' : [f.gift && L('gift', 'prezent'), f.helps > 0 && L('help', 'pomoc'), f.open && L('playdate', 'zabawa'), f.egg && L('egg', 'jajko')].filter(Boolean).join(' · ');
     const icons = new THREE.Group(); g.add(icons); g.userData.icons = icons; // what waits there, seen from afar
     if (!mine) {
       const ic = [];
@@ -828,7 +829,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       ic.forEach((m, i) => { m.position.set((i - (ic.length - 1) / 2) * .8, 0, 0); icons.add(m); });
       icons.position.y = 2.5;
     }
-    const tag = nameTag(mine ? 'You' : f.name, mine, f.friend, todo); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
+    const tag = nameTag(mine ? L('You', 'Ty') : f.name, mine, f.friend, todo); tag.position.y = (mine ? 4.4 : 3.6); g.add(tag); g.userData.tag = tag;
     return g;
   }
   // A place to explore, shown at the edge of the map. z: { key, name, el, note, out }

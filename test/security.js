@@ -140,6 +140,6 @@ for (const w of socks) w.close();
 r = await get('/health'); if (r.statusCode !== 200) fail('server down after flood');
 console.log('connection cap ok', openN);
 
-srv.kill(); fs.rmSync(DATA_DIR, { recursive: true, force: true });
+srv.kill(); fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 console.log('security ok');
 process.exit(0);
