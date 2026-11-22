@@ -143,6 +143,25 @@ export const FEAT = {
     Gm(g, r * .22, '#ff6b6b', [0, r * 1.95, 0], [1, .5, 1]);
     if (F === 2) for (const [x, y] of [[-.42, .5], [.4, .7]]) Oc(g, .07, GL('#fff6c8', 1), [x, y, 0], [1, 1.7, 1]);
   } },
+  gingersnap: { slot: 'tail', name: 'a striped tail', b(g, F, K) { const d = mix(K.a, '#b3501c', .6); catTail(g, F, [K.a, d, K.a, d, K.a, K.b]); } },
+  patchkit: { slot: 'top', name: 'a daisy', b(g, F) {
+    const k = [.8, 1.15, 1.4][F], f = Grp(g, [.3, -.12, .3], [.9, 0, -.5], k);
+    for (let i = 0; i < 7; i++) { const a = i / 7 * PI * 2; Gm(f, .1, '#ffffff', [Math.cos(a) * .15, 0, Math.sin(a) * .15], [1.1, .4, .7], [0, -a, 0]); } Gm(f, .09, '#ffd23e', [0, .04, 0], [1, .6, 1]);
+    if (F === 2) { leaf(f, [-.2, -.03, -.1], [0, .6, 0], .7); leaf(f, [.05, -.03, -.24], [0, 1.8, 0], .6); }
+  } },
+  tuxpurr: { slot: 'top', name: 'a top hat', b(g, F) {
+    const h = [.18, .32, .5][F], r = [.16, .2, .24][F], c = '#2f2c38', t = Grp(g, [0, -.05, 0], [0, 0, -.14]);
+    Cy(t, [r * 1.7, r * 1.7, .05, 10], c, [0, .03, 0]); Cy(t, [r * 1.05, r, h, 10], c, [0, .05 + h / 2, 0]);
+    if (F) Cy(t, [r * 1.04, r * 1.04, .08, 10], '#e0483c', [0, .12, 0]);
+    if (F === 2) Oc(t, .07, GL('#ffd65a', .7), [0, .13, r * 1.02], [1, 1, .4]);
+  } },
+  fluffcoon: { slot: 'tail', name: 'a bushy tail', b(g, F, K) { const d = mix(K.a, '#4a342c', .45); catTail(g, F, [K.a, d, K.a, d, K.a, d, K.b], 1.9); } },
+  munchmew: { slot: 'back', name: 'pink icing', b(g, F) {
+    const w = [.36, .42, .48][F], L = [.4, .62, .82][F], c = '#ff9ec4', sp = ['#ffffff', '#ffd23e', '#7cc4ee', '#8fe0a0', '#ff6b6b'];
+    Sp(g, 1, c, [0, -.06, 0], [w, .14, L]);
+    if (F) for (let i = 0; i < 4 + F * 3; i++) { const a = i * 2.4, r = .25 + (i % 3) * .28; Bx(g, [.04, .035, .13], sp[i % 5], [Math.sin(a) * r * w, .07, Math.cos(a) * r * L], [0, a * 1.7, 0]); }
+    if (F === 2) for (const [x, z] of [[-1, .3], [1, -.2], [-1, -.5], [1, .5]]) Sp(g, .09, c, [x * w * .92, -.14, z * L], [1, 1.6, 1], 1);
+  } },
   zapkit: { slot: 'tail', name: 'a lightning tail', b(g, F) {
     const k = [.6, .85, 1.1][F], y = GL('#ffd21f', .6), t = Grp(g, [0, 0, 0], [-.35, 0, 0], k);
     Bx(t, [.16, .5, .12], y, [0, .22, 0], [0, 0, .55]); Bx(t, [.18, .5, .12], y, [0, .58, 0], [0, 0, -.6]); Bx(t, [.2, .55, .12], y, [.02, .98, 0], [0, 0, .5]);
@@ -319,7 +338,7 @@ function cat(g, F, K, X, { ear = K.a, inner = '#f59ab0', paws = K.b, chest = K.b
   Sp(g, h.r, K.a, h.p, [1.1, .9, .95]);
   for (const s of [-1, 1]) {
     const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]);
-    Co(e, [.26, .46, 4], ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], inner, [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]);
+    Co(e, [.26, .46, 4], Array.isArray(ear) ? ear[s < 0 ? 0 : 1] : ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], inner, [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]);
     if (tuftC && F) Co(e, [.06, .24 + F * .06, 3], tuftC, [0, .52, 0]);
     Bx(g, [.34, .02, .02], whisk, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]);
   }
@@ -1039,6 +1058,50 @@ const BODY = {
     Cy(g, [.045, .045, .04, 6], mix(K.a, '#2b3a55', .4), [0, y + r * .78, r * .3]);
     A.top = [0, y + r * .8, 0]; A.tail = [0, y, -r * L]; A.back = [0, y + r * .78, -.3]; A.fs = [.8, 1, 1.2][F];
     if (X.own('top')) X.sig([0, y + r * .12, nz + bk * 1.35 + .05], 1);
+    return A;
+  },
+  gingersnap(g, F, K, X) { // an orange tabby: white muzzle and mittens, darker stripes that multiply as it grows
+    const d = mix(K.a, '#b3501c', .6), A = cat(g, F, K, X), h = A.head, b = A.body;
+    Sp(g, h.r * .34, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
+    for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], d, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]);
+    for (const s of [-1, 1]) for (let i = 0; i < F; i++) Bx(g, [.04, .08, .26], d, [s * h.r * 1.02, h.p[1] - h.r * (.02 + i * .2), h.p[2] + h.r * .1], [0, 0, s * .2]);
+    if (F) for (let i = 0; i < F + 1; i++) { const u = .55 - i * .32, k = Math.sqrt(1 - u * u) * 1.02; V(g, new THREE.Mesh(G('Torus', 1, .07, 4, 10, PI), M(d)), [0, b.p[1] + u * b.r[1], b.p[2] - .06], [PI / 2, 0, PI], [b.r[0] * k, b.r[2] * k, 1]); }
+    if (X.own('tail')) X.sig(A.tail);
+    return A;
+  },
+  patchkit(g, F, K, X) { // a calico: white with ginger and charcoal patches, one ear of each, a daisy tucked behind an ear
+    const o = K.b, c = '#4a4350', A = cat(g, F, K, X, { ear: [o, c], paws: K.a, chest: K.a }), h = A.head, b = A.body;
+    Sp(g, h.r * .52, o, [-h.r * .5, h.p[1] + h.r * .38, h.p[2] + h.r * .34], [1, .9, .9], 1); Sp(g, h.r * .46, c, [h.r * .56, h.p[1] + h.r * .42, h.p[2] + h.r * .1], [1, .9, 1], 1);
+    Sp(g, b.r[0] * .6, c, [-b.r[0] * .55, b.p[1] + b.r[1] * .25, b.p[2] - b.r[2] * .3], [1, 1, 1], 1); Sp(g, b.r[0] * .55, o, [b.r[0] * .55, b.p[1] - b.r[1] * .05, b.p[2] - b.r[2] * .45], [1, 1.1, 1], 1);
+    if (F === 2) Sp(g, b.r[0] * .4, o, [-b.r[0] * .3, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .5], [1, 1, 1], 1);
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, [K.a, o, o, c, c, K.a]);
+    if (X.own('top')) X.sig(A.top);
+    return A;
+  },
+  tuxpurr(g, F, K, X) { // a tuxedo cat: charcoal coat, white face blaze, bib and mittens, a red bow tie and a top hat
+    const A = cat(g, F, K, X, { whisk: '#ffffff' }), h = A.head, b = A.body;
+    Sp(g, h.r * .66, K.b, [0, h.p[1] - h.r * .16, h.p[2] + h.r * .4], [1.15, .95, .9]);
+    if (F) { const y = b.p[1] + b.r[1] * .74, z = b.p[2] + b.r[2] * .8; for (const s of [-1, 1]) Co(g, [.16 + F * .02, .3 + F * .04, 4], '#e0483c', [s * (.17 + F * .02), y, z + .08], [0, 0, s * PI / 2], [1, 1, .5]); Gm(g, .09, '#b8342a', [0, y, z + .12]); }
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, [K.a, K.a, K.a, K.a, K.b]);
+    if (X.own('top')) X.sig(A.top);
+    return A;
+  },
+  fluffcoon(g, F, K, X) { // a Maine Coon: the biggest, fluffiest cat, with tufted ears, a ruff and a tail like a feather duster
+    const d = mix(K.a, '#4a342c', .45), A = cat(g, F, K, X, { fat: 1.18, tuftC: d, whisk: K.b }), h = A.head, b = A.body;
+    Sp(g, h.r * .34, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
+    for (const s of [-1, 1]) tuft(g, [s * h.r * .98, h.p[1] - h.r * .25, h.p[2] + .05], K.a, .9 + F * .2, [0, 0, -s * 1.9]);
+    if (F) for (let i = 0; i < 7; i++) { const a = (i - 3) * .5; Sp(g, .2 + F * .03, K.b, [Math.sin(a) * b.r[0] * .82, b.p[1] + b.r[1] * (.72 - Math.abs(i - 3) * .03), b.p[2] + Math.cos(a) * b.r[2] * .78], [1, 1.15, 1], 1); }
+    for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], d, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]);
+    if (F === 2) for (const s of [-1, 1]) tuft(g, [s * b.r[0] * .8, .12, b.p[2] + b.r[2] * .3], K.a, 1, [0, 0, -s * 1.3]);
+    if (X.own('tail')) X.sig(A.tail);
+    return A;
+  },
+  munchmew(g, F, K, X) { // a munchkin cat: a long body on very short legs, iced like the little donut it is named after
+    const A = walker(g, F, K, X, { w: [.46, .46, .5][F], L: [.5, .78, 1.02][F], leg: [.05, .08, .1][F], hr: [.66, .6, .62][F], legC: K.b, lw: .24 }), h = A.head, d = mix(K.a, '#5a4a3a', .7);
+    for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], K.a, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); Bx(g, [.34, .02, .02], d, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
+    Sp(g, h.r * .34, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
+    if (X.own('tail')) catTail(Grp(g, [0, A.tail[1] - .1, A.tail[2] + .1]), F, [K.a, K.a, K.a, K.b]);
+    if (X.own('back')) X.sig(A.back);
     return A;
   },
   zapkit(g, F, K, X) { // a kitten: baby is all head, then it sits up tall with a zigzag tail
