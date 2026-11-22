@@ -35,17 +35,17 @@ const SKINS = [
   { shape: 'box', base: '#fff8ec', edge: '#d9c3a4', pat: 'frame', pip: 'round', ink: '#3b2219', one: '#e5543b', big1: 1.6, sparks: ['#ffd84a', '#ffffff', '#ff8fab'] }, // 0 Classic
   { shape: 'gem', base: '#c81d3a', edge: '#ff7d92', pat: 'facets', pip: 'diamond', ink: '#ffffff', outline: '#6e0c1e', one: '#ffe27a', big1: 1.85, pipK: 1.35, glow: { pips: .55 }, sparks: ['#ff4d6d', '#ffd0d8', '#ffffff'] }, // 1 Ruby gem
   { shape: 'bevel', base: '#3fae7c', edge: '#2a845c', pat: 'veins', vein: ['#9be8c2', '#1f6e4a'], pip: 'inlay', ink: '#ffcf4a', inkHi: '#fff3b0', one: '#ffcf4a', big1: 1.6, carve: '#1f6146', sparks: ['#7fe0b0', '#ffcf4a', '#ffffff'] }, // 2 Carved jade
-  { shape: 'round', base: '#ff9ccb', edge: '#ff7fb8', pat: 'swirl', swirl: '#ffc4e1', pip: 'heart', ink: '#ffffff', one: '#e8336f', big1: 1.6, pipK: 1.2, outline: '#c23d7a', sparks: ['#ff8fc4', '#ffffff', '#ffe066'] }, // 3 Bubblegum candy
+  { shape: 'round', base: '#ff9ccb', edge: '#ff7fb8', pat: 'swirl', swirl: '#ffc4e1', pip: 'heart', ink: '#8f1450', one: '#d81b60', big1: 1.6, pipK: 1.3, outline: '#8f1450', sparks: ['#ff8fc4', '#ffffff', '#ffe066'] }, // 3 Bubblegum candy
   { shape: 'bevel', base: '#1c2160', edge: '#383f9e', pat: 'galaxy', pip: 'star', ink: '#ffe27a', one: '#ff9ad5', big1: 1.7, pipK: 1.2, glow: { pips: .9, pat: .6 }, sparks: ['#ffe27a', '#b9a5ff', '#ffffff'] }, // 4 Starry midnight
   { shape: 'bevel', base: '#f2bf3a', edge: '#ffe58a', pat: 'brushed', pip: 'round', ink: '#7a4a12', one: '#b02a2a', big1: 1.6, carve: '#fff1b8', sparks: ['#ffd84a', '#fff3b0', '#ffffff'] }, // 5 Solid gold
   { shape: 'bevel', base: '#c98a4e', edge: '#9a6233', pat: 'wood', pip: 'round', ink: '#4a2812', one: '#4a2812', big1: 1.7, carve: '#e8b57e', sparks: ['#e8b57e', '#ffffff', '#86cc5a'] }, // 6 Oak wood
-  { shape: 'gem', base: '#9fe6ff', edge: '#e6fbff', pat: 'ice', pip: 'diamond', ink: '#2a6fc4', one: '#7a4dff', big1: 1.5, pipK: 1.35, glow: { pat: .35 }, sparks: ['#c8f4ff', '#ffffff', '#9fb8ff'] }, // 7 Ice crystal
-  { shape: 'round', base: '#fff1dc', edge: '#f2d7b2', pat: 'calico', pip: 'paw', ink: '#4a2a1c', one: '#ff5c86', big1: 1.45, pipK: 1.3, sparks: ['#ff8fab', '#ffffff', '#ffcf8a'] }, // 8 Paw prints
+  { shape: 'gem', base: '#9fe6ff', edge: '#e6fbff', pat: 'ice', pip: 'diamond', ink: '#1d5bb0', one: '#7a4dff', big1: 1.5, pipK: 1.35, glow: { pat: .35 }, sparks: ['#c8f4ff', '#ffffff', '#9fb8ff'] }, // 7 Ice crystal
+  { shape: 'round', base: '#fff1dc', edge: '#f2d7b2', pat: 'calico', pip: 'paw', ink: '#4a2a1c', one: '#d92a62', big1: 1.45, pipK: 1.3, sparks: ['#ff8fab', '#ffffff', '#ffcf8a'] }, // 8 Paw prints
   { shape: 'rock', base: '#3a2c2e', edge: '#55403f', pat: 'lava', pip: 'round', ink: '#ffd23a', one: '#fff1a0', big1: 1.6, pipK: 1.2, glow: { pips: 1, pat: 1 }, sparks: ['#ff8a1f', '#ffd23a', '#ff4d2e'] }, // 9 Lava rock
-  { shape: 'round', base: '#f4fbff', edge: '#cfe6fa', pat: 'frost', pip: 'flake', ink: '#2f7ad0', one: '#e5543b', big1: 1.45, pipK: 1.35, sparks: ['#ffffff', '#c8ecff', '#9fd0ff'] }, // 10 Snowball
+  { shape: 'round', base: '#f4fbff', edge: '#cfe6fa', pat: 'frost', pip: 'flake', ink: '#2264b8', one: '#e5543b', big1: 1.45, pipK: 1.35, sparks: ['#ffffff', '#c8ecff', '#9fd0ff'] }, // 10 Snowball
   { shape: 'round', base: '#d9995a', edge: '#b8763d', pat: 'cookie', pip: 'chip', ink: '#4a2616', one: '#4a2616', big1: 1.6, pipK: 1.3, sparks: ['#d9995a', '#ffffff', '#4a2616'] }, // 11 Choc-chip cookie
-  { shape: 'rock', base: '#9aa1a8', edge: '#7c838b', pat: 'moss', pip: 'flower', ink: '#ffffff', inkHi: '#ffd84a', one: '#ff7aa0', big1: 1.45, pipK: 1.35, outline: '#5b636b', sparks: ['#86cc5a', '#ffffff', '#ff9ac0'] }, // 12 Mossy stone
-  { shape: 'box', base: '#5fd36a', edge: '#3a9e46', pat: 'pixel', pip: 'pixel', ink: '#163a1c', one: '#e5543b', big1: 1.5, sparks: ['#5fd36a', '#ffffff', '#ffe066'] }, // 13 Pixel
+  { shape: 'rock', base: '#9aa1a8', edge: '#7c838b', pat: 'moss', pip: 'flower', ink: '#ffffff', inkHi: '#ffd84a', one: '#ff7aa0', big1: 1.45, pipK: 1.35, outline: '#3a3f46', sparks: ['#86cc5a', '#ffffff', '#ff9ac0'] }, // 12 Mossy stone
+  { shape: 'box', base: '#5fd36a', edge: '#3a9e46', pat: 'pixel', pip: 'pixel', ink: '#163a1c', one: '#a3172a', big1: 1.5, sparks: ['#5fd36a', '#ffffff', '#ffe066'] }, // 13 Pixel
 ];
 export const DICE_SKINS = SKINS.length;
 const skinOf = k => SKINS[k | 0] ? k | 0 : 0;
@@ -97,19 +97,31 @@ function pipPath(g, style, r, R) { // a pip shape round (0, 0), radius r; R is t
   else if (style === 'flower') { for (let j = 0; j < 5; j++) { const a = j / 5 * 6.283 - 1.57; g.moveTo(Math.cos(a) * r * .62 + r * .5, Math.sin(a) * r * .62); g.arc(Math.cos(a) * r * .62, Math.sin(a) * r * .62, r * .5, 0, 7); } }
   else g.arc(0, 0, r, 0, 7);
 }
+// Readability: a pip whose colour is too close to the face gets a ring in whichever of white or a deep shade of the
+// face stands out more, so every skin's pips can be counted at a glance (contrast as in WCAG, 1 to 21).
+const lum = c => { const k = new THREE.Color(c); return .2126 * k.r + .7152 * k.g + .0722 * k.b; }; // THREE.Color is linear
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+export const PIP_CONTRAST = 3.2;
+function haloOf(sk, col) {
+  if (sk.outline || contrast(col, sk.base) >= PIP_CONTRAST) return null;
+  const dark = shade(sk.base, .32); return contrast(dark, sk.base) >= contrast('#ffffff', sk.base) ? dark : '#ffffff';
+}
 function drawPip(g, sk, x, y, r, one, R, glow) {
-  const col = one ? sk.one : sk.ink;
+  const col = one ? sk.one : sk.ink, halo = glow ? null : haloOf(sk, col);
   g.save(); g.translate(x, y); if (sk.pip === 'chip' || sk.pip === 'flower') g.rotate(R() * 6.28);
   if (glow) { g.fillStyle = col; g.shadowColor = col; g.shadowBlur = r * .9; pipPath(g, sk.pip, r * 1.05, R); g.fill(); g.restore(); return; }
   if (sk.carve) { g.fillStyle = sk.carve; g.save(); g.translate(r * .16, r * .2); pipPath(g, sk.pip, r * 1.06, rng(1)); g.fill(); g.restore(); }
   if (sk.pip === 'flake') { // a snowflake: six arms with little side twigs
-    g.strokeStyle = col; g.lineCap = 'round'; g.lineWidth = r * .32;
+    g.strokeStyle = col;
+    if (halo) { g.save(); g.strokeStyle = halo; g.lineWidth = r * .62; g.lineCap = 'round'; for (let j = 0; j < 6; j++) { const a = j * Math.PI / 3; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2); g.stroke(); } g.restore(); g.strokeStyle = col; } g.lineCap = 'round'; g.lineWidth = r * .32;
     for (let j = 0; j < 6; j++) { const a = j * Math.PI / 3, cx = Math.cos(a), cy = Math.sin(a); g.beginPath(); g.moveTo(0, 0); g.lineTo(cx * r * 1.2, cy * r * 1.2);
       for (const s of [-1, 1]) { const b = a + s * .7; g.moveTo(cx * r * .7, cy * r * .7); g.lineTo(cx * r * .7 + Math.cos(b) * r * .42, cy * r * .7 + Math.sin(b) * r * .42); } g.stroke(); }
     g.restore(); return;
   }
-  g.fillStyle = col; pipPath(g, sk.pip, r, R); g.fill();
-  if (sk.outline) { g.strokeStyle = sk.outline; g.lineWidth = r * .22; g.stroke(); }
+  pipPath(g, sk.pip, r, R); g.lineJoin = 'round';
+  if (halo) { g.strokeStyle = halo; g.lineWidth = r * .5; g.stroke(); } // drawn first, so the pip covers its inner half
+  g.fillStyle = col; g.fill();
+  if (sk.outline) { g.strokeStyle = sk.outline; g.lineWidth = r * .3; g.stroke(); }
   if (sk.pip === 'inlay') { g.fillStyle = sk.inkHi; g.beginPath(); g.arc(-r * .25, -r * .28, r * .38, 0, 7); g.fill(); }
   else if (sk.pip === 'diamond') { g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.moveTo(0, -r * 1.05); g.lineTo(r * .45, -r * .1); g.lineTo(0, -r * .2); g.closePath(); g.fill(); }
   else if (sk.pip === 'flower') { g.fillStyle = sk.inkHi; g.beginPath(); g.arc(0, 0, r * .42, 0, 7); g.fill(); }
