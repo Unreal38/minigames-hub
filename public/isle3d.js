@@ -198,7 +198,7 @@ function discTex(cols) {
 const basic = (c, o) => new THREE.MeshBasicMaterial({ color: c, depthWrite: false, fog: false, ...o });
 function stars(root, n, ticks, disc) {
   const sets = [0, 1].map(k => { const pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = hash(i, 11 + k) * 6.283, r = Math.sqrt(hash(i, 13 + k)) * 8;
-    pos.set(disc ? [Math.cos(a) * r, .5 + Math.sin(a) * r, -12] : [(hash(i, 11 + k) - .5) * 20, -6 + hash(i, 13 + k) * 15, -11 - hash(i, 17) * 2], i * 3); }
+    pos.set(disc ? [Math.cos(a) * r, -2.6 + Math.sin(a) * r, -12] : [(hash(i, 11 + k) - .5) * 20, -6 + hash(i, 13 + k) * 15, -11 - hash(i, 17) * 2], i * 3); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const p = new THREE.Points(g, new THREE.PointsMaterial({ color: k ? '#fff6d8' : '#ffffff', size: k ? 3 : 2.2, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false })); p.renderOrder = -4; root.add(p); return p; });
   ticks.push(T => { sets[0].material.opacity = .65 + Math.sin(T * 1.7) * .3; sets[1].material.opacity = .65 + Math.cos(T * 1.3) * .3; });
@@ -206,7 +206,7 @@ function stars(root, n, ticks, disc) {
 export function buildSky(ik, { disc = false } = {}) {
   ik = SKY_COLORS[ik | 0] ? ik | 0 : 0;
   const root = new THREE.Group(), ticks = [], add = (geo, mat, x, y, z, ro = -3) => { const m = put(root, geo, mat, x, y, z); m.renderOrder = ro; return m; };
-  if (ik && disc) add(new THREE.CircleGeometry(9.5, 40), new THREE.MeshBasicMaterial({ map: discTex(SKY_COLORS[ik]), transparent: true, depthWrite: false, fog: false }), 0, .5, -13, -6);
+  if (ik && disc) add(new THREE.CircleGeometry(9.5, 40), new THREE.MeshBasicMaterial({ map: discTex(SKY_COLORS[ik]), transparent: true, depthWrite: false, fog: false }), 0, -2.6, -13, -6); // centred on the middle of the view at that depth, so no edge of the canvas cuts it
   if (ik === 1) { // sunset: a low sun and long clouds
     add(new THREE.CircleGeometry(3.3, 28), basic('#ffe9a8', { transparent: true, opacity: .35 }), 2.3, .2, -11.5, -5);
     add(new THREE.CircleGeometry(2.3, 28), basic('#fff1b8'), 2.3, .2, -11.4, -4);
@@ -238,7 +238,7 @@ export function buildSky(ik, { disc = false } = {}) {
     ticks.push(T => { cl.position.y = Math.sin(T * .6) * .08; });
   }
   // fit(aspect): on a narrow canvas the round window shrinks to stay inside it
-  return { root, mood: MOOD[ik], fit: a => { const k = disc ? Math.min(.92, a * .82) : 1; root.scale.set(k, k, 1); }, tick: T => { for (const f of ticks) f(T); }, dispose: () => { root.traverse(o => { o.material?.map?.dispose(); }); disposeToon(root); } };
+  return { root, mood: MOOD[ik], fit: a => { const k = disc ? Math.min(.84, a * .82) : 1; root.scale.set(k, k, 1); }, tick: T => { for (const f of ticks) f(T); }, dispose: () => { root.traverse(o => { o.material?.map?.dispose(); }); disposeToon(root); } };
 }
 
 // ---------- the game pieces that float round the isle (cosmetics.js PIECES) ----------
