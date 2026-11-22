@@ -10,6 +10,7 @@ import { petModel } from '../farm/pets3d.js';
 import { N, GRID, TILES, GROUPS, SHOP_TILES, cellOf, sideOf, isCorner, BATH, LOST, MUD, START, MS } from './board.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
+const FEET = .76 * .6; // a standing avatar's feet are .76 below its middle, at token size (TOK)
 const CELL = 2.2, HALF = CELL * GRID / 2, TOK = .6, PET = .6, PX = 256;
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const FD = () => (getComputedStyle(document.body).getPropertyValue('--fd') || 'sans-serif').trim();
@@ -291,7 +292,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
   function buildToks(list) {
     for (const t of toks) freeTok(t);
     toks = list.map((p, i) => {
-      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); av.scale.setScalar(1); const sc = new THREE.Group(); sc.scale.setScalar(TOK); sc.add(av); g.add(sc);
+      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); av.scale.setScalar(1); const sc = new THREE.Group(); sc.scale.setScalar(TOK); sc.position.y = FEET; sc.add(av); g.add(sc); // lifted so the shoes stand on the board
       av.traverse(m => { if (m.isMesh) m.castShadow = false; });
       const blob = new THREE.Mesh(blobGeo, blobMat); scene.add(blob);
       const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: p.color, transparent: true, opacity: 0, depthWrite: false })); scene.add(g, ring);
@@ -302,7 +303,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
   const want = new THREE.Vector3();
   function slot(i) {
     const p = S.seats[i], tile = p.pos;
-    if (p.inBath) return want.copy(TUB).setY(.3).addScaledVector(TAN[BATH], (S.seats.slice(0, i).filter(x => x.inBath).length - (S.seats.filter(x => x.inBath).length - 1) / 2) * .5);
+    if (p.inBath) return want.copy(TUB).setY(.3 - FEET).addScaledVector(TAN[BATH], (S.seats.slice(0, i).filter(x => x.inBath).length - (S.seats.filter(x => x.inBath).length - 1) / 2) * .5);
     const here = S.seats.map((x, k) => k).filter(k => S.seats[k].pos === tile && !S.seats[k].inBath && !toks[k]?.anim), k = Math.max(0, here.indexOf(i)), m = Math.max(1, here.length);
     const perRow = m > 4 ? 3 : m, row = Math.floor(k / perRow), inRow = Math.min(perRow, m - row * perRow), col = k % perRow;
     return want.copy(lane(tile)).addScaledVector(TAN[tile], (col - (inRow - 1) / 2) * (isCorner(tile) ? .5 : .46)).addScaledVector(DIR[tile], -row * .5);
@@ -436,7 +437,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
       walkAvatar(t.av, t.ph, t.walk);
       t.blob.position.copy(t.g.position).setY(p.inBath ? -5 : .014); t.blob.scale.setScalar(Math.max(.4, 1 - t.g.position.y * .18));
       t.ring.position.copy(t.g.position).setY(.05); t.ring.material.opacity += ((active && !t.anim ? .95 : 0) - t.ring.material.opacity) * .15; t.ring.scale.setScalar(1 + Math.sin(T * 4) * .07);
-      const o = info.toks[i] ||= { x: 0, y: 0 }; tv.copy(t.g.position); tv.y += 1.55; tv.project(camera); o.x = (tv.x + 1) / 2 * W; o.y = (1 - tv.y) / 2 * H;
+      const o = info.toks[i] ||= { x: 0, y: 0 }; tv.copy(t.g.position); tv.y += 1.55 + FEET; tv.project(camera); o.x = (tv.x + 1) / 2 * W; o.y = (1 - tv.y) / 2 * H;
     });
     info.toks.length = toks.length; info.w = W; info.h = H;
     // the tile the walking player is heading for, from the moment the dice settle until they arrive
@@ -453,7 +454,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
         aimPin.position.copy(CEN[aimTile]).setY(2.5 + Math.abs(Math.sin(T * 5)) * .35); aimPin.rotation.y = T * 2.4; aimPin.scale.setScalar(aimA);
         tv.copy(CEN[aimTile]).setY(3.5); tv.project(camera); info.aim = info.aim || {}; info.aim.i = aimTile; info.aim.s = S.turn; info.aim.x = (tv.x + 1) / 2 * W; info.aim.y = (1 - tv.y) / 2 * H; info.aimOn = on; }
       else info.aimOn = false; }
-    if (me >= 0 && toks[me] && S?.ph === 'play') { arrow.visible = true; arrow.position.copy(toks[me].g.position); arrow.position.y += 1.5; animateArrow(arrow, T); } else arrow.visible = false;
+    if (me >= 0 && toks[me] && S?.ph === 'play') { arrow.visible = true; arrow.position.copy(toks[me].g.position); arrow.position.y += 1.5 + FEET; animateArrow(arrow, T); } else arrow.visible = false;
     // pets: breathe, hop when something nice happens, lie down and snore when napping
     for (const s of shops.values()) {
       if (!s.pet) continue;
