@@ -1644,7 +1644,7 @@ function openPlayer(p) {
   if (!p) return; playerSheet?.close();
   const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp'];
   const sheet = playerSheet = modal(`
-    <div class="pcard">
+    <div class="profcard">
       <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>lv ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
       <div class="pinfo">
         <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
