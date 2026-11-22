@@ -1077,8 +1077,8 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .ttile .tpic { flex: none; width: 54px; height: 54px; border-radius: 14px; border: 3px solid var(--ink); overflow: hidden; display: grid; place-items: center; background: #bfe8ff; }
 .ttile .tpic svg { width: auto; height: 100%; max-width: none; display: block; }
 .ttile.t-mp .tpic { background: linear-gradient(160deg, #ffe9a8, #ffc2d6); } .ttile.t-mp.done .tpic { background: linear-gradient(160deg, #c9f2c6, #a8e0f5); }
-.ttile.t-mp .tpic svg { height: 84%; }
-body.night .ttile.t-hay .tpic, body.night .ttile.t-farm .tpic { background: #2b2d6e; }
+.ttile.t-hay .tpic { background: linear-gradient(160deg, #fff1b8, #ffd08a); } .ttile.t-farm .tpic { background: linear-gradient(160deg, #d6f5c4, #a8e0f5); }
+.ttile .tpic svg { height: 84%; }
 .ttile .tbody { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .ttile .tbody b { font-family: var(--fd); font-weight: 600; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ttile .tbody b small { font-size: 13px; font-weight: 500; opacity: .7; }
 .ttile .tbody span { font-size: 13px; color: var(--muted2, var(--muted)); }
