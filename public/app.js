@@ -437,7 +437,9 @@ function onMsg(m) {
     st.farm?.reopen(); // back after a dropped connection
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
-    st.pets = m.pets || []; st.onMe?.();
+    st.pets = m.pets || []; st.onMe?.(); if (st.view === 'hub') mountSkyHero();
+  } else if (m.t === 'player') {
+    openPlayer(m.p);
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -687,8 +689,15 @@ const topbar = () => `<header class="top">
 function mountSkyHero() {
   const box = document.querySelector('.hero .art'); if (!box) return;
   box.classList.add('sky3d');
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow()); }).catch(() => {});
+  if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
+// The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
+let petsAsked = false;
+const PET_SLOTS = 3;
+const showIds = () => { const c = st.me?.cos || {}; return (c.pets || (c.pet ? [c.pet] : [])).slice(0, PET_SLOTS); };
+const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id)).filter(Boolean);
+const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open that player's profile card
 function renderHub() {
   $app.innerHTML = `${topbar()}
   <main class="wrap hubgrid">
@@ -918,7 +927,7 @@ function rkStat(game, r) {
 }
 function rkRow(game, r) {
   const [main, sub] = rkStat(game, r), medal = ['🥇', '🥈', '🥉'][r.pos - 1];
-  return `<li class="${r.me ? 'you' : ''}">
+  return `<li class="${r.me ? 'you' : ''}"${prof(r)}>
     <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
     <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ' <em>(you)</em>' : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${titleHtml(r.fl)}${r.guest ? '<i>guest</i>' : ''}</span></span>
     <b class="main">${main}</b><span class="sub">${sub}</span>
@@ -953,7 +962,7 @@ const hcSame = (a, b) => a && b && a.user === b.user && b.at - a.at < 3 * 60_000
 const gridHtml = g => `<pre class="mpgrid" aria-label="Their clues, without spoilers">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyr'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">and ${g.length - 10} more</small>` : ''}`;
 function hubLine(m, prev) {
   const cont = hcSame(prev, m);
-  return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}">
+  return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}"${prof(m)}>
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
       ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
@@ -1061,7 +1070,7 @@ function renderLobby() {
           <span style="font-size:14px;color:var(--muted)">Friends can also type the code on the home page.</span>
         </div>
       </div>
-      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
+      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}"${prof(p)}>
           ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
@@ -1118,7 +1127,7 @@ const $chat = document.getElementById('chat');
 const chat = { log: [], open: false, unread: 0, peekT: 0 };
 const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H10l-5 4v-4H4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>';
 const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/></svg>';
-const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li>
+const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li${prof(e)}>
     <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36, frameCls(e.fl))}
     <b>${nameHtml(e.name, e.fl)}</b>
     <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
@@ -1145,7 +1154,7 @@ $chat.innerHTML = `
 const $scores = $chat.querySelector('.scorepanel');
 emojiPaint();
 const $log = $chat.querySelector('.chatlog'), $panel = $chat.querySelector('.chatpanel'), $peek = $chat.querySelector('.chatpeek');
-const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}">${avatarHtml(m.color, m.av, 30, frameCls(m.fl))}<p><b>${nameHtml(m.name, m.fl)}</b> ${esc(m.text)}</p></div>`;
+const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}"${prof(m)}>${avatarHtml(m.color, m.av, 30, frameCls(m.fl))}<p><b>${nameHtml(m.name, m.fl)}</b> ${esc(m.text)}</p></div>`;
 // The reaction row: the six free emoji, then the stickers from packs this player has bought.
 function emojiPaint() {
   const mine = stickersOf(st.me);
@@ -1185,7 +1194,7 @@ $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (cha
 // One list for the whole site. Friends are added by username, and anything a game does with friends reads this list.
 let friendsSheet = null;
 function friendsHtml() {
-  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
+  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
   if (!st.me?.user) return `<h2>Friends</h2><p>Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.</p>
     <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">Create account</button><button type="button" class="btn w" data-fr="account" data-mode="login">Log in</button></div>`;
   if (!f) return '<h2>Friends</h2><p>Loading…</p>';
@@ -1380,12 +1389,12 @@ function openStyle() {
     kitEl.innerHTML = ['cb', 'dc', 'gb', 'kp'].map(k => { const i = fl[k] | 0, u = skinPicNow(k, i, st.color, st.av);
       return `<figure class="${pick[k] != null ? 'try' : ''}"><img width="84" height="84" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i).n)}</figcaption></figure>`; }).join('');
     for (const im of kitEl.querySelectorAll('img:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, st.color, st.av).then(u => { if (u && im.isConnected) im.src = u; }); }
-    const pal = me().cos?.pet || '', pets = st.pets || [];
-    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Lobby companion <small>One of your Pet Farm pets sits beside you in waiting rooms.</small></b><div class="pills palpills">${
-      !me().user ? '<small>Log in and start a Pet Farm to bring a pet along.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
-      : `<button type="button" aria-pressed="${!pets.some(x => x.id === pal)}" data-pal="">None</button>` + pets.map(x => `<button type="button" aria-pressed="${x.id === pal}" data-pal="${esc(x.id)}">${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`).join('')}</div></div>`);
+    const show = showIds(), pets = st.pets || [];
+    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Isle pets <small>Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.</small></b><div class="pills palpills">${
+      !me().user ? '<small>Log in and start a Pet Farm to show off your pets.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
+      : pets.map(x => { const n = show.indexOf(x.id); return `<button type="button" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`; }).join('')}</div></div>`);
     petPics(rows);
-    const myPal = pets.find(x => x.id === pal);
+    const myPal = pets.find(x => x.id === show[0]);
     if (myPal) { card.insertAdjacentHTML('afterbegin', petImg(myPal, 64)); card.prepend(card.children[1]); petPics(card); }
     const want = Object.entries(pick);
     cart.innerHTML = want.length ? `<div class="cartlist"><b>Trying on</b>${want.map(([k, i]) => { const it = cosItem(k, i), short = it.p - coins();
@@ -1402,7 +1411,11 @@ function openStyle() {
     const by = e.target.closest('[data-buy]');
     if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
     const pl = e.target.closest('[data-pal]');
-    if (pl) { sfx.pop(); (st.me.cos ||= {}).pet = pl.dataset.pal; send({ t: 'wear', k: 'pet', i: pl.dataset.pal }); return paint(); }
+    if (pl) { // tap to add a pet to the next free slot, tap again to take it off
+      const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);
+      if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
+      sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); return paint();
+    }
     const b = e.target.closest('[data-k]'); if (!b) return;
     const k = b.dataset.k, i = +b.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
@@ -1411,6 +1424,39 @@ function openStyle() {
     paint();
   });
 }
+
+// Another player's profile card: their isle with the pets they show off, their rank and best games, and their table kit.
+let playerSheet = null;
+function openPlayer(p) {
+  if (!p) return; playerSheet?.close();
+  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp'];
+  const sheet = playerSheet = modal(`
+    <div class="pcard">
+      <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>lv ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
+      <div class="pinfo">
+        <div class="phead">${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
+          ${titleHtml(p.fl)}<small>${p.me ? 'This is you' : p.online ? '<i class="dot on"></i>Online now' : 'Not online'}${p.guest ? ' · guest' : ''} · ${esc(p.rank || '')}</small></div></div>
+        <div class="pstats"><span><b>${p.games.toLocaleString()}</b>games</span><span><b>${p.wins.toLocaleString()}</b>wins</span><span><b>${rate}%</b>win rate</span><span><b>${p.xp.toLocaleString()}</b>XP</span></div>
+        ${p.top.length ? `<h3>Best games</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || g.g)}</b><span>${plural(g.wins, 'win')} · ${plural(g.games, 'game')}</span></li>`).join('')}</ul>` : '<p>No finished games yet.</p>'}
+        <h3>Table kit</h3>
+        <div class="stylekit pkit">${kit.map(k => { const i = p.fl[k] | 0, u = skinPicNow(k, i, p.color, p.av); return `<figure><img width="54" height="54" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i)?.n || 'Classic')}</figcaption></figure>`; }).join('')}</div>
+      </div>
+    </div>
+    <div class="row"><button type="button" class="btn big" data-done>Close</button>${p.me ? '<button type="button" class="btn big w" data-style>✨ Change your style</button>' : ''}</div>`);
+  const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
+  petPics(el);
+  for (const im of el.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, p.color, p.av).then(u => { if (u && im.isConnected) im.src = u; }); }
+  const box = el.querySelector('.pisle .art');
+  box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets); }).catch(() => {});
+  sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; };
+  el.addEventListener('click', e => { if (e.target.closest('[data-done]')) sheet.close(); else if (e.target.closest('[data-style]')) { sheet.close(); openStyle(); } });
+}
+document.addEventListener('click', e => {
+  const row = e.target.closest('[data-prof]'); if (!row) return;
+  const hit = e.target.closest('button, a, input, label'); if (hit && row.contains(hit)) return;
+  sfx.click(); send({ t: 'player', pt: row.dataset.prof });
+});
 
 function openAccount(mode = 'register') {
   const reg = mode === 'register';
