@@ -347,7 +347,8 @@ const GAMES = {
     howto: `The Polish card game with the 24 cards from nine to ace. Put down a card at least as high as the one on top, or pick up three from the pile. Get rid of all your cards to be safe: the last one still holding cards is the Pan.`,
     rules: `<ol>
       <li>The <b>24 cards</b> from nine to ace are dealt out evenly. Whoever holds the <b>nine of hearts</b> starts by putting it down. Empty seats are played by bots.</li>
-      <li>On your turn, put down <b>one card that is the same or higher</b> than the card on top of the pile. Suits do not matter.</li>
+      <li>On your turn, put down <b>one card that is the same or higher</b> than the card on top of the pile.</li>
+      <li><b>Spades go backwards</b>: when you put down a spade, the next turn goes to the player <b>before</b> you instead of the one after. The direction does not change: after their turn, play carries on round the table as usual.</li>
       <li>If you hold <b>all four</b> cards of a rank that fits, you can put them down together. The three other nines can go together straight onto the nine of hearts.</li>
       <li>Instead of playing you can <b>pick up the top three cards</b> of the pile. You have to when nothing you hold fits. The nine of hearts always stays at the bottom.</li>
       <li>The pile only ever climbs, so a low card can only go after someone picks the pile back down. Picking up on purpose is part of the game.</li>

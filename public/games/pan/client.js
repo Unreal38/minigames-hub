@@ -82,15 +82,15 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     const L = S.ph === 'play' && S.stage === 'play' ? S.last : null;
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn && S.stage === 'play'); el.classList.toggle('safe', !!p.out);
-      setHtml(el.querySelector('.plate span'), p.out ? `${ORD(p.out)} out` : `${I.cards}${p.n}`);
-      setHtml(el.firstElementChild, L && L.s === i ? (L.t === 'play' ? `<span class="top">${mini(L.cards)}</span>` : `<span class="took">took ${L.cards.length}</span>`) : '');
+      setHtml(el.querySelector('.plate .cnt'), p.out ? `${ORD(p.out)} out` : `${I.cards}${p.n}`);
+      setHtml(el.firstElementChild, L && L.s === i ? (L.t === 'play' ? `<span class="top">${mini(L.cards)}${L.back ? '<u>↩</u>' : ''}</span>` : `<span class="took">took ${L.cards.length}</span>`) : '');
     });
     for (const el of tagEls) el._w = el.offsetWidth;
   }
@@ -141,8 +141,8 @@ export function mount(app, ctx) {
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs}s` : '';
     if (S.ph === 'end') msg = S.pan >= 0 ? `${S.pan === S.me ? 'You are' : nameOf(S.pan) + ' is'} the Pan!` : '';
     else if (S.stage === 'deal') msg = innerWidth < 700 ? `${S.turn === S.me ? 'You start' : nameOf(S.turn) + ' starts'}` : `Dealing · ${S.turn === S.me ? 'you have' : nameOf(S.turn) + ' has'} the nine of hearts and ${S.turn === S.me ? 'start' : 'starts'}`;
-    else if (myTurn()) msg = (innerWidth < 700 ? 'Your turn' : S.pile.length ? 'Your turn · play a card or pick up' : 'Your turn · start with the nine of hearts') + t;
-    else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn`;
+    else if (myTurn()) msg = (innerWidth < 700 ? 'Your turn' : S.last?.back && S.last.s !== S.me ? `${nameOf(S.last.s)}’s spade sends it back to you` : S.pile.length ? 'Your turn · play a card or pick up' : 'Your turn · start with the nine of hearts') + t;
+    else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn` + (S.last?.back && innerWidth >= 700 ? ' · a spade sent it backwards' : '');
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());
   }

@@ -93,13 +93,13 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="ty-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="ty-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn); el.classList.toggle('out', p.sit && S.ph === 'play');
-      setHtml(el.querySelector('.plate span'), String(p.score));
+      setHtml(el.querySelector('.plate .cnt'), String(p.score));
       setHtml(el.firstElementChild, said(i));
     });
     for (const el of tagEls) el._w = el.offsetWidth;

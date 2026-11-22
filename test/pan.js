@@ -24,6 +24,22 @@ if (deck().length !== 24 || new Set(deck()).size !== 24 || deck().some(c => rank
   if (seatsFor(4, 2) !== 4 || seatsFor(2, 3) !== 3 || seatsFor(4, 5) !== 6 || seatsFor(6, 1) !== 6) fail('table sizes wrong');
 }
 
+{ // spades: the next turn goes to the player before, once, and then play carries on clockwise
+  const realNow = Date.now; let now = realNow(); Date.now = () => now;
+  const four = [...players, { id: 'c', name: 'Cy', color: '#9aa8ff', av: [2] }, { id: 'd', name: 'Di', color: '#ffb547', av: [3] }];
+  const G = pan.create(four, { seats: 4, timer: 0 });
+  // seat 0 holds the nine of hearts and a spade, everyone else a heap of aces and kings
+  G.hands = [[NINE_H, C('T', 3), C('J', 0)], [C('T', 0), C('A', 0), C('K', 0)], [C('T', 1), C('A', 1), C('K', 1)], [C('T', 2), C('A', 2), C('K', 2)]];
+  G.turn = 0; now += 5000; pan.tick(G, now);
+  const go = (s, c) => { if (G.turn !== s) fail(`expected seat ${s} to move, it is seat ${G.turn}`); if (!pan.act(G, s, { t: 'play', cards: [c] })) fail('play refused'); };
+  go(0, NINE_H); go(1, C('T', 0)); go(2, C('T', 1)); go(3, C('T', 2));
+  go(0, C('T', 3));                 // a spade from seat 0: seat 3 is next, not seat 1
+  if (!G.last.back) fail('spade not marked');
+  go(3, C('K', 2));                 // not a spade: on round the table from seat 3
+  if (G.turn !== 0) fail('play did not carry on clockwise after the spade');
+  Date.now = realNow;
+}
+
 // ----- whole games -----
 function play(opts, human = (G, s, now) => pan._bot(G, s, now, 'chill'), people = players) {
   const realNow = Date.now; let now = realNow(); Date.now = () => now;

@@ -13,10 +13,10 @@ body.in-game { overflow: hidden; }
 .sb-tag[hidden], .sb-lab[hidden] { display: none; }
 .sb-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .sb-tag b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.sb-tag span { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 7px; min-width: 1.3em; text-align: center; flex: none; }
+.sb-tag .cnt { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 7px; min-width: 1.3em; text-align: center; flex: none; }
 .sb-tag.hot { background: #ffd0c8; }
 .sb-tag.out { background: #dcd8e4; color: #5d566b; }
-.sb-tag.out span { background: #5d566b; }
+.sb-tag.out .cnt { background: #5d566b; }
 .sb-lab { position: absolute; left: 0; top: 0; font-family: var(--fd); font-weight: 700; font-size: 14px; letter-spacing: .5px; text-transform: uppercase; color: var(--cream); background: var(--ink); border-radius: 999px; padding: 2px 12px; white-space: nowrap; will-change: transform; }
 .sb-lab kbd { font: inherit; background: var(--cream); color: var(--ink); border-radius: 6px; padding: 0 5px; margin-left: 3px; }
 
@@ -83,7 +83,7 @@ body.in-game { overflow: hidden; }
   .sb:not(.touch) .banner { bottom: 46px; }
   .sb-tag { font-size: 11px; padding: 0 3px; gap: 3px; border-width: 2px; }
   .sb-tag i { display: none; }
-  .sb-tag span { padding: 0 5px; }
+  .sb-tag .cnt { padding: 0 5px; }
   .sb-lab { font-size: 11px; padding: 1px 8px; }
   .sb .round { width: 40px; height: 40px; }
   .sb .tr { gap: 5px; }

@@ -13,7 +13,7 @@ body.in-game { overflow: hidden; }
 .ty-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
 .ty-tag .plate i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .ty-tag .plate b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
-.ty-tag .plate span { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 13px; }
+.ty-tag .plate .cnt { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 13px; }
 .ty-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
 .ty-tag.out { opacity: .6; }
 .ty-tag .bub:empty { display: none; }
@@ -147,7 +147,7 @@ body.in-game { overflow: hidden; }
   .ty .tcode { display: none; }
   .ty .tl .chip { font-size: 13px; padding: 4px 10px; }
   .ty .banner { font-size: 15px; padding: 4px 14px; }
-  .ty-tag .plate { font-size: 12px; } .ty-tag .plate b { max-width: 4.5em; } .ty-tag .plate span { font-size: 12px; padding: 0 6px; }
+  .ty-tag .plate { font-size: 12px; } .ty-tag .plate b { max-width: 4.5em; } .ty-tag .plate .cnt { font-size: 12px; padding: 0 6px; }
   .ty-tag .bub span { font-size: 14px; } .ty-tag .bub .top { font-size: 15px; }
   .ty .pcard.big { --w: 56px; }
   .ty-dock { gap: 6px; }
