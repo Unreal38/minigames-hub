@@ -76,6 +76,22 @@ body.in-game { overflow: hidden; }
 .ty-sum em.up { color: #2e9a4d; } .ty-sum em.down { color: var(--chili); }
 .ty-sum strong { font-size: 21px; font-weight: 700; min-width: 2.6em; text-align: right; }
 
+.ty-vs { display: flex; gap: 8px; margin: 0 0 10px; }
+.ty-vs span { flex: 1; display: flex; flex-direction: column; align-items: center; background: #ffe1dc; border: 2.5px solid var(--ink); border-radius: 14px; padding: 2px 6px 4px; }
+.ty-vs.ok span { background: #d9f3dc; }
+.ty-vs small { font-size: 12px; font-weight: 600; color: #6b4a3c; text-transform: uppercase; letter-spacing: .5px; }
+.ty-vs b { font-size: 26px; font-weight: 700; line-height: 1.1; }
+.ty-hands { margin: 12px 0 4px; font-size: 14px; color: var(--ink); }
+.ty-hands summary { font-family: var(--fd); font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 6px; }
+.ty-hands table { width: 100%; border-collapse: collapse; display: block; max-height: 190px; overflow: auto; }
+.ty-hands thead, .ty-hands tbody { display: table; width: 100%; table-layout: fixed; }
+.ty-hands th { text-align: left; font-size: 12px; color: #7a5545; text-transform: uppercase; letter-spacing: .4px; padding: 2px 6px; }
+.ty-hands td { padding: 3px 6px; border-top: 1.5px solid #e6cdbd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ty-hands th:first-child, .ty-hands td:first-child { width: 34px; }
+.ty-hands tr.mine td { background: #ffe9c2; font-weight: 700; }
+.ty-hands td.up { color: #2e9a4d; font-weight: 700; } .ty-hands td.down { color: var(--chili); font-weight: 700; }
+.ty-hint.tip { background: #fff4e2e6; border: 2.5px solid var(--ink); border-radius: 14px; padding: 4px 12px; color: var(--ink); }
+
 /* your cards and the controls */
 .ty-dock { position: absolute; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(860px, calc(100vw - 16px)); pointer-events: none !important; }
 .ty-dock > * { pointer-events: auto; }
@@ -96,7 +112,7 @@ body.in-game { overflow: hidden; }
 .ty-note { font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--ink); background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px; text-align: center; }
 .ty-ctl { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #fff4e2f2; border: 3px solid var(--ink); border-radius: 22px; padding: 10px 14px; box-shadow: 0 4px 0 #23401c55; max-width: 100%; box-sizing: border-box; }
 .ty-ctl:empty { display: none; }
-.ty-ctl:has(.ty-wait) { background: none; border: 0; box-shadow: none; padding: 0; }
+.ty-ctl:has(.ty-wait) { background: none; border: 0; box-shadow: none; padding: 0; gap: 6px; }
 .ty-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .ty-row .btn { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .ty-row .btn .ty-suit { background: var(--cream); border-radius: 50%; padding: 3px; }

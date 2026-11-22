@@ -270,9 +270,9 @@ const GAMES = {
     rules: `<ol>
       <li>24 cards: 9 to ace in four suits. <b>Ace 11, ten 10, king 4, queen 3, jack 2, nine 0</b>, and the ten beats the king. Everyone gets <b>7 cards</b> and 3 go face down in the middle: the <b>musik</b>. Empty seats are played by bots. With four at the table, the dealer sits the hand out.</li>
       <li><b>Bidding.</b> The player after the dealer starts at <b>100</b> and has to play for that if nobody bids more. Bids go up in tens. Once you pass you are out for the hand. You may not bid over <b>120</b> unless you hold a marriage (king and queen of one suit).</li>
-      <li>The winner turns the <b>musik</b> over for everyone, takes it, then <b>gives one card to each opponent</b> and may raise the contract.</li>
+      <li>The winner turns the <b>musik</b> over for everyone, takes it, then <b>gives one card to each opponent</b> and may raise the contract. With hopeless cards they can <b>fold</b> instead: nothing is played, they score nothing and each opponent gets <b>60</b>.</li>
       <li><b>Tricks.</b> The winner of the bidding leads. You must <b>follow suit</b>; with none of it you must play a <b>trump</b>; and you must <b>beat</b> the winning card whenever you can. The trick's winner leads the next one.</li>
-      <li><b>Marriages.</b> When it is your lead and you hold the king and queen of a suit, play one of them and announce it: <b>hearts 100, diamonds 80, clubs 60, spades 40</b>. That suit is trumps from then on, until the next marriage.</li>
+      <li><b>Marriages.</b> When it is your lead and you hold the king and queen of a suit, leading one of them <b>always announces the marriage</b>: <b>hearts 100, diamonds 80, clubs 60, spades 40</b>. That suit is trumps from then on, until the next marriage.</li>
       <li><b>Scoring.</b> The player with the contract scores exactly the contract if they took at least that many points (cards plus marriages), and <b>loses it</b> if they did not. The other two score what they took, rounded to tens.</li>
       <li><b>The barrel.</b> From <b>800</b> points you only score by playing a contract yourself, so the last 200 have to be won, not collected.</li>
       <li>First to <b>1000</b> wins. If the turn timer runs out, the game passes for you in the bidding and plays a sensible card otherwise.</li>

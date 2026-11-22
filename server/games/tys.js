@@ -1,7 +1,7 @@
 // Tysiąc ("Thousand"), the Polish card game for three: bid for the right to play, take the three face-down
 // cards (the musik), announce king-queen marriages to set trumps, and be first to 1000 points.
 // With four at the table the dealer sits the hand out. Nobody is ever sent another player's cards.
-import { DECK, MELD, SUITS, MIN_BID, STEP, suitOf, power, value, queen, king, ace, ten, hasMeld, melds, canMeld, maxBid, round10, sortHand, beats, winnerOf, legal } from '../../public/games/tys/rules.js';
+import { DECK, MELD, SUITS, MIN_BID, STEP, suitOf, power, value, queen, king, ace, ten, hasMeld, melds, canMeld, maxBid, round10, FOLD_PAY, sortHand, beats, winnerOf, legal } from '../../public/games/tys/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'tys', name: 'Tysiąc', minPlayers: 1, maxPlayers: 4, joinAt: 'round' };
@@ -113,11 +113,25 @@ function doGive(G, s, cs, v, now) {
   return true;
 }
 
+// The declarer may fold instead ("bomba"): nothing is played, they score nothing and each opponent scores 60.
+function doFold(G, s, now) {
+  const delta = G.seats.map(() => 0);
+  for (const i of G.active) if (i !== s) delta[i] = Math.max(0, Math.min(FOLD_PAY, G.barrel - G.score[i]));
+  G.st[s].played++; G.st[s].folds = (G.st[s].folds || 0) + 1;
+  G.seats.forEach((_, i) => { G.score[i] += delta[i]; });
+  G.sum = { hand: G.hand, decl: s, contract: G.contract, made: false, fold: true, pts: [...G.pts], delta, score: [...G.score], active: [...G.active] };
+  G.log.push({ decl: s, contract: G.contract, made: false, fold: true, took: 0, delta }); if (G.log.length > 80) G.log.shift();
+  G.turn = -1; G.tEnd = 0; setStage(G, 'score', now, MS.score);
+  pushEv(G, { t: 'fold', s, v: G.contract });
+  return true;
+}
+
 // ---------- tricks ----------
-function doPlay(G, s, c, meld, now) {
+// Leading the king or queen of a suit you hold both of always announces the marriage.
+function doPlay(G, s, c, now) {
   const hand = G.hands[s], cards = G.trick.map(x => x.c);
   if (!legal(hand, cards, G.trump).includes(c)) return false;
-  if (meld && !cards.length && canMeld(hand, c)) { // "meldunek": the suit is trumps from now on
+  if (!cards.length && canMeld(hand, c)) { // "meldunek": the suit is trumps from now on
     const su = suitOf(c);
     G.mel[s].push(su); G.pts[s] += MELD[su]; G.trump = su; G.st[s].melds++;
     pushEv(G, { t: 'meld', s, su, v: MELD[su] });
@@ -148,7 +162,7 @@ function scoreHand(G, now) {
   if (made) G.st[d].made++;
   G.seats.forEach((_, i) => { G.score[i] += delta[i]; });
   G.sum = { hand: G.hand, decl: d, contract: G.contract, made, pts: [...G.pts], delta, score: [...G.score], active: [...G.active] };
-  G.log.push({ decl: d, contract: G.contract, made, delta }); if (G.log.length > 80) G.log.shift();
+  G.log.push({ decl: d, contract: G.contract, made, took: G.pts[d], delta }); if (G.log.length > 80) G.log.shift();
   G.turn = -1; G.tEnd = 0; setStage(G, 'score', now, MS.score);
   pushEv(G, { t: 'score', s: d, made, v: G.contract });
 }
@@ -168,8 +182,8 @@ export function act(G, s, a) {
   if (G.ph !== 'play' || G.turn !== s) return false;
   const now = Date.now();
   if (G.stage === 'bid') return a.t === 'bid' ? doBid(G, s, a.v, now) : a.t === 'pass' ? doPass(G, s, now) : false;
-  if (G.stage === 'give') return a.t === 'give' ? doGive(G, s, a.c, a.v, now) : false;
-  if (G.stage === 'play') return a.t === 'play' ? doPlay(G, s, a.c, !!a.meld, now) : false;
+  if (G.stage === 'give') return a.t === 'give' ? doGive(G, s, a.c, a.v, now) : a.t === 'fold' ? doFold(G, s, now) : false;
+  if (G.stage === 'play') return a.t === 'play' ? doPlay(G, s, a.c, now) : false;
   return false;
 }
 
@@ -189,8 +203,8 @@ export function estimate(hand) {
   return est;
 }
 export const BOTS = {
-  chill: { noise: 14, hope: 6, raise: 28, wild: .12 },   // bids by feel and sometimes plays any old card
-  sharp: { noise: 4, hope: 16, raise: 12, wild: 0 },      // counts on what the musik usually adds, and raises a strong hand
+  chill: { noise: 14, hope: 6, raise: 28, fold: 55, wild: .12 },   // bids by feel and sometimes plays any old card
+  sharp: { noise: 4, hope: 16, raise: 12, fold: 40, wild: 0 },      // counts on what the musik usually adds, and raises a strong hand
 };
 const levelOf = (G, level) => (typeof level === 'object' ? level : BOTS[level] || BOTS.chill);
 
@@ -208,6 +222,7 @@ function botGive(G, s, now, B) {
   const cs = [...hand].sort((a, b) => keepWorth(a) - keepWorth(b)).slice(0, 2);
   if (Math.random() < .5) cs.reverse();
   const keep = hand.filter(c => !cs.includes(c));
+  if (B.fold && estimate(keep) < G.contract - B.fold) return doFold(G, s, now); // hopeless: cheaper to fold than to lose the contract
   let v = G.contract;
   if (B.raise) v = Math.max(v, Math.min(maxBid(keep), Math.floor((estimate(keep) - B.raise) / STEP) * STEP));
   return doGive(G, s, cs, v, now);
@@ -215,27 +230,27 @@ function botGive(G, s, now, B) {
 function botPlay(G, s, now, B) {
   const hand = G.hands[s], cards = G.trick.map(x => x.c), L = legal(hand, cards, G.trump);
   const low = list => list.reduce((a, c) => (value(c) + (canMeld(hand, c) ? 6 : 0) < value(a) + (canMeld(hand, a) ? 6 : 0) ? c : a));
-  if (B.wild && Math.random() < B.wild) { const c = L[Math.random() * L.length | 0]; return doPlay(G, s, c, !cards.length && canMeld(hand, c), now); }
+  if (B.wild && Math.random() < B.wild) { const c = L[Math.random() * L.length | 0]; return doPlay(G, s, c, now); }
   // a card is a master when every stronger card of its suit has already been played
   const master = c => { for (let p = power(c) + 1; p <= 5; p++) { const x = suitOf(c) * 13 + [7, 9, 10, 11, 8, 12][p]; if (!G.gone.includes(x) && !hand.includes(x)) return false; } return true; };
   if (!cards.length) {
     const safe = c => G.trump < 0 || suitOf(c) === G.trump || !G.gone.some(x => suitOf(x) === suitOf(c)) || hand.every(x => suitOf(x) !== G.trump);
     const top = L.filter(c => master(c) && !canMeld(hand, c)).sort((a, b) => (suitOf(b) === G.trump) - (suitOf(a) === G.trump) || safe(b) - safe(a) || value(b) - value(a));
     const ms = melds(hand).sort((a, b) => MELD[b] - MELD[a]);
-    if (top.length && (safe(top[0]) || !ms.length)) return doPlay(G, s, top[0], false, now);
-    if (ms.length) return doPlay(G, s, hand.includes(ace(ms[0])) || G.gone.includes(ace(ms[0])) ? king(ms[0]) : queen(ms[0]), true, now);
+    if (top.length && (safe(top[0]) || !ms.length)) return doPlay(G, s, top[0], now);
+    if (ms.length) return doPlay(G, s, hand.includes(ace(ms[0])) || G.gone.includes(ace(ms[0])) ? king(ms[0]) : queen(ms[0]), now);
     // nothing sure: get rid of a small card from the longest side suit
     const side = L.filter(c => suitOf(c) !== G.trump), pool = side.length ? side : L;
     const len = c => hand.filter(x => suitOf(x) === suitOf(c)).length;
-    return doPlay(G, s, pool.reduce((a, c) => (len(c) - value(c) * .3 > len(a) - value(a) * .3 ? c : a)), false, now);
+    return doPlay(G, s, pool.reduce((a, c) => (len(c) - value(c) * .3 > len(a) - value(a) * .3 ? c : a)), now);
   }
   const best = cards[winnerOf(cards, G.trump)], win = L.filter(c => beats(c, best, G.trump));
   if (win.length) {
     const last = cards.length === G.active.length - 1;
     const c = last ? win.reduce((a, x) => (value(x) > value(a) ? x : a)) : win.find(master) ?? win.reduce((a, x) => (power(x) < power(a) ? x : a));
-    return doPlay(G, s, c, false, now);
+    return doPlay(G, s, c, now);
   }
-  return doPlay(G, s, low(L), false, now);
+  return doPlay(G, s, low(L), now);
 }
 function botMove(G, s, now, level = G.opts.bots) {
   const B = levelOf(G, level);
@@ -260,7 +275,7 @@ export function tick(G, now = Date.now()) {
   const s = G.turn; if (s < 0) return false;
   if (G.seats[s].bot) { if (now < G.botAt) return false; botMove(G, s, now); return true; }
   if (G.tEnd && now >= G.tEnd) { // out of time: pass in the bidding, otherwise a careful bot plays the turn
-    if (G.stage === 'bid') doPass(G, s, now); else botMove(G, s, now, { ...BOTS.sharp, raise: 0 });
+    if (G.stage === 'bid') doPass(G, s, now); else botMove(G, s, now, { ...BOTS.sharp, raise: 0, fold: 0 });
     return true;
   }
   return false;
@@ -311,7 +326,7 @@ export function view(G, s) {
       sit: !G.active.includes(i), st: G.st[i],
       cards: i === s ? sortHand(G.hands[i]) : null, // your own cards only
     })),
-    sum: G.stage === 'score' || G.ph === 'end' ? G.sum : null, log: G.log.slice(-30),
+    sum: G.stage === 'score' || G.ph === 'end' ? G.sum : null, log: G.log,
     res: G.res, win: G.win, ev: G.ev, queued: G.queue.map(q => q.id),
   };
 }

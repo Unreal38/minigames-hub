@@ -5,7 +5,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { cardHtml, suitSvg } from '../poker/cards.js';
-import { MELD, SUIT_NAMES, STEP, SAFE_BID, suitOf, canMeld, maxBid, melds } from './rules.js';
+import { MELD, SUIT_NAMES, STEP, SAFE_BID, FOLD_PAY, suitOf, canMeld, maxBid, melds } from './rules.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -52,7 +52,7 @@ export function mount(app, ctx) {
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sent = 0;
-  let bidV = 0, bidKey = '', give = [null, null], giveV = 0, giveKey = '', pend = -1;
+  let bidV = 0, bidKey = '', give = [null, null], giveV = 0, giveKey = '', foldArm = 0;
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -122,7 +122,7 @@ export function mount(app, ctx) {
       let sub = '';
       if (S.ph === 'end') sub = `${p.st.made} of ${p.st.played} contracts made`;
       else if (p.sit) sub = 'deals this hand';
-      else if (playing) sub = `${i === S.decl ? `<u>plays ${S.contract}</u> · ` : ''}${p.pts} pts${p.mel.map(s => suit(s, 13)).join('')}`;
+      else if (playing) sub = `${i === S.decl ? `<u>plays ${S.contract} ·</u>` : ''}${p.pts} pts${p.mel.map(s => suit(s, 13)).join('')}`;
       else sub = p.said === 'pass' ? 'passed' : p.said ? `bid ${p.said}` : i === S.dealer ? 'dealer' : '';
       return `<li class="${i === S.turn ? 'now' : ''}${i === S.me ? ' ty-me' : ''}${p.sit && S.ph === 'play' ? ' out' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${sub}</span></div><strong>${p.score >= S.barrel && S.ph === 'play' ? I.barrel : ''}${p.score}</strong></li>`;
     }).join(''));
@@ -144,7 +144,7 @@ export function mount(app, ctx) {
     const order = S.active.indexOf(S.me) >= 0 ? [nextSeat(S.me), nextSeat(nextSeat(S.me))] : [];
     setHtml(el, cards.map(c => {
       const slot = giving ? give.indexOf(c) : -1, can = giving || (legal ? legal.has(c) : false);
-      const cls = `${slot >= 0 || pend === c ? ' sel' : ''}${legal && !legal.has(c) ? ' no' : ''}${S.got?.includes(c) ? ' new' : ''}${legal && legal.has(c) && !S.trick.length && canMeld(cards, c) ? ' kq' : ''}`;
+      const cls = `${slot >= 0 ? ' sel' : ''}${legal && !legal.has(c) ? ' no' : ''}${S.got?.includes(c) ? ' new' : ''}${legal && legal.has(c) && !S.trick.length && canMeld(cards, c) ? ' kq' : ''}`;
       return `<button type="button" class="ty-c${cls}" data-a="card" data-c="${c}"${can ? '' : ' tabindex="-1" aria-disabled="true"'}>${cardHtml(c, { cls: 'big' })}${slot >= 0 ? `<i${slot ? ' class="b"' : ''}>for ${nameOf(order[slot])}</i>` : ''}</button>`;
     }).join(''));
   }
@@ -173,16 +173,12 @@ export function mount(app, ctx) {
         <div class="ty-row">
           <div class="ty-qty" role="group" aria-label="Your contract"><small>Contract</small><button type="button" class="round" data-a="g-" aria-label="Ten less"${giveV <= S.contract ? ' disabled' : ''}>−</button><b>${giveV}</b><button type="button" class="round" data-a="g+" aria-label="Ten more"${giveV >= hi ? ' disabled' : ''}>+</button></div>
           <button type="button" class="btn big" data-a="give"${ready ? '' : ' disabled'}>Play for ${giveV}</button>
-        </div>`);
-    } else if (turn && st === 'play' && pend >= 0) {
-      const s = suitOf(pend);
-      setHtml(ctl, `<div class="ty-row">
-          <button type="button" class="btn big" data-a="meld">Announce ${suit(s, 20)} +${MELD[s]}</button>
-          <button type="button" class="btn big w" data-a="quiet">Just play it</button>
+          <button type="button" class="btn big ${Date.now() - foldArm < 4000 ? 'r' : 'w'}" data-a="fold">${Date.now() - foldArm < 4000 ? 'Tap again to fold' : 'Fold'}</button>
         </div>
-        <p class="ty-hint">You hold the king and queen of ${SUIT_NAMES[s]}. Announcing scores <b>${MELD[s]}</b> and makes ${SUIT_NAMES[s]} trumps.</p>`);
+        <p class="ty-hint">Bad cards? <b>Fold</b> and nothing is played: you score nothing and each opponent gets <b>${FOLD_PAY}</b>, instead of you losing ${S.contract}.</p>`);
     } else if (turn && st === 'play') {
-      setHtml(ctl, `<span class="ty-wait hot">${S.trick.length ? 'Your turn: tap a card' : 'You lead: tap a card'}</span>`);
+      const mm = S.trick.length ? [] : melds(p.cards || []);
+      setHtml(ctl, `<span class="ty-wait hot">${S.trick.length ? 'Your turn: tap a card' : 'You lead: tap a card'}</span>${mm.length ? `<p class="ty-hint tip">Leading a king or queen of ${mm.map(s => `${suit(s, 14)} (+${MELD[s]})`).join(' or ')} announces the marriage and makes it trumps.</p>` : ''}`);
     } else if (S.turn >= 0 && !p.sit) {
       const t = S.seats[S.turn], what = st === 'bid' ? 'is bidding' : st === 'give' ? 'is sorting the musik' : 'is thinking';
       setHtml(ctl, `<span class="ty-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p.bot ? 'A bot is playing for you' : 'Sent…') : `${nameOf(S.turn)} ${what}…`}</span></span>`);
@@ -201,7 +197,7 @@ export function mount(app, ctx) {
     else if (st === 'take') msg = `${youOr(d)} ${d === S.me ? 'take' : 'takes'} the musik for ${S.contract}`;
     else if (st === 'give') msg = myTurn() ? `Give one card to each opponent${t}` : `${nameOf(d)} is sorting the musik`;
     else if (st === 'trick') msg = S.lastTrick ? `${youOr(S.lastTrick.w)} ${S.lastTrick.w === S.me ? 'take' : 'takes'} the trick · +${S.lastTrick.pts}` : '';
-    else if (st === 'score') msg = S.sum ? (S.sum.made ? `${youOr(d)} made ${S.sum.contract}!` : `${youOr(d)} fell short of ${S.sum.contract}`) : '';
+    else if (st === 'score') msg = S.sum ? (S.sum.fold ? `${youOr(d)} folded the hand` : S.sum.made ? `${youOr(d)} made ${S.sum.contract}!` : `${youOr(d)} fell short of ${S.sum.contract}`) : '';
     else if (myTurn()) msg = (S.trick.length ? 'Your turn' : 'Your lead') + t;
     else if (S.turn >= 0) msg = `${nameOf(S.turn)} ${S.trick.length ? 'to play' : 'leads'}`;
     if (el.innerHTML !== msg) el.innerHTML = msg;
@@ -213,10 +209,11 @@ export function mount(app, ctx) {
     const el = $('ty-sum'), m = S.stage === 'score' ? S.sum : null;
     el.hidden = !m; if (!m) { el._h = ''; return; }
     const short = m.contract - m.pts[m.decl];
-    setHtml(el, `<h3>${m.made ? `${youOr(m.decl)} made ${m.contract}!` : `${youOr(m.decl)} fell ${short} short of ${m.contract}`}</h3>
+    setHtml(el, `<h3>${m.fold ? `${youOr(m.decl)} folded the hand` : m.made ? `${youOr(m.decl)} made ${m.contract}!` : `${youOr(m.decl)} fell ${short} short of ${m.contract}`}</h3>
+      <div class="ty-vs${m.made ? ' ok' : ''}"><span><small>Bid</small><b>${m.contract}</b></span><span><small>${m.fold ? 'Folded' : 'Took'}</small><b>${m.fold ? '–' : m.pts[m.decl]}</b></span><span><small>Scores</small><b>${signed(m.delta[m.decl])}</b></span></div>
       <ol>${m.active.map(i => {
         const p = S.seats[i], dl = m.delta[i], barrel = i !== m.decl && !dl && m.score[i] >= S.barrel;
-        return `<li class="${i === m.decl ? 'decl' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}</b><span>took ${m.pts[i]}${i === m.decl ? ` of ${m.contract}` : barrel ? ' · on the barrel' : ''}</span></div><em class="${dl > 0 ? 'up' : dl < 0 ? 'down' : ''}">${signed(dl)}</em><strong>${m.score[i]}</strong></li>`;
+        return `<li class="${i === m.decl ? 'decl' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}</b><span>${m.fold ? (i === m.decl ? `folded a bid of ${m.contract}` : barrel ? 'on the barrel' : 'paid for the fold') : `took ${m.pts[i]}${i === m.decl ? ` of ${m.contract} bid` : barrel ? ' · on the barrel' : ''}`}</span></div><em class="${dl > 0 ? 'up' : dl < 0 ? 'down' : ''}">${signed(dl)}</em><strong>${m.score[i]}</strong></li>`;
       }).join('')}</ol>`);
   }
 
@@ -225,7 +222,6 @@ export function mount(app, ctx) {
     $('ty-info').textContent = S.ph === 'end' ? `${S.res?.hands || S.hand} hands played` : `Hand ${S.hand} · ${innerWidth < 700 ? '' : 'first '}to ${S.target}`;
     $('ty-code').textContent = Rm?.code || '';
     root.classList.toggle('summing', S.stage === 'score');
-    if (!(myTurn() && S.stage === 'play') || !(S.legal || []).includes(pend)) pend = -1;
     buildTags(); renderSide(); renderHand(); renderCtl(); renderBanner(); renderSum();
   }
 
@@ -244,6 +240,7 @@ export function mount(app, ctx) {
     else if (e.t === 'won') { sfx.set(); big(String(e.v), `${youOr(e.s)} ${e.s === S.me ? 'play' : 'plays'} this hand`, 1900); }
     else if (e.t === 'give') { sfx.draw(); if (S.bid && e.v > S.bid.v) ctx.toast(`${youOr(e.s)} raised the contract to ${e.v}`); }
     else if (e.t === 'meld') { sfx.set(); scene?.meld(e.s, e.su); big(`Marriage! +${e.v}`, `${youOr(e.s)}: king and queen of ${SUIT_NAMES[e.su]} ${suit(e.su, 20)} are trumps now`, 2400); }
+    else if (e.t === 'fold') { sfx.lose(); big('Fold!', `${youOr(e.s)} ${e.s === S.me ? 'give' : 'gives'} up the bid of ${e.v}. Everyone else gets ${FOLD_PAY}`, 2400); }
     else if (e.t === 'play') { e.s === S.me ? 0 : sfx.place(); }
     else if (e.t === 'trick') { if (e.pts) floatAt(e.w, '+' + e.pts); e.w === S.me ? sfx.pop() : sfx.plop(); }
     else if (e.t === 'score') {
@@ -261,7 +258,7 @@ export function mount(app, ctx) {
     const fresh = s.gid !== gid, was = S ? S.turn + '/' + S.stage + '/' + S.hand + '/' + S.trick.length + '/' + S.bid?.v : '';
     S = s;
     if (fresh) {
-      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; bidKey = ''; giveKey = ''; pend = -1;
+      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; bidKey = ''; giveKey = ''; foldArm = 0;
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
       if (s.ph === 'end') showResults(); else sfx.draw();
     }
@@ -286,8 +283,16 @@ export function mount(app, ctx) {
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.made} of ${st.played} contract${st.played === 1 ? '' : 's'} made · ${st.melds} marriage${st.melds === 1 ? '' : 's'}</span></div>
           <strong><span>${p.score}</span><small>points</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
+      ${handsHtml()}
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
+  }
+  // every hand of the match: who played it, what they bid and what they actually took
+  function handsHtml() {
+    const log = S.log || []; if (!log.length) return '';
+    const first = S.hand - log.length;
+    return `<details class="ty-hands" open><summary>Hand by hand: bid against points taken</summary><table><thead><tr><th>#</th><th>Played by</th><th>Bid</th><th>Took</th><th>Score</th></tr></thead><tbody>${log.map((h, k) =>
+      `<tr class="${h.decl === S.me ? 'mine' : ''}"><td>${first + k + 1}</td><td>${nameOf(h.decl)}${h.decl === S.me ? ' (you)' : ''}</td><td>${h.contract}</td><td>${h.fold ? 'folded' : h.took ?? ''}</td><td class="${h.made ? 'up' : h.fold ? '' : 'down'}">${signed(h.delta[h.decl])}</td></tr>`).join('')}</tbody></table></details>`;
   }
   let votes = 0;
   function paintAgain() {
@@ -342,7 +347,7 @@ export function mount(app, ctx) {
   // ----- input -----
   function go(a) {
     if (!myTurn() || busy()) return;
-    sent = Date.now(); pend = -1; ctx.act(a); renderHand(); renderCtl();
+    sent = Date.now(); ctx.act(a); renderHand(); renderCtl();
   }
   function tapCard(c) {
     if (!myTurn() || busy()) return;
@@ -352,8 +357,7 @@ export function mount(app, ctx) {
       sfx.click(); renderHand(); renderCtl();
     } else if (S.stage === 'play') {
       if (!(S.legal || []).includes(c)) { sfx.bad(); return; }
-      if (!S.trick.length && canMeld(me().cards, c) && pend !== c) { pend = c; sfx.click(); renderHand(); renderCtl(); return; }
-      sfx.place(); go({ t: 'play', c, meld: false });
+      sfx.place(); go({ t: 'play', c });
     }
   }
   const onKey = e => {
@@ -381,7 +385,7 @@ export function mount(app, ctx) {
     else if (a === 'bid') { sfx.click(); go({ t: 'bid', v: bidV }); }
     else if (a === 'pass') { sfx.click(); go({ t: 'pass' }); }
     else if (a === 'give') { if (give[0] !== null && give[1] !== null) { sfx.click(); go({ t: 'give', c: [...give], v: giveV }); } }
-    else if (a === 'meld' || a === 'quiet') { if (pend >= 0) { sfx.place(); go({ t: 'play', c: pend, meld: a === 'meld' }); } }
+    else if (a === 'fold') { if (Date.now() - foldArm < 4000) { foldArm = 0; go({ t: 'fold' }); } else { foldArm = Date.now(); sfx.click(); renderCtl(); setTimeout(() => { if (!destroyed && S) renderCtl(); }, 4100); } }
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
