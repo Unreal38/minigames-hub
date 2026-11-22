@@ -125,7 +125,7 @@ export function mount(app, ctx) {
     floatAt(c.sx, c.sy - 26, c.lab === 'Miss' ? 'Miss' : c.lab, c.bust ? 'bad' : c.m === 3 ? 't' : c.m === 2 ? 'd' : c.v ? '' : 'bad');
     if (c.out) { sfx.win(); big(mine ? 'Game shot!' : 'Checkout!', `${who} finish${mine ? '' : 'es'} from ${c.got}`, 2400); if (mine) confetti(); }
     else if (c.bust) { sfx.bad(); big('Bust!', `${bustWhy(c)} ${mine ? 'You go' : who + ' goes'} back to ${S.seats[c.s].rem}.`, 3000); }
-    else if (c.fin && c.got === 180) { sfx.win(); big('180!', `${who} hit${mine ? '' : 's'} the maximum`, 2000); confetti(mine); }
+    else if (c.fin && c.got === 180) { sfx.win(); big('180!', `${who} hit${mine ? '' : 's'} the maximum`, 2000); if (mine || !scene) confetti(mine); }
     else if (c.num === 25 && c.m === 2) { sfx.set(); big('Bullseye!', '', 1100); }
     else if (c.fin && c.got >= 100) { sfx.set(); big('Ton!', `${who} score${mine ? '' : 's'} ${c.got}`, 1300); }
     else if (c.m === 3 && c.num >= 17) sfx.set();
