@@ -93,7 +93,7 @@ function makeSign(big) {
   const cv = document.createElement('canvas'); cv.width = big ? 512 : 160; cv.height = big ? 128 : 96;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  sp.scale.set(big ? 7.2 : 1.5, big ? 1.8 : .9, 1); sp.visible = false; sp.renderOrder = 3;
+  sp.scale.set(big ? 7.2 : 2.1, big ? 1.8 : 1.26, 1); sp.visible = false; sp.renderOrder = 3;
   const font = (getComputedStyle(document.documentElement).getPropertyValue('--fd') || 'system-ui').trim() || 'system-ui';
   let shown = null;
   return { sp, set(text, sub, color) {
@@ -276,8 +276,8 @@ export function createScene(canvas, { onFrame, step, clock } = {}) {
         _m.compose(_v.set(cx, y, .1), _q, _s.set(1.25 * (1 + sq * .5), 1.25 * (1 - sq), 1.25 * (1 + sq * .5))); shrooms.setMatrixAt(n, _m); shroomInk.setMatrixAt(n, _m);
       } else { _m.makeScale(0, 0, 0); shrooms.setMatrixAt(n, _m); shroomInk.setMatrixAt(n, _m); }
       // signs: the floor number every five floors, a banner where a new zone starts
-      if (full && i > 0 && bi < banners.length) { const B = banners[bi++]; B.set(zoneName(zoneOf(i)), 'Floor ' + i, Z.top); B.sp.position.set(0, y + 5.2, -2.6); B.sp.visible = true; }
-      else if (i % 5 === 0 && i > 0 && !full && si < signs.length) { const S = signs[si++]; S.set(String(i), '', '#fff4e2'); S.sp.position.set(x1 + dx - .5, y + .75, -.75); S.sp.visible = true; }
+      if (full && i > 0 && bi < banners.length) { const B = banners[bi++]; B.set(zoneName(zoneOf(i)), 'Floor ' + i, Z.top); B.sp.position.set(0, y + 1.3, -1.45); B.sp.visible = true; }
+      else if (i % 5 === 0 && i > 0 && !full && si < signs.length) { const S = signs[si++]; S.set(String(i), '', '#fff4e2'); S.sp.position.set(x1 + dx - .4, y + .95, -.8); S.sp.visible = true; }
     }
     for (; pi < NF * 2; pi++) { _m.makeScale(0, 0, 0); puffs.setMatrixAt(pi, _m); }
     for (; si < signs.length; si++) signs[si].sp.visible = false;
@@ -357,8 +357,10 @@ export function createScene(canvas, { onFrame, step, clock } = {}) {
       for (let i = 0; i < climbers.length; i++) {
         const K = climbers[i];
         if ((i === me && mineK) || !K.root.visible) { tags.push({ show: false }); continue; }
+        // a climber above or below the screen keeps their tag, pinned to that edge
         tmp.set(K.x, K.y + 2.05, 0).project(camera);
-        tags.push({ show: tmp.z < 1 && Math.abs(tmp.x) < 1.05 && Math.abs(tmp.y) < 1.05, x: (tmp.x + 1) / 2 * Wd, y: (1 - tmp.y) / 2 * H });
+        const off = tmp.y > .7 ? 1 : tmp.y < -.84 ? -1 : 0;
+        tags.push({ show: true, off, x: Math.max(70, Math.min(Wd - 70, (tmp.x + 1) / 2 * Wd)), y: off > 0 ? H * .15 + 34 + (i % 3) * 28 : off < 0 ? H * .92 - (i % 3) * 28 : (1 - tmp.y) / 2 * H });
       }
       onFrame({ tags, follow, storm: sy, camY });
     }

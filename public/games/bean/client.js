@@ -142,6 +142,7 @@ export function mount(app, ctx) {
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
       el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      if (el._off !== t.off) { el._off = t.off; el.classList.toggle('bb-off', !!t.off); el.querySelector('em').textContent = t.off > 0 ? '▲' : t.off < 0 ? '▼' : ''; }
     }
     const now = performance.now();
     if (now - lastHud < 50) return; lastHud = now;
@@ -151,7 +152,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
+    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<em></em><u></u></div>`).join('');
     tagEls = [...tagsEl.children];
   }
 
@@ -181,6 +182,8 @@ export function mount(app, ctx) {
     const top = Math.max(sy + 70, ...ys.filter((_, i) => !S.out[i])) + 6, lo = sy - 8, span = top - lo;
     $('bb-alt').querySelector('.bb-storm').style.height = `${((sy - lo) / span * 100).toFixed(1)}%`;
     for (let i = 0; i < altDots.length; i++) { const d = altDots[i]; if (!d) continue; d.hidden = !!S.out[i]; d.style.bottom = `${(Math.max(0, Math.min(1, (ys[i] - lo) / span)) * 100).toFixed(1)}%`; }
+    // tags pinned to the edge say how many floors away that climber is
+    for (let i = 0; i < tagEls.length; i++) { const el = tagEls[i]; if (!el || el.hidden || !el._off) continue; const d = Math.round(ys[i] / FLOOR_H) - Math.round((me >= 0 ? ys[me] : fr.camY) / FLOOR_H), u = el.querySelector('u'), tx = (d > 0 ? '+' : '') + d; if (u.textContent !== tx) u.textContent = tx; }
     if (S.stage === 'count') { const n = Math.ceil(-t); if (n !== lastCount && n <= 3 && n > 0) { lastCount = n; sfx.warn(); big(String(n), '', 800); } }
     renderBanner(t);
   }
@@ -190,7 +193,7 @@ export function mount(app, ctx) {
     else if (S.stage === 'count') msg = `${PACES[S.pace]?.name || ''} storm · climb as high as you can`;
     else if (S.me >= 0 && (S.out[S.me] || dead)) msg = `The storm got you on floor ${S.fl[S.me]}. Watching ${info[leader()]?.name || ''}`;
     else if (S.me < 0) msg = `Watching ${info[leader()]?.name || ''} climb`;
-    else if (t < 3.2) msg = 'The storm is waking up…';
+    else if (t < 2.2) msg = 'The storm is waking up…';
     if (el.textContent !== msg) el.textContent = msg;
   }
   function buildAlt() {
