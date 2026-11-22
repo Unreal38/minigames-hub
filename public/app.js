@@ -195,9 +195,11 @@ const GAMES = {
   },
   dice: {
     name: "Liar's Dice", load: () => import('./games/dice/client.js'), start: 'Shake the cups',
-    host: { seats: 4, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 0 },
+    host: { seats: 4, mode: 'dice', lives: 3, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, mode: 'dice', lives: 3, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 0 },
     openSeat: 'A bot bluffs from this seat if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>A lost call costs</b><div class="pills">${pill('mode', 'dice', 'A die')}${pill('mode', 'lives', 'A life')}</div></div>
+      <div class="opt"><b>Lives (life mode)</b><div class="pills">${pill('lives', 2, '2')}${pill('lives', 3, '3')}${pill('lives', 5, '5')}</div></div>
       <div class="opt"><b>Dice each</b><div class="pills">${pill('dice', 5, 'Classic 5')}${pill('dice', 3, 'Quick 3')}</div></div>
       <div class="opt"><b>Ones are wild</b><div class="pills">${pill('wild', 'on', 'On')}${pill('wild', 'off', 'Off')}</div></div>
       <div class="opt"><b>Spot on calls</b><div class="pills">${pill('spot', 'on', 'On')}${pill('spot', 'off', 'Off')}</div></div>
@@ -213,6 +215,7 @@ const GAMES = {
       <li><b>Ones are wild</b>: a 1 counts as whatever face was bid, so you cannot bid on ones.</li>
       <li><b>Spot on!</b> is the risky call: you say the bid is <b>exactly</b> right. If it is, everyone else loses a die. If not, you lose one.</li>
       <li>Whoever lost a die opens the next round. Run out of dice and you are out. The <b>last player with dice</b> wins.</li>
+      <li><b>Life mode</b> (a table option): nobody loses dice. Everyone keeps their full cup all game and a lost call costs a <b>heart</b> instead. Out of hearts and you are out, so the table stays full of dice to the end.</li>
       <li>Shortcuts: arrow keys change the bid, <b>Enter</b> bids, <b>L</b> calls liar, <b>S</b> calls spot on.</li>
     </ol>`,
   },

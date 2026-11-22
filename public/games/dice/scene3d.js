@@ -96,6 +96,21 @@ export function createScene(canvas, { onFrame } = {}) {
   const cupGeo = new THREE.LatheGeometry([[.7, 0], [.72, .04], [.55, CUP_H - .05], [.5, CUP_H], [0, CUP_H]].map(p => new THREE.Vector2(...p)), 14);
   const bandGeo = new THREE.CylinderGeometry(.685, .725, .14, 14, 1, true); bandGeo.translate(0, .2, 0);
   const ringGeo = new THREE.TorusGeometry(.9, .05, 6, 32); ringGeo.rotateX(Math.PI / 2);
+  // life mode: a row of little hearts on the table in front of each player
+  const heartGeo = (() => { const h = new THREE.Shape(); h.moveTo(0, -.5); h.bezierCurveTo(-.75, 0, -.6, .55, -.27, .55); h.bezierCurveTo(-.1, .55, 0, .42, 0, .3); h.bezierCurveTo(0, .42, .1, .55, .27, .55); h.bezierCurveTo(.6, .55, .75, 0, 0, -.5);
+    const g = new THREE.ExtrudeGeometry(h, { depth: .22, bevelEnabled: true, bevelThickness: .06, bevelSize: .06, bevelSegments: 1, curveSegments: 5 }); g.translate(0, 0, -.11); g.rotateX(-Math.PI / 2); g.scale(.3, .3, .3); /* lying flat, point towards +z */ return g; })();
+  const heartMat = toonMat(M('#f0483e')), heartOff = toonMat(M('#cdb9a6'));
+  function setLives(s, lives, max) {
+    if (s.lives === lives && s.hearts.length === max) return;
+    while (s.hearts.length < max) { const m = new THREE.Mesh(heartGeo, heartMat); const o = new THREE.Mesh(heartGeo, inkMat); o.scale.setScalar(1.16); m.add(o); m.castShadow = true; s.g.add(m); s.hearts.push({ m, pop: 0 }); }
+    while (s.hearts.length > max) s.g.remove(s.hearts.pop().m);
+    s.hearts.forEach((h, k) => { const on = k < lives; if (s.lives >= 0 && k < s.lives && !on) { h.pop = 1; pfx.burst(h.m.getWorldPosition(new THREE.Vector3()), { n: 9, colors: ['#f0483e', '#ff9fb8'], speed: 2, up: 3, size: .22, life: .7 }); }
+      h.m.material = on ? heartMat : heartOff; // yours lie in a row at the table edge; everyone else's sit on the middle side of their cup, where the cup does not hide them
+      if (s.mine) h.m.position.set((k - (max - 1) / 2) * .4, .08, .92);
+      else { const row = k < 3 ? 0 : 1, inRow = row ? max - 3 : Math.min(3, max), j = row ? k - 3 : k; h.m.position.set((j - (inRow - 1) / 2) * .34, .08, -.98 - row * .3); }
+      h.m.rotation.y = -s.g.rotation.y; h.m.scale.setScalar((on ? 1 : .8) * (s.mine ? 1 : .82)); }); // turned so every heart reads the right way up from your seat
+    s.lives = lives;
+  }
   // Dice skins from the shop (skins.js): a tinted copy of the dice material per skin, and its dimmed twin.
   const skinMats = new Map();
   const skinOf = k => { const c = diceTint(k); if (!c) return null; if (!skinMats.has(c)) { const a = dieMat.clone(); a.color.set(c); const b = dieMat.clone(); b.color.set(c).multiplyScalar(.6); skinMats.set(c, [a, b]); } return skinMats.get(c); };
@@ -135,7 +150,7 @@ export function createScene(canvas, { onFrame } = {}) {
       const g = new THREE.Group(), at = onRim(r, mine ? .68 : .64); g.position.copy(at); g.rotation.y = Math.PI / 2 - a; scene.add(g);
       const cup = makeCup(p.color); g.add(cup);
       const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false }), at.x, .05, at.z, scene);
-      return { av, stool, g, cup, ring, mine, dice: [], diceKey: '', n: p.n, hop: 0, nod: 0, look: 0, active: false, key: '' };
+      return { av, stool, g, cup, ring, mine, dice: [], diceKey: '', hearts: [], lives: -1, n: p.n, hop: 0, nod: 0, look: 0, active: false, key: '' };
     });
   }
   function setDice(s, vals, key) {
@@ -171,6 +186,7 @@ export function createScene(canvas, { onFrame } = {}) {
       const s = seats[i];
       s.n = p.n; s.active = st.turn === i && st.stage === 'bid';
       s.skin = skinOf(p.fl?.dc);
+      setLives(s, st.livesMax ? p.lives : 0, st.livesMax && p.n ? st.livesMax : 0);
       setDice(s, p.dice || [], rk + (p.dice ? p.dice.join('') : '') + (p.fl?.dc | 0));
     });
     // the bid die in the middle
@@ -257,6 +273,7 @@ export function createScene(canvas, { onFrame } = {}) {
         if (d.m.visible === hide) d.m.visible = !hide;
         if (d.hop > 0 || d.m.scale.x !== 1) { d.hop = Math.max(0, d.hop - dt * 2.6); const lift = Math.sin(d.hop * Math.PI); d.m.position.y = DIE / 2 + .02 + lift * .45 + (d.hit && lifted ? .0 : 0); d.m.scale.setScalar((d.hit && dimmed ? 1.18 : 1) + lift * .3); }
       }
+      for (const h of s.hearts) if (h.pop > 0) { h.pop = Math.max(0, h.pop - dt * 2.5); h.m.position.y = .08 + Math.sin(h.pop * Math.PI) * .4; }
       s.hop = Math.max(0, s.hop - dt * 2.2); s.nod = Math.max(0, s.nod - dt * .7);
       s.av.position.y = -.15 + Math.abs(Math.sin(s.hop * Math.PI * 2)) * .45 * s.hop;
       let look = 0;
@@ -296,7 +313,7 @@ export function createScene(canvas, { onFrame } = {}) {
       dead = true; ticker.stop();
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
       pfx.dispose(); diceMap.dispose(); dieMat.dispose(); dimMat.dispose(); for (const ms of skinMats.values()) for (const m of ms) m.dispose(); inkMat.dispose();
-      for (const g of [dieGeo, bigGeo, cupGeo, bandGeo, ringGeo]) g.dispose();
+      for (const g of [dieGeo, bigGeo, cupGeo, bandGeo, ringGeo, heartGeo]) g.dispose();
       renderer.dispose();
     },
   };
