@@ -6,7 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
-import { R, DARTS, MS, HAND, score, outText } from './rules.js';
+import { R, DARTS, MS, HAND, score, outText, checkout } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -79,7 +79,9 @@ export function mount(app, ctx) {
       if (aim.cursor && !aim.touch) { const p = scene.toBoard(aim.cursor[0], aim.cursor[1]); if (p) { aim.x = clampAim(p[0]); aim.y = clampAim(p[1]); } }
       if (aim.keys) { const k = aim.keys, sp = .012; aim.x = clampAim(aim.x + ((k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0)) * sp); aim.y = clampAim(aim.y + ((k.ArrowUp ? 1 : 0) - (k.ArrowDown ? 1 : 0)) * sp); }
       scene.setAim({ x: aim.x, y: aim.y, hold: aim.holdAt ? performance.now() - aim.holdAt : -1 });
-    } else scene.setAim(null);
+      const rem = S.seats[S.me].rem, way = rem <= 180 ? checkout(rem, DARTS - S.darts.length, dbl()) : null;
+      scene.setHint(way ? way[0] : null); // glow on the bed to go for when you can finish this turn
+    } else { scene.setAim(null); scene.setHint(null); }
     const lab = info.aimLab ? score(info.aimLab[0], info.aimLab[1]).lab : '';
     if (lab !== aim.lab) { aim.lab = lab; const el = root.querySelector('#sdt-aim'); if (el) el.textContent = lab || '–'; }
     for (let i = 0; i < tagEls.length; i++) {
@@ -122,11 +124,20 @@ export function mount(app, ctx) {
     if (c.v) sfx.thunk(); else sfx.place();
     floatAt(c.sx, c.sy - 26, c.lab === 'Miss' ? 'Miss' : c.lab, c.bust ? 'bad' : c.m === 3 ? 't' : c.m === 2 ? 'd' : c.v ? '' : 'bad');
     if (c.out) { sfx.win(); big(mine ? 'Game shot!' : 'Checkout!', `${who} finish${mine ? '' : 'es'} from ${c.got}`, 2400); if (mine) confetti(); }
-    else if (c.bust) { sfx.bad(); big('Bust!', `${mine ? 'Your' : who + '’s'} score goes back to ${S.seats[c.s].rem}`, 1700); }
+    else if (c.bust) { sfx.bad(); big('Bust!', `${bustWhy(c)} ${mine ? 'You go' : who + ' goes'} back to ${S.seats[c.s].rem}.`, 3000); }
     else if (c.fin && c.got === 180) { sfx.win(); big('180!', `${who} hit${mine ? '' : 's'} the maximum`, 2000); confetti(mine); }
     else if (c.num === 25 && c.m === 2) { sfx.set(); big('Bullseye!', '', 1100); }
     else if (c.fin && c.got >= 100) { sfx.set(); big('Ton!', `${who} score${mine ? '' : 's'} ${c.got}`, 1300); }
     else if (c.m === 3 && c.num >= 17) sfx.set();
+  }
+
+  // Why a dart went bust, in plain words: the score before it, and what it would have left.
+  function bustWhy(c) {
+    const before = S.turnFrom - S.darts.slice(0, c.i).reduce((t, d) => t + d.v, 0), left = before - c.v;
+    if (left < 0) return `${c.lab} is more than the ${before} left.`;
+    if (left === 1) return 'That leaves 1, and no double makes 1.';
+    const d = before === 50 ? 'the Bull' : before % 2 === 0 && before <= 40 ? `D${before / 2}` : '';
+    return `The last dart must be a double${d ? `: ${before} needs ${d}` : ''}.`;
   }
 
   // ----- rendering -----
@@ -152,7 +163,7 @@ export function mount(app, ctx) {
     const flat = root.classList.contains('flat');
     el.classList.toggle('mine', !!mine);
     setHtml(el, `<div class="row">${avatarHtml(p.color, p.av, 34)}<div class="slots">${slots}</div><div class="sum"><b>${bust ? 'Bust' : sum}</b><small>this turn</small></div><div class="sum left"><b>${left}</b><small>left</small></div></div>
-      ${hint ? `<div class="out">Finish: <b>${esc(hint)}</b></div>` : ''}
+      ${hint ? `<div class="out">${!dbl() ? 'Finish' : hint.includes(' ') ? 'Way out, double last' : 'Finish on the double'}: <b>${esc(hint)}</b></div>` : ''}
       ${mine ? (flat ? '<button type="button" class="btn big r" data-a="lob">Throw</button>'
         : `<div class="tip"><span>Aiming at <b id="sdt-aim">${esc(aim.lab) || '–'}</b></span><span>${touch ? 'Drag to aim, hold still to steady, lift to throw' : 'Hold the button to steady your hand, let go to throw'}</span></div>`) : ''}`);
   }

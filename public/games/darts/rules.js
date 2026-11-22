@@ -6,7 +6,7 @@ export const R = { bull: 6.35 / 170, outer: 15.9 / 170, tIn: 99 / 170, tOut: 107
 export const ORDER = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5]; // clockwise from the top
 export const DARTS = 3;
 export const ROUNDS = { 301: 15, 501: 20 }; // nobody out by then: the lowest score left takes the leg
-export const MS = { fly: 340, next: 700, turn: 1500, bust: 2100, leg: 3400 };
+export const MS = { fly: 340, next: 700, turn: 1500, bust: 3000, leg: 3400 };
 
 // The hand: where the dart would go wanders round your aim. Holding still steadies it for a while, then the arm tires.
 export const HAND = { loose: .15, steady: .042, settle: 850, tire: 2300, tired: .24, tireMs: 2200 };
