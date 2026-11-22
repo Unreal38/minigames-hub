@@ -319,6 +319,30 @@ export const FEAT = {
     Sp(g, .5 * k, '#ffc93c', [0, -.06, 0], [1, .72, 1]); Cy(g, [.6 * k, .6 * k, .06, 8], '#f0b320', [0, -.1, .1]); Bx(g, [.12, .34 * k, .7 * k], '#f0b320', [0, .12, 0]);
     if (F === 2) { Cy(g, [.13, .15, .12, 6], '#6d6a75', [0, .1, .46], [PI / 2, 0, 0]); Cy(g, [.1, .1, .04, 6], GL('#fff6c0', 1), [0, .1, .53], [PI / 2, 0, 0]); }
   } },
+  maplander: { slot: 'tail', name: 'a maple leaf tail', b(g, F) { // five pointed lobes, glowing like an ember at the heart
+    const k = [.7, 1, 1.3][F], t = Grp(g, [0, .12, -.1], [-.5, 0, 0], k);
+    for (let i = 0; i < 5; i++) { const a = (i - 2) * .62; Oc(t, .2, i % 2 ? '#f0683c' : '#e0402a', [Math.sin(a) * .2, Math.cos(a) * .2, 0], [.55, 1.3, .12], [0, 0, -a]); }
+    Oc(t, .09, GL('#ffd65a', .7), [0, .08, .03], [1, 1, .4]); Cy(t, [.02, .025, .16, 4], '#8a5a3c', [0, -.08, 0]);
+  } },
+  koalith: { slot: 'top', name: 'a eucalyptus sprig', b(g, F) {
+    const k = [.8, 1, 1.15][F], t = Grp(g, [0, -.02, 0], [0, 0, .2], k); Cy(t, [.02, .028, .34, 4], '#8a6a4a', [0, .17, 0]);
+    for (let i = 0; i < 4; i++) Gm(t, .09, i % 2 ? '#8fc9a0' : '#7ab890', [(i % 2 ? 1 : -1) * .09, .1 + i * .08, 0], [1, .9, .35]);
+    Gm(t, .08, '#8fc9a0', [0, .38, 0], [1, .9, .35]);
+  } },
+  kettlephant: { slot: 'top', name: 'a kettle lid', b(g, F) {
+    const k = [.75, .95, 1.1][F], t = Grp(g, [0, -.05, 0], [-.15, 0, 0], k);
+    Cy(t, [.26, .32, .08, 10], '#d98a4a', [0, .04, 0]); Cy(t, [.14, .24, .06, 10], '#e8a05a', [0, .1, 0]); Sp(t, .07, '#5b4a48', [0, .18, 0], null, 1);
+  } },
+  bangaroo: { slot: 'back', name: 'a firework rocket', b(g, F) {
+    const k = [1, 1.35, 1.6][F], t = Grp(g, [0, .05, -.1], [-.35, 0, .25], k);
+    Cy(t, [.09, .09, .4, 8], '#e8402a', [0, .2, 0]); Cy(t, [.095, .095, .07, 8], '#fff3df', [0, .22, 0]); Co(t, [.13, .2, 8], '#ffd24a', [0, .5, 0]);
+    Cy(t, [.012, .012, .5, 4], '#8a5a3c', [.1, -.1, 0]); Oc(t, .06, GL('#ffe14a', .9), [0, -.06, 0], [1, 1.6, 1]);
+  } },
+  magnebug: { slot: 'top', name: 'a magnet horn', b(g, F) { // a horseshoe magnet, red with white tips
+    const k = [1.5, 1.9, 2.2][F], t = Grp(g, [0, .12, 0], [.25, 0, 0], k);
+    V(t, new THREE.Mesh(G('Torus', .15, .055, 6, 10, PI), M('#e8402a')), [0, .14, 0], [0, 0, PI]);
+    for (const s of [-1, 1]) { Cy(t, [.055, .055, .14, 6], '#e8402a', [s * .15, .21, 0]); Cy(t, [.058, .058, .08, 6], '#f3f0ea', [s * .15, .32, 0]); }
+  } },
   geodeer: { slot: 'top', name: 'crystal antlers', b(g, F) {
     const c = GL('#8fe3ff', .5), c2 = GL('#c9b5ff', .5);
     for (const s of [-1, 1]) {
@@ -1362,6 +1386,56 @@ const BODY = {
     face(g, X.eyes, [0, y * 1.3, .05], r * .95, { eye: [.9, .95, .9][F], gap: .34, nose: null, mouth: false, y: .02 });
     A.top = [0, y * 1.35 + r * .78, .05]; A.tail = [0, .3, -r * .9]; A.back = [0, y * 1.5, -r * .7]; A.fs = [1, .95, 1][F];
     if (X.own('top')) X.sig(F === 0 ? [0, A.top[1] - .02, .12] : [0, A.top[1] + .1, 0], r / .68);
+    return A;
+  },
+  maplander(g, F, K, X) { // a salamander: low and long, leafy gills, and a tail that ends in a glowing maple leaf
+    const A = walker(g, F, K, X, { w: [.46, .44, .5][F], L: [.5, .72, .9][F], leg: [.08, .14, .18][F], lw: .2, faceO: { gap: .4, nose: null } }), h = A.head, b = A.body, n = 2 + F;
+    for (const s of [-1, 1]) for (let i = 0; i < 2; i++) leaf(g, [s * h.r * (.95 + i * .08), h.p[1] + h.r * (.25 - i * .3), h.p[2] - .1], [0, 0, s * (-.5 + i * .5)], .85 + F * .15, i ? '#e0402a' : '#f0683c'); // gills
+    for (let i = 0; i < n; i++) Sp(g, .26 - i * .04, K.a, [0, b.p[1] - .04 + i * .03, -b.r[2] - .1 - i * .24], null, 1);
+    for (let i = 0; i < 2 + F; i++) Sp(g, .07, '#f0683c', [(i % 2 ? .14 : -.14), b.p[1] + b.r[1] * .9, .25 - i * .28], [1, .4, 1], 1); // ember spots
+    A.tail = [0, b.p[1] + n * .03, -b.r[2] - .05 - n * .24];
+    if (X.own('tail')) X.sig(A.tail, 1);
+    return A;
+  },
+  koalith(g, F, K, X) { // a koala: big fluffy ears with moss inside, a big dark nose and slate plates down its back
+    const A = sitter(g, F, K, X, { faceO: { gap: .4, nose: null, y: .08 } }), h = A.head, b = A.body, dk = mix(K.a, '#4a4658', .5);
+    for (const s of [-1, 1]) { Sp(g, h.r * .46, K.a, [s * h.r * .88, h.p[1] + h.r * .5, h.p[2] - .05], [1, 1, .55]); Gm(g, h.r * .3, '#8fc96a', [s * h.r * .88, h.p[1] + h.r * .5, h.p[2] + .1], [1, 1, .45]); }
+    Sp(g, h.r * .2, '#3b2f3a', [0, h.p[1] - h.r * .08, h.p[2] + h.r * .98], [.85, 1.25, .6], 1); // the nose
+    for (let i = 0; i < 1 + F; i++) Gm(g, .2 - i * .03, dk, [0, b.p[1] + b.r[1] * (.75 - i * .55), -b.r[2] * (.72 + i * .2)], [1.3, .8, .6], [.4 + i * .5, 0, 0]);
+    if (F === 2) Gm(g, .09, '#8fc96a', [.2, b.p[1] + b.r[1] * .6, -b.r[2] * .8], [1.2, .5, 1]);
+    if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  kettlephant(g, F, K, X) { // an elephant calf: round like a kettle, flat ears, and a trunk held up like a spout that puffs steam
+    const A = sitter(g, F, K, X, { arms: F > 0, faceO: { gap: .42, nose: null, mouth: false, y: .1 } }), h = A.head, b = A.body, n = 4 + F;
+    for (const s of [-1, 1]) { Sp(g, h.r * .62, K.a, [s * h.r * 1.05, h.p[1] + h.r * .05, h.p[2] - .12], [.9, 1.1, .22]); Sp(g, h.r * .42, '#ffc9c0', [s * h.r * 1.07, h.p[1] + h.r * .02, h.p[2] - .06], [.85, 1.05, .18], 1); }
+    let tp = null; for (let i = 0; i < n; i++) { const u = i / (n - 1); tp = [0, h.p[1] - h.r * .3 + u * u * h.r * .75, h.p[2] + h.r * (.9 + Math.sin(u * 2.2) * .45)]; Sp(g, h.r * (.21 - u * .07), K.a, tp, null, 1); } // the trunk curls up
+    if (F) for (let i = 0; i < 1 + F; i++) Sp(g, .09 + i * .035, TR('#ffffff', .75), [(i % 2 ? .08 : -.05), tp[1] + .2 + i * .2, tp[2] + .04 + i * .05], null, 1); // steam
+    Cy(g, [b.r[0] * 1.01, b.r[0] * 1.01, .07, 12], '#d98a4a', [0, b.p[1] * .55, 0], null, [1, 1, b.r[2] / b.r[0]]); // a copper band
+    if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  bangaroo(g, F, K, X) { // a joey: long ears, big feet, a thick tail to lean on and a pouch
+    const A = sitter(g, F, K, X, { faceO: { gap: .36 } }), h = A.head, b = A.body;
+    earsL(g, h, K.a, '#ffc9c0', .42 + F * .08, .12);
+    Sp(g, h.r * .4, K.b, [0, h.p[1] - h.r * .22, h.p[2] + h.r * .72], [1.1, .75, .8]); // muzzle
+    feet(g, K.a, b.r[0] * .6, b.r[2] * .75, [.3, .16, .62 + F * .1]);
+    for (let i = 0; i < 3 + F; i++) Sp(g, .24 - i * .03, K.a, [0, .2 + i * .015, -b.r[2] * .85 - i * .22], null, 1);
+    V(g, new THREE.Mesh(G('Torus', b.r[0] * .42, .04, 5, 10, PI), M(mix(K.b, K.a, .5))), [0, b.p[1] * .8, b.r[2] * .78], [.25, 0, PI]); // the pouch
+    if (F === 2) { Oc(g, .07, GL('#ffe14a', .9), [-.1, b.p[1] * .95, b.r[2] * .95], [1, 1.6, 1]); Oc(g, .05, GL('#ff8a3c', .9), [.12, b.p[1] * .9, b.r[2] * .95], [1, 1.6, 1]); }
+    A.tail = [0, .25, -b.r[2] * .85 - (3 + F) * .22];
+    if (X.own('back')) X.sig(A.back, A.fs);
+    return A;
+  },
+  magnebug(g, F, K, X) { // a beetle: a glossy round shell split down the middle, six stubby feet, feelers and bolt marks
+    const A = ball(g, F, K, X, { h: .88, feetC: null, faceO: { gap: .36, y: -.12, nose: null } }), b = A.body, r = b.r[0], sh = mix(K.a, '#3b3550', .35);
+    Sp(g, 1, sh, [0, b.p[1] + r * .12, -r * .12], [r * 1.04, r * .86, r * .98]); Bx(g, [.035, r * 1.2, .035], K.b, [0, b.p[1] + r * .62, -r * .45], [1.0, 0, 0]);
+    Sp(g, 1, K.b, [0, b.p[1] - r * .1, r * .32], [r * .8, r * .7, r * .72]);
+    for (const s of [-1, 1]) { for (let i = 0; i < 3; i++) Sp(g, .1, '#3b3550', [s * r * .78, .08, r * (.45 - i * .45)], [1, .8, 1.3], 1);
+      Cy(g, [.015, .015, r * .5, 4], '#3b3550', [s * r * .3, b.p[1] + r * .85, r * .55], [.5, 0, -s * .5]); Sp(g, .05, GL('#ffe14a', .7), [s * r * .42, b.p[1] + r * 1.05, r * .68], null, 1);
+      if (F) Oc(g, .1, GL('#ffe14a', .6), [s * r * .62, b.p[1] + r * .55, -r * .35], [.5, 1.4, .3], [.5, 0, -s * .5]); }
+    A.head = { p: [0, b.p[1] - r * .12, r * .3], r: r * .78 }; A.top = [0, b.p[1] + r * .5, r * .62];
+    if (X.own('top')) X.sig(A.top, A.fs);
     return A;
   },
   geodeer(g, F, K, X) { // a fawn: folded up asleep-style as a baby, then long legs and crystal antlers

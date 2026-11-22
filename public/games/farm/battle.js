@@ -124,6 +124,11 @@ export const KIT = {
   nimbowhale: { role: 'tank', moves: ['splash', 'bubbleshield', 'dazeflash', 'thunderpounce'] },
   glimmoth:   { role: 'support', moves: ['zap', 'sunnap', 'sweetscent', 'bloomburst'] },
   geodeer:    { role: 'fast', moves: ['pebbletoss', 'quickstep', 'soak', 'tidalbump'] },
+  maplander:  { role: 'fast', moves: ['leafflick', 'singe', 'quickstep', 'blazedash'] },
+  koalith:    { role: 'tank', moves: ['pebbletoss', 'sunnap', 'harden', 'bloomburst'] },
+  kettlephant: { role: 'bruiser', moves: ['splash', 'warmup', 'soak', 'blazedash'] },
+  bangaroo:   { role: 'glass', moves: ['sparknip', 'quickstep', 'dazeflash', 'thunderpounce'] },
+  magnebug:   { role: 'trickster', moves: ['zap', 'harden', 'dazeflash', 'boulderroll'] },
 };
 export const LEARN = [1, 1, 5, 10];
 export const ROLE_NAME = { balanced: 'Balanced', tank: 'Tank', support: 'Support', fast: 'Fast attacker', glass: 'Glass cannon', trickster: 'Trickster', bruiser: 'Bruiser', healer: 'Healer' };
