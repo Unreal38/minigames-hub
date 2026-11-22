@@ -220,6 +220,13 @@ function sweep(f) { for (const o of [...(f.offers || [])]) if (Date.now() - o.at
 const tiny = x => x ? { id: x.id, sp: x.sp, name: x.name, lv: x.lv, look: lookOf(x) } : null;
 // For the rest of the site: a player's pets (to pick a companion from) and one of them by id, or null once it has moved on.
 export const petsOf = pid => (farms.get(pid)?.pets || []).map(tiny);
+// A one-line summary for the hub's Today tile: how many pets, and the next thing worth coming back for.
+export function brief(pid) {
+  const f = farms.get(pid); if (!f) return null;
+  const eggs = SLOTS.map(s => nestView(f, s)).filter(Boolean), trips = parties(f).map(tripView);
+  const egg = eggs.sort((a, b) => a.left - b.left)[0], trip = trips.sort((a, b) => a.left - b.left)[0];
+  return { pets: f.pets.length, egg: egg ? { stage: egg.stage, left: egg.left } : null, trip: trip ? { left: trip.left } : null };
+}
 export const petOf = (pid, id) => (id && tiny(farms.get(pid)?.pets.find(x => x.id === id))) || null;
 function tradesView(pid, f) {
   const card = (o, dir, from, to, otherPid, other) => ({ id: o.id, dir, who: nameOf(otherPid, other), fid: fid(other), left: Math.max(0, o.at + TRADE_MS - Date.now()),

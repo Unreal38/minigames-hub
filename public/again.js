@@ -29,3 +29,23 @@ export function againHtml(ctx, room, label = 'Play again') {
     <button type="button" class="btn big${mine ? ' m' : ''}" data-a="playagain" aria-pressed="${mine}">${mine ? '✓ I’m in' : label}</button>${leave}</div>
     <p class="wait">${mine ? `Waiting for ${hostName} to start the next round. Tap again to take your vote back.` : `${hostName} starts the next round. Vote so they know you’re in.`}</p></div>`;
 }
+
+// Coins column on every results screen: what each seat actually got paid for this game (room.paid, filled in by the
+// server when it scores the game). People see "+10" and so on; bots have no account, so their row says so.
+// Rows are drawn before the room update may have arrived, so each badge keeps its seat and paintPaid fills it in later.
+export function paidHtml(room, i) {
+  const all = room?.paid, v = all?.[i], tag = `data-paid="${i}"`;
+  if (v === 'b') return `<span class="paid bot" ${tag} title="Bots have no account, so they never earn coins">Bot<small>no coins</small></span>`;
+  if (typeof v === 'number') {
+    const t = v > 0 ? `+${v}` : v < 0 ? `−${-v}` : '0';
+    return `<span class="paid${v > 0 ? '' : v < 0 ? ' down' : ' none'}" ${tag} title="Coins earned this game"><b><i class="cn" aria-hidden="true"></i>${t}</b><small>coins</small></span>`;
+  }
+  if (all) return `<span class="paid none" ${tag} title="Left before the end">–<small>left</small></span>`;
+  return `<span class="paid wait" ${tag}><b><i class="cn" aria-hidden="true"></i>…</b><small>coins</small></span>`;
+}
+export function paintPaid(root, room) {
+  for (const el of root.querySelectorAll('[data-paid]')) {
+    const html = paidHtml(room, +el.dataset.paid);
+    if (el.outerHTML !== html) el.outerHTML = html;
+  }
+}

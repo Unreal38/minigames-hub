@@ -1,7 +1,7 @@
 // Ludo game view: HUD over the 3D board. Renders what the server says; sends rolls and pawn picks.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { HOME, LAST, ringIndex, safeIndex } from './board.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
@@ -221,7 +221,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], st = p.st, home = p.toks.filter(t => t === HOME).length;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'} · ${st.sixes} six${st.sixes === 1 ? '' : 'es'}</span></div>
-          <strong>${home}/${p.toks.length}<small>home</small></strong></li>`;
+          <strong>${home}/${p.toks.length}<small>home</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -229,6 +229,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');

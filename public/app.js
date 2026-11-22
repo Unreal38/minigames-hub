@@ -9,6 +9,7 @@ import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
 import { progress } from './ranks.js';
+import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Cozy Table';
@@ -370,7 +371,7 @@ const st = {
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   hc: { log: null, max: 200, for: undefined }, // the hub's global chat
-  side: LS.get('ct_side', 'hubchat') === 'tables' ? 'tables' : 'hubchat', tPage: 0, // the hub's left column: chat or open tables
+  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), // the open tables page, the phone's hub tab, the games filter
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 // Solo games with no table: they open straight from the hub (like Pet Farm) and keep their progress on the account.
@@ -455,7 +456,7 @@ function onMsg(m) {
     st.farm?.reopen(); st.hay?.reopen(); // back after a dropped connection
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
-    st.pets = m.pets || []; st.onMe?.(); if (st.view === 'hub') mountSkyHero();
+    st.pets = m.pets || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
@@ -494,7 +495,7 @@ function onMsg(m) {
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
   } else if (m.t === 'daily') {
-    st.dailyInfo = m; st.daily?.msg(m); paintDailyCard();
+    st.dailyInfo = m; st.daily?.msg(m); paintToday();
   } else if (m.t === 'rankings') {
     st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
   } else if (m.t === 'hubchat') {
@@ -603,19 +604,33 @@ function openHay() {
 }
 function closeHay() { st.hay?.destroy(); st.hay = null; }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
-function dailyCard() {
-  const d = st.dailyInfo, pill = (b, t) => `<span class="dcpill"><b>${b}</b> ${t}</span>`;
-  const state = !d ? '' : d.guest ? pill('🔒', 'needs an account') : d.done ? pill('✓', `solved in ${d.guesses.length}`) + pill('🔥 ' + d.streak, d.streak === 1 ? 'day in a row' : 'days in a row')
-    : (d.guesses.length ? pill(d.guesses.length, d.guesses.length === 1 ? 'guess so far' : 'guesses so far') : pill('New', 'not tried yet')) + pill('🔥 ' + d.streak, d.streak === 1 ? 'day in a row' : 'days in a row');
-  return `<div class="dailycard${d?.done ? ' done' : ''}">
-    <div class="dcart" aria-hidden="true"><svg viewBox="0 0 120 120" width="96" height="96"><ellipse cx="60" cy="104" rx="34" ry="7" fill="#0003"/><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg></div>
-    <div class="dcbody"><h3>Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}</h3>
-      <p>One Pet Farm pet hides here every day, the same for everybody. Guess it from the clues: fewer guesses pay more coins.</p>
-      <div class="dcstate">${state}${d ? pill(d.board.total, d.board.total === 1 ? 'player solved it today' : 'players solved it today') : ''}</div></div>
-    <button type="button" class="btn ${d?.done ? 'w' : ''}" data-act="daily">${d?.done ? 'See my result' : d?.guesses?.length ? 'Keep guessing' : 'Guess today’s pet'}</button>
-  </div>`;
+const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h ? `${h}h ${m % 60}m` : `${m}m`; };
+const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
+  <div class="tpic" aria-hidden="true">${pic}</div>
+  <div class="tbody"><b>${name}</b><span>${sub}</span></div>
+  <button type="button" class="btn sm ${quiet ? 'w' : ''}" data-act="${act}">${btn}</button>
+</div>`;
+// The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
+function todayHtml() {
+  const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
+  const mp = !d ? 'A new pet hides here every day' : d.guest ? 'Needs an account' : d.done ? `<i class="ok">✓ solved in ${d.guesses.length}</i>${fire}`
+    : d.guesses.length ? `${plural(d.guesses.length, 'guess', 'guesses')} so far${fire}` : `New pet today${d.streak ? fire : ''}`;
+  const paid = me?.hay?.paid || 0;
+  const hay = !me?.user ? 'Needs an account' : paid >= HAY_DAILY ? `All ${HAY_DAILY} coins earned today · level ${me.hay.lv}` : `${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`;
+  const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
+  const farm = !me?.user ? 'Needs an account' : !f ? 'Your own pet farm'
+    : f.egg && (f.egg.stage === 'ready' || (f.egg.stage === 'egg' && eggLeft <= 0)) ? '<i class="ok">An egg is ready to hatch!</i>'
+    : f.trip && tripLeft <= 0 ? '<i class="ok">Your expedition is back!</i>'
+    : f.egg?.stage === 'egg' ? `Egg hatches in ${leftText(eggLeft)}`
+    : f.trip ? `Expedition back in ${leftText(tripLeft)}`
+    : f.pets ? `${plural(f.pets, 'pet')} on your farm` : 'Your own pet farm';
+  const mpPic = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
+  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? 'Result' : d?.guesses?.length ? 'Go on' : 'Guess', d?.done)
+    + todayTile('t-hay', hayArt(), 'Hay Hunch', hay, 'hay', 'Play')
+    + todayTile('t-farm', farmArt(), 'Pet Farm', farm, 'farm', 'Visit');
 }
-function paintDailyCard() { const el = document.getElementById('daily-card'); if (el) el.innerHTML = dailyCard(); }
+function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
+setInterval(() => { if (st.view === 'hub' && st.farmBrief) paintToday(); }, 60_000); // keeps the farm countdown honest
 function openDaily() {
   if (st.daily) return;
   const sheet = modal('<div class="mpbox"><p class="mpload">Looking for today’s pet…</p></div>');
@@ -643,7 +658,7 @@ let adoptLook = false, onAuth = null;
 const lvChip = (lv, icon, rank) => `<span class="lv" title="${esc(rank)}, level ${lv}">${icon} ${lv}</span>`;
 const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
 
-// "Your progress" card on the hub: rank, XP bar, lifetime numbers and the account buttons.
+// The full progress card (rank, XP bar, lifetime numbers, every game). It opens from the account menu's Profile.
 function meCard() {
   const m = st.me; if (!m) return '';
   const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
@@ -654,9 +669,7 @@ function meCard() {
     <div class="rankrow">
       <span class="rankicon">${m.icon}</span>
       <div class="rankname"><b>${esc(m.rank)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
-      <div class="acct">${m.user
-        ? `<span>Signed in as <b>${esc(m.user)}</b></span><button type="button" class="btn sm ghost" data-act="security">Password</button><button type="button" class="btn sm ghost" data-act="logout">Log out</button>`
-        : `<span>Playing as a guest. Progress stays on this browser.</span><button type="button" class="btn sm m" data-act="account" data-mode="register">Create account</button><button type="button" class="btn sm w" data-act="account" data-mode="login">Log in</button>`}</div>
+      <div class="acct"><span>${m.user ? `Signed in as <b>${esc(m.user)}</b>` : 'Playing as a guest. Progress stays on this browser.'}</span></div>
     </div>
     <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
     <div class="xpnote"><span>${m.into} / ${m.need} XP to level ${m.level + 1}</span><span>${m.xp} XP in total</span></div>
@@ -668,10 +681,56 @@ function meCard() {
     ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">Finish a game to earn XP. Wins are worth the most.</p>`}
   </div>`;
 }
+function openStats() {
+  if (!st.me) return;
+  const sheet = modal(`<h2>Your progress</h2>${meCard()}<div class="row" style="margin-top:16px">${st.me.pt ? '<button type="button" class="btn w" data-x="card">How others see me</button>' : ''}<button type="button" class="btn" data-x="close">Done</button></div>`);
+  sheet.el.querySelector('.sheet').classList.add('wide', 'statsheet');
+  sheet.el.addEventListener('click', e => {
+    const x = e.target.closest('[data-x]')?.dataset.x; if (!x) return;
+    sfx.click(); sheet.close(); if (x === 'card') send({ t: 'player', pt: st.me.pt });
+  });
+}
+// The account menu: one place for everything that used to be separate buttons in the top bar and on the progress card.
+// It drops down from the avatar button; on phones it slides up as a sheet (the tab bar's "You").
+function acctHtml() {
+  const m = st.me, reqs = st.friends?.reqs.length || 0;
+  const item = (act, ico, label, note = '', attr = '') => `<button type="button" role="menuitem" data-act="${act}"${attr}><span class="aico" aria-hidden="true">${ico}</span>${label}${note}</button>`;
+  const pct = m ? Math.round(100 * m.into / m.need) : 0, rate = m?.games ? Math.round(100 * m.wins / m.games) : 0;
+  return `<div class="awho">${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : 'Pick a name'}</b><span>${m ? `Level ${m.level} · ${esc(m.rank)}` : ''}</span></div></div>
+    ${m ? `<div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
+    <p class="axp">${m.into} / ${m.need} XP to level ${m.level + 1}</p>
+    <div class="amini"><div><b>${m.wins}</b><span>wins</span></div><div><b>${m.games}</b><span>games</span></div><div><b>${rate}%</b><span>win rate</span></div></div>` : ''}
+    <div class="aitems" role="menu">
+      ${item('mystats', '📊', 'Profile', '<small>all your stats</small>')}
+      ${item('profile', '👕', 'Wardrobe', '<small>avatar, style, shop</small>')}
+      ${item('friends', '🤝', 'Friends', `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
+      <hr>
+      ${m?.user ? item('security', '🔑', 'Change password') + item('logout', '🚪', 'Log out', `<small>${esc(m.user)}</small>`)
+        : item('account', '✨', 'Create account', '<small>saves progress</small>', ' data-mode="register"') + item('account', '🔑', 'Log in', '', ' data-mode="login"')}
+    </div>`;
+}
+function closeAcct() {
+  document.querySelector('.acctwrap')?.remove();
+  document.querySelector('.me.acctbtn')?.setAttribute('aria-expanded', 'false');
+  if (st.view === 'hub') document.querySelectorAll('.hubtabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === st.htab));
+}
+function openAcct() {
+  if (document.querySelector('.acctwrap')) return closeAcct();
+  const btn = document.querySelector('.me.acctbtn'); if (!btn) return;
+  const wrap = document.createElement('div'); wrap.className = 'acctwrap';
+  wrap.innerHTML = `<div class="acctmenu" id="acct-menu">${acctHtml()}</div>`;
+  const r = btn.getBoundingClientRect();
+  wrap.style.setProperty('--at', Math.round(r.bottom + 10) + 'px'); wrap.style.setProperty('--ar', Math.round(Math.max(8, innerWidth - r.right)) + 'px');
+  wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-act]')) setTimeout(closeAcct); }); // a tap outside, or on any item, closes it
+  $app.append(wrap); btn.setAttribute('aria-expanded', 'true');
+  wrap.querySelector('button')?.focus({ preventScroll: true });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.acctwrap')) { closeAcct(); document.querySelector('.me.acctbtn')?.focus(); } });
 function paintMe() {
-  const card = document.getElementById('me-card'); if (card) card.innerHTML = meCard();
   const chip = document.querySelector('.me .lvslot'); if (chip) chip.innerHTML = meChip();
   const cs = document.querySelector('.coinslot'); if (cs && st.me) cs.textContent = st.me.coins;
+  const menu = document.getElementById('acct-menu'); if (menu) menu.innerHTML = acctHtml();
+  paintToday();
 }
 
 // Day or night: the sky look comes in both. Saved per browser; first visit follows the system setting.
@@ -715,10 +774,9 @@ function switchTheme(btn) {
 
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
-  <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#hubchat" data-act="scroll" data-to="hubchat">Chat</a><a href="#" data-act="rules">How to play</a></nav>
-  <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
+  ${st.view === 'lobby' ? '<nav class="navl" aria-label="Help"><a href="#" data-act="rules">How to play</a></nav>' : ''}
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them in the wardrobe">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
-  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}<span class="lvslot">${meChip()}</span><small>· wardrobe</small></button>
+  <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="Your account">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
 
@@ -735,224 +793,129 @@ const PET_SLOTS = 3;
 const showIds = () => { const c = st.me?.cos || {}; return (c.pets || (c.pet ? [c.pet] : [])).slice(0, PET_SLOTS); };
 const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id)).filter(Boolean);
 const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open that player's profile card
+// The games you host a table for, in hub order: id, picture class, picture, category, seats, one-line pitch.
+// Solo games (Hay Hunch, Pet Farm, Mystery Pet) are not here: they live in the Today column.
+const HUB_CATS = [['all', 'All'], ['cards', 'Cards'], ['board', 'Board'], ['action', 'Action']];
+const HUB_GAMES = [
+  ['hotpot', '', () => cardHtml(0, { w: 48 }) + cardHtml(40, { w: 54 }) + cardHtml(64, { w: 48 }), 'cards', '1–4 players', 'Draw, swap and collect three sets of three ingredients, then call “Let\'s Eat!” before anyone else.'],
+  ['marbles', 'marblepic', marbleArt, 'action', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
+  ['ladders', 'ladderpic', laddersArt, 'board', '1–6 players', 'The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.'],
+  ['poker', 'pokerpic', pokerArt, 'cards', '1–6 players', 'Cozy no-limit poker for pretend chips. Also Mango Poker, where the flop comes from the cards you all throw away.'],
+  ['ludo', 'ludopic', ludoArt, 'board', '1–4 players', 'Race your pawns round a chunky 3D board and bump your friends back to their yard.'],
+  ['stack', 'stackpic', stackArt, 'action', '1–6 players', 'Take turns dropping swinging blocks on one shared, wobbly tower. Don\'t be the one who knocks it down.'],
+  ['golf', 'golfpic', golfArt, 'action', '1–6 players', 'Take turns putting the same blocky 3D hole, and bet coins on who takes each hole.'],
+  ['dice', 'dicepic', diceArt, 'cards', '1–6 players', 'Roll in secret under your cup, bid on everyone\'s dice and bluff. Call “Liar!” when you smell one.'],
+  ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
+  ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],
+  ['kart', 'kartpic', kartArt, 'action', '1–8 players', 'Race little low-poly karts round roads that hop between floating islands.'],
+  ['kitchen', 'kitchenpic', kitchenArt, 'action', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
+  ['dig', 'digpic', digArt, 'board', '1–6 players', 'Take turns digging up a grass field for gems and a golden chest. Like Minesweeper with friends.'],
+  ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
+  ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
+  ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
+].filter(g => GAMES[g[0]]);
+const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(pitch)}">
+  <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>
+    <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="How to play ${esc(GAMES[id].name)}" title="How to play">?</button></div>
+  <div class="body"><h3>${esc(GAMES[id].name)}</h3><span class="tag">${seats}</span>
+    <button type="button" class="btn sm" data-act="host" data-game="${id}">Host a table</button></div>
+</article>`;
+// The category pills and the search box only hide cards; nothing is re-rendered, so the pictures keep animating.
+function filterGames() {
+  if (!HUB_CATS.some(([id]) => id === st.gFilt)) st.gFilt = 'all';
+  const q = (document.getElementById('gfind')?.value || '').trim().toLowerCase(); let shown = 0;
+  document.querySelectorAll('.gmini').forEach(c => { const on = (st.gFilt === 'all' || c.dataset.cat === st.gFilt) && (!q || c.dataset.name.includes(q)); c.hidden = !on; shown += on; });
+  document.querySelectorAll('[data-act="gfilt"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === st.gFilt));
+  const none = document.getElementById('gnone'); if (none) none.hidden = shown > 0;
+}
+$app.addEventListener('input', e => { if (e.target.id === 'gfind') filterGames(); });
+// Below this width the hub is one column with a tab bar at the bottom (Games, Tables, Chat, Rankings, You).
+const narrowMq = matchMedia('(max-width: 1099px)'), narrow = () => narrowMq.matches;
+narrowMq.addEventListener('change', () => { if (st.view === 'hub') { renderTables(); paintRankings(); } });
+function setHubTab(tab) {
+  if (tab === 'you') { openAcct(); document.querySelectorAll('.hubtabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === 'you')); return; }
+  closeAcct();
+  st.htab = ['games', 'tables', 'chat', 'rank'].includes(tab) ? tab : 'games';
+  const g = document.querySelector('.hubgrid'); if (g) g.dataset.tab = st.htab;
+  document.querySelectorAll('.hubtabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === st.htab));
+  scrollTo(0, 0); if (st.htab === 'chat') hubScrollEnd();
+}
 function renderHub() {
+  const cnt = c => c === 'all' ? HUB_GAMES.length : HUB_GAMES.filter(g => g[3] === c).length;
+  const tab = (id, ico, label, extra = '') => `<button type="button" data-act="htab" data-tab="${id}" aria-selected="${id === st.htab}"><span aria-hidden="true">${ico}</span>${label}${extra}</button>`;
   $app.innerHTML = `${topbar()}
-  <main class="wrap hubgrid">
+  <main class="wrap hubgrid" data-tab="${st.htab}">
     <section class="hero">
       <div>
-        <h1>Pull up a chair.<br>The pot's already bubbling.</h1>
-        <p>Tiny games for you and your friends. No downloads and no sign-up needed: pick a name, share a four-letter code and play. Empty seats get friendly bots.</p>
-        <div class="row">
+        <h1>Pull up a chair. The pot's already bubbling.</h1>
+        <p>Tiny games for you and your friends. Host a table and share the four-letter code, or join one with a code from a friend.</p>
+        <div class="row herorow">
           <button type="button" class="btn big" data-act="host">Host a table</button>
+          <form class="codeform" data-form="join">
+            <label for="code">Got a code?</label>
+            <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
+            <button class="btn m">Join</button>
+          </form>
         </div>
-        <form class="codeform" data-form="join">
-          <label for="code">Got a code?</label>
-          <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
-          <button class="btn m">Join</button>
-        </form>
         <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
       </div>
       <div class="art">${tableArt()}</div>
     </section>
     <div class="hubmid">
-    <section id="daily" style="margin-bottom:44px">
-      <h2>Today's puzzle</h2>
-      <div id="daily-card">${dailyCard()}</div>
-    </section>
-    <section id="progress" style="margin-bottom:44px">
-      <h2>Your progress</h2>
-      <div id="me-card">${meCard()}</div>
-    </section>
     <section id="games">
-      <h2>Games on the menu</h2>
-      <div class="games">
-        <article class="gcard">
-          <div class="pic">${cardHtml(0, { w: 70 })}${cardHtml(40, { w: 78 })}${cardHtml(64, { w: 70 })}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Hot Pot</h3><span class="tag">1–4 players</span></div>
-            <p>Draw, swap and collect three sets of three ingredients, then call “Let's Eat!” before anyone else.</p>
-            <div class="row"><button type="button" class="btn" data-act="host">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic marblepic">${marbleArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Marble Rush</h3><span class="tag">1–8 players</span></div>
-            <p>Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="marbles">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic ladderpic">${laddersArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Snakes &amp; Ladders</h3><span class="tag">1–6 players</span></div>
-            <p>The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="ladders">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic pokerpic">${pokerArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Texas Hold'em</h3><span class="tag">1–6 players</span></div>
-            <p>Cozy no-limit poker for pretend chips. Bluff your friends, out-read the bots and stack the whole table. New: <b>Mango Poker</b>, where the flop comes from the cards you all throw away.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="poker">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic ludopic">${ludoArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Ludo</h3><span class="tag">1–4 players</span></div>
-            <p>Race your pawns round a chunky 3D board and bump your friends back to their yard. Sixes, stars and sweet revenge.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="ludo">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic stackpic">${stackArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Tower Stack</h3><span class="tag">1–6 players</span></div>
-            <p>Take turns dropping swinging blocks on one shared, wobbly tower. Stack it high, and don't be the one who knocks it down.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="stack">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic golfpic">${golfArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Mini Golf Party</h3><span class="tag">1–6 players</span></div>
-            <p>Take turns putting the same blocky 3D hole. Dodge the windmill, sink it in the fewest putts, and bet coins on who takes each hole.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="golf">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic dicepic">${diceArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Liar's Dice</h3><span class="tag">1–6 players</span></div>
-            <p>Roll in secret under your cup, bid on everyone's dice and bluff with a straight face. Call “Liar!” when you smell one.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="dice">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic tyspic">${tysArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Tysiąc</h3><span class="tag">1–4 players</span></div>
-            <p>The Polish card classic. Bid for the musik, announce king-and-queen marriages to set trumps, and be first to 1000.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="tys">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic pawpic">${pawArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Pawperty</h3><span class="tag">1–6 players</span></div>
-            <p>Adopt pet shops round a cozy 3D board and collect rent in treats. Mind the Zoomies cards, Bath Time and the pets napping on the job.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="paw">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic kartpic">${kartArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Kart Island Race</h3><span class="tag">1–8 players</span></div>
-            <p>Race little low-poly karts round roads that hop between floating islands. Drift for boosts, grab gift boxes and throw silly power-ups at your friends.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="kart">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic kitchenpic">${kitchenArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Kitchen Rush</h3><span class="tag">Co-op · 1–4</span></div>
-            <p>Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out. Don't burn the soup!</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="kitchen">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic digpic">${digArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Treasure Dig</h3><span class="tag">1–6 players</span></div>
-            <p>Take turns digging up a grass field for gems and a golden chest. Read the numbers to dodge the traps, like Minesweeper with friends.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="dig">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic brickspic">${bricksArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Sky Bricks</h3><span class="tag">1–6 players</span></div>
-            <p>Stack falling bricks in your own well while your friends do the same. Clear rows to send stone lines their way. Last one stacking wins.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="bricks">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic beanpic">${beanArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Beanstalk Bounce</h3><span class="tag">1–6 players</span></div>
-            <p>Race your friends up a giant beanstalk, hopping from ledge to ledge. Run faster to jump higher, chain big jumps for streaks, and stay ahead of the storm.</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="bean">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic panpic">${panArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Pan</h3><span class="tag">1–6 players</span></div>
-            <p>The Polish card game: nine of hearts starts, play the same or higher, or pick up three. Don't be the last one holding cards!</p>
-            <div class="row"><button type="button" class="btn" data-act="host" data-game="pan">Host a table</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic haypic">${hayArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Hay Hunch</h3><span class="tag">Solo puzzle</span></div>
-            <p>Flip hay bales for carrot bundles that multiply your harvest. Read the row and column signs to dodge the napping pets, and climb seven levels.</p>
-            <div class="row"><button type="button" class="btn" data-act="hay">Play</button></div>
-          </div>
-        </article>
-        <article class="gcard">
-          <div class="pic farmpic">${farmArt()}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between"><h3>Pet Farm</h3><span class="tag">Your own farm</span></div>
-            <p>Build a little low-poly farm and raise pets on it. It keeps going between visits, so it needs an account.</p>
-            <div class="row"><button type="button" class="btn" data-act="farm">Visit my farm</button></div>
-          </div>
-        </article>
-        <article class="soon">${backSvg('width="84" height="84"')}<h3>Got an idea?</h3><p>New minigames drop into the hub as one folder each.</p></article>
+      <div class="ghead">
+        <h2>Games</h2>
+        <div class="gfilt" role="group" aria-label="Kind of game">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
+        <input id="gfind" class="field gfind" type="search" placeholder="Find a game" aria-label="Find a game" autocomplete="off" spellcheck="false">
       </div>
+      <div class="games mini">${HUB_GAMES.map(gameCard).join('')}</div>
+      <div class="empty" id="gnone" hidden>No game with that name. Try another word, or pick “All”.</div>
     </section>
     </div>
-    <aside class="hubside left" aria-label="Chat and open tables">
-      <div class="sidetabs" role="tablist" aria-label="Chat or open tables">
-        <button type="button" role="tab" id="tab-hubchat" aria-controls="hubchat" data-act="sidetab" data-tab="hubchat" aria-selected="${st.side === 'hubchat'}">Chat</button>
-        <button type="button" role="tab" id="tab-tables" aria-controls="tables" data-act="sidetab" data-tab="tables" aria-selected="${st.side === 'tables'}">Open tables<span class="tcount" id="tables-count"></span></button>
-      </div>
-      <section id="tables" role="tabpanel" aria-labelledby="tab-tables" ${st.side === 'tables' ? '' : 'hidden'}>
-        <p class="sidenote"><span class="livedot"></span>Updates live. Join a seat or watch a game.</p>
+    <aside class="hubside left" aria-label="Open tables and chat">
+      <section id="tables">
+        <div class="sidehead"><h2>Open tables</h2><span class="tcount" id="tables-count"></span></div>
         <div class="tables" id="tables-list"></div>
         <div class="tpager" id="tables-pager"></div>
-        <button type="button" class="btn w sidehost" data-act="host">Host a table</button>
+        <button type="button" class="btn sm w tall" id="tables-all-btn" data-act="tables" hidden></button>
       </section>
-      <section id="hubchat" role="tabpanel" aria-labelledby="tab-hubchat" ${st.side === 'hubchat' ? '' : 'hidden'}>
-        <p class="sidenote">One room for everyone on ${SITE}.</p>
+      <section id="hubchat">
+        <div class="sidehead"><h2>Chat</h2></div>
         <div class="hccard">
           <div class="hclog" id="hc-log" role="log" aria-live="polite">${hubLogHtml()}</div>
           <div class="hcfoot" id="hc-foot">${hubFootHtml()}</div>
         </div>
       </section>
     </aside>
-    <aside class="hubside right" aria-label="Rankings">
+    <aside class="hubside right" aria-label="Today and rankings">
+      <section id="today">
+        <div class="sidehead"><h2>Today</h2></div>
+        <div class="today" id="today-list">${todayHtml()}</div>
+      </section>
       <section id="rankings">
         <div class="sidehead"><h2>Rankings</h2></div>
-        <p class="sidenote">Everyone on Cozy Table. Bots don't count.</p>
         <div class="rkcard">
-          <div class="rktabs" role="tablist" aria-label="Rankings by game">${RK_TABS.map(([id, n]) => `<button type="button" role="tab" data-act="rktab" data-tab="${id}" aria-selected="${id === st.rkTab}">${n}</button>`).join('')}</div>
-          <div id="rk-body" role="tabpanel">${rankingsHtml()}</div>
+          <select id="rk-sel" class="field rksel" aria-label="Rankings for">${RK_TABS.map(([id, n]) => `<option value="${id}"${id === st.rkTab ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+          <div id="rk-body">${rankingsHtml(narrow())}</div>
         </div>
       </section>
     </aside>
   </main>
-  <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>`;
-  renderTables();
+  <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>
+  <nav class="hubtabs" aria-label="Hub sections">${tab('games', '🎮', 'Games')}${tab('tables', '🪑', 'Tables', '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', 'Chat')}${tab('rank', '🏆', 'Rankings')}${tab('you', '👤', 'You')}</nav>`;
+  renderTables(); filterGames();
   document.body.classList.add('sky');
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   send({ t: 'hubchat' }); hubScrollEnd();
   send({ t: 'daily' });
+  if (st.me?.user) send({ t: 'pets' }); // also brings the farm's news for the Today column
   if (!st.name) openProfile(true);
 }
+$app.addEventListener('change', e => {
+  if (e.target.id !== 'rk-sel') return;
+  st.rkTab = e.target.value; LS.set('ct_rk', st.rkTab); paintRankings(); send({ t: 'rankings', game: st.rkTab });
+});
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
@@ -980,18 +943,34 @@ function rkRow(game, r) {
     <b class="main">${main}</b><span class="sub">${sub}</span>
   </li>`;
 }
-function rankingsHtml() {
+const RK_SHORT = 5; // rows on the hub; "See all" opens the whole board
+function rankingsHtml(all = false) {
   if (!RK_TABS.some(([id]) => id === st.rkTab)) st.rkTab = 'overall';
   const g = st.rkTab, d = st.rk[g];
   if (!d) return `<p class="rknote">Loading…</p>`;
-  const note = `<p class="rknote">${RK_NOTE[g] || RK_NOTE.default}${d.total > d.rows.length ? ` Top ${d.rows.length} of ${d.total.toLocaleString()} players.` : ''}</p>`;
+  const rows = all ? d.rows : d.rows.slice(0, RK_SHORT), mine = d.mine || (!all && d.rows.slice(RK_SHORT).find(r => r.me));
+  const note = `<p class="rknote">${RK_NOTE[g] || RK_NOTE.default}${all && d.total > d.rows.length ? ` Top ${d.rows.length} of ${d.total.toLocaleString()} players.` : ''}</p>`;
   if (!d.rows.length) return note + `<div class="empty">${g === 'farm' ? 'No farms with pets yet. Visit your farm to be the first!' : 'Nobody has finished a game here yet. Play one to take first place!'}</div>`;
-  return note + `<ol class="rk">${d.rows.map(r => rkRow(g, r)).join('')}${d.mine ? `<li class="gap" aria-hidden="true">…</li>${rkRow(g, d.mine)}` : ''}</ol>`
-    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'farm' ? 'Raise a pet on your farm to join this ladder.' : 'Finish a game to get on this board.'}</p>`);
+  return note + `<ol class="rk">${rows.map(r => rkRow(g, r)).join('')}${mine ? `<li class="gap" aria-hidden="true">…</li>${rkRow(g, mine)}` : ''}</ol>`
+    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'farm' ? 'Raise a pet on your farm to join this ladder.' : 'Finish a game to get on this board.'}</p>`)
+    + (!all && d.rows.length > RK_SHORT ? `<button type="button" class="btn sm w tall" data-act="rkall">See all ${Math.min(d.total || d.rows.length, d.rows.length)}</button>` : '');
+}
+let rkSheet = null;
+function openRankings() {
+  rkSheet?.close();
+  const name = RK_TABS.find(([id]) => id === st.rkTab)?.[1] || 'Overall';
+  const sheet = rkSheet = modal(`<h2>Rankings · ${esc(name)}</h2><div class="rkall" id="rk-all">${rankingsHtml(true)}</div><div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">Done</button></div>`);
+  sheet.el.querySelector('.sheet').classList.add('listsheet');
+  sheet.onClose = () => { rkSheet = null; };
+  sheet.el.addEventListener('click', e => {
+    if (e.target.closest('[data-x]')) { sfx.click(); return sheet.close(); }
+    const row = e.target.closest('[data-prof]'); if (row) { sfx.click(); sheet.close(); send({ t: 'player', pt: row.dataset.prof }); }
+  });
 }
 function paintRankings() {
-  const el = document.getElementById('rk-body'); if (el) el.innerHTML = rankingsHtml();
-  document.querySelectorAll('[data-act="rktab"]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === st.rkTab));
+  const el = document.getElementById('rk-body'); if (el) el.innerHTML = rankingsHtml(narrow());
+  const all = document.getElementById('rk-all'); if (all) all.innerHTML = rankingsHtml(true);
+  const sel = document.getElementById('rk-sel'); if (sel) sel.value = st.rkTab;
 }
 
 // ---------- hub chat ----------
@@ -1065,35 +1044,54 @@ function statsHtml() {
 }
 function paintStats() { const el = document.getElementById('live-stats'); if (el) el.innerHTML = statsHtml(); }
 
-// The open tables tab: tables with a free seat in their waiting room first, a page at a time.
-const TABLES_PER_PAGE = 5;
-function renderTables() {
-  const el = document.getElementById('tables-list'); if (!el) return;
-  const cnt = document.getElementById('tables-count'); if (cnt) cnt.textContent = st.rooms.length || '';
-  const pager = document.getElementById('tables-pager');
-  if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; if (pager) pager.innerHTML = ''; return; }
-  const open = r => r.state === 'lobby' && r.n < r.max;
-  const rooms = [...st.rooms].sort((a, b) => open(b) - open(a));
-  const pages = Math.ceil(rooms.length / TABLES_PER_PAGE);
-  st.tPage = Math.max(0, Math.min(st.tPage, pages - 1));
-  el.innerHTML = rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(r => `<div class="trow">
+// Open tables: tables with a free seat in their waiting room come first. The hub's left column shows the first
+// few; "Show all" opens the whole list in its own panel, a page at a time. On phones the Tables tab is that list.
+const TABLES_PER_PAGE = 5, TABLES_SHORT = 3;
+const tableOpen = r => r.state === 'lobby' && r.n < r.max;
+const tableRow = r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
     <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take over a bot' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
-    <button type="button" class="btn ${open(r) ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${open(r) ? 'Join' : 'Watch'}</button>
-  </div>`).join('');
+    <button type="button" class="btn ${tableOpen(r) ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${tableOpen(r) ? 'Join' : 'Watch'}</button>
+  </div>`;
+function tablePage(el, pager, rooms) {
+  const pages = Math.max(1, Math.ceil(rooms.length / TABLES_PER_PAGE));
+  st.tPage = Math.max(0, Math.min(st.tPage, pages - 1));
+  el.innerHTML = rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(tableRow).join('');
   if (pager) pager.innerHTML = pages < 2 ? '' : `<button type="button" class="btn sm w" data-act="tpage" data-d="-1" aria-label="Previous page" ${st.tPage ? '' : 'disabled'}>‹</button>
     <span>Page <b>${st.tPage + 1}</b> of ${pages} · ${rooms.length} tables</span>
     <button type="button" class="btn sm w" data-act="tpage" data-d="1" aria-label="Next page" ${st.tPage < pages - 1 ? '' : 'disabled'}>›</button>`;
 }
-function setSide(tab) {
-  st.side = tab === 'tables' ? 'tables' : 'hubchat'; LS.set('ct_side', st.side);
-  for (const id of ['tables', 'hubchat']) {
-    const sec = document.getElementById(id); if (sec) sec.hidden = id !== st.side;
-    document.getElementById('tab-' + id)?.setAttribute('aria-selected', id === st.side);
-  }
-  if (st.side === 'hubchat') hubScrollEnd();
+let tablesSheet = null;
+function renderTables() {
+  const rooms = [...st.rooms].sort((a, b) => tableOpen(b) - tableOpen(a));
+  for (const id of ['tables-count', 'tabs-count']) { const cnt = document.getElementById(id); if (cnt) cnt.textContent = rooms.length || ''; }
+  document.querySelectorAll('.gopen').forEach(b => { const n = rooms.filter(r => r.game === b.dataset.g && tableOpen(r)).length; b.hidden = !n; b.textContent = n ? `${n} open` : ''; });
+  const all = document.getElementById('tables-all');
+  if (all) { if (rooms.length) tablePage(all, document.getElementById('tables-all-pager'), rooms); else tablesSheet?.close(); }
+  const el = document.getElementById('tables-list'); if (!el) return;
+  const pager = document.getElementById('tables-pager'), more = document.getElementById('tables-all-btn');
+  if (!rooms.length) { el.innerHTML = `<div class="empty tnone"><span>No open tables yet.</span><button type="button" class="btn sm" data-act="host">Host one</button></div>`; pager.innerHTML = ''; more.hidden = true; return; }
+  if (narrow()) { tablePage(el, pager, rooms); more.hidden = true; return; }
+  el.innerHTML = rooms.slice(0, TABLES_SHORT).map(tableRow).join(''); pager.innerHTML = '';
+  more.hidden = rooms.length <= TABLES_SHORT; more.textContent = `Show all ${rooms.length} tables`;
+}
+function openTables() {
+  tablesSheet?.close(); st.tPage = 0;
+  const sheet = tablesSheet = modal(`<h2>Open tables</h2><p class="sidenote"><span class="livedot"></span>Updates live. Join a seat or watch a game.</p>
+    <div class="tables tlist" id="tables-all"></div><div class="tpager" id="tables-all-pager"></div>
+    <div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">Done</button></div>`);
+  sheet.el.querySelector('.sheet').classList.add('listsheet');
+  sheet.onClose = () => { tablesSheet = null; st.tPage = 0; };
+  sheet.el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    sfx.click();
+    if (b.dataset.x) sheet.close();
+    else if (b.dataset.act === 'tpage') { st.tPage += +b.dataset.d; renderTables(); }
+    else if (b.dataset.act === 'join') { sheet.close(); send({ t: 'join', code: b.dataset.code }); }
+  });
+  renderTables();
 }
 
 function renderLobby() {
@@ -1719,14 +1717,17 @@ export function openRules(game) {
 $app.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act;
-  if (['home', 'scroll', 'rules'].includes(act)) e.preventDefault();
+  if (['home', 'rules'].includes(act)) e.preventDefault();
   if (b.tagName === 'BUTTON') sfx.click();
   if (act === 'home') { if (st.room) send({ t: 'leave' }); else go('hub'); }
-  else if (act === 'scroll') { if (['tables', 'hubchat'].includes(b.dataset.to)) setSide(b.dataset.to); document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' }); }
-  else if (act === 'sidetab') { sfx.click(); setSide(b.dataset.tab); }
+  else if (act === 'htab') setHubTab(b.dataset.tab);
+  else if (act === 'gfilt') { st.gFilt = b.dataset.cat; LS.set('ct_gf', st.gFilt); filterGames(); }
+  else if (act === 'acct') openAcct();
+  else if (act === 'mystats') openStats();
+  else if (act === 'tables') openTables();
+  else if (act === 'rkall') openRankings();
   else if (act === 'tpage') { sfx.click(); st.tPage += +b.dataset.d; renderTables(); }
-  else if (act === 'rktab') { st.rkTab = b.dataset.tab; LS.set('ct_rk', st.rkTab); sfx.click(); paintRankings(); send({ t: 'rankings', game: st.rkTab }); }
-  else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
+  else if (act === 'rules') openRules(b.dataset.game || (st.view === 'lobby' ? st.room?.game : undefined));
   else if (act === 'profile') openProfile();
   else if (act === 'style') { if (!st.name) return openProfile(true); openStyle(); }
   else if (act === 'shop') { if (!st.name) return openProfile(true); openWardrobe({ sec: 'drop', filt: 'shop' }); }
