@@ -265,7 +265,7 @@ export function mount(app, ctx) {
       <ol class="score">${seats.map((i, n) => {
         const p = S.seats[i], pay = S.res.pay[i], b = pay.bet;
         return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${b ? L(`bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}`, `zakład ${b.amt} na ${ball(b.m, 14)}${mName(b.m)}, miejsce ${S.res.order.indexOf(b.m) + 1}`) : L('no bet', 'bez zakładu')}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${b ? L(`bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}`, `zakład ${b.amt}: ${ball(b.m, 14)}${mName(b.m)}, miejsce ${S.res.order.indexOf(b.m) + 1}`) : L('no bet', 'bez zakładu')}</span></div>
           <strong class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}<small>${I.coin}${pay.coins}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Race again', 'Ścigajcie się jeszcze raz'))}</div></div>`;
