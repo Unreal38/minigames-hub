@@ -224,3 +224,26 @@ test/marbles.js           Marble Rush races on a fake clock + a table over WebSo
 ```
 
 Hot Pot is an unofficial fan project inspired by Palia's Hotpot minigame, and isn't affiliated with Singularity 6.
+
+## Ko-fi supporters
+
+The site links to a Ko-fi page (`KOFI` in `public/app.js`). People who support it get the Supporter pack: seven café items for their avatar that coins cannot buy. It is handed out by itself:
+
+1. The supporter writes their site username in the Ko-fi message. Ko-fi tells the server about the payment and the pack lands on that account, live.
+2. If they forgot the username, the payment waits. In **Support the site** they type the email they paid with and get the pack. Each payment can be claimed once. Emails are not saved, only a keyed hash.
+3. You can always give the pack by hand:
+   ```
+   cd /opt/cozy-table && sudo DATA_DIR=/var/lib/cozy-table npm run supporter -- <username>
+   ```
+
+One-time setup:
+
+1. On Ko-fi open **More → API** (ko-fi.com/manage/webhooks). Copy the **Verification Token** (under Advanced).
+2. On the server run `sudo systemctl edit cozy-table`, add the two lines below with your token, save, then `sudo systemctl restart cozy-table`:
+   ```
+   [Service]
+   Environment=KOFI_TOKEN=paste-the-token-here
+   ```
+3. Back on Ko-fi, put `https://your-domain/kofi` in **Webhook URL**, press **Update**, then **Send Single Donation Test**. `journalctl -u cozy-table -n 5` should show a line starting with `kofi: Donation`.
+
+Without `KOFI_TOKEN` the `/kofi` address is switched off. Calls with a wrong token are refused and rate limited.

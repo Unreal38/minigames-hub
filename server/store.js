@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
 import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
-import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT } from '../public/avatar.js';
+import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
 const DIR = DATA_DIR;
@@ -18,6 +18,7 @@ export const sessions = new Map(); // browser token -> { id, pid, seen }
 const users = new Map();           // lower-case username -> pid
 const visitors = new Set();        // hashed browser tokens of everyone who has ever opened the site
 let savedRooms = [];
+let kofi = { seen: [], pend: [] }; // Ko-fi payments: ids already handled, and payments nobody has claimed yet
 
 const rid = n => crypto.randomBytes(n).toString('hex');
 // Text other players see (names): no control characters or angle brackets, and straight quotes become curly ones,
@@ -43,6 +44,7 @@ export function load() {
   for (const [t, s] of Object.entries(d.sessions || {})) if (profiles.has(s.pid)) sessions.set(t, s);
   if (Array.isArray(d.visitors)) for (const v of d.visitors) if (typeof v === 'string') visitors.add(v);
   for (const t of Object.keys(d.sessions || {})) visitors.add(vkey(t)); // older saves had no visitor list
+  if (Array.isArray(d.kofi?.seen) && Array.isArray(d.kofi?.pend)) kofi = { seen: d.kofi.seen, pend: d.kofi.pend };
   savedRooms = Array.isArray(d.rooms) ? d.rooms : [];
   console.log(`loaded ${profiles.size} profiles, ${sessions.size} sessions, ${savedRooms.length} lobbies from ${FILE}`);
   return savedRooms;
@@ -63,7 +65,7 @@ export function saveNow() {
     if (inRoom.has(t) || p.user || p.games || p.coins || p.owned?.length) { keepS[t] = s; keepP[p.pid] = p; }
   }
   for (const p of profiles.values()) if (p.user) keepP[p.pid] = p;
-  const data = JSON.stringify({ v: 1, saved: new Date().toISOString(), profiles: keepP, sessions: keepS, rooms, visitors: [...visitors] });
+  const data = JSON.stringify({ v: 1, saved: new Date().toISOString(), profiles: keepP, sessions: keepS, rooms, visitors: [...visitors], kofi });
   try {
     fs.mkdirSync(DIR, { recursive: true });
     const tmp = FILE + '.tmp';
@@ -333,6 +335,57 @@ setInterval(() => {
   for (const f of files) {
     const file = path.join(DIR, f);
     try { const r = JSON.parse(fs.readFileSync(file, 'utf8')); console.log(addReset(r.user, r.h, r.exp) ? `password reset code made for ${r.user}` : `reset file for unknown user ${r.user} ignored`); }
+    catch (e) { console.error(f, 'could not be read', e.message); }
+    try { fs.unlinkSync(file); } catch {}
+  }
+}, 3000).unref();
+
+// ---------- Ko-fi supporters ----------
+// Supporting the site on Ko-fi gives the Supporter pack (public/avatar.js PACK 'kofi'). Ko-fi tells the server about
+// every payment (server.js, POST /kofi); the supporter writes their username in the Ko-fi message, so the pack lands
+// on that account by itself. A payment with no username we know waits here and can be claimed once, from a
+// signed-in account, with the email it was paid with. Emails are never stored: only a keyed hash of them is.
+let packHook = () => {};
+export const onPack = fn => { packHook = fn; };
+export const hasPack = (p, name = 'kofi') => { const have = new Set(p?.owned || []); return packIds(name).every(id => have.has(id)); };
+export function grantPack(p, name = 'kofi') {
+  if (!p || hasPack(p, name)) return false;
+  p.owned = [...new Set([...(p.owned || []), ...packIds(name)])];
+  scheduleSave(); packHook(p.pid, name);
+  return true;
+}
+const mailHash = (email, key) => crypto.createHmac('sha256', String(key)).update(String(email ?? '').trim().toLowerCase()).digest('hex').slice(0, 32);
+// One verified Ko-fi payment. Returns what happened, for the server log.
+export function kofiPaid({ id, email, message }, key) {
+  id = String(id ?? '').slice(0, 80); if (!id) return 'no id';
+  if (kofi.seen.includes(id)) return 'seen';
+  kofi.seen.push(id); if (kofi.seen.length > 5000) kofi.seen.shift();
+  scheduleSave();
+  // the username: the whole message, or any word of it, that is an account's name (the first account without the pack)
+  const words = [String(message ?? '').trim(), ...String(message ?? '').split(/[^\p{L}\p{N}._-]+/u)].map(w => w.replace(/^[._-]+|[._-]+$/g, '').toLowerCase()).filter(Boolean);
+  const found = [...new Set(words)].map(w => profiles.get(users.get(w))).filter(Boolean), p = found.find(x => !hasPack(x));
+  if (p) { grantPack(p); return `pack given to ${p.user}`; }
+  if (email) { kofi.pend.push({ id, h: mailHash(email, key), at: Date.now() }); if (kofi.pend.length > 5000) kofi.pend.shift(); }
+  return found.length ? `${found[0].user} already has the pack; kept for an email claim` : 'no username in the message; kept for an email claim';
+}
+// A signed-in player claims a waiting payment with the email they paid with.
+export function kofiClaim(p, email, key) {
+  if (!p?.user) return { err: 'Log in first.' };
+  if (hasPack(p)) return { err: 'You already have the Supporter pack.' };
+  if (!key) return { err: 'Ko-fi is not connected to this site yet.' };
+  email = String(email ?? '').trim();
+  if (!/^[^@\s]{1,64}@[^@\s]{1,255}$/.test(email)) return { err: 'That does not look like an email address.' };
+  const h = mailHash(email, key), at = kofi.pend.findIndex(x => x.h === h);
+  if (at < 0) return { err: 'No Ko-fi payment waiting for that email. It can take a minute to arrive.', miss: true };
+  kofi.pend.splice(at, 1); grantPack(p);
+  return { ok: true };
+}
+// The host can also hand the pack over by hand with `npm run supporter -- <username>` (server/supporter.js).
+setInterval(() => {
+  let files; try { files = fs.readdirSync(DIR).filter(f => /^supporter-[a-z0-9]+\.json$/.test(f)); } catch { return; }
+  for (const f of files) {
+    const file = path.join(DIR, f);
+    try { const r = JSON.parse(fs.readFileSync(file, 'utf8')), p = profiles.get(users.get(String(r.user ?? '').toLowerCase())); console.log(!p ? `supporter file for unknown user ${r.user} ignored` : grantPack(p) ? `Supporter pack given to ${p.user}` : `${p.user} already has the Supporter pack`); }
     catch (e) { console.error(f, 'could not be read', e.message); }
     try { fs.unlinkSync(file); } catch {}
   }
