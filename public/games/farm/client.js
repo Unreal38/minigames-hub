@@ -101,6 +101,7 @@ export function mount(app, ctx) {
   // One job at a time: why a pet cannot be picked for something right now ('' when it can).
   const inNest = id => F.nests.some(n => n.stage === 'cuddle' && (n.a === id || n.b === id));
   const busyFor = (p, job) => job === 'defend' ? '' : outAll().includes(p.id) ? 'exploring' : inNest(p.id) ? 'cuddling in the Nest' : job === 'send' && p.held ? 'promised in a trade' : '';
+  const freeWhy = p => F.pets.length < 2 ? 'Your farm keeps at least one pet.' : p.held ? `${p.name} is promised in a trade. Take the offer back first.` : outAll().includes(p.id) ? `${p.name} is out exploring. Welcome it home first.` : inNest(p.id) ? `${p.name} is cuddling in the Nest.` : '';
   const freeFor = job => id => { const p = F.pets.find(x => x.id === id); return p && !busyFor(p, job); };
   const outNow = () => F.trips.filter(t => t.left > 0).flatMap(t => t.pets), outAll = () => F.trips.flatMap(t => t.pets); // away right now; away or waiting to be welcomed
   // ---------- painting ----------
@@ -340,7 +341,18 @@ export function mount(app, ctx) {
         ${p.feat ? `<p>Has ${PART[p.feat]} from its ${SPECIES[p.feat].name} family.</p>` : ''}
         ${p.xmove ? `<p>Knows ${MOVES[p.xmove].name} from its other parent${p.lv < XMOVE_LV ? ` (wakes up at level ${XMOVE_LV})` : ''}.</p>` : ''}
         ${tree}
-        <div class="row end"><button type="button" class="btn w" data-a="petopen" data-id="${p.id}">${p.open ? 'Stop playdates' : 'Allow playdates'}</button><button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
+        ${panel.free ? `<div class="freeask"><p><b>Let ${esc(p.name)} go free?</b> It leaves your farm for good and cannot come back. Its page in your Pet Album stays, and it leaves you a few berries as a thank-you.</p>
+          <div class="row end"><button type="button" class="btn m" data-a="freeno">Keep ${esc(p.name)}</button><button type="button" class="btn r" data-a="freeyes" data-id="${p.id}">Yes, let it go free</button></div></div>`
+        : `<div class="row end"><button type="button" class="btn w${freeWhy(p) ? ' off' : ''}" data-a="freeask" data-why="${esc(freeWhy(p))}">Let go free</button><button type="button" class="btn w" data-a="petopen" data-id="${p.id}">${p.open ? 'Stop playdates' : 'Allow playdates'}</button><button type="button" class="btn m" data-a="shut">Close</button></div>`}</div>`;
+      return;
+    }
+    if (panel.kind === 'bye') { // a pet was just let go
+      const g = panel.gone;
+      box.innerHTML = `<div class="panel tripp byepet"><h2>Goodbye, ${esc(g.name)}!</h2>
+        <div class="byeface">${face(g, SPECIES[g.sp].name)}</div>
+        <p>${esc(g.name)} gave you one last nuzzle and set off to explore the islands on its own.</p>
+        <p class="hint">It left you ${panel.got} berries as a thank-you. Its page stays in your Pet Album.</p>
+        <div class="row end"><button type="button" class="btn m" data-a="shut">Close</button></div></div>`;
       return;
     }
     if (panel.kind === 'album') {
@@ -756,6 +768,9 @@ export function mount(app, ctx) {
     else if (a === 'hatch') ctx.send({ t: 'hatch', slot: b.dataset.slot });
     else if (a === 'petpage') { panel = { kind: 'pet', id: b.dataset.id }; card = null; sync(); }
     else if (a === 'petopen') ctx.send({ t: 'petopen', id: b.dataset.id });
+    else if (a === 'freeask') { if (b.dataset.why) return ctx.toast(esc(b.dataset.why), true); panel.free = true; paintPanel(); }
+    else if (a === 'freeno') { panel.free = false; paintPanel(); }
+    else if (a === 'freeyes') ctx.send({ t: 'free', id: b.dataset.id });
     else if (a === 'leafform') { panel.form = +b.dataset.form; sfx.click(); paintPanel(); }
     else if (a === 'leaf') { panel = { kind: 'album', sp: b.dataset.sp }; sync(); }
     else if (a === 'claim') ctx.send({ t: 'claim', id: b.dataset.id });
@@ -902,6 +917,7 @@ export function mount(app, ctx) {
     else if (m.did === 'defend') { panel = null; ctx.toast('Defence team saved.'); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(`The farmhouse is now level ${F.house}.`); }
     else if (m.did === 'petname') ctx.toast('Renamed.');
+    else if (m.did === 'free') { sfx.turn(); card = null; panel = { kind: 'bye', gone: m.gone, got: m.got }; }
     else if (m.did === 'offer') { sfx.join(); panel = null; ctx.toast(`Your offer is on its way to ${esc(V?.name || 'them')}.`); }
     else if (m.did === 'tradeyes') { sfx.win(); ctx.toast('Trade done! Your new things are on the farm.'); }
     else if (m.did === 'tradeno' && !counter) ctx.toast('Offer declined. Everything went back.');
