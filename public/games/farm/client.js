@@ -466,14 +466,20 @@ export function mount(app, ctx) {
       return `<button type="button" class="mv" data-a="move" data-move="${id}" style="--c:${ELEMENTS[m.el]}" ${busy || cd || B.need ? 'disabled' : ''}><b>${m.name}</b><small>${cd ? `Ready in ${cd}` : what + (m.status ? ` · ${STATUS[m.status].name}` : '')}</small></button>`; }).join('');
     const bench = me.pets.map((x, i) => i === me.on ? '' : `<button type="button" class="sw" data-a="swap" data-i="${i}" ${busy || x.hp <= 0 || (u.status.rooted && !B.need) ? 'disabled' : ''}>${thumb('pet:' + x.sp)}<span><b>${esc(x.name)}</b><small>${x.hp > 0 ? `${x.hp} / ${x.max}` : 'Fainted'}</small></span></button>`).join('');
     const logBox = logOpen ? `<div class="blogbox" id="pf-blog" aria-live="off"><h3>Battle log <button type="button" class="blx" data-a="blog" aria-label="Hide the battle log">×</button></h3><div class="bll">${blogs.map(l => l.turn ? `<p class="blt">Turn ${l.turn}</p>` : `<p class="${l.c}">${l.h}</p>`).join('') || '<p class="bln">Everything that happens in this fight is written down here.</p>'}</div></div>` : '';
-    // The elements guide: the ring of five, the three rules, and what they mean for the two pets in the ring right now.
-    const foe = act(1), hit = (a, t) => effect(a, t.el) * (t.el2 ? effect(a, t.el2) : 1), say = k => k > 1 ? 'hit hard' : k < 1 ? 'hit weakly' : 'hit normally';
+    // The elements guide, as a picture: the ring of five with an arrow from each element to the one it beats, the two
+    // pets in the ring marked on it, and the numbers for their match-up.
+    const foe = act(1), hit = (a, t) => effect(a, t.el) * (t.el2 ? effect(a, t.el2) : 1);
+    const ring = Object.keys(STRONG), at = (i, r = 74) => [130 + Math.cos((i * 72 - 90) * Math.PI / 180) * r, 108 + Math.sin((i * 72 - 90) * Math.PI / 180) * r];
+    const arrows = ring.map((e, i) => { const [x1, y1] = at(i), [x2, y2] = at(i + 1), d = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / d, uy = (y2 - y1) / d, hot = (u.el === e && foe.el === STRONG[e]) || (foe.el === e && u.el === STRONG[e]);
+      return `<line x1="${(x1 + ux * 29).toFixed(1)}" y1="${(y1 + uy * 29).toFixed(1)}" x2="${(x2 - ux * 36).toFixed(1)}" y2="${(y2 - uy * 36).toFixed(1)}" stroke="${ELEMENTS[e]}" stroke-width="${hot ? 7 : 4}" stroke-linecap="round" marker-end="url(#pf-ah${i})" opacity="${hot ? 1 : .75}"/>`; }).join('');
+    const nodes = ring.map((e, i) => { const [x, y] = at(i), [lx, ly] = at(i, 113), who = [u.el === e && 'You', foe.el === e && 'Them'].filter(Boolean).join(' + ');
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="25" fill="${ELEMENTS[e]}" stroke="${who ? '#ffd84a' : '#2b2230'}" stroke-width="${who ? 5 : 2.5}"/><text x="${x.toFixed(1)}" y="${(y + 4.5).toFixed(1)}" text-anchor="middle" class="eln">${e}</text>${who ? `<text x="${lx.toFixed(1)}" y="${(ly + 4).toFixed(1)}" text-anchor="middle" class="elw">${who}</text>` : ''}`; }).join('');
+    const duel = (a, t, by) => { const k = hit(a, t); return `<div class="elduel">${elTag(a)}<span class="elarrow">➜</span>${elTag(t.el)}${t.el2 ? elTag(t.el2) : ''}<b class="${k > 1 ? 'good' : k < 1 ? 'bad' : ''}">×${k}</b><small>${by} ${k > 1 ? 'hit hard' : k < 1 ? 'hit weakly' : 'hit normally'}</small></div>`; };
     const elBox = elOpen ? `<div class="blogbox elbox"><h3>How elements work <button type="button" class="blx" data-a="elhelp" aria-label="Hide the elements guide">×</button></h3><div class="bll">
-      <div class="elring">${Object.keys(STRONG).map(e => `${elTag(e)}<i>beats</i>`).join('')}${elTag(Object.keys(STRONG)[0])}</div>
-      <p class="bln">A move that beats the other pet's element hits <b>1.5 times as hard</b>. A move it is beaten by hits for <b>three quarters</b>.</p>
-      <p class="bln">A pet's moves of its <b>own element</b> hit 20% harder. Each move's colour is its element.</p>
-      <p class="bln">A pet with <b>two elements</b> counts both: strong against one and weak against the other evens out.</p>
-      <p class="bln key">Right now: ${elTag(u.el)} moves ${say(hit(u.el, foe))} on ${esc(foe.name)}. Its ${elTag(foe.el)} moves ${say(hit(foe.el, u))} on ${esc(u.name)}.</p></div></div>` : '';
+      <svg class="elsvg" viewBox="0 0 260 226" role="img" aria-label="${ring.map(e => `${e} beats ${STRONG[e]}`).join(', ')}"><defs>${ring.map((e, i) => `<marker id="pf-ah${i}" viewBox="0 0 10 10" refX="3" refY="5" markerWidth="3.2" markerHeight="3.2" orient="auto"><path d="M0 0L10 5L0 10z" fill="${ELEMENTS[e]}"/></marker>`).join('')}</defs>
+        ${arrows}${nodes}<text x="130" y="104" text-anchor="middle" class="elc">arrow</text><text x="130" y="119" text-anchor="middle" class="elc">= beats</text></svg>
+      <div class="elkey"><span><b class="good">×1.5</b> along an arrow</span><span><b class="bad">×0.75</b> against it</span><span><b>+20%</b> own element</span></div>
+      ${duel(u.el, foe, 'Your moves')}${duel(foe.el, u, 'Their moves')}</div></div>` : '';
     el.innerHTML = `${plate(1)}${plate(0)}${elBox || logBox}
       <div class="bbar"><p class="blog">${line || (B.live && B.waiting ? `Waiting for ${esc(B.foe)} to choose…` : B.need ? 'Who comes in next?' : `What should ${esc(u.name)} do?`)}${clock}</p>
         <div class="mvs">${moves}</div>
