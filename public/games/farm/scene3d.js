@@ -399,7 +399,11 @@ export function createScene(canvas, { onPick, onGhost }) {
       }
       // a helper stands in front of the building it works at and keeps busy there
       const wk = Object.keys(farm.work || {}).find(k => farm.work[k] === pet.id), wi = wk && farm.items.find(i => i.type === wk);
-      if (wi) { const [w, h] = footprint(wk, wi.r); p.train = { x: wx(wi.x, w), z: wz(wi.y, h) + h / 2 + .35, face: Math.PI, k: 2 }; p.path = []; continue; }
+      if (wi) { // the Garden helper goes from plot to plot; everyone else stays at the one building
+        const all = wk === 'garden' ? farm.items.filter(i => i.type === 'garden') : [wi], at = all[(p.wi || 0) % all.length], [w, h] = footprint(wk, at.r), bx = wx(at.x, w), bz = wz(at.y, h);
+        if (p.train?.job !== wk) p.wt = 0;
+        p.train = { ...standBy(at, w, h), k: 2, job: wk, bx, bz, n: all.length }; p.path = []; continue;
+      }
       p.train = null;
       // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
       const ni = nestItem ? nestsNow.findIndex(n => (n.a === pet.id || n.b === pet.id) && (n.stage === 'cuddle' || n.a === pet.id)) : -1;
@@ -454,6 +458,48 @@ export function createScene(canvas, { onPick, onGhost }) {
     tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5] };
   const SEAT = { bench: .24, palbench: .24, picnic: .04, pond: -.1, hotspring: -.12 }; // how high a pet sits on or in something
   const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
+  // Helpers at work: each job has its own little routine and its own particles.
+  const BMW = { leaf: new THREE.MeshBasicMaterial({ color: '#6cc24f' }), leaf2: new THREE.MeshBasicMaterial({ color: '#a6e06a' }), pebble: tflat('#9a9088'), spark: new THREE.MeshBasicMaterial({ color: '#ffe14a' }), ember: new THREE.MeshBasicMaterial({ color: '#ff8a3c' }), ember2: new THREE.MeshBasicMaterial({ color: '#ffd35a' }), sprout: new THREE.MeshBasicMaterial({ color: '#b6f08a' }) };
+  // Where a helper stands: in front of the building, or beside it when that would be off the island's edge.
+  const standBy = (at, w, h) => { const bx = wx(at.x, w), bz = wz(at.y, h); return at.y + h < N ? { x: bx, z: bz + h / 2 + .35, face: Math.PI } : at.x + w < N ? { x: bx + w / 2 + .35, z: bz, face: -Math.PI / 2 } : { x: bx - w / 2 - .35, z: bz, face: Math.PI / 2 }; };
+  function workPose(p, t, dt, o) {
+    const u = (p.wt = (p.wt || 0) + dt), R = Math.random, every = (key, sec) => (p[key] = (p[key] ?? R() * sec) - dt) <= 0 && ((p[key] = sec), true);
+    const once = (key, c, at) => { if (c < at) p[key] = false; else if (!p[key]) return (p[key] = true); return false; };
+    if (t.job === 'garden') { // tips forward and pours: drops arc onto the soil, the plot splashes and sprouts sparkle; then on to the next plot
+      const c = u % 6.5, pour = Math.min(1, c * 3, Math.max(0, (5 - c) * 3));
+      o.pitch = (.3 + Math.sin(u * 5) * .04) * pour; o.tilt = Math.sin(u * 2.4) * .06 * pour; o.sit = .05 * pour;
+      if (pour > .9) {
+        if (every('w1', .08)) { const jx = (R() - .5) * .5, jz = (R() - .5) * .5, x0 = p.x + Math.sin(t.face) * .22, z0 = p.z + Math.cos(t.face) * .22; bit(BIT.ball, BM2.drop, .5, (m, v) => { m.position.set(x0 + (t.bx + jx - x0) * v, .42 * (1 - v) + .08 + Math.sin(v * Math.PI) * .28, z0 + (t.bz + jz - z0) * v); m.scale.setScalar(.055 * (1 - v * .4)); }); }
+        if (every('w2', .45)) splash(t.bx + (R() - .5) * .4, .1, t.bz + (R() - .5) * .4, 2);
+        if (every('w3', 1.3)) floatUp(BIT.star, BMW.sprout, t.bx + (R() - .5) * .5, .2, t.bz + (R() - .5) * .5, .05, 1.2);
+      }
+      if (once('w4', c, 5.6)) { if (t.n > 1) { p.wi = (p.wi || 0) + 1; const g = farm?.items.filter(i => i.type === 'garden') || [], at = g[p.wi % g.length]; if (at) Object.assign(t, standBy(at, 1, 1), { bx: wx(at.x, 1), bz: wz(at.y, 1) }); } else p.hop = .6; }
+    } else if (t.job === 'nest') { // rocks from side to side like a lullaby: leaves spiral up round the Nest, and a heart now and then
+      o.tilt = Math.sin(u * 1.7) * .17; o.up = Math.abs(Math.sin(u * 1.7)) * .04; o.turn = Math.sin(u * .85) * .15;
+      if (every('w1', .4)) { const a0 = R() * 6.283, r0 = .7 + R() * .3, mat = R() < .5 ? BMW.leaf : BMW.leaf2; bit(BIT.ball, mat, 2.4, (m, v, tt) => { const a = a0 + tt * 1.7, r = r0 * (1 - v * .35); m.position.set(t.bx + Math.cos(a) * r, .2 + v * 1.15 + Math.sin(tt * 5 + a0) * .04, t.bz + Math.sin(a) * r); m.rotation.set(tt * 3, a, tt * 2); const k = Math.min(1, v * 8, (1 - v) * 4); m.scale.set(.12 * k, .022 * k, .07 * k); }); }
+      if (every('w2', 3.6)) floatUp(BIT.heart, BM.heart, t.bx + (R() - .5) * .3, .7, t.bz, .07, 1.7);
+    } else if (t.job === 'yard') { // a coach's stomp: crouch, jump, land in a ring of dust and pebbles, then a firm nod
+      const c = u % 2.6;
+      if (c < .45) o.sit = .2 * Math.sin(c / .45 * Math.PI / 2);
+      else if (c < 1) { const j = (c - .45) / .55; o.up = Math.sin(j * Math.PI) * .5; o.pitch = -.15 * Math.sin(j * Math.PI); }
+      else { const d = c - 1; o.sit = .16 * Math.max(0, 1 - d * 5); o.pitch = Math.max(0, Math.sin(d * 9)) * .2 * Math.max(0, 1 - d * .9); }
+      if (once('w1', c, 1)) { dustAt(p.x, p.z, 6); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + R(), v = .7 + R() * .6, k = .045 + R() * .03; bit(BIT.ball, BMW.pebble, .6, (m, w, tt) => { m.position.set(p.x + Math.cos(a) * tt * v, .05 + tt * 1.9 - tt * tt * 4.4, p.z + Math.sin(a) * tt * v); m.rotation.set(tt * 9, tt * 7, 0); m.scale.setScalar(k * (1 - w * .5)); }); } }
+    } else if (t.job === 'gate') { // spins itself up, crackling, then sends a bolt up to the balloon
+      const c = u % 3.4;
+      if (c < 1.8) { const q = c / 1.8; o.turn = Math.PI * 6 * q * q; o.up = q * .06;
+        if (every('w1', .16 - q * .09)) { const a = R() * 6.283, y0 = .2 + R() * .5, r = .32 + R() * .1; bit(BIT.star, BMW.spark, .32, (m, v) => { m.position.set(p.x + Math.cos(a + v * 3) * r, y0 + v * .2, p.z + Math.sin(a + v * 3) * r); m.rotation.set(0, cam.az, v * 5); m.scale.setScalar(.075 * Math.sin(v * Math.PI)); }); } }
+      else if (c < 2.25) { const j = (c - 1.8) / .45; o.up = Math.sin(j * Math.PI) * .26; o.pitch = -.2 * Math.sin(j * Math.PI); }
+      if (once('w2', c, 1.8)) { const N2 = 9, tx = t.bx, ty = 1.75, tz = t.bz, x0 = p.x, z0 = p.z; for (let i = 0; i < N2; i++) { const f = (i + 1) / N2, jx = (i % 2 ? .14 : -.14) * (1 - f), d0 = i * .035; bit(BIT.star, BMW.spark, .5 + d0, (m, v, tt) => { const on = tt > d0; m.position.set(x0 + (tx - x0) * f + jx, .5 + (ty - .5) * f, z0 + (tz - z0) * f); m.rotation.set(0, cam.az, tt * 8 + i); m.scale.setScalar(on ? .11 * (1 - v) * (1 + Math.sin(tt * 40) * .3) : 0); }); }
+        for (let i = 0; i < 7; i++) { const a = R() * 6.283, v = .5 + R() * .6; bit(BIT.star, BMW.spark, .55, (m, w, tt) => { const q = Math.max(0, tt - .3); m.position.set(tx + Math.cos(a) * q * v, ty + q * .8 - q * q * 3, tz + Math.sin(a) * q * v); m.rotation.set(0, cam.az, tt * 9); m.scale.setScalar(tt > .3 ? .06 * (1 - w) : 0); }); } }
+    } else if (t.job === 'kitchen') { // fans the oven: embers and a little smoke rise, and every so often the fire whooshes
+      const c = u % 3.2, whoosh = c > 2.7 ? Math.sin((c - 2.7) / .5 * Math.PI) : 0;
+      o.pitch = .12 + Math.sin(u * 8) * .1 * (1 - whoosh) - whoosh * .3; o.tilt = Math.sin(u * 4) * .05; o.up = whoosh * .14;
+      const ember = fast => { const sx = Math.abs(Math.cos(t.face)), x0 = p.x + Math.sin(t.face) * .42 + (R() - .5) * .5 * sx, z0 = p.z + Math.cos(t.face) * .42 + (R() - .5) * .5 * (1 - sx), ph = R() * 6, h = fast ? 1.5 : .95, k = .045 + R() * .025, mat = R() < .5 ? BMW.ember : BMW.ember2; bit(BIT.ball, mat, fast ? .7 : 1.15, (m, v, tt) => { m.position.set(x0 + Math.sin(tt * 6 + ph) * .07, .25 + v * h, z0 + Math.cos(tt * 5 + ph) * .05); m.scale.setScalar(k * (1 - v) * (1 + Math.sin(tt * 25 + ph) * .25)); }); };
+      if (every('w1', .17)) ember(false);
+      if (every('w2', .8)) floatUp(BIT.ball, BM2.steam, p.x + Math.sin(t.face) * .45, .8, p.z + Math.cos(t.face) * .45, .06, 1.6);
+      if (once('w3', c, 2.8)) for (let i = 0; i < 8; i++) ember(true);
+    }
+  }
   const splash = (x, y, z, n = 3) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = .5 + Math.random() * .5; bit(BIT.ball, BM2.drop, .5, (m, u, t) => { m.position.set(x + Math.cos(a) * t * v, y + t * 1.6 - t * t * 4, z + Math.sin(a) * t * v); m.scale.setScalar(.035 * (1 - u)); }); } };
   const endUse = p => { if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; };
   // Chooses what a pet does now that it has stopped walking, and for how long.
@@ -479,7 +525,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   function movePets(dt, T) {
     for (const p of pets.values()) {
       let moving = false;
-      let drill = 0;
+      let drill = 0, wpose = null;
       if (p.fixed) { /* starter on show */ }
       else if (p.nest) { // walks to its place in the Nest and stays there
         const t = p.nest, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
@@ -489,6 +535,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       else if (p.train) { // drills on the spot: a run-up hop at the dummy, a jump over the hurdle, or quick hops
         const t = p.train, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
         if (d > .05) { const step = Math.min(d, 2.5 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = true; }
+        else if (t.job) { p.face = t.face; workPose(p, t, dt, wpose = { sit: 0, tilt: 0, turn: 0, up: 0, pitch: 0 }); }
         else { const u = (T * (t.k === 1 ? .9 : 1.3) + p.seed) % 1; p.face = t.face; drill = Math.sin(u * Math.PI) * (t.k === 1 ? .45 : .22); if (t.k !== 1) { const lunge = Math.sin(u * Math.PI) * .22; p.lx = Math.sin(t.face) * lunge; p.lz = Math.cos(t.face) * lunge; } }
       }
       else if (p.path.length) {
@@ -502,6 +549,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (moving && !p.train && (p.stepWas || 0) * stepPh < 0 && !starters) dustAt(p.x, p.z, p.run ? 2 : 1); p.stepWas = stepPh; // a puff each time the paws come down
       // what it is doing while it rests: sitting, napping, looking about, a happy hop, a twirl, or greeting a friend
       const A = !moving && !p.train && !p.fixed && !p.nest ? p.act : null; let sit = 0, tilt = 0, turn = 0, up = 0, asleep = false, ox = 0, oz = 0, pitch = 0;
+      if (wpose) ({ sit, tilt, turn, up, pitch } = wpose);
       if (p.nest && !moving) { // snuggled together: leaning in, breathing slowly, a heart now and then
         const t = p.nest, near = Math.min(1, Math.max(0, 1 - Math.hypot(t.x - p.x, t.z - p.z) * 2)); up = t.y * near; sit = .1 * near;
         tilt = (-t.sd * .2 + Math.sin(T * 1.1 + p.seed) * .03) * near; asleep = !t.egg && (T * .13 + p.seed) % 1 < .45;
