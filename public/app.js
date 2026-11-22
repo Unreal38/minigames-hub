@@ -8,9 +8,11 @@ import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem
 import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
-import { progress, rankOf, RANKS, STAR_EVERY } from './ranks.js';
+import { progress, rankOf, nextRankOf, RANKS, STAR_EVERY } from './ranks.js';
+import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
+import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
@@ -412,6 +414,12 @@ const GAMES = {
   },
 };
 
+// Polish: the long texts (names, pitches, rules, setting labels) live in lang/hub-pl.js and are laid over the English.
+const PLX = PL ? await import('./lang/hub-pl.js').catch(e => { console.error(e); return null; }) : null;
+if (PLX) for (const [id, x] of Object.entries(PLX.GAMES_PL)) if (GAMES[id]) Object.assign(GAMES[id], x);
+const optText = s => PLX?.OPT_PL[s] ?? s; // a table setting's heading or pill label
+const FARM_NAME = L('Pet Farm', 'Farma zwierzaków');
+
 const $app = document.getElementById('app');
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LS = {
@@ -443,6 +451,7 @@ const SOLO = {
     </ol>`,
   },
 };
+if (PLX) for (const [id, x] of Object.entries(PLX.SOLO_PL)) if (SOLO[id]) Object.assign(SOLO[id], x);
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
 let pendingJoin = (location.hash.slice(1) || '').toUpperCase();
 if (!validCode(pendingJoin)) pendingJoin = '';
@@ -466,9 +475,9 @@ function connBar(mode) {
   if (!mode) { $conn.hidden = true; return; }
   $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced');
   if (mode === 'replaced') {
-    $conn.innerHTML = SITE + ' is open in another tab. <button type="button">Play here</button>';
+    $conn.innerHTML = L(`${SITE} is open in another tab. <button type="button">Play here</button>`, `${SITE} jest otwarta w innej karcie. <button type="button">Graj tutaj</button>`);
     $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
-  } else $conn.textContent = 'Reconnecting…';
+  } else $conn.textContent = L('Reconnecting…', 'Łączenie ponownie…');
 }
 function connect() {
   clearTimeout(retryT); retryT = 0;
@@ -513,6 +522,9 @@ function onMsg(m) {
     openPlayer(m.p);
   } else if (m.t === 'me') {
     st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
+    // The language follows the account: the last pick made while logged in wins on every device.
+    if (m.me.user && m.me.lang && m.me.lang !== LANG) return setLang(m.me.lang);
+    if (m.me.user && !m.me.lang && picked()) send({ t: 'lang', v: LANG });
     let adopted = false;
     if (adoptLook && m.me.user) { // just logged in: wear the look saved with the account
       adoptLook = false; adopted = true;
@@ -526,9 +538,9 @@ function onMsg(m) {
     st.onMe?.(); emojiPaint();
     if (m.gain) {
       const cg = m.gain.coins | 0;
-      const pl = m.gain.place, ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
-      toast(`${m.gain.win ? 'Win! ' : pl > 1 && m.gain.of > 1 ? `${ord(pl)} place · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}${m.gain.ranked === false ? ' · played with bots, not ranked' : ''}`);
-      if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> Level ${m.me.level}: ${esc(m.me.rank)}`); }
+      const pl = m.gain.place;
+      toast(`${m.gain.win ? L('Win! ', 'Wygrana! ') : pl > 1 && m.gain.of > 1 ? `${ord(pl)} ${L('place', 'miejsce')} · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${cnt(Math.abs(cg), 'coin', 'coins', 'moneta', 'monety', 'monet')}` : ''}${m.gain.ranked === false ? L(' · played with bots, not ranked', ' · gra z botami, bez rankingu') : ''}`);
+      if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
@@ -536,14 +548,15 @@ function onMsg(m) {
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
     st.friends = { friends: m.friends || [], reqs: m.reqs || [], sent: m.sent || [] };
-    if (m.news) { sfx.join(); toast(m.news.now ? `${esc(m.news.from)} and you are now friends!` : `${esc(m.news.from)} wants to be friends. Open Friends to answer.`); }
+    if (m.news) { sfx.join(); toast(m.news.now ? L(`${esc(m.news.from)} and you are now friends!`, `${esc(m.news.from)} i ty jesteście teraz znajomymi!`) : L(`${esc(m.news.from)} wants to be friends. Open Friends to answer.`, `${esc(m.news.from)} zaprasza cię do znajomych. Otwórz Znajomych, żeby odpowiedzieć.`)); }
     paintFriends();
   } else if (m.t === 'friended') {
     if (playerSheet?.pt) send({ t: 'player', pt: playerSheet.pt }); // the open profile card shows the new state
-    toast(m.op === 'add' ? (m.now ? `You and ${esc(m.user)} are now friends!` : `Asked ${esc(m.user)} to be friends.`) : m.op === 'accept' ? `You and ${esc(m.user)} are now friends!` : m.op === 'remove' ? `${esc(m.user)} was removed from your friends.` : 'Request declined.');
+    { const now = L(`You and ${esc(m.user)} are now friends!`, `Ty i ${esc(m.user)} jesteście teraz znajomymi!`);
+    toast(m.op === 'add' ? (m.now ? now : L(`Asked ${esc(m.user)} to be friends.`, `Zaproszenie do znajomych wysłane: ${esc(m.user)}.`)) : m.op === 'accept' ? now : m.op === 'remove' ? L(`${esc(m.user)} was removed from your friends.`, `${esc(m.user)} nie jest już na liście twoich znajomych.`) : L('Request declined.', 'Zaproszenie odrzucone.')); }
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
-    else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
+    else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
   } else if (m.t === 'daily') {
@@ -568,7 +581,7 @@ function onMsg(m) {
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
-      if (joined.length) { sfx.join(); joined.forEach(p => toast(`${esc(p.name)} pulled up a chair`)); }
+      if (joined.length) { sfx.join(); joined.forEach(p => toast(L(`${esc(p.name)} pulled up a chair`, `${esc(p.name)} dosiada się do stołu`))); }
     }
     if (st.game) st.game.room(m.room); else go('lobby');
     watchPaint();
@@ -594,11 +607,11 @@ function onMsg(m) {
       st.game?.say?.(m);
     }
   } else if (m.t === 'bought') {
-    sfx.join(); const [k, i] = m.id.split(':'); toast(`Bought ${esc(COS[k] ? `${cosItem(k, +i).n} (${COS[k].label.toLowerCase()})` : itemName(k, +i))}! It's yours to keep.`);
+    sfx.join(); const [k, i] = m.id.split(':'); { const what = esc(COS[k] ? `${cosItem(k, +i).n} (${COS[k].label.toLowerCase()})` : itemName(k, +i)); toast(L(`Bought ${what}! It's yours to keep.`, `Kupione: ${what}! Zostaje z tobą na zawsze.`)); }
   } else if (m.t === 'winfx') {
-    playWinFx(m.k, { banner: m.id === st.id ? '' : `${m.name} wins!` });
+    playWinFx(m.k, { banner: m.id === st.id ? '' : L(`${m.name} wins!`, `Wygrywa ${m.name}!`) });
   } else if (m.t === 'err') {
-    sfx.bad(); toast(esc(m.msg), true);
+    sfx.bad(); toast(esc(srvText(m.msg)), true);
   }
 }
 
@@ -635,7 +648,7 @@ function mountGame() {
     st.game.room(st.room); placeGameSwitch();
     st.gameLoading = null;
     return st.game;
-  }).catch(err => { console.error(err); st.gameLoading = null; toast('Could not load the game. Refresh?', true); return null; });
+  }).catch(err => { console.error(err); st.gameLoading = null; toast(L('Could not load the game. Refresh?', 'Nie udało się wczytać gry. Odświeżyć stronę?'), true); return null; });
   return st.gameLoading;
 }
 // Only switch the sheets off when something was really open: these also run on every table update (closeFarm/closeHay)
@@ -646,8 +659,8 @@ function unmountGame() { if (!st.game) return; st.game.destroy(); st.game = null
 let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
 function openFarm() {
   if (st.farm || farmLoading) return;
-  st.view = 'farm'; document.title = `Pet Farm · ${SITE}`;
-  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">Walking to the farm…</p></main>';
+  st.view = 'farm'; document.title = `${FARM_NAME} · ${SITE}`;
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking to the farm…', 'Idziemy na farmę…') + '</p></main>';
   farmLoading = import('./games/farm/client.js').then(mod => {
     farmLoading = null;
     if (st.view !== 'farm') return;
@@ -655,7 +668,7 @@ function openFarm() {
     st.farm.reopen(); placeGameSwitch();
     if (farmVisit) { st.farm.visit(farmVisit); farmVisit = null; }
     if (farmInvite) { st.farm.msg(farmInvite); farmInvite = null; }
-  }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
+  }).catch(err => { console.error(err); farmLoading = null; toast(L('Could not load Pet Farm. Refresh?', 'Nie udało się wczytać Farmy zwierzaków. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closeFarm() { if (!st.farm) return; st.farm.destroy(); st.farm = null; gameCss(null); }
 
@@ -663,19 +676,19 @@ function closeFarm() { if (!st.farm) return; st.farm.destroy(); st.farm = null; 
 let hayLoading = null;
 function openHay() {
   if (st.hay || hayLoading) return;
-  if (st.room) return toast('Leave this table first.', true);
+  if (st.room) return toast(L('Leave this table first.', 'Najpierw wyjdź od tego stołu.'), true);
   st.view = 'hay'; document.title = `Hay Hunch · ${SITE}`;
-  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">Walking out to the hay field…</p></main>';
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking out to the hay field…', 'Idziemy na pole z sianem…') + '</p></main>';
   hayLoading = import('./games/hay/client.js').then(mod => {
     hayLoading = null;
     if (st.view !== 'hay') return;
     st.hay = mountWithCss('hay', () => mod.mount($app, { send: a => send({ t: 'hay', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closeHay(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('hay') }));
     st.hay.reopen(); placeGameSwitch();
-  }).catch(err => { console.error(err); hayLoading = null; toast('Could not load Hay Hunch. Refresh?', true); go('hub'); });
+  }).catch(err => { console.error(err); hayLoading = null; toast(L('Could not load Hay Hunch. Refresh?', 'Nie udało się wczytać Hay Hunch. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closeHay() { if (!st.hay) return; st.hay.destroy(); st.hay = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
-const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h ? `${h}h ${m % 60}m` : `${m}m`; };
+const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
 const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
   <div class="tpic" aria-hidden="true">${pic}</div>
   <div class="tbody"><b>${name}</b><span>${sub}</span></div>
@@ -695,29 +708,31 @@ const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="
 // The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
 function todayHtml() {
   const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
-  const mp = !d ? 'A new pet hides here every day' : d.guest ? 'Needs an account' : d.done ? `<i class="ok">✓ solved in ${d.guesses.length}</i>${fire}`
-    : d.guesses.length ? `${plural(d.guesses.length, 'guess', 'guesses')} so far${fire}` : `New pet today${d.streak ? fire : ''}`;
+  const needAcct = L('Needs an account', 'Wymaga konta');
+  const mp = !d ? L('A new pet hides here every day', 'Codziennie kryje się tu nowy zwierzak') : d.guest ? needAcct : d.done ? `<i class="ok">✓ ${L(`solved in ${d.guesses.length}`, `odgadnięte w ${d.guesses.length}`)}</i>${fire}`
+    : d.guesses.length ? `${L(`${cnt(d.guesses.length, 'guess', 'guesses')} so far`, `${cnt(d.guesses.length, '', '', 'próba', 'próby', 'prób')} do tej pory`)}${fire}` : `${L('New pet today', 'Dziś nowy zwierzak')}${d.streak ? fire : ''}`;
   const paid = me?.hay?.paid || 0;
-  const hay = !me?.user ? 'Needs an account' : paid >= HAY_DAILY ? `All ${HAY_DAILY} coins earned today · level ${me.hay.lv}` : `${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`;
+  const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today · level ${me.hay.lv}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet · poziom ${me.hay.lv}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
   const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
-  const farm = !me?.user ? 'Needs an account' : !f ? 'Your own pet farm'
-    : f.egg && (f.egg.stage === 'ready' || (f.egg.stage === 'egg' && eggLeft <= 0)) ? '<i class="ok">An egg is ready to hatch!</i>'
-    : f.trip && tripLeft <= 0 ? '<i class="ok">Your expedition is back!</i>'
-    : f.egg?.stage === 'egg' ? `Egg hatches in ${leftText(eggLeft)}`
-    : f.trip ? `Expedition back in ${leftText(tripLeft)}`
-    : f.pets ? `${plural(f.pets, 'pet')} on your farm` : 'Your own pet farm';
+  const ownFarm = L('Your own pet farm', 'Twoja własna farma zwierzaków');
+  const farm = !me?.user ? needAcct : !f ? ownFarm
+    : f.egg && (f.egg.stage === 'ready' || (f.egg.stage === 'egg' && eggLeft <= 0)) ? `<i class="ok">${L('An egg is ready to hatch!', 'Jajko jest gotowe do wyklucia!')}</i>`
+    : f.trip && tripLeft <= 0 ? `<i class="ok">${L('Your expedition is back!', 'Twoja wyprawa wróciła!')}</i>`
+    : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
+    : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
+    : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
   const mpPic = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
-  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? 'Result' : d?.guesses?.length ? 'Go on' : 'Guess', d?.done)
-    + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', 'Play')
-    + todayTile('t-farm', FARM_ICON, 'Pet Farm', farm, 'farm', 'Visit');
+  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
+    + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', L('Play', 'Graj'))
+    + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
 setInterval(() => { if (st.view === 'hub' && st.farmBrief) paintToday(); }, 60_000); // keeps the farm countdown honest
 function openDaily() {
   if (st.daily) return;
-  const sheet = modal('<div class="mpbox"><p class="mpload">Looking for today’s pet…</p></div>');
+  const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
   sheet.el.querySelector('.sheet').classList.add('wide', 'mpsheet');
-  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', '<button type="button" class="mpclose" aria-label="Close">×</button>');
+  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', `<button type="button" class="mpclose" aria-label="${L('Close', 'Zamknij')}">×</button>`);
   sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
   let open = true;
   sheet.onClose = () => { open = false; st.daily?.destroy(); st.daily = null; };
@@ -725,7 +740,7 @@ function openDaily() {
   import('./daily.js').then(mod => {
     if (!open) return;
     st.daily = mod.mount(sheet.el.querySelector('.mpbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close() });
-  }).catch(err => { console.error(err); sheet.close(); toast('Could not load Mystery Pet. Refresh?', true); });
+  }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load Mystery Pet. Refresh?', 'Nie udało się wczytać Mystery Pet. Odświeżyć stronę?'), true); });
 }
 
 // ---------- views ----------
@@ -739,7 +754,7 @@ function go(view) {
 let adoptLook = false, onAuth = null;
 // The level chip beside a name. The rank is worked out from the level here, so chips saved long ago (old chat lines)
 // and chips from the server always show today's ladder.
-const lvChip = lv => { const r = rankOf(lv); return `<span class="lv" title="${esc(r.name)}, level ${lv}">${rankIcon(r.icon)} ${lv}${r.stars ? `<i class="lvst">★${r.stars}</i>` : ''}</span>`; };
+const lvChip = lv => { const r = rankOf(lv); return `<span class="lv" title="${esc(r.name)}, ${L('level', 'poziom')} ${lv}">${rankIcon(r.icon)} ${lv}${r.stars ? `<i class="lvst">★${r.stars}</i>` : ''}</span>`; };
 const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
 
 // The full progress card (rank, XP bar, lifetime numbers, every game). It opens from the account menu's Profile.
@@ -747,30 +762,30 @@ function meCard() {
   const m = st.me; if (!m) return '';
   const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
   const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).map(([id, g]) => SOLO[id]
-    ? `<li><b>${SOLO[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'field' : 'fields'} cleared · best ×${g.best.toLocaleString()}</span></li>`
-    : `<li><b>${GAMES[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'win' : 'wins'} in ${g.games} · best ${g.best} pts</span></li>`).join('');
+    ? `<li><b>${SOLO[id].name}</b><span>${L(`${cnt(g.wins, 'field')} cleared · best ×${num(g.best)}`, `${cnt(g.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · rekord ×${num(g.best)}`)}</span></li>`
+    : `<li><b>${GAMES[id].name}</b><span>${L(`${cnt(g.wins, 'win')} in ${g.games} · best ${g.best} pts`, `${cnt(g.wins, '', '', 'wygrana', 'wygrane', 'wygranych')} na ${g.games} · rekord ${g.best} pkt`)}</span></li>`).join('');
   return `<div class="mecard">
     <div class="rankrow">
       <span class="rankicon">${rankIcon(rankOf(m.level).icon)}</span>
-      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
-      <div class="acct"><span>${m.user ? `Signed in as <b>${esc(m.user)}</b>` : 'Playing as a guest. Progress stays on this browser.'}</span></div>
+      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>${L('Level', 'Poziom')} ${m.level}${m.nextRank ? ` · ${esc(nextRankOf(m.level).name)} ${L('at level', 'od poziomu')} ${m.nextRankLv}` : ''}</span></div>
+      <div class="acct"><span>${m.user ? L(`Signed in as <b>${esc(m.user)}</b>`, `Zalogowano jako <b>${esc(m.user)}</b>`) : L('Playing as a guest. Progress stays on this browser.', 'Grasz jako gość. Postępy zostają w tej przeglądarce.')}</span></div>
     </div>
-    <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
-    <div class="xpnote"><span>${m.into} / ${m.need} XP to level ${m.level + 1}</span><span>${m.xp} XP in total</span></div>
-    <details class="ladder"><summary>All ranks</summary><ol>${RANKS.map(r => { const mine = rankOf(m.level).icon === r.icon && rankOf(Math.min(m.level, RANKS.at(-1).lv)).lv === r.lv;
-      return `<li class="${m.level >= r.lv ? 'got' : ''}${mine ? ' now' : ''}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>level ${r.lv}</span></li>`; }).join('')}
-      <li class="more">After ${esc(RANKS.at(-1).name)} you earn one more ★ every ${STAR_EVERY} levels, with no end.</li></ol></details>
+    <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="${L('XP to next level', 'XP do następnego poziomu')}"><i style="width:${pct}%"></i></div>
+    <div class="xpnote"><span>${m.into} / ${m.need} XP ${L('to level', 'do poziomu')} ${m.level + 1}</span><span>${L(`${m.xp} XP in total`, `Łącznie ${m.xp} XP`)}</span></div>
+    <details class="ladder"><summary>${L('All ranks', 'Wszystkie rangi')}</summary><ol>${RANKS.map(r => { const mine = rankOf(m.level).icon === r.icon && rankOf(Math.min(m.level, RANKS.at(-1).lv)).lv === r.lv;
+      return `<li class="${m.level >= r.lv ? 'got' : ''}${mine ? ' now' : ''}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>${L('level', 'poziom')} ${r.lv}</span></li>`; }).join('')}
+      <li class="more">${L(`After ${esc(RANKS.at(-1).name)} you earn one more ★ every ${STAR_EVERY} levels, with no end.`, `Po randze ${esc(RANKS.at(-1).name)} co ${STAR_EVERY} poziomów zdobywasz kolejną ★, bez końca.`)}</li></ol></details>
     <div class="stats">
-      <div><b>${m.wins}</b><span>Wins</span></div><div><b>${m.games}</b><span>Games</span></div>
-      <div><b>${rate}%</b><span>Win rate</span></div><div><b>${m.pts}</b><span>Points</span></div>
-      <div><b>${m.coins}</b><span>Coins</span></div>
+      <div><b>${m.wins}</b><span>${L('Wins', 'Wygrane')}</span></div><div><b>${m.games}</b><span>${L('Games', 'Gry')}</span></div>
+      <div><b>${rate}%</b><span>${L('Win rate', 'Skuteczność')}</span></div><div><b>${m.pts}</b><span>${L('Points', 'Punkty')}</span></div>
+      <div><b>${m.coins}</b><span>${L('Coins', 'Monety')}</span></div>
     </div>
-    ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">Finish a game to earn XP. Wins are worth the most.</p>`}
+    ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">${L('Finish a game to earn XP. Wins are worth the most.', 'Dokończ grę, żeby zdobyć XP. Najwięcej dają wygrane.')}</p>`}
   </div>`;
 }
 function openStats() {
   if (!st.me) return;
-  const sheet = modal(`<h2>Your progress</h2>${meCard()}<div class="row" style="margin-top:16px">${st.me.pt ? '<button type="button" class="btn w" data-x="card">How others see me</button>' : ''}<button type="button" class="btn" data-x="close">Done</button></div>`);
+  const sheet = modal(`<h2>${L('Your progress', 'Twoje postępy')}</h2>${meCard()}<div class="row" style="margin-top:16px">${st.me.pt ? `<button type="button" class="btn w" data-x="card">${L('How others see me', 'Jak widzą mnie inni')}</button>` : ''}<button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
   sheet.el.querySelector('.sheet').classList.add('wide', 'statsheet');
   sheet.el.addEventListener('click', e => {
     const x = e.target.closest('[data-x]')?.dataset.x; if (!x) return;
@@ -783,17 +798,18 @@ function acctHtml() {
   const m = st.me, reqs = st.friends?.reqs.length || 0;
   const item = (act, ico, label, note = '', attr = '') => `<button type="button" role="menuitem" data-act="${act}"${attr}><span class="aico" aria-hidden="true">${ico}</span>${label}${note}</button>`;
   const pct = m ? Math.round(100 * m.into / m.need) : 0, rate = m?.games ? Math.round(100 * m.wins / m.games) : 0;
-  return `<div class="awho${cardBgCls(flairOf(m))}">${cardBg(flairOf(m))}${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : 'Pick a name'}</b><span>${m ? `Level ${m.level} · ${esc(m.rank)}` : ''}</span></div></div>
-    ${m ? `<div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
-    <p class="axp">${m.into} / ${m.need} XP to level ${m.level + 1}</p>
-    <div class="amini"><div><b>${m.wins}</b><span>wins</span></div><div><b>${m.games}</b><span>games</span></div><div><b>${rate}%</b><span>win rate</span></div></div>` : ''}
+  return `<div class="awho${cardBgCls(flairOf(m))}">${cardBg(flairOf(m))}${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : L('Pick a name', 'Wybierz imię')}</b><span>${m ? `${L('Level', 'Poziom')} ${m.level} · ${esc(rankOf(m.level).name)}` : ''}</span></div></div>
+    ${m ? `<div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="${L('XP to next level', 'XP do następnego poziomu')}"><i style="width:${pct}%"></i></div>
+    <p class="axp">${m.into} / ${m.need} XP ${L('to level', 'do poziomu')} ${m.level + 1}</p>
+    <div class="amini"><div><b>${m.wins}</b><span>${L('wins', 'wygrane')}</span></div><div><b>${m.games}</b><span>${L('games', 'gry')}</span></div><div><b>${rate}%</b><span>${L('win rate', 'skuteczność')}</span></div></div>` : ''}
     <div class="aitems" role="menu">
-      ${item('mystats', '📊', 'Profile', '<small>all your stats</small>')}
-      ${item('profile', '👕', 'Wardrobe', '<small>avatar, style, shop</small>')}
-      ${item('friends', '🤝', 'Friends', `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
+      ${item('mystats', '📊', L('Profile', 'Profil'), `<small>${L('all your stats', 'wszystkie statystyki')}</small>`)}
+      ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
+      ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
+      ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
       <hr>
-      ${m?.user ? item('security', '🔑', 'Change password') + item('logout', '🚪', 'Log out', `<small>${esc(m.user)}</small>`)
-        : item('account', '✨', 'Create account', '<small>saves progress</small>', ' data-mode="register"') + item('account', '🔑', 'Log in', '', ' data-mode="login"')}
+      ${m?.user ? item('security', '🔑', L('Change password', 'Zmień hasło')) + item('logout', '🚪', L('Log out', 'Wyloguj się'), `<small>${esc(m.user)}</small>`)
+        : item('account', '✨', L('Create account', 'Załóż konto'), `<small>${L('saves progress', 'zapisuje postępy')}</small>`, ' data-mode="register"') + item('account', '🔑', L('Log in', 'Zaloguj się'), '', ' data-mode="login"')}
     </div>`;
 }
 function closeAcct() {
@@ -826,7 +842,7 @@ const isNight = () => document.body.classList.contains('night');
 function setNight(on, save) {
   document.body.classList.toggle('night', on);
   if (save) LS.set('ct_theme', on ? 'night' : 'day');
-  [...document.querySelectorAll('.themebtn'), gameSwitch].forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? 'Switch to day' : 'Switch to night'; });
+  [...document.querySelectorAll('.themebtn'), gameSwitch].forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc'); });
   heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {});
   if (document.body.classList.contains('in-game')) import('./scenery3d.js').then(m => m.setScenesNight(on)).catch(() => {}); // repaint the game's sky live
 }
@@ -861,10 +877,11 @@ function switchTheme(btn) {
 
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
-  ${st.view === 'lobby' ? '<nav class="navl" aria-label="Help"><a href="#" data-act="rules">How to play</a></nav>' : ''}
-  <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them in the wardrobe">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
-  <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="Your account">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
-  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
+  ${st.view === 'lobby' ? `<nav class="navl" aria-label="${L('Help', 'Pomoc')}"><a href="#" data-act="rules">${L('How to play', 'Jak grać')}</a></nav>` : ''}
+  <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· ${L('shop', 'sklep')}</small></button>
+  <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="${L('Your account', 'Twoje konto')}">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : L('Pick a name', 'Wybierz imię')}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
+  <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button>
+  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}" title="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
@@ -884,7 +901,7 @@ const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id))
 const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open that player's profile card
 // The games you host a table for, in hub order: id, picture class, picture, category, seats, one-line pitch.
 // Solo games (Hay Hunch, Pet Farm, Mystery Pet) are not here: they live in the Today column.
-const HUB_CATS = [['all', 'All'], ['cards', 'Cards'], ['board', 'Board'], ['action', 'Action']];
+const HUB_CATS = [['all', L('All', 'Wszystkie')], ['cards', L('Cards', 'Karciane')], ['board', L('Board', 'Planszowe')], ['action', L('Action', 'Zręcznościowe')]];
 const HUB_GAMES = [
   ['hotpot', '', () => cardHtml(0, { w: 48 }) + cardHtml(40, { w: 54 }) + cardHtml(64, { w: 48 }), 'cards', '1–4 players', 'Draw, swap and collect three sets of three ingredients, then call “Let\'s Eat!” before anyone else.'],
   ['marbles', 'marblepic', marbleArt, 'action', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
@@ -905,11 +922,11 @@ const HUB_GAMES = [
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
 ].filter(g => GAMES[g[0]]);
-const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(pitch)}">
+const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>
-    <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="How to play ${esc(GAMES[id].name)}" title="How to play">?</button></div>
-  <div class="body"><h3>${esc(GAMES[id].name)}</h3><span class="tag">${seats}</span>
-    <button type="button" class="btn sm" data-act="host" data-game="${id}">Host a table</button></div>
+    <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
+  <div class="body"><h3>${esc(GAMES[id].name)}</h3><span class="tag">${PLX ? PLX.SEATS_PL(seats) : seats}</span>
+    <button type="button" class="btn sm" data-act="host" data-game="${id}">${L('Host a table', 'Załóż stół')}</button></div>
 </article>`;
 // The category pills and the search box only hide cards; nothing is re-rendered, so the pictures keep animating.
 function filterGames() {
@@ -938,14 +955,14 @@ function renderHub() {
   <main class="wrap hubgrid" data-tab="${st.htab}">
     <section class="hero">
       <div>
-        <h1>Hop on an isle. Pick a game.</h1>
-        <p>Card, board and party games for you and your friends, plus solo puzzles and your own Pet Farm. Host a table and share its four-letter code, or join one with a friend's code.</p>
+        <h1>${L('Hop on an isle. Pick a game.', 'Wskakuj na wyspę. Wybierz grę.')}</h1>
+        <p>${L("Card, board and party games for you and your friends, plus solo puzzles and your own Pet Farm. Host a table and share its four-letter code, or join one with a friend's code.", 'Gry karciane, planszowe i imprezowe dla ciebie i znajomych, a do tego łamigłówki dla jednej osoby i własna Farma zwierzaków. Załóż stół i podaj znajomym jego czteroznakowy kod albo dołącz do stołu z kodem od znajomego.')}</p>
         <div class="row herorow">
-          <button type="button" class="btn big" data-act="host">Host a table</button>
+          <button type="button" class="btn big" data-act="host">${L('Host a table', 'Załóż stół')}</button>
           <form class="codeform" data-form="join">
-            <label for="code">Got a code?</label>
+            <label for="code">${L('Got a code?', 'Masz kod?')}</label>
             <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
-            <button class="btn m">Join</button>
+            <button class="btn m">${L('Join', 'Dołącz')}</button>
           </form>
         </div>
         <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
@@ -955,45 +972,45 @@ function renderHub() {
     <div class="hubmid">
     <section id="games">
       <div class="ghead">
-        <h2>Games</h2>
-        <div class="gfilt" role="group" aria-label="Kind of game">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
-        <input id="gfind" class="field gfind" type="search" placeholder="Find a game" aria-label="Find a game" autocomplete="off" spellcheck="false">
+        <h2>${L('Games', 'Gry')}</h2>
+        <div class="gfilt" role="group" aria-label="${L('Kind of game', 'Rodzaj gry')}">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
+        <input id="gfind" class="field gfind" type="search" placeholder="${L('Find a game', 'Szukaj gry')}" aria-label="${L('Find a game', 'Szukaj gry')}" autocomplete="off" spellcheck="false">
       </div>
       <div class="games mini">${HUB_GAMES.map(gameCard).join('')}</div>
-      <div class="empty" id="gnone" hidden>No game with that name. Try another word, or pick “All”.</div>
+      <div class="empty" id="gnone" hidden>${L('No game with that name. Try another word, or pick “All”.', 'Nie ma gry o takiej nazwie. Spróbuj innego słowa albo wybierz „Wszystkie”.')}</div>
     </section>
     </div>
-    <aside class="hubside left" aria-label="Open tables and chat">
+    <aside class="hubside left" aria-label="${L('Open tables and chat', 'Otwarte stoły i czat')}">
       <section id="tables">
-        <div class="sidehead"><h2>Open tables</h2><span class="tcount" id="tables-count"></span></div>
+        <div class="sidehead"><h2>${L('Open tables', 'Otwarte stoły')}</h2><span class="tcount" id="tables-count"></span></div>
         <div class="tables" id="tables-list"></div>
         <div class="tpager" id="tables-pager"></div>
         <button type="button" class="btn sm w tall" id="tables-all-btn" data-act="tables" hidden></button>
       </section>
       <section id="hubchat">
-        <div class="sidehead"><h2>Chat</h2></div>
+        <div class="sidehead"><h2>${L('Chat', 'Czat')}</h2></div>
         <div class="hccard">
           <div class="hclog" id="hc-log" role="log" aria-live="polite">${hubLogHtml()}</div>
           <div class="hcfoot" id="hc-foot">${hubFootHtml()}</div>
         </div>
       </section>
     </aside>
-    <aside class="hubside right" aria-label="Today and rankings">
+    <aside class="hubside right" aria-label="${L('Today and rankings', 'Dziś i rankingi')}">
       <section id="today">
-        <div class="sidehead"><h2>Today</h2></div>
+        <div class="sidehead"><h2>${L('Today', 'Dziś')}</h2></div>
         <div class="today" id="today-list">${todayHtml()}</div>
       </section>
       <section id="rankings">
-        <div class="sidehead"><h2>Rankings</h2></div>
+        <div class="sidehead"><h2>${L('Rankings', 'Rankingi')}</h2></div>
         <div class="rkcard">
-          <select id="rk-sel" class="field rksel" aria-label="Rankings for">${RK_TABS.map(([id, n]) => `<option value="${id}"${id === st.rkTab ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+          <select id="rk-sel" class="field rksel" aria-label="${L('Rankings for', 'Ranking gry')}">${RK_TABS.map(([id, n]) => `<option value="${id}"${id === st.rkTab ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
           <div id="rk-body">${rankingsHtml(narrow())}</div>
         </div>
       </section>
     </aside>
   </main>
-  <footer>Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.</footer>
-  <nav class="hubtabs" aria-label="Hub sections">${tab('games', '🎮', 'Games')}${tab('tables', '🪑', 'Tables', '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', 'Chat')}${tab('rank', '🏆', 'Rankings')}${tab('you', '👤', 'You')}</nav>`;
+  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Hot Pot to fanowska gra inspirowana minigrą Hotpot z Palii.')}</footer>
+  <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
   renderTables(); filterGames();
   document.body.classList.add('sky');
   mountSkyHero();
@@ -1001,7 +1018,7 @@ function renderHub() {
   send({ t: 'hubchat' }); hubScrollEnd();
   send({ t: 'daily' });
   if (st.me?.user) send({ t: 'pets' }); // also brings the farm's news for the Today column
-  if (!st.name) openProfile(true);
+  if (!st.name && !st.creatorOpen) openProfile(true); // (the hub is drawn again when the 3D pictures load: one welcome window is enough)
 }
 $app.addEventListener('change', e => {
   if (e.target.id !== 'rk-sel') return;
@@ -1010,27 +1027,27 @@ $app.addEventListener('change', e => {
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
-const RK_TABS = [['overall', 'Overall'], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', 'Hay Hunch'], ['farm', 'Pet Farm']];
+const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', 'Hay Hunch'], ['farm', FARM_NAME]];
 const RK_NOTE = {
-  overall: 'Ranked by XP from every game. Wins earn the most.',
-  marbles: 'Ranked by bets won, then by coins won overall.',
-  farm: 'The Pet Farm ladder: points from Arena battles against other farms.',
-  hay: 'Ranked by the best harvest from one field, then by fields cleared.',
-  default: 'Ranked by wins, then win rate.',
+  overall: L('Ranked by XP from every game. Wins earn the most.', 'Ranking według XP ze wszystkich gier. Najwięcej dają wygrane.'),
+  marbles: L('Ranked by bets won, then by coins won overall.', 'Ranking według wygranych zakładów, potem według łącznie wygranych monet.'),
+  farm: L('The Pet Farm ladder: points from Arena battles against other farms.', 'Drabinka Farmy zwierzaków: punkty z walk na Arenie przeciwko innym farmom.'),
+  hay: L('Ranked by the best harvest from one field, then by fields cleared.', 'Ranking według najlepszych zbiorów z jednego pola, potem według oczyszczonych pól.'),
+  default: L('Ranked by wins, then win rate.', 'Ranking według wygranych, potem według skuteczności.'),
 };
-const plural = (n, one, many = one + 's') => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+const cWins = n => cnt(n, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych'), cGames = n => cnt(n, 'game', 'games', 'gra', 'gry', 'gier');
 function rkStat(game, r) {
-  if (game === 'overall') return [`${r.xp.toLocaleString()} XP`, `${plural(r.wins, 'win')} · ${plural(r.games, 'game')}`];
-  if (game === 'farm') return [plural(r.pts, 'pt'), `${plural(r.pets, 'pet')} · best Lv ${r.top}`];
-  if (game === 'hay') return [`×${r.best.toLocaleString()}`, `${plural(r.wins, 'field')} cleared · top level ${r.top || 1}`];
-  if (game === 'marbles') return [plural(r.wins, 'bet') + ' won', `${plural(r.games, 'race')} · ${r.net >= 0 ? '+' : '−'}${Math.abs(r.net).toLocaleString()} coins`];
-  return [plural(r.wins, 'win'), `${plural(r.games, 'game')} · ${r.rate}%${r.best ? ` · best ${r.best} pts` : ''}`];
+  if (game === 'overall') return [`${num(r.xp)} XP`, `${cWins(r.wins)} · ${cGames(r.games)}`];
+  if (game === 'farm') return [cnt(r.pts, 'pt', 'pts', 'pkt'), `${cnt(r.pets, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')} · ${L('best Lv', 'najwyższy poz.')} ${r.top}`];
+  if (game === 'hay') return [`×${num(r.best)}`, L(`${cnt(r.wins, 'field')} cleared · top level ${r.top || 1}`, `${cnt(r.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · najwyższy poziom ${r.top || 1}`)];
+  if (game === 'marbles') return [L(cnt(r.wins, 'bet') + ' won', cnt(r.wins, '', '', 'wygrany zakład', 'wygrane zakłady', 'wygranych zakładów')), `${cnt(r.games, 'race', 'races', 'wyścig', 'wyścigi', 'wyścigów')} · ${r.net >= 0 ? '+' : '−'}${cnt(Math.abs(r.net), 'coin', 'coins', 'moneta', 'monety', 'monet')}`];
+  return [cWins(r.wins), `${cGames(r.games)} · ${r.rate}%${r.best ? ` · ${L('best', 'rekord')} ${r.best} ${L('pts', 'pkt')}` : ''}`];
 }
 function rkRow(game, r) {
   const [main, sub] = rkStat(game, r), medal = ['🥇', '🥈', '🥉'][r.pos - 1];
   return `<li class="${r.me ? 'you' : ''}"${prof(r)}>
     <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
-    <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ' <em>(you)</em>' : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${titleHtml(r.fl)}${r.guest ? '<i>guest</i>' : ''}</span></span>
+    <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ` <em>(${L('you', 'ty')})</em>` : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${titleHtml(r.fl)}${r.guest ? `<i>${L('guest', 'gość')}</i>` : ''}</span></span>
     <b class="main">${main}</b><span class="sub">${sub}</span>
   </li>`;
 }
@@ -1038,19 +1055,19 @@ const RK_SHORT = 5; // rows on the hub; "See all" opens the whole board
 function rankingsHtml(all = false) {
   if (!RK_TABS.some(([id]) => id === st.rkTab)) st.rkTab = 'overall';
   const g = st.rkTab, d = st.rk[g];
-  if (!d) return `<p class="rknote">Loading…</p>`;
+  if (!d) return `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>`;
   const rows = all ? d.rows : d.rows.slice(0, RK_SHORT), mine = d.mine || (!all && d.rows.slice(RK_SHORT).find(r => r.me));
-  const note = `<p class="rknote">${RK_NOTE[g] || RK_NOTE.default}${all && d.total > d.rows.length ? ` Top ${d.rows.length} of ${d.total.toLocaleString()} players.` : ''}</p>`;
-  if (!d.rows.length) return note + `<div class="empty">${g === 'farm' ? 'No farms with pets yet. Visit your farm to be the first!' : 'Nobody has finished a game here yet. Play one to take first place!'}</div>`;
+  const note = `<p class="rknote">${RK_NOTE[g] || RK_NOTE.default}${all && d.total > d.rows.length ? L(` Top ${d.rows.length} of ${num(d.total)} players.`, ` Najlepsze ${d.rows.length} z ${num(d.total)} graczy.`) : ''}</p>`;
+  if (!d.rows.length) return note + `<div class="empty">${g === 'farm' ? L('No farms with pets yet. Visit your farm to be the first!', 'Nie ma jeszcze farm ze zwierzakami. Zajrzyj na swoją farmę i zajmij pierwsze miejsce!') : L('Nobody has finished a game here yet. Play one to take first place!', 'Nikt jeszcze nie skończył tu gry. Zagraj i zajmij pierwsze miejsce!')}</div>`;
   return note + `<ol class="rk">${rows.map(r => rkRow(g, r)).join('')}${mine ? `<li class="gap" aria-hidden="true">…</li>${rkRow(g, mine)}` : ''}</ol>`
-    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'farm' ? 'Raise a pet on your farm to join this ladder.' : 'Finish a game to get on this board.'}</p>`)
-    + (!all && d.rows.length > RK_SHORT ? `<button type="button" class="btn sm w tall" data-act="rkall">See all ${Math.min(d.total || d.rows.length, d.rows.length)}</button>` : '');
+    + (d.rows.some(r => r.me) || d.mine ? '' : `<p class="rknote">${g === 'farm' ? L('Raise a pet on your farm to join this ladder.', 'Wychowaj zwierzaka na swojej farmie, żeby dołączyć do tej drabinki.') : L('Finish a game to get on this board.', 'Dokończ grę, żeby trafić do tego rankingu.')}</p>`)
+    + (!all && d.rows.length > RK_SHORT ? `<button type="button" class="btn sm w tall" data-act="rkall">${L('See all', 'Zobacz wszystkich:')} ${Math.min(d.total || d.rows.length, d.rows.length)}</button>` : '');
 }
 let rkSheet = null;
 function openRankings() {
   rkSheet?.close();
-  const name = RK_TABS.find(([id]) => id === st.rkTab)?.[1] || 'Overall';
-  const sheet = rkSheet = modal(`<h2>Rankings · ${esc(name)}</h2><div class="rkall" id="rk-all">${rankingsHtml(true)}</div><div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">Done</button></div>`);
+  const name = RK_TABS.find(([id]) => id === st.rkTab)?.[1] || RK_TABS[0][1];
+  const sheet = rkSheet = modal(`<h2>${L('Rankings', 'Rankingi')} · ${esc(name)}</h2><div class="rkall" id="rk-all">${rankingsHtml(true)}</div><div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
   sheet.el.querySelector('.sheet').classList.add('listsheet');
   sheet.onClose = () => { rkSheet = null; };
   sheet.el.addEventListener('click', e => {
@@ -1071,34 +1088,34 @@ function paintRankings() {
 export const flairName = (name, fl) => nameHtml(name, fl);
 const hcTime = at => {
   const d = new Date(at), today = new Date().toDateString() === d.toDateString();
-  const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return today ? t : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${t}`;
+  const t = d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
+  return today ? t : `${d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })} ${t}`;
 };
 const hcSame = (a, b) => a && b && a.user === b.user && b.at - a.at < 3 * 60_000;
 // A shared Mystery Pet result: one row of squares per guess. Only the letters g, y and r ever become markup.
-const gridHtml = g => `<pre class="mpgrid" aria-label="Their clues, without spoilers">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyr'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">and ${g.length - 10} more</small>` : ''}`;
+const gridHtml = g => `<pre class="mpgrid" aria-label="${L('Their clues, without spoilers', 'Wskazówki tej osoby, bez spoilerów')}">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyr'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">${L(`and ${g.length - 10} more`, `i jeszcze ${g.length - 10}`)}</small>` : ''}`;
 function hubLine(m, prev) {
   const cont = hcSame(prev, m);
   return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}"${prof(m)}>
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
       ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
-      <p>${esc(m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
+      <p>${esc(Array.isArray(m.grid) ? srvText(m.text) : m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
     </div>
-    ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="Remove this message" title="Remove">×</button>` : ''}
+    ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="${L('Remove this message', 'Usuń tę wiadomość')}" title="${L('Remove', 'Usuń')}">×</button>` : ''}
   </div>`;
 }
 function hubLogHtml() {
-  const L = st.hc.log;
-  if (!L) return '<p class="hcempty">Loading…</p>';
-  if (!L.length) return '<p class="hcempty">Nobody has said anything yet. Say hi to everyone!</p>';
-  return L.map((m, i) => hubLine(m, L[i - 1])).join('');
+  const log = st.hc.log;
+  if (!log) return `<p class="hcempty">${L('Loading…', 'Wczytywanie…')}</p>`;
+  if (!log.length) return `<p class="hcempty">${L('Nobody has said anything yet. Say hi to everyone!', 'Nikt jeszcze nic nie napisał. Przywitaj się ze wszystkimi!')}</p>`;
+  return log.map((m, i) => hubLine(m, log[i - 1])).join('');
 }
 function hubFootHtml() {
   if (!st.me) return '';
-  if (!st.me.user) return `<div class="hcguest"><span>Make a free account to join the chat.</span>
-    <button type="button" class="btn sm m" data-act="account" data-mode="register">Create account</button><button type="button" class="btn sm w" data-act="account" data-mode="login">Log in</button></div>`;
-  return `<form class="hcform" data-form="hubchat"><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="Say something to everyone…" autocomplete="off" enterkeyhint="send" aria-label="Message to everyone"><button class="btn m">Send</button></form>`;
+  if (!st.me.user) return `<div class="hcguest"><span>${L('Make a free account to join the chat.', 'Załóż darmowe konto, żeby pisać na czacie.')}</span>
+    <button type="button" class="btn sm m" data-act="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn sm w" data-act="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
+  return `<form class="hcform" data-form="hubchat"><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="${L('Say something to everyone…', 'Napisz coś do wszystkich…')}" autocomplete="off" enterkeyhint="send" aria-label="${L('Message to everyone', 'Wiadomość do wszystkich')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>`;
 }
 const $hcLog = () => document.getElementById('hc-log');
 const hubAtEnd = () => { const el = $hcLog(); return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 60; };
@@ -1107,7 +1124,7 @@ function paintHubLog() { const el = $hcLog(); if (el) { el.innerHTML = hubLogHtm
 function paintHubFoot() { const el = document.getElementById('hc-foot'); if (el && !el.contains(document.activeElement)) el.innerHTML = hubFootHtml(); }
 function onHubChat(m) {
   const hc = st.hc;
-  if (m.err) { sfx.bad(); toast(esc(m.err), true); const inp = document.getElementById('hc-in'); if (inp && !inp.value && hc.pending) inp.value = hc.pending; return; }
+  if (m.err) { sfx.bad(); toast(esc(srvText(m.err)), true); const inp = document.getElementById('hc-in'); if (inp && !inp.value && hc.pending) inp.value = hc.pending; return; }
   if (Array.isArray(m.log)) { hc.log = m.log; hc.max = m.max || 200; paintHubLog(); paintHubFoot(); return; }
   if (m.gone) { if (hc.log) hc.log = hc.log.filter(x => x.id !== m.gone); paintHubLog(); return; }
   if (!m.msg || !hc.log) return;
@@ -1130,49 +1147,49 @@ $app.addEventListener('submit', e => {
 // "3 playing now · 128 visitors so far" under the hero buttons.
 function statsHtml() {
   const s = st.stats; if (!s) return '';
-  const n = x => x.toLocaleString();
-  return `<span class="on"><i></i><b>${n(s.online)}</b> ${s.online === 1 ? 'person' : 'people'} here now</span><span><b>${n(s.visitors)}</b> ${s.visitors === 1 ? 'visitor' : 'visitors'} so far</span>`;
+  return `<span class="on"><i></i><b>${num(s.online)}</b> ${L(`${s.online === 1 ? 'person' : 'people'} here now`, `${word(s.online, '', '', 'osoba', 'osoby', 'osób')} teraz na stronie`)}</span><span><b>${num(s.visitors)}</b> ${L(`${s.visitors === 1 ? 'visitor' : 'visitors'} so far`, `${word(s.visitors, '', '', 'odwiedzający', 'odwiedzających', 'odwiedzających')} do tej pory`)}</span>`;
 }
 function paintStats() { const el = document.getElementById('live-stats'); if (el) el.innerHTML = statsHtml(); }
 
 // Open tables: tables with a free seat in their waiting room come first. The hub's left column shows the first
 // few; "Show all" opens the whole list in its own panel, a page at a time. On phones the Tables tab is that list.
 const TABLES_PER_PAGE = 5, TABLES_SHORT = 3;
+const cTables = n => cnt(n, 'table', 'tables', 'stół', 'stoły', 'stołów');
 const tableOpen = r => r.state === 'lobby' && r.n < r.max;
 const tableRow = r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
-    <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take over a bot' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
-    <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="who"><b>${L(`${esc(r.host)}'s table`, `Stół gracza ${esc(r.host)}`)}</b><span>${esc(GAMES[r.game]?.name || r.gameName)} · ${r.state === 'lobby' ? L('Waiting for players', 'Czeka na graczy') : r.state === 'play' ? L('Playing', 'Gra trwa') : L('Just finished', 'Właśnie skończona')}${r.state !== 'lobby' && r.n < r.max ? L(' · watch and take over a bot', ' · oglądaj i przejmij bota') : ''}${r.w ? ` · ${L(`${r.w} watching`, `ogląda: ${r.w}`)}` : ''}</span></div>
+    <div class="dots" aria-label="${L(`${r.n} of ${r.max} seats taken`, `Zajęte miejsca: ${r.n} z ${r.max}`)}">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
-    <button type="button" class="btn ${tableOpen(r) ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${tableOpen(r) ? 'Join' : 'Watch'}</button>
+    <button type="button" class="btn ${tableOpen(r) ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${tableOpen(r) ? L('Join', 'Dołącz') : L('Watch', 'Oglądaj')}</button>
   </div>`;
 function tablePage(el, pager, rooms) {
   const pages = Math.max(1, Math.ceil(rooms.length / TABLES_PER_PAGE));
   st.tPage = Math.max(0, Math.min(st.tPage, pages - 1));
   el.innerHTML = rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(tableRow).join('');
-  if (pager) pager.innerHTML = pages < 2 ? '' : `<button type="button" class="btn sm w" data-act="tpage" data-d="-1" aria-label="Previous page" ${st.tPage ? '' : 'disabled'}>‹</button>
-    <span>Page <b>${st.tPage + 1}</b> of ${pages} · ${rooms.length} tables</span>
-    <button type="button" class="btn sm w" data-act="tpage" data-d="1" aria-label="Next page" ${st.tPage < pages - 1 ? '' : 'disabled'}>›</button>`;
+  if (pager) pager.innerHTML = pages < 2 ? '' : `<button type="button" class="btn sm w" data-act="tpage" data-d="-1" aria-label="${L('Previous page', 'Poprzednia strona')}" ${st.tPage ? '' : 'disabled'}>‹</button>
+    <span>${L('Page', 'Strona')} <b>${st.tPage + 1}</b> ${L('of', 'z')} ${pages} · ${cTables(rooms.length)}</span>
+    <button type="button" class="btn sm w" data-act="tpage" data-d="1" aria-label="${L('Next page', 'Następna strona')}" ${st.tPage < pages - 1 ? '' : 'disabled'}>›</button>`;
 }
 let tablesSheet = null;
 function renderTables() {
   const rooms = [...st.rooms].sort((a, b) => tableOpen(b) - tableOpen(a));
   for (const id of ['tables-count', 'tabs-count']) { const cnt = document.getElementById(id); if (cnt) cnt.textContent = rooms.length || ''; }
-  document.querySelectorAll('.gopen').forEach(b => { const n = rooms.filter(r => r.game === b.dataset.g && tableOpen(r)).length; b.hidden = !n; b.textContent = n ? `${n} open` : ''; });
+  document.querySelectorAll('.gopen').forEach(b => { const n = rooms.filter(r => r.game === b.dataset.g && tableOpen(r)).length; b.hidden = !n; b.textContent = n ? L(`${n} open`, `otwarte: ${n}`) : ''; });
   const all = document.getElementById('tables-all');
   if (all) { if (rooms.length) tablePage(all, document.getElementById('tables-all-pager'), rooms); else tablesSheet?.close(); }
   const el = document.getElementById('tables-list'); if (!el) return;
   const pager = document.getElementById('tables-pager'), more = document.getElementById('tables-all-btn');
-  if (!rooms.length) { el.innerHTML = `<div class="empty tnone"><span>No open tables yet.</span><button type="button" class="btn sm" data-act="host">Host one</button></div>`; pager.innerHTML = ''; more.hidden = true; return; }
+  if (!rooms.length) { el.innerHTML = `<div class="empty tnone"><span>${L('No open tables yet.', 'Nie ma jeszcze otwartych stołów.')}</span><button type="button" class="btn sm" data-act="host">${L('Host one', 'Załóż stół')}</button></div>`; pager.innerHTML = ''; more.hidden = true; return; }
   if (narrow()) { tablePage(el, pager, rooms); more.hidden = true; return; }
   el.innerHTML = rooms.slice(0, TABLES_SHORT).map(tableRow).join(''); pager.innerHTML = '';
-  more.hidden = rooms.length <= TABLES_SHORT; more.textContent = `Show all ${rooms.length} tables`;
+  more.hidden = rooms.length <= TABLES_SHORT; more.textContent = L(`Show all ${rooms.length} tables`, `Pokaż wszystkie stoły (${rooms.length})`);
 }
 function openTables() {
   tablesSheet?.close(); st.tPage = 0;
-  const sheet = tablesSheet = modal(`<h2>Open tables</h2><p class="sidenote"><span class="livedot"></span>Updates live. Join a seat or watch a game.</p>
+  const sheet = tablesSheet = modal(`<h2>${L('Open tables', 'Otwarte stoły')}</h2><p class="sidenote"><span class="livedot"></span>${L('Updates live. Join a seat or watch a game.', 'Lista odświeża się na żywo. Dosiądź się albo oglądaj grę.')}</p>
     <div class="tables tlist" id="tables-all"></div><div class="tpager" id="tables-all-pager"></div>
-    <div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">Done</button></div>`);
+    <div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
   sheet.el.querySelector('.sheet').classList.add('listsheet');
   sheet.onClose = () => { tablesSheet = null; st.tPage = 0; };
   sheet.el.addEventListener('click', e => {
@@ -1193,38 +1210,38 @@ function renderLobby() {
   const seats = Array.from({ length: max }, (_, i) => seated[i] || null);
   const watchers = [...seated.slice(max), ...r.players.filter(p => p.watch)];
   const meWatch = r.players.find(p => p.id === st.id)?.watch, saving = (r.sit || []).includes(st.id);
-  const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${label}</button>`;
+  const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${optText(String(label)).replace(/^(\d+) hands$/, '$1 rozdań')}</button>`;
   $app.innerHTML = `${topbar()}
   <main class="wrap lobby">
     <div class="main">
-      <div class="crumb">${siteLogo(34)} ${esc(r.gameName)} · waiting room</div>
+      <div class="crumb">${siteLogo(34)} ${esc(gm.name || r.gameName)} · ${L('waiting room', 'poczekalnia')}</div>
       <div class="row" style="gap:22px">
-        <div><div style="font-size:15px;color:var(--muted);margin-bottom:6px">Table code</div>
-          <div class="codetiles" aria-label="Table code ${esc(r.code)}">${[...r.code].map(ch => `<span>${esc(ch)}</span>`).join('')}</div></div>
+        <div><div style="font-size:15px;color:var(--muted);margin-bottom:6px">${L('Table code', 'Kod stołu')}</div>
+          <div class="codetiles" aria-label="${L('Table code', 'Kod stołu')} ${esc(r.code)}">${[...r.code].map(ch => `<span>${esc(ch)}</span>`).join('')}</div></div>
         <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
-          <button type="button" class="btn" data-act="copy">Copy invite link</button>
-          <span style="font-size:14px;color:var(--muted)">Friends can also type the code on the home page.</span>
+          <button type="button" class="btn" data-act="copy">${L('Copy invite link', 'Skopiuj link z zaproszeniem')}</button>
+          <span style="font-size:14px;color:var(--muted)">${L('Friends can also type the code on the home page.', 'Znajomi mogą też wpisać kod na stronie głównej.')}</span>
         </div>
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}${cardBgCls(p.fl)}" data-pid="${esc(p.id)}"${prof(p)}>
           ${cardBg(p.fl)}${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
-          <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
-        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
-      ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
-      ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? '✓ Next free seat is yours' : 'Take a seat'}</button></div>` : ''}
+          <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? L('Host', 'Gospodarz') : L('Ready', 'W gotowości')}${p.id === st.id ? L(' · you', ' · ty') : ''}${p.online ? '' : L(' · reconnecting', ' · łączy się ponownie')}</span></div></div>`
+        : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>${L(`Seat ${i + 1} is open`, `Miejsce ${i + 1} wolne`)}</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
+      ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
+      ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
-        ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">Waiting for the host to start…</span>`}
-        <button type="button" class="btn big ghost" data-act="leave">Leave</button>
+        ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
+        <button type="button" class="btn big ghost" data-act="leave">${L('Leave', 'Wyjdź')}</button>
       </div>
     </div>
     <aside>
-      <h2 style="font-size:26px;margin:0">Table scoreboard</h2>
+      <h2 style="font-size:26px;margin:0">${L('Table scoreboard', 'Wyniki stołu')}</h2>
       ${boardHtml(r)}
-      <h2 style="font-size:26px;margin:0">Table settings</h2>
-      ${gm.settings(pill, r)}
-      <label class="toggle">Show in open tables<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
-      ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">Only the host can change settings.</p>`}
-      <div class="howto"><b>How to win</b><br>${gm.howto} <a href="#" data-act="rules">Full rules</a></div>
+      <h2 style="font-size:26px;margin:0">${L('Table settings', 'Ustawienia stołu')}</h2>
+      ${gm.settings(pill, r).replace(/<b>([^<]+)<\/b>/g, (m, s) => `<b>${optText(s)}</b>`)}
+      <label class="toggle">${L('Show in open tables', 'Pokaż wśród otwartych stołów')}<input type="checkbox" data-act="priv" ${r.priv ? '' : 'checked'} ${host ? '' : 'disabled'}></label>
+      ${host ? '' : `<p style="margin:0;font-size:14px;color:var(--muted)">${L('Only the host can change settings.', 'Ustawienia może zmieniać tylko gospodarz.')}</p>`}
+      <div class="howto"><b>${L('How to win', 'Jak wygrać')}</b><br>${gm.howto} <a href="#" data-act="rules">${L('Full rules', 'Pełne zasady')}</a></div>
     </aside>
   </main>`;
   petPics();
@@ -1244,12 +1261,13 @@ function watchPaint() {
   const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
   const bots = (st.lastState.seats || []).filter(s => !s.human).length;
   const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
-  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand', hole: 'from the next hole', leg: 'from the next leg', now: 'right away' }[when] || 'when the next game starts';
-  const msg = !saving ? 'You’re watching.'
-    : full ? (when === 'game' ? 'Every seat is taken. You get the next free one.' : 'Every seat has a player. You get one next game.')
-    : `You take over a bot ${soon}.`;
-  const btn = saving ? 'Just watch' : full && when === 'game' ? 'Get the next free seat'
-    : when === 'round' || when === 'now' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : when === 'hole' ? 'Play from next hole' : when === 'leg' ? 'Play from next leg' : 'Play next game';
+  const SOON = { game: L('when the next game starts', 'gdy zacznie się następna gra'), round: L('when this round of turns ends', 'gdy skończy się ta kolejka'), hand: L('from the next hand', 'od następnego rozdania'), hole: L('from the next hole', 'od następnego dołka'), leg: L('from the next leg', 'od następnego lega'), now: L('right away', 'od razu') };
+  const soon = SOON[when] || SOON.game;
+  const msg = !saving ? L('You’re watching.', 'Oglądasz grę.')
+    : full ? (when === 'game' ? L('Every seat is taken. You get the next free one.', 'Wszystkie miejsca są zajęte. Dostaniesz następne wolne.') : L('Every seat has a player. You get one next game.', 'Na każdym miejscu siedzi gracz. Dostaniesz miejsce w następnej grze.'))
+    : L(`You take over a bot ${soon}.`, `Przejmiesz bota ${soon}.`);
+  const btn = saving ? L('Just watch', 'Tylko oglądaj') : full && when === 'game' ? L('Get the next free seat', 'Zajmij następne wolne miejsce')
+    : when === 'round' || when === 'now' ? L('Take over a bot', 'Przejmij bota') : when === 'hand' ? L('Play from next hand', 'Graj od następnego rozdania') : when === 'hole' ? L('Play from next hole', 'Graj od następnego dołka') : when === 'leg' ? L('Play from next leg', 'Graj od następnego lega') : L('Play next game', 'Zagraj w następnej grze');
   $watch.innerHTML = `<span>${msg}</span>
     <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
 }
@@ -1266,26 +1284,26 @@ const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" 
 const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li${prof(e)}>
     <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36, frameCls(e.fl))}
     <b>${nameHtml(e.name, e.fl)}</b>
-    <span class="num"><b>${e.wins}</b> ${e.wins === 1 ? 'win' : 'wins'}</span><span class="num"><b>${e.pts}</b> pts</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> coins</span>` : ''}
+    <span class="num"><b>${e.wins}</b> ${word(e.wins, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych')}</span><span class="num"><b>${e.pts}</b> ${L('pts', 'pkt')}</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> ${word(e.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}</span>` : ''}
   </li>`).join('')}</ol>
-  <p class="boardnote">${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.</p>`
-  : `<p class="boardnote">No games finished yet. Wins and points add up here for as long as the table stays open.</p>`;
+  <p class="boardnote">${L(`${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.`, `Gry rozegrane przy tym stole: ${r.played}. Wyniki zostają przy stole, nawet po restarcie serwera.`)}</p>`
+  : `<p class="boardnote">${L('No games finished yet. Wins and points add up here for as long as the table stays open.', 'Nie skończono tu jeszcze żadnej gry. Wygrane i punkty sumują się tutaj, dopóki stół jest otwarty.')}</p>`;
 function scoresPaint() { if (st.room) $chat.querySelector('.scorebody').innerHTML = boardHtml(st.room); else $chat.querySelector('.scorepanel').hidden = true; }
 $chat.innerHTML = `
-  <div class="chatpanel" hidden role="dialog" aria-label="Table chat">
-    <div class="chathead"><b>Table chat</b><button type="button" class="round" data-c="toggle" aria-label="Close chat">×</button></div>
+  <div class="chatpanel" hidden role="dialog" aria-label="${L('Table chat', 'Czat stołu')}">
+    <div class="chathead"><b>${L('Table chat', 'Czat stołu')}</b><button type="button" class="round" data-c="toggle" aria-label="${L('Close chat', 'Zamknij czat')}">×</button></div>
     <div class="chatlog" aria-live="polite"></div>
     <div class="chatemoji"></div>
-    <form class="chatform"><input class="field" maxlength="160" placeholder="Say something nice…" autocomplete="off" aria-label="Message"><button class="btn m">Send</button></form>
+    <form class="chatform"><input class="field" maxlength="160" placeholder="${L('Say something nice…', 'Napisz coś miłego…')}" autocomplete="off" aria-label="${L('Message', 'Wiadomość')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>
   </div>
-  <div class="chatpanel scorepanel" hidden role="dialog" aria-label="Table scoreboard">
-    <div class="chathead"><b>Table scoreboard</b><button type="button" class="round" data-c="scores" aria-label="Close scoreboard">×</button></div>
+  <div class="chatpanel scorepanel" hidden role="dialog" aria-label="${L('Table scoreboard', 'Wyniki stołu')}">
+    <div class="chathead"><b>${L('Table scoreboard', 'Wyniki stołu')}</b><button type="button" class="round" data-c="scores" aria-label="${L('Close scoreboard', 'Zamknij wyniki')}">×</button></div>
     <div class="scorebody"></div>
   </div>
   <div class="chatpeek" hidden></div>
   <div class="chatbtns">
-    <button type="button" class="btn w scorebtn" data-c="scores" aria-label="Table scoreboard">${SCORE_ICON}<span class="lbl">Scores</span></button>
-    <button type="button" class="btn chatbtn" data-c="toggle" aria-label="Open chat">${CHAT_ICON}<span class="lbl">Chat</span><span class="badge" hidden></span></button>
+    <button type="button" class="btn w scorebtn" data-c="scores" aria-label="${L('Table scoreboard', 'Wyniki stołu')}">${SCORE_ICON}<span class="lbl">${L('Scores', 'Wyniki')}</span></button>
+    <button type="button" class="btn chatbtn" data-c="toggle" aria-label="${L('Open chat', 'Otwórz czat')}">${CHAT_ICON}<span class="lbl">${L('Chat', 'Czat')}</span><span class="badge" hidden></span></button>
   </div>`;
 const $scores = $chat.querySelector('.scorepanel');
 emojiPaint();
@@ -1295,11 +1313,11 @@ const chatLine = m => `<div class="cl${m.id === st.id ? ' own' : ''}"${prof(m)}>
 function emojiPaint() {
   const mine = stickersOf(st.me);
   const row = $chat.querySelector('.chatemoji'); row.classList.toggle('more', mine.length > 0);
-  row.innerHTML = EMOJI.map((e, i) => `<button type="button" data-c="emo" data-k="${FOODS.length + i}" aria-label="React ${e}">${e}</button>`).join('')
-    + mine.map(s => `<button type="button" data-c="emo" data-k="${s.k}" aria-label="Sticker ${s.e}">${s.e}</button>`).join('');
+  row.innerHTML = EMOJI.map((e, i) => `<button type="button" data-c="emo" data-k="${FOODS.length + i}" aria-label="${L('React', 'Reakcja')} ${e}">${e}</button>`).join('')
+    + mine.map(s => `<button type="button" data-c="emo" data-k="${s.k}" aria-label="${L('Sticker', 'Naklejka')} ${s.e}">${s.e}</button>`).join('');
 }
 function chatPaint() {
-  $log.innerHTML = chat.log.length ? chat.log.map(chatLine).join('') : '<p class="chatempty">No messages yet. Say hi!</p>';
+  $log.innerHTML = chat.log.length ? chat.log.map(chatLine).join('') : `<p class="chatempty">${L('No messages yet. Say hi!', 'Nie ma jeszcze wiadomości. Przywitaj się!')}</p>`;
   $log.scrollTop = $log.scrollHeight;
 }
 function chatBadge() { const b = $chat.querySelector('.badge'); b.hidden = !chat.unread; b.textContent = chat.unread > 9 ? '9+' : chat.unread; }
@@ -1330,18 +1348,19 @@ $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (cha
 // One list for the whole site. Friends are added by username, and anything a game does with friends reads this list.
 let friendsSheet = null;
 function friendsHtml() {
-  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · level ${x.lv}` : ''}</small></span>`;
-  if (!st.me?.user) return `<h2>Friends</h2><p>Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.</p>
-    <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">Create account</button><button type="button" class="btn w" data-fr="account" data-mode="login">Log in</button></div>`;
-  if (!f) return '<h2>Friends</h2><p>Loading…</p>';
-  return `<h2>Friends</h2>
-    <form class="fradd"><input class="field" id="fruser" maxlength="16" placeholder="A friend's username" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="A friend's username"><button class="btn m">Add</button></form>
-    <p style="font-size:14px">Your username is <b>${esc(st.me.user)}</b>. Share it so friends can add you.</p>
-    ${f.reqs.length ? `<h3>Wants to be your friend</h3><ul class="frlist">${f.reqs.map(x => `<li>${who(x)}<span class="fract"><button type="button" class="btn sm m" data-fr="accept" data-user="${esc(x.user)}">Accept</button><button type="button" class="btn sm ghost-ink" data-fr="decline" data-user="${esc(x.user)}">No thanks</button></span></li>`).join('')}</ul>` : ''}
-    ${f.friends.length ? `<ul class="frlist">${f.friends.map(x => `<li>${who(x)}<span class="frdot ${x.online ? 'on' : ''}">${x.online ? 'Here now' : 'Away'}</span>
-      <span class="fract">${x.farm ? `<button type="button" class="btn sm" data-fr="visit" data-farm="${esc(x.farm)}">Visit farm</button>` : ''}<button type="button" class="btn sm ghost-ink" data-fr="remove" data-user="${esc(x.user)}" aria-label="Remove ${esc(x.name)}">Remove</button></span></li>`).join('')}</ul>`
-      : '<p>No friends yet. Add someone by their username.</p>'}
-    ${f.sent.length ? `<p style="font-size:14px">Waiting for an answer from ${f.sent.map(x => `<b>${esc(x.user)}</b>`).join(', ')}.</p>` : ''}`;
+  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · ${L('level', 'poziom')} ${x.lv}` : ''}</small></span>`;
+  const h2 = `<h2>${L('Friends', 'Znajomi')}</h2>`, frUser = L("A friend's username", 'Nazwa użytkownika znajomego');
+  if (!st.me?.user) return `${h2}<p>${L('Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.', 'Znajomi są zapisani na twoim koncie, więc odnajdziecie się na każdym urządzeniu. Najpierw załóż konto: wystarczy nazwa użytkownika i hasło.')}</p>
+    <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn w" data-fr="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
+  if (!f) return `${h2}<p>${L('Loading…', 'Wczytywanie…')}</p>`;
+  return `${h2}
+    <form class="fradd"><input class="field" id="fruser" maxlength="16" placeholder="${frUser}" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="${frUser}"><button class="btn m">${L('Add', 'Dodaj')}</button></form>
+    <p style="font-size:14px">${L(`Your username is <b>${esc(st.me.user)}</b>. Share it so friends can add you.`, `Twoja nazwa użytkownika to <b>${esc(st.me.user)}</b>. Podaj ją znajomym, żeby mogli cię dodać.`)}</p>
+    ${f.reqs.length ? `<h3>${L('Wants to be your friend', 'Zaproszenia do znajomych')}</h3><ul class="frlist">${f.reqs.map(x => `<li>${who(x)}<span class="fract"><button type="button" class="btn sm m" data-fr="accept" data-user="${esc(x.user)}">${L('Accept', 'Przyjmij')}</button><button type="button" class="btn sm ghost-ink" data-fr="decline" data-user="${esc(x.user)}">${L('No thanks', 'Nie, dziękuję')}</button></span></li>`).join('')}</ul>` : ''}
+    ${f.friends.length ? `<ul class="frlist">${f.friends.map(x => `<li>${who(x)}<span class="frdot ${x.online ? 'on' : ''}">${x.online ? L('Here now', 'Na stronie') : L('Away', 'Poza stroną')}</span>
+      <span class="fract">${x.farm ? `<button type="button" class="btn sm" data-fr="visit" data-farm="${esc(x.farm)}">${L('Visit farm', 'Odwiedź farmę')}</button>` : ''}<button type="button" class="btn sm ghost-ink" data-fr="remove" data-user="${esc(x.user)}" aria-label="${L('Remove', 'Usuń:')} ${esc(x.name)}">${L('Remove', 'Usuń')}</button></span></li>`).join('')}</ul>`
+      : `<p>${L('No friends yet. Add someone by their username.', 'Nie masz jeszcze znajomych. Dodaj kogoś po nazwie użytkownika.')}</p>`}
+    ${f.sent.length ? `<p style="font-size:14px">${L('Waiting for an answer from', 'Czekamy na odpowiedź od:')} ${f.sent.map(x => `<b>${esc(x.user)}</b>`).join(', ')}.</p>` : ''}`;
 }
 function paintFriends() {
   for (const b of document.querySelectorAll('.frbadge')) { const n = st.friends?.reqs.length || 0; b.hidden = !n; b.textContent = n || ''; }
@@ -1352,7 +1371,7 @@ function paintFriends() {
 }
 function openFriends() {
   if (friendsSheet) return;
-  friendsSheet = modal('<div class="frbody"></div><button type="button" class="btn ghost-ink" data-fr="close">Close</button>');
+  friendsSheet = modal(`<div class="frbody"></div><button type="button" class="btn ghost-ink" data-fr="close">${L('Close', 'Zamknij')}</button>`);
   friendsSheet.onClose = () => { friendsSheet = null; };
   const el = friendsSheet.el;
   paintFriends(); if (st.me?.user) send({ t: 'friends' });
@@ -1362,8 +1381,8 @@ function openFriends() {
     const a = b.dataset.fr; sfx.click();
     if (a === 'close') friendsSheet.close();
     else if (a === 'account') { friendsSheet.close(); openAccount(b.dataset.mode); }
-    else if (a === 'visit') { friendsSheet.close(); if (st.farm) st.farm.visit(b.dataset.farm); else if (st.room) toast('Leave this table first, then visit.', true); else { farmVisit = b.dataset.farm; openFarm(); } }
-    else if (a === 'remove') { if (b.dataset.sure) send({ t: 'friend', op: 'remove', user: b.dataset.user }); else { b.dataset.sure = 1; b.textContent = 'Really remove?'; } }
+    else if (a === 'visit') { friendsSheet.close(); if (st.farm) st.farm.visit(b.dataset.farm); else if (st.room) toast(L('Leave this table first, then visit.', 'Najpierw wyjdź od tego stołu, potem odwiedź farmę.'), true); else { farmVisit = b.dataset.farm; openFarm(); } }
+    else if (a === 'remove') { if (b.dataset.sure) send({ t: 'friend', op: 'remove', user: b.dataset.user }); else { b.dataset.sure = 1; b.textContent = L('Really remove?', 'Na pewno usunąć?'); } }
     else send({ t: 'friend', op: a, user: b.dataset.user });
   });
 }
@@ -1391,10 +1410,13 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
-const WD_ACC = [['name', 'Name & card', ['nm', 'fr', 'pb', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
+const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
-const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', pb: 'The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', ti: 'A title under your name. Titles with a goal are earned by playing.',
-  wn: 'Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
+const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
+  pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
+  ti: L('A title under your name. Titles with a goal are earned by playing.', 'Tytuł pod twoim imieniem. Tytuły z celem zdobywa się, grając.'),
+  wn: L('Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', 'Pojawia się u wszystkich na ekranie, gdy wygrywasz, i zastępuje konfetti przy twoich dobrych momentach w trakcie gry. Dotknij, żeby zobaczyć.'),
+  sp: L('Extra reactions for the chat row at any table. Every pack you own is always on.', 'Dodatkowe reakcje w pasku czatu przy każdym stole. Każda paczka, którą masz, jest zawsze włączona.') };
 
 function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
   let color = st.color, av = st.av.slice(), sec = startSec, sub = '', filt = startFilt, undo = null, saveT = 0;
@@ -1406,22 +1428,22 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const WORNALL = Object.keys(COS);
   const sheet = modal(`
     <form class="creator wd${first ? ' first' : ''}" data-form="profile">
-      <header class="wdhead"><h2>${first ? 'Who is joining the table?' : 'Wardrobe'}</h2>
-        ${first ? '' : `<span class="chip wdcoins" title="Coins: every finished game pays by where you finished, 10 for 1st down to 1 for last">${coinIco}<b></b></span><button type="button" class="round wdx" data-done aria-label="Close the wardrobe">✕</button>`}</header>
-      ${first ? '<p class="wdintro">No account needed. Pick a name and a look; friends see both at the table.</p>' : ''}
+      <header class="wdhead"><h2>${first ? L('Who is joining the table?', 'Kto dosiada się do stołu?') : L('Wardrobe', 'Garderoba')}</h2>
+        ${first ? `<button type="button" class="langbtn" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span>${PL ? 'EN' : 'PL'}</span></button>` : `<span class="chip wdcoins" title="${L('Coins: every finished game pays by where you finished, 10 for 1st down to 1 for last', 'Monety: każda skończona gra płaci według zajętego miejsca, 10 za 1. miejsce, aż do 1 za ostatnie')}">${coinIco}<b></b></span><button type="button" class="round wdx" data-done aria-label="${L('Close the wardrobe', 'Zamknij garderobę')}">✕</button>`}</header>
+      ${first ? `<p class="wdintro">${L('No account needed. Pick a name and a look; friends see both at the table.', 'Konto nie jest potrzebne. Wybierz imię i wygląd; znajomi zobaczą jedno i drugie przy stole.')}</p>` : ''}
       <div class="wdside">
         <div class="pv3d" id="pv"></div><div class="pv3d pvisle" id="pvi" hidden></div>
         <div class="wdme">
-          <div class="wdplate" aria-label="How others see you"></div>
-          <div class="namecol"><label for="nm">Name</label><input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname"></div>
-          <div class="pvbar"><span class="pvseg"><button type="button" data-cam="0" aria-pressed="true">Body</button><button type="button" data-cam="1" aria-pressed="false">Face</button></span>
-            <button type="button" class="btn w sm" data-rand>Surprise me</button><button type="button" class="btn w sm" data-undo hidden>Undo</button></div>
+          <div class="wdplate" aria-label="${L('How others see you', 'Jak widzą cię inni')}"></div>
+          <div class="namecol"><label for="nm">${L('Name', 'Imię')}</label><input class="field" id="nm" maxlength="16" required placeholder="${L('e.g. Noodle Queen', 'np. Królowa Klusek')}" value="${esc(st.name)}" autocomplete="nickname"></div>
+          <div class="pvbar"><span class="pvseg"><button type="button" data-cam="0" aria-pressed="true">${L('Body', 'Ciało')}</button><button type="button" data-cam="1" aria-pressed="false">${L('Face', 'Twarz')}</button></span>
+            <button type="button" class="btn w sm" data-rand>${L('Surprise me', 'Zaskocz mnie')}</button><button type="button" class="btn w sm" data-undo hidden>${L('Undo', 'Cofnij')}</button></div>
         </div>
       </div>
-      <nav class="wdrail" aria-label="Wardrobe sections"></nav>
+      <nav class="wdrail" aria-label="${L('Wardrobe sections', 'Działy garderoby')}"></nav>
       <div class="wdbody"><div class="wdsub"></div><p class="wdhint"></p><div class="wdgrid"></div></div>
       <div class="cart" aria-live="polite"></div>
-      ${first ? `<div class="wdfoot"><button class="btn big">Let's go</button><button type="button" class="btn ghost-ink" data-login>I already have an account</button></div>` : ''}
+      ${first ? `<div class="wdfoot"><button class="btn big">${L("Let's go", 'Zaczynamy')}</button><button type="button" class="btn ghost-ink" data-login>${L('I already have an account', 'Mam już konto')}</button></div>` : ''}
     </form>`, !first);
   const { el, close } = sheet; el.querySelector('.sheet').classList.add('wdsheet');
   const q = s => el.querySelector(s), nm = q('#nm'), pv = q('#pv'), pvi = q('#pvi'), rail = q('.wdrail'), subEl = q('.wdsub'), hint = q('.wdhint'), grid = q('.wdgrid'), cart = q('.cart'), plate = q('.wdplate');
@@ -1457,8 +1479,8 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const sections = () => {
     const d = dropOn();
     return [...(d && !first ? [{ id: 'drop', name: `${SEASON_ICO[d]} ${SEASONS[d].name}`, drop: d }] : []),
-      ...AV_TABS.map(([name, rows], i) => ({ id: 'av' + i, name, rows, grp: 'Avatar' })),
-      ...(first ? [] : WD_ACC.map(([id, name, kinds]) => ({ id, name, kinds, grp: 'Account' })))];
+      ...AV_TABS.map(([name, rows], i) => ({ id: 'av' + i, name, rows, grp: L('Avatar', 'Awatar') })),
+      ...(first ? [] : WD_ACC.map(([id, name, kinds]) => ({ id, name, kinds, grp: L('Account', 'Konto') })))];
   };
   const cur = () => sections().find(s => s.id === sec) || sections().find(s => s.id === 'av0');
   const paintRail = () => { let g = '';
@@ -1467,12 +1489,13 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
 
   // ----- tiles -----
+  const yours = L('✓ yours', '✓ masz'), cCoins = n => cnt(n, 'coin', 'coins', 'moneta', 'monety', 'monet');
   const avTile = (k, i) => {
     const hex = k === 'color', sw = hex || AV_COLOR_KEYS.includes(k), v = hex ? COLORS[i] : i, p = hex ? 0 : priceOf(k, i), lk = !hex && isLocked(k, i);
     const sn = hex ? null : seasonOf(k, i), off = lk && !onSale(k, i, today()), on = val(k) === v;
-    const label = sw ? `${hex ? 'Top colour' : ROW_LABEL[k]} ${i + 1}` : OPT[k][i];
-    const note = off ? `back in ${SEASONS[sn].back}` : lk ? `${coinIco}${p}${sn ? ` ${SEASON_ICO[sn]}` : ''}` : p ? '✓ yours' : '';
-    return `<button type="button" class="wdtile${sw ? ' sw' : ''}${lk ? ' lk' : ''}${on && lk ? ' try' : ''}"${off ? ' disabled' : ''} aria-pressed="${on}" data-k="${k}" data-v="${v}" aria-label="${esc(label)}${lk ? `, ${p} coins` : ''}">${
+    const label = sw ? `${hex ? L('Top colour', 'Kolor góry') : ROW_LABEL[k]} ${i + 1}` : OPT[k][i];
+    const note = off ? `${L('back in', 'wraca:')} ${SEASONS[sn].back}` : lk ? `${coinIco}${p}${sn ? ` ${SEASON_ICO[sn]}` : ''}` : p ? yours : '';
+    return `<button type="button" class="wdtile${sw ? ' sw' : ''}${lk ? ' lk' : ''}${on && lk ? ' try' : ''}"${off ? ' disabled' : ''} aria-pressed="${on}" data-k="${k}" data-v="${v}" aria-label="${esc(label)}${lk ? `, ${cCoins(p)}` : ''}">${
       sw ? `<i class="wdsw" style="--c:${hex ? v : OPT[k][i]}"></i>` : `<img alt="" data-ip="${k}:${i}"><b>${esc(label)}</b>`}<small>${note}</small></button>`;
   };
   const avList = k => {
@@ -1480,10 +1503,10 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const lk = i => k !== 'color' && isLocked(k, i), off = i => lk(i) && !onSale(k, i, today());
     return ids.filter(i => filt === 'mine' ? !lk(i) : filt === 'shop' ? lk(i) : true).sort((a, b) => off(a) - off(b));
   };
-  const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt">${nameHtml(st.name || 'Name', { nm: i })}</span>`
+  const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt">${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</span>`
     : k === 'fr' ? avatarHtml(color, av, 60, frameCls({ fr: i }))
-    : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? '<em>moves</em>' : ''}</span>`
-    : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : '<span class="ttl none">no title</span>'}</span>`
+    : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? `<em>${L('moves', 'rusza się')}</em>` : ''}</span>`
+    : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : `<span class="ttl none">${L('no title', 'bez tytułu')}</span>`}</span>`
     : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
     : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic${k === 'ik' ? ' isk' + i : ''}" data-isle="${k}:${i}">`
@@ -1491,17 +1514,17 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
   const cosTile = (k, i) => {
     const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
-    const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `back in ${cosSeason(k, i).back}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn ? '✓ yours' : '';
+    const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `${L('back in', 'wraca:')} ${cosSeason(k, i).back}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn ? yours : '';
     return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b>${esc(it.n)}</b>`}${k === 'nm' ? `<b>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
   };
   const cosList = k => COS[k].items.map((_, i) => i).filter(i => { const s = cosState(k, i); return filt === 'mine' ? s.own : filt === 'shop' ? !s.own && !s.pr : true; })
     .sort((a, b) => { const x = cosState(k, a), y = cosState(k, b); return (x.off || !!x.pr) - (y.off || !!y.pr); });
   const petsHtml = () => { const pets = st.pets || [], ids = showIds();
-    return !me().user ? '<p class="wdnone">Log in and start a Pet Farm to show off your pets.</p>' : !pets.length ? '<p class="wdnone">Hatch a pet in Pet Farm and it can come along.</p>'
-      : pets.map(x => { const n = ids.indexOf(x.id); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 60, 'palpic')}<b>${esc(x.name)}</b><small>lv ${x.lv | 0}</small></button>`; }).join('');
+    return !me().user ? `<p class="wdnone">${L('Log in and start a Pet Farm to show off your pets.', 'Zaloguj się i załóż Farmę zwierzaków, żeby pochwalić się swoimi zwierzakami.')}</p>` : !pets.length ? `<p class="wdnone">${L('Hatch a pet in Pet Farm and it can come along.', 'Wykluj zwierzaka na Farmie zwierzaków, a będzie mógł ci towarzyszyć.')}</p>`
+      : pets.map(x => { const n = ids.indexOf(x.id); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 60, 'palpic')}<b>${esc(x.name)}</b><small>${L('lv', 'poz.')} ${x.lv | 0}</small></button>`; }).join('');
   };
   const decorHtml = () => { const list = st.decor || [], out = myDecor();
-    return !me().user ? '<p class="wdnone">Log in and start a Pet Farm: the decorations you build there can stand on your isle.</p>' : !list.length ? '<p class="wdnone">Build a decoration on your Pet Farm (a tree, a pond, a windmill…) and you can put one like it on your isle.</p>'
+    return !me().user ? `<p class="wdnone">${L('Log in and start a Pet Farm: the decorations you build there can stand on your isle.', 'Zaloguj się i załóż Farmę zwierzaków: ozdoby, które tam zbudujesz, mogą stanąć na twojej wyspie.')}</p>` : !list.length ? `<p class="wdnone">${L('Build a decoration on your Pet Farm (a tree, a pond, a windmill…) and you can put one like it on your isle.', 'Zbuduj ozdobę na Farmie zwierzaków (drzewo, staw, wiatrak…), a będzie można postawić taką samą na wyspie.')}</p>`
       : list.map(x => { const n = out.indexOf(x.t); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-dec="${esc(x.t)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}<img alt="" class="islepic" data-isle="ip:${esc(x.t)}"><b>${esc(x.n)}</b></button>`; }).join('');
   };
   const piecesHtml = () => { const out = piecesOf(me());
@@ -1530,24 +1553,24 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const paintGrid = keep => {
     const s = cur(), top = keep ? grid.scrollTop : 0; sec = s.id;
-    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k]?.label || (k === 'fp' ? 'Floating pieces' : 'Decor')]) : [];
+    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k]?.label || (k === 'fp' ? L('Floating pieces', 'Latające elementy') : L('Decor', 'Ozdoby'))]) : [];
     if (!subs.some(([k]) => k === sub)) sub = subs[0]?.[0] || '';
     const noFilt = first || s.id === 'pets' || sub === 'ip' || sub === 'fp';
     subEl.innerHTML = `<div class="wdchips">${subs.length > 1 ? subs.map(([k, l]) => `<button type="button" data-sub="${k}" aria-pressed="${k === sub}">${l}</button>`).join('') : ''}</div>${
-      noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="Show">${[['all', 'All'], ['mine', 'Mine'], ['shop', 'Shop']].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
-    hint.textContent = s.drop ? `Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.` : s.id === 'pets' ? `Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`
-      : sub === 'fp' ? `Pick up to ${PIECE_SLOTS} game pieces to float round your isle. They are free.`
-      : sub === 'ip' ? `Up to ${DECOR_SLOTS} decorations from your Pet Farm can stand on your isle. They stay on the farm too.`
+      noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="${L('Show', 'Pokaż')}">${[['all', L('All', 'Wszystko')], ['mine', L('Mine', 'Moje')], ['shop', L('Shop', 'Sklep')]].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
+    hint.textContent = s.drop ? L(`Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.`, `Edycja limitowana: w sprzedaży do ${SEASONS[s.drop].ends}. To, co kupisz, zostaje z tobą na zawsze.`) : s.id === 'pets' ? L(`Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`, `Na twojej wyspie mogą stać najwyżej ${PET_SLOTS} zwierzaki z Farmy zwierzaków. Pierwszy siedzi też obok ciebie w poczekalniach.`)
+      : sub === 'fp' ? L(`Pick up to ${PIECE_SLOTS} game pieces to float round your isle. They are free.`, `Wybierz do ${PIECE_SLOTS} elementów z gier, które będą latać wokół twojej wyspy. Są darmowe.`)
+      : sub === 'ip' ? L(`Up to ${DECOR_SLOTS} decorations from your Pet Farm can stand on your isle. They stay on the farm too.`, `Na twojej wyspie może stanąć do ${DECOR_SLOTS} ozdób z Farmy zwierzaków. Zostają też na farmie.`)
       : s.kinds ? COS[sub].where || COS_HINT[sub] || '' : '';
     const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : sub === 'ip' ? decorHtml() : sub === 'fp' ? piecesHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
     grid.className = 'wdgrid' + (ipFailed ? ' nopic' : '') + (s.rows && (sub === 'color' || AV_COLOR_KEYS.includes(sub)) ? ' sws' : '');
-    grid.innerHTML = html || `<p class="wdnone">${filt === 'mine' ? 'Nothing of yours here yet. Look under Shop.' : filt === 'shop' ? 'Nothing left to buy here.' : 'Nothing here.'}</p>`;
+    grid.innerHTML = html || `<p class="wdnone">${filt === 'mine' ? L('Nothing of yours here yet. Look under Shop.', 'Nie masz tu jeszcze nic swojego. Zajrzyj do Sklepu.') : filt === 'shop' ? L('Nothing left to buy here.', 'Nie ma tu już nic do kupienia.') : L('Nothing here.', 'Nic tu nie ma.')}</p>`;
     grid.scrollTop = top; fillPics();
   };
   const paintPlate = () => {
     const fl = flNow(), pal = (st.pets || []).find(x => x.id === showIds()[0]);
     plate.className = 'wdplate' + cardBgCls(fl);
-    plate.innerHTML = `${cardBg(fl)}${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
+    plate.innerHTML = `${cardBg(fl)}${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || L('Your name', 'Twoje imię'), fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>${L('Win effect', 'Efekt wygranej')}: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
     petPics(plate);
     const c = q('.wdcoins b'); if (c) c.textContent = coins();
     showIsle();
@@ -1556,10 +1579,10 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     ...Object.entries(pick).map(([k, i]) => ({ id: k + ':' + i, name: cosItem(k, i).n, kind: COS[k].label.toLowerCase(), p: cosItem(k, i).p }))];
   const paintCart = () => {
     const w = first ? [] : wants(), total = w.reduce((s, x) => s + x.p, 0), short = total - coins();
-    cart.innerHTML = w.length ? `<div class="cartlist"><b>Trying on</b>${w.map(x => `<span class="cartitem">${x.dot ? `<i class="dot" style="--c:${x.dot}"></i>` : ''}${esc(x.name)}${x.kind ? ` <small>${esc(x.kind)}</small>` : ''}${
+    cart.innerHTML = w.length ? `<div class="cartlist"><b>${L('Trying on', 'Przymierzasz')}</b>${w.map(x => `<span class="cartitem">${x.dot ? `<i class="dot" style="--c:${x.dot}"></i>` : ''}${esc(x.name)}${x.kind ? ` <small>${esc(x.kind)}</small>` : ''}${
       w.length > 1 ? `<button type="button" class="btn sm w" data-buy="${x.id}" ${x.p > coins() ? 'disabled' : ''}>${coinIco}${x.p}</button>` : ''}</span>`).join('')}</div>
-      <div class="cartact"><small>Only you see these until you buy them. You have ${coinIco}${coins()}.</small><button type="button" class="btn sm w" data-off>Take off</button>
-      <button type="button" class="btn" data-buyall ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more coins` : `${w.length > 2 ? `Buy all ${w.length}` : w.length === 2 ? 'Buy both' : 'Buy'} ${coinIco}${total}`}</button></div>` : '';
+      <div class="cartact"><small>${L('Only you see these until you buy them. You have', 'Dopóki ich nie kupisz, widzisz je tylko ty. Masz')} ${coinIco}${coins()}.</small><button type="button" class="btn sm w" data-off>${L('Take off', 'Zdejmij')}</button>
+      <button type="button" class="btn" data-buyall ${short > 0 ? 'disabled' : ''}>${short > 0 ? L(`Need ${short} more coins`, `Brakuje ${cCoins(short)}`) : `${w.length > 2 ? L(`Buy all ${w.length}`, `Kup wszystkie ${w.length}`) : w.length === 2 ? L('Buy both', 'Kup oba') : L('Buy', 'Kup')} ${coinIco}${total}`}</button></div>` : '';
   };
   const paint = keep => { paintRail(); paintGrid(keep); paintPlate(); paintCart(); };
   const camBtns = face => el.querySelectorAll('[data-cam]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.cam === '1') === face));
@@ -1583,6 +1606,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   el.addEventListener('click', e => {
     const t = e.target;
     if (t.closest('[data-done]')) return close();
+    const lg = t.closest('[data-lang]'); if (lg) return setLang(lg.dataset.lang);
     if (t.closest('[data-login]')) { close(); return openAccount('login'); }
     const sb = t.closest('[data-sec]'); if (sb) { sec = sb.dataset.sec; sub = ''; sfx.click(); paintRail(); paintGrid(); showIsle(); return setCam(sec === 'av1'); }
     const su = t.closest('[data-sub]'); if (su) { sub = su.dataset.sub; sfx.click(); return paintGrid(); }
@@ -1597,19 +1621,19 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const pl = t.closest('[data-pal]');
     if (pl) { // tap to add a pet to the next free slot, tap again to take it off
       const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);
-      if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
+      if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(L(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`, `Na twojej wyspie zmieszczą się ${PET_SLOTS} zwierzaki. Najpierw dotknij jednego, żeby go zdjąć.`)); else ids.push(id);
       sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); paintGrid(true); return paintPlate();
     }
     const fp = t.closest('[data-fp]');
     if (fp) { // a floating game piece: tap to add it, tap again to take it away
       const id = fp.dataset.fp, l = piecesOf(me()).slice(), at = l.indexOf(id);
-      if (at >= 0) l.splice(at, 1); else if (l.length >= PIECE_SLOTS) return toast(`${PIECE_SLOTS} pieces is the most. Tap one to take it away first.`); else l.push(id);
+      if (at >= 0) l.splice(at, 1); else if (l.length >= PIECE_SLOTS) return toast(L(`${PIECE_SLOTS} pieces is the most. Tap one to take it away first.`, `Najwięcej może być ${PIECE_SLOTS}. Najpierw dotknij jednego elementu, żeby go zabrać.`)); else l.push(id);
       sfx.pop(); (st.me.cos ||= {}).fp = l; send({ t: 'wear', k: 'fp', i: l }); paintGrid(true); return paintPlate();
     }
     const dc = t.closest('[data-dec]');
     if (dc) { // a Pet Farm decoration: tap to stand it on the isle, tap again to take it back
       const ty = dc.dataset.dec, l = myDecor(), at = l.indexOf(ty);
-      if (at >= 0) l.splice(at, 1); else if (l.length >= DECOR_SLOTS) return toast(`Your isle has room for ${DECOR_SLOTS} decorations. Tap one to take it off first.`); else l.push(ty);
+      if (at >= 0) l.splice(at, 1); else if (l.length >= DECOR_SLOTS) return toast(L(`Your isle has room for ${DECOR_SLOTS} decorations. Tap one to take it off first.`, `Na twojej wyspie zmieści się ${DECOR_SLOTS} ozdób. Najpierw dotknij jednej, żeby ją zdjąć.`)); else l.push(ty);
       sfx.pop(); (st.me.cos ||= {}).ip = l; send({ t: 'wear', k: 'ip', i: l }); paintGrid(true); return paintPlate();
     }
     const a = t.closest('[data-k]');
@@ -1648,23 +1672,23 @@ function openPlayer(p) {
   const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp'];
   const sheet = playerSheet = modal(`
     <div class="profcard">
-      <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>lv ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
+      <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
       <div class="pinfo">
         <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
-          ${titleHtml(p.fl)}<small>${p.me ? 'This is you' : p.online ? '<i class="dot on"></i>Online now' : 'Not online'}${p.guest ? ' · guest' : ''} · ${esc(p.rank || '')}</small></div></div>
-        <div class="pstats"><span><b>${p.games.toLocaleString()}</b>games</span><span><b>${p.wins.toLocaleString()}</b>wins</span><span><b>${rate}%</b>win rate</span><span><b>${p.xp.toLocaleString()}</b>XP</span></div>
-        ${p.top.length ? `<h3>Best games</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || g.g)}</b><span>${plural(g.wins, 'win')} · ${plural(g.games, 'game')}</span></li>`).join('')}</ul>` : '<p>No finished games yet.</p>'}
-        <h3>Table kit</h3>
-        <div class="stylekit pkit">${kit.map(k => { const i = p.fl[k] | 0, u = skinPicNow(k, i, p.color, p.av); return `<figure><img width="54" height="54" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i)?.n || 'Classic')}</figcaption></figure>`; }).join('')}</div>
+          ${titleHtml(p.fl)}<small>${p.me ? L('This is you', 'To ty') : p.online ? `<i class="dot on"></i>${L('Online now', 'Teraz online')}` : L('Not online', 'Offline')}${p.guest ? L(' · guest', ' · gość') : ''} · ${esc(p.lv ? rankOf(p.lv).name : p.rank || '')}</small></div></div>
+        <div class="pstats"><span><b>${num(p.games)}</b>${L('games', 'gry')}</span><span><b>${num(p.wins)}</b>${L('wins', 'wygrane')}</span><span><b>${rate}%</b>${L('win rate', 'skuteczność')}</span><span><b>${num(p.xp)}</b>XP</span></div>
+        ${p.top.length ? `<h3>${L('Best games', 'Najlepsze gry')}</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || SOLO[g.g]?.name || g.g)}</b><span>${cWins(g.wins)} · ${cGames(g.games)}</span></li>`).join('')}</ul>` : `<p>${L('No finished games yet.', 'Nie ma jeszcze skończonych gier.')}</p>`}
+        <h3>${L('Table kit', 'Zestaw do gier')}</h3>
+        <div class="stylekit pkit">${kit.map(k => { const i = p.fl[k] | 0, u = skinPicNow(k, i, p.color, p.av); return `<figure><img width="54" height="54" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i)?.n || L('Classic', 'Klasyczny'))}</figcaption></figure>`; }).join('')}</div>
       </div>
     </div>
-    <div class="row"><button type="button" class="btn big" data-done>Close</button>${p.me ? '<button type="button" class="btn big w" data-style>✨ Change your style</button>' : ''}${
-      p.rel === 'none' ? '<button type="button" class="btn big m" data-fr="add">Add friend</button>'
-      : p.rel === 'req' ? '<button type="button" class="btn big m" data-fr="accept">Accept friend request</button>'
-      : p.rel === 'sent' ? '<button type="button" class="btn big w" disabled>Friend request sent</button>'
-      : p.rel === 'friend' ? '<span class="chip pfriend">✓ Friends</span>'
-      : p.rel === 'guest' && !p.guest ? '<button type="button" class="btn big w" data-fr="account">Create an account to add friends</button>'
-      : p.rel === 'noacc' ? '<span class="pfnote">Guests can\'t be added as friends until they make an account.</span>' : ''}</div>`);
+    <div class="row"><button type="button" class="btn big" data-done>${L('Close', 'Zamknij')}</button>${p.me ? `<button type="button" class="btn big w" data-style>✨ ${L('Change your style', 'Zmień swój styl')}</button>` : ''}${
+      p.rel === 'none' ? `<button type="button" class="btn big m" data-fr="add">${L('Add friend', 'Dodaj do znajomych')}</button>`
+      : p.rel === 'req' ? `<button type="button" class="btn big m" data-fr="accept">${L('Accept friend request', 'Przyjmij zaproszenie')}</button>`
+      : p.rel === 'sent' ? `<button type="button" class="btn big w" disabled>${L('Friend request sent', 'Zaproszenie wysłane')}</button>`
+      : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span>`
+      : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
+      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
@@ -1689,19 +1713,19 @@ document.addEventListener('click', e => {
 function openAccount(mode = 'register') {
   const reg = mode === 'register';
   const { el, close } = modal(`
-    <h2>${reg ? 'Create an account' : 'Log in'}</h2>
-    <p>${reg ? 'Just a username and a password, no email. Your rank, XP and wins so far move into the account, and you can log in from any device.'
-      : 'Pick up your rank, XP and wins on this device.'}</p>
+    <h2>${reg ? L('Create an account', 'Załóż konto') : L('Log in', 'Zaloguj się')}</h2>
+    <p>${reg ? L('Just a username and a password, no email. Your rank, XP and wins so far move into the account, and you can log in from any device.', 'Wystarczy nazwa użytkownika i hasło, bez e-maila. Twoja ranga, XP i dotychczasowe wygrane przechodzą na konto, a zalogować się możesz z każdego urządzenia.')
+      : L('Pick up your rank, XP and wins on this device.', 'Odzyskaj swoją rangę, XP i wygrane na tym urządzeniu.')}</p>
     <form class="authform">
-      <label for="au">Username</label>
+      <label for="au">${L('Username', 'Nazwa użytkownika')}</label>
       <input class="field" id="au" maxlength="16" required autocomplete="username" autocapitalize="none" spellcheck="false">
-      <label for="ap">Password</label>
+      <label for="ap">${L('Password', 'Hasło')}</label>
       <input class="field" id="ap" type="password" minlength="6" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">
       <p class="autherr" role="alert" hidden></p>
-      ${reg ? '<p style="font-size:14px">Next you get a recovery code. Keep it somewhere safe: it lets you set a new password if you ever forget this one.</p>' : ''}
-      <button class="btn big">${reg ? 'Create account' : 'Log in'}</button>
-      ${reg ? '' : '<button type="button" class="btn ghost-ink" data-forgot>Forgot your password?</button>'}
-      <button type="button" class="btn ghost-ink" data-swap>${reg ? 'I already have an account' : 'I need an account'}</button>
+      ${reg ? `<p style="font-size:14px">${L('Next you get a recovery code. Keep it somewhere safe: it lets you set a new password if you ever forget this one.', 'Za chwilę dostaniesz kod odzyskiwania. Schowaj go w bezpiecznym miejscu: pozwoli ustawić nowe hasło, jeśli kiedyś zapomnisz tego.')}</p>` : ''}
+      <button class="btn big">${reg ? L('Create account', 'Załóż konto') : L('Log in', 'Zaloguj się')}</button>
+      ${reg ? '' : `<button type="button" class="btn ghost-ink" data-forgot>${L('Forgot your password?', 'Nie pamiętasz hasła?')}</button>`}
+      <button type="button" class="btn ghost-ink" data-swap>${reg ? L('I already have an account', 'Mam już konto') : L('I need an account', 'Chcę założyć konto')}</button>
     </form>`);
   setTimeout(() => el.querySelector('#au').focus(), 50);
   el.querySelector('[data-swap]').addEventListener('click', () => { close(); onAuth = null; openAccount(reg ? 'login' : 'register'); });
@@ -1711,7 +1735,7 @@ function openAccount(mode = 'register') {
     return { t: mode, user: el.querySelector('#au').value.trim(), pass: el.querySelector('#ap').value };
   }, m => {
     close(); sfx.join();
-    if (reg) showRecoveryCode(m.code, true); else toast('Welcome back!');
+    if (reg) showRecoveryCode(m.code, true); else toast(L('Welcome back!', 'Witaj z powrotem!'));
     if (st.view === 'lobby') renderLobby();
   });
 }
@@ -1721,12 +1745,12 @@ function authForm(el, msg, done) {
   const err = el.querySelector('.autherr'), btn = el.querySelector('.btn.big');
   el.querySelector('form').addEventListener('submit', e => {
     e.preventDefault();
-    if (ws?.readyState !== 1) { err.textContent = 'Not connected. Try again in a moment.'; err.hidden = false; return; }
+    if (ws?.readyState !== 1) { err.textContent = L('Not connected. Try again in a moment.', 'Brak połączenia. Spróbuj ponownie za chwilę.'); err.hidden = false; return; }
     const m = msg(); if (!m) return;
     btn.disabled = true; err.hidden = true;
     onAuth = r => {
       btn.disabled = false;
-      if (r.err) { sfx.bad(); err.textContent = r.err; err.hidden = false; return; }
+      if (r.err) { sfx.bad(); err.textContent = srvText(r.err); err.hidden = false; return; }
       onAuth = null; done(r);
     };
     send(m);
@@ -1737,25 +1761,24 @@ const showErr = (el, text) => { const err = el.querySelector('.autherr'); err.te
 // Forgot the password: username + recovery code (or a reset code from the host) + a new password.
 function openRecover(user = '') {
   const { el, close } = modal(`
-    <h2>Set a new password</h2>
-    <p>Type your username and your recovery code (you got it when you made the account). Lost the code too? Ask the
-      person who runs this site for a reset code and type that instead.</p>
+    <h2>${L('Set a new password', 'Ustaw nowe hasło')}</h2>
+    <p>${L('Type your username and your recovery code (you got it when you made the account). Lost the code too? Ask the person who runs this site for a reset code and type that instead.', 'Wpisz nazwę użytkownika i kod odzyskiwania (dostajesz go przy zakładaniu konta). Kod też przepadł? Poproś osobę, która prowadzi tę stronę, o kod resetujący i wpisz go zamiast tamtego.')}</p>
     <form class="authform">
-      <label for="ru">Username</label>
+      <label for="ru">${L('Username', 'Nazwa użytkownika')}</label>
       <input class="field" id="ru" maxlength="16" required autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(user)}">
-      <label for="rc">Recovery or reset code</label>
+      <label for="rc">${L('Recovery or reset code', 'Kod odzyskiwania albo resetujący')}</label>
       <input class="field" id="rc" maxlength="40" required autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH-JKLM-NPQR">
-      <label for="rp">New password</label>
+      <label for="rp">${L('New password', 'Nowe hasło')}</label>
       <input class="field" id="rp" type="password" minlength="6" maxlength="72" required autocomplete="new-password">
       <p class="autherr" role="alert" hidden></p>
-      <button class="btn big">Set new password</button>
-      <button type="button" class="btn ghost-ink" data-back>Back to log in</button>
+      <button class="btn big">${L('Set new password', 'Ustaw nowe hasło')}</button>
+      <button type="button" class="btn ghost-ink" data-back>${L('Back to log in', 'Wróć do logowania')}</button>
     </form>`);
   setTimeout(() => el.querySelector(user ? '#rc' : '#ru').focus(), 50);
   el.querySelector('[data-back]').addEventListener('click', () => { close(); onAuth = null; openAccount('login'); });
   authForm(el, () => { adoptLook = true; return { t: 'recover', user: el.querySelector('#ru').value.trim(), code: el.querySelector('#rc').value, pass: el.querySelector('#rp').value }; }, m => {
-    close(); sfx.join(); toast('New password set. You are logged in, and other devices were logged out.');
-    showRecoveryCode(m.code, false, 'Your old code is used up, so here is a new one.');
+    close(); sfx.join(); toast(L('New password set. You are logged in, and other devices were logged out.', 'Nowe hasło ustawione. Zalogowano cię, a inne urządzenia zostały wylogowane.'));
+    showRecoveryCode(m.code, false, L('Your old code is used up, so here is a new one.', 'Stary kod został zużyty, więc oto nowy.'));
     if (st.view === 'lobby') renderLobby();
   });
 }
@@ -1764,61 +1787,60 @@ function openRecover(user = '') {
 function showRecoveryCode(code, fresh, note = '') {
   if (!code) return;
   const { el, close } = modal(`
-    <h2>${fresh ? 'Account created!' : 'Your recovery code'}</h2>
-    <p>${note ? note + ' ' : ''}If you ever forget your password, this code lets you set a new one. Save it in a password manager,
-      a note on your phone, or on paper. It is shown only this once.</p>
-    <p class="rcode" aria-label="Recovery code">${esc(code)}</p>
-    <div class="row"><button type="button" class="btn w" data-copy>Copy code</button><button type="button" class="btn big" data-close>I saved it</button></div>`, false);
+    <h2>${fresh ? L('Account created!', 'Konto założone!') : L('Your recovery code', 'Twój kod odzyskiwania')}</h2>
+    <p>${note ? note + ' ' : ''}${L('If you ever forget your password, this code lets you set a new one. Save it in a password manager, a note on your phone, or on paper. It is shown only this once.', 'Jeśli kiedyś zapomnisz hasła, ten kod pozwoli ustawić nowe. Zapisz go w menedżerze haseł, w notatce w telefonie albo na kartce. Widzisz go tylko ten jeden raz.')}</p>
+    <p class="rcode" aria-label="${L('Recovery code', 'Kod odzyskiwania')}">${esc(code)}</p>
+    <div class="row"><button type="button" class="btn w" data-copy>${L('Copy code', 'Skopiuj kod')}</button><button type="button" class="btn big" data-close>${L('I saved it', 'Kod zapisany')}</button></div>`, false);
   el.querySelector('[data-copy]').addEventListener('click', e => {
-    navigator.clipboard?.writeText(code).then(() => { e.target.textContent = 'Copied!'; }, () => { e.target.textContent = 'Select the code and copy it'; });
+    navigator.clipboard?.writeText(code).then(() => { e.target.textContent = L('Copied!', 'Skopiowano!'); }, () => { e.target.textContent = L('Select the code and copy it', 'Zaznacz kod i skopiuj go'); });
   });
-  el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); close(); if (fresh) toast('Your progress is saved!'); });
+  el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); close(); if (fresh) toast(L('Your progress is saved!', 'Twoje postępy są zapisane!')); });
 }
 
 // Signed in: change the password, or make a new recovery code. Both ask for the current password.
 function openSecurity() {
   const { el, close } = modal(`
-    <h2>Password and recovery</h2>
-    <p>Signed in as <b>${esc(st.me?.user)}</b>.</p>
+    <h2>${L('Password and recovery', 'Hasło i odzyskiwanie')}</h2>
+    <p>${L('Signed in as', 'Zalogowano jako')} <b>${esc(st.me?.user)}</b>.</p>
     <form class="authform" data-f="pw">
-      <h3>Change password</h3>
+      <h3>${L('Change password', 'Zmień hasło')}</h3>
       <input type="text" autocomplete="username" value="${esc(st.me?.user)}" hidden>
-      <label for="po">Current password</label>
+      <label for="po">${L('Current password', 'Obecne hasło')}</label>
       <input class="field" id="po" type="password" maxlength="72" required autocomplete="current-password">
-      <label for="pn">New password</label>
+      <label for="pn">${L('New password', 'Nowe hasło')}</label>
       <input class="field" id="pn" type="password" minlength="6" maxlength="72" required autocomplete="new-password">
-      <label for="pn2">New password again</label>
+      <label for="pn2">${L('New password again', 'Nowe hasło jeszcze raz')}</label>
       <input class="field" id="pn2" type="password" minlength="6" maxlength="72" required autocomplete="new-password">
       <p class="autherr" role="alert" hidden></p>
-      <p style="font-size:14px">Any other phone or computer signed in to this account is logged out.</p>
-      <button class="btn big">Change password</button>
+      <p style="font-size:14px">${L('Any other phone or computer signed in to this account is logged out.', 'Każdy inny telefon i komputer zalogowany na to konto zostanie wylogowany.')}</p>
+      <button class="btn big">${L('Change password', 'Zmień hasło')}</button>
     </form>
     <form class="authform" data-f="rc">
-      <h3>Recovery code</h3>
-      <p style="font-size:14px">Lost your recovery code? Make a new one. The old one stops working.</p>
-      <label for="pr">Password</label>
+      <h3>${L('Recovery code', 'Kod odzyskiwania')}</h3>
+      <p style="font-size:14px">${L('Lost your recovery code? Make a new one. The old one stops working.', 'Kod odzyskiwania przepadł? Wygeneruj nowy. Stary przestanie działać.')}</p>
+      <label for="pr">${L('Password', 'Hasło')}</label>
       <input class="field" id="pr" type="password" maxlength="72" required autocomplete="current-password">
       <p class="autherr" role="alert" hidden></p>
-      <button class="btn big w">Make a new recovery code</button>
+      <button class="btn big w">${L('Make a new recovery code', 'Wygeneruj nowy kod odzyskiwania')}</button>
     </form>
-    <button type="button" class="btn ghost-ink" data-close>Close</button>`);
+    <button type="button" class="btn ghost-ink" data-close>${L('Close', 'Zamknij')}</button>`);
   const pw = el.querySelector('[data-f="pw"]'), rc = el.querySelector('[data-f="rc"]');
   setTimeout(() => el.querySelector('#po').focus(), 50);
   el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); onAuth = null; close(); });
   const scoped = f => ({ querySelector: q => q === 'form' ? f : f.querySelector(q) }); // authForm looks inside one form
   authForm(scoped(pw), () => {
     const a = pw.querySelector('#pn').value, b = pw.querySelector('#pn2').value;
-    if (a !== b) { showErr(pw, 'The two new passwords are not the same.'); return null; }
+    if (a !== b) { showErr(pw, L('The two new passwords are not the same.', 'Nowe hasła nie są takie same.')); return null; }
     return { t: 'passwd', old: pw.querySelector('#po').value, pass: a };
-  }, () => { close(); sfx.join(); toast('Password changed. Other devices were logged out.'); });
+  }, () => { close(); sfx.join(); toast(L('Password changed. Other devices were logged out.', 'Hasło zmienione. Inne urządzenia zostały wylogowane.')); });
   authForm(scoped(rc), () => ({ t: 'recode', pass: rc.querySelector('#pr').value }), m => { close(); showRecoveryCode(m.code, false); });
 }
 
 export function openRules(game) {
   const info = id => GAMES[id] || SOLO[id], ids = info(game) ? [game] : [...Object.keys(GAMES), ...Object.keys(SOLO)];
   const { el, close } = modal(`
-    ${ids.map(id => `<h2>How to play ${info(id).name}</h2><div class="rules">${info(id).rules}</div>`).join('')}
-    <button type="button" class="btn big" data-close>Got it</button>`);
+    ${ids.map(id => `<h2>${L('How to play', 'Jak grać:')} ${info(id).name}</h2><div class="rules">${info(id).rules}</div>`).join('')}
+    <button type="button" class="btn big" data-close>${L('Got it', 'Jasne')}</button>`);
   el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); close(); });
 }
 
@@ -1832,6 +1854,7 @@ $app.addEventListener('click', e => {
   else if (act === 'htab') setHubTab(b.dataset.tab);
   else if (act === 'gfilt') { st.gFilt = b.dataset.cat; LS.set('ct_gf', st.gFilt); filterGames(); }
   else if (act === 'acct') openAcct();
+  else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'mystats') openStats();
   else if (act === 'tables') openTables();
   else if (act === 'rkall') openRankings();
@@ -1843,7 +1866,7 @@ $app.addEventListener('click', e => {
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
   else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
-  else if (act === 'logout') { send({ t: 'logout' }); toast('Logged out. This browser is a guest again.'); }
+  else if (act === 'logout') { send({ t: 'logout' }); toast(L('Logged out. This browser is a guest again.', 'Wylogowano. Ta przeglądarka znów gra jako gość.')); }
   else if (act === 'host' || act === 'solo') {
     if (!st.name) return openProfile(true);
     const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
@@ -1861,7 +1884,7 @@ $app.addEventListener('click', e => {
   else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field', 'hands'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
   else if (act === 'copy') {
     const link = `${location.origin}/#${st.room.code}`;
-    (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast('Invite link copied!'), () => toast(`Share this: ${esc(link)}`));
+    (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast(L('Invite link copied!', 'Link z zaproszeniem skopiowany!')), () => toast(`${L('Share this', 'Udostępnij ten link')}: ${esc(link)}`));
   }
 });
 $app.addEventListener('change', e => { if (e.target.dataset.act === 'priv') send({ t: 'opts', priv: !e.target.checked }); });
@@ -1869,7 +1892,7 @@ $app.addEventListener('submit', e => {
   if (e.target.dataset.form !== 'join') return;
   e.preventDefault();
   const code = e.target.querySelector('input').value.toUpperCase().trim();
-  if (!validCode(code)) { sfx.bad(); toast('Codes are 4 letters or numbers', true); return; }
+  if (!validCode(code)) { sfx.bad(); toast(L('Codes are 4 letters or numbers', 'Kod to 4 litery lub cyfry'), true); return; }
   if (!st.name) { pendingJoin = code; return openProfile(true); }
   sfx.click(); send({ t: 'join', code });
 });
@@ -1884,5 +1907,6 @@ addEventListener('hashchange', () => {
 let ipFailed = false, islePics = null;
 const ipReady = import('./itempic.js').then(m => { IP = m; }).catch(() => { ipFailed = true; });
 const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
+onLangSwitch(l => { if (st.me?.user) send({ t: 'lang', v: l }); });
 go('hub');
 connect();

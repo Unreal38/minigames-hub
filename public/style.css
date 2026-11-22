@@ -1215,3 +1215,18 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .ladder li.got { opacity: 1; } .ladder li.got .rkic { filter: none; }
 .ladder li.now { border-color: var(--lantern); box-shadow: 0 0 0 2px var(--lantern); }
 .ladder li.more { grid-column: 1 / -1; opacity: 1; flex-direction: row; justify-content: center; font-size: 13px; }
+
+/* ---------- language switch (PL / EN) ---------- */
+/* A two-letter pill beside the day/night switch: the language you are in is filled, the other one is what a tap gives you. */
+.langbtn { display: inline-flex; align-items: center; gap: 2px; height: 48px; padding: 0 5px; border-radius: 24px; cursor: pointer; font: 700 14px/1 var(--fd, inherit); letter-spacing: .03em;
+  background: var(--plum2); border: 3px solid var(--line); color: var(--cream); transition: transform .2s cubic-bezier(.3, 1.6, .5, 1); }
+.langbtn b, .langbtn span { display: grid; place-items: center; min-width: 32px; height: 32px; border-radius: 16px; }
+.langbtn b { background: var(--ink); color: #fff; } .langbtn span { opacity: .7; }
+.langbtn:hover { transform: scale(1.05); } .langbtn:hover span { opacity: 1; } .langbtn:active { transform: scale(.94); }
+body.sky:not(.in-game) .langbtn { background: var(--pan); border-color: var(--ink); color: var(--tx, var(--ink)); box-shadow: 0 4px 0 var(--ink); }
+body.sky.night:not(.in-game) .langbtn b { background: var(--lantern); color: #1b1030; }
+.wdhead .langbtn { height: 44px; box-shadow: none; }
+/* On phones the top bar has no room for it: the language is in the account sheet (the You tab) and on the welcome window. */
+@media (max-width: 600px) { .top .langbtn { display: none; } }
+/* Polish words run longer: let a Today tile's title take two lines instead of being cut off. */
+html[lang=pl] .ttile .tbody b { white-space: normal; line-height: 1.1; font-size: 17px; }

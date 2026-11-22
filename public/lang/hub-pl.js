@@ -1,0 +1,342 @@
+// Polish for the hub's long texts: each game's name, pitch, start button, open-seat note, "how to win" line and full
+// rules, plus the labels of the table settings. app.js loads this only when the site is in Polish and lays it over
+// the English in GAMES / SOLO / HUB_GAMES. When you change a game's English text in app.js, change it here too.
+// Anything missing here simply stays English.
+
+// Table settings: headings and pill labels, by their English text.
+export const OPT_PL = {
+  Bots: 'Boty', Chill: 'Luźne', Sharp: 'Ostre', 'Turn timer': 'Czas na ruch', Off: 'Wył.', On: 'Wł.', Yes: 'Tak', No: 'Nie', Players: 'Gracze',
+  Race: 'Wyścig', Classic: 'Klasyczny', Knockout: 'Eliminacje', 'Chaos events': 'Chaos na torze', 'Marbles on the track': 'Kulki na torze',
+  Board: 'Plansza', 'Classic 100': 'Klasyczna 100', 'Quick 60': 'Szybka 60', 'Party tiles': 'Pola specjalne', 'Hard mode': 'Tryb trudny',
+  'Exact roll to finish': 'Dokładny rzut na metę', 'Roll timer': 'Czas na rzut',
+  Game: 'Gra', 'Seats at the table': 'Miejsca przy stole', 'Game length': 'Długość gry', '10 hands': '10 rozdań', '20 hands': '20 rozdań', 'Last one standing': 'Do ostatniego gracza',
+  'Pawns each': 'Pionki na gracza', 'Classic 4': 'Klasycznie 4', 'Quick 2': 'Szybko 2', 'Head start': 'Na dobry początek', 'One pawn out': 'Jeden pionek na planszy',
+  Towers: 'Wieże', Blocks: 'Klocki', 'All the same': 'Jednakowe', 'Mixed shapes': 'Różne kształty', 'Drop timer': 'Czas na zrzut',
+  'Start from': 'Start od', Finish: 'Koniec', 'On a double': 'Podwójnym polem', 'Any dart': 'Dowolną lotką', Legs: 'Legi', 'One leg': 'Jeden leg', 'Best of 3': 'Do 2 wygranych', 'Time per dart': 'Czas na lotkę',
+  Holes: 'Dołki', 'Quick 3': 'Szybko 3', Course: 'Pole', Random: 'Losowe', 'Coin bets on each hole': 'Zakłady o monety na każdym dołku',
+  'A lost call costs': 'Przegrane sprawdzenie kosztuje', 'A die': 'Kość', 'A life': 'Życie', 'Lives (life mode)': 'Życia (tryb z życiami)', 'Dice each': 'Kości na gracza', 'Classic 5': 'Klasycznie 5',
+  'Ones are wild': 'Jedynki to jokery', 'Spot on calls': 'Okrzyk „Co do joty!”',
+  'Quick 10 rounds': 'Szybko: 10 rund', '20 rounds': '20 rund', 'Long 30': 'Długo: 30', 'Napping pets': 'Drzemki zwierzaków',
+  Track: 'Trasa', 'Meadow Loop': 'Łąkowa pętla', 'Sugar Bridges': 'Cukrowe mosty', 'Twisty Peaks': 'Kręte szczyty', Laps: 'Okrążenia', 'Karts on the grid': 'Gokarty na starcie',
+  'Power-ups': 'Bonusy', Chaos: 'Chaos',
+  Cooks: 'Kucharze', Kitchen: 'Kuchnia', 'Sunny Diner': 'Słoneczny bar', 'Pass-Through': 'Kuchnia z okienkiem', Shift: 'Zmiana', 'Bot cooks': 'Kucharze-boty',
+  '4 (dealer sits out)': '4 (rozdający pauzuje)', 'Play to': 'Gramy do', 'Classic 1000': 'Klasycznie 1000', 'Quick 500': 'Szybko 500', Folding: 'Poddanie gry',
+  'First one free': 'Pierwsze za darmo', 'Always 60': 'Zawsze 60', 'No folding': 'Bez poddawania',
+  Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
+  Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
+  Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
+  'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
+};
+
+export const SEATS_PL = s => s.replace('players', 'graczy').replace('Co-op', 'Kooperacja');
+
+export const GAMES_PL = {
+  hotpot: {
+    start: 'Nastaw garnek', openSeat: 'Jeśli nikt nie dołączy, usiądzie tu bot',
+    pitch: 'Dobieraj, wymieniaj i zbierz trzy zestawy po trzy składniki, a potem zawołaj „Smacznego!”, zanim zrobi to ktoś inny.',
+    howto: `Masz 8 kart. W każdej turze dobierasz jedną (z garnka albo z odrzuconych kart znajomego), a potem jedną odrzucasz. Ułóż trzy zestawy po trzy karty: trzy takie same składniki albo trzy różne składniki w jednym kolorze, i zawołaj „Smacznego!”.`,
+    rules: `<ol>
+      <li>Każdy ma <b>8 kart</b>. Karta to składnik w jednym z sześciu kolorów.</li>
+      <li>W swojej turze <b>dobierz jedną kartę</b>: składnik-niespodziankę z garnka albo wierzchnią kartę, którą przed chwilą odrzucił znajomy.</li>
+      <li>Potem <b>odrzuć jedną</b> kartę, żeby znów mieć 8.</li>
+      <li><b>Zestaw</b> to trzy identyczne składniki (30 pkt) albo trzy <b>różne</b> składniki w tym samym kolorze (15 pkt).</li>
+      <li>Jeśli po dobraniu masz <b>trzy zestawy</b>, naciśnij <b>Smacznego!</b>, żeby wygrać (+90 pkt).</li>
+      <li>Nikt nie wygrał po 30 rundach? Każdy dostaje punkty za zestawy na ręce.</li>
+    </ol>`,
+  },
+  marbles: {
+    start: 'Otwórz zakłady', openSeat: 'Jeśli nikt nie dołączy, z tego miejsca obstawia bot',
+    pitch: 'Wybierz kolor, postaw monety i patrz, jak kulki pędzą w dół po losowym torze 3D.',
+    howto: `Kulki nie należą do nikogo. Postaw monety na kolor i patrz, jak kulki toczą się w dół po losowym torze. W eliminacjach po każdym biegu odpada najwolniejsza kulka, aż zostanie jedna.`,
+    rules: `<ol>
+      <li>Kulki to po prostu <b>kolory</b> i nie należą do nikogo. Kilku graczy może kibicować tej samej.</li>
+      <li>Zanim otworzy się bramka, <b>postaw monety</b> na kolor. Wyścig czeka, aż wszyscy obstawią. Zwycięski kolor wypłaca stawkę razy liczba kulek.</li>
+      <li>Tor jest <b>za każdym razem losowy</b>: kołki, wiatraki, zapadnie, pola przyspieszenia i przewężenia. Nikt nie steruje.</li>
+      <li>Masz <b>jednego banana na bieg</b>. Rzuć nim w dowolny kolor, żeby kulka się poślizgnęła.</li>
+      <li><b>Chaos na torze</b> dotyka wszystkich: odwrócona grawitacja, turbo, trzęsienia toru i zamiany miejsc.</li>
+      <li><b>Eliminacje</b>: ostatnia kulka na mecie w każdym biegu odpada. Dobre do losowania, kto stawia.</li>
+      <li>Stawiasz prawdziwe monety, te same, za które kupujesz rzeczy dla awatara, więc obstawiaj z głową. Jeśli masz mniej niż 10, bank pożycza ci zakład za 10 monet.</li>
+    </ol>`,
+  },
+  ladders: {
+    name: 'Węże i drabiny', start: 'Zacznij grę', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Klasyczny wyścig na szczyt po nowej planszy 3D w każdej grze. Pionkami są wasze awatary, a na trasie czeka kilka pól specjalnych.',
+    howto: `Awatar każdego gracza siedzi na pionku na starcie. Rzucacie kostką po kolei: drabiny wciągają w górę, węże zsuwają w dół. Wygrywa ten, kto pierwszy dotrze do gwiazdki na ostatnim polu.`,
+    rules: `<ol>
+      <li>Każdy gracz dostaje <b>pionek</b> ze swoim awatarem. Wolne miejsca zajmują boty.</li>
+      <li>W swojej turze <b>rzuć kostką</b> i przeskocz tyle pól. Plansza jest nowa w każdej grze.</li>
+      <li>Stań u stóp <b>drabiny</b>, żeby się po niej wspiąć. Stań na <b>głowie węża</b>, a zjedziesz na jego ogon.</li>
+      <li>Wyrzuć <b>6</b>, a rzucasz jeszcze raz (najwyżej dwa razy z rzędu).</li>
+      <li><b>Pola specjalne</b>: zielone przenosi o 3 pola do przodu, pomarańczowe daje dodatkowy rzut, różowe zamienia cię miejscami z graczem tuż przed tobą, a na niebieskim przesypiasz następną turę.</li>
+      <li>Przy <b>dokładnym rzucie</b> musisz wyrzucić tyle, żeby stanąć dokładnie na ostatnim polu. Za dużo, a odbijasz się do tyłu.</li>
+      <li>Wygrywa pierwszy gracz na ostatnim polu. Pozostali zajmują miejsca według tego, jak daleko doszli.</li>
+      <li><b>Tryb trudny</b>: niektóre drabiny są <b>zepsute</b> (znak ostrzegawczy u stóp): wchodzisz tylko do połowy i tracisz turę. Każda drabina może <b>pęknąć</b>, gdy ktoś po niej wejdzie. <b>Złote węże</b> patrzą w dół planszy: stań na głowie, żeby wspiąć się na ogon, ale kosztuje to turę. Na polu zamiany <b>musisz</b> się zamienić, więc lider zamienia się z graczem tuż za nim.</li>
+    </ol>`,
+  },
+  poker: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, usiądzie tu bot',
+    pitch: 'Przytulny poker bez limitu na żetony na niby. Jest też Mango Poker, w którym flop powstaje z kart, które wszyscy odrzucacie.',
+    howto: `Klasyczny Texas Hold'em bez limitu, na żetony na niby. Ułóż najlepszy układ pięciu kart z dwóch swoich i pięciu ze stołu albo postaw tyle, żeby reszta spasowała. Wygrywa ten, kto po ostatnim rozdaniu ma najwięcej żetonów.`,
+    rules: `<ol>
+      <li>Każdy zaczyna z <b>1000 żetonów na niby</b>. Na wolnych miejscach siadają boty.</li>
+      <li>W każdym rozdaniu dostajesz <b>dwie zakryte karty</b>. Dwóch graczy wpłaca <b>ciemne</b> (małe obowiązkowe zakłady), żeby gra ruszyła.</li>
+      <li>Licytacja idzie dookoła stołu: <b>pas</b> (rezygnujesz), <b>czekanie</b> (gdy nikt nie postawił), <b>sprawdzenie</b> (wyrównujesz zakład) albo <b>podbicie</b>.</li>
+      <li>Na stół trafia pięć wspólnych kart: <b>flop</b> (trzy), <b>turn</b> i <b>river</b>, a po każdym etapie jest runda licytacji.</li>
+      <li>Przy <b>wyłożeniu kart</b> pulę zgarnia najlepszy układ pięciu kart z twoich dwóch i pięciu wspólnych.</li>
+      <li>Od najlepszego: poker królewski, poker, kareta, ful, kolor, strit, trójka, dwie pary, para, wysoka karta.</li>
+      <li>Ciemne rosną co 4 rozdania. Bez żetonów odpadasz. Po ostatnim rozdaniu (albo gdy jeden gracz ma wszystko) wygrywa największy stos.</li>
+      <li>Twój najlepszy układ widać pod kartami. Skróty: <b>F</b> pas, <b>C</b> czekanie lub sprawdzenie, <b>R</b> podbicie.</li>
+    </ol>
+    <h3>Mango Poker</h3>
+    <ol>
+      <li>Wybierz <b>Mango Poker</b> w ustawieniach stołu, w pozycji Gra. Potrzeba co najmniej 4 miejsc (wolne zajmą boty).</li>
+      <li>Każdy dostaje <b>trzy zakryte karty</b> i przed pierwszą licytacją jedną odrzuca, koszulką do góry.</li>
+      <li><b>Flop to trzy karty wylosowane z odrzuconych</b>. Nikt nie wie, czyje były, więc twoja odrzucona karta może wrócić i pomóc tobie albo komuś innemu.</li>
+      <li>Turn i river pochodzą jak zwykle z talii, a reszta to zwykły Hold'em.</li>
+    </ol>`,
+  },
+  ludo: {
+    name: 'Chińczyk', start: 'Zacznij grę', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Ścigaj się pionkami dookoła klockowej planszy 3D i odsyłaj znajomych z powrotem do bazy.',
+    howto: `Awatar każdego gracza siedzi w swoim rogu z kompletem pionków. Rzuć kostką, przeprowadź pionki dookoła planszy i w górę swojej ścieżki do domu. Stań na polu rywala, żeby odesłać go do bazy. Wygrywa ten, kto pierwszy wprowadzi wszystkie pionki do domu.`,
+    rules: `<ol>
+      <li>Każdy gracz ma <b>róg</b> w swoim kolorze, a w nim awatara i pionki. Puste rogi obsadzają boty.</li>
+      <li>W swojej turze <b>rzuć kostką</b>. Żeby pionek wyszedł z bazy, potrzeba <b>6</b>. Gdy nie masz nic na planszy, dostajesz do trzech prób.</li>
+      <li>Jeśli ruszyć może się więcej niż jeden pionek, <b>dotknij tego, którym chcesz iść</b> (albo użyj przycisków). Jeśli tylko jeden, idzie sam.</li>
+      <li>Stań na polu z jednym pionkiem rywala, żeby go <b>zbić</b>: wraca do swojej bazy.</li>
+      <li>Pionki są <b>bezpieczne</b> na polach z gwiazdką i na kolorowych polach startowych. Dwa twoje pionki na jednym polu tworzą <b>blokadę</b>, której nie da się zbić.</li>
+      <li><b>6</b>, zbicie albo wprowadzenie pionka do domu daje <b>dodatkowy rzut</b>. Trzy szóstki z rzędu kończą turę.</li>
+      <li>Po pełnym okrążeniu pionek skręca na swoją <b>ścieżkę do domu</b>. Żeby wejść na środek, trzeba wyrzucić dokładną liczbę.</li>
+      <li><b>Tryb trudny</b>: tylko <b>jeden pionek na polu</b> i <b>nigdzie nie jest bezpiecznie</b>. Nie możesz stanąć na własnym pionku, więc nie ma blokad. Zbijasz każdego rywala, na którego trafisz, nawet na gwiazdce czy polu startowym. Jeśli żaden pionek nie ma wolnego pola, rzut przepada.</li>
+      <li>Wygrywa ten, kto pierwszy wprowadzi <b>wszystkie pionki do domu</b>. Pozostali zajmują miejsca według tego, jak daleko zaszły ich pionki.</li>
+    </ol>`,
+  },
+  stack: {
+    start: 'Zacznij budować', openSeat: 'Jeśli nikt nie dołączy, układa tu bot',
+    pitch: 'Na zmianę zrzucajcie rozhuśtane klocki na jedną wspólną, chwiejną wieżę. Nie bądź tą osobą, która ją przewróci.',
+    howto: `Wszyscy budują razem jedną chwiejną wieżę. W twojej turze nad szczytem buja się klocek: dotknij, żeby go zrzucić. Za równe ułożenie są punkty, ale kto przewróci wieżę, sporo traci. Wygrywa ten, kto po ostatniej wieży ma najwięcej punktów.`,
+    rules: `<ol>
+      <li>Wszyscy stoją wokół tej samej wieży. Wolne miejsca zajmują boty.</li>
+      <li>W twojej turze klocek w twoim kolorze <b>buja się</b> nad szczytem wieży. <b>Dotknij</b> (albo naciśnij spację), żeby go zrzucić.</li>
+      <li>Klocek, który wyląduje na wieży, daje <b>10</b> punktów. Traf w sam środek, a będzie <b>Idealnie</b>: klocek wyrównuje się i daje <b>15</b>.</li>
+      <li>Jeśli wystaje za bardzo poza krawędź, <b>zsuwa się</b> (−5). Za zupełne pudło też jest −5.</li>
+      <li>Wieża stoi, dopóki ciężar wszystkiego powyżej każdego klocka spoczywa nad klockiem pod spodem. Przechyl ją za mocno, a <b>runie</b>: kto zrzucił ostatni klocek, traci <b>30</b>.</li>
+      <li>Im wyżej, tym <b>szybciej</b> buja się klocek i tym <b>bardziej chwiejna</b> jest wieża: niższe klocki utrzymują coraz mniejszy nawis.</li>
+      <li>Po zawaleniu zaczyna się nowa wieża. Przy 40 klockach wszyscy dostają +20. Po ostatniej wieży wygrywa najwięcej punktów.</li>
+      <li><b>Różne kształty</b>: oprócz zwykłych klocków trafiają się deski, kostki i szerokie płyty.</li>
+    </ol>`,
+  },
+  darts: {
+    start: 'Zaczynamy', openSeat: 'Jeśli nikt nie dołączy, rzuca tu bot',
+    pitch: 'Klasyczne 301 w lotki na podniebnej wyspie. Uspokój rękę, celuj w potrójne pola i skończ podwójnym.',
+    howto: `Każdy zaczyna z 301 punktami i po kolei rzuca trzema lotkami. To, w co trafisz, odejmuje się od twojego wyniku. Wyceluj w tarczę, przytrzymaj, żeby uspokoić rękę, i puść, żeby rzucić. Wygrywa ten, kto pierwszy zejdzie dokładnie do zera.`,
+    rules: `<ol>
+      <li>Każdy zaczyna z <b>301</b> (albo 501) i po kolei rzuca <b>trzema lotkami</b>. To, w co trafisz, odejmuje się od wyniku. Wolne miejsca zajmują boty.</li>
+      <li>Wąski <b>pierścień zewnętrzny</b> liczy się <b>podwójnie</b>, wąski <b>pierścień wewnętrzny</b> <b>potrójnie</b>. Zielony pierścień wokół środka to <b>25</b>, a czerwony <b>środek</b> to <b>50</b>.</li>
+      <li><b>Celowanie:</b> ręka nigdy nie jest całkiem nieruchoma, więc żółta kropka krąży wokół miejsca, w które celujesz. <b>Przytrzymaj</b> przycisk myszy (albo palec, albo spację), żeby ją uspokoić: pierścień się kurczy i robi się zielony. <b>Puść</b>, żeby rzucić. Lotka ląduje dokładnie tam, gdzie jest kropka. Trzymaj za długo, a ręka się zmęczy i znów zacznie drżeć.</li>
+      <li>Na telefonie <b>przeciągnij</b> palcem w dowolnym miejscu, żeby celować, trzymaj palec nieruchomo, żeby uspokoić rękę, i <b>unieś</b> go, żeby rzucić. Na klawiaturze użyj strzałek i przytrzymaj spację.</li>
+      <li>Lega wygrywa ten, kto pierwszy zejdzie <b>dokładnie do zera</b>. Przy ustawieniu <b>Podwójnym polem</b> ostatnia lotka musi trafić w podwójne pole (środek też się liczy): gdy zostało 20, potrzebujesz <b>podwójnej 10</b>, a zwykła 20 to fura. Tarcza świeci w miejscu, w które warto celować. Łatwiejsza gra? Wybierz <b>Dowolną lotką</b> w ustawieniach stołu.</li>
+      <li>Jeśli rzucisz więcej, niż ci zostało (albo zostawisz sobie 1, gdy trzeba kończyć podwójnym), jest <b>fura</b>: tura się kończy, a wynik wraca do stanu sprzed tury.</li>
+      <li>Gdy możesz skończyć w tej turze, gra podpowiada sposób, na przykład <b>T20 D20</b> (potrójna 20, potem podwójna 20).</li>
+      <li>Jeśli po ostatniej rundzie nikt nie skończył (15 rund przy 301, 20 przy 501), lega bierze ten, komu <b>zostało najmniej</b>.</li>
+      <li>Masz <b>15 sekund</b> na lotkę. Gdy czas minie, lotka leci w pośpiechu, gdzieś w okolice środka.</li>
+      <li><b>Do 2 wygranych</b>: wygrywa ten, kto pierwszy weźmie dwa legi. Pozostali zajmują miejsca według wygranych legów, a potem według tego, komu zostało mniej.</li>
+    </ol>`,
+  },
+  golf: {
+    start: 'Pierwsze uderzenie', openSeat: 'Jeśli nikt nie dołączy, gra tu bot',
+    pitch: 'Na zmianę uderzajcie na tym samym klockowym dołku 3D i obstawiajcie monetami, kto go wygra.',
+    howto: `Wszyscy grają ten sam dołek i uderzają po kolei, po jednym uderzeniu, każdy swoją piłką. Odciągnij i puść, żeby uderzyć. Wygrywa najmniej uderzeń w całej rundzie, a przed każdym dołkiem możesz postawić monety na to, kto go wygra.`,
+    rules: `<ol>
+      <li>Wszyscy grają ten sam dołek i <b>uderzają po kolei</b>, po jednym uderzeniu, aż wszystkie piłki wpadną. Każdy ma swoją piłkę, a piłki przenikają przez siebie. Zaczyna ten, kto wygrał poprzedni dołek.</li>
+      <li>Masz <b>25 sekund</b> na uderzenie. Gdy czas minie, gra wykona za ciebie niezdarne uderzenie.</li>
+      <li><b>Odciągnij</b> w dowolnym miejscu ekranu i <b>puść</b>, żeby uderzyć: im dalej odciągniesz, tym mocniej. Kropki pokazują pierwszą połowę drogi piłki, do pierwszego odbicia. Gdzie się zatrzyma, musisz ocenić samodzielnie. Na klawiaturze celuj i ustaw siłę strzałkami, potem spacja.</li>
+      <li>Uważaj na <b>wiatraki</b>, <b>słupki-odbijacze</b>, <b>rampy</b> i <b>piasek</b> (mocno spowalnia piłkę). Piłka w <b>wodzie</b> kosztuje uderzenie i wraca tam, skąd była uderzona.</li>
+      <li>Masz <b>7 uderzeń</b> na dołek. Jeśli to nie wystarczy, zapisujesz 8.</li>
+      <li>Uderz <b>za mocno</b>, a piłka przeskoczy nad dołkiem, więc przy dołku zwolnij.</li>
+      <li><b>Losowe</b> pola powstają od nowa w każdej rundzie, więc nie ma dwóch takich samych. <b>Klasyczne</b> to dziewięć ręcznie zrobionych dołków.</li>
+      <li>Dołek wygrywa <b>najmniej uderzeń</b>. Przy remisie ten, kto trafił pierwszy.</li>
+      <li>Przy włączonych zakładach przed każdym dołkiem możesz <b>postawić monety</b> na to, kto go wygra, także na siebie. Trafiony typ wypłaca stawkę razy liczba graczy. To nieobowiązkowe i gra się o prawdziwe monety, te od rzeczy dla awatara.</li>
+      <li>Po ostatnim dołku rundę wygrywa <b>najmniejsza łączna liczba uderzeń</b>. Wolne miejsca zajmują boty.</li>
+    </ol>`,
+  },
+  dice: {
+    name: 'Kości kłamcy', start: 'Potrząśnij kubkami', openSeat: 'Jeśli nikt nie dołączy, blefuje stąd bot',
+    pitch: 'Rzuć w tajemnicy pod kubkiem, licytuj kości wszystkich graczy i blefuj. Krzyknij „Kłamiesz!”, gdy coś ci nie pasuje.',
+    howto: `Każdy rzuca w tajemnicy pod kubkiem. Po kolei licytujecie, ile kości z danym wynikiem leży na całym stole, zawsze coraz wyżej. Myślisz, że ostatnia odzywka to blef? Krzyknij „Kłamiesz!”. Kto się pomylił, traci kość, a wygrywa ostatni gracz z kośćmi.`,
+    rules: `<ol>
+      <li>Każdy zaczyna z <b>pięcioma kośćmi</b> pod kubkiem. W każdej rundzie wszyscy rzucają i każdy widzi tylko <b>swoje</b>. Wolne miejsca zajmują boty.</li>
+      <li>Po kolei <b>licytujecie</b> wszystkie kości na stole razem, na przykład „cztery piątki”: co najmniej cztery kości pokazują piątkę.</li>
+      <li>Każda odzywka musi być <b>wyższa</b>: więcej kości z dowolnym wynikiem albo tyle samo z wyższym.</li>
+      <li>Zamiast licytować możesz krzyknąć <b>Kłamiesz!</b> na poprzednią odzywkę. Wszystkie kubki idą w górę i liczymy kości.</li>
+      <li>Jeśli kości jest <b>mniej</b>, niż zapowiedziano, kość traci licytujący. Jeśli odzywka była dobra, kość traci ten, kto sprawdzał.</li>
+      <li><b>Jedynki to jokery</b>: 1 liczy się jako dowolny licytowany wynik, więc jedynek licytować nie można.</li>
+      <li><b>Co do joty!</b> to ryzykowny okrzyk: twierdzisz, że odzywka zgadza się <b>dokładnie</b>. Jeśli tak, wszyscy pozostali tracą po kości. Jeśli nie, tracisz ty.</li>
+      <li>Kto stracił kość, zaczyna następną rundę. Bez kości odpadasz. Wygrywa <b>ostatni gracz z kośćmi</b>.</li>
+      <li><b>Tryb z życiami</b> (opcja stołu): nikt nie traci kości. Wszyscy mają pełne kubki przez całą grę, a przegrane sprawdzenie kosztuje <b>serce</b>. Bez serc odpadasz, więc stół jest pełen kości do końca.</li>
+      <li>Skróty: strzałki zmieniają odzywkę, <b>Enter</b> licytuje, <b>L</b> to „Kłamiesz!”, <b>S</b> to „Co do joty!”.</li>
+    </ol>`,
+  },
+  paw: {
+    start: 'Otwórz sklepiki', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Adoptuj zwierzaki w sklepikach wokół przytulnej planszy 3D i zbieraj czynsz w przysmakach.',
+    howto: `Chodź awatarem po planszy pełnej sklepików ze zwierzakami, adoptuj te, na które trafisz, i zbieraj czynsz w przysmakach, gdy odwiedzą cię znajomi. Ulepszaj sklepiki, unikaj Kąpieli i dobieraj zwariowane karty Głupawki. Nikt nie odpada: po ostatniej rundzie wygrywa najbogatszy gracz.`,
+    rules: `<ol>
+      <li>Każdy zaczyna z <b>600 przysmakami</b> na Wycieraczce. Rzuć dwiema kośćmi i przejdź tyle pól. Przejście przez Wycieraczkę daje <b>150</b>. Gdy kości się zatrzymają, podświetla się pole, na które idziesz. Wolne miejsca zajmują boty.</li>
+      <li>Stań na polu ze zwierzakiem czekającym w pudełku, a możesz go <b>adoptować</b>: sklepik jest twój. Każdy inny, kto tam stanie, płaci ci <b>czynsz</b>.</li>
+      <li><b>Drzemiące zwierzaki nie pobierają czynszu.</b> W każdej rundzie każdy zwierzak ma jedną szansę na pięć, że przyśnie, a wtedy goście przechodzą na paluszkach za darmo.</li>
+      <li>W swojej turze możesz <b>ulepszyć</b> dowolny swój sklepik: najpierw <b>Legowisko</b>, potem <b>Skrzynia z zabawkami</b>. Każde ulepszenie podnosi czynsz, a zwierzak rośnie.</li>
+      <li>Plansza ma po dziesięć miejsc na każdym boku i osiem uliczek po trzy sklepiki, każda w innym kolorze, a zwierzaki mają kolor swojej uliczki. Zbierz <b>całą uliczkę</b>, a czynsz się podwoi i możesz zbudować <b>Pałac zwierzaka</b> z najwyższym czynszem ze wszystkich.</li>
+      <li>Stań na własnym sklepiku, a zwierzak ucieszy się na twój widok: <b>+10</b>.</li>
+      <li>Pola <b>Głupawka!</b> dają zwariowaną kartę. <b>Wizyta u weterynarza</b> kosztuje 40, które trafia do słoika <b>Znalezione</b>. Stań na rogu ze słoikiem, żeby zabrać wszystko, co w nim jest.</li>
+      <li><b>Błotna kałuża</b> albo trzy dublety z rzędu wysyłają cię do <b>Kąpieli</b>. Wyrzuć dublet, żeby wyskoczyć, albo zapłać 30. Po trzech próbach płacisz i idziesz. Gdy siedzisz w wannie, wszystkie twoje zwierzaki drzemią, więc nie zbierasz czynszu.</li>
+      <li>Po dublecie rzucasz jeszcze raz. <b>Nikt nie odpada</b>: jeśli nie możesz zapłacić, sprzedawane są ulepszenia, a potem sklepiki, za pół ceny, a resztę długu się daruje.</li>
+      <li>Po ostatniej rundzie sumujemy przysmaki w ręce i wszystko, co poszło na sklepiki i ulepszenia. <b>Wygrywa najbogatszy gracz.</b></li>
+      <li>Dotknij dowolnego pola, żeby o nim przeczytać. Skróty: <b>spacja</b> rzuca, adoptuje albo kończy turę, <b>N</b> to „nie, dziękuję”.</li>
+    </ol>`,
+  },
+  kart: {
+    start: 'Zapuść silniki', openSeat: 'Jeśli nikt nie dołączy, pojedzie tu bot',
+    pitch: 'Ścigaj się małymi gokartami low-poly po drogach, które przeskakują między latającymi wyspami.',
+    howto: `Awatar każdego gracza prowadzi mały gokart po drogach przeskakujących między latającymi wyspami. Zbieraj prezenty, żeby dostać zwariowane bonusy, driftuj na zakrętach po przyspieszenie i nie spadnij z krawędzi. Wygrywa pierwszy na mecie po ostatnim okrążeniu.`,
+    rules: `<ol>
+      <li>Każdy prowadzi własny gokart ze swoim awatarem za kierownicą. Wolne miejsca na starcie zajmują boty.</li>
+      <li>Gokart <b>przyspiesza sam</b>. Skręcaj klawiszami <b>← →</b> albo <b>A D</b>, hamuj lub cofaj <b>↓</b>. Na telefonie użyj strzałek w dolnych rogach.</li>
+      <li><b>Drift</b>: przytrzymaj <b>spację</b> (albo przycisk Drift), skręcając przy dużej prędkości. Trzymaj, aż iskry się rozżarzą, a potem puść, żeby dostać przyspieszenie. Pomarańczowe iskry dają dłuższe.</li>
+      <li>Pomarańczowe <b>pola przyspieszenia</b> na drodze wystrzeliwują cię do przodu. Trawa na poboczu spowalnia, a za trawą jest <b>krawędź wyspy</b>: jeśli spadniesz, po kilku sekundach chmurka odniesie cię z powrotem. Mosty mają barierki.</li>
+      <li>Przejedź przez <b>prezent</b>, żeby dostać bonus, a potem naciśnij <b>E</b> (albo go dotknij), żeby go użyć:
+        <b>Skórka od banana</b> spada za tobą, <b>Rozchwiana galaretka</b> skacze za gokartem tuż przed tobą, <b>Ostra papryczka</b> to zastrzyk prędkości, <b>Bańka ochronna</b> blokuje następne trafienie, a <b>Senna chmurka</b> spowalnia wszystkich przed tobą. Im dalej z tyłu jedziesz, tym lepsze bonusy.</li>
+      <li>Gdy pierwszy gokart dojedzie do mety, reszta ma <b>25 sekund</b> na przekroczenie linii. Potem pozostali zajmują miejsca według przejechanej drogi.</li>
+      <li>Bonusy w trybie <b>Chaos</b>: z nieba pada deszcz skórek od banana, a galaretek i chmurek jest więcej.</li>
+      <li>Monety zależą od miejsca na mecie: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  kitchen: {
+    start: 'Otwórz kuchnię', openSeat: 'Jeśli nikt nie dołączy, gotuje tu bot',
+    pitch: 'Siekajcie, gotujcie i wydawajcie zamówienia razem w małej kuchni na podniebnej wyspie, zanim skończy się czas.',
+    howto: `Wszyscy gotują razem w jednej małej kuchni. Bierzcie składniki ze skrzynek, siekajcie je, gotujcie zupy i smażcie kotlety, nakładajcie na talerze i wydawajcie zamówienia, zanim skończy się ich czas. Cała kuchnia zarabia napiwki i gwiazdki, a gwiazdą kuchni zostaje ten, kto przyłożył rękę do największej części napiwków.`,
+    rules: `<ol>
+      <li>Wszyscy pracują w <b>tej samej kuchni</b> na czas. Wolne miejsca zajmują kucharze-boty.</li>
+      <li>Chodź klawiszami <b>WASD</b> albo strzałkami (na telefonie przeciągaj palcem po lewej stronie ekranu). <b>Spacja</b> podnosi albo odkłada to, co leży na podświetlonym blacie przed tobą. <b>E</b> sieka.</li>
+      <li>Weź <b>pomidora</b>, <b>sałatę</b>, <b>grzyba</b>, <b>bułkę</b> albo <b>kotlet</b> ze skrzynki. Warzywa trafiają na <b>deskę do krojenia</b> i trzeba je posiekać, zanim się przydadzą.</li>
+      <li>Zupa: trzy posiekane pomidory albo trzy posiekane grzyby w <b>garnku</b>. Gotuje się sama, potem nabierz ją talerzem. Zostaw ją za długo, a się <b>przypali</b>.</li>
+      <li>Kotlety smażą się na <b>patelni</b>. Zdejmij je, gdy się zrumienią, zanim się spalą. Spalone jedzenie ląduje w <b>koszu</b>.</li>
+      <li>Weź <b>talerz</b> ze stojaka i połóż na nim to, co trzeba: <b>sałatka</b> to sałata i pomidor, <b>burger</b> to bułka i kotlet, a <b>burger deluxe</b> ma jeszcze sałatę i pomidora.</li>
+      <li>Oddaj talerz w <b>okienku</b>. Szybka obsługa to większy napiwek. Zamówienie, którego czas minął, kosztuje kuchnię 10 napiwków.</li>
+      <li>Kuchnia zdobywa do <b>trzech gwiazdek</b> za napiwki. W <b>Kuchni z okienkiem</b> kuchenki stoją po drugiej stronie blatu: podawajcie rzeczy przez blat albo chodźcie naokoło przez drzwi.</li>
+      <li>Napiwek za każde danie dzielą wszyscy, którzy go dotknęli. Monety zależą od twojej części napiwków, więc pomagaj wszędzie.</li>
+    </ol>`,
+  },
+  tys: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Polski klasyk karciany. Licytuj o musik, melduj pary, żeby ustalić atut, i jako pierwszy zdobądź 1000.',
+    howto: `Polski klasyk dla trojga. Zalicytuj, ile punktów ugrasz, weź trzy zakryte karty (musik), a potem bierz lewy. Wyjście królem albo damą, gdy masz oboje w jednym kolorze, to meldunek: dodatkowe punkty, a ten kolor zostaje atutem. Ugraj swoją deklarację, żeby ją zapisać; jeśli się nie uda, tracisz ją. Wygrywa ten, kto pierwszy zdobędzie 1000.`,
+    rules: `<ol>
+      <li>24 karty: od dziewiątki do asa w czterech kolorach. <b>As 11, dziesiątka 10, król 4, dama 3, walet 2, dziewiątka 0</b>, a dziesiątka bije króla. Każdy dostaje <b>7 kart</b>, a 3 leżą zakryte na środku: to <b>musik</b>. Wolne miejsca zajmują boty. Przy czterech osobach rozdający pauzuje.</li>
+      <li><b>Licytacja.</b> Gracz za rozdającym zaczyna od <b>100</b> i musi tyle grać, jeśli nikt nie przebije. Licytuje się co dziesięć. Po pasie nie wracasz do licytacji w tym rozdaniu. Powyżej <b>120</b> możesz licytować tylko z meldunkiem na ręce (król i dama w jednym kolorze).</li>
+      <li>Zwycięzca odkrywa <b>musik</b> przed wszystkimi, bierze go, a potem <b>oddaje po jednej karcie każdemu przeciwnikowi</b> i może podnieść kontrakt. Z beznadziejnymi kartami może zamiast tego <b>poddać grę</b> (jeśli stół na to pozwala): nic się nie rozgrywa, on nie zapisuje nic, a każdy przeciwnik dostaje <b>60</b>. Przy ustawieniu <b>Pierwsze za darmo</b> pierwsze poddanie każdego gracza w grze nie daje innym nic.</li>
+      <li><b>Lewy.</b> Zaczyna zwycięzca licytacji. Musisz <b>dołożyć do koloru</b>; gdy go nie masz, musisz zagrać <b>atut</b>; i zawsze, kiedy możesz, musisz <b>przebić</b> wygrywającą kartę. Kto wziął lewę, wychodzi do następnej.</li>
+      <li><b>Meldunki.</b> Gdy wychodzisz i masz króla i damę w jednym kolorze, wyjście jednym z nich <b>zawsze ogłasza meldunek</b>: <b>kier 100, karo 80, trefl 60, pik 40</b>. Ten kolor jest odtąd atutem, aż do następnego meldunku.</li>
+      <li><b>Punktacja.</b> Gracz z kontraktem zapisuje dokładnie kontrakt, jeśli ugrał co najmniej tyle punktów (karty plus meldunki), a <b>traci go</b>, jeśli nie. Pozostała dwójka zapisuje to, co ugrała, w zaokrągleniu do dziesiątek.</li>
+      <li><b>Beczka.</b> Od <b>800</b> punktów zapisujesz punkty tylko wtedy, gdy grasz własny kontrakt, więc ostatnie 200 trzeba wygrać, a nie uzbierać.</li>
+      <li>Wygrywa ten, kto pierwszy zdobędzie <b>1000</b>. Gdy minie czas na ruch, gra pasuje za ciebie w licytacji, a w rozgrywce zagrywa rozsądną kartę.</li>
+    </ol>`,
+  },
+  dig: {
+    start: 'Zacznij kopać', openSeat: 'Jeśli nikt nie dołączy, kopie tu bot',
+    pitch: 'Na zmianę przekopujcie łąkę w poszukiwaniu klejnotów i złotej skrzyni. Jak Saper, tylko ze znajomymi.',
+    howto: `Łąka kryje klejnoty, złotą skrzynię i pułapki. Kopiecie po kolei, po jednym polu. Puste pola pokazują, ile pułapek ich dotyka, jak w Saperze, i błyszczą, gdy obok leży klejnot. Znajdź klejnot, a kopiesz jeszcze raz; traf na pułapkę, a tracisz punkty. Wygrywa najwięcej punktów w chwili znalezienia ostatniego klejnotu.`,
+    rules: `<ol>
+      <li>Pole porasta trawa. Pod nią leżą <b>klejnoty</b> (1 punkt), <b>duże klejnoty</b> (3), jedna <b>złota skrzynia</b> (5) i trochę <b>pułapek</b>. Środek jest odkopany od początku. Wolne miejsca zajmują boty.</li>
+      <li>W swojej turze <b>odkop jedno pole z trawą</b>. Na komputerze kliknij je. Na telefonie dotknij raz, żeby je wybrać, i drugi raz, żeby kopać.</li>
+      <li>Puste pole pokazuje <b>liczbę</b>: ile pułapek go dotyka, bokiem albo rogiem. Brak liczby oznacza brak pułapek dookoła, a puste pola obok odkrywają się same.</li>
+      <li><b>Błysk</b> na pustym polu oznacza, że tuż obok wciąż leży zakopany klejnot.</li>
+      <li>Wykop klejnot albo skrzynię, a <b>kopiesz jeszcze raz</b>. Puste pole kończy turę.</li>
+      <li><b>Pułapka</b> zabiera <b>4 punkty</b> (nigdy poniżej zera) i kończy turę.</li>
+      <li>Gdy znajdzie się <b>ostatni klejnot</b>, gra się kończy i całe pole zostaje odkryte. <b>Wygrywa najwięcej punktów</b>. Przy remisie ten, kto znalazł więcej, a potem ten, kto trafił na mniej pułapek.</li>
+      <li>Gdy minie czas na ruch, gra kopie za ciebie w ostrożnie wybranym miejscu. Klawiatura: strzałki przesuwają, <b>Enter</b> albo <b>spacja</b> kopie.</li>
+    </ol>`,
+  },
+  bricks: {
+    start: 'Zacznij układać', openSeat: 'Jeśli nikt nie dołączy, układa tu bot',
+    pitch: 'Układaj spadające klocki we własnej studni i wysyłaj znajomym kamienne rzędy. Wygrywa ostatni, kto wciąż układa.',
+    howto: `Wszyscy jednocześnie układają spadające klocki, każdy we własnej studni. Zapełnij rząd, a zniknie. Usuń dwa rzędy lub więcej naraz, a komuś innemu wyrosną od dołu kamienne rzędy. Zapełnij studnię po sam szczyt, a odpadasz. Wygrywa ostatni, kto wciąż układa.`,
+    rules: `<ol>
+      <li>Każdy ma <b>własną studnię</b> i wszyscy grają <b>jednocześnie</b>, z tymi samymi klockami w tej samej kolejności. Wolne miejsca zajmują boty.</li>
+      <li>Przesuwaj klocek klawiszami <b>← →</b>, obracaj <b>↑</b> (albo <b>Z</b> i <b>X</b>), przyspieszaj spadanie <b>↓</b> i zrzucaj od razu <b>spacją</b>. Na telefonie użyj przycisków w dolnych rogach.</li>
+      <li>Zapełnij <b>cały rząd</b>, a zniknie. Blady zarys pokazuje, gdzie klocek wyląduje.</li>
+      <li><b>Odłóż</b> (<b>C</b>): zamień spadający klocek na ten odłożony wcześniej. Raz na klocek.</li>
+      <li>Usuń <b>dwa rzędy naraz</b>, a innemu graczowi wyrośnie od dołu jeden <b>kamienny rząd</b>. Trzy rzędy wysyłają dwa, cztery rzędy wysyłają cztery. Usuwanie rzędów kilkoma klockami z rzędu wysyła dodatkowe.</li>
+      <li>Kamienne rzędy czekają w <b>czerwonym pasku</b> obok studni i wchodzą, gdy twój następny klocek wyląduje, nie usuwając niczego. Usuń najpierw rzędy, a <b>odbijesz je</b>.</li>
+      <li>Klocki spadają <b>szybciej co 20 sekund</b>. Pod koniec gry zaczyna się <b>kamienny przypływ</b>: rzędy rosną u wszystkich, coraz szybciej.</li>
+      <li>Gdy nowy klocek nie ma gdzie się pojawić, <b>odpadasz</b>. <b>Wygrywa ostatni gracz, który wciąż układa</b>.</li>
+      <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  bean: {
+    start: 'Zacznij wspinaczkę', openSeat: 'Jeśli nikt nie dołączy, wspina się tu bot',
+    pitch: 'Ścigaj się ze znajomymi w górę wielkiej łodygi fasoli, skacząc z półki na półkę, zanim dogoni was burza.',
+    howto: `Awatary wszystkich graczy wspinają się jednocześnie po tej samej wielkiej łodydze fasoli, skacząc z półki na półkę, a od dołu nadciąga burza. Biegnij, żeby nabrać prędkości, bo im szybciej biegniesz, tym wyżej skaczesz. Łącz duże skoki w serie po dodatkowe punkty i trzymaj się przed burzą.`,
+    rules: `<ol>
+      <li>Wszyscy wspinają się naraz po tej samej łodydze. Widzisz innych, ale się z nimi nie zderzasz. Wolne miejsca zajmują boty.</li>
+      <li>Biegaj klawiszami <b>← →</b> albo <b>A D</b> i skacz <b>spacją</b> (przytrzymaj, żeby skakać bez przerwy). Na telefonie użyj przycisków w dolnych rogach.</li>
+      <li><b>Im szybciej biegniesz, tym wyżej skaczesz</b>: skok z miejsca pokonuje jedno piętro, pełny sprint około pięciu. W górę przelatujesz przez półki, a lądujesz na nich, spadając.</li>
+      <li>Dwie boczne łodygi <b>odbijają cię</b> bez utraty prędkości, więc możesz ją utrzymać, odbijając się z boku na bok.</li>
+      <li>Czerwone <b>grzyby</b> wyrzucają cię jakieś sześć pięter w górę. Blade <b>suche liście</b> opadają chwilę po tym, jak na nich wylądujesz. Półki na małych <b>chmurkach</b> jeżdżą z boku na bok.</li>
+      <li><b>Duży skok</b> kończy się co najmniej dwa piętra wyżej, niż stałeś. Duże skoki jeden po drugim tworzą <b>serię</b>, o ile każdy następuje w ciągu 3 sekund od poprzedniego. Gdy seria się kończy, daje <b>piętra × skoki × 2</b> punktów. Kończy ją mały skok albo upadek.</li>
+      <li>Od dołu nadciąga <b>burza</b>, najpierw powoli, potem coraz szybciej. Jeśli cię dogoni, odpadasz i oglądasz pozostałych.</li>
+      <li>Twój wynik to <b>10 punktów za każde piętro</b> najwyższego zdobytego poziomu plus punkty za serie. Gra kończy się, gdy burza dogoni wszystkich. Wygrywa najwyższy wynik.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  pan: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, tymi kartami zagra bot',
+    pitch: 'Polska gra karciana: zaczyna dziewiątka kier, kładziesz taką samą albo wyższą kartę, albo bierzesz trzy.',
+    howto: `Polska gra karciana na 24 karty, od dziewiątki do asa. Połóż kartę co najmniej tak wysoką jak ta na wierzchu albo weź trzy ze stosu. Pozbądź się wszystkich kart, żeby być bezpiecznym: ostatni, kto zostanie z kartami, to Pan.`,
+    rules: `<ol>
+      <li><b>24 karty</b> od dziewiątki do asa rozdaje się po równo. Zaczyna ten, kto ma <b>dziewiątkę kier</b>, i kładzie ją na stół. Wolne miejsca zajmują boty.</li>
+      <li>W swojej turze połóż <b>jedną kartę taką samą albo wyższą</b> niż karta na wierzchu stosu.</li>
+      <li><b>Piki cofają kolejkę</b>: gdy położysz pika, następna tura należy do gracza <b>przed</b> tobą zamiast do tego po tobie. Kierunek gry się nie zmienia: po jego turze kolejka idzie dalej wokół stołu jak zwykle.</li>
+      <li>Jeśli masz <b>wszystkie cztery</b> pasujące karty jednej wysokości, możesz położyć je razem. Trzy pozostałe dziewiątki można położyć razem prosto na dziewiątkę kier.</li>
+      <li>Zamiast kłaść kartę możesz <b>wziąć trzy wierzchnie karty</b> ze stosu. Musisz to zrobić, gdy nic ci nie pasuje. Dziewiątka kier zawsze zostaje na spodzie.</li>
+      <li>Stos tylko rośnie, więc niską kartę można położyć dopiero wtedy, gdy ktoś zbierze karty ze stosu. Branie kart celowo jest częścią gry.</li>
+      <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy, a <b>ostatni gracz z kartami zostaje Panem</b>.</li>
+      <li>Pięciu graczy siada przy stole dla sześciu: szóstą rękę bierze bot, żeby karty nadal dzieliły się po równo.</li>
+      <li>Skróty: <b>Enter</b> kładzie twoją najniższą pasującą kartę, <b>T</b> bierze trzy.</li>
+    </ol>`,
+  },
+  pips: {
+    start: 'Rzuć kośćmi', openSeat: 'Jeśli nikt nie dołączy, ten arkusz wypełni bot',
+    pitch: 'Pięć kości, trzy rzuty na turę i arkusz do wypełnienia. Poluj na strity, fule i pięć jednakowych.',
+    howto: `Pięć kości i arkusz z 13 polami. W każdej turze masz do trzech rzutów i między nimi zatrzymujesz dowolne kości, a potem wpisujesz rzut w jedno puste pole. Wypełnij wszystkie 13 pól; wygrywa najwyższa suma.`,
+    rules: `<ol>
+      <li>Gra trwa <b>13 rund</b>. W swojej turze rzuć wszystkimi <b>pięcioma kośćmi</b>. Możesz rzucić <b>jeszcze dwa razy</b>, a przed każdym rzutem wybierasz, które kości <b>zatrzymać</b>. Wolne miejsca zajmują boty.</li>
+      <li>Potem wpisz rzut w <b>jedno puste pole</b> arkusza. Każde pole wykorzystuje się raz. Jeśli rzut nie pasuje do wybranego pola, daje <b>0</b>, i czasem to najlepsze, co można zrobić.</li>
+      <li><b>Górna połowa</b>, od Jedynek do Szóstek: sumujesz tylko kości z tą liczbą. 4, 3, 4, 4, 1 to 12 w Czwórkach albo 3 w Trójkach.</li>
+      <li>Zdobądź <b>63 lub więcej</b> w górnej połowie (wystarczą po trzy kości każdej liczby), a dostaniesz <b>35 punktów premii</b>.</li>
+      <li><b>Trzy jednakowe</b> i <b>Cztery jednakowe</b>: suma wszystkich pięciu kości, gdy co najmniej trzy (albo cztery) pokazują tę samą liczbę.</li>
+      <li><b>Ful</b>, trzy kości jednej liczby i dwie innej: <b>25</b>. <b>Mały strit</b>, cztery liczby po kolei: <b>30</b>. <b>Duży strit</b>, pięć po kolei: <b>40</b>.</li>
+      <li><b>Pip Party</b>, pięć jednakowych kości: <b>50</b>. <b>Szansa</b>: suma wszystkich pięciu kości, cokolwiek pokazują.</li>
+      <li><b>Kolejne Pip Party</b>: gdy w polu Pip Party masz już 50, każde następne pięć jednakowych daje <b>100 punktów premii</b> oprócz tego, co wpiszesz w puste pole, więc pole Pip Party rośnie do 150, 250 i tak dalej. Jeśli pole górnej połowy dla tej liczby też jest już zajęte, rzut jest <b>jokerem</b>: w dolnej połowie liczy się też jako ful (25), mały strit (30), duży strit (40) albo suma kości.</li>
+      <li><b>Potrójny arkusz</b> (ustawienie stołu): każdy ma <b>trzy kolumny</b> po 13 pól, a gra trwa 39 rund. Wybierasz i kolumnę, i pole. Druga kolumna liczy się <b>podwójnie</b>, a trzecia <b>potrójnie</b>, razem z premią. Pięć jednakowych daje premię 100 razy numer kolumny, gdy wszystkie trzy pola Pip Party mają po 50 (i gdy nie wpisano pięciu jednakowych gdzie indziej, kiedy któreś było puste), a jokerem jest wtedy, gdy zajęte są też wszystkie trzy górne pola tej liczby.</li>
+      <li>Po 13 rundach wygrywa <b>najwyższa suma</b>. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas na ruch, turę kończy za ciebie bot. Pole, które dałoby 0, wymaga drugiego dotknięcia. Skróty: klawisze od <b>1</b> do <b>5</b> zatrzymują kość, <b>R</b> albo <b>spacja</b> rzuca.</li>
+    </ol>`,
+  },
+};
+
+export const SOLO_PL = {
+  hay: {
+    rules: `<ol>
+      <li>Na twoim polu leży <b>25 bel siana</b>. Pod każdą jest pęczek marchewek wart <b>×1, ×2 albo ×3</b> albo <b>drzemiący zwierzak</b>.</li>
+      <li>Tabliczka na końcu każdego rzędu i każdej kolumny pokazuje, ile jest tam w sumie <b>marchewek</b> i ile drzemie tam <b>zwierzaków</b>.</li>
+      <li>Odwróć belę, żeby zajrzeć pod spód. Twoje <b>zbiory</b> mnożą się przez znalezione marchewki, więc ×2 i ×3 dają ×6.</li>
+      <li>Znajdź <b>wszystkie ×2 i ×3</b>, żeby oczyścić pole. Wchodzisz poziom wyżej (jest ich 7), a na polach przybywa zwierzaków i większych pęczków.</li>
+      <li>Obudź drzemiącego zwierzaka, a zbiory się rozsypią i spadasz <b>poziom niżej</b>.</li>
+      <li>Nie masz pewności? <b>Zabierz zbiory</b> do domu. Liczą się do rankingu, a ty zostajesz na swoim poziomie.</li>
+      <li>Użyj <b>Znacznika</b> (albo prawego przycisku myszy), żeby zaznaczyć, gdzie twoim zdaniem drzemią zwierzaki albo co może kryć bela.</li>
+      <li>Oczyszczenie pola daje <b>poziom + 2 monety</b>, do 40 monet dziennie. Potem możesz grać dalej o najlepsze pole.</li>
+      <li>Klawisze: strzałki przesuwają, <b>Enter</b> odwraca, <b>P</b> albo <b>1</b>/<b>2</b>/<b>3</b> zaznacza, <b>B</b> zabiera zbiory.</li>
+    </ol>`,
+  },
+};

@@ -6,6 +6,8 @@
 //
 // Avatars saved before the chibi rework were 8 numbers [skin, hair, hair colour, extra, eyes, mouth, outfit, detail].
 // cleanAv() converts those on the fly, so old saves and old browsers keep their look.
+import { PL } from './i18n.js';
+
 export const SKINS = ['#ffe3c8', '#f6c9a0', '#dba577', '#a9714a', '#7d4f30', '#5a3a22', '#c68863', '#3f281a'];
 export const HAIR_COLS = ['#3b2219', '#7a4a2b', '#e8b84a', '#d9534a', '#f1ede6', '#6fb7e8', '#ff8fab', '#9b6fd6', '#5cb85c', '#ff8c42', '#8a8f98', '#1c1412'];
 export const EYE_COLS = ['#6b4326', '#2a1d17', '#8a6a2c', '#4f8a4a', '#3f7fc4', '#7d8b96', '#c08a2a', '#8a5cc4'];
@@ -106,6 +108,9 @@ export const AV_TABS = [
   ['Outfit', [['top', 'Top'], ['color', 'Top colour'], ['bottom', 'Bottom'], ['botC', 'Bottom colour'], ['shoes', 'Shoes'], ['shoeC', 'Shoe colour']]],
   ['Extras', [['hat', 'Hat'], ['glasses', 'Glasses'], ['neck', 'Neck'], ['back', 'Back']]],
 ];
+
+// In Polish the names above are swapped for the Polish ones (browser only: the server always keeps English).
+if (PL) (await import('./lang/items-pl.js')).plAvatar(OPT, AV_TABS, SEASONS);
 
 const int = (v, max) => { v = +v; return Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0; };
 
