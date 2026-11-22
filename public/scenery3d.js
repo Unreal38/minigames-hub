@@ -192,7 +192,7 @@ export const PROPS = {
   lamp(g, s = 1) { put(g, new THREE.CylinderGeometry(.04 * s, .06 * s, 1.1 * s, 6), flat('#5b4636'), 0, .55 * s); put(g, new THREE.BoxGeometry(.2 * s, .05 * s, .2 * s), flat('#5b4636'), 0, 1.24 * s); const l = put(g, new THREE.BoxGeometry(.16 * s, .2 * s, .16 * s), flat('#ffe27a', { emissive: '#ffb547', emissiveIntensity: .8 }), 0, 1.11 * s); l.userData.noInk = true; put(g, new THREE.BoxGeometry(.2 * s, .04 * s, .2 * s), flat('#5b4636'), 0, 1 * s); },
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
-export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0, kinds = null, petals = null, under = true } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props
+export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0, kinds = null, petals = null, under = true, clear = 0 } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props; clear: radius of a round floor in the middle that patches and flowers stay off
   // kinds: which props stand round the rim (names from PROPS, or functions (group, size)); petals: flower colours; under: false leaves the rock underneath to the caller
   const autoLamps = !lamps; // lamp posts light the island at night: built always, shown only at night (nightScene toggles them)
   if (autoLamps) lamps = Math.max(3, Math.round((w + d) / 5));
@@ -213,7 +213,7 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
   for (let i = 0; i < 7; i++) { const a = hash(i, seed) * 6.283, k = .35 + hash(i, seed + 9) * .35, st = ico(root, .3 + hash(i, 3) * .5, rock, Math.cos(a) * W * k, -3 - hash(i, 4) * deep * .5, Math.sin(a) * D * k); st.scale.y = 1.4; } }
   // what sits in the grass: darker patches and little flowers, kept off the clear middle
   const onRim = (i, s2, inset = .55) => { // a point on the rim band, outside the clear middle
-    for (let k = 0; k < 8; k++) { const x = (hash(i * 8 + k, s2) * 2 - 1) * (W - inset), z = (hash(i * 8 + k, s2 + 1) * 2 - 1) * (D - inset);
+    for (let k = 0; k < 8; k++) { const x = (hash(i * 8 + k, s2) * 2 - 1) * (W - inset), z = (hash(i * 8 + k, s2 + 1) * 2 - 1) * (D - inset); if (clear && Math.hypot(x, z) < clear + inset) continue;
       if (round ? Math.hypot(x, z) < R - inset && (Math.abs(x) > w / 2 + .25 || Math.abs(z) > d / 2 + .25) : Math.abs(x) > w / 2 + .25 || Math.abs(z) > d / 2 + .25) return [x, z]; }
     return null; };
   const patchM = flat(patch), petal = (petals || ['#ffffff', '#ffd0e4', '#fff1a8', '#d9c8ff']).map(c => flat(c)), mid = flat('#ffb000');

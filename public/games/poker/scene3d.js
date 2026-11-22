@@ -177,7 +177,7 @@ export function createScene(canvas, { onFrame } = {}) {
     scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff6d8', size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: .9 })));
     for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.position.set(-70, 60, -200); m.lookAt(0, 0, 0); scene.add(m); } }
   const cloudRing = clouds({ min: 24, max: 95, below: -13, color: '#a9a2ea' }); scene.add(cloudRing);
-  const land = island(19, 19, { round: true, rim: 4.6, seed: 11, props: 18, size: 1.8, flowers: 60, lamps: 6, grass: '#6fb476', patch: '#62a56c' }); land.position.y = -2.4; scene.add(land);
+  const land = island(19, 19, { round: true, rim: 4.6, seed: 11, props: 18, size: 1.8, flowers: 60, lamps: 6, clear: 11.6, grass: '#6fb476', patch: '#62a56c' }); land.position.y = -2.4; scene.add(land);
   const pfx = createFx(scene), shake = shaker();
   let flyIn = 0, punch = 0;
 

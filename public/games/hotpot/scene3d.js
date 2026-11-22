@@ -566,7 +566,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   skyDome(scene, SKY_TOP, SKY_LOW, { k: 1.25, off: .1 });
   const cloudRing = clouds({ min: 22, max: 90, below: -13, color: '#ffe3da' }); scene.add(cloudRing);
   nightScene(scene); // the website's night mode carries into the game
-  const land = island(17.5, 17.5, { round: true, rim: 4.4, seed: 7, props: 18, size: 1.7, flowers: 70, lamps: 5, grass: '#8cc866', patch: '#7dbb5c' }); land.position.y = -2.4; scene.add(land);
+  const land = island(17.5, 17.5, { round: true, rim: 4.4, seed: 7, props: 18, size: 1.7, flowers: 70, lamps: 5, clear: 10.6, grass: '#8cc866', patch: '#7dbb5c' }); land.position.y = -2.4; scene.add(land);
   const flyBirds = birds(scene, 26, 6, 4, 1.3), blow = petals(scene, 22, 3, { n: 8, size: .09, colors: ['#ffc1dc', '#fff1a8', '#ffffff', '#ffd9ea'] });
   const pfx = createFx(scene);
   let flyIn = 0, punch = 0;
