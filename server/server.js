@@ -152,7 +152,7 @@ function scoreGame(r) {
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
   const i = roomInfo(r), h = i.players.find(p => p.id === i.host);
-  return { code: i.code, gameName: i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, w: i.players.filter(p => p.watch).length,
+  return { code: i.code, game: i.game, gameName: i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, w: i.players.filter(p => p.watch).length,
     host: h?.name || '?', hostColor: h?.color, hostAv: h?.av };
 });
 
@@ -261,7 +261,7 @@ function handle(c, m) {
       if (r.cos) { send(c, { t: 'me', me: store.me(p) }); const room = rooms.get(c.room); if (room) sendRoom(room); }
       return;
     }
-    case 'pets': { const p = store.profileOf(c.token); return send(c, { t: 'pets', pets: p?.user ? farm.petsOf(p.pid) : [] }); } // to pick a companion from
+    case 'pets': { const p = store.profileOf(c.token); return send(c, { t: 'pets', pets: p?.user ? farm.petsOf(p.pid) : [], farm: p?.user ? farm.brief(p.pid) : null }); } // to pick a companion from
     case 'player': { // another player's profile card, by their public tag
       if (!allow('prof:' + c.id, 30, 60_000)) return;
       const o = store.byTag(m.pt); if (!o) return send(c, { t: 'err', msg: 'That player is not around any more.' });
