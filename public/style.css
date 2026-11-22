@@ -586,6 +586,8 @@ body.sky.night:not(.in-game)::after { content: ''; position: fixed; inset: 0; z-
 @media (prefers-reduced-motion: reduce) { body.sky.night:not(.in-game)::after { animation: none; } }
 body.sky.night:not(.in-game) .navl a { text-shadow: 0 2px 0 #000a; }
 body.sky.night:not(.in-game) .tcode, body.sky.night:not(.in-game) .rk .pos, body.sky.night:not(.in-game) .rk .who em { color: var(--lantern); }
+/* in a game at night the room code sits straight on the dark sky, so it turns lantern gold like the hub's codes */
+body.night .tr .tcode, body.night .pw .tcode { color: var(--lantern); }
 body.sky.night:not(.in-game) .rk li.you { outline-color: var(--lantern); }
 body.sky.night:not(.in-game) .dots i { border-color: var(--tx); } body.sky.night:not(.in-game) .dots i.on { background: var(--tx); }
 body.sky.night:not(.in-game) .modal { background: #0b061899; }
