@@ -1,4 +1,4 @@
-# Cozy Table: minigames for friends
+# Zatoka Gier: minigames for friends
 
 A small self-hosted website where friends pick a username (accounts are optional), open or join a table with a 4-letter code, and play tiny multiplayer games. Empty seats are filled by bots.
 

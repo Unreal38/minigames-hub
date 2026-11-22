@@ -1,5 +1,5 @@
-// Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
+// Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
+import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -15,7 +15,7 @@ import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
-export const SITE = 'Cozy Table';
+export const SITE = 'Zatoka Gier';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
 // (with flat stand-in heads) if that fails.
 let P3 = null, IP = null; // IP: item pictures for the wardrobe (itempic.js)
@@ -475,7 +475,7 @@ function connBar(mode) {
   if (!mode) { $conn.hidden = true; return; }
   $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced');
   if (mode === 'replaced') {
-    $conn.innerHTML = L(`${SITE} is open in another tab. <button type="button">Play here</button>`, `${SITE} jest otwarte w innej karcie. <button type="button">Graj tutaj</button>`);
+    $conn.innerHTML = L(`${SITE} is open in another tab. <button type="button">Play here</button>`, `${SITE} jest otwarta w innej karcie. <button type="button">Graj tutaj</button>`);
     $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
   } else $conn.textContent = L('Reconnecting…', 'Łączenie ponownie…');
 }
@@ -876,7 +876,7 @@ function switchTheme(btn) {
 { const t = LS.get('ct_theme', ''); setNight(t ? t === 'night' : matchMedia('(prefers-color-scheme: dark)').matches, false); }
 
 const topbar = () => `<header class="top">
-  <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
+  <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
   ${st.view === 'lobby' ? `<nav class="navl" aria-label="${L('Help', 'Pomoc')}"><a href="#" data-act="rules">${L('How to play', 'Jak grać')}</a></nav>` : ''}
   <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· ${L('shop', 'sklep')}</small></button>
   <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="${L('Your account', 'Twoje konto')}">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : L('Pick a name', 'Wybierz imię')}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
@@ -1214,7 +1214,7 @@ function renderLobby() {
   $app.innerHTML = `${topbar()}
   <main class="wrap lobby">
     <div class="main">
-      <div class="crumb">${potLogo(34)} ${esc(gm.name || r.gameName)} · ${L('waiting room', 'poczekalnia')}</div>
+      <div class="crumb">${siteLogo(34)} ${esc(gm.name || r.gameName)} · ${L('waiting room', 'poczekalnia')}</div>
       <div class="row" style="gap:22px">
         <div><div style="font-size:15px;color:var(--muted);margin-bottom:6px">${L('Table code', 'Kod stołu')}</div>
           <div class="codetiles" aria-label="${L('Table code', 'Kod stołu')} ${esc(r.code)}">${[...r.code].map(ch => `<span>${esc(ch)}</span>`).join('')}</div></div>
@@ -1687,7 +1687,8 @@ function openPlayer(p) {
       : p.rel === 'req' ? `<button type="button" class="btn big m" data-fr="accept">${L('Accept friend request', 'Przyjmij zaproszenie')}</button>`
       : p.rel === 'sent' ? `<button type="button" class="btn big w" disabled>${L('Friend request sent', 'Zaproszenie wysłane')}</button>`
       : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span>`
-      : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>` : ''}</div>`);
+      : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
+      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
