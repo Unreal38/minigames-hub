@@ -460,8 +460,10 @@ export function createScene(canvas, { onPick, onGhost }) {
   const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
   // Helpers at work: each job has its own little routine and its own particles.
   const BMW = { leaf: new THREE.MeshBasicMaterial({ color: '#6cc24f' }), leaf2: new THREE.MeshBasicMaterial({ color: '#a6e06a' }), pebble: tflat('#9a9088'), spark: new THREE.MeshBasicMaterial({ color: '#ffe14a' }), ember: new THREE.MeshBasicMaterial({ color: '#ff8a3c' }), ember2: new THREE.MeshBasicMaterial({ color: '#ffd35a' }), sprout: new THREE.MeshBasicMaterial({ color: '#b6f08a' }) };
-  // Where a helper stands: in front of the building, or beside it when that would be off the island's edge.
-  const standBy = (at, w, h) => { const bx = wx(at.x, w), bz = wz(at.y, h); return at.y + h < N ? { x: bx, z: bz + h / 2 + .35, face: Math.PI } : at.x + w < N ? { x: bx + w / 2 + .35, z: bz, face: -Math.PI / 2 } : { x: bx - w / 2 - .35, z: bz, face: Math.PI / 2 }; };
+  // Where a helper stands: the first free spot in front of, beside or behind the building, never off the island's edge.
+  const standBy = (at, w, h) => { const bx = wx(at.x, w), bz = wz(at.y, h), mx = at.x + (w >> 1), my = at.y + (h >> 1);
+    const spots = [[mx, at.y + h, { x: bx, z: bz + h / 2 + .35, face: Math.PI }], [at.x + w, my, { x: bx + w / 2 + .35, z: bz, face: -Math.PI / 2 }], [at.x - 1, my, { x: bx - w / 2 - .35, z: bz, face: Math.PI / 2 }], [mx, at.y - 1, { x: bx, z: bz - h / 2 - .35, face: 0 }]];
+    const ok = spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N && !walkGrid[y * N + x]) || spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N) || spots[0]; return ok[2]; };
   function workPose(p, t, dt, o) {
     const u = (p.wt = (p.wt || 0) + dt), R = Math.random, every = (key, sec) => (p[key] = (p[key] ?? R() * sec) - dt) <= 0 && ((p[key] = sec), true);
     const once = (key, c, at) => { if (c < at) p[key] = false; else if (!p[key]) return (p[key] = true); return false; };
