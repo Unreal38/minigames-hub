@@ -20,6 +20,8 @@ const PIP = [[], [[12, 12]], [[7.2, 7.2], [16.8, 16.8]], [[7, 7], [12, 12], [17,
 export const dieSvg = (v, cls = '') => `<svg class="ld-die${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" role="img" aria-label="${v ? NAME[v] : 'hidden die'}"><rect x="1.5" y="1.5" width="21" height="21" rx="5.5"/>${
   v ? PIP[v].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${v === 1 ? 3.5 : 2.35}"${v === 1 ? ' class="one"' : ''}/>`).join('') : '<path d="M9.4 9.3a2.7 2.7 0 1 1 3.9 2.4c-.9.5-1.3 1-1.3 2M12 16.9v.2"/>'}</svg>`;
 
+const HEART = '<svg class="ld-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5C5 15.6 2.5 12.2 2.5 8.7 2.5 5.9 4.7 4 7.2 4c1.9 0 3.6 1 4.8 2.8C13.2 5 14.9 4 16.8 4c2.5 0 4.7 1.9 4.7 4.7 0 3.5-2.5 6.9-9.5 11.8z"/></svg>';
+const hearts = (n, max) => `<span class="ld-hearts" role="img" aria-label="${n} of ${max} lives">${HEART.repeat(Math.max(0, n))}${HEART.replace('ld-heart', 'ld-heart gone').repeat(Math.max(0, max - n))}</span>`;
 let cssLoaded = false;
 function loadCss() {
   if (cssLoaded) return; cssLoaded = true;
@@ -101,7 +103,7 @@ export function mount(app, ctx) {
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn && S.stage === 'bid'); el.classList.toggle('out', !p.n);
-      const cnt = el.querySelector('.plate .cnt'), v = p.n ? `${dieSvg(0)}${p.n}` : 'out'; if (cnt._h !== v) { cnt._h = v; cnt.innerHTML = v; }
+      const cnt = el.querySelector('.plate .cnt'), v = !p.n ? 'out' : S.livesMax ? `${HEART}${p.lives}` : `${dieSvg(0)}${p.n}`; if (cnt._h !== v) { cnt._h = v; cnt.innerHTML = v; }
       setHtml(el.firstElementChild, S.ph === 'play' && S.stage !== 'roll' ? said(i) : '');
     });
     for (const el of tagEls) el._w = el.offsetWidth;
@@ -121,14 +123,14 @@ export function mount(app, ctx) {
     setHtml($('ld-list'), S.seats.map((p, i) => {
       const now = i === S.turn && S.stage === 'bid';
       let dice = '';
-      if (!p.n) dice = '<em>out of dice</em>';
+      if (!p.n) dice = `<em>out of ${S.livesMax ? 'lives' : 'dice'}</em>`;
       else if (p.dice && (i !== S.me || !rolling())) dice = p.dice.map((v, k) => {
         const h = hitAt.get(i + '/' + k);
         return dieSvg(v, sh ? (h === undefined ? 'dim' : h < counted ? 'hit' : '') : '');
       }).join('');
       else dice = dieSvg(0).repeat(p.n);
       const lose = sh && verdict && sh.lose.includes(i);
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' ld-me' : ''}${p.n ? '' : ' out'}${lose ? ' lose' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span class="ld-row${open ? ' open' : ''}">${dice}${lose ? '<u>−1</u>' : ''}</span></div></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' ld-me' : ''}${p.n ? '' : ' out'}${lose ? ' lose' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}${S.livesMax && p.n ? hearts(p.lives - (lose ? 1 : 0), S.livesMax) : ''}</b><span class="ld-row${open ? ' open' : ''}">${dice}${lose ? `<u>−1${S.livesMax ? ' life' : ''}</u>` : ''}</span></div></li>`;
     }).join(''));
   }
 
@@ -146,10 +148,10 @@ export function mount(app, ctx) {
   function renderDock() {
     const p = me(), mine = $('ld-mine'), ctl = $('ld-ctl');
     if (!S || S.ph !== 'play' || !p) { setHtml(mine, ''); setHtml(ctl, ''); return; }
-    const turn = myTurn(), busy = Date.now() - sent < 1200;
-    if (!p.n) setHtml(mine, '<span class="lbl">You are out of dice. Stay and watch how it ends.</span>');
-    else if (rolling()) setHtml(mine, `<span class="lbl">Shaking…</span><span class="ld-hand shaking">${dieSvg(0).repeat(p.n)}</span>`);
-    else setHtml(mine, `<span class="lbl">Your dice</span><span class="ld-hand">${p.dice.map(v => dieSvg(v, turn && matches(v, sel.f, S.wild) ? 'pick' : '')).join('')}</span>`);
+    const turn = myTurn(), busy = Date.now() - sent < 1200, myLives = S.livesMax ? hearts(p.lives, S.livesMax) : '';
+    if (!p.n) setHtml(mine, `<span class="lbl">You are out of ${S.livesMax ? 'lives' : 'dice'}. Stay and watch how it ends.</span>`);
+    else if (rolling()) setHtml(mine, `${myLives}<span class="lbl">Shaking…</span><span class="ld-hand shaking">${dieSvg(0).repeat(p.n)}</span>`);
+    else setHtml(mine, `${myLives}<span class="lbl">Your dice</span><span class="ld-hand">${p.dice.map(v => dieSvg(v, turn && matches(v, sel.f, S.wild) ? 'pick' : '')).join('')}</span>`);
     if (turn && !busy) {
       resetSel();
       const ok = legal(S.bid, sel.q, sel.f, S.total, S.wild), have = p.dice.filter(v => matches(v, sel.f, S.wild)).length;
@@ -223,11 +225,11 @@ export function mount(app, ctx) {
       verdict = true; counted = hits.length; renderList(); renderBid();
       if (late) return;
       const c = sh.count, w = faceWord(c, sh.f), lost = sh.lose.includes(S.me);
-      const loser = i => (i === S.me ? 'You lose' : `${nameOf(i)} loses`) + ' a die';
-      if (sh.kind === 'spot') big(sh.right ? 'Spot on!' : 'Not quite!', sh.right ? `Exactly ${c}. Everyone else loses a die` : `There ${c === 1 ? 'is' : 'are'} ${c}, not ${sh.q}. ${loser(sh.caller)}`, 3200);
+      const loser = i => (i === S.me ? 'You lose' : `${nameOf(i)} loses`) + (S.livesMax ? ' a life' : ' a die');
+      if (sh.kind === 'spot') big(sh.right ? 'Spot on!' : 'Not quite!', sh.right ? `Exactly ${c}. Everyone else loses a ${S.livesMax ? 'life' : 'die'}` : `There ${c === 1 ? 'is' : 'are'} ${c}, not ${sh.q}. ${loser(sh.caller)}`, 3200);
       else if (sh.right) big(c ? `Only ${c}!` : 'None at all!', `${sh.bidder === S.me ? 'Your bluff is caught' : nameOf(sh.bidder) + ' was bluffing'}. ${loser(sh.bidder)}`, 3200);
       else big(`${c} ${w}!`, `The bid was good. ${loser(sh.caller)}`, 3200);
-      for (const i of sh.lose) floatAt(i, '−1');
+      for (const i of sh.lose) floatAt(i, S.livesMax ? '−1 ♥' : '−1');
       if (S.me < 0) sfx.place(); else if (lost) sfx.lose(); else if (sh.kind === 'liar' && (sh.right ? sh.caller : sh.bidder) === S.me || sh.kind === 'spot' && sh.right && sh.caller === S.me) { sfx.win(); confetti(); } else sfx.plop();
     });
   }
@@ -236,7 +238,7 @@ export function mount(app, ctx) {
     if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Good luck!' : `${nameOf(e.s)} took over a bot`); }
     else if (e.t === 'round') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 380); setTimeout(() => !destroyed && sfx.draw(), 760); }
     else if (e.t === 'bid') { e.s === S.me ? sfx.place() : sfx.pop(); }
-    else if (e.t === 'out') ctx.toast(e.s === S.me ? 'You are out of dice' : `${nameOf(e.s)} is out of dice`);
+    else if (e.t === 'out') ctx.toast(e.s === S.me ? `You are out of ${S.livesMax ? 'lives' : 'dice'}` : `${nameOf(e.s)} is out of ${S.livesMax ? 'lives' : 'dice'}`);
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); }
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2200);
@@ -271,12 +273,12 @@ export function mount(app, ctx) {
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
       <h2>${w === S.me ? 'Nobody caught you!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'Last one with dice under the cup. ' : `You came ${ORD(myPlace)}. `) : ''}It took ${S.res.rounds} round${S.res.rounds === 1 ? '' : 's'}.</p>
+      <p>${myPlace ? (myPlace === 1 ? (S.livesMax ? 'Last one with a heart left. ' : 'Last one with dice under the cup. ') : `You came ${ORD(myPlace)}. `) : ''}It took ${S.res.rounds} round${S.res.rounds === 1 ? '' : 's'}.</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.bids} bid${st.bids === 1 ? '' : 's'} · ${st.right} of ${st.calls} call${st.calls === 1 ? '' : 's'} right</span></div>
-          <strong><span>${p.n ? dieSvg(0) + p.n : ''}</span><small>${p.n ? 'dice left' : 'out'}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${!p.n ? '' : S.livesMax ? HEART + p.lives : dieSvg(0) + p.n}</span><small>${!p.n ? 'out' : S.livesMax ? (p.lives === 1 ? 'life left' : 'lives left') : 'dice left'}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;

@@ -17,6 +17,8 @@ export function cleanOpts(o = {}) {
   return {
     seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
     dice: [3, 5].includes(+o.dice) ? +o.dice : 5,
+    mode: o.mode === 'lives' ? 'lives' : 'dice', // 'lives': a lost call costs a life and everyone keeps all their dice
+    lives: [2, 3, 5].includes(+o.lives) ? +o.lives : 3,
     wild: o.wild === 'off' ? 'off' : 'on',
     spot: o.spot === 'off' ? 'off' : 'on',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
@@ -37,6 +39,7 @@ export function create(players, optsIn = {}) {
   const G = {
     game: 'dice', ph: 'play', stage: 'roll', gid: Math.random().toString(36).slice(2, 8), seats, opts,
     wild: opts.wild === 'on', spot: opts.spot === 'on',
+    lives: opts.mode === 'lives' ? seats.map(() => opts.lives) : null,
     left: seats.map(() => opts.dice), dice: seats.map(() => []), out: seats.map(() => 0), bustN: 0,
     st: seats.map(() => ({ bids: 0, calls: 0, right: 0, lost: 0 })),
     round: 0, turn: -1, starter: Math.random() * n | 0, bid: null, hist: [], show: null, rollAt: 0,
@@ -93,7 +96,9 @@ function doCall(G, s, kind, now) {
 function endShow(G, now) {
   const sh = G.show;
   for (const i of sh.lose) {
-    G.left[i]--; G.st[i].lost++;
+    G.st[i].lost++;
+    if (G.lives) { if (--G.lives[i] <= 0) G.left[i] = 0; } // out of lives: the dice go too, so the seat counts as out everywhere
+    else G.left[i]--;
     if (!G.left[i]) { G.out[i] = ++G.bustN; pushEv(G, { t: 'out', s: i }); }
   }
   // whoever lost a die opens the next round; after a spot-on call it is the caller
@@ -103,7 +108,7 @@ function endShow(G, now) {
 
 function finish(G) {
   G.ph = 'end'; G.stage = 'end'; G.turn = -1; G.tEnd = 0; G.endAt = Date.now();
-  const order = G.seats.map((_, i) => i).sort((a, b) => (G.out[a] ? 1 : 0) - (G.out[b] ? 1 : 0) || G.out[b] - G.out[a] || G.left[b] - G.left[a]);
+  const order = G.seats.map((_, i) => i).sort((a, b) => (G.out[a] ? 1 : 0) - (G.out[b] ? 1 : 0) || G.out[b] - G.out[a] || (G.lives ? G.lives[b] - G.lives[a] : G.left[b] - G.left[a]));
   G.win = order[0];
   G.res = { order, rounds: G.round, left: [...G.left] };
   pushEv(G, { t: 'end', w: G.win });
@@ -186,7 +191,7 @@ export function seatWatcher(G, p, on = true) {
 }
 function seatQueued(G) {
   while (G.queue.length) {
-    const free = G.seats.map((_, i) => i).filter(i => !G.seats[i].human && alive(G, i)).sort((a, b) => G.left[b] - G.left[a]);
+    const free = G.seats.map((_, i) => i).filter(i => !G.seats[i].human && alive(G, i)).sort((a, b) => (G.lives ? G.lives[b] - G.lives[a] : G.left[b] - G.left[a]));
     if (!free.length) break;
     const p = G.queue.shift(), i = free[0];
     Object.assign(G.seats[i], { id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true });
@@ -198,13 +203,13 @@ export function view(G, s) {
   const now = Date.now(), open = G.stage === 'show' || G.ph === 'end';
   return {
     game: 'dice', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, turn: G.turn, starter: G.starter,
-    wild: G.wild, spot: G.spot, start: G.opts.dice, total: total(G), timer: G.opts.timer, botsLevel: G.opts.bots,
+    wild: G.wild, spot: G.spot, start: G.opts.dice, mode: G.opts.mode, livesMax: G.lives ? G.opts.lives : 0, total: total(G), timer: G.opts.timer, botsLevel: G.opts.bots,
     tLeft: G.stage === 'bid' && G.tEnd ? Math.max(0, G.tEnd - now) : -1,
     rollAgo: now - G.rollAt, ms: MS,
     bid: G.bid, hist: G.hist,
     seats: G.seats.map((x, i) => ({
       name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id,
-      n: G.left[i], out: G.out[i], st: G.st[i],
+      n: G.left[i], lives: G.lives ? G.lives[i] : -1, out: G.out[i], st: G.st[i],
       dice: i === s || open ? G.dice[i] : null, // your own dice only, until the cups lift
     })),
     show: G.show && { ...G.show, ago: now - G.show.at },
@@ -212,12 +217,12 @@ export function view(G, s) {
   };
 }
 
-// 10 points for every player you outlasted, plus 2 for each die the winner still holds.
+// 10 points for every player you outlasted, plus 2 for each die (or 3 for each life) the winner still holds.
 export function results(G) {
   if (G.ph !== 'end' || !G.res) return null;
   const n = G.seats.length;
   return G.seats.map((_, i) => {
     const place = G.res.order.indexOf(i);
-    return { pts: (n - 1 - place) * 10 + G.left[i] * 2, win: place === 0, place: place + 1 };
+    return { pts: (n - 1 - place) * 10 + (G.lives ? Math.max(0, G.lives[i]) * 3 : G.left[i] * 2), win: place === 0, place: place + 1 };
   });
 }
