@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { cell, COLS, MS as MSv } from './board.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
@@ -24,15 +25,6 @@ function canvasTex(w, h, draw) {
 }
 function softDot() {
   return canvasTex(64, 64, g => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, '#ffffffff'); gr.addColorStop(1, '#ffffff00'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
-}
-function pipTex(v) {
-  const P = { 1: [[2, 2]], 2: [[1, 1], [3, 3]], 3: [[1, 1], [2, 2], [3, 3]], 4: [[1, 1], [3, 1], [1, 3], [3, 3]], 5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]], 6: [[1, 1], [3, 1], [1, 2], [3, 2], [1, 3], [3, 3]] }[v];
-  return canvasTex(128, 128, g => {
-    g.fillStyle = '#fff8ec'; g.fillRect(0, 0, 128, 128);
-    g.strokeStyle = '#e8d3b8'; g.lineWidth = 10; g.strokeRect(5, 5, 118, 118);
-    g.fillStyle = v === 1 ? '#e5543b' : INK;
-    for (const [x, y] of P) { g.beginPath(); g.arc(x * 32, y * 32, v === 1 ? 17 : 12, 0, 6.3); g.fill(); }
-  });
 }
 
 // Little icons painted on party tiles.
@@ -268,8 +260,8 @@ export function createScene(canvas, { onFrame, onCue }) {
   }
 
   // die
-  const dieMats = FACES.map(v => toonMat(new THREE.MeshStandardMaterial({ map: pipTex(v), roughness: .35 })));
-  const die = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), dieMats); die.castShadow = true; scene.add(die); shell(die, 1.09);
+  const kit = diceKit({ side: FACES }); // the roller's dice skin (dice3d.js)
+  const die = new THREE.Mesh(kit.geo(0, .62), kit.mat(0)); die.castShadow = true; scene.add(die); shell(die, 1.09);
   const dieQ = new THREE.Quaternion(), dieFrom = new THREE.Quaternion(), dieSpin = new THREE.Vector3();
   let dieVal = 6;
   let tall = false; // portrait phones: die sits below the board and the camera leans in on whoever is moving
@@ -284,7 +276,7 @@ export function createScene(canvas, { onFrame, onCue }) {
   function setMove(m) {
     if (!m) { mv = null; return; }
     if (mv && mv.n === m.n) return;
-    mv = m; mvPlan = plan(m); mvStart = performance.now() - m.ago; cueAt = 0; later.length = 0;
+    mv = m; mvPlan = plan(m); kit.dress(die, seats[m.s]?.fl?.dc | 0, .62); mvStart = performance.now() - m.ago; cueAt = 0; later.length = 0;
     if (m.ago > m.ms) { cueAt = mvPlan.length; setDie(m.die); die.quaternion.copy(dieQ); return; } // old news: just show the end
     dieFrom.copy(die.quaternion); setDie(m.die);
     dieSpin.set(Math.random() * 14 + 8, Math.random() * 10, Math.random() * 14 + 8);
@@ -451,7 +443,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       ticker.stop();
       if (boardGroup) disposeToon(boardGroup); if (land) disposeToon(land); fx.dispose();
       for (const t of toks) { disposeAvatar(t.av); t.ring.material.dispose(); }
-      disposeArrow(arrow); disposeTree(die); renderer.dispose();
+      disposeArrow(arrow); for (const c of die.children) c.material.dispose(); kit.dispose(); renderer.dispose();
     },
   };
 }

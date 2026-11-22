@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR as FSTAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
 import { RING_CELLS, GAP, STAR, HOME, MS as MSv, cellOf, yardCentre, yardSlot, lane, turned } from './board.js';
@@ -22,15 +23,6 @@ function canvasTex(w, h, draw) {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 }
 const softDot = () => canvasTex(64, 64, g => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, '#ffffffff'); gr.addColorStop(1, '#ffffff00'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
-function pipTex(v) {
-  const P = { 1: [[2, 2]], 2: [[1, 1], [3, 3]], 3: [[1, 1], [2, 2], [3, 3]], 4: [[1, 1], [3, 1], [1, 3], [3, 3]], 5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]], 6: [[1, 1], [3, 1], [1, 2], [3, 2], [1, 3], [3, 3]] }[v];
-  return canvasTex(128, 128, g => {
-    g.fillStyle = '#fff8ec'; g.fillRect(0, 0, 128, 128);
-    g.strokeStyle = '#e8d3b8'; g.lineWidth = 10; g.strokeRect(5, 5, 118, 118);
-    g.fillStyle = v === 1 ? '#e5543b' : INK;
-    for (const [x, y] of P) g.fillRect(x * 32 - (v === 1 ? 16 : 12), y * 32 - (v === 1 ? 16 : 12), v === 1 ? 32 : 24, v === 1 ? 32 : 24); // square pips for a blocky die
-  });
-}
 
 // Several geometries welded into one (positions and normals only).
 function weld(parts) {
@@ -179,8 +171,8 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
   }
 
   // ---------- rolls and moves ----------
-  const dieMats = FACES.map(v => toonMat(new THREE.MeshStandardMaterial({ map: pipTex(v), roughness: .4 })));
-  const die = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), dieMats); die.castShadow = true; die.visible = false; root.add(die); shell(die, 1.09);
+  const kit = diceKit({ side: FACES, classic: { pip: 'square' } }); // the roller's dice skin (dice3d.js)
+  const die = new THREE.Mesh(kit.geo(0, .62), kit.mat(0)); die.castShadow = true; die.visible = false; root.add(die); shell(die, 1.09);
   const dieQ = new THREE.Quaternion(), dieSpin = new THREE.Vector3(), dieRest = new THREE.Vector3(), dieFrom = new THREE.Vector3();
   const dieSpot = (corner, out) => W(turned([3.85, 3.85], corner), .17 + .31, out);
   function setDie(v) {
@@ -191,7 +183,7 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
     if (!r || !seats[r.s]) return;
     if (rl && rl.n === r.n) return;
     rl = r; rlStart = performance.now() - r.ago; dieCue = r.ago > MSv.die;
-    setDie(r.die); dieSpot(seats[r.s].corner, dieRest); die.visible = true;
+    setDie(r.die); dieSpot(seats[r.s].corner, dieRest); die.visible = true; kit.dress(die, seats[r.s].fl?.dc | 0, .62);
     if (r.ago > MSv.die) { die.position.copy(dieRest); die.quaternion.copy(dieQ); return; }
     W(yardCentre(seats[r.s].corner), 3.2, dieFrom);
     dieSpin.set(Math.random() * 14 + 8, Math.random() * 10, Math.random() * 14 + 8);
@@ -425,7 +417,7 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
       for (const a of avatars) disposeAvatar(a.av);
       for (const m of [pawnMesh, lineMesh]) if (m) m.dispose();
       pawnGeom?.dispose(); ringGeo.dispose(); rings.material.dispose(); rings.dispose();
-      disposeArrow(arrow); disposeTree(die); renderer.dispose();
+      disposeArrow(arrow); for (const c of die.children) c.material.dispose(); kit.dispose(); renderer.dispose();
     },
   };
 }

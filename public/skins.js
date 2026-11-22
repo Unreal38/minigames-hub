@@ -1,4 +1,4 @@
-// Table themes (cosmetics.js kinds cb, dc, gb, kp): how a player's own cards, dice, golf ball and kart look.
+// Table themes (cosmetics.js kinds cb, gb, kp; dice are in dice3d.js): how a player's own cards, golf ball and kart look.
 // Each game asks here with the index from the seat's fl ({ cb, dc, gb, kp }); 0 or anything unknown is the classic look.
 import * as THREE from 'three';
 
@@ -26,9 +26,7 @@ export function paintBack(g, w, h, k) {
 }
 
 // ---------- dice ----------
-// The dice texture is white with dark pips, so a tint on the material colours the die and keeps the pips readable.
-const DICE = [null, '#ff8088', '#84e3ae', '#ffabd4', '#96a2ff', '#ffd45c'];
-export const diceTint = k => DICE[k | 0] || null;
+// Dice skins are whole looks (shape, face art, pips), so they live in dice3d.js.
 
 // ---------- golf balls ----------
 // A texture wrapped once round the ball (null for the classic ball in the player's colour, and for plain gold).

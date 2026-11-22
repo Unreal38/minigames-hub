@@ -2,7 +2,7 @@
 // dice cup in their colour. Purely visual: it draws what the server sends. Other players' dice do not exist
 // here until the cups lift, because the server never sends them before that.
 import * as THREE from 'three';
-import { diceTint } from '../../skins.js';
+import { diceKit } from '../../dice3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
@@ -15,26 +15,8 @@ const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .
 const shade = (c, k) => '#' + new THREE.Color(c).multiplyScalar(k).getHexString();
 
 // ---------- dice ----------
-// One texture with the six faces side by side; every die is one box whose sides each show their own face.
-function diceTexture() {
-  const S = 128, cv = document.createElement('canvas'); cv.width = S * 6; cv.height = S;
-  const g = cv.getContext('2d');
-  const at = [[.5, .5], [.27, .27], [.73, .73], [.73, .27], [.27, .73], [.27, .5], [.73, .5]];
-  const PIPS = [[], [0], [1, 2], [1, 0, 2], [1, 2, 3, 4], [1, 2, 3, 4, 0], [1, 2, 3, 4, 5, 6]];
-  for (let v = 1; v <= 6; v++) {
-    const x = (v - 1) * S;
-    g.fillStyle = '#d9c3a4'; g.fillRect(x, 0, S, S);
-    g.fillStyle = '#fff8ec'; g.beginPath(); g.roundRect(x + 5, 5, S - 10, S - 10, 20); g.fill();
-    for (const k of PIPS[v]) { g.fillStyle = v === 1 ? '#e5543b' : '#3b2219'; g.beginPath(); g.arc(x + at[k][0] * S, at[k][1] * S, v === 1 ? 21 : 13, 0, 7); g.fill(); }
-  }
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
-}
-const SIDE = [2, 5, 1, 6, 3, 4]; // the value painted on +x, -x, +y, -y, +z, -z (opposite sides add up to 7)
-function dieGeometry(size) {
-  const g = new THREE.BoxGeometry(size, size, size), uv = g.attributes.uv;
-  for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setX(i, (SIDE[f] - 1 + .02 + uv.getX(i) * .96) / 6); }
-  return g;
-}
+// Each die's look (shape, face art, pips) comes from its owner's dice skin (dice3d.js); SIDE is the value on +x, -x, +y, -y, +z, -z.
+const SIDE = [2, 5, 1, 6, 3, 4]; // opposite sides add up to 7
 // turn a die so that value v is on top
 const UP = [null, [0, 0, 0], [0, 0, Math.PI / 2], [-Math.PI / 2, 0, 0], [Math.PI / 2, 0, 0], [0, 0, -Math.PI / 2], [Math.PI, 0, 0]];
 const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _yaw = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
@@ -88,10 +70,8 @@ export function createScene(canvas, { onFrame } = {}) {
   const pfx = createFx(scene), shake = shaker();
 
   // ---------- shared dice and cup parts ----------
-  const diceMap = diceTexture();
-  const dieMat = toonMat(new THREE.MeshStandardMaterial({ map: diceMap, roughness: .6 }));
-  const dimMat = dieMat.clone(); dimMat.color.set('#a79c96');
-  const dieGeo = dieGeometry(DIE), bigGeo = dieGeometry(.62);
+  const kit = diceKit({ side: SIDE });
+  const dieMat = kit.mat(0), bigGeo = kit.geo(0, .62);
   const inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
   const cupGeo = new THREE.LatheGeometry([[.7, 0], [.72, .04], [.55, CUP_H - .05], [.5, CUP_H], [0, CUP_H]].map(p => new THREE.Vector2(...p)), 14);
   const bandGeo = new THREE.CylinderGeometry(.685, .725, .14, 14, 1, true); bandGeo.translate(0, .2, 0);
@@ -111,9 +91,8 @@ export function createScene(canvas, { onFrame } = {}) {
       h.m.rotation.y = -s.g.rotation.y; h.m.scale.setScalar((on ? 1 : .8) * (s.mine ? 1 : .82)); }); // turned so every heart reads the right way up from your seat
     s.lives = lives;
   }
-  // Dice skins from the shop (skins.js): a tinted copy of the dice material per skin, and its dimmed twin.
-  const skinMats = new Map();
-  const skinOf = k => { const c = diceTint(k); if (!c) return null; if (!skinMats.has(c)) { const a = dieMat.clone(); a.color.set(c); const b = dieMat.clone(); b.color.set(c).multiplyScalar(.6); skinMats.set(c, [a, b]); } return skinMats.get(c); };
+  // Dice skins from the shop: each player's dice wear their own skin, and dice that did not count go dark.
+  const skinOf = k => [kit.mat(k), kit.dim(k), kit.geo(k, DIE)];
   function makeDie(geo, v, yaw, mat = dieMat) {
     const m = new THREE.Mesh(geo, mat); m.castShadow = true; faceUp(m, v, yaw);
     const o = new THREE.Mesh(geo, inkMat); o.scale.setScalar(1.12); m.add(o);
@@ -157,7 +136,7 @@ export function createScene(canvas, { onFrame } = {}) {
     if (s.diceKey === key) return; s.diceKey = key;
     for (const d of s.dice) s.g.remove(d.m);
     const spots = SPOTS[Math.min(6, vals.length)] || [];
-    s.dice = vals.slice(0, 6).map((v, k) => { const m = makeDie(dieGeo, v, Math.sin(k * 12.9 + v * 4.1 + s.g.position.x) * .3, s.skin?.[0]); m.position.set(spots[k][0], DIE / 2 + .02, spots[k][1]); s.g.add(m); return { m, v, hop: 0, hit: false }; });
+    s.dice = vals.slice(0, 6).map((v, k) => { const m = makeDie(s.skin[2], v, Math.sin(k * 12.9 + v * 4.1 + s.g.position.x) * .3, s.skin[0]); m.position.set(spots[k][0], DIE / 2 + .02, spots[k][1]); s.g.add(m); return { m, v, hop: 0, hit: false }; });
   }
 
   // ---------- state from the server ----------
@@ -246,7 +225,7 @@ export function createScene(canvas, { onFrame } = {}) {
     // count the matching dice one at a time, then show who was wrong
     if (showing && S) {
       const t = now - showAt - S.ms.lift;
-      if (t > -200 && !dimmed) { dimmed = true; for (const s of seats) for (const d of s.dice) if (!d.hit) d.m.material = s.skin?.[1] || dimMat; }
+      if (t > -200 && !dimmed) { dimmed = true; for (const s of seats) for (const d of s.dice) if (!d.hit) d.m.material = s.skin[1]; }
       while (counted < order.length && t >= (counted + 1) * S.ms.each) {
         const { d, i } = order[counted++]; d.hop = 1;
         pfx.burst(d.m.getWorldPosition(tv), { n: 7, colors: ['#ffd84a', '#ffffff', seats[i].key.slice(0, 7)], speed: 1.8, up: 2.6, size: .2, life: .6, shape: STAR });
@@ -312,8 +291,8 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
-      pfx.dispose(); diceMap.dispose(); dieMat.dispose(); dimMat.dispose(); for (const ms of skinMats.values()) for (const m of ms) m.dispose(); inkMat.dispose();
-      for (const g of [dieGeo, bigGeo, cupGeo, bandGeo, ringGeo, heartGeo]) g.dispose();
+      pfx.dispose(); kit.dispose(); inkMat.dispose();
+      for (const g of [cupGeo, bandGeo, ringGeo, heartGeo]) g.dispose();
       renderer.dispose();
     },
   };
