@@ -133,7 +133,7 @@ function ranks(mine) {
 }
 // What the player may see of a fight: everything about their own side, and the other side's faces and health.
 const battleView = B => ({ juiced: !!B.juiced, mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
-  sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
+  sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, el2: u.el2, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
 // ---------- live battles ----------
 // Two players who are both here fight each other with the same rules. Each has 30 seconds to choose; a player

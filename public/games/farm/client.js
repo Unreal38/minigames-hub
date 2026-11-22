@@ -3,7 +3,7 @@
 //   mount(app, ctx) -> { msg(m), me(), reopen(), destroy() }
 //   ctx: { send(action), toast, me(), home(), account(mode) }
 import { sfx } from '../../sfx.js';
-import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
+import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
 import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 import { matIcon } from './icons.js';
@@ -72,6 +72,7 @@ export function mount(app, ctx) {
   ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', true); }, 4000); } };
   let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
   let B = null, shown = null, playing = false, foes = null, line = '', blogs = [], lastEl = null, ranks = null;
+  let elOpen = false; // the elements guide in a battle
   let logOpen = (() => { try { const v = localStorage.getItem('pf_blog'); return v ? v === '1' : innerWidth > 900; } catch { return innerWidth > 900; } })();
   const lookKey = () => JSON.stringify([ctx.me()?.color, ctx.me()?.av]); let look = lookKey();
   let mapShown = null, counter = null; // counter: an offer to pre-fill once we have walked to the other farm
@@ -465,10 +466,18 @@ export function mount(app, ctx) {
       return `<button type="button" class="mv" data-a="move" data-move="${id}" style="--c:${ELEMENTS[m.el]}" ${busy || cd || B.need ? 'disabled' : ''}><b>${m.name}</b><small>${cd ? `Ready in ${cd}` : what + (m.status ? ` · ${STATUS[m.status].name}` : '')}</small></button>`; }).join('');
     const bench = me.pets.map((x, i) => i === me.on ? '' : `<button type="button" class="sw" data-a="swap" data-i="${i}" ${busy || x.hp <= 0 || (u.status.rooted && !B.need) ? 'disabled' : ''}>${thumb('pet:' + x.sp)}<span><b>${esc(x.name)}</b><small>${x.hp > 0 ? `${x.hp} / ${x.max}` : 'Fainted'}</small></span></button>`).join('');
     const logBox = logOpen ? `<div class="blogbox" id="pf-blog" aria-live="off"><h3>Battle log <button type="button" class="blx" data-a="blog" aria-label="Hide the battle log">×</button></h3><div class="bll">${blogs.map(l => l.turn ? `<p class="blt">Turn ${l.turn}</p>` : `<p class="${l.c}">${l.h}</p>`).join('') || '<p class="bln">Everything that happens in this fight is written down here.</p>'}</div></div>` : '';
-    el.innerHTML = `${plate(1)}${plate(0)}${logBox}
+    // The elements guide: the ring of five, the three rules, and what they mean for the two pets in the ring right now.
+    const foe = act(1), hit = (a, t) => effect(a, t.el) * (t.el2 ? effect(a, t.el2) : 1), say = k => k > 1 ? 'hit hard' : k < 1 ? 'hit weakly' : 'hit normally';
+    const elBox = elOpen ? `<div class="blogbox elbox"><h3>How elements work <button type="button" class="blx" data-a="elhelp" aria-label="Hide the elements guide">×</button></h3><div class="bll">
+      <div class="elring">${Object.keys(STRONG).map(e => `${elTag(e)}<i>beats</i>`).join('')}${elTag(Object.keys(STRONG)[0])}</div>
+      <p class="bln">A move that beats the other pet's element hits <b>1.5 times as hard</b>. A move it is beaten by hits for <b>three quarters</b>.</p>
+      <p class="bln">A pet's moves of its <b>own element</b> hit 20% harder. Each move's colour is its element.</p>
+      <p class="bln">A pet with <b>two elements</b> counts both: strong against one and weak against the other evens out.</p>
+      <p class="bln key">Right now: ${elTag(u.el)} moves ${say(hit(u.el, foe))} on ${esc(foe.name)}. Its ${elTag(foe.el)} moves ${say(hit(foe.el, u))} on ${esc(u.name)}.</p></div></div>` : '';
+    el.innerHTML = `${plate(1)}${plate(0)}${elBox || logBox}
       <div class="bbar"><p class="blog">${line || (B.live && B.waiting ? `Waiting for ${esc(B.foe)} to choose…` : B.need ? 'Who comes in next?' : `What should ${esc(u.name)} do?`)}${clock}</p>
         <div class="mvs">${moves}</div>
-        <div class="bench">${bench}${!B.live && F.inv.juice ? `<button type="button" class="btn sm m" data-a="juice" ${busy || B.need || B.juiced || u.hp >= u.max ? 'disabled' : ''}>Berry Juice (${F.inv.juice})</button>` : ''}<button type="button" class="btn sm w" data-a="blog" aria-pressed="${logOpen}">${logOpen ? 'Hide battle log' : 'Battle log'}</button><button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
+        <div class="bench">${bench}${!B.live && F.inv.juice ? `<button type="button" class="btn sm m" data-a="juice" ${busy || B.need || B.juiced || u.hp >= u.max ? 'disabled' : ''}>Berry Juice (${F.inv.juice})</button>` : ''}<button type="button" class="btn sm w" data-a="elhelp" aria-pressed="${elOpen}">${elOpen ? 'Hide elements guide' : 'How elements work'}</button><button type="button" class="btn sm w" data-a="blog" aria-pressed="${logOpen && !elOpen}">${logOpen && !elOpen ? 'Hide battle log' : 'Battle log'}</button><button type="button" class="btn sm ghost-ink" data-a="giveup" ${busy ? 'disabled' : ''}>Give up</button></div></div>`;
     const bl = el.querySelector('.bll'); if (bl) bl.scrollTop = bl.scrollHeight;
     hurt = -1; el.offsetWidth; for (const b of el.querySelectorAll('.bhp [data-to]')) b.style.width = b.dataset.to + '%'; // bars slide from where they were
   }
@@ -763,7 +772,8 @@ export function mount(app, ctx) {
     else if (a === 'move') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', move: b.dataset.move }); } }
     else if (a === 'swap') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', switch: +b.dataset.i }); } }
     else if (a === 'juice') { if (!playing) { playing = true; paintBattle(); ctx.send({ t: 'bact', juice: true }); } }
-    else if (a === 'blog') { logOpen = !logOpen; try { localStorage.setItem('pf_blog', logOpen ? '1' : '0'); } catch {} paintBattle(); }
+    else if (a === 'elhelp') { elOpen = !elOpen; paintBattle(); }
+    else if (a === 'blog') { logOpen = elOpen ? true : !logOpen; elOpen = false; try { localStorage.setItem('pf_blog', logOpen ? '1' : '0'); } catch {} paintBattle(); }
     else if (a === 'giveup') { if (!playing) ctx.send({ t: 'bquit' }); }
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect', id: b.dataset.id });
@@ -808,7 +818,10 @@ export function mount(app, ctx) {
     const name = inp.value.trim(); if (name) { ctx.send({ t: 'petname', id: card.pet, name }); inp.blur(); }
   });
   const onKey = e => {
-    if (e.target.closest?.('input, textarea') || !scene?.ghost()) return;
+    if (e.target.closest?.('input, textarea')) return;
+    const arrow = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] }[e.key]; // the arrow keys slide the view over the farm
+    if (arrow && mode === 'farm' && !panel) { e.preventDefault(); scene?.pan(...arrow); return; }
+    if (!scene?.ghost()) return;
     if (e.key === 'r' || e.key === 'R') scene.ghostRotate();
     else if (e.key === 'Enter') confirmGhost();
     else if (e.key === 'Escape') scene.ghostCancel();
