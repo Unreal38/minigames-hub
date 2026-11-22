@@ -40,11 +40,11 @@ export const zoneName = z => ZONES[z % ZONES.length].name + (z >= ZONES.length ?
 
 // How fast the storm climbs: it waits GRACE seconds, then rises faster and faster.
 export const PACES = {
-  chill: { name: 'Chill', v0: 1, a: .045, max: 14 },
-  normal: { name: 'Normal', v0: 1.3, a: .065, max: 18 },
-  wild: { name: 'Wild', v0: 1.9, a: .1, max: 22 },
+  chill: { name: 'Chill', v0: 1.3, a: .055, max: 16 },
+  normal: { name: 'Normal', v0: 1.8, a: .08, max: 20 },
+  wild: { name: 'Wild', v0: 2.6, a: .12, max: 24 },
 };
-export const GRACE = 3, STORM_START = -12;
+export const GRACE = 2, STORM_START = -9;
 export function stormY(pace, t) {
   const P = PACES[pace] || PACES.normal, u = Math.max(0, t - GRACE), tm = (P.max - P.v0) / P.a;
   return u <= tm ? STORM_START + P.v0 * u + P.a * u * u / 2 : STORM_START + P.v0 * tm + P.a * tm * tm / 2 + P.max * (u - tm);

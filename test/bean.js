@@ -30,7 +30,7 @@ if (zoneOf(24) !== 0 || zoneOf(25) !== 1 || !zoneName(7)) fail('zones');
 
 // ----- the storm -----
 for (const p of Object.keys(PACES)) {
-  if (stormY(p, 0) !== stormY(p, 2.9) || stormY(p, 0) > -8) fail('the storm should wait below the meadow');
+  if (stormY(p, 0) !== stormY(p, 1.9) || stormY(p, 0) > -8) fail('the storm should wait below the meadow');
   let last = -1e9; for (let t = 0; t < 400; t += .5) { const y = stormY(p, t); if (y < last) fail('the storm never sinks'); last = y; }
   if (!(stormSpeed(p, 100) > stormSpeed(p, 20)) || stormSpeed(p, 9999) !== PACES[p].max) fail('the storm should speed up to its top speed');
   if (Math.abs((stormY(p, 50.5) - stormY(p, 49.5)) - stormSpeed(p, 50)) > .1) fail('storm height and speed disagree');

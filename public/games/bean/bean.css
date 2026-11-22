@@ -16,6 +16,11 @@ body.in-game { overflow: hidden; }
 .bb .bb-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
 .bb .bb-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
 .bb .bb-tag[hidden] { display: none; }
+.bb .bb-tag { font-size: 14px; opacity: 1; z-index: 1; }
+.bb .bb-tag em, .bb .bb-tag u { display: none; font-style: normal; text-decoration: none; font-variant-numeric: tabular-nums; }
+.bb .bb-tag.bb-off { background: var(--plum2); color: var(--cream); border-color: var(--cream); transition: transform .12s linear; }
+.bb .bb-tag.bb-off em { display: inline; color: var(--lantern); font-size: 11px; }
+.bb .bb-tag.bb-off u { display: inline; color: var(--lantern); font-weight: 700; }
 
 .bb .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .bb .hud > * { pointer-events: auto; }
