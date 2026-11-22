@@ -1026,3 +1026,18 @@ body.sky.night:not(.in-game) .wdsw { border-color: var(--edge); }
 }
 .wd .cartitem { flex: none; }
 .wd.creator.first .wdrail { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 3px dashed var(--edge, #e6cfbd); padding: 0 0 8px; overflow: visible; }
+
+/* ---------- profile isle variants ---------- */
+/* Bought skies behind the isle: the frame round the 3D isle takes the sky's colours (public/isle3d.js draws the rest). */
+.isk1, body.night .isk1, .wd.creator .pvisle.isk1, body.sky.night:not(.in-game) .creator .pv3d.isk1 { background: linear-gradient(#4b3a8f, #ff7a6a 58%, #ffc27a); }
+.isk2, body.night .isk2, .wd.creator .pvisle.isk2, body.sky.night:not(.in-game) .creator .pv3d.isk2 { background: linear-gradient(#0c1236, #2d2b63 60%, #4a3f8a); }
+.isk3, body.night .isk3, .wd.creator .pvisle.isk3, body.sky.night:not(.in-game) .creator .pv3d.isk3 { background: linear-gradient(#06142e, #123a55 55%, #2b2856); }
+.isk4, body.night .isk4, .wd.creator .pvisle.isk4, body.sky.night:not(.in-game) .creator .pv3d.isk4 { background: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
+.wd.creator .pvisle { background: linear-gradient(#8fd0f7, #d9f1ff); position: relative; cursor: pointer; }
+body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
+.wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.wd.creator .pv3d[hidden] { display: none; }
+.wd.isleview .pvbar .pvseg { visibility: hidden; }
+.wdtile img.islepic { width: 92px; height: 92px; object-fit: contain; border-radius: 12px; }
+.wdtile img.islepic[class*=isk], .wdtile img.islepic[data-isle^="ik:0"] { box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .12); }
+.wdtile img.islepic[data-isle^="ik:0"] { background: linear-gradient(#8fd0f7, #d9f1ff); }
