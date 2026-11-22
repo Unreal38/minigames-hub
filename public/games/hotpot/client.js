@@ -7,6 +7,7 @@ import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -116,7 +117,7 @@ export function mount(app, ctx) {
       el.dataset.r = r;
       const status = active ? (S.step === 'draw' ? 'choosing…' : 'discarding…') : p.bot ? (p.human ? 'away (bot)' : 'bot') : 'waiting';
       el.innerHTML = `${avatarHtml(p.color, p.av, 46)}
-        <div class="who"><b>${nameOf(i)}</b><span>${status}${active ? '<i class="dotty"><i></i><i></i><i></i></i>' : ''}</span>
+        <div class="who"><b>${nameHtml(S.seats[i]?.name, S.seats[i]?.fl)}</b>${titleHtml(S.seats[i]?.fl)}<span>${status}${active ? '<i class="dotty"><i></i><i></i><i></i></i>' : ''}</span>
         <span class="mini" aria-label="${p.n} cards">${Array.from({ length: Math.min(p.n, 9) }, () => '<i></i>').join('')}</span></div>
         <div class="pile">${p.top >= 0 ? cardHtml(p.top, { tag: 'button', cls: canTake(i) ? 'takeable' : '', attrs: `data-a="take" data-i="${i}" ${canTake(i) ? '' : 'tabindex="-1"'}` }) : '<span class="slot">empty</span>'}
         ${canTake(i) ? '<em>take</em>' : ''}</div>`;
@@ -246,7 +247,7 @@ export function mount(app, ctx) {
       <p>${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.</p>
       <ol class="score">${order.map(({ p, i, r }, n) => `<li class="${i === S.win ? 'won' : ''}" style="animation-delay:${n * 120}ms">
         ${avatarHtml(p.color, p.av, 48)}
-        <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b>
+        <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
         <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : '<em>no sets</em>'}</div></div>
         <strong>${r.pts}<small>${r.bonus ? ` incl. +${r.bonus}` : ''}</small></strong></li>`).join('')}</ol>
       <div class="againbox">${againHtml(ctx, R, 'Play again')}</div></div>`;

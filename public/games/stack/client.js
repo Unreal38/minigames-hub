@@ -3,6 +3,7 @@ import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -82,7 +83,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tws-tag${i === S.me ? ' tws-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${esc(p.name)}</b><span></span></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tws-tag${i === S.me ? ' tws-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => {
@@ -120,7 +121,7 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => (shown[b] ?? S.seats[b].pts) - (shown[a] ?? S.seats[a].pts) || a - b);
     setHtml($('tws-list'), ord.map(i => {
       const p = S.seats[i], now = i === S.turn && S.ph === 'play';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${esc(p.name)}</b><span>${shown[i] ?? p.pts} pts</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${shown[i] ?? p.pts} pts</span></li>`;
     }).join(''));
   }
 
@@ -200,7 +201,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${st.placed} stacked · ${st.perfect} perfect · ${st.crashes} crash${st.crashes === 1 ? '' : 'es'}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.placed} stacked · ${st.perfect} perfect · ${st.crashes} crash${st.crashes === 1 ? '' : 'es'}</span></div>
           <strong>${p.pts}<small>pts</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;

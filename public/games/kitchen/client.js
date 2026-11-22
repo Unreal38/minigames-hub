@@ -7,6 +7,7 @@ import { reactHtml } from '../../react.js';
 import { placeCoins } from '../../ranks.js';
 import { kitchen, RECIPES, CHOPPABLE, SPEED, T, move, target } from './rules.js';
 import { part, dish, tool, sticker } from './icons.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -167,7 +168,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="kr-tag${i === S.me ? ' kr-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${esc(p.name)}</b></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="kr-tag${i === S.me ? ' kr-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
       tagEls = [...tagsEl.children];
     }
   }
@@ -175,7 +176,7 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].pts - S.seats[a].pts || a - b);
     setHtml($('kr-list'), ord.map(i => {
       const p = S.seats[i];
-      return `<li class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${esc(p.name)}${p.bot && p.human ? ' (away)' : ''}</b><span>${p.pts}</span></li>`;
+      return `<li class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b><span>${p.pts}</span></li>`;
     }).join(''));
   }
   function ticket(o) {
@@ -272,7 +273,7 @@ export function mount(app, ctx) {
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${k === 0 && p.pts > 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${st.dishes} dish${st.dishes === 1 ? '' : 'es'} helped · ${st.chopped} chopped · ${st.served} served</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.dishes} dish${st.dishes === 1 ? '' : 'es'} helped · ${st.chopped} chopped · ${st.served} served</span></div>
           <strong>${p.pts}<small>tips${p.human && p.pts > 0 ? ` · ${I.coin}${placeCoins(k + 1, n)}` : ''}</small></strong></li>`;
       }).join('')}</ol>
       <p class="fine">Each dish's tip is shared by everyone who had a hand in it. Coins go by those shares.</p>

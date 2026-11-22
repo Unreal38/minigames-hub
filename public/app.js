@@ -500,7 +500,8 @@ function onMsg(m) {
     watchPaint();
   } else if (m.t === 'state') {
     // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
-    if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])); for (const seat of m.s.seats) if (seat) seat.fl = (seat.id && by.get(seat.id)) || {}; }
+    if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])), nm = new Map(st.room.players.map(p => [p.name + '|' + p.color, p.fl])); // by seat id, or by name and colour where a game's seats carry no id
+      for (const seat of m.s.seats) if (seat) seat.fl = (seat.id ? by.get(seat.id) : seat.bot && !seat.human ? null : nm.get(seat.name + '|' + seat.color)) || {}; }
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
