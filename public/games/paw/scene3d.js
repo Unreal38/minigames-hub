@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, HEART, nightScene, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { petModel } from '../farm/pets3d.js';
 import { N, GRID, TILES, GROUPS, SHOP_TILES, cellOf, sideOf, isCorner, BATH, LOST, MUD, START, MS } from './board.js';
@@ -83,25 +84,8 @@ function boardTexture() {
 }
 
 // ---------- dice ----------
-function diceTexture() {
-  const S = 128, cv = document.createElement('canvas'); cv.width = S * 6; cv.height = S;
-  const g = cv.getContext('2d');
-  const at = [[.5, .5], [.27, .27], [.73, .73], [.73, .27], [.27, .73], [.27, .5], [.73, .5]];
-  const PIPS = [[], [0], [1, 2], [1, 0, 2], [1, 2, 3, 4], [1, 2, 3, 4, 0], [1, 2, 3, 4, 5, 6]];
-  for (let v = 1; v <= 6; v++) {
-    const x = (v - 1) * S;
-    g.fillStyle = '#d9c3a4'; g.fillRect(x, 0, S, S);
-    g.fillStyle = '#fff8ec'; g.beginPath(); g.roundRect(x + 5, 5, S - 10, S - 10, 20); g.fill();
-    for (const k of PIPS[v]) { g.fillStyle = v === 1 ? '#e5543b' : '#3b2219'; g.beginPath(); g.arc(x + at[k][0] * S, at[k][1] * S, v === 1 ? 21 : 13, 0, 7); g.fill(); }
-  }
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
-}
+// The dice wear the roller's dice skin (dice3d.js); SIDE_VAL is the value on +x, -x, +y, -y, +z, -z.
 const SIDE_VAL = [2, 5, 1, 6, 3, 4];
-function dieGeometry(size) {
-  const g = new THREE.BoxGeometry(size, size, size), uv = g.attributes.uv;
-  for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setX(i, (SIDE_VAL[f] - 1 + .02 + uv.getX(i) * .96) / 6); }
-  return g;
-}
 const UP = [null, [0, 0, 0], [0, 0, Math.PI / 2], [-Math.PI / 2, 0, 0], [Math.PI / 2, 0, 0], [0, 0, -Math.PI / 2], [Math.PI, 0, 0]];
 
 // ---------- pets ----------
@@ -263,8 +247,8 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
   }
 
   // ---------- dice ----------
-  const diceMap = diceTexture(), dieGeo = dieGeometry(.62);
-  const dieMat = toonMat(new THREE.MeshStandardMaterial({ map: diceMap, roughness: .6 })), inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
+  const kit = diceKit({ side: SIDE_VAL }), dieGeo = kit.geo(0, .62);
+  const dieMat = kit.mat(0), inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
   const dice = [0, 1].map(k => { const m = new THREE.Mesh(dieGeo, dieMat); m.castShadow = true; const o = new THREE.Mesh(dieGeo, inkMat); o.scale.setScalar(1.1); m.add(o); m.position.set(k ? .6 : -.6, .31, 2.6); m.visible = false; scene.add(m); return { m, v: 1, q: new THREE.Quaternion(), yaw: k * .7 }; });
   let rollN = -1, rollAt = 0, rollFrom = new THREE.Vector3();
   const _e = new THREE.Euler(), _q = new THREE.Quaternion(), _yq = new THREE.Quaternion(), YUP = new THREE.Vector3(0, 1, 0);
@@ -326,7 +310,8 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
     if (st.roll && st.roll.n !== rollN) {
       rollN = st.roll.n;
       if (st.roll.ago < MS.roll + 400) { rollAt = now - st.roll.ago; rollFrom.copy(toks[st.roll.s]?.g.position || new THREE.Vector3()).setY(1.2); }
-      dice.forEach((d, k) => { d.v = st.roll.d[k]; d.m.visible = true; d.yaw += 1.3 + k; d.q.setFromEuler(_e.set(...UP[d.v])).premultiply(_yq.setFromAxisAngle(YUP, d.yaw)); if (!rollAt) d.m.quaternion.copy(d.q); });
+      const skin = list[st.roll.s]?.fl?.dc | 0;
+      dice.forEach((d, k) => { d.v = st.roll.d[k]; d.m.visible = true; kit.dress(d.m, skin, .62); d.yaw += 1.3 + k; d.q.setFromEuler(_e.set(...UP[d.v])).premultiply(_yq.setFromAxisAngle(YUP, d.yaw)); if (!rollAt) d.m.quaternion.copy(d.q); });
     }
     const amt = Math.min(1, st.jar / 300); jarFill.scale.y = Math.max(.02, amt); jarFill.position.y = .08 + jarFill.scale.y / 2; jarFill.visible = st.jar > 0;
     setMark(pinned >= 0 ? pinned : st.offer);
@@ -501,7 +486,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
       for (const t of toks) { disposeAvatar(t.av); t.ring.material.dispose(); }
       for (const s of shops.values()) { if (s.pet) freePet(s.pet); s.frame.material.dispose(); if (s.prop) disposeToon(s.prop); }
       disposeArrow(arrow); disposeToon(crateProto); disposeToon(deco); disposeToon(land);
-      pfx.dispose(); blobGeo.dispose(); blobMat.dispose(); for (const im of crates) im.dispose(); diceMap.dispose(); dieMat.dispose(); inkMat.dispose(); dieGeo.dispose(); frameGeo.dispose(); ringGeo.dispose(); zTex.dispose(); zMat.dispose(); markMat.dispose(); aimFrame.geometry.dispose(); aimMat.dispose(); aimPin.traverse(m => { if (m.isMesh) m.material.dispose(); }); aimPin.userData.c.geometry.dispose(); dotGeo.dispose(); dotMat.dispose(); aimDots.dispose();
+      pfx.dispose(); blobGeo.dispose(); blobMat.dispose(); for (const im of crates) im.dispose(); kit.dispose(); inkMat.dispose(); frameGeo.dispose(); ringGeo.dispose(); zTex.dispose(); zMat.dispose(); markMat.dispose(); aimFrame.geometry.dispose(); aimMat.dispose(); aimPin.traverse(m => { if (m.isMesh) m.material.dispose(); }); aimPin.userData.c.geometry.dispose(); dotGeo.dispose(); dotMat.dispose(); aimDots.dispose();
       topMat.map?.dispose(); topMat.dispose(); jarFill.geometry.dispose();
       renderer.dispose();
     },

@@ -2,7 +2,7 @@
 // stool round it. The player whose turn it is throws the five dice into the tray from their seat; kept dice slide
 // into a row at the front of the tray. Purely visual: it draws what the server sends, and reports which die you tap.
 import * as THREE from 'three';
-import { diceTint } from '../../skins.js';
+import { diceKit } from '../../dice3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
@@ -14,25 +14,8 @@ const TRAY_W = 3.9, TRAY_D = 2.9;
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 
 // ---------- dice ----------
-function diceTexture() {
-  const S = 128, cv = document.createElement('canvas'); cv.width = S * 6; cv.height = S;
-  const g = cv.getContext('2d');
-  const at = [[.5, .5], [.27, .27], [.73, .73], [.73, .27], [.27, .73], [.27, .5], [.73, .5]];
-  const PIPS = [[], [0], [1, 2], [1, 0, 2], [1, 2, 3, 4], [1, 2, 3, 4, 0], [1, 2, 3, 4, 5, 6]];
-  for (let v = 1; v <= 6; v++) {
-    const x = (v - 1) * S;
-    g.fillStyle = '#d9c3a4'; g.fillRect(x, 0, S, S);
-    g.fillStyle = '#fff8ec'; g.beginPath(); g.roundRect(x + 5, 5, S - 10, S - 10, 20); g.fill();
-    for (const k of PIPS[v]) { g.fillStyle = v === 1 ? '#e5543b' : '#3b2219'; g.beginPath(); g.arc(x + at[k][0] * S, at[k][1] * S, v === 1 ? 21 : 13, 0, 7); g.fill(); }
-  }
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
-}
-const SIDE = [2, 5, 1, 6, 3, 4]; // value painted on +x, -x, +y, -y, +z, -z
-function dieGeometry(size) {
-  const g = new THREE.BoxGeometry(size, size, size), uv = g.attributes.uv;
-  for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setX(i, (SIDE[f] - 1 + .02 + uv.getX(i) * .96) / 6); }
-  return g;
-}
+// Each die's look (shape, face art, pips) is the roller's dice skin (dice3d.js); SIDE is the value on +x, -x, +y, -y, +z, -z.
+const SIDE = [2, 5, 1, 6, 3, 4];
 const UP = [null, [0, 0, 0], [0, 0, Math.PI / 2], [-Math.PI / 2, 0, 0], [Math.PI / 2, 0, 0], [0, 0, -Math.PI / 2], [Math.PI, 0, 0]];
 const _e = new THREE.Euler(), _yaw = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
 const faceUpQ = (q, v, yaw = 0) => q.setFromEuler(_e.set(...UP[v])).premultiply(_yaw.setFromAxisAngle(Y, yaw));
@@ -95,13 +78,10 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
   const pfx = createFx(scene), shake = shaker();
 
   // ---------- the five dice ----------
-  const diceMap = diceTexture();
-  const dieMat = toonMat(new THREE.MeshStandardMaterial({ map: diceMap, roughness: .6 }));
-  const dieGeo = dieGeometry(DIE);
+  const kit = diceKit({ side: SIDE });
+  const dieMat = kit.mat(0), dieGeo = kit.geo(0, DIE);
   const inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
   const glowMat = new THREE.MeshBasicMaterial({ color: '#ffd84a', side: THREE.BackSide, transparent: true, opacity: .95 });
-  const skinMats = new Map();
-  const skinOf = k => { const c = diceTint(k); if (!c) return dieMat; if (!skinMats.has(c)) { const a = dieMat.clone(); a.color.set(c); skinMats.set(c, a); } return skinMats.get(c); };
   const dice = Array.from({ length: 5 }, (_, k) => {
     const m = new THREE.Mesh(dieGeo, dieMat); m.castShadow = true;
     const ink = new THREE.Mesh(dieGeo, inkMat); ink.scale.setScalar(1.1); m.add(ink);
@@ -153,7 +133,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
     const now = performance.now();
     list.forEach((p, i) => { seats[i].active = st.turn === i && st.stage === 'turn'; });
     const tk = st.gid + '/' + st.round + '/' + st.turn;
-    const mat = st.turn >= 0 ? skinOf(list[st.turn]?.fl?.dc) : dieMat;
+    const skin = st.turn >= 0 ? list[st.turn]?.fl?.dc | 0 : 0;
     if (tk !== turnKey) { turnKey = tk; if (st.stage === 'turn' && !st.rolls) for (const d of dice) d.m.visible = false; }
     // a new roll: the moved dice fly in from the roller's hand and tumble onto the felt
     const rk = st.gid + '/' + st.rollN;
@@ -162,7 +142,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       const hand = seats[st.turn]?.hand || new THREE.Vector3(0, 2, 3);
       if (seats[st.turn]) seats[st.turn].hop = .8;
       dice.forEach((d, k) => {
-        d.v = st.dice[k]; d.held = !!st.held[k]; d.m.material = mat;
+        d.v = st.dice[k]; d.held = !!st.held[k]; kit.dress(d.m, skin, DIE);
         const moved = st.moved.includes(k);
         if (!moved && d.m.visible) return;
         d.yaw = yawOf(k + st.rollN); place(d, k, d.held); faceUpQ(d.q1, d.v, d.yaw);
@@ -177,7 +157,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
     } else if (st.rolls) {
       // holds changed: slide kept dice to the front row and back
       dice.forEach((d, k) => {
-        d.m.material = mat;
+        kit.dress(d.m, skin, DIE);
         const h = !!st.held[k]; if (h === d.held) return;
         d.held = h; if (d.flying) return;
         d.from.copy(d.m.position); place(d, k, h); d.slide = 1; d.hop = .5;
@@ -189,7 +169,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       const late = st.last.ago > 600; pickKey = pk;
       if (!late && st.stage === 'pick') {
         const good = st.last.pts > 0;
-        for (const d of dice) if (d.m.visible) { d.hop = 1; if (good) pfx.burst(d.m.position, { n: 6, colors: ['#ffd84a', '#ffffff', list[st.last.s]?.color || '#ff8fab'], speed: 1.6, up: 2.4, size: .2, life: .6, shape: STAR }); }
+        for (const d of dice) if (d.m.visible) { d.hop = 1; if (good) pfx.burst(d.m.position, { n: 6, colors: [...kit.sparks(list[st.last.s]?.fl?.dc).slice(0, 2), list[st.last.s]?.color || '#ff8fab'], speed: 1.6, up: 2.4, size: .2, life: .6, shape: STAR }); }
         if (st.last.box === 'gen' && st.last.pts || st.last.bonus) { pfx.confetti(new THREE.Vector3(0, 1.4, 0), { n: 70, w: 3, h: 2.4 }); shake.kick(.14); }
         if (seats[st.last.s]) seats[st.last.s].hop = good ? 1 : .3;
       }
@@ -304,8 +284,8 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       dead = true; ticker.stop();
       canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerdown', onDown);
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
-      pfx.dispose(); diceMap.dispose(); dieMat.dispose(); for (const m of skinMats.values()) m.dispose(); inkMat.dispose(); glowMat.dispose();
-      for (const g of [dieGeo, ringGeo, rollRing]) g.dispose();
+      pfx.dispose(); kit.dispose(); inkMat.dispose(); glowMat.dispose();
+      for (const g of [ringGeo, rollRing]) g.dispose();
       renderer.dispose();
     },
   };

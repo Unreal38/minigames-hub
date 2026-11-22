@@ -39,7 +39,9 @@ export const COS = {
     { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
   cb: { label: 'Card back', where: 'Your cards in Texas Hold’em and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }] },
-  dc: { label: 'Dice', where: 'Your dice in Liar’s Dice and Pip Party.', items: [{ n: 'Classic' }, { n: 'Ruby', p: 100 }, { n: 'Jade', p: 100 }, { n: 'Bubblegum', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Gold', p: 250 }] },
+  // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
+  dc: { label: 'Dice', where: 'Your dice in Liar’s Dice, Pip Party, Ludo, Snakes & Ladders and Pawperty.', items: [{ n: 'Classic' }, { n: 'Ruby gem', p: 100 }, { n: 'Carved jade', p: 100 }, { n: 'Bubblegum', p: 100 }, { n: 'Starry midnight', p: 120 }, { n: 'Solid gold', p: 250 },
+    { n: 'Oak wood', p: 120 }, { n: 'Ice crystal', p: 220 }, { n: 'Paw prints', p: 150 }, { n: 'Lava rock', p: 200 }, { n: 'Snowball', p: 160, s: 'winter' }, { n: 'Choc-chip cookie', p: 140 }, { n: 'Mossy stone', p: 150 }, { n: 'Pixel', p: 120 }] },
   gb: { label: 'Golf ball', where: 'Your ball in Mini Golf Party.', items: [{ n: 'Classic' }, { n: '8-ball', p: 100 }, { n: 'Watermelon', p: 120 }, { n: 'Planet', p: 150 }, { n: 'Eyeball', p: 150 }, { n: 'Gold', p: 250 }] },
   kp: { label: 'Kart paint', where: 'Your kart in Kart Island Race.', items: [{ n: 'Classic' }, { n: 'Racing stripes', p: 120 }, { n: 'Checkers', p: 120 }, { n: 'Flames', p: 150 }, { n: 'Galaxy', p: 200 }, { n: 'Gold', p: 300 }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).

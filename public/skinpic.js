@@ -16,29 +16,29 @@ function cardPic(i, { paintBack }) {
   one(92, 126, -.22); one(150, 120, .16);
   return c.toDataURL('image/png');
 }
-function dicePic(i, { diceTint }) {
-  const [c, g] = cv2d(240, 240), tint = diceTint(i) || '#fffaf0';
-  const PIPS = { 3: [[-1, -1], [0, 0], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]] };
-  const one = (x, y, rot, v, s) => { g.save(); g.translate(x, y); g.rotate(rot);
-    g.fillStyle = 'rgba(0,0,0,.16)'; rr(g, -s / 2 + 5, -s / 2 + 9, s, s, s * .22); g.fill();
-    g.fillStyle = tint; g.strokeStyle = INK; g.lineWidth = 6; rr(g, -s / 2, -s / 2, s, s, s * .22); g.fill(); g.stroke();
-    g.fillStyle = 'rgba(255,255,255,.45)'; rr(g, -s / 2 + 9, -s / 2 + 8, s * .5, s * .16, s * .08); g.fill();
-    g.fillStyle = INK; for (const [px, py] of PIPS[v]) { g.beginPath(); g.arc(px * s * .26, py * s * .26, s * .085, 0, 7); g.fill(); } g.restore(); };
-  one(88, 138, -.2, 5, 96); one(160, 96, .24, 3, 84);
-  return c.toDataURL('image/png');
-}
 async function shot3d(build, size = 240) {
   const THREE = await import('three');
   const R = new THREE.WebGLRenderer({ canvas: document.createElement('canvas'), antialias: true, alpha: true, preserveDrawingBuffer: true }); R.setPixelRatio(1); R.setSize(size, size, false);
   const S = new THREE.Scene(), C = new THREE.PerspectiveCamera(30, 1, .1, 60);
   S.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9)); const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(3, 6, 4); S.add(l);
+  let after = null;
   try {
-    const { g, dir, zoom = 1 } = await build(THREE); S.add(g);
+    const b = await build(THREE), { g, dir, zoom = 1 } = b; after = b.after; S.add(g);
     const box = new THREE.Box3().setFromObject(g), ctr = box.getCenter(new THREE.Vector3()), d = box.getSize(new THREE.Vector3()).length() / 2 / Math.sin(15 * Math.PI / 180) * zoom;
     C.position.set(ctr.x + d * dir[0], ctr.y + d * dir[1], ctr.z + d * dir[2]); C.lookAt(ctr);
     R.render(S, C); return R.domElement.toDataURL('image/png');
-  } finally { S.traverse(o => { o.geometry?.dispose?.(); }); R.dispose(); R.forceContextLoss?.(); }
+  } finally { S.traverse(o => { o.geometry?.dispose?.(); }); after?.(); R.dispose(); R.forceContextLoss?.(); }
 }
+// two of the real 3D dice, one showing five and one showing three
+const dicePic = i => shot3d(async THREE => {
+  const { diceKit } = await import('./dice3d.js'), kit = diceKit(), g = new THREE.Group();
+  const UP = { 5: [0, 0, -Math.PI / 2], 3: [Math.PI / 2, 0, 0] }; // with the kit's default sides
+  for (const [v, x, z, yaw] of [[5, -.62, .2, .5], [3, .66, -.25, -.45]]) {
+    const m = new THREE.Mesh(), ink = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide })); ink.scale.setScalar(1.08); m.add(ink);
+    kit.dress(m, i, 1); m.rotation.set(...UP[v]); m.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), yaw); m.position.set(x, .5, z); g.add(m);
+  }
+  return { g, dir: [.2, .62, .76], zoom: .8, after: () => kit.dispose() };
+});
 const ballPic = (i, color, { ballLook }) => shot3d(async THREE => {
   const g = new THREE.Group(), look = ballLook(i, color);
   const ball = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), new THREE.MeshToonMaterial({ color: look.color, map: look.map })); ball.rotation.y = -Math.PI / 2 + .5;
@@ -54,7 +54,7 @@ export async function skinPic(k, i, color, av) {
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? dicePic(i | 0, sk) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }
