@@ -164,7 +164,10 @@ body.in-game { overflow: hidden; }
 /* battle log, floating numbers, ranking */
 .pf .blogbox { position: absolute; left: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 168px); width: min(300px, calc(100vw - 28px)); max-height: min(34vh, 300px); background: var(--pf-bg, var(--cream)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 #23401c55; display: flex; flex-direction: column; overflow: hidden; }
 .pf .blogbox h3 { margin: 0; padding: 4px 6px 4px 12px; font-family: var(--fd); font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #23401c33; }
-.pf .elbox { max-height: min(46vh, 380px); } .pf .elring { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0; } .pf .elring i { font-size: 12px; font-style: normal; color: var(--pf-muted, #6b4a3c); } .pf .elring .el { font-size: 12px; padding: 1px 8px; }
+.pf .elbox { max-height: min(62vh, 470px); width: min(290px, calc(100vw - 28px)); } .pf .elbox .bll { padding-bottom: 10px; }
+.pf .elsvg { display: block; width: 100%; height: auto; } .pf .elsvg .eln { font-family: var(--fd); font-weight: 600; font-size: 12.5px; fill: #fff; } .pf .elsvg .elw { font-family: var(--fd); font-weight: 600; font-size: 12px; fill: var(--pf-tx, var(--ink)); } .pf .elsvg .elc { font-size: 11.5px; fill: var(--pf-muted, #6b4a3c); }
+.pf .elkey { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: center; font-size: 12.5px; margin: 2px 0 8px; } .pf .elbox .good { color: #2f8a3e; } .pf .elbox .bad { color: #c8452f; }
+.pf .elduel { display: flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 13px; } .pf .elduel .el { font-size: 12px; padding: 1px 8px; } .pf .elduel b { font-family: var(--fd); font-size: 15px; } .pf .elduel small { color: var(--pf-muted, #6b4a3c); }
 .pf .blx { background: none; border: 0; color: var(--pf-tx, var(--ink)); font-size: 22px; line-height: 1; width: 32px; height: 28px; cursor: pointer; }
 .pf .bll { overflow-y: auto; padding: 4px 10px 8px; font-size: 13.5px; line-height: 1.3; }
 .pf .bll p { margin: 3px 0; padding-left: 14px; position: relative; }
