@@ -16,6 +16,7 @@
 import * as THREE from 'three';
 import { bake } from './avatar3d.js';
 import { fxOf } from './winfx.js';
+import { drawShape } from './fxart.js';
 
 export const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
@@ -256,18 +257,13 @@ export function petals(parent, span, y = 3, { n = 10, colors = ['#ffc1dc', '#fff
 }
 
 // ---------- particles ----------
-// Shapes in the sprite sheet: 0 soft dot, 1 star, 2 confetti square, 3 heart, 4 ring, 5 fish, 6 coin, 7 snowflake.
+// Shapes in the sprite sheet (drawn by fxart.js): 0 dot, 1 star, 2 confetti square, 3 heart, 4 ring, 5 fish, 6 coin, 7 snowflake.
 export const DOT = 0, STAR = 1, CONF = 2, HEART = 3, RING = 4, FISH = 5, COIN = 6, FLAKE = 7;
 function sheet() {
-  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 64; const g = cv.getContext('2d');
-  let gr = g.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, '#fff'); gr.addColorStop(.45, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-  g.fillStyle = '#fff'; g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 11 : 29; g.lineTo(96 + Math.cos(a) * r, 33 + Math.sin(a) * r); } g.closePath(); g.fill();
-  g.beginPath(); g.roundRect(128 + 14, 20, 36, 24, 5); g.fill();
-  g.beginPath(); g.moveTo(224, 52); g.bezierCurveTo(196, 34, 198, 10, 214, 12); g.bezierCurveTo(220, 12, 224, 18, 224, 22); g.bezierCurveTo(224, 18, 228, 12, 234, 12); g.bezierCurveTo(250, 10, 252, 34, 224, 52); g.fill();
-  g.lineWidth = 7; g.strokeStyle = '#fff'; g.beginPath(); g.arc(288, 32, 24, 0, 6.3); g.stroke();
-  g.beginPath(); g.ellipse(346, 32, 19, 12, 0, 0, 6.3); g.fill(); g.beginPath(); g.moveTo(362, 32); g.lineTo(378, 19); g.lineTo(378, 45); g.closePath(); g.fill(); g.fillStyle = '#555'; g.beginPath(); g.arc(336, 29, 3, 0, 6.3); g.fill(); // fish
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(416, 32, 24, 0, 6.3); g.fill(); g.lineWidth = 5; g.strokeStyle = '#bbb'; g.beginPath(); g.arc(416, 32, 21, 0, 6.3); g.stroke(); g.beginPath(); g.arc(416, 32, 10, 0, 6.3); g.stroke(); // coin
-  g.lineWidth = 5; g.lineCap = 'round'; g.strokeStyle = '#fff'; for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(480 - Math.cos(a) * 24, 32 - Math.sin(a) * 24); g.lineTo(480 + Math.cos(a) * 24, 32 + Math.sin(a) * 24); g.stroke(); } // snowflake
+  // one cell per shape, white with an ink outline and a grey facet: the particle's colour tints all three
+  const C = 128, names = ['dot', 'star', 'conf', 'heart', 'ring', 'fish', 'coin', 'flake'];
+  const cv = document.createElement('canvas'); cv.width = C * names.length; cv.height = C; const g = cv.getContext('2d');
+  names.forEach((n, i) => drawShape(g, n, C * i + C / 2, C / 2, C * .43, { fill: '#ffffff', shade: n === 'dot' ? '#e9e9e9' : '#cfcfcf', edge: n === 'dot' ? '' : '#4a3a36' }));
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 // How each win effect (cosmetics.js, kind wn) looks as an in-game shower. 4 (fireworks) is drawn as bursts instead.
