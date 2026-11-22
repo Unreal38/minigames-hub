@@ -138,6 +138,9 @@ function scoreGame(r) {
   // What each seat was paid, for the coins column on every results screen: coins for people, 'b' for bots
   // (they have no account), null for someone who left before the end.
   r.paid = G.seats.map(seat => (seat.human && seat.id ? null : 'b'));
+  // A match with a bot seat (bot: true, a seat the game filled with a bot) never counts toward the rankings. A person
+  // who left mid-game and was swapped for a bot does not count as a bot seat, so the others' match still counts.
+  const ranked = !G.seats.some(seat => seat.bot);
   G.seats.forEach((seat, i) => {
     if (!seat.human || !seat.id) return;
     const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
@@ -146,7 +149,7 @@ function scoreGame(r) {
     Object.assign(e, { name: c.name, color: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p) });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
-    const gain = store.credit(p, r.game, { ...res[i], of });
+    const gain = store.credit(p, r.game, { ...res[i], of, ranked });
     r.paid[i] = gain.coins;
     send(c, { t: 'me', me: store.me(p), gain });
   });

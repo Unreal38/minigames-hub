@@ -86,5 +86,14 @@ if (store.credit(p, 'golf', { pts: 0, place: 1, of: 3, idle: true }).coins !== 0
 if (store.credit(p, 'stack', { pts: 0, win: true }).coins !== 10) fail('a win with no place should pay 1st');
 const after = store.leaderboard('marbles', 'mia');
 if (after.rows[0].net !== 105 || after.rows[0].games !== 11) fail('board not refreshed after credit');
+// A match with a bot seat pays XP and coins but adds nothing the rankings count.
+{
+  const was = JSON.stringify([p.games, p.wins, p.pts, p.byGame.marbles]), xp0 = p.xp, coins0 = p.coins;
+  const gb = store.credit(p, 'marbles', { pts: 30, win: true, coinNet: 15, ranked: false });
+  if (JSON.stringify([p.games, p.wins, p.pts, p.byGame.marbles]) !== was) fail('bot match counted toward rankings ' + JSON.stringify(p.byGame.marbles));
+  if (gb.ranked !== false || !(p.xp > xp0) || p.coins !== coins0 + 10 + 15) fail('bot match should still pay XP and coins ' + JSON.stringify(gb));
+  const bb = store.leaderboard('marbles', 'mia');
+  if (bb.rows[0].wins !== after.rows[0].wins || bb.rows[0].games !== 11) fail('board moved after a bot match');
+}
 console.log('rankings ok');
 process.exit(0);
