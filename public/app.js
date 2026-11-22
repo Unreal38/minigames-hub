@@ -638,7 +638,9 @@ function mountGame() {
   }).catch(err => { console.error(err); st.gameLoading = null; toast('Could not load the game. Refresh?', true); return null; });
   return st.gameLoading;
 }
-function unmountGame() { st.game?.destroy(); st.game = null; gameCss(null); }
+// Only switch the sheets off when something was really open: these also run on every table update (closeFarm/closeHay)
+// and must not turn off the sheets of the game being played.
+function unmountGame() { if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
 let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
@@ -655,7 +657,7 @@ function openFarm() {
     if (farmInvite) { st.farm.msg(farmInvite); farmInvite = null; }
   }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
 }
-function closeFarm() { st.farm?.destroy(); st.farm = null; gameCss(null); }
+function closeFarm() { if (!st.farm) return; st.farm.destroy(); st.farm = null; gameCss(null); }
 
 // Hay Hunch: the solo puzzle, also with no table.
 let hayLoading = null;
@@ -671,7 +673,7 @@ function openHay() {
     st.hay.reopen(); placeGameSwitch();
   }).catch(err => { console.error(err); hayLoading = null; toast('Could not load Hay Hunch. Refresh?', true); go('hub'); });
 }
-function closeHay() { st.hay?.destroy(); st.hay = null; gameCss(null); }
+function closeHay() { if (!st.hay) return; st.hay.destroy(); st.hay = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h ? `${h}h ${m % 60}m` : `${m}m`; };
 const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
