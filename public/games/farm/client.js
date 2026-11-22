@@ -4,7 +4,7 @@
 //   ctx: { send(action), toast, me(), home(), account(mode) }
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
-import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex } from './breed.js';
+import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, CATS, catCoat } from './breed.js';
 import { MAT_INFO, ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 import { matIcon } from './icons.js';
 import { WEATHER, weatherAt } from './data.js';
@@ -291,6 +291,7 @@ export function mount(app, ctx) {
         pre = `<div class="pre"><b>What might hatch</b>
           <div class="odds">${odds.map(o => o.hybrid && !F.album[o.sp] ? `<span class="odd"><span class="nothumb">?</span><small>Something new · ${Math.round(o.p * 100)}%</small></span>` : `<span class="odd">${thumb('pet:' + o.sp, SPECIES[o.sp].name)}<small>${SPECIES[o.sp].name} · ${Math.round(o.p * 100)}%</small></span>`).join('')}</div>
           <p>Coat: ${genes.map(g => swatch(g ? COATS[g].c : coatHex({ sp: odds[0].sp, col: [0] }), COATS[g].name)).join('')}<span class="hint"> or a colour one of them is hiding.</span></p>
+          ${catCoat(A) && catCoat(Bp) && catCoat(A) !== catCoat(Bp) ? `<p>Two cats: the kitten takes its build from one parent and its coat from either, ${CATS[catCoat(A)].toLowerCase()} or ${CATS[catCoat(Bp)].toLowerCase()}.</p>` : ''}
           ${marks.length ? `<p>Markings it may get: ${list(marks.map(k => PATTERNS[k].toLowerCase()))}.</p>` : ''}
           ${parts.length ? `<p>It may borrow ${list(parts)}.</p>` : ''}
           <p class="hint">The egg appears after ${CUDDLE_H} hours and hatches ${[...new Set([Math.min(...odds.map(o => hatchHours(o.sp))), Math.max(...odds.map(o => hatchHours(o.sp)))])].join(' to ')} hours later. Both rest for a while afterwards.</p></div>`;
@@ -307,6 +308,7 @@ export function mount(app, ctx) {
       const s = SPECIES[p.sp], [ma, pa] = p.par || [], got = [];
       if (p.look?.coat || p.look?.coat2) got.push(p.blend ? 'a blended coat' : p.two != null ? 'a two-tone coat' : `a ${COATS[p.col[0]].name.toLowerCase()} coat`);
       if (p.pat?.length) got.push(list(p.pat.map(k => PATTERNS[k].toLowerCase())));
+      if (p.look?.cat) got.push(`a ${CATS[p.cat].toLowerCase()} coat from the ${SPECIES[p.cat].name} side`);
       if (p.feat) got.push(PART[p.feat] + ' from the ' + SPECIES[p.feat].name + ' side');
       if (p.xmove) got.push(`the move ${MOVES[p.xmove].name}`);
       box.innerHTML = `<div class="panel tripp born"><h2>${p.sparkle ? 'A sparkling ' : 'A baby '}${s.name} hatched!</h2>
@@ -328,6 +330,7 @@ export function mount(app, ctx) {
         <p><b>${TALENTS[p.talent || 0].name}.</b> ${TALENTS[p.talent || 0].blurb}</p>
         <p>Coat: ${swatch(coatHex(p), p.blend ? 'Blend' : COATS[p.col[0]].name)}${p.col.length > 1 ? ` hiding ${swatch(p.col[1] ? COATS[p.col[1]].c : coatHex({ sp: p.sp, col: [0] }), COATS[p.col[1]].name)}` : '<span class="hint"> Its hidden colour shows after two eggs.</span>'}</p>
         ${p.pat?.length ? `<p>Markings: ${list(p.pat.map(k => PATTERNS[k].toLowerCase()))}.</p>` : ''}
+        ${p.look?.cat ? `<p>Wears a ${CATS[p.cat].toLowerCase()} coat from its ${SPECIES[p.cat].name} family.</p>` : ''}
         ${p.feat ? `<p>Has ${PART[p.feat]} from its ${SPECIES[p.feat].name} family.</p>` : ''}
         ${p.xmove ? `<p>Knows ${MOVES[p.xmove].name} from its other parent${p.lv < XMOVE_LV ? ` (wakes up at level ${XMOVE_LV})` : ''}.</p>` : ''}
         ${tree}

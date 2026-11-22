@@ -379,6 +379,33 @@ function cat(g, F, K, X, { ear = K.a, inner = '#f59ab0', paws = K.b, chest = K.b
   A.top = [0, h.p[1] + h.r * .84, h.p[2]]; A.tail = [.2, .25, b.p[2] - b.r[2] * .9]; A.back = [0, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .6];
   return A;
 }
+// Cat coats: o(K) gives the colours a build needs, m() paints the markings on whatever build wears it, t(K) colours the tail.
+const catMuzzle = (g, h, c) => Sp(g, h.r * .34, c, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
+const catBrow = (g, h, c) => { for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], c, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]); };
+const CATCOAT = {
+  siamew: { o: K => ({ ear: K.b, paws: K.b, chest: mix(K.a, '#ffffff', .6), whisk: '#fffaf0' }), t: K => [K.a, K.b, K.b, K.b, K.b],
+    m(g, A, F, K) { Sp(g, A.head.r * .36, K.b, [0, A.head.p[1] - A.head.r * .3, A.head.p[2] + A.head.r * .66], [1.25, .72, .75]); } },
+  gingersnap: { o: () => ({}), t: K => { const d = mix(K.a, '#b3501c', .6); return [K.a, d, K.a, d, K.a, K.b]; },
+    m(g, A, F, K) {
+      const d = mix(K.a, '#b3501c', .6), h = A.head, b = A.body; catMuzzle(g, h, K.b); catBrow(g, h, d);
+      for (const s of [-1, 1]) for (let i = 0; i < F; i++) Bx(g, [.04, .08, .26], d, [s * h.r * 1.02, h.p[1] - h.r * (.02 + i * .2), h.p[2] + h.r * .1], [0, 0, s * .2]);
+      if (F) for (let i = 0; i < F + 1; i++) { const u = .55 - i * .32, k = Math.sqrt(1 - u * u) * 1.02, T = new THREE.Mesh(G('Torus', 1, .07, 4, 10, PI), M(d));
+        if (A.long) V(g, T, [0, b.p[1], b.p[2] + u * b.r[2] * .8], null, [b.r[0] * k, b.r[1] * k, 1]); else V(g, T, [0, b.p[1] + u * b.r[1], b.p[2] - .06], [PI / 2, 0, PI], [b.r[0] * k, b.r[2] * k, 1]); }
+    } },
+  patchkit: { o: K => ({ ear: [K.b, '#4a4350'], paws: K.a, chest: K.a }), t: K => [K.a, K.b, K.b, '#4a4350', '#4a4350', K.a],
+    m(g, A, F, K) {
+      const o = K.b, c = '#4a4350', h = A.head, b = A.body, z = A.long ? b.r[2] * .1 : -b.r[2] * .3;
+      Sp(g, h.r * .52, o, [-h.r * .5, h.p[1] + h.r * .38, h.p[2] + h.r * .34], [1, .9, .9], 1); Sp(g, h.r * .46, c, [h.r * .56, h.p[1] + h.r * .42, h.p[2] + h.r * .1], [1, .9, 1], 1);
+      Sp(g, b.r[0] * .6, c, [-b.r[0] * .55, b.p[1] + b.r[1] * .25, b.p[2] + z], [1, 1, 1], 1); Sp(g, b.r[0] * .55, o, [b.r[0] * .55, b.p[1] - b.r[1] * .05, b.p[2] + z - b.r[2] * .3], [1, 1.1, 1], 1);
+      if (F === 2) Sp(g, b.r[0] * .4, o, [-b.r[0] * .3, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .5], [1, 1, 1], 1);
+    } },
+  tuxpurr: { o: () => ({ whisk: '#ffffff' }), t: K => [K.a, K.a, K.a, K.a, K.b],
+    m(g, A, F, K) { Sp(g, A.head.r * .66, K.b, [0, A.head.p[1] - A.head.r * .16, A.head.p[2] + A.head.r * .4], [1.15, .95, .9]); } },
+  fluffcoon: { o: K => ({ whisk: K.b }), t: K => { const d = mix(K.a, '#4a342c', .45); return [K.a, d, K.a, d, K.a, d, K.b]; },
+    m(g, A, F, K) { catMuzzle(g, A.head, K.b); catBrow(g, A.head, mix(K.a, '#4a342c', .45)); } },
+  munchmew: { o: () => ({}), t: K => [K.a, K.a, K.a, K.b], m(g, A, F, K) { catMuzzle(g, A.head, K.b); } },
+};
+export const isCat = sp => !!CATCOAT[sp];
 const BODY = {
   acornip(g, F, K, X) { // starts as an acorn with a face, then a squirrel whose tail outgrows the rest of it
     const r = [.64, .58, .66][F], tailC = mix(K.a, '#8a5a3c', .35);
@@ -1055,14 +1082,6 @@ const BODY = {
     if (X.own('tail')) FEAT.shrimplet.b(Grp(g, [0, last[1] - .08, last[2] + .1], [.5, PI, 0]), F, K);
     return A;
   },
-  siamew(g, F, K, X) { // a Siamese cat: cream coat with chocolate ears, muzzle, paws and tail, and a sapphire on its collar
-    const A = cat(g, F, K, X, { ear: K.b, paws: K.b, chest: mix(K.a, '#ffffff', .6), whisk: '#fffaf0' }), h = A.head, b = A.body;
-    Sp(g, h.r * .36, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .72, .75]);
-    if (F) { Cy(g, [b.r[0] * .62, b.r[0] * .7, .09, 10], '#3f6fd0', [0, b.p[1] + b.r[1] * .78, b.p[2] + .1]); Oc(g, [.1, .13][F - 1], GL('#5aa0ff', .6), [0, b.p[1] + b.r[1] * .7, b.p[2] + b.r[2] * .78], [1, 1.3, .6]); }
-    if (F === 2) for (const s of [-1, 1]) Sp(g, .13, K.b, [s * .24, .14, b.r[2] * .82], [1, 1, 1], 1);
-    if (X.own('tail')) X.sig(A.tail);
-    return A;
-  },
   coralcolt(g, F, K, X) { // a sea horse that hovers upright: big head and snout, round belly, a tail that curls forward
     const hr = [.6, .56, .58][F], R = [.2, .32, .4][F], n = [4, 7, 9][F], bh = [.3, .46, .62][F], cy = R + .14, by = cy + R * .5 + bh * .8, hy = by + bh * .75 + hr * .62;
     const A = { head: { p: [0, hy, .12], r: hr }, body: { p: [0, by, -.05], r: [bh * .82, bh, bh * .9] } }, dk = mix(K.a, '#e8823c', .5);
@@ -1091,50 +1110,6 @@ const BODY = {
     Cy(g, [.045, .045, .04, 6], mix(K.a, '#2b3a55', .4), [0, y + r * .78, r * .3]);
     A.top = [0, y + r * .8, 0]; A.tail = [0, y, -r * L]; A.back = [0, y + r * .78, -.3]; A.fs = [.8, 1, 1.2][F];
     if (X.own('top')) X.sig([0, y + r * .12, nz + bk * 1.35 + .05], 1);
-    return A;
-  },
-  gingersnap(g, F, K, X) { // an orange tabby: white muzzle and mittens, darker stripes that multiply as it grows
-    const d = mix(K.a, '#b3501c', .6), A = cat(g, F, K, X), h = A.head, b = A.body;
-    Sp(g, h.r * .34, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
-    for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], d, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]);
-    for (const s of [-1, 1]) for (let i = 0; i < F; i++) Bx(g, [.04, .08, .26], d, [s * h.r * 1.02, h.p[1] - h.r * (.02 + i * .2), h.p[2] + h.r * .1], [0, 0, s * .2]);
-    if (F) for (let i = 0; i < F + 1; i++) { const u = .55 - i * .32, k = Math.sqrt(1 - u * u) * 1.02; V(g, new THREE.Mesh(G('Torus', 1, .07, 4, 10, PI), M(d)), [0, b.p[1] + u * b.r[1], b.p[2] - .06], [PI / 2, 0, PI], [b.r[0] * k, b.r[2] * k, 1]); }
-    if (X.own('tail')) X.sig(A.tail);
-    return A;
-  },
-  patchkit(g, F, K, X) { // a calico: white with ginger and charcoal patches, one ear of each, a daisy tucked behind an ear
-    const o = K.b, c = '#4a4350', A = cat(g, F, K, X, { ear: [o, c], paws: K.a, chest: K.a }), h = A.head, b = A.body;
-    Sp(g, h.r * .52, o, [-h.r * .5, h.p[1] + h.r * .38, h.p[2] + h.r * .34], [1, .9, .9], 1); Sp(g, h.r * .46, c, [h.r * .56, h.p[1] + h.r * .42, h.p[2] + h.r * .1], [1, .9, 1], 1);
-    Sp(g, b.r[0] * .6, c, [-b.r[0] * .55, b.p[1] + b.r[1] * .25, b.p[2] - b.r[2] * .3], [1, 1, 1], 1); Sp(g, b.r[0] * .55, o, [b.r[0] * .55, b.p[1] - b.r[1] * .05, b.p[2] - b.r[2] * .45], [1, 1.1, 1], 1);
-    if (F === 2) Sp(g, b.r[0] * .4, o, [-b.r[0] * .3, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .5], [1, 1, 1], 1);
-    if (X.own('tail')) catTail(Grp(g, A.tail), F, [K.a, o, o, c, c, K.a]);
-    if (X.own('top')) X.sig(A.top);
-    return A;
-  },
-  tuxpurr(g, F, K, X) { // a tuxedo cat: charcoal coat, white face blaze, bib and mittens, a red bow tie and a top hat
-    const A = cat(g, F, K, X, { whisk: '#ffffff' }), h = A.head, b = A.body;
-    Sp(g, h.r * .66, K.b, [0, h.p[1] - h.r * .16, h.p[2] + h.r * .4], [1.15, .95, .9]);
-    if (F) { const y = b.p[1] + b.r[1] * .74, z = b.p[2] + b.r[2] * .8; for (const s of [-1, 1]) Co(g, [.16 + F * .02, .3 + F * .04, 4], '#e0483c', [s * (.17 + F * .02), y, z + .08], [0, 0, s * PI / 2], [1, 1, .5]); Gm(g, .09, '#b8342a', [0, y, z + .12]); }
-    if (X.own('tail')) catTail(Grp(g, A.tail), F, [K.a, K.a, K.a, K.a, K.b]);
-    if (X.own('top')) X.sig(A.top);
-    return A;
-  },
-  fluffcoon(g, F, K, X) { // a Maine Coon: the biggest, fluffiest cat, with tufted ears, a ruff and a tail like a feather duster
-    const d = mix(K.a, '#4a342c', .45), A = cat(g, F, K, X, { fat: 1.18, tuftC: d, whisk: K.b }), h = A.head, b = A.body;
-    Sp(g, h.r * .34, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
-    for (const s of [-1, 1]) tuft(g, [s * h.r * .98, h.p[1] - h.r * .25, h.p[2] + .05], K.a, .9 + F * .2, [0, 0, -s * 1.9]);
-    if (F) for (let i = 0; i < 7; i++) { const a = (i - 3) * .5; Sp(g, .2 + F * .03, K.b, [Math.sin(a) * b.r[0] * .82, b.p[1] + b.r[1] * (.72 - Math.abs(i - 3) * .03), b.p[2] + Math.cos(a) * b.r[2] * .78], [1, 1.15, 1], 1); }
-    for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], d, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]);
-    if (F === 2) for (const s of [-1, 1]) tuft(g, [s * b.r[0] * .8, .12, b.p[2] + b.r[2] * .3], K.a, 1, [0, 0, -s * 1.3]);
-    if (X.own('tail')) X.sig(A.tail);
-    return A;
-  },
-  munchmew(g, F, K, X) { // a munchkin cat: a long body on very short legs, iced like the little donut it is named after
-    const A = walker(g, F, K, X, { w: [.46, .46, .5][F], L: [.5, .78, 1.02][F], leg: [.05, .08, .1][F], hr: [.66, .6, .62][F], legC: K.b, lw: .24 }), h = A.head, d = mix(K.a, '#5a4a3a', .7);
-    for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], K.a, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); Bx(g, [.34, .02, .02], d, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
-    Sp(g, h.r * .34, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
-    if (X.own('tail')) catTail(Grp(g, [0, A.tail[1] - .1, A.tail[2] + .1]), F, [K.a, K.a, K.a, K.b]);
-    if (X.own('back')) X.sig(A.back);
     return A;
   },
   rocktopus(g, F, K, X) { // an octopus that sits on curled arms and balances pebbles on its head: 4 arms, then 6, then 8
@@ -1220,6 +1195,49 @@ const BODY = {
     const tl = [.4, .8, 1.15][F]; Rb(g, [.34 + F * .08, .1, tl], mix(K.a, '#5a4a3a', .3), [0, y + .05, -r - tl / 2 + .1], [.25, 0, 0], .045);
     face(g, X.eyes, h.p, hr, { eye: [1.6, 1.5, 1.4][F], gap: .38 });
     A.top = [0, h.p[1] + hr * .88, h.p[2]]; A.tail = [0, y, -r]; A.back = [0, y + r * .3, -.05]; A.fs = [.8, .9, 1][F];
+    if (X.own('back')) X.sig(A.back);
+    return A;
+  },
+  // The six cats share one way of being built: a build (this function) wears a coat (CATCOAT), and breeding can mix them.
+  siamew(g, F, K, X) { // a Siamese cat's build: slim, with a sapphire on its collar
+    const C = CATCOAT[X.coat], A = cat(g, F, K, X, C.o(K)), b = A.body; C.m(g, A, F, K);
+    if (F) { Cy(g, [b.r[0] * .62, b.r[0] * .7, .09, 10], '#3f6fd0', [0, b.p[1] + b.r[1] * .78, b.p[2] + .1]); Oc(g, [.1, .13][F - 1], GL('#5aa0ff', .6), [0, b.p[1] + b.r[1] * .7, b.p[2] + b.r[2] * .78], [1, 1.3, .6]); }
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, C.t(K));
+    return A;
+  },
+  gingersnap(g, F, K, X) { // a tabby's build: the plain house cat
+    const C = CATCOAT[X.coat], A = cat(g, F, K, X, C.o(K)); C.m(g, A, F, K);
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, C.t(K));
+    return A;
+  },
+  patchkit(g, F, K, X) { // a calico's build: a house cat with a daisy tucked behind one ear
+    const C = CATCOAT[X.coat], A = cat(g, F, K, X, C.o(K)); C.m(g, A, F, K);
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, C.t(K));
+    if (X.own('top')) X.sig(A.top);
+    return A;
+  },
+  tuxpurr(g, F, K, X) { // a tuxedo cat's build: a red bow tie and a top hat
+    const C = CATCOAT[X.coat], A = cat(g, F, K, X, C.o(K)), b = A.body; C.m(g, A, F, K);
+    if (F) { const y = b.p[1] + b.r[1] * .74, z = b.p[2] + b.r[2] * .8; for (const s of [-1, 1]) Co(g, [.16 + F * .02, .3 + F * .04, 4], '#e0483c', [s * (.17 + F * .02), y, z + .08], [0, 0, s * PI / 2], [1, 1, .5]); Gm(g, .09, '#b8342a', [0, y, z + .12]); }
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, C.t(K));
+    if (X.own('top')) X.sig(A.top);
+    return A;
+  },
+  fluffcoon(g, F, K, X) { // a Maine Coon's build: the biggest, fluffiest cat, with tufted ears, a ruff and a tail like a feather duster
+    const C = CATCOAT[X.coat], d = mix(K.a, '#4a342c', .45), A = cat(g, F, K, X, { ...C.o(K), fat: 1.18, tuftC: d }), h = A.head, b = A.body; C.m(g, A, F, K);
+    for (const s of [-1, 1]) tuft(g, [s * h.r * .98, h.p[1] - h.r * .25, h.p[2] + .05], K.a, .9 + F * .2, [0, 0, -s * 1.9]);
+    if (F) for (let i = 0; i < 7; i++) { const a = (i - 3) * .5; Sp(g, .2 + F * .03, mix(K.b, '#ffffff', .3), [Math.sin(a) * b.r[0] * .82, b.p[1] + b.r[1] * (.72 - Math.abs(i - 3) * .03), b.p[2] + Math.cos(a) * b.r[2] * .78], [1, 1.15, 1], 1); }
+    if (F === 2) for (const s of [-1, 1]) tuft(g, [s * b.r[0] * .8, .12, b.p[2] + b.r[2] * .3], K.a, 1, [0, 0, -s * 1.3]);
+    if (X.own('tail')) catTail(Grp(g, A.tail), F, C.t(K), 1.9);
+    return A;
+  },
+  munchmew(g, F, K, X) { // a munchkin cat's build: a long body on very short legs, iced like the little donut it is named after
+    const C = CATCOAT[X.coat], o = C.o(K), ear = o.ear || K.a;
+    const A = walker(g, F, K, X, { w: [.46, .46, .5][F], L: [.5, .78, 1.02][F], leg: [.05, .08, .1][F], hr: [.66, .6, .62][F], legC: o.paws || K.b, lw: .24 }), h = A.head;
+    A.long = true;
+    for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], Array.isArray(ear) ? ear[s < 0 ? 0 : 1] : ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); Bx(g, [.34, .02, .02], o.whisk || mix(K.a, '#5a4a3a', .7), [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
+    C.m(g, A, F, K);
+    if (X.own('tail')) catTail(Grp(g, [0, A.tail[1] - .1, A.tail[2] + .1]), F, C.t(K));
     if (X.own('back')) X.sig(A.back);
     return A;
   },
@@ -1360,9 +1378,10 @@ function markings(g, A, pats, K) {
 const SCALE = [.62, .8, 1];
 export function petModel(sp, form = 0, look = null) {
   if (!BODY[sp]) sp = 'mossbun';
-  const g = new THREE.Group(), F = Math.max(0, Math.min(2, form | 0)), K = coatOf(sp, look), eyes = [];
+  const coat = CATCOAT[sp] && CATCOAT[look?.cat] ? look.cat : sp; // a cat can wear another cat's coat
+  const g = new THREE.Group(), F = Math.max(0, Math.min(2, form | 0)), K = coatOf(coat, look), eyes = [];
   const borrowed = look?.feat && look.feat !== sp && FEAT[look.feat] ? look.feat : null;
-  const X = { eyes, own: slot => !borrowed || FEAT[borrowed].slot !== slot, sig: (pos, k = 1) => FEAT[sp].b(Grp(g, pos, null, k), F, K) };
+  const X = { eyes, coat, own: slot => !borrowed || FEAT[borrowed].slot !== slot, sig: (pos, k = 1) => FEAT[sp].b(Grp(g, pos, null, k), F, K) };
   const A = BODY[sp](g, F, K, X);
   if (borrowed) FEAT[borrowed].b(Grp(g, A[FEAT[borrowed].slot], null, A.fs || 1), F, K);
   markings(g, A, look?.pat, K);
