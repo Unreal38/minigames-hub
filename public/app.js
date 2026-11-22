@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -655,6 +655,17 @@ const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile $
   <div class="tbody"><b>${name}</b><span>${sub}</span></div>
   <button type="button" class="btn sm ${quiet ? 'w' : ''}" data-act="${act}">${btn}</button>
 </div>`;
+// One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
+const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <path d="M79 22 84 4l7 9 10-7-7 18z" fill="#6fc266"/><path d="M68 20h36l-10 34H78z" fill="#ff9a3d"/>
+  <path d="M14 56 30 40h62l16 16z" fill="#ffe08a"/><path d="M14 56h94v46H14z" fill="#f5bd42"/></g>
+  <path d="M40 40 28 56v46M82 40l12 16v46" fill="none" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M40 70h14M62 84h18M44 92h10M70 68h10" stroke="#c98a1e" stroke-width="5" stroke-linecap="round"/></svg>`;
+const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <path d="M22 58h76v46H22z" fill="#e5543b"/><path d="M12 60 34 28h52l22 32z" fill="#8a4a3a"/><path d="M34 28h52l-10-12H44z" fill="#a85f48"/>
+  <path d="M46 72h28v32H46z" fill="#fff4e2"/></g>
+  <path d="M46 72l28 32M74 72 46 104" stroke="#3b2219" stroke-width="4"/>
+  <g fill="#fff4e2" stroke="#3b2219" stroke-width="3"><ellipse cx="60" cy="50" rx="6.5" ry="5.5"/><circle cx="50" cy="42" r="3.4"/><circle cx="60" cy="38" r="3.4"/><circle cx="70" cy="42" r="3.4"/></g></svg>`;
 // The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
 function todayHtml() {
   const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
@@ -671,8 +682,8 @@ function todayHtml() {
     : f.pets ? `${plural(f.pets, 'pet')} on your farm` : 'Your own pet farm';
   const mpPic = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? 'Result' : d?.guesses?.length ? 'Go on' : 'Guess', d?.done)
-    + todayTile('t-hay', hayArt(), 'Hay Hunch', hay, 'hay', 'Play')
-    + todayTile('t-farm', farmArt(), 'Pet Farm', farm, 'farm', 'Visit');
+    + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', 'Play')
+    + todayTile('t-farm', FARM_ICON, 'Pet Farm', farm, 'farm', 'Visit');
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
 setInterval(() => { if (st.view === 'hub' && st.farmBrief) paintToday(); }, 60_000); // keeps the farm countdown honest
