@@ -160,6 +160,23 @@ const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await d
 srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700);
 const c = player(TA, 'Ana'); await c.connect(); await wait(300);
 if (c.me.cos.pet !== pets[0].id || c.me.cos.kp !== 2 || c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
+// card backgrounds: patterns and scenes are bought, the podium ones come with a place in the overall ranking, the pet ones with album species
+const PB = n => COS.pb.items.findIndex(x => x.n === n), cardFl = async () => { c.msgs.length = 0; c.send({ t: 'player', pt: c.me.pt }); await wait(200); return c.msgs.find(m => m.t === 'player').p.fl; };
+if (c.me.bestPos !== 1 || c.me.petSp !== 2) fail(`best ranking place or album count not on the account: ${c.me.bestPos} ${c.me.petSp}`);
+c.send({ t: 'wear', k: 'pb', i: PB('Paw prints') }); await wait(200);
+if (!c.err(/not unlocked/) || (await cardFl()).pb) fail('wore a card background without buying it');
+const had = c.me.coins; c.send({ t: 'buy', k: 'pb', i: PB('Paw prints') }); await wait(300);
+if (c.me.coins !== had - cosPrice('pb', PB('Paw prints')) || (await cardFl()).pb !== PB('Paw prints')) fail('a bought card background is not on the card');
+c.send({ t: 'buy', k: 'pb', i: PB('Golden champion') }); await wait(200);
+if (!c.err(/not in the shop/)) fail('an earned card background could be bought');
+c.send({ t: 'wear', k: 'pb', i: PB('Golden champion') }); await wait(200);
+if ((await cardFl()).pb !== PB('Golden champion')) fail('1st place in the overall ranking did not unlock its card background');
+c.msgs.length = 0; c.send({ t: 'wear', k: 'pb', i: PB('Egg nest') }); await wait(200);
+if (!c.err(/not unlocked/) || (await cardFl()).pb !== PB('Golden champion')) fail('wore the Egg nest background with two species');
+const d = player(TB, 'Bo'); await d.connect(); await wait(200);
+d.send({ t: 'wear', k: 'pb', i: PB('Podium') }); await wait(200); d.send({ t: 'wear', k: 'pb', i: PB('Golden champion') }); await wait(200);
+if (d.me.bestPos !== 2 || d.me.cos.pb !== PB('Podium') || !d.err(/not unlocked/)) fail('2nd place should unlock the Podium background only');
+if (COS.pb.items.some((it, i) => i && !it.p && !it.earn) || !['p', 's', 'a', 'e'].every(t => COS.pb.items.some(it => it.t === t))) fail('card background catalogue is missing a kind or a price');
 srv.kill();
-console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, isle pets, isle variants, profile cards, flair at the table, in chat and in rankings');
+console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, isle pets, isle variants, profile cards, card backgrounds, flair at the table, in chat and in rankings');
 process.exit(0);

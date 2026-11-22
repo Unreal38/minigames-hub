@@ -1136,3 +1136,52 @@ body.night .ttile.t-hay .tpic, body.night .ttile.t-farm .tpic { background: #2b2
 @keyframes sheetup { from { transform: translateY(40%); opacity: 0; } }
 @media (max-width: 600px) { .top .me.acctbtn .lvslot { display: none; } .top .me.acctbtn { padding: 3px; } .top .me.coinbtn { margin-right: 0; } .top { gap: 8px; } .brand { font-size: 22px; } }
 @media (prefers-reduced-motion: reduce) { .acctmenu { animation: none; } }
+
+/* ---------- card backgrounds (cosmetics.js, kind pb): the picture behind a player's name on their card ----------
+   The card gets .haspb and an <i class="pbg pbN"> as its first child. The art is on the <i>; ::before is the layer that
+   moves (transform and opacity only, so it never repaints), ::after is a wash in the card's own colour that keeps the
+   name readable in both day and night. Dark art (.pbd on the card) turns the text light instead. */
+.haspb { position: relative; --pbs: var(--pan, var(--cream)); } .haspb > :not(.pbg) { position: relative; z-index: 1; }
+.pbg { position: absolute; inset: 0; z-index: 0; border-radius: var(--pbr, 13px); overflow: hidden; pointer-events: none; background: right center / cover no-repeat; }
+.pbg::before, .pbg::after { content: ''; position: absolute; inset: 0; }
+.pbg::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 86%, transparent) 0 40%, color-mix(in srgb, var(--pbs) 62%, transparent) 66%, color-mix(in srgb, var(--pbs) 8%, transparent) 96%); }
+.haspb .ttl { background: color-mix(in srgb, var(--lantern, #ffb84a) 45%, var(--pbs)); } .haspb > div > span:not(.ttl), .haspb small { text-shadow: 0 0 3px var(--pbs), 0 0 3px var(--pbs), 0 0 6px var(--pbs); }
+.wdplate.haspb { --pbs: var(--chip, #fff); } .seat.haspb { --pbr: 17px; }
+.haspb.pbd { --pbs: #17143a; --tx: #f7f3ff; --tx2: #dcdcff; --muted2: #c9ccf0; color: var(--tx); } .seat.full.haspb.pbd span:not(.ttl):not(.nmfx):not(.lv), .haspb.pbd small { color: var(--muted2); }
+.haspb.pbd .ttl, .haspb.pbd h2, .haspb.pbd b { color: #f7f3ff; } .phead.haspb.pbd, .wdplate.haspb.pbd { border-color: #0e0c22; }
+.phead.haspb { border: 3px solid var(--tx, var(--ink)); border-radius: 18px; padding: 14px 16px; --pbr: 15px; }
+.awho.haspb { padding: 8px 10px; border: 2.5px solid var(--edge, #e3c7ad); border-radius: 14px; --pbr: 11px; }
+/* patterns: soft shapes on a light tint of the card's own colour, no wash needed */
+.pb1, .pb2, .pb3, .pb4, .pb5 { background: color-mix(in srgb, var(--pt) 20%, transparent); }
+.pb1::before, .pb3::before, .pb4::before, .pb5::before { background: var(--pi) 0 0 / var(--ps) repeat; opacity: .5; }
+.pb1::after, .pb2::after, .pb3::after, .pb4::after, .pb5::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 45%, transparent) 30%, transparent 80%); }
+.pb1 { --pt: #f2a65a; --pi: url(cardbg/paws.svg); --ps: 60px; }
+.pb2 { --pt: #7ed3b2; } .pb2::before { background: conic-gradient(var(--pt) 25%, transparent 0 50%, var(--pt) 0 75%, transparent 0) 0 0 / 30px 30px; opacity: .3; }
+.pb3 { --pt: #b9a2f2; --pi: url(cardbg/stars.svg); --ps: 56px; }
+.pb4 { --pt: #ff8fab; --pi: url(cardbg/hearts.svg); --ps: 54px; }
+.pb5 { --pt: #ffd166; --pi: url(cardbg/confetti.svg); --ps: 72px; } .pb5::before { opacity: .7; }
+/* game scenes */
+.pb6 { background-image: url(cardbg/hotpot.svg); } .pb7 { background-image: url(cardbg/bean.svg); } .pb8 { background-image: url(cardbg/farm.svg); }
+.pb9 { background-image: url(cardbg/kart.svg); } .pb10 { background-image: url(cardbg/cards.svg); }
+/* animated: one sliding or blinking layer each */
+.pb11 { background: linear-gradient(#8fd0ff, #d6f0ff); }
+.pb11::before { right: -360px; background: url(cardbg/clouds.svg) 0 50% / 360px 120px repeat; animation: pbslide 38s linear infinite; will-change: transform; }
+.pb12 { background-image: url(cardbg/petals-base.svg); }
+.pb12::before { top: -240px; background: url(cardbg/petals.svg) 100% 0 / 180px 240px repeat; animation: pbfall 9s linear infinite; will-change: transform; }
+.pb13 { background-image: url(cardbg/night-base.svg); }
+.pb13::before { background: url(cardbg/night-stars.svg) 100% 0 / 180px 120px repeat; animation: pbtwinkle 1.9s ease-in-out infinite alternate; will-change: opacity; }
+.pb13::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
+@keyframes pbslide { to { transform: translateX(-360px); } }
+@keyframes pbfall { to { transform: translateY(240px); } }
+@keyframes pbtwinkle { from { opacity: .2; } to { opacity: 1; } }
+/* earned */
+.pb14 { background-image: url(cardbg/podium.svg); } .pb16 { background-image: url(cardbg/eggs.svg); } .pb17 { background-image: url(cardbg/parade.svg); }
+.pb15 { background-image: url(cardbg/gold.svg); }
+.pb15::before { left: -40%; right: auto; width: 26%; background: linear-gradient(90deg, transparent, #ffffffb0, transparent); transform: skewX(-20deg); animation: pbshine 4.2s ease-in-out infinite; will-change: transform; }
+@keyframes pbshine { 0%, 45% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(700%) skewX(-20deg); } }
+/* the wardrobe tile */
+.wdbg { position: relative; width: 92px; height: 54px; margin: 6px 0 4px; border: 2.5px solid var(--tx, var(--ink)); border-radius: 12px; background: var(--chip, #fff); --pbs: var(--chip, #fff); --pbr: 9px; }
+.wdbg.none { border-style: dashed; opacity: .6; }
+.wdbg .pbg::after { opacity: .35; }
+.wdbg em { position: absolute; right: 3px; bottom: 3px; z-index: 1; font: 700 10px/1 var(--fb, inherit); font-style: normal; letter-spacing: .03em; padding: 2px 5px; border-radius: 999px; background: var(--ink); color: #fff; }
+.wdtile:disabled .wdbg { opacity: .7; }

@@ -221,7 +221,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, ...progress(p.xp) };
+  return { user: p.user, name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, ...progress(p.xp) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon }; }
@@ -437,6 +437,8 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
 const TOP = 25;
 let board = null; // cached rows per game, thrown away whenever a game is credited
 export const invalidateBoards = () => { board = null; };
+// Works out the overall ranking now, so a place on the podium is noted the moment it is reached. Returns the profile ids whose best place just improved.
+export function notePodium() { const was = new Map([...profiles.values()].map(p => [p.pid, p.bestPos || 0])); boardRows('overall'); return [...profiles.values()].filter(p => (p.bestPos || 0) !== was.get(p.pid)).map(p => p.pid); }
 const ORDER = {
   overall: (a, b) => b.xp - a.xp || b.wins - a.wins,
   marbles: (a, b) => b.wins - a.wins || b.net - a.net || a.games - b.games,
@@ -456,6 +458,8 @@ function boardRows(game) {
       games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, top: g.top || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
   }
   rows.sort(ORDER[game] || ORDER.default);
+  // The best place ever held in the overall ranking stays on the profile: it unlocks card backgrounds (cosmetics.js, earn.top).
+  if (game === 'overall') rows.slice(0, 3).forEach((r, i) => { const p = profiles.get(r.pid); if (p && !(p.bestPos <= i + 1)) { p.bestPos = i + 1; scheduleSave(); } });
   return board[game] = rows;
 }
 // The top of one leaderboard for the hub, plus the asker's own place when they are further down.

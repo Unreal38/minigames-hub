@@ -4,7 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -696,7 +696,7 @@ function acctHtml() {
   const m = st.me, reqs = st.friends?.reqs.length || 0;
   const item = (act, ico, label, note = '', attr = '') => `<button type="button" role="menuitem" data-act="${act}"${attr}><span class="aico" aria-hidden="true">${ico}</span>${label}${note}</button>`;
   const pct = m ? Math.round(100 * m.into / m.need) : 0, rate = m?.games ? Math.round(100 * m.wins / m.games) : 0;
-  return `<div class="awho">${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : 'Pick a name'}</b><span>${m ? `Level ${m.level} · ${esc(m.rank)}` : ''}</span></div></div>
+  return `<div class="awho${cardBgCls(flairOf(m))}">${cardBg(flairOf(m))}${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : 'Pick a name'}</b><span>${m ? `Level ${m.level} · ${esc(m.rank)}` : ''}</span></div></div>
     ${m ? `<div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
     <p class="axp">${m.into} / ${m.need} XP to level ${m.level + 1}</p>
     <div class="amini"><div><b>${m.wins}</b><span>wins</span></div><div><b>${m.games}</b><span>games</span></div><div><b>${rate}%</b><span>win rate</span></div></div>` : ''}
@@ -1117,8 +1117,8 @@ function renderLobby() {
           <span style="font-size:14px;color:var(--muted)">Friends can also type the code on the home page.</span>
         </div>
       </div>
-      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}"${prof(p)}>
-          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
+      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}${cardBgCls(p.fl)}" data-pid="${esc(p.id)}"${prof(p)}>
+          ${cardBg(p.fl)}${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
@@ -1302,9 +1302,9 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
-const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
+const WD_ACC = [['name', 'Name & card', ['nm', 'fr', 'pb', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
-const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', ti: 'A title under your name. Titles with a goal are earned by playing.',
+const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', pb: 'The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', ti: 'A title under your name. Titles with a goal are earned by playing.',
   wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
 
 function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
@@ -1393,6 +1393,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt">${nameHtml(st.name || 'Name', { nm: i })}</span>`
     : k === 'fr' ? avatarHtml(color, av, 60, frameCls({ fr: i }))
+    : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? '<em>moves</em>' : ''}</span>`
     : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : '<span class="ttl none">no title</span>'}</span>`
     : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
@@ -1456,7 +1457,8 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const paintPlate = () => {
     const fl = flNow(), pal = (st.pets || []).find(x => x.id === showIds()[0]);
-    plate.innerHTML = `${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
+    plate.className = 'wdplate' + cardBgCls(fl);
+    plate.innerHTML = `${cardBg(fl)}${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
     petPics(plate);
     const c = q('.wdcoins b'); if (c) c.textContent = coins();
     showIsle();
@@ -1559,7 +1561,7 @@ function openPlayer(p) {
     <div class="pcard">
       <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>lv ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
       <div class="pinfo">
-        <div class="phead">${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
+        <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
           ${titleHtml(p.fl)}<small>${p.me ? 'This is you' : p.online ? '<i class="dot on"></i>Online now' : 'Not online'}${p.guest ? ' · guest' : ''} · ${esc(p.rank || '')}</small></div></div>
         <div class="pstats"><span><b>${p.games.toLocaleString()}</b>games</span><span><b>${p.wins.toLocaleString()}</b>wins</span><span><b>${rate}%</b>win rate</span><span><b>${p.xp.toLocaleString()}</b>XP</span></div>
         ${p.top.length ? `<h3>Best games</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || g.g)}</b><span>${plural(g.wins, 'win')} · ${plural(g.games, 'game')}</span></li>`).join('')}</ul>` : '<p>No finished games yet.</p>'}
