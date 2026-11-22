@@ -1018,8 +1018,8 @@ body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background:
 .amini b { font-family: var(--fd); font-weight: 600; font-size: 19px; font-variant-numeric: tabular-nums; } .amini span { font-size: 12px; color: var(--muted2, #8a6a5c); }
 .aitems { display: flex; flex-direction: column; gap: 2px; border-top: 2px dashed var(--edge, #e3c7ad); padding-top: 8px; }
 .aitems hr { width: 100%; border: 0; border-top: 2px dashed var(--edge, #e3c7ad); margin: 6px 0; }
-.aitems button { white-space: nowrap; position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border: 0; border-radius: 12px; background: none; color: inherit; font-family: var(--fd); font-weight: 500; font-size: 17px; text-align: left; cursor: pointer; }
-.aitems button:hover, .aitems button:focus-visible { background: var(--pan2, #ffe9cf); }
+.aitems button, .aitems a { text-decoration: none; white-space: nowrap; position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border: 0; border-radius: 12px; background: none; color: inherit; font-family: var(--fd); font-weight: 500; font-size: 17px; text-align: left; cursor: pointer; }
+.aitems button:hover, .aitems button:focus-visible, .aitems a:hover, .aitems a:focus-visible { background: var(--pan2, #ffe9cf); }
 .aitems small { margin-left: auto; font: 600 12px 'Nunito', system-ui, sans-serif; color: var(--muted2, #8a6a5c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 20ch; }
 .aitems .aico { width: 24px; text-align: center; flex: none; }
 .aitems .frbadge { position: static; margin-left: auto; }
@@ -1230,3 +1230,7 @@ body.sky.night:not(.in-game) .langbtn b { background: var(--lantern); color: #1b
 @media (max-width: 600px) { .top .langbtn { display: none; } }
 /* Polish words run longer: let a Today tile's title take two lines instead of being cut off. */
 html[lang=pl] .ttile .tbody b { white-space: normal; line-height: 1.1; font-size: 17px; }
+
+/* the optional Ko-fi link in the hub footer */
+footer .kofi { display: inline-block; margin-top: 6px; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+footer .kofi:hover { color: var(--tx, var(--ink)); }

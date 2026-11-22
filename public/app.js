@@ -794,6 +794,9 @@ function openStats() {
 }
 // The account menu: one place for everything that used to be separate buttons in the top bar and on the progress card.
 // It drops down from the avatar button; on phones it slides up as a sheet (the tab bar's "You").
+// Kuba's optional tip jar. A plain link that opens in a new tab: no pop-ups, no reminders, no perks.
+const KOFI = 'https://ko-fi.com/zatokagier';
+const kofiLink = () => `<a class="kofi" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Support the site', 'Wesprzyj stronę')} ☕</a>`;
 function acctHtml() {
   const m = st.me, reqs = st.friends?.reqs.length || 0;
   const item = (act, ico, label, note = '', attr = '') => `<button type="button" role="menuitem" data-act="${act}"${attr}><span class="aico" aria-hidden="true">${ico}</span>${label}${note}</button>`;
@@ -807,6 +810,7 @@ function acctHtml() {
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
+      <a role="menuitem" href="${KOFI}" target="_blank" rel="noopener noreferrer"><span class="aico" aria-hidden="true">☕</span>${L('Support the site', 'Wesprzyj stronę')}<small>Ko-fi</small></a>
       <hr>
       ${m?.user ? item('security', '🔑', L('Change password', 'Zmień hasło')) + item('logout', '🚪', L('Log out', 'Wyloguj się'), `<small>${esc(m.user)}</small>`)
         : item('account', '✨', L('Create account', 'Załóż konto'), `<small>${L('saves progress', 'zapisuje postępy')}</small>`, ' data-mode="register"') + item('account', '🔑', L('Log in', 'Zaloguj się'), '', ' data-mode="login"')}
@@ -824,7 +828,7 @@ function openAcct() {
   wrap.innerHTML = `<div class="acctmenu" id="acct-menu">${acctHtml()}</div>`;
   const r = btn.getBoundingClientRect();
   wrap.style.setProperty('--at', Math.round(r.bottom + 10) + 'px'); wrap.style.setProperty('--ar', Math.round(Math.max(8, innerWidth - r.right)) + 'px');
-  wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-act]')) setTimeout(closeAcct); }); // a tap outside, or on any item, closes it
+  wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-act], a[href]')) setTimeout(closeAcct); }); // a tap outside, or on any item, closes it
   $app.append(wrap); btn.setAttribute('aria-expanded', 'true');
   wrap.querySelector('button')?.focus({ preventScroll: true });
 }
@@ -1009,7 +1013,7 @@ function renderHub() {
       </section>
     </aside>
   </main>
-  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Hot Pot to fanowska gra inspirowana minigrą Hotpot z Palii.')}</footer>
+  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Hot Pot to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()}</footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
   renderTables(); filterGames();
   document.body.classList.add('sky');
