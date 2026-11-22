@@ -142,7 +142,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function makeSign(x, z, col, lean) {
     const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
     const post = new THREE.Mesh(postGeo, postMat); post.position.y = .3; post.castShadow = true; g.add(post);
-    const wide = lean > .8, geo = wide ? wideGeo : boardGeo;
+    const wide = lean > 1, geo = wide ? wideGeo : boardGeo;
     const cv = document.createElement('canvas'); cv.width = wide ? 288 : 256; cv.height = wide ? 128 : 256; const t = tex(cv);
     const face = new THREE.MeshBasicMaterial({ map: t, transparent: true });
     const board = new THREE.Mesh(geo, [toonMat(M('#a86a42')), toonMat(M('#a86a42')), toonMat(M('#a86a42')), toonMat(M('#a86a42')), face, toonMat(M('#a86a42'))]);
@@ -150,8 +150,8 @@ export function createScene(canvas, { onFrame } = {}) {
     const ink = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide })); ink.scale.set(1.06, 1.06, 1.5); board.add(ink);
     const s = { g, board, cv, t, col, key: '', lean, wide }; signs.push(s); if (wide) { board.position.y = .5; post.scale.y = .6; post.position.y = .15; } return s;
   }
-  const rowSigns = Array.from({ length: N }, (_, r) => makeSign(cx(N - 1) + S * 1.25, cz(r), LINE[r], .9));
-  const colSigns = Array.from({ length: N }, (_, c) => makeSign(cx(c), cz(N - 1) + S * 1.08, LINE[c], .62));
+  const rowSigns = Array.from({ length: N }, (_, r) => makeSign(cx(N - 1) + S * 1.25, cz(r), LINE[r], 1.1));
+  const colSigns = Array.from({ length: N }, (_, c) => makeSign(cx(c), cz(N - 1) + S * 1.08, LINE[c], .9));
   function setSigns(rows, cols) {
     const paint = (s, h) => { const k = h ? h.sum + '/' + h.pets : '-'; if (s.key === k) return; s.key = k; (s.wide ? paintWide : paintSign)(s.cv, h ? h.sum : -1, h ? h.pets : 0, s.col); s.t.needsUpdate = true; s.pop = 1; };
     rowSigns.forEach((s, k) => paint(s, rows?.[k])); colSigns.forEach((s, k) => paint(s, cols?.[k]));
@@ -234,7 +234,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- camera: fits the field between the HUD bars ----------
   let hudTop = 64, hudBottom = 120, cw = 1, ch = 1;
-  const DIR_WIDE = new THREE.Vector3(0, .95, 1).normalize(), DIR_TALL = new THREE.Vector3(0, 1.5, 1).normalize(), DIR = DIR_WIDE.clone(), camLook = new THREE.Vector3(.35, 0, .55), camBase = new THREE.Vector3();
+  const DIR_WIDE = new THREE.Vector3(0, 1.6, 1).normalize(), DIR_TALL = new THREE.Vector3(0, 2.3, 1).normalize(), DIR = DIR_WIDE.clone(), camLook = new THREE.Vector3(.35, 0, .55), camBase = new THREE.Vector3();
   // what has to fit on screen: the field, its signs and the avatar (beside the field on wide screens, behind it on phones)
   const boxOf = tall => { const b = []; for (const x of tall ? [cx(0) - S * .75, cx(N - 1) + S * 1.95] : [cx(0) - S * 2.0, cx(N - 1) + S * 1.95]) for (const z of tall ? [cz(0) - S * 1.6, cz(N - 1) + S * 1.75] : [cz(0) - S * .7, cz(N - 1) + S * 1.75]) for (const y of [0, 1.4]) b.push(new THREE.Vector3(x, y, z)); return b; };
   const BOX_WIDE = boxOf(false), BOX_TALL = boxOf(true); let box = BOX_WIDE;
