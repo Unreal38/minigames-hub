@@ -96,6 +96,16 @@ function brothTexture() {
   return t;
 }
 // unit coordinates (x, z in -1..1): is this point in the spicy half?
+// how far a point in the broth is from the S-shaped divider wall (two half circles of radius BROTH_R / 2)
+function wallDist(x, z) {
+  const h = BROTH_R / 2, half = (cz, right) => (right ? x >= 0 : x <= 0) ? Math.abs(Math.hypot(x, z - cz) - h) : Math.min(Math.hypot(x, z - cz - h), Math.hypot(x, z - cz + h));
+  return Math.min(half(-h, true), half(h, false));
+}
+// a spot in the broth on one side of the wall, clear of it and of the pot's edge
+function brothSpot(rMin = .35, rMax = 1.15, gap = .24) {
+  for (let i = 0; i < 40; i++) { const a = Math.random() * 6.28, r = rMin + Math.random() * (rMax - rMin); if (wallDist(Math.cos(a) * r, Math.sin(a) * r) > gap) return [a, r]; }
+  return [0, .9];
+}
 function isRed(x, z) {
   if (x * x + (z + .5) ** 2 < .25) return false;
   if (x * x + (z - .5) ** 2 < .25) return true;
@@ -389,9 +399,9 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   const pot = put(lathe([[0, 0], [1.2, 0], [1.38, .05], [1.5, .2], [1.555, .84], [1.6, .9], [1.66, .93], [1.69, .97], [1.66, 1.01], [1.58, 1.01], [1.5, .96], [1.47, .84], [1.44, .3]], 48), steel, 0, 0, 0, potG);
   pot.castShadow = true; pot.userData.dyn = true;
   for (const s of [-1, 1]) {
-    const h = put(new THREE.TorusGeometry(.24, .06, 10, 24, Math.PI), steel, s * 1.68, .82, 0, potG);
+    const h = put(new THREE.TorusGeometry(.24, .06, 10, 24, Math.PI), steel, s * 1.52, .82, 0, potG); // the ends sink into the wall (radius ~1.55 here)
     h.rotation.set(Math.PI / 2, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2); h.castShadow = true;
-    for (const z of [-.24, .24]) put(new THREE.SphereGeometry(.085, 12, 10), steel, s * 1.6, .82, z, potG).scale.x = .6;
+    for (const z of [-.24, .24]) put(new THREE.SphereGeometry(.085, 12, 10), steel, s * 1.535, .82, z, potG).scale.x = .6;
   }
   // the pot's face: it looks around, changes expression and reacts to the game
   const face = { eyes: [], arcs: [], blush: [], look: new THREE.Vector2(), turn: -1, glance: -1, glanceEnd: 0 };
@@ -484,7 +494,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   const floaters = [];
   const addFloater = (kind, at) => {
     const g = ingredient(kind);
-    const f = { g, a: Math.random() * 6.28, r: .35 + Math.random() * .8, sp: (.08 + Math.random() * .12) * (Math.random() < .5 ? -1 : 1), ph: Math.random() * 6, yaw: (Math.random() - .5) * .9, jump: 0 };
+    const [a, r] = brothSpot();
+    const f = { g, a, r, sp: (.08 + Math.random() * .12) * (Math.random() < .5 ? -1 : 1), ph: Math.random() * 6, yaw: (Math.random() - .5) * .9, jump: 0 };
     if (at) g.position.copy(at); scene.add(g); floaters.push(f);
     if (floaters.length > 26) { const old = floaters.shift(); scene.remove(old.g); }
     return f;
@@ -608,7 +619,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   // an ingredient pops out of the broth whenever someone draws
   function popIngredient(kind) {
     const g = ingredient(kind >= 0 ? kind : Math.random() * 18 | 0); scene.add(g);
-    const a = Math.random() * 6.28, x = Math.cos(a) * .5, z = Math.sin(a) * .5;
+    const [a, r] = brothSpot(.45, .9), x = Math.cos(a) * r, z = Math.sin(a) * r;
     tween(.6, t => { g.position.set(x, BROTH_Y + Math.sin(t * Math.PI) * 1.3, z); g.rotation.set(t * 5, t * 3, 0); g.scale.setScalar(1.7 * (1 - t * t) + .01); }, () => scene.remove(g));
   }
   function puff(at, n = 6, big = 1) {
@@ -724,7 +735,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     }
     for (const f of floaters) {
       if (f.flying) continue;
-      f.a += f.sp * dt;
+      const na = f.a + f.sp * dt; // drift round the pot, turning back at the divider wall so each one stays in its own broth
+      if (wallDist(Math.cos(na) * f.r, Math.sin(na) * f.r) > .22) f.a = na; else f.sp = -f.sp;
       const x = Math.cos(f.a) * f.r, z = Math.sin(f.a) * f.r;
       let y = BROTH_Y + .03 + Math.sin(T * 1.6 + f.ph) * .025, flip = 0;
       if (f.jump > 0) { // now and then one leaps out of the broth
