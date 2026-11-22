@@ -1,8 +1,8 @@
 // Pan: the Polish shedding game with the 24 cards from nine to ace. Whoever holds the nine of hearts starts with
 // it. On your turn you put down a card at least as high as the top one (or all four of a rank), or you pick up
-// three cards off the pile. Run out of cards and you are safe; the last one still holding cards is the "pan".
+// three cards off the pile. A spade sends the next turn backwards, to the player before you (Kuba's house rule). Run out of cards and you are safe; the last one still holding cards is the "pan".
 // Nobody is ever sent another player's hand.
-import { deck, rankOf, sortHand, canPlay, drawCount, plays, seatsFor, NINE_H, top } from '../../public/games/pan/rules.js';
+import { deck, rankOf, isSpade, sortHand, canPlay, drawCount, plays, seatsFor, NINE_H, top } from '../../public/games/pan/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'pan', name: 'Pan', minPlayers: 1, maxPlayers: 6 };
@@ -54,10 +54,12 @@ function setTurn(G, i, now) {
   G.tEnd = G.opts.timer && !G.seats[i].bot ? now + G.opts.timer * 1000 : 0;
   G.botAt = now + rnd(1000, 1900);
 }
-function after(G, s, now) {
+const prevFrom = (G, i) => { const n = G.seats.length; for (let k = 1; k <= n; k++) { const j = (i - k + n * 2) % n; if (alive(G, j)) return j; } return -1; };
+// back: a spade was played, so this one turn goes to the player before, and play carries on clockwise from them
+function after(G, s, now, back = false) {
   G.mv++;
   if (G.hands.filter(h => h.length).length < 2 || G.mv >= MAX_MOVES) return finish(G);
-  setTurn(G, nextFrom(G, s), now);
+  setTurn(G, back ? prevFrom(G, s) : nextFrom(G, s), now);
 }
 
 function doPlay(G, s, cards, now) {
@@ -66,10 +68,11 @@ function doPlay(G, s, cards, now) {
   G.hands[s] = G.hands[s].filter(c => !cards.includes(c));
   G.pile.push(...cards);
   G.st[s].played += cards.length; if (cards.length > 1) G.st[s].fours++;
-  G.last = { t: 'play', s, cards, mv: G.mv + 1 };
-  pushEv(G, { t: 'play', s, cards });
+  const back = isSpade(cards[cards.length - 1]) && G.hands.filter(h => h.length).length > 2; // the top card put down decides
+  G.last = { t: 'play', s, cards, back, mv: G.mv + 1 };
+  pushEv(G, { t: 'play', s, cards, back });
   if (!G.hands[s].length) { G.out[s] = ++G.outN; pushEv(G, { t: 'out', s, place: G.outN }); }
-  after(G, s, now);
+  after(G, s, now, back);
   return true;
 }
 function doDraw(G, s, now) {

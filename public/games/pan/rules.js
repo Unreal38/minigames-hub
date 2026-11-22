@@ -4,6 +4,7 @@
 export const NINE = 7, NINE_H = 7; // the rank of a nine, and the nine of hearts itself
 export const rankOf = c => c % 13;
 export const suitOf = c => c / 13 | 0;
+export const isSpade = c => suitOf(c) === 3; // a spade on top sends the next turn to the player before you
 export const deck = () => { const d = []; for (let s = 0; s < 4; s++) for (let r = NINE; r <= 12; r++) d.push(s * 13 + r); return d; };
 export const SEATS = [2, 3, 4, 6]; // table sizes that share 24 cards evenly
 export const seatsFor = (want, people = 0) => SEATS.find(n => n >= Math.max(want || 0, people)) || 6;

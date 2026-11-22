@@ -19,6 +19,7 @@ body.in-game { overflow: hidden; }
 .pn-ci { width: 15px; height: 15px; flex: none; } .pn-ci rect { fill: var(--cream); stroke: var(--ink); stroke-width: 1.6; }
 .pn-tag .bub .took { opacity: 1; background: var(--chili); color: #fff; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pn-tag .bub .top { padding: 3px 6px; gap: 3px; }
+.pn-tag .bub .top u { text-decoration: none; font-size: 17px; line-height: 1; }
 .pn-tag .bub:empty { display: none; }
 .pn-tag .bub > span { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 9px; font-size: 16px; opacity: .72; }
 .pn-tag .bub .top { opacity: 1; background: var(--lantern); font-size: 19px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
