@@ -183,7 +183,7 @@ const GAMES = {
     rules: `<ol>
       <li>Everyone plays the same hole and <b>takes turns</b>, one putt each, until every ball is in. You each have your own ball, and balls pass through each other. Whoever took the last hole tees off first.</li>
       <li>You have <b>25 seconds</b> for a putt. If the time runs out, the game makes a clumsy putt for you.</li>
-      <li><b>Drag back</b> anywhere on the screen and <b>let go</b> to putt: the further you pull, the harder the hit. On a keyboard, use the arrow keys to aim and set the power, then space.</li>
+      <li><b>Drag back</b> anywhere on the screen and <b>let go</b> to putt: the further you pull, the harder the hit. The dots show the roll the ball will take up to its second bounce, and a ring marks where it will stop. On a keyboard, use the arrow keys to aim and set the power, then space.</li>
       <li>Watch for <b>windmills</b>, <b>bumper posts</b>, <b>ramps</b> and <b>sand</b> (it slows the ball a lot). A ball in the <b>water</b> costs a stroke and goes back where you hit it from.</li>
       <li>You get <b>7 strokes</b> a hole. Not in by then and you score 8.</li>
       <li>Hit it <b>too hard</b> and the ball skips right over the hole, so slow down near the cup.</li>
