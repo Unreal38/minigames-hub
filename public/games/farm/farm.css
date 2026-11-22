@@ -285,3 +285,12 @@ body.night .pf .btn:disabled { opacity: 1; background: #201d44; color: #bcbfeb; 
 body.night .pf .btn, body.night .pf .btn * { color: var(--ink); }
 body.night .pf .btn.r, body.night .pf .btn.r * { color: #fff; }
 body.night .pf .btn.ghost-ink { color: var(--pf-tx); }
+
+/* letting a pet go free */
+.pf .freeask { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 170, 150, .22); border: 2px dashed rgba(200, 90, 70, .5); }
+.pf .freeask p { margin: 0 0 8px; }
+.pf .byepet { text-align: center; }
+.pf .byeface { display: flex; justify-content: center; margin: 6px 0 10px; animation: pf-bye 2.4s ease-in-out infinite; }
+@keyframes pf-bye { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .pf .byeface { animation: none; } }
+.pf .freeask .row.end { position: static; background: none; margin: 0; padding: 0; box-shadow: none; }

@@ -657,6 +657,17 @@ const wetPlots = r.farm.items.filter(i => i.type === 'garden').length;
 if (wetPlots) { r = await a.farmDo({ t: 'pick' }); if (!r.err && r.wet !== wetPlots) fail('rain gave no extra berries: ' + JSON.stringify([r.wet, wetPlots, r.err])); }
 { const w1 = weatherAt(0), w2 = weatherAt(0); if (w1.kind !== w2.kind || !WEATHER[w1.kind] || !(w1.left > 0 && w1.left <= WEATHER_MS)) fail('weather is not a steady function of the clock'); }
 { const seen = new Set(); for (let i = 0; i < 400; i++) seen.add(weatherAt(i * WEATHER_MS).kind); if (seen.size !== 5) fail('some weather never happens: ' + [...seen]); }
+// letting a pet go free: it leaves, berries arrive, the album keeps its page
+r = await a.farmDo({ t: 'free', id: 'nobody' });
+if (!r.err) fail('freed a pet that does not exist');
+{ const before = r.farm, pages = Object.keys(before.album || {}).length; let freed = null;
+  for (const q of before.pets) { r = await a.farmDo({ t: 'free', id: q.id }); if (!r.err) { freed = q; break; } }
+  if (freed && before.def.includes(freed.id) && !r.farm.def.length) fail('nobody defends after a defender left');
+  if (!freed) fail('no pet could be let go: ' + r.err);
+  if (r.did !== 'free' || r.gone?.id !== freed.id || r.farm.pets.length !== before.pets.length - 1 || r.farm.pets.some(x => x.id === freed.id)) fail('free ' + JSON.stringify(r.gone));
+  if (r.got < 4 || r.farm.inv.berries !== before.inv.berries + r.got) fail('free gift ' + r.got);
+  if (Object.keys(r.farm.album || {}).length !== pages || !r.farm.album[freed.sp]?.some(Boolean)) fail('album lost a page after a pet left');
+  if (r.farm.train.ids.includes(freed.id) || r.farm.def.includes(freed.id)) fail('a freed pet is still listed'); }
 r = await a.farmDo({ t: 'open', test: { weather: 'none', ripe: true } });
 const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved
 await stop(); await boot();

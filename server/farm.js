@@ -219,6 +219,7 @@ function release(f, o) { // hand back what an offer was holding
   f.offers.splice(f.offers.indexOf(o), 1);
 }
 function sweep(f) { for (const o of [...(f.offers || [])]) if (Date.now() - o.at > TRADE_MS || !farms.has(o.to)) release(f, o); }
+const FREE_GIFT = 3, FREE_GIFT_LV = 12; // berries a pet leaves when it is let go: 3 plus one per level, up to 15
 const tiny = x => x ? { id: x.id, sp: x.sp, name: x.name, lv: x.lv, look: lookOf(x) } : null;
 // For the rest of the site: a player's pets (to pick a companion from) and one of them by id, or null once it has moved on.
 export const petsOf = pid => (farms.get(pid)?.pets || []).map(tiny);
@@ -727,6 +728,21 @@ export function handle(p, a, reply) {
       if (d) { if (!won) { d.inv.coins = (d.inv.coins || 0) + 5; d.wins = (d.wins || 0) + 1; } post(d, { k: 'battle', from: p.name, held: !won }); }
     }
     return ok({ battle: battleView(B), ev, prize, did: 'fought' });
+  }
+  if (a.t === 'free') { // let a pet go for good: it leaves a few berries as a thank-you, and the album keeps its page
+    const pet = f.pets.find(x => x.id === a.id); if (!pet) return no('That pet is not here any more.');
+    if (f.pets.length <= 1) return no('Every farm keeps at least one pet.');
+    if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish the battle first.');
+    if (pet.held) return no(`${pet.name} is promised in a trade. Take the offer back first.`);
+    if (away(f, pet.id, true)) return no(`${pet.name} is out exploring. Welcome it home first.`);
+    if (cuddling(f, pet.id)) return no(`${pet.name} is cuddling in the Nest.`);
+    album(f); // its page and growth forms stay in the album
+    if (f.train?.ids.includes(pet.id)) { trainTick(f); f.train.ids = f.train.ids.filter(id => id !== pet.id); }
+    if (f.def) f.def = f.def.filter(id => id !== pet.id); // the defence team fills its gap by itself
+    f.pets.splice(f.pets.indexOf(pet), 1);
+    const got = FREE_GIFT + Math.min(pet.lv, FREE_GIFT_LV);
+    f.inv.berries = (f.inv.berries || 0) + got;
+    return ok({ did: 'free', gone: tiny(pet), got });
   }
   if (a.t === 'petname') {
     const pet = f.pets.find(x => x.id === a.id), name = cleanPetName(a.name);
