@@ -18,7 +18,8 @@ eq('gen', [2, 2, 2, 2, 2], 50); eq('gen', [2, 2, 2, 2, 1], 0); eq('ch', [6, 5, 2
 { // jokers: only once the Pip Party box and the matching top box are both filled
   const sh = blankSheet(), c = [sh], d = [4, 4, 4, 4, 4];
   if (joker(d, c) || score('full', d, c) !== 0) fail('joker before the party box is filled');
-  sh.gen = 50; if (joker(d, c) || genBonus(d, c)) fail('joker while the matching top box is open');
+  sh.gen = 50; if (joker(d, c) || genBonus(d, c) !== 100 || worth('4', d, c) !== 120 || worth('ch', d, c) !== 120 || worth('full', d, c) !== 100) fail('a second five of a kind pays 100 in any empty box');
+  if (genBonus(d, c, 0, true) !== 100 || genBonus([4, 4, 4, 4, 3], c)) fail('bonus rule wrong');
   sh[4] = 12; if (!joker(d, c)) fail('joker not recognised');
   if (score('full', d, c) !== 25 || score('ss', d, c) !== 30 || score('ls', d, c) !== 40 || score('k3', d, c) !== 20 || score('k4', d, c) !== 20 || score('ch', d, c) !== 20) fail('joker scores wrong');
   if (score('1', d, c) !== 0 || score('5', d, c) !== 0) fail('a joker in the top half scores 0');
@@ -38,7 +39,7 @@ eq('gen', [2, 2, 2, 2, 2], 50); eq('gen', [2, 2, 2, 2, 1], 0); eq('ch', [6, 5, 2
   if (total(c) !== 7 + 40 + 98 * 3) fail('triple totals wrong');
   if (worth('ch', [1, 2, 3, 4, 6], c, 2) !== 0 + 16 * 3 || worth('ls', [1, 2, 3, 4, 5], c, 1) !== 80) fail('column multiplier wrong');
   c[0].gen = c[1].gen = 50; c[0][2] = c[1][2] = 4;
-  if (joker(d, c)) fail('joker with a party box still open');
+  if (joker(d, c) || genBonus(d, c, 2)) fail('joker or bonus with a party box still open');
   c[2].gen = 50; if (!joker(d, c) || genBonus(d, c, 0) !== 100 || genBonus(d, c, 2) !== 300 || genBonus(d, c, 2, true) !== 0) fail('triple joker bonus wrong');
   if (worth('full', d, c, 1) !== 50 + 200) fail('triple joker worth wrong');
   c[1].gen = 0; if (genBonus(d, c, 2) !== 0) fail('bonus needs all three party boxes at 50');
