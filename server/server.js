@@ -164,6 +164,7 @@ function send(c, msg) { c?.sock?.send(msg); }
 // Pet Farm reaches a player who is not the one asking (live battles) through this. Returns how many screens got it.
 // Coins changed (a game paid out, the shop, Pet Farm): refresh the balance on every screen of that player.
 const coinWait = new Map();
+store.onDecor(farm.decorOf);
 store.onCoins(pid => { if (!coinWait.has(pid)) coinWait.set(pid, setTimeout(() => { coinWait.delete(pid); const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) send(c, { t: 'me', me: store.me(p) }); }, 250)); });
 // The Pet Farm pet a player has brought along, as others see it (no ids), or undefined.
 const palView = x => ({ sp: x.sp, name: x.name, lv: x.lv, look: x.look });
@@ -265,7 +266,7 @@ function handle(c, m) {
       if (r.cos) { send(c, { t: 'me', me: store.me(p) }); const room = rooms.get(c.room); if (room) sendRoom(room); }
       return;
     }
-    case 'pets': { const p = store.profileOf(c.token); return send(c, { t: 'pets', pets: p?.user ? farm.petsOf(p.pid) : [], farm: p?.user ? farm.brief(p.pid) : null }); } // to pick a companion from
+    case 'pets': { const p = store.profileOf(c.token); return send(c, { t: 'pets', pets: p?.user ? farm.petsOf(p.pid) : [], farm: p?.user ? farm.brief(p.pid) : null, decor: p?.user ? farm.decorList(p.pid) : [] }); } // to pick a companion from
     case 'player': { // another player's profile card, by their public tag
       if (!allow('prof:' + c.id, 30, 60_000)) return;
       const o = store.byTag(m.pt); if (!o) return send(c, { t: 'err', msg: 'That player is not around any more.' });
@@ -275,7 +276,7 @@ function handle(c, m) {
       const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
       const ids = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
       if (pal && ids.some(id => !farm.petOf(p?.pid, id))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
-      const r = pal ? store.companion(p, ids) : store.wear(p, String(m.k ?? ''), m.i);
+      const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
       const room = rooms.get(c.room); if (room) sendRoom(room);

@@ -1,10 +1,9 @@
-// The profile isle and its variants: the ground theme, the rock underneath, up to three decor props and the sky.
-// What a player picked rides in their flair (cosmetics.js kinds ig, ib, ip, ik); the indexes here match those lists,
-// so only ever append.
+// The profile isle and its variants: the ground theme, the rock underneath, the sky, and up to three decorations from
+// the player's Pet Farm. What a player picked rides in their flair (cosmetics.js kinds ig, ib, ik, and the list ip);
+// the indexes here match those lists, so only ever append.
 //
-//   buildIsle(look)        look = { ig, ib, ip: [..] }  ->  { root, tick(T), air, dispose() }
+//   buildIsle(look)        look = { ig, ib, ip: ['windmill', ..] }  ->  { root, tick(T), air, dispose() }
 //   buildSky(ik, opts)     the backdrop                 ->  { root, tick(T), mood, dispose() }   mood: '' (follows the site's day/night switch), 'day', 'night' or 'sunset'
-//   decorOnly(i)           one decor prop on a little lawn, for the wardrobe pictures
 //
 // Still parts are merged (bake) and outlined once; anything that moves sits in a group flagged dyn with its own outline.
 import * as THREE from 'three';
@@ -155,52 +154,21 @@ const BASE = [
   },
 ];
 
-// ---------- decor (COS.ip): each builds into g, standing on y = 0 and facing +z ----------
-const DECOR = [
-  g => { cyl(g, .04, .05, 1, '#8a5a3c', 0, .5); const a = box(g, .5, .16, .04, '#e9c887', .08, .82, .03); const p = cone(g, .1, .14, '#e9c887', .37, .82, .03, 3); p.rotation.z = -PI / 2; p.scale.z = .25;
-    box(g, .44, .15, .04, '#ffd9a0', -.07, .6, .03); const q = cone(g, .095, .13, '#ffd9a0', -.33, .6, .03, 3); q.rotation.z = PI / 2; q.scale.z = .25; ico(g, .05, '#ff9fb8', .1, .03, .1); },
-  g => { const t = put(g, new THREE.CylinderGeometry(.5, .5, 1.1, 3), flat('#ff9a5c'), 0, .25, 0); t.rotation.x = -PI / 2; t.scale.x = 1.2; // a ridge tent: a prism lying on its side
-    const door = put(g, new THREE.CylinderGeometry(.27, .27, .04, 3), flat('#6a4636'), 0, .135, .55); door.rotation.x = -PI / 2;
-    const fl = put(g, new THREE.CylinderGeometry(.52, .52, .1, 3), flat('#ffd9a0'), 0, .26, -.5); fl.rotation.x = -PI / 2; fl.scale.x = 1.2;
-    for (const z of [-.5, .5]) for (const x of [-.72, .72]) cyl(g, .02, .02, .16, '#8a5a3c', x, .06, z).rotation.z = x * .7; },
-  (g, ticks) => { for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283; ico(g, .09, i % 2 ? '#a9a6b0' : '#8a8794', Math.cos(a) * .3, .05, Math.sin(a) * .3).scale.y = .7; }
-    for (let i = 0; i < 3; i++) { const l = cyl(g, .05, .05, .5, '#8a5a3c', 0, .1, 0); l.rotation.set(PI / 2 - .25, i * 2.09, 0, 'YXZ'); }
-    const f = dyn(g), a = glow(f, new THREE.ConeGeometry(.17, .46, 5), '#ff7a2a', 0, .36, 0), b = glow(f, new THREE.ConeGeometry(.1, .3, 5), '#ffd23e', 0, .3, 0), sp = [0, 1, 2].map(i => glow(f, new THREE.IcosahedronGeometry(.03, 0), '#ffd23e'));
-    const log = box(g, .6, .16, .2, '#96683f', .75, .08, .1); log.rotation.y = .5;
-    ticks.push(T => { a.scale.set(1 + Math.sin(T * 9) * .1, 1 + Math.sin(T * 11 + 1) * .16, 1 + Math.cos(T * 8) * .1); b.scale.y = 1 + Math.sin(T * 13) * .2; a.rotation.y = T * 2;
-      sp.forEach((m, i) => { const u = (T * .6 + i / 3) % 1; m.position.set(Math.sin(T * 2 + i * 2) * .1, .5 + u * .7, Math.cos(T * 1.7 + i) * .1); m.scale.setScalar(1 - u); }); }); },
-  g => { cyl(g, .04, .05, .7, '#8a5a3c', 0, .35); box(g, .26, .2, .4, '#ff6f61', 0, .78, 0); const top = cyl(g, .13, .13, .4, '#ff6f61', 0, .88, 0, 8); top.rotation.x = PI / 2; box(g, .2, .2, .02, '#d9483c', 0, .8, .205);
-    cyl(g, .012, .012, .22, '#fff4e2', .15, .92, .08); box(g, .02, .09, .12, '#ffc93c', .15, 1, .12); const l = box(g, .16, .11, .015, '#ffffff', .0, .06, .3); l.rotation.set(-1.2, .4, 0); },
-  (g, ticks) => { for (const x of [-.5, .5]) for (const z of [-.3, .3]) { const p = cyl(g, .035, .04, 1.36, '#8a5a3c', x, .66, z * .6); p.rotation.x = -z * .75; }
-    const bar = cyl(g, .04, .04, 1.14, '#8a5a3c', 0, 1.3, 0); bar.rotation.z = PI / 2;
-    const s = dyn(g); s.position.y = 1.3; for (const x of [-.2, .2]) cyl(s, .012, .012, .9, '#fff4e2', x, -.45, 0, 4); box(s, .52, .05, .2, '#ff9a5c', 0, -.9, 0);
-    ticks.push(T => { s.rotation.x = Math.sin(T * 1.8) * .42; }); },
-  (g, ticks) => { for (const x of [-.75, .75]) { cyl(g, .035, .045, 1.25, '#5b4636', x, .62, 0); ico(g, .05, '#5b4636', x, 1.27, 0); }
-    const cols = ['#ff6f61', '#ffc93c', '#7ed3b2', '#6ec6f5', '#ff9fe0'], list = [];
-    for (let i = 0; i < 5; i++) { const u = (i + .5) / 5, x = -.75 + u * 1.5, y = 1.22 - Math.sin(u * PI) * .28, d = dyn(g); d.position.set(x, y, 0); cyl(d, .008, .008, .08, '#5b4636', 0, -.04, 0, 4);
-      glow(d, new THREE.CylinderGeometry(.07, .055, .15, 6), cols[i], 0, -.15, 0); cyl(d, .045, .045, .025, '#5b4636', 0, -.07, 0, 6); cyl(d, .035, .035, .02, '#5b4636', 0, -.235, 0, 6); list.push(d); }
-    for (let i = 0; i < 6; i++) { const u0 = i / 6, u1 = (i + 1) / 6, p0 = [-.75 + u0 * 1.5, 1.24 - Math.sin(u0 * PI) * .28], p1 = [-.75 + u1 * 1.5, 1.24 - Math.sin(u1 * PI) * .28], len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
-      const m = cyl(g, .008, .008, len, '#5b4636', (p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, 0, 4); m.rotation.z = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) + PI / 2; }
-    ticks.push(T => list.forEach((d, i) => { d.rotation.z = Math.sin(T * 1.6 + i * .9) * .16; })); },
-  (g, ticks) => { cyl(g, .2, .34, 1.1, '#fff4e2', 0, .55, 0, 8); cone(g, .28, .32, '#ff6f61', 0, 1.26, 0, 8); box(g, .14, .24, .02, '#8a5a3c', 0, .13, .33); box(g, .1, .1, .02, '#6ec6f5', 0, .7, .26);
-    cyl(g, .03, .03, .2, '#5b4636', 0, 1.02, .28).rotation.x = PI / 2;
-    const b = dyn(g); b.position.set(0, 1.02, .4); for (let i = 0; i < 4; i++) { const arm = new THREE.Group(); arm.rotation.z = i * PI / 2; b.add(arm); box(arm, .03, .62, .02, '#8a5a3c', 0, .31, 0); box(arm, .16, .44, .015, '#ffe9c9', .07, .38, 0); }
-    ico(b, .05, '#5b4636', 0, 0, .01); ticks.push(T => { b.rotation.z = -T * 1.3; }); },
-  g => { ico(g, .34, '#ffffff', 0, .28, 0); ico(g, .25, '#ffffff', 0, .72, 0); ico(g, .18, '#ffffff', 0, 1.05, 0); const n = cone(g, .04, .18, '#ff8a3c', 0, 1.05, .22, 5); n.rotation.x = PI / 2;
-    for (const x of [-.07, .07]) ico(g, .025, '#3b2219', x, 1.12, .15); for (const y of [.62, .78]) ico(g, .028, '#3b2219', 0, y, .24);
-    cyl(g, .19, .19, .05, '#3b2219', 0, 1.2, 0, 8); cyl(g, .12, .12, .2, '#3b2219', 0, 1.3, 0, 8); cyl(g, .2, .2, .07, '#ff6f61', 0, .92, 0, 8);
-    for (const d of [-1, 1]) { const a = cyl(g, .015, .02, .4, '#8a5a3c', d * .38, .8, 0, 4); a.rotation.z = -d * 1.1; } },
-  (g, ticks) => { const p = ico(g, .4, '#f08a2a', 0, .3, 0); p.scale.set(1.1, .8, 1); cyl(g, .04, .06, .16, '#5f8a3a', 0, .66, 0);
-    const f = dyn(g), eye = () => { const m = new THREE.ConeGeometry(.07, .1, 3); return m; };
-    for (const x of [-.14, .14]) { const e = glow(f, eye(), '#ffe27a', x, .38, .385); e.scale.z = .2; }
-    const mouth = glow(f, new THREE.BoxGeometry(.3, .06, .02), '#ffe27a', 0, .2, .4); for (const x of [-.09, .03]) glow(f, new THREE.BoxGeometry(.05, .05, .02), '#ffe27a', x + .03, .245, .4);
-    ticks.push(T => { const k = .85 + Math.sin(T * 7) * .08 + Math.sin(T * 13) * .07; for (const m of f.children) m.material.color.setRGB(k, k * .86, k * .42); }); },
-];
+// ---------- decor: decorations from the player's own Pet Farm (cos.ip holds their types) ----------
 // Where decor stands: clear of the avatar, the pets and the lamp posts. [x, z, turn]
 const SLOTS = [[-1.6, -.9, .45], [1.6, -.9, -.45], [2, 1, -.7]];
-function decor(i, ticks) {
-  const g = new THREE.Group(); if (!DECOR[i]) return null;
-  DECOR[i](g, ticks); return finish(g, .035);
+// The farm's models load only when somebody has decor out, so they arrive a moment after the isle itself.
+function farmDecor(root, types, ticks, st) {
+  import('./games/farm/models.js').then(({ itemModel, disposeModel }) => {
+    if (st.dead) return;
+    st.free = () => { for (const h of st.holds) { root.remove(h); disposeModel(h.children[0]); } };
+    types.forEach((t, n) => {
+      const g = itemModel(t, true), hold = new THREE.Group(), [x, z, ry] = SLOTS[n], sz = new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3());
+      hold.scale.setScalar(Math.min(1.3, 1.9 / Math.max(sz.x, sz.z, .01), 2.6 / Math.max(sz.y, .01))); // big things (a pond, a gazebo) shrink to fit their spot
+      hold.position.set(x, 0, z); hold.rotation.y = ry; hold.add(g); root.add(hold); st.holds.push(hold);
+      if (g.userData.tick) ticks.push(T => g.userData.tick(T, {}, g));
+    });
+  }).catch(() => {});
 }
 
 export function buildIsle(look = {}) {
@@ -213,13 +181,9 @@ export function buildIsle(look = {}) {
     ticks.push(T => { const k = .8 + Math.sin(T * 1.6) * .2; mt.color.setRGB(1, .42 * k + .1, .12 * k); });
   }
   if (ib) { const g = new THREE.Group(); root.add(g); BASE[ib](g, th, ticks); finish(g, .05); g.traverse(o => { if (o.isMesh) o.castShadow = false; }); }
-  (Array.isArray(look.ip) ? look.ip : []).slice(0, SLOTS.length).forEach((d, n) => { const g = decor(d, ticks); if (!g) return; const [x, z, ry] = SLOTS[n]; g.position.set(x, 0, z); g.rotation.y = ry; g.scale.setScalar(1.4); root.add(g); });
-  return { root, land, air: th.air, tick: T => { for (const f of ticks) f(T); }, dispose: () => disposeToon(root) };
-}
-export function decorOnly(i) {
-  const ticks = [], root = new THREE.Group(), g = decor(i, ticks); if (g) root.add(g);
-  const lawn = new THREE.Group(); put(lawn, new THREE.CylinderGeometry(1.05, .95, .16, 14), flat('#8bca60'), 0, -.08, 0); root.add(toonify(lawn, .035));
-  return { root, tick: T => { for (const f of ticks) f(T); }, dispose: () => disposeToon(root) };
+  const types = (Array.isArray(look.ip) ? look.ip : []).filter(t => typeof t === 'string').slice(0, SLOTS.length), st = { dead: false, holds: [], free: null };
+  if (types.length) farmDecor(root, types, ticks, st);
+  return { root, land, air: th.air, tick: T => { for (const f of ticks) f(T); }, dispose: () => { st.dead = true; st.free?.(); disposeToon(root); } };
 }
 
 // ---------- skies (COS.ik) ----------

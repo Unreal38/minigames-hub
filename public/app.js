@@ -4,7 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, pickedOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -456,7 +456,7 @@ function onMsg(m) {
     st.farm?.reopen(); st.hay?.reopen(); // back after a dropped connection
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
-    st.pets = m.pets || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
+    st.pets = m.pets || []; st.decor = m.decor || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
@@ -784,13 +784,15 @@ const topbar = () => `<header class="top">
 function mountSkyHero() {
   const box = document.querySelector('.hero .art'); if (!box) return;
   box.classList.add('sky3d');
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), flairOf(st.me)); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }); }).catch(() => {});
   if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
 // The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
 let petsAsked = false;
 const PET_SLOTS = 3;
 const showIds = () => { const c = st.me?.cos || {}; return (c.pets || (c.pet ? [c.pet] : [])).slice(0, PET_SLOTS); };
+// The Pet Farm decorations you put on your isle, less any the farm no longer has.
+const myDecor = () => decorOf(st.me).filter(t => (st.decor || []).some(x => x.t === t));
 const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id)).filter(Boolean);
 const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open that player's profile card
 // The games you host a table for, in hub order: id, picture class, picture, category, seats, one-line pitch.
@@ -1344,10 +1346,9 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
   const flNow = () => Object.fromEntries(WORN.map(k => [k, worn(k)]));
   // The isle sections show the isle itself in place of the avatar, wearing what is on plus anything being tried.
-  const decorNow = () => [...pickedOf(me(), 'ip').filter(i => i !== pick.ip), ...(pick.ip != null ? [pick.ip] : [])].slice(-COS.ip.pick);
   const showIsle = () => {
     const on = !first && (sec === 'isle' || sec === 'pets'); pvi.hidden = !on; pv.hidden = on; el.querySelector('form').classList.toggle('isleview', on);
-    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: decorNow() }); }).catch(() => {});
+    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor() }); }).catch(() => {});
   };
 
   // Saving: only what is owned is ever saved, so a tried-on item never reaches other players.
@@ -1399,7 +1400,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     : `<img alt="" data-kit="${k}:${i}"${skinPicNow(k, i, color, av) ? ` src="${skinPicNow(k, i, color, av)}"` : ''}>`;
   const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
   const cosTile = (k, i) => {
-    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : COS[k].pick ? pick[k] === i || pickedOf(me(), k).includes(i) : worn(k) === i;
+    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
     const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `back in ${cosSeason(k, i).back}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn ? '✓ yours' : '';
     return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b>${esc(it.n)}</b>`}${k === 'nm' ? `<b>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
   };
@@ -1408,6 +1409,10 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const petsHtml = () => { const pets = st.pets || [], ids = showIds();
     return !me().user ? '<p class="wdnone">Log in and start a Pet Farm to show off your pets.</p>' : !pets.length ? '<p class="wdnone">Hatch a pet in Pet Farm and it can come along.</p>'
       : pets.map(x => { const n = ids.indexOf(x.id); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 60, 'palpic')}<b>${esc(x.name)}</b><small>lv ${x.lv | 0}</small></button>`; }).join('');
+  };
+  const decorHtml = () => { const list = st.decor || [], out = myDecor();
+    return !me().user ? '<p class="wdnone">Log in and start a Pet Farm: the decorations you build there can stand on your isle.</p>' : !list.length ? '<p class="wdnone">Build a decoration on your Pet Farm (a tree, a pond, a windmill…) and you can put one like it on your isle.</p>'
+      : list.map(x => { const n = out.indexOf(x.t); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-dec="${esc(x.t)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}<img alt="" class="islepic" data-isle="ip:${esc(x.t)}"><b>${esc(x.n)}</b></button>`; }).join('');
   };
   const dropHtml = sn => [...Object.entries(SEASON).filter(([, s]) => s === sn).map(([id]) => { const [k, i] = id.split(':'); return [k, +i, 0]; }),
     ...Object.keys(COS).flatMap(k => COS[k].items.map((it, i) => it.s === sn ? [k, i, 1] : null).filter(Boolean))]
@@ -1419,7 +1424,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     petPics(grid);
     const isles = [...grid.querySelectorAll('img[data-isle]:not([src])')];
     if (isles.length) (islePics ||= import('./islepic.js')).then(m => { let j = 0; // one a frame: each is a whole little scene
-      const next = () => { if (!open) return; while (j < isles.length && !isles[j].isConnected) j++; if (j >= isles.length) return; const im = isles[j++], [k, i] = im.dataset.isle.split(':'), u = m.islePic(k, +i); if (u) im.src = u; requestAnimationFrame(next); };
+      const next = () => { if (!open) return; while (j < isles.length && !isles[j].isConnected) j++; if (j >= isles.length) return; const im = isles[j++], [k, i] = im.dataset.isle.split(':'), u = m.islePic(k, k === 'ip' ? i : +i); if (u) im.src = u; requestAnimationFrame(next); };
       next(); }).catch(() => {});
     if (!IP) return;
     const imgs = [...grid.querySelectorAll('img[data-ip]:not([src])')], look = av.slice(), col = color; let n = 0;
@@ -1432,14 +1437,15 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const paintGrid = keep => {
     const s = cur(), top = keep ? grid.scrollTop : 0; sec = s.id;
-    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k].label]) : [];
+    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k]?.label || 'Decor']) : [];
     if (!subs.some(([k]) => k === sub)) sub = subs[0]?.[0] || '';
-    const noFilt = first || s.id === 'pets';
+    const noFilt = first || s.id === 'pets' || sub === 'ip';
     subEl.innerHTML = `<div class="wdchips">${subs.length > 1 ? subs.map(([k, l]) => `<button type="button" data-sub="${k}" aria-pressed="${k === sub}">${l}</button>`).join('') : ''}</div>${
       noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="Show">${[['all', 'All'], ['mine', 'Mine'], ['shop', 'Shop']].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
     hint.textContent = s.drop ? `Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.` : s.id === 'pets' ? `Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`
+      : sub === 'ip' ? `Up to ${DECOR_SLOTS} decorations from your Pet Farm can stand on your isle. They stay on the farm too.`
       : s.kinds ? COS[sub].where || COS_HINT[sub] || '' : '';
-    const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
+    const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : sub === 'ip' ? decorHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
     grid.className = 'wdgrid' + (ipFailed ? ' nopic' : '') + (s.rows && (sub === 'color' || AV_COLOR_KEYS.includes(sub)) ? ' sws' : '');
     grid.innerHTML = html || `<p class="wdnone">${filt === 'mine' ? 'Nothing of yours here yet. Look under Shop.' : filt === 'shop' ? 'Nothing left to buy here.' : 'Nothing here.'}</p>`;
     grid.scrollTop = top; fillPics();
@@ -1465,7 +1471,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const setCam = face => { view?.face(face); camBtns(face); };
 
   let sig = '';
-  const sigOf = () => owned().length + JSON.stringify(me().cos || {}) + (st.pets?.length | 0) + (me().user || '');
+  const sigOf = () => owned().length + JSON.stringify(me().cos || {}) + (st.pets?.length | 0) + (st.decor?.length | 0) + (me().user || '');
   st.onMe = () => {
     if (!open) return;
     for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
@@ -1499,6 +1505,12 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
       if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
       sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); paintGrid(true); return paintPlate();
     }
+    const dc = t.closest('[data-dec]');
+    if (dc) { // a Pet Farm decoration: tap to stand it on the isle, tap again to take it back
+      const ty = dc.dataset.dec, l = myDecor(), at = l.indexOf(ty);
+      if (at >= 0) l.splice(at, 1); else if (l.length >= DECOR_SLOTS) return toast(`Your isle has room for ${DECOR_SLOTS} decorations. Tap one to take it off first.`); else l.push(ty);
+      sfx.pop(); (st.me.cos ||= {}).ip = l; send({ t: 'wear', k: 'ip', i: l }); paintGrid(true); return paintPlate();
+    }
     const a = t.closest('[data-k]');
     if (a) { // an avatar item: owned ones go on and save, the rest are tried on (tap a tried-on item again to take it off)
       const k = a.dataset.k, hex = k === 'color', v = hex ? a.dataset.v : +a.dataset.v;
@@ -1510,12 +1522,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const c = t.closest('[data-c]'); if (!c) return;
     const k = c.dataset.c, i = +c.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
-    if (COS[k].pick && has(k, i)) { // a few at once (isle decor): tap to put one out, tap again to put it away
-      const l = pickedOf(me(), k), at = l.indexOf(i);
-      if (at >= 0) l.splice(at, 1); else if (l.length >= COS[k].pick) return toast(`There is room for ${COS[k].pick}. Tap one that is out to put it away first.`); else l.push(i);
-      delete pick[k]; (st.me.cos ||= {})[k] = l; send({ t: 'wear', k, i: l });
-    }
-    else if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
+    if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
     else if (pick[k] === i) delete pick[k]; else pick[k] = i;
     paintGrid(true); paintPlate(); paintCart();
   });
