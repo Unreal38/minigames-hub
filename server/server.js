@@ -28,6 +28,7 @@ import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
 import * as farm from './farm.js';
 import * as hubchat from './hubchat.js';
+import * as daily from './daily.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -348,6 +349,15 @@ function handle(c, m) {
       if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
       return;
     }
+    case 'daily': { // Mystery Pet: the daily guess-the-pet puzzle (server/daily.js)
+      const p = store.profileOf(c.token);
+      if (m.test) daily.testHook(m.test, msg => send(c, msg));
+      return daily.handle(p, m, msg => send(c, msg), (text, grid) => {
+        const r = hubchat.post(p, c, c.sock?.ip || '?', text, grid);
+        if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+        return r.err || null;
+      });
+    }
     case 'hubdel': {
       const id = String(m.id ?? '');
       if (hubchat.remove(store.profileOf(c.token), id)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
@@ -506,6 +516,7 @@ for (const d of store.load()) {
 }
 farm.load();
 hubchat.load();
+daily.load();
 const bye = () => { store.saveNow(); farm.saveNow(); hubchat.saveNow(); process.exit(0); };
 process.on('SIGTERM', bye); process.on('SIGINT', bye);
 

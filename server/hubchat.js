@@ -52,7 +52,8 @@ const view = (m, pid, admin) => {
 export const history = p => log.slice(-SEND).map(m => view(m, p?.pid, isAdmin(p)));
 
 // A new message from profile `p` (connected as client `c`, from address `ip`). Returns { msg } or { err }.
-export function post(p, c, ip, raw) {
+// grid: a Mystery Pet result (rows of g / y / r squares) shown under the line.
+export function post(p, c, ip, raw, grid = null) {
   if (!p?.user) return { err: 'Log in or make an account to chat.' };
   const text = cleanText(raw); if (!text) return {};
   const last = [...log].reverse().find(m => m.pid === p.pid);
@@ -65,6 +66,7 @@ export function post(p, c, ip, raw) {
   const g = badge(p);
   const m = { id: crypto.randomBytes(6).toString('hex'), at: Date.now(), pid: p.pid, user: p.user, name: safeText(c.name || p.name).slice(0, 16) || p.user,
     color: c.color, av: c.av, lv: g.lv, icon: g.icon, rank: g.rank, fl: flair(p), text };
+  if (Array.isArray(grid)) m.grid = grid.filter(r => /^[gyr]{1,8}$/.test(r)).slice(0, 60);
   log.push(m); if (log.length > KEEP) log.splice(0, log.length - KEEP);
   scheduleSave();
   return { msg: m };
