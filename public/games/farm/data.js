@@ -113,6 +113,14 @@ export const SPECIES = {
   tuxpurr:   { name: 'Tuxpurr', el: 'Spark', rare: 1, blurb: 'A tuxedo cat that never goes out without its bow tie and top hat.' },
   fluffcoon: { name: 'Fluffcoon', el: 'Tide', rare: 2, blurb: 'A huge fluffy Maine Coon that loves snow and splashing in puddles.' },
   munchmew:  { name: 'Munchmew', el: 'Ember', rare: 1, blurb: 'A munchkin cat with tiny legs and pink icing, named after the little donut.' },
+  rocktopus: { name: 'Rocktopus', el: 'Stone', rare: 1, blurb: 'An octopus that hides among the rocks and stacks pebbles on its head.' },
+  driftle:   { name: 'Driftle', el: 'Tide', rare: 1, blurb: 'A sea turtle that glides through the air with a starfish on its shell.' },
+  zapuff:    { name: 'Zapuff', el: 'Spark', rare: 1, blurb: 'A pufferfish that floats like a balloon and crackles when it puffs up.' },
+  ottershell: { name: 'Ottershell', el: 'Tide', rare: 0, blurb: 'An otter that never lets go of its favourite seashell.' },
+  cinnapanda: { name: 'Cinnapanda', el: 'Ember', rare: 1, blurb: 'A red panda the colour of cinnamon with a long ringed tail.' },
+  yuzubara:  { name: 'Yuzubara', el: 'Leaf', rare: 1, blurb: 'A calm capybara that balances a yuzu on its head.' },
+  snoozloth: { name: 'Snoozloth', el: 'Leaf', rare: 2, blurb: 'A sloth that wears a nightcap all day, just in case.' },
+  glidenut:  { name: 'Glidenut', el: 'Spark', rare: 1, blurb: 'A flying squirrel with huge eyes that glides on its own little flaps.' },
   // themed sets, found on their own islands
   strawbun: { name: 'Strawbun', el: 'Leaf', rare: 0, blurb: 'A strawberry bunny with seed freckles and a leafy collar.' },
   chilipup: { name: 'Chilipup', el: 'Ember', rare: 1, blurb: 'A long chili pepper puppy whose curled tail smokes.' },
@@ -197,17 +205,17 @@ export const SELL = { wood: 4, stone: 4, fiber: 4, shells: 12, coal: 12, berries
 // A party of 1 to 3 pets flies to a zone and comes back with materials. Nothing can go wrong on a trip.
 // gives: materials per pet per hour. house: farmhouse level that opens the zone. wild: species found there and how often.
 export const ZONES = {
-  woods:  { name: 'Mossy Woods', el: 'Leaf', house: 1, gives: { wood: 14, fiber: 10, stone: 5, coins: 3 }, wild: { mossbun: 5, sproutle: 5, petalpuff: 2, acornip: 2, bambear: 2, patchkit: 2 }, blurb: 'Tall trees and soft moss.' },
-  cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, shrimplet: 5, ripplet: 2, waddlet: 2, coralcolt: 2, axolily: 1, skipfin: 1 }, blurb: 'Warm pools full of shells.' },
-  ridge:  { name: 'Pebble Ridge', el: 'Stone', house: 2, gives: { stone: 16, wood: 4, crystal: .5, coins: 3 }, wild: { pebblet: 5, cragcrab: 2, rubblet: 2, siamew: 2, dustmole: 1, tricerock: 1 }, blurb: 'Rocky paths and a glint of crystal.' },
-  hills:  { name: 'Ember Hills', el: 'Ember', house: 3, gives: { coal: 8, stone: 9, wood: 5, coins: 4 }, wild: { cindercub: 5, toastoad: 5, gingersnap: 5, lanternail: 2, flickit: 1, sizzlet: 1 }, blurb: 'Warm slopes that glow at night.' },
-  meadow: { name: 'Thunder Meadow', el: 'Spark', house: 4, gives: { wood: 12, fiber: 6, crystal: 1, coins: 5 }, wild: { zapkit: 5, buzzlet: 2, wattbat: 2, oinkwatt: 2, voltvole: 1 }, blurb: 'Tall grass that crackles before rain.' },
+  woods:  { name: 'Mossy Woods', el: 'Leaf', house: 1, gives: { wood: 14, fiber: 10, stone: 5, coins: 3 }, wild: { mossbun: 5, sproutle: 5, petalpuff: 2, acornip: 2, bambear: 2, patchkit: 2, snoozloth: 1 }, blurb: 'Tall trees and soft moss.' },
+  cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, shrimplet: 5, ripplet: 2, waddlet: 2, coralcolt: 2, driftle: 2, axolily: 1, skipfin: 1 }, blurb: 'Warm pools full of shells.' },
+  ridge:  { name: 'Pebble Ridge', el: 'Stone', house: 2, gives: { stone: 16, wood: 4, crystal: .5, coins: 3 }, wild: { pebblet: 5, cragcrab: 2, rubblet: 2, siamew: 2, rocktopus: 2, dustmole: 1, tricerock: 1 }, blurb: 'Rocky paths and a glint of crystal.' },
+  hills:  { name: 'Ember Hills', el: 'Ember', house: 3, gives: { coal: 8, stone: 9, wood: 5, coins: 4 }, wild: { cindercub: 5, toastoad: 5, gingersnap: 5, lanternail: 2, cinnapanda: 2, flickit: 1, sizzlet: 1 }, blurb: 'Warm slopes that glow at night.' },
+  meadow: { name: 'Thunder Meadow', el: 'Spark', house: 4, gives: { wood: 12, fiber: 6, crystal: 1, coins: 5 }, wild: { zapkit: 5, buzzlet: 2, wattbat: 2, oinkwatt: 2, zapuff: 2, glidenut: 2, voltvole: 1 }, blurb: 'Tall grass that crackles before rain.' },
   // themed islands: each is home to one set of pets
-  grove:  { name: 'Fruit Grove', el: 'Leaf', theme: 'fruit', house: 2, gives: { fiber: 10, wood: 8, coins: 4 }, wild: { strawbun: 5, lemonzest: 5, chilipup: 2, melonwhale: 2, coconutkin: 2, pinepine: 1 }, blurb: 'Orchards where the fruit looks back at you.' },
+  grove:  { name: 'Fruit Grove', el: 'Leaf', theme: 'fruit', house: 2, gives: { fiber: 10, wood: 8, coins: 4 }, wild: { strawbun: 5, lemonzest: 5, chilipup: 2, melonwhale: 2, coconutkin: 2, yuzubara: 2, pinepine: 1 }, blurb: 'Orchards where the fruit looks back at you.' },
   patch:  { name: 'Veggie Patch', el: 'Leaf', theme: 'veggie', house: 2, gives: { fiber: 14, wood: 6, coins: 3 }, wild: { carrofox: 5, peapillar: 5, pumpkit: 2, shroomouse: 1 }, blurb: 'Tidy rows with something rustling in them.' },
   bakery: { name: 'Bakery Bluff', el: 'Ember', theme: 'bakery', house: 3, gives: { coal: 6, fiber: 8, coins: 5 }, wild: { croissab: 5, donuseal: 5, pretzelisk: 2, cupcowl: 1 }, blurb: 'Warm ovens and the smell of fresh bread.' },
   sweets: { name: 'Sweet Shop Isle', el: 'Spark', theme: 'sweets', house: 3, gives: { shells: 5, fiber: 8, coins: 6 }, wild: { mallowlamb: 5, jellifrog: 2, munchmew: 2, candraffe: 1 }, blurb: 'Lollipop trees and a sticky breeze.' },
-  peak:   { name: 'Weather Peak', el: 'Tide', theme: 'weather', house: 4, gives: { stone: 8, shells: 4, crystal: 1, coins: 5 }, wild: { dripfrog: 5, snowfox: 2, twistret: 2, sunlion: 1, fluffcoon: 1 }, blurb: 'Sun, snow and rain, all at once.' },
+  peak:   { name: 'Weather Peak', el: 'Tide', theme: 'weather', house: 4, gives: { stone: 8, shells: 4, crystal: 1, coins: 5 }, wild: { dripfrog: 5, ottershell: 5, snowfox: 2, twistret: 2, sunlion: 1, fluffcoon: 1 }, blurb: 'Sun, snow and rain, all at once.' },
   night:  { name: 'Starfall Isle', el: 'Spark', theme: 'night', house: 4, gives: { crystal: 1.5, stone: 6, coins: 6 }, wild: { starjelly: 5, ringbear: 5, moonbun: 2, tuxpurr: 2, cometail: 1 }, blurb: 'An island where it is always just after dusk.' },
 };
 // find: chance that a wild pet follows the party home. xp: what every pet in the party learns.
