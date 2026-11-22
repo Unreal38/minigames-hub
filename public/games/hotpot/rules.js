@@ -1,13 +1,15 @@
 // Shared Hot Pot rules: used by the server (authoritative) and the browser (hints & highlights).
 // 6 categories x 3 ingredients x 4 copies = 72 cards. Card id -> kind = id >> 2, category = kind / 3.
 
+import { L } from '../../i18n.js';
+
 export const CATS = [
-  { id: 'meat',   name: 'Meat',      col: '#e5604a', deep: '#a83a26', items: ['Beef Slice', 'Pork Belly', 'Lamb Roll'] },
-  { id: 'sea',    name: 'Seafood',   col: '#4a9be0', deep: '#24639e', items: ['Shrimp', 'Fish Ball', 'Squid'] },
-  { id: 'veg',    name: 'Greens',    col: '#5cb85c', deep: '#357a35', items: ['Bok Choy', 'Spinach', 'Napa Cabbage'] },
-  { id: 'shroom', name: 'Mushrooms', col: '#b07a52', deep: '#714529', items: ['Enoki', 'Shiitake', 'Wood Ear'] },
-  { id: 'noodle', name: 'Noodles',   col: '#f0b429', deep: '#a8750a', items: ['Udon', 'Rice Cake', 'Glass Noodles'] },
-  { id: 'tofu',   name: 'Tofu & Co', col: '#b98ad8', deep: '#7a4f9c', items: ['Tofu', 'Dumpling', 'Quail Egg'] },
+  { id: 'meat',   name: L('Meat', 'Mięso'),      col: '#e5604a', deep: '#a83a26', items: [L('Beef Slice', 'Plaster wołowiny'), L('Pork Belly', 'Boczek'), L('Lamb Roll', 'Rolada jagnięca')] },
+  { id: 'sea',    name: L('Seafood', 'Owoce morza'),   col: '#4a9be0', deep: '#24639e', items: [L('Shrimp', 'Krewetka'), L('Fish Ball', 'Kulka rybna'), L('Squid', 'Kałamarnica')] },
+  { id: 'veg',    name: L('Greens', 'Zielenina'),    col: '#5cb85c', deep: '#357a35', items: ['Bok Choy', L('Spinach', 'Szpinak'), L('Napa Cabbage', 'Kapusta pekińska')] },
+  { id: 'shroom', name: L('Mushrooms', 'Grzyby'), col: '#b07a52', deep: '#714529', items: ['Enoki', 'Shiitake', L('Wood Ear', 'Uszak')] },
+  { id: 'noodle', name: L('Noodles', 'Makaron'),   col: '#f0b429', deep: '#a8750a', items: ['Udon', L('Rice Cake', 'Ciastko ryżowe'), L('Glass Noodles', 'Makaron sojowy')] },
+  { id: 'tofu',   name: L('Tofu & Co', 'Tofu i spółka'), col: '#b98ad8', deep: '#7a4f9c', items: ['Tofu', L('Dumpling', 'Pierożek'), L('Quail Egg', 'Jajko przepiórcze')] },
 ];
 
 export const COPIES = 4;

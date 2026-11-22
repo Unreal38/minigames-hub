@@ -8,6 +8,7 @@ import { frameLoop, autoResolution } from '../../frames.js';
 import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { petModel } from '../farm/pets3d.js';
+import { L } from '../../i18n.js';
 import { N, GRID, TILES, GROUPS, SHOP_TILES, cellOf, sideOf, isCorner, BATH, LOST, MUD, START, MS } from './board.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -46,7 +47,7 @@ function boardTexture() {
   g.save(); g.translate(S / 2, S / 2 - 110); g.rotate(-.06);
   text('Pawperty', 0, 0, 350, '#fff6e4', INK, 46); g.restore();
   paw(S / 2 + 740, S / 2 + 150, 84, .4, '#ffb547'); paw(S / 2 - 760, S / 2 + 180, 70, -.5, '#ff8fab');
-  text('adopt · upgrade · nap', S / 2, S / 2 + 150, 86, '#3f7a3a');
+  text(L('adopt · upgrade · nap', 'adopcje · ulepszenia · drzemki'), S / 2, S / 2 + 150, 86, '#3f7a3a');
 
   for (const t of TILES) {
     const [c, r] = cellOf(t.i), x = c * PX, y = (GRID - 1 - r) * PX, side = sideOf(t.i), cx = x + PX / 2, cy = y + PX / 2;
@@ -60,15 +61,15 @@ function boardTexture() {
       const bx = side === 1 ? x + PX - B / 2 : side === 3 ? x + B / 2 : cx, by = side === 0 ? y + B / 2 + 2 : side === 2 ? y + PX - B / 2 + 2 : cy;
       // on the left and right sides the band is narrow, so the price runs along it
       g.save(); g.translate(bx, by); if (side % 2) g.rotate(side === 1 ? Math.PI / 2 : -Math.PI / 2); text(String(t.price), 0, 0, 40, '#fff', G.ink, 8); g.restore();
-    } else if (t.k === 'zoom') { text('?', cx, cy - 22, 150, '#ff5d92', '#fff', 14); text('Zoomies!', cx, cy + 82, 44, '#b02a5c'); }
-    else if (t.k === 'vet') { g.fillStyle = '#e5543b'; g.beginPath(); g.roundRect(cx - 22, cy - 86, 44, 124, 10); g.roundRect(cx - 62, cy - 46, 124, 44, 10); g.fill(); text('Vet Visit', cx, cy + 82, 42, '#14507a'); }
+    } else if (t.k === 'zoom') { text('?', cx, cy - 22, 150, '#ff5d92', '#fff', 14); text(L('Zoomies!', 'Głupawka!'), cx, cy + 82, L(44, 38), '#b02a5c'); }
+    else if (t.k === 'vet') { g.fillStyle = '#e5543b'; g.beginPath(); g.roundRect(cx - 22, cy - 86, 44, 124, 10); g.roundRect(cx - 62, cy - 46, 124, 44, 10); g.fill(); text(L('Vet Visit', 'Weterynarz'), cx, cy + 82, L(42, 38), '#14507a'); }
     else if (t.k === 'bowl') { g.fillStyle = '#d9a066'; for (const [dx, dy] of [[-40, -44], [0, -62], [40, -44], [-20, -34], [22, -30]]) { g.beginPath(); g.arc(cx + dx, cy + dy, 24, 0, 7); g.fill(); }
       g.fillStyle = '#4db5ff'; g.beginPath(); g.moveTo(cx - 84, cy - 30); g.lineTo(cx + 84, cy - 30); g.lineTo(cx + 62, cy + 36); g.lineTo(cx - 62, cy + 36); g.closePath(); g.fill(); g.strokeStyle = INK; g.lineWidth = 6; g.stroke();
-      text('Treat Bowl', cx, cy + 82, 40, '#8a4a10'); }
-    else if (t.k === 'start') { text('Welcome', cx - 12, cy - 88, 44, '#2f6b2a'); text('Mat', cx - 12, cy - 46, 44, '#2f6b2a'); }
-    else if (t.k === 'bath') { text('Bath', cx + 30, cy - 88, 46, '#14507a'); text('Time', cx + 30, cy - 46, 46, '#14507a'); }
-    else if (t.k === 'lost') { text('Lost &', cx + 24, cy + 50, 46, '#8a5a10'); text('Found', cx + 24, cy + 92, 46, '#8a5a10'); }
-    else if (t.k === 'mud') { g.fillStyle = '#9a6a3c'; for (const [dx, dy, rr] of [[10, -30, 80], [-50, -60, 46], [68, -50, 52], [20, -84, 44]]) { g.beginPath(); g.ellipse(cx + dx, cy + dy, rr, rr * .7, 0, 0, 7); g.fill(); } text('Muddy', cx - 20, cy + 58, 42, '#5b3a1c', '#e9cfa6', 6); text('Puddle', cx - 20, cy + 98, 42, '#5b3a1c', '#e9cfa6', 6); }
+      text(L('Treat Bowl', 'Miska'), cx, cy + 82, 40, '#8a4a10'); }
+    else if (t.k === 'start') { text(L('Welcome', 'Wycieraczka'), cx - 12, cy - L(88, 68), L(44, 34), '#2f6b2a'); text(L('Mat', ''), cx - 12, cy - 46, 44, '#2f6b2a'); }
+    else if (t.k === 'bath') { text(L('Bath', 'Kąpiel'), cx + 30, cy - L(88, 68), 46, '#14507a'); text(L('Time', ''), cx + 30, cy - 46, 46, '#14507a'); }
+    else if (t.k === 'lost') { text(L('Lost &', 'Znalezione'), cx + 24, cy + L(50, 72), L(46, 36), '#8a5a10'); text(L('Found', ''), cx + 24, cy + 92, 46, '#8a5a10'); }
+    else if (t.k === 'mud') { g.fillStyle = '#9a6a3c'; for (const [dx, dy, rr] of [[10, -30, 80], [-50, -60, 46], [68, -50, 52], [20, -84, 44]]) { g.beginPath(); g.ellipse(cx + dx, cy + dy, rr, rr * .7, 0, 0, 7); g.fill(); } text(L('Muddy', 'Błotna'), cx - 20, cy + 58, 42, '#5b3a1c', '#e9cfa6', 6); text(L('Puddle', 'kałuża'), cx - 20, cy + 98, 42, '#5b3a1c', '#e9cfa6', 6); }
     g.restore();
     g.strokeStyle = INK; g.lineWidth = 7; g.beginPath(); g.roundRect(x + 7, y + 7, PX - 14, PX - 14, 30); g.stroke();
     // shop names sit on the lawn just inside the ring, where no pet or token stands on them

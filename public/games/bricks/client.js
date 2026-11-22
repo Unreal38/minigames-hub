@@ -2,6 +2,7 @@
 // about every brick you set down, and draws the HUD over the 3D wells: level, lines, name tags, touch pads, results.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -21,10 +22,10 @@ const I = {
   swap: SV('<path d="M7 7h12l-3-3M17 17H5l3 3"/>', 24),
   crown: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 18l-1-10 6 4 4-8 4 8 6-4-1 10z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></svg>',
 };
-const ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
+import { ord } from '../../i18n.js';
 const clock = ms => { const s = Math.max(0, ms) / 1000; return `${s / 60 | 0}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 const DAS = 150, ARR = 38; // hold a direction this long before it repeats, then this fast
-const CLEAR_WORDS = ['', '', 'Double!', 'Triple!', 'Sky high!'];
+const CLEAR_WORDS = ['', '', L('Double!', 'Podwójnie!'), L('Triple!', 'Potrójnie!'), L('Sky high!', 'Pod niebo!')];
 
 let cssLoaded = false;
 function loadCss() {
@@ -38,21 +39,21 @@ export function mount(app, ctx) {
   document.body.classList.add('in-game');
   const touch = matchMedia('(pointer: coarse)').matches;
   app.innerHTML = `<div class="sb${touch ? ' touch' : ''}">
-    <canvas class="g3d" aria-label="Your well of falling bricks. Arrow keys move, up turns, space drops, C sets a brick aside."></canvas>
+    <canvas class="g3d" aria-label="${L(`Your well of falling bricks. Arrow keys move, up turns, space drops, C sets a brick aside.`, `Twoja studnia ze spadającymi klockami. Strzałki przesuwają, strzałka w górę obraca, spacja zrzuca, C odkłada klocek.`)}"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl"><span class="chip" id="sb-lvl"></span><span class="chip" id="sb-lines"></span></div>
       <div class="tr"><span class="tcode" id="sb-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="sb-banner" aria-live="polite"></div>
       <div class="shout" id="sb-big" aria-live="assertive"></div>
       <div class="pads" id="sb-pads">
-        <div class="move"><button type="button" data-k="left" aria-label="Move left">${I.left}</button><button type="button" data-k="right" aria-label="Move right">${I.right}</button><button type="button" data-k="soft" class="sm" aria-label="Fall faster">${I.down}</button></div>
-        <div class="acts"><button type="button" data-k="hold" class="sm" aria-label="Set this brick aside">${I.swap}</button><button type="button" data-k="cw" aria-label="Turn the brick">${I.turn}</button><button type="button" data-k="drop" aria-label="Drop the brick">${I.drop}</button></div>
+        <div class="move"><button type="button" data-k="left" aria-label="${L(`Move left`, `W lewo`)}">${I.left}</button><button type="button" data-k="right" aria-label="${L(`Move right`, `W prawo`)}">${I.right}</button><button type="button" data-k="soft" class="sm" aria-label="${L(`Fall faster`, `Szybciej w dół`)}">${I.down}</button></div>
+        <div class="acts"><button type="button" data-k="hold" class="sm" aria-label="${L(`Set this brick aside`, `Odłóż ten klocek`)}">${I.swap}</button><button type="button" data-k="cw" aria-label="${L(`Turn the brick`, `Obróć klocek`)}">${I.turn}</button><button type="button" data-k="drop" aria-label="${L(`Drop the brick`, `Zrzuć klocek`)}">${I.drop}</button></div>
       </div>
-      <p class="keys" id="sb-keys">Move <b>← →</b> · turn <b>↑</b> or <b>Z X</b> · faster <b>↓</b> · drop <b>Space</b> · set aside <b>C</b></p>
+      <p class="keys" id="sb-keys">${L(`Move <b>← →</b> · turn <b>↑</b> or <b>Z X</b> · faster <b>↓</b> · drop <b>Space</b> · set aside <b>C</b>`, `Ruch <b>← →</b> · obrót <b>↑</b> albo <b>Z X</b> · szybciej <b>↓</b> · zrzut <b>Spacja</b> · odłóż <b>C</b>`)}</p>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
     <div class="results" hidden></div>
@@ -127,8 +128,8 @@ export function mount(app, ctx) {
     if (k) {
       scene?.cleared(S.me, res.rows);
       if (k >= 4) sfx.win(); else if (k >= 2) sfx.set(); else sfx.join();
-      const combo = st.combo >= 3 ? `${st.combo} in a row` : '';
-      if (res.clean) big('Clean sweep!', 'the whole well', 1400, 'k3'); else if (k >= 2) big(CLEAR_WORDS[Math.min(4, k)], combo, 1100, 'k' + Math.min(4, k)); else if (st.combo >= 3) big(`${st.combo} in a row!`, '', 900, 'k1');
+      const combo = st.combo >= 3 ? L(`${st.combo} in a row`, `${st.combo} z rzędu`) : '';
+      if (res.clean) big(L('Clean sweep!', 'Czysto!'), L('the whole well', 'cała studnia'), 1400, 'k3'); else if (k >= 2) big(CLEAR_WORDS[Math.min(4, k)], combo, 1100, 'k' + Math.min(4, k)); else if (st.combo >= 3) big(L(`${st.combo} in a row!`, `${st.combo} z rzędu!`), '', 900, 'k1');
     } else if (hard) sfx.place(); else sfx.plop();
     if (res.took) { sfx.bad(); root.classList.remove('bump'); void root.offsetWidth; root.classList.add('bump'); }
     flash = 0; newPiece(); renderMine();
@@ -176,7 +177,7 @@ export function mount(app, ctx) {
     const key = info.map(p => p.name + p.color).join('|') + focus;
     if (key === tagKey) return; tagKey = key;
     tagsEl.innerHTML = info.map(p => `<div class="sb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div>`).join('')
-      + `<div class="sb-lab" hidden>Set aside${touch ? '' : ' <kbd>C</kbd>'}</div><div class="sb-lab" hidden>Next</div>`;
+      + `<div class="sb-lab" hidden>${L(`Set aside${touch ? '' : ' <kbd>C</kbd>'}`, `Odłożony${touch ? '' : ' <kbd>C</kbd>'}`)}</div>${L(`<div class="sb-lab" hidden>Next</div>`, `<div class="sb-lab" hidden>Następny</div>`)}`;
     tagEls = [...tagsEl.querySelectorAll('.sb-tag')]; [labHold, labNext] = tagsEl.querySelectorAll('.sb-lab');
   }
   function renderTags() {
@@ -184,8 +185,8 @@ export function mount(app, ctx) {
       const el = tagEls[i]; if (!el) return;
       const x = S.x[i], dead = !!x[0];
       el.classList.toggle('out', dead); el.classList.toggle('hot', !dead && x[3] >= 4);
-      setHtml(el.querySelector('.cnt'), dead ? (x[4] ? ord(x[4]) : 'out') : String(x[1]));
-      setHtml(el.querySelector('b'), nameHtml(p.name, p.fl) + (p.bot && p.human ? ' (away)' : ''));
+      setHtml(el.querySelector('.cnt'), dead ? (x[4] ? ord(x[4]) : L('out', 'koniec')) : String(x[1]));
+      setHtml(el.querySelector('b'), nameHtml(p.name, p.fl) + (p.bot && p.human ? L(' (away)', ' (poza grą)') : ''));
     });
   }
 
@@ -193,12 +194,12 @@ export function mount(app, ctx) {
   function renderMine() {
     const i = focus, x = S.x[i]; if (!x) return;
     const lines = playing && st ? st.lines : x[1], sent = playing && st ? Math.max(st.sent, x[2]) : x[2];
-    setHtml($('sb-lines'), `Lines <b>${lines}</b> · sent <b>${sent}</b>`);
+    setHtml($('sb-lines'), L(`Lines <b>${lines}</b> · sent <b>${sent}</b>`, `Linie <b>${lines}</b> · wysłane <b>${sent}</b>`));
   }
   function renderClock() {
     if (!S) return;
     const t = now();
-    setHtml($('sb-lvl'), S.stage === 'count' ? 'Get ready' : `Level <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`);
+    setHtml($('sb-lvl'), S.stage === 'count' ? L('Get ready', 'Przygotuj się') : L(`Level <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`, `Poziom <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`));
     if (S.stage === 'count') {
       const n = Math.ceil(-t / 1000);
       if (n !== lastCount && n <= 3 && n > 0) { lastCount = n; sfx.warn(); big(String(n), '', 800); }
@@ -209,13 +210,13 @@ export function mount(app, ctx) {
     const el = $('sb-banner'); let msg = '', hot = false;
     const left = S.x.filter(x => !x[0]).length;
     if (S.ph !== 'play') msg = '';
-    else if (S.stage === 'count') msg = 'Last one standing wins';
-    else if (S.me >= 0 && S.x[S.me][0]) msg = `You are out · ${left} still stacking`;
-    else if (S.me < 0) msg = `Watching ${nameOf(focus)} · ${left} still stacking`;
-    else if (info[S.me]?.bot) msg = 'A bot is stacking for you';
-    else if (t > S.tide) { msg = 'The stone tide is rising!'; hot = true; }
-    else if (S.tide - t < 10000) { msg = `Stone tide in ${Math.ceil((S.tide - t) / 1000)}s`; hot = true; }
-    else if (playing && st && st.pend.length) { msg = `${st.pend.length} stone line${st.pend.length === 1 ? '' : 's'} coming. Clear rows to knock them back!`; hot = st.pend.length >= 4; }
+    else if (S.stage === 'count') msg = L('Last one standing wins', 'Wygrywa ostatnia osoba w grze');
+    else if (S.me >= 0 && S.x[S.me][0]) msg = L(`You are out · ${left} still stacking`, `Koniec gry dla ciebie · w grze zostało: ${left}`);
+    else if (S.me < 0) msg = L(`Watching ${nameOf(focus)} · ${left} still stacking`, `Oglądasz: ${nameOf(focus)} · w grze zostało: ${left}`);
+    else if (info[S.me]?.bot) msg = L('A bot is stacking for you', 'Bot układa za ciebie');
+    else if (t > S.tide) { msg = L('The stone tide is rising!', 'Kamienny przypływ się podnosi!'); hot = true; }
+    else if (S.tide - t < 10000) { msg = L(`Stone tide in ${Math.ceil((S.tide - t) / 1000)}s`, `Kamienny przypływ za ${Math.ceil((S.tide - t) / 1000)} s`); hot = true; }
+    else if (playing && st && st.pend.length) { msg = L(`${st.pend.length} stone line${st.pend.length === 1 ? '' : 's'} coming. Clear rows to knock them back!`, `Nadchodzą kamienne linie: ${st.pend.length}. Czyść rzędy, żeby je odbić!`); hot = st.pend.length >= 4; }
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', hot);
   }
@@ -236,23 +237,23 @@ export function mount(app, ctx) {
 
   function playEv(e) {
     const mine = e.s === S.me;
-    if (e.t === 'go') { big('Go!', '', 900); sfx.turn(); }
+    if (e.t === 'go') { big(L('Go!', 'Start!'), '', 900); sfx.turn(); }
     else if (e.t === 'clr') { if (!(mine && playing)) scene?.cleared(e.s, e.k); }
     else if (e.t === 'atk') {
       scene?.attack(e.s, e.to, e.k);
-      if (e.to === S.me && playing) { sfx.warn(); ctx.toast(`${nameOf(e.s)} sent you ${e.k} stone line${e.k === 1 ? '' : 's'}!`); }
+      if (e.to === S.me && playing) { sfx.warn(); ctx.toast(L(`${nameOf(e.s)} sent you ${e.k} stone line${e.k === 1 ? '' : 's'}!`, `${nameOf(e.s)} wysyła ci kamienne linie: ${e.k}!`)); }
       else if (mine && playing) sfx.pop();
     } else if (e.t === 'tide') {
       S.x.forEach((x, i) => { if (!x[0]) scene?.attack(-1, i, 1); });
-      if (!tideSaid) { tideSaid = true; big('Stone tide!', 'lines rise for everyone', 1600, 'k4'); }
+      if (!tideSaid) { tideSaid = true; big(L('Stone tide!', 'Kamienny przypływ!'), L('lines rise for everyone', 'linie rosną u wszystkich'), 1600, 'k4'); }
       sfx.warn();
     } else if (e.t === 'out') {
       scene?.out(e.s);
-      if (mine) { sfx.lose(); big('Out!', `${ord(e.place)} place`, 2200, 'k4'); }
-      else { sfx.plop(); ctx.toast(`${nameOf(e.s)} is out!`); }
+      if (mine) { sfx.lose(); big(L('Out!', 'Koniec!'), L(`${ord(e.place)} place`, `${ord(e.place)} miejsce`), 2200, 'k4'); }
+      else { sfx.plop(); ctx.toast(L(`${nameOf(e.s)} is out!`, `${nameOf(e.s)} odpada!`)); }
     } else if (e.t === 'end') {
       scene?.cheer(e.w);
-      if (e.w === S.me) { sfx.win(); big('You win!', 'last one standing', 2400, 'k3'); }
+      if (e.w === S.me) { sfx.win(); big(L('You win!', 'Wygrana!'), L('last one standing', 'ostatnia osoba w grze'), 2400, 'k3'); }
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 1900);
     }
   }
@@ -287,12 +288,12 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end' || !S.res || !info) return;
     const el = root.querySelector('.results'), R = S.res, w = S.win;
     el.innerHTML = `<div class="sheet">
-      <h2>${I.crown}${w === S.me ? 'You win!' : `${nameOf(w)} wins!`}</h2>
-      <p>Last one standing after ${clock(R.ms)}</p>
+      <h2>${I.crown}${w === S.me ? L('You win!', 'Wygrana!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${L(`Last one standing after ${clock(R.ms)}`, `Ostatnia osoba w grze po ${clock(R.ms)}`)}</p>
       <ol class="sb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-          <strong>${R.lines[i]} line${R.lines[i] === 1 ? '' : 's'}</strong><small>sent ${R.sent[i]}${R.time[i] ? ' · out at ' + clock(R.time[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+        return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          ${L(`<strong>${R.lines[i]} line${R.lines[i] === 1 ? '' : 's'}</strong><small>sent ${R.sent[i]}${R.time[i] ? ' · out at ' + clock(R.time[i]) : ''}</small>`, `<strong>${cnt(R.lines[i], 'line', 'lines', 'linia', 'linie', 'linii')}</strong><small>wysłane ${R.sent[i]}${R.time[i] ? ' · koniec po ' + clock(R.time[i]) : ''}</small>`)}${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) confetti();
   }
@@ -302,7 +303,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

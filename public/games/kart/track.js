@@ -1,3 +1,4 @@
+import { L } from '../../i18n.js';
 // Kart Island Race: the tracks and the kart physics. Shared by the server (bots, laps, items) and the browser
 // (your own kart is driven here, then reported to the server), so both sides agree on how a kart moves.
 //
@@ -17,19 +18,19 @@ export const SCALE = 1.65;    // the control points below are multiplied by this
 // Item boxes sit in rows across the road at these fractions of a lap; pads give a short boost.
 export const TRACKS = {
   meadow: {
-    name: 'Meadow Loop', blurb: 'Wide and friendly, with two bridges',
+    name: L('Meadow Loop', 'Łąkowa pętla'), blurb: L('Wide and friendly, with two bridges', 'Szeroka i przyjazna, z dwoma mostami'),
     pts: [[0, 0, 0], [34, -2, 0], [62, 6, 0, 'b'], [86, 22, .8], [96, 48, 1], [88, 74, 1, 'b'], [64, 88, .4], [36, 84, 0], [18, 66, 0], [-4, 62, 0, 'b'],
       [-34, 70, 1.4], [-58, 58, 1.6], [-64, 32, 1.2, 'b'], [-54, 10, .4], [-34, 1, 0], [-16, 0, 0]],
     boxes: [.12, .44, .74], pads: [.3, .62, .93], sky: 0,
   },
   bakery: {
-    name: 'Sugar Bridges', blurb: 'Long bridges, a climb and a hairpin',
+    name: L('Sugar Bridges', 'Cukrowe mosty'), blurb: L('Long bridges, a climb and a hairpin', 'Długie mosty, podjazd i ostry nawrót'),
     pts: [[0, 0, 2], [30, 0, 2], [56, -8, 2, 'b'], [84, -6, 5], [104, 12, 6], [104, 38, 6, 'b'], [80, 48, 4.5], [58, 38, 3.6], [40, 46, 3.2, 'b'],
       [30, 72, 1.6], [6, 86, 1], [-22, 80, 1, 'b'], [-46, 92, 1.6], [-70, 80, 2.4], [-74, 52, 3], [-58, 30, 3, 'b'], [-46, 6, 2.6], [-24, 0, 2]],
     boxes: [.1, .36, .58, .84], pads: [.24, .5, .72, .95], sky: 1,
   },
   peaks: {
-    name: 'Twisty Peaks', blurb: 'Tight turns round the mountain islands',
+    name: L('Twisty Peaks', 'Kręte szczyty'), blurb: L('Tight turns round the mountain islands', 'Ciasne zakręty wokół górskich wysp'),
     pts: [[20, 0, 0], [40, 4, .4], [54, 20, 1], [52, 38, 1.4, 'b'], [32, 50, 2.4], [16, 70, 3], [32, 92, 3.4], [58, 96, 3.8, 'b'], [84, 84, 4.2], [92, 58, 4.2],
       [112, 40, 3.6, 'b'], [116, 10, 2.6], [96, -16, 1.8], [64, -30, 1, 'b'], [30, -32, .6], [0, -40, .4], [-30, -34, .2], [-50, -16, 0, 'b'], [-42, 0, 0], [-20, 0, 0], [0, 0, 0]],
     boxes: [.08, .3, .55, .8], pads: [.2, .46, .68, .9], sky: 2,

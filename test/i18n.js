@@ -1,6 +1,6 @@
 // The two languages: the server's guess (Poland gets Polish), the saved pick on the account, and that the Polish
 // texts cover everything they should (every game, every table setting, every wardrobe item, the server's messages).
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -130,5 +130,19 @@ ok(farmSeen > 80, `only ${farmSeen} Pet Farm server messages were found`);
 ok(srvText('Mossy Woods opens at farmhouse level 2.') === 'Omszały Las otwiera się, gdy dom ma poziom 2.', 'zone names in server messages');
 ok(srvText('Passwords need 6 to 72 characters.') !== 'Passwords need 6 to 72 characters.', 'password rule');
 ok(srvText('🐾 Mystery Pet #12: solved in 3 guesses · 🔥 4 days in a row') === '🐾 Mystery Pet #12: 3 próby · 🔥 4 dni z rzędu', 'shared Mystery Pet line');
+// every game screen is translated: its client pulls in the language helpers, and the files it shares with the
+// server load in Polish too
+const gamesDir = new URL('../public/games/', import.meta.url);
+for (const id of fs.readdirSync(gamesDir)) {
+  const file = new URL(`${id}/client.js`, gamesDir);
+  if (!fs.existsSync(file)) continue;
+  ok(/from '\.\.\/\.\.\/i18n\.js'/.test(fs.readFileSync(file, 'utf8')), `public/games/${id}/client.js does not use i18n.js: its text would stay English`);
+}
+const plCheck = spawnSync(process.execPath, ['--input-type=module', '-e', `
+  const [paw, pips, kart, kitchen, poker] = await Promise.all(['paw/board.js', 'pips/rules.js', 'kart/track.js', 'kitchen/rules.js', 'poker/rules.js'].map(f => import(new URL(f, ${JSON.stringify(gamesDir.href)}).href)));
+  const out = [paw.TILES[0].name, paw.LV_NAMES[1], pips.LABEL.ch, kitchen.RECIPES.salad.name, poker.cardLabel(12), poker.HAND_ORDER[3][0]].join('|');
+  if (out !== 'Wycieraczka|Legowisko|Szansa|Sałatka ogrodowa|As kier|Ful') { console.error(out); process.exit(1); }
+`], { env: { ...process.env, CT_LANG: 'pl' }, encoding: 'utf8' });
+ok(plCheck.status === 0, 'shared game files in Polish: ' + (plCheck.stderr || '').slice(0, 300));
 console.log('i18n: all good');
 process.exit(0);

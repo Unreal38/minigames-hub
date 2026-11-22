@@ -1,6 +1,7 @@
 // Snakes & Ladders game view: HUD over the 3D board. Renders what the server says; sends rolls.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -15,10 +16,10 @@ const I = {
 const PIPS = { 1: [[2, 2]], 2: [[1, 1], [3, 3]], 3: [[1, 1], [2, 2], [3, 3]], 4: [[1, 1], [3, 1], [1, 3], [3, 3]], 5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]], 6: [[1, 1], [3, 1], [1, 2], [3, 2], [1, 3], [3, 3]] };
 const dieSvg = (v, s = 34) => `<svg class="die" viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="5" fill="#fff8ec" stroke="#3b2219" stroke-width="2.4"/>${(PIPS[v] || []).map(([x, y]) => `<circle cx="${x * 6}" cy="${y * 6}" r="${v === 1 ? 3 : 2.1}" fill="${v === 1 ? '#e5543b' : '#3b2219'}"/>`).join('')}</svg>`;
 const SP = {
-  boost: ['Zoom!', y => `hop${y ? '' : 's'} 3 more tiles`],
-  again: ['Roll again!', y => `get${y ? '' : 's'} a bonus roll`],
-  swap: ['Switcheroo!', () => ''],
-  nap: ['Nap time', y => `snooze${y ? '' : 's'} through the next turn`],
+  boost: [L('Zoom!', 'Wiuu!'), y => L(`hop${y ? '' : 's'} 3 more tiles`, y ? 'Skaczesz 3 pola dalej' : 'skacze 3 pola dalej')],
+  again: [L('Roll again!', 'Jeszcze raz!'), y => L(`get${y ? '' : 's'} a bonus roll`, y ? 'Masz dodatkowy rzut' : 'ma dodatkowy rzut')],
+  swap: [L('Switcheroo!', 'Zamiana!'), () => ''],
+  nap: [L('Nap time', 'Drzemka'), y => L(`snooze${y ? '' : 's'} through the next turn`, y ? 'Przesypiasz następną kolejkę' : 'przesypia następną kolejkę')],
 };
 const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 
@@ -38,12 +39,12 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="sl-round"></span></div>
       <div class="tr"><span class="tcode" id="sl-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="sl-banner" aria-live="polite"></div>
       <div class="shout" id="sl-big" aria-live="assertive"></div>
-      <ol class="list" id="sl-list" aria-label="Players"></ol>
+      <ol class="list" id="sl-list" aria-label="${L(`Players`, `Gracze`)}"></ol>
       <div class="rollbar" id="sl-roll"></div>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -63,7 +64,8 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
+  const yo = (i, you, they) => (i === S.me ? you : `${nameOf(i)} ${they}`); // Polish: "you" and "they" verb forms
   const myTurn = () => S && S.ph === 'play' && S.stage === 'roll' && S.turn === S.me && me() && !me().bot;
 
   function sync() {
@@ -101,14 +103,14 @@ export function mount(app, ctx) {
     const who = youOr(c.s);
     if (c.k === 'die') { sfx.draw(); }
     else if (c.k === 'hop') sfx.pop();
-    else if (c.k === 'ladder') { sfx.set(); big('Ladder!', `${who} climb${c.s === S.me ? '' : 's'} up to ${c.b}`, 1500); }
-    else if (c.k === 'snake' && c.up) { sfx.set(); big('Snake ride!', `${who} ride${c.s === S.me ? '' : 's'} up to ${c.b}`, 1500); }
-    else if (c.k === 'snake') { sfx.bad(); sfx.lose(); big('Snake!', `${who} slide${c.s === S.me ? '' : 's'} down to ${c.b}`, 1600); }
-    else if (c.k === 'broken') { sfx.bad(); big('Broken ladder!', `${who} only get${c.s === S.me ? '' : 's'} halfway, to ${c.b}`, 1600); }
-    else if (c.k === 'crack') { sfx.plop(); big('Crack!', 'That ladder just broke', 1300); }
-    else if (c.k === 'stuck') { sfx.lose(); big('Stuck!', `${who} skip${c.s === S.me ? '' : 's'} the next turn`, 1300); }
-    else if (c.k === 'special') { sfx.turn(); const t = SP[c.sp][1](c.s === S.me); big(SP[c.sp][0], t && `${who} ${t}`, 1300); }
-    else if (c.k === 'swap') { sfx.plop(); big('Switcheroo!', `${who} and ${youOr(c.other)} trade places`, 1500); }
+    else if (c.k === 'ladder') { sfx.set(); big(L('Ladder!', 'Drabina!'), L(`${who} climb${c.s === S.me ? '' : 's'} up to ${c.b}`, yo(c.s, `Wspinasz się na pole ${c.b}`, `wspina się na pole ${c.b}`)), 1500); }
+    else if (c.k === 'snake' && c.up) { sfx.set(); big(L('Snake ride!', 'Przejażdżka na wężu!'), L(`${who} ride${c.s === S.me ? '' : 's'} up to ${c.b}`, yo(c.s, `Jedziesz w górę na pole ${c.b}`, `jedzie w górę na pole ${c.b}`)), 1500); }
+    else if (c.k === 'snake') { sfx.bad(); sfx.lose(); big(L('Snake!', 'Wąż!'), L(`${who} slide${c.s === S.me ? '' : 's'} down to ${c.b}`, yo(c.s, `Zjeżdżasz na pole ${c.b}`, `zjeżdża na pole ${c.b}`)), 1600); }
+    else if (c.k === 'broken') { sfx.bad(); big(L('Broken ladder!', 'Złamana drabina!'), L(`${who} only get${c.s === S.me ? '' : 's'} halfway, to ${c.b}`, yo(c.s, `Docierasz tylko do połowy, na pole ${c.b}`, `dociera tylko do połowy, na pole ${c.b}`)), 1600); }
+    else if (c.k === 'crack') { sfx.plop(); big(L('Crack!', 'Trach!'), L('That ladder just broke', 'Ta drabina właśnie pękła'), 1300); }
+    else if (c.k === 'stuck') { sfx.lose(); big(L('Stuck!', 'Pułapka!'), L(`${who} skip${c.s === S.me ? '' : 's'} the next turn`, yo(c.s, 'Tracisz następną kolejkę', 'traci następną kolejkę')), 1300); }
+    else if (c.k === 'special') { sfx.turn(); const t = SP[c.sp][1](c.s === S.me); big(SP[c.sp][0], t && L(`${who} ${t}`, c.s === S.me ? t : `${who} ${t}`), 1300); }
+    else if (c.k === 'swap') { sfx.plop(); big(L('Switcheroo!', 'Zamiana!'), L(`${who} and ${youOr(c.other)} trade places`, `${who} i ${youOr(c.other)}: zamiana miejsc`), 1500); }
   }
 
   // ----- rendering -----
@@ -120,8 +122,8 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i);
     setHtml(el, ord.map(i => {
       const p = S.seats[i], now = i === S.turn && S.ph === 'play';
-      const where = moving(i) ? '…' : p.pos >= N ? '🏁' : p.pos ? `tile ${p.pos}` : 'start';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b>${p.nap ? '<em title="napping">Zz</em>' : ''}<span>${where}</span></li>`;
+      const where = moving(i) ? '…' : p.pos >= N ? '🏁' : p.pos ? L(`tile ${p.pos}`, `pole ${p.pos}`) : 'start';
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b>${p.nap ? '<em title="' + L('napping', 'drzemie') + '">Zz</em>' : ''}<span>${where}</span></li>`;
     }).join(''));
   }
 
@@ -130,12 +132,12 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'play') { setHtml(el, ''); el.hidden = true; return; }
     el.hidden = false;
     if (myTurn()) {
-      setHtml(el, `<button type="button" class="btn big r rollbtn" data-a="roll">${dieSvg(5, 36)}Roll the die</button>`);
+      setHtml(el, `<button type="button" class="btn big r rollbtn" data-a="roll">${dieSvg(5, 36)}${L('Roll the die', 'Rzuć kostką')}</button>`);
     } else if (S.stage === 'move' || busy) {
-      setHtml(el, `<span class="rolled">${dieSvg(S.move?.die || 1, 30)}<span>${youOr(S.move?.s)} rolled a <b>${S.move?.die}</b></span></span>`);
+      setHtml(el, `<span class="rolled">${dieSvg(S.move?.die || 1, 30)}<span>${L(`${youOr(S.move?.s)} rolled a <b>${S.move?.die}</b>`, yo(S.move?.s, `Wyrzucasz <b>${S.move?.die}</b>`, `wyrzuca <b>${S.move?.die}</b>`))}</span></span>`);
     } else {
       const p = S.seats[S.turn];
-      setHtml(el, `<span class="rolled">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? 'A bot is rolling for you' : `${nameOf(S.turn)} is rolling…`}</span></span>`);
+      setHtml(el, `<span class="rolled">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? L('A bot is rolling for you', 'Bot rzuca za ciebie') : L(`${nameOf(S.turn)} is rolling…`, `${nameOf(S.turn)} rzuca…`)}</span></span>`);
     }
   }
 
@@ -143,17 +145,17 @@ export function mount(app, ctx) {
     const el = $('sl-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
-    if (S.ph === 'end') msg = S.win >= 0 ? `${youOr(S.win)} win${S.win === S.me ? '' : 's'}!` : '';
-    else if (S.stage === 'move' || busy) msg = S.move ? `${youOr(S.move.s)} rolled a ${S.move.die}${S.move.die === 6 && S.seats[S.move.s].pos < S.board.size ? ' · roll again!' : ''}` : '';
-    else if (myTurn()) msg = S.left >= 0 ? `Your turn · ${secs}s` : 'Your turn!';
-    else msg = `${nameOf(S.turn)}'s turn`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${youOr(S.win)} win${S.win === S.me ? '' : 's'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (S.stage === 'move' || busy) msg = S.move ? L(`${youOr(S.move.s)} rolled a ${S.move.die}`, yo(S.move.s, `Wyrzucasz ${S.move.die}`, `wyrzuca ${S.move.die}`)) + (S.move.die === 6 && S.seats[S.move.s].pos < S.board.size ? L(' · roll again!', ' · jeszcze jeden rzut!') : '') : '';
+    else if (myTurn()) msg = S.left >= 0 ? L(`Your turn · ${secs}s`, `Twoja kolej · ${secs} s`) : L('Your turn!', 'Twoja kolej!');
+    else msg = L(`${nameOf(S.turn)}'s turn`, `Kolej: ${nameOf(S.turn)}`);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', myTurn());
   }
 
   function render() {
     if (!S) return;
-    $('sl-round').textContent = `${S.hard ? 'Hard · ' : ''}Round ${S.round} · first to ${S.board.size}`;
+    $('sl-round').textContent = L(`${S.hard ? 'Hard · ' : ''}Round ${S.round} · first to ${S.board.size}`, `${S.hard ? 'Trudny · ' : ''}Runda ${S.round} · meta na polu ${S.board.size}`);
     $('sl-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderRoll(); renderBanner();
   }
@@ -166,12 +168,12 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'again' && e.s === S.me && S.seats[S.me].pos < S.board.size) { ctx.toast('Bonus roll! Go again.'); sfx.turn(); }
-    else if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Your token, your rolls!' : `${esc(nameOf(e.s))} took over a bot`); }
-    else if (e.t === 'nap') ctx.toast(`Zz… ${e.s === S.me ? 'you nap' : nameOf(e.s) + ' naps'} through a turn`);
+    if (e.t === 'again' && e.s === S.me && S.seats[S.me].pos < S.board.size) { ctx.toast(L('Bonus roll! Go again.', 'Dodatkowy rzut! Rzucaj jeszcze raz.')); sfx.turn(); }
+    else if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Your token, your rolls!', 'Przejmujesz miejsce bota. Twój pionek, twoje rzuty!') : L(`${esc(nameOf(e.s))} took over a bot`, `${esc(nameOf(e.s))} przejmuje miejsce bota`)); }
+    else if (e.t === 'nap') ctx.toast(L(`Zz… ${e.s === S.me ? 'you nap' : nameOf(e.s) + ' naps'} through a turn`, `Zz… ${e.s === S.me ? 'przesypiasz kolejkę' : nameOf(e.s) + ' przesypia kolejkę'}`));
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); } else sfx.lose();
-      big(`${youOr(e.w)} win${e.w === S.me ? '' : 's'}!`, `first to tile ${S.board.size}`, 2000);
+      big(L(`${youOr(e.w)} win${e.w === S.me ? '' : 's'}!`, e.w === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(e.w)}!`), L(`first to tile ${S.board.size}`, `meta na polu ${S.board.size}`), 2000);
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2200);
     }
   }
@@ -198,15 +200,15 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results'), w = S.win, N = S.board.size;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'You reached the top!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'First to the star. ' : `You came ${ORD(myPlace)}. `) : ''}That took ${S.res.rounds} round${S.res.rounds === 1 ? '' : 's'}.</p>
+      <h2>${w === S.me ? L('You reached the top!', 'Jesteś na szczycie!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${myPlace ? (myPlace === 1 ? L('First to the star. ', 'Pierwsze miejsce przy gwieździe. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('That took', 'Gra trwała')} ${cnt(S.res.rounds, 'round', 'rounds', 'rundę', 'rundy', 'rund')}.</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.ladders} ladder${st.ladders === 1 ? '' : 's'} · ${st.snakes} snake${st.snakes === 1 ? '' : 's'} · ${st.sixes} six${st.sixes === 1 ? '' : 'es'}</span></div>
-          <strong>${p.pos >= N ? '🏁' : p.pos}<small>${p.pos >= N ? 'home' : 'tile'}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${cnt(st.ladders, 'ladder', 'ladders', 'drabina', 'drabiny', 'drabin')} · ${cnt(st.snakes, 'snake', 'snakes', 'wąż', 'węże', 'węży')} · ${cnt(st.sixes, 'six', 'sixes', 'szóstka', 'szóstki', 'szóstek')}</span></div>
+          <strong>${p.pos >= N ? '🏁' : p.pos}<small>${p.pos >= N ? L('home', 'meta') : L('tile', 'pole')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -215,7 +217,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

@@ -2,6 +2,7 @@
 // Your own hand is the only one this page ever receives.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -21,6 +22,10 @@ const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 
 const rankWord = (r, many) => { const w = RANK_NAMES[r].toLowerCase(); return many ? (w === 'six' ? 'sixes' : w + 's') : w; };
 const aRank = r => (r === 12 ? 'an ' : 'a ') + rankWord(r); // "an ace", "a nine"
 const orHigher = r => (r === 12 ? 'an ace' : aRank(r) + ' or higher');
+// Polish rank words, nine to ace: [plural, "tap a ...", "beats a ..."]
+const RANK_PL = [['dziewiątki', 'dziewiątkę', 'dziewiątki'], ['dziesiątki', 'dziesiątkę', 'dziesiątki'], ['walety', 'waleta', 'waleta'], ['damy', 'damę', 'damy'], ['króle', 'króla', 'króla'], ['asy', 'asa', 'asa']];
+const rankPl = (r, f) => RANK_PL[r - 7]?.[f] || rankWord(r, !f);
+const orHigherPl = r => (r === 12 ? 'asa' : rankPl(r, 1) + ' albo wyższej karty');
 
 let cssLoaded = false;
 function loadCss() {
@@ -37,9 +42,9 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="pn-info"></span></div>
       <div class="tr"><span class="tcode" id="pn-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="pn-banner" aria-live="polite"></div>
       <div class="pn-top" id="pn-top" hidden></div>
       <div class="shout" id="pn-big" aria-live="assertive"></div>
@@ -86,12 +91,12 @@ export function mount(app, ctx) {
       tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
-    const L = S.ph === 'play' && S.stage === 'play' ? S.last : null;
+    const last = S.ph === 'play' && S.stage === 'play' ? S.last : null;
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn && S.stage === 'play'); el.classList.toggle('safe', !!p.out);
-      setHtml(el.querySelector('.plate .cnt'), p.out ? `${ORD(p.out)} out` : `${I.cards}${p.n}`);
-      setHtml(el.firstElementChild, L && L.s === i ? (L.t === 'play' ? `<span class="top">${mini(L.cards)}${L.back ? '<u>↩</u>' : ''}</span>` : `<span class="took">took ${L.cards.length}</span>`) : '');
+      setHtml(el.querySelector('.plate .cnt'), p.out ? L(`${ORD(p.out)} out`, `${p.out}. bez kart`) : `${I.cards}${p.n}`);
+      setHtml(el.firstElementChild, last && last.s === i ? (last.t === 'play' ? `<span class="top">${mini(last.cards)}${last.back ? '<u>↩</u>' : ''}</span>` : `<span class="took">${L('took', 'bierze')} ${last.cards.length}</span>`) : '');
     });
     for (const el of tagEls) el._w = el.offsetWidth;
   }
@@ -108,7 +113,7 @@ export function mount(app, ctx) {
     const p = me(), hand = $('pn-hand'), ctl = $('pn-ctl');
     if (!S || S.ph !== 'play' || !p) { setHtml(hand, ''); setHtml(ctl, ''); layout(); return; }
     const turn = myTurn(), busy = Date.now() - sent < 1200, mine = p.hand || [];
-    if (p.out) { setHtml(hand, ''); setHtml(ctl, `<span class="pn-wait safe"><span>You are out of cards, so you are safe. ${ORD(p.out)} place!</span></span>`); layout(); return; }
+    if (p.out) { setHtml(hand, ''); setHtml(ctl, `<span class="pn-wait safe"><span>${L(`You are out of cards, so you are safe. ${ORD(p.out)} place!`, `Nie masz już kart, więc nic ci nie grozi. ${p.out}. miejsce!`)}</span></span>`); layout(); return; }
     const n = mine.length, wide = innerWidth >= 700, cw = wide ? 74 : 54, rows = !wide && n > 8 ? 2 : 1, per = Math.ceil(n / rows);
     const room = Math.min(innerWidth - (wide ? 60 : 28), 980), gap = per > 1 ? Math.min(6, (room - per * cw) / (per - 1)) : 0;
     if (!turn || busy) pick = -1;
@@ -118,23 +123,23 @@ export function mount(app, ctx) {
     const btn = (c, k) => `<button type="button" class="pn-card${can(c) ? ' ok' : ''}${picked(c) ? ' sel' : ''}${k % per === 0 ? ' first' : ''}" data-a="card" data-c="${c}"${can(c) ? '' : ' aria-disabled="true"'}>${cardHtml(c, { cls: 'big' })}</button>`;
     setHtml(hand, Array.from({ length: rows }, (_, r) => `<div class="pn-rowc">${mine.slice(r * per, (r + 1) * per).map((c, k) => btn(c, k)).join('')}</div>`).join(''));
     hand.classList.toggle('two', rows === 2); hand.classList.toggle('turn', turn && !busy);
-    if (dealing() || S.stage === 'deal') setHtml(ctl, `<span class="pn-wait"><span>Dealing the cards…</span></span>`);
+    if (dealing() || S.stage === 'deal') setHtml(ctl, `<span class="pn-wait"><span>${L(`Dealing the cards…`, `Rozdawanie kart…`)}</span></span>`);
     else if (turn && !busy) {
       const k = drawCount(S.pile), sets = plays(mine, S.pile).filter(cs => cs.length > 1), t = S.pile.length ? rankOf(top(S.pile)) : -1;
       const stuck = t >= 0 ? mine.filter(c => rankOf(c) < t).length : 0;
       let hint = '';
-      if (sets.some(cs => rankOf(cs[0]) === pick)) hint = `Press the button to play all the ${rankWord(pick, true)} together, or tap one of them again to play only that card.`;
-      else if (!S.pile.length) hint = 'You hold the nine of hearts, so you start with it.';
-      else if (!plays(mine, S.pile).length) hint = `Nothing you hold beats ${aRank(t)}. Pick up ${k === 1 ? 'the top card' : 'the top ' + k}.`;
-      else if (stuck) hint = `Tap ${orHigher(t)} to play it. Your lower card${stuck === 1 ? '' : 's'} can only go once the pile is picked back down.`;
-      else hint = t === 7 ? 'Tap any card to play it.' : `Tap ${orHigher(t)} to play it.`;
+      if (sets.some(cs => rankOf(cs[0]) === pick)) hint = L(`Press the button to play all the ${rankWord(pick, true)} together, or tap one of them again to play only that card.`, `Naciśnij przycisk, żeby położyć wszystkie ${rankPl(pick, 0)} razem, albo dotknij jeszcze raz jednej z tych kart, żeby położyć tylko ją.`);
+      else if (!S.pile.length) hint = L('You hold the nine of hearts, so you start with it.', 'Masz dziewiątkę kier, więc zaczynasz od niej.');
+      else if (!plays(mine, S.pile).length) hint = L(`Nothing you hold beats ${aRank(t)}. Pick up ${k === 1 ? 'the top card' : 'the top ' + k}.`, `Żadna twoja karta nie przebija ${rankPl(t, 2)}. Weź ${k === 1 ? 'wierzchnią kartę' : 'wierzchnie karty (' + k + ')'}.`);
+      else if (stuck) hint = L(`Tap ${orHigher(t)} to play it. Your lower card${stuck === 1 ? '' : 's'} can only go once the pile is picked back down.`, `Dotknij ${orHigherPl(t)}, żeby zagrać. Niższe karty położysz dopiero wtedy, gdy ktoś zbierze karty ze stosu.`);
+      else hint = t === 7 ? L('Tap any card to play it.', 'Dotknij dowolnej karty, żeby zagrać.') : L(`Tap ${orHigher(t)} to play it.`, `Dotknij ${orHigherPl(t)}, żeby zagrać.`);
       setHtml(ctl, `<div class="pn-go">
-          ${sets.map((cs, j) => `<button type="button" class="btn big m${rankOf(cs[0]) === pick ? ' pn-pulse' : ''}" data-a="set" data-j="${j}">Play ${cs.length === 4 ? 'all four' : 'three'} ${rankWord(rankOf(cs[0]), true)}</button>`).join('')}
-          ${S.pile.length ? `<button type="button" class="btn big r" data-a="draw"${k ? '' : ' disabled'}>${k ? `Take ${k} ${mini(S.pile.slice(-k))}` : 'Nothing to take'}</button>` : ''}
+          ${sets.map((cs, j) => `<button type="button" class="btn big m${rankOf(cs[0]) === pick ? ' pn-pulse' : ''}" data-a="set" data-j="${j}">${L(`Play ${cs.length === 4 ? 'all four' : 'three'} ${rankWord(rankOf(cs[0]), true)}`, `Połóż ${cs.length === 4 ? 'cztery' : 'trzy'} ${rankPl(rankOf(cs[0]), 0)}`)}</button>`).join('')}
+          ${S.pile.length ? `<button type="button" class="btn big r" data-a="draw"${k ? '' : ' disabled'}>${k ? `${L('Take', 'Weź')} ${k} ${mini(S.pile.slice(-k))}` : L('Nothing to take', 'Nie ma czego brać')}</button>` : ''}
         </div><p class="pn-hint">${hint}</p>`);
     } else if (S.stage === 'play' && S.turn >= 0) {
       const t = S.seats[S.turn];
-      setHtml(ctl, `<span class="pn-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p.bot ? 'A bot is playing for you' : 'Sent…') : `${nameOf(S.turn)} is thinking…`}</span></span>`);
+      setHtml(ctl, `<span class="pn-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p.bot ? L('A bot is playing for you', 'Bot gra za ciebie') : L('Sent…', 'Wysłano…')) : L(`${nameOf(S.turn)} is thinking…`, `${nameOf(S.turn)} myśli…`)}</span></span>`);
     } else setHtml(ctl, '');
     layout();
   }
@@ -143,10 +148,10 @@ export function mount(app, ctx) {
     const el = $('pn-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs}s` : '';
-    if (S.ph === 'end') msg = S.pan >= 0 ? `${S.pan === S.me ? 'You are' : nameOf(S.pan) + ' is'} the Pan!` : '';
-    else if (S.stage === 'deal') msg = innerWidth < 700 ? `${S.turn === S.me ? 'You start' : nameOf(S.turn) + ' starts'}` : `Dealing · ${S.turn === S.me ? 'you have' : nameOf(S.turn) + ' has'} the nine of hearts and ${S.turn === S.me ? 'start' : 'starts'}`;
-    else if (myTurn()) msg = (innerWidth < 700 ? 'Your turn' : S.last?.back && S.last.s !== S.me ? `${nameOf(S.last.s)}’s spade sends it back to you` : S.pile.length ? 'Your turn · play a card or pick up' : 'Your turn · start with the nine of hearts') + t;
-    else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn` + (S.last?.back && innerWidth >= 700 ? ' · a spade sent it backwards' : '');
+    if (S.ph === 'end') msg = S.pan >= 0 ? L(`${S.pan === S.me ? 'You are' : nameOf(S.pan) + ' is'} the Pan!`, S.pan === S.me ? 'Zostajesz Panem!' : `${nameOf(S.pan)} zostaje Panem!`) : '';
+    else if (S.stage === 'deal') msg = innerWidth < 700 ? L(`${S.turn === S.me ? 'You start' : nameOf(S.turn) + ' starts'}`, S.turn === S.me ? 'Zaczynasz' : `Zaczyna ${nameOf(S.turn)}`) : L(`Dealing · ${S.turn === S.me ? 'you have' : nameOf(S.turn) + ' has'} the nine of hearts and ${S.turn === S.me ? 'start' : 'starts'}`, `Rozdawanie · ${S.turn === S.me ? 'masz dziewiątkę kier i zaczynasz' : nameOf(S.turn) + ' ma dziewiątkę kier i zaczyna'}`);
+    else if (myTurn()) msg = (innerWidth < 700 ? L('Your turn', 'Twoja kolej') : S.last?.back && S.last.s !== S.me ? L(`${nameOf(S.last.s)}’s spade sends it back to you`, `Pik gracza ${nameOf(S.last.s)} cofa kolejkę do ciebie`) : S.pile.length ? L('Your turn · play a card or pick up', 'Twoja kolej · połóż kartę albo weź ze stosu') : L('Your turn · start with the nine of hearts', 'Twoja kolej · zacznij od dziewiątki kier')) + t;
+    else if (S.turn >= 0) msg = L(`${nameOf(S.turn)}’s turn`, `Kolej: ${nameOf(S.turn)}`) + (S.last?.back && innerWidth >= 700 ? L(' · a spade sent it backwards', ' · pik cofnął kolejkę') : '');
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());
   }
@@ -155,13 +160,13 @@ export function mount(app, ctx) {
   function renderTop() {
     const el = $('pn-top'), show = S.ph === 'play' && S.stage === 'play' && S.pile.length > 0;
     el.hidden = !show; if (!show) return;
-    setHtml(el, `<span>${S.pile.length} in the pile</span><b>beat ${cardHtml(top(S.pile), { cls: 'xs' })}</b>`);
+    setHtml(el, `<span>${L(`${S.pile.length} in the pile`, `na stosie: ${S.pile.length}`)}</span><b>${L('beat', 'przebij')} ${cardHtml(top(S.pile), { cls: 'xs' })}</b>`);
   }
 
   function render() {
     if (!S) return;
     const left = S.seats.filter(p => !p.out).length;
-    $('pn-info').textContent = S.ph === 'end' ? `${S.res?.moves || S.mv} moves played` : `${left} still holding cards`;
+    $('pn-info').textContent = S.ph === 'end' ? L(`${S.res?.moves || S.mv} moves played`, `ruchów: ${S.res?.moves || S.mv}`) : L(`${left} still holding cards`, `z kartami: ${left}`);
     $('pn-code').textContent = Rm?.code || '';
     buildTags(); renderDock(); renderBanner(); renderTop();
   }
@@ -176,14 +181,14 @@ export function mount(app, ctx) {
   function playEv(e) {
     if (e.t === 'play') {
       e.s === S.me ? sfx.place() : sfx.pop();
-      if (e.cards.length > 1) { sfx.set(); big(`${e.cards.length === 4 ? 'Four' : 'Three'} ${rankWord(rankOf(e.cards[e.cards.length - 1]), true)}!`, `${e.s === S.me ? 'You put' : nameOf(e.s) + ' puts'} them all down at once`, 1600); }
+      if (e.cards.length > 1) { sfx.set(); big(L(`${e.cards.length === 4 ? 'Four' : 'Three'} ${rankWord(rankOf(e.cards[e.cards.length - 1]), true)}!`, `${e.cards.length === 4 ? 'Cztery' : 'Trzy'} ${rankPl(rankOf(e.cards[e.cards.length - 1]), 0)}!`), L(`${e.s === S.me ? 'You put' : nameOf(e.s) + ' puts'} them all down at once`, e.s === S.me ? 'Kładziesz wszystkie naraz' : `${nameOf(e.s)} kładzie wszystkie naraz`), 1600); }
     } else if (e.t === 'draw') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 140); floatAt(e.s, '+' + e.k); if (e.s === S.me) sfx.plop(); }
     else if (e.t === 'out') {
-      if (e.s === S.me) { sfx.win(); confetti(); big('Safe!', e.place === 1 ? 'First one out of cards' : `You are out of cards, ${ORD(e.place)} place`, 2200); }
-      else { sfx.set(); ctx.toast(`${nameOf(e.s)} is out of cards and safe`); }
+      if (e.s === S.me) { sfx.win(); confetti(); big(L('Safe!', 'Bezpiecznie!'), e.place === 1 ? L('First one out of cards', 'Pierwsze miejsce, zero kart') : L(`You are out of cards, ${ORD(e.place)} place`, `Nie masz już kart, ${e.place}. miejsce`), 2200); }
+      else { sfx.set(); ctx.toast(L(`${nameOf(e.s)} is out of cards and safe`, `${nameOf(e.s)} nie ma już kart`)); }
     } else if (e.t === 'end') {
       if (e.pan === S.me) sfx.lose();
-      big(e.pan === S.me ? 'You are the Pan!' : `${nameOf(e.pan)} is the Pan!`, S.res?.called ? 'Nobody would pick the pile back up, so the most cards loses' : 'Last one left holding cards', 2200);
+      big(e.pan === S.me ? L('You are the Pan!', 'Zostajesz Panem!') : L(`${nameOf(e.pan)} is the Pan!`, `${nameOf(e.pan)} zostaje Panem!`), S.res?.called ? L('Nobody would pick the pile back up, so the most cards loses', 'Nikt nie chciał zebrać stosu, więc przegrywa ten, kto ma najwięcej kart') : L('Last one left holding cards', 'Ostatni gracz z kartami'), 2200);
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2400);
     }
   }
@@ -213,19 +218,19 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end' || !S.res) return;
     const el = root.querySelector('.results'), n = S.seats.length;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
-    const head = S.pan === S.me ? 'You are the Pan!' : myPlace === 1 ? 'First one out!' : `${nameOf(S.pan)} is the Pan!`;
-    const sub = S.res.called ? 'Nobody would pick the pile back up, so the table was called: fewest cards left does best.'
-      : S.pan === S.me ? 'Everyone else got rid of their cards. Better luck next deal.' : myPlace ? `You got out ${ORD(myPlace)} of ${n}.` : '';
+    const head = S.pan === S.me ? L('You are the Pan!', 'Zostajesz Panem!') : myPlace === 1 ? L('First one out!', 'Pierwsze miejsce!') : L(`${nameOf(S.pan)} is the Pan!`, `${nameOf(S.pan)} zostaje Panem!`);
+    const sub = S.res.called ? L('Nobody would pick the pile back up, so the table was called: fewest cards left does best.', 'Nikt nie chciał zebrać stosu, więc gra została przerwana: im mniej kart, tym lepiej.')
+      : S.pan === S.me ? L('Everyone else got rid of their cards. Better luck next deal.', 'Wszyscy inni pozbyli się kart. Powodzenia w następnym rozdaniu.') : myPlace ? L(`You got out ${ORD(myPlace)} of ${n}.`, `Twoje miejsce: ${myPlace} z ${n}.`) : '';
     el.innerHTML = `<div class="sheet">
       <h2>${head}</h2>
-      <p>${sub} ${S.res.moves} moves in all.</p>
+      <p>${sub} ${L(`${S.res.moves} moves in all.`, `Łącznie ruchów: ${S.res.moves}.`)}</p>
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, pan = i === S.pan;
         return `<li class="${k === 0 ? 'won' : ''}${pan ? ' pan' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.played} card${st.played === 1 ? '' : 's'} played · ${st.drawn} picked up</span></div>
-          <strong><span>${pan ? 'Pan' : p.out ? 'Safe' : ''}</span><small>${S.res.left[i] ? `${S.res.left[i]} card${S.res.left[i] === 1 ? '' : 's'} left` : 'out of cards'}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.played} card${st.played === 1 ? '' : 's'} played · ${st.drawn} picked up`, `położone karty: ${st.played} · wzięte: ${st.drawn}`)}</span></div>
+          <strong><span>${pan ? 'Pan' : p.out ? L('Safe', 'Bezpiecznie') : ''}</span><small>${S.res.left[i] ? L(`${S.res.left[i]} card${S.res.left[i] === 1 ? '' : 's'} left`, `zostało kart: ${S.res.left[i]}`) : L('out of cards', 'bez kart')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Deal again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Deal again', 'Rozdaj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -234,7 +239,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Deal again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Deal again', 'Rozdaj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

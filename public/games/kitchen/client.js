@@ -1,6 +1,7 @@
 // Cozy Kitchen Rush game view: HUD and controls over the 3D kitchen. Your own avatar moves on your screen
 // straight away and tells the server where it is; grabbing, chopping and serving go through the server.
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -38,18 +39,18 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="kr-info"></span></div>
       <div class="tr"><span class="tcode" id="kr-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="clock" id="kr-clock" aria-live="off"></div>
-      <ol class="orders" id="kr-orders" aria-label="Orders"></ol>
-      <ol class="list" id="kr-list" aria-label="Cooks"></ol>
+      <ol class="orders" id="kr-orders" aria-label="${L(`Orders`, `Zamówienia`)}"></ol>
+      <ol class="list" id="kr-list" aria-label="${L(`Cooks`, `Kucharze`)}"></ol>
       <div class="shout" id="kr-big" aria-live="assertive"></div>
-      <div class="keys" id="kr-keys"><b>WASD</b> or arrows to walk · <b>Space</b> grab / put down · <b>E</b> chop</div>
+      <div class="keys" id="kr-keys">${L(`<b>WASD</b> or arrows to walk · <b>Space</b> grab / put down · <b>E</b> chop`, `<b>WASD</b> lub strzałki: chodzenie · <b>Spacja</b>: weź / odłóż · <b>E</b>: siekaj`)}</div>
       <div class="stick" id="kr-stick" aria-hidden="true"><i></i></div>
       <div class="btns" id="kr-btns">
-        <button type="button" class="btn big r kr-chop" data-a="chop" aria-label="Chop">${tool('knife', 26)}<span>Chop</span></button>
-        <button type="button" class="btn big kr-use" data-a="use" aria-label="Grab or put down">${I.hand}<span id="kr-uselbl">Grab</span></button>
+        <button type="button" class="btn big r kr-chop" data-a="chop" aria-label="${L(`Chop`, `Siekaj`)}">${tool('knife', 26)}<span>${L(`Chop`, `Siekaj`)}</span></button>
+        <button type="button" class="btn big kr-use" data-a="use" aria-label="${L(`Grab or put down`, `Weź lub odłóż`)}">${I.hand}<span id="kr-uselbl">${L(`Grab`, `Weź`)}</span></button>
       </div>
     </div>
     <div class="results" hidden></div>
@@ -74,7 +75,7 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
   const canMove = () => S && S.ph === 'play' && me() && !me().bot;
 
   function sync() {
@@ -118,13 +119,13 @@ export function mount(app, ctx) {
   }
   // what the big button would do right now
   function useLabel() {
-    if (!S || !tgt || !K) return 'Grab';
+    if (!S || !tgt || !K) return L('Grab', 'Weź');
     const k = K.t[tgt.r][tgt.c], h = S.pl[S.me]?.hold, it = S.cells[tgt.key]?.item;
-    if (k === 'W') return h?.k === 'plate' ? 'Serve' : 'Grab';
-    if (k === 'X') return 'Bin it';
-    if (k === 'S') return h?.k === 'plate' ? 'Ladle' : h ? 'Into pot' : 'Grab';
-    if (h && it && (h.k === 'plate' || it.k === 'plate')) return 'Plate it';
-    return h ? 'Put down' : 'Grab';
+    if (k === 'W') return h?.k === 'plate' ? L('Serve', 'Podaj') : L('Grab', 'Weź');
+    if (k === 'X') return L('Bin it', 'Wyrzuć');
+    if (k === 'S') return h?.k === 'plate' ? L('Ladle', 'Nalej') : h ? L('Into pot', 'Do garnka') : L('Grab', 'Weź');
+    if (h && it && (h.k === 'plate' || it.k === 'plate')) return L('Plate it', 'Na talerz');
+    return h ? L('Put down', 'Odłóż') : L('Grab', 'Weź');
   }
   const canChop = () => {
     if (!S || !tgt || !K || K.t[tgt.r][tgt.c] !== 'C' || S.pl[S.me]?.hold) return false;
@@ -175,7 +176,7 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].pts - S.seats[a].pts || a - b);
     setHtml($('kr-list'), ord.map(i => {
       const p = S.seats[i];
-      return `<li class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b><span>${p.pts}</span></li>`;
+      return `<li class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span>${p.pts}</span></li>`;
     }).join(''));
   }
   function ticket(o) {
@@ -208,7 +209,7 @@ export function mount(app, ctx) {
     const ago = performance.now() - recvAt, left = Math.max(0, S.left - (S.ph === 'play' ? ago : 0));
     const g = S.goals, max = g[2] * 1.08, stars = g.filter(v => S.tips >= v).length;
     setHtml($('kr-clock'), `<span class="time${left < 20000 && S.ph === 'play' ? ' low' : ''}">${mmss(S.stage === 'count' ? S.time * 1000 : left)}</span>
-      <span class="tips"><b>${S.tips}</b><small>tips</small></span>
+      <span class="tips"><b>${S.tips}</b><small>${L('tips', 'napiwki')}</small></span>
       <span class="meter"><i style="width:${Math.min(100, S.tips / max * 100).toFixed(1)}%"></i>${g.map((v, i) => `<em class="${i < stars ? 'got' : ''}" style="left:${(v / max * 100).toFixed(1)}%">${I.star}</em>`).join('')}</span>`);
   }
   function render() {
@@ -230,17 +231,17 @@ export function mount(app, ctx) {
 
   function playEv(e) {
     scene?.cue(e);
-    if (e.t === 'go') { sfx.win(); big('Cook!', 'Orders are coming in', 1300); }
+    if (e.t === 'go') { sfx.win(); big(L('Cook!', 'Gotuj!'), L('Orders are coming in', 'Nadchodzą zamówienia'), 1300); }
     else if (e.t === 'order') { sfx.draw(); }
-    else if (e.t === 'serve') { sfx.set(); big(`+${e.tip}`, `${youOr(e.s)} served ${RECIPES[e.r].name.toLowerCase()}`, 1300, 'good'); }
-    else if (e.t === 'miss') { sfx.lose(); big('Missed!', `A ${RECIPES[e.r].name.toLowerCase()} order ran out · −10 tips`, 1600, 'bad'); }
-    else if (e.t === 'burn') { sfx.bad(); big('Burnt!', 'Take it to the bin', 1300, 'bad'); }
+    else if (e.t === 'serve') { sfx.set(); big(`+${e.tip}`, L(`${youOr(e.s)} served ${RECIPES[e.r].name.toLowerCase()}`, `${e.s === S.me ? 'Podajesz' : nameOf(e.s) + ' podaje'}: ${RECIPES[e.r].name.toLowerCase()}`), 1300, 'good'); }
+    else if (e.t === 'miss') { sfx.lose(); big(L('Missed!', 'Przepadło!'), L(`A ${RECIPES[e.r].name.toLowerCase()} order ran out · −10 tips`, `Zamówienie przepadło: ${RECIPES[e.r].name.toLowerCase()} · −10 napiwków`), 1600, 'bad'); }
+    else if (e.t === 'burn') { sfx.bad(); big(L('Burnt!', 'Spalone!'), L('Take it to the bin', 'Zanieś to do kosza'), 1300, 'bad'); }
     else if (e.t === 'ready') sfx.join();
     else if (e.t === 'chopped') { if (e.s === S.me) sfx.place(); }
     else if (e.t === 'bin') { if (e.s === S.me) sfx.plop(); }
-    else if (e.t === 'wrong') { if (e.s === S.me) { sfx.bad(); big('Nobody ordered that', 'Check the tickets', 1200, 'bad'); } }
-    else if (e.t === 'sit') { sfx.join(); ctx.toast(e.s === S.me ? 'You took over a cook. Get going!' : `${nameOf(e.s)} joined the kitchen`); }
-    else if (e.t === 'end') { if (e.stars >= 2) sfx.win(); else sfx.lose(); clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2600); big(e.stars ? `${'★'.repeat(e.stars)}` : 'Time!', 'Kitchen closed', 2400); }
+    else if (e.t === 'wrong') { if (e.s === S.me) { sfx.bad(); big(L('Nobody ordered that', 'Nikt tego nie zamawiał'), L('Check the tickets', 'Sprawdź zamówienia'), 1200, 'bad'); } }
+    else if (e.t === 'sit') { sfx.join(); ctx.toast(e.s === S.me ? L('You took over a cook. Get going!', 'Przejmujesz kucharza. Do dzieła!') : L(`${nameOf(e.s)} joined the kitchen`, `${nameOf(e.s)} dołącza do kuchni`)); }
+    else if (e.t === 'end') { if (e.stars >= 2) sfx.win(); else sfx.lose(); clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2600); big(e.stars ? `${'★'.repeat(e.stars)}` : L('Time!', 'Koniec czasu!'), L('Kitchen closed', 'Kuchnia zamknięta'), 2400); }
   }
 
   function update(s) {
@@ -254,7 +255,7 @@ export function mount(app, ctx) {
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
       if (s.ph === 'end') showResults(); else sfx.draw();
     }
-    if (s.stage === 'count') { const n = Math.ceil(s.count / 1000); if (n !== countN && n > 0) { countN = n; sfx.tick(); big(String(n), n === 3 ? 'Get ready to cook' : '', 900); } }
+    if (s.stage === 'count') { const n = Math.ceil(s.count / 1000); if (n !== countN && n > 0) { countN = n; sfx.tick(); big(String(n), n === 3 ? L('Get ready to cook', 'Przygotuj się do gotowania') : '', 900); } }
     render(); sync();
     if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
   }
@@ -264,19 +265,19 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end' || !S.res) return;
     const el = root.querySelector('.results'), R = S.res, n = S.seats.length;
     const myPlace = S.me >= 0 ? R.order.indexOf(S.me) + 1 : 0;
-    const head = R.stars === 3 ? 'Three-star kitchen!' : R.stars === 2 ? 'Lovely shift!' : R.stars === 1 ? 'Doors open, customers fed' : 'Rough shift…';
+    const head = R.stars === 3 ? L('Three-star kitchen!', 'Kuchnia na trzy gwiazdki!') : R.stars === 2 ? L('Lovely shift!', 'Świetna zmiana!') : R.stars === 1 ? L('Doors open, customers fed', 'Lokal otwarty, goście najedzeni') : L('Rough shift…', 'Ciężka zmiana…');
     el.innerHTML = `<div class="sheet">
       <div class="kr-stars">${[0, 1, 2].map(i => `<span class="${i < R.stars ? 'got' : ''}" style="animation-delay:${i * 220}ms">${I.star}</span>`).join('')}</div>
       <h2>${head}</h2>
-      <p>The kitchen earned <b>${R.tips} tips</b> from ${R.served} dish${R.served === 1 ? '' : 'es'}${R.missed ? `, and ${R.missed} order${R.missed === 1 ? '' : 's'} ran out` : ''}. ${myPlace && S.seats[S.me].pts > 0 ? (myPlace === 1 ? 'You were the star cook!' : `You came ${ORD(myPlace)} for tips earned.`) : ''}</p>
+      <p>${L(`The kitchen earned <b>${R.tips} tips</b> from ${R.served} dish${R.served === 1 ? '' : 'es'}${R.missed ? `, and ${R.missed} order${R.missed === 1 ? '' : 's'} ran out` : ''}.`, `Kuchnia zarobiła <b>${cnt(R.tips, 'tip', 'tips', 'napiwek', 'napiwki', 'napiwków')}</b> za ${cnt(R.served, 'dish', 'dishes', 'danie', 'dania', 'dań')}${R.missed ? `, a ${cnt(R.missed, 'order', 'orders', 'zamówienie przepadło', 'zamówienia przepadły', 'zamówień przepadło')}` : ''}.`)} ${myPlace && S.seats[S.me].pts > 0 ? (myPlace === 1 ? L('You were the star cook!', 'Jesteś gwiazdą kuchni!') : L(`You came ${ORD(myPlace)} for tips earned.`, `Twoje miejsce pod względem napiwków: ${myPlace}.`)) : ''}</p>
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${k === 0 && p.pts > 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.dishes} dish${st.dishes === 1 ? '' : 'es'} helped · ${st.chopped} chopped · ${st.served} served</span></div>
-          <strong>${p.pts}<small>tips</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.dishes} dish${st.dishes === 1 ? '' : 'es'} helped · ${st.chopped} chopped · ${st.served} served`, `udział w daniach: ${st.dishes} · posiekane: ${st.chopped} · podane: ${st.served}`)}</span></div>
+          <strong>${p.pts}<small>${L('tips', 'napiwki')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <p class="fine">Each dish's tip is shared by everyone who had a hand in it. Coins go by those shares.</p>
-      <div class="againbox">${againHtml(ctx, Rm, 'Cook again')}</div></div>`;
+      <p class="fine">${L(`Each dish's tip is shared by everyone who had a hand in it. Coins go by those shares.`, `Napiwek za każde danie dzielą między siebie wszyscy, którzy przy nim pomagali. Monety zależą od tych udziałów.`)}</p>
+      <div class="againbox">${againHtml(ctx, Rm, L('Cook again', 'Gotuj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -285,7 +286,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Cook again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Cook again', 'Gotuj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

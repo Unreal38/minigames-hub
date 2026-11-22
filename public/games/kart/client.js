@@ -2,6 +2,7 @@
 // and draws the HUD over the 3D race: place, lap, item slot, a minimap, touch controls and the results.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -20,14 +21,14 @@ const I = {
 };
 // the power-ups, drawn as little stickers
 export const ITEM_INFO = {
-  peel: { name: 'Banana peel', tip: 'drops behind you', svg: '<svg viewBox="0 0 48 48"><path d="M24 10c-2 6-1 12 0 16" stroke="#6b4a2c" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M24 26c-8-2-14 4-16 12 6-3 11-5 16-6zM24 26c8-2 14 4 16 12-6-3-11-5-16-6zM24 26c-3 6-3 11 0 16 3-5 3-10 0-16z" fill="#ffd23f" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/></svg>' },
-  jelly: { name: 'Wobbly jelly', tip: 'chases the kart ahead', svg: '<svg viewBox="0 0 48 48"><path d="M12 38l3-20h18l3 20z" fill="#ff7ab0" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><path d="M14 18h20" stroke="#ffb3d1" stroke-width="3"/><circle cx="24" cy="12" r="5" fill="#e5243b" stroke="#3b2219" stroke-width="2.5"/><path d="M17 26c3 2 11 2 14 0" stroke="#ffffff" stroke-width="2" opacity=".7" fill="none"/></svg>' },
-  chili: { name: 'Chili boost', tip: 'a hot burst of speed', svg: '<svg viewBox="0 0 48 48"><path d="M30 10c-2 3-3 4-6 5" stroke="#5b8f3a" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M24 15c8-1 12 6 8 15-4 9-14 12-22 10 8-4 12-10 12-17 0-4 0-6 2-8z" fill="#e5543b" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><path d="M27 20c1 3 0 6-2 9" stroke="#ff9a7a" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>' },
-  bubble: { name: 'Bubble shield', tip: 'blocks the next hit', svg: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="#9fe6ff" fill-opacity=".55" stroke="#3b2219" stroke-width="2.5"/><path d="M15 19c2-4 5-6 9-6" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="31" cy="30" r="2.5" fill="#fff"/></svg>' },
-  cloud: { name: 'Sleepy cloud', tip: 'slows everyone ahead', svg: '<svg viewBox="0 0 48 48"><path d="M12 32a7 7 0 0 1 1-14 10 10 0 0 1 19-2 8 8 0 0 1 4 16z" fill="#ffffff" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><path d="M30 6h6l-6 6h6M36 14h4l-4 4h4" stroke="#3b2219" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18 26c1 1 3 1 4 0M26 26c1 1 3 1 4 0" stroke="#3b2219" stroke-width="2" stroke-linecap="round" fill="none"/></svg>' },
+  peel: { name: L('Banana peel', 'Skórka od banana'), tip: L('drops behind you', 'spada za tobą'), svg: '<svg viewBox="0 0 48 48"><path d="M24 10c-2 6-1 12 0 16" stroke="#6b4a2c" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M24 26c-8-2-14 4-16 12 6-3 11-5 16-6zM24 26c8-2 14 4 16 12-6-3-11-5-16-6zM24 26c-3 6-3 11 0 16 3-5 3-10 0-16z" fill="#ffd23f" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/></svg>' },
+  jelly: { name: L('Wobbly jelly', 'Rozchwiana galaretka'), tip: L('chases the kart ahead', 'goni gokart przed tobą'), svg: '<svg viewBox="0 0 48 48"><path d="M12 38l3-20h18l3 20z" fill="#ff7ab0" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><path d="M14 18h20" stroke="#ffb3d1" stroke-width="3"/><circle cx="24" cy="12" r="5" fill="#e5243b" stroke="#3b2219" stroke-width="2.5"/><path d="M17 26c3 2 11 2 14 0" stroke="#ffffff" stroke-width="2" opacity=".7" fill="none"/></svg>' },
+  chili: { name: L('Chili boost', 'Ostra papryczka'), tip: L('a hot burst of speed', 'ostry zastrzyk prędkości'), svg: '<svg viewBox="0 0 48 48"><path d="M30 10c-2 3-3 4-6 5" stroke="#5b8f3a" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M24 15c8-1 12 6 8 15-4 9-14 12-22 10 8-4 12-10 12-17 0-4 0-6 2-8z" fill="#e5543b" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><path d="M27 20c1 3 0 6-2 9" stroke="#ff9a7a" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>' },
+  bubble: { name: L('Bubble shield', 'Bańka ochronna'), tip: L('blocks the next hit', 'blokuje następne trafienie'), svg: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="#9fe6ff" fill-opacity=".55" stroke="#3b2219" stroke-width="2.5"/><path d="M15 19c2-4 5-6 9-6" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="31" cy="30" r="2.5" fill="#fff"/></svg>' },
+  cloud: { name: L('Sleepy cloud', 'Senna chmurka'), tip: L('slows everyone ahead', 'spowalnia wszystkich przed tobą'), svg: '<svg viewBox="0 0 48 48"><path d="M12 32a7 7 0 0 1 1-14 10 10 0 0 1 19-2 8 8 0 0 1 4 16z" fill="#ffffff" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><path d="M30 6h6l-6 6h6M36 14h4l-4 4h4" stroke="#3b2219" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18 26c1 1 3 1 4 0M26 26c1 1 3 1 4 0" stroke="#3b2219" stroke-width="2" stroke-linecap="round" fill="none"/></svg>' },
 };
 const ITEM_KEYS = Object.keys(ITEM_INFO);
-const ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
+import { ord } from '../../i18n.js';
 const clock = ms => { if (!(ms > 0)) return '–'; const s = ms / 1000; return `${s / 60 | 0}:${(s % 60).toFixed(2).padStart(5, '0')}`; };
 
 let cssLoaded = false;
@@ -42,26 +43,26 @@ export function mount(app, ctx) {
   document.body.classList.add('in-game');
   const touch = matchMedia('(pointer: coarse)').matches;
   app.innerHTML = `<div class="kr${touch ? ' touch' : ''}">
-    <canvas class="g3d" aria-label="The kart race. Steer with the arrow keys or A and D, Space to drift, E to use your item."></canvas>
+    <canvas class="g3d" aria-label="${L(`The kart race. Steer with the arrow keys or A and D, Space to drift, E to use your item.`, `Wyścig gokartów. Skręcaj strzałkami albo klawiszami A i D, Spacja to drift, E używa przedmiotu.`)}"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl"><span class="chip" id="kr-lap"></span><span class="chip" id="kr-time"></span></div>
       <div class="tr"><span class="tcode" id="kr-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="kr-banner" aria-live="polite"></div>
       <div class="lights" id="kr-lights" hidden><i></i><i></i><i></i></div>
       <div class="shout" id="kr-big" aria-live="assertive"></div>
-      <ol class="list" id="kr-list" aria-label="Race order"></ol>
+      <ol class="list" id="kr-list" aria-label="${L(`Race order`, `Kolejność w wyścigu`)}"></ol>
       <div class="place" id="kr-place" aria-live="polite"></div>
-      <button type="button" class="kr-item" id="kr-slot" data-a="use" aria-label="Use your item"></button>
+      <button type="button" class="kr-item" id="kr-slot" data-a="use" aria-label="${L(`Use your item`, `Użyj przedmiotu`)}"></button>
       <svg class="map" id="kr-map" aria-hidden="true"></svg>
       <div class="pads" id="kr-pads">
-        <div class="steer"><button type="button" data-k="left" aria-label="Steer left">${I.left}</button><button type="button" data-k="right" aria-label="Steer right">${I.right}</button></div>
-        <div class="acts"><button type="button" data-k="brake" class="sm" aria-label="Brake">${I.brake}</button><button type="button" data-k="drift" aria-label="Drift">Drift</button></div>
+        <div class="steer"><button type="button" data-k="left" aria-label="${L(`Steer left`, `Skręć w lewo`)}">${I.left}</button><button type="button" data-k="right" aria-label="${L(`Steer right`, `Skręć w prawo`)}">${I.right}</button></div>
+        <div class="acts"><button type="button" data-k="brake" class="sm" aria-label="${L(`Brake`, `Hamuj`)}">${I.brake}</button><button type="button" data-k="drift" aria-label="Drift">Drift</button></div>
       </div>
-      <p class="keys" id="kr-keys">Steer <b>← →</b> or <b>A D</b> · drift <b>Space</b> · item <b>E</b> · brake <b>↓</b></p>
+      <p class="keys" id="kr-keys">${L(`Steer <b>← →</b> or <b>A D</b> · drift <b>Space</b> · item <b>E</b> · brake <b>↓</b>`, `Skręt <b>← →</b> lub <b>A D</b> · drift <b>Spacja</b> · przedmiot <b>E</b> · hamulec <b>↓</b>`)}</p>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
     <div class="results" hidden></div>
@@ -90,8 +91,8 @@ export function mount(app, ctx) {
 
   // ----- your kart: driven here every frame -----
   function controls() {
-    const L = keys.has('left') || pads.has('left'), R = keys.has('right') || pads.has('right');
-    const want = (L ? 1 : 0) - (R ? 1 : 0);
+    const Lf = keys.has('left') || pads.has('left'), R = keys.has('right') || pads.has('right');
+    const want = (Lf ? 1 : 0) - (R ? 1 : 0);
     return { steer: want, gas: 1, brake: keys.has('brake') || pads.has('brake') ? 1 : 0, drift: keys.has('drift') || pads.has('drift') ? 1 : 0 };
   }
   let lastStep = 0;
@@ -114,7 +115,7 @@ export function mount(app, ctx) {
     // bump into the others
     const live = scene.live();
     for (let i = 0; i < live.length; i++) if (i !== S.me && live[i] && bump(mk, live[i], true, false) && mk.v > 10 && Math.random() < .1) sfx.tick();
-    if (cue === 'fall') { sfx.plop(); big('Whoops!', 'A cloud will bring you back', 1300); }
+    if (cue === 'fall') { sfx.plop(); big(L('Whoops!', 'Ojej!'), L('A cloud will bring you back', 'Chmurka odstawi cię na trasę'), 1300); }
     else if (cue === 'respawn') sfx.pop();
     else if (cue === 'bonk') sfx.place();
     else if (cue === 'mini' || cue === 'pad') sfx.join();
@@ -183,14 +184,14 @@ export function mount(app, ctx) {
   function renderList() {
     setHtml($('kr-list'), S.place.map((i, n) => {
       const p = info[i], fin = S.fin[i];
-      return `<li class="${i === S.me ? 'kr-me' : ''}${fin ? ' fin' : ''}"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 26)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b>${fin ? `<span>${clock(fin)}</span>` : ''}</li>`;
+      return `<li class="${i === S.me ? 'kr-me' : ''}${fin ? ' fin' : ''}"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 26)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b>${fin ? `<span>${clock(fin)}</span>` : ''}</li>`;
     }).join(''));
   }
   function renderPlace() {
     const el = $('kr-place');
     if (S.me < 0) { setHtml(el, ''); return; }
     const pl = S.place.indexOf(S.me) + 1;
-    setHtml(el, `<b>${pl}</b><sup>${ord(pl).slice(String(pl).length)}</sup><span>of ${S.place.length}</span>`);
+    setHtml(el, `<b>${pl}</b><sup>${ord(pl).slice(String(pl).length)}</sup><span>${L('of', 'z')} ${S.place.length}</span>`);
     if (pl !== lastPlace) { if (lastPlace && S.stage === 'race') { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } lastPlace = pl; }
   }
   function renderSlot() {
@@ -200,7 +201,7 @@ export function mount(app, ctx) {
     if (!it) { setHtml(el, '<span class="kr-none">?</span>'); el.classList.remove('ready', 'rolling'); el._k = null; return; }
     const ready = itemReady();
     el.classList.toggle('rolling', !ready); el.classList.toggle('ready', ready);
-    if (ready) { if (el._k !== it[0]) { el._k = it[0]; setHtml(el, `${ITEM_INFO[it[0]].svg}<small>${ITEM_INFO[it[0]].name}</small><kbd>${touch ? 'tap' : 'E'}</kbd>`); sfx.set(); } }
+    if (ready) { if (el._k !== it[0]) { el._k = it[0]; setHtml(el, `${ITEM_INFO[it[0]].svg}<small>${ITEM_INFO[it[0]].name}</small><kbd>${touch ? L('tap', 'dotknij') : 'E'}</kbd>`); sfx.set(); } }
     else { el._k = null; }
   }
   function renderClock() {
@@ -214,25 +215,25 @@ export function mount(app, ctx) {
     else if (it && itemReady() && el._k !== it[0]) renderSlot();
     // the start lights
     if (S.stage === 'count') {
-      const left = -t, n = Math.ceil(left / 1000), L = $('kr-lights');
-      L.hidden = false;
+      const left = -t, n = Math.ceil(left / 1000), lights = $('kr-lights');
+      lights.hidden = false;
       const lit = left > 0 ? Math.max(0, Math.min(3, 4 - n)) : 3;
-      L.querySelectorAll('i').forEach((x, k) => x.classList.toggle('on', k < lit));
+      lights.querySelectorAll('i').forEach((x, k) => x.classList.toggle('on', k < lit));
       if (n !== lastCount && n <= 3 && n > 0) { lastCount = n; sfx.warn(); big(String(n), '', 800); }
     } else if (!$('kr-lights').hidden) $('kr-lights').hidden = true;
     renderBanner(t);
   }
   function renderBanner(t) {
     const el = $('kr-banner'); let msg = '';
-    if (S.ph === 'play' && S.stage === 'count') msg = `${TRACKS[S.track]?.name} · ${S.laps} laps`;
-    else if (S.ph === 'play' && S.after >= 0) { const left = Math.max(0, S.after - (performance.now() - recvAt)); msg = `${nameOf(S.place[0])} is home! ${Math.ceil(left / 1000)}s left`; }
-    else if (S.me < 0 && S.ph === 'play') msg = `Watching ${nameOf(S.place[0])} lead`;
+    if (S.ph === 'play' && S.stage === 'count') msg = `${TRACKS[S.track]?.name} · ${cnt(S.laps, 'lap', 'laps', 'okrążenie', 'okrążenia', 'okrążeń')}`;
+    else if (S.ph === 'play' && S.after >= 0) { const left = Math.max(0, S.after - (performance.now() - recvAt)); msg = L(`${nameOf(S.place[0])} is home! ${Math.ceil(left / 1000)}s left`, `${nameOf(S.place[0])} na mecie! Zostało ${Math.ceil(left / 1000)} s`); }
+    else if (S.me < 0 && S.ph === 'play') msg = L(`Watching ${nameOf(S.place[0])} lead`, `Oglądasz. Prowadzi: ${nameOf(S.place[0])}`);
     if (el.textContent !== msg) el.textContent = msg;
   }
   function render() {
     if (!S || !info) return;
     const lap = Math.max(1, Math.min(S.laps, (S.me >= 0 ? S.lap[S.me] : S.lap[S.place[0]]) + 1));
-    setHtml($('kr-lap'), S.me >= 0 && S.fin[S.me] ? `${I.flag} Finished` : `Lap <b>${lap}</b>/${S.laps}`);
+    setHtml($('kr-lap'), S.me >= 0 && S.fin[S.me] ? `${I.flag} ${L('Finished', 'Meta')}` : `${L('Lap', 'Okrążenie')} <b>${lap}</b>/${S.laps}`);
     $('kr-code').textContent = Rm?.code || '';
     buildTags(); buildMap(); renderList(); renderPlace(); renderSlot();
     root.classList.toggle('watching', S.me < 0);
@@ -249,19 +250,19 @@ export function mount(app, ctx) {
   function playEv(e) {
     scene?.event(e);
     const mine = e.s === S.me;
-    if (e.t === 'go') { big('GO!', '', 900); sfx.turn(); }
+    if (e.t === 'go') { big(L('GO!', 'START!'), '', 900); sfx.turn(); }
     else if (e.t === 'hit') {
-      if (mine) { if (mk) { mk.spin = 1.25; mk.dr = 0; mk.charge = 0; } sfx.bad(); big(e.k === 'peel' ? 'Slipped!' : 'Splat!', e.by >= 0 && e.by !== S.me ? `${nameOf(e.by)} got you` : '', 1200); }
-      else { sfx.pop(); if (e.by === S.me) ctx.toast(`Your ${e.k === 'peel' ? 'banana peel' : 'jelly'} got ${nameOf(e.s)}!`); }
-    } else if (e.t === 'pop') { if (mine) { sfx.plop(); ctx.toast('Your bubble saved you!'); } }
+      if (mine) { if (mk) { mk.spin = 1.25; mk.dr = 0; mk.charge = 0; } sfx.bad(); big(e.k === 'peel' ? L('Slipped!', 'Poślizg!') : L('Splat!', 'Plask!'), e.by >= 0 && e.by !== S.me ? L(`${nameOf(e.by)} got you`, `Trafia cię: ${nameOf(e.by)}`) : '', 1200); }
+      else { sfx.pop(); if (e.by === S.me) ctx.toast(L(`Your ${e.k === 'peel' ? 'banana peel' : 'jelly'} got ${nameOf(e.s)}!`, `${e.k === 'peel' ? 'Twoja skórka od banana' : 'Twoja galaretka'} trafia gracza ${nameOf(e.s)}!`)); }
+    } else if (e.t === 'pop') { if (mine) { sfx.plop(); ctx.toast(L('Your bubble saved you!', 'Bańka cię ratuje!')); } }
     else if (e.t === 'zzz') {
-      if ((e.hit || []).includes(S.me)) { if (mk) mk.slow = 2.8; sfx.lose(); big('Sleepy…', `${nameOf(e.s)} sent a sleepy cloud`, 1400); }
-      else if (mine) ctx.toast(`Sleepy cloud over ${e.hit.length} kart${e.hit.length === 1 ? '' : 's'} ahead!`);
+      if ((e.hit || []).includes(S.me)) { if (mk) mk.slow = 2.8; sfx.lose(); big(L('Sleepy…', 'Senność…'), L(`${nameOf(e.s)} sent a sleepy cloud`, `Senna chmurka od gracza ${nameOf(e.s)}`), 1400); }
+      else if (mine) ctx.toast(L(`Sleepy cloud over ${e.hit.length} kart${e.hit.length === 1 ? '' : 's'} ahead!`, `Senna chmurka nad ${cnt(e.hit.length, 'kart', 'karts', 'gokartem', 'gokartami', 'gokartami')} przed tobą!`));
     } else if (e.t === 'box') { if (mine && !e.none) sfx.draw(); }
-    else if (e.t === 'lap') { if (mine) { sfx.set(); big(e.lap === S.laps ? 'Final lap!' : `Lap ${e.lap}`, '', 1300); } }
+    else if (e.t === 'lap') { if (mine) { sfx.set(); big(e.lap === S.laps ? L('Final lap!', 'Ostatnie okrążenie!') : L(`Lap ${e.lap}`, `Okrążenie ${e.lap}`), '', 1300); } }
     else if (e.t === 'fin') {
-      if (mine) { sfx.win(); if (e.place <= 3) confetti(); big(e.place === 1 ? 'You win!' : `${ord(e.place)} place!`, clock(e.ms), 2600); }
-      else if (e.place === 1) ctx.toast(`${nameOf(e.s)} crossed the line first!`);
+      if (mine) { sfx.win(); if (e.place <= 3) confetti(); big(e.place === 1 ? L('You win!', 'Wygrana!') : L(`${ord(e.place)} place!`, `${ord(e.place)} miejsce!`), clock(e.ms), 2600); }
+      else if (e.place === 1) ctx.toast(L(`${nameOf(e.s)} crossed the line first!`, `Pierwsze miejsce na mecie: ${nameOf(e.s)}!`));
     } else if (e.t === 'end') { clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 1600); }
   }
 
@@ -290,12 +291,12 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end' || !S.res || !info) return;
     const el = root.querySelector('.results'), R = S.res, w = S.win;
     el.innerHTML = `<div class="sheet">
-      <h2>${I.flag}${w === S.me ? 'You win' : `${nameOf(w)} wins`} the race!</h2>
-      <p>${esc(TRACKS[S.track]?.name)} · ${S.laps} laps</p>
+      <h2>${I.flag}${w === S.me ? L('You win the race!', 'Wygrywasz wyścig!') : L(`${nameOf(w)} wins the race!`, `Wyścig wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${esc(TRACKS[S.track]?.name)} · ${cnt(S.laps, 'lap', 'laps', 'okrążenie', 'okrążenia', 'okrążeń')}</p>
       <ol class="kr-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'kr-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-          <strong>${R.times[i] ? clock(R.times[i]) : 'did not finish'}</strong><small>${R.best[i] ? 'best lap ' + clock(R.best[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Race again')}</div></div>`;
+        return `<li class="${i === S.me ? 'kr-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong>${R.times[i] ? clock(R.times[i]) : L('did not finish', 'bez mety')}</strong><small>${R.best[i] ? L('best lap ', 'najlepsze okrążenie ') + clock(R.best[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+      <div class="againbox">${againHtml(ctx, Rm, L('Race again', 'Ścigaj się jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) confetti();
   }
@@ -305,7 +306,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Race again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Race again', 'Ścigaj się jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

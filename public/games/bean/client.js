@@ -2,6 +2,7 @@
 // server, and draws the HUD over the 3D climb: floor, score, streak meter, the race up the stalk, touch pads and results.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -18,7 +19,7 @@ const I = {
   leaf: '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 20c0-10 6-16 16-16 0 10-6 16-16 16z" fill="#7ed067" stroke="#3b2219" stroke-width="2.2" stroke-linejoin="round"/><path d="M5 19l9-9" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/></svg>',
   bolt: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M13 2L5 14h5l-1 8 8-12h-5z" fill="#ffe36b" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></svg>',
 };
-const ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
+import { ord } from '../../i18n.js';
 
 let cssLoaded = false;
 function loadCss() {
@@ -32,25 +33,25 @@ export function mount(app, ctx) {
   document.body.classList.add('in-game');
   const touch = matchMedia('(pointer: coarse)').matches;
   app.innerHTML = `<div class="bb${touch ? ' touch' : ''}">
-    <canvas class="g3d" aria-label="The beanstalk climb. Run with the arrow keys or A and D, jump with Space."></canvas>
+    <canvas class="g3d" aria-label="${L(`The beanstalk climb. Run with the arrow keys or A and D, jump with Space.`, `Wspinaczka po łodydze fasoli. Biegnij strzałkami albo klawiszami A i D, skacz spacją.`)}"></canvas>
     <div class="bb-vig" aria-hidden="true"></div>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl"><span class="chip" id="bb-floor"></span><span class="chip" id="bb-score"></span></div>
       <div class="tr"><span class="tcode" id="bb-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="bb-banner" aria-live="polite"></div>
       <div class="shout" id="bb-big" aria-live="assertive"></div>
-      <ol class="list" id="bb-list" aria-label="Who is highest"></ol>
+      <ol class="list" id="bb-list" aria-label="${L(`Who is highest`, `Kto jest najwyżej`)}"></ol>
       <div class="bb-alt" id="bb-alt" aria-hidden="true"><i class="bb-storm"></i><div class="bb-dots"></div></div>
       <div class="bb-streak" id="bb-streak" hidden><b></b><span></span><i><u></u></i></div>
       <div class="pads" id="bb-pads">
-        <div class="steer"><button type="button" data-k="left" aria-label="Run left">${I.left}</button><button type="button" data-k="right" aria-label="Run right">${I.right}</button></div>
-        <div class="acts"><button type="button" data-k="jump" aria-label="Jump">${I.up}<span>Jump</span></button></div>
+        <div class="steer"><button type="button" data-k="left" aria-label="${L(`Run left`, `Biegnij w lewo`)}">${I.left}</button><button type="button" data-k="right" aria-label="${L(`Run right`, `Biegnij w prawo`)}">${I.right}</button></div>
+        <div class="acts"><button type="button" data-k="jump" aria-label="${L(`Jump`, `Skok`)}">${I.up}<span>${L(`Jump`, `Skok`)}</span></button></div>
       </div>
-      <p class="keys" id="bb-keys">Run <b>← →</b> or <b>A D</b> · jump <b>Space</b> · the faster you run, the higher you jump</p>
+      <p class="keys" id="bb-keys">${L(`Run <b>← →</b> or <b>A D</b> · jump <b>Space</b> · the faster you run, the higher you jump`, `Bieg <b>← →</b> albo <b>A D</b> · skok <b>Spacja</b> · im szybciej biegniesz, tym wyżej skaczesz`)}</p>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
     <div class="results" hidden></div>
@@ -79,8 +80,8 @@ export function mount(app, ctx) {
 
   // ----- your climber: moved here every frame -----
   function controls() {
-    const L = keys.has('left') || pads.has('left'), R = keys.has('right') || pads.has('right');
-    return { dir: (R ? 1 : 0) - (L ? 1 : 0), jump: keys.has('jump') || pads.has('jump') };
+    const lf = keys.has('left') || pads.has('left'), R = keys.has('right') || pads.has('right');
+    return { dir: (R ? 1 : 0) - (lf ? 1 : 0), jump: keys.has('jump') || pads.has('jump') };
   }
   let lastStep = 0;
   function step() {
@@ -117,12 +118,12 @@ export function mount(app, ctx) {
     ctx.act({ t: 'l', f, x: +mk.x.toFixed(2), m: Math.round(ms) });
     if (r.ended) banked(r.ended);
     const z = zoneOf(run.best);
-    if (z > lastZone) { lastZone = z; sfx.set(); big(zoneName(z), 'Floor ' + z * 25, 1800); }
+    if (z > lastZone) { lastZone = z; sfx.set(); big(zoneName(z), L('Floor ', 'Piętro ') + z * 25, 1800); }
     return r.big && run.st ? run.st.n : 0;
   }
   function banked(b) {
     if (!b.pts) return;
-    sfx.set(); big('+' + b.pts, `${cheer(b.fl)} ${b.n} big jumps, ${b.fl} floors`, 1500);
+    sfx.set(); big('+' + b.pts, L(`${cheer(b.fl)} ${b.n} big jumps, ${b.fl} floors`, `${cheer(b.fl)} Wielkie skoki: ${b.n}, piętra: ${b.fl}`), 1500);
   }
   function sound(cue, streak) {
     if (cue === 'jump') sfx.pop(); else if (cue === 'spring') sfx.join(); else if (cue === 'wall') sfx.tick(); else if (cue === 'drop') sfx.plop();
@@ -161,20 +162,20 @@ export function mount(app, ctx) {
   function renderList() {
     setHtml($('bb-list'), S.place.map((i, n) => {
       const p = info[i], out = S.out[i];
-      return `<li class="${i === S.me ? 'bb-me' : ''}${out ? ' bb-out' : ''}"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 26)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b><span>${out ? I.bolt : ''}${S.sc[i]}</span></li>`;
+      return `<li class="${i === S.me ? 'bb-me' : ''}${out ? ' bb-out' : ''}"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 26)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span>${out ? I.bolt : ''}${S.sc[i]}</span></li>`;
     }).join(''));
   }
   // things that change every moment: the streak meter, the height bar, the countdown
   function renderLive(fr) {
     const t = clock(), me = S.me;
     const myFloor = climbing && mk ? run.best : me >= 0 ? S.fl[me] : S.fl[leader()];
-    setHtml($('bb-floor'), `${I.leaf} Floor <b>${myFloor}</b>`);
-    setHtml($('bb-score'), me >= 0 ? `<b>${S.sc[me]}</b> pts` : '');
+    setHtml($('bb-floor'), `${L(`${I.leaf} Floor <b>${myFloor}</b>`, `${I.leaf} Piętro <b>${myFloor}</b>`)}`);
+    setHtml($('bb-score'), me >= 0 ? `${L(`<b>${S.sc[me]}</b> pts`, `<b>${S.sc[me]}</b> pkt`)}` : '');
     const sk = $('bb-streak'), st = climbing ? run.st : null;
     if (st) {
       sk.hidden = false;
-      setHtml(sk.querySelector('b'), `Streak ×${st.n}`);
-      setHtml(sk.querySelector('span'), st.n >= 2 ? `${st.fl} floors · +${streakPts(st)}` : `${st.fl} floors · keep going!`);
+      setHtml(sk.querySelector('b'), L(`Streak ×${st.n}`, `Seria ×${st.n}`));
+      setHtml(sk.querySelector('span'), st.n >= 2 ? L(`${st.fl} floors · +${streakPts(st)}`, `piętra: ${st.fl} · +${streakPts(st)}`) : L(`${st.fl} floors · keep going!`, `piętra: ${st.fl} · tak trzymaj!`));
       sk.querySelector('u').style.transform = `scaleX(${Math.max(0, Math.min(1, (st.until - t * 1000) / STREAK_MS)).toFixed(3)})`;
       sk.classList.toggle('hot', st.n >= 2);
     } else if (!sk.hidden) sk.hidden = true;
@@ -191,10 +192,10 @@ export function mount(app, ctx) {
   function renderBanner(t) {
     const el = $('bb-banner'); let msg = '';
     if (S.ph !== 'play') msg = '';
-    else if (S.stage === 'count') msg = `${PACES[S.pace]?.name || ''} storm · climb as high as you can`;
-    else if (S.me >= 0 && (S.out[S.me] || dead)) msg = `The storm got you on floor ${S.fl[S.me]}. Watching ${info[leader()]?.name || ''}`;
-    else if (S.me < 0) msg = `Watching ${info[leader()]?.name || ''} climb`;
-    else if (t < 2.2) msg = 'The storm is waking up…';
+    else if (S.stage === 'count') msg = L(`${PACES[S.pace]?.name || ''} storm · climb as high as you can`, `${PACES[S.pace]?.name || ''} burza · wspinaj się jak najwyżej`);
+    else if (S.me >= 0 && (S.out[S.me] || dead)) msg = L(`The storm got you on floor ${S.fl[S.me]}. Watching ${info[leader()]?.name || ''}`, `Burza dopadła cię na piętrze ${S.fl[S.me]}. Oglądasz: ${info[leader()]?.name || ''}`);
+    else if (S.me < 0) msg = L(`Watching ${info[leader()]?.name || ''} climb`, `Oglądasz wspinaczkę: ${info[leader()]?.name || ''}`);
+    else if (t < 2.2) msg = L('The storm is waking up…', 'Burza się budzi…');
     if (el.textContent !== msg) el.textContent = msg;
   }
   function buildAlt() {
@@ -223,12 +224,12 @@ export function mount(app, ctx) {
   function playEv(e) {
     scene?.event(e);
     const mine = e.s === S.me;
-    if (e.t === 'go') { big('GO!', '', 900); sfx.turn(); }
+    if (e.t === 'go') { big(L('GO!', 'START!'), '', 900); sfx.turn(); }
     else if (e.t === 'out') {
-      if (mine) { dead = true; sfx.lose(); big('Zapped!', `The storm caught you on floor ${e.f}`, 2200); }
-      else { sfx.plop(); ctx.toast(`The storm caught ${nameOf(e.s)} on floor ${e.f}`); }
-    } else if (e.t === 'streak') { if (!mine && e.pts >= 150) ctx.toast(`${nameOf(e.s)}: ${e.n} big jumps in a row, +${e.pts}`); }
-    else if (e.t === 'zone') { if (!mine) ctx.toast(`${nameOf(e.s)} is first to ${esc(zoneName(e.z))}!`); }
+      if (mine) { dead = true; sfx.lose(); big(L('Zapped!', 'Trafienie!'), L(`The storm caught you on floor ${e.f}`, `Burza dopadła cię na piętrze ${e.f}`), 2200); }
+      else { sfx.plop(); ctx.toast(L(`The storm caught ${nameOf(e.s)} on floor ${e.f}`, `Burza dopadła gracza ${nameOf(e.s)} na piętrze ${e.f}`)); }
+    } else if (e.t === 'streak') { if (!mine && e.pts >= 150) ctx.toast(L(`${nameOf(e.s)}: ${e.n} big jumps in a row, +${e.pts}`, `${nameOf(e.s)}: ${e.n} wielkich skoków z rzędu, +${e.pts}`)); }
+    else if (e.t === 'zone') { if (!mine) ctx.toast(L(`${nameOf(e.s)} is first to ${esc(zoneName(e.z))}!`, `${nameOf(e.s)} jako pierwszy zdobywa strefę ${esc(zoneName(e.z))}!`)); }
     else if (e.t === 'end') { clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 1500); }
   }
 
@@ -263,12 +264,12 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'end' || !S.res || !info) return;
     const el = root.querySelector('.results'), R = S.res, w = S.win;
     el.innerHTML = `<div class="sheet">
-      <h2>${I.leaf}${w === S.me ? 'You climbed' : `${nameOf(w)} climbed`} the highest!</h2>
-      <p>Floor ${R.floor[w]} · ${esc(zoneName(zoneOf(R.floor[w])))}</p>
+      <h2>${I.leaf}${L(`${w === S.me ? 'You climbed' : `${nameOf(w)} climbed`} the highest!`, `${w === S.me ? 'Jesteś najwyżej!' : `Najwyżej jest ${nameOf(w)}!`}`)}</h2>
+      ${L(`<p>Floor ${R.floor[w]} · `, `<p>Piętro ${R.floor[w]} · `)}${esc(zoneName(zoneOf(R.floor[w])))}</p>
       <ol class="bb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-          <strong>${R.score[i]} pts</strong><small>floor ${R.floor[i]}${R.bonus[i] ? ` · streaks +${R.bonus[i]}` : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Climb again')}</div></div>`;
+        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          ${L(`<strong>${R.score[i]} pts</strong><small>floor ${R.floor[i]}${R.bonus[i] ? ` · streaks +${R.bonus[i]}` : ''}</small>`, `<strong>${R.score[i]} pkt</strong><small>piętro ${R.floor[i]}${R.bonus[i] ? ` · serie +${R.bonus[i]}` : ''}</small>`)}${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+      <div class="againbox">${againHtml(ctx, Rm, L('Climb again', 'Wspinaj się jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) { confetti(); sfx.win(); }
   }
@@ -278,7 +279,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Climb again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Climb again', 'Wspinaj się jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

@@ -1,6 +1,7 @@
 // Tower Stack game view: HUD over the 3D tower. Renders what the server says; sends your drop.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -32,13 +33,13 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="tws-info"></span></div>
       <div class="tr"><span class="tcode" id="tws-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="tws-banner" aria-live="polite"></div>
       <div class="shout" id="tws-big" aria-live="assertive"></div>
-      <ol class="list" id="tws-list" aria-label="Players"></ol>
-      <div class="meter" id="tws-meter" aria-hidden="true"><b>Wobble</b><span><i></i></span></div>
+      <ol class="list" id="tws-list" aria-label="${L(`Players`, `Gracze`)}"></ol>
+      <div class="meter" id="tws-meter" aria-hidden="true"><b>${L(`Wobble`, `Chwiejność`)}</b><span><i></i></span></div>
       <div class="dropbar" id="tws-drop"></div>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -58,7 +59,8 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
+  const yo = (i, you, they) => (i === S.me ? you : `${nameOf(i)} ${they}`); // Polish: "you" and "they" verb forms
   const myTurn = () => S && S.ph === 'play' && S.stage === 'aim' && S.turn === S.me && me() && !me().bot;
 
   function sync() {
@@ -108,12 +110,12 @@ export function mount(app, ctx) {
     if (c.k !== 'land') return;
     const who = youOr(c.s), mine = c.s === S.me;
     shown = S.seats.map(p => p.pts); buildTags(); renderList(); floatPts(c.s, c.pts);
-    if (c.top) { sfx.win(); big('Sky high!', 'Tower finished: +20 for everyone', 2200); confetti(); }
-    else if (c.res === 'perfect') { sfx.set(); big('Perfect!', `${who} ${mine ? 'score' : 'scores'} 15`, 1100); }
+    if (c.top) { sfx.win(); big(L('Sky high!', 'Pod samo niebo!'), L('Tower finished: +20 for everyone', 'Wieża gotowa: +20 dla każdego'), 2200); confetti(); }
+    else if (c.res === 'perfect') { sfx.set(); big(L('Perfect!', 'Idealnie!'), L(`${who} ${mine ? 'score' : 'scores'} 15`, yo(c.s, 'Zdobywasz 15', 'zdobywa 15')), 1100); }
     else if (c.res === 'ok') sfx.place();
-    else if (c.res === 'slip') { sfx.bad(); big('Whoops!', `${mine ? 'Your' : who + '’s'} block slipped off`, 1300); }
-    else if (c.res === 'miss') { sfx.bad(); big('Missed!', `${who} dropped it past the tower`, 1300); }
-    else if (c.res === 'crash') { sfx.lose(); sfx.plop(); big('Crash!', `${who} knocked it over at ${c.level} block${c.level === 1 ? '' : 's'}`, 2400); }
+    else if (c.res === 'slip') { sfx.bad(); big(L('Whoops!', 'Ojej!'), L(`${mine ? 'Your' : who + '’s'} block slipped off`, mine ? 'Twój klocek się zsuwa' : `Klocek gracza ${who} się zsuwa`), 1300); }
+    else if (c.res === 'miss') { sfx.bad(); big(L('Missed!', 'Pudło!'), L(`${who} dropped it past the tower`, yo(c.s, 'Zrzucasz klocek obok wieży', 'zrzuca klocek obok wieży')), 1300); }
+    else if (c.res === 'crash') { sfx.lose(); sfx.plop(); big(L('Crash!', 'Bum!'), L(`${who} knocked it over at ${c.level} block${c.level === 1 ? '' : 's'}`, `${yo(c.s, 'Przewracasz wieżę', 'przewraca wieżę')} (klocków: ${c.level})`), 2400); }
   }
 
   // ----- rendering -----
@@ -122,7 +124,7 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => (shown[b] ?? S.seats[b].pts) - (shown[a] ?? S.seats[a].pts) || a - b);
     setHtml($('tws-list'), ord.map(i => {
       const p = S.seats[i], now = i === S.turn && S.ph === 'play';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${shown[i] ?? p.pts} pts</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${shown[i] ?? p.pts} ${L('pts', 'pkt')}</span></li>`;
     }).join(''));
   }
 
@@ -130,10 +132,10 @@ export function mount(app, ctx) {
     const el = $('tws-drop');
     if (!S || S.ph !== 'play') { setHtml(el, ''); el.hidden = true; return; }
     el.hidden = false;
-    if (myTurn() && !(Date.now() - sent < 1500)) setHtml(el, `<button type="button" class="btn big r dropbtn" data-a="drop">${I.drop}Drop!</button>`);
+    if (myTurn() && !(Date.now() - sent < 1500)) setHtml(el, `<button type="button" class="btn big r dropbtn" data-a="drop">${I.drop}${L('Drop!', 'Zrzuć!')}</button>`);
     else if (S.stage === 'aim') {
       const p = S.seats[S.turn];
-      setHtml(el, `<span class="waiting">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? (me()?.bot ? 'A bot is dropping for you' : 'Dropping…') : `${nameOf(S.turn)} is lining it up…`}</span></span>`);
+      setHtml(el, `<span class="waiting">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? (me()?.bot ? L('A bot is dropping for you', 'Bot zrzuca za ciebie') : L('Dropping…', 'Leci…')) : L(`${nameOf(S.turn)} is lining it up…`, `${nameOf(S.turn)} celuje…`)}</span></span>`);
     } else setHtml(el, '');
   }
 
@@ -141,9 +143,9 @@ export function mount(app, ctx) {
     const el = $('tws-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
-    if (S.ph === 'end') msg = S.win >= 0 ? `${youOr(S.win)} win${S.win === S.me ? '' : 's'}!` : '';
-    else if (myTurn()) msg = S.left >= 0 ? `Your turn · tap to drop · ${secs}s` : 'Your turn · tap to drop';
-    else if (S.stage === 'aim') msg = `${nameOf(S.turn)}'s turn`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${youOr(S.win)} win${S.win === S.me ? '' : 's'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (myTurn()) msg = L('Your turn · tap to drop', 'Twoja kolej · dotknij, żeby zrzucić') + (S.left >= 0 ? ` · ${secs}s` : '');
+    else if (S.stage === 'aim') msg = L(`${nameOf(S.turn)}'s turn`, `Kolej: ${nameOf(S.turn)}`);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', !!myTurn());
   }
@@ -151,7 +153,7 @@ export function mount(app, ctx) {
   function render() {
     if (!S) return;
     const n = S.tower.length;
-    $('tws-info').textContent = `Tower ${Math.min(S.towerN, S.towers)} of ${S.towers} · ${n} block${n === 1 ? '' : 's'}`;
+    $('tws-info').textContent = `${L('Tower', 'Wieża')} ${Math.min(S.towerN, S.towers)} ${L('of', 'z')} ${S.towers} · ${cnt(n, 'block', 'blocks', 'klocek', 'klocki', 'klocków')}`;
     $('tws-code').textContent = Rm?.code || '';
     const w = Math.round((1 - (S.steady ?? 1)) * 100), m = $('tws-meter');
     m.hidden = S.ph !== 'play'; m.querySelector('i').style.width = `${Math.max(4, w)}%`; m.classList.toggle('risky', w > 55); m.classList.toggle('danger', w > 80);
@@ -166,8 +168,8 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Your turn is coming up!' : `${nameOf(e.s)} took over a bot`); }
-    else if (e.t === 'tower') { sfx.draw(); ctx.toast(e.k >= S.towers ? 'Last tower!' : `Tower ${e.k} of ${S.towers}`); }
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Your turn is coming up!', 'Przejmujesz miejsce bota. Zaraz twoja kolej!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
+    else if (e.t === 'tower') { sfx.draw(); ctx.toast(e.k >= S.towers ? L('Last tower!', 'Ostatnia wieża!') : L(`Tower ${e.k} of ${S.towers}`, `Wieża ${e.k} z ${S.towers}`)); }
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); }
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2600);
@@ -197,15 +199,15 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results'), w = S.win;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'You are the master builder!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'Steadiest hands at the table. ' : `You came ${ORD(myPlace)}. `) : ''}The tallest tower reached ${S.res.best} block${S.res.best === 1 ? '' : 's'}.</p>
+      <h2>${w === S.me ? L('You are the master builder!', 'Mistrzostwo w budowaniu!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${myPlace ? (myPlace === 1 ? L('Steadiest hands at the table. ', 'Najpewniejsze ręce przy stole. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L(`The tallest tower reached ${S.res.best} block${S.res.best === 1 ? '' : 's'}.`, `Najwyższa wieża: ${cnt(S.res.best, '', '', 'klocek', 'klocki', 'klocków')}.`)}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.placed} stacked · ${st.perfect} perfect · ${st.crashes} crash${st.crashes === 1 ? '' : 'es'}</span></div>
-          <strong>${p.pts}<small>pts</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.placed} stacked · ${st.perfect} perfect · ${st.crashes} crash${st.crashes === 1 ? '' : 'es'}`, `ułożone: ${st.placed} · idealne: ${st.perfect} · zawalenia: ${st.crashes}`)}</span></div>
+          <strong>${p.pts}<small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -214,7 +216,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 
