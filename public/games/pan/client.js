@@ -51,7 +51,7 @@ export function mount(app, ctx) {
   const root = app.querySelector('.pn'), $ = id => root.querySelector('#' + id);
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
-  let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sent = 0, dealUntil = 0, dealTimer = 0;
+  let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sent = 0, pick = -1, dealUntil = 0, dealTimer = 0;
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -111,9 +111,11 @@ export function mount(app, ctx) {
     if (p.out) { setHtml(hand, ''); setHtml(ctl, `<span class="pn-wait safe"><span>You are out of cards, so you are safe. ${ORD(p.out)} place!</span></span>`); layout(); return; }
     const n = mine.length, wide = innerWidth >= 700, cw = wide ? 74 : 54, rows = !wide && n > 8 ? 2 : 1, per = Math.ceil(n / rows);
     const room = Math.min(innerWidth - (wide ? 60 : 28), 980), gap = per > 1 ? Math.min(6, (room - per * cw) / (per - 1)) : 0;
+    if (!turn || busy) pick = -1;
+    const picked = c => pick === rankOf(c) && can(c);
     const can = c => turn && !busy && !dealing() && canPlay(mine, S.pile, [c]);
     hand.style.setProperty('--gap', gap.toFixed(1) + 'px'); hand.style.setProperty('--per', per);
-    const btn = (c, k) => `<button type="button" class="pn-card${can(c) ? ' ok' : ''}${k % per === 0 ? ' first' : ''}" data-a="card" data-c="${c}"${can(c) ? '' : ' aria-disabled="true"'}>${cardHtml(c, { cls: 'big' })}</button>`;
+    const btn = (c, k) => `<button type="button" class="pn-card${can(c) ? ' ok' : ''}${picked(c) ? ' sel' : ''}${k % per === 0 ? ' first' : ''}" data-a="card" data-c="${c}"${can(c) ? '' : ' aria-disabled="true"'}>${cardHtml(c, { cls: 'big' })}</button>`;
     setHtml(hand, Array.from({ length: rows }, (_, r) => `<div class="pn-rowc">${mine.slice(r * per, (r + 1) * per).map((c, k) => btn(c, k)).join('')}</div>`).join(''));
     hand.classList.toggle('two', rows === 2); hand.classList.toggle('turn', turn && !busy);
     if (dealing() || S.stage === 'deal') setHtml(ctl, `<span class="pn-wait"><span>Dealing the cards…</span></span>`);
@@ -121,12 +123,13 @@ export function mount(app, ctx) {
       const k = drawCount(S.pile), sets = plays(mine, S.pile).filter(cs => cs.length > 1), t = S.pile.length ? rankOf(top(S.pile)) : -1;
       const stuck = t >= 0 ? mine.filter(c => rankOf(c) < t).length : 0;
       let hint = '';
-      if (!S.pile.length) hint = 'You hold the nine of hearts, so you start with it.';
+      if (sets.some(cs => rankOf(cs[0]) === pick)) hint = `Press the button to play all the ${rankWord(pick, true)} together, or tap one of them again to play only that card.`;
+      else if (!S.pile.length) hint = 'You hold the nine of hearts, so you start with it.';
       else if (!plays(mine, S.pile).length) hint = `Nothing you hold beats ${aRank(t)}. Pick up ${k === 1 ? 'the top card' : 'the top ' + k}.`;
       else if (stuck) hint = `Tap ${orHigher(t)} to play it. Your lower card${stuck === 1 ? '' : 's'} can only go once the pile is picked back down.`;
       else hint = t === 7 ? 'Tap any card to play it.' : `Tap ${orHigher(t)} to play it.`;
       setHtml(ctl, `<div class="pn-go">
-          ${sets.map((cs, j) => `<button type="button" class="btn big m" data-a="set" data-j="${j}">Play ${cs.length === 4 ? 'all four' : 'three'} ${rankWord(rankOf(cs[0]), true)}</button>`).join('')}
+          ${sets.map((cs, j) => `<button type="button" class="btn big m${rankOf(cs[0]) === pick ? ' pn-pulse' : ''}" data-a="set" data-j="${j}">Play ${cs.length === 4 ? 'all four' : 'three'} ${rankWord(rankOf(cs[0]), true)}</button>`).join('')}
           ${S.pile.length ? `<button type="button" class="btn big r" data-a="draw"${k ? '' : ' disabled'}>${k ? `Take ${k} ${mini(S.pile.slice(-k))}` : 'Nothing to take'}</button>` : ''}
         </div><p class="pn-hint">${hint}</p>`);
     } else if (S.stage === 'play' && S.turn >= 0) {
@@ -190,7 +193,7 @@ export function mount(app, ctx) {
     const fresh = s.gid !== gid, was = S ? S.turn + '/' + S.stage + '/' + S.mv : '';
     S = s;
     if (fresh) {
-      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sent = 0;
+      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sent = 0; pick = -1;
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
       if (s.ph === 'end') showResults();
       else if (s.stage === 'deal' && s.dealLeft > 500) { // cards flutter out before you can touch them
@@ -200,7 +203,7 @@ export function mount(app, ctx) {
       }
     }
     endsAt = performance.now() + Math.max(0, s.tLeft);
-    if (!fresh && myTurn() && was !== s.turn + '/' + s.stage + '/' + s.mv) { sfx.turn(); lastTick = -1; sent = 0; }
+    if (!fresh && myTurn() && was !== s.turn + '/' + s.stage + '/' + s.mv) { sfx.turn(); lastTick = -1; sent = 0; pick = -1; }
     render(); scene?.setState(s);
     if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
   }
@@ -281,7 +284,7 @@ export function mount(app, ctx) {
     if (!myTurn() || dealing() || Date.now() - sent < 1200) return;
     if (a.t === 'play' && !canPlay(me().hand, S.pile, a.cards)) { sfx.bad?.(); return; }
     if (a.t === 'draw' && !drawCount(S.pile)) return;
-    sent = Date.now(); sfx.click(); ctx.act(a); renderDock();
+    sent = Date.now(); pick = -1; sfx.click(); ctx.act(a); renderDock();
   }
   const onKey = e => {
     if (!myTurn() || e.target.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -298,7 +301,12 @@ export function mount(app, ctx) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
-    if (a === 'card') { if (b.classList.contains('ok')) go({ t: 'play', cards: [+b.dataset.c] }); else if (myTurn()) { sfx.bad?.(); b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); } }
+    if (a === 'card') {
+      const c = +b.dataset.c, r = rankOf(c);
+      // Holding a whole set you may play together: the first tap lifts the set and points at the button, a second tap plays the one card.
+      if (b.classList.contains('ok') && pick !== r && plays(me().hand, S.pile).some(cs => cs.length > 1 && cs.includes(c))) { pick = r; sfx.click(); renderDock(); }
+      else if (b.classList.contains('ok')) go({ t: 'play', cards: [c] }); else if (myTurn()) { sfx.bad?.(); b.classList.remove('no'); void b.offsetWidth; b.classList.add('no'); }
+    }
     else if (a === 'set') { const cs = plays(me().hand, S.pile).filter(x => x.length > 1)[+b.dataset.j]; if (cs) go({ t: 'play', cards: cs }); }
     else if (a === 'draw') go({ t: 'draw' });
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
