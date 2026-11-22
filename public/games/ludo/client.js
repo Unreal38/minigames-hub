@@ -4,6 +4,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { HOME, LAST, ringIndex, safeIndex } from './board.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -88,7 +89,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.col).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map(p => `<div class="lu-tag" hidden><i style="background:${esc(p.col)}"></i><b>${esc(p.name)}</b></div>`).join('');
+    tagsEl.innerHTML = S.seats.map(p => `<div class="lu-tag" hidden><i style="background:${esc(p.col)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
     tagEls = [...tagsEl.children];
   }
 
@@ -128,7 +129,7 @@ export function mount(app, ctx) {
     setHtml($('lu-list'), S.seats.map((p, i) => {
       const now = i === S.turn && S.ph === 'play', home = p.toks.filter(t => t === HOME).length, yard = p.toks.filter(t => t < 0).length;
       const dots = p.toks.map(t => `<u class="${t === HOME ? 'h' : t < 0 ? 'y' : 'b'}" style="--c:${esc(p.col)}"></u>`).sort().join('');
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${home} home, ${yard} in the yard">${avatarHtml(p.color, p.av, 30)}<i class="sw" style="background:${esc(p.col)}"></i><b>${esc(p.name)}</b><span class="dots">${dots}</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${home} home, ${yard} in the yard">${avatarHtml(p.color, p.av, 30)}<i class="sw" style="background:${esc(p.col)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="dots">${dots}</span></li>`;
     }).join(''));
   }
 
@@ -219,7 +220,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st, home = p.toks.filter(t => t === HOME).length;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'} · ${st.sixes} six${st.sixes === 1 ? '' : 'es'}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'} · ${st.sixes} six${st.sixes === 1 ? '' : 'es'}</span></div>
           <strong>${home}/${p.toks.length}<small>home</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;

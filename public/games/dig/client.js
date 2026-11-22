@@ -5,6 +5,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { PTS, TRAP } from './rules.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -88,7 +89,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : esc(p.name)}</b><span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => {
@@ -106,7 +107,7 @@ export function mount(app, ctx) {
     const order = S.seats.map((_, i) => i);
     setHtml($('td-list'), order.map(i => {
       const p = S.seats[i], st = p.st, now = i === S.turn && S.ph === 'play' && S.stage !== 'start';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? 'You' : esc(p.name)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${shownFinds(i)} finds">${gemSvg(1)}${shownFinds(i)}</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${shownFinds(i)} finds">${gemSvg(1)}${shownFinds(i)}</span></li>`;
     }).join(''));
   }
 
@@ -217,7 +218,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i];
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span class="td-finds">${finds(p.st)}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span class="td-finds">${finds(p.st)}</span></div>
           <strong>${p.pts}<small>points</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Dig again')}</div></div>`;

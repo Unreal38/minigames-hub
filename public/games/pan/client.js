@@ -7,6 +7,7 @@ import { reactHtml } from '../../react.js';
 import { cardHtml } from '../poker/cards.js';
 import { RANK_NAMES } from '../poker/rules.js';
 import { rankOf, canPlay, drawCount, plays, top, NINE_H } from './rules.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -81,7 +82,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${esc(p.name)}</b><span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     const L = S.ph === 'play' && S.stage === 'play' ? S.last : null;
@@ -217,7 +218,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, pan = i === S.pan;
         return `<li class="${k === 0 ? 'won' : ''}${pan ? ' pan' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${st.played} card${st.played === 1 ? '' : 's'} played · ${st.drawn} picked up</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.played} card${st.played === 1 ? '' : 's'} played · ${st.drawn} picked up</span></div>
           <strong><span>${pan ? 'Pan' : p.out ? 'Safe' : ''}</span><small>${S.res.left[i] ? `${S.res.left[i]} card${S.res.left[i] === 1 ? '' : 's'} left` : 'out of cards'}</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Deal again')}</div></div>`;

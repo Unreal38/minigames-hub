@@ -15,7 +15,7 @@ fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, 
   pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 3000, owned: [] },
   pb: { pid: 'pb', user: 'bo', name: 'Bo', color: '#5b9bd5', av: null, xp: 0, games: 1, wins: 0, pts: 0, byGame: { hotpot: { games: 1, wins: 0, best: 0 } }, coins: 5, owned: [] } },
   sessions: { [TA]: { id: 'aaa', pid: 'pa', seen: Date.now() }, [TB]: { id: 'bbb', pid: 'pb', seen: Date.now() } }, rooms: [] }));
-srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10' }, stdio: 'inherit' });
+srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10', FARM_TEST: '1' }, stdio: 'inherit' });
 await wait(700);
 function player(token, name) {
   const p = { msgs: [], me: null, room: null, rk: null };
@@ -88,6 +88,23 @@ if (!a.err(/not on your farm/) || b.room.players.find(p => p.name === 'Ana').pet
 a.send({ t: 'wear', k: 'pet', i: pets[0].id }); await wait(200);
 const pal = b.room.players.find(p => p.name === 'Ana').pet;
 if (pal?.sp !== 'mossbun' || pal.id || a.me.cos.pet !== pets[0].id) fail('companion not shown at the table');
+// up to three pets can be shown off on the isle; the first is the waiting-room companion
+a.send({ t: 'farm', a: { t: 'open', test: { pet: 'puddlepup' } } }); await wait(150);
+a.msgs.length = 0; a.send({ t: 'pets' }); await wait(200);
+const two = a.msgs.find(m => m.t === 'pets').pets;
+a.send({ t: 'wear', k: 'pets', i: [two[1].id, two[0].id] }); await wait(200);
+if (a.me.cos.pets?.join() !== [two[1].id, two[0].id].join() || b.room.players.find(p => p.name === 'Ana').pet?.sp !== 'puddlepup') fail('isle pets not saved in order');
+a.send({ t: 'wear', k: 'pets', i: [two[0].id, 'nope'] }); await wait(200);
+if (a.me.cos.pets[0] !== two[1].id) fail('an unknown pet got onto the isle');
+// anyone can open a player's profile card by the public tag on their rows; it shows no ids or usernames
+const tag = b.room.players.find(p => p.name === 'Ana').pt;
+b.msgs.length = 0; b.send({ t: 'player', pt: tag }); await wait(200);
+const card = b.msgs.find(m => m.t === 'player')?.p;
+if (!card || card.name !== 'Ana' || card.pets.length !== 2 || card.pets[0].sp !== 'puddlepup' || card.fl.nm !== NM || card.me) fail('profile card missing or wrong');
+if (/"(pid|user|id|owned|coins)"/.test(JSON.stringify(card)) || !/^[0-9a-f]{12}$/.test(tag)) fail('profile card leaks private fields');
+b.msgs.length = 0; b.send({ t: 'player', pt: 'ffffffffffff' }); await wait(150);
+if (!b.err(/not around/)) fail('unknown profile tag was answered');
+a.send({ t: 'wear', k: 'pets', i: [two[0].id] }); await wait(200);
 b.send({ t: 'pets' }); await wait(150);
 if (b.msgs.find(m => m.t === 'pets')?.pets.length) fail('Bo has pets without a farm');
 // a tampered profile shows nothing it has not unlocked
@@ -98,5 +115,5 @@ srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '
 const c = player(TA, 'Ana'); await c.connect(); await wait(300);
 if (c.me.cos.pet !== pets[0].id || c.me.cos.kp !== 2 || c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
 srv.kill();
-console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, pet companion, flair at the table, in chat and in rankings');
+console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, isle pets, profile cards, flair at the table, in chat and in rankings');
 process.exit(0);

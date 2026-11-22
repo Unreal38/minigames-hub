@@ -3,6 +3,7 @@ import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -261,7 +262,7 @@ export function mount(app, ctx) {
       <ol class="score">${seats.map((i, n) => {
         const p = S.seats[i], pay = S.res.pay[i], b = pay.bet;
         return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${b ? `bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}` : 'no bet'}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${b ? `bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}` : 'no bet'}</span></div>
           <strong class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}<small>${I.coin}${pay.coins}</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Race again')}</div></div>`;

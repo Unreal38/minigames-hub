@@ -5,6 +5,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { FACES, NAME, faceWord, matches, legal, lowest, chance } from './rules.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -94,7 +95,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="ld-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${esc(p.name)}</b><span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="ld-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => {
@@ -127,7 +128,7 @@ export function mount(app, ctx) {
       }).join('');
       else dice = dieSvg(0).repeat(p.n);
       const lose = sh && verdict && sh.lose.includes(i);
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' ld-me' : ''}${p.n ? '' : ' out'}${lose ? ' lose' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span class="ld-row${open ? ' open' : ''}">${dice}${lose ? '<u>−1</u>' : ''}</span></div></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' ld-me' : ''}${p.n ? '' : ' out'}${lose ? ' lose' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span class="ld-row${open ? ' open' : ''}">${dice}${lose ? '<u>−1</u>' : ''}</span></div></li>`;
     }).join(''));
   }
 
@@ -274,7 +275,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${esc(p.name)}${i === S.me ? ' (you)' : ''}</b><span>${st.bids} bid${st.bids === 1 ? '' : 's'} · ${st.right} of ${st.calls} call${st.calls === 1 ? '' : 's'} right</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.bids} bid${st.bids === 1 ? '' : 's'} · ${st.right} of ${st.calls} call${st.calls === 1 ? '' : 's'} right</span></div>
           <strong><span>${p.n ? dieSvg(0) + p.n : ''}</span><small>${p.n ? 'dice left' : 'out'}</small></strong></li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;

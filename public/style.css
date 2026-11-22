@@ -909,3 +909,31 @@ body.night .mpframe { background: linear-gradient(160deg, #34336b, #4a3f7a); }
   .mpwin { flex-direction: column; align-items: flex-start; } .mpframe { width: 76px; height: 76px; } .mpframe .mppic { width: 76px; height: 76px; }
   .mppick { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); } .mpstat { min-width: 0; flex: 1 1 auto; padding: 7px 8px; } .mpstat b { font-size: 16px; }
 }
+
+/* A player's profile card (click a player anywhere): their isle on the left, what they have done on the right */
+[data-prof] { cursor: pointer; }
+.palno { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: #fff; font: 700 12px/1 var(--fd); font-style: normal; }
+.sheet.psheet { width: min(880px, 100%); }
+.pcard { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; align-items: stretch; }
+.pisle { position: relative; min-height: 380px; border-radius: 22px; border: 3px solid var(--ink); overflow: hidden; background: linear-gradient(#8fd0f7, #d9f1ff); display: flex; flex-direction: column; }
+body.night .pisle { background: linear-gradient(#1c1a4a, #3a3478); }
+.pisle .art { position: relative; flex: 1; min-height: 300px; display: grid; place-items: center; }
+.pisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; touch-action: pan-y; }
+.ppets { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; justify-content: center; background: color-mix(in srgb, var(--pan, #fff4e2) 82%, transparent); border-top: 3px solid var(--ink); }
+.ppets span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 2px; border-radius: 999px; background: var(--chip, #fff); border: 2px solid var(--edge, #c9a99a); color: var(--tx, var(--ink)); font-size: 14px; } .ppets .palpic { margin: 0; }
+.pinfo { display: flex; flex-direction: column; gap: 12px; min-width: 0; color: var(--tx, var(--ink)); }
+.pinfo h3 { font-size: 18px; margin: 4px 0 -4px; color: var(--tx, var(--ink)); }
+.phead { display: flex; align-items: center; gap: 22px; padding: 14px 8px 6px 16px; } .phead > div { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 0; }
+.phead h2 { font-size: 28px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .phead small { font-size: 13.5px; color: var(--tx2, #6b4a3c); }
+.phead .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #9aa; margin-right: 5px; } .phead .dot.on { background: #3fbf6a; }
+.pstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pstats span { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 14px; background: var(--chip, #fff7ec); border: 2.5px solid var(--edge, #c9a99a); font-size: 12.5px; color: var(--tx2, #6b4a3c); }
+.pstats b { font: 700 20px/1.2 var(--fd); color: var(--tx, var(--ink)); }
+.ptop { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.ptop li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 12px; border-radius: 12px; background: var(--chip, #fff7ec); border: 2px solid var(--edge, #c9a99a); font-size: 14.5px; } .ptop span { color: var(--tx2, #6b4a3c); }
+.pkit { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 760px) { .pcard { grid-template-columns: 1fr; } .pisle { min-height: 300px; } .pisle .art { min-height: 230px; } }
+
+/* Name tags inside the games: the player's name colour and, small, their title */
+[class*="-tag"] .ttl { display: inline-block; background: #ffe1a0; color: #3b2219; border-color: #3b2219; font-size: 10.5px; line-height: 1.25; padding: 0 6px; margin: 0 0 0 5px; vertical-align: middle; white-space: nowrap; }
+body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color: #3b2219; font-size: 11.5px !important; width: fit-content; }
