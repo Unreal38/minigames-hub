@@ -40,7 +40,14 @@ export function createScene(canvas, { onPick, onGhost }) {
 
   let seenOnce = false, farmKey = '';
   let farm = null, N = 10, edit = false, dead = false, W = 0, H = 0;
-  const cam = { az: .6, el: .82, dist: 19, tx: 0, tz: 0 };
+  const cam = { az: .6, el: .82, dist: 19, tx: 0, tz: 0, gx: 0, gz: 0, follow: null, zoom: 0, back: null };
+  // Panning: the camera looks at (tx, tz), which eases towards the goal (gx, gz). A pet whose card is open is followed.
+  const panBy = (dx, dy) => { const s = cam.dist * .0017, c = Math.cos(cam.az), n = Math.sin(cam.az), lim = N / 2; cam.follow = null; cam.back = null; cam.zoom = 0;
+    cam.gx = Math.max(-lim, Math.min(lim, cam.gx - (dx * c + dy * n) * s)); cam.gz = Math.max(-lim, Math.min(lim, cam.gz - (dy * c - dx * n) * s)); };
+  function followPet(id) {
+    if (id && pets.has(id)) { if (!cam.follow) cam.back ||= { x: cam.gx, z: cam.gz, d: cam.dist }; cam.follow = id; cam.zoom = Math.min(cam.dist, Math.max(10, N)); }
+    else if (cam.follow) { cam.follow = null; if (cam.back) { cam.gx = cam.back.x; cam.gz = cam.back.z; cam.zoom = cam.back.d; cam.back = null; } }
+  }
   let lift = 0, liftNow = -1; // how far the picture is pushed up to clear the panels at the bottom (share of the height)
   const wx = (x, w = 1) => x + w / 2 - N / 2, wz = (y, h = 1) => y + h / 2 - N / 2;
 
@@ -130,7 +137,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     fineLines = new THREE.LineSegments(fg, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: .28 })); land.add(fineLines); gridVis();
     scene.add(land); buildDrift();
     const s = N / 2 + 3; Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 50 }); sun.shadow.camera.updateProjectionMatrix();
-    cam.dist = Math.min(Math.max(cam.dist, N * 1.6), N * 2.6);
+    cam.dist = Math.min(Math.max(cam.dist, N * 1.6), N * 2.6); cam.gx = cam.gz = 0; cam.follow = cam.back = null; cam.zoom = 0;
   }
 
   // ---------- items ----------
@@ -835,7 +842,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!starters) {
       starters = true;
       STARTERS.forEach((sp, i) => { const p = addPet('starter:' + sp, sp, 0, (i - 1) * 2.6, 0); p.fixed = true; p.g.scale.multiplyScalar(2.2); p.g.userData.base = p.g.scale.x; p.big = 2.2; });
-      cam.az = 0; cam.el = .4; cam.dist = 11;
+      cam.az = 0; cam.el = .4; cam.dist = 11; cam.tx = cam.tz = cam.gx = cam.gz = 0; cam.follow = cam.back = null; cam.zoom = 0;
     }
     starSel = sel || null;
   }
@@ -944,20 +951,22 @@ export function createScene(canvas, { onPick, onGhost }) {
     setMark('hover', t); canvas.style.cursor = t ? 'pointer' : '';
   }
 
-  const ptrs = new Map(); let drag = null, pinch = 0;
+  const ptrs = new Map(); let drag = null, pinch = 0, pinchAt = null;
+  canvas.addEventListener('contextmenu', e => e.preventDefault()); // the right button pans
   canvas.addEventListener('pointerdown', e => {
     canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e);
-    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); drag = null; return; }
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); pinchAt = null; drag = null; return; }
     const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1, st = ghost ? stepOf(ghost.type) : 1; // tx, ty: where on the grid, in tiles
     drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false,
-      mode: ghost && inGhost(tx, ty) ? 'ghost' : 'orbit', ox: snap(tx, st) - (ghost?.x || 0), oy: snap(ty, st) - (ghost?.y || 0) };
+      mode: ghost && inGhost(tx, ty) ? 'ghost' : e.button === 2 || e.button === 1 || e.shiftKey ? 'pan' : 'orbit', ox: snap(tx, st) - (ghost?.x || 0), oy: snap(ty, st) - (ghost?.y || 0) };
   });
   canvas.addEventListener('pointermove', e => {
     if (!ptrs.has(e.pointerId)) return;
     ptrs.set(e.pointerId, e);
     if (ptrs.size === 2) {
       const [a, b] = [...ptrs.values()], d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-      if (pinch) { if (mapOn) zoomMap(pinch / d); else cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * pinch / d)); } pinch = d; return;
+      const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+      if (pinch) { if (mapOn) zoomMap(pinch / d); else { cam.zoom = 0; cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * pinch / d)); if (!starters && !fighting && pinchAt) panBy(mx - pinchAt[0], my - pinchAt[1]); } } pinch = d; pinchAt = [mx, my]; return;
     }
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
@@ -969,11 +978,12 @@ export function createScene(canvas, { onPick, onGhost }) {
       const nx = Math.max(0, Math.min(N - w, snap(g.x + N / 2, st) - drag.ox)), ny = Math.max(0, Math.min(N - h, snap(g.z + N / 2, st) - drag.oy));
       if (nx !== ghost.x || ny !== ghost.y) { ghost.x = nx; ghost.y = ny; ghostCheck(); }
     } else if (mapOn) { cam.waz -= dx * .006; }
+    else if (drag.mode === 'pan') { if (!starters && !fighting) panBy(dx, dy); }
     else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.16, cam.el + dy * .005)); }
   });
   const up = e => {
     if (!ptrs.delete(e.pointerId)) return;
-    pinch = 0;
+    pinch = 0; pinchAt = null;
     const d = drag; drag = null;
     if (!d || d.moved || performance.now() - d.t > 500 || ptrs.size) return;
     const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1;
@@ -993,7 +1003,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
   const zoomMap = k => { mapZoom = Math.min(1, Math.max(Math.min(1, 26 / mapFar), mapZoom * k)); };
-  canvas.addEventListener('wheel', e => { e.preventDefault(); if (mapOn) return zoomMap(Math.exp(e.deltaY * .0012)); cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * Math.exp(e.deltaY * .0012))); }, { passive: false });
+  canvas.addEventListener('wheel', e => { e.preventDefault(); if (mapOn) return zoomMap(Math.exp(e.deltaY * .0012)); cam.zoom = 0; cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * Math.exp(e.deltaY * .0012))); }, { passive: false });
 
   // ---------- frame ----------
   function resize() {
@@ -1033,6 +1043,9 @@ export function createScene(canvas, { onPick, onGhost }) {
       renderer.render(world, camera); return;
     }
     const k = Math.max(1, (starters ? 1.1 : .75) * H / Math.max(1, W)); // narrow screens need to stand further back
+    const fp = cam.follow && pets.get(cam.follow); if (cam.follow && !fp) followPet(null); else if (fp) { cam.gx = fp.g.position.x; cam.gz = fp.g.position.z; }
+    const ease = Math.min(1, dt * 5); cam.tx += (cam.gx - cam.tx) * ease; cam.tz += (cam.gz - cam.tz) * ease;
+    if (cam.zoom) { cam.dist += (cam.zoom - cam.dist) * Math.min(1, dt * 4); if (Math.abs(cam.zoom - cam.dist) < .05) cam.zoom = 0; }
     const d = cam.dist * k, ce = Math.cos(cam.el);
     camera.position.set(cam.tx + Math.sin(cam.az) * ce * d, Math.sin(cam.el) * d, cam.tz + Math.cos(cam.az) * ce * d);
     camera.lookAt(cam.tx, starters ? .9 : 0, cam.tz);
@@ -1063,9 +1076,10 @@ export function createScene(canvas, { onPick, onGhost }) {
     setOwner(o, g = []) { owner = o; guests = g; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
     // the pet or building whose card is open: { pet: id } or { item: id } or null
-    select(t) { setMark('pick', t); },
+    select(t) { const k = keyOf(t); if (k !== marks.pick.key) followPet(t?.pet || null); setMark('pick', t); },
     ghostNew(type, near = null, r = 0) { if (!farm || !ITEMS[type]) return; const [x, y] = firstSpot(type, near, r); ghostStart(type, null, x, y, r); },
     ghostItem(id) { const it = farm?.items.find(i => i.id === id); if (it) ghostStart(it.type, it.id, it.x, it.y, it.r); },
+    pan(dx, dy) { if (!starters && !fighting && !mapOn) panBy(dx, dy); },
     ghostRotate() {
       if (!ghost) return;
       ghost.r = (ghost.r + 1) % 4;
