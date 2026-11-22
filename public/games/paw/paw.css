@@ -148,7 +148,7 @@ body.in-game { overflow: hidden; }
 }
 body:has(.pw) #toasts { top: 150px; }
 @media (max-width: 1150px) { body:has(.pw) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.pw) .chatbtn .lbl, body:has(.pw) .scorebtn .lbl { display: none; } }
-body.night .pw .tcode { color: var(--cream); }
+/* night room code colour lives in style.css (body.night .tr .tcode) */
 
 /* the flag over the tile a roll leads to */
 .pw .pw-aim { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none !important; white-space: nowrap; background: var(--cream, #fff4e2); color: var(--ink, #3b2219); border: 3px solid var(--ink, #3b2219); border-bottom: 6px solid var(--c, #fff); border-radius: 14px; padding: 4px 12px; font-size: 15px; box-shadow: 0 4px 0 #0002; }
