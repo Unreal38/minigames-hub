@@ -1,7 +1,7 @@
 // Pip Party rules shared by the server and the client: the 13 boxes on the score sheet and what a roll is worth in each.
 // The ruleset follows the classic Polish five-dice game: 13 rounds, three rolls a round, keep any dice between rolls,
 // then write the roll into one empty box (a 0 when it does not fit). Upper boxes 63+ pay a 35 bonus.
-export const ROUNDS = 13, ROLLS = 3, NDICE = 5;
+export const ROUNDS = 13 /* per column */, ROLLS = 3, NDICE = 5;
 export const UPPER_NEED = 63, UPPER_BONUS = 35, GEN_BONUS = 100;
 // box ids in sheet order; 0..5 are ones..sixes
 export const BOXES = ['1', '2', '3', '4', '5', '6', 'k3', 'k4', 'full', 'ss', 'ls', 'gen', 'ch'];
@@ -30,19 +30,29 @@ export function plain(box, dice) {
     default: { const f = +box; return f >= 1 && f <= 6 ? c[f] * f : 0; }
   }
 }
-// A second five-of-a-kind is a joker once its box and the matching upper box are both filled:
-// in the lower boxes it scores as a full house (25), small run (30), big run (40) or the dice sum.
-export const joker = (dice, sheet) => isGen(dice) && sheet.gen != null && sheet[dice[0]] != null;
-export function score(box, dice, sheet) {
-  if (joker(dice, sheet) && LOWER.includes(box) && box !== 'gen') return { full: 25, ss: 30, ls: 40 }[box] ?? sum(dice);
+// A sheet is a list of columns: one in the classic game, three in the triple game, where the second column counts
+// double and the third triple (so its 63 bonus is worth 105). Every column has all 13 boxes.
+export const MULT = [1, 2, 3];
+// A further five-of-a-kind is a joker once every column's Pip Party box and every column's top box for that number
+// are filled: in the lower boxes it scores as a full house (25), small run (30), big run (40) or the dice sum.
+export const joker = (dice, cols) => isGen(dice) && cols.every(c => c.gen != null && c[dice[0]] != null);
+// What the dice score in a box of one column, before the column's multiplier.
+export function score(box, dice, cols) {
+  if (joker(dice, cols) && LOWER.includes(box) && box !== 'gen') return { full: 25, ss: 30, ls: 40 }[box] ?? sum(dice);
   return plain(box, dice);
 }
-// The 100-point bonus for another five-of-a-kind: only when the first one went into its own box for 50 and this one is played as a joker.
-export const genBonus = (dice, sheet) => joker(dice, sheet) && sheet.gen === 50 ? GEN_BONUS : 0;
+// The 100-point bonus for a joker (times the column it is written in): only when every Pip Party box scored 50 and
+// no five-of-a-kind was written somewhere else while a Pip Party box was still empty (`wasted`).
+export const genBonus = (dice, cols, ci = 0, wasted = false) => (joker(dice, cols) && !wasted && cols.every(c => c.gen === 50) ? GEN_BONUS * MULT[ci] : 0);
+// What writing the dice into that box adds to the player's total.
+export const worth = (box, dice, cols, ci = 0, wasted = false) => score(box, dice, cols) * MULT[ci] + genBonus(dice, cols, ci, wasted);
 
 export const open = sheet => BOXES.filter(b => sheet[b] == null);
 export const upperSum = sheet => UPPER.reduce((a, b) => a + (sheet[b] || 0), 0);
 export const lowerSum = sheet => LOWER.reduce((a, b) => a + (sheet[b] || 0), 0);
 export const bonusOf = sheet => (upperSum(sheet) >= UPPER_NEED ? UPPER_BONUS : 0);
-export const total = (sheet, extra = 0) => upperSum(sheet) + bonusOf(sheet) + lowerSum(sheet) + extra;
+export const colTotal = sheet => upperSum(sheet) + bonusOf(sheet) + lowerSum(sheet);
+export const total = (cols, extra = 0) => cols.reduce((a, c, i) => a + colTotal(c) * MULT[i], 0) + extra;
+export const openCount = cols => cols.reduce((a, c) => a + open(c).length, 0);
+export const blankCols = n => Array.from({ length: n }, blankSheet);
 export const blankSheet = () => Object.fromEntries(BOXES.map(b => [b, null]));

@@ -5,7 +5,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
-import { BOXES, UPPER, LOWER, LABEL, SHORT, HINT, ROLLS, UPPER_NEED, UPPER_BONUS, score, genBonus, upperSum, lowerSum, bonusOf, isGen } from './rules.js';
+import { BOXES, UPPER, LOWER, LABEL, SHORT, HINT, ROLLS, UPPER_NEED, UPPER_BONUS, MULT, worth, open, colTotal, upperSum, lowerSum, bonusOf } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -53,7 +53,7 @@ export function mount(app, ctx) {
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sent = 0;
-  let rollUntil = 0, rollTimer = 0, armed = '', sheetOpen = false;
+  let rollUntil = 0, rollTimer = 0, armed = '', sheetOpen = false, tab = -1, tabKey = '';
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -69,6 +69,7 @@ export function mount(app, ctx) {
   const rolling = () => performance.now() < rollUntil;
   const myTurn = () => !!(S && S.ph === 'play' && S.stage === 'turn' && S.turn === S.me && me() && !me().bot && !S.auto);
   const canAct = () => myTurn() && !rolling() && Date.now() - sent > 350;
+  const triple = () => S.ncols > 1;
   const shown = () => S && S.stage === 'turn' && S.rolls > 0 && !rolling(); // the dice on the felt can be read
 
   function onFrame(info) {
@@ -109,26 +110,34 @@ export function mount(app, ctx) {
   }
 
   // ----- the score sheet: one column per player; the roller's empty boxes show what this roll would score -----
+  // Classic: one column per player. Triple: one player at a time (tabs along the top), with their three columns.
   function sheetHtml() {
-    const roller = shown() ? S.turn : -1, mine = roller === S.me && myTurn();
-    const prev = (i, b) => { const p = S.seats[i]; return score(b, S.dice, p.sheet) + genBonus(S.dice, p.sheet); };
-    const head = S.seats.map((p, i) => `<th class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}${i === S.me ? ' mine' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span></th>`).join('');
-    const cell = (i, b) => {
-      const v = S.seats[i].sheet[b];
-      if (v != null) return `<td class="done${S.last && S.last.s === i && S.last.box === b && S.stage === 'pick' ? ' fresh' : ''}${v === 0 ? ' zero' : ''}">${v}</td>`;
+    const roller = shown() ? S.turn : -1, mine = roller === S.me && myTurn(), tri = triple();
+    if (tri) { const k = S.gid + '/' + S.round + '/' + S.turn; if (k !== tabKey) { tabKey = k; tab = S.turn >= 0 ? S.turn : Math.max(0, S.me); } if (!S.seats[tab]) tab = 0; }
+    // the columns on show: [seat, column index]
+    const colsOn = tri ? [0, 1, 2].map(ci => [tab, ci]) : S.seats.map((_, i) => [i, 0]);
+    const head = tri ? colsOn.map(([, ci]) => `<th class="mul">×${MULT[ci]}</th>`).join('')
+      : S.seats.map((p, i) => `<th class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}${i === S.me ? ' mine' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span></th>`).join('');
+    const cell = ([i, ci], b) => {
+      const p = S.seats[i], v = p.cols[ci][b], m = MULT[ci];
+      if (v != null) return `<td class="done${S.last && S.last.s === i && S.last.box === b && S.last.col === ci && S.stage === 'pick' ? ' fresh' : ''}${v === 0 ? ' zero' : ''}">${v * m}</td>`;
       if (i !== roller) return '<td></td>';
-      const p = prev(i, b);
-      if (!mine) return `<td class="pv${p ? '' : ' zero'}">${p}</td>`;
-      return `<td class="pv pick"><button type="button" data-a="pick" data-box="${b}" class="${p ? '' : 'zero'}${armed === b ? ' armed' : ''}" aria-label="${LABEL[b]}: ${p} points">${armed === b ? '0?' : p}</button></td>`;
+      const w = worth(b, S.dice, p.cols, ci, p.waste), id = b + '/' + ci;
+      if (!mine) return `<td class="pv${w ? '' : ' zero'}">${w}</td>`;
+      return `<td class="pv pick"><button type="button" data-a="pick" data-box="${b}" data-col="${ci}" class="${w ? '' : 'zero'}${armed === id ? ' armed' : ''}" aria-label="${LABEL[b]}${tri ? `, column ×${m}` : ''}: ${w} points">${armed === id ? '0?' : w}</button></td>`;
     };
-    const row = b => `<tr><th scope="row" title="${esc(HINT[b])}">${b.length === 1 ? dieSvg(+b) : ''}<span>${LABEL[b]}</span></th>${S.seats.map((_, i) => cell(i, b)).join('')}</tr>`;
-    const sumRow = (lbl, f, cls) => `<tr class="${cls}"><th scope="row">${lbl}</th>${S.seats.map((p, i) => `<td>${f(p, i)}</td>`).join('')}</tr>`;
-    return `<table><thead><tr><th></th>${head}</tr></thead><tbody>
+    const row = b => `<tr><th scope="row" title="${esc(HINT[b])}">${b.length === 1 ? dieSvg(+b) : ''}<span>${LABEL[b]}</span></th>${colsOn.map(c => cell(c, b)).join('')}</tr>`;
+    const sumRow = (lbl, f, cls) => `<tr class="${cls}"><th scope="row">${lbl}</th>${colsOn.map(([i, ci]) => `<td>${f(S.seats[i], S.seats[i].cols[ci], ci)}</td>`).join('')}</tr>`;
+    const tabs = tri ? `<div class="pp-tabs" role="tablist">${S.seats.map((p, i) => `<button type="button" role="tab" data-a="tab" data-i="${i}" aria-selected="${i === tab}" class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span><b>${p.tot}</b></button>`).join('')}</div>` : '';
+    const who = S.seats[tab];
+    return `${tabs}<table class="${tri ? 'tri' : ''}"><thead><tr><th></th>${head}</tr></thead><tbody>
       ${UPPER.map(row).join('')}
-      ${sumRow(`Bonus <small>${UPPER_NEED}+ = ${UPPER_BONUS}</small>`, p => (bonusOf(p.sheet) ? `<b class="yes">+${UPPER_BONUS}</b>` : `<small>${upperSum(p.sheet)}/${UPPER_NEED}</small>`), 'sub')}
+      ${sumRow(`Bonus <small>${UPPER_NEED}+ = ${UPPER_BONUS}</small>`, (p, c, ci) => (bonusOf(c) ? `<b class="yes">+${UPPER_BONUS * MULT[ci]}</b>` : `<small>${upperSum(c)}/${UPPER_NEED}</small>`), 'sub')}
       ${LOWER.map(row).join('')}
-      ${S.seats.some(p => p.extra) ? sumRow('Party bonus', p => (p.extra ? `<b class="yes">+${p.extra}</b>` : ''), 'sub') : ''}
-      ${sumRow('Total', p => `<b>${p.tot}</b>`, 'tot')}
+      ${tri ? sumRow('Column', (p, c, ci) => `<b>${colTotal(c) * MULT[ci]}</b>`, 'sub col') : ''}
+      ${tri ? (who.extra ? `<tr class="sub"><th scope="row">Party bonus</th><td colspan="3"><b class="yes">+${who.extra}</b></td></tr>` : '')
+        : S.seats.some(p => p.extra) ? sumRow('Party bonus', p => (p.extra ? `<b class="yes">+${p.extra}</b>` : ''), 'sub') : ''}
+      ${tri ? `<tr class="tot"><th scope="row">Total</th><td colspan="3"><b>${who.tot}</b></td></tr>` : sumRow('Total', p => `<b>${p.tot}</b>`, 'tot')}
     </tbody></table>`;
   }
   function renderSheet() {
@@ -157,9 +166,11 @@ export function mount(app, ctx) {
       const btn = `<button type="button" class="btn big pp-go" data-a="roll"${rollOk ? '' : ' disabled'}>${r ? `Roll again <small>${left} left</small>` : 'Roll the dice'}</button>`;
       let grid = '';
       if (!wide() && r && !roll && S.stage === 'turn') {
-        const sh = me().sheet;
-        grid = `<div class="pp-grid">${BOXES.filter(b => sh[b] == null).map(b => { const v = score(b, S.dice, sh) + genBonus(S.dice, sh);
-          return `<button type="button" data-a="pick" data-box="${b}" class="${v ? '' : 'zero'}${armed === b ? ' armed' : ''}"><span>${SHORT[b]}</span><b>${armed === b ? '0?' : v}</b></button>`; }).join('')}</div>`;
+        const cols = me().cols;
+        // the triple sheet has 39 boxes: too many for a grid, so the sheet itself opens for picking
+        grid = triple() ? '<button type="button" class="btn pp-write" data-a="sheet">Write it on your sheet</button>'
+          : `<div class="pp-grid">${open(cols[0]).map(b => { const v = worth(b, S.dice, cols, 0, me().waste), id = b + '/0';
+            return `<button type="button" data-a="pick" data-box="${b}" data-col="0" class="${v ? '' : 'zero'}${armed === id ? ' armed' : ''}"><span>${SHORT[b]}</span><b>${armed === id ? '0?' : v}</b></button>`; }).join('')}</div>`;
       }
       const hint = !r ? 'Roll all five dice to start your turn.' : roll ? 'Rolling…'
         : S.stage !== 'turn' ? '' : r < ROLLS ? (wide() ? 'Tap dice to keep them, then roll again, or pick a box on your sheet.' : 'Tap dice to keep them, then roll again, or pick a box.')
@@ -177,7 +188,7 @@ export function mount(app, ctx) {
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs}s` : '';
     if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!` : '';
     else if (S.stage === 'wait') msg = 'Grab your dice…';
-    else if (S.stage === 'pick' && S.last) msg = `${youOr(S.last.s)} wrote ${S.last.pts} in ${LABEL[S.last.box]}`;
+    else if (S.stage === 'pick' && S.last) msg = `${youOr(S.last.s)} wrote ${S.last.pts} in ${LABEL[S.last.box]}${triple() ? ` ×${MULT[S.last.col]}` : ''}`;
     else if (myTurn()) msg = (S.rolls ? `Your turn · roll ${S.rolls} of ${ROLLS}` : 'Your turn · roll the dice') + t;
     else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn${S.rolls ? ` · roll ${S.rolls} of ${ROLLS}` : ''}`;
     if (el.innerHTML !== msg) el.innerHTML = msg;
@@ -204,10 +215,10 @@ export function mount(app, ctx) {
     else if (e.t === 'roll') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 160); setTimeout(() => !destroyed && sfx.place(), S.ms.roll * .8); }
     else if (e.t === 'gen') setTimeout(() => { if (destroyed) return; big('Pip Party!', `${youOr(e.s)} rolled five of a kind`, 1800); sfx.win(); }, S.ms.roll);
     else if (e.t === 'pick') {
-      floatAt(e.s, `${e.pts ? '+' + e.pts : '0'} ${SHORT[e.box]}`, !e.pts);
+      floatAt(e.s, `${e.pts ? '+' + e.pts : '0'} ${SHORT[e.box]}${triple() ? ` ×${MULT[e.col]}` : ''}`, !e.pts);
       e.pts ? sfx.pop() : sfx.plop();
       if (e.bonus) setTimeout(() => { if (destroyed) return; big(`+${e.bonus}`, `${youOr(e.s)} ${e.s === S.me ? 'get' : 'gets'} the party bonus`, 1800); sfx.win(); }, 300);
-      else if (e.madeBonus) setTimeout(() => { if (destroyed) return; big(`+${UPPER_BONUS}`, `${e.s === S.me ? 'Your' : nameOf(e.s) + '’s'} top half reached ${UPPER_NEED}`, 1800); sfx.set(); if (e.s === S.me) confetti(); }, 300);
+      else if (e.madeBonus) setTimeout(() => { if (destroyed) return; big(`+${UPPER_BONUS * MULT[e.col || 0]}`, `${e.s === S.me ? 'Your' : nameOf(e.s) + '’s'} top half reached ${UPPER_NEED}`, 1800); sfx.set(); if (e.s === S.me) confetti(); }, 300);
     }
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); }
@@ -220,7 +231,7 @@ export function mount(app, ctx) {
     const fresh = s.gid !== gid, prevRoll = S?.rollN, prevStage = S ? S.turn + '/' + S.stage : '';
     S = s;
     if (fresh) {
-      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sheetOpen = false;
+      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sheetOpen = false; tabKey = '';
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
       if (s.ph === 'end') showResults(); else sfx.draw();
     }
@@ -245,9 +256,10 @@ export function mount(app, ctx) {
       <h2>${myPlace === 1 ? 'You win the party!' : `${nameOf(w)} wins!`}</h2>
       <p>${myPlace ? (myPlace === 1 ? `Top score with ${tot[S.me]} points.` : `You came ${ORD(myPlace)} with ${tot[S.me]} points.`) : ''}</p>
       <ol class="score">${S.res.order.map((i, k) => {
-        const p = S.seats[i], up = upperSum(p.sheet), b = bonusOf(p.sheet);
+        const p = S.seats[i], c0 = p.cols[0], up = upperSum(c0), b = bonusOf(c0);
+        const sub = triple() ? p.cols.map((c, ci) => `×${MULT[ci]}: ${colTotal(c) * MULT[ci]}`).join(' · ') : `Top ${up}${b ? ` +${b}` : ''} · bottom ${lowerSum(c0)}`;
         return `<li class="${place(i) === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place(i)}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>Top ${up}${b ? ` +${b}` : ''} · bottom ${lowerSum(p.sheet)}${p.extra ? ` · party +${p.extra}` : ''}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${sub}${p.extra ? ` · party +${p.extra}` : ''}</span></div>
           <strong><span>${tot[i]}</span><small>points</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
@@ -313,12 +325,13 @@ export function mount(app, ctx) {
     if (!canAct() || S.rolls >= ROLLS || S.stage !== 'turn' || (S.rolls && S.held.every(Boolean))) return;
     sent = Date.now(); armed = ''; sfx.click(); ctx.act({ t: 'roll' });
   }
-  function pick(box) {
+  function pick(box, col = 0) {
     if (!canAct() || !S.rolls || S.stage !== 'turn') return;
-    const sh = me().sheet; if (sh[box] != null) return;
+    const p = me(), sh = p.cols[col]; if (!sh || sh[box] != null) return;
     // a zero needs a second tap, so a slip of the finger does not throw a box away
-    if (!(score(box, S.dice, sh) + genBonus(S.dice, sh)) && armed !== box) { armed = box; sfx.warn(); render(); return; }
-    armed = ''; sent = Date.now(); sfx.place(); ctx.act({ t: 'pick', box }); sheetOpen = false; render();
+    const id = box + '/' + col;
+    if (!worth(box, S.dice, p.cols, col, p.waste) && armed !== id) { armed = id; sfx.warn(); render(); return; }
+    armed = ''; sent = Date.now(); sfx.place(); ctx.act({ t: 'pick', box, col }); sheetOpen = false; render();
   }
   const onKey = e => {
     if (e.target.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey || !myTurn()) return;
@@ -337,7 +350,8 @@ export function mount(app, ctx) {
     const a = b.dataset.a;
     if (a === 'hold') hold(+b.dataset.k);
     else if (a === 'roll') roll();
-    else if (a === 'pick') pick(b.dataset.box);
+    else if (a === 'pick') pick(b.dataset.box, +b.dataset.col || 0);
+    else if (a === 'tab') { sfx.click(); tab = +b.dataset.i; renderSheet(); layout(); }
     else if (a === 'sheet') { sfx.click(); sheetOpen = !sheetOpen; renderSheet(); }
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
@@ -350,7 +364,7 @@ export function mount(app, ctx) {
   // tapping outside the open sheet on a phone closes it
   root.addEventListener('pointerdown', e => { if (sheetOpen && !wide() && !e.target.closest('.pp-side, [data-a="sheet"]')) { sheetOpen = false; renderSheet(); } });
   root.addEventListener('pointerover', e => {
-    const b = e.target.closest('.btn, .round, .pp-dbtn, .pp-grid button, .pp-sheet button');
+    const b = e.target.closest('.btn, .round, button.pp-dbtn, .pp-grid button, .pp-sheet button');
     if (b && !b.disabled && !b.contains(e.relatedTarget)) sfx.hover();
   });
 
