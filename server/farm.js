@@ -570,7 +570,7 @@ export function handle(p, a, reply) {
     const [pid, x] = hit, id = fid(x);
     callOn(p, pid);
     saw(f, x.pets.filter(q => !away(x, q.id)).map(q => q.sp));
-    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x), nests: SLOTS.map(q => nestView(x, q)).filter(Boolean), garden: gardenView(x), train: { ids: x.train?.ids || [] }, trips: parties(x).map(t => ({ left: Math.max(1, t.until - Date.now()) })).filter(t => t.left > 1),
+    const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), col: q.col, pat: q.pat, el: q.el, cat: q.cat, open: !!q.open, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x), nests: SLOTS.map(q => nestView(x, q)).filter(Boolean), garden: gardenView(x), train: { ids: x.train?.ids || [] }, trips: parties(x).map(t => ({ left: Math.max(1, t.until - Date.now()) })).filter(t => t.left > 1),
       album: album(x),
       helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
     if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner

@@ -289,7 +289,7 @@ export function mount(app, ctx) {
         return `<button type="button" class="pickpet${why ? ' off' : ''}" data-a="nestpick" data-id="${x.id}" aria-pressed="${on}">${petRow(x, why ? ' · ' + why : '')}</button>`; }).join('');
       let pre = '';
       if (A && Bp) {
-        const odds = speciesOdds(A.sp, Bp.sp), genes = [...new Set([...A.col, ...Bp.col])], parts = [A, Bp].filter(x => x.sp !== (x === A ? Bp : A).sp).map(x => PART[x.sp]);
+        const odds = speciesOdds(A.sp, Bp.sp), genes = [...new Set([...(A.col || [0]), ...(Bp.col || [0])])], parts = [A, Bp].filter(x => x.sp !== (x === A ? Bp : A).sp).map(x => PART[x.sp]);
         const marks = [...new Set([...(A.pat || []), ...(Bp.pat || [])])];
         const vars = Object.entries(odds.filter(o => !o.hybrid).reduce((m, o) => { for (const [e, c] of variantOdds(o.sp, A, Bp)) m[e] = Math.max(m[e] || 0, c); return m; }, {}));
         pre = `<div class="pre"><b>What might hatch</b>
