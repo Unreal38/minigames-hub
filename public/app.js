@@ -1,5 +1,5 @@
-// Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
+// Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
+import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -13,7 +13,7 @@ import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
-export const SITE = 'Cozy Table';
+export const SITE = 'Zatoka Gier';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
 // (with flat stand-in heads) if that fails.
 let P3 = null, IP = null; // IP: item pictures for the wardrobe (itempic.js)
@@ -466,7 +466,7 @@ function connBar(mode) {
   if (!mode) { $conn.hidden = true; return; }
   $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced');
   if (mode === 'replaced') {
-    $conn.innerHTML = 'Cozy Table is open in another tab. <button type="button">Play here</button>';
+    $conn.innerHTML = SITE + ' is open in another tab. <button type="button">Play here</button>';
     $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
   } else $conn.textContent = 'Reconnecting…';
 }
@@ -860,7 +860,7 @@ function switchTheme(btn) {
 { const t = LS.get('ct_theme', ''); setNight(t ? t === 'night' : matchMedia('(prefers-color-scheme: dark)').matches, false); }
 
 const topbar = () => `<header class="top">
-  <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
+  <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
   ${st.view === 'lobby' ? '<nav class="navl" aria-label="Help"><a href="#" data-act="rules">How to play</a></nav>' : ''}
   <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them in the wardrobe">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
   <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="Your account">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
@@ -1197,7 +1197,7 @@ function renderLobby() {
   $app.innerHTML = `${topbar()}
   <main class="wrap lobby">
     <div class="main">
-      <div class="crumb">${potLogo(34)} ${esc(r.gameName)} · waiting room</div>
+      <div class="crumb">${siteLogo(34)} ${esc(r.gameName)} · waiting room</div>
       <div class="row" style="gap:22px">
         <div><div style="font-size:15px;color:var(--muted);margin-bottom:6px">Table code</div>
           <div class="codetiles" aria-label="Table code ${esc(r.code)}">${[...r.code].map(ch => `<span>${esc(ch)}</span>`).join('')}</div></div>

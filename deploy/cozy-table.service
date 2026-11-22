@@ -1,5 +1,5 @@
 [Unit]
-Description=Cozy Table minigames server
+Description=Zatoka Gier minigames server
 After=network.target
 
 [Service]
