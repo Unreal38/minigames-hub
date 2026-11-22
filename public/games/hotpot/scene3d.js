@@ -912,7 +912,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       if (name === 'bang') emit('bang', 1, { spread: .3, y: POT_Y + 1.4, size: .6 });
     },
     deal() { boil = 3; setMood('happy', 2.2, 1.4); emit('spark', 8, { gap: .12 }); punch = 1; pfx.burst(v.set(0, BROTH_Y + .3, 0), { n: 24, colors: ['#ffd84a', '#fff1a8', '#ffffff'], speed: 4, up: 5, size: .26, life: 1 }); for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
-    celebrate(r, hand) {
+    celebrate(r, hand, who) { // who: the seat number, for their win effect
       const from = r === 0 ? new THREE.Vector3(0, 1.4, 4.4) : handPos(r);
       (hand.length ? hand : Array.from({ length: 9 }, () => Math.random() * 72 | 0)).forEach((c, i) => hopIngredient(kindOf(c), from, i * 110));
       seats[r].hop = 1; setTimeout(() => { seats[r].hop = 1; }, 600);
@@ -921,7 +921,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       shake = 1; boil = 4; punch = 1;
       const sp = new THREE.Vector3(SEAT[r][0] * .8, 1.2, SEAT[r][1] * .8);
       pfx.burst(sp, { n: 30, colors: ['#ffd84a', '#ff9fb8', '#ffffff'], speed: 4.5, up: 5.5, size: .3, life: 1.1, shape: [STAR, HEART] });
-      pfx.confetti(new THREE.Vector3(0, 1, 0), { n: 140, w: 10, h: 5 }); setTimeout(() => pfx.confetti(new THREE.Vector3(0, 1, 0), { n: 100, w: 11, h: 5 }), 700);
+      pfx.confetti(new THREE.Vector3(0, 1, 0), { n: 140, w: 10, h: 5, s: who }); setTimeout(() => pfx.confetti(new THREE.Vector3(0, 1, 0), { n: 100, w: 11, h: 5, s: who }), 700);
       setTimeout(() => puff(new THREE.Vector3(0, BROTH_Y + .2, 0), 14, 2), 1000);
     },
     dispose() {

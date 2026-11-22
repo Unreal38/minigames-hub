@@ -5,7 +5,7 @@ import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
-import { playWinFx } from './winfx.js';
+import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
 import { progress } from './ranks.js';
@@ -507,7 +507,7 @@ function onMsg(m) {
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
-    st.me = m.me;
+    st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
     let adopted = false;
     if (adoptLook && m.me.user) { // just logged in: wear the look saved with the account
       adoptLook = false; adopted = true;
@@ -570,7 +570,8 @@ function onMsg(m) {
   } else if (m.t === 'state') {
     // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
     if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])), nm = new Map(st.room.players.map(p => [p.name + '|' + p.color, p.fl])); // by seat id, or by name and colour where a game's seats carry no id
-      for (const seat of m.s.seats) if (seat) seat.fl = (seat.id ? by.get(seat.id) : seat.bot && !seat.human ? null : nm.get(seat.name + '|' + seat.color)) || {}; }
+      for (const seat of m.s.seats) if (seat) seat.fl = (seat.id ? by.get(seat.id) : seat.bot && !seat.human ? null : nm.get(seat.name + '|' + seat.color)) || {};
+      setSeatFx(m.s.seats.map(seat => seat?.fl?.wn | 0)); } // in-game showers use each player's win effect
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
@@ -1365,7 +1366,7 @@ const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
 const WD_ACC = [['name', 'Name & card', ['nm', 'fr', 'pb', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', pb: 'The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', ti: 'A title under your name. Titles with a goal are earned by playing.',
-  wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
+  wn: 'Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
 
 function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
   let color = st.color, av = st.av.slice(), sec = startSec, sub = '', filt = startFilt, undo = null, saveT = 0;

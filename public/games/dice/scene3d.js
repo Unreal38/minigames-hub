@@ -239,7 +239,7 @@ export function createScene(canvas, { onFrame } = {}) {
         verdict = true; shake.kick(.14);
         for (const i of S.show.lose) { const s = seats[i]; if (!s) continue; s.nod = 1; pfx.puff(tv.copy(s.g.position).setY(.1), { n: 12, color: ['#fff4e2', '#d9c3a4'], size: .4, speed: 2.4 }); }
         const glad = S.show.kind === 'spot' ? (S.show.right ? [S.show.caller] : []) : [S.show.right ? S.show.caller : S.show.bidder];
-        for (const i of glad) { const s = seats[i]; if (!s) continue; s.hop = 1; const top = tv.copy(s.g.position).setY(1.2); pfx.confetti(top, { n: 46, w: 2.4, h: 2 }); pfx.burst(top, { n: 14, colors: ['#ffd84a', '#ffffff'], speed: 3, up: 4, size: .26 }); }
+        for (const i of glad) { const s = seats[i]; if (!s) continue; s.hop = 1; const top = tv.copy(s.g.position).setY(1.2); pfx.confetti(top, { n: 46, w: 2.4, h: 2, s: i }); pfx.burst(top, { n: 14, colors: ['#ffd84a', '#ffffff'], speed: 3, up: 4, size: .26 }); }
       }
     }
     const turnSeat = seats.findIndex(s => s.active);

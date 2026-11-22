@@ -318,7 +318,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
     else if (e.t === 'splat') fx.burst({ x: e.x, y: e.y + .5, z: e.z }, { n: 22, colors: ['#ff7ab0', '#ffb3d1', '#e5243b'], speed: 6, up: 5, shape: DOT, size: .35 });
     else if (e.t === 'box' && T) { const B = T.boxes[e.b]; if (B) fx.burst({ x: B.x, y: B.y + 1.2, z: B.z }, { n: 16, colors: ['#ff8fab', '#7ed3b2', '#9aa8ff', '#ffd23f'], speed: 5, up: 4, shape: CONF, size: .3 }); }
     else if (e.t === 'zzz') for (const i of e.hit || []) { const q = karts[i]?.root.position; if (q) fx.burst({ x: q.x, y: q.y + 2.4, z: q.z }, { n: 10, colors: ['#ffffff', '#c9d2ff'], speed: 1.5, up: 1, shape: DOT, size: .9, grav: 0, life: 1.2 }); }
-    else if (e.t === 'fin' && p) { fx.confetti({ x: p.x, y: p.y, z: p.z }, { n: e.s === me ? 160 : 50, w: 8, h: 5 }); }
+    else if (e.t === 'fin' && p) { fx.confetti({ x: p.x, y: p.y, z: p.z }, { n: e.s === me ? 160 : 50, w: 8, h: 5, s: e.s }); }
     else if (e.t === 'use' && e.k === 'chili' && p) fx.burst({ x: p.x, y: p.y + 1, z: p.z }, { n: 14, colors: ['#ff7a59', '#ffd23f', '#e5543b'], speed: 4, up: 2, shape: DOT, size: .4 });
     else if (e.t === 'use' && e.k === 'bubble' && p) fx.burst({ x: p.x, y: p.y + 1, z: p.z }, { n: 14, colors: ['#9fe6ff', '#ffffff'], speed: 3, up: 2, shape: DOT, size: .3 });
   }

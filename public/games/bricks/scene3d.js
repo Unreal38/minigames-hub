@@ -168,7 +168,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
     else if (!reduced) pfx.burst(at(w, W / 2, Math.min(VIS - 2, (w.rows ? w.rows.findIndex(r => r.every(v => !v)) : 4) + 1)), { n: 8 + cnt * 4, colors: PAL.slice(1, 10), speed: 3 * w.s + 1.2, up: 2, size: .5 * w.s + .1, life: .6, shape: [STAR, DOT] });
     w.hop = Math.max(w.hop, cnt >= 4 ? 1 : .6);
     if (big && !reduced) shake.kick(cnt >= 4 ? .35 : .08 + cnt * .05);
-    if (cnt >= 4 && !reduced) pfx.confetti(at(w, W / 2, VIS * .55), { n: big ? 70 : 24, w: W * w.s, h: 5 * w.s, size: .3 * w.s + .08 });
+    if (cnt >= 4 && !reduced) pfx.confetti(at(w, W / 2, VIS * .55), { n: big ? 70 : 24, w: W * w.s, h: 5 * w.s, size: .3 * w.s + .08, s: seat });
   }
   function landed(P) { // your brick hit the floor hard
     const w = wells[focus]; if (!w || reduced) return;
@@ -192,7 +192,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
     const w = wells[seat]; if (!w) return; w.dead = true; w.nod = 1;
     if (!reduced) { pfx.puff(at(w, W / 2, VIS * .5), { n: 16, size: 1.4 * w.s + .2, speed: 5 * w.s + 1, life: .8, color: ['#ffffff', '#d9d4e2'] }); if (seat === focus) shake.kick(.45); }
   }
-  function cheer(seat) { const w = wells[seat]; if (!w) return; w.hop = 1; if (!reduced) pfx.confetti(at(w, W / 2, VIS * .7), { n: 90, w: 8, h: 6 }); }
+  function cheer(seat) { const w = wells[seat]; if (!w) return; w.hop = 1; if (!reduced) pfx.confetti(at(w, W / 2, VIS * .7), { n: 90, w: 8, h: 6, s: seat }); }
 
   // ---------- loop ----------
   let T = 0, dead = false, last = 0;

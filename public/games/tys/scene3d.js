@@ -272,7 +272,7 @@ export function createScene(canvas, { onFrame } = {}) {
     setState,
     // a marriage is announced: a burst in the suit's colour over the table
     meld(i, su) { const s = seats[i]; if (s) { s.hop = 1; } const col = su < 2 ? '#e5543b' : '#3b2219'; pfx.burst(CENTER.clone().setY(.4), { n: 26, colors: [col, '#ffd84a', '#ffffff'], speed: 4, up: 5, size: .3, life: 1 }); pfx.ring(CENTER, { color: '#ffd84a', size: 2.6 }); if (!reduced) shake.kick(.1); },
-    cheer(i, good = true) { const s = seats[i]; if (!s) return; if (good) { s.hop = 1; const p = onRim(s.r, s.mine ? .9 : 1.42, s.mine ? .6 : 2.2); pfx.confetti(p, { n: 60, w: 3, h: 2.4 }); } else s.nod = 1; },
+    cheer(i, good = true) { const s = seats[i]; if (!s) return; if (good) { s.hop = 1; const p = onRim(s.r, s.mine ? .9 : 1.42, s.mine ? .6 : 2.2); pfx.confetti(p, { n: 60, w: 3, h: 2.4, s: i }); } else s.nod = 1; },
     setHud(px) { if (Math.abs(px - hudBottom) > 6) { hudBottom = px; resize(true); } },
     setInset(px) { if (px !== hudLeft) { hudLeft = px; resize(true); } },
     dispose() {

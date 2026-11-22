@@ -229,8 +229,8 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
     } else if (p.k === 'home') {
       fx.burst(p.a, { n: 26, colors: [col, ...GOLD], speed: 4, up: 5.5, size: .3, life: 1.1, y: .4, shape: [FSTAR, HEART] }); fx.ring(p.a, { color: '#ffd84a', size: 2.4 }); shake.kick(.1);
       const seat = seats[mv.s], done = seat && seat.toks.every((v, k) => k >= T || v === HOME || k === mv.k);
-      if (done) { fx.confetti(new THREE.Vector3(0, 0, 0), { n: 140, w: 12, h: 6 }); book(500, () => fx.confetti(new THREE.Vector3(0, 0, 0), { n: 100, w: 14, h: 6 })); shake.kick(.2); }
-      else fx.confetti(p.a, { n: 30, w: 2.5, h: 3 });
+      if (done) { fx.confetti(new THREE.Vector3(0, 0, 0), { n: 140, w: 12, h: 6, s: mv.s }); { const ws = mv.s; book(500, () => fx.confetti(new THREE.Vector3(0, 0, 0), { n: 100, w: 14, h: 6, s: ws })); }; shake.kick(.2); }
+      else fx.confetti(p.a, { n: 30, w: 2.5, h: 3, s: mv.s });
     }
   }
   let hitStop = 0, diePuff = false;

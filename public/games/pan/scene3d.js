@@ -163,7 +163,7 @@ export function createScene(canvas, { onFrame } = {}) {
         L.cards.forEach((c, j) => {
           const m = pile[k0 + j], { p, ry } = pileSpot(k0 + j, pile.length), r0 = m.rotation.y;
           tween(.5, t => { m.visible = true; const e = ease(t); m.position.lerpVectors(from, p, e); m.position.y += Math.sin(e * Math.PI) * 1.1; m.rotation.y = r0 + (ry - r0) * e; m.rotation.z = Math.PI * (1 - e); },
-            () => { if (j === L.cards.length - 1) { pfx.ring(p.clone().setY(.04), { color: list[L.s]?.color || '#ffd84a', size: 1.3 }); if (L.cards.length > 1) { shake.kick(.12); pfx.confetti(p.clone().setY(1), { n: 40, w: 2.2, h: 1.6 }); } } }, j * .09);
+            () => { if (j === L.cards.length - 1) { pfx.ring(p.clone().setY(.04), { color: list[L.s]?.color || '#ffd84a', size: 1.3 }); if (L.cards.length > 1) { shake.kick(.12); pfx.confetti(p.clone().setY(1), { n: 40, w: 2.2, h: 1.6, s: L.s }); } } }, j * .09);
         });
         settlePile(L.cards.length);
         if (seats[L.s]) seats[L.s].hop = L.cards.length > 1 ? 1 : .5;
@@ -188,7 +188,7 @@ export function createScene(canvas, { onFrame } = {}) {
     list.forEach((p, i) => {
       const s = seats[i];
       s.active = st.turn === i && st.stage === 'play';
-      if (p.out && !s.out && !fresh) { s.hop = 1; const top = s.av.position.clone().setY(2.1); pfx.confetti(top, { n: 60, w: 2.6, h: 2 }); pfx.burst(top, { n: 14, colors: ['#ffd84a', '#ffffff'], speed: 3, up: 4, size: .26 }); }
+      if (p.out && !s.out && !fresh) { s.hop = 1; const top = s.av.position.clone().setY(2.1); pfx.confetti(top, { n: 60, w: 2.6, h: 2, s: i }); pfx.burst(top, { n: 14, colors: ['#ffd84a', '#ffffff'], speed: 3, up: 4, size: .26 }); }
       s.out = !!p.out;
     });
     if (st.ph === 'end' && S?.ph !== 'end' && seats[st.pan]) { seats[st.pan].nod = 3; shake.kick(.12); }

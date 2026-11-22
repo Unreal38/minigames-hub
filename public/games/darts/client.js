@@ -1,5 +1,6 @@
 // Sky Darts game view: HUD over the 3D board. Renders what the server says; turns your pointer into an aim,
 // a hold into a steady hand, and letting go into a throw.
+import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
@@ -122,7 +123,7 @@ export function mount(app, ctx) {
     floatAt(c.sx, c.sy - 26, c.lab === 'Miss' ? 'Miss' : c.lab, c.bust ? 'bad' : c.m === 3 ? 't' : c.m === 2 ? 'd' : c.v ? '' : 'bad');
     if (c.out) { sfx.win(); big(mine ? 'Game shot!' : 'Checkout!', `${who} finish${mine ? '' : 'es'} from ${c.got}`, 2400); if (mine) confetti(); }
     else if (c.bust) { sfx.bad(); big('Bust!', `${mine ? 'Your' : who + '’s'} score goes back to ${S.seats[c.s].rem}`, 1700); }
-    else if (c.fin && c.got === 180) { sfx.win(); big('180!', `${who} hit${mine ? '' : 's'} the maximum`, 2000); confetti(); }
+    else if (c.fin && c.got === 180) { sfx.win(); big('180!', `${who} hit${mine ? '' : 's'} the maximum`, 2000); confetti(mine); }
     else if (c.num === 25 && c.m === 2) { sfx.set(); big('Bullseye!', '', 1100); }
     else if (c.fin && c.got >= 100) { sfx.set(); big('Ton!', `${who} score${mine ? '' : 's'} ${c.got}`, 1300); }
     else if (c.m === 3 && c.num >= 17) sfx.set();
@@ -253,7 +254,8 @@ export function mount(app, ctx) {
     root.append(f); setTimeout(() => f.remove(), 1600);
   }
 
-  function confetti() {
+  function confetti(own = true) {
+    if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (reduced) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);

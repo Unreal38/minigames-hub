@@ -364,7 +364,7 @@ export function createScene(canvas, { onFrame } = {}) {
         potAmt = 0; chipStack(0, pot);
         res.forEach((p, k) => p.win.forEach((w, j) => {
           const to = onRim(rel(w), .85);
-          flyChips(pot.position.clone(), to, p.paid?.[j] ?? p.amt, k * .35 + j * .1, () => { seats[w].hop = 1; const top = seats[w].av.position.clone().add(new THREE.Vector3(0, 2.2, 0)); sparkle(top, '#ffd27a', 12); pfx.confetti(top, { n: k ? 30 : 70, w: 3.5, h: 2.5 }); if (!k && !j) { punch = 1; shake.kick(.12); } });
+          flyChips(pot.position.clone(), to, p.paid?.[j] ?? p.amt, k * .35 + j * .1, () => { seats[w].hop = 1; const top = seats[w].av.position.clone().add(new THREE.Vector3(0, 2.2, 0)); sparkle(top, '#ffd27a', 12); pfx.confetti(top, { n: k ? 30 : 70, w: 3.5, h: 2.5, s: w }); if (!k && !j) { punch = 1; shake.kick(.12); } });
         }));
       }, S.handRes.fold ? 400 : 1400);
     }

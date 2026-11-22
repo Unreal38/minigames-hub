@@ -9,6 +9,19 @@ const KINDS = {
   6: { n: 120, glyph: ['❄️', '❄', '✻'], from: 'top', slow: true },                                                          // snowfall
 };
 let live = null;
+// Who has which win effect on: app.js keeps this up to date, so a game scene only names a seat (createFx().confetti
+// with { s: seat }) and a game client calls myBurst() for the player's own good moments.
+let seatFx = [], myFx = 0;
+export const setSeatFx = list => { seatFx = Array.isArray(list) ? list : []; };
+export const setMyFx = k => { myFx = KINDS[k] ? k : 0; };
+export const fxOf = s => s === 'me' ? myFx : KINDS[seatFx[s]] ? seatFx[s] : 0;
+// The player's own win effect as a short, lighter burst, in place of a game's plain confetti. False if they have none
+// on (the game then draws its own confetti).
+export function myBurst() {
+  if (!myFx) return false;
+  if (!live || live.light) playWinFx(myFx, { ms: 2300, light: true });
+  return true;
+}
 // Every particle is drawn from a small picture made once (an emoji, a coin, a confetti strip), because drawing emoji
 // text 100+ times a frame is slow enough to drop frames on phones and laptops while the results screen comes in.
 const sprites = new Map();
@@ -20,7 +33,7 @@ function sprite(key, sz, paint) {
 const glyphSprite = ch => sprite('g' + ch, 64, (g, s) => { g.font = `${s}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 0, 2); });
 const coinSprite = () => sprite('coin', 30, g => { g.fillStyle = '#ffc93c'; g.strokeStyle = '#b97c12'; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 26, 0, 6.283); g.fill(); g.stroke(); });
 const rectSprite = c => sprite('r' + c, 16, g => { g.fillStyle = c; g.fillRect(-16, -8, 32, 16); });
-export function playWinFx(k, { ms = 4200, banner = '' } = {}) {
+export function playWinFx(k, { ms = 4200, banner = '', light = false } = {}) {
   const K = KINDS[k]; if (!K || typeof document === 'undefined') return;
   live?.stop();
   const cv = document.createElement('canvas'); cv.className = 'winfx'; cv.setAttribute('aria-hidden', 'true');
@@ -30,12 +43,12 @@ export function playWinFx(k, { ms = 4200, banner = '' } = {}) {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, R = Math.random, ps = [];
   const spawn = i => {
     const up = K.from === 'bottom', sz = K.glyph ? 22 + R() * 22 : K.draw === 'coin' ? 9 + R() * 6 : 6 + R() * 7;
-    return { x: R() * W, y: up ? H + 30 + R() * H * .5 : -30 - R() * H * .9, vx: (R() - .5) * (K.slow ? 40 : 120), vy: (up ? -1 : 1) * (K.slow ? 70 + R() * 60 : 260 + R() * 260),
+    return { x: R() * W, y: up ? H + 30 + R() * H * (light ? .25 : .5) : -30 - R() * H * (light ? .4 : .9), vx: (R() - .5) * (K.slow ? 40 : 120), vy: (up ? -1 : 1) * (K.slow ? 70 + R() * 60 : 260 + R() * 260),
       r: R() * 6.3, vr: (R() - .5) * (K.spin ?? 6), sz, c: K.cols?.[i % K.cols.length], g: K.glyph?.[i % K.glyph.length], ph: R() * 6.3 };
   };
   const small = W * H < 500_000; // phones: fewer particles, the screen is smaller anyway
-  for (let i = 0; i < (calm ? K.n / 4 : small ? K.n * .6 : K.n); i++) { const p = spawn(i); p.img = p.g ? glyphSprite(p.g) : K.draw === 'coin' ? coinSprite() : rectSprite(p.c); ps.push(p); }
-  const sparks = []; let nextBurst = 0, bursts = K.bursts || 0;
+  for (let i = 0; i < (calm ? K.n / 4 : small ? K.n * .6 : K.n) * (light ? .5 : 1); i++) { const p = spawn(i); p.img = p.g ? glyphSprite(p.g) : K.draw === 'coin' ? coinSprite() : rectSprite(p.c); ps.push(p); }
+  const sparks = []; let nextBurst = 0, bursts = light ? Math.min(3, K.bursts || 0) : K.bursts || 0;
   const t0 = performance.now(); let last = t0, raf = 0;
   const stop = () => { cancelAnimationFrame(raf); cv.remove(); tag?.remove(); if (live?.stop === stop) live = null; };
   const frame = now => {
@@ -58,5 +71,5 @@ export function playWinFx(k, { ms = 4200, banner = '' } = {}) {
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     raf = requestAnimationFrame(frame);
   };
-  live = { stop }; raf = requestAnimationFrame(frame);
+  live = { stop, light }; raf = requestAnimationFrame(frame);
 }
