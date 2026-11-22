@@ -75,6 +75,10 @@ body.in-game { overflow: hidden; }
 .pn-card.ok { cursor: pointer; transform: translateY(-10px); }
 .pn-card.ok .pcard { box-shadow: 0 0 0 3px var(--lantern), 0 5px 0 var(--ink); }
 .pn-card.ok:hover, .pn-card.ok:focus-visible { transform: translateY(-22px); z-index: 2; outline: none; }
+.pn-card.ok.sel { transform: translateY(-26px); z-index: 2; }
+.pn-card.ok.sel .pcard { box-shadow: 0 0 0 4px var(--mint), 0 5px 0 var(--ink); }
+.pn-go .btn.pn-pulse { animation: pnpulse .9s ease-in-out infinite; }
+@keyframes pnpulse { 50% { transform: scale(1.06); } }
 .pn-card.no { animation: pnno .3s; }
 @keyframes pnno { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 .pn-wait.safe { background: #c9f2d2; padding-left: 18px; }
