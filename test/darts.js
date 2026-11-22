@@ -86,8 +86,9 @@ function play(opts, human) {
 // a perfect player follows the plan and is out of 301 in six darts (T20 T20 T20, then 121)
 const ace = G => { const t = plan(G.rem[G.turn], DARTS - G.darts.length, G.opts.out === 'double'); ace.exact = t; return perfectThrow(G, t); };
 const a = play({ seats: 2, bots: 'sharp' }, ace);
-const ana = a.seats.findIndex(s => s.id === 'a');
-if (a.win !== ana || a.st[ana].darts > 6 || a.st[ana].t180 !== 1 || a.st[ana].busts) fail(`a perfect player should win 301 in six darts, took ${a.st[ana].darts}`);
+// both seats are people here and both play perfectly, so whoever throws first wins
+const ana = a.win;
+if (ana !== a.legFirst || a.st[ana].darts !== 6 || a.st[ana].t180 !== 1 || a.st[ana].busts) fail(`a perfect player throwing first should win 301 in six darts, took ${a.st[ana].darts}`);
 console.log('perfect 301: out in', a.st[ana].darts, 'darts');
 const wild = () => ({ t: 'throw', x: (Math.random() - .5) * 2.2, y: (Math.random() - .5) * 2.2, ms: 1000 + Math.random() * 3000, hold: Math.random() < .3 ? -1 : Math.random() * 3000 });
 const b = play({ seats: 6, start: 501, legs: 3, bots: 'chill' }, wild);
