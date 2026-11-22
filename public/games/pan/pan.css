@@ -13,9 +13,9 @@ body.in-game { overflow: hidden; }
 .pn-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
 .pn-tag .plate i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .pn-tag .plate b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
-.pn-tag .plate span { display: inline-flex; align-items: center; gap: 3px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px 0 5px; font-size: 13px; }
+.pn-tag .plate .cnt { display: inline-flex; align-items: center; gap: 3px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px 0 5px; font-size: 13px; }
 .pn-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
-.pn-tag.safe .plate span { background: #3fae5d; }
+.pn-tag.safe .plate .cnt { background: #3fae5d; }
 .pn-ci { width: 15px; height: 15px; flex: none; } .pn-ci rect { fill: var(--cream); stroke: var(--ink); stroke-width: 1.6; }
 .pn-tag .bub .took { opacity: 1; background: var(--chili); color: #fff; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pn-tag .bub .top { padding: 3px 6px; gap: 3px; }
@@ -100,7 +100,7 @@ body.in-game { overflow: hidden; }
   .pn .tcode { display: none; }
   .pn .tl .chip { font-size: 13px; padding: 4px 10px; }
   .pn .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 150px); padding: 5px 14px; }
-  .pn-tag .plate { font-size: 12px; } .pn-tag .plate b { max-width: 4.5em; } .pn-tag .plate span { font-size: 12px; padding: 0 6px 0 4px; }
+  .pn-tag .plate { font-size: 12px; } .pn-tag .plate b { max-width: 4.5em; } .pn-tag .plate .cnt { font-size: 12px; padding: 0 6px 0 4px; }
   .pn-tag .bub > span { font-size: 14px; }
   .pn-top { font-size: 12px; padding: 2px 4px 2px 9px; gap: 5px; } .pn-top > b { font-size: 13px; }
   .pn-dock { gap: 6px; width: calc(100vw - 12px); }

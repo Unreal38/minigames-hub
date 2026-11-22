@@ -89,13 +89,13 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn && S.ph === 'play' && S.stage !== 'start');
-      const cnt = el.querySelector('.plate span'), v = String(shownPts(i)); if (cnt._h !== v) { cnt._h = v; cnt.textContent = v; }
+      const cnt = el.querySelector('.plate .cnt'), v = String(shownPts(i)); if (cnt._h !== v) { cnt._h = v; cnt.textContent = v; }
     });
     for (const el of tagEls) el._w = el.offsetWidth;
   }

@@ -174,7 +174,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + focus;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="sb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div>`).join('')
+    tagsEl.innerHTML = info.map(p => `<div class="sb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div>`).join('')
       + `<div class="sb-lab" hidden>Set aside${touch ? '' : ' <kbd>C</kbd>'}</div><div class="sb-lab" hidden>Next</div>`;
     tagEls = [...tagsEl.querySelectorAll('.sb-tag')]; [labHold, labNext] = tagsEl.querySelectorAll('.sb-lab');
   }
@@ -183,7 +183,7 @@ export function mount(app, ctx) {
       const el = tagEls[i]; if (!el) return;
       const x = S.x[i], dead = !!x[0];
       el.classList.toggle('out', dead); el.classList.toggle('hot', !dead && x[3] >= 4);
-      setHtml(el.querySelector('span'), dead ? (x[4] ? ord(x[4]) : 'out') : String(x[1]));
+      setHtml(el.querySelector('.cnt'), dead ? (x[4] ? ord(x[4]) : 'out') : String(x[1]));
       setHtml(el.querySelector('b'), nameHtml(p.name, p.fl) + (p.bot && p.human ? ' (away)' : ''));
     });
   }

@@ -9,7 +9,7 @@ body.in-game { overflow: hidden; }
 .tws .tws-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; will-change: transform; }
 .tws .tws-tag i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .tws .tws-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
-.tws .tws-tag span { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 13px; min-width: 1.6em; text-align: center; }
+.tws .tws-tag .cnt { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 13px; min-width: 1.6em; text-align: center; }
 .tws .tws-tag[hidden] { display: none; }
 .tws .tws-tag.now { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
 .tws .tws-pts { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -100%); font-family: var(--fd); font-weight: 700; font-size: 30px; color: #3fae5d; -webkit-text-stroke: 5px var(--cream); paint-order: stroke fill; animation: twsup 1.3s ease-out both; }
@@ -85,7 +85,7 @@ body.in-game { overflow: hidden; }
   .tws .dropbar { bottom: max(14px, env(safe-area-inset-bottom)); }
   .tws .tws-tag { font-size: 12px; }
   .tws .tws-tag b { max-width: 4.5em; }
-  .tws .tws-tag span { font-size: 12px; padding: 0 6px; }
+  .tws .tws-tag .cnt { font-size: 12px; padding: 0 6px; }
 }
 body:has(.tws) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.tws) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.tws) .chatbtn .lbl { display: none; } }

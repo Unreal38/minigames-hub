@@ -24,8 +24,8 @@ body.in-game { overflow: hidden; }
 .ld-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
 .ld-tag .plate i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .ld-tag .plate b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
-.ld-tag .plate span { display: inline-flex; align-items: center; gap: 3px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px 0 5px; font-size: 13px; }
-.ld-tag .plate span .ld-die rect { stroke: var(--cream); fill: var(--cream); } .ld-tag .plate span .ld-die path { stroke: none; }
+.ld-tag .plate .cnt { display: inline-flex; align-items: center; gap: 3px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px 0 5px; font-size: 13px; }
+.ld-tag .plate .cnt .ld-die rect { stroke: var(--cream); fill: var(--cream); } .ld-tag .plate .cnt .ld-die path { stroke: none; }
 .ld-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
 .ld-tag.out { opacity: .6; }
 .ld-tag .bub:empty { display: none; }
@@ -137,7 +137,7 @@ body.in-game { overflow: hidden; }
   .ld .tcode { display: none; }
   .ld .tl .chip { font-size: 13px; padding: 4px 10px; }
   .ld .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 150px); padding: 5px 14px; }
-  .ld-tag .plate { font-size: 12px; } .ld-tag .plate b { max-width: 4.5em; } .ld-tag .plate span { font-size: 12px; padding: 0 6px 0 4px; }
+  .ld-tag .plate { font-size: 12px; } .ld-tag .plate b { max-width: 4.5em; } .ld-tag .plate .cnt { font-size: 12px; padding: 0 6px 0 4px; }
   .ld-tag .bub span { font-size: 14px; } .ld-tag .bub .top, .ld-tag .bub .call { font-size: 16px; }
   .ld-bid b { font-size: 22px; }
   .ld-dock { gap: 6px; width: calc(100vw - 16px); }

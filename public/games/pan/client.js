@@ -82,14 +82,14 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pn-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     const L = S.ph === 'play' && S.stage === 'play' ? S.last : null;
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn && S.stage === 'play'); el.classList.toggle('safe', !!p.out);
-      setHtml(el.querySelector('.plate span'), p.out ? `${ORD(p.out)} out` : `${I.cards}${p.n}`);
+      setHtml(el.querySelector('.plate .cnt'), p.out ? `${ORD(p.out)} out` : `${I.cards}${p.n}`);
       setHtml(el.firstElementChild, L && L.s === i ? (L.t === 'play' ? `<span class="top">${mini(L.cards)}</span>` : `<span class="took">took ${L.cards.length}</span>`) : '');
     });
     for (const el of tagEls) el._w = el.offsetWidth;
