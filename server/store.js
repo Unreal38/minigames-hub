@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
-import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
+import { COS, WORN, PICKED, pickedOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -141,12 +141,21 @@ function buyCos(p, k, i) {
   if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
   p.coins -= price; p.owned.push(id);
   if (WORN.includes(k)) (p.cos ||= {})[k] = i;
+  else if (PICKED.includes(k)) { const l = pickedOf(p, k).filter(x => x !== i); if (l.length < COS[k].pick) (p.cos ||= {})[k] = [...l, i]; } // goes on if there is room
   board = null; scheduleSave(); coinHook(p.pid);
   return { id, price, cos: true };
 }
 // Put on (or take off, with 0) something the player has bought or earned.
 export function wear(p, k, i) {
   if (!p) return { err: 'Not connected.' };
+  if (PICKED.includes(k)) { // a short list of entries that are on together
+    if (!Array.isArray(i)) return { err: 'Unknown.' };
+    const l = [...new Set(i.slice(0, 12).map(x => Math.floor(+x)))];
+    if (l.length > COS[k].pick || l.some(x => !cosItem(k, x))) return { err: 'Unknown.' };
+    if (l.some(x => !cosHas(p, k, x))) return { err: 'You have not unlocked that yet.' };
+    (p.cos ||= {})[k] = l; scheduleSave();
+    return { ok: true };
+  }
   i = Math.floor(+i);
   if (!WORN.includes(k) || !cosItem(k, i)) return { err: 'Unknown.' };
   if (!cosHas(p, k, i)) return { err: 'You have not unlocked that yet.' };

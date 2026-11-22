@@ -77,7 +77,7 @@ export function toonify(root, ink = 0, { color = '#4a2c22', tinted = true } = {}
 export function disposeToon(root) {
   root.traverse(o => { o.geometry?.dispose(); for (const m of [].concat(o.material || [])) if (!m.userData.shared) { m.map?.dispose(); m.dispose(); } });
 }
-const flat = (c, o) => new THREE.MeshStandardMaterial({ color: c, roughness: .95, flatShading: true, ...o });
+export const flat = (c, o) => new THREE.MeshStandardMaterial({ color: c, roughness: .95, flatShading: true, ...o });
 
 // A dark shell round a single box-like mesh (dice, cards): a slightly bigger copy drawn inside out.
 export function shell(mesh, grow = 1.1, color = '#4a2c22') {
@@ -171,7 +171,7 @@ export function clouds({ near = 40, far = 12, below = -9, min = 6, max = 80, col
 
 // ---------- a floating island ----------
 // Rough up a shape's lower part so rock looks hand cut.
-function rough(geo, amt, keepY = Infinity) {
+export function rough(geo, amt, keepY = Infinity) {
   const p = geo.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = Math.round(x * 10) * 7 + Math.round(y * 10) * 13 + Math.round(z * 10) * 29;
@@ -179,8 +179,8 @@ function rough(geo, amt, keepY = Infinity) {
   }
   geo.computeVertexNormals(); return geo;
 }
-const put = (p, g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); p.add(o); return o; };
-const ico = (p, r, c, x, y, z) => put(p, new THREE.IcosahedronGeometry(r, 0), flat(c), x, y, z);
+export const put = (p, g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); p.add(o); return o; };
+export const ico = (p, r, c, x, y, z) => put(p, new THREE.IcosahedronGeometry(r, 0), flat(c), x, y, z);
 // Little props for the rim. Each sits on y = 0.
 export const PROPS = {
   tree(g, s = 1, c = '#5fb04a') { put(g, new THREE.CylinderGeometry(.09 * s, .13 * s, .7 * s, 6), flat('#8a5a3c'), 0, .35 * s); ico(g, .45 * s, c, 0, .95 * s, 0); ico(g, .32 * s, '#86cc5a', .22 * s, 1.18 * s, .08 * s); ico(g, .3 * s, c, -.24 * s, .82 * s, -.1 * s); },
@@ -192,7 +192,8 @@ export const PROPS = {
   lamp(g, s = 1) { put(g, new THREE.CylinderGeometry(.04 * s, .06 * s, 1.1 * s, 6), flat('#5b4636'), 0, .55 * s); put(g, new THREE.BoxGeometry(.2 * s, .05 * s, .2 * s), flat('#5b4636'), 0, 1.24 * s); const l = put(g, new THREE.BoxGeometry(.16 * s, .2 * s, .16 * s), flat('#ffe27a', { emissive: '#ffb547', emissiveIntensity: .8 }), 0, 1.11 * s); l.userData.noInk = true; put(g, new THREE.BoxGeometry(.2 * s, .04 * s, .2 * s), flat('#5b4636'), 0, 1 * s); },
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
-export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0 } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props
+export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0, kinds = null, petals = null, under = true } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props
+  // kinds: which props stand round the rim (names from PROPS, or functions (group, size)); petals: flower colours; under: false leaves the rock underneath to the caller
   const autoLamps = !lamps; // lamp posts light the island at night: built always, shown only at night (nightScene toggles them)
   if (autoLamps) lamps = Math.max(3, Math.round((w + d) / 5));
   const root = new THREE.Group(), deco = new THREE.Group();
@@ -206,28 +207,29 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
   // earth band and a rock cone underneath, with loose stones hanging about
   const band = put(root, rough(new THREE.CylinderGeometry(R * .98, R * .7, 1.6 * depth, round ? 18 : 8, 3), .4), flat(earth), 0, -1.2 * depth);
   if (!round) band.scale.set(W / R * 1.08, 1, D / R * 1.08), band.rotation.y = Math.PI / 8;
-  const deep = Math.max(W, D) * 1.1 * depth, cone = put(root, rough(new THREE.ConeGeometry(R * .62, deep, 8, 3), R * .08), flat(rock), 0, -2 - deep / 2 * depth);
+  const deep = Math.max(W, D) * 1.1 * depth;
+  if (under) { const cone = put(root, rough(new THREE.ConeGeometry(R * .62, deep, 8, 3), R * .08), flat(rock), 0, -2 - deep / 2 * depth);
   cone.rotation.x = Math.PI; if (!round) cone.scale.set(W / R * 1.1, 1, D / R * 1.1);
-  for (let i = 0; i < 7; i++) { const a = hash(i, seed) * 6.283, k = .35 + hash(i, seed + 9) * .35, st = ico(root, .3 + hash(i, 3) * .5, rock, Math.cos(a) * W * k, -3 - hash(i, 4) * deep * .5, Math.sin(a) * D * k); st.scale.y = 1.4; }
+  for (let i = 0; i < 7; i++) { const a = hash(i, seed) * 6.283, k = .35 + hash(i, seed + 9) * .35, st = ico(root, .3 + hash(i, 3) * .5, rock, Math.cos(a) * W * k, -3 - hash(i, 4) * deep * .5, Math.sin(a) * D * k); st.scale.y = 1.4; } }
   // what sits in the grass: darker patches and little flowers, kept off the clear middle
   const onRim = (i, s2, inset = .55) => { // a point on the rim band, outside the clear middle
     for (let k = 0; k < 8; k++) { const x = (hash(i * 8 + k, s2) * 2 - 1) * (W - inset), z = (hash(i * 8 + k, s2 + 1) * 2 - 1) * (D - inset);
       if (round ? Math.hypot(x, z) < R - inset && (Math.abs(x) > w / 2 + .25 || Math.abs(z) > d / 2 + .25) : Math.abs(x) > w / 2 + .25 || Math.abs(z) > d / 2 + .25) return [x, z]; }
     return null; };
-  const patchM = flat(patch), petal = ['#ffffff', '#ffd0e4', '#fff1a8', '#d9c8ff'].map(c => flat(c)), mid = flat('#ffb000');
+  const patchM = flat(patch), petal = (petals || ['#ffffff', '#ffd0e4', '#fff1a8', '#d9c8ff']).map(c => flat(c)), mid = flat('#ffb000');
   for (let i = 0; i < 18; i++) { const p = onRim(i, seed + 20, .9); if (!p) continue; const m = put(deco, new THREE.CircleGeometry(.4 + hash(i, 5) * .5, 12), patchM, p[0], .01, p[1]); m.rotation.x = -Math.PI / 2; }
-  for (let i = 0; i < flowers; i++) { const p = onRim(i, seed + 40, .3); if (!p) continue; const pc = petal[i % 4];
+  for (let i = 0; i < flowers; i++) { const p = onRim(i, seed + 40, .3); if (!p) continue; const pc = petal[i % petal.length];
     for (let k = 0; k < 5; k++) { const m = put(deco, new THREE.IcosahedronGeometry(.05, 0), pc, p[0] + Math.cos(k * 1.257) * .06, .03, p[1] + Math.sin(k * 1.257) * .06); m.scale.y = .45; }
     put(deco, new THREE.IcosahedronGeometry(.04, 0), mid, p[0], .05, p[1]); }
   bake(deco); deco.traverse(m => { if (m.isMesh) { m.receiveShadow = true; m.userData.noInk = true; } }); root.add(deco);
   // props round the rim: trees, pines, bushes, rocks and mushrooms
-  const kinds = ['tree', 'bush', 'pine', 'rock', 'bush', 'shroom', 'tree', 'flowers', 'pine', 'bush'];
+  kinds ||= ['tree', 'bush', 'pine', 'rock', 'bush', 'shroom', 'tree', 'flowers', 'pine', 'bush'];
   for (let i = 0; i < props; i++) {
     const a = (i + hash(i, seed + 60) * .6) / props * 6.283;
     let x = Math.cos(a), z = Math.sin(a); const k = round ? R - .6 : 1;
     if (round) { x *= k; z *= k; } else { const s = Math.min((W - .55) / Math.abs(x || 1e-6), (D - .55) / Math.abs(z || 1e-6)); x *= s; z *= s; }
     if (open && z > (R - .6) * (1 - open)) continue;
-    const g = new THREE.Group(), kind = kinds[(i + seed) % kinds.length]; PROPS[kind](g, (.7 + hash(i, seed + 61) * .5) * size); g.position.set(x, 0, z); g.rotation.y = hash(i, 62) * 6.283; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); root.add(g);
+    const g = new THREE.Group(), kind = kinds[(i + seed) % kinds.length]; (typeof kind === 'function' ? kind : PROPS[kind])(g, (.7 + hash(i, seed + 61) * .5) * size); g.position.set(x, 0, z); g.rotation.y = hash(i, 62) * 6.283; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); root.add(g);
   }
   for (let i = 0; i < lamps; i++) { const a = (i + .5) / lamps * 6.283, g = new THREE.Group(); PROPS.lamp(g, 1); let x = Math.cos(a), z = Math.sin(a); const s = round ? R - .5 : Math.min((W - .4) / Math.abs(x || 1e-6), (D - .4) / Math.abs(z || 1e-6)); g.position.set(x * s, 0, z * s); if (autoLamps) { g.userData.nightOnly = true; g.visible = isNight(); } root.add(g); }
   bake(root);

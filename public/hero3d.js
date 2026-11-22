@@ -3,13 +3,14 @@
 // and the loop sleeps while the canvas isn't on the page.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from './avatar3d.js';
-import { toonify, toonMat, island, birds, petals, createFx, CONF } from './scenery3d.js';
+import { toonify, toonMat, birds, petals, createFx, CONF } from './scenery3d.js';
+import { buildIsle, buildSky } from './isle3d.js';
 import { frameLoop, autoResolution } from './frames.js';
 
 let H = null, P = null, night = false; // H: your own isle on the hub; P: the isle in another player's profile card
 export function setHeroNight(on) { night = on; H?.setNight(on); P?.setNight(on); }
 
-function build() {
+function build(disc) { // disc: paint a bought sky as a round window behind the isle (the hub has no frame for it)
   const canvas = document.createElement('canvas'); canvas.className = 'hero3d'; canvas.setAttribute('aria-hidden', 'true');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   const res = autoResolution(renderer, 1.5);
@@ -20,7 +21,18 @@ function build() {
   key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 40 }); key.shadow.normalBias = .03; scene.add(key);
 
   const world = new THREE.Group(); scene.add(world);
-  const land = island(3.3, 3.3, { round: true, seed: 7, props: 14, open: .8, rim: 1.3, flowers: 32, size: .9 }); world.add(land);
+  // The isle itself, as the player dressed it (isle3d.js): ground, rock base, decor and sky. Rebuilt only when the look changes.
+  let isle = null, sky = null, air = null, airG = null, isleKey = null, skyNo = 0;
+  function setIsle(fl) {
+    const look = { ig: fl?.ig | 0, ib: fl?.ib | 0, ik: fl?.ik | 0, ip: Array.isArray(fl?.ip) ? fl.ip.slice(0, 3) : [] }, k = JSON.stringify(look);
+    if (k === isleKey) return; isleKey = k;
+    if (isle) { world.remove(isle.root); isle.dispose(); } if (sky) { scene.remove(sky.root); sky.dispose(); }
+    if (airG) { scene.remove(airG); airG.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
+    isle = buildIsle(look); world.add(isle.root);
+    sky = buildSky(look.ik, { disc }); scene.add(sky.root); skyNo = look.ik; sky.fit(camera.aspect);
+    airG = new THREE.Group(); scene.add(airG); air = petals(airG, 9, 2.8, isle.air);
+    setNight(night);
+  }
 
   // game pieces floating round the island: three marbles, a die, a Ludo pawn and a card
   const M = (c, o = {}) => toonMat(new THREE.MeshStandardMaterial({ color: c, roughness: .5, ...o }));
@@ -49,7 +61,7 @@ function build() {
   const card = new THREE.Mesh(new THREE.BoxGeometry(.42, .6, .03), M('#ffffff')); const band = new THREE.Mesh(new THREE.BoxGeometry(.42, .12, .035), M('#e5543b')); band.position.y = .2; card.add(band);
   add(card, 3.4, 5.1, 2.1, .7);
 
-  const flyBirds = birds(scene, 9, 4.5, 3, .6), blow = petals(scene, 9, 2.8, { n: 8, size: .08 });
+  const flyBirds = birds(scene, 9, 4.5, 3, .6);
   const fx = createFx(scene, { max: 200 });
 
   let av = null, avKey = '', hop = 0, look = 0, lookWant = 0, T = 0, W = 0, Hh = 0;
@@ -86,7 +98,7 @@ function build() {
   const loop = dt => {
     if (!canvas.isConnected) return;
     const r = canvas.getBoundingClientRect();
-    if (r.width !== W || r.height !== Hh) { W = r.width; Hh = r.height; renderer.setSize(W, Hh, false); camera.aspect = W / Math.max(1, Hh); camera.updateProjectionMatrix(); }
+    if (r.width !== W || r.height !== Hh) { W = r.width; Hh = r.height; renderer.setSize(W, Hh, false); camera.aspect = W / Math.max(1, Hh); camera.updateProjectionMatrix(); sky?.fit(camera.aspect); }
     if (!W || !Hh) return;
     if (!reduced) T += dt;
     world.position.y = Math.sin(T * .8) * .12; world.rotation.y = Math.sin(T * .15) * .25;
@@ -98,31 +110,35 @@ function build() {
     for (const g of pals) { const u = (T * .55 + g.userData.i * .37) % 1, j = u < .22 ? Math.sin(u / .22 * Math.PI) : 0; // a little hop now and then, and one with you when poked
       g.position.y = j * .22 + Math.sin(Math.min(1, (1 - hop) * 1.6) * Math.PI) * (hop > 0 ? .5 : 0); g.rotation.z = Math.sin(T * 1.7 + g.userData.i * 2) * .04; }
     camera.position.copy(camAt); camera.position.x += Math.sin(T * .2) * .4; camera.lookAt(target);
-    flyBirds(T); blow(T); fx.update(dt, camera, Hh);
+    flyBirds(T); air?.(T); isle?.tick(T); sky?.tick(T); fx.update(dt, camera, Hh);
     renderer.render(scene, camera);
   };
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
-  function setNight(on) { // moonlight: cooler and dimmer, lamps glowing
-    hemi.color.set(on ? '#9aa6ff' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : '#ffe9c9'); hemi.intensity = on ? 1.35 : 2;
-    key.color.set(on ? '#c8d0ff' : '#ffffff'); key.intensity = on ? .9 : 1.5;
-    land.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
+  function setNight(want) { // moonlight: cooler and dimmer, lamps glowing. A night or day sky decides for itself; a sunset warms the light.
+    const mood = sky?.mood || '', on = mood === 'night' || (want && mood !== 'day' && mood !== 'sunset'), warm = mood === 'sunset';
+    hemi.color.set(on ? '#9aa6ff' : warm ? '#ffd9c0' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : warm ? '#ff9a8a' : '#ffe9c9'); hemi.intensity = on ? 1.35 : warm ? 1.7 : 2;
+    key.color.set(on ? '#c8d0ff' : warm ? '#ffc08a' : '#ffffff'); key.intensity = on ? .9 : 1.5;
+    isle?.root.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
   }
-  setNight(night);
-  return { canvas, setAvatar, setPets, setNight, ticker };
+  setIsle(null);
+  return { canvas, setAvatar, setPets, setIsle, setNight, ticker, skyNo: () => skyNo };
 }
 
-export function mountHero(box, color, av, pets = []) {
+// fl: the player's flair; its isle kinds (ig ground, ib rock base, ip decor, ik sky) dress the isle.
+const skyCls = (box, n) => { for (const c of [...box.classList]) if (/^isk\d/.test(c)) box.classList.remove(c); if (n) box.classList.add('isk' + n); };
+export function mountHero(box, color, av, pets = [], fl = null) {
   if (!box) return false;
-  try { H ||= build(); } catch { return false; }
-  H.setAvatar(color, av); H.setPets(pets);
-  box.replaceChildren(H.canvas);
+  try { H ||= build(true); } catch { return false; }
+  H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl);
+  if (H.canvas.parentNode !== box) box.replaceChildren(H.canvas);
   return true;
 }
 // The same isle for someone else: their avatar and the pets they show off, in a profile card.
-export function mountIsle(box, color, av, pets = []) {
+// frame: the element whose background is the sky (it gets a class isk1.. for a bought sky; see style.css).
+export function mountIsle(box, color, av, pets = [], fl = null, frame = box) {
   if (!box) return false;
-  try { P ||= build(); } catch { return false; }
-  P.setAvatar(color, av); P.setPets(pets);
-  box.replaceChildren(P.canvas);
+  try { P ||= build(false); } catch { return false; }
+  P.setAvatar(color, av); P.setPets(pets); P.setIsle(fl); skyCls(frame, P.skyNo());
+  if (P.canvas.parentNode !== box) box.replaceChildren(P.canvas);
   return true;
 }

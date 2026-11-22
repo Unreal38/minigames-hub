@@ -118,6 +118,24 @@ if (!b.err(/not around/)) fail('unknown profile tag was answered');
 a.send({ t: 'wear', k: 'pets', i: [two[0].id] }); await wait(200);
 b.send({ t: 'pets' }); await wait(150);
 if (b.msgs.find(m => m.t === 'pets')?.pets.length) fail('Bo has pets without a farm');
+// the profile isle: ground, rock base and sky are worn one at a time, decor is a list of up to three
+const IG = n => COS.ig.items.findIndex(x => x.n === n), IP = n => COS.ip.items.findIndex(x => x.n === n);
+a.msgs.length = 0; a.send({ t: 'wear', k: 'ig', i: IG('Candy') }); await wait(200);
+if (!a.err(/not unlocked/)) fail('wore an isle ground without buying it');
+const coins0 = a.me.coins; a.send({ t: 'buy', k: 'ig', i: IG('Candy') }); a.send({ t: 'buy', k: 'ib', i: 3 }); a.send({ t: 'buy', k: 'ik', i: 2 }); await wait(300);
+if (seen().ig !== IG('Candy') || seen().ib !== 3 || seen().ik !== 2 || a.me.coins !== coins0 - cosPrice('ig', IG('Candy')) - cosPrice('ib', 3) - cosPrice('ik', 2)) fail('isle variants were not bought and put on');
+a.msgs.length = 0; a.send({ t: 'buy', k: 'ig', i: IG('Snowy') }); a.send({ t: 'buy', k: 'ig', i: IG('Golden isle') }); a.send({ t: 'wear', k: 'ig', i: IG('Champion’s isle') }); await wait(250);
+if (!a.err(/Winter drop/) || !a.err(/not in the shop/) || !a.err(/not unlocked/) || seen().ig !== IG('Candy')) fail('a seasonal or earned isle got through');
+for (const n of ['Tent', 'Campfire', 'Swing', 'Mailbox']) a.send({ t: 'buy', k: 'ip', i: IP(n) }); await wait(300);
+if (JSON.stringify(seen().ip) !== JSON.stringify([IP('Tent'), IP('Campfire'), IP('Swing')])) fail('bought decor did not go out, three at most: ' + JSON.stringify(seen().ip));
+a.send({ t: 'wear', k: 'ip', i: [IP('Mailbox'), 0] }); await wait(200);
+if (JSON.stringify(seen().ip) !== JSON.stringify([IP('Mailbox'), 0])) fail('decor could not be swapped');
+a.msgs.length = 0; a.send({ t: 'wear', k: 'ip', i: [IP('Mini windmill')] }); a.send({ t: 'wear', k: 'ip', i: [0, 1, 2, 3] }); a.send({ t: 'wear', k: 'ip', i: 'x' }); await wait(200);
+if (JSON.stringify(seen().ip) !== JSON.stringify([IP('Mailbox'), 0])) fail('bad decor lists changed the isle');
+if (a.msgs.filter(m => m.t === 'err').length < 3) fail('unowned or too many decor props were accepted');
+b.msgs.length = 0; b.send({ t: 'player', pt: tag }); await wait(200);
+if (b.msgs.find(m => m.t === 'player')?.p.fl.ig !== IG('Candy')) fail('the profile card does not carry the isle look');
+if (flairOf({ cos: { ig: 9, ip: [1, 1, 2, 'x', 0] }, owned: ['ip:1'], xp: 0, byGame: {} }).ip?.join() !== '1,0' || flairOf({ cos: { ig: 9 }, xp: 19000, byGame: {} }).ig !== 9) fail('isle flair is not filtered to what is unlocked');
 // a tampered profile shows nothing it has not unlocked
 if (Object.keys(flairOf({ cos: { nm: 3, ti: SHARK, fr: 99 }, owned: [], byGame: {} })).length) fail('flairOf let unowned cosmetics through');
 // everything survives a restart
@@ -126,5 +144,5 @@ srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '
 const c = player(TA, 'Ana'); await c.connect(); await wait(300);
 if (c.me.cos.pet !== pets[0].id || c.me.cos.kp !== 2 || c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
 srv.kill();
-console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, isle pets, profile cards, flair at the table, in chat and in rankings');
+console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, isle pets, isle variants, profile cards, flair at the table, in chat and in rankings');
 process.exit(0);

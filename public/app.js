@@ -4,7 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
+import { COS, WORN, pickedOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -478,7 +478,7 @@ function onMsg(m) {
       toast(`${m.gain.win ? 'Win! ' : pl > 1 && m.gain.of > 1 ? `${ord(pl)} place · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
-    if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
+    if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
@@ -784,7 +784,7 @@ const topbar = () => `<header class="top">
 function mountSkyHero() {
   const box = document.querySelector('.hero .art'); if (!box) return;
   box.classList.add('sky3d');
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow()); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), flairOf(st.me)); }).catch(() => {});
   if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
 // The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
@@ -1300,7 +1300,8 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
-const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['pets', 'Isle pets', []]];
+const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik']], ['pets', 'Isle pets', []]];
+const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', ti: 'A title under your name. Titles with a goal are earned by playing.',
   wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
 
@@ -1318,7 +1319,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
         ${first ? '' : `<span class="chip wdcoins" title="Coins: every finished game pays by where you finished, 10 for 1st down to 1 for last">${coinIco}<b></b></span><button type="button" class="round wdx" data-done aria-label="Close the wardrobe">✕</button>`}</header>
       ${first ? '<p class="wdintro">No account needed. Pick a name and a look; friends see both at the table.</p>' : ''}
       <div class="wdside">
-        <div class="pv3d" id="pv"></div>
+        <div class="pv3d" id="pv"></div><div class="pv3d pvisle" id="pvi" hidden></div>
         <div class="wdme">
           <div class="wdplate" aria-label="How others see you"></div>
           <div class="namecol"><label for="nm">Name</label><input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname"></div>
@@ -1332,7 +1333,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
       ${first ? `<div class="wdfoot"><button class="btn big">Let's go</button><button type="button" class="btn ghost-ink" data-login>I already have an account</button></div>` : ''}
     </form>`, !first);
   const { el, close } = sheet; el.querySelector('.sheet').classList.add('wdsheet');
-  const q = s => el.querySelector(s), nm = q('#nm'), pv = q('#pv'), rail = q('.wdrail'), subEl = q('.wdsub'), hint = q('.wdhint'), grid = q('.wdgrid'), cart = q('.cart'), plate = q('.wdplate');
+  const q = s => el.querySelector(s), nm = q('#nm'), pv = q('#pv'), pvi = q('#pvi'), rail = q('.wdrail'), subEl = q('.wdsub'), hint = q('.wdhint'), grid = q('.wdgrid'), cart = q('.cart'), plate = q('.wdplate');
   let view = P3?.creatorPreview(pv) || null, open = true;
   st.creatorOpen = true;
   if (!P3) p3Ready.then(() => { if (!open || !P3) return; pv.innerHTML = ''; view = P3.creatorPreview(pv); show(); paintPlate(); });
@@ -1342,6 +1343,12 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const isLocked = (k, i) => priceOf(k, i) > 0 && !owned().includes(k + ':' + i);
   const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
   const flNow = () => Object.fromEntries(WORN.map(k => [k, worn(k)]));
+  // The isle sections show the isle itself in place of the avatar, wearing what is on plus anything being tried.
+  const decorNow = () => [...pickedOf(me(), 'ip').filter(i => i !== pick.ip), ...(pick.ip != null ? [pick.ip] : [])].slice(-COS.ip.pick);
+  const showIsle = () => {
+    const on = !first && (sec === 'isle' || sec === 'pets'); pvi.hidden = !on; pv.hidden = on; el.querySelector('form').classList.toggle('isleview', on);
+    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: decorNow() }); }).catch(() => {});
+  };
 
   // Saving: only what is owned is ever saved, so a tried-on item never reaches other players.
   const commit = () => {
@@ -1388,10 +1395,11 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : '<span class="ttl none">no title</span>'}</span>`
     : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
+    : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic${k === 'ik' ? ' isk' + i : ''}" data-isle="${k}:${i}">`
     : `<img alt="" data-kit="${k}:${i}"${skinPicNow(k, i, color, av) ? ` src="${skinPicNow(k, i, color, av)}"` : ''}>`;
   const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
   const cosTile = (k, i) => {
-    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
+    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : COS[k].pick ? pick[k] === i || pickedOf(me(), k).includes(i) : worn(k) === i;
     const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `back in ${cosSeason(k, i).back}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn ? '✓ yours' : '';
     return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b>${esc(it.n)}</b>`}${k === 'nm' ? `<b>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
   };
@@ -1409,6 +1417,10 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const fillPics = () => {
     for (const im of grid.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, color, av).then(u => { if (u && im.isConnected) im.src = u; }); }
     petPics(grid);
+    const isles = [...grid.querySelectorAll('img[data-isle]:not([src])')];
+    if (isles.length) (islePics ||= import('./islepic.js')).then(m => { let j = 0; // one a frame: each is a whole little scene
+      const next = () => { if (!open) return; while (j < isles.length && !isles[j].isConnected) j++; if (j >= isles.length) return; const im = isles[j++], [k, i] = im.dataset.isle.split(':'), u = m.islePic(k, +i); if (u) im.src = u; requestAnimationFrame(next); };
+      next(); }).catch(() => {});
     if (!IP) return;
     const imgs = [...grid.querySelectorAll('img[data-ip]:not([src])')], look = av.slice(), col = color; let n = 0;
     const step = () => { // a few per frame, so a long list never freezes the page
@@ -1437,6 +1449,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     plate.innerHTML = `${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
     petPics(plate);
     const c = q('.wdcoins b'); if (c) c.textContent = coins();
+    showIsle();
   };
   const wants = () => [...lockedIn(av, owned()).map(id => { const [k, i] = id.split(':'); return { id, name: itemName(k, +i), p: priceOf(k, +i), dot: AV_COLOR_KEYS.includes(k) ? OPT[k][+i] : '' }; }),
     ...Object.entries(pick).map(([k, i]) => ({ id: k + ':' + i, name: cosItem(k, i).n, kind: COS[k].label.toLowerCase(), p: cosItem(k, i).p }))];
@@ -1470,7 +1483,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const t = e.target;
     if (t.closest('[data-done]')) return close();
     if (t.closest('[data-login]')) { close(); return openAccount('login'); }
-    const sb = t.closest('[data-sec]'); if (sb) { sec = sb.dataset.sec; sub = ''; sfx.click(); paintRail(); paintGrid(); return setCam(sec === 'av1'); }
+    const sb = t.closest('[data-sec]'); if (sb) { sec = sb.dataset.sec; sub = ''; sfx.click(); paintRail(); paintGrid(); showIsle(); return setCam(sec === 'av1'); }
     const su = t.closest('[data-sub]'); if (su) { sub = su.dataset.sub; sfx.click(); return paintGrid(); }
     const fb = t.closest('[data-f]'); if (fb) { filt = fb.dataset.f; sfx.click(); return paintGrid(); }
     const cb = t.closest('[data-cam]'); if (cb) return setCam(cb.dataset.cam === '1');
@@ -1497,7 +1510,12 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const c = t.closest('[data-c]'); if (!c) return;
     const k = c.dataset.c, i = +c.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
-    if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
+    if (COS[k].pick && has(k, i)) { // a few at once (isle decor): tap to put one out, tap again to put it away
+      const l = pickedOf(me(), k), at = l.indexOf(i);
+      if (at >= 0) l.splice(at, 1); else if (l.length >= COS[k].pick) return toast(`There is room for ${COS[k].pick}. Tap one that is out to put it away first.`); else l.push(i);
+      delete pick[k]; (st.me.cos ||= {})[k] = l; send({ t: 'wear', k, i: l });
+    }
+    else if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
     else if (pick[k] === i) delete pick[k]; else pick[k] = i;
     paintGrid(true); paintPlate(); paintCart();
   });
@@ -1544,7 +1562,7 @@ function openPlayer(p) {
   for (const im of el.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, p.color, p.av).then(u => { if (u && im.isConnected) im.src = u; }); }
   const box = el.querySelector('.pisle .art');
   box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets, p.fl, box.closest('.pisle')); }).catch(() => {});
   sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; };
   el.addEventListener('click', e => {
     const fr = e.target.closest('[data-fr]');
@@ -1754,7 +1772,7 @@ addEventListener('hashchange', () => {
   if (validCode(c) && st.name) { send({ t: 'join', code: c }); history.replaceState(null, '', location.pathname); }
 });
 
-let ipFailed = false;
+let ipFailed = false, islePics = null;
 const ipReady = import('./itempic.js').then(m => { IP = m; }).catch(() => { ipFailed = true; });
 const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
 go('hub');

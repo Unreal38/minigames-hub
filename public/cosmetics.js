@@ -7,7 +7,10 @@
 // Only append to these lists: saved choices are indexes.
 //   p: price in coins            s: seasonal drop (see SEASONS in avatar.js)
 //   earn: unlocked by playing instead of bought: { g: game id, w: wins there } or { w: wins overall } or { n: games played } or { d: days in a row solving the Mystery Pet }
+//         or { lv: account level } or { any: wins in any one game }
+//   pick: n (on a kind): up to n entries are on at once, stored as a list (cos.ip = [2, 5]) instead of one index
 import { seasonOn, SEASONS } from './avatar.js';
+import { levelOf } from './ranks.js';
 
 export const COS = {
   nm: { label: 'Name colour', items: [{ n: 'Plain' }, { n: 'Sunset', p: 120 }, { n: 'Ocean', p: 120 }, { n: 'Mint', p: 100 }, { n: 'Candy', p: 150 },
@@ -32,10 +35,21 @@ export const COS = {
   dc: { label: 'Dice', where: 'Your dice in Liar’s Dice.', items: [{ n: 'Classic' }, { n: 'Ruby', p: 100 }, { n: 'Jade', p: 100 }, { n: 'Bubblegum', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Gold', p: 250 }] },
   gb: { label: 'Golf ball', where: 'Your ball in Mini Golf Party.', items: [{ n: 'Classic' }, { n: '8-ball', p: 100 }, { n: 'Watermelon', p: 120 }, { n: 'Planet', p: 150 }, { n: 'Eyeball', p: 150 }, { n: 'Gold', p: 250 }] },
   kp: { label: 'Kart paint', where: 'Your kart in Kart Island Race.', items: [{ n: 'Classic' }, { n: 'Racing stripes', p: 120 }, { n: 'Checkers', p: 120 }, { n: 'Flames', p: 150 }, { n: 'Galaxy', p: 200 }, { n: 'Gold', p: 300 }] },
+  // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
+  ig: { label: 'Ground', where: 'What grows on your isle. Everyone sees it on your profile card.', items: [{ n: 'Meadow' }, { n: 'Snowy', p: 180, s: 'winter' }, { n: 'Desert dunes', p: 150 }, { n: 'Cherry blossom', p: 180 },
+    { n: 'Autumn leaves', p: 150 }, { n: 'Mushroom forest', p: 200 }, { n: 'Beach', p: 180 }, { n: 'Candy', p: 220 }, { n: 'Lava rock', p: 250 },
+    { n: 'Golden isle', earn: { lv: 20 } }, { n: 'Champion’s isle', earn: { any: 50 } }, { n: 'Pumpkin patch', p: 180, s: 'halloween' }] },
+  ib: { label: 'Rock base', where: 'What hangs under your isle.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 }] },
+  ip: { label: 'Decor', pick: 3, where: 'Little things to stand on your isle. Up to three at once.', items: [{ n: 'Signpost' }, { n: 'Tent', p: 80 }, { n: 'Campfire', p: 80 }, { n: 'Mailbox', p: 60 }, { n: 'Swing', p: 100 },
+    { n: 'Lanterns', p: 80 }, { n: 'Mini windmill', p: 120 }, { n: 'Snowman', p: 90, s: 'winter' }, { n: 'Jack-o’-lantern', p: 90, s: 'halloween' }] },
+  ik: { label: 'Sky', where: 'The sky behind your isle.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }] },
 };
 export const COS_KEYS = Object.keys(COS);
 // Kinds where one entry is worn at a time (sticker packs are simply all usable once bought).
-export const WORN = COS_KEYS.filter(k => !COS[k].multi);
+export const WORN = COS_KEYS.filter(k => !COS[k].multi && !COS[k].pick);
+// Kinds where a few entries are on together (isle decor).
+export const PICKED = COS_KEYS.filter(k => COS[k].pick);
+export const pickedOf = (me, k) => (Array.isArray(me?.cos?.[k]) ? me.cos[k] : []).filter((i, n, a) => Number.isInteger(i) && a.indexOf(i) === n && cosHas(me, k, i)).slice(0, COS[k].pick);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
   golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce' };
 
@@ -47,6 +61,8 @@ export const cosSeason = (k, i) => SEASONS[cosItem(k, i)?.s] || null;
 export function earnProgress(it, me) {
   const e = it?.earn; if (!e) return null;
   if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, `${e.d} Mystery Pets solved in a row`];
+  if (e.lv) return [Math.min(e.lv, levelOf(me?.xp || 0)), e.lv, `reach level ${e.lv}`];
+  if (e.any) return [Math.min(e.any, Math.max(0, ...Object.values(me?.byGame || {}).map(g => g?.wins || 0))), e.any, `${e.any} wins in any one game`];
   if (e.g) return [Math.min(e.w, me?.byGame?.[e.g]?.wins || 0), e.w, `${e.w} wins in ${GAME_NAMES[e.g] || e.g}`];
   if (e.w) return [Math.min(e.w, me?.wins || 0), e.w, `${e.w} wins in any games`];
   return [Math.min(e.n, me?.games || 0), e.n, `${e.n} games played`];
@@ -62,6 +78,7 @@ export function cosHas(me, k, i) {
 export function flairOf(me) {
   const out = {}, cos = me?.cos || {};
   for (const k of WORN) { const i = cos[k] | 0; if (i > 0 && cosHas(me, k, i)) out[k] = i; }
+  for (const k of PICKED) { const l = pickedOf(me, k); if (l.length) out[k] = l; }
   return out;
 }
 
