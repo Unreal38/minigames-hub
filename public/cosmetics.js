@@ -32,7 +32,7 @@ export const COS = {
     { n: 'Regular', earn: { n: 25 } }, { n: 'Champion', earn: { w: 50 } },
     { n: 'Snack Lord', p: 100 }, { n: 'Lucky Duck', p: 100 }, { n: 'Just Vibing', p: 80 }, { n: 'Sore Loser', p: 80 }, { n: 'Bot Bully', p: 120 },
     { n: 'Certified Goblin', p: 150 }, { n: 'Big Spender', p: 400 },
-    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }, { n: 'Party Roller', earn: { g: 'pips', w: 5 } }] },
+    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }, { n: 'Party Roller', earn: { g: 'pips', w: 5 } }, { n: 'Bullseye', earn: { g: 'darts', w: 5 } }] },
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }] },
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
@@ -61,7 +61,7 @@ export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
-  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party' };
+  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts' };
 
 export const cosItem = (k, i) => COS[k]?.items[i] || null;
 export const cosPrice = (k, i) => cosItem(k, i)?.p || 0;
