@@ -360,9 +360,10 @@ const GAMES = {
   },
   pips: {
     name: 'Pip Party', load: () => import('./games/pips/client.js'), start: 'Roll the dice',
-    host: { seats: 3, bots: 'chill', timer: 45 }, solo: { seats: 3, bots: 'chill', timer: 0 },
+    host: { seats: 3, sheet: 'single', bots: 'chill', timer: 45 }, solo: { seats: 3, sheet: 'single', bots: 'chill', timer: 0 },
     openSeat: 'A bot fills this sheet if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Score sheet and rounds</b><div class="pills">${pill('sheet', 'single', 'Classic · 13')}${pill('sheet', 'triple', 'Triple · 39')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 60, '60s')}${pill('timer', 0, 'Off')}</div></div>`,
     howto: `Five dice and a score sheet with 13 boxes. Each turn you get up to three rolls, keeping any dice you like in between, then you write the roll into one empty box. Fill all 13 boxes; the highest total wins.`,
@@ -375,6 +376,7 @@ const GAMES = {
       <li><b>Full house</b>, three of one number and two of another: <b>25</b>. <b>Small run</b>, four numbers in a row: <b>30</b>. <b>Big run</b>, five in a row: <b>40</b>.</li>
       <li><b>Pip Party</b>, all five dice the same: <b>50</b>. <b>Chance</b>: all five dice added up, whatever they show.</li>
       <li><b>Jokers</b>: roll five of a kind when your Pip Party box and the top-half box for that number are both already filled, and the roll is a joker. In the bottom half it scores as a full house (25), small run (30), big run (40) or the dice added up. If your first Pip Party scored 50, each joker also pays a <b>100 point bonus</b>.</li>
+      <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A roll is a joker only once all three Pip Party boxes and all three top boxes for that number are filled, and it pays 100 times its column when all three Pip Party boxes scored 50 and you never wrote a five of a kind elsewhere while one was empty.</li>
       <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
     </ol>`,

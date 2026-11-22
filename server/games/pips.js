@@ -1,7 +1,7 @@
 // Pip Party: the classic five-dice score-sheet game. Each round every player gets up to three rolls, keeps any dice
 // between rolls, then writes the roll into one empty box of their sheet. After 13 rounds the highest total wins.
 // Everything here is public (there is nothing secret in a dice game), so view() is the same for every seat.
-import { ROUNDS, ROLLS, NDICE, BOXES, UPPER, plain, score, genBonus, open, total, upperSum, blankSheet, isGen, counts } from '../../public/games/pips/rules.js';
+import { ROUNDS, ROLLS, NDICE, BOXES, UPPER, MULT, score, genBonus, open, openCount, total, upperSum, blankCols, isGen, counts } from '../../public/games/pips/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'pips', name: 'Pip Party', minPlayers: 1, maxPlayers: 4, joinAt: 'round' };
@@ -18,6 +18,7 @@ const d6 = () => 1 + (Math.random() * 6 | 0);
 export function cleanOpts(o = {}) {
   return {
     seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 3,
+    sheet: o.sheet === 'triple' ? 'triple' : 'single',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 30, 45, 60].includes(+o.timer) ? +o.timer : 45,
   };
@@ -35,7 +36,8 @@ export function create(players, optsIn = {}) {
   const n = seats.length, now = Date.now();
   const G = {
     game: 'pips', ph: 'play', stage: 'wait', gid: Math.random().toString(36).slice(2, 8), seats, opts,
-    sheets: seats.map(blankSheet), extra: seats.map(() => 0), gens: seats.map(() => 0),
+    cols: opts.sheet === 'triple' ? 3 : 1, rounds: ROUNDS * (opts.sheet === 'triple' ? 3 : 1),
+    sheets: seats.map(() => blankCols(opts.sheet === 'triple' ? 3 : 1)), extra: seats.map(() => 0), gens: seats.map(() => 0), waste: seats.map(() => false),
     round: 1, first: Math.random() * n | 0, turn: -1, dice: [], held: [false, false, false, false, false], rolls: 0,
     rollN: 0, rollAt: 0, moved: [], last: null, stageEnd: now + MS.start, tEnd: 0, botAt: 0, auto: false, plan: null,
     ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
@@ -74,15 +76,16 @@ function doHold(G, s, k, on, now) {
   return true;
 }
 
-function doPick(G, s, box, now) {
-  const sh = G.sheets[s];
-  if (!G.rolls || rolling(G, now) || !BOXES.includes(box) || sh[box] != null) return false;
-  const pts = score(box, G.dice, sh), bonus = genBonus(G.dice, sh);
+function doPick(G, s, box, ci, now) {
+  const cols = G.sheets[s], sh = cols[ci];
+  if (!G.rolls || rolling(G, now) || !sh || !BOXES.includes(box) || sh[box] != null) return false;
+  const raw = score(box, G.dice, cols), bonus = genBonus(G.dice, cols, ci, G.waste[s]), pts = raw * MULT[ci];
+  if (isGen(G.dice) && box !== 'gen' && cols.some(c => c.gen == null)) G.waste[s] = true; // a five-of-a-kind spent elsewhere
   const upperBefore = upperSum(sh);
-  sh[box] = pts; G.extra[s] += bonus; if (bonus) G.gens[s]++;
+  sh[box] = raw; G.extra[s] += bonus; if (bonus) G.gens[s]++;
   const madeBonus = UPPER.includes(box) && upperBefore < 63 && upperSum(sh) >= 63;
-  G.last = { s, box, pts, bonus, madeBonus, dice: [...G.dice], at: now };
-  pushEv(G, { t: 'pick', s, box, pts, bonus, madeBonus });
+  G.last = { s, box, col: ci, pts, bonus, madeBonus, dice: [...G.dice], at: now };
+  pushEv(G, { t: 'pick', s, box, col: ci, pts, bonus, madeBonus });
   G.stage = 'pick'; G.stageEnd = now + MS.pick; G.tEnd = 0;
   return true;
 }
@@ -90,7 +93,7 @@ function doPick(G, s, box, now) {
 function nextTurn(G, now) {
   const n = G.seats.length, s = (G.turn + 1) % n;
   if (s === G.first) {
-    if (G.round >= ROUNDS) return finish(G);
+    if (G.round >= G.rounds) return finish(G);
     G.round++;
     seatQueued(G);
   }
@@ -112,7 +115,7 @@ export function act(G, s, a) {
   const now = Date.now();
   if (a.t === 'roll') return doRoll(G, s, now);
   if (a.t === 'hold') return doHold(G, s, +a.k, a.on, now);
-  if (a.t === 'pick') return doPick(G, s, String(a.box), now);
+  if (a.t === 'pick') return doPick(G, s, String(a.box), a.col == null ? 0 : +a.col, now);
   return false;
 }
 
@@ -145,16 +148,18 @@ function keeps(dice) {
   return [...seen.values()];
 }
 
-function planner(sheet, extra, B) {
-  const boxes = open(sheet), up = upperSum(sheet), lean = {};
-  for (const b of boxes) lean[b] = B.noise ? rnd(-B.noise, B.noise) : 0;
-  const worth = (b, d) => {
-    const s = score(b, d, sheet) + genBonus(d, sheet);
-    if (UPPER.includes(b)) { const f = +b, over = s - 3 * f; return s + (up < 63 ? over * B.up : 0) + lean[b]; }
-    return s - (PAR[b] || 0) * Math.min(1, boxes.length / 6) + lean[b];
+function planner(cols, wasted, B) {
+  // every empty box of every column; a column that counts double or triple is worth that much more (and costs
+  // that much more to waste), so good rolls drift to the last column and zeros to the first
+  const boxes = [], left = openCount(cols), ease = Math.min(1, left / (6 * cols.length));
+  cols.forEach((sh, ci) => { const up = upperSum(sh); for (const b of open(sh)) boxes.push({ b, ci, up, lean: B.noise ? rnd(-B.noise, B.noise) : 0 }); });
+  const worth = (o, d) => {
+    const s = score(o.b, d, cols), m = MULT[o.ci], bonus = genBonus(d, cols, o.ci, wasted);
+    if (UPPER.includes(o.b)) { const over = s - 3 * +o.b; return m * (s + (o.up < 63 ? over * B.up : 0)) + bonus + o.lean; }
+    return m * (s - (PAR[o.b] || 0) * ease) + bonus + o.lean;
   };
   const stopMemo = new Map();
-  const stop = d => { const key = keyOf(d); let v = stopMemo.get(key); if (v) return v; let best = null; for (const b of boxes) { const w = worth(b, d); if (!best || w > best.w) best = { b, w }; } stopMemo.set(key, best); return best; };
+  const stop = d => { const key = keyOf(d); let v = stopMemo.get(key); if (v) return v; let best = null; for (const o of boxes) { const w = worth(o, d); if (!best || w > best.w) best = { b: o.b, ci: o.ci, w }; } stopMemo.set(key, best); return best; };
   // expected best stop after rerolling everything but `kept`, with `left` rolls still to come after that one
   const evMemo = [new Map(), new Map()];
   const after = (kept, left) => {
@@ -167,7 +172,7 @@ function planner(sheet, extra, B) {
   const bestMemo = [new Map(), new Map(), new Map()];
   const best = (d, left) => {
     const key = keyOf(d); if (bestMemo[left].has(key)) return bestMemo[left].get(key);
-    let pick = { t: 'pick', w: stop(d).w, b: stop(d).b };
+    let pick = { t: 'pick', w: stop(d).w };
     if (left > 0) for (const k of keeps(d)) { if (k.d.length === NDICE) continue; const w = after(k.d, left - 1); if (w > pick.w + 1e-9) pick = { t: 'roll', w, keep: k.d }; }
     bestMemo[left].set(key, pick); return pick;
   };
@@ -178,13 +183,13 @@ function botStep(G, s, now, level = G.opts.bots) {
   const B = typeof level === 'object' ? level : BOTS[level] || BOTS.chill;
   if (!G.rolls) return doRoll(G, s, now);
   if (G.plan) { const want = G.plan; G.plan = null; if (G.held.every((h, k) => h === want[k])) return doRoll(G, s, now); }
-  const P = planner(G.sheets[s], G.extra[s], B);
+  const P = planner(G.sheets[s], G.waste[s], B), write = () => { const o = P.stop(G.dice); return doPick(G, s, o.b, o.ci, now); };
   const left = ROLLS - G.rolls, mv = P.best(G.dice, B.deep ? left : Math.min(1, left));
-  if (mv.t === 'pick' || left <= 0) return doPick(G, s, P.stop(G.dice).b, now);
+  if (mv.t === 'pick' || left <= 0) return write();
   // hold the dice it wants to keep, show that for a moment, then roll
   const need = counts(mv.keep), held = G.dice.map(v => (need[v]-- > 0));
   G.held = held; G.plan = held;
-  if (held.every(Boolean)) { G.plan = null; return doPick(G, s, P.stop(G.dice).b, now); }
+  if (held.every(Boolean)) { G.plan = null; return write(); }
   return true;
 }
 export { botStep as _bot, planner as _planner };
@@ -236,14 +241,14 @@ function seatQueued(G) {
 export function view(G, s) {
   const now = Date.now();
   return {
-    game: 'pips', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, rounds: ROUNDS, turn: G.turn, first: G.first,
+    game: 'pips', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, rounds: G.rounds, ncols: G.cols, turn: G.turn, first: G.first,
     timer: G.opts.timer, botsLevel: G.opts.bots, auto: G.auto,
     tLeft: G.stage === 'turn' && G.tEnd ? Math.max(0, G.tEnd - now) : -1,
     dice: G.dice, held: G.held, rolls: G.rolls, rollN: G.rollN, rollAgo: now - G.rollAt, moved: G.moved, ms: MS,
     last: G.last && { ...G.last, ago: now - G.last.at },
     seats: G.seats.map((x, i) => ({
       name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id,
-      sheet: G.sheets[i], extra: G.extra[i], gens: G.gens[i], tot: total(G.sheets[i], G.extra[i]),
+      cols: G.sheets[i], extra: G.extra[i], gens: G.gens[i], waste: G.waste[i], tot: total(G.sheets[i], G.extra[i]),
     })),
     res: G.res, win: G.win, ev: G.ev, queued: G.queue.map(q => q.id),
   };
