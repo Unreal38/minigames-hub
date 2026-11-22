@@ -2,7 +2,7 @@
 // The only hand this page ever receives is your own.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { cardHtml, suitSvg } from '../poker/cards.js';
 import { MELD, SUIT_NAMES, STEP, SAFE_BID, suitOf, canMeld, maxBid, melds } from './rules.js';
@@ -284,7 +284,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.made} of ${st.played} contract${st.played === 1 ? '' : 's'} made · ${st.melds} marriage${st.melds === 1 ? '' : 's'}</span></div>
-          <strong><span>${p.score}</span><small>points</small></strong></li>`;
+          <strong><span>${p.score}</span><small>points</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -292,6 +292,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');

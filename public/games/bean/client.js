@@ -2,7 +2,7 @@
 // server, and draws the HUD over the 3D climb: floor, score, streak meter, the race up the stalk, touch pads and results.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTower, newClimber, stepClimber, stormY, newRun, land, expire, streakPts, cheer, zoneOf, zoneName, floorAt, PACES, FLOOR_H, STREAK_MS, SPRING } from './tower.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
@@ -263,7 +263,7 @@ export function mount(app, ctx) {
       <p>Floor ${R.floor[w]} · ${esc(zoneName(zoneOf(R.floor[w])))}</p>
       <ol class="bb-podium">${R.order.map((i, n) => { const p = info[i];
         return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-          <strong>${R.score[i]} pts</strong><small>floor ${R.floor[i]}${R.bonus[i] ? ` · streaks +${R.bonus[i]}` : ''}</small></li>`; }).join('')}</ol>
+          <strong>${R.score[i]} pts</strong><small>floor ${R.floor[i]}${R.bonus[i] ? ` · streaks +${R.bonus[i]}` : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Climb again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) { confetti(); sfx.win(); }
@@ -271,6 +271,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Climb again');

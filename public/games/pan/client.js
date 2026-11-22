@@ -2,7 +2,7 @@
 // Your own hand is the only one this page ever receives.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { cardHtml } from '../poker/cards.js';
 import { RANK_NAMES } from '../poker/rules.js';
@@ -219,7 +219,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], st = p.st, pan = i === S.pan;
         return `<li class="${k === 0 ? 'won' : ''}${pan ? ' pan' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.played} card${st.played === 1 ? '' : 's'} played · ${st.drawn} picked up</span></div>
-          <strong><span>${pan ? 'Pan' : p.out ? 'Safe' : ''}</span><small>${S.res.left[i] ? `${S.res.left[i]} card${S.res.left[i] === 1 ? '' : 's'} left` : 'out of cards'}</small></strong></li>`;
+          <strong><span>${pan ? 'Pan' : p.out ? 'Safe' : ''}</span><small>${S.res.left[i] ? `${S.res.left[i]} card${S.res.left[i] === 1 ? '' : 's'} left` : 'out of cards'}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Deal again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -227,6 +227,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Deal again');

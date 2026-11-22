@@ -2,7 +2,7 @@
 // and draws the HUD over the 3D race: place, lap, item slot, a minimap, touch controls and the results.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTrack, newKart, stepKart, bump, autoDrive, locate, progOf, TRACKS } from './track.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
@@ -293,7 +293,7 @@ export function mount(app, ctx) {
       <p>${esc(TRACKS[S.track]?.name)} · ${S.laps} laps</p>
       <ol class="kr-podium">${R.order.map((i, n) => { const p = info[i];
         return `<li class="${i === S.me ? 'kr-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-          <strong>${R.times[i] ? clock(R.times[i]) : 'did not finish'}</strong><small>${R.best[i] ? 'best lap ' + clock(R.best[i]) : ''}</small></li>`; }).join('')}</ol>
+          <strong>${R.times[i] ? clock(R.times[i]) : 'did not finish'}</strong><small>${R.best[i] ? 'best lap ' + clock(R.best[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Race again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) confetti();
@@ -301,6 +301,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Race again');

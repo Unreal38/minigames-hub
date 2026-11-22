@@ -2,7 +2,7 @@
 // about every brick you set down, and draws the HUD over the 3D wells: level, lines, name tags, touch pads, results.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { MAXG, LOCK_MS, MAX_RESETS, SOFT_MS, fits, spawn, turned, dropY, pieceAt, lock, doHold, decode, encode, fallMs, levelAt } from './rules.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
@@ -290,7 +290,7 @@ export function mount(app, ctx) {
       <p>Last one standing after ${clock(R.ms)}</p>
       <ol class="sb-podium">${R.order.map((i, n) => { const p = info[i];
         return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-          <strong>${R.lines[i]} line${R.lines[i] === 1 ? '' : 's'}</strong><small>sent ${R.sent[i]}${R.time[i] ? ' · out at ' + clock(R.time[i]) : ''}</small></li>`; }).join('')}</ol>
+          <strong>${R.lines[i]} line${R.lines[i] === 1 ? '' : 's'}</strong><small>sent ${R.sent[i]}${R.time[i] ? ' · out at ' + clock(R.time[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) confetti();
@@ -298,6 +298,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');

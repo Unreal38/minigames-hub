@@ -1,7 +1,7 @@
 // Pawperty game view: HUD over the 3D board. Renders what the server says and sends your choices.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { TILES, GROUPS, STREET, CARDS, PET_NAME, LV_NAMES, LV_MAX, BATH_FEE, PASS_GO, MS, rentOf, fullStreet } from './board.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
@@ -277,7 +277,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], shops = S.own.filter(o => o === i).length;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${shops} shop${shops === 1 ? '' : 's'} · ${p.cash} treats in hand · ${p.st.got} rent collected</span></div>
-          <strong>${treats(S.res.worth[i])}<small>in total</small></strong></li>`;
+          <strong>${treats(S.res.worth[i])}<small>in total</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -285,6 +285,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
