@@ -367,6 +367,7 @@ const st = {
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   hc: { log: null, max: 200, for: undefined }, // the hub's global chat
+  side: LS.get('ct_side', 'hubchat') === 'tables' ? 'tables' : 'hubchat', tPage: 0, // the hub's left column: chat or open tables
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -817,15 +818,18 @@ function renderHub() {
       </div>
     </section>
     </div>
-    <aside class="hubside left" aria-label="Open tables">
-      <section id="tables">
-        <div class="sidehead"><h2>Open tables</h2><span class="tcount" id="tables-count"></span></div>
+    <aside class="hubside left" aria-label="Chat and open tables">
+      <div class="sidetabs" role="tablist" aria-label="Chat or open tables">
+        <button type="button" role="tab" id="tab-hubchat" aria-controls="hubchat" data-act="sidetab" data-tab="hubchat" aria-selected="${st.side === 'hubchat'}">Chat</button>
+        <button type="button" role="tab" id="tab-tables" aria-controls="tables" data-act="sidetab" data-tab="tables" aria-selected="${st.side === 'tables'}">Open tables<span class="tcount" id="tables-count"></span></button>
+      </div>
+      <section id="tables" role="tabpanel" aria-labelledby="tab-tables" ${st.side === 'tables' ? '' : 'hidden'}>
         <p class="sidenote"><span class="livedot"></span>Updates live. Join a seat or watch a game.</p>
         <div class="tables" id="tables-list"></div>
+        <div class="tpager" id="tables-pager"></div>
         <button type="button" class="btn w sidehost" data-act="host">Host a table</button>
       </section>
-      <section id="hubchat" aria-label="Hub chat">
-        <div class="sidehead"><h2>Chat</h2></div>
+      <section id="hubchat" role="tabpanel" aria-labelledby="tab-hubchat" ${st.side === 'hubchat' ? '' : 'hidden'}>
         <p class="sidenote">One room for everyone on ${SITE}.</p>
         <div class="hccard">
           <div class="hclog" id="hc-log" role="log" aria-live="polite">${hubLogHtml()}</div>
@@ -960,17 +964,35 @@ function statsHtml() {
 }
 function paintStats() { const el = document.getElementById('live-stats'); if (el) el.innerHTML = statsHtml(); }
 
+// The open tables tab: tables with a free seat in their waiting room first, a page at a time.
+const TABLES_PER_PAGE = 5;
 function renderTables() {
   const el = document.getElementById('tables-list'); if (!el) return;
   const cnt = document.getElementById('tables-count'); if (cnt) cnt.textContent = st.rooms.length || '';
-  if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
-  el.innerHTML = st.rooms.map(r => `<div class="trow">
+  const pager = document.getElementById('tables-pager');
+  if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; if (pager) pager.innerHTML = ''; return; }
+  const open = r => r.state === 'lobby' && r.n < r.max;
+  const rooms = [...st.rooms].sort((a, b) => open(b) - open(a));
+  const pages = Math.ceil(rooms.length / TABLES_PER_PAGE);
+  st.tPage = Math.max(0, Math.min(st.tPage, pages - 1));
+  el.innerHTML = rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
     <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take over a bot' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
-    <button type="button" class="btn ${r.n < r.max && r.state === 'lobby' ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${r.n < r.max && r.state === 'lobby' ? 'Join' : 'Watch'}</button>
+    <button type="button" class="btn ${open(r) ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${open(r) ? 'Join' : 'Watch'}</button>
   </div>`).join('');
+  if (pager) pager.innerHTML = pages < 2 ? '' : `<button type="button" class="btn sm w" data-act="tpage" data-d="-1" aria-label="Previous page" ${st.tPage ? '' : 'disabled'}>‹</button>
+    <span>Page <b>${st.tPage + 1}</b> of ${pages} · ${rooms.length} tables</span>
+    <button type="button" class="btn sm w" data-act="tpage" data-d="1" aria-label="Next page" ${st.tPage < pages - 1 ? '' : 'disabled'}>›</button>`;
+}
+function setSide(tab) {
+  st.side = tab === 'tables' ? 'tables' : 'hubchat'; LS.set('ct_side', st.side);
+  for (const id of ['tables', 'hubchat']) {
+    const sec = document.getElementById(id); if (sec) sec.hidden = id !== st.side;
+    document.getElementById('tab-' + id)?.setAttribute('aria-selected', id === st.side);
+  }
+  if (st.side === 'hubchat') hubScrollEnd();
 }
 
 function renderLobby() {
@@ -1473,7 +1495,9 @@ $app.addEventListener('click', e => {
   if (['home', 'scroll', 'rules'].includes(act)) e.preventDefault();
   if (b.tagName === 'BUTTON') sfx.click();
   if (act === 'home') { if (st.room) send({ t: 'leave' }); else go('hub'); }
-  else if (act === 'scroll') document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' });
+  else if (act === 'scroll') { if (['tables', 'hubchat'].includes(b.dataset.to)) setSide(b.dataset.to); document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' }); }
+  else if (act === 'sidetab') { sfx.click(); setSide(b.dataset.tab); }
+  else if (act === 'tpage') { sfx.click(); st.tPage += +b.dataset.d; renderTables(); }
   else if (act === 'rktab') { st.rkTab = b.dataset.tab; LS.set('ct_rk', st.rkTab); sfx.click(); paintRankings(); send({ t: 'rankings', game: st.rkTab }); }
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
