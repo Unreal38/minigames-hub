@@ -338,9 +338,10 @@ export function prune(active) {
 const MAX_FRIENDS = 100;
 const lists = p => { p.friends ||= []; p.reqs ||= []; p.sent ||= []; return p; };
 const drop = (a, x) => { const i = a.indexOf(x); if (i >= 0) a.splice(i, 1); };
-export function friendOp(p, op, user) {
+export function friendOp(p, op, user, target = null) { // target: the other profile, when it was picked from a profile card instead of typed
   if (!p?.user) return { err: 'Create an account to add friends.' };
-  const q = String(user ?? '').trim().toLowerCase(); let o = profiles.get(users.get(q));
+  if (target && !target.user) return { err: 'That player has no account yet, so they cannot be added.' };
+  const q = target ? '' : String(user ?? '').trim().toLowerCase(); let o = target || profiles.get(users.get(q));
   if (!o && q) { // not a username: people often type the name they see on screen, so try that too
     const named = [...profiles.values()].filter(x => x !== p && String(x.name ?? '').trim().toLowerCase() === q), acc = named.filter(x => x.user);
     if (acc.length === 1) o = acc[0];
@@ -364,6 +365,13 @@ export function friendOp(p, op, user) {
   return { other: o, now: p.friends.includes(o.pid) };
 }
 export const areFriends = (a, b) => !!profiles.get(a)?.friends?.includes(b);
+// How the viewer stands with another player, for the button on their profile card.
+export function relation(p, o) {
+  if (!p || !o || p === o) return 'me';
+  if (!p.user) return 'guest'; if (!o.user) return 'noacc';
+  lists(p);
+  return p.friends.includes(o.pid) ? 'friend' : p.sent.includes(o.pid) ? 'sent' : p.reqs.includes(o.pid) ? 'req' : 'none';
+}
 export const friendPids = pid => profiles.get(pid)?.friends || [];
 // What a player sees of their friends list. online(pid) and extra(pid) are filled in by the server.
 export function friendsView(p, online = () => false, extra = () => ({})) {

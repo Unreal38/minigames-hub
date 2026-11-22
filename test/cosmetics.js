@@ -102,6 +102,17 @@ b.msgs.length = 0; b.send({ t: 'player', pt: tag }); await wait(200);
 const card = b.msgs.find(m => m.t === 'player')?.p;
 if (!card || card.name !== 'Ana' || card.pets.length !== 2 || card.pets[0].sp !== 'puddlepup' || card.fl.nm !== NM || card.me) fail('profile card missing or wrong');
 if (/"(pid|user|id|owned|coins)"/.test(JSON.stringify(card)) || !/^[0-9a-f]{12}$/.test(tag)) fail('profile card leaks private fields');
+// the card's add-friend button: by tag, no username typed; the card then shows the request and, once accepted, the friendship
+if (card.rel !== 'none') fail('profile card has no friend state');
+b.send({ t: 'friend', op: 'add', pt: tag }); await wait(200);
+b.msgs.length = 0; b.send({ t: 'player', pt: tag }); await wait(200);
+if (b.msgs.find(m => m.t === 'player')?.p.rel !== 'sent') fail('friend request from the card was not sent');
+const btag = a.room.players.find(p => p.name === 'Bo').pt;
+a.msgs.length = 0; a.send({ t: 'player', pt: btag }); await wait(200);
+if (a.msgs.find(m => m.t === 'player')?.p.rel !== 'req') fail('the other side does not see the request on the card');
+a.send({ t: 'friend', op: 'accept', pt: btag }); await wait(200);
+a.msgs.length = 0; a.send({ t: 'player', pt: btag }); await wait(200);
+if (a.msgs.find(m => m.t === 'player')?.p.rel !== 'friend') fail('accepting from the card did not make them friends');
 b.msgs.length = 0; b.send({ t: 'player', pt: 'ffffffffffff' }); await wait(150);
 if (!b.err(/not around/)) fail('unknown profile tag was answered');
 a.send({ t: 'wear', k: 'pets', i: [two[0].id] }); await wait(200);

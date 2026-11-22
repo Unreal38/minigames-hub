@@ -468,6 +468,7 @@ function onMsg(m) {
     if (m.news) { sfx.join(); toast(m.news.now ? `${esc(m.news.from)} and you are now friends!` : `${esc(m.news.from)} wants to be friends. Open Friends to answer.`); }
     paintFriends();
   } else if (m.t === 'friended') {
+    if (playerSheet?.pt) send({ t: 'player', pt: playerSheet.pt }); // the open profile card shows the new state
     toast(m.op === 'add' ? (m.now ? `You and ${esc(m.user)} are now friends!` : `Asked ${esc(m.user)} to be friends.`) : m.op === 'accept' ? `You and ${esc(m.user)} are now friends!` : m.op === 'remove' ? `${esc(m.user)} was removed from your friends.` : 'Request declined.');
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
@@ -1443,7 +1444,13 @@ function openPlayer(p) {
         <div class="stylekit pkit">${kit.map(k => { const i = p.fl[k] | 0, u = skinPicNow(k, i, p.color, p.av); return `<figure><img width="54" height="54" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i)?.n || 'Classic')}</figcaption></figure>`; }).join('')}</div>
       </div>
     </div>
-    <div class="row"><button type="button" class="btn big" data-done>Close</button>${p.me ? '<button type="button" class="btn big w" data-style>✨ Change your style</button>' : ''}</div>`);
+    <div class="row"><button type="button" class="btn big" data-done>Close</button>${p.me ? '<button type="button" class="btn big w" data-style>✨ Change your style</button>' : ''}${
+      p.rel === 'none' ? '<button type="button" class="btn big m" data-fr="add">Add friend</button>'
+      : p.rel === 'req' ? '<button type="button" class="btn big m" data-fr="accept">Accept friend request</button>'
+      : p.rel === 'sent' ? '<button type="button" class="btn big w" disabled>Friend request sent</button>'
+      : p.rel === 'friend' ? '<span class="chip pfriend">✓ Friends</span>'
+      : p.rel === 'guest' && !p.guest ? '<button type="button" class="btn big w" data-fr="account">Create an account to add friends</button>' : ''}</div>`);
+  sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
   for (const im of el.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, p.color, p.av).then(u => { if (u && im.isConnected) im.src = u; }); }
@@ -1451,7 +1458,12 @@ function openPlayer(p) {
   box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
   (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets); }).catch(() => {});
   sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; };
-  el.addEventListener('click', e => { if (e.target.closest('[data-done]')) sheet.close(); else if (e.target.closest('[data-style]')) { sheet.close(); openStyle(); } });
+  el.addEventListener('click', e => {
+    const fr = e.target.closest('[data-fr]');
+    if (fr?.dataset.fr === 'account') { sheet.close(); return openAccount('register'); }
+    if (fr) { fr.disabled = true; sfx.pop(); return send({ t: 'friend', op: fr.dataset.fr, pt: p.pt }); }
+    if (e.target.closest('[data-done]')) sheet.close(); else if (e.target.closest('[data-style]')) { sheet.close(); openStyle(); }
+  });
 }
 document.addEventListener('click', e => {
   const row = e.target.closest('[data-prof]'); if (!row) return;

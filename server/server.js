@@ -264,7 +264,7 @@ function handle(c, m) {
     case 'player': { // another player's profile card, by their public tag
       if (!allow('prof:' + c.id, 30, 60_000)) return;
       const o = store.byTag(m.pt); if (!o) return send(c, { t: 'err', msg: 'That player is not around any more.' });
-      return send(c, { t: 'player', p: { ...store.publicProfile(o), pets: palsOf(o), online: clientsOf(o.pid).length > 0, me: o === store.profileOf(c.token) } });
+      return send(c, { t: 'player', p: { ...store.publicProfile(o), pets: palsOf(o), online: clientsOf(o.pid).length > 0, me: o === store.profileOf(c.token), rel: store.relation(store.profileOf(c.token), o) } });
     }
     case 'wear': { // put on a name colour, frame, title or win effect, or pick the Pet Farm pets to show off
       const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
@@ -386,9 +386,11 @@ function handle(c, m) {
     }
     case 'friends': return sendFriends(store.profileOf(c.token));
     case 'friend': { // add by username, accept, decline or remove
-      const p = store.profileOf(c.token), r = store.friendOp(p, m.op, m.user);
+      const p = store.profileOf(c.token), tagged = m.pt ? store.byTag(m.pt) : null; // pt: picked from a profile card
+      if (m.pt && !tagged) return send(c, { t: 'err', msg: 'That player is not around any more.' });
+      const r = store.friendOp(p, m.op, m.user, tagged);
       if (r.err) return send(c, { t: 'err', msg: r.err });
-      send(c, { t: 'friended', op: m.op, user: r.other.user, now: r.now });
+      send(c, { t: 'friended', op: m.op, user: tagged ? r.other.name : r.other.user, now: r.now });
       sendFriends(p); sendFriends(r.other, m.op === 'add' || m.op === 'accept' ? { from: p.name, now: r.now } : null);
       return;
     }
