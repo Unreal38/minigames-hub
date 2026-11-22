@@ -3,6 +3,8 @@
 // Reaching level L takes 50·L·(L-1) XP in total: 100 for level 2, 300 for 3, 600 for 4 … Each level costs 100 XP more
 // than the one before, up to level FLAT. From there every level costs the same (100·FLAT XP), so leveling never ends
 // and never slows to a crawl. Levels up to FLAT are exactly what they always were, so nobody's level can drop.
+import { L } from './i18n.js';
+
 export const FLAT = 20;
 const tri = L => 50 * L * (L - 1);
 export const xpForLevel = L => L <= FLAT ? tri(L) : tri(FLAT) + (L - FLAT) * 100 * FLAT;
@@ -17,22 +19,22 @@ export function levelOf(xp) {
 // The ladder is a climb through the sky, so it fits every game in the hub. `icon` is a key into rankicons.js (blocky
 // SVG emblems). Levels 1, 3, 5, 8, 12, 17, 23 and 30 are where the first eight (hot pot) ranks began.
 export const RANKS = [
-  { lv: 1, name: 'Seedling', icon: 'seed' },
-  { lv: 3, name: 'Fledgling', icon: 'chick' },
-  { lv: 5, name: 'Kite Flyer', icon: 'kite' },
-  { lv: 8, name: 'Cloud Hopper', icon: 'cloud' },
-  { lv: 10, name: 'Wind Rider', icon: 'plane' },
-  { lv: 12, name: 'Isle Explorer', icon: 'isle' },
-  { lv: 15, name: 'Balloon Pilot', icon: 'balloon' },
-  { lv: 17, name: 'Compass Keeper', icon: 'compass' },
-  { lv: 20, name: 'Sky Captain', icon: 'ship' },
-  { lv: 23, name: 'Storm Chaser', icon: 'bolt' },
-  { lv: 26, name: 'Rainbow Rider', icon: 'rainbow' },
-  { lv: 30, name: 'Moon Walker', icon: 'moon' },
-  { lv: 35, name: 'Star Catcher', icon: 'star' },
-  { lv: 40, name: 'Comet Tamer', icon: 'comet' },
-  { lv: 45, name: 'Sun Keeper', icon: 'sun' },
-  { lv: 50, name: 'Sky Legend', icon: 'crown' },
+  { lv: 1, name: L('Seedling', 'Kiełek'), icon: 'seed' },
+  { lv: 3, name: L('Fledgling', 'Pisklę'), icon: 'chick' },
+  { lv: 5, name: L('Kite Flyer', 'Latawiec'), icon: 'kite' },
+  { lv: 8, name: L('Cloud Hopper', 'Skoczek po chmurach'), icon: 'cloud' },
+  { lv: 10, name: L('Wind Rider', 'Jeździec wiatru'), icon: 'plane' },
+  { lv: 12, name: L('Isle Explorer', 'Odkrywca wysp'), icon: 'isle' },
+  { lv: 15, name: L('Balloon Pilot', 'Pilot balonu'), icon: 'balloon' },
+  { lv: 17, name: L('Compass Keeper', 'Strażnik kompasu'), icon: 'compass' },
+  { lv: 20, name: L('Sky Captain', 'Kapitan nieba'), icon: 'ship' },
+  { lv: 23, name: L('Storm Chaser', 'Łowca burz'), icon: 'bolt' },
+  { lv: 26, name: L('Rainbow Rider', 'Jeździec tęczy'), icon: 'rainbow' },
+  { lv: 30, name: L('Moon Walker', 'Księżycowy wędrowiec'), icon: 'moon' },
+  { lv: 35, name: L('Star Catcher', 'Łapacz gwiazd'), icon: 'star' },
+  { lv: 40, name: L('Comet Tamer', 'Pogromca komet'), icon: 'comet' },
+  { lv: 45, name: L('Sun Keeper', 'Strażnik słońca'), icon: 'sun' },
+  { lv: 50, name: L('Sky Legend', 'Legenda nieba'), icon: 'crown' },
 ];
 // After the last named rank the ladder goes on for ever: one more star every STAR_EVERY levels.
 export const STAR_EVERY = 10;

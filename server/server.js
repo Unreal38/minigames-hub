@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { attach } from './ws.js';
+import { attach, ipOf } from './ws.js';
+import * as geo from './geo.js';
 import { allow, blocked, note } from './limits.js';
 import * as hotpot from './games/hotpot.js';
 import * as marbles from './games/marbles.js';
@@ -85,6 +86,16 @@ const server = http.createServer((req, res) => {
     const head = { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': 'no-cache', etag, ...BASE_HEAD };
     if (ext === '.html') head['content-security-policy'] = cspFor(req);
     if (req.headers['x-forwarded-proto'] === 'https') head['strict-transport-security'] = 'max-age=31536000'; // behind Caddy: browsers stick to HTTPS
+    // The page carries the server's guess at the visitor's language (Poland: Polish), which i18n.js reads on a first visit.
+    const lang = ext === '.html' ? geo.langFor(ipOf(req), req.headers['accept-language']) : '';
+    if (lang) { head.etag = `"${etag.slice(1, -1)}-${lang}"`; head.vary = 'accept-language'; head['cache-control'] = 'private, no-cache'; }
+    if (lang && req.headers['if-none-match'] === head.etag) { res.writeHead(304, head).end(); return; }
+    if (lang) {
+      res.writeHead(200, head);
+      if (req.method === 'HEAD') { res.end(); return; }
+      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : html.replace(/<html lang="[a-z]+"/, `<html lang="${lang}" data-geo="${lang}"`)));
+      return;
+    }
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }
     res.writeHead(200, head);
     if (req.method === 'HEAD') { res.end(); return; }
@@ -389,6 +400,11 @@ function handle(c, m) {
       return;
     }
     case 'register': case 'login': case 'passwd': case 'recode': case 'recover': return auth(c, m);
+    case 'lang': { // the language picked in the top bar: kept with the account so it follows the player to other devices
+      const p = store.profileOf(c.token); if (!p?.user || !['en', 'pl'].includes(m.v)) return;
+      if (p.lang !== m.v) { p.lang = m.v; store.scheduleSave(); }
+      return;
+    }
     case 'logout': {
       const p = store.logout(c.token, c); if (!p) return;
       c.av = store.allowedAv(p, c.av); store.setLook(c.token, c);
@@ -600,4 +616,5 @@ setInterval(() => { // forget guest profiles that never played, once their brows
   if (n > 20) console.log(`forgot ${n} empty guest profiles`);
 }, 10 * 60_000).unref();
 
+geo.start();
 server.listen(PORT, HOST, () => console.log(`Cozy Table running on http://${HOST}:${PORT}`));
