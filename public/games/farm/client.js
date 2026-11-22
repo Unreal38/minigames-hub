@@ -55,7 +55,7 @@ export function mount(app, ctx) {
         <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="home" aria-label="Back to the hub">${I.door}</button></div>
       <div class="bl" id="pf-main"></div>
-      <div class="pcard" id="pf-card" hidden></div>
+      <div class="pfcard" id="pf-card" hidden></div>
       <div class="bt" id="pf-bt" hidden></div>
       <div class="bfl" id="pf-fl"></div>
       <div class="dock"><div class="ghostbar" id="pf-ghost" hidden></div><div class="build" id="pf-build" hidden></div></div>

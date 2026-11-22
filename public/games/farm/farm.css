@@ -27,12 +27,13 @@ body.in-game { overflow: hidden; }
 .pf .bl { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: calc(100vw - 28px); }
 
 /* info card for a pet or a building */
-.pf .pcard { position: absolute; right: 14px; bottom: max(16px, env(safe-area-inset-bottom)); width: min(380px, calc(100vw - 28px)); background: var(--pf-bg, var(--cream)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 6px 0 #23401c66; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
-.pf .pcard img { width: 72px; height: 72px; background: var(--pf-soft, #d8f0d2); border-radius: 14px; border: 3px solid var(--ink); }
-.pf .pcard .info { flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.pf .pcard b { font-family: var(--fd); font-size: 20px; font-weight: 600; }
-.pf .pcard p { margin: 0; font-size: 15px; }
-.pf .pcard .x { position: absolute; top: -14px; right: -10px; width: 36px; height: 36px; }
+/* Named pfcard, not pcard: Texas Hold'em styles .pcard (its playing cards) and its stylesheet stays loaded after a game. */
+.pf .pfcard { position: absolute; right: 14px; bottom: max(16px, env(safe-area-inset-bottom)); width: min(380px, calc(100vw - 28px)); background: var(--pf-bg, var(--cream)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 6px 0 #23401c66; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+.pf .pfcard img { width: 72px; height: 72px; background: var(--pf-soft, #d8f0d2); border-radius: 14px; border: 3px solid var(--ink); }
+.pf .pfcard .info { flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.pf .pfcard b { font-family: var(--fd); font-size: 20px; font-weight: 600; }
+.pf .pfcard p { margin: 0; font-size: 15px; }
+.pf .pfcard .x { position: absolute; top: -14px; right: -10px; width: 36px; height: 36px; }
 .pf .namer { display: flex; gap: 6px; width: 100%; }
 .pf .namer .field { flex: 1; min-height: 40px; padding: 4px 10px; font-size: 17px; }
 
@@ -79,9 +80,9 @@ body.in-game { overflow: hidden; }
 .pf .xp { position: relative; width: 100%; height: 22px; border: 3px solid var(--ink); border-radius: 999px; background: var(--pf-chip, #fff); overflow: hidden; }
 .pf .xp i { position: absolute; inset: 0 auto 0 0; background: #8fd16a; }
 .pf .xp span { position: relative; display: block; text-align: center; font-size: 12px; font-weight: 700; line-height: 16px; }
-.pf .pcard .cost { display: flex; flex-wrap: wrap; gap: 4px 10px; }
-.pf .pcard .info .btn + .btn { margin-top: 2px; }
-.pf .pcard .info { min-width: 0; } .pf .pcard .info .btn { max-width: 100%; white-space: normal; text-align: left; height: auto; line-height: 1.2; }
+.pf .pfcard .cost { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.pf .pfcard .info .btn + .btn { margin-top: 2px; }
+.pf .pfcard .info { min-width: 0; } .pf .pfcard .info .btn { max-width: 100%; white-space: normal; text-align: left; height: auto; line-height: 1.2; }
 .pf .panel.tripp { width: min(640px, 100%); max-height: 100%; overflow-y: auto; padding: 18px; gap: 10px; align-items: stretch; }
 .pf .tripp h2 { font-size: 25px; }
 .pf .panel.tripp > * { flex: none; }
@@ -202,7 +203,7 @@ body.in-game { overflow: hidden; }
   .pf .mvs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pf .blog { font-size: 16px; }
   .pf .bplate { padding: 6px 8px; } .pf .bplate b { font-size: 15px; }
   .pf .panel h2 { font-size: 23px; }
-  .pf .pcard { left: 14px; right: 14px; bottom: 92px; width: auto; }
+  .pf .pfcard { left: 14px; right: 14px; bottom: 92px; width: auto; }
   .pf .ghostbar .hint { display: none; }
 }
 .pf button.leaf { font: inherit; color: inherit; cursor: pointer; box-shadow: 0 3px 0 var(--ink); } .pf button.leaf:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
@@ -258,10 +259,10 @@ body.in-game { overflow: hidden; }
 }
 /* panels and cards arrive with a small pop */
 .pf .gate:not([hidden]) { animation: pf-fade .2s ease-out; }
-.pf .pcard:not([hidden]) { animation: pf-gate .2s cubic-bezier(.2, 1.3, .4, 1); }
+.pf .pfcard:not([hidden]) { animation: pf-gate .2s cubic-bezier(.2, 1.3, .4, 1); }
 @keyframes pf-fade { 0% { opacity: 0; } }
 @keyframes pf-gate { 0% { opacity: 0; transform: scale(.94) translateY(10px); } }
-@media (prefers-reduced-motion: reduce) { .pf .gate:not([hidden]), .pf .pcard:not([hidden]), .pf .bplate.hurt { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .pf .gate:not([hidden]), .pf .pfcard:not([hidden]), .pf .bplate.hurt { animation: none; } }
 
 /* album: the raised stages are buttons that switch the picture */
 .pf .formrow button.chip { font: inherit; cursor: pointer; transition: transform .12s; } .pf .formrow button.chip:hover { transform: translateY(-2px); }
