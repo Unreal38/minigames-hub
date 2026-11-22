@@ -283,15 +283,16 @@ export function createFx(scene, { max = 900 } = {}) {
   const at = (n, a, k) => { const b = new THREE.BufferAttribute(a, k); b.setUsage(THREE.DynamicDrawUsage); geo.setAttribute(n, b); return b; };
   const aP = at('position', P, 3), aC = at('color', C, 3), aS = at('size', S, 1), aA = at('alpha', A, 1), aR = at('rot', R, 1), aK = at('shape', K, 1);
   const tex = sheet(), win = winSheet(), tex2 = new THREE.CanvasTexture(win.cv); // tex2 is left in screen colours: it is shown as drawn
+  tex2.premultiplyAlpha = true; // and its see-through edges must not blend towards black, or small pictures look darker than the full-screen ones
   const mat = new THREE.ShaderMaterial({
-    uniforms: { map: { value: tex }, map2: { value: tex2 }, scale: { value: 500 } }, transparent: true, depthWrite: false, vertexColors: true,
+    uniforms: { map: { value: tex }, map2: { value: tex2 }, scale: { value: 500 } }, transparent: true, premultipliedAlpha: true, depthWrite: false, vertexColors: true,
     vertexShader: `attribute float size; attribute float alpha; attribute float rot; attribute float shape; uniform float scale;
       varying vec3 vC; varying float vA; varying float vR; varying float vK;
       void main() { vC = color; vA = alpha; vR = rot; vK = shape; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = size * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
     fragmentShader: `uniform sampler2D map; uniform sampler2D map2; varying vec3 vC; varying float vA; varying float vR; varying float vK;
       void main() { vec2 p = gl_PointCoord - .5; float c = cos(vR), s = sin(vR); p = vec2(c * p.x - s * p.y, s * p.x + c * p.y) + .5;
         if (p.x < 0. || p.x > 1. || p.y < 0. || p.y > 1.) discard;
-        vec4 t = texture2D(map, vec2((min(vK, 7.) + p.x) / 8., 1. - p.y)), w = texture2D(map2, vec2((max(vK, 8.) - 8. + p.x) / 16., 1. - p.y)); if (vK > 7.5) t = w; if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb, t.a * vA); }`,
+        vec4 t = texture2D(map, vec2((min(vK, 7.) + p.x) / 8., 1. - p.y)), w = texture2D(map2, vec2((max(vK, 8.) - 8. + p.x) / 16., 1. - p.y)); t.rgb *= t.a; if (vK > 7.5) t = w; if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb * vA, t.a * vA); }`,
   });
   const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts);
   let n = 0, ringI = 0; const col = new THREE.Color();
