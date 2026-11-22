@@ -10,7 +10,7 @@ import { swingPos, height, MS } from './rules.js';
 import { nightScene } from '../../scenery3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff', INK = '#5a3a2e';
-const GROUND = -.55, GAP = 2.3, GRAV = 21, AV = .8, ARC = 6.3, CAM_AZ = Math.PI / 4, CAM_EL = .5;
+const GROUND = -.55, GAP = 2.3, GRAV = 21, AV = .8, SEAT = .3 + .76 + .17, ARC = 6.3, CAM_AZ = Math.PI / 4, CAM_EL = .5;
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 const lighter = (c, k) => '#' + new THREE.Color(c).lerp(new THREE.Color('#ffffff'), k).getHexString();
 
@@ -156,7 +156,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       put(isle, new THREE.IcosahedronGeometry(.16, 0), '#a9a6b0', .6, .06, -.3); put(isle, new THREE.ConeGeometry(.07, .26, 3), '#6fbf52', -.62, .12, .2);
       put(isle, new THREE.BoxGeometry(.7, .3, .6), s.color, 0, .15, -.05); // a block to sit on, in their colour
       g.add(finish(isle));
-      const av = avatar3d(s.color, s.av); av.scale.setScalar(AV); av.position.set(0, .3 + .76 * AV, .05); g.add(av);
+      const av = avatar3d(s.color, s.av); av.position.set(0, SEAT, .05); /* full size (animateAvatar owns the avatar's scale); seated, the shoes hang .17 below the seat */ g.add(av);
       scene.add(g);
       return { g, av, isle, hop: 0, seed: i * 2.3, tag: { x: 0, y: 0, show: false } };
     });
@@ -356,10 +356,10 @@ export function createScene(canvas, { onFrame, onCue }) {
     avatars.forEach((a, i) => {
       a.hop = Math.max(0, a.hop - dt * 1.3);
       a.g.position.y = isleY + (reduced ? 0 : Math.sin(T * 1.1 + a.seed) * .09);
-      a.av.position.y = .3 + .76 * AV + Math.sin(a.hop * Math.PI) * .35;
+      a.av.position.y = SEAT + Math.sin(a.hop * Math.PI) * .35;
       animateAvatar(a.av, T, { seed: a.seed, active: playing && i === turn, hop: a.hop });
     });
-    if (me >= 0 && avatars[me]) { arrow.visible = true; arrow.position.copy(avatars[me].g.position); arrow.position.y += .3 + 2.1 * AV + 1.0; animateArrow(arrow, T); } else arrow.visible = false;
+    if (me >= 0 && avatars[me]) { arrow.visible = true; arrow.position.copy(avatars[me].g.position); arrow.position.y += .3 + 2.1 * AV + 1.3; animateArrow(arrow, T); } else arrow.visible = false;
     clouds.rotation.y += dt * .006;
 
     // camera: a fixed three-quarter view that climbs with the tower and backs off on narrow screens
@@ -377,7 +377,7 @@ export function createScene(canvas, { onFrame, onCue }) {
 
     renderer.render(scene, camera);
     avatars.forEach((a, i) => {
-      const t = a.tag; proj.set(a.g.position.x, a.g.position.y + .3 + 2.1 * AV + .3, a.g.position.z).project(camera);
+      const t = a.tag; proj.set(a.g.position.x, a.g.position.y + .3 + 2.1 * AV + .6, a.g.position.z).project(camera);
       t.show = proj.z < 1 && Math.abs(proj.x) < 1.2 && Math.abs(proj.y) < 1.2;
       t.x = (proj.x + 1) / 2 * W_; t.y = (1 - proj.y) / 2 * H_; info.tags[i] = t;
     });
