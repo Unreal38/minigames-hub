@@ -3,8 +3,9 @@
 // and the loop sleeps while the canvas isn't on the page.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from './avatar3d.js';
-import { toonify, toonMat, birds, petals, createFx, CONF } from './scenery3d.js';
-import { buildIsle, buildSky } from './isle3d.js';
+import { birds, petals, createFx, disposeToon, CONF } from './scenery3d.js';
+import { buildIsle, buildSky, pieceModel } from './isle3d.js';
+import { piecesOf } from './cosmetics.js';
 import { frameLoop, autoResolution } from './frames.js';
 
 let H = null, P = null, night = false; // H: your own isle on the hub; P: the isle in another player's profile card
@@ -24,6 +25,7 @@ function build(disc) { // disc: paint a bought sky as a round window behind the 
   // The isle itself, as the player dressed it (isle3d.js): ground, rock base, decor and sky. Rebuilt only when the look changes.
   let isle = null, sky = null, air = null, airG = null, isleKey = null, skyNo = 0;
   function setIsle(fl) {
+    setBits(fl?.fp);
     const look = { ig: fl?.ig | 0, ib: fl?.ib | 0, ik: fl?.ik | 0, ip: Array.isArray(fl?.ip) ? fl.ip.slice(0, 3) : [] }, k = JSON.stringify(look);
     if (k === isleKey) return; isleKey = k;
     if (isle) { world.remove(isle.root); isle.dispose(); } if (sky) { scene.remove(sky.root); sky.dispose(); }
@@ -34,33 +36,13 @@ function build(disc) { // disc: paint a bought sky as a round window behind the 
     setNight(night);
   }
 
-  // game pieces floating round the island: three marbles, a die, a Ludo pawn and a card
-  const M = (c, o = {}) => toonMat(new THREE.MeshStandardMaterial({ color: c, roughness: .5, ...o }));
-  const bits = [];
-  const add = (mesh, r, a, y, spin) => { const g = new THREE.Group(); g.add(mesh); toonify(g, .04); world.add(g); bits.push({ g, r, a, y, spin }); };
-  [['#ff8fab', .32], ['#7ed3b2', .26], ['#8fb8ff', .3]].forEach(([c, s], i) => add(new THREE.Mesh(new THREE.SphereGeometry(s, 20, 14), M(c)), 3.2 + i * .2, i * 2.1, 1.5 + i * .45, 0));
-  const die = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, .5), M('#fff4e2'));
-  { // a proper die: 1 to 6 pips, opposite faces adding up to 7
-    const pip = new THREE.SphereGeometry(.042, 8, 6), pipM = M('#3b2219'), h = .251, o = .13;
-    const LAY = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [-1, 0], [-1, 1], [1, -1], [1, 0], [1, 1]] };
-    const FACES = [[1, [0, 0, 1]], [6, [0, 0, -1]], [2, [1, 0, 0]], [5, [-1, 0, 0]], [3, [0, 1, 0]], [4, [0, -1, 0]]];
-    for (const [n, nrm] of FACES) {
-      const ax = nrm[0] ? [0, 1, 0] : [1, 0, 0], ay = nrm[2] ? [0, 1, 0] : nrm[1] ? [0, 0, 1] : [0, 0, 1];
-      for (const [u, v] of LAY[n]) {
-        const p = new THREE.Mesh(pip, pipM);
-        p.position.set(nrm[0] * h + (ax[0] * u + ay[0] * v) * o, nrm[1] * h + (ax[1] * u + ay[1] * v) * o, nrm[2] * h + (ax[2] * u + ay[2] * v) * o);
-        p.scale.set(nrm[0] ? .45 : 1, nrm[1] ? .45 : 1, nrm[2] ? .45 : 1); die.add(p);
-      }
-    }
+  // Game pieces floating round the island: the player picks which (cosmetics.js PIECES, models in isle3d.js pieceModel).
+  let bits = [], bitsKey = null;
+  function setBits(list) {
+    list = piecesOf({ cos: { fp: list } }); const k = list.join(); if (k === bitsKey) return; bitsKey = k;
+    for (const b of bits) { world.remove(b.g); disposeToon(b.g); }
+    bits = list.map((id, i) => { const g = pieceModel(id); world.add(g); return { g, r: 3.2 + (i % 3) * .12, a: i / list.length * 6.283 + .4, y: 1.25 + (i * 7 % 5) * .28, spin: [0, 1, .4, .7, .2, .9][i % 6] }; });
   }
-  add(die, 3.4, 1.05, 2.3, 1);
-  const pawn = new THREE.Group(); pawn.add(new THREE.Mesh(new THREE.CylinderGeometry(.18, .26, .2, 16), M('#ffb547')));
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.09, .16, .34, 14), M('#ffb547')); neck.position.y = .26; pawn.add(neck);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(.15, 14, 10), M('#ffb547')); head.position.y = .5; pawn.add(head);
-  add(pawn, 3.3, 3.2, 1.2, .4);
-  const card = new THREE.Mesh(new THREE.BoxGeometry(.42, .6, .03), M('#ffffff')); const band = new THREE.Mesh(new THREE.BoxGeometry(.42, .12, .035), M('#e5543b')); band.position.y = .2; card.add(band);
-  add(card, 3.4, 5.1, 2.1, .7);
-
   const flyBirds = birds(scene, 9, 4.5, 3, .6);
   const fx = createFx(scene, { max: 200 });
 

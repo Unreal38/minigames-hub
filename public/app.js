@@ -4,7 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -1302,7 +1302,7 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
-const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik']], ['pets', 'Isle pets', []]];
+const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', ti: 'A title under your name. Titles with a goal are earned by playing.',
   wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
@@ -1348,7 +1348,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   // The isle sections show the isle itself in place of the avatar, wearing what is on plus anything being tried.
   const showIsle = () => {
     const on = !first && (sec === 'isle' || sec === 'pets'); pvi.hidden = !on; pv.hidden = on; el.querySelector('form').classList.toggle('isleview', on);
-    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor() }); }).catch(() => {});
+    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor(), fp: me().cos?.fp }); }).catch(() => {});
   };
 
   // Saving: only what is owned is ever saved, so a tried-on item never reaches other players.
@@ -1414,6 +1414,9 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     return !me().user ? '<p class="wdnone">Log in and start a Pet Farm: the decorations you build there can stand on your isle.</p>' : !list.length ? '<p class="wdnone">Build a decoration on your Pet Farm (a tree, a pond, a windmill…) and you can put one like it on your isle.</p>'
       : list.map(x => { const n = out.indexOf(x.t); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-dec="${esc(x.t)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}<img alt="" class="islepic" data-isle="ip:${esc(x.t)}"><b>${esc(x.n)}</b></button>`; }).join('');
   };
+  const piecesHtml = () => { const out = piecesOf(me());
+    return Object.entries(PIECES).map(([id, n]) => { const at = out.indexOf(id); return `<button type="button" class="wdtile pet" aria-pressed="${at >= 0}" data-fp="${id}">${at >= 0 ? `<i class="palno">${at + 1}</i>` : ''}<img alt="" class="islepic" data-isle="fp:${id}"><b>${esc(n)}</b></button>`; }).join('');
+  };
   const dropHtml = sn => [...Object.entries(SEASON).filter(([, s]) => s === sn).map(([id]) => { const [k, i] = id.split(':'); return [k, +i, 0]; }),
     ...Object.keys(COS).flatMap(k => COS[k].items.map((it, i) => it.s === sn ? [k, i, 1] : null).filter(Boolean))]
     .filter(([k, i, c]) => { const own = c ? has(k, i) : !isLocked(k, i); return filt === 'mine' ? own : filt === 'shop' ? !own : true; })
@@ -1424,7 +1427,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     petPics(grid);
     const isles = [...grid.querySelectorAll('img[data-isle]:not([src])')];
     if (isles.length) (islePics ||= import('./islepic.js')).then(m => { let j = 0; // one a frame: each is a whole little scene
-      const next = () => { if (!open) return; while (j < isles.length && !isles[j].isConnected) j++; if (j >= isles.length) return; const im = isles[j++], [k, i] = im.dataset.isle.split(':'), u = m.islePic(k, k === 'ip' ? i : +i); if (u) im.src = u; requestAnimationFrame(next); };
+      const next = () => { if (!open) return; while (j < isles.length && !isles[j].isConnected) j++; if (j >= isles.length) return; const im = isles[j++], [k, i] = im.dataset.isle.split(':'), u = m.islePic(k, k === 'ip' || k === 'fp' ? i : +i); if (u) im.src = u; requestAnimationFrame(next); };
       next(); }).catch(() => {});
     if (!IP) return;
     const imgs = [...grid.querySelectorAll('img[data-ip]:not([src])')], look = av.slice(), col = color; let n = 0;
@@ -1437,15 +1440,16 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const paintGrid = keep => {
     const s = cur(), top = keep ? grid.scrollTop : 0; sec = s.id;
-    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k]?.label || 'Decor']) : [];
+    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k]?.label || (k === 'fp' ? 'Floating pieces' : 'Decor')]) : [];
     if (!subs.some(([k]) => k === sub)) sub = subs[0]?.[0] || '';
-    const noFilt = first || s.id === 'pets' || sub === 'ip';
+    const noFilt = first || s.id === 'pets' || sub === 'ip' || sub === 'fp';
     subEl.innerHTML = `<div class="wdchips">${subs.length > 1 ? subs.map(([k, l]) => `<button type="button" data-sub="${k}" aria-pressed="${k === sub}">${l}</button>`).join('') : ''}</div>${
       noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="Show">${[['all', 'All'], ['mine', 'Mine'], ['shop', 'Shop']].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
     hint.textContent = s.drop ? `Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.` : s.id === 'pets' ? `Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`
+      : sub === 'fp' ? `Pick up to ${PIECE_SLOTS} game pieces to float round your isle. They are free.`
       : sub === 'ip' ? `Up to ${DECOR_SLOTS} decorations from your Pet Farm can stand on your isle. They stay on the farm too.`
       : s.kinds ? COS[sub].where || COS_HINT[sub] || '' : '';
-    const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : sub === 'ip' ? decorHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
+    const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : sub === 'ip' ? decorHtml() : sub === 'fp' ? piecesHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
     grid.className = 'wdgrid' + (ipFailed ? ' nopic' : '') + (s.rows && (sub === 'color' || AV_COLOR_KEYS.includes(sub)) ? ' sws' : '');
     grid.innerHTML = html || `<p class="wdnone">${filt === 'mine' ? 'Nothing of yours here yet. Look under Shop.' : filt === 'shop' ? 'Nothing left to buy here.' : 'Nothing here.'}</p>`;
     grid.scrollTop = top; fillPics();
@@ -1504,6 +1508,12 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
       const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);
       if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
       sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); paintGrid(true); return paintPlate();
+    }
+    const fp = t.closest('[data-fp]');
+    if (fp) { // a floating game piece: tap to add it, tap again to take it away
+      const id = fp.dataset.fp, l = piecesOf(me()).slice(), at = l.indexOf(id);
+      if (at >= 0) l.splice(at, 1); else if (l.length >= PIECE_SLOTS) return toast(`${PIECE_SLOTS} pieces is the most. Tap one to take it away first.`); else l.push(id);
+      sfx.pop(); (st.me.cos ||= {}).fp = l; send({ t: 'wear', k: 'fp', i: l }); paintGrid(true); return paintPlate();
     }
     const dc = t.closest('[data-dec]');
     if (dc) { // a Pet Farm decoration: tap to stand it on the isle, tap again to take it back

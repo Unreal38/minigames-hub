@@ -3,6 +3,7 @@
 // the indexes here match those lists, so only ever append.
 //
 //   buildIsle(look)        look = { ig, ib, ip: ['windmill', ..] }  ->  { root, tick(T), air, dispose() }
+//   pieceModel(id)         one of the game pieces that float round the isle
 //   buildSky(ik, opts)     the backdrop                 ->  { root, tick(T), mood, dispose() }   mood: '' (follows the site's day/night switch), 'day', 'night' or 'sunset'
 //
 // Still parts are merged (bake) and outlined once; anything that moves sits in a group flagged dyn with its own outline.
@@ -31,79 +32,76 @@ function finish(g, ink = .04) {
 const treeOf = (trunk, a, b) => (g, s = 1) => { cyl(g, .09 * s, .13 * s, .7 * s, trunk, 0, .35 * s); ico(g, .45 * s, a, 0, .95 * s, 0); ico(g, .32 * s, b, .22 * s, 1.18 * s, .08 * s); ico(g, .3 * s, a, -.24 * s, .82 * s, -.1 * s); };
 const bushOf = (a, b, dot) => (g, s = 1) => { ico(g, .3 * s, a, 0, .2 * s, 0); ico(g, .24 * s, b, .25 * s, .15 * s, .05 * s); ico(g, .2 * s, a, -.22 * s, .13 * s, .06 * s); if (dot) ico(g, .06 * s, dot, .1 * s, .45 * s, .15 * s); };
 const rockOf = (a, b, cap) => (g, s = 1) => { const r = ico(g, .3 * s, a, 0, .15 * s, 0); r.scale.y = .7; ico(g, .18 * s, b, .28 * s, .08 * s, .1 * s); if (cap) { const c = ico(g, .22 * s, cap, 0, .3 * s, 0); c.scale.y = .45; } };
-const moundOf = c => (g, s = 1) => { const m = ico(g, .5 * s, c, 0, .02, 0); m.scale.set(1.5, .32, 1.1); };
+// Props in the look of the Pet Farm's islands (zoneIsle in games/farm/scene3d.js): same shapes and colours, sized for the rim.
 const R = {
-  snowpine(g, s = 1) { cyl(g, .07 * s, .1 * s, .4 * s, '#7a5a48', 0, .2 * s); for (let i = 0; i < 3; i++) { cone(g, (.5 - i * .12) * s, .55 * s, '#4f9a7c', 0, (.6 + i * .3) * s, 0, 7); cone(g, (.34 - i * .09) * s, .3 * s, '#f6fbff', 0, (.76 + i * .3) * s, 0, 7); } },
-  cactus(g, s = 1) { const c = '#5fae62'; cyl(g, .13 * s, .15 * s, .8 * s, c, 0, .4 * s, 0, 7); ico(g, .13 * s, c, 0, .8 * s, 0);
-    cyl(g, .07 * s, .07 * s, .26 * s, c, .2 * s, .42 * s, 0).rotation.z = PI / 2; cyl(g, .07 * s, .07 * s, .3 * s, c, .31 * s, .56 * s, 0);
-    cyl(g, .06 * s, .06 * s, .22 * s, c, -.18 * s, .3 * s, 0).rotation.z = PI / 2; cyl(g, .06 * s, .06 * s, .22 * s, c, -.27 * s, .4 * s, 0); ico(g, .06 * s, '#ff8fb8', 0, .95 * s, 0); },
-  deadtree(g, s = 1, c = '#5a4a48') { cyl(g, .06 * s, .12 * s, .9 * s, c, 0, .45 * s); const a = cyl(g, .03 * s, .05 * s, .5 * s, c, .16 * s, .85 * s, 0); a.rotation.z = -.8; const b = cyl(g, .03 * s, .05 * s, .4 * s, c, -.13 * s, .7 * s, .03 * s); b.rotation.z = .9; const d = cyl(g, .02 * s, .03 * s, .3 * s, c, .02 * s, 1 * s, -.08 * s); d.rotation.x = -.5; },
-  log(g, s = 1) { const l = cyl(g, .12 * s, .12 * s, .6 * s, '#8a5a3c', 0, .12 * s, 0, 7); l.rotation.z = PI / 2; const e = cyl(g, .09 * s, .09 * s, .62 * s, '#e0b98a', 0, .12 * s, 0, 7); e.rotation.z = PI / 2; ico(g, .08 * s, '#e5543b', .1 * s, .27 * s, .05 * s).scale.y = .6; },
-  pumpkin(g, s = 1) { const p = ico(g, .24 * s, '#f08a2a', 0, .17 * s, 0); p.scale.y = .75; const q = ico(g, .15 * s, '#e0701e', .3 * s, .1 * s, .12 * s); q.scale.y = .75; cyl(g, .025 * s, .035 * s, .1 * s, '#5f8a3a', 0, .37 * s); },
-  bigshroom(g, s = 1, c = '#e5543b') { cyl(g, .09 * s, .13 * s, .7 * s, '#fff4e2', 0, .35 * s, 0, 7); const cap = put(g, new THREE.SphereGeometry(.48 * s, 9, 5, 0, 6.3, 0, 1.5), flat(c), 0, .62 * s);
-    for (let i = 0; i < 5; i++) { const a = i * 1.257 + .4; glow(cap, new THREE.IcosahedronGeometry(.07 * s, 0), '#fff8c9', Math.cos(a) * .3 * s, .3 * s, Math.sin(a) * .3 * s); } glow(cap, new THREE.IcosahedronGeometry(.08 * s, 0), '#fff8c9', 0, .47 * s, 0); },
-  palm(g, s = 1) { let x = 0, y = 0; for (let i = 0; i < 4; i++) { const t = cyl(g, (.08 - i * .008) * s, (.1 - i * .008) * s, .34 * s, i % 2 ? '#a8794f' : '#96683f', x, y + .17 * s, 0, 6); t.rotation.z = -.12 * i; x += .05 * i * s; y += .32 * s; }
-    for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283, l = box(g, .62 * s, .04 * s, .2 * s, i % 2 ? '#4fa64a' : '#63bb55', x + Math.cos(a) * .27 * s, y - .02 * s, Math.sin(a) * .27 * s); l.rotation.set(0, -a, -.45); }
-    ico(g, .07 * s, '#7a4f2c', x + .08 * s, y - .1 * s, .05 * s); ico(g, .07 * s, '#7a4f2c', x - .06 * s, y - .1 * s, -.05 * s); },
-  parasol(g, s = 1) { cyl(g, .025 * s, .025 * s, 1 * s, '#fff4e2', 0, .5 * s); const top = new THREE.Group(); top.position.y = .95 * s; top.rotation.z = .2; g.add(top);
-    for (let i = 0; i < 8; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(.55 * s, .3 * s, 1, 1, false, i * PI / 4, PI / 4), flat(i % 2 ? '#ffffff' : '#ff6f61')); top.add(c); }
-    const tw = box(g, .34 * s, .03 * s, .6 * s, '#7fd0ff', .15 * s, .03 * s, .25 * s); tw.rotation.y = .3; },
-  castle(g, s = 1) { const c = '#e9c887'; box(g, .42 * s, .26 * s, .42 * s, c, 0, .13 * s); for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { cyl(g, .09 * s, .1 * s, .4 * s, c, x * .2 * s, .2 * s, z * .2 * s, 7); cone(g, .11 * s, .14 * s, '#dcb770', x * .2 * s, .47 * s, z * .2 * s, 7); }
-    const st = ico(g, .09 * s, '#ff8a5c', .42 * s, .03 * s, .2 * s); st.scale.y = .35; },
-  lolly(g, s = 1) { const cols = [['#ff6f91', '#ffd0dc'], ['#6ec6f5', '#d9f1ff'], ['#ffc93c', '#fff1a8'], ['#9b7bff', '#e0d4ff']], [a, b] = cols[Math.floor(s * 97) % 4];
-    cyl(g, .03 * s, .03 * s, .8 * s, '#ffffff', 0, .4 * s); const d = cyl(g, .3 * s, .3 * s, .1 * s, a, 0, .98 * s, 0, 12); d.rotation.x = PI / 2; const e = cyl(g, .19 * s, .19 * s, .13 * s, b, 0, .98 * s, 0, 10); e.rotation.x = PI / 2; const f = cyl(g, .09 * s, .09 * s, .16 * s, a, 0, .98 * s, 0, 8); f.rotation.x = PI / 2; },
-  cane(g, s = 1) { for (let i = 0; i < 5; i++) cyl(g, .06 * s, .06 * s, .16 * s, i % 2 ? '#ffffff' : '#ff4f6a', 0, (.08 + i * .16) * s, 0, 7);
-    for (let i = 0; i < 4; i++) { const a = i / 3 * PI, m = cyl(g, .06 * s, .06 * s, .14 * s, i % 2 ? '#ff4f6a' : '#ffffff', (.14 - Math.cos(a) * .14) * s, (.8 + Math.sin(a) * .14) * s, 0, 7); m.rotation.z = -a; } },
-  gumdrop(g, s = 1) { const cols = ['#7ed3b2', '#ff9fb8', '#ffc93c', '#b79bff']; for (let i = 0; i < 3; i++) { const a = i * 2.1; put(g, new THREE.SphereGeometry((.17 - i * .03) * s, 8, 4, 0, 6.3, 0, PI / 2), flat(cols[(Math.floor(s * 53) + i) % 4]), Math.cos(a) * .18 * s, 0, Math.sin(a) * .18 * s).scale.y = 1.25; } },
-  lavarock(g, s = 1) { const r = ico(g, .34 * s, '#3a2e36', 0, .2 * s, 0); r.scale.y = .9; ico(g, .2 * s, '#2a2028', .3 * s, .1 * s, .1 * s);
-    glow(g, new THREE.IcosahedronGeometry(.1 * s, 0), '#ff7a2a', .08 * s, .44 * s, .12 * s); glow(g, new THREE.IcosahedronGeometry(.07 * s, 0), '#ffc93c', -.2 * s, .22 * s, .2 * s); glow(g, new THREE.IcosahedronGeometry(.06 * s, 0), '#ff7a2a', .24 * s, .26 * s, -.12 * s); },
-  vent(g, s = 1) { put(g, new THREE.CylinderGeometry(.14 * s, .34 * s, .5 * s, 7), flat('#3a2e36'), 0, .25 * s); glow(g, new THREE.CylinderGeometry(.11 * s, .11 * s, .04 * s, 7), '#ff7a2a', 0, .5 * s, 0); glow(g, new THREE.IcosahedronGeometry(.05 * s, 0), '#ffc93c', .03 * s, .62 * s, 0); },
+  pinetree(g, s = 1) { cyl(g, .08 * s, .1 * s, .45 * s, '#8a5a3c', 0, .22 * s); cone(g, .42 * s, 1 * s, s * 97 % 2 < 1 ? '#4a9a45' : '#5fb04a', 0, .9 * s); },
+  pool(g, s = 1) { const m = glow(g, new THREE.CylinderGeometry(.42 * s, .42 * s, .04, 8), '#6fb7e8', 0, .025, 0); for (let i = 0; i < 4; i++) { const a = i * 1.7 + s * 9; ico(g, .08 * s, '#c9bfb2', Math.cos(a) * .44 * s, .04, Math.sin(a) * .44 * s).scale.y = .6; } return m; },
+  shells(g, s = 1) { put(g, new THREE.OctahedronGeometry(.16 * s), flat('#ffb6c9'), 0, .12 * s, 0); put(g, new THREE.OctahedronGeometry(.12 * s), flat('#fff3df'), .26 * s, .09 * s, .1 * s); put(g, new THREE.OctahedronGeometry(.1 * s), flat('#ffb6c9'), -.1 * s, .08 * s, .24 * s); },
+  boulder(g, s = 1) { put(g, rough(new THREE.DodecahedronGeometry(.38 * s), .07), flat(s * 53 % 2 < 1 ? '#8a8794' : '#a9a6b0'), 0, .28 * s, 0); put(g, rough(new THREE.DodecahedronGeometry(.2 * s), .05), flat('#8a8794'), .36 * s, .13 * s, .12 * s); },
+  crystal(g, s = 1) { put(g, rough(new THREE.DodecahedronGeometry(.3 * s), .06), flat('#a9a6b0'), 0, .2 * s, 0); const c = put(g, new THREE.OctahedronGeometry(.2 * s), flat('#8fe3f5'), 0, .62 * s, 0); c.scale.y = 1.5; put(g, new THREE.OctahedronGeometry(.11 * s), flat('#8fe3f5'), .22 * s, .4 * s, .05 * s).scale.y = 1.5; },
+  emberhill(g, s = 1) { cone(g, .46 * s, .85 * s, '#7a4a3a', 0, .42 * s); glow(g, new THREE.OctahedronGeometry(.13 * s), '#ffb547', 0, 1.02 * s, 0); },
+  hill(g, s = 1) { cone(g, .4 * s, .6 * s, '#7a4a3a', 0, .3 * s); cone(g, .26 * s, .4 * s, '#8a5646', .34 * s, .2 * s, .12 * s); },
+  spark(g, s = 1) { cone(g, .11 * s, .7 * s, '#ffc94d', 0, .35 * s, 0, 4); cone(g, .09 * s, .5 * s, '#86cc5a', .28 * s, .25 * s, .18 * s, 4); cone(g, .08 * s, .42 * s, '#ffc94d', -.2 * s, .21 * s, .22 * s, 4); },
+  fruit(g, s = 1) { const f = ['#ff5a6e', '#ffc93c', '#ff9a3c'][Math.floor(s * 97) % 3]; cyl(g, .08 * s, .1 * s, .55 * s, '#8a5a3c', 0, .27 * s); ico(g, .46 * s, s * 53 % 2 < 1 ? '#5fb04a' : '#6cc24f', 0, .9 * s, 0);
+    for (let k = 0; k < 5; k++) ico(g, .1 * s, f, Math.sin(k * 1.7) * .4 * s, (.78 + (k % 2) * .28) * s, Math.cos(k * 1.7) * .4 * s); },
+  veggies(g, s = 1) { box(g, .9 * s, .08 * s, .28 * s, '#7a4f36', 0, .04 * s, 0); for (let k = -1; k <= 1; k++) cone(g, .09 * s, .28 * s, '#6cc24f', k * .28 * s, .22 * s, 0, 4); },
+  pumpkin(g, s = 1) { const p = ico(g, .3 * s, '#ff9a2c', 0, .22 * s, 0); p.scale.y = .8; cyl(g, .03 * s, .045 * s, .13 * s, '#5fa646', 0, .5 * s); },
+  oven(g, s = 1) { box(g, .7 * s, .5 * s, .64 * s, '#c9703c', 0, .25 * s, 0); const d = ico(g, .4 * s, '#b8603a', 0, .5 * s, 0); d.scale.set(1, .7, .85); box(g, .28 * s, .24 * s, .06 * s, '#3b2a22', 0, .2 * s, .33 * s); box(g, .14 * s, .44 * s, .14 * s, '#8a8794', .2 * s, .86 * s, -.14 * s); },
+  buns(g, s = 1) { ico(g, .2 * s, '#e8a85a', 0, .11 * s, 0).scale.set(1.5, .7, 1); ico(g, .16 * s, '#c98a4a', .34 * s, .09 * s, .16 * s).scale.set(1.5, .7, 1); },
+  lolly(g, s = 1) { const c = ['#ff5a6e', '#7cc4ee', '#ffd65a', '#c9b5ff', '#86cc5a'][Math.floor(s * 97) % 5];
+    cyl(g, .03 * s, .03 * s, .85 * s, '#ffffff', 0, .42 * s); const d = cyl(g, .3 * s, .3 * s, .09 * s, c, 0, .98 * s, 0, 12); d.rotation.x = PI / 2; const e = cyl(g, .16 * s, .16 * s, .11 * s, '#ffffff', 0, .98 * s, 0, 10); e.rotation.x = PI / 2; },
+  coral(g, s = 1) { const c = ['#ff7a8a', '#ffb14a', '#c98ae0', '#ff9ec4'][Math.floor(s * 97) % 4]; cyl(g, .06 * s, .1 * s, .6 * s, c, 0, .3 * s, 0, 5);
+    for (let k = 0; k < 3; k++) { const b = cyl(g, .045 * s, .065 * s, .4 * s, c, Math.sin(k * 2.1) * .2 * s, (.55 + k * .1) * s, Math.cos(k * 2.1) * .2 * s, 5); b.rotation.set(Math.cos(k * 2.1) * .6, 0, -Math.sin(k * 2.1) * .6); }
+    put(g, new THREE.OctahedronGeometry(.1 * s), flat('#fff3df'), .28 * s, .08 * s, .1 * s); },
+  peak(g, s = 1) { cone(g, .44 * s, .95 * s, '#cfe0f0', 0, .47 * s); cone(g, .2 * s, .36 * s, '#ffffff', 0, .78 * s); },
+  cloud(g, s = 1) { for (let k = 0; k < 3; k++) ico(g, (.26 - k * .035) * s, '#ffffff', (k - 1) * .3 * s, (1.25 + (k % 2) * .1) * s, 0); const d = put(g, new THREE.OctahedronGeometry(.06 * s), flat('#6fb7e8'), 0, .85 * s, 0); d.scale.y = 1.8; },
+  sunball(g, s = 1) { cone(g, .34 * s, .5 * s, '#cfe0f0', 0, .25 * s); glow(g, new THREE.IcosahedronGeometry(.24 * s, 1), '#ffd21f', 0, 1.25 * s, 0); },
+  icepond(g, s = 1) { glow(g, new THREE.CylinderGeometry(.4 * s, .4 * s, .04, 7), '#8fd4ff', 0, .025, 0); },
+  star(g, s = 1) { put(g, rough(new THREE.DodecahedronGeometry(.24 * s), .05), flat('#7a6ab0'), 0, .17 * s, 0); glow(g, new THREE.OctahedronGeometry(.13 * s), '#fff3a0', 0, (.8 + s * 37 % 1 * .5) * s, 0).scale.y = 1.5; },
+  moonrock(g, s = 1) { put(g, rough(new THREE.DodecahedronGeometry(.3 * s), .06), flat('#7a6ab0'), 0, .2 * s, 0); put(g, rough(new THREE.DodecahedronGeometry(.16 * s), .04), flat('#6a5aa0'), .3 * s, .1 * s, .1 * s); },
   coins(g, s = 1) { for (let i = 0; i < 4; i++) cyl(g, .13 * s, .13 * s, .05 * s, i % 2 ? '#ffd23e' : '#f0b020', (i % 2) * .02 * s, (.03 + i * .055) * s, 0, 10); for (let i = 0; i < 2; i++) cyl(g, .13 * s, .13 * s, .05 * s, '#ffd23e', .3 * s, (.03 + i * .055) * s, .1 * s, 10); },
   trophy(g, s = 1) { box(g, .34 * s, .3 * s, .34 * s, '#fff4e2', 0, .15 * s); box(g, .4 * s, .05 * s, .4 * s, '#e3d6c2', 0, .32 * s); const c = '#ffc93c';
     cyl(g, .09 * s, .11 * s, .05 * s, c, 0, .37 * s, 0, 8); cyl(g, .025 * s, .025 * s, .14 * s, c, 0, .46 * s); cyl(g, .16 * s, .08 * s, .24 * s, c, 0, .65 * s, 0, 8);
-    for (const d of [-1, 1]) { const h = put(g, new THREE.TorusGeometry(.07 * s, .02 * s, 4, 8), flat(c), d * .16 * s, .66 * s, 0); } },
+    for (const d of [-1, 1]) put(g, new THREE.TorusGeometry(.07 * s, .02 * s, 4, 8), flat(c), d * .16 * s, .66 * s, 0); },
   pennant(g, s = 1) { const cols = ['#ff6f61', '#6ec6f5', '#ffc93c', '#9b7bff']; cyl(g, .03 * s, .04 * s, 1.3 * s, '#fff4e2', 0, .65 * s); ico(g, .05 * s, '#ffc93c', 0, 1.33 * s, 0);
     const f = put(g, new THREE.ConeGeometry(.17 * s, .46 * s, 3), flat(cols[Math.floor(s * 71) % 4]), .23 * s, 1.1 * s, 0); f.rotation.z = -PI / 2; f.scale.z = .15; },
-  grave(g, s = 1) { box(g, .3 * s, .34 * s, .09 * s, '#8f8a99', 0, .17 * s); const t = cyl(g, .15 * s, .15 * s, .09 * s, '#8f8a99', 0, .34 * s, 0, 8); t.rotation.x = PI / 2; box(g, .4 * s, .06 * s, .16 * s, '#6f6a7a', 0, .03 * s); },
 };
 
 // ---------- ground themes (cosmetics.js COS.ig) ----------
+// Apart from the two earned ones, each is one of the Pet Farm's islands, in that island's colours (zoneIsle's top2 table).
 // air: what drifts past (colours of the petals() flakes); water: what a waterfall base pours.
 const GROUND = [
-  { air: { colors: ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8'], n: 8 } },
-  { grass: '#f4f9ff', patch: '#dcebfa', earth: '#a9bdd4', rock: '#70819a', flowers: 0, water: '#bfe6ff',
-    kinds: [R.snowpine, rockOf('#a9b4c4', '#8894a8', '#f6fbff'), bushOf('#f6fbff', '#e2eefb'), R.snowpine, moundOf('#ffffff'), R.snowpine, rockOf('#a9b4c4', '#8894a8', '#f6fbff'), bushOf('#f6fbff', '#e2eefb'), 'pine', moundOf('#ffffff')],
-    air: { colors: ['#ffffff', '#eaf4ff'], n: 22, size: .06 } },
-  { grass: '#f0d18a', patch: '#e3bf72', earth: '#d49a5a', rock: '#a8704a', flowers: 8, petals: ['#ff8fb8', '#fff1a8'],
-    kinds: [R.cactus, moundOf('#e9c57a'), rockOf('#d0a06a', '#b98a58'), bushOf('#b9a55a', '#cdb96a'), R.cactus, moundOf('#e9c57a'), g => R.deadtree(g, .8, '#9a7450'), rockOf('#d0a06a', '#b98a58'), R.cactus, bushOf('#b9a55a', '#cdb96a')],
-    air: { colors: ['#f6e0a6', '#e9c57a'], n: 6, size: .05 } },
-  { grass: '#a9dc7a', patch: '#f7c4d8', flowers: 40, petals: ['#ffd0e4', '#ffffff', '#ff9cc2'],
-    kinds: [treeOf('#6a4636', '#ffb3d1', '#ffd0e4'), bushOf('#ff9cc2', '#ffd0e4', '#ffffff'), treeOf('#6a4636', '#ff9cc2', '#ffc4dc'), 'rock', treeOf('#6a4636', '#ffb3d1', '#ffe0ec'), bushOf('#5fb04a', '#86cc5a', '#ff9fb8'), 'flowers', treeOf('#6a4636', '#ff9cc2', '#ffd0e4'), bushOf('#ff9cc2', '#ffd0e4', '#ffffff'), 'rock'],
-    air: { colors: ['#ffc1dc', '#ffffff', '#ff9cc2', '#ffd9ea'], n: 20, size: .09 } },
-  { grass: '#d2b659', patch: '#e2853a', earth: '#b9794c', flowers: 14, petals: ['#e8742a', '#d9452a', '#f0b030'],
-    kinds: [treeOf('#7a5038', '#e8742a', '#f0a030'), R.log, treeOf('#7a5038', '#d9452a', '#e8742a'), bushOf('#c9902e', '#e0a83a'), treeOf('#7a5038', '#f0b030', '#f6cf5a'), 'shroom', moundOf('#e2853a'), treeOf('#7a5038', '#d9452a', '#f0a030'), 'rock', bushOf('#c9902e', '#e0a83a')],
-    air: { colors: ['#e8742a', '#d9452a', '#f0b030', '#c9902e'], n: 18, size: .1 } },
-  { grass: '#5fae8a', patch: '#4d9979', earth: '#7c5a7c', rock: '#5d4a6e', flowers: 22, petals: ['#b79bff', '#8fe0ff', '#fff8c9'], water: '#8fe0ff',
-    kinds: [R.bigshroom, bushOf('#3f8f78', '#56a88c'), (g, s) => R.bigshroom(g, s * .8, '#9b7bff'), 'shroom', (g, s) => R.bigshroom(g, s * 1.1, '#4fb6d9'), bushOf('#3f8f78', '#56a88c', '#b79bff'), R.bigshroom, 'shroom', (g, s) => R.bigshroom(g, s * .9, '#ff8fb8'), rockOf('#7c6a8c', '#5d4a6e')],
-    air: { colors: ['#fff8c9', '#b79bff', '#8fe0ff'], n: 14, size: .05 } },
-  { grass: '#f6e0a6', patch: '#ecd08c', earth: '#e0b878', rock: '#b89872', flowers: 10, petals: ['#ff8a5c', '#ffffff', '#ffd0e4'],
-    kinds: [R.palm, rockOf('#c9bfb2', '#a89e92'), R.parasol, R.palm, R.castle, bushOf('#5fb04a', '#86cc5a', '#ff9fb8'), R.palm, moundOf('#f0d696'), R.palm, rockOf('#c9bfb2', '#a89e92')],
-    air: { colors: ['#ffffff', '#d9f1ff'], n: 6, size: .06 } },
-  { grass: '#ffb8d9', patch: '#fff4fa', earth: '#7b4a2e', rock: '#f0d8a8', flowers: 46, petals: ['#6ec6f5', '#ffc93c', '#7ed3b2', '#ff6f91', '#9b7bff'], water: '#ff8fc4',
-    kinds: [R.lolly, R.gumdrop, R.cane, R.lolly, bushOf('#ffffff', '#ffe0ef', '#ff4f6a'), R.gumdrop, R.lolly, R.cane, R.gumdrop, R.lolly],
-    air: { colors: ['#6ec6f5', '#ffc93c', '#7ed3b2', '#ff6f91', '#ffffff'], n: 14, size: .06 } },
-  { grass: '#463a44', patch: '#ff7a2a', earth: '#2f252c', rock: '#1f181c', flowers: 0, water: '#ff8a2a', lava: true,
-    kinds: [R.lavarock, R.vent, g => R.deadtree(g, 1, '#2a2028'), R.lavarock, rockOf('#3a2e36', '#2a2028'), R.vent, R.lavarock, g => R.deadtree(g, .8, '#2a2028'), rockOf('#3a2e36', '#2a2028'), R.lavarock],
-    air: { colors: ['#ff7a2a', '#ffc93c', '#ff4f2a'], n: 16, size: .045 } },
-  { grass: '#ffd75a', patch: '#ffc12e', earth: '#e0a030', rock: '#b87a1e', flowers: 30, petals: ['#ffffff', '#fff1a8'], water: '#fff1a8',
+  { air: { colors: ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8'], n: 8 } },                                    // 0 Meadow: your own farm's lawn
+  { size: 1.3, grass: '#eef6ff', patch: '#dcebfa', earth: '#a9bdd4', rock: '#70819a', flowers: 0, water: '#8fd4ff',                              // 1 Weather Peak
+    kinds: [R.peak, R.cloud, R.icepond, R.peak, R.sunball, R.peak, R.cloud, R.peak, R.icepond, R.peak], air: { colors: ['#ffffff', '#eaf4ff', '#8fd4ff'], n: 20, size: .06 } },
+  { size: 1.3, grass: '#a9a6b0', patch: '#98959f', earth: '#8a8794', rock: '#6f6c78', flowers: 0,                                                 // 2 Pebble Ridge
+    kinds: [R.boulder, R.crystal, R.boulder, R.boulder, R.crystal, R.boulder, 'rock', R.boulder, R.crystal, R.boulder], air: { colors: ['#d9d6e0', '#8fe3f5'], n: 6, size: .05 } },
+  { grass: '#8fd16a', patch: '#7fc45c', flowers: 30, petals: ['#ff5a6e', '#ffc93c', '#ff9a3c', '#ffffff'],                            // 3 Fruit Grove
+    kinds: [R.fruit, 'bush', R.fruit, R.fruit, 'flowers', R.fruit, 'bush', R.fruit, R.fruit, 'flowers'], air: { colors: ['#a8e08a', '#ffffff', '#ffd9a8'], n: 10, size: .08 } },
+  { size: 1.3, grass: '#9a6a4a', patch: '#8a5c40', earth: '#7a4f36', flowers: 0,                                                                  // 4 Veggie Patch
+    kinds: [R.veggies, R.pumpkin, R.veggies, 'bush', R.veggies, R.veggies, R.pumpkin, R.veggies, 'bush', R.veggies], air: { colors: ['#86cc5a', '#c9f0a8'], n: 8, size: .07 } },
+  { grass: '#6fbf5a', patch: '#62b04f', flowers: 24,                                                                                   // 5 Mossy Woods
+    kinds: [R.pinetree, 'bush', R.pinetree, 'shroom', R.pinetree, R.pinetree, 'rock', R.pinetree, 'bush', R.pinetree], air: { colors: ['#a8e08a', '#c9f0a8', '#86cc5a'], n: 12, size: .08 } },
+  { size: 1.3, grass: '#ead9a0', patch: '#dfcb8c', earth: '#d9b878', rock: '#b89872', flowers: 8, petals: ['#ffb6c9', '#fff3df'],               // 6 Tidepool Cove
+    kinds: [R.pool, R.shells, 'rock', R.pool, R.shells, R.shells, R.pool, 'rock', R.shells, R.pool], air: { colors: ['#ffffff', '#d9f1ff'], n: 6, size: .06 } },
+  { grass: '#ffc4dc', patch: '#fff4fa', earth: '#7b4a2e', rock: '#f0d8a8', flowers: 40, petals: ['#ff5a6e', '#7cc4ee', '#ffd65a', '#c9b5ff', '#86cc5a'], water: '#ff8fc4', // 7 Sweet Shop Isle
+    kinds: [R.lolly], air: { colors: ['#7cc4ee', '#ffd65a', '#86cc5a', '#ff5a6e', '#ffffff'], n: 14, size: .06 } },
+  { size: 1.3, grass: '#b5553c', patch: '#a34a34', earth: '#7a4a3a', rock: '#4a3230', flowers: 0, water: '#ff8a2a', lava: true,                  // 8 Ember Hills
+    kinds: [R.emberhill, R.hill, R.emberhill, R.hill, R.emberhill], air: { colors: ['#ffb547', '#ffc93c', '#ff7a2a'], n: 14, size: .045 } },
+  { grass: '#ffd75a', patch: '#ffc12e', earth: '#e0a030', rock: '#b87a1e', flowers: 30, petals: ['#ffffff', '#fff1a8'], water: '#fff1a8', // 9 Golden isle (earned)
     kinds: [treeOf('#fff4e2', '#ffc93c', '#ffe680'), R.coins, rockOf('#f0b020', '#d99a18'), treeOf('#fff4e2', '#ffd23e', '#fff1a8'), bushOf('#ffc93c', '#ffe680', '#ffffff'), R.coins, treeOf('#fff4e2', '#ffc93c', '#ffe680'), rockOf('#f0b020', '#d99a18'), bushOf('#ffc93c', '#ffe680', '#ffffff'), R.coins],
     air: { colors: ['#fff8c9', '#ffffff', '#ffd23e'], n: 18, size: .05 } },
-  { grass: '#7ccf7a', patch: '#69bd68', earth: '#7a5ab8', rock: '#57428a', flowers: 30, petals: ['#ffc93c', '#ffffff', '#ff6f61'],
+  { grass: '#7ccf7a', patch: '#69bd68', earth: '#7a5ab8', rock: '#57428a', flowers: 30, petals: ['#ffc93c', '#ffffff', '#ff6f61'],   // 10 Champion's isle (earned)
     kinds: [R.trophy, R.pennant, bushOf('#3f8c4a', '#5fb04a', '#ffc93c'), 'tree', R.pennant, R.trophy, bushOf('#3f8c4a', '#5fb04a', '#ffc93c'), R.pennant, 'tree', R.pennant],
     air: { colors: ['#ff6f61', '#6ec6f5', '#ffc93c', '#9b7bff', '#7ed3b2'], n: 16, size: .07 } },
-  { grass: '#7c9454', patch: '#657c44', earth: '#5a4038', rock: '#3d2f3a', flowers: 8, petals: ['#f08a2a', '#b79bff'],
-    kinds: [R.pumpkin, R.deadtree, R.pumpkin, R.grave, bushOf('#56703c', '#6a8448'), R.pumpkin, R.deadtree, R.grave, R.pumpkin, bushOf('#56703c', '#6a8448')],
-    air: { colors: ['#f08a2a', '#7a5ab8', '#c9902e'], n: 12, size: .09 } },
+  { size: 1.3, grass: '#e8c890', patch: '#dcb87a', earth: '#c98a4a', rock: '#96683f', flowers: 0,                                                 // 11 Bakery Bluff
+    kinds: [R.buns, R.oven, R.buns, R.buns, 'rock', R.buns, R.oven, R.buns, R.buns, 'bush'], air: { colors: ['#fff4e2', '#e8a85a'], n: 8, size: .05 } },
+  { size: 1.3, grass: '#f2dcb0', patch: '#e6cc98', earth: '#e0b878', rock: '#b89872', flowers: 6, petals: ['#ff9ec4', '#fff3df'], water: '#6fc7e8', // 12 Coral Reef
+    kinds: [R.coral, R.coral, R.pool, R.coral, R.shells, R.coral, R.coral, R.pool, R.coral, R.shells], air: { colors: ['#d9f1ff', '#ffffff', '#ff9ec4'], n: 10, size: .06 } },
+  { size: 1.3, grass: '#5a4a8a', patch: '#4e3f7c', earth: '#4a3d6e', rock: '#352b52', flowers: 14, petals: ['#fff3a0', '#c9b5ff'], water: '#c9b5ff', // 13 Starfall Isle
+    kinds: [R.star, R.moonrock, R.star, R.star, R.moonrock], air: { colors: ['#fff3a0', '#ffffff', '#c9b5ff'], n: 16, size: .05 } },
+  { size: 1.3, grass: '#c9d65a', patch: '#b8c64c', flowers: 16, petals: ['#ffc94d', '#ffffff'],                                                   // 14 Thunder Meadow
+    kinds: [R.spark, 'bush', R.spark, R.spark, 'rock', R.spark, R.spark, 'bush', R.spark, R.spark], air: { colors: ['#ffc94d', '#fff1a8', '#c9f0a8'], n: 12, size: .06 } },
 ];
 export const groundOf = ig => ({ grass: '#8bca60', patch: '#7fbf56', earth: '#c98a5a', rock: '#857a72', flowers: 32, water: '#6ec6f5', ...(GROUND[ig] || GROUND[0]) });
 
@@ -173,7 +171,7 @@ function farmDecor(root, types, ticks, st) {
 
 export function buildIsle(look = {}) {
   const ig = look.ig | 0, ib = BASE[look.ib | 0] ? look.ib | 0 : 0, th = groundOf(ig), ticks = [], root = new THREE.Group();
-  const land = island(3.3, 3.3, { round: true, seed: 7, props: 14, open: .8, rim: 1.3, size: .9, flowers: th.flowers, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null, under: !ib || ib === 3 });
+  const land = island(3.3, 3.3, { round: true, seed: 7, props: 14, open: .8, rim: 1.3, size: th.size || .9, flowers: th.flowers, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null, under: !ib || ib === 3 });
   root.add(land);
   if (th.lava) { // pools that glow and pulse
     const g = dyn(root), mt = new THREE.MeshBasicMaterial({ color: '#ff7a2a' });
@@ -242,3 +240,36 @@ export function buildSky(ik, { disc = false } = {}) {
   // fit(aspect): on a narrow canvas the round window shrinks to stay inside it
   return { root, mood: MOOD[ik], fit: a => { const k = disc ? Math.min(.92, a * .82) : 1; root.scale.set(k, k, 1); }, tick: T => { for (const f of ticks) f(T); }, dispose: () => { root.traverse(o => { o.material?.map?.dispose(); }); disposeToon(root); } };
 }
+
+// ---------- the game pieces that float round the isle (cosmetics.js PIECES) ----------
+const SM = (c, o) => new THREE.MeshStandardMaterial({ color: c, roughness: .5, ...o });
+const PIECE = {
+  marble(g) { g.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 20, 14), SM('#ff8fab'))); const s = new THREE.Mesh(new THREE.TorusGeometry(.3, .035, 6, 20), SM('#ffffff')); s.rotation.x = 1.1; g.add(s); },
+  die(g) { // a proper die: 1 to 6 pips, opposite faces adding up to 7
+    const die = new THREE.Mesh(new THREE.BoxGeometry(.5, .5, .5), SM('#fff4e2')); g.add(die);
+    const pip = new THREE.SphereGeometry(.042, 8, 6), pipM = SM('#3b2219'), h = .251, o = .13;
+    const LAY = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [-1, 0], [-1, 1], [1, -1], [1, 0], [1, 1]] };
+    for (const [n, nrm] of [[1, [0, 0, 1]], [6, [0, 0, -1]], [2, [1, 0, 0]], [5, [-1, 0, 0]], [3, [0, 1, 0]], [4, [0, -1, 0]]]) {
+      const ax = nrm[0] ? [0, 1, 0] : [1, 0, 0], ay = [0, nrm[2] ? 1 : 0, nrm[2] ? 0 : 1];
+      for (const [u, v] of LAY[n]) { const p = new THREE.Mesh(pip, pipM); p.position.set(nrm[0] * h + (ax[0] * u + ay[0] * v) * o, nrm[1] * h + (ax[1] * u + ay[1] * v) * o, nrm[2] * h + (ax[2] * u + ay[2] * v) * o);
+        p.scale.set(nrm[0] ? .45 : 1, nrm[1] ? .45 : 1, nrm[2] ? .45 : 1); p.userData.noInk = true; die.add(p); } } },
+  pawn(g) { const m = SM('#ffb547'), add = (geo, y) => { const x = new THREE.Mesh(geo, m); x.position.y = y; g.add(x); }; add(new THREE.CylinderGeometry(.18, .26, .2, 16), -.2); add(new THREE.CylinderGeometry(.09, .16, .34, 14), .06); add(new THREE.SphereGeometry(.15, 14, 10), .3); },
+  card(g) { const c = new THREE.Mesh(new THREE.BoxGeometry(.42, .6, .03), SM('#ffffff')), b = new THREE.Mesh(new THREE.BoxGeometry(.42, .12, .035), SM('#e5543b')); b.position.y = .2; g.add(c, b);
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .036, 12), SM('#ffc93c')); d.rotation.x = PI / 2; d.position.y = -.08; g.add(d); },
+  chip(g) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .09, 20), SM('#e5543b')), w = new THREE.Mesh(new THREE.CylinderGeometry(.19, .19, .1, 16), SM('#ffffff')), r = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, .11, 14), SM('#e5543b')); g.add(c, w, r);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283, m = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), SM('#ffffff')); m.position.set(Math.cos(a) * .27, 0, Math.sin(a) * .27); m.rotation.y = -a; g.add(m); } g.rotation.x = 1; },
+  golf(g) { g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(.27, 2), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .6, flatShading: true }))); },
+  block(g) { [['#ff7a59', 0, 0], ['#ffc93c', .17, .08], ['#7ed3b2', .34, -.05]].forEach(([c, y, x]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(.6, .16, .42), SM(c)); m.position.set(x, y - .17, 0); g.add(m); }); },
+  tyre(g) { const t = new THREE.Mesh(new THREE.TorusGeometry(.22, .11, 8, 18), SM('#3b3340')), h = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, .16, 10), SM('#ffc93c')); h.rotation.x = PI / 2; g.add(t, h); },
+  coin(g) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .07, 20), SM('#ffc93c')), i = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .09, 16), SM('#ffe27a')); g.add(c, i); g.rotation.x = PI / 2 - .3; },
+  star(g) { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = PI / 2 + i * PI / 5, r = i % 2 ? .15 : .34; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } s.closePath();
+    const geo = new THREE.ExtrudeGeometry(s, { depth: .1, bevelEnabled: true, bevelThickness: .03, bevelSize: .03, bevelSegments: 1 }); geo.translate(0, 0, -.05); g.add(new THREE.Mesh(geo, SM('#ffd84a'))); },
+  bean(g) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(.17, .22, 4, 10), SM('#6cc24f')); b.rotation.z = .5; g.add(b); const l = new THREE.Mesh(new THREE.ConeGeometry(.09, .22, 4), SM('#86cc5a')); l.position.set(.12, .28, 0); l.rotation.z = -.6; l.scale.z = .4; g.add(l); },
+  pot(g) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.36, .26, .26, 16), SM('#e5543b')), s = new THREE.Mesh(new THREE.CylinderGeometry(.31, .31, .04, 16), SM('#ffb547')); s.position.y = .12; g.add(b, s);
+    const r = new THREE.Mesh(new THREE.TorusGeometry(.36, .04, 6, 18), SM('#fff4e2')); r.rotation.x = PI / 2; r.position.y = .13; g.add(r);
+    for (const d of [-1, 1]) { const h = new THREE.Mesh(new THREE.BoxGeometry(.12, .06, .14), SM('#3b2219')); h.position.set(d * .42, .08, 0); g.add(h); }
+    for (const [x, z, c] of [[-.1, .05, '#fff4e2'], [.12, -.06, '#86cc5a'], [.02, .14, '#ff9fb8']]) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.07, 0), SM(c)); m.position.set(x, .16, z); g.add(m); } },
+  paw(g) { const m = SM('#ff9fb8'), pad = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 8), m); pad.scale.set(1.15, .9, .45); pad.position.y = -.1; g.add(pad);
+    for (const [x, y] of [[-.24, .12], [-.08, .26], [.08, .26], [.24, .12]]) { const t = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 6), m); t.scale.z = .5; t.position.set(x, y, 0); g.add(t); } },
+};
+export function pieceModel(id) { const g = new THREE.Group(); (PIECE[id] || PIECE.marble)(g); return toonify(g, .04); }
