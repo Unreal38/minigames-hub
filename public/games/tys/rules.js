@@ -26,13 +26,13 @@ export const MIN_BID = 100, STEP = 10, SAFE_BID = 120;
 export const maxBid = hand => SAFE_BID + melds(hand).reduce((a, s) => a + MELD[s], 0);
 export const round10 = x => Math.floor((x + 5) / 10) * 10;
 
-// Suits you hold a marriage in come first, the most valuable first; then spades, hearts, clubs, diamonds. Strongest card first.
-const SHOW = [1, 3, 2, 0];
+// Left to right in marriage order, the way players hold them: hearts, diamonds, clubs, spades. Strongest card first.
 export const FOLD_PAY = 60; // what each opponent scores when the declarer folds the hand
 export function sortHand(hand) {
-  const rank = s => (hasMeld(hand, s) ? -MELD[s] : SHOW[s]);
-  return [...hand].sort((a, b) => rank(suitOf(a)) - rank(suitOf(b)) || power(b) - power(a));
+  return [...hand].sort((a, b) => suitOf(a) - suitOf(b) || power(b) - power(a));
 }
+// Table option for folding: 'off', 'free' (each player's first fold pays nothing, later ones 60) or 'on' (always 60).
+export const FOLDS = ['free', 'on', 'off'];
 
 // Does card c beat the card that is winning the trick so far?
 export const beats = (c, best, trump) => (suitOf(c) === suitOf(best) ? power(c) > power(best) : suitOf(c) === trump);

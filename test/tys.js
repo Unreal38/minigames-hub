@@ -30,8 +30,8 @@ if (winnerOf([king(H), ace(D), ten(H)], -1) !== 2 || winnerOf([king(H), nine(S),
   if (!same(legal([ace(H), nine(H)], [king(H), jack(S)], S), [ace(H), nine(H)])) fail('a trumped trick cannot be beaten in the suit led');
   if (!same(legal([king(D), nine(C)], [king(H)], S), [king(D), nine(C)])) fail('with neither suit nor trump anything goes');
   if (sortHand(DECK).length !== 24 || sortHand(DECK)[0] !== ace(H) || sortHand(DECK)[23] !== nine(S)) fail('hand sorting wrong');
-  // suits with a marriage come first, the dearest first, then the rest
-  if (sortHand([ace(S), king(C), nine(H), queen(C), king(D), queen(D), ten(H)]).join() !== [king(D), queen(D), king(C), queen(C), ace(S), ten(H), nine(H)].join()) fail('hand is not sorted by marriages');
+  // left to right in marriage order: hearts, diamonds, clubs, spades, strongest first
+  if (sortHand([ace(S), king(C), nine(H), queen(C), king(D), queen(D), ten(H)]).join() !== [ten(H), nine(H), king(D), queen(D), king(C), queen(C), ace(S)].join()) fail('hand is not sorted hearts, diamonds, clubs, spades');
 }
 
 // ----- whole games -----
@@ -94,8 +94,11 @@ function play(opts, human = (G, s, now) => ty._bot(G, s, now)) {
       if (G.stage === 'score' && st !== 'score') {
         hands++; const m = G.sum, d = m.decl;
         if (m.fold) { // folded: nothing played, the declarer scores nothing, the others 60 each (up to the barrel)
+          if (G.opts.fold === 'off') fail('folded at a table without folding');
           if (m.delta[d] !== 0 || G.gone.length) fail('a folded hand was scored wrong');
-          for (const j of G.active) if (j !== d && m.delta[j] !== Math.max(0, Math.min(60, G.barrel - (m.score[j] - m.delta[j])))) fail('fold paid the wrong amount');
+          if (m.free !== (G.opts.fold === 'free' && G.st[d].folds === 1)) fail('only a first fold is free, and only at a "first one free" table');
+          const pay = m.free ? 0 : 60;
+          for (const j of G.active) if (j !== d && m.delta[j] !== Math.max(0, Math.min(pay, G.barrel - (m.score[j] - m.delta[j])))) fail('fold paid the wrong amount');
           continue;
         }
         if (G.active.reduce((a, j) => a + m.pts[j], 0) !== 120 + G.mel.flat().reduce((a, su) => a + MELD[su], 0)) fail('points in a hand should add up to 120 plus marriages');
@@ -138,6 +141,15 @@ play({ target: 500 }, (G, s) => {
   });
   if (!folds || r.G.score[0] > 0 && r.G.st[0].made) fail('folding test did not fold');
   console.log('folding: Ana folded', folds, 'hands and finished on', r.G.score[0]);
+}
+for (const fold of ['on', 'off']) { // the same folder at an "always 60" table, and at a table without folding
+  let folds = 0, refused = 0;
+  play({ target: 500, fold }, (G, s, now) => {
+    if (G.stage === 'give') { if (ty.act(G, s, { t: 'fold' })) folds++; else { refused++; ty._bot(G, s, now); } }
+    else ty._bot(G, s, now);
+  });
+  if (fold === 'on' ? !folds || refused : folds || !refused) fail(`fold option ${fold} not applied`);
+  console.log(`folding ${fold}: ${folds} folds, ${refused} refused`);
 }
 // a human who always bids as high as allowed and raises the contract
 play({ target: 500 }, (G, s, now) => {

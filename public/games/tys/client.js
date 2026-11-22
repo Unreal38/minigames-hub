@@ -168,15 +168,16 @@ export function mount(app, ctx) {
     } else if (turn && st === 'give') {
       const key = S.gid + '/' + S.hand;
       if (key !== giveKey) { giveKey = key; give = [null, null]; giveV = S.contract; }
+      const pay = S.foldPay ?? FOLD_PAY, canFold = pay >= 0;
       const a = nextSeat(S.me), b = nextSeat(a), ready = give[0] !== null && give[1] !== null, hi = giveMax();
       giveV = Math.max(S.contract, Math.min(hi, giveV));
       setHtml(ctl, `<p class="ty-hint big">${ready ? 'Raise your contract if you dare, then start.' : `Tap a card to give to <b>${nameOf(give[0] === null ? a : b)}</b>. Each opponent gets one.`}</p>
         <div class="ty-row">
           <div class="ty-qty" role="group" aria-label="Your contract"><small>Contract</small><button type="button" class="round" data-a="g-" aria-label="Ten less"${giveV <= S.contract ? ' disabled' : ''}>−</button><b>${giveV}</b><button type="button" class="round" data-a="g+" aria-label="Ten more"${giveV >= hi ? ' disabled' : ''}>+</button></div>
           <button type="button" class="btn big" data-a="give"${ready ? '' : ' disabled'}>Play for ${giveV}</button>
-          <button type="button" class="btn big ${Date.now() - foldArm < 4000 ? 'r' : 'w'}" data-a="fold">${Date.now() - foldArm < 4000 ? 'Tap again to fold' : 'Fold'}</button>
+          ${canFold ? `<button type="button" class="btn big ${Date.now() - foldArm < 4000 ? 'r' : 'w'}" data-a="fold">${Date.now() - foldArm < 4000 ? 'Tap again to fold' : 'Fold'}</button>` : ''}
         </div>
-        <p class="ty-hint">Bad cards? <b>Fold</b> and nothing is played: you score nothing and each opponent gets <b>${FOLD_PAY}</b>, instead of you losing ${S.contract}.</p>`);
+        ${canFold ? `<p class="ty-hint">${pay ? `Bad cards? <b>Fold</b> and nothing is played: you score nothing and each opponent gets <b>${pay}</b>, instead of you losing ${S.contract}.` : `Bad cards? Your first <b>fold</b> is <b>free</b>: nothing is played and nobody scores, instead of you losing ${S.contract}. Later folds give each opponent ${FOLD_PAY}.`}</p>` : ''}`);
     } else if (turn && st === 'play') {
       const mm = S.trick.length ? [] : melds(p.cards || []);
       setHtml(ctl, `<span class="ty-wait hot">${S.trick.length ? 'Your turn: tap a card' : 'You lead: tap a card'}</span>${mm.length ? `<p class="ty-hint tip">Leading a king or queen of ${mm.map(s => `${suit(s, 14)} (+${MELD[s]})`).join(' or ')} announces the marriage and makes it trumps.</p>` : ''}`);
@@ -214,7 +215,7 @@ export function mount(app, ctx) {
       <div class="ty-vs${m.made ? ' ok' : ''}"><span><small>Bid</small><b>${m.contract}</b></span><span><small>${m.fold ? 'Folded' : 'Took'}</small><b>${m.fold ? '–' : m.pts[m.decl]}</b></span><span><small>Scores</small><b>${signed(m.delta[m.decl])}</b></span></div>
       <ol>${m.active.map(i => {
         const p = S.seats[i], dl = m.delta[i], barrel = i !== m.decl && !dl && m.score[i] >= S.barrel;
-        return `<li class="${i === m.decl ? 'decl' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}</b><span>${m.fold ? (i === m.decl ? `folded a bid of ${m.contract}` : barrel ? 'on the barrel' : 'paid for the fold') : `took ${m.pts[i]}${i === m.decl ? ` of ${m.contract} bid` : barrel ? ' · on the barrel' : ''}`}</span></div><em class="${dl > 0 ? 'up' : dl < 0 ? 'down' : ''}">${signed(dl)}</em><strong>${m.score[i]}</strong></li>`;
+        return `<li class="${i === m.decl ? 'decl' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}</b><span>${m.fold ? (i === m.decl ? `folded a bid of ${m.contract}${m.free ? ' (first fold, free)' : ''}` : barrel ? 'on the barrel' : m.free ? 'free fold, nothing paid' : 'paid for the fold') : `took ${m.pts[i]}${i === m.decl ? ` of ${m.contract} bid` : barrel ? ' · on the barrel' : ''}`}</span></div><em class="${dl > 0 ? 'up' : dl < 0 ? 'down' : ''}">${signed(dl)}</em><strong>${m.score[i]}</strong></li>`;
       }).join('')}</ol>`);
   }
 
