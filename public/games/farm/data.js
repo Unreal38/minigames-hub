@@ -104,6 +104,10 @@ export const SPECIES = {
   waddlet:   { name: 'Waddlet', el: 'Tide', rare: 1, blurb: 'A penguin chick that wears a seashell as a hat.' },
   oinkwatt:  { name: 'Oinkwatt', el: 'Spark', rare: 1, blurb: 'A piglet whose curly tail crackles with sparks.' },
   tricerock: { name: 'Tricerock', el: 'Stone', rare: 2, blurb: 'A baby three-horn with a frill of polished stone.' },
+  shrimplet: { name: 'Shrimplet', el: 'Tide', rare: 0, blurb: 'A pink shrimp that hovers curled up like a comma and flicks its fan tail.' },
+  siamew:    { name: 'Siamew', el: 'Stone', rare: 1, blurb: 'A Siamese cat with chocolate ears and paws and a sapphire on its collar.' },
+  coralcolt: { name: 'Coralcolt', el: 'Tide', rare: 1, blurb: 'A sea horse that wears a crown of pink coral.' },
+  skipfin:   { name: 'Skipfin', el: 'Tide', rare: 2, blurb: 'A dolphin that swims through the air with a beach ball on its nose.' },
   // themed sets, found on their own islands
   strawbun: { name: 'Strawbun', el: 'Leaf', rare: 0, blurb: 'A strawberry bunny with seed freckles and a leafy collar.' },
   chilipup: { name: 'Chilipup', el: 'Ember', rare: 1, blurb: 'A long chili pepper puppy whose curled tail smokes.' },
@@ -189,8 +193,8 @@ export const SELL = { wood: 4, stone: 4, fiber: 4, shells: 12, coal: 12, berries
 // gives: materials per pet per hour. house: farmhouse level that opens the zone. wild: species found there and how often.
 export const ZONES = {
   woods:  { name: 'Mossy Woods', el: 'Leaf', house: 1, gives: { wood: 14, fiber: 10, stone: 5, coins: 3 }, wild: { mossbun: 5, sproutle: 5, petalpuff: 2, acornip: 2, bambear: 2 }, blurb: 'Tall trees and soft moss.' },
-  cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, ripplet: 2, waddlet: 2, axolily: 1 }, blurb: 'Warm pools full of shells.' },
-  ridge:  { name: 'Pebble Ridge', el: 'Stone', house: 2, gives: { stone: 16, wood: 4, crystal: .5, coins: 3 }, wild: { pebblet: 5, cragcrab: 2, rubblet: 2, dustmole: 1, tricerock: 1 }, blurb: 'Rocky paths and a glint of crystal.' },
+  cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, shrimplet: 5, ripplet: 2, waddlet: 2, coralcolt: 2, axolily: 1, skipfin: 1 }, blurb: 'Warm pools full of shells.' },
+  ridge:  { name: 'Pebble Ridge', el: 'Stone', house: 2, gives: { stone: 16, wood: 4, crystal: .5, coins: 3 }, wild: { pebblet: 5, cragcrab: 2, rubblet: 2, siamew: 2, dustmole: 1, tricerock: 1 }, blurb: 'Rocky paths and a glint of crystal.' },
   hills:  { name: 'Ember Hills', el: 'Ember', house: 3, gives: { coal: 8, stone: 9, wood: 5, coins: 4 }, wild: { cindercub: 5, toastoad: 5, lanternail: 2, flickit: 1, sizzlet: 1 }, blurb: 'Warm slopes that glow at night.' },
   meadow: { name: 'Thunder Meadow', el: 'Spark', house: 4, gives: { wood: 12, fiber: 6, crystal: 1, coins: 5 }, wild: { zapkit: 5, buzzlet: 2, wattbat: 2, oinkwatt: 2, voltvole: 1 }, blurb: 'Tall grass that crackles before rain.' },
   // themed islands: each is home to one set of pets

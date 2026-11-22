@@ -127,6 +127,22 @@ export const FEAT = {
     if (F === 1) Oc(g, .06, '#7cc4ee', [0, y - .35, .1], [1, 1.8, 1]);
     if (F === 2) { for (const [x, z] of [[-.3, .1], [.05, -.1], [.32, .12]]) Oc(g, .06, '#7cc4ee', [x, y - .38, z], [1, 1.8, 1]); Bx(g, [.07, .26, .05], GL('#ffe066', .8), [.12, y - .3, .2], [0, 0, .5]); Bx(g, [.07, .22, .05], GL('#ffe066', .8), [.08, y - .48, .2], [0, 0, -.4]); }
   } },
+  shrimplet: { slot: 'tail', name: 'a fan tail', b(g, F, K) {
+    const k = [.6, .85, 1.1][F], c = mix(K.a, '#ff5a4a', .4), t = Grp(g, [0, 0, 0], [-.7, 0, 0], k);
+    for (let i = 0; i < (F ? 5 : 3); i++) { const a = (i - (F ? 2 : 1)) * .45; Oc(t, .3, i % 2 ? K.a : c, [Math.sin(a) * .3, 0, -Math.cos(a) * .32], [.5, .14, 1.15], [0, -a, 0]); }
+  } },
+  siamew: { slot: 'tail', name: 'a chocolate tail', b(g, F, K) { catTail(g, F, [K.a, K.b, K.b, K.b, K.b]); } },
+  coralcolt: { slot: 'top', name: 'a coral crown', b(g, F) {
+    const c = '#ff7a8a', tip = '#ffc0c8', prong = (x, z, h, r) => { const e = Grp(g, [x, -.04, z], [z * 1.2, 0, -x * 1.6]); Cy(e, [.045, .07, h, 5], c, [0, h / 2, 0]); Gm(e, .075, tip, [0, h, 0]); if (F === 2 && r) { Cy(e, [.035, .045, h * .5, 4], c, [.09, h * .55, 0], [0, 0, -.9]); Gm(e, .055, tip, [.2, h * .68, 0]); } };
+    prong(0, 0, [.2, .34, .5][F], 1); if (F) { prong(-.2, .02, .26 + F * .06, 0); prong(.2, .02, .26 + F * .06, 1); } if (F === 2) { prong(-.1, -.2, .3, 0); prong(.12, -.2, .34, 0); }
+  } },
+  skipfin: { slot: 'top', name: 'a beach ball', b(g, F) {
+    const r = [.15, .26, .34][F], cs = ['#ff6b6b', '#ffffff', '#ffd23e', '#ffffff', '#4aa8e8', '#ffffff'];
+    Sp(g, r, '#ffffff', [0, r, 0]);
+    for (let i = 0; i < 6; i += F ? 1 : 2) { const a = i / 6 * PI * 2; Sp(g, r * .66, cs[i], [Math.cos(a) * r * .5, r, Math.sin(a) * r * .5], [1, 1.2, 1], 1); }
+    Gm(g, r * .22, '#ff6b6b', [0, r * 1.95, 0], [1, .5, 1]);
+    if (F === 2) for (const [x, y] of [[-.42, .5], [.4, .7]]) Oc(g, .07, GL('#fff6c8', 1), [x, y, 0], [1, 1.7, 1]);
+  } },
   zapkit: { slot: 'tail', name: 'a lightning tail', b(g, F) {
     const k = [.6, .85, 1.1][F], y = GL('#ffd21f', .6), t = Grp(g, [0, 0, 0], [-.35, 0, 0], k);
     Bx(t, [.16, .5, .12], y, [0, .22, 0], [0, 0, .55]); Bx(t, [.18, .5, .12], y, [0, .58, 0], [0, 0, -.6]); Bx(t, [.2, .55, .12], y, [.02, .98, 0], [0, 0, .5]);
@@ -284,6 +300,31 @@ function ball(g, F, K, X, { r = [.62, .72, .82][F], h = 1, feetC = K.a, faceO = 
   Sp(g, 1, c, A.body.p, A.body.r); if (feetC) feet(g, feetC, r * .42, r * .35, [.26, .16, .34]);
   face(g, X.eyes, A.head.p, r, { eye: [1.35, 1.2, 1.1][F], ...faceO });
   A.top = [0, y + r * h * .97, 0]; A.tail = [0, y * .6, -r * .95]; A.back = [0, y + r * h * .7, -r * .65]; A.fs = [.8, .9, 1][F];
+  return A;
+}
+// A cat's tail: a soft chain that rises behind and curls at the tip. cols run from the root to the tip.
+function catTail(g, F, cols, fat = 1) {
+  const k = [.55, .85, 1.05][F], t = Grp(g, [0, 0, 0], null, k), n = cols.length;
+  const m = n * 2 - 1;
+  for (let i = 0; i < m; i++) { const u = i / (m - 1); Sp(t, (.15 - u * .03) * fat, cols[Math.round(u * (n - 1))], [Math.sin(u * 2.6) * .16, .08 + u * .82, -.12 - Math.sin(u * PI) * .3 + u * .12], [1, 1.15, 1], 1); }
+}
+// A sitting cat shared by the cat breeds: the baby is all head, then it sits up taller each form.
+function cat(g, F, K, X, { ear = K.a, inner = '#f59ab0', paws = K.b, chest = K.b, whisk = mix(K.a, '#5a4a3a', .7), fat = 1, tuftC = null, faceO = {} } = {}) {
+  const A = F === 0 ? { head: { p: [0, .78, .05], r: .74 }, body: { p: [0, .4, -.2], r: [.45 * fat, .36, .5 * fat] } }
+    : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .64 : .62 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5 * fat, .6, .5 * fat] : [.52 * fat, .76, .55 * fat] } };
+  const h = A.head, b = A.body;
+  Sp(g, 1, K.a, b.p, b.r);
+  if (F) { Sp(g, b.r[0] * .7, chest, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.1, .12, b.p[1], 7], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
+  feet(g, paws, .26, F ? b.r[2] * .95 : .42, [.24, .16, .3]);
+  Sp(g, h.r, K.a, h.p, [1.1, .9, .95]);
+  for (const s of [-1, 1]) {
+    const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]);
+    Co(e, [.26, .46, 4], ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], inner, [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]);
+    if (tuftC && F) Co(e, [.06, .24 + F * .06, 3], tuftC, [0, .52, 0]);
+    Bx(g, [.34, .02, .02], whisk, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]);
+  }
+  face(g, X.eyes, h.p, h.r, { eye: [1.35, 1.2, 1.1][F], ...faceO });
+  A.top = [0, h.p[1] + h.r * .84, h.p[2]]; A.tail = [.2, .25, b.p[2] - b.r[2] * .9]; A.back = [0, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .6];
   return A;
 }
 const BODY = {
@@ -946,6 +987,58 @@ const BODY = {
     for (let i = 0; i < 3; i++) Bx(g, [r * (.5 - i * .1), .025, .03], mix(K.b, K.a, .5), [0, y - r * (.42 + i * .12), r * (1.02 - i * .1)]); Cy(g, [.05, .05, .04, 6], mix(K.a, '#2b3a55', .4), [0, y + r * .8, r * .2]);
     A.top = [0, y + r * .82, 0]; A.tail = [0, y, -r * 1.3]; A.back = [0, y + r * .8, -.3]; A.fs = [.8, 1, 1.25][F];
     if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  shrimplet(g, F, K, X) { // a shrimp that hovers curled like a comma: a round baby, then more and more tail segments
+    const hr = [.6, .56, .6][F], hy = [.72, 1.32, 1.72][F], R = [.4, .55, .7][F], n = [1, 3, 5][F], band = mix(K.a, '#ff5a4a', .35), hz = .3;
+    const A = { head: { p: [0, hy, hz], r: hr }, body: { p: [0, hy - hr * .2, hz - hr * .8], r: [hr * .8, hr * .8, hr * .9] } };
+    let last = [0, hy, hz];
+    for (let i = 0; i < n; i++) { const a = (i + 1.1) * [.5, .62, .6][F], r = hr * (.8 - i * .08); last = [0, hy - R + R * Math.cos(a), hz - hr * .35 - R * Math.sin(a)]; Sp(g, r, i % 2 ? K.a : band, last, [1, 1, .85]); if (F) for (const s of [-1, 1]) Co(g, [.05, .22, 4], K.b, [s * r * .45, last[1] - r * .95, last[2] + .05], [PI, 0, 0]); }
+    Sp(g, hr, K.a, A.head.p, [1, .95, 1.05]); Sp(g, hr * .6, K.b, [0, hy - hr * .45, hz + hr * .3], [1, .7, 1]);
+    for (const s of [-1, 1]) { const e = Grp(g, [s * hr * .32, hy + hr * .8, hz + hr * .3], [-.5 - F * .1, 0, -s * .35]); const L = [.4, .75, 1.15][F]; Cy(e, [.018, .03, L, 4], band, [0, L / 2, 0]); Gm(e, .06, band, [0, L, 0]); }
+    if (F === 2) Co(g, [.09, .42, 4], band, [0, hy + hr * .55, hz + hr * .85], [1.1, 0, 0]);
+    if (F) for (const s of [-1, 1]) Rd(g, [.14, .14, .3], K.b, [s * hr * .55, hy - hr * .75, hz + hr * .55], [.4, s * .3, 0]);
+    face(g, X.eyes, [0, hy, hz], hr, { gap: .4, eye: [1.4, 1.25, 1.15][F], nose: null });
+    A.top = [0, hy + hr * .9, hz]; A.tail = [0, last[1] - .05, last[2] - .1]; A.back = [0, hy + hr * .3, hz - hr * 1.1]; A.fs = [.8, .9, 1][F];
+    if (X.own('tail')) FEAT.shrimplet.b(Grp(g, [0, last[1] - .08, last[2] + .1], [.5, PI, 0]), F, K);
+    return A;
+  },
+  siamew(g, F, K, X) { // a Siamese cat: cream coat with chocolate ears, muzzle, paws and tail, and a sapphire on its collar
+    const A = cat(g, F, K, X, { ear: K.b, paws: K.b, chest: mix(K.a, '#ffffff', .6), whisk: '#fffaf0' }), h = A.head, b = A.body;
+    Sp(g, h.r * .36, K.b, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .72, .75]);
+    if (F) { Cy(g, [b.r[0] * .62, b.r[0] * .7, .09, 10], '#3f6fd0', [0, b.p[1] + b.r[1] * .78, b.p[2] + .1]); Oc(g, [.1, .13][F - 1], GL('#5aa0ff', .6), [0, b.p[1] + b.r[1] * .7, b.p[2] + b.r[2] * .78], [1, 1.3, .6]); }
+    if (F === 2) for (const s of [-1, 1]) Sp(g, .13, K.b, [s * .24, .14, b.r[2] * .82], [1, 1, 1], 1);
+    if (X.own('tail')) X.sig(A.tail);
+    return A;
+  },
+  coralcolt(g, F, K, X) { // a sea horse that hovers upright: big head and snout, round belly, a tail that curls forward
+    const hr = [.6, .56, .58][F], R = [.2, .32, .4][F], n = [4, 7, 9][F], bh = [.3, .46, .62][F], cy = R + .14, by = cy + R * .5 + bh * .8, hy = by + bh * .75 + hr * .62;
+    const A = { head: { p: [0, hy, .12], r: hr }, body: { p: [0, by, -.05], r: [bh * .82, bh, bh * .9] } }, dk = mix(K.a, '#e8823c', .5);
+    for (let i = 0; i < n; i++) { const t = -1 + i * .72, rr = R * (1 - i / (n + 2)); Sp(g, .19 * (1 - i / (n + 1.5)) * (F ? 1 : .8) + .05, i % 2 ? dk : K.a, [0, cy - Math.sin(t) * rr, .05 - Math.cos(t) * rr], null, 1); }
+    Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, bh * .7, K.b, [0, by - bh * .05, bh * .4], [.85, 1.05, .7]);
+    if (F) for (let i = 0; i < 2 + F; i++) Bx(g, [bh * (.8 - i * .1), .03, .03], dk, [0, by + bh * (.35 - i * .28), bh * .92 - Math.abs(i - 1) * .04]);
+    Sp(g, hr, K.a, A.head.p, [1, .95, 1]);
+    const sl = [.22, .4, .52][F]; Cy(g, [.13, .17, sl, 7], K.a, [0, hy - hr * .22, .12 + hr * .85 + sl / 2], [PI / 2, 0, 0]); Cy(g, [.16, .13, .08, 7], dk, [0, hy - hr * .22, .12 + hr * .85 + sl], [PI / 2, 0, 0]);
+    if (F) Co(g, [.3 + F * .06, .5 + F * .1, 4], dk, [0, by + bh * .2, -bh * .95], [-1.2, 0, 0], [.22, 1, 1]);
+    if (F === 2) for (let i = 0; i < 3; i++) Co(g, [.08, .2, 4], dk, [0, hy + hr * (.3 - i * .45), .12 - hr * (.95 - i * .08)], [-1.3 - i * .2, 0, 0]);
+    for (const s of [-1, 1]) Rd(g, [.08, .26, .22], dk, [s * hr * .98, hy - hr * .25, 0], [0, 0, -s * .5]);
+    face(g, X.eyes, [0, hy + .02, .12], hr, { gap: .46, eye: [1.4, 1.25, 1.15][F], nose: null, mouth: false, y: .12 });
+    A.top = [0, hy + hr * .9, .08]; A.tail = [0, cy, -R]; A.back = [0, by + bh * .4, -bh * .8]; A.fs = [.8, .95, 1.1][F];
+    if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  skipfin(g, F, K, X) { // a dolphin that swims through the air and balances a beach ball on its nose
+    const r = [.56, .62, .7][F], y = [.85, 1.05, 1.25][F], L = [1.05, 1.4, 1.65][F], bk = [.16, .34, .5][F];
+    const A = { head: { p: [0, y + .02, r * L * .42], r: r * .9 }, body: { p: [0, y, -.1], r: [r * .86, r * .8, r * L] } };
+    Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, y - r * .2, -.02], [r * .78, r * .64, r * L * .93]);
+    const nz = -.1 + r * L * .93; Sp(g, 1, K.a, [0, y - r * .08, nz + bk * .4], [r * .3, r * .22, bk + .12], 1); Sp(g, 1, K.b, [0, y - r * .2, nz + bk * .35], [r * .26, r * .14, bk + .08], 1);
+    const t = Grp(g, [0, y + .04, -.1 - r * L * .9], [.45, 0, 0]); Co(t, [r * .36, r * .8, 5], K.a, [0, 0, -r * .28], [-PI / 2, 0, 0]);
+    for (const s of [-1, 1]) { Rd(t, [r * .56, .1, r * .36], K.a, [s * r * .3, 0, -r * .78], [0, s * .6, 0]); Rd(g, [r * .62, .11, r * .36], K.a, [s * r * .92, y - r * .42, r * .25], [0, s * .5, -s * .6]); }
+    Co(g, [r * .34, r * (.55 + F * .12), 4], K.a, [0, y + r * .92, -r * .25], [-.6, PI / 4, 0], [.5, 1, 1]);
+    face(g, X.eyes, [0, y + .04, r * L * .36], r * .92, { gap: .52, eye: [1.3, 1.15, 1.05][F], nose: null, y: .02, z: .8 });
+    Cy(g, [.045, .045, .04, 6], mix(K.a, '#2b3a55', .4), [0, y + r * .78, r * .3]);
+    A.top = [0, y + r * .8, 0]; A.tail = [0, y, -r * L]; A.back = [0, y + r * .78, -.3]; A.fs = [.8, 1, 1.2][F];
+    if (X.own('top')) X.sig([0, y + r * .12, nz + bk * 1.35 + .05], 1);
     return A;
   },
   zapkit(g, F, K, X) { // a kitten: baby is all head, then it sits up tall with a zigzag tail
