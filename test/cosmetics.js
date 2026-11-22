@@ -120,12 +120,12 @@ b.send({ t: 'pets' }); await wait(150);
 if (b.msgs.find(m => m.t === 'pets')?.pets.length) fail('Bo has pets without a farm');
 // the profile isle: ground, rock base and sky are worn one at a time
 const IG = n => COS.ig.items.findIndex(x => x.n === n);
-a.msgs.length = 0; a.send({ t: 'wear', k: 'ig', i: IG('Candy') }); await wait(200);
+a.msgs.length = 0; a.send({ t: 'wear', k: 'ig', i: IG('Sweet Shop Isle') }); await wait(200);
 if (!a.err(/not unlocked/)) fail('wore an isle ground without buying it');
-const coins0 = a.me.coins; a.send({ t: 'buy', k: 'ig', i: IG('Candy') }); a.send({ t: 'buy', k: 'ib', i: 3 }); a.send({ t: 'buy', k: 'ik', i: 2 }); await wait(300);
-if (seen().ig !== IG('Candy') || seen().ib !== 3 || seen().ik !== 2 || a.me.coins !== coins0 - cosPrice('ig', IG('Candy')) - cosPrice('ib', 3) - cosPrice('ik', 2)) fail('isle variants were not bought and put on');
-a.msgs.length = 0; a.send({ t: 'buy', k: 'ig', i: IG('Snowy') }); a.send({ t: 'buy', k: 'ig', i: IG('Golden isle') }); a.send({ t: 'wear', k: 'ig', i: IG('Champion’s isle') }); await wait(250);
-if (!a.err(/Winter drop/) || !a.err(/not in the shop/) || !a.err(/not unlocked/) || seen().ig !== IG('Candy')) fail('a seasonal or earned isle got through');
+const coins0 = a.me.coins; a.send({ t: 'buy', k: 'ig', i: IG('Sweet Shop Isle') }); a.send({ t: 'buy', k: 'ib', i: 3 }); a.send({ t: 'buy', k: 'ik', i: 2 }); await wait(300);
+if (seen().ig !== IG('Sweet Shop Isle') || seen().ib !== 3 || seen().ik !== 2 || a.me.coins !== coins0 - cosPrice('ig', IG('Sweet Shop Isle')) - cosPrice('ib', 3) - cosPrice('ik', 2)) fail('isle variants were not bought and put on');
+a.msgs.length = 0; a.send({ t: 'buy', k: 'ig', i: IG('Golden isle') }); a.send({ t: 'wear', k: 'ig', i: IG('Champion’s isle') }); await wait(250);
+if (!a.err(/not in the shop/) || !a.err(/not unlocked/) || seen().ig !== IG('Sweet Shop Isle')) fail('an earned isle got through');
 // isle decor is not sold: it is up to three of the decorations standing on your own Pet Farm
 ['bush', 'tree', 'cherry', 'rock'].forEach((type, n) => a.send({ t: 'farm', a: { t: 'place', type, x: n, y: 0, r: 0 } })); await wait(300);
 a.send({ t: 'pets' }); await wait(150);
@@ -143,8 +143,16 @@ a.send({ t: 'farm', a: { t: 'remove', id: bushId } }); await wait(150); a.send({
 if (seen().ip?.join() !== 'tree') fail('a decoration put away on the farm still stands on the isle: ' + seen().ip);
 if (a.me.owned.includes('ip:1')) fail('old bought isle decor was not refunded');
 b.msgs.length = 0; b.send({ t: 'player', pt: tag }); await wait(200);
-if (b.msgs.find(m => m.t === 'player')?.p.fl.ig !== IG('Candy')) fail('the profile card does not carry the isle look');
+if (b.msgs.find(m => m.t === 'player')?.p.fl.ig !== IG('Sweet Shop Isle')) fail('the profile card does not carry the isle look');
 if (flairOf({ cos: { ig: 9, ip: ['bush', 'bush', 3, 'a b', 'tree', 'rock', 'pond'] }, xp: 0, byGame: {} }).ip?.join() !== 'bush,tree,rock' || flairOf({ cos: { ig: 9 }, xp: 19000, byGame: {} }).ig !== 9) fail('isle flair is not filtered to what is unlocked');
+// the game pieces floating round the isle are a free pick of up to six
+if ('fp' in seen()) fail('floating pieces were sent before any were picked');
+a.send({ t: 'wear', k: 'fp', i: ['star', 'pot'] }); await wait(200);
+if (seen().fp?.join() !== 'star,pot') fail('picked floating pieces are not shown');
+a.msgs.length = 0; a.send({ t: 'wear', k: 'fp', i: ['star', 'star'] }); a.send({ t: 'wear', k: 'fp', i: ['nope'] }); a.send({ t: 'wear', k: 'fp', i: ['marble', 'die', 'pawn', 'card', 'chip', 'golf', 'coin'] }); await wait(200);
+if (seen().fp?.join() !== 'star,pot' || a.msgs.filter(m => m.t === 'err').length < 3) fail('a bad list of floating pieces got through');
+a.send({ t: 'wear', k: 'fp', i: [] }); await wait(200);
+if (seen().fp?.length !== 0) fail('floating pieces could not all be taken away');
 // a tampered profile shows nothing it has not unlocked
 if (Object.keys(flairOf({ cos: { nm: 3, ti: SHARK, fr: 99 }, owned: [], byGame: {} })).length) fail('flairOf let unowned cosmetics through');
 // everything survives a restart

@@ -276,7 +276,7 @@ function handle(c, m) {
       const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
       const ids = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
       if (pal && ids.some(id => !farm.petOf(p?.pid, id))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
-      const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
+      const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : m.k === 'fp' ? store.islePieces(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
       const room = rooms.get(c.room); if (room) sendRoom(room);

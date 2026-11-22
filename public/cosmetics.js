@@ -36,9 +36,10 @@ export const COS = {
   kp: { label: 'Kart paint', where: 'Your kart in Kart Island Race.', items: [{ n: 'Classic' }, { n: 'Racing stripes', p: 120 }, { n: 'Checkers', p: 120 }, { n: 'Flames', p: 150 }, { n: 'Galaxy', p: 200 }, { n: 'Gold', p: 300 }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
-  ig: { label: 'Ground', where: 'What grows on your isle. Everyone sees it on your profile card.', items: [{ n: 'Meadow' }, { n: 'Snowy', p: 180, s: 'winter' }, { n: 'Desert dunes', p: 150 }, { n: 'Cherry blossom', p: 180 },
-    { n: 'Autumn leaves', p: 150 }, { n: 'Mushroom forest', p: 200 }, { n: 'Beach', p: 180 }, { n: 'Candy', p: 220 }, { n: 'Lava rock', p: 250 },
-    { n: 'Golden isle', earn: { lv: 20 } }, { n: 'Champion’s isle', earn: { any: 50 } }, { n: 'Pumpkin patch', p: 180, s: 'halloween' }] },
+  // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
+  ig: { label: 'Ground', where: 'Make your isle look like one of the Pet Farm islands. Everyone sees it on your profile card.', items: [{ n: 'Meadow' }, { n: 'Weather Peak', p: 220 }, { n: 'Pebble Ridge', p: 150 }, { n: 'Fruit Grove', p: 180 },
+    { n: 'Veggie Patch', p: 180 }, { n: 'Mossy Woods', p: 120 }, { n: 'Tidepool Cove', p: 150 }, { n: 'Sweet Shop Isle', p: 200 }, { n: 'Ember Hills', p: 180 },
+    { n: 'Golden isle', earn: { lv: 20 } }, { n: 'Champion’s isle', earn: { any: 50 } }, { n: 'Bakery Bluff', p: 200 }, { n: 'Coral Reef', p: 200 }, { n: 'Starfall Isle', p: 220 }, { n: 'Thunder Meadow', p: 220 }] },
   ib: { label: 'Rock base', where: 'What hangs under your isle.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 }] },
   ik: { label: 'Sky', where: 'The sky behind your isle.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }] },
 };
@@ -46,6 +47,10 @@ export const COS_KEYS = Object.keys(COS);
 // Kinds where one entry is worn at a time (sticker packs are simply all usable once bought).
 export const WORN = COS_KEYS.filter(k => !COS[k].multi);
 export const DECOR_SLOTS = 3;
+// The game pieces that float round a player's isle. Free: cos.fp lists the ones picked, in order (none saved = the classic set, an empty list = none).
+export const PIECES = { marble: 'Marble', die: 'Die', pawn: 'Ludo pawn', card: 'Card', chip: 'Poker chip', golf: 'Golf ball', block: 'Tower blocks', tyre: 'Kart tyre', coin: 'Coin', star: 'Star', bean: 'Magic bean', pot: 'Hot pot', paw: 'Paw print' };
+export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 'chip', 'golf'];
+export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
   golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce' };
@@ -75,6 +80,7 @@ export function cosHas(me, k, i) {
 export function flairOf(me) {
   const out = {}, cos = me?.cos || {};
   for (const k of WORN) { const i = cos[k] | 0; if (i > 0 && cosHas(me, k, i)) out[k] = i; }
+  if (Array.isArray(cos.fp)) out.fp = piecesOf(me);
   const ip = decorOf(me); if (ip.length) out.ip = ip; // the server drops any the farm no longer has (store.flair)
   return out;
 }

@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
-import { COS, WORN, DECOR_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
+import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -199,6 +199,13 @@ export const flair = p => {
 // Isle decor comes from the player's Pet Farm: onDecor tells this file how to ask which decorations a farm has.
 let decorHook = () => [];
 export const onDecor = fn => { decorHook = fn; };
+// Which game pieces float round the isle (free for everyone).
+export function islePieces(p, list) {
+  if (!p) return { err: 'Not connected.' };
+  if (!Array.isArray(list) || list.length > PIECE_SLOTS || list.some(t => !Object.hasOwn(PIECES, t)) || new Set(list).size !== list.length) return { err: 'Unknown.' };
+  (p.cos ||= {}).fp = list.slice(); scheduleSave();
+  return { ok: true };
+}
 export function isleDecor(p, types) {
   if (!p?.user) return { err: 'Log in and start a Pet Farm to decorate your isle.' };
   if (!Array.isArray(types)) return { err: 'Unknown.' };
