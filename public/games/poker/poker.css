@@ -144,7 +144,7 @@ body.in-game { overflow: hidden; }
   .pk .tag .tx b { font-size: 13px; max-width: 6.5em; }
   .pk .tag .stk { font-size: 12px; } .pk .tag .stk .chipi { width: 13px; height: 13px; }
   .pk .bub { font-size: 11px; padding: 0 7px; }
-  .pk .shown .pcard.sm { --w: 22px; }
+  .pk .shown .pcard.sm { --w: 26px; }
   .pk .tag:not(.won) .shown > span { display: none; }
   .pk .shown > span { font-size: 11px; }
   .pk .dock { bottom: 10px; gap: 10px; }
