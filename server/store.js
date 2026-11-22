@@ -416,18 +416,23 @@ export function friendsView(p, online = () => false, extra = () => ({})) {
 // Credits one finished game to a profile. Returns what changed, for the "+XP" toast.
 // place / of: where this player finished out of how many places (see placeCoins in ranks.js). Without a place a win
 // counts as 1st and anything else as last.
-export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1 }) {
+// ranked: false for a match that had a bot seat. It still pays XP and coins, but adds nothing to the games, wins and
+// points that the rankings (and win-based unlocks) count, so wins against bots never move anyone up a board.
+export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1, ranked = true }) {
   if (!Number.isFinite(place)) place = win ? 1 : Math.max(1, of);
   const before = levelOf(p.xp), gain = xpFor({ pts, win }), coins = (idle ? 0 : placeCoins(place, of)) + (Number.isFinite(coinNet) ? coinNet : 0);
-  p.xp += gain; p.games++; p.pts += Math.max(0, pts); if (win) p.wins++;
-  const g = p.byGame[game] ||= { games: 0, wins: 0, best: 0 };
-  g.games++; if (win) g.wins++; g.best = Math.max(g.best, pts);
-  g.pts = (g.pts || 0) + Math.max(0, pts); // added for the global rankings; older saves start counting from here
-  if (Number.isFinite(coinNet) && coinNet) g.net = (g.net || 0) + coinNet; // Marble Rush: coins won minus coins lost on bets
+  p.xp += gain;
+  if (ranked) {
+    p.games++; p.pts += Math.max(0, pts); if (win) p.wins++;
+    const g = p.byGame[game] ||= { games: 0, wins: 0, best: 0 };
+    g.games++; if (win) g.wins++; g.best = Math.max(g.best, pts);
+    g.pts = (g.pts || 0) + Math.max(0, pts); // added for the global rankings; older saves start counting from here
+    if (Number.isFinite(coinNet) && coinNet) g.net = (g.net || 0) + coinNet; // Marble Rush: coins won minus coins lost on bets
+  }
   board = null;
   const had = p.coins || 0; addCoins(p.pid, coins);
   scheduleSave();
-  return { xp: gain, win, pts, place, of, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
+  return { xp: gain, win, pts, place, of, ranked, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
 }
 
 // ---------- global rankings ----------
