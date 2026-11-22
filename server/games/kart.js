@@ -54,7 +54,10 @@ export function create(players, optsIn = {}, prev = null) {
 }
 
 const T_ = G => buildTrack(G.trackId);
-function pushEv(G, e) { e.n = ++G.evN; G.ev.push(e); if (G.ev.length > 24) G.ev.shift(); }
+function pushEv(G, e) { e.n = ++G.evN; e.at = Date.now(); G.ev.push(e); if (G.ev.length > 24) G.ev.shift(); }
+// Each update only carries the last couple of seconds of events (the socket never drops one, and a screen that
+// reconnects starts fresh). Sending all 24 twenty times a second was most of the race's bandwidth.
+const EV_MS = 2000;
 const raceMs = (G, now) => now - G.goAt;
 
 // race order: finished karts by time, then everyone else by how far round they are
@@ -317,7 +320,7 @@ export function view(G, s) {
     lap: G.karts.map(k => k.lap), place: order(G), fin: G.st.map(x => x.fin),
     it: G.item.map(x => (x ? [x.k, Math.max(0, x.at + ROLL_MS - now)] : null)), sh: G.shield.map(x => x > now ? 1 : 0),
     bx: G.boxes.map(x => (x > now ? 0 : 1)), obj: G.obj.map(o => [o.id, o.k, r2(o.x), r2(o.z), r2(o.y)]),
-    ev: G.ev, res: G.res, win: G.win,
+    ev: G.ev.filter(e => now - e.at < EV_MS).map(({ at, ...e }) => e), res: G.res, win: G.win,
   };
   if (G.full || G.ph !== 'play' || s < 0 || G.stage === 'count') out.seats = G.seats.map(x => ({ name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id }));
   // your own kart as the server sees it: the browser only takes it when a bot drove it for you

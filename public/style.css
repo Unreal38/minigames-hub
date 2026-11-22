@@ -696,7 +696,6 @@ body.sky.night:not(.in-game) .gcard .pic.panpic { background: #2b2d6e; }
 body.sky.night:not(.in-game) .gcard .pic:not([class*="pic "]) { background: #b8442f; }
 
 /* ---------- hub chat (left column, under open tables) ---------- */
-#hubchat { margin-top: 28px; }
 .hccard { display: flex; flex-direction: column; background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); overflow: hidden; }
 .hclog { height: 340px; overflow-y: auto; overscroll-behavior: contain; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 2px; }
 .hcl { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr); column-gap: 8px; padding: 4px 26px 2px 2px; border-radius: 12px; }
@@ -723,9 +722,8 @@ body.sky.night:not(.in-game) .gcard .pic:not([class*="pic "]) { background: #b84
 .hcguest span { flex: 1 1 100%; }
 body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:not(.in-game) .hcl.own .hcname { color: #8fe3b0; }
 @media (min-width: 1300px) {
-  .hubside.left { height: calc(100vh - 110px); } /* the chat fills what the table list leaves, and its send box is on screen without scrolling */
-  .hubside.left section#tables { flex: 0 1 auto; max-height: 44%; }
-  .hubside.left section#hubchat { flex: 1 1 0; min-height: 300px; margin-top: 22px; }
+  .hubside.left { height: calc(100vh - 110px); } /* the open tab fills the column, and the chat's send box is on screen without scrolling */
+  .hubside.left > section { flex: 1 1 0; min-height: 300px; }
   .hubside.left .hccard { flex: 1; min-height: 0; }
   .hubside.left .hclog { height: auto; flex: 1; min-height: 0; }
 }
@@ -735,6 +733,29 @@ body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:n
 .creator .crow.drop b small { display: block; font: 500 13px/1.3 var(--fb, inherit); color: var(--tx2, #6b4a3c); }
 .creator .crow.drop.off { border-style: dashed; background: transparent; }
 .creator .crow.drop.off .pills button:disabled { opacity: 1; border-style: dotted; color: var(--muted2, #8a7468); }
+
+/* ---------- hub left column: Chat | Open tables tabs ---------- */
+.hubside > section[hidden] { display: none; }
+.sidetabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.sidetabs button { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 12px; font-family: var(--fd); font-weight: 700; font-size: 18px; white-space: nowrap;
+  border-radius: 16px; border: 3px solid var(--ink); background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); box-shadow: 0 4px 0 var(--ink); cursor: pointer; transition: transform .15s; }
+.sidetabs button:hover { transform: translateY(-1px); }
+.sidetabs button[aria-selected=true] { background: var(--lantern); color: #3b2219; transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
+.sidetabs .tcount:not(:empty) { font-size: 13px; padding: 1px 8px; border: 2px solid var(--ink); }
+.tpager { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; color: var(--tx2, var(--muted)); }
+.tpager:empty { display: none; }
+.tpager .btn { min-width: 44px; min-height: 40px; padding: 4px 12px; font-size: 20px; line-height: 1; }
+.tpager b { color: var(--tx, var(--cream)); }
+@media (min-width: 1300px) { .sidetabs button { font-size: 16px; padding: 6px 8px; } }
+@media (min-width: 1800px) { .sidetabs button { font-size: 19px; } }
+@media (min-width: 1300px) { /* compact table rows in the narrow column, so a page of five fits without scrolling */
+  .hubside .trow { grid-template-columns: 42px minmax(0, 1fr) auto; grid-template-areas: "av who btn" "av dots code"; gap: 4px 10px; padding: 10px 12px; }
+  .hubside .trow > .avatar { width: 42px; height: 42px; }
+  .hubside .trow .who b { font-size: 16px; } .hubside .trow .who span { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hubside .trow .dots { flex-wrap: nowrap; gap: 3px; } .hubside .trow .dots i { width: 10px; height: 10px; }
+  .hubside .trow .btn { width: auto; min-height: 36px; margin-top: 0; padding: 4px 14px; align-self: start; }
+  .hubside .trow .tcode { justify-self: end; font-size: 14px; }
+}
 /* ---------- account style: name colours, frames, titles (public/cosmetics.js) ---------- */
 /* Name colours are gradients clipped to the text. They sit on light and dark panels alike, so each keeps mid-tone colours. */
 .nmfx { background: var(--g) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 700; }
@@ -780,6 +801,14 @@ body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:n
 body.sky.night:not(.in-game) .creator .cart { box-shadow: 0 -8px 0 var(--pan); }
 @media (max-width: 600px) { .top .me.stylebtn, .top .me.coinbtn { margin-right: 0; padding: 0 10px; } .top .me[data-act=profile] { padding-right: 10px; gap: 6px; max-width: 46vw; overflow: hidden; } }
 .rk .who > span { flex-wrap: wrap; }
+
+/* Pet Farm companion beside the player in a waiting room, and its picker in Your style */
+.petpal { flex: none; margin-left: -22px; align-self: flex-end; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .18)); animation: palhop 2.6s ease-in-out infinite; pointer-events: auto; }
+.petpal:not([src]), .palpic:not([src]) { visibility: hidden; }
+.stylecard .petpal { margin-left: -26px; }
+.palpills button { display: inline-flex; align-items: center; gap: 6px; } .palpic { margin: -6px 0 -6px -6px; }
+@keyframes palhop { 0%, 78%, 100% { transform: translateY(0); } 86% { transform: translateY(-7px); } 93% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .petpal { animation: none; } }
 
 /* ---------- Mystery Pet: the daily guess-the-pet puzzle (public/daily.js) ---------- */
 /* Its own colours, so the pop-up and the hub card read well by day and by night. */

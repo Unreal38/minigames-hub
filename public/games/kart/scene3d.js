@@ -2,6 +2,7 @@
 // power-ups, and follows your kart with a chase camera. Your own kart comes from the browser's physics every frame
 // (mine()); everyone else comes from the server's stream (snap()), drawn a moment in the past so it moves smoothly.
 import * as THREE from 'three';
+import { kartPaint } from '../../skins.js';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
@@ -166,13 +167,15 @@ function buildDeco(T, sky) {
 const WHEEL = new THREE.CylinderGeometry(.33, .33, .3, 10).rotateZ(Math.PI / 2);
 const HUB = new THREE.CylinderGeometry(.14, .14, .32, 8).rotateZ(Math.PI / 2);
 function shade(hex, k) { const c = new THREE.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); }
-function makeKart(color, av) {
+function makeKart(color, av, paintK = 0) {
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-  const B = new THREE.BoxGeometry(1, 1, 1), dk = shade(color, .7), cream = '#fff4e2', ink = '#3b2219';
+  const paint = kartPaint(paintK), bc = paint.body || color; // kart paint from the shop (skins.js); the driver keeps their own colour
+  const B = new THREE.BoxGeometry(1, 1, 1), dk = shade(bc, .7), cream = '#fff4e2', ink = '#3b2219';
   const chassis = new THREE.Mesh(merged([
-    [B, color, [0, .42, .05], 0, [1.5, .34, 2.2]],
+    ...paint.parts.map(([c, p, r, sz]) => [B, c, p, r, sz]),
+    [B, bc, [0, .42, .05], 0, [1.5, .34, 2.2]],
     [B, dk, [0, .3, 0], 0, [1.6, .14, 2.3]],
-    [B, color, [0, .5, .95], [-.25, 0, 0], [1.2, .26, .7]],
+    [B, bc, [0, .5, .95], [-.25, 0, 0], [1.2, .26, .7]],
     [B, cream, [0, .3, 1.32], 0, [1.7, .2, .22]],
     [B, cream, [0, .32, -1.16], 0, [1.6, .22, .2]],
     [B, dk, [0, .9, -.62], [.2, 0, 0], [1.0, .75, .16]],
@@ -261,11 +264,11 @@ export function createScene(canvas, { onFrame, step } = {}) {
   }
 
   function setSeats(seats) {
-    const key = seats.map(s => s.color + JSON.stringify(s.av)).join('|');
+    const key = seats.map(s => s.color + JSON.stringify(s.av) + (s.fl?.kp | 0)).join('|');
     if (key === seatsKey) return; seatsKey = key;
     for (const k of karts) { scene.remove(k.root); scene.remove(k.shadow); disposeAvatar(k.driver); }
     karts = seats.map((s, i) => {
-      const K = makeKart(s.color, s.av); K.seed = i * 1.7; K.spinA = 0; K.wheelA = 0; K.trail = 0; K.i = -1;
+      const K = makeKart(s.color, s.av, s.fl?.kp); K.seed = i * 1.7; K.spinA = 0; K.wheelA = 0; K.trail = 0; K.i = -1;
       K.shadow = new THREE.Mesh(shadowGeo, shadowMat); K.shadow.renderOrder = 1; scene.add(K.shadow);
       scene.add(K.root); return K;
     });

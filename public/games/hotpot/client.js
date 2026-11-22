@@ -61,6 +61,7 @@ export function mount(app, ctx) {
   // ----- 3D (optional: the game works without it) -----
   import('./scene3d.js').then(m => {
     if (destroyed) return;
+    m.setCardBack(R?.players?.find(p => p.id === ctx.myId())?.fl?.cb);
     scene = m.createScene(canvas, {
       quality: gfx,
       onTile: r => canTake(abs(r)) && take(abs(r)),

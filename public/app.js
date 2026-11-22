@@ -6,6 +6,7 @@ import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
+import { petImg, petPics } from './petpic.js';
 import { progress } from './ranks.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -367,6 +368,7 @@ const st = {
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   hc: { log: null, max: 200, for: undefined }, // the hub's global chat
+  side: LS.get('ct_side', 'hubchat') === 'tables' ? 'tables' : 'hubchat', tPage: 0, // the hub's left column: chat or open tables
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -433,6 +435,8 @@ function onMsg(m) {
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); // back after a dropped connection
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
+  } else if (m.t === 'pets') {
+    st.pets = m.pets || []; st.onMe?.();
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -492,6 +496,8 @@ function onMsg(m) {
     if (st.game) st.game.room(m.room); else go('lobby');
     watchPaint();
   } else if (m.t === 'state') {
+    // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
+    if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])); for (const seat of m.s.seats) if (seat) seat.fl = (seat.id && by.get(seat.id)) || {}; }
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
@@ -853,15 +859,18 @@ function renderHub() {
       </div>
     </section>
     </div>
-    <aside class="hubside left" aria-label="Open tables">
-      <section id="tables">
-        <div class="sidehead"><h2>Open tables</h2><span class="tcount" id="tables-count"></span></div>
+    <aside class="hubside left" aria-label="Chat and open tables">
+      <div class="sidetabs" role="tablist" aria-label="Chat or open tables">
+        <button type="button" role="tab" id="tab-hubchat" aria-controls="hubchat" data-act="sidetab" data-tab="hubchat" aria-selected="${st.side === 'hubchat'}">Chat</button>
+        <button type="button" role="tab" id="tab-tables" aria-controls="tables" data-act="sidetab" data-tab="tables" aria-selected="${st.side === 'tables'}">Open tables<span class="tcount" id="tables-count"></span></button>
+      </div>
+      <section id="tables" role="tabpanel" aria-labelledby="tab-tables" ${st.side === 'tables' ? '' : 'hidden'}>
         <p class="sidenote"><span class="livedot"></span>Updates live. Join a seat or watch a game.</p>
         <div class="tables" id="tables-list"></div>
+        <div class="tpager" id="tables-pager"></div>
         <button type="button" class="btn w sidehost" data-act="host">Host a table</button>
       </section>
-      <section id="hubchat" aria-label="Hub chat">
-        <div class="sidehead"><h2>Chat</h2></div>
+      <section id="hubchat" role="tabpanel" aria-labelledby="tab-hubchat" ${st.side === 'hubchat' ? '' : 'hidden'}>
         <p class="sidenote">One room for everyone on ${SITE}.</p>
         <div class="hccard">
           <div class="hclog" id="hc-log" role="log" aria-live="polite">${hubLogHtml()}</div>
@@ -999,17 +1008,35 @@ function statsHtml() {
 }
 function paintStats() { const el = document.getElementById('live-stats'); if (el) el.innerHTML = statsHtml(); }
 
+// The open tables tab: tables with a free seat in their waiting room first, a page at a time.
+const TABLES_PER_PAGE = 5;
 function renderTables() {
   const el = document.getElementById('tables-list'); if (!el) return;
   const cnt = document.getElementById('tables-count'); if (cnt) cnt.textContent = st.rooms.length || '';
-  if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; return; }
-  el.innerHTML = st.rooms.map(r => `<div class="trow">
+  const pager = document.getElementById('tables-pager');
+  if (!st.rooms.length) { el.innerHTML = `<div class="empty">No open tables right now. Host one and send your friends the code!</div>`; if (pager) pager.innerHTML = ''; return; }
+  const open = r => r.state === 'lobby' && r.n < r.max;
+  const rooms = [...st.rooms].sort((a, b) => open(b) - open(a));
+  const pages = Math.ceil(rooms.length / TABLES_PER_PAGE);
+  st.tPage = Math.max(0, Math.min(st.tPage, pages - 1));
+  el.innerHTML = rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(r => `<div class="trow">
     ${avatarHtml(r.hostColor, r.hostAv, 46)}
     <div class="who"><b>${esc(r.host)}'s table</b><span>${esc(r.gameName)} · ${r.state === 'lobby' ? 'Waiting for players' : r.state === 'play' ? 'Playing' : 'Just finished'}${r.state !== 'lobby' && r.n < r.max ? ' · watch and take over a bot' : ''}${r.w ? ` · ${r.w} watching` : ''}</span></div>
     <div class="dots" aria-label="${r.n} of ${r.max} seats taken">${Array.from({ length: r.max }, (_, i) => `<i class="${i < r.n ? 'on' : ''}"></i>`).join('')}</div>
     <span class="tcode">${esc(r.code)}</span>
-    <button type="button" class="btn ${r.n < r.max && r.state === 'lobby' ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${r.n < r.max && r.state === 'lobby' ? 'Join' : 'Watch'}</button>
+    <button type="button" class="btn ${open(r) ? 'm' : 'w'}" data-act="join" data-code="${esc(r.code)}">${open(r) ? 'Join' : 'Watch'}</button>
   </div>`).join('');
+  if (pager) pager.innerHTML = pages < 2 ? '' : `<button type="button" class="btn sm w" data-act="tpage" data-d="-1" aria-label="Previous page" ${st.tPage ? '' : 'disabled'}>‹</button>
+    <span>Page <b>${st.tPage + 1}</b> of ${pages} · ${rooms.length} tables</span>
+    <button type="button" class="btn sm w" data-act="tpage" data-d="1" aria-label="Next page" ${st.tPage < pages - 1 ? '' : 'disabled'}>›</button>`;
+}
+function setSide(tab) {
+  st.side = tab === 'tables' ? 'tables' : 'hubchat'; LS.set('ct_side', st.side);
+  for (const id of ['tables', 'hubchat']) {
+    const sec = document.getElementById(id); if (sec) sec.hidden = id !== st.side;
+    document.getElementById('tab-' + id)?.setAttribute('aria-selected', id === st.side);
+  }
+  if (st.side === 'hubchat') hubScrollEnd();
 }
 
 function renderLobby() {
@@ -1034,7 +1061,7 @@ function renderLobby() {
         </div>
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
-          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}
+          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
@@ -1054,6 +1081,7 @@ function renderLobby() {
       <div class="howto"><b>How to win</b><br>${gm.howto} <a href="#" data-act="rules">Full rules</a></div>
     </aside>
   </main>`;
+  petPics();
 }
 
 // ---------- watching ----------
@@ -1346,13 +1374,21 @@ function openStyle() {
     for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
     const fl = Object.fromEntries(WORN.map(k => [k, worn(k)]));
     card.innerHTML = `${avatarHtml(st.color, st.av, 84, frameCls(fl))}<div><b>${nameHtml(st.name, fl)} ${meChip()}</b>${titleHtml(fl) || '<span class="ttl none">no title</span>'}<small>${fl.wn ? `Win effect: ${esc(cosItem('wn', fl.wn).n)}` : 'No win effect'}</small></div>`;
-    rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
+    rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : c.where ? ` <small>${c.where}</small>` : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
+    const pal = me().cos?.pet || '', pets = st.pets || [];
+    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Lobby companion <small>One of your Pet Farm pets sits beside you in waiting rooms.</small></b><div class="pills palpills">${
+      !me().user ? '<small>Log in and start a Pet Farm to bring a pet along.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
+      : `<button type="button" aria-pressed="${!pets.some(x => x.id === pal)}" data-pal="">None</button>` + pets.map(x => `<button type="button" aria-pressed="${x.id === pal}" data-pal="${esc(x.id)}">${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`).join('')}</div></div>`);
+    petPics(rows);
+    const myPal = pets.find(x => x.id === pal);
+    if (myPal) { card.insertAdjacentHTML('afterbegin', petImg(myPal, 64)); card.prepend(card.children[1]); petPics(card); }
     const want = Object.entries(pick);
     cart.innerHTML = want.length ? `<div class="cartlist"><b>Trying on</b>${want.map(([k, i]) => { const it = cosItem(k, i), short = it.p - coins();
       return `<span class="cartitem">${esc(it.n)} <small>${esc(COS[k].label.toLowerCase())}</small><button type="button" class="btn sm" data-buy="${k}:${i}" ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more` : `Buy ${coinIco}${it.p}`}</button></span>`; }).join('')}</div>
       <small>You have ${coinIco}${coins()}. Only what you buy is shown to others.</small>` : '';
   };
   st.onMe = () => { if (open) paint(); };
+  if (me().user) send({ t: 'pets' });
   sheet.onClose = () => { open = false; st.onMe = null; if (st.view === 'hub' || st.view === 'lobby') go(st.view); };
   paint();
   el.addEventListener('click', e => {
@@ -1360,6 +1396,8 @@ function openStyle() {
     if (e.target.closest('[data-toshop]')) { close(); return openProfile(false, AV_TABS.length); }
     const by = e.target.closest('[data-buy]');
     if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
+    const pl = e.target.closest('[data-pal]');
+    if (pl) { sfx.pop(); (st.me.cos ||= {}).pet = pl.dataset.pal; send({ t: 'wear', k: 'pet', i: pl.dataset.pal }); return paint(); }
     const b = e.target.closest('[data-k]'); if (!b) return;
     const k = b.dataset.k, i = +b.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
@@ -1512,7 +1550,9 @@ $app.addEventListener('click', e => {
   if (['home', 'scroll', 'rules'].includes(act)) e.preventDefault();
   if (b.tagName === 'BUTTON') sfx.click();
   if (act === 'home') { if (st.room) send({ t: 'leave' }); else go('hub'); }
-  else if (act === 'scroll') document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' });
+  else if (act === 'scroll') { if (['tables', 'hubchat'].includes(b.dataset.to)) setSide(b.dataset.to); document.getElementById(b.dataset.to)?.scrollIntoView({ behavior: 'smooth' }); }
+  else if (act === 'sidetab') { sfx.click(); setSide(b.dataset.tab); }
+  else if (act === 'tpage') { sfx.click(); st.tPage += +b.dataset.d; renderTables(); }
   else if (act === 'rktab') { st.rkTab = b.dataset.tab; LS.set('ct_rk', st.rkTab); sfx.click(); paintRankings(); send({ t: 'rankings', game: st.rkTab }); }
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
