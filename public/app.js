@@ -8,7 +8,8 @@ import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem
 import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
-import { progress } from './ranks.js';
+import { progress, rankOf, RANKS, STAR_EVERY } from './ranks.js';
+import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -523,7 +524,7 @@ function onMsg(m) {
       const cg = m.gain.coins | 0;
       const pl = m.gain.place, ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
       toast(`${m.gain.win ? 'Win! ' : pl > 1 && m.gain.of > 1 ? `${ord(pl)} place · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
-      if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
+      if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
@@ -714,7 +715,9 @@ function go(view) {
 }
 
 let adoptLook = false, onAuth = null;
-const lvChip = (lv, icon, rank) => `<span class="lv" title="${esc(rank)}, level ${lv}">${icon} ${lv}</span>`;
+// The level chip beside a name. The rank is worked out from the level here, so chips saved long ago (old chat lines)
+// and chips from the server always show today's ladder.
+const lvChip = lv => { const r = rankOf(lv); return `<span class="lv" title="${esc(r.name)}, level ${lv}">${rankIcon(r.icon)} ${lv}${r.stars ? `<i class="lvst">★${r.stars}</i>` : ''}</span>`; };
 const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
 
 // The full progress card (rank, XP bar, lifetime numbers, every game). It opens from the account menu's Profile.
@@ -726,12 +729,15 @@ function meCard() {
     : `<li><b>${GAMES[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'win' : 'wins'} in ${g.games} · best ${g.best} pts</span></li>`).join('');
   return `<div class="mecard">
     <div class="rankrow">
-      <span class="rankicon">${m.icon}</span>
-      <div class="rankname"><b>${esc(m.rank)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
+      <span class="rankicon">${rankIcon(rankOf(m.level).icon)}</span>
+      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
       <div class="acct"><span>${m.user ? `Signed in as <b>${esc(m.user)}</b>` : 'Playing as a guest. Progress stays on this browser.'}</span></div>
     </div>
     <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
     <div class="xpnote"><span>${m.into} / ${m.need} XP to level ${m.level + 1}</span><span>${m.xp} XP in total</span></div>
+    <details class="ladder"><summary>All ranks</summary><ol>${RANKS.map(r => { const mine = rankOf(m.level).icon === r.icon && rankOf(Math.min(m.level, RANKS.at(-1).lv)).lv === r.lv;
+      return `<li class="${m.level >= r.lv ? 'got' : ''}${mine ? ' now' : ''}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>level ${r.lv}</span></li>`; }).join('')}
+      <li class="more">After ${esc(RANKS.at(-1).name)} you earn one more ★ every ${STAR_EVERY} levels, with no end.</li></ol></details>
     <div class="stats">
       <div><b>${m.wins}</b><span>Wins</span></div><div><b>${m.games}</b><span>Games</span></div>
       <div><b>${rate}%</b><span>Win rate</span></div><div><b>${m.pts}</b><span>Points</span></div>
