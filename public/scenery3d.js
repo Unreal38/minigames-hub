@@ -15,7 +15,7 @@
 //   rim(color)                a hover or selection rim: show(root) wraps root's outline hull in a glowing copy.
 import * as THREE from 'three';
 import { bake } from './avatar3d.js';
-import { fxOf } from './winfx.js';
+import { fxOf, winSheet } from './winfx.js';
 import { drawShape } from './fxart.js';
 
 export const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -266,30 +266,32 @@ function sheet() {
   names.forEach((n, i) => drawShape(g, n, C * i + C / 2, C / 2, C * .43, { fill: '#ffffff', shade: n === 'dot' ? '#e9e9e9' : '#cfcfcf', edge: n === 'dot' ? '' : '#4a3a36' }));
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-// How each win effect (cosmetics.js, kind wn) looks as an in-game shower. 4 (fireworks) is drawn as bursts instead.
+// How each win effect (cosmetics.js, kind wn) moves as an in-game shower. The pictures are the full-screen effect's own
+// (winfx.js winSheet), shown in their own colours, so the two always match. 4 (fireworks) is drawn as bursts instead.
 const WINLOOK = {
-  1: { colors: ['#ff5d8f', '#ffc93c', '#4fc3e8', '#7ed37a', '#c9b3ff', '#ff8a2a'], shape: CONF, n: 1, size: 1, grav: 2.2, spin: 10, flutter: 2.2 },
-  2: { colors: ['#ff5d8f', '#ff8fb3', '#e5243b', '#ffc2d6'], shape: HEART, n: .6, size: 1.7, grav: 1.5, spin: 1.5, flutter: 1.6 },
-  3: { colors: ['#4fc3e8', '#ff9a3c', '#ffd84a', '#7ed3b2'], shape: FISH, n: .55, size: 2, grav: 3, spin: 2.5, flutter: 1 },
-  5: { colors: ['#ffc93c', '#ffd84a', '#f2b01e'], shape: COIN, n: .6, size: 1.5, grav: 4.5, spin: 1, flutter: .6 },
-  6: { colors: ['#ffffff', '#dff1ff', '#bcdcff'], shape: FLAKE, n: .7, size: 1.5, grav: .9, spin: 2, flutter: 2.4, life: 1.25 },
+  1: { n: 1, size: 1, grav: 2.2, spin: 10, flutter: 2.2 },
+  2: { n: .6, size: 2.6, grav: 1.5, spin: 1.5, flutter: 1.6 },
+  3: { n: .55, size: 2.2, grav: 3, spin: 2.5, flutter: 1 },
+  5: { n: .6, size: 1.3, grav: 4.5, spin: 1, flutter: .6 },
+  6: { n: .7, size: 1.5, grav: .9, spin: 2, flutter: 2.4, life: 1.7 },
 };
+const WIN0 = 8; // shape numbers from here on are cells of the win effect strip
 export function createFx(scene, { max = 900 } = {}) {
   const P = new Float32Array(max * 3), C = new Float32Array(max * 3), S = new Float32Array(max), A = new Float32Array(max), R = new Float32Array(max), K = new Float32Array(max);
   const st = []; // per live particle: { v, life, max, s0, s1, grav, drag, spin, flut }
   const geo = new THREE.BufferGeometry();
   const at = (n, a, k) => { const b = new THREE.BufferAttribute(a, k); b.setUsage(THREE.DynamicDrawUsage); geo.setAttribute(n, b); return b; };
   const aP = at('position', P, 3), aC = at('color', C, 3), aS = at('size', S, 1), aA = at('alpha', A, 1), aR = at('rot', R, 1), aK = at('shape', K, 1);
-  const tex = sheet();
+  const tex = sheet(), win = winSheet(), tex2 = new THREE.CanvasTexture(win.cv); // tex2 is left in screen colours: it is shown as drawn
   const mat = new THREE.ShaderMaterial({
-    uniforms: { map: { value: tex }, scale: { value: 500 } }, transparent: true, depthWrite: false, vertexColors: true,
+    uniforms: { map: { value: tex }, map2: { value: tex2 }, scale: { value: 500 } }, transparent: true, depthWrite: false, vertexColors: true,
     vertexShader: `attribute float size; attribute float alpha; attribute float rot; attribute float shape; uniform float scale;
       varying vec3 vC; varying float vA; varying float vR; varying float vK;
       void main() { vC = color; vA = alpha; vR = rot; vK = shape; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = size * scale / -mv.z; gl_Position = projectionMatrix * mv; }`,
-    fragmentShader: `uniform sampler2D map; varying vec3 vC; varying float vA; varying float vR; varying float vK;
+    fragmentShader: `uniform sampler2D map; uniform sampler2D map2; varying vec3 vC; varying float vA; varying float vR; varying float vK;
       void main() { vec2 p = gl_PointCoord - .5; float c = cos(vR), s = sin(vR); p = vec2(c * p.x - s * p.y, s * p.x + c * p.y) + .5;
         if (p.x < 0. || p.x > 1. || p.y < 0. || p.y > 1.) discard;
-        vec4 t = texture2D(map, vec2((vK + p.x) / 8., 1. - p.y)); if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb, t.a * vA); }`,
+        vec4 t = texture2D(map, vec2((min(vK, 7.) + p.x) / 8., 1. - p.y)), w = texture2D(map2, vec2((max(vK, 8.) - 8. + p.x) / 16., 1. - p.y)); if (vK > 7.5) t = w; if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb, t.a * vA); }`,
   });
   const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts);
   let n = 0, ringI = 0; const col = new THREE.Color();
@@ -298,6 +300,7 @@ export function createFx(scene, { max = 900 } = {}) {
   function add(x, y, z, vx, vy, vz, c, o) {
     if (n >= max) return;
     const i = n++; P[i * 3] = x; P[i * 3 + 1] = y; P[i * 3 + 2] = z; col.set(c); C[i * 3] = col.r; C[i * 3 + 1] = col.g; C[i * 3 + 2] = col.b;
+    if (o.raw) col.setStyle(c, THREE.LinearSRGBColorSpace), C[i * 3] = col.r, C[i * 3 + 1] = col.g, C[i * 3 + 2] = col.b; // screen colour, for the win strip
     K[i] = o.shape ?? DOT; R[i] = Math.random() * 6.28; S[i] = 0; A[i] = 0;
     st[i] = { vx, vy, vz, life: 0, max: o.life * (.7 + Math.random() * .6), s0: o.size * (.7 + Math.random() * .6), grow: o.grow ?? 0, grav: o.grav ?? 9, drag: o.drag ?? 1.5, spin: (Math.random() - .5) * (o.spin ?? 8), flut: o.flutter ?? 0, ph: Math.random() * 6.28, fade: o.fade ?? 1 };
   }
@@ -319,14 +322,14 @@ export function createFx(scene, { max = 900 } = {}) {
       const k = s == null ? 0 : fxOf(s), L = WINLOOK[k];
       if (k === 4) { // fireworks: a few rings of stars going off above the spot
         const per = Math.max(10, Math.min(26, cnt / 4 | 0));
-        for (let b = 0; b < 4; b++) { const cx = p.x + (Math.random() - .5) * w * .8, cy = p.y + h * (.5 + Math.random() * .6), cz = p.z + (Math.random() - .5) * w * .8, c = WINLOOK[1].colors[(b * 2) % 6];
+        for (let b = 0; b < 4; b++) { const cx = p.x + (Math.random() - .5) * w * .8, cy = p.y + h * (.5 + Math.random() * .6), cz = p.z + (Math.random() - .5) * w * .8, c = win.cols[4][(b * 2) % 6];
           for (let j = 0; j < per; j++) { const a = Math.random() * 6.283, e = (Math.random() - .5) * 3.14, sp = 2.6 + Math.random() * 1.6;
-            add(cx, cy, cz, Math.cos(a) * Math.cos(e) * sp, Math.sin(e) * sp + 1, Math.sin(a) * Math.cos(e) * sp, Math.random() < .2 ? '#ffffff' : c, { shape: STAR, size: size * 1.3, life: 1.1, grav: 2.5, drag: 1.6, spin: 4, grow: -.5 }); } }
+            add(cx, cy, cz, Math.cos(a) * Math.cos(e) * sp, Math.sin(e) * sp + 1, Math.sin(a) * Math.cos(e) * sp, c, { shape: WIN0 + win.at[4][0], raw: true, size: size * .6, life: 1.1, grav: 2.5, drag: 1.6, spin: 0, grow: -.5 }); } }
         return;
       }
       if (L) { // bigger pictures, so fewer of them: the same cost or less than plain confetti
-        for (let j = 0, m = Math.ceil(cnt * L.n); j < m; j++) add(p.x + (Math.random() - .5) * w, p.y + h * (.6 + Math.random() * .6), p.z + (Math.random() - .5) * w, (Math.random() - .5) * 1.5, Math.random() * 2, (Math.random() - .5) * 1.5, pick(L.colors),
-          { shape: L.shape, size: size * L.size, life: life * (L.life || 1), grav: L.grav, drag: 1.4, spin: L.spin, flutter: L.flutter });
+        for (let j = 0, m = Math.ceil(cnt * L.n); j < m; j++) add(p.x + (Math.random() - .5) * w, p.y + h * (.6 + Math.random() * .6), p.z + (Math.random() - .5) * w, (Math.random() - .5) * 1.5, Math.random() * 2, (Math.random() - .5) * 1.5, win.cols[k] ? pick(win.cols[k]) : '#ffffff',
+          { shape: WIN0 + pick(win.at[k]), raw: true, size: size * L.size, life: life * (L.life || 1), grav: L.grav, drag: 1.4, spin: L.spin, flutter: L.flutter });
         return;
       }
       for (let k = 0; k < cnt; k++) add(p.x + (Math.random() - .5) * w, p.y + h * (.6 + Math.random() * .6), p.z + (Math.random() - .5) * w, (Math.random() - .5) * 1.5, Math.random() * 2, (Math.random() - .5) * 1.5, pick(colors), { shape: CONF, size, life, grav: 2.2, drag: 1.4, spin: 10, flutter: 2.2 });
@@ -363,7 +366,7 @@ export function createFx(scene, { max = 900 } = {}) {
       pts.visible = n > 0;
     },
     count: () => n,
-    dispose() { scene.remove(pts); geo.dispose(); mat.dispose(); tex.dispose(); for (const r of rings) { scene.remove(r.m); r.m.material.dispose(); } ringGeo.dispose(); },
+    dispose() { scene.remove(pts); geo.dispose(); mat.dispose(); tex.dispose(); tex2.dispose(); for (const r of rings) { scene.remove(r.m); r.m.material.dispose(); } ringGeo.dispose(); },
   };
   return api;
 }
