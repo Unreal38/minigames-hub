@@ -318,6 +318,29 @@ export function beanArt() {
     </g></svg>`;
 }
 
+// Sky Darts card: a dartboard on a wooden stand on a sky island, two darts in it and a third on its way.
+export function dartsArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"', cx = 172, cy = 70;
+  let segs = '';
+  for (let i = 0; i < 20; i++) {
+    const a0 = (i * 18 - 9 - 90) * Math.PI / 180, a1 = (i * 18 + 9 - 90) * Math.PI / 180, even = i % 2 === 0;
+    const wedge = (r0, r1, c) => `<path d="M${(cx + Math.cos(a0) * r0).toFixed(1)} ${(cy + Math.sin(a0) * r0).toFixed(1)}L${(cx + Math.cos(a0) * r1).toFixed(1)} ${(cy + Math.sin(a0) * r1).toFixed(1)}A${r1} ${r1} 0 0 1 ${(cx + Math.cos(a1) * r1).toFixed(1)} ${(cy + Math.sin(a1) * r1).toFixed(1)}L${(cx + Math.cos(a1) * r0).toFixed(1)} ${(cy + Math.sin(a1) * r0).toFixed(1)}A${r0} ${r0} 0 0 0 ${(cx + Math.cos(a0) * r0).toFixed(1)} ${(cy + Math.sin(a0) * r0).toFixed(1)}z" fill="${c}"/>`;
+    segs += wedge(6, 44, even ? '#2b2228' : '#f6e7c8') + wedge(24, 29, even ? '#e5543b' : '#3fae5d') + wedge(39, 44, even ? '#e5543b' : '#3fae5d');
+  }
+  const dart = (x, y, rot, c, cls = '') => `<g transform="translate(${x} ${y}) rotate(${rot})"><g class="${cls}"><path d="M0 0l-14 0" stroke="#5b5f66" stroke-width="2.5" stroke-linecap="round"/><path d="M-12 -3h-18v6h18z" fill="#d9dde3" ${o}/><path d="M-30 0h-12" stroke="#3b2219" stroke-width="3"/><path d="M-40 0l-12-9h10l8 9-8 9h-10z" fill="${c}" ${o}/></g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A dartboard on a wooden stand on a floating island with darts in it and one flying in">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="42" cy="18" r="1.6"/><circle cx="264" cy="14" r="1.3"/><circle cx="292" cy="72" r="1.5"/><circle cx="18" cy="80" r="1.2"/><circle cx="84" cy="44" r="1.1"/></g>
+    <path d="M24 40l14-8 16 4 8 10-10 8H32z" class="artcloud" fill="#fff"/><path d="M256 36l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 132h320v18H0z" class="artsea" fill="#7fcdf0"/>
+    <path d="M66 128l30-10h152l30 10-36 16H102z" fill="#8fd16a" ${o}/>
+    <path d="M112 12h14v112h-14zM218 12h14v112h-14z" fill="#b57c4e" ${o}/><path d="M104 20l68-18 68 18v10H104z" fill="#e5543b" ${o}/>
+    <rect x="122" y="22" width="100" height="98" rx="6" fill="#6b4a3c" ${o}/>
+    <circle cx="${cx}" cy="${cy}" r="47" fill="#2b2228" ${o}/>${segs}<circle cx="${cx}" cy="${cy}" r="6" fill="#3fae5d"/><circle cx="${cx}" cy="${cy}" r="2.8" fill="#e5543b"/>
+    <circle cx="${cx}" cy="${cy}" r="44" fill="none" stroke="#d9dde3" stroke-width="1.2"/>
+    ${dart(cx + 2, cy - 26, 196, '#ff8fab')}${dart(cx - 14, cy + 6, 170, '#9aa8ff')}${dart(cx + 1, cy, 158, '#ffb547', 'dtfly')}
+  </svg>`;
+}
+
 // Tysiąc card: a king and queen of hearts (a marriage) with an ace behind them, and "1000" chalked on a slate.
 export function tysArt() {
   const red = '#d8402a', heart = 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z',

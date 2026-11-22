@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, dartsArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -143,6 +143,30 @@ const GAMES = {
       <li>The taller it gets, the <b>faster</b> the swing and the <b>wobblier</b> the tower: lower blocks hold less and less overhang.</li>
       <li>After a crash a new tower starts. Reach 40 blocks and everyone gets +20. After the last tower, the most points wins.</li>
       <li><b>Mixed shapes</b> deals planks, cubes and wide slabs as well as plain blocks.</li>
+    </ol>`,
+  },
+  darts: {
+    name: 'Sky Darts', load: () => import('./games/darts/client.js'), start: 'Game on',
+    host: { seats: 4, start: 301, out: 'double', legs: 1, bots: 'chill', timer: 15 }, solo: { seats: 4, start: 301, out: 'double', legs: 1, bots: 'chill', timer: 0 },
+    openSeat: 'A bot throws here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Start from</b><div class="pills">${pill('start', 301, '301')}${pill('start', 501, '501')}</div></div>
+      <div class="opt"><b>Finish</b><div class="pills">${pill('out', 'double', 'On a double')}${pill('out', 'any', 'Any dart')}</div></div>
+      <div class="opt"><b>Legs</b><div class="pills">${pill('legs', 1, 'One leg')}${pill('legs', 3, 'Best of 3')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Time per dart</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Everyone starts on 301 and takes turns throwing three darts. What you hit comes off your score. Point at the board, hold to steady your hand and let go to throw. First to reach exactly zero wins.`,
+    rules: `<ol>
+      <li>Everyone starts on <b>301</b> (or 501) and takes turns throwing <b>three darts</b>. Whatever you hit is taken off your score. Empty spots are played by bots.</li>
+      <li>The thin <b>outer ring</b> scores <b>double</b> the number, the thin <b>inner ring</b> scores <b>treble</b>. The green ring round the middle is <b>25</b> and the red <b>bull</b> is <b>50</b>.</li>
+      <li><b>Aiming:</b> your hand is never quite still, so the yellow dot wanders round where you point. <b>Hold</b> the mouse button (or your finger, or space) to steady it: the ring shrinks and turns green. <b>Let go</b> to throw. The dart lands exactly where the dot is. Hold too long and your arm gets tired and shaky again.</li>
+      <li>On a phone, <b>drag</b> anywhere to move your aim, keep your finger still to steady, and <b>lift</b> to throw. On a keyboard, use the arrow keys and hold space.</li>
+      <li>The first to reach <b>exactly zero</b> wins the leg. With <b>On a double</b>, your last dart must land in a double (the bull counts).</li>
+      <li>Score more than you have left (or leave yourself on 1 when you need a double) and you go <b>bust</b>: the turn is over and your score goes back to what it was before the turn.</li>
+      <li>When you can finish this turn, the game shows you a way out, like <b>T20 D20</b> (treble 20, then double 20).</li>
+      <li>If nobody is out after the last round (15 rounds for 301, 20 for 501), whoever has the <b>least left</b> takes the leg.</li>
+      <li>You have <b>15 seconds</b> a dart. Run out and the dart is thrown in a hurry, somewhere near the middle.</li>
+      <li><b>Best of 3</b> is won by the first to two legs. Everyone else is placed by legs won, then by the least left.</li>
     </ol>`,
   },
   golf: {
@@ -815,6 +839,7 @@ const HUB_GAMES = [
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
+  ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>
@@ -1155,12 +1180,12 @@ function watchPaint() {
   const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
   const bots = (st.lastState.seats || []).filter(s => !s.human).length;
   const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
-  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand', hole: 'from the next hole', now: 'right away' }[when] || 'when the next game starts';
+  const soon = { game: 'when the next game starts', round: 'when this round of turns ends', hand: 'from the next hand', hole: 'from the next hole', leg: 'from the next leg', now: 'right away' }[when] || 'when the next game starts';
   const msg = !saving ? 'You’re watching.'
     : full ? (when === 'game' ? 'Every seat is taken. You get the next free one.' : 'Every seat has a player. You get one next game.')
     : `You take over a bot ${soon}.`;
   const btn = saving ? 'Just watch' : full && when === 'game' ? 'Get the next free seat'
-    : when === 'round' || when === 'now' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : when === 'hole' ? 'Play from next hole' : 'Play next game';
+    : when === 'round' || when === 'now' ? 'Take over a bot' : when === 'hand' ? 'Play from next hand' : when === 'hole' ? 'Play from next hole' : when === 'leg' ? 'Play from next leg' : 'Play next game';
   $watch.innerHTML = `<span>${msg}</span>
     <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
 }

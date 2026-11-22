@@ -50,5 +50,7 @@ export const sfx = {
   bad() { tone(200, .16, 'sawtooth', .08, .7); },
   join() { tone(660, .1, 'sine', .2, 1.5); tone(990, .12, 'sine', .15, 1.2, .08); },
   win() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, .24, 'triangle', .2, 1, i * .11)); noise(.6, .08, 6000, 2000, .3, .5); },
+  whoosh() { noise(.2, .14, 900, 3600, 0, .8); },
+  thunk() { noise(.06, .4, 800, 220, 0, 2.2); tone(150, .09, 'sine', .32, .55); },
   lose() { [523, 466, 415].forEach((f, i) => tone(f, .26, 'triangle', .16, 1, i * .14)); },
 };
