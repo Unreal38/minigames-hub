@@ -29,7 +29,9 @@ if (winnerOf([king(H), ace(D), ten(H)], -1) !== 2 || winnerOf([king(H), nine(S),
   if (!same(legal([king(D), nine(S)], [king(H), jack(S)], S), [nine(S)])) fail('must still play a trump that cannot win');
   if (!same(legal([ace(H), nine(H)], [king(H), jack(S)], S), [ace(H), nine(H)])) fail('a trumped trick cannot be beaten in the suit led');
   if (!same(legal([king(D), nine(C)], [king(H)], S), [king(D), nine(C)])) fail('with neither suit nor trump anything goes');
-  if (sortHand(DECK).length !== 24 || suitOf(sortHand(DECK)[0]) !== S || sortHand(DECK)[0] !== ace(S)) fail('hand sorting wrong');
+  if (sortHand(DECK).length !== 24 || sortHand(DECK)[0] !== ace(H) || sortHand(DECK)[23] !== nine(S)) fail('hand sorting wrong');
+  // suits with a marriage come first, the dearest first, then the rest
+  if (sortHand([ace(S), king(C), nine(H), queen(C), king(D), queen(D), ten(H)]).join() !== [king(D), queen(D), king(C), queen(C), ace(S), ten(H), nine(H)].join()) fail('hand is not sorted by marriages');
 }
 
 // ----- whole games -----
@@ -39,7 +41,7 @@ function play(opts, human = (G, s, now) => ty._bot(G, s, now)) {
   try {
     const G = ty.create(players, opts), n = G.seats.length;
     if (n !== (opts.seats || 3)) fail('seats not filled with bots');
-    let hands = 0, seen = 0, melded = 0;
+    let hands = 0, seen = 0, melded = 0, forced = 0;
     for (let i = 0; i < 2000000 && G.ph === 'play'; i++) {
       now += 100;
       if (G.active.length !== 3 || (n === 4 && G.active.includes(G.dealer))) fail('three play a hand; with four the dealer sits out');
@@ -77,6 +79,10 @@ function play(opts, human = (G, s, now) => ty._bot(G, s, now)) {
           const k = G.hands[s].find(c => !canMeld(G.hands[s], c) && ok.includes(c));
           if (k !== undefined && G.trick.length === 0) { const t0 = G.trump, p0 = G.pts[s]; const h = [...G.hands[s]]; ty.act(G, s, { t: 'play', c: k, meld: true }); if (G.trump !== t0 || G.pts[s] !== p0) fail('a marriage was announced without the king and queen'); if (G.hands[s].length === h.length) fail('play refused'); continue; }
         }
+        if (st === 'play' && !G.trick.length) { // a marriage card led is always announced, asked for or not
+          const kq = G.hands[s].find(c => canMeld(G.hands[s], c));
+          if (kq !== undefined) { const p0 = G.pts[s]; if (!ty.act(G, s, { t: 'play', c: kq }) || G.trump !== suitOf(kq) || G.pts[s] !== p0 + MELD[suitOf(kq)]) fail('a led marriage was not announced'); forced++; continue; }
+        }
         const before = G.evN; human(G, s, now); if (G.evN === before) fail(`human move refused during ${st}`);
       } else ty.tick(G, now);
       if (G.stage === 'play' && st === 'give') {
@@ -87,6 +93,11 @@ function play(opts, human = (G, s, now) => ty._bot(G, s, now)) {
       if (G.mel.flat().length > seen) { seen = G.mel.flat().length; melded++; if (G.trump !== G.mel[G.trick[0].s].at(-1)) fail('a marriage should set trumps'); }
       if (G.stage === 'score' && st !== 'score') {
         hands++; const m = G.sum, d = m.decl;
+        if (m.fold) { // folded: nothing played, the declarer scores nothing, the others 60 each (up to the barrel)
+          if (m.delta[d] !== 0 || G.gone.length) fail('a folded hand was scored wrong');
+          for (const j of G.active) if (j !== d && m.delta[j] !== Math.max(0, Math.min(60, G.barrel - (m.score[j] - m.delta[j])))) fail('fold paid the wrong amount');
+          continue;
+        }
         if (G.active.reduce((a, j) => a + m.pts[j], 0) !== 120 + G.mel.flat().reduce((a, su) => a + MELD[su], 0)) fail('points in a hand should add up to 120 plus marriages');
         if (m.made !== (m.pts[d] >= m.contract) || m.delta[d] !== (m.made ? m.contract : -m.contract)) fail('the contract was scored wrong');
         for (const j of G.active) if (j !== d) {
@@ -118,6 +129,16 @@ play({ target: 500 }, (G, s) => {
     : ty.act(G, s, { t: 'play', c: legal(G.hands[s], G.trick.map(x => x.c), G.trump)[0], meld: true });
   if (!ok) fail('simple move refused');
 });
+// a human who folds every hand they win: the others collect 60 a time, and nobody but the declarer may fold
+{
+  let folds = 0;
+  const r = play({ target: 500 }, (G, s, now) => {
+    if (G.stage === 'give') { const o = G.active.find(j => j !== s); if (ty.act(G, o, { t: 'fold' })) fail('an opponent folded'); if (!ty.act(G, s, { t: 'fold' }) || G.stage !== 'score' || !G.sum.fold) fail('fold refused'); folds++; }
+    else { if (G.stage !== 'give' && ty.act(G, s, { t: 'fold' })) fail('folded outside the musik step'); ty._bot(G, s, now); }
+  });
+  if (!folds || r.G.score[0] > 0 && r.G.st[0].made) fail('folding test did not fold');
+  console.log('folding: Ana folded', folds, 'hands and finished on', r.G.score[0]);
+}
 // a human who always bids as high as allowed and raises the contract
 play({ target: 500 }, (G, s, now) => {
   if (G.stage === 'bid') { if (!(G.bid.v + 10 <= maxBid(G.hands[s]) ? ty.act(G, s, { t: 'bid', v: G.bid.v + 10 }) : ty.act(G, s, { t: 'pass' }))) fail('bid refused'); }
