@@ -188,7 +188,7 @@ export function createScene(canvas, { onFrame, step, clock } = {}) {
     for (const c of climbers) { world.remove(c.root); disposeAvatar(c.av); }
     climbers = seats.map((s, i) => {
       const root = new THREE.Group(), pivot = new THREE.Group(), av = avatar3d(s.color, s.av, { pose: 'stand' });
-      av.scale.setScalar(AV); av.position.y = .76 * AV - .85; pivot.position.y = .85; pivot.add(av); root.add(pivot);
+      av.position.y = .76 - .85; /* full size (animateAvatar owns the avatar's scale), feet on the platform */ pivot.position.y = .85; pivot.add(av); root.add(pivot);
       const sh = new THREE.Mesh(shadowGeo, shadowMat); sh.position.y = .03; sh.renderOrder = 1; root.add(sh);
       root.position.z = (i % 3 - 1) * .28; // a little apart in depth, so a crowd on one ledge can be told apart
       world.add(root);

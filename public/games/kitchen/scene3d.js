@@ -8,7 +8,7 @@ import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, nightScene } from '../../scenery3d.js';
 import { kitchen, CRATES, T } from './rules.js';
 
-const SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', AV = .4, TOP = .62, BASE = .12; // the kitchen floor sits BASE above the lawn
+const SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', AV = .5, TOP = .62, BASE = .12; // the kitchen floor sits BASE above the lawn
 const FOOD = { tomato: '#e5543b', lettuce: '#7ccc5c', mushroom: '#d9b48a', bun: '#e8a95b', patty: '#f08f9a', cooked: '#8a4b2a', burnt: '#2e2320' };
 const SOUP = { tomato: '#e8603f', mushroom: '#b9a3ea', burnt: '#3a2a22' };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -170,7 +170,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
     if (key === avKey) return; avKey = key;
     for (const p of people) { scene.remove(p.g); disposeAvatar(p.av); if (p.held) p.hand.remove(p.held); }
     people = list.map((s, i) => {
-      const g = new THREE.Group(), av = avatar3d(s.color, s.av, { pose: 'stand' }); av.scale.setScalar(AV); g.add(av);
+      const g = new THREE.Group(), av = avatar3d(s.color, s.av, { pose: 'stand' }); const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.position.y = .76 * AV; wrap.add(av); g.add(wrap); /* sized by a wrapper (animateAvatar owns the avatar's own scale), feet on the floor */
       const hand = new THREE.Group(); hand.position.set(0, TOP - .04, .5); hand.scale.setScalar(1.35); g.add(hand);
       const old = people[i];
       if (old) g.position.copy(old.g.position); else if (S?.pl[i]) W(S.pl[i].x, S.pl[i].z, 0, g.position);
@@ -295,7 +295,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
       W(c + .5, r + .5, (K.t[r][c] === 'X' ? .68 : TOP) + .015, ring.position); ring.visible = true;
       const s = 1 + Math.sin(T0 * 6) * .03; ring.scale.set(s, 1, s);
     } else ring.visible = false;
-    if (me >= 0 && people[me]) { arrow.visible = S?.ph === 'play'; arrow.position.copy(people[me].g.position); arrow.position.y += 2.7 * AV + .35; animateArrow(arrow, T0); } else arrow.visible = false;
+    if (me >= 0 && people[me]) { arrow.visible = S?.ph === 'play'; arrow.position.copy(people[me].g.position); arrow.position.y += 2.9 * AV + .45; animateArrow(arrow, T0); } else arrow.visible = false;
     // steam from cooking pots
     if (!reduced && S && Math.random() < dt * 6) for (const [key, m] of pots) { const p = S.cells[key]?.pot; if (p?.n === 3 && p.cook < T.soupBurn && Math.random() < .5) fx.puff(m.position, { n: 2, color: '#ffffff', size: .22, speed: .25, life: .9 }); }
     cloudRing.rotation.y += dt * .006; flyBirds(T0); blow(T0);
@@ -305,7 +305,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
     renderer.render(scene, camera);
     // screen spots for name tags and progress bars
     people.forEach((p, i) => {
-      proj.copy(p.g.position); proj.y += 2.7 * AV; proj.project(camera);
+      proj.copy(p.g.position); proj.y += 2.9 * AV; proj.project(camera);
       const t = p.tag; t.show = proj.z < 1; t.x = (proj.x + 1) / 2 * Wd; t.y = (1 - proj.y) / 2 * Hd; info.tags[i] = t;
     });
     info.tags.length = people.length;

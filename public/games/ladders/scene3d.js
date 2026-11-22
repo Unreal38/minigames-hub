@@ -243,7 +243,7 @@ export function createScene(canvas, { onFrame, onCue }) {
         const puck = new THREE.Mesh(new THREE.CylinderGeometry(.34, .38, .14, 28), toonMat(M(p.color, { roughness: .5 }))); puck.position.y = .07; puck.castShadow = true;
         const edge = new THREE.Mesh(new THREE.CylinderGeometry(.375, .415, .17, 28), new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.BackSide })); puck.add(edge);
         const ring = new THREE.Mesh(new THREE.TorusGeometry(.34, .035, 8, 28), M('#fff4e2')); ring.rotation.x = Math.PI / 2; ring.position.y = .14;
-        const av = avatar3d(p.color, p.av); av.scale.setScalar(TOKEN); av.position.y = .14 + .76 * TOKEN;
+        const av = avatar3d(p.color, p.av); av.scale.setScalar(TOKEN); av.position.y = .14 + (.76 + .17) * TOKEN; /* seated: the shoes hang .17 below the seat, so sit that much higher and they rest on the token */
         const wrap = new THREE.Group(); wrap.add(av); g.add(puck, ring, wrap); scene.add(g);
         return { g, puck, ring, av, wrap, pos: new THREE.Vector3(), cur: new THREE.Vector3(), init: false, hop: 0, spin: 0, tag: { x: 0, y: 0, show: false } };
       });

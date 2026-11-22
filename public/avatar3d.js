@@ -7,6 +7,8 @@
 //                           userData = { head, eyes, body, arms, headY, headH } for animation and framing.
 //   animateAvatar(g, T, { seed, active, hop, look, nod })  idle sway, blinking, a little arm swing and a squashy hop;
 //                           look turns the head (radians), nod dips it (0..1).
+//                           It sets g.scale every frame (the squash), so size an avatar with a wrapper group, never g.scale,
+//                           and lift it by 0.76 x that size so the feet (or the seat) rest on the floor.
 //   walkAvatar(g, ph, amt) call after animateAvatar on a standing avatar: ph is the stride phase, amt 0..1 blends it in.
 //   disposeAvatar(g)     frees its textures, materials and merged geometry.
 //   bake(root)           merges a group's static meshes into a few (see below); any 3D game can use it on its props.
