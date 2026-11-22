@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -371,6 +371,23 @@ const st = {
   side: LS.get('ct_side', 'hubchat') === 'tables' ? 'tables' : 'hubchat', tPage: 0, // the hub's left column: chat or open tables
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
+// Solo games with no table: they open straight from the hub (like Pet Farm) and keep their progress on the account.
+const SOLO = {
+  hay: {
+    name: 'Hay Hunch',
+    rules: `<ol>
+      <li>Your field has <b>25 hay bales</b>. Under each one is a carrot bundle worth <b>×1, ×2 or ×3</b>, or a <b>napping pet</b>.</li>
+      <li>The sign at the end of every row and column shows how many <b>carrots</b> it holds in total, and how many <b>pets</b> nap in it.</li>
+      <li>Flip a bale to look underneath. Your <b>harvest</b> is multiplied by the carrots you find, so a ×2 and a ×3 make ×6.</li>
+      <li>Find <b>every ×2 and ×3</b> to clear the field. You go up a level (there are 7), and the fields get more pets and bigger bundles.</li>
+      <li>Wake a napping pet and the harvest scatters, and you go <b>down a level</b>.</li>
+      <li>Not sure? <b>Take the harvest</b> home instead. It counts for the rankings and you stay on your level.</li>
+      <li>Use <b>Mark</b> (or right-click) to note where you think pets nap, or what a bale might hold.</li>
+      <li>Clearing a field pays <b>level + 2 coins</b>, up to 40 coins a day. After that you can keep playing for your best field.</li>
+      <li>Keys: arrows to move, <b>Enter</b> to flip, <b>P</b> or <b>1</b>/<b>2</b>/<b>3</b> to mark, <b>B</b> to take the harvest.</li>
+    </ol>`,
+  },
+};
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
 let pendingJoin = (location.hash.slice(1) || '').toUpperCase();
 if (!validCode(pendingJoin)) pendingJoin = '';
@@ -433,7 +450,7 @@ function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
-    st.farm?.reopen(); // back after a dropped connection
+    st.farm?.reopen(); st.hay?.reopen(); // back after a dropped connection
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); }
   } else if (m.t === 'pets') {
     st.pets = m.pets || []; st.onMe?.();
@@ -456,7 +473,7 @@ function onMsg(m) {
       toast(`${m.gain.win ? 'Win! ' : pl > 1 && m.gain.of > 1 ? `${ord(pl)} place · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
-    if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
+    if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
@@ -468,6 +485,8 @@ function onMsg(m) {
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
+  } else if (m.t === 'hay') {
+    st.hay?.msg(m);
   } else if (m.t === 'rankings') {
     st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
   } else if (m.t === 'hubchat') {
@@ -481,10 +500,10 @@ function onMsg(m) {
     if (st.view === 'hub') renderTables();
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
-    if (m.room) closeFarm();
+    if (m.room) { closeFarm(); closeHay(); }
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm') go('hub'); return; }
+    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
@@ -559,6 +578,22 @@ function openFarm() {
 }
 function closeFarm() { st.farm?.destroy(); st.farm = null; }
 
+// Hay Hunch: the solo puzzle, also with no table.
+let hayLoading = null;
+function openHay() {
+  if (st.hay || hayLoading) return;
+  if (st.room) return toast('Leave this table first.', true);
+  st.view = 'hay'; document.title = `Hay Hunch · ${SITE}`;
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">Walking out to the hay field…</p></main>';
+  hayLoading = import('./games/hay/client.js').then(mod => {
+    hayLoading = null;
+    if (st.view !== 'hay') return;
+    st.hay = mod.mount($app, { send: a => send({ t: 'hay', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closeHay(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('hay') });
+    st.hay.reopen(); placeGameSwitch();
+  }).catch(err => { console.error(err); hayLoading = null; toast('Could not load Hay Hunch. Refresh?', true); go('hub'); });
+}
+function closeHay() { st.hay?.destroy(); st.hay = null; }
+
 // ---------- views ----------
 function go(view) {
   st.view = view;
@@ -575,8 +610,9 @@ const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
 function meCard() {
   const m = st.me; if (!m) return '';
   const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
-  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id]).map(([id, g]) =>
-    `<li><b>${GAMES[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'win' : 'wins'} in ${g.games} · best ${g.best} pts</span></li>`).join('');
+  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).map(([id, g]) => SOLO[id]
+    ? `<li><b>${SOLO[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'field' : 'fields'} cleared · best ×${g.best.toLocaleString()}</span></li>`
+    : `<li><b>${GAMES[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'win' : 'wins'} in ${g.games} · best ${g.best} pts</span></li>`).join('');
   return `<div class="mecard">
     <div class="rankrow">
       <span class="rankicon">${m.icon}</span>
@@ -812,6 +848,14 @@ function renderHub() {
           </div>
         </article>
         <article class="gcard">
+          <div class="pic haypic">${hayArt()}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between"><h3>Hay Hunch</h3><span class="tag">Solo puzzle</span></div>
+            <p>Flip hay bales for carrot bundles that multiply your harvest. Read the row and column signs to dodge the napping pets, and climb seven levels.</p>
+            <div class="row"><button type="button" class="btn" data-act="hay">Play</button></div>
+          </div>
+        </article>
+        <article class="gcard">
           <div class="pic farmpic">${farmArt()}</div>
           <div class="body">
             <div class="row" style="justify-content:space-between"><h3>Pet Farm</h3><span class="tag">Your own farm</span></div>
@@ -864,17 +908,19 @@ function renderHub() {
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
-const RK_TABS = [['overall', 'Overall'], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['farm', 'Pet Farm']];
+const RK_TABS = [['overall', 'Overall'], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', 'Hay Hunch'], ['farm', 'Pet Farm']];
 const RK_NOTE = {
   overall: 'Ranked by XP from every game. Wins earn the most.',
   marbles: 'Ranked by bets won, then by coins won overall.',
   farm: 'The Pet Farm ladder: points from Arena battles against other farms.',
+  hay: 'Ranked by the best harvest from one field, then by fields cleared.',
   default: 'Ranked by wins, then win rate.',
 };
 const plural = (n, one, many = one + 's') => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 function rkStat(game, r) {
   if (game === 'overall') return [`${r.xp.toLocaleString()} XP`, `${plural(r.wins, 'win')} · ${plural(r.games, 'game')}`];
   if (game === 'farm') return [plural(r.pts, 'pt'), `${plural(r.pets, 'pet')} · best Lv ${r.top}`];
+  if (game === 'hay') return [`×${r.best.toLocaleString()}`, `${plural(r.wins, 'field')} cleared · top level ${r.top || 1}`];
   if (game === 'marbles') return [plural(r.wins, 'bet') + ' won', `${plural(r.games, 'race')} · ${r.net >= 0 ? '+' : '−'}${Math.abs(r.net).toLocaleString()} coins`];
   return [plural(r.wins, 'win'), `${plural(r.games, 'game')} · ${r.rate}%${r.best ? ` · best ${r.best} pts` : ''}`];
 }
@@ -1497,9 +1543,9 @@ function openSecurity() {
 }
 
 export function openRules(game) {
-  const ids = GAMES[game] ? [game] : Object.keys(GAMES);
+  const info = id => GAMES[id] || SOLO[id], ids = info(game) ? [game] : [...Object.keys(GAMES), ...Object.keys(SOLO)];
   const { el, close } = modal(`
-    ${ids.map(id => `<h2>How to play ${GAMES[id].name}</h2><div class="rules">${GAMES[id].rules}</div>`).join('')}
+    ${ids.map(id => `<h2>How to play ${info(id).name}</h2><div class="rules">${info(id).rules}</div>`).join('')}
     <button type="button" class="btn big" data-close>Got it</button>`);
   el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); close(); });
 }
@@ -1531,6 +1577,7 @@ $app.addEventListener('click', e => {
   else if (act === 'theme') { switchTheme(b); sfx.click(); }
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
+  else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });

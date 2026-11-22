@@ -350,3 +350,23 @@ export function panArt() {
     <path d="M262 62l10-8M268 80h13M96 34l-5-10" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Hay Hunch card: rows of hay bales on a floating meadow, one tossed up showing carrots, a sign and a napping pet.
+export function hayArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const bale = (x, y, cls = '') => `<g class="${cls}"><rect x="${x}" y="${y}" width="40" height="26" rx="4" fill="#e8c25a" ${o}/><rect x="${x + 9}" y="${y}" width="5" height="26" fill="#a8742f"/><rect x="${x + 26}" y="${y}" width="5" height="26" fill="#a8742f"/><path d="M${x + 4} ${y + 8}h8M${x + 18} ${y + 15}h6M${x + 32} ${y + 9}h5" stroke="#f5dc85" stroke-width="2.5" stroke-linecap="round"/></g>`;
+  const carrot = (x, y, r) => `<g transform="rotate(${r} ${x} ${y})"><path d="M${x - 2} ${y - 13}l-4-7M${x + 2} ${y - 13}l4-7M${x} ${y - 13}v-8" stroke="#3f9a52" stroke-width="3" stroke-linecap="round"/><path d="M${x - 6} ${y - 12}q6-4 12 0l-5 20q-1 2-2 0z" fill="#ff8a3c" stroke="#3b2219" stroke-width="2.4" stroke-linejoin="round"/></g>`;
+  const bales = [];
+  for (const [y, xs] of [[66, [78, 124, 216]], [94, [64, 110, 156, 202]]]) for (const x of xs) bales.push(bale(x, y));
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Hay bales on a floating meadow, one tossed up over two carrots, a wooden sign and a napping pet">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="40" cy="16" r="1.6"/><circle cx="270" cy="12" r="1.3"/><circle cx="300" cy="52" r="1.5"/><circle cx="16" cy="60" r="1.2"/><circle cx="150" cy="10" r="1.1"/></g>
+    <path d="M22 36l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M248 24l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M30 118c40-16 220-16 260 0l-16 12c-40 10-188 10-228 0z" fill="#8bca60" ${o}/><path d="M46 130c40 10 188 10 228 0l-40 20h-148z" fill="#c98a5a" ${o}/>
+    <path d="M58 92h200l8 30H50z" fill="#d2a56c" ${o}/>
+    ${bales.join('')}
+    ${carrot(178, 82, -18)}${carrot(190, 84, 16)}
+    ${bale(162, 30, 'hbale')}
+    <g transform="translate(272 70)"><rect x="-3" y="10" width="6" height="40" fill="#8a5a3c" ${o}/><rect x="-20" y="-14" width="40" height="32" rx="6" fill="#fff4e2" ${o}/><rect x="-20" y="-14" width="40" height="8" rx="4" fill="#ffb547"/><text x="0" y="12" text-anchor="middle" font-family="Fredoka, system-ui, sans-serif" font-weight="700" font-size="17" fill="#3b2219">7</text></g>
+    <g transform="translate(36 98)"><ellipse cx="-7" cy="-12" rx="5" ry="8" fill="#c9b5f0" ${o}/><ellipse cx="7" cy="-12" rx="5" ry="8" fill="#c9b5f0" ${o}/><ellipse cx="0" cy="0" rx="17" ry="13" fill="#c9b5f0" ${o}/><path d="M-8 -1q3 3 6 0M2 -1q3 3 6 0" stroke="#3b2219" stroke-width="2.4" fill="none" stroke-linecap="round"/><text x="16" y="-18" font-family="Fredoka, system-ui, sans-serif" font-weight="700" font-size="15" fill="#7a4fc9" stroke="#fff4e2" stroke-width="3" paint-order="stroke">z z</text></g>
+  </svg>`;
+}

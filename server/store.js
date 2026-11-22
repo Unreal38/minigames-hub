@@ -375,9 +375,11 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
 // the same person before they logged in on that browser). Profile ids never leave the server.
 const TOP = 25;
 let board = null; // cached rows per game, thrown away whenever a game is credited
+export const invalidateBoards = () => { board = null; };
 const ORDER = {
   overall: (a, b) => b.xp - a.xp || b.wins - a.wins,
   marbles: (a, b) => b.wins - a.wins || b.net - a.net || a.games - b.games,
+  hay: (a, b) => b.best - a.best || b.wins - a.wins || b.pts - a.pts, // Hay Hunch is solo: best single field, then fields cleared
   default: (a, b) => b.wins - a.wins || b.rate - a.rate || b.best - a.best || a.games - b.games,
 };
 function boardRows(game) {
@@ -390,7 +392,7 @@ function boardRows(game) {
     const g = game === 'overall' ? { games: p.games || 0, wins: p.wins || 0, best: 0, pts: p.pts || 0 } : p.byGame?.[game];
     if (!g?.games) continue;
     rows.push({ pid: p.pid, name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0,
-      games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
+      games: g.games, wins: g.wins || 0, best: g.best || 0, pts: g.pts || 0, net: g.net || 0, top: g.top || 0, rate: Math.min(100, Math.round(100 * (g.wins || 0) / g.games)) });
   }
   rows.sort(ORDER[game] || ORDER.default);
   return board[game] = rows;
