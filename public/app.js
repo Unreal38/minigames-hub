@@ -208,7 +208,7 @@ const GAMES = {
       <li>The board has ten places along each side and eight streets of three shops, one per colour, and each pet matches the colour of its street. Own a <b>whole street</b> and its rent doubles, and you can build the <b>Pet Palace</b> for the biggest rent of all.</li>
       <li>Land on your own shop and your pet is happy to see you: <b>+10</b>.</li>
       <li><b>Zoomies!</b> tiles deal a silly card. <b>Vet Visit</b> costs 40, which goes in the <b>Lost &amp; Found</b> jar. Land on the jar's corner to take everything in it.</li>
-      <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. You still collect rent in the tub.</li>
+      <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. While you sit in the tub all your pets nap, so you collect no rent.</li>
       <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, upgrades and then shops are sold back at half price, and anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>

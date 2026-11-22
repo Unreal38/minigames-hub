@@ -52,7 +52,7 @@ const LAYOUT = ['start', 0, 'zoom', 1, 2, 3, 'vet', 4, 5, 'bowl',
   'mud', 18, 19, 'zoom', 20, 21, 'bowl', 22, 23, 'zoom'];
 const SPECIAL = {
   start: { name: 'Welcome Mat', blurb: `Collect ${PASS_GO} treats every time you pass.` },
-  bath: { name: 'Bath Time', blurb: `Stuck in the tub: roll doubles to hop out, or pay ${BATH_FEE} treats.` },
+  bath: { name: 'Bath Time', blurb: `Stuck in the tub: roll doubles to hop out, or pay ${BATH_FEE} treats. Your pets nap (no rent) while you soak.` },
   lost: { name: 'Lost & Found', blurb: 'Grab every treat that was dropped in the jar.' },
   mud: { name: 'Muddy Puddle', blurb: 'Splash! Straight off to Bath Time.' },
   zoom: { name: 'Zoomies!', blurb: 'Draw a Zoomies card.' },

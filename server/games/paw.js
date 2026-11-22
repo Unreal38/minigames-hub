@@ -90,6 +90,9 @@ function pay(G, from, to, amt) {
 }
 const gain = (G, s, amt) => { G.seats[s].cash += amt; };
 
+// A pet charges no rent while it naps, and every pet naps while its owner is stuck in the tub.
+export const asleep = (G, i) => G.own[i] >= 0 && (G.nap[i] || G.seats[G.own[i]].inBath);
+
 // ---------- moving ----------
 // Walk seat s by steps (negative = backwards). Passing or landing on the Welcome Mat going forwards pays PASS_GO.
 function walk(G, s, steps, now, delay = 0) {
@@ -143,7 +146,7 @@ function land(G, s, now) {
       if (seat.cash >= t.price) { G.stage = 'buy'; G.offer = i; G.stageEnd = waitFor(G, now, MS.botBuy); return; }
       pushEv(G, { t: 'poor', s, i });
     } else if (o === s) { gain(G, s, RUB); pushEv(G, { t: 'rub', s, i, amt: RUB }); }
-    else if (G.nap[i]) pushEv(G, { t: 'tiptoe', s, i, o });
+    else if (asleep(G, i)) pushEv(G, { t: 'tiptoe', s, i, o });
     else if (seat.eyes) { seat.eyes = false; pushEv(G, { t: 'eyes', s, i, o }); }
     else { const amt = rentOf(i, G.own, G.lv), paid = pay(G, s, o, amt); seat.st.rent += paid; pushEv(G, { t: 'rent', s, i, o, amt: paid }); }
     return pause(G, now);
@@ -356,7 +359,7 @@ export function view(G, s) {
     left: G.stageEnd ? Math.max(0, G.stageEnd - now) : -1, timer: G.opts.timer, naps: G.opts.naps === 'on',
     seats: G.seats.map((x, i) => ({ name: x.name, color: x.color, col: x.col, av: x.av, bot: x.bot, human: x.human, id: x.id,
       pos: x.pos, cash: x.cash, inBath: x.inBath, tries: x.tries, duck: x.duck, eyes: x.eyes, worth: worth(G, i), st: x.st, mv: ago(x.mv) })),
-    own: G.own, lv: G.lv, nap: G.nap, jar: G.jar, offer: G.offer, dbl: G.dbl,
+    own: G.own, lv: G.lv, nap: G.nap.map((_, i) => asleep(G, i)), jar: G.jar, offer: G.offer, dbl: G.dbl,
     can: s === G.turn && G.ph === 'play' && (G.stage === 'roll' || G.stage === 'done') ? buildable(G, s) : [],
     roll: ago(G.roll), card: ago(G.card), res: G.res, win: G.win, ev: G.ev,
   };
