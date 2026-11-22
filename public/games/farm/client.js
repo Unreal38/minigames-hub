@@ -5,7 +5,7 @@
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, CATS, catCoat } from './breed.js';
-import { MAT_INFO, ITEMS, MATS, SPECIES, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
+import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, formOf, xpFor, tripLoot, canAfford, countOf, costText } from './data.js';
 import { matIcon } from './icons.js';
 import { WEATHER, weatherAt } from './data.js';
 
@@ -346,6 +346,7 @@ export function mount(app, ctx) {
         box.innerHTML = `<div class="panel tripp"><h2>${d.name}</h2>
           <div class="leafpage${seen ? ' seen' : ''}">${pic ? `<img class="formpic" src="${pic}" alt="${d.name}, ${FORMS[fm].toLowerCase()}" width="96" height="96">` : thumb('pet:' + sp, d.name)}<div><p>${elTag(d.el)}${d.el2 ? elTag(d.el2) : ''} ${RARITY[d.rare] || ''} · ${ROLE_NAME[k.role] || ''}</p><p class="hint">${d.blurb}</p></div></div>
           ${seen ? `<p><b>Seen, not raised yet.</b> You met one at a neighbour's farm or in a battle. ${zoneOf(sp) ? 'Send a party to its home to find your own.' : d.hint || ''}</p>` : ''}
+          ${familyOf(sp) ? `<p><b>Family:</b> ${FAMILIES[familyOf(sp)][0]}. ${FAMILIES[familyOf(sp)][1].filter(x => x !== sp).map(x => own(x) || F.album[x] ? SPECIES[x].name : '?').join(', ')} ${FAMILIES[familyOf(sp)][1].length > 2 ? 'are' : 'is'} kin.</p>` : ''}
           <p><b>Lives in</b> ${zoneOf(sp) || 'no wild place: it only hatches from eggs'}. <b>On your farm:</b> ${mine.length ? mine.map(x => `${esc(x.name)} (level ${x.lv})`).join(', ') : 'none right now'}.</p>
           <div class="formrow">${FORMS.map((f, i) => a[i] ? `<button type="button" class="chip got${i === fm ? ' on' : ''}" data-a="leafform" data-form="${i}" aria-pressed="${i === fm}" title="Show the ${f.toLowerCase()} form">${f} ✓</button>` : `<span class="chip not" title="Not raised yet">${f}</span>`).join('')}</div>
           ${a.filter(Boolean).length > 1 ? '<p class="hint">Tap a stage to see how it looks.</p>' : ''}
@@ -403,7 +404,7 @@ export function mount(app, ctx) {
       }).join('');
       const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
       const pets = F.pets.map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
-        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? ' · training (ends if sent)' : SPECIES[p.sp].el === z.el ? ' · +25% here' : '')}</button>`).join('');
+        ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? ' · training (ends if sent)' : atHome(z, p.sp) ? ' · +25% here' : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
       const full = F.pets.length >= F.room;
       box.innerHTML = `<div class="panel tripp"><h2>Send pets exploring</h2>

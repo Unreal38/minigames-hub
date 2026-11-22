@@ -156,11 +156,16 @@ export const FEAT = {
     if (F === 2) Oc(t, .07, GL('#ffd65a', .7), [0, .13, r * 1.02], [1, 1, .4]);
   } },
   fluffcoon: { slot: 'tail', name: 'a bushy tail', b(g, F, K) { const d = mix(K.a, '#4a342c', .45); catTail(g, F, [K.a, d, K.a, d, K.a, d, K.b], 1.9); } },
-  munchmew: { slot: 'back', name: 'pink icing', b(g, F) {
+  glazemew: { slot: 'back', name: 'pink icing', b(g, F) {
     const w = [.36, .42, .48][F], L = [.4, .62, .82][F], c = '#ff9ec4', sp = ['#ffffff', '#ffd23e', '#7cc4ee', '#8fe0a0', '#ff6b6b'];
     Sp(g, 1, c, [0, -.06, 0], [w, .14, L]);
     if (F) for (let i = 0; i < 4 + F * 3; i++) { const a = i * 2.4, r = .25 + (i % 3) * .28; Bx(g, [.04, .035, .13], sp[i % 5], [Math.sin(a) * r * w, .07, Math.cos(a) * r * L], [0, a * 1.7, 0]); }
     if (F === 2) for (const [x, z] of [[-1, .3], [1, -.2], [-1, -.5], [1, .5]]) Sp(g, .09, c, [x * w * .92, -.14, z * L], [1, 1.6, 1], 1);
+  } },
+  munchmew: { slot: 'top', name: 'a ribbon bow', b(g, F) {
+    const k = [.7, .95, 1.15][F], c = '#ff8fb0', t = Grp(g, [0, -.04, .04], [.25, 0, 0], k);
+    for (const s of [-1, 1]) { Co(t, [.17, .34, 4], c, [s * .19, .1, 0], [0, 0, s * PI / 2], [1, 1, .5]); if (F) Bx(t, [.09, .26, .04], c, [s * .09, -.08, .06], [0, 0, s * .35]); }
+    Gm(t, .09, '#e0668c', [0, .1, .02]);
   } },
   rocktopus: { slot: 'top', name: 'a pebble stack', b(g, F) {
     const c = ['#9a9088', '#b9b2a8', '#8a8794'];
@@ -379,6 +384,16 @@ function cat(g, F, K, X, { ear = K.a, inner = '#f59ab0', paws = K.b, chest = K.b
   A.top = [0, h.p[1] + h.r * .84, h.p[2]]; A.tail = [.2, .25, b.p[2] - b.r[2] * .9]; A.back = [0, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .6];
   return A;
 }
+// A munchkin cat's build: a long body on very short legs. Munchmew wears a bow on it, Glazemew pink icing.
+function munchkin(g, F, K, X) {
+  const C = CATCOAT[X.coat], o = C.o(K), ear = o.ear || K.a;
+  const A = walker(g, F, K, X, { w: [.46, .46, .5][F], L: [.5, .78, 1.02][F], leg: [.05, .08, .1][F], hr: [.66, .6, .62][F], legC: o.paws || K.b, lw: .24 }), h = A.head;
+  A.long = true;
+  for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], Array.isArray(ear) ? ear[s < 0 ? 0 : 1] : ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); Bx(g, [.34, .02, .02], o.whisk || mix(K.a, '#5a4a3a', .7), [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
+  C.m(g, A, F, K);
+  if (X.own('tail')) catTail(Grp(g, [0, A.tail[1] - .1, A.tail[2] + .1]), F, C.t(K));
+  return A;
+}
 // Cat coats: o(K) gives the colours a build needs, m() paints the markings on whatever build wears it, t(K) colours the tail.
 const catMuzzle = (g, h, c) => Sp(g, h.r * .34, c, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
 const catBrow = (g, h, c) => { for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], c, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]); };
@@ -405,6 +420,7 @@ const CATCOAT = {
     m(g, A, F, K) { catMuzzle(g, A.head, K.b); catBrow(g, A.head, mix(K.a, '#4a342c', .45)); } },
   munchmew: { o: () => ({}), t: K => [K.a, K.a, K.a, K.b], m(g, A, F, K) { catMuzzle(g, A.head, K.b); } },
 };
+CATCOAT.glazemew = CATCOAT.munchmew;
 export const isCat = sp => !!CATCOAT[sp];
 const BODY = {
   acornip(g, F, K, X) { // starts as an acorn with a face, then a squirrel whose tail outgrows the rest of it
@@ -1231,16 +1247,8 @@ const BODY = {
     if (X.own('tail')) catTail(Grp(g, A.tail), F, C.t(K), 1.9);
     return A;
   },
-  munchmew(g, F, K, X) { // a munchkin cat's build: a long body on very short legs, iced like the little donut it is named after
-    const C = CATCOAT[X.coat], o = C.o(K), ear = o.ear || K.a;
-    const A = walker(g, F, K, X, { w: [.46, .46, .5][F], L: [.5, .78, 1.02][F], leg: [.05, .08, .1][F], hr: [.66, .6, .62][F], legC: o.paws || K.b, lw: .24 }), h = A.head;
-    A.long = true;
-    for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], Array.isArray(ear) ? ear[s < 0 ? 0 : 1] : ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); Bx(g, [.34, .02, .02], o.whisk || mix(K.a, '#5a4a3a', .7), [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
-    C.m(g, A, F, K);
-    if (X.own('tail')) catTail(Grp(g, [0, A.tail[1] - .1, A.tail[2] + .1]), F, C.t(K));
-    if (X.own('back')) X.sig(A.back);
-    return A;
-  },
+  munchmew(g, F, K, X) { const A = munchkin(g, F, K, X); if (X.own('top')) X.sig(A.top); return A; },
+  glazemew(g, F, K, X) { const A = munchkin(g, F, K, X); if (X.own('back')) X.sig(A.back); return A; }, // the bakery's munchkin, iced like a donut
   zapkit(g, F, K, X) { // a kitten: baby is all head, then it sits up tall with a zigzag tail
     const dark = mix(K.a, '#5a4a3a', .7);
     const A = F === 0 ? { head: { p: [0, .78, .05], r: .74 }, body: { p: [0, .4, -.2], r: [.45, .36, .5] } }
