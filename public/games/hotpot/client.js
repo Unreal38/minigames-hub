@@ -6,7 +6,7 @@ import { sfx } from '../../sfx.js';
 import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -249,7 +249,7 @@ export function mount(app, ctx) {
         ${avatarHtml(p.color, p.av, 48)}
         <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
         <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : '<em>no sets</em>'}</div></div>
-        <strong>${r.pts}<small>${r.bonus ? ` incl. +${r.bonus}` : ''}</small></strong></li>`).join('')}</ol>
+        <strong>${r.pts}<small>${r.bonus ? ` incl. +${r.bonus}` : ''}</small></strong>${paidHtml(R, i)}</li>`).join('')}</ol>
       <div class="againbox">${againHtml(ctx, R, 'Play again')}</div></div>`;
     el.hidden = false; votes = (R?.again || []).length;
   }
@@ -257,6 +257,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), R);
     const n = (R?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, R, 'Play again');

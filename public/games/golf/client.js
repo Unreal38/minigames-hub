@@ -1,7 +1,7 @@
 // Mini Golf Party game view: HUD over the 3D hole. Renders what the server says; sends putts and bets.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
 
@@ -238,17 +238,18 @@ export function mount(app, ctx) {
     el.innerHTML = `<div class="sheet">
       <h2>${I.flag}${w === S.me ? 'You win' : `${nameOf(w)} wins`} the round!</h2>
       <p>${S.holes} holes, par ${R.par}. Fewest strokes wins. ${line}</p>
-      <div class="cardwrap"><table class="mg-card"><thead><tr><th>Hole</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>Total</th></tr>
-        <tr class="par"><th>Par</th>${S.pars.map(p => `<td>${p}</td>`).join('')}<td>${R.par}</td></tr></thead>
+      <div class="cardwrap"><table class="mg-card"><thead><tr><th>Hole</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>Total</th><th>Coins</th></tr>
+        <tr class="par"><th>Par</th>${S.pars.map(p => `<td>${p}</td>`).join('')}<td>${R.par}</td><td></td></tr></thead>
         <tbody>${R.order.map((i, n) => { const p = S.seats[i];
           return `<tr class="${i === S.me ? 'mg-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b></span></th>
-            ${p.card.map((sc, h) => `<td class="${sc < S.pars[h] ? 'under' : sc > S.pars[h] ? 'over' : ''}">${sc}</td>`).join('')}<td><strong>${R.totals[i]}</strong><small>${vsPar(R.totals[i] - R.par)}</small></td></tr>`; }).join('')}</tbody></table></div>
+            ${p.card.map((sc, h) => `<td class="${sc < S.pars[h] ? 'under' : sc > S.pars[h] ? 'over' : ''}">${sc}</td>`).join('')}<td><strong>${R.totals[i]}</strong><small>${vsPar(R.totals[i] - R.par)}</small></td><td class="mg-paid">${paidHtml(Rm, i)}</td></tr>`; }).join('')}</tbody></table></div>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');

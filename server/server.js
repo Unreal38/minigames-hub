@@ -104,7 +104,7 @@ function roomInfo(r) {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pt: store.tagOf(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
-    board: boardOf(r), played: r.played || 0,
+    board: boardOf(r), played: r.played || 0, paid: r.G?.ph === 'end' && r.G.scored ? r.paid || null : null,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
 }
@@ -133,6 +133,9 @@ function scoreGame(r) {
   const raw = mod.results?.(G); if (!raw) return;
   const res = withPlaces(raw), of = fieldOf(raw); // coins are paid by final place, the same scale for every game
   r.played = (r.played || 0) + 1; r.board ||= {};
+  // What each seat was paid, for the coins column on every results screen: coins for people, 'b' for bots
+  // (they have no account), null for someone who left before the end.
+  r.paid = G.seats.map(seat => (seat.human && seat.id ? null : 'b'));
   G.seats.forEach((seat, i) => {
     if (!seat.human || !seat.id) return;
     const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
@@ -142,6 +145,7 @@ function scoreGame(r) {
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
     const gain = store.credit(p, r.game, { ...res[i], of });
+    r.paid[i] = gain.coins;
     send(c, { t: 'me', me: store.me(p), gain });
   });
   // The winner's win effect plays on every screen at the table (the first human winner with one on).
