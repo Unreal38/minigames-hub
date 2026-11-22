@@ -1,6 +1,6 @@
 // Pet Farm breeding: what a baby inherits from its two parents. Shared by the server (which rolls the dice) and
 // the browser (which shows the odds and draws the looks). Nothing here touches the network or the save file.
-import { SPECIES } from './data.js';
+import { SPECIES, familyOf, kin } from './data.js';
 import { KIT } from './battle.js';
 
 // Natural coats: main colour and second colour (belly, wool tips, flippers).
@@ -33,10 +33,12 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
   acornip: 'an acorn cap', lanternail: 'a lantern shell', ripplet: 'a wave curl', wattbat: 'bolt ears', rubblet: 'a gem crown',
   bambear: 'a bamboo shoot', sizzlet: 'dragon wings', waddlet: 'a seashell hat', oinkwatt: 'a curly spark tail', tricerock: 'a stone frill',
   strawbun: 'a strawberry top', chilipup: 'a chili stem', melonwhale: 'a melon slice', lemonzest: 'a peel curl', coconutkin: 'a palm sprout', pinepine: 'a pineapple crown', croissab: 'a croissant', donuseal: 'a little donut', cupcowl: 'a frosting swirl', pretzelisk: 'a pretzel bow', mallowlamb: 'a toasted marshmallow', candraffe: 'candy cane horns', jellifrog: 'a wobbly jelly', carrofox: 'a carrot tail', pumpkit: 'a pumpkin stem', peapillar: 'a pea pod', shroomouse: 'a spotted cap', snowfox: 'a snowy tail', sunlion: 'a crown of sun rays', dripfrog: 'a leaf umbrella', twistret: 'a little whirlwind', moonbun: 'a slice of moon', starjelly: 'a lucky star', cometail: 'a comet tail', ringbear: 'a planet ring' };
-// The cat family: these species share one body, so a kitten of two of them takes its build (species) from one parent
-// and its coat from either. p.cat is the species whose coat a cat wears, when it is not its own.
+// Families (data.js): a baby of two pets from one family takes its build (species) from one parent and its coat from
+// either. p.cat is the species whose coat a pet wears, when it is not its own (the name is from the cats, who came first).
+// The cats' coats have their own names and markings; every other family swaps its colours.
 export const CATS = { siamew: 'Siamese points', gingersnap: 'Tabby stripes', patchkit: 'Calico patches', tuxpurr: 'Tuxedo', fluffcoon: 'Maine Coon brown', munchmew: 'Golden cream', glazemew: 'Golden cream' };
-export const catCoat = p => CATS[p.sp] ? (CATS[p.cat] ? p.cat : p.sp) : null;
+export const kinCoat = p => familyOf(p.sp) ? (p.cat && kin(p.cat, p.sp) ? p.cat : p.sp) : null;
+export const coatName = sp => CATS[sp] ? `a ${CATS[sp].toLowerCase()} coat` : `${SPECIES[sp].name} colours`;
 export const TALENTS = [
   { name: 'Early Bird', blurb: 'Always moves first on the first turn of a battle.' },
   { name: 'Forager', blurb: 'Its party brings back 10% more from expeditions.' },
@@ -57,13 +59,13 @@ export function mixHex(a, b, t = .5) {
 }
 const pats = p => Array.isArray(p.pat) ? p.pat.filter(k => PATTERNS[k]) : [];
 // The colour a pet's coat shows, as a hex. Natural means its species' own colour.
-export const coatHex = (p, sp = p.sp) => p.blend || COATS[p.col?.[0] || 0]?.c || COAT[sp === p.sp && catCoat(p) || sp][0];
+export const coatHex = (p, sp = p.sp) => p.blend || COATS[p.col?.[0] || 0]?.c || COAT[sp === p.sp && kinCoat(p) || sp][0];
 // What the 3D model needs to draw this pet.
 export function lookOf(p) {
   const l = {};
   if (p.blend) l.coat = p.blend; else if (p.col?.[0]) l.coat = COATS[p.col[0]].c;
   if (p.two != null) l.coat2 = p.two ? COATS[p.two].c : COAT[p.sp][0];
-  if (catCoat(p) && catCoat(p) !== p.sp) l.cat = p.cat;
+  if (kinCoat(p) && kinCoat(p) !== p.sp) l.cat = p.cat;
   if (pats(p).length) l.pat = pats(p);
   if (p.feat && p.feat !== p.sp) l.feat = p.feat;
   if (p.sparkle) l.spark = 1;
@@ -74,7 +76,7 @@ export const snapshot = (p, owner) => ({ name: p.name, sp: p.sp, lv: p.lv, look:
 
 const els = sp => [SPECIES[sp].el, SPECIES[sp].el2].filter(Boolean);
 export function hybridOf(a, b) {
-  if (a === b || CATS[a] && CATS[b]) return null; // two cats always have a cat
+  if (a === b || kin(a, b)) return null; // two of a family always have one of their own
   for (const x of els(a)) for (const y of els(b)) { const h = RECIPE[[x, y].sort().join('+')]; if (h && h !== a && h !== b) return h; }
   return null;
 }
@@ -95,7 +97,7 @@ export function makeBaby(a, b, rnd = Math.random) {
   for (const o of speciesOdds(a.sp, b.sp)) { if (r < o.p) { sp = o.sp; break; } r -= o.p; }
   const other = sp === a.sp ? b : sp === b.sp ? a : pick([a, b]);
   const kid = { sp, lv: 1, xp: 0 };
-  if (CATS[sp] && catCoat(a) && catCoat(b)) { const c = pick([catCoat(a), catCoat(b)]); if (c !== sp) kid.cat = c; } // two cats: the coat can come from either side
+  if (kin(a.sp, b.sp)) { const c = pick([kinCoat(a), kinCoat(b)]); if (c !== sp) kid.cat = c; } // one family: the coat can come from either side
   kid.col = [pick(a.col || [0, 0]), pick(b.col || [0, 0])].sort((x, y) => x - y);
   // a soft blend of both coats, or two tones, when the parents show different colours
   const ca = coatHex(a, sp), cb = coatHex(b, sp);

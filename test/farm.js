@@ -38,11 +38,17 @@ function player(name, token) {
 }
 
 // cats: a kitten of two cat species takes its build from one and its coat from either; other pets never get a cat coat
-{ const { makeBaby, lookOf, catCoat } = await import('../public/games/farm/breed.js'); const seen = new Set();
+{ const { makeBaby, lookOf, kinCoat: catCoat, hybridOf } = await import('../public/games/farm/breed.js'); const seen = new Set();
   for (let i = 0; i < 300; i++) { const k = makeBaby({ sp: 'munchmew' }, { sp: 'siamew' }); if (!['munchmew', 'siamew'].includes(k.sp)) fail('odd kitten ' + k.sp); if (k.cat === k.sp) fail('bad cat coat ' + JSON.stringify(k)); seen.add(k.sp + ':' + catCoat(k)); if (k.cat && lookOf(k)?.cat !== k.cat) fail('cat coat not drawn'); }
   for (const want of ['munchmew:siamew', 'munchmew:munchmew', 'siamew:munchmew', 'siamew:siamew']) if (!seen.has(want)) fail('never hatched ' + want);
   const g = makeBaby({ sp: 'gingersnap', cat: 'tuxpurr' }, { sp: 'gingersnap', cat: 'tuxpurr' }); if (g.sp !== 'gingersnap' || g.cat !== 'tuxpurr') fail('a coat should pass down ' + JSON.stringify(g));
-  for (let i = 0; i < 50; i++) if (makeBaby({ sp: 'mossbun' }, { sp: 'siamew' }).cat) fail('a bunny parent gave a cat coat'); }
+  for (let i = 0; i < 50; i++) if (makeBaby({ sp: 'mossbun' }, { sp: 'siamew' }).cat) fail('a bunny parent gave a cat coat');
+  // every family works the same way: build from one parent, colours from either, and never a hybrid
+  const bun = new Set(); for (let i = 0; i < 300; i++) { const k = makeBaby({ sp: 'mossbun' }, { sp: 'moonbun' }); if (!['mossbun', 'moonbun'].includes(k.sp) || k.cat === k.sp) fail('odd bunny ' + JSON.stringify(k)); bun.add(k.sp + ':' + catCoat(k)); if (k.cat && lookOf(k)?.cat !== k.cat) fail('bunny coat not drawn'); }
+  if (bun.size !== 4) fail('bunnies should mix both ways: ' + [...bun]);
+  if (hybridOf('cindercub', 'snowfox') || hybridOf('zapkit', 'siamew')) fail('kin made a hybrid');
+  if (!hybridOf('cindercub', 'pebblet')) fail('hybrids are gone');
+  if (lookOf({ sp: 'mossbun', cat: 'cindercub' })?.cat) fail('a coat from outside the family was drawn'); }
 
 await boot();
 const a = player('Ana'); await a.ready;

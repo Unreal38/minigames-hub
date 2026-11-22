@@ -1386,8 +1386,9 @@ function markings(g, A, pats, K) {
 const SCALE = [.62, .8, 1];
 export function petModel(sp, form = 0, look = null) {
   if (!BODY[sp]) sp = 'mossbun';
-  const coat = CATCOAT[sp] && CATCOAT[look?.cat] ? look.cat : sp; // a cat can wear another cat's coat
-  const g = new THREE.Group(), F = Math.max(0, Math.min(2, form | 0)), K = coatOf(coat, look), eyes = [];
+  const kc = look?.cat && COAT[look.cat] ? look.cat : sp; // a pet can wear the colours of another species in its family
+  const coat = CATCOAT[sp] && !CATCOAT[kc] ? sp : kc; // cats also swap markings, when the other cat has its own
+  const g = new THREE.Group(), F = Math.max(0, Math.min(2, form | 0)), K = coatOf(kc, look), eyes = [];
   const borrowed = look?.feat && look.feat !== sp && FEAT[look.feat] ? look.feat : null;
   const X = { eyes, coat, own: slot => !borrowed || FEAT[borrowed].slot !== slot, sig: (pos, k = 1) => FEAT[sp].b(Grp(g, pos, null, k), F, K) };
   const A = BODY[sp](g, F, K, X);
