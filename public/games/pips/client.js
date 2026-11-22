@@ -1,0 +1,366 @@
+// Pip Party game view: HUD over the 3D table. Shows everyone's score sheet, your five dice (tap to keep), the roll
+// button and the boxes you can write your roll into. The server owns the dice; this only sends roll, hold and pick.
+import { sfx } from '../../sfx.js';
+import { avatarHtml } from '../../avatar.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
+import { reactHtml } from '../../react.js';
+import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { BOXES, UPPER, LOWER, LABEL, SHORT, HINT, ROLLS, UPPER_NEED, UPPER_BONUS, score, genBonus, upperSum, lowerSum, bonusOf, isGen } from './rules.js';
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const I = {
+  sound: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  mute: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
+  door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
+  sheet: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+};
+const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
+const PIP = [[], [[12, 12]], [[7.2, 7.2], [16.8, 16.8]], [[7, 7], [12, 12], [17, 17]], [[7.2, 7.2], [16.8, 7.2], [7.2, 16.8], [16.8, 16.8]],
+  [[7, 7], [17, 7], [12, 12], [7, 17], [17, 17]], [[7.4, 6.4], [16.6, 6.4], [7.4, 12], [16.6, 12], [7.4, 17.6], [16.6, 17.6]]];
+export const dieSvg = (v, cls = '') => `<svg class="pp-die${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="5.5"/>${
+  v ? PIP[v].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${v === 1 ? 3.5 : 2.35}"${v === 1 ? ' class="one"' : ''}/>`).join('') : '<path d="M9.4 9.3a2.7 2.7 0 1 1 3.9 2.4c-.9.5-1.3 1-1.3 2M12 16.9v.2"/>'}</svg>`;
+const WIDE = 1100; // from this width the score sheet sits beside the table and you pick boxes on it
+
+let cssLoaded = false;
+function loadCss() {
+  if (cssLoaded) return; cssLoaded = true;
+  const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = new URL('./pips.css', import.meta.url).href;
+  document.head.append(l);
+}
+
+export function mount(app, ctx) {
+  loadCss();
+  document.body.classList.add('in-game');
+  app.innerHTML = `<div class="pp">
+    <canvas class="g3d" aria-hidden="true"></canvas>
+    <div class="tags" aria-hidden="true"></div>
+    <div class="hud">
+      <div class="tl"><span class="chip" id="pp-info"></span></div>
+      <div class="tr"><span class="tcode" id="pp-code"></span>
+        <button type="button" class="round pp-sheetbtn" data-a="sheet" aria-label="Score sheet">${I.sheet}</button>
+        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+      <div class="banner" id="pp-banner" aria-live="polite"></div>
+      <div class="shout" id="pp-big" aria-live="assertive"></div>
+      <aside class="pp-side" id="pp-side"><div class="pp-sheet" id="pp-sheet"></div></aside>
+      <div class="pp-dock" id="pp-dock"><div class="pp-roll" id="pp-roll"></div><div class="pp-ctl" id="pp-ctl"></div></div>
+    </div>
+    <canvas class="confetti" aria-hidden="true"></canvas>
+    <div class="results" hidden></div>
+  </div>`;
+  const root = app.querySelector('.pp'), $ = id => root.querySelector('#' + id);
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
+  let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sent = 0;
+  let rollUntil = 0, rollTimer = 0, armed = '', sheetOpen = false;
+
+  import('./scene3d.js').then(m => {
+    if (destroyed) return;
+    scene = m.createScene(canvas, { onFrame, onPick: k => hold(k) });
+    if (S) { scene.setState(S); layout(); }
+  }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
+
+  const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
+  const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
+  const nameOf = i => esc(S.seats[i]?.name);
+  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const wide = () => innerWidth >= WIDE;
+  const rolling = () => performance.now() < rollUntil;
+  const myTurn = () => !!(S && S.ph === 'play' && S.stage === 'turn' && S.turn === S.me && me() && !me().bot && !S.auto);
+  const canAct = () => myTurn() && !rolling() && Date.now() - sent > 350;
+  const shown = () => S && S.stage === 'turn' && S.rolls > 0 && !rolling(); // the dice on the felt can be read
+
+  function onFrame(info) {
+    live = info;
+    for (let i = 0; i < tagEls.length; i++) {
+      const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
+      const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150).toFixed(1)}px) translate(-50%, -100%)`;
+    }
+  }
+  function layout() {
+    if (!scene) return;
+    scene.setHud(Math.max($('pp-dock').offsetHeight + 30, innerWidth < 700 ? 300 : 250));
+    scene.setInset(wide() ? $('pp-side').offsetWidth + 24 : 0);
+  }
+
+  // ----- name tags: name and score so far -----
+  function buildTags() {
+    const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
+    if (key !== tagKey) {
+      tagKey = key;
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pp-tag"${i === S.me ? ' hidden' : ''}><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
+      tagEls = [...tagsEl.children];
+    }
+    S.seats.forEach((p, i) => {
+      const el = tagEls[i]; if (!el) return;
+      el.classList.toggle('now', i === S.turn && S.stage === 'turn');
+      const cnt = el.querySelector('.plate .cnt'), v = String(p.tot); if (cnt._h !== v) { cnt._h = v; cnt.textContent = v; }
+    });
+    for (const el of tagEls) el._w = el.offsetWidth;
+  }
+  function floatAt(i, text, bad = false) {
+    const t = i === S.me || !live?.tags?.[i] ? { x: innerWidth / 2, y: (live?.tray?.y || innerHeight * .45) } : live.tags[i];
+    const f = document.createElement('div');
+    f.className = 'pp-pts' + (bad ? ' bad' : ''); f.textContent = text;
+    f.style.left = `${t.x}px`; f.style.top = `${t.y}px`;
+    root.append(f); setTimeout(() => f.remove(), 1700);
+  }
+
+  // ----- the score sheet: one column per player; the roller's empty boxes show what this roll would score -----
+  function sheetHtml() {
+    const roller = shown() ? S.turn : -1, mine = roller === S.me && myTurn();
+    const prev = (i, b) => { const p = S.seats[i]; return score(b, S.dice, p.sheet) + genBonus(S.dice, p.sheet); };
+    const head = S.seats.map((p, i) => `<th class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}${i === S.me ? ' mine' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span></th>`).join('');
+    const cell = (i, b) => {
+      const v = S.seats[i].sheet[b];
+      if (v != null) return `<td class="done${S.last && S.last.s === i && S.last.box === b && S.stage === 'pick' ? ' fresh' : ''}${v === 0 ? ' zero' : ''}">${v}</td>`;
+      if (i !== roller) return '<td></td>';
+      const p = prev(i, b);
+      if (!mine) return `<td class="pv${p ? '' : ' zero'}">${p}</td>`;
+      return `<td class="pv pick"><button type="button" data-a="pick" data-box="${b}" class="${p ? '' : 'zero'}${armed === b ? ' armed' : ''}" aria-label="${LABEL[b]}: ${p} points">${armed === b ? '0?' : p}</button></td>`;
+    };
+    const row = b => `<tr><th scope="row" title="${esc(HINT[b])}">${b.length === 1 ? dieSvg(+b) : ''}<span>${LABEL[b]}</span></th>${S.seats.map((_, i) => cell(i, b)).join('')}</tr>`;
+    const sumRow = (lbl, f, cls) => `<tr class="${cls}"><th scope="row">${lbl}</th>${S.seats.map((p, i) => `<td>${f(p, i)}</td>`).join('')}</tr>`;
+    return `<table><thead><tr><th></th>${head}</tr></thead><tbody>
+      ${UPPER.map(row).join('')}
+      ${sumRow(`Bonus <small>${UPPER_NEED}+ = ${UPPER_BONUS}</small>`, p => (bonusOf(p.sheet) ? `<b class="yes">+${UPPER_BONUS}</b>` : `<small>${upperSum(p.sheet)}/${UPPER_NEED}</small>`), 'sub')}
+      ${LOWER.map(row).join('')}
+      ${S.seats.some(p => p.extra) ? sumRow('Party bonus', p => (p.extra ? `<b class="yes">+${p.extra}</b>` : ''), 'sub') : ''}
+      ${sumRow('Total', p => `<b>${p.tot}</b>`, 'tot')}
+    </tbody></table>`;
+  }
+  function renderSheet() {
+    setHtml($('pp-sheet'), sheetHtml());
+    root.classList.toggle('sheet-open', sheetOpen && !wide());
+  }
+
+  // ----- the dice row and the controls -----
+  function renderDock() {
+    const rollEl = $('pp-roll'), ctl = $('pp-ctl');
+    if (!S || S.ph !== 'play' || S.stage === 'wait') { setHtml(rollEl, ''); setHtml(ctl, ''); layout(); return; }
+    const turn = myTurn(), roll = rolling(), r = S.rolls, p = S.seats[S.turn];
+    const can = turn && r > 0 && r < ROLLS && !roll;
+    // the five dice, big enough to read on a phone; yours to tap on your turn
+    const dice = r ? S.dice.map((v, k) => {
+      const h = S.held[k], moving = roll && S.moved.includes(k);
+      const inner = dieSvg(moving ? 0 : v, (moving ? 'spin' : '') + (h ? ' kept' : ''));
+      return can ? `<button type="button" class="pp-dbtn${h ? ' held' : ''}" data-a="hold" data-k="${k}" aria-pressed="${h}" aria-label="Die ${k + 1}: ${v}${h ? ', kept' : ''}">${inner}<em>${h ? 'kept' : ''}</em></button>`
+        : `<span class="pp-dbtn${h ? ' held' : ''}">${inner}<em>${h ? 'kept' : ''}</em></span>`;
+    }).join('') : dieSvg(0).repeat(5);
+    const left = ROLLS - r;
+    const who = S.turn === S.me ? '' : `<span class="who">${avatarHtml(p.color, p.av, 26)}${nameOf(S.turn)}</span>`;
+    setHtml(rollEl, `${who}<span class="pp-hand${r ? '' : ' none'}">${dice}</span><span class="pp-left" aria-label="${left} rolls left">${[0, 1, 2].map(k => `<i class="${k < r ? 'used' : ''}"></i>`).join('')}</span>`);
+    if (turn) {
+      const allHeld = r > 0 && S.held.every(Boolean), rollOk = r < ROLLS && !allHeld && !roll && S.stage === 'turn';
+      const btn = `<button type="button" class="btn big pp-go" data-a="roll"${rollOk ? '' : ' disabled'}>${r ? `Roll again <small>${left} left</small>` : 'Roll the dice'}</button>`;
+      let grid = '';
+      if (!wide() && r && !roll && S.stage === 'turn') {
+        const sh = me().sheet;
+        grid = `<div class="pp-grid">${BOXES.filter(b => sh[b] == null).map(b => { const v = score(b, S.dice, sh) + genBonus(S.dice, sh);
+          return `<button type="button" data-a="pick" data-box="${b}" class="${v ? '' : 'zero'}${armed === b ? ' armed' : ''}"><span>${SHORT[b]}</span><b>${armed === b ? '0?' : v}</b></button>`; }).join('')}</div>`;
+      }
+      const hint = !r ? 'Roll all five dice to start your turn.' : roll ? 'Rolling…'
+        : S.stage !== 'turn' ? '' : r < ROLLS ? (wide() ? 'Tap dice to keep them, then roll again, or pick a box on your sheet.' : 'Tap dice to keep them, then roll again, or pick a box.')
+          : (wide() ? 'No rolls left: pick a box on your sheet.' : 'No rolls left: pick a box.');
+      setHtml(ctl, `${grid}<div class="pp-act">${btn}<p class="pp-hint">${hint}</p></div>`);
+    } else if (S.stage === 'turn') {
+      setHtml(ctl, `<span class="pp-wait">${S.turn === S.me ? (S.auto ? 'Out of time: a bot finishes your turn' : 'A bot is playing for you') : `${nameOf(S.turn)} is ${r ? 'thinking' : 'about to roll'}…`}</span>`);
+    } else setHtml(ctl, '');
+    layout();
+  }
+
+  function renderBanner() {
+    const el = $('pp-banner'); let msg = '';
+    if (!S) return;
+    const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs}s` : '';
+    if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!` : '';
+    else if (S.stage === 'wait') msg = 'Grab your dice…';
+    else if (S.stage === 'pick' && S.last) msg = `${youOr(S.last.s)} wrote ${S.last.pts} in ${LABEL[S.last.box]}`;
+    else if (myTurn()) msg = (S.rolls ? `Your turn · roll ${S.rolls} of ${ROLLS}` : 'Your turn · roll the dice') + t;
+    else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn${S.rolls ? ` · roll ${S.rolls} of ${ROLLS}` : ''}`;
+    if (el.innerHTML !== msg) el.innerHTML = msg;
+    el.classList.toggle('hot', myTurn());
+  }
+
+  function render() {
+    if (!S) return;
+    $('pp-info').textContent = S.ph === 'end' ? 'Game over' : innerWidth < 700 ? `Round ${S.round}/${S.rounds}` : `Round ${S.round} of ${S.rounds}`;
+    $('pp-code').textContent = Rm?.code || '';
+    buildTags(); renderSheet(); renderDock(); renderBanner();
+  }
+
+  function big(text, sub = '', ms = 1600) {
+    const el = $('pp-big');
+    el.innerHTML = `<b>${text}</b>${sub ? `<span>${sub}</span>` : ''}`;
+    el.classList.remove('show'); void el.offsetWidth; el.style.setProperty('--ms', ms + 'ms'); el.classList.add('show');
+    clearTimeout(bigTimer); bigTimer = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  function playEv(e) {
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Good luck!' : `${nameOf(e.s)} took over a bot`); }
+    else if (e.t === 'turn') { if (e.s === S.me && !S.seats[S.me].bot) { sfx.turn(); lastTick = -1; } if (e.s === S.first && e.round > 1 && e.round === S.rounds) ctx.toast('Last round!'); }
+    else if (e.t === 'roll') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 160); setTimeout(() => !destroyed && sfx.place(), S.ms.roll * .8); }
+    else if (e.t === 'gen') setTimeout(() => { if (destroyed) return; big('Pip Party!', `${youOr(e.s)} rolled five of a kind`, 1800); sfx.win(); }, S.ms.roll);
+    else if (e.t === 'pick') {
+      floatAt(e.s, `${e.pts ? '+' + e.pts : '0'} ${SHORT[e.box]}`, !e.pts);
+      e.pts ? sfx.pop() : sfx.plop();
+      if (e.bonus) setTimeout(() => { if (destroyed) return; big(`+${e.bonus}`, `${youOr(e.s)} ${e.s === S.me ? 'get' : 'gets'} the party bonus`, 1800); sfx.win(); }, 300);
+      else if (e.madeBonus) setTimeout(() => { if (destroyed) return; big(`+${UPPER_BONUS}`, `${e.s === S.me ? 'Your' : nameOf(e.s) + '’s'} top half reached ${UPPER_NEED}`, 1800); sfx.set(); if (e.s === S.me) confetti(); }, 300);
+    }
+    else if (e.t === 'end') {
+      if (e.w === S.me) { sfx.win(); confetti(); }
+      clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2000);
+    }
+  }
+
+  function update(s) {
+    if (destroyed) return;
+    const fresh = s.gid !== gid, prevRoll = S?.rollN, prevStage = S ? S.turn + '/' + S.stage : '';
+    S = s;
+    if (fresh) {
+      gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sheetOpen = false;
+      lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
+      if (s.ph === 'end') showResults(); else sfx.draw();
+    }
+    endsAt = performance.now() + Math.max(0, s.tLeft);
+    if (s.rolls && s.rollN !== prevRoll) {
+      const left = s.ms.roll - s.rollAgo;
+      if (left > 0 && !matchMedia('(prefers-reduced-motion: reduce)').matches) { rollUntil = performance.now() + left; clearTimeout(rollTimer); rollTimer = setTimeout(() => { if (!destroyed && S) render(); }, left + 20); }
+      armed = '';
+    }
+    if (prevStage !== s.turn + '/' + s.stage) { armed = ''; sent = 0; }
+    render(); scene?.setState(s);
+    if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
+  }
+
+  // ----- results -----
+  function showResults() {
+    if (!S || S.ph !== 'end' || !S.res) return;
+    const el = root.querySelector('.results'), w = S.win, tot = S.res.totals;
+    const place = i => 1 + tot.filter(t => t > tot[i]).length;
+    const myPlace = S.me >= 0 ? place(S.me) : 0;
+    el.innerHTML = `<div class="sheet">
+      <h2>${myPlace === 1 ? 'You win the party!' : `${nameOf(w)} wins!`}</h2>
+      <p>${myPlace ? (myPlace === 1 ? `Top score with ${tot[S.me]} points.` : `You came ${ORD(myPlace)} with ${tot[S.me]} points.`) : ''}</p>
+      <ol class="score">${S.res.order.map((i, k) => {
+        const p = S.seats[i], up = upperSum(p.sheet), b = bonusOf(p.sheet);
+        return `<li class="${place(i) === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place(i)}</i>${avatarHtml(p.color, p.av, 44)}
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>Top ${up}${b ? ` +${b}` : ''} · bottom ${lowerSum(p.sheet)}${p.extra ? ` · party +${p.extra}` : ''}</span></div>
+          <strong><span>${tot[i]}</span><small>points</small></strong>${paidHtml(Rm, i)}</li>`;
+      }).join('')}</ol>
+      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+    el.hidden = false; votes = (Rm?.again || []).length;
+  }
+  let votes = 0;
+  function paintAgain() {
+    const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
+    const n = (Rm?.again || []).length;
+    if (n > votes) sfx.pop();
+    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+  }
+  function hideResults() { root.querySelector('.results').hidden = true; }
+
+  function react(m) {
+    if (!S) return;
+    const i = S.seats.findIndex(p => p.id === m.id), t = i !== S.me ? live?.tags?.[i] : null;
+    const f = document.createElement('div');
+    f.className = 'floaty'; f.innerHTML = reactHtml(m.k);
+    const x = t ? t.x : innerWidth / 2 + (Math.random() * 120 - 60), y = t ? t.y - 50 : innerHeight * .62;
+    f.style.left = `${x - 32}px`; f.style.top = `${y - 64}px`;
+    root.append(f); setTimeout(() => f.remove(), 1600);
+  }
+
+  function confetti() {
+    const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);
+    const cols = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#fff4e2', '#e5543b'];
+    const ps = Array.from({ length: 140 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45, vx: (Math.random() - .5) * 16, vy: -Math.random() * 16 - 6, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 6 + Math.random() * 8, c: cols[Math.random() * cols.length | 0], round: Math.random() < .4 }));
+    let t = 0;
+    const step = () => {
+      g.clearRect(0, 0, innerWidth, innerHeight);
+      for (const p of ps) {
+        p.vy += .45; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c;
+        if (p.round) { g.beginPath(); g.arc(0, 0, p.s / 2, 0, 6.28); g.fill(); } else g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+        g.restore();
+      }
+      if (++t < 200 && !destroyed) requestAnimationFrame(step); else g.clearRect(0, 0, innerWidth, innerHeight);
+    };
+    step();
+  }
+
+  const timer = setInterval(() => {
+    if (!S || S.ph !== 'play') return;
+    renderBanner();
+    if (myTurn() && S.tLeft >= 0) {
+      const n = Math.ceil((endsAt - performance.now()) / 1000);
+      if (n !== lastTick && n <= 5 && n > 0) { lastTick = n; sfx.tick(); }
+    }
+  }, 200);
+
+  // ----- input -----
+  function hold(k) {
+    if (!canAct() || !S.rolls || S.rolls >= ROLLS || S.stage !== 'turn') return;
+    const on = !S.held[k];
+    S.held = S.held.map((h, j) => (j === k ? on : h)); // show it at once; the server's state follows
+    armed = ''; sfx.click(); ctx.act({ t: 'hold', k, on }); render(); scene?.setState(S);
+  }
+  function roll() {
+    if (!canAct() || S.rolls >= ROLLS || S.stage !== 'turn' || (S.rolls && S.held.every(Boolean))) return;
+    sent = Date.now(); armed = ''; sfx.click(); ctx.act({ t: 'roll' });
+  }
+  function pick(box) {
+    if (!canAct() || !S.rolls || S.stage !== 'turn') return;
+    const sh = me().sheet; if (sh[box] != null) return;
+    // a zero needs a second tap, so a slip of the finger does not throw a box away
+    if (!(score(box, S.dice, sh) + genBonus(S.dice, sh)) && armed !== box) { armed = box; sfx.warn(); render(); return; }
+    armed = ''; sent = Date.now(); sfx.place(); ctx.act({ t: 'pick', box }); sheetOpen = false; render();
+  }
+  const onKey = e => {
+    if (e.target.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey || !myTurn()) return;
+    const k = e.key.toLowerCase();
+    if (k >= '1' && k <= '5') hold(+k - 1);
+    else if (k === 'r' || (k === ' ' && !e.target.closest?.('button'))) roll();
+    else return;
+    e.preventDefault();
+  };
+  addEventListener('keydown', onKey);
+  const onResize = () => { render(); layout(); };
+  addEventListener('resize', onResize);
+
+  root.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+    const a = b.dataset.a;
+    if (a === 'hold') hold(+b.dataset.k);
+    else if (a === 'roll') roll();
+    else if (a === 'pick') pick(b.dataset.box);
+    else if (a === 'sheet') { sfx.click(); sheetOpen = !sheetOpen; renderSheet(); }
+    else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
+    else if (a === 'rules') { sfx.click(); ctx.rules(); }
+    else if (a === 'leave') { sfx.click(); ctx.leave(); }
+    else if (a === 'again') { sfx.click(); ctx.again(); }
+    else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
+    else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
+    else if (a === 'sit') { sfx.click(); ctx.sit?.(b.getAttribute('aria-pressed') !== 'true'); }
+  });
+  // tapping outside the open sheet on a phone closes it
+  root.addEventListener('pointerdown', e => { if (sheetOpen && !wide() && !e.target.closest('.pp-side, [data-a="sheet"]')) { sheetOpen = false; renderSheet(); } });
+  root.addEventListener('pointerover', e => {
+    const b = e.target.closest('.btn, .round, .pp-dbtn, .pp-grid button, .pp-sheet button');
+    if (b && !b.disabled && !b.contains(e.relatedTarget)) sfx.hover();
+  });
+
+  return {
+    update,
+    room(r) { Rm = r; if (S) render(); paintAgain(); },
+    react,
+    destroy() {
+      destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); removeEventListener('resize', onResize);
+      clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); clearTimeout(rollTimer); scene?.dispose();
+    },
+  };
+}

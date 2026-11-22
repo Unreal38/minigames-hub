@@ -1,5 +1,5 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -356,6 +356,27 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins, and the <b>last player still holding cards is the Pan</b>.</li>
       <li>Five players sit at a table for six: a bot takes the spare hand, so the cards still share out evenly.</li>
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
+    </ol>`,
+  },
+  pips: {
+    name: 'Pip Party', load: () => import('./games/pips/client.js'), start: 'Roll the dice',
+    host: { seats: 3, bots: 'chill', timer: 45 }, solo: { seats: 3, bots: 'chill', timer: 0 },
+    openSeat: 'A bot fills this sheet if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 60, '60s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Five dice and a score sheet with 13 boxes. Each turn you get up to three rolls, keeping any dice you like in between, then you write the roll into one empty box. Fill all 13 boxes; the highest total wins.`,
+    rules: `<ol>
+      <li>The game lasts <b>13 rounds</b>. On your turn, roll all <b>five dice</b>. You may roll <b>twice more</b>, and before each roll you choose which dice to <b>keep</b>. Empty seats are played by bots.</li>
+      <li>Then write the roll into <b>one empty box</b> on your sheet. Every box is used once. If the roll does not fit the box you choose, it scores <b>0</b>, and sometimes that is the best you can do.</li>
+      <li><b>Top half</b>, Ones to Sixes: add up only the dice showing that number. 4, 3, 4, 4, 1 is 12 in Fours or 3 in Threes.</li>
+      <li>Reach <b>63 or more</b> in the top half (three of each number gets you there) for a <b>35 point bonus</b>.</li>
+      <li><b>Three alike</b> and <b>Four alike</b>: all five dice added up, when at least three (or four) show the same number.</li>
+      <li><b>Full house</b>, three of one number and two of another: <b>25</b>. <b>Small run</b>, four numbers in a row: <b>30</b>. <b>Big run</b>, five in a row: <b>40</b>.</li>
+      <li><b>Pip Party</b>, all five dice the same: <b>50</b>. <b>Chance</b>: all five dice added up, whatever they show.</li>
+      <li><b>Jokers</b>: roll five of a kind when your Pip Party box and the top-half box for that number are both already filled, and the roll is a joker. In the bottom half it scores as a full house (25), small run (30), big run (40) or the dice added up. If your first Pip Party scored 50, each joker also pays a <b>100 point bonus</b>.</li>
+      <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
     </ol>`,
   },
 };
@@ -815,6 +836,7 @@ const HUB_GAMES = [
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
+  ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>
