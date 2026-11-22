@@ -67,6 +67,7 @@ export const KIT = {
   patchkit:  { role: 'healer', moves: ['leafflick', 'sunnap', 'sweetscent', 'bloomburst'] },
   tuxpurr:   { role: 'balanced', moves: ['zap', 'harden', 'dazeflash', 'thunderpounce'] },
   fluffcoon: { role: 'tank', moves: ['splash', 'bubbleshield', 'mend', 'tidalbump'] },
+  glazemew:  { role: 'support', moves: ['zap', 'sweetscent', 'quickstep', 'thunderpounce'] },
   munchmew:  { role: 'trickster', moves: ['sparknip', 'quickstep', 'sweetscent', 'blazedash'] },
   rocktopus: { role: 'trickster', moves: ['pebbletoss', 'dustcloud', 'rootgrab', 'boulderroll'] },
   driftle:   { role: 'tank', moves: ['splash', 'harden', 'bubbleshield', 'tidalbump'] },

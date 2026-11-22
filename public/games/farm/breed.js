@@ -14,7 +14,7 @@ export const COAT = {
   strawbun: ['#ff5a6e', '#ffd9de'], chilipup: ['#e8402a', '#ffd0a0'], melonwhale: ['#5fb85a', '#ff7a8a'], lemonzest: ['#ffe14a', '#fff6b0'], coconutkin: ['#8a5a3c', '#fffaf0'], pinepine: ['#ffc93c', '#fff0b0'], croissab: ['#e8a85a', '#fff0c8'], donuseal: ['#eef2f6', '#ff9ec4'], cupcowl: ['#f3e0c0', '#ff9ec4'], pretzelisk: ['#c98a4a', '#fff3df'], mallowlamb: ['#ffffff', '#ffd9e8'], candraffe: ['#ffffff', '#ff5a6e'], jellifrog: ['#7fe0a0', '#c9ffd9'], carrofox: ['#ff9a3c', '#fff3df'], pumpkit: ['#ff9a2c', '#fff3df'], peapillar: ['#8fd45a', '#b9e87a'], shroomouse: ['#e9d9c9', '#fff3df'], snowfox: ['#eaf6ff', '#ffffff'], sunlion: ['#ffc93c', '#fff0b0'], dripfrog: ['#6fb7e8', '#dff4ff'], twistret: ['#b9c2d0', '#eef2f7'], moonbun: ['#d9d0ff', '#fff9d9'], starjelly: ['#c9b5ff', '#fff3a0'], cometail: ['#7fb8ff', '#fff6c8'], ringbear: ['#f2c9a0', '#c9b5ff'],
   shrimplet: ['#ff9a8a', '#ffe0d6'], siamew: ['#f6ead8', '#6b4a3c'], coralcolt: ['#ffc857', '#fff0c0'], skipfin: ['#7fc4e8', '#f2fbff'],
   gingersnap: ['#f5a04a', '#fff3df'], patchkit: ['#ffffff', '#f5a04a'], tuxpurr: ['#5b5766', '#ffffff'], fluffcoon: ['#b08a6a', '#f3e6d2'],
-  munchmew: ['#f3c98a', '#fff3df'],
+  munchmew: ['#f3c98a', '#fff3df'], glazemew: ['#f0b878', '#fff3df'],
   rocktopus: ['#b08ad0', '#e6d4f5'], driftle: ['#8fd0c0', '#f0ead0'], zapuff: ['#ffe27a', '#fffaf0'], ottershell: ['#9a6a4a', '#f0dcc0'], cinnapanda: ['#c8683f', '#fff3df'], yuzubara: ['#b98a5e', '#d9b48a'], snoozloth: ['#a89880', '#f0e6d2'], glidenut: ['#b5a08a', '#fff3df'],
   pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
 };
@@ -27,7 +27,7 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
   nimbowhale: 'a rain cloud', zapkit: 'a lightning tail', buzzlet: 'buzzy wings', voltvole: 'a spark tuft', glimmoth: 'glowing wings', pebblet: 'pebble spines',
   shrimplet: 'a fan tail', siamew: 'a chocolate tail', coralcolt: 'a coral crown', skipfin: 'a beach ball',
   gingersnap: 'a striped tail', patchkit: 'a daisy', tuxpurr: 'a top hat', fluffcoon: 'a bushy tail',
-  munchmew: 'pink icing',
+  munchmew: 'a ribbon bow', glazemew: 'pink icing',
   rocktopus: 'a pebble stack', driftle: 'a starfish', zapuff: 'puffer spikes', ottershell: 'a paddle tail', cinnapanda: 'a ringed tail', yuzubara: 'a yuzu', snoozloth: 'a nightcap', glidenut: 'glider flaps',
   cragcrab: 'a boulder shell', dustmole: 'a hard hat', geodeer: 'crystal antlers',
   acornip: 'an acorn cap', lanternail: 'a lantern shell', ripplet: 'a wave curl', wattbat: 'bolt ears', rubblet: 'a gem crown',
@@ -35,7 +35,7 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
   strawbun: 'a strawberry top', chilipup: 'a chili stem', melonwhale: 'a melon slice', lemonzest: 'a peel curl', coconutkin: 'a palm sprout', pinepine: 'a pineapple crown', croissab: 'a croissant', donuseal: 'a little donut', cupcowl: 'a frosting swirl', pretzelisk: 'a pretzel bow', mallowlamb: 'a toasted marshmallow', candraffe: 'candy cane horns', jellifrog: 'a wobbly jelly', carrofox: 'a carrot tail', pumpkit: 'a pumpkin stem', peapillar: 'a pea pod', shroomouse: 'a spotted cap', snowfox: 'a snowy tail', sunlion: 'a crown of sun rays', dripfrog: 'a leaf umbrella', twistret: 'a little whirlwind', moonbun: 'a slice of moon', starjelly: 'a lucky star', cometail: 'a comet tail', ringbear: 'a planet ring' };
 // The cat family: these species share one body, so a kitten of two of them takes its build (species) from one parent
 // and its coat from either. p.cat is the species whose coat a cat wears, when it is not its own.
-export const CATS = { siamew: 'Siamese points', gingersnap: 'Tabby stripes', patchkit: 'Calico patches', tuxpurr: 'Tuxedo', fluffcoon: 'Maine Coon brown', munchmew: 'Golden cream' };
+export const CATS = { siamew: 'Siamese points', gingersnap: 'Tabby stripes', patchkit: 'Calico patches', tuxpurr: 'Tuxedo', fluffcoon: 'Maine Coon brown', munchmew: 'Golden cream', glazemew: 'Golden cream' };
 export const catCoat = p => CATS[p.sp] ? (CATS[p.cat] ? p.cat : p.sp) : null;
 export const TALENTS = [
   { name: 'Early Bird', blurb: 'Always moves first on the first turn of a battle.' },
