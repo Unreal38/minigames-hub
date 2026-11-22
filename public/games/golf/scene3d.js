@@ -177,6 +177,21 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     for (const p of players) Object.assign(p, { shot: null, shotN: -1, init: false, hidden: false });
   }
 
+  // Marks for a one-colour ball: a paler band round the middle and a ring of dimples each side. It is drawn in greys
+  // and multiplied by the ball's colour, so one texture serves every player.
+  let plain = null;
+  function plainTex() {
+    if (plain) return plain;
+    const Wt = 256, Ht = 128, cv = document.createElement('canvas'); cv.width = Wt; cv.height = Ht; const g = cv.getContext('2d');
+    g.fillStyle = '#d6d6d6'; g.fillRect(0, 0, Wt, Ht);
+    g.fillStyle = '#ffffff'; g.fillRect(0, Ht * .4, Wt, Ht * .2);
+    g.fillStyle = '#8f8f8f'; g.fillRect(0, Ht * .38, Wt, 3); g.fillRect(0, Ht * .6, Wt, 3);
+    for (let i = 0; i < 8; i++) for (const [v, r] of [[.22, 7], [.78, 7]]) { g.beginPath(); g.ellipse((i + (v > .5 ? .5 : 0)) * Wt / 8 + 8, v * Ht, r * 1.3, r, 0, 0, 7); g.fill(); }
+    for (let i = 0; i < 2; i++) { g.fillStyle = '#7a7a7a'; g.fillRect(i * Wt / 2 + 10, Ht * .4, 16, Ht * .2); } // two bars across the band, so a spin about the band's own axis shows too
+    plain = new THREE.CanvasTexture(cv); plain.colorSpace = THREE.SRGBColorSpace;
+    return plain;
+  }
+
   // ---------- players: a ball each, and their avatar standing beside it with a putter ----------
   function setSeats(list) {
     const k = list.map(p => p.color + p.av.join('') + (p.fl?.gb | 0)).join('|');
@@ -184,7 +199,8 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     seatsKey = k;
     for (const p of players) { scene.remove(p.wrap, p.ball); disposeAvatar(p.av); p.putter.traverse(m => m.geometry?.dispose()); }
     players = list.map((s, i) => {
-      const ball = new THREE.Mesh(ballGeo, toonMat(new THREE.MeshStandardMaterial(ballLook(s.fl?.gb, s.color)))); ball.rotation.y = -Math.PI / 2; /* a painted ball shows its face to the camera */ ball.castShadow = true; ball.userData.col = s.color;
+      const look = ballLook(s.fl?.gb, s.color); if (!look.map) look.map = plainTex(); // a plain ball still needs marks, or its roll cannot be seen
+      const ball = new THREE.Mesh(ballGeo, toonMat(new THREE.MeshStandardMaterial(look))); ball.rotation.y = -Math.PI / 2; /* a painted ball shows its face to the camera */ ball.castShadow = true; ball.userData.col = s.color;
       const out = new THREE.Mesh(ballGeo, inkMat); out.scale.setScalar(1.16); ball.add(out);
       const av = avatar3d(s.color, s.av, { pose: 'stand' });
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av);
@@ -274,6 +290,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   addEventListener('keydown', key);
 
   // ---------- frame loop ----------
+  const rollAx = new THREE.Vector3(), rollQ = new THREE.Quaternion();
   const grip = new THREE.Vector3(), hand = new THREE.Vector3(), rest = new THREE.Vector3(), headP = new THREE.Vector3(), dir = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
   const proj = new THREE.Vector3(), look = new THREE.Vector3(), lookNow = new THREE.Vector3(), want = new THREE.Vector3(), tmp = { x: 0, z: 0, done: false };
   const lowC = new THREE.Color('#7ed957'), midC = new THREE.Color('#ffd23f'), hiC = new THREE.Color('#e5543b');
@@ -329,7 +346,10 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const gy = hAt(bx, bz);
       p.cur.set(bx, gy + BALL_R + by, bz);
       p.ball.position.copy(p.cur); p.ball.visible = show && !(stage === 'done' && (p.sunk || p.out));
-      if (flying) { p.ball.rotation.x += dt * 9; p.ball.rotation.z += dt * 5; }
+      // roll: the ball turns about the axis across its path, by exactly the distance it covers
+      const mx = bx - (p.lx ?? bx), mz = bz - (p.lz ?? bz), md = Math.hypot(mx, mz);
+      if (md > 1e-5 && md < .8) { rollAx.set(mz / md, 0, -mx / md); rollQ.setFromAxisAngle(rollAx, md / BALL_R); p.ball.quaternion.premultiply(rollQ); }
+      p.lx = bx; p.lz = bz;
       // --- the golfer ---
       const done = (p.sunk || p.out) && !flying && p.phase !== 'fly';
       const upNow = i === turn && now >= turnAt; // their putt, and the ball before theirs has stopped
@@ -443,7 +463,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       removeEventListener('keydown', key);
       if (holeG) disposeToon(holeG);
       for (const p of players) disposeAvatar(p.av);
-      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
+      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); plain?.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
     },
   };
 }
