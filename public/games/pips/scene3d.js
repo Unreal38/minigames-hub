@@ -97,7 +97,9 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
   const seatAngle = r => Math.PI / 2 + r * Math.PI * 2 / n;
   const onRim = (r, k = 1) => { const a = seatAngle(r); return new THREE.Vector3(Math.cos(a) * R * k, 0, Math.sin(a) * R * k); };
   const rel = i => (me >= 0 ? (i - me + n) % n : i);
-  const ringGeo = new THREE.TorusGeometry(.9, .05, 6, 32); ringGeo.rotateX(Math.PI / 2);
+  // the turn ring: a flat, smooth band round the player's middle, just above the table top, so the table edge never cuts it
+  // (the old tube sat on the table rim, half over the table and half in the air, and came out lumpy)
+  const ringGeo = new THREE.RingGeometry(.86, 1, 72); ringGeo.rotateX(-Math.PI / 2);
   function freeSeat(s) { scene.remove(s.av, s.stool, s.ring); disposeAvatar(s.av); s.ring.material.dispose(); }
   function buildSeats(list) {
     for (const s of seats) freeSeat(s);
@@ -108,8 +110,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       const stool = new THREE.Group(); stool.position.set(out.x, -.95, out.z); scene.add(stool);
       put(new THREE.CylinderGeometry(.58, .5, .2, 12), M(p.color), 0, 0, 0, stool).castShadow = true;
       put(new THREE.CylinderGeometry(.09, .12, 1.3, 6), M('#8a5a3c'), 0, -.75, 0, stool); toonify(stool, .035); stool.visible = !mine;
-      const at = onRim(r, 1.02);
-      const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false }), at.x, .05, at.z, scene);
+      const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), out.x, .14, out.z, scene); ring.visible = !mine; // your own turn is shown by the dock
       return { av, stool, ring, mine, hop: 0, look: 0, active: false, key: p.color + (p.av || []).join(''), hand: onRim(r, 1.15).setY(1.1) };
     });
   }
@@ -258,7 +259,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       s.look += (look - s.look) * .05;
       animateAvatar(s.av, T, { seed: i, active: s.active, hop: s.hop, look: s.look });
       s.ring.material.opacity += ((s.active ? .9 : 0) - s.ring.material.opacity) * .15;
-      s.ring.scale.setScalar(1 + Math.sin(T * 4) * .05);
+      s.ring.scale.setScalar(1 + Math.sin(T * 4) * .03);
     });
     cloudRing.rotation.y = T * .006; flyBirds(T); drift(T);
     camera.position.set(camBase.x + (reduced ? 0 : Math.sin(T * .22) * .14), camBase.y + (reduced ? 0 : Math.sin(T * .37) * .05), camBase.z);
