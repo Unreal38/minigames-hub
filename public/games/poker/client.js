@@ -1,7 +1,7 @@
 // Texas Hold'em game view: HUD over the 3D table. Renders what the server says and sends your bets.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { score, handName, bestFive, catOf, HAND_ORDER } from './rules.js';
 import { cardHtml } from './cards.js';
@@ -294,7 +294,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], st = S.res.stacks[i], net = st - start;
         return `<li class="${k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${p.out ? 'knocked out' : `${st} chips`}</span></div>
-          <strong class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${net > 0 ? '+' : ''}${net}</strong></li>`;
+          <strong class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${net > 0 ? '+' : ''}${net}</strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Deal again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -302,6 +302,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Deal again');

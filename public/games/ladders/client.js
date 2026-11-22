@@ -1,7 +1,7 @@
 // Snakes & Ladders game view: HUD over the 3D board. Renders what the server says; sends rolls.
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
-import { againHtml } from '../../again.js';
+import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml } from '../../cosmetics.js';
 
@@ -203,7 +203,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.ladders} ladder${st.ladders === 1 ? '' : 's'} · ${st.snakes} snake${st.snakes === 1 ? '' : 's'} · ${st.sixes} six${st.sixes === 1 ? '' : 'es'}</span></div>
-          <strong>${p.pos >= N ? '🏁' : p.pos}<small>${p.pos >= N ? 'home' : 'tile'}</small></strong></li>`;
+          <strong>${p.pos >= N ? '🏁' : p.pos}<small>${p.pos >= N ? 'home' : 'tile'}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -211,6 +211,7 @@ export function mount(app, ctx) {
   let votes = 0;
   function paintAgain() {
     const box = root.querySelector('.results:not([hidden]) .againbox'); if (!box) return;
+    paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
     votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
