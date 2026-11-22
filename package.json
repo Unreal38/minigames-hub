@@ -10,6 +10,6 @@
     "gift": "node server/gift.js",
     "reset-password": "node server/reset.js",
     "load": "node test/load.js",
-    "test": "node test/smoke.js && node test/marbles.js && node test/ladders.js && node test/poker.js && node test/ludo.js && node test/persist.js && node test/stats.js && node test/watch.js && node test/watch-games.js && node test/farm.js && node test/shop.js && node test/rankings.js && node test/stack.js && node test/golf.js && node test/dice.js && node test/paw.js && node test/kart.js && node test/kitchen.js && node test/dig.js && node test/hay.js && node test/pan.js && node test/bricks.js && node test/bean.js && node test/tys.js && node test/darts.js && node test/security.js && node test/hubchat.js && node test/cosmetics.js && node test/daily.js"
+    "test": "node test/smoke.js && node test/marbles.js && node test/ladders.js && node test/poker.js && node test/ludo.js && node test/persist.js && node test/stats.js && node test/watch.js && node test/watch-games.js && node test/farm.js && node test/shop.js && node test/rankings.js && node test/stack.js && node test/golf.js && node test/dice.js && node test/paw.js && node test/kart.js && node test/kitchen.js && node test/dig.js && node test/hay.js && node test/pan.js && node test/pips.js && node test/bricks.js && node test/bean.js && node test/tys.js && node test/darts.js && node test/security.js && node test/hubchat.js && node test/cosmetics.js && node test/daily.js"
   }
 }

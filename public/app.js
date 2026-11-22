@@ -1,10 +1,10 @@
 // Cozy Table hub: username, open tables, waiting rooms. Games mount on top of this.
-import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, dartsArt } from './art.js';
+import { potLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, farmArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -294,9 +294,9 @@ const GAMES = {
     rules: `<ol>
       <li>24 cards: 9 to ace in four suits. <b>Ace 11, ten 10, king 4, queen 3, jack 2, nine 0</b>, and the ten beats the king. Everyone gets <b>7 cards</b> and 3 go face down in the middle: the <b>musik</b>. Empty seats are played by bots. With four at the table, the dealer sits the hand out.</li>
       <li><b>Bidding.</b> The player after the dealer starts at <b>100</b> and has to play for that if nobody bids more. Bids go up in tens. Once you pass you are out for the hand. You may not bid over <b>120</b> unless you hold a marriage (king and queen of one suit).</li>
-      <li>The winner turns the <b>musik</b> over for everyone, takes it, then <b>gives one card to each opponent</b> and may raise the contract.</li>
+      <li>The winner turns the <b>musik</b> over for everyone, takes it, then <b>gives one card to each opponent</b> and may raise the contract. With hopeless cards they can <b>fold</b> instead: nothing is played, they score nothing and each opponent gets <b>60</b>.</li>
       <li><b>Tricks.</b> The winner of the bidding leads. You must <b>follow suit</b>; with none of it you must play a <b>trump</b>; and you must <b>beat</b> the winning card whenever you can. The trick's winner leads the next one.</li>
-      <li><b>Marriages.</b> When it is your lead and you hold the king and queen of a suit, play one of them and announce it: <b>hearts 100, diamonds 80, clubs 60, spades 40</b>. That suit is trumps from then on, until the next marriage.</li>
+      <li><b>Marriages.</b> When it is your lead and you hold the king and queen of a suit, leading one of them <b>always announces the marriage</b>: <b>hearts 100, diamonds 80, clubs 60, spades 40</b>. That suit is trumps from then on, until the next marriage.</li>
       <li><b>Scoring.</b> The player with the contract scores exactly the contract if they took at least that many points (cards plus marriages), and <b>loses it</b> if they did not. The other two score what they took, rounded to tens.</li>
       <li><b>The barrel.</b> From <b>800</b> points you only score by playing a contract yourself, so the last 200 have to be won, not collected.</li>
       <li>First to <b>1000</b> wins. If the turn timer runs out, the game passes for you in the bidding and plays a sensible card otherwise.</li>
@@ -380,6 +380,27 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins, and the <b>last player still holding cards is the Pan</b>.</li>
       <li>Five players sit at a table for six: a bot takes the spare hand, so the cards still share out evenly.</li>
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
+    </ol>`,
+  },
+  pips: {
+    name: 'Pip Party', load: () => import('./games/pips/client.js'), start: 'Roll the dice',
+    host: { seats: 3, bots: 'chill', timer: 45 }, solo: { seats: 3, bots: 'chill', timer: 0 },
+    openSeat: 'A bot fills this sheet if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 60, '60s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Five dice and a score sheet with 13 boxes. Each turn you get up to three rolls, keeping any dice you like in between, then you write the roll into one empty box. Fill all 13 boxes; the highest total wins.`,
+    rules: `<ol>
+      <li>The game lasts <b>13 rounds</b>. On your turn, roll all <b>five dice</b>. You may roll <b>twice more</b>, and before each roll you choose which dice to <b>keep</b>. Empty seats are played by bots.</li>
+      <li>Then write the roll into <b>one empty box</b> on your sheet. Every box is used once. If the roll does not fit the box you choose, it scores <b>0</b>, and sometimes that is the best you can do.</li>
+      <li><b>Top half</b>, Ones to Sixes: add up only the dice showing that number. 4, 3, 4, 4, 1 is 12 in Fours or 3 in Threes.</li>
+      <li>Reach <b>63 or more</b> in the top half (three of each number gets you there) for a <b>35 point bonus</b>.</li>
+      <li><b>Three alike</b> and <b>Four alike</b>: all five dice added up, when at least three (or four) show the same number.</li>
+      <li><b>Full house</b>, three of one number and two of another: <b>25</b>. <b>Small run</b>, four numbers in a row: <b>30</b>. <b>Big run</b>, five in a row: <b>40</b>.</li>
+      <li><b>Pip Party</b>, all five dice the same: <b>50</b>. <b>Chance</b>: all five dice added up, whatever they show.</li>
+      <li><b>Jokers</b>: roll five of a kind when your Pip Party box and the top-half box for that number are both already filled, and the roll is a joker. In the bottom half it scores as a full house (25), small run (30), big run (40) or the dice added up. If your first Pip Party scored 50, each joker also pays a <b>100 point bonus</b>.</li>
+      <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
     </ol>`,
   },
 };
@@ -720,7 +741,7 @@ function acctHtml() {
   const m = st.me, reqs = st.friends?.reqs.length || 0;
   const item = (act, ico, label, note = '', attr = '') => `<button type="button" role="menuitem" data-act="${act}"${attr}><span class="aico" aria-hidden="true">${ico}</span>${label}${note}</button>`;
   const pct = m ? Math.round(100 * m.into / m.need) : 0, rate = m?.games ? Math.round(100 * m.wins / m.games) : 0;
-  return `<div class="awho">${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : 'Pick a name'}</b><span>${m ? `Level ${m.level} · ${esc(m.rank)}` : ''}</span></div></div>
+  return `<div class="awho${cardBgCls(flairOf(m))}">${cardBg(flairOf(m))}${avatarHtml(st.color, st.av, 48, frameCls(flairOf(m)))}<div><b>${st.name ? nameHtml(st.name, flairOf(m)) : 'Pick a name'}</b><span>${m ? `Level ${m.level} · ${esc(m.rank)}` : ''}</span></div></div>
     ${m ? `<div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
     <p class="axp">${m.into} / ${m.need} XP to level ${m.level + 1}</p>
     <div class="amini"><div><b>${m.wins}</b><span>wins</span></div><div><b>${m.games}</b><span>games</span></div><div><b>${rate}%</b><span>win rate</span></div></div>` : ''}
@@ -839,6 +860,7 @@ const HUB_GAMES = [
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
+  ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(pitch)}">
@@ -1142,8 +1164,8 @@ function renderLobby() {
           <span style="font-size:14px;color:var(--muted)">Friends can also type the code on the home page.</span>
         </div>
       </div>
-      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}"${prof(p)}>
-          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
+      <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}${cardBgCls(p.fl)}" data-pid="${esc(p.id)}"${prof(p)}>
+          ${cardBg(p.fl)}${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
@@ -1327,9 +1349,9 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
-const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
+const WD_ACC = [['name', 'Name & card', ['nm', 'fr', 'pb', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
-const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', ti: 'A title under your name. Titles with a goal are earned by playing.',
+const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', pb: 'The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', ti: 'A title under your name. Titles with a goal are earned by playing.',
   wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
 
 function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
@@ -1418,6 +1440,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt">${nameHtml(st.name || 'Name', { nm: i })}</span>`
     : k === 'fr' ? avatarHtml(color, av, 60, frameCls({ fr: i }))
+    : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? '<em>moves</em>' : ''}</span>`
     : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : '<span class="ttl none">no title</span>'}</span>`
     : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
@@ -1481,7 +1504,8 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   };
   const paintPlate = () => {
     const fl = flNow(), pal = (st.pets || []).find(x => x.id === showIds()[0]);
-    plate.innerHTML = `${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
+    plate.className = 'wdplate' + cardBgCls(fl);
+    plate.innerHTML = `${cardBg(fl)}${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
     petPics(plate);
     const c = q('.wdcoins b'); if (c) c.textContent = coins();
     showIsle();
@@ -1584,7 +1608,7 @@ function openPlayer(p) {
     <div class="pcard">
       <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>lv ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
       <div class="pinfo">
-        <div class="phead">${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
+        <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
           ${titleHtml(p.fl)}<small>${p.me ? 'This is you' : p.online ? '<i class="dot on"></i>Online now' : 'Not online'}${p.guest ? ' · guest' : ''} · ${esc(p.rank || '')}</small></div></div>
         <div class="pstats"><span><b>${p.games.toLocaleString()}</b>games</span><span><b>${p.wins.toLocaleString()}</b>wins</span><span><b>${rate}%</b>win rate</span><span><b>${p.xp.toLocaleString()}</b>XP</span></div>
         ${p.top.length ? `<h3>Best games</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || g.g)}</b><span>${plural(g.wins, 'win')} · ${plural(g.games, 'game')}</span></li>`).join('')}</ul>` : '<p>No finished games yet.</p>'}
