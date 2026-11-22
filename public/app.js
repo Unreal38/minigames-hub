@@ -602,6 +602,21 @@ function onMsg(m) {
 }
 
 // ---------- game mounting ----------
+// Each game adds its stylesheet to the page the first time it opens, and the page never reloads, so the sheet stays.
+// Game CSS is not all scoped to the game (Hot Pot's .mini rule squashed the hub's games grid), so only the open
+// game's sheets are switched on: going back to the hub or lobby, or into another game, turns the rest off.
+const gameSheets = new Map(); // game key -> the <link>s it added
+const sheetsNow = () => [...document.head.querySelectorAll('link[rel="stylesheet"]')];
+function mountWithCss(key, mount) {
+  const before = new Set(sheetsNow());
+  const r = mount();
+  const added = sheetsNow().filter(l => !before.has(l));
+  if (added.length) gameSheets.set(key, [...(gameSheets.get(key) || []), ...added]);
+  gameCss(key);
+  return r;
+}
+function gameCss(key) { for (const [k, links] of gameSheets) for (const l of links) l.disabled = k !== key; }
+
 function mountGame() {
   if (st.game) return Promise.resolve(st.game);
   if (st.gameLoading) return st.gameLoading;
@@ -609,19 +624,20 @@ function mountGame() {
   if (!g) return Promise.resolve(null);
   st.view = 'game';
   st.gameLoading = g.load().then(mod => {
-    st.game = mod.mount($app, {
+    const game = st.room?.game;
+    st.game = mountWithCss(game, () => mod.mount($app, {
       act: a => send({ t: 'act', a }), react: k => send({ t: 'react', k }),
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
       again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), sit: on => send({ t: 'sit', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
       toast, rules: () => openRules(st.room?.game),
-    });
+    }));
     st.game.room(st.room); placeGameSwitch();
     st.gameLoading = null;
     return st.game;
   }).catch(err => { console.error(err); st.gameLoading = null; toast('Could not load the game. Refresh?', true); return null; });
   return st.gameLoading;
 }
-function unmountGame() { st.game?.destroy(); st.game = null; }
+function unmountGame() { st.game?.destroy(); st.game = null; gameCss(null); }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
 let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
@@ -632,13 +648,13 @@ function openFarm() {
   farmLoading = import('./games/farm/client.js').then(mod => {
     farmLoading = null;
     if (st.view !== 'farm') return;
-    st.farm = mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode), friends: () => openFriends() });
+    st.farm = mountWithCss('farm', () => mod.mount($app, { send: a => send({ t: 'farm', a }), toast, me: () => st.me, home: () => { closeFarm(); go('hub'); }, account: mode => openAccount(mode), friends: () => openFriends() }));
     st.farm.reopen(); placeGameSwitch();
     if (farmVisit) { st.farm.visit(farmVisit); farmVisit = null; }
     if (farmInvite) { st.farm.msg(farmInvite); farmInvite = null; }
   }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
 }
-function closeFarm() { st.farm?.destroy(); st.farm = null; }
+function closeFarm() { st.farm?.destroy(); st.farm = null; gameCss(null); }
 
 // Hay Hunch: the solo puzzle, also with no table.
 let hayLoading = null;
@@ -650,11 +666,11 @@ function openHay() {
   hayLoading = import('./games/hay/client.js').then(mod => {
     hayLoading = null;
     if (st.view !== 'hay') return;
-    st.hay = mod.mount($app, { send: a => send({ t: 'hay', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closeHay(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('hay') });
+    st.hay = mountWithCss('hay', () => mod.mount($app, { send: a => send({ t: 'hay', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closeHay(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('hay') }));
     st.hay.reopen(); placeGameSwitch();
   }).catch(err => { console.error(err); hayLoading = null; toast('Could not load Hay Hunch. Refresh?', true); go('hub'); });
 }
-function closeHay() { st.hay?.destroy(); st.hay = null; }
+function closeHay() { st.hay?.destroy(); st.hay = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h ? `${h}h ${m % 60}m` : `${m}m`; };
 const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
@@ -711,7 +727,7 @@ function openDaily() {
 
 // ---------- views ----------
 function go(view) {
-  st.view = view;
+  st.view = view; gameCss(null);
   document.title = view === 'lobby' && st.room ? `${st.room.code} · ${SITE}` : SITE;
   if (view === 'hub') renderHub();
   else if (view === 'lobby') renderLobby();
