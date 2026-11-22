@@ -5,10 +5,11 @@ import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
-import { playWinFx } from './winfx.js';
+import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
-import { progress } from './ranks.js';
+import { progress, rankOf, RANKS, STAR_EVERY } from './ranks.js';
+import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -194,9 +195,11 @@ const GAMES = {
   },
   dice: {
     name: "Liar's Dice", load: () => import('./games/dice/client.js'), start: 'Shake the cups',
-    host: { seats: 4, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 0 },
+    host: { seats: 4, mode: 'dice', lives: 3, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, mode: 'dice', lives: 3, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 0 },
     openSeat: 'A bot bluffs from this seat if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>A lost call costs</b><div class="pills">${pill('mode', 'dice', 'A die')}${pill('mode', 'lives', 'A life')}</div></div>
+      <div class="opt"><b>Lives (life mode)</b><div class="pills">${pill('lives', 2, '2')}${pill('lives', 3, '3')}${pill('lives', 5, '5')}</div></div>
       <div class="opt"><b>Dice each</b><div class="pills">${pill('dice', 5, 'Classic 5')}${pill('dice', 3, 'Quick 3')}</div></div>
       <div class="opt"><b>Ones are wild</b><div class="pills">${pill('wild', 'on', 'On')}${pill('wild', 'off', 'Off')}</div></div>
       <div class="opt"><b>Spot on calls</b><div class="pills">${pill('spot', 'on', 'On')}${pill('spot', 'off', 'Off')}</div></div>
@@ -212,6 +215,7 @@ const GAMES = {
       <li><b>Ones are wild</b>: a 1 counts as whatever face was bid, so you cannot bid on ones.</li>
       <li><b>Spot on!</b> is the risky call: you say the bid is <b>exactly</b> right. If it is, everyone else loses a die. If not, you lose one.</li>
       <li>Whoever lost a die opens the next round. Run out of dice and you are out. The <b>last player with dice</b> wins.</li>
+      <li><b>Life mode</b> (a table option): nobody loses dice. Everyone keeps their full cup all game and a lost call costs a <b>heart</b> instead. Out of hearts and you are out, so the table stays full of dice to the end.</li>
       <li>Shortcuts: arrow keys change the bid, <b>Enter</b> bids, <b>L</b> calls liar, <b>S</b> calls spot on.</li>
     </ol>`,
   },
@@ -399,8 +403,8 @@ const GAMES = {
       <li><b>Three alike</b> and <b>Four alike</b>: all five dice added up, when at least three (or four) show the same number.</li>
       <li><b>Full house</b>, three of one number and two of another: <b>25</b>. <b>Small run</b>, four numbers in a row: <b>30</b>. <b>Big run</b>, five in a row: <b>40</b>.</li>
       <li><b>Pip Party</b>, all five dice the same: <b>50</b>. <b>Chance</b>: all five dice added up, whatever they show.</li>
-      <li><b>Jokers</b>: roll five of a kind when your Pip Party box and the top-half box for that number are both already filled, and the roll is a joker. In the bottom half it scores as a full house (25), small run (30), big run (40) or the dice added up. If your first Pip Party scored 50, each joker also pays a <b>100 point bonus</b>.</li>
-      <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A roll is a joker only once all three Pip Party boxes and all three top boxes for that number are filled, and it pays 100 times its column when all three Pip Party boxes scored 50 and you never wrote a five of a kind elsewhere while one was empty.</li>
+      <li><b>More Pip Parties</b>: once your Pip Party box holds its 50, every further five of a kind pays a <b>100 point bonus</b> on top of whatever empty box you write it in, so your Pip Party box grows to 150, 250 and so on. If the top-half box for that number is already filled too, the roll is a <b>joker</b>: in the bottom half it also scores as a full house (25), small run (30), big run (40) or the dice added up.</li>
+      <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A five of a kind pays the bonus of 100 times its column once all three Pip Party boxes scored 50 (and you never wrote a five of a kind elsewhere while one was empty), and it is a joker once all three top boxes for that number are filled too.</li>
       <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
     </ol>`,
@@ -507,7 +511,7 @@ function onMsg(m) {
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
-    st.me = m.me;
+    st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
     let adopted = false;
     if (adoptLook && m.me.user) { // just logged in: wear the look saved with the account
       adoptLook = false; adopted = true;
@@ -523,7 +527,7 @@ function onMsg(m) {
       const cg = m.gain.coins | 0;
       const pl = m.gain.place, ord = n => n + ([, 'st', 'nd', 'rd'][n % 100 >> 3 ^ 1 && n % 10] || 'th');
       toast(`${m.gain.win ? 'Win! ' : pl > 1 && m.gain.of > 1 ? `${ord(pl)} place · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${Math.abs(cg)} coins` : ''}`);
-      if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
+      if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
@@ -570,7 +574,8 @@ function onMsg(m) {
   } else if (m.t === 'state') {
     // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
     if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])), nm = new Map(st.room.players.map(p => [p.name + '|' + p.color, p.fl])); // by seat id, or by name and colour where a game's seats carry no id
-      for (const seat of m.s.seats) if (seat) seat.fl = (seat.id ? by.get(seat.id) : seat.bot && !seat.human ? null : nm.get(seat.name + '|' + seat.color)) || {}; }
+      for (const seat of m.s.seats) if (seat) seat.fl = (seat.id ? by.get(seat.id) : seat.bot && !seat.human ? null : nm.get(seat.name + '|' + seat.color)) || {};
+      setSeatFx(m.s.seats.map(seat => seat?.fl?.wn | 0)); } // in-game showers use each player's win effect
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
@@ -713,7 +718,9 @@ function go(view) {
 }
 
 let adoptLook = false, onAuth = null;
-const lvChip = (lv, icon, rank) => `<span class="lv" title="${esc(rank)}, level ${lv}">${icon} ${lv}</span>`;
+// The level chip beside a name. The rank is worked out from the level here, so chips saved long ago (old chat lines)
+// and chips from the server always show today's ladder.
+const lvChip = lv => { const r = rankOf(lv); return `<span class="lv" title="${esc(r.name)}, level ${lv}">${rankIcon(r.icon)} ${lv}${r.stars ? `<i class="lvst">★${r.stars}</i>` : ''}</span>`; };
 const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
 
 // The full progress card (rank, XP bar, lifetime numbers, every game). It opens from the account menu's Profile.
@@ -725,12 +732,15 @@ function meCard() {
     : `<li><b>${GAMES[id].name}</b><span>${g.wins} ${g.wins === 1 ? 'win' : 'wins'} in ${g.games} · best ${g.best} pts</span></li>`).join('');
   return `<div class="mecard">
     <div class="rankrow">
-      <span class="rankicon">${m.icon}</span>
-      <div class="rankname"><b>${esc(m.rank)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
+      <span class="rankicon">${rankIcon(rankOf(m.level).icon)}</span>
+      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>Level ${m.level}${m.nextRank ? ` · ${esc(m.nextRank)} at level ${m.nextRankLv}` : ''}</span></div>
       <div class="acct"><span>${m.user ? `Signed in as <b>${esc(m.user)}</b>` : 'Playing as a guest. Progress stays on this browser.'}</span></div>
     </div>
     <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="XP to next level"><i style="width:${pct}%"></i></div>
     <div class="xpnote"><span>${m.into} / ${m.need} XP to level ${m.level + 1}</span><span>${m.xp} XP in total</span></div>
+    <details class="ladder"><summary>All ranks</summary><ol>${RANKS.map(r => { const mine = rankOf(m.level).icon === r.icon && rankOf(Math.min(m.level, RANKS.at(-1).lv)).lv === r.lv;
+      return `<li class="${m.level >= r.lv ? 'got' : ''}${mine ? ' now' : ''}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>level ${r.lv}</span></li>`; }).join('')}
+      <li class="more">After ${esc(RANKS.at(-1).name)} you earn one more ★ every ${STAR_EVERY} levels, with no end.</li></ol></details>
     <div class="stats">
       <div><b>${m.wins}</b><span>Wins</span></div><div><b>${m.games}</b><span>Games</span></div>
       <div><b>${rate}%</b><span>Win rate</span></div><div><b>${m.pts}</b><span>Points</span></div>
@@ -1365,7 +1375,7 @@ const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
 const WD_ACC = [['name', 'Name & card', ['nm', 'fr', 'pb', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['isle', 'Isle', ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', 'Isle pets', []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', pb: 'The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', ti: 'A title under your name. Titles with a goal are earned by playing.',
-  wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
+  wn: 'Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
 
 function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
   let color = st.color, av = st.av.slice(), sec = startSec, sub = '', filt = startFilt, undo = null, saveT = 0;

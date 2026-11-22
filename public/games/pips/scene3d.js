@@ -170,7 +170,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       if (!late && st.stage === 'pick') {
         const good = st.last.pts > 0;
         for (const d of dice) if (d.m.visible) { d.hop = 1; if (good) pfx.burst(d.m.position, { n: 6, colors: [...kit.sparks(list[st.last.s]?.fl?.dc).slice(0, 2), list[st.last.s]?.color || '#ff8fab'], speed: 1.6, up: 2.4, size: .2, life: .6, shape: STAR }); }
-        if (st.last.box === 'gen' && st.last.pts || st.last.bonus) { pfx.confetti(new THREE.Vector3(0, 1.4, 0), { n: 70, w: 3, h: 2.4 }); shake.kick(.14); }
+        if (st.last.box === 'gen' && st.last.pts || st.last.bonus) { pfx.confetti(new THREE.Vector3(0, 1.4, 0), { n: 70, w: 3, h: 2.4, s: st.last.s }); shake.kick(.14); }
         if (seats[st.last.s]) seats[st.last.s].hop = good ? 1 : .3;
       }
     }

@@ -55,6 +55,8 @@ function play(opts, human = (G, s, now) => ld._bot(G, s, now)) {
       const t = G.left.reduce((a, b) => a + b, 0);
       if (t > lastTotal) fail('dice came back'); lastTotal = t;
       if (G.left.some(x => x < 0)) fail('negative dice');
+      if (G.lives) G.seats.forEach((_, j) => { if (G.lives[j] > 0 ? G.left[j] !== start || G.dice[j].length !== start : G.left[j] !== 0) fail('life mode: a player with lives must keep every die, and one without has none'); if (ld.view(G, j).seats[j].lives !== G.lives[j]) fail('lives missing from the view'); });
+      else if (ld.view(G, -1).livesMax !== 0) fail('classic mode should have no lives');
     }
     if (G.ph !== 'end') fail('game did not end');
     if (G.left.filter(x => x > 0).length !== 1 || !G.left[G.win]) fail('the winner should be the only one with dice');
@@ -71,6 +73,14 @@ const b = play({ seats: 6, dice: 3, wild: 'off', spot: 'off', bots: 'sharp' });
 if (b.G.wild || b.G.spot) fail('options not applied');
 console.log('six seats, no wilds: winner', b.G.seats[b.G.win].name, 'after', b.rounds, 'rounds');
 play({ seats: 2, timer: 0 });
+{ // life mode: a lost call costs a life, never a die
+  const l = play({ seats: 4, mode: 'lives', lives: 2, dice: 3 });
+  if (!l.G.lives || l.G.opts.lives !== 2 || l.G.lives[l.G.win] < 1 || l.G.lives.filter(x => x > 0).length !== 1) fail('life mode ended wrong');
+  if (l.G.st.reduce((a, x) => a + x.lost, 0) !== l.G.lives.reduce((a, x) => a + 2 - x, 0)) fail('lives lost do not add up');
+  console.log('life mode: winner', l.G.seats[l.G.win].name, 'after', l.rounds, 'rounds with', l.G.lives[l.G.win], 'lives left');
+  play({ seats: 6, mode: 'lives', lives: 5, bots: 'sharp' });
+  if (ld.cleanOpts({ mode: 'x', lives: 9 }).mode !== 'dice' || ld.cleanOpts({ lives: 9 }).lives !== 3) fail('bad options accepted');
+}
 // a human who only ever calls "Liar!" and one who always raises by the smallest step
 play({ seats: 3 }, (G, s) => { if (!(G.bid ? ld.act(G, s, { t: 'liar' }) : ld.act(G, s, { t: 'bid', q: 1, f: 2 }))) fail('move refused'); });
 play({ seats: 3 }, (G, s) => { const l = lowest(G.bid, G.left.reduce((x, y) => x + y, 0), G.wild); if (!ld.act(G, s, l ? { t: 'bid', ...l } : { t: 'liar' })) fail('raise refused'); });

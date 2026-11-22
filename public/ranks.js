@@ -1,30 +1,59 @@
 // XP, levels and rank titles. Shared by the server (awards XP) and the hub (draws badges).
 
-// Reaching level L takes 50·L·(L-1) XP in total: 100 for level 2, 300 for 3, 600 for 4 …
-export const xpForLevel = L => 50 * L * (L - 1);
+// Reaching level L takes 50·L·(L-1) XP in total: 100 for level 2, 300 for 3, 600 for 4 … Each level costs 100 XP more
+// than the one before, up to level FLAT. From there every level costs the same (100·FLAT XP), so leveling never ends
+// and never slows to a crawl. Levels up to FLAT are exactly what they always were, so nobody's level can drop.
+export const FLAT = 20;
+const tri = L => 50 * L * (L - 1);
+export const xpForLevel = L => L <= FLAT ? tri(L) : tri(FLAT) + (L - FLAT) * 100 * FLAT;
 export function levelOf(xp) {
+  xp = Math.max(0, Number(xp) || 0);
+  if (xp >= tri(FLAT)) return FLAT + Math.floor((xp - tri(FLAT)) / (100 * FLAT));
   let L = 1;
-  while (xpForLevel(L + 1) <= xp) L++;
+  while (tri(L + 1) <= xp) L++;
   return L;
 }
 
+// The ladder is a climb through the sky, so it fits every game in the hub. `icon` is a key into rankicons.js (blocky
+// SVG emblems). Levels 1, 3, 5, 8, 12, 17, 23 and 30 are where the first eight (hot pot) ranks began.
 export const RANKS = [
-  { lv: 1, name: 'Sprout', icon: '🌱' },
-  { lv: 3, name: 'Nibbler', icon: '🥢' },
-  { lv: 5, name: 'Snack Scout', icon: '🥟' },
-  { lv: 8, name: 'Table Regular', icon: '🍜' },
-  { lv: 12, name: 'Spice Chaser', icon: '🌶️' },
-  { lv: 17, name: 'Pot Master', icon: '🍲' },
-  { lv: 23, name: 'Grand Feaster', icon: '👑' },
-  { lv: 30, name: 'Legend of the Table', icon: '🏆' },
+  { lv: 1, name: 'Seedling', icon: 'seed' },
+  { lv: 3, name: 'Fledgling', icon: 'chick' },
+  { lv: 5, name: 'Kite Flyer', icon: 'kite' },
+  { lv: 8, name: 'Cloud Hopper', icon: 'cloud' },
+  { lv: 10, name: 'Wind Rider', icon: 'plane' },
+  { lv: 12, name: 'Isle Explorer', icon: 'isle' },
+  { lv: 15, name: 'Balloon Pilot', icon: 'balloon' },
+  { lv: 17, name: 'Compass Keeper', icon: 'compass' },
+  { lv: 20, name: 'Sky Captain', icon: 'ship' },
+  { lv: 23, name: 'Storm Chaser', icon: 'bolt' },
+  { lv: 26, name: 'Rainbow Rider', icon: 'rainbow' },
+  { lv: 30, name: 'Moon Walker', icon: 'moon' },
+  { lv: 35, name: 'Star Catcher', icon: 'star' },
+  { lv: 40, name: 'Comet Tamer', icon: 'comet' },
+  { lv: 45, name: 'Sun Keeper', icon: 'sun' },
+  { lv: 50, name: 'Sky Legend', icon: 'crown' },
 ];
-export const rankOf = level => RANKS.filter(r => r.lv <= level).at(-1);
+// After the last named rank the ladder goes on for ever: one more star every STAR_EVERY levels.
+export const STAR_EVERY = 10;
+const TOP = RANKS.at(-1);
+export const starsOf = level => Math.max(0, Math.floor((level - TOP.lv) / STAR_EVERY));
+// The rank at a level: { lv, name, icon, stars }. With stars the name reads "Sky Legend ★3".
+export function rankOf(level) {
+  const r = RANKS.filter(x => x.lv <= level).at(-1) || RANKS[0], stars = starsOf(level);
+  return stars ? { ...r, lv: TOP.lv + stars * STAR_EVERY, name: `${r.name} ★${stars}`, stars } : { ...r, stars: 0 };
+}
+// The next rank or star above a level: there always is one.
+export function nextRankOf(level) {
+  const n = RANKS.find(x => x.lv > level);
+  return n ? { ...n, stars: 0 } : rankOf(TOP.lv + (starsOf(level) + 1) * STAR_EVERY);
+}
 
 // Everything the hub needs to draw a badge and progress bar.
 export function progress(xp = 0) {
   const level = levelOf(xp), lo = xpForLevel(level), hi = xpForLevel(level + 1);
-  const r = rankOf(level), next = RANKS.find(x => x.lv > level);
-  return { xp, level, rank: r.name, icon: r.icon, into: xp - lo, need: hi - lo, nextRank: next?.name || null, nextRankLv: next?.lv || null };
+  const r = rankOf(level), next = nextRankOf(level);
+  return { xp, level, rank: r.name, icon: r.icon, stars: r.stars, into: xp - lo, need: hi - lo, nextRank: next.name, nextRankLv: next.lv };
 }
 
 // XP for one finished game: showing up, winning, and a little for points scored.

@@ -306,7 +306,7 @@ export function createScene(canvas, { onFrame } = {}) {
         if (pending.kind >= 1 && pending.kind <= 3) {
           const g = makeFind(v2); g.position.copy(p); finds.push({ g, kind: v2, t: 0, s: pending.s });
           pfx.burst(p, { n: v2 === 13 ? 30 : 16, colors: [GEM_COL[v2], '#ffffff', '#ffd84a'], speed: 2.6, up: 4, size: .22, shape: STAR });
-          if (v2 === 13) { pfx.confetti(tv.copy(p).setY(1.5), { n: 60, w: 3, h: 2 }); shake.kick(.08); }
+          if (v2 === 13) { pfx.confetti(tv.copy(p).setY(1.5), { n: 60, w: 3, h: 2, s: pending.s }); shake.kick(.08); }
           if (s) s.hop = 1;
         } else if (pending.kind === 4) {
           const g = makeFind(14); g.position.copy(p); finds.push({ g, kind: 14, t: 0, s: pending.s });

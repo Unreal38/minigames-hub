@@ -230,7 +230,7 @@ export function createScene(canvas, { onFrame, step, clock } = {}) {
     } else if (e.t === 'streak') {
       const c = climbers[e.s]; if (c && e.s !== me) fx.sparkle({ x: c.x, y: c.y + 1.4, z: .4 }, { n: 8, r: .8 });
     } else if (e.t === 'zone') {
-      const c = climbers[e.s]; if (c) fx.confetti({ x: c.x, y: c.y + 1, z: 1 }, { n: 70, w: 8, h: 5 });
+      const c = climbers[e.s]; if (c) fx.confetti({ x: c.x, y: c.y + 1, z: 1 }, { n: 70, w: 8, h: 5, s: e.s });
     }
   }
 

@@ -151,3 +151,13 @@ body.in-game { overflow: hidden; }
 }
 body:has(.ld) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.ld) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.ld) .chatbtn .lbl, body:has(.ld) .scorebtn .lbl { display: none; } }
+
+/* life mode: hearts instead of losing dice */
+.ld-heart { width: 1em; height: 1em; flex: none; vertical-align: -.14em; }
+.ld-heart path { fill: var(--chili); stroke: var(--ink); stroke-width: 2.2; stroke-linejoin: round; }
+.ld-heart.gone path { fill: #e6d3bd; stroke: #b79d8c; }
+.ld-hearts { display: inline-flex; gap: 1px; margin-left: 6px; font-size: 15px; vertical-align: -1px; }
+.ld-mine .ld-hearts { font-size: 24px; margin: 0; gap: 2px; }
+.ld-tag .plate .cnt .ld-heart path { stroke: var(--cream); stroke-width: 1.6; }
+.ld .score strong .ld-heart path { stroke-width: 2; }
+@media (max-width: 700px) { .ld-mine .ld-hearts { font-size: 19px; } }

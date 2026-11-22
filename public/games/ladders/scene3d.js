@@ -346,10 +346,10 @@ export function createScene(canvas, { onFrame, onCue }) {
       book(p.d, () => { for (const n of [p.a, p.b]) fx.puff(at(n), { n: 10 }); shake.kick(.1); }); }
   }
   // reaching the last tile: a shower of confetti over the board
-  function party(n) {
+  function party(n, s) {
     if (reduced) return;
-    const c = at(n, 0); fx.confetti(c, { n: 110, w: 7, h: 5 }); fx.burst(c.clone().setY(.6), { n: 30, colors: GOLD, speed: 5, up: 6, size: .32, life: 1.3 }); shake.kick(.18);
-    later.push([(mv ? performance.now() - mvStart : 0) + 500, () => fx.confetti(at(n, 0), { n: 80, w: 9, h: 5 })]);
+    const c = at(n, 0); fx.confetti(c, { n: 110, w: 7, h: 5, s }); fx.burst(c.clone().setY(.6), { n: 30, colors: GOLD, speed: 5, up: 6, size: .32, life: 1.3 }); shake.kick(.18);
+    later.push([(mv ? performance.now() - mvStart : 0) + 500, () => fx.confetti(at(n, 0), { n: 80, w: 9, h: 5, s })]);
   }
 
   // ---------- frame loop ----------
@@ -371,7 +371,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       const p = mvPlan[cueAt++];
       onCue?.({ k: p.k, s: mv.s, die: mv.die, sp: p.sp, other: p.other, a: p.a, b: p.b, up: p.up, last: !mvPlan[cueAt] });
       cueFx(p, p.t0);
-      if (!mvPlan[cueAt] && mvPlan.end === B.size) later.push([mv.ms - 40, () => party(B.size)]);
+      if (!mvPlan[cueAt] && mvPlan.end === B.size) { const ws = mv.s; later.push([mv.ms - 40, () => party(B.size, ws)]); };
     }
     if (later.length) { if (!mv) later.length = 0; else for (let i = later.length - 1; i >= 0; i--) if (t >= later[i][0]) { const f = later[i][1]; later.splice(i, 1); f(); } }
     // where everyone stands: resting tokens share tiles politely

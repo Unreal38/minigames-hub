@@ -1,5 +1,6 @@
 // Pip Party game view: HUD over the 3D table. Shows everyone's score sheet, your five dice (tap to keep), the roll
 // button and the boxes you can write your roll into. The server owns the dice; this only sends roll, hold and pick.
+import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
@@ -120,7 +121,7 @@ export function mount(app, ctx) {
       : S.seats.map((p, i) => `<th class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}${i === S.me ? ' mine' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span></th>`).join('');
     const cell = ([i, ci], b) => {
       const p = S.seats[i], v = p.cols[ci][b], m = MULT[ci];
-      if (v != null) return `<td class="done${S.last && S.last.s === i && S.last.box === b && S.last.col === ci && S.stage === 'pick' ? ' fresh' : ''}${v === 0 ? ' zero' : ''}">${v * m}</td>`;
+      if (v != null) return `<td class="done${S.last && S.last.s === i && S.last.box === b && S.last.col === ci && S.stage === 'pick' ? ' fresh' : ''}${v === 0 ? ' zero' : ''}">${v * m + (b === 'gen' && !tri ? p.extra : 0)}</td>`;
       if (i !== roller) return '<td></td>';
       const w = worth(b, S.dice, p.cols, ci, p.waste), id = b + '/' + ci;
       if (!mine) return `<td class="pv${w ? '' : ' zero'}">${w}</td>`;
@@ -136,7 +137,7 @@ export function mount(app, ctx) {
       ${LOWER.map(row).join('')}
       ${tri ? sumRow('Column', (p, c, ci) => `<b>${colTotal(c) * MULT[ci]}</b>`, 'sub col') : ''}
       ${tri ? (who.extra ? `<tr class="sub"><th scope="row">Party bonus</th><td colspan="3"><b class="yes">+${who.extra}</b></td></tr>` : '')
-        : S.seats.some(p => p.extra) ? sumRow('Party bonus', p => (p.extra ? `<b class="yes">+${p.extra}</b>` : ''), 'sub') : ''}
+        : ''}
       ${tri ? `<tr class="tot"><th scope="row">Total</th><td colspan="3"><b>${who.tot}</b></td></tr>` : sumRow('Total', p => `<b>${p.tot}</b>`, 'tot')}
     </tbody></table>`;
   }
@@ -285,7 +286,8 @@ export function mount(app, ctx) {
     root.append(f); setTimeout(() => f.remove(), 1600);
   }
 
-  function confetti() {
+  function confetti(own = true) {
+    if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);

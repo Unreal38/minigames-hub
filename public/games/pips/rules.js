@@ -41,9 +41,10 @@ export function score(box, dice, cols) {
   if (joker(dice, cols) && LOWER.includes(box) && box !== 'gen') return { full: 25, ss: 30, ls: 40 }[box] ?? sum(dice);
   return plain(box, dice);
 }
-// The 100-point bonus for a joker (times the column it is written in): only when every Pip Party box scored 50 and
-// no five-of-a-kind was written somewhere else while a Pip Party box was still empty (`wasted`).
-export const genBonus = (dice, cols, ci = 0, wasted = false) => (joker(dice, cols) && !wasted && cols.every(c => c.gen === 50) ? GEN_BONUS * MULT[ci] : 0);
+// Every further five-of-a-kind pays a 100-point bonus (times the column it is written in), whichever empty box it
+// goes into, once the Pip Party box holds its 50. On the triple sheet all three Pip Party boxes must hold 50 and no
+// five-of-a-kind may have been written somewhere else while one of them was still empty (`wasted`).
+export const genBonus = (dice, cols, ci = 0, wasted = false) => (isGen(dice) && cols.every(c => c.gen === 50) && !(wasted && cols.length > 1) ? GEN_BONUS * MULT[ci] : 0);
 // What writing the dice into that box adds to the player's total.
 export const worth = (box, dice, cols, ci = 0, wasted = false) => score(box, dice, cols) * MULT[ci] + genBonus(dice, cols, ci, wasted);
 

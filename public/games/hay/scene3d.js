@@ -303,7 +303,7 @@ export function createScene(canvas, { onFrame } = {}) {
     if (fresh) cursor.visible = false;
   }
   function setMarks(m) { cells.forEach((c, i) => { const v = m?.[i] | 0; if (v === c.marks) return; c.marks = v; paintMarks(c.mcv, v); c.mt.needsUpdate = true; c.mark.visible = !!v; }); }
-  function cheer(big) { avHop = 1; if (big) { pfx.confetti(new THREE.Vector3(0, 1, 0), { n: small ? 60 : 110, w: 7, h: 4 }); } }
+  function cheer(big) { avHop = 1; if (big) { pfx.confetti(new THREE.Vector3(0, 1, 0), { n: small ? 60 : 110, w: 7, h: 4, s: 'me' }); } }
   function oops() { avSad = 1; shake.kick(.25); }
 
   // ---------- the frame loop ----------

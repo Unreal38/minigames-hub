@@ -63,6 +63,19 @@ store.credit(p, 'marbles', { pts: 0, win: false, coinNet: -25 });
 if (p.byGame.marbles.pts !== 25 || p.byGame.marbles.net !== 105 || p.byGame.marbles.wins !== 3) fail('credit totals ' + JSON.stringify(p.byGame.marbles));
 // Coins are paid by final place: 10 for 1st, spread evenly down to 1 for last.
 const R = await import('../public/ranks.js');
+// The rank ladder: levels up to 20 are what they always were, levels never end, and every rank has an emblem.
+{
+  const { RANK_ICONS } = await import('../public/rankicons.js');
+  const tri = L => 50 * L * (L - 1);
+  for (let L = 1; L <= 20; L++) if (R.xpForLevel(L) !== tri(L) || R.levelOf(tri(L)) !== L || R.levelOf(tri(L + 1) - 1) !== L) fail('level ' + L + ' moved');
+  for (let xp = 0; xp < 300000; xp += 137) { const L = R.levelOf(xp); if (R.xpForLevel(L) > xp || R.xpForLevel(L + 1) <= xp) fail('level bounds at ' + xp); }
+  if (R.levelOf(tri(31)) < 31) fail('a level dropped above the flat part');
+  for (const r of R.RANKS) if (!RANK_ICONS[r.icon]) fail('no emblem for ' + r.name);
+  for (const lv of [1, 3, 5, 8, 12, 17, 23, 30]) if (!R.RANKS.some(r => r.lv === lv)) fail('old rank level ' + lv + ' is gone');
+  const top = R.progress(R.xpForLevel(75));
+  if (top.rank !== 'Sky Legend ★2' || top.stars !== 2 || top.nextRankLv !== 80 || !top.nextRank) fail('stars ' + JSON.stringify(top));
+  if (R.progress(0).rank !== 'Seedling' || R.rankOf(17).name !== 'Compass Keeper' || R.rankOf(59).stars !== 0) fail('rank names');
+}
 const scale = n => Array.from({ length: n }, (_, i) => R.placeCoins(i + 1, n)).join('/');
 if (scale(2) !== '10/1' || scale(3) !== '10/6/1' || scale(4) !== '10/7/4/1' || scale(6) !== '10/8/6/5/3/1') fail('place scale ' + [2, 3, 4, 6].map(scale));
 const placed = R.withPlaces([{ pts: 5 }, { pts: 9 }, { pts: 2, win: true }, { pts: 5 }, { pts: 1, place: 2 }]).map(r => r.place).join();

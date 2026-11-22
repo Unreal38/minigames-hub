@@ -1,5 +1,6 @@
 // Beanstalk Bounce game view: moves your climber in the browser (the physics in tower.js), reports it to the
 // server, and draws the HUD over the 3D climb: floor, score, streak meter, the race up the stalk, touch pads and results.
+import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
@@ -292,7 +293,8 @@ export function mount(app, ctx) {
     root.append(f); setTimeout(() => f.remove(), 1600);
   }
 
-  function confetti() {
+  function confetti(own = true) {
+    if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
