@@ -847,8 +847,8 @@ function renderHub() {
   <main class="wrap hubgrid" data-tab="${st.htab}">
     <section class="hero">
       <div>
-        <h1>Pull up a chair. The pot's already bubbling.</h1>
-        <p>Tiny games for you and your friends. Host a table and share the four-letter code, or join one with a code from a friend.</p>
+        <h1>Pull up a chair. Game night's on.</h1>
+        <p>Card, board and party games for you and your friends, plus solo puzzles and your own Pet Farm. Host a table and share its four-letter code, or join one with a friend's code.</p>
         <div class="row herorow">
           <button type="button" class="btn big" data-act="host">Host a table</button>
           <form class="codeform" data-form="join">
