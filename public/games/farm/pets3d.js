@@ -255,8 +255,13 @@ export const FEAT = {
     leaf(g, [.14, n * .21 + .02, 0], [0, 0, -.6], .8); if (F) leaf(g, [-.14, n * .21 - .08, 0], [0, PI, -.6], .7, '#86cc5a');
   } },
   sizzlet: { slot: 'back', name: 'dragon wings', b(g, F, K) {
-    const k = [.5, .85, 1.25][F], c = mix(K.a, '#7a2a2a', .3), m = mix(K.b, '#ffb14a', .4);
-    for (const s of [-1, 1]) { const w = Grp(g, [s * .14, .02, 0], [.25, s * .5, -s * .55], k); Cy(w, [.035, .05, .7, 5], c, [0, .32, 0]); for (let i = 0; i < 3; i++) Oc(w, .3, m, [s * (.15 + i * .1), .44 - i * .17, 0], [1, .55, .08], [0, 0, -s * (.5 + i * .45)]); Co(w, [.05, .14, 4], '#fff3df', [0, .72, 0]); }
+    const D = DRAGON[K.el], k = [.5, .85, 1.25][F], c = D ? mix(K.a, D.spike, .5) : mix(K.a, '#7a2a2a', .3), m = D ? D.wing : mix(K.b, '#ffb14a', .4);
+    for (const s of [-1, 1]) { const w = Grp(g, [s * .14, .02, 0], [.25, s * .5, -s * .55], k); Cy(w, [.035, .05, .7, 5], c, [0, .32, 0]);
+      for (let i = 0; i < 3; i++) { const p = [s * (.15 + i * .1), .44 - i * .17, 0], r = [0, 0, -s * (.5 + i * .45)];
+        if (K.el === 'Stone') Gm(w, .2, i % 2 ? '#8a8794' : m, p, [1.3, .75, .45], r); // slabs of slate
+        else if (K.el === 'Leaf') Oc(w, .3, i % 2 ? '#4a9a45' : m, p, [1.15, .5, .1], r); // three leaves
+        else Oc(w, .3, m, p, K.el === 'Spark' ? [1.25, .4, .08] : [1, .55, .08], r); }
+      Co(w, [.05, .14, 4], D ? D.horn : '#fff3df', [0, .72, 0]); }
   } },
   waddlet: { slot: 'top', name: 'a seashell hat', b(g, F) {
     const s = Grp(g, [0, -.04, 0], [-.25, 0, 0], [.75, .95, 1.15][F]);
@@ -541,7 +546,7 @@ const BODY = {
     return A;
   },
   sizzlet(g, F, K, X) { // a dragon hatchling: mostly head, then a pot belly, then a first little flame
-    const r = [.5, .64, .72][F], by = [.5, .72, .86][F], hr = [.66, .62, .64][F], horn = '#fff3df', rz = r * .95;
+    const D = DRAGON[K.el], r = [.5, .64, .72][F], by = [.5, .72, .86][F], hr = [.66, .62, .64][F], horn = D ? D.horn : '#fff3df', spike = D ? D.spike : '#ffb14a', rz = r * .95;
     const hy = F ? by * 1.75 + hr * .5 : 1.0, hz = .15;
     const A = { head: { p: [0, hy, hz], r: hr }, body: { p: [0, by, -.05], r: [r, by, rz] } };
     Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by * .9, rz * .4], [r * .72, by * .78, rz * .72]);
@@ -553,9 +558,21 @@ const BODY = {
       for (let i = 0; i < 3; i++) Co(g, [.035, .09, 4], horn, [s * r * .6 + (i - 1) * .09, .08, rz * .5 + .25], [PI / 2, 0, 0]);
     }
     const tn = 3 + F; for (let i = 0; i < tn; i++) Sp(g, .22 - i * .035, K.a, [0, .2 + i * i * .012, -rz * .8 - i * .2], null, 1);
-    Oc(g, .1, '#ffb14a', [0, .24 + tn * tn * .012, -rz * .8 - tn * .2], [.5, 1.2, 1.4]);
-    for (let i = 0; i < F * 2; i++) { const a = .75 + i * .42; Co(g, [.07, .18, 4], '#ffb14a', [0, by + by * Math.cos(a) * 1.02, -.05 - rz * Math.sin(a) * 1.02], [-a, 0, 0]); }
-    if (F === 2) flame(g, [0, hy - hr * .3, hz + hr * 1.25], .32, [1.35, 0, 0]);
+    const tip = [0, .24 + tn * tn * .012, -rz * .8 - tn * .2], mouth = [0, hy - hr * .3, hz + hr * 1.25];
+    if (K.el === 'Leaf') { leaf(g, tip, [.5, 0, 0], 1.1); leaf(g, [tip[0], tip[1] + .1, tip[2] + .05], [-.6, 0, 0], .8, '#4a9a45'); }
+    else if (K.el === 'Tide') for (const s of [-1, 1]) Oc(g, .16, D.wing, [s * .12, tip[1] + .04, tip[2] - .06], [1.3, .25, .8], [0, s * .5, s * .5]); // a tail fluke
+    else if (K.el === 'Stone') { Gm(g, .2, '#8a8794', tip); for (const s of [-1, 1]) Co(g, [.05, .14, 4], spike, [s * .19, tip[1], tip[2]], [0, 0, -s * PI / 2]); } // a club tail
+    else if (K.el === 'Spark') { Oc(g, .11, GL(spike, .8), [0, tip[1] + .1, tip[2]], [.5, 1.5, .5], [.5, 0, 0]); Oc(g, .11, GL(spike, .8), [0, tip[1] - .02, tip[2] - .1], [.5, 1.5, .5], [-.4, 0, 0]); }
+    else Oc(g, .1, spike, tip, [.5, 1.2, 1.4]);
+    for (let i = 0; i < F * 2; i++) { const a = .75 + i * .42, p = [0, by + by * Math.cos(a) * 1.02, -.05 - rz * Math.sin(a) * 1.02];
+      if (K.el === 'Stone') Oc(g, .1, i % 2 ? GL('#8fe3f5', .5) : spike, p, [.8, 1.5, .8], [-a, 0, 0]); else if (K.el === 'Leaf') leaf(g, p, [-a + PI / 2, 0, 0], .6, i % 2 ? '#6cc24f' : spike); else Co(g, [.07, .18, 4], K.el === 'Spark' ? GL(spike, .6) : spike, p, [-a, 0, 0]); }
+    if (K.el === 'Stone') Oc(g, .09, GL('#8fe3f5', .6), [0, hy + hr * .5, hz + hr * .82], [1, 1.3, .5], [-.5, 0, 0]); // a gem on the brow
+    if (F === 2) { // what it breathes
+      if (!D) flame(g, mouth, .32, [1.35, 0, 0]);
+      else if (K.el === 'Leaf') flower(g, [mouth[0], mouth[1], mouth[2] + .08], '#ff9ec4', 1.1, [PI / 2, 0, 0]);
+      else if (K.el === 'Tide') for (let i = 0; i < 3; i++) Sp(g, .09 - i * .02, TR('#bfe6ff', .7), [(i - 1) * .1, mouth[1] + i * .1, mouth[2] + .1 + i * .08], null, 1);
+      else if (K.el === 'Spark') for (let i = 0; i < 3; i++) Oc(g, .06, GL('#ffe14a', .9), [(i - 1) * .12, mouth[1] + (i % 2) * .1, mouth[2] + .12], [.6, 1.6, .6], [0, 0, i - 1]);
+    }
     face(g, X.eyes, [0, hy + .03, hz], hr, { gap: .4, eye: [1.35, 1.2, 1.1][F], nose: null, mouth: false });
     A.top = [0, hy + hr * .82, hz - .03]; A.tail = [0, .25, -rz * .8 - tn * .2]; A.back = [0, by * 1.5, -rz * .75]; A.fs = [.7, .9, 1.1][F];
     if (X.own('back')) X.sig(A.back, A.fs);
@@ -1370,7 +1387,21 @@ const BODY = {
   },
 };
 
-export const coatOf = (sp, look) => { const n = COAT[sp] || COAT.mossbun, a = look?.coat || n[0]; return { a, b: look?.coat2 || (look?.coat ? mix(a, '#ffffff', .6) : n[1]) }; };
+// Element variants: a pet hatched with another element than its species' wears that element's colours and one small
+// charm by its ear (the dragon has its own parts instead: wings, spikes, tail and breath).
+const ELTINT = { Leaf: ['#8fd16a', '#e6f5c8'], Ember: ['#f0683c', '#ffe0b0'], Tide: ['#6fb7e8', '#e6f6ff'], Spark: ['#ffd84a', '#fff8d0'], Stone: ['#a9a6b0', '#e6e2dc'] };
+const DRAGON = { Leaf: { body: '#8fd16a', spike: '#4a9a45', horn: '#8a5a3c', wing: '#8fd16a' }, Tide: { body: '#6fa8e8', spike: '#3f8fd0', horn: '#e6f6ff', wing: TR('#8fd0f5', .8) }, Spark: { body: '#ffd24a', spike: '#ffe14a', horn: '#fff8d0', wing: GL('#ffe14a', .5) }, Stone: { body: '#9a98a8', spike: '#6f6a78', horn: '#5b5766', wing: '#a9a6b0' } };
+const CHARM = {
+  Leaf(c) { leaf(c, [-.07, .1, 0], [0, 0, .7], .7); leaf(c, [.08, .1, 0], [0, 0, -.7], .7, '#4a9a45'); },
+  Ember(c) { flame(c, [0, 0, 0], .3); },
+  Tide(c) { Sp(c, .11, TR('#c6ebff', .9), [0, .1, 0], null, 1); Co(c, [.085, .16, 6], TR('#c6ebff', .9), [0, .24, 0]); },
+  Spark(c) { for (const [y, z] of [[.22, -.4], [.07, -.4]]) Oc(c, .1, GL('#ffe14a', .8), [y > .1 ? .03 : -.03, y, 0], [.6, 1.3, .4], [0, 0, z]); },
+  Stone(c) { Gm(c, .12, '#8a8794', [0, .08, 0], [1.2, .9, 1]); Oc(c, .07, GL('#8fe3f5', .5), [.04, .2, 0], [.7, 1.4, .7]); },
+};
+export const coatOf = (sp, look) => {
+  const n = COAT[sp] || COAT.mossbun, t = ELTINT[look?.el], a = look?.coat ? (t ? mix(look.coat, t[0], .3) : look.coat) : t ? mix(n[0], t[0], .85) : n[0];
+  return { a, b: look?.coat2 || (look?.coat ? mix(a, '#ffffff', .6) : t ? mix(n[1], t[1], .5) : n[1]), el: t ? look.el : null };
+};
 
 // Markings sit on the body (spots, stripes) or the head (star, patch) and stack.
 function markings(g, A, pats, K) {
@@ -1389,10 +1420,12 @@ export function petModel(sp, form = 0, look = null) {
   const kc = look?.cat && COAT[look.cat] ? look.cat : sp; // a pet can wear the colours of another species in its family
   const coat = CATCOAT[sp] && !CATCOAT[kc] ? sp : kc; // cats also swap markings, when the other cat has its own
   const g = new THREE.Group(), F = Math.max(0, Math.min(2, form | 0)), K = coatOf(kc, look), eyes = [];
+  if (sp === 'sizzlet' && K.el && !look.coat) K.a = DRAGON[K.el].body; // the dragon's own colours
   const borrowed = look?.feat && look.feat !== sp && FEAT[look.feat] ? look.feat : null;
   const X = { eyes, coat, own: slot => !borrowed || FEAT[borrowed].slot !== slot, sig: (pos, k = 1) => FEAT[sp].b(Grp(g, pos, null, k), F, K) };
   const A = BODY[sp](g, F, K, X);
   if (borrowed) FEAT[borrowed].b(Grp(g, A[FEAT[borrowed].slot], null, A.fs || 1), F, K);
+  if (K.el && sp !== 'sizzlet' && A.head) { const h = A.head, hr = h.r[0] || h.r; CHARM[K.el](Grp(g, [h.p[0] - hr * .6, h.p[1] + hr * .72, h.p[2] + hr * .15], [0, 0, .45], hr / .65)); }
   markings(g, A, look?.pat, K);
   if (look?.spark) for (let i = 0; i < 5; i++) { const a = i * 1.3; Oc(g, .09, GL('#fff6c8', 1), [Math.sin(a) * 1.1, .5 + i * .38, Math.cos(a) * 1.1], [1, 1.7, 1]); }
   toonify(g, .045);

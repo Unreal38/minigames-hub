@@ -48,7 +48,18 @@ function player(name, token) {
   if (bun.size !== 4) fail('bunnies should mix both ways: ' + [...bun]);
   if (hybridOf('cindercub', 'snowfox') || hybridOf('zapkit', 'siamew')) fail('kin made a hybrid');
   if (!hybridOf('cindercub', 'pebblet')) fail('hybrids are gone');
-  if (lookOf({ sp: 'mossbun', cat: 'cindercub' })?.cat) fail('a coat from outside the family was drawn'); }
+  if (lookOf({ sp: 'mossbun', cat: 'cindercub' })?.cat) fail('a coat from outside the family was drawn');
+  // element variants: a one-element baby can take a parent's element, which replaces its own; hybrids never do
+  const { variantOdds } = await import('../public/games/farm/breed.js'), { unit, movesAt } = await import('../public/games/farm/battle.js'), { elOf, atHome, ZONES: Z } = await import('../public/games/farm/data.js');
+  let vn = 0; for (let i = 0; i < 2000; i++) { const k = makeBaby({ sp: 'sizzlet' }, { sp: 'puddlepup' }); if (k.el) { if (k.el !== (k.sp === 'sizzlet' ? 'Tide' : 'Ember')) fail('wrong variant ' + JSON.stringify(k)); vn++; } }
+  if (vn < 200 || vn > 400) fail('variants should be about 15%: ' + vn / 20);
+  for (let i = 0; i < 200; i++) { if (makeBaby({ sp: 'sizzlet' }, { sp: 'cindercub' }).el) fail('same element made a variant'); const h = makeBaby({ sp: 'magmutt' }, { sp: 'magmutt', el: 'Tide' }); if (h.el) fail('a hybrid got a variant'); }
+  let kept = 0; for (let i = 0; i < 400; i++) if (makeBaby({ sp: 'sizzlet', el: 'Tide' }, { sp: 'sizzlet', el: 'Tide' }).el === 'Tide') kept++;
+  if (kept < 250) fail('a variant should pass down: ' + kept);
+  const tv = { id: 'x', sp: 'sizzlet', name: 'T', lv: 12, el: 'Tide' }, u = unit(tv);
+  if (u.el !== 'Tide' || u.moves[0] !== 'splash' || u.moves.length !== 4 || lookOf(tv)?.el !== 'Tide') fail('variant battle unit ' + JSON.stringify(u.moves));
+  if (unit({ ...tv, el: 'Ember' }).moves[0] !== movesAt('sizzlet', 12)[0] || lookOf({ ...tv, el: 'Ember' })?.el || elOf({ sp: 'magmutt', el: 'Tide' }) !== 'Ember') fail('a base element is not a variant');
+  if (!atHome(Z.cove, 'sizzlet', 'Tide') || atHome(Z.hills, 'sizzlet', 'Tide') || !variantOdds('mossbun', { sp: 'magmutt' }, { sp: 'mossbun' }).length) fail('variant home or odds'); }
 
 await boot();
 const a = player('Ana'); await a.ready;

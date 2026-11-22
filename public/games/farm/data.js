@@ -169,7 +169,10 @@ const FAM = {}; for (const [k, [, list]] of Object.entries(FAMILIES)) for (const
 export const familyOf = sp => FAM[sp] || null; // null: a family of one
 export const kin = (a, b) => !!FAM[a] && FAM[a] === FAM[b];
 // Does this species get the 25% carry bonus in this zone? Its element matches, or on a themed island it lives there.
-export const atHome = (z, sp) => !!SPECIES[sp] && (z.theme ? sp in z.wild : SPECIES[sp].el === z.el);
+export const atHome = (z, sp, el = SPECIES[sp]?.el) => !!SPECIES[sp] && (z.theme ? sp in z.wild : el === z.el);
+// Element variants: a pet of a one-element species can hatch with another element (p.el), which replaces its own.
+export const elOf = p => { const d = SPECIES[p.sp]; return d && !d.el2 && p.el && ELEMENTS[p.el] ? p.el : d?.el; };
+export const variantOf = p => elOf(p) !== SPECIES[p.sp]?.el ? elOf(p) : null;
 export const RARITY = ['Common', 'Uncommon', 'Rare', 'Breeding only'];
 export const STARTERS = ['mossbun', 'cindercub', 'puddlepup'];
 export const FORMS = ['Baby', 'Young', 'Adult'];
@@ -248,7 +251,7 @@ export const PARTY = 3;
 export function tripLoot(zone, trip, pets) {
   const z = ZONES[zone], hours = Math.pow(TRIPS[trip].min / 60, .9), out = {};
   let power = 0;
-  for (const p of pets) power += (atHome(z, p.sp) ? 1.25 : 1) * (1 + (p.lv - 1) * .04);
+  for (const p of pets) power += (atHome(z, p.sp, elOf(p)) ? 1.25 : 1) * (1 + (p.lv - 1) * .04);
   for (const [k, n] of Object.entries(z.gives)) out[k] = n * hours * power;
   return out;
 }
