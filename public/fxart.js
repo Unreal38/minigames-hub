@@ -31,3 +31,19 @@ export function drawShape(g, kind, cx, cy, r, { fill = '#ffffff', shade = '#d0d0
 }
 // A darker version of a #rrggbb colour, for the facet.
 export const darker = (hex, k = .8) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+
+// The fish of the Fish rain effect, in its own colours (not tinted like the shapes above): a silver-blue fish with a
+// pale belly, darker fins and a bright eye, facing left. Centred on (cx, cy), half-size r.
+export function drawFish(g, cx, cy, r) {
+  const BACK = '#5b9bd0', BELLY = '#e3f0f8', FIN = '#3d76ad', body = [[-.92, .02], [-.62, -.3], [-.2, -.44], [.2, -.36], [.5, -.14], [.5, .16], [.2, .38], [-.2, .44], [-.62, .3]];
+  g.save(); g.translate(cx, cy); g.scale(r, r); g.lineJoin = g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = .1;
+  for (const fin of [[[.42, 0], [.92, -.46], [.78, 0], [.92, .46]], [[-.28, -.4], [.04, -.7], [.26, -.32]]]) { poly(g, fin); g.fillStyle = FIN; g.fill(); g.stroke(); } // tail, back fin
+  poly(g, body); g.fillStyle = BACK; g.fill();
+  g.save(); poly(g, body); g.clip(); g.fillStyle = BELLY; poly(g, [[-1, .1], [1, .02], [1, 1], [-1, 1]]); g.fill(); g.restore();
+  poly(g, body); g.stroke();
+  poly(g, [[-.22, .06], [.1, .3], [-.02, .02]]); g.fillStyle = FIN; g.fill(); g.lineWidth = .07; g.stroke();                 // side fin
+  g.beginPath(); g.moveTo(-.46, -.2); g.lineTo(-.42, .18); g.stroke();                                                       // gill
+  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(-.66, -.07, .11, 0, 6.3); g.fill(); g.stroke();
+  g.fillStyle = INK; g.beginPath(); g.arc(-.68, -.07, .05, 0, 6.3); g.fill();
+  g.restore();
+}
