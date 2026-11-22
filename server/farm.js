@@ -781,7 +781,7 @@ export function giftAll(mats, text = '') {
   const got = {}; for (const [k, n] of Object.entries(mats || {})) if (own(MATS, k) && Number.isInteger(n) && n > 0 && n <= 100000) got[k] = n;
   if (!Object.keys(got).length) return 0;
   for (const [pid, f] of farms) {
-    post(f, { k: 'gift', from: 'Cozy Table', got: { ...got }, ...(text ? { text: String(text).slice(0, 120) } : {}) });
+    post(f, { k: 'gift', from: 'Zatoka Gier', got: { ...got }, ...(text ? { text: String(text).slice(0, 120) } : {}) });
     const p = profiles.get(pid); if (p) push(pid, { t: 'farm', farm: view(f, p), note: 'A gift for everyone just landed in your Mailbox!' });
   }
   scheduleSave();

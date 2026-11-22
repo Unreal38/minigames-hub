@@ -67,7 +67,7 @@ function feltTexture() {
     g.globalAlpha = .22; suitPath(g, i % 4, x - 14, y - 14, 28); g.globalAlpha = 1;
   }
   g.fillStyle = '#fff4e21c'; g.font = '700 64px Fredoka, Nunito, sans-serif'; g.textAlign = 'center';
-  g.fillText('COZY TABLE', S / 2, S / 2 + 230);
+  g.fillText('ZATOKA GIER', S / 2, S / 2 + 230);
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }

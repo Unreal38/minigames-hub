@@ -1,4 +1,4 @@
-// Cozy Table game server: static files + WebSocket lobbies. No dependencies.
+// Zatoka Gier game server: static files + WebSocket lobbies. No dependencies.
 // Profiles, optional accounts and lobby scoreboards are saved to disk by store.js.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -600,4 +600,4 @@ setInterval(() => { // forget guest profiles that never played, once their brows
   if (n > 20) console.log(`forgot ${n} empty guest profiles`);
 }, 10 * 60_000).unref();
 
-server.listen(PORT, HOST, () => console.log(`Cozy Table running on http://${HOST}:${PORT}`));
+server.listen(PORT, HOST, () => console.log(`Zatoka Gier running on http://${HOST}:${PORT}`));

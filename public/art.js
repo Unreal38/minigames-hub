@@ -3,6 +3,10 @@ import { iconSvg } from './games/hotpot/icons.js';
 
 const ink = '#3b2219';
 
+// Site logo: a lighthouse, a pawn, a die and a marble on a floating island. The outline follows --ink (day and night).
+export const siteLogo = s =>
+  `<svg class="sitelogo" width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true"><g stroke="var(--ink, #3b2219)" stroke-width="4" stroke-linejoin="round"><path d="M10 64h80l-10 12-12 4-12 14-14-12-18-4z" fill="#857a72"/><path d="M4 56h92v10H4z" fill="#7cc35a"/><path d="M50 18l46-12v22z" fill="#ffe27a" stroke="none" opacity=".85"/><path d="M38 56l3-28h12l3 28z" fill="#fff"/><path d="M40 37h14l1 9H39z" fill="#e5543b"/><rect x="39" y="18" width="16" height="10" rx="2" fill="#ffb547"/><path d="M37 18l10-8 10 8z" fill="#e5543b"/><g transform="rotate(8 71 49)"><rect x="64" y="42" width="14" height="14" rx="3" fill="#fff"/><g fill="var(--ink, #3b2219)" stroke="none"><circle cx="68.2" cy="46.2" r="1.6"/><circle cx="73.8" cy="51.8" r="1.6"/></g></g><path transform="translate(26 56) scale(0.95)" d="M0-22a6 6 0 0 1 4 10l5 12h-18l5-12a6 6 0 0 1 4-10z" fill="#ffb547"/><circle cx="88" cy="51" r="5" fill="#4fb3e8"/></g></svg>`;
+
 export const potLogo = (s, steam = '#ffb547', pot = '#e5543b', rim = '#ffb547', line = '#fff4e2') =>
   `<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true">
   <g class="steam"><path d="M34 30c-4-6 4-10 0-16M50 28c-4-6 4-10 0-16M66 30c-4-6 4-10 0-16" fill="none" stroke="${steam}" stroke-width="5" stroke-linecap="round"/></g>
