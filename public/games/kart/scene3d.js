@@ -167,7 +167,7 @@ function buildDeco(T, sky) {
 const WHEEL = new THREE.CylinderGeometry(.33, .33, .3, 10).rotateZ(Math.PI / 2);
 const HUB = new THREE.CylinderGeometry(.14, .14, .32, 8).rotateZ(Math.PI / 2);
 function shade(hex, k) { const c = new THREE.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); }
-function makeKart(color, av, paintK = 0) {
+export function makeKart(color, av, paintK = 0) {
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const paint = kartPaint(paintK), bc = paint.body || color; // kart paint from the shop (skins.js); the driver keeps their own colour
   const B = new THREE.BoxGeometry(1, 1, 1), dk = shade(bc, .7), cream = '#fff4e2', ink = '#3b2219';

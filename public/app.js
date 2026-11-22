@@ -7,6 +7,7 @@ import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
+import { skinPic, skinPicNow } from './skinpic.js';
 import { progress } from './ranks.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -1314,13 +1315,13 @@ function openStyle() {
     <h2>Your style</h2>
     <p>How your name and picture look to everyone: in waiting rooms, chat and the rankings. Titles with a goal are earned by playing, the rest cost coins.</p>
     <div class="creator stylebox">
-      <div class="stylecard"></div>
+      <div class="styletop"><div class="stylecard"></div><div class="stylekit" aria-label="How your things look in the games"></div></div>
       <div class="crows stylerows"></div>
       <div class="cart" aria-live="polite"></div>
       <div class="row"><button type="button" class="btn big" data-done>Done</button><button type="button" class="btn big w" data-toshop>${coinIco}Avatar shop</button></div>
     </div>`);
   sheet.el.querySelector('.sheet').classList.add('wide');
-  const { el, close } = sheet, card = el.querySelector('.stylecard'), rows = el.querySelector('.stylerows'), cart = el.querySelector('.cart');
+  const { el, close } = sheet, kitEl = el.querySelector('.stylekit'), card = el.querySelector('.stylecard'), rows = el.querySelector('.stylerows'), cart = el.querySelector('.cart');
   let open = true;
   const me = () => st.me || {}, coins = () => me().coins || 0, today = () => me().today ? new Date(me().today + 'T12:00') : new Date();
   const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
@@ -1336,6 +1337,10 @@ function openStyle() {
     const fl = Object.fromEntries(WORN.map(k => [k, worn(k)]));
     card.innerHTML = `${avatarHtml(st.color, st.av, 84, frameCls(fl))}<div><b>${nameHtml(st.name, fl)} ${meChip()}</b>${titleHtml(fl) || '<span class="ttl none">no title</span>'}<small>${fl.wn ? `Win effect: ${esc(cosItem('wn', fl.wn).n)}` : 'No win effect'}</small></div>`;
     rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : c.where ? ` <small>${c.where}</small>` : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
+    // the table kit: a picture of each table theme as chosen (or tried on) right now
+    kitEl.innerHTML = ['cb', 'dc', 'gb', 'kp'].map(k => { const i = fl[k] | 0, u = skinPicNow(k, i, st.color, st.av);
+      return `<figure class="${pick[k] != null ? 'try' : ''}"><img width="84" height="84" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i).n)}</figcaption></figure>`; }).join('');
+    for (const im of kitEl.querySelectorAll('img:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, st.color, st.av).then(u => { if (u && im.isConnected) im.src = u; }); }
     const pal = me().cos?.pet || '', pets = st.pets || [];
     rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Lobby companion <small>One of your Pet Farm pets sits beside you in waiting rooms.</small></b><div class="pills palpills">${
       !me().user ? '<small>Log in and start a Pet Farm to bring a pet along.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
