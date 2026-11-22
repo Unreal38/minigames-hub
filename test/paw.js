@@ -112,9 +112,9 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
   pw._roll(G, s, now, [1, 1]); run(() => G.turn === s && G.stage === 'roll');
   pw._roll(G, s, now, [2, 2]); run(() => G.turn === o && G.stage === 'roll');
   if (!A.inBath || A.pos !== BATH) fail('three doubles should end in the bath');
-  pw._roll(G, o, now, [1, 2]); run(() => G.turn === s && (G.stage === 'roll' || G.stage === 'buy')); if (G.stage === 'buy') pw.act(G, s, { t: 'pass' });
-  run(() => G.turn === s && G.stage === 'roll');
-  // in the tub: no doubles means staying put
+  // while the owner is in the tub their pets nap: no rent, and the view shows them asleep
+  { if (!A.inBath || G.own[3] !== s || !pw.view(G, o).nap[3]) fail('pets should nap while their owner is in the tub');
+    B.pos = 0; const cb = B.cash; pw._roll(G, o, now, [1, 2]); run(() => G.turn === s && G.stage === 'roll'); if (B.cash !== cb) fail('rent was charged while the owner was in the tub'); }
   pw._roll(G, s, now, [1, 2]); if (G.stage !== 'stay') fail('should stay in the tub without doubles');
   run(() => G.turn === o && G.stage === 'roll'); if (!A.inBath || A.pos !== BATH || A.tries !== 1) fail('left the tub without doubles');
   pw._roll(G, o, now, [1, 2]); run(() => G.turn === s && (G.stage === 'roll' || G.stage === 'buy')); if (G.stage === 'buy') pw.act(G, o, { t: 'pass' });
