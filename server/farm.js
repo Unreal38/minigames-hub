@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
-import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
+import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
@@ -191,9 +191,10 @@ const saw = (f, sps) => { f.album ||= {}; for (const sp of sps) if (SPECIES[sp])
 const wildOf = f => f.wild && f.wild.until > Date.now() ? f.wild : null;
 function album(f) {
   f.album ||= {};
-  f.coats ||= []; f.marks ||= [];
+  f.coats ||= []; f.marks ||= []; f.vars ||= {};
   for (const x of f.pets) {
     const a = f.album[x.sp] ||= [0, 0, 0]; a[formOf(x.lv)] = 1;
+    const v = f.vars[x.sp] ||= [], e = elOf(x); if (!v.includes(e)) v.push(e); // the elements this species has been raised with
     if (!f.coats.includes(x.col[0])) f.coats.push(x.col[0]);
     for (const k of x.pat) if (!f.marks.includes(k)) f.marks.push(k);
   }
@@ -279,7 +280,7 @@ const view = (f, p) => ({
   train: { ids: f.train?.ids || [], slots: topLv(f, 'yard'), left: f.train?.ids.length ? Math.max(0, f.train.at + HOUR - Date.now()) : 0 },
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets.map(petView), nest: nestView(f),
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
-  album: album(f), coats: f.coats, marks: f.marks, mail: f.mail || [], pals: f.pals || {}, trades: tradesView(p.pid, f),
+  album: album(f), vars: f.vars, coats: f.coats, marks: f.marks, mail: f.mail || [], pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f),
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)

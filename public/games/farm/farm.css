@@ -20,6 +20,7 @@ body.in-game { overflow: hidden; }
 .pf .mats .mat { background: var(--pf-bg, var(--cream)); border: 3px solid var(--ink); border-radius: 999px; padding: 3px 12px 3px 8px; box-shadow: 0 3px 0 #23401c55; }
 .pf .hint { font-size: 14px; color: var(--pf-muted, #6b4a3c); }
 .pf .el { display: inline-block; font-family: var(--fd); font-weight: 600; font-size: 13px; color: #fff; background: var(--c); border-radius: 999px; padding: 1px 10px; }
+.pf .el.off { opacity: .28; } /* an element this species has not been raised with yet */
 .pf img, .pf .nothumb { width: 56px; height: 56px; flex: none; display: block; }
 .pf .nothumb { border-radius: 12px; background: var(--pf-soft, #d8f0d2); }
 .pf .nothumb.grow { display: grid; place-items: center; font-family: var(--fd); font-weight: 700; font-size: 22px; color: var(--pf-tx, var(--ink)); background: #8fd16a; border: 3px dashed var(--ink); }

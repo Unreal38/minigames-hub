@@ -1,6 +1,6 @@
 // Pet Farm breeding: what a baby inherits from its two parents. Shared by the server (which rolls the dice) and
 // the browser (which shows the odds and draws the looks). Nothing here touches the network or the save file.
-import { SPECIES, familyOf, kin } from './data.js';
+import { SPECIES, familyOf, kin, elOf, variantOf } from './data.js';
 import { KIT } from './battle.js';
 
 // Natural coats: main colour and second colour (belly, wool tips, flippers).
@@ -50,7 +50,7 @@ export const TALENTS = [
 export const STAR_NAME = ['Health', 'Attack', 'Defence', 'Speed'];
 // Two parents of these elements can have the breeding-only species. The game never shows this table.
 const RECIPE = { 'Leaf+Tide': 'truffowl', 'Ember+Stone': 'magmutt', 'Spark+Tide': 'nimbowhale', 'Leaf+Spark': 'glimmoth', 'Stone+Tide': 'geodeer' };
-export const HYBRID_CHANCE = .2, BREED_LV = 5, CUDDLE_H = 2, REST_H = 6, HATCH_H = [4, 6, 8, 12];
+export const HYBRID_CHANCE = .2, VARIANT_CHANCE = .15, VARIANT_KEEP = .5, BREED_LV = 5, CUDDLE_H = 2, REST_H = 6, HATCH_H = [4, 6, 8, 12];
 
 const hex = n => n.toString(16).padStart(2, '0');
 export function mixHex(a, b, t = .5) {
@@ -66,6 +66,7 @@ export function lookOf(p) {
   if (p.blend) l.coat = p.blend; else if (p.col?.[0]) l.coat = COATS[p.col[0]].c;
   if (p.two != null) l.coat2 = p.two ? COATS[p.two].c : COAT[p.sp][0];
   if (kinCoat(p) && kinCoat(p) !== p.sp) l.cat = p.cat;
+  if (variantOf(p)) l.el = p.el;
   if (pats(p).length) l.pat = pats(p);
   if (p.feat && p.feat !== p.sp) l.feat = p.feat;
   if (p.sparkle) l.spark = 1;
@@ -86,6 +87,11 @@ export function speciesOdds(a, b) {
   const h = hybridOf(a, b), rest = h ? 1 - HYBRID_CHANCE : 1;
   return [{ sp: a, p: rest / 2 }, { sp: b, p: rest / 2 }, ...(h ? [{ sp: h, p: HYBRID_CHANCE, hybrid: true }] : [])];
 }
+// The other elements a baby of this species could hatch with, and the chance each parent gives it.
+export function variantOdds(sp, a, b) {
+  const d = SPECIES[sp]; if (d.el2) return [];
+  return [a, b].flatMap(p => (SPECIES[p.sp].el2 ? els(p.sp) : [elOf(p)]).filter(e => e !== d.el).map(e => [e, variantOf(p) === e ? VARIANT_KEEP : VARIANT_CHANCE]));
+}
 export const hatchHours = sp => HATCH_H[SPECIES[sp].rare] || 4;
 // The egg: its shell is the colour of one parent and its speckles the colour of the other.
 export const shellOf = (a, b) => ({ base: mixHex(coatHex(a), '#fff6e6', .45), speck: mixHex(coatHex(b), '#6b4a3c', .25) });
@@ -98,6 +104,8 @@ export function makeBaby(a, b, rnd = Math.random) {
   const other = sp === a.sp ? b : sp === b.sp ? a : pick([a, b]);
   const kid = { sp, lv: 1, xp: 0 };
   if (kin(a.sp, b.sp)) { const c = pick([kinCoat(a), kinCoat(b)]); if (c !== sp) kid.cat = c; } // one family: the coat can come from either side
+  // an element variant: a one-element baby can take the element of a parent, more easily from a parent that is a variant itself
+  for (const [e, c] of variantOdds(sp, a, b)) if (rnd() < c) { kid.el = e; break; }
   kid.col = [pick(a.col || [0, 0]), pick(b.col || [0, 0])].sort((x, y) => x - y);
   // a soft blend of both coats, or two tones, when the parents show different colours
   const ca = coatHex(a, sp), cb = coatHex(b, sp);

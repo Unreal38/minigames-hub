@@ -1,7 +1,7 @@
 // Pet Farm battles: every rule of a 3 against 3 turn-based fight, shared by the server (which runs it) and the
 // browser (which only needs the names and numbers). Nothing here touches the network or the save file.
 // Side 0 is the player. Side 1 is the other team, always played by pickMove() below.
-import { SPECIES, formOf } from './data.js';
+import { SPECIES, formOf, elOf } from './data.js';
 
 // Each element is strong against the next one in this ring and weak against the one before it.
 export const STRONG = { Tide: 'Ember', Ember: 'Leaf', Leaf: 'Stone', Stone: 'Spark', Spark: 'Tide' };
@@ -126,7 +126,13 @@ export const KIT = {
 };
 export const LEARN = [1, 1, 5, 10];
 export const ROLE_NAME = { balanced: 'Balanced', tank: 'Tank', support: 'Support', fast: 'Fast attacker', glass: 'Glass cannon', trickster: 'Trickster', bruiser: 'Bruiser', healer: 'Healer' };
-export const movesAt = (sp, lv, extra) => [...(KIT[sp]?.moves || []).filter((_, i) => lv >= LEARN[i]), ...(extra && MOVES[extra] && lv >= XMOVE_LV ? [extra] : [])];
+// An element variant (el is not the species' own) swaps its first move for its element's simple hit.
+export const BASIC = { Leaf: 'leafflick', Ember: 'sparknip', Tide: 'splash', Spark: 'zap', Stone: 'pebbletoss' };
+export const movesAt = (sp, lv, extra, el) => {
+  let k = KIT[sp]?.moves || [];
+  if (el && BASIC[el] && el !== SPECIES[sp].el && !SPECIES[sp].el2) k = [BASIC[el], ...k.slice(1)];
+  return [...new Set([...k.filter((_, i) => lv >= LEARN[i]), ...(extra && MOVES[extra] && lv >= XMOVE_LV ? [extra] : [])])];
+};
 export const XMOVE_LV = 5; // a move handed down by a parent of another species wakes up at this level
 
 // A pet's numbers at a level. Each star above the first adds 5% to its stat.
@@ -138,8 +144,8 @@ export function statsOf(pet, lv = pet.lv) {
 // A pet ready to fight. lv may be higher than its real level when a battle scales everyone up.
 export function unit(pet, lv = pet.lv) {
   const s = statsOf(pet, lv);
-  return { id: pet.id, sp: pet.sp, name: pet.name, el: SPECIES[pet.sp].el, el2: SPECIES[pet.sp].el2 || null, lv, form: formOf(pet.lv), look: pet.look || null, early: pet.talent === 0, max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
-    moves: movesAt(pet.sp, lv, pet.xmove), cd: {}, up: { atk: 0, def: 0, spd: 0 }, status: {} };
+  return { id: pet.id, sp: pet.sp, name: pet.name, el: elOf(pet), el2: SPECIES[pet.sp].el2 || null, lv, form: formOf(pet.lv), look: pet.look || null, early: pet.talent === 0, max: s.hp, hp: s.hp, atk: s.atk, def: s.def, spd: s.spd,
+    moves: movesAt(pet.sp, lv, pet.xmove, elOf(pet)), cd: {}, up: { atk: 0, def: 0, spd: 0 }, status: {} };
 }
 export const newBattle = (mine, theirs, meta = {}) => ({ ...meta, sides: [{ pets: mine, on: 0 }, { pets: theirs, on: 0 }], turn: 1, need: false, over: null });
 
