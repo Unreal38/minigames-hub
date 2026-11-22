@@ -32,6 +32,7 @@ export function load() {
   try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
   catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return; }
   for (const [pid, f] of Object.entries(d.farms || {})) if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); bindCoins(pid, f); farms.set(pid, f); }
+  for (const [pid, f] of farms) { const p = profiles.get(pid); if (p) p.petSp = Object.values(album(f)).filter(a => a.some(Boolean)).length; }
   console.log(`loaded ${farms.size} farms from ${FILE}`);
 }
 let timer = null, dirty = false, warned = false;
@@ -253,6 +254,7 @@ const RANK_XP = { arena: 10, live: 10, species: 15 };
 function hubXp(p, n) { if (!p || !n) return; p.xp = (p.xp || 0) + n; saveHub(); push(p.pid, { t: 'me', me: hubMe(p) }); }
 function albumXp(f, p) { // paid once for every species ever owned, including ones owned before this existed
   const owned = Object.values(album(f)).filter(a => a.some(Boolean)).length, add = owned - (f.albumXp || 0);
+  if (p && p.petSp !== owned) { p.petSp = owned; saveHub(); if (add <= 0) push(p.pid, { t: 'me', me: hubMe(p) }); } // the account remembers it: card backgrounds are unlocked by it (cosmetics.js, earn.sp)
   if (add > 0) { f.albumXp = owned; hubXp(p, add * RANK_XP.species); scheduleSave(); return add * RANK_XP.species; }
   return 0;
 }
