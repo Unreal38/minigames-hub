@@ -945,3 +945,84 @@ body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color
 
 .pfriend { align-self: center; font: 700 17px var(--fd); padding: 8px 16px; }
 .psheet .row { flex-wrap: wrap; align-items: center; }
+
+/* ---------- the Wardrobe: avatar, shop and account style in one place ---------- */
+.sheet.wdsheet { width: min(1120px, 100%); height: min(800px, calc(100dvh - 32px)); max-height: none; padding: 18px 20px; overflow: hidden; }
+.sheet.wdsheet:has(.wd.first) { width: min(900px, 100%); }
+.wd.creator { flex: 1; min-height: 0; display: grid; gap: 12px 16px; grid-template-columns: 270px 172px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "head head head" "side rail body" "side cart cart"; }
+.wd.creator.first { grid-template-columns: 270px minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto; grid-template-areas: "head head" "intro intro" "side rail" "side body" "foot foot"; }
+.wdhead { grid-area: head; display: flex; align-items: center; gap: 12px; } .wdhead h2 { flex: 1; font-size: 28px; }
+.wdintro { grid-area: intro; }
+.wdcoins { display: inline-flex; align-items: center; font-size: 17px; font-variant-numeric: tabular-nums; }
+.wdhead .wdx { width: 44px; height: 44px; background: var(--chip, #fff); color: var(--tx, var(--ink)); border-color: var(--tx, var(--ink)); }
+.wdside { grid-area: side; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.wd.creator .pv3d { flex: 1; min-height: 120px; aspect-ratio: auto; }
+.wdme { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.wdplate { display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 16px; border: 3px solid var(--tx, var(--ink)); border-radius: 16px; background: var(--chip, #fff); min-height: 76px; }
+.wdplate > div { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; min-width: 0; flex: 1; }
+.wdplate b { font: 700 19px/1.15 var(--fd); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; overflow-wrap: anywhere; } .wdplate small { font-size: 12.5px; color: var(--tx2, #6b4a3c); }
+.wdplate .petpal { flex: none; }
+.wd.creator .namecol { flex: none; flex-direction: row; align-items: center; gap: 10px; } .wd.creator .namecol .field { min-width: 0; padding-top: 8px; padding-bottom: 8px; }
+.wd.creator .pvbar { flex-wrap: nowrap; justify-content: flex-start; } .wd .pvseg button { min-height: 40px; }
+.wdrail { grid-area: rail; display: flex; flex-direction: column; gap: 2px; overflow: auto; padding-right: 10px; border-right: 3px dashed var(--edge, #e6cfbd); }
+.wdrail button { font: 600 16px/1.2 var(--fd); text-align: left; min-height: 44px; padding: 6px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--tx, var(--ink)); cursor: pointer; flex: none; }
+.wdrail button:hover { background: var(--pan2, #ffe9cf); }
+.wdrail button[aria-pressed=true] { background: var(--tx, var(--ink)); color: var(--pan, var(--cream)); }
+.wdrail .dropb { background: color-mix(in srgb, #6fb7e8 30%, transparent); }
+.wdgrp { font: 800 11.5px/1 var(--fb, inherit); letter-spacing: .08em; text-transform: uppercase; color: var(--muted2, #8a6a5c); padding: 10px 12px 4px; }
+.wdbody { grid-area: body; display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+.wdsub { display: flex; align-items: flex-start; gap: 8px; } .wdchips { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.wdchips button { font: 600 15px/1 var(--fd); min-height: 40px; padding: 0 14px; border-radius: 999px; border: 2.5px solid var(--edge, #c9a99a); background: var(--chip, #fff); color: var(--tx, var(--ink)); cursor: pointer; }
+.wdchips button[aria-pressed=true] { border-color: var(--ink); background: var(--lantern); color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
+.wd .wdfilt { flex: none; border-radius: 999px; }
+.wdhint { font-size: 13.5px; } .wdhint:empty { display: none; }
+.wdgrid { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; align-content: start; grid-auto-rows: max-content; padding: 2px 6px 6px 2px; scrollbar-width: thin; }
+.wdgrid.sws { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+.wdnone { grid-column: 1 / -1; padding: 18px 4px; }
+.wdtile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 6px 4px 7px; min-height: 44px; border: 2.5px solid var(--edge, #e3c7ad); border-radius: 14px;
+  background: var(--chip, #fff); color: var(--tx, var(--ink)); font: 600 13.5px/1.15 var(--fd); cursor: pointer; text-align: center; transition: transform .12s; }
+.wdtile:not(:disabled):active { transform: scale(.95); }
+.wdtile img[data-ip], .wdtile img[data-kit] { width: 76px; height: 76px; object-fit: contain; } .wdtile img:not([src]) { visibility: hidden; } .wdgrid.nopic img[data-ip] { display: none; }
+.wdtile b { font-weight: 600; overflow-wrap: anywhere; } .wdtile small { font: 700 12px/1.2 var(--fb, inherit); color: var(--muted2, #8a6a5c); min-height: 14px; }
+.wdtile small .cn { margin-right: .2em; }
+.wdtile.lk { border-style: dashed; }
+.wdtile[aria-pressed=true] { border-style: solid; border-color: var(--ink); background: var(--you, #fff0c9); box-shadow: 0 3px 0 var(--ink); }
+.wdtile.try[aria-pressed=true], .wdtile.try { border-style: dashed; border-color: #c46a00; background: var(--you, #fff7e0); box-shadow: none; }
+.wdtile:disabled { cursor: default; border-style: dotted; } .wdtile:disabled img, .wdtile:disabled .avatar, .wdtile:disabled .wdemo { opacity: .55; }
+.wdtile.sw { padding: 8px 4px 5px; } .wdsw { width: 40px; height: 40px; border-radius: 50%; background: var(--c); border: 3px solid var(--ink); }
+.wdtxt { min-height: 46px; display: grid; place-items: center; font: 700 17px/1.1 var(--fd); padding: 0 2px; overflow-wrap: anywhere; } .wdtxt .ttl { white-space: normal; font-size: 12.5px; }
+.wdemo { font-size: 36px; line-height: 60px; } .wdemo.sm { font-size: 19px; line-height: 1.5; letter-spacing: 1px; max-width: 84px; }
+.wdtile.cos .avatar { margin: 8px 0; }
+.wdtile.pet .palno { position: absolute; top: 5px; left: 5px; } .wdtile.pet .palpic { margin: 0; }
+.wd.creator .cart { grid-area: cart; position: static; box-shadow: none; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; max-height: 150px; overflow: auto; }
+.wd .cartact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; } .wd .cartact .btn { white-space: nowrap; min-height: 44px; }
+.wd .cartitem small { font-weight: 500; } .wd.creator .cartlist > b { color: var(--tx, #6b4a3c); }
+.wd .cartitem:not(:last-child)::after { content: '·'; margin-left: 2px; opacity: .5; }
+.wdfoot { grid-area: foot; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.wd button:focus-visible { outline: 3px solid var(--chili); outline-offset: 2px; }
+body.sky.night:not(.in-game) .wdtile[aria-pressed=true], body.sky.night:not(.in-game) .wdchips button[aria-pressed=true] { border-color: var(--lantern); }
+body.sky.night:not(.in-game) .wdrail button[aria-pressed=true] { background: var(--lantern); color: #3b2219; }
+body.sky.night:not(.in-game) .wdsw { border-color: var(--edge); }
+@media (max-width: 860px) {
+  .modal:has(.wdsheet) { padding: 0; }
+  .sheet.wdsheet { width: 100%; height: 100dvh; border-radius: 0; border-width: 0; padding: 12px; }
+  .wd.creator, .wd.creator.first { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; grid-template-areas: "head" "side" "rail" "body" "cart" "foot"; gap: 8px; }
+  .wd.creator.first { grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; grid-template-areas: "head" "intro" "side" "rail" "body" "foot"; }
+  .wdhead h2 { font-size: 22px; } .wdintro { font-size: 14px; }
+  .wdside { flex-direction: row; align-items: stretch; }
+  .wd.creator .pv3d { flex: none; width: 118px; height: 150px; min-height: 0; }
+  .wdme { flex: 1; gap: 6px; justify-content: space-between; } .wdplate { min-height: 0; padding: 5px 8px; } .wdplate .petpal { display: none; }
+  .wd.creator .namecol label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .wd.creator .pvbar { flex-direction: row; align-items: center; gap: 6px; } .wd .pvbar .btn.sm { padding: 5px 9px; font-size: 14px; }
+  .wdrail { flex-direction: row; border-right: 0; border-bottom: 3px dashed var(--edge, #e6cfbd); padding: 0 0 6px; gap: 2px; scrollbar-width: none; }
+  .wdrail button { white-space: nowrap; padding: 6px 11px; font-size: 15px; } .wdgrp { display: none; }
+  .wdsub { align-items: center; } .wdchips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .wdchips button { flex: none; padding: 0 12px; }
+  .wd .wdfilt button { min-height: 40px; padding: 5px 9px; font-size: 14px; }
+  .wdgrid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .wd.creator .cart { max-height: none; overflow: visible; padding: 8px 10px; flex-wrap: nowrap; gap: 8px; } .wd .cartact small, .wd .cartitem .btn { display: none; }
+  .wd .cartlist { flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; gap: 6px 10px; font-size: 14px; } .wd .cartlist > b { display: none; }
+  .wd .cartact { flex: none; flex-wrap: nowrap; gap: 6px; } .wd .cartact .btn { padding-left: 12px; padding-right: 12px; font-size: 15px; }
+}
+.wd .cartitem { flex: none; }
+.wd.creator.first .wdrail { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 3px dashed var(--edge, #e6cfbd); padding: 0 0 8px; overflow: visible; }

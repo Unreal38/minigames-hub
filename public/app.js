@@ -14,7 +14,7 @@ import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, pr
 export const SITE = 'Cozy Table';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
 // (with flat stand-in heads) if that fails.
-let P3 = null;
+let P3 = null, IP = null; // IP: item pictures for the wardrobe (itempic.js)
 const COLORS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 const GAMES = {
   hotpot: {
@@ -717,9 +717,8 @@ const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${potLogo(42)}<span>${SITE}</span></a>
   <nav class="navl" aria-label="Sections"><a href="#games" data-act="scroll" data-to="games">Games</a><a href="#rankings" data-act="scroll" data-to="rankings">Rankings</a><a href="#tables" data-act="scroll" data-to="tables">Open tables</a><a href="#hubchat" data-act="scroll" data-to="hubchat">Chat</a><a href="#" data-act="rules">How to play</a></nav>
   <button type="button" class="me frbtn" data-act="friends">Friends<span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
-  <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them on avatar items">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
-  <button type="button" class="me stylebtn" data-act="style" title="Style: name colours, frames, titles, win effects and stickers" aria-label="Style: name colours, frames, titles, win effects and stickers">✨</button>
-  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}<span class="lvslot">${meChip()}</span><small>· change</small></button>
+  <button type="button" class="me coinbtn" data-act="shop" title="Coins: spend them in the wardrobe">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· shop</small></button>
+  <button type="button" class="me" data-act="profile">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}${st.name ? nameHtml(st.name, flairOf(st.me)) : 'Pick a name'}<span class="lvslot">${meChip()}</span><small>· wardrobe</small></button>
   <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? 'Switch to day' : 'Switch to night'}" title="${isNight() ? 'Switch to day' : 'Switch to night'}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
 
@@ -1293,107 +1292,220 @@ function modal(html, dismissable = true) {
   api.close = close; return api;
 }
 
-// The coin shop lives inside the creator: paid items show their price, can be tried on, and are bought one by one.
+// ---------- the Wardrobe ----------
+// One place for everything a player wears or shows: the avatar (free items and the coin shop together), the account
+// style (name colour, frame, title), the table kit, win effects, stickers and isle pets. Every item is a picture tile.
+// Things you own go on, and are saved, the moment you tap them. Things you have not bought are only tried on: they
+// show on the preview and in the bar at the bottom, where they can be bought one by one or all at once.
 const coinIco = '<i class="cn" aria-hidden="true"></i>';
 const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
-const SHOP_ORDER = ['top', 'hat', 'back', 'glasses', 'neck', 'shoes', 'hairC', 'eyes', 'eyeC', 'mouth', 'marks', 'botC', 'shoeC'];
-const SHOP_ROWS = SHOP_ORDER.filter(k => OPT[k].some((_, i) => priceOf(k, i))).map(k => [k, ROW_LABEL[k]]);
+const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
+const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
+const WD_ACC = [['name', 'Name & frame', ['nm', 'fr', 'ti']], ['kit', 'Table kit', ['cb', 'dc', 'gb', 'kp']], ['fx', 'Effects & stickers', ['wn', 'sp']], ['pets', 'Isle pets', []]];
+const COS_HINT = { nm: 'The colour of your name in waiting rooms, chat and the rankings.', fr: 'A frame round your picture.', ti: 'A title under your name. Titles with a goal are earned by playing.',
+  wn: 'Plays on everyone’s screen when you win. Tap one to see it.', sp: 'Extra reactions for the chat row at any table. Every pack you own is always on.' };
 
-function openProfile(first = false, startTab = 0) {
-  let color = st.color, av = st.av.slice(), tab = startTab;
+function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
+  let color = st.color, av = st.av.slice(), sec = startSec, sub = '', filt = startFilt, undo = null, saveT = 0;
+  const pick = {}; // account cosmetics being tried on: kind -> index
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
-  const TABS = [...AV_TABS.map(([n]) => n), 'Shop'];
+  const me = () => st.me || {}, owned = () => me().owned || [], coins = () => me().coins || 0;
+  const today = () => me().today ? new Date(me().today + 'T12:00') : new Date();
+  const dropOn = () => Object.keys(SEASONS).find(sn => seasonOn(sn, today()) && (Object.values(SEASON).includes(sn) || WORNALL.some(k => COS[k].items.some(it => it.s === sn))));
+  const WORNALL = Object.keys(COS);
   const sheet = modal(`
-    <h2>${first ? 'Who is joining the table?' : 'Your avatar'}</h2>
-    <p>${first ? 'No account needed. Pick a name and a look; friends see both at the table.' : 'Change your name and how you look at the table. Items with a price come from the shop: try them on, then buy them with the coins you earn by playing.'}</p>
-    <form data-form="profile" class="creator">
-      <div class="cmain">
-        <div class="pvcol">
-          <div class="pv3d" id="pv"></div>
-          <div class="pvbar">
-            <span class="pvseg"><button type="button" data-cam="0" aria-pressed="true">Body</button><button type="button" data-cam="1" aria-pressed="false">Face</button></span>
-            <button type="button" class="btn w sm" data-rand>Surprise me</button>
-          </div>
-        </div>
-        <div class="optcol">
-          <div class="namecol"><label for="nm">Name</label>
-            <input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname"></div>
-          <div class="ctabs" role="tablist">${TABS.map((n, i) => `<button type="button" role="tab" data-tab="${i}"${i === AV_TABS.length ? ' class="shoptab"' : ''}>${i === AV_TABS.length ? coinIco : ''}${n}</button>`).join('')}</div>
-          <div class="crows"></div>
+    <form class="creator wd${first ? ' first' : ''}" data-form="profile">
+      <header class="wdhead"><h2>${first ? 'Who is joining the table?' : 'Wardrobe'}</h2>
+        ${first ? '' : `<span class="chip wdcoins" title="Coins: every finished game pays by where you finished, 10 for 1st down to 1 for last">${coinIco}<b></b></span><button type="button" class="round wdx" data-done aria-label="Close the wardrobe">✕</button>`}</header>
+      ${first ? '<p class="wdintro">No account needed. Pick a name and a look; friends see both at the table.</p>' : ''}
+      <div class="wdside">
+        <div class="pv3d" id="pv"></div>
+        <div class="wdme">
+          <div class="wdplate" aria-label="How others see you"></div>
+          <div class="namecol"><label for="nm">Name</label><input class="field" id="nm" maxlength="16" required placeholder="e.g. Noodle Queen" value="${esc(st.name)}" autocomplete="nickname"></div>
+          <div class="pvbar"><span class="pvseg"><button type="button" data-cam="0" aria-pressed="true">Body</button><button type="button" data-cam="1" aria-pressed="false">Face</button></span>
+            <button type="button" class="btn w sm" data-rand>Surprise me</button><button type="button" class="btn w sm" data-undo hidden>Undo</button></div>
         </div>
       </div>
+      <nav class="wdrail" aria-label="Wardrobe sections"></nav>
+      <div class="wdbody"><div class="wdsub"></div><p class="wdhint"></p><div class="wdgrid"></div></div>
       <div class="cart" aria-live="polite"></div>
-      <button class="btn big">${first ? "Let's go" : 'Save'}</button>
-      ${first ? '<button type="button" class="btn ghost-ink" data-login>I already have an account</button>' : ''}
+      ${first ? `<div class="wdfoot"><button class="btn big">Let's go</button><button type="button" class="btn ghost-ink" data-login>I already have an account</button></div>` : ''}
     </form>`, !first);
-  const { el, close } = sheet;
-  const nm = el.querySelector('#nm'), pv = el.querySelector('#pv'), rows = el.querySelector('.crows'), cart = el.querySelector('.cart');
+  const { el, close } = sheet; el.querySelector('.sheet').classList.add('wdsheet');
+  const q = s => el.querySelector(s), nm = q('#nm'), pv = q('#pv'), rail = q('.wdrail'), subEl = q('.wdsub'), hint = q('.wdhint'), grid = q('.wdgrid'), cart = q('.cart'), plate = q('.wdplate');
   let view = P3?.creatorPreview(pv) || null, open = true;
   st.creatorOpen = true;
-  sheet.onClose = () => { open = false; st.creatorOpen = false; st.onMe = null; view?.dispose(); };
-  if (!P3) p3Ready.then(() => { if (!open || !P3) return; pv.innerHTML = ''; view = P3.creatorPreview(pv); show(); });
+  if (!P3) p3Ready.then(() => { if (!open || !P3) return; pv.innerHTML = ''; view = P3.creatorPreview(pv); show(); paintPlate(); });
+  if (!IP) ipReady.then(() => { if (!open) return; if (IP) fillPics(); else grid.classList.add('nopic'); });
   const show = () => { if (view) view.set(color, av); else pv.innerHTML = avatarHtml(color, av, 150); };
   const val = k => k === 'color' ? color : av[KI[k]];
-  const owned = () => st.me?.owned || [], coins = () => st.me?.coins || 0;
   const isLocked = (k, i) => priceOf(k, i) > 0 && !owned().includes(k + ':' + i);
-  const tag = (k, i) => { const p = priceOf(k, i); return !p ? '' : isLocked(k, i) ? ` data-p="${p}" class="lk"` : ' class="own"'; };
-  // Seasonal items are sold only while their drop is on (the server's date decides). Out of season they are hidden
-  // from the normal rows unless you own them, and the Shop tab lists them as "back in ...".
-  const today = () => st.me?.today ? new Date(st.me.today + 'T12:00') : new Date();
-  const away = (k, i) => !!seasonOf(k, i) && isLocked(k, i) && !onSale(k, i, today());
-  const pill = (k, i) => `<button type="button" aria-pressed="${val(k) === i}" data-k="${k}" data-v="${i}"${tag(k, i)}>${OPT[k][i]}${isLocked(k, i) ? ` <small class="pr">${coinIco}${priceOf(k, i)}</small>` : ''}</button>`;
-  const rowHtml = (k, label, only) => {
-    const hex = k === 'color', list = hex ? COLORS : OPT[k], sw = hex || AV_COLOR_KEYS.includes(k);
-    const idx = list.map((_, i) => i).filter(i => hex || (only ? priceOf(k, i) && !seasonOf(k, i) : !away(k, i)));
-    if (!idx.length) return '';
-    return `<div class="crow"><b>${label}</b><div class="${sw ? 'swatches' : 'pills'}">${idx.map(i => { const v = list[i]; return sw
-      ? `<button type="button" style="--c:${v}" aria-label="${label} ${i + 1}${priceOf(k, i) ? (isLocked(k, i) ? `, ${priceOf(k, i)} coins` : ', owned') : ''}" aria-pressed="${val(k) === (hex ? v : i)}" data-k="${k}" data-v="${hex ? v : i}"${hex ? '' : tag(k, i)}></button>`
-      : pill(k, i); }).join('')}</div></div>`;
+  const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
+  const flNow = () => Object.fromEntries(WORN.map(k => [k, worn(k)]));
+
+  // Saving: only what is owned is ever saved, so a tried-on item never reaches other players.
+  const commit = () => {
+    clearTimeout(saveT); saveT = 0; if (first || !st.name) return;
+    const w = wearable(av, owned()); if (w.join() === st.av.join() && color === st.color) return;
+    st.av = w; st.color = color; LS.set('ct_color', color); LS.set('ct_av', JSON.stringify(w));
+    send({ t: 'profile', name: st.name, color, av: w });
   };
-  const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
-  const dropsHtml = () => {
-    const by = {}; for (const [id, sn] of Object.entries(SEASON)) { const [k, i] = id.split(':'); (by[sn] ||= []).push([k, +i]); }
-    const on = Object.keys(SEASONS).filter(sn => by[sn] && seasonOn(sn, today())), off = Object.keys(SEASONS).filter(sn => by[sn] && !seasonOn(sn, today()));
-    return on.map(sn => `<div class="crow drop"><b>${SEASON_ICO[sn]} ${SEASONS[sn].name} <small>Limited: on sale until ${SEASONS[sn].ends}. What you buy is yours to keep.</small></b><div class="pills">${by[sn].map(([k, i]) => pill(k, i)).join('')}</div></div>`).join('')
-      + (off.length ? `<div class="crow drop off"><b>Other seasons <small>These come back with their season.</small></b><div class="pills">${off.map(sn => by[sn].map(([k, i]) => isLocked(k, i)
-        ? `<button type="button" disabled title="Back in ${SEASONS[sn].back}">${SEASON_ICO[sn]} ${OPT[k][i]} <small class="pr">${SEASONS[sn].back}</small></button>` : pill(k, i)).join('')).join('')}</div></div>` : '');
+  const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(commit, 350); };
+  const saveName = () => {
+    const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16); if (first || !n || n === st.name) return;
+    st.name = n; LS.set('ct_name', n); send({ t: 'profile', name: n, color: st.color, av: st.av });
   };
-  const paintRows = () => {
-    el.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', +b.dataset.tab === tab));
-    rows.innerHTML = tab === AV_TABS.length
-      ? `<p class="shopnote">${coinIco}You have <b>${coins()}</b> coins. Every finished game pays by where you finished: 10 for 1st, down to 1 for last, and Pet Farm and Marble Rush use the same coins. Tap an item to try it on.</p><button type="button" class="btn sm w tostyle" data-tostyle>✨ Name colours, frames, titles, win effects and stickers</button>` + dropsHtml() + SHOP_ROWS.map(([k, label]) => rowHtml(k, label, true)).join('')
-      : AV_TABS[tab][1].map(([k, label]) => rowHtml(k, label)).join('');
+
+  // ----- sections -----
+  const sections = () => {
+    const d = dropOn();
+    return [...(d && !first ? [{ id: 'drop', name: `${SEASON_ICO[d]} ${SEASONS[d].name}`, drop: d }] : []),
+      ...AV_TABS.map(([name, rows], i) => ({ id: 'av' + i, name, rows, grp: 'Avatar' })),
+      ...(first ? [] : WD_ACC.map(([id, name, kinds]) => ({ id, name, kinds, grp: 'Account' })))];
   };
+  const cur = () => sections().find(s => s.id === sec) || sections().find(s => s.id === 'av0');
+  const paintRail = () => { let g = '';
+    rail.innerHTML = sections().map(s => `${s.grp && s.grp !== g && !first ? `<span class="wdgrp">${g = s.grp}</span>` : ''}<button type="button" data-sec="${s.id}" aria-pressed="${s.id === cur().id}"${s.drop ? ' class="dropb"' : ''}>${s.name}</button>`).join('');
+    rail.querySelector('[aria-pressed=true]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+
+  // ----- tiles -----
+  const avTile = (k, i) => {
+    const hex = k === 'color', sw = hex || AV_COLOR_KEYS.includes(k), v = hex ? COLORS[i] : i, p = hex ? 0 : priceOf(k, i), lk = !hex && isLocked(k, i);
+    const sn = hex ? null : seasonOf(k, i), off = lk && !onSale(k, i, today()), on = val(k) === v;
+    const label = sw ? `${hex ? 'Top colour' : ROW_LABEL[k]} ${i + 1}` : OPT[k][i];
+    const note = off ? `back in ${SEASONS[sn].back}` : lk ? `${coinIco}${p}${sn ? ` ${SEASON_ICO[sn]}` : ''}` : p ? '✓ yours' : '';
+    return `<button type="button" class="wdtile${sw ? ' sw' : ''}${lk ? ' lk' : ''}${on && lk ? ' try' : ''}"${off ? ' disabled' : ''} aria-pressed="${on}" data-k="${k}" data-v="${v}" aria-label="${esc(label)}${lk ? `, ${p} coins` : ''}">${
+      sw ? `<i class="wdsw" style="--c:${hex ? v : OPT[k][i]}"></i>` : `<img alt="" data-ip="${k}:${i}"><b>${esc(label)}</b>`}<small>${note}</small></button>`;
+  };
+  const avList = k => {
+    const n = k === 'color' ? COLORS.length : OPT[k].length, ids = [...Array(n).keys()];
+    const lk = i => k !== 'color' && isLocked(k, i), off = i => lk(i) && !onSale(k, i, today());
+    return ids.filter(i => filt === 'mine' ? !lk(i) : filt === 'shop' ? lk(i) : true).sort((a, b) => off(a) - off(b));
+  };
+  const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt">${nameHtml(st.name || 'Name', { nm: i })}</span>`
+    : k === 'fr' ? avatarHtml(color, av, 60, frameCls({ fr: i }))
+    : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : '<span class="ttl none">no title</span>'}</span>`
+    : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
+    : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
+    : `<img alt="" data-kit="${k}:${i}"${skinPicNow(k, i, color, av) ? ` src="${skinPicNow(k, i, color, av)}"` : ''}>`;
+  const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
+  const cosTile = (k, i) => {
+    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
+    const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `back in ${cosSeason(k, i).back}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn ? '✓ yours' : '';
+    return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b>${esc(it.n)}</b>`}${k === 'nm' ? `<b>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
+  };
+  const cosList = k => COS[k].items.map((_, i) => i).filter(i => { const s = cosState(k, i); return filt === 'mine' ? s.own : filt === 'shop' ? !s.own && !s.pr : true; })
+    .sort((a, b) => { const x = cosState(k, a), y = cosState(k, b); return (x.off || !!x.pr) - (y.off || !!y.pr); });
+  const petsHtml = () => { const pets = st.pets || [], ids = showIds();
+    return !me().user ? '<p class="wdnone">Log in and start a Pet Farm to show off your pets.</p>' : !pets.length ? '<p class="wdnone">Hatch a pet in Pet Farm and it can come along.</p>'
+      : pets.map(x => { const n = ids.indexOf(x.id); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 60, 'palpic')}<b>${esc(x.name)}</b><small>lv ${x.lv | 0}</small></button>`; }).join('');
+  };
+  const dropHtml = sn => [...Object.entries(SEASON).filter(([, s]) => s === sn).map(([id]) => { const [k, i] = id.split(':'); return [k, +i, 0]; }),
+    ...Object.keys(COS).flatMap(k => COS[k].items.map((it, i) => it.s === sn ? [k, i, 1] : null).filter(Boolean))]
+    .filter(([k, i, c]) => { const own = c ? has(k, i) : !isLocked(k, i); return filt === 'mine' ? own : filt === 'shop' ? !own : true; })
+    .map(([k, i, c]) => c ? cosTile(k, i) : avTile(k, i)).join('');
+
+  const fillPics = () => {
+    for (const im of grid.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, color, av).then(u => { if (u && im.isConnected) im.src = u; }); }
+    petPics(grid);
+    if (!IP) return;
+    const imgs = [...grid.querySelectorAll('img[data-ip]:not([src])')], look = av.slice(), col = color; let n = 0;
+    const step = () => { // a few per frame, so a long list never freezes the page
+      if (!open) return; const t0 = performance.now();
+      while (n < imgs.length && performance.now() - t0 < 12) { const im = imgs[n++]; if (!im.isConnected) continue; const [k, i] = im.dataset.ip.split(':'), u = IP.itemPic(k, +i, col, look); if (u) im.src = u; }
+      if (n < imgs.length) requestAnimationFrame(step);
+    };
+    step();
+  };
+  const paintGrid = keep => {
+    const s = cur(), top = keep ? grid.scrollTop : 0; sec = s.id;
+    const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k].label]) : [];
+    if (!subs.some(([k]) => k === sub)) sub = subs[0]?.[0] || '';
+    const noFilt = first || s.id === 'pets';
+    subEl.innerHTML = `<div class="wdchips">${subs.length > 1 ? subs.map(([k, l]) => `<button type="button" data-sub="${k}" aria-pressed="${k === sub}">${l}</button>`).join('') : ''}</div>${
+      noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="Show">${[['all', 'All'], ['mine', 'Mine'], ['shop', 'Shop']].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
+    hint.textContent = s.drop ? `Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.` : s.id === 'pets' ? `Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`
+      : s.kinds ? COS[sub].where || COS_HINT[sub] || '' : '';
+    const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
+    grid.className = 'wdgrid' + (ipFailed ? ' nopic' : '') + (s.rows && (sub === 'color' || AV_COLOR_KEYS.includes(sub)) ? ' sws' : '');
+    grid.innerHTML = html || `<p class="wdnone">${filt === 'mine' ? 'Nothing of yours here yet. Look under Shop.' : filt === 'shop' ? 'Nothing left to buy here.' : 'Nothing here.'}</p>`;
+    grid.scrollTop = top; fillPics();
+  };
+  const paintPlate = () => {
+    const fl = flNow(), pal = (st.pets || []).find(x => x.id === showIds()[0]);
+    plate.innerHTML = `${avatarHtml(color, wearable(av, owned()), 54, frameCls(fl))}<div><b>${nameHtml(nm.value.trim() || 'Your name', fl)} ${first ? '' : meChip()}</b>${titleHtml(fl)}${fl.wn ? `<small>Win effect: ${esc(cosItem('wn', fl.wn).n)}</small>` : ''}</div>${pal ? petImg(pal, 44) : ''}`;
+    petPics(plate);
+    const c = q('.wdcoins b'); if (c) c.textContent = coins();
+  };
+  const wants = () => [...lockedIn(av, owned()).map(id => { const [k, i] = id.split(':'); return { id, name: itemName(k, +i), p: priceOf(k, +i), dot: AV_COLOR_KEYS.includes(k) ? OPT[k][+i] : '' }; }),
+    ...Object.entries(pick).map(([k, i]) => ({ id: k + ':' + i, name: cosItem(k, i).n, kind: COS[k].label.toLowerCase(), p: cosItem(k, i).p }))];
   const paintCart = () => {
-    const ids = lockedIn(av, owned());
-    cart.innerHTML = ids.length ? `<div class="cartlist"><b>Trying on</b>${ids.map(id => { const [k, i] = id.split(':'), p = priceOf(k, +i), short = p - coins();
-      return `<span class="cartitem">${AV_COLOR_KEYS.includes(k) ? `<i class="dot" style="--c:${OPT[k][+i]}"></i>` : ''}${esc(itemName(k, +i))}<button type="button" class="btn sm" data-buy="${id}" ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more` : `Buy ${coinIco}${p}`}</button></span>`; }).join('')}</div>
-      <small>You have ${coinIco}${coins()}. Saving takes off anything you have not bought.</small>` : '';
+    const w = first ? [] : wants(), total = w.reduce((s, x) => s + x.p, 0), short = total - coins();
+    cart.innerHTML = w.length ? `<div class="cartlist"><b>Trying on</b>${w.map(x => `<span class="cartitem">${x.dot ? `<i class="dot" style="--c:${x.dot}"></i>` : ''}${esc(x.name)}${x.kind ? ` <small>${esc(x.kind)}</small>` : ''}${
+      w.length > 1 ? `<button type="button" class="btn sm w" data-buy="${x.id}" ${x.p > coins() ? 'disabled' : ''}>${coinIco}${x.p}</button>` : ''}</span>`).join('')}</div>
+      <div class="cartact"><small>Only you see these until you buy them. You have ${coinIco}${coins()}.</small><button type="button" class="btn sm w" data-off>Take off</button>
+      <button type="button" class="btn" data-buyall ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more coins` : `${w.length > 2 ? `Buy all ${w.length}` : w.length === 2 ? 'Buy both' : 'Buy'} ${coinIco}${total}`}</button></div>` : '';
   };
-  st.onMe = () => { if (open) { paintRows(); paintCart(); } };
-  paintRows(); paintCart(); show();
-  if (first) setTimeout(() => nm.focus(), 50);
-  el.addEventListener('click', e => {
-    const by = e.target.closest('[data-buy]');
-    if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
-    const b = e.target.closest('[data-k]');
-    if (b) {
-      const k = b.dataset.k; if (k === 'color') color = b.dataset.v; else av[KI[k]] = +b.dataset.v;
-      rows.querySelectorAll(`[data-k="${k}"]`).forEach(x => x.setAttribute('aria-pressed', x === b));
-      sfx.pop(); show(); paintCart(); return;
-    }
-    const tb = e.target.closest('[data-tab]'); if (tb) { tab = +tb.dataset.tab; sfx.click(); paintRows(); view?.face(tab === 1); camBtns(tab === 1); return; }
-    const cb = e.target.closest('[data-cam]'); if (cb) { view?.face(cb.dataset.cam === '1'); camBtns(cb.dataset.cam === '1'); return; }
-    if (e.target.closest('[data-login]')) { close(); openAccount('login'); return; }
-    if (e.target.closest('[data-tostyle]')) { close(); openStyle(); return; }
-    if (e.target.closest('[data-rand]')) { av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; sfx.set(); paintRows(); paintCart(); show(); }
-  });
+  const paint = keep => { paintRail(); paintGrid(keep); paintPlate(); paintCart(); };
   const camBtns = face => el.querySelectorAll('[data-cam]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.cam === '1') === face));
+  const setCam = face => { view?.face(face); camBtns(face); };
+
+  let sig = '';
+  const sigOf = () => owned().length + JSON.stringify(me().cos || {}) + (st.pets?.length | 0) + (me().user || '');
+  st.onMe = () => {
+    if (!open) return;
+    for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
+    if (!first && wearable(av, owned()).join() !== st.av.join()) commit(); // something tried on was just bought: it is worn for real now
+    const s = sigOf(); if (s !== sig) { sig = s; paint(true); } else { paintPlate(); paintCart(); }
+  };
+  if (me().user && !first) send({ t: 'pets' });
+  sheet.onClose = () => { open = false; st.creatorOpen = false; st.onMe = null; if (!first) { saveName(); commit(); } view?.dispose(); if (!first && (st.view === 'hub' || st.view === 'lobby')) go(st.view); };
+  sig = sigOf(); paint(); show(); setCam(sec === 'av1');
+  if (first) setTimeout(() => nm.focus(), 50);
+
+  nm.addEventListener('input', paintPlate);
+  nm.addEventListener('change', saveName);
+  el.addEventListener('click', e => {
+    const t = e.target;
+    if (t.closest('[data-done]')) return close();
+    if (t.closest('[data-login]')) { close(); return openAccount('login'); }
+    const sb = t.closest('[data-sec]'); if (sb) { sec = sb.dataset.sec; sub = ''; sfx.click(); paintRail(); paintGrid(); return setCam(sec === 'av1'); }
+    const su = t.closest('[data-sub]'); if (su) { sub = su.dataset.sub; sfx.click(); return paintGrid(); }
+    const fb = t.closest('[data-f]'); if (fb) { filt = fb.dataset.f; sfx.click(); return paintGrid(); }
+    const cb = t.closest('[data-cam]'); if (cb) return setCam(cb.dataset.cam === '1');
+    const buy = id => { const [k, i] = id.split(':'); send({ t: 'buy', k, i: +i }); };
+    const by = t.closest('[data-buy]'); if (by) { by.disabled = true; return buy(by.dataset.buy); }
+    const all = t.closest('[data-buyall]'); if (all) { all.disabled = true; return wants().forEach(x => buy(x.id)); }
+    if (t.closest('[data-off]')) { av = wearable(av, owned()).map((v, i) => v || !av[i] ? v : st.av[i]); for (const k of Object.keys(pick)) delete pick[k]; sfx.pop(); show(); return paint(true); }
+    if (t.closest('[data-rand]')) { undo = [color, av.slice()]; av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; q('[data-undo]').hidden = false; sfx.set(); show(); paint(); return saveSoon(); }
+    if (t.closest('[data-undo]')) { if (undo) [color, av] = undo; undo = null; q('[data-undo]').hidden = true; sfx.pop(); show(); paint(); return saveSoon(); }
+    const pl = t.closest('[data-pal]');
+    if (pl) { // tap to add a pet to the next free slot, tap again to take it off
+      const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);
+      if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
+      sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); paintGrid(true); return paintPlate();
+    }
+    const a = t.closest('[data-k]');
+    if (a) { // an avatar item: owned ones go on and save, the rest are tried on (tap a tried-on item again to take it off)
+      const k = a.dataset.k, hex = k === 'color', v = hex ? a.dataset.v : +a.dataset.v;
+      if (hex) color = v; else av[KI[k]] = val(k) === v && isLocked(k, v) ? st.av[KI[k]] : v;
+      for (const x of grid.querySelectorAll(`[data-k="${k}"]`)) { const on = String(val(k)) === x.dataset.v; x.setAttribute('aria-pressed', on); x.classList.toggle('try', on && x.classList.contains('lk')); }
+      undo = null; q('[data-undo]').hidden = true;
+      sfx.pop(); show(); paintPlate(); paintCart(); return saveSoon();
+    }
+    const c = t.closest('[data-c]'); if (!c) return;
+    const k = c.dataset.c, i = +c.dataset.v; sfx.pop();
+    if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
+    if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
+    else if (pick[k] === i) delete pick[k]; else pick[k] = i;
+    paintGrid(true); paintPlate(); paintCart();
+  });
   el.querySelector('form').addEventListener('submit', e => {
-    e.preventDefault();
+    e.preventDefault(); if (!first) return saveName();
     const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16); if (!n) return;
-    if (lockedIn(av, owned()).length) toast('Took off the items you have not bought yet.');
     st.name = n; st.color = color; st.av = wearable(av, owned());
     LS.set('ct_name', n); LS.set('ct_color', color); LS.set('ct_av', JSON.stringify(st.av));
     send({ t: 'profile', name: n, color, av: st.av });
@@ -1402,76 +1514,8 @@ function openProfile(first = false, startTab = 0) {
     go(st.view === 'game' ? 'game' : st.view);
   });
 }
-
-// Account style: name colour, profile frame, title, win effect and sticker packs (public/cosmetics.js). What you own
-// goes on with one tap; anything else can be tried on the preview card first and bought from the bar underneath.
-function openStyle() {
-  const pick = {}; // kinds where a not-yet-owned entry is being tried on: k -> i
-  const sheet = modal(`
-    <h2>Your style</h2>
-    <p>How your name and picture look to everyone: in waiting rooms, chat and the rankings. Titles with a goal are earned by playing, the rest cost coins.</p>
-    <div class="creator stylebox">
-      <div class="styletop"><div class="stylecard"></div><div class="stylekit" aria-label="How your things look in the games"></div></div>
-      <div class="crows stylerows"></div>
-      <div class="cart" aria-live="polite"></div>
-      <div class="row"><button type="button" class="btn big" data-done>Done</button><button type="button" class="btn big w" data-toshop>${coinIco}Avatar shop</button></div>
-    </div>`);
-  sheet.el.querySelector('.sheet').classList.add('wide');
-  const { el, close } = sheet, kitEl = el.querySelector('.stylekit'), card = el.querySelector('.stylecard'), rows = el.querySelector('.stylerows'), cart = el.querySelector('.cart');
-  let open = true;
-  const me = () => st.me || {}, coins = () => me().coins || 0, today = () => me().today ? new Date(me().today + 'T12:00') : new Date();
-  const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
-  const pill = (k, i) => {
-    const it = cosItem(k, i), own = has(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i, pr = earnProgress(it, me());
-    const look = k === 'nm' ? nameHtml(it.n, { nm: i }) : k === 'sp' ? `${esc(it.n)} <span class="stk">${it.e.slice(0, 6).join('') || EMOJI.join('')}</span>` : esc(it.n);
-    if (!own && pr) return `<button type="button" disabled class="goal" title="${esc(pr[2])}">${look} <small class="pr">${pr[0]}/${pr[1]} · ${esc(pr[2])}</small></button>`;
-    if (!own && !cosOnSale(k, i, today())) return `<button type="button" disabled title="Back in ${cosSeason(k, i).back}">${look} <small class="pr">back in ${cosSeason(k, i).back}</small></button>`;
-    return `<button type="button" aria-pressed="${on}" data-k="${k}" data-v="${i}" class="${own ? (i && it.p ? 'own' : '') : 'lk'}">${look}${own ? '' : ` <small class="pr">${coinIco}${it.p}</small>`}${it.s && !own ? ` <small class="pr">· ${cosSeason(k, i).name}</small>` : ''}</button>`;
-  };
-  const paint = () => {
-    for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
-    const fl = Object.fromEntries(WORN.map(k => [k, worn(k)]));
-    card.innerHTML = `${avatarHtml(st.color, st.av, 84, frameCls(fl))}<div><b>${nameHtml(st.name, fl)} ${meChip()}</b>${titleHtml(fl) || '<span class="ttl none">no title</span>'}<small>${fl.wn ? `Win effect: ${esc(cosItem('wn', fl.wn).n)}` : 'No win effect'}</small></div>`;
-    rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : c.where ? ` <small>${c.where}</small>` : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
-    // the table kit: a picture of each table theme as chosen (or tried on) right now
-    kitEl.innerHTML = ['cb', 'dc', 'gb', 'kp'].map(k => { const i = fl[k] | 0, u = skinPicNow(k, i, st.color, st.av);
-      return `<figure class="${pick[k] != null ? 'try' : ''}"><img width="84" height="84" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i).n)}</figcaption></figure>`; }).join('');
-    for (const im of kitEl.querySelectorAll('img:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, st.color, st.av).then(u => { if (u && im.isConnected) im.src = u; }); }
-    const show = showIds(), pets = st.pets || [];
-    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Isle pets <small>Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.</small></b><div class="pills palpills">${
-      !me().user ? '<small>Log in and start a Pet Farm to show off your pets.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
-      : pets.map(x => { const n = show.indexOf(x.id); return `<button type="button" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`; }).join('')}</div></div>`);
-    petPics(rows);
-    const myPal = pets.find(x => x.id === show[0]);
-    if (myPal) { card.insertAdjacentHTML('afterbegin', petImg(myPal, 64)); card.prepend(card.children[1]); petPics(card); }
-    const want = Object.entries(pick);
-    cart.innerHTML = want.length ? `<div class="cartlist"><b>Trying on</b>${want.map(([k, i]) => { const it = cosItem(k, i), short = it.p - coins();
-      return `<span class="cartitem">${esc(it.n)} <small>${esc(COS[k].label.toLowerCase())}</small><button type="button" class="btn sm" data-buy="${k}:${i}" ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more` : `Buy ${coinIco}${it.p}`}</button></span>`; }).join('')}</div>
-      <small>You have ${coinIco}${coins()}. Only what you buy is shown to others.</small>` : '';
-  };
-  st.onMe = () => { if (open) paint(); };
-  if (me().user) send({ t: 'pets' });
-  sheet.onClose = () => { open = false; st.onMe = null; if (st.view === 'hub' || st.view === 'lobby') go(st.view); };
-  paint();
-  el.addEventListener('click', e => {
-    if (e.target.closest('[data-done]')) return close();
-    if (e.target.closest('[data-toshop]')) { close(); return openProfile(false, AV_TABS.length); }
-    const by = e.target.closest('[data-buy]');
-    if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
-    const pl = e.target.closest('[data-pal]');
-    if (pl) { // tap to add a pet to the next free slot, tap again to take it off
-      const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);
-      if (at >= 0) ids.splice(at, 1); else if (ids.length >= PET_SLOTS) return toast(`Your isle has room for ${PET_SLOTS} pets. Tap one to take it off first.`); else ids.push(id);
-      sfx.pop(); const c = st.me.cos ||= {}; c.pets = ids; c.pet = ids[0]; send({ t: 'wear', k: 'pets', i: ids }); return paint();
-    }
-    const b = e.target.closest('[data-k]'); if (!b) return;
-    const k = b.dataset.k, i = +b.dataset.v; sfx.pop();
-    if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
-    if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
-    else if (pick[k] === i) delete pick[k]; else pick[k] = i;
-    paint();
-  });
-}
+const openProfile = (first = false) => openWardrobe({ first });
+const openStyle = () => openWardrobe({ sec: 'name' });
 
 // Another player's profile card: their isle with the pets they show off, their rank and best games, and their table kit.
 let playerSheet = null;
@@ -1667,7 +1711,7 @@ $app.addEventListener('click', e => {
   else if (act === 'rules') openRules(st.view === 'lobby' ? st.room?.game : undefined);
   else if (act === 'profile') openProfile();
   else if (act === 'style') { if (!st.name) return openProfile(true); openStyle(); }
-  else if (act === 'shop') { if (!st.name) return openProfile(true); openProfile(false, AV_TABS.length); }
+  else if (act === 'shop') { if (!st.name) return openProfile(true); openWardrobe({ sec: 'drop', filt: 'shop' }); }
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
   else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
@@ -1709,6 +1753,8 @@ addEventListener('hashchange', () => {
   if (validCode(c) && st.name) { send({ t: 'join', code: c }); history.replaceState(null, '', location.pathname); }
 });
 
+let ipFailed = false;
+const ipReady = import('./itempic.js').then(m => { IP = m; }).catch(() => { ipFailed = true; });
 const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
 go('hub');
 connect();
