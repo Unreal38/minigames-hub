@@ -370,3 +370,19 @@ export function hayArt() {
     <g transform="translate(36 98)"><ellipse cx="-7" cy="-12" rx="5" ry="8" fill="#c9b5f0" ${o}/><ellipse cx="7" cy="-12" rx="5" ry="8" fill="#c9b5f0" ${o}/><ellipse cx="0" cy="0" rx="17" ry="13" fill="#c9b5f0" ${o}/><path d="M-8 -1q3 3 6 0M2 -1q3 3 6 0" stroke="#3b2219" stroke-width="2.4" fill="none" stroke-linecap="round"/><text x="16" y="-18" font-family="Fredoka, system-ui, sans-serif" font-weight="700" font-size="15" fill="#7a4fc9" stroke="#fff4e2" stroke-width="3" paint-order="stroke">z z</text></g>
   </svg>`;
 }
+
+// Pip Party card: five dice in a row on a pink felt tray, two of them hopping, with a little score sheet behind.
+export function pipsArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const P = [[], [[17, 17]], [[10, 10], [24, 24]], [[10, 10], [17, 17], [24, 24]], [[10, 10], [24, 10], [10, 24], [24, 24]], [[10, 10], [24, 10], [17, 17], [10, 24], [24, 24]], [[10, 9], [24, 9], [10, 17], [24, 17], [10, 25], [24, 25]]];
+  const die = (x, y, rot, v, d, fill = '#fff8ec') => `<g class="pdie" style="--d:${d}ms"><g transform="rotate(${rot} ${x + 17} ${y + 17})"><rect x="${x}" y="${y}" width="34" height="34" rx="8" fill="${fill}" ${o}/>${P[v].map(([px, py]) => `<circle cx="${x + px}" cy="${y + py}" r="${v === 1 ? 5 : 3.2}" fill="${v === 1 ? '#e5543b' : '#3b2219'}"/>`).join('')}</g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Five dice showing fives on a pink felt tray next to a score sheet">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="112" cy="14" r="1.6"/><circle cx="204" cy="10" r="1.3"/><circle cx="296" cy="56" r="1.5"/><circle cx="14" cy="66" r="1.2"/><circle cx="160" cy="30" r="1.1"/></g>
+    <path d="M20 36l14-8 16 4 8 10-10 8H28z" class="artcloud" fill="#fff"/><path d="M196 24l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="136" rx="154" ry="36" fill="#b9794a" ${o}/>
+    <rect x="34" y="84" width="204" height="56" rx="12" fill="#8a5a3c" ${o}/><rect x="44" y="92" width="184" height="44" rx="7" fill="#c94f6d" ${o}/>
+    <g transform="rotate(8 272 82)"><rect x="246" y="40" width="54" height="84" rx="7" fill="#fff8ec" ${o}/><path d="M255 56h36M255 70h36M255 84h36M255 98h22" fill="none" stroke="#c9a99a" stroke-width="3" stroke-linecap="round"/><path d="M280 96l5 6 10-13" fill="none" stroke="#3fae5d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+    ${die(52, 96, -8, 5, 0)}${die(89, 90, 5, 5, -500, '#ffd84a')}${die(126, 98, -3, 5, -1000)}${die(163, 88, 9, 5, -1500, '#ffd84a')}${die(198, 97, -6, 2, -2000)}
+    <path d="M100 76l-4-10M140 80v-11M180 74l5-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
