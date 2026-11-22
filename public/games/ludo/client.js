@@ -1,6 +1,7 @@
 // Ludo game view: HUD over the 3D board. Renders what the server says; sends rolls and pawn picks.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -34,12 +35,12 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="lu-round"></span></div>
       <div class="tr"><span class="tcode" id="lu-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="lu-banner" aria-live="polite"></div>
       <div class="shout" id="lu-big" aria-live="assertive"></div>
-      <ol class="list" id="lu-list" aria-label="Players"></ol>
+      <ol class="list" id="lu-list" aria-label="${L(`Players`, `Gracze`)}"></ol>
       <div class="rollbar" id="lu-roll"></div>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -59,7 +60,8 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
+  const yo = (i, you, they) => (i === S.me ? you : `${nameOf(i)} ${they}`); // Polish: "you" and "they" verb forms
   const mine = () => S && S.ph === 'play' && S.turn === S.me && me() && !me().bot;
   const myRoll = () => mine() && S.stage === 'roll';
   const myPick = () => mine() && S.stage === 'pick';
@@ -104,24 +106,24 @@ export function mount(app, ctx) {
     else if (c.k === 'cap') {
       const hit = (c.caps || []).includes(S.me);
       if (hit) { sfx.bad(); sfx.lose(); } else sfx.set();
-      big(hit ? 'Ouch!' : 'Captured!', `${who} sen${y ? 'd' : 'ds'} ${[...new Set(c.caps || [])].map(i => (i === S.me ? 'your' : nameOf(i) + '’s')).join(' and ')} pawn back to the yard`, 1600);
-    } else if (c.k === 'home') { sfx.win(); big('Home!', `${who} get${y ? '' : 's'} a pawn home`, 1500); }
+      big(hit ? L('Ouch!', 'Auć!') : L('Captured!', 'Zbicie!'), L(`${who} sen${y ? 'd' : 'ds'} ${[...new Set(c.caps || [])].map(i => (i === S.me ? 'your' : nameOf(i) + '’s')).join(' and ')} pawn back to the yard`, `${yo(c.s, 'Zbijasz', 'zbija')} pionek (${[...new Set(c.caps || [])].map(i => (i === S.me ? 'twój' : nameOf(i))).join(', ')}) i odsyła${y ? 'sz' : ''} go do bazy`), 1600);
+    } else if (c.k === 'home') { sfx.win(); big(L('Home!', 'Domek!'), L(`${who} get${y ? '' : 's'} a pawn home`, yo(c.s, 'Twój pionek jest w domku', 'ma pionek w domku')), 1500); }
   }
 
   // ----- what each choice of pawn would do -----
   function describe(m) {
     const seat = S.seats[S.me];
-    if (m.to === HOME) return 'Take a pawn home';
+    if (m.to === HOME) return L('Take a pawn home', 'Wprowadź pionek do domku');
     const i = ringIndex(seat.corner, m.to);
     if (i >= 0 && (!safeIndex(i) || S.hard)) {
       const hit = S.seats.map((o, os) => (os !== S.me && o.toks.filter(p => ringIndex(o.corner, p) === i).length === 1 ? os : -1)).filter(x => x >= 0);
-      if (hit.length) return `${m.from < 0 ? 'Come out and capture' : 'Capture'} ${hit.map(nameOf).join(' and ')}`;
+      if (hit.length) return L(`${m.from < 0 ? 'Come out and capture' : 'Capture'} ${hit.map(nameOf).join(' and ')}`, `${m.from < 0 ? 'Wyjdź z bazy i zbij' : 'Zbij'}: ${hit.map(nameOf).join(', ')}`);
     }
-    if (m.from < 0) return 'Bring a pawn out';
-    const left = HOME - m.to, tail = `${left} to go`;
-    if (m.to > LAST) return `Into the home lane · ${tail}`;
-    if (i >= 0 && safeIndex(i) && !S.hard) return `To a safe spot · ${tail}`;
-    return `Move ${m.to - m.from} · ${tail}`;
+    if (m.from < 0) return L('Bring a pawn out', 'Wyprowadź pionek');
+    const left = HOME - m.to, tail = L(`${left} to go`, `jeszcze ${left}`);
+    if (m.to > LAST) return `${L('Into the home lane', 'Na ścieżkę do domku')} · ${tail}`;
+    if (i >= 0 && safeIndex(i) && !S.hard) return `${L('To a safe spot', 'Na bezpieczne pole')} · ${tail}`;
+    return `${L('Move', 'Ruch o')} ${m.to - m.from} · ${tail}`;
   }
 
   // ----- rendering -----
@@ -130,7 +132,7 @@ export function mount(app, ctx) {
     setHtml($('lu-list'), S.seats.map((p, i) => {
       const now = i === S.turn && S.ph === 'play', home = p.toks.filter(t => t === HOME).length, yard = p.toks.filter(t => t < 0).length;
       const dots = p.toks.map(t => `<u class="${t === HOME ? 'h' : t < 0 ? 'y' : 'b'}" style="--c:${esc(p.col)}"></u>`).sort().join('');
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${home} home, ${yard} in the yard">${avatarHtml(p.color, p.av, 30)}<i class="sw" style="background:${esc(p.col)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="dots">${dots}</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${L(`${home} home, ${yard} in the yard`, `w domku: ${home}, w bazie: ${yard}`)}">${avatarHtml(p.color, p.av, 30)}<i class="sw" style="background:${esc(p.col)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="dots">${dots}</span></li>`;
     }).join(''));
   }
 
@@ -140,16 +142,16 @@ export function mount(app, ctx) {
     el.hidden = false;
     const r = S.roll, col = S.seats[S.turn]?.col;
     if (myRoll() && !busy) {
-      setHtml(el, `<button type="button" class="btn big r rollbtn" data-a="roll">${dieSvg(5, 36)}${S.tries ? `Try again (${3 - S.tries} left)` : 'Roll the die'}</button>`);
+      setHtml(el, `<button type="button" class="btn big r rollbtn" data-a="roll">${dieSvg(5, 36)}${S.tries ? L(`Try again (${3 - S.tries} left)`, `Spróbuj jeszcze raz (zostało: ${3 - S.tries})`) : L('Roll the die', 'Rzuć kostką')}</button>`);
     } else if (myPick() && !busy) {
-      setHtml(el, `<div class="picks"><span class="rolled">${dieSvg(r.die, 30)}<span>Tap a pawn to move</span></span><div class="choices">${S.legal.map(m =>
+      setHtml(el, `<div class="picks"><span class="rolled">${dieSvg(r.die, 30)}<span>${L(`Tap a pawn to move`, `Dotknij pionka, żeby nim ruszyć`)}</span></span><div class="choices">${S.legal.map(m =>
         `<button type="button" class="btn pick" data-a="pick" data-k="${m.k}">${pawnSvg(col)}${describe(m)}</button>`).join('')}</div></div>`);
     } else if (r && r.s === S.turn && (S.stage !== 'roll' || busy)) {
-      const note = S.stage === 'die' && !busy ? (r.three ? ' · three sixes, turn over' : r.none ? ' · no move' : '') : '';
-      setHtml(el, `<span class="rolled">${busy && S.stage === 'die' ? dieSvg(0, 30) : dieSvg(r.die, 30)}<span>${busy && S.stage === 'die' ? `${youOr(r.s)} roll${r.s === S.me ? '' : 's'}…` : `${youOr(r.s)} rolled a <b>${r.die}</b>${note}`}</span></span>`);
+      const note = S.stage === 'die' && !busy ? (r.three ? L(' · three sixes, turn over', ' · trzy szóstki, koniec kolejki') : r.none ? L(' · no move', ' · brak ruchu') : '') : '';
+      setHtml(el, `<span class="rolled">${busy && S.stage === 'die' ? dieSvg(0, 30) : dieSvg(r.die, 30)}<span>${busy && S.stage === 'die' ? L(`${youOr(r.s)} roll${r.s === S.me ? '' : 's'}…`, yo(r.s, 'Rzucasz…', 'rzuca…')) : L(`${youOr(r.s)} rolled a <b>${r.die}</b>`, yo(r.s, `Wyrzucasz <b>${r.die}</b>`, `wyrzuca <b>${r.die}</b>`)) + note}</span></span>`);
     } else {
       const p = S.seats[S.turn];
-      setHtml(el, `<span class="rolled">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? 'A bot is playing for you' : `${nameOf(S.turn)} is rolling…`}</span></span>`);
+      setHtml(el, `<span class="rolled">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? L('A bot is playing for you', 'Bot gra za ciebie') : L(`${nameOf(S.turn)} is rolling…`, `${nameOf(S.turn)} rzuca…`)}</span></span>`);
     }
   }
 
@@ -157,17 +159,17 @@ export function mount(app, ctx) {
     const el = $('lu-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), clock = S.left >= 0 ? ` · ${secs}s` : '';
-    if (S.ph === 'end') msg = S.win >= 0 ? `${youOr(S.win)} win${S.win === S.me ? '' : 's'}!` : '';
-    else if (myRoll() && !busy) msg = `Your turn${clock || '!'}`;
-    else if (myPick() && !busy) msg = `Pick a pawn${clock}`;
-    else msg = S.turn === S.me ? 'Your turn' : `${nameOf(S.turn)}'s turn`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${youOr(S.win)} win${S.win === S.me ? '' : 's'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (myRoll() && !busy) msg = `${L('Your turn', 'Twoja kolej')}${clock || '!'}`;
+    else if (myPick() && !busy) msg = `${L('Pick a pawn', 'Wybierz pionek')}${clock}`;
+    else msg = S.turn === S.me ? L('Your turn', 'Twoja kolej') : L(`${nameOf(S.turn)}'s turn`, `Kolej: ${nameOf(S.turn)}`);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', (myRoll() || myPick()) && !busy);
   }
 
   function render() {
     if (!S) return;
-    $('lu-round').textContent = `${S.hard ? 'Hard · ' : ''}Round ${S.round} · ${S.pawns} pawns each`;
+    $('lu-round').textContent = L(`${S.hard ? 'Hard · ' : ''}Round ${S.round} · ${S.pawns} pawns each`, `${S.hard ? 'Trudny · ' : ''}Runda ${S.round} · po ${cnt(S.pawns, 'pawn', 'pawns', 'pionek', 'pionki', 'pionków')}`);
     $('lu-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderRoll(); renderBanner();
   }
@@ -181,14 +183,14 @@ export function mount(app, ctx) {
 
   function playEv(e) {
     const y = e.s === S.me;
-    if (e.t === 'again' && y) { ctx.toast('Bonus roll! Go again.'); sfx.turn(); }
-    else if (e.t === 'retry' && y) ctx.toast(`No six. ${e.left} ${e.left === 1 ? 'try' : 'tries'} left.`);
-    else if (e.t === 'none' && y) ctx.toast(`No pawn can move ${e.die}.`);
-    else if (e.t === 'three') { sfx.bad(); ctx.toast(`Three sixes in a row: ${y ? 'your' : nameOf(e.s) + '’s'} turn is over.`); }
-    else if (e.t === 'sit') { sfx.join?.(); ctx.toast(y ? 'You took over a bot. Its pawns are yours now!' : `${nameOf(e.s)} took over a bot`); }
+    if (e.t === 'again' && y) { ctx.toast(L('Bonus roll! Go again.', 'Dodatkowy rzut! Rzucaj jeszcze raz.')); sfx.turn(); }
+    else if (e.t === 'retry' && y) ctx.toast(L(`No six. ${e.left} ${e.left === 1 ? 'try' : 'tries'} left.`, `Bez szóstki. Zostało prób: ${e.left}.`));
+    else if (e.t === 'none' && y) ctx.toast(L(`No pawn can move ${e.die}.`, `Żaden pionek nie może ruszyć o ${e.die}.`));
+    else if (e.t === 'three') { sfx.bad(); ctx.toast(L(`Three sixes in a row: ${y ? 'your' : nameOf(e.s) + '’s'} turn is over.`, `Trzy szóstki z rzędu: ${y ? 'twoja kolej się kończy' : 'koniec kolejki gracza ' + nameOf(e.s)}.`)); }
+    else if (e.t === 'sit') { sfx.join?.(); ctx.toast(y ? L('You took over a bot. Its pawns are yours now!', 'Przejmujesz miejsce bota. Jego pionki są teraz twoje!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); } else sfx.lose();
-      big(`${youOr(e.w)} win${e.w === S.me ? '' : 's'}!`, 'every pawn is home', 2000);
+      big(L(`${youOr(e.w)} win${e.w === S.me ? '' : 's'}!`, e.w === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(e.w)}!`), L('every pawn is home', 'wszystkie pionki w domku'), 2000);
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2200);
     }
   }
@@ -216,15 +218,15 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results'), w = S.win;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'All your pawns are home!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'First one home. ' : `You came ${ORD(myPlace)}. `) : ''}That took ${S.res.rounds} round${S.res.rounds === 1 ? '' : 's'}.</p>
+      <h2>${w === S.me ? L('All your pawns are home!', 'Wszystkie twoje pionki są w domku!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${myPlace ? (myPlace === 1 ? L('First one home. ', 'Pierwsze miejsce. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('That took', 'Gra trwała')} ${cnt(S.res.rounds, 'round', 'rounds', 'rundę', 'rundy', 'rund')}.</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st, home = p.toks.filter(t => t === HOME).length;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'} · ${st.sixes} six${st.sixes === 1 ? '' : 'es'}</span></div>
-          <strong>${home}/${p.toks.length}<small>home</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'}`, `${cnt(st.caps, 'capture', 'captures', 'zbicie', 'zbicia', 'zbić')} · powroty do bazy: ${st.lost}`)} · ${cnt(st.sixes, 'six', 'sixes', 'szóstka', 'szóstki', 'szóstek')}</span></div>
+          <strong>${home}/${p.toks.length}<small>${L('home', 'w domku')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -233,7 +235,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

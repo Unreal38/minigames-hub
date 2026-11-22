@@ -1,3 +1,4 @@
+import { L } from '../../i18n.js';
 // Cozy Kitchen Rush rules shared by the server and the client: the kitchens, the recipes, how avatars move
 // round the counters, and which counter you are reaching for. Positions are in tiles: (0, 0) is the top left
 // corner of the map and tile (c, r) has its centre at (c + .5, r + .5).
@@ -6,7 +7,7 @@
 // 'D' plate rack, 'W' serving window, 'X' bin, and ingredient crates: T tomato, L lettuce, M mushroom, B bun, P patty.
 export const KITCHENS = {
   diner: {
-    name: 'Sunny Diner',
+    name: L('Sunny Diner', 'Słoneczny bar'),
     rows: [
       '#TLMB#SS#FF#',
       '#..........W',
@@ -19,7 +20,7 @@ export const KITCHENS = {
     ],
   },
   split: {
-    name: 'Pass-Through',
+    name: L('Pass-Through', 'Kuchnia z okienkiem'),
     rows: [
       '#TLMBP#SSFF#',
       '#.....#....W',
@@ -37,11 +38,11 @@ export const CHOPPABLE = new Set(['tomato', 'lettuce', 'mushroom']);
 export const SOUPS = new Set(['tomato', 'mushroom']);
 
 export const RECIPES = {
-  salad: { name: 'Garden salad', has: ['lettuce', 'tomato'], tip: 20, life: 60, w: 3 },
+  salad: { name: L('Garden salad', 'Sałatka ogrodowa'), has: ['lettuce', 'tomato'], tip: 20, life: 60, w: 3 },
   burger: { name: 'Burger', has: ['bun', 'patty'], tip: 24, life: 65, w: 3 },
-  tsoup: { name: 'Tomato soup', soup: 'tomato', tip: 30, life: 80, w: 2 },
-  msoup: { name: 'Mushroom soup', soup: 'mushroom', tip: 30, life: 80, w: 2 },
-  deluxe: { name: 'Deluxe burger', has: ['bun', 'patty', 'lettuce', 'tomato'], tip: 40, life: 90, w: 1, after: 30 },
+  tsoup: { name: L('Tomato soup', 'Zupa pomidorowa'), soup: 'tomato', tip: 30, life: 80, w: 2 },
+  msoup: { name: L('Mushroom soup', 'Zupa grzybowa'), soup: 'mushroom', tip: 30, life: 80, w: 2 },
+  deluxe: { name: L('Deluxe burger', 'Burger deluxe'), has: ['bun', 'patty', 'lettuce', 'tomato'], tip: 40, life: 90, w: 1, after: 30 },
 };
 
 // timings in seconds

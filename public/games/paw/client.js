@@ -1,6 +1,7 @@
 // Pawperty game view: HUD over the 3D board. Renders what the server says and sends your choices.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, PL, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -14,9 +15,9 @@ const I = {
   door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
   // a treat: the game's money
   bone: '<svg class="pw-bone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 4.2a2.7 2.7 0 0 1 2.6 3.3l7.7 7.7a2.7 2.7 0 1 1 1 4.6 2.7 2.7 0 1 1-4.6-1L5.2 11.1a2.7 2.7 0 1 1-1-4.6 2.7 2.7 0 0 1 2-2.3z" fill="#e2a868" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
-  tub: '<svg class="pw-ico" viewBox="0 0 24 24" aria-label="in the bath"><path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#8fd4ff" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="7" r="2" fill="#fff" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="5" r="1.4" fill="#fff" stroke="currentColor" stroke-width="1.5"/></svg>',
-  duck: '<svg class="pw-ico" viewBox="0 0 24 24" aria-label="has a rubber duck"><path d="M4 14c0 4 3 6 8 6s8-2 8-6c-2 1-4 1-6 0 1-1 2-3 1-5a4 4 0 0 0-7 1c-1 0-3 0-3 1s1 1 2 1c0 1-1 2-3 2z" fill="#ffd84a" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
-  eyes: '<svg class="pw-ico" viewBox="0 0 24 24" aria-label="next rent is free"><circle cx="8" cy="12" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="12" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="8.6" cy="12.6" r="2.3" fill="currentColor"/><circle cx="16.6" cy="12.6" r="2.3" fill="currentColor"/></svg>',
+  tub: '<svg class="pw-ico" viewBox="0 0 24 24" aria-label="' + L('in the bath', 'w kąpieli') + '"><path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z" fill="#8fd4ff" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="7" r="2" fill="#fff" stroke="currentColor" stroke-width="1.5"/><circle cx="13" cy="5" r="1.4" fill="#fff" stroke="currentColor" stroke-width="1.5"/></svg>',
+  duck: '<svg class="pw-ico" viewBox="0 0 24 24" aria-label="' + L('has a rubber duck', 'ma gumową kaczkę') + '"><path d="M4 14c0 4 3 6 8 6s8-2 8-6c-2 1-4 1-6 0 1-1 2-3 1-5a4 4 0 0 0-7 1c-1 0-3 0-3 1s1 1 2 1c0 1-1 2-3 2z" fill="#ffd84a" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  eyes: '<svg class="pw-ico" viewBox="0 0 24 24" aria-label="' + L('next rent is free', 'następny czynsz za darmo') + '"><circle cx="8" cy="12" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="12" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="8.6" cy="12.6" r="2.3" fill="currentColor"/><circle cx="16.6" cy="12.6" r="2.3" fill="currentColor"/></svg>',
 };
 const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 const treats = n => `<span class="pw-t">${I.bone}${n}</span>`;
@@ -32,15 +33,15 @@ export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="pw">
-    <canvas class="g3d" aria-label="The Pawperty board. Tap a tile to read about it."></canvas>
+    <canvas class="g3d" aria-label="${L(`The Pawperty board. Tap a tile to read about it.`, `Plansza Pawperty. Dotknij pola, żeby o nim przeczytać.`)}"></canvas>
     <div class="hud">
       <div class="tl"><span class="chip" id="pw-info"></span></div>
       <div class="tr"><span class="tcode" id="pw-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="pw-banner" aria-live="polite"></div>
-      <ol class="pw-list" id="pw-list" aria-label="Players and their treats"></ol>
+      <ol class="pw-list" id="pw-list" aria-label="${L(`Players and their treats`, `Gracze i ich przysmaki`)}"></ol>
       <div class="pw-log" id="pw-log" aria-hidden="true"></div>
       <div class="pw-deed" id="pw-deed" hidden></div>
       <div class="pw-aim" id="pw-aim" hidden></div>
@@ -69,13 +70,13 @@ export function mount(app, ctx) {
     const el = $('pw-aim'), on = !!(info.aimOn && S && S.ph === 'play' && info.aim);
     if (!on) { if (aimKey) { aimKey = ''; el.hidden = true; } return; }
     const a = info.aim, key = a.i + '/' + a.s;
-    if (key !== aimKey) { aimKey = key; const t = TILES[a.i]; el.innerHTML = `${a.s === S.me ? 'You land on' : 'Lands on'} <b>${esc(t.name)}</b>`; el.style.setProperty('--c', S.seats[a.s]?.color || '#fff'); el.hidden = false; }
+    if (key !== aimKey) { aimKey = key; const t = TILES[a.i]; el.innerHTML = `${a.s === S.me ? L('You land on', 'Stajesz na polu') : L('Lands on', 'Staje na polu')} <b>${esc(t.name)}</b>`; el.style.setProperty('--c', S.seats[a.s]?.color || '#fff'); el.hidden = false; }
     el.style.transform = `translate(${Math.round(Math.max(90, Math.min(info.w - 90, a.x)))}px, ${Math.round(Math.max(70, a.y))}px) translate(-50%, -100%)`;
   }
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
   const yours = i => (i === S.me ? 'your' : nameOf(i) + '’s');
   const mine = () => !!(S && S.ph === 'play' && S.turn === S.me && me() && !me().bot);
   const myTurn = () => mine() && ['roll', 'buy', 'done'].includes(S.stage);
@@ -91,14 +92,48 @@ export function mount(app, ctx) {
   }
 
   // ----- what happened, in words -----
+  // the same lines in Polish: present tense, with a "you" and a "they" form of each verb
+  function sayPl(e) {
+    const i = e.i, s = e.s === S.me, W = (you, they) => (s ? you : `${nameOf(e.s)} ${they}`);
+    switch (e.t) {
+      case 'go': return `${W('Mijasz Wycieraczkę', 'mija Wycieraczkę')}: +${e.amt}`;
+      case 'buy': return `${W('Adoptujesz zwierzaka', 'adoptuje zwierzaka')}: ${petName(i)} (${shopName(i)})`;
+      case 'skip': return `${W('Zostawiasz zwierzaka w pudełku', 'zostawia zwierzaka w pudełku')}: ${petName(i)}`;
+      case 'poor': return `${W('Nie stać cię na sklepik', 'nie ma na sklepik')}: ${shopName(i)}`;
+      case 'rent': return e.o === S.me ? `${nameOf(e.s)} płaci ci ${e.amt} czynszu (${shopName(i)})` : `${W('Płacisz', 'płaci')} ${e.amt} czynszu (${shopName(i)}, właściciel: ${nameOf(e.o)})`;
+      case 'tiptoe': return `Ciii! ${petName(i)} drzemie. ${W('Przechodzisz na paluszkach za darmo', 'przechodzi na paluszkach za darmo')}`;
+      case 'eyes': return `${W('Robisz maślane oczy', 'robi maślane oczy')}: ${petName(i)} nie bierze czynszu`;
+      case 'rub': return `${petName(i)} cieszy się na ${s ? 'twój widok' : 'widok gracza ' + nameOf(e.s)}: +${e.amt}`;
+      case 'card': return W('Dobierasz kartę Głupawki', 'dobiera kartę Głupawki');
+      case 'vet': return W(`Płacisz weterynarzowi ${e.amt}`, `płaci weterynarzowi ${e.amt}`);
+      case 'bowl': return `${W('Znajdujesz pełną miskę przysmaków', 'znajduje pełną miskę przysmaków')}: +${e.amt}`;
+      case 'lost': return e.amt ? W(`Zabierasz ${e.amt} ze słoika Znalezione!`, `zabiera ${e.amt} ze słoika Znalezione!`) : 'Słoik Znalezione był pusty';
+      case 'mud': return W('Wskakujesz w błotną kałużę', 'wskakuje w błotną kałużę');
+      case 'bath': return W('Idziesz do Kąpieli', 'idzie do Kąpieli');
+      case 'duck': return W('Piszczysz gumową kaczką i omijasz kąpiel', 'piszczy gumową kaczką i omija kąpiel');
+      case 'free': return e.how === 'dbl' ? W('Wyrzucasz dublet i wyskakujesz z wanny', 'wyrzuca dublet i wyskakuje z wanny') : W(`Płacisz ${e.amt} i wychodzisz z wanny`, `płaci ${e.amt} i wychodzi z wanny`);
+      case 'soak': return W('Dalej się moczysz', 'dalej się moczy');
+      case 'three': return `Trzy dublety z rzędu! ${W('Za dużo emocji', 'ma za dużo emocji')}`;
+      case 'again': return W('Rzucasz jeszcze raz', 'rzuca jeszcze raz');
+      case 'build': return `${W('Budujesz', 'buduje')}: ${LV_NAMES[e.lv]} (${shopName(i)})`;
+      case 'sellup': return `${W('Sprzedajesz ulepszenie, żeby zapłacić', 'sprzedaje ulepszenie, żeby zapłacić')} (${shopName(i)})`;
+      case 'sell': return `${W('Oddajesz sklepik, żeby zapłacić', 'oddaje sklepik, żeby zapłacić')} (${shopName(i)})`;
+      case 'forgive': return `Życzliwy sąsiad daruje ${s ? 'ci' : 'graczowi ' + nameOf(e.s)} ${e.amt} przysmaków`;
+      case 'naps': return e.tiles.length ? cnt(e.tiles.length, '', '', 'zwierzak przysnął', 'zwierzaki przysnęły', 'zwierzaków przysnęło') : '';
+      case 'topdog': return W('Już prowadzisz', 'już prowadzi');
+      case 'sit': return W('Przejmujesz miejsce bota', 'przejmuje miejsce bota');
+      default: return '';
+    }
+  }
   function say(e) {
     const A = youOr(e.s), i = e.i, s = e.s === S.me;
+    if (PL) return sayPl(e);
     switch (e.t) {
       case 'go': return `${A} passed the Welcome Mat: +${e.amt}`;
       case 'buy': return `${A} adopted ${petName(i)} and the ${shopName(i)}`;
       case 'skip': return `${A} left ${petName(i)} in the box`;
       case 'poor': return `${A} can’t afford the ${shopName(i)}`;
-      case 'rent': return `${A} paid ${youOr(e.o) === 'You' ? 'you' : nameOf(e.o)} ${e.amt} at the ${shopName(i)}`;
+      case 'rent': return `${A} paid ${e.o === S.me ? 'you' : nameOf(e.o)} ${e.amt} at the ${shopName(i)}`;
       case 'tiptoe': return `Shh! ${petName(i)} is napping. ${A} tiptoe${s ? '' : 's'} past for free`;
       case 'eyes': return `${A} did puppy eyes at ${petName(i)}: no rent`;
       case 'rub': return `${petName(i)} was happy to see ${s ? 'you' : nameOf(e.s)}: +${e.amt}`;
@@ -141,29 +176,29 @@ export function mount(app, ctx) {
     setHtml($('pw-list'), S.seats.map((p, i) => {
       const n = S.own.filter(o => o === i).length, now = i === S.turn && S.ph === 'play';
       const sets = GROUPS.map((g, k) => (fullStreet(k, i, S.own) ? `<i style="background:${g.col}" title="${g.name}"></i>` : '')).join('');
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' pw-me' : ''}" style="--c:${esc(p.color)}">${avatarHtml(p.color, p.av, 34)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-        <span class="pw-row">${treats(p.cash)}<em>${n} shop${n === 1 ? '' : 's'}</em>${sets ? `<span class="pw-sets">${sets}</span>` : ''}${p.inBath ? I.tub : ''}${p.duck ? I.duck : ''}${p.eyes ? I.eyes : ''}</span></div></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' pw-me' : ''}" style="--c:${esc(p.color)}">${avatarHtml(p.color, p.av, 34)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+        <span class="pw-row">${treats(p.cash)}<em>${cnt(n, 'shop', 'shops', 'sklepik', 'sklepiki', 'sklepików')}</em>${sets ? `<span class="pw-sets">${sets}</span>` : ''}${p.inBath ? I.tub : ''}${p.duck ? I.duck : ''}${p.eyes ? I.eyes : ''}</span></div></li>`;
     }).join(''));
   }
 
   // ----- the card for one tile -----
   function deedHtml(i, offer) {
     const t = TILES[i];
-    if (t.k !== 'shop') return `<div class="pw-dhead" style="background:#ffb547"><b>${esc(t.name)}</b></div><p>${esc(t.blurb)}${t.k === 'lost' ? ` There ${S.jar === 1 ? 'is' : 'are'} ${treats(S.jar)} in the jar now.` : ''}</p>`;
+    if (t.k !== 'shop') return `<div class="pw-dhead" style="background:#ffb547"><b>${esc(t.name)}</b></div><p>${esc(t.blurb)}${t.k === 'lost' ? L(` There ${S.jar === 1 ? 'is' : 'are'} ${treats(S.jar)} in the jar now.`, ` Teraz w słoiku: ${treats(S.jar)}.`) : ''}</p>`;
     const G = GROUPS[t.g], o = S.own[i], lv = S.lv[i], full = o >= 0 && fullStreet(t.g, o, S.own), have = STREET[t.g].filter(j => o >= 0 ? S.own[j] === o : S.own[j] === S.me).length;
     const row = (k, label, val) => `<li class="${o >= 0 && lv === k ? 'on' : ''}"><span>${label}</span>${treats(val)}</li>`;
-    const who = o < 0 ? (offer ? '' : '<p class="pw-own">Nobody has adopted this one yet.</p>')
-      : `<p class="pw-own"><i style="background:${esc(S.seats[o].color)}"></i>${o === S.me ? 'Yours' : `${nameOf(o)}’s`}${S.nap[i] ? ' · napping, no rent' : ` · rent now ${treats(rentOf(i, S.own, S.lv))}`}</p>`;
+    const who = o < 0 ? (offer ? '' : `<p class="pw-own">${L('Nobody has adopted this one yet.', 'Tego zwierzaka nikt jeszcze nie adoptował.')}</p>`)
+      : `<p class="pw-own"><i style="background:${esc(S.seats[o].color)}"></i>${o === S.me ? L('Yours', 'Twój') : L(`${nameOf(o)}’s`, `Właściciel: ${nameOf(o)}`)}${S.nap[i] ? L(' · napping, no rent', ' · drzemie, bez czynszu') : ` · ${L('rent now', 'czynsz teraz')} ${treats(rentOf(i, S.own, S.lv))}`}</p>`;
     return `<div class="pw-dhead" style="background:${G.col};color:${G.ink}"><span>${G.name}</span><b>${esc(t.name)}</b></div>
-      <div class="pw-dbody"><div>${pic(i)}<p class="pw-run">Run by <b>${petName(i)}</b></p>${who}
-        <ul class="pw-rents">${row(0, full ? 'Rent (street ×2)' : 'Rent', t.rent[0] * (full ? 2 : 1))}${row(1, 'Pet Bed', t.rent[1] * (full ? 2 : 1))}${row(2, 'Toy Box', t.rent[2] * (full ? 2 : 1))}${row(3, 'Pet Palace', t.rent[3])}</ul>
-        <p class="pw-small">Costs ${treats(t.price)} · each upgrade ${treats(t.up)} · ${o < 0 || o === S.me ? `you have ${have} of 3 on this street` : `${have} of 3 on this street`}</p></div></div>`;
+      <div class="pw-dbody"><div>${pic(i)}<p class="pw-run">${L('Run by', 'Prowadzi:')} <b>${petName(i)}</b></p>${who}
+        <ul class="pw-rents">${row(0, full ? L('Rent (street ×2)', 'Czynsz (uliczka ×2)') : L('Rent', 'Czynsz'), t.rent[0] * (full ? 2 : 1))}${row(1, LV_NAMES[1], t.rent[1] * (full ? 2 : 1))}${row(2, LV_NAMES[2], t.rent[2] * (full ? 2 : 1))}${row(3, LV_NAMES[3], t.rent[3])}</ul>
+        <p class="pw-small">${L('Costs', 'Cena')} ${treats(t.price)} · ${L('each upgrade', 'każde ulepszenie')} ${treats(t.up)} · ${o < 0 || o === S.me ? L(`you have ${have} of 3 on this street`, `masz ${have} z 3 na tej uliczce`) : L(`${have} of 3 on this street`, `${have} z 3 na tej uliczce`)}</p></div></div>`;
   }
   function renderDeed() {
     const el = $('pw-deed'), offer = S.ph === 'play' && S.stage === 'buy' ? S.offer : -1, i = pinned >= 0 ? pinned : offer;
     el.hidden = i < 0;
     if (i < 0) { el._h = ''; return; }
-    setHtml(el, deedHtml(i, i === offer && pinned < 0) + (pinned >= 0 ? '<button type="button" class="round pw-x" data-a="unpin" aria-label="Close">×</button>' : ''));
+    setHtml(el, deedHtml(i, i === offer && pinned < 0) + (pinned >= 0 ? '<button type="button" class="round pw-x" data-a="unpin" aria-label="' + L('Close', 'Zamknij') + '">×</button>' : ''));
     el.classList.toggle('offer', pinned < 0);
   }
 
@@ -173,17 +208,17 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'play') { setHtml(ctl, ''); setHtml(bld, ''); return; }
     const t = S.seats[S.turn];
     if (myTurn() && !busy()) {
-      if (S.stage === 'roll' && p.inBath) setHtml(ctl, `<p class="pw-hint">You are in the tub. Roll doubles to hop out${p.tries ? ` (${3 - p.tries} tr${3 - p.tries === 1 ? 'y' : 'ies'} left)` : ''}, or pay your way out.</p>
-        <div class="pw-go"><button type="button" class="btn big" data-a="roll">Roll for doubles</button><button type="button" class="btn big w" data-a="pay">Pay ${treats(BATH_FEE)} to hop out</button></div>`);
-      else if (S.stage === 'roll') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big pw-pulse" data-a="roll">Roll the dice</button></div>`);
-      else if (S.stage === 'buy') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="buy">Adopt for ${treats(TILES[S.offer].price)}</button><button type="button" class="btn big w" data-a="pass">No thanks</button></div>`);
-      else setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="end">End turn</button></div>`);
+      if (S.stage === 'roll' && p.inBath) setHtml(ctl, `<p class="pw-hint">${L(`You are in the tub. Roll doubles to hop out${p.tries ? ` (${3 - p.tries} tr${3 - p.tries === 1 ? 'y' : 'ies'} left)` : ''}, or pay your way out.`, `Siedzisz w wannie. Wyrzuć dublet, żeby wyskoczyć${p.tries ? ` (zostało prób: ${3 - p.tries})` : ''}, albo zapłać za wyjście.`)}</p>
+        <div class="pw-go"><button type="button" class="btn big" data-a="roll">${L(`Roll for doubles`, `Rzuć na dublet`)}</button><button type="button" class="btn big w" data-a="pay">${L('Pay', 'Zapłać')} ${treats(BATH_FEE)}${L(' to hop out', ', żeby wyjść')}</button></div>`);
+      else if (S.stage === 'roll') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big pw-pulse" data-a="roll">${L(`Roll the dice`, `Rzuć kośćmi`)}</button></div>`);
+      else if (S.stage === 'buy') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="buy">${L('Adopt for', 'Adoptuj za')} ${treats(TILES[S.offer].price)}</button><button type="button" class="btn big w" data-a="pass">${L(`No thanks`, `Nie, dziękuję`)}</button></div>`);
+      else setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="end">${L(`End turn`, `Zakończ turę`)}</button></div>`);
     } else if (S.turn >= 0) {
-      const what = S.stage === 'buy' ? `is looking at the ${shopName(S.offer)}` : S.stage === 'card' ? 'drew a Zoomies card' : S.stage === 'roll' ? (t.inBath ? 'is in the tub' : 'is about to roll') : S.stage === 'done' ? 'is finishing up' : 'is on the move';
-      setHtml(ctl, `<span class="pw-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p?.bot ? 'A bot is playing for you' : S.stage === 'walk' ? 'Off you go…' : S.stage === 'card' ? 'Zoomies!' : '…') : `${nameOf(S.turn)} ${what}`}</span></span>`);
+      const what = S.stage === 'buy' ? L(`is looking at the ${shopName(S.offer)}`, `ogląda sklepik: ${shopName(S.offer)}`) : S.stage === 'card' ? L('drew a Zoomies card', 'dobiera kartę Głupawki') : S.stage === 'roll' ? (t.inBath ? L('is in the tub', 'siedzi w wannie') : L('is about to roll', 'zaraz rzuca')) : S.stage === 'done' ? L('is finishing up', 'kończy turę') : L('is on the move', 'jest w drodze');
+      setHtml(ctl, `<span class="pw-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p?.bot ? L('A bot is playing for you', 'Bot gra za ciebie') : S.stage === 'walk' ? L('Off you go…', 'W drogę…') : S.stage === 'card' ? L('Zoomies!', 'Głupawka!') : '…') : `${nameOf(S.turn)} ${what}`}</span></span>`);
     } else setHtml(ctl, '');
     const can = myTurn() && !busy() ? S.can : [];
-    setHtml(bld, can.length ? `<span class="pw-blbl">Upgrade a shop</span><div class="pw-ups">${can.map(i => { const t2 = TILES[i], lv = S.lv[i] + 1;
+    setHtml(bld, can.length ? `<span class="pw-blbl">${L(`Upgrade a shop`, `Ulepsz sklepik`)}</span><div class="pw-ups">${can.map(i => { const t2 = TILES[i], lv = S.lv[i] + 1;
       return `<button type="button" data-a="build" data-i="${i}" style="--g:${GROUPS[t2.g].col}">${pic(i, 'sm')}<span><b>${LV_NAMES[lv]}</b><small>${esc(t2.name)} · ${treats(t2.up)}</small></span></button>`; }).join('')}</div>` : '');
     layout();
   }
@@ -192,16 +227,16 @@ export function mount(app, ctx) {
     const el = $('pw-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.left >= 0 && myTurn() ? ` · ${secs}s` : '';
-    if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You are top dog' : nameOf(S.win) + ' is top dog'}!` : '';
-    else if (myTurn()) msg = (S.stage === 'buy' ? `Adopt ${petName(S.offer)}?` : S.stage === 'done' ? 'Upgrade or end your turn' : me().inBath ? 'Your turn · you are in the tub' : S.dbl ? 'Doubles! Roll again' : 'Your turn · roll the dice') + t;
-    else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${S.win === S.me ? 'You are top dog' : nameOf(S.win) + ' is top dog'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (myTurn()) msg = (S.stage === 'buy' ? L(`Adopt ${petName(S.offer)}?`, `Adoptować zwierzaka (${petName(S.offer)})?`) : S.stage === 'done' ? L('Upgrade or end your turn', 'Ulepsz sklepik albo zakończ turę') : me().inBath ? L('Your turn · you are in the tub', 'Twoja kolej · siedzisz w wannie') : S.dbl ? L('Doubles! Roll again', 'Dublet! Rzuć jeszcze raz') : L('Your turn · roll the dice', 'Twoja kolej · rzuć kośćmi')) + t;
+    else if (S.turn >= 0) msg = L(`${nameOf(S.turn)}’s turn`, `Kolej: ${nameOf(S.turn)}`);
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());
   }
 
   function render() {
     if (!S) return;
-    setHtml($('pw-info'), S.ph === 'end' ? `${S.rounds} rounds played` : `Round ${S.round} of ${S.rounds}<span class="pw-jar"> · jar ${treats(S.jar)}</span>`);
+    setHtml($('pw-info'), S.ph === 'end' ? L(`${S.rounds} rounds played`, `Rozegrane rundy: ${S.rounds}`) : `${L('Round', 'Runda')} ${S.round} ${L('of', 'z')} ${S.rounds}<span class="pw-jar"> · ${L('jar', 'słoik')} ${treats(S.jar)}</span>`);
     $('pw-code').textContent = Rm?.code || '';
     renderList(); renderDeed(); renderDock(); renderBanner();
   }
@@ -216,7 +251,7 @@ export function mount(app, ctx) {
     if (c.n === cardN) return; cardN = c.n;
     const left = MS.card + 700 - c.ago; if (left < 500) return;
     const el = $('pw-zoom');
-    el.innerHTML = `<div class="pw-zcard"><span class="pw-ztop">Zoomies!</span><p>${esc(CARDS[c.id])}</p><span class="pw-zwho">${avatarHtml(S.seats[c.s].color, S.seats[c.s].av, 26)}${c.s === S.me ? 'Your card' : nameOf(c.s) + '’s card'}</span></div>`;
+    el.innerHTML = `<div class="pw-zcard"><span class="pw-ztop">${L('Zoomies!', 'Głupawka!')}</span><p>${esc(CARDS[c.id])}</p><span class="pw-zwho">${avatarHtml(S.seats[c.s].color, S.seats[c.s].av, 26)}${c.s === S.me ? L('Your card', 'Twoja karta') : L(nameOf(c.s) + '’s card', 'Karta gracza ' + nameOf(c.s))}</span></div>`;
     el.hidden = false; sfx.draw(); scene?.effect('card', { s: c.s });
     clearTimeout(zoomTimer); zoomTimer = setTimeout(() => { el.hidden = true; }, left);
   }
@@ -224,24 +259,24 @@ export function mount(app, ctx) {
   function playEv(e) {
     const line = say(e); if (line) log(line);
     const s = e.s === S.me;
-    if (e.t === 'sit') { sfx.join?.(); ctx.toast(s ? 'You took over a bot. Good luck!' : `${nameOf(e.s)} took over a bot`); }
-    else if (e.t === 'buy') { sfx.set(); if (s) big('Adopted!', `${petName(e.i)} moves in at the ${shopName(e.i)}`); }
-    else if (e.t === 'rent') { if (s) { sfx.bad(); big(`−${e.amt}`, `Rent at ${yours(e.o)} ${shopName(e.i)}`, 1300); scene?.effect('ouch', { s: e.s }); } else if (e.o === S.me) { sfx.win(); big(`+${e.amt}`, `${nameOf(e.s)} pays you rent`, 1300); scene?.effect('coins', { s: e.o }); } else sfx.plop(); }
-    else if (e.t === 'tiptoe') { sfx.pop(); if (s || e.o === S.me) big('Shh…', `${petName(e.i)} is napping: no rent`, 1400); }
-    else if (e.t === 'eyes') { sfx.pop(); if (s) big('Puppy eyes!', 'No rent this time', 1300); }
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(s ? L('You took over a bot. Good luck!', 'Przejmujesz miejsce bota. Powodzenia!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
+    else if (e.t === 'buy') { sfx.set(); if (s) big(L('Adopted!', 'Adopcja!'), L(`${petName(e.i)} moves in at the ${shopName(e.i)}`, `${petName(e.i)} wprowadza się (${shopName(e.i)})`)); }
+    else if (e.t === 'rent') { if (s) { sfx.bad(); big(`−${e.amt}`, L(`Rent at ${yours(e.o)} ${shopName(e.i)}`, `Czynsz: ${shopName(e.i)} (${nameOf(e.o)})`), 1300); scene?.effect('ouch', { s: e.s }); } else if (e.o === S.me) { sfx.win(); big(`+${e.amt}`, L(`${nameOf(e.s)} pays you rent`, `${nameOf(e.s)} płaci ci czynsz`), 1300); scene?.effect('coins', { s: e.o }); } else sfx.plop(); }
+    else if (e.t === 'tiptoe') { sfx.pop(); if (s || e.o === S.me) big(L('Shh…', 'Ciii…'), L(`${petName(e.i)} is napping: no rent`, `${petName(e.i)} drzemie: bez czynszu`), 1400); }
+    else if (e.t === 'eyes') { sfx.pop(); if (s) big(L('Puppy eyes!', 'Maślane oczy!'), L('No rent this time', 'Tym razem bez czynszu'), 1300); }
     else if (e.t === 'rub') { sfx.pop(); scene?.effect('hearts', { i: e.i }); }
     else if (e.t === 'bowl') { sfx.set(); scene?.effect('coins', { s: e.s }); }
     else if (e.t === 'go') { sfx.set(); scene?.effect('coins', { s: e.s }); }
-    else if (e.t === 'lost') { if (e.amt) { scene?.effect('jar'); scene?.effect('coins', { s: e.s, n: 24 }); s ? sfx.win() : sfx.set(); if (s) big(`+${e.amt}`, 'Finders keepers!', 1500); } }
-    else if (e.t === 'bath' || e.t === 'mud' || e.t === 'three') { sfx.warn(); if (s && e.t !== 'mud') big('Bath Time!', e.t === 'three' ? 'Three doubles in a row' : 'Into the tub you go', 1400); }
-    else if (e.t === 'duck') { sfx.pop(); if (s) big('Squeak!', 'Your rubber duck got you out of it', 1400); }
+    else if (e.t === 'lost') { if (e.amt) { scene?.effect('jar'); scene?.effect('coins', { s: e.s, n: 24 }); s ? sfx.win() : sfx.set(); if (s) big(`+${e.amt}`, L('Finders keepers!', 'Znalezione, nie kradzione!'), 1500); } }
+    else if (e.t === 'bath' || e.t === 'mud' || e.t === 'three') { sfx.warn(); if (s && e.t !== 'mud') big(L('Bath Time!', 'Kąpiel!'), e.t === 'three' ? L('Three doubles in a row', 'Trzy dublety z rzędu') : L('Into the tub you go', 'Marsz do wanny'), 1400); }
+    else if (e.t === 'duck') { sfx.pop(); if (s) big(L('Squeak!', 'Kwak!'), L('Your rubber duck got you out of it', 'Gumowa kaczka ratuje cię przed kąpielą'), 1400); }
     else if (e.t === 'free') { sfx.set(); scene?.effect('splash'); }
     else if (e.t === 'build') { sfx.place(); }
     else if (e.t === 'sell' || e.t === 'sellup') { sfx.bad(); if (s) ctx.toast(say(e)); }
     else if (e.t === 'forgive') { if (s) ctx.toast(say(e)); }
     else if (e.t === 'again') { if (s) sfx.turn(); }
     else if (e.t === 'naps') { if (e.tiles.length) sfx.plop(); }
-    else if (e.t === 'round') { if (e.r === S.rounds) big('Last round!', 'Richest player after this wins', 1800); }
+    else if (e.t === 'round') { if (e.r === S.rounds) big(L('Last round!', 'Ostatnia runda!'), L('Richest player after this wins', 'Po niej wygrywa najbogatszy gracz'), 1800); }
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); } scene?.effect('party', { s: e.w });
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 2200);
@@ -272,15 +307,15 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results'), w = S.win;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'You are top dog!' : `${nameOf(w)} is top dog!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'The richest paws in town. ' : `You came ${ORD(myPlace)}. `) : ''}Treats in hand plus everything spent on shops and upgrades.</p>
+      <h2>${w === S.me ? L('You are top dog!', 'Wygrywasz!') : L(`${nameOf(w)} is top dog!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${myPlace ? (myPlace === 1 ? L('The richest paws in town. ', 'Najbogatsze łapki w mieście. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('Treats in hand plus everything spent on shops and upgrades.', 'Przysmaki w ręce plus wszystko, co poszło na sklepiki i ulepszenia.')}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], shops = S.own.filter(o => o === i).length;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${shops} shop${shops === 1 ? '' : 's'} · ${p.cash} treats in hand · ${p.st.got} rent collected</span></div>
-          <strong>${treats(S.res.worth[i])}<small>in total</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${cnt(shops, 'shop', 'shops', 'sklepik', 'sklepiki', 'sklepików')} · ${L(`${p.cash} treats in hand · ${p.st.got} rent collected`, `przysmaki w ręce: ${p.cash} · zebrany czynsz: ${p.st.got}`)}</span></div>
+          <strong>${treats(S.res.worth[i])}<small>${L('in total', 'łącznie')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -289,7 +324,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

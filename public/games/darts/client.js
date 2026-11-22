@@ -2,6 +2,7 @@
 // a hold into a steady hand, and letting go into a throw.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -33,12 +34,12 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="sdt-info"></span></div>
       <div class="tr"><span class="tcode" id="sdt-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="sdt-banner" aria-live="polite"></div>
       <div class="shout" id="sdt-big" aria-live="assertive"></div>
-      <ol class="list" id="sdt-list" aria-label="Players"></ol>
+      <ol class="list" id="sdt-list" aria-label="${L(`Players`, `Gracze`)}"></ol>
       <div class="turn" id="sdt-turn"></div>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -122,22 +123,22 @@ export function mount(app, ctx) {
     settle(); render();
     const who = youOr(c.s), mine = c.s === S.me;
     if (c.v) sfx.thunk(); else sfx.place();
-    floatAt(c.sx, c.sy - 26, c.lab === 'Miss' ? 'Miss' : c.lab, c.bust ? 'bad' : c.m === 3 ? 't' : c.m === 2 ? 'd' : c.v ? '' : 'bad');
-    if (c.out) { sfx.win(); big(mine ? 'Game shot!' : 'Checkout!', `${who} finish${mine ? '' : 'es'} from ${c.got}`, 2400); if (mine) confetti(); }
-    else if (c.bust) { sfx.bad(); big('Bust!', `${bustWhy(c)} ${mine ? 'You go' : who + ' goes'} back to ${S.seats[c.s].rem}.`, 3000); }
-    else if (c.fin && c.got === 180) { sfx.win(); big('180!', `${who} hit${mine ? '' : 's'} the maximum`, 2000); if (mine || !scene) confetti(mine); }
-    else if (c.num === 25 && c.m === 2) { sfx.set(); big('Bullseye!', '', 1100); }
-    else if (c.fin && c.got >= 100) { sfx.set(); big('Ton!', `${who} score${mine ? '' : 's'} ${c.got}`, 1300); }
+    floatAt(c.sx, c.sy - 26, c.lab === 'Miss' ? L('Miss', 'Pudło') : c.lab, c.bust ? 'bad' : c.m === 3 ? 't' : c.m === 2 ? 'd' : c.v ? '' : 'bad');
+    if (c.out) { sfx.win(); big(mine ? L('Game shot!', 'Zwycięski rzut!') : L('Checkout!', 'Zakończenie!'), L(`${who} finish${mine ? '' : 'es'} from ${c.got}`, mine ? `Kończysz z ${c.got}` : `${who} kończy z ${c.got}`), 2400); if (mine) confetti(); }
+    else if (c.bust) { sfx.bad(); big(L('Bust!', 'Fura!'), L(`${bustWhy(c)} ${mine ? 'You go' : who + ' goes'} back to ${S.seats[c.s].rem}.`, `${bustWhy(c)} ${mine ? 'Wracasz' : who + ' wraca'} do ${S.seats[c.s].rem}.`), 3000); }
+    else if (c.fin && c.got === 180) { sfx.win(); big('180!', L(`${who} hit${mine ? '' : 's'} the maximum`, mine ? 'Trafiasz maksimum' : `${who} trafia maksimum`), 2000); if (mine || !scene) confetti(mine); }
+    else if (c.num === 25 && c.m === 2) { sfx.set(); big(L('Bullseye!', 'W dziesiątkę!'), '', 1100); }
+    else if (c.fin && c.got >= 100) { sfx.set(); big(L('Ton!', 'Setka!'), L(`${who} score${mine ? '' : 's'} ${c.got}`, mine ? `Zdobywasz ${c.got}` : `${who} zdobywa ${c.got}`), 1300); }
     else if (c.m === 3 && c.num >= 17) sfx.set();
   }
 
   // Why a dart went bust, in plain words: the score before it, and what it would have left.
   function bustWhy(c) {
     const before = S.turnFrom - S.darts.slice(0, c.i).reduce((t, d) => t + d.v, 0), left = before - c.v;
-    if (left < 0) return `${c.lab} is more than the ${before} left.`;
-    if (left === 1) return 'That leaves 1, and no double makes 1.';
-    const d = before === 50 ? 'the Bull' : before % 2 === 0 && before <= 40 ? `D${before / 2}` : '';
-    return `The last dart must be a double${d ? `: ${before} needs ${d}` : ''}.`;
+    if (left < 0) return L(`${c.lab} is more than the ${before} left.`, `${c.lab} to więcej niż pozostałe ${before}.`);
+    if (left === 1) return L('That leaves 1, and no double makes 1.', 'Zostaje 1, a żaden double nie daje 1.');
+    const d = before === 50 ? 'Bull' : before % 2 === 0 && before <= 40 ? `D${before / 2}` : '';
+    return L(`The last dart must be a double${d ? `: ${before} needs ${d}` : ''}.`, `Ostatnia lotka musi trafić w double${d ? `: na ${before} potrzeba ${d}` : ''}.`);
   }
 
   // ----- rendering -----
@@ -162,20 +163,20 @@ export function mount(app, ctx) {
     const mine = myTurn(), touch = matchMedia('(pointer: coarse)').matches;
     const flat = root.classList.contains('flat');
     el.classList.toggle('mine', !!mine);
-    setHtml(el, `<div class="row">${avatarHtml(p.color, p.av, 34)}<div class="slots">${slots}</div><div class="sum"><b>${bust ? 'Bust' : sum}</b><small>this turn</small></div><div class="sum left"><b>${left}</b><small>left</small></div></div>
-      ${hint ? `<div class="out">${!dbl() ? 'Finish' : hint.includes(' ') ? 'Way out, double last' : 'Finish on the double'}: <b>${esc(hint)}</b></div>` : ''}
-      ${mine ? (flat ? '<button type="button" class="btn big r" data-a="lob">Throw</button>'
-        : `<div class="tip"><span>Aiming at <b id="sdt-aim">${esc(aim.lab) || '–'}</b></span><span>${touch ? 'Drag to aim, hold still to steady, lift to throw' : 'Hold the button to steady your hand, let go to throw'}</span></div>`) : ''}`);
+    setHtml(el, `<div class="row">${avatarHtml(p.color, p.av, 34)}<div class="slots">${slots}</div><div class="sum">${L(`<b>${bust ? 'Bust' : sum}</b><small>this turn</small>`, `<b>${bust ? 'Fura' : sum}</b><small>ta kolejka</small>`)}</div><div class="sum left">${L(`<b>${left}</b><small>left</small>`, `<b>${left}</b><small>zostało</small>`)}</div></div>
+      ${hint ? `<div class="out">${L(`${!dbl() ? 'Finish' : hint.includes(' ') ? 'Way out, double last' : 'Finish on the double'}: `, `${!dbl() ? 'Zakończenie' : hint.includes(' ') ? 'Droga do końca, double na koniec' : 'Zakończ na double'}: `)}<b>${esc(hint)}</b></div>` : ''}
+      ${mine ? (flat ? '<button type="button" class="btn big r" data-a="lob">' + L('Throw', 'Rzuć') + '</button>'
+        : `<div class="tip"><span>${L(`Aiming at <b id="sdt-aim">${esc(aim.lab) || '–'}</b>`, `Celujesz w <b id="sdt-aim">${esc(aim.lab) || '–'}</b>`)}</span><span>${L(`${touch ? 'Drag to aim, hold still to steady, lift to throw' : 'Hold the button to steady your hand, let go to throw'}`, `${touch ? 'Przeciągnij, żeby celować, przytrzymaj, żeby uspokoić rękę, puść, żeby rzucić' : 'Przytrzymaj przycisk, żeby uspokoić rękę, puść, żeby rzucić'}`)}</span></div>`) : ''}`);
   }
 
   function renderBanner() {
     const el = $('sdt-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
-    if (S.ph === 'end') msg = S.win >= 0 ? `${youOr(S.win)} win${S.win === S.me ? '' : 's'}!` : '';
-    else if (myTurn()) msg = `Your throw · ${small() ? `${S.darts.length + 1}/${DARTS}` : `dart ${S.darts.length + 1} of ${DARTS}`}${S.left >= 0 ? ` · ${secs}s` : ''}`;
-    else if (S.turn === S.me) msg = me()?.bot ? 'A bot is throwing for you' : 'Your throw';
-    else msg = `${nameOf(S.turn)} is throwing`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${youOr(S.win)} win${S.win === S.me ? '' : 's'}!`, `${S.win === S.me ? 'Wygrana!' : `Wygrywa ${nameOf(S.win)}!`}`) : '';
+    else if (myTurn()) msg = L(`Your throw · ${small() ? `${S.darts.length + 1}/${DARTS}` : `dart ${S.darts.length + 1} of ${DARTS}`}${S.left >= 0 ? ` · ${secs}s` : ''}`, `Twój rzut · ${small() ? `${S.darts.length + 1}/${DARTS}` : `lotka ${S.darts.length + 1} z ${DARTS}`}${S.left >= 0 ? ` · ${secs} s` : ''}`);
+    else if (S.turn === S.me) msg = me()?.bot ? L('A bot is throwing for you', 'Bot rzuca za ciebie') : L('Your throw', 'Twój rzut');
+    else msg = L(`${nameOf(S.turn)} is throwing`, `Rzuca ${nameOf(S.turn)}`);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', !!myTurn());
   }
@@ -183,7 +184,7 @@ export function mount(app, ctx) {
   function render() {
     if (!S) return;
     const rd = Math.min(S.round, S.rounds);
-    $('sdt-info').textContent = small() ? `${S.legsTo > 1 ? `Leg ${S.leg} · ` : ''}Round ${rd}/${S.rounds}` : `${S.legsTo > 1 ? `Leg ${S.leg} · ` : ''}Round ${rd} of ${S.rounds} · ${S.start} ${S.out === 'double' ? 'double out' : 'any finish'}`;
+    $('sdt-info').textContent = small() ? L(`${S.legsTo > 1 ? `Leg ${S.leg} · ` : ''}Round ${rd}/${S.rounds}`, `${S.legsTo > 1 ? `Leg ${S.leg} · ` : ''}Runda ${rd}/${S.rounds}`) : L(`${S.legsTo > 1 ? `Leg ${S.leg} · ` : ''}Round ${rd} of ${S.rounds} · ${S.start} ${S.out === 'double' ? 'double out' : 'any finish'}`, `${S.legsTo > 1 ? `Leg ${S.leg} · ` : ''}Runda ${rd} z ${S.rounds} · ${S.start} ${S.out === 'double' ? 'double out' : 'dowolne zakończenie'}`);
     $('sdt-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderTurn(); renderBanner();
   }
@@ -196,9 +197,9 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Your throw is coming up!' : `${nameOf(e.s)} took over a bot`); }
-    else if (e.t === 'leg') { sfx.draw(); ctx.toast(`${youOr(e.w)} took the leg. Leg ${e.k} starts!`); }
-    else if (e.t === 'cap') ctx.toast(`Last round over: ${youOr(e.s)} had the least left and take${e.s === S.me ? '' : 's'} the leg`);
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Your throw is coming up!', 'Przejmujesz miejsce bota. Zaraz twój rzut!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
+    else if (e.t === 'leg') { sfx.draw(); ctx.toast(L(`${youOr(e.w)} took the leg. Leg ${e.k} starts!`, `${e.w === S.me ? 'Leg dla ciebie' : `Leg wygrywa ${nameOf(e.w)}`}. Zaczyna się leg ${e.k}!`)); }
+    else if (e.t === 'cap') ctx.toast(L(`Last round over: ${youOr(e.s)} had the least left and take${e.s === S.me ? '' : 's'} the leg`, `Koniec ostatniej rundy: ${e.s === S.me ? 'masz najmniej do końca i wygrywasz lega' : `${nameOf(e.s)} ma najmniej do końca i wygrywa lega`}`));
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); }
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 3000);
@@ -233,16 +234,16 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results'), w = S.win;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'You win the match!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'Steady hand, sharp eye. ' : `You came ${ORD(myPlace)}. `) : ''}${S.start} ${S.out === 'double' ? 'double out' : 'any finish'}${S.legsTo > 1 ? `, first to ${S.legsTo} legs` : ''}.</p>
+      <h2>${L(`${w === S.me ? 'You win the match!' : `${nameOf(w)} wins!`}`, `${w === S.me ? 'Wygrywasz mecz!' : `Wygrywa ${nameOf(w)}!`}`)}</h2>
+      <p>${L(`${myPlace ? (myPlace === 1 ? 'Steady hand, sharp eye. ' : `You came ${ORD(myPlace)}. `) : ''}${S.start} ${S.out === 'double' ? 'double out' : 'any finish'}${S.legsTo > 1 ? `, first to ${S.legsTo} legs` : ''}.`, `${myPlace ? (myPlace === 1 ? 'Pewna ręka, bystre oko. ' : `Twoje miejsce: ${myPlace}. `) : ''}${S.start} ${S.out === 'double' ? 'double out' : 'dowolne zakończenie'}${S.legsTo > 1 ? `, do ${S.legsTo} wygranych legów` : ''}.`)}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st, avg = st.darts ? (st.scored / st.darts * 3).toFixed(1) : '0';
-        const main = S.legsTo > 1 ? `${p.legs}<small>leg${p.legs === 1 ? '' : 's'}</small>` : p.rem === 0 ? 'Out!<small>finished</small>' : `${p.rem}<small>left</small>`;
+        const main = S.legsTo > 1 ? `${p.legs}<small>${word(p.legs, 'leg', 'legs', 'leg', 'legi', 'legów')}</small>` : p.rem === 0 ? L('Out!<small>finished</small>', 'Koniec!<small>zakończone</small>') : `${p.rem}<small>${L('left', 'zostało')}</small>`;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>avg ${avg} · best turn ${st.best}${st.t180 ? ` · ${st.t180}× 180` : ''} · ${st.busts} bust${st.busts === 1 ? '' : 's'}</span></div>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`avg ${avg} · best turn ${st.best}${st.t180 ? ` · ${st.t180}× 180` : ''} · ${st.busts} bust${st.busts === 1 ? '' : 's'}`, `średnia ${avg} · najlepsza kolejka ${st.best}${st.t180 ? ` · ${st.t180}× 180` : ''} · fury: ${st.busts}`)}</span></div>
           <strong>${main}</strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -251,7 +252,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

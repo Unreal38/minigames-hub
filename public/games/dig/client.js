@@ -2,6 +2,7 @@
 // Nothing under the grass reaches this page until someone digs it.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -34,19 +35,19 @@ export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="td">
-    <canvas class="g3d" aria-label="The treasure field"></canvas>
+    <canvas class="g3d" aria-label="${L(`The treasure field`, `Pole ze skarbami`)}"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl"><span class="chip" id="td-info"></span></div>
       <div class="tr"><span class="tcode" id="td-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="td-banner" aria-live="polite"></div>
       <div class="shout" id="td-big" aria-live="assertive"></div>
       <div class="td-bottom" id="td-bottom">
         <div class="td-dock" id="td-dock"></div>
-        <ol class="td-list" id="td-list" aria-label="Players and their points"></ol>
+        <ol class="td-list" id="td-list" aria-label="${L(`Players and their points`, `Gracze i ich punkty`)}"></ol>
       </div>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -90,7 +91,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => {
@@ -108,21 +109,21 @@ export function mount(app, ctx) {
     const order = S.seats.map((_, i) => i);
     setHtml($('td-list'), order.map(i => {
       const p = S.seats[i], st = p.st, now = i === S.turn && S.ph === 'play' && S.stage !== 'start';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${shownFinds(i)} finds">${gemSvg(1)}${shownFinds(i)}</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${L(`${shownFinds(i)} finds`, `znaleziska: ${shownFinds(i)}`)}">${gemSvg(1)}${shownFinds(i)}</span></li>`;
     }).join(''));
   }
 
   function renderDock() {
     const el = $('td-dock');
     if (!S || S.ph !== 'play') { setHtml(el, ''); return; }
-    const L = S.left;
-    const stock = `<span class="td-stock" aria-label="Still buried">${gemSvg(1)}${L.gem}${gemSvg(2)}${L.big}${L.chest ? gemSvg(3) + L.chest : ''}<em>${bombSvg}${L.trap}</em></span>`;
+    const lf = S.left;
+    const stock = `<span class="td-stock" aria-label="${L(`Still buried`, `Wciąż zakopane`)}">${gemSvg(1)}${lf.gem}${gemSvg(2)}${lf.big}${lf.chest ? gemSvg(3) + lf.chest : ''}<em>${bombSvg}${lf.trap}</em></span>`;
     if (myTurn() && Date.now() - sent > 1200) {
       const touch = touchPick >= 0;
-      setHtml(el, `<div class="td-you"><b>${S.chain ? 'Found one! Dig again' : 'Your turn'}</b>
-        <span>${touch ? 'Tap the tile again, or' : innerWidth < 700 ? 'Tap a grass tile, then tap it again to dig.' : 'Click a grass tile to dig it.'}</span>
-        ${touch ? '<button type="button" class="btn" data-a="dig">Dig here</button>' : ''}</div>
-        <p class="td-hint">${stock}<span>A number counts the <b>traps</b> touching that tile. ${sparkSvg} means a gem is buried next door.</span></p>`);
+      setHtml(el, `<div class="td-you"><b>${L(`${S.chain ? 'Found one! Dig again' : 'Your turn'}`, `${S.chain ? 'Jest skarb! Kop dalej' : 'Twoja kolej'}`)}</b>
+        <span>${L(`${touch ? 'Tap the tile again, or' : innerWidth < 700 ? 'Tap a grass tile, then tap it again to dig.' : 'Click a grass tile to dig it.'}`, `${touch ? 'Dotknij pola jeszcze raz albo' : innerWidth < 700 ? 'Dotknij pola z trawą, a potem dotknij go jeszcze raz, żeby kopać.' : 'Kliknij pole z trawą, żeby je rozkopać.'}`)}</span>
+        ${touch ? '<button type="button" class="btn" data-a="dig">' + L('Dig here', 'Kop tutaj') + '</button>' : ''}</div>
+        <p class="td-hint">${stock}<span>${L(`A number counts the <b>traps</b> touching that tile. ${sparkSvg} means a gem is buried next door.`, `Liczba mówi, ile <b>pułapek</b> styka się z tym polem. ${sparkSvg} oznacza, że obok jest zakopany klejnot.`)}</span></p>`);
     } else setHtml(el, `<p class="td-hint">${stock}</p>`);
     layout();
   }
@@ -130,20 +131,20 @@ export function mount(app, ctx) {
   function renderBanner() {
     const el = $('td-banner'); if (!S) return;
     let msg = '';
-    const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs}s` : '';
-    if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!` : '';
-    else if (S.stage === 'start') msg = `The field is ready · ${S.turn === S.me ? 'you dig' : nameOf(S.turn) + ' digs'} first`;
-    else if (S.stage === 'dig') msg = `${S.dig.s === S.me ? 'You dig' : nameOf(S.dig.s) + ' digs'}…`;
-    else if (myTurn()) msg = (S.chain ? 'Dig again' : 'Your turn · pick a tile') + t;
-    else if (S.turn >= 0) msg = `${nameOf(S.turn)} is ${S.chain ? 'digging again' : 'choosing a tile'}`;
+    const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs} s` : '';
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!`, `${S.win === S.me ? 'Wygrana' : 'Wygrywa ' + nameOf(S.win)}!`) : '';
+    else if (S.stage === 'start') msg = L(`The field is ready · ${S.turn === S.me ? 'you dig' : nameOf(S.turn) + ' digs'} first`, `Pole gotowe · zaczyna ${S.turn === S.me ? 'twoja łopata' : nameOf(S.turn)}`);
+    else if (S.stage === 'dig') msg = L(`${S.dig.s === S.me ? 'You dig' : nameOf(S.dig.s) + ' digs'}…`, `${S.dig.s === S.me ? 'Kopiesz' : nameOf(S.dig.s) + ' kopie'}…`);
+    else if (myTurn()) msg = (S.chain ? L('Dig again', 'Kop dalej') : L('Your turn · pick a tile', 'Twoja kolej · wybierz pole')) + t;
+    else if (S.turn >= 0) msg = L(`${nameOf(S.turn)} is ${S.chain ? 'digging again' : 'choosing a tile'}`, `${nameOf(S.turn)} ${S.chain ? 'kopie dalej' : 'wybiera pole'}`);
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());
   }
 
   function render() {
     if (!S) return;
-    const L = S.left, gems = L.gem + L.big + L.chest;
-    $('td-info').textContent = S.ph === 'end' ? 'All the treasure is dug up' : `${gems} treasure${gems === 1 ? '' : 's'} left`;
+    const lf2 = S.left, gems = lf2.gem + lf2.big + lf2.chest;
+    $('td-info').textContent = S.ph === 'end' ? L('All the treasure is dug up', 'Wszystkie skarby wykopane') : L(`${gems} treasure${gems === 1 ? '' : 's'} left`, `Zostało skarbów: ${gems}`);
     $('td-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderDock(); renderBanner();
   }
@@ -170,17 +171,17 @@ export function mount(app, ctx) {
     const who = d.s === S.me ? 'You' : nameOf(d.s), mine = d.s === S.me;
     if (d.kind >= 1 && d.kind <= 3) {
       floatAt(d.i, `+${d.pts}`, false);
-      const what = d.kind === 3 ? 'Golden chest!' : d.kind === 2 ? 'Big gem!' : 'A gem!';
-      big(what, `${who} ${mine ? 'find' : 'finds'} ${d.pts} point${d.pts === 1 ? '' : 's'}${d.chain > 1 ? ` · ${d.chain} in a row` : ''} · dig again`, d.kind === 3 ? 2200 : 1400, 'k' + d.kind);
+      const what = d.kind === 3 ? L('Golden chest!', 'Złota skrzynia!') : d.kind === 2 ? L('Big gem!', 'Wielki klejnot!') : L('A gem!', 'Klejnot!');
+      big(what, L(`${who} ${mine ? 'find' : 'finds'} ${d.pts} point${d.pts === 1 ? '' : 's'}${d.chain > 1 ? ` · ${d.chain} in a row` : ''} · dig again`, `${mine ? 'Zdobywasz' : who + ' zdobywa'} ${cnt(d.pts, 'point', 'points', 'punkt', 'punkty', 'punktów')}${d.chain > 1 ? ` · ${d.chain} z rzędu` : ''} · kopanie trwa`), d.kind === 3 ? 2200 : 1400, 'k' + d.kind);
       if (d.kind === 3) { sfx.win(); if (mine) confetti(); } else sfx.set();
     } else if (d.kind === 4) {
-      setTimeout(() => { if (destroyed) return; sfx.lose(); floatAt(d.i, d.pts ? `${d.pts}` : '0', true); big('Trap!', `${who} ${mine ? 'lose' : 'loses'} ${-d.pts || 0} point${d.pts === -1 ? '' : 's'}`, 1600, 'k4'); }, 750);
+      setTimeout(() => { if (destroyed) return; sfx.lose(); floatAt(d.i, d.pts ? `${d.pts}` : '0', true); big(L('Trap!', 'Pułapka!'), L(`${who} ${mine ? 'lose' : 'loses'} ${-d.pts || 0} point${d.pts === -1 ? '' : 's'}`, `${mine ? 'Tracisz' : who + ' traci'} ${cnt(-d.pts || 0, 'point', 'points', 'punkt', 'punkty', 'punktów')}`), 1600, 'k4'); }, 750);
       sfx.warn();
-    } else { sfx.plop(); if (d.late && d.s === S.me) ctx.toast('Out of time: the game dug a tile for you'); }
+    } else { sfx.plop(); if (d.late && d.s === S.me) ctx.toast(L('Out of time: the game dug a tile for you', 'Koniec czasu: gra rozkopała pole za ciebie')); }
   }
 
   function playEv(e) {
-    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Good luck!' : `${nameOf(e.s)} took over a bot`); }
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Good luck!', 'Przejmujesz miejsce bota. Powodzenia!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
     else if (e.t === 'end') { clearTimeout(resultsTimer); resultsTimer = setTimeout(() => { showResults(); if (S?.win === S?.me) { sfx.win(); confetti(); } }, 2600); }
   }
 
@@ -214,15 +215,15 @@ export function mount(app, ctx) {
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     const finds = st => [st.chest ? `${gemSvg(3)}${st.chest}` : '', `${gemSvg(2)}${st.big}`, `${gemSvg(1)}${st.gems}`, st.traps ? `${bombSvg}${st.traps}` : ''].filter(Boolean).join('');
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'Richest digger on the island!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? 'You dug up the most treasure. ' : `You came ${ORD(myPlace)}. `) : ''}Every gem has been found.</p>
+      <h2>${L(`${w === S.me ? 'Richest digger on the island!' : `${nameOf(w)} wins!`}`, `${w === S.me ? 'Najwięcej skarbów na wyspie jest u ciebie!' : `Wygrywa ${nameOf(w)}!`}`)}</h2>
+      <p>${L(`${myPlace ? (myPlace === 1 ? 'You dug up the most treasure. ' : `You came ${ORD(myPlace)}. `) : ''}Every gem has been found.`, `${myPlace ? (myPlace === 1 ? 'Masz najwięcej wykopanych skarbów. ' : `Twoje miejsce: ${myPlace}. `) : ''}Wszystkie klejnoty znalezione.`)}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i];
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span class="td-finds">${finds(p.st)}</span></div>
-          <strong>${p.pts}<small>points</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span class="td-finds">${finds(p.st)}</span></div>
+          ${L(`<strong>${p.pts}<small>points</small></strong>`, `<strong>${p.pts}<small>${word(p.pts, 'point', 'points', 'punkt', 'punkty', 'punktów')}</small></strong>`)}${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Dig again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Dig again', 'Kop jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -231,7 +232,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Dig again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Dig again', 'Kop jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

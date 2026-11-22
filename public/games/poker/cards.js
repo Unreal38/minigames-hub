@@ -1,5 +1,6 @@
 // Playing cards as HTML (for your hand and the results) and the suit shapes the 3D cards share.
 import { RANKS, rankOf, suitOf, cardLabel } from './rules.js';
+import { L } from '../../i18n.js';
 
 // Classic two-colour deck: hearts and diamonds red, clubs and spades black (well, cozy ink).
 export const SUIT_COLS = ['#d8402a', '#d8402a', '#3b2219', '#3b2219'];
@@ -20,7 +21,7 @@ export function suitSvg(s, size = 20) {
 
 // c = -1 draws the back. opts: { cls, big }
 export function cardHtml(c, opts = {}) {
-  if (c < 0 || c === undefined) return `<span class="pcard back ${opts.cls || ''}" aria-label="Hidden card"><i></i></span>`;
+  if (c < 0 || c === undefined) return `<span class="pcard back ${opts.cls || ''}" aria-label="${L('Hidden card', 'Zakryta karta')}"><i></i></span>`;
   const r = rankOf(c), s = suitOf(c);
   return `<span class="pcard ${opts.cls || ''}" style="--sc:${SUIT_COLS[s]}" aria-label="${cardLabel(c)}" role="img">
     <b>${RANKS[r]}</b><span class="ps">${suitSvg(s, 18)}</span><span class="pbig">${suitSvg(s, 44)}</span></span>`;

@@ -1,9 +1,11 @@
 // Liar's Dice rules shared by the server and the client: what counts, which bids are allowed, and the odds.
 // A bid is { q, f }: "there are at least q dice showing face f under all the cups together".
+import { PL, plForm } from '../../i18n.js';
 export const FACES = wild => (wild ? [2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6]);
 export const NAME = ['', 'one', 'two', 'three', 'four', 'five', 'six'];
 export const PLURAL = ['', 'ones', 'twos', 'threes', 'fours', 'fives', 'sixes'];
-export const faceWord = (q, f) => (q === 1 ? NAME[f] : PLURAL[f]);
+const NAME_PL = [[], ['jedynka', 'jedynki', 'jedynek'], ['dwójka', 'dwójki', 'dwójek'], ['trójka', 'trójki', 'trójek'], ['czwórka', 'czwórki', 'czwórek'], ['piątka', 'piątki', 'piątek'], ['szóstka', 'szóstki', 'szóstek']];
+export const faceWord = (q, f) => (PL ? plForm(q, ...NAME_PL[f]) : q === 1 ? NAME[f] : PLURAL[f]);
 
 // With wild ones on, a 1 counts as whatever face was bid.
 export const matches = (v, f, wild) => v === f || (wild && v === 1);

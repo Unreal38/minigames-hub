@@ -1,6 +1,7 @@
 // Mini Golf Party game view: HUD over the 3D hole. Renders what the server says; sends putts and bets.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, PL, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -20,8 +21,16 @@ const STAKES = [10, 25, 50];
 function scoreName(n, par) {
   if (n === 1) return 'Hole in one!';
   const d = n - par;
+  if (PL) return d <= -3 ? 'Albatros!' : d === -2 ? 'Eagle!' : d === -1 ? 'Birdie!' : d === 0 ? 'Par' : d === 1 ? 'Bogey' : d === 2 ? 'Podwójny bogey' : `${d} ponad par`;
   return d <= -3 ? 'Albatross!' : d === -2 ? 'Eagle!' : d === -1 ? 'Birdie!' : d === 0 ? 'Par' : d === 1 ? 'Bogey' : d === 2 ? 'Double bogey' : `${d} over par`;
 }
+const HOLE_PL = { 'First Putt': 'Pierwsze uderzenie', Dogleg: 'Zakręt', Windmill: 'Wiatrak', 'Up the Steps': 'Po schodach', 'The Bridge': 'Most', Zigzag: 'Zygzak', Pinball: 'Flipper', 'The Hill': 'Górka', 'Grand Finale': 'Wielki finał' };
+// made-up holes are named "Adjective Noun" by the server; Polish adjectives follow the noun's gender (m, f, n, plural)
+const HOLE_NOUN = { Mill: ['Młyn', 0], Crossing: ['Przeprawa', 1], Pond: ['Staw', 0], Arcade: ['Arkady', 3], Dunes: ['Wydmy', 3], Maze: ['Labirynt', 0], Roundabout: ['Rondo', 2], Lane: ['Alejka', 1], Steps: ['Schody', 3], Summit: ['Szczyt', 0] };
+const HOLE_ADJ = { Windy: 'Wietrzn', Soggy: 'Mokr', Misty: 'Mglist', Bumpy: 'Wyboist', Sandy: 'Piaszczyst', Twisty: 'Kręt', Loopy: 'Zakręcon', Breezy: 'Przewiewn', Steep: 'Strom', Lofty: 'Wysok', Little: 'Mał', Old: 'Star', Lucky: 'Szczęśliw', Sunny: 'Słoneczn' };
+const holePl = n => { if (HOLE_PL[n]) return HOLE_PL[n]; if (n === 'Easy Street') return 'Łatwa uliczka'; const [a, b] = String(n).split(' '), st = HOLE_ADJ[a], no = HOLE_NOUN[b]; if (!st || !no) return n;
+  const k = st.endsWith('k'); return `${st}${[k ? 'i' : 'y', 'a', k ? 'ie' : 'e', k ? 'ie' : 'e'][no[1]]} ${no[0].toLowerCase()}`; };
+const holeName = n => L(n, holePl(n));
 const vsPar = d => (d === 0 ? 'E' : d > 0 ? '+' + d : '−' + -d);
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${s / 60 | 0}:${String(s % 60).padStart(2, '0')}`; };
 
@@ -36,17 +45,17 @@ export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="mg">
-    <canvas class="g3d" aria-label="The mini golf hole. Drag back and let go to putt, or use the arrow keys and space."></canvas>
+    <canvas class="g3d" aria-label="${L(`The mini golf hole. Drag back and let go to putt, or use the arrow keys and space.`, `Dołek minigolfa. Przeciągnij do tyłu i puść, żeby uderzyć, albo użyj strzałek i spacji.`)}"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl"><span class="chip" id="mg-hole"></span><span class="chip coins" id="mg-coins"></span></div>
       <div class="tr"><span class="tcode" id="mg-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="mg-banner" aria-live="polite"></div>
       <div class="shout" id="mg-big" aria-live="assertive"></div>
-      <ol class="list" id="mg-list" aria-label="Scores"></ol>
+      <ol class="list" id="mg-list" aria-label="${L(`Scores`, `Wyniki`)}"></ol>
       <div class="betbox" id="mg-bet" hidden></div>
       <div class="puttbar" id="mg-putt" hidden></div>
       <div class="holecard" id="mg-done" hidden></div>
@@ -104,12 +113,12 @@ export function mount(app, ctx) {
     if (!S) return;
     const mine = c.s === S.me;
     if (c.k === 'putt') { if (mine) sfx.place(); else sfx.tick(); }
-    else if (c.k === 'hit') { if (c.kind === 'c') { sfx.pop(); if (mine) big('Too fast!', 'It skipped right over the hole', 1500); } else if (mine) (c.kind === 'p' ? sfx.pop : sfx.tick)(); }
+    else if (c.k === 'hit') { if (c.kind === 'c') { sfx.pop(); if (mine) big(L('Too fast!', 'Za szybko!'), L('It skipped right over the hole', 'Piłka przeskoczyła nad dołkiem'), 1500); } else if (mine) (c.kind === 'p' ? sfx.pop : sfx.tick)(); }
     else if (c.k === 'water') { sfx.plop(); if (mine) { big('Splash!', 'One stroke, and back you go', 1500); sfx.bad(); } }
     else if (c.k === 'sunk') {
       const p = S.seats[c.s]; if (!p) return;
-      if (mine) { sfx.win(); if (p.strokes <= S.par) confetti(); big(scoreName(p.strokes, S.par), `In the hole in ${p.strokes}`, 2000); }
-      else { sfx.set(); ctx.toast(`${I.flag}${nameOf(c.s)} is in the hole in ${p.strokes}${p.strokes === 1 ? '. A hole in one!' : ''}`); }
+      if (mine) { sfx.win(); if (p.strokes <= S.par) confetti(); big(scoreName(p.strokes, S.par), L(`In the hole in ${p.strokes}`, `W dołku za ${p.strokes}`), 2000); }
+      else { sfx.set(); ctx.toast(L(`${I.flag}${nameOf(c.s)} is in the hole in ${p.strokes}${p.strokes === 1 ? '. A hole in one!' : ''}`, `${I.flag}${nameOf(c.s)}: w dołku za ${p.strokes}${p.strokes === 1 ? '. Hole in one!' : ''}`)); }
     }
   }
 
@@ -129,7 +138,7 @@ export function mount(app, ctx) {
     setHtml($('mg-list'), ord.map(i => {
       const p = S.seats[i], playing = S.stage === 'play';
       const now = playing ? (p.sunk ? `<em class="in">${I.check}${p.strokes}</em>` : p.out ? `<em class="out">${S.cap}</em>` : `<em>${p.strokes}</em>`) : '';
-      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && S.turn === i ? ' turn' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' (away)' : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
+      return `<li class="${i === S.me ? 'mg-me' : ''}${playing && S.turn === i ? ' turn' : ''}${playing && (p.sunk || p.out) ? ' fin' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b>${now}<span>${done ? vsPar(p.total - par) : '–'}</span></li>`;
     }).join(''));
   }
 
@@ -137,14 +146,14 @@ export function mount(app, ctx) {
     const el = $('mg-bet'), my = me();
     el.hidden = !(S.stage === 'bet' && S.bets && S.ph === 'play');
     if (el.hidden) return;
-    if (!my) { setHtml(el, `<div class="bethead"><h2>Hole ${S.hole}: ${esc(S.name)}</h2><span>Par ${S.par}. You are watching this round.</span></div>`); return; }
+    if (!my) { setHtml(el, `<div class="bethead">${L(`<h2>Hole ${S.hole}: ${esc(S.name)}</h2><span>Par ${S.par}. You are watching this round.</span>`, `<h2>Dołek ${S.hole}: ${esc(holeName(S.name))}</h2><span>Par ${S.par}. Oglądasz tę rundę.</span>`)}</div>`); return; }
     const coins = my.coins || 0, bet = my.bet && my.bet !== 'skip' ? my.bet : null, poor = coins < STAKES[0];
-    setHtml(el, `<div class="bethead"><h2>Who takes hole ${S.hole}?</h2><span>Fewest strokes wins it. A right call pays <b>${S.mult}×</b> · you have ${I.coin}<b>${coins}</b></span></div>
+    setHtml(el, `<div class="bethead">${L(`<h2>Who takes hole ${S.hole}?</h2><span>Fewest strokes wins it. A right call pays <b>${S.mult}×</b> · you have ${I.coin}<b>${coins}</b></span>`, `<h2>Kto wygra dołek ${S.hole}?</h2><span>Wygrywa najmniej uderzeń. Trafny typ płaci <b>${S.mult}×</b> · masz ${I.coin}<b>${coins}</b></span>`)}</div>
       <div class="picks">${S.seats.map((p, i) => `<button type="button" class="pick${bet?.on === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${poor ? 'disabled' : ''} aria-pressed="${bet?.on === i}">
-        ${avatarHtml(p.color, p.av, 44)}<b>${i === S.me ? 'Me' : nameHtml(p.name, p.fl)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'new'}</span></button>`).join('')}</div>
-      <div class="stakes"><span>Stake</span><div class="pills">${STAKES.map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins ? 'disabled' : ''}>${v}</button>`).join('')}</div>
-        <span class="mybet">${poor ? 'You need 10 coins to bet. Finish the round to earn some.' : bet ? `${I.coin}<b>${bet.amt}</b> on ${bet.on === S.me ? 'yourself' : nameOf(bet.on)}` : my.bet === 'skip' ? 'No bet this hole.' : 'Tap a player to bet on them. Betting is optional.'}</span>
-        <button type="button" class="btn ${my.bet === 'skip' || poor ? 'w' : 'm'}" data-a="skip" ${my.bet === 'skip' ? 'disabled' : ''}>${bet ? 'Remove bet' : my.bet === 'skip' ? 'Waiting for the others' : 'No bet, just play'}</button></div>`);
+        ${avatarHtml(p.color, p.av, 44)}${L(`<b>${i === S.me ? 'Me' : nameHtml(p.name, p.fl)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'new'}</span>`, `<b>${i === S.me ? 'Ja' : nameHtml(p.name, p.fl)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'nowy'}</span>`)}</button>`).join('')}</div>
+      <div class="stakes">${L(`<span>Stake</span>`, `<span>Stawka</span>`)}<div class="pills">${STAKES.map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins ? 'disabled' : ''}>${v}</button>`).join('')}</div>
+        <span class="mybet">${L(`${poor ? 'You need 10 coins to bet. Finish the round to earn some.' : bet ? `${I.coin}<b>${bet.amt}</b> on ${bet.on === S.me ? 'yourself' : nameOf(bet.on)}` : my.bet === 'skip' ? 'No bet this hole.' : 'Tap a player to bet on them. Betting is optional.'}`, `${poor ? 'Do zakładu potrzeba 10 monet. Dokończ rundę, żeby trochę zarobić.' : bet ? `${I.coin}<b>${bet.amt}</b> na ${bet.on === S.me ? 'siebie' : 'gracza ' + nameOf(bet.on)}` : my.bet === 'skip' ? 'Bez zakładu na tym dołku.' : 'Dotknij gracza, żeby na niego postawić. Zakłady nie są obowiązkowe.'}`)}</span>
+        <button type="button" class="btn ${my.bet === 'skip' || poor ? 'w' : 'm'}" data-a="skip" ${my.bet === 'skip' ? 'disabled' : ''}>${L(`${bet ? 'Remove bet' : my.bet === 'skip' ? 'Waiting for the others' : 'No bet, just play'}`, `${bet ? 'Wycofaj zakład' : my.bet === 'skip' ? 'Czekamy na pozostałych' : 'Bez zakładu, po prostu gram'}`)}</button></div>`);
   }
 
   function renderPutt() {
@@ -152,14 +161,14 @@ export function mount(app, ctx) {
     el.hidden = !(S && S.ph === 'play' && S.stage === 'play');
     if (el.hidden) return;
     let html;
-    if (!my) html = '<p>You are watching. Take a seat for the next hole from the bar above.</p>';
-    else if (my.sunk) html = `<p class="good">${I.flag}In the hole in <b>${my.strokes}</b>. ${scoreName(my.strokes, S.par).replace('!', '')}. Waiting for the others.</p>`;
-    else if (my.out) html = `<p>Picked up after ${S.max} strokes. That counts as ${S.cap}.</p>`;
-    else if (my.bot) html = '<p>A bot is putting for you. Welcome back!</p>';
-    else if (aiming) html = `<div class="power" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(power * 100)}"><i style="width:${Math.round(power * 100)}%"></i></div><p>${keys ? 'Left and right to aim, up and down for power, space to putt' : power < .04 ? 'Pull further back, or let go to cancel' : 'Let go to putt'} · ${Math.round(power * 100)}%</p>`;
-    else if (S.turn !== S.me) html = S.turn >= 0 ? `<p><b>${nameOf(S.turn)}</b> ${turnOpen() ? 'is putting' : 'is up next'}. You have taken <b>${my.strokes}</b> of ${S.max} strokes.</p>` : '<p>Rolling…</p>';
-    else if (rolling || !canAim()) html = `<p>${turnOpen() ? 'Rolling…' : 'You are up next.'} <span class="strokes">Stroke ${my.strokes} of ${S.max}</span></p>`;
-    else html = `<p><b>Your putt.</b> Drag back anywhere and let go. <span class="strokes">Stroke ${my.strokes + 1} of ${S.max}</span></p>`;
+    if (!my) html = `<p>${L('You are watching. Take a seat for the next hole from the bar above.', 'Oglądasz. Na następny dołek możesz usiąść z paska u góry.')}</p>`;
+    else if (my.sunk) html = `<p class="good">${I.flag}${L(`In the hole in <b>${my.strokes}</b>. ${scoreName(my.strokes, S.par).replace('!', '')}. Waiting for the others.`, `W dołku za <b>${my.strokes}</b>. ${scoreName(my.strokes, S.par).replace('!', '')}. Czekamy na pozostałych.`)}</p>`;
+    else if (my.out) html = `<p>${L(`Picked up after ${S.max} strokes. That counts as ${S.cap}.`, `Piłka podniesiona po ${S.max} uderzeniach. Liczy się to jako ${S.cap}.`)}</p>`;
+    else if (my.bot) html = `<p>${L('A bot is putting for you. Welcome back!', 'Bot uderza za ciebie. Witaj z powrotem!')}</p>`;
+    else if (aiming) html = `<div class="power" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(power * 100)}"><i style="width:${Math.round(power * 100)}%"></i></div><p>${L(`${keys ? 'Left and right to aim, up and down for power, space to putt' : power < .04 ? 'Pull further back, or let go to cancel' : 'Let go to putt'}`, `${keys ? 'Lewo i prawo celują, góra i dół ustawiają siłę, spacja uderza' : power < .04 ? 'Pociągnij dalej albo puść, żeby anulować' : 'Puść, żeby uderzyć'}`)} · ${Math.round(power * 100)}%</p>`;
+    else if (S.turn !== S.me) html = S.turn >= 0 ? L(`<p><b>${nameOf(S.turn)}</b> ${turnOpen() ? 'is putting' : 'is up next'}. You have taken <b>${my.strokes}</b> of ${S.max} strokes.</p>`, `<p>${turnOpen() ? 'Uderza' : 'Następny uderza'} <b>${nameOf(S.turn)}</b>. Twoje uderzenia: <b>${my.strokes}</b> z ${S.max}.</p>`) : `<p>${L('Rolling…', 'Piłka się toczy…')}</p>`;
+    else if (rolling || !canAim()) html = `<p>${L(`${turnOpen() ? 'Rolling…' : 'You are up next.'} <span class="strokes">Stroke ${my.strokes} of ${S.max}</span>`, `${turnOpen() ? 'Piłka się toczy…' : 'Zaraz twoja kolej.'} <span class="strokes">Uderzenie ${my.strokes} z ${S.max}</span>`)}</p>`;
+    else html = `<p>${L(`<b>Your putt.</b> Drag back anywhere and let go. <span class="strokes">Stroke ${my.strokes + 1} of ${S.max}</span>`, `<b>Twoje uderzenie.</b> Przeciągnij do tyłu w dowolnym miejscu i puść. <span class="strokes">Uderzenie ${my.strokes + 1} z ${S.max}</span>`)}</p>`;
     setHtml(el, html);
   }
 
@@ -169,28 +178,28 @@ export function mount(app, ctx) {
     if (el.hidden) return;
     const ord = S.seats.map((_, i) => i).sort((a, b) => (a === R.win ? -1 : b === R.win ? 1 : R.scores[a] - R.scores[b]));
     const my = S.me >= 0 ? R.pay[S.me] : null;
-    setHtml(el, `<h2>${R.win >= 0 ? `${youOr(R.win)} take${R.win === S.me ? '' : 's'} hole ${S.hole}` : `Nobody holed out on hole ${S.hole}`}</h2>
+    setHtml(el, `<h2>${L(`${R.win >= 0 ? `${youOr(R.win)} take${R.win === S.me ? '' : 's'} hole ${S.hole}` : `Nobody holed out on hole ${S.hole}`}`, `${R.win >= 0 ? (R.win === S.me ? `Dołek ${S.hole} jest twój` : `Dołek ${S.hole} wygrywa ${nameOf(R.win)}`) : `Nikt nie trafił do dołka ${S.hole}`}`)}</h2>
       <ol>${ord.map(i => { const p = S.seats[i], sc = R.scores[i], pay = R.pay[i];
-        return `<li class="${i === R.win ? 'won' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${sc >= S.cap ? 'picked up' : scoreName(sc, R.par).replace('!', '')}</span><strong>${sc}</strong>${pay ? `<small class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}${I.coin}</small>` : ''}</li>`; }).join('')}</ol>
-      ${my ? `<p>${my.net > 0 ? `Your bet came in: +${my.net} coins.` : my.net < 0 ? `Your bet on ${my.on === S.me ? 'yourself' : nameOf(my.on)} lost ${-my.net} coins.` : 'Nobody won the hole, so your stake came back.'}</p>` : ''}
-      <p class="next">${S.hole < S.holes ? 'Next hole coming up…' : 'That was the last hole!'}</p>`);
+        return `<li class="${i === R.win ? 'won' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${L(`${sc >= S.cap ? 'picked up' : scoreName(sc, R.par).replace('!', '')}`, `${sc >= S.cap ? 'podniesiona' : scoreName(sc, R.par).replace('!', '')}`)}</span><strong>${sc}</strong>${pay ? `<small class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}${I.coin}</small>` : ''}</li>`; }).join('')}</ol>
+      ${my ? `<p>${L(`${my.net > 0 ? `Your bet came in: +${my.net} coins.` : my.net < 0 ? `Your bet on ${my.on === S.me ? 'yourself' : nameOf(my.on)} lost ${-my.net} coins.` : 'Nobody won the hole, so your stake came back.'}`, `${my.net > 0 ? `Twój zakład wszedł: +${cnt(my.net, 'coin', 'coins', 'moneta', 'monety', 'monet')}.` : my.net < 0 ? `Twój zakład na ${my.on === S.me ? 'siebie' : 'gracza ' + nameOf(my.on)} przegrywa ${cnt(-my.net, 'coin', 'coins', 'monetę', 'monety', 'monet')}.` : 'Nikt nie wygrał dołka, więc stawka wraca do ciebie.'}`)}</p>` : ''}
+      <p class="next">${L(`${S.hole < S.holes ? 'Next hole coming up…' : 'That was the last hole!'}`, `${S.hole < S.holes ? 'Zaraz następny dołek…' : 'To był ostatni dołek!'}`)}</p>`);
   }
 
   function renderBanner() {
     const el = $('mg-banner'); let msg = '';
     const left = Math.max(0, endsAt - performance.now());
-    if (S.ph !== 'play') msg = S.win >= 0 ? `${nameOf(S.win)} wins the round!` : '';
-    else if (S.stage === 'bet') msg = S.bets ? `Place your bets · ${Math.ceil(left / 1000)}s` : `Hole ${S.hole}: ${S.name} · Par ${S.par}`;
-    else if (S.stage === 'play') msg = S.turn >= 0 && turnOpen() ? `${S.turn === S.me ? 'Your putt' : `${S.seats[S.turn]?.name}'s putt`} · ${Math.ceil(left / 1000)}s` : S.name;
+    if (S.ph !== 'play') msg = S.win >= 0 ? L(`${nameOf(S.win)} wins the round!`, `Rundę wygrywa ${nameOf(S.win)}!`) : '';
+    else if (S.stage === 'bet') msg = S.bets ? L(`Place your bets · ${Math.ceil(left / 1000)}s`, `Obstawiajcie · ${Math.ceil(left / 1000)} s`) : L(`Hole ${S.hole}: ${S.name} · Par ${S.par}`, `Dołek ${S.hole}: ${holeName(S.name)} · Par ${S.par}`);
+    else if (S.stage === 'play') msg = S.turn >= 0 && turnOpen() ? L(`${S.turn === S.me ? 'Your putt' : `${S.seats[S.turn]?.name}'s putt`} · ${Math.ceil(left / 1000)}s`, `${S.turn === S.me ? 'Twoje uderzenie' : `Uderza ${S.seats[S.turn]?.name}`} · ${Math.ceil(left / 1000)} s`) : holeName(S.name);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', S.ph === 'play' && S.stage === 'play' && S.turn === S.me && turnOpen() && left < 6000);
   }
 
   function render() {
     if (!S) return;
-    setHtml($('mg-hole'), `<i>Hole </i>${S.hole}/${S.holes} · Par ${S.par}`);
+    setHtml($('mg-hole'), `${L(`<i>Hole </i>${S.hole}/${S.holes} · Par ${S.par}`, `<i>Dołek </i>${S.hole}/${S.holes} · Par ${S.par}`)}`);
     const my = me();
-    setHtml($('mg-coins'), my ? `${I.coin}${my.coins ?? 0}` : 'Watching');
+    setHtml($('mg-coins'), my ? `${I.coin}${my.coins ?? 0}` : L('Watching', 'Oglądasz'));
     $('mg-coins').hidden = !S.bets;
     $('mg-code').textContent = Rm?.code || '';
     buildTags(); renderTags(); renderList(); renderBet(); renderPutt(); renderDone(); renderBanner();
@@ -204,11 +213,11 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'hole') { hideResults(); sfx.draw(); if (!S.bets) big(`Hole ${S.hole}`, `${esc(S.name)} · Par ${S.par}`, 2000); }
-    else if (e.t === 'go') { big('Tee off!', `${esc(S.name)} · Par ${S.par}`, 1300); sfx.turn(); }
+    if (e.t === 'hole') { hideResults(); sfx.draw(); if (!S.bets) big(L(`Hole ${S.hole}`, `Dołek ${S.hole}`), `${esc(holeName(S.name))} · Par ${S.par}`, 2000); }
+    else if (e.t === 'go') { big(L('Tee off!', 'Zaczynamy!'), `${esc(holeName(S.name))} · Par ${S.par}`, 1300); sfx.turn(); }
     else if (e.t === 'holeEnd') { const R = S.holeRes, my = R?.pay?.[S.me]; if (my?.net > 0) { sfx.win(); confetti(); } else if (R?.win === S.me) sfx.set(); else sfx.pop(); }
-    else if (e.t === 'late') { if (e.s === S.me) ctx.toast('Out of time, so the game putted for you.'); }
-    else if (e.t === 'sit') ctx.toast(`${nameOf(e.s)} joins the round.`);
+    else if (e.t === 'late') { if (e.s === S.me) ctx.toast(L('Out of time, so the game putted for you.', 'Koniec czasu, więc gra uderzyła za ciebie.')); }
+    else if (e.t === 'sit') ctx.toast(L(`${nameOf(e.s)} joins the round.`, `${nameOf(e.s)} dołącza do rundy.`));
     else if (e.t === 'end') {
       if (S.win === S.me) { sfx.win(); confetti(); } else sfx.lose();
       clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 1200);
@@ -235,16 +244,16 @@ export function mount(app, ctx) {
   function showResults() {
     if (!S || S.ph !== 'end' || !S.res) return;
     const el = root.querySelector('.results'), R = S.res, w = S.win, my = me();
-    const line = my && S.bets ? (my.net > 0 ? `Your bets made ${I.coin}<b>${my.net}</b>.` : my.net < 0 ? `Your bets cost ${I.coin}<b>${-my.net}</b>.` : '') : '';
+    const line = my && S.bets ? (my.net > 0 ? L(`Your bets made ${I.coin}<b>${my.net}</b>.`, `Zakłady dały ci ${I.coin}<b>${my.net}</b>.`) : my.net < 0 ? L(`Your bets cost ${I.coin}<b>${-my.net}</b>.`, `Zakłady kosztowały cię ${I.coin}<b>${-my.net}</b>.`) : '') : '';
     el.innerHTML = `<div class="sheet">
-      <h2>${I.flag}${w === S.me ? 'You win' : `${nameOf(w)} wins`} the round!</h2>
-      <p>${S.holes} holes, par ${R.par}. Fewest strokes wins. ${line}</p>
-      <div class="cardwrap"><table class="mg-card"><thead><tr><th>Hole</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>Total</th><th>Coins</th></tr>
+      <h2>${I.flag}${L(`${w === S.me ? 'You win' : `${nameOf(w)} wins`} the round!`, `${w === S.me ? 'Wygrywasz rundę!' : `Rundę wygrywa ${nameOf(w)}!`}`)}</h2>
+      <p>${L(`${S.holes} holes, par ${R.par}. Fewest strokes wins. ${line}`, `Dołki: ${S.holes}, par ${R.par}. Wygrywa najmniej uderzeń. ${line}`)}</p>
+      <div class="cardwrap"><table class="mg-card"><thead><tr><th>${L('Hole', 'Dołek')}</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>${L('Total', 'Razem')}</th><th>${L('Coins', 'Monety')}</th></tr>
         <tr class="par"><th>Par</th>${S.pars.map(p => `<td>${p}</td>`).join('')}<td>${R.par}</td><td></td></tr></thead>
         <tbody>${R.order.map((i, n) => { const p = S.seats[i];
-          return `<tr class="${i === S.me ? 'mg-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b></span></th>
+          return `<tr class="${i === S.me ? 'mg-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><th><span class="who">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b></span></th>
             ${p.card.map((sc, h) => `<td class="${sc < S.pars[h] ? 'under' : sc > S.pars[h] ? 'over' : ''}">${sc}</td>`).join('')}<td><strong>${R.totals[i]}</strong><small>${vsPar(R.totals[i] - R.par)}</small></td><td class="mg-paid">${paidHtml(Rm, i)}</td></tr>`; }).join('')}</tbody></table></div>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -253,7 +262,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

@@ -2,6 +2,7 @@
 // button and the boxes you can write your roll into. The server owns the dice; this only sends roll, hold and pick.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -38,10 +39,10 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="pp-info"></span></div>
       <div class="tr"><span class="tcode" id="pp-code"></span>
-        <button type="button" class="round pp-sheetbtn" data-a="sheet" aria-label="Score sheet">${I.sheet}</button>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round pp-sheetbtn" data-a="sheet" aria-label="${L(`Score sheet`, `Arkusz punktów`)}">${I.sheet}</button>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="pp-banner" aria-live="polite"></div>
       <div class="shout" id="pp-big" aria-live="assertive"></div>
       <aside class="pp-side" id="pp-side"><div class="pp-sheet" id="pp-sheet"></div></aside>
@@ -65,7 +66,7 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
   const wide = () => innerWidth >= WIDE;
   const rolling = () => performance.now() < rollUntil;
   const myTurn = () => !!(S && S.ph === 'play' && S.stage === 'turn' && S.turn === S.me && me() && !me().bot && !S.auto);
@@ -118,27 +119,27 @@ export function mount(app, ctx) {
     // the columns on show: [seat, column index]
     const colsOn = tri ? [0, 1, 2].map(ci => [tab, ci]) : S.seats.map((_, i) => [i, 0]);
     const head = tri ? colsOn.map(([, ci]) => `<th class="mul">×${MULT[ci]}</th>`).join('')
-      : S.seats.map((p, i) => `<th class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}${i === S.me ? ' mine' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span></th>`).join('');
+      : S.seats.map((p, i) => `<th class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}${i === S.me ? ' mine' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</span></th>`).join('');
     const cell = ([i, ci], b) => {
       const p = S.seats[i], v = p.cols[ci][b], m = MULT[ci];
       if (v != null) return `<td class="done${S.last && S.last.s === i && S.last.box === b && S.last.col === ci && S.stage === 'pick' ? ' fresh' : ''}${v === 0 ? ' zero' : ''}">${v * m + (b === 'gen' && !tri ? p.extra : 0)}</td>`;
       if (i !== roller) return '<td></td>';
       const w = worth(b, S.dice, p.cols, ci, p.waste), id = b + '/' + ci;
       if (!mine) return `<td class="pv${w ? '' : ' zero'}">${w}</td>`;
-      return `<td class="pv pick"><button type="button" data-a="pick" data-box="${b}" data-col="${ci}" class="${w ? '' : 'zero'}${armed === id ? ' armed' : ''}" aria-label="${LABEL[b]}${tri ? `, column ×${m}` : ''}: ${w} points">${armed === id ? '0?' : w}</button></td>`;
+      return `<td class="pv pick"><button type="button" data-a="pick" data-box="${b}" data-col="${ci}" class="${w ? '' : 'zero'}${armed === id ? ' armed' : ''}" aria-label="${LABEL[b]}${tri ? `, ${L('column', 'kolumna')} ×${m}` : ''}: ${w} ${L('points', 'pkt')}">${armed === id ? '0?' : w}</button></td>`;
     };
     const row = b => `<tr><th scope="row" title="${esc(HINT[b])}">${b.length === 1 ? dieSvg(+b) : ''}<span>${LABEL[b]}</span></th>${colsOn.map(c => cell(c, b)).join('')}</tr>`;
     const sumRow = (lbl, f, cls) => `<tr class="${cls}"><th scope="row">${lbl}</th>${colsOn.map(([i, ci]) => `<td>${f(S.seats[i], S.seats[i].cols[ci], ci)}</td>`).join('')}</tr>`;
-    const tabs = tri ? `<div class="pp-tabs" role="tablist">${S.seats.map((p, i) => `<button type="button" role="tab" data-a="tab" data-i="${i}" aria-selected="${i === tab}" class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? 'You' : nameHtml(p.name, p.fl)}</span><b>${p.tot}</b></button>`).join('')}</div>` : '';
+    const tabs = tri ? `<div class="pp-tabs" role="tablist">${S.seats.map((p, i) => `<button type="button" role="tab" data-a="tab" data-i="${i}" aria-selected="${i === tab}" class="${i === S.turn && S.stage === 'turn' ? 'now' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 26)}<span>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</span><b>${p.tot}</b></button>`).join('')}</div>` : '';
     const who = S.seats[tab];
     return `${tabs}<table class="${tri ? 'tri' : ''}"><thead><tr><th></th>${head}</tr></thead><tbody>
       ${UPPER.map(row).join('')}
-      ${sumRow(`Bonus <small>${UPPER_NEED}+ = ${UPPER_BONUS}</small>`, (p, c, ci) => (bonusOf(c) ? `<b class="yes">+${UPPER_BONUS * MULT[ci]}</b>` : `<small>${upperSum(c)}/${UPPER_NEED}</small>`), 'sub')}
+      ${sumRow(`${L('Bonus', 'Premia')} <small>${UPPER_NEED}+ = ${UPPER_BONUS}</small>`, (p, c, ci) => (bonusOf(c) ? `<b class="yes">+${UPPER_BONUS * MULT[ci]}</b>` : `<small>${upperSum(c)}/${UPPER_NEED}</small>`), 'sub')}
       ${LOWER.map(row).join('')}
-      ${tri ? sumRow('Column', (p, c, ci) => `<b>${colTotal(c) * MULT[ci]}</b>`, 'sub col') : ''}
-      ${tri ? (who.extra ? `<tr class="sub"><th scope="row">Party bonus</th><td colspan="3"><b class="yes">+${who.extra}</b></td></tr>` : '')
+      ${tri ? sumRow(L('Column', 'Kolumna'), (p, c, ci) => `<b>${colTotal(c) * MULT[ci]}</b>`, 'sub col') : ''}
+      ${tri ? (who.extra ? `<tr class="sub"><th scope="row">${L('Party bonus', 'Premia Party')}</th><td colspan="3"><b class="yes">+${who.extra}</b></td></tr>` : '')
         : ''}
-      ${tri ? `<tr class="tot"><th scope="row">Total</th><td colspan="3"><b>${who.tot}</b></td></tr>` : sumRow('Total', p => `<b>${p.tot}</b>`, 'tot')}
+      ${tri ? `<tr class="tot"><th scope="row">${L('Total', 'Suma')}</th><td colspan="3"><b>${who.tot}</b></td></tr>` : sumRow(L('Total', 'Suma'), p => `<b>${p.tot}</b>`, 'tot')}
     </tbody></table>`;
   }
   function renderSheet() {
@@ -156,29 +157,29 @@ export function mount(app, ctx) {
     const dice = r ? S.dice.map((v, k) => {
       const h = S.held[k], moving = roll && S.moved.includes(k);
       const inner = dieSvg(moving ? 0 : v, (moving ? 'spin' : '') + (h ? ' kept' : ''));
-      return can ? `<button type="button" class="pp-dbtn${h ? ' held' : ''}" data-a="hold" data-k="${k}" aria-pressed="${h}" aria-label="Die ${k + 1}: ${v}${h ? ', kept' : ''}">${inner}<em>${h ? 'kept' : ''}</em></button>`
-        : `<span class="pp-dbtn${h ? ' held' : ''}">${inner}<em>${h ? 'kept' : ''}</em></span>`;
+      return can ? `<button type="button" class="pp-dbtn${h ? ' held' : ''}" data-a="hold" data-k="${k}" aria-pressed="${h}" aria-label="${L('Die', 'Kość')} ${k + 1}: ${v}${h ? L(', kept', ', zatrzymana') : ''}">${inner}<em>${h ? L('kept', 'zostaje') : ''}</em></button>`
+        : `<span class="pp-dbtn${h ? ' held' : ''}">${inner}<em>${h ? L('kept', 'zostaje') : ''}</em></span>`;
     }).join('') : dieSvg(0).repeat(5);
     const left = ROLLS - r;
     const who = S.turn === S.me ? '' : `<span class="who">${avatarHtml(p.color, p.av, 26)}${nameOf(S.turn)}</span>`;
-    setHtml(rollEl, `${who}<span class="pp-hand${r ? '' : ' none'}">${dice}</span><span class="pp-left" aria-label="${left} rolls left">${[0, 1, 2].map(k => `<i class="${k < r ? 'used' : ''}"></i>`).join('')}</span>`);
+    setHtml(rollEl, `${who}<span class="pp-hand${r ? '' : ' none'}">${dice}</span><span class="pp-left" aria-label="${L(`${left} rolls left`, `zostało rzutów: ${left}`)}">${[0, 1, 2].map(k => `<i class="${k < r ? 'used' : ''}"></i>`).join('')}</span>`);
     if (turn) {
       const allHeld = r > 0 && S.held.every(Boolean), rollOk = r < ROLLS && !allHeld && !roll && S.stage === 'turn';
-      const btn = `<button type="button" class="btn big pp-go" data-a="roll"${rollOk ? '' : ' disabled'}>${r ? `Roll again <small>${left} left</small>` : 'Roll the dice'}</button>`;
+      const btn = `<button type="button" class="btn big pp-go" data-a="roll"${rollOk ? '' : ' disabled'}>${r ? L(`Roll again <small>${left} left</small>`, `Rzuć jeszcze raz <small>zostało: ${left}</small>`) : L('Roll the dice', 'Rzuć kośćmi')}</button>`;
       let grid = '';
       if (!wide() && r && !roll && S.stage === 'turn') {
         const cols = me().cols;
         // the triple sheet has 39 boxes: too many for a grid, so the sheet itself opens for picking
-        grid = triple() ? '<button type="button" class="btn pp-write" data-a="sheet">Write it on your sheet</button>'
+        grid = triple() ? `<button type="button" class="btn pp-write" data-a="sheet">${L('Write it on your sheet', 'Wpisz na swój arkusz')}</button>`
           : `<div class="pp-grid">${open(cols[0]).map(b => { const v = worth(b, S.dice, cols, 0, me().waste), id = b + '/0';
             return `<button type="button" data-a="pick" data-box="${b}" data-col="0" class="${v ? '' : 'zero'}${armed === id ? ' armed' : ''}"><span>${SHORT[b]}</span><b>${armed === id ? '0?' : v}</b></button>`; }).join('')}</div>`;
       }
-      const hint = !r ? 'Roll all five dice to start your turn.' : roll ? 'Rolling…'
-        : S.stage !== 'turn' ? '' : r < ROLLS ? (wide() ? 'Tap dice to keep them, then roll again, or pick a box on your sheet.' : 'Tap dice to keep them, then roll again, or pick a box.')
-          : (wide() ? 'No rolls left: pick a box on your sheet.' : 'No rolls left: pick a box.');
+      const hint = !r ? L('Roll all five dice to start your turn.', 'Rzuć wszystkimi pięcioma kośćmi, żeby zacząć turę.') : roll ? L('Rolling…', 'Rzut…')
+        : S.stage !== 'turn' ? '' : r < ROLLS ? (wide() ? L('Tap dice to keep them, then roll again, or pick a box on your sheet.', 'Dotknij kości, żeby je zatrzymać, i rzuć jeszcze raz albo wybierz pole na arkuszu.') : L('Tap dice to keep them, then roll again, or pick a box.', 'Dotknij kości, żeby je zatrzymać, i rzuć jeszcze raz albo wybierz pole.'))
+          : (wide() ? L('No rolls left: pick a box on your sheet.', 'Koniec rzutów: wybierz pole na arkuszu.') : L('No rolls left: pick a box.', 'Koniec rzutów: wybierz pole.'));
       setHtml(ctl, `${grid}<div class="pp-act">${btn}<p class="pp-hint">${hint}</p></div>`);
     } else if (S.stage === 'turn') {
-      setHtml(ctl, `<span class="pp-wait">${S.turn === S.me ? (S.auto ? 'Out of time: a bot finishes your turn' : 'A bot is playing for you') : `${nameOf(S.turn)} is ${r ? 'thinking' : 'about to roll'}…`}</span>`);
+      setHtml(ctl, `<span class="pp-wait">${S.turn === S.me ? (S.auto ? L('Out of time: a bot finishes your turn', 'Koniec czasu: bot kończy twoją turę') : L('A bot is playing for you', 'Bot gra za ciebie')) : L(`${nameOf(S.turn)} is ${r ? 'thinking' : 'about to roll'}…`, `${nameOf(S.turn)} ${r ? 'myśli' : 'zaraz rzuca'}…`)}</span>`);
     } else setHtml(ctl, '');
     layout();
   }
@@ -187,18 +188,18 @@ export function mount(app, ctx) {
     const el = $('pp-banner'); let msg = '';
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 ? ` · ${secs}s` : '';
-    if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!` : '';
-    else if (S.stage === 'wait') msg = 'Grab your dice…';
-    else if (S.stage === 'pick' && S.last) msg = `${youOr(S.last.s)} wrote ${S.last.pts} in ${LABEL[S.last.box]}${triple() ? ` ×${MULT[S.last.col]}` : ''}`;
-    else if (myTurn()) msg = (S.rolls ? `Your turn · roll ${S.rolls} of ${ROLLS}` : 'Your turn · roll the dice') + t;
-    else if (S.turn >= 0) msg = `${nameOf(S.turn)}’s turn${S.rolls ? ` · roll ${S.rolls} of ${ROLLS}` : ''}`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (S.stage === 'wait') msg = L('Grab your dice…', 'Bierzcie kości…');
+    else if (S.stage === 'pick' && S.last) msg = L(`${youOr(S.last.s)} wrote ${S.last.pts} in ${LABEL[S.last.box]}`, `${S.last.s === S.me ? 'Wpisujesz' : nameOf(S.last.s) + ' wpisuje'} ${S.last.pts} w polu ${LABEL[S.last.box]}`) + (triple() ? ` ×${MULT[S.last.col]}` : '');
+    else if (myTurn()) msg = (S.rolls ? L(`Your turn · roll ${S.rolls} of ${ROLLS}`, `Twoja kolej · rzut ${S.rolls} z ${ROLLS}`) : L('Your turn · roll the dice', 'Twoja kolej · rzuć kośćmi')) + t;
+    else if (S.turn >= 0) msg = L(`${nameOf(S.turn)}’s turn${S.rolls ? ` · roll ${S.rolls} of ${ROLLS}` : ''}`, `Kolej: ${nameOf(S.turn)}${S.rolls ? ` · rzut ${S.rolls} z ${ROLLS}` : ''}`);
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());
   }
 
   function render() {
     if (!S) return;
-    $('pp-info').textContent = S.ph === 'end' ? 'Game over' : innerWidth < 700 ? `Round ${S.round}/${S.rounds}` : `Round ${S.round} of ${S.rounds}`;
+    $('pp-info').textContent = S.ph === 'end' ? L('Game over', 'Koniec gry') : innerWidth < 700 ? `${L('Round', 'Runda')} ${S.round}/${S.rounds}` : `${L('Round', 'Runda')} ${S.round} ${L('of', 'z')} ${S.rounds}`;
     $('pp-code').textContent = Rm?.code || '';
     buildTags(); renderSheet(); renderDock(); renderBanner();
   }
@@ -211,15 +212,15 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Good luck!' : `${nameOf(e.s)} took over a bot`); }
-    else if (e.t === 'turn') { if (e.s === S.me && !S.seats[S.me].bot) { sfx.turn(); lastTick = -1; } if (e.s === S.first && e.round > 1 && e.round === S.rounds) ctx.toast('Last round!'); }
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Good luck!', 'Przejmujesz miejsce bota. Powodzenia!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
+    else if (e.t === 'turn') { if (e.s === S.me && !S.seats[S.me].bot) { sfx.turn(); lastTick = -1; } if (e.s === S.first && e.round > 1 && e.round === S.rounds) ctx.toast(L('Last round!', 'Ostatnia runda!')); }
     else if (e.t === 'roll') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 160); setTimeout(() => !destroyed && sfx.place(), S.ms.roll * .8); }
-    else if (e.t === 'gen') setTimeout(() => { if (destroyed) return; big('Pip Party!', `${youOr(e.s)} rolled five of a kind`, 1800); sfx.win(); }, S.ms.roll);
+    else if (e.t === 'gen') setTimeout(() => { if (destroyed) return; big('Pip Party!', L(`${youOr(e.s)} rolled five of a kind`, `${e.s === S.me ? 'Wyrzucasz' : nameOf(e.s) + ' wyrzuca'} pięć jednakowych`), 1800); sfx.win(); }, S.ms.roll);
     else if (e.t === 'pick') {
       floatAt(e.s, `${e.pts ? '+' + e.pts : '0'} ${SHORT[e.box]}${triple() ? ` ×${MULT[e.col]}` : ''}`, !e.pts);
       e.pts ? sfx.pop() : sfx.plop();
-      if (e.bonus) setTimeout(() => { if (destroyed) return; big(`+${e.bonus}`, `${youOr(e.s)} ${e.s === S.me ? 'get' : 'gets'} the party bonus`, 1800); sfx.win(); }, 300);
-      else if (e.madeBonus) setTimeout(() => { if (destroyed) return; big(`+${UPPER_BONUS * MULT[e.col || 0]}`, `${e.s === S.me ? 'Your' : nameOf(e.s) + '’s'} top half reached ${UPPER_NEED}`, 1800); sfx.set(); if (e.s === S.me) confetti(); }, 300);
+      if (e.bonus) setTimeout(() => { if (destroyed) return; big(`+${e.bonus}`, L(`${youOr(e.s)} ${e.s === S.me ? 'get' : 'gets'} the party bonus`, `${e.s === S.me ? 'Dostajesz' : nameOf(e.s) + ' dostaje'} premię Party`), 1800); sfx.win(); }, 300);
+      else if (e.madeBonus) setTimeout(() => { if (destroyed) return; big(`+${UPPER_BONUS * MULT[e.col || 0]}`, L(`${e.s === S.me ? 'Your' : nameOf(e.s) + '’s'} top half reached ${UPPER_NEED}`, `${e.s === S.me ? 'Twoja górna połowa' : 'Górna połowa gracza ' + nameOf(e.s)} ma już ${UPPER_NEED}`), 1800); sfx.set(); if (e.s === S.me) confetti(); }, 300);
     }
     else if (e.t === 'end') {
       if (e.w === S.me) { sfx.win(); confetti(); }
@@ -254,16 +255,16 @@ export function mount(app, ctx) {
     const place = i => 1 + tot.filter(t => t > tot[i]).length;
     const myPlace = S.me >= 0 ? place(S.me) : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${myPlace === 1 ? 'You win the party!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace ? (myPlace === 1 ? `Top score with ${tot[S.me]} points.` : `You came ${ORD(myPlace)} with ${tot[S.me]} points.`) : ''}</p>
+      <h2>${myPlace === 1 ? L('You win the party!', 'Wygrywasz imprezę!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${myPlace ? (myPlace === 1 ? L(`Top score with ${tot[S.me]} points.`, `Najlepszy wynik: ${tot[S.me]} pkt.`) : L(`You came ${ORD(myPlace)} with ${tot[S.me]} points.`, `Twoje miejsce: ${myPlace}, wynik: ${tot[S.me]} pkt.`)) : ''}</p>
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], c0 = p.cols[0], up = upperSum(c0), b = bonusOf(c0);
-        const sub = triple() ? p.cols.map((c, ci) => `×${MULT[ci]}: ${colTotal(c) * MULT[ci]}`).join(' · ') : `Top ${up}${b ? ` +${b}` : ''} · bottom ${lowerSum(c0)}`;
+        const sub = triple() ? p.cols.map((c, ci) => `×${MULT[ci]}: ${colTotal(c) * MULT[ci]}`).join(' · ') : `${L('Top', 'Góra')} ${up}${b ? ` +${b}` : ''} · ${L('bottom', 'dół')} ${lowerSum(c0)}`;
         return `<li class="${place(i) === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place(i)}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${sub}${p.extra ? ` · party +${p.extra}` : ''}</span></div>
-          <strong><span>${tot[i]}</span><small>points</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${sub}${p.extra ? ` · party +${p.extra}` : ''}</span></div>
+          <strong><span>${tot[i]}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
@@ -272,7 +273,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

@@ -7,6 +7,7 @@
 // The tuning numbers below are first guesses; change them here and restart the server.
 
 export const W = 8;            // half the width of the gap between the stalks
+import { L } from '../../i18n.js';
 export const FLOOR_H = 2.6;    // height between floors
 export const R = .42;          // half the width of a climber
 export const EDGE = .3;        // how far past a ledge's end your middle can be and still stand on it
@@ -27,12 +28,12 @@ export const STREAK_MS = 3000; // a streak lasts this long after its last big ju
 export const NORMAL = 0, SPRING = 1, CRUMBLE = 2, MOVING = 3;
 
 export const ZONES = [
-  { name: 'Leafy Meadow', slab: '#5fae4c', top: '#9be06a' },
-  { name: 'Blossom Boughs', slab: '#e2789f', top: '#ffc4dc' },
-  { name: 'Mushroom Shelves', slab: '#c98a5a', top: '#ffdca8' },
-  { name: 'Cloud Tufts', slab: '#b9c8e8', top: '#ffffff' },
-  { name: 'Frost Crystals', slab: '#5fb7d6', top: '#c9f4ff' },
-  { name: 'Star Garden', slab: '#5a55b8', top: '#ffd84a' },
+  { name: L('Leafy Meadow', 'Liściasta Łąka'), slab: '#5fae4c', top: '#9be06a' },
+  { name: L('Blossom Boughs', 'Kwitnące Konary'), slab: '#e2789f', top: '#ffc4dc' },
+  { name: L('Mushroom Shelves', 'Grzybowe Półki'), slab: '#c98a5a', top: '#ffdca8' },
+  { name: L('Cloud Tufts', 'Kłębki Chmur'), slab: '#b9c8e8', top: '#ffffff' },
+  { name: L('Frost Crystals', 'Lodowe Kryształy'), slab: '#5fb7d6', top: '#c9f4ff' },
+  { name: L('Star Garden', 'Gwiezdny Ogród'), slab: '#5a55b8', top: '#ffd84a' },
 ];
 export const zoneOf = f => Math.floor(Math.max(0, f) / ZONE);
 export const zoneInfo = z => ZONES[z % ZONES.length];
@@ -40,9 +41,9 @@ export const zoneName = z => ZONES[z % ZONES.length].name + (z >= ZONES.length ?
 
 // How fast the storm climbs: it waits GRACE seconds, then rises faster and faster.
 export const PACES = {
-  chill: { name: 'Chill', v0: 1.3, a: .055, max: 16 },
-  normal: { name: 'Normal', v0: 1.8, a: .08, max: 20 },
-  wild: { name: 'Wild', v0: 2.6, a: .12, max: 24 },
+  chill: { name: L('Chill', 'Spokojna'), v0: 1.3, a: .055, max: 16 },
+  normal: { name: L('Normal', 'Zwykła'), v0: 1.8, a: .08, max: 20 },
+  wild: { name: L('Wild', 'Dzika'), v0: 2.6, a: .12, max: 24 },
 };
 export const GRACE = 2, STORM_START = -9;
 export function stormY(pace, t) {
@@ -152,4 +153,4 @@ export function land(run, f, ms) {
   return { up, big: up >= 2, ended };
 }
 // what the crowd shouts for a streak that covered this many floors
-export const cheer = fl => (fl >= 60 ? 'Sky legend!' : fl >= 40 ? 'Unreal!' : fl >= 26 ? 'Soaring!' : fl >= 16 ? 'Wow!' : fl >= 9 ? 'Sweet!' : 'Nice!');
+export const cheer = fl => (fl >= 60 ? L('Sky legend!', 'Legenda nieba!') : fl >= 40 ? L('Unreal!', 'Nie do wiary!') : fl >= 26 ? L('Soaring!', 'Wysoko!') : fl >= 16 ? 'Wow!' : fl >= 9 ? L('Sweet!', 'Super!') : L('Nice!', 'Ładnie!'));

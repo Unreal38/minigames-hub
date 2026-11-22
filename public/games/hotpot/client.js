@@ -4,6 +4,7 @@ import { CATS, kindOf, catOf, cardName, canWin, bestSets, setVal } from './rules
 import { iconSvg, backSvg } from './icons.js';
 import { cardHtml } from './cards.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
@@ -25,7 +26,7 @@ function loadCss() {
 }
 
 // graphics quality, remembered on this device
-const GFX = { auto: ['Auto', 'Graphics: auto'], low: ['Low', 'Graphics: low. Easier on your laptop and battery.'], high: ['High', 'Graphics: high. Sharpest, and the hardest on your laptop.'] };
+const GFX = { auto: ['Auto', L('Graphics: auto', 'Grafika: automatyczna')], low: [L('Low', 'Niska'), L('Graphics: low. Easier on your laptop and battery.', 'Grafika: niska. Lżejsza dla laptopa i baterii.')], high: [L('High', 'Wysoka'), L('Graphics: high. Sharpest, and the hardest on your laptop.', 'Grafika: wysoka. Najostrzejsza i najcięższa dla laptopa.')] };
 let gfx = (() => { try { const v = localStorage.getItem('ct_gfx'); return GFX[v] ? v : 'auto'; } catch { return 'auto'; } })();
 
 export function mount(app, ctx) {
@@ -37,20 +38,20 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="hp-round"></span><span class="chip" id="hp-deckc"></span></div>
       <div class="tr"><span class="tcode" id="hp-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round gfx" data-a="gfx" aria-label="Graphics quality" title="Graphics quality">${GFX[gfx][0]}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round gfx" data-a="gfx" aria-label="${L(`Graphics quality`, `Jakość grafiki`)}" title="${L(`Graphics quality`, `Jakość grafiki`)}">${GFX[gfx][0]}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="opp" data-r="1"></div><div class="opp" data-r="2"></div><div class="opp" data-r="3"></div>
       <div class="turn" id="hp-turn">
         <svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" class="rb"/><circle cx="22" cy="22" r="18" class="rf" id="hp-ring"/><text x="22" y="27" text-anchor="middle" id="hp-ringt"></text></svg>
         <span id="hp-msg"></span></div>
-      <div class="deck" hidden><button type="button" class="deckbtn btn" data-a="deck" aria-label="Draw from the pot">${potLogo(30, '#3b2219', '#e5543b', '#fff4e2', '#3b2219')}<span>Draw</span></button></div>
+      <div class="deck" hidden><button type="button" class="deckbtn btn" data-a="deck" aria-label="${L(`Draw from the pot`, `Dobierz z garnka`)}">${potLogo(30, '#3b2219', '#e5543b', '#fff4e2', '#3b2219')}<span>${L(`Draw`, `Dobierz`)}</span></button></div>
       <div class="mine" id="hp-mine"></div>
       <div class="hand" id="hp-hand"></div>
       <div class="sets" id="hp-sets"></div>
-      <div class="emotes"><span>React</span><div>${Array.from({ length: REACT_COUNT }, (_, k) => `<button type="button" class="${k < 6 ? 'food' : 'emoji'}" data-a="react" data-k="${k}" aria-label="React with ${reactLabel(k)}">${reactHtml(k)}</button>`).join('')}</div></div>
-      <button type="button" class="btn big r eat" data-a="eat" hidden>Let's Eat!</button>
+      <div class="emotes"><span>${L(`React`, `Reakcje`)}</span><div>${Array.from({ length: REACT_COUNT }, (_, k) => `<button type="button" class="${k < 6 ? 'food' : 'emoji'}" data-a="react" data-k="${k}" aria-label="${L(`React with ${reactLabel(k)}`, `Reakcja: ${reactLabel(k)}`)}">${reactHtml(k)}</button>`).join('')}</div></div>
+      <button type="button" class="btn big r eat" data-a="eat" hidden>${L(`Let's Eat!`, `Jemy!`)}</button>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
     <div class="results" hidden></div>
@@ -108,28 +109,28 @@ export function mount(app, ctx) {
   // ----- rendering -----
   function render() {
     if (!S) return;
-    $('hp-round').textContent = `Round ${Math.min(S.round, S.maxR)} / ${S.maxR}`;
-    $('hp-deckc').textContent = `In the pot: ${S.dc}`;
+    $('hp-round').textContent = L(`Round ${Math.min(S.round, S.maxR)} / ${S.maxR}`, `Runda ${Math.min(S.round, S.maxR)} / ${S.maxR}`);
+    $('hp-deckc').textContent = L(`In the pot: ${S.dc}`, `W garnku: ${S.dc}`);
     $('hp-code').textContent = R?.code || '';
     for (let r = 1; r < 4; r++) {
       const i = abs(r), p = S.seats[i], el = root.querySelector(`.opp[data-r="${r}"]`);
       const active = S.ph === 'play' && S.turn === i;
       el.className = `opp${active ? ' active' : ''}`;
       el.dataset.r = r;
-      const status = active ? (S.step === 'draw' ? 'choosing…' : 'discarding…') : p.bot ? (p.human ? 'away (bot)' : 'bot') : 'waiting';
+      const status = active ? (S.step === 'draw' ? L('choosing…', 'wybiera…') : L('discarding…', 'odkłada…')) : p.bot ? (p.human ? L('away (bot)', 'poza grą (bot)') : 'bot') : L('waiting', 'czeka');
       el.innerHTML = `${avatarHtml(p.color, p.av, 46)}
         <div class="who"><b>${nameHtml(S.seats[i]?.name, S.seats[i]?.fl)}</b>${titleHtml(S.seats[i]?.fl)}<span>${status}${active ? '<i class="dotty"><i></i><i></i><i></i></i>' : ''}</span>
-        <span class="mini" aria-label="${p.n} cards">${Array.from({ length: Math.min(p.n, 9) }, () => '<i></i>').join('')}</span></div>
-        <div class="pile">${p.top >= 0 ? cardHtml(p.top, { tag: 'button', cls: canTake(i) ? 'takeable' : '', attrs: `data-a="take" data-i="${i}" ${canTake(i) ? '' : 'tabindex="-1"'}` }) : '<span class="slot">empty</span>'}
-        ${canTake(i) ? '<em>take</em>' : ''}</div>`;
+        <span class="mini" aria-label="${L(`${p.n} cards`, `karty: ${p.n}`)}">${Array.from({ length: Math.min(p.n, 9) }, () => '<i></i>').join('')}</span></div>
+        <div class="pile">${p.top >= 0 ? cardHtml(p.top, { tag: 'button', cls: canTake(i) ? 'takeable' : '', attrs: `data-a="take" data-i="${i}" ${canTake(i) ? '' : 'tabindex="-1"'}` }) : `<span class="slot">${L('empty', 'pusto')}</span>`}
+        ${canTake(i) ? `<em>${L('take', 'weź')}</em>` : ''}</div>`;
     }
     // turn banner
     let msg;
-    if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You' : nameOf(S.win)} called Let's Eat!` : 'Out of rounds!';
-    else if (S.me < 0) msg = `Watching · ${nameOf(S.turn)}'s turn`;
-    else if (myDraw()) msg = 'Your turn: draw from the pot';
-    else if (myDisc()) msg = canWin(S.hand) ? 'Three sets! Eat, or keep going' : 'Tap a card to discard';
-    else msg = `${nameOf(S.turn)}'s turn`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${S.win === S.me ? 'You' : nameOf(S.win)} called Let's Eat!`, S.win === S.me ? 'Wołasz „Jemy!”' : `${nameOf(S.win)} woła „Jemy!”`) : L('Out of rounds!', 'Koniec rund!');
+    else if (S.me < 0) msg = L(`Watching · ${nameOf(S.turn)}'s turn`, `Oglądasz · kolej: ${nameOf(S.turn)}`);
+    else if (myDraw()) msg = L('Your turn: draw from the pot', 'Twoja kolej: dobierz z garnka');
+    else if (myDisc()) msg = canWin(S.hand) ? L('Three sets! Eat, or keep going', 'Trzy zestawy! Zawołaj „Jemy!” albo graj dalej') : L('Tap a card to discard', 'Dotknij karty, żeby ją odłożyć');
+    else msg = L(`${nameOf(S.turn)}'s turn`, `Kolej: ${nameOf(S.turn)}`);
     $('hp-msg').innerHTML = msg;
     $('hp-turn').classList.toggle('myturn', myTurn());
     $('hp-turn').classList.toggle('notimer', !tEnd || S.ph !== 'play');
@@ -139,7 +140,7 @@ export function mount(app, ctx) {
     eat.hidden = !(myDisc() && canWin(S.hand));
     // my discard pile
     const me = S.me >= 0 ? S.seats[S.me] : null;
-    $('hp-mine').innerHTML = me ? `<span>Your discard</span>${me.top >= 0 ? cardHtml(me.top) : '<span class="slot">empty</span>'}` : '';
+    $('hp-mine').innerHTML = me ? `${L(`<span>Your discard</span>`, `<span>Twoje odłożone</span>`)}${me.top >= 0 ? cardHtml(me.top) : `<span class="slot">${L('empty', 'pusto')}</span>`}` : '';
     renderHand();
     placeBadges();
   }
@@ -155,7 +156,7 @@ export function mount(app, ctx) {
     const added = h.filter(c => !prevHand.includes(c));
     hand.classList.toggle('pick', clickable);
     hand.innerHTML = groups.map(g => `<div class="grp${g.v ? ' set' : ''}${g.v === 30 ? ' gold' : ''}">
-      ${g.v ? `<span class="gtag">${g.v === 30 ? 'Same' : 'Colour'} set · ${g.v}</span>` : ''}
+      ${g.v ? `<span class="gtag">${L(`${g.v === 30 ? 'Same' : 'Colour'} set · ${g.v}`, `${g.v === 30 ? 'Zestaw takich samych' : 'Zestaw koloru'} · ${g.v}`)}</span>` : ''}
       <div class="cards">${g.t.map(c => cardHtml(c, {
         tag: 'button', cls: (added.includes(c) && prevHand.length ? 'new' : '') + (S.ph === 'play' && myDisc() && c === lastDrawn() ? ' drawn' : ''),
         attrs: `data-a="disc" ${clickable ? '' : 'tabindex="-1"'}`,
@@ -169,7 +170,7 @@ export function mount(app, ctx) {
       hand.querySelectorAll('.grp.set').forEach(g => g.classList.add('spark'));
     }
     prevSets = b.sets.length; prevHand = h.slice();
-    $('hp-sets').textContent = S.me >= 0 ? `Your sets: ${b.sets.length} · ${b.score} pts` : '';
+    $('hp-sets').textContent = S.me >= 0 ? L(`Your sets: ${b.sets.length} · ${b.score} pts`, `Twoje zestawy: ${b.sets.length} · ${b.score} pkt`) : '';
   }
   const lastDrawn = () => { const e = [...(S.ev || [])].reverse().find(e => e.t === 'draw' && e.s === S.me); return e ? e.c : -1; };
 
@@ -200,21 +201,21 @@ export function mount(app, ctx) {
     } else if (e.t === 'draw') {
       sfx.draw();
       scene?.fly(e.src < 0 ? 'deck' : rel(e.src), rel(e.s), e.c, e.src >= 0);
-      if (e.src >= 0 && e.s !== S.me) ctx.toast(`${iconSvg(kindOf(e.c))}${nameOf(e.s)} took ${esc(cardName(e.c))}${e.src === S.me ? ' from you' : ''}`);
+      if (e.src >= 0 && e.s !== S.me) ctx.toast(L(`${iconSvg(kindOf(e.c))}${nameOf(e.s)} took ${esc(cardName(e.c))}${e.src === S.me ? ' from you' : ''}`, `${iconSvg(kindOf(e.c))}${nameOf(e.s)} bierze kartę ${esc(cardName(e.c))}${e.src === S.me ? ' od ciebie' : ''}`));
     } else if (e.t === 'disc') {
       setTimeout(sfx.place, 380);
       scene?.fly(rel(e.s), 'tile' + rel(e.s), e.c, true);
     } else if (e.t === 'timeout') {
-      if (e.s === S.me) { sfx.bad(); ctx.toast("Time's up! We played that turn for you.", true); }
+      if (e.s === S.me) { sfx.bad(); ctx.toast(L("Time's up! We played that turn for you.", "Koniec czasu! Ten ruch zagrała za ciebie gra."), true); }
       scene?.potMood('bang');
     } else if (e.t === 'shuffle') {
-      ctx.toast('Discards stirred back into the pot'); sfx.draw(); scene?.potMood('dizzy');
+      ctx.toast(L('Discards stirred back into the pot', 'Odłożone karty wracają do garnka')); sfx.draw(); scene?.potMood('dizzy');
     } else if (e.t === 'eat') {
       if (e.s === S.me) sfx.win(); else sfx.lose();
       scene?.celebrate(rel(e.s), S.hands?.[e.s] || [], e.s);
       confetti(e.s === S.me);
     } else if (e.t === 'end') {
-      if (e.w < 0) { sfx.lose(); ctx.toast('30 rounds done, time to count sets!'); }
+      if (e.w < 0) { sfx.lose(); ctx.toast(L('30 rounds done, time to count sets!', '30 rund za nami, czas policzyć zestawy!')); }
       clearTimeout(resultsTimer);
       resultsTimer = setTimeout(showResults, e.w >= 0 ? 2600 : 1200);
     }
@@ -244,14 +245,14 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results');
     const order = S.seats.map((p, i) => ({ p, i, r: S.res[i] })).sort((a, b) => b.r.pts - a.r.pts);
     el.innerHTML = `<div class="sheet">
-      <h2>${S.win >= 0 ? (S.win === S.me ? 'You win, chef!' : `${nameOf(S.win)} wins!`) : 'The pot ran dry!'}</h2>
-      <p>${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.</p>
+      <h2>${L(`${S.win >= 0 ? (S.win === S.me ? 'You win, chef!' : `${nameOf(S.win)} wins!`) : 'The pot ran dry!'}`, `${S.win >= 0 ? (S.win === S.me ? 'Wygrana, szefie kuchni!' : `Wygrywa ${nameOf(S.win)}!`) : 'Garnek jest pusty!'}`)}</h2>
+      <p>${L(`${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.`, `${S.win >= 0 ? `Trzy zestawy i „Jemy!” za +90.` : 'Nikt nie zebrał trzech zestawów w 30 rund.'} Każdy dostaje punkty za swoje zestawy.`)}</p>
       <ol class="score">${order.map(({ p, i, r }, n) => `<li class="${i === S.win ? 'won' : ''}" style="animation-delay:${n * 120}ms">
         ${avatarHtml(p.color, p.av, 48)}
-        <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b>
-        <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : '<em>no sets</em>'}</div></div>
-        <strong>${r.pts}<small>${r.bonus ? ` incl. +${r.bonus}` : ''}</small></strong>${paidHtml(R, i)}</li>`).join('')}</ol>
-      <div class="againbox">${againHtml(ctx, R, 'Play again')}</div></div>`;
+        <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+        <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : `<em>${L('no sets', 'bez zestawów')}</em>`}</div></div>
+        <strong>${r.pts}<small>${L(`${r.bonus ? ` incl. +${r.bonus}` : ''}`, `${r.bonus ? ` w tym +${r.bonus}` : ''}`)}</small></strong>${paidHtml(R, i)}</li>`).join('')}</ol>
+      <div class="againbox">${againHtml(ctx, R, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (R?.again || []).length;
   }
   // Votes arrive with room updates: repaint just the buttons so the sheet doesn't replay its entrance.
@@ -261,7 +262,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), R);
     const n = (R?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, R, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, R, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

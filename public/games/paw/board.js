@@ -1,3 +1,4 @@
+import { L } from '../../i18n.js';
 // Pawperty board: shared by the server (rules) and the client (labels, 3D board). Restart the server after editing.
 // 40 tiles round an 11 x 11 square: ten places along every side. Eight streets of three pet shops, one street
 // per colour, each shop run by a Pet Farm pet of that colour.
@@ -8,33 +9,33 @@ export const PASS_GO = 150;      // treats for passing the Welcome Mat
 export const START_CASH = 600;
 export const BATH_FEE = 30, VET_FEE = 40, RUB = 10, JAR_START = 50, BOWL = 30;
 export const NAP_CHANCE = .2;    // each round, every pet with a shop has this chance of napping (no rent while asleep)
-export const LV_NAMES = ['Shop', 'Pet Bed', 'Toy Box', 'Pet Palace'];
+export const LV_NAMES = [L('Shop', 'Sklepik'), L('Pet Bed', 'Legowisko'), L('Toy Box', 'Skrzynia z zabawkami'), L('Pet Palace', 'Pałac zwierzaka')];
 export const LV_MAX = 3;
 const LV_RENT = [1, 2.5, 5, 12]; // rent multiplier for each upgrade level
 export const STREET_BONUS = 2;    // owning the whole street doubles rent below Pet Palace, and lets you build the palace
 
 // Streets go round the board in colour order, and every pet has the colour of its street.
 export const GROUPS = [
-  { id: 'cocoa',  name: 'Cocoa Corner', col: '#c2905c', ink: '#5e3a1a', price: 50 },
-  { id: 'snow',   name: 'Snowy Lane',   col: '#cfdbe8', ink: '#44566b', price: 70 },
-  { id: 'rosy',   name: 'Rosy Row',     col: '#ff7a8a', ink: '#8f2236', price: 100 },
-  { id: 'orange', name: 'Orange Grove', col: '#ffa24a', ink: '#8a4a10', price: 130 },
-  { id: 'sunny',  name: 'Sunny Side',   col: '#e8c34a', ink: '#7a5a10', price: 150 },
-  { id: 'green',  name: 'Green Glade',  col: '#6cc24a', ink: '#2c5e16', price: 180 },
-  { id: 'blue',   name: 'Blue Bay',     col: '#4db5ff', ink: '#14507a', price: 210 },
-  { id: 'violet', name: 'Violet Hill',  col: '#b08bff', ink: '#4b2a8f', price: 250 },
+  { id: 'cocoa',  name: L('Cocoa Corner', 'Kakaowy Zakątek'), col: '#c2905c', ink: '#5e3a1a', price: 50 },
+  { id: 'snow',   name: L('Snowy Lane', 'Śnieżna Alejka'),   col: '#cfdbe8', ink: '#44566b', price: 70 },
+  { id: 'rosy',   name: L('Rosy Row', 'Różana Uliczka'),     col: '#ff7a8a', ink: '#8f2236', price: 100 },
+  { id: 'orange', name: L('Orange Grove', 'Pomarańczowy Gaj'), col: '#ffa24a', ink: '#8a4a10', price: 130 },
+  { id: 'sunny',  name: L('Sunny Side', 'Słoneczna Strona'),   col: '#e8c34a', ink: '#7a5a10', price: 150 },
+  { id: 'green',  name: L('Green Glade', 'Zielona Polana'),  col: '#6cc24a', ink: '#2c5e16', price: 180 },
+  { id: 'blue',   name: L('Blue Bay', 'Błękitna Zatoka'),     col: '#4db5ff', ink: '#14507a', price: 210 },
+  { id: 'violet', name: L('Violet Hill', 'Fioletowe Wzgórze'),  col: '#b08bff', ink: '#4b2a8f', price: 250 },
 ];
 
 // [street, shop name, pet species from Pet Farm]
 const SHOPS = [
-  [0, 'Coco Bowling', 'coconutkin'], [0, 'Crumb Shack', 'croissab'], [0, 'Twist Bakery', 'pretzelisk'],
-  [1, 'Toastery', 'mallowlamb'], [1, 'Ring Bakery', 'donuseal'], [1, 'Ski Lodge', 'snowfox'],
-  [2, 'Smoothie Hut', 'strawbun'], [2, 'Spicy Grill', 'chilipup'], [2, 'Dragon Diner', 'sizzlet'],
-  [3, 'Crunch Café', 'carrofox'], [3, 'Nap Barn', 'pumpkit'], [3, 'Campfire Café', 'cindercub'],
-  [4, 'Fizz Stand', 'lemonzest'], [4, 'Pamper Spa', 'pinepine'], [4, 'Sunbed Resort', 'sunlion'],
-  [5, 'Pod Hotel', 'peapillar'], [5, 'Melon Lagoon', 'melonwhale'], [5, 'Wobble Bar', 'jellifrog'],
-  [6, 'Puddle Pool', 'dripfrog'], [6, 'Shell Shop', 'waddlet'], [6, 'Rocket Rides', 'cometail'],
-  [7, 'Glow Gallery', 'starjelly'], [7, 'Dream Inn', 'moonbun'], [7, 'Night Café', 'wattbat'],
+  [0, L('Coco Bowling', 'Kokosowe kręgle'), 'coconutkin'], [0, L('Crumb Shack', 'Chatka okruszków'), 'croissab'], [0, L('Twist Bakery', 'Piekarnia precli'), 'pretzelisk'],
+  [1, L('Toastery', 'Tosternia'), 'mallowlamb'], [1, L('Ring Bakery', 'Pączkarnia'), 'donuseal'], [1, L('Ski Lodge', 'Górska chata'), 'snowfox'],
+  [2, L('Smoothie Hut', 'Bar smoothie'), 'strawbun'], [2, L('Spicy Grill', 'Ostry grill'), 'chilipup'], [2, L('Dragon Diner', 'Smoczy bar'), 'sizzlet'],
+  [3, L('Crunch Café', 'Kawiarnia Chrup'), 'carrofox'], [3, L('Nap Barn', 'Stodoła drzemek'), 'pumpkit'], [3, L('Campfire Café', 'Kawiarnia Ognisko'), 'cindercub'],
+  [4, L('Fizz Stand', 'Stoisko z lemoniadą'), 'lemonzest'], [4, L('Pamper Spa', 'Salon spa'), 'pinepine'], [4, L('Sunbed Resort', 'Słoneczny kurort'), 'sunlion'],
+  [5, L('Pod Hotel', 'Hotel Strączek'), 'peapillar'], [5, L('Melon Lagoon', 'Melonowa laguna'), 'melonwhale'], [5, L('Wobble Bar', 'Bar Galaretka'), 'jellifrog'],
+  [6, L('Puddle Pool', 'Basen Kałuża'), 'dripfrog'], [6, L('Shell Shop', 'Sklep z muszlami'), 'waddlet'], [6, L('Rocket Rides', 'Rakietowe loty'), 'cometail'],
+  [7, L('Glow Gallery', 'Świetlna galeria'), 'starjelly'], [7, L('Dream Inn', 'Zajazd snów'), 'moonbun'], [7, L('Night Café', 'Nocna kawiarnia'), 'wattbat'],
 ];
 export const PET_NAME = {
   pretzelisk: 'Pretzelisk', sizzlet: 'Sizzlet', waddlet: 'Waddlet', wattbat: 'Wattbat',
@@ -51,13 +52,13 @@ const LAYOUT = ['start', 0, 'zoom', 1, 2, 3, 'vet', 4, 5, 'bowl',
   'lost', 12, 'zoom', 13, 14, 15, 'vet', 16, 17, 'zoom',
   'mud', 18, 19, 'zoom', 20, 21, 'bowl', 22, 23, 'zoom'];
 const SPECIAL = {
-  start: { name: 'Welcome Mat', blurb: `Collect ${PASS_GO} treats every time you pass.` },
-  bath: { name: 'Bath Time', blurb: `Stuck in the tub: roll doubles to hop out, or pay ${BATH_FEE} treats. Your pets nap (no rent) while you soak.` },
-  lost: { name: 'Lost & Found', blurb: 'Grab every treat that was dropped in the jar.' },
-  mud: { name: 'Muddy Puddle', blurb: 'Splash! Straight off to Bath Time.' },
-  zoom: { name: 'Zoomies!', blurb: 'Draw a Zoomies card.' },
-  bowl: { name: 'Treat Bowl', blurb: `Somebody left a full bowl out. Help yourself to ${BOWL} treats.` },
-  vet: { name: 'Vet Visit', blurb: `Pay ${VET_FEE} treats into the Lost & Found jar.` },
+  start: { name: L('Welcome Mat', 'Wycieraczka'), blurb: L(`Collect ${PASS_GO} treats every time you pass.`, `Za każde przejście dostajesz ${PASS_GO} przysmaków.`) },
+  bath: { name: L('Bath Time', 'Kąpiel'), blurb: L(`Stuck in the tub: roll doubles to hop out, or pay ${BATH_FEE} treats. Your pets nap (no rent) while you soak.`, `Siedzisz w wannie: wyrzuć dublet, żeby wyskoczyć, albo zapłać ${BATH_FEE} przysmaków. Gdy się moczysz, twoje zwierzaki drzemią (bez czynszu).`) },
+  lost: { name: L('Lost & Found', 'Znalezione'), blurb: L('Grab every treat that was dropped in the jar.', 'Zabierz wszystkie przysmaki, które wpadły do słoika.') },
+  mud: { name: L('Muddy Puddle', 'Błotna kałuża'), blurb: L('Splash! Straight off to Bath Time.', 'Chlup! Prosto do Kąpieli.') },
+  zoom: { name: L('Zoomies!', 'Głupawka!'), blurb: L('Draw a Zoomies card.', 'Dobierz kartę Głupawki.') },
+  bowl: { name: L('Treat Bowl', 'Miska przysmaków'), blurb: L(`Somebody left a full bowl out. Help yourself to ${BOWL} treats.`, `Ktoś zostawił pełną miskę. Częstuj się: ${BOWL} przysmaków.`) },
+  vet: { name: L('Vet Visit', 'Wizyta u weterynarza'), blurb: L(`Pay ${VET_FEE} treats into the Lost & Found jar.`, `Wpłać ${VET_FEE} przysmaków do słoika Znalezione.`) },
 };
 const round5 = x => Math.max(5, Math.round(x / 5) * 5);
 
@@ -93,24 +94,24 @@ export const isCorner = i => i % SIDE === 0;
 
 // Zoomies cards. The server applies them; the text is shown to everyone.
 export const CARDS = {
-  zoom: 'Zoomies! Dash 5 tiles ahead.',
-  squirrel: 'Squirrel! Everyone else runs back 2 tiles.',
-  stash: 'Your pet found a treat stash under the sofa. Collect 60.',
-  ate: 'Your pet ate the rent money. Drop 40 in the Lost & Found jar.',
-  rubs: 'Belly rubs all round! Pay every player 10.',
-  show: 'Best in Show! Every player gives you 15.',
-  mud: 'Muddy paws! Straight to Bath Time.',
-  yawn: 'Big yawn… all your pets doze off until the next round.',
-  bell: 'Dinner bell! Every napping pet on the board wakes up.',
-  home: 'Treat delivery! Hop to the Welcome Mat.',
-  duck: 'Rubber duck! Keep it to skip your next Bath Time.',
-  vase: 'The cat knocked a vase off the shelf. Pay 15 for every upgrade you own.',
-  cake: 'Pupcake party! Collect 40.',
-  eyes: 'Puppy eyes: your next rent is free.',
-  swap: 'Musical cushions! Swap places with the richest player.',
-  again: 'Lucky paw! Roll again.',
-  pigeon: 'A pigeon ran off with your sandwich. Pay 20.',
-  photo: 'Your pet did something adorable and the photo went viral. Collect 30.',
+  zoom: L('Zoomies! Dash 5 tiles ahead.', 'Głupawka! Pędzisz 5 pól do przodu.'),
+  squirrel: L('Squirrel! Everyone else runs back 2 tiles.', 'Wiewiórka! Wszyscy inni cofają się o 2 pola.'),
+  stash: L('Your pet found a treat stash under the sofa. Collect 60.', 'Twój zwierzak znalazł pod kanapą schowek z przysmakami. Dostajesz 60.'),
+  ate: L('Your pet ate the rent money. Drop 40 in the Lost & Found jar.', 'Twój zwierzak zjadł pieniądze na czynsz. Wrzuć 40 do słoika Znalezione.'),
+  rubs: L('Belly rubs all round! Pay every player 10.', 'Drapanie po brzuszku dla wszystkich! Zapłać każdemu graczowi 10.'),
+  show: L('Best in Show! Every player gives you 15.', 'Gwiazda wystawy! Każdy gracz daje ci 15.'),
+  mud: L('Muddy paws! Straight to Bath Time.', 'Ubłocone łapki! Prosto do Kąpieli.'),
+  yawn: L('Big yawn… all your pets doze off until the next round.', 'Wielkie ziewnięcie… wszystkie twoje zwierzaki drzemią do następnej rundy.'),
+  bell: L('Dinner bell! Every napping pet on the board wakes up.', 'Dzwonek na obiad! Każdy drzemiący zwierzak na planszy się budzi.'),
+  home: L('Treat delivery! Hop to the Welcome Mat.', 'Dostawa przysmaków! Skocz na Wycieraczkę.'),
+  duck: L('Rubber duck! Keep it to skip your next Bath Time.', 'Gumowa kaczka! Zachowaj ją, żeby ominąć następną Kąpiel.'),
+  vase: L('The cat knocked a vase off the shelf. Pay 15 for every upgrade you own.', 'Kot zrzucił wazon z półki. Zapłać 15 za każde swoje ulepszenie.'),
+  cake: L('Pupcake party! Collect 40.', 'Babeczkowa impreza! Dostajesz 40.'),
+  eyes: L('Puppy eyes: your next rent is free.', 'Maślane oczy: twój następny czynsz jest za darmo.'),
+  swap: L('Musical cushions! Swap places with the richest player.', 'Gorące poduszki! Zamień się miejscami z najbogatszym graczem.'),
+  again: L('Lucky paw! Roll again.', 'Szczęśliwa łapka! Rzuć jeszcze raz.'),
+  pigeon: L('A pigeon ran off with your sandwich. Pay 20.', 'Gołąb uciekł z twoją kanapką. Zapłać 20.'),
+  photo: L('Your pet did something adorable and the photo went viral. Collect 30.', 'Twój zwierzak zrobił coś uroczego, a zdjęcie obiegło internet. Dostajesz 30.'),
 };
 
 // How long things take on screen, in ms. The server waits this long before moving on.

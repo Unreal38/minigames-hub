@@ -1,5 +1,6 @@
 // Texas Hold'em rules shared by the server and the browser: cards, hand ranking and names.
 // A card is 0..51: rank = c % 13 (0 = two .. 12 = ace), suit = c / 13 | 0 (hearts, diamonds, clubs, spades).
+import { L } from '../../i18n.js';
 export const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 export const RANK_NAMES = ['Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace'];
 const PLURAL = ['Twos', 'Threes', 'Fours', 'Fives', 'Sixes', 'Sevens', 'Eights', 'Nines', 'Tens', 'Jacks', 'Queens', 'Kings', 'Aces'];
@@ -8,7 +9,8 @@ export const SUIT_NAMES = ['hearts', 'diamonds', 'clubs', 'spades'];
 export const rankOf = c => c % 13;
 export const suitOf = c => c / 13 | 0;
 export const isRed = c => suitOf(c) < 2;
-export const cardLabel = c => `${RANK_NAMES[rankOf(c)]} of ${SUIT_NAMES[suitOf(c)]}`;
+const RANK_PL = ['Dwójka', 'Trójka', 'Czwórka', 'Piątka', 'Szóstka', 'Siódemka', 'Ósemka', 'Dziewiątka', 'Dziesiątka', 'Walet', 'Dama', 'Król', 'As'], SUIT_PL = ['kier', 'karo', 'trefl', 'pik'];
+export const cardLabel = c => L(`${RANK_NAMES[rankOf(c)]} of ${SUIT_NAMES[suitOf(c)]}`, `${RANK_PL[rankOf(c)]} ${SUIT_PL[suitOf(c)]}`);
 export const CATS = ['High card', 'Pair', 'Two pair', 'Three of a kind', 'Straight', 'Flush', 'Full house', 'Four of a kind', 'Straight flush'];
 
 // Best five of up to seven cards. Returns a number: bigger is better (category * 13^5 + tie-breakers).
@@ -82,7 +84,9 @@ export function bestFive(cards) {
 }
 
 export const HAND_ORDER = [
-  ['Royal flush', 'A K Q J 10, all one suit'], ['Straight flush', 'Five in a row, one suit'], ['Four of a kind', 'Four cards of one rank'],
-  ['Full house', 'Three of a kind plus a pair'], ['Flush', 'Any five of one suit'], ['Straight', 'Five in a row (A can be low)'],
-  ['Three of a kind', 'Three cards of one rank'], ['Two pair', 'Two different pairs'], ['Pair', 'Two cards of one rank'], ['High card', 'Nothing else? Highest card plays'],
+  [L('Royal flush', 'Poker królewski'), L('A K Q J 10, all one suit', 'A K Q J 10, wszystkie w jednym kolorze')], [L('Straight flush', 'Poker'), L('Five in a row, one suit', 'Pięć kart po kolei w jednym kolorze')],
+  [L('Four of a kind', 'Kareta'), L('Four cards of one rank', 'Cztery karty tej samej wysokości')], [L('Full house', 'Ful'), L('Three of a kind plus a pair', 'Trójka plus para')],
+  [L('Flush', 'Kolor'), L('Any five of one suit', 'Dowolne pięć kart w jednym kolorze')], [L('Straight', 'Strit'), L('Five in a row (A can be low)', 'Pięć kart po kolei (as może być najniższy)')],
+  [L('Three of a kind', 'Trójka'), L('Three cards of one rank', 'Trzy karty tej samej wysokości')], [L('Two pair', 'Dwie pary'), L('Two different pairs', 'Dwie różne pary')],
+  [L('Pair', 'Para'), L('Two cards of one rank', 'Dwie karty tej samej wysokości')], [L('High card', 'Wysoka karta'), L('Nothing else? Highest card plays', 'Nic więcej? Liczy się najwyższa karta')],
 ];

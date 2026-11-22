@@ -2,6 +2,7 @@
 // The only hand this page ever receives is your own.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
@@ -14,11 +15,12 @@ const I = {
   sound: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   mute: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
   door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
-  barrel: '<svg class="ty-barrel" viewBox="0 0 24 24" width="16" height="16" aria-label="On the barrel" role="img"><path d="M7 3h10c2 3 3 6 3 9s-1 6-3 9H7c-2-3-3-6-3-9s1-6 3-9z" fill="#c98a5a" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M4.6 8.5h14.8M4.6 15.5h14.8" stroke="currentColor" stroke-width="2.2"/></svg>',
+  barrel: '<svg class="ty-barrel" viewBox="0 0 24 24" width="16" height="16" aria-label="' + L('On the barrel', 'Na beczce') + '" role="img"><path d="M7 3h10c2 3 3 6 3 9s-1 6-3 9H7c-2-3-3-6-3-9s1-6 3-9z" fill="#c98a5a" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M4.6 8.5h14.8M4.6 15.5h14.8" stroke="currentColor" stroke-width="2.2"/></svg>',
 };
 const ORD = n => n + (['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || 'th');
 const signed = v => (v > 0 ? '+' + v : v < 0 ? '−' + -v : '0');
-const suit = (s, size = 18) => `<span class="ty-suit" title="${SUIT_NAMES[s]}">${suitSvg(s, size)}</span>`;
+const suitName = s => L(SUIT_NAMES[s], { hearts: 'kier', diamonds: 'karo', clubs: 'trefl', spades: 'pik' }[SUIT_NAMES[s]] || SUIT_NAMES[s]);
+const suit = (s, size = 18) => `<span class="ty-suit" title="${suitName(s)}">${suitSvg(s, size)}</span>`;
 
 let cssLoaded = false;
 function loadCss() {
@@ -37,12 +39,12 @@ export function mount(app, ctx) {
     <div class="hud">
       <div class="tl"><span class="chip" id="ty-info"></span></div>
       <div class="tr"><span class="tcode" id="ty-code"></span>
-        <button type="button" class="round" data-a="mute" aria-label="Toggle sound">${sfx.muted ? I.mute : I.sound}</button>
-        <button type="button" class="round" data-a="rules" aria-label="How to play">?</button>
-        <button type="button" class="round" data-a="leave" aria-label="Leave table">${I.door}</button></div>
+        <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
+        <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
+        <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
       <div class="banner" id="ty-banner" aria-live="polite"></div>
       <div class="shout" id="ty-big" aria-live="assertive"></div>
-      <aside class="ty-side"><div class="ty-deal" id="ty-deal"></div><ol class="ty-list" id="ty-list" aria-label="Scores"></ol><div class="ty-last" id="ty-last"></div></aside>
+      <aside class="ty-side"><div class="ty-deal" id="ty-deal"></div><ol class="ty-list" id="ty-list" aria-label="${L(`Scores`, `Wyniki`)}"></ol><div class="ty-last" id="ty-last"></div></aside>
       <div class="ty-sum" id="ty-sum" hidden></div>
       <div class="ty-dock" id="ty-dock"><div class="ty-ctl" id="ty-ctl"></div><div class="ty-hand" id="ty-hand"></div></div>
     </div>
@@ -64,7 +66,8 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nameOf = i => esc(S.seats[i]?.name);
-  const youOr = i => (i === S.me ? 'You' : nameOf(i));
+  const youOr = i => (i === S.me ? L('You', 'Ty') : nameOf(i));
+  const yo = (i, you, they) => (i === S.me ? you : `${nameOf(i)} ${they}`); // Polish: "you" and "they" verb forms
   const myTurn = () => !!(S && S.ph === 'play' && S.turn === S.me && me() && !me().bot);
   const busy = () => Date.now() - sent < 1200;
   const nextSeat = i => S.active[(S.active.indexOf(i) + 1) % S.active.length];
@@ -84,11 +87,11 @@ export function mount(app, ctx) {
   function said(i) {
     const p = S.seats[i];
     if (S.ph !== 'play') return '';
-    if (p.sit) return '<span>deals, sits out</span>';
+    if (p.sit) return `<span>${L('deals, sits out', 'rozdaje, pauzuje')}</span>`;
     if (S.stage === 'deal') return '';
-    if (S.stage === 'bid' || S.stage === 'take') return p.said === 'pass' ? '<span>Pass</span>' : p.said ? `<span class="${S.bid.s === i ? 'top' : ''}">${p.said}</span>` : '';
+    if (S.stage === 'bid' || S.stage === 'take') return p.said === 'pass' ? `<span>${L('Pass', 'Pas')}</span>` : p.said ? `<span class="${S.bid.s === i ? 'top' : ''}">${p.said}</span>` : '';
     const m = p.mel.map(s => suit(s, 14)).join('');
-    return `<span class="${i === S.decl ? 'top' : ''}">${i === S.decl ? `${p.pts} / ${S.contract}` : `${p.pts} pts`}${m}</span>`;
+    return `<span class="${i === S.decl ? 'top' : ''}">${i === S.decl ? `${p.pts} / ${S.contract}` : `${p.pts} ${L('pts', 'pkt')}`}${m}</span>`;
   }
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
@@ -117,18 +120,18 @@ export function mount(app, ctx) {
   function renderSide() {
     const playing = S.ph === 'play' && S.decl >= 0 && !['deal', 'bid'].includes(S.stage);
     setHtml($('ty-deal'), S.ph !== 'play' ? '' : playing
-      ? `<span><small>Contract</small><b>${S.contract}</b></span><span><small>Trumps</small><b>${S.trump >= 0 ? suit(S.trump, 22) : '<i>none yet</i>'}</b></span>`
-      : `<span><small>Bid</small><b>${S.bid?.v ?? 100}</b></span><span><small>Musik</small><b>${cardHtml(-1, { cls: 'xs' }).repeat(3)}</b></span>`);
+      ? `<span><small>${L('Contract', 'Kontrakt')}</small><b>${S.contract}</b></span><span><small>${L('Trumps', 'Atut')}</small><b>${S.trump >= 0 ? suit(S.trump, 22) : `<i>${L('none yet', 'jeszcze brak')}</i>`}</b></span>`
+      : `<span><small>${L('Bid', 'Licytacja')}</small><b>${S.bid?.v ?? 100}</b></span><span><small>Musik</small><b>${cardHtml(-1, { cls: 'xs' }).repeat(3)}</b></span>`);
     setHtml($('ty-list'), S.seats.map((p, i) => {
       let sub = '';
-      if (S.ph === 'end') sub = `${p.st.made} of ${p.st.played} contracts made`;
-      else if (p.sit) sub = 'deals this hand';
-      else if (playing) sub = `${i === S.decl ? `<u>plays ${S.contract} ·</u>` : ''}${p.pts} pts${p.mel.map(s => suit(s, 13)).join('')}`;
-      else sub = p.said === 'pass' ? 'passed' : p.said ? `bid ${p.said}` : i === S.dealer ? 'dealer' : '';
-      return `<li class="${i === S.turn ? 'now' : ''}${i === S.me ? ' ty-me' : ''}${p.sit && S.ph === 'play' ? ' out' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${sub}</span></div><strong>${p.score >= S.barrel && S.ph === 'play' ? I.barrel : ''}${p.score}</strong></li>`;
+      if (S.ph === 'end') sub = L(`${p.st.made} of ${p.st.played} contracts made`, `ugrane kontrakty: ${p.st.made} z ${p.st.played}`);
+      else if (p.sit) sub = L('deals this hand', 'rozdaje w tym rozdaniu');
+      else if (playing) sub = `${i === S.decl ? `<u>${L('plays', 'gra')} ${S.contract} ·</u>` : ''}${p.pts} ${L('pts', 'pkt')}${p.mel.map(s => suit(s, 13)).join('')}`;
+      else sub = p.said === 'pass' ? L('passed', 'pas') : p.said ? `${L('bid', 'licytuje')} ${p.said}` : i === S.dealer ? L('dealer', 'rozdaje') : '';
+      return `<li class="${i === S.turn ? 'now' : ''}${i === S.me ? ' ty-me' : ''}${p.sit && S.ph === 'play' ? ' out' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${sub}</span></div><strong>${p.score >= S.barrel && S.ph === 'play' ? I.barrel : ''}${p.score}</strong></li>`;
     }).join(''));
     const lt = S.lastTrick, show = lt && S.ph === 'play' && S.stage === 'play';
-    setHtml($('ty-last'), show ? `<small>Last trick · ${youOr(lt.w)}</small><span>${lt.cards.map(x => cardHtml(x.c, { cls: 'xs' })).join('')}</span>` : '');
+    setHtml($('ty-last'), show ? `<small>${L('Last trick', 'Ostatnia lewa')} · ${youOr(lt.w)}</small><span>${lt.cards.map(x => cardHtml(x.c, { cls: 'xs' })).join('')}</span>` : '');
   }
 
   // ----- your cards and the controls -----
@@ -136,7 +139,7 @@ export function mount(app, ctx) {
   const giveMax = () => Math.max(S.contract, maxBid(keepOf()));
   function renderHand() {
     const p = me(), el = $('ty-hand');
-    if (!S || !p || S.ph !== 'play' || p.sit) { setHtml(el, p?.sit && S.ph === 'play' ? '<span class="ty-note">You deal this hand and sit it out. You are back in the next one.</span>' : ''); return; }
+    if (!S || !p || S.ph !== 'play' || p.sit) { setHtml(el, p?.sit && S.ph === 'play' ? `<span class="ty-note">${L('You deal this hand and sit it out. You are back in the next one.', 'Rozdajesz i pauzujesz w tym rozdaniu. Wracasz w następnym.')}</span>` : ''); return; }
     const cards = p.cards || [], turn = myTurn() && !busy(), stage = S.stage;
     const legal = turn && stage === 'play' ? new Set(S.legal || []) : null, giving = turn && stage === 'give';
     const w = innerWidth < 700 ? 56 : 74, avail = Math.min(innerWidth - 24, 820), n = cards.length;
@@ -146,7 +149,7 @@ export function mount(app, ctx) {
     setHtml(el, cards.map(c => {
       const slot = giving ? give.indexOf(c) : -1, can = giving || (legal ? legal.has(c) : false);
       const cls = `${slot >= 0 ? ' sel' : ''}${legal && !legal.has(c) ? ' no' : ''}${S.got?.includes(c) ? ' new' : ''}${legal && legal.has(c) && !S.trick.length && canMeld(cards, c) ? ' kq' : ''}`;
-      return `<button type="button" class="ty-c${cls}" data-a="card" data-c="${c}"${can ? '' : ' tabindex="-1" aria-disabled="true"'}>${cardHtml(c, { cls: 'big' })}${slot >= 0 ? `<i${slot ? ' class="b"' : ''}>for ${nameOf(order[slot])}</i>` : ''}</button>`;
+      return `<button type="button" class="ty-c${cls}" data-a="card" data-c="${c}"${can ? '' : ' tabindex="-1" aria-disabled="true"'}>${cardHtml(c, { cls: 'big' })}${slot >= 0 ? `<i${slot ? ' class="b"' : ''}>${L('for', 'dla:')} ${nameOf(order[slot])}</i>` : ''}</button>`;
     }).join(''));
   }
   function renderCtl() {
@@ -160,30 +163,30 @@ export function mount(app, ctx) {
       bidV = Math.max(lo, Math.min(hi, bidV));
       const mm = melds(p.cards || []);
       setHtml(ctl, `<div class="ty-row">
-          <div class="ty-qty" role="group" aria-label="Your bid"><button type="button" class="round" data-a="v-" aria-label="Ten less"${!can || bidV <= lo ? ' disabled' : ''}>−</button><b>${can ? bidV : '–'}</b><button type="button" class="round" data-a="v+" aria-label="Ten more"${!can || bidV >= hi ? ' disabled' : ''}>+</button></div>
-          <button type="button" class="btn big" data-a="bid"${can ? '' : ' disabled'}>Bid ${can ? bidV : ''}</button>
-          <button type="button" class="btn big w" data-a="pass">Pass</button>
+          <div class="ty-qty" role="group" aria-label="${L(`Your bid`, `Twoja licytacja`)}"><button type="button" class="round" data-a="v-" aria-label="${L(`Ten less`, `Dziesięć mniej`)}"${!can || bidV <= lo ? ' disabled' : ''}>−</button><b>${can ? bidV : '–'}</b><button type="button" class="round" data-a="v+" aria-label="${L(`Ten more`, `Dziesięć więcej`)}"${!can || bidV >= hi ? ' disabled' : ''}>+</button></div>
+          <button type="button" class="btn big" data-a="bid"${can ? '' : ' disabled'}>${L('Bid', 'Licytuj')} ${can ? bidV : ''}</button>
+          <button type="button" class="btn big w" data-a="pass">${L('Pass', 'Pas')}</button>
         </div>
-        <p class="ty-hint">${youOr(S.bid.s)} ${S.bid.s === S.me ? 'hold' : 'holds'} the bid at <b>${S.bid.v}</b>. ${mm.length ? `With your ${mm.map(s => suit(s, 14)).join(' ')} marriage${mm.length > 1 ? 's' : ''} you may go up to <b>${hi}</b>.` : `Without a king and queen of one suit you cannot go over <b>${SAFE_BID}</b>.`}</p>`);
+        <p class="ty-hint">${L(`${youOr(S.bid.s)} ${S.bid.s === S.me ? 'hold' : 'holds'} the bid at <b>${S.bid.v}</b>.`, `${yo(S.bid.s, 'Prowadzisz w licytacji:', 'prowadzi w licytacji:')} <b>${S.bid.v}</b>.`)} ${mm.length ? L(`With your ${mm.map(s => suit(s, 14)).join(' ')} marriage${mm.length > 1 ? 's' : ''} you may go up to <b>${hi}</b>.`, `Z meldunkiem ${mm.map(s => suit(s, 14)).join(' ')} możesz licytować do <b>${hi}</b>.`) : L(`Without a king and queen of one suit you cannot go over <b>${SAFE_BID}</b>.`, `Bez króla i damy w jednym kolorze nie możesz przekroczyć <b>${SAFE_BID}</b>.`)}</p>`);
     } else if (turn && st === 'give') {
       const key = S.gid + '/' + S.hand;
       if (key !== giveKey) { giveKey = key; give = [null, null]; giveV = S.contract; }
       const pay = S.foldPay ?? FOLD_PAY, canFold = pay >= 0;
       const a = nextSeat(S.me), b = nextSeat(a), ready = give[0] !== null && give[1] !== null, hi = giveMax();
       giveV = Math.max(S.contract, Math.min(hi, giveV));
-      setHtml(ctl, `<p class="ty-hint big">${ready ? 'Raise your contract if you dare, then start.' : `Tap a card to give to <b>${nameOf(give[0] === null ? a : b)}</b>. Each opponent gets one.`}</p>
+      setHtml(ctl, `<p class="ty-hint big">${ready ? L('Raise your contract if you dare, then start.', 'Podnieś kontrakt, jeśli masz odwagę, i zaczynaj.') : L(`Tap a card to give to <b>${nameOf(give[0] === null ? a : b)}</b>. Each opponent gets one.`, `Dotknij karty, którą dostanie <b>${nameOf(give[0] === null ? a : b)}</b>. Każdy przeciwnik dostaje jedną.`)}</p>
         <div class="ty-row">
-          <div class="ty-qty" role="group" aria-label="Your contract"><small>Contract</small><button type="button" class="round" data-a="g-" aria-label="Ten less"${giveV <= S.contract ? ' disabled' : ''}>−</button><b>${giveV}</b><button type="button" class="round" data-a="g+" aria-label="Ten more"${giveV >= hi ? ' disabled' : ''}>+</button></div>
-          <button type="button" class="btn big" data-a="give"${ready ? '' : ' disabled'}>Play for ${giveV}</button>
-          ${canFold ? `<button type="button" class="btn big ${Date.now() - foldArm < 4000 ? 'r' : 'w'}" data-a="fold">${Date.now() - foldArm < 4000 ? 'Tap again to fold' : 'Fold'}</button>` : ''}
+          <div class="ty-qty" role="group" aria-label="${L(`Your contract`, `Twój kontrakt`)}"><small>${L('Contract', 'Kontrakt')}</small><button type="button" class="round" data-a="g-" aria-label="${L(`Ten less`, `Dziesięć mniej`)}"${giveV <= S.contract ? ' disabled' : ''}>−</button><b>${giveV}</b><button type="button" class="round" data-a="g+" aria-label="${L(`Ten more`, `Dziesięć więcej`)}"${giveV >= hi ? ' disabled' : ''}>+</button></div>
+          <button type="button" class="btn big" data-a="give"${ready ? '' : ' disabled'}>${L('Play for', 'Graj o')} ${giveV}</button>
+          ${canFold ? `<button type="button" class="btn big ${Date.now() - foldArm < 4000 ? 'r' : 'w'}" data-a="fold">${Date.now() - foldArm < 4000 ? L('Tap again to fold', 'Dotknij jeszcze raz, żeby poddać') : L('Fold', 'Poddaj')}</button>` : ''}
         </div>
-        ${canFold ? `<p class="ty-hint">${pay ? `Bad cards? <b>Fold</b> and nothing is played: you score nothing and each opponent gets <b>${pay}</b>, instead of you losing ${S.contract}.` : `Bad cards? Your first <b>fold</b> is <b>free</b>: nothing is played and nobody scores, instead of you losing ${S.contract}. Later folds give each opponent ${FOLD_PAY}.`}</p>` : ''}`);
+        ${canFold ? `<p class="ty-hint">${pay ? L(`Bad cards? <b>Fold</b> and nothing is played: you score nothing and each opponent gets <b>${pay}</b>, instead of you losing ${S.contract}.`, `Słabe karty? <b>Poddaj</b> grę i nic się nie rozgrywa: nie zapisujesz nic, a każdy przeciwnik dostaje <b>${pay}</b>, zamiast twojej straty ${S.contract}.`) : L(`Bad cards? Your first <b>fold</b> is <b>free</b>: nothing is played and nobody scores, instead of you losing ${S.contract}. Later folds give each opponent ${FOLD_PAY}.`, `Słabe karty? Twoje pierwsze <b>poddanie</b> jest <b>za darmo</b>: nic się nie rozgrywa i nikt nic nie zapisuje, zamiast twojej straty ${S.contract}. Kolejne poddania dają każdemu przeciwnikowi ${FOLD_PAY}.`)}</p>` : ''}`);
     } else if (turn && st === 'play') {
       const mm = S.trick.length ? [] : melds(p.cards || []);
-      setHtml(ctl, `<span class="ty-wait hot">${S.trick.length ? 'Your turn: tap a card' : 'You lead: tap a card'}</span>${mm.length ? `<p class="ty-hint tip">Leading a king or queen of ${mm.map(s => `${suit(s, 14)} (+${MELD[s]})`).join(' or ')} announces the marriage and makes it trumps.</p>` : ''}`);
+      setHtml(ctl, `<span class="ty-wait hot">${S.trick.length ? L('Your turn: tap a card', 'Twoja kolej: dotknij karty') : L('You lead: tap a card', 'Wychodzisz: dotknij karty')}</span>${mm.length ? `<p class="ty-hint tip">${L(`Leading a king or queen of ${mm.map(s => `${suit(s, 14)} (+${MELD[s]})`).join(' or ')} announces the marriage and makes it trumps.`, `Wyjście królem albo damą ${mm.map(s => `${suit(s, 14)} (+${MELD[s]})`).join(' lub ')} ogłasza meldunek i ustala ten kolor jako atut.`)}</p>` : ''}`);
     } else if (S.turn >= 0 && !p.sit) {
-      const t = S.seats[S.turn], what = st === 'bid' ? 'is bidding' : st === 'give' ? 'is sorting the musik' : 'is thinking';
-      setHtml(ctl, `<span class="ty-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p.bot ? 'A bot is playing for you' : 'Sent…') : `${nameOf(S.turn)} ${what}…`}</span></span>`);
+      const t = S.seats[S.turn], what = st === 'bid' ? L('is bidding', 'licytuje') : st === 'give' ? L('is sorting the musik', 'rozdaje karty z musiku') : L('is thinking', 'myśli');
+      setHtml(ctl, `<span class="ty-wait">${avatarHtml(t.color, t.av, 30)}<span>${S.turn === S.me ? (p.bot ? L('A bot is playing for you', 'Bot gra za ciebie') : L('Sent…', 'Wysłano…')) : `${nameOf(S.turn)} ${what}…`}</span></span>`);
     } else setHtml(ctl, '');
     layout();
   }
@@ -193,15 +196,15 @@ export function mount(app, ctx) {
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.tLeft >= 0 && myTurn() ? ` · ${secs}s` : '';
     const st = S.stage, d = S.decl;
-    if (S.ph === 'end') msg = S.win >= 0 ? `${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!` : '';
-    else if (st === 'deal') msg = `Hand ${S.hand} · ${youOr(S.dealer)} ${S.dealer === S.me ? 'deal' : 'deals'}`;
-    else if (st === 'bid') msg = myTurn() ? `Your turn · bid or pass${t}` : `${nameOf(S.turn)} is bidding`;
-    else if (st === 'take') msg = `${youOr(d)} ${d === S.me ? 'take' : 'takes'} the musik for ${S.contract}`;
-    else if (st === 'give') msg = myTurn() ? `Give one card to each opponent${t}` : `${nameOf(d)} is sorting the musik`;
-    else if (st === 'trick') msg = S.lastTrick ? `${youOr(S.lastTrick.w)} ${S.lastTrick.w === S.me ? 'take' : 'takes'} the trick · +${S.lastTrick.pts}` : '';
-    else if (st === 'score') msg = S.sum ? (S.sum.fold ? `${youOr(d)} folded the hand` : S.sum.made ? `${youOr(d)} made ${S.sum.contract}!` : `${youOr(d)} fell short of ${S.sum.contract}`) : '';
-    else if (myTurn()) msg = (S.trick.length ? 'Your turn' : 'Your lead') + t;
-    else if (S.turn >= 0) msg = `${nameOf(S.turn)} ${S.trick.length ? 'to play' : 'leads'}`;
+    if (S.ph === 'end') msg = S.win >= 0 ? L(`${S.win === S.me ? 'You win' : nameOf(S.win) + ' wins'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (st === 'deal') msg = L(`Hand ${S.hand} · ${youOr(S.dealer)} ${S.dealer === S.me ? 'deal' : 'deals'}`, `Rozdanie ${S.hand} · ${yo(S.dealer, 'rozdajesz', 'rozdaje')}`);
+    else if (st === 'bid') msg = myTurn() ? L('Your turn · bid or pass', 'Twoja kolej · licytuj albo pasuj') + t : L(`${nameOf(S.turn)} is bidding`, `${nameOf(S.turn)} licytuje`);
+    else if (st === 'take') msg = L(`${youOr(d)} ${d === S.me ? 'take' : 'takes'} the musik for ${S.contract}`, `${yo(d, 'Bierzesz', 'bierze')} musik za ${S.contract}`);
+    else if (st === 'give') msg = myTurn() ? L('Give one card to each opponent', 'Oddaj po jednej karcie każdemu przeciwnikowi') + t : L(`${nameOf(d)} is sorting the musik`, `${nameOf(d)} rozdaje karty z musiku`);
+    else if (st === 'trick') msg = S.lastTrick ? L(`${youOr(S.lastTrick.w)} ${S.lastTrick.w === S.me ? 'take' : 'takes'} the trick`, yo(S.lastTrick.w, 'Bierzesz lewę', 'bierze lewę')) + ` · +${S.lastTrick.pts}` : '';
+    else if (st === 'score') msg = S.sum ? (S.sum.fold ? L(`${youOr(d)} folded the hand`, yo(d, 'Poddajesz rozdanie', 'poddaje rozdanie')) : S.sum.made ? L(`${youOr(d)} made ${S.sum.contract}!`, `${yo(d, 'Ugrywasz', 'ugrywa')} ${S.sum.contract}!`) : L(`${youOr(d)} fell short of ${S.sum.contract}`, `${yo(d, 'Nie ugrywasz', 'nie ugrywa')} ${S.sum.contract}`)) : '';
+    else if (myTurn()) msg = (S.trick.length ? L('Your turn', 'Twoja kolej') : L('Your lead', 'Wychodzisz')) + t;
+    else if (S.turn >= 0) msg = L(`${nameOf(S.turn)} ${S.trick.length ? 'to play' : 'leads'}`, S.trick.length ? `Kolej: ${nameOf(S.turn)}` : `Wychodzi ${nameOf(S.turn)}`);
     if (el.innerHTML !== msg) el.innerHTML = msg;
     el.classList.toggle('hot', myTurn());
   }
@@ -211,17 +214,17 @@ export function mount(app, ctx) {
     const el = $('ty-sum'), m = S.stage === 'score' ? S.sum : null;
     el.hidden = !m; if (!m) { el._h = ''; return; }
     const short = m.contract - m.pts[m.decl];
-    setHtml(el, `<h3>${m.fold ? `${youOr(m.decl)} folded the hand` : m.made ? `${youOr(m.decl)} made ${m.contract}!` : `${youOr(m.decl)} fell ${short} short of ${m.contract}`}</h3>
-      <div class="ty-vs${m.made ? ' ok' : ''}"><span><small>Bid</small><b>${m.contract}</b></span><span><small>${m.fold ? 'Folded' : 'Took'}</small><b>${m.fold ? '–' : m.pts[m.decl]}</b></span><span><small>Scores</small><b>${signed(m.delta[m.decl])}</b></span></div>
+    setHtml(el, `<h3>${m.fold ? L(`${youOr(m.decl)} folded the hand`, yo(m.decl, 'Poddajesz rozdanie', 'poddaje rozdanie')) : m.made ? L(`${youOr(m.decl)} made ${m.contract}!`, `${yo(m.decl, 'Ugrywasz', 'ugrywa')} ${m.contract}!`) : L(`${youOr(m.decl)} fell ${short} short of ${m.contract}`, `${yo(m.decl, 'Brakuje ci', 'ma za mało o')} ${short} do ${m.contract}`)}</h3>
+      <div class="ty-vs${m.made ? ' ok' : ''}"><span><small>${L('Bid', 'Kontrakt')}</small><b>${m.contract}</b></span><span><small>${m.fold ? L('Folded', 'Poddane') : L('Took', 'Ugrane')}</small><b>${m.fold ? '–' : m.pts[m.decl]}</b></span><span><small>${L('Scores', 'Zapis')}</small><b>${signed(m.delta[m.decl])}</b></span></div>
       <ol>${m.active.map(i => {
         const p = S.seats[i], dl = m.delta[i], barrel = i !== m.decl && !dl && m.score[i] >= S.barrel;
-        return `<li class="${i === m.decl ? 'decl' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}</b><span>${m.fold ? (i === m.decl ? `folded a bid of ${m.contract}${m.free ? ' (first fold, free)' : ''}` : barrel ? 'on the barrel' : m.free ? 'free fold, nothing paid' : 'paid for the fold') : `took ${m.pts[i]}${i === m.decl ? ` of ${m.contract} bid` : barrel ? ' · on the barrel' : ''}`}</span></div><em class="${dl > 0 ? 'up' : dl < 0 ? 'down' : ''}">${signed(dl)}</em><strong>${m.score[i]}</strong></li>`;
+        return `<li class="${i === m.decl ? 'decl' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}</b><span>${m.fold ? (i === m.decl ? L(`folded a bid of ${m.contract}${m.free ? ' (first fold, free)' : ''}`, `poddany kontrakt ${m.contract}${m.free ? ' (pierwsze poddanie, za darmo)' : ''}`) : barrel ? L('on the barrel', 'na beczce') : m.free ? L('free fold, nothing paid', 'darmowe poddanie, bez punktów') : L('paid for the fold', 'punkty za poddanie')) : L(`took ${m.pts[i]}${i === m.decl ? ` of ${m.contract} bid` : barrel ? ' · on the barrel' : ''}`, `ugrane: ${m.pts[i]}${i === m.decl ? ` z ${m.contract}` : barrel ? ' · na beczce' : ''}`)}</span></div><em class="${dl > 0 ? 'up' : dl < 0 ? 'down' : ''}">${signed(dl)}</em><strong>${m.score[i]}</strong></li>`;
       }).join('')}</ol>`);
   }
 
   function render() {
     if (!S) return;
-    $('ty-info').textContent = S.ph === 'end' ? `${S.res?.hands || S.hand} hands played` : `Hand ${S.hand} · ${innerWidth < 700 ? '' : 'first '}to ${S.target}`;
+    $('ty-info').textContent = S.ph === 'end' ? L(`${S.res?.hands || S.hand} hands played`, `Rozegrane rozdania: ${S.res?.hands || S.hand}`) : L(`Hand ${S.hand} · ${innerWidth < 700 ? '' : 'first '}to ${S.target}`, `Rozdanie ${S.hand} · gra do ${S.target}`);
     $('ty-code').textContent = Rm?.code || '';
     root.classList.toggle('summing', S.stage === 'score');
     buildTags(); renderSide(); renderHand(); renderCtl(); renderBanner(); renderSum();
@@ -235,14 +238,14 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? 'You took over a bot. Good luck!' : `${nameOf(e.s)} took over a bot`); }
+    if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Good luck!', 'Przejmujesz miejsce bota. Powodzenia!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
     else if (e.t === 'deal') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 380); setTimeout(() => !destroyed && sfx.draw(), 760); }
     else if (e.t === 'bid') { e.s === S.me ? sfx.place() : sfx.pop(); }
     else if (e.t === 'pass') sfx.plop();
-    else if (e.t === 'won') { sfx.set(); big(String(e.v), `${youOr(e.s)} ${e.s === S.me ? 'play' : 'plays'} this hand`, 1900); }
-    else if (e.t === 'give') { sfx.draw(); if (S.bid && e.v > S.bid.v) ctx.toast(`${youOr(e.s)} raised the contract to ${e.v}`); }
-    else if (e.t === 'meld') { sfx.set(); scene?.meld(e.s, e.su); big(`Marriage! +${e.v}`, `${youOr(e.s)}: king and queen of ${SUIT_NAMES[e.su]} ${suit(e.su, 20)} are trumps now`, 2400); }
-    else if (e.t === 'fold') { sfx.lose(); big('Fold!', `${youOr(e.s)} ${e.s === S.me ? 'give' : 'gives'} up the bid of ${e.v}. Everyone else gets ${FOLD_PAY}`, 2400); }
+    else if (e.t === 'won') { sfx.set(); big(String(e.v), L(`${youOr(e.s)} ${e.s === S.me ? 'play' : 'plays'} this hand`, yo(e.s, 'Grasz to rozdanie', 'gra to rozdanie')), 1900); }
+    else if (e.t === 'give') { sfx.draw(); if (S.bid && e.v > S.bid.v) ctx.toast(L(`${youOr(e.s)} raised the contract to ${e.v}`, `${yo(e.s, 'Podnosisz', 'podnosi')} kontrakt do ${e.v}`)); }
+    else if (e.t === 'meld') { sfx.set(); scene?.meld(e.s, e.su); big(L(`Marriage! +${e.v}`, `Meldunek! +${e.v}`), L(`${youOr(e.s)}: king and queen of ${SUIT_NAMES[e.su]} ${suit(e.su, 20)} are trumps now`, `${youOr(e.s)}: król i dama ${suitName(e.su)} ${suit(e.su, 20)}, to teraz atut`), 2400); }
+    else if (e.t === 'fold') { sfx.lose(); big(L('Fold!', 'Poddanie!'), L(`${youOr(e.s)} ${e.s === S.me ? 'give' : 'gives'} up the bid of ${e.v}. Everyone else gets ${FOLD_PAY}`, `${yo(e.s, 'Poddajesz', 'poddaje')} kontrakt ${e.v}. Pozostali dostają po ${FOLD_PAY}`), 2400); }
     else if (e.t === 'play') { e.s === S.me ? 0 : sfx.place(); }
     else if (e.t === 'trick') { if (e.pts) floatAt(e.w, '+' + e.pts); e.w === S.me ? sfx.pop() : sfx.plop(); }
     else if (e.t === 'score') {
@@ -277,24 +280,24 @@ export function mount(app, ctx) {
     const el = root.querySelector('.results'), w = S.win;
     const myPlace = S.me >= 0 ? S.res.order.indexOf(S.me) + 1 : 0;
     el.innerHTML = `<div class="sheet">
-      <h2>${w === S.me ? 'You win!' : `${nameOf(w)} wins!`}</h2>
-      <p>${myPlace > 1 ? `You came ${ORD(myPlace)}. ` : myPlace === 1 && S.seats[w].score >= S.target ? `First to ${S.target}. ` : ''}It took ${S.res.hands} hand${S.res.hands === 1 ? '' : 's'}.</p>
+      <h2>${w === S.me ? L('You win!', 'Wygrana!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
+      <p>${myPlace > 1 ? L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `) : myPlace === 1 && S.seats[w].score >= S.target ? L(`First to ${S.target}. `, `Pierwsze miejsce i ${S.target} punktów. `) : ''}${L(`It took ${S.res.hands} hand${S.res.hands === 1 ? '' : 's'}.`, `Rozegrane rozdania: ${S.res.hands}.`)}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
         return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? ' (you)' : ''}</b><span>${st.made} of ${st.played} contract${st.played === 1 ? '' : 's'} made · ${st.melds} marriage${st.melds === 1 ? '' : 's'}</span></div>
-          <strong><span>${p.score}</span><small>points</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.made} of ${st.played} contract${st.played === 1 ? '' : 's'} made · ${st.melds} marriage${st.melds === 1 ? '' : 's'}`, `ugrane kontrakty: ${st.made} z ${st.played} · meldunki: ${st.melds}`)}</span></div>
+          <strong><span>${p.score}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       ${handsHtml()}
-      <div class="againbox">${againHtml(ctx, Rm, 'Play again')}</div></div>`;
+      <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
   }
   // every hand of the match: who played it, what they bid and what they actually took
   function handsHtml() {
     const log = S.log || []; if (!log.length) return '';
     const first = S.hand - log.length;
-    return `<details class="ty-hands" open><summary>Hand by hand: bid against points taken</summary><table><thead><tr><th>#</th><th>Played by</th><th>Bid</th><th>Took</th><th>Score</th></tr></thead><tbody>${log.map((h, k) =>
-      `<tr class="${h.decl === S.me ? 'mine' : ''}"><td>${first + k + 1}</td><td>${nameOf(h.decl)}${h.decl === S.me ? ' (you)' : ''}</td><td>${h.contract}</td><td>${h.fold ? 'folded' : h.took ?? ''}</td><td class="${h.made ? 'up' : h.fold ? '' : 'down'}">${signed(h.delta[h.decl])}</td></tr>`).join('')}</tbody></table></details>`;
+    return `<details class="ty-hands" open><summary>${L('Hand by hand: bid against points taken', 'Rozdanie po rozdaniu: kontrakt i ugrane punkty')}</summary><table><thead><tr><th>#</th><th>${L('Played by', 'Gracz')}</th><th>${L('Bid', 'Kontrakt')}</th><th>${L('Took', 'Ugrane')}</th><th>${L('Score', 'Zapis')}</th></tr></thead><tbody>${log.map((h, k) =>
+      `<tr class="${h.decl === S.me ? 'mine' : ''}"><td>${first + k + 1}</td><td>${nameOf(h.decl)}${h.decl === S.me ? L(' (you)', ' (ty)') : ''}</td><td>${h.contract}</td><td>${h.fold ? L('folded', 'poddane') : h.took ?? ''}</td><td class="${h.made ? 'up' : h.fold ? '' : 'down'}">${signed(h.delta[h.decl])}</td></tr>`).join('')}</tbody></table></details>`;
   }
   let votes = 0;
   function paintAgain() {
@@ -302,7 +305,7 @@ export function mount(app, ctx) {
     paintPaid(root.querySelector('.results'), Rm);
     const n = (Rm?.again || []).length;
     if (n > votes) sfx.pop();
-    votes = n; box.innerHTML = againHtml(ctx, Rm, 'Play again');
+    votes = n; box.innerHTML = againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'));
   }
   function hideResults() { root.querySelector('.results').hidden = true; }
 

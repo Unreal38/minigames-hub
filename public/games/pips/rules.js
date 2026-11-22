@@ -1,3 +1,4 @@
+import { L } from '../../i18n.js';
 // Pip Party rules shared by the server and the client: the 13 boxes on the score sheet and what a roll is worth in each.
 // The ruleset follows the classic Polish five-dice game: 13 rounds, three rolls a round, keep any dice between rolls,
 // then write the roll into one empty box (a 0 when it does not fit). Upper boxes 63+ pay a 35 bonus.
@@ -6,10 +7,14 @@ export const UPPER_NEED = 63, UPPER_BONUS = 35, GEN_BONUS = 100;
 // box ids in sheet order; 0..5 are ones..sixes
 export const BOXES = ['1', '2', '3', '4', '5', '6', 'k3', 'k4', 'full', 'ss', 'ls', 'gen', 'ch'];
 export const UPPER = BOXES.slice(0, 6), LOWER = BOXES.slice(6);
-export const LABEL = { 1: 'Ones', 2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', k3: 'Three alike', k4: 'Four alike', full: 'Full house', ss: 'Small run', ls: 'Big run', gen: 'Pip Party', ch: 'Chance' };
-export const SHORT = { 1: 'Ones', 2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', k3: '3 alike', k4: '4 alike', full: 'Full', ss: 'Sm. run', ls: 'Big run', gen: 'Party', ch: 'Chance' };
-export const HINT = { 1: 'Add up the ones', 2: 'Add up the twos', 3: 'Add up the threes', 4: 'Add up the fours', 5: 'Add up the fives', 6: 'Add up the sixes',
-  k3: '3 the same: all five dice added up', k4: '4 the same: all five dice added up', full: '3 the same + a pair: 25', ss: '4 in a row: 30', ls: '5 in a row: 40', gen: 'All 5 the same: 50', ch: 'Anything: all five dice added up' };
+export const LABEL = L({ 1: 'Ones', 2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', k3: 'Three alike', k4: 'Four alike', full: 'Full house', ss: 'Small run', ls: 'Big run', gen: 'Pip Party', ch: 'Chance' },
+  { 1: 'Jedynki', 2: 'Dwójki', 3: 'Trójki', 4: 'Czwórki', 5: 'Piątki', 6: 'Szóstki', k3: 'Trzy jednakowe', k4: 'Cztery jednakowe', full: 'Ful', ss: 'Mały strit', ls: 'Duży strit', gen: 'Pip Party', ch: 'Szansa' });
+export const SHORT = L({ 1: 'Ones', 2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', k3: '3 alike', k4: '4 alike', full: 'Full', ss: 'Sm. run', ls: 'Big run', gen: 'Party', ch: 'Chance' },
+  { 1: 'Jedynki', 2: 'Dwójki', 3: 'Trójki', 4: 'Czwórki', 5: 'Piątki', 6: 'Szóstki', k3: '3 jednak.', k4: '4 jednak.', full: 'Ful', ss: 'M. strit', ls: 'D. strit', gen: 'Party', ch: 'Szansa' });
+export const HINT = L({ 1: 'Add up the ones', 2: 'Add up the twos', 3: 'Add up the threes', 4: 'Add up the fours', 5: 'Add up the fives', 6: 'Add up the sixes',
+  k3: '3 the same: all five dice added up', k4: '4 the same: all five dice added up', full: '3 the same + a pair: 25', ss: '4 in a row: 30', ls: '5 in a row: 40', gen: 'All 5 the same: 50', ch: 'Anything: all five dice added up' },
+{ 1: 'Suma jedynek', 2: 'Suma dwójek', 3: 'Suma trójek', 4: 'Suma czwórek', 5: 'Suma piątek', 6: 'Suma szóstek',
+  k3: '3 jednakowe: suma wszystkich pięciu kości', k4: '4 jednakowe: suma wszystkich pięciu kości', full: '3 jednakowe + para: 25', ss: '4 po kolei: 30', ls: '5 po kolei: 40', gen: '5 jednakowych: 50', ch: 'Cokolwiek: suma wszystkich pięciu kości' });
 
 export const counts = dice => { const c = [0, 0, 0, 0, 0, 0, 0]; for (const v of dice) c[v]++; return c; };
 export const sum = dice => dice.reduce((a, b) => a + b, 0);
