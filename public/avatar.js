@@ -73,6 +73,18 @@ shop('top', [['Dino onesie', 260], ['Banana suit', 240], ['Ghost sheet', 220, 'h
 shop('back', [['Backpack', 90], ['Angel wings', 220], ['Fairy wings', 180], ['Jetpack', 240], ['Turtle shell', 150], ['Balloon', 100],
   ['Bat wings', 160, 'halloween'], ['Gift sack', 120, 'winter'], ['Surfboard', 150, 'summer'], ['Butterfly wings', 170, 'spring']]);
 
+// Thank-you packs: items nobody can buy with coins. PACK['hat:41'] = 'kofi'. They are handed out whole by the server
+// (store.grantPack) and, like paid items, can only be worn once they are in the player's owned list.
+// The Supporter pack is one item per Wardrobe slot for people who chipped in on Ko-fi.
+export const PACK = {};
+const pack = (name, items) => { for (const [k, v] of items) { OPT[k].push(v); PACK[k + ':' + (OPT[k].length - 1)] = name; } };
+pack('kofi', [['hat', 'Coffee mug hat'], ['glasses', 'Café glasses'], ['neck', 'Coffee bean necklace'], ['top', 'Barista sweater'], ['bottom', 'Cuffed trousers'], ['shoes', 'Cocoa slippers'], ['back', 'Takeaway cup']]);
+export const packOf = (k, i) => PACK[k + ':' + i] || null;
+export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);
+// Does this item have to be in the owned list before it can be worn (bought, or part of a pack)?
+const locks = id => PRICE[id] || PACK[id];
+export const needsOwning = (k, i) => !!locks(k + ':' + i);
+
 // Seasonal drops: [first month, day, last month, day], both ends included. Winter runs over the new year.
 export const SEASONS = {
   winter: { name: 'Winter drop', span: [11, 15, 2, 28], ends: 'the end of February', back: 'mid-November' },
@@ -91,8 +103,8 @@ export const onSale = (k, i, now) => seasonOn(SEASON[k + ':' + i], now);
 
 export const priceOf = (k, i) => PRICE[k + ':' + i] || 0;
 // Takes off anything paid that is not in owned (a list like ['hat:14']), so nobody wears what they have not bought.
-export const wearable = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => PRICE[AV_KEYS[i] + ':' + v] && !have.has(AV_KEYS[i] + ':' + v) ? 0 : v); };
-export const lockedIn = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => AV_KEYS[i] + ':' + v).filter(id => PRICE[id] && !have.has(id)); };
+export const wearable = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => locks(AV_KEYS[i] + ':' + v) && !have.has(AV_KEYS[i] + ':' + v) ? 0 : v); };
+export const lockedIn = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => AV_KEYS[i] + ':' + v).filter(id => locks(id) && !have.has(id)); };
 
 export const AV_KEYS = Object.keys(OPT);
 export const AV_COLOR_KEYS = ['skin', 'eyeC', 'hairC', 'botC', 'shoeC'];
@@ -132,7 +144,7 @@ function fromOld(a) {
 export const cleanAv = a => Array.isArray(a) && a.length >= 21 && a.length <= AV_KEYS.length ? AV_MAX.map((m, i) => int(a[i] ?? 0, m)) : fromOld(a);
 
 export const randomAv = () => {
-  const o = AV_KEYS.map(k => { let v; do v = Math.random() * OPT[k].length | 0; while (PRICE[k + ':' + v]); return v; }), r = (k, p) => { if (Math.random() < p) o[IX[k]] = 0; };
+  const o = AV_KEYS.map(k => { let v; do v = Math.random() * OPT[k].length | 0; while (locks(k + ':' + v)); return v; }), r = (k, p) => { if (Math.random() < p) o[IX[k]] = 0; };
   r('facial', .6); r('hat', .6); r('glasses', .65); r('neck', .65); r('marks', .6);
   if (Math.random() < .7) o[IX.hairC] = [0, 1, 2, 3, 10, 11][Math.random() * 6 | 0];
   return o;

@@ -68,7 +68,29 @@ function cspFor(req) {
     `font-src 'self' https://fonts.gstatic.com`, `img-src 'self' data: blob:`, `connect-src 'self'${host ? ` wss://${host} ws://${host}` : ''}`,
     `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`, `frame-ancestors 'none'`].join('; ');
 }
+// Ko-fi's webhook: after every payment Ko-fi POSTs a form with one field, data, holding JSON. It is only believed
+// when it carries the verification token from Ko-fi's settings page (KOFI_TOKEN here). Without that setting the
+// address does not exist.
+const KOFI_TOKEN = process.env.KOFI_TOKEN || '';
+const sameText = (a, b) => { const x = crypto.createHash('sha256').update(String(a)).digest(), y = crypto.createHash('sha256').update(String(b)).digest(); return crypto.timingSafeEqual(x, y); };
+function kofiHook(req, res) {
+  const ip = ipOf(req), done = (code, text) => { if (!res.headersSent) res.writeHead(code, { 'content-type': 'text/plain', ...BASE_HEAD }).end(text); };
+  if (blocked('kofi:' + ip, 20, 10 * 60_000)) return done(429, 'slow down');
+  let body = '', over = false;
+  req.setEncoding('utf8');
+  req.on('data', d => { if (over) return; body += d; if (body.length > 32_000) { over = true; done(413, 'too big'); req.destroy(); } });
+  req.on('error', () => {});
+  req.on('end', () => {
+    if (over) return;
+    let d; try { d = JSON.parse(new URLSearchParams(body).get('data') ?? body); } catch { d = null; }
+    if (!d || typeof d !== 'object' || !sameText(d.verification_token ?? '', KOFI_TOKEN)) { note('kofi:' + ip, 10 * 60_000); console.log(`kofi: a call without the right token from ${ip}`); return done(403, 'no'); }
+    const what = store.kofiPaid({ id: d.kofi_transaction_id || d.message_id, email: d.email, message: d.message }, KOFI_TOKEN);
+    console.log(`kofi: ${String(d.type ?? 'payment').replace(/[^\w ]/g, '').slice(0, 20)}: ${what}`);
+    done(200, 'ok');
+  });
+}
 const server = http.createServer((req, res) => {
+  if (req.method === 'POST' && KOFI_TOKEN && req.url.split('?')[0] === '/kofi') return kofiHook(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { allow: 'GET, HEAD', ...BASE_HEAD }).end(); return; }
   let url, p;
   try { url = new URL(req.url, 'http://x'); p = decodeURIComponent(url.pathname); }
@@ -187,6 +209,7 @@ store.onCoins(pid => { if (!coinWait.has(pid)) coinWait.set(pid, setTimeout(() =
 const palView = x => ({ sp: x.sp, name: x.name, lv: x.lv, look: x.look });
 const palsOf = p => (p?.user ? store.showPets(p).map(id => farm.petOf(p.pid, id)).filter(Boolean).map(palView) : []); // every pet they show off on their isle
 const palOf = p => palsOf(p)[0];
+store.onPack(pid => { const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) { send(c, { t: 'me', me: store.me(p) }); send(c, { t: 'pack', k: 'kofi' }); } });
 farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
 const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);
@@ -276,6 +299,12 @@ function handle(c, m) {
       return;
     }
     case 'rooms': return send(c, { t: 'rooms', rooms: publicRooms() });
+    case 'kofi': { // claim a Ko-fi payment with the email it was paid with
+      if (blocked('kofic:' + (c.sock?.ip || '?'), 6, 10 * 60_000)) return send(c, { t: 'kofi', err: 'Too many tries. Wait a few minutes and try again.' });
+      const r = store.kofiClaim(store.profileOf(c.token), m.email, KOFI_TOKEN);
+      if (r.miss) note('kofic:' + (c.sock?.ip || '?'), 10 * 60_000);
+      return send(c, r.err ? { t: 'kofi', err: r.err } : { t: 'kofi', ok: true });
+    }
     case 'buy': { // the avatar shop
       const p = store.profileOf(c.token), r = store.buy(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });

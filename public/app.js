@@ -13,7 +13,7 @@ import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
@@ -608,6 +608,10 @@ function onMsg(m) {
     }
   } else if (m.t === 'bought') {
     sfx.join(); const [k, i] = m.id.split(':'); { const what = esc(COS[k] ? `${cosItem(k, +i).n} (${COS[k].label.toLowerCase()})` : itemName(k, +i)); toast(L(`Bought ${what}! It's yours to keep.`, `Kupione: ${what}! Zostaje z tobą na zawsze.`)); }
+  } else if (m.t === 'kofi') {
+    onKofi?.(m);
+  } else if (m.t === 'pack') {
+    sfx.join(); st.onPack?.(); st.onPack = null; toast(L('Thank you for your support! The Supporter pack is in your Wardrobe. ☕', 'Dziękujemy za wsparcie! Pakiet wspierających czeka w twojej Garderobie. ☕'));
   } else if (m.t === 'winfx') {
     playWinFx(m.k, { banner: m.id === st.id ? '' : L(`${m.name} wins!`, `Wygrywa ${m.name}!`) });
   } else if (m.t === 'err') {
@@ -796,7 +800,50 @@ function openStats() {
 // It drops down from the avatar button; on phones it slides up as a sheet (the tab bar's "You").
 // Kuba's optional tip jar. A plain link that opens in a new tab: no pop-ups, no reminders, no perks.
 const KOFI = 'https://ko-fi.com/zatokagier';
-const kofiLink = () => `<a class="kofi" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Support the site', 'Wesprzyj stronę')} ☕</a>`;
+const kofiLink = () => `<button type="button" class="kofi" data-act="support">${L('Support the site', 'Wesprzyj stronę')} ☕</button>`;
+const hasPack = () => { const have = new Set(st.me?.owned || []); return packIds('kofi').every(id => have.has(id)); };
+// The Support window: what the Supporter pack is and how it arrives. Ko-fi tells the server about a payment, and the
+// username written in the Ko-fi message says whose account the pack goes to; the email form is the way back in for
+// anyone who forgot to write it.
+let onKofi = null;
+function openSupport() {
+  const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
+  const { el, close } = modal(`
+    <h2>${L('Support the site', 'Wesprzyj stronę')} ☕</h2>
+    <p>${L(`${SITE} is free and stays free. If you like it, you can chip in for the server on Ko-fi. As a thank-you you get the Supporter pack: seven café items for your avatar.`, `${SITE} jest i będzie za darmo. Jeśli ci się tu podoba, możesz dorzucić się do serwera na Ko-fi. W podziękowaniu dostajesz Pakiet wspierających: siedem kawiarnianych rzeczy dla awatara.`)}</p>
+    <div class="suppics">${ids.map(([k, i]) => `<figure><img alt="" data-sp="${k}:${i}"><figcaption>${esc(OPT[k][+i])}</figcaption></figure>`).join('')}</div>
+    ${got ? `<p class="supok">${L('Thank you! The Supporter pack is yours. It is in your Wardrobe.', 'Dziękujemy! Pakiet wspierających jest twój. Znajdziesz go w Garderobie.')}</p>
+      <div class="suprow"><button type="button" class="btn" data-ward>${L('Open the Wardrobe', 'Otwórz Garderobę')}</button><a class="btn w" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Open Ko-fi', 'Otwórz Ko-fi')}</a></div>`
+    : user ? `<ol class="supsteps">
+        <li>${L('On Ko-fi, write your username in the message box:', 'Na Ko-fi wpisz swoją nazwę użytkownika w polu wiadomości:')} <button type="button" class="supname" data-copy title="${L('Copy', 'Kopiuj')}"><b>${esc(user)}</b> <span aria-hidden="true">⧉</span></button></li>
+        <li>${L('The pack shows up in your Wardrobe by itself, usually within a minute.', 'Pakiet sam pojawi się w twojej Garderobie, zwykle w ciągu minuty.')}</li>
+      </ol>
+      <div class="suprow"><a class="btn big" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Open Ko-fi', 'Otwórz Ko-fi')} ☕</a></div>
+      <form class="authform supclaim">
+        <h3>${L('Paid, but nothing arrived?', 'Zapłacone, a nic nie przyszło?')}</h3>
+        <label for="kfm">${L('The email you used on Ko-fi', 'E-mail użyty na Ko-fi')}</label>
+        <input class="field" id="kfm" type="email" maxlength="320" required autocomplete="email">
+        <p style="font-size:14px">${L('It is only used to find your payment. It is not saved.', 'Służy tylko do znalezienia twojej wpłaty. Nie jest zapisywany.')}</p>
+        <p class="autherr" role="alert" hidden></p>
+        <button class="btn w">${L('Find my payment', 'Znajdź moją wpłatę')}</button>
+      </form>`
+    : `<p class="supok">${L('The pack is saved on an account, so make a free one first. Then come back here.', 'Pakiet zapisuje się na koncie, więc najpierw załóż darmowe konto. Potem wróć tutaj.')}</p>
+      <div class="suprow"><button type="button" class="btn" data-reg>${L('Create account', 'Załóż konto')}</button><a class="btn w" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Open Ko-fi', 'Otwórz Ko-fi')}</a></div>`}
+    <button type="button" class="btn ghost-ink" data-close>${L('Close', 'Zamknij')}</button>`);
+  const done = () => { onKofi = null; close(); };
+  ipReady.then(() => { if (IP) for (const im of el.querySelectorAll('[data-sp]')) { const [k, i] = im.dataset.sp.split(':'); const u = IP.itemPic(k, +i, st.color, st.av); if (u) im.src = u; } });
+  el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); done(); });
+  el.querySelector('[data-ward]')?.addEventListener('click', () => { done(); openWardrobe({ sec: 'av4' }); });
+  el.querySelector('[data-reg]')?.addEventListener('click', () => { done(); openAccount('register'); });
+  el.querySelector('[data-copy]')?.addEventListener('click', () => { navigator.clipboard?.writeText(user).then(() => toast(L('Username copied.', 'Skopiowano nazwę użytkownika.'))).catch(() => {}); });
+  const f = el.querySelector('.supclaim');
+  f?.addEventListener('submit', e => {
+    e.preventDefault(); const btn = f.querySelector('button'), err = f.querySelector('.autherr'); btn.disabled = true; err.hidden = true;
+    onKofi = m => { btn.disabled = false; if (m.err) { err.textContent = srvText(m.err); err.hidden = false; sfx.bad(); } else done(); };
+    send({ t: 'kofi', email: f.querySelector('#kfm').value });
+  });
+  onKofi = null; st.onPack = done;
+}
 function acctHtml() {
   const m = st.me, reqs = st.friends?.reqs.length || 0;
   const item = (act, ico, label, note = '', attr = '') => `<button type="button" role="menuitem" data-act="${act}"${attr}><span class="aico" aria-hidden="true">${ico}</span>${label}${note}</button>`;
@@ -810,7 +857,7 @@ function acctHtml() {
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
-      <a role="menuitem" href="${KOFI}" target="_blank" rel="noopener noreferrer"><span class="aico" aria-hidden="true">☕</span>${L('Support the site', 'Wesprzyj stronę')}<small>Ko-fi</small></a>
+      ${item('support', '☕', L('Support the site', 'Wesprzyj stronę'), `<small>${hasPack() ? L('thank you!', 'dziękujemy!') : L('get the Supporter pack', 'odbierz Pakiet wspierających')}</small>`)}
       <hr>
       ${m?.user ? item('security', '🔑', L('Change password', 'Zmień hasło')) + item('logout', '🚪', L('Log out', 'Wyloguj się'), `<small>${esc(m.user)}</small>`)
         : item('account', '✨', L('Create account', 'Załóż konto'), `<small>${L('saves progress', 'zapisuje postępy')}</small>`, ' data-mode="register"') + item('account', '🔑', L('Log in', 'Zaloguj się'), '', ' data-mode="login"')}
@@ -1457,7 +1504,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   if (!IP) ipReady.then(() => { if (!open) return; if (IP) fillPics(); else grid.classList.add('nopic'); });
   const show = () => { if (view) view.set(color, av); else pv.innerHTML = avatarHtml(color, av, 150); };
   const val = k => k === 'color' ? color : av[KI[k]];
-  const isLocked = (k, i) => priceOf(k, i) > 0 && !owned().includes(k + ':' + i);
+  const isLocked = (k, i) => needsOwning(k, i) && !owned().includes(k + ':' + i);
   const worn = k => pick[k] ?? (me().cos?.[k] | 0), has = (k, i) => cosHas(me(), k, i);
   const flNow = () => Object.fromEntries(WORN.map(k => [k, worn(k)]));
   // The isle sections show the isle itself in place of the avatar, wearing what is on plus anything being tried.
@@ -1498,8 +1545,8 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const hex = k === 'color', sw = hex || AV_COLOR_KEYS.includes(k), v = hex ? COLORS[i] : i, p = hex ? 0 : priceOf(k, i), lk = !hex && isLocked(k, i);
     const sn = hex ? null : seasonOf(k, i), off = lk && !onSale(k, i, today()), on = val(k) === v;
     const label = sw ? `${hex ? L('Top colour', 'Kolor góry') : ROW_LABEL[k]} ${i + 1}` : OPT[k][i];
-    const note = off ? `${L('back in', 'wraca:')} ${SEASONS[sn].back}` : lk ? `${coinIco}${p}${sn ? ` ${SEASON_ICO[sn]}` : ''}` : p ? yours : '';
-    return `<button type="button" class="wdtile${sw ? ' sw' : ''}${lk ? ' lk' : ''}${on && lk ? ' try' : ''}"${off ? ' disabled' : ''} aria-pressed="${on}" data-k="${k}" data-v="${v}" aria-label="${esc(label)}${lk ? `, ${cCoins(p)}` : ''}">${
+    const pk = !hex && packOf(k, i), note = off ? `${L('back in', 'wraca:')} ${SEASONS[sn].back}` : lk && pk ? `☕ ${L('supporters', 'wspierający')}` : lk ? `${coinIco}${p}${sn ? ` ${SEASON_ICO[sn]}` : ''}` : p || pk ? yours : '';
+    return `<button type="button" class="wdtile${sw ? ' sw' : ''}${lk ? ' lk' : ''}${on && lk ? ' try' : ''}"${off ? ' disabled' : ''} aria-pressed="${on}" data-k="${k}" data-v="${v}" aria-label="${esc(label)}${lk ? `, ${pk ? L('Supporter pack', 'Pakiet wspierających') : cCoins(p)}` : ''}">${
       sw ? `<i class="wdsw" style="--c:${hex ? v : OPT[k][i]}"></i>` : `<img alt="" data-ip="${k}:${i}"><b>${esc(label)}</b>`}<small>${note}</small></button>`;
   };
   const avList = k => {
@@ -1579,14 +1626,15 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const c = q('.wdcoins b'); if (c) c.textContent = coins();
     showIsle();
   };
-  const wants = () => [...lockedIn(av, owned()).map(id => { const [k, i] = id.split(':'); return { id, name: itemName(k, +i), p: priceOf(k, +i), dot: AV_COLOR_KEYS.includes(k) ? OPT[k][+i] : '' }; }),
+  const wants = () => [...lockedIn(av, owned()).map(id => { const [k, i] = id.split(':'); return { id, name: itemName(k, +i), p: priceOf(k, +i), pk: !!packOf(k, +i), dot: AV_COLOR_KEYS.includes(k) ? OPT[k][+i] : '' }; }),
     ...Object.entries(pick).map(([k, i]) => ({ id: k + ':' + i, name: cosItem(k, i).n, kind: COS[k].label.toLowerCase(), p: cosItem(k, i).p }))];
   const paintCart = () => {
-    const w = first ? [] : wants(), total = w.reduce((s, x) => s + x.p, 0), short = total - coins();
+    const w = first ? [] : wants(), nb = w.filter(x => !x.pk).length, total = w.reduce((s, x) => s + x.p, 0), short = total - coins(); // nb: how many of them coins can buy
     cart.innerHTML = w.length ? `<div class="cartlist"><b>${L('Trying on', 'Przymierzasz')}</b>${w.map(x => `<span class="cartitem">${x.dot ? `<i class="dot" style="--c:${x.dot}"></i>` : ''}${esc(x.name)}${x.kind ? ` <small>${esc(x.kind)}</small>` : ''}${
-      w.length > 1 ? `<button type="button" class="btn sm w" data-buy="${x.id}" ${x.p > coins() ? 'disabled' : ''}>${coinIco}${x.p}</button>` : ''}</span>`).join('')}</div>
+      x.pk ? ' <small>☕</small>' : w.length > 1 ? `<button type="button" class="btn sm w" data-buy="${x.id}" ${x.p > coins() ? 'disabled' : ''}>${coinIco}${x.p}</button>` : ''}</span>`).join('')}</div>
       <div class="cartact"><small>${L('Only you see these until you buy them. You have', 'Dopóki ich nie kupisz, widzisz je tylko ty. Masz')} ${coinIco}${coins()}.</small><button type="button" class="btn sm w" data-off>${L('Take off', 'Zdejmij')}</button>
-      <button type="button" class="btn" data-buyall ${short > 0 ? 'disabled' : ''}>${short > 0 ? L(`Need ${short} more coins`, `Brakuje ${cCoins(short)}`) : `${w.length > 2 ? L(`Buy all ${w.length}`, `Kup wszystkie ${w.length}`) : w.length === 2 ? L('Buy both', 'Kup oba') : L('Buy', 'Kup')} ${coinIco}${total}`}</button></div>` : '';
+      ${nb < w.length ? `<button type="button" class="btn${nb ? ' w' : ''}" data-act="support">☕ ${L('Supporter pack', 'Pakiet wspierających')}</button>` : ''}
+      ${nb ? `<button type="button" class="btn" data-buyall ${short > 0 ? 'disabled' : ''}>${short > 0 ? L(`Need ${short} more coins`, `Brakuje ${cCoins(short)}`) : `${nb > 2 ? L(`Buy all ${nb}`, `Kup wszystkie ${nb}`) : nb === 2 ? L('Buy both', 'Kup oba') : L('Buy', 'Kup')} ${coinIco}${total}`}</button>` : ''}</div>` : '';
   };
   const paint = keep => { paintRail(); paintGrid(keep); paintPlate(); paintCart(); };
   const camBtns = face => el.querySelectorAll('[data-cam]').forEach(b => b.setAttribute('aria-pressed', (b.dataset.cam === '1') === face));
@@ -1618,7 +1666,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     const cb = t.closest('[data-cam]'); if (cb) return setCam(cb.dataset.cam === '1');
     const buy = id => { const [k, i] = id.split(':'); send({ t: 'buy', k, i: +i }); };
     const by = t.closest('[data-buy]'); if (by) { by.disabled = true; return buy(by.dataset.buy); }
-    const all = t.closest('[data-buyall]'); if (all) { all.disabled = true; return wants().forEach(x => buy(x.id)); }
+    const all = t.closest('[data-buyall]'); if (all) { all.disabled = true; return wants().filter(x => !x.pk).forEach(x => buy(x.id)); }
     if (t.closest('[data-off]')) { av = wearable(av, owned()).map((v, i) => v || !av[i] ? v : st.av[i]); for (const k of Object.keys(pick)) delete pick[k]; sfx.pop(); show(); return paint(true); }
     if (t.closest('[data-rand]')) { undo = [color, av.slice()]; av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; q('[data-undo]').hidden = false; sfx.set(); show(); paint(); return saveSoon(); }
     if (t.closest('[data-undo]')) { if (undo) [color, av] = undo; undo = null; q('[data-undo]').hidden = true; sfx.pop(); show(); paint(); return saveSoon(); }
@@ -1869,6 +1917,7 @@ $app.addEventListener('click', e => {
   else if (act === 'shop') { if (!st.name) return openProfile(true); openWardrobe({ sec: 'drop', filt: 'shop' }); }
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
+  else if (act === 'support') openSupport();
   else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
   else if (act === 'logout') { send({ t: 'logout' }); toast(L('Logged out. This browser is a guest again.', 'Wylogowano. Ta przeglądarka znów gra jako gość.')); }
   else if (act === 'host' || act === 'solo') {

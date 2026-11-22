@@ -257,7 +257,7 @@ const HAT_BRIM = { 1: .72, 2: .76, 3: .88, 9: .8, 10: .86, 11: .87, 13: .9, 14: 
 const HAT_WRAP = [32, 33, 'hood'], WRAP_AT = { hood: .92 }; // how far round from the front the sides start (radians)
 // A headband (headphones, earmuffs) stays its own size on big hair and presses a groove into it instead.
 const HAT_BAND = [6, 31, 38];
-const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38], HC = new THREE.Vector3(0, .47, 0), SHELL = 1.12;
+const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38, 41], HC = new THREE.Vector3(0, .47, 0), SHELL = 1.12;
 // How far from C along the unit direction d you can go and still be inside the skull grown sideways by o, the way
 // hair and hat shells are made (shellPts), closed over the crown by a low cone. skullT is the bare skull.
 const envT = (hr, d, o) => { let lo = 0, hi = 1.4; for (let i = 0; i < 18; i++) { const t = (lo + hi) / 2, y = HC.y + d.y * t, r = Math.hypot(d.x * t, d.z * t); if (y >= 0 && (y <= 1 ? r <= hr(y) + o : r <= o - (y - 1))) lo = t; else hi = t; } return lo; };
@@ -336,14 +336,15 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], legs: [], eyes: [], dyn: true }; root.add(g);
   const H = 2.4 * [.93, 1, 1.07][a.height], B = BODIES[a.body];
   const topC = /^#[0-9a-f]{6}$/i.test(color) ? color : '#ff8fab';
+  const CREAM = '#f6ead8', COFFEE = '#6b4326', LATTE = '#b8743a'; // the Supporter pack's café colours
   const skin = SKINS[a.skin], hair = HAIR_COLS[a.hairC], hD = shade(hair, .8), shoeC = SHOE_COLS[a.shoeC], gold = '#ffc93c';
   const headH = H / P.N * FSH[a.face].h, legLen = H * P.leg, neckL = H * .008, hipY = legLen, shY = H - headH - neckL;
   const W = P.wide, sh = B.sh * H * W, ch = B.ch * H * W, wa = B.wa * H * W, hi = B.hi * H * W, lb = B.lb * H * P.limb, dz = B.dz + .16;
   // A costume (suit) dresses the legs too, whatever bottom was picked, and has a hood that goes up when no hat is worn.
   const top = a.top, suit = { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 29: '#1c1a22' }[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC }[top] : null;
   const bot = suit ? 7 : a.bottom, botC = suit || BOTTOM_COLS[a.botC];
-  const dress = top === 6 || top === 15, skirt = [3, 5, 6].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
-  const bodyC = top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : top === 26 ? '#ffc93c' : top === 27 ? '#c8342b' : suit || topC, slvC = top === 14 || top === 16 ? '#ffffff' : top === 26 ? '#2b2228' : bodyC, dk = shade(topC, .62);
+  const dress = top === 6 || top === 15, skirt = [3, 5, 6].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
+  const bodyC = top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : top === 26 ? '#ffc93c' : top === 27 ? '#c8342b' : top === 31 ? CREAM : suit || topC, slvC = top === 14 || top === 16 ? '#ffffff' : top === 26 ? '#2b2228' : bodyC, dk = shade(topC, .62);
 
   // torso: a soft bean. Hips take the bottom colour.
   const y0 = hipY - .05 * H, t = shY - y0, wy = y0 + .42 * t, yT = shY + .015 * H;
@@ -441,6 +442,13 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     for (const s of [-1, 1]) sph(g, hi * .08, '#1a1014', s * hi * .24, fy + hi * .2, fzz + hi * .4);
     collar(shade(topC, .82));
   }
+  if (top === 31) { // barista sweater: cream knit with coffee trim, a steaming cup on the chest and a stripe across the back
+    band(wy, wy + .08 * t, COFFEE, .018); collar(COFFEE, 1.3); band(wy + .1 * t, wy + .125 * t, LATTE, .012);
+    const cy = chestY - .06 * t, cz = tz(cy) + .014, cup = cyl(g, .125, .09, .17, COFFEE, 0, cy, cz); cup.scale.z = .25;
+    ring(g, .055, .02, COFFEE, .15, cy + .01, cz - .004).scale.z = .7; const fo = cyl(g, .1, .1, .03, '#fffaf0', 0, cy + .075, cz + .006); fo.scale.z = .25;
+    for (const [dx, dy, r] of [[-.03, .17, .032], [.03, .24, .024]]) sph(g, r, LATTE, dx, cy + dy, tz(cy + dy) + .012).scale.z = .4;
+    side(chestY - .09 * t, chestY + .05 * t, COFFEE, PI, .62, .012); side(chestY - .13 * t, chestY - .105 * t, LATTE, PI, .62, .012);
+  }
   // things on the back
   const bk = a.back, flat = (r, c, x, y, z, sx, sy, sz = .1) => { const o = sph(g, r, c, x, y, z); o.scale.set(sx, sy, sz); return o; };
   if (bk === 1) { box(g, sh * 1.25, .5 * t, .16, '#e5543b', 0, y0 + .62 * t, bz(chestY) - .07); box(g, sh * .9, .2 * t, .06, '#b8433c', 0, y0 + .5 * t, bz(chestY) - .17); box(g, sh * 1.3, .1 * t, .17, '#b8433c', 0, y0 + .86 * t, bz(chestY) - .07);
@@ -459,11 +467,20 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (bk === 9) { const sb = flat(.3, '#4fc3e8', 0, y0 + .62 * t, bz(chestY) - .06, .75, 2.5, .12); sb.rotation.z = .4; const st = flat(.3, '#ffffff', 0, y0 + .62 * t, bz(chestY) - .075, .16, 2.45, .1); st.rotation.z = .4; const fn = cone(g, .07, .14, '#ff8a2a', .19, y0 + .62 * t - .42, bz(chestY) - .12); fn.rotation.x = -PI / 2; fn.scale.x = .3; }
   if (bk === 10) for (const s of [-1, 1]) { const u = flat(.22, '#ff9a3c', s * .32, chestY + .2 * t, bz(chestY) - .04, 1.25, 1.3, .08); u.rotation.set(0, -s * .4, -s * .5); const l = flat(.17, '#ffd23f', s * .26, chestY - .16 * t, bz(chestY) - .04, 1.1, 1.1, .08); l.rotation.set(0, -s * .4, s * .4);
     sph(g, .045, '#2b2228', s * .44, chestY + .3 * t, bz(chestY) - .055).scale.z = .3; sph(g, .035, '#ffffff', s * .34, chestY - .2 * t, bz(chestY) - .055).scale.z = .3; }
-  if ((bot === 0 || bot === 1 || bot === 8) && !dress) band(wy - .035 * t, wy + .012 * t, shade(botC, .7), .01);
+  if (bk === 11) { // takeaway cup: a big paper cup with a sleeve, a lid and a straw, carried on two straps
+    const bzc = bz(chestY) - sh * .56, cy = y0 + .56 * t, hh = .6 * t;
+    cyl(g, sh * .62, sh * .47, hh, '#fffaf0', 0, cy, bzc); cyl(g, sh * .6, sh * .53, hh * .42, LATTE, 0, cy - hh * .02, bzc).scale.set(1.04, 1, 1.04);
+    cyl(g, sh * .68, sh * .68, hh * .1, '#ffffff', 0, cy + hh * .53, bzc); cyl(g, sh * .5, sh * .6, hh * .09, '#ffffff', 0, cy + hh * .62, bzc);
+    const stw = cyl(g, .022, .022, hh * .55, '#e5543b', sh * .2, cy + hh * .9, bzc); stw.rotation.z = -.22;
+    sph(g, sh * .16, '#e5543b', 0, cy - hh * .02, bzc - sh * .56).scale.z = .35;
+    for (const s of [-1, 1]) { side(wy + .1 * t, yT - .01 * t, COFFEE, s * .5, .08, .016); side(wy + .1 * t, yT - .01 * t, COFFEE, PI + s * .62, .08, .016); }
+  }
+  if ((bot === 0 || bot === 1 || bot === 8 || bot === 9) && !dress) band(wy - .035 * t, wy + .012 * t, shade(botC, .7), .01);
   // what tells the trousers apart: a buckle, jeans pockets and a stud, a joggers waistband with drawstrings
   if (!dress && !suit) {
     if (bot === 0 || bot === 8) box(g, .07, .045 * t, .02, gold, 0, wy - .012 * t, tz(wy - .012 * t) + .014);
     if (bot === 1) { sph(g, .02, gold, 0, wy - .012 * t, tz(wy - .012 * t) + .016); for (const s of [-1, 1]) { side(y0 + .1 * t, y0 + .3 * t, shade(botC, 1.22), PI + s * .5, .24, .012); side(y0 + .2 * t, y0 + .36 * t, shade(botC, .8), s * .62, .14, .01); } }
+    if (bot === 9) { box(g, .07, .045 * t, .02, LATTE, 0, wy - .012 * t, tz(wy - .012 * t) + .014); for (const s of [-1, 1]) { side(y0 + .2 * t, y0 + .36 * t, shade(botC, .8), s * .62, .14, .01); side(y0 + .1 * t, y0 + .28 * t, CREAM, PI + s * .5, .2, .012); } }
     if (bot === 4) { band(wy - .05 * t, wy + .012 * t, '#f4f1ea', .012); for (const s of [-1, 1]) { cyl(g, .01, .01, .1 * t, '#f4f1ea', s * .03, wy - .08 * t, front(s * .03, wy - .08 * t) + .014); sph(g, .016, '#f4f1ea', s * .03, wy - .13 * t, front(s * .03, wy - .13 * t) + .016); } }
   }
 
@@ -471,7 +488,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const ua = H * .168 * P.arm, fa = H * .15 * P.arm, shX = sh * .86, reach = Math.max(.12, Math.asin(Math.min(.7, Math.max(0, (hi + lb * 1.3 - shX) / (ua + fa)))));
   for (const s of [-1, 1]) {
     const arm = new THREE.Group(); arm.userData.own = true; arm.position.set(s * shX, shY - lb * 1.05, 0); arm.rotation.z = s * reach; g.add(arm);
-    const slC = noSl ? skin : slvC, cuff = top === 9 || top === 2 ? '#ffffff' : top === 14 ? dk : top === 22 ? topC : shade(slvC, .82);
+    const slC = noSl ? skin : slvC, cuff = top === 31 ? COFFEE : top === 9 || top === 2 ? '#ffffff' : top === 14 ? dk : top === 22 ? topC : shade(slvC, .82);
     sph(arm, lb * 1.02, slC, 0, 0, 0); cyl(arm, lb * 1.08, lb * .95, ua, longSl ? slvC : skin, 0, -ua / 2, 0);
     if (!longSl && !noSl) { cyl(arm, lb * 1.28, lb * 1.34, ua * .55, slvC, 0, -ua * .27, 0); if (top === 10 || top === 17 || top === 13) cyl(arm, lb * 1.37, lb * 1.37, ua * .12, top === 10 ? topC : top === 13 ? '#ffffff' : dk, 0, -ua * .5, 0); }
     const el = new THREE.Group(); el.position.y = -ua; arm.add(el);
@@ -488,7 +505,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const tl = legLen * .5, shoeH = H * .05, sl = legLen - tl - shoeH, shortLeg = bot === 2 && !dress;
   for (const s of [-1, 1]) {
     const leg = new THREE.Group(); leg.position.set(s * Math.max(hi * .5, lb * 1.45), hipY, 0); g.add(leg);
-    const wide = bot === 8 && !skirt, slim = bot === 7 && !suit && !skirt, plain = !skirt && !suit, kT = wide ? 1.7 : slim ? 1.36 : 1.55, kK = wide ? 1.6 : slim ? 1.12 : 1.3, kA = wide ? 2.05 : slim ? .92 : bot === 4 && plain ? .96 : 1.05;
+    const wide = bot === 8 && !skirt, slim = bot === 7 && !suit && !skirt, plain = !skirt && !suit, cuffd = bot === 9 && plain, kT = wide ? 1.7 : slim ? 1.36 : 1.55, kK = wide ? 1.6 : slim ? 1.12 : cuffd ? 1.36 : 1.3, kA = wide ? 2.05 : slim ? .92 : bot === 4 && plain ? .96 : cuffd ? 1.24 : 1.05;
     cyl(leg, lb * kT, lb * kK, tl, skirt ? skin : botC, 0, -tl / 2, 0);
     const kn = new THREE.Group(); kn.position.y = -tl; leg.add(kn);
     const lc = skirt || shortLeg ? skin : botC; sph(kn, lb * (kK - .02), lc, 0, 0, 0); cyl(kn, lb * (kK - .04), lb * kA, sl, lc, 0, -sl / 2, 0);
@@ -498,11 +515,19 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     if (bot === 4 && plain) { cyl(kn, lb * 1.1, lb * 1.1, sl * .16, '#f4f1ea', 0, -sl * .9, 0); box(leg, .02, tl * .96, lb * .8, '#f4f1ea', s * lb * 1.425, -tl * .5, 0).rotation.z = -s * Math.atan2((kT - kK) * lb, tl); box(kn, .02, sl * .8, lb * .6, '#f4f1ea', s * lb * 1.13, -sl * .4, 0).rotation.z = -s * Math.atan2((kK - .04 - kA) * lb, sl); }
     if (bot === 0 && plain) { box(leg, .016, tl * .9, .016, fold(botC), 0, -tl * .52, lb * 1.43).rotation.x = Math.atan2((kT - kK) * lb, tl); box(kn, .016, sl * .9, .016, fold(botC), 0, -sl * .48, lb * 1.15).rotation.x = Math.atan2((kK - .04 - kA) * lb, sl); }
     if (bot === 7 && slim) cyl(kn, lb * .98, lb * .98, sl * .08, shade(botC, 1.3), 0, -sl * .93, 0);
+    if (cuffd) { cyl(kn, lb * 1.4, lb * 1.4, sl * .2, CREAM, 0, -sl * .86, 0); cyl(kn, lb * 1.43, lb * 1.43, sl * .035, shade(CREAM, .8), 0, -sl * .76, 0); }
     if (wide) cyl(kn, lb * 2.08, lb * 2.08, sl * .07, shade(botC, .8), 0, -sl * .95, 0);
     const fy = -sl - shoeH * .45, fz = lb * .8, R = lb * 1.5, so = a.shoes;
     if (so === 2) { sph(kn, R * .9, skin, 0, fy + shoeH * .1, fz).scale.set(1, .55, 1.5); sph(kn, R, shoeC, 0, fy - shoeH * .3, fz).scale.set(1.05, .22, 1.6); ring(kn, R * .8, R * .14, shoeC, 0, fy + shoeH * .05, fz + R * .5).scale.y = .6; }
     else if (so === 4) { sph(kn, R, shoeC, 0, fy, fz).scale.set(1, .5, 1.5); sph(kn, R, shade(shoeC, .5), 0, fy - shoeH * .34, fz).scale.set(1.04, .18, 1.55); sph(kn, R * .4, shade(shoeC, 1.4), 0, fy + shoeH * .3, fz + R * .5).scale.set(1.6, .4, .6); box(kn, R * 1.7, R * .14, R * .34, shade(shoeC, .62), 0, fy + R * .34, fz + R * .2); box(kn, R * .3, R * .16, R * .2, gold, 0, fy + R * .36, fz + R * .2); }
     else if (so === 5) { sph(kn, R * 1.12, shoeC, 0, fy + shoeH * .1, fz).scale.set(1.05, .8, 1.5); for (const e of [-1, 1]) { const er = sph(kn, R * .3, shoeC, e * R * .4, fy + shoeH * .9, fz + R * .7); er.scale.set(.6, 1.8, .5); er.rotation.x = -.4; } sph(kn, R * .16, '#2a1712', 0, fy + shoeH * .2, fz + R * 1.62); }
+    else if (so === 8) { // cocoa slippers: a soft mug for each foot, with a handle and marshmallows on the toe
+      sph(kn, R * 1.12, shoeC, 0, fy + shoeH * .1, fz).scale.set(1.05, .8, 1.5); sph(kn, R * 1.05, shade(shoeC, .6), 0, fy - shoeH * .34, fz).scale.set(1.06, .2, 1.56);
+      ring(kn, lb * 1.3, lb * .34, '#fffaf0', 0, fy + R * .74, lb * .1).rotation.x = PI / 2;
+      sph(kn, R * .62, '#5a3220', 0, fy + R * .78, fz + R * .62).scale.set(1.1, .3, 1); ring(kn, R * .68, R * .13, '#fffaf0', 0, fy + R * .8, fz + R * .62).rotation.x = PI / 2;
+      for (const [mx, mz] of [[-.24, .52], [.2, .78], [.12, .4]]) cyl(kn, R * .17, R * .17, R * .2, '#ffffff', mx * R, fy + R * .92, fz + mz * R);
+      const hd = ring(kn, R * .36, R * .11, shoeC, s * R * 1.12, fy + shoeH * .15, fz + R * .1); hd.scale.y = .8;
+    }
     else {
       const bt = so === 1 || so === 6, pale = new THREE.Color(shoeC).getHSL({}).l > .8, trim = pale ? shade(shoeC, .62) : '#ffffff';
       sph(kn, R, shoeC, 0, fy + shoeH * .12, fz).scale.set(1, .72, 1.55); sph(kn, R, bt ? shade(shoeC, .6) : pale ? '#d6d2ca' : '#ffffff', 0, fy - shoeH * .32, fz).scale.set(1.06, .24, 1.62);
@@ -542,6 +567,10 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (nk === 9) beads(18, .022, '#fbf6ec', .04 * H);
   if (nk === 10) { ring(g, lb * 1.65, lb * .45, '#d9342b', 0, shY + .005 * H, 0).rotation.x = PI / 2; const bd = cone(g, lb * 1.6, .2 * t, '#d9342b', 0, chestY + .12 * t, tz(chestY + .12 * t) + .02); bd.rotation.x = PI; bd.scale.z = .3; for (const k of [-1, 0, 1]) sph(g, .014, '#ffffff', k * lb * .6, chestY + .17 * t, tz(chestY + .17 * t) + .04); }
 
+  if (nk === 12) { // coffee bean necklace with a tiny cup
+    beads(16, .034, null, .05 * H, [COFFEE, '#8a5a3c']); const py = shY - .075 * H, pz = lb * 1.9 * 1.05 + .03;
+    cyl(g, .05, .038, .075, '#fffaf0', 0, py, pz); ring(g, .026, .01, '#fffaf0', .058, py, pz); cyl(g, .04, .04, .012, COFFEE, 0, py + .036, pz);
+  }
   if (nk === 11) { const sc = ring(g, lb * 1.8, lb * .85, '#e5352b', 0, shY + .01 * H, 0); sc.rotation.x = PI / 2; sc.scale.z = 1.1; for (let i = 0; i < 6; i++) box(g, lb * 1.6, .06 * t, .05, i % 2 ? '#ffffff' : '#e5352b', lb * 1.2 + i * .004, chestY + .19 * t - i * .06 * t, front(lb * 1.2, chestY) + .026); }
   // head: modelled 1 unit tall with the chin at 0, inside a pivot at the neck so it can turn and nod
   const hp = new THREE.Group(); hp.userData.own = true; hp.position.y = shY + neckL + .012 * H; g.add(hp); // the flat chin rides a little above the shoulders, so scarves and ties show
@@ -634,6 +663,10 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     }
     box(hg, .07, .014, .014, fr, 0, ey + .01, fz(0, ey, .02));
   }
+  if (gl === 12) { // café glasses: chunky caramel rounds with a little heart on the bridge
+    for (const s of [-1, 1]) { const rg = ring(hg, .108, .022, LATTE, s * ex, ey, gz); rg.rotation.y = s * .36; arm(s, .108, LATTE); }
+    box(hg, .07, .02, .016, LATTE, 0, ey + .01, fz(0, ey, .022)); put(hg, G('hrtb', heartG(.034)), '#e5543b', 0, ey + .012, fz(0, ey, .034));
+  }
   // hats
   if (hat === 1) { lathe(hT, shellPts(.7, 1, .1), topC); lathe(hT, shellPts(.63, .76, .125), shade(topC, .8)); sph(hT, .1, '#ffffff', 0, 1.2, 0); }
   if (hat === 2) { lathe(hT, shellPts(.74, 1, .09), topC); const br = cyl(hT, .34, .34, .065, shade(topC, .8), 0, .765, .46); br.scale.set(1, 1, .95); br.rotation.x = .14; sph(hT, .05, shade(topC, .8), 0, 1.1, 0); }
@@ -665,6 +698,12 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (hat === 26) { cyl(hT, .34, .38, .3, '#9a6234', 0, 1.02, -.02); const br = cyl(hT, .82, .82, .06, '#8a5428', 0, .885, -.02); br.scale.z = .85; for (const s of [-1, 1]) { const cu = cyl(hT, .3, .3, .06, '#8a5428', s * .68, .95, -.02); cu.scale.z = 1.7; cu.rotation.z = s * .55; } cyl(hT, .385, .385, .06, '#4a2f2a', 0, .9, -.02); }
   if (hat === 27) { sph(hT, .62, '#e5402f', 0, .92, -.02).scale.set(1, .55, 1); for (const [ph, th] of [[.15, 0], [.6, .5], [.6, 2.6], [.7, 4.4], [.9, 1.5], [.95, 3.5], [.85, 5.6]]) sph(hT, .07, '#ffffff', .62 * Math.sin(ph) * Math.sin(th), .92 + .34 * Math.cos(ph), .62 * Math.sin(ph) * Math.cos(th) - .02).scale.y = .5; }
   if (hat === 28) { const h = cone(hT, .1, .5, '#fff4c8', 0, 1.16, .3); h.rotation.x = .5; for (const [k, r] of [[.0, .09], [.14, .065]]) ring(hT, r, .018, gold, 0, .97 + k * Math.cos(.5), .18 + k * Math.sin(.5)).rotation.x = PI / 2 + .5; }
+  if (hat === 41) { // a mug of coffee on a saucer, with a heart on the front and steam coming off
+    cyl(hT, .44, .36, .05, '#efe2cc', 0, .99, -.02); cyl(hT, .3, .27, .36, '#fffaf0', 0, 1.19, -.02); ring(hT, .3, .028, '#efe2cc', 0, 1.37, -.02).rotation.x = PI / 2;
+    cyl(hT, .275, .275, .02, COFFEE, 0, 1.365, -.02); sph(hT, .1, '#e9c9a0', .03, 1.37, -.02).scale.set(1, .08, 1);
+    ring(hT, .11, .036, '#fffaf0', .37, 1.19, -.02); put(hT, G('hrtm', heartG(.085)), '#e5543b', 0, 1.18, .275);
+    for (const [sx, sy, r] of [[-.06, 1.52, .06], [.05, 1.66, .048], [-.03, 1.78, .036]]) sph(hT, r, '#ffffff', sx, sy, -.02);
+  }
   if (hat === 13) { cone(hT, .38, .8, '#4b3a6b', 0, 1.36, -.02); cyl(hT, .74, .78, .06, '#3d2f58', 0, .905, -.02); cyl(hT, .345, .375, .07, gold, 0, .98, -.02); }
   // a helmet or hood: a shell over the top and round the back and sides of the head, open at the face
   const wrapShell = (c, off = .1, hf = .76, hb = .1) => { part(hT, shellPts(hf, 1, off), c, 0, A); part(hT, shellPts(hb, 1, off), c, PI, PI - A); };
