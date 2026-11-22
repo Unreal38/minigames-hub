@@ -227,6 +227,9 @@ export function brief(pid) {
   const egg = eggs.sort((a, b) => a.left - b.left)[0], trip = trips.sort((a, b) => a.left - b.left)[0];
   return { pets: f.pets.length, egg: egg ? { stage: egg.stage, left: egg.left } : null, trip: trip ? { left: trip.left } : null };
 }
+// Decorations standing on a farm, by type: what its owner may show off on their profile isle. Fences and paths stay home.
+export const decorOf = pid => [...new Set((farms.get(pid)?.items || []).map(i => i.type))].filter(t => ITEMS[t]?.kind === 'd' && t !== 'fence' && t !== 'path');
+export const decorList = pid => decorOf(pid).map(t => ({ t, n: ITEMS[t].name })); // with names, for the wardrobe
 export const petOf = (pid, id) => (id && tiny(farms.get(pid)?.pets.find(x => x.id === id))) || null;
 function tradesView(pid, f) {
   const card = (o, dir, from, to, otherPid, other) => ({ id: o.id, dir, who: nameOf(otherPid, other), fid: fid(other), left: Math.max(0, o.at + TRADE_MS - Date.now()),

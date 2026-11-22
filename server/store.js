@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
-import { COS, WORN, PICKED, pickedOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
+import { COS, WORN, DECOR_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -32,6 +32,11 @@ export function load() {
   for (const p of Object.values(d.profiles || {})) {
     profiles.set(p.pid, p); if (p.user) users.set(p.user.toLowerCase(), p.pid);
     if (typeof p.name === 'string') p.name = safeText(p.name);
+    // Isle decor was sold for coins for a few minutes before it became Pet Farm decorations: hand those coins back.
+    if (p.owned?.some(id => id.startsWith('ip:'))) { const paid = [0, 80, 80, 60, 100, 80, 120, 90, 90];
+      for (const id of p.owned) if (id.startsWith('ip:')) p.coins = (p.coins || 0) + (paid[+id.slice(3)] || 0);
+      p.owned = p.owned.filter(id => !id.startsWith('ip:')); }
+    if (Array.isArray(p.cos?.ip) && p.cos.ip.some(t => typeof t !== 'string')) delete p.cos.ip;
     // Coins arrived after people had already played: everyone starts with what their past games would have paid.
     if (!Number.isFinite(p.coins)) p.coins = 5 * (p.games || 0) + 10 * (p.wins || 0); // the old rate: 5 a game, 10 more a win
   }
@@ -141,21 +146,12 @@ function buyCos(p, k, i) {
   if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
   p.coins -= price; p.owned.push(id);
   if (WORN.includes(k)) (p.cos ||= {})[k] = i;
-  else if (PICKED.includes(k)) { const l = pickedOf(p, k).filter(x => x !== i); if (l.length < COS[k].pick) (p.cos ||= {})[k] = [...l, i]; } // goes on if there is room
   board = null; scheduleSave(); coinHook(p.pid);
   return { id, price, cos: true };
 }
 // Put on (or take off, with 0) something the player has bought or earned.
 export function wear(p, k, i) {
   if (!p) return { err: 'Not connected.' };
-  if (PICKED.includes(k)) { // a short list of entries that are on together
-    if (!Array.isArray(i)) return { err: 'Unknown.' };
-    const l = [...new Set(i.slice(0, 12).map(x => Math.floor(+x)))];
-    if (l.length > COS[k].pick || l.some(x => !cosItem(k, x))) return { err: 'Unknown.' };
-    if (l.some(x => !cosHas(p, k, x))) return { err: 'You have not unlocked that yet.' };
-    (p.cos ||= {})[k] = l; scheduleSave();
-    return { ok: true };
-  }
   i = Math.floor(+i);
   if (!WORN.includes(k) || !cosItem(k, i)) return { err: 'Unknown.' };
   if (!cosHas(p, k, i)) return { err: 'You have not unlocked that yet.' };
@@ -194,7 +190,24 @@ export function publicProfile(p) {
   return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games };
 }
 // What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
-export const flair = p => p ? flairOf(p) : {};
+export const flair = p => {
+  if (!p) return {};
+  const f = flairOf(p);
+  if (f.ip) { const have = decorHook(p.pid); f.ip = f.ip.filter(t => have.includes(t)); if (!f.ip.length) delete f.ip; }
+  return f;
+};
+// Isle decor comes from the player's Pet Farm: onDecor tells this file how to ask which decorations a farm has.
+let decorHook = () => [];
+export const onDecor = fn => { decorHook = fn; };
+export function isleDecor(p, types) {
+  if (!p?.user) return { err: 'Log in and start a Pet Farm to decorate your isle.' };
+  if (!Array.isArray(types)) return { err: 'Unknown.' };
+  const l = [...new Set(types.slice(0, 12).map(String))], have = decorHook(p.pid);
+  if (l.length > DECOR_SLOTS) return { err: `Your isle has room for ${DECOR_SLOTS} decorations.` };
+  if (l.some(t => !have.includes(t))) return { err: 'That decoration is not on your farm.' };
+  p.cos ||= {}; if (l.length) p.cos.ip = l; else delete p.cos.ip; scheduleSave();
+  return { ok: true };
+}
 // May this profile send reaction k? The first twelve are free, the rest come in sticker packs.
 export const mayReact = (p, k) => k < 12 || cosHas(p, 'sp', stickerPack(k));
 export const SHOP_SIZE = Object.keys(PRICE).length;

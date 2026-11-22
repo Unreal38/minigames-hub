@@ -1,7 +1,16 @@
 // Small pictures of the isle variants for the wardrobe tiles: a ground theme seen from above, a rock base from the
-// side, one decor prop on a patch of lawn, a sky behind a tiny isle. One hidden renderer, cached as data URLs.
+// side, one Pet Farm decoration on a patch of lawn, a sky behind a tiny isle. One hidden renderer, cached as data URLs.
 import * as THREE from 'three';
-import { buildIsle, buildSky, decorOnly } from './isle3d.js';
+import { buildIsle, buildSky } from './isle3d.js';
+import { itemModel, disposeModel, toonify } from './games/farm/models.js';
+
+// One Pet Farm decoration on a patch of lawn.
+function decorOnly(type) {
+  const root = new THREE.Group(), g = itemModel(type), sz = new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3());
+  g.scale.setScalar(Math.min(1.5, 1.7 / Math.max(sz.x, sz.z, .01), 1.9 / Math.max(sz.y, .01))); root.add(g);
+  const lawn = new THREE.Group(), m = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.05, .16, 14), new THREE.MeshStandardMaterial({ color: '#8bca60', roughness: .95, flatShading: true })); m.position.y = -.09; lawn.add(m); root.add(toonify(lawn, .03));
+  return { root, tick() {}, dispose() { disposeModel(g); m.geometry.dispose(); } };
+}
 
 const SIZE = 176, cache = new Map();
 let rd = null, dead = false;
@@ -9,7 +18,7 @@ const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(24, 1, .1, 80
 const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2), key = new THREE.DirectionalLight('#ffffff', 1.5);
 key.position.set(5, 12, 8); scene.add(hemi, key);
 
-// A data URL for entry i of isle kind k ('' if 3D is not available).
+// A data URL for entry i of isle kind k (for 'ip', i is a Pet Farm decoration type) ('' if 3D is not available).
 export function islePic(k, i) {
   const id = k + i; if (cache.has(id)) return cache.get(id);
   if (dead) return '';

@@ -12,7 +12,7 @@ const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
 const TA = 'a'.repeat(24), TB = 'b'.repeat(24);
 // Ana has coins and five Hot Pot wins (so the Pot Wizard title is earned); Bo has nothing.
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles: {
-  pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 3000, owned: [] },
+  pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 2920, owned: ['ip:1'] }, // bought a Tent while isle decor was sold: refunded on load
   pb: { pid: 'pb', user: 'bo', name: 'Bo', color: '#5b9bd5', av: null, xp: 0, games: 1, wins: 0, pts: 0, byGame: { hotpot: { games: 1, wins: 0, best: 0 } }, coins: 5, owned: [] } },
   sessions: { [TA]: { id: 'aaa', pid: 'pa', seen: Date.now() }, [TB]: { id: 'bbb', pid: 'pb', seen: Date.now() } }, rooms: [] }));
 srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10', FARM_TEST: '1' }, stdio: 'inherit' });
@@ -118,24 +118,33 @@ if (!b.err(/not around/)) fail('unknown profile tag was answered');
 a.send({ t: 'wear', k: 'pets', i: [two[0].id] }); await wait(200);
 b.send({ t: 'pets' }); await wait(150);
 if (b.msgs.find(m => m.t === 'pets')?.pets.length) fail('Bo has pets without a farm');
-// the profile isle: ground, rock base and sky are worn one at a time, decor is a list of up to three
-const IG = n => COS.ig.items.findIndex(x => x.n === n), IP = n => COS.ip.items.findIndex(x => x.n === n);
+// the profile isle: ground, rock base and sky are worn one at a time
+const IG = n => COS.ig.items.findIndex(x => x.n === n);
 a.msgs.length = 0; a.send({ t: 'wear', k: 'ig', i: IG('Candy') }); await wait(200);
 if (!a.err(/not unlocked/)) fail('wore an isle ground without buying it');
 const coins0 = a.me.coins; a.send({ t: 'buy', k: 'ig', i: IG('Candy') }); a.send({ t: 'buy', k: 'ib', i: 3 }); a.send({ t: 'buy', k: 'ik', i: 2 }); await wait(300);
 if (seen().ig !== IG('Candy') || seen().ib !== 3 || seen().ik !== 2 || a.me.coins !== coins0 - cosPrice('ig', IG('Candy')) - cosPrice('ib', 3) - cosPrice('ik', 2)) fail('isle variants were not bought and put on');
 a.msgs.length = 0; a.send({ t: 'buy', k: 'ig', i: IG('Snowy') }); a.send({ t: 'buy', k: 'ig', i: IG('Golden isle') }); a.send({ t: 'wear', k: 'ig', i: IG('Champion’s isle') }); await wait(250);
 if (!a.err(/Winter drop/) || !a.err(/not in the shop/) || !a.err(/not unlocked/) || seen().ig !== IG('Candy')) fail('a seasonal or earned isle got through');
-for (const n of ['Tent', 'Campfire', 'Swing', 'Mailbox']) a.send({ t: 'buy', k: 'ip', i: IP(n) }); await wait(300);
-if (JSON.stringify(seen().ip) !== JSON.stringify([IP('Tent'), IP('Campfire'), IP('Swing')])) fail('bought decor did not go out, three at most: ' + JSON.stringify(seen().ip));
-a.send({ t: 'wear', k: 'ip', i: [IP('Mailbox'), 0] }); await wait(200);
-if (JSON.stringify(seen().ip) !== JSON.stringify([IP('Mailbox'), 0])) fail('decor could not be swapped');
-a.msgs.length = 0; a.send({ t: 'wear', k: 'ip', i: [IP('Mini windmill')] }); a.send({ t: 'wear', k: 'ip', i: [0, 1, 2, 3] }); a.send({ t: 'wear', k: 'ip', i: 'x' }); await wait(200);
-if (JSON.stringify(seen().ip) !== JSON.stringify([IP('Mailbox'), 0])) fail('bad decor lists changed the isle');
-if (a.msgs.filter(m => m.t === 'err').length < 3) fail('unowned or too many decor props were accepted');
+// isle decor is not sold: it is up to three of the decorations standing on your own Pet Farm
+['bush', 'tree', 'cherry', 'rock'].forEach((type, n) => a.send({ t: 'farm', a: { t: 'place', type, x: n, y: 0, r: 0 } })); await wait(300);
+a.send({ t: 'pets' }); await wait(150);
+const decor = a.msgs.findLast(m => m.t === 'pets').decor.map(x => x.t);
+if (decor.join() !== 'bush,tree,cherry' && decor.length < 3) fail('the farm decorations were not offered for the isle: ' + decor);
+a.send({ t: 'wear', k: 'ip', i: ['bush', 'tree'] }); await wait(200);
+if (seen().ip?.join() !== 'bush,tree') fail('farm decorations did not go on the isle');
+a.msgs.length = 0; a.send({ t: 'wear', k: 'ip', i: ['windmill'] }); a.send({ t: 'wear', k: 'ip', i: ['bush', 'tree', 'cherry', 'house'] }); a.send({ t: 'wear', k: 'ip', i: 'x' }); a.send({ t: 'buy', k: 'ip', i: 1 }); await wait(250);
+if (seen().ip?.join() !== 'bush,tree' || a.msgs.filter(m => m.t === 'err').length < 4) fail('decor that is not on the farm got through');
+b.msgs.length = 0; b.send({ t: 'wear', k: 'ip', i: ['bush'] }); await wait(150);
+if (!b.msgs.some(m => m.t === 'err')) fail('Bo put out decor without a farm');
+a.send({ t: 'farm', a: { t: 'open' } }); await wait(200);
+const bushId = a.msgs.findLast(m => m.t === 'farm' && m.farm)?.farm.items.find(i => i.type === 'bush')?.id;
+a.send({ t: 'farm', a: { t: 'remove', id: bushId } }); await wait(150); a.send({ t: 'wear', k: 'fr', i: 0 }); await wait(200);
+if (seen().ip?.join() !== 'tree') fail('a decoration put away on the farm still stands on the isle: ' + seen().ip);
+if (a.me.owned.includes('ip:1')) fail('old bought isle decor was not refunded');
 b.msgs.length = 0; b.send({ t: 'player', pt: tag }); await wait(200);
 if (b.msgs.find(m => m.t === 'player')?.p.fl.ig !== IG('Candy')) fail('the profile card does not carry the isle look');
-if (flairOf({ cos: { ig: 9, ip: [1, 1, 2, 'x', 0] }, owned: ['ip:1'], xp: 0, byGame: {} }).ip?.join() !== '1,0' || flairOf({ cos: { ig: 9 }, xp: 19000, byGame: {} }).ig !== 9) fail('isle flair is not filtered to what is unlocked');
+if (flairOf({ cos: { ig: 9, ip: ['bush', 'bush', 3, 'a b', 'tree', 'rock', 'pond'] }, xp: 0, byGame: {} }).ip?.join() !== 'bush,tree,rock' || flairOf({ cos: { ig: 9 }, xp: 19000, byGame: {} }).ig !== 9) fail('isle flair is not filtered to what is unlocked');
 // a tampered profile shows nothing it has not unlocked
 if (Object.keys(flairOf({ cos: { nm: 3, ti: SHARK, fr: 99 }, owned: [], byGame: {} })).length) fail('flairOf let unowned cosmetics through');
 // everything survives a restart
