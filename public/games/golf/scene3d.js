@@ -84,29 +84,27 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
   const aimStrip = new THREE.Mesh(new THREE.BoxGeometry(.11, .02, 1), aimMat); aimStrip.renderOrder = 5; aimG.add(aimStrip);
   const aimTip = new THREE.Mesh(new THREE.ConeGeometry(.16, .3, 4), aimMat); aimTip.rotation.x = Math.PI / 2; aimTip.renderOrder = 5; aimG.add(aimTip);
   const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .75, depthTest: false });
-  // the preview: dots along the roll the ball will really take (worked out with the same physics as the server),
-  // up to its second bounce, and a ring where it will come to rest if it stops before that
-  const PRE_N = 64, preGeo = new THREE.CircleGeometry(.07, 10); preGeo.rotateX(-Math.PI / 2);
+  // the preview: dots along the first half of the roll the ball will really take (worked out with the same physics as
+  // the server), and never past its first bounce. Where it stops, and whether it drops, is for the player to judge.
+  const PRE_N = 48, PRE_PART = .5, preGeo = new THREE.CircleGeometry(.07, 10); preGeo.rotateX(-Math.PI / 2);
   const pre = new THREE.InstancedMesh(preGeo, dotMat, PRE_N); pre.renderOrder = 4; pre.frustumCulled = false; pre.visible = false; scene.add(pre);
-  const landMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .95, depthTest: false });
-  const land = new THREE.Mesh(new THREE.RingGeometry(BALL_R + .02, BALL_R + .1, 24), landMat); land.rotation.x = -Math.PI / 2; land.renderOrder = 5; land.visible = false; scene.add(land);
   const preM = new THREE.Matrix4(); let preKey = '', preAt = 0;
   function preview(x, z, ang, pow, t0) {
     const r = simulate(H, x, z, ang, pow, t0, 7), P = r.path, n = P.length / 2;
-    const b1 = r.fx.length ? r.fx[0][0] : n, cut = r.fx.length > 1 ? Math.min(n - 1, r.fx[1][0]) : n - 1; // path index of the first and second bounce
-    let k = 0, acc = .12, px = P[0] / 100, pz = P[1] / 100;
-    for (let i = 1; i <= cut && k < PRE_N; i++) {
+    const cut = r.fx.length ? Math.min(n - 1, r.fx[0][0]) : n - 1; // path index of the first bounce
+    let total = 0; for (let i = 1; i < n; i++) total += Math.hypot(P[i * 2] - P[i * 2 - 2], P[i * 2 + 1] - P[i * 2 - 1]) / 100;
+    const show = total * PRE_PART;
+    let k = 0, acc = .12, gone = 0, px = P[0] / 100, pz = P[1] / 100;
+    for (let i = 1; i <= cut && k < PRE_N && gone < show; i++) {
       const qx = P[i * 2] / 100, qz = P[i * 2 + 1] / 100, seg = Math.hypot(qx - px, qz - pz);
-      while (acc <= seg && k < PRE_N) {
-        const u = acc / seg, dx = px + (qx - px) * u, dz = pz + (qz - pz) * u, sc = i > b1 ? .62 : 1;
+      while (acc <= seg && k < PRE_N && gone + acc < show) {
+        const u = acc / seg, dx = px + (qx - px) * u, dz = pz + (qz - pz) * u, sc = 1 - .6 * (gone + acc) / show; // the dots shrink as the line runs out
         if (Math.hypot(dx - x, dz - z) > BALL_R + .12) { preM.makeScale(sc, 1, sc).setPosition(dx, hAt(dx, dz) + .035, dz); pre.setMatrixAt(k++, preM); }
         acc += .2;
       }
-      acc -= seg; px = qx; pz = qz;
+      acc -= seg; gone += seg; px = qx; pz = qz;
     }
     pre.count = k; pre.instanceMatrix.needsUpdate = true;
-    land.visible = cut === n - 1;
-    if (land.visible) { land.position.set(r.x, hAt(r.x, r.z) + .04, r.z); landMat.color.set(r.sunk ? '#ffd84a' : r.water ? '#4fb8ef' : '#ffffff'); land.userData.pop = r.sunk ? 1.25 : 1; }
   }
   const ring = new THREE.Mesh(new THREE.RingGeometry(BALL_R + .06, BALL_R + .12, 20), new THREE.MeshBasicMaterial({ color: '#fff4e2', transparent: true, opacity: .9, depthTest: false }));
   ring.rotation.x = -Math.PI / 2; ring.renderOrder = 3; ring.visible = false; scene.add(ring);
@@ -444,7 +442,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
     ring.visible = can && !aim.on;
     if (ring.visible) { ring.position.copy(mine.cur); ring.position.y -= BALL_R - .02; ring.scale.setScalar(1 + Math.sin(T * 5) * .12); }
     if (aim.on && !can) cancel();
-    aimG.visible = aim.on && can && aim.pow > .02; pre.visible = aimG.visible; if (!aimG.visible) land.visible = false;
+    aimG.visible = aim.on && can && aim.pow > .02; pre.visible = aimG.visible;
     if (aimG.visible) {
       const L = .3 + aim.pow * .9; // a short arrow whose length and colour show the power; the dots show where the ball goes
       aimG.position.copy(mine.cur); aimG.position.y += .04; aimG.rotation.y = -aim.ang + Math.PI;
@@ -453,7 +451,6 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       // the predicted roll; worked out again when the aim changes (and a few times a second, as windmills keep turning)
       const key = aim.ang.toFixed(3) + '/' + aim.pow.toFixed(3);
       if (key !== preKey || now - preAt > 180) { preKey = key; preAt = now; preview(mine.rest.x, mine.rest.z, aim.ang, aim.pow, ht + .12); }
-      if (land.visible) land.scale.setScalar((land.userData.pop || 1) * (1 + Math.sin(T * 6) * .08));
     }
     // camera: the whole hole from the tee end; a slow swing round it while everyone looks the hole over
     const tall = camera.aspect < .8, fv = camera.fov * Math.PI / 360;
@@ -489,7 +486,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       removeEventListener('keydown', key);
       if (holeG) disposeToon(holeG);
       for (const p of players) disposeAvatar(p.av);
-      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); preGeo.dispose(); pre.dispose(); land.geometry.dispose(); plain?.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
+      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); preGeo.dispose(); pre.dispose(); plain?.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
     },
   };
 }
