@@ -1663,7 +1663,8 @@ function openPlayer(p) {
       : p.rel === 'req' ? '<button type="button" class="btn big m" data-fr="accept">Accept friend request</button>'
       : p.rel === 'sent' ? '<button type="button" class="btn big w" disabled>Friend request sent</button>'
       : p.rel === 'friend' ? '<span class="chip pfriend">✓ Friends</span>'
-      : p.rel === 'guest' && !p.guest ? '<button type="button" class="btn big w" data-fr="account">Create an account to add friends</button>' : ''}</div>`);
+      : p.rel === 'guest' && !p.guest ? '<button type="button" class="btn big w" data-fr="account">Create an account to add friends</button>'
+      : p.rel === 'noacc' ? '<span class="pfnote">Guests can\'t be added as friends until they make an account.</span>' : ''}</div>`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
