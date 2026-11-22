@@ -101,7 +101,7 @@ function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
-    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
+    players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
@@ -159,6 +159,8 @@ function send(c, msg) { c?.sock?.send(msg); }
 // Coins changed (a game paid out, the shop, Pet Farm): refresh the balance on every screen of that player.
 const coinWait = new Map();
 store.onCoins(pid => { if (!coinWait.has(pid)) coinWait.set(pid, setTimeout(() => { coinWait.delete(pid); const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) send(c, { t: 'me', me: store.me(p) }); }, 250)); });
+// The Pet Farm pet a player has brought along, as others see it (no ids), or undefined.
+const palOf = p => { const x = p?.user && p.cos?.pet && farm.petOf(p.pid, p.cos.pet); return x ? { sp: x.sp, name: x.name, lv: x.lv, look: x.look } : undefined; };
 farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
 const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);
@@ -255,8 +257,11 @@ function handle(c, m) {
       if (r.cos) { send(c, { t: 'me', me: store.me(p) }); const room = rooms.get(c.room); if (room) sendRoom(room); }
       return;
     }
-    case 'wear': { // put on a name colour, frame, title or win effect
-      const p = store.profileOf(c.token), r = store.wear(p, String(m.k ?? ''), m.i);
+    case 'pets': { const p = store.profileOf(c.token); return send(c, { t: 'pets', pets: p?.user ? farm.petsOf(p.pid) : [] }); } // to pick a companion from
+    case 'wear': { // put on a name colour, frame, title or win effect, or bring a Pet Farm pet along
+      const p = store.profileOf(c.token), pal = m.k === 'pet';
+      if (pal && m.i && !farm.petOf(p?.pid, String(m.i))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
+      const r = pal ? store.companion(p, m.i ? String(m.i) : '') : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
       const room = rooms.get(c.room); if (room) sendRoom(room);

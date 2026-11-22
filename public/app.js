@@ -6,6 +6,7 @@ import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls } from './cosmetics.js';
 import { playWinFx } from './winfx.js';
+import { petImg, petPics } from './petpic.js';
 import { progress } from './ranks.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -434,6 +435,8 @@ function onMsg(m) {
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); // back after a dropped connection
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); }
+  } else if (m.t === 'pets') {
+    st.pets = m.pets || []; st.onMe?.();
   } else if (m.t === 'me') {
     st.me = m.me;
     let adopted = false;
@@ -490,6 +493,8 @@ function onMsg(m) {
     if (st.game) st.game.room(m.room); else go('lobby');
     watchPaint();
   } else if (m.t === 'state') {
+    // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
+    if (m.s?.seats && st.room) { const by = new Map(st.room.players.map(p => [p.id, p.fl])); for (const seat of m.s.seats) if (seat) seat.fl = (seat.id && by.get(seat.id)) || {}; }
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
@@ -1017,7 +1022,7 @@ function renderLobby() {
         </div>
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}" data-pid="${esc(p.id)}">
-          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}
+          ${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
           <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? 'Host' : 'Ready'}${p.id === st.id ? ' · you' : ''}${p.online ? '' : ' · reconnecting'}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>Seat ${i + 1} is open</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">Watching: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
@@ -1037,6 +1042,7 @@ function renderLobby() {
       <div class="howto"><b>How to win</b><br>${gm.howto} <a href="#" data-act="rules">Full rules</a></div>
     </aside>
   </main>`;
+  petPics();
 }
 
 // ---------- watching ----------
@@ -1329,13 +1335,21 @@ function openStyle() {
     for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
     const fl = Object.fromEntries(WORN.map(k => [k, worn(k)]));
     card.innerHTML = `${avatarHtml(st.color, st.av, 84, frameCls(fl))}<div><b>${nameHtml(st.name, fl)} ${meChip()}</b>${titleHtml(fl) || '<span class="ttl none">no title</span>'}<small>${fl.wn ? `Win effect: ${esc(cosItem('wn', fl.wn).n)}` : 'No win effect'}</small></div>`;
-    rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
+    rows.innerHTML = Object.entries(COS).map(([k, c]) => `<div class="crow"><b>${c.label}${k === 'sp' ? ' <small>Extra reactions for the chat row at any table.</small>' : k === 'wn' ? ' <small>Plays on everyone’s screen when you win. Tap one to see it.</small>' : c.where ? ` <small>${c.where}</small>` : ''}</b><div class="pills">${c.items.map((_, i) => pill(k, i)).join('')}</div></div>`).join('');
+    const pal = me().cos?.pet || '', pets = st.pets || [];
+    rows.insertAdjacentHTML('beforeend', `<div class="crow"><b>Lobby companion <small>One of your Pet Farm pets sits beside you in waiting rooms.</small></b><div class="pills palpills">${
+      !me().user ? '<small>Log in and start a Pet Farm to bring a pet along.</small>' : !pets.length ? '<small>Hatch a pet in Pet Farm and it can come along.</small>'
+      : `<button type="button" aria-pressed="${!pets.some(x => x.id === pal)}" data-pal="">None</button>` + pets.map(x => `<button type="button" aria-pressed="${x.id === pal}" data-pal="${esc(x.id)}">${petImg(x, 30, 'palpic')}${esc(x.name)} <small class="pr">lv ${x.lv | 0}</small></button>`).join('')}</div></div>`);
+    petPics(rows);
+    const myPal = pets.find(x => x.id === pal);
+    if (myPal) { card.insertAdjacentHTML('afterbegin', petImg(myPal, 64)); card.prepend(card.children[1]); petPics(card); }
     const want = Object.entries(pick);
     cart.innerHTML = want.length ? `<div class="cartlist"><b>Trying on</b>${want.map(([k, i]) => { const it = cosItem(k, i), short = it.p - coins();
       return `<span class="cartitem">${esc(it.n)} <small>${esc(COS[k].label.toLowerCase())}</small><button type="button" class="btn sm" data-buy="${k}:${i}" ${short > 0 ? 'disabled' : ''}>${short > 0 ? `Need ${short} more` : `Buy ${coinIco}${it.p}`}</button></span>`; }).join('')}</div>
       <small>You have ${coinIco}${coins()}. Only what you buy is shown to others.</small>` : '';
   };
   st.onMe = () => { if (open) paint(); };
+  if (me().user) send({ t: 'pets' });
   sheet.onClose = () => { open = false; st.onMe = null; if (st.view === 'hub' || st.view === 'lobby') go(st.view); };
   paint();
   el.addEventListener('click', e => {
@@ -1343,6 +1357,8 @@ function openStyle() {
     if (e.target.closest('[data-toshop]')) { close(); return openProfile(false, AV_TABS.length); }
     const by = e.target.closest('[data-buy]');
     if (by) { const [k, i] = by.dataset.buy.split(':'); by.disabled = true; send({ t: 'buy', k, i: +i }); return; }
+    const pl = e.target.closest('[data-pal]');
+    if (pl) { sfx.pop(); (st.me.cos ||= {}).pet = pl.dataset.pal; send({ t: 'wear', k: 'pet', i: pl.dataset.pal }); return paint(); }
     const b = e.target.closest('[data-k]'); if (!b) return;
     const k = b.dataset.k, i = +b.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });

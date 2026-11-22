@@ -12,7 +12,7 @@ const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
 const TA = 'a'.repeat(24), TB = 'b'.repeat(24);
 // Ana has coins and five Hot Pot wins (so the Pot Wizard title is earned); Bo has nothing.
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles: {
-  pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 1000, owned: [] },
+  pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 3000, owned: [] },
   pb: { pid: 'pb', user: 'bo', name: 'Bo', color: '#5b9bd5', av: null, xp: 0, games: 1, wins: 0, pts: 0, byGame: { hotpot: { games: 1, wins: 0, best: 0 } }, coins: 5, owned: [] } },
   sessions: { [TA]: { id: 'aaa', pid: 'pa', seen: Date.now() }, [TB]: { id: 'bbb', pid: 'pb', seen: Date.now() } }, rooms: [] }));
 srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10' }, stdio: 'inherit' });
@@ -39,7 +39,7 @@ const seen = () => b.room.players.find(p => p.name === 'Ana').fl;
 a.send({ t: 'wear', k: 'nm', i: NM }); await wait(200);
 if (!a.err(/not unlocked/) || seen().nm) fail('wore a name colour without buying it');
 a.send({ t: 'buy', k: 'nm', i: NM }); await wait(300);
-if (a.me.coins !== 1000 - cosPrice('nm', NM) || a.me.cos.nm !== NM || seen().nm !== NM) fail('buying a name colour did not put it on for others');
+if (a.me.coins !== 3000 - cosPrice('nm', NM) || a.me.cos.nm !== NM || seen().nm !== NM) fail('buying a name colour did not put it on for others');
 a.send({ t: 'buy', k: 'fr', i: FR }); await wait(300);
 if (seen().fr !== FR) fail('frame not shown to others');
 a.send({ t: 'buy', k: 'nm', i: FROST }); await wait(200);
@@ -71,13 +71,32 @@ a.send({ t: 'buy', k: 'sp', i: PARTY }); await wait(300);
 a.send({ t: 'react', k: STICKER_BASE }); await wait(300);
 if (!b.msgs.some(m => m.t === 'react' && m.k === STICKER_BASE)) fail('a bought sticker was not sent');
 a.send({ t: 'react', k: 3 }); await wait(900);
+// table themes ride along the same way: card backs, dice, golf balls and kart paint
+for (const k of ['cb', 'dc', 'gb', 'kp']) {
+  a.send({ t: 'wear', k, i: 2 }); await wait(150);
+  if (seen()[k]) fail('wore a table theme without buying it: ' + k);
+  a.send({ t: 'buy', k, i: 2 }); await wait(200);
+  if (seen()[k] !== 2 || !a.me.owned.includes(k + ':2')) fail('table theme not bought and shown: ' + k);
+}
+// a Pet Farm pet can come along to the waiting room; only your own pets, and others never see its id
+a.send({ t: 'farm', a: { t: 'starter', sp: 'mossbun' } }); await wait(200);
+a.send({ t: 'pets' }); await wait(200);
+const pets = a.msgs.find(m => m.t === 'pets')?.pets || [];
+if (pets.length !== 1 || pets[0].sp !== 'mossbun') fail('no pets to pick a companion from');
+a.msgs.length = 0; a.send({ t: 'wear', k: 'pet', i: 'nope' }); await wait(200);
+if (!a.err(/not on your farm/) || b.room.players.find(p => p.name === 'Ana').pet) fail('brought a pet that is not theirs');
+a.send({ t: 'wear', k: 'pet', i: pets[0].id }); await wait(200);
+const pal = b.room.players.find(p => p.name === 'Ana').pet;
+if (pal?.sp !== 'mossbun' || pal.id || a.me.cos.pet !== pets[0].id) fail('companion not shown at the table');
+b.send({ t: 'pets' }); await wait(150);
+if (b.msgs.find(m => m.t === 'pets')?.pets.length) fail('Bo has pets without a farm');
 // a tampered profile shows nothing it has not unlocked
 if (Object.keys(flairOf({ cos: { nm: 3, ti: SHARK, fr: 99 }, owned: [], byGame: {} })).length) fail('flairOf let unowned cosmetics through');
 // everything survives a restart
 const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done;
 srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700);
 const c = player(TA, 'Ana'); await c.connect(); await wait(300);
-if (c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
+if (c.me.cos.pet !== pets[0].id || c.me.cos.kp !== 2 || c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
 srv.kill();
-console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, flair at the table, in chat and in rankings');
+console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, pet companion, flair at the table, in chat and in rankings');
 process.exit(0);

@@ -801,3 +801,11 @@ body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:n
 body.sky.night:not(.in-game) .creator .cart { box-shadow: 0 -8px 0 var(--pan); }
 @media (max-width: 600px) { .top .me.stylebtn, .top .me.coinbtn { margin-right: 0; padding: 0 10px; } .top .me[data-act=profile] { padding-right: 10px; gap: 6px; max-width: 46vw; overflow: hidden; } }
 .rk .who > span { flex-wrap: wrap; }
+
+/* Pet Farm companion beside the player in a waiting room, and its picker in Your style */
+.petpal { flex: none; margin-left: -22px; align-self: flex-end; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .18)); animation: palhop 2.6s ease-in-out infinite; pointer-events: auto; }
+.petpal:not([src]), .palpic:not([src]) { visibility: hidden; }
+.stylecard .petpal { margin-left: -26px; }
+.palpills button { display: inline-flex; align-items: center; gap: 6px; } .palpic { margin: -6px 0 -6px -6px; }
+@keyframes palhop { 0%, 78%, 100% { transform: translateY(0); } 86% { transform: translateY(-7px); } 93% { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .petpal { animation: none; } }
