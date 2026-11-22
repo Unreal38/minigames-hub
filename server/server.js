@@ -27,6 +27,7 @@ import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
 import * as farm from './farm.js';
+import * as hay from './hay.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
 
@@ -280,7 +281,7 @@ function handle(c, m) {
     case 'rankings': { // the hub's global leaderboards, one per minigame
       const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
       if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
-      if (g !== 'overall' && !isGame(g)) return;
+      if (g !== 'overall' && g !== 'hay' && !isGame(g)) return;
       return send(c, { t: 'rankings', ...store.leaderboard(g, pid) });
     }
     case 'create': {
@@ -392,6 +393,14 @@ function handle(c, m) {
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'friended', op: m.op, user: tagged ? r.other.name : r.other.user, now: r.now });
       sendFriends(p); sendFriends(r.other, m.op === 'add' || m.op === 'accept' ? { from: p.name, now: r.now } : null);
+      return;
+    }
+    case 'hay': { // Hay Hunch: the solo puzzle, kept on the profile like Pet Farm (no table)
+      if (!allow('hay:' + c.token, 120, 10_000)) return send(c, { t: 'hay', err: 'Slow down a little.' });
+      const p = store.profileOf(c.token), r = hay.handle(p, m.a);
+      const msg = { t: 'hay', ...r };
+      for (const o of p?.user ? clientsOf(p.pid) : [c]) send(o, msg); // the same field on every screen of this account
+      if (r.s?.over === 'clear' && m.a?.t === 'flip') for (const o of clientsOf(p.pid)) send(o, { t: 'me', me: store.me(p) });
       return;
     }
     case 'farm': { // Pet Farm: a persistent game with no table, so it is handled outside the rooms
