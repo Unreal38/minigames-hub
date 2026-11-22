@@ -435,7 +435,7 @@ function onMsg(m) {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); // back after a dropped connection
-    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); }
+    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
     st.pets = m.pets || []; st.onMe?.();
   } else if (m.t === 'me') {
@@ -458,6 +458,7 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`${m.me.icon} Level ${m.me.level}: ${esc(m.me.rank)}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else paintMe(); } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me();
+    if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
@@ -469,6 +470,8 @@ function onMsg(m) {
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`); }
+  } else if (m.t === 'daily') {
+    st.dailyInfo = m; st.daily?.msg(m); paintDailyCard();
   } else if (m.t === 'rankings') {
     st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
   } else if (m.t === 'hubchat') {
@@ -559,6 +562,35 @@ function openFarm() {
   }).catch(err => { console.error(err); farmLoading = null; toast('Could not load Pet Farm. Refresh?', true); go('hub'); });
 }
 function closeFarm() { st.farm?.destroy(); st.farm = null; }
+
+// Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
+function dailyCard() {
+  const d = st.dailyInfo, pill = (b, t) => `<span class="dcpill"><b>${b}</b> ${t}</span>`;
+  const state = !d ? '' : d.guest ? pill('🔒', 'needs an account') : d.done ? pill('✓', `solved in ${d.guesses.length}`) + pill('🔥 ' + d.streak, d.streak === 1 ? 'day in a row' : 'days in a row')
+    : (d.guesses.length ? pill(d.guesses.length, d.guesses.length === 1 ? 'guess so far' : 'guesses so far') : pill('New', 'not tried yet')) + pill('🔥 ' + d.streak, d.streak === 1 ? 'day in a row' : 'days in a row');
+  return `<div class="dailycard${d?.done ? ' done' : ''}">
+    <div class="dcart" aria-hidden="true"><svg viewBox="0 0 120 120" width="96" height="96"><ellipse cx="60" cy="104" rx="34" ry="7" fill="#0003"/><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg></div>
+    <div class="dcbody"><h3>Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}</h3>
+      <p>One Pet Farm pet hides here every day, the same for everybody. Guess it from the clues: fewer guesses pay more coins.</p>
+      <div class="dcstate">${state}${d ? pill(d.board.total, d.board.total === 1 ? 'player solved it today' : 'players solved it today') : ''}</div></div>
+    <button type="button" class="btn ${d?.done ? 'w' : ''}" data-act="daily">${d?.done ? 'See my result' : d?.guesses?.length ? 'Keep guessing' : 'Guess today’s pet'}</button>
+  </div>`;
+}
+function paintDailyCard() { const el = document.getElementById('daily-card'); if (el) el.innerHTML = dailyCard(); }
+function openDaily() {
+  if (st.daily) return;
+  const sheet = modal('<div class="mpbox"><p class="mpload">Looking for today’s pet…</p></div>');
+  sheet.el.querySelector('.sheet').classList.add('wide', 'mpsheet');
+  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', '<button type="button" class="mpclose" aria-label="Close">×</button>');
+  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
+  let open = true;
+  sheet.onClose = () => { open = false; st.daily?.destroy(); st.daily = null; };
+  st.daily = { msg() {}, destroy() {} }; // holds the place while the pictures' code loads
+  import('./daily.js').then(mod => {
+    if (!open) return;
+    st.daily = mod.mount(sheet.el.querySelector('.mpbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close() });
+  }).catch(err => { console.error(err); sheet.close(); toast('Could not load Mystery Pet. Refresh?', true); });
+}
 
 // ---------- views ----------
 function go(view) {
@@ -677,6 +709,10 @@ function renderHub() {
       <div class="art">${tableArt()}</div>
     </section>
     <div class="hubmid">
+    <section id="daily" style="margin-bottom:44px">
+      <h2>Today's puzzle</h2>
+      <div id="daily-card">${dailyCard()}</div>
+    </section>
     <section id="progress" style="margin-bottom:44px">
       <h2>Your progress</h2>
       <div id="me-card">${meCard()}</div>
@@ -860,6 +896,7 @@ function renderHub() {
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   send({ t: 'hubchat' }); hubScrollEnd();
+  send({ t: 'daily' });
   if (!st.name) openProfile(true);
 }
 
@@ -912,13 +949,15 @@ const hcTime = at => {
   return today ? t : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${t}`;
 };
 const hcSame = (a, b) => a && b && a.user === b.user && b.at - a.at < 3 * 60_000;
+// A shared Mystery Pet result: one row of squares per guess. Only the letters g, y and r ever become markup.
+const gridHtml = g => `<pre class="mpgrid" aria-label="Their clues, without spoilers">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyr'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">and ${g.length - 10} more</small>` : ''}`;
 function hubLine(m, prev) {
   const cont = hcSame(prev, m);
   return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}">
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
       ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
-      <p>${esc(m.text)}</p>
+      <p>${esc(m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
     </div>
     ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="Remove this message" title="Remove">×</button>` : ''}
   </div>`;
@@ -1536,6 +1575,7 @@ $app.addEventListener('click', e => {
   else if (act === 'theme') { switchTheme(b); sfx.click(); }
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
+  else if (act === 'daily') { if (!st.name) return openProfile(true); openDaily(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });
