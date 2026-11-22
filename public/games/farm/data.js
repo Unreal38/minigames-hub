@@ -154,6 +154,11 @@ export const SPECIES = {
   nimbowhale: { name: 'Nimbowhale', el: 'Tide', el2: 'Spark', rare: 3, blurb: 'A tiny whale that carries its own rain cloud.', hint: 'Hatches where rain meets lightning.' },
   glimmoth:   { name: 'Glimmoth', el: 'Spark', el2: 'Leaf', rare: 3, blurb: 'A moth whose wings glow after dark.', hint: 'Hatches where a spark lands on a leaf.' },
   geodeer:    { name: 'Geodeer', el: 'Stone', el2: 'Tide', rare: 3, blurb: 'A fawn with antlers of clear crystal.', hint: 'Hatches where water wears the stone.' },
+  maplander:  { name: 'Maplander', el: 'Leaf', el2: 'Ember', rare: 3, blurb: 'A salamander whose tail is an autumn leaf that never stops glowing.', hint: 'Hatches where embers fall on dry leaves.' },
+  koalith:    { name: 'Koalith', el: 'Stone', el2: 'Leaf', rare: 3, blurb: 'A stone-grey koala with moss in its ears. It naps like a rock.', hint: 'Hatches where moss covers the stone.' },
+  kettlephant: { name: 'Kettlephant', el: 'Tide', el2: 'Ember', rare: 3, blurb: 'A little elephant that whistles steam when it is happy.', hint: 'Hatches where fire brings water to the boil.' },
+  bangaroo:   { name: 'Bangaroo', el: 'Ember', el2: 'Spark', rare: 3, blurb: 'A joey that keeps a firework in its pouch for special days.', hint: 'Hatches where a spark meets a flame.' },
+  magnebug:   { name: 'Magnebug', el: 'Spark', el2: 'Stone', rare: 3, blurb: 'A beetle with a magnet for a horn. Pebbles follow it around.', hint: 'Hatches where lightning strikes the rock.' },
 };
 // Animal families: species that are the same kind of animal. The album shows them together and breeding will treat them as kin.
 export const FAMILIES = {

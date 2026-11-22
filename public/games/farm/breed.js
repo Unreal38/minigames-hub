@@ -17,6 +17,7 @@ export const COAT = {
   munchmew: ['#f3c98a', '#fff3df'], glazemew: ['#f0b878', '#fff3df'],
   rocktopus: ['#b08ad0', '#e6d4f5'], driftle: ['#8fd0c0', '#f0ead0'], zapuff: ['#ffe27a', '#fffaf0'], ottershell: ['#9a6a4a', '#f0dcc0'], cinnapanda: ['#c8683f', '#fff3df'], yuzubara: ['#b98a5e', '#d9b48a'], snoozloth: ['#a89880', '#f0e6d2'], glidenut: ['#b5a08a', '#fff3df'],
   pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
+  maplander: ['#a8c860', '#fff0c0'], koalith: ['#b0aeb8', '#e6e2dc'], kettlephant: ['#8fb8d8', '#e6f2fa'], bangaroo: ['#d39a66', '#fff0d8'], magnebug: ['#6f6a88', '#c9c4d8'],
 };
 // Coat colour genes. A pet carries two; the one earlier in this list is the one that shows.
 export const COATS = [{ name: 'Natural' }, { name: 'Rose', c: '#f7b7d0' }, { name: 'Sky', c: '#a8d4f5' }, { name: 'Mint', c: '#a9e3bd' }, { name: 'Lilac', c: '#c9b5f0' }, { name: 'Cocoa', c: '#8a6a5a' }];
@@ -29,7 +30,7 @@ export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a
   gingersnap: 'a striped tail', patchkit: 'a daisy', tuxpurr: 'a top hat', fluffcoon: 'a bushy tail',
   munchmew: 'a ribbon bow', glazemew: 'pink icing',
   rocktopus: 'a pebble stack', driftle: 'a starfish', zapuff: 'puffer spikes', ottershell: 'a paddle tail', cinnapanda: 'a ringed tail', yuzubara: 'a yuzu', snoozloth: 'a nightcap', glidenut: 'glider flaps',
-  cragcrab: 'a boulder shell', dustmole: 'a hard hat', geodeer: 'crystal antlers',
+  cragcrab: 'a boulder shell', dustmole: 'a hard hat', geodeer: 'crystal antlers', maplander: 'a maple leaf tail', koalith: 'a eucalyptus sprig', kettlephant: 'a kettle lid', bangaroo: 'a firework rocket', magnebug: 'a magnet horn',
   acornip: 'an acorn cap', lanternail: 'a lantern shell', ripplet: 'a wave curl', wattbat: 'bolt ears', rubblet: 'a gem crown',
   bambear: 'a bamboo shoot', sizzlet: 'dragon wings', waddlet: 'a seashell hat', oinkwatt: 'a curly spark tail', tricerock: 'a stone frill',
   strawbun: 'a strawberry top', chilipup: 'a chili stem', melonwhale: 'a melon slice', lemonzest: 'a peel curl', coconutkin: 'a palm sprout', pinepine: 'a pineapple crown', croissab: 'a croissant', donuseal: 'a little donut', cupcowl: 'a frosting swirl', pretzelisk: 'a pretzel bow', mallowlamb: 'a toasted marshmallow', candraffe: 'candy cane horns', jellifrog: 'a wobbly jelly', carrofox: 'a carrot tail', pumpkit: 'a pumpkin stem', peapillar: 'a pea pod', shroomouse: 'a spotted cap', snowfox: 'a snowy tail', sunlion: 'a crown of sun rays', dripfrog: 'a leaf umbrella', twistret: 'a little whirlwind', moonbun: 'a slice of moon', starjelly: 'a lucky star', cometail: 'a comet tail', ringbear: 'a planet ring' };
@@ -49,7 +50,8 @@ export const TALENTS = [
 ];
 export const STAR_NAME = ['Health', 'Attack', 'Defence', 'Speed'];
 // Two parents of these elements can have the breeding-only species. The game never shows this table.
-const RECIPE = { 'Leaf+Tide': 'truffowl', 'Ember+Stone': 'magmutt', 'Spark+Tide': 'nimbowhale', 'Leaf+Spark': 'glimmoth', 'Stone+Tide': 'geodeer' };
+const RECIPE = { 'Leaf+Tide': 'truffowl', 'Ember+Stone': 'magmutt', 'Spark+Tide': 'nimbowhale', 'Leaf+Spark': 'glimmoth', 'Stone+Tide': 'geodeer',
+  'Ember+Leaf': 'maplander', 'Leaf+Stone': 'koalith', 'Ember+Tide': 'kettlephant', 'Ember+Spark': 'bangaroo', 'Spark+Stone': 'magnebug' };
 export const HYBRID_CHANCE = .2, VARIANT_CHANCE = .15, VARIANT_KEEP = .5, BREED_LV = 5, CUDDLE_H = 2, REST_H = 6, HATCH_H = [4, 6, 8, 12];
 
 const hex = n => n.toString(16).padStart(2, '0');
