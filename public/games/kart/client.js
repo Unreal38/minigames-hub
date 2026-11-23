@@ -7,7 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTrack, newKart, stepKart, bump, autoDrive, locate, progOf, TRACKS } from './track.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -294,7 +294,7 @@ export function mount(app, ctx) {
       <h2>${I.flag}${w === S.me ? L('You win the race!', 'Wygrywasz wyścig!') : L(`${nameOf(w)} wins the race!`, `Wyścig wygrywa ${nameOf(w)}!`)}</h2>
       <p>${esc(TRACKS[S.track]?.name)} · ${cnt(S.laps, 'lap', 'laps', 'okrążenie', 'okrążenia', 'okrążeń')}</p>
       <ol class="kr-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'kr-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+        return `<li class="${i === S.me ? 'kr-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
           <strong>${R.times[i] ? clock(R.times[i]) : L('did not finish', 'bez mety')}</strong><small>${R.best[i] ? L('best lap ', 'najlepsze okrążenie ') + clock(R.best[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Race again', 'Ścigaj się jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;

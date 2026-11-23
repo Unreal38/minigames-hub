@@ -7,7 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTower, newClimber, stepClimber, stormY, newRun, land, expire, streakPts, cheer, zoneOf, zoneName, floorAt, PACES, FLOOR_H, STREAK_MS, SPRING } from './tower.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -267,7 +267,7 @@ export function mount(app, ctx) {
       <h2>${I.leaf}${L(`${w === S.me ? 'You climbed' : `${nameOf(w)} climbed`} the highest!`, `${w === S.me ? 'Jesteś najwyżej!' : `Najwyżej jest ${nameOf(w)}!`}`)}</h2>
       ${L(`<p>Floor ${R.floor[w]} · `, `<p>Piętro ${R.floor[w]} · `)}${esc(zoneName(zoneOf(R.floor[w])))}</p>
       <ol class="bb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
           ${L(`<strong>${R.score[i]} pts</strong><small>floor ${R.floor[i]}${R.bonus[i] ? ` · streaks +${R.bonus[i]}` : ''}</small>`, `<strong>${R.score[i]} pkt</strong><small>piętro ${R.floor[i]}${R.bonus[i] ? ` · serie +${R.bonus[i]}` : ''}</small>`)}${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Climb again', 'Wspinaj się jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;

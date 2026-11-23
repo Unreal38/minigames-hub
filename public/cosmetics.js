@@ -119,5 +119,8 @@ export const titleHtml = fl => { const t = titleOf(fl); return t ? `<span class=
 // The class to give avatarHtml() so the picture gets the player's frame.
 // The picture behind a player's card. Put cardBgCls(fl) on the card and cardBg(fl) inside it as the first child.
 export const cardBg = fl => { const i = idx(fl, 'pb'); return i ? `<i class="pbg pb${i}" aria-hidden="true"></i>` : ''; };
-export const cardBgCls = fl => { const i = idx(fl, 'pb'); return i ? ` haspb${COS.pb.items[i].d ? ' pbd' : ''}` : ''; };
+// light = 1 in game panels that keep their own text colours: the art is only washed in the panel's colour, never flips the text.
+export const cardBgCls = (fl, light) => { const i = idx(fl, 'pb'); return i ? ` haspb${COS.pb.items[i].d && !light ? ' pbd' : ''}` : ''; };
+// Card art redrawn by a re-render would restart its animation; this starts new pictures in step with the page clock.
+export const pbSync = el => { if (!el) return; const t = `${(-performance.now() / 1000).toFixed(2)}s`; for (const b of el.querySelectorAll('.pbg:not([style])')) b.style.setProperty('--pbt', t); };
 export const frameCls = fl => { const i = idx(fl, 'fr'); return i ? `frm fr${i}` : ''; };

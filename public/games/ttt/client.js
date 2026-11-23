@@ -5,7 +5,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { place } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -180,7 +180,7 @@ export function mount(app, ctx) {
       <p>${sub}</p>
       <ol class="score">${order.map((i, k) => {
         const p = S.seats[i], pos = R.tie ? 1 : k + 1;
-        return `<li class="${!R.tie && k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${!R.tie && k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${markSvg(i, p.color)}${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${cnt(p.st.placed, 'mark', 'marks')} placed`, `postawione znaki: ${p.st.placed}`)}</span></div>
           <strong><span>${R.wins[i]}</span><small>${L(R.wins[i] === 1 ? 'round won' : 'rounds won', 'wygrane rundy')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

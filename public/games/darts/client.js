@@ -6,7 +6,7 @@ import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { R, DARTS, MS, HAND, score, outText, checkout } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -239,7 +239,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st, avg = st.darts ? (st.scored / st.darts * 3).toFixed(1) : '0';
         const main = S.legsTo > 1 ? `${p.legs}<small>${word(p.legs, 'leg', 'legs', 'leg', 'legi', 'legów')}</small>` : p.rem === 0 ? L('Out!<small>finished</small>', 'Koniec!<small>zakończone</small>') : `${p.rem}<small>${L('left', 'zostało')}</small>`;
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`avg ${avg} · best turn ${st.best}${st.t180 ? ` · ${st.t180}× 180` : ''} · ${st.busts} bust${st.busts === 1 ? '' : 's'}`, `średnia ${avg} · najlepsza kolejka ${st.best}${st.t180 ? ` · ${st.t180}× 180` : ''} · fury: ${st.busts}`)}</span></div>
           <strong>${main}</strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

@@ -156,5 +156,13 @@ body.in-game #chat { right: 14px; bottom: 14px; }
 
 /* night: bright stickers (lantern, mint, light tickets) keep dark text */
 body.night .dotty i,
-body.night .grp.gold .gtag,
-body.night .score li.won { color: var(--ink); }
+body.night .grp.gold .gtag { color: var(--ink); }
+
+/* night: the winner's row is a warm gold-tinted card with light text, not the day cream */
+body.night .hp .score li.won { background: color-mix(in srgb, var(--lantern) 32%, var(--card)); color: var(--on-paper); --on-paper: #f5f2ff; --soft-tx: #e6dcc0; --soft-tx2: #e6dcc0; --body-tx: #f5f2ff; }
+/* each opponent's profile card picture behind their seat panel (washed in the panel's plum so the text stays readable) */
+.hp .opp.haspb { position: absolute; --pbs: var(--plum2); --pbr: 17px; }
+.hp .opp.active.haspb { --pbs: #55293f; }
+@media (max-width: 760px) { .hp .opp.haspb { --pbr: 13px; } }
+.hp .opp.haspb .pbg::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 86%, transparent) 0 30%, color-mix(in srgb, var(--pbs) 58%, transparent) 70%, color-mix(in srgb, var(--pbs) 30%, transparent)); }
+.hp .opp.haspb .slot { background: color-mix(in srgb, var(--pbs) 75%, transparent); }

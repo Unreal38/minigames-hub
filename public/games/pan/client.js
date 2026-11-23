@@ -9,7 +9,7 @@ import { reactHtml } from '../../react.js';
 import { cardHtml } from '../poker/cards.js';
 import { RANK_NAMES } from '../poker/rules.js';
 import { rankOf, canPlay, drawCount, plays, top, NINE_H } from './rules.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -226,7 +226,7 @@ export function mount(app, ctx) {
       <p>${sub} ${L(`${S.res.moves} moves in all.`, `Łącznie ruchów: ${S.res.moves}.`)}</p>
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, pan = i === S.pan;
-        return `<li class="${k === 0 ? 'won' : ''}${pan ? ' pan' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${k === 0 ? 'won' : ''}${pan ? ' pan' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.played} card${st.played === 1 ? '' : 's'} played · ${st.drawn} picked up`, `położone karty: ${st.played} · wzięte: ${st.drawn}`)}</span></div>
           <strong><span>${pan ? 'Pan' : p.out ? L('Safe', 'Bezpiecznie') : ''}</span><small>${S.res.left[i] ? L(`${S.res.left[i]} card${S.res.left[i] === 1 ? '' : 's'} left`, `zostało kart: ${S.res.left[i]}`) : L('out of cards', 'bez kart')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
