@@ -278,7 +278,8 @@ function doAct(G, s, a, now = Date.now()) {
     const amt = Math.min(toCall, x.stack);
     x.stack -= amt; x.bet += amt; x.in += amt;
     if (!x.stack) x.allin = true;
-    x.last = x.allin ? 'All in' : `Call ${amt}`; ev = { a: x.allin ? 'allin' : 'call', amt };
+    // the bubble names the level matched, so a small blind completing reads "Call 20", not "Call 10"
+    x.last = x.allin ? 'All in' : `Call ${x.bet}`; ev = { a: x.allin ? 'allin' : 'call', amt };
   } else if (kind === 'raise') {
     const max = x.bet + x.stack;
     let to = a.t === 'allin' ? max : Math.floor(+a.to);

@@ -128,7 +128,10 @@ export function mount(app, ctx) {
       el.classList.toggle('out', !!p.out);
       el.classList.toggle('won', !!res && res.pots.some(pt => pt.win.includes(i)) && S.stage === 'show');
       el.classList.toggle('hide', i === S.me);
-      const badge = i === S.dealer ? '<i class="dl" title="' + L('Dealer', 'Rozdający') + '">D</i>' : '';
+      const pre = S.stage === 'pre' || S.stage === 'drop';
+      const badge = (i === S.dealer ? '<i class="dl" title="' + L('Dealer', 'Rozdający') + '">D</i>' : '')
+        + (pre && i === S.sbI && S.sbI !== S.bbI ? `<i class="dl bl" title="${L(`Small blind ${S.sb}`, `Mała ciemna ${S.sb}`)}">SB</i>` : '')
+        + (pre && i === S.bbI ? `<i class="dl bl" title="${L(`Big blind ${S.bb}`, `Duża ciemna ${S.bb}`)}">BB</i>` : '');
       setHtml(el.querySelector('.tx b'), `${nameHtml(p.name, p.fl)}${p.bot && p.human ? ' <small>' + L('(away)', '(poza grą)') + '</small>' : ''}${badge}`);
       setHtml(el.querySelector('.stk'), p.out ? L('Out', 'Odpada') : `${I.chip}${p.stack}`);
       const bub = el.querySelector('.bub');
@@ -180,7 +183,7 @@ export function mount(app, ctx) {
       <button type="button" class="round sm" data-a="more" aria-label="${L(`More`, `Więcej`)}">+</button></div></div>` : '';
     setHtml(el, `${sizer}<div class="row1">
       <button type="button" class="btn big w" data-a="fold" ${call <= 0 ? `title="${L('Checking is free', 'Czekanie nic nie kosztuje')}"` : ''}>${L('Fold', 'Pas')}</button>
-      <button type="button" class="btn big m" data-a="call">${call <= 0 ? L('Check', 'Czekaj') : call >= my.stack ? `All in ${call}` : `${L('Call', 'Sprawdź')} ${call}`}</button>
+      <button type="button" class="btn big m" data-a="call">${call <= 0 ? L('Check', 'Czekaj') : call >= my.stack ? `All in ${call}` : `${L('Call', 'Sprawdź')} ${call}${my.bet > 0 ? ` <small>${L(`(to ${S.cur})`, `(do ${S.cur})`)}</small>` : ''}`}</button>
       ${o.canRaise ? `<button type="button" class="btn big${raising ? ' r' : ''}" data-a="raise" aria-expanded="${raising}">${raising ? `${raiseTo >= o.maxTo ? 'All in' : verb} ${raiseTo}` : opening ? L('Bet…', 'Postaw…') : L('Raise…', 'Podbij…')}</button>` : ''}
       </div>`);
     const sl = el.querySelector('input[type=range]'); if (sl && +sl.value !== raiseTo) sl.value = raiseTo;
