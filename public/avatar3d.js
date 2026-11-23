@@ -83,10 +83,29 @@ const lathe = (p, pts, c, ph0 = -PI, len = PI * 2, seg = SEG, zk) => put(p, G('l
 const part = (p, pts, c, mid, half, zk) => lathe(p, pts, c, mid - half, half * 2, Math.max(2, Math.round(SEG * half / PI)), zk);
 
 const grad = (() => { const t = new THREE.DataTexture(new Uint8Array([150, 150, 150, 255, 215, 215, 215, 255, 255, 255, 255, 255]), 3, 1, THREE.RGBAFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
-const OUTLINE = .022;
-const lineMat = new THREE.MeshBasicMaterial({ color: '#3a2630', side: THREE.BackSide });
-lineMat.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normalize(normal) * ${OUTLINE};`); };
-lineMat.customProgramCacheKey = () => 'avatar-outline';
+// The ink outline is an inverted hull: a copy of each piece pushed out along its smoothed normals, drawn inside out.
+// Big pieces (body, head, sleeves, hats) get the full OUTLINE; small ones get a line in proportion to their size
+// (about a sixth of the mean of their two thinnest sides, never under INK_MIN) so a bead or a pin is not swallowed by a dark ring
+// twice its size. Small pieces are also inked in a dark shade of their own colour rather than near-black, so pearls
+// stay pearly and a tiny medal does not turn into a brown smudge.
+const OUTLINE = .022, INK_MIN = .0035, INK = new THREE.Color('#3a2630');
+const lineMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
+const _bx = new THREE.Vector3(), _sx = new THREE.Vector3(), _lc = new THREE.Color();
+const inkOf = ch => {
+  const gb = ch.geometry; if (!gb.boundingBox) gb.computeBoundingBox();
+  gb.boundingBox.getSize(_bx); _m.multiplyMatrices(_i, ch.matrixWorld); _sx.setFromMatrixScale(_m);
+  const [a, b] = [_bx.x * _sx.x, _bx.y * _sx.y, _bx.z * _sx.z].sort((a, b) => a - b), d = Math.sqrt(a * b); // flat things (a coin, a tag) count as small
+  const w = Math.min(OUTLINE, Math.max(INK_MIN, d * .16)), small = Math.min(1, Math.max(0, (.09 - d) / .05));
+  return { w, col: _lc.copy(INK).lerp(new THREE.Color(ch.userData.c).multiplyScalar(.45), small * .8).clone() };
+};
+// Push one piece's vertices out along normals averaged over vertices that share a spot, so the hull of a box or a
+// flat-shaded lathe closes at its corners instead of splitting into loose flaps.
+const hullOf = (p, nn, w, out, at) => {
+  const sum = new Map(), key = i => (Math.round(p[i] * 2000) + 8192) + (Math.round(p[i + 1] * 2000) + 8192) * 16384 + (Math.round(p[i + 2] * 2000) + 8192) * 268435456, keys = [];
+  for (let i = 0; i < p.length; i += 3) { const k = key(i); keys.push(k); let v = sum.get(k); if (!v) sum.set(k, v = [0, 0, 0]); v[0] += nn[i]; v[1] += nn[i + 1]; v[2] += nn[i + 2]; }
+  for (let i = 0, j = 0; i < p.length; i += 3, j++) { const v = sum.get(keys[j]), l = Math.hypot(v[0], v[1], v[2]) || 1;
+    out[at + i] = p[i] + v[0] / l * w; out[at + i + 1] = p[i + 1] + v[1] / l * w; out[at + i + 2] = p[i + 2] + v[2] / l * w; }
+};
 
 // Merge every stub mesh under root (not inside a group flagged userData.own) into one coloured mesh plus its outline.
 const _m = new THREE.Matrix4(), _i = new THREE.Matrix4(), _c = new THREE.Color();
@@ -96,22 +115,26 @@ function merge(root, mat, extra = []) {
   const walk = o => { for (const ch of o.children) {
     if (ch.userData.own) continue;
     if (ch.isMesh && ch.material === stub) {
+      const ink = inkOf(ch);
       const g = ch.geometry.index ? ch.geometry.toNonIndexed() : ch.geometry.clone(); g.applyMatrix4(_m.multiplyMatrices(_i, ch.matrixWorld));
-      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone()]); n += g.attributes.position.count; g.dispose(); gone.push(ch);
+      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone(), ink]); n += g.attributes.position.count; g.dispose(); gone.push(ch);
     } else walk(ch);
   } };
   walk(root);
   for (const m of gone) m.parent.remove(m);
-  let ln = n; for (const e of extra) ln += e.pos.length / 3;
-  const pos = new Float32Array(ln * 3), nor = new Float32Array(ln * 3), col = new Float32Array(n * 3); let o = 0;
-  for (const [p, nn, c] of parts) { pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; } o += p.length; }
-  for (const e of extra) { pos.set(e.pos, o); nor.set(e.nor, o); o += e.pos.length; }
+  for (const e of extra) parts.push([e.pos, e.nor, null, { w: OUTLINE, col: INK }]);
+  let ln = 0; for (const q of parts) ln += q[0].length / 3;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), lpos = new Float32Array(ln * 3), lcol = new Float32Array(ln * 3); let o = 0;
+  for (const [p, nn, c, ink] of parts) {
+    if (c) { pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; } }
+    hullOf(p, nn, ink.w, lpos, o); for (let i = 0; i < p.length; i += 3) { lcol[o + i] = ink.col.r; lcol[o + i + 1] = ink.col.g; lcol[o + i + 2] = ink.col.b; }
+    o += p.length;
+  }
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos.subarray(0, n * 3), 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor.subarray(0, n * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const mesh = new THREE.Mesh(g, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.baked = true; root.add(mesh);
-  let lg = g;
-  if (extra.length) { lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); lg.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); }
-  const line = new THREE.Mesh(lg, lineMat); line.userData.baked = lg !== g; root.add(line);
+  const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(lpos, 3)); lg.setAttribute('color', new THREE.BufferAttribute(lcol, 3));
+  const line = new THREE.Mesh(lg, lineMat); line.userData.baked = true; root.add(line);
   return mesh;
 }
 
