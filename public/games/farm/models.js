@@ -625,7 +625,8 @@ const BUILD = {
     g.scale.setScalar(1.7);
   },
   carousel(g, live) {
-    cyl(g, .92, .96, .14, 10, C.stoneD); cyl(g, .84, .84, .08, 10, C.red, 0, .14); cyl(g, .1, .1, 1.3, 6, C.gold, 0, .2);
+    // a two-step stone plinth with a gold lip; the platform, column and roof turn (PARTS.carousel)
+    cyl(g, .96, 1.0, .1, 12, C.stoneD); cyl(g, .9, .92, .08, 12, C.stone, 0, .1); cyl(g, .93, .93, .03, 12, C.gold, 0, .17);
     if (!live) PARTS.carousel(g);
   },
   chest(g) {
@@ -682,13 +683,21 @@ const PARTS = {
   },
   carousel(g) {
     const t = new THREE.Group(); t.position.y = .22; g.add(t);
-    // an open top, so the riders show from above: a small canopy on the pole, and a hoop of bunting on four spokes
-    put(t, G('Cone', .5, .34, 8), M(C.red), 0, 1.5, 0); cyl(t, .5, .5, .06, 8, C.cream, 0, 1.28); ico(t, .08, C.gold, 0, 1.72, 0);
-    put(t, G('Torus', .93, .035, 4, 12), M(C.gold), 0, 1.2, 0).rotation.x = Math.PI / 2;
-    for (let i = 0; i < 4; i++) { const sp = put(t, G('Box', .93, .03, .03), M(C.goldD), Math.cos(i * Math.PI / 2 + .78) * .465, 1.2, Math.sin(i * Math.PI / 2 + .78) * .465); sp.rotation.y = -(i * Math.PI / 2 + .78); }
-    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; put(t, G('Cone', .07, .16, 3), M([C.red, C.yellow, C.water][i % 3]), Math.cos(a) * .93, 1.1, Math.sin(a) * .93).rotation.x = Math.PI; }
+    // The roof sits high (1.75) on a tall column, so riders show under it from the farm camera. H is used by scene3d.js too.
+    const H = 1.75, N = 10, seg = Math.PI * 2 / N;
+    cyl(t, .86, .86, .06, 12, C.red, 0, -.02); cyl(t, .7, .7, .02, 12, C.cream, 0, .04);                 // the turning platform
+    cyl(t, .13, .16, H, 8, C.cream, 0, 0); for (const y of [.28, .78, 1.28]) cyl(t, .145, .15, .12, 8, C.red, 0, y); // candy-striped column
+    cyl(t, .2, .2, .08, 8, C.gold, 0, .04); cyl(t, .22, .16, .1, 8, C.gold, 0, H - .1);
+    for (let i = 0; i < N; i++) { // striped big top: ten panels, red and cream by turns, each with a scallop and a bulb
+      const a = i * seg, c = i % 2 ? C.cream : C.red, mid = a + seg / 2;
+      put(t, G('Cone', .98, .5, 1, 1, false, a, seg), M(c), 0, H + .31, 0);
+      put(t, G('Cylinder', .98, .98, .12, 1, 1, false, a, seg), M(i % 2 ? C.red : C.cream), 0, H, 0);
+      const sc = put(t, G('Cone', .12, .14, 4), M(c), Math.sin(mid) * .95, H - .12, Math.cos(mid) * .95); sc.rotation.x = Math.PI; sc.rotation.y = mid;
+      put(t, G('Icosahedron', .04, 0), MX('glow2', '#fff3b8', { emissive: '#ffd66b', emissiveIntensity: .9 }), Math.sin(a) * .98, H - .02, Math.cos(a) * .98);
+    }
+    cyl(t, .16, .2, .1, 8, C.gold, 0, H + .54); ico(t, .09, C.gold, 0, H + .72, 0); pennant(t, 0, H + .76, 0, C.yellow, .3, .8);
     ['#fff4e2', C.pink, C.water, C.lilac].forEach((c, i) => { const a = i * Math.PI / 2, o = grp(t, Math.cos(a) * .6, 0, Math.sin(a) * .6); o.rotation.y = -a; o.userData.bob = i;
-      cyl(o, .02, .02, .98, 5, C.gold); const b = grp(o, 0, .38, 0); b.scale.setScalar(1.3); box(b, .14, .16, .34, c, 0, 0, 0); box(b, .1, .16, .12, c, 0, .12, .16); for (const x of [-.04, .04]) box(b, .03, .07, .03, c, x, .28, .2); box(b, .15, .05, .12, C.red, 0, .16, -.02); for (const z of [-.12, .12]) box(b, .1, .14, .05, c, 0, -.14, z); });
+      cyl(o, .02, .02, 1.75, 5, C.gold); const b = grp(o, 0, .38, 0); b.scale.setScalar(1.3); box(b, .14, .16, .34, c, 0, 0, 0); box(b, .1, .16, .12, c, 0, .12, .16); for (const x of [-.04, .04]) box(b, .03, .07, .03, c, x, .28, .2); box(b, .15, .05, .12, C.red, 0, .16, -.02); for (const z of [-.12, .12]) box(b, .1, .14, .05, c, 0, -.14, z); });
     return t;
   },
   balloon(g) {
