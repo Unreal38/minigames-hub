@@ -1,5 +1,5 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
-import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
+import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt, piotrArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -387,6 +387,26 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins, and the <b>last player still holding cards is the Pan</b>.</li>
       <li>Five players sit at a table for six: a bot takes the spare hand, so the cards still share out evenly.</li>
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
+    </ol>`,
+  },
+  piotr: {
+    name: 'Piotruś', load: () => import('./games/piotr/client.js'), start: 'Deal the cards',
+    host: { seats: 4, deck: 'small', timer: 20 }, solo: { seats: 4, deck: 'small', timer: 0 },
+    openSeat: 'A bot holds these cards if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Deck</b><div class="pills">${pill('deck', 'small', '12 pairs')}${pill('deck', 'big', '16 pairs')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `The Polish children's classic, known elsewhere as Old Maid. The deck is pairs of pets plus one card with no pair: the Piotruś. Lay down your pairs, then take turns drawing a face-down card from the player on your right. Whoever is left holding the Piotruś loses.`,
+    rules: `<ol>
+      <li>The deck is <b>12 pairs of pets</b> (16 in the big deck) and <b>one Piotruś</b>, the tuxedo cat with no pair. All the cards are dealt out, so some players may get one card more. Empty seats are played by bots.</li>
+      <li>Everyone first <b>lays down every pair</b> they were dealt. That happens by itself.</li>
+      <li>Then, going clockwise, each player <b>draws one card</b>, face down, from the player <b>on their right</b> (the one who played before them). You only see the backs.</li>
+      <li>If the card you draw <b>makes a pair</b> with one you hold, the pair goes to the table. If not, you keep it.</li>
+      <li>Everyone can see <b>which card you reach for</b> before you take it, so watch the other player's face. On a phone, tap a card to reach for it and tap it again to take it.</li>
+      <li>You can <b>shuffle your own cards</b> at any time, so nobody can follow where the Piotruś went. A card you draw also lands at a random spot in your hand.</li>
+      <li>Run out of cards and you are <b>safe</b>. The first one out wins. The player <b>left holding the Piotruś loses</b>.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, the card you were reaching for is taken, or a random one. Shortcuts: <b>← →</b> reach for a card, <b>Enter</b> takes it, <b>S</b> shuffles your cards.</li>
     </ol>`,
   },
   pips: {
@@ -1012,6 +1032,7 @@ const HUB_GAMES = [
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
+  ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
 ].filter(g => GAMES[g[0]]);

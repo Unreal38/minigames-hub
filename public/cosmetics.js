@@ -64,7 +64,7 @@ export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
-  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts' };
+  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś' };
 
 if (PL) { Object.assign(GAME_NAMES, { ladders: 'Węże i drabiny', ludo: 'Chińczyk', dice: 'Kości kłamcy' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }
 
