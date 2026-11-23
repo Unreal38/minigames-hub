@@ -14,7 +14,7 @@
 //   shaker()                  camera shake: kick(strength) and apply(camera, dt) after lookAt.
 //   rim(color)                a hover or selection rim: show(root) wraps root's outline hull in a glowing copy.
 import * as THREE from 'three';
-import { bake } from './avatar3d.js';
+import { bake, hullGeo, hullMat } from './avatar3d.js';
 import { fxOf, winSheet } from './winfx.js';
 import { drawShape } from './fxart.js';
 
@@ -34,33 +34,18 @@ export function toonMat(old) {
   let m = mats.get(key); if (!m) { mats.set(key, m = make()); m.userData.shared = true; }
   return m;
 }
-const inks = new Map();
-const inkMat = (t, color) => { const key = t.toFixed(4) + color; let m = inks.get(key);
-  if (!m) { m = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide }); m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normalize(normal) * ${t.toFixed(4)};`); }; m.customProgramCacheKey = () => 'ink' + key; m.userData.shared = true; inks.set(key, m); }
-  return m; };
 // One hull around a whole model: every solid part merged, corners welded so the line has no gaps, drawn inside out.
-const _iv = new THREE.Matrix4(), _im = new THREE.Matrix4(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+// Small parts get a thinner line in their own dark shade (hullGeo / inkLook in avatar3d.js).
 function inkHull(root, t, color) {
-  root.updateWorldMatrix(true, true); _iv.copy(root.matrixWorld).invert();
-  const parts = []; let n = 0;
+  const meshes = [];
   const walk = o => { for (const m of o.children) {
     if (m.userData.dyn || m.userData.noInk || m.userData.ink || !m.visible) continue;
-    if (m.isMesh && !m.isInstancedMesh && !m.material.transparent && !(m.material.emissiveIntensity > 0 && m.material.emissive?.getHex())) {
-      const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(_im.multiplyMatrices(_iv, m.matrixWorld)); parts.push(g.attributes.position.array); n += g.attributes.position.count; g.dispose();
-    }
+    if (m.isMesh && !m.isInstancedMesh && !m.material.transparent && !(m.material.emissiveIntensity > 0 && m.material.emissive?.getHex())) meshes.push(m);
     walk(m);
   } };
   walk(root);
-  if (!n) return null;
-  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), sum = new Map(); let o = 0; for (const p of parts) { pos.set(p, o); o += p.length; }
-  const keyOf = i => Math.round(pos[i * 3] * 400) + ',' + Math.round(pos[i * 3 + 1] * 400) + ',' + Math.round(pos[i * 3 + 2] * 400), keys = new Array(n);
-  for (let i = 0; i < n; i += 3) {
-    _a.fromArray(pos, i * 3); _b.fromArray(pos, i * 3 + 3).sub(_a); _c.fromArray(pos, i * 3 + 6).sub(_a); _b.cross(_c).normalize();
-    for (let k = 0; k < 3; k++) { const key = keys[i + k] = keyOf(i + k); let v = sum.get(key); if (!v) sum.set(key, v = [0, 0, 0]); v[0] += _b.x; v[1] += _b.y; v[2] += _b.z; }
-  }
-  for (let i = 0; i < n; i++) { const v = sum.get(keys[i]), l = Math.hypot(v[0], v[1], v[2]) || 1; nor[i * 3] = v[0] / l; nor[i * 3 + 1] = v[1] / l; nor[i * 3 + 2] = v[2] / l; }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  const hull = new THREE.Mesh(g, inkMat(t, color)); hull.userData = { baked: true, ink: true, toon: true }; hull.castShadow = hull.receiveShadow = false;
+  const g = hullGeo(root, meshes, t, color); if (!g) return null;
+  const hull = new THREE.Mesh(g, hullMat(t)); hull.userData = { baked: true, ink: true, toon: true }; hull.castShadow = hull.receiveShadow = false;
   return hull;
 }
 export function toonify(root, ink = 0, { color = '#4a2c22', tinted = true } = {}) {

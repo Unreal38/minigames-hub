@@ -21,7 +21,67 @@ import { hairParts, HC, envT } from './hair3d.js';
 // Merge the plain meshes under root into one mesh per kind of surface, with the paint moved into vertex colours.
 // A model made of 70 little parts then costs a handful of draw calls instead of 70. Skips anything flagged
 // userData.dyn (and everything inside it), hidden meshes, textured or non-standard materials and instanced meshes.
-const _bm = new THREE.Matrix4(), _inv = new THREE.Matrix4();
+const _bm = new THREE.Matrix4(), _inv = new THREE.Matrix4(), _pb = new THREE.Vector3(), _ps = new THREE.Vector3();
+// How big a part is for its outline: the mean of its two thinnest sides, so a flat coin or a thin rod counts as small.
+export function partSize(geo, mat) {
+  if (!geo.boundingBox) geo.computeBoundingBox();
+  geo.boundingBox.getSize(_pb); _ps.setFromMatrixScale(mat);
+  const [a, b] = [Math.abs(_pb.x * _ps.x), Math.abs(_pb.y * _ps.y), Math.abs(_pb.z * _ps.z)].sort((x, y) => x - y);
+  return Math.sqrt(a * b);
+}
+// The outline of a part of size d on a model whose full line is t thick: big parts get all of t, small ones about a
+// sixth of their size (never under t * .16) and a dark shade of their own colour c instead of the ink, so beads,
+// pins and little lamps keep their colour instead of vanishing into a dark ring. Returns the width factor (0..1)
+// and writes the line colour into out.
+export function inkLook(d, t, c, ink, out) {
+  const f = Math.min(1, Math.max(.16, d * .16 / t)), small = Math.min(1, Math.max(0, (4 * t - d) / (2.3 * t)));
+  out.copy(ink); if (small > 0) out.lerp(_pl.copy(c).multiplyScalar(.45), small * .8);
+  return f;
+}
+const _pl = new THREE.Color();
+// One outline hull for a list of meshes (all under root): their parts merged, corners welded so the line has no
+// gaps, each part pushed out by its own width (inkLook) and painted its own line colour. t: the full line width in
+// root's units; ink: the line colour. Keeps position + smoothed normal, so hover rims can reuse the geometry.
+const _hv = new THREE.Matrix4(), _hm = new THREE.Matrix4(), _ha = new THREE.Vector3(), _hb = new THREE.Vector3(), _hc = new THREE.Vector3(), _hk = new THREE.Color(), _hx = new THREE.Color();
+export function hullGeo(root, meshes, t, ink) {
+  root.updateWorldMatrix(true, true); _hv.copy(root.matrixWorld).invert(); ink = new THREE.Color(ink);
+  const parts = []; let n = 0;
+  for (const m of meshes) {
+    _hm.multiplyMatrices(_hv, m.matrixWorld);
+    const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(_hm);
+    const mc = (Array.isArray(m.material) ? m.material[0] : m.material).color || _hx.set('#ffffff');
+    parts.push([g.attributes.position.array, g.attributes.color?.array, g.attributes.inkd?.array, m.geometry.attributes.inkd ? 0 : partSize(m.geometry, _hm), mc.clone(), _ps.setFromMatrixScale(_hm).x]);
+    n += g.attributes.position.count; g.dispose();
+  }
+  if (!n) return null;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), col = new Float32Array(n * 3), wf = new Float32Array(n), sum = new Map(); let o = 0;
+  for (const [p, vc, vd, d0, mc, sc] of parts) {
+    pos.set(p, o);
+    for (let i = 0, j = o / 3; i < p.length; i += 3, j++) {
+      if (vc) _hk.setRGB(vc[i], vc[i + 1], vc[i + 2]).multiply(mc); else _hk.copy(mc);
+      wf[j] = inkLook(vd ? vd[i / 3] * sc : d0, t, _hk, ink, _hk); col[j * 3] = _hk.r; col[j * 3 + 1] = _hk.g; col[j * 3 + 2] = _hk.b;
+    }
+    o += p.length;
+  }
+  const keyOf = i => (Math.round(pos[i * 3] * 400) + 32768) + (Math.round(pos[i * 3 + 1] * 400) + 32768) * 65536 + (Math.round(pos[i * 3 + 2] * 400) + 32768) * 4294967296, keys = new Float64Array(n);
+  for (let i = 0; i < n; i += 3) {
+    _ha.fromArray(pos, i * 3); _hb.fromArray(pos, i * 3 + 3).sub(_ha); _hc.fromArray(pos, i * 3 + 6).sub(_ha); _hb.cross(_hc).normalize();
+    for (let k = 0; k < 3; k++) { const key = keys[i + k] = keyOf(i + k); let v = sum.get(key); if (!v) sum.set(key, v = [0, 0, 0]); v[0] += _hb.x; v[1] += _hb.y; v[2] += _hb.z; }
+  }
+  for (let i = 0; i < n; i++) { const v = sum.get(keys[i]), l = Math.hypot(v[0], v[1], v[2]) || 1; nor[i * 3] = v[0] / l; nor[i * 3 + 1] = v[1] / l; nor[i * 3 + 2] = v[2] / l; }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('inkf', new THREE.BufferAttribute(wf, 1));
+  return g;
+}
+// The material for a hullGeo: pushes each point out by t times its own width factor, in its own line colour. Shared per t.
+const hullMats = new Map();
+export function hullMat(t) {
+  const key = t.toFixed(4); let m = hullMats.get(key);
+  if (!m) { m = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide }); m.userData.shared = true;
+    m.onBeforeCompile = sh => { sh.vertexShader = 'attribute float inkf;\n' + sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normalize(normal) * (${key} * inkf);`); };
+    m.customProgramCacheKey = () => 'hull' + key; hullMats.set(key, m); }
+  return m;
+}
 export function bake(root) {
   root.updateWorldMatrix(true, true); _inv.copy(root.matrixWorld).invert();
   const buckets = new Map(), gone = [];
@@ -36,21 +96,22 @@ export function bake(root) {
         if (!b) buckets.set(key, b = { parts: [], n: 0, rough, metal, side: mt.side, op, env: mt.envMapIntensity, cast: c.castShadow, recv: c.receiveShadow });
         const g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone();
         g.applyMatrix4(_bm.multiplyMatrices(_inv, c.matrixWorld));
-        b.parts.push([g.attributes.position.array, g.attributes.normal.array, mt.color]); b.n += g.attributes.position.count; g.dispose(); gone.push(c);
+        b.parts.push([g.attributes.position.array, g.attributes.normal.array, mt.color, partSize(c.geometry, _bm)]); b.n += g.attributes.position.count; g.dispose(); gone.push(c);
       } else walk(c);
     }
   };
   walk(root);
   for (const m of gone) m.parent.remove(m);
   for (const b of buckets.values()) {
-    const pos = new Float32Array(b.n * 3), nor = new Float32Array(b.n * 3), col = new Float32Array(b.n * 3); let o = 0;
-    for (const [p, n, c] of b.parts) {
-      pos.set(p, o); nor.set(n, o);
+    const pos = new Float32Array(b.n * 3), nor = new Float32Array(b.n * 3), col = new Float32Array(b.n * 3), sz = new Float32Array(b.n); let o = 0;
+    for (const [p, n, c, d] of b.parts) {
+      pos.set(p, o); nor.set(n, o); sz.fill(d, o / 3, (o + p.length) / 3);
       for (let i = 0; i < p.length; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; }
       o += p.length;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('inkd', new THREE.BufferAttribute(sz, 1)); // each part's size, so the outline can stay thin on small parts (see inkLook)
     const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: b.rough, metalness: b.metal, side: b.side, transparent: b.op < 1, opacity: b.op, envMapIntensity: b.env }));
     mesh.castShadow = b.cast; mesh.receiveShadow = b.recv; mesh.userData.baked = true; root.add(mesh);
   }
@@ -85,19 +146,14 @@ const part = (p, pts, c, mid, half, zk) => lathe(p, pts, c, mid - half, half * 2
 
 const grad = (() => { const t = new THREE.DataTexture(new Uint8Array([150, 150, 150, 255, 215, 215, 215, 255, 255, 255, 255, 255]), 3, 1, THREE.RGBAFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
 // The ink outline is an inverted hull: a copy of each piece pushed out along its smoothed normals, drawn inside out.
-// Big pieces (body, head, sleeves, hats) get the full OUTLINE; small ones get a line in proportion to their size
-// (about a sixth of the mean of their two thinnest sides, never under INK_MIN) so a bead or a pin is not swallowed by a dark ring
-// twice its size. Small pieces are also inked in a dark shade of their own colour rather than near-black, so pearls
-// stay pearly and a tiny medal does not turn into a brown smudge.
-const OUTLINE = .022, INK_MIN = .0035, INK = new THREE.Color('#3a2630');
+// Big pieces (body, head, sleeves, hats) get the full OUTLINE; small ones get a thinner line in a dark shade of their
+// own colour (inkLook), so pearls stay pearly and a tiny medal does not turn into a brown smudge.
+const OUTLINE = .022, INK = new THREE.Color('#3a2630');
 const lineMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
-const _bx = new THREE.Vector3(), _sx = new THREE.Vector3(), _lc = new THREE.Color();
 const inkOf = ch => {
-  const gb = ch.geometry; if (!gb.boundingBox) gb.computeBoundingBox();
-  gb.boundingBox.getSize(_bx); _m.multiplyMatrices(_i, ch.matrixWorld); _sx.setFromMatrixScale(_m);
-  const [a, b] = [_bx.x * _sx.x, _bx.y * _sx.y, _bx.z * _sx.z].sort((a, b) => a - b), d = Math.sqrt(a * b); // flat things (a coin, a tag) count as small
-  const w = Math.min(OUTLINE, Math.max(INK_MIN, d * .16)), small = Math.min(1, Math.max(0, (.09 - d) / .05));
-  return { hard: HARD.has(gb.type), w, col: _lc.copy(INK).lerp(new THREE.Color(ch.userData.c).multiplyScalar(.45), small * .8).clone() };
+  const d = partSize(ch.geometry, _m.multiplyMatrices(_i, ch.matrixWorld)), col = new THREE.Color();
+  const f = inkLook(d, OUTLINE, new THREE.Color(ch.userData.c), INK, col);
+  return { hard: HARD.has(ch.geometry.type), w: OUTLINE * f, col };
 };
 // Push one piece's vertices out along its normals. For boxes, cylinders and cones (hard edges) the normals are first
 // averaged over vertices that share a spot, so the hull closes at the corners instead of splitting into loose flaps.

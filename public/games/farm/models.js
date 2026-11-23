@@ -3,7 +3,7 @@
 //   Pets live in pets3d.js.
 // Every surface is flat shaded. Static models are merged into a few meshes with bake().
 import * as THREE from 'three';
-import { bake } from '../../avatar3d.js';
+import { bake, hullGeo, hullMat } from '../../avatar3d.js';
 
 const mats = new Map();
 export const M = (c, o) => {
@@ -57,26 +57,13 @@ export function toonMat(old) {
     emissive: old.emissive?.clone() || new THREE.Color(0), emissiveIntensity: old.emissiveIntensity ?? 1, side: old.side, gradientMap: RAMP }));
   return m;
 }
-const inkMat = t => { const key = 'ink' + t; let m = mats.get(key);
-  if (!m) { m = new THREE.MeshBasicMaterial({ color: '#5a3a2e', side: THREE.BackSide }); m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `vec3 transformed = position + normalize(normal) * ${t.toFixed(4)};`); }; m.customProgramCacheKey = () => key; mats.set(key, m); }
-  return m; };
 // One hull around a whole model: every solid part merged, corners welded so the line has no gaps, drawn inside out.
-const _iv = new THREE.Matrix4(), _im = new THREE.Matrix4(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+// Small parts get a thinner line in their own dark shade (hullGeo / inkLook in avatar3d.js).
 function inkHull(root, t) {
-  root.updateWorldMatrix(true, true); _iv.copy(root.matrixWorld).invert();
-  const parts = []; let n = 0;
-  root.traverse(m => { if (!m.isMesh || m.isInstancedMesh || m.material.transparent || m.material.emissiveIntensity > 0 && m.material.emissive?.getHex() || m.userData.noInk) return;
-    const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(_im.multiplyMatrices(_iv, m.matrixWorld)); parts.push(g.attributes.position.array); n += g.attributes.position.count; g.dispose(); });
-  if (!n) return null;
-  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), sum = new Map(); let o = 0; for (const p of parts) { pos.set(p, o); o += p.length; }
-  const keyOf = i => Math.round(pos[i * 3] * 400) + ',' + Math.round(pos[i * 3 + 1] * 400) + ',' + Math.round(pos[i * 3 + 2] * 400), keys = new Array(n);
-  for (let i = 0; i < n; i += 3) {
-    _a.fromArray(pos, i * 3); _b.fromArray(pos, i * 3 + 3).sub(_a); _c.fromArray(pos, i * 3 + 6).sub(_a); _b.cross(_c).normalize();
-    for (let k = 0; k < 3; k++) { const key = keys[i + k] = keyOf(i + k); let v = sum.get(key); if (!v) sum.set(key, v = [0, 0, 0]); v[0] += _b.x; v[1] += _b.y; v[2] += _b.z; }
-  }
-  for (let i = 0; i < n; i++) { const v = sum.get(keys[i]), l = Math.hypot(v[0], v[1], v[2]) || 1; nor[i * 3] = v[0] / l; nor[i * 3 + 1] = v[1] / l; nor[i * 3 + 2] = v[2] / l; }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  const hull = new THREE.Mesh(g, inkMat(t)); hull.userData = { baked: true, ink: true, toon: true }; hull.castShadow = hull.receiveShadow = false;
+  const meshes = [];
+  root.traverse(m => { if (!m.isMesh || m.isInstancedMesh || m.material.transparent || m.material.emissiveIntensity > 0 && m.material.emissive?.getHex() || m.userData.noInk) return; meshes.push(m); });
+  const g = hullGeo(root, meshes, t, '#5a3a2e'); if (!g) return null;
+  const hull = new THREE.Mesh(g, hullMat(t)); hull.userData = { baked: true, ink: true, toon: true }; hull.castShadow = hull.receiveShadow = false;
   return hull;
 }
 // Gives a whole model the toon look. ink: how thick the outline is in the model's own units (0 for none).
