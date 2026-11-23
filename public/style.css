@@ -1011,7 +1011,7 @@ body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background:
 .wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* Isle frames: the sky gradient starts at the outer edge, under the border. With the default padding-box origin the
    gradient repeats into the border, and at fractional zoom its bottom colour shows as a thin line along the top. */
-.pisle, .creator .pv3d, .wd.creator .pvisle { background-origin: border-box !important; }
+.pisle, .creator .pv3d, .wd.creator .pvisle, .hubgrid .hero { background-origin: border-box !important; }
 .wd.creator .pv3d[hidden] { display: none; }
 .wd.isleview .pvbar .pvseg { visibility: hidden; }
 .wdtile img.islepic { width: 92px; height: 92px; object-fit: contain; border-radius: 12px; }
@@ -1336,3 +1336,4 @@ body.night .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#1c1a4
   .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { height: 210px; margin: 0 -16px; }
   .isletag { font-size: 13px; }
 }
+.hubgrid .hero { background-clip: padding-box !important; } /* the sky must not bleed past the rounded border's outer edge */
