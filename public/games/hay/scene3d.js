@@ -16,7 +16,7 @@ export const LINE = ['#ff8fab', '#ffb547', '#7ed3b2', '#8fb0ff', '#d59ae6']; // 
 const PETS = ['mossbun', 'sproutle', 'petalpuff', 'cindercub', 'toastoad', 'puddlepup', 'ripplet', 'zapkit', 'voltvole', 'pebblet', 'acornip', 'buzzlet'];
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const cx = c => (c - (N - 1) / 2) * S, cz = r => (r - (N - 1) / 2) * S;
-const FONT = '700 {px}px Fredoka, "Baloo 2", system-ui, sans-serif';
+const FONT = '700 {px}px Rubik, system-ui, sans-serif';
 const font = px => FONT.replace('{px}', px);
 
 // ---------- little canvas pictures ----------

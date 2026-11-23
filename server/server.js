@@ -64,8 +64,8 @@ function cspFor(req) {
     }
   } catch {}
   const host = String(req.headers.host || '').replace(/[^a-z0-9.:\[\]-]/gi, '');
-  return [`default-src 'self'`, `script-src 'self' https://cdn.jsdelivr.net/npm/three@0.170.0/ ${inline.src}`, `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-    `font-src 'self' https://fonts.gstatic.com`, `img-src 'self' data: blob:`, `connect-src 'self'${host ? ` wss://${host} ws://${host}` : ''}`,
+  return [`default-src 'self'`, `script-src 'self' https://cdn.jsdelivr.net/npm/three@0.170.0/ ${inline.src}`, `style-src 'self' 'unsafe-inline'`,
+    `font-src 'self'`, `img-src 'self' data: blob:`, `connect-src 'self'${host ? ` wss://${host} ws://${host}` : ''}`,
     `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`, `frame-ancestors 'none'`].join('; ');
 }
 // Ko-fi's webhook: after every payment Ko-fi POSTs a form with one field, data, holding JSON. It is only believed

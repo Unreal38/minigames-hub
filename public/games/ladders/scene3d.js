@@ -36,7 +36,7 @@ function drawSpecial(g, k, x, y, s) {
     g.beginPath(); g.moveTo(s * .2, -s * .2); g.lineTo(s * .22, s * .02); g.lineTo(s * .02, -s * .04); g.closePath(); g.fill();
   } else if (k === 'swap') {
     for (const d of [-1, 1]) { g.beginPath(); g.moveTo(-s * .22 * d, s * .09 * d); g.lineTo(s * .22 * d, s * .09 * d); g.lineTo(s * .12 * d, s * .19 * d); g.stroke(); }
-  } else if (k === 'nap') { g.font = `700 ${s * .36}px Fredoka, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Zz', 0, s * .02); }
+  } else if (k === 'nap') { g.font = `700 ${s * .36}px Rubik, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Zz', 0, s * .02); }
   g.restore();
 }
 
@@ -50,7 +50,7 @@ function boardTexture(B) {
       g.fillStyle = n === B.size ? '#ffc93c' : k ? SP_COL[k] : TILE_COLS[(row + col) % 2 ? 0 : 1 + (row + (col >> 1)) % 4];
       g.fillRect(x, y, px, px);
       g.strokeStyle = '#3b221933'; g.lineWidth = 3; g.strokeRect(x + 1.5, y + 1.5, px - 3, px - 3);
-      g.fillStyle = '#3b2219b0'; g.font = `600 ${n === B.size ? 30 : 26}px Fredoka, system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'top';
+      g.fillStyle = '#3b2219b0'; g.font = `600 ${n === B.size ? 30 : 26}px Rubik, system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'top';
       g.fillText(String(n), x + 10, y + 8);
       if (k) { g.globalAlpha = .85; drawSpecial(g, k, x + px / 2, y + px * .58, px); g.globalAlpha = 1; }
       if (B.ladders.some(l => l.broken && l.from === n)) { // a little warning sign at the foot of a broken ladder
@@ -157,7 +157,7 @@ export function createScene(canvas, { onFrame, onCue }) {
     // start mat
     const mat = new THREE.Mesh(new THREE.CylinderGeometry(U * .62, U * .66, .14, 32), M('#ffb547', { roughness: .7 }));
     tileXZ(0, mat.position); mat.position.y = -.27; mat.receiveShadow = true; g.add(mat);
-    const matTop = new THREE.Mesh(new THREE.CircleGeometry(U * .5, 32), M('#fff4e2', { map: canvasTex(128, 128, c => { c.fillStyle = '#fff4e2'; c.fillRect(0, 0, 128, 128); c.fillStyle = INK; c.font = '700 30px Fredoka, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('START', 64, 66); }) }));
+    const matTop = new THREE.Mesh(new THREE.CircleGeometry(U * .5, 32), M('#fff4e2', { map: canvasTex(128, 128, c => { c.fillStyle = '#fff4e2'; c.fillRect(0, 0, 128, 128); c.fillStyle = INK; c.font = '700 30px Rubik, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('START', 64, 66); }) }));
     matTop.rotation.x = -Math.PI / 2; matTop.position.set(mat.position.x, -.195, mat.position.z); g.add(matTop);
     // ladders: two rails arching a little off the board, with rungs
     const wood = M('#c98b4f', { roughness: .55 }), rung = M('#f0c27a', { roughness: .55 }), cracked = M('#a0714a', { roughness: .7 }), splinter = M('#f6d3a0', { roughness: .8 });

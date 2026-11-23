@@ -39,7 +39,7 @@ function boardTexture() {
   for (const r of [R.bull, R.outer, R.tIn, R.tOut, R.dIn, R.dOut]) { g.beginPath(); g.arc(c, c, r * k, 0, 6.2832); g.stroke(); }
   for (let i = 0; i < 20; i++) { const a = (i * 18 - 9 - 90) * Math.PI / 180; g.beginPath(); g.moveTo(c + Math.cos(a) * R.outer * k, c + Math.sin(a) * R.outer * k); g.lineTo(c + Math.cos(a) * k, c + Math.sin(a) * k); g.stroke(); }
   // numbers
-  g.fillStyle = '#fff4e2'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `700 ${Math.round(k * .17)}px Fredoka, "Baloo 2", system-ui, sans-serif`;
+  g.fillStyle = '#fff4e2'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `700 ${Math.round(k * .17)}px Rubik, system-ui, sans-serif`;
   for (let i = 0; i < 20; i++) { const a = i * 18 * Math.PI / 180, r = k * 1.16; g.save(); g.translate(c + Math.sin(a) * r, c - Math.cos(a) * r); g.rotate(a); g.fillText(String(ORDER[i]), 0, 2); g.restore(); }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;

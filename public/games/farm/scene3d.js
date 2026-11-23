@@ -793,11 +793,11 @@ export function createScene(canvas, { onPick, onGhost }) {
   let mapFar = 33, mapOut = 11, mapZoom = 1, mapOn = false, isles = []; // { id, g, y, ph, r }
   function nameTag(text, mine, friend, sub) { // sub: a second, smaller line saying what can be done there
     const c = document.createElement('canvas'), x = c.getContext('2d'); c.width = 512; c.height = 192;
-    x.font = '600 60px Fredoka, "Baloo 2", system-ui, sans-serif'; const w = Math.min(490, x.measureText(text).width + 60);
+    x.font = '600 60px Rubik, system-ui, sans-serif'; const w = Math.min(490, x.measureText(text).width + 60);
     x.fillStyle = mine ? '#ffb547' : friend ? '#9fe3c4' : '#fff3df'; x.strokeStyle = '#3b2a25'; x.lineWidth = 8;
     x.beginPath(); x.roundRect((512 - w) / 2, 14, w, 100, 50); x.fill(); x.stroke();
     x.fillStyle = '#3b2a25'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 256, 68, 440);
-    if (sub) { x.font = '600 40px Fredoka, "Baloo 2", system-ui, sans-serif'; x.lineWidth = 9; x.strokeStyle = '#fff3df'; x.strokeText(sub, 256, 152, 500); x.fillText(sub, 256, 152, 500); }
+    if (sub) { x.font = '600 40px Rubik, system-ui, sans-serif'; x.lineWidth = 9; x.strokeStyle = '#fff3df'; x.strokeText(sub, 256, 152, 500); x.fillText(sub, 256, 152, 500); }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, fog: false })); sp.scale.set(4.4, 1.65, 1); sp.center.set(.5, .7); sp.userData.dyn = true;
     return sp;
