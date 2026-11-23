@@ -91,8 +91,9 @@ export function hotpotArt() {
     <path d="M96 66l10-7h44l-8 13h-36z" fill="#ff7a59"/><path d="M150 59h44l10 7-10 6h-52z" fill="#fff0c9"/></g>
     <path d="M150 59l-8 13" stroke="${INK}" stroke-width="3"/>
     <rect x="112" y="63" width="7" height="5" fill="${C.red}"/><rect x="126" y="65" width="5" height="4" fill="${C.yellow}"/><rect x="164" y="63" width="8" height="5" fill="${C.leaf}"/><rect x="180" y="65" width="6" height="4" fill="#fff"/>`;
-  const sticks = `<g class="abob">${rod('M70 16L118 44', C.wood, 4)}${rod('M82 12L122 40', C.wood, 4)}
-    <g ${O}><path d="M108 42l5-11h22l5 11z" fill="#a8502f"/><path d="M118 42h12v13h-12z" fill="${C.cream}"/><path d="M127 31h8l5 11h-10z" ${DARK}/></g><path d="M115 34h5v4h-5zM125 36h4v3h-4z" fill="${C.cream}"/></g></g>`;
+  const sticks = `<g class="abob"><path d="M72-4l6-5 54 41-4 5z" fill="${C.wood}" ${O}/>
+    <g ${O}><path d="M118 42h12v13h-12z" fill="${C.cream}"/><path d="M108 42l5-11h22l5 11z" fill="#a8502f"/><path d="M127 31h8l5 11h-10z" ${DARK}/></g><path d="M115 34h5v4h-5zM125 36h4v3h-4z" fill="${C.cream}"/>
+    <path d="M50 10l5-6 63 40-4 6z" fill="${C.wood}" ${O}/><path d="M52 9l2-3 62 39-2 2z" fill="#fff" fill-opacity=".3"/></g>`;
   const steam = `<g class="abob" style="--d:.8s" fill="var(--art-cloud, #fff)" ${O}><path d="M172 34h11v11h-11zM184 20h9v9h-9zM176 8h7v7h-7z"/></g>`;
   return scene('A red hot pot with two broths, steam, and chopsticks holding a mushroom over it', pot + steam + sticks);
 }
@@ -102,8 +103,8 @@ export function marbleArt() {
   return scene('Three marbles rolling down a zigzag wooden track', `
     ${box(84, 96, 10, 18, C.bark, 6)}${plank(212, 87, 84, 104)}${box(206, 62, 10, 52, C.bark, 6)}
     ${plank(70, 40, 216, 62)}
-    <g ${O}><path d="M216 56v16h10V52z" fill="${C.red}"/><path d="M74 86v18h10V84z" fill="${C.red}"/></g>
-    ${rod('M60 114V80', C.cream, 3, 'butt')}<path d="M63 80h20v14H63z" fill="#fff" ${O}/><path d="M63 80h7v7h-7zM76 80h7v7h-7zM70 87h6v7h-6z" fill="${INK}"/>
+    <g ${O}><path d="M216 56v16h10V52z" fill="${C.red}"/></g>
+    ${rod('M58 114V80', C.cream, 3)}<path d="M61 78h20v14H61z" fill="#fff" ${O}/><path d="M61 78h7v7h-7zM74 78h7v7h-7zM68 85h6v7h-6z" fill="${INK}"/>
     ${ball(98, 28, 15, C.pink, 'abob', 0)}${ball(160, 40, 13, C.orange, 'abob', .3)}${ball(176, 76, 15, C.violet, 'abob', .6)}`);
 }
 
@@ -117,9 +118,9 @@ export function laddersArt() {
     ${box(96, 28, 116, 88, C.cream, 8)}${cells}<path d="M98 30h112v84H98zM126 30v84M154 30v84M182 30v84M98 58h112M98 86h112" fill="none" stroke="${INK}" stroke-width="2" opacity=".5"/>
     <path d="${rungs}" stroke="${INK}" stroke-width="7"/><path d="M106 108l31-74M126 108l31-74" stroke="${INK}" stroke-width="9" stroke-linecap="square"/>
     <path d="${rungs}" stroke="${C.orange}" stroke-width="3"/><path d="M106 108l31-74M126 108l31-74" stroke="${C.orange}" stroke-width="3.5" stroke-linecap="square"/>
-    ${rod('M196 50v24h-24v26h34', C.green, 9, 'butt')}
+    ${rod('M196 54v20h-24v26h26', C.green, 9)}
     <g ${O}><path d="M186 34h20v18h-20z" fill="${C.green}"/><path d="M196 52v7" stroke="${C.red}" fill="none"/></g>
-    <path d="M190 39h4v5h-4zM198 39h4v5h-4z" fill="${INK}"/><path d="M206 100l10-4v8z" fill="${C.green}" ${O}/>`);
+    <path d="M190 39h4v5h-4zM198 39h4v5h-4z" fill="${INK}"/>`);
 }
 
 export function pokerArt() {
@@ -137,7 +138,7 @@ export function ludoArt() {
     <path d="M140 60h20v20h-20z" fill="${C.cream}" ${O}/><path d="M140 60l10 10-10 10z" fill="${C.red}"/><path d="M160 60l-10 10 10 10z" fill="${C.yellow}"/><path d="M140 60l10 10 10-10z" fill="${C.blue}"/><path d="M140 80l10-10 10 10z" fill="${C.green}"/><path d="M140 60h20v20h-20z" fill="none" ${O}/>
     <path d="M140 37h20M140 48h20M140 91h20M140 102h20M117 60v20M128 60v20M171 60v20M182 60v20M150 26v34M150 80v34M106 70h34M160 70h34" stroke="${INK}" stroke-width="1.5" opacity=".45"/>
     <path d="M144 37h12v23h-12z" fill="${C.blue}" fill-opacity=".55"/><path d="M144 80h12v22h-12z" fill="${C.green}" fill-opacity=".55"/><path d="M117 64h23v12h-23z" fill="${C.red}" fill-opacity=".55"/><path d="M160 64h23v12h-23z" fill="${C.yellow}" fill-opacity=".7"/>
-    ${pawn(72, 118, C.red)}${pawn(232, 120, C.blue, .82)}${die(208, 70, 22, 6, C.cream, INK, 10, 'abob')}`);
+    ${pawn(80, 120, C.red)}${pawn(230, 120, C.blue)}${die(52, 40, 22, 6, C.cream, INK, -10, 'abob')}`);
 }
 
 export function stackArt() {
@@ -152,10 +153,10 @@ export function golfArt() {
   return scene('A mini golf green with a flag, a windmill and a ball rolling to the hole', `
     <path d="M118 108c20 8 44 8 60 2" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="3 7"/>
     <path d="M92 104h18l5 4-5 4H92l-5-4z" fill="#2a1422"/>
-    ${rod('M101 108V40', C.cream, 3, 'butt')}<path d="M104 40l30 11-30 11z" fill="${C.red}" ${O}/>
+    ${rod('M101 106V42', C.cream, 3)}<path d="M104 40l30 11-30 11z" fill="${C.red}" ${O}/>
     <g ${O}><path d="M176 108l8-46h24l8 46z" fill="${C.cream}"/><path d="M200 62h8l8 46h-10z" ${DARK}/><path d="M190 108V92h12v16z" fill="${C.bark}"/><path d="M178 62l18-18 18 18z" fill="${C.red}"/></g>
     <g class="aspin" style="transform-origin:196px 62px"><path d="M192 62h8V28h-8zM192 62h8v34h-8zM196 58v8h34v-8zM196 58v8h-34v-8z" fill="${C.orange}" ${O} transform="rotate(24 196 62)"/></g><rect x="192" y="58" width="8" height="8" fill="${INK}"/>
-    ${ball(146, 112, 8, C.pink)}`, { top: '#6fcf5c', onTop: `<path d="M56 108l26-11h150l26 11-26 11H82z" fill="none" stroke="${C.cream}" stroke-width="4" stroke-linejoin="round"/><path d="M90 98l-22 20M130 97l-10 22M170 97v22M210 97l12 21" stroke="#fff" stroke-opacity=".28" stroke-width="12"/>` });
+    ${ball(146, 112, 8, C.pink)}`, { top: '#6fcf5c', onTop: `<path d="M56 108l26-11h150l26 11-26 11H82z" fill="none" stroke="${C.cream}" stroke-width="4" stroke-linejoin="round"/>` });
 }
 
 export function diceArt() {
@@ -192,8 +193,8 @@ export function pawArt() {
     <g fill="${C.bark}"><path d="M142 70h16l4 6v10h-24v-10z"/><rect x="134" y="60" width="8" height="9"/><rect x="146" y="54" width="8" height="10"/><rect x="158" y="60" width="8" height="9"/></g>
     <rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="none" ${O}/>
     <g ${O}><path d="M60 118h26v-6H60z" fill="${C.pink}"/><path d="M66 112l3-10h8l3 10z" fill="${C.pink}"/></g>${pet(73, 92, '#fff', 'bun')}
-    ${die(56, 44, 22, 5, C.cream, INK, -10, 'abob')}
-    ${shop(210, 104, C.mint)}${shop(228, 110, C.yellow)}`);
+    ${die(48, 28, 22, 5, C.cream, INK, -10, 'abob')}
+    ${shop(206, 100, C.mint)}${shop(232, 110, C.yellow)}`);
 }
 
 export function kartArt() {
@@ -201,17 +202,18 @@ export function kartArt() {
   return scene('A blocky kart racing along an island road towards a gift box', `
     <path d="M58 60h12M48 74h16M60 88h10" stroke="${TICK}" stroke-width="3" stroke-linecap="square" transform="translate(190 4)"/>
     <g class="abob" style="--d:.2s">${box(50, 46, 28, 24, C.mint, 8)}<g ${O}><path d="M60 46h8v24h-8z" fill="${C.pink}"/><path d="M60 46l8-4.800h8l-8 4.800z" fill="${C.pink}"/><path d="M64 44l-12-8v10zM68 44l12-10v10z" fill="${C.pink}"/></g></g>
-    <g class="ajig">${box(182, 62, 24, 6, '#b8402c', 8)}${box(190, 68, 6, 20, '#2b2230', 5)}
-    ${box(170, 70, 8, 20, '#2b2230', 8)}${box(150, 70, 20, 20, C.blue, 6)}${box(148, 50, 24, 20, '#f2c9a0', 6)}${box(146, 44, 28, 10, C.yellow, 6)}<path d="M152 60h4v6h-4z" fill="${INK}"/>
-    ${rod('M152 80H136', C.blue, 4, 'butt')}${rod('M132 70v16', '#2b2230', 3, 'butt')}
-    ${box(104, 90, 100, 13, C.red, 10)}<g ${O}><path d="M104 90l-10 7v6h10z" fill="#b8402c"/><path d="M146 92h18v9h-18z" fill="${C.cream}"/></g><text x="155" y="100.500" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="10" fill="${INK}">7</text>
+    <g class="ajig">${box(198, 72, 5, 18, '#2b2230', 4)}${box(190, 66, 22, 6, '#b8402c', 8)}
+    ${box(170, 66, 8, 24, '#2b2230', 8)}${box(150, 72, 20, 18, C.blue, 6)}${box(148, 52, 24, 20, '#f2c9a0', 6)}${box(146, 46, 28, 10, C.yellow, 6)}<path d="M152 61h4v6h-4z" fill="${INK}"/>
+    ${box(104, 90, 100, 13, C.red, 10)}<g ${O}><path d="M104 90l-10 7v6h10z" fill="#b8402c"/></g><path d="M110 97h88" stroke="${C.cream}" stroke-width="3"/>
+    ${rod('M134 88l3-10', '#2b2230', 2)}${box(131, 74, 10, 4, '#2b2230', 3)}${rod('M153 81l-10-3', C.blue, 4)}
     ${wheel(124, 108, 1)}${wheel(186, 106, 1.25)}</g>`,
   { top: '#8e8a99', onTop: `<path d="M64 108h186" stroke="#fff" stroke-width="3" stroke-dasharray="14 10"/><path d="M44 108l34-14h14l-34 14 34 14H78zM270 108l-34-14h-14l34 14-34 14h14z" fill="var(--art-grass, #8fd16a)" ${O}/>` });
 }
 
 export function kitchenArt() {
   return scene('A kitchen counter with a steaming pot and a burger', `
-    ${box(84, 84, 150, 30, C.cream, 12)}<path d="M96 94h34v12H96zM140 94h34v12h-34zM184 94h38v12h-38z" fill="none" stroke="${INK}" stroke-width="2.5" opacity=".55"/><path d="M84 84h150" stroke="${C.wood}" stroke-width="5"/><path d="M84 81.500h150M84 86.500h150" stroke="${INK}" stroke-width="2"/>
+    ${box(86, 88, 146, 26, C.cream, 12)}<path d="M96 95h36v12H96zM141 95h36v12h-36zM186 95h36v12h-36z" fill="none" stroke="${INK}" stroke-width="2"/><path d="M110 101h8M155 101h8M200 101h8" stroke="${INK}" stroke-width="2.500"/>
+    ${box(80, 82, 158, 6, C.wood, 14)}
     ${box(104, 56, 42, 22, C.steel, 8)}<path d="M96 60h8v6h-8zM154 56h8v6h-8z" fill="${C.steel}" ${O}/><path d="M104 56h42" stroke="${C.cream}" stroke-width="4"/>
     <g class="abob" fill="var(--art-cloud, #fff)" ${O}><path d="M116 38h11v10h-11zM126 26h8v8h-8z"/></g>
     <g class="abob" style="--d:.6s" ${O}><path d="M176 62l8-12h30l8 12z" fill="${C.orange}"/><path d="M172 62h54v6h-54z" fill="${C.leaf}"/><path d="M176 68h46v7h-46z" fill="#7a4a2e"/><path d="M176 75h46l-4 7h-38z" fill="${C.orange}"/><path d="M188 54h4M200 53h4" stroke-width="2.5" stroke="${C.cream}"/></g>`);
@@ -225,8 +227,8 @@ export function digArt() {
     <path d="M152 94h4v5h-4z" fill="${INK}"/><path d="M142 78h5v4h-5zM158 73h6v4h-6zM172 79h5v3h-5z" fill="#fff" fill-opacity=".7"/>
     <g class="abob" ${O}><path d="M140 22h28l10 12-24 22-24-22z" fill="${C.pink}"/><path d="M140 22h28l-14 12z" ${LIGHT}/><path d="M154 34l24 0-24 22z" ${DARK}/></g>
     <path d="M120 24l-9 3M188 24l9 3M154 14v-8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>
-    ${rod('M82 60L70 100', C.wood, 4, 'butt')}<g ${O}><path d="M76 54h14v8H76z" fill="${C.bark}"/><path d="M58 98h22l-4 20h-10z" fill="${C.grey}" transform="rotate(16 69 100)"/></g>
-    ${rod('M226 112V72', C.cream, 3, 'butt')}<path d="M229 72l22 8-22 8z" fill="${C.red}" ${O}/>`,
+    <g transform="translate(14 -8)">${rod('M82 62L71 98', C.wood, 4, 'butt')}<g ${O}><path d="M76 54h14v8H76z" fill="${C.bark}"/><path d="M58 98h22l-4 20h-10z" fill="${C.grey}" transform="rotate(16 69 100)"/><path d="M69 98l-3 20" transform="rotate(16 69 100)" stroke-width="2" opacity=".4"/></g></g>
+    ${rod('M226 110V74', C.cream, 3)}<path d="M229 72l22 8-22 8z" fill="${C.red}" ${O}/>`,
   { onTop: `<path d="M78 94l-17 14 17 14M118 94l-10 28M158 94v28M198 94l10 28M236 94l17 14-17 14M61 101h192M56 113h202" fill="none" stroke="${INK}" stroke-opacity=".28" stroke-width="2"/><path d="M92 114h24l5 5H86zM196 112h24l4 6h-32z" fill="#7a4a2e" ${O}/>` });
 }
 
@@ -246,11 +248,10 @@ export function bricksArt() {
 export function beanArt() {
   const leaf = (x, y, dir, c = C.green) => `<g transform="translate(${x} ${y}) scale(${dir} 1)" ${O}><path d="M0 0l10-8h34l12 8-12 7H10z" fill="${c}"/><path d="M0 0l10 7h34l12-7v5l-12 7H10L0 5z" fill="${C.leaf}"/></g>`;
   return scene('A climber hopping between the leaves of a giant beanstalk', `
-    ${rod('M152 116L140 88l20-30-14-30 8-36', C.leaf, 15, 'butt')}
+    ${rod('M152 112L140 88l20-30-14-30 8-36', C.leaf, 15, 'butt')}<path d="M134 116l8-9h20l8 9z" fill="${C.leaf}" ${O}/>
     ${leaf(142, 92, -1)}${leaf(158, 80, 1)}${leaf(144, 32, -1, '#8fd96a')}
     <g class="ahop"><g transform="translate(196 54) scale(1.35) translate(-194 -40)">${box(184, 22, 20, 18, '#f2c9a0', 5)}${box(182, 16, 24, 8, C.bark, 5)}<path d="M189 29h3v5h-3zM197 29h3v5h-3z" fill="${INK}"/>
-    <g ${O}><path d="M186 40h18v14h-18z" fill="${C.pink}"/><path d="M186 42l-10-6v6l10 6zM204 42l10-8v6l-10 8z" fill="${C.pink}"/><path d="M187 54h7v8h-7zM196 54h7v6h-7z" fill="${C.blue}"/></g></g></g>
-    <path d="M182 92l-4 6M197 94v7M212 92l4 6" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
+    <g ${O}><path d="M186 40h18v14h-18z" fill="${C.pink}"/><path d="M186 42l-10-6v6l10 6zM204 42l10-8v6l-10 8z" fill="${C.pink}"/><path d="M187 54h7v8h-7zM196 54h7v6h-7z" fill="${C.blue}"/></g></g></g>`);
 }
 
 export function panArt() {
@@ -289,24 +290,25 @@ export function dartsArt() {
   const dart = (x, y, rot, c, cls = '') => `<g class="${cls}"><g transform="translate(${x} ${y}) rotate(${rot})">${rod('M-3 0H-8', C.grey, 1, 'butt')}${rod('M-8 0H-22', C.yellow, 4, 'butt')}<path d="M-22 0h-6l-7-9h-9l6 9-6 9h9l7-9z" fill="${c}" ${O}/></g></g>`;
   return scene('A dartboard with numbers and coloured rings, a 301 scoreboard, two darts in the board and one flying in', `
     ${box(148, 96, 12, 20, C.bark, 6)}
-    ${box(52, 66, 44, 28, '#3b4a52', 6)}<text x="74" y="86" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="16" fill="${C.cream}">301</text>${box(70, 94, 8, 22, C.bark, 5)}
+    ${box(72, 90, 8, 26, C.bark, 5)}${box(54, 66, 44, 28, '#3b4a52', 6)}<text x="76" y="86" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="16" fill="${C.cream}">301</text>
     <g transform="translate(154 60)"><path d="${poly(41)}" fill="#2b2230" ${O}/>${board}
     <path d="${poly(32)}" fill="none" stroke="${INK}" stroke-width="1.500"/><path d="${poly(6)}" fill="${C.leaf}" stroke="${INK}" stroke-width="1.500"/><path d="${poly(2.500)}" fill="${C.red}"/>
     ${num(20, 0, -33.500)}${num(3, 0, 39)}${num(6, 36.500, 3)}${num(11, -36, 3)}</g>
-    ${dart(150, 44, 14, C.blue)}${dart(158, 62, -6, C.red)}${dart(118, 36, 16, C.mint, 'adart')}`);
+    ${dart(150, 44, 14, C.blue)}${dart(158, 62, -6, C.red)}${dart(104, 30, 16, C.mint, 'adart')}`);
 }
 
 export function tttArt() {
-  const X = (x, y, s = 9) => rod(`M${x - s} ${y - s}l${2 * s} ${2 * s}M${x + s} ${y - s}l${-2 * s} ${2 * s}`, C.red, 5, 'butt');
-  const Oh = (x, y, r = 9) => `<path d="M${x - r * .5} ${y - r}h${r}l${r * .5} ${r * .5}v${r}l${-r * .5} ${r * .5}h${-r}l${-r * .5}-${r * .5}v${-r}z" fill="none" stroke="${INK}" stroke-width="11" stroke-linejoin="miter"/><path d="M${x - r * .5} ${y - r}h${r}l${r * .5} ${r * .5}v${r}l${-r * .5} ${r * .5}h${-r}l${-r * .5}-${r * .5}v${-r}z" fill="none" stroke="${C.blue}" stroke-width="5" stroke-linejoin="miter"/>`;
+  const X = (x, y, s = 8) => rod(`M${x - s} ${y - s}l${2 * s} ${2 * s}M${x + s} ${y - s}l${-2 * s} ${2 * s}`, C.red, 5);
+  const oct = (x, y, r) => { const a = r * .414; return `M${x - a} ${y - r}h${2 * a}l${r - a} ${r - a}v${2 * a}l${a - r} ${r - a}h${-2 * a}l${a - r} ${a - r}v${-2 * a}z`; };
+  const Oh = (x, y, r = 9) => `<path d="${oct(x, y, r + 3)}${oct(x, y, r - 4)}" fill-rule="evenodd" fill="${C.blue}" ${O}/>`;
   let cells = '';
   for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) cells += `<rect x="${110 + c * 29}" y="${30 + r * 29}" width="26" height="26" fill="${C.cream}" stroke="${INK}" stroke-width="2"/>`;
   const at = (c, r) => [123 + c * 29, 43 + r * 29];
   return scene('A noughts and crosses board with three crosses in a row', `
     ${box(104, 24, 96, 92, C.wood, 8)}${cells}
     ${Oh(...at(0, 0))}${Oh(...at(2, 1))}${Oh(...at(1, 2))}${X(...at(2, 0))}${X(...at(1, 1))}${X(...at(0, 2))}
-    <path d="M100 124L204 20" stroke="${C.yellow}" stroke-width="4" stroke-linecap="square" opacity=".9"/>
-    <g class="abob">${X(70, 92, 12)}</g><g class="abob" style="--d:.5s">${Oh(234, 96, 11)}</g>`);
+    ${rod('M104 120L200 24', C.yellow, 3)}
+    <g class="abob">${X(72, 94, 11)}</g><g class="abob" style="--d:.5s">${Oh(236, 94, 13)}</g>`);
 }
 
 // Small square icons for the Today tiles (Mystery Pet, Hay Hunch, Pet Pop, Pet Farm): the same kit at 120x120 with a 5 wide outline.
