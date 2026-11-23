@@ -36,6 +36,7 @@ import * as hay from './hay.js';
 import * as pop from './pop.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
+import * as notice from './notice.js';
 import { isBot, pageFor } from './seo.js';
 
 const PORT = +process.env.PORT || 8080;
@@ -143,6 +144,19 @@ const server = http.createServer((req, res) => {
     fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
   });
 });
+
+// What the page's files look like right now. A screen that reconnects after a restart and sees another build reloads
+// itself, so nobody plays with half old, half new files.
+function buildId() {
+  const h = crypto.createHash('sha256');
+  const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : 1)) {
+    const f = path.join(dir, e.name);
+    if (e.isDirectory()) walk(f); else if (/\.(js|css|html|json|webmanifest)$/.test(e.name)) { const s = fs.statSync(f); h.update(`${f}:${s.size}:${s.mtimeMs}\n`); }
+  } };
+  try { walk(ROOT); } catch (e) { console.error('could not read the page files:', e.message); }
+  return h.digest('hex').slice(0, 12);
+}
+const BUILD = buildId();
 
 // ---------- players & rooms ----------
 const clients = new Map();  // token -> client {token, id, name, color, sock, room, lastSeen}
@@ -286,6 +300,10 @@ function broadcastStats() {
     for (const c of clients.values()) send(c, msg);
   }, 1000);
 }
+// Site notices: everyone gets them on every screen (tables too); hosts also see the note waiting for the next restart.
+const HOLD_MSG = 'An update is coming, so new games are on hold until it is done. Games already running carry on.';
+const noticeFor = c => ({ t: 'notice', ...notice.view(store.isAdmin(store.profileOf(c.token))) });
+notice.setOnChange(() => { for (const c of clients.values()) if (c.sock) send(c, noticeFor(c)); });
 function broadcastRooms() { const msg = { t: 'rooms', rooms: publicRooms() }; for (const c of clients.values()) if (c.sock && !c.room) send(c, msg); }
 function sendRoom(r) { const info = roomInfo(r); for (const t of r.players) send(clients.get(t), { t: 'room', room: info }); }
 function sendState(r) {
@@ -393,6 +411,16 @@ function handle(c, m) {
       return;
     }
     case 'stats': return send(c, statsMsg());
+    case 'notice': { // the hosts' Site notices window: maintenance countdown, announcement, "What's new"
+      const p = store.profileOf(c.token);
+      if (!m.op && !m.test) return allow('noticeq:' + c.token, 30, 60_000) && send(c, noticeFor(c)); // just asking (say, after logging in)
+      if (!store.isAdmin(p)) return;
+      if (m.test) return notice.testHook(m.test);
+      if (!allow('notice:' + p.pid, 20, 60_000)) return send(c, { t: 'err', msg: 'Slow down a little.' });
+      const r = notice.handle(m, p.user);
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      return;
+    }
     case 'where': c.view = WHERE.has(m.v) ? m.v : 'hub'; return; // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
     case 'who': { // the host's "Who's here" list: only accounts named in ADMINS get it
       if (!store.isAdmin(store.profileOf(c.token))) return;
@@ -408,6 +436,7 @@ function handle(c, m) {
     case 'create': {
       if (!isGame(m.game)) return; // an unknown game name used to leave a broken table that emptied everyone's table list
       if (!allow('create:' + c.token, 20, 60_000)) return send(c, { t: 'err', msg: 'Slow down a little: too many new tables.' });
+      if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
         opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
           : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
@@ -434,6 +463,7 @@ function handle(c, m) {
     }
     case 'start': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
+      if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       return startGame(r);
     }
     case 'lobby': { // host sends everyone back to the waiting room
@@ -640,7 +670,8 @@ attach(server, '/ws', sock => {
       store.setLook(token, c);
       store.scheduleSave();
       store.visit(token);
-      send(c, { t: 'welcome', token, id: c.id, name: c.name });
+      send(c, { t: 'welcome', token, id: c.id, name: c.name, build: BUILD });
+      send(c, noticeFor(c));
       send(c, statsMsg()); broadcastStats();
       send(c, { t: 'me', me: store.me(store.profileOf(token)) });
       const r = rooms.get(c.room);
@@ -689,7 +720,19 @@ farm.load();
 store.notePodium();
 hubchat.load();
 daily.load();
-const bye = () => { store.saveNow(); farm.saveNow(); hubchat.saveNow(); process.exit(0); };
+notice.load();
+// Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and
+// close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the
+// goodbye frames reach the players before the process ends.
+let stopping = false;
+const bye = () => {
+  if (stopping) return; stopping = true;
+  store.saveNow(); farm.saveNow(); hubchat.saveNow();
+  let n = 0;
+  for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
+  console.log(`stopping: saved, told ${n} screens to wait for the restart`);
+  setTimeout(() => process.exit(0), n ? 200 : 0);
+};
 process.on('SIGTERM', bye); process.on('SIGINT', bye);
 
 // ---------- game loop & housekeeping ----------

@@ -42,6 +42,9 @@ const TEXT = {
   'Constellations unlock at the last rank.': 'Gwiazdozbiory odblokujesz po ostatniej randze.',
   'Finish that constellation first.': 'Najpierw ukończ ten gwiazdozbiór.',
   'Slow down a little.': 'Zwolnij trochę.',
+  // site notices (maintenance)
+  'An update is coming, so new games are on hold until it is done. Games already running carry on.': 'Zaraz będzie aktualizacja, więc nowe gry są wstrzymane do jej końca. Trwające gry toczą się dalej.',
+  'Pick 1 to 120 minutes.': 'Wybierz od 1 do 120 minut.',
   // the shop and the wardrobe
   'That is not in the shop.': 'Tego nie ma w sklepie.',
   'You already have that.': 'Już to masz.',
