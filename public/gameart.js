@@ -202,10 +202,10 @@ export function kartArt() {
   return scene('A blocky kart racing along an island road towards a gift box', `
     <path d="M58 60h12M48 74h16M60 88h10" stroke="${TICK}" stroke-width="3" stroke-linecap="square" transform="translate(190 4)"/>
     <g class="abob" style="--d:.2s">${box(50, 46, 28, 24, C.mint, 8)}<g ${O}><path d="M60 46h8v24h-8z" fill="${C.pink}"/><path d="M60 46l8-4.800h8l-8 4.800z" fill="${C.pink}"/><path d="M64 44l-12-8v10zM68 44l12-10v10z" fill="${C.pink}"/></g></g>
-    <g class="ajig">${box(198, 72, 5, 18, '#2b2230', 4)}${box(190, 66, 22, 6, '#b8402c', 8)}
-    ${box(170, 66, 8, 24, '#2b2230', 8)}${box(150, 72, 20, 18, C.blue, 6)}${box(148, 52, 24, 20, '#f2c9a0', 6)}${box(146, 46, 28, 10, C.yellow, 6)}<path d="M152 61h4v6h-4z" fill="${INK}"/>
-    ${box(104, 90, 100, 13, C.red, 10)}<g ${O}><path d="M104 90l-10 7v6h10z" fill="#b8402c"/></g><path d="M110 97h88" stroke="${C.cream}" stroke-width="3"/>
-    ${rod('M134 88l3-10', '#2b2230', 2)}${box(131, 74, 10, 4, '#2b2230', 3)}${rod('M153 81l-10-3', C.blue, 4)}
+    <g class="ajig">${box(104, 90, 100, 13, C.red, 10)}<g ${O}><path d="M104 90l-10 7v6h10z" fill="#b8402c"/></g><path d="M110 97h88" stroke="${C.cream}" stroke-width="3"/>
+    ${box(197, 74, 5, 14, '#2b2230', 4)}${box(188, 68, 22, 6, '#b8402c', 8)}
+    ${box(173, 64, 7, 24, '#2b2230', 8)}${box(153, 70, 20, 18, C.blue, 6)}${box(151, 50, 24, 20, '#f2c9a0', 6)}${box(149, 44, 28, 10, C.yellow, 6)}<path d="M155 59h4v6h-4z" fill="${INK}"/>
+    ${box(116, 80, 28, 8, '#b8402c', 8)}${rod('M141 77l2-7', '#2b2230', 2)}${box(138, 65, 9, 4, '#2b2230', 3)}${rod('M155 80l-8-6', C.blue, 4)}
     ${wheel(124, 108, 1)}${wheel(186, 106, 1.25)}</g>`,
   { top: '#8e8a99', onTop: `<path d="M64 108h186" stroke="#fff" stroke-width="3" stroke-dasharray="14 10"/><path d="M44 108l34-14h14l-34 14 34 14H78zM270 108l-34-14h-14l34 14-34 14h14z" fill="var(--art-grass, #8fd16a)" ${O}/>` });
 }
