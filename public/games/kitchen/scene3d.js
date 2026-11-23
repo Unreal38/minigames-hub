@@ -342,7 +342,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
       disposeToon(room); disposeToon(land);
       for (const m of pots.values()) m.material.dispose();
       signMesh.material.map.dispose(); signMesh.material.dispose(); signMesh.geometry.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

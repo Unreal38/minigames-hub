@@ -126,5 +126,16 @@ if (s.id !== midId || s.open.filter(Boolean).length !== 1) fail('field did not s
   if (r2.over !== 'clear' || r2.res.coins !== 0 || r2.res.xp !== 0) fail('paid past the daily cap');
 }
 await stop();
+
+// ----- guards for the page sometimes opening on an empty sky -----
+// A lost WebGL context left the field blank for good, and every game visit used to keep its GPU context alive
+// (browsers allow only a handful, then drop the oldest). The first ask for the field could also be lost.
+const client = fs.readFileSync('public/games/hay/client.js', 'utf8');
+if (!/webglcontextlost[\s\S]*rebuildScene/.test(client)) fail('Hay Hunch must rebuild its scene when the WebGL context is lost');
+if (!/function askField[\s\S]*setInterval/.test(client)) fail('Hay Hunch must keep asking for the field until it comes');
+for (const id of fs.readdirSync('public/games')) {
+  const f = `public/games/${id}/scene3d.js`; if (!fs.existsSync(f)) continue;
+  for (const line of fs.readFileSync(f, 'utf8').split('\n')) if (/renderer\.dispose\(\)/.test(line) && !/forceContextLoss/.test(line)) fail(`${f}: dispose the renderer with forceContextLoss() so the GPU context is freed`);
+}
 console.log('hay ok');
 process.exit(0);

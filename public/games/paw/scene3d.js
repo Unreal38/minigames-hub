@@ -489,7 +489,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
       disposeArrow(arrow); disposeToon(crateProto); disposeToon(deco); disposeToon(land);
       pfx.dispose(); blobGeo.dispose(); blobMat.dispose(); for (const im of crates) im.dispose(); kit.dispose(); inkMat.dispose(); frameGeo.dispose(); ringGeo.dispose(); zTex.dispose(); zMat.dispose(); markMat.dispose(); aimFrame.geometry.dispose(); aimMat.dispose(); aimPin.traverse(m => { if (m.isMesh) m.material.dispose(); }); aimPin.userData.c.geometry.dispose(); dotGeo.dispose(); dotMat.dispose(); aimDots.dispose();
       topMat.map?.dispose(); topMat.dispose(); jarFill.geometry.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

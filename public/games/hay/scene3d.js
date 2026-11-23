@@ -160,14 +160,78 @@ export function createScene(canvas, { onFrame } = {}) {
   document.fonts?.ready.then(() => { for (const s of signs) s.key = ''; if (state) setSigns(state.rows, state.cols); });
 
   // ---------- bales ----------
-  const baleTpl = (() => {
+  // A square hay bale: pressed straw in flakes, two strings of twine round it, ragged cut ends and loose stalks.
+  // Three slightly different bales, so the field does not look stamped out.
+  const BL = .98, BD = .84;               // length (along a row) and depth of a bale
+  // one picture per bale: the long sides in the top half, the cut ends in the bottom half (one material, one draw call)
+  const paintStraw = (g, w, h, ends, seed) => {
+    let z = seed * 9301 + 49297; const rnd = () => (z = (z * 9301 + 49297) % 233280) / 233280;
+    g.fillStyle = '#e2b94e'; g.fillRect(0, 0, w, h);
+    const golds = ['#f3d777', '#ecc95f', '#d9a93e', '#c89533', '#f7e39a', '#bf8a2c'];
+    if (ends) { // the cut end: a jumble of short stalk ends, darker deep inside
+      const gr = g.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w * .6); gr.addColorStop(0, '#b9852c'); gr.addColorStop(1, '#e2b94e00'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 520; i++) { const x = rnd() * w, y = rnd() * h, a = rnd() * 6.28, l = 3 + rnd() * 9; g.strokeStyle = golds[rnd() * 6 | 0]; g.lineWidth = 1.2 + rnd() * 1.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+    } else { // the long sides: stalks lying along the bale, pressed into flakes with a dark seam between each
+      for (let i = 0; i < 900; i++) { const x = rnd() * w, y = rnd() * h, l = 10 + rnd() * 34, d = (rnd() - .5) * 5; g.strokeStyle = golds[rnd() * 6 | 0]; g.lineWidth = 1 + rnd() * 1.8; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + l / 2, y + d, x + l, y + d * .4); g.stroke(); }
+      const flakes = 7;
+      for (let k = 1; k < flakes; k++) { const x = k / flakes * w + (rnd() - .5) * 6; g.strokeStyle = '#9c6b22aa'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(x, 0); for (let y = 0; y <= h; y += 8) g.lineTo(x + (rnd() - .5) * 4, y); g.stroke(); g.strokeStyle = '#f7e39a88'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x + 2.5, 0); g.lineTo(x + 2.5, h); g.stroke(); }
+    }
+  };
+  const strawTex = seed => {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256; const g = cv.getContext('2d');
+    paintStraw(g, 256, 128, false, seed + 1);
+    g.save(); g.translate(0, 128); g.beginPath(); g.rect(0, 0, 256, 128); g.clip(); paintStraw(g, 256, 128, true, seed + 7); g.restore();
+    return tex(cv);
+  };
+  // a box with soft, slightly lumpy edges (packed straw is never sharp)
+  function baleGeo(seed) {
+    const geo = new THREE.BoxGeometry(BL, BH, BD, 8, 4, 6), P = geo.attributes.position, v = new THREE.Vector3();
+    const R = .07, hx = BL / 2 - R, hy = BH / 2 - R, hz = BD / 2 - R;
+    for (let i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i);
+      const inner = new THREE.Vector3(THREE.MathUtils.clamp(v.x, -hx, hx), THREE.MathUtils.clamp(v.y, -hy, hy), THREE.MathUtils.clamp(v.z, -hz, hz));
+      const d = v.clone().sub(inner); if (d.lengthSq() > 0) v.copy(inner).add(d.setLength(R));
+      const n = Math.sin(v.x * 23 + seed) * Math.cos(v.z * 19 + seed * 2) * Math.sin(v.y * 17 + seed * 3) * .012;
+      v.x += n; v.z += n * .8; v.y += (Math.abs(v.y) > hy ? n * .7 : 0);
+      P.setXYZ(i, v.x, v.y, v.z);
+    }
+    geo.translate(0, BH / 2, 0); geo.computeVertexNormals();
+    // canvas row 0 is the top of the picture, which three shows at v = 1: sides use v .5..1, cut ends (the x faces) v 0 to .5
+    const uv = geo.attributes.uv, idx = geo.index;
+    for (const gr of geo.groups) { const ends = gr.materialIndex < 2, seen = new Set(); for (let k = gr.start; k < gr.start + gr.count; k++) { const vi = idx.getX(k); if (seen.has(vi)) continue; seen.add(vi); uv.setY(vi, (ends ? 0 : .5) + uv.getY(vi) * .5); } }
+    geo.clearGroups();
+    return geo;
+  }
+  const twineMat = M('#ffffff', { vertexColors: true }), stalkMat = M('#ffffff', { vertexColors: true }), STALK = ['#f3d777', '#e2b94e', '#d9a93e'];
+  const stalkGeo = new THREE.BoxGeometry(.2, .018, .022); stalkGeo.translate(.1, 0, 0);
+  const baleTpls = [0, 1, 2].map(seed => {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(.98, BH, .86, 1, 1, 1), M('#e8c25a')); body.position.y = BH / 2; body.castShadow = true; body.receiveShadow = true; g.add(body);
-    const top = new THREE.Mesh(new THREE.BoxGeometry(.9, .05, .78), M('#f2d374')); top.position.y = BH + .01; g.add(top);
-    for (const x of [-.24, .24]) { const band = new THREE.Mesh(new THREE.BoxGeometry(.06, BH + .07, .9), M('#a8742f')); band.position.set(x, BH / 2 + .02, 0); g.add(band); }
-    for (let i = 0; i < 6; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(.22, .025, .03), M('#f5dc85')); st.position.set(-.35 + i * .14, BH * (.3 + (i % 3) * .2), .44); st.rotation.z = (i % 2 ? .4 : -.3); st.userData.noInk = true; g.add(st); }
-    return toonify(g, .035);
-  })();
+    const body = new THREE.Mesh(baleGeo(seed), M('#ffffff', { map: strawTex(seed), flatShading: false })); body.castShadow = true; body.receiveShadow = true; g.add(body);
+    // Twine and loose stalks are each merged into one mesh, so a bale stays three draw calls.
+    const parts = [];
+    for (const x of [-.25, .25]) parts.push([new THREE.BoxGeometry(.035, BH + .012, BD + .012), new THREE.Matrix4().makeTranslation(x, BH / 2, 0), '#8a5a2b', 'twine']);
+    // loose stalks poking out of the edges and cut ends
+    let z = seed * 77 + 5; const rnd = () => (z = (z * 9301 + 49297) % 233280) / 233280;
+    const o = new THREE.Object3D();
+    for (let i = 0; i < 16; i++) {
+      const onEnd = i < 8, sx = rnd() < .5 ? -1 : 1;
+      if (onEnd) { o.position.set(sx * (BL / 2 - .02), .08 + rnd() * (BH - .14), (rnd() - .5) * (BD - .14)); o.rotation.set(0, sx > 0 ? (rnd() - .5) * .9 : Math.PI + (rnd() - .5) * .9, (rnd() - .5) * 1.2); }
+      else { o.position.set((rnd() - .5) * (BL - .1), BH - .01, sx * (BD / 2 - .03)); o.rotation.set(0, sx > 0 ? -Math.PI / 2 + (rnd() - .5) * 1.2 : Math.PI / 2 + (rnd() - .5) * 1.2, .25 + rnd() * .5); }
+      o.scale.set(.6 + rnd() * .8, 1, 1); o.updateMatrix();
+      parts.push([stalkGeo, o.matrix.clone(), STALK[i % 3], 'stalk']);
+    }
+    for (const kind of ['twine', 'stalk']) {
+      const pos = [], col = [], c = new THREE.Color();
+      for (const [geo, mx, hex, k] of parts) {
+        if (k !== kind) continue;
+        const gg = geo.toNonIndexed().applyMatrix4(mx), P = gg.attributes.position; c.set(hex);
+        for (let v = 0; v < P.count; v++) { pos.push(P.getX(v), P.getY(v), P.getZ(v)); col.push(c.r, c.g, c.b); }
+      }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, kind === 'twine' ? twineMat : stalkMat); m.userData.noInk = true; g.add(m);
+    }
+    return toonify(g, .03);
+  });
   const glowMat = new THREE.MeshBasicMaterial({ color: '#fff6c8', transparent: true, opacity: .0, depthWrite: false });
   const cursorGeo = new THREE.RingGeometry(.62, .74, 32); cursorGeo.rotateX(-Math.PI / 2);
   const cursor = new THREE.Mesh(cursorGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: .95, depthWrite: false })); cursor.visible = false; scene.add(cursor);
@@ -194,7 +258,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   const cells = Array.from({ length: N * N }, (_, i) => {
     const r = i / N | 0, c = i % N, x = cx(c), z = cz(r);
-    const bale = baleTpl.clone(true); bale.position.set(x, 0, z); bale.rotation.y = (Math.sin(i * 7.3) * .08); scene.add(bale);
+    const bale = baleTpls[(i * 7 + (i / N | 0)) % 3].clone(true); bale.position.set(x, 0, z); scene.add(bale);
     const cv = document.createElement('canvas'); cv.width = cv.height = 128; const mt = tex(cv);
     const mark = new THREE.Mesh(markGeo, new THREE.MeshBasicMaterial({ map: mt, transparent: true, depthWrite: false })); mark.position.y = BH + .07; mark.visible = false; bale.add(mark);
     return { i, x, z, bale, mark, mcv: cv, mt, marks: 0, shown: -1, what: null, flipT: -1, under: null, hover: 0, wake: 0 };
@@ -286,7 +350,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const fresh = s.id !== fieldId;
     if (fresh) { // a new field: every bale drops back in
       fieldId = s.id;
-      cells.forEach((c, k) => { clearUnder(c); c.shown = -1; c.flipT = -1; c.wake = 0; c.bale.visible = true; c.bale.position.y = 6 + (k % N) * .4 + (k / N | 0) * .3; c.bale.rotation.set(0, Math.sin(k * 7.3) * .08, 0); c.bale.scale.setScalar(1); c.drop = performance.now() + k * 28; });
+      cells.forEach((c, k) => { clearUnder(c); c.shown = -1; c.flipT = -1; c.wake = 0; c.bale.visible = true; c.bale.position.y = 6 + (k % N) * .4 + (k / N | 0) * .3; c.bale.rotation.set(0, Math.sin(k * 7.3) * .08 + (k * 5 % 3 === 1 ? Math.PI : 0), 0); c.bale.scale.setScalar(1); c.drop = performance.now() + k * 28; });
     }
     state = s;
     setSigns(s.rows, s.cols);
@@ -372,7 +436,7 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       ticker.stop(); ro.disconnect(); if (av) disposeAvatar(av);
       pfx.dispose(); for (const s of signs) s.t.dispose(); for (const c of cells) c.mt.dispose(); valTex.forEach(t => t?.dispose());
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

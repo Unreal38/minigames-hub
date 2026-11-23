@@ -930,7 +930,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     dispose() {
       frames.stop();
       canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('click', onClick);
-      pfx.dispose(); potRim.dispose(); renderer.dispose();
+      pfx.dispose(); potRim.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

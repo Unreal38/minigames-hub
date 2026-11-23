@@ -105,14 +105,17 @@ function build() {
   }
   setIsle(null);
   const setZoom = k => { camAt.set(0, 3.4, 19.5 / k); target.y = -.2 - (k - 1) * 1.2; };
-  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, skyNo: () => skyNo };
+  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, skyNo: () => skyNo, lost: () => renderer.getContext().isContextLost() };
 }
 
 // fl: the player's flair; its isle kinds (ig ground, ib rock base, ip decor, ik sky) dress the isle.
+// The browser can take a WebGL context away (a phone asleep, a GPU reset): that canvas stays blank forever, so build anew.
+const fresh = v => { if (!v?.lost()) return v; v.ticker.stop(); v.canvas.remove(); return null; };
 const skyCls = (box, n) => { for (const c of [...box.classList]) if (/^isk\d/.test(c)) box.classList.remove(c); if (n) box.classList.add('isk' + n); };
 // frame: the hub's sky banner (it gets a class isk1.. for a bought sky); zoom brings the camera closer so the isle fills it.
 export function mountHero(box, color, av, pets = [], fl = null, { frame = null, zoom = 1 } = {}) {
   if (!box) return false;
+  H = fresh(H);
   try { H ||= build(); } catch { return false; }
   H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl); H.setZoom(zoom); if (frame) skyCls(frame, H.skyNo());
   if (H.canvas.parentNode !== box) box.replaceChildren(H.canvas);
@@ -122,6 +125,7 @@ export function mountHero(box, color, av, pets = [], fl = null, { frame = null, 
 // frame: the element whose background is the sky (it gets a class isk1.. for a bought sky; see style.css).
 export function mountIsle(box, color, av, pets = [], fl = null, frame = box) {
   if (!box) return false;
+  P = fresh(P);
   try { P ||= build(); } catch { return false; }
   P.setAvatar(color, av); P.setPets(pets); P.setIsle(fl); skyCls(frame, P.skyNo());
   if (P.canvas.parentNode !== box) box.replaceChildren(P.canvas);

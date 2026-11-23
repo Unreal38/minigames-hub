@@ -394,7 +394,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       for (const a of avatars) disposeAvatar(a.av);
       disposeArrow(arrow);
       scene.traverse(o => { if (o.isMesh && !o.userData.keep) o.geometry?.dispose(); });
-      balMat.dispose(); inkMat.dispose(); renderer.dispose();
+      balMat.dispose(); inkMat.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

@@ -47,19 +47,42 @@ export function mount(app, ctx) {
     <div class="results" id="hh-res" hidden></div>
     <div class="gate" id="hh-gate" hidden></div>
   </div>`;
-  const root = app.querySelector('.hh'), $ = id => root.querySelector('#' + id), canvas = root.querySelector('.g3d');
-  canvas.tileScreen = i => scene?.tileScreen(i) || null; // where a bale is on screen (used by browser tests)
-  let S = null, scene = null, destroyed = false, fieldId = null, overShown = null, resTimer = 0, bigTimer = 0, quiet = 0;
+  const root = app.querySelector('.hh'), $ = id => root.querySelector('#' + id);
+  let canvas = root.querySelector('.g3d');
+  let S = null, scene = null, destroyed = false, fieldId = null, overShown = null, resTimer = 0, bigTimer = 0, quiet = 0, retry = 0, rebuildTimer = 0;
   let marks = Array(N * N).fill(0), markMode = false, markKind = 1, cursor = -1, touchPick = -1, busy = 0;
   const send = a => { ctx.send(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast(L('Hay Hunch did not answer. Check your connection. If the game was just updated, the server needs a restart.', 'Hay Hunch nie odpowiada. Sprawdź połączenie. Jeśli gra była właśnie aktualizowana, serwer wymaga restartu.'), true); }, 4000); };
+  // Ask for the field until it comes. The first ask can be lost: the connection may be coming back (a phone waking up)
+  // and the app drops messages while the socket is closed, so the page used to wait forever with no field and no HUD.
+  function askField() {
+    clearInterval(retry); send({ t: 'open' });
+    retry = setInterval(() => { if (destroyed || S || !$('hh-gate').hidden) return clearInterval(retry); ctx.send({ t: 'open' }); }, 1500);
+  }
 
-  import('./scene3d.js').then(m => {
+  // The 3D field. A browser can take a WebGL context away at any time (too many open at once, a phone going to sleep,
+  // a GPU reset). three.js then draws nothing and only the sky-blue page behind the canvas is left, so when that
+  // happens the scene is built again on a fresh canvas, showing the same field.
+  let sceneMod = null;
+  function buildScene() {
+    (sceneMod ||= import('./scene3d.js')).then(m => {
+      if (destroyed || scene) return;
+      try { scene = m.createScene(canvas, { onFrame: null }); }
+      catch (err) { console.warn('3D unavailable', err); root.classList.add('flat'); return; }
+      root.classList.remove('flat');
+      const me = ctx.me(); if (me) scene.setAvatar(me.color, me.av);
+      if (S) { scene.setState(S); scene.setMarks(marks); scene.setPicked(touchPick); }
+      layout();
+    }).catch(err => { console.warn('3D unavailable', err); sceneMod = null; root.classList.add('flat'); });
+  }
+  function rebuildScene() {
+    rebuildTimer = 0;
     if (destroyed) return;
-    scene = m.createScene(canvas, { onFrame: null });
-    const me = ctx.me(); if (me) scene.setAvatar(me.color, me.av);
-    if (S) { scene.setState(S); scene.setMarks(marks); }
-    layout();
-  }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
+    try { scene?.dispose(); } catch {}
+    scene = null;
+    const fresh = document.createElement('canvas'); fresh.className = 'g3d'; fresh.setAttribute('aria-label', canvas.getAttribute('aria-label') || '');
+    canvas.replaceWith(fresh); bindCanvas(fresh);
+    buildScene();
+  }
 
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   function layout() {
@@ -175,26 +198,33 @@ export function mount(app, ctx) {
     if (!S || S.over || S.cells[i] >= 0) return;
     marks[i] ^= bit; saveMarks(); scene?.setMarks(marks); sfx.pop();
   }
-  canvas.addEventListener('pointermove', e => {
-    if (e.pointerType !== 'mouse' || !scene || !S || S.over) return;
-    const i = scene.pick(e.clientX, e.clientY), ok = canFlip(i) || (markMode && i >= 0 && S.cells[i] < 0);
-    if (i !== cursor) { cursor = i; scene.setHover(ok ? i : -1); if (ok) sfx.hover(); }
-    canvas.style.cursor = ok ? 'pointer' : '';
-  });
-  canvas.addEventListener('pointerleave', () => { cursor = -1; scene?.setHover(-1); });
-  canvas.addEventListener('contextmenu', e => {
-    e.preventDefault(); if (!scene) return;
-    const i = scene.pick(e.clientX, e.clientY); if (i >= 0) mark(i, 1);
-  });
-  canvas.addEventListener('click', e => {
-    if (!scene || !S || S.over) return;
-    const i = scene.pick(e.clientX, e.clientY);
-    if (i < 0 || S.cells[i] >= 0) { if (touchPick >= 0) { touchPick = -1; scene.setPicked(-1); render(); } return; }
-    if (markMode) return mark(i);
-    // a mouse flips at once; a finger picks the bale first, so a slip does not wake a pet
-    if (e.pointerType === 'mouse' || (!e.pointerType && matchMedia('(hover: hover)').matches) || touchPick === i) flip(i);
-    else { touchPick = i; scene.setPicked(i); sfx.click(); render(); }
-  });
+  function bindCanvas(cv) {
+    canvas = cv;
+    cv.tileScreen = i => scene?.tileScreen(i) || null; // where a bale is on screen (used by browser tests)
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); if (!destroyed && !rebuildTimer) rebuildTimer = setTimeout(rebuildScene, 400); });
+    cv.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse' || !scene || !S || S.over) return;
+      const i = scene.pick(e.clientX, e.clientY), ok = canFlip(i) || (markMode && i >= 0 && S.cells[i] < 0);
+      if (i !== cursor) { cursor = i; scene.setHover(ok ? i : -1); if (ok) sfx.hover(); }
+      cv.style.cursor = ok ? 'pointer' : '';
+    });
+    cv.addEventListener('pointerleave', () => { cursor = -1; scene?.setHover(-1); });
+    cv.addEventListener('contextmenu', e => {
+      e.preventDefault(); if (!scene) return;
+      const i = scene.pick(e.clientX, e.clientY); if (i >= 0) mark(i, 1);
+    });
+    cv.addEventListener('click', e => {
+      if (!scene || !S || S.over) return;
+      const i = scene.pick(e.clientX, e.clientY);
+      if (i < 0 || S.cells[i] >= 0) { if (touchPick >= 0) { touchPick = -1; scene.setPicked(-1); render(); } return; }
+      if (markMode) return mark(i);
+      // a mouse flips at once; a finger picks the bale first, so a slip does not wake a pet
+      if (e.pointerType === 'mouse' || (!e.pointerType && matchMedia('(hover: hover)').matches) || touchPick === i) flip(i);
+      else { touchPick = i; scene.setPicked(i); sfx.click(); render(); }
+    });
+  }
+  bindCanvas(canvas);
+  buildScene();
   const onKey = e => {
     if (!S || e.target.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey || !$('hh-gate').hidden) return;
     const k = e.key.toLowerCase();
@@ -250,11 +280,11 @@ export function mount(app, ctx) {
       if (m.err) { sfx.bad(); ctx.toast(esc(srvText(m.err)), true); }
       if (m.s) update(m.s);
     },
-    me() { const me = ctx.me(); if (me) scene?.setAvatar(me.color, me.av); if (me?.user && !S) send({ t: 'open' }); },
-    reopen() { send({ t: 'open' }); },
+    me() { const me = ctx.me(); if (me) scene?.setAvatar(me.color, me.av); if (me?.user && !S) askField(); },
+    reopen() { askField(); },
     destroy() {
       destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); removeEventListener('resize', onResize);
-      clearTimeout(resTimer); clearTimeout(bigTimer); clearTimeout(quiet); scene?.dispose();
+      clearTimeout(resTimer); clearTimeout(bigTimer); clearTimeout(quiet); clearInterval(retry); clearTimeout(rebuildTimer); scene?.dispose();
     },
   };
 }

@@ -417,7 +417,7 @@ export function createScene(canvas, { onFrame, onCue, onPick }) {
       for (const a of avatars) disposeAvatar(a.av);
       for (const m of [pawnMesh, lineMesh]) if (m) m.dispose();
       pawnGeom?.dispose(); ringGeo.dispose(); rings.material.dispose(); rings.dispose();
-      disposeArrow(arrow); for (const c of die.children) c.material.dispose(); kit.dispose(); renderer.dispose();
+      disposeArrow(arrow); for (const c of die.children) c.material.dispose(); kit.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

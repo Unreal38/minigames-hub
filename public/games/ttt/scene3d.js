@@ -329,7 +329,7 @@ export function createScene(canvas, { onFrame } = {}) {
       for (const p of protos) { p.solid.traverse(o => { if (o.userData.ink) o.geometry.dispose(); }); p.ghost.dispose(); }
       hideBar(); boardG?.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
       pfx.dispose(); xGeo?.dispose(); oGeo?.dispose(); ringGeo.dispose(); hotMat.dispose(); winMat.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

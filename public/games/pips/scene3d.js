@@ -287,7 +287,7 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
       pfx.dispose(); kit.dispose(); inkMat.dispose(); glowMat.dispose();
       for (const g of [ringGeo, rollRing]) g.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

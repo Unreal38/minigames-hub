@@ -349,7 +349,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
       for (const a of avs) disposeAvatar(a.av);
       disposeArrow(arrow); fx.dispose(); faceTex.dispose();
       scene.traverse(o => { if (o.isMesh && !o.userData.keep) o.geometry?.dispose(); });
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

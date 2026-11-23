@@ -1240,7 +1240,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       for (const e of items.values()) disposeModel(e.g);
       for (const q of people.values()) disposeAvatar(q.g);
       scene.traverse(o => { if (o.isMesh || o.isLineSegments) { o.geometry?.dispose?.(); } });
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

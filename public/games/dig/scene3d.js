@@ -445,7 +445,7 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) freeSeat(s);
-      pfx.dispose(); gtx?.dispose(); inkMat.dispose(); renderer.dispose();
+      pfx.dispose(); gtx?.dispose(); inkMat.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

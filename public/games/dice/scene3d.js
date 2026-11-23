@@ -293,7 +293,7 @@ export function createScene(canvas, { onFrame } = {}) {
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
       pfx.dispose(); kit.dispose(); inkMat.dispose();
       for (const g of [cupGeo, bandGeo, ringGeo, heartGeo]) g.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

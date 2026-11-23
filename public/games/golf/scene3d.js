@@ -494,7 +494,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       removeEventListener('keydown', key);
       if (holeG) disposeToon(holeG);
       for (const p of players) disposeAvatar(p.av);
-      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); preGeo.dispose(); pre.dispose(); plain?.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose();
+      disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); ballGeo.dispose(); preGeo.dispose(); pre.dispose(); plain?.dispose(); courseMat.dispose(); waterMat.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }
