@@ -1304,3 +1304,62 @@ footer .plink:hover { color: var(--tx, var(--ink)); }
 /* The plain text in index.html that search engines read before the app draws the hub over it. */
 .seo-intro { padding: 40px max(4vw, 16px); font-size: 17px; line-height: 1.5; }
 .seo-intro h1 { font-family: var(--fd); margin: 0 0 12px; }
+
+/* ---------- MOCKUP: the hub's isle preview (body.isle-a / isle-b / isle-c) ---------- */
+.hero .art .icv { display: contents; }
+.hero .art .iglow { display: none; }
+.isletag { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); z-index: 2; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  font: 600 15px var(--fd); color: var(--tx, var(--ink)); background: var(--pan, #fff); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 6px 4px 14px; box-shadow: 0 4px 0 var(--ink); cursor: pointer; transition: transform .12s; }
+.isletag:hover { transform: translateX(-50%) translateY(-2px); }
+.isletag .itn { max-width: 11em; overflow: hidden; text-overflow: ellipsis; }
+.isletag .lvslot:empty { display: none; }
+.isletag .itgo { font-size: 13px; background: var(--lantern); color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; }
+.isletag.guest .itgo { background: var(--mint); }
+
+/* A: the round window, much bigger, filling the hero's height */
+body.isle-a .hubgrid .hero .art, body.isle-a.sky:not(.in-game) .hubgrid .hero .art.sky3d { flex: 0 0 clamp(250px, 21vw, 380px); height: clamp(260px, 21vw, 360px); position: relative; }
+
+/* B: no frame; the isle floats free on the page with a soft glow in your sky's colours */
+body.isle-b .hubgrid .hero .art, body.isle-b.sky:not(.in-game) .hubgrid .hero .art.sky3d { flex: 0 0 clamp(300px, 27vw, 470px); height: clamp(300px, 24vw, 400px); position: relative; margin-block: -10px -4px; }
+body.isle-b .hero .art .iglow { display: block; }
+body.isle-b .hero .art .iglow, body.isle-b .hero .art .iglow[class*=isk] { position: absolute; inset: -6% -4% 2%; border-radius: 50%; filter: blur(6px); pointer-events: none; }
+body.isle-b .hero .art .iglow:not([class*=isk]) { background: radial-gradient(closest-side, #fff8 0, #bfe6ff66 45%, transparent 100%); }
+body.isle-b.night .hero .art .iglow:not([class*=isk]) { background: radial-gradient(closest-side, #8a7dff55 0, #5a4fc033 50%, transparent 100%); }
+body.isle-b .hero .art .iglow[class*=isk] { -webkit-mask-image: radial-gradient(closest-side, #000 15%, #0008 55%, transparent 100%); mask-image: radial-gradient(closest-side, #000 15%, #0008 55%, transparent 100%); opacity: .8; }
+body.isle-b .hero .hero3d { -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%); mask-image: radial-gradient(closest-side, #000 78%, transparent 100%); }
+
+/* C: the hero is a sky banner, your isle big on its right and the text on a soft panel on the left */
+body.isle-c .hubgrid .hero { position: relative; margin-top: 18px; padding: 26px 28px; border: 3px solid var(--ink); border-radius: 26px; box-shadow: 0 6px 0 var(--ink); background-origin: border-box; overflow: hidden; isolation: isolate; }
+body.isle-c .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#8fd0f7, #d9f1ff); }
+body.isle-c.night .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
+body.isle-c .hubgrid .hero::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, var(--pan) 0, color-mix(in srgb, var(--pan) 88%, transparent) 46%, transparent 68%); }
+body.isle-c .hubgrid .hero > div:first-child { position: relative; z-index: 1; }
+body.isle-c .hubgrid .hero .art, body.isle-c.sky:not(.in-game) .hubgrid .hero .art.sky3d { flex: 0 0 clamp(280px, 30vw, 520px); align-self: stretch; height: auto; min-height: 300px; position: relative; margin: -26px -28px -26px 0; }
+body.isle-c .hubgrid .hero .art .hero3d { inset: 0; width: 100%; height: 100%; }
+body.isle-c .isletag { bottom: 14px; }
+
+@media (min-width: 1100px) and (max-width: 1299px) {
+  body.isle-b .hubgrid .hero .art, body.isle-b.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex-basis: 220px; height: 250px; }
+  .hubgrid .hero .isletag .itgo { display: none; }
+}
+/* C below 1500px: the sky strip with your isle sits on top of the text */
+@media (max-width: 1499px) {
+  body.isle-c .hubgrid .hero { flex-direction: column-reverse; align-items: stretch; padding: 0 20px 20px; gap: 12px; }
+  body.isle-c .hubgrid .hero::before { background: linear-gradient(transparent 0, transparent 190px, var(--pan) 230px); }
+  body.isle-c .hubgrid .hero .art, body.isle-c.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex: none; height: 220px; min-height: 0; margin: 0 -20px; }
+  body.isle-c .isletag { bottom: 8px; }
+}
+@media (max-width: 1099px) {
+  /* phones: A keeps the isle hidden as today; B floats a small isle by the headline */
+  body.isle-b .hubgrid .hero { display: grid; grid-template-columns: 1fr 140px; align-items: start; column-gap: 6px; }
+  body.isle-b .hubgrid .hero > div:first-child { display: contents; }
+  body.isle-b .hubgrid .hero h1 { grid-column: 1; grid-row: 1; align-self: center; }
+  body.isle-b .hubgrid .hero .art, body.isle-b.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; grid-column: 2; grid-row: 1; height: 150px; margin: 0; }
+  body.isle-b .hubgrid .hero > div:first-child > :not(h1) { grid-column: 1 / -1; }
+  body.isle-b .hubgrid .hero p:not(.livestats) { margin-top: 10px; } body.isle-b .hubgrid .herorow { margin-block: 14px 10px; }
+  body.isle-b .isletag { display: none; }
+  body.isle-c .hubgrid .hero { padding: 0 16px 18px; margin-top: 12px; }
+  body.isle-c .hubgrid .hero .art, body.isle-c.sky:not(.in-game) .hubgrid .hero .art.sky3d { height: 210px; margin: 0 -16px; }
+  body.isle-c .isletag { font-size: 13px; }
+}
+body.isle-c .hubgrid .herorow .btn.big { flex-shrink: 0; }

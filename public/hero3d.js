@@ -103,15 +103,16 @@ function build(disc) { // disc: paint a bought sky as a round window behind the 
     isle?.root.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
   }
   setIsle(null);
-  return { canvas, setAvatar, setPets, setIsle, setNight, ticker, skyNo: () => skyNo };
+  const setZoom = k => { camAt.set(0, 3.4, 19.5 / k); target.y = -.2 - (k - 1) * 1.2; };
+  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, skyNo: () => skyNo };
 }
 
 // fl: the player's flair; its isle kinds (ig ground, ib rock base, ip decor, ik sky) dress the isle.
 const skyCls = (box, n) => { for (const c of [...box.classList]) if (/^isk\d/.test(c)) box.classList.remove(c); if (n) box.classList.add('isk' + n); };
-export function mountHero(box, color, av, pets = [], fl = null) {
+export function mountHero(box, color, av, pets = [], fl = null, { disc = true, frame = null, zoom = 1 } = {}) {
   if (!box) return false;
-  try { H ||= build(true); } catch { return false; }
-  H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl);
+  try { H ||= build(disc); } catch { return false; }
+  H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl); H.setZoom(zoom); if (frame) skyCls(frame, H.skyNo());
   if (H.canvas.parentNode !== box) box.replaceChildren(H.canvas);
   return true;
 }
