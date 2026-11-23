@@ -210,7 +210,7 @@ function album(f) {
 }
 // A farm as its neighbours see it. Nothing here can be changed by the viewer.
 const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, size: f.size, house: f.house || 1, pts: f.pts || 0,
-  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r })) }; };
+  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r, ...(i.lv > 1 ? { lv: i.lv } : {}) })) }; }; // lv: visitors and the map see each building at its level
 
 // ---------- trading ----------
 // An offer lives on the sender's farm. What they offer is set aside at once (materials leave the stock, pets are

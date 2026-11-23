@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf } from './data.js';
+import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
 import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
@@ -147,20 +147,26 @@ export function createScene(canvas, { onPick, onGhost }) {
     const [w, h] = footprint(type, r);
     g.position.set(wx(x, w), 0, wz(y, h)); g.rotation.y = -r * Math.PI / 2;
   }
+  // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
+  const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {
       seen.add(it.id);
-      const key = [it.type, it.x, it.y, it.r, N].join();
+      const lv = levelOf(it), key = [it.type, it.x, it.y, it.r, N, lv].join();
       let e = items.get(it.id);
       if (e && e.key === key) continue;
-      if (!e || e.type !== it.type) {
+      const grew = !!e && e.type === it.type && lv > e.lv; // improved while we watch: the new look pops in with a little party
+      if (!e || e.type !== it.type || e.lv !== lv) {
+        const held = ['pick', 'hover'].filter(k => marks[k].t?.item === it.id).map(k => [k, marks[k].t]); for (const [k] of held) setMark(k, null);
         if (e) { scene.remove(e.g); disposeModel(e.g); }
-        const g = itemModel(it.type, true), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
-        e = { g: hold, m: g, type: it.type, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
+        const g = itemModel(it.type, true, false, lv), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
+        e = { g: hold, m: g, type: it.type, lv, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
         scene.add(hold); items.set(it.id, e);
+        for (const [k, t] of held) setMark(k, t);
       }
       e.key = key; placeModel(e.g, it.type, it.x, it.y, it.r);
+      if (grew && seenOnce) { const [w, h] = footprint(it.type, it.r); celebrate(e.g.position.x, e.g.position.z, e.top, Math.max(w, h) / 2 + .25); }
     }
     if (farm) seenOnce = true;
     itemStates();
@@ -459,6 +465,15 @@ export function createScene(canvas, { onPick, onGhost }) {
     tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5] };
   const SEAT = { bench: .24, palbench: .24, picnic: .04, pond: -.1, hotspring: -.12 }; // how high a pet sits on or in something
   const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
+  // A building just got better: confetti and stars burst from it, and dust puffs out round its foot.
+  const BMC = ['#ffd84a', '#ff8fb1', '#7fd3ff', '#9be27a', '#ffffff'].map(c => new THREE.MeshBasicMaterial({ color: c })), CONF = new THREE.BoxGeometry(1, 1, .25);
+  function celebrate(x, z, top, r) {
+    const R = Math.random;
+    for (let i = 0; i < 30; i++) { const a = R() * 6.283, v = .7 + R() * 1.5, vy = 2 + R() * 2.2, k = .05 + R() * .05, star = i % 3 === 0, sp = 4 + R() * 6, y0 = top * (.45 + R() * .4);
+      bit(star ? BIT.star : CONF, BMC[i % 5], 1.1 + R() * .5, (m, u, t) => { m.position.set(x + Math.cos(a) * v * t, y0 + vy * t - 3.4 * t * t, z + Math.sin(a) * v * t); if (star) m.rotation.set(0, cam.az, t * sp); else m.rotation.set(t * sp, t * sp * .7, a); m.scale.setScalar((star ? k * 1.7 : k * 1.3) * Math.min(1, u * 12, (1 - u) * 3)); }); }
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + R() * .4; floatUp(BIT.star, BM.star, x + Math.cos(a) * r * .8, top * (.2 + R() * .6), z + Math.sin(a) * r * .8, .09, 1.3 + R() * .6); }
+    for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283; dustAt(x + Math.cos(a) * r, z + Math.sin(a) * r, 1); }
+  }
   // Helpers at work: each job has its own little routine and its own particles.
   const BMW = { leaf: new THREE.MeshBasicMaterial({ color: '#6cc24f' }), leaf2: new THREE.MeshBasicMaterial({ color: '#a6e06a' }), pebble: tflat('#9a9088'), spark: new THREE.MeshBasicMaterial({ color: '#ffe14a' }), ember: new THREE.MeshBasicMaterial({ color: '#ff8a3c' }), ember2: new THREE.MeshBasicMaterial({ color: '#ffd35a' }), sprout: new THREE.MeshBasicMaterial({ color: '#b6f08a' }) };
   // Where a helper stands: the first free spot in front of, beside or behind the building, never off the island's edge.
@@ -811,7 +826,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
-      const m = itemModel(it.type, false, true), [w, h] = footprint(it.type, it.r);
+      const m = itemModel(it.type, false, true, levelOf(it, f)), [w, h] = footprint(it.type, it.r);
       m.position.set(it.x + w / 2 - n / 2, 0, it.y + h / 2 - n / 2); m.rotation.y = -it.r * Math.PI / 2; land.add(m);
     }
     bake(land); toonify(land, .07);
@@ -917,7 +932,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok };
   function ghostStart(type, id, x, y, r) {
     ghostCancel(true);
-    const g = itemModel(type);
+    const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1);
     g.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .8; m.castShadow = false; m.userData.baked = true; } });
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
