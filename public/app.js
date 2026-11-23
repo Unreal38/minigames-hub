@@ -658,6 +658,8 @@ function onMsg(m) {
   } else if (m.t === 'react') {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
+  } else if (m.t === 'rkstale') { // someone left the rankings (an account was deleted): fetch them again
+    st.rk = {}; if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'daily' }); }
   } else if (m.t === 'chatlog') {
     chat.log = Array.isArray(m.log) ? m.log : []; chatPaint();
   } else if (m.t === 'chat') {
@@ -1914,7 +1916,8 @@ function openPlayer(p) {
       : p.rel === 'sent' ? `<button type="button" class="btn big w" disabled>${L('Friend request sent', 'Zaproszenie wysłane')}</button>`
       : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span>`
       : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
-      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>`);
+      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>
+    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
@@ -1927,6 +1930,7 @@ function openPlayer(p) {
     const fr = e.target.closest('[data-fr]');
     if (fr?.dataset.fr === 'account') { sheet.close(); return openAccount('register'); }
     if (fr) { fr.disabled = true; sfx.pop(); return send({ t: 'friend', op: fr.dataset.fr, pt: p.pt }); }
+    if (e.target.closest('[data-delacct]')) { sfx.click(); sheet.close(); return openDeleteAccount(); }
     if (e.target.closest('[data-done]')) sheet.close(); else if (e.target.closest('[data-style]')) { sheet.close(); openStyle(); }
   });
 }
@@ -2060,6 +2064,41 @@ function openSecurity() {
     return { t: 'passwd', old: pw.querySelector('#po').value, pass: a };
   }, () => { close(); sfx.join(); toast(L('Password changed. Other devices were logged out.', 'Hasło zmienione. Inne urządzenia zostały wylogowane.')); });
   authForm(scoped(rc), () => ({ t: 'recode', pass: rc.querySelector('#pr').value }), m => { close(); showRecoveryCode(m.code, false); });
+}
+
+// Deleting your own account (a small link at the bottom of your profile card). It can't be undone, so it says plainly
+// what goes and asks for the password and the username typed out. The server does the rest (store.deleteSelf).
+function openDeleteAccount() {
+  if (!st.me?.user) return;
+  const user = st.me.user;
+  const { el, close } = modal(`
+    <h2>${L('Delete your account?', 'Usunąć konto?')}</h2>
+    <p>${L('This cannot be undone. Everything on the account', 'Tego nie da się cofnąć. Wszystko, co jest na koncie')} <b>${esc(user)}</b> ${L('goes for good:', 'znika na zawsze:')}</p>
+    <ul class="delist">
+      <li>${L('your coins, clothes, items and Supporter pack', 'monety, ubrania, przedmioty i pakiet wspierającego')}</li>
+      <li>${L('your scores, XP, rank and places in the rankings', 'wyniki, XP, ranga i miejsca w rankingach')}</li>
+      <li>${L('your friends and friend requests', 'znajomi i zaproszenia do znajomych')}</li>
+      <li>${L('your Pet Farm with all its pets, and any trade offers', 'Farma zwierzaków ze wszystkimi zwierzakami i ofertami wymiany')}</li>
+      <li>${L('your messages in the hub chat and at tables', 'twoje wiadomości na czacie głównym i przy stołach')}</li>
+    </ul>
+    <p style="font-size:14px">${L('Every phone and computer signed in to it becomes a guest. A game you are playing right now carries on, as a guest. Nobody else can take the name', 'Każdy telefon i komputer zalogowany na to konto staje się gościem. Gra, w którą właśnie grasz, toczy się dalej, już jako gość. Nikt inny nie może zająć tej nazwy przez')} ${L('for 30 days.', '30 dni.')}</p>
+    <form class="authform">
+      <input type="text" autocomplete="username" value="${esc(user)}" hidden>
+      <label for="du">${L('Type your username to confirm:', 'Wpisz nazwę użytkownika, żeby potwierdzić:')} <b>${esc(user)}</b></label>
+      <input class="field" id="du" maxlength="16" required autocomplete="off" autocapitalize="none" spellcheck="false">
+      <label for="dp">${L('Password', 'Hasło')}</label>
+      <input class="field" id="dp" type="password" maxlength="72" required autocomplete="current-password">
+      <p class="autherr" role="alert" hidden></p>
+      <button class="btn big r">${L('Delete my account forever', 'Usuń konto na zawsze')}</button>
+    </form>
+    <button type="button" class="btn ghost-ink" data-close>${L('Keep my account', 'Zostaw konto')}</button>`);
+  setTimeout(() => el.querySelector('#du').focus(), 50);
+  el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); onAuth = null; close(); });
+  authForm(el, () => {
+    const typed = el.querySelector('#du').value.trim();
+    if (typed.toLowerCase() !== user.toLowerCase()) { showErr(el, L('Type your username exactly to confirm.', 'Wpisz dokładnie swoją nazwę użytkownika, żeby potwierdzić.')); return null; }
+    return { t: 'delacct', user: typed, pass: el.querySelector('#dp').value };
+  }, () => { close(); }); // the server says it is done ("This account was deleted...") and the page turns into a guest's
 }
 
 export function openRules(game) {

@@ -229,16 +229,28 @@ const palView = x => ({ sp: x.sp, name: x.name, lv: x.lv, look: x.look });
 const palsOf = p => (p?.user ? store.showPets(p).map(id => farm.petOf(p.pid, id)).filter(Boolean).map(palView) : []); // every pet they show off on their isle
 const palOf = p => palsOf(p)[0];
 store.onPack(pid => { const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) { send(c, { t: 'me', me: store.me(p) }); send(c, { t: 'pack', k: 'kofi' }); } });
-// The host deleted an account (npm run delete-account): its farm and chat lines go, and its screens become guests.
-store.onForget((pid, toks) => {
+// An account was deleted (by its owner from their profile card, or by the host's npm run delete-account): its farm,
+// hub chat lines, table chat lines and table scoreboard rows go, ex-friends get a fresh friends list, and its screens
+// become guests. A seat it holds in a game stays put, so the match carries on and that screen plays it out as a guest.
+store.onForget((pid, toks, { tag, pals = [] } = {}) => {
   farm.forget(pid);
   for (const id of hubchat.forget(pid)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
+  for (const r of rooms.values()) {
+    let changed = false;
+    if (r.board && Object.hasOwn(r.board, pid)) { delete r.board[pid]; changed = true; }
+    if (tag && r.chat.some(x => x.pt === tag)) { r.chat = r.chat.filter(x => x.pt !== tag); for (const t of r.players) send(clients.get(t), { t: 'chatlog', log: r.chat }); changed = true; }
+    if (changed) sendRoom(r);
+  }
+  for (const x of pals) sendFriends(store.profiles.get(x));
   for (const t of toks) {
     const o = clients.get(t), p = store.profileOf(t); if (!o || !p) continue;
     o.av = store.allowedAv(p, o.av); store.setLook(t, o);
-    send(o, { t: 'me', me: store.me(p) }); send(o, { t: 'err', msg: 'This account was deleted, as asked. You are a guest now.' });
+    send(o, { t: 'me', me: store.me(p) }); send(o, { t: 'friends', friends: [], reqs: [], sent: [] });
+    send(o, { t: 'err', msg: 'This account was deleted, as asked. You are a guest now.' });
     const r = rooms.get(o.room); if (r) sendRoom(r);
   }
+  broadcastRooms();
+  for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'rkstale' });
 });
 farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
@@ -479,7 +491,7 @@ function handle(c, m) {
       if (hubchat.remove(store.profileOf(c.token), id)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
       return;
     }
-    case 'register': case 'login': case 'passwd': case 'recode': case 'recover': return auth(c, m);
+    case 'register': case 'login': case 'passwd': case 'recode': case 'recover': case 'delacct': return auth(c, m);
     case 'lang': { // the language picked in the top bar: kept with the account so it follows the player to other devices
       const p = store.profileOf(c.token); if (!p?.user || !['en', 'pl'].includes(m.v)) return;
       if (p.lang !== m.v) { p.lang = m.v; store.scheduleSave(); }
@@ -546,6 +558,7 @@ function auth(c, m) {
   const kIp = `${kind}:ip:${ip}`, kUser = `${kind}:u:${user}`;
   if (blocked(kIp, perIp, AUTH_WIN) || (user && blocked(kUser, perUser, AUTH_WIN)))
     return send(c, { t: 'auth', op: m.t, err: 'Too many wrong tries. Wait 15 minutes and try again.' });
+  if (m.t === 'delacct' && blocked('del:' + ip, 3, 3600_000)) return send(c, { t: 'auth', op: m.t, err: 'Several accounts were deleted from here just now. Try again in an hour.' });
   if (m.t === 'register' && blocked('reg:' + ip, 6, 3600_000)) return send(c, { t: 'auth', op: m.t, err: 'Lots of new accounts were made from here just now. Try again in an hour.' });
   const run = {
     register: () => store.register(c.token, m.user, m.pass),
@@ -553,6 +566,7 @@ function auth(c, m) {
     passwd: () => store.changePassword(c.token, m.old, m.pass),
     recode: () => store.recoveryCode(c.token, m.pass),
     recover: () => store.recover(c.token, m.user, m.code, m.pass),
+    delacct: () => store.deleteSelf(c.token, m.pass, m.user),
   }[m.t];
   run().then(r => {
     if (r.err) {
@@ -561,6 +575,7 @@ function auth(c, m) {
     }
     const p = r.p;
     if (m.t === 'register') { note('reg:' + ip, 3600_000); store.setLook(c.token, c); }
+    if (m.t === 'delacct') { note('del:' + ip, 3600_000); console.log(`account ${r.user} deleted by its owner (${(r.out || []).length + 1} screens signed out)`); return send(c, { t: 'auth', ok: m.t }); }
     if (m.t === 'login' || m.t === 'recover') { c.name = p.name; c.color = p.color; if (p.av) c.av = p.av; }
     for (const t of r.out || []) signedOut(t);
     send(c, { t: 'auth', ok: m.t, code: r.code }); send(c, { t: 'me', me: store.me(p) });

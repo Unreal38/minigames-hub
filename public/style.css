@@ -914,6 +914,8 @@ body.night .pisle { background: linear-gradient(#1c1a4a, #3a3478); }
 body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color: #3b2219; font-size: 11.5px !important; width: fit-content; }
 
 .pfriend { align-self: center; font: 700 17px var(--fd); padding: 8px 16px; }
+.pdelrow { display: flex; justify-content: flex-end; margin-top: 4px; } .pdel { font-size: 13px; opacity: .6; min-height: 32px; padding: 4px 8px; }
+.pdel:hover { opacity: 1; } .delist { margin: 4px 0 10px; padding-left: 22px; } .delist li { margin: 2px 0; }
 .pfnote { align-self: center; font-size: 14px; opacity: .8; max-width: 260px; }
 .psheet .row { flex-wrap: wrap; align-items: center; }
 

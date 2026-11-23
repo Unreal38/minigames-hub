@@ -20,6 +20,7 @@ const visitors = new Set();        // hashed browser tokens of everyone who has 
 let savedRooms = [];
 const KOFI_ALL = [...packIds('kofi'), ...cosPackIds('kofi')], KOFI_IDS = new Set(KOFI_ALL); // the whole Supporter pack
 let kofi = { seen: [], pend: [] }; // Ko-fi payments: ids already handled, and payments nobody has claimed yet
+let gone = []; // usernames of deleted accounts, held for a while (only a hash): { h, until }
 
 const rid = n => crypto.randomBytes(n).toString('hex');
 // Text other players see (names): no control characters or angle brackets, and straight quotes become curly ones,
@@ -48,6 +49,7 @@ export function load() {
   if (Array.isArray(d.visitors)) for (const v of d.visitors) if (typeof v === 'string') visitors.add(v);
   for (const t of Object.keys(d.sessions || {})) visitors.add(vkey(t)); // older saves had no visitor list
   if (Array.isArray(d.kofi?.seen) && Array.isArray(d.kofi?.pend)) kofi = { seen: d.kofi.seen, pend: d.kofi.pend };
+  if (Array.isArray(d.gone)) gone = d.gone.filter(g => typeof g?.h === 'string' && g.until > Date.now());
   savedRooms = Array.isArray(d.rooms) ? d.rooms : [];
   console.log(`loaded ${profiles.size} profiles, ${sessions.size} sessions, ${savedRooms.length} lobbies from ${FILE}`);
   return savedRooms;
@@ -68,7 +70,7 @@ export function saveNow() {
     if (inRoom.has(t) || p.user || p.games || p.coins || p.owned?.length) { keepS[t] = s; keepP[p.pid] = p; }
   }
   for (const p of profiles.values()) if (p.user) keepP[p.pid] = p;
-  const data = JSON.stringify({ v: 1, saved: new Date().toISOString(), profiles: keepP, sessions: keepS, rooms, visitors: [...visitors], kofi });
+  const data = JSON.stringify({ v: 1, saved: new Date().toISOString(), profiles: keepP, sessions: keepS, rooms, visitors: [...visitors], kofi, gone: gone.filter(g => g.until > now) });
   try {
     fs.mkdirSync(DIR, { recursive: true });
     const tmp = FILE + '.tmp';
@@ -275,12 +277,12 @@ export async function register(token, user, pass) {
   const u = cleanUser(user);
   if (!u) return { err: 'Usernames are 3–16 letters, numbers, dots, dashes or underscores.' };
   const bad = passErr(pass); if (bad) return { err: bad };
-  if (users.has(u.toLowerCase())) return { err: 'That username is taken.' };
+  if (users.has(u.toLowerCase()) || nameHeld(u)) return { err: 'That username is taken.' };
   const p = profileOf(token);
   if (!p) return { err: 'Not connected.' };
   if (p.user) return { err: `You're already signed in as ${p.user}.` };
   const salt = rid(16), hash = await hashPass(pass, salt);
-  if (users.has(u.toLowerCase())) return { err: 'That username is taken.' };
+  if (users.has(u.toLowerCase()) || nameHeld(u)) return { err: 'That username is taken.' };
   if (p.user) return { err: `You're already signed in as ${p.user}.` };
   Object.assign(p, { user: u, salt, hash });
   users.set(u.toLowerCase(), p.pid); board = null;
@@ -353,22 +355,42 @@ setInterval(() => {
 }, 3000).unref();
 
 // ---------- deleting an account ----------
-// Someone asks for their account to be deleted (see public/privacy.html). The host runs
-// `npm run delete-account -- <username>` (server/delete.js), which drops a small file in the data folder; the running
-// server picks it up here. The profile, its friend links on other accounts and its sign-ins go; every screen it was
-// signed in on becomes a fresh guest. onForget lets Pet Farm and the hub chat drop what they hold for it.
+// Players can delete their own account from their profile card (deleteSelf: password + typing the username), and the
+// host can do it on request with `npm run delete-account -- <username>` (server/delete.js), which drops a small file in
+// the data folder that the running server picks up below. The profile, its friend links on other accounts and its
+// sign-ins go; every screen it was signed in on becomes a fresh guest. onForget lets Pet Farm, the hub chat and open
+// tables drop what they hold for it (it gets the profile id, the signed-out tokens, the tag and the ex-friends).
+// The username stays taken for GONE_MS (only a hash of it is kept), so nobody can pick it up at once and pass as them.
+export const GONE_MS = 30 * 86400_000;
+const nameKey = n => crypto.createHash('sha256').update('gone:' + String(n).trim().toLowerCase()).digest('hex').slice(0, 32);
+export const nameHeld = n => { const h = nameKey(n), t = Date.now(); return gone.some(g => g.h === h && g.until > t); };
 const forgetHooks = [];
 export const onForget = fn => { forgetHooks.push(fn); };
 export function deleteAccount(user) {
   const name = String(user ?? '').trim().toLowerCase(), pid = users.get(name), p = profiles.get(pid);
   if (!p) return null;
-  const out = [];
+  const out = [], pals = new Set();
   for (const [t, s] of sessions) if (s.pid === pid) { s.pid = newProfile().pid; out.push(t); }
-  for (const o of profiles.values()) for (const k of ['friends', 'reqs', 'sent']) if (Array.isArray(o[k]) && o[k].includes(pid)) o[k] = o[k].filter(x => x !== pid);
+  for (const o of profiles.values()) for (const k of ['friends', 'reqs', 'sent']) if (Array.isArray(o[k]) && o[k].includes(pid)) { o[k] = o[k].filter(x => x !== pid); pals.add(o.pid); }
   profiles.delete(pid); users.delete(name);
-  for (const fn of forgetHooks) try { fn(pid, out); } catch (e) { console.error('forget hook failed', e); }
+  if (p.tag) tags?.delete(p.tag);
+  board = null; // the rankings are worked out again without them
+  gone = [...gone.filter(g => g.until > Date.now() && g.h !== nameKey(name)), { h: nameKey(name), until: Date.now() + GONE_MS }].slice(-5000);
+  for (const fn of forgetHooks) try { fn(pid, out, { tag: p.tag, pals: [...pals] }); } catch (e) { console.error('forget hook failed', e); }
   saveNow();
   return { user: p.user, out };
+}
+// A signed-in player deletes their own account: the password and their username typed out, so it can't happen by a
+// slip or from someone else's unlocked screen. Host accounts (ADMINS) can't: their name would be free for anyone.
+export async function deleteSelf(token, pass, typed) {
+  const p = profileOf(token);
+  if (!p?.user) return { err: 'Log in first.' };
+  if (isAdmin(p)) return { err: 'Host accounts cannot be deleted here. Use the delete-account command on the server.' };
+  if (!(await passOk(p, pass))) return { err: 'That password is not right.', wrong: true };
+  if (String(typed ?? '').trim().toLowerCase() !== p.user.toLowerCase()) return { err: 'Type your username exactly to confirm.' };
+  if (profileOf(token) !== p) return { err: 'Something went wrong. Try again.' }; // signed out while the password was checked
+  const d = deleteAccount(p.user);
+  return { p: profileOf(token), out: d.out.filter(t => t !== token), user: d.user };
 }
 setInterval(() => {
   let files; try { files = fs.readdirSync(DIR).filter(f => /^delete-[a-z0-9]+\.json$/.test(f)); } catch { return; }
