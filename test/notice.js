@@ -9,7 +9,7 @@ const PORT = 19980 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-notice-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
-const start = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, ADMINS: 'Boss', NOTICE_TEST: '1', GEO: 'off' }, stdio: 'inherit' }); await wait(800); };
+const start = async (more = {}) => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, ADMINS: 'Boss', NOTICE_TEST: '1', GEO: 'off', ...more }, stdio: 'inherit' }); await wait(800); };
 const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(50); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };
 
@@ -111,6 +111,38 @@ if (ana2.build !== ana.build) fail('same files, same build');
 const boss2 = await player('Kuba', boss.token).connect(); await until(() => boss2.notice, 'host notice');
 if (boss2.notice.next) fail('the waiting note was used up');
 boss2.send({ t: 'notice', op: 'news', when: 'clear' }); await until(() => ana2.notice && !ana2.notice.news, 'note removed');
+
+if (boss2.notice.canRestart) fail('outside systemd the server never offers to restart itself');
+boss2.send({ t: 'notice', op: 'maint', min: 2, auto: true }); await until(() => boss2.notice?.maint, 'countdown without restart');
+if (boss2.notice.maint.auto) fail('auto restart is ignored where it is not offered');
+boss2.send({ t: 'notice', op: 'cancel' }); await until(() => !boss2.notice.maint, 'cancelled');
+srv.kill(); await new Promise(r => srv.once('exit', r));
+
+// Restart by itself at zero (as under systemd). First with a broken file on disk: it stays up and tells the hosts.
+const BAD = new URL('../public/lang/zz-notice-test-bad.js', import.meta.url);
+const rmBad = () => { try { fs.unlinkSync(BAD); } catch {} };
+process.on('exit', rmBad);
+await start({ NOTICE_TEST_RESTART: '1' });
+const boss3 = await player('Kuba', boss.token).connect(), ana3 = await player('Ana', ana.token).connect();
+await until(() => boss3.notice?.canRestart === true, 'restart offered');
+if (typeof boss3.notice.pulled !== 'boolean' || 'canRestart' in (ana3.notice || {})) fail('pulled flag for hosts only');
+fs.writeFileSync(BAD, 'export const x = ;\n');
+boss3.send({ t: 'notice', op: 'maint', min: 2, auto: true }); await until(() => boss3.notice?.maint?.auto, 'auto countdown');
+let exited = null; srv.once('exit', code => { exited = code; });
+boss3.send({ t: 'notice', test: { endIn: 0 } });
+await until(() => boss3.notice?.maint?.err, 'a broken file stops the restart', 15000);
+if (!boss3.notice.maint.err.includes('zz-notice-test-bad.js') || boss3.notice.maint.auto || exited !== null) fail('stayed up and named the file ' + JSON.stringify(boss3.notice.maint));
+if (!ana3.notice.maint || 'err' in ana3.notice.maint) fail('players still see the countdown, not the error');
+rmBad();
+// Good code: it says goodbye and exits with 75 for systemd to start it again.
+boss3.send({ t: 'notice', op: 'cancel' }); await until(() => !boss3.notice.maint, 'cancel');
+boss3.send({ t: 'notice', op: 'maint', min: 2, auto: true }); await until(() => boss3.notice?.maint?.auto, 'auto countdown again');
+boss3.send({ t: 'notice', test: { endIn: 0 } });
+await until(() => exited !== null, 'restarted by itself', 15000);
+if (exited !== 75 || !ana3.bye) fail('exit 75 after saying goodbye ' + exited);
+await start();
+const ana4 = await player('Ana', ana.token).connect(); await until(() => ana4.notice, 'back');
+if (ana4.notice.maint) fail('the countdown is over after the restart');
 
 srv.kill(); await new Promise(r => srv.once('exit', r)); try { fs.rmSync(DATA_DIR, { recursive: true, force: true }); } catch {}
 console.log('notice: ok');

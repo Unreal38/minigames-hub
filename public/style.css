@@ -1554,3 +1554,8 @@ body.night #conn.restart { color: #120f2a; }
 .ntsheet .ntsec > .btn, .ntsheet [data-form] > .btn { align-self: flex-start; }
 .ntsheet .ntrow { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 560px) { .ntsheet .ntpair { grid-template-columns: 1fr; } #sitebar .sb { font-size: 14px; } }
+.ntsheet .ntauto { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--soft-tx); cursor: pointer; }
+.ntsheet .ntauto b { color: var(--on-paper); font-size: 15px; }
+.ntsheet .ntauto input { width: 22px; height: 22px; margin-top: 1px; flex: none; accent-color: var(--mint); }
+.ntsheet .ntpull { font-size: 14px; color: var(--soft-tx); } .ntsheet .ntpull.ok { color: var(--on-paper); }
+.ntsheet .ntbad { font-size: 14px; padding: 8px 12px; border-radius: 10px; background: var(--chili); color: #fff; }

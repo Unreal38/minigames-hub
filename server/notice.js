@@ -17,11 +17,11 @@ export const MAX_MIN = 120;
 const LINGER = 15 * 60_000;           // after zero, new games stay on hold this long (time for the restart), then it lifts
 const NEWS_DAYS = 3 * 24 * 3600_000;  // a "What's new" note is shown for three days
 
-let maint = null; // { end, pl, en }
+let maint = null; // { end, pl, en, auto, err }: auto = restart the server by itself at zero
 let ann = null;   // { id, pl, en, at }
 let news = null;  // { id, pl, en, at }: being shown now
 let next = null;  // { pl, en }: becomes `news` at the next start
-let onChange = () => {}, timer = null;
+let onChange = () => {}, onZero = null, timer = null, zeroT = null, extra = () => ({});
 
 const newId = () => crypto.randomBytes(5).toString('hex');
 // One line: no control characters, no markup brackets (the page escapes everything anyway).
@@ -52,6 +52,12 @@ export function load() {
   save();
 }
 export function setOnChange(f) { onChange = f; }
+/** server.js: what to do at zero when the host ticked "restart by itself" (null = this server can't restart itself),
+ * and extra facts for the hosts' window (is there new code waiting). */
+export function setOnZero(f) { onZero = f; }
+export function setExtra(f) { extra = f; }
+/** The restart at zero could not go ahead (the new code has an error): the countdown stays, without the restart. */
+export function autoFailed(err) { if (!maint) return; maint.auto = false; maint.err = err; onChange(); }
 
 /** True while new games are on hold. */
 export const holding = () => !!maint && Date.now() < maint.end + LINGER;
@@ -60,13 +66,14 @@ const liveNews = () => (news && Date.now() - news.at < NEWS_DAYS ? news : null);
 export function view(admin = false) {
   const now = Date.now();
   const v = { maint: holding() ? { left: maint.end - now, pl: maint.pl, en: maint.en } : null, ann, news: liveNews() };
-  if (admin) v.next = next;
+  if (admin) { v.next = next; v.canRestart = !!onZero; Object.assign(v, extra()); if (v.maint) { v.maint.auto = !!maint.auto; v.maint.err = maint.err || ''; } }
   return v;
 }
 
 function arm() {
-  clearTimeout(timer); timer = null;
+  clearTimeout(timer); timer = null; clearTimeout(zeroT); zeroT = null;
   if (!maint) return;
+  if (maint.auto && onZero) { zeroT = setTimeout(() => { if (maint?.auto) onZero(); }, Math.max(0, maint.end - Date.now())); zeroT.unref?.(); }
   timer = setTimeout(() => { maint = null; console.log('notice: maintenance hold ended by itself (no restart)'); onChange(); }, maint.end + LINGER - Date.now());
   timer.unref?.();
 }
@@ -77,8 +84,8 @@ export function handle(m, who = 'host') {
   if (op === 'maint') {
     const min = Math.round(+m.min);
     if (!(min >= 1 && min <= MAX_MIN)) return { err: 'Pick 1 to 120 minutes.' }; // MAX_MIN
-    maint = { end: Date.now() + min * 60_000, ...pair(m, line) };
-    console.log(`notice: ${who} started a ${min} min maintenance countdown`);
+    maint = { end: Date.now() + min * 60_000, ...pair(m, line), auto: !!m.auto && !!onZero };
+    console.log(`notice: ${who} started a ${min} min maintenance countdown${maint.auto ? ' (the server restarts itself at zero)' : ''}`);
   } else if (op === 'cancel') {
     if (!maint) return { ok: true };
     maint = null; console.log(`notice: ${who} cancelled the maintenance countdown`);

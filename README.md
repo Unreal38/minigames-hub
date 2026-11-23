@@ -163,7 +163,7 @@ sudo systemctl reload caddy
 
 Visit `https://example.com`. To invite friends, host a table and press **Copy invite link**, or tell them the 4-letter code.
 
-**Updating:** `cd /opt/cozy-table && sudo -u cozy git pull && sudo systemctl restart cozy-table`. A restart ends any game in progress, but every open table comes back in its waiting room with its scoreboard and chat, and players are reseated when their browsers reconnect (they have 90 seconds).
+**Updating:** `cd /opt/cozy-table && sudo -u cozy git pull && sudo systemctl restart cozy-table`. To warn players first, a host (ADMINS) opens **Site notices** in the account menu and starts a countdown: new games are held, and with "Restart the server by itself at zero" ticked the server syntax-checks the pulled code and restarts itself at zero (it exits with code 75 and systemd's `Restart=` brings it back), so only the `git pull` is needed beforehand. A restart ends any game in progress, but every open table comes back in its waiting room with its scoreboard and chat, and players are reseated when their browsers reconnect (they have 90 seconds).
 
 **Saved data:** accounts, player stats and open tables live in one file, `cozy-table.json`, inside `DATA_DIR` (`./data` by default, `/var/lib/cozy-table` with the systemd unit). Back that file up to keep everyone's progress. If you installed before scores and accounts existed, copy the unit again once so the server has somewhere it may write:
 
