@@ -1,4 +1,5 @@
-// The hub's hero: your own avatar standing on a little floating island, with game pieces bobbing round it.
+// The hub's hero: your own avatar standing on a little floating island, with game pieces bobbing round it,
+// on the right of the hub's sky banner.
 // One canvas for the whole visit: mountHero() moves it into the hub's .art box each time the hub is drawn,
 // and the loop sleeps while the canvas isn't on the page.
 import * as THREE from 'three';
@@ -11,7 +12,7 @@ import { frameLoop, autoResolution } from './frames.js';
 let H = null, P = null, night = false; // H: your own isle on the hub; P: the isle in another player's profile card
 export function setHeroNight(on) { night = on; H?.setNight(on); P?.setNight(on); }
 
-function build(disc) { // disc: paint a bought sky as a round window behind the isle (the hub has no frame for it)
+function build() {
   const canvas = document.createElement('canvas'); canvas.className = 'hero3d'; canvas.setAttribute('aria-hidden', 'true');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   const res = autoResolution(renderer, 1.5);
@@ -31,7 +32,7 @@ function build(disc) { // disc: paint a bought sky as a round window behind the 
     if (isle) { world.remove(isle.root); isle.dispose(); } if (sky) { scene.remove(sky.root); sky.dispose(); }
     if (airG) { scene.remove(airG); airG.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
     isle = buildIsle(look); world.add(isle.root);
-    sky = buildSky(look.ik, { disc }); scene.add(sky.root); skyNo = look.ik; sky.fit(camera.aspect);
+    sky = buildSky(look.ik); scene.add(sky.root); skyNo = look.ik; sky.fit(camera.aspect);
     airG = new THREE.Group(); scene.add(airG); air = petals(airG, 9, 2.8, isle.air);
     setNight(night);
   }
@@ -109,9 +110,10 @@ function build(disc) { // disc: paint a bought sky as a round window behind the 
 
 // fl: the player's flair; its isle kinds (ig ground, ib rock base, ip decor, ik sky) dress the isle.
 const skyCls = (box, n) => { for (const c of [...box.classList]) if (/^isk\d/.test(c)) box.classList.remove(c); if (n) box.classList.add('isk' + n); };
-export function mountHero(box, color, av, pets = [], fl = null, { disc = true, frame = null, zoom = 1 } = {}) {
+// frame: the hub's sky banner (it gets a class isk1.. for a bought sky); zoom brings the camera closer so the isle fills it.
+export function mountHero(box, color, av, pets = [], fl = null, { frame = null, zoom = 1 } = {}) {
   if (!box) return false;
-  try { H ||= build(disc); } catch { return false; }
+  try { H ||= build(); } catch { return false; }
   H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl); H.setZoom(zoom); if (frame) skyCls(frame, H.skyNo());
   if (H.canvas.parentNode !== box) box.replaceChildren(H.canvas);
   return true;
@@ -120,7 +122,7 @@ export function mountHero(box, color, av, pets = [], fl = null, { disc = true, f
 // frame: the element whose background is the sky (it gets a class isk1.. for a bought sky; see style.css).
 export function mountIsle(box, color, av, pets = [], fl = null, frame = box) {
   if (!box) return false;
-  try { P ||= build(false); } catch { return false; }
+  try { P ||= build(); } catch { return false; }
   P.setAvatar(color, av); P.setPets(pets); P.setIsle(fl); skyCls(frame, P.skyNo());
   if (P.canvas.parentNode !== box) box.replaceChildren(P.canvas);
   return true;
