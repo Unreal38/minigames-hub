@@ -49,7 +49,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 
 // Safety headers for every response. The page itself also gets a Content Security Policy: scripts may only come
-// from this site and jsDelivr (three.js), so even if someone sneaks markup into a name or chat line, the browser
+// from this site and three.js's own folder on jsDelivr (not the rest of jsDelivr, which serves anyone's code), so even if someone sneaks markup into a name or chat line, the browser
 // refuses to run it. The one inline script (the import map) is allowed by its hash, worked out from index.html.
 const BASE_HEAD = { 'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'same-origin',
   'cross-origin-opener-policy': 'same-origin', 'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()' };
@@ -64,7 +64,7 @@ function cspFor(req) {
     }
   } catch {}
   const host = String(req.headers.host || '').replace(/[^a-z0-9.:\[\]-]/gi, '');
-  return [`default-src 'self'`, `script-src 'self' https://cdn.jsdelivr.net ${inline.src}`, `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  return [`default-src 'self'`, `script-src 'self' https://cdn.jsdelivr.net/npm/three@0.170.0/ ${inline.src}`, `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`, `img-src 'self' data: blob:`, `connect-src 'self'${host ? ` wss://${host} ws://${host}` : ''}`,
     `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`, `frame-ancestors 'none'`].join('; ');
 }

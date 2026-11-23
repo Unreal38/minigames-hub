@@ -122,9 +122,14 @@ export const onCoins = fn => { coinHook = fn; };
 const now = () => process.env.SHOP_DATE ? Date.parse(process.env.SHOP_DATE + 'T12:00') : Date.now();
 export const shopDate = () => { const d = new Date(now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 export const coinsOf = pid => profiles.get(pid)?.coins || 0;
-export function addCoins(pid, n) {
+// debt: true lets the balance go below zero. Only bets lost at a coin-betting table (Marble Rush, golf) do that:
+// their stakes come from the balance the table saw when the round began, so a player who spent those coins in the
+// shop (or at a second table) mid-round still owes the bet instead of getting it for free.
+export function addCoins(pid, n, debt = false) {
   const p = profiles.get(pid); if (!p || !Number.isFinite(n) || !n) return p?.coins || 0;
-  p.coins = Math.max(0, Math.round((p.coins || 0) + n)); scheduleSave(); coinHook(pid); return p.coins;
+  const v = Math.round((p.coins || 0) + n);
+  p.coins = (debt && n < 0) || (p.coins || 0) < 0 ? v : Math.max(0, v); // money that comes in pays a debt off first
+  scheduleSave(); coinHook(pid); return p.coins;
 }
 export const setCoins = (pid, v) => addCoins(pid, Math.round(v) - coinsOf(pid));
 // The look a profile may wear: paid items it has not bought come off.
@@ -487,7 +492,7 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
     if (Number.isFinite(coinNet) && coinNet) g.net = (g.net || 0) + coinNet; // Marble Rush: coins won minus coins lost on bets
   }
   board = null;
-  const had = p.coins || 0; addCoins(p.pid, coins);
+  const had = p.coins || 0; addCoins(p.pid, coins, Number.isFinite(coinNet) && coinNet < 0);
   scheduleSave();
   return { xp: gain, win, pts, place, of, ranked, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
 }

@@ -613,25 +613,31 @@ r = await a.farmDo({ t: 'open', test: { ripe: true } });
 // ----- live battles -----
 r = await a.farmDo({ t: 'duel', to: boId, pets: [] });
 if (!r.err) fail('live battle with no team');
-b.invite = null; r = await a.farmDo({ t: 'duel', to: boId, pets: [a.farm.pets[0].id] });
-if (r.err) fail('invite ' + r.err);
-await until(() => b.invite, 'live invite');
-if (b.invite.from !== 'Ana') fail('invite from ' + b.invite.from);
-a.battle = b.battle = null; a.fought = b.fought = null;
-const lc = [a.farm.inv.coins, b.farm.inv.coins];
-b.send({ t: 'farm', a: { t: 'duelyes', id: b.invite.id, pets: [b.farm.pets[0].id] } });
-await until(() => a.battle && b.battle, 'live battle start');
-if (!a.battle.live || a.battle.foe !== 'Bo' || b.battle.foe !== 'Ana' || a.battle.sides[0].pets[0].name !== a.farm.pets[0].name || b.battle.sides[0].pets[0].name !== b.farm.pets[0].name) fail('live view ' + JSON.stringify([a.battle.foe, b.battle.foe]));
-r = await a.farmDo({ t: 'bact', move: a.battle.sides[0].pets[0].moves[0] });
-if (!r.battle?.waiting || r.ev.length) fail('first chooser should wait');
-for (let n = 0; n < 60 && !a.fought; n++) {
-  const turn = a.battle.turn;
-  for (const x of [a, b]) { const u = x.battle.sides[0].pets[x.battle.sides[0].on]; if (!x.battle.waiting) x.send({ t: 'farm', a: { t: 'bact', move: u.moves.find(m => !u.cd[m]) } }); }
-  await until(() => a.fought || (a.battle.turn !== turn && b.battle.turn !== turn), 'live turn ' + n); await wait(40);
+// two players battling each other again and again stop earning after LIVE_DAILY rewarded battles a day
+async function liveDuel(capped) {
+  b.invite = null; r = await a.farmDo({ t: 'duel', to: boId, pets: [a.farm.pets[0].id] });
+  if (r.err) fail('invite ' + r.err);
+  await until(() => b.invite, 'live invite');
+  if (b.invite.from !== 'Ana') fail('invite from ' + b.invite.from);
+  a.battle = b.battle = null; a.fought = b.fought = null;
+  await wait(300); const lc = [a.farm.inv.coins, b.farm.inv.coins];
+  b.send({ t: 'farm', a: { t: 'duelyes', id: b.invite.id, pets: [b.farm.pets[0].id] } });
+  await until(() => a.battle && b.battle, 'live battle start');
+  if (!a.battle.live || a.battle.foe !== 'Bo' || b.battle.foe !== 'Ana' || a.battle.sides[0].pets[0].name !== a.farm.pets[0].name || b.battle.sides[0].pets[0].name !== b.farm.pets[0].name) fail('live view ' + JSON.stringify([a.battle.foe, b.battle.foe]));
+  r = await a.farmDo({ t: 'bact', move: a.battle.sides[0].pets[0].moves[0] });
+  if (!r.battle?.waiting || r.ev.length) fail('first chooser should wait');
+  for (let n = 0; n < 60 && !a.fought; n++) {
+    const turn = a.battle.turn;
+    for (const x of [a, b]) { const u = x.battle.sides[0].pets[x.battle.sides[0].on]; if (!x.battle.waiting) x.send({ t: 'farm', a: { t: 'bact', move: u.moves.find(m => !u.cd[m]) } }); }
+    await until(() => a.fought || (a.battle.turn !== turn && b.battle.turn !== turn), 'live turn ' + n); await wait(40);
+  }
+  await until(() => a.fought && b.fought, 'live battle end');
+  if (a.fought.prize.won === b.fought.prize.won) fail('both won or both lost');
+  for (const [i, x] of [a, b].entries()) if (x.fought.farm.inv.coins !== lc[i] + (capped ? 0 : x.fought.prize.won ? 15 : 5) || x.fought.prize.counted === capped) fail('live prize coins ' + JSON.stringify([capped, x.fought.prize]));
 }
-await until(() => a.fought && b.fought, 'live battle end');
-if (a.fought.prize.won === b.fought.prize.won) fail('both won or both lost');
-for (const [i, x] of [a, b].entries()) if (x.fought.farm.inv.coins !== lc[i] + (x.fought.prize.won ? 15 : 5)) fail('live prize coins');
+await liveDuel(false);
+await a.farmDo({ t: 'open', test: { liveUsed: 5 } }); await b.farmDo({ t: 'open', test: { liveUsed: 5 } });
+await liveDuel(true);
 r = await a.farmDo({ t: 'open' });
 if (r.battle) fail('live battle still running');
 
