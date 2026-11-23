@@ -1,9 +1,11 @@
-// Deletes a player's account when they ask for it (the privacy page tells people how). Run it on the server machine:
+// Deletes a player's account when they ask for it. Players can also do it themselves from their profile card
+// (Delete account); this command is for requests that come in by message, and for host accounts (ADMINS), which
+// can't be deleted from the site. Run it on the server machine:
 //   npm run delete-account -- <username>
 // With the systemd unit: cd /opt/cozy-table && sudo DATA_DIR=/var/lib/cozy-table npm run delete-account -- <username>
 // It cannot be undone: the account, its coins, items, scores, friends, Pet Farm and hub chat lines all go, and every
 // device signed in to it becomes a guest. It leaves a small file in the data folder; the running server picks it up
-// within a few seconds. Older copies of the data in your own backups (if you keep any) are not touched.
+// within a few seconds. The username stays taken for 30 days. Older copies of the data in your own backups (if you keep any) are not touched.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

@@ -85,10 +85,10 @@ if (!boP || boP.friends?.length || boP.reqs?.length || boP.sent?.length) fail('b
 const chat = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'hub-chat.json'), 'utf8'));
 if (chat.log.some(m => m.user === 'ana')) fail('ana chat line still saved');
 if (fs.readdirSync(DATA_DIR).some(f => f.startsWith('delete-'))) fail('delete file left behind');
-// the name is free again and the old password is gone
+// the old password is gone and the name is held for a while (test/delete.js checks it frees up later)
 const again = await player('Cy').connect();
 if ((await again.ask({ t: 'login', user: 'ana', pass: 'apple123' })).ok) fail('deleted account could still log in');
-if ((await again.ask({ t: 'register', user: 'ana', pass: 'pear12345' })).ok !== 'register') fail('name should be free again');
+if (!/taken/.test((await again.ask({ t: 'register', user: 'ana', pass: 'pear12345' })).err || '')) fail('the name should be held for 30 days');
 console.log('delete account ok');
 
 srv.kill();

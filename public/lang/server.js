@@ -17,6 +17,9 @@ const TEXT = {
   'The password of your account was changed, so this device was logged out. Log in again with the new password.': 'Hasło do twojego konta zostało zmienione, więc to urządzenie zostało wylogowane. Zaloguj się ponownie nowym hasłem.',
   // accounts
   'Something went wrong. Try again.': 'Coś poszło nie tak. Spróbuj ponownie.',
+  'Type your username exactly to confirm.': 'Wpisz dokładnie swoją nazwę użytkownika, żeby potwierdzić.',
+  'Host accounts cannot be deleted here. Use the delete-account command on the server.': 'Konta gospodarza nie da się tu usunąć. Użyj polecenia delete-account na serwerze.',
+  'Several accounts were deleted from here just now. Try again in an hour.': 'Stąd usunięto przed chwilą kilka kont. Spróbuj ponownie za godzinę.',
   'Passwords need 6 to 72 characters.': 'Hasło musi mieć od 6 do 72 znaków.',
   'Usernames are 3–16 letters, numbers, dots, dashes or underscores.': 'Nazwa użytkownika to 3–16 liter, cyfr, kropek, myślników lub podkreśleń.',
   'That username is taken.': 'Ta nazwa użytkownika jest zajęta.',
