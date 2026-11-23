@@ -695,6 +695,18 @@ body.sky.night:not(.in-game) .gcard .pic:not([class*="pic "]) { background: #b84
 .hcform .field { flex: 1; min-width: 0; min-height: 44px; padding: 6px 12px; font-size: 16px; font-family: inherit; font-weight: 600; background: var(--chip, #fff); color: var(--tx, var(--ink)); border-color: var(--edge, var(--ink)); }
 .hcform .field::placeholder { color: var(--muted2, #8a6a5c); opacity: .85; }
 .hcform .btn { min-height: 44px; padding: 6px 14px; box-shadow: 0 3px 0 var(--ink); }
+.hcemobtn { flex: none; width: 44px; min-height: 44px; border: 3px solid var(--edge, var(--ink)); border-radius: 14px; background: var(--chip, #fff); font-size: 22px; line-height: 1; cursor: pointer; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
+.hcemobtn:hover { transform: rotate(-10deg) scale(1.08); } .hcemobtn:active { transform: scale(.9); }
+.hcemobtn.on { background: var(--lantern); border-color: var(--ink); }
+.hcemo { padding: 6px 8px 0; animation: hcemoIn .16s ease-out; }
+@keyframes hcemoIn { from { opacity: 0; transform: translateY(6px); } }
+.hcemorow { display: flex; flex-wrap: wrap; gap: 2px; max-height: 136px; overflow-y: auto; padding: 4px; border-radius: 14px; background: var(--chip, #fff); border: 3px solid var(--edge, var(--ink)); }
+.hcemorow button { width: 42px; height: 42px; border: 0; border-radius: 12px; background: transparent; font-size: 24px; cursor: pointer; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
+.hcemorow button:hover, .hcemorow button:focus-visible { background: var(--glass, #0000000d); transform: scale(1.25) rotate(-8deg); }
+.hcemorow button:active { transform: scale(.85); }
+.hcemomore { display: block; margin: 4px 0 0 auto; padding: 2px 6px; border: 0; background: none; font: 700 13px var(--fd); color: var(--tx2, var(--cream)); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.hcl p.hcbig { font-size: 34px; line-height: 1.2; letter-spacing: 2px; }
+@media (prefers-reduced-motion: reduce) { .hcemo { animation: none; } .hcemobtn, .hcemorow button { transition: none; } }
 .hcguest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--tx2, var(--cream)); }
 .hcguest span { flex: 1 1 100%; }
 body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:not(.in-game) .hcl.own .hcname { color: #8fe3b0; }
@@ -1128,6 +1140,10 @@ body.sky:not(.in-game) .gmini::after { display: none; }
   .hubgrid[data-tab=games] > .hubside.left, .hubgrid[data-tab=tables] > .hubside.right, .hubgrid[data-tab=chat] > .hubside.right, .hubgrid[data-tab=rank] > .hubside.left { display: none; }
   .hubgrid:not([data-tab=games]) > .hubside { padding-top: 18px; }
   .hubgrid[data-tab=chat] .hclog { height: calc(100dvh - 330px); min-height: 220px; }
+  /* phones: the emote picker is one sideways-scrolling row, and the log gives up its height so Send stays in view */
+  .hubgrid[data-tab=chat] .hccard:has(#hc-emo:not([hidden])) .hclog { height: calc(100dvh - 420px); min-height: 140px; }
+  .hcemorow { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+  .hcemorow button { flex: none; }
   .hubgrid .hero { padding-block: 12px 0; } .hubgrid .hero .art { display: none; }
   .hubgrid .hero h1 { font-size: clamp(26px, 6vw, 38px); line-height: 1.14; } .hubgrid .hero p { font-size: 15px; }
   .hubgrid .herorow { flex-wrap: wrap; } .hubgrid .codeform label { display: none; } .hubgrid .codeform { padding-left: 4px; }

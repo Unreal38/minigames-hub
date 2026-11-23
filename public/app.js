@@ -4,7 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
 import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -1193,7 +1193,7 @@ function hubLine(m, prev) {
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
       ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
-      <p>${esc(Array.isArray(m.grid) ? srvText(m.text) : m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
+      <p${!m.grid && emoOnly(m.text) ? ' class="hcbig"' : ''}>${esc(Array.isArray(m.grid) ? srvText(m.text) : m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
     </div>
     ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="${L('Remove this message', 'Usuń tę wiadomość')}" title="${L('Remove', 'Usuń')}">×</button>` : ''}
   </div>`;
@@ -1208,8 +1208,36 @@ function hubFootHtml() {
   if (!st.me) return '';
   if (!st.me.user) return `<div class="hcguest"><span>${L('Make a free account to join the chat.', 'Załóż darmowe konto, żeby pisać na czacie.')}</span>
     <button type="button" class="btn sm m" data-act="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn sm w" data-act="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
-  return `<form class="hcform" data-form="hubchat"><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="${L('Say something to everyone…', 'Napisz coś do wszystkich…')}" autocomplete="off" enterkeyhint="send" aria-label="${L('Message to everyone', 'Wiadomość do wszystkich')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>`;
+  return `<div class="hcemo" id="hc-emo" hidden></div><form class="hcform" data-form="hubchat"><button type="button" class="hcemobtn" data-act="hcemo" aria-expanded="false" aria-controls="hc-emo" aria-label="${L('Emotes', 'Emotki')}" title="${L('Emotes', 'Emotki')}">😊</button><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="${L('Say something to everyone…', 'Napisz coś do wszystkich…')}" autocomplete="off" enterkeyhint="send" aria-label="${L('Message to everyone', 'Wiadomość do wszystkich')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>`;
 }
+// The emote picker: the same six free emoji and bought sticker packs as the reaction row in table chat (react.js,
+// cosmetics.js). Picking one types it into the message at the cursor; it is plain text, so nothing new reaches the server.
+function hubEmoHtml() {
+  const mine = stickersOf(st.me), all = mine.length === STICKERS.length;
+  const btn = (e, lbl) => `<button type="button" data-act="hcemo-put" data-e="${esc(e)}" aria-label="${lbl} ${e}">${e}</button>`;
+  return `<div class="hcemorow">${EMOJI.map(e => btn(e, L('Emote', 'Emotka'))).join('')}${mine.map(s => btn(s.e, L('Sticker', 'Naklejka'))).join('')}</div>`
+    + (all ? '' : `<button type="button" class="hcemomore" data-act="hcemo-shop">${mine.length ? L('More sticker packs in the Wardrobe', 'Więcej naklejek w Garderobie') : L('Get sticker packs in the Wardrobe', 'Paczki naklejek kupisz w Garderobie')} ›</button>`);
+}
+function hubEmoToggle(open) {
+  const box = document.getElementById('hc-emo'), b = document.querySelector('.hcemobtn'); if (!box || !b) return;
+  open ??= box.hidden; if (open) box.innerHTML = hubEmoHtml();
+  const end = hubAtEnd(); // the log gets shorter while the picker is open: stay at the newest line
+  box.hidden = !open; b.setAttribute('aria-expanded', open); b.classList.toggle('on', open); if (end) hubScrollEnd();
+}
+function hubEmoPut(e) {
+  const inp = document.getElementById('hc-in'); if (!inp) return;
+  const a = inp.selectionStart ?? inp.value.length, z = inp.selectionEnd ?? a, v = inp.value.slice(0, a) + e + inp.value.slice(z);
+  if (v.length > inp.maxLength) { sfx.bad(); return; }
+  inp.value = v; const c = a + e.length;
+  if (matchMedia('(pointer: fine)').matches) inp.focus(); // on phones focusing would pop the keyboard over the picker
+  inp.setSelectionRange(c, c);
+}
+document.addEventListener('pointerdown', e => { const box = document.getElementById('hc-emo'); if (box && !box.hidden && !e.target.closest('#hc-foot')) hubEmoToggle(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hc-emo')?.hidden === false) { hubEmoToggle(false); document.querySelector('.hcemobtn')?.focus(); } });
+// A line that is only emoji (up to six) is shown bigger, like a sticker.
+const EMO_ONLY = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|\u200d|\ufe0f|\u20e3|\s)+$/u;
+const emoOnly = t => typeof t === 'string' && EMO_ONLY.test(t) && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(t)
+  && [...new Intl.Segmenter().segment(t.replace(/\s/g, ''))].length <= 6;
 const $hcLog = () => document.getElementById('hc-log');
 const hubAtEnd = () => { const el = $hcLog(); return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 60; };
 function hubScrollEnd() { const el = $hcLog(); if (el) el.scrollTop = el.scrollHeight; }
@@ -1234,7 +1262,7 @@ $app.addEventListener('submit', e => {
   if (e.target.dataset.form !== 'hubchat') return;
   e.preventDefault();
   const inp = e.target.querySelector('input'), text = inp.value.trim(); if (!text) return;
-  st.hc.pending = text; send({ t: 'hubchat', text }); inp.value = '';
+  st.hc.pending = text; send({ t: 'hubchat', text }); inp.value = ''; hubEmoToggle(false);
 });
 
 // "3 playing now · 128 visitors so far" under the hero buttons.
@@ -1511,10 +1539,10 @@ const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
   ti: L('A title under your name. Titles with a goal are earned by playing.', 'Tytuł pod twoim imieniem. Tytuły z celem zdobywa się, grając.'),
   wn: L('Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', 'Pojawia się u wszystkich na ekranie, gdy wygrywasz, i zastępuje konfetti przy twoich dobrych momentach w trakcie gry. Dotknij, żeby zobaczyć.'),
-  sp: L('Extra reactions for the chat row at any table. Every pack you own is always on.', 'Dodatkowe reakcje w pasku czatu przy każdym stole. Każda paczka, którą masz, jest zawsze włączona.') };
+  sp: L('Extra reactions for the chat row at any table, and extra emotes for the main chat. Every pack you own is always on.', 'Dodatkowe reakcje w pasku czatu przy każdym stole i dodatkowe emotki na czacie głównym. Każda paczka, którą masz, jest zawsze włączona.') };
 
-function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
-  let color = st.color, av = st.av.slice(), sec = startSec, sub = '', filt = startFilt, undo = null, saveT = 0;
+function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = '', filt: startFilt = 'all' } = {}) {
+  let color = st.color, av = st.av.slice(), sec = startSec, sub = startSub, filt = startFilt, undo = null, saveT = 0;
   const pick = {}; // account cosmetics being tried on: kind -> index
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
   const me = () => st.me || {}, owned = () => me().owned || [], coins = () => me().coins || 0;
@@ -1963,6 +1991,9 @@ $app.addEventListener('click', e => {
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
   else if (act === 'support') openSupport();
+  else if (act === 'hcemo') hubEmoToggle();
+  else if (act === 'hcemo-put') hubEmoPut(b.dataset.e);
+  else if (act === 'hcemo-shop') { hubEmoToggle(false); openWardrobe({ sec: 'fx', sub: 'sp' }); }
   else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
   else if (act === 'logout') { send({ t: 'logout' }); toast(L('Logged out. This browser is a guest again.', 'Wylogowano. Ta przeglądarka znów gra jako gość.')); }
   else if (act === 'host' || act === 'solo') {
