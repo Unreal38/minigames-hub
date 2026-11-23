@@ -852,12 +852,12 @@ export function createScene(canvas, { onPick, onGhost }) {
     return sp;
   }
   function miniIsland(f, mine) {
-    const g = new THREE.Group(), land = new THREE.Group(), n = f.size, R = n / 2 * Math.SQRT2;
+    const g = new THREE.Group(), land = new THREE.Group(), n = f.size, R = n / 2 * Math.SQRT2, th = (f.isle?.ig | 0) ? groundOf(f.isle.ig) : null; // th: the owner's isle ground
     const mk = (geo, c, y) => { const m = new THREE.Mesh(geo, flat(c)); m.position.y = y; land.add(m); return m; };
-    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), '#7cc45c', -.26).rotation.y = Math.PI / 4;
-    mk(new THREE.BoxGeometry(n, .04, n), '#8fd16a', .0);
-    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), '#a87750', -1.5).rotation.y = Math.PI / 4;
-    mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
+    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), th ? darker(th.grass, .9) : '#7cc45c', -.26).rotation.y = Math.PI / 4;
+    mk(new THREE.BoxGeometry(n, .04, n), th ? th.grass : '#8fd16a', .0);
+    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), th ? th.earth : '#a87750', -1.5).rotation.y = Math.PI / 4;
+    mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), th ? th.rock : '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
       const m = itemModel(it.type, false, true, levelOf(it, f)), [w, h] = footprint(it.type, it.r);
@@ -1169,7 +1169,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   renderer.shadowMap.needsUpdate = true;
 
   // the bought sky: its pieces (sun, moon, aurora, rainbow) hang behind the island, fixed to the view like on the profile card
-  let skyLook = null, pieceBits = [];
+  let skyLook = null, pieceBits = [], isleKey = '';
   scene.add(camera);
   function lookSky() {
     if (skyLook) { camera.remove(skyLook.root); skyLook.dispose(); skyLook = null; }
@@ -1178,8 +1178,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     (look.fp || []).forEach((id, i, all) => { const g = pieceModel(id); g.scale.setScalar(2.2); scene.add(g); pieceBits.push({ g, r: N / 2 + 4 + (i % 2) * 1.2, a: i / all.length * 6.283, y: 1.5 + (i * 7 % 5) * .5, spin: [0, 1, .4, .7, .2, .9][i % 6] }); });
   }
   return {
-    _view(o) { Object.assign(cam, o); }, // PREVIEW ONLY
-    setLook(lk) { look = { ...look, ...lk }; buildLand(); for (const e of items.values()) e.key = ''; syncItems(); lookSky(); renderer.shadowMap.needsUpdate = true; },
+    // the owner's isle look: { ig ground, ib rock base, ik sky, fp floating pieces }; rebuilt only when it changes
+    setLook(lk) { const next = { ...look, ...lk }, k = JSON.stringify(next); if (k === isleKey) return; isleKey = k; look = next; buildLand(); lookSky(); renderer.shadowMap.needsUpdate = true; },
     setFarm(f) {
       const size = f?.size || 10;
       const fk = f ? f.id || f.owner || f.name || '?' : ''; if (fk !== farmKey) { farmKey = fk; seenOnce = false; }
@@ -1230,7 +1230,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       return out;
     },
     dispose() {
-      dead = true; ticker.stop(); if (shotR) { shotR.dispose(); shotR.forceContextLoss?.(); shotR = null; }
+      dead = true; ticker.stop(); look = { ...look, ik: 0, fp: [] }; lookSky(); if (shotR) { shotR.dispose(); shotR.forceContextLoss?.(); shotR = null; }
       ghostCancel(true);
       for (const id of [...pets.keys()]) dropPet(id);
       for (const e of items.values()) disposeModel(e.g);

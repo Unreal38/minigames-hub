@@ -9,6 +9,7 @@ import { ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZO
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
+import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 
 // Coins are the account's, not the farm's: f.inv.coins reads and writes the owner's account balance, so everything
@@ -209,7 +210,9 @@ function album(f) {
   return f.album;
 }
 // A farm as its neighbours see it. Nothing here can be changed by the viewer.
-const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, size: f.size, house: f.house || 1, pts: f.pts || 0,
+// The owner's isle look (ground, rock base, sky, floating pieces): their farm island wears it too.
+const isleOf = pr => { const f = pr ? flairOf(pr) : {}, o = {}; for (const k of ['ig', 'ib', 'ik']) if (f[k]) o[k] = f[k]; if (f.fp) o.fp = f.fp; return o; };
+const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, isle: isleOf(pr), size: f.size, house: f.house || 1, pts: f.pts || 0,
   items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r, ...(i.lv > 1 ? { lv: i.lv } : {}) })) }; }; // lv: visitors and the map see each building at its level
 
 // ---------- trading ----------
