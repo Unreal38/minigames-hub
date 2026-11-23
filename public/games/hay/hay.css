@@ -52,6 +52,7 @@ body.in-game { overflow: hidden; }
 .hh .gate { background: #bfe8ffaa; }
 .hh .results[hidden], .hh .gate[hidden] { display: none; }
 .hh .sheet .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.hh .sheet .row .btn { flex: 1 1 auto; }
 .hh .sheet .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 .hh-sheet.clear h2 { color: #b56a00; } .hh-sheet.pet h2 { color: #7a4fc9; }
 .hh-sum { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
