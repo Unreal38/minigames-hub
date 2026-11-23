@@ -105,7 +105,7 @@ function learn(pet, xp) {
 // ---------- battles ----------
 // A battle lives in memory only. If the server restarts mid-fight it is simply gone, and nothing was at stake yet.
 const battles = new Map(); // profile id -> battle
-const ARENA_LV = 20, DAILY = { arena: 5, practice: 3, wild: 999 }, WILD_CHANCE = .3, WILD_MS = 30 * 60_000;
+const ARENA_LV = 20, HOLDS_DAILY = 10, DAILY = { arena: 5, practice: 3, wild: 999 }, WILD_CHANCE = .3, WILD_MS = 30 * 60_000;
 const WIN = { arena: { coins: 25, xp: 20, pts: 10 }, practice: { coins: 0, xp: 12, pts: 0 }, wild: { coins: 4, xp: 15, pts: 0 } };
 const LOSE = { arena: { coins: 5, xp: 8, pts: 2 }, practice: { coins: 0, xp: 5, pts: 0 }, wild: { coins: 0, xp: 6, pts: 0 } };
 const today = () => new Date().toISOString().slice(0, 10);
@@ -146,7 +146,7 @@ const battleView = B => ({ juiced: !!B.juiced, mode: B.mode, foe: B.foe, turn: B
 let push = () => 0;
 export const setPush = fn => { push = fn; };
 const lives = new Map(), invites = new Map(); // profile id -> live battle; invite id -> { from, to, pets, at }
-const TURN_MS = TURN_S * 1000, INVITE_MS = 60_000, LIVE = { win: { coins: 15, xp: 15 }, lose: { coins: 5, xp: 8 } };
+const TURN_MS = TURN_S * 1000, INVITE_MS = 60_000, LIVE = { win: { coins: 15, xp: 15 }, lose: { coins: 5, xp: 8 } }, LIVE_DAILY = 5; // rewarded live battles a day
 const flipEv = ev => ev.map(e => ({ ...e, ...(e.s !== undefined ? { s: 1 - e.s } : {}), ...(e.win !== undefined ? { win: 1 - e.win } : {}) }));
 function liveView(L, i) {
   const v = battleView(L.B); if (i) { v.sides.reverse(); if (v.over !== null) v.over = 1 - v.over; }
@@ -164,9 +164,12 @@ function liveTurn(L, quit = null) { // both have chosen, time ran out, or someon
     const f = farms.get(pid), msg = { t: 'farm', battle: liveView(L, i), ev: i ? flipEv(ev) : ev };
     if (B.over !== null) {
       lives.delete(pid);
-      const won = B.over === i, left = quit === i, r = won ? LIVE.win : LIVE.lose, prize = { won, coins: 0, xp: 0, pts: 0, grew: [], counted: !left };
-      if (f && won && !left) { prize.rank = RANK_XP.live; hubXp(profiles.get(pid), RANK_XP.live); }
-      if (f && !left) { prize.coins = r.coins; prize.xp = Math.round(r.xp * (wx() === 'cloudy' ? 1.25 : 1)); f.inv.coins = (f.inv.coins || 0) + r.coins; for (const id of L.ids[i]) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); } }
+      // Rewards for live battles are capped per day (LIVE_DAILY), like Arena matches: otherwise two accounts could
+      // battle each other over and over and print coins and rank XP.
+      const won = B.over === i, left = quit === i, r = won ? LIVE.win : LIVE.lose, prize = { won, coins: 0, xp: 0, pts: 0, grew: [], counted: !left && !!f && used(f, 'live') < LIVE_DAILY };
+      if (prize.counted) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = (f.fights.live || 0) + 1; }
+      if (prize.counted && won) { prize.rank = RANK_XP.live; hubXp(profiles.get(pid), RANK_XP.live); }
+      if (prize.counted) { prize.coins = r.coins; prize.xp = Math.round(r.xp * (wx() === 'cloudy' ? 1.25 : 1)); f.inv.coins = (f.inv.coins || 0) + r.coins; for (const id of L.ids[i]) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); } }
       Object.assign(msg, { prize, did: 'fought', farm: f ? view(f, profiles.get(pid)) : null });
       if (quit !== null) msg.ev = msg.ev.map(e => ({ ...e, quit: left })); // only the one who left sees "you left"
     }
@@ -731,7 +734,14 @@ export function handle(p, a, reply) {
     }
     if (B.to && !quit) { // the defender hears about it, and earns a little when their team held
       const d = farms.get(B.to);
-      if (d) { if (!won) { d.inv.coins = (d.inv.coins || 0) + 5; d.wins = (d.wins || 0) + 1; } post(d, { k: 'battle', from: p.name, held: !won }); }
+      // the defender's 5 coins only come from the attacker's rewarded matches (5 a day), and at most HOLDS_DAILY times a
+      // day, so nobody can lose on purpose again and again to fill a friend's (or their own second account's) purse
+      if (d) {
+        const pay = !won && prize.counted && used(d, 'held') < HOLDS_DAILY;
+        if (pay) { if (d.fights?.day !== today()) d.fights = { day: today() }; d.fights.held = (d.fights.held || 0) + 1; d.inv.coins = (d.inv.coins || 0) + 5; }
+        if (!won && prize.counted) d.wins = (d.wins || 0) + 1;
+        post(d, { k: 'battle', from: p.name, held: !won });
+      }
     }
     return ok({ battle: battleView(B), ev, prize, did: 'fought' });
   }
@@ -797,6 +807,7 @@ export function testHook(pid, a) {
   if (a.weather !== undefined) wxPin = a.weather || null; // 'none' switches the bonuses off
   const f = farms.get(pid); if (!f) return;
   if (a.home) for (const t of parties(f)) t.until = 0;
+  if (a.liveUsed !== undefined) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = a.liveUsed; }
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
   if (a.pet && own(SPECIES, a.pet)) f.pets.push({ ...newPet(a.pet, 'test', true), ...(a.traits || {}) });

@@ -176,11 +176,13 @@ export function act(G, s, a) {
     if (![x, y, vx, vy].every(Number.isFinite)) return false;
     const gap = Math.max(.05, Math.min(1, (now - st.repAt) / 1000));
     // nobody rises faster than a bounce mushroom throws them; a long run of refusals is let through
-    const ok = (Math.abs(x) <= W + .01 && y >= -.01 && y - k.y <= SPRING_V * gap + 5) || st.bad > 8;
+    const fair = Math.abs(x) <= W + .01 && y >= -.01 && y - k.y <= SPRING_V * gap + 5, ok = fair || st.bad > 8;
     st.repAt = now;
     if (!ok) { st.bad++; return false; }
     st.bad = 0;
-    k.x = Math.max(-W, Math.min(W, x)); k.y = Math.max(0, y); k.vx = Math.max(-20, Math.min(20, vx)); k.vy = Math.max(-60, Math.min(60, vy));
+    // a report let through after a run of refusals (a lag spike) catches the server up, but never by more than one
+    // mushroom's worth of height at a time, so nobody can teleport up the stalk
+    k.x = Math.max(-W, Math.min(W, x)); k.y = Math.max(0, fair ? y : Math.min(y, k.y + SPRING_V + 5)); k.vx = Math.max(-20, Math.min(20, vx)); k.vy = Math.max(-60, Math.min(60, vy));
     k.on = Number.isInteger(a.on) && a.on >= 0 ? a.on : -1; k.face = a.fc < 0 ? -1 : 1;
     return false; // the 20-a-second stream carries it to everyone
   }

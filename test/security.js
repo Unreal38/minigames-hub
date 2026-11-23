@@ -40,11 +40,25 @@ if (r.statusCode !== 400) fail('bad url should be 400, got ' + r.statusCode);
 r = await get('/');
 if (r.statusCode !== 200) fail('server died after a bad url');
 const csp = r.headers['content-security-policy'] || '';
-if (!/script-src 'self' https:\/\/cdn\.jsdelivr\.net 'sha256-/.test(csp) || !csp.includes("frame-ancestors 'none'")) fail('page CSP missing: ' + csp);
+if (!/script-src 'self' https:\/\/cdn\.jsdelivr\.net\/npm\/three@[\d.]+\/ 'sha256-/.test(csp) || !csp.includes("frame-ancestors 'none'")) fail('page CSP missing: ' + csp);
 if (r.headers['x-frame-options'] !== 'DENY') fail('x-frame-options missing');
 if ((await get('/', { 'x-forwarded-proto': 'https' })).headers['strict-transport-security'] !== 'max-age=31536000') fail('HSTS missing behind https');
 if ((await get('/../server/store.js')).statusCode === 200) fail('path traversal');
 console.log('http ok');
+
+// 1b. A page on another site may not open a game connection (the Origin must be this site).
+const upgrade = origin => new Promise((res, rej) => {
+  const q = http.request({ host: '127.0.0.1', port: PORT, path: '/ws', headers: { connection: 'Upgrade', upgrade: 'websocket', 'sec-websocket-version': '13', 'sec-websocket-key': 'dGhlIHNhbXBsZSBub25jZQ==', ...(origin ? { origin } : {}) } });
+  q.on('upgrade', (r, sock) => { sock.destroy(); res(r.statusCode); });
+  q.on('response', r => { r.resume(); res(r.statusCode); });
+  q.on('error', rej); q.end();
+});
+if (await upgrade('https://evil.example') !== 403) fail('a connection from another site was let in');
+if (await upgrade(`http://127.0.0.1:${PORT}`) !== 101) fail('a connection from this site was turned away');
+const { limitKey } = await import('../server/ws.js');
+if (limitKey('2001:db8:1:2:aaaa::1') !== limitKey('2001:db8:1:2:bbbb::2') || limitKey('2001:db8:1:2::1') === limitKey('2001:db8:1:3::1')) fail('IPv6 addresses should count by /64');
+if (limitKey('::ffff:10.0.0.1') !== '10.0.0.1') fail('IPv4 limit key changed');
+console.log('origin + ipv6 ok');
 
 // 2. Game names like "constructor" used to create a broken table that emptied the table list for everyone.
 const a = await player('Ana "<b>"').connect();

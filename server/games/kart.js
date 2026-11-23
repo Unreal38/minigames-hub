@@ -279,16 +279,21 @@ export function act(G, s, a) {
     if (![x, z, h, v].every(Number.isFinite)) return false;
     const k = G.karts[s], st = G.st[s], T = T_(G), gap = Math.max(.05, (now - st.repAt) / 1000);
     // a kart can only have gone so far since the last report (boosts included); a long run of refusals is let through
-    const far = Math.hypot(x - k.x, z - k.z), ok = far <= MAX_V * 1.5 * Math.min(gap, 1) + 6 || st.bad > 8;
+    const far = Math.hypot(x - k.x, z - k.z), fair = far <= MAX_V * 1.5 * Math.min(gap, 1) + 6, ok = fair || st.bad > 8;
     st.repAt = now;
     if (!ok) { st.bad++; return false; }
     st.bad = 0;
     const ax = k.x, az = k.z, prevS = k.s;
     const loc = locate(T, x, z, far > 20 ? -1 : k.i);
     Object.assign(k, { x, z, y: loc.y, h, v: Math.max(-8, Math.min(MAX_V * 1.6, v)), i: loc.i, lat: loc.lat, s: loc.s });
-    // laps are counted here, from the reported places, never taken from the browser
-    if (prevS > T.L * .75 && k.s < T.L * .25) k.lap++;
-    else if (prevS < T.L * .25 && k.s > T.L * .75) k.lap--;
+    // laps are counted here, from the reported places, never taken from the browser. st.run is how far along the
+    // track the kart has really driven since it last crossed the line: a jump let through after a run of refused
+    // reports (a lag spike) moves the kart but adds nothing to it, so teleporting round the track never earns a lap.
+    let ds = k.s - prevS; if (ds < -T.L / 2) ds += T.L; else if (ds > T.L / 2) ds -= T.L;
+    st.run ??= T.L;
+    if (fair) st.run += ds;
+    if (prevS > T.L * .75 && k.s < T.L * .25) { if (st.run >= T.L * .6) { k.lap++; st.run -= T.L; } }
+    else if (prevS < T.L * .25 && k.s > T.L * .75) { k.lap--; st.run += T.L; }
     k.prog = progOf(T, k);
     const f = a.f | 0; st.flags = f & (1 | 2 | 4 | 8 | 32 | 64 | 128 | 256 | 512 | 1024);
     k.fall = f & 1 ? 1 : 0; k.ghost = f & 256 ? .2 : 0;

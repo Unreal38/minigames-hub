@@ -23,6 +23,16 @@ export function ipOf(req) {
   return xff ? String(xff).split(',').pop().trim() : peer;
 }
 
+// The address the rate limits count by. An IPv6 home connection gets a whole /64 block of addresses, so one person
+// could hop between billions of them: every address in the same /64 counts as one.
+export function limitKey(ip) {
+  ip = String(ip || '');
+  if (!ip.includes(':') || ip.startsWith('::ffff:')) return ip.replace(/^::ffff:/, '');
+  const [head, tail = ''] = ip.split('::'), h = head ? head.split(':') : [], t = tail ? tail.split(':') : [];
+  const full = ip.includes('::') ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t] : h;
+  return full.slice(0, 4).map(x => (x || '0').toLowerCase().replace(/^0+(?=.)/, '')).join(':') + '::/64';
+}
+
 export class Socket extends EventEmitter {
   constructor(sock, ip) {
     super();
@@ -102,7 +112,11 @@ export function attach(server, path, onConnect) {
     if (url.pathname !== path || !key || (req.headers.upgrade || '').toLowerCase() !== 'websocket') {
       sock.end('HTTP/1.1 400 Bad Request\r\n\r\n'); return;
     }
-    const ip = ipOf(req);
+    // Only pages from this site may open a connection: a page on another site gets turned away. (Scripts outside a
+    // browser send no Origin and are let in; they never had a player's token anyway.)
+    const origin = req.headers.origin;
+    if (origin) { let oh = ''; try { oh = new URL(origin).host; } catch {} if (!oh || oh.toLowerCase() !== String(req.headers.host || '').toLowerCase()) { sock.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return; } }
+    const ip = limitKey(ipOf(req));
     if ((open.get(ip) || 0) >= PER_IP || !allow('conn:' + ip, NEW_PER_MIN, 60_000)) {
       sock.end('HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n'); return;
     }
