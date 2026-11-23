@@ -11,6 +11,8 @@ import { buildHole, ground, pathAt, spinAngle, simulate, BALL_R, CUP_R } from '.
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', BASE = -.14, AV = .46, WALL_H = .24;
 const ease = t => t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+// each tile edge: neighbour offset, our two corners on it (h order nw, ne, se, sw), the neighbour's matching corners, outward normal
+const SIDES = [[1, 0, 3, 2, 0, 1, [0, 0, 1]], [-1, 0, 0, 1, 3, 2, [0, 0, -1]], [0, 1, 1, 2, 0, 3, [1, 0, 0]], [0, -1, 0, 3, 1, 2, [-1, 0, 0]]];
 const WIND = 240; // ms of backswing shown before another player's ball sets off
 
 // Collects flat-shaded, vertex-coloured boxes, prisms and quads into one geometry: the whole course is one draw call.
@@ -134,11 +136,17 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const top = T.k === 's' ? (dark ? '#f1d590' : '#f6dea0') : ramp ? (dark ? '#62c248' : '#6dca50') : hi ? (dark ? '#9ad84e' : '#a8e05c') : dark ? '#7fd457' : '#8cdc62';
       const d = wet ? -.07 : 0;
       (wet ? W : M).quad([x0, nw + d, z0], [x0, sw + d, z1], [x1, se + d, z1], [x1, ne + d, z0], wet ? '#4fb8ef' : top, [0, 1, 0]);
+      // sides only where the next tile does not cover them: walls between flush tiles were hidden under the grass, but
+      // the outline hull grew each one into a thin dark blade poking up through the seam (the stray lines on the tiles)
       const side = wet ? '#3a94d6' : '#4fa646';
-      M.quad([x0, BASE - .1, z1], [x1, BASE - .1, z1], [x1, se, z1], [x0, sw, z1], side, [0, 0, 1]);
-      M.quad([x0, BASE - .1, z0], [x1, BASE - .1, z0], [x1, ne, z0], [x0, nw, z0], side, [0, 0, -1]);
-      M.quad([x1, BASE - .1, z0], [x1, BASE - .1, z1], [x1, se, z1], [x1, ne, z0], side, [1, 0, 0]);
-      M.quad([x0, BASE - .1, z0], [x0, BASE - .1, z1], [x0, sw, z1], [x0, nw, z0], side, [-1, 0, 0]);
+      for (const [dr, dc, a, b, na, nb, out] of SIDES) {
+        const N = H.t[T.r + dr]?.[T.c + dc], nd = N?.k === 'w' ? -.1 : 0; // a little below the bobbing water
+        if (wet && N?.k === 'w') continue;
+        const la = N ? Math.min(N.h[na] + nd, T.h[a]) : BASE - .1, lb = N ? Math.min(N.h[nb] + nd, T.h[b]) : BASE - .1;
+        if (N && la >= T.h[a] - 1e-6 && lb >= T.h[b] - 1e-6) continue; // the neighbour's top meets ours: nothing to show
+        const P = (k, y) => [k === 0 || k === 3 ? x0 : x1, y, k < 2 ? z0 : z1];
+        M.quad(P(a, la), P(b, lb), P(b, T.h[b]), P(a, T.h[a]), !wet && N?.k === 'w' ? '#3a94d6' : side, out); // a pond's inner wall stays blue
+      }
       if (T.k === 'T') { M.box(T.x, nw + .012, T.z, .62, .024, .62, '#fff4e2'); M.box(T.x - .42, nw + .06, T.z + .1, .1, .12, .1, '#ff8fab'); M.box(T.x + .42, nw + .06, T.z + .1, .1, .12, .1, '#ff8fab'); }
     }
     // walls: chunky cream boards with a wooden cap, and a post wherever boards meet
