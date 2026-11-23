@@ -1258,3 +1258,9 @@ footer .kofi:hover { color: var(--tx, var(--ink)); }
 .rk.wholist .main { font-size: 15px; text-align: right; white-space: normal; max-width: 46vw; }
 .rk.wholist .main small { display: block; font-family: var(--fb, inherit); font-weight: 500; font-size: 13px; color: var(--tx2, #6b4a3c); }
 .rk.wholist .who > span i { font-style: normal; font-size: 12px; color: var(--muted); }
+/* Supporter pack account cosmetics: Latte name, Coffee ring frame, Café card background */
+.nm11 { --g: linear-gradient(90deg, #9a5f2c, #c98a4a, #ecc79a 45%, #c98a4a, #9a5f2c); animation: nmslide 4s linear infinite; }
+.fr9 { --f3: #b8743a88; --fa: url("frames/f9.svg"); }
+.pb18 { --pt: #b8743a; --pi: url(cardbg/cafe.svg); --ps: 64px; background: color-mix(in srgb, var(--pt) 22%, transparent); }
+.pb18::before { background: var(--pi) 0 0 / var(--ps) repeat; opacity: .38; }
+.pb18::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 45%, transparent) 30%, transparent 80%); }

@@ -274,6 +274,7 @@ const WINLOOK = {
   3: { n: .55, size: 2.2, grav: 3, spin: 2.5, flutter: 1 },
   5: { n: .6, size: 1.3, grav: 4.5, spin: 1, flutter: .6 },
   6: { n: .7, size: 1.5, grav: .9, spin: 2, flutter: 2.4, life: 1.7 },
+  7: { n: .6, size: 2.4, grav: 2.4, spin: 2, flutter: 1.2 },
 };
 const WIN0 = 8; // shape numbers from here on are cells of the win effect strip
 export function createFx(scene, { max = 900 } = {}) {
