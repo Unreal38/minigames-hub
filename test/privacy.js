@@ -32,10 +32,11 @@ if (!fs.readFileSync('public/app.js', 'utf8').includes('href="/privacy"')) fail(
 console.log('privacy page ok');
 srv.kill(); await wait(300);
 
-// 2. Without the settings the page says the address is not filled in yet, and keeps the default place.
+// 2. Without the settings the page keeps its own contact (a Ko-fi message) and default place.
 await start({ PRIVACY_CONTACT: '', SERVER_PLACE: '' });
 const bare = await get('/privacy', { 'accept-language': 'pl' });
-if (!bare.text.includes('(adres jeszcze nie podany)') || !bare.text.includes('wynajętym serwerze w Oracle Cloud')) fail('fallback texts');
+if (!bare.text.includes('wiadomość na Ko-fi: <a href="https://ko-fi.com/zatokagier"') || !bare.text.includes('wynajętym serwerze w Oracle Cloud')) fail('fallback texts');
+if (/<!--contact|<!--place/.test(bare.text)) fail('placeholders left in the fallback page');
 if (/mailto:/.test(bare.text)) fail('no contact should mean no mail link');
 console.log('fallbacks ok');
 
