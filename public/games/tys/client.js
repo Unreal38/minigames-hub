@@ -120,15 +120,17 @@ export function mount(app, ctx) {
   function renderSide() {
     const playing = S.ph === 'play' && S.decl >= 0 && !['deal', 'bid'].includes(S.stage);
     setHtml($('ty-deal'), S.ph !== 'play' ? '' : playing
-      ? `<span><small>${L('Contract', 'Kontrakt')}</small><b>${S.contract}</b></span><span><small>${L('Trumps', 'Atut')}</small><b>${S.trump >= 0 ? suit(S.trump, 22) : `<i>${L('none yet', 'jeszcze brak')}</i>`}</b></span>`
+      ? innerWidth < 700 // phones: one box (contract and the trump suit side by side) leaves room for the scores
+        ? `<span><small>${L('Contract', 'Kontrakt')}</small><b>${S.contract}${S.trump >= 0 ? suit(S.trump, 16) : ''}</b></span>`
+        : `<span><small>${L('Contract', 'Kontrakt')}</small><b>${S.contract}</b></span><span><small>${L('Trumps', 'Atut')}</small><b>${S.trump >= 0 ? suit(S.trump, 22) : `<i>${L('none yet', 'jeszcze brak')}</i>`}</b></span>`
       : `<span><small>${L('Bid', 'Licytacja')}</small><b>${S.bid?.v ?? 100}</b></span><span><small>Musik</small><b>${cardHtml(-1, { cls: 'xs' }).repeat(3)}</b></span>`);
     setHtml($('ty-list'), S.seats.map((p, i) => {
       let sub = '';
       if (S.ph === 'end') sub = L(`${p.st.made} of ${p.st.played} contracts made`, `ugrane kontrakty: ${p.st.made} z ${p.st.played}`);
       else if (p.sit) sub = L('deals this hand', 'rozdaje w tym rozdaniu');
-      else if (playing) sub = `${i === S.decl ? `<u>${L('plays', 'gra')} ${S.contract} ·</u>` : ''}${p.pts} ${L('pts', 'pkt')}${p.mel.map(s => suit(s, 13)).join('')}`;
+      else if (playing) sub = `${i === S.decl ? `<u>${L('plays', 'gra')} ${S.contract}</u>` : ''}<em>${p.pts} ${L('pts', 'pkt')}${p.mel.map(s => suit(s, 13)).join('')}</em>`;
       else sub = p.said === 'pass' ? L('passed', 'pas') : p.said ? `${L('bid', 'licytuje')} ${p.said}` : i === S.dealer ? L('dealer', 'rozdaje') : '';
-      return `<li class="${i === S.turn ? 'now' : ''}${i === S.me ? ' ty-me' : ''}${p.sit && S.ph === 'play' ? ' out' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${sub}</span></div><strong>${p.score >= S.barrel && S.ph === 'play' ? I.barrel : ''}${p.score}</strong></li>`;
+      return `<li class="${i === S.turn ? 'now' : ''}${i === S.me ? ' ty-me' : ''}${p.sit && S.ph === 'play' ? ' out' : ''}">${avatarHtml(p.color, p.av, 30)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span class="ty-sub">${sub}</span></div><strong>${p.score >= S.barrel && S.ph === 'play' ? I.barrel : ''}${p.score}</strong></li>`;
     }).join(''));
     const lt = S.lastTrick, show = lt && S.ph === 'play' && S.stage === 'play';
     setHtml($('ty-last'), show ? `<small>${L('Last trick', 'Ostatnia lewa')} · ${youOr(lt.w)}</small><span>${lt.cards.map(x => cardHtml(x.c, { cls: 'xs' })).join('')}</span>` : '');
@@ -224,7 +226,7 @@ export function mount(app, ctx) {
 
   function render() {
     if (!S) return;
-    $('ty-info').textContent = S.ph === 'end' ? L(`${S.res?.hands || S.hand} hands played`, `Rozegrane rozdania: ${S.res?.hands || S.hand}`) : L(`Hand ${S.hand} · ${innerWidth < 700 ? '' : 'first '}to ${S.target}`, `Rozdanie ${S.hand} · gra do ${S.target}`);
+    $('ty-info').textContent = S.ph === 'end' ? L(`${S.res?.hands || S.hand} hands played`, `Rozegrane rozdania: ${S.res?.hands || S.hand}`) : L(`Hand ${S.hand} · ${innerWidth < 700 ? '' : 'first '}to ${S.target}`, `Rozdanie ${S.hand} · ${innerWidth < 700 ? 'do' : 'gra do'} ${S.target}`);
     $('ty-code').textContent = Rm?.code || '';
     root.classList.toggle('summing', S.stage === 'score');
     buildTags(); renderSide(); renderHand(); renderCtl(); renderBanner(); renderSum();
@@ -379,7 +381,7 @@ export function mount(app, ctx) {
     }
   };
   addEventListener('keydown', onKey);
-  const onResize = () => { if (S) renderHand(); layout(); };
+  const onResize = () => { if (S) { renderHand(); renderSide(); } layout(); };
   addEventListener('resize', onResize);
 
   root.addEventListener('click', e => {
