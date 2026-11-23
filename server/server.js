@@ -33,6 +33,7 @@ import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
 import * as farm from './farm.js';
 import * as hay from './hay.js';
+import * as pop from './pop.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
 
@@ -222,7 +223,7 @@ function sendFriends(p, news = null) {
 }
 // Everyone on the site right now, for hosts (ADMINS). One row per person (a phone and a laptop count once), with
 // where they are. Names only: no addresses, no tokens.
-const WHERE = new Set(['hub', 'farm', 'hay']);
+const WHERE = new Set(['hub', 'farm', 'hay', 'pop']);
 function whoList() {
   const rows = new Map();
   for (const c of clients.values()) {
@@ -355,7 +356,7 @@ function handle(c, m) {
     case 'rankings': { // the hub's global leaderboards, one per minigame
       const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
       if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
-      if (g !== 'overall' && g !== 'hay' && !isGame(g)) return;
+      if (g !== 'overall' && g !== 'hay' && g !== 'pop' && !isGame(g)) return;
       return send(c, { t: 'rankings', ...store.leaderboard(g, pid) });
     }
     case 'create': {
@@ -480,6 +481,14 @@ function handle(c, m) {
       const msg = { t: 'hay', ...r };
       for (const o of p?.user ? clientsOf(p.pid) : [c]) send(o, msg); // the same field on every screen of this account
       if (r.s?.over === 'clear' && m.a?.t === 'flip') for (const o of clientsOf(p.pid)) send(o, { t: 'me', me: store.me(p) });
+      return;
+    }
+    case 'pop': { // Pet Pop: the solo match puzzle, kept on the profile like Hay Hunch (no table)
+      if (!allow('pop:' + c.token, 120, 10_000)) return send(c, { t: 'pop', err: 'Slow down a little.' });
+      const p = store.profileOf(c.token), r = pop.handle(p, m.a);
+      const msg = { t: 'pop', ...r };
+      for (const o of p?.user ? clientsOf(p.pid) : [c]) send(o, msg); // the same shelf on every screen of this account
+      if (r.s?.over && r.steps) for (const o of clientsOf(p.pid)) send(o, { t: 'me', me: store.me(p) });
       return;
     }
     case 'farm': { // Pet Farm: a persistent game with no table, so it is handled outside the rooms

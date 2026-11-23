@@ -12,6 +12,7 @@ import { progress, rankOf, nextRankOf, RANKS, STAR_EVERY } from './ranks.js';
 import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
+import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -491,6 +492,20 @@ const SOLO = {
       <li>Keys: arrows to move, <b>Enter</b> to flip, <b>P</b> or <b>1</b>/<b>2</b>/<b>3</b> to mark, <b>B</b> to take the harvest.</li>
     </ol>`,
   },
+  pop: {
+    name: 'Pet Pop',
+    rules: `<ol>
+      <li>The shelf is full of pets. <b>Swap two neighbours</b> so that <b>three or more of the same pet</b> stand in a line: they pop, and new pets drop in from the top.</li>
+      <li>Swipe or drag a pet onto its neighbour, or click one and then the other. A swap that lines nothing up does not count.</li>
+      <li>Each level has <b>goals</b> (pop enough of a pet, break the hay bales) and a set number of <b>moves</b>. Reach every goal before the moves run out.</li>
+      <li><b>Four in a line</b> leaves a <b>Zoomer</b> (arrows): when it pops, it dashes along its whole row or column.</li>
+      <li>An <b>L or a T</b> leaves a <b>Pouncer</b> (ring): when it pops, it clears the 3 × 3 patch around it.</li>
+      <li><b>Five in a line</b> leaves a <b>Treat Bowl</b>: swap it with any pet and every pet of that kind comes running. Swapping two of these specials with each other does something bigger.</li>
+      <li><b>Hay bales</b> cannot be moved. A match right next to one breaks it, and so does anything that pops through it. A bale in a wooden frame takes two hits.</li>
+      <li>Finish with moves to spare for <b>up to 3 stars</b>. A cleared level pays <b>3 coins + 1 per star</b>, up to 40 coins a day. After that you can keep climbing levels for the rankings.</li>
+      <li>Out of moves? The level stays the same and you get a fresh shelf. Keys: arrows to move, <b>Enter</b> to pick up a pet, then an arrow to swap it.</li>
+    </ol>`,
+  },
 };
 if (PLX) for (const [id, x] of Object.entries(PLX.SOLO_PL)) if (SOLO[id]) Object.assign(SOLO[id], x);
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -555,7 +570,7 @@ function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
-    st.farm?.reopen(); st.hay?.reopen(); // back after a dropped connection
+    st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); // back after a dropped connection
     tellWhere();
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
@@ -584,7 +599,7 @@ function onMsg(m) {
       toast(`${m.gain.win ? L('Win! ', 'Wygrana! ') : pl > 1 && m.gain.of > 1 ? `${ord(pl)} ${L('place', 'miejsce')} · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${cnt(Math.abs(cg), 'coin', 'coins', 'moneta', 'monety', 'monet')}` : ''}${m.gain.ranked === false ? L(' · played with bots, not ranked', ' · gra z botami, bez rankingu') : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
     }
-    if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me();
+    if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
@@ -601,6 +616,8 @@ function onMsg(m) {
     else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
+  } else if (m.t === 'pop') {
+    st.pop?.msg(m);
   } else if (m.t === 'daily') {
     st.dailyInfo = m; st.daily?.msg(m); paintToday();
   } else if (m.t === 'rankings') {
@@ -618,10 +635,10 @@ function onMsg(m) {
     if (st.view === 'hub') renderTables();
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
-    if (m.room) { closeFarm(); closeHay(); }
+    if (m.room) { closeFarm(); closeHay(); closePop(); }
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay') go('hub'); return; }
+    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
@@ -735,6 +752,21 @@ function openHay() {
   }).catch(err => { console.error(err); hayLoading = null; toast(L('Could not load Hay Hunch. Refresh?', 'Nie udało się wczytać Hay Hunch. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closeHay() { if (!st.hay) return; st.hay.destroy(); st.hay = null; gameCss(null); }
+// Pet Pop: the solo swap-and-match puzzle, opened the same way.
+let popLoading = null;
+function openPop() {
+  if (st.pop || popLoading) return;
+  if (st.room) return toast(L('Leave this table first.', 'Najpierw wyjdź od tego stołu.'), true);
+  st.view = 'pop'; document.title = `Pet Pop · ${SITE}`; tellWhere();
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Filling the pet shelf…', 'Układamy zwierzaki na półce…') + '</p></main>';
+  popLoading = import('./games/pop/client.js').then(mod => {
+    popLoading = null;
+    if (st.view !== 'pop') return;
+    st.pop = mountWithCss('pop', () => mod.mount($app, { send: a => send({ t: 'pop', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closePop(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('pop') }));
+    st.pop.reopen(); placeGameSwitch();
+  }).catch(err => { console.error(err); popLoading = null; toast(L('Could not load Pet Pop. Refresh?', 'Nie udało się wczytać Pet Pop. Odświeżyć stronę?'), true); go('hub'); });
+}
+function closePop() { if (!st.pop) return; st.pop.destroy(); st.pop = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
 const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
@@ -748,6 +780,11 @@ const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5
   <path d="M14 56 30 40h62l16 16z" fill="#ffe08a"/><path d="M14 56h94v46H14z" fill="#f5bd42"/></g>
   <path d="M40 40 28 56v46M82 40l12 16v46" fill="none" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/>
   <path d="M40 70h14M62 84h18M44 92h10M70 68h10" stroke="#c98a1e" stroke-width="5" stroke-linecap="round"/></svg>`;
+const POP_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <rect x="10" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="44" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="78" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/>
+  <rect x="44" y="6" width="32" height="34" rx="9" fill="#6fa8ee"/><rect x="44" y="80" width="32" height="34" rx="9" fill="#8fd16a"/></g>
+  <g fill="#3b2219"><circle cx="21" cy="58" r="3"/><circle cx="31" cy="58" r="3"/><circle cx="55" cy="58" r="3"/><circle cx="65" cy="58" r="3"/><circle cx="89" cy="58" r="3"/><circle cx="99" cy="58" r="3"/></g>
+  <path d="M14 46l4-12 8 8M106 46l-4-12-8 8M48 46l4-12 8 8M72 46l-4-12-8 8M82 46l4-12 8 8M38 46l-4-12-8 8" fill="#ff9a4d" stroke="#3b2219" stroke-width="4" stroke-linejoin="round"/></svg>`;
 const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <path d="M22 58h76v46H22z" fill="#e5543b"/><path d="M12 60 34 28h52l22 32z" fill="#8a4a3a"/><path d="M34 28h52l-10-12H44z" fill="#a85f48"/>
   <path d="M46 72h28v32H46z" fill="#fff4e2"/></g>
@@ -761,6 +798,8 @@ function todayHtml() {
     : d.guesses.length ? `${L(`${cnt(d.guesses.length, 'guess', 'guesses')} so far`, `${cnt(d.guesses.length, '', '', 'próba', 'próby', 'prób')} do tej pory`)}${fire}` : `${L('New pet today', 'Dziś nowy zwierzak')}${d.streak ? fire : ''}`;
   const paid = me?.hay?.paid || 0;
   const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today · level ${me.hay.lv}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet · poziom ${me.hay.lv}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
+  const popPaid = me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
+  const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today · level ${popLv}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet · poziom ${popLv}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
   const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
   const ownFarm = L('Your own pet farm', 'Twoja własna farma zwierzaków');
   const farm = !me?.user ? needAcct : !f ? ownFarm
@@ -772,6 +811,7 @@ function todayHtml() {
   const mpPic = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
     + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', L('Play', 'Graj'))
+    + todayTile('t-pop', POP_ICON, 'Pet Pop', popText, 'pop', L('Play', 'Graj'))
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
@@ -809,7 +849,9 @@ const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
 function meCard() {
   const m = st.me; if (!m) return '';
   const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
-  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).map(([id, g]) => SOLO[id]
+  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).map(([id, g]) => id === 'pop'
+    ? `<li><b>Pet Pop</b><span>${L(`highest level cleared ${g.top || 0} · best ${num(g.best)} pts`, `najwyższy ukończony poziom: ${g.top || 0} · rekord ${num(g.best)} pkt`)}</span></li>`
+    : SOLO[id]
     ? `<li><b>${SOLO[id].name}</b><span>${L(`${cnt(g.wins, 'field')} cleared · best ×${num(g.best)}`, `${cnt(g.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · rekord ×${num(g.best)}`)}</span></li>`
     : `<li><b>${GAMES[id].name}</b><span>${L(`${cnt(g.wins, 'win')} in ${g.games} · best ${g.best} pts`, `${cnt(g.wins, '', '', 'wygrana', 'wygrane', 'wygranych')} na ${g.games} · rekord ${g.best} pkt`)}</span></li>`).join('');
   return `<div class="mecard">
@@ -842,13 +884,14 @@ function openStats() {
 }
 // Tells the server which screen this browser is on (hub, Pet Farm or Hay Hunch), for the host's "Who's here" list.
 // Tables need nothing: the server knows who sits where.
-function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' ? st.view : 'hub' }); }
+function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' || st.view === 'pop' ? st.view : 'hub' }); }
 // "Who's here": everyone on the site right now, for hosts only (the server sends it only to ADMINS accounts).
 let whoSheet = null, whoTimer = null;
 const agoText = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return m < 1 ? L('just arrived', 'przed chwilą') : `${L('here for', 'na stronie od')} ${h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`}`; };
 function whereText(a) {
   if (a.k === 'farm') return FARM_NAME;
   if (a.k === 'hay') return 'Hay Hunch';
+  if (a.k === 'pop') return 'Pet Pop';
   if (a.k !== 'table') return L('Hub', 'Strona główna');
   const g = GAMES[a.game]?.name || a.game;
   return `${esc(g)} <small>${a.watch ? L('watching', 'ogląda') : a.play ? L('playing', 'gra') : L('waiting room', 'poczekalnia')}${a.code ? ` · ${esc(a.code)}` : ` · ${L('private', 'prywatny')}`}</small>`;
@@ -1163,12 +1206,13 @@ $app.addEventListener('change', e => {
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
-const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', 'Hay Hunch'], ['farm', FARM_NAME]];
+const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', 'Hay Hunch'], ['pop', 'Pet Pop'], ['farm', FARM_NAME]];
 const RK_NOTE = {
   overall: L('Ranked by XP from every game. Wins earn the most.', 'Ranking według XP ze wszystkich gier. Najwięcej dają wygrane.'),
   marbles: L('Ranked by bets won, then by coins won overall.', 'Ranking według wygranych zakładów, potem według łącznie wygranych monet.'),
   farm: L('The Pet Farm ladder: points from Arena battles against other farms.', 'Drabinka Farmy zwierzaków: punkty z walk na Arenie przeciwko innym farmom.'),
   hay: L('Ranked by the best harvest from one field, then by fields cleared.', 'Ranking według najlepszych zbiorów z jednego pola, potem według oczyszczonych pól.'),
+  pop: L('Ranked by the highest level cleared, then by the best score on one shelf.', 'Ranking według najwyższego ukończonego poziomu, potem według najlepszego wyniku na jednej półce.'),
   default: L('Ranked by wins, then win rate.', 'Ranking według wygranych, potem według skuteczności.'),
 };
 const cWins = n => cnt(n, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych'), cGames = n => cnt(n, 'game', 'games', 'gra', 'gry', 'gier');
@@ -1176,6 +1220,7 @@ function rkStat(game, r) {
   if (game === 'overall') return [`${num(r.xp)} XP`, `${cWins(r.wins)} · ${cGames(r.games)}`];
   if (game === 'farm') return [cnt(r.pts, 'pt', 'pts', 'pkt'), `${cnt(r.pets, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')} · ${L('best Lv', 'najwyższy poz.')} ${r.top}`];
   if (game === 'hay') return [`×${num(r.best)}`, L(`${cnt(r.wins, 'field')} cleared · top level ${r.top || 1}`, `${cnt(r.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · najwyższy poziom ${r.top || 1}`)];
+  if (game === 'pop') return [L(`Level ${r.top || 0}`, `Poziom ${r.top || 0}`), L(`best score ${num(r.best)} · ${cnt(r.games, 'shelf', 'shelves')} played`, `rekord ${num(r.best)} · rozegrane półki: ${num(r.games)}`)];
   if (game === 'marbles') return [L(cnt(r.wins, 'bet') + ' won', cnt(r.wins, '', '', 'wygrany zakład', 'wygrane zakłady', 'wygranych zakładów')), `${cnt(r.games, 'race', 'races', 'wyścig', 'wyścigi', 'wyścigów')} · ${r.net >= 0 ? '+' : '−'}${cnt(Math.abs(r.net), 'coin', 'coins', 'moneta', 'monety', 'monet')}`];
   return [cWins(r.wins), `${cGames(r.games)} · ${r.rate}%${r.best ? ` · ${L('best', 'rekord')} ${r.best} ${L('pts', 'pkt')}` : ''}`];
 }
@@ -2048,6 +2093,7 @@ $app.addEventListener('click', e => {
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
+  else if (act === 'pop') { if (!st.name) return openProfile(true); openPop(); }
   else if (act === 'daily') { if (!st.name) return openProfile(true); openDaily(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });

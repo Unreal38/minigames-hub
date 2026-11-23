@@ -66,6 +66,8 @@ const TEXT = {
   'You already tried that one.': 'Ten zwierzak już był zgadywany.',
   'Unknown move.': 'Nieznany ruch.',
   'Finish this field first.': 'Najpierw dokończ to pole.',
+  'Finish this shelf first.': 'Najpierw dokończ tę półkę.',
+  'No pet there.': 'Tam nie ma zwierzaka.',
   'Flip a bale first.': 'Najpierw odwróć jakąś belę.',
   'No bale there.': 'Tam nie ma beli.',
 };
