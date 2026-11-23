@@ -285,7 +285,7 @@ export function act(G, s, a) {
     if (!ok) { st.bad++; return false; }
     st.bad = 0;
     const ax = k.x, az = k.z, prevS = k.s;
-    const loc = locate(T, x, z, far > 20 ? -1 : k.i);
+    const loc = locate(T, x, z, far > 20 ? -1 : k.i, k.y);
     Object.assign(k, { x, z, y: loc.y + T.lift[loc.i], h, v: Math.max(-8, Math.min(MAX_V * 1.6, v)), i: loc.i, lat: loc.lat, s: loc.s });
     // laps are counted here, from the reported places, never taken from the browser. st.run is how far along the
     // track the kart has really driven since it last crossed the line: a jump let through after a run of refused

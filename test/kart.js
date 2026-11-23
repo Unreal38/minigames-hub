@@ -15,7 +15,11 @@ for (const id of TRACK_IDS) {
   // separate parts of the loop never come close enough to overlap (or to cut across)
   for (let i = 0; i < T.n; i += 2) for (let j = i + 2; j < T.n; j += 2) {
     const arc = Math.min(j - i, T.n - (j - i)) * T.step;
-    if (arc > 50 && Math.hypot(T.x[i] - T.x[j], T.z[i] - T.z[j]) < SHOULDER * 2 + 4) fail(`${id}: samples ${i} and ${j} overlap`);
+    if (arc > 50 && Math.hypot(T.x[i] - T.x[j], T.z[i] - T.z[j]) < SHOULDER * 2 + 4) {
+      // ...unless one crosses well above the other on a bridge (a figure-eight)
+      const hi = T.y[i] > T.y[j] ? i : j;
+      if (Math.abs(T.y[i] - T.y[j]) < 6 || !T.br[hi]) fail(`${id}: samples ${i} and ${j} overlap`);
+    }
   }
   // no bend is tighter than the road is wide (the road would pinch shut and leave a hole)
   for (let i = 0; i < T.n; i++) { const a = Math.atan2(T.tx[(i + 1) % T.n], T.tz[(i + 1) % T.n]) - Math.atan2(T.tx[(i - 1 + T.n) % T.n], T.tz[(i - 1 + T.n) % T.n]), turn = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))); if (2 * T.step / Math.max(turn, 1e-6) < T.rw[i] + 1.2) fail(`${id}: the bend at ${i} is tighter than the road is wide`); }
@@ -24,7 +28,7 @@ for (const id of TRACK_IDS) {
   if (T.boxes.length !== TRACKS[id].boxes.length * 4 || !T.pads.length) fail(`${id}: boxes or pads missing`);
   for (const b of T.boxes) if (Math.abs(locate(T, b.x, b.z).lat) > ROAD) fail(`${id}: an item box is off the road`);
   // locate round-trips
-  for (let i = 0; i < T.n; i += 17) { const l = locate(T, T.x[i] - T.tz[i] * 2, T.z[i] + T.tx[i] * 2); if (Math.abs(l.lat - 2) > .05 || Math.abs(l.i - i) > 1) fail(`${id}: locate is off at ${i}`); }
+  for (let i = 0; i < T.n; i += 17) { const l = locate(T, T.x[i] - T.tz[i] * 2, T.z[i] + T.tx[i] * 2, -1, T.y[i]); if (Math.abs(l.lat - 2) > .05 || Math.abs(l.i - i) > 1) fail(`${id}: locate is off at ${i}`); }
   // a bot laps every track without falling off, in a sensible time
   const k = newKart(T, 0); let t = 0, falls = 0;
   while (k.lap < 2 && t < 120) { if (stepKart(T, k, autoDrive(T, k, { t }), 1 / 60, 1, t) === 'fall') falls++; t += 1 / 60; }

@@ -31,22 +31,26 @@ export const SCALE = 1.65;    // the control points below are multiplied by this
 // Item boxes sit in rows across the road at these fractions of a lap; pads give a short boost.
 export const TRACKS = {
   meadow: {
-    name: L('Meadow Loop', 'Łąkowa pętla'), blurb: L('Wide and friendly, with two bridges', 'Szeroka i przyjazna, z dwoma mostami'),
-    pts: [[0, 0, 0], [34, -2, 0], [62, 6, 0, 'b'], [86, 22, .8], [96, 48, 1], [88, 74, 1, 'b'], [64, 88, .4], [36, 84, 0], [18, 66, 0], [-4, 62, 0, 'b'],
-      [-34, 70, 1.4], [-58, 58, 1.6], [-64, 32, 1.2, 'b'], [-54, 10, .4], [-34, 1, 0], [-16, 0, 0]],
-    boxes: [.12, .44, .74], pads: [.3, .62, .93], sky: 0,
+    name: L('Meadow Loop', 'Łąkowa pętla'), blurb: L('Rolling hills, a little jump and sheep on the road', 'Pagórki, mały skok i owce na drodze'),
+    pts: [[0, 0, 0], [28, 0, 0], [48, -3, 1], [66, 2, 2.6], [78, 14, 3.6, 'b'], [82, 32, 2.6], [78, 46, 1.4], [66, 53, .8], [53, 45, .6], [40, 53, .6], [26, 62, 1.4],
+      [12, 66, 2.2, 'j'], [2, 66, 1.6], [-12, 66, 1], [-28, 70, .6, 'b'], [-46, 68, 1.4], [-60, 60, 2.8], [-66, 48, 3.6], [-62, 38, 3.6], [-52, 35, 3.2], [-43, 28, 2.6], [-43, 17, 1.8], [-40, 6, .8], [-30, 1, .2], [-16, 0, 0]],
+    boxes: [.12, .44, .76], pads: [.3, .47, .93], sky: 0,
+    hz: [{ k: 'pet', sp: 'petalpuff', p: [80, 38], amp: 3.2, per: 4.4 }, { k: 'pet', sp: 'mossbun', p: [46, 49], lat: -2.4 }, { k: 'pet', sp: 'petalpuff', p: [-56, 64], amp: 3.2, per: 3.8, ph: .5 }],
   },
   bakery: {
-    name: L('Sugar Bridges', 'Cukrowe mosty'), blurb: L('Long bridges, a climb and a hairpin', 'Długie mosty, podjazd i ostry nawrót'),
-    pts: [[0, 0, 2], [30, 0, 2], [56, -8, 2, 'b'], [84, -6, 5], [104, 12, 6], [104, 38, 6, 'b'], [80, 48, 4.5], [58, 38, 3.6], [40, 46, 3.2, 'b'],
-      [30, 72, 1.6], [6, 86, 1], [-22, 80, 1, 'b'], [-46, 92, 1.6], [-70, 80, 2.4], [-74, 52, 3], [-58, 30, 3, 'b'], [-46, 6, 2.6], [-24, 0, 2]],
-    boxes: [.1, .36, .58, .84], pads: [.24, .5, .72, .95], sky: 1,
+    name: L('Sugar Bridges', 'Cukrowe mosty'), blurb: L('A figure-eight with a high bridge, a climb and a jump', 'Ósemka z wysokim mostem, podjazdem i skokiem'),
+    pts: [[0, 10, 2], [20, 10, 2], [34, 18, 2], [42, 32, 2], [50, 48, 2], [60, 62, 2.4], [76, 70, 3], [94, 66, 4], [104, 54, 5, 'n'], [106, 38, 6.2], [103, 24, 7], [94, 15, 7.4], [84, 17, 7.6],
+      [79, 27, 7.6, 'b'], [64, 34, 7.6, 'b'], [46, 40, 7.6, 'b'], [32, 50, 7.4], [22, 60, 6.6], [10, 69, 5.8], [-2, 64, 5.2], [-13, 65, 4.6], [-23, 56, 3.9], [-28, 44, 3.4, 'j'], [-29, 34, 2.4], [-26, 22, 2.1], [-14, 12, 2]],
+    boxes: [.1, .36, .62, .84], pads: [.22, .5, .77, .96], sky: 1,
+    hz: [{ k: 'pet', sp: 'cupcowl', p: [68, 67, 2.7], lat: 2.4 }, { k: 'pet', sp: 'mallowlamb', p: [100, 28, 6.8], amp: 3.2, per: 3.6 }, { k: 'pet', sp: 'donuseal', p: [4, 66, 5.5], lat: 0 }],
   },
   peaks: {
-    name: L('Twisty Peaks', 'Kręte szczyty'), blurb: L('Tight turns round the mountain islands', 'Ciasne zakręty wokół górskich wysp'),
-    pts: [[20, 0, 0], [40, 4, .4], [54, 20, 1], [52, 38, 1.4, 'b'], [32, 50, 2.4], [16, 70, 3], [32, 92, 3.4], [58, 96, 3.8, 'b'], [84, 84, 4.2], [92, 58, 4.2],
-      [112, 40, 3.6, 'b'], [116, 10, 2.6], [96, -16, 1.8], [64, -30, 1, 'b'], [30, -32, .6], [0, -40, .4], [-30, -34, .2], [-50, -16, 0, 'b'], [-42, 0, 0], [-20, 0, 0], [0, 0, 0]],
-    boxes: [.08, .3, .55, .8], pads: [.2, .46, .68, .9], sky: 2,
+    name: L('Twisty Peaks', 'Kręte szczyty'), blurb: L('Switchbacks up to an icy summit, then a big drop', 'Serpentyny na oblodzony szczyt, a potem wielki zjazd'),
+    pts: [[0, 0, 0], [24, 0, 0], [44, 0, .6], [56, 3, 1.2], [60, 9, 1.8], [56, 15, 2.4], [44, 16, 3], [24, 16, 3.8], [10, 17, 4.4], [2, 21, 5], [1, 27, 5.6], [6, 32, 6.2], [18, 33, 6.8],
+      [40, 32, 7.8], [58, 34, 8.8], [72, 42, 9.6, 'i'], [76, 56, 10, 'i'], [68, 68, 10], [52, 74, 9.8], [36, 76, 9.4], [22, 75, 8.8, 'j'], [10, 73, 7], [-6, 68, 6.2, 'b'],
+      [-22, 58, 5.2, 'n'], [-32, 44, 4, 'n'], [-36, 28, 2.6], [-33, 13, 1.2], [-24, 3, .3], [-12, 0, 0]],
+    boxes: [.08, .3, .55, .8], pads: [.2, .42, .6, .93], sky: 2,
+    hz: [{ k: 'pet', sp: 'tricerock', p: [30, 16, 3.5], lat: 2.2 }, { k: 'pet', sp: 'ringbear', p: [46, 75, 9.6], amp: 3, per: 4 }, { k: 'pet', sp: 'snowfox', p: [75, 50, 9.8], lat: -2 }],
   },
   cliff: {
     name: L('Cliffside Hairpins', 'Klifowe nawroty'), blurb: L('Hairpins, a chicane and a narrow cliff road', 'Ostre nawroty, szykana i wąska droga nad urwiskiem'),
@@ -131,7 +135,7 @@ export function buildTrack(id) {
   const T = { id, name: def.name, def, n, step, L: L0, x, z, y, tx, tz, br, nar, sf, rw, ew, vlim, lift, gaps };
   // shortcuts: a polyline of [x, z, y]; things in the way: placed by a spot on the map, then by how far across the road
   T.cuts = (def.cuts || []).map(c => c.map(p => [p[0] * SCALE, p[1] * SCALE, p[2] * 1.4]));
-  T.hz = (def.hz || []).map(h => { const i = locate(T, h.p[0] * SCALE, h.p[1] * SCALE).i; return { amp: 0, per: 4, ph: 0, on: 1.2, lat: 0, r: h.k === 'pet' ? 1.6 : h.k === 'gey' ? 1.7 : 1.5, ...h, i }; });
+  T.hz = (def.hz || []).map(h => { const i = locate(T, h.p[0] * SCALE, h.p[1] * SCALE, -1, h.p[2] == null ? null : h.p[2] * 1.4).i; return { amp: 0, per: 4, ph: 0, on: 1.2, lat: 0, r: h.k === 'pet' ? 1.6 : h.k === 'gey' ? 1.7 : 1.5, ...h, i }; });
   T.boxes = []; for (const f of def.boxes) { const i = Math.round(f * n) % n; const w = rw[i] / ROAD; for (const lat of [-3.9, -1.3, 1.3, 3.9]) T.boxes.push(at(T, i, lat * w)); }
   T.pads = def.pads.map(f => { const i = Math.round(f * n) % n; return { i, len: 5, ...at(T, i, 0) }; });
   T.boxes.forEach((b, k) => { b.k = k; });
@@ -148,13 +152,14 @@ export function at(T, i, lat = 0) {
 export const headingAt = (T, i) => { i = ((i % T.n) + T.n) % T.n; return Math.atan2(T.tx[i], T.tz[i]); };
 
 // Nearest point of the centreline to (x, z). hint: the last known sample, to search only nearby.
-export function locate(T, x, z, hint = -1) {
+// y: the height the thing is at, when known. Where one road crosses over another it picks the right one.
+export function locate(T, x, z, hint = -1, y = null) {
   const n = T.n;
   let best = 0, bd = Infinity;
-  if (hint < 0) { for (let i = 0; i < n; i++) { const d = (T.x[i] - x) ** 2 + (T.z[i] - z) ** 2; if (d < bd) { bd = d; best = i; } } }
+  if (hint < 0) { for (let i = 0; i < n; i++) { const d = (T.x[i] - x) ** 2 + (T.z[i] - z) ** 2 + (y == null ? 0 : ((T.y[i] - y) * 2.5) ** 2); if (d < bd) { bd = d; best = i; } } }
   else {
     for (let k = -24; k <= 24; k++) { const i = (hint + k + n) % n, d = (T.x[i] - x) ** 2 + (T.z[i] - z) ** 2; if (d < bd) { bd = d; best = i; } }
-    if (bd > 196) return locate(T, x, z, -1); // nowhere near where it was (a shortcut, a respawn): look everywhere
+    if (bd > 196) return locate(T, x, z, -1, y); // nowhere near where it was (a shortcut, a respawn): look everywhere
   }
   // slide along the segment either side for a smooth distance
   const i = best, j = (i + 1) % n, h = (i - 1 + n) % n;
@@ -254,7 +259,7 @@ export function stepKart(T, k, inp, dt, top = 1, t = null) {
   const ox = k.x, oz = k.z;
   k.x += Math.sin(mh) * k.v * dt + Math.cos(k.h) * slide * dt;
   k.z += Math.cos(mh) * k.v * dt - Math.sin(k.h) * slide * dt;
-  const prevS = k.s, loc = locate(T, k.x, k.z, k.i);
+  const prevS = k.s, loc = locate(T, k.x, k.z, k.i, k.y);
   k.i = loc.i; k.s = loc.s; k.lat = loc.lat; k.y = loc.y + T.lift[loc.i];
   const sfc = T.sf[loc.i];
   const al = Math.abs(loc.lat);

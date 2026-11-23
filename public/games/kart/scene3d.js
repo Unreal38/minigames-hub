@@ -453,7 +453,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
       const mine = i === me && mineK;
       const f = mine ? (mineK.fall > 0 ? 1 : 0) | (mineK.spin > 0 ? 2 : 0) | (mineK.boost > 0 ? 4 : 0) | (mineK.slow > 0 ? 8 : 0) | (mineK.dr > 0 ? 32 : 0) | (mineK.dr < 0 ? 64 : 0) | (mineK.grass ? 128 : 0) | (mineK.ghost > 0 ? 256 : 0) | driftFlags(mineK.charge) : src.f | 0;
       K.root.position.set(src.x, src.y, src.z);
-      const l = locate(T, src.x, src.z, K.i); K.i = l.i;
+      const l = locate(T, src.x, src.z, K.i, src.y); K.i = l.i;
       // lean into slopes and corners, spin when hit, wobble in a drift
       const pitch = l.br || Math.abs(l.lat) < T.ew[l.i] ? -Math.atan2(T.y[(l.i + 2) % T.n] - T.y[(l.i - 2 + T.n) % T.n], 4 * T.step) : 0;
       if (f & 2) K.spinA += dt * 14; else K.spinA = K.spinA % (Math.PI * 2) > .1 ? K.spinA + Math.min(dt * 14, Math.PI * 2 - K.spinA % (Math.PI * 2)) : 0;

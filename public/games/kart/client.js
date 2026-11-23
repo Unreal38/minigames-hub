@@ -137,7 +137,7 @@ export function mount(app, ctx) {
     const p = S.k[S.me]; if (!p) return;
     mk = newKart(T, 0);
     Object.assign(mk, { x: p[0], z: p[1], y: p[2], h: p[3], v: S.stage === 'race' ? p[4] : 0 });
-    const l = locate(T, mk.x, mk.z, -1); Object.assign(mk, { i: l.i, s: l.s, lat: l.lat, lap: S.lap[S.me] }); mk.prog = progOf(T, mk);
+    const l = locate(T, mk.x, mk.z, -1, mk.y); Object.assign(mk, { i: l.i, s: l.s, lat: l.lat, lap: S.lap[S.me] }); mk.prog = progOf(T, mk);
   }
   function useItem() {
     if (!driving || S.stage !== 'race' || !itemReady()) return;
