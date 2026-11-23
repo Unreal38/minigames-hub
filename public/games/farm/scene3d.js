@@ -16,7 +16,8 @@ import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WIN
 import { petModel, eggModel } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
-import { groundOf, R as RIMS, BASE, finish, buildSky, pieceModel } from '../../isle3d.js';
+import { groundOf, R as RIMS, BASE, finish, pieceModel } from '../../isle3d.js';
+import { worldSky } from './sky3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -311,7 +312,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   const SKYKEYS = [[0, ...NIGHT], [4.6, ...NIGHT], [6.2, '#7fb2ee', '#ffd9c0', '#ffe6d6', 1.6, '#ffc392', 1.3, .2], [8, ...DAY], [17, ...DAY],
     [19, '#6f8ee0', '#ffcfa8', '#ffe0cc', 1.65, '#ffa468', 1.35, .15], [20.6, '#2a2f72', '#5a4f96', '#b9bdf5', 1.2, '#c0c4ff', .75, .8], [21.6, ...NIGHT], [24, ...NIGHT]];
   const WX = { sunny: [1, 1, 1, 0, 0, 0], cloudy: [.8, .92, .62, 0, 0, 0], rain: [.6, .86, .42, 1, .25, 0], wind: [.95, 1, 1, 0, 1, 0], rainbow: [1, 1, 1, 0, 0, 1] }; // sky dim, light dim, sun dim, rain, wind, rainbow
-  const airTo = { hour: 12, w: 'sunny' }, air = { set: false, tint: new THREE.Color('#ffffff'), low: new THREE.Color(SKY_LOW), hc: new THREE.Color('#ffffff'), hi: 1.9, sc: new THREE.Color('#ffffff'), si: 1.6, night: 0, rain: 0, wind: 0, windT: 0, bow: 0, shade: -1 };
+  const airTo = { hour: 12, w: 'sunny' }, air = { set: false, tint: new THREE.Color('#ffffff'), low: new THREE.Color(SKY_LOW), hc: new THREE.Color('#ffffff'), hi: 1.9, sc: new THREE.Color('#ffffff'), si: 1.6, night: 0, rain: 0, wind: 0, windT: 0, bow: 0, shade: -1, dim: 1, dusk: 0 };
   const _k1 = new THREE.Color(), _k2 = new THREE.Color(), _grey = new THREE.Color('#8f9bb3');
   const stars = (() => { const n = 240, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = hash(i, 91) * 6.283, e = .12 + hash(i, 92) * 1.35, r = 280; pos[i * 3] = Math.cos(a) * Math.cos(e) * r; pos[i * 3 + 1] = Math.sin(e) * r; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r; }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -338,7 +339,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     _k1.set(A[2]).lerp(_k2.set(B[2]), u); _k1.lerp(_k2.copy(_grey).lerp(_k1, .45), 1 - wx[0]); air.low.lerp(_k1, k);
     _k1.set(A[3]).lerp(_k2.set(B[3]), u); air.hc.lerp(_k1, k); air.hi += (mix(A[4], B[4]) * wx[1] - air.hi) * k;
     _k1.set(A[5]).lerp(_k2.set(B[5]), u); air.sc.lerp(_k1, k); air.si += (mix(A[6], B[6]) * wx[2] - air.si) * k;
-    air.night += (mix(A[7], B[7]) - air.night) * k; air.rain += (wx[3] - air.rain) * k; air.bow += (wx[5] - air.bow) * k;
+    air.night += (mix(A[7], B[7]) - air.night) * k; air.dim += (wx[0] - air.dim) * k; air.dusk += (Math.max(0, 1 - Math.min(Math.abs(h - 19.6), Math.abs(h - 5.8)) / 1.6) - air.dusk) * k; air.rain += (wx[3] - air.rain) * k; air.bow += (wx[5] - air.bow) * k;
     const gust = wx[4] * (.75 + Math.sin(T * .7) * .25 + Math.sin(T * 2.3) * .12); air.wind += (gust - air.wind) * Math.min(1, dt * 2); air.windT += (wx[4] - air.windT) * k;
     for (const [sc, hm, sn] of [[scene, hemi, sun], [world, whemi, wsun]]) { sc.background.copy(air.low); sc.fog.color.copy(air.low); hm.color.copy(air.hc); hm.intensity = air.hi; sn.color.copy(air.sc); sn.intensity = air.si; }
     const sk = air.tint.getHex() * 7 + air.low.getHex(); if (sk !== air.sk) { air.sk = sk; const p = skyGeo.attributes.position, c = skyGeo.attributes.color; for (let v = 0; v < p.count; v++) { _k1.copy(air.low).lerp(air.tint, Math.min(1, Math.max(0, p.getY(v) / 300 * 1.6 + .25))); c.setXYZ(v, _k1.r, _k1.g, _k1.b); } c.needsUpdate = true; }
@@ -354,7 +355,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       rain.geometry.attributes.position.needsUpdate = true;
       if (farm && !starters && Math.random() < dt * 14 * air.rain) { const x = (Math.random() - .5) * N, z = (Math.random() - .5) * N; bit(BIT.ball, BM2.drop, .35, (m, v) => { m.position.set(x, .04, z); m.scale.set(.05 + v * .16, .012, .05 + v * .16); }); }
     }
-    bow.visible = air.bow > .02 && !starters; if (bow.visible) { bow.scale.setScalar(N * .46 / 58); bow.position.set(-Math.sin(cam.az) * N * .52, -1.2, -Math.cos(cam.az) * N * .52); bow.rotation.y = cam.az; bow.children.forEach(m => { m.material.opacity = air.bow * .6 * (1 - air.night * .8); }); } // always arching over the far side
+    bow.visible = air.bow > .02 && !starters && look.ik !== 4; /* with the Rainbow sky, that one glows brighter instead */ if (bow.visible) { bow.scale.setScalar(N * .46 / 58); bow.position.set(-Math.sin(cam.az) * N * .52, -1.2, -Math.cos(cam.az) * N * .52); bow.rotation.y = cam.az; bow.children.forEach(m => { m.material.opacity = air.bow * .6 * (1 - air.night * .8); }); } // always arching over the far side
     WINDOW.emissiveIntensity = Math.min(1, air.night * 1.4) * (.92 + Math.sin(T * 2.3) * .05);
     let n = 0; const lit = air.night > .08 && farm && !starters;
     if (lit) for (const e of items.values()) { const r = GLOWS[e.type]; if (!r || n >= 28) continue; _tm.compose(_tv.set(e.g.position.x, .03, e.g.position.z), _tq.identity(), _ts.set(r, 1, r).multiplyScalar(1 + Math.sin(T * 3 + n) * .03)); glows.setMatrixAt(n++, _tm); }
@@ -1163,7 +1164,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
     for (const [f, z, i] of falls) { if (z != null) f.position.z = z + Math.sin(T * 9) * .14; else { const u = (T * .7 + i / 3) % 1; f.scale.setScalar(.5 + u); f.material.opacity = .55 * (1 - u); } }
     for (const f of landTicks) f(T);
-    if (skyLook) skyLook.tick(T);
+    if (skyLook) skyLook.tick(T, camera, { night: air.night, dusk: air.dusk, clear: air.dim, wind: air.wind, bow: air.bow });
     pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
     renderer.render(scene, camera);
@@ -1172,12 +1173,11 @@ export function createScene(canvas, { onPick, onGhost }) {
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
   renderer.shadowMap.needsUpdate = true;
 
-  // the bought sky: its pieces (sun, moon, aurora, rainbow) hang behind the island, fixed to the view like on the profile card
+  // the bought sky (sky3d.js): pinned to the world round the island, blending with the clock and the weather
   let skyLook = null, pieceBits = [], isleKey = '';
-  scene.add(camera);
   function lookSky() {
-    if (skyLook) { camera.remove(skyLook.root); skyLook.dispose(); skyLook = null; }
-    if (look.ik) { skyLook = buildSky(look.ik); skyLook.root.scale.setScalar(19); skyLook.root.position.set(0, 36, -72); skyLook.root.traverse(o => { if (o.material) o.material.fog = false; }); camera.add(skyLook.root); /* far behind the island, so nothing of it lands in front */ }
+    if (skyLook) { scene.remove(skyLook.root); skyLook.dispose(); skyLook = null; }
+    skyLook = worldSky(look.ik, N); if (skyLook) scene.add(skyLook.root);
     for (const b of pieceBits) { scene.remove(b.g); disposeModel(b.g); } pieceBits = [];
     (look.fp || []).forEach((id, i, all) => { const g = pieceModel(id); g.scale.setScalar(2.2); scene.add(g); pieceBits.push({ g, r: N / 2 + 5 + (i % 2) * 1.2, a: i / all.length * 6.283, y: 1.5 + (i * 7 % 5) * .5, spin: [0, 1, .4, .7, .2, .9][i % 6] }); });
   }
@@ -1188,7 +1188,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const size = f?.size || 10;
       const fk = f ? f.id || f.owner || f.name || '?' : ''; if (fk !== farmKey) { farmKey = fk; seenOnce = false; }
       farm = f;
-      if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); }
+      if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); lookSky(); }
       syncItems(); syncPets(); placeTufts(); syncBalloon(); syncEgg(); syncOwner();
       if (ghost) ghostCheck();
     },
