@@ -144,7 +144,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
   { // the sign over the kitchen
     const cv = document.createElement('canvas'); cv.width = 512; cv.height = 96; const g = cv.getContext('2d');
     g.fillStyle = '#ffd27a'; g.fillRect(0, 0, 512, 96); g.fillStyle = '#5a3a2e'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.font = '700 54px "Fredoka", "Baloo 2", system-ui, sans-serif'; g.fillText(K.id === 'split' ? 'PASS-THROUGH' : 'SUNNY DINER', 256, 52);
+    g.font = '700 54px Rubik, system-ui, sans-serif'; g.fillText(K.id === 'split' ? 'PASS-THROUGH' : 'SUNNY DINER', 256, 52);
     const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.36, .42), new THREE.MeshBasicMaterial({ map: tx })); m.position.set(0, 2.22 + BASE, -OZ - .155); scene.add(m); signMesh = m;
   }

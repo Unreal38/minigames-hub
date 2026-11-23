@@ -728,7 +728,7 @@ function todayHtml() {
     : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
     : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
-  const mpPic = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
+  const mpPic = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#3b2f55"/><text x="60" y="84" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
     + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', L('Play', 'Graj'))
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));

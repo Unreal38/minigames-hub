@@ -40,7 +40,7 @@ export function cardTexture(c) { // c below 0 is a back: -1 the classic one, -1 
       g.fillStyle = '#fff8ec'; rr(g, 10, 10, 236, 344, 22); g.fill();
       // corner index (rank over a small suit) top-left and, upside down, bottom-right; one big pip in the middle
       const corner = () => {
-        g.fillStyle = SUIT_COLS[s]; g.font = '700 82px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+        g.fillStyle = SUIT_COLS[s]; g.font = '700 82px Rubik, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
         g.fillText(RANKS[r], 50, 88, 76);
         suitPath(g, s, 29, 98, 42);
       };
@@ -66,7 +66,7 @@ function feltTexture() {
     const a = i / 24 * Math.PI * 2, x = S / 2 + Math.cos(a) * S * .43, y = S / 2 + Math.sin(a) * S * .43;
     g.globalAlpha = .22; suitPath(g, i % 4, x - 14, y - 14, 28); g.globalAlpha = 1;
   }
-  g.fillStyle = '#fff4e21c'; g.font = '700 64px Fredoka, Nunito, sans-serif'; g.textAlign = 'center';
+  g.fillStyle = '#fff4e21c'; g.font = '700 64px Rubik, Nunito, sans-serif'; g.textAlign = 'center';
   g.fillText('ZATOKA GIER', S / 2, S / 2 + 230);
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
@@ -246,7 +246,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
   const pot = new THREE.Group(); pot.position.set(0, .01, -1.45); scene.add(pot); let potAmt = -1;
   const dealerBtn = new THREE.Group(); scene.add(dealerBtn);
-  { const t = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d'); g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(64, 64, 64, 0, 7); g.fill(); g.fillStyle = INK; g.font = '700 70px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('D', 64, 70); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; document.fonts?.ready.then(() => { g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(64, 64, 64, 0, 7); g.fill(); g.fillStyle = INK; g.fillText('D', 64, 70); tx.needsUpdate = true; }); return tx; })();
+  { const t = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d'); g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(64, 64, 64, 0, 7); g.fill(); g.fillStyle = INK; g.font = '700 70px Rubik, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('D', 64, 70); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; document.fonts?.ready.then(() => { g.fillStyle = '#fff4e2'; g.beginPath(); g.arc(64, 64, 64, 0, 7); g.fill(); g.fillStyle = INK; g.fillText('D', 64, 70); tx.needsUpdate = true; }); return tx; })();
     const b = put(new THREE.CylinderGeometry(.26, .26, .08, 28), [M('#e5543b'), M('#ffffff', { map: t }), M('#e5543b')].map(toonMat), 0, .045, 0, dealerBtn); b.castShadow = true; }
 
   // ---------- tweens & sparkles ----------
