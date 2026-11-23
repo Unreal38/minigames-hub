@@ -1,5 +1,6 @@
 // Constellations: what the endless stars after the last rank are for. Every star (ranks.js, one per STAR_EVERY levels
-// after Sky Legend) lights one point of the constellation the player is working on. A finished constellation shows on
+// after Sky Legend) waits until the player places it: a tap lights the next point of a constellation of their choice.
+// A finished constellation shows on
 // their profile card, and one of them sits in their level chip. Shared by the server (which keeps the sky) and the hub
 // (which draws it).
 //
@@ -24,27 +25,28 @@ export const conOf = id => CONS.find(c => c.id === id) || null;
 export const STARS_IN_ALL = CONS.reduce((n, c) => n + c.p.length, 0);
 
 // ---------- the rules (pure, so the server and the tests share them) ----------
-// A sky is { lit: { id: stars lit }, now: id being lit, shown: id in the level chip }. tidySky hands out every star
-// the player has earned but not yet placed: into `now`, and when that is full into the next unfinished one in list
-// order. Stars already lit never move, so it is safe to call again and again.
-const litOf = (sky, c) => Math.max(0, Math.min(c.p.length, Math.floor(+sky.lit?.[c.id]) || 0));
+// A sky is { lit: { id: stars lit }, shown: id in the level chip }. The player places every star by hand, so the
+// stars still free are the ones earned minus the ones lit. Lit stars never move. tidySky only cleans a saved sky.
+const litOf = (sky, c) => Math.max(0, Math.min(c.p.length, Math.floor(+sky?.lit?.[c.id]) || 0));
 export const isDone = (sky, id) => { const c = conOf(id); return !!c && litOf(sky, c) === c.p.length; };
-export function tidySky(sky, stars) {
-  const s = { lit: {}, now: '', shown: '' };
-  for (const c of CONS) { const k = litOf(sky || {}, c); if (k) s.lit[c.id] = k; }
-  s.now = conOf(sky?.now) && !isDone(s, sky.now) ? sky.now : '';
-  let spent = Object.values(s.lit).reduce((a, b) => a + b, 0);
-  for (stars = Math.max(0, Math.floor(stars) || 0); ; spent++) {
-    if (!s.now) s.now = CONS.find(c => !isDone(s, c.id))?.id || '';
-    if (spent >= stars || !s.now) break;
-    s.lit[s.now] = (s.lit[s.now] || 0) + 1;
-    if (isDone(s, s.now)) s.now = '';
-  }
-  s.lit = Object.fromEntries(CONS.filter(c => s.lit[c.id]).map(c => [c.id, s.lit[c.id]])); // always in list order
-  s.shown = isDone(s, sky?.shown) ? sky.shown : CONS.find(c => isDone(s, c.id))?.id || '';
+export const doneIds = sky => CONS.filter(c => isDone(sky, c.id)).map(c => c.id);
+export const litCount = sky => CONS.reduce((n, c) => n + litOf(sky, c), 0);
+export const freeStars = (sky, stars) => Math.max(0, (Math.floor(stars) || 0) - litCount(sky));
+export function tidySky(sky) {
+  const s = { lit: {}, shown: '' };
+  for (const c of CONS) { const k = litOf(sky, c); if (k) s.lit[c.id] = k; } // always in list order
+  s.shown = isDone(s, sky?.shown) ? sky.shown : doneIds(s)[0] || '';
   return s;
 }
-export const doneIds = sky => CONS.filter(c => isDone(sky, c.id)).map(c => c.id);
+/** Light the next point of constellation `id` with one free star: the new sky, or null when that cannot be done. */
+export function lightStar(sky, id, stars) {
+  const s = tidySky(sky), c = conOf(id);
+  if (!c || isDone(s, id) || !freeStars(s, stars)) return null;
+  s.lit[id] = (s.lit[id] || 0) + 1;
+  return tidySky(s);
+}
+/** The unfinished constellation furthest along (the one to show as "in progress"), or null. */
+export const inProgress = sky => CONS.filter(c => !isDone(sky, c.id)).sort((a, b) => litOf(sky, b) / b.p.length - litOf(sky, a) / a.p.length)[0] || null;
 
 // ---------- the pictures (SVG strings) ----------
 const INK = '#3b2219';
@@ -55,13 +57,13 @@ function star(x, y, r, on) {
   const out = `<path d="M${P.join('L')}z" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>`;
   return `<path d="M${P.join('L')}z" fill="#ffe27a"/><path d="M${f(x)} ${f(y)}L${P[2]}L${P[3]}L${P[4]}z" fill="#f5a623"/><path d="M${f(x)} ${f(y)}L${P[0]}L${P[1]}L${P[2]}z" fill="#fff3b8"/>${out}`;
 }
-/** A constellation with its first `lit` stars on. With `guide`, the rest shows as a faint dashed outline. */
-export function conArt(c, lit = c.p.length, { size = 120, pad = 14, r = 6.5, guide = true } = {}) {
+/** A constellation with its first `lit` stars on. With `guide`, the rest shows as a faint dashed outline; `pop` marks the newest star so it can bounce in. */
+export function conArt(c, lit = c.p.length, { size = 120, pad = 14, r = 6.5, guide = true, pop = false } = {}) {
   const s = (120 - pad * 2) / 100, X = p => pad + p[0] * s, Y = p => pad + p[1] * s;
   let g = '';
   for (const [a, b] of c.l) { const on = a < lit && b < lit; if (!on && !guide) continue;
     g += `<path d="M${f(X(c.p[a]))} ${f(Y(c.p[a]))}L${f(X(c.p[b]))} ${f(Y(c.p[b]))}" stroke="${on ? '#fff6d8' : '#6d72b4'}" stroke-width="${on ? 2.6 : 1.6}"${on ? '' : ' stroke-dasharray="2 5"'} stroke-linecap="round"/>`; }
-  c.p.forEach((p, i) => { if (i < lit || guide) g += star(X(p), Y(p), r, i < lit); });
+  c.p.forEach((p, i) => { if (i < lit || guide) g += pop && i === lit - 1 ? `<g class="cnnew">${star(X(p), Y(p), r, true)}</g>` : star(X(p), Y(p), r, i < lit); });
   return `<svg class="cnart" width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true">${g}</svg>`;
 }
 // The blocky patch of night sky behind a picture.

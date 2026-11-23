@@ -38,7 +38,8 @@ const TEXT = {
   'Too many tries. Wait a few minutes and try again.': 'Za dużo prób. Odczekaj kilka minut i spróbuj ponownie.',
   'Not connected.': 'Brak połączenia.',
   'Unknown.': 'Nieznane polecenie.',
-  'Pick a constellation that is not finished yet.': 'Wybierz gwiazdozbiór, który nie jest jeszcze ukończony.',
+  'You have no star to light there.': 'Nie masz gwiazdy, którą można tu zapalić.',
+  'Constellations unlock at the last rank.': 'Gwiazdozbiory odblokujesz po ostatniej randze.',
   'Finish that constellation first.': 'Najpierw ukończ ten gwiazdozbiór.',
   'Slow down a little.': 'Zwolnij trochę.',
   // the shop and the wardrobe
