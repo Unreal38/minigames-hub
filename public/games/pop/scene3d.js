@@ -1,12 +1,12 @@
-// Pet Pop 3D shelf (three.js): a big wooden toy shelf on a sky island, one Pet Farm pet in every cubby, and the
+// Pet Pop 3D shelf (three.js): a big wooden toy shelf on a sky island, one Pet Farm pet gem in every cubby, and the
 // player's avatar watching. Purely visual: the client tells it which swap was made and hands it the server's
-// steps, and it plays them (pop, drop, refill). Every pet of a kind is one instanced mesh, so a full shelf is a
+// steps, and it plays them (pop, drop, refill). Every gem of a kind is one instanced mesh, so a full shelf is a
 // handful of draw calls and holds 60 frames a second on phones.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight, flat } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
-import { petModel } from '../farm/pets3d.js';
+import { petPic } from '../../petpic.js';
 import { W, H, N, KINDS, KIND_COLOR, HOLE, EMPTY, BOWL, BALE, isPet, kindOf, powerOf, isBale, settle, ZOOM_H, ZOOM_V, POUNCE } from './rules.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -119,13 +119,19 @@ export function createScene(canvas) {
   // ---------- instanced pieces ----------
   const inst = (geo, mat, cap = CAP) => { const m = new THREE.InstancedMesh(geo, mat, cap); m.count = 0; m.frustumCulled = false; B.add(m); return m; };
   const piece = ({ body, hull }, cap) => ({ body: inst(body, bodyMat(), cap), hull: hull ? inst(hull, inkMat(), cap) : null, n: 0 });
-  const pets = KINDS.map(sp => { const model = petModel(sp, 2); const p = piece(fit(flatten(model), .88, .86)); return p; });
   const bowl = piece(fit(flatten(bowlModel()), .78, .74), 16);
   const bale1 = piece(fit(flatten(baleModel(false)), .84, .64), N), bale2 = piece(fit(flatten(baleModel(true)), .92, .72), N);
   // the coloured cushion behind every pet, so a kind reads at a glance even on a small phone
-  const padGeo = new THREE.CylinderGeometry(.47, .47, .08, 8); padGeo.rotateY(Math.PI / 8); padGeo.rotateX(Math.PI / 2);
+  const padGeo = new THREE.CylinderGeometry(.47, .47, .24, 8); padGeo.rotateY(Math.PI / 8); padGeo.rotateX(Math.PI / 2);
   const pads = inst(padGeo, toonMat(new THREE.MeshStandardMaterial({ color: '#ffffff' })), CAP * 2);
   const padInk = inst(padGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP * 2);
+  // each pet's picture, painted on the front of its gem (Kuba found 3D pets on the shelf too distracting)
+  const faceGeo = new THREE.PlaneGeometry(1.04, 1.04); let dead = false;
+  const faces = KINDS.map(sp => {
+    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', alphaTest: .5 }), m = inst(faceGeo, mat); m.visible = false;
+    petPic({ sp, lv: 20 }, 256).then(u => { if (!u || dead) return; new THREE.TextureLoader().load(u, t => { if (dead) return t.dispose(); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; mat.map = t; mat.needsUpdate = true; m.visible = true; }); });
+    return { m, n: 0 };
+  });
   // powers: arrows either side of a Zoomer, a ring round a Pouncer
   const arrowGeo = new THREE.ConeGeometry(.13, .22, 4); arrowGeo.rotateZ(-Math.PI / 2); // points along +x
   const arrows = inst(arrowGeo, new THREE.MeshBasicMaterial({ color: '#fff7c2' }), CAP * 2), arrowInk = inst(arrowGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP * 2);
@@ -274,7 +280,7 @@ export function createScene(canvas) {
 
   // ---------- the frame loop ----------
   const q = new THREE.Quaternion(), e = new THREE.Euler(), p3 = new THREE.Vector3(), s3 = new THREE.Vector3(), mat = new THREE.Matrix4();
-  const all = [...pets, bowl, bale1, bale2];
+  const all = [bowl, bale1, bale2];
   let nPad = 0, nArrow = 0, nRing = 0, T = 0;
   const putAt = (mesh, n, x, y, z, rx, ry, rz, sx, sy = sx, sz = sx) => { e.set(rx, ry, rz); q.setFromEuler(e); mesh.setMatrixAt(n, mat.compose(p3.set(x, y, z), q, s3.set(sx, sy, sz))); };
   function draw(s, dt) {
@@ -302,10 +308,11 @@ export function createScene(canvas) {
     if (sc <= .001) return;
     const z = s.state === 'slide' || s.i === picked ? .12 : 0;
     if (bale) { const P = v - BALE > 1 ? bale2 : bale1; putAt(P.body, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.hull && putAt(P.hull, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.n++; return; }
-    const P = v === BOWL ? bowl : pets[k]; if (!P || P.n >= CAP) return;
-    putAt(P.body, P.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); P.hull && putAt(P.hull, P.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); P.n++;
-    const ps = sc * (1 + s.flash * .25);
-    putAt(pads, nPad, x, y, z - .3, 0, 0, 0, ps); putAt(padInk, nPad, x, y, z - .3, 0, 0, 0, ps * 1.09, ps * 1.09, ps * .9);
+    const ps = sc * (1 + s.flash * .25), gy = y + hop;
+    if (v === BOWL) { putAt(bowl.body, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.hull && putAt(bowl.hull, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.n++; }
+    else { const F = faces[k]; if (!F || F.n >= CAP) return; putAt(F.m, F.n++, x, gy, z + .03, 0, 0, rz, ps * sx, ps * sy, ps); }
+    const pz = v === BOWL ? z - .3 : z - .1;
+    putAt(pads, nPad, x, gy, pz, 0, 0, rz, ps * sx, ps * sy, ps); putAt(padInk, nPad, x, gy, pz, 0, 0, rz, ps * sx * 1.09, ps * sy * 1.09, ps * .9);
     pads.setColorAt(nPad++, col.copy(v === BOWL || s.flash > .3 ? GOLD : padCol[k]));
     if (pw === ZOOM_H || pw === ZOOM_V) {
       const d = .52 + Math.abs(Math.sin(T * 5 + s.ph)) * .07;
@@ -330,11 +337,12 @@ export function createScene(canvas) {
     }
     if (phase) { phase.t -= dt; if (phase.land ? (!busy || phase.t <= 0) : phase.t <= 0) { const f = phase.then; phase = null; f(); } }
     // draw every sprite into its instanced mesh
-    for (const P of all) P.n = 0; nPad = nArrow = nRing = 0;
+    for (const P of all) P.n = 0; for (const F of faces) F.n = 0; nPad = nArrow = nRing = 0;
     for (const s of cells) if (s) draw(s, dt);
     for (const s of dying) draw(s, dt);
     if (dying.length) dying = dying.filter(s => s.t < 1);
     for (const P of all) { P.body.count = P.n; P.body.instanceMatrix.needsUpdate = true; if (P.hull) { P.hull.count = P.n; P.hull.instanceMatrix.needsUpdate = true; } }
+    for (const F of faces) { F.m.count = F.n; F.m.instanceMatrix.needsUpdate = true; }
     pads.count = padInk.count = nPad; pads.instanceMatrix.needsUpdate = padInk.instanceMatrix.needsUpdate = true; if (pads.instanceColor) pads.instanceColor.needsUpdate = true;
     arrows.count = arrowInk.count = nArrow; arrows.instanceMatrix.needsUpdate = arrowInk.instanceMatrix.needsUpdate = true;
     rings.count = ringInk.count = nRing; rings.instanceMatrix.needsUpdate = ringInk.instanceMatrix.needsUpdate = true;
@@ -367,6 +375,7 @@ export function createScene(canvas) {
     fps: () => ticker.fps(), stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
     dispose() {
       ticker.stop(); ro.disconnect(); if (av) disposeAvatar(av); pfx.dispose();
+      dead = true; for (const F of faces) { F.m.material.map?.dispose(); F.m.material.dispose(); } faceGeo.dispose();
       for (const P of all) { P.body.geometry.dispose(); P.hull?.geometry.dispose(); }
       for (const g of [padGeo, arrowGeo, ringGeo, beamGeo, backGeo]) g.dispose();
       renderer.dispose();
