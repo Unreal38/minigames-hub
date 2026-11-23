@@ -16,6 +16,7 @@ import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WIN
 import { petModel, eggModel } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
+import { groundOf, R as RIMS, BASE, finish, buildSky, pieceModel } from '../../isle3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -85,46 +86,79 @@ export function createScene(canvas, { onPick, onGhost }) {
     const e = N / 2 + 4;
     for (const [x, y, z, t, s] of [[e, 1.2, e - 3, 'pine', 1], [-e - 1, 2.4, 1, 'tree', 1.2], [-2, 1.8, -e - 2, 'bush', .9], [e + 2, 3.2, -e + 1, 'tree', .8], [-e, .4, e + 1, 'rock', 1]]) {
       const g = new THREE.Group(); g.position.set(x, y, z); g.scale.setScalar(s); g.userData = { y, ph: x + z };
-      const top = new THREE.Mesh(new THREE.CylinderGeometry(.85, .65, .3, 12), tflat('#8bca60')); g.add(top);
-      const under = new THREE.Mesh(rough(new THREE.ConeGeometry(.66, 1.5, 6, 2), .22), tflat('#b08a6a')); under.rotation.x = Math.PI; under.position.y = -.9; g.add(under);
+      const th = (look.ig | 0) ? groundOf(look.ig) : null, top = new THREE.Mesh(new THREE.CylinderGeometry(.85, .65, .3, 12), tflat(th ? th.grass : '#8bca60')); g.add(top);
+      const under = new THREE.Mesh(rough(new THREE.ConeGeometry(.66, 1.5, 6, 2), .22), tflat(th ? th.earth : '#b08a6a')); under.rotation.x = Math.PI; under.position.y = -.9; g.add(under);
       const m = itemModel(t); m.position.y = .15; g.add(m);
       scene.add(g); drift.push(g);
     }
   }
   let fall = null;
+  // The player's isle look (cosmetics ig ground, ib rock base, ik sky, fp floating pieces), worn by the farm island too.
+  let look = { ig: 0, ib: 0, ik: 0, fp: [], whole: true }, landTicks = [], falls = [];
+  const darker = (c, k = .82) => '#' + new THREE.Color(c).multiplyScalar(k).getHexString();
+  const RIM_ITEM = { bush: 'bush', tree: 'tree', rock: 'rock', shroom: 'shrooms', flowers: 'flowers', pine: 'pine' };
   function buildLand() {
     if (land) { scene.remove(land); land.traverse(o => { o.geometry?.dispose(); }); }
-    land = new THREE.Group();
+    land = new THREE.Group(); landTicks = []; falls = [];
+    const th = groundOf(look.ig), themed = (look.ig | 0) > 0, ib = BASE[look.ib | 0] ? look.ib | 0 : 0;
+    const lawnC = themed && look.whole ? th.grass : '#8bca60', patchC = themed && look.whole ? th.patch : '#7fbf56';
+    const tm = dayMats.find(d => d[0] === tufts.material); if (tm) { tm[1].set(themed && look.whole ? darker(th.patch, .85) : '#6ab94a'); air.shade = -1; }
     // one soft lawn with darker patches and little flowers (the grid only shows while editing)
-    const lawn = new THREE.Mesh(new THREE.PlaneGeometry(N, N), tflat('#8bca60')); lawn.rotation.x = -Math.PI / 2; lawn.receiveShadow = true; land.add(lawn);
-    const deco = new THREE.Group(), patch = flat('#7fbf56'), petal = ['#ffffff', '#ffd0e4', '#fff1a8'].map(c => flat(c)), mid = flat('#ffb000');
+    const lawn = new THREE.Mesh(new THREE.PlaneGeometry(N, N), tflat(lawnC)); lawn.rotation.x = -Math.PI / 2; lawn.receiveShadow = true; land.add(lawn);
+    const deco = new THREE.Group(), patch = flat(patchC), petal = (themed && look.whole && th.petals || ['#ffffff', '#ffd0e4', '#fff1a8']).map(c => flat(c)), mid = flat('#ffb000');
+    const nFlow = themed && look.whole ? Math.round(N * 3 * th.flowers / 32) : N * 3;
     for (let i = 0; i < N * 2; i++) { const r = .5 + hash(i, 5) * .8, x = (hash(i, 1) - .5) * (N - 2 * r), z = (hash(i, 2) - .5) * (N - 2 * r), m = new THREE.Mesh(new THREE.CircleGeometry(r, 14), patch); m.rotation.x = -Math.PI / 2; m.position.set(x, .004, z); deco.add(m); }
-    for (let i = 0; i < N * 3; i++) { const x = (hash(i, 11) - .5) * (N - .6), z = (hash(i, 12) - .5) * (N - .6), pc = petal[i % 3];
+    for (let i = 0; i < nFlow; i++) { const x = (hash(i, 11) - .5) * (N - .6), z = (hash(i, 12) - .5) * (N - .6), pc = petal[i % petal.length];
       for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.045, 0), pc); m.position.set(x + Math.cos(k * 1.257) * .055, .03, z + Math.sin(k * 1.257) * .055); m.scale.y = .45; deco.add(m); }
       const c = new THREE.Mesh(new THREE.IcosahedronGeometry(.035, 0), mid); c.position.set(x, .045, z); deco.add(c); }
     bake(deco); deco.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = true; } }); toonify(deco); land.add(deco);
     const mk = (g, c, y, o) => { const m = new THREE.Mesh(g, tflat(c, o)); m.position.y = y; m.receiveShadow = true; land.add(m); return m; };
     const R = N / 2 * Math.SQRT2;
-    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), '#7cba54', -.26).rotation.y = Math.PI / 4;
+    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), themed ? darker(th.grass, look.whole ? .9 : 1) : '#7cba54', -.26).rotation.y = Math.PI / 4;
     // the underside: a band of earth, then rock tapering to a point, with loose stones hanging about
-    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), '#c98a5a', -1.5).rotation.y = Math.PI / 4;
-    const deep = N * .7;
-    mk(rough(new THREE.ConeGeometry(R * .47, deep, 7, 3), N * .05), '#857a72', -2.4 - deep / 2).rotation.x = Math.PI;
-    for (let i = 0; i < 6; i++) {
-      const a = hash(i, N) * 6.283, d = R * (.35 + hash(i, 9) * .35), st = mk(new THREE.IcosahedronGeometry(.3 + hash(i, 3) * .5, 0), '#857a72', -3.4 - hash(i, 4) * deep * .5);
-      st.position.x = Math.cos(a) * d; st.position.z = Math.sin(a) * d; st.scale.y = 1.4;
+    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), themed ? th.earth : '#c98a5a', -1.5).rotation.y = Math.PI / 4;
+    const deep = N * .7, rockC = themed ? th.rock : '#857a72';
+    if (!ib || ib === 3) {
+      mk(rough(new THREE.ConeGeometry(R * .47, deep, 7, 3), N * .05), rockC, -2.4 - deep / 2).rotation.x = Math.PI;
+      for (let i = 0; i < 6; i++) {
+        const a = hash(i, N) * 6.283, d = R * (.35 + hash(i, 9) * .35), st = mk(new THREE.IcosahedronGeometry(.3 + hash(i, 3) * .5, 0), rockC, -3.4 - hash(i, 4) * deep * .5);
+        st.position.x = Math.cos(a) * d; st.position.z = Math.sin(a) * d; st.scale.y = 1.4;
+      }
+    } else { // one of the isle's rock bases, grown to the farm's size
+      const g = new THREE.Group(), k = R * .47 / (2.95 * .62); BASE[ib](g, { ...th, rock: rockC }, landTicks); finish(g, .05);
+      g.traverse(o => { if (o.isMesh) o.castShadow = false; }); g.scale.setScalar(k); g.position.y = 2 * k - 2.4; land.add(g);
     }
     // a spring on the rim that spills over the edge
-    const side = N / 2 + .78;
-    mk(new THREE.CylinderGeometry(.5, .55, .1, 6), '#b9b3aa', .0).position.set(side - .55, 0, 1.5);
-    mk(new THREE.BoxGeometry(.9, .06, .5), '#49a9e6', .03).position.set(side - .35, .03, 1.5);
-    const fl = N * .9;
-    const water = mk(new THREE.BoxGeometry(.12, fl, .5), '#9ad8ff', -fl / 2, { transparent: true, opacity: .8 }); water.position.set(side + .06, -fl / 2 + .04, 1.5); water.receiveShadow = false;
-    fall = mk(new THREE.BoxGeometry(.16, fl, .16), '#ffffff', -fl / 2, { transparent: true, opacity: .7 }); fall.position.set(side + .08, -fl / 2 + .04, 1.5); fall.receiveShadow = false;
+    const side = N / 2 + .78, wc = themed ? th.water : '#49a9e6', lava = !!th.lava && themed;
+    const spring = (rot, z, wide = 1) => { // a spring on the rim that spills over the edge; rot turns it to another side
+      const sg = new THREE.Group(); sg.rotation.y = rot; land.add(sg); const at = (m, x, y, zz) => { land.remove(m); sg.add(m); m.position.set(x, y, zz); return m; };
+      at(mk(new THREE.CylinderGeometry(.5 * wide, .55 * wide, .1, 6), lava ? '#4a3230' : '#b9b3aa', 0), side - .55, 0, z);
+      at(mk(new THREE.BoxGeometry(.9, .06, .5 * wide), wc, .03, lava ? { emissive: wc, emissiveIntensity: .8 } : undefined), side - .35, .03, z);
+      const fl = N * (wide > 1 ? 1.05 : .9);
+      at(mk(new THREE.BoxGeometry(.12, fl, .5 * wide), lava ? wc : themed ? wc : '#9ad8ff', 0, { transparent: true, opacity: .8, ...(lava ? { emissive: wc, emissiveIntensity: .7 } : {}) }), side + .06, -fl / 2 + .04, z).receiveShadow = false;
+      const f = at(mk(new THREE.BoxGeometry(.16, fl, .16 * wide), lava ? '#ffd27a' : '#ffffff', 0, { transparent: true, opacity: .7 }), side + .08, -fl / 2 + .04, z); f.receiveShadow = false; falls.push([f, z]);
+      if (wide > 1) for (let i = 0; i < 3; i++) { const m = at(mk(new THREE.IcosahedronGeometry(.9, 0), lava ? '#ffd27a' : '#ffffff', 0, { transparent: true, opacity: .55 }), side + .2, -fl + .2, z + (i - 1) * .5); falls.push([m, null, i]); }
+    };
+    if (ib === 3) { spring(0, 1.5, 2.2); spring(Math.PI / 2, -1, 1.6); spring(Math.PI, 2, 1.6); } else spring(0, 1.5);
+    fall = null;
     // a few things on the rim so the edge doesn't look bare
     const rim = N / 2 + .55;
-    for (const [x, z, t] of [[-rim, -rim + 1, 'pine'], [rim, -rim + 2.5, 'tree'], [-rim, rim - 2, 'bush'], [rim - 1.5, rim, 'rock'], [-rim + 3, -rim, 'bush'], [rim, rim - .5, 'pine']]) {
+    if (!themed) for (const [x, z, t] of [[-rim, -rim + 1, 'pine'], [rim, -rim + 2.5, 'tree'], [-rim, rim - 2, 'bush'], [rim - 1.5, rim, 'rock'], [-rim + 3, -rim, 'bush'], [rim, rim - .5, 'pine']]) {
       const m = itemModel(t); m.position.set(x, -.02, z); m.scale.setScalar(.8); land.add(m);
+    } else { // the ground's own props all round the rim, in the look of that Pet Farm island
+      const kinds = th.kinds || ['tree', 'bush', 'pine', 'rock', 'bush', 'shroom', 'tree', 'flowers', 'pine', 'bush'], props = new THREE.Group(); let n = 0;
+      for (let sd = 0; sd < 4; sd++) for (const t of [-.82, -.3, .25, .78]) {
+        const a = sd * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), ox = rim + .1, oz = t * (N / 2 + .3), x = ox * c - oz * sn, z = ox * sn + oz * c;
+        if (sd === 0 && Math.abs(z - 1.5) < 1.3) continue; // the spring
+        const kind = kinds[n++ % kinds.length], g = new THREE.Group();
+        if (typeof kind === 'function') { kind(g, 1.25 + hash(n, 4) * .35); g.traverse(o => { if (o.isMesh) o.castShadow = true; }); }
+        else { const m = itemModel(RIM_ITEM[kind] || 'bush'); m.scale.setScalar(.8); g.add(m); }
+        g.position.set(x, -.02, z); g.rotation.y = hash(n, 7) * 6.283; props.add(g);
+      }
+      bake(props); toonify(props, .05); land.add(props);
+      if (lava) { const g = new THREE.Group(), mt = new THREE.MeshBasicMaterial({ color: '#ff7a2a' }); land.add(g);
+        for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + .4, m = new THREE.Mesh(new THREE.CircleGeometry(.28 + hash(i, 3) * .12, 9), mt), r = N / 2 + .5; m.rotation.x = -Math.PI / 2; m.position.set(Math.max(-r, Math.min(r, Math.cos(a) * r * 1.4)), .03, Math.max(-r, Math.min(r, Math.sin(a) * r * 1.4))); m.userData.noInk = true; g.add(m); }
+        landTicks.push(T => { const k = .8 + Math.sin(T * 1.6) * .2; mt.color.setRGB(1, .42 * k + .1, .12 * k); }); }
     }
     // grid lines for edit mode
     const lp = [];
@@ -818,12 +852,12 @@ export function createScene(canvas, { onPick, onGhost }) {
     return sp;
   }
   function miniIsland(f, mine) {
-    const g = new THREE.Group(), land = new THREE.Group(), n = f.size, R = n / 2 * Math.SQRT2;
+    const g = new THREE.Group(), land = new THREE.Group(), n = f.size, R = n / 2 * Math.SQRT2, th = (f.isle?.ig | 0) ? groundOf(f.isle.ig) : null; // th: the owner's isle ground
     const mk = (geo, c, y) => { const m = new THREE.Mesh(geo, flat(c)); m.position.y = y; land.add(m); return m; };
-    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), '#7cc45c', -.26).rotation.y = Math.PI / 4;
-    mk(new THREE.BoxGeometry(n, .04, n), '#8fd16a', .0);
-    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), '#a87750', -1.5).rotation.y = Math.PI / 4;
-    mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
+    mk(new THREE.CylinderGeometry(R + 1.1, R + .7, .5, 4), th ? darker(th.grass, .9) : '#7cc45c', -.26).rotation.y = Math.PI / 4;
+    mk(new THREE.BoxGeometry(n, .04, n), th ? th.grass : '#8fd16a', .0);
+    mk(rough(new THREE.CylinderGeometry(R + .7, R * .66, 2, 4, 3), .45, .9), th ? th.earth : '#a87750', -1.5).rotation.y = Math.PI / 4;
+    mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), th ? th.rock : '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
       const m = itemModel(it.type, false, true, levelOf(it, f)), [w, h] = footprint(it.type, it.r);
@@ -1123,7 +1157,10 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (egg) { const k = egg.ready ? 1 : .25, t = T * (egg.ready ? 9 : 3); egg.g.rotation.z = Math.sin(t) * .16 * k * (Math.sin(T * 1.3) > -.2 ? 1 : 0); egg.g.position.y = .22 + (egg.ready ? Math.abs(Math.sin(T * 4.5)) * .08 : 0); }
     clouds.rotation.y += dt * .006 * (1 + air.wind * 6); moveAir(dt, T);
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
-    if (fall) fall.position.z = 1.5 + Math.sin(T * 9) * .14;
+    for (const [f, z, i] of falls) { if (z != null) f.position.z = z + Math.sin(T * 9) * .14; else { const u = (T * .7 + i / 3) % 1; f.scale.setScalar(.5 + u); f.material.opacity = .55 * (1 - u); } }
+    for (const f of landTicks) f(T);
+    if (skyLook) skyLook.tick(T);
+    pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
     renderer.render(scene, camera);
   }
@@ -1131,7 +1168,18 @@ export function createScene(canvas, { onPick, onGhost }) {
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
   renderer.shadowMap.needsUpdate = true;
 
+  // the bought sky: its pieces (sun, moon, aurora, rainbow) hang behind the island, fixed to the view like on the profile card
+  let skyLook = null, pieceBits = [], isleKey = '';
+  scene.add(camera);
+  function lookSky() {
+    if (skyLook) { camera.remove(skyLook.root); skyLook.dispose(); skyLook = null; }
+    if (look.ik) { skyLook = buildSky(look.ik); skyLook.root.scale.setScalar(19); skyLook.root.position.set(0, 36, -72); skyLook.root.traverse(o => { if (o.material) o.material.fog = false; }); camera.add(skyLook.root); /* far behind the island, so nothing of it lands in front */ }
+    for (const b of pieceBits) { scene.remove(b.g); disposeModel(b.g); } pieceBits = [];
+    (look.fp || []).forEach((id, i, all) => { const g = pieceModel(id); g.scale.setScalar(2.2); scene.add(g); pieceBits.push({ g, r: N / 2 + 4 + (i % 2) * 1.2, a: i / all.length * 6.283, y: 1.5 + (i * 7 % 5) * .5, spin: [0, 1, .4, .7, .2, .9][i % 6] }); });
+  }
   return {
+    // the owner's isle look: { ig ground, ib rock base, ik sky, fp floating pieces }; rebuilt only when it changes
+    setLook(lk) { const next = { ...look, ...lk }, k = JSON.stringify(next); if (k === isleKey) return; isleKey = k; look = next; buildLand(); lookSky(); renderer.shadowMap.needsUpdate = true; },
     setFarm(f) {
       const size = f?.size || 10;
       const fk = f ? f.id || f.owner || f.name || '?' : ''; if (fk !== farmKey) { farmKey = fk; seenOnce = false; }
@@ -1182,7 +1230,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       return out;
     },
     dispose() {
-      dead = true; ticker.stop(); if (shotR) { shotR.dispose(); shotR.forceContextLoss?.(); shotR = null; }
+      dead = true; ticker.stop(); look = { ...look, ik: 0, fp: [] }; lookSky(); if (shotR) { shotR.dispose(); shotR.forceContextLoss?.(); shotR = null; }
       ghostCancel(true);
       for (const id of [...pets.keys()]) dropPet(id);
       for (const e of items.values()) disposeModel(e.g);

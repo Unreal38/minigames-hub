@@ -19,7 +19,7 @@ const cone = (p, r, h, c, x = 0, y = 0, z = 0, seg = 6) => put(p, new THREE.Cone
 const glow = (p, geo, c, x = 0, y = 0, z = 0, o = {}) => { const m = put(p, geo, new THREE.MeshBasicMaterial({ color: c, ...o }), x, y, z); m.userData.noInk = true; return m; };
 const dyn = p => { const g = new THREE.Group(); g.userData.dyn = true; p.add(g); return g; };
 // Merge and outline a finished piece: the still parts as one, each moving part on its own.
-function finish(g, ink = .04) {
+export function finish(g, ink = .04) {
   g.traverse(o => { if (o.isMesh && o.material.isMeshStandardMaterial && !o.material.transparent) o.castShadow = true; });
   const moving = []; g.traverse(o => { if (o.userData.dyn) moving.push(o); });
   for (const d of moving) bake(d);
@@ -33,7 +33,7 @@ const treeOf = (trunk, a, b) => (g, s = 1) => { cyl(g, .09 * s, .13 * s, .7 * s,
 const bushOf = (a, b, dot) => (g, s = 1) => { ico(g, .3 * s, a, 0, .2 * s, 0); ico(g, .24 * s, b, .25 * s, .15 * s, .05 * s); ico(g, .2 * s, a, -.22 * s, .13 * s, .06 * s); if (dot) ico(g, .06 * s, dot, .1 * s, .45 * s, .15 * s); };
 const rockOf = (a, b, cap) => (g, s = 1) => { const r = ico(g, .3 * s, a, 0, .15 * s, 0); r.scale.y = .7; ico(g, .18 * s, b, .28 * s, .08 * s, .1 * s); if (cap) { const c = ico(g, .22 * s, cap, 0, .3 * s, 0); c.scale.y = .45; } };
 // Props in the look of the Pet Farm's islands (zoneIsle in games/farm/scene3d.js): same shapes and colours, sized for the rim.
-const R = {
+export const R = {
   pinetree(g, s = 1) { cyl(g, .08 * s, .1 * s, .45 * s, '#8a5a3c', 0, .22 * s); cone(g, .42 * s, 1 * s, s * 97 % 2 < 1 ? '#4a9a45' : '#5fb04a', 0, .9 * s); },
   pool(g, s = 1) { const m = glow(g, new THREE.CylinderGeometry(.42 * s, .42 * s, .04, 8), '#6fb7e8', 0, .025, 0); for (let i = 0; i < 4; i++) { const a = i * 1.7 + s * 9; ico(g, .08 * s, '#c9bfb2', Math.cos(a) * .44 * s, .04, Math.sin(a) * .44 * s).scale.y = .6; } return m; },
   shells(g, s = 1) { put(g, new THREE.OctahedronGeometry(.16 * s), flat('#ffb6c9'), 0, .12 * s, 0); put(g, new THREE.OctahedronGeometry(.12 * s), flat('#fff3df'), .26 * s, .09 * s, .1 * s); put(g, new THREE.OctahedronGeometry(.1 * s), flat('#ffb6c9'), -.1 * s, .08 * s, .24 * s); },
@@ -108,7 +108,7 @@ export const groundOf = ig => ({ grass: '#8bca60', patch: '#7fbf56', earth: '#c9
 // ---------- rock bases (COS.ib) ----------
 const RAD = 2.95; // the isle's radius: island(3.3, 3.3, { rim: 1.3 })
 const stub = (root, th, deep) => { const c = put(root, rough(new THREE.ConeGeometry(RAD * .62, deep, 8, 2), RAD * .08), flat(th.rock), 0, -2 - deep / 2); c.rotation.x = PI; return c; };
-const BASE = [
+export const BASE = [
   null, // classic: island() builds its own cone and loose stones
   (root, th, ticks) => { // crystal cluster
     stub(root, th, 1.1);

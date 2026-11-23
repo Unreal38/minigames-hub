@@ -49,11 +49,11 @@ export const COS = {
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
   // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
-  ig: { label: 'Ground', where: 'Make your isle look like one of the Pet Farm islands. Everyone sees it on your profile card.', items: [{ n: 'Meadow' }, { n: 'Weather Peak', p: 220 }, { n: 'Pebble Ridge', p: 150 }, { n: 'Fruit Grove', p: 180 },
+  ig: { label: 'Ground', where: 'Make your isle look like one of the Pet Farm islands. Everyone sees it on your profile card, and your Pet Farm island wears it too.', items: [{ n: 'Meadow' }, { n: 'Weather Peak', p: 220 }, { n: 'Pebble Ridge', p: 150 }, { n: 'Fruit Grove', p: 180 },
     { n: 'Veggie Patch', p: 180 }, { n: 'Mossy Woods', p: 120 }, { n: 'Tidepool Cove', p: 150 }, { n: 'Sweet Shop Isle', p: 200 }, { n: 'Ember Hills', p: 180 },
     { n: 'Golden isle', earn: { lv: 20 } }, { n: 'Champion’s isle', earn: { any: 50 } }, { n: 'Bakery Bluff', p: 200 }, { n: 'Coral Reef', p: 200 }, { n: 'Starfall Isle', p: 220 }, { n: 'Thunder Meadow', p: 220 }] },
-  ib: { label: 'Rock base', where: 'What hangs under your isle.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 }] },
-  ik: { label: 'Sky', where: 'The sky behind your isle.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }] },
+  ib: { label: 'Rock base', where: 'What hangs under your isle and your Pet Farm island.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 }] },
+  ik: { label: 'Sky', where: 'The sky behind your isle and your Pet Farm island.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }] },
 };
 export const COS_KEYS = Object.keys(COS);
 // Kinds where one entry is worn at a time (sticker packs are simply all usable once bought).
