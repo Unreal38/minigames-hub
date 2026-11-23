@@ -864,11 +864,11 @@ function meCard() {
         <div class="xpnote"><span>${num(m.into)} / ${num(m.need)} XP ${L('to level', 'do poziomu')} ${m.level + 1}</span><span>${L(`${num(m.xp)} XP in total`, `Łącznie ${num(m.xp)} XP`)}</span></div>
         <div class="acct"><span>${m.user ? L(`Signed in as <b>${esc(m.user)}</b>`, `Zalogowano jako <b>${esc(m.user)}</b>`) : L('Playing as a guest. Progress stays on this browser.', 'Grasz jako gość. Postępy zostają w tej przeglądarce.')}</span></div>
       </section>
-      ${skyNow(m)}
       <section class="mepan">
         <h3>${L('Rank road', 'Droga rang')}<small>${nxt ? L(`next: ${esc(nxt.name)}, level ${nxt.lv}`, `następna: ${esc(nxt.name)}, poziom ${nxt.lv}`) : L(`one ★ every ${STAR_EVERY} levels, with no end`, `★ co ${STAR_EVERY} poziomów, bez końca`)}</small></h3>
         <ol class="ladder">${RANKS.map(r => `<li class="${m.level >= r.lv ? 'got' : ''}${cur.lv === r.lv ? ' now' : ''}" title="${esc(r.name)}, ${L('level', 'poziom')} ${r.lv}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>${L('lv', 'poz.')} ${r.lv}</span></li>`).join('')}</ol>
       </section>
+      ${skyNow(m)}
     </div>
     <div class="mecol">
       <div class="stats">

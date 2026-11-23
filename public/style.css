@@ -1487,3 +1487,6 @@ body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border
 .me2 .ladder { grid-template-columns: repeat(8, minmax(0, 1fr)); } .me2 .ladder li b { display: none; } .me2 .ladder li { padding: 6px 2px; }
 .me2 .cnnow .txt { flex-basis: 170px; }
 @media (max-width: 520px) { .me2 .ladder { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 900px) { /* Your games takes whatever height the left column leaves, and scrolls inside */
+  .mecard.me2 { align-items: stretch; } .me2 .megames { flex: 1 1 0; min-height: 220px; } .me2 .megames .pergame { flex: 1 1 0; min-height: 0; max-height: none; }
+}
