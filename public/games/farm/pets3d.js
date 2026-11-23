@@ -27,21 +27,27 @@ const PI = Math.PI;
 const INK = '#2b2230', UP = new THREE.Vector3(0, 1, 0);
 // A face on the front of a head of radius r centred at pos. Eyes are remembered so the scene can blink them.
 const WH = () => MX('shine', '#ffffff', { emissive: '#ffffff', emissiveIntensity: .9 });
-// One eye: a round dark disc with two white glints that blink away with it. Faces +Z; the scene squashes scale.z.
-function eyeAt(p, eyes, r, pos, tilt = 0) {
-  const e = Cy(p, [r, r, .06, 14], MX('ink', INK, { roughness: .5 }), pos, [PI / 2, 0, tilt]); e.userData.noInk = 1;
-  for (const [x, y, k] of [[.36, .36, .34], [-.34, -.38, .17]]) Cy(e, [r * k, r * k, .02, 8], WH(), [x * r, .035, -y * r]).userData.noInk = 1;
+// One eye: a dark dome that hugs the curve of the head (turn: how far it leans to its side), with two white glints
+// that blink away with it. Faces +Z; the scene squashes scale.z to blink.
+function eyeAt(p, eyes, r, pos, tilt = 0, turn = 0, nod = 0) {
+  const h = Grp(p, pos, [nod, turn, 0]), e = V(h, new THREE.Mesh(G('Icosahedron', 1, 2), MX('ink', INK, { roughness: .5 })), null, [PI / 2, 0, tilt], [r, r * .34, r]); e.userData.noInk = 1;
+  for (const [x, y, k] of [[.34, .36, .36], [-.36, -.4, .17]]) Cy(e, [k, k, .05, 10], WH(), [x, Math.sqrt(1 - x * x - y * y) + .03, -y]).userData.noInk = 1;
   eyes.push(e); return e;
 }
-function face(p, eyes, pos, r, { gap = .34, y = .05, eye = 1, nose = '#f59ab0', mouth = true, z = .89, blush = '#ff8a9a' } = {}) {
-  z = Math.max(z, Math.sqrt(Math.max(0, 1 - gap * gap - y * y)) - .02); // sit on the surface of a round head
-  const g = Grp(p, pos, null, r), bl = MX('blush' + blush, blush, { transparent: true, opacity: .55 });
+// The mouth: a tiny "w" of two curls under the nose.
+const curl = () => G('Torus', .055, .017, 4, 8, PI);
+function face(p, eyes, pos, r, { gap = .34, y = .05, eye = 1, nose = '#f59ab0', mouth = true, z = .89, blush = '#ff8a9a', ink = INK, out = 0 } = {}) { // out: push the nose and mouth forward, onto a muzzle
+  y -= .035; gap += .015; // big eyes set low and wide: the baby look
+  const er = .158 * (.55 + eye * .45), zOf = (x, yy) => Math.sqrt(Math.max(0, 1 - x * x - yy * yy));
+  z = Math.max(z, zOf(gap, y) - .02); // sit on the surface of a round head
+  const g = Grp(p, pos, null, r), bl = MX('blush' + blush, blush, { transparent: true, opacity: .5 }), mi = ink === INK ? MX('ink', INK, { roughness: .5 }) : mat(ink);
   for (const s of [-1, 1]) {
-    eyeAt(g, eyes, .135 * eye, [s * gap, y, z], -s * .3);
-    V(g, new THREE.Mesh(G('Circle', .13, 10), bl), [s * (gap + .27), y - .19, z - .1], [0, s * .62, 0], [1.25, .8, 1]);
-    if (mouth) Bx(g, [.1, .032, .03], INK, [s * .04, y - .15, z + .055], [0, 0, s * .5]).userData.noInk = 1;
+    eyeAt(g, eyes, er, [s * gap, y, z - er * .12], -s * .25, s * Math.asin(Math.min(.9, gap)) * .6, -Math.asin(Math.max(-.9, Math.min(.9, y))) * .6);
+    const bx = gap + .25, by = y - .2, bz = Math.max(z - .2, zOf(bx, by) + .03);
+    V(g, new THREE.Mesh(G('Circle', .13, 12), bl), [s * bx, by, bz], [-by * .5, s * Math.asin(Math.min(.9, bx)) * .85, 0], [1.3, .78, 1]);
+    if (mouth) V(g, new THREE.Mesh(curl(), mi), [s * .052, y - .15, z + .06 + out], [.25, 0, PI]).userData.noInk = 1;
   }
-  if (nose) Sp(g, .042, nose, [0, y - .065, z + .07], [1.15, .8, .8], 1);
+  if (nose) Sp(g, .046, nose, [0, y - .075, z + .07 + out], [1.2, .8, .8], 1);
 }
 // Soft shapes: a rounded lump the size of a box, a box with rounded edges, and a little tuft of fur.
 const Rd = (p, s, c, pos, rot) => V(p, new THREE.Mesh(G('Icosahedron', .5, 1), mat(c)), pos, rot, [s[0] * 1.14, s[1] * 1.14, s[2] * 1.14]);
@@ -69,7 +75,7 @@ const leaf = (g, pos, rot, k = 1, c = '#6cc24f') => Oc(g, .2, c, pos, [k, k * .2
 export const FEAT = {
   mossbun: { slot: 'top', name: 'bunny ears', b(g, F, K) {
     const h = [.36, .8, 1.15][F];
-    for (const s of [-1, 1]) { const e = Grp(g, [s * (F === 2 ? .52 : .3), F === 2 ? -.2 : -.12, -.05], [-.1, 0, F === 2 ? -s * 2.35 : -s * .16]); Cy(e, [.11, .2, h, 4], K.a, [0, h / 2, 0], [0, PI / 4, 0], [1, 1, .6]); Bx(e, [.13, h * .7, .04], '#f59ab0', [0, h / 2, .1]); }
+    for (const s of [-1, 1]) { const e = Grp(g, [s * (F === 2 ? .52 : .3), F === 2 ? -.2 : -.12, -.05], [-.1, 0, F === 2 ? -s * 2.35 : -s * .16]); Sp(e, 1, K.a, [0, h * .48, 0], [.19, h * .54, .1]); Sp(e, 1, '#f59ab0', [0, h * .47, .06], [.11, h * .4, .06], 1); }
   } },
   sproutle: { slot: 'top', name: 'a sprout', b(g, F) {
     if (F === 0) { Cy(g, [.03, .04, .2, 4], '#5fa646', [0, .1, 0]); leaf(g, [-.14, .24, 0], [0, 0, .5], .8); leaf(g, [.14, .24, 0], [0, 0, -.5], .8); }
@@ -260,7 +266,7 @@ export const FEAT = {
       for (let i = 0; i < 3; i++) { const p = [s * (.15 + i * .1), .44 - i * .17, 0], r = [0, 0, -s * (.5 + i * .45)];
         if (K.el === 'Stone') Gm(w, .2, i % 2 ? '#8a8794' : m, p, [1.3, .75, .45], r); // slabs of slate
         else if (K.el === 'Leaf') Oc(w, .3, i % 2 ? '#4a9a45' : m, p, [1.15, .5, .1], r); // three leaves
-        else Oc(w, .3, m, p, K.el === 'Spark' ? [1.25, .4, .08] : [1, .55, .08], r); }
+        else if (K.el === 'Spark') Oc(w, .3, m, p, [1.25, .4, .08], r); else Sp(w, .3, m, p, [1.02, .56, .09], 1).rotation.set(...r); }
       Co(w, [.05, .14, 4], D ? D.horn : '#fff3df', [0, .72, 0]); }
   } },
   waddlet: { slot: 'top', name: 'a seashell hat', b(g, F) {
@@ -363,7 +369,7 @@ const dots = (g, c, p, r, n, sz, front = false, d0 = 0) => { for (let i = 0; i <
 const earsP = (g, h, c, inn, k = 1) => { for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .62, h.p[1] + h.r * .62, h.p[2] - .03], [0, 0, -s * .28], k); Co(e, [.26, .48, 4], c, [0, .22, 0], [0, PI / 4, 0], [1, 1, .6]); if (inn) Co(e, [.14, .28, 4], inn, [0, .17, .06], [0, PI / 4, 0], [1, 1, .5]); } };
 const earsR = (g, h, c, inn, k = 1) => { for (const s of [-1, 1]) { Sp(g, h.r * .3 * k, c, [s * h.r * .7, h.p[1] + h.r * .72, h.p[2] - .02], [1, 1, .6]); if (inn) Sp(g, h.r * .17 * k, inn, [s * h.r * .7, h.p[1] + h.r * .72, h.p[2] + .08], [1, 1, .4], 1); } };
 const earsL = (g, h, c, inn, len = .8, droop = 0) => { for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * (.35 + droop * .3), h.p[1] + h.r * (.8 - droop * .3), h.p[2] - .05], [-.1, 0, -s * (.16 + droop * 2)]); Cy(e, [.11, .2, len, 4], c, [0, len / 2, 0], [0, PI / 4, 0], [1, 1, .6]); Bx(e, [.13, len * .7, .04], inn, [0, len / 2, .1]); } };
-function sitter(g, F, K, X, { r = [.6, .6, .7][F], hr = [.7, .62, .66][F], feetC = K.a, belly = true, arms = true, faceO = {} } = {}) {
+function sitter(g, F, K, X, { r = [.6, .58, .66][F], hr = [.7, .66, .72][F], feetC = K.a, belly = true, arms = true, faceO = {} } = {}) {
   const k = F ? 1 : .8, by = F ? r : r * .7, hy = F ? by * 1.75 + hr * .55 : by + hr * .75;
   const A = { head: { p: [0, hy, .1], r: hr }, body: { p: [0, by, 0], r: [r * k, by, r * .92 * k] } }, b = A.body;
   Sp(g, 1, K.a, b.p, b.r); if (belly) Sp(g, b.r[0] * .64, K.b, [0, by * .85, b.r[2] * .5], [1, 1.1, .6]);
@@ -373,7 +379,7 @@ function sitter(g, F, K, X, { r = [.6, .6, .7][F], hr = [.7, .62, .66][F], feetC
   A.top = [0, hy + hr * .88, .1]; A.tail = [0, by * .5, -b.r[2]]; A.back = [0, by * 1.5, -b.r[2] * .7]; A.fs = [.8, .9, 1][F];
   return A;
 }
-function walker(g, F, K, X, { w = [.5, .5, .6][F], L = [.5, .66, .82][F], hr = [.64, .58, .6][F], leg = [.16, .36, .46][F], legC = K.a, lw = .22, faceO = {} } = {}) {
+function walker(g, F, K, X, { w = [.5, .5, .6][F], L = [.5, .66, .8][F], hr = [.64, .62, .67][F], leg = [.16, .3, .37][F], legC = K.a, lw = .27, faceO = {} } = {}) {
   const by = leg + w * .8, A = { head: { p: [0, by + hr * .45, L * .95], r: hr }, body: { p: [0, by, -.05], r: [w, w * .88, L] } };
   Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by - w * .25, -.05], [w * .85, w * .66, L * .88]);
   legs4(g, legC, w * .55, L * .55, -L * .6, leg + .12, lw); Sp(g, hr, K.a, A.head.p, [1.06, .95, 1]);
@@ -403,10 +409,10 @@ function catTail(g, F, cols, fat = 1, kind = 's') {
 // A sitting cat shared by the cat breeds: the baby is all head, then it sits up taller each form.
 function cat(g, F, K, X, { ear = K.a, inner = '#f59ab0', paws = K.b, chest = K.b, whisk = mix(K.a, '#5a4a3a', .7), fat = 1, tuftC = null, faceO = {}, earK = [1, 1], earFold = 0 } = {}) {
   const A = F === 0 ? { head: { p: [0, .78, .05], r: .74 }, body: { p: [0, .4, -.2], r: [.45 * fat, .36, .5 * fat] } }
-    : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .64 : .62 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5 * fat, .6, .5 * fat] : [.52 * fat, .76, .55 * fat] } };
+    : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .67 : .69 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5 * fat, .6, .5 * fat] : [.52 * fat, .76, .55 * fat] } };
   const h = A.head, b = A.body;
   Sp(g, 1, K.a, b.p, b.r);
-  if (F) { Sp(g, b.r[0] * .7, chest, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.1, .12, b.p[1], 7], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
+  if (F) { Sp(g, b.r[0] * .7, chest, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.12, .15, b.p[1], 10], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
   feet(g, paws, .26, F ? b.r[2] * .95 : .42, [.24, .16, .3]);
   Sp(g, h.r, K.a, h.p, [1.1, .9, .95]);
   for (const s of [-1, 1]) {
@@ -434,8 +440,8 @@ function munchkin(g, F, K, X, bun = false) { // bun: the bakery build, with fold
 const catMuzzle = (g, h, c) => Sp(g, h.r * .34, c, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
 const catBrow = (g, h, c) => { for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], c, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]); };
 const CATCOAT = {
-  siamew: { o: K => ({ ear: K.b, paws: K.b, chest: mix(K.a, '#ffffff', .6), whisk: '#fffaf0' }), t: K => [K.a, K.b, K.b, K.b, K.b],
-    m(g, A, F, K) { Sp(g, A.head.r * .36, K.b, [0, A.head.p[1] - A.head.r * .3, A.head.p[2] + A.head.r * .66], [1.25, .72, .75]); } },
+  siamew: { o: K => ({ ear: K.b, paws: K.b, chest: mix(K.a, '#ffffff', .6), whisk: '#fffaf0', faceO: { ink: '#fff3df' } }), t: K => [K.a, K.b, K.b, K.b, K.b],
+    m(g, A, F, K) { Sp(g, A.head.r * .52, K.b, [0, A.head.p[1] - A.head.r * .2, A.head.p[2] + A.head.r * .5], [1.2, .78, .9]); } },
   gingersnap: { o: () => ({}), t: K => { const d = mix(K.a, '#b3501c', .6); return [K.a, d, K.a, d, K.a, K.b]; },
     m(g, A, F, K) {
       const d = mix(K.a, '#b3501c', .6), h = A.head, b = A.body; catMuzzle(g, h, K.b); catBrow(g, h, d);
@@ -563,7 +569,7 @@ const BODY = {
     let A;
     if (!F) { A = { head: { p: [0, r, 0], r }, body: { p: [0, r, 0], r: [r, r * .95, r] } }; Sp(g, 1, K.a, A.body.p, A.body.r); feet(g, dk, .34, .4, [.28, .18, .34]); }
     else {
-      const by = r, hr = [0, .62, .66][F], hy = by * 1.75 + hr * .55;
+      const by = r, hr = [0, .66, .72][F], hy = by * 1.75 + hr * .55;
       A = { head: { p: [0, hy, .12], r: hr }, body: { p: [0, by, 0], r: [r, by, r * .92] } };
       Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, hr, K.a, A.head.p, [1.08, .95, 1]); Sp(g, r * .62, K.b, [0, by * .85, r * .5], [1, 1.1, .6]);
       for (const s of [-1, 1]) { Rd(g, [.3, .52, .3], dk, [s * r * .8, by * 1.2, r * .35], [-.7, 0, s * .35]); Rd(g, [.36, .3, .5], dk, [s * r * .55, .16, r * .62]); Sp(g, .07, '#f59ab0', [s * r * .55, .17, r * .9], [1, 1, .4], 1); }
@@ -578,7 +584,7 @@ const BODY = {
     return A;
   },
   sizzlet(g, F, K, X) { // a dragon hatchling: mostly head, then a pot belly, then a first little flame
-    const D = DRAGON[K.el], r = [.5, .64, .72][F], by = [.5, .72, .86][F], hr = [.66, .62, .64][F], horn = D ? D.horn : '#fff3df', spike = D ? D.spike : '#ffb14a', rz = r * .95;
+    const D = DRAGON[K.el], r = [.5, .64, .72][F], by = [.5, .72, .86][F], hr = [.66, .66, .7][F], horn = D ? D.horn : '#fff3df', spike = D ? D.spike : '#ffb14a', rz = r * .95;
     const hy = F ? by * 1.75 + hr * .5 : 1.0, hz = .15;
     const A = { head: { p: [0, hy, hz], r: hr }, body: { p: [0, by, -.05], r: [r, by, rz] } };
     Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, K.b, [0, by * .9, rz * .4], [r * .72, by * .78, rz * .72]);
@@ -600,7 +606,7 @@ const BODY = {
       if (K.el === 'Stone') Oc(g, .1, i % 2 ? GL('#8fe3f5', .5) : spike, p, [.8, 1.5, .8], [-a, 0, 0]); else if (K.el === 'Leaf') leaf(g, p, [-a + PI / 2, 0, 0], .6, i % 2 ? '#6cc24f' : spike); else Co(g, [.07, .18, 4], K.el === 'Spark' ? GL(spike, .6) : spike, p, [-a, 0, 0]); }
     if (K.el === 'Stone') Oc(g, .09, GL('#8fe3f5', .6), [0, hy + hr * .5, hz + hr * .82], [1, 1.3, .5], [-.5, 0, 0]); // a gem on the brow
     if (F === 2) { // what it breathes
-      if (!D) flame(g, mouth, .32, [1.35, 0, 0]);
+      if (!D) flame(g, [mouth[0] + .2, mouth[1] + .02, mouth[2] - .02], .3, [.55, 0, -.6]);
       else if (K.el === 'Leaf') flower(g, [mouth[0], mouth[1], mouth[2] + .08], '#ff9ec4', 1.1, [PI / 2, 0, 0]);
       else if (K.el === 'Tide') for (let i = 0; i < 3; i++) Sp(g, .09 - i * .02, TR('#bfe6ff', .7), [(i - 1) * .1, mouth[1] + i * .1, mouth[2] + .1 + i * .08], null, 1);
       else if (K.el === 'Spark') for (let i = 0; i < 3; i++) Oc(g, .06, GL('#ffe14a', .9), [(i - 1) * .12, mouth[1] + (i % 2) * .1, mouth[2] + .12], [.6, 1.6, .6], [0, 0, i - 1]);
@@ -863,8 +869,8 @@ const BODY = {
     return A;
   },
   snowfox(g, F, K, X) { // a snow fox with a big fluffy tail, icy ear tips and a snowflake on its forehead
-    const ice = '#8fd4ff', A = walker(g, F, K, X, { legC: mix(K.a, ice, .5), faceO: { nose: '#3b5a7a', blush: '#9fd0ff' } }), h = A.head;
-    Sp(g, h.r * .42, '#ffffff', [0, h.p[1] - h.r * .28, h.p[2] + h.r * .72], [1.2, .75, 1.2]); earsP(g, h, K.a, ice, .9 + F * .1);
+    const ice = '#8fd4ff', A = walker(g, F, K, X, { legC: mix(K.a, ice, .5), faceO: { nose: '#3b5a7a', blush: '#9fd0ff', out: .12 } }), h = A.head;
+    Sp(g, h.r * .42, '#ffffff', [0, h.p[1] - h.r * .28, h.p[2] + h.r * .72], [1.2, .75, .75]); earsP(g, h, K.a, ice, .9 + F * .1);
     const n = 3 + F; for (let i = 0; i < n; i++) { const t = i / (n - 1); Sp(g, (.3 + Math.sin(t * PI) * .22) * (.8 + F * .15), i === n - 1 ? ice : K.a, [0, A.tail[1] + t * 1.0, A.tail[2] - .1 - t * .45]); } // a big brush held high
     const f = Grp(g, [0, h.p[1] + h.r * .5, h.p[2] + h.r * .86], [-.5, 0, 0], .7 + F * .15); for (let i = 0; i < 3; i++) Bx(f, [.3, .05, .03], GL(ice, .5), [0, 0, 0], [0, 0, i * PI / 3]);
     tuft(g, [0, A.body.p[1] - .05, A.body.p[2] + A.body.r[2] * .95], '#ffffff', 1 + F * .2, [1.9, 0, 0]);
@@ -937,7 +943,7 @@ const BODY = {
   mossbun(g, F, K, X) {
     const A = F === 0 ? { head: { p: [0, .8, 0], r: .8 }, body: { p: [0, .8, 0], r: [.8, .74, .78] } }
       : F === 1 ? { head: { p: [0, 1.22, .22], r: .68 }, body: { p: [0, .56, -.2], r: [.62, .54, .7] } }
-        : { head: { p: [0, 1.5, .28], r: .7 }, body: { p: [0, .7, -.22], r: [.78, .68, .86] } };
+        : { head: { p: [0, 1.5, .28], r: .76 }, body: { p: [0, .68, -.22], r: [.74, .66, .82] } };
     const h = A.head, b = A.body;
     if (F) Sp(g, 1, K.a, b.p, b.r);
     Sp(g, h.r, K.a, h.p, [1.05, .93, .98]);
@@ -1081,11 +1087,11 @@ const BODY = {
     if (F === 0) { A = { head: { p: [0, .72, .1], r: .7 }, body: { p: [0, .7, 0], r: [.78, .68, .8] }, tail: [0, .3, -.75] }; Sp(g, 1, K.a, A.body.p, A.body.r); for (let i = 0; i < 6; i++) { const a = i * 1.05; Gm(g, .22, '#ffffff', [Math.sin(a) * .62, .8 + (i % 2) * .3, -.25 + Math.cos(a) * .4]); } }
     else {
       const L = F === 1 ? .95 : 1.2;
-      A = { head: { p: [0, F === 1 ? .95 : 1.25, L * .55], r: .62 }, body: { p: [0, .55, -.1], r: [.66, .5, L] }, tail: [0, .42, -L - .05] };
+      A = { head: { p: [0, F === 1 ? .95 : 1.25, L * .55], r: .67 }, body: { p: [0, .55, -.1], r: [.66, .5, L] }, tail: [0, .42, -L - .05] };
       Cy(g, [L + .25, L + .25, .05, 8], TR('#7cc4ee', .8), [0, .03, 0]);
       Sp(g, 1, K.a, A.body.p, A.body.r);
       if (F === 2) { Sp(g, .5, K.a, [0, .9, L * .4], [1, 1.2, 1]); for (let i = 0; i < 7; i++) { const a = i / 7 * PI * 2; Co(g, [.14, .34, 4], '#7cc4ee', [Math.sin(a) * .62, .88, L * .42 + Math.cos(a) * .58], [Math.cos(a) * 1.2, 0, -Math.sin(a) * 1.2]); } for (let i = 0; i < 5; i++) { const a = i * 1.3; Oc(g, .07, '#bfe6fb', [Math.sin(a) * (L + .1), .16, Math.cos(a) * (L + .1)], [1, 1.8, 1]); } }
-      Sp(g, .62, K.a, A.head.p);
+      Sp(g, .67, K.a, A.head.p);
     }
     const h = A.head;
     for (const s of [-1, 1]) { Rd(g, [.54, .14, .36], K.b, [s * (A.body.r[0] + .12), .2, .3], [0, s * .4, -s * .4]); Bx(g, [.2, .015, .015], '#8a9aa6', [s * h.r * .92, h.p[1] - h.r * .12, h.p[2] + h.r * .75], [0, -s * .5, s * .12]); Bx(g, [.2, .015, .015], '#8a9aa6', [s * h.r * .92, h.p[1] - h.r * .24, h.p[2] + h.r * .75], [0, -s * .5, -s * .12]); }
@@ -1304,9 +1310,9 @@ const BODY = {
   zapkit(g, F, K, X) { // a kitten: baby is all head, then it sits up tall with a zigzag tail
     const dark = mix(K.a, '#5a4a3a', .7);
     const A = F === 0 ? { head: { p: [0, .78, .05], r: .74 }, body: { p: [0, .4, -.2], r: [.45, .36, .5] } }
-      : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .64 : .62 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5, .6, .5] : [.52, .76, .55] } };
+      : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .67 : .69 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5, .6, .5] : [.52, .76, .55] } };
     const h = A.head, b = A.body;
-    Sp(g, 1, K.a, b.p, b.r); if (F) { Sp(g, b.r[0] * .7, K.b, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.1, .12, b.p[1], 7], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
+    Sp(g, 1, K.a, b.p, b.r); if (F) { Sp(g, b.r[0] * .7, K.b, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.12, .15, b.p[1], 10], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
     feet(g, K.b, .26, F ? b.r[2] * .95 : .5, [.22, .14, .26]);
     Sp(g, h.r, K.a, h.p, [1.1, .9, .95]);
     for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], K.a, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); if (F === 2) Co(e, [.06, .32, 3], dark, [0, .56, 0]); Bx(g, [.34, .02, .02], dark, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
