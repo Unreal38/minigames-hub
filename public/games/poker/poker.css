@@ -30,6 +30,8 @@ body.in-game { overflow: hidden; }
 .pk .tag .tx small { font-weight: 500; opacity: .6; }
 .pk .tag .stk { font-family: var(--fd); font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 3px; color: #2a6e55; }
 .pk .chipi { flex: none; }
+/* SB / BB are wider pills next to the round D */
+.pk .tag .dl.bl { width: auto; padding: 0 4px; border-radius: 9px; font-size: 9px; margin-left: 2px; }
 .pk .tag .dl { font-style: normal; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--card); border: 2px solid var(--ink); font-size: 11px; font-weight: 700; }
 .pk .tag.active .plate { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pk .tag.active .plate::after { content: ''; position: absolute; inset: -7px; border-radius: 999px; padding: 4px; background: conic-gradient(var(--mint) calc(var(--p) * 360deg), #ffffff22 0); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }

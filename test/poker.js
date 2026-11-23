@@ -133,6 +133,59 @@ if (score(C('Ah Ad 9c 9s 4d 4h Kc')) !== score(C('Ah Ad 9c 9s Kd 3h 2c'))) fail(
   }
 }
 
+// ----- blinds: only SB and BB post; everyone after the big blind must call the big blind; BB gets the option -----
+{
+  const realNow = Date.now; let now = realNow(); Date.now = () => now;
+  const humans = n => [...Array(n)].map((_, i) => ({ id: 'h' + i, name: 'H' + i, color: '#10203' + i, av: [0, 0, 0, 0] }));
+  for (const n of [2, 4, 6]) {
+    const G = pk.create(humans(n), { field: n, hands: 10, timer: 0 });
+    now += 5000; pk.tick(G, now);
+    if (G.stage !== 'pre') fail(`blinds ${n}: hand did not start`);
+    const { sbI, bbI, dealer } = G, seats = G.st.length;
+    if (n === 2 && sbI !== dealer) fail('heads-up: the dealer should post the small blind');
+    if (n > 2 && sbI !== (dealer + 1) % seats) fail(`blinds ${n}: small blind should sit left of the dealer`);
+    if (bbI !== (sbI + 1) % seats) fail(`blinds ${n}: big blind should sit left of the small blind`);
+    G.st.forEach((x, i) => { const want = i === sbI ? G.sb : i === bbI ? G.bb : 0; if (x.bet !== want) fail(`blinds ${n}: seat ${i} posted ${x.bet}, want ${want}`); });
+    if (G.turn !== (bbI + 1) % seats) fail(`blinds ${n}: first to act should be left of the big blind`);
+    // everyone just calls round to the big blind
+    let guard = 0;
+    while (G.turn !== bbI && guard++ < 10) {
+      const s = G.turn, o = pk.view(G, s).opt, want = G.bb - (s === sbI ? G.sb : 0);
+      if (o.toCall !== want) fail(`blinds ${n}: seat ${s} has ${o.toCall} to call, want ${want}`);
+      if (o.minTo !== 2 * G.bb) fail(`blinds ${n}: min raise should be to ${2 * G.bb}, got ${o.minTo}`);
+      if (!pk.act(G, s, { t: 'call' })) fail(`blinds ${n}: call refused`);
+      if (G.st[s].bet !== G.bb) fail(`blinds ${n}: seat ${s} put in ${G.st[s].bet} after calling, want the big blind ${G.bb}`);
+      if (G.st[s].last !== `Call ${G.bb}`) fail(`blinds ${n}: bubble says "${G.st[s].last}", want "Call ${G.bb}"`);
+    }
+    if (G.turn !== bbI || G.next) fail(`blinds ${n}: the big blind should get the option after everyone calls`);
+    const o = pk.view(G, bbI).opt;
+    if (o.toCall !== 0 || !o.canRaise) fail(`blinds ${n}: the big blind should be able to check or raise`);
+    pk.act(G, bbI, { t: 'check' });
+    if (G.next !== 'flop') fail(`blinds ${n}: the flop should come after the big blind checks`);
+    if (G.st.some(x => x.in !== G.bb)) fail(`blinds ${n}: everyone should have the big blind in the pot`);
+  }
+  // the big blind raises its option: callers have to call again
+  {
+    const G = pk.create(humans(4), { field: 4, hands: 10, timer: 0 });
+    now += 5000; pk.tick(G, now);
+    while (G.turn !== G.bbI) pk.act(G, G.turn, { t: 'call' });
+    pk.act(G, G.bbI, { t: 'raise', to: 60 });
+    if (G.next || G.turn === G.bbI) fail('after the big blind raises the betting should go on');
+    if (pk.view(G, G.turn).opt.toCall !== 40) fail('after a raise to 60 a caller of 20 should owe 40');
+  }
+  // blinds move one seat left each hand
+  {
+    const G = pk.create(humans(4), { field: 4, hands: 10, timer: 0 });
+    now += 5000; pk.tick(G, now);
+    const d1 = G.dealer, b1 = G.bbI;
+    while (G.stage === 'pre' && !G.next) pk.act(G, G.turn, { t: 'fold' });
+    for (let k = 0; k < 40 && G.hand < 2; k++) { now += 10000; pk.tick(G, now); }
+    if (G.hand !== 2) fail('blinds: second hand did not start');
+    if (G.dealer !== (d1 + 1) % 4 || G.bbI !== (b1 + 1) % 4) fail('blinds: dealer and blinds should move one seat each hand');
+  }
+  Date.now = realNow;
+}
+
 // ----- over the wire -----
 const PORT = 19980 + (Math.random() * 900 | 0);
 const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: '/tmp/cozy-poker-test-' + PORT }, stdio: 'inherit' });
