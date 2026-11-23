@@ -64,7 +64,14 @@ function mesher() {
 // ---------- the track ----------
 function buildTrackMesh(T) {
   const M = mesher(), n = T.n;
-  const P = (i, lat, dy = 0) => { i = (i + n) % n; return [T.x[i] - T.tz[i] * lat, T.y[i] + dy, T.z[i] + T.tx[i] * lat]; };
+  // On the inside of a hairpin the land would fold over itself (and leave a hole): nothing reaches past the middle of the bend.
+  const inner = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const turn = angDiff(headingAt(T, i + 3), headingAt(T, i - 3)); inner[i] = Math.abs(turn) > .05 ? -Math.sign(turn) * 6 * T.step / Math.abs(turn) * .9 : 0; }
+  const P = (i, lat, dy = 0) => {
+    i = (i + n) % n; const r = inner[i];
+    if (r > 0 && lat > r) lat = r; else if (r < 0 && lat < r) lat = r;
+    return [T.x[i] - T.tz[i] * lat, T.y[i] + dy, T.z[i] + T.tx[i] * lat];
+  };
   const edge = i => T.ew[((i % n) + n) % n] + .35 + .3 * (Math.sin(i * .37) * .5 + .5) + .25 * hash(i, 3);
   const UP = [0, 1, 0];
   const padAt = i => T.pads.some(p => ((i - p.i + n) % n) < p.len);
@@ -150,9 +157,10 @@ function buildDeco(T, sky) {
     if (T.br[i] || T.nar[i]) continue;
     const turn = angDiff(headingAt(T, i + 3), headingAt(T, i - 3));
     if (Math.abs(turn) < 6 * T.step / 11) continue;
-    const sd = Math.sign(turn), p = at(T, i, sd * (T.ew[i] - .7)), h = p.h + sd * .5;
+    // on the outside, turned to face the karts coming up to the bend; the arrows point the way the road goes
+    const sd = Math.sign(turn), p = at(T, i, sd * (T.ew[i] - .7)), h = headingAt(T, i - 14), cx = Math.cos(h), sx = Math.sin(h);
     parts.push([post, '#8a5433', [p.x, p.y + .55, p.z]], [board, '#e5543b', [p.x, p.y + 1.5, p.z], [0, h, 0]]);
-    for (const o of [-.45, .15]) parts.push([arrow, '#fff4e2', [p.x + Math.cos(h) * o * -sd + Math.sin(h) * -.1, p.y + 1.5, p.z - Math.sin(h) * o * -sd + Math.cos(h) * -.1], [0, h, sd * Math.PI / 2], [1, 1, .3]]);
+    for (const o of [-.42, .2]) parts.push([arrow, '#fff4e2', [p.x + cx * o * sd - sx * .1, p.y + 1.5, p.z - sx * o * sd - cx * .1], [0, h, -sd * Math.PI / 2], [1.2, 1, .3]]);
   }
   const tufts = new THREE.Mesh(merged(parts), toonMat(vmat())); tufts.userData.noInk = true; grp.add(tufts);
   // islands: spots away from the road, below it, with trees and lamps

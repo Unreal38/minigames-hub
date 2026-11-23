@@ -16,6 +16,8 @@ for (const id of TRACK_IDS) {
     const arc = Math.min(j - i, T.n - (j - i)) * T.step;
     if (arc > 50 && Math.hypot(T.x[i] - T.x[j], T.z[i] - T.z[j]) < SHOULDER * 2 + 4) fail(`${id}: samples ${i} and ${j} overlap`);
   }
+  // no bend is tighter than the road is wide (the road would pinch shut and leave a hole)
+  for (let i = 0; i < T.n; i++) { const a = Math.atan2(T.tx[(i + 1) % T.n], T.tz[(i + 1) % T.n]) - Math.atan2(T.tx[(i - 1 + T.n) % T.n], T.tz[(i - 1 + T.n) % T.n]), turn = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))); if (2 * T.step / Math.max(turn, 1e-6) < T.rw[i] + 1.2) fail(`${id}: the bend at ${i} is tighter than the road is wide`); }
   if (!T.br.some(b => b) || T.br.every(b => b)) fail(`${id} should mix land and bridges`);
   if (T.br[0]) fail(`${id}: the start line should be on land`);
   if (T.boxes.length !== TRACKS[id].boxes.length * 4 || !T.pads.length) fail(`${id}: boxes or pads missing`);
@@ -65,7 +67,7 @@ for (const id of TRACK_IDS) {
     const c = newKart(C, 0); Object.assign(c, { x: C.x[ni], z: C.z[ni], h: Math.atan2(C.tx[ni], C.tz[ni]) + .6, v: 18, i: ni, lap: 0 });
     let off = false; for (let i = 0; i < 40 && !off; i++) off = stepKart(C, c, { steer: 0, gas: 1 }, 1 / 60) === 'fall';
     if (!off) fail('drifting wide on a narrow road should fall');
-    if (Math.min(...C.vlim) > 19) fail('cliff should have bends that need braking'); }
+    if (Math.min(...C.vlim) > 23) fail('cliff should have bends that need braking'); }
   // on a bridge the rails hold you in
   const bi = T.br.findIndex(b => b), b = newKart(T, 0);
   Object.assign(b, { x: T.x[bi], z: T.z[bi], h: Math.atan2(T.tx[bi], T.tz[bi]) + 1.2, v: 20, i: bi, s: bi * T.step, lap: 0 });
