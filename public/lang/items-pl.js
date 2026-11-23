@@ -80,9 +80,9 @@ export const COS_PL = {
     Snowball: 'Śnieżka', 'Choc-chip cookie': 'Ciastko z czekoladą', 'Mossy stone': 'Omszały kamień', Pixel: 'Piksele', 'Sugar cube': 'Kostka cukru' } },
   gb: { label: 'Piłka golfowa', where: 'Twoja piłka w Mini Golf Party.', n: { Classic: 'Klasyczna', '8-ball': 'Ósemka', Watermelon: 'Arbuz', Planet: 'Planeta', Eyeball: 'Gałka oczna', Gold: 'Złota', 'Latte art': 'Latte art' } },
   kp: { label: 'Lakier gokarta', where: 'Twój gokart w Kart Island Race.', n: { Classic: 'Klasyczny', 'Racing stripes': 'Pasy wyścigowe', Checkers: 'Szachownica', Flames: 'Płomienie', Galaxy: 'Galaktyka', Gold: 'Złoty', 'Mocha': 'Mokka' } },
-  ig: { label: 'Podłoże', where: 'Nadaj swojej wyspie wygląd jednej z wysp Farmy zwierzaków. Wszyscy widzą ją na twojej wizytówce.', n: { ...ISLES_PL, 'Golden isle': 'Złota wyspa', 'Champion’s isle': 'Wyspa mistrzów' } },
-  ib: { label: 'Skalna podstawa', where: 'To, co wisi pod twoją wyspą.', n: { Classic: 'Klasyczna', 'Crystal cluster': 'Kryształy', 'Floating chunks': 'Latające odłamki', Waterfall: 'Wodospad', 'Hanging roots': 'Wiszące korzenie' } },
-  ik: { label: 'Niebo', where: 'Niebo za twoją wyspą.', n: { Clear: 'Czyste', Sunset: 'Zachód słońca', 'Starry night': 'Gwiaździsta noc', Aurora: 'Zorza', Rainbow: 'Tęcza' } },
+  ig: { label: 'Podłoże', where: 'Nadaj swojej wyspie wygląd jednej z wysp Farmy zwierzaków. Wszyscy widzą ją na twojej wizytówce, a twoja wyspa na Farmie zwierzaków też ją nosi.', n: { ...ISLES_PL, 'Golden isle': 'Złota wyspa', 'Champion’s isle': 'Wyspa mistrzów' } },
+  ib: { label: 'Skalna podstawa', where: 'To, co wisi pod twoją wyspą i pod wyspą na Farmie zwierzaków.', n: { Classic: 'Klasyczna', 'Crystal cluster': 'Kryształy', 'Floating chunks': 'Latające odłamki', Waterfall: 'Wodospad', 'Hanging roots': 'Wiszące korzenie' } },
+  ik: { label: 'Niebo', where: 'Niebo za twoją wyspą i za wyspą na Farmie zwierzaków.', n: { Clear: 'Czyste', Sunset: 'Zachód słońca', 'Starry night': 'Gwiaździsta noc', Aurora: 'Zorza', Rainbow: 'Tęcza' } },
 };
 const PIECES_PL = { marble: 'Kulka', die: 'Kość', pawn: 'Pionek', card: 'Karta', chip: 'Żeton', golf: 'Piłka golfowa', block: 'Klocki', tyre: 'Opona gokarta', coin: 'Moneta', star: 'Gwiazdka', bean: 'Magiczna fasolka', pot: 'Garnek', paw: 'Łapka' };
 export function plCosmetics(COS, PIECES) {
