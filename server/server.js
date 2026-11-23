@@ -1,6 +1,7 @@
 // Zatoka Gier game server: static files + WebSocket lobbies. No dependencies.
 // Profiles, optional accounts and lobby scoreboards are saved to disk by store.js.
 import http from 'node:http';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -725,15 +726,44 @@ notice.load();
 // close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the
 // goodbye frames reach the players before the process ends.
 let stopping = false;
-const bye = () => {
+const bye = (code = 0) => {
   if (stopping) return; stopping = true;
   store.saveNow(); farm.saveNow(); hubchat.saveNow();
   let n = 0;
   for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
   console.log(`stopping: saved, told ${n} screens to wait for the restart`);
-  setTimeout(() => process.exit(0), n ? 200 : 0);
+  setTimeout(() => process.exit(code), n ? 200 : 0);
 };
-process.on('SIGTERM', bye); process.on('SIGINT', bye);
+process.on('SIGTERM', () => bye()); process.on('SIGINT', () => bye());
+// Restart by itself at the end of a countdown (the host's choice in Site notices). Only under systemd (it sets
+// INVOCATION_ID), whose Restart= brings the server straight back; anywhere else stopping would just stop the site.
+// Before going down, every server file is syntax-checked, so freshly pulled code with a typo can't take the site
+// down: then the countdown carries on without the restart and the hosts are told. Exit code 75 ("try again") makes
+// systemd restart it with Restart=always and with Restart=on-failure alike.
+const SRV = path.dirname(fileURLToPath(import.meta.url)), REPO = path.resolve(SRV, '..');
+function gitHead() { // the commit checked out on disk right now (after a git pull it differs from the one running)
+  try {
+    const head = fs.readFileSync(path.join(REPO, '.git/HEAD'), 'utf8').trim();
+    if (!head.startsWith('ref: ')) return head;
+    const ref = head.slice(5);
+    try { return fs.readFileSync(path.join(REPO, '.git', ref), 'utf8').trim(); }
+    catch { return (fs.readFileSync(path.join(REPO, '.git/packed-refs'), 'utf8').split('\n').find(l => l.endsWith(' ' + ref)) || '').split(' ')[0]; }
+  } catch { return ''; }
+}
+const RUNNING = gitHead();
+notice.setExtra(() => { const now = gitHead(); return { pulled: !!(now && RUNNING && now !== RUNNING) }; });
+function checkCode() {
+  const files = [...['server', 'server/games', 'public', 'public/lang'].flatMap(d => { try { return fs.readdirSync(path.join(REPO, d)).filter(f => f.endsWith('.js')).map(f => path.join(REPO, d, f)); } catch { return []; } }),
+    ...(() => { try { return fs.readdirSync(path.join(REPO, 'public/games')).flatMap(g => { try { return fs.readdirSync(path.join(REPO, 'public/games', g)).filter(f => f.endsWith('.js')).map(f => path.join(REPO, 'public/games', g, f)); } catch { return []; } }); } catch { return []; } })()];
+  return Promise.all(files.map(f => new Promise(res => execFile(process.execPath, ['--check', f], { timeout: 30_000 }, err => res(err ? path.relative(REPO, f) : null)))))
+    .then(bad => bad.filter(Boolean));
+}
+if (process.env.INVOCATION_ID || process.env.NOTICE_TEST_RESTART) notice.setOnZero(async () => {
+  const bad = await checkCode();
+  if (bad.length) { console.error(`restart at zero cancelled: ${bad.join(', ')} ${bad.length === 1 ? 'has' : 'have'} a syntax error`); return notice.autoFailed(bad.slice(0, 3).join(', ')); } // the hosts' window explains, in their language
+  console.log(`restarting by itself at the end of the countdown (${RUNNING.slice(0, 7) || '?'} -> ${gitHead().slice(0, 7) || '?'})`);
+  bye(75);
+});
 
 // ---------- game loop & housekeeping ----------
 setInterval(() => {
