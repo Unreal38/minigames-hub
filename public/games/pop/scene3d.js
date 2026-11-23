@@ -6,7 +6,8 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight, flat } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
-import { petPic } from '../../petpic.js';
+import { petModel } from '../farm/pets3d.js';
+import { disposeModel } from '../farm/models.js';
 import { W, H, N, KINDS, KIND_COLOR, HOLE, EMPTY, BOWL, BALE, isPet, kindOf, powerOf, isBale, settle, ZOOM_H, ZOOM_V, POUNCE } from './rules.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -92,14 +93,12 @@ export function createScene(canvas) {
   const pivot = new THREE.Group(); pivot.position.set(0, .15, 0); pivot.rotation.x = -LEAN; scene.add(pivot);
   const B = new THREE.Group(); B.position.y = H / 2 + .55; pivot.add(B); // everything on the shelf lives in B: x right, y up, cubbies 1 apart
   const frame = new THREE.Group(); B.add(frame);
-  box(frame, W + .5, H + .5, .16, '#e8c9a0', 0, 0, -.5);                                     // the back board
+  box(frame, W + .5, H + .5, .16, '#6f4630', 0, 0, -.5);                                     // the back board
   for (const s of [-1, 1]) { box(frame, .26, H + .76, .9, '#a86a42', s * (W / 2 + .13), 0, -.12); box(frame, W + .52, .26, .9, '#a86a42', 0, s * (H / 2 + .13), -.12); }
-  for (let k = 1; k < H; k++) box(frame, W, .07, .7, '#c98f5e', 0, H / 2 - k, -.16);          // shelves
-  for (let k = 1; k < W; k++) box(frame, .05, H, .5, '#d9a877', -W / 2 + k, 0, -.26);         // dividers
   for (const s of [-1, 1]) box(frame, .5, .7, 1.5, '#8a5a3c', s * (W / 2 - .6), -H / 2 - .5, .1); // feet
   toonify(frame, .035);
   // the back of each cubby, in two soft tones like a checkerboard
-  const backGeo = new THREE.PlaneGeometry(.95, .93), backs = new THREE.InstancedMesh(backGeo, new THREE.MeshBasicMaterial({ color: '#ffffff' }), N);
+  const backGeo = new THREE.PlaneGeometry(.96, .96), backs = new THREE.InstancedMesh(backGeo, new THREE.MeshBasicMaterial({ color: '#ffffff' }), N);
   backs.frustumCulled = false; B.add(backs);
   let holes = new THREE.Group(), maskKey = ''; B.add(holes);
   const col = new THREE.Color(), dm = new THREE.Object3D();
@@ -109,8 +108,8 @@ export function createScene(canvas) {
     let n = 0; const night = isNight();
     for (let i = 0; i < N; i++) {
       if (b[i] === HOLE) { box(holes, 1.02, 1.02, .82, (i + (i / W | 0)) % 2 ? '#b97b4e' : '#a86a42', cxOf(i), cyOf(i), -.1); continue; }
-      dm.position.set(cxOf(i), cyOf(i) + .01, -.41); dm.rotation.set(0, 0, 0); dm.scale.setScalar(1); dm.updateMatrix(); backs.setMatrixAt(n, dm.matrix);
-      backs.setColorAt(n++, col.set((i + (i / W | 0)) % 2 ? '#fff6e6' : '#fbe6c6').multiplyScalar(night ? .62 : 1));
+      dm.position.set(cxOf(i), cyOf(i), -.41); dm.rotation.set(0, 0, 0); dm.scale.setScalar(1); dm.updateMatrix(); backs.setMatrixAt(n, dm.matrix);
+      backs.setColorAt(n++, col.set((i + (i / W | 0)) % 2 ? '#8f5f42' : '#84563b').multiplyScalar(night ? .7 : 1));
     }
     backs.count = n; backs.instanceMatrix.needsUpdate = true; if (backs.instanceColor) backs.instanceColor.needsUpdate = true;
     if (holes.children.length) toonify(holes, .035);
@@ -121,22 +120,48 @@ export function createScene(canvas) {
   const piece = ({ body, hull }, cap) => ({ body: inst(body, bodyMat(), cap), hull: hull ? inst(hull, inkMat(), cap) : null, n: 0 });
   const bowl = piece(fit(flatten(bowlModel()), .78, .74), 16);
   const bale1 = piece(fit(flatten(baleModel(false)), .84, .64), N), bale2 = piece(fit(flatten(baleModel(true)), .92, .72), N);
-  // the coloured cushion behind every pet, so a kind reads at a glance even on a small phone
-  const padGeo = new THREE.CylinderGeometry(.47, .47, .24, 8); padGeo.rotateY(Math.PI / 8); padGeo.rotateX(Math.PI / 2);
+  // A gem: a chunky rounded tile in the pet's colour, with the pet's portrait on its face.
+  const rrect = (w, r) => { const h = w / 2, sh = new THREE.Shape(); sh.moveTo(-h + r, -h); sh.lineTo(h - r, -h); sh.quadraticCurveTo(h, -h, h, -h + r); sh.lineTo(h, h - r); sh.quadraticCurveTo(h, h, h - r, h); sh.lineTo(-h + r, h); sh.quadraticCurveTo(-h, h, -h, h - r); sh.lineTo(-h, -h + r); sh.quadraticCurveTo(-h, -h, -h + r, -h); return sh; };
+  const padGeo = new THREE.ExtrudeGeometry(rrect(.84, .2), { depth: .14, bevelEnabled: true, bevelSize: .035, bevelThickness: .035, bevelSegments: 2, curveSegments: 5 }); padGeo.translate(0, 0, -.105); // front at z = +.07
   const pads = inst(padGeo, toonMat(new THREE.MeshStandardMaterial({ color: '#ffffff' })), CAP * 2);
   const padInk = inst(padGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP * 2);
-  // each pet's picture, painted on the front of its gem (Kuba found 3D pets on the shelf too distracting)
-  const faceGeo = new THREE.PlaneGeometry(1.04, 1.04); let dead = false;
-  const faces = KINDS.map(sp => {
-    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', alphaTest: .5 }), m = inst(faceGeo, mat); m.visible = false;
-    petPic({ sp, lv: 20 }, 256).then(u => { if (!u || dead) return; new THREE.TextureLoader().load(u, t => { if (dead) return t.dispose(); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; mat.map = t; mat.needsUpdate = true; m.visible = true; }); });
-    return { m, n: 0 };
-  });
+  const FACE = .8, faceGeo = new THREE.ShapeGeometry(rrect(FACE, .17), 5); let dead = false;
+  { const uv = faceGeo.attributes.uv, ps = faceGeo.attributes.position; for (let i = 0; i < uv.count; i++) uv.setXY(i, ps.getX(i) / FACE + .5, ps.getY(i) / FACE + .5); }
+  const faces = KINDS.map(() => { const mat = new THREE.MeshBasicMaterial({ color: '#ffffff' }), m = inst(faceGeo, mat); m.visible = false; return { m, n: 0 }; });
+  // The portraits are drawn once: each pet model is photographed from the front, given a dark outline, and set on
+  // a glossy background in its colour. (Kuba found 3D pets standing on the shelf too distracting.)
+  function paintFaces() {
+    const SZ = 384, R = new THREE.WebGLRenderer({ antialias: true, alpha: true }); R.setPixelRatio(1); R.setSize(SZ, SZ, false);
+    const S2 = new THREE.Scene(), C2 = new THREE.PerspectiveCamera(24, 1, .1, 60);
+    S2.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2.1)); const l2 = new THREE.DirectionalLight('#ffffff', 1.4); l2.position.set(3, 6, 5); S2.add(l2);
+    const bb = new THREE.Box3(), ctr = new THREE.Vector3(), size = new THREE.Vector3();
+    KINDS.forEach((sp, k) => {
+      const g = petModel(sp, 2); S2.add(g); bb.setFromObject(g); bb.getCenter(ctr); bb.getSize(size);
+      const d = Math.max(size.x, size.y) / 2 / Math.tan(12 * Math.PI / 180) * .9 + size.z / 2;
+      C2.position.set(ctr.x + d * .3, ctr.y + d * .12, ctr.z + d); C2.lookAt(ctr); R.render(S2, C2);
+      const cv = document.createElement('canvas'); cv.width = cv.height = SZ; const c = cv.getContext('2d');
+      const base = new THREE.Color(KIND_COLOR[k]), hex = t => '#' + base.clone().lerp(new THREE.Color(t > 0 ? '#ffffff' : '#3b2219'), Math.abs(t)).getHexString();
+      const gr = c.createRadialGradient(SZ / 2, SZ * .42, 10, SZ / 2, SZ / 2, SZ * .74); const pale = sp === 'zapkit' ? .38 : 0; // a pale pet needs a deeper gem behind it
+      gr.addColorStop(0, hex(.5 - pale)); gr.addColorStop(.6, hex(.14 - pale * .7)); gr.addColorStop(1, hex(-.16 - pale * .3));
+      c.fillStyle = gr; c.fillRect(0, 0, SZ, SZ);
+      c.fillStyle = '#ffffff40'; c.beginPath(); c.ellipse(SZ * .34, SZ * .13, SZ * .26, SZ * .07, -.12, 0, 7); c.fill(); // the shine
+      // the outline: the pet's shape in ink, stamped all round, then the pet on top
+      const ink = document.createElement('canvas'); ink.width = ink.height = SZ; const ic = ink.getContext('2d');
+      ic.drawImage(R.domElement, 0, 0); ic.globalCompositeOperation = 'source-in'; ic.fillStyle = '#3b2219'; ic.fillRect(0, 0, SZ, SZ);
+      for (let a = 0; a < 16; a++) c.drawImage(ink, Math.cos(a / 16 * 6.283) * 12, Math.sin(a / 16 * 6.283) * 12 + 6);
+      c.drawImage(R.domElement, 0, 6);
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+      faces[k].m.material.map = t; faces[k].m.material.needsUpdate = true; faces[k].m.visible = true;
+      S2.remove(g); disposeModel(g);
+    });
+    R.dispose(); R.forceContextLoss();
+  }
+  try { paintFaces(); } catch (e) { console.warn('no pet portraits', e); }
   // powers: arrows either side of a Zoomer, a ring round a Pouncer
   const arrowGeo = new THREE.ConeGeometry(.13, .22, 4); arrowGeo.rotateZ(-Math.PI / 2); // points along +x
   const arrows = inst(arrowGeo, new THREE.MeshBasicMaterial({ color: '#fff7c2' }), CAP * 2), arrowInk = inst(arrowGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP * 2);
-  const ringGeo = new THREE.TorusGeometry(.44, .05, 5, 16), rings = inst(ringGeo, new THREE.MeshBasicMaterial({ color: '#fff7c2' }), CAP), ringInk = inst(ringGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP);
-  const padCol = KIND_COLOR.map(c => new THREE.Color(c).lerp(new THREE.Color('#ffffff'), .28)), GOLD = new THREE.Color('#ffe9a8');
+  const ringGeo = new THREE.TorusGeometry(.4, .045, 5, 20), rings = inst(ringGeo, new THREE.MeshBasicMaterial({ color: '#fff7c2' }), CAP), ringInk = inst(ringGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP);
+  const padCol = KIND_COLOR.map(c => new THREE.Color(c)), GOLD = new THREE.Color('#ffe9a8');
 
   // beams for a Zoomer's dash and a Pouncer's stomp
   const beamGeo = new THREE.PlaneGeometry(1, 1);
@@ -310,12 +335,12 @@ export function createScene(canvas) {
     if (bale) { const P = v - BALE > 1 ? bale2 : bale1; putAt(P.body, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.hull && putAt(P.hull, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.n++; return; }
     const ps = sc * (1 + s.flash * .25), gy = y + hop;
     if (v === BOWL) { putAt(bowl.body, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.hull && putAt(bowl.hull, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.n++; }
-    else { const F = faces[k]; if (!F || F.n >= CAP) return; putAt(F.m, F.n++, x, gy, z + .03, 0, 0, rz, ps * sx, ps * sy, ps); }
-    const pz = v === BOWL ? z - .3 : z - .1;
-    putAt(pads, nPad, x, gy, pz, 0, 0, rz, ps * sx, ps * sy, ps); putAt(padInk, nPad, x, gy, pz, 0, 0, rz, ps * sx * 1.09, ps * sy * 1.09, ps * .9);
+    else { const F = faces[k]; if (!F || F.n >= CAP) return; putAt(F.m, F.n++, x, gy, z + .085 * ps, 0, 0, rz, ps * sx, ps * sy, ps); }
+    const pz = v === BOWL ? z - .3 : z;
+    putAt(pads, nPad, x, gy, pz, 0, 0, rz, ps * sx, ps * sy, ps); putAt(padInk, nPad, x, gy, pz, 0, 0, rz, ps * sx * 1.07, ps * sy * 1.07, ps * .9);
     pads.setColorAt(nPad++, col.copy(v === BOWL || s.flash > .3 ? GOLD : padCol[k]));
     if (pw === ZOOM_H || pw === ZOOM_V) {
-      const d = .52 + Math.abs(Math.sin(T * 5 + s.ph)) * .07;
+      const d = .3 + Math.abs(Math.sin(T * 5 + s.ph)) * .05;
       for (const sd of [-1, 1]) {
         const ax = pw === ZOOM_H ? sd * d : 0, ay = pw === ZOOM_V ? sd * d : 0, r = pw === ZOOM_H ? (sd > 0 ? 0 : Math.PI) : sd * Math.PI / 2;
         putAt(arrows, nArrow, x + ax * sc, y + ay * sc, z + .34, 0, 0, r, sc); putAt(arrowInk, nArrow, x + ax * sc, y + ay * sc, z + .33, 0, 0, r, sc * 1.35); nArrow++;
