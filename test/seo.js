@@ -37,6 +37,8 @@ try {
   assert.match(en.text, /Free browser games to play with friends\. Host a table/);
   assert.match(en.text, /og:locale" content="en_GB"/);
   assert.match(en.text, /Progress that stays/);
+  assert.match(en.text, /Tables are public by default/);
+  assert.match(bot.text, /Stoły są domyślnie publiczne/);
   assert.doesNotMatch(en.text, /Postępy/);
   assert.doesNotMatch(en.text, /darmowe|Darmowe|przeglądarce/);
 
