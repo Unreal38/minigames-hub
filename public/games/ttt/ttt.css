@@ -9,7 +9,7 @@ body.in-game { overflow: hidden; }
 .tt .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .tt-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--on-paper); }
 .tt-tag .plate { display: flex; align-items: center; gap: 6px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 3px 5px 3px 5px; font-size: 15px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
-.tt-tag .plate b { font-weight: 600; max-width: 8em; overflow: hidden; text-overflow: ellipsis; }
+.tt-tag .plate b { font-weight: 600; max-width: 10em; overflow: hidden; text-overflow: ellipsis; }
 .tt-tag .plate .cnt { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 17px; font-weight: 700; box-sizing: border-box; }
 .tt-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .tt-tag .you { font-size: 12px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 1px 8px; }
@@ -70,7 +70,7 @@ body.in-game { overflow: hidden; }
   .tt .tl .chip { font-size: 13px; padding: 4px 10px; }
   .tt .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 28px); padding: 5px 14px; }
   .tt-board { top: calc(max(14px, env(safe-area-inset-top)) + 100px); left: 14px; transform: none; font-size: 18px; padding: 3px 10px; }
-  .tt-tag .plate { font-size: 12px; } .tt-tag .plate b { max-width: 5em; } .tt-tag .plate .cnt { font-size: 14px; min-width: 22px; height: 22px; }
+  .tt-tag .plate { font-size: 12px; } .tt-tag .plate b { max-width: 7.5em; } .tt-tag .plate .cnt { font-size: 14px; min-width: 22px; height: 22px; }
   .tt-mk { width: 18px; height: 18px; }
   .tt-wait { font-size: 15px; white-space: normal; }
   .tt-hint { font-size: 12.5px; line-height: 1.3; border-radius: 14px; }

@@ -123,12 +123,15 @@ body.in-game #toasts { top: 26%; }
   .hud .tl .chip { font-size: 13px; padding: 3px 9px; }
   .hud .tcode { display: none; }
   .hud .round { width: 40px; height: 40px; }
-  .turn { top: 60px; font-size: 15px; }
-  .opp { top: 112px !important; transform: none !important; padding: 5px 6px; gap: 5px; border-radius: 16px; width: calc((100vw - 24px) / 3); justify-content: space-between; }
+  .turn { top: 92px; font-size: 15px; } /* below the two chips, which stack under the round buttons' row */
+  .opp { top: 140px !important; transform: none !important; padding: 5px 6px; gap: 5px; border-radius: 16px; width: calc((100vw - 24px) / 3); justify-content: space-between; }
   .opp[data-r="1"] { left: 6px; } .opp[data-r="2"] { left: calc(12px + (100vw - 24px) / 3); } .opp[data-r="3"] { right: 6px; left: auto; flex-direction: row; }
   .opp .who { flex: 1; overflow: hidden; }
   .opp .avatar { --s: 32px !important; }
-  .opp .who { min-width: 0; } .opp .who b { font-size: 14px; max-width: 5em; } .opp .who > span, .hp .mini { display: none; }
+  /* three across a phone: the name goes under the avatar so it has the box's width instead of a sliver of it */
+  .opp { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; justify-items: start; row-gap: 2px; }
+  .opp > .avatar { grid-column: 1; grid-row: 1; } .opp .who { grid-column: 1; grid-row: 2; width: 100%; } .opp .pile { grid-column: 2; grid-row: 1 / span 2; }
+  .opp .who { min-width: 0; } .opp .who b { font-size: 13px; max-width: 100%; } .opp .who > span, .hp .mini { display: none; }
   .pile { --cw: 40px; } .slot { width: 40px; height: 55px; }
   .emotes { left: 8px; bottom: calc(var(--hh) + 12px); } .emotes > span { display: none; }
   .emotes div { grid-template-columns: repeat(6, 34px); gap: 4px; } .emotes button { width: 34px; height: 34px; border-radius: 10px; border-width: 2px; padding: 2px; }

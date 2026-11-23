@@ -8,7 +8,7 @@ body.in-game { overflow: hidden; }
 .tws .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .tws .tws-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; will-change: transform; }
 .tws .tws-tag i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
-.tws .tws-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+.tws .tws-tag b { font-weight: 600; max-width: 10em; overflow: hidden; text-overflow: ellipsis; }
 .tws .tws-tag .cnt { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 13px; min-width: 1.6em; text-align: center; }
 .tws .tws-tag[hidden] { display: none; }
 .tws .tws-tag.now { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
@@ -34,7 +34,7 @@ body.in-game { overflow: hidden; }
 @keyframes twsbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* players and their points */
-.tws .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; width: 214px; max-height: calc(100vh - 230px); overflow: auto; }
+.tws .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; width: max-content; min-width: 214px; max-width: min(300px, 42vw); max-height: calc(100vh - 230px); overflow: auto; }
 .tws .list li { display: flex; align-items: center; gap: 7px; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--on-paper); }
 .tws .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .tws .list span { font-size: 13px; color: var(--soft-tx2); white-space: nowrap; }
@@ -84,7 +84,7 @@ body.in-game { overflow: hidden; }
   .tws .meter { left: 50%; transform: translateX(-50%); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 74px); width: min(240px, 70vw); }
   .tws .dropbar { bottom: max(14px, env(safe-area-inset-bottom)); }
   .tws .tws-tag { font-size: 12px; }
-  .tws .tws-tag b { max-width: 4.5em; }
+  .tws .tws-tag b { max-width: 7.5em; }
   .tws .tws-tag .cnt { font-size: 12px; padding: 0 6px; }
 }
 body:has(.tws) #toasts { top: 118px; }

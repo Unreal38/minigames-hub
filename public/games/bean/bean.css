@@ -40,7 +40,7 @@ body.in-game { overflow: hidden; }
 @keyframes bbbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* who is highest, down the left */
-.bb .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: #2a1422c4; border: 3px solid var(--line); border-radius: 18px; width: 200px; max-height: calc(100vh - 330px); overflow: auto; pointer-events: none !important; }
+.bb .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: #2a1422c4; border: 3px solid var(--line); border-radius: 18px; width: max-content; min-width: 200px; max-width: min(300px, 42vw); max-height: calc(100vh - 330px); overflow: auto; pointer-events: none !important; }
 .bb .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--cream); }
 .bb .list em { font-style: normal; width: 18px; text-align: center; color: var(--lantern); font-variant-numeric: tabular-nums; }
 .bb .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
@@ -108,7 +108,7 @@ body.in-game { overflow: hidden; }
   .bb .tl { left: 8px; gap: 5px; } .bb .tr { right: 8px; gap: 5px; }
   .bb .tl .chip { font-size: 13px; padding: 4px 8px; gap: 4px; }
   .bb .banner { top: 62px; left: 8px; transform: none; font-size: 13px; padding: 4px 12px; max-width: calc(100vw - 16px); }
-  .bb .list { top: 104px; left: 8px; width: 132px; padding: 3px; gap: 1px; border-width: 2px; max-height: 30vh; background: #2a1422a8; }
+  .bb .list { top: 104px; left: 8px; width: max-content; min-width: 132px; max-width: 48vw; padding: 3px; gap: 1px; border-width: 2px; max-height: 30vh; background: #2a1422a8; }
   .bb .list li { font-size: 12px; gap: 4px; padding: 1px 4px 1px 2px; }
   .bb .list .avatar { width: 20px !important; height: 20px !important; }
   .bb .bb-alt { right: 10px; top: 130px; bottom: 150px; width: 13px; }

@@ -29,7 +29,7 @@ body.in-game { overflow: hidden; }
 @keyframes lubig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* players and their tiles */
-.ludo .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 18px; backdrop-filter: blur(4px); width: 214px; max-height: calc(100vh - 190px); overflow: auto; }
+.ludo .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 18px; backdrop-filter: blur(4px); width: max-content; min-width: 214px; max-width: min(300px, 42vw); max-height: calc(100vh - 190px); overflow: auto; }
 .ludo .list li { display: flex; align-items: center; gap: 7px; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); }
 .ludo .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .ludo .list span { font-size: 13px; color: var(--muted); white-space: nowrap; }
@@ -68,7 +68,7 @@ body.in-game { overflow: hidden; }
 @media (max-width: 700px) {
   .ludo .tcode, .ludo #lu-round { display: none; }
   .ludo .banner { top: 66px; font-size: 15px; }
-  .ludo .list { top: 112px; width: 150px; padding: 4px; max-height: 34vh; }
+  .ludo .list { top: 112px; width: max-content; min-width: 150px; max-width: 48vw; padding: 4px; max-height: 34vh; }
   .ludo .list li { font-size: 13px; gap: 5px; padding: 2px 5px 2px 2px; }
   .ludo .list span { font-size: 12px; }
   .ludo .rollbar { bottom: 12px; }
@@ -79,7 +79,7 @@ body:has(.ludo) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.ludo) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.ludo) .chatbtn .lbl { display: none; } }
 
 /* Ludo extras: corner colours in the player list, and the pawn choices */
-.ludo .list { width: 230px; }
+.ludo .list { width: max-content; min-width: 230px; max-width: min(300px, 42vw); }
 .ludo .list .sw { width: 12px; height: 12px; border-radius: 3px; border: 2px solid var(--ink); flex: none; }
 .ludo .list .dots { display: inline-flex; gap: 3px; }
 .ludo .list .dots u { width: 10px; height: 10px; border-radius: 2px; border: 2px solid var(--c); text-decoration: none; box-sizing: border-box; }
@@ -91,7 +91,7 @@ body:has(.ludo) #toasts { top: 118px; }
 .ludo .lu-tag i { border-radius: 4px; }
 @media (max-width: 700px) {
   /* phones: the players become one short row above the board (names are on the tags over each corner) */
-  .ludo .list { top: 112px; left: 8px; right: 8px; width: auto; max-height: none; flex-direction: row; justify-content: center; gap: 2px; overflow: visible; }
+  .ludo .list { top: 112px; left: 8px; right: 8px; width: auto; min-width: 0; max-width: none; max-height: none; flex-direction: row; justify-content: center; gap: 2px; overflow: visible; }
   .ludo .list li { flex: 0 1 auto; gap: 4px; padding: 2px 6px 2px 2px; }
   .ludo .list b, .ludo .list .sw { display: none; }
   .ludo .btn.pick { font-size: 14px; padding: 6px 10px; }

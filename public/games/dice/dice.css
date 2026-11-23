@@ -136,7 +136,7 @@ body.in-game { overflow: hidden; }
 @media (max-width: 700px) {
   .ld .tcode { display: none; }
   .ld .tl .chip { font-size: 13px; padding: 4px 10px; }
-  .ld .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 150px); padding: 5px 14px; }
+  .ld .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 150px); padding: 5px 14px; white-space: normal; text-wrap: balance; border-radius: 16px; line-height: 1.2; } /* a long turn line wraps instead of losing its end */
   .ld-tag .plate { font-size: 12px; } .ld-tag .plate b { max-width: 4.5em; } .ld-tag .plate .cnt { font-size: 12px; padding: 0 6px 0 4px; }
   .ld-tag .bub span { font-size: 14px; } .ld-tag .bub .top, .ld-tag .bub .call { font-size: 16px; }
   .ld-bid b { font-size: 22px; }
