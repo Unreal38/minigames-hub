@@ -148,7 +148,7 @@ body.in-game { overflow: hidden; }
 
 @media (max-width: 1099px) {
   /* no room beside the table: the scores become a strip under the top bar */
-  .ty .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); left: 12px; transform: none; max-width: calc(100vw - 172px); }
+  .ty .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); left: 12px; transform: none; max-width: calc(100vw - 172px); white-space: normal; text-wrap: balance; border-radius: 16px; line-height: 1.2; } /* a long turn line wraps instead of losing its end */
   .ty-side { left: 8px; right: 8px; width: auto; top: calc(max(14px, env(safe-area-inset-top)) + 102px); flex-direction: row; align-items: stretch; justify-content: center; gap: 6px; }
   .ty-last { display: none; }
   .ty-deal { gap: 6px; flex: none; }
@@ -170,7 +170,9 @@ body.in-game { overflow: hidden; }
   .ty-list .avatar { width: 22px !important; height: 22px !important; }
   .ty-list strong { font-size: 15px; gap: 1px; } .ty-list .ty-barrel { width: 13px; height: 13px; }
   .ty .tl .chip { font-size: 13px; padding: 4px 10px; max-width: 100%; box-sizing: border-box; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ty .banner { font-size: 15px; padding: 4px 14px; }
+  .ty .banner { font-size: 13.5px; line-height: 1.15; padding: 4px 12px; }
+  .ty-side { top: calc(max(14px, env(safe-area-inset-top)) + 114px); } /* room for a turn line on two rows */
+  body.in-game .ty .hud .tl { max-width: none; } body.in-game .ty .hud .tl .chip { white-space: nowrap; } /* this game keeps its own room (right: 218px) */
   .ty-tag .plate { font-size: 12px; } .ty-tag .plate b { max-width: 4.5em; } .ty-tag .plate .cnt { font-size: 12px; padding: 0 6px; }
   .ty-tag .bub span { font-size: 14px; } .ty-tag .bub .top { font-size: 15px; }
   .ty .pcard.big { --w: 56px; }

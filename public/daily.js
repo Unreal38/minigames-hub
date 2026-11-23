@@ -9,6 +9,7 @@ import { avatarHtml } from './avatar.js';
 import { nameHtml, frameCls } from './cosmetics.js';
 import { L, PL, cnt, word } from './i18n.js';
 import { srvText } from './lang/server.js';
+import { emw } from './fit.js';
 
 // The server sends clue headings and values in English: the page says them in its own language.
 const CLUE = PL ? (await import('./lang/farm-pl.js')).CLUE_PL : null;
@@ -60,8 +61,8 @@ export function mount(host, api) {
   }
 
   const cell = (c, label) => `<div class="mpc ${c.s}" aria-label="${esc(clueText(label))}: ${esc(clueText(c.v))}, ${WORD[c.s]}${c.dir ? L(`, the mystery pet is ${c.dir === 'up' ? 'rarer' : 'more common'}`, `, tajemniczy zwierzak jest ${c.dir === 'up' ? 'rzadszy' : 'pospolitszy'}`) : ''}">
-    <small>${esc(clueText(label))}</small><b>${esc(clueText(c.v))}${c.dir ? ` <i class="mparrow">${c.dir === 'up' ? '▲' : '▼'}</i>` : ''}</b><i class="mpmark" aria-hidden="true">${MARK[c.s]}</i></div>`;
-  const guessRow = (g, i, n) => `<li class="mpg${g.sp === fresh ? ' new' : ''}"><div class="mpwho">${img(g.sp)}<b>${esc(SPECIES[g.sp]?.name || g.sp)}</b>${L(`<small>Guess ${n - i}</small>`, `<small>Próba ${n - i}</small>`)}</div>
+    <small>${esc(clueText(label))}</small><b style="--w:${emw(clueText(c.v))}">${esc(clueText(c.v))}${c.dir ? ` <i class="mparrow">${c.dir === 'up' ? '▲' : '▼'}</i>` : ''}</b><i class="mpmark" aria-hidden="true">${MARK[c.s]}</i></div>`;
+  const guessRow = (g, i, n) => `<li class="mpg${g.sp === fresh ? ' new' : ''}"><div class="mpwho">${img(g.sp)}<b style="--w:${emw(SPECIES[g.sp]?.name || g.sp)}">${esc(SPECIES[g.sp]?.name || g.sp)}</b>${L(`<small>Guess ${n - i}</small>`, `<small>Próba ${n - i}</small>`)}</div>
     <div class="mpcells">${g.clues.map((c, j) => cell(c, V.cols[j][1])).join('')}</div></li>`;
 
   function hintsHtml() {
@@ -74,7 +75,7 @@ export function mount(host, api) {
   function pickerHtml() {
     const tried = new Set(V.guesses.map(g => g.sp)), f = filter.trim().toLowerCase();
     const list = order.filter(sp => !f || SPECIES[sp].name.toLowerCase().includes(f));
-    return list.length ? list.map(sp => `<button type="button" class="mppet" data-guess="${sp}" ${tried.has(sp) || busy ? 'disabled' : ''}>${img(sp)}<b>${esc(SPECIES[sp].name)}</b></button>`).join('')
+    return list.length ? list.map(sp => `<button type="button" class="mppet" data-guess="${sp}" ${tried.has(sp) || busy ? 'disabled' : ''}>${img(sp)}<b style="--w:${emw(SPECIES[sp].name)}">${esc(SPECIES[sp].name)}</b></button>`).join('')
       : '<p class="mpnone">' + L('No pet has a name like that.', 'Żaden zwierzak tak się nie nazywa.') + '</p>';
   }
   function boardHtml() {

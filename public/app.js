@@ -15,6 +15,7 @@ import { CONS, SETS, conOf, conArt, conTile, conGlyph, isDone, doneIds, inProgre
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { randomName } from './names.js';
+import { fitw } from './fit.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -779,7 +780,7 @@ function closePop() { if (!st.pop) return; st.pop.destroy(); st.pop = null; game
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
 const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
   <div class="tpic" aria-hidden="true">${pic}</div>
-  <div class="tbody"><b>${name}</b><span>${sub}</span></div>
+  <div class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span></div>
   <button type="button" class="btn sm ${quiet ? 'w' : ''}" data-act="${act}">${btn}</button>
 </div>`;
 // One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
@@ -1093,8 +1094,17 @@ function setNight(on, save) {
 const gameSwitch = document.createElement('button');
 gameSwitch.type = 'button'; gameSwitch.className = 'round gamesw';
 gameSwitch.addEventListener('click', e => { e.stopPropagation(); switchTheme(gameSwitch); sfx.click(); });
+// The game's top-left chips must stay clear of the round buttons: --tlw on the HUD is the room left of that row.
+function fitTopChips() {
+  const tr = $app.querySelector('.hud .tr'), tl = tr?.parentElement.querySelector(':scope > .tl'); if (!tl) return;
+  const room = tr.getBoundingClientRect().left - parseFloat(getComputedStyle(tl).left || 0) - 8;
+  if (room > 0) tl.parentElement.style.setProperty('--tlw', Math.floor(room) + 'px');
+}
+const trWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(fitTopChips) : null;
+addEventListener('resize', fitTopChips);
 function placeGameSwitch() {
   const tr = $app.querySelector('.tr'); if (!tr || tr.contains(gameSwitch)) return;
+  trWatch?.observe(tr);
   tr.insertBefore(gameSwitch, tr.querySelector('[data-a="mute"]'));
 }
 // The switch animates: night (or day) spreads out in a circle from the button where the browser can do
@@ -1776,17 +1786,17 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     const label = sw ? `${hex ? L('Top colour', 'Kolor góry') : ROW_LABEL[k]} ${i + 1}` : OPT[k][i];
     const pk = !hex && packOf(k, i), note = off ? `${L('back in', 'wraca:')} ${SEASONS[sn].back}` : lk && pk ? `☕ ${L('supporters', 'wspierający')}` : lk ? `${coinIco}${p}${sn ? ` ${SEASON_ICO[sn]}` : ''}` : p || pk ? yours : '';
     return `<button type="button" class="wdtile${sw ? ' sw' : ''}${lk ? ' lk' : ''}${on && lk ? ' try' : ''}"${off ? ' disabled' : ''} aria-pressed="${on}" data-k="${k}" data-v="${v}" aria-label="${esc(label)}${lk ? `, ${pk ? L('Supporter pack', 'Pakiet wspierających') : cCoins(p)}` : ''}">${
-      sw ? `<i class="wdsw" style="--c:${hex ? v : OPT[k][i]}"></i>` : `<img alt="" data-ip="${k}:${i}"><b>${esc(label)}</b>`}<small>${note}</small></button>`;
+      sw ? `<i class="wdsw" style="--c:${hex ? v : OPT[k][i]}"></i>` : `<img alt="" data-ip="${k}:${i}"><b ${fitw(label)}>${esc(label)}</b>`}<small>${note}</small></button>`;
   };
   const avList = k => {
     const n = k === 'color' ? COLORS.length : OPT[k].length, ids = [...Array(n).keys()];
     const lk = i => k !== 'color' && isLocked(k, i), off = i => lk(i) && !onSale(k, i, today());
     return ids.filter(i => filt === 'mine' ? !lk(i) : filt === 'shop' ? lk(i) : true).sort((a, b) => off(a) - off(b));
   };
-  const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt">${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</span>`
+  const cosPic = (k, i, it) => k === 'nm' ? `<span class="wdtxt" ${fitw(st.name || L('Name', 'Imię'), '700 100px Rubik, sans-serif')}>${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</span>`
     : k === 'fr' ? avatarHtml(color, av, 60, frameCls({ fr: i }))
     : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? `<em>${L('moves', 'rusza się')}</em>` : ''}</span>`
-    : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl">${esc(it.n)}</span>` : `<span class="ttl none">${L('no title', 'bez tytułu')}</span>`}</span>`
+    : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl" ${fitw(it.n)}>${esc(it.n)}</span>` : `<span class="ttl none">${L('no title', 'bez tytułu')}</span>`}</span>`
     : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
     : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic${k === 'ik' ? ' isk' + i : ''}" data-isle="${k}:${i}">`
@@ -1795,20 +1805,20 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   const cosTile = (k, i) => {
     const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
     const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `${L('back in', 'wraca:')} ${cosSeason(k, i).back}` : !own && it.pk ? `☕ ${L('supporters', 'wspierający')}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn || it.pk ? yours : '';
-    return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b>${esc(it.n)}</b>`}${k === 'nm' ? `<b>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
+    return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b ${fitw(it.n)}>${esc(it.n)}</b>`}${k === 'nm' ? `<b ${fitw(it.n)}>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
   };
   const cosList = k => COS[k].items.map((_, i) => i).filter(i => { const s = cosState(k, i); return filt === 'mine' ? s.own : filt === 'shop' ? !s.own && !s.pr : true; })
     .sort((a, b) => { const x = cosState(k, a), y = cosState(k, b); return (x.off || !!x.pr) - (y.off || !!y.pr); });
   const petsHtml = () => { const pets = st.pets || [], ids = showIds();
     return !me().user ? `<p class="wdnone">${L('Log in and start a Pet Farm to show off your pets.', 'Zaloguj się i załóż Farmę zwierzaków, żeby pochwalić się swoimi zwierzakami.')}</p>` : !pets.length ? `<p class="wdnone">${L('Hatch a pet in Pet Farm and it can come along.', 'Wykluj zwierzaka na Farmie zwierzaków, a będzie mógł ci towarzyszyć.')}</p>`
-      : pets.map(x => { const n = ids.indexOf(x.id); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 60, 'palpic')}<b>${esc(x.name)}</b><small>${L('lv', 'poz.')} ${x.lv | 0}</small></button>`; }).join('');
+      : pets.map(x => { const n = ids.indexOf(x.id); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-pal="${esc(x.id)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}${petImg(x, 60, 'palpic')}<b ${fitw(x.name)}>${esc(x.name)}</b><small>${L('lv', 'poz.')} ${x.lv | 0}</small></button>`; }).join('');
   };
   const decorHtml = () => { const list = st.decor || [], out = myDecor();
     return !me().user ? `<p class="wdnone">${L('Log in and start a Pet Farm: the decorations you build there can stand on your isle.', 'Zaloguj się i załóż Farmę zwierzaków: ozdoby, które tam zbudujesz, mogą stanąć na twojej wyspie.')}</p>` : !list.length ? `<p class="wdnone">${L('Build a decoration on your Pet Farm (a tree, a pond, a windmill…) and you can put one like it on your isle.', 'Zbuduj ozdobę na Farmie zwierzaków (drzewo, staw, wiatrak…), a będzie można postawić taką samą na wyspie.')}</p>`
-      : list.map(x => { const n = out.indexOf(x.t); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-dec="${esc(x.t)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}<img alt="" class="islepic" data-isle="ip:${esc(x.t)}"><b>${esc(x.n)}</b></button>`; }).join('');
+      : list.map(x => { const n = out.indexOf(x.t); return `<button type="button" class="wdtile pet" aria-pressed="${n >= 0}" data-dec="${esc(x.t)}">${n >= 0 ? `<i class="palno">${n + 1}</i>` : ''}<img alt="" class="islepic" data-isle="ip:${esc(x.t)}"><b ${fitw(x.n)}>${esc(x.n)}</b></button>`; }).join('');
   };
   const piecesHtml = () => { const out = piecesOf(me());
-    return Object.entries(PIECES).map(([id, n]) => { const at = out.indexOf(id); return `<button type="button" class="wdtile pet" aria-pressed="${at >= 0}" data-fp="${id}">${at >= 0 ? `<i class="palno">${at + 1}</i>` : ''}<img alt="" class="islepic" data-isle="fp:${id}"><b>${esc(n)}</b></button>`; }).join('');
+    return Object.entries(PIECES).map(([id, n]) => { const at = out.indexOf(id); return `<button type="button" class="wdtile pet" aria-pressed="${at >= 0}" data-fp="${id}">${at >= 0 ? `<i class="palno">${at + 1}</i>` : ''}<img alt="" class="islepic" data-isle="fp:${id}"><b ${fitw(n)}>${esc(n)}</b></button>`; }).join('');
   };
   const dropHtml = sn => [...Object.entries(SEASON).filter(([, s]) => s === sn).map(([id]) => { const [k, i] = id.split(':'); return [k, +i, 0]; }),
     ...Object.keys(COS).flatMap(k => COS[k].items.map((it, i) => it.s === sn ? [k, i, 1] : null).filter(Boolean))]

@@ -8,7 +8,7 @@ body.in-game { overflow: hidden; }
 .kr .tags, .kr .bars { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .kr-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 4px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 7px 1px 3px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
 .kr-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
-.kr-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+.kr-tag b { font-weight: 600; max-width: 10em; overflow: hidden; text-overflow: ellipsis; }
 .kr-tag.kr-you { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr-tag[hidden] { display: none; }
 .kr-bar { position: absolute; left: 0; top: 0; width: 46px; height: 11px; border: 2.5px solid var(--ink); border-radius: 999px; background: var(--paper); overflow: hidden; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
@@ -68,7 +68,7 @@ body.in-game { overflow: hidden; }
 @keyframes krshake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
 
 /* cooks and their tips */
-.kr .list { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; width: 190px; pointer-events: none; }
+.kr .list { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; width: max-content; min-width: 190px; max-width: min(300px, 42vw); pointer-events: none; }
 .kr .list li { display: flex; align-items: center; gap: 7px; border-radius: 10px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); }
 .kr .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .kr .list span { font-size: 14px; color: var(--soft-tx2); }
@@ -138,7 +138,7 @@ body.in-game { overflow: hidden; }
   .kr .orders .parts svg { width: 13px; height: 13px; }
   .kr .orders .pt svg + svg { display: none; }
   .kr-tag { font-size: 11px; }
-  .kr-tag b { max-width: 4.5em; }
+  .kr-tag b { max-width: 7.5em; }
 }
 body:has(.kr) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.kr) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.kr) .chatbtn .lbl { display: none; } }

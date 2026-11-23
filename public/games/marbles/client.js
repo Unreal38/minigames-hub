@@ -6,6 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { fitw } from '../../fit.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -159,7 +160,7 @@ export function mount(app, ctx) {
     const coins = my ? my.coins : 0;
     setHtml(el, `<div class="bethead"><h2>${L(`Pick a colour`, `Wybierz kolor`)}</h2><span>${L(`The winning colour pays`, `Zwycięski kolor płaci`)} <b>${S.mult}×</b>${my ? ` · ${L('you have', 'masz')} ${I.coin}<b>${coins}</b>` : ''}</span></div>
       <div class="picks">${S.marbles.map((p, i) => `<button type="button" class="pick${my?.bet?.m === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${my ? '' : 'disabled'} aria-pressed="${my?.bet?.m === i}">
-        ${ball(i, 46)}<b>${mName(i)}</b>
+        ${ball(i, 46)}<b ${fitw(mName(i))}>${mName(i)}</b>
         <span class="backers">${backerHtml(i, 20)}</span></button>`).join('')}</div>
       ${my ? `<div class="stakes"><span>${L(`Stake`, `Stawka`)}</span><div class="pills">${[10, 25, 50, 100].map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins && v > 10 ? 'disabled' : ''}>${v}</button>`).join('')}</div>
         ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> ${L('on', 'na kolor:')} ${mName(my.bet.m)} <button type="button" class="link" data-a="nobet">${L('remove', 'usuń')}</button></span>` : `<span class="mybet">${L('Tap a marble to bet on its colour. The race starts once everyone has bet.', 'Dotknij kulki, żeby postawić na jej kolor. Wyścig rusza, gdy wszyscy obstawią.')}</span>`}
