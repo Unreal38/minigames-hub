@@ -130,7 +130,7 @@ for (const m of farmSrc.matchAll(/(?:\bno\(|(?:note|text): )(?:'((?:[^'\\]|\\.)*
 ok(farmSeen > 80, `only ${farmSeen} Pet Farm server messages were found`);
 ok(srvText('Mossy Woods opens at farmhouse level 2.') === 'Omszały Las otwiera się, gdy dom ma poziom 2.', 'zone names in server messages');
 ok(srvText('Passwords need 6 to 72 characters.') !== 'Passwords need 6 to 72 characters.', 'password rule');
-ok(srvText('🐾 Mystery Pet #12: solved in 3 guesses · 🔥 4 days in a row') === '🐾 Mystery Pet #12: 3 próby · 🔥 4 dni z rzędu', 'shared Mystery Pet line');
+ok(srvText('🐾 Mystery Pet #12: solved in 3 guesses · 🔥 4 days in a row') === '🐾 Zagadkowy zwierzak #12: 3 próby · 🔥 4 dni z rzędu', 'shared Mystery Pet line');
 // every game screen is translated: its client pulls in the language helpers, and the files it shares with the
 // server load in Polish too
 const gamesDir = new URL('../public/games/', import.meta.url);

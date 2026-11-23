@@ -51,7 +51,7 @@ export function mount(app, ctx) {
   let canvas = root.querySelector('.g3d');
   let S = null, scene = null, destroyed = false, fieldId = null, overShown = null, resTimer = 0, bigTimer = 0, quiet = 0, retry = 0, rebuildTimer = 0;
   let marks = Array(N * N).fill(0), markMode = false, markKind = 1, cursor = -1, touchPick = -1, busy = 0;
-  const send = a => { ctx.send(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast(L('Hay Hunch did not answer. Check your connection. If the game was just updated, the server needs a restart.', 'Hay Hunch nie odpowiada. Sprawdź połączenie. Jeśli gra była właśnie aktualizowana, serwer wymaga restartu.'), true); }, 4000); };
+  const send = a => { ctx.send(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast(L('Hay Hunch did not answer. Check your connection. If the game was just updated, the server needs a restart.', 'Gra Szukanie w sianie nie odpowiada. Sprawdź połączenie. Jeśli gra była właśnie aktualizowana, serwer wymaga restartu.'), true); }, 4000); };
   // Ask for the field until it comes. The first ask can be lost: the connection may be coming back (a phone waking up)
   // and the app drops messages while the socket is closed, so the page used to wait forever with no field and no HUD.
   function askField() {
@@ -99,7 +99,7 @@ export function mount(app, ctx) {
     const lv = S.over === 'clear' || S.over === 'pet' ? S.res.from : S.level;
     setHtml($('hh-lv'), L(`Level <b>${lv}</b><small>/${MAX_LV}</small>`, `Poziom <b>${lv}</b><small>/${MAX_LV}</small>`));
     setHtml($('hh-coins'), L(`${coinSvg}<b>${S.paid}</b><small>/${S.daily} today</small>`, `${coinSvg}<b>${S.paid}</b><small>/${S.daily} dziś</small>`));
-    $('hh-coins').title = S.paid >= S.daily ? L('You have every coin Hay Hunch pays today. Fields still count for the rankings.', 'Masz już wszystkie monety, jakie Hay Hunch dziś wypłaca. Pola nadal liczą się do rankingów.') : L(`Clearing a field pays coins, up to ${S.daily} a day.`, `Za oczyszczone pole są monety, najwyżej ${S.daily} dziennie.`);
+    $('hh-coins').title = S.paid >= S.daily ? L('You have every coin Hay Hunch pays today. Fields still count for the rankings.', 'Masz już wszystkie monety, jakie ta gra dziś wypłaca. Pola nadal liczą się do rankingów.') : L(`Clearing a field pays coins, up to ${S.daily} a day.`, `Za oczyszczone pole są monety, najwyżej ${S.daily} dziennie.`);
     const el = $('hh-banner');
     let msg = '';
     if (S.over === 'clear') msg = L('Field cleared!', 'Pole oczyszczone!');
@@ -271,7 +271,7 @@ export function mount(app, ctx) {
       if (destroyed) return;
       clearTimeout(quiet);
       if (m.need === 'account') {
-        gate(`<h2>Hay Hunch</h2><p>${L(`Your level and best fields are kept between visits, so Hay Hunch needs an account. It only takes a username and a password.`, `Twój poziom i najlepsze pola zapisują się między wizytami, więc Hay Hunch wymaga konta. Wystarczy nazwa użytkownika i hasło.`)}</p>
+        gate(`<h2>${L('Hay Hunch', 'Szukanie w sianie')}</h2><p>${L(`Your level and best fields are kept between visits, so Hay Hunch needs an account. It only takes a username and a password.`, `Twój poziom i najlepsze pola zapisują się między wizytami, więc ta gra wymaga konta. Wystarczy nazwa użytkownika i hasło.`)}</p>
           <div class="row"><button type="button" class="btn big" data-a="account" data-mode="register">${L(`Create account`, `Załóż konto`)}</button><button type="button" class="btn ghost" data-a="account" data-mode="login">${L(`Log in`, `Zaloguj się`)}</button></div>
           <button type="button" class="btn ghost" data-a="home">${L(`Back to the hub`, `Wróć do Zatoki`)}</button>`);
         return;

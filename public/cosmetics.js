@@ -67,7 +67,8 @@ export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filte
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
   golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś', ttt: 'Tic-Tac-Toe' };
 
-if (PL) { Object.assign(GAME_NAMES, { ladders: 'Węże i drabiny', ludo: 'Chińczyk', dice: 'Kości kłamcy', ttt: 'Kółko i krzyżyk' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }
+if (PL) { Object.assign(GAME_NAMES, { hotpot: 'Gorący kociołek', kart: 'Wyspiarskie gokarty', marbles: 'Wyścig kulek', ladders: 'Węże i drabiny', ludo: 'Chińczyk', stack: 'Chwiejna wieża',
+  golf: 'Imprezowy minigolf', dice: 'Kości kłamcy', paw: 'Łapolis', kitchen: 'Gorączka w kuchni', dig: 'Poszukiwacze skarbów', bricks: 'Podniebne klocki', bean: 'Fasolowe skoki', pips: 'Oczkomania', darts: 'Podniebne rzutki', ttt: 'Kółko i krzyżyk' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }
 
 export const cosItem = (k, i) => COS[k]?.items[i] || null;
 export const cosPackIds = name => COS_KEYS.flatMap(k => COS[k].items.map((it, i) => it.pk === name ? k + ':' + i : null).filter(Boolean));
@@ -79,7 +80,7 @@ export function earnProgress(it, me) {
   const e = it?.earn; if (!e) return null;
   if (e.top) return [me?.bestPos >= 1 && me.bestPos <= e.top ? 1 : 0, 1, e.top === 1 ? L('reach 1st place in the overall ranking', 'zajmij 1. miejsce w rankingu ogólnym') : L(`reach the top ${e.top} of the overall ranking`, `wejdź do pierwszej ${e.top} rankingu ogólnego`)];
   if (e.sp) return [Math.min(e.sp, me?.petSp | 0), e.sp, L(`${e.sp} pet species in your Pet Farm album`, `${e.sp} gatunków zwierzaków w albumie Farmy zwierzaków`)];
-  if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, L(`${e.d} Mystery Pets solved in a row`, `${e.d} zagadek Mystery Pet odgadniętych z rzędu`)];
+  if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, L(`${e.d} Mystery Pets solved in a row`, `Zagadkowy zwierzak odgadnięty ${e.d} dni z rzędu`)];
   if (e.lv) return [Math.min(e.lv, levelOf(me?.xp || 0)), e.lv, L(`reach level ${e.lv}`, `osiągnij poziom ${e.lv}`)];
   if (e.any) return [Math.min(e.any, Math.max(0, ...Object.values(me?.byGame || {}).map(g => g?.wins || 0))), e.any, L(`${e.any} wins in any one game`, `${e.any} wygranych w jednej dowolnej grze`)];
   if (e.g) return [Math.min(e.w, me?.byGame?.[e.g]?.wins || 0), e.w, L(`${e.w} wins in ${GAME_NAMES[e.g] || e.g}`, `${e.w} wygranych w grze ${GAME_NAMES[e.g] || e.g}`)];
