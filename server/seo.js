@@ -15,6 +15,16 @@ const EN = [
 <h1>Zatoka Gier</h1>
 <p>Free browser games to play with friends. Host a table, send your friends the code and play together. Nothing to install, no ads.</p>
 <p>Cards: Hot Pot, Texas Hold'em, Tysiąc, Pan, Piotruś. Dice and board games: Liar's Dice, Pip Party, Ludo, Snakes &amp; Ladders, Pawperty, Tic-Tac-Toe. Action: Kart Island Race, Marble Rush, Mini Golf Party, Sky Darts, Tower Stack, Sky Bricks, Beanstalk Bounce, Cozy Kitchen Rush, Treasure Dig. Every day: Pet Farm, Pet Pop, Hay Hunch and Mystery Pet.</p>
+<h2>Progress that stays</h2>
+<p>You can play straight away, without signing up. A free account (just a name and a password) keeps everything for good and works on any device, along with your friends list.</p>
+<ul>
+<li>Levels and ranks: every game gives XP, and ranks climb from Seedling to Sky Legend and beyond, with endless stars.</li>
+<li>Coins: every game pays by finishing place. Spend them in the Wardrobe on clothes, hats, accessories, frames and player card backgrounds. New items arrive in the shop every season.</li>
+<li>Rankings: leaderboards for every game plus an overall ranking. Only matches between people count.</li>
+<li>Player card: your avatar, rank, favourite games and your own isle with pets that others can see.</li>
+<li>Pet Farm: raise and breed 70+ species with inherited traits and elements, grow your farm, fight turn-based 3v3 battles, visit friends' farms and fill your album.</li>
+<li>Every day: a new Mystery Pet puzzle, plus levels and best scores in Pet Pop and Hay Hunch.</li>
+</ul>
 </main><!--/seo-->`],
 ];
 // lang is 'pl' or 'en'; <html lang> and data-geo carry it to the page (i18n.js reads data-geo on a first visit).
