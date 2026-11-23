@@ -1007,6 +1007,9 @@ body.sky.night:not(.in-game) .wdsw { border-color: var(--edge); }
 .wd.creator .pvisle { background: linear-gradient(#8fd0f7, #d9f1ff); position: relative; cursor: pointer; }
 body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
 .wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Isle frames: the sky gradient starts at the outer edge, under the border. With the default padding-box origin the
+   gradient repeats into the border, and at fractional zoom its bottom colour shows as a thin line along the top. */
+.pisle, .creator .pv3d, .wd.creator .pvisle { background-origin: border-box !important; }
 .wd.creator .pv3d[hidden] { display: none; }
 .wd.isleview .pvbar .pvseg { visibility: hidden; }
 .wdtile img.islepic { width: 92px; height: 92px; object-fit: contain; border-radius: 12px; }
