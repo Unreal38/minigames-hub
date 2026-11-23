@@ -75,26 +75,27 @@ const R = await import('../public/ranks.js');
   const top = R.progress(R.xpForLevel(75));
   if (top.rank !== 'Sky Legend ★5' || top.stars !== 5 || top.nextRankLv !== 80 || !top.nextRank) fail('stars ' + JSON.stringify(top));
   if (R.progress(0).rank !== 'Seedling' || R.rankOf(17).name !== 'Compass Keeper' || R.rankOf(54).stars !== 0 || R.rankOf(55).stars !== 1) fail('rank names');
-  // Constellations: every star lights one point of the one being worked on, lit stars never move, and only finished ones can be shown.
+  // Constellations: the player places every star by hand, lit stars never move, and only finished ones can be shown.
   const C = await import('../public/constellations.js');
   if (new Set(C.CONS.map(c => c.id)).size !== C.CONS.length || C.CONS.some(c => !C.SETS[c.set] || c.p.length < 5 || c.l.some(l => l.some(i => !c.p[i])))) fail('constellation data');
-  let sky = C.tidySky(null, 0);
-  if (sky.now !== 'kite' || sky.shown || Object.keys(sky.lit).length) fail('empty sky ' + JSON.stringify(sky));
-  sky = C.tidySky({ now: 'cat' }, 3);
-  if (sky.lit.cat !== 3 || sky.now !== 'cat') fail('stars did not go to the picked one');
-  sky = C.tidySky({ ...sky, now: 'die' }, 9); // 6 more: five finish the Die, the sixth goes to the first unfinished
-  if (sky.lit.cat !== 3 || sky.lit.die !== 5 || sky.lit.kite !== 1 || sky.shown !== 'die' || sky.now !== 'kite') fail('overflow ' + JSON.stringify(sky));
-  if (JSON.stringify(C.tidySky(sky, 9)) !== JSON.stringify(sky) || JSON.stringify(C.tidySky(sky, 2)) !== JSON.stringify(sky)) fail('tidying moved stars');
-  if (C.tidySky({ ...sky, shown: 'cat' }, 9).shown !== 'die' || C.tidySky({ lit: { die: 99, nope: 4 }, now: 'die' }, 0).lit.die !== 5) fail('bad saved sky kept');
-  const full = C.tidySky(null, C.STARS_IN_ALL + 7);
-  if (C.doneIds(full).length !== C.CONS.length || full.now || !C.conArt(C.CONS[0], 2).includes('<svg') || !C.conGlyph(C.CONS[0])) fail('full sky');
-  for (const p of [store.profiles.get('mia')]) { // the server keeps it: stars placed on read, picks checked
-    const xp = p.xp; p.xp = R.xpForLevel(50);
-    if (store.setSky(p, { shown: 'kite' }).ok || !store.setSky(p, { now: 'cat' }).ok || store.badge(p).cn) fail('sky picks');
-    p.xp = R.xpForLevel(50 + 5 * 8); // eight stars: seven finish the Cat, one starts the Kite
-    if (store.me(p).sky.lit.cat !== 7 || store.badge(p).cn !== 'cat' || store.publicProfile(p).sky.lit.kite !== 1 || store.me(p).sky.stars !== 8) fail('server sky ' + JSON.stringify(p.sky));
-    if (!store.setSky(p, { now: 'dragon' }).ok || store.setSky(p, { now: 'cat' }).ok || store.setSky(p, { now: 'zzz' }).ok || store.setSky(p, { shown: 'kite' }).ok) fail('sky now');
-    p.xp = R.xpForLevel(50 + 5 * 10); if (store.me(p).sky.lit.dragon !== 2 || p.sky.lit.kite !== 1) fail('new stars went to the wrong place');
+  let sky = C.tidySky(null);
+  if (sky.shown || Object.keys(sky.lit).length || C.freeStars(sky, 3) !== 3 || C.lightStar(sky, 'cat', 0) || C.lightStar(sky, 'zzz', 3)) fail('empty sky ' + JSON.stringify(sky));
+  for (let i = 0; i < 5; i++) sky = C.lightStar(sky, 'die', 6);
+  sky = C.lightStar(sky, 'cat', 6);
+  if (sky.lit.die !== 5 || sky.lit.cat !== 1 || sky.shown !== 'die' || C.freeStars(sky, 6) !== 0 || C.lightStar(sky, 'cat', 6) || C.lightStar(sky, 'die', 9)) fail('lighting ' + JSON.stringify(sky));
+  if (C.inProgress(sky).id !== 'cat' || JSON.stringify(C.tidySky(sky)) !== JSON.stringify(sky)) fail('tidying moved stars');
+  if (C.tidySky({ ...sky, shown: 'cat' }).shown !== 'die' || C.tidySky({ lit: { die: 99, nope: 4 } }).lit.die !== 5) fail('bad saved sky kept');
+  if (!C.conArt(C.CONS[0], 2, { pop: true }).includes('cnnew') || !C.conGlyph(C.CONS[0])) fail('art');
+  for (const p of [store.profiles.get('mia')]) { // the server keeps it: free stars are counted, picks are checked
+    const xp = p.xp; p.xp = R.xpForLevel(49);
+    if (store.setSky(p, { light: 'cat' }).ok || p.sky) fail('lit a star before the last rank');
+    p.xp = R.xpForLevel(50);
+    if (store.setSky(p, { light: 'cat' }).ok || store.setSky(p, { shown: 'kite' }).ok || store.badge(p).cn) fail('lit a star without having one');
+    p.xp = R.xpForLevel(50 + 5 * 6); // six stars
+    if (store.me(p).sky.free !== 6 || store.me(p).sky.stars !== 6) fail('free stars ' + JSON.stringify(store.me(p).sky));
+    for (let i = 0; i < 5; i++) if (!store.setSky(p, { light: 'die' }).ok) fail('could not light');
+    if (store.setSky(p, { light: 'die' }).ok || !store.setSky(p, { light: 'cat' }).ok || store.setSky(p, { light: 'cat' }).ok) fail('lit too many');
+    if (store.me(p).sky.free !== 0 || store.badge(p).cn !== 'die' || store.publicProfile(p).sky.lit.cat !== 1 || store.setSky(p, { shown: 'cat' }).ok || !store.setSky(p, { shown: 'die' }).ok) fail('server sky ' + JSON.stringify(p.sky));
     p.xp = xp; delete p.sky;
   }
 }

@@ -11,7 +11,7 @@ import { skinPic, skinPicNow } from './skinpic.js';
 import { progress, rankOf, nextRankOf, RANKS, STAR_EVERY } from './ranks.js';
 import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
-import { CONS, SETS, conOf, conArt, conTile, conGlyph, isDone, doneIds } from './constellations.js';
+import { CONS, SETS, conOf, conArt, conTile, conGlyph, isDone, doneIds, inProgress } from './constellations.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { randomName } from './names.js';
@@ -603,9 +603,7 @@ function onMsg(m) {
       const pl = m.gain.place;
       toast(`${m.gain.win ? L('Win! ', 'Wygrana! ') : pl > 1 && m.gain.of > 1 ? `${ord(pl)} ${L('place', 'miejsce')} · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${cnt(Math.abs(cg), 'coin', 'coins', 'moneta', 'monety', 'monet')}` : ''}${m.gain.ranked === false ? L(' · played with bots, not ranked', ' · gra z botami, bez rankingu') : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
-      const was = st.skyWas, sky = m.me.sky; // a new star, or a whole constellation
-      if (was && sky && sky.stars > was.stars) { const fin = doneIds(sky).find(id => !isDone(was, id)), c = conOf(fin || was.now);
-        if (c) toast(fin ? `★ ${L('Constellation finished', 'Gwiazdozbiór ukończony')}: ${esc(c.n)}!` : `★ ${L('A new star in', 'Nowa gwiazda w gwiazdozbiorze')} ${esc(c.n)}: ${sky.lit[c.id] || 0} / ${c.p.length}`); }
+      if (st.skyWas && m.me.sky?.stars > st.skyWas.stars) { sfx.win?.(); toast(`★ ${L('A new star! Light it in Profile › Your sky.', 'Nowa gwiazda! Zapal ją w: Profil › Twoje niebo.')}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
@@ -846,57 +844,77 @@ const meChip = () => st.me ? lvChip(st.me.level, st.me.sky?.shown) : '';
 function meCard() {
   const m = st.me; if (!m) return '';
   const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
-  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).map(([id, g]) => id === 'pop'
-    ? `<li><b>Pet Pop</b><span>${L(`highest level cleared ${g.top || 0} · best ${num(g.best)} pts`, `najwyższy ukończony poziom: ${g.top || 0} · rekord ${num(g.best)} pkt`)}</span></li>`
-    : SOLO[id]
-    ? `<li><b>${SOLO[id].name}</b><span>${L(`${cnt(g.wins, 'field')} cleared · best ×${num(g.best)}`, `${cnt(g.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · rekord ×${num(g.best)}`)}</span></li>`
-    : `<li><b>${GAMES[id].name}</b><span>${L(`${cnt(g.wins, 'win')} in ${g.games} · best ${g.best} pts`, `${cnt(g.wins, '', '', 'wygrana', 'wygrane', 'wygranych')} na ${g.games} · rekord ${g.best} pkt`)}</span></li>`).join('');
-  return `<div class="mecard">
-    <div class="rankrow">
-      <span class="rankicon">${rankIcon(rankOf(m.level).icon)}</span>
-      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>${L('Level', 'Poziom')} ${m.level}${m.nextRank ? ` · ${m.level >= RANKS.at(-1).lv ? L('next star', 'następna gwiazda') : esc(nextRankOf(m.level).name)} ${L('at level', 'od poziomu')} ${m.nextRankLv}` : ''}</span></div>
-      <div class="acct"><span>${m.user ? L(`Signed in as <b>${esc(m.user)}</b>`, `Zalogowano jako <b>${esc(m.user)}</b>`) : L('Playing as a guest. Progress stays on this browser.', 'Grasz jako gość. Postępy zostają w tej przeglądarce.')}</span></div>
+  // every game played, most played first: table games get a win-rate bar, solo games their own line
+  const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).sort((a, b) => (b[1].games || 0) - (a[1].games || 0)).map(([id, g]) => {
+    const solo = id === 'pop' ? L(`highest level cleared ${g.top || 0} · best ${num(g.best)} pts`, `najwyższy ukończony poziom: ${g.top || 0} · rekord ${num(g.best)} pkt`)
+      : SOLO[id] ? L(`${cnt(g.wins, 'field')} cleared · best ×${num(g.best)}`, `${cnt(g.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · rekord ×${num(g.best)}`) : '';
+    if (solo) return `<li class="solo"><b>${esc(id === 'pop' ? 'Pet Pop' : SOLO[id].name)}</b><span>${solo}</span></li>`;
+    const r = g.games ? Math.round(100 * (g.wins || 0) / g.games) : 0;
+    return `<li><b>${esc(GAMES[id].name)}</b><span class="pgbar" role="img" aria-label="${L(`win rate ${r}%`, `skuteczność ${r}%`)}"><i style="width:${r}%"></i></span><em>${r}%</em>
+      <span>${L(`${cnt(g.wins || 0, 'win')} in ${num(g.games)} · best ${num(g.best)} pts`, `${cnt(g.wins || 0, '', '', 'wygrana', 'wygrane', 'wygranych')} na ${num(g.games)} · rekord ${num(g.best)} pkt`)}</span></li>`; }).join('');
+  const cur = rankOf(Math.min(m.level, RANKS.at(-1).lv)), nxt = RANKS.find(r => r.lv > m.level);
+  return `<div class="mecard me2">
+    <div class="mecol">
+      <section class="mepan merank">
+        <div class="rankrow">
+          <span class="rankicon">${rankIcon(rankOf(m.level).icon)}</span>
+          <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>${L('Level', 'Poziom')} ${m.level}${m.nextRank ? ` · ${m.level >= RANKS.at(-1).lv ? L('next star', 'następna gwiazda') : esc(nextRankOf(m.level).name)} ${L('at level', 'od poziomu')} ${m.nextRankLv}` : ''}</span></div>
+        </div>
+        <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="${L('XP to next level', 'XP do następnego poziomu')}"><i style="width:${pct}%"></i></div>
+        <div class="xpnote"><span>${num(m.into)} / ${num(m.need)} XP ${L('to level', 'do poziomu')} ${m.level + 1}</span><span>${L(`${num(m.xp)} XP in total`, `Łącznie ${num(m.xp)} XP`)}</span></div>
+        <div class="acct"><span>${m.user ? L(`Signed in as <b>${esc(m.user)}</b>`, `Zalogowano jako <b>${esc(m.user)}</b>`) : L('Playing as a guest. Progress stays on this browser.', 'Grasz jako gość. Postępy zostają w tej przeglądarce.')}</span></div>
+      </section>
+      ${skyNow(m)}
+      <section class="mepan">
+        <h3>${L('Rank road', 'Droga rang')}<small>${nxt ? L(`next: ${esc(nxt.name)}, level ${nxt.lv}`, `następna: ${esc(nxt.name)}, poziom ${nxt.lv}`) : L(`one ★ every ${STAR_EVERY} levels, with no end`, `★ co ${STAR_EVERY} poziomów, bez końca`)}</small></h3>
+        <ol class="ladder">${RANKS.map(r => `<li class="${m.level >= r.lv ? 'got' : ''}${cur.lv === r.lv ? ' now' : ''}" title="${esc(r.name)}, ${L('level', 'poziom')} ${r.lv}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>${L('lv', 'poz.')} ${r.lv}</span></li>`).join('')}</ol>
+      </section>
     </div>
-    <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="${L('XP to next level', 'XP do następnego poziomu')}"><i style="width:${pct}%"></i></div>
-    <div class="xpnote"><span>${m.into} / ${m.need} XP ${L('to level', 'do poziomu')} ${m.level + 1}</span><span>${L(`${m.xp} XP in total`, `Łącznie ${m.xp} XP`)}</span></div>
-    ${skyNow(m)}
-    <details class="ladder"><summary>${L('All ranks', 'Wszystkie rangi')}</summary><ol>${RANKS.map(r => { const mine = rankOf(m.level).icon === r.icon && rankOf(Math.min(m.level, RANKS.at(-1).lv)).lv === r.lv;
-      return `<li class="${m.level >= r.lv ? 'got' : ''}${mine ? ' now' : ''}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>${L('level', 'poziom')} ${r.lv}</span></li>`; }).join('')}
-      <li class="more">${L(`After ${esc(RANKS.at(-1).name)} you earn one ★ every ${STAR_EVERY} levels, with no end. Stars light up constellations.`, `Po randze ${esc(RANKS.at(-1).name)} co ${STAR_EVERY} poziomów zdobywasz ★, bez końca. Gwiazdy zapalają gwiazdozbiory.`)}</li></ol></details>
-    <div class="stats">
-      <div><b>${m.wins}</b><span>${L('Wins', 'Wygrane')}</span></div><div><b>${m.games}</b><span>${L('Games', 'Gry')}</span></div>
-      <div><b>${rate}%</b><span>${L('Win rate', 'Skuteczność')}</span></div><div><b>${m.pts}</b><span>${L('Points', 'Punkty')}</span></div>
-      <div><b>${m.coins}</b><span>${L('Coins', 'Monety')}</span></div>
+    <div class="mecol">
+      <div class="stats">
+        <div><b>${num(m.wins)}</b><span>${L('Wins', 'Wygrane')}</span></div><div><b>${num(m.games)}</b><span>${L('Games', 'Gry')}</span></div>
+        <div><b>${rate}%</b><span>${L('Win rate', 'Skuteczność')}</span></div><div><b>${num(m.pts)}</b><span>${L('Points', 'Punkty')}</span></div>
+        <div><b>${num(m.coins)}</b><span>${L('Coins', 'Monety')}</span></div><div><b>${num(m.xp)}</b><span>XP</span></div>
+      </div>
+      <section class="mepan megames">
+        <h3>${L('Your games', 'Twoje gry')}</h3>
+        ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">${L('Finish a game to earn XP. Wins are worth the most.', 'Dokończ grę, żeby zdobyć XP. Najwięcej dają wygrane.')}</p>`}
+      </section>
     </div>
-    ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">${L('Finish a game to earn XP. Wins are worth the most.', 'Dokończ grę, żeby zdobyć XP. Najwięcej dają wygrane.')}</p>`}
   </div>`;
 }
 // Constellations (constellations.js): the block on the progress card, and the "Your sky" collection.
 function skyNow(m) {
-  const sky = m.sky || { lit: {}, stars: 0 }, top = RANKS.at(-1), c = conOf(sky.now), done = doneIds(sky).length;
-  if (m.level < top.lv) return `<div class="cnnow soon"><div class="txt"><b>${L('Constellations', 'Gwiazdozbiory')}</b><span>${L(`They start after ${esc(top.name)} (level ${top.lv}): one star every ${STAR_EVERY} levels, and every star lights a point of a constellation.`, `Zaczynają się po randze ${esc(top.name)} (poziom ${top.lv}): co ${STAR_EVERY} poziomów dostajesz gwiazdę, a każda gwiazda zapala punkt gwiazdozbioru.`)}</span></div><button type="button" class="btn w" data-x="sky">${L('See the sky', 'Zobacz niebo')} ›</button></div>`;
-  const k = c ? sky.lit[c.id] || 0 : 0;
-  return `<div class="cnnow">${c ? conTile(c, k, { size: 104 }) : conTile(conOf(sky.shown) || CONS[0], undefined, { size: 104 })}
-    <div class="txt"><span>${c ? L('You are lighting', 'Zapalasz teraz') : L('Your sky is complete', 'Twoje niebo jest pełne')}</span><b>${c ? `${L('Constellation', 'Gwiazdozbiór')}: ${esc(c.n)}` : L('Every constellation is lit!', 'Wszystkie gwiazdozbiory świecą!')}</b>
-      ${c ? `<div class="cndots" role="img" aria-label="${L(`${k} of ${c.p.length} stars lit`, `Zapalone gwiazdy: ${k} z ${c.p.length}`)}">${c.p.map((_, i) => `<i class="${i < k ? 'on' : ''}"></i>`).join('')}</div>` : ''}
-      <span>${c ? L(`${k} of ${c.p.length} stars lit · `, `Zapalone gwiazdy: ${k} z ${c.p.length} · `) : ''}${L(`${done} of ${CONS.length} constellations finished`, `ukończone gwiazdozbiory: ${done} z ${CONS.length}`)}</span></div>
-    <button type="button" class="btn" data-x="sky">${L('Your sky', 'Twoje niebo')} ›</button></div>`;
+  const sky = m.sky || { lit: {}, stars: 0, free: 0 }, top = RANKS.at(-1), c = inProgress(sky), done = doneIds(sky).length;
+  if (m.level < top.lv) return `<div class="cnnow soon"><div class="txt"><b>🔒 ${L('Constellations', 'Gwiazdozbiory')}</b><span>${L(`They unlock at ${esc(top.name)} (level ${top.lv}): one star every ${STAR_EVERY} levels, and you light a point of a constellation with each.`, `Odblokujesz je od rangi ${esc(top.name)} (poziom ${top.lv}): co ${STAR_EVERY} poziomów dostajesz gwiazdę i zapalasz nią punkt gwiazdozbioru.`)}</span></div><button type="button" class="btn w" data-x="sky">${L('Preview', 'Podgląd')} ›</button></div>`;
+  const k = c ? sky.lit[c.id] || 0 : 0, free = sky.free | 0;
+  return `<div class="cnnow${free ? ' has' : ''}">${c ? conTile(c, k, { size: 104 }) : conTile(conOf(sky.shown) || CONS[0], undefined, { size: 104 })}
+    <div class="txt"><span>${L('Constellations', 'Gwiazdozbiory')} · ${L(`${done} of ${CONS.length} finished`, `ukończone: ${done} z ${CONS.length}`)}</span>
+      <b>${!c ? L('Every constellation is lit!', 'Wszystkie gwiazdozbiory świecą!') : free ? L(`${cnt(free, 'star')} to light!`, `${cnt(free, '', '', 'gwiazda', 'gwiazdy', 'gwiazd')} do zapalenia!`) : `${esc(c.n)}: ${k} / ${c.p.length} ★`}</b>
+      ${c ? `<div class="cndots" role="img" aria-label="${L(`${esc(c.n)}: ${k} of ${c.p.length} stars lit`, `${esc(c.n)}: zapalone gwiazdy: ${k} z ${c.p.length}`)}">${c.p.map((_, i) => `<i class="${i < k ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+      <span>${free ? L('Pick a constellation and light a point.', 'Wybierz gwiazdozbiór i zapal w nim punkt.') : L(`${sky.stars ? 'Next' : 'First'} star at level ${m.nextRankLv}`, `${sky.stars ? 'Następna' : 'Pierwsza'} gwiazda od poziomu ${m.nextRankLv}`)}</span></div>
+    <button type="button" class="btn${free ? '' : ' w'}" data-x="sky">${free ? `★ ${L('Light a star', 'Zapal gwiazdę')}` : L('Your sky', 'Twoje niebo')} ›</button></div>`;
 }
+const locked0 = m => m.level < RANKS.at(-1).lv;
 function openSky() {
   if (!st.me) return;
   const sheet = modal(''), box = sheet.el.querySelector('.sheet'); box.classList.add('wide', 'cnsheet');
+  let pop = '', had = doneIds(st.me.sky || {});
   const paint = () => {
-    const m = st.me, sky = m.sky || { lit: {}, stars: 0 }, top = RANKS.at(-1), keep = box.scrollTop;
+    const m = st.me, sky = m.sky || { lit: {}, stars: 0, free: 0 }, free = locked0(m) ? 0 : sky.free | 0, top = RANKS.at(-1), locked = m.level < top.lv, keep = box.scrollTop;
     const card = c => { const n = c.p.length, k = sky.lit[c.id] || 0, fin = k === n;
-      return `<div class="cncard${fin ? ' done' : ''}">${conTile(c, k, { size: 150 })}<div class="nm">${esc(c.n)}<span>${k} / ${n} ★</span></div>
+      return `<div class="cncard${fin ? ' done' : ''}">${conTile(c, k, { size: 150, pop: pop === c.id })}<div class="nm">${esc(c.n)}<span>${locked ? '' : `${k} / `}${n} ★</span></div>
         ${fin ? (c.id === sky.shown ? `<div class="state on">✓ ${L('Shown by your rank', 'Widać przy randze')}</div>` : `<button type="button" class="btn w" data-shown="${c.id}">${L('Show by my rank', 'Pokaż przy randze')}</button>`)
-          : c.id === sky.now ? `<div class="state now">${L('Lighting now', 'Zapalasz teraz')}</div>` : `<button type="button" class="btn w" data-now="${c.id}">${L('Light this one next', 'Zapalaj ten')}</button>`}</div>`; };
+          : free ? `<button type="button" class="btn" data-light="${c.id}">★ ${L('Light a star', 'Zapal gwiazdę')}</button>` : ''}</div>`; };
     box.innerHTML = `<h2>${L('Your sky', 'Twoje niebo')}</h2>
-      <p class="lead">${L(`After ${esc(top.name)} you get one star every ${STAR_EVERY} levels. Each star lights one point of the constellation you picked. Finished constellations show on your profile card, and one of them sits by your rank.`, `Po randze ${esc(top.name)} co ${STAR_EVERY} poziomów dostajesz gwiazdę. Każda gwiazda zapala jeden punkt wybranego gwiazdozbioru. Ukończone gwiazdozbiory widać na twojej karcie profilu, a jeden z nich stoi przy twojej randze.`)}</p>
-      <div class="cnsum"><span class="chip">★ ${L(`Stars: ${sky.stars}`, `Gwiazdy: ${sky.stars}`)}</span><span class="chip">${L(`Constellations: ${doneIds(sky).length} of ${CONS.length}`, `Gwiazdozbiory: ${doneIds(sky).length} z ${CONS.length}`)}</span><span class="chip">${m.level < top.lv ? L(`First star at level ${top.lv + STAR_EVERY}`, `Pierwsza gwiazda od poziomu ${top.lv + STAR_EVERY}`) : L(`Next star at level ${m.nextRankLv}`, `Następna gwiazda od poziomu ${m.nextRankLv}`)}</span></div>
-      ${SETS.map((s, i) => { const cs = CONS.filter(c => c.set === i); return `<section class="cnset"><h3>${esc(s)}<small>${cs.filter(c => isDone(sky, c.id)).length} / ${cs.length}</small></h3><div class="cngrid">${cs.map(card).join('')}</div></section>`; }).join('')}
+      <p class="lead">${L(`After ${esc(top.name)} you get one star every ${STAR_EVERY} levels. Light a point of any constellation with it: the choice is yours, and a lit star stays for good. Finished constellations show on your profile card, and one of them sits by your rank.`, `Po randze ${esc(top.name)} co ${STAR_EVERY} poziomów dostajesz gwiazdę. Zapalasz nią punkt w dowolnym gwiazdozbiorze: wybór należy do ciebie, a zapalona gwiazda zostaje na zawsze. Ukończone gwiazdozbiory widać na twojej karcie profilu, a jeden z nich stoi przy twojej randze.`)}</p>
+      ${locked ? `<div class="cnlock"><b>🔒 ${L(`Unlocks at ${esc(top.name)} (level ${top.lv})`, `Odblokujesz od rangi ${esc(top.name)} (poziom ${top.lv})`)}</b><span>${L(`You are level ${m.level}. For now this is a preview of what you will collect.`, `Masz poziom ${m.level}. Na razie to podgląd tego, co będziesz zbierać.`)}</span></div>`
+        : `<div class="cnsum"><span class="chip${free ? ' hot' : ''}">★ ${L(`Stars to light: ${free}`, `Gwiazdy do zapalenia: ${free}`)}</span><span class="chip">${L(`Constellations: ${doneIds(sky).length} of ${CONS.length}`, `Gwiazdozbiory: ${doneIds(sky).length} z ${CONS.length}`)}</span><span class="chip">${L(`${sky.stars ? 'Next' : 'First'} star at level ${m.nextRankLv}`, `${sky.stars ? 'Następna' : 'Pierwsza'} gwiazda od poziomu ${m.nextRankLv}`)}</span></div>`}
+      ${SETS.map((s, i) => { const cs = CONS.filter(c => c.set === i); return `<section class="cnset${locked ? ' locked' : ''}"><h3>${esc(s)}${locked ? '' : `<small>${cs.filter(c => isDone(sky, c.id)).length} / ${cs.length}</small>`}</h3><div class="cngrid">${cs.map(card).join('')}</div></section>`; }).join('')}
       <div class="row"><button type="button" class="btn big" data-x="close">${L('Done', 'Gotowe')}</button></div>`;
-    box.scrollTop = keep;
+    box.scrollTop = keep; pop = '';
+    const now = doneIds(sky), fin = now.find(id => !had.includes(id)); had = now;
+    if (fin) { sfx.win?.(); toast(`★ ${L('Constellation finished', 'Gwiazdozbiór ukończony')}: ${esc(conOf(fin).n)}!`); }
   };
   paint();
   const prev = st.onMe; st.onMe = () => { prev?.(); if (sheet.el.isConnected) paint(); };
@@ -904,7 +922,7 @@ function openSky() {
   box.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.x === 'close') return sheet.close();
-    if (b.dataset.now) { sfx.pop(); send({ t: 'sky', now: b.dataset.now }); } else if (b.dataset.shown) { sfx.pop(); send({ t: 'sky', shown: b.dataset.shown }); }
+    if (b.dataset.light) { b.disabled = true; sfx.pop(); pop = b.dataset.light; send({ t: 'sky', light: pop }); } else if (b.dataset.shown) { sfx.pop(); send({ t: 'sky', shown: b.dataset.shown }); }
   });
 }
 function openStats() {
@@ -1025,7 +1043,7 @@ function acctHtml() {
     <p class="axp">${m.into} / ${m.need} XP ${L('to level', 'do poziomu')} ${m.level + 1}</p>
     <div class="amini"><div><b>${m.wins}</b><span>${L('wins', 'wygrane')}</span></div><div><b>${m.games}</b><span>${L('games', 'gry')}</span></div><div><b>${rate}%</b><span>${L('win rate', 'skuteczność')}</span></div></div>` : ''}
     <div class="aitems" role="menu">
-      ${item('mystats', '📊', L('Profile', 'Profil'), `<small>${L('all your stats', 'wszystkie statystyki')}</small>`)}
+      ${item('mystats', '📊', L('Profile', 'Profil'), `<small>${st.me?.sky?.free && !locked0(st.me) ? `★ ${L(`stars to light: ${st.me.sky.free}`, `gwiazdy do zapalenia: ${st.me.sky.free}`)}` : L('all your stats', 'wszystkie statystyki')}</small>`)}
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}

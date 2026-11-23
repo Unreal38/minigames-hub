@@ -1453,3 +1453,37 @@ body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border
 .cncard .state { font: 700 13.5px/1.15 var(--fd); min-height: 36px; display: grid; place-items: center; text-align: center; border-radius: 999px; padding: 4px 8px; }
 .cncard .state.on { background: var(--mint); color: #1f3d31; border: 2px solid var(--ink); } .cncard .state.now { background: #23245c; color: #ffe27a; border: 2px solid #7d82c9; }
 @media (max-width: 620px) { .cngrid { grid-template-columns: repeat(2, 1fr); gap: 8px; } .cncard { padding: 7px; } .cnstrip { grid-template-columns: repeat(3, 1fr); } .cnnow .btn { width: 100%; } }
+.cnlock { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 16px; background: var(--note-bg); border: 2.5px solid var(--note-edge); color: var(--note-tx); }
+.cnlock b { font: 700 17px/1.2 var(--fd); } .cnlock span { font-size: 14px; color: var(--note-soft); }
+.cnset.locked .cncard { opacity: .85; }
+.cnnow.has { border-color: var(--lantern) !important; box-shadow: 0 0 0 2px var(--lantern); }
+.cnsum .chip.hot { background: var(--lantern) !important; color: #3b2219 !important; border-color: var(--ink) !important; }
+.cncard .btn:not(.w) { font-size: 14.5px; }
+.cnnew { transform-box: fill-box; transform-origin: center; animation: cnnew .7s cubic-bezier(.3, 1.8, .5, 1) both; }
+@keyframes cnnew { from { transform: scale(0) rotate(-90deg); opacity: 0; } 60% { opacity: 1; } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cnnew { animation: none; } }
+/* ---------- Your progress, reworked: two columns of panels on a PC, one column on a phone ---------- */
+.sheet.wide.statsheet { width: min(1080px, 100%); }
+.mecard.me2 { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (min-width: 900px) { .mecard.me2 { grid-template-columns: minmax(0, 11fr) minmax(0, 10fr); gap: 18px; } }
+.me2 .mecol { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.me2 .mepan { background: var(--pan2, var(--plum)); border: 2px solid var(--edge, var(--line)); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.me2 .mepan h3 { margin: 0; font: 700 18px/1.2 var(--fd); display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; color: var(--tx, inherit); } .me2 .mepan h3 small { font: 600 13px var(--fd); color: var(--muted2, var(--muted)); }
+.me2 .merank { border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); background: var(--pan, var(--plum2)); }
+.me2 .merank .rankicon { width: 84px; height: 84px; border-radius: 24px; } .me2 .merank .rankicon .rkic { width: 66px; height: 66px; }
+.me2 .merank .rankname b { font-size: 30px; } .me2 .xpbar { height: 22px; } .me2 .acct { font-size: 13px; }
+.me2 .ladder { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.me2 .ladder li { padding: 7px 4px; border-radius: 14px; } .me2 .ladder li .rkic { width: 36px; height: 36px; } .me2 .ladder li b { font: 700 12px/1.15 var(--fd); } .me2 .ladder li span { font-size: 11.5px; }
+.me2 .stats { grid-template-columns: repeat(3, 1fr); } .me2 .stats b { font-size: 26px; }
+.me2 .megames { min-height: 0; }
+.me2 .pergame { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 6px; font-size: 14px; }
+@media (min-width: 900px) { .me2 .pergame { max-height: 420px; overflow: auto; padding-right: 4px; } }
+.me2 .pergame li { display: grid; grid-template-columns: minmax(0, 1fr) 90px 42px; align-items: center; gap: 2px 10px; padding: 8px 12px; border-radius: 14px; background: var(--chip, var(--plum2)); border: 2px solid var(--edge, var(--line)); }
+.me2 .pergame li b { margin: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .me2 .pergame li > span:last-child { grid-column: 1 / -1; font-size: 13px; }
+.me2 .pergame li.solo { grid-template-columns: 1fr; }
+.me2 .pergame em { font: 700 14px var(--fd); font-style: normal; text-align: right; color: var(--tx, inherit); }
+.pgbar { display: block; height: 10px; border-radius: 999px; background: var(--edge, var(--deep)); overflow: hidden; } .pgbar i { display: block; height: 100%; background: var(--mint); border-radius: 999px; }
+@media (max-width: 520px) { .me2 .stats { grid-template-columns: repeat(2, 1fr); } .me2 .merank .rankname b { font-size: 24px; } }
+.me2 .ladder { grid-template-columns: repeat(8, minmax(0, 1fr)); } .me2 .ladder li b { display: none; } .me2 .ladder li { padding: 6px 2px; }
+.me2 .cnnow .txt { flex-basis: 170px; }
+@media (max-width: 520px) { .me2 .ladder { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
