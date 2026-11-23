@@ -37,6 +37,7 @@ import * as hay from './hay.js';
 import * as pop from './pop.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
+import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import { isBot, pageFor } from './seo.js';
 
@@ -515,6 +516,12 @@ function handle(c, m) {
       if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
       return;
     }
+    case 'wheel': { // Lucky Wheel: one free spin a day (server/wheel.js)
+      if (!allow('wheel:' + c.token, 30, 10_000)) return;
+      const p = store.profileOf(c.token);
+      if (m.test) wheel.testHook(p, m.test);
+      return wheel.handle(p, m, msg => { send(c, msg); if (msg.won && p) send(c, { t: 'me', me: store.me(p) }); });
+    }
     case 'daily': { // Mystery Pet: the daily guess-the-pet puzzle (server/daily.js)
       const p = store.profileOf(c.token);
       if (m.test) daily.testHook(m.test, msg => send(c, msg));
@@ -721,6 +728,7 @@ farm.load();
 store.notePodium();
 hubchat.load();
 daily.load();
+wheel.load();
 notice.load();
 // Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and
 // close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the

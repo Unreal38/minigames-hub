@@ -30,7 +30,7 @@ const dayNo = day => Math.round((Date.parse(day + 'T00:00Z') - Date.parse(FIRST_
 const dayBefore = day => new Date(Date.parse(day + 'T00:00Z') - 86400_000).toISOString().slice(0, 10);
 // Milliseconds until the next puzzle. On the two days a year the clocks change this is an hour out, and the page
 // simply asks again when its countdown ends.
-const untilNext = (ms = now()) => { const p = parts(ms); return Math.max(1000, 86400_000 - ((+p.hour * 60 + +p.minute) * 60 + +p.second) * 1000); };
+export const untilNext = (ms = now()) => { const p = parts(ms); return Math.max(1000, 86400_000 - ((+p.hour * 60 + +p.minute) * 60 + +p.second) * 1000); };
 
 // ---------- which pet is it ----------
 // The answer for each day is rolled once and written down, so adding a pet (or restarting) never changes today's.

@@ -72,6 +72,7 @@ const TEXT = {
   // Mystery Pet and Hay Hunch
   'Solve it first, then share.': 'Najpierw rozwiąż zagadkę, potem się nią podziel.',
   'You already shared today’s result.': 'Dzisiejszy wynik jest już udostępniony.',
+  'You already had today’s spin. Come back tomorrow.': 'Dzisiejszy obrót już za tobą. Wróć jutro.',
   'You already solved today’s Mystery Pet.': 'Dzisiejsza zagadka Mystery Pet jest już rozwiązana.',
   'You already tried that one.': 'Ten zwierzak już był zgadywany.',
   'Unknown move.': 'Nieznany ruch.',
