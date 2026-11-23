@@ -1409,3 +1409,13 @@ body.night :is(.ld-list .ld-me, .pw-list .pw-me).haspb { --pbs: var(--hi-tint); 
 :is(.ld-list, .ty-list, .pw-list) li.haspb.now { --pbs: var(--lantern); }
 .ld-list li.haspb.lose { --pbs: color-mix(in srgb, #e5543b 18%, var(--paper)); }
 @media (max-width: 760px) { .ty-list li.haspb { --pbr: 8px; } }
+.wdreroll { flex: none; width: 40px; height: 40px; font-size: 20px; line-height: 1; }
+/* The welcome window for someone new: one big Play button. The look editor opens only if they ask (Change my look). */
+.sheet.wdsheet:has(.wd.quick) { width: min(440px, 100%); }
+.wd.creator.first.quick { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; grid-template-areas: "head" "intro" "side" "foot"; }
+.wd.quick :is(.wdrail, .wdbody, .cart, .pvbar) { display: none; }
+.wd.quick .wdside, .wd.quick .wdme { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.wd.creator.quick .pv3d { width: 100%; height: 210px; }
+.wd.quick .wdplate { display: none; }
+.wd.quick .wdfoot { flex-direction: column; align-items: stretch; gap: 4px; }
+.wd.quick .wdfoot .btn.big { width: 100%; font-size: 22px; }
