@@ -2,10 +2,11 @@
 example.com {
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:8080
-	# Access logs (IP, time, page, browser) are kept 14 days, as the privacy page (/privacy) promises.
+	# Access logs (IP, time, page, browser) are kept 14 days, as the privacy page (/privacy) promises. Caddy only rolls
+	# a log at 100 MB, which a small site may take months to reach, so logrotate rolls it daily instead (README, Privacy page).
 	log {
 		output file /var/log/caddy/access.log {
-			roll_keep_for 14d
+			roll_disabled
 		}
 	}
 }

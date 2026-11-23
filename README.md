@@ -220,7 +220,21 @@ sudo systemctl restart cozy-table
 
 **The page promises logs are deleted after 14 days.** Keep that true on the server:
 
-- Caddy access logs: in `/etc/caddy/Caddyfile`, the `log` block of the site has `roll_keep_for 14d` (see `deploy/Caddyfile`), then `sudo systemctl reload caddy`.
+- Caddy access logs: Caddy's own rolling waits for 100 MB, which can take months, so it is turned off (`roll_disabled` in the site's `log` block, see `deploy/Caddyfile`, then `sudo systemctl reload caddy`) and logrotate rolls the file daily and drops anything older than 14 days:
+
+  ```bash
+  sudo tee /etc/logrotate.d/caddy-access <<'EOF'
+  /var/log/caddy/access.log {
+      daily
+      rotate 13
+      maxage 14
+      missingok
+      notifempty
+      copytruncate
+  }
+  EOF
+  sudo logrotate -d /etc/logrotate.d/caddy-access   # dry run: shows what it would do
+  ```
 - The game's own log (journald): `sudo mkdir -p /etc/systemd/journald.conf.d && printf '[Journal]\nMaxRetentionSec=14day\n' | sudo tee /etc/systemd/journald.conf.d/retention.conf && sudo systemctl restart systemd-journald`
 
 **Deleting an account when someone asks** (it cannot be undone: coins, items, scores, friends, Pet Farm and hub chat lines all go, and their devices become guests):
