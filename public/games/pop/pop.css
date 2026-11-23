@@ -10,26 +10,26 @@ body.in-game { overflow: hidden; }
 .pp .hud > * { pointer-events: auto; }
 .pp .tl, .pp .tr { position: absolute; top: max(14px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; }
 .pp .tl { left: 14px; } .pp .tr { right: 14px; }
-.pp .chip, .pp .round { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.pp .chip, .pp .round { background: var(--paper); color: var(--on-paper); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
 .pp .tl .chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--fd); font-weight: 600; font-size: 16px; }
 .pp .tl .chip b { font-weight: 700; font-size: 19px; }
-.pp .tl .chip small { font-size: 13px; color: #6b4a3c; font-weight: 600; }
+.pp .tl .chip small { font-size: 13px; color: var(--soft-tx); font-weight: 600; }
 
 /* goals and moves */
-.pp-top { position: absolute; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 22px; padding: 5px 8px 5px 10px; box-shadow: 0 4px 0 #23401c55; pointer-events: none !important; }
+.pp-top { position: absolute; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 22px; padding: 5px 8px 5px 10px; box-shadow: 0 4px 0 #23401c55; pointer-events: none !important; }
 .pp-top:empty { display: none; }
 .pp-goals { display: flex; gap: 8px; }
 .pp-goal { display: inline-flex; align-items: center; gap: 6px; font-family: var(--fd); }
 .pp-goal b { font-size: 22px; font-weight: 700; min-width: 2.3em; }
-.pp-goal b small { font-size: 14px; color: #6b4a3c; font-weight: 600; }
+.pp-goal b small { font-size: 14px; color: var(--soft-tx); font-weight: 600; }
 .pp-goal.done b { color: #2f9a4a; }
 .pp-pet { width: 44px; height: 44px; border-radius: 13px; border: 2.5px solid var(--ink); display: grid; place-items: center; overflow: hidden; flex: none; }
-.pp-pet.hay { background: #fff1b8; } .pp-pet.hay .pp-ic { width: 30px; height: 30px; }
+.pp-pet.hay { background: #fff1b8; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .pp-pet.hay .pp-ic { width: 30px; height: 30px; }
 .pp-petimg { width: 40px; height: 40px; display: block; }
-.pp-moves { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; background: var(--lantern); border: 2.5px solid var(--ink); border-radius: 16px; padding: 2px 8px 3px; font-family: var(--fd); line-height: 1; }
+.pp-moves { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; background: var(--lantern); border: 2.5px solid var(--ink); border-radius: 16px; padding: 2px 8px 3px; font-family: var(--fd); line-height: 1; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pp-moves b { font-size: 26px; font-weight: 700; }
 .pp-moves span { font-size: 12px; font-weight: 600; }
-.pp-moves.low { background: #ff9a8a; animation: pplow .7s ease-in-out infinite alternate; }
+.pp-moves.low { background: #ff9a8a; animation: pplow .7s ease-in-out infinite alternate; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 @keyframes pplow { to { transform: scale(1.08); } }
 
 .pp .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
@@ -48,11 +48,11 @@ body.in-game { overflow: hidden; }
 /* bottom: score and a hint */
 .pp-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 20px); pointer-events: none !important; }
 .pp-bottom > * { pointer-events: auto; }
-.pp-dock { display: flex; align-items: center; gap: 14px; background: #fff4e2f0; border: 3px solid var(--ink); border-radius: 20px; padding: 6px 14px; box-shadow: 0 4px 0 var(--ink); }
-.pp-score { display: flex; flex-direction: column; align-items: flex-start; font-family: var(--fd); color: var(--ink); line-height: 1; min-width: 84px; }
-.pp-score span { font-size: 13px; font-weight: 600; color: #6b4a3c; }
+.pp-dock { display: flex; align-items: center; gap: 14px; background: color-mix(in srgb, var(--paper) 94%, transparent); border: 3px solid var(--ink); border-radius: 20px; padding: 6px 14px; box-shadow: 0 4px 0 var(--ink); }
+.pp-score { display: flex; flex-direction: column; align-items: flex-start; font-family: var(--fd); color: var(--on-paper); line-height: 1; min-width: 84px; }
+.pp-score span { font-size: 13px; font-weight: 600; color: var(--soft-tx); }
 .pp-score b { font-size: 28px; font-weight: 700; }
-.pp-hint { margin: 0; font-size: 14px; color: #6b4a3c; max-width: 420px; line-height: 1.3; }
+.pp-hint { margin: 0; font-size: 14px; color: var(--soft-tx); max-width: 420px; line-height: 1.3; }
 .pp-dock .btn { min-height: 44px; }
 
 /* results and the account gate */
@@ -62,17 +62,17 @@ body.in-game { overflow: hidden; }
 .pp .sheet .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .pp .sheet .row .btn { flex: 1 1 150px; justify-content: center; text-align: center; }
 .pp-sheet h2 { text-align: center; }
-.pp .sheet .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.pp .sheet .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 .pp-sheet.win h2 { color: #b56a00; } .pp-sheet.lose h2 { color: #7a4fc9; }
 .pp-stars { display: flex; gap: 6px; justify-content: center; }
 .pp-star { width: 58px; height: 58px; fill: #e6d6c4; animation: popin .45s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pp-star:nth-child(2) { animation-delay: .15s; transform-origin: center; margin-top: -8px; } .pp-star:nth-child(3) { animation-delay: .3s; }
 .pp-star.on { fill: #ffd84a; }
 .pp-sum { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.pp-sum li { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid #c9a99a; border-radius: 16px; padding: 8px 14px; font-family: var(--fd); }
+.pp-sum li { display: flex; align-items: center; gap: 10px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 8px 14px; font-family: var(--fd); }
 .pp-sum li .pp-ic { width: 28px; height: 28px; }
 .pp-sum b { font-size: 22px; font-weight: 700; }
-.pp-sum small { margin-left: auto; font-size: 14px; font-weight: 600; color: #6b4a3c; text-align: right; }
+.pp-sum small { margin-left: auto; font-size: 14px; font-weight: 600; color: var(--soft-tx); text-align: right; }
 .pp-best { font-size: 14px; }
 
 @media (max-width: 700px) {
@@ -87,3 +87,7 @@ body.in-game { overflow: hidden; }
   .pp-hint { font-size: 12.5px; }
 }
 body:has(.pp) #toasts { top: 118px; }
+
+/* night: bright stickers (lantern, mint, light tickets) keep dark text */
+body.night .pp-pet.hay,
+body.night .pp-moves.low { color: var(--ink); }

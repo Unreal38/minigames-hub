@@ -6,24 +6,24 @@ body.in-game { overflow: hidden; }
 .kr.flat::before { content: 'The 3D kitchen could not load on this device.'; position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
 
 .kr .tags, .kr .bars { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.kr-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 4px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 7px 1px 3px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
+.kr-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 4px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 7px 1px 3px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
 .kr-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .kr-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
-.kr-tag.kr-you { background: var(--lantern); }
+.kr-tag.kr-you { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr-tag[hidden] { display: none; }
-.kr-bar { position: absolute; left: 0; top: 0; width: 46px; height: 11px; border: 2.5px solid var(--ink); border-radius: 999px; background: #fff4e2; overflow: hidden; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
+.kr-bar { position: absolute; left: 0; top: 0; width: 46px; height: 11px; border: 2.5px solid var(--ink); border-radius: 999px; background: var(--paper); overflow: hidden; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
 .kr-bar[hidden] { display: none; }
 /* stickers that say what each crate and each bit of food is */
-.kr-lbl { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 1px; padding: 2px 4px; background: #fffdf6; border: 2.5px solid var(--ink); border-radius: 10px; line-height: 0; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
+.kr-lbl { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 1px; padding: 2px 4px; background: #fffdf6; border: 2.5px solid var(--ink); border-radius: 10px; line-height: 0; box-shadow: 0 2px 0 #23401c55; will-change: transform; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr-lbl[hidden] { display: none; }
-.kr-lbl.crate { border-radius: 50%; padding: 4px; background: var(--cream); }
-.kr-lbl.todo { border-style: dashed; background: #fff4e2; }
+.kr-lbl.crate { border-radius: 50%; padding: 4px; background: var(--paper); }
+.kr-lbl.todo { border-style: dashed; background: var(--paper); }
 .kr-lbl.done { border-color: #3f9a4f; }
-.kr-lbl.bad { border-color: var(--chili); background: #ffe1dc; }
+.kr-lbl.bad { border-color: var(--chili); background: #ffe1dc; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 @media (max-width: 900px) { .kr-lbl { padding: 1px 3px; border-width: 2px; } .kr-lbl svg { width: 15px; height: 15px; } .kr-lbl.crate svg { width: 18px; height: 18px; } .kr-lbl.crate { padding: 2px; } }
-.kr-bar i { display: block; height: 100%; width: 0; background: var(--mint); }
-.kr-bar.fill i { background: #ffb547; }
-.kr-bar.cook i { background: #7ed957; }
+.kr-bar i { display: block; height: 100%; width: 0; background: var(--mint); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.kr-bar.fill i { background: #ffb547; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.kr-bar.cook i { background: #7ed957; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr-bar.hot { animation: krblink .45s steps(1) infinite; }
 .kr-bar.hot i { background: var(--chili); }
 .kr-bar.burnt { background: #3b2a22; }
@@ -34,18 +34,18 @@ body.in-game { overflow: hidden; }
 .kr .hud > * { pointer-events: auto; }
 .kr .tl, .kr .tr { position: absolute; top: max(14px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; }
 .kr .tl { left: 14px; } .kr .tr { right: 14px; }
-.kr .chip, .kr .round { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
-.kr .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
+.kr .chip, .kr .round { background: var(--paper); color: var(--on-paper); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.kr .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
 /* the clock and the tip jar */
-.kr .clock { position: absolute; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 16px 4px 8px; box-shadow: 0 3px 0 #23401c55; font-family: var(--fd); pointer-events: none; }
+.kr .clock { position: absolute; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 16px 4px 8px; box-shadow: 0 3px 0 #23401c55; font-family: var(--fd); pointer-events: none; }
 .kr .clock .time { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 2px 12px; font-weight: 700; font-size: 20px; min-width: 3.3em; text-align: center; font-variant-numeric: tabular-nums; }
 .kr .clock .time.low { background: var(--chili); animation: krpulse .9s ease-in-out infinite; }
 .kr .clock .tips { display: flex; align-items: baseline; gap: 4px; }
 .kr .clock .tips b { font-size: 22px; font-weight: 700; }
-.kr .clock .tips small { font-size: 13px; font-weight: 600; color: #7a5545; }
-.kr .clock .meter { position: relative; width: 150px; height: 12px; border: 2.5px solid var(--ink); border-radius: 999px; background: #e6d3bd; }
-.kr .clock .meter > i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--lantern); transition: width .4s; }
+.kr .clock .tips small { font-size: 13px; font-weight: 600; color: var(--soft-tx2); }
+.kr .clock .meter { position: relative; width: 150px; height: 12px; border: 2.5px solid var(--ink); border-radius: 999px; background: #e6d3bd; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.kr .clock .meter > i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--lantern); transition: width .4s; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr .clock .meter em { position: absolute; top: 50%; transform: translate(-50%, -50%); line-height: 0; }
 .kr .clock .meter em svg { fill: #fff4e2; }
 .kr .clock .meter em.got svg { fill: #ffc93c; }
@@ -53,29 +53,29 @@ body.in-game { overflow: hidden; }
 
 /* order tickets */
 .kr .orders { position: absolute; left: 14px; top: 66px; margin: 0; padding: 0; list-style: none; display: flex; gap: 8px; max-width: calc(100vw - 28px); pointer-events: none; }
-.kr .orders li { display: flex; align-items: center; gap: 6px; background: #fffdf6; border: 3px solid var(--ink); border-radius: 14px; padding: 5px 9px 12px 5px; position: relative; box-shadow: 0 3px 0 #23401c55; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; min-width: 0; }
+.kr .orders li { display: flex; align-items: center; gap: 6px; background: #fffdf6; border: 3px solid var(--ink); border-radius: 14px; padding: 5px 9px 12px 5px; position: relative; box-shadow: 0 3px 0 #23401c55; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; min-width: 0; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr .orders .dish { line-height: 0; flex: none; }
 .kr .orders .tk { display: flex; flex-direction: column; min-width: 0; }
-.kr .orders .tk b { font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--ink); white-space: nowrap; line-height: 1.1; }
+.kr .orders .tk b { font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); white-space: nowrap; line-height: 1.1; }
 .kr .orders .parts { display: flex; gap: 2px; align-items: center; line-height: 0; margin-top: 2px; }
 .kr .orders .pt { display: inline-flex; align-items: flex-end; }
 .kr .orders .pt svg + svg { margin-left: -5px; }
-.kr .orders .pat { position: absolute; left: 7px; right: 7px; bottom: 4px; height: 5px; border-radius: 999px; background: #eadbc8; overflow: hidden; }
+.kr .orders .pat { position: absolute; left: 7px; right: 7px; bottom: 4px; height: 5px; border-radius: 999px; background: #eadbc8; overflow: hidden; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr .orders .pat i { display: block; height: 100%; background: #6fc26a; transition: width .2s linear; }
-.kr .orders li.warn .pat i { background: #ffb547; }
+.kr .orders li.warn .pat i { background: #ffb547; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr .orders li.late { animation: krshake .5s ease-in-out infinite; }
 .kr .orders li.late .pat i { background: var(--chili); }
 @keyframes krshake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
 
 /* cooks and their tips */
-.kr .list { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; width: 190px; pointer-events: none; }
-.kr .list li { display: flex; align-items: center; gap: 7px; border-radius: 10px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--ink); }
+.kr .list { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; width: 190px; pointer-events: none; }
+.kr .list li { display: flex; align-items: center; gap: 7px; border-radius: 10px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); }
 .kr .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.kr .list span { font-size: 14px; color: #7a5545; }
+.kr .list span { font-size: 14px; color: var(--soft-tx2); }
 .kr .list .avatar { border-width: 2px; }
-.kr .list .me { background: #ffb54740; }
+.kr .list .me { background: var(--hi-tint, #ffb54740); }
 
-.kr .keys { position: absolute; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 999px; padding: 5px 16px; font-family: var(--fd); font-size: 14px; color: var(--ink); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; pointer-events: none; }
+.kr .keys { position: absolute; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 999px; padding: 5px 16px; font-family: var(--fd); font-size: 14px; color: var(--on-paper); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; pointer-events: none; }
 .kr .keys b { background: var(--ink); color: var(--cream); border-radius: 6px; padding: 0 5px; font-weight: 600; }
 .kr .keys[hidden] { display: none; }
 
@@ -84,9 +84,9 @@ body.in-game { overflow: hidden; }
 .kr.touch .btns:not([hidden]) { display: flex; }
 .kr.touch .stick:not([hidden]) { display: block; }
 .kr.touch .list { display: none; }
-.kr .stick { position: absolute; left: 90px; top: calc(100% - 120px); width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%; border: 3px solid #3b221988; background: #fff4e255; pointer-events: none; opacity: .65; }
+.kr .stick { position: absolute; left: 90px; top: calc(100% - 120px); width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%; border: 3px solid #3b221988; background: color-mix(in srgb, var(--paper) 33%, transparent); pointer-events: none; opacity: .65; }
 .kr .stick.live { opacity: 1; }
-.kr .stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.kr .stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: var(--paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; }
 .kr .btns { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); gap: 12px; align-items: flex-end; }
 .kr .btns .btn { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 50%; padding: 0; font-size: 14px; touch-action: none; }
 .kr .btns .kr-use { width: 92px; height: 92px; }
@@ -108,21 +108,21 @@ body.in-game { overflow: hidden; }
 .kr .results[hidden] { display: none; }
 .kr .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
 .kr .results h2 { text-align: center; }
-.kr .results .fine { font-size: 13px; color: #7a5545; margin: 10px 0 0; }
+.kr .results .fine { font-size: 13px; color: var(--soft-tx2); margin: 10px 0 0; }
 .kr-stars { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
 .kr-stars span { line-height: 0; animation: popin .5s cubic-bezier(.3, 1.6, .5, 1) both; }
 .kr-stars svg { width: 54px; height: 54px; fill: #e6d3bd; }
 .kr-stars .got svg { fill: #ffc93c; }
 .kr .score { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.kr .score li { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid #c9a99a; border-radius: 16px; padding: 7px 12px 7px 8px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
-.kr .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); }
+.kr .score li { display: flex; align-items: center; gap: 10px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 7px 12px 7px 8px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.kr .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
 .kr .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .kr .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kr .score .who span { font-size: 13px; color: #7a5545; }
+.kr .score .who span { font-size: 13px; color: var(--soft-tx2); }
 .kr .score strong { font-family: var(--fd); font-weight: 700; font-size: 20px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.kr .score small { font-size: 12px; font-weight: 600; color: #6b4a3c; display: inline-flex; align-items: center; gap: 3px; }
-.kr .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.kr .score small { font-size: 12px; font-weight: 600; color: var(--soft-tx); display: inline-flex; align-items: center; gap: 3px; }
+.kr .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 
 @media (max-width: 900px) {
   .kr .tcode { display: none; }
@@ -143,3 +143,16 @@ body.in-game { overflow: hidden; }
 body:has(.kr) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.kr) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.kr) .chatbtn .lbl { display: none; } }
 @media (max-width: 900px) { body:has(.kr) #chat { top: calc(max(12px, env(safe-area-inset-top)) + 50px); } body:has(.kr) #toasts { top: 160px; } }
+
+/* night: bright stickers (lantern, mint, light tickets) keep dark text */
+body.night .kr-tag.kr-you,
+body.night .kr-lbl.bad,
+body.night .kr-bar i,
+body.night .kr-bar.fill i,
+body.night .kr-bar.cook i,
+body.night .kr .clock .meter,
+body.night .kr .clock .meter > i,
+body.night .kr .orders li,
+body.night .kr .orders .pat,
+body.night .kr .orders li.warn .pat i,
+body.night .kr .score li.won { color: var(--ink); }
