@@ -1316,14 +1316,11 @@ body.night .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#1c1a4
 .hubgrid .herorow .btn.big { flex-shrink: 0; }
 .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex: 0 0 clamp(280px, 30vw, 520px); align-self: stretch; height: auto; min-height: 300px; position: relative; margin: -26px -28px -26px 0; }
 .hubgrid .hero .art .hero3d, body.sky:not(.in-game) .hubgrid .hero .art .hero3d { inset: 0; width: 100%; height: 100%; }
-/* the name tag on the isle: it opens the Wardrobe on the isle page, or nudges a guest to make their own */
-.isletag { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 2; display: flex; align-items: center; gap: 8px; white-space: nowrap; max-width: calc(100% - 16px);
-  font: 600 15px var(--fd); color: var(--tx, var(--cream)); background: var(--pan, var(--plum2)); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 6px 4px 14px; box-shadow: 0 4px 0 var(--ink); cursor: pointer; transition: transform .12s; }
+/* the button on the isle: it opens the Wardrobe on the isle page, or nudges a guest to make their own */
+.isletag { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 2; white-space: nowrap;
+  font: 600 15px var(--fd); color: var(--ink); background: var(--lantern); border: 3px solid var(--ink); border-radius: 999px; padding: 5px 16px; box-shadow: 0 4px 0 var(--ink); cursor: pointer; transition: transform .12s; }
 .isletag:hover { transform: translateX(-50%) translateY(-2px); }
-.isletag .itn { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.isletag .lvslot:empty { display: none; }
-.isletag .itgo { flex: none; font-size: 13px; background: var(--lantern); color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; }
-.isletag.guest .itgo { background: var(--mint); }
+.isletag.guest { background: var(--mint); }
 /* below 1500px the middle column is narrow: a sky strip with your isle sits on top of the text */
 @media (max-width: 1499px) {
   .hubgrid .hero { flex-direction: column-reverse; align-items: stretch; padding: 0 20px 20px; gap: 12px; }

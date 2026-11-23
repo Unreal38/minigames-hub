@@ -1078,10 +1078,8 @@ const topbar = () => `<header class="top">
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
-// The name tag on your isle: it opens the Wardrobe on the isle page; a guest gets a nudge to make their own.
-const isleTag = () => st.me?.user
-  ? `<button type="button" class="isletag" data-act="isle"><span class="itn">${nameHtml(st.name || '', flairOf(st.me))}</span><span class="lvslot">${meChip()}</span><span class="itgo">${L('Dress your isle', 'Urządź wyspę')} ›</span></button>`
-  : `<button type="button" class="isletag guest" data-act="isle"><span class="itn">${L('This could be your isle', 'To może być twoja wyspa')}</span><span class="itgo">${L('Make yours', 'Zrób swoją')} ›</span></button>`;
+// The button on your isle: it opens the Wardrobe on the isle page; a guest gets a nudge to make their own.
+const isleTag = () => `<button type="button" class="isletag${st.me?.user ? '' : ' guest'}" data-act="isle">${st.me?.user ? L('Dress your isle', 'Urządź wyspę') : L('Make yours', 'Zrób swoją')} ›</button>`;
 function mountSkyHero() {
   const art = document.querySelector('.hero .art'), box = art?.querySelector('.icv'); if (!box) return;
   art.classList.add('sky3d');
