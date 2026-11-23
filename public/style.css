@@ -1263,17 +1263,23 @@ html[lang=pl] .ttile .tbody b { white-space: normal; line-height: 1.1; font-size
 footer .kofi { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 footer .kofi:hover { color: var(--tx, var(--ink)); }
 /* the Support window */
-.suppics { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 10px 0; }
+.suppics { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 6px 0 12px; }
+.suppics.wide { grid-template-columns: repeat(5, 1fr); }
+.suph { font: 600 15px/1.2 var(--fd); margin: 10px 0 0; }
+.supbox { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 12px; background: var(--pan2, #ffe9cf); border: 2px solid var(--edge, #e3c7ad); overflow: hidden; font: 700 13px/1.1 var(--fd); --pbr: 10px; }
+.supbox .ttl { white-space: normal; font-size: 10.5px; text-align: center; padding: 1px 4px; }
+.supbox.emo { font-size: 22px; } .supbox.emo.sm { font-size: 15px; line-height: 1.25; padding: 0 4px; text-align: center; }
+.supbox b { overflow-wrap: anywhere; text-align: center; padding: 0 2px; }
 .suppics figure { margin: 0; text-align: center; }
 .suppics img { width: 100%; aspect-ratio: 1; border-radius: 12px; background: var(--pan2, #ffe9cf); border: 2px solid var(--edge, #e3c7ad); display: block; }
-.suppics figcaption { font: 600 11px/1.2 'Nunito', system-ui, sans-serif; margin-top: 3px; color: var(--muted2, #8a6a5c); overflow-wrap: anywhere; }
+.suppics figcaption { font: 600 11px/1.2 'Nunito', system-ui, sans-serif; margin-top: 3px; color: var(--muted2, #8a6a5c); overflow-wrap: break-word; }
 .supsteps { margin: 8px 0; padding-left: 22px; display: grid; gap: 8px; }
 .supname { border: 2px dashed var(--edge, #e3c7ad); border-radius: 10px; background: var(--pan2, #ffe9cf); color: inherit; font: inherit; padding: 2px 10px; cursor: pointer; }
 .suprow { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .suprow a.btn { text-decoration: none; text-align: center; }
 .supok { font-weight: 700; }
 .supclaim { border-top: 2px dashed var(--edge, #e3c7ad); margin: 6px 0 12px; padding-top: 4px; }
-@media (max-width: 560px) { .suppics { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 560px) { .suppics, .suppics.wide { grid-template-columns: repeat(4, 1fr); } }
 
 /* host-only "Who's here" (live count button + list) */
 .livestats .whobtn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 4px; }
