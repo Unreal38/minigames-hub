@@ -33,7 +33,7 @@ export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="pw">
-    <canvas class="g3d" aria-label="${L(`The Pawperty board. Tap a tile to read about it.`, `Plansza Pawperty. Dotknij pola, żeby o nim przeczytać.`)}"></canvas>
+    <canvas class="g3d" aria-label="${L(`The Pawperty board. Tap a tile to read about it.`, `Plansza Łapolis. Dotknij pola, żeby o nim przeczytać.`)}"></canvas>
     <div class="hud">
       <div class="tl"><span class="chip" id="pw-info"></span></div>
       <div class="tr"><span class="tcode" id="pw-code"></span>

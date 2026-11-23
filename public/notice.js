@@ -143,7 +143,7 @@ export function openNotices() {
     <section class="ntsec"><h3>✨ ${L('What’s new', 'Co nowego')}</h3>
       <div data-st="news" hidden></div>
       <p class="nthint">${L('A short note everyone sees once, in a pop-up. Write it during the countdown and it appears after the restart.', 'Krótka notka, którą każdy zobaczy raz, w okienku. Napisz ją w trakcie odliczania, a pojawi się po restarcie.')}</p>
-      ${pairHtml('ntn', true, ['Kart Island Race has a new track!', 'W Kart Island Race jest nowa trasa!'])}
+      ${pairHtml('ntn', true, ['Kart Island Race has a new track!', 'W grze Wyspiarskie gokarty jest nowa trasa!'])}
       <div class="row ntrow"><button type="button" class="btn" data-nt="newsnext">${L('Show after the restart', 'Pokaż po restarcie')}</button><button type="button" class="btn w" data-nt="newsnow">${L('Show now', 'Pokaż teraz')}</button></div>
     </section>
     <div class="row" style="margin-top:14px"><button type="button" class="btn w" data-x>${L('Done', 'Gotowe')}</button></div>`);
