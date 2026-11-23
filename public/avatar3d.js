@@ -331,6 +331,10 @@ function fitHat(hg, hH, hT, hat, hr) {
   return made;
 }
 
+// Costume tops that dress the legs too (their leg colour), and the tops that are long enough to hide any bottom.
+const SUITS = { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 29: '#1c1a22' };
+export const hidesBottom = top => top === 6 || top === 15 || top in SUITS;
+
 export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const a = avObj(avIn), seated = pose !== 'stand';
   const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], legs: [], eyes: [], dyn: true }; root.add(g);
@@ -341,7 +345,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const headH = H / P.N * FSH[a.face].h, legLen = H * P.leg, neckL = H * .008, hipY = legLen, shY = H - headH - neckL;
   const W = P.wide, sh = B.sh * H * W, ch = B.ch * H * W, wa = B.wa * H * W, hi = B.hi * H * W, lb = B.lb * H * P.limb, dz = B.dz + .16;
   // A costume (suit) dresses the legs too, whatever bottom was picked, and has a hood that goes up when no hat is worn.
-  const top = a.top, suit = { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 29: '#1c1a22' }[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC }[top] : null;
+  const top = a.top, suit = SUITS[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC }[top] : null;
   const bot = suit ? 7 : a.bottom, botC = suit || BOTTOM_COLS[a.botC];
   const dress = top === 6 || top === 15, skirt = [3, 5, 6].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
   const bodyC = top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : top === 26 ? '#ffc93c' : top === 27 ? '#c8342b' : top === 31 ? CREAM : suit || topC, slvC = top === 14 || top === 16 ? '#ffffff' : top === 26 ? '#2b2228' : bodyC, dk = shade(topC, .62);
@@ -640,7 +644,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   if (gl === 4 || gl === 5) {
     for (const s of [-1, 1]) {
       if (gl === 4) { lens('gs1', starG(.16), '#ffc93c', s * ex); lens('gs2', starG(.1), '#ff5d8f', s * ex, .006); }
-      else { const h1 = lens('gh1', heartG(.13), '#ff5d8f', s * ex); h1.rotation.z = PI; const h2 = lens('gh2', heartG(.085), '#c2185b', s * ex, .006); h2.rotation.z = PI; }
+      else { lens('gh1', heartG(.13), '#ff5d8f', s * ex); lens('gh2', heartG(.085), '#c2185b', s * ex, .006); }
       arm(s, gl === 4 ? .15 : .13, '#4a2f2a');
     }
     box(hg, .07, .014, .014, gl === 4 ? '#ffc93c' : '#ff5d8f', 0, ey + .01, fz(0, ey, .02));
