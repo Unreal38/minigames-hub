@@ -36,8 +36,9 @@ export const RANKS = [
   { lv: 45, name: L('Sun Keeper', 'Strażnik słońca'), icon: 'sun' },
   { lv: 50, name: L('Sky Legend', 'Legenda nieba'), icon: 'crown' },
 ];
-// After the last named rank the ladder goes on for ever: one more star every STAR_EVERY levels.
-export const STAR_EVERY = 10;
+// After the last named rank the ladder goes on for ever: one more star every STAR_EVERY levels. Stars light up
+// constellations (constellations.js), the long endgame: all of them together take a few hundred levels.
+export const STAR_EVERY = 5;
 const TOP = RANKS.at(-1);
 export const starsOf = level => Math.max(0, Math.floor((level - TOP.lv) / STAR_EVERY));
 // The rank at a level: { lv, name, icon, stars }. With stars the name reads "Sky Legend ★3".
