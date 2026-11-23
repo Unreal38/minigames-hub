@@ -2,7 +2,7 @@
 // belongs to (a hat shows the head, shoes show the feet, things for the back are seen from behind).
 // Drawn with one hidden renderer and cached as data URLs, like the round portraits.
 import * as THREE from 'three';
-import { avatar3d, disposeAvatar } from './avatar3d.js';
+import { avatar3d, disposeAvatar, hidesBottom } from './avatar3d.js';
 import { cleanAv, AV_KEYS } from './avatar.js';
 
 const SIZE = 132, cache = new Map();
@@ -23,6 +23,11 @@ export function itemPic(k, i, color, av) {
   // a hood or a hat would hide the hair being picked, and a costume hood would hide the hat
   if (k === 'hair' || k === 'hairC') a[IX.hat] = 0;
   if (k === 'eyes' || k === 'eyeC' || k === 'brows') a[IX.glasses] = 0; // glasses would cover them
+  // a dress or a costume would hide the bottom being picked: show it under a plain T-shirt
+  if ((k === 'bottom' || k === 'botC') && hidesBottom(a[IX.top])) a[IX.top] = 0;
+  if (k === 'shoes' || k === 'shoeC') { if (a[IX.top] === 15) a[IX.top] = 0; if (a[IX.bottom] === 6) a[IX.bottom] = 0; } // a kimono or long skirt hides the shoes
+  if (k === 'neck') { if (a[IX.facial] === 4) a[IX.facial] = 0; if (a[IX.top] === 25) a[IX.top] = 0; } // a full beard or the ghost sheet hides it
+  if (k === 'back' && (a[IX.hair] === 4 || a[IX.hair] === 15)) a[IX.hair] = 6; // long hair hides it, so a bob of the same colour
   const view = VIEW[k] || 'face', key = view + c + a.join('.');
   if (cache.has(key)) return cache.get(key);
   if (dead) return '';

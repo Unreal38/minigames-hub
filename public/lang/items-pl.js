@@ -74,7 +74,7 @@ export const COS_PL = {
     'Brick Boss': 'Klockowa szycha', 'Bean Bouncer': 'Fasolowa sprężyna', 'Pet Detective': 'Detektyw od zwierzaków', 'Party Roller': 'Imprezowe kości', Bullseye: 'W dziesiątkę', 'Three in a Row': 'Trzy w rzędzie', 'Coffee’s on me': 'Kawa na mój koszt' } },
   wn: { label: 'Efekt wygranej', n: { None: NONE, Confetti: 'Konfetti', Hearts: 'Serduszka', 'Fish rain': 'Deszcz ryb', Fireworks: 'Fajerwerki', 'Coin shower': 'Deszcz monet', Snowfall: 'Śnieg', 'Coffee break': 'Przerwa na kawę' } },
   sp: { label: 'Paczki naklejek', n: { Basics: 'Podstawowe', Party: 'Impreza', Critters: 'Zwierzątka', Chaos: 'Chaos', 'Café': 'Kawiarnia' } },
-  cb: { label: 'Rewers kart', where: 'Twoje karty w Texas Hold’em i talia, którą widzisz w Hot Pot.', n: { Classic: 'Klasyczny', Sky: 'Niebo', Midnight: 'Północ', Candy: 'Cukierek', Koi: 'Koi', 'Gold leaf': 'Złoty listek', 'Coffee beans': 'Ziarna kawy' } },
+  cb: { label: 'Rewers kart', where: 'Twoje karty w grach Texas Hold’em, Tysiąc, Pan i Piotruś oraz talia, którą widzisz w Hot Pot.', n: { Classic: 'Klasyczny', Sky: 'Niebo', Midnight: 'Północ', Candy: 'Cukierek', Koi: 'Koi', 'Gold leaf': 'Złoty listek', 'Coffee beans': 'Ziarna kawy' } },
   dc: { label: 'Kości', where: 'Twoje kości w grach Kości kłamcy, Pip Party, Chińczyk, Węże i drabiny oraz Pawperty.', n: { Classic: 'Klasyczne', 'Ruby gem': 'Rubin', 'Carved jade': 'Rzeźbiony jadeit',
     Bubblegum: 'Guma balonowa', 'Starry midnight': 'Gwiaździsta północ', 'Solid gold': 'Lite złoto', 'Oak wood': 'Dąb', 'Ice crystal': 'Kryształ lodu', 'Paw prints': 'Łapki', 'Lava rock': 'Skała lawowa',
     Snowball: 'Śnieżka', 'Choc-chip cookie': 'Ciastko z czekoladą', 'Mossy stone': 'Omszały kamień', Pixel: 'Piksele', 'Sugar cube': 'Kostka cukru' } },

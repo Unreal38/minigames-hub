@@ -40,7 +40,7 @@ export const COS = {
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
     { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }, { n: 'Café', pk: 'kofi', e: ['☕', '🥐', '🍩', '🧋', '🍪', '🫶'] }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
-  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' }] },
+  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' }] },
   // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
   dc: { label: 'Dice', where: 'Your dice in Liar’s Dice, Pip Party, Ludo, Snakes & Ladders and Pawperty.', items: [{ n: 'Classic' }, { n: 'Ruby gem', p: 100 }, { n: 'Carved jade', p: 100 }, { n: 'Bubblegum', p: 100 }, { n: 'Starry midnight', p: 120 }, { n: 'Solid gold', p: 250 },
     { n: 'Oak wood', p: 120 }, { n: 'Ice crystal', p: 220 }, { n: 'Paw prints', p: 150 }, { n: 'Lava rock', p: 200 }, { n: 'Snowball', p: 160, s: 'winter' }, { n: 'Choc-chip cookie', p: 140 }, { n: 'Mossy stone', p: 150 }, { n: 'Pixel', p: 120 }, { n: 'Sugar cube', pk: 'kofi' }] },
