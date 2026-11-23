@@ -559,6 +559,10 @@ if (r.err || r.farm.trips.length !== 1) fail('first party ' + r.err);
 r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [P[1]] });
 if (r.farm.partyMax === 1 && !r.err) fail('second party from a level 1 gate');
 while (lvOfItem(a.farm, gate.id) < 2) { r = await a.farmDo({ t: 'upgrade', id: gate.id }); if (r.err) { r = await a.farmDo({ t: 'houseup', test: { give: { wood: 300, stone: 300, fiber: 200, shells: 30, coal: 30, crystal: 5 } } }); if (r.err) fail('could not raise the farmhouse: ' + r.err); } await wait(40); }
+// neighbours see a building at its level, on the map and on a visit, so it looks the same to them
+{ const w = (await b.farmDo({ t: 'world' })).world.find(x => x.name === 'Ana'), v = (await b.farmDo({ t: 'visit', id: w.id })).visit;
+  if (w.items.find(i => i.id === gate.id)?.lv !== 2 || v.items.find(i => i.id === gate.id)?.lv !== 2 || w.house !== a.farm.house || v.house !== a.farm.house) fail('neighbours do not see the gate level ' + JSON.stringify(w.items.find(i => i.id === gate.id)));
+  if (w.items.some(i => i.lv === 1)) fail('level 1 should not be sent'); }
 r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [P[0]] });
 if (!r.err) fail('one pet in two parties');
 r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'outing', pets: [P[1]] });
