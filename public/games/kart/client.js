@@ -110,7 +110,9 @@ export function mount(app, ctx) {
     steerV += ((inp.steer || 0) - steerV) * Math.min(1, dt * (Math.abs(inp.steer) > Math.abs(steerV) ? 9 : 14));
     let cue = null;
     const n = Math.ceil(dt / (1 / 60) - .01);
-    for (let k = 0; k < n; k++) cue = stepKart(T, mk, { ...inp, steer: fin ? inp.steer : steerV }, dt / n, fin ? .7 : 1) || cue;
+    const raceT = (S.t + now0 - recvAt) / 1000; // the race clock: pets, geysers and hammers move by it
+    if (fin) inp = autoDrive(T, mk, { lane: 1.5, t: raceT });
+    for (let k = 0; k < n; k++) cue = stepKart(T, mk, { ...inp, steer: fin ? inp.steer : steerV }, dt / n, fin ? .7 : 1, S.stage === 'race' ? raceT : null) || cue;
     mk.steerVis = steerV;
     // bump into the others
     const live = scene.live();
@@ -118,6 +120,9 @@ export function mount(app, ctx) {
     if (cue === 'fall') { sfx.plop(); big(L('Whoops!', 'Ojej!'), L('A cloud will bring you back', 'Chmurka odstawi cię na trasę'), 1300); }
     else if (cue === 'respawn') sfx.pop();
     else if (cue === 'bonk') sfx.place();
+    else if (cue === 'jump') sfx.draw();
+    else if (cue === 'land') sfx.place();
+    else if (cue?.startsWith('bonk-')) { sfx.bad(); big(cue === 'bonk-gey' ? L('Splash!', 'Chlup!') : L('Bonk!', 'Bęc!'), cue === 'bonk-pet' ? L('Steer round the pets', 'Omijaj zwierzaki') : '', 1100); }
     else if (cue === 'mini' || cue === 'pad') sfx.join();
     scene.mine(mk);
     const now = performance.now();

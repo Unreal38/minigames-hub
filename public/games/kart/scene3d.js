@@ -6,7 +6,8 @@ import { kartPaint } from '../../skins.js';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
-import { buildTrack, locate, at, headingAt, angDiff, ROAD, SHOULDER, RAIL, KART_R, driftFlags } from './track.js';
+import { buildTrack, locate, at, headingAt, angDiff, hazardAt, ROAD, SHOULDER, RAIL, KART_R, RAMP, RAMP_H, CUT_W, driftFlags } from './track.js';
+import { petModel } from '../farm/pets3d.js';
 
 const DELAY = 110; // ms behind the newest server update that other karts are drawn
 const SKIES = [['#6fbdf2', '#d6f1ff'], ['#f59ac0', '#ffe3c4'], ['#7fc8ff', '#e9f7ff']];
@@ -62,6 +63,8 @@ function mesher() {
 }
 
 // ---------- the track ----------
+const GROUND = { grass: ['#7fbf56', '#8bca60'], beach: ['#ecd08c', '#f6dc98'], snow: ['#e4f2fb', '#f4fbff'] };
+const solid = sf => sf === 0 || sf === 2 || sf === 4; // island land (the rest is wood or air)
 function buildTrackMesh(T) {
   const M = mesher(), n = T.n;
   // On the inside of a hairpin the land would fold over itself (and leave a hole): nothing reaches past the middle of the bend.
@@ -78,6 +81,18 @@ function buildTrackMesh(T) {
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n, bA = T.br[i], bB = T.br[j];
     const fwd = [T.tx[i], 0, T.tz[i]], lft = [-T.tz[i], 0, T.tx[i]], rgt = [T.tz[i], 0, -T.tx[i]];
+    const sf = T.sf[i];
+    if (sf === 6) continue; // a gap to jump: nothing but sky
+    if (sf === 3) { // ----- plank walk: narrow, no rails, on stilts
+      const w = T.rw[i], h = headingAt(T, i);
+      M.quad(P(i, -w), P(i, w), P(j, w), P(j, -w), i % 2 ? '#c99566' : '#b5804f', UP);
+      M.quad(P(i, -w, -.25), P(i, -w), P(j, -w), P(j, -w, -.25), '#8a5433', rgt);
+      M.quad(P(i, w, -.25), P(i, w), P(j, w), P(j, w, -.25), '#8a5433', lft);
+      M.quad(P(i, -w, -.25), P(i, w, -.25), P(j, w, -.25), P(j, -w, -.25), '#6e4228', [0, -1, 0]);
+      if (i % 2 === 0) for (const sd of [-1, 1]) { const p = P(i, sd * (w - .25), .03); M.box(p[0], p[1], p[2], .14, .05, .9, '#6e4228', h); }
+      if (i % 7 === 0) for (const sd of [-1, 1]) { const p = P(i, sd * (w + .15), -1.2); M.box(p[0], p[1], p[2], .3, 2.9, .3, '#8a5433', h, '#6e4228'); }
+      continue;
+    }
     if (bA) { // ----- bridge: planks, beams under, rails with bunting
       const w = RAIL;
       M.quad(P(i, -w), P(i, w), P(j, w), P(j, -w), i % 2 ? '#e0a86e' : '#cf9358', UP);
@@ -98,17 +113,27 @@ function buildTrackMesh(T) {
     }
     // ----- land: road, curbs, grass shoulders, then the cliff of the floating island
     const RW = T.rw[i], RWj = T.rw[j], thin = T.nar[i];
-    const pad = padAt(i), road = pad ? (i % 2 ? '#ffb547' : '#ffc96b') : (i >> 2) % 2 ? '#948a9a' : '#8b8192';
+    const ice = sf === 4;
+    const pad = padAt(i), road = pad ? (i % 2 ? '#ffb547' : '#ffc96b') : ice ? ((i >> 2) % 2 ? '#bfe6ff' : '#cdeeff') : (i >> 2) % 2 ? '#948a9a' : '#8b8192';
+    if (ice && i % 3 === 0) { const a = (.8 + hash(i, 31) * 2.4) * (hash(i, 32) < .5 ? -1 : 1); M.quad(P(i, a - .45, .012), P(i, a + .45, .012), P(j + 1, a + 1, .012), P(j + 1, a + .1, .012), '#f4fbff', UP); }
+    // a ramp before a gap
+    let toGap = 0; for (let k = 1; k <= RAMP; k++) if (T.sf[(i + k) % n] === 6) { toGap = k; break; }
+    if (toGap) {
+      const hA = RAMP_H * (RAMP - toGap) / RAMP, hB = RAMP_H * (RAMP + 1 - toGap) / RAMP, w = RW - .5;
+      M.quad(P(i, -w, hA + .02), P(i, w, hA + .02), P(j, w, hB + .02), P(j, -w, hB + .02), i % 2 ? '#ffd23f' : '#3b2219', UP);
+      for (const sd of [-1, 1]) M.quad(P(i, sd * w, 0), P(i, sd * w, hA + .02), P(j, sd * w, hB + .02), P(j, sd * w, 0), '#b5804f', sd > 0 ? lft : rgt);
+      if (toGap === 1) M.quad(P(j, -w, -.2), P(j, w, -.2), P(j, w, hB + .02), P(j, -w, hB + .02), '#8a5433', fwd);
+    }
     M.quad(P(i, -RW), P(i, RW), P(j, RWj), P(j, -RWj), road, UP);
     if (pad) { // chevrons pointing the way
       const a = P(i, -2.8, .02), b = P(i, 2.8, .02), tip = P(j, 0, .02); if (i % 2 === 0) M.tri3(a, b, tip, '#fff4e2', UP);
     } else if (i % 6 < 3) M.quad(P(i, -.14, .01), P(i, .14, .01), P(j, .14, .01), P(j, -.14, .01), '#fff4e2', UP);
     for (const sd of [-1, 1]) {
-      const r0 = RW * sd, r1 = (RW + .7) * sd, q0 = RWj * sd, q1 = (RWj + .7) * sd, out = sd > 0 ? lft : rgt, cc = (i >> 1) % 2 ? (thin ? '#ffb547' : '#e5543b') : (thin ? '#3b2219' : '#fff4e2');
+      const r0 = RW * sd, r1 = (RW + .7) * sd, q0 = RWj * sd, q1 = (RWj + .7) * sd, out = sd > 0 ? lft : rgt, cc = (i >> 1) % 2 ? (thin ? '#ffb547' : ice ? '#4fb3e8' : '#e5543b') : (thin ? '#3b2219' : '#fff4e2');
       M.quad(P(i, r0, .05), P(i, r1, .05), P(j, q1, .05), P(j, q0, .05), cc, UP);
       M.quad(P(i, r0, 0), P(i, r0, .05), P(j, q0, .05), P(j, q0, 0), cc, sd > 0 ? rgt : lft);
       const eI = edge(i) * sd, eJ = edge(j) * sd;
-      const g1 = hash(i * 3 + (sd > 0 ? 1 : 0), 7) < .25 ? '#7fbf56' : '#8bca60';
+      const g1 = GROUND[T.def.theme || 'grass'][hash(i * 3 + (sd > 0 ? 1 : 0), 7) < .25 ? 0 : 1];
       M.quad(P(i, r1), P(i, eI), P(j, eJ), P(j, q1), g1, UP);
       M.quad(P(i, eI), P(i, eI * .97, -1.3), P(j, eJ * .97, -1.3), P(j, eJ), (i >> 1) % 3 ? '#c98a5a' : '#b97c4f', out);
       const dI = -4.5 - 2.5 * hash(i, 11), dJ = -4.5 - 2.5 * hash(j, 11);
@@ -116,7 +141,7 @@ function buildTrackMesh(T) {
     }
     M.quad(P(i, -edge(i) * .4, -4.5 - 2.5 * hash(i, 11)), P(i, edge(i) * .4, -4.5 - 2.5 * hash(i, 11)), P(j, edge(j) * .4, -4.5 - 2.5 * hash(j, 11)), P(j, -edge(j) * .4, -4.5 - 2.5 * hash(j, 11)), '#6d645f', [0, -1, 0]);
     // the land ends where a bridge starts: close it off with a cliff face
-    for (const [k, nb, dir] of [[i, T.br[(i - 1 + n) % n], -1], [j, bB, 1]]) {
+    for (const [k, nb, dir] of [[i, !solid(T.sf[(i - 1 + n) % n]), -1], [j, !solid(T.sf[j]), 1]]) {
       if (!nb || (dir === 1 && k !== j)) continue;
       const e = edge(k), d = -4.5 - 2.5 * hash(k, 11), o = [fwd[0] * dir, 0, fwd[2] * dir];
       const ring = [P(k, -e), P(k, e), P(k, e * .97, -1.3), P(k, e * .4, d), P(k, -e * .4, d), P(k, -e * .97, -1.3)];
@@ -139,13 +164,23 @@ function buildTrackMesh(T) {
 
 // grass tufts and flowers on the shoulders, and floating islands round about
 function buildDeco(T, sky) {
-  const grp = new THREE.Group(), parts = [], n = T.n;
+  const grp = new THREE.Group(), parts = [], n = T.n, theme = T.def.theme;
   const tuft = new THREE.ConeGeometry(.16, .4, 4), petal = new THREE.IcosahedronGeometry(.11, 0), bush = new THREE.IcosahedronGeometry(.42, 0);
   for (let i = 0; i < n; i += 2) {
-    if (T.br[i] || T.ew[i] < SHOULDER - .5) continue;
+    if (!solid(T.sf[i]) || T.ew[i] < SHOULDER - .5) continue;
     for (const sd of [-1, 1]) {
-      if (hash(i, sd + 20) > .55) continue;
+      if (hash(i, sd + 20) > (theme ? .3 : .55)) continue;
       const lat = sd * (ROAD + 1.4 + hash(i, sd + 21) * (SHOULDER - ROAD - 1.4)), p = at(T, i, lat), r = hash(i, sd + 22);
+      if (theme === 'beach') { // shells and starfish on the sand
+        if (r < .5) parts.push([petal, ['#ff9fb8', '#fff4e2', '#ffb547'][i % 3], [p.x, p.y + .06, p.z], [0, i, 0], [1.8, .5, 1.3]]);
+        else parts.push([tuft, '#8bca60', [p.x, p.y + .18, p.z]]);
+        continue;
+      }
+      if (theme === 'snow') { // snow drifts and the odd little fir
+        if (r < .6) parts.push([bush, '#ffffff', [p.x, p.y + .05, p.z], [0, i, 0], [1.3, .5, 1.1]]);
+        else { parts.push([tuft, '#3f8f5a', [p.x, p.y + .5, p.z], [0, 0, 0], [2.6, 2.6, 2.6]]); parts.push([tuft, '#ffffff', [p.x, p.y + .95, p.z], [0, 0, 0], [1.3, 1.1, 1.3]]); }
+        continue;
+      }
       if (r < .45) parts.push([tuft, '#5fb04a', [p.x, p.y + .18, p.z]]);
       else if (r < .85) { const cc = ['#ffffff', '#ff9fb8', '#fff1a8', '#d9c8ff'][i % 4]; parts.push([petal, cc, [p.x, p.y + .1, p.z], [0, 0, 0], [1, .5, 1]]); parts.push([tuft, '#6cbf4f', [p.x + .2, p.y + .15, p.z]]); }
       else if (Math.abs(lat) > SHOULDER - 1.2) parts.push([bush, i % 3 ? '#5fb04a' : '#86cc5a', [p.x, p.y + .25, p.z], [0, i, 0], [1, .8, 1]]);
@@ -154,7 +189,7 @@ function buildDeco(T, sky) {
   // arrow boards on the outside of the tight bends
   const board = new THREE.BoxGeometry(1.7, .95, .16), post = new THREE.BoxGeometry(.18, 1.1, .18), arrow = new THREE.ConeGeometry(.3, .5, 3);
   for (let i = 0; i < n; i += 5) {
-    if (T.br[i] || T.nar[i]) continue;
+    if (!solid(T.sf[i]) || T.nar[i]) continue;
     const turn = angDiff(headingAt(T, i + 3), headingAt(T, i - 3));
     if (Math.abs(turn) < 6 * T.step / 11) continue;
     // on the outside, turned to face the karts coming up to the bend; the arrows point the way the road goes
@@ -176,9 +211,64 @@ function buildDeco(T, sky) {
   }
   spots.sort((a, b) => hash(a.i, 5) - hash(b.i, 5));
   for (const s of spots.slice(0, 13)) {
-    const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: 20, size: 1.4, grass: sky === 1 ? '#9fd36a' : '#8bca60' });
+    const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: 20, size: 1.4, grass: theme === 'snow' ? '#f4fbff' : theme === 'beach' ? '#f6dc98' : sky === 1 ? '#9fd36a' : '#8bca60' });
     isl.position.set(s.x, s.y, s.z); isl.rotation.y = hash(s.i, 8) * 6.28; isl.userData.bob = hash(s.i, 9) * 6.28; grp.add(isl);
   }
+  return grp;
+}
+
+// ---------- things in the way ----------
+// Pet Farm pets that sit or walk across the road, geysers and a swinging hammer, plus the shortcut planks. Where each
+// one is comes from hazardAt() and the race clock, so every browser and the server agree.
+const HAM_PIVOT = 9.6, HAM_LEN = 8.4;
+function buildHazards(T) {
+  const grp = new THREE.Group(), parts = [], movers = [];
+  const cyl = (r, h, s = 10) => new THREE.CylinderGeometry(r, r, h, s), bx = (a, b, c) => new THREE.BoxGeometry(a, b, c);
+  const bb = new THREE.Box3(), size = new THREE.Vector3();
+  for (const h of T.hz) {
+    const p = at(T, h.i, h.lat);
+    if (h.k === 'pet') {
+      const pet = petModel(h.sp, 2), g = new THREE.Group();
+      bb.setFromObject(pet); bb.getSize(size); const k = 3 / Math.max(size.x, size.y, size.z, .01);
+      pet.scale.multiplyScalar(k); pet.position.y = -bb.min.y * k; g.add(pet); grp.add(g);
+      movers.push({ h, g, pet });
+    } else if (h.k === 'gey') {
+      parts.push([cyl(1.75, .1, 12), '#9fe6ff', [p.x, p.y + .04, p.z]], [cyl(1.4, .12, 12), '#2f7fb8', [p.x, p.y + .07, p.z]]);
+      const col = new THREE.Mesh(merged([[cyl(.9, 4.4, 8), '#bfeeff', [0, 2.2, 0]], [new THREE.IcosahedronGeometry(1.3, 0), '#e8fbff', [0, 4.6, 0]],
+        ...[0, 2.1, 4.2].map(q => [new THREE.IcosahedronGeometry(.45, 0), '#ffffff', [Math.cos(q) * 1.2, 3.6, Math.sin(q) * 1.2]])]), toonMat(vmat()));
+      col.position.set(p.x, p.y + .1, p.z); grp.add(col);
+      movers.push({ h, col });
+    } else if (h.k === 'ham') {
+      const q = at(T, h.i, 0), R = (lx, ly) => [q.x - T.tz[h.i] * lx, q.y + ly, q.z + T.tx[h.i] * lx], half = T.ew[h.i] - .6;
+      for (const sd of [-1, 1]) parts.push([bx(.6, HAM_PIVOT + .3, .6), '#8a5433', R(sd * half, (HAM_PIVOT + .3) / 2), [0, q.h, 0]]);
+      parts.push([bx(half * 2 + .6, .6, .6), '#6e4228', R(0, HAM_PIVOT + .3), [0, q.h, 0]]);
+      const arm = new THREE.Mesh(merged([[cyl(.13, HAM_LEN, 5), '#5b4a42', [0, -HAM_LEN / 2, 0]], [bx(2.4, 1.8, 1.8), '#e5543b', [0, -HAM_LEN, 0]], [bx(2.5, .34, 1.9), '#fff4e2', [0, -HAM_LEN, 0]]]), toonMat(vmat()));
+      const piv = new THREE.Group(); piv.position.set(q.x, q.y + HAM_PIVOT, q.z); piv.rotation.y = q.h; piv.add(arm); grp.add(piv);
+      movers.push({ h, arm });
+    }
+  }
+  // shortcut planks: thin, no rails, on stilts, with a yellow sign where they leave the road
+  for (const c of T.cuts) {
+    const pts = []; for (let k = 0; k < c.length - 1; k++) { const [ax, az, ay] = c[k], [qx, qz, qy] = c[k + 1], len = Math.hypot(qx - ax, qz - az); for (let u = 0; u < len; u += 1) pts.push([ax + (qx - ax) * u / len, az + (qz - az) * u / len, ay + (qy - ay) * u / len]); }
+    for (let k = 0; k < pts.length - 1; k++) {
+      const [ax, az, ay] = pts[k], hh = Math.atan2(pts[k + 1][0] - ax, pts[k + 1][1] - az);
+      parts.push([bx(CUT_W * 2, .22, 1.05), k % 2 ? '#c99566' : '#b5804f', [ax, ay - .1, az], [0, hh, 0]]);
+      if (k % 6 === 3) for (const sd of [-1, 1]) parts.push([bx(.26, 2.6, .26), '#8a5433', [ax + Math.cos(hh) * (CUT_W + .1) * sd, ay - 1.3, az - Math.sin(hh) * (CUT_W + .1) * sd]]);
+    }
+    const [sx, sz, sy] = pts[3], hh = Math.atan2(pts[4][0] - sx, pts[4][1] - sz);
+    for (const sd of [-1, 1]) { const px = sx + Math.cos(hh) * (CUT_W + .9) * sd, pz = sz - Math.sin(hh) * (CUT_W + .9) * sd; parts.push([bx(.2, 2.4, .2), '#8a5433', [px, sy + 1.2, pz]], [bx(.9, .9, .14), '#ffd23f', [px, sy + 2.3, pz], [0, hh, Math.PI / 4]]); }
+  }
+  if (parts.length) { const m = new THREE.Mesh(merged(parts), toonMat(vmat())); m.userData.noInk = true; grp.add(m); }
+  grp.userData.tick = t => {
+    for (const m of movers) {
+      const p = hazardAt(T, m.h, t);
+      if (m.g) { // a pet: walking ones face the way they go and hop along, sitting ones watch the karts come
+        m.g.position.set(p.x, p.y + (m.h.amp ? Math.abs(Math.sin(t * 7 + m.h.i)) * .28 : Math.sin(t * 2 + m.h.i) * .03), p.z);
+        m.g.rotation.y = m.h.amp ? p.h - p.dir * Math.PI / 2 : p.h + Math.PI;
+      } else if (m.col) { const k = p.up ? Math.min(1, p.f * m.h.per * 6) : p.soon ? .12 + Math.abs(Math.sin(t * 20)) * .06 : .02; m.col.scale.set(p.up ? 1 : .7, k, p.up ? 1 : .7); m.col.visible = k > .03; }
+      else if (m.arm) m.arm.rotation.z = Math.asin(clamp(p.lat / HAM_LEN, -1, 1)) * -1;
+    }
+  };
   return grp;
 }
 
@@ -241,7 +331,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
   const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9); scene.add(hemi);
   const sun = new THREE.DirectionalLight('#ffffff', 1.5); sun.position.set(-40, 80, 30); scene.add(sun);
   const fx = createFx(scene, { max: 1400 }), shake = shaker(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let T = null, trackKey = '', trackG = null, deco = null, skyM = null, cloudG = null, flyBirds = null;
+  let T = null, trackKey = '', trackG = null, deco = null, hazards = null, skyM = null, cloudG = null, flyBirds = null;
   let karts = [], seatsKey = '', me = -1, mineK = null, stage = 'count', tGo = 0, watchI = 0;
   const snaps = []; // [{ at, k }] newest last
   let boxesMesh = null, ribbonMesh = null, boxUp = [], boxPop = [];
@@ -259,6 +349,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
     const road = new THREE.Mesh(buildTrackMesh(T), vmat()); road.userData.noInk = true; trackG.add(road);
     toonify(road, 0);
     deco = buildDeco(T, T.def.sky); trackG.add(deco);
+    hazards = buildHazards(T); trackG.add(hazards);
     // sky, cloud sea and birds centred on the track
     let cx = 0, cz = 0; for (let i = 0; i < T.n; i++) { cx += T.x[i]; cz += T.z[i]; } cx /= T.n; cz /= T.n;
     if (skyM) { scene.remove(skyM); skyM.geometry.dispose(); }
@@ -398,6 +489,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
       if (o.kind === 'jelly') { o.m.position.x += (o.tx - o.m.position.x) * Math.min(1, dt * 14); o.m.position.z += (o.tz - o.m.position.z) * Math.min(1, dt * 14); o.m.position.y = o.ty + Math.abs(Math.sin(time * 9)) * .5; const w = Math.sin(time * 18) * .1; o.m.scale.set(1 + w, 1 - w, 1 + w); }
       else { const a = Math.min(1, (now - o.born) / 250); o.m.scale.setScalar(a); }
     }
+    hazards?.userData.tick((now - tGo) / 1000);
     deco?.children.forEach(c => { if (c.userData.bob !== undefined) c.position.y += Math.sin(time * .6 + c.userData.bob) * .004; });
     flyBirds?.f(time);
     if (cloudG) cloudG.rotation.y = time * .004;

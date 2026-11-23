@@ -2,7 +2,8 @@
 // then a race over the real WebSocket server with a browser-style driver sending its position.
 import { spawn } from 'node:child_process';
 import * as kart from '../server/games/kart.js';
-import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, autoDrive, locate, SHOULDER, ROAD, KART_R, GRID, MAX_V, GRASS_V, NARROW_EDGE, driftLevel, driftFlags } from '../public/games/kart/track.js';
+import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, autoDrive, locate, SHOULDER, ROAD, KART_R, GRID, MAX_V, GRASS_V, NARROW_EDGE, driftLevel, driftFlags, at, hazardAt, onCut } from '../public/games/kart/track.js';
+import { SPECIES } from '../public/games/farm/data.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
 const players = [{ id: 'a', name: 'Ana', color: '#ff8fab', av: [0, 0, 0, 0] }, { id: 'b', name: 'Bo', color: '#7ed3b2', av: [1, 1, 1, 1] }];
@@ -18,7 +19,7 @@ for (const id of TRACK_IDS) {
   }
   // no bend is tighter than the road is wide (the road would pinch shut and leave a hole)
   for (let i = 0; i < T.n; i++) { const a = Math.atan2(T.tx[(i + 1) % T.n], T.tz[(i + 1) % T.n]) - Math.atan2(T.tx[(i - 1 + T.n) % T.n], T.tz[(i - 1 + T.n) % T.n]), turn = Math.abs(Math.atan2(Math.sin(a), Math.cos(a))); if (2 * T.step / Math.max(turn, 1e-6) < T.rw[i] + 1.2) fail(`${id}: the bend at ${i} is tighter than the road is wide`); }
-  if (!T.br.some(b => b) || T.br.every(b => b)) fail(`${id} should mix land and bridges`);
+  if (!T.sf.some(b => b === 1 || b === 3) || T.sf.every(b => b)) fail(`${id} should mix land and bridges`);
   if (T.br[0]) fail(`${id}: the start line should be on land`);
   if (T.boxes.length !== TRACKS[id].boxes.length * 4 || !T.pads.length) fail(`${id}: boxes or pads missing`);
   for (const b of T.boxes) if (Math.abs(locate(T, b.x, b.z).lat) > ROAD) fail(`${id}: an item box is off the road`);
@@ -26,7 +27,7 @@ for (const id of TRACK_IDS) {
   for (let i = 0; i < T.n; i += 17) { const l = locate(T, T.x[i] - T.tz[i] * 2, T.z[i] + T.tx[i] * 2); if (Math.abs(l.lat - 2) > .05 || Math.abs(l.i - i) > 1) fail(`${id}: locate is off at ${i}`); }
   // a bot laps every track without falling off, in a sensible time
   const k = newKart(T, 0); let t = 0, falls = 0;
-  while (k.lap < 2 && t < 120) { if (stepKart(T, k, autoDrive(T, k), 1 / 60) === 'fall') falls++; t += 1 / 60; }
+  while (k.lap < 2 && t < 120) { if (stepKart(T, k, autoDrive(T, k, { t }), 1 / 60, 1, t) === 'fall') falls++; t += 1 / 60; }
   if (k.lap < 2 || falls) fail(`${id}: the driver did not get round cleanly (lap ${k.lap}, falls ${falls})`);
   const lapT = t - (GRID + 3) / 25;
   if (lapT / 2 < 12 || lapT / 2 > 60) fail(`${id}: odd lap time ${lapT / 2}`);
@@ -68,6 +69,59 @@ for (const id of TRACK_IDS) {
     let off = false; for (let i = 0; i < 40 && !off; i++) off = stepKart(C, c, { steer: 0, gas: 1 }, 1 / 60) === 'fall';
     if (!off) fail('drifting wide on a narrow road should fall');
     if (Math.min(...C.vlim) > 23) fail('cliff should have bends that need braking'); }
+  // ----- Pirate Cove: planks, the jump, pets and the shortcut -----
+  { const C = buildTrack('cove'), g = C.gaps[0];
+    if (!g || !C.cuts.length || C.hz.length < 4 || !C.sf.includes(3)) fail('cove needs a gap, a shortcut, pets and planks');
+    const put = (i, v, lat = 0, dh = 0) => { const c = newKart(C, 0), q = at(C, i, lat); return Object.assign(c, { x: q.x, z: q.z, h: q.h + dh, v, i: q.i, s: q.i * C.step, lap: 0, safe: q.i }); };
+    // too slow off the ramp drops into the gap, and the cloud brings you back with room for a run-up
+    const slow = put(g.a - 3, 8); let cue = null, fell = false;
+    for (let i = 0; i < 90 && !fell; i++) fell = stepKart(C, slow, { steer: 0, gas: 0, brake: 0 }, 1 / 60) === 'fall';
+    if (!fell) fail('a slow kart should drop into the gap');
+    for (let i = 0; i < 200 && cue !== 'respawn'; i++) cue = stepKart(C, slow, {}, 1 / 60);
+    if (cue !== 'respawn' || (g.a - slow.i + C.n) % C.n < 20) fail('after the gap you should come back with a run-up');
+    let t = 0, over = false; for (let i = 0; i < 600 && !over; i++) { const q = stepKart(C, slow, autoDrive(C, slow, { t }), 1 / 60, .87, t); t += 1 / 60; if (q === 'fall') fail('the run-up was not enough to clear the gap'); over = (slow.i - g.a - g.len + C.n) % C.n < 20 && !slow.air; }
+    if (!over) fail('never got over the gap');
+    // fast and straight flies over, riding above the ground
+    const fast = put(g.a - 3, 22); let top = 0, air = false;
+    for (let i = 0; i < 80; i++) { const q = stepKart(C, fast, { steer: 0, gas: 1 }, 1 / 60); if (q === 'fall') fail('a fast kart should clear the gap'); if (q === 'jump') air = true; top = Math.max(top, fast.y - C.y[fast.i]); }
+    if (!air || top < 1.5 || fast.air) fail('the jump should lift the kart and land it');
+    // a plank walk has no rails
+    const pi = C.sf.indexOf(3) + 10, pl = put(pi, 15, 0, .7); fell = false;
+    for (let i = 0; i < 60 && !fell; i++) fell = stepKart(C, pl, { steer: 0, gas: 1 }, 1 / 60) === 'fall';
+    if (!fell) fail('steering off a plank walk should fall');
+    // bumping into a pet spins you; then you are let through for a moment
+    const h = C.hz.find(x => !x.amp), hp = hazardAt(C, h, 5), b = put(h.i - 4, 18, hp.lat);
+    cue = null; for (let i = 0; i < 40 && !cue?.startsWith?.('bonk-'); i++) cue = stepKart(C, b, { steer: 0, gas: 1 }, 1 / 60, 1, 5);
+    if (cue !== 'bonk-pet' || !(b.spin > 0)) fail('driving into a pet should spin you');
+    // the shortcut: across the planks is quicker than round the bend, and stepping off it falls
+    const cut = C.cuts[0], a0 = locate(C, cut[0][0], cut[0][1]).i, a1 = locate(C, cut.at(-1)[0], cut.at(-1)[1]).i;
+    const run = useCut => { const c = put(a0 - 20, 20); let n = 0, tgt = 0, falls = 0;
+      while ((a1 + 10 - c.i + C.n) % C.n > 8 && n < 3000) {
+        let inp = autoDrive(C, c);
+        if (useCut && tgt < cut.length && (tgt > 0 || (a0 - c.i + C.n) % C.n < 12)) { // steer from one plank corner to the next
+          const [x, z] = cut[tgt]; if (Math.hypot(x - c.x, z - c.z) < 3) tgt++;
+          if (tgt < cut.length) { const q = cut[tgt], d = Math.atan2(q[0] - c.x, q[1] - c.z) - c.h; inp = { steer: Math.max(-1, Math.min(1, Math.atan2(Math.sin(d), Math.cos(d)) * 3)), gas: c.v < 21 ? 1 : 0 }; }
+        }
+        if (stepKart(C, c, inp, 1 / 60) === 'fall') { falls++; break; } n++;
+      }
+      return { n, falls, c }; };
+    const round = run(false), across = run(true);
+    if (across.falls) fail('a careful kart should make it across the shortcut');
+    if (!(across.n < round.n - 45)) fail(`the shortcut should save time (${across.n} against ${round.n} frames)`);
+    const mid = [(cut[2][0] + cut[3][0]) / 2, (cut[2][1] + cut[3][1]) / 2];
+    if (onCut(C, mid[0], mid[1]) == null || onCut(C, mid[0] + 4, mid[1] + 4) != null) fail('the shortcut planks are not where they should be');
+    console.log(`cove: shortcut saves ${((round.n - across.n) / 60).toFixed(1)}s`); }
+  // ----- Frost Fjord: ice and geysers -----
+  { const F = buildTrack('frost'), ii = F.sf.indexOf(4) + 12, li = 20;
+    const turn = i => { const c = newKart(F, 0), q = at(F, i, 0); Object.assign(c, { x: q.x, z: q.z, h: q.h, v: 20, i: q.i, s: q.i * F.step, lap: 0 }); const x0 = c.x, z0 = c.z, h0 = c.h; for (let n = 0; n < 24; n++) stepKart(F, c, { steer: 1, gas: 1 }, 1 / 60); return (c.x - x0) * Math.cos(h0) - (c.z - z0) * Math.sin(h0); };
+    const onIce = Math.abs(turn(ii)), onRoad = Math.abs(turn(li));
+    if (!(onIce < onRoad * .6)) fail(`ice should make a kart slide on instead of turning (${onIce} against ${onRoad})`);
+    const gy = F.hz.find(x => x.k === 'gey'); let up = 0, down = 0;
+    for (let t = 0; t < gy.per; t += .1) hazardAt(F, gy, t).up ? up++ : down++;
+    if (!up || !down || up > down) fail('a geyser should be up for a short part of every round');
+    if (!F.hz.some(x => x.k === 'ham') || F.hz.filter(x => x.k === 'pet').length < 3) fail('frost needs its hammer and pets'); }
+  // every pet on a track is a real Pet Farm pet
+  for (const id of TRACK_IDS) for (const h of buildTrack(id).hz) if (h.k === 'pet' && !SPECIES[h.sp]) fail(`${id}: ${h.sp} is not a Pet Farm pet`);
   // on a bridge the rails hold you in
   const bi = T.br.findIndex(b => b), b = newKart(T, 0);
   Object.assign(b, { x: T.x[bi], z: T.z[bi], h: Math.atan2(T.tx[bi], T.tz[bi]) + 1.2, v: 20, i: bi, s: bi * T.step, lap: 0 });
