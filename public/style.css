@@ -1497,3 +1497,8 @@ body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border
 .cnnow.soon .txt, .cnnow.soon .btn { grid-column: 1 / -1; }
 .cnnow span { text-wrap: balance; }
 .me2 .rankname span, .me2 .xpnote span { text-wrap: balance; }
+/* Your games list: a slim scrollbar in the panel's colours, in its own gutter beside the rows (never over them) */
+.me2 .pergame { scrollbar-width: thin; scrollbar-color: var(--edge, #c9a99a) transparent; scrollbar-gutter: stable; }
+@media (min-width: 900px) { .me2 .megames .pergame { padding-right: 10px; margin-right: -8px; } }
+.me2 .pergame::-webkit-scrollbar { width: 8px; } .me2 .pergame::-webkit-scrollbar-track { background: transparent; }
+.me2 .pergame::-webkit-scrollbar-thumb { background: var(--edge, #c9a99a); border-radius: 999px; }
