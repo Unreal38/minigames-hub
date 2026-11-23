@@ -682,10 +682,13 @@ const PARTS = {
   },
   carousel(g) {
     const t = new THREE.Group(); t.position.y = .22; g.add(t);
-    put(t, G('Cone', .98, .42, 10), M(C.red), 0, 1.36, 0); cyl(t, .98, .98, .08, 10, C.cream, 0, 1.08); ico(t, .09, C.gold, 0, 1.64, 0);
-    for (let i = 0; i < 10; i += 2) { const a = i / 10 * Math.PI * 2; put(t, G('Box', .3, .1, .04), M(C.yellow), Math.cos(a + .31) * .93, 1.1, Math.sin(a + .31) * .93).rotation.y = -a - .31 + Math.PI / 2; }
+    // an open top, so the riders show from above: a small canopy on the pole, and a hoop of bunting on four spokes
+    put(t, G('Cone', .5, .34, 8), M(C.red), 0, 1.5, 0); cyl(t, .5, .5, .06, 8, C.cream, 0, 1.28); ico(t, .08, C.gold, 0, 1.72, 0);
+    put(t, G('Torus', .93, .035, 4, 12), M(C.gold), 0, 1.2, 0).rotation.x = Math.PI / 2;
+    for (let i = 0; i < 4; i++) { const sp = put(t, G('Box', .93, .03, .03), M(C.goldD), Math.cos(i * Math.PI / 2 + .78) * .465, 1.2, Math.sin(i * Math.PI / 2 + .78) * .465); sp.rotation.y = -(i * Math.PI / 2 + .78); }
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; put(t, G('Cone', .07, .16, 3), M([C.red, C.yellow, C.water][i % 3]), Math.cos(a) * .93, 1.1, Math.sin(a) * .93).rotation.x = Math.PI; }
     ['#fff4e2', C.pink, C.water, C.lilac].forEach((c, i) => { const a = i * Math.PI / 2, o = grp(t, Math.cos(a) * .6, 0, Math.sin(a) * .6); o.rotation.y = -a; o.userData.bob = i;
-      cyl(o, .02, .02, 1.1, 5, C.gold); const b = grp(o, 0, .38, 0); box(b, .14, .16, .34, c, 0, 0, 0); box(b, .1, .16, .12, c, 0, .12, .16); for (const x of [-.04, .04]) box(b, .03, .07, .03, c, x, .28, .2); box(b, .15, .05, .12, C.red, 0, .16, -.02); for (const z of [-.12, .12]) box(b, .1, .14, .05, c, 0, -.14, z); });
+      cyl(o, .02, .02, .98, 5, C.gold); const b = grp(o, 0, .38, 0); b.scale.setScalar(1.3); box(b, .14, .16, .34, c, 0, 0, 0); box(b, .1, .16, .12, c, 0, .12, .16); for (const x of [-.04, .04]) box(b, .03, .07, .03, c, x, .28, .2); box(b, .15, .05, .12, C.red, 0, .16, -.02); for (const z of [-.12, .12]) box(b, .1, .14, .05, c, 0, -.14, z); });
     return t;
   },
   balloon(g) {
@@ -765,7 +768,7 @@ const FX = {
   flag(g) { const f = PARTS.flag(g); return T => { f.rotation.y = Math.sin(T * 2.2) * .28 + Math.sin(T * 5.1) * .06; }; },
   fountain(g) { const d = PARTS.fountain(g); return T => d.forEach((m, i) => { if (!i) { m.position.y = 1.32 + Math.sin(T * 5) * .06; m.rotation.y = T * 2; return; } const u = (T * .9 + i / 3) % 1, a = i * 2.1 + T * .3; m.position.set(Math.cos(a) * (.1 + u * .5), 1.1 + u * .5 - u * u * 1.2, Math.sin(a) * (.1 + u * .5)); }); },
   windmill(g) { const hub = PARTS.windmill(g); return T => { hub.rotation.z = T * 1.1; }; },
-  carousel(g) { const t = PARTS.carousel(g), riders = t.children.filter(o => o.userData.bob !== undefined); return T => { t.rotation.y = T * .5; riders.forEach(o => { o.children[1].position.y = .38 + Math.sin(T * 2 + o.userData.bob * 1.6) * .12; }); }; },
+  carousel(g) { const t = PARTS.carousel(g), riders = t.children.filter(o => o.userData.bob !== undefined); return T => { t.rotation.y = -T * .5; /* the horses go nose first; scene3d.js seats riders by the same numbers */ riders.forEach(o => { o.children[1].position.y = .38 + Math.sin(T * 2 + o.userData.bob * 1.6) * .12; }); }; },
   balloon(g) { const b = PARTS.balloon(g); return T => { b.rotation.z = Math.sin(T * .9) * .09; b.rotation.x = Math.sin(T * .7 + 1) * .06; b.position.y = Math.sin(T * 1.3) * .04; }; },
   coinfount(g) { const d = PARTS.coinfount(g); return T => d.forEach((m, i) => { if (!i) { m.position.y = 1.26 + Math.sin(T * 5) * .06; m.rotation.y = T * 2; return; } const u = (T * .7 + i / 3) % 1, a = i * 2.1 + T * .3; m.position.set(Math.cos(a) * (.1 + u * .5), 1.05 + u * .6 - u * u * 1.3, Math.sin(a) * (.1 + u * .5)); m.rotation.x = T * 6; }); },
   miniwheel(g) { const w = PARTS.miniwheel(g); return T => { const u = T % 6; w.rotation.z = -(Math.floor(T / 6) + (u < 4 ? 1 - Math.pow(1 - u / 4, 3) : 1)) * 13.35; }; }, // spins for four seconds, rests for two

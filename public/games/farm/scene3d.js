@@ -412,7 +412,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form + lookKey(look), face: 0 };
     pets.set(id, p); return p;
   }
-  function dropPet(id) { const p = pets.get(id); if (!p) return; if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
+  function dropPet(id) { const p = pets.get(id); if (!p) return; endUse(p); if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
   const tileOf = p => [Math.max(0, Math.min(N - 1, Math.floor(p.x + N / 2))), Math.max(0, Math.min(N - 1, Math.floor(p.z + N / 2)))];
   function freeTileNear(tx, ty) {
     let best = null, bd = 1e9;
@@ -467,7 +467,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (const id of [...pets.keys()]) if (!seen.has(id)) dropPet(id);
   }
   // A short stroll: breadth-first over free tiles, then walk to a random one nearby.
-  function stroll(p) {
+  // want: the id of something it has been called over to (friends joining a carousel ride).
+  function stroll(p, want = null) {
     const [sx, sy] = tileOf(p), start = sy * N + sx, prev = new Int16Array(N * N).fill(-1), dist = new Uint8Array(N * N), q = [start], reach = [];
     prev[start] = start;
     for (let i = 0; i < q.length; i++) {
@@ -482,8 +483,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!reach.length) return;
     let c = reach[Math.random() * reach.length | 0]; const path = [];
     p.goal = null;
-    if (farm && !starters && Math.random() < .55) { // pick a building or decoration that is free, and the closest tile to it that can be walked to
-      const list = farm.items.filter(it => USE[it.type] && items.get(it.id) && !items.get(it.id).user);
+    if (farm && !starters && (want !== null || Math.random() < .55)) { // pick a building or decoration that is free, and the closest tile to it that can be walked to
+      const list = farm.items.filter(it => USE[it.type] && items.get(it.id) && !taken(items.get(it.id)) && (want === null || it.id === want));
       for (let tries = 0; tries < 4 && list.length && !p.goal; tries++) {
         const it = list[Math.random() * list.length | 0], e = items.get(it.id), [w, h] = footprint(it.type, it.r), gx = e.g.position.x, gz = e.g.position.z, lim = Math.max(w, h) / 2 + 1.05;
         let best = -1, bd = 1e9;
@@ -503,7 +504,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     bench: ['sit', 8], palbench: ['sit', 8], picnic: ['sit', 8], campfire: ['warm', 9],
     tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5],
     // the lucky set from the Lucky Wheel
-    clover: ['sniff', 3.5], carousel: ['dance', 5], chest: ['look', 3], goldpet: ['look', 3.5], balloon: ['look', 3.5], coinfount: ['drink', 4], horseshoe: ['cheer', 2.4], miniwheel: ['cheer', 2.6] };
+    clover: ['sniff', 3.5], carousel: ['ride', 14], chest: ['look', 3], goldpet: ['look', 3.5], balloon: ['look', 3.5], coinfount: ['drink', 4], horseshoe: ['cheer', 2.4], miniwheel: ['cheer', 2.6] };
   const SEAT = { bench: .24, palbench: .24, picnic: .04, pond: -.1, hotspring: -.12 }; // how high a pet sits on or in something
   const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
   // A building just got better: confetti and stars burst from it, and dust puffs out round its foot.
@@ -560,14 +561,25 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
   }
   const splash = (x, y, z, n = 3) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = .5 + Math.random() * .5; bit(BIT.ball, BM2.drop, .5, (m, u, t) => { m.position.set(x + Math.cos(a) * t * v, y + t * 1.6 - t * t * 4, z + Math.sin(a) * t * v); m.scale.setScalar(.035 * (1 - u)); }); } };
-  const endUse = p => { if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; };
+  const endUse = p => { if (p.act?.k !== 'use') return; const e = p.act.e; if (e.user === p) e.user = null; const i = e.riders ? e.riders.indexOf(p) : -1; if (i >= 0) e.riders[i] = null; };
+  // The Little Carousel seats four, one pet a horse; everything else is used by one pet at a time.
+  const RIDE = 4, taken = e => e.type === 'carousel' ? (e.riders || []).filter(Boolean).length >= RIDE : !!e.user;
+  // A pet that climbs onto an empty carousel often calls its friends over, so now and then every horse has a rider.
+  function callRiders(first, id, e) {
+    const idle = [...pets.values()].filter(o => o !== first && !o.path.length && !o.train && !o.fixed && !o.nest && o.act?.k !== 'use' && o.act?.k !== 'greet');
+    idle.sort(() => Math.random() - .5);
+    for (const o of idle.slice(0, Math.random() < .5 ? RIDE - 1 : 1 + (Math.random() * 2 | 0))) { o.act = null; stroll(o, id); if (o.goal) { o.run = true; o.wait = 0; } }
+  }
   // Chooses what a pet does now that it has stopped walking, and for how long.
   function rest(p) {
     p.topY ??= new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y;
     const goal = p.goal, ge = goal && items.get(goal.id); p.goal = null;
-    if (ge && ge.key === goal.key && !ge.user) { // arrived at something: use it
+    if (ge && ge.key === goal.key && !taken(ge)) { // arrived at something: use it
       const [use, secs] = USE[goal.type], dur = secs * (.8 + Math.random() * .5);
-      ge.user = p; p.act = { k: 'use', use, t: 0, dur, e: ge, id: goal.id, key: ge.key, z: .6, gx: ge.g.position.x, gz: ge.g.position.z }; p.wait = dur + .6 + Math.random() * 2; return;
+      let seat = 0;
+      if (use === 'ride') { const r = ge.riders ||= Array(RIDE).fill(null), alone = !r.some(Boolean); seat = r.indexOf(null); r[seat] = p; if (alone && Math.random() < .6) callRiders(p, goal.id, ge); }
+      else ge.user = p;
+      p.act = { k: 'use', use, seat, t: 0, dur, e: ge, id: goal.id, key: ge.key, z: .6, gx: ge.g.position.x, gz: ge.g.position.z }; p.wait = dur + .6 + Math.random() * 2; return;
     }
     const r = Math.random(); let k = null, dur = 2;
     const pal = [...pets.values()].find(o => o !== p && !o.path.length && !o.train && !o.fixed && (!o.act || o.act.k === 'sit' || o.act.k === 'look') && Math.hypot(o.x - p.x, o.z - p.z) < 1.7);
@@ -639,9 +651,13 @@ export function createScene(canvas, { onPick, onGhost }) {
             else if (U === 'play') { up = Math.abs(Math.sin(A.t * 5.5)) * .22 * ease; ox = hx * .3 * Math.abs(Math.sin(A.t * 2.75)) * ease; oz = hz * .3 * Math.abs(Math.sin(A.t * 2.75)) * ease; if ((A.z -= dt) <= 0) { A.z = 1.14; A.e.pop = 1; } }
             else if (U === 'warm') { sit = .16 * ease; turn = Math.sin(A.t * .9) * .12 * ease; tilt = Math.sin(A.t * 1.3) * .05 * ease; }
             else { // onto or into it: a hop there, a stay, and a hop back
-              const top = U === 'perch' ? Math.min(1.5, A.e.top - .02) : U === 'swing' ? .36 : SEAT[A.e.type] ?? .2;
-              ox = hx * hop; oz = hz * hop; up = top * hop + arc * .3; sit = .14 * ease;
+              // on the carousel the seat is a horse: it goes round with the platform and bobs on its pole (the same numbers as models.js)
+              const ride = U === 'ride', ra = ride ? A.e.g.rotation.y - T * .5 : 0, sa = A.seat * Math.PI / 2, rx = ride ? .6 * Math.cos(sa - ra) : 0, rz = ride ? .6 * Math.sin(sa - ra) : 0;
+              const top = ride ? .9 + Math.sin(T * 2 + A.seat * 1.6) * .12 : U === 'perch' ? Math.min(1.5, A.e.top - .02) : U === 'swing' ? .36 : SEAT[A.e.type] ?? .2;
+              ox = (hx + rx) * hop; oz = (hz + rz) * hop;
+              if (ride) { p.face = ra - sa; if ((A.z -= dt) <= 0) { A.z = 2.2; say(BIT.star, BM.star, 1, .05); } } up = top * hop + arc * .3; sit = .14 * ease;
               if (U === 'swing') { const ang = Math.sin(T * 1.7) * .22, ry = A.e.g.rotation.y, k = hop * .82; ox += Math.sin(ry) * -Math.sin(ang) * k; oz += Math.cos(ry) * -Math.sin(ang) * k; up += (1 - Math.cos(ang)) * k; p.face = ry; pitch = ang * hop; }
+              else if (ride) {}
               else if (U === 'perch') { p.face += Math.PI; turn = Math.sin(A.t * 1.2) * .6 * ease; }
               else if (U === 'soak') { p.face += Math.sin(A.t * .4) * 1.5; up += Math.sin(T * 2.2 + p.seed) * .02; if (hop > .95 && (A.z -= dt) <= 0) { A.z = 1; if (A.e.type === 'hotspring') floatUp(BIT.ball, BM2.steam, p.x + ox, .5, p.z + oz, .06, 1.5); else splash(p.x + ox, .12, p.z + oz, 2); } if (!A.wet && hop > .9) { A.wet = true; splash(p.x + ox, .15, p.z + oz, 7); } }
               else if (U === 'sit') { p.face += Math.PI; turn = Math.sin(A.t * .8) * .3 * ease; }
