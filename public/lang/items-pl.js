@@ -71,7 +71,7 @@ export const COS_PL = {
     'Ludo Lord': 'Szycha od Chińczyka', 'Tower Titan': 'Tytan wież', 'Hole in One': 'Dołek za jednym', 'Smooth Liar': 'Gładki blef', 'Top Dog': 'Gruba ryba', 'Head Chef': 'Głowa kuchni',
     'Treasure Hunter': 'Nos do skarbów', Regular: 'Częsty gość', Champion: 'Klasa mistrzowska', 'Snack Lord': 'Postrach lodówki', 'Lucky Duck': 'Farciarska kaczka', 'Just Vibing': 'Luz i spokój',
     'Sore Loser': 'Foch po przegranej', 'Bot Bully': 'Postrach botów', 'Certified Goblin': 'Goblin z certyfikatem', 'Big Spender': 'Gruby portfel', 'Trick Taker': 'Lewa za lewą',
-    'Brick Boss': 'Klockowa szycha', 'Bean Bouncer': 'Fasolowa sprężyna', 'Pet Detective': 'Detektyw od zwierzaków', 'Party Roller': 'Imprezowe kości', Bullseye: 'W dziesiątkę' } },
+    'Brick Boss': 'Klockowa szycha', 'Bean Bouncer': 'Fasolowa sprężyna', 'Pet Detective': 'Detektyw od zwierzaków', 'Party Roller': 'Imprezowe kości', 'Three in a Row': 'Trzy w rzędzie', Bullseye: 'W dziesiątkę' } },
   wn: { label: 'Efekt wygranej', n: { None: NONE, Confetti: 'Konfetti', Hearts: 'Serduszka', 'Fish rain': 'Deszcz ryb', Fireworks: 'Fajerwerki', 'Coin shower': 'Deszcz monet', Snowfall: 'Śnieg' } },
   sp: { label: 'Paczki naklejek', n: { Basics: 'Podstawowe', Party: 'Impreza', Critters: 'Zwierzątka', Chaos: 'Chaos' } },
   cb: { label: 'Rewers kart', where: 'Twoje karty w Texas Hold’em i talia, którą widzisz w Hot Pot.', n: { Classic: 'Klasyczny', Sky: 'Niebo', Midnight: 'Północ', Candy: 'Cukierek', Koi: 'Koi', 'Gold leaf': 'Złoty listek' } },

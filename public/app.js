@@ -1,5 +1,5 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
-import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt } from './art.js';
+import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt, tttArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
@@ -367,6 +367,27 @@ const GAMES = {
       <li>A <b>storm</b> rises from below, slowly at first and then faster and faster. If it catches you, you are out and watch the others.</li>
       <li>Your score is <b>10 points for every floor</b> of the highest floor you reached, plus your streak points. The game ends when the storm has caught everyone. Highest score wins.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  ttt: {
+    name: 'Tic-Tac-Toe', load: () => import('./games/ttt/client.js'), start: 'Start the match',
+    host: { mode: 'classic', to: 3, bots: 'chill', timer: 20 }, solo: { mode: 'classic', to: 3, bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: () => 2,
+    settings: pill => `<div class="opt"><b>Board</b><div class="pills">${pill('mode', 'classic', 'Classic 3×3')}${pill('mode', 'fade', 'Vanishing 3×3')}${pill('mode', 'big', 'Big 5×5')}</div></div>
+      <div class="opt"><b>Match</b><div class="pills">${pill('to', 1, 'One round')}${pill('to', 2, 'First to 2')}${pill('to', 3, 'First to 3')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Take turns putting your mark on the board. Line up three in a row, a column or a diagonal to win the round. The first to win three rounds takes the match.`,
+    rules: `<ol>
+      <li><b>Two players</b>, one board. One plays <b>crosses</b>, the other <b>noughts</b>, each in their own colour. An empty seat is played by a bot.</li>
+      <li>Take turns putting <b>one mark</b> on an empty square: tap it, or move with the arrow keys and press Enter.</li>
+      <li>The first to get <b>three in a line</b> (a row, a column or a diagonal) wins the round. A full board with no line is a <b>draw</b> and nobody scores.</li>
+      <li>A match is won by the <b>first to three rounds</b> (or two, or a single round: pick it in the table settings). Whoever started a round goes second in the next one.</li>
+      <li><b>Vanishing 3×3</b>: you only ever keep <b>three marks</b>. When you place a fourth, your oldest one vanishes. The mark that is about to go is shown faded while it is your turn. The board never fills up, so you have to set a trap.</li>
+      <li><b>Big 5×5</b>: a bigger board where you need <b>four in a line</b>.</li>
+      <li>You have <b>20 seconds</b> a turn (table settings). Run out and a mark is placed for you.</li>
+      <li>Draws cannot drag a match out for ever: after 9 rounds (7 when playing to two, 5 for a single round) whoever has won more rounds takes the match. Level on rounds is a drawn match.</li>
+      <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
     </ol>`,
   },
   pan: {
@@ -1014,6 +1035,7 @@ const HUB_GAMES = [
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
+  ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>

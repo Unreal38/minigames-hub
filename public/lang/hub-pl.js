@@ -25,6 +25,7 @@ export const OPT_PL = {
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
+  'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -287,6 +288,22 @@ export const GAMES_PL = {
       <li>Od dołu nadciąga <b>burza</b>, najpierw powoli, potem coraz szybciej. Jeśli cię dogoni, odpadasz i oglądasz pozostałych.</li>
       <li>Twój wynik to <b>10 punktów za każde piętro</b> najwyższego zdobytego poziomu plus punkty za serie. Gra kończy się, gdy burza dogoni wszystkich. Wygrywa najwyższy wynik.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  ttt: {
+    name: 'Kółko i krzyżyk', start: 'Zacznij mecz', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Kółko i krzyżyk na klockowej planszy 3D. Klasycznie, ze znikającymi znakami albo cztery w rzędzie na dużej planszy.',
+    howto: `Stawiajcie na zmianę swoje znaki na planszy. Ułóż trzy w rzędzie, w kolumnie albo po skosie, żeby wygrać rundę. Mecz wygrywa ten, kto pierwszy wygra trzy rundy.`,
+    rules: `<ol>
+      <li><b>Dwoje graczy</b>, jedna plansza. Jedna osoba gra <b>krzyżykami</b>, druga <b>kółkami</b>, każda w swoim kolorze. Wolne miejsce zajmuje bot.</li>
+      <li>Na zmianę stawiacie <b>jeden znak</b> na pustym polu: dotknij pola albo wybierz je strzałkami i naciśnij Enter.</li>
+      <li>Rundę wygrywa ten, kto pierwszy ułoży <b>trzy w linii</b> (w rzędzie, w kolumnie albo po skosie). Pełna plansza bez linii to <b>remis</b> i nikt nie dostaje punktu.</li>
+      <li>Mecz wygrywa ten, kto <b>pierwszy wygra trzy rundy</b> (albo dwie, albo jedną: wybierz w ustawieniach stołu). Kto zaczynał rundę, w następnej gra jako drugi.</li>
+      <li><b>Znikające znaki 3×3</b>: na planszy zostają tylko twoje <b>trzy znaki</b>. Gdy stawiasz czwarty, najstarszy znika. Znak, który zaraz zniknie, jest wyblakły, gdy jest twoja kolej. Plansza nigdy się nie zapełnia, więc trzeba zastawić pułapkę.</li>
+      <li><b>Duża 5×5</b>: większa plansza, na której trzeba ułożyć <b>cztery w linii</b>.</li>
+      <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, znak zostanie postawiony za ciebie.</li>
+      <li>Remisy nie przeciągną meczu w nieskończoność: po 9 rundach (po 7 przy grze do dwóch, po 5 przy jednej rundzie) wygrywa ten, kto ma więcej wygranych rund. Tyle samo wygranych rund to remis w meczu.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
     </ol>`,
   },
   pan: {
