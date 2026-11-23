@@ -145,7 +145,7 @@ export function stackArt() {
   const cols = [C.grey, C.pink, C.orange, C.mint, C.violet], off = [0, 6, -4, 8, 2];
   return scene('A wobbly tower of blocks with one more block coming down on a rope', `
     ${off.map((d, i) => box(120 + d, 100 - i * 16, 58, 16, cols[i], 8)).join('')}
-    <g class="asway" style="transform-origin:86px -20px">${rod('M70 -10V38M102 -10V38', C.bark, 2, 'butt')}${box(58, 38, 54, 16, C.red, 8)}</g>
+    <g class="asway" style="transform-origin:86px -20px">${box(58, 38, 54, 16, C.red, 8)}${rod('M74 -10V34M102 -10V34', C.bark, 2, 'butt')}<path d="M70 33h8v5h-8zM98 33h8v5h-8z" fill="${C.grey}" ${O}/></g>
     <path d="M206 44l10-4M208 60l12 0M204 76l10 5" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
 }
 
