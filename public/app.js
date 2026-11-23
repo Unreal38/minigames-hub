@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -597,7 +597,7 @@ function onMsg(m) {
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); // back after a dropped connection
     tellWhere(); setTimeout(resumeAfterUpdate, 300); // after a reload for an update (a table, if any, is back by then)
-    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
+    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); send({ t: 'wheel' }); }
   } else if (m.t === 'pets') {
     st.pets = m.pets || []; st.decor = m.decor || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
   } else if (m.t === 'player') {
@@ -629,7 +629,7 @@ function onMsg(m) {
       if (st.skyWas && m.me.sky?.stars > st.skyWas.stars) { sfx.win?.(); toast(`★ ${L('A new star! Light it in Profile › Your sky.', 'Nowa gwiazda! Zapal ją w: Profil › Twoje niebo.')}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me();
-    if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
+    if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); send({ t: 'wheel' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
@@ -649,6 +649,9 @@ function onMsg(m) {
     st.pop?.msg(m);
   } else if (m.t === 'daily') {
     st.dailyInfo = m; st.daily?.msg(m); paintToday();
+  } else if (m.t === 'wheel') {
+    if (!m.won) { st.wheelInfo = { ...m, at: Date.now() }; paintToday(); } // a fresh win reaches the tile when the wheel has stopped (spun below)
+    st.wheel?.msg(m);
   } else if (m.t === 'rankings') {
     st.rk[m.game] = m; if (m.game === st.rkTab) paintRankings();
   } else if (m.t === 'hubchat') {
@@ -689,7 +692,7 @@ function onMsg(m) {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
   } else if (m.t === 'rkstale') { // someone left the rankings (an account was deleted): fetch them again
-    st.rk = {}; if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'daily' }); }
+    st.rk = {}; if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'daily' }); send({ t: 'wheel' }); }
   } else if (m.t === 'chatlog') {
     chat.log = Array.isArray(m.log) ? m.log : []; chatPaint();
   } else if (m.t === 'chat') {
@@ -826,14 +829,16 @@ function todayHtml() {
     : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
     : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
+  const w = st.wheelInfo, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
   const mpPic = MYSTERY_ICON;
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
+    + todayTile('t-wheel' + (w && !w.guest && !w.spun ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun)
     + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', L('Play', 'Graj'))
     + todayTile('t-pop', POP_ICON, 'Pet Pop', popText, 'pop', L('Play', 'Graj'))
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
-setInterval(() => { if (st.view === 'hub' && st.farmBrief) paintToday(); }, 60_000); // keeps the farm countdown honest
+setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun)) paintToday(); }, 60_000); // keeps the farm countdown honest
 function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
@@ -847,6 +852,22 @@ function openDaily() {
     if (!open) return;
     st.daily = mod.mount(sheet.el.querySelector('.mpbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close() });
   }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load Mystery Pet. Refresh?', 'Nie udało się wczytać Mystery Pet. Odświeżyć stronę?'), true); });
+}
+
+// The Lucky Wheel, one free spin a day, opens in a pop-up over the hub like Mystery Pet.
+function openWheel() {
+  if (st.wheel) return;
+  const sheet = modal(`<div class="lwbox"><p class="mpload">${L('Rolling the wheel out…', 'Wytaczamy koło…')}</p></div>`);
+  sheet.el.querySelector('.sheet').classList.add('wide', 'mpsheet', 'lwsheet');
+  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', `<button type="button" class="mpclose" aria-label="${L('Close', 'Zamknij')}">×</button>`);
+  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
+  let open = true;
+  sheet.onClose = () => { open = false; st.wheel?.destroy(); st.wheel = null; send({ t: 'wheel' }); };
+  st.wheel = { msg() {}, destroy() {} }; // holds the place while the 3D code loads
+  import('./wheel.js').then(mod => {
+    if (!open) return;
+    st.wheel = mod.mount(sheet.el.querySelector('.lwbox'), { send, toast, account: mode => { sheet.close(); openAccount(mode); }, close: () => sheet.close(), farm: () => { sheet.close(); openFarm(); }, spun: () => send({ t: 'wheel' }) });
+  }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load the Lucky Wheel. Refresh?', 'Nie udało się wczytać Koła szczęścia. Odświeżyć stronę?'), true); });
 }
 
 // ---------- views ----------
@@ -1299,7 +1320,7 @@ function renderHub() {
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   send({ t: 'hubchat' }); hubScrollEnd();
-  send({ t: 'daily' });
+  send({ t: 'daily' }); send({ t: 'wheel' });
   if (st.me?.user) send({ t: 'pets' }); // also brings the farm's news for the Today column
   if (!st.name && !st.creatorOpen) openProfile(true); // (the hub is drawn again when the 3D pictures load: one welcome window is enough)
 }
@@ -2257,6 +2278,7 @@ $app.addEventListener('click', e => {
   else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
   else if (act === 'pop') { if (!st.name) return openProfile(true); openPop(); }
   else if (act === 'daily') { if (!st.name) return openProfile(true); openDaily(); }
+  else if (act === 'wheel') { if (!st.name) return openProfile(true); openWheel(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });
   else if (act === 'start') send({ t: 'start' });

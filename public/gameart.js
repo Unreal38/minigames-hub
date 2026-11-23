@@ -415,6 +415,9 @@ export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-w
   <path d="M14 56 30 40h62l16 16z" fill="#ffe08a"/><path d="M14 56h94v46H14z" fill="#f5bd42"/></g>
   <path d="M40 40 28 56v46M82 40l12 16v46" fill="none" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/>
   <path d="M40 70h14M62 84h18M44 92h10M70 68h10" stroke="#c98a1e" stroke-width="5" stroke-linecap="round"/></svg>`;
+// Lucky Wheel tile: a blocky eight-slice wheel with a red pointer and a gold hub.
+export const WHEEL_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="4" stroke-linejoin="round"><path d="M60 62 43.2 21.3 76.8 21.3z" fill="#ffb547"/><path d="M60 62 76.8 21.3 100.7 45.2z" fill="#7ed3b2"/><path d="M60 62 100.7 45.2 100.7 78.8z" fill="#ff8fab"/><path d="M60 62 100.7 78.8 76.8 102.7z" fill="#6fb8e6"/><path d="M60 62 76.8 102.7 43.2 102.7z" fill="#ffd84a"/><path d="M60 62 43.2 102.7 19.3 78.8z" fill="#e5543b"/><path d="M60 62 19.3 78.8 19.3 45.2z" fill="#a58be0"/><path d="M60 62 19.3 45.2 43.2 21.3z" fill="#7ed3b2"/>
+  <rect x="50" y="52" width="20" height="20" rx="3" fill="#fff4e2"/><path d="M50 6h20v12l-10 14-10-14z" fill="#e5543b"/></g></svg>`;
 export const POP_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <rect x="10" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="44" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="78" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/>
   <rect x="44" y="6" width="32" height="34" rx="9" fill="#6fa8ee"/><rect x="44" y="80" width="32" height="34" rx="9" fill="#8fd16a"/></g>

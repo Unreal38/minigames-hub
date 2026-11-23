@@ -1559,3 +1559,55 @@ body.night #conn.restart { color: #120f2a; }
 .ntsheet .ntauto input { width: 22px; height: 22px; margin-top: 1px; flex: none; accent-color: var(--mint); }
 .ntsheet .ntpull { font-size: 14px; color: var(--soft-tx); } .ntsheet .ntpull.ok { color: var(--on-paper); }
 .ntsheet .ntbad { font-size: 14px; padding: 8px 12px; border-radius: 10px; background: var(--chili); color: #fff; }
+
+/* ---------- Lucky Wheel: the daily spin (public/wheel.js). Panels use the paper variables, so night follows by itself ---------- */
+.ttile.t-wheel .tpic { background: linear-gradient(160deg, #d9f3ff, #ffe9a8); }
+.ttile.t-wheel.ready .tpic { animation: lwnudge 2.4s ease-in-out infinite; }
+@keyframes lwnudge { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(-9deg); } 90% { transform: rotate(9deg); } }
+.sheet.lwsheet { width: min(940px, 100%); }
+.lw { display: flex; flex-direction: column; gap: 14px; color: var(--on-paper); }
+.lw .lwh { font-size: 26px; margin: 0; }
+.lwgrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 18px; align-items: start; }
+.lwstage { position: relative; aspect-ratio: 1 / 1.08; border: 3px solid var(--ink); border-radius: 16px; overflow: hidden; background: linear-gradient(#7cc4f0, #d8f1ff); }
+body.night .lwstage { background: radial-gradient(#fff 1px, transparent 1.6px) 11px 7px / 131px 97px, radial-gradient(#fff 1px, transparent 1.4px) 30px 40px / 89px 149px, linear-gradient(#141138, #3a2f7a); }
+.lwcv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lwflat { margin: 0; padding: 20px; }
+.lwside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.lwpet { display: flex; align-items: center; gap: 12px; min-height: 70px; padding: 8px 12px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 14px; }
+.lwpet img { flex: none; width: 64px; height: 64px; }
+.lwpet div { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.lwpet small, .lwwon small, .lwset small, .lwcard small { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--soft-tx); }
+.lwpet b { font-family: var(--fd); font-size: 19px; } .lwpet span { font-size: 13px; color: var(--soft-tx); }
+.lwspin { width: 100%; }
+.lwres { min-height: 74px; }
+.lwnote { margin: 0; color: var(--soft-tx); font-weight: 700; }
+.lwwon { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: var(--note-bg); color: var(--note-tx); border: 3px solid var(--note-edge); border-radius: 14px; }
+.lwwon small { color: var(--note-soft); } .lwwon b { font-family: var(--fd); font-size: 20px; line-height: 1.15; } .lwwon span { font-size: 13.5px; color: var(--note-soft); font-weight: 700; }
+.lwwon.pop { animation: lwpop .45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes lwpop { from { transform: scale(.8); opacity: 0; } }
+.lwset { display: flex; flex-direction: column; gap: 6px; }
+.lwset small { text-transform: none; letter-spacing: 0; font-size: 13px; }
+.lwtiles { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
+.lwtile { aspect-ratio: 1; display: grid; place-items: center; background: var(--ph-bg); color: var(--ph-tx); border: 2px dashed var(--ph-box); border-radius: 9px; font: 700 15px var(--fd); overflow: hidden; }
+.lwtile.on { background: var(--card); border: 2px solid var(--lantern); } .lwtile img { width: 100%; height: 100%; object-fit: contain; }
+.lwodds { background: var(--card); border: 3px solid var(--card-edge); border-radius: 14px; padding: 10px 14px; }
+.lwodds summary { cursor: pointer; font: 600 16px var(--fd); }
+.lwodds p { margin: 8px 0; font-size: 14px; color: var(--body-tx); }
+.lwodds table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.lwodds td { padding: 6px 4px; border-top: 2px solid var(--card-edge); vertical-align: top; }
+.lwodds td:first-child { width: 22px; } .lwodds td:last-child { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lwodds td i { display: block; width: 16px; height: 16px; margin-top: 2px; border: 2px solid var(--ink); border-radius: 4px; }
+.lwodds td b { font-weight: 800; } .lwodds td small { display: block; color: var(--soft-tx); font-size: 13px; }
+/* the prize pop-up over the wheel */
+.lwwin { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 14px; background: rgba(20, 12, 30, .45); }
+.lwcard { width: min(320px, 100%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px; text-align: center; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 8px 0 rgba(0, 0, 0, .25); animation: lwpop .5s cubic-bezier(.3, 1.6, .5, 1); }
+.lwcard.gold { border-color: var(--lantern); box-shadow: 0 0 0 3px var(--ink), 0 8px 0 3px rgba(0, 0, 0, .25); }
+.lwpic { width: 132px; height: 132px; display: grid; place-items: center; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; overflow: hidden; }
+.lwpic img { width: 100%; height: 100%; object-fit: contain; } .lwpic svg { width: 88px; height: 88px; }
+.lwcard b { font-family: var(--fd); font-size: 22px; line-height: 1.15; text-wrap: balance; }
+.lwcard p { margin: 0; font-size: 14px; color: var(--body-tx); text-wrap: pretty; }
+.lwcard .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+/* Lucky Wheel boosters on a Pet Farm building card */
+.helpon.boost { border-style: dashed; }
+@media (max-width: 760px) { .lwgrid { grid-template-columns: minmax(0, 1fr); } .lwstage { max-width: 440px; width: 100%; justify-self: center; } .lw .lwh { font-size: 22px; } }
+@media (prefers-reduced-motion: reduce) { .ttile.t-wheel.ready .tpic, .lwwon.pop, .lwcard { animation: none; } }
