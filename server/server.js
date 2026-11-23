@@ -36,6 +36,7 @@ import * as hay from './hay.js';
 import * as pop from './pop.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
+import { isBot, pageFor } from './seo.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -49,7 +50,8 @@ const RESTORE_GRACE_MS = 90_000; // after a restart, players get this long to re
 
 // ---------- static files ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json',
+  '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8' };
 
 // Safety headers for every response. The page itself also gets a Content Security Policy: scripts may only come
 // from this site and three.js's own folder on jsDelivr (not the rest of jsDelivr, which serves anyone's code), so even if someone sneaks markup into a name or chat line, the browser
@@ -112,13 +114,14 @@ const server = http.createServer((req, res) => {
     if (ext === '.html') head['content-security-policy'] = cspFor(req);
     if (req.headers['x-forwarded-proto'] === 'https') head['strict-transport-security'] = 'max-age=31536000'; // behind Caddy: browsers stick to HTTPS
     // The page carries the server's guess at the visitor's language (Poland: Polish), which i18n.js reads on a first visit.
-    const lang = ext === '.html' ? geo.langFor(ipOf(req), req.headers['accept-language']) : '';
-    if (lang) { head.etag = `"${etag.slice(1, -1)}-${lang}"`; head.vary = 'accept-language'; head['cache-control'] = 'private, no-cache'; }
+    // Search and link-preview bots always get Polish, the site's main language (see seo.js).
+    const lang = ext !== '.html' ? '' : isBot(req.headers['user-agent']) ? 'pl' : geo.langFor(ipOf(req), req.headers['accept-language']);
+    if (lang) { head.etag = `"${etag.slice(1, -1)}-${lang}"`; head.vary = 'accept-language, user-agent'; head['cache-control'] = 'private, no-cache'; }
     if (lang && req.headers['if-none-match'] === head.etag) { res.writeHead(304, head).end(); return; }
     if (lang) {
       res.writeHead(200, head);
       if (req.method === 'HEAD') { res.end(); return; }
-      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : html.replace(/<html lang="[a-z]+"/, `<html lang="${lang}" data-geo="${lang}"`)));
+      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : pageFor(html, lang)));
       return;
     }
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }

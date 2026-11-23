@@ -1,5 +1,10 @@
 # Replace example.com with your domain. Caddy gets and renews the HTTPS certificate by itself.
-example.com, www.example.com {
+example.com {
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:8080
+}
+
+# www sends people (and Google) to the one main address, so search results never split between two copies.
+www.example.com {
+	redir https://example.com{uri} permanent
 }
