@@ -61,9 +61,9 @@ export function createScene(canvas, { onFrame } = {}) {
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   const faceMats = new Map();
   const faceMat = c => { if (!faceMats.has(c)) faceMats.set(c, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c), roughness: .55 }))); return faceMats.get(c); };
-  function makeCard(c, k = 1) { // c = -1: a card you cannot see, back on both sides
-    const g = new THREE.Group(); g.scale.setScalar(k);
-    const front = new THREE.Mesh(cardGeo, faceMat(c)), back = new THREE.Mesh(backGeo, faceMat(-1));
+  function makeCard(c, k = 1, b = 0) { // c = -1: a card you cannot see, back on both sides; b = whose card back (that player's fl.cb)
+    const g = new THREE.Group(); g.scale.setScalar(k); const bk = -1 - (b | 0);
+    const front = new THREE.Mesh(cardGeo, faceMat(c >= 0 ? c : bk)), back = new THREE.Mesh(backGeo, faceMat(bk));
     front.castShadow = true; g.add(front, back); g.userData.c = c;
     return g;
   }
@@ -91,14 +91,14 @@ export function createScene(canvas, { onFrame } = {}) {
       // this player's cards on the table; local +z points out towards the player
       const g = new THREE.Group(), at = onRim(r, mine ? 1.02 : .7); g.position.copy(at); g.rotation.y = Math.PI / 2 - a; g.visible = !mine; scene.add(g); g.updateMatrixWorld();
       const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false }), at.x, .05, at.z, scene); ring.scale.set(1.5, 1, .75); ring.rotation.y = g.rotation.y; ring.visible = !mine;
-      return { av, stool, g, ring, mine, cards: [], n: 0, hop: 0, nod: 0, look: 0, active: false, out: false, key: '' };
+      return { av, stool, g, ring, mine, cb: p.fl?.cb | 0, cards: [], n: 0, hop: 0, nod: 0, look: 0, active: false, out: false, key: '' };
     });
   }
   // a face-down row that closes up as it gets longer
   const slot = (k, cnt) => { const step = Math.min(.36, 2.5 / Math.max(1, cnt)); return new THREE.Vector3((k - (cnt - 1) / 2) * step, .02 + k * .004, 0); };
   function setHand(s, cnt, deal = -1) {
     while (s.cards.length > cnt) s.g.remove(s.cards.pop());
-    while (s.cards.length < cnt) { const c = makeCard(-1); c.scale.setScalar(.82); c.rotation.z = Math.PI; s.g.add(c); s.cards.push(c); }
+    while (s.cards.length < cnt) { const c = makeCard(-1, 1, s.cb); c.scale.setScalar(.82); c.rotation.z = Math.PI; s.g.add(c); s.cards.push(c); }
     s.cards.forEach((c, k) => {
       const to = slot(k, cnt);
       if (deal >= 0) { // dealt out of the middle, one card at a time round the table
@@ -159,7 +159,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (L?.t === 'play') {
         const k0 = pile.length;
         L.cards.forEach((c, j) => {
-          const m = makeCard(c, PILE); m.position.copy(from); m.rotation.set(0, seats[L.s].g.rotation.y, Math.PI); m.visible = false; scene.add(m); pile.push(m);
+          const m = makeCard(c, PILE, list[L.s]?.fl?.cb); m.position.copy(from); m.rotation.set(0, seats[L.s].g.rotation.y, Math.PI); m.visible = false; scene.add(m); pile.push(m);
         });
         L.cards.forEach((c, j) => {
           const m = pile[k0 + j], { p, ry } = pileSpot(k0 + j, pile.length), r0 = m.rotation.y;
@@ -188,6 +188,7 @@ export function createScene(canvas, { onFrame } = {}) {
     }
     list.forEach((p, i) => {
       const s = seats[i];
+      if (s.cb !== (p.fl?.cb | 0)) { s.cb = p.fl?.cb | 0; const k2 = s.cards.length; setHand(s, 0); setHand(s, k2); } // they changed their card back
       s.active = st.turn === i && st.stage === 'play';
       if (p.out && !s.out && !fresh) { s.hop = 1; const top = s.av.position.clone().setY(2.1); pfx.confetti(top, { n: 60, w: 2.6, h: 2, s: i }); pfx.burst(top, { n: 14, colors: ['#ffd84a', '#ffffff'], speed: 3, up: 4, size: .26 }); }
       s.out = !!p.out;

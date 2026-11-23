@@ -74,9 +74,10 @@ export function createScene(canvas, { onFrame } = {}) {
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   const faceMats = new Map();
   const faceMat = c => { if (!faceMats.has(c)) faceMats.set(c, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c), roughness: .55 }))); return faceMats.get(c); };
-  function makeCard(c = -1) {
-    const g = new THREE.Group();
-    const front = new THREE.Mesh(cardGeo, faceMat(c)), back = new THREE.Mesh(backGeo, faceMat(-1));
+  // b = whose card back (the shop card back index from that player's fl.cb; 0 = classic)
+  function makeCard(c = -1, b = 0) {
+    const g = new THREE.Group(), bk = -1 - (b | 0);
+    const front = new THREE.Mesh(cardGeo, faceMat(c >= 0 ? c : bk)), back = new THREE.Mesh(backGeo, faceMat(bk));
     front.castShadow = true; g.add(front, back); g.userData = { c, front }; g.rotation.z = c >= 0 ? 0 : Math.PI;
     scene.add(g); return g;
   }
@@ -176,7 +177,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (w) { w.hop = 1; const p = onRim(w.r, .8, .3); pfx.burst(p, { n: 10, colors: ['#ffd84a', '#ffffff', w.key.slice(0, 7)], speed: 2.2, up: 3, size: .22, life: .7, shape: STAR }); }
     }
     for (let k = trick.length; k < tk.length; k++) {
-      const s = seats[tk[k].s], c = makeCard(tk[k].c); if (!s) { drop(c); continue; }
+      const s = seats[tk[k].s], c = makeCard(tk[k].c, list[tk[k].s]?.fl?.cb); if (!s) { drop(c); continue; }
       c.position.copy(handSpot(s)); c.rotation.y = Math.PI / 2 - s.a; c.scale.setScalar(.8); c.visible = !!last;
       const to = trickSpot(s, k), ry = Math.PI / 2 - s.a + (Math.sin(tk[k].c * 7.1) * .18);
       if (last) fly(c, to, { dur: .34, up: .55, ry, scale: 1.45, done: () => pfx.puff(to, { n: 5, size: .2, speed: 1.2, life: .35 }) });
@@ -186,9 +187,10 @@ export function createScene(canvas, { onFrame } = {}) {
 
     // everyone else's cards, face down
     list.forEach((p, i) => {
-      const s = seats[i], want = s.mine ? 0 : p.n; let grew = false;
+      const s = seats[i], want = s.mine ? 0 : p.n, cb = p.fl?.cb | 0; let grew = false;
+      if (s.cb !== cb) { s.cb = cb; for (const c of s.fan) { c.userData.front.material = faceMat(-1 - cb); c.children[1].material = faceMat(-1 - cb); } } // they changed their card back
       while (s.fan.length > want) drop(s.fan.pop());
-      while (s.fan.length < want) { const c = makeCard(-1); c.userData.fresh = true; s.fan.push(c); grew = true; }
+      while (s.fan.length < want) { const c = makeCard(-1, cb); c.userData.fresh = true; s.fan.push(c); grew = true; }
       const key = want + '/' + S.stage;
       if (grew || s.fanKey !== key) {
         s.fanKey = key;

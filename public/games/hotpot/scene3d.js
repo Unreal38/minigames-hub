@@ -30,8 +30,8 @@ const CARD_GEO = cardGeometry(.8, 1.1, .8 * 34 / 256); // one shared rounded car
 // The card back this player picked in the shop (skins.js). Hot Pot shows every face-down card with the viewer's own back.
 let backK = 0;
 export const setCardBack = k => { backK = k | 0; };
-function cardTexture(kind) { // kind -1 = back
-  if (kind < 0) kind = -1 - backK;
+function cardTexture(kind, b) { // kind -1 = back: b's card back (a player's fl.cb), or your own when b is not given
+  if (kind < 0) kind = -1 - (b === undefined ? backK : b | 0);
   if (texCache.has(kind)) return texCache.get(kind);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 352;
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -601,10 +601,10 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   const tilePos = r => new THREE.Vector3(TILE[r][0], TILE_Y + .02 + seats[r].top.position.y, TILE[r][1]);
   const deckPos = () => new THREE.Vector3((Math.random() - .5) * .8, BROTH_Y + .15, (Math.random() - .5) * .8);
 
-  function flyCard(from, to, kind, faceUp, delay = 0, done, grow = false) {
+  function flyCard(from, to, kind, faceUp, delay = 0, done, grow = false, back) { // back: whose card back it shows (a seat's cb)
     const g = new THREE.Group();
-    const front = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind), roughness: .6 })));
-    const backM = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6 })));
+    const front = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind, back), roughness: .6 })));
+    const backM = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1, back), roughness: .6 })));
     backM.rotation.y = Math.PI; g.add(front, backM); g.visible = false; scene.add(g);
     const lift = 1.2 + from.distanceTo(to) * .12;
     const r0 = faceUp ? -Math.PI / 2 + 1.1 : Math.PI / 2, r1 = faceUp ? -Math.PI / 2 : Math.PI / 2 - .6;
@@ -853,6 +853,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
           s.bowl.material.color.set(p.color); s.plate.material.color.set(p.color);
           s.stool?.material.color.set(p.color).multiplyScalar(.72);
         }
+        s.cb = p.cb | 0; // their card back, for the cards that fly to their hand
         s.active = r === turnRel;
       });
       if (turnRel !== face.turn) { face.turn = turnRel; lastStir = T; }
@@ -890,7 +891,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
           if (!toTile.pending && toTile.c >= 0) toTile.top.visible = true;
           squash(toTile); puff(tilePos(+to.slice(4)), 6, .5); pfx.ring(tilePos(+to.slice(4)), { color: '#ffffff', size: 1.3 });
         }
-      }, fromPot);
+      }, fromPot, seatTo?.cb ?? (typeof from === 'number' ? seats[from].cb : undefined));
     },
     hop(r) { seats[r].hop = 1; potSqV += .35; lastStir = T; stir(); },
     setQuality(q) { quality = q; applyQuality(); },
@@ -913,7 +914,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       if (name === 'dizzy') { potSpin = 1; boil = 3; emit('spark', 5); }
       if (name === 'bang') emit('bang', 1, { spread: .3, y: POT_Y + 1.4, size: .6 });
     },
-    deal() { boil = 3; setMood('happy', 2.2, 1.4); emit('spark', 8, { gap: .12 }); punch = 1; pfx.burst(v.set(0, BROTH_Y + .3, 0), { n: 24, colors: ['#ffd84a', '#fff1a8', '#ffffff'], speed: 4, up: 5, size: .26, life: 1 }); for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true); },
+    deal() { boil = 3; setMood('happy', 2.2, 1.4); emit('spark', 8, { gap: .12 }); punch = 1; pfx.burst(v.set(0, BROTH_Y + .3, 0), { n: 24, colors: ['#ffd84a', '#fff1a8', '#ffffff'], speed: 4, up: 5, size: .26, life: 1 }); for (let i = 0; i < 16; i++) flyCard(deckPos(), handPos(i % 4), -1, false, i * .05, undefined, true, seats[i % 4].cb); },
     celebrate(r, hand, who) { // who: the seat number, for their win effect
       const from = r === 0 ? new THREE.Vector3(0, 1.4, 4.4) : handPos(r);
       (hand.length ? hand : Array.from({ length: 9 }, () => Math.random() * 72 | 0)).forEach((c, i) => hopIngredient(kindOf(c), from, i * 110));

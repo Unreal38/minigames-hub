@@ -188,7 +188,7 @@ export function mount(app, ctx) {
 
   function syncScene() {
     if (!scene || !S) return;
-    scene.setSeats([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { color: p.color, av: p.av, n: p.n, me: r === 0 && S.me >= 0 }; }), S.ph === 'play' ? rel(S.turn) : -1);
+    scene.setSeats([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { color: p.color, av: p.av, n: p.n, me: r === 0 && S.me >= 0, cb: p.fl?.cb }; }), S.ph === 'play' ? rel(S.turn) : -1);
     scene.setTiles([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { c: p.top, n: p.dn }; }));
     scene.setInteract({ tiles: new Set([1, 2, 3].filter(r => canTake(abs(r)))), deck: myDraw() });
   }
