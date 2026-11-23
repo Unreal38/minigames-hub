@@ -4,4 +4,8 @@
     <loc>https://zatokagier.com/</loc>
     <changefreq>weekly</changefreq>
   </url>
+  <url>
+    <loc>https://zatokagier.com/privacy</loc>
+    <changefreq>yearly</changefreq>
+  </url>
 </urlset>

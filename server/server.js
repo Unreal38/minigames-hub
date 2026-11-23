@@ -94,6 +94,17 @@ function kofiHook(req, res) {
     done(200, 'ok');
   });
 }
+// The privacy page (public/privacy.html) holds both languages; the host's contact and where the server stands come
+// from the service settings, so filling them in never needs a code change: PRIVACY_CONTACT and SERVER_PLACE.
+const PRIVACY = path.join(ROOT, 'privacy.html');
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+function privacyPage(html, lang) {
+  const contact = String(process.env.PRIVACY_CONTACT || '').trim(), place = String(process.env.SERVER_PLACE || '').trim();
+  const mail = /^[^@\s<>"']+@[^@\s<>"']+$/.test(contact) ? `<a href="mailto:${esc(contact)}">${esc(contact)}</a>` : contact ? esc(contact) : '';
+  return html.replace(/<html lang="[a-z]+"/, `<html lang="${lang}" data-geo="${lang}"`)
+    .replace(/<!--contact:(\w+)-->[\s\S]*?<!--\/contact-->/g, (_, l) => mail || (l === 'pl' ? '<em>(adres jeszcze nie podany)</em>' : '<em>(address not filled in yet)</em>'))
+    .replace(/<!--place:(\w+)-->[\s\S]*?<!--\/place-->/g, (m, l) => place ? esc(place) : m.replace(/<!--\/?place[^>]*-->/g, ''));
+}
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && KOFI_TOKEN && req.url.split('?')[0] === '/kofi') return kofiHook(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { allow: 'GET, HEAD', ...BASE_HEAD }).end(); return; }
@@ -102,6 +113,7 @@ const server = http.createServer((req, res) => {
   catch { res.writeHead(400, BASE_HEAD).end(); return; } // a broken address like /%E0 used to crash the whole server
   if (url.pathname === '/health') { res.end('ok'); return; }
   if (p.includes('\0')) { res.writeHead(400, BASE_HEAD).end(); return; }
+  if (p === '/privacy' || p === '/prywatnosc') p = '/privacy.html';
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(ROOT, path.normalize(p));
   if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
@@ -121,7 +133,7 @@ const server = http.createServer((req, res) => {
     if (lang) {
       res.writeHead(200, head);
       if (req.method === 'HEAD') { res.end(); return; }
-      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : pageFor(html, lang)));
+      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : file === PRIVACY ? privacyPage(html, lang) : pageFor(html, lang)));
       return;
     }
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }
@@ -216,6 +228,17 @@ const palView = x => ({ sp: x.sp, name: x.name, lv: x.lv, look: x.look });
 const palsOf = p => (p?.user ? store.showPets(p).map(id => farm.petOf(p.pid, id)).filter(Boolean).map(palView) : []); // every pet they show off on their isle
 const palOf = p => palsOf(p)[0];
 store.onPack(pid => { const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) { send(c, { t: 'me', me: store.me(p) }); send(c, { t: 'pack', k: 'kofi' }); } });
+// The host deleted an account (npm run delete-account): its farm and chat lines go, and its screens become guests.
+store.onForget((pid, toks) => {
+  farm.forget(pid);
+  for (const id of hubchat.forget(pid)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
+  for (const t of toks) {
+    const o = clients.get(t), p = store.profileOf(t); if (!o || !p) continue;
+    o.av = store.allowedAv(p, o.av); store.setLook(t, o);
+    send(o, { t: 'me', me: store.me(p) }); send(o, { t: 'err', msg: 'This account was deleted, as asked. You are a guest now.' });
+    const r = rooms.get(o.room); if (r) sendRoom(r);
+  }
+});
 farm.setPush((pid, msg) => { const cs = clientsOf(pid); if (msg) for (const c of cs) send(c, msg); return cs.length; });
 // Everyone connected as this profile (a player may have the hub open on a phone and a laptop).
 const clientsOf = pid => [...clients.values()].filter(c => c.sock && store.profileOf(c.token)?.pid === pid);

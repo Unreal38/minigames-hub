@@ -1202,7 +1202,7 @@ function renderHub() {
       </section>
     </aside>
   </main>
-  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Hot Pot to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()}</footer>
+  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Hot Pot to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
   renderTables(); filterGames();
   document.body.classList.add('sky');
@@ -1948,7 +1948,7 @@ function openAccount(mode = 'register') {
       <label for="ap">${L('Password', 'Hasło')}</label>
       <input class="field" id="ap" type="password" minlength="6" maxlength="72" required autocomplete="${reg ? 'new-password' : 'current-password'}">
       <p class="autherr" role="alert" hidden></p>
-      ${reg ? `<p style="font-size:14px">${L('Next you get a recovery code. Keep it somewhere safe: it lets you set a new password if you ever forget this one.', 'Za chwilę dostaniesz kod odzyskiwania. Schowaj go w bezpiecznym miejscu: pozwoli ustawić nowe hasło, jeśli kiedyś zapomnisz tego.')}</p>` : ''}
+      ${reg ? `<p style="font-size:14px">${L('Next you get a recovery code. Keep it somewhere safe: it lets you set a new password if you ever forget this one.', 'Za chwilę dostaniesz kod odzyskiwania. Schowaj go w bezpiecznym miejscu: pozwoli ustawić nowe hasło, jeśli kiedyś zapomnisz tego.')} <a href="/privacy" target="_blank" rel="noopener">${L('What we keep', 'Co zapisujemy')}</a></p>` : ''}
       <button class="btn big">${reg ? L('Create account', 'Załóż konto') : L('Log in', 'Zaloguj się')}</button>
       ${reg ? '' : `<button type="button" class="btn ghost-ink" data-forgot>${L('Forgot your password?', 'Nie pamiętasz hasła?')}</button>`}
       <button type="button" class="btn ghost-ink" data-swap>${reg ? L('I already have an account', 'Mam już konto') : L('I need an account', 'Chcę założyć konto')}</button>

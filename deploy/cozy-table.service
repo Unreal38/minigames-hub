@@ -13,6 +13,9 @@ StateDirectory=cozy-table
 Environment=DATA_DIR=/var/lib/cozy-table
 # Hosts: usernames (comma separated) who can moderate the hub chat and see who is online.
 #Environment=ADMINS=yourusername
+# The privacy page (/privacy): where people write about their data, and where the server stands.
+#Environment=PRIVACY_CONTACT=you@example.com
+#Environment="SERVER_PLACE=Oracle Cloud, Frankfurt (Germany)"
 ExecStart=/usr/bin/node server/server.js
 Restart=always
 RestartSec=2

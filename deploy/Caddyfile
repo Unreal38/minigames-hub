@@ -2,6 +2,12 @@
 example.com {
 	encode gzip zstd
 	reverse_proxy 127.0.0.1:8080
+	# Access logs (IP, time, page, browser) are kept 14 days, as the privacy page (/privacy) promises.
+	log {
+		output file /var/log/caddy/access.log {
+			roll_keep_for 14d
+		}
+	}
 }
 
 # www sends people (and Google) to the one main address, so search results never split between two copies.

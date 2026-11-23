@@ -202,6 +202,33 @@ sudo systemctl daemon-reload && sudo systemctl restart cozy-table
 - The server trusts `X-Forwarded-For` only from Caddy on the same machine. If you put Cloudflare in front, add `Environment=TRUST_CLOUDFLARE=1` to the unit so the real visitor address is used, and only allow Cloudflare's addresses to reach ports 80/443.
 - Large floods (DDoS) can't be stopped inside the app; that needs a shield in front of the server, such as Cloudflare's free plan.
 
+## Privacy page
+
+`/privacy` (also `/prywatnosc`, file `public/privacy.html`, both languages in one page) tells players what the site keeps, why, for how long, and how to have it deleted. It is linked from the hub footer and the sign-up window, and listed in `sitemap.xml`. No cookie banner is needed: the site sets no cookies and has no analytics or ads, only browser storage it needs to work. If you ever add analytics or ads, the page must change and a consent banner is needed.
+
+Two things on the page come from the service settings, so filling them in needs no code change:
+
+```bash
+sudo systemctl edit cozy-table     # add the lines below, save, close
+#   [Service]
+#   Environment=PRIVACY_CONTACT=you@example.com
+#   Environment="SERVER_PLACE=Oracle Cloud, Frankfurt (Germany)"
+sudo systemctl restart cozy-table
+```
+
+`PRIVACY_CONTACT` is where people write about their data (an email address becomes a mail link; any other text is shown as it is). Until it is set the page says the address is not filled in yet. `SERVER_PLACE` says where the server stands; without it the page says "a rented Oracle Cloud server".
+
+**The page promises logs are deleted after 14 days.** Keep that true on the server:
+
+- Caddy access logs: in `/etc/caddy/Caddyfile`, the `log` block of the site has `roll_keep_for 14d` (see `deploy/Caddyfile`), then `sudo systemctl reload caddy`.
+- The game's own log (journald): `sudo mkdir -p /etc/systemd/journald.conf.d && printf '[Journal]\nMaxRetentionSec=14day\n' | sudo tee /etc/systemd/journald.conf.d/retention.conf && sudo systemctl restart systemd-journald`
+
+**Deleting an account when someone asks** (it cannot be undone: coins, items, scores, friends, Pet Farm and hub chat lines all go, and their devices become guests):
+
+```bash
+cd /opt/cozy-table && sudo DATA_DIR=/var/lib/cozy-table npm run delete-account -- <username>
+```
+
 ## Customising
 
 - **Site name:** change `SITE` in `public/app.js` and the `<title>` in `public/index.html`.
