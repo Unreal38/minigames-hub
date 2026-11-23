@@ -346,7 +346,7 @@ body.night { --art-sky: #2b2d6e; --art-cloud: #6d72b4; --art-grass: #5fae6e; --a
 @keyframes arthop { 0%, 100% { transform: translateY(4px); } 50% { transform: translateY(-8px); } }
 @keyframes artstep { from { transform: translateY(-14px); } to { transform: translateY(4px); } }
 @keyframes artspin { to { transform: rotate(360deg); } }
-@keyframes artdart { 0% { transform: translate(-60px, -20px); opacity: 0; } 12% { opacity: 1; } 30%, 100% { transform: none; opacity: 1; } }
+@keyframes artdart { 0% { transform: translate(-50px, -14px); opacity: 0; } 12% { opacity: 1; } 30%, 100% { transform: none; opacity: 1; } }
 
 
 /* ---------- avatar creator: 3D preview on the left, tabs of options on the right ---------- */
