@@ -11,6 +11,8 @@ Environment=HOST=127.0.0.1
 # accounts, stats and open lobbies are saved here (systemd creates /var/lib/cozy-table for the cozy user)
 StateDirectory=cozy-table
 Environment=DATA_DIR=/var/lib/cozy-table
+# Hosts: usernames (comma separated) who can moderate the hub chat and see who is online.
+#Environment=ADMINS=yourusername
 ExecStart=/usr/bin/node server/server.js
 Restart=always
 RestartSec=2
