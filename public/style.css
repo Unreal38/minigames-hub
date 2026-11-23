@@ -1293,3 +1293,7 @@ footer .kofi:hover { color: var(--tx, var(--ink)); }
 .pb18 { --pt: #b8743a; --pi: url(cardbg/cafe.svg); --ps: 64px; background: color-mix(in srgb, var(--pt) 22%, transparent); }
 .pb18::before { background: var(--pi) 0 0 / var(--ps) repeat; opacity: .38; }
 .pb18::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 45%, transparent) 30%, transparent 80%); }
+
+/* The plain text in index.html that search engines read before the app draws the hub over it. */
+.seo-intro { padding: 40px max(4vw, 16px); font-size: 17px; line-height: 1.5; }
+.seo-intro h1 { font-family: var(--fd); margin: 0 0 12px; }

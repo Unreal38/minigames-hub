@@ -17,6 +17,7 @@ import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
+const HOME_TITLE = document.title || SITE; // the full title from index.html (the server swaps in English), kept for the hub tab and search engines
 // The 3D head snapshots and the creator's 3D preview need three.js, so they load on the side: the hub still works
 // (with flat stand-in heads) if that fails.
 let P3 = null, IP = null; // IP: item pictures for the wardrobe (itempic.js)
@@ -834,7 +835,7 @@ function openDaily() {
 // ---------- views ----------
 function go(view) {
   st.view = view; gameCss(null); tellWhere();
-  document.title = view === 'lobby' && st.room ? `${st.room.code} · ${SITE}` : SITE;
+  document.title = view === 'lobby' && st.room ? `${st.room.code} · ${SITE}` : HOME_TITLE;
   if (view === 'hub') renderHub();
   else if (view === 'lobby') renderLobby();
 }

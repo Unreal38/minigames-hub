@@ -1,0 +1,46 @@
+// Search basics: robots.txt, sitemap, Polish page for bots, English swap for English visitors, CSP still holds.
+import { spawn } from 'node:child_process';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const PORT = 18000 + Math.floor(Math.random() * 1000);
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'seo-'));
+const srv = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT, GEO: 'off', DATA_DIR: dir, HOST: '127.0.0.1' }, stdio: 'inherit' });
+const base = `http://127.0.0.1:${PORT}`;
+const get = async (p, headers = {}) => { const r = await fetch(base + p, { headers }); return { r, text: await r.text() }; };
+try {
+  for (let i = 0; i < 50; i++) { try { await fetch(base + '/health'); break; } catch { await new Promise(r => setTimeout(r, 100)); } }
+
+  const robots = await get('/robots.txt');
+  assert.equal(robots.r.status, 200); assert.match(robots.r.headers.get('content-type'), /text\/plain/);
+  assert.match(robots.text, /Sitemap: https:\/\/zatokagier\.com\/sitemap\.xml/);
+  const map = await get('/sitemap.xml');
+  assert.equal(map.r.status, 200); assert.match(map.r.headers.get('content-type'), /application\/xml/);
+  assert.match(map.text, /<loc>https:\/\/zatokagier\.com\/<\/loc>/);
+  for (const f of ['/og-image.png', '/apple-touch-icon.png', '/icon-192.png', '/favicon.svg']) assert.equal((await get(f)).r.status, 200, f);
+
+  const bot = await get('/', { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'accept-language': 'en-US' });
+  assert.match(bot.text, /<html lang="pl" data-geo="pl"/);
+  assert.match(bot.text, /<title>Zatoka Gier: darmowe gry online ze znajomymi<\/title>/);
+  assert.match(bot.text, /<link rel="canonical" href="https:\/\/zatokagier\.com\/">/);
+  assert.match(bot.text, /og:image" content="https:\/\/zatokagier\.com\/og-image\.png"/);
+  assert.match(bot.text, /<h1>Zatoka Gier<\/h1>/);
+
+  const en = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'en-GB,en' });
+  assert.match(en.text, /<html lang="en" data-geo="en"/);
+  assert.match(en.text, /<title>Zatoka Gier: free online games with friends<\/title>/);
+  assert.match(en.text, /Free browser games to play with friends\. Host a table/);
+  assert.match(en.text, /og:locale" content="en_GB"/);
+  assert.doesNotMatch(en.text, /darmowe|Darmowe|przeglądarce/);
+
+  const pl = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'pl-PL,pl' });
+  assert.match(pl.text, /<html lang="pl"/); assert.match(pl.text, /Darmowe gry w przeglądarce/);
+
+  // The CSP must still allow the import map (and only it, by hash) after the swap.
+  const csp = en.r.headers.get('content-security-policy');
+  assert.match(csp, /script-src 'self' https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.170\.0\/ 'sha256-/);
+  assert.equal((await get('/nope')).r.status, 404);
+  console.log('seo ok');
+} finally { srv.kill(); }
