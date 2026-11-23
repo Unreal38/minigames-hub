@@ -14,6 +14,7 @@
 //   bake(root)           merges a group's static meshes into a few (see below); any 3D game can use it on its props.
 import * as THREE from 'three';
 import { SKINS, HAIR_COLS, EYE_COLS, BOTTOM_COLS, SHOE_COLS, avObj } from './avatar.js';
+import { hairParts, HC, envT } from './hair3d.js';
 
 // ---------- bake: for scenery ----------
 
@@ -97,14 +98,14 @@ function merge(root, mat, extra = []) {
     if (ch.userData.own) continue;
     if (ch.isMesh && ch.material === stub) {
       const g = ch.geometry.index ? ch.geometry.toNonIndexed() : ch.geometry.clone(); g.applyMatrix4(_m.multiplyMatrices(_i, ch.matrixWorld));
-      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone()]); n += g.attributes.position.count; g.dispose(); gone.push(ch);
+      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone(), ch.userData.cs && g.attributes.tone ? [g.attributes.tone.array, ch.userData.cs.map(c => new THREE.Color(c))] : null]); n += g.attributes.position.count; g.dispose(); gone.push(ch);
     } else walk(ch);
   } };
   walk(root);
   for (const m of gone) m.parent.remove(m);
   let ln = n; for (const e of extra) ln += e.pos.length / 3;
   const pos = new Float32Array(ln * 3), nor = new Float32Array(ln * 3), col = new Float32Array(n * 3); let o = 0;
-  for (const [p, nn, c] of parts) { pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { col[o + i] = c.r; col[o + i + 1] = c.g; col[o + i + 2] = c.b; } o += p.length; }
+  for (const [p, nn, c, tn] of parts) { pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { const k = tn ? tn[1][Math.round(tn[0][i / 3])] : c; col[o + i] = k.r; col[o + i + 1] = k.g; col[o + i + 2] = k.b; } o += p.length; } // hair carries a tone per point (see hair3d.js)
   for (const e of extra) { pos.set(e.pos, o); nor.set(e.nor, o); o += e.pos.length; }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos.subarray(0, n * 3), 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor.subarray(0, n * 3), 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -257,10 +258,9 @@ const HAT_BRIM = { 1: .72, 2: .76, 3: .88, 9: .8, 10: .86, 11: .87, 13: .9, 14: 
 const HAT_WRAP = [32, 33, 'hood'], WRAP_AT = { hood: .92 }; // how far round from the front the sides start (radians)
 // A headband (headphones, earmuffs) stays its own size on big hair and presses a groove into it instead.
 const HAT_BAND = [6, 31, 38];
-const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38, 41], HC = new THREE.Vector3(0, .47, 0), SHELL = 1.12;
-// How far from C along the unit direction d you can go and still be inside the skull grown sideways by o, the way
-// hair and hat shells are made (shellPts), closed over the crown by a low cone. skullT is the bare skull.
-const envT = (hr, d, o) => { let lo = 0, hi = 1.4; for (let i = 0; i < 18; i++) { const t = (lo + hi) / 2, y = HC.y + d.y * t, r = Math.hypot(d.x * t, d.z * t); if (y >= 0 && (y <= 1 ? r <= hr(y) + o : r <= o - (y - 1))) lo = t; else hi = t; } return lo; };
+const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38, 41], SHELL = 1.12;
+// envT (hair3d.js): how far from C along the unit direction d you can go and still be inside the skull grown sideways
+// by o, the way hair and hat shells are made. skullT is the bare skull.
 const skullT = (hr, d) => envT(hr, d, 0);
 function fitHat(hg, hH, hT, hat, hr) {
   const brim = HAT_BRIM[hat], top = HAT_TOP.includes(hat), wa = WRAP_AT[hat] || 1.44, wrap = HAT_WRAP.includes(hat) ? (x, z) => Math.atan2(Math.abs(x), z) > wa : () => false, made = [];
@@ -584,31 +584,9 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const hat = a.hat, hatKey = hoodC ? 'hood' : hat, hs = a.hair === 13 && (HAT_BRIM[hatKey] != null || hat === 23) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
   // rings get closer together towards the crown, where the skull curves fastest, so the shell never dips below it
   const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 14; j++) { const y = ya + (yb - ya) * Math.sin(j / 14 * PI / 2); p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
-  const base = (hf, hb, off = .065, c = hair) => { part(hH, shellPts(hf, 1, off), c, 0, A); part(hH, shellPts(hb, 1, off), c, PI, PI - A); };
-  const bangs = (nb = 5, len = .26, skew = 0, spread = 1.2) => {
-    for (let i = 0; i < nb; i++) {
-      const f = nb > 1 ? i / (nb - 1) - .5 : 0, pv = new THREE.Group(); pv.rotation.y = f * 2 * spread; hH.add(pv);
-      const l = len * (1 - Math.abs(f) * .25) * (i % 2 ? .86 : 1), c = cone(pv, spread / nb * .62 + .05, l, i % 2 ? hD : hair, 0, .8 - l * .5, hr(.7) + .035); c.rotation.set(PI + .16, 0, skew); c.scale.z = .42;
-    }
-  };
-  const clump = (r, x, y, z, sx = 1, sy = 1, sz = 1, c = hair) => { const o = sph(hH, r, c, x, y, z); o.scale.set(sx, sy, sz); return o; };
-  const tail = (r, l, x, y, z, rx = 0, rz = 0, c = hair) => { const o = cone(hH, r, l, c, x, y, z); o.rotation.set(PI + rx, 0, rz); return o; };
-  const tieC = '#ff8fab';
-  if (hs === 0) { base(.74, .42); bangs(5, .24); clump(.2, 0, 1.1, -.16); }
-  if (hs === 1) { base(.74, .46); bangs(4, .2, .3); }
-  if (hs === 2) { base(.74, .42); bangs(5, .26); for (const s of [-1, 1]) { clump(.15, s * .52, .74, -.1); tail(.17, .7, s * .64, .34, -.12, 0, s * .28, hD); box(hH, .07, .07, .07, tieC, s * .47, .82, -.08); } }
-  if (hs === 3) { base(.76, .46); for (let i = 0; i < 9; i++) { const an = i / 9 * PI * 2, c = cone(hH, .17, .4, i % 2 ? hD : hair, Math.sin(an) * .3, 1.0, Math.cos(an) * .27 - .06); c.rotation.set(Math.cos(an) * .75, 0, -Math.sin(an) * .75); } cone(hH, .17, .4, hair, 0, 1.14, -.06); bangs(5, .3, 0, 1.25); }
-  if (hs === 4) { base(.74, .36); part(hH, [[.57, .55], [.6, .1], [.56, -.4], [.44, -.72], [.3, -.74]], hD, PI, 1.9); bangs(6, .3); for (const s of [-1, 1]) tail(.12, .62, s * .5, .32, .14, 0, s * .1); }
-  if (hs === 6) { base(.74, .1, .085); bangs(6, .28); }
-  if (hs === 7) { base(.76, .42); bangs(5, .24, -.2); clump(.14, 0, .84, -.56); box(hH, .1, .08, .1, tieC, 0, .86, -.5); tail(.18, .8, 0, .42, -.72, -.25, 0, hD); }
-  if (hs === 8) { base(.78, .4); for (let i = 0; i < 22; i++) { const an = i * 2.4, e = .3 + (i % 5) * .3; clump(.16, Math.sin(an) * Math.sin(e) * .5, .58 + Math.cos(e) * .5, Math.cos(an) * Math.sin(e) * .48 - .04, 1, 1, 1, i % 3 ? hair : hD); } for (let i = 0; i < 4; i++) clump(.1, (i - 1.5) * .17, .76, hr(.76) - .02, 1, 1, .6, i % 2 ? hD : hair); }
-  if (hs === 9) { base(.86, .6, .016, hD); for (let i = 0; i < 6; i++) { const o = cone(hH, .12, .36 + Math.sin((i + .5) / 6 * PI) * .14, i % 2 ? hD : hair, 0, 1.12 + Math.sin((i + .5) / 6 * PI) * .04, .34 - i * .15); o.rotation.x = .5 - i * .22; o.scale.x = .6; } }
-  if (hs === 10) base(.8, .5, .02);
-  if (hs === 11) { base(.74, .44); bangs(5, .3, .55, 1.15); clump(.2, -.36, .9, .1, 1, .6, 1.2, hD); }
-  if (hs === 12) { base(.8, .46); clump(.26, 0, 1.02, .26, 1.2, .8, 1); cone(hH, .2, .4, hD, 0, 1.1, .38).rotation.x = -1.0; }
-  if (hs === 13) { base(.76, .4); clump(.66, 0, .93, -.1, 1.02, .86, .98); for (let i = 0; i < 5; i++) clump(.13, (i - 2) * .17, .8 - Math.abs(i - 2) * .03, hr(.8) - .03, 1, 1, .6, i % 2 ? hD : hair); } // sits high, so it never hangs over the face
-  if (hs === 14) { base(.76, .42); bangs(5, .26); for (const s of [-1, 1]) { for (let i = 0; i < 5; i++) clump(.085, s * .5, .36 - i * .15, .1 + i * .015, 1, 1, 1, i % 2 ? hD : hair); box(hH, .06, .06, .06, tieC, s * .5, -.4, .17); } }
-  if (hs === 15) { base(.74, .2, .08); bangs(5, .28, .15); for (const s of [-1, 1]) { clump(.2, s * .5, .12, -.06, .8, 1.2, 1, hD); clump(.18, s * .52, -.14, -.02, .8, 1.1, 1); } clump(.36, 0, -.02, -.36, 1.3, 1, .6, hD); }
+  // one sculpted piece per style (hair3d.js), in three tones of the hair colour
+  const tieC = '#ff8fab', tones = [hair, shade(hair, .87), shade(hair, .66), mix(hair, '#ffffff', .22)];
+  for (const p of hairParts(hs, a.face, hr, seated ? .26 : 0, a.back > 0 || top === 22 || top === 26)) { const o = put(hH, p.geo, p.c === 'tie' ? tieC : hair); if (p.c !== 'tie') o.userData.cs = tones; }
   // facial hair: modelled, so it has the same chunky look as the hair (stubble is painted on the face)
   const fh = a.facial, tash = (curl) => { for (const s of [-1, 1]) {
     const m = sph(hg, .1, hD, s * .075, .252, fz(.075, .252, .012)); m.scale.set(1, .42, .5); m.rotation.set(0, s * .3, -s * .32);
