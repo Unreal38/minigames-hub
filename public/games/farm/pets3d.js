@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { M, MX, G, toonify } from './models.js';
 import { bake } from '../../avatar3d.js';
 import { COAT } from './breed.js';
+import { SPECIES } from './data.js';
 
 const mat = c => typeof c === 'string' ? M(c) : c;
 const V = (p, o, pos, rot, scl) => { if (pos) o.position.set(...pos); if (rot) o.rotation.set(...rot); if (scl) o.scale.set(...(scl.length ? scl : [scl, scl, scl])); p.add(o); return o; };
@@ -31,30 +32,42 @@ const WH = () => MX('shine', '#ffffff', { emissive: '#ffffff', emissiveIntensity
 // One eye: a dark dome that hugs the curve of the head (turn: how far it leans to its side), with two white glints
 // that blink away with it. Faces +Z; the scene squashes scale.z to blink.
 const EYEM = new THREE.MeshBasicMaterial({ vertexColors: true }); EYEM.userData.keep = true; // shared by every pet, never disposed
-// Eye designs. Each is one mesh (dome, iris and glints fused, coloured per vertex), so an eye is one draw call.
-//   bead: a glossy dark bead with two glints. sparkle: a tall oval with a violet lower iris and three glints. dot: a small button, set wide.
-let EYE = 'bead';
+// Eye designs. Each is one mesh (rim, iris, pupil and glints fused, coloured per vertex), so an eye is one draw call.
+// The iris takes the pet's element: IRIS is set by petModel while a pet is being built ([deep, light] per element).
+const IRISES = { Leaf: ['#2f9a4c', '#a8ec6c'], Ember: ['#d2502a', '#ffbf4d'], Tide: ['#2f6fd6', '#86dcff'], Spark: ['#d08a10', '#ffe85c'], Stone: ['#7a62c8', '#cdbcff'], none: ['#7d5bd0', '#b9a2ff'] };
+let EYE = 'sparkle', IRIS = IRISES.none, IRIS2 = null;
 export const setEyes = k => { EYE = k; };
+// A part is an ellipsoid bulging out of the dome [colour, x, up, rx, rup, depth] or, with depth 0, a flat disc on it.
+// Colours: 'd' the deep iris, 'l' the light iris, 'm' between them, anything else as given. s: -1 left eye, 1 right.
 const EYES = {
-  bead: { k: 1, gap: 0, y: 0, dome: [1, .34, 1], bits: [['#ffffff', .34, .36, .36], ['#ffffff', -.36, -.4, .17]] },
-  sparkle: { k: 1.12, gap: .01, y: -.01, dome: [.9, .34, 1.14], bits: [['#7d5bd0', 0, -.34, .62, [1, .78]], ['#b9a2ff', 0, -.56, .4, [1, .5]], ['#ffffff', .3, .46, .34], ['#ffffff', -.34, -.2, .15], ['#ffffff', -.12, -.62, .09]] },
-  dot: { k: .7, gap: .05, y: -.03, dome: [1, .4, 1], bits: [['#ffffff', .3, .34, .3]] },
+  bead: { k: 1, gap: 0, y: 0, dome: [1, .34, 1], parts: () => [['#ffffff', .34, .36, .36, .36, 0], ['#ffffff', -.36, -.4, .17, .17, 0]] },
+  sparkle: { k: 1.12, gap: .01, y: -.01, dome: [.9, .34, 1.14], parts: () => [['#7d5bd0', 0, -.34, .56, .5, .36], ['#b9a2ff', 0, -.58, .36, .22, .38], ['#ffffff', .3, .5, .3, .34, 0], ['#ffffff', -.3, -.24, .13, .15, 0], ['#ffffff', -.1, -.7, .08, .09, 0]] },
+  dot: { k: .7, gap: .05, y: -.03, dome: [1, .4, 1], parts: () => [['#ffffff', .3, .34, .3, .3, 0]] },
+  // anime animal eyes: a dark rim, an iris shaded deep above and light below, a pupil, and glints
+  round: { k: 1.2, gap: .015, y: -.01, dome: [1, .2, 1.06], parts: () => [['d', 0, -.05, .92, .9, .3], ['m', 0, -.3, .76, .64, .32], ['l', 0, -.54, .56, .38, .34], [INK, 0, .02, .36, .42, .37], ['#ffffff', .34, .46, .3, .32, 0], ['#ffffff', -.36, -.38, .14, .15, 0]] },
+  tall: { k: 1.2, gap: .01, y: -.01, dome: [.86, .2, 1.2], parts: () => [['d', 0, -.1, .9, .88, .3], ['m', 0, -.36, .74, .62, .32], ['l', 0, -.62, .54, .36, .34], [INK, 0, -.02, .34, .44, .37], ['#ffffff', .3, .5, .3, .32, 0], ['#ffffff', -.34, -.4, .13, .14, 0], ['#ffffff', -.02, -.8, .08, .07, 0]] },
+  jewel: { k: 1.24, gap: .02, y: -.015, dome: [.96, .2, 1.12], parts: () => [['d', 0, -.06, .92, .9, .3], ['l', 0, -.42, .7, .52, .33], ['#ffffff', 0, -.74, .32, .12, .335], [INK, 0, .06, .2, .5, .37], ['#ffffff', .36, .5, .28, .28, 0], ['#ffffff', .54, .12, .1, .1, 0], ['#ffffff', -.36, -.3, .12, .12, 0]] },
 };
-const eyeGeos = {};
-function eyeG(kind) {
-  if (eyeGeos[kind]) return eyeGeos[kind];
-  const E = EYES[kind], [dx, dy, dz] = E.dome, d0 = new THREE.IcosahedronGeometry(1, 2); d0.scale(dx, dy, dz);
-  const parts = [[d0, INK]];
-  for (const [c, x, y, k, sq = [1, 1]] of E.bits) { const g = new THREE.CylinderGeometry(k, k, .04, 12); g.scale(sq[0] * dx, 1, sq[1]); const q = Math.sqrt(Math.max(.05, 1 - x * x - y * y)); g.translate(x * dx, q * dy + (c === '#ffffff' ? .05 : c === '#b9a2ff' ? .03 : .012), -y * dz); parts.push([g, c]); }
-  const pos = [], col = [];
-  for (const [g0, c] of parts) { const g = g0.index ? g0.toNonIndexed() : g0, P = g.attributes.position; _c.set(c); for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); col.push(_c.r, _c.g, _c.b); } }
-  const o = eyeGeos[kind] = new THREE.BufferGeometry(); o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  return o;
+const eyeGeos = new Map(), _m4 = new THREE.Matrix4(), _e3 = new THREE.Euler();
+function eyeG(kind, side) {
+  const E = EYES[kind], two = IRIS2 || IRIS, key = [kind, kind === 'tall' ? side : 0, IRIS[0], two[0]].join(); let o = eyeGeos.get(key); if (o) return o;
+  const [dx, dy, dz] = E.dome, pos = [], col = [], shade = c => c === 'd' ? IRIS[0] : c === 'l' ? two[1] : c === 'm' ? mix(IRIS[0], two[1], .5) : c;
+  const add = (g, c) => { const P = (g.index ? g.toNonIndexed() : g).attributes.position; _c.set(shade(c)); for (let i = 0; i < P.count; i += 3) { if (P.getY(i) < 0 && P.getY(i + 1) < 0 && P.getY(i + 2) < 0) continue; for (let j = i; j < i + 3; j++) { pos.push(P.getX(j), P.getY(j), P.getZ(j)); col.push(_c.r, _c.g, _c.b); } } };
+  const dome = new THREE.IcosahedronGeometry(1, 2); dome.scale(dx, dy, dz); add(dome, INK);
+  for (const [c, x, up, rx, ru, d, turn = 0] of E.parts(side)) {
+    let g;
+    if (d) { g = new THREE.IcosahedronGeometry(1, 2); g.scale(rx * dx, d, ru * dz); }
+    else { g = new THREE.CylinderGeometry(1, 1, .04, 14); g.scale(rx * dx, 1, ru * dz); g.translate(0, dy < .3 ? .4 : Math.sqrt(Math.max(.05, 1 - x * x - up * up)) * dy + .1, 0); }
+    if (turn) g.applyMatrix4(_m4.makeRotationFromEuler(_e3.set(0, turn, 0)));
+    g.translate(x * dx, 0, -up * dz); add(g, c);
+  }
+  o = new THREE.BufferGeometry(); o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  eyeGeos.set(key, o); return o;
 }
 // One eye: it hugs the curve of the head (turn: how far it leans to its side). Faces +Z; the scene squashes the mesh's scale.z to
 // blink, so the size lives on the holder group.
-function eyeAt(p, eyes, r, pos, tilt = 0, turn = 0, nod = 0) {
-  const h = Grp(p, pos, [nod, turn, 0], r * EYES[EYE].k), e = V(h, new THREE.Mesh(eyeG(EYE), EYEM), null, [PI / 2, 0, tilt]); e.userData.noInk = 1; h.userData.unit = 1;
+function eyeAt(p, eyes, r, pos, tilt = 0, turn = 0, nod = 0, side = 1) {
+  const h = Grp(p, pos, [nod, turn, 0], r * EYES[EYE].k), e = V(h, new THREE.Mesh(eyeG(EYE, side), EYEM), null, [PI / 2, 0, tilt]); e.userData.noInk = 1; h.userData.unit = 1;
   eyes.push(e); return e;
 }
 // The mouth: a tiny "w" of two curls under the nose.
@@ -65,7 +78,7 @@ function face(p, eyes, pos, r, { gap = .34, y = .05, eye = 1, nose = '#f59ab0', 
   z = Math.max(z, zOf(gap, y) - .02); // sit on the surface of a round head
   const g = Grp(p, pos, null, r), bl = MX('blush' + blush, blush, { transparent: true, opacity: .5 }), mi = ink === INK ? MX('ink', INK, { roughness: .5 }) : mat(ink);
   for (const s of [-1, 1]) {
-    eyeAt(g, eyes, er, [s * gap, y, z - er * .12], -s * .25, s * Math.asin(Math.min(.9, gap)) * .6, -Math.asin(Math.max(-.9, Math.min(.9, y))) * .6);
+    eyeAt(g, eyes, er, [s * gap, y, z - er * .12], -s * .25, s * Math.asin(Math.min(.9, gap)) * .6, -Math.asin(Math.max(-.9, Math.min(.9, y))) * .6, s);
     const bx = gap + .25, by = y - .2, bz = Math.max(z - .2, zOf(bx, by) + .03);
     V(g, new THREE.Mesh(G('Circle', .13, 12), bl), [s * bx, by, bz], [-by * .5, s * Math.asin(Math.min(.9, bx)) * .85, 0], [1.3, .78, 1]);
     if (mouth) V(g, new THREE.Mesh(curl(), mi), [s * .052, y - .15, z + .06 + out], [.25, 0, PI]).userData = { noInk: 1, feat: 'mouth' };
@@ -424,7 +437,7 @@ function catTail(g, F, cols, fat = 1, kind = 's') {
   const k = [.55, .85, 1.05][F], t = Grp(g, [0, 0, 0], null, k), n = cols.length; t.userData.wig = 'tail';
   const m = kind === 'bob' ? 3 : n * 2 - 1;
   for (let i = 0; i < m; i++) { const u = i / (m - 1), c = cols[Math.round(u * (n - 1))];
-    if (kind === 'hook') Sp(t, (.1 - u * .015) * fat, c, [u > .7 ? (u - .7) * 1.3 : 0, .08 + Math.min(u, .78) * 1.75 - (u > .78 ? (u - .78) * .9 : 0), -.2 - u * .22], [1, 1.15, 1], 1);
+    if (kind === 'hook') Sp(t, (.1 - u * .015) * fat, c, [u * .34 + (u > .7 ? (u - .7) * 1.3 : 0), .08 + Math.min(u, .78) * 1.75 - (u > .78 ? (u - .78) * .9 : 0), -.2 - u * .22], [1, 1.15, 1], 1);
     else if (kind === 'side') Sp(t, (.2 - u * .05) * fat, c, [.1 + Math.sin(u * 1.5) * .95, .02, -.1 - Math.sin(u * PI) * .5 - u * .25], [1, .9, 1], 1);
     else if (kind === 'bob') Sp(t, (.2 - Math.abs(i - 1) * .04) * fat, c, [(i - 1) * .1, .16 + (i === 1 ? .1 : 0), -.2 - (i === 1 ? .08 : 0)], null, 1);
     else Sp(t, (.15 - u * .03) * fat, c, [Math.sin(u * 2.6) * .16, .08 + u * .82, -.12 - Math.sin(u * PI) * .3 + u * .12], [1, 1.15, 1], 1); }
@@ -1543,6 +1556,8 @@ export function petModel(sp, form = 0, look = null) {
   const SLOTWIG = { top: 'top', tail: 'tail' };
   const part = (f, pos, k) => { const o = Grp(g, pos, null, k); FEAT[f].b(o, F, K); const w = SLOTWIG[FEAT[f].slot]; let inner = false; o.traverse(c => { if (c !== o && c.userData.wig) inner = true; }); if (w && !inner) o.userData.wig = w; return o; };
   const X = { eyes, coat, own: slot => !borrowed || FEAT[borrowed].slot !== slot, sig: (pos, k = 1) => part(sp, pos, k) };
+  const els = SPECIES[sp]?.el2 ? [SPECIES[sp].el, SPECIES[sp].el2] : [K.el || SPECIES[sp]?.el];
+  IRIS = IRISES[els[0]] || IRISES.none; IRIS2 = els[1] ? IRISES[els[1]] : null; // a hybrid's eyes shade from one element into the other
   const A = BODY[sp](g, F, K, X);
   if (borrowed) part(borrowed, A[FEAT[borrowed].slot], A.fs || 1);
   if (K.el && sp !== 'sizzlet' && A.head) { const h = A.head, hr = h.r[0] || h.r; CHARM[K.el](Grp(g, [h.p[0] - hr * .6, h.p[1] + hr * .72, h.p[2] + hr * .15], [0, 0, .45], hr / .65)); }
@@ -1593,15 +1608,16 @@ const _bx = new THREE.Box3(), _hc = new THREE.Vector3(), _bc = new THREE.Vector3
 function chibi(g, A, F) {
   const [kh, kb] = CHIBI[F]; if (kh === 1 || !A.head || !A.body) return;
   const hr = A.head.r[0] || A.head.r; _hc.fromArray(A.head.p); _bc.fromArray(A.body.p); _ax.subVectors(_hc, _bc);
-  const L2 = _ax.lengthSq(); if (L2 < hr * hr * .3) return; // the head is the body
+  const L2 = _ax.lengthSq(), br = A.body.r, e = br.length ? (_ax.x / br[0]) ** 2 + (_ax.y / br[1]) ** 2 + (_ax.z / br[2]) ** 2 : 9;
+  if (L2 < hr * hr * .3 || e < .8) return; // the head is the body, or a face set into it
   const L = Math.sqrt(L2), tn = 1 - hr * .78 / L, lift = (kh - kb) * hr * .42;
   const units = [], walk = o => { for (const c of o.children) { if (c.isMesh || c.userData.wig || c.userData.flame || c.userData.unit || !c.children.some(x => !x.isMesh)) units.push(c); else walk(c); } };
   g.updateWorldMatrix(true, true); walk(g);
   const sm = (a, b, x) => { x = Math.max(0, Math.min(1, (x - a) / (b - a))); return x * x * (3 - 2 * x); };
   const jobs = units.map(u => {
     _bx.setFromObject(u).getCenter(_cc);
-    const t = _cc.clone().sub(_bc).dot(_ax) / L2, back = (_hc.z - _cc.z) / hr, w = sm(tn - .14, tn + .04, t) * (1 - sm(1.25, 1.7, back));
-    const k = kb + (kh - kb) * w, c = _cc.clone();
+    const t = _cc.clone().sub(_bc).dot(_ax) / L2, back = (_hc.z - _cc.z) / hr, near = 1 - sm(1.1, 1.5, _cc.distanceTo(_hc) / hr), above = sm(-1, -.6, (_cc.y - _hc.y) / hr), w = sm(tn - .14, tn + .04, t) * (1 - sm(1.25, 1.7, back)) * Math.max(near, above);
+    const k = u.userData.wig === 'tail' ? Math.max(1, kb + (kh - kb) * w) : kb + (kh - kb) * w, c = _cc.clone(); // tails keep their size: they are half the outline
     const nx = (c.x - _bc.x) * kb + _bc.x, ny = c.y * kb, nz = (c.z - _bc.z) * kb + _bc.z; // as part of the body
     const hx = (_hc.x - _bc.x) * kb + _bc.x + (c.x - _hc.x) * kh, hy = _hc.y * kb + lift + (c.y - _hc.y) * kh, hz = (_hc.z - _bc.z) * kb + _bc.z + (c.z - _hc.z) * kh; // as part of the head
     return [u, k, c, new THREE.Vector3(nx + (hx - nx) * w, ny + (hy - ny) * w, nz + (hz - nz) * w)];

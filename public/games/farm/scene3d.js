@@ -13,7 +13,7 @@ import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
 import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
-import { petModel, eggModel } from './pets3d.js';
+import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
 import { groundOf, R as RIMS, BASE, finish, pieceModel } from '../../isle3d.js';
@@ -673,6 +673,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
       const blink = asleep || (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
+      if (!asleep) wiggle(p.g, T, p.seed, moving ? .5 : 0);
       if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
       if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
       p.blob.position.set(p.x + ox, .015, p.z + oz); p.blob.visible = up < .3; p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
@@ -850,6 +851,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.blob.position.set(p.g.position.x, .04, p.g.position.z); p.blob.scale.setScalar(p.base * 3 / (1 + p.g.position.y * .5));
       const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : p.low ? .6 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
+      if (!p.down) wiggle(p.g, T, p.seed || 0, p.win ? 1 : 0);
       p.blob.visible = p.fall < .5;
     }
   }

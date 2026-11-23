@@ -125,7 +125,7 @@ function squash(root) {
   return root;
 }
 const EMPTY = new THREE.BufferGeometry();
-function freePet(g) { g.traverse(m => { if (m.isMesh && (m.userData.mine || m.userData.ink)) m.geometry.dispose(); }); }
+function freePet(g) { g.traverse(m => { if (m.isMesh && (m.userData.mine || m.userData.ink || m.userData.baked)) m.geometry.dispose(); }); }
 function makePet(sp, form) { return squash(petModel(sp, form)); }
 
 // ---------- little props ----------
