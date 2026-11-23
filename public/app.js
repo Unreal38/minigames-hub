@@ -1078,10 +1078,16 @@ const topbar = () => `<header class="top">
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
+// The name tag on your isle: it opens the Wardrobe on the isle page; a guest gets a nudge to make their own.
+const isleTag = () => st.me?.user
+  ? `<button type="button" class="isletag" data-act="isle"><span class="itn">${nameHtml(st.name || '', flairOf(st.me))}</span><span class="lvslot">${meChip()}</span><span class="itgo">${L('Dress your isle', 'Urządź wyspę')} ›</span></button>`
+  : `<button type="button" class="isletag guest" data-act="isle"><span class="itn">${L('This could be your isle', 'To może być twoja wyspa')}</span><span class="itgo">${L('Make yours', 'Zrób swoją')} ›</span></button>`;
 function mountSkyHero() {
-  const box = document.querySelector('.hero .art'); if (!box) return;
-  box.classList.add('sky3d');
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }); }).catch(() => {});
+  const art = document.querySelector('.hero .art'), box = art?.querySelector('.icv'); if (!box) return;
+  art.classList.add('sky3d');
+  const tag = art.querySelector('.isletag'); if (tag) tag.outerHTML = isleTag();
+  const frame = art.closest('.hero'); // the hero is a banner painted in your isle's sky
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }, { frame, zoom: 1.15 }); }).catch(() => {});
   if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
 // The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
@@ -1162,7 +1168,7 @@ function renderHub() {
         </div>
         <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
       </div>
-      <div class="art">${tableArt()}</div>
+      <div class="art"><div class="icv">${tableArt()}</div>${isleTag()}</div>
     </section>
     <div class="hubmid">
     <section id="games">
@@ -2128,6 +2134,7 @@ $app.addEventListener('click', e => {
   else if (act === 'rules') openRules(b.dataset.game || (st.view === 'lobby' ? st.room?.game : undefined));
   else if (act === 'profile') openProfile();
   else if (act === 'style') { if (!st.name) return openProfile(true); openStyle(); }
+  else if (act === 'isle') { if (!st.name) return openProfile(true); openWardrobe({ sec: 'isle' }); }
   else if (act === 'shop') { if (!st.name) return openProfile(true); openWardrobe({ sec: 'drop', filt: 'shop' }); }
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
