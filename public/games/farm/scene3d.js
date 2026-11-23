@@ -501,7 +501,9 @@ export function createScene(canvas, { onPick, onGhost }) {
     garden: ['sniff', 4], flowers: ['sniff', 3.5], bush: ['sniff', 3.5], shrooms: ['dance', 4.5],
     pond: ['soak', 9], hotspring: ['soak', 11], fountain: ['drink', 4], birdbath: ['drink', 3.5], well: ['drink', 4],
     bench: ['sit', 8], palbench: ['sit', 8], picnic: ['sit', 8], campfire: ['warm', 9],
-    tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5] };
+    tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5],
+    // the lucky set from the Lucky Wheel
+    clover: ['sniff', 3.5], carousel: ['dance', 5], chest: ['look', 3], goldpet: ['look', 3.5], balloon: ['look', 3.5], coinfount: ['drink', 4], horseshoe: ['cheer', 2.4], miniwheel: ['cheer', 2.6] };
   const SEAT = { bench: .24, palbench: .24, picnic: .04, pond: -.1, hotspring: -.12 }; // how high a pet sits on or in something
   const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
   // A building just got better: confetti and stars burst from it, and dust puffs out round its foot.
