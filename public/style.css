@@ -1264,6 +1264,8 @@ html[lang=pl] .ttile .tbody b { white-space: normal; line-height: 1.1; font-size
 /* the optional Ko-fi link in the hub footer */
 footer .kofi { display: inline-block; margin-top: 6px; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 footer .kofi:hover { color: var(--tx, var(--ink)); }
+footer .plink { font-weight: 700; color: inherit; text-underline-offset: 3px; }
+footer .plink:hover { color: var(--tx, var(--ink)); }
 /* the Support window */
 .suppics { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 6px 0 12px; }
 .suppics.wide { grid-template-columns: repeat(5, 1fr); }

@@ -352,6 +352,34 @@ setInterval(() => {
   }
 }, 3000).unref();
 
+// ---------- deleting an account ----------
+// Someone asks for their account to be deleted (see public/privacy.html). The host runs
+// `npm run delete-account -- <username>` (server/delete.js), which drops a small file in the data folder; the running
+// server picks it up here. The profile, its friend links on other accounts and its sign-ins go; every screen it was
+// signed in on becomes a fresh guest. onForget lets Pet Farm and the hub chat drop what they hold for it.
+const forgetHooks = [];
+export const onForget = fn => { forgetHooks.push(fn); };
+export function deleteAccount(user) {
+  const name = String(user ?? '').trim().toLowerCase(), pid = users.get(name), p = profiles.get(pid);
+  if (!p) return null;
+  const out = [];
+  for (const [t, s] of sessions) if (s.pid === pid) { s.pid = newProfile().pid; out.push(t); }
+  for (const o of profiles.values()) for (const k of ['friends', 'reqs', 'sent']) if (Array.isArray(o[k]) && o[k].includes(pid)) o[k] = o[k].filter(x => x !== pid);
+  profiles.delete(pid); users.delete(name);
+  for (const fn of forgetHooks) try { fn(pid, out); } catch (e) { console.error('forget hook failed', e); }
+  saveNow();
+  return { user: p.user, out };
+}
+setInterval(() => {
+  let files; try { files = fs.readdirSync(DIR).filter(f => /^delete-[a-z0-9]+\.json$/.test(f)); } catch { return; }
+  for (const f of files) {
+    const file = path.join(DIR, f);
+    try { const r = JSON.parse(fs.readFileSync(file, 'utf8')), d = deleteAccount(r.user); console.log(d ? `account ${d.user} deleted (${d.out.length} screens signed out)` : `delete file for unknown user ${r.user} ignored`); }
+    catch (e) { console.error(f, 'could not be read', e.message); }
+    try { fs.unlinkSync(file); } catch {}
+  }
+}, 3000).unref();
+
 // ---------- Ko-fi supporters ----------
 // Supporting the site on Ko-fi gives the Supporter pack (public/avatar.js PACK 'kofi'). Ko-fi tells the server about
 // every payment (server.js, POST /kofi); the supporter writes their username in the Ko-fi message, so the pack lands

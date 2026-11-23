@@ -77,3 +77,9 @@ export function remove(p, id) {
   log.splice(i, 1); scheduleSave(); return true;
 }
 export const forReader = view;
+// A deleted account's messages leave the chat. Returns the removed ids, so open screens can drop them too.
+export function forget(pid) {
+  const gone = log.filter(m => m.pid === pid).map(m => m.id);
+  if (gone.length) { log = log.filter(m => m.pid !== pid); scheduleSave(); saveNow(); }
+  return gone;
+}

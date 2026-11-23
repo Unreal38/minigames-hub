@@ -819,3 +819,12 @@ export function testHook(pid, a) {
   if (a.wild && own(SPECIES, a.wild)) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS };
   if (a.egg) for (const s of SLOTS) if (f[s]) f[s].at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;
 }
+// A deleted account (store.deleteAccount): its farm, pets and open trade offers go.
+export function forget(pid) {
+  const L = lives.get(pid); if (L) liveTurn(L, L.pids.indexOf(pid)); // a live battle ends as if they left
+  farms.delete(pid); battles.delete(pid); calls.delete(pid);
+  for (const [k, v] of invites) if (v.from === pid || v.to === pid) invites.delete(k);
+  for (const [v, c] of calls) if (c.host === pid) calls.delete(v);
+  for (const f of farms.values()) if (f.offers?.some(o => o.to === pid)) f.offers = f.offers.filter(o => o.to !== pid);
+  scheduleSave(); saveNow();
+}

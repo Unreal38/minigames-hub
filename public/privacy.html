@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prywatność · Zatoka Gier</title>
+<meta name="description" content="Jakie dane zbiera Zatoka Gier, po co, jak długo je trzyma i jak poprosić o ich usunięcie. Bez reklam, bez śledzenia, bez ciasteczek.">
+<link rel="canonical" href="https://zatokagier.com/privacy">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#6fbdf2">
+<!-- Both languages live here; <html lang> (set by the server from its guess, then by privacy.js from the saved pick) shows one.
+     The host's contact and the server's place are filled in by the server from PRIVACY_CONTACT and SERVER_PLACE. -->
+<style>
+@font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(/fonts/rubik-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Rubik'; font-weight: 300 900; font-display: swap; src: url(/fonts/rubik-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02FF; }
+@font-face { font-family: 'Nunito'; font-weight: 200 1000; font-display: swap; src: url(/fonts/nunito-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+@font-face { font-family: 'Nunito'; font-weight: 200 1000; font-display: swap; src: url(/fonts/nunito-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02FF; }
+:root { --bg1: #6fbdf2; --bg2: #e3f5ff; --card: #ffffffee; --tx: #1f3247; --muted: #4d6a84; --link: #1d6fb8; --edge: #ffffff; --code: #e9f4fd; }
+html.night { --bg1: #110e2b; --bg2: #352760; --card: #221b48ee; --tx: #f5f2ff; --muted: #bcbfeb; --link: #9fd0ff; --edge: #3d3470; --code: #2c2560; }
+* { box-sizing: border-box; }
+html[lang=pl] .en, html[lang=en] .pl { display: none !important; }
+body { margin: 0; min-height: 100vh; font: 17px/1.6 'Nunito', system-ui, sans-serif; color: var(--tx); background: linear-gradient(180deg, var(--bg1) 0, var(--bg2) 900px) fixed; background-color: var(--bg2); }
+main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.top a.home { font: 700 18px 'Rubik', sans-serif; color: #fff; text-decoration: none; text-shadow: 0 2px 0 #0003; }
+.langs { display: flex; gap: 6px; }
+.langs button { font: 700 14px 'Rubik', sans-serif; padding: 6px 12px; border-radius: 999px; border: 2px solid var(--edge); background: var(--card); color: var(--tx); cursor: pointer; }
+html[lang=pl] .langs [data-l=pl], html[lang=en] .langs [data-l=en] { background: var(--link); color: #fff; border-color: var(--link); }
+html.night .langs [data-l] { color: var(--tx); }
+html.night[lang=pl] .langs [data-l=pl], html.night[lang=en] .langs [data-l=en] { color: #110e2b; }
+article { background: var(--card); border: 3px solid var(--edge); border-radius: 22px; padding: 26px clamp(18px, 4vw, 36px); box-shadow: 0 10px 30px #0002; }
+h1 { font: 800 clamp(28px, 6vw, 38px)/1.15 'Rubik', sans-serif; margin: 0 0 6px; }
+h2 { font: 700 21px/1.3 'Rubik', sans-serif; margin: 28px 0 6px; }
+.lead { font-size: 18px; }
+.muted { color: var(--muted); font-size: 15px; }
+ul { padding-left: 22px; margin: 6px 0; }
+li { margin: 4px 0; }
+a { color: var(--link); text-underline-offset: 3px; }
+code { font-size: 14px; background: var(--code); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+.box { border-left: 5px solid var(--link); padding: 8px 14px; margin: 14px 0; background: var(--code); border-radius: 0 12px 12px 0; }
+footer { text-align: center; margin-top: 22px; }
+footer a { color: var(--link); font-weight: 700; }
+</style>
+<script src="/privacy.js"></script>
+</head>
+<body>
+<main>
+<div class="top">
+  <a class="home" href="/">← Zatoka Gier</a>
+  <div class="langs"><button type="button" data-l="pl">PL</button><button type="button" data-l="en">EN</button></div>
+</div>
+
+<article class="pl" lang="pl">
+<h1>Prywatność</h1>
+<p class="muted">Ostatnia zmiana: 23 listopada 2026</p>
+<p class="lead">Zatoka Gier to hobbystyczna strona z grami dla znajomych, prowadzona przez jedną osobę prywatną. Nie ma tu reklam, analityki ani śledzenia, a strona nie używa ciasteczek. Poniżej piszemy dokładnie, co zapisujemy, po co i jak długo.</p>
+
+<div class="box"><b>Kontakt w sprawie twoich danych:</b> <!--contact:pl-->(adres jeszcze nie podany)<!--/contact--><br>
+Napisz tutaj, jeśli chcesz zobaczyć, poprawić albo usunąć swoje dane.</div>
+
+<h2>Gdy masz konto</h2>
+<ul>
+<li><b>Nazwa użytkownika i hasło.</b> Hasła nie zapisujemy: trzymamy tylko jego skrót (scrypt z losową solą), z którego nie da się odczytać hasła. Kod odzyskiwania też jest zapisany tylko jako skrót. Nie prosimy o e-mail.</li>
+<li><b>Twój profil:</b> wyświetlana nazwa, kolor, wygląd awatara, kupione rzeczy, monety, poziom i ranga, wyniki i wygrane w grach, ustawienia karty profilu, wybrany język.</li>
+<li><b>Znajomi:</b> lista znajomych i zaproszeń.</li>
+<li><b>Farma zwierzaków i gry dzienne:</b> twoja farma (zwierzaki, budynki, przedmioty, wymiany, poczta, prezenty, odwiedziny) oraz wyniki codziennych zagadek.</li>
+<li><b>Czat:</b> wiadomości z czatu w hubie widzą wszyscy na stronie. Serwer trzyma 100 ostatnich. Czat przy stole (40 ostatnich wiadomości) znika razem ze stołem.</li>
+</ul>
+<p><b>Po co:</b> żeby gra działała i zapamiętywała twoje postępy. <b>Jak długo:</b> dopóki konto istnieje. Usuwamy je, gdy o to poprosisz.</p>
+<p><b>Co widzą inni gracze:</b> twoją nazwę, awatar, poziom, kartę profilu, miejsca w rankingach, wiadomości na czacie i farmę na mapie świata. Twoich danych nikomu nie sprzedajemy ani nie przekazujemy.</p>
+
+<h2>Gdy grasz jako gość</h2>
+<p>Przeglądarka dostaje losowy identyfikator, a serwer zapisuje przy nim postępy gościa (monety, wyniki, wygląd). Nieużywane sesje gości znikają po pół roku, a puste profile gości po godzinie. Licznik „odwiedzin” trzyma tylko krótki skrót tego identyfikatora, z którego nie da się dowiedzieć, kim jesteś.</p>
+
+<h2>Pamięć przeglądarki zamiast ciasteczek</h2>
+<p>Strona nie ustawia ciasteczek. W pamięci przeglądarki (localStorage) zapisuje tylko to, co potrzebne do działania: identyfikator logowania (<code>ct_token</code>), twój wygląd i nazwę, motyw dzień/noc, język, wyciszenie dźwięku, jakość grafiki i kilka ustawień w grach. Nic z tego nie służy do śledzenia. Możesz to wyczyścić w ustawieniach przeglądarki (wtedy zostaniesz wylogowany).</p>
+
+<h2>Adres IP i dzienniki serwera</h2>
+<ul>
+<li>Serwer używa adresu IP do ochrony przed nadużyciami (limity prób logowania, liczby połączeń i wiadomości). Te liczniki są tylko w pamięci i znikają najpóźniej po godzinie.</li>
+<li>Przy pierwszej wizycie serwer sprawdza, czy adres jest z Polski, żeby wybrać język. Robi to sam, na podstawie publicznej listy adresów (RIPE NCC). Twój adres nie jest nigdzie wysyłany.</li>
+<li>Dzienniki serwera (adres IP, czas, otwarta strona, rodzaj przeglądarki) służą do naprawiania błędów i ochrony strony. Są usuwane po 14 dniach.</li>
+</ul>
+
+<h2>Usługi innych firm</h2>
+<ul>
+<li><b>jsDelivr</b> dostarcza bibliotekę grafiki 3D (three.js), więc twoja przeglądarka łączy się z ich serwerami i widzą twój adres IP. <a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" rel="noopener">Polityka prywatności jsDelivr</a>.</li>
+<li><b>Ko-fi.</b> Jeśli wesprzesz stronę na Ko-fi, płatność obsługuje Ko-fi (<a href="https://more.ko-fi.com/privacy" rel="noopener">ich polityka prywatności</a>). Ko-fi przesyła nam wiadomość o płatności. Zapisujemy z niej tylko numer płatności (żeby nie policzyć jej dwa razy) i to, na które konto trafił pakiet wspierającego. Gdy w wiadomości nie ma nazwy użytkownika, trzymamy zaszyfrowany skrót twojego e-maila, żeby można było odebrać pakiet. Sam adres e-mail nie jest zapisywany.</li>
+</ul>
+
+<h2>Gdzie są dane</h2>
+<p>Wszystko powyżej leży na jednym serwerze strony: <!--place:pl-->wynajętym serwerze w Oracle Cloud<!--/place-->. Dostęp do niego ma tylko osoba, która prowadzi stronę.</p>
+
+<h2>Twoje prawa</h2>
+<p>Możesz poprosić o wgląd w swoje dane, ich poprawienie albo usunięcie konta. Wiele rzeczy zmienisz sam: nazwę i wygląd w Garderobie, hasło w oknie Hasło. Usunięcie konta jest ostateczne: znikają monety, rzeczy, wyniki, znajomi, farma i twoje wiadomości na czacie. Napisz na adres z ramki u góry, podając nazwę użytkownika. Jeśli uważasz, że twoje dane są źle traktowane, możesz złożyć skargę do Prezesa UODO (<a href="https://uodo.gov.pl" rel="noopener">uodo.gov.pl</a>).</p>
+<p><b>Podstawa:</b> dane kont i gier przetwarzamy, bo są potrzebne, żeby świadczyć ci usługę, o którą prosisz (art. 6 ust. 1 lit. b RODO). Adresy IP i dzienniki: uzasadniony interes, czyli ochrona strony przed nadużyciami (art. 6 ust. 1 lit. f RODO).</p>
+<p class="muted">Jeśli ta strona się zmieni, nowa wersja pojawi się tutaj z nową datą.</p>
+</article>
+
+<article class="en" lang="en">
+<h1>Privacy</h1>
+<p class="muted">Last updated: 23 November 2026</p>
+<p class="lead">Zatoka Gier is a hobby games site for friends, run by one private person. There are no ads, no analytics and no tracking, and the site uses no cookies. Here is exactly what we keep, why, and for how long.</p>
+
+<div class="box"><b>Contact about your data:</b> <!--contact:en-->(address not filled in yet)<!--/contact--><br>
+Write here if you want to see, correct or delete your data.</div>
+
+<h2>If you have an account</h2>
+<ul>
+<li><b>Username and password.</b> Your password is never stored: only a hash of it (scrypt with a random salt), which can't be turned back into the password. Your recovery code is also stored only as a hash. We never ask for your email.</li>
+<li><b>Your profile:</b> display name, colour, avatar look, items you own, coins, level and rank, scores and wins, profile card choices, and your language.</li>
+<li><b>Friends:</b> your friends list and friend requests.</li>
+<li><b>Pet Farm and daily games:</b> your farm (pets, buildings, items, trades, mail, gifts, visits) and your daily puzzle results.</li>
+<li><b>Chat:</b> hub chat messages are seen by everyone on the site. The server keeps the last 100. Table chat (the last 40 messages) goes away with the table.</li>
+</ul>
+<p><b>Why:</b> so the games work and remember your progress. <b>How long:</b> for as long as the account exists. We delete it when you ask.</p>
+<p><b>What other players see:</b> your name, avatar, level, profile card, ranking places, chat messages and your farm on the world map. We never sell or hand your data to anyone.</p>
+
+<h2>If you play as a guest</h2>
+<p>Your browser gets a random id, and the server keeps a guest's progress (coins, scores, look) under it. Unused guest sessions are forgotten after six months, and empty guest profiles after an hour. The "visitors so far" counter keeps only a short hash of that id, which can't tell anyone who you are.</p>
+
+<h2>Browser storage instead of cookies</h2>
+<p>The site sets no cookies. It keeps only what it needs to work in your browser's storage (localStorage): your sign-in id (<code>ct_token</code>), your look and name, day or night theme, language, sound on or off, graphics quality and a few in-game settings. None of it is used for tracking. You can clear it in your browser settings (that signs you out).</p>
+
+<h2>IP addresses and server logs</h2>
+<ul>
+<li>The server uses your IP address to stop abuse (limits on login tries, connections and messages). These counters live only in memory and are gone within an hour.</li>
+<li>On your first visit the server checks whether your address is in Poland, to pick the language. It does this by itself, from a public list of address blocks (RIPE NCC). Your address is never sent anywhere.</li>
+<li>Server logs (IP address, time, page opened, browser type) are used to fix bugs and protect the site. They are deleted after 14 days.</li>
+</ul>
+
+<h2>Other companies' services</h2>
+<ul>
+<li><b>jsDelivr</b> serves the 3D graphics library (three.js), so your browser connects to their servers and they see your IP address. <a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" rel="noopener">jsDelivr's privacy policy</a>.</li>
+<li><b>Ko-fi.</b> If you support the site on Ko-fi, Ko-fi handles the payment (<a href="https://more.ko-fi.com/privacy" rel="noopener">their privacy policy</a>). Ko-fi sends us a note about the payment. From it we keep only the payment number (so it isn't counted twice) and which account got the Supporter pack. If the message has no username, we keep a keyed hash of your email so you can claim the pack. The email address itself is never stored.</li>
+</ul>
+
+<h2>Where the data is</h2>
+<p>Everything above is on the site's one server: <!--place:en-->a rented Oracle Cloud server<!--/place-->. Only the person who runs the site can access it.</p>
+
+<h2>Your rights</h2>
+<p>You can ask to see your data, correct it, or have your account deleted. Much of it you can change yourself: your name and look in the Wardrobe, your password in the Password window. Deleting an account is final: your coins, items, scores, friends, farm and chat messages all go. Write to the address in the box at the top and tell us your username. If you think your data is being handled badly, you can complain to a data protection authority (in Poland: UODO, <a href="https://uodo.gov.pl" rel="noopener">uodo.gov.pl</a>).</p>
+<p><b>Legal basis:</b> account and game data are needed to give you the service you asked for (GDPR Art. 6(1)(b)). IP addresses and logs: legitimate interest in protecting the site from abuse (GDPR Art. 6(1)(f)).</p>
+<p class="muted">If this page changes, the new version will appear here with a new date.</p>
+</article>
+
+<footer><a href="/" class="pl">Wróć do gier</a><a href="/" class="en">Back to the games</a></footer>
+</main>
+</body>
+</html>
