@@ -1502,3 +1502,7 @@ body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border
 @media (min-width: 900px) { .me2 .megames .pergame { padding-right: 10px; margin-right: -8px; } }
 .me2 .pergame::-webkit-scrollbar { width: 8px; } .me2 .pergame::-webkit-scrollbar-track { background: transparent; }
 .me2 .pergame::-webkit-scrollbar-thumb { background: var(--edge, #c9a99a); border-radius: 999px; }
+/* the star count / constellation pill inside a level chip keeps its own look wherever the chip sits: list rows style
+   their small <i> tags (guest, screens...) and used to dim this one too */
+span.lv i.lvst { color: #ffe9a8 !important; background: #3b2219; border: 0 !important; font-size: .82em !important; font-weight: 700; padding: 1px 6px !important; }
+body.night span.lv i.lvst { background: #23245c; } span.lv i.lvst.lvcn { background: #23245c; padding: 1px 4px !important; }
