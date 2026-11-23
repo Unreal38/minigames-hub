@@ -51,12 +51,12 @@ function cardTexture(kind) { // kind -1 = back
       g.save(); rr(g, 9, 9, 238, 334, 27); g.clip();
       g.fillStyle = cat.col; g.fillRect(0, 0, 256, 62); g.fillStyle = INK; g.fillRect(0, 62, 256, 8);
       g.restore();
-      g.fillStyle = '#fff'; g.font = '600 32px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#fff'; g.font = '600 32px Rubik, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(cat.name, 128, 38);
       g.globalAlpha = .17; g.fillStyle = cat.col; g.beginPath(); g.arc(128, 178, 104, 0, 7); g.fill(); g.globalAlpha = 1;
       const im = await svgImg(iconSvg(kind, 'width="200" height="200"'));
       if (im) g.drawImage(im, 28, 76, 200, 200);
-      g.fillStyle = INK; g.font = '600 31px Fredoka, Nunito, sans-serif';
+      g.fillStyle = INK; g.font = '600 31px Rubik, Nunito, sans-serif';
       const name = cat.items[kind % 3];
       g.fillText(name, 128, 306, 228);
     }
@@ -308,7 +308,7 @@ function glyphTextures() {
     const g = cv.getContext('2d'); g.lineJoin = g.lineCap = 'round'; g.strokeStyle = INK; g.lineWidth = 5; draw(g);
     const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
   };
-  const text = (ch, col) => g => { g.font = '700 46px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeText(ch, 32, 34); g.fillStyle = col; g.fillText(ch, 32, 34); };
+  const text = (ch, col) => g => { g.font = '700 46px Rubik, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeText(ch, 32, 34); g.fillStyle = col; g.fillText(ch, 32, 34); };
   return {
     heart: mk(g => { g.beginPath(); g.moveTo(32, 54); g.bezierCurveTo(4, 36, 8, 10, 32, 22); g.bezierCurveTo(56, 10, 60, 36, 32, 54); g.closePath(); g.stroke(); g.fillStyle = '#ff6f8f'; g.fill(); }),
     spark: mk(g => { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = i % 2 ? 9 : 26; g.lineTo(32 + Math.sin(a) * r, 32 - Math.cos(a) * r); } g.closePath(); g.stroke(); g.fillStyle = '#ffd36b'; g.fill(); }),

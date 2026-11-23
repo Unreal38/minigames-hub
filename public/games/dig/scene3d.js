@@ -130,7 +130,7 @@ export function createScene(canvas, { onFrame } = {}) {
       g.fillStyle = ((i % w) + ((i / w) | 0)) % 2 ? '#d6a46c' : '#cc9a62'; g.fillRect(x + 1, y + 1, PX - 2, PX - 2);
       g.fillStyle = '#b9854f'; for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(x + 14 + ((i * 37 + k * 29) % 68), y + 14 + ((i * 53 + k * 41) % 68), 3 + k, 0, 7); g.fill(); }
       if (v >= 1 && v <= 8) {
-        g.font = `700 ${PX * .62}px "Fredoka", "Baloo 2", system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = `700 ${PX * .62}px Rubik, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.lineWidth = 9; g.strokeStyle = '#fff4e2'; g.strokeText(v, cxp, cyp + 3); g.fillStyle = NUM_COL[v]; g.fillText(v, cxp, cyp + 3);
       }
       if (v >= 11 && v <= 13) { // a gem came out of here: an empty hole ringed in the finder's colour
