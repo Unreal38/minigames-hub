@@ -3,14 +3,18 @@ import { L } from '../../i18n.js';
 // (your own kart is driven here, then reported to the server), so both sides agree on how a kart moves.
 //
 // A track is a closed Catmull-Rom loop through control points [x, z, y, kind]. kind 'b' makes the stretch to the
-// next point a wooden bridge (rails, no grass); anything else is island land (grass shoulders, then the edge).
+// next point a wooden bridge (rails, no grass); 'n' makes it a narrow cliff road (a slimmer road, no grass, the edge
+// right beside it); anything else is island land (grass shoulders, then the edge).
 // buildTrack() samples it every STEP units: x/z/y, the direction of travel (tx/tz) and whether it is a bridge.
 
 export const STEP = 1;        // sample spacing along the track
 export const ROAD = 5.4;      // half width of the road
 export const SHOULDER = 9.4;  // on land: grass from ROAD out to here, then you fall off the island
+export const NARROW = 3.7;    // half width of a narrow cliff road
+export const NARROW_EDGE = 4.7; // ...and where its edge is
 export const RAIL = 6;      // on bridges: rails at this half width
 export const KART_R = .95;    // karts bump as circles of this radius
+export const GRASS_V = .36;    // on grass the top speed drops to this share of MAX_V
 export const MAX_V = 25;      // top speed on the road, units a second
 export const GRID = 22;       // the starting grid starts this far behind the line
 export const SCALE = 1.65;    // the control points below are multiplied by this (heights by a little less): how roomy the tracks are
@@ -35,6 +39,13 @@ export const TRACKS = {
       [112, 40, 3.6, 'b'], [116, 10, 2.6], [96, -16, 1.8], [64, -30, 1, 'b'], [30, -32, .6], [0, -40, .4], [-30, -34, .2], [-50, -16, 0, 'b'], [-42, 0, 0], [-20, 0, 0], [0, 0, 0]],
     boxes: [.08, .3, .55, .8], pads: [.2, .46, .68, .9], sky: 2,
   },
+  cliff: {
+    name: L('Cliffside Hairpins', 'Klifowe nawroty'), blurb: L('Hairpins, a chicane and a narrow cliff road', 'Ostre nawroty, szykana i wąska droga nad urwiskiem'),
+    pts: [[0, 0, 0], [30, 0, 0], [52, 0, .4], [62, 3, .8], [64, 10, 1.2], [58, 15, 1.6], [48, 15, 2], [28, 16, 2.6, 'n'], [12, 16, 3], [2, 19, 3.4], [0, 26, 3.8], [6, 31, 4], [16, 31, 4.2],
+      [32, 30, 4.4], [40, 34, 4.4], [48, 30, 4.4], [56, 34, 4.4], [66, 32, 4.4, 'n'], [80, 36, 4, 'n'], [90, 48, 3.4], [86, 62, 2.8], [76, 66, 2.4], [70, 74, 2, 'b'], [62, 82, 1.6],
+      [36, 84, 1.2], [14, 82, .8], [-4, 78, .6], [-18, 72, .4, 'n'], [-24, 58, .2, 'n'], [-24, 40, 0], [-22, 24, 0], [-26, 10, 0], [-18, 1, 0], [-8, 0, 0]],
+    boxes: [.1, .4, .7], pads: [.3, .62, .9], sky: 2,
+  },
 };
 export const TRACK_IDS = Object.keys(TRACKS);
 
@@ -51,22 +62,34 @@ export function buildTrack(id) {
     const a = P[(k - 1 + m) % m], b = P[k], c = P[(k + 1) % m], d = P[(k + 2) % m];
     for (let j = 0; j < 60; j++) {
       const t = j / 60;
-      dx.push(cr(a[0], b[0], c[0], d[0], t)); dz.push(cr(a[1], b[1], c[1], d[1], t)); dy.push(cr(a[2], b[2], c[2], d[2], t)); db.push(b[3] === 'b' ? 1 : 0);
+      dx.push(cr(a[0], b[0], c[0], d[0], t)); dz.push(cr(a[1], b[1], c[1], d[1], t)); dy.push(cr(a[2], b[2], c[2], d[2], t)); db.push(b[3] === 'b' ? 1 : b[3] === 'n' ? 2 : 0);
     }
   }
   const N = dx.length;
   for (let i = 1; i <= N; i++) dl.push(dl[i - 1] + Math.hypot(dx[i % N] - dx[i - 1], dz[i % N] - dz[i - 1]));
   const L0 = dl[N], n = Math.round(L0 / STEP), step = L0 / n;
-  const x = new Float32Array(n), z = new Float32Array(n), y = new Float32Array(n), tx = new Float32Array(n), tz = new Float32Array(n), br = new Uint8Array(n);
+  const x = new Float32Array(n), z = new Float32Array(n), y = new Float32Array(n), tx = new Float32Array(n), tz = new Float32Array(n), br = new Uint8Array(n), nar = new Uint8Array(n);
   for (let i = 0, j = 0; i < n; i++) {
     const s = i * step; while (dl[j + 1] < s) j++;
     const u = (s - dl[j]) / (dl[j + 1] - dl[j] || 1), j1 = (j + 1) % N;
-    x[i] = dx[j] + (dx[j1] - dx[j]) * u; z[i] = dz[j] + (dz[j1] - dz[j]) * u; y[i] = dy[j] + (dy[j1] - dy[j]) * u; br[i] = db[j];
+    x[i] = dx[j] + (dx[j1] - dx[j]) * u; z[i] = dz[j] + (dz[j1] - dz[j]) * u; y[i] = dy[j] + (dy[j1] - dy[j]) * u; br[i] = db[j] === 1 ? 1 : 0; nar[i] = db[j] === 2 ? 1 : 0;
   }
   for (let i = 0; i < n; i++) { const a = (i - 1 + n) % n, b = (i + 1) % n, ex = x[b] - x[a], ez = z[b] - z[a], l = Math.hypot(ex, ez) || 1; tx[i] = ex / l; tz[i] = ez / l; }
   // a bridge never starts or ends right on a corner of land: keep at least 3 samples of land either side of the line
-  const T = { id, name: def.name, def, n, step, L: L0, x, z, y, tx, tz, br };
-  T.boxes = []; for (const f of def.boxes) { const i = Math.round(f * n) % n; for (const lat of [-3.9, -1.3, 1.3, 3.9]) T.boxes.push(at(T, i, lat)); }
+  // rw/ew: half width of the road and where the land ends, at every sample. They ease in and out of a narrow stretch.
+  const rw = new Float32Array(n), ew = new Float32Array(n), EASE = 9;
+  for (let i = 0; i < n; i++) { let a = 0; for (let k = -EASE; k <= EASE; k++) a += nar[(i + k + n) % n]; a /= EASE * 2 + 1; rw[i] = ROAD + (NARROW - ROAD) * a; ew[i] = SHOULDER + (NARROW_EDGE - SHOULDER) * a; }
+  // vlim: the fastest a kart can take each sample without drifting (from how tight the bend is and how much room
+  // there is), eased backwards so there is time to brake for it. Bots drive by it.
+  const vlim = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = Math.atan2(tx[(i + 3) % n], tz[(i + 3) % n]), b = Math.atan2(tx[(i - 3 + n) % n], tz[(i - 3 + n) % n]);
+    const r = 6 * step / Math.max(1e-4, Math.abs(wrap(a - b))) + (rw[i] - 1.6) * .8;
+    vlim[i] = Math.min(MAX_V * 1.5, 2.25 * r / (1 + .0198 * r));
+  }
+  for (let pass = 0; pass < 2; pass++) for (let i = n - 1; i >= 0; i--) vlim[i] = Math.min(vlim[i], Math.sqrt(vlim[(i + 1) % n] ** 2 + 2 * 20 * step));
+  const T = { id, name: def.name, def, n, step, L: L0, x, z, y, tx, tz, br, nar, rw, ew, vlim };
+  T.boxes = []; for (const f of def.boxes) { const i = Math.round(f * n) % n; const w = rw[i] / ROAD; for (const lat of [-3.9, -1.3, 1.3, 3.9]) T.boxes.push(at(T, i, lat * w)); }
   T.pads = def.pads.map(f => { const i = Math.round(f * n) % n; return { i, len: 5, ...at(T, i, 0) }; });
   T.boxes.forEach((b, k) => { b.k = k; });
   cache.set(id, T);
@@ -114,6 +137,12 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const wrap = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 export const angDiff = (a, b) => wrap(a - b);
 
+// A held drift charges through three levels (blue, orange, pink sparks); letting go boosts for longer the higher it got.
+export const DRIFT_AT = [0, .65, 1.4, 2.3], DRIFT_BOOST = [0, .6, 1.1, 1.8];
+export const driftLevel = c => c > DRIFT_AT[3] ? 3 : c > DRIFT_AT[2] ? 2 : c > DRIFT_AT[1] ? 1 : 0;
+// The drift bits of a kart's flags: 1024 level one, 512 level two, both together level three.
+export const driftFlags = c => [0, 1024, 512, 1536][driftLevel(c)];
+
 // One step of driving. inp: { steer -1..1 (+ is left), gas 0/1, brake 0/1, drift 0/1 }. top: speed multiplier for bots.
 // Returns notable moments for sounds: 'fall', 'bonk', 'pad', 'mini' (a drift boost), 'respawn'.
 export function stepKart(T, k, inp, dt, top = 1) {
@@ -131,17 +160,17 @@ export function stepKart(T, k, inp, dt, top = 1) {
   }
   const ctl = k.spin <= 0;
   if (k.spin > 0) k.spin = Math.max(0, k.spin - dt);
-  const cap = MAX_V * top * (k.grass ? .52 : 1) * (k.slow > 0 ? .6 : 1) * (k.boost > 0 ? 1.4 : 1);
+  const cap = MAX_V * top * (k.grass ? GRASS_V : 1) * (k.slow > 0 ? .6 : 1) * (k.boost > 0 ? 1.4 : 1);
   if (!ctl) k.v *= Math.exp(-2.6 * dt);
   else if (inp.brake) k.v = k.v > 0 ? Math.max(-7, k.v - 34 * dt) : Math.max(-7, k.v - 12 * dt);
   else if (inp.gas || k.boost > 0) { if (k.v < cap) k.v += (cap - k.v) * (k.boost > 0 ? 4 : 1.25) * dt + (k.v < 4 ? 7 * dt : 0); }
   else k.v *= Math.exp(-.9 * dt);
-  if (k.v > cap) k.v -= (k.v - cap) * (k.grass ? 3.5 : 1.6) * dt;
+  if (k.v > cap) k.v -= (k.v - cap) * (k.grass ? 6 : 1.6) * dt;
   // drifting: hold drift while turning at speed, swing round tighter, let go for a boost
   const steer = ctl ? clamp(inp.steer || 0, -1, 1) : 0;
   if (ctl && inp.drift && !k.dr && k.v > 11 && Math.abs(steer) > .25 && !k.grass) k.dr = Math.sign(steer);
   if (k.dr && (!inp.drift || k.v < 7 || !ctl || k.grass)) {
-    if (k.charge > 1.4) { k.boost = Math.max(k.boost, 1.1); cue = 'mini'; } else if (k.charge > .65) { k.boost = Math.max(k.boost, .6); cue = 'mini'; }
+    const lv = driftLevel(k.charge); if (lv) { k.boost = Math.max(k.boost, DRIFT_BOOST[lv]); cue = 'mini'; }
     k.dr = 0; k.charge = 0;
   }
   const grip = clamp(Math.abs(k.v) / 5, 0, 1), dir = Math.sign(k.v) || 1, fast = clamp(k.v / MAX_V, 0, 1.4);
@@ -169,11 +198,11 @@ export function stepKart(T, k, inp, dt, top = 1) {
       if (Math.abs(side) < 1.4) k.h = wrap(k.h - side * .08);
     }
   } else {
-    k.grass = al > ROAD + .2 ? 1 : 0;
-    if (al > SHOULDER) { k.fall = 1.5; k.dr = 0; k.charge = 0; cue = 'fall'; }
+    k.grass = al > T.rw[loc.i] + .2 ? 1 : 0;
+    if (al > T.ew[loc.i]) { k.fall = 1.5; k.dr = 0; k.charge = 0; cue = 'fall'; }
   }
   // boost pads
-  for (const p of T.pads) { const d = (k.i - p.i + T.n) % T.n; if (d < p.len && Math.abs(k.lat) < 3.4 && k.boost < .9) { k.boost = 1.2; cue = 'pad'; } }
+  for (const p of T.pads) { const d = (k.i - p.i + T.n) % T.n; if (d < p.len && Math.abs(k.lat) < Math.min(3.4, T.rw[p.i] - .6) && k.boost < .9) { k.boost = 1.2; cue = 'pad'; } }
   // laps: crossing the line (s wraps from the end of the loop back to 0)
   if (prevS > T.L * .75 && k.s < T.L * .25) k.lap++;
   else if (prevS < T.L * .25 && k.s > T.L * .75) k.lap--;
@@ -193,13 +222,16 @@ export function bump(a, b, moveA = true, moveB = true) {
 
 // Driving by itself: what a bot (or your kart after the finish) does. lane: where across the road it likes to be.
 export function autoDrive(T, k, { lane = 0, care = 1, avoid = null } = {}) {
-  const look = Math.round(5 + Math.max(0, k.v) * .38);
-  let want = lane;
-  if (avoid != null) want = avoid;
+  const look = Math.round(5 + Math.max(0, k.v) * .38), n = T.n;
+  let want = avoid != null ? avoid : lane;
+  // stay on the road where it narrows, and cut to the inside of a tight bend
+  const j = (k.i + look) % n, room = T.rw[j] - 1.5;
+  const bendAt = (k.i + Math.round(look * .6)) % n, turn = angDiff(headingAt(T, bendAt + 4), headingAt(T, bendAt - 4));
+  if (Math.abs(turn) > .5 && avoid == null) want = -Math.sign(turn) * Math.min(room, 2.6) * Math.min(1, (Math.abs(turn) - .5) * 2) + want * .3;
+  want = clamp(want, -room, room);
   const p = at(T, k.i + look, want);
   const goal = Math.atan2(p.x - k.x, p.z - k.z), diff = angDiff(goal, k.h);
-  // how sharp the road bends a little way ahead: slow down for hairpins
-  const a = headingAt(T, k.i + 4), b = headingAt(T, k.i + 4 + Math.round(10 + k.v * .5)), bend = Math.abs(angDiff(b, a));
-  const tooFast = k.v > MAX_V * (1.05 - bend * .45 * care);
-  return { steer: clamp(diff * 2.4, -1, 1), gas: tooFast ? 0 : 1, brake: tooFast && bend > 1.1 && k.v > 14 ? 1 : 0, drift: 0 };
+  // slow down in time for what is coming: the track knows how fast each bit can be taken
+  const lim = T.vlim[(k.i + 2) % n] / (.94 + .06 * care) , over = k.v - lim;
+  return { steer: clamp(diff * 2.4, -1, 1), gas: over > 0 ? 0 : 1, brake: over > 1.5 ? 1 : 0, drift: 0 };
 }

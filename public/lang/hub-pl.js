@@ -17,7 +17,7 @@ export const OPT_PL = {
   'A lost call costs': 'Przegrane sprawdzenie kosztuje', 'A die': 'Kość', 'A life': 'Życie', 'Lives (life mode)': 'Życia (tryb z życiami)', 'Dice each': 'Kości na gracza', 'Classic 5': 'Klasyczne 5',
   'Ones are wild': 'Jedynki to jokery', 'Spot on calls': 'Okrzyk „Co do joty!”',
   'Quick 10 rounds': 'Szybka: 10 rund', '20 rounds': '20 rund', 'Long 30': 'Długa: 30', 'Napping pets': 'Drzemki zwierzaków',
-  Track: 'Trasa', 'Meadow Loop': 'Łąkowa pętla', 'Sugar Bridges': 'Cukrowe mosty', 'Twisty Peaks': 'Kręte szczyty', Laps: 'Okrążenia', 'Karts on the grid': 'Gokarty na starcie',
+  Track: 'Trasa', 'Meadow Loop': 'Łąkowa pętla', 'Sugar Bridges': 'Cukrowe mosty', 'Twisty Peaks': 'Kręte szczyty', 'Cliffside Hairpins': 'Klifowe nawroty', Laps: 'Okrążenia', 'Karts on the grid': 'Gokarty na starcie',
   'Power-ups': 'Bonusy', Chaos: 'Chaos',
   Cooks: 'Kucharze', Kitchen: 'Kuchnia', 'Sunny Diner': 'Słoneczny bar', 'Pass-Through': 'Kuchnia z okienkiem', Shift: 'Zmiana', 'Bot cooks': 'Kucharze-boty',
   '4 (dealer sits out)': '4 (rozdający pauzuje)', 'Play to': 'Gramy do', 'Classic 1000': '1000 (klasycznie)', 'Quick 500': '500 (szybko)', Folding: 'Poddanie gry',
@@ -206,7 +206,7 @@ export const GAMES_PL = {
     rules: `<ol>
       <li>Każdy prowadzi własny gokart ze swoim awatarem za kierownicą. Wolne miejsca na starcie zajmują boty.</li>
       <li>Gokart <b>przyspiesza sam</b>. Skręcaj klawiszami <b>← →</b> albo <b>A D</b>, hamuj lub cofaj <b>↓</b>. Na telefonie użyj strzałek w dolnych rogach.</li>
-      <li><b>Drift</b>: przytrzymaj <b>spację</b> (albo przycisk Drift), skręcając przy dużej prędkości. Trzymaj, aż iskry się rozżarzą, a potem puść, żeby dostać przyspieszenie. Pomarańczowe iskry dają dłuższe.</li>
+      <li><b>Drift</b>: przytrzymaj <b>spację</b> (albo przycisk Drift), skręcając przy dużej prędkości. Trzymaj, aż iskry się rozżarzą, a potem puść, żeby dostać przyspieszenie. Niebieskie iskry dają krótkie, pomarańczowe dłuższe, a różowe najdłuższe. Jazda po trawie mocno cię spowalnia.</li>
       <li>Pomarańczowe <b>pola przyspieszenia</b> na drodze wystrzeliwują cię do przodu. Trawa na poboczu spowalnia, a za trawą jest <b>krawędź wyspy</b>: jeśli spadniesz, po kilku sekundach chmurka odniesie cię z powrotem. Mosty mają barierki.</li>
       <li>Przejedź przez <b>prezent</b>, żeby dostać bonus, a potem naciśnij <b>E</b> (albo go dotknij), żeby go użyć:
         <b>Skórka od banana</b> spada za tobą, <b>Rozchwiana galaretka</b> skacze za gokartem tuż przed tobą, <b>Ostra papryczka</b> to zastrzyk prędkości, <b>Bańka ochronna</b> blokuje następne trafienie, a <b>Senna chmurka</b> spowalnia wszystkich przed tobą. Im dalej z tyłu jedziesz, tym lepsze bonusy.</li>

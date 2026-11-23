@@ -6,7 +6,7 @@ import { kartPaint } from '../../skins.js';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
-import { buildTrack, locate, at, headingAt, angDiff, ROAD, SHOULDER, RAIL, KART_R } from './track.js';
+import { buildTrack, locate, at, headingAt, angDiff, ROAD, SHOULDER, RAIL, KART_R, driftFlags } from './track.js';
 
 const DELAY = 110; // ms behind the newest server update that other karts are drawn
 const SKIES = [['#6fbdf2', '#d6f1ff'], ['#f59ac0', '#ffe3c4'], ['#7fc8ff', '#e9f7ff']];
@@ -65,7 +65,7 @@ function mesher() {
 function buildTrackMesh(T) {
   const M = mesher(), n = T.n;
   const P = (i, lat, dy = 0) => { i = (i + n) % n; return [T.x[i] - T.tz[i] * lat, T.y[i] + dy, T.z[i] + T.tx[i] * lat]; };
-  const edge = i => SHOULDER + .35 + .3 * (Math.sin(i * .37) * .5 + .5) + .25 * hash(i, 3);
+  const edge = i => T.ew[((i % n) + n) % n] + .35 + .3 * (Math.sin(i * .37) * .5 + .5) + .25 * hash(i, 3);
   const UP = [0, 1, 0];
   const padAt = i => T.pads.some(p => ((i - p.i + n) % n) < p.len);
   for (let i = 0; i < n; i++) {
@@ -90,18 +90,19 @@ function buildTrackMesh(T) {
       continue;
     }
     // ----- land: road, curbs, grass shoulders, then the cliff of the floating island
+    const RW = T.rw[i], RWj = T.rw[j], thin = T.nar[i];
     const pad = padAt(i), road = pad ? (i % 2 ? '#ffb547' : '#ffc96b') : (i >> 2) % 2 ? '#948a9a' : '#8b8192';
-    M.quad(P(i, -ROAD), P(i, ROAD), P(j, ROAD), P(j, -ROAD), road, UP);
+    M.quad(P(i, -RW), P(i, RW), P(j, RWj), P(j, -RWj), road, UP);
     if (pad) { // chevrons pointing the way
       const a = P(i, -2.8, .02), b = P(i, 2.8, .02), tip = P(j, 0, .02); if (i % 2 === 0) M.tri3(a, b, tip, '#fff4e2', UP);
     } else if (i % 6 < 3) M.quad(P(i, -.14, .01), P(i, .14, .01), P(j, .14, .01), P(j, -.14, .01), '#fff4e2', UP);
     for (const sd of [-1, 1]) {
-      const r0 = ROAD * sd, r1 = (ROAD + .7) * sd, out = sd > 0 ? lft : rgt, cc = (i >> 1) % 2 ? '#e5543b' : '#fff4e2';
-      M.quad(P(i, r0, .05), P(i, r1, .05), P(j, r1, .05), P(j, r0, .05), cc, UP);
-      M.quad(P(i, r0, 0), P(i, r0, .05), P(j, r0, .05), P(j, r0, 0), cc, sd > 0 ? rgt : lft);
+      const r0 = RW * sd, r1 = (RW + .7) * sd, q0 = RWj * sd, q1 = (RWj + .7) * sd, out = sd > 0 ? lft : rgt, cc = (i >> 1) % 2 ? (thin ? '#ffb547' : '#e5543b') : (thin ? '#3b2219' : '#fff4e2');
+      M.quad(P(i, r0, .05), P(i, r1, .05), P(j, q1, .05), P(j, q0, .05), cc, UP);
+      M.quad(P(i, r0, 0), P(i, r0, .05), P(j, q0, .05), P(j, q0, 0), cc, sd > 0 ? rgt : lft);
       const eI = edge(i) * sd, eJ = edge(j) * sd;
       const g1 = hash(i * 3 + (sd > 0 ? 1 : 0), 7) < .25 ? '#7fbf56' : '#8bca60';
-      M.quad(P(i, r1), P(i, eI), P(j, eJ), P(j, r1), g1, UP);
+      M.quad(P(i, r1), P(i, eI), P(j, eJ), P(j, q1), g1, UP);
       M.quad(P(i, eI), P(i, eI * .97, -1.3), P(j, eJ * .97, -1.3), P(j, eJ), (i >> 1) % 3 ? '#c98a5a' : '#b97c4f', out);
       const dI = -4.5 - 2.5 * hash(i, 11), dJ = -4.5 - 2.5 * hash(j, 11);
       M.quad(P(i, eI * .97, -1.3), P(i, eI * .4, dI), P(j, eJ * .4, dJ), P(j, eJ * .97, -1.3), (i >> 2) % 2 ? '#857a72' : '#7a706a', [out[0], -.6, out[2]]);
@@ -134,7 +135,7 @@ function buildDeco(T, sky) {
   const grp = new THREE.Group(), parts = [], n = T.n;
   const tuft = new THREE.ConeGeometry(.16, .4, 4), petal = new THREE.IcosahedronGeometry(.11, 0), bush = new THREE.IcosahedronGeometry(.42, 0);
   for (let i = 0; i < n; i += 2) {
-    if (T.br[i]) continue;
+    if (T.br[i] || T.ew[i] < SHOULDER - .5) continue;
     for (const sd of [-1, 1]) {
       if (hash(i, sd + 20) > .55) continue;
       const lat = sd * (ROAD + 1.4 + hash(i, sd + 21) * (SHOULDER - ROAD - 1.4)), p = at(T, i, lat), r = hash(i, sd + 22);
@@ -142,6 +143,16 @@ function buildDeco(T, sky) {
       else if (r < .85) { const cc = ['#ffffff', '#ff9fb8', '#fff1a8', '#d9c8ff'][i % 4]; parts.push([petal, cc, [p.x, p.y + .1, p.z], [0, 0, 0], [1, .5, 1]]); parts.push([tuft, '#6cbf4f', [p.x + .2, p.y + .15, p.z]]); }
       else if (Math.abs(lat) > SHOULDER - 1.2) parts.push([bush, i % 3 ? '#5fb04a' : '#86cc5a', [p.x, p.y + .25, p.z], [0, i, 0], [1, .8, 1]]);
     }
+  }
+  // arrow boards on the outside of the tight bends
+  const board = new THREE.BoxGeometry(1.7, .95, .16), post = new THREE.BoxGeometry(.18, 1.1, .18), arrow = new THREE.ConeGeometry(.3, .5, 3);
+  for (let i = 0; i < n; i += 5) {
+    if (T.br[i] || T.nar[i]) continue;
+    const turn = angDiff(headingAt(T, i + 3), headingAt(T, i - 3));
+    if (Math.abs(turn) < 6 * T.step / 11) continue;
+    const sd = Math.sign(turn), p = at(T, i, sd * (T.ew[i] - .7)), h = p.h + sd * .5;
+    parts.push([post, '#8a5433', [p.x, p.y + .55, p.z]], [board, '#e5543b', [p.x, p.y + 1.5, p.z], [0, h, 0]]);
+    for (const o of [-.45, .15]) parts.push([arrow, '#fff4e2', [p.x + Math.cos(h) * o * -sd + Math.sin(h) * -.1, p.y + 1.5, p.z - Math.sin(h) * o * -sd + Math.cos(h) * -.1], [0, h, sd * Math.PI / 2], [1, 1, .3]]);
   }
   const tufts = new THREE.Mesh(merged(parts), toonMat(vmat())); tufts.userData.noInk = true; grp.add(tufts);
   // islands: spots away from the road, below it, with trees and lamps
@@ -341,11 +352,11 @@ export function createScene(canvas, { onFrame, step } = {}) {
     for (let i = 0; i < karts.length; i++) {
       const K = karts[i], src = i === me && mineK ? mineK : cur[i]; if (!src) continue;
       const mine = i === me && mineK;
-      const f = mine ? (mineK.fall > 0 ? 1 : 0) | (mineK.spin > 0 ? 2 : 0) | (mineK.boost > 0 ? 4 : 0) | (mineK.slow > 0 ? 8 : 0) | (mineK.dr > 0 ? 32 : 0) | (mineK.dr < 0 ? 64 : 0) | (mineK.grass ? 128 : 0) | (mineK.ghost > 0 ? 256 : 0) | (mineK.charge > 1.4 ? 512 : mineK.charge > .65 ? 1024 : 0) : src.f | 0;
+      const f = mine ? (mineK.fall > 0 ? 1 : 0) | (mineK.spin > 0 ? 2 : 0) | (mineK.boost > 0 ? 4 : 0) | (mineK.slow > 0 ? 8 : 0) | (mineK.dr > 0 ? 32 : 0) | (mineK.dr < 0 ? 64 : 0) | (mineK.grass ? 128 : 0) | (mineK.ghost > 0 ? 256 : 0) | driftFlags(mineK.charge) : src.f | 0;
       K.root.position.set(src.x, src.y, src.z);
       const l = locate(T, src.x, src.z, K.i); K.i = l.i;
       // lean into slopes and corners, spin when hit, wobble in a drift
-      const pitch = l.br || Math.abs(l.lat) < SHOULDER ? -Math.atan2(T.y[(l.i + 2) % T.n] - T.y[(l.i - 2 + T.n) % T.n], 4 * T.step) : 0;
+      const pitch = l.br || Math.abs(l.lat) < T.ew[l.i] ? -Math.atan2(T.y[(l.i + 2) % T.n] - T.y[(l.i - 2 + T.n) % T.n], 4 * T.step) : 0;
       if (f & 2) K.spinA += dt * 14; else K.spinA = K.spinA % (Math.PI * 2) > .1 ? K.spinA + Math.min(dt * 14, Math.PI * 2 - K.spinA % (Math.PI * 2)) : 0;
       const drift = f & 32 ? 1 : f & 64 ? -1 : 0;
       K.root.rotation.set(0, src.h + K.spinA + drift * .38, 0);
@@ -362,7 +373,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
       // effects behind the kart
       const bx = src.x - Math.sin(src.h) * 1.3, bz = src.z - Math.cos(src.h) * 1.3, by = src.y + .4;
       if (f & 4 && !reduced) for (let q = 0; q < 2; q++) fx.rise({ x: bx + (Math.random() - .5) * .5, y: by + .3, z: bz }, { color: ['#ffb547', '#ff7a59', '#ffd23f'], size: .45, life: .35, speed: 1.4, wobble: .6 });
-      if (drift && (f & (512 | 1024)) && Math.random() < .6) { const cc = f & 512 ? ['#ff9a3c', '#ffd23f'] : ['#7fd1ff', '#ffffff']; for (const sd of [-1, 1]) fx.burst({ x: bx + Math.cos(src.h) * .8 * sd, y: src.y + .15, z: bz - Math.sin(src.h) * .8 * sd }, { n: 1, colors: cc, speed: 2.5, up: 2, size: .2, life: .3, shape: STAR }); }
+      if (drift && (f & (512 | 1024)) && Math.random() < .6) { const cc = (f & 1536) === 1536 ? ['#ff5fa8', '#ffc2e0'] : f & 512 ? ['#ff9a3c', '#ffd23f'] : ['#7fd1ff', '#ffffff']; for (const sd of [-1, 1]) fx.burst({ x: bx + Math.cos(src.h) * .8 * sd, y: src.y + .15, z: bz - Math.sin(src.h) * .8 * sd }, { n: 1, colors: cc, speed: 2.5, up: 2, size: .2, life: .3, shape: STAR }); }
       if (f & 128 && Math.abs(src.v) > 6 && dustT > .05) fx.puff({ x: bx, y: src.y, z: bz }, { n: 2, color: '#c9e29a', size: .45, speed: 1, life: .5 });
       if (f & 8 && Math.random() < dt * 3) fx.rise({ x: src.x, y: src.y + 2.3, z: src.z }, { color: '#ffffff', size: .5, life: 1.2, speed: .8, shape: DOT });
     }

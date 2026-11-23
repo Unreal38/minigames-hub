@@ -2,7 +2,7 @@
 // then a race over the real WebSocket server with a browser-style driver sending its position.
 import { spawn } from 'node:child_process';
 import * as kart from '../server/games/kart.js';
-import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, autoDrive, locate, SHOULDER, ROAD, KART_R, GRID } from '../public/games/kart/track.js';
+import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, autoDrive, locate, SHOULDER, ROAD, KART_R, GRID, MAX_V, GRASS_V, NARROW_EDGE, driftLevel, driftFlags } from '../public/games/kart/track.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
 const players = [{ id: 'a', name: 'Ana', color: '#ff8fab', av: [0, 0, 0, 0] }, { id: 'b', name: 'Bo', color: '#7ed3b2', av: [1, 1, 1, 1] }];
@@ -51,6 +51,21 @@ for (const id of TRACK_IDS) {
   d.charge = 1; // as if held round a long bend
   const cue = stepKart(T, d, { steer: 0, gas: 1, drift: 0 }, 1 / 60);
   if (cue !== 'mini' || d.boost <= 0) fail('letting go of a long drift should boost');
+  // a longer drift reaches a third level with the longest boost
+  if (driftLevel(.7) !== 1 || driftLevel(1.5) !== 2 || driftLevel(2.4) !== 3 || driftFlags(2.4) !== 1536 || driftFlags(.2) !== 0) fail('drift levels are off');
+  const d3 = newKart(T, 0); Object.assign(d3, { v: 20, dr: 1, charge: 2.4 });
+  if (stepKart(T, d3, { steer: 0, gas: 1, drift: 0 }, 1 / 60) !== 'mini' || d3.boost < 1.7) fail('a level three drift should give the longest boost');
+  // grass slows a kart right down
+  const g = newKart(T, 0); Object.assign(g, { x: T.x[40] - T.tz[40] * 7.5, z: T.z[40] + T.tx[40] * 7.5, h: Math.atan2(T.tx[40], T.tz[40]), v: MAX_V, i: 40 });
+  for (let i = 0; i < 45; i++) stepKart(T, g, { steer: 0, gas: 1 }, 1 / 60);
+  if (!g.grass || g.v > MAX_V * GRASS_V + 2) fail('grass should slow a kart down fast, got ' + g.v);
+  // a narrow cliff road has no grass: a small slip and you are off
+  { const C = buildTrack('cliff'), ni = C.nar.findIndex((v, i) => v && C.nar[(i + 12) % C.n] && C.nar[(i - 12 + C.n) % C.n]);
+    if (ni < 0 || C.ew[ni] > NARROW_EDGE + .2) fail('cliff needs a narrow stretch');
+    const c = newKart(C, 0); Object.assign(c, { x: C.x[ni], z: C.z[ni], h: Math.atan2(C.tx[ni], C.tz[ni]) + .6, v: 18, i: ni, lap: 0 });
+    let off = false; for (let i = 0; i < 40 && !off; i++) off = stepKart(C, c, { steer: 0, gas: 1 }, 1 / 60) === 'fall';
+    if (!off) fail('drifting wide on a narrow road should fall');
+    if (Math.min(...C.vlim) > 19) fail('cliff should have bends that need braking'); }
   // on a bridge the rails hold you in
   const bi = T.br.findIndex(b => b), b = newKart(T, 0);
   Object.assign(b, { x: T.x[bi], z: T.z[bi], h: Math.atan2(T.tx[bi], T.tz[bi]) + 1.2, v: 20, i: bi, s: bi * T.step, lap: 0 });
