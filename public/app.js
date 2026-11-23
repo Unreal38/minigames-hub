@@ -16,6 +16,7 @@ import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { randomName } from './names.js';
 import { fitw } from './fit.js';
+import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -529,11 +530,15 @@ export function toast(html, bad = false) {
 // One live connection per browser token. Tabs share the token through localStorage, so a second tab
 // takes the seat over and the first one is told it was replaced. A replaced tab stays quiet until the
 // player clicks "Play here" (reconnecting on its own would kick the other tab, which would kick back...).
-let ws = null, retry = 0, replaced = false, retryT = 0, stableT = 0;
+// A server restart (an update): the server says goodbye ({t:'bye'}, close code 1012), the bar says "back in a moment"
+// and the page keeps knocking every second or two. Once it is back with other files (a new build), the page reloads
+// itself, coming back to the same place (a table rejoins by itself; Pet Farm, Hay Hunch and Pet Pop reopen).
+let ws = null, retry = 0, replaced = false, retryT = 0, stableT = 0, restarting = 0;
 const $conn = document.getElementById('conn');
 function connBar(mode) {
   if (!mode) { $conn.hidden = true; return; }
-  $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced');
+  $conn.hidden = false; $conn.classList.toggle('replaced', mode === 'replaced'); $conn.classList.toggle('restart', mode === 'restart');
+  if (mode === 'restart') { $conn.innerHTML = `<b>${L('Back in a moment…', 'Zaraz wracamy…')}</b> ${L('The site is updating.', 'Strona się aktualizuje.')}`; return; }
   if (mode === 'replaced') {
     $conn.innerHTML = L(`${SITE} is open in another tab. <button type="button">Play here</button>`, `${SITE} jest otwarta w innej karcie. <button type="button">Graj tutaj</button>`);
     $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
@@ -550,7 +555,10 @@ function connect() {
     if (s !== ws) return;
     let m; try { m = JSON.parse(e.data); } catch { return; }
     if (m.t === 'replaced') { replaced = true; return; }
-    if (m.t === 'welcome') { connBar(null); clearTimeout(stableT); stableT = setTimeout(() => { retry = 0; }, 10_000); }
+    if (m.t === 'bye') { restarting = Date.now(); connBar('restart'); return; }
+    if (m.t === 'welcome') {
+      if (m.build && st.build && m.build !== st.build) return reloadForUpdate();
+      st.build = m.build || st.build; restarting = 0; connBar(null); clearTimeout(stableT); stableT = setTimeout(() => { retry = 0; }, 10_000); }
     onMsg(m);
   };
   s.onclose = e => {
@@ -558,9 +566,11 @@ function connect() {
     clearTimeout(stableT);
     console.warn(`[cozy] connection closed: code ${e.code}${e.reason ? ' ' + e.reason : ''}${replaced ? ' (replaced by another tab)' : ''}`);
     if (replaced || e.code === 4000) { replaced = true; connBar('replaced'); return; }
-    connBar('reconnecting');
+    if (e.code === 1012 && !restarting) restarting = Date.now();
+    const upd = restarting && Date.now() - restarting < 3 * 60_000; // an update usually takes seconds: knock often for a few minutes
+    connBar(upd ? 'restart' : 'reconnecting');
     // back off with jitter so a flaky network or a restarting server isn't hammered
-    const wait = Math.min(10_000, 500 * 2 ** Math.min(retry++, 5)) * (0.7 + Math.random() * 0.6);
+    const wait = upd ? 1000 + Math.random() * 1000 : Math.min(10_000, 500 * 2 ** Math.min(retry++, 5)) * (0.7 + Math.random() * 0.6);
     retryT = setTimeout(connect, wait);
   };
 }
@@ -569,13 +579,24 @@ const reconnectNow = () => { if (!replaced && retryT) { retry = 0; connect(); } 
 document.addEventListener('visibilitychange', () => { if (!document.hidden) reconnectNow(); });
 addEventListener('online', reconnectNow);
 export function send(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
+function reloadForUpdate() {
+  try { if (['farm', 'hay', 'pop'].includes(st.view)) sessionStorage.setItem('ct_resume', st.view); } catch {}
+  $conn.hidden = false; $conn.classList.add('restart'); $conn.innerHTML = `<b>${L('Updated!', 'Zaktualizowane!')}</b> ${L('Loading the new version…', 'Wczytywanie nowej wersji…')}`;
+  ws?.close(); ws = null; replaced = true; // no more reconnects from this copy of the page
+  location.reload();
+}
+function resumeAfterUpdate() {
+  let v = null; try { v = sessionStorage.getItem('ct_resume'); sessionStorage.removeItem('ct_resume'); } catch {}
+  if (!v || !st.name || st.room || st.view !== 'hub') return;
+  if (v === 'farm') openFarm(); else if (v === 'hay') openHay(); else if (v === 'pop') openPop();
+}
 
 function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); // back after a dropped connection
-    tellWhere();
+    tellWhere(); setTimeout(resumeAfterUpdate, 300); // after a reload for an update (a table, if any, is back by then)
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
     st.pets = m.pets || []; st.decor = m.decor || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
@@ -599,6 +620,7 @@ function onMsg(m) {
       st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
     }
     st.onMe?.(); emojiPaint();
+    if (!!m.me.admin !== !!st.noticeAdmin) { st.noticeAdmin = !!m.me.admin; send({ t: 'notice' }); } // a host just logged in (or out): with or without the hosts' extras
     if (m.gain) {
       const cg = m.gain.coins | 0;
       const pl = m.gain.place;
@@ -633,6 +655,8 @@ function onMsg(m) {
     onHubChat(m);
   } else if (m.t === 'stats') {
     st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats(); if (whoSheet) send({ t: 'who' });
+  } else if (m.t === 'notice') {
+    onNotice(m);
   } else if (m.t === 'who') {
     st.who = m.list || []; paintWho();
   } else if (m.t === 'auth') {
@@ -1047,6 +1071,7 @@ function acctHtml() {
       ${item('mystats', '📊', L('Profile', 'Profil'), `<small>${st.me?.sky?.free && !locked0(st.me) ? `★ ${L(`stars to light: ${st.me.sky.free}`, `gwiazdy do zapalenia: ${st.me.sky.free}`)}` : L('all your stats', 'wszystkie statystyki')}</small>`)}
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
+      ${m?.admin ? item('notices', '📣', L('Site notices', 'Komunikaty strony'), `<small>${L('update countdown, announcements', 'odliczanie, ogłoszenia')}</small>`) : ''}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
       ${item('support', '☕', L('Support the site', 'Wesprzyj stronę'), `<small>${hasPack() ? L('thank you!', 'dziękujemy!') : L('get the Supporter pack', 'odbierz Pakiet wspierających')}</small>`)}
@@ -2201,6 +2226,7 @@ $app.addEventListener('click', e => {
   else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'mystats') openStats();
   else if (act === 'who') openWho();
+  else if (act === 'notices') { closeAcct(); openNotices(); }
   else if (act === 'tables') openTables();
   else if (act === 'rkall') openRankings();
   else if (act === 'tpage') { sfx.click(); st.tPage += +b.dataset.d; renderTables(); }
@@ -2260,4 +2286,5 @@ const ipReady = import('./itempic.js').then(m => { IP = m; }).catch(() => { ipFa
 const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
 onLangSwitch(l => { if (st.me?.user) send({ t: 'lang', v: l }); });
 go('hub');
+initNotice({ send, modal, toast, sfx, me: () => st.me, inGame: () => !!st.game });
 connect();

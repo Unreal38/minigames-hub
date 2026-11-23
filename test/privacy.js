@@ -91,7 +91,7 @@ if ((await again.ask({ t: 'login', user: 'ana', pass: 'apple123' })).ok) fail('d
 if (!/taken/.test((await again.ask({ t: 'register', user: 'ana', pass: 'pear12345' })).err || '')) fail('the name should be held for 30 days');
 console.log('delete account ok');
 
-srv.kill();
+srv.kill(); await new Promise(r => srv.once('exit', r));
 fs.rmSync(DATA_DIR, { recursive: true, force: true });
 console.log('privacy tests passed');
 process.exit(0);

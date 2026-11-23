@@ -104,7 +104,7 @@ ok(Object.values(PIECES).includes('Kulka'), 'isle pieces are Polish');
 const { srvText } = await import('../public/lang/server.js');
 let seen = 0;
 const quoted = /(?:err|msg): (?:'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`)/g;
-for (const f of ['server.js', 'store.js', 'hubchat.js', 'daily.js', 'hay.js', 'pop.js']) {
+for (const f of ['server.js', 'store.js', 'hubchat.js', 'daily.js', 'hay.js', 'pop.js', 'notice.js']) {
   const src = fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8');
   for (const m of src.matchAll(quoted)) {
     const text = (m[1] ?? m[2]).replace(/\\'/g, "'").replace(/\$\{[^}]*(SEASON|cosSeason)[^}]*name\}/g, 'Winter drop').replace(/\$\{[^}]*back\}/g, 'March').replace(/\$\{[^}]*(price|DECOR_SLOTS)[^}]*\}/g, '3').replace(/\$\{[^}]*\}/g, 'Ola');

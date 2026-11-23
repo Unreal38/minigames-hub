@@ -130,7 +130,7 @@ d = await ana2.daily({ guess: await ana2.answer() });
 if (d.streak !== 1 || d.best !== 7) fail('streak after a miss');
 console.log('streak ok');
 
-srv.kill();
+srv.kill(); await new Promise(r => srv.once('exit', r));
 fs.rmSync(DATA_DIR, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 console.log('mystery pet test passed');
 process.exit(0);

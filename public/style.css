@@ -1518,3 +1518,39 @@ body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border
    their small <i> tags (guest, screens...) and used to dim this one too */
 span.lv i.lvst { color: #ffe9a8 !important; background: #3b2219; border: 0 !important; font-size: .82em !important; font-weight: 700; padding: 1px 6px !important; }
 body.night span.lv i.lvst { background: #23245c; } span.lv i.lvst.lvcn { background: #23245c; padding: 1px 4px !important; }
+
+/* ---------- site notices: update countdown, announcement strip, What's new, the hosts' window ---------- */
+#sitebar { position: fixed; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 45; display: flex; flex-direction: column; align-items: center; gap: 6px; width: max-content; max-width: min(680px, calc(100vw - 16px)); pointer-events: none; }
+body.has-sitebar #toasts { top: auto; bottom: 80px; }
+#sitebar[hidden] { display: none; }
+#sitebar .sb { pointer-events: auto; display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 6px 8px 6px 12px; border-radius: 16px; background: var(--note-bg); color: var(--note-tx); border: 3px solid var(--note-edge); box-shadow: 0 4px 0 rgba(0, 0, 0, .25); font-size: 15px; line-height: 1.3; animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
+#sitebar .sb.maint { background: var(--chili); color: #fff; border-color: var(--ink); }
+#sitebar .sbico { font-size: 18px; flex: none; }
+#sitebar .sbtxt { font: inherit; color: inherit; background: none; border: 0; padding: 0 4px 0 0; text-align: left; text-wrap: pretty; overflow-wrap: break-word; min-width: 0; }
+#sitebar button.sbtxt { cursor: pointer; }
+#sitebar .sbtxt b { font-family: var(--fd); font-weight: 700; }
+#sitebar .sbtxt time { font-variant-numeric: tabular-nums; font-family: var(--fd); font-weight: 700; }
+#sitebar .sbtxt i { font-style: normal; opacity: .9; }
+#sitebar .sbtxt i::before { content: '· '; }
+#sitebar .sb.small { padding: 4px 10px; }
+#sitebar .sbx { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--note-edge); background: transparent; color: inherit; font: 700 18px/1 var(--fd); cursor: pointer; }
+#conn.restart { background: var(--mint); color: var(--ink); }
+body.night #conn.restart { color: #120f2a; }
+.newssheet .newsnote { font-size: 17px; line-height: 1.5; color: var(--on-paper); background: var(--card); border: 2px solid var(--card-edge); border-radius: 14px; padding: 12px 14px; overflow-wrap: break-word; max-height: 50vh; overflow: auto; }
+.ntsheet .ntsec { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 2px solid var(--card-edge); color: var(--on-paper); }
+.ntsheet .ntsec h3 { margin: 0; font: 700 19px/1.2 var(--fd); color: var(--on-paper); }
+.ntsheet .ntsec [data-form] { display: flex; flex-direction: column; gap: 8px; }
+.ntsheet .ntsec [data-form][hidden], .ntsheet .ntsec [data-st][hidden] { display: none; }
+.ntsheet .ntsec [data-st] { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.ntsheet .nthint { margin: 0; font-size: 14px; color: var(--soft-tx); }
+.ntsheet .nthint.small { font-size: 13px; }
+.ntsheet .ntnow { margin: 0; font-size: 15px; }
+.ntsheet .ntnow time { font-variant-numeric: tabular-nums; }
+.ntsheet blockquote { margin: 0; padding: 8px 12px; border-left: 4px solid var(--note-edge); background: var(--note-bg); color: var(--note-tx); border-radius: 8px; font-size: 15px; overflow-wrap: break-word; align-self: stretch; }
+.ntsheet .ntpair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ntsheet .ntpair label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--soft-tx); min-width: 0; }
+.ntsheet .ntpair .field { font-size: 16px; min-height: 44px; padding: 8px 12px; width: 100%; box-sizing: border-box; }
+.ntsheet .ntpair textarea.field { resize: vertical; font-family: 'Nunito', system-ui, sans-serif; font-weight: 500; }
+.ntsheet .ntsec > .btn, .ntsheet [data-form] > .btn { align-self: flex-start; }
+.ntsheet .ntrow { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 560px) { .ntsheet .ntpair { grid-template-columns: 1fr; } #sitebar .sb { font-size: 14px; } }
