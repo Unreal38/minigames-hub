@@ -515,6 +515,7 @@ function onMsg(m) {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); st.hay?.reopen(); // back after a dropped connection
+    tellWhere();
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); }
   } else if (m.t === 'pets') {
     st.pets = m.pets || []; st.decor = m.decor || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
@@ -566,7 +567,9 @@ function onMsg(m) {
   } else if (m.t === 'hubchat') {
     onHubChat(m);
   } else if (m.t === 'stats') {
-    st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats();
+    st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats(); if (whoSheet) send({ t: 'who' });
+  } else if (m.t === 'who') {
+    st.who = m.list || []; paintWho();
   } else if (m.t === 'auth') {
     onAuth?.(m);
   } else if (m.t === 'rooms') {
@@ -663,7 +666,7 @@ function unmountGame() { if (!st.game) return; st.game.destroy(); st.game = null
 let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
 function openFarm() {
   if (st.farm || farmLoading) return;
-  st.view = 'farm'; document.title = `${FARM_NAME} · ${SITE}`;
+  st.view = 'farm'; document.title = `${FARM_NAME} · ${SITE}`; tellWhere();
   $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking to the farm…', 'Idziemy na farmę…') + '</p></main>';
   farmLoading = import('./games/farm/client.js').then(mod => {
     farmLoading = null;
@@ -681,7 +684,7 @@ let hayLoading = null;
 function openHay() {
   if (st.hay || hayLoading) return;
   if (st.room) return toast(L('Leave this table first.', 'Najpierw wyjdź od tego stołu.'), true);
-  st.view = 'hay'; document.title = `Hay Hunch · ${SITE}`;
+  st.view = 'hay'; document.title = `Hay Hunch · ${SITE}`; tellWhere();
   $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking out to the hay field…', 'Idziemy na pole z sianem…') + '</p></main>';
   hayLoading = import('./games/hay/client.js').then(mod => {
     hayLoading = null;
@@ -749,7 +752,7 @@ function openDaily() {
 
 // ---------- views ----------
 function go(view) {
-  st.view = view; gameCss(null);
+  st.view = view; gameCss(null); tellWhere();
   document.title = view === 'lobby' && st.room ? `${st.room.code} · ${SITE}` : SITE;
   if (view === 'hub') renderHub();
   else if (view === 'lobby') renderLobby();
@@ -794,6 +797,44 @@ function openStats() {
   sheet.el.addEventListener('click', e => {
     const x = e.target.closest('[data-x]')?.dataset.x; if (!x) return;
     sfx.click(); sheet.close(); if (x === 'card') send({ t: 'player', pt: st.me.pt });
+  });
+}
+// Tells the server which screen this browser is on (hub, Pet Farm or Hay Hunch), for the host's "Who's here" list.
+// Tables need nothing: the server knows who sits where.
+function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' ? st.view : 'hub' }); }
+// "Who's here": everyone on the site right now, for hosts only (the server sends it only to ADMINS accounts).
+let whoSheet = null, whoTimer = null;
+const agoText = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return m < 1 ? L('just arrived', 'przed chwilą') : `${L('here for', 'na stronie od')} ${h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`}`; };
+function whereText(a) {
+  if (a.k === 'farm') return FARM_NAME;
+  if (a.k === 'hay') return 'Hay Hunch';
+  if (a.k !== 'table') return L('Hub', 'Strona główna');
+  const g = GAMES[a.game]?.name || a.game;
+  return `${esc(g)} <small>${a.watch ? L('watching', 'ogląda') : a.play ? L('playing', 'gra') : L('waiting room', 'poczekalnia')}${a.code ? ` · ${esc(a.code)}` : ` · ${L('private', 'prywatny')}`}</small>`;
+}
+function whoHtml() {
+  const list = st.who; if (!list) return `<p class="rknote">${L('Loading…', 'Wczytywanie…')}</p>`;
+  if (!list.length) return `<div class="empty">${L('Nobody is here right now.', 'Nikogo teraz nie ma.')}</div>`;
+  const now = Date.now(), tables = list.filter(r => r.at.k === 'table').length, guests = list.filter(r => !r.user).length;
+  return `<p class="rknote">${L(`${cnt(list.length, 'person', 'people')} · ${num(tables)} at tables · ${cnt(guests, 'guest')}`, `Osoby: ${num(list.length)} · przy stołach: ${num(tables)} · goście: ${num(guests)}`)}</p>
+    <ol class="rk wholist">${list.map((r, i) => `<li class="${r.pt && r.pt === st.me?.pt ? 'you' : ''}"${prof(r)}>
+    <span class="pos">${i + 1}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
+    <span class="who"><b>${nameHtml(r.name, r.fl)}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${r.user ? `<i>@${esc(r.user)}</i>` : `<i>${L('guest', 'gość')}</i>`}${r.n > 1 ? `<i>${L(`${r.n} screens`, `ekrany: ${r.n}`)}</i>` : ''}</span></span>
+    <b class="main">${whereText(r.at)}</b><span class="sub">${agoText(now - r.since)}</span>
+  </li>`).join('')}</ol>`;
+}
+function paintWho() { const el = whoSheet?.el.querySelector('#who-list'); if (el) el.innerHTML = whoHtml(); }
+function openWho() {
+  if (!st.me?.admin) return;
+  closeAcct(); whoSheet?.close();
+  const sheet = whoSheet = modal(`<h2>${L('Who’s here', 'Kto jest na stronie')}</h2><p class="rknote">${L('Only hosts see this list. It updates by itself.', 'Tę listę widzą tylko gospodarze. Odświeża się sama.')}</p><div class="rkall" id="who-list">${whoHtml()}</div><div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
+  sheet.el.querySelector('.sheet').classList.add('listsheet');
+  send({ t: 'who' });
+  whoTimer = setInterval(() => send({ t: 'who' }), 10_000); // also refreshed whenever the live count changes
+  sheet.onClose = () => { whoSheet = null; clearInterval(whoTimer); };
+  sheet.el.addEventListener('click', e => {
+    if (e.target.closest('[data-x]')) { sfx.click(); return sheet.close(); }
+    if (e.target.closest('[data-prof]')) sheet.close(); // the page-wide handler opens the profile card
   });
 }
 // The account menu: one place for everything that used to be separate buttons in the top bar and on the progress card.
@@ -856,6 +897,7 @@ function acctHtml() {
       ${item('mystats', '📊', L('Profile', 'Profil'), `<small>${L('all your stats', 'wszystkie statystyki')}</small>`)}
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
+      ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
       ${item('support', '☕', L('Support the site', 'Wesprzyj stronę'), `<small>${hasPack() ? L('thank you!', 'dziękujemy!') : L('get the Supporter pack', 'odbierz Pakiet wspierających')}</small>`)}
       <hr>
@@ -1198,8 +1240,10 @@ $app.addEventListener('submit', e => {
 // "3 playing now · 128 visitors so far" under the hero buttons.
 function statsHtml() {
   const s = st.stats; if (!s) return '';
-  return `<span class="on"><i></i><b>${num(s.online)}</b> ${L(`${s.online === 1 ? 'person' : 'people'} here now`, `${word(s.online, '', '', 'osoba', 'osoby', 'osób')} teraz na stronie`)}</span><span><b>${num(s.visitors)}</b> ${L(`${s.visitors === 1 ? 'visitor' : 'visitors'} so far`, `${word(s.visitors, '', '', 'odwiedzający', 'odwiedzających', 'odwiedzających')} do tej pory`)}</span>`;
+  const on = `<i></i><b>${num(s.online)}</b> ${L(`${s.online === 1 ? 'person' : 'people'} here now`, `${word(s.online, '', '', 'osoba', 'osoby', 'osób')} teraz na stronie`)}`;
+  return `${st.me?.admin ? `<button type="button" class="on whobtn" data-act="who" title="${L('See who’s here', 'Zobacz, kto jest na stronie')}">${on}</button>` : `<span class="on">${on}</span>`}<span><b>${num(s.visitors)}</b> ${L(`${s.visitors === 1 ? 'visitor' : 'visitors'} so far`, `${word(s.visitors, '', '', 'odwiedzający', 'odwiedzających', 'odwiedzających')} do tej pory`)}</span>`;
 }
+// Hosts (accounts in the server's ADMINS setting) can tap the live count to see who is on the site.
 function paintStats() { const el = document.getElementById('live-stats'); if (el) el.innerHTML = statsHtml(); }
 
 // Open tables: tables with a free seat in their waiting room come first. The hub's left column shows the first
@@ -1908,6 +1952,7 @@ $app.addEventListener('click', e => {
   else if (act === 'acct') openAcct();
   else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'mystats') openStats();
+  else if (act === 'who') openWho();
   else if (act === 'tables') openTables();
   else if (act === 'rkall') openRankings();
   else if (act === 'tpage') { sfx.click(); st.tPage += +b.dataset.d; renderTables(); }

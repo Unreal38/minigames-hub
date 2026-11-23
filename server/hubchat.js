@@ -3,16 +3,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { DATA_DIR, safeText, badge, flair, tagOf } from './store.js';
+import { DATA_DIR, safeText, badge, flair, tagOf, isAdmin } from './store.js';
 import { allow } from './limits.js';
 
 export const MAX_LEN = 200;  // characters per message
 const KEEP = 100;            // messages kept on the server
 export const SEND = 60;      // messages a new reader gets
 const FILE = path.join(DATA_DIR, 'hub-chat.json');
-// Moderators (usernames, comma separated) may remove anyone's message: ADMINS=kuba,someone
-const ADMINS = new Set(String(process.env.ADMINS || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
-export const isAdmin = p => !!p?.user && ADMINS.has(p.user.toLowerCase());
+// Moderators (the ADMINS setting, see store.js) may remove anyone's message.
+export { isAdmin };
 
 let log = [];
 

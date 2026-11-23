@@ -180,6 +180,14 @@ sudo systemctl daemon-reload && sudo systemctl restart cozy-table
   ```bash
   cd /opt/cozy-table && sudo DATA_DIR=/var/lib/cozy-table npm run reset-password -- <username>
   ```
+- **Hosts (who's here, chat moderation):** usernames in the `ADMINS` setting (comma separated, any case) can remove any hub chat line and see **Who's here**: everyone on the site right now, with their name, account or guest, and where they are (hub, Pet Farm, Hay Hunch, or a table with its game). No addresses are shown. Open it from the account menu or by tapping "people here now" on the hub. To turn it on for your account:
+
+  ```bash
+  sudo systemctl edit cozy-table     # add the two lines below, save, close
+  #   [Service]
+  #   Environment=ADMINS=yourusername
+  sudo systemctl restart cozy-table
+  ```
 - **New games:** export `results(G)` from the server module, returning `{ pts, win }` per seat once the game has ended, and the scoreboard and XP work for it too.
 
 ## Security

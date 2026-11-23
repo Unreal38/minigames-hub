@@ -218,6 +218,21 @@ function sendFriends(p, news = null) {
   const view = p.user ? store.friendsView(p, pid => clientsOf(pid).length > 0, pid => ({ farm: farm.fidOf(pid) })) : { friends: [], reqs: [], sent: [] };
   for (const c of clientsOf(p.pid)) send(c, { t: 'friends', ...view, news });
 }
+// Everyone on the site right now, for hosts (ADMINS). One row per person (a phone and a laptop count once), with
+// where they are. Names only: no addresses, no tokens.
+const WHERE = new Set(['hub', 'farm', 'hay']);
+function whoList() {
+  const rows = new Map();
+  for (const c of clients.values()) {
+    if (!c.sock) continue;
+    const p = store.profileOf(c.token), key = p?.pid || c.token, r = rooms.get(c.room);
+    const at = r ? { k: 'table', game: r.game, code: r.priv ? '' : r.code, play: !!r.G && r.G.ph !== 'end', watch: r.spect.has(c.id) } : { k: c.view || 'hub' };
+    const old = rows.get(key);
+    if (old) { old.n++; old.since = Math.min(old.since, c.since || Date.now()); if (at.k === 'table') old.at = at; continue; }
+    rows.set(key, { name: c.name, user: p?.user || '', color: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p), ...store.badge(p), at, since: c.since || Date.now(), n: 1 });
+  }
+  return [...rows.values()].sort((a, b) => (b.at.k === 'table') - (a.at.k === 'table') || a.since - b.since);
+}
 // Live "playing now" + all-time visitor numbers for the hub. Batched so a burst of joins sends one update.
 const statsMsg = () => ({ t: 'stats', online: [...clients.values()].filter(c => c.sock).length, visitors: store.visitorCount() });
 let statsTimer = null, lastStats = '';
@@ -329,6 +344,12 @@ function handle(c, m) {
       return;
     }
     case 'stats': return send(c, statsMsg());
+    case 'where': c.view = WHERE.has(m.v) ? m.v : 'hub'; return; // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
+    case 'who': { // the host's "Who's here" list: only accounts named in ADMINS get it
+      if (!store.isAdmin(store.profileOf(c.token))) return;
+      if (!allow('who:' + c.token, 30, 60_000)) return;
+      return send(c, { t: 'who', list: whoList() });
+    }
     case 'rankings': { // the hub's global leaderboards, one per minigame
       const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
       if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
@@ -545,7 +566,8 @@ attach(server, '/ws', sock => {
       c = clients.get(token);
       if (c) { if (c.sock && c.sock !== sock) { console.log(`ws: ${c.id} opened a second connection (${sock.ip}), closing the older one (${c.sock.ip})`); c.sock.send({ t: 'replaced' }); c.sock.close(4000); } }
       else { c = { token, id: null, room: null }; clients.set(token, c); }
-      c.sock = sock; c.lastSeen = Date.now();
+      if (c.sock !== sock) c.since = Date.now(); // when this visit started, for the host's list
+      c.sock = sock; c.lastSeen = Date.now(); c.view = 'hub';
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
       c.id = store.session(token, c).id; c.av = store.allowedAv(store.profileOf(token), c.av); store.setLook(token, c); store.scheduleSave();
       store.visit(token);

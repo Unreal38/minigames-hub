@@ -101,6 +101,10 @@ export function session(token, look) {
   s.seen = Date.now();
   return s;
 }
+// Hosts / moderators: usernames in the ADMINS setting, comma separated (ADMINS=kuba,someone). They can remove any
+// hub chat line and see the "Who's here" list of everyone on the site.
+const ADMINS = new Set(String(process.env.ADMINS || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean));
+export const isAdmin = p => !!p?.user && ADMINS.has(p.user.toLowerCase());
 export const profileOf = token => profiles.get(sessions.get(token)?.pid);
 
 export function setLook(token, { name, color, av }) {
@@ -223,7 +227,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, ...progress(p.xp) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars }; }
