@@ -225,7 +225,8 @@ export function createScene(canvas) {
 
   // ---------- camera: fits the shelf between the HUD bars ----------
   let hudTop = 64, hudBottom = 120, cw = 1, ch = 1;
-  const DIR = new THREE.Vector3(0, .42, 1).normalize(), camLook = new THREE.Vector3(), camBase = new THREE.Vector3(), pv = new THREE.Vector3();
+  // the camera looks along the shelf's own normal, so the shelf faces it squarely (Kuba asked for straight on)
+  const DIR = new THREE.Vector3(0, Math.sin(LEAN), Math.cos(LEAN)), camLook = new THREE.Vector3(), camBase = new THREE.Vector3(), pv = new THREE.Vector3();
   let fitBox = [];
   function place(D) { camera.position.copy(DIR).multiplyScalar(D).add(camLook); camera.lookAt(camLook); camera.updateMatrixWorld(); }
   function resize() {
@@ -237,7 +238,7 @@ export function createScene(canvas) {
     fitBox = [];
     for (const x of [-W / 2 - .42, W / 2 + .42]) for (const y of [-H / 2 - .5, H / 2 + (portrait ? 2.6 : .5)]) fitBox.push(B.localToWorld(new THREE.Vector3(x, y, 0)));
     if (!portrait) fitBox.push(new THREE.Vector3(-W / 2 - 3.7, 0, 1.2), new THREE.Vector3(-W / 2 - 3.7, 3.6, 1.2), new THREE.Vector3(W / 2 + 1.6, 0, 1.2));
-    camera.aspect = cw / ch; camera.fov = portrait ? 38 : 32; camera.clearViewOffset(); camera.updateProjectionMatrix();
+    camera.aspect = cw / ch; camera.fov = portrait ? 30 : 24; camera.clearViewOffset(); camera.updateProjectionMatrix();
     const avail = Math.max(.3, (ch - hudTop - hudBottom) / ch);
     let lo = 6, hi = 120;
     for (let k = 0; k < 30; k++) {
