@@ -587,7 +587,7 @@ body.sky.night:not(.in-game) {
   /* one cool indigo family: panels sit a step lighter than the sky, outlines are near-black navy, text is soft white,
      secondary text stays above 7:1 on the panels, lantern yellow is the only warm accent */
   --sky1: #110e2b; --sky2: #221b48; --sky3: #352760;
-  --pan: #2b2856; --pan2: #201d44; --edge: #4d4a8c; --chip: #1c1a3a; --you: #3a3479; --glass: #ffffff12;
+  --pan: #2b2856; --pan2: #201d44; --edge: #4d4a8c; --chip: #1c1a3a; --you: #3a3479; --glass: #ffffff12; --grass: #4d4a8c; /* the strip under game cards: a moonlit edge, not daytime green */
   --tx: #f5f2ff; --tx2: #dcdcff; --muted2: #bcbfeb; --ink: #0e0c22;
   color-scheme: dark;
 }
@@ -1011,7 +1011,7 @@ body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background:
 .wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* Isle frames: the sky gradient starts at the outer edge, under the border. With the default padding-box origin the
    gradient repeats into the border, and at fractional zoom its bottom colour shows as a thin line along the top. */
-.pisle, .creator .pv3d, .wd.creator .pvisle, .hubgrid .hero { background-origin: border-box !important; }
+.pisle, .creator .pv3d, .wd.creator .pvisle { background-origin: border-box !important; }
 .wd.creator .pv3d[hidden] { display: none; }
 .wd.isleview .pvbar .pvseg { visibility: hidden; }
 .wdtile img.islepic { width: 92px; height: 92px; object-fit: contain; border-radius: 12px; }
@@ -1142,7 +1142,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
   .ttile .tpic { width: 46px; height: 46px; } .ttile { gap: 9px; padding: 9px 10px; }
 }
 @media (min-width: 1800px) {
-  .wrap.hubgrid { max-width: 2400px; padding-inline: 40px; column-gap: 40px; grid-template-columns: 360px minmax(0, 1fr) 420px; }
+  .wrap.hubgrid { max-width: none; padding-inline: 4vw; column-gap: 40px; grid-template-columns: clamp(360px, 16vw, 440px) minmax(0, 1fr) clamp(420px, 18vw, 500px); } /* edge to edge, lined up with the top bar */
   .games.mini, body.sky:not(.in-game) .games.mini { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
   .gmini .pic, body.sky:not(.in-game) .gmini .pic { height: 124px; } .gmini h3 { font-size: 21px; }
 }
@@ -1308,13 +1308,21 @@ footer .plink:hover { color: var(--tx, var(--ink)); }
 /* ---------- the hub hero as a sky banner: text on a soft panel on the left, your isle big on the right ---------- */
 /* The banner wears your isle's sky (hero3d.js puts an isk1.. class on .hero); with no bought sky it is a plain day or night sky. */
 .hero .art .icv { display: contents; }
-.hubgrid .hero { position: relative; margin-top: 18px; padding: 26px 28px; border: 3px solid var(--ink); border-radius: 26px; box-shadow: 0 6px 0 var(--ink); background-origin: border-box; overflow: hidden; isolation: isolate; }
-.hubgrid .hero:not([class*=isk]) { background: linear-gradient(#8fd0f7, #d9f1ff); }
-body.night .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
-.hubgrid .hero::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, var(--pan) 0, color-mix(in srgb, var(--pan) 88%, transparent) 46%, transparent 68%); }
+.hubgrid .hero { position: relative; margin-top: 18px; padding: 26px 28px; border: 3px solid var(--ink); border-radius: 26px; box-shadow: 0 6px 0 var(--ink); background-origin: border-box; isolation: isolate; }
+/* Chrome anti-aliases each background layer's rounded clip on its own, so a hair of sky showed along the inside of the
+   border's corners. A ring drawn on top, straddling the border's inside edge, covers it. */
+.hubgrid .hero::after { content: ''; position: absolute; inset: -2px; border: 3.5px solid var(--ink); border-radius: 25px; pointer-events: none; z-index: 3; }
+/* the panel and the sky are two layers of the hero's own background */
+.hubgrid .hero { --sky: linear-gradient(#8fd0f7, #d9f1ff); --panel: linear-gradient(90deg, var(--pan) 0, color-mix(in srgb, var(--pan) 88%, transparent) 46%, transparent 68%);
+  background: var(--panel), var(--sky) !important; background-origin: border-box !important; background-clip: padding-box !important; }
+body.night .hubgrid .hero { --sky: linear-gradient(#1c1a4a, #3a3478); }
+body .hubgrid .hero.isk1 { --sky: linear-gradient(#4b3a8f, #ff7a6a 58%, #ffc27a); }
+body .hubgrid .hero.isk2 { --sky: linear-gradient(#0c1236, #2d2b63 60%, #4a3f8a); }
+body .hubgrid .hero.isk3 { --sky: linear-gradient(#06142e, #123a55 55%, #2b2856); }
+body .hubgrid .hero.isk4 { --sky: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
 .hubgrid .hero > div:first-child { position: relative; z-index: 1; }
 .hubgrid .herorow .btn.big { flex-shrink: 0; }
-.hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex: 0 0 clamp(280px, 30vw, 520px); align-self: stretch; height: auto; min-height: 300px; position: relative; margin: -26px -28px -26px 0; }
+.hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex: 0 0 clamp(280px, 30vw, 520px); align-self: stretch; height: auto; min-height: 300px; position: relative; margin: -26px -28px -26px 0; overflow: hidden; border-radius: 0 23px 23px 0; }
 .hubgrid .hero .art .hero3d, body.sky:not(.in-game) .hubgrid .hero .art .hero3d { inset: 0; width: 100%; height: 100%; }
 /* the button on the isle: it opens the Wardrobe on the isle page, or nudges a guest to make their own */
 .isletag { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 2; white-space: nowrap;
@@ -1324,8 +1332,8 @@ body.night .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#1c1a4
 /* below 1500px the middle column is narrow: a sky strip with your isle sits on top of the text */
 @media (max-width: 1499px) {
   .hubgrid .hero { flex-direction: column-reverse; align-items: stretch; padding: 0 20px 20px; gap: 12px; }
-  .hubgrid .hero::before { background: linear-gradient(transparent 0, transparent 190px, var(--pan) 230px); }
-  .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { flex: none; height: 220px; min-height: 0; margin: 0 -20px; }
+  .hubgrid .hero { --panel: linear-gradient(transparent 0, transparent 190px, var(--pan) 230px); }
+  .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { flex: none; height: 220px; min-height: 0; margin: 0 -20px; border-radius: 23px 23px 0 0; }
   .isletag { bottom: 8px; }
 }
 @media (max-width: 1099px) {
@@ -1333,4 +1341,3 @@ body.night .hubgrid .hero:not([class*=isk]) { background: linear-gradient(#1c1a4
   .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { height: 210px; margin: 0 -16px; }
   .isletag { font-size: 13px; }
 }
-.hubgrid .hero { background-clip: padding-box !important; } /* the sky must not bleed past the rounded border's outer edge */
