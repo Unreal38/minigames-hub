@@ -437,7 +437,7 @@ export function createScene(canvas) {
       dead = true; for (const F of allFaces) { F.m.material.map?.dispose(); F.m.material.dispose(); } faceGeo.dispose();
       for (const P of all) { P.body.geometry.dispose(); P.hull?.geometry.dispose(); }
       for (const g of [padGeo, beamGeo, backGeo]) g.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

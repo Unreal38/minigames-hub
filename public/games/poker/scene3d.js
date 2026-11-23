@@ -456,7 +456,7 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) disposeAvatar(s.av);
-      pfx.dispose(); renderer.dispose();
+      pfx.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

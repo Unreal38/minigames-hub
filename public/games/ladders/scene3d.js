@@ -443,7 +443,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       ticker.stop();
       if (boardGroup) disposeToon(boardGroup); if (land) disposeToon(land); fx.dispose();
       for (const t of toks) { disposeAvatar(t.av); t.ring.material.dispose(); }
-      disposeArrow(arrow); for (const c of die.children) c.material.dispose(); kit.dispose(); renderer.dispose();
+      disposeArrow(arrow); for (const c of die.children) c.material.dispose(); kit.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

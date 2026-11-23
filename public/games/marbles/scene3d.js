@@ -501,7 +501,7 @@ export function createScene(canvas, { onFrame }) {
       ticker.stop();
       if (trackGroup) disposeToon(trackGroup); pfx.dispose();
       for (const m of marbles) { m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
-      sharedGeo.dispose(); arrow.traverse(o => o.geometry?.dispose()); arrowM.dispose(); renderer.dispose();
+      sharedGeo.dispose(); arrow.traverse(o => o.geometry?.dispose()); arrowM.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

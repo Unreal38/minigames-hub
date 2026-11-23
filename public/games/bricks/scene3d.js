@@ -263,7 +263,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const w of wells) freeWell(w);
-      pfx.dispose(); wallTx.dispose(); boxGeo.dispose(); cells.dispose(); hulls.dispose(); ghosts.dispose(); renderer.dispose();
+      pfx.dispose(); wallTx.dispose(); boxGeo.dispose(); cells.dispose(); hulls.dispose(); ghosts.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

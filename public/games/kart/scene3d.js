@@ -433,7 +433,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
       frames.stop(); ro.disconnect(); fx.dispose();
       for (const k of karts) disposeAvatar(k.driver);
       if (trackG) disposeToon(trackG);
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

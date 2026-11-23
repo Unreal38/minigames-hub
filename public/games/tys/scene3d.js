@@ -283,7 +283,7 @@ export function createScene(canvas, { onFrame } = {}) {
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
       pfx.dispose(); feltMap.dispose(); for (const m of faceMats.values()) m.dispose();
       for (const g of [cardGeo, backGeo, ringGeo]) g.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

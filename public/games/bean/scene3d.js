@@ -378,7 +378,7 @@ export function createScene(canvas, { onFrame, step, clock } = {}) {
       disposeArrow(arrow); disposeToon(base); for (const g of isles) disposeToon(g);
       for (const s of [...signs, ...banners]) s.dispose();
       for (const g of [sideGeo, sideHull, backGeo, backHull, midGeo, capGeo, shroomG, shadowGeo]) g.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }

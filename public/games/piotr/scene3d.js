@@ -300,7 +300,7 @@ export function createScene(canvas, { onFrame } = {}) {
       for (const m of mats.values()) m.dispose(); for (const t of texs) t.dispose();
       pointer.geometry.dispose(); pointer.material.dispose();
       pfx.dispose(); cardGeo.dispose(); backGeo.dispose(); ringGeo.dispose();
-      renderer.dispose();
+      renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }
