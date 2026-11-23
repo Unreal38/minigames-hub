@@ -284,27 +284,41 @@ export function createScene(canvas, { onFrame }) {
       const fg = new THREE.Group(); place(fg, T.L, 0, 0); g.add(fg);
       const postM2 = M('#fff4e2'), band = M('#e5543b');
       for (const sd of [-1, 1]) {
-        const p = new THREE.Mesh(new THREE.CylinderGeometry(.18, .2, 4.2, 12), postM2); p.position.set(sd * 2.95, 2.1, 0); fg.add(p);
+        // the posts stand taller than the banner and the banner stops inside them, so no two faces share a plane
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(.18, .2, 4.6, 12), postM2); p.position.set(sd * 2.95, 2.3, 0); fg.add(p);
+        const knob = new THREE.Mesh(new THREE.SphereGeometry(.24, 12, 8), band); knob.position.set(sd * 2.95, 4.62, 0); fg.add(knob);
         for (const y of [.5, 1.5, 2.5]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .4, 12), band); r.position.set(sd * 2.95, y, 0); fg.add(r); }
         const foot = new THREE.Mesh(new THREE.CylinderGeometry(.34, .42, .3, 12), M('#8a8794')); foot.position.set(sd * 2.95, .15, 0); fg.add(foot);
         [['#ff7a59', 0, 0], ['#ffd84a', .38, .3], ['#7ed3b2', -.36, .26]].forEach(([c, dx, dy], k) => {
-          const bl = new THREE.Group(); bl.userData.dyn = true; bl.position.set(sd * 2.95 + dx, 4.95 + dy, 0); fg.add(bl);
+          const bl = new THREE.Group(); bl.userData.dyn = true; bl.position.set(sd * 2.95 + dx, 5.3 + dy, 0); fg.add(bl);
           const m = new THREE.Mesh(new THREE.SphereGeometry(.34, 12, 10), M(c)); m.scale.y = 1.2; bl.add(m); shell(m, 1.12); toonify(bl);
-          anim.push(t => { bl.position.y = 4.95 + dy + Math.sin(t * 1.6 + k * 2 + sd) * .09; bl.rotation.z = Math.sin(t * 1.1 + k + sd) * .12; });
+          anim.push(t => { bl.position.y = 5.3 + dy + Math.sin(t * 1.6 + k * 2 + sd) * .09; bl.rotation.z = Math.sin(t * 1.1 + k + sd) * .12; });
         });
       }
       const ct = checkTexture(); ct.wrapS = THREE.RepeatWrapping; ct.repeat.set(1.5, 1);
-      const ban = new THREE.Mesh(new THREE.BoxGeometry(6.1, 1, .12), M('#ffffff', { map: ct, roughness: .6 })); ban.position.y = 3.7; fg.add(ban);
+      const ban = new THREE.Mesh(new THREE.BoxGeometry(5.62, 1, .12), M('#ffffff', { map: ct, roughness: .6 })); ban.position.y = 3.7; ban.userData.noInk = true; fg.add(ban);
       const flagCols = ['#ff7a59', '#ffd84a', '#7ed3b2', '#8a98ff', '#ff8fab'];
       for (let k = 0; k < 11; k++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.2, .42, 3), M(flagCols[k % 5])); f.rotation.x = Math.PI; f.scale.z = .25; f.position.set(-2.5 + k * .5, 2.98, 0); fg.add(f); }
       const line = new THREE.Mesh(new THREE.PlaneGeometry(5, .9), new THREE.MeshBasicMaterial({ map: checkTexture() }));
-      line.rotation.x = -Math.PI / 2; line.position.y = .12; fg.add(line); shell(ban, 1).scale.set(1.03, 1.16, 2.2); toonify(fg, .04);
+      line.rotation.x = -Math.PI / 2; line.position.y = .12; fg.add(line); shell(ban, 1).scale.set(1, 1.16, 2.2); toonify(fg, .04);
     }
-    // start gate: a striped bar between two posts whose lamps go from red to green
+    // start gate: a row of chunky planks between two posts whose lamps go from red to green. At the start
+    // the planks drop through a slot in the floor, and they come back up for the next heat.
     {
       const gg = new THREE.Group(); place(gg, GATE_S + .12, 0, 0); g.add(gg);
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(5, .5, .14), M('#ffb547', { map: stripeTexture('#ffb547', INK, 10), roughness: .5 }));
-      bar.position.y = .38; bar.userData.dyn = true; gg.add(bar);
+      const hw = at(T.w, GATE_S + .12) / 2, N = 8, pw = hw * 2 / N, PH = .62, bar = new THREE.Group(); bar.userData.dyn = true; gg.add(bar);
+      const cols = [M('#ffb547', { roughness: .5 }), M('#fff4e2', { roughness: .5 })], capM = M('#5b4636', { roughness: .5 });
+      for (let i = 0; i < N; i++) {
+        const u = -hw + pw * (i + .5), y0 = DISH * (Math.abs(u) - pw / 2) ** 2 - .04; // each plank stands on the dished floor; the tops are level
+        const pl = new THREE.Mesh(new THREE.BoxGeometry(pw - .05, PH - y0, .2), cols[i % 2]); pl.position.set(u, (PH + y0) / 2, 0); bar.add(pl);
+      }
+      const cp = new THREE.Mesh(new THREE.BoxGeometry(hw * 2 - .12, .1, .28), capM); cp.position.y = PH + .05; bar.add(cp);
+      toonify(bar, .04);
+      // the slot they sink into: a dark strip lying on the floor
+      const sp = [], si = [], SN = 12;
+      for (let i = 0; i <= SN; i++) { const u = -hw + .02 + (hw * 2 - .04) * i / SN, y = DISH * u * u + .022; sp.push(u, y, -.17, u, y, .17); if (i < SN) si.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2); }
+      const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sg.setIndex(si);
+      const slot = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color: '#4a2c22', side: THREE.DoubleSide })); slot.userData.noInk = true; gg.add(slot);
       const lampM = new THREE.MeshBasicMaterial({ color: '#ff5a3c' });
       for (const sd of [-1, 1]) {
         const p = new THREE.Mesh(new THREE.CylinderGeometry(.13, .16, 1.1, 10), M('#fff4e2')); p.position.set(sd * 2.65, WALL_H + .55, 0); gg.add(p);
@@ -312,9 +326,14 @@ export function createScene(canvas, { onFrame }) {
         const cup = new THREE.Mesh(new THREE.CylinderGeometry(.22, .15, .14, 10), M('#5b4636')); cup.position.set(sd * 2.65, WALL_H + 1.13, 0); gg.add(cup);
         const l = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 9), lampM); l.position.set(sd * 2.65, WALL_H + 1.32, 0); gg.add(l);
       }
-      let k = 0;
-      anim.push((t, st, dt) => { const to = playing ? 1 : 0; k += (to - k) * Math.min(1, dt * 9); bar.position.y = .38 + k * 2.6; lampM.color.set(playing ? '#5ee08a' : stage === 'count' ? (Math.sin(t * 10) > 0 ? '#ffd84a' : '#ff5a3c') : '#ff5a3c'); });
-      shell(bar, 1).scale.set(1.02, 1.22, 1.9); toonify(gg, .04);
+      const DROP = PH + .1 + .08; // until the top rail is under the floor
+      let k = playing ? 1 : 0;
+      anim.push((t, st, dt) => {
+        const to = playing ? 1 : 0; k += (to - k) * Math.min(1, dt * (to ? 12 : 5)); if (Math.abs(to - k) < .004) k = to; // quick down so the marbles never roll through it, easy back up
+        bar.position.y = -k * DROP; bar.visible = k < 1; // gone once it is down: the track is thinner than the planks are tall
+        lampM.color.set(playing ? '#5ee08a' : stage === 'count' ? (Math.sin(t * 10) > 0 ? '#ffd84a' : '#ff5a3c') : '#ff5a3c');
+      });
+      toonify(gg, .04);
     }
     bake(solid); solid.traverse(o => { if (o.isMesh) o.castShadow = true; }); toonify(solid, .045);
     toonify(g); // flat cartoon shading on the track itself

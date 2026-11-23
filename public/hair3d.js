@@ -117,7 +117,7 @@ function tube(path, { sides = 8, ridge = .12, twist = 0, flat = 1, ref = [0, 0, 
 }
 // a smooth curve through a few [x, y, z, r] points, as m path points
 const curve = (pts, m) => { const c = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0], p[1], p[2]))), out = []; for (let i = 0; i <= m; i++) { const u = i / m, p = c.getPoint(u), f = u * (pts.length - 1), k = Math.min(pts.length - 2, Math.floor(f)); out.push([p.x, p.y, p.z, pts[k][3] + (pts[k + 1][3] - pts[k][3]) * (f - k)]); } return out; };
-const band = (x, y, z, r, ax) => { const g = new THREE.TorusGeometry(r, .034, 6, 12); if (ax === 'x') g.rotateY(PI / 2); else if (ax === 'y') g.rotateX(PI / 2); else if (ax) g.rotateX(ax); g.translate(x, y, z); return g; };
+const band = (x, y, z, r, ax, rz = 0) => { const g = new THREE.TorusGeometry(r, .034, 6, 12); if (ax === 'x') g.rotateY(PI / 2); else if (ax === 'y') g.rotateX(PI / 2); else if (ax) g.rotateX(ax); if (rz) g.rotateZ(rz); g.translate(x, y, z); return g; };
 
 // The crest of a mohawk: a saw-toothed fin along the middle of the head, from f0 in front of the crown to f1 behind it.
 function fin(hr, f0, f1, teeth, w, h) {
@@ -151,7 +151,7 @@ export function hairParts(style, face, hr, tilt = 0, up = false) {
     add(cap(hr, { n: 16, line: L(.76, .47, .43), tip: F(.24, .03) }));
     for (const s of [-1, 1]) { const [x, y, z] = skull(s * .5, .8, -.1, .03);
       add(tube(curve([[x, y, z, .09], [x + s * .13, y - .08, z - .01, .17], [x + s * .2, y - .36, z - .01, .15], [x + s * .17, y - .62, z, .08], [x + s * .13, y - .76, z + .01, .012]], 10), { ridge: .14, twist: .22, tone: (i, k) => k % 2 }));
-      tie(band(x + s * .05, y - .02, z, .1, s * .5 + PI / 2 * 0 + 1.2)); }
+      tie(band(x + s * .12, y - .075, z - .005, .16, 'x', -s * .55)); } // the tie wraps the tail where it leaves the head, clear of the hair
   }
   if (style === 3) add(cap(hr, { n: 14, cols: 2, line: L(.77, .5, .46), tip: F(.3, .1), rows: 8, groove: .1, // spiky: every lock ends in a point
     bump: (i, c, j, az, y) => c === 1 && j >= 2 && j < 8 && (i + j) % 2 === 0 ? .23 - j * .012 : c === 1 && j >= 2 && j < 8 ? .03 : 0 }));
