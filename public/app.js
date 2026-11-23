@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, TODAY_ICONS } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -778,7 +778,6 @@ const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile $
   <button type="button" class="btn sm ${quiet ? 'w' : ''}" data-act="${act}">${btn}</button>
 </div>`;
 // One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
-const HAY_ICON = TODAY_ICONS.hay, POP_ICON = TODAY_ICONS.pop, FARM_ICON = TODAY_ICONS.farm;
 // The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
 function todayHtml() {
   const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
@@ -797,7 +796,7 @@ function todayHtml() {
     : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
     : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
-  const mpPic = TODAY_ICONS.mystery;
+  const mpPic = MYSTERY_ICON;
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
     + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', L('Play', 'Graj'))
     + todayTile('t-pop', POP_ICON, 'Pet Pop', popText, 'pop', L('Play', 'Graj'))
@@ -1086,7 +1085,7 @@ const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open 
 // Solo games (Hay Hunch, Pet Farm, Mystery Pet) are not here: they live in the Today column.
 const HUB_CATS = [['all', L('All', 'Wszystkie')], ['cards', L('Cards', 'Karciane')], ['board', L('Board', 'Planszowe')], ['action', L('Action', 'Zręcznościowe')]];
 const HUB_GAMES = [
-  ['hotpot', 'hotpotpic', hotpotArt, 'cards', '1–4 players', 'Draw, swap and collect three sets of three ingredients, then call “Let\'s Eat!” before anyone else.'],
+  ['hotpot', '', hotpotArt, 'cards', '1–4 players', 'Draw, swap and collect three sets of three ingredients, then call “Let\'s Eat!” before anyone else.'],
   ['marbles', 'marblepic', marbleArt, 'action', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
   ['ladders', 'ladderpic', laddersArt, 'board', '1–6 players', 'The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.'],
   ['poker', 'pokerpic', pokerArt, 'cards', '1–6 players', 'Cozy no-limit poker for pretend chips. Also Mango Poker, where the flop comes from the cards you all throw away.'],
@@ -1108,9 +1107,9 @@ const HUB_GAMES = [
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
-  <div class="pic gart ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>
+  <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>
+  <div class="body"><h3>${esc(GAMES[id].name)}</h3><div class="gmeta"><span class="tag">${PLX ? PLX.SEATS_PL(seats) : seats}</span>
     <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
-  <div class="body"><h3>${esc(GAMES[id].name)}</h3><span class="tag">${PLX ? PLX.SEATS_PL(seats) : seats}</span>
     <button type="button" class="btn sm" data-act="host" data-game="${id}">${L('Host a table', 'Załóż stół')}</button></div>
 </article>`;
 // The category pills and the search box only hide cards; nothing is re-rendered, so the pictures keep animating.
