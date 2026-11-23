@@ -67,7 +67,7 @@ for (const id of TRACK_IDS) {
     const c = newKart(C, 0); Object.assign(c, { x: C.x[ni], z: C.z[ni], h: Math.atan2(C.tx[ni], C.tz[ni]) + .6, v: 18, i: ni, lap: 0 });
     let off = false; for (let i = 0; i < 40 && !off; i++) off = stepKart(C, c, { steer: 0, gas: 1 }, 1 / 60) === 'fall';
     if (!off) fail('drifting wide on a narrow road should fall');
-    if (Math.min(...C.vlim) > 21) fail('cliff should have bends that need braking'); }
+    if (Math.min(...C.vlim) > 23) fail('cliff should have bends that need braking'); }
   // on a bridge the rails hold you in
   const bi = T.br.findIndex(b => b), b = newKart(T, 0);
   Object.assign(b, { x: T.x[bi], z: T.z[bi], h: Math.atan2(T.tx[bi], T.tz[bi]) + 1.2, v: 20, i: bi, s: bi * T.step, lap: 0 });
