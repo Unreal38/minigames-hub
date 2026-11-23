@@ -1490,3 +1490,10 @@ body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border
 @media (min-width: 900px) { /* Your games takes whatever height the left column leaves, and scrolls inside */
   .mecard.me2 { align-items: stretch; } .me2 .megames { flex: 1 1 0; min-height: 220px; } .me2 .megames .pergame { flex: 1 1 0; min-height: 0; max-height: none; }
 }
+/* the constellation block: picture | text with the button under it, so no line has to break around the button */
+.cnnow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 16px; align-items: center; }
+.cnnow .cntile { grid-row: 1 / span 2; align-self: center; } .cnnow .txt { grid-column: 2; }
+.cnnow .btn { grid-column: 2; justify-self: start; width: auto !important; padding: 8px 16px; font-size: 15px; }
+.cnnow.soon .txt, .cnnow.soon .btn { grid-column: 1 / -1; }
+.cnnow span { text-wrap: balance; }
+.me2 .rankname span, .me2 .xpnote span { text-wrap: balance; }
