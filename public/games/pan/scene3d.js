@@ -2,6 +2,7 @@
 // down in front of them, and the pile in the middle with the three cards you would pick up fanned out.
 // Purely visual: it draws what the server sends, and other players' cards are only ever backs here.
 import * as THREE from 'three';
+import { cardGeometry } from '../../cardgeo.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
@@ -56,7 +57,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const pfx = createFx(scene), shake = shaker();
 
   // ---------- cards ----------
-  const cardGeo = new THREE.PlaneGeometry(CW, CH); cardGeo.rotateX(-Math.PI / 2);
+  const cardGeo = cardGeometry(CW, CH); cardGeo.rotateX(-Math.PI / 2);
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   const faceMats = new Map();
   const faceMat = c => { if (!faceMats.has(c)) faceMats.set(c, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c), roughness: .55 }))); return faceMats.get(c); };

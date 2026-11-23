@@ -1,5 +1,6 @@
 // Hot Pot 3D table (three.js). Purely visual: the HUD owns the rules.
 import * as THREE from 'three';
+import { cardGeometry, cardBlock } from '../../cardgeo.js';
 import { paintBack } from '../../skins.js';
 import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
@@ -25,6 +26,7 @@ const svgImg = svg => new Promise(res => {
 });
 function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); }
 const texCache = new Map();
+const CARD_GEO = cardGeometry(.8, 1.1, .8 * 34 / 256); // one shared rounded card shape (the picture's outer radius is 34 of 256 px)
 // The card back this player picked in the shop (skins.js). Hot Pot shows every face-down card with the viewer's own back.
 let backK = 0;
 export const setCardBack = k => { backK = k | 0; };
@@ -551,10 +553,10 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     const tile = new THREE.Group(); tile.position.set(tx, TILE_Y, tz); tile.userData.dyn = true; scene.add(tile);
     const plate = put(plateGeo, M('#ff8fab', { roughness: .3, side: THREE.DoubleSide }), tx, 0, tz);
     plate.scale.set(.86, 1, 1.08); plate.receiveShadow = true; plate.castShadow = true; plate.userData.dyn = true;
-    const stack = new THREE.Mesh(new THREE.BoxGeometry(.78, 1, 1.07), M('#efe3cf')); stack.castShadow = true; stack.receiveShadow = true;
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true }));
+    const stack = new THREE.Mesh(cardBlock(.78, 1.07, .1), M('#efe3cf')); stack.castShadow = true; stack.receiveShadow = true;
+    const top = new THREE.Mesh(CARD_GEO, new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6 }));
     top.rotation.x = -Math.PI / 2; top.userData.tile = r;
-    const halo = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 1.32), new THREE.MeshBasicMaterial({ color: '#7ed3b2', transparent: true, opacity: 0 }));
+    const halo = new THREE.Mesh(cardGeometry(1.02, 1.32, .2), new THREE.MeshBasicMaterial({ color: '#7ed3b2', transparent: true, opacity: 0 }));
     halo.rotation.x = -Math.PI / 2; halo.userData.tile = r;
     tile.add(stack, halo, top);
     return { av, stool, bowl, ring, tile, plate, stack, top, halo, c: -2, n: 0, pending: 0, hop: 0, nod: 0, look: 0, take: false, hover: 0, sq: 1, bs: 1.1, key: '' };
@@ -601,8 +603,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
 
   function flyCard(from, to, kind, faceUp, delay = 0, done, grow = false) {
     const g = new THREE.Group();
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind), roughness: .6, transparent: true })));
-    const backM = new THREE.Mesh(new THREE.PlaneGeometry(.8, 1.1), toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6, transparent: true })));
+    const front = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind), roughness: .6 })));
+    const backM = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6 })));
     backM.rotation.y = Math.PI; g.add(front, backM); g.visible = false; scene.add(g);
     const lift = 1.2 + from.distanceTo(to) * .12;
     const r0 = faceUp ? -Math.PI / 2 + 1.1 : Math.PI / 2, r1 = faceUp ? -Math.PI / 2 : Math.PI / 2 - .6;
@@ -613,7 +615,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
       g.position.lerpVectors(from, to, e); g.position.y += Math.sin(e * Math.PI) * lift;
       g.rotation.set(r0 + (r1 - r0) * e, 0, Math.sin(e * Math.PI) * .5);
       if (grow) g.scale.setScalar(.2 + .8 * Math.min(1, e * 2.4));
-    }, () => { scene.remove(g); front.material.dispose(); backM.material.dispose(); front.geometry.dispose(); done?.(); });
+    }, () => { scene.remove(g); front.material.dispose(); backM.material.dispose(); done?.(); });
   }
   function squash(seat) { tween(.35, t => { seat.sq = 1 + Math.sin(t * Math.PI) * .2 * (1 - t); }, () => { seat.sq = 1; }); }
   // an ingredient pops out of the broth whenever someone draws
