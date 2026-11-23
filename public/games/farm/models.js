@@ -830,6 +830,6 @@ export function disposeModel(g) {
   g.traverse(m => {
     if (!m.isMesh) return;
     if (m.userData.baked) m.geometry.dispose();
-    if (!shared.has(m.material)) m.material.dispose();
+    if (!shared.has(m.material) && !m.material.userData.keep) m.material.dispose();
   });
 }
