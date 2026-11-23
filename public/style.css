@@ -332,7 +332,8 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .paid.down { background: #fde5df; border-color: #e5a090; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .paid.bot { background: #eee9f2; border-color: #b8abc6; border-style: dashed; font-weight: 700; font-size: 14px; color: #5a4a6a; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .paid.bot small { color: #7a6a8a !important; }
-.won .paid:not(.bot):not(.none) { background: var(--card); border-color: var(--ink); }
+/* the winner's badge is a white sticker on the bright winner row, day and night (--card turns navy at night) */
+.won .paid:not(.bot):not(.none) { background: #fff; border-color: var(--ink); }
 @media (max-width: 480px) { .paid { min-width: 0; padding: 3px 7px; margin-left: 0; border-width: 2px; } .paid b { font-size: 15px; } .paid small { display: none; } .paid.bot { font-size: 13px; } }
 .again .faces { display: inline-flex; }
 .again .faces:empty { display: none; }
@@ -1396,3 +1397,15 @@ body.night .hcemobtn.on,
 body.night .mpgrid i.y,
 body.night .hubtabs button[aria-selected=true]::before,
 body.night .isletag.guest { color: var(--ink); }
+
+/* Card art on in-game player panels: Hot Pot seats and the Liar's Dice, Tysiąc and Pawperty player lists (cardBgCls(fl, 1)).
+   These rows hold text from end to end, so the wash runs the whole width in the row's own colour (it follows the turn
+   highlight) and the art shows through on the right. Animated art is kept in step across re-renders by pbSync(). */
+.pbg[style]::before { animation-delay: var(--pbt, 0s); }
+:is(.ld-list, .ty-list, .pw-list) li.haspb { --pbs: color-mix(in srgb, var(--paper) 92%, transparent); --pbr: 9.5px; }
+:is(.ld-list, .ty-list, .pw-list) li.haspb .pbg::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 90%, transparent) 0 40%, color-mix(in srgb, var(--pbs) 55%, transparent) 100%); }
+:is(.ld-list .ld-me, .pw-list .pw-me).haspb { --pbs: color-mix(in srgb, var(--lantern) 25%, var(--paper)); }
+body.night :is(.ld-list .ld-me, .pw-list .pw-me).haspb { --pbs: var(--hi-tint); }
+:is(.ld-list, .ty-list, .pw-list) li.haspb.now { --pbs: var(--lantern); }
+.ld-list li.haspb.lose { --pbs: color-mix(in srgb, #e5543b 18%, var(--paper)); }
+@media (max-width: 760px) { .ty-list li.haspb { --pbr: 8px; } }

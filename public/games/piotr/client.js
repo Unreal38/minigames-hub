@@ -8,7 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { PIOTR, DECKS, petName } from './rules.js';
 import { cardHtml, backHtml, fillPics, picOf } from './cards.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -226,7 +226,7 @@ export function mount(app, ctx) {
       <p>${sub} ${L(`${cnt(S.res.moves, 'card', 'cards')} drawn in all.`, `Łącznie wyciągnięte karty: ${S.res.moves}.`)}</p>
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, lost = i === S.loser;
-        return `<li class="${k === 0 ? 'won' : ''}${lost ? ' lost' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${k === 0 ? 'won' : ''}${lost ? ' lost' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${cnt(st.pairs, 'pair')} laid down · ${cnt(st.took, 'card')} drawn`, `pary: ${st.pairs} · dobrane karty: ${st.took}`)}</span></div>
           <strong>${lost ? mini(PIOTR) : `<span>${p.out ? L('Safe', 'Bezpiecznie') : ''}</span>`}<small>${lost ? 'Piotruś' : S.res.left[i] ? L(`${cnt(S.res.left[i], 'card')} left`, `zostało kart: ${S.res.left[i]}`) : L('out of cards', 'bez kart')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

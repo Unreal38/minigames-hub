@@ -7,7 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { PTS, TRAP } from './rules.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -219,7 +219,7 @@ export function mount(app, ctx) {
       <p>${L(`${myPlace ? (myPlace === 1 ? 'You dug up the most treasure. ' : `You came ${ORD(myPlace)}. `) : ''}Every gem has been found.`, `${myPlace ? (myPlace === 1 ? 'Masz najwięcej wykopanych skarbów. ' : `Twoje miejsce: ${myPlace}. `) : ''}Wszystkie klejnoty znalezione.`)}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i];
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span class="td-finds">${finds(p.st)}</span></div>
           ${L(`<strong>${p.pts}<small>points</small></strong>`, `<strong>${p.pts}<small>${word(p.pts, 'point', 'points', 'punkt', 'punkty', 'punktów')}</small></strong>`)}${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

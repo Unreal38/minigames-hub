@@ -6,7 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { TILES, GROUPS, STREET, CARDS, PET_NAME, LV_NAMES, LV_MAX, BATH_FEE, PASS_GO, MS, rentOf, fullStreet } from './board.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -176,9 +176,10 @@ export function mount(app, ctx) {
     setHtml($('pw-list'), S.seats.map((p, i) => {
       const n = S.own.filter(o => o === i).length, now = i === S.turn && S.ph === 'play';
       const sets = GROUPS.map((g, k) => (fullStreet(k, i, S.own) ? `<i style="background:${g.col}" title="${g.name}"></i>` : '')).join('');
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' pw-me' : ''}" style="--c:${esc(p.color)}">${avatarHtml(p.color, p.av, 34)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' pw-me' : ''}${cardBgCls(p.fl, 1)}" style="--c:${esc(p.color)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 34)}<div><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
         <span class="pw-row">${treats(p.cash)}<em>${cnt(n, 'shop', 'shops', 'sklepik', 'sklepiki', 'sklepików')}</em>${sets ? `<span class="pw-sets">${sets}</span>` : ''}${p.inBath ? I.tub : ''}${p.duck ? I.duck : ''}${p.eyes ? I.eyes : ''}</span></div></li>`;
     }).join(''));
+    pbSync($('pw-list'));
   }
 
   // ----- the card for one tile -----
@@ -311,7 +312,7 @@ export function mount(app, ctx) {
       <p>${myPlace ? (myPlace === 1 ? L('The richest paws in town. ', 'Najbogatsze łapki w mieście. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('Treats in hand plus everything spent on shops and upgrades.', 'Przysmaki w ręce plus wszystko, co poszło na sklepiki i ulepszenia.')}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], shops = S.own.filter(o => o === i).length;
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${cnt(shops, 'shop', 'shops', 'sklepik', 'sklepiki', 'sklepików')} · ${L(`${p.cash} treats in hand · ${p.st.got} rent collected`, `przysmaki w ręce: ${p.cash} · zebrany czynsz: ${p.st.got}`)}</span></div>
           <strong>${treats(S.res.worth[i])}<small>${L('in total', 'łącznie')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

@@ -5,7 +5,7 @@ import { L, PL, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -264,7 +264,7 @@ export function mount(app, ctx) {
       <p>${line} ${L('Coins stay with this table for the next race.', 'Monety zostają przy tym stole na następny wyścig.')}</p>
       <ol class="score">${seats.map((i, n) => {
         const p = S.seats[i], pay = S.res.pay[i], b = pay.bet;
-        return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${b ? L(`bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}`, `zakład ${b.amt}: ${ball(b.m, 14)}${mName(b.m)}, miejsce ${S.res.order.indexOf(b.m) + 1}`) : L('no bet', 'bez zakładu')}</span></div>
           <strong class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}<small>${I.coin}${pay.coins}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

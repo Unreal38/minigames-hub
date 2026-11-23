@@ -6,7 +6,7 @@ import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { BOXES, UPPER, LOWER, LABEL, SHORT, HINT, ROLLS, UPPER_NEED, UPPER_BONUS, MULT, worth, open, colTotal, upperSum, lowerSum, bonusOf } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -260,7 +260,7 @@ export function mount(app, ctx) {
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], c0 = p.cols[0], up = upperSum(c0), b = bonusOf(c0);
         const sub = triple() ? p.cols.map((c, ci) => `×${MULT[ci]}: ${colTotal(c) * MULT[ci]}`).join(' · ') : `${L('Top', 'Góra')} ${up}${b ? ` +${b}` : ''} · ${L('bottom', 'dół')} ${lowerSum(c0)}`;
-        return `<li class="${place(i) === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place(i)}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${place(i) === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place(i)}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${sub}${p.extra ? ` · party +${p.extra}` : ''}</span></div>
           <strong><span>${tot[i]}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

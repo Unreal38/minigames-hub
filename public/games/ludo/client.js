@@ -6,7 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { HOME, LAST, ringIndex, safeIndex } from './board.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -222,7 +222,7 @@ export function mount(app, ctx) {
       <p>${myPlace ? (myPlace === 1 ? L('First one home. ', 'Pierwsze miejsce. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('That took', 'Gra trwała')} ${cnt(S.res.rounds, 'round', 'rounds', 'rundę', 'rundy', 'rund')}.</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st, home = p.toks.filter(t => t === HOME).length;
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'}`, `${cnt(st.caps, 'capture', 'captures', 'zbicie', 'zbicia', 'zbić')} · powroty do bazy: ${st.lost}`)} · ${cnt(st.sixes, 'six', 'sixes', 'szóstka', 'szóstki', 'szóstek')}</span></div>
           <strong>${home}/${p.toks.length}<small>${L('home', 'w domku')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
