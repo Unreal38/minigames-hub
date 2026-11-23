@@ -39,12 +39,18 @@ function card(cx, cy, rot, rank, suit, { w = 40, h = 56, cls = '', delay = 0, fa
     : `<text x="${x + 5}" y="${y + 16}" font-family="Rubik, sans-serif" font-weight="700" font-size="15" fill="${col}">${rank}</text><path d="${SUIT[suit]}" transform="translate(${rank.length > 1 ? 2 : 3} 8) scale(.92)" fill="${col}"/>`;
   return `<g class="${cls}" style="--d:${delay}s"><g transform="translate(${cx} ${cy}) rotate(${rot})"><rect x="${x + 3}" y="${y + 3}" width="${w}" height="${h}" rx="3" fill="${INK}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${face}" ${O}/>${inner}</g></g>`;
 }
-// A stack of n poker chips; (x, y) is the bottom left of the stack.
+// A stack of n round poker chips; (x, y) is the middle of the bottom chip's base. The top chip shows its striped face.
 function chips(x, y, n, c) {
   let s = '';
-  for (let i = 0; i < n; i++) { const yy = y - 7 - i * 7; s += box(x, yy, 26, 7, i % 2 ? C.cream : c, 7) + `<path d="M${x + 6} ${yy}v7M${x + 13} ${yy}v7M${x + 20} ${yy}v7" stroke="${INK}" stroke-width="2" opacity=".35"/>`; }
-  return s;
+  for (let i = 0; i < n; i++) {
+    const yy = y - 6 - i * 6;
+    s += `<path d="M${x - 15} ${yy}a15 6 0 0 0 30 0v6a15 6 0 0 1-30 0z" fill="${c}" ${O}/><path d="M${x - 10} ${yy + 4.500}l5 1.200v6l-5-1.200zM${x - 2.500} ${yy + 6}h5v6h-5zM${x + 10} ${yy + 4.500}l-5 1.200v6l5-1.200z" fill="${C.cream}"/>`;
+  }
+  const t = y - n * 6;
+  return s + `<ellipse cx="${x}" cy="${t}" rx="15" ry="6" fill="${c}" ${O}/><ellipse cx="${x}" cy="${t}" rx="12" ry="4.500" fill="none" stroke="${C.cream}" stroke-width="3" stroke-dasharray="5 5"/><ellipse cx="${x}" cy="${t}" rx="5" ry="2" fill="${C.cream}"/>`;
 }
+// One chip standing on its edge, facing us; (x, y) is its middle.
+const chipFace = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" ${O}/><circle cx="${x}" cy="${y}" r="${r * .74}" fill="none" stroke="${C.cream}" stroke-width="${r * .3}" stroke-dasharray="${r * .5} ${r * .43}"/><circle cx="${x}" cy="${y}" r="${r * .34}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/>`;
 // A board game pawn standing on (x, y) (the middle of its base).
 const pawn = (x, y, c, k = 1) => `<g transform="translate(${x} ${y}) scale(${k})" ${O}><path d="M-12 0h24v-6h-24z" fill="${c}"/><path d="M-8-6l4-20h8l4 20z" fill="${c}"/><path d="M0-42l9 6v8l-9 6-9-6v-8z" fill="${c}"/><path d="M0-42l9 6v8l-9 6z M4-26l4 20h4v6H2z" ${DARK}/><path d="M-4-37l4-3v5z" fill="#fff" fill-opacity=".6" stroke="none"/></g>`;
 // A low-poly ball (marbles, golf balls): an octagon with a light facet.
@@ -61,29 +67,34 @@ function pet(x, y, c, ears = 'cat', eye = INK, k = 1) {
 
 const STARS = [[30, 22, 2], [96, 14, 1.5], [150, 30, 1.2], [204, 18, 1.6], [258, 86, 1.5], [296, 118, 1.2], [14, 92, 1.4], [70, 60, 1.1]];
 // The shared frame: sky, stars (night only), two blocky clouds, the island. `top` recolours the island's top face.
-function scene(label, body, { top = 'var(--art-grass, #8fd16a)', onTop = '' } = {}) {
+function scene(label, body, { top = 'var(--art-grass, #8fd16a)', onTop = '', shadow = 'M92 110l14-8h102l14 8-14 8H106z' } = {}) {
   return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">
   <rect class="artsky" width="320" height="150" fill="var(--art-sky, #bfe8ff)"/>
   <g class="artstars" fill="var(--art-star, #fff6d8)">${STARS.map(([x, y, r]) => `<rect x="${x}" y="${y}" width="${r * 2}" height="${r * 2}"/>`).join('')}</g>
   <path class="artcloud" d="M10 46v-9h10v-8h24v6h12v11zM262 100v-8h12v-7h20v7h10v8z" fill="var(--art-cloud, #fff)"/>
-  <g ${O}><path d="M40 108l14 20 34 10 30 18 34-10 32 12 34-18 30-8 26-24z" fill="var(--art-rock, #857a72)"/>
-  <path d="M152 146l32 12 34-18 30-8 26-24-38 14h-80z" ${DARK}/>
-  <path d="M40 108l38 14h158l38-14v9l-38 13H78l-38-13z" fill="var(--art-earth, #c98a5a)"/>
-  <path d="M40 108l38-14h158l38 14-38 14H78z" fill="${top}"/></g>
-  ${onTop}${body}</svg>`;
+  <g transform="translate(160 116) scale(1.1) translate(-157 -116)"><g ${O}><path d="M44 108l12 20 32 10 30 18 34-10 32 12 34-18 30-8 22-24z" fill="var(--art-rock, #857a72)"/>
+  <path d="M152 146l32 12 34-18 30-8 22-24-34 14h-80z" ${DARK}/>
+  <path d="M44 108l34 14h158l34-14v9l-34 13H78l-34-13z" fill="var(--art-earth, #c98a5a)"/>
+  <path d="M44 108l34-14h158l34 14-34 14H78z" fill="${top}"/></g>
+  <path d="M44 108l34-14h36l-28 28h-8z" fill="#fff" fill-opacity=".14"/><path d="M236 94l34 14-34 14h-22z" fill="#1d1030" fill-opacity=".1"/><path d="M56 128l32 10 30 18-22-24z" fill="#fff" fill-opacity=".12"/>
+  ${onTop}${shadow ? `<path d="${shadow}" fill="#1d1030" fill-opacity=".18"/>` : ''}${body}</g></svg>`;
 }
 
 export function hotpotArt() {
-  const pot = `${box(128, 108, 56, 7, '#5b5560', 8)}
-    <g ${O}><path d="M88 70h124l-12 38h-100z" fill="${C.red}"/><path d="M168 70h44l-12 38h-28z" ${DARK}/>
-    <path d="M70 62h18v10H70zM212 62h18v10h-18z" fill="${C.orange}"/>
+  const flame = x => `<path d="M${x} 104l5-10 5 10z" fill="${C.orange}" ${O}/><path d="M${x + 3} 104l2-4 2 4z" fill="${C.yellow}"/>`;
+  const pot = `${box(104, 104, 96, 11, '#6b6878', 12)}<path d="M112 109h14M112 112h14" stroke="${INK}" stroke-width="1.500" opacity=".5"/><rect x="146" y="106" width="12" height="7" fill="${C.orange}" ${O}/><rect x="176" y="107" width="6" height="5" fill="${C.red}"/>
+    <g ${O}><path d="M88 70h124l-10 28h-104z" fill="${C.red}"/><path d="M170 70h42l-10 28h-28z" ${DARK}/><path d="M96 78h12l5 16h-10z" fill="#fff" fill-opacity=".3" stroke="none"/></g>
+    ${flame(116)}${flame(134)}${flame(156)}${flame(174)}
+    <g ${O}>
+<path d="M70 62h18v10H70zM212 62h18v10h-18z" fill="${C.orange}"/>
     <path d="M82 66l18-12h100l18 12-18 10H100z" fill="${C.orange}"/>
     <path d="M96 66l10-7h44l-8 13h-36z" fill="#ff7a59"/><path d="M150 59h44l10 7-10 6h-52z" fill="#fff0c9"/></g>
     <path d="M150 59l-8 13" stroke="${INK}" stroke-width="3"/>
     <rect x="112" y="63" width="7" height="5" fill="${C.red}"/><rect x="126" y="65" width="5" height="4" fill="${C.yellow}"/><rect x="164" y="63" width="8" height="5" fill="${C.leaf}"/><rect x="180" y="65" width="6" height="4" fill="#fff"/>`;
   const sticks = `<g class="abob">${rod('M70 16L118 44', C.wood, 4)}${rod('M82 12L122 40', C.wood, 4)}
-    <g ${O}><path d="M112 40h22l5 9h-32z" fill="#8a5a3c"/><path d="M118 49h10v10h-10z" fill="${C.cream}"/><path d="M112 40h22l5 9h-10z" ${DARK}/></g></g>`;
-  return scene('A red hot pot with two broths and chopsticks holding a mushroom over it', pot + sticks);
+    <g ${O}><path d="M108 42l5-11h22l5 11z" fill="#a8502f"/><path d="M118 42h12v13h-12z" fill="${C.cream}"/><path d="M127 31h8l5 11h-10z" ${DARK}/></g><path d="M115 34h5v4h-5zM125 36h4v3h-4z" fill="${C.cream}"/></g></g>`;
+  const steam = `<g class="abob" style="--d:.8s" fill="var(--art-cloud, #fff)" ${O}><path d="M172 34h11v11h-11zM184 20h9v9h-9zM176 8h7v7h-7z"/></g>`;
+  return scene('A red hot pot with two broths, steam, and chopsticks holding a mushroom over it', pot + steam + sticks);
 }
 
 export function marbleArt() {
@@ -92,6 +103,7 @@ export function marbleArt() {
     ${box(84, 96, 10, 18, C.bark, 6)}${plank(212, 87, 84, 104)}${box(206, 62, 10, 52, C.bark, 6)}
     ${plank(70, 40, 216, 62)}
     <g ${O}><path d="M216 56v16h10V52z" fill="${C.red}"/><path d="M74 86v18h10V84z" fill="${C.red}"/></g>
+    ${rod('M60 114V80', C.cream, 3, 'butt')}<path d="M63 80h20v14H63z" fill="#fff" ${O}/><path d="M63 80h7v7h-7zM76 80h7v7h-7zM70 87h6v7h-6z" fill="${INK}"/>
     ${ball(98, 28, 15, C.pink, 'abob', 0)}${ball(160, 40, 13, C.orange, 'abob', .3)}${ball(176, 76, 15, C.violet, 'abob', .6)}`);
 }
 
@@ -111,10 +123,10 @@ export function laddersArt() {
 }
 
 export function pokerArt() {
-  return scene('An ace and a king with stacks of poker chips', `
-    ${chips(60, 118, 2, C.mint)}
-    ${card(118, 72, -10, 'A', 's', { w: 46, h: 64, cls: 'abob' })}${card(158, 72, 9, 'K', 'h', { w: 46, h: 64, cls: 'abob', delay: .4 })}
-    ${chips(198, 114, 4, C.red)}${chips(222, 122, 2, C.violet)}`, { top: '#3f9a78' });
+  return scene('An ace and a king with stacks of round poker chips', `
+    ${chips(74, 112, 2, C.mint)}
+    ${card(122, 70, -10, 'A', 's', { w: 46, h: 64, cls: 'abob' })}${card(162, 70, 9, 'K', 'h', { w: 46, h: 64, cls: 'abob', delay: .4 })}
+    ${chips(212, 106, 4, C.red)}${chips(236, 114, 2, C.violet)}${chipFace(196, 108, 12, C.orange)}`, { top: '#3f9a78' });
 }
 
 export function ludoArt() {
@@ -123,7 +135,9 @@ export function ludoArt() {
     ${box(104, 24, 92, 92, C.cream, 8)}
     ${yard(106, 26, C.red)}${yard(160, 26, C.blue)}${yard(106, 80, C.green)}${yard(160, 80, C.yellow)}
     <path d="M140 60h20v20h-20z" fill="${C.cream}" ${O}/><path d="M140 60l10 10-10 10z" fill="${C.red}"/><path d="M160 60l-10 10 10 10z" fill="${C.yellow}"/><path d="M140 60l10 10 10-10z" fill="${C.blue}"/><path d="M140 80l10-10 10 10z" fill="${C.green}"/><path d="M140 60h20v20h-20z" fill="none" ${O}/>
-    ${pawn(72, 118, C.red)}${pawn(228, 120, C.blue, .82)}${die(214, 60, 22, 6, C.cream, INK, 10, 'abob')}`);
+    <path d="M140 37h20M140 48h20M140 91h20M140 102h20M117 60v20M128 60v20M171 60v20M182 60v20M150 26v34M150 80v34M106 70h34M160 70h34" stroke="${INK}" stroke-width="1.5" opacity=".45"/>
+    <path d="M144 37h12v23h-12z" fill="${C.blue}" fill-opacity=".55"/><path d="M144 80h12v22h-12z" fill="${C.green}" fill-opacity=".55"/><path d="M117 64h23v12h-23z" fill="${C.red}" fill-opacity=".55"/><path d="M160 64h23v12h-23z" fill="${C.yellow}" fill-opacity=".7"/>
+    ${pawn(72, 118, C.red)}${pawn(232, 120, C.blue, .82)}${die(208, 70, 22, 6, C.cream, INK, 10, 'abob')}`);
 }
 
 export function stackArt() {
@@ -141,60 +155,79 @@ export function golfArt() {
     ${rod('M101 108V40', C.cream, 3, 'butt')}<path d="M104 40l30 11-30 11z" fill="${C.red}" ${O}/>
     <g ${O}><path d="M176 108l8-46h24l8 46z" fill="${C.cream}"/><path d="M200 62h8l8 46h-10z" ${DARK}/><path d="M190 108V92h12v16z" fill="${C.bark}"/><path d="M178 62l18-18 18 18z" fill="${C.red}"/></g>
     <g class="aspin" style="transform-origin:196px 62px"><path d="M192 62h8V28h-8zM192 62h8v34h-8zM196 58v8h34v-8zM196 58v8h-34v-8z" fill="${C.orange}" ${O} transform="rotate(24 196 62)"/></g><rect x="192" y="58" width="8" height="8" fill="${INK}"/>
-    ${ball(146, 112, 8, C.pink)}`, { top: '#6fcf5c', onTop: `<path d="M52 108l30-11h150l30 11-30 11H82z" fill="none" stroke="${C.cream}" stroke-width="4" stroke-linejoin="round"/><path d="M90 98l-22 20M130 97l-10 22M170 97v22M210 97l12 21" stroke="#fff" stroke-opacity=".28" stroke-width="12"/>` });
+    ${ball(146, 112, 8, C.pink)}`, { top: '#6fcf5c', onTop: `<path d="M56 108l26-11h150l26 11-26 11H82z" fill="none" stroke="${C.cream}" stroke-width="4" stroke-linejoin="round"/><path d="M90 98l-22 20M130 97l-10 22M170 97v22M210 97l12 21" stroke="#fff" stroke-opacity=".28" stroke-width="12"/>` });
 }
 
 export function diceArt() {
   return scene('A dice cup tipped over with two dice tumbling out', `
-    <g class="asway" style="transform-origin:104px 100px"><g transform="rotate(-24 104 100)" ${O}><path d="M88 34h40l14 62H74z" fill="${C.red}"/><path d="M114 34h14l14 62h-18z" ${DARK}/><path d="M74 96l12-7h44l12 7-12 7H86z" fill="#5a1f24"/><path d="M82 62l-3 12h58l-3-12z" fill="${C.orange}"/><path d="M88 34h40l14 62H74z" fill="none"/></g></g>
+    <g class="asway" style="transform-origin:100px 96px"><g transform="rotate(-58 100 86)" ${O}><path d="M84 30h36l14 60H70z" fill="${C.red}"/><path d="M108 30h12l14 60h-18z" ${DARK}/><path d="M78 56l-4 14h54l-4-14z" fill="${C.orange}"/><path d="M70 90l10-12h44l10 12-10 12H80z" fill="#5a1f24"/><path d="M80 90l5-6h34l5 6-5 6H85z" fill="#2a0f14" stroke="none"/></g></g>
     ${die(160, 80, 28, 5, C.cream, INK, 12, 'abob')}${die(208, 92, 22, 2, C.yellow, INK, -14, 'abob', .5)}
     <path d="M150 52l6 10M172 44v12M194 52l-6 10" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`, { top: '#3f9a78' });
 }
 
 export function tysArt() {
   return scene('A king and queen of hearts beside a wooden sign that says 1000', `
-    ${box(202, 84, 8, 30, C.bark, 5)}
+    ${box(198, 88, 8, 26, C.bark, 5)}
     ${card(96, 72, -10, 'K', 'h', { w: 46, h: 64, cls: 'abob' })}${card(136, 72, 8, 'Q', 'h', { w: 46, h: 64, cls: 'abob', delay: .4 })}
-    ${box(170, 62, 74, 30, C.bark, 7)}<text x="207" y="85" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="22" fill="${C.orange}">1000</text>`);
+    ${box(166, 66, 72, 30, C.bark, 7)}<text x="202" y="89" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="22" fill="${C.orange}">1000</text>`);
 }
 
 export function pawArt() {
-  return scene('A little pet shop with a paw sign, a bunny and a gold coin', `
-    ${box(116, 66, 80, 48, C.cream, 12)}
-    <g ${O}><path d="M108 68l48-34 48 34z" fill="${C.red}"/><path d="M156 34l12-7 48 34-12 7z" fill="${C.red}"/><path d="M156 34l12-7 48 34-12 7z" ${DARK}/>
-    <path d="M146 114V88h20v26z" fill="${C.bark}"/><path d="M172 80h16v14h-16zM124 80h16v14h-16z" fill="#bfe6fb"/></g>
-    <g fill="${C.cream}"><rect x="151" y="54" width="10" height="8"/><rect x="146" y="48" width="5" height="5"/><rect x="153.500" y="45" width="5" height="5"/><rect x="161" y="48" width="5" height="5"/></g>
-    <g class="abob">${box(60, 98, 26, 18, '#fff', 6)}${pet(73, 86, '#fff', 'bun')}</g>
-    <g class="abob" style="--d:.5s">${ball(232, 100, 15, C.yellow)}<path d="M226 100h12v8h-12zM223 93h4v5h-4zM230 90h4v5h-4zM237 93h4v5h-4z" fill="${C.bark}"/></g>`);
+  // an upright property board: corner squares, four tiles a side with colour bands, a paw print in the middle
+  const bands = [C.pink, C.orange, C.mint, C.violet], x0 = 104, y0 = 24, S = 92, c = 20, t = 13;
+  let tiles = '';
+  for (let i = 0; i < 4; i++) {
+    const a = c + i * t;
+    tiles += `<rect x="${x0 + a}" y="${y0}" width="${t}" height="${c}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + a}" y="${y0 + c - 6}" width="${t}" height="6" fill="${bands[i]}"/>`
+      + `<rect x="${x0 + a}" y="${y0 + S - c}" width="${t}" height="${c}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + a}" y="${y0 + S - c}" width="${t}" height="6" fill="${bands[3 - i]}"/>`
+      + `<rect x="${x0}" y="${y0 + a}" width="${c}" height="${t}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + c - 6}" y="${y0 + a}" width="6" height="${t}" fill="${bands[(i + 2) % 4]}"/>`
+      + `<rect x="${x0 + S - c}" y="${y0 + a}" width="${c}" height="${t}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + S - c}" y="${y0 + a}" width="6" height="${t}" fill="${bands[(i + 1) % 4]}"/>`;
+  }
+  const corner = (x, y, col) => `<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="${col}" stroke="${INK}" stroke-width="2"/>`;
+  const shop = (x, y, col) => `${box(x, y, 16, 12, col, 6)}<path d="M${x - 3} ${y}l11-10 11 10z" fill="${C.red}" ${O}/><path d="M${x + 8} ${y - 10}l6-4 11 10-6 4z" fill="#b8402c" ${O}/>`;
+  return scene('A property board game with colour tiles, a paw print in the middle, a bunny token, two little pet shops and a die', `
+    ${box(x0 - 2, y0 - 2, S + 4, S + 4, C.wood, 8)}<rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="#d9f0cf" ${O}/>${tiles}
+    ${corner(x0, y0, C.yellow)}${corner(x0 + S - c, y0, C.blue)}${corner(x0, y0 + S - c, C.red)}${corner(x0 + S - c, y0 + S - c, C.green)}
+    <path d="M${x0 + c} ${y0 + c}h${S - 2 * c}v${S - 2 * c}h${-(S - 2 * c)}z" fill="none" stroke="${INK}" stroke-width="2"/>
+    <g fill="${C.bark}"><path d="M142 70h16l4 6v10h-24v-10z"/><rect x="134" y="60" width="8" height="9"/><rect x="146" y="54" width="8" height="10"/><rect x="158" y="60" width="8" height="9"/></g>
+    <rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="none" ${O}/>
+    <g ${O}><path d="M60 118h26v-6H60z" fill="${C.pink}"/><path d="M66 112l3-10h8l3 10z" fill="${C.pink}"/></g>${pet(73, 92, '#fff', 'bun')}
+    ${die(56, 44, 22, 5, C.cream, INK, -10, 'abob')}
+    ${shop(210, 104, C.mint)}${shop(228, 110, C.yellow)}`);
 }
 
 export function kartArt() {
-  const wheel = (x, y) => `<path d="M${x - 4} ${y - 9}h8l5 5v8l-5 5h-8l-5-5v-8z" fill="#2b2230" ${O}/><rect x="${x - 3}" y="${y - 3}" width="6" height="6" fill="${C.grey}"/>`;
-  return scene('A blocky kart racing along an island road towards an item box', `
+  const wheel = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})"><path d="M-4-9h8l5 5v8l-5 5h-8l-5-5v-8z" fill="#2b2230" ${O}/><rect x="-3" y="-3" width="6" height="6" fill="${C.grey}"/></g>`;
+  return scene('A blocky kart racing along an island road towards a gift box', `
     <path d="M58 60h12M48 74h16M60 88h10" stroke="${TICK}" stroke-width="3" stroke-linecap="square" transform="translate(190 4)"/>
-    <g class="abob" style="--d:.2s">${box(52, 44, 26, 26, C.yellow, 8)}<text x="65" y="65" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="21" fill="${INK}">?</text></g>
-    <g class="ajig">${box(150, 60, 22, 20, '#f2c9a0', 6)}${box(148, 54, 26, 10, C.blue, 6)}<path d="M154 68h4v5h-4z" fill="${INK}"/>
-    ${box(112, 82, 96, 20, C.red, 10)}<g ${O}><path d="M112 82l22-10h12v10z" fill="${C.red}"/><path d="M112 82l22-10h12v10z" ${LIGHT}/><path d="M182 82V66h22l8 16z" fill="${C.cream}"/></g>
-    <path d="M118 92h84" stroke="${C.cream}" stroke-width="4"/>${wheel(132, 106)}${wheel(190, 106)}</g>`,
-  { top: '#8e8a99', onTop: `<path d="M64 108h186" stroke="#fff" stroke-width="3" stroke-dasharray="14 10"/><path d="M40 108l38-14h14l-38 14 38 14H78zM274 108l-38-14h-14l38 14-38 14h14z" fill="var(--art-grass, #8fd16a)" ${O}/>` });
+    <g class="abob" style="--d:.2s">${box(50, 46, 28, 24, C.mint, 8)}<g ${O}><path d="M60 46h8v24h-8z" fill="${C.pink}"/><path d="M60 46l8-4.800h8l-8 4.800z" fill="${C.pink}"/><path d="M64 44l-12-8v10zM68 44l12-10v10z" fill="${C.pink}"/></g></g>
+    <g class="ajig">${box(182, 62, 24, 6, '#b8402c', 8)}${box(190, 68, 6, 20, '#2b2230', 5)}
+    ${box(170, 70, 8, 20, '#2b2230', 8)}${box(150, 70, 20, 20, C.blue, 6)}${box(148, 50, 24, 20, '#f2c9a0', 6)}${box(146, 44, 28, 10, C.yellow, 6)}<path d="M152 60h4v6h-4z" fill="${INK}"/>
+    ${rod('M152 80H136', C.blue, 4, 'butt')}${rod('M132 70v16', '#2b2230', 3, 'butt')}
+    ${box(104, 90, 100, 13, C.red, 10)}<g ${O}><path d="M104 90l-10 7v6h10z" fill="#b8402c"/><path d="M146 92h18v9h-18z" fill="${C.cream}"/></g><text x="155" y="100.500" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="10" fill="${INK}">7</text>
+    ${wheel(124, 108, 1)}${wheel(186, 106, 1.25)}</g>`,
+  { top: '#8e8a99', onTop: `<path d="M64 108h186" stroke="#fff" stroke-width="3" stroke-dasharray="14 10"/><path d="M44 108l34-14h14l-34 14 34 14H78zM270 108l-34-14h-14l34 14-34 14h14z" fill="var(--art-grass, #8fd16a)" ${O}/>` });
 }
 
 export function kitchenArt() {
   return scene('A kitchen counter with a steaming pot and a burger', `
     ${box(84, 84, 150, 30, C.cream, 12)}<path d="M96 94h34v12H96zM140 94h34v12h-34zM184 94h38v12h-38z" fill="none" stroke="${INK}" stroke-width="2.5" opacity=".55"/><path d="M84 84h150" stroke="${C.wood}" stroke-width="5"/><path d="M84 81.500h150M84 86.500h150" stroke="${INK}" stroke-width="2"/>
     ${box(104, 56, 42, 22, C.steel, 8)}<path d="M96 60h8v6h-8zM154 56h8v6h-8z" fill="${C.steel}" ${O}/><path d="M104 56h42" stroke="${C.cream}" stroke-width="4"/>
-    <g class="abob" fill="var(--art-cloud, #fff)" ${O}><path d="M116 36h12v10h-12zM126 22h9v9h-9zM118 10h7v7h-7z"/></g>
+    <g class="abob" fill="var(--art-cloud, #fff)" ${O}><path d="M116 38h11v10h-11zM126 26h8v8h-8z"/></g>
     <g class="abob" style="--d:.6s" ${O}><path d="M176 62l8-12h30l8 12z" fill="${C.orange}"/><path d="M172 62h54v6h-54z" fill="${C.leaf}"/><path d="M176 68h46v7h-46z" fill="#7a4a2e"/><path d="M176 75h46l-4 7h-38z" fill="${C.orange}"/><path d="M188 54h4M200 53h4" stroke-width="2.5" stroke="${C.cream}"/></g>`);
 }
 
 export function digArt() {
   return scene('A treasure chest dug out of a grass field with a gem above it and a shovel', `
-    ${box(124, 84, 60, 28, C.wood, 12)}<g ${O}><path d="M124 84l6-22h60l-6 22z" fill="${C.bark}"/><path d="M190 62l12-7-6 22-12 7z" fill="${C.bark}"/><path d="M190 62l12-7-6 22-12 7z" ${DARK}/><path d="M128 84h52" stroke="${C.yellow}" stroke-width="6"/><path d="M148 90h12v12h-12z" fill="${C.yellow}"/><path d="M136 84V112M172 84V112" stroke-width="2" opacity=".5"/></g>
-    <g class="abob" ${O}><path d="M140 34h28l10 12-24 22-24-22z" fill="${C.pink}"/><path d="M140 34h28l-14 12z" ${LIGHT}/><path d="M154 46l24 0-24 22z" ${DARK}/></g>
-    <path d="M118 30l-8 4M190 30l8 4M154 18v-8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>
+    <g ${O}><path d="M136 80l4-30h60l-4 30z" fill="#6e4530"/><path d="M140 50l4-5h60l-4 5z" fill="${C.wood}"/><path d="M200 50l4-5-4 30-4 5z" fill="${C.bark}"/><path d="M148 50l-3 30M190 50l-3 30" stroke="${C.yellow}" stroke-width="5"/><path d="M148 50l-3 30M190 50l-3 30" fill="none" stroke-width="1" opacity="0"/></g>
+    ${box(124, 86, 60, 26, C.wood, 12)}
+    <g ${O}><path d="M130 85l8-9h10l6-6h14l6 6h10l6 5-6 4z" fill="${C.yellow}"/><path d="M132 86h7v26h-7zM169 86h7v26h-7z" fill="${C.bark}"/><path d="M124 86h60" fill="none"/><path d="M148 90h12v12h-12z" fill="${C.yellow}"/></g>
+    <path d="M152 94h4v5h-4z" fill="${INK}"/><path d="M142 78h5v4h-5zM158 73h6v4h-6zM172 79h5v3h-5z" fill="#fff" fill-opacity=".7"/>
+    <g class="abob" ${O}><path d="M140 22h28l10 12-24 22-24-22z" fill="${C.pink}"/><path d="M140 22h28l-14 12z" ${LIGHT}/><path d="M154 34l24 0-24 22z" ${DARK}/></g>
+    <path d="M120 24l-9 3M188 24l9 3M154 14v-8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>
     ${rod('M82 60L70 100', C.wood, 4, 'butt')}<g ${O}><path d="M76 54h14v8H76z" fill="${C.bark}"/><path d="M58 98h22l-4 20h-10z" fill="${C.grey}" transform="rotate(16 69 100)"/></g>
     ${rod('M226 112V72', C.cream, 3, 'butt')}<path d="M229 72l22 8-22 8z" fill="${C.red}" ${O}/>`,
-  { onTop: `<path d="M78 94l-19 14 19 14M118 94l-10 28M158 94v28M198 94l10 28M236 94l19 14-19 14M59 101h202M50 113h220" fill="none" stroke="${INK}" stroke-opacity=".28" stroke-width="2"/><path d="M92 114h24l5 5H86zM196 112h24l4 6h-32z" fill="#7a4a2e" ${O}/>` });
+  { onTop: `<path d="M78 94l-17 14 17 14M118 94l-10 28M158 94v28M198 94l10 28M236 94l17 14-17 14M61 101h192M56 113h202" fill="none" stroke="${INK}" stroke-opacity=".28" stroke-width="2"/><path d="M92 114h24l5 5H86zM196 112h24l4 6h-32z" fill="#7a4a2e" ${O}/>` });
 }
 
 export function bricksArt() {
@@ -214,10 +247,10 @@ export function beanArt() {
   const leaf = (x, y, dir, c = C.green) => `<g transform="translate(${x} ${y}) scale(${dir} 1)" ${O}><path d="M0 0l10-8h34l12 8-12 7H10z" fill="${c}"/><path d="M0 0l10 7h34l12-7v5l-12 7H10L0 5z" fill="${C.leaf}"/></g>`;
   return scene('A climber hopping between the leaves of a giant beanstalk', `
     ${rod('M152 116L140 88l20-30-14-30 8-36', C.leaf, 15, 'butt')}
-    ${leaf(142, 92, -1)}${leaf(158, 70, 1)}${leaf(144, 32, -1, '#8fd96a')}
-    <g class="ahop"><g transform="translate(196 44) scale(1.35) translate(-194 -40)">${box(184, 22, 20, 18, '#f2c9a0', 5)}${box(182, 16, 24, 8, C.bark, 5)}<path d="M189 29h3v5h-3zM197 29h3v5h-3z" fill="${INK}"/>
+    ${leaf(142, 92, -1)}${leaf(158, 80, 1)}${leaf(144, 32, -1, '#8fd96a')}
+    <g class="ahop"><g transform="translate(196 54) scale(1.35) translate(-194 -40)">${box(184, 22, 20, 18, '#f2c9a0', 5)}${box(182, 16, 24, 8, C.bark, 5)}<path d="M189 29h3v5h-3zM197 29h3v5h-3z" fill="${INK}"/>
     <g ${O}><path d="M186 40h18v14h-18z" fill="${C.pink}"/><path d="M186 42l-10-6v6l10 6zM204 42l10-8v6l-10 8z" fill="${C.pink}"/><path d="M187 54h7v8h-7zM196 54h7v6h-7z" fill="${C.blue}"/></g></g></g>
-    <path d="M182 82l-4 6M197 84v7M212 82l4 6" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
+    <path d="M182 92l-4 6M197 94v7M212 92l4 6" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
 }
 
 export function panArt() {
@@ -243,17 +276,24 @@ export function pipsArt() {
 }
 
 export function dartsArt() {
-  let wedges = '';
-  for (let i = 0; i < 8; i++) wedges += `<path d="M0 0L-14.500-35h29z" transform="rotate(${i * 45})" fill="${i % 2 ? C.cream : '#2b2230'}"/>`;
-  const oct = r => { const a = r * .414; return `M${-a} ${-r}h${2 * a}l${r - a} ${r - a}v${2 * a}l${a - r} ${r - a}h${-2 * a}l${a - r} ${a - r}v${-2 * a}z`; };
-  return scene('A dartboard on a wooden stand with a dart flying into the bullseye', `
-    ${rod('M132 96l-14 20M176 96l14 20', C.bark, 5)}
-    ${box(108, 22, 92, 82, C.wood, 8)}
-    <g transform="translate(154 63)"><path d="${oct(37)}" fill="#2b2230" ${O}/>${wedges}
-    <path d="${oct(22)}" fill="none" stroke="${C.red}" stroke-width="5"/><path d="${oct(22)}" fill="none" stroke="${INK}" stroke-width="1.5" transform="scale(1.12)"/><path d="${oct(22)}" fill="none" stroke="${INK}" stroke-width="1.5" transform="scale(.88)"/>
-    <path d="${oct(9)}" fill="${C.leaf}" ${O}/><path d="${oct(4)}" fill="${C.red}"/><path d="${oct(37)}" fill="none" ${O}/></g>
-    <g class="adart">${rod('M96 44L150 62', C.grey, 2, 'butt')}<path d="M100 34l-22-2 10 10-4 14 20-10z" fill="${C.red}" ${O}/></g>
-    <path d="M52 30h18M44 44h22M56 58h14" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
+  // a real dartboard: twenty thin wedges, red and green double and treble rings, a number ring, and short darts with flights
+  const P = (r, i) => { const t = (i * 18 - 9 - 90) * Math.PI / 180; return `${(r * Math.cos(t)).toFixed(1)} ${(r * Math.sin(t)).toFixed(1)}`; };
+  const ring = (r1, r2, i, c) => `<path d="M${P(r1, i)}L${P(r2, i)}L${P(r2, i + 1)}L${P(r1, i + 1)}z" fill="${c}"/>`;
+  const poly = r => 'M' + Array.from({ length: 20 }, (_, i) => P(r, i)).join('L') + 'z';
+  let board = '';
+  for (let i = 0; i < 20; i++) {
+    const hot = i % 2 ? C.leaf : C.red;
+    board += ring(0, 32, i, i % 2 ? C.cream : '#2b2230') + ring(28, 32, i, hot) + ring(15, 19, i, hot);
+  }
+  const num = (n, x, y) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="8" fill="${C.cream}">${n}</text>`;
+  const dart = (x, y, rot, c, cls = '') => `<g class="${cls}"><g transform="translate(${x} ${y}) rotate(${rot})">${rod('M-3 0H-8', C.grey, 1, 'butt')}${rod('M-8 0H-22', C.yellow, 4, 'butt')}<path d="M-22 0h-6l-7-9h-9l6 9-6 9h9l7-9z" fill="${c}" ${O}/></g></g>`;
+  return scene('A dartboard with numbers and coloured rings, a 301 scoreboard, two darts in the board and one flying in', `
+    ${box(148, 96, 12, 20, C.bark, 6)}
+    ${box(52, 66, 44, 28, '#3b4a52', 6)}<text x="74" y="86" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="16" fill="${C.cream}">301</text>${box(70, 94, 8, 22, C.bark, 5)}
+    <g transform="translate(154 60)"><path d="${poly(41)}" fill="#2b2230" ${O}/>${board}
+    <path d="${poly(32)}" fill="none" stroke="${INK}" stroke-width="1.500"/><path d="${poly(6)}" fill="${C.leaf}" stroke="${INK}" stroke-width="1.500"/><path d="${poly(2.500)}" fill="${C.red}"/>
+    ${num(20, 0, -33.500)}${num(3, 0, 39)}${num(6, 36.500, 3)}${num(11, -36, 3)}</g>
+    ${dart(150, 44, 14, C.blue)}${dart(158, 62, -6, C.red)}${dart(118, 36, 16, C.mint, 'adart')}`);
 }
 
 export function tttArt() {
@@ -277,5 +317,7 @@ export const TODAY_ICONS = {
     <path d="M12 104V58l14-12h82v46L94 104z" fill="#e8c25a"/><path d="M12 58l14-12h82L94 58z" fill="#fff" fill-opacity=".4"/><path d="M94 58l14-12v46l-14 12z" fill="#1d1030" fill-opacity=".24"/><path d="M12 58h82l14-12M94 58v46" fill="none"/>
     <path d="M34 58v46M72 58v46" stroke="#a8742f"/></g></svg>`,
   pop: `<svg viewBox="0 0 120 120"><g ${O5}><path d="M32 52V26l20 16zM88 52V26L68 42z" fill="${C.orange}"/><path d="M28 46h64v52H28z" fill="${C.orange}"/></g><path d="M70 46h22v52H78z" fill="#1d1030" fill-opacity=".2"/><path d="M42 62h9v12h-9zM69 62h9v12h-9z" fill="${INK}"/><path d="M54 78h12l-6 7z" fill="${C.pink}" stroke="${INK}" stroke-width="3"/><path d="M60 20V6M16 40L6 32M104 40l10-8M14 76H4M106 76h10" stroke="${INK}" stroke-width="6" stroke-linecap="square"/></svg>`,
-  farm: `<svg viewBox="0 0 120 120"><g ${O5}><path d="M20 104V56h72v48z" fill="${C.red}"/><path d="M92 56l12-8v48l-12 8z" fill="#b8402c"/><path d="M10 58l22-32h48l22 32z" fill="${C.bark}"/><path d="M80 26l12-8 22 32-12 8z" fill="#6e4530"/><path d="M42 104V72h28v32z" fill="${C.cream}"/><path d="M42 72l28 32M70 72l-28 32" fill="none" stroke-width="4"/></g><path d="M50 44h12v9H50zM45 36h6v6h-6zM53 32h6v6h-6zM61 36h6v6h-6z" fill="${C.cream}"/></svg>`,
+  farm: `<svg viewBox="0 0 120 120"><path d="M22 106V60l10-24 16-14h24l16 14 10 24v46z" fill="${C.red}" ${O5}/><path d="M22 60h76" stroke="#fff" stroke-opacity=".35" stroke-width="5"/>
+    <path d="M14 62l12-28 20-18h28l20 18 12 28" fill="none" stroke="${INK}" stroke-width="19" stroke-linejoin="round" stroke-linecap="square"/><path d="M14 62l12-28 20-18h28l20 18 12 28" fill="none" stroke="${C.bark}" stroke-width="9" stroke-linejoin="round" stroke-linecap="square"/>
+    <g ${O5}><path d="M51 36h18v16H51z" fill="${C.cream}"/><path d="M42 106V72h36v34z" fill="${C.cream}"/><path d="M42 72l36 34M78 72l-36 34" fill="none" stroke-width="4"/></g></svg>`,
 };
