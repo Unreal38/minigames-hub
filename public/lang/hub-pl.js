@@ -373,4 +373,17 @@ export const SOLO_PL = {
       <li>Klawisze: strzałki przesuwają, <b>Enter</b> odwraca, <b>P</b> albo <b>1</b>/<b>2</b>/<b>3</b> zaznacza, <b>B</b> zabiera zbiory.</li>
     </ol>`,
   },
+  pop: {
+    rules: `<ol>
+      <li>Półka jest pełna zwierzaków. <b>Zamień miejscami dwa sąsiednie</b>, żeby <b>trzy takie same albo więcej</b> stanęły w jednej linii: znikają, a z góry wskakują nowe.</li>
+      <li>Przesuń albo przeciągnij zwierzaka na sąsiada albo kliknij jednego, a potem drugiego. Zamiana, która niczego nie ustawia, się nie liczy.</li>
+      <li>Każdy poziom ma <b>cele</b> (zebrać dość zwierzaków danego gatunku, rozbić bele siana) i określoną liczbę <b>ruchów</b>. Zrealizuj wszystkie cele, zanim ruchy się skończą.</li>
+      <li><b>Cztery w linii</b> zostawiają <b>Pędziwiatra</b> (strzałki): gdy znika, przebiega przez cały swój rząd albo całą kolumnę.</li>
+      <li><b>Układ L albo T</b> zostawia <b>Skoczka</b> (pierścień): gdy znika, czyści pole 3 × 3 wokół siebie.</li>
+      <li><b>Pięć w linii</b> zostawia <b>Miskę przysmaków</b>: zamień ją z dowolnym zwierzakiem, a przybiegną wszystkie tego gatunku. Zamiana dwóch takich specjalnych pól ze sobą daje coś większego.</li>
+      <li><b>Bel siana</b> nie da się przesuwać. Rozbija je ustawienie tuż obok oraz wszystko, co przez nie przebiega. Bela w drewnianej ramie wymaga dwóch trafień.</li>
+      <li>Skończ z zapasem ruchów, żeby dostać <b>do 3 gwiazdek</b>. Ukończony poziom daje <b>3 monety + 1 za każdą gwiazdkę</b>, do 40 monet dziennie. Potem możesz dalej piąć się po poziomach w rankingu.</li>
+      <li>Koniec ruchów? Poziom zostaje ten sam, a ty dostajesz nową półkę. Klawisze: strzałki przesuwają, <b>Enter</b> podnosi zwierzaka, a strzałka go zamienia.</li>
+    </ol>`,
+  },
 };
