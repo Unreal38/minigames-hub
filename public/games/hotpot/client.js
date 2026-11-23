@@ -9,7 +9,7 @@ import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -115,14 +115,15 @@ export function mount(app, ctx) {
     for (let r = 1; r < 4; r++) {
       const i = abs(r), p = S.seats[i], el = root.querySelector(`.opp[data-r="${r}"]`);
       const active = S.ph === 'play' && S.turn === i;
-      el.className = `opp${active ? ' active' : ''}`;
+      el.className = `opp${active ? ' active' : ''}${cardBgCls(p.fl, 1)}`;
       el.dataset.r = r;
       const status = active ? (S.step === 'draw' ? L('choosing…', 'wybiera…') : L('discarding…', 'odkłada…')) : p.bot ? (p.human ? L('away (bot)', 'poza grą (bot)') : 'bot') : L('waiting', 'czeka');
-      el.innerHTML = `${avatarHtml(p.color, p.av, 46)}
+      el.innerHTML = `${cardBg(p.fl)}${avatarHtml(p.color, p.av, 46, frameCls(p.fl))}
         <div class="who"><b>${nameHtml(S.seats[i]?.name, S.seats[i]?.fl)}</b>${titleHtml(S.seats[i]?.fl)}<span>${status}${active ? '<i class="dotty"><i></i><i></i><i></i></i>' : ''}</span>
         <span class="mini" aria-label="${L(`${p.n} cards`, `karty: ${p.n}`)}">${Array.from({ length: Math.min(p.n, 9) }, () => '<i></i>').join('')}</span></div>
         <div class="pile">${p.top >= 0 ? cardHtml(p.top, { tag: 'button', cls: canTake(i) ? 'takeable' : '', attrs: `data-a="take" data-i="${i}" ${canTake(i) ? '' : 'tabindex="-1"'}` }) : `<span class="slot">${L('empty', 'pusto')}</span>`}
         ${canTake(i) ? `<em>${L('take', 'weź')}</em>` : ''}</div>`;
+      pbSync(el);
     }
     // turn banner
     let msg;
@@ -248,7 +249,7 @@ export function mount(app, ctx) {
       <h2>${L(`${S.win >= 0 ? (S.win === S.me ? 'You win, chef!' : `${nameOf(S.win)} wins!`) : 'The pot ran dry!'}`, `${S.win >= 0 ? (S.win === S.me ? 'Wygrana, szefie kuchni!' : `Wygrywa ${nameOf(S.win)}!`) : 'Garnek jest pusty!'}`)}</h2>
       <p>${L(`${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.`, `${S.win >= 0 ? `Trzy zestawy i „Jemy!” za +90.` : 'Nikt nie zebrał trzech zestawów w 30 rund.'} Każdy dostaje punkty za swoje zestawy.`)}</p>
       <ol class="score">${order.map(({ p, i, r }, n) => `<li class="${i === S.win ? 'won' : ''}" style="animation-delay:${n * 120}ms">
-        ${avatarHtml(p.color, p.av, 48)}
+        ${avatarHtml(p.color, p.av, 48, frameCls(p.fl))}
         <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
         <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : `<em>${L('no sets', 'bez zestawów')}</em>`}</div></div>
         <strong>${r.pts}<small>${L(`${r.bonus ? ` incl. +${r.bonus}` : ''}`, `${r.bonus ? ` w tym +${r.bonus}` : ''}`)}</small></strong>${paidHtml(R, i)}</li>`).join('')}</ol>

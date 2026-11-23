@@ -7,7 +7,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { kitchen, RECIPES, CHOPPABLE, SPEED, T, move, target } from './rules.js';
 import { part, dish, tool, sticker } from './icons.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -272,7 +272,7 @@ export function mount(app, ctx) {
       <p>${L(`The kitchen earned <b>${R.tips} tips</b> from ${R.served} dish${R.served === 1 ? '' : 'es'}${R.missed ? `, and ${R.missed} order${R.missed === 1 ? '' : 's'} ran out` : ''}.`, `Kuchnia zarobiła <b>${cnt(R.tips, 'tip', 'tips', 'napiwek', 'napiwki', 'napiwków')}</b> za ${cnt(R.served, 'dish', 'dishes', 'danie', 'dania', 'dań')}${R.missed ? `, a ${cnt(R.missed, 'order', 'orders', 'zamówienie przepadło', 'zamówienia przepadły', 'zamówień przepadło')}` : ''}.`)} ${myPlace && S.seats[S.me].pts > 0 ? (myPlace === 1 ? L('You were the star cook!', 'Jesteś gwiazdą kuchni!') : L(`You came ${ORD(myPlace)} for tips earned.`, `Twoje miejsce pod względem napiwków: ${myPlace}.`)) : ''}</p>
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], st = p.st;
-        return `<li class="${k === 0 && p.pts > 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${k === 0 && p.pts > 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.dishes} dish${st.dishes === 1 ? '' : 'es'} helped · ${st.chopped} chopped · ${st.served} served`, `udział w daniach: ${st.dishes} · posiekane: ${st.chopped} · podane: ${st.served}`)}</span></div>
           <strong>${p.pts}<small>${L('tips', 'napiwki')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

@@ -7,7 +7,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { score, handName, bestFive, catOf, HAND_ORDER, RANK_NAMES } from './rules.js';
 import { cardHtml } from './cards.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -308,7 +308,7 @@ export function mount(app, ctx) {
       <p>${mine ? L(`You finished ${ORD(mine)} of ${S.seats.length} after ${S.res.hands} hands.`, `Twoje miejsce: ${mine} z ${S.seats.length}. Rozegrane rozdania: ${S.res.hands}.`) : L(`${S.res.hands} hands played.`, `Rozegrane rozdania: ${S.res.hands}.`)} ${L('Chips are pretend and reset every game.', 'Żetony są na niby i w każdej grze zaczynasz od nowa.')}</p>
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = S.res.stacks[i], net = st - start;
-        return `<li class="${k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${p.out ? L('knocked out', 'poza grą') : cnt(st, 'chip', 'chips', 'żeton', 'żetony', 'żetonów')}</span></div>
           <strong class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${net > 0 ? '+' : ''}${net}</strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>

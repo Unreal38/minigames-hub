@@ -7,7 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { MAXG, LOCK_MS, MAX_RESETS, SOFT_MS, fits, spawn, turned, dropY, pieceAt, lock, doHold, decode, encode, fallMs, levelAt } from './rules.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -291,7 +291,7 @@ export function mount(app, ctx) {
       <h2>${I.crown}${w === S.me ? L('You win!', 'Wygrana!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
       <p>${L(`Last one standing after ${clock(R.ms)}`, `Ostatnia osoba w grze po ${clock(R.ms)}`)}</p>
       <ol class="sb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34)}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+        return `<li class="${i === S.me ? 'sb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
           ${L(`<strong>${R.lines[i]} line${R.lines[i] === 1 ? '' : 's'}</strong><small>sent ${R.sent[i]}${R.time[i] ? ' · out at ' + clock(R.time[i]) : ''}</small>`, `<strong>${cnt(R.lines[i], 'line', 'lines', 'linia', 'linie', 'linii')}</strong><small>wysłane ${R.sent[i]}${R.time[i] ? ' · koniec po ' + clock(R.time[i]) : ''}</small>`)}${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
