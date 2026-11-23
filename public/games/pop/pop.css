@@ -56,7 +56,9 @@ body.in-game { overflow: hidden; }
 .pp .results, .pp .gate { position: absolute; inset: 0; background: #160a12c4; display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; animation: fade .25s both; }
 .pp .gate { background: #bfe8ffcc; }
 .pp .results[hidden], .pp .gate[hidden] { display: none; }
-.pp .sheet .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.pp .sheet .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.pp .sheet .row .btn { flex: 1 1 150px; justify-content: center; text-align: center; }
+.pp-sheet h2 { text-align: center; }
 .pp .sheet .btn.ghost { color: var(--ink); border-color: #c9a99a; }
 .pp-sheet.win h2 { color: #b56a00; } .pp-sheet.lose h2 { color: #7a4fc9; }
 .pp-stars { display: flex; gap: 6px; justify-content: center; }

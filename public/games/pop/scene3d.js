@@ -127,7 +127,9 @@ export function createScene(canvas) {
   const padInk = inst(padGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP * 2);
   const FACE = .8, faceGeo = new THREE.ShapeGeometry(rrect(FACE, .17), 5); let dead = false;
   { const uv = faceGeo.attributes.uv, ps = faceGeo.attributes.position; for (let i = 0; i < uv.count; i++) uv.setXY(i, ps.getX(i) / FACE + .5, ps.getY(i) / FACE + .5); }
-  const faces = KINDS.map(() => { const mat = new THREE.MeshBasicMaterial({ color: '#ffffff' }), m = inst(faceGeo, mat); m.visible = false; return { m, n: 0 }; });
+  // one face per pet and power (plain, Zoomer across, Zoomer up and down, Pouncer), so a special gem is a picture too
+  const faces = KINDS.map(() => [0, 1, 2, 3].map(pw => { const mat = new THREE.MeshBasicMaterial({ color: '#ffffff' }), m = inst(faceGeo, mat, pw ? 24 : CAP); m.visible = false; return { m, n: 0, ok: false, cap: pw ? 24 : CAP }; }));
+  const allFaces = faces.flat();
   // The portraits are drawn once: each pet model is photographed from the front, given a dark outline, and set on
   // a glossy background in its colour. (Kuba found 3D pets standing on the shelf too distracting.)
   function paintFaces() {
@@ -139,28 +141,47 @@ export function createScene(canvas) {
       const g = petModel(sp, 2); S2.add(g); bb.setFromObject(g); bb.getCenter(ctr); bb.getSize(size);
       const d = Math.max(size.x, size.y) / 2 / Math.tan(12 * Math.PI / 180) * .9 + size.z / 2;
       C2.position.set(ctr.x + d * .3, ctr.y + d * .12, ctr.z + d); C2.lookAt(ctr); R.render(S2, C2);
-      const cv = document.createElement('canvas'); cv.width = cv.height = SZ; const c = cv.getContext('2d');
       const base = new THREE.Color(KIND_COLOR[k]), hex = t => '#' + base.clone().lerp(new THREE.Color(t > 0 ? '#ffffff' : '#3b2219'), Math.abs(t)).getHexString();
-      const gr = c.createRadialGradient(SZ / 2, SZ * .42, 10, SZ / 2, SZ / 2, SZ * .74); const pale = sp === 'zapkit' ? .38 : 0; // a pale pet needs a deeper gem behind it
-      gr.addColorStop(0, hex(.5 - pale)); gr.addColorStop(.6, hex(.14 - pale * .7)); gr.addColorStop(1, hex(-.16 - pale * .3));
-      c.fillStyle = gr; c.fillRect(0, 0, SZ, SZ);
-      c.fillStyle = '#ffffff40'; c.beginPath(); c.ellipse(SZ * .34, SZ * .13, SZ * .26, SZ * .07, -.12, 0, 7); c.fill(); // the shine
+      const pale = sp === 'zapkit' ? .38 : 0; // a pale pet needs a deeper gem behind it
       // the outline: the pet's shape in ink, stamped all round, then the pet on top
       const ink = document.createElement('canvas'); ink.width = ink.height = SZ; const ic = ink.getContext('2d');
       ic.drawImage(R.domElement, 0, 0); ic.globalCompositeOperation = 'source-in'; ic.fillStyle = '#3b2219'; ic.fillRect(0, 0, SZ, SZ);
-      for (let a = 0; a < 16; a++) c.drawImage(ink, Math.cos(a / 16 * 6.283) * 12, Math.sin(a / 16 * 6.283) * 12 + 6);
-      c.drawImage(R.domElement, 0, 6);
-      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-      faces[k].m.material.map = t; faces[k].m.material.needsUpdate = true; faces[k].m.visible = true;
+      for (let pw = 0; pw < 4; pw++) {
+        const cv = document.createElement('canvas'); cv.width = cv.height = SZ; const c = cv.getContext('2d'), M = SZ / 2;
+        const gr = c.createRadialGradient(M, SZ * .42, 10, M, M, SZ * .74);
+        gr.addColorStop(0, hex(.5 - pale)); gr.addColorStop(.6, hex(.14 - pale * .7)); gr.addColorStop(1, hex(-.16 - pale * .3));
+        c.fillStyle = gr; c.fillRect(0, 0, SZ, SZ);
+        if (pw === ZOOM_H || pw === ZOOM_V) { // speed stripes the way it will dash
+          c.save(); c.translate(M, M); if (pw === ZOOM_V) c.rotate(Math.PI / 2);
+          c.fillStyle = '#ffffffb0'; for (const y of [-.3, 0, .3]) c.fillRect(-M, y * SZ - SZ * .065, SZ, SZ * .13);
+          c.restore();
+        } else if (pw === POUNCE) { // a burst behind it
+          c.save(); c.translate(M, M); c.fillStyle = '#ffffffa8';
+          for (let a = 0; a < 10; a++) { c.rotate(Math.PI / 5); c.beginPath(); c.moveTo(0, 0); c.lineTo(SZ, -SZ * .16); c.lineTo(SZ, SZ * .16); c.fill(); }
+          c.restore();
+        }
+        c.fillStyle = '#ffffff40'; c.beginPath(); c.ellipse(SZ * .34, SZ * .13, SZ * .26, SZ * .07, -.12, 0, 7); c.fill(); // the shine
+        for (let a = 0; a < 16; a++) c.drawImage(ink, Math.cos(a / 16 * 6.283) * 12, Math.sin(a / 16 * 6.283) * 12 + 6);
+        c.drawImage(R.domElement, 0, 6);
+        if (pw) { // a bright rim marks a special gem
+          c.lineWidth = SZ * .075; c.strokeStyle = '#fff3b0'; c.strokeRect(0, 0, SZ, SZ);
+          c.lineWidth = SZ * .012; c.strokeStyle = '#3b2219'; c.strokeRect(SZ * .043, SZ * .043, SZ * .914, SZ * .914);
+        }
+        if (pw === ZOOM_H || pw === ZOOM_V) { // and an arrowhead at each end
+          for (const sd of [-1, 1]) {
+            c.save(); c.translate(M, M); c.rotate((pw === ZOOM_V ? Math.PI / 2 : 0) + (sd < 0 ? Math.PI : 0)); c.translate(SZ * .37, 0);
+            c.beginPath(); c.moveTo(SZ * .1, 0); c.lineTo(-SZ * .08, -SZ * .14); c.lineTo(-SZ * .08, SZ * .14); c.closePath();
+            c.lineJoin = 'round'; c.lineWidth = SZ * .035; c.strokeStyle = '#3b2219'; c.stroke(); c.fillStyle = '#fff3b0'; c.fill(); c.restore();
+          }
+        }
+        const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+        const F = faces[k][pw]; F.m.material.map = t; F.m.material.needsUpdate = true; F.ok = true;
+      }
       S2.remove(g); disposeModel(g);
     });
     R.dispose(); R.forceContextLoss();
   }
   try { paintFaces(); } catch (e) { console.warn('no pet portraits', e); }
-  // powers: arrows either side of a Zoomer, a ring round a Pouncer
-  const arrowGeo = new THREE.ConeGeometry(.13, .22, 4); arrowGeo.rotateZ(-Math.PI / 2); // points along +x
-  const arrows = inst(arrowGeo, new THREE.MeshBasicMaterial({ color: '#fff7c2' }), CAP * 2), arrowInk = inst(arrowGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP * 2);
-  const ringGeo = new THREE.TorusGeometry(.4, .045, 5, 20), rings = inst(ringGeo, new THREE.MeshBasicMaterial({ color: '#fff7c2' }), CAP), ringInk = inst(ringGeo, new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }), CAP);
   const padCol = KIND_COLOR.map(c => new THREE.Color(c)), GOLD = new THREE.Color('#ffe9a8');
 
   // beams for a Zoomer's dash and a Pouncer's stomp
@@ -170,7 +191,7 @@ export function createScene(canvas) {
   function beam(x, y, w, h) { const b = beams[beamI++ % beams.length]; b.m.position.set(x, y, .5); b.w = w; b.h = h; b.t = 0; b.m.visible = true; }
   // the frame round the cubby you are aiming at or holding
   const cursor = new THREE.Group(); cursor.visible = false; B.add(cursor);
-  for (const [w, h, x, y] of [[1.04, .09, 0, .48], [1.04, .09, 0, -.48], [.09, 1.04, .48, 0], [.09, 1.04, -.48, 0]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, .09), new THREE.MeshBasicMaterial({ color: '#ffffff' })); m.position.set(x, y, .32); cursor.add(m); }
+  { const sh = rrect(1.02, .26); sh.holes.push(rrect(.9, .21)); const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' })); m.position.z = .3; cursor.add(m); }
 
   // ---------- sprites: one per thing on the shelf ----------
   let cells = Array(N).fill(null), lb = Array(N).fill(EMPTY), dying = [];
@@ -306,7 +327,7 @@ export function createScene(canvas) {
   // ---------- the frame loop ----------
   const q = new THREE.Quaternion(), e = new THREE.Euler(), p3 = new THREE.Vector3(), s3 = new THREE.Vector3(), mat = new THREE.Matrix4();
   const all = [bowl, bale1, bale2];
-  let nPad = 0, nArrow = 0, nRing = 0, T = 0;
+  let nPad = 0, T = 0;
   const putAt = (mesh, n, x, y, z, rx, ry, rz, sx, sy = sx, sz = sx) => { e.set(rx, ry, rz); q.setFromEuler(e); mesh.setMatrixAt(n, mat.compose(p3.set(x, y, z), q, s3.set(sx, sy, sz))); };
   function draw(s, dt) {
     const v = s.v, k = kindOf(v), pw = powerOf(v), bale = isBale(v);
@@ -335,20 +356,10 @@ export function createScene(canvas) {
     if (bale) { const P = v - BALE > 1 ? bale2 : bale1; putAt(P.body, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.hull && putAt(P.hull, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.n++; return; }
     const ps = sc * (1 + s.flash * .25), gy = y + hop;
     if (v === BOWL) { putAt(bowl.body, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.hull && putAt(bowl.hull, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.n++; }
-    else { const F = faces[k]; if (!F || F.n >= CAP) return; putAt(F.m, F.n++, x, gy, z + .085 * ps, 0, 0, rz, ps * sx, ps * sy, ps); }
+    else { const F = faces[k]?.[pw]; if (!F || F.n >= F.cap) return; putAt(F.m, F.n++, x, gy, z + .085 * ps, 0, 0, rz, ps * sx, ps * sy, ps); }
     const pz = v === BOWL ? z - .3 : z;
     putAt(pads, nPad, x, gy, pz, 0, 0, rz, ps * sx, ps * sy, ps); putAt(padInk, nPad, x, gy, pz, 0, 0, rz, ps * sx * 1.07, ps * sy * 1.07, ps * .9);
     pads.setColorAt(nPad++, col.copy(v === BOWL || s.flash > .3 ? GOLD : padCol[k]));
-    if (pw === ZOOM_H || pw === ZOOM_V) {
-      const d = .3 + Math.abs(Math.sin(T * 5 + s.ph)) * .05;
-      for (const sd of [-1, 1]) {
-        const ax = pw === ZOOM_H ? sd * d : 0, ay = pw === ZOOM_V ? sd * d : 0, r = pw === ZOOM_H ? (sd > 0 ? 0 : Math.PI) : sd * Math.PI / 2;
-        putAt(arrows, nArrow, x + ax * sc, y + ay * sc, z + .34, 0, 0, r, sc); putAt(arrowInk, nArrow, x + ax * sc, y + ay * sc, z + .33, 0, 0, r, sc * 1.35); nArrow++;
-      }
-    } else if (pw === POUNCE) {
-      const r = sc * (1 + Math.sin(T * 5 + s.ph) * .06);
-      putAt(rings, nRing, x, y, z + .36, 0, 0, T * 1.5, r); putAt(ringInk, nRing, x, y, z + .35, 0, 0, T * 1.5, r * 1.06, r * 1.06, r * 1.7); nRing++;
-    }
   }
   function loop(dt) {
     T += dt;
@@ -362,15 +373,13 @@ export function createScene(canvas) {
     }
     if (phase) { phase.t -= dt; if (phase.land ? (!busy || phase.t <= 0) : phase.t <= 0) { const f = phase.then; phase = null; f(); } }
     // draw every sprite into its instanced mesh
-    for (const P of all) P.n = 0; for (const F of faces) F.n = 0; nPad = nArrow = nRing = 0;
+    for (const P of all) P.n = 0; for (const F of allFaces) F.n = 0; nPad = 0;
     for (const s of cells) if (s) draw(s, dt);
     for (const s of dying) draw(s, dt);
     if (dying.length) dying = dying.filter(s => s.t < 1);
     for (const P of all) { P.body.count = P.n; P.body.instanceMatrix.needsUpdate = true; if (P.hull) { P.hull.count = P.n; P.hull.instanceMatrix.needsUpdate = true; } }
-    for (const F of faces) { F.m.count = F.n; F.m.instanceMatrix.needsUpdate = true; }
+    for (const F of allFaces) { F.m.count = F.n; F.m.visible = F.ok && F.n > 0; F.m.instanceMatrix.needsUpdate = true; }
     pads.count = padInk.count = nPad; pads.instanceMatrix.needsUpdate = padInk.instanceMatrix.needsUpdate = true; if (pads.instanceColor) pads.instanceColor.needsUpdate = true;
-    arrows.count = arrowInk.count = nArrow; arrows.instanceMatrix.needsUpdate = arrowInk.instanceMatrix.needsUpdate = true;
-    rings.count = ringInk.count = nRing; rings.instanceMatrix.needsUpdate = ringInk.instanceMatrix.needsUpdate = true;
     for (const b of beams) { if (b.t >= 1) continue; b.t = Math.min(1, b.t + dt / .32); const u = b.t; b.m.scale.set(b.w * (.6 + u * .4), b.h * (.6 + u * .4), 1); b.m.material.opacity = (1 - u) * .85; if (u >= 1) b.m.visible = false; }
     const aim = picked >= 0 ? picked : hover;
     cursor.visible = aim >= 0 && !!cells[aim];
@@ -400,9 +409,9 @@ export function createScene(canvas) {
     fps: () => ticker.fps(), stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
     dispose() {
       ticker.stop(); ro.disconnect(); if (av) disposeAvatar(av); pfx.dispose();
-      dead = true; for (const F of faces) { F.m.material.map?.dispose(); F.m.material.dispose(); } faceGeo.dispose();
+      dead = true; for (const F of allFaces) { F.m.material.map?.dispose(); F.m.material.dispose(); } faceGeo.dispose();
       for (const P of all) { P.body.geometry.dispose(); P.hull?.geometry.dispose(); }
-      for (const g of [padGeo, arrowGeo, ringGeo, beamGeo, backGeo]) g.dispose();
+      for (const g of [padGeo, beamGeo, backGeo]) g.dispose();
       renderer.dispose();
     },
   };
