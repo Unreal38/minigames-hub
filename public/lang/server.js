@@ -38,6 +38,8 @@ const TEXT = {
   'Too many tries. Wait a few minutes and try again.': 'Za dużo prób. Odczekaj kilka minut i spróbuj ponownie.',
   'Not connected.': 'Brak połączenia.',
   'Unknown.': 'Nieznane polecenie.',
+  'Pick a constellation that is not finished yet.': 'Wybierz gwiazdozbiór, który nie jest jeszcze ukończony.',
+  'Finish that constellation first.': 'Najpierw ukończ ten gwiazdozbiór.',
   'Slow down a little.': 'Zwolnij trochę.',
   // the shop and the wardrobe
   'That is not in the shop.': 'Tego nie ma w sklepie.',

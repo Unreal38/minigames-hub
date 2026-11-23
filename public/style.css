@@ -1419,3 +1419,37 @@ body.night :is(.ld-list .ld-me, .pw-list .pw-me).haspb { --pbs: var(--hi-tint); 
 .wd.quick .wdplate { display: none; }
 .wd.quick .wdfoot { flex-direction: column; align-items: stretch; gap: 4px; }
 .wd.quick .wdfoot .btn.big { width: 100%; font-size: 22px; }
+
+/* ---------- constellations (public/constellations.js): level chip picture, progress block, "Your sky", profile card ---------- */
+.lv .lvcn { display: inline-grid; place-items: center; padding: 1px 4px; background: #23245c; } .lv .lvcn svg { display: block; }
+.cntile { position: relative; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: #2b2d6e; }
+body.night .cntile { border-color: #7d82c9; }
+.cntile .cnbg { position: absolute; inset: 0; width: 100%; height: 100%; } .cntile .cnart { position: relative; display: block; }
+.pisle .cnsky { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; padding: 8px 10px; pointer-events: none; z-index: 2; }
+.pisle .cnsky figure { margin: 0; text-align: center; font: 700 12px/1.2 var(--fd); color: #fff; text-shadow: 0 1px 0 #3b2219, 0 0 6px #1c3a66; }
+.pisle .cnsky svg { display: block; margin: 0 auto; filter: drop-shadow(0 2px 0 #3b221966); }
+.pisle .cnsky.n3 svg, .pisle .cnsky.n4 svg { width: 68px; height: 68px; } .pisle .cnsky.n4 figure { font-size: 11px; }
+.cnstrip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cnstrip figure { margin: 0; display: flex; flex-direction: column; gap: 4px; text-align: center; font: 700 12.5px/1.2 var(--fd); color: var(--tx, var(--ink)); min-width: 0; }
+.cnstrip .cntile { border-width: 2.5px; border-radius: 14px; aspect-ratio: 1; } .cnstrip .cnart { width: 100%; height: auto; }
+.cnstrip small { font: 600 11.5px/1.2 var(--fd); color: var(--tx2, #6b4a3c); display: block; }
+.cnstrip .more { border: 2.5px dashed var(--edge, var(--card-edge)); border-radius: 14px; display: grid; place-items: center; aspect-ratio: 1; align-self: start; font: 700 15px var(--fd); color: var(--tx2, #6b4a3c); }
+.pinfo h3 .cnt { font: 600 13px var(--fd); color: var(--tx2, #6b4a3c); margin-left: 6px; }
+.cnnow { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; background: var(--plum); border-radius: 18px; padding: 12px; }
+body.sky:not(.in-game) .cnnow { background: var(--pan2); border: 2px solid var(--edge); }
+.cnnow .cntile { flex: none; width: 104px; height: 104px; } .cnnow .txt { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cnnow b { font: 700 20px/1.15 var(--fd); } .cnnow span { font-size: 14px; color: var(--muted); } body.sky:not(.in-game) .cnnow span { color: var(--muted2); }
+.cndots { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; } .cndots i { width: 15px; height: 15px; transform: rotate(45deg) scale(.8); border: 2px solid var(--ink); background: var(--pan, #fff4e2); border-radius: 2px; } .cndots i.on { background: #ffd24a; }
+body.night .cndots i { border-color: #7d82c9; } body.night .cndots i.on { border-color: #ffe27a; }
+.cnsheet h2 { margin: 0; } .cnsheet .lead { margin: 0; font-size: 15px; }
+.cnsum { display: flex; flex-wrap: wrap; gap: 8px; } .cnsum .chip { font-size: 14px; white-space: normal; }
+.cnset h3 { font: 700 18px var(--fd); margin: 4px 0 8px; display: flex; align-items: baseline; gap: 8px; } .cnset h3 small { font: 600 13px var(--fd); opacity: .7; }
+.cngrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.cncard { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 20px; background: var(--chip, var(--card)); border: 2.5px solid var(--edge, var(--card-edge)); min-width: 0; }
+.cncard .cntile { aspect-ratio: 5 / 4; } .cncard .cnart { width: auto; height: 100%; max-height: 150px; max-width: 100%; }
+.cncard.done { border-color: var(--ink); box-shadow: 0 4px 0 var(--ink); } body.night .cncard.done { border-color: #ffb547; box-shadow: 0 4px 0 #120f2a; }
+.cncard .nm { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 6px; font: 700 16px/1.2 var(--fd); } .cncard .nm span { font: 600 13px var(--fd); opacity: .75; white-space: nowrap; }
+.cncard .btn { font-size: 13.5px; padding: 6px 8px; width: 100%; white-space: normal; line-height: 1.15; min-height: 36px; }
+.cncard .state { font: 700 13.5px/1.15 var(--fd); min-height: 36px; display: grid; place-items: center; text-align: center; border-radius: 999px; padding: 4px 8px; }
+.cncard .state.on { background: var(--mint); color: #1f3d31; border: 2px solid var(--ink); } .cncard .state.now { background: #23245c; color: #ffe27a; border: 2px solid #7d82c9; }
+@media (max-width: 620px) { .cngrid { grid-template-columns: repeat(2, 1fr); gap: 8px; } .cncard { padding: 7px; } .cnstrip { grid-template-columns: repeat(3, 1fr); } .cnnow .btn { width: 100%; } }

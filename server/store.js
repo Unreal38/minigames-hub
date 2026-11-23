@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
+import { xpFor, placeCoins, levelOf, progress, starsOf } from '../public/ranks.js';
+import { tidySky, conOf, isDone } from '../public/constellations.js';
 import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack, cosPackIds } from '../public/cosmetics.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds } from '../public/avatar.js';
 
@@ -203,7 +204,7 @@ export function byTag(tag) {
 export function publicProfile(p) {
   const games = Object.entries(p.byGame || {}).filter(([, g]) => g?.games).map(([g, x]) => ({ g, games: x.games, wins: x.wins || 0, best: x.best || 0 }))
     .sort((a, b) => b.wins - a.wins || b.games - a.games).slice(0, 4);
-  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games };
+  return { pt: tagOf(p), name: p.name || 'Guest', color: p.color, av: p.av, fl: flair(p), guest: !p.user, ...badge(p), xp: p.xp || 0, games: p.games || 0, wins: p.wins || 0, top: games, sky: (({ lit, now }) => ({ lit, now }))(skyOf(p)) };
 }
 // What other players see of this profile's cosmetics: { nm, fr, ti, wn } with unset ones left out.
 export const flair = p => {
@@ -237,10 +238,30 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === shopDate() ? p.pop.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === shopDate() ? p.pop.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
-export function badge(p) { const g = progress(p?.xp || 0); return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars }; }
+export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }
+
+// ---------- constellations: where a player's endgame stars went (public/constellations.js has the rules) ----------
+// Every star earned is placed the next time the sky is read (each `me` after a game does), into the constellation the
+// player was working on at that moment, and kept on the profile. Stars never move once lit.
+export function skyOf(p) {
+  const stars = starsOf(levelOf(p?.xp || 0));
+  if (!p || (!stars && !p.sky)) return { lit: {}, now: '', shown: '', stars: 0 };
+  const s = tidySky(p.sky, stars);
+  if (JSON.stringify(s) !== JSON.stringify(p.sky)) { p.sky = s; board = null; scheduleSave(); }
+  return { ...s, stars };
+}
+// Pick the constellation to light next (`now`, any unfinished one) or the finished one to show in the level chip.
+export function setSky(p, { now, shown } = {}) {
+  if (!p) return { err: 'Not connected.' };
+  const s = p.sky = tidySky(p.sky, starsOf(levelOf(p.xp || 0))); // choosing ahead is fine, even before the first star
+  if (now != null) { if (!conOf(now) || isDone(s, now)) return { err: 'Pick a constellation that is not finished yet.' }; p.sky.now = String(now); }
+  if (shown != null) { if (!isDone(s, shown)) return { err: 'Finish that constellation first.' }; p.sky.shown = String(shown); }
+  board = null; scheduleSave();
+  return { ok: true };
+}
 
 // ---------- username + password accounts ----------
 // Passwords are never stored: only a scrypt hash with a random salt per account. Recovery codes and host reset

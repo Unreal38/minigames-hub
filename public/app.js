@@ -11,6 +11,7 @@ import { skinPic, skinPicNow } from './skinpic.js';
 import { progress, rankOf, nextRankOf, RANKS, STAR_EVERY } from './ranks.js';
 import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
+import { CONS, SETS, conOf, conArt, conTile, conGlyph, isDone, doneIds } from './constellations.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { randomName } from './names.js';
@@ -580,7 +581,7 @@ function onMsg(m) {
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
-    st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
+    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
     // Logged in: the look saved with the account is the only truth. Wear it (and keep it in this browser) before
     // anything else, the language reload below included, so an old guest look here can never be sent back over it.
     let adopted = false;
@@ -602,6 +603,9 @@ function onMsg(m) {
       const pl = m.gain.place;
       toast(`${m.gain.win ? L('Win! ', 'Wygrana! ') : pl > 1 && m.gain.of > 1 ? `${ord(pl)} ${L('place', 'miejsce')} · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${cnt(Math.abs(cg), 'coin', 'coins', 'moneta', 'monety', 'monet')}` : ''}${m.gain.ranked === false ? L(' · played with bots, not ranked', ' · gra z botami, bez rankingu') : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
+      const was = st.skyWas, sky = m.me.sky; // a new star, or a whole constellation
+      if (was && sky && sky.stars > was.stars) { const fin = doneIds(sky).find(id => !isDone(was, id)), c = conOf(fin || was.now);
+        if (c) toast(fin ? `★ ${L('Constellation finished', 'Gwiazdozbiór ukończony')}: ${esc(c.n)}!` : `★ ${L('A new star in', 'Nowa gwiazda w gwiazdozbiorze')} ${esc(c.n)}: ${sky.lit[c.id] || 0} / ${c.p.length}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); }
@@ -833,8 +837,10 @@ function go(view) {
 let adoptLook = false, onAuth = null;
 // The level chip beside a name. The rank is worked out from the level here, so chips saved long ago (old chat lines)
 // and chips from the server always show today's ladder.
-const lvChip = lv => { const r = rankOf(lv); return `<span class="lv" title="${esc(r.name)}, ${L('level', 'poziom')} ${lv}">${rankIcon(r.icon)} ${lv}${r.stars ? `<i class="lvst">★${r.stars}</i>` : ''}</span>`; };
-const meChip = () => st.me ? lvChip(st.me.level, st.me.icon, st.me.rank) : '';
+// `cn` is the finished constellation the player shows off: its tiny picture takes the place of the star count.
+const lvChip = (lv, cn) => { const r = rankOf(lv), c = r.stars ? conOf(cn) : null;
+  return `<span class="lv" title="${esc(r.name)}, ${L('level', 'poziom')} ${lv}${c ? `, ${L('constellation', 'gwiazdozbiór')}: ${esc(c.n)}` : ''}">${rankIcon(r.icon)} ${lv}${c ? `<i class="lvst lvcn">${conGlyph(c)}</i>` : r.stars ? `<i class="lvst">★${r.stars}</i>` : ''}</span>`; };
+const meChip = () => st.me ? lvChip(st.me.level, st.me.sky?.shown) : '';
 
 // The full progress card (rank, XP bar, lifetime numbers, every game). It opens from the account menu's Profile.
 function meCard() {
@@ -848,14 +854,15 @@ function meCard() {
   return `<div class="mecard">
     <div class="rankrow">
       <span class="rankicon">${rankIcon(rankOf(m.level).icon)}</span>
-      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>${L('Level', 'Poziom')} ${m.level}${m.nextRank ? ` · ${esc(nextRankOf(m.level).name)} ${L('at level', 'od poziomu')} ${m.nextRankLv}` : ''}</span></div>
+      <div class="rankname"><b>${esc(rankOf(m.level).name)}</b><span>${L('Level', 'Poziom')} ${m.level}${m.nextRank ? ` · ${m.level >= RANKS.at(-1).lv ? L('next star', 'następna gwiazda') : esc(nextRankOf(m.level).name)} ${L('at level', 'od poziomu')} ${m.nextRankLv}` : ''}</span></div>
       <div class="acct"><span>${m.user ? L(`Signed in as <b>${esc(m.user)}</b>`, `Zalogowano jako <b>${esc(m.user)}</b>`) : L('Playing as a guest. Progress stays on this browser.', 'Grasz jako gość. Postępy zostają w tej przeglądarce.')}</span></div>
     </div>
     <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="${m.need}" aria-valuenow="${m.into}" aria-label="${L('XP to next level', 'XP do następnego poziomu')}"><i style="width:${pct}%"></i></div>
     <div class="xpnote"><span>${m.into} / ${m.need} XP ${L('to level', 'do poziomu')} ${m.level + 1}</span><span>${L(`${m.xp} XP in total`, `Łącznie ${m.xp} XP`)}</span></div>
+    ${skyNow(m)}
     <details class="ladder"><summary>${L('All ranks', 'Wszystkie rangi')}</summary><ol>${RANKS.map(r => { const mine = rankOf(m.level).icon === r.icon && rankOf(Math.min(m.level, RANKS.at(-1).lv)).lv === r.lv;
       return `<li class="${m.level >= r.lv ? 'got' : ''}${mine ? ' now' : ''}">${rankIcon(r.icon)}<b>${esc(r.name)}</b><span>${L('level', 'poziom')} ${r.lv}</span></li>`; }).join('')}
-      <li class="more">${L(`After ${esc(RANKS.at(-1).name)} you earn one more ★ every ${STAR_EVERY} levels, with no end.`, `Po randze ${esc(RANKS.at(-1).name)} co ${STAR_EVERY} poziomów zdobywasz kolejną ★, bez końca.`)}</li></ol></details>
+      <li class="more">${L(`After ${esc(RANKS.at(-1).name)} you earn one ★ every ${STAR_EVERY} levels, with no end. Stars light up constellations.`, `Po randze ${esc(RANKS.at(-1).name)} co ${STAR_EVERY} poziomów zdobywasz ★, bez końca. Gwiazdy zapalają gwiazdozbiory.`)}</li></ol></details>
     <div class="stats">
       <div><b>${m.wins}</b><span>${L('Wins', 'Wygrane')}</span></div><div><b>${m.games}</b><span>${L('Games', 'Gry')}</span></div>
       <div><b>${rate}%</b><span>${L('Win rate', 'Skuteczność')}</span></div><div><b>${m.pts}</b><span>${L('Points', 'Punkty')}</span></div>
@@ -864,13 +871,49 @@ function meCard() {
     ${per ? `<ul class="pergame">${per}</ul>` : `<p class="xpnote">${L('Finish a game to earn XP. Wins are worth the most.', 'Dokończ grę, żeby zdobyć XP. Najwięcej dają wygrane.')}</p>`}
   </div>`;
 }
+// Constellations (constellations.js): the block on the progress card, and the "Your sky" collection.
+function skyNow(m) {
+  const sky = m.sky || { lit: {}, stars: 0 }, top = RANKS.at(-1), c = conOf(sky.now), done = doneIds(sky).length;
+  if (m.level < top.lv) return `<div class="cnnow soon"><div class="txt"><b>${L('Constellations', 'Gwiazdozbiory')}</b><span>${L(`They start after ${esc(top.name)} (level ${top.lv}): one star every ${STAR_EVERY} levels, and every star lights a point of a constellation.`, `Zaczynają się po randze ${esc(top.name)} (poziom ${top.lv}): co ${STAR_EVERY} poziomów dostajesz gwiazdę, a każda gwiazda zapala punkt gwiazdozbioru.`)}</span></div><button type="button" class="btn w" data-x="sky">${L('See the sky', 'Zobacz niebo')} ›</button></div>`;
+  const k = c ? sky.lit[c.id] || 0 : 0;
+  return `<div class="cnnow">${c ? conTile(c, k, { size: 104 }) : conTile(conOf(sky.shown) || CONS[0], undefined, { size: 104 })}
+    <div class="txt"><span>${c ? L('You are lighting', 'Zapalasz teraz') : L('Your sky is complete', 'Twoje niebo jest pełne')}</span><b>${c ? `${L('Constellation', 'Gwiazdozbiór')}: ${esc(c.n)}` : L('Every constellation is lit!', 'Wszystkie gwiazdozbiory świecą!')}</b>
+      ${c ? `<div class="cndots" role="img" aria-label="${L(`${k} of ${c.p.length} stars lit`, `Zapalone gwiazdy: ${k} z ${c.p.length}`)}">${c.p.map((_, i) => `<i class="${i < k ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+      <span>${c ? L(`${k} of ${c.p.length} stars lit · `, `Zapalone gwiazdy: ${k} z ${c.p.length} · `) : ''}${L(`${done} of ${CONS.length} constellations finished`, `ukończone gwiazdozbiory: ${done} z ${CONS.length}`)}</span></div>
+    <button type="button" class="btn" data-x="sky">${L('Your sky', 'Twoje niebo')} ›</button></div>`;
+}
+function openSky() {
+  if (!st.me) return;
+  const sheet = modal(''), box = sheet.el.querySelector('.sheet'); box.classList.add('wide', 'cnsheet');
+  const paint = () => {
+    const m = st.me, sky = m.sky || { lit: {}, stars: 0 }, top = RANKS.at(-1), keep = box.scrollTop;
+    const card = c => { const n = c.p.length, k = sky.lit[c.id] || 0, fin = k === n;
+      return `<div class="cncard${fin ? ' done' : ''}">${conTile(c, k, { size: 150 })}<div class="nm">${esc(c.n)}<span>${k} / ${n} ★</span></div>
+        ${fin ? (c.id === sky.shown ? `<div class="state on">✓ ${L('Shown by your rank', 'Widać przy randze')}</div>` : `<button type="button" class="btn w" data-shown="${c.id}">${L('Show by my rank', 'Pokaż przy randze')}</button>`)
+          : c.id === sky.now ? `<div class="state now">${L('Lighting now', 'Zapalasz teraz')}</div>` : `<button type="button" class="btn w" data-now="${c.id}">${L('Light this one next', 'Zapalaj ten')}</button>`}</div>`; };
+    box.innerHTML = `<h2>${L('Your sky', 'Twoje niebo')}</h2>
+      <p class="lead">${L(`After ${esc(top.name)} you get one star every ${STAR_EVERY} levels. Each star lights one point of the constellation you picked. Finished constellations show on your profile card, and one of them sits by your rank.`, `Po randze ${esc(top.name)} co ${STAR_EVERY} poziomów dostajesz gwiazdę. Każda gwiazda zapala jeden punkt wybranego gwiazdozbioru. Ukończone gwiazdozbiory widać na twojej karcie profilu, a jeden z nich stoi przy twojej randze.`)}</p>
+      <div class="cnsum"><span class="chip">★ ${L(`Stars: ${sky.stars}`, `Gwiazdy: ${sky.stars}`)}</span><span class="chip">${L(`Constellations: ${doneIds(sky).length} of ${CONS.length}`, `Gwiazdozbiory: ${doneIds(sky).length} z ${CONS.length}`)}</span><span class="chip">${m.level < top.lv ? L(`First star at level ${top.lv + STAR_EVERY}`, `Pierwsza gwiazda od poziomu ${top.lv + STAR_EVERY}`) : L(`Next star at level ${m.nextRankLv}`, `Następna gwiazda od poziomu ${m.nextRankLv}`)}</span></div>
+      ${SETS.map((s, i) => { const cs = CONS.filter(c => c.set === i); return `<section class="cnset"><h3>${esc(s)}<small>${cs.filter(c => isDone(sky, c.id)).length} / ${cs.length}</small></h3><div class="cngrid">${cs.map(card).join('')}</div></section>`; }).join('')}
+      <div class="row"><button type="button" class="btn big" data-x="close">${L('Done', 'Gotowe')}</button></div>`;
+    box.scrollTop = keep;
+  };
+  paint();
+  const prev = st.onMe; st.onMe = () => { prev?.(); if (sheet.el.isConnected) paint(); };
+  sheet.onClose = () => { st.onMe = prev; };
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.x === 'close') return sheet.close();
+    if (b.dataset.now) { sfx.pop(); send({ t: 'sky', now: b.dataset.now }); } else if (b.dataset.shown) { sfx.pop(); send({ t: 'sky', shown: b.dataset.shown }); }
+  });
+}
 function openStats() {
   if (!st.me) return;
   const sheet = modal(`<h2>${L('Your progress', 'Twoje postępy')}</h2>${meCard()}<div class="row" style="margin-top:16px">${st.me.pt ? `<button type="button" class="btn w" data-x="card">${L('How others see me', 'Jak widzą mnie inni')}</button>` : ''}<button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
   sheet.el.querySelector('.sheet').classList.add('wide', 'statsheet');
   sheet.el.addEventListener('click', e => {
     const x = e.target.closest('[data-x]')?.dataset.x; if (!x) return;
-    sfx.click(); sheet.close(); if (x === 'card') send({ t: 'player', pt: st.me.pt });
+    sfx.click(); sheet.close(); if (x === 'card') send({ t: 'player', pt: st.me.pt }); else if (x === 'sky') openSky();
   });
 }
 // Tells the server which screen this browser is on (hub, Pet Farm or Hay Hunch), for the host's "Who's here" list.
@@ -894,7 +937,7 @@ function whoHtml() {
   return `<p class="rknote">${L(`${cnt(list.length, 'person', 'people')} · ${num(tables)} at tables · ${cnt(guests, 'guest')}`, `Osoby: ${num(list.length)} · przy stołach: ${num(tables)} · goście: ${num(guests)}`)}</p>
     <ol class="rk wholist">${list.map((r, i) => `<li class="${r.pt && r.pt === st.me?.pt ? 'you' : ''}"${prof(r)}>
     <span class="pos">${i + 1}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
-    <span class="who"><b>${nameHtml(r.name, r.fl)}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${r.user ? `<i>@${esc(r.user)}</i>` : `<i>${L('guest', 'gość')}</i>`}${r.n > 1 ? `<i>${L(`${r.n} screens`, `ekrany: ${r.n}`)}</i>` : ''}</span></span>
+    <span class="who"><b>${nameHtml(r.name, r.fl)}</b><span>${r.lv ? lvChip(r.lv, r.cn) : ''}${r.user ? `<i>@${esc(r.user)}</i>` : `<i>${L('guest', 'gość')}</i>`}${r.n > 1 ? `<i>${L(`${r.n} screens`, `ekrany: ${r.n}`)}</i>` : ''}</span></span>
     <b class="main">${whereText(r.at)}</b><span class="sub">${agoText(now - r.since)}</span>
   </li>`).join('')}</ol>`;
 }
@@ -1236,7 +1279,7 @@ function rkRow(game, r) {
   const [main, sub] = rkStat(game, r), medal = ['🥇', '🥈', '🥉'][r.pos - 1];
   return `<li class="${r.me ? 'you' : ''}"${prof(r)}>
     <span class="pos">${medal || r.pos}</span>${avatarHtml(r.color, r.av, 36, frameCls(r.fl))}
-    <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ` <em>(${L('you', 'ty')})</em>` : ''}</b><span>${r.lv ? lvChip(r.lv, r.icon, r.rank) : ''}${titleHtml(r.fl)}${r.guest ? `<i>${L('guest', 'gość')}</i>` : ''}</span></span>
+    <span class="who"><b>${nameHtml(r.name, r.fl)}${r.me ? ` <em>(${L('you', 'ty')})</em>` : ''}</b><span>${r.lv ? lvChip(r.lv, r.cn) : ''}${titleHtml(r.fl)}${r.guest ? `<i>${L('guest', 'gość')}</i>` : ''}</span></span>
     <b class="main">${main}</b><span class="sub">${sub}</span>
   </li>`;
 }
@@ -1288,7 +1331,7 @@ function hubLine(m, prev) {
   return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}"${prof(m)}>
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
-      ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
+      ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.cn) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
       <p${!m.grid && emoOnly(m.text) ? ' class="hcbig"' : ''}>${esc(Array.isArray(m.grid) ? srvText(m.text) : m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
     </div>
     ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="${L('Remove this message', 'Usuń tę wiadomość')}" title="${L('Remove', 'Usuń')}">×</button>` : ''}
@@ -1444,7 +1487,7 @@ function renderLobby() {
       </div>
       <div class="seats">${seats.map((p, i) => p ? `<div class="seat full ${p.online ? '' : 'offline'}${cardBgCls(p.fl)}" data-pid="${esc(p.id)}"${prof(p)}>
           ${cardBg(p.fl)}${avatarHtml(p.color, p.av, 64, frameCls(p.fl))}${petImg(p.pet, 52)}
-          <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? L('Host', 'Gospodarz') : L('Ready', 'W gotowości')}${p.id === st.id ? L(' · you', ' · ty') : ''}${p.online ? '' : L(' · reconnecting', ' · łączy się ponownie')}</span></div></div>`
+          <div><b>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.cn) : ''}</b>${titleHtml(p.fl)}<span>${p.id === r.host ? L('Host', 'Gospodarz') : L('Ready', 'W gotowości')}${p.id === st.id ? L(' · you', ' · ty') : ''}${p.online ? '' : L(' · reconnecting', ' · łączy się ponownie')}</span></div></div>`
         : `<div class="seat open">${backSvg('width="56" height="56"')}<div><b>${L(`Seat ${i + 1} is open`, `Miejsce ${i + 1} wolne`)}</b><span>${gm.openSeat}</span></div></div>`).join('')}</div>
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
       ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
@@ -1889,16 +1932,30 @@ const openStyle = () => openWardrobe({ sec: 'name' });
 
 // Another player's profile card: their isle with the pets they show off, their rank and best games, and their table kit.
 let playerSheet = null;
+// A player's finished constellations: up to four hang in their isle's sky (the one by their rank first), and all of
+// them sit in a strip of night sky with the one being lit.
+const skyDone = p => { const ids = doneIds(p.sky || {}); return [...ids.filter(id => id === p.cn), ...ids.filter(id => id !== p.cn)].map(conOf); };
+const skyHang = p => { const d = skyDone(p).slice(0, 4); return d.length ? `<div class="cnsky n${d.length}">${d.map(c => `<figure>${conArt(c, c.p.length, { size: 92, r: 7.5, guide: false })}<figcaption>${esc(c.n)}</figcaption></figure>`).join('')}</div>` : ''; };
+function skyStrip(p) {
+  const sky = p.sky || {}, d = skyDone(p), part = CONS.filter(c => sky.lit?.[c.id] && !isDone(sky, c.id));
+  if (!d.length && !part.length) return '';
+  const left = CONS.length - d.length - part.length;
+  return `<h3>${L('Constellations', 'Gwiazdozbiory')}<span class="cnt">${d.length} ${L('of', 'z')} ${CONS.length}</span></h3><div class="cnstrip">
+    ${d.map(c => `<figure>${conTile(c)}<figcaption>${esc(c.n)}</figcaption></figure>`).join('')}
+    ${part.map(c => `<figure class="todo">${conTile(c, sky.lit[c.id])}<figcaption>${esc(c.n)}<small>${sky.lit[c.id]} / ${c.p.length}</small></figcaption></figure>`).join('')}
+    ${left ? `<div class="more" title="${L('Not lit yet', 'Jeszcze niezapalone')}">+${left}</div>` : ''}</div>`;
+}
 function openPlayer(p) {
   if (!p) return; playerSheet?.close();
   const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp'];
   const sheet = playerSheet = modal(`
     <div class="profcard">
-      <div class="pisle"><div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
+      <div class="pisle">${skyHang(p)}<div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
       <div class="pinfo">
-        <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.icon, p.rank) : ''}</h2>
-          ${titleHtml(p.fl)}<small>${p.me ? L('This is you', 'To ty') : p.online ? `<i class="dot on"></i>${L('Online now', 'Teraz online')}` : L('Not online', 'Offline')}${p.guest ? L(' · guest', ' · gość') : ''} · ${esc(p.lv ? rankOf(p.lv).name : p.rank || '')}</small></div></div>
+        <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.cn) : ''}</h2>
+          ${titleHtml(p.fl)}<small>${p.me ? L('This is you', 'To ty') : p.online ? `<i class="dot on"></i>${L('Online now', 'Teraz online')}` : L('Not online', 'Offline')}${p.guest ? L(' · guest', ' · gość') : ''} · ${esc(p.lv ? rankOf(p.lv).name : p.rank || '')}${conOf(p.cn) ? ` · ${L('constellation', 'gwiazdozbiór')}: ${esc(conOf(p.cn).n)}` : ''}</small></div></div>
         <div class="pstats"><span><b>${num(p.games)}</b>${L('games', 'gry')}</span><span><b>${num(p.wins)}</b>${L('wins', 'wygrane')}</span><span><b>${rate}%</b>${L('win rate', 'skuteczność')}</span><span><b>${num(p.xp)}</b>XP</span></div>
+        ${skyStrip(p)}
         ${p.top.length ? `<h3>${L('Best games', 'Najlepsze gry')}</h3><ul class="ptop">${p.top.map(g => `<li><b>${esc(GAMES[g.g]?.name || SOLO[g.g]?.name || g.g)}</b><span>${cWins(g.wins)} · ${cGames(g.games)}</span></li>`).join('')}</ul>` : `<p>${L('No finished games yet.', 'Nie ma jeszcze skończonych gier.')}</p>`}
         <h3>${L('Table kit', 'Zestaw do gier')}</h3>
         <div class="stylekit pkit">${kit.map(k => { const i = p.fl[k] | 0, u = skinPicNow(k, i, p.color, p.av); return `<figure><img width="54" height="54" alt="" data-kit="${k}:${i}"${u ? ` src="${u}"` : ''}><figcaption><small>${COS[k].label}</small>${esc(cosItem(k, i)?.n || L('Classic', 'Klasyczny'))}</figcaption></figure>`; }).join('')}</div>

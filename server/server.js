@@ -375,6 +375,13 @@ function handle(c, m) {
       const o = store.byTag(m.pt); if (!o) return send(c, { t: 'err', msg: 'That player is not around any more.' });
       return send(c, { t: 'player', p: { ...store.publicProfile(o), pets: palsOf(o), online: clientsOf(o.pid).length > 0, me: o === store.profileOf(c.token), rel: store.relation(store.profileOf(c.token), o) } });
     }
+    case 'sky': { // constellations: which one to light next, or which finished one to show in the level chip
+      const p = store.profileOf(c.token), r = store.setSky(p, { now: m.now, shown: m.shown });
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      send(c, { t: 'me', me: store.me(p) });
+      const room = rooms.get(c.room); if (room) sendRoom(room);
+      return;
+    }
     case 'wear': { // put on a name colour, frame, title or win effect, or pick the Pet Farm pets to show off
       const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
       const ids = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
