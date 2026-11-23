@@ -12,7 +12,7 @@ body.in-game { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .bb.danger .bb-vig { animation: none; } }
 
 .bb .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.bb .bb-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; opacity: .92; }
+.bb .bb-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; opacity: .92; }
 .bb .bb-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
 .bb .bb-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
 .bb .bb-tag[hidden] { display: none; }
@@ -29,7 +29,7 @@ body.in-game { overflow: hidden; }
 .bb .chip { color: var(--cream); display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
 .bb .chip:empty { display: none; }
 .bb .chip b { color: var(--lantern); }
-.bb .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
+.bb .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
 .bb .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; }
 .bb .banner:empty { display: none; }
@@ -46,11 +46,11 @@ body.in-game { overflow: hidden; }
 .bb .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .bb .list span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: var(--mint); font-variant-numeric: tabular-nums; }
 .bb .list .avatar { border-width: 2px; flex: none; }
-.bb .list .bb-me { background: #ffb54740; box-shadow: inset 0 0 0 2px var(--lantern); }
+.bb .list .bb-me { background: var(--hi-tint, #ffb54740); box-shadow: inset 0 0 0 2px var(--lantern); }
 .bb .list .bb-out b, .bb .list .bb-out .avatar { opacity: .55; }
 
 /* the height bar on the right: the storm fills it from the bottom, a dot for every climber */
-.bb .bb-alt { position: absolute; right: 22px; top: 86px; bottom: 150px; width: 16px; border-radius: 999px; background: #fff4e2cc; border: 3px solid var(--ink); pointer-events: none !important; box-shadow: 0 4px 0 #160a1240; }
+.bb .bb-alt { position: absolute; right: 22px; top: 86px; bottom: 150px; width: 16px; border-radius: 999px; background: color-mix(in srgb, var(--paper) 80%, transparent); border: 3px solid var(--ink); pointer-events: none !important; box-shadow: 0 4px 0 #160a1240; }
 .bb .bb-alt .bb-storm { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 999px 999px; background: repeating-linear-gradient(-45deg, #5a4b8c 0 6px, #6f5fa6 6px 12px); border-top: 3px solid var(--ink); min-height: 6px; }
 .bb .bb-alt .bb-dots { position: absolute; inset: 0; }
 .bb .bb-alt .bb-dots span { position: absolute; left: 50%; width: 16px; height: 16px; margin: 0 0 -8px -8px; border-radius: 50%; border: 2.5px solid var(--ink); transition: bottom .12s linear; }
@@ -58,21 +58,21 @@ body.in-game { overflow: hidden; }
 .bb .bb-alt .bb-dots .bb-mine { width: 22px; height: 22px; margin: 0 0 -11px -11px; border-color: var(--cream); outline: 2.5px solid var(--ink); z-index: 1; }
 
 /* streak meter */
-.bb .bb-streak { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); min-width: 220px; display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; background: var(--cream); color: var(--ink); border: 3.5px solid var(--ink); border-radius: 18px; padding: 5px 14px 9px; font-family: var(--fd); box-shadow: 0 5px 0 var(--deep); pointer-events: none !important; }
+.bb .bb-streak { position: absolute; left: 50%; top: 66px; transform: translateX(-50%); min-width: 220px; display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 10px; background: var(--paper); color: var(--on-paper); border: 3.5px solid var(--ink); border-radius: 18px; padding: 5px 14px 9px; font-family: var(--fd); box-shadow: 0 5px 0 var(--deep); pointer-events: none !important; }
 .bb .bb-streak[hidden] { display: none; }
 .bb .bb-streak b { font-weight: 700; font-size: 20px; }
 .bb .bb-streak span { font-weight: 600; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bb .bb-streak i { grid-column: 1 / 3; height: 8px; border-radius: 999px; background: #e7d3c2; overflow: hidden; margin-top: 3px; }
-.bb .bb-streak u { display: block; height: 100%; background: #7ed067; transform-origin: 0 50%; }
-.bb .bb-streak.hot { background: #fff8d6; }
+.bb .bb-streak i { grid-column: 1 / 3; height: 8px; border-radius: 999px; background: #e7d3c2; overflow: hidden; margin-top: 3px; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.bb .bb-streak u { display: block; height: 100%; background: #7ed067; transform-origin: 0 50%; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.bb .bb-streak.hot { background: #fff8d6; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .bb .bb-streak.hot u { background: linear-gradient(90deg, #ff8fab, #ffb547, #ffd84a); }
 .bb .banner:not(:empty) ~ .bb-streak { top: 62px; }
 
 /* touch controls */
 .bb .pads { position: absolute; inset: auto 0 0 0; height: 0; pointer-events: none !important; }
 .bb .pads[hidden], .bb:not(.touch) .pads { display: none; }
-.bb .pads button { pointer-events: auto; touch-action: none; border: 3.5px solid var(--ink); background: #fff4e2e6; color: var(--ink); border-radius: 26px; font-family: var(--fd); font-weight: 700; font-size: 18px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 0 #160a1266; -webkit-user-select: none; user-select: none; }
-.bb .pads button.on { transform: translateY(4px); box-shadow: 0 2px 0 #160a1266; background: var(--lantern); }
+.bb .pads button { pointer-events: auto; touch-action: none; border: 3.5px solid var(--ink); background: color-mix(in srgb, var(--paper) 90%, transparent); color: var(--on-paper); border-radius: 26px; font-family: var(--fd); font-weight: 700; font-size: 18px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 0 #160a1266; -webkit-user-select: none; user-select: none; }
+.bb .pads button.on { transform: translateY(4px); box-shadow: 0 2px 0 #160a1266; background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .bb .pads .steer { position: absolute; left: 14px; bottom: 18px; display: flex; gap: 12px; }
 .bb .pads .steer button { width: 88px; height: 88px; }
 .bb .pads .acts { position: absolute; right: 14px; bottom: 18px; }
@@ -89,19 +89,19 @@ body.in-game { overflow: hidden; }
 .bb .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; gap: 12px; }
 .bb .results h2 { display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .bb .results h2 svg { width: 28px; height: 28px; flex: none; }
-.bb .results .sheet > p { text-align: center; margin: 0; color: #6b4a3c; }
+.bb .results .sheet > p { text-align: center; margin: 0; color: var(--soft-tx); }
 .bb .bb-podium { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.bb .bb-podium li { display: grid; grid-template-columns: 24px auto 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: #fff; border: 2.5px solid #c9a99a; border-radius: 14px; padding: 4px 12px 4px 6px; font-family: var(--fd); animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.bb .bb-podium li { display: grid; grid-template-columns: 24px auto 1fr auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: var(--card); border: 2.5px solid var(--card-edge); border-radius: 14px; padding: 4px 12px 4px 6px; font-family: var(--fd); animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
 .bb .bb-podium li > :nth-child(-n+3) { grid-row: 1 / 3; }
 .bb .bb-podium em { font-style: normal; font-weight: 700; font-size: 19px; text-align: center; grid-column: 1; }
 .bb .bb-podium li > :nth-child(2) { grid-column: 2; }
 .bb .bb-podium b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; grid-column: 3; }
 .bb .bb-podium strong { grid-row: 1; grid-column: 4; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-.bb .bb-podium small { grid-row: 2; grid-column: 4; text-align: right; font-size: 12px; color: #6b4a3c; }
-.bb .bb-podium .won { background: var(--lantern); border-color: var(--ink); }
+.bb .bb-podium small { grid-row: 2; grid-column: 4; text-align: right; font-size: 12px; color: var(--soft-tx); }
+.bb .bb-podium .won { background: var(--lantern); border-color: var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .bb .bb-podium .bb-me b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .bb .bb-podium .avatar { border-width: 2px; }
-.bb .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.bb .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 
 @media (max-width: 700px) {
   .bb .tcode { display: none; }
@@ -121,3 +121,10 @@ body.in-game { overflow: hidden; }
 }
 body:has(.bb) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.bb) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.bb) .chatbtn .lbl { display: none; } }
+
+/* night: bright stickers (lantern, mint, light tickets) keep dark text */
+body.night .bb .bb-streak i,
+body.night .bb .bb-streak u,
+body.night .bb .bb-streak.hot,
+body.night .bb .pads button.on,
+body.night .bb .bb-podium .won { color: var(--ink); }

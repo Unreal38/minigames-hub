@@ -8,7 +8,7 @@ body.in-game { overflow: hidden; }
 .mg .coin { flex: none; vertical-align: -4px; }
 
 .mg .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.mg .mg-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--cream); color: var(--ink); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; opacity: .92; }
+.mg .mg-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; opacity: .92; }
 .mg .mg-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
 .mg .mg-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
 .mg .mg-tag[hidden] { display: none; }
@@ -18,14 +18,14 @@ body.in-game { overflow: hidden; }
 .mg .tl, .mg .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
 .mg .tl { left: 14px; } .mg .tr { right: 14px; }
 .mg .chip { color: var(--cream); }
-.mg .chip.coins { display: inline-flex; align-items: center; gap: 6px; background: var(--cream); color: var(--ink); border-color: var(--ink); }
+.mg .chip.coins { display: inline-flex; align-items: center; gap: 6px; background: var(--paper); color: var(--on-paper); border-color: var(--ink); }
 .mg .chip[hidden] { display: none; }
 .mg .chip i { font-style: normal; }
-.mg .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
+.mg .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
 .mg .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-variant-numeric: tabular-nums; }
 .mg .banner:empty { display: none; }
-.mg .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); }
+.mg .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .shout { position: absolute; left: 50%; top: 27%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; }
 .mg .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, 8vw, 76px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .mg .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, 3vw, 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
@@ -37,34 +37,34 @@ body.in-game { overflow: hidden; }
 .mg .list li { display: flex; align-items: center; gap: 7px; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); }
 .mg .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .mg .list span { font-size: 14px; color: var(--lantern); min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
-.mg .list em { font-style: normal; font-size: 13px; background: #fff4e226; border-radius: 8px; padding: 0 6px; min-width: 22px; text-align: center; display: inline-flex; align-items: center; gap: 2px; }
-.mg .list em.in { background: var(--mint); color: var(--ink); }
+.mg .list em { font-style: normal; font-size: 13px; background: color-mix(in srgb, var(--paper) 15%, transparent); border-radius: 8px; padding: 0 6px; min-width: 22px; text-align: center; display: inline-flex; align-items: center; gap: 2px; }
+.mg .list em.in { background: var(--mint); color: var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .list em.out { background: #e5543b; color: #fff; }
 .mg .list .avatar { border-width: 2px; }
-.mg .list .mg-me { background: #ffb54733; }
+.mg .list .mg-me { background: var(--hi-tint, #ffb54733); }
 .mg .list .turn { box-shadow: inset 0 0 0 2.5px var(--butter, #ffb547); }
-.mg .mg-tag.turn { background: #ffb547; opacity: 1; transform-origin: 50% 100%; }
+.mg .mg-tag.turn { background: #ffb547; opacity: 1; transform-origin: 50% 100%; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
 /* betting before a hole */
-.mg .betbox { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(760px, calc(100vw - 24px)); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; max-height: 58vh; overflow: auto; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.mg .betbox { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(760px, calc(100vw - 24px)); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; max-height: 58vh; overflow: auto; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
 .mg .betbox[hidden], .mg .puttbar[hidden], .mg .holecard[hidden], .mg .results[hidden] { display: none; }
 .mg .bethead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
-.mg .bethead h2 { font-size: 24px; color: var(--ink); }
-.mg .bethead span { font-size: 15px; color: #6b4a3c; }
-.mg .bethead b { font-family: var(--fd); color: var(--ink); }
+.mg .bethead h2 { font-size: 24px; color: var(--on-paper); }
+.mg .bethead span { font-size: 15px; color: var(--soft-tx); }
+.mg .bethead b { font-family: var(--fd); color: var(--on-paper); }
 .mg .picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
-.mg .pick { display: flex; flex-direction: column; align-items: center; gap: 1px; background: #fff; border: 3px solid #c9a99a; border-radius: 16px; padding: 7px 6px 5px; cursor: pointer; color: var(--ink); transition: transform .12s cubic-bezier(.3, 1.6, .5, 1); }
+.mg .pick { display: flex; flex-direction: column; align-items: center; gap: 1px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 7px 6px 5px; cursor: pointer; color: var(--on-paper); transition: transform .12s cubic-bezier(.3, 1.6, .5, 1); }
 .mg .pick:not(:disabled):hover { transform: translateY(-3px); border-color: var(--ink); }
 .mg .pick:disabled { cursor: default; opacity: .6; }
 .mg .pick b { font-family: var(--fd); font-weight: 600; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mg .pick span { font-size: 13px; color: #6b4a3c; }
-.mg .pick.on { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); }
+.mg .pick span { font-size: 13px; color: var(--soft-tx); }
+.mg .pick.on { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .stakes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .mg .stakes > span:first-child { font-family: var(--fd); font-weight: 600; }
-.mg .stakes .pills button { color: var(--ink); border-color: #c9a99a; min-height: 40px; padding: 5px 14px; }
+.mg .stakes .pills button { color: var(--on-paper); border-color: var(--card-edge); min-height: 40px; padding: 5px 14px; }
 .mg .stakes .pills button:disabled { opacity: .4; }
-.mg .mybet { flex: 1 1 180px; font-size: 15px; color: #6b4a3c; }
-.mg .mybet b { font-family: var(--fd); color: var(--ink); }
+.mg .mybet { flex: 1 1 180px; font-size: 15px; color: var(--soft-tx); }
+.mg .mybet b { font-family: var(--fd); color: var(--on-paper); }
 
 /* what to do, bottom centre */
 .mg .puttbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; background: #2a1422d9; color: var(--cream); border: 3px solid var(--line); border-radius: 20px; padding: 8px 18px; max-width: calc(100vw - 24px); pointer-events: none !important; text-align: center; }
@@ -72,23 +72,23 @@ body.in-game { overflow: hidden; }
 .mg .puttbar p b { color: var(--lantern); font-weight: 600; }
 .mg .puttbar .good svg { vertical-align: -3px; margin-right: 6px; }
 .mg .puttbar .strokes { color: var(--soft); margin-left: 6px; white-space: nowrap; }
-.mg .power { width: min(300px, 70vw); height: 16px; border-radius: 999px; background: #fff4e233; border: 2.5px solid var(--cream); overflow: hidden; }
+.mg .power { width: min(300px, 70vw); height: 16px; border-radius: 999px; background: color-mix(in srgb, var(--paper) 20%, transparent); border: 2.5px solid var(--cream); overflow: hidden; }
 .mg .power i { display: block; height: 100%; background: linear-gradient(90deg, #7ed957, #ffd23f 55%, #e5543b); border-radius: 999px; }
 
 /* hole summary */
-.mg .holecard { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(430px, calc(100vw - 24px)); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; animation: mgcard .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.mg .holecard { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(430px, calc(100vw - 24px)); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; animation: mgcard .35s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes mgcard { from { opacity: 0; transform: translate(-50%, -44%) scale(.9); } }
-.mg .holecard h2 { font-size: 23px; color: var(--ink); text-align: center; }
+.mg .holecard h2 { font-size: 23px; color: var(--on-paper); text-align: center; }
 .mg .holecard ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.mg .holecard li { display: flex; align-items: center; gap: 8px; background: #fff; border: 2.5px solid #c9a99a; border-radius: 13px; padding: 3px 10px 3px 5px; font-family: var(--fd); }
-.mg .holecard li.won { border-color: var(--ink); background: var(--lantern); }
+.mg .holecard li { display: flex; align-items: center; gap: 8px; background: var(--card); border: 2.5px solid var(--card-edge); border-radius: 13px; padding: 3px 10px 3px 5px; font-family: var(--fd); }
+.mg .holecard li.won { border-color: var(--ink); background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .holecard li b { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mg .holecard li span { font-size: 13px; color: #6b4a3c; white-space: nowrap; }
+.mg .holecard li span { font-size: 13px; color: var(--soft-tx); white-space: nowrap; }
 .mg .holecard li strong { font-size: 19px; min-width: 18px; text-align: right; }
 .mg .holecard li small { font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 2px; }
 .mg .holecard small .coin { width: 14px; height: 14px; }
 .mg .up { color: #1f7a45; } .mg .down { color: #b03a26; }
-.mg .holecard p { margin: 0; font-size: 14px; color: #6b4a3c; text-align: center; }
+.mg .holecard p { margin: 0; font-size: 14px; color: var(--soft-tx); text-align: center; }
 .mg .holecard .avatar { border-width: 2px; }
 
 /* final results */
@@ -98,25 +98,25 @@ body.in-game { overflow: hidden; }
 .mg .results h2 { display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .mg .results h2 svg { width: 28px; height: 28px; flex: none; }
 .mg .results .sheet > p { text-align: center; }
-.mg .cardwrap { flex: none; overflow-x: auto; border: 3px solid #c9a99a; border-radius: 16px; background: #fff; }
+.mg .cardwrap { flex: none; overflow-x: auto; border: 3px solid var(--card-edge); border-radius: 16px; background: var(--card); }
 .mg .mg-card { border-collapse: collapse; width: 100%; font-family: var(--fd); font-size: 15px; }
 .mg .mg-card th, .mg .mg-card td { padding: 5px 7px; text-align: center; white-space: nowrap; }
-.mg .mg-card thead th { font-weight: 600; color: #6b4a3c; font-size: 13px; }
-.mg .mg-card .par td, .mg .mg-card .par th { color: #6b4a3c; font-size: 13px; border-bottom: 2px solid #e8d3b8; }
+.mg .mg-card thead th { font-weight: 600; color: var(--soft-tx); font-size: 13px; }
+.mg .mg-card .par td, .mg .mg-card .par th { color: var(--soft-tx); font-size: 13px; border-bottom: 2px solid #e8d3b8; }
 .mg .mg-card tbody th { text-align: left; font-weight: 600; position: sticky; left: 0; background: inherit; }
-.mg .mg-card tbody tr { background: #fff; }
+.mg .mg-card tbody tr { background: var(--card); }
 .mg .mg-card .who { display: flex; align-items: center; gap: 7px; min-width: 130px; }
 .mg .mg-card tbody th b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; max-width: 9em; }
 .mg .mg-card tbody tr { animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
 .mg .mg-card tbody tr + tr { border-top: 2px solid #f1e2cf; }
-.mg .mg-card tr.won { background: var(--lantern); }
+.mg .mg-card tr.won { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .mg-card tr.mg-me th b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .mg .mg-card td.under { color: #1f7a45; font-weight: 700; }
 .mg .mg-card td.over { color: #b03a26; }
 .mg .mg-card td strong { font-size: 18px; }
-.mg .mg-card td small { margin-left: 5px; font-size: 12px; color: #6b4a3c; }
+.mg .mg-card td small { margin-left: 5px; font-size: 12px; color: var(--soft-tx); }
 .mg .mg-card .avatar { border-width: 2px; flex: none; }
-.mg .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.mg .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 
 @media (max-width: 700px) {
   .mg .tcode, .mg .chip i { display: none; }
@@ -148,3 +148,9 @@ body.in-game { overflow: hidden; }
 }
 body:has(.mg) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.mg) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.mg) .chatbtn .lbl { display: none; } }
+
+/* night: bright stickers (lantern, mint, light tickets) keep dark text */
+body.night .mg .mg-tag.turn,
+body.night .mg .pick.on,
+body.night .mg .holecard li.won,
+body.night .mg .mg-card tr.won { color: var(--ink); }

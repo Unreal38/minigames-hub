@@ -8,17 +8,17 @@ body.in-game { overflow: hidden; }
 
 /* name tags over the avatars */
 .ty .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.ty-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--ink); }
+.ty-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--on-paper); }
 .ty-tag[hidden] { display: none; }
-.ty-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.ty-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
 .ty-tag .plate i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .ty-tag .plate b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
 .ty-tag .plate .cnt { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 13px; }
-.ty-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+.ty-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty-tag.out { opacity: .6; }
 .ty-tag .bub:empty { display: none; }
-.ty-tag .bub span { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 9px; font-size: 16px; }
-.ty-tag .bub .top { background: var(--lantern); font-size: 18px; box-shadow: 0 3px 0 var(--ink); }
+.ty-tag .bub span { display: inline-flex; align-items: center; gap: 4px; background: var(--card); border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 9px; font-size: 16px; }
+.ty-tag .bub .top { background: var(--lantern); font-size: 18px; box-shadow: 0 3px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty .ty-pts { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -100%); font-family: var(--fd); font-weight: 700; font-size: 34px; color: #3fae5d; -webkit-text-stroke: 5px var(--cream); paint-order: stroke fill; animation: tyup 1.5s ease-out both; }
 .ty .ty-pts.bad { color: var(--chili); }
 @keyframes tyup { 0% { opacity: 0; margin-top: 10px; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; margin-top: -70px; } }
@@ -27,73 +27,73 @@ body.in-game { overflow: hidden; }
 .ty .hud > * { pointer-events: auto; }
 .ty .tl, .ty .tr { position: absolute; top: max(14px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; }
 .ty .tl { left: 14px; } .ty .tr { right: 14px; }
-.ty .chip, .ty .round { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.ty .chip, .ty .round { background: var(--paper); color: var(--on-paper); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
 .ty .round:disabled { opacity: .4; cursor: default; transform: none; }
-.ty .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
-.ty .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 4px 0 #23401c55; }
+.ty .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
+.ty .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 4px 0 #23401c55; }
 .ty .banner:empty { display: none; }
-.ty .banner.hot { background: var(--lantern); box-shadow: 0 5px 0 var(--ink); }
+.ty .banner.hot { background: var(--lantern); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
 .ty .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
 .ty .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, 8vw, 76px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .ty .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 3vw, 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.ty .shout span .ty-suit { background: var(--cream); border-radius: 50%; padding: 3px; }
+.ty .shout span .ty-suit { background: var(--paper); border-radius: 50%; padding: 3px; }
 .ty .shout.show { animation: tybig var(--ms, 1.6s) cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes tybig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 12%, 82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* scores beside the table */
-.ty-side { position: absolute; left: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 58px); width: 236px; display: flex; flex-direction: column; gap: 8px; font-family: var(--fd); color: var(--ink); }
+.ty-side { position: absolute; left: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 58px); width: 236px; display: flex; flex-direction: column; gap: 8px; font-family: var(--fd); color: var(--on-paper); }
 .ty-deal { display: flex; gap: 8px; }
 .ty-deal:empty, .ty-last:empty { display: none; }
-.ty-deal > span { flex: 1; display: flex; flex-direction: column; align-items: center; background: var(--cream); border: 3px solid var(--ink); border-radius: 16px; padding: 3px 8px 5px; box-shadow: 0 3px 0 #23401c55; }
-.ty-deal small, .ty-last small { font-size: 12px; font-weight: 600; color: #7a5545; text-transform: uppercase; letter-spacing: .5px; }
+.ty-deal > span { flex: 1; display: flex; flex-direction: column; align-items: center; background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; padding: 3px 8px 5px; box-shadow: 0 3px 0 #23401c55; }
+.ty-deal small, .ty-last small { font-size: 12px; font-weight: 600; color: var(--soft-tx2); text-transform: uppercase; letter-spacing: .5px; }
 .ty-deal b { font-size: 24px; font-weight: 700; line-height: 1.15; min-height: 28px; display: flex; align-items: center; gap: 3px; }
-.ty-deal b i { font-style: normal; font-size: 14px; font-weight: 600; color: #7a5545; }
-.ty-list { list-style: none; margin: 0; padding: 6px; display: flex; flex-direction: column; gap: 5px; background: #fff4e2ee; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; }
+.ty-deal b i { font-style: normal; font-size: 14px; font-weight: 600; color: var(--soft-tx2); }
+.ty-list { list-style: none; margin: 0; padding: 6px; display: flex; flex-direction: column; gap: 5px; background: color-mix(in srgb, var(--paper) 93%, transparent); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; }
 .ty-list li { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 5px; border-radius: 12px; border: 2.5px solid transparent; }
-.ty-list li.now { background: var(--lantern); border-color: var(--ink); }
+.ty-list li.now { background: var(--lantern); border-color: var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty-list li.out { opacity: .55; }
 .ty-list li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ty-list b { font-weight: 600; font-size: 15px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* the line under a name: "plays 100" and "78 pts + marriages" are separate pieces that wrap onto two lines rather than overlap */
-.ty-list .ty-sub { font-size: 12.5px; line-height: 1.25; color: #6b4a3c; display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-height: 16px; min-width: 0; }
+.ty-list .ty-sub { font-size: 12.5px; line-height: 1.25; color: var(--soft-tx); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-height: 16px; min-width: 0; }
 .ty-sub > u, .ty-sub > em { flex: none; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ty-sub > em { font-style: normal; display: inline-flex; align-items: center; gap: 3px; }
 .ty-list u { text-decoration: none; font-weight: 700; color: var(--chili); }
-.ty-list li.now .ty-sub, .ty-list li.now u { color: var(--ink); }
+.ty-list li.now .ty-sub, .ty-list li.now u { color: var(--on-paper); }
 .ty-list strong { flex: none; font-size: 21px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; }
-.ty-last { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #fff4e2ee; border: 3px solid var(--ink); border-radius: 16px; padding: 5px 10px; box-shadow: 0 3px 0 #23401c55; }
+.ty-last { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: color-mix(in srgb, var(--paper) 93%, transparent); border: 3px solid var(--ink); border-radius: 16px; padding: 5px 10px; box-shadow: 0 3px 0 #23401c55; }
 .ty-last span { display: inline-flex; gap: 3px; }
 
 /* the hand's scores between hands */
-.ty-sum { position: absolute; left: 0; right: 0; top: 24%; margin: 0 auto; width: min(430px, calc(100vw - 28px)); box-sizing: border-box; background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--ink); padding: 14px 16px 16px; font-family: var(--fd); z-index: 3; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ty-sum { position: absolute; left: 0; right: 0; top: 24%; margin: 0 auto; width: min(430px, calc(100vw - 28px)); box-sizing: border-box; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--ink); padding: 14px 16px 16px; font-family: var(--fd); z-index: 3; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
 .ty-sum[hidden] { display: none; }
 .ty-sum h3 { margin: 0 0 10px; font-size: 24px; font-weight: 700; text-align: center; line-height: 1.15; }
 .ty-sum ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.ty-sum li { display: flex; align-items: center; gap: 9px; background: #fff; border: 2.5px solid #c9a99a; border-radius: 14px; padding: 5px 10px 5px 6px; }
+.ty-sum li { display: flex; align-items: center; gap: 9px; background: var(--card); border: 2.5px solid var(--card-edge); border-radius: 14px; padding: 5px 10px 5px 6px; }
 .ty-sum li.decl { border-color: var(--ink); }
 .ty-sum li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ty-sum li b { font-weight: 600; font-size: 16px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ty-sum li span { font-size: 13px; color: #6b4a3c; }
-.ty-sum em { font-style: normal; font-weight: 700; font-size: 19px; color: #7a5545; }
+.ty-sum li span { font-size: 13px; color: var(--soft-tx); }
+.ty-sum em { font-style: normal; font-weight: 700; font-size: 19px; color: var(--soft-tx2); }
 .ty-sum em.up { color: #2e9a4d; } .ty-sum em.down { color: var(--chili); }
 .ty-sum strong { font-size: 21px; font-weight: 700; min-width: 2.6em; text-align: right; }
 
 .ty-vs { display: flex; gap: 8px; margin: 0 0 10px; }
-.ty-vs span { flex: 1; display: flex; flex-direction: column; align-items: center; background: #ffe1dc; border: 2.5px solid var(--ink); border-radius: 14px; padding: 2px 6px 4px; }
-.ty-vs.ok span { background: #d9f3dc; }
-.ty-vs small { font-size: 12px; font-weight: 600; color: #6b4a3c; text-transform: uppercase; letter-spacing: .5px; }
+.ty-vs span { flex: 1; display: flex; flex-direction: column; align-items: center; background: #ffe1dc; border: 2.5px solid var(--ink); border-radius: 14px; padding: 2px 6px 4px; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.ty-vs.ok span { background: #d9f3dc; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.ty-vs small { font-size: 12px; font-weight: 600; color: var(--soft-tx); text-transform: uppercase; letter-spacing: .5px; }
 .ty-vs b { font-size: 26px; font-weight: 700; line-height: 1.1; }
-.ty-hands { margin: 12px 0 4px; font-size: 14px; color: var(--ink); }
+.ty-hands { margin: 12px 0 4px; font-size: 14px; color: var(--on-paper); }
 .ty-hands summary { font-family: var(--fd); font-weight: 600; font-size: 16px; cursor: pointer; margin-bottom: 6px; }
 .ty-hands table { width: 100%; border-collapse: collapse; display: block; max-height: 190px; overflow: auto; }
 .ty-hands thead, .ty-hands tbody { display: table; width: 100%; table-layout: fixed; }
-.ty-hands th { text-align: left; font-size: 12px; color: #7a5545; text-transform: uppercase; letter-spacing: .4px; padding: 2px 6px; }
+.ty-hands th { text-align: left; font-size: 12px; color: var(--soft-tx2); text-transform: uppercase; letter-spacing: .4px; padding: 2px 6px; }
 .ty-hands td { padding: 3px 6px; border-top: 1.5px solid #e6cdbd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ty-hands th:first-child, .ty-hands td:first-child { width: 34px; }
-.ty-hands tr.mine td { background: #ffe9c2; font-weight: 700; }
+.ty-hands tr.mine td { background: #ffe9c2; font-weight: 700; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty-hands td.up { color: #2e9a4d; font-weight: 700; } .ty-hands td.down { color: var(--chili); font-weight: 700; }
-.ty-hint.tip { background: #fff4e2e6; border: 2.5px solid var(--ink); border-radius: 14px; padding: 4px 12px; color: var(--ink); }
+.ty-hint.tip { background: color-mix(in srgb, var(--paper) 90%, transparent); border: 2.5px solid var(--ink); border-radius: 14px; padding: 4px 12px; color: var(--on-paper); }
 
 /* your cards and the controls */
 .ty-dock { position: absolute; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(860px, calc(100vw - 16px)); pointer-events: none !important; }
@@ -108,26 +108,26 @@ body.in-game { overflow: hidden; }
 .ty-c.sel { transform: translateY(-16px); z-index: 1; }
 .ty-c.sel .pcard, .ty-c:focus-visible .pcard { box-shadow: 0 0 0 4px var(--lantern), 0 5px 0 var(--ink); }
 .ty-c.no .pcard { filter: brightness(.62) saturate(.6); }
-.ty-c.new .pcard { background: #fff0b8; }
+.ty-c.new .pcard { background: #fff0b8; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty-c.kq .pcard { box-shadow: 0 0 0 3px #ff8fab, 0 5px 0 var(--ink); }
 .ty-c i.b { top: -31px; }
 .ty-c i { position: absolute; left: 50%; top: -15px; transform: translateX(-50%); font-style: normal; font-family: var(--fd); font-weight: 600; font-size: 12px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 1px 8px; white-space: nowrap; max-width: 96px; overflow: hidden; text-overflow: ellipsis; z-index: 3; }
-.ty-note { font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--ink); background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px; text-align: center; }
-.ty-ctl { display: flex; flex-direction: column; align-items: center; gap: 8px; background: #fff4e2f2; border: 3px solid var(--ink); border-radius: 22px; padding: 10px 14px; box-shadow: 0 4px 0 #23401c55; max-width: 100%; box-sizing: border-box; }
+.ty-note { font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--on-paper); background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px; text-align: center; }
+.ty-ctl { display: flex; flex-direction: column; align-items: center; gap: 8px; background: color-mix(in srgb, var(--paper) 95%, transparent); border: 3px solid var(--ink); border-radius: 22px; padding: 10px 14px; box-shadow: 0 4px 0 #23401c55; max-width: 100%; box-sizing: border-box; }
 .ty-ctl:empty { display: none; }
 .ty-ctl:has(.ty-wait) { background: none; border: 0; box-shadow: none; padding: 0; gap: 6px; }
 .ty-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .ty-row .btn { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-.ty-row .btn .ty-suit { background: var(--cream); border-radius: 50%; padding: 3px; }
-.ty-qty { display: flex; align-items: center; gap: 6px; font-family: var(--fd); color: var(--ink); }
-.ty-qty small { font-size: 14px; font-weight: 600; color: #6b4a3c; margin-right: 2px; }
+.ty-row .btn .ty-suit { background: var(--paper); border-radius: 50%; padding: 3px; }
+.ty-qty { display: flex; align-items: center; gap: 6px; font-family: var(--fd); color: var(--on-paper); }
+.ty-qty small { font-size: 14px; font-weight: 600; color: var(--soft-tx); margin-right: 2px; }
 .ty-qty b { font-weight: 700; font-size: 30px; min-width: 2.1em; text-align: center; }
 .ty-qty .round { font-size: 26px; }
-.ty-hint { margin: 0; font-size: 14px; color: #6b4a3c; text-align: center; max-width: 520px; }
-.ty-hint.big { font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--ink); }
-.ty-hint b { font-family: var(--fd); color: var(--ink); }
-.ty-wait { display: inline-flex; align-items: center; gap: 10px; background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px 6px 8px; font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--ink); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
-.ty-wait.hot { background: var(--lantern); padding: 6px 18px; box-shadow: 0 4px 0 var(--ink); }
+.ty-hint { margin: 0; font-size: 14px; color: var(--soft-tx); text-align: center; max-width: 520px; }
+.ty-hint.big { font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--on-paper); }
+.ty-hint b { font-family: var(--fd); color: var(--on-paper); }
+.ty-wait { display: inline-flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px 6px 8px; font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--on-paper); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.ty-wait.hot { background: var(--lantern); padding: 6px 18px; box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty-wait .avatar { border-width: 2px; }
 
 /* results */
@@ -136,15 +136,15 @@ body.in-game { overflow: hidden; }
 .ty .results[hidden] { display: none; }
 .ty .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
 .ty .score { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.ty .score li { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid #c9a99a; border-radius: 16px; padding: 7px 14px 7px 10px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
-.ty .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); }
+.ty .score li { display: flex; align-items: center; gap: 10px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 7px 14px 7px 10px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ty .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .ty .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
 .ty .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .ty .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ty .score .who span { font-size: 13px; color: #7a5545; }
+.ty .score .who span { font-size: 13px; color: var(--soft-tx2); }
 .ty .score strong { font-family: var(--fd); font-weight: 700; font-size: 22px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.ty .score small { font-size: 12px; font-weight: 600; color: #6b4a3c; }
-.ty .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.ty .score small { font-size: 12px; font-weight: 600; color: var(--soft-tx); }
+.ty .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 
 @media (max-width: 1099px) {
   /* no room beside the table: the scores become a strip under the top bar */
@@ -184,3 +184,15 @@ body.in-game { overflow: hidden; }
 }
 body:has(.ty) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.ty) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.ty) .chatbtn .lbl, body:has(.ty) .scorebtn .lbl { display: none; } body:has(.ty) #toasts { top: 168px; } }
+
+/* night: bright stickers (lantern, mint, light tickets) keep dark text */
+body.night .ty-tag.now .plate,
+body.night .ty-tag .bub .top,
+body.night .ty .banner.hot,
+body.night .ty-list li.now,
+body.night .ty-vs span,
+body.night .ty-vs.ok span,
+body.night .ty-hands tr.mine td,
+body.night .ty-c.new .pcard,
+body.night .ty-wait.hot,
+body.night .ty .score li.won { color: var(--ink); }

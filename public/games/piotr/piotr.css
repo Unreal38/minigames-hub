@@ -8,21 +8,21 @@ body.in-game { overflow: hidden; }
 
 /* name tags over the avatars */
 .pio .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.pi-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--ink); }
+.pi-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--on-paper); }
 .pi-tag[hidden] { display: none; }
-.pi-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.pi-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
 .pi-tag .plate i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .pi-tag .plate b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
 .pi-tag .plate .cnt { display: inline-flex; align-items: center; gap: 3px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px 0 5px; font-size: 13px; }
-.pi-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
+.pi-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pi-tag.safe .plate .cnt { background: #3fae5d; }
 .pi-ci { width: 15px; height: 15px; flex: none; } .pi-ci rect { fill: var(--cream); stroke: var(--ink); stroke-width: 1.6; }
 .pi-tag .bub .took { opacity: 1; background: var(--chili); color: #fff; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pi-tag .bub .top { padding: 3px 6px; gap: 3px; }
 .pi-tag .bub .top u { text-decoration: none; font-size: 17px; line-height: 1; }
 .pi-tag .bub:empty { display: none; }
-.pi-tag .bub > span { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 9px; font-size: 16px; opacity: .72; }
-.pi-tag .bub .top { opacity: 1; background: var(--lantern); font-size: 19px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
+.pi-tag .bub > span { display: inline-flex; align-items: center; gap: 4px; background: var(--card); border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 9px; font-size: 16px; opacity: .72; }
+.pi-tag .bub .top { opacity: 1; background: var(--lantern); font-size: 19px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pi-tag .bub .call { opacity: 1; background: var(--chili); color: #fff; font-size: 19px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pio .pi-pts { position: absolute; z-index: 2; pointer-events: none; transform: translate(-50%, -100%); font-family: var(--fd); font-weight: 700; font-size: 34px; color: #3fae5d; -webkit-text-stroke: 5px var(--cream); paint-order: stroke fill; animation: piup 1.5s ease-out both; }
 .pio .pi-pts.bad { color: var(--chili); }
@@ -32,13 +32,13 @@ body.in-game { overflow: hidden; }
 .pio .hud > * { pointer-events: auto; }
 .pio .tl, .pio .tr { position: absolute; top: max(14px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; }
 .pio .tl { left: 14px; } .pio .tr { right: 14px; }
-.pio .chip, .pio .round { background: var(--cream); color: var(--ink); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
+.pio .chip, .pio .round { background: var(--paper); color: var(--on-paper); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
 .pio .round:disabled { opacity: .4; cursor: default; transform: none; }
-.pio .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--ink); font-size: 18px; margin-right: 4px; }
+.pio .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
-.pio .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--cream); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 3px 0 #23401c55; }
+.pio .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 3px 0 #23401c55; }
 .pio .banner:empty { display: none; }
-.pio .banner.hot { background: var(--lantern); box-shadow: 0 5px 0 var(--ink); }
+.pio .banner.hot { background: var(--lantern); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
 
 .pio .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
@@ -49,7 +49,7 @@ body.in-game { overflow: hidden; }
 @keyframes pibig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 12%, 82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 
-.pi-wait { display: inline-flex; align-items: center; gap: 10px; background: #fff4e2e6; border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px 6px 8px; font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--ink); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.pi-wait { display: inline-flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 18px 6px 8px; font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--on-paper); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
 .pi-wait .avatar { border-width: 2px; }
 
 /* cards: a pet on its element colour, the Piotruś on a night sky, and backs in the owner's colours */
@@ -59,9 +59,9 @@ body.in-game { overflow: hidden; }
 .pi-c > i img:not([src]) { visibility: hidden; }
 .pi-c > b { flex: none; background: var(--el); color: #fff; font-family: var(--fd); font-weight: 700; font-size: calc(var(--w, 74px) * .155); line-height: 1.5; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; text-shadow: 0 1px 0 #3b221999; }
 .pi-c.piotr { background: radial-gradient(circle at 20% 18%, #ffd84a 0 2px, transparent 3px), radial-gradient(circle at 78% 12%, #ffd84a 0 1.5px, transparent 2.5px), radial-gradient(circle at 88% 44%, #ffd84a 0 2px, transparent 3px), radial-gradient(circle at 12% 52%, #ffd84a 0 1.5px, transparent 2.5px), #2b2d6e; }
-.pi-c.piotr > b { background: #ffd84a; color: var(--ink); text-shadow: none; }
+.pi-c.piotr > b { background: #ffd84a; color: var(--ink); text-shadow: none; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pi-c.back { background: radial-gradient(var(--dot) 22%, transparent 24%) 0 0 / calc(var(--w, 74px) * .22) calc(var(--w, 74px) * .22), var(--bg); align-items: center; justify-content: center; }
-.pi-c.back > u { width: 46%; aspect-ratio: 1; border-radius: 50%; background: #fff4e2; border: 3px solid var(--ink); box-sizing: border-box; }
+.pi-c.back > u { width: 46%; aspect-ratio: 1; border-radius: 50%; background: var(--paper); border: 3px solid var(--ink); box-sizing: border-box; }
 .pi-c.xs { --w: 30px; border-width: 2px; box-shadow: none; } .pi-c.xs > b { display: none; }
 
 /* your hand, and the cards you draw from */
@@ -70,7 +70,7 @@ body.in-game { overflow: hidden; }
 .pi-ctl:empty, .pi-hand:empty { display: none; }
 .pi-line { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .pi-mix { display: inline-flex; align-items: center; gap: 6px; }
-.pi-from { display: flex; flex-direction: column; align-items: center; gap: 6px; background: #fff4e2d9; border: 3px solid var(--ink); border-radius: 22px; padding: 8px 14px 8px; box-shadow: 0 4px 0 #23401c55; max-width: 100%; box-sizing: border-box; }
+.pi-from { display: flex; flex-direction: column; align-items: center; gap: 6px; background: color-mix(in srgb, var(--paper) 85%, transparent); border: 3px solid var(--ink); border-radius: 22px; padding: 8px 14px 8px; box-shadow: 0 4px 0 #23401c55; max-width: 100%; box-sizing: border-box; }
 .pi-from .pi-wait { border: 0; box-shadow: none; background: none; padding: 0 6px 0 0; }
 .pi-picks { display: flex; flex-direction: column; align-items: center; padding: 16px 4px 2px; max-width: 100%; }
 .pi-pick { background: none; border: 0; padding: 0; margin: 0 0 0 var(--gap, 6px); line-height: 0; cursor: pointer; transition: transform .14s cubic-bezier(.3, 1.6, .5, 1); position: relative; border-radius: 10px; }
@@ -78,7 +78,7 @@ body.in-game { overflow: hidden; }
 .pi-pick .pi-c { width: var(--w); }
 .pi-pick.sel, .pi-pick:focus-visible { transform: translateY(-14px); z-index: 2; outline: none; }
 .pi-pick.sel .pi-c { box-shadow: 0 0 0 3px var(--lantern), 0 5px 0 var(--ink); }
-.pi-hint { margin: 0; font-size: 13.5px; color: var(--ink); text-align: center; font-weight: 600; max-width: 100%; }
+.pi-hint { margin: 0; font-size: 13.5px; color: var(--on-paper); text-align: center; font-weight: 600; max-width: 100%; }
 .pi-hand { display: flex; flex-direction: column; align-items: center; padding: 16px 4px 4px; max-width: 100%; }
 .pi-hand .pi-c { width: var(--w); }
 .pi-rowc { display: flex; justify-content: center; }
@@ -96,13 +96,13 @@ body.in-game { overflow: hidden; }
 .pi-slot.pair .pi-c { box-shadow: 0 0 0 4px var(--lantern), 0 5px 0 var(--ink); }
 .pi-slot.pair.gone { animation: pigone .9s ease-in .5s both; }
 @keyframes pigone { to { transform: translateY(-46vh) scale(.5); opacity: 0; } }
-.pi-wait.safe { background: #c9f2d2; padding-left: 18px; }
-.pi-wait.hot { background: var(--lantern); }
+.pi-wait.safe { background: #c9f2d2; padding-left: 18px; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.pi-wait.hot { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pi-wait.bad { background: #2b2d6e; color: #ffd84a; }
 .pi-wait:not(:has(.avatar)) { padding-left: 18px; }
-.pio .score li.lost { background: #e3e4ff; border-color: #2b2d6e; }
+.pio .score li.lost { background: #e3e4ff; border-color: #2b2d6e; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pio .score li.lost strong { align-items: center; }
-.pi-tag.give .plate { background: #ffe1da; }
+.pi-tag.give .plate { background: #ffe1da; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pi-tag .bub .pi-c { box-shadow: none; }
 .pio .shout > span .pi-c { margin-right: 2px; }
 
@@ -112,15 +112,15 @@ body.in-game { overflow: hidden; }
 .pio .results[hidden] { display: none; }
 .pio .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
 .pio .score { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.pio .score li { display: flex; align-items: center; gap: 10px; background: #fff; border: 3px solid #c9a99a; border-radius: 16px; padding: 7px 12px 7px 8px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
-.pio .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); }
+.pio .score li { display: flex; align-items: center; gap: 10px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 7px 12px 7px 8px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.pio .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pio .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
 .pio .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .pio .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pio .score .who span { font-size: 13px; color: #7a5545; }
+.pio .score .who span { font-size: 13px; color: var(--soft-tx2); }
 .pio .score strong { font-family: var(--fd); font-weight: 700; font-size: 20px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.pio .score small { font-size: 12px; font-weight: 600; color: #6b4a3c; }
-.pio .results .btn.ghost { color: var(--ink); border-color: #c9a99a; }
+.pio .score small { font-size: 12px; font-weight: 600; color: var(--soft-tx); }
+.pio .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 
 @media (max-width: 700px) {
   .pio .tcode { display: none; }
@@ -137,3 +137,13 @@ body.in-game { overflow: hidden; }
 }
 body:has(.pio) #toasts { top: 118px; }
 @media (max-width: 1150px) { body:has(.pio) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.pio) .chatbtn .lbl, body:has(.pio) .scorebtn .lbl { display: none; } }
+
+/* night: bright stickers (lantern, mint, light tickets) keep dark text */
+body.night .pi-tag.now .plate,
+body.night .pi-tag .bub .top,
+body.night .pio .banner.hot,
+body.night .pi-wait.safe,
+body.night .pi-wait.hot,
+body.night .pio .score li.lost,
+body.night .pi-tag.give .plate,
+body.night .pio .score li.won { color: var(--ink); }
