@@ -767,6 +767,8 @@ body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:n
 @keyframes frflick { from { transform: scale(1) rotate(-2deg); } to { transform: scale(1.045) rotate(2deg); } }
 @keyframes frtwinkle { from { opacity: .55; transform: scale(.97); } to { opacity: 1; transform: scale(1.03); } }
 @keyframes frglow { from { box-shadow: 0 0 calc(var(--s, 52px) * .16) calc(var(--s, 52px) * .02) #ffc93c66; } to { box-shadow: 0 0 calc(var(--s, 52px) * .3) calc(var(--s, 52px) * .08) #ffd95ccc; } }
+/* name colours sitting on a yellow "your turn" / winner highlight: a dark sticker edge keeps gold and light colours readable */
+:is(.now, .won, .kr-you) .nmfx { filter: drop-shadow(1px 1px 0 var(--ink)); }
 @media (prefers-reduced-motion: reduce) { .nmfx, .avatar.frm, .avatar.frm::before, .avatar.frm::after { animation: none; } }
 /* the Style pop-up */
 .sheet.wide { width: min(760px, 100%); }
