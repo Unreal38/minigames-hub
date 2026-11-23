@@ -46,8 +46,8 @@ function fit({ body, hull }, w, h) {
 }
 const bodyMat = () => toonMat(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true }));
 let inkM = null;
-const inkMat = () => { // the dark outline: the hull drawn inside out and pushed out a little
-  if (!inkM) { inkM = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }); inkM.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize(normal) * 0.028;'); }; inkM.customProgramCacheKey = () => 'pop-ink'; }
+const inkMat = () => { // the dark outline: the hull drawn inside out and pushed out a little (inkf: thinner on small parts, see hullGeo)
+  if (!inkM) { inkM = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide }); inkM.onBeforeCompile = sh => { sh.vertexShader = 'attribute float inkf;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize(normal) * 0.028 * inkf;'); }; inkM.customProgramCacheKey = () => 'pop-ink'; }
   return inkM;
 };
 
