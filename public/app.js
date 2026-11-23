@@ -255,7 +255,7 @@ const GAMES = {
     name: 'Kart Island Race', load: () => import('./games/kart/client.js'), start: 'Start your engines',
     host: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' }, solo: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' },
     openSeat: 'A bot drives here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 6, r.players.length)),
-    settings: pill => `<div class="opt"><b>Track</b><div class="pills">${pill('track', 'random', 'Random')}${pill('track', 'meadow', 'Meadow Loop')}${pill('track', 'bakery', 'Sugar Bridges')}${pill('track', 'peaks', 'Twisty Peaks')}</div></div>
+    settings: pill => `<div class="opt"><b>Track</b><div class="pills">${pill('track', 'random', 'Random')}${pill('track', 'meadow', 'Meadow Loop')}${pill('track', 'bakery', 'Sugar Bridges')}${pill('track', 'peaks', 'Twisty Peaks')}${pill('track', 'cliff', 'Cliffside Hairpins')}</div></div>
       <div class="opt"><b>Laps</b><div class="pills">${pill('laps', 2, 'Quick 2')}${pill('laps', 3, '3')}${pill('laps', 5, '5')}</div></div>
       <div class="opt"><b>Karts on the grid</b><div class="pills">${pill('seats', 4, '4')}${pill('seats', 6, '6')}${pill('seats', 8, '8')}</div></div>
       <div class="opt"><b>Power-ups</b><div class="pills">${pill('items', 'on', 'On')}${pill('items', 'chaos', 'Chaos')}${pill('items', 'off', 'Off')}</div></div>
@@ -264,7 +264,7 @@ const GAMES = {
     rules: `<ol>
       <li>Everyone drives their own kart with their avatar at the wheel. Empty spots on the grid are bots.</li>
       <li>Your kart <b>speeds up by itself</b>. Steer with <b>← →</b> or <b>A D</b>, brake or reverse with <b>↓</b>. On a phone, use the arrow pads in the bottom corners.</li>
-      <li><b>Drift</b>: hold <b>Space</b> (or the Drift pad) while turning at speed. Keep it up until the sparks glow, then let go for a speed boost. Orange sparks give a longer one.</li>
+      <li><b>Drift</b>: hold <b>Space</b> (or the Drift pad) while turning at speed. Keep it up until the sparks glow, then let go for a speed boost. Blue sparks give a short one, orange a longer one and pink the longest. Driving on the grass slows you right down.</li>
       <li>Orange <b>boost pads</b> on the road shoot you forward. The grass at the side slows you down, and past the grass is the <b>edge of the island</b>: drive off and a cloud carries you back, a few seconds later. Bridges have rails.</li>
       <li>Drive through a <b>gift box</b> to get a power-up, then press <b>E</b> (or tap it) to use it:
         <b>Banana peel</b> drops behind you, <b>Wobbly jelly</b> bounces after the kart just ahead, <b>Chili boost</b> is a burst of speed, <b>Bubble shield</b> blocks the next hit, and the <b>Sleepy cloud</b> slows everyone ahead of you. The further back you are, the better the power-ups.</li>

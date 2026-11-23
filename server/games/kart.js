@@ -2,7 +2,7 @@
 // Real time: every browser drives its own kart with the shared physics in track.js and reports where it is about
 // ten times a second. The server checks those reports, drives the bots with the same physics, counts laps, owns the
 // item boxes and the power-ups, decides every hit, and streams the whole race back twenty times a second (fast()).
-import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, bump, autoDrive, locate, at, progOf, KART_R, MAX_V, headingAt } from '../../public/games/kart/track.js';
+import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, bump, autoDrive, locate, at, progOf, KART_R, MAX_V, headingAt, driftFlags } from '../../public/games/kart/track.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'kart', name: 'Kart Island Race', minPlayers: 1, maxPlayers: 8, joinAt: 'game' };
@@ -267,7 +267,7 @@ function finish(G, now) {
   G.dirty = true;
 }
 
-const flagsOf = k => (k.fall > 0 ? 1 : 0) | (k.spin > 0 ? 2 : 0) | (k.boost > 0 ? 4 : 0) | (k.slow > 0 ? 8 : 0) | (k.dr > 0 ? 32 : 0) | (k.dr < 0 ? 64 : 0) | (k.grass ? 128 : 0) | (k.ghost > 0 ? 256 : 0) | (k.charge > 1.4 ? 512 : k.charge > .65 ? 1024 : 0);
+const flagsOf = k => (k.fall > 0 ? 1 : 0) | (k.spin > 0 ? 2 : 0) | (k.boost > 0 ? 4 : 0) | (k.slow > 0 ? 8 : 0) | (k.dr > 0 ? 32 : 0) | (k.dr < 0 ? 64 : 0) | (k.grass ? 128 : 0) | (k.ghost > 0 ? 256 : 0) | driftFlags(k.charge);
 
 // ---------- what people send ----------
 export function act(G, s, a) {
