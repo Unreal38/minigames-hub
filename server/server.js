@@ -95,14 +95,15 @@ function kofiHook(req, res) {
   });
 }
 // The privacy page (public/privacy.html) holds both languages; the host's contact and where the server stands come
-// from the service settings, so filling them in never needs a code change: PRIVACY_CONTACT and SERVER_PLACE.
+// from the service settings (PRIVACY_CONTACT, SERVER_PLACE); without them the page's own text stays (a Ko-fi message).
 const PRIVACY = path.join(ROOT, 'privacy.html');
 const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 function privacyPage(html, lang) {
   const contact = String(process.env.PRIVACY_CONTACT || '').trim(), place = String(process.env.SERVER_PLACE || '').trim();
-  const mail = /^[^@\s<>"']+@[^@\s<>"']+$/.test(contact) ? `<a href="mailto:${esc(contact)}">${esc(contact)}</a>` : contact ? esc(contact) : '';
+  const mail = /^[^@\s<>"']+@[^@\s<>"']+$/.test(contact) ? `<a href="mailto:${esc(contact)}">${esc(contact)}</a>`
+    : /^https:\/\/[^\s<>"']+$/.test(contact) ? `<a href="${esc(contact)}" rel="noopener">${esc(contact.replace(/^https:\/\//, ''))}</a>` : contact ? esc(contact) : '';
   return html.replace(/<html lang="[a-z]+"/, `<html lang="${lang}" data-geo="${lang}"`)
-    .replace(/<!--contact:(\w+)-->[\s\S]*?<!--\/contact-->/g, (_, l) => mail || (l === 'pl' ? '<em>(adres jeszcze nie podany)</em>' : '<em>(address not filled in yet)</em>'))
+    .replace(/<!--contact:(\w+)-->[\s\S]*?<!--\/contact-->/g, (m, l) => mail || m.replace(/<!--\/?contact[^>]*-->/g, ''))
     .replace(/<!--place:(\w+)-->[\s\S]*?<!--\/place-->/g, (m, l) => place ? esc(place) : m.replace(/<!--\/?place[^>]*-->/g, ''));
 }
 const server = http.createServer((req, res) => {
