@@ -61,19 +61,19 @@ export const ISLES_PL = { Meadow: 'Łąka', 'Weather Peak': 'Szczyt Pogody', 'Pe
   'Starfall Isle': 'Wyspa Spadających Gwiazd', 'Thunder Meadow': 'Burzowa Łąka' };
 // label: the kind's name. where: the hint under it. n: item names by their English name.
 export const COS_PL = {
-  nm: { label: 'Kolor imienia', n: { Plain: 'Zwykły', Sunset: 'Zachód słońca', Ocean: 'Ocean', Mint: 'Mięta', Candy: 'Cukierek', Gold: 'Złoto', Fire: 'Ogień', Rainbow: 'Tęcza', Sparkle: 'Brokat', Frost: 'Szron', Spooky: 'Upiorny' } },
-  fr: { label: 'Ramka profilu', n: { None: NONE, Cloud: 'Chmurka', Vine: 'Pnącze', Hearts: 'Serduszka', Stars: 'Gwiazdki', Gold: 'Złoto', Flame: 'Płomień', Rainbow: 'Tęcza', Snow: 'Śnieg' } },
+  nm: { label: 'Kolor imienia', n: { Plain: 'Zwykły', Sunset: 'Zachód słońca', Ocean: 'Ocean', Mint: 'Mięta', Candy: 'Cukierek', Gold: 'Złoto', Fire: 'Ogień', Rainbow: 'Tęcza', Sparkle: 'Brokat', Frost: 'Szron', Spooky: 'Upiorny', Latte: 'Latte' } },
+  fr: { label: 'Ramka profilu', n: { None: NONE, Cloud: 'Chmurka', Vine: 'Pnącze', Hearts: 'Serduszka', Stars: 'Gwiazdki', Gold: 'Złoto', Flame: 'Płomień', Rainbow: 'Tęcza', Snow: 'Śnieg', 'Coffee ring': 'Kawowa obwódka' } },
   pb: { label: 'Tło wizytówki', n: { None: NONE, 'Paw prints': 'Łapki', Checkers: 'Szachownica', Stars: 'Gwiazdki', Hearts: 'Serduszka', Confetti: 'Konfetti', 'Hot Pot table': 'Stół Hot Pot',
     'Beanstalk sky': 'Niebo nad fasolą', 'Pet Farm meadow': 'Łąka z Farmy zwierzaków', 'Kart island': 'Gokartowa wyspa', 'Card table': 'Stół karciany', 'Drifting clouds': 'Płynące chmury',
-    'Falling petals': 'Spadające płatki', 'Twinkling night': 'Migocząca noc', Podium: 'Podium', 'Golden champion': 'Złoty mistrz', 'Egg nest': 'Gniazdo z jajkami', 'Pet parade': 'Parada zwierzaków' } },
+    'Falling petals': 'Spadające płatki', 'Twinkling night': 'Migocząca noc', Podium: 'Podium', 'Golden champion': 'Złoty mistrz', 'Egg nest': 'Gniazdo z jajkami', 'Pet parade': 'Parada zwierzaków', 'Café': 'Kawiarnia' } },
   // Titles describe the player, so they are worded to fit anyone.
   ti: { label: 'Tytuł', n: { None: NONE, 'Pot Wizard': 'Garnkowa magia', 'Card Shark': 'Karciany rekin', 'Kart Menace': 'Postrach toru', 'Marble Whisperer': 'Kulkowa wyrocznia', 'Ladder Legend': 'Legenda drabin',
     'Ludo Lord': 'Szycha od Chińczyka', 'Tower Titan': 'Tytan wież', 'Hole in One': 'Dołek za jednym', 'Smooth Liar': 'Gładki blef', 'Top Dog': 'Gruba ryba', 'Head Chef': 'Głowa kuchni',
     'Treasure Hunter': 'Nos do skarbów', Regular: 'Częsty gość', Champion: 'Klasa mistrzowska', 'Snack Lord': 'Postrach lodówki', 'Lucky Duck': 'Farciarska kaczka', 'Just Vibing': 'Luz i spokój',
     'Sore Loser': 'Foch po przegranej', 'Bot Bully': 'Postrach botów', 'Certified Goblin': 'Goblin z certyfikatem', 'Big Spender': 'Gruby portfel', 'Trick Taker': 'Lewa za lewą',
-    'Brick Boss': 'Klockowa szycha', 'Bean Bouncer': 'Fasolowa sprężyna', 'Pet Detective': 'Detektyw od zwierzaków', 'Party Roller': 'Imprezowe kości', Bullseye: 'W dziesiątkę' } },
-  wn: { label: 'Efekt wygranej', n: { None: NONE, Confetti: 'Konfetti', Hearts: 'Serduszka', 'Fish rain': 'Deszcz ryb', Fireworks: 'Fajerwerki', 'Coin shower': 'Deszcz monet', Snowfall: 'Śnieg' } },
-  sp: { label: 'Paczki naklejek', n: { Basics: 'Podstawowe', Party: 'Impreza', Critters: 'Zwierzątka', Chaos: 'Chaos' } },
+    'Brick Boss': 'Klockowa szycha', 'Bean Bouncer': 'Fasolowa sprężyna', 'Pet Detective': 'Detektyw od zwierzaków', 'Party Roller': 'Imprezowe kości', Bullseye: 'W dziesiątkę', 'Coffee’s on me': 'Kawa na mój koszt' } },
+  wn: { label: 'Efekt wygranej', n: { None: NONE, Confetti: 'Konfetti', Hearts: 'Serduszka', 'Fish rain': 'Deszcz ryb', Fireworks: 'Fajerwerki', 'Coin shower': 'Deszcz monet', Snowfall: 'Śnieg', 'Coffee break': 'Przerwa na kawę' } },
+  sp: { label: 'Paczki naklejek', n: { Basics: 'Podstawowe', Party: 'Impreza', Critters: 'Zwierzątka', Chaos: 'Chaos', 'Café': 'Kawiarnia' } },
   cb: { label: 'Rewers kart', where: 'Twoje karty w Texas Hold’em i talia, którą widzisz w Hot Pot.', n: { Classic: 'Klasyczny', Sky: 'Niebo', Midnight: 'Północ', Candy: 'Cukierek', Koi: 'Koi', 'Gold leaf': 'Złoty listek' } },
   dc: { label: 'Kości', where: 'Twoje kości w grach Kości kłamcy, Pip Party, Chińczyk, Węże i drabiny oraz Pawperty.', n: { Classic: 'Klasyczne', 'Ruby gem': 'Rubin', 'Carved jade': 'Rzeźbiony jadeit',
     Bubblegum: 'Guma balonowa', 'Starry midnight': 'Gwiaździsta północ', 'Solid gold': 'Lite złoto', 'Oak wood': 'Dąb', 'Ice crystal': 'Kryształ lodu', 'Paw prints': 'Łapki', 'Lava rock': 'Skała lawowa',

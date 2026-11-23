@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress } from '../public/ranks.js';
-import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack } from '../public/cosmetics.js';
+import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack, cosPackIds } from '../public/cosmetics.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -18,6 +18,7 @@ export const sessions = new Map(); // browser token -> { id, pid, seen }
 const users = new Map();           // lower-case username -> pid
 const visitors = new Set();        // hashed browser tokens of everyone who has ever opened the site
 let savedRooms = [];
+const KOFI_ALL = [...packIds('kofi'), ...cosPackIds('kofi')], KOFI_IDS = new Set(KOFI_ALL); // the whole Supporter pack
 let kofi = { seen: [], pend: [] }; // Ko-fi payments: ids already handled, and payments nobody has claimed yet
 
 const rid = n => crypto.randomBytes(n).toString('hex');
@@ -37,6 +38,8 @@ export function load() {
     if (p.owned?.some(id => id.startsWith('ip:'))) { const paid = [0, 80, 80, 60, 100, 80, 120, 90, 90];
       for (const id of p.owned) if (id.startsWith('ip:')) p.coins = (p.coins || 0) + (paid[+id.slice(3)] || 0);
       p.owned = p.owned.filter(id => !id.startsWith('ip:')); }
+    // The Supporter pack grew (account cosmetics joined the clothes): whoever has part of it gets the rest.
+    if (p.owned?.some(id => KOFI_IDS.has(id)) && !KOFI_ALL.every(id => p.owned.includes(id))) p.owned = [...new Set([...p.owned, ...KOFI_ALL])];
     if (Array.isArray(p.cos?.ip) && p.cos.ip.some(t => typeof t !== 'string')) delete p.cos.ip;
     // Coins arrived after people had already played: everyone starts with what their past games would have paid.
     if (!Number.isFinite(p.coins)) p.coins = 5 * (p.games || 0) + 10 * (p.wins || 0); // the old rate: 5 a game, 10 more a win
@@ -356,10 +359,11 @@ setInterval(() => {
 // signed-in account, with the email it was paid with. Emails are never stored: only a keyed hash of them is.
 let packHook = () => {};
 export const onPack = fn => { packHook = fn; };
-export const hasPack = (p, name = 'kofi') => { const have = new Set(p?.owned || []); return packIds(name).every(id => have.has(id)); };
+const packAll = name => [...packIds(name), ...cosPackIds(name)]; // avatar items and account cosmetics
+export const hasPack = (p, name = 'kofi') => { const have = new Set(p?.owned || []); return packAll(name).every(id => have.has(id)); };
 export function grantPack(p, name = 'kofi') {
   if (!p || hasPack(p, name)) return false;
-  p.owned = [...new Set([...(p.owned || []), ...packIds(name)])];
+  p.owned = [...new Set([...(p.owned || []), ...packAll(name)])];
   scheduleSave(); packHook(p.pid, name);
   return true;
 }

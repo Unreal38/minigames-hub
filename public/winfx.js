@@ -8,6 +8,7 @@ const KINDS = {
   4: { n: 0, bursts: 7, cols: ['#ff5d8f', '#ffc93c', '#4fc3e8', '#7ed37a', '#ffffff', '#c9b3ff'] },                          // fireworks
   5: { n: 80, draw: 'coin', from: 'top' },                                                                                   // coin shower
   6: { n: 120, draw: 'flake', from: 'top', slow: true, spin: 1.5 },                                                       // snowfall
+  7: { n: 60, glyph: ['☕', '🥐', '🍩', '🍪'], from: 'top', spin: 2 },                                                       // coffee break (Supporter pack)
 };
 let live = null;
 // Who has which win effect on: app.js keeps this up to date, so a game scene only names a seat (createFx().confetti
@@ -41,10 +42,10 @@ const dotSprite = () => sprite('dot', 16, g => { g.fillStyle = '#ffffff'; g.begi
 // The same pictures as one strip, for the in-game showers (scenery3d.js createFx): `at` lists each effect's cells, the
 // plain strip and the firework spark are white so the shower tints them with `cols`.
 export function winSheet(C = 96) {
-  const pics = [rectSprite('#ffffff'), dotSprite(), ...KINDS[2].glyph.map(glyphSprite), fishSprite(), coinSprite(), flakeSprite()], n = 16;
+  const pics = [rectSprite('#ffffff'), dotSprite(), ...KINDS[2].glyph.map(glyphSprite), fishSprite(), coinSprite(), flakeSprite(), ...KINDS[7].glyph.map(glyphSprite)], n = 16;
   const cv = document.createElement('canvas'); cv.width = C * n; cv.height = C; const g = cv.getContext('2d');
   pics.forEach((im, i) => g.drawImage(im, C * i + 2, 2, C - 4, C - 4));
-  return { cv, n, at: { 1: [0], 4: [1], 2: [2, 3, 4, 5], 3: [6], 5: [7], 6: [8] }, cols: { 1: KINDS[1].cols, 4: KINDS[4].cols } };
+  return { cv, n, at: { 1: [0], 4: [1], 2: [2, 3, 4, 5], 3: [6], 5: [7], 6: [8], 7: [9, 10, 11, 12] }, cols: { 1: KINDS[1].cols, 4: KINDS[4].cols } };
 }
 const rectSprite = c => sprite('r' + c, 16, g => { g.fillStyle = c; g.fillRect(-16, -8, 32, 16); });
 export function playWinFx(k, { ms = 4200, banner = '', light = false } = {}) {

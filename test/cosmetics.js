@@ -176,7 +176,7 @@ if (!c.err(/not unlocked/) || (await cardFl()).pb !== PB('Golden champion')) fai
 const d = player(TB, 'Bo'); await d.connect(); await wait(200);
 d.send({ t: 'wear', k: 'pb', i: PB('Podium') }); await wait(200); d.send({ t: 'wear', k: 'pb', i: PB('Golden champion') }); await wait(200);
 if (d.me.bestPos !== 2 || d.me.cos.pb !== PB('Podium') || !d.err(/not unlocked/)) fail('2nd place should unlock the Podium background only');
-if (COS.pb.items.some((it, i) => i && !it.p && !it.earn) || !['p', 's', 'a', 'e'].every(t => COS.pb.items.some(it => it.t === t))) fail('card background catalogue is missing a kind or a price');
+if (COS.pb.items.some((it, i) => i && !it.p && !it.earn && !it.pk) || !['p', 's', 'a', 'e'].every(t => COS.pb.items.some(it => it.t === t))) fail('card background catalogue is missing a kind or a price');
 srv.kill();
 console.log('OK cosmetics: buy, wear, earned titles, seasons, stickers, table themes, isle pets, isle variants, profile cards, card backgrounds, flair at the table, in chat and in rankings');
 process.exit(0);
