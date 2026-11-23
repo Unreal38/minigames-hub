@@ -1,325 +1,428 @@
-// The pictures on the hub's game cards (SVG strings), all built from one small kit so they match:
-// a 320x150 sky, one floating island in the same place, and one or two chunky game pieces standing on it.
-// Rules of the kit: every outline is 3 wide in the ink colour, boxes have a light top and a dark side,
-// corners stay sharp (blocky, low-poly), and nothing important sits in the top right corner (the "?" button lives there).
-// Sky, clouds, island and outline colours come from CSS variables (--art-*, --ink) so day and night are set in style.css.
+// The pictures on the hub's game cards and the icons on the Today tiles (SVG strings).
+// Sky, clouds and sea are tagged (artsky, artcloud, artsea, artstars) so style.css can repaint them at night through the --art-* variables.
+import { cardHtml } from './games/hotpot/cards.js';
 
-const INK = 'var(--ink, #3b2219)';
-const O = `stroke="${INK}" stroke-width="3" stroke-linejoin="round"`;
-const C = { red: '#e5543b', orange: '#ffb547', yellow: '#ffd95a', mint: '#7ed3b2', pink: '#ff8fab', blue: '#6fa8ff', violet: '#9aa8ff', cream: '#fff4e2', wood: '#c98a5a', bark: '#8a5a3c', grey: '#a9a6b0', steel: '#7d8597', green: '#6fc45a', leaf: '#4fa64a', night: '#2f3566' };
-const TICK = 'var(--art-tick, #3b2219)';
-const LIGHT = 'fill="#fff" fill-opacity=".4" stroke="none"', DARK = 'fill="#1d1030" fill-opacity=".24" stroke="none"';
+const ink = '#3b2219';
 
-// A box seen from the front, a little from above and from the left: (x, y) is the top left of the front face, d is the depth.
-function box(x, y, w, h, c, d = 8) {
-  const k = d * .6;
-  return `<g ${O}><path d="M${x} ${y + h}V${y}l${d} ${-k}h${w}v${h}l${-d} ${k}z" fill="${c}"/>`
-    + `<path d="M${x} ${y}l${d} ${-k}h${w}l${-d} ${k}z" ${LIGHT}/><path d="M${x + w} ${y}l${d} ${-k}v${h}l${-d} ${k}z" ${DARK}/>`
-    + `<path d="M${x} ${y}h${w}l${d} ${-k}M${x + w} ${y}v${h}" fill="none"/></g>`;
-}
-// A thick line with the same 3 wide outline as everything else.
-const rod = (d, c, w = 5, cap = 'square') => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w + 6}" stroke-linecap="${cap}" stroke-linejoin="miter"/><path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="${cap}" stroke-linejoin="miter"/>`;
-// Square pips on the front face of a die of size s whose front face starts at (x, y).
-const PIPS = { 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]] };
-function die(x, y, s, n, c = C.cream, pip = INK, rot = 0, cls = '', delay = 0) {
-  const p = s * .17, g = (s - 3 * p) / 4;
-  const pips = PIPS[n].map(([i, j]) => `<rect x="${x + g + i * (p + g)}" y="${y + g + j * (p + g)}" width="${p}" height="${p}" fill="${pip}"/>`).join('');
-  return `<g class="${cls}" style="--d:${delay}s"><g transform="rotate(${rot} ${x + s / 2} ${y + s / 2})">${box(x, y, s, s, c, s * .26)}${pips}</g></g>`;
-}
-// Low-poly suit marks, centred on (0, 0), about 28 wide.
-const SUIT = {
-  h: 'M0-7l5-6h5l5 6v5L0 14-15-2v-5l5-6h5z', s: 'M0-15l14 14v5l-5 5h-4l-3-3 3 9H-5l3-9-3 3h-4l-5-5v-5z',
-  d: 'M0-15l11 15L0 15-11 0z', c: 'M-5-14H5v8h9V4H4l3 10H-7L-4 4h-10V-6h9z',
-};
-// A playing card: a cream slab with a rank and one big suit. (cx, cy) is its middle.
-function card(cx, cy, rot, rank, suit, { w = 40, h = 56, cls = '', delay = 0, face = C.cream, back = '' } = {}) {
-  const col = suit === 'h' || suit === 'd' ? C.red : '#2b2230', x = -w / 2, y = -h / 2;
-  const inner = back
-    ? `<rect x="${x + 5}" y="${y + 5}" width="${w - 10}" height="${h - 10}" fill="${back}"/><path d="M0 ${-h / 4}l${w / 4} ${h / 4}-${w / 4} ${h / 4}-${w / 4}-${h / 4}z" fill="#fff" fill-opacity=".55"/>`
-    : `<text x="${x + 5}" y="${y + 16}" font-family="Rubik, sans-serif" font-weight="700" font-size="15" fill="${col}">${rank}</text><path d="${SUIT[suit]}" transform="translate(${rank.length > 1 ? 2 : 3} 8) scale(.92)" fill="${col}"/>`;
-  return `<g class="${cls}" style="--d:${delay}s"><g transform="translate(${cx} ${cy}) rotate(${rot})"><rect x="${x + 3}" y="${y + 3}" width="${w}" height="${h}" rx="3" fill="${INK}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${face}" ${O}/>${inner}</g></g>`;
-}
-// A stack of n round poker chips; (x, y) is the middle of the bottom chip's base. The top chip shows its striped face.
-function chips(x, y, n, c) {
-  let s = '';
-  for (let i = 0; i < n; i++) {
-    const yy = y - 6 - i * 6;
-    s += `<path d="M${x - 15} ${yy}a15 6 0 0 0 30 0v6a15 6 0 0 1-30 0z" fill="${c}" ${O}/><path d="M${x - 10} ${yy + 4.500}l5 1.200v6l-5-1.200zM${x - 2.500} ${yy + 6}h5v6h-5zM${x + 10} ${yy + 4.500}l-5 1.200v6l5-1.200z" fill="${C.cream}"/>`;
-  }
-  const t = y - n * 6;
-  return s + `<ellipse cx="${x}" cy="${t}" rx="15" ry="6" fill="${c}" ${O}/><ellipse cx="${x}" cy="${t}" rx="12" ry="4.500" fill="none" stroke="${C.cream}" stroke-width="3" stroke-dasharray="5 5"/><ellipse cx="${x}" cy="${t}" rx="5" ry="2" fill="${C.cream}"/>`;
-}
-// One chip standing on its edge, facing us; (x, y) is its middle.
-const chipFace = (x, y, r, c) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" ${O}/><circle cx="${x}" cy="${y}" r="${r * .74}" fill="none" stroke="${C.cream}" stroke-width="${r * .3}" stroke-dasharray="${r * .5} ${r * .43}"/><circle cx="${x}" cy="${y}" r="${r * .34}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/>`;
-// A board game pawn standing on (x, y) (the middle of its base).
-const pawn = (x, y, c, k = 1) => `<g transform="translate(${x} ${y}) scale(${k})" ${O}><path d="M-12 0h24v-6h-24z" fill="${c}"/><path d="M-8-6l4-20h8l4 20z" fill="${c}"/><path d="M0-42l9 6v8l-9 6-9-6v-8z" fill="${c}"/><path d="M0-42l9 6v8l-9 6z M4-26l4 20h4v6H2z" ${DARK}/><path d="M-4-37l4-3v5z" fill="#fff" fill-opacity=".6" stroke="none"/></g>`;
-// A low-poly ball (marbles, golf balls): an octagon with a light facet.
-function ball(x, y, r, c, cls = '', delay = 0) {
-  const a = r * .414;
-  return `<g class="${cls}" style="--d:${delay}s"><path d="M${x - a} ${y - r}h${2 * a}l${r - a} ${r - a}v${2 * a}l${a - r} ${r - a}h${-2 * a}l${a - r} ${a - r}v${-2 * a}z" fill="${c}" ${O}/>`
-    + `<path d="M${x - a} ${y - r}h${2 * a}L${x} ${y}l${-r} ${-a}z" ${LIGHT}/><path d="M${x + r} ${y + a}l${a - r} ${r - a}h${-2 * a}L${x} ${y}z" ${DARK}/></g>`;
-}
-// A little blocky pet head (ears: 'cat' triangles or 'bun' tall boxes), centred on (x, y), about 26 wide.
-function pet(x, y, c, ears = 'cat', eye = INK, k = 1) {
-  const e = ears === 'bun' ? `<path d="M-10-10v-16h7v16zM3-10v-16h7v16z" fill="${c}"/>` : `<path d="M-13-9v-12l10 9zM13-9v-12l-10 9z" fill="${c}"/>`;
-  return `<g transform="translate(${x} ${y}) scale(${k})" ${O}>${e}<path d="M-13-10h26v20h-26z" fill="${c}"/><path d="M-7-3h4v5h-4zM3-3h4v5h-4z" fill="${eye}" stroke="none"/><path d="M-2 4h4l-2 3z" fill="${C.pink}" stroke-width="1.5"/></g>`;
-}
+// Hot Pot card: three ingredient cards fanned on the red table.
+export const hotpotArt = () => cardHtml(0, { w: 48 }) + cardHtml(40, { w: 54 }) + cardHtml(64, { w: 48 });
 
-const STARS = [[30, 22, 2], [96, 14, 1.5], [150, 30, 1.2], [204, 18, 1.6], [258, 86, 1.5], [296, 118, 1.2], [14, 92, 1.4], [70, 60, 1.1]];
-// The shared frame: sky, stars (night only), two blocky clouds, the island. `top` recolours the island's top face.
-function scene(label, body, { top = 'var(--art-grass, #8fd16a)', onTop = '', shadow = 'M92 110l14-8h102l14 8-14 8H106z' } = {}) {
-  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}">
-  <rect class="artsky" width="320" height="150" fill="var(--art-sky, #bfe8ff)"/>
-  <g class="artstars" fill="var(--art-star, #fff6d8)">${STARS.map(([x, y, r]) => `<rect x="${x}" y="${y}" width="${r * 2}" height="${r * 2}"/>`).join('')}</g>
-  <path class="artcloud" d="M10 46v-9h10v-8h24v6h12v11zM262 100v-8h12v-7h20v7h10v8z" fill="var(--art-cloud, #fff)"/>
-  <g transform="translate(160 116) scale(1.1) translate(-157 -116)"><g ${O}><path d="M44 108l12 20 32 10 30 18 34-10 32 12 34-18 30-8 22-24z" fill="var(--art-rock, #857a72)"/>
-  <path d="M152 146l32 12 34-18 30-8 22-24-34 14h-80z" ${DARK}/>
-  <path d="M44 108l34 14h158l34-14v9l-34 13H78l-34-13z" fill="var(--art-earth, #c98a5a)"/>
-  <path d="M44 108l34-14h158l34 14-34 14H78z" fill="${top}"/></g>
-  <path d="M44 108l34-14h36l-28 28h-8z" fill="#fff" fill-opacity=".14"/><path d="M236 94l34 14-34 14h-22z" fill="#1d1030" fill-opacity=".1"/><path d="M56 128l32 10 30 18-22-24z" fill="#fff" fill-opacity=".12"/>
-  ${onTop}${shadow ? `<path d="${shadow}" fill="#1d1030" fill-opacity=".18"/>` : ''}${body}</g></svg>`;
-}
-
-export function hotpotArt() {
-  const flame = x => `<path d="M${x} 104l5-10 5 10z" fill="${C.orange}" ${O}/><path d="M${x + 3} 104l2-4 2 4z" fill="${C.yellow}"/>`;
-  const pot = `${box(104, 104, 96, 11, '#6b6878', 12)}<path d="M112 109h14M112 112h14" stroke="${INK}" stroke-width="1.500" opacity=".5"/><rect x="146" y="106" width="12" height="7" fill="${C.orange}" ${O}/><rect x="176" y="107" width="6" height="5" fill="${C.red}"/>
-    <g ${O}><path d="M88 70h124l-10 28h-104z" fill="${C.red}"/><path d="M170 70h42l-10 28h-28z" ${DARK}/><path d="M96 78h12l5 16h-10z" fill="#fff" fill-opacity=".3" stroke="none"/></g>
-    ${flame(116)}${flame(134)}${flame(156)}${flame(174)}
-    <g ${O}>
-<path d="M70 62h18v10H70zM212 62h18v10h-18z" fill="${C.orange}"/>
-    <path d="M82 66l18-12h100l18 12-18 10H100z" fill="${C.orange}"/>
-    <path d="M96 66l10-7h44l-8 13h-36z" fill="#ff7a59"/><path d="M150 59h44l10 7-10 6h-52z" fill="#fff0c9"/></g>
-    <path d="M150 59l-8 13" stroke="${INK}" stroke-width="3"/>
-    <rect x="112" y="63" width="7" height="5" fill="${C.red}"/><rect x="126" y="65" width="5" height="4" fill="${C.yellow}"/><rect x="164" y="63" width="8" height="5" fill="${C.leaf}"/><rect x="180" y="65" width="6" height="4" fill="#fff"/>`;
-  const sticks = `<g class="abob"><path d="M72-4l6-5 54 41-4 5z" fill="${C.wood}" ${O}/>
-    <g ${O}><path d="M118 42h12v13h-12z" fill="${C.cream}"/><path d="M108 42l5-11h22l5 11z" fill="#a8502f"/><path d="M127 31h8l5 11h-10z" ${DARK}/></g><path d="M115 34h5v4h-5zM125 36h4v3h-4z" fill="${C.cream}"/>
-    <path d="M50 10l5-6 63 40-4 6z" fill="${C.wood}" ${O}/><path d="M52 9l2-3 62 39-2 2z" fill="#fff" fill-opacity=".3"/></g>`;
-  const steam = `<g class="abob" style="--d:.8s" fill="var(--art-cloud, #fff)" ${O}><path d="M172 34h11v11h-11zM184 20h9v9h-9zM176 8h7v7h-7z"/></g>`;
-  return scene('A red hot pot with two broths, steam, and chopsticks holding a mushroom over it', pot + steam + sticks);
-}
-
+// Three marbles tumbling down a ramp, for the Marble Rush card.
 export function marbleArt() {
-  const plank = (x1, y1, x2, y2) => `<g ${O}><path d="M${x1} ${y1}L${x2} ${y2}v10L${x1} ${y1 + 10}z" fill="${C.wood}"/><path d="M${x1} ${y1}L${x2} ${y2}l8-5L${x1 + 8} ${y1 - 5}z" fill="${C.orange}"/></g>`;
-  return scene('Three marbles rolling down a zigzag wooden track', `
-    ${box(84, 96, 10, 18, C.bark, 6)}${plank(212, 87, 84, 104)}${box(206, 62, 10, 52, C.bark, 6)}
-    ${plank(70, 40, 216, 62)}
-    <g ${O}><path d="M216 56v16h10V52z" fill="${C.red}"/></g>
-    ${rod('M58 114V80', C.cream, 3)}<path d="M61 78h20v14H61z" fill="#fff" ${O}/><path d="M61 78h7v7h-7zM74 78h7v7h-7zM68 85h6v7h-6z" fill="${INK}"/>
-    ${ball(98, 28, 15, C.pink, 'abob', 0)}${ball(160, 40, 13, C.orange, 'abob', .3)}${ball(176, 76, 15, C.violet, 'abob', .6)}`);
+  const ball = (x, y, r, c, d) => `<g class="roll" style="--d:${d}s;transform-origin:${x}px ${y}px">
+    <circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="${ink}" stroke-width="3"/>
+    <path d="M${x - r * .7} ${y + r * .3}q${r * .5} ${-r * .9} ${r * 1.3} ${-r * .8}" fill="none" stroke="#fff" stroke-width="${r * .22}" stroke-linecap="round" opacity=".7"/>
+    <circle cx="${x - r * .34}" cy="${y - r * .38}" r="${r * .14}" fill="#fff" opacity=".85"/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Three coloured marbles rolling down a ramp">
+  <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g><path d="M196 30l14-8 16 4 8 10-10 8h-24z" class="artcloud" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" class="artcloud" fill="#fff"/>
+  <circle cx="116" cy="22" r="7" fill="#ffb547"/><circle cx="278" cy="36" r="6" fill="#ff8fab"/><circle cx="168" cy="16" r="5" fill="#7ed3b2"/>
+  <path d="M-10 66L330 132v30H-10z" fill="#f6e3c5" stroke="${ink}" stroke-width="3"/>
+  <path d="M-10 54L330 120" stroke="#e5543b" stroke-width="12" stroke-linecap="round"/><path d="M-10 54L330 120" stroke="${ink}" stroke-width="3" fill="none" transform="translate(0 -7)"/><path d="M-10 54L330 120" stroke="${ink}" stroke-width="3" fill="none" transform="translate(0 7)"/>
+  <circle cx="198" cy="92" r="8" fill="#7ed3b2" stroke="${ink}" stroke-width="3"/>
+  ${ball(70, 46, 24, '#ff8fab', 0)}${ball(150, 66, 20, '#ffb547', .25)}${ball(248, 78, 26, '#9aa8ff', .5)}</svg>`;
 }
 
+// A tiny tilted board with a ladder and a smiling snake, for the Snakes & Ladders card.
 export function laddersArt() {
-  const cols = ['#ffd9a0', '#bfe6c8', '#ffc6d3', '#cfe0ff'];
-  let cells = '';
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) cells += `<rect x="${98 + c * 28}" y="${30 + r * 28}" width="28" height="28" fill="${cols[(r * 3 + c) % 4]}"/>`;
-  let rungs = '';
-  for (let i = 1; i < 6; i++) rungs += `M${106 + i * 5.2} ${108 - i * 12.4}h20`;
-  return scene('A game board with a ladder leaning on it and a green snake', `
-    ${box(96, 28, 116, 88, C.cream, 8)}${cells}<path d="M98 30h112v84H98zM126 30v84M154 30v84M182 30v84M98 58h112M98 86h112" fill="none" stroke="${INK}" stroke-width="2" opacity=".5"/>
-    <path d="${rungs}" stroke="${INK}" stroke-width="7"/><path d="M106 108l31-74M126 108l31-74" stroke="${INK}" stroke-width="9" stroke-linecap="square"/>
-    <path d="${rungs}" stroke="${C.orange}" stroke-width="3"/><path d="M106 108l31-74M126 108l31-74" stroke="${C.orange}" stroke-width="3.5" stroke-linecap="square"/>
-    ${rod('M196 54v20h-24v26h26', C.green, 9)}
-    <g ${O}><path d="M186 34h20v18h-20z" fill="${C.green}"/><path d="M196 52v7" stroke="${C.red}" fill="none"/></g>
-    <path d="M190 39h4v5h-4zM198 39h4v5h-4z" fill="${INK}"/>`);
-}
-
-export function pokerArt() {
-  return scene('An ace and a king with stacks of round poker chips', `
-    ${chips(74, 112, 2, C.mint)}
-    ${card(122, 70, -10, 'A', 's', { w: 46, h: 64, cls: 'abob' })}${card(162, 70, 9, 'K', 'h', { w: 46, h: 64, cls: 'abob', delay: .4 })}
-    ${chips(212, 106, 4, C.red)}${chips(236, 114, 2, C.violet)}${chipFace(196, 108, 12, C.orange)}`, { top: '#3f9a78' });
-}
-
-export function ludoArt() {
-  const yard = (x, y, c) => `<rect x="${x}" y="${y}" width="34" height="34" fill="${c}" ${O}/><rect x="${x + 9}" y="${y + 9}" width="16" height="16" fill="${C.cream}" stroke="${INK}" stroke-width="2"/>`;
-  return scene('A ludo board with four coloured yards, two pawns and a die', `
-    ${box(104, 24, 92, 92, C.cream, 8)}
-    ${yard(106, 26, C.red)}${yard(160, 26, C.blue)}${yard(106, 80, C.green)}${yard(160, 80, C.yellow)}
-    <path d="M140 60h20v20h-20z" fill="${C.cream}" ${O}/><path d="M140 60l10 10-10 10z" fill="${C.red}"/><path d="M160 60l-10 10 10 10z" fill="${C.yellow}"/><path d="M140 60l10 10 10-10z" fill="${C.blue}"/><path d="M140 80l10-10 10 10z" fill="${C.green}"/><path d="M140 60h20v20h-20z" fill="none" ${O}/>
-    <path d="M140 37h20M140 48h20M140 91h20M140 102h20M117 60v20M128 60v20M171 60v20M182 60v20M150 26v34M150 80v34M106 70h34M160 70h34" stroke="${INK}" stroke-width="1.5" opacity=".45"/>
-    <path d="M144 37h12v23h-12z" fill="${C.blue}" fill-opacity=".55"/><path d="M144 80h12v22h-12z" fill="${C.green}" fill-opacity=".55"/><path d="M117 64h23v12h-23z" fill="${C.red}" fill-opacity=".55"/><path d="M160 64h23v12h-23z" fill="${C.yellow}" fill-opacity=".7"/>
-    ${pawn(80, 120, C.red)}${pawn(230, 120, C.blue)}${die(52, 40, 22, 6, C.cream, INK, -10, 'abob')}`);
-}
-
-export function stackArt() {
-  const cols = [C.grey, C.pink, C.orange, C.mint, C.violet], off = [0, 6, -4, 8, 2];
-  return scene('A wobbly tower of blocks with one more block coming down on a rope', `
-    ${off.map((d, i) => box(120 + d, 100 - i * 16, 58, 16, cols[i], 8)).join('')}
-    <g class="asway" style="transform-origin:86px -20px">${box(58, 38, 54, 16, C.red, 8)}${rod('M74 -10V34M102 -10V34', C.bark, 2, 'butt')}<path d="M70 33h8v5h-8zM98 33h8v5h-8z" fill="${C.grey}" ${O}/></g>
-    <path d="M206 44l10-4M208 60l12 0M204 76l10 5" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
-}
-
-export function golfArt() {
-  return scene('A mini golf green with a flag, a windmill and a ball rolling to the hole', `
-    <path d="M118 108c20 8 44 8 60 2" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="3 7"/>
-    <path d="M92 104h18l5 4-5 4H92l-5-4z" fill="#2a1422"/>
-    ${rod('M101 106V42', C.cream, 3)}<path d="M104 40l30 11-30 11z" fill="${C.red}" ${O}/>
-    <g ${O}><path d="M176 108l8-46h24l8 46z" fill="${C.cream}"/><path d="M200 62h8l8 46h-10z" ${DARK}/><path d="M190 108V92h12v16z" fill="${C.bark}"/><path d="M178 62l18-18 18 18z" fill="${C.red}"/></g>
-    <g class="aspin" style="transform-origin:196px 62px"><path d="M192 62h8V28h-8zM192 62h8v34h-8zM196 58v8h34v-8zM196 58v8h-34v-8z" fill="${C.orange}" ${O} transform="rotate(24 196 62)"/></g><rect x="192" y="58" width="8" height="8" fill="${INK}"/>
-    ${ball(146, 112, 8, C.pink)}`, { top: '#6fcf5c', onTop: `<path d="M56 108l26-11h150l26 11-26 11H82z" fill="none" stroke="${C.cream}" stroke-width="4" stroke-linejoin="round"/>` });
-}
-
-export function diceArt() {
-  return scene('A dice cup tipped over with two dice tumbling out', `
-    <g class="asway" style="transform-origin:100px 96px"><g transform="rotate(-58 100 86)" ${O}><path d="M84 30h36l14 60H70z" fill="${C.red}"/><path d="M108 30h12l14 60h-18z" ${DARK}/><path d="M78 56l-4 14h54l-4-14z" fill="${C.orange}"/><path d="M70 90l10-12h44l10 12-10 12H80z" fill="#5a1f24"/><path d="M80 90l5-6h34l5 6-5 6H85z" fill="#2a0f14" stroke="none"/></g></g>
-    ${die(160, 80, 28, 5, C.cream, INK, 12, 'abob')}${die(208, 92, 22, 2, C.yellow, INK, -14, 'abob', .5)}
-    <path d="M150 52l6 10M172 44v12M194 52l-6 10" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`, { top: '#3f9a78' });
-}
-
-export function tysArt() {
-  return scene('A king and queen of hearts beside a wooden sign that says 1000', `
-    ${box(198, 88, 8, 26, C.bark, 5)}
-    ${card(96, 72, -10, 'K', 'h', { w: 46, h: 64, cls: 'abob' })}${card(136, 72, 8, 'Q', 'h', { w: 46, h: 64, cls: 'abob', delay: .4 })}
-    ${box(166, 66, 72, 30, C.bark, 7)}<text x="202" y="89" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="22" fill="${C.orange}">1000</text>`);
-}
-
-export function pawArt() {
-  // an upright property board: corner squares, four tiles a side with colour bands, a paw print in the middle
-  const bands = [C.pink, C.orange, C.mint, C.violet], x0 = 104, y0 = 24, S = 92, c = 20, t = 13;
+  const cols = ['#fff4e2', '#ffd9c2', '#d8f0e2', '#ffe9a8', '#e6defc'];
   let tiles = '';
-  for (let i = 0; i < 4; i++) {
-    const a = c + i * t;
-    tiles += `<rect x="${x0 + a}" y="${y0}" width="${t}" height="${c}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + a}" y="${y0 + c - 6}" width="${t}" height="6" fill="${bands[i]}"/>`
-      + `<rect x="${x0 + a}" y="${y0 + S - c}" width="${t}" height="${c}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + a}" y="${y0 + S - c}" width="${t}" height="6" fill="${bands[3 - i]}"/>`
-      + `<rect x="${x0}" y="${y0 + a}" width="${c}" height="${t}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + c - 6}" y="${y0 + a}" width="6" height="${t}" fill="${bands[(i + 2) % 4]}"/>`
-      + `<rect x="${x0 + S - c}" y="${y0 + a}" width="${c}" height="${t}" fill="${C.cream}" stroke="${INK}" stroke-width="1.500"/><rect x="${x0 + S - c}" y="${y0 + a}" width="6" height="${t}" fill="${bands[(i + 1) % 4]}"/>`;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+    tiles += `<rect x="${c * 34}" y="${r * 30}" width="34" height="30" fill="${(r + c) % 2 ? cols[0] : cols[1 + (r + (c >> 1)) % 4]}" stroke="#3b221933" stroke-width="1.5"/>`;
   }
-  const corner = (x, y, col) => `<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="${col}" stroke="${INK}" stroke-width="2"/>`;
-  const shop = (x, y, col) => `${box(x, y, 16, 12, col, 6)}<path d="M${x - 3} ${y}l11-10 11 10z" fill="${C.red}" ${O}/><path d="M${x + 8} ${y - 10}l6-4 11 10-6 4z" fill="#b8402c" ${O}/>`;
-  return scene('A property board game with colour tiles, a paw print in the middle, a bunny token, two little pet shops and a die', `
-    ${box(x0 - 2, y0 - 2, S + 4, S + 4, C.wood, 8)}<rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="#d9f0cf" ${O}/>${tiles}
-    ${corner(x0, y0, C.yellow)}${corner(x0 + S - c, y0, C.blue)}${corner(x0, y0 + S - c, C.red)}${corner(x0 + S - c, y0 + S - c, C.green)}
-    <path d="M${x0 + c} ${y0 + c}h${S - 2 * c}v${S - 2 * c}h${-(S - 2 * c)}z" fill="none" stroke="${INK}" stroke-width="2"/>
-    <g fill="${C.bark}"><path d="M142 70h16l4 6v10h-24v-10z"/><rect x="134" y="60" width="8" height="9"/><rect x="146" y="54" width="8" height="10"/><rect x="158" y="60" width="8" height="9"/></g>
-    <rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="none" ${O}/>
-    <g ${O}><path d="M60 118h26v-6H60z" fill="${C.pink}"/><path d="M66 112l3-10h8l3 10z" fill="${C.pink}"/></g>${pet(73, 92, '#fff', 'bun')}
-    ${die(48, 28, 22, 5, C.cream, INK, -10, 'abob')}
-    ${shop(206, 100, C.mint)}${shop(232, 110, C.yellow)}`);
+  const rungs = [0, 1, 2, 3, 4, 5].map(i => { const t = (i + .5) / 6, x = 46 + t * 70, y = 108 - t * 84; return `<path d="M${x - 9} ${y - 5}L${x + 9} ${y + 5}" stroke="#f0c27a" stroke-width="4" stroke-linecap="round"/>`; }).join('');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little board with a wooden ladder and a smiling green snake">
+  <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g><path d="M196 30l14-8 16 4 8 10-10 8h-24z" class="artcloud" fill="#fff"/><path d="M14 112l10-6 12 3 6 7-7 5H18z" class="artcloud" fill="#fff"/>
+  
+  <g transform="translate(42 16) skewX(-8) scale(.88)">
+    <rect x="-6" y="-6" width="284" height="132" rx="10" fill="#c4885a" stroke="${ink}" stroke-width="3.4"/>
+    ${tiles}
+    <path d="M40 112L106 18M58 120L124 26" stroke="#c98b4f" stroke-width="6" stroke-linecap="round"/>${rungs}
+    <path d="M232 22c-40 6-10 30-46 38s-8 34-44 44" fill="none" stroke="#3f8f4a" stroke-width="15" stroke-linecap="round"/>
+    <path d="M232 22c-40 6-10 30-46 38s-8 34-44 44" fill="none" stroke="#7ed37a" stroke-width="10" stroke-linecap="round" stroke-dasharray="10 9"/>
+    <ellipse cx="238" cy="21" rx="15" ry="12" fill="#7ed37a" stroke="${ink}" stroke-width="3"/>
+    <circle cx="234" cy="17" r="3" fill="${ink}"/><circle cx="244" cy="17" r="3" fill="${ink}"/>
+    <path d="M235 25q4 3 8 0" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M252 23l9 1m-9-1l8 4" stroke="#e5543b" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="200" cy="98" r="11" fill="#ffb547" stroke="${ink}" stroke-width="3"/><circle cx="196" cy="96" r="1.8" fill="${ink}"/><circle cx="204" cy="96" r="1.8" fill="${ink}"/>
+  </g></svg>`;
 }
 
+// Three fanned cards and a few chips on green felt, for the Texas Hold'em card.
+export function pokerArt() {
+  const suit = {
+    h: ['#d8402a', 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z'],
+    s: ['#3b2219', 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z'],
+    d: ['#d8402a', 'M12 1.8l7.6 10.2L12 22.2 4.4 12z'],
+  };
+  const card = (x, y, rot, r, s, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
+    <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
+    <text x="${x + 8}" y="${y + 24}" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="22" fill="${suit[s][0]}">${r}</text>
+    <path d="${suit[s][1]}" fill="${suit[s][0]}" transform="translate(${x + 22} ${y + 36}) scale(1.45)"/></g></g>`;
+  const chip = (x, y, c, e) => `<ellipse cx="${x}" cy="${y + 5}" rx="17" ry="7" fill="#00000044"/><ellipse cx="${x}" cy="${y}" rx="17" ry="7" fill="${c}" stroke="${ink}" stroke-width="2.5"/><ellipse cx="${x}" cy="${y}" rx="8" ry="3.2" fill="none" stroke="${e}" stroke-width="2" stroke-dasharray="3 2"/>`;
+  const stack = (x, y, n, c, e) => Array.from({ length: n }, (_, i) => chip(x, y - i * 6, c, e)).join('');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Three playing cards fanned out next to stacks of chips on a green table">
+  <rect width="320" height="150" fill="#2b7a5e"/>
+  <ellipse cx="160" cy="160" rx="210" ry="96" fill="#3f9c7a"/>
+  <ellipse cx="160" cy="160" rx="176" ry="74" fill="none" stroke="#fff4e255" stroke-width="3" stroke-dasharray="10 8"/>
+  ${card(92, 34, -16, 'A', 'h', 0)}${card(130, 26, 0, 'K', 's', .2)}${card(168, 34, 16, 'Q', 'd', .4)}
+  ${stack(54, 118, 4, '#ff8fab', '#fff4e2')}${stack(86, 128, 2, '#7ed3b2', '#fff4e2')}${stack(262, 120, 5, '#3b2219', '#ffb547')}${stack(234, 132, 2, '#9b6fd6', '#fff4e2')}</svg>`;
+}
+
+// Ludo card: the cross-shaped board from above with a few chunky pawns and a die.
+export function ludoArt() {
+  const cols = ['#ff6b6b', '#4db5ff', '#ffc93c', '#5fd08a'], u = 9, o = `stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"`;
+  let cells = '';
+  for (let r = 0; r < 15; r++) for (let c = 0; c < 15; c++) {
+    const arm = (c > 5 && c < 9) || (r > 5 && r < 9); if (!arm || (c > 5 && c < 9 && r > 5 && r < 9)) continue;
+    const lane = r === 7 ? (c < 6 && c > 0 ? 0 : c > 8 && c < 14 ? 2 : -1) : c === 7 ? (r < 6 && r > 0 ? 1 : r > 8 && r < 14 ? 3 : -1) : -1;
+    const start = c === 1 && r === 6 ? 0 : c === 8 && r === 1 ? 1 : c === 13 && r === 8 ? 2 : c === 6 && r === 13 ? 3 : -1;
+    cells += `<rect x="${c * u}" y="${r * u}" width="${u}" height="${u}" fill="${lane >= 0 ? cols[lane] : start >= 0 ? cols[start] : (r + c) % 2 ? '#f3e0c6' : '#e8cfae'}" stroke="#3b221944" stroke-width="1"/>`;
+  }
+  const yard = (x, y, c) => `<rect x="${x + 3}" y="${y + 3}" width="48" height="48" rx="5" fill="${c}" ${o}/><rect x="${x + 13}" y="${y + 13}" width="28" height="28" rx="3" fill="#fff4e2"/>`;
+  const pawn = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})" ${o}><path d="M-11 0h22v6h-22zM-7 0l4-16h6l4 16zM0-31l8 6-3 9h-10l-3-9z" fill="${c}"/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A Ludo board with coloured corners, chunky pawns and a die">
+  <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g><path d="M196 30l14-8 16 4 8 10-10 8h-24z" class="artcloud" fill="#fff"/>
+  <circle cx="48" cy="26" r="6" fill="#ffc93c"/><circle cx="270" cy="126" r="6" fill="#5fd08a"/><circle cx="268" cy="22" r="5" fill="#ff6b6b"/>
+  <g transform="translate(92 6) rotate(-6 68 68)">
+    <rect x="-5" y="-5" width="145" height="145" rx="9" fill="#7a4a2b" ${o}/>
+    ${yard(0, 0, cols[0])}${yard(81, 0, cols[1])}${yard(81, 81, cols[2])}${yard(0, 81, cols[3])}${cells}
+    <path d="M54 54l13.5 13.5L54 81z" fill="${cols[0]}"/><path d="M54 54h27L67.5 67.5z" fill="${cols[1]}"/><path d="M81 54v27L67.5 67.5z" fill="${cols[2]}"/><path d="M54 81h27L67.5 67.5z" fill="${cols[3]}"/>
+    <rect x="54" y="54" width="27" height="27" fill="none" stroke="${ink}" stroke-width="2"/>
+  </g>
+  ${pawn(58, 112, cols[0], 1.25)}${pawn(196, 66, cols[2], .8)}${pawn(126, 46, cols[1], .7)}${pawn(152, 118, cols[3], .85)}
+  <g transform="translate(262 84) rotate(12)" ${o}><rect x="-17" y="-17" width="34" height="34" rx="5" fill="#fff8ec"/><g fill="${ink}" stroke="none"><rect x="-11" y="-11" width="6" height="6"/><rect x="5" y="-11" width="6" height="6"/><rect x="-3" y="-3" width="6" height="6"/><rect x="-11" y="5" width="6" height="6"/><rect x="5" y="5" width="6" height="6"/></g></g></svg>`;
+}
+
+// Pet Farm card: a low-poly island with a farmhouse and a Mossbun.
+export function farmArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M36 40l14-8 16 4 8 10-10 8H44z" class="artcloud" fill="#fff"/><path d="M236 28l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 122h320v28H0z" class="artsea" fill="#7fcdf0"/>
+    <path d="M30 104l40-22h190l34 22-40 26H74z" fill="#8fd16a" ${o}/>
+    <path d="M30 104l44 26h180l40-26v10l-40 26H74l-44-26z" fill="#b98a5e" ${o}/>
+    <g ${o}><path d="M196 92V62h54v30z" fill="#f4e3c1"/><path d="M188 64l35-24 35 24z" fill="#d9584e"/><path d="M216 92V74h14v18z" fill="#8a5a3c"/><path d="M236 70h9v9h-9z" fill="#bfe6fb"/></g>
+    <g ${o}><path d="M278 96V84" fill="none"/><path d="M266 86l12-22 12 22z" fill="#4a9a45"/></g>
+    <g ${o}><path d="M70 58l4-26 9 2 1 24zM96 58l1-24 9-2 4 26z" fill="#f7ecd0"/>
+      <path d="M52 86l8-20 18-10h24l18 10 8 20-8 20-18 10H78l-18-10z" fill="#f7ecd0"/>
+      <path d="M58 72l6-8 14-8h24l14 8 6 8-10 2-8-6-10 6-8-6-10 6-8-6z" fill="#5fb04a"/></g>
+    <path d="M74 86l5-4 5 4-5 4zM96 86l5-4 5 4-5 4z" fill="#2b2230"/><path d="M85 96l5 4 5-4" fill="none" stroke="#2b2230" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M62 96h8v5h-8zM110 96h8v5h-8z" fill="#ff8a9a" opacity=".7"/>
+  </svg>`;
+}
+
+// Tower Stack card: a leaning tower of toy blocks on a sky island, with one more block coming down on a balloon.
+export function stackArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const cols = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#ff7a59', '#c8e66b'], off = [0, 5, -3, 7, 12];
+  // an isometric-ish block: front face plus a lighter top
+  const blk = (x, y, c) => `<path d="M${x} ${y}h52v15h-52z" fill="${c}" ${o}/><path d="M${x} ${y}l9-7h52l-9 7z" fill="#fff" fill-opacity=".45" ${o}/><path d="M${x + 52} ${y}l9-7v15l-9 7z" fill="#3b2219" fill-opacity=".22" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A wobbly tower of coloured blocks with another block floating down on a balloon">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M30 44l14-8 16 4 8 10-10 8H38z" class="artcloud" fill="#fff"/><path d="M246 34l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/><path d="M262 104l10-5 12 3 5 7-7 5h-15z" class="artcloud" fill="#fff"/>
+    <path d="M0 128h320v22H0z" class="artsea" fill="#7fcdf0"/>
+    <path d="M70 124l30-12h110l30 12-34 16h-102z" fill="#8fd16a" ${o}/>
+    <path d="M118 112h74v12h-74z" fill="#a9a6b0" ${o}/>
+    ${off.map((d, i) => blk(129 + d, 97 - i * 15, cols[i])).join('')}
+    <g transform="translate(52 -8) rotate(8 190 20)"><path d="M190 14c11 0 17 8 17 16s-9 15-17 18c-8-3-17-10-17-18s6-16 17-16z" fill="#ff7a59" ${o}/>
+      <path d="M190 48v10" fill="none" stroke="#3b2219" stroke-width="2.5"/>${blk(164, 65, '#7fd1e8')}</g>
+    <path class="arttick" d="M208 68l-7 3M206 56l-8-1M210 80l-6 4" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Mini Golf Party card: a blocky green with a flag, a windmill and a ball rolling for the cup.
+export function golfArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  let tiles = '';
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 9; c++) tiles += `<path d="M${62 + c * 24 - r * 12} ${78 + r * 16}h24l-12 16h-24z" fill="${(r + c) % 2 ? '#7fd457' : '#8cdc62'}"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A blocky mini golf green with a flag, a windmill and a ball rolling to the cup">
+    <rect class="artsky" width="320" height="150" fill="#8fd6f7"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M30 34h34v10H30zM46 26h26v10H46z" class="artcloud" fill="#fff"/><path d="M244 22h30v9h-30zM232 30h28v9h-28z" class="artcloud" fill="#fff"/>
+    <g transform="translate(8 0)"><path d="M26 126l36-48h216l-36 48z" fill="#5fbf58" ${o}/><path d="M26 126h216v12H26z" fill="#a86a42" ${o}/><path d="M242 126l36-48v12l-36 48z" fill="#8a5433" ${o}/>
+    ${tiles}
+    <path d="M26 126l36-48h216l-36 48z" fill="none" stroke="#f7e3c0" stroke-width="7" stroke-linejoin="round"/><path d="M26 126l36-48h216l-36 48z" fill="none" ${o}/>
+    <g ${o}><path d="M176 96l8-44h20l8 44z" fill="#fff4e2"/><path d="M180 52l14-16 14 16z" fill="#e5543b"/>
+      <g class="gfmill" style="transform-origin:194px 56px"><path d="M191 56h6v-30h-6zM191 56h6v30h-6zM194 53v6h30v-6zM194 53v6h-30v-6z" fill="#ffb547"/></g><circle cx="194" cy="56" r="4" fill="#3b2219"/></g>
+    <ellipse cx="96" cy="94" rx="11" ry="6" fill="#2a1422"/><path d="M96 94V40" stroke="#3b2219" stroke-width="3.5" stroke-linecap="round"/><path d="M98 42l26 9-26 10z" fill="#e5543b" ${o}/>
+    <path d="M236 112c-30 4-60 0-92-8" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+    <circle cx="140" cy="103" r="8" fill="#ff8fab" ${o}/><circle cx="137" cy="100" r="2.4" fill="#fff"/></g></svg>`;
+}
+
+// Liar's Dice card: a tilted dice cup with dice tumbling out on a round table, under a sky.
+export function diceArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pip = (x, y, r = 3.2, c = '#3b2219') => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+  const die = (x, y, rot, pips, cls = '') => `<g class="${cls}" transform="rotate(${rot} ${x + 17} ${y + 17})"><rect x="${x}" y="${y}" width="34" height="34" rx="8" fill="#fff8ec" ${o}/>${pips.map(([px, py, r, c]) => pip(x + px, y + py, r, c)).join('')}</g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A dice cup tipped over a round table with three dice tumbling out">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M26 40l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M250 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="132" rx="150" ry="34" fill="#b9794a" ${o}/><ellipse cx="160" cy="126" rx="138" ry="28" fill="#3f9f96" ${o}/>
+    <g class="dcup" style="transform-origin:96px 96px"><path d="M58 104l22-62 54 20-30 58z" fill="#ff8fab" ${o}/><path d="M64 88l50 18-6 11-48-17z" fill="#3b2219" fill-opacity=".22"/><ellipse cx="81" cy="112" rx="26" ry="11" transform="rotate(20 81 112)" fill="#c95f7c" ${o}/></g>
+    ${die(140, 92, -12, [[10, 10], [24, 24], [17, 17]])}${die(188, 80, 14, [[17, 17, 5, '#e5543b']], 'ddie')}${die(232, 98, -6, [[10, 10], [24, 10], [10, 24], [24, 24], [17, 17]])}
+    <path class="arttick" d="M150 66l-6-9M172 58l1-11M204 60l7-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Pawperty card: a strip of the board with a pet waiting in its box, a little palace, a bone and two dice.
+export function pawArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const tile = (x, c) => `<g><path d="M${x} 128l14-40h58l8 40z" fill="#fff6e4" ${o}/><path d="M${x + 14} 88h58l2.6 13H${x + 9.4}z" fill="${c}" ${o}/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A board of pet shops with a bunny in a box, a little palace, a bone and two dice">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="282" cy="30" r="1.5"/><circle cx="44" cy="60" r="1.2"/><circle cx="160" cy="34" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M40 34l14-8 16 4 8 10-10 8H48z" class="artcloud" fill="#fff"/><path d="M236 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 150l26-66h268l26 66z" fill="#a5dc86" ${o}/>
+    ${tile(22, '#ff7a8a')}${tile(98, '#ffa24a')}${tile(174, '#c98bff')}${tile(250, '#4db5ff')}
+    <g transform="translate(8 0)"><g class="pwbun" style="transform-origin:60px 100px"><path d="M50 70c-6-18 0-26 4-26s8 10 6 26M66 70c0-18 6-26 10-24s4 12-4 26" fill="#ffd0dc" ${o}/><ellipse cx="60" cy="84" rx="19" ry="17" fill="#fff" ${o}/><circle cx="53" cy="82" r="2.6" fill="#3b2219"/><circle cx="67" cy="82" r="2.6" fill="#3b2219"/><path d="M57 89q3 3 6 0" fill="none" stroke="#3b2219" stroke-width="2.4" stroke-linecap="round"/><circle cx="48" cy="88" r="3" fill="#ff8fab"/><circle cx="72" cy="88" r="3" fill="#ff8fab"/></g>
+    <path d="M36 92h48l-4 28H40z" fill="#d2a56e" ${o}/><path d="M36 92l-8 10h14zM84 92l8 10H78z" fill="#b98a55" ${o}/><rect x="50" y="101" width="20" height="10" rx="2" fill="#fff6e4" stroke="#3b2219" stroke-width="2"/></g>
+    <g ${o}><rect x="196" y="62" width="34" height="40" fill="#fff6e4"/><path d="M190 64l23-22 23 22z" fill="#c98bff"/><rect x="186" y="56" width="10" height="46" fill="#fff6e4"/><path d="M184 58l7-14 7 14z" fill="#c98bff"/><rect x="230" y="56" width="10" height="46" fill="#fff6e4"/><path d="M228 58l7-14 7 14z" fill="#c98bff"/><rect x="207" y="82" width="12" height="20" fill="#8a5a3c"/></g>
+    <g class="pwbone" style="transform-origin:140px 60px"><path d="M122 50a7 7 0 0 1 12 4l14 10a7 7 0 1 1 4 12 7 7 0 1 1-12-4l-14-10a7 7 0 1 1-4-12z" fill="#e2a868" ${o}/></g>
+    <g transform="translate(-10 -6) rotate(-10 276 66)"><rect x="262" y="52" width="28" height="28" rx="7" fill="#fff8ec" ${o}/><circle cx="270" cy="60" r="2.8" fill="#3b2219"/><circle cx="282" cy="72" r="2.8" fill="#3b2219"/><circle cx="276" cy="66" r="2.8" fill="#3b2219"/></g>
+    <g transform="translate(-32 10) rotate(12 300 84)"><rect x="288" y="72" width="24" height="24" rx="6" fill="#fff8ec" ${o}/><circle cx="300" cy="84" r="4" fill="#e5543b"/></g>
+  </svg>`;
+}
+
+// Kart Island Race card: a little kart zooming along a road over a floating island, past an item box.
 export function kartArt() {
-  const wheel = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})"><path d="M-4-9h8l5 5v8l-5 5h-8l-5-5v-8z" fill="#2b2230" ${O}/><rect x="-3" y="-3" width="6" height="6" fill="${C.grey}"/></g>`;
-  return scene('A blocky kart racing along an island road towards a gift box', `
-    <path d="M58 60h12M48 74h16M60 88h10" stroke="${TICK}" stroke-width="3" stroke-linecap="square" transform="translate(190 4)"/>
-    <g class="abob" style="--d:.2s">${box(50, 46, 28, 24, C.mint, 8)}<g ${O}><path d="M60 46h8v24h-8z" fill="${C.pink}"/><path d="M60 46l8-4.800h8l-8 4.800z" fill="${C.pink}"/><path d="M64 44l-12-8v10zM68 44l12-10v10z" fill="${C.pink}"/></g></g>
-    <g class="ajig">${box(104, 90, 100, 13, C.red, 10)}<g ${O}><path d="M104 90l-10 7v6h10z" fill="#b8402c"/></g><path d="M110 97h88" stroke="${C.cream}" stroke-width="3"/>
-    ${box(197, 74, 5, 14, '#2b2230', 4)}${box(188, 68, 22, 6, '#b8402c', 8)}
-    ${box(173, 64, 7, 24, '#2b2230', 8)}${box(153, 70, 20, 18, C.blue, 6)}${box(151, 50, 24, 20, '#f2c9a0', 6)}${box(149, 44, 28, 10, C.yellow, 6)}<path d="M155 59h4v6h-4z" fill="${INK}"/>
-    ${box(116, 80, 28, 8, '#b8402c', 8)}${rod('M141 77l2-7', '#2b2230', 2)}${box(138, 65, 9, 4, '#2b2230', 3)}${rod('M155 80l-8-6', C.blue, 4)}
-    ${wheel(124, 108, 1)}${wheel(186, 106, 1.25)}</g>`,
-  { top: '#8e8a99', onTop: `<path d="M64 108h186" stroke="#fff" stroke-width="3" stroke-dasharray="14 10"/><path d="M44 108l34-14h14l-34 14 34 14H78zM270 108l-34-14h-14l34 14-34 14h14z" fill="var(--art-grass, #8fd16a)" ${O}/>` });
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A kart racing along a road on a floating island past a gift-wrapped item box">
+    <rect class="artsky" width="320" height="150" fill="#8fd6f7"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M34 30h34v10H34zM50 22h26v10H50z" class="artcloud" fill="#fff"/><path d="M240 20h30v9h-30zM228 28h28v9h-28z" class="artcloud" fill="#fff"/>
+    <path d="M8 112c40-26 260-26 304 0l-16 14c-30 14-240 14-272 0z" fill="#8bca60" ${o}/>
+    <path d="M24 126c34 16 238 16 272 0l-30 20H52z" fill="#c98a5a" ${o}/>
+    <path d="M18 116c46-18 238-18 284 0l-10 6c-44-14-220-14-264 0z" fill="#8b8192" ${o}/>
+    <path d="M40 114l12-3M84 106l14-2M136 102h16M188 102l16 1M240 106l14 2M280 112l10 3" stroke="#fff4e2" stroke-width="3" stroke-linecap="round"/>
+    <g class="krbox"><rect x="236" y="62" width="30" height="30" rx="5" fill="#9aa8ff" ${o}/><path d="M251 62v30M236 77h30" stroke="#ffd23f" stroke-width="6"/><path d="M236 77h30M251 62v30" stroke="#3b2219" stroke-width="1.2" opacity=".4"/><path d="M244 58c2-6 6-6 7 4 1-10 5-10 7-4" fill="#ffd23f" ${o}/></g>
+    <g class="krkart">
+      <path d="M58 92h10M50 100h14M54 84h8" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+      <path d="M86 98l6-18h56l14 10 4 10z" fill="#ff8fab" ${o}/><path d="M80 100h92v8H80z" fill="#fff4e2" ${o}/>
+      <circle cx="96" cy="108" r="10" fill="#3b2219"/><circle cx="96" cy="108" r="4" fill="#fff4e2"/><circle cx="156" cy="108" r="10" fill="#3b2219"/><circle cx="156" cy="108" r="4" fill="#fff4e2"/>
+      <path d="M104 80c0-10 6-16 14-16" fill="none" stroke="#3b2219" stroke-width="3"/>
+      <path d="M108 86c0-12 4-18 14-18s14 6 14 18z" fill="#7ed3b2" ${o}/><path d="M132 76l12 6" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M132 76l12 6" stroke="#7ed3b2" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="122" cy="56" r="15" fill="#f7cba6" ${o}/><path d="M107 54c2-12 26-14 30-2-8-4-20-4-30 2z" fill="#5b3a2a" ${o}/>
+      <circle cx="118" cy="58" r="2" fill="#3b2219"/><circle cx="127" cy="58" r="2" fill="#3b2219"/><path d="M119 64c2 2 5 2 7 0" stroke="#3b2219" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M72 94c-6-2-12-2-16 2 6 2 10 4 16 2z" fill="#ffb547" ${o}/>
+    </g></svg>`;
 }
 
+// Cozy Kitchen Rush card: a counter on a sky island with a steaming soup pot, a burger and a chopping board.
 export function kitchenArt() {
-  return scene('A kitchen counter with a steaming pot and a burger', `
-    ${box(86, 88, 146, 26, C.cream, 12)}<path d="M96 95h36v12H96zM141 95h36v12h-36zM186 95h36v12h-36z" fill="none" stroke="${INK}" stroke-width="2"/><path d="M110 101h8M155 101h8M200 101h8" stroke="${INK}" stroke-width="2.500"/>
-    ${box(80, 82, 158, 6, C.wood, 14)}
-    ${box(104, 56, 42, 22, C.steel, 8)}<path d="M96 60h8v6h-8zM154 56h8v6h-8z" fill="${C.steel}" ${O}/><path d="M104 56h42" stroke="${C.cream}" stroke-width="4"/>
-    <g class="abob" fill="var(--art-cloud, #fff)" ${O}><path d="M116 38h11v10h-11zM126 26h8v8h-8z"/></g>
-    <g class="abob" style="--d:.6s" ${O}><path d="M176 62l8-12h30l8 12z" fill="${C.orange}"/><path d="M172 62h54v6h-54z" fill="${C.leaf}"/><path d="M176 68h46v7h-46z" fill="#7a4a2e"/><path d="M176 75h46l-4 7h-38z" fill="${C.orange}"/><path d="M188 54h4M200 53h4" stroke-width="2.5" stroke="${C.cream}"/></g>`);
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little kitchen counter with a steaming soup pot, a burger and a tomato on a chopping board">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M24 40l14-8 16 4 8 10-10 8H32z" class="artcloud" fill="#fff"/><path d="M252 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 150l20-36h280l20 36z" fill="#a5dc86" ${o}/>
+    <g ${o}><path d="M30 34h260v14H30z" fill="#fff4e2"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => `<path d="M${30 + i * 20} 48h20l-3 12h-14z" fill="${i % 2 ? '#fff' : '#ff7a59'}"/>`).join('')}</g>
+    <path d="M40 92h240v32H40z" fill="#e9d3b0" ${o}/><path d="M34 84h252v10H34z" fill="#fff8ec" ${o}/>
+    <path d="M58 100h22v18H58zM100 100h22v18h-22zM198 100h22v18h-22zM240 100h22v18h-22z" fill="#d7b98f" stroke="#3b2219" stroke-width="2"/>
+    <g class="krsteam" style="transform-origin:88px 40px"><path d="M80 52c-6-8 6-10 0-18M94 50c-6-8 6-10 0-18" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></g>
+    <g ${o}><path d="M64 58h48v24a6 6 0 0 1-6 6H70a6 6 0 0 1-6-6z" fill="#9aa4b0"/><path d="M58 58h60" /><ellipse cx="88" cy="60" rx="22" ry="4" fill="#e8603f"/><path d="M58 66h-6M118 66h6"/></g>
+    <g class="krbun" style="transform-origin:160px 84px" ${o}><path d="M138 66a22 16 0 0 1 44 0z" fill="#e8a95b"/><path d="M135 66h50l-3 5h-44z" fill="#7ccc5c"/><rect x="136" y="71" width="48" height="8" rx="4" fill="#8a4b2a"/><path d="M138 79h44v6h-44z" fill="#e8a95b"/></g>
+    <path d="M150 58h.5M160 55h.5M170 58h.5" stroke="#fff4e2" stroke-width="3" stroke-linecap="round"/>
+    <g ${o}><path d="M204 76h60v8h-60z" fill="#e8c48f"/><circle cx="226" cy="68" r="10" fill="#e5543b"/><path d="M222 58l4 3 4-3" fill="none" stroke="#4a9a45" stroke-width="3"/><path d="M246 80l18-22 4 3-16 20z" fill="#d9dde3"/></g>
+  </svg>`;
 }
 
+// Treasure Dig card: a grass field with dug tiles, numbers, a gem popping out and a shovel stuck in the dirt.
 export function digArt() {
-  return scene('A treasure chest dug out of a grass field with a gem above it and a shovel', `
-    <g ${O}><path d="M136 80l4-30h60l-4 30z" fill="#6e4530"/><path d="M140 50l4-5h60l-4 5z" fill="${C.wood}"/><path d="M200 50l4-5-4 30-4 5z" fill="${C.bark}"/><path d="M148 50l-3 30M190 50l-3 30" stroke="${C.yellow}" stroke-width="5"/><path d="M148 50l-3 30M190 50l-3 30" fill="none" stroke-width="1" opacity="0"/></g>
-    ${box(124, 86, 60, 26, C.wood, 12)}
-    <g ${O}><path d="M130 85l8-9h10l6-6h14l6 6h10l6 5-6 4z" fill="${C.yellow}"/><path d="M132 86h7v26h-7zM169 86h7v26h-7z" fill="${C.bark}"/><path d="M124 86h60" fill="none"/><path d="M148 90h12v12h-12z" fill="${C.yellow}"/></g>
-    <path d="M152 94h4v5h-4z" fill="${INK}"/><path d="M142 78h5v4h-5zM158 73h6v4h-6zM172 79h5v3h-5z" fill="#fff" fill-opacity=".7"/>
-    <g class="abob" ${O}><path d="M140 22h28l10 12-24 22-24-22z" fill="${C.pink}"/><path d="M140 22h28l-14 12z" ${LIGHT}/><path d="M154 34l24 0-24 22z" ${DARK}/></g>
-    <path d="M120 24l-9 3M188 24l9 3M154 14v-8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>
-    <g transform="translate(14 -8)">${rod('M82 62L71 98', C.wood, 4, 'butt')}<g ${O}><path d="M76 54h14v8H76z" fill="${C.bark}"/><path d="M58 98h22l-4 20h-10z" fill="${C.grey}" transform="rotate(16 69 100)"/><path d="M69 98l-3 20" transform="rotate(16 69 100)" stroke-width="2" opacity=".4"/></g></g>
-    ${rod('M226 110V74', C.cream, 3)}<path d="M229 72l22 8-22 8z" fill="${C.red}" ${O}/>`,
-  { onTop: `<path d="M78 94l-17 14 17 14M118 94l-10 28M158 94v28M198 94l10 28M236 94l17 14-17 14M61 101h192M56 113h202" fill="none" stroke="${INK}" stroke-opacity=".28" stroke-width="2"/><path d="M92 114h24l5 5H86zM196 112h24l4 6h-32z" fill="#7a4a2e" ${O}/>` });
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const tile = (x, y, dug, n, c) => `<g><path d="M${x} ${y}h34l-5 -18h-24z" fill="${dug ? '#d6a46c' : '#7cc45a'}" ${o}/>${dug ? '' : `<path d="M${x} ${y}h34v6h-34z" fill="#5a9a3c" ${o}/>`}${n ? `<text x="${x + 17}" y="${y - 4}" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="14" fill="${c}" stroke="#fff4e2" stroke-width="3" paint-order="stroke">${n}</text>` : ''}</g>`;
+  const rows = [[118, 0], [100, 1], [82, 2]], tiles = [];
+  rows.forEach(([y, r]) => { for (let k = 0; k < 7; k++) { const x = 46 + k * 34 + r * 5; const dug = (r === 0 && k > 1 && k < 5) || (r === 1 && k > 2 && k < 5) || (r === 2 && k === 3); const n = dug && (r === 0 && k === 2 ? 1 : r === 1 && k === 4 ? 2 : r === 0 && k === 4 ? 1 : 0); tiles.push(tile(x, y, dug, n, n === 2 ? '#2f9a4a' : '#2f7fd8')); } });
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A grass field with dug tiles showing numbers, a gem popping out and a shovel">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="40" r="1.5"/><circle cx="18" cy="50" r="1.2"/></g>
+    <path d="M26 36l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M246 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M18 150l26-74h252l26 74z" fill="#8a5a3c" ${o}/>
+    ${tiles.reverse().join('')}
+    <g class="dgem" style="transform-origin:168px 52px"><path d="M152 50l6-9h20l6 9-16 20z" fill="#ff5c8a" ${o}/><path d="M158 50l4-6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/></g>
+    <path d="M168 28l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>
+    <g transform="rotate(18 262 70)"><rect x="258" y="22" width="8" height="54" rx="3" fill="#a86a42" ${o}/><rect x="252" y="18" width="20" height="8" rx="3" fill="#a86a42" ${o}/><path d="M250 74h24v14q-12 10-24 0z" fill="#c9ccd6" ${o}/></g>
+    <g transform="translate(60 52)"><circle r="11" fill="#2b2430" ${o}/><path d="M7 -8l5 -7" stroke="#8a5a3c" stroke-width="3" stroke-linecap="round"/><circle cx="13" cy="-16" r="3" fill="#ffd84a"/></g>
+  </svg>`;
 }
 
+// Sky Bricks card: a well of pastel bricks on a floating island, one brick falling in and a stone flying off.
 export function bricksArt() {
-  const cols = [C.red, C.orange, C.mint, C.violet, C.pink, C.yellow, C.blue], s = 12, x0 = 112, y0 = 26;
-  const rows = ['........', '........', '.....0..', '1....00.', '11.2.30.', '14223366', '44523556'];
-  let cells = '';
-  rows.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') cells += `<rect x="${x0 + i * s}" y="${y0 + j * s}" width="${s}" height="${s}" fill="${cols[+ch]}" stroke="${INK}" stroke-width="1.5"/>`; }));
-  const piece = [[1, 0], [0, 1], [1, 1], [2, 1]].map(([i, j]) => `<rect x="${x0 + 24 + i * s}" y="${y0 + 6 + j * s}" width="${s}" height="${s}" fill="${C.yellow}" stroke="${INK}" stroke-width="2"/>`).join('');
-  return scene('A well of stacked coloured bricks with a piece falling in and a stone block on its way', `
-    ${box(104, 20, 112, 94, C.steel, 8)}<rect x="${x0}" y="${y0}" width="96" height="84" fill="${C.night}" ${O}/>${cells}<g class="astep">${piece}</g>
-    <rect x="${x0}" y="${y0}" width="96" height="84" fill="none" ${O}/>
-    <g class="abob" style="--d:.4s">${box(54, 62, 28, 22, C.grey, 8)}<path d="M60 70h8M66 78h10" stroke="${INK}" stroke-width="2.5" opacity=".5"/></g>
-    <path d="M90 66l8-3M92 76h8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const C = { p: '#ff8fab', l: '#c8e66b', b: '#9aa8ff', a: '#ffb547', t: '#59d6c2', c: '#ff7a59', v: '#c59bff', s: '#a7a2b3' };
+  const rows = ['sss.sssss', 'pvvaa.ttb', 'ppv.accbb', '.pl..ac..', '..l......'];
+  const cell = (x, y, k) => `<rect x="${106 + x * 12}" y="${110 - y * 12}" width="12" height="12" fill="${C[k]}" stroke="#3b2219" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A well of colourful bricks on a floating island with one brick falling in">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="42" cy="18" r="1.6"/><circle cx="270" cy="14" r="1.3"/><circle cx="292" cy="62" r="1.5"/><circle cx="18" cy="70" r="1.2"/><circle cx="246" cy="44" r="1.1"/><circle cx="74" cy="50" r="1.2"/></g>
+    <path d="M22 44l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M250 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M56 126c30-12 178-12 208 0l-14 10c-30 8-150 8-180 0z" fill="#8bca60" ${o}/><path d="M70 136c30 8 150 8 180 0l-34 16h-112z" fill="#c98a5a" ${o}/>
+    <rect x="104" y="26" width="112" height="98" fill="#465396" ${o}/>
+    <rect x="94" y="22" width="12" height="104" fill="#b9794a" ${o}/><rect x="214" y="22" width="12" height="104" fill="#b9794a" ${o}/><rect x="88" y="122" width="144" height="10" rx="3" fill="#a86a42" ${o}/>
+    ${rows.map((r, y) => [...r].map((k, x) => (k === '.' ? '' : cell(x, y, k))).join('')).join('')}
+    <g class="sbfall">${[[0, 0], [1, 0], [2, 0], [1, 1]].map(([x, y]) => `<rect x="${154 + x * 12}" y="${48 - y * 12}" width="12" height="12" fill="#ffd84a" stroke="#3b2219" stroke-width="2"/>`).join('')}</g>
+    <g class="sbstone"><rect x="252" y="76" width="16" height="16" rx="2" fill="#a7a2b3" ${o} transform="rotate(18 260 84)"/><path d="M236 96l8-5M240 104l7-3" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>
+    <path d="M60 84l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`;
 }
 
+// Beanstalk Bounce card: a climber leaping between leaf ledges on a beanstalk, a storm cloud rumbling below.
 export function beanArt() {
-  const leaf = (x, y, dir, c = C.green) => `<g transform="translate(${x} ${y}) scale(${dir} 1)" ${O}><path d="M0 0l10-8h34l12 8-12 7H10z" fill="${c}"/><path d="M0 0l10 7h34l12-7v5l-12 7H10L0 5z" fill="${C.leaf}"/></g>`;
-  return scene('A climber hopping between the leaves of a giant beanstalk', `
-    ${rod('M152 112L140 88l20-30-14-30 8-36', C.leaf, 15, 'butt')}<path d="M134 116l8-9h20l8 9z" fill="${C.leaf}" ${O}/>
-    ${leaf(142, 92, -1)}${leaf(158, 80, 1)}${leaf(144, 32, -1, '#8fd96a')}
-    <g class="ahop"><g transform="translate(196 54) scale(1.35) translate(-194 -40)">${box(184, 22, 20, 18, '#f2c9a0', 5)}${box(182, 16, 24, 8, C.bark, 5)}<path d="M189 29h3v5h-3zM197 29h3v5h-3z" fill="${INK}"/>
-    <g ${O}><path d="M186 40h18v14h-18z" fill="${C.pink}"/><path d="M186 42l-10-6v6l10 6zM204 42l10-8v6l-10 8z" fill="${C.pink}"/><path d="M187 54h7v8h-7zM196 54h7v6h-7z" fill="${C.blue}"/></g></g></g>`);
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const ledge = (x, y, w, c) => `<path d="M${x} ${y}h${w}a7 7 0 0 1 0 14h-${w}a7 7 0 0 1 0-14z" fill="${c}" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little climber jumping between leaf ledges on a giant beanstalk above a storm cloud">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="262" cy="62" r="1.5"/><circle cx="68" cy="70" r="1.2"/><circle cx="150" cy="40" r="1.1"/><circle cx="84" cy="10" r="1.2"/></g>
+    <path d="M74 14h34v10H74zM90 6h26v10H90z" class="artcloud" fill="#fff"/><path d="M226 44h30v9h-30zM214 52h28v9h-28z" class="artcloud" fill="#fff"/>
+    <g transform="translate(14 0)"><path d="M14 -4c10 30-8 50 2 80s-6 50 0 80h26c-8-30 8-52 0-80s8-50-2-80z" fill="#5aad4c" ${o}/><path d="M40 40c14-10 28-8 36 2-12 8-26 8-36-2z" fill="#7ed067" ${o}/></g>
+    <g transform="translate(-10 0)"><path d="M280 -4c-10 30 8 50-2 80s6 50 0 80h26c-8-30 8-52 0-80s8-50-2-80z" fill="#5aad4c" ${o}/><path d="M280 50c-12-10-24-8-32 2 10 8 22 8 32-2z" fill="#7ed067" ${o}/></g>
+    ${ledge(70, 104, 70, '#9be06a')}${ledge(170, 76, 62, '#ffc4dc')}${ledge(96, 40, 56, '#ffdca8')}
+    <g class="bbshroom"><rect x="202" y="64" width="8" height="12" fill="#fff4e2" ${o}/><path d="M192 66c0-14 28-14 28 0z" fill="#ef5a4c" ${o}/><circle cx="201" cy="60" r="2.4" fill="#fff"/><circle cx="211" cy="61" r="2" fill="#fff"/></g>
+    <g class="bbstorm"><path d="M-10 150v-18c10-10 26-8 34 0 8-12 30-12 38 0 10-10 30-10 38 0 8-10 28-10 36 0 8-12 30-12 38 0 10-10 30-10 38 0 8-10 28-10 36 0 8-10 26-10 34 0 10-8 28-8 38 0v18z" fill="#5a4b8c" ${o}/><path d="M150 126l-8 12h7l-4 12 12-16h-7z" fill="#ffe36b" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></g>
+    <g class="bbhop">
+      <path d="M138 96l-6 8M150 96l8 6" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M138 96l-6 8M150 96l8 6" stroke="#5b6fd6" stroke-width="3" stroke-linecap="round"/>
+      <path d="M134 78c0-8 20-8 20 0v16h-20z" fill="#ff8fab" ${o}/><path d="M134 80l-10-8M154 80l10-10" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M134 80l-10-8M154 80l10-10" stroke="#ff8fab" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="144" cy="62" r="14" fill="#f7cba6" ${o}/><path d="M130 60c2-12 26-14 28-2-8-4-18-4-28 2z" fill="#5b3a2a" ${o}/>
+      <circle cx="140" cy="64" r="2" fill="#3b2219"/><circle cx="149" cy="64" r="2" fill="#3b2219"/><path d="M141 69c2 2 5 2 7 0" stroke="#3b2219" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M126 104l4 6M144 108v7M160 104l-4 6" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+    </g></svg>`;
 }
 
-export function panArt() {
-  return scene('The nine of hearts in front of a hand of cards, next to the deck', `
-    ${card(100, 74, -18, '', 's', { w: 44, h: 62, back: C.blue })}${card(124, 70, -4, '', 's', { w: 44, h: 62, back: C.blue })}
-    ${card(154, 72, 9, '9', 'h', { w: 48, h: 66, cls: 'abob' })}
-    ${box(200, 100, 36, 5, C.cream, 12)}${box(200, 95, 36, 5, C.cream, 12)}${box(200, 90, 36, 5, C.blue, 12)}`);
-}
-
-export function piotrArt() {
-  const pc = (cx, cy, rot, bg, inner, o = {}) => card(cx, cy, rot, '', 's', { w: 42, h: 60, back: bg, ...o }).replace(/<path d="M0[^>]*fill-opacity="\.55"\/>/, inner);
-  return scene('Three pet cards, with the black cat Piotruś card pulled up in the middle', `
-    ${pc(104, 78, -14, '#bfe6c8', pet(0, 2, '#fff', 'bun'))}${pc(204, 78, 14, '#ffd9a0', pet(0, 2, C.orange, 'cat'))}
-    ${pc(154, 62, 0, '#3b3a78', pet(0, 2, '#1d1b33', 'cat', C.yellow, 1.1), { cls: 'abob', w: 46, h: 64 })}
-    <path d="M124 26l-6-8M154 18v-9M184 26l6-8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`);
-}
-
-export function pipsArt() {
-  return scene('Three dice next to a score sheet with a pencil', `
-    <g transform="rotate(-8 80 80)" ${O}><path d="M62 50h40v62H62z" fill="${C.cream}"/><path d="M62 50h40v12H62z" fill="${C.pink}"/><path d="M68 72h16M68 82h16M68 92h16M68 102h16" stroke-width="2.5" opacity=".45"/><path d="M89 70l3 4 6-7M89 90l3 4 6-7" fill="none" stroke="${C.leaf}"/></g>
-    ${die(120, 84, 28, 6, C.yellow, INK, 0, 'abob')}${die(162, 78, 30, 6, C.yellow, INK, -8, 'abob', .3)}${die(208, 88, 26, 3, C.cream, INK, 10, 'abob', .6)}
-    <path d="M140 60l-4-8M178 52v-9M214 62l4-8" stroke="${TICK}" stroke-width="3" stroke-linecap="square"/>`, { top: '#e77fa0' });
-}
-
+// Sky Darts card: a dartboard on a wooden stand on a sky island, two darts in it and a third on its way.
 export function dartsArt() {
-  // a real dartboard: twenty thin wedges, red and green double and treble rings, a number ring, and short darts with flights
-  const P = (r, i) => { const t = (i * 18 - 9 - 90) * Math.PI / 180; return `${(r * Math.cos(t)).toFixed(1)} ${(r * Math.sin(t)).toFixed(1)}`; };
-  const ring = (r1, r2, i, c) => `<path d="M${P(r1, i)}L${P(r2, i)}L${P(r2, i + 1)}L${P(r1, i + 1)}z" fill="${c}"/>`;
-  const poly = r => 'M' + Array.from({ length: 20 }, (_, i) => P(r, i)).join('L') + 'z';
-  let board = '';
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"', cx = 172, cy = 70;
+  let segs = '';
   for (let i = 0; i < 20; i++) {
-    const hot = i % 2 ? C.leaf : C.red;
-    board += ring(0, 32, i, i % 2 ? C.cream : '#2b2230') + ring(28, 32, i, hot) + ring(15, 19, i, hot);
+    const a0 = (i * 18 - 9 - 90) * Math.PI / 180, a1 = (i * 18 + 9 - 90) * Math.PI / 180, even = i % 2 === 0;
+    const wedge = (r0, r1, c) => `<path d="M${(cx + Math.cos(a0) * r0).toFixed(1)} ${(cy + Math.sin(a0) * r0).toFixed(1)}L${(cx + Math.cos(a0) * r1).toFixed(1)} ${(cy + Math.sin(a0) * r1).toFixed(1)}A${r1} ${r1} 0 0 1 ${(cx + Math.cos(a1) * r1).toFixed(1)} ${(cy + Math.sin(a1) * r1).toFixed(1)}L${(cx + Math.cos(a1) * r0).toFixed(1)} ${(cy + Math.sin(a1) * r0).toFixed(1)}A${r0} ${r0} 0 0 0 ${(cx + Math.cos(a0) * r0).toFixed(1)} ${(cy + Math.sin(a0) * r0).toFixed(1)}z" fill="${c}"/>`;
+    segs += wedge(6, 44, even ? '#2b2228' : '#f6e7c8') + wedge(24, 29, even ? '#e5543b' : '#3fae5d') + wedge(39, 44, even ? '#e5543b' : '#3fae5d');
   }
-  const num = (n, x, y) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="8" fill="${C.cream}">${n}</text>`;
-  const dart = (x, y, rot, c, cls = '') => `<g class="${cls}"><g transform="translate(${x} ${y}) rotate(${rot})">${rod('M-3 0H-8', C.grey, 1, 'butt')}${rod('M-8 0H-22', C.yellow, 4, 'butt')}<path d="M-22 0h-6l-7-9h-9l6 9-6 9h9l7-9z" fill="${c}" ${O}/></g></g>`;
-  return scene('A dartboard with numbers and coloured rings, a 301 scoreboard, two darts in the board and one flying in', `
-    ${box(148, 96, 12, 20, C.bark, 6)}
-    ${box(72, 90, 8, 26, C.bark, 5)}${box(54, 66, 44, 28, '#3b4a52', 6)}<text x="76" y="86" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="16" fill="${C.cream}">301</text>
-    <g transform="translate(154 60)"><path d="${poly(41)}" fill="#2b2230" ${O}/>${board}
-    <path d="${poly(32)}" fill="none" stroke="${INK}" stroke-width="1.500"/><path d="${poly(6)}" fill="${C.leaf}" stroke="${INK}" stroke-width="1.500"/><path d="${poly(2.500)}" fill="${C.red}"/>
-    ${num(20, 0, -33.500)}${num(3, 0, 39)}${num(6, 36.500, 3)}${num(11, -36, 3)}</g>
-    ${dart(150, 44, 14, C.blue)}${dart(158, 62, -6, C.red)}${dart(104, 30, 16, C.mint, 'adart')}`);
+  const dart = (x, y, rot, c, cls = '') => `<g transform="translate(${x} ${y}) rotate(${rot})"><g class="${cls}"><path d="M0 0l-14 0" stroke="#5b5f66" stroke-width="2.5" stroke-linecap="round"/><path d="M-12 -3h-18v6h18z" fill="#d9dde3" ${o}/><path d="M-30 0h-12" stroke="#3b2219" stroke-width="3"/><path d="M-40 0l-12-9h10l8 9-8 9h-10z" fill="${c}" ${o}/></g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A dartboard on a wooden stand on a floating island with darts in it and one flying in">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="42" cy="18" r="1.6"/><circle cx="264" cy="14" r="1.3"/><circle cx="292" cy="72" r="1.5"/><circle cx="18" cy="80" r="1.2"/><circle cx="84" cy="44" r="1.1"/></g>
+    <path d="M24 40l14-8 16 4 8 10-10 8H32z" class="artcloud" fill="#fff"/><path d="M256 36l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M0 132h320v18H0z" class="artsea" fill="#7fcdf0"/>
+    <path d="M66 128l30-10h152l30 10-36 16H102z" fill="#8fd16a" ${o}/>
+    <path d="M112 12h14v112h-14zM218 12h14v112h-14z" fill="#b57c4e" ${o}/><path d="M104 20l68-18 68 18v10H104z" fill="#e5543b" ${o}/>
+    <rect x="122" y="22" width="100" height="98" rx="6" fill="#6b4a3c" ${o}/>
+    <circle cx="${cx}" cy="${cy}" r="47" fill="#2b2228" ${o}/>${segs}<circle cx="${cx}" cy="${cy}" r="6" fill="#3fae5d"/><circle cx="${cx}" cy="${cy}" r="2.8" fill="#e5543b"/>
+    <circle cx="${cx}" cy="${cy}" r="44" fill="none" stroke="#d9dde3" stroke-width="1.2"/>
+    ${dart(cx + 2, cy - 26, 196, '#ff8fab')}${dart(cx - 14, cy + 6, 170, '#9aa8ff')}${dart(cx + 1, cy, 158, '#ffb547', 'dtfly')}
+  </svg>`;
 }
 
+// Tysiąc card: a king and queen of hearts (a marriage) with an ace behind them, and "1000" chalked on a slate.
+export function tysArt() {
+  const red = '#d8402a', heart = 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z',
+    spade = 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z';
+  const card = (x, y, rot, r, col, path, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
+    <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
+    <text x="${x + 8}" y="${y + 24}" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="22" fill="${col}">${r}</text>
+    <path d="${path}" fill="${col}" transform="translate(${x + 22} ${y + 36}) scale(1.45)"/></g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A king and queen of hearts with an ace of spades, next to a slate that says 1000">
+  <rect width="320" height="150" fill="#b8433f"/>
+  <path d="M0 0h320v150H0z" fill="url(#tysp)"/><defs><pattern id="tysp" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M14 4l5 5-5 5-5-5z" fill="#fff4e222"/><circle cx="0" cy="21" r="2.4" fill="#fff4e222"/><circle cx="28" cy="21" r="2.4" fill="#fff4e222"/></pattern></defs>
+  <ellipse cx="160" cy="166" rx="210" ry="92" fill="#3f9c7a" stroke="${ink}" stroke-width="3"/>
+  ${card(60, 40, -16, 'A', ink, spade, .4)}${card(92, 30, -3, 'K', red, heart, 0)}${card(126, 34, 10, 'Q', red, heart, .2)}
+  <g transform="rotate(5 243 78)"><rect x="203" y="48" width="80" height="60" rx="8" fill="#8a5a3c" stroke="${ink}" stroke-width="3"/><rect x="209" y="54" width="68" height="48" rx="4" fill="#3b2f3a"/>
+    <text x="243" y="87" text-anchor="middle" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="26" fill="#fff4e2">1000</text>
+    <path d="M221 94h44" stroke="#fff4e288" stroke-width="3" stroke-linecap="round"/></g></svg>`;
+}
+
+// Pan card: the nine of hearts on a blue table with a climbing fan of cards on top of it.
+export function panArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const heart = (x, y, k, c = '#d8402a') => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z" fill="${c}"/>`;
+  const spade = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z" fill="#3b2219"/>`;
+  const card = (x, y, rot, label, pip, cls = '') => `<g class="${cls}" style="animation-delay:${-x * 9}ms"><g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="#fff8ec" ${o}/><text x="${x + 7}" y="${y + 23}" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="21" fill="${pip === 's' ? '#3b2219' : '#d8402a'}">${label}</text>${pip === 's' ? spade(x + 16, y + 30, 1.25) : heart(x + 16, y + 30, 1.25)}</g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="The nine of hearts on a blue table with a ten, a king and an ace fanned on top">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#4f6fc4" ${o}/>
+    ${card(74, 52, -14, '9', 'h')}${card(118, 44, -5, '10', 's', 'pfan')}${card(162, 42, 5, 'K', 'h', 'pfan')}${card(206, 46, 14, 'A', 's', 'pfan')}
+    <path class="arttick" d="M262 62l10-8M268 80h13M96 34l-5-10" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Piotruś card: a fan of pet cards on a green table, with the night-sky Piotruś card peeking out of the middle.
+export function piotrArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pet = (x, y, c, ears) => `<g transform="translate(${x} ${y})">${ears === 'bun' ? `<ellipse cx="-5" cy="-11" rx="3.5" ry="7" fill="${c}" ${o}/><ellipse cx="5" cy="-11" rx="3.5" ry="7" fill="${c}" ${o}/>` : `<path d="M-10 -4l1-10 7 5zM10 -4l-1-10-7 5z" fill="${c}" ${o}/>`}<rect x="-11" y="-8" width="22" height="19" rx="6" fill="${c}" ${o}/><circle cx="-4" cy="1" r="1.8" fill="#3b2219"/><circle cx="4" cy="1" r="1.8" fill="#3b2219"/></g>`;
+  const card = (x, y, rot, bg, band, inner, cls = '') => `<g class="${cls}" style="animation-delay:${-x * 9}ms"><g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="${bg}" ${o}/><path d="M${x + 1.5} ${y + 52}h45v8a6.5 6.5 0 0 1-6.5 6.5h-32a6.5 6.5 0 0 1-6.5-6.5z" fill="${band}"/>${inner(x + 24, y + 30)}</g></g>`;
+  const star = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffd84a"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A fan of pet cards on a green table with the dark Piotruś card standing out in the middle">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#3f9a7a" ${o}/>
+    ${card(62, 52, -20, '#dcefd9', '#3f9a52', (x, y) => pet(x, y, '#8fd18a', 'bun'))}${card(100, 42, -9, '#fbe0d4', '#e0592f', (x, y) => pet(x, y, '#ffab6b'))}
+    ${card(174, 42, 9, '#d8e9f7', '#2f86cc', (x, y) => pet(x, y, '#8cc6f0', 'bun'))}${card(212, 52, 20, '#f7ecc4', '#d9a400', (x, y) => pet(x, y, '#ffd96b'))}
+    ${card(136, 26, 0, '#2b2d6e', '#ffd84a', (x, y) => `${star(x - 15, y - 20, 1.8)}${star(x + 14, y - 22, 1.4)}${star(x + 17, y - 4, 1.6)}${star(x - 17, y, 1.3)}${pet(x, y, '#3b3a46')}<path d="M${x - 5} ${y + 3}h10v8h-10z" fill="#fff8ec"/><circle cx="${x - 4}" cy="${y + 1}" r="1.8" fill="#ffd84a"/><circle cx="${x + 4}" cy="${y + 1}" r="1.8" fill="#ffd84a"/>`, 'ptup')}
+    <path class="arttick" d="M264 62l10-8M270 80h13M54 62l-10-8M48 80H35" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Hay Hunch card: rows of hay bales on a floating meadow, one tossed up showing carrots, a sign and a napping pet.
+export function hayArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const bale = (x, y, cls = '') => `<g class="${cls}"><rect x="${x}" y="${y}" width="40" height="26" rx="4" fill="#e8c25a" ${o}/><rect x="${x + 9}" y="${y}" width="5" height="26" fill="#a8742f"/><rect x="${x + 26}" y="${y}" width="5" height="26" fill="#a8742f"/><path d="M${x + 4} ${y + 8}h8M${x + 18} ${y + 15}h6M${x + 32} ${y + 9}h5" stroke="#f5dc85" stroke-width="2.5" stroke-linecap="round"/></g>`;
+  const carrot = (x, y, r) => `<g transform="rotate(${r} ${x} ${y})"><path d="M${x - 2} ${y - 13}l-4-7M${x + 2} ${y - 13}l4-7M${x} ${y - 13}v-8" stroke="#3f9a52" stroke-width="3" stroke-linecap="round"/><path d="M${x - 6} ${y - 12}q6-4 12 0l-5 20q-1 2-2 0z" fill="#ff8a3c" stroke="#3b2219" stroke-width="2.4" stroke-linejoin="round"/></g>`;
+  const bales = [];
+  for (const [y, xs] of [[66, [78, 124, 216]], [94, [64, 110, 156, 202]]]) for (const x of xs) bales.push(bale(x, y));
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Hay bales on a floating meadow, one tossed up over two carrots, a wooden sign and a napping pet">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="40" cy="16" r="1.6"/><circle cx="270" cy="12" r="1.3"/><circle cx="300" cy="52" r="1.5"/><circle cx="16" cy="60" r="1.2"/><circle cx="150" cy="10" r="1.1"/></g>
+    <path d="M22 36l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M248 24l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <g transform="translate(17 15) scale(.9)" stroke-width="3.3"><path d="M30 118c40-16 220-16 260 0l-16 12c-40 10-188 10-228 0z" fill="#8bca60" ${o}/><path d="M46 130c40 10 188 10 228 0l-40 20h-148z" fill="#c98a5a" ${o}/>
+    <path d="M58 92h200l8 30H50z" fill="#d2a56c" ${o}/>
+    ${bales.join('')}
+    ${carrot(178, 82, -18)}${carrot(190, 84, 16)}
+    ${bale(162, 30, 'hbale')}
+    <g transform="translate(272 70)"><rect x="-3" y="10" width="6" height="40" fill="#8a5a3c" ${o}/><rect x="-20" y="-14" width="40" height="32" rx="6" fill="#fff4e2" ${o}/><rect x="-20" y="-14" width="40" height="8" rx="4" fill="#ffb547"/><text x="0" y="12" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="17" fill="#3b2219">7</text></g>
+    <g transform="translate(36 98)"><ellipse cx="-7" cy="-12" rx="5" ry="8" fill="#c9b5f0" ${o}/><ellipse cx="7" cy="-12" rx="5" ry="8" fill="#c9b5f0" ${o}/><ellipse cx="0" cy="0" rx="17" ry="13" fill="#c9b5f0" ${o}/><path d="M-8 -1q3 3 6 0M2 -1q3 3 6 0" stroke="#3b2219" stroke-width="2.4" fill="none" stroke-linecap="round"/><text x="16" y="-18" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="15" fill="#7a4fc9" stroke="#fff4e2" stroke-width="3" paint-order="stroke">z z</text></g></g>
+  </svg>`;
+}
+
+// Pip Party card: five dice in a row on a pink felt tray, two of them hopping, with a little score sheet behind.
+export function pipsArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const P = [[], [[17, 17]], [[10, 10], [24, 24]], [[10, 10], [17, 17], [24, 24]], [[10, 10], [24, 10], [10, 24], [24, 24]], [[10, 10], [24, 10], [17, 17], [10, 24], [24, 24]], [[10, 9], [24, 9], [10, 17], [24, 17], [10, 25], [24, 25]]];
+  const die = (x, y, rot, v, d, fill = '#fff8ec') => `<g class="pdie" style="--d:${d}ms"><g transform="rotate(${rot} ${x + 17} ${y + 17})"><rect x="${x}" y="${y}" width="34" height="34" rx="8" fill="${fill}" ${o}/>${P[v].map(([px, py]) => `<circle cx="${x + px}" cy="${y + py}" r="${v === 1 ? 5 : 3.2}" fill="${v === 1 ? '#e5543b' : '#3b2219'}"/>`).join('')}</g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Five dice showing fives on a pink felt tray next to a score sheet">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="112" cy="14" r="1.6"/><circle cx="204" cy="10" r="1.3"/><circle cx="296" cy="56" r="1.5"/><circle cx="14" cy="66" r="1.2"/><circle cx="160" cy="30" r="1.1"/></g>
+    <path d="M20 36l14-8 16 4 8 10-10 8H28z" class="artcloud" fill="#fff"/><path d="M150 24l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="136" rx="154" ry="36" fill="#b9794a" ${o}/>
+    <g transform="rotate(8 250 70)"><rect x="224" y="28" width="52" height="84" rx="7" fill="#fff8ec" ${o}/><path d="M233 44h20M233 57h20M233 70h20" fill="none" stroke="#c9a99a" stroke-width="3" stroke-linecap="round"/><path d="M258 43l3 4 6-8M258 56l3 4 6-8" fill="none" stroke="#3fae5d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <rect x="34" y="84" width="204" height="56" rx="12" fill="#8a5a3c" ${o}/><rect x="44" y="92" width="184" height="44" rx="7" fill="#c94f6d" ${o}/>
+    ${die(52, 96, -8, 5, 0)}${die(89, 90, 5, 5, -500, '#ffd84a')}${die(126, 98, -3, 5, -1000)}${die(163, 88, 9, 5, -1500, '#ffd84a')}${die(198, 97, -6, 2, -2000)}
+    <path class="arttick" d="M100 76l-4-10M140 80v-11M180 74l5-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Tic-Tac-Toe card: a chunky wooden board on a floating island with crosses and noughts, and one cross dropping in.
 export function tttArt() {
-  const X = (x, y, s = 8) => rod(`M${x - s} ${y - s}l${2 * s} ${2 * s}M${x + s} ${y - s}l${-2 * s} ${2 * s}`, C.red, 5);
-  const oct = (x, y, r) => { const a = r * .414; return `M${x - a} ${y - r}h${2 * a}l${r - a} ${r - a}v${2 * a}l${a - r} ${r - a}h${-2 * a}l${a - r} ${a - r}v${-2 * a}z`; };
-  const Oh = (x, y, r = 9) => `<path d="${oct(x, y, r + 3)}${oct(x, y, r - 4)}" fill-rule="evenodd" fill="${C.blue}" ${O}/>`;
-  let cells = '';
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) cells += `<rect x="${110 + c * 29}" y="${30 + r * 29}" width="26" height="26" fill="${C.cream}" stroke="${INK}" stroke-width="2"/>`;
-  const at = (c, r) => [123 + c * 29, 43 + r * 29];
-  return scene('A noughts and crosses board with three crosses in a row', `
-    ${box(104, 24, 96, 92, C.wood, 8)}${cells}
-    ${Oh(...at(0, 0))}${Oh(...at(2, 1))}${Oh(...at(1, 2))}${X(...at(2, 0))}${X(...at(1, 1))}${X(...at(0, 2))}
-    ${rod('M104 120L200 24', C.yellow, 3)}
-    <g class="abob">${X(72, 94, 11)}</g><g class="abob" style="--d:.5s">${Oh(236, 94, 13)}</g>`);
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const X = (x, y, c, cls = '') => `<g class="${cls}"><path d="M${x - 9} ${y - 9}l18 18M${x + 9} ${y - 9}l-18 18" stroke="#3b2219" stroke-width="11" stroke-linecap="square"/><path d="M${x - 9} ${y - 9}l18 18M${x + 9} ${y - 9}l-18 18" stroke="${c}" stroke-width="5.5" stroke-linecap="square"/></g>`;
+  const O = (x, y, c) => `<path d="M${x - 5} ${y - 12}h10l7 7v10l-7 7h-10l-7-7v-10z" fill="${c}" ${o}/><path d="M${x - 2.5} ${y - 5}h5l2.5 2.5v5l-2.5 2.5h-5l-2.5-2.5v-5z" fill="#fff1d6" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const at = (q, r) => [118 + q * 42, 44 + r * 34];
+  let tiles = '';
+  for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) { const [x, y] = at(q, r); tiles += `<rect x="${x - 19}" y="${y - 15}" width="38" height="30" rx="4" fill="${(q + r) % 2 ? '#f6dfb6' : '#fff1d6'}"/>`; }
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A wooden noughts and crosses board on a floating island with a cross dropping onto it">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="40" cy="16" r="1.6"/><circle cx="270" cy="12" r="1.3"/><circle cx="300" cy="52" r="1.5"/><circle cx="16" cy="60" r="1.2"/><circle cx="64" cy="100" r="1.1"/></g>
+    <path d="M22 36l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M252 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M34 128c40-12 212-12 252 0l-16 10c-40 8-180 8-220 0z" fill="#8bca60" ${o}/><path d="M50 138c40 8 180 8 220 0l-36 12h-148z" fill="#c98a5a" ${o}/>
+    <rect x="90" y="20" width="140" height="112" rx="10" fill="#8a5a3c" ${o}/>${tiles}
+    ${O(...at(0, 0), '#7fd1e8')}${X(...at(1, 1), '#ff7a59')}${O(...at(2, 1), '#7fd1e8')}${X(...at(0, 2), '#ff7a59')}${O(...at(1, 2), '#7fd1e8')}
+    ${X(at(2, 0)[0], at(2, 0)[1] - 6, '#ff7a59', 'tdrop')}
+    <path class="arttick" d="M250 96l12-6M254 112h14M72 96l-12-6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
 }
 
-// Small square icons for the Today tiles (Mystery Pet, Hay Hunch, Pet Pop, Pet Farm): the same kit at 120x120 with a 5 wide outline.
-const O5 = `stroke="${INK}" stroke-width="5" stroke-linejoin="round"`;
-export const TODAY_ICONS = {
-  mystery: `<svg viewBox="0 0 120 120"><g ${O5}><path d="M26 44V12l26 22zM94 44V12L68 34z" fill="#3b2f55"/><path d="M22 36h76v64H22z" fill="#3b2f55"/></g><path d="M68 36h30v64H80z" fill="#1d1030" fill-opacity=".3"/><text x="60" y="90" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="800" font-size="56" fill="${C.yellow}">?</text></svg>`,
-  hay: `<svg viewBox="0 0 120 120"><g ${O5}><path d="M70 50l6-26h14l6 26z" fill="#ff8a3c"/><path d="M76 24l-6-12M83 24V8M90 24l6-12" fill="none" stroke="${C.leaf}" stroke-linecap="square"/>
-    <path d="M12 104V58l14-12h82v46L94 104z" fill="#e8c25a"/><path d="M12 58l14-12h82L94 58z" fill="#fff" fill-opacity=".4"/><path d="M94 58l14-12v46l-14 12z" fill="#1d1030" fill-opacity=".24"/><path d="M12 58h82l14-12M94 58v46" fill="none"/>
-    <path d="M34 58v46M72 58v46" stroke="#a8742f"/></g></svg>`,
-  pop: `<svg viewBox="0 0 120 120"><g ${O5}><path d="M32 52V26l20 16zM88 52V26L68 42z" fill="${C.orange}"/><path d="M28 46h64v52H28z" fill="${C.orange}"/></g><path d="M70 46h22v52H78z" fill="#1d1030" fill-opacity=".2"/><path d="M42 62h9v12h-9zM69 62h9v12h-9z" fill="${INK}"/><path d="M54 78h12l-6 7z" fill="${C.pink}" stroke="${INK}" stroke-width="3"/><path d="M60 20V6M16 40L6 32M104 40l10-8M14 76H4M106 76h10" stroke="${INK}" stroke-width="6" stroke-linecap="square"/></svg>`,
-  farm: `<svg viewBox="0 0 120 120"><path d="M22 106V60l10-24 16-14h24l16 14 10 24v46z" fill="${C.red}" ${O5}/><path d="M22 60h76" stroke="#fff" stroke-opacity=".35" stroke-width="5"/>
-    <path d="M14 62l12-28 20-18h28l20 18 12 28" fill="none" stroke="${INK}" stroke-width="19" stroke-linejoin="round" stroke-linecap="square"/><path d="M14 62l12-28 20-18h28l20 18 12 28" fill="none" stroke="${C.bark}" stroke-width="9" stroke-linejoin="round" stroke-linecap="square"/>
-    <g ${O5}><path d="M51 36h18v16H51z" fill="${C.cream}"/><path d="M42 106V72h36v34z" fill="${C.cream}"/><path d="M42 72l36 34M78 72l-36 34" fill="none" stroke-width="4"/></g></svg>`,
-};
+// Small square icons for the Today tiles.
+export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <path d="M79 22 84 4l7 9 10-7-7 18z" fill="#6fc266"/><path d="M68 20h36l-10 34H78z" fill="#ff9a3d"/>
+  <path d="M14 56 30 40h62l16 16z" fill="#ffe08a"/><path d="M14 56h94v46H14z" fill="#f5bd42"/></g>
+  <path d="M40 40 28 56v46M82 40l12 16v46" fill="none" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M40 70h14M62 84h18M44 92h10M70 68h10" stroke="#c98a1e" stroke-width="5" stroke-linecap="round"/></svg>`;
+export const POP_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <rect x="10" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="44" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="78" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/>
+  <rect x="44" y="6" width="32" height="34" rx="9" fill="#6fa8ee"/><rect x="44" y="80" width="32" height="34" rx="9" fill="#8fd16a"/></g>
+  <g fill="#3b2219"><circle cx="21" cy="58" r="3"/><circle cx="31" cy="58" r="3"/><circle cx="55" cy="58" r="3"/><circle cx="65" cy="58" r="3"/><circle cx="89" cy="58" r="3"/><circle cx="99" cy="58" r="3"/></g>
+  <path d="M14 46l4-12 8 8M106 46l-4-12-8 8M48 46l4-12 8 8M72 46l-4-12-8 8M82 46l4-12 8 8M38 46l-4-12-8 8" fill="#ff9a4d" stroke="#3b2219" stroke-width="4" stroke-linejoin="round"/></svg>`;
+export const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <path d="M22 58h76v46H22z" fill="#e5543b"/><path d="M12 60 34 28h52l22 32z" fill="#8a4a3a"/><path d="M34 28h52l-10-12H44z" fill="#a85f48"/>
+  <path d="M46 72h28v32H46z" fill="#fff4e2"/></g>
+  <path d="M46 72l28 32M74 72 46 104" stroke="#3b2219" stroke-width="4"/>
+  <g fill="#fff4e2" stroke="#3b2219" stroke-width="3"><ellipse cx="60" cy="50" rx="6.5" ry="5.5"/><circle cx="50" cy="42" r="3.4"/><circle cx="60" cy="38" r="3.4"/><circle cx="70" cy="42" r="3.4"/></g></svg>`;
+export const MYSTERY_ICON = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#6a5aa8" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/><text x="60" y="84" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
