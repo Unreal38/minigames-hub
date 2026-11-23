@@ -1583,8 +1583,11 @@ function watchPaint() {
     : L(`You take over a bot ${soon}.`, `Przejmiesz bota ${soon}.`);
   const btn = saving ? L('Just watch', 'Tylko oglądaj') : full && when === 'game' ? L('Get the next free seat', 'Zajmij następne wolne miejsce')
     : when === 'round' || when === 'now' ? L('Take over a bot', 'Przejmij bota') : when === 'hand' ? L('Play from next hand', 'Graj od następnego rozdania') : when === 'hole' ? L('Play from next hole', 'Graj od następnego dołka') : when === 'leg' ? L('Play from next leg', 'Graj od następnego lega') : L('Play next game', 'Zagraj w następnej grze');
-  $watch.innerHTML = `<span>${msg}</span>
+  // Only touch the DOM when the words change: real-time games (Kart) send state 20 times a second,
+  // and rebuilding the button every time made it flicker and swallowed clicks.
+  const html = `<span>${msg}</span>
     <button type="button" class="btn ${saving ? 'w' : 'm'}" data-w="sit" aria-pressed="${saving}">${btn}</button>`;
+  if ($watch._h !== html) { $watch._h = html; $watch.innerHTML = html; }
 }
 $watch.addEventListener('click', e => {
   const b = e.target.closest('[data-w="sit"]'); if (!b) return;
