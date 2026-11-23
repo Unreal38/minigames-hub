@@ -46,6 +46,7 @@ const SKINS = [
   { shape: 'round', base: '#d9995a', edge: '#b8763d', pat: 'cookie', pip: 'chip', ink: '#4a2616', one: '#4a2616', big1: 1.6, pipK: 1.3, sparks: ['#d9995a', '#ffffff', '#4a2616'] }, // 11 Choc-chip cookie
   { shape: 'rock', base: '#9aa1a8', edge: '#7c838b', pat: 'moss', pip: 'flower', ink: '#ffffff', inkHi: '#ffd84a', one: '#ff7aa0', big1: 1.45, pipK: 1.35, outline: '#3a3f46', sparks: ['#86cc5a', '#ffffff', '#ff9ac0'] }, // 12 Mossy stone
   { shape: 'box', base: '#5fd36a', edge: '#3a9e46', pat: 'pixel', pip: 'pixel', ink: '#163a1c', one: '#a3172a', big1: 1.5, sparks: ['#5fd36a', '#ffffff', '#ffe066'] }, // 13 Pixel
+  { shape: 'bevel', base: '#fffaf0', edge: '#eadcc4', pat: 'sugar', pip: 'bean', ink: '#6b4326', inkHi: '#f6ead8', one: '#b8743a', big1: 1.6, pipK: 1.3, sparks: ['#ffffff', '#d9a878', '#6b4326'] }, // 14 Sugar cube (Supporter pack)
 ];
 export const DICE_SKINS = SKINS.length;
 const skinOf = k => SKINS[k | 0] ? k | 0 : 0;
@@ -94,6 +95,7 @@ function pipPath(g, style, r, R) { // a pip shape round (0, 0), radius r; R is t
   else if (style === 'heart') { const s = r * 1.15; g.moveTo(0, s * .95); g.bezierCurveTo(-s * 1.5, -s * .1, -s * .75, -s * 1.15, 0, -s * .4); g.bezierCurveTo(s * .75, -s * 1.15, s * 1.5, -s * .1, 0, s * .95); }
   else if (style === 'paw') { g.ellipse(0, r * .38, r * .72, r * .58, 0, 0, 7); for (const [x, y, s] of [[-.82, -.32, .3], [-.3, -.82, .32], [.3, -.82, .32], [.82, -.32, .3]]) { g.moveTo(x * r + s * r, y * r); g.ellipse(x * r, y * r, s * r, s * r * 1.15, 0, 0, 7); } }
   else if (style === 'chip') { const n = 9; for (let j = 0; j < n; j++) { const a = j / n * 6.283, rr = r * (.85 + R() * .35); g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); }
+  else if (style === 'bean') g.ellipse(0, 0, r * 1.25, r * .88, 0, 0, 7);
   else if (style === 'flower') { for (let j = 0; j < 5; j++) { const a = j / 5 * 6.283 - 1.57; g.moveTo(Math.cos(a) * r * .62 + r * .5, Math.sin(a) * r * .62); g.arc(Math.cos(a) * r * .62, Math.sin(a) * r * .62, r * .5, 0, 7); } }
   else g.arc(0, 0, r, 0, 7);
 }
@@ -108,7 +110,7 @@ function haloOf(sk, col) {
 }
 function drawPip(g, sk, x, y, r, one, R, glow) {
   const col = one ? sk.one : sk.ink, halo = glow ? null : haloOf(sk, col);
-  g.save(); g.translate(x, y); if (sk.pip === 'chip' || sk.pip === 'flower') g.rotate(R() * 6.28);
+  g.save(); g.translate(x, y); if (sk.pip === 'chip' || sk.pip === 'flower') g.rotate(R() * 6.28); else if (sk.pip === 'bean') g.rotate(-.5 + R() * .5);
   if (glow) { g.fillStyle = col; g.shadowColor = col; g.shadowBlur = r * .9; pipPath(g, sk.pip, r * 1.05, R); g.fill(); g.restore(); return; }
   if (sk.carve) { g.fillStyle = sk.carve; g.save(); g.translate(r * .16, r * .2); pipPath(g, sk.pip, r * 1.06, rng(1)); g.fill(); g.restore(); }
   if (sk.pip === 'flake') { // a snowflake: six arms with little side twigs
@@ -124,6 +126,7 @@ function drawPip(g, sk, x, y, r, one, R, glow) {
   if (sk.outline) { g.strokeStyle = sk.outline; g.lineWidth = r * .3; g.stroke(); }
   if (sk.pip === 'inlay') { g.fillStyle = sk.inkHi; g.beginPath(); g.arc(-r * .25, -r * .28, r * .38, 0, 7); g.fill(); }
   else if (sk.pip === 'diamond') { g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.moveTo(0, -r * 1.05); g.lineTo(r * .45, -r * .1); g.lineTo(0, -r * .2); g.closePath(); g.fill(); }
+  else if (sk.pip === 'bean') { g.strokeStyle = sk.inkHi; g.lineWidth = r * .22; g.lineCap = 'round'; g.beginPath(); g.moveTo(-r * .95, r * .14); g.bezierCurveTo(-r * .4, -r * .5, r * .4, r * .5, r * .95, -r * .14); g.stroke(); }
   else if (sk.pip === 'flower') { g.fillStyle = sk.inkHi; g.beginPath(); g.arc(0, 0, r * .42, 0, 7); g.fill(); }
   else if (sk.pip === 'chip') { g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.arc(-r * .3, -r * .3, r * .3, 0, 7); g.fill(); }
   else if (sk.pip === 'heart' || sk.pip === 'star' || sk.pip === 'round' && !sk.carve) { g.fillStyle = 'rgba(255,255,255,.4)'; g.beginPath(); g.ellipse(-r * .3, -r * .35, r * .28, r * .18, -.6, 0, 7); g.fill(); }
@@ -186,6 +189,8 @@ function drawArt(g, sk, x0, m, v, R, glow) {
   } else if (sk.pat === 'frost') {
     const gr = g.createLinearGradient(lo, E, lo, E + w); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#e0f0fd'); g.fillStyle = gr; g.fillRect(lo, E, w, w);
     g.fillStyle = 'rgba(160,205,240,.55)'; for (let i = 0; i < 16; i++) { g.beginPath(); g.arc(lo + R() * w, E + R() * w, 1 + R() * 2.2, 0, 7); g.fill(); }
+  } else if (sk.pat === 'sugar') { // sugar crystals: tiny light and shadow squares
+    for (let i = 0; i < 60; i++) { const q = 2 + R() * 4; g.fillStyle = R() > .5 ? 'rgba(255,255,255,.9)' : 'rgba(190,160,120,.28)'; g.fillRect(x0 + R() * S, R() * S, q, q); }
   } else if (sk.pat === 'cookie') {
     const gr = g.createRadialGradient(lo + w / 2, E + w / 2, w * .1, lo + w / 2, E + w / 2, w * .75); gr.addColorStop(0, '#e9b071'); gr.addColorStop(1, sk.base); g.fillStyle = gr; g.fillRect(lo, E, w, w);
     for (let i = 0; i < 26; i++) { g.fillStyle = R() > .5 ? 'rgba(150,85,35,.45)' : 'rgba(255,225,170,.5)'; g.beginPath(); g.arc(x0 + R() * S, R() * S, 1 + R() * 2.4, 0, 7); g.fill(); }

@@ -4,7 +4,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, cosPackIds } from './cosmetics.js';
 import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -933,10 +933,22 @@ const hasPack = () => { const have = new Set(st.me?.owned || []); return packIds
 let onKofi = null;
 function openSupport() {
   const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
+  const KIT = ['cb', 'dc', 'gb', 'kp'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
+  // a small picture of one account cosmetic or game piece skin, with the kind as its caption
+  const cosFig = ([k, i]) => { const it = cosItem(k, i);
+    const pic = k === 'nm' ? `<span class="supbox"><b>${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</b></span>` : k === 'fr' ? `<span class="supbox">${avatarHtml(st.color, st.av, 34, frameCls({ fr: i }))}</span>`
+      : k === 'pb' ? `<span class="supbox haspb">${cardBg({ pb: i })}</span>` : k === 'ti' ? `<span class="supbox"><span class="ttl">${esc(it.n)}</span></span>`
+      : k === 'wn' ? `<span class="supbox emo">☕🥐</span>` : k === 'sp' ? `<span class="supbox emo sm">${it.e.join('')}</span>` : `<img alt="" data-kit="${k}:${i}">`;
+    return `<figure>${pic}<figcaption>${esc(COS[k].label)}${k === 'ti' || k === 'nm' ? '' : `<br>${esc(it.n)}`}</figcaption></figure>`; };
   const { el, close } = modal(`
     <h2>${L('Support the site', 'Wesprzyj stronę')} ☕</h2>
-    <p>${L(`${SITE} is free and stays free. If you like it, you can chip in for the server on Ko-fi. As a thank-you you get the Supporter pack: seven café items for your avatar, plus a name colour, frame, title, card background, win effect and sticker pack.`, `${SITE} jest i będzie za darmo. Jeśli ci się tu podoba, możesz dorzucić się do serwera na Ko-fi. W podziękowaniu dostajesz Pakiet wspierających: siedem kawiarnianych rzeczy dla awatara, a do tego kolor imienia, ramkę, tytuł, tło wizytówki, efekt wygranej i paczkę naklejek.`)}</p>
+    <p>${L(`${SITE} is free and stays free. If you like it, you can chip in for the server on Ko-fi. As a thank-you you get the whole Supporter pack below, yours to keep.`, `${SITE} jest i będzie za darmo. Jeśli ci się tu podoba, możesz dorzucić się do serwera na Ko-fi. W podziękowaniu dostajesz cały Pakiet wspierających poniżej, na zawsze.`)}</p>
+    <h3 class="suph">${L('For your avatar', 'Dla awatara')}</h3>
     <div class="suppics">${ids.map(([k, i]) => `<figure><img alt="" data-sp="${k}:${i}"><figcaption>${esc(OPT[k][+i])}</figcaption></figure>`).join('')}</div>
+    <h3 class="suph">${L('For your name and card', 'Dla imienia i wizytówki')}</h3>
+    <div class="suppics wide">${cosIds.filter(([k]) => !KIT.includes(k)).map(cosFig).join('')}</div>
+    <h3 class="suph">${L('For your game pieces', 'Do gier')}</h3>
+    <div class="suppics wide">${cosIds.filter(([k]) => KIT.includes(k)).map(cosFig).join('')}</div>
     ${got ? `<p class="supok">${L('Thank you! The Supporter pack is yours. It is in your Wardrobe.', 'Dziękujemy! Pakiet wspierających jest twój. Znajdziesz go w Garderobie.')}</p>
       <div class="suprow"><button type="button" class="btn" data-ward>${L('Open the Wardrobe', 'Otwórz Garderobę')}</button><a class="btn w" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Open Ko-fi', 'Otwórz Ko-fi')}</a></div>`
     : user ? `<ol class="supsteps">
@@ -957,6 +969,7 @@ function openSupport() {
     <button type="button" class="btn ghost-ink" data-close>${L('Close', 'Zamknij')}</button>`);
   const done = () => { onKofi = null; close(); };
   ipReady.then(() => { if (IP) for (const im of el.querySelectorAll('[data-sp]')) { const [k, i] = im.dataset.sp.split(':'); const u = IP.itemPic(k, +i, st.color, st.av); if (u) im.src = u; } });
+  for (const im of el.querySelectorAll('img[data-kit]')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, st.color, st.av).then(u => { if (u && im.isConnected) im.src = u; }); }
   el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); done(); });
   el.querySelector('[data-ward]')?.addEventListener('click', () => { done(); openWardrobe({ sec: 'av4' }); });
   el.querySelector('[data-reg]')?.addEventListener('click', () => { done(); openAccount('register'); });
