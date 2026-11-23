@@ -99,10 +99,10 @@ export function mount(app, ctx) {
     el.classList.remove('show'); void el.offsetWidth; el.style.setProperty('--ms', ms + 'ms'); el.classList.add('show');
     clearTimeout(bigTimer); bigTimer = setTimeout(() => el.classList.remove('show'), ms);
   }
-  function floatAt(i, text) {
+  function floatAt(i, text, pts = 0) {
     const p = scene?.cellScreen(i, .3); if (!p) return;
     const f = document.createElement('div');
-    f.className = 'pp-pts'; f.textContent = text;
+    f.className = 'pp-pts'; f.textContent = text; f.style.fontSize = `${Math.round(Math.min(46, 22 + pts / 40))}px`;
     f.style.left = `${p.x}px`; f.style.top = `${p.y}px`;
     root.append(f); setTimeout(() => f.remove(), 1000);
   }
@@ -158,10 +158,12 @@ export function mount(app, ctx) {
         for (const i of st.clr) { const v = before[i]; if (isPet(v)) pets[kindOf(v)]++; else if (isBale(v)) hay++; }
         S.goals.forEach((g, k) => { shown.have[k] = Math.min(g.n, shown.have[k] + (g.k === 'pet' ? pets[g.kind] : hay)); });
         shown.score += st.pts;
-        if (st.fx.length) { sfx.whoosh(); scene.cheer(false); } else if (st.n > 1) sfx.set(); else sfx.pop();
-        if (st.clr.length) floatAt(st.clr[st.clr.length >> 1], '+' + st.pts);
+        if (st.fx.length) { sfx.whoosh(); sfx.boom(); scene.cheer(false); } else if (st.n > 1) sfx.combo(st.n); else if (st.mk.length) sfx.set(); else sfx.pop();
+        if (st.clr.length) floatAt(st.clr[st.clr.length >> 1], '+' + st.pts, st.pts);
+        const gain = S.goals.map(g => g.k === 'pet' ? pets[g.kind] : hay);
         if (st.n === 3) big(L('Pawsome!', 'Brawo!'), '', 900, 'k2'); else if (st.n === 4) big(L('Stampede!', 'Lawina!'), '', 900, 'k2'); else if (st.n >= 5 && st.n % 2) big(L('Pet party!', 'Szał zwierzaków!'), '', 900, 'k3');
         render();
+        $('pp-top').querySelectorAll('.pp-goal').forEach((el, k) => { if (gain[k]) { el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); } });
       }, () => {
         if (destroyed) return;
         if (!same(scene.board(), S.b)) scene.setBoard(S.b); // should never happen: the server's shelf wins

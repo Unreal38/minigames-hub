@@ -8,6 +8,7 @@ import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, sha
 import { frameLoop, autoResolution } from '../../frames.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
+import { sfx } from '../../sfx.js';
 import { W, H, N, KINDS, KIND_COLOR, HOLE, EMPTY, BOWL, BALE, isPet, kindOf, powerOf, isBale, settle, ZOOM_H, ZOOM_V, POUNCE } from './rules.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -182,7 +183,7 @@ export function createScene(canvas) {
     R.dispose(); R.forceContextLoss();
   }
   try { paintFaces(); } catch (e) { console.warn('no pet portraits', e); }
-  const padCol = KIND_COLOR.map(c => new THREE.Color(c)), GOLD = new THREE.Color('#ffe9a8');
+  const padCol = KIND_COLOR.map(c => new THREE.Color(c)), GOLD = new THREE.Color('#ffe9a8'), WHITE = new THREE.Color('#ffffff');
 
   // beams for a Zoomer's dash and a Pouncer's stomp
   const beamGeo = new THREE.PlaneGeometry(1, 1);
@@ -196,7 +197,7 @@ export function createScene(canvas) {
   // ---------- sprites: one per thing on the shelf ----------
   let cells = Array(N).fill(null), lb = Array(N).fill(EMPTY), dying = [];
   let hover = -1, picked = -1, hintAt = null, dance = 0;
-  const sprite = (v, i) => ({ v, x: cxOf(i), y: cyOf(i), tx: cxOf(i), ty: cyOf(i), vy: 0, state: 'idle', t: 0, ph: Math.random() * 6.28, born: 1, squash: 0, shake: 0, flash: 0, delay: 0, i });
+  const sprite = (v, i) => ({ v, x: cxOf(i), y: cyOf(i), tx: cxOf(i), ty: cyOf(i), vy: 0, state: 'idle', t: 0, ph: Math.random() * 6.28, born: 1, squash: 0, shake: 0, flash: 0, delay: 0, wait: 0, bounce: 0, to: null, i });
   const moving = () => cells.some(s => s && s.state !== 'idle');
   const wv = new THREE.Vector3();
   const worldOf = (x, y, z = .2) => B.localToWorld(wv.set(x, y, z));
@@ -223,6 +224,12 @@ export function createScene(canvas) {
   // ---------- playing the server's steps ----------
   let queue = [], phase = null, onStep = null, onDone = null;
   function run(steps, stepCb, doneCb) { queue = steps.slice(); onStep = stepCb; onDone = doneCb; phase = { land: true, t: .5, then: next }; }
+  let punch = 0, landAt = 0;
+  function popFx(s) {
+    const k = kindOf(s.v), at = worldOf(s.x, s.y).clone();
+    if (isBale(s.v)) pfx.burst(at, { n: 9, colors: ['#f2d374', '#e8c25a', '#fff1a8'], shape: DOT, speed: 3, up: 2.4, size: .22, life: .6 });
+    else pfx.burst(at, { n: small ? 5 : 8, colors: [k >= 0 ? KIND_COLOR[k] : '#ffd84a', '#ffffff', '#fff1a8'], shape: [STAR, DOT], speed: 3.2, up: 2.2, size: .32, life: .6 });
+  }
   function fxOf(st) {
     for (const f of st.fx || []) {
       if (f.t === 'row') beam(0, cyOf(f.i), W + .4, .5);
@@ -240,15 +247,21 @@ export function createScene(canvas) {
     for (const [i, v] of st.turn || []) { lb[i] = v; const s = cells[i]; if (s) { s.v = v; s.flash = 1; s.squash = 1; } }
     phase = { t: st.turn?.length ? .32 : 0, then: () => {
       onStep?.(st, lb); fxOf(st);
+      // pops ripple: outwards from a power, along the line of a plain match; a match that makes a special gem is sucked into it
+      const fxs = st.fx || [], into = st.mk.length === 1 && !fxs.length ? st.mk[0][0] : -1; let maxWait = 0, j = 0;
+      const gone = new Set(st.clr);
       for (const i of st.clr) {
         const s = cells[i]; lb[i] = EMPTY; if (!s) continue;
         s.state = 'pop'; s.t = 0; cells[i] = null; dying.push(s);
-        const k = kindOf(s.v), at = worldOf(s.x, s.y).clone();
-        if (isBale(s.v)) pfx.burst(at, { n: 9, colors: ['#f2d374', '#e8c25a', '#fff1a8'], shape: DOT, speed: 3, up: 2.4, size: .22, life: .6 });
-        else pfx.burst(at, { n: small ? 4 : 6, colors: [k >= 0 ? KIND_COLOR[k] : '#ffd84a', '#ffffff'], shape: [STAR, DOT], speed: 2.6, up: 2, size: .3, life: .55 });
+        if (fxs.length) { let d = 9; for (const f of fxs) d = Math.min(d, f.t === 'all' || f.t === 'kind' ? 1 + Math.random() * 5 : Math.hypot(cxOf(f.i) - s.x, cyOf(f.i) - s.y)); s.wait = d * .035; }
+        else if (into >= 0 && (cxOf(into) === s.x || cyOf(into) === s.y) && Math.abs(cxOf(into) - s.x) + Math.abs(cyOf(into) - s.y) <= 4) s.to = [cxOf(into), cyOf(into)];
+        else s.wait = j++ * .022;
+        maxWait = Math.max(maxWait, s.wait);
+        for (const d of [-1, 1, -W, W]) { const o = i + d; if (o < 0 || o >= N || gone.has(o) || (Math.abs(d) === 1 && (o / W | 0) !== (i / W | 0))) continue; const nb = cells[o]; if (nb && nb.state === 'idle') nb.squash = Math.max(nb.squash, .55); } // the neighbours feel it
       }
+      punch = Math.min(1, .35 + st.n * .15 + fxs.length * .3); if (st.n >= 3 && !fxs.length) shake.kick(Math.min(.14, .03 * st.n));
       for (const [i, v] of st.hit) { lb[i] = v; const s = cells[i]; if (s) { s.v = v; s.shake = 1; pfx.burst(worldOf(s.x, s.y).clone(), { n: 7, colors: ['#a86a42', '#8a5a3c'], shape: DOT, speed: 3, up: 2.5, size: .24, life: .6 }); } }
-      phase = { t: .24, then: () => {
+      phase = { t: .24 + maxWait, then: () => {
         for (const [i, v] of st.mk) { lb[i] = v; const s = cells[i] = sprite(v, i); s.born = 0; pfx.sparkle(worldOf(s.x, s.y).clone(), { n: 8, colors: ['#fff1a8', '#ffffff'], r: .5 }); }
         const mv = settle(lb, st.add);
         for (const [from, to] of mv.falls) { const s = cells[to] = cells[from]; cells[from] = null; if (s) { s.tx = cxOf(to); s.ty = cyOf(to); s.state = 'fall'; s.vy = -2; s.i = to; } }
@@ -334,15 +347,26 @@ export function createScene(canvas) {
     // where it is and how big, from what it is doing
     let x = s.x, y = s.y, sc = 1, sx = 1, sy = 1, rz = 0, ry = 0, hop = 0;
     if (s.born < 1) { if (s.delay > 0) s.delay -= dt; else s.born = Math.min(1, s.born + dt * 5); const u = s.born; sc *= u < .7 ? u / .7 * 1.2 : 1.2 - (u - .7) / .3 * .2; }
-    if (s.state === 'pop') { s.t += dt / .24; const u = Math.min(1, s.t); sc *= u < .3 ? 1 + u : 1.3 * (1 - (u - .3) / .7); rz = u * 1.2; }
+    let white = 0;
+    if (s.state === 'pop') {
+      if (s.wait > 0) { s.wait -= dt; sc *= 1 + Math.sin(T * 40) * .02; } // waiting for the ripple to reach it
+      else {
+        if (!s.t) popFx(s);
+        s.t += dt / .26; const u = Math.min(1, s.t);
+        if (s.to) { const g = u * u; x += (s.to[0] - x) * g; y += (s.to[1] - y) * g; sc *= u < .25 ? 1 + u * .8 : 1.2 * (1 - (u - .25) / .75 * .8); white = u; if (u >= 1) sc = 0; }
+        else { const w = (u - .35) / .65; sc *= u < .35 ? 1 + Math.sin(u / .35 * Math.PI / 2) * .34 : 1.34 * (1 - w * w); rz = u * .5; white = Math.min(1, u * 2.6); }
+      }
+    }
     else if (s.state === 'bump') { s.t += dt / .34; const u = Math.min(1, s.t), w = Math.sin(u * Math.PI); x += s.bx * w; y += s.by * w; rz = Math.sin(u * Math.PI * 4) * .18; if (u >= 1) s.state = 'idle'; }
     if (s.squash > 0) { s.squash = Math.max(0, s.squash - dt * 5); const w = Math.sin(s.squash * Math.PI) * .2; sx += w; sy -= w; }
     if (s.shake > 0) { s.shake = Math.max(0, s.shake - dt * 3); x += Math.sin(s.shake * 40) * .06 * s.shake; }
     if (s.flash > 0) s.flash = Math.max(0, s.flash - dt * 2.5);
+    if (s.bounce > 0) { s.bounce = Math.max(0, s.bounce - dt * 5.5); y += Math.sin(s.bounce * Math.PI) * .07; }
     const idle = s.state === 'idle';
     if (idle && !bale) {
       const held = s.i === picked, hinted = hintAt && (s.i === hintAt[0] || s.i === hintAt[1]);
       ry = Math.sin(T * 1.1 + s.ph) * .2;
+      if (s.i === hover && picked < 0) sc *= 1.06;
       if (held) { sc *= 1.1 + Math.sin(T * 9) * .04; rz = Math.sin(T * 9) * .1; }
       else if (hinted) hop = Math.abs(Math.sin(T * 5)) * .16;
       else if (dance) hop = Math.abs(Math.sin(T * 7 + s.i * .7)) * .2 * dance;
@@ -356,10 +380,10 @@ export function createScene(canvas) {
     if (bale) { const P = v - BALE > 1 ? bale2 : bale1; putAt(P.body, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.hull && putAt(P.hull, P.n, x, y + FLOOR, z - .05, 0, 0, rz, sc * sx, sc * sy, sc); P.n++; return; }
     const ps = sc * (1 + s.flash * .25), gy = y + hop;
     if (v === BOWL) { putAt(bowl.body, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.hull && putAt(bowl.hull, bowl.n, x, y + FLOOR + hop, z, 0, ry, rz, sc * sx, sc * sy, sc); bowl.n++; }
-    else { const F = faces[k]?.[pw]; if (!F || F.n >= F.cap) return; putAt(F.m, F.n++, x, gy, z + .085 * ps, 0, 0, rz, ps * sx, ps * sy, ps); }
+    else if (white < .9) { const F = faces[k]?.[pw]; if (!F || F.n >= F.cap) return; putAt(F.m, F.n++, x, gy, z + .085 * ps, 0, 0, rz, ps * sx, ps * sy, ps); }
     const pz = v === BOWL ? z - .3 : z;
     putAt(pads, nPad, x, gy, pz, 0, 0, rz, ps * sx, ps * sy, ps); putAt(padInk, nPad, x, gy, pz, 0, 0, rz, ps * sx * 1.07, ps * sy * 1.07, ps * .9);
-    pads.setColorAt(nPad++, col.copy(v === BOWL || s.flash > .3 ? GOLD : padCol[k]));
+    pads.setColorAt(nPad++, col.copy(v === BOWL || s.flash > .3 ? GOLD : padCol[k]).lerp(WHITE, white));
   }
   function loop(dt) {
     T += dt;
@@ -368,8 +392,8 @@ export function createScene(canvas) {
     let busy = false;
     for (const s of cells) {
       if (!s) continue;
-      if (s.state === 'fall') { s.vy -= 46 * dt; s.y += s.vy * dt; s.x = s.tx; if (s.y <= s.ty) { s.y = s.ty; s.vy = 0; s.state = 'idle'; s.squash = 1; } else busy = true; }
-      else if (s.state === 'slide') { const k = Math.min(1, dt * 16); s.x += (s.tx - s.x) * k; s.y += (s.ty - s.y) * k; if (Math.abs(s.tx - s.x) + Math.abs(s.ty - s.y) < .02) { s.x = s.tx; s.y = s.ty; s.state = 'idle'; } else busy = true; }
+      if (s.state === 'fall') { s.vy -= 46 * dt; s.y += s.vy * dt; s.x = s.tx; if (s.y <= s.ty) { s.y = s.ty; s.state = 'idle'; s.squash = 1; if (s.vy < -7) { s.bounce = 1; if (T - landAt > .07) { landAt = T; sfx.land?.(); } } s.vy = 0; } else busy = true; }
+      else if (s.state === 'slide') { const k = Math.min(1, dt * 16); s.x += (s.tx - s.x) * k; s.y += (s.ty - s.y) * k; if (Math.abs(s.tx - s.x) + Math.abs(s.ty - s.y) < .02) { s.x = s.tx; s.y = s.ty; s.state = 'idle'; s.squash = Math.max(s.squash, .5); } else busy = true; }
     }
     if (phase) { phase.t -= dt; if (phase.land ? (!busy || phase.t <= 0) : phase.t <= 0) { const f = phase.then; phase = null; f(); } }
     // draw every sprite into its instanced mesh
@@ -389,6 +413,7 @@ export function createScene(canvas) {
       animateAvatar(av, T, { seed: 1, active: aim >= 0, hop: avHop, nod: avSad > 0 ? -Math.min(1, avSad * 3) * .5 : 0 });
       av.position.y = .76 + (avHop > 0 ? Math.sin((1 - avHop) * Math.PI) * .35 : 0);
     }
+    if (punch > 0) { punch = Math.max(0, punch - dt * 4.5); B.scale.setScalar(reduced ? 1 : 1 + Math.sin(punch * Math.PI) * .014); }
     if (dance) dance = Math.max(0, dance - dt * .25);
     cloudRing.rotation.y = T * .006; flyBirds(T); drift(T);
     pfx.update(dt, camera, ch);
