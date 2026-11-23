@@ -430,3 +430,22 @@ export function pipsArt() {
     <path d="M100 76l-4-10M140 80v-11M180 74l5-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Tic-Tac-Toe card: a chunky wooden board on a floating island with crosses and noughts, and one cross dropping in.
+export function tttArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const X = (x, y, c, cls = '') => `<g class="${cls}"><path d="M${x - 9} ${y - 9}l18 18M${x + 9} ${y - 9}l-18 18" stroke="#3b2219" stroke-width="11" stroke-linecap="square"/><path d="M${x - 9} ${y - 9}l18 18M${x + 9} ${y - 9}l-18 18" stroke="${c}" stroke-width="5.5" stroke-linecap="square"/></g>`;
+  const O = (x, y, c) => `<path d="M${x - 5} ${y - 12}h10l7 7v10l-7 7h-10l-7-7v-10z" fill="${c}" ${o}/><path d="M${x - 2.5} ${y - 5}h5l2.5 2.5v5l-2.5 2.5h-5l-2.5-2.5v-5z" fill="#fff1d6" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const at = (q, r) => [118 + q * 42, 44 + r * 34];
+  let tiles = '';
+  for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) { const [x, y] = at(q, r); tiles += `<rect x="${x - 19}" y="${y - 15}" width="38" height="30" rx="4" fill="${(q + r) % 2 ? '#f6dfb6' : '#fff1d6'}"/>`; }
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A wooden noughts and crosses board on a floating island with a cross dropping onto it">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="40" cy="16" r="1.6"/><circle cx="270" cy="12" r="1.3"/><circle cx="300" cy="52" r="1.5"/><circle cx="16" cy="60" r="1.2"/><circle cx="64" cy="100" r="1.1"/></g>
+    <path d="M22 36l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M252 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M34 128c40-12 212-12 252 0l-16 10c-40 8-180 8-220 0z" fill="#8bca60" ${o}/><path d="M50 138c40 8 180 8 220 0l-36 12h-148z" fill="#c98a5a" ${o}/>
+    <rect x="90" y="20" width="140" height="112" rx="10" fill="#8a5a3c" ${o}/>${tiles}
+    ${O(...at(0, 0), '#7fd1e8')}${X(...at(1, 1), '#ff7a59')}${O(...at(2, 1), '#7fd1e8')}${X(...at(0, 2), '#ff7a59')}${O(...at(1, 2), '#7fd1e8')}
+    ${X(at(2, 0)[0], at(2, 0)[1] - 6, '#ff7a59', 'tdrop')}
+    <path d="M250 96l12-6M254 112h14M72 96l-12-6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
