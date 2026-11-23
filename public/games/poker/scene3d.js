@@ -1,5 +1,6 @@
 // Texas Hold'em 3D table (three.js). Purely visual: it draws the state the HUD hands it and animates the changes.
 import * as THREE from 'three';
+import { cardGeometry } from '../../cardgeo.js';
 import { paintBack } from '../../skins.js';
 import { rankOf, suitOf, RANKS } from './rules.js';
 import { SUIT_COLS, SUIT_PATHS, CLUB_DOTS } from './cards.js';
@@ -206,7 +207,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   // ---------- cards ----------
-  const cardGeo = new THREE.PlaneGeometry(CW, CH); cardGeo.rotateX(-Math.PI / 2);
+  const cardGeo = cardGeometry(CW, CH); cardGeo.rotateX(-Math.PI / 2);
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   function makeCard(c, bk = 0) { // bk: the owner's card back
     const g = new THREE.Group(), bc = -1 - (bk | 0);
