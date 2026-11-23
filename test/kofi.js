@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { AV_KEYS, OPT, packIds, wearable } from '../public/avatar.js';
+import { cosPackIds, COS } from '../public/cosmetics.js';
 const PORT = 19080 + (Math.random() * 900 | 0), KEY = 'test-kofi-token';
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -33,8 +34,8 @@ function player(token) {
 }
 const hook = (d, token = KEY) => fetch(`http://127.0.0.1:${PORT}/kofi`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
   body: new URLSearchParams({ data: JSON.stringify({ verification_token: token, type: 'Donation', ...d }) }) }).then(r => r.status);
-const IDS = packIds('kofi'), has = p => IDS.every(id => p.me.owned.includes(id));
-ok(IDS.length === 7, 'the Supporter pack should be seven items');
+const CLOTHES = packIds('kofi'), COSM = cosPackIds('kofi'), IDS = [...CLOTHES, ...COSM], has = p => IDS.every(id => p.me.owned.includes(id));
+ok(CLOTHES.length === 7 && COSM.length === 6, 'the Supporter pack should be seven clothes and six account cosmetics');
 
 // without KOFI_TOKEN the address does not exist
 await boot({});
@@ -52,6 +53,11 @@ ok(ana.last('err')?.msg === 'That is not in the shop.' && !ana.me.owned.includes
 const look = AV_KEYS.map(k => k === 'hat' ? +hi : 0);
 ok(wearable(look, [])[AV_KEYS.indexOf('hat')] === 0 && wearable(look, IDS)[AV_KEYS.indexOf('hat')] === +hi, 'wearable() should lock pack items');
 ok(OPT.hat[+hi] === 'Coffee mug hat', 'unexpected pack hat');
+const fr = +COSM.find(id => id.startsWith('fr:')).slice(3);
+ana.send({ t: 'buy', k: 'fr', i: fr }); await wait(200);
+ok(ana.last('err')?.msg === 'That is not in the shop.' && !ana.me.owned.includes('fr:' + fr), 'a pack cosmetic was sold for coins');
+ana.send({ t: 'wear', k: 'fr', i: fr }); await wait(200);
+ok((ana.me.cos?.fr | 0) !== fr, 'a pack frame was worn without the pack');
 
 // a wrong token is refused and changes nothing
 ok(await hook({ kofi_transaction_id: 't1', message: 'Ana', email: 'a@x.pl' }, 'nope') === 403, 'a wrong token was accepted');
@@ -62,6 +68,8 @@ await wait(200); ok(!has(ana), 'a forged call gave the pack');
 ok(await hook({ kofi_transaction_id: 't2', message: 'Great site! my nick is ANA :)', email: 'ana@x.pl' }) === 200, 'the webhook refused a real call');
 await wait(500);
 ok(has(ana) && ana.last('pack'), 'Ana did not get the pack from her username');
+ana.send({ t: 'wear', k: 'fr', i: fr }); await wait(300);
+ok(ana.me.cos?.fr === fr, 'the pack frame could not be worn with the pack');
 ok(await hook({ kofi_transaction_id: 't3', message: 'bo_2', email: 'bo@x.pl' }) === 200, 'second call refused'); await wait(400);
 ok(has(bo), 'a username with an underscore was not found');
 
@@ -80,12 +88,14 @@ await stop();
 const saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
 ok(saved.kofi.pend.length === 0 && saved.kofi.seen.length === 3, 'the Ko-fi list was not saved as expected');
 ok(!JSON.stringify(saved).includes('example.com') && !JSON.stringify(saved).includes('x.pl'), 'an email was saved');
-saved.profiles.p4 = prof('p4', 'Dee'); fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify(saved));
+// bo_2 gets the pack as it first shipped (clothes only), to check that the server tops it up
+saved.profiles.p4 = prof('p4', 'Dee'); saved.profiles.p2.owned = saved.profiles.p2.owned.filter(id => CLOTHES.includes(id)); fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify(saved));
 await boot({ KOFI_TOKEN: KEY });
 execFileSync('node', ['server/supporter.js', 'dee'], { env: { ...process.env, DATA_DIR }, stdio: 'ignore' });
 await wait(3600); await stop();
 const after = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
 ok(IDS.every(id => after.profiles.p4.owned?.includes(id)), 'the supporter command did not give the pack');
 ok(IDS.every(id => after.profiles.p1.owned.includes(id)), 'the pack was lost over a restart');
+ok(IDS.every(id => after.profiles.p2.owned.includes(id)), 'an early supporter did not get the account cosmetics');
 console.log('kofi: all good');
 process.exit(0);

@@ -378,6 +378,23 @@ export function panArt() {
   </svg>`;
 }
 
+// Piotruś card: a fan of pet cards on a green table, with the night-sky Piotruś card peeking out of the middle.
+export function piotrArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pet = (x, y, c, ears) => `<g transform="translate(${x} ${y})">${ears === 'bun' ? `<ellipse cx="-5" cy="-11" rx="3.5" ry="7" fill="${c}" ${o}/><ellipse cx="5" cy="-11" rx="3.5" ry="7" fill="${c}" ${o}/>` : `<path d="M-10 -4l1-10 7 5zM10 -4l-1-10-7 5z" fill="${c}" ${o}/>`}<rect x="-11" y="-8" width="22" height="19" rx="6" fill="${c}" ${o}/><circle cx="-4" cy="1" r="1.8" fill="#3b2219"/><circle cx="4" cy="1" r="1.8" fill="#3b2219"/></g>`;
+  const card = (x, y, rot, bg, band, inner, cls = '') => `<g class="${cls}" style="animation-delay:${-x * 9}ms"><g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="${bg}" ${o}/><path d="M${x + 1.5} ${y + 52}h45v8a6.5 6.5 0 0 1-6.5 6.5h-32a6.5 6.5 0 0 1-6.5-6.5z" fill="${band}"/>${inner(x + 24, y + 30)}</g></g>`;
+  const star = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffd84a"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A fan of pet cards on a green table with the dark Piotruś card standing out in the middle">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#3f9a7a" ${o}/>
+    ${card(62, 52, -20, '#dcefd9', '#3f9a52', (x, y) => pet(x, y, '#8fd18a', 'bun'))}${card(100, 42, -9, '#fbe0d4', '#e0592f', (x, y) => pet(x, y, '#ffab6b'))}
+    ${card(174, 42, 9, '#d8e9f7', '#2f86cc', (x, y) => pet(x, y, '#8cc6f0', 'bun'))}${card(212, 52, 20, '#f7ecc4', '#d9a400', (x, y) => pet(x, y, '#ffd96b'))}
+    ${card(136, 26, 0, '#2b2d6e', '#ffd84a', (x, y) => `${star(x - 15, y - 20, 1.8)}${star(x + 14, y - 22, 1.4)}${star(x + 17, y - 4, 1.6)}${star(x - 17, y, 1.3)}${pet(x, y, '#3b3a46')}<path d="M${x - 5} ${y + 3}h10v8h-10z" fill="#fff8ec"/><circle cx="${x - 4}" cy="${y + 1}" r="1.8" fill="#ffd84a"/><circle cx="${x + 4}" cy="${y + 1}" r="1.8" fill="#ffd84a"/>`, 'ptup')}
+    <path d="M268 62l10-8M274 80h13M50 62l-10-8M44 80H31" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Hay Hunch card: rows of hay bales on a floating meadow, one tossed up showing carrots, a sign and a napping pet.
 export function hayArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';

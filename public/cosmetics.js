@@ -8,6 +8,7 @@
 //   p: price in coins            s: seasonal drop (see SEASONS in avatar.js)
 //   earn: unlocked by playing instead of bought: { g: game id, w: wins there } or { w: wins overall } or { n: games played } or { d: days in a row solving the Mystery Pet }
 //         or { lv: account level } or { any: wins in any one game }
+//   pk: part of a thank-you pack (PACK in avatar.js): not for sale, handed out with the pack, e.g. 'kofi' for Ko-fi supporters
 //         or { top: best place ever held in the overall ranking } or { sp: pet species in the Pet Farm album }
 import { seasonOn, SEASONS } from './avatar.js';
 import { levelOf } from './ranks.js';
@@ -15,16 +16,16 @@ import { L, PL } from './i18n.js';
 
 export const COS = {
   nm: { label: 'Name colour', items: [{ n: 'Plain' }, { n: 'Sunset', p: 120 }, { n: 'Ocean', p: 120 }, { n: 'Mint', p: 100 }, { n: 'Candy', p: 150 },
-    { n: 'Gold', p: 220 }, { n: 'Fire', p: 220 }, { n: 'Rainbow', p: 300 }, { n: 'Sparkle', p: 260 }, { n: 'Frost', p: 160, s: 'winter' }, { n: 'Spooky', p: 160, s: 'halloween' }] },
+    { n: 'Gold', p: 220 }, { n: 'Fire', p: 220 }, { n: 'Rainbow', p: 300 }, { n: 'Sparkle', p: 260 }, { n: 'Frost', p: 160, s: 'winter' }, { n: 'Spooky', p: 160, s: 'halloween' }, { n: 'Latte', pk: 'kofi' }] },
   fr: { label: 'Profile frame', items: [{ n: 'None' }, { n: 'Cloud', p: 120 }, { n: 'Vine', p: 120 }, { n: 'Hearts', p: 140 }, { n: 'Stars', p: 180 },
-    { n: 'Gold', p: 250 }, { n: 'Flame', p: 220 }, { n: 'Rainbow', p: 280 }, { n: 'Snow', p: 160, s: 'winter' }] },
+    { n: 'Gold', p: 250 }, { n: 'Flame', p: 220 }, { n: 'Rainbow', p: 280 }, { n: 'Snow', p: 160, s: 'winter' }, { n: 'Coffee ring', pk: 'kofi' }] },
   // Card backgrounds: what sits behind your name wherever your card shows (waiting rooms, your profile card, the wardrobe plate, the account menu).
   // The art is CSS and SVG (style.css .pbN, public/cardbg/). t: 'p' pattern, 's' game scene, 'a' animated, 'e' earned. d: dark art, so the text on it turns light.
   pb: { label: 'Card background', items: [{ n: 'None' },
     { n: 'Paw prints', p: 80, t: 'p' }, { n: 'Checkers', p: 80, t: 'p' }, { n: 'Stars', p: 90, t: 'p' }, { n: 'Hearts', p: 90, t: 'p' }, { n: 'Confetti', p: 100, t: 'p' },
     { n: 'Hot Pot table', p: 200, t: 's' }, { n: 'Beanstalk sky', p: 200, t: 's' }, { n: 'Pet Farm meadow', p: 200, t: 's' }, { n: 'Kart island', p: 220, t: 's' }, { n: 'Card table', p: 220, t: 's' },
     { n: 'Drifting clouds', p: 350, t: 'a' }, { n: 'Falling petals', p: 350, t: 'a' }, { n: 'Twinkling night', p: 400, t: 'a', d: 1 },
-    { n: 'Podium', t: 'e', earn: { top: 3 } }, { n: 'Golden champion', t: 'e', a: 1, earn: { top: 1 } }, { n: 'Egg nest', t: 'e', earn: { sp: 10 } }, { n: 'Pet parade', t: 'e', earn: { sp: 30 } }] },
+    { n: 'Podium', t: 'e', earn: { top: 3 } }, { n: 'Golden champion', t: 'e', a: 1, earn: { top: 1 } }, { n: 'Egg nest', t: 'e', earn: { sp: 10 } }, { n: 'Pet parade', t: 'e', earn: { sp: 30 } }, { n: 'Café', t: 'p', pk: 'kofi' }] },
   ti: { label: 'Title', items: [{ n: 'None' },
     { n: 'Pot Wizard', earn: { g: 'hotpot', w: 5 } }, { n: 'Card Shark', earn: { g: 'poker', w: 5 } }, { n: 'Kart Menace', earn: { g: 'kart', w: 5 } },
     { n: 'Marble Whisperer', earn: { g: 'marbles', w: 5 } }, { n: 'Ladder Legend', earn: { g: 'ladders', w: 5 } }, { n: 'Ludo Lord', earn: { g: 'ludo', w: 5 } },
@@ -33,11 +34,11 @@ export const COS = {
     { n: 'Regular', earn: { n: 25 } }, { n: 'Champion', earn: { w: 50 } },
     { n: 'Snack Lord', p: 100 }, { n: 'Lucky Duck', p: 100 }, { n: 'Just Vibing', p: 80 }, { n: 'Sore Loser', p: 80 }, { n: 'Bot Bully', p: 120 },
     { n: 'Certified Goblin', p: 150 }, { n: 'Big Spender', p: 400 },
-    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }, { n: 'Party Roller', earn: { g: 'pips', w: 5 } }, { n: 'Bullseye', earn: { g: 'darts', w: 5 } }, { n: 'Three in a Row', earn: { g: 'ttt', w: 5 } }] },
+    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }, { n: 'Party Roller', earn: { g: 'pips', w: 5 } }, { n: 'Bullseye', earn: { g: 'darts', w: 5 } }, { n: 'Coffee’s on me', pk: 'kofi' }, { n: 'Three in a Row', earn: { g: 'ttt', w: 5 } }] },
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
-    { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }] },
+    { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' }] },
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
-    { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }] },
+    { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }, { n: 'Café', pk: 'kofi', e: ['☕', '🥐', '🍩', '🧋', '🍪', '🫶'] }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
   cb: { label: 'Card back', where: 'Your cards in Texas Hold’em and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }] },
   // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
@@ -64,11 +65,12 @@ export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
-  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', ttt: 'Tic-Tac-Toe' };
+  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś', ttt: 'Tic-Tac-Toe' };
 
 if (PL) { Object.assign(GAME_NAMES, { ladders: 'Węże i drabiny', ludo: 'Chińczyk', dice: 'Kości kłamcy', ttt: 'Kółko i krzyżyk' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }
 
 export const cosItem = (k, i) => COS[k]?.items[i] || null;
+export const cosPackIds = name => COS_KEYS.flatMap(k => COS[k].items.map((it, i) => it.pk === name ? k + ':' + i : null).filter(Boolean));
 export const cosPrice = (k, i) => cosItem(k, i)?.p || 0;
 export const cosOnSale = (k, i, now) => seasonOn(cosItem(k, i)?.s, now);
 export const cosSeason = (k, i) => SEASONS[cosItem(k, i)?.s] || null;

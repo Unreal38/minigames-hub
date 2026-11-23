@@ -1,10 +1,10 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
-import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt, tttArt } from './art.js';
+import { siteLogo, tableArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, hayArt, pipsArt, dartsArt, piotrArt, tttArt } from './art.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { cardHtml } from './games/hotpot/cards.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls } from './cosmetics.js';
 import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -408,6 +408,26 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins, and the <b>last player still holding cards is the Pan</b>.</li>
       <li>Five players sit at a table for six: a bot takes the spare hand, so the cards still share out evenly.</li>
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
+    </ol>`,
+  },
+  piotr: {
+    name: 'Piotruś', load: () => import('./games/piotr/client.js'), start: 'Deal the cards',
+    host: { seats: 4, deck: 'small', timer: 20 }, solo: { seats: 4, deck: 'small', timer: 0 },
+    openSeat: 'A bot holds these cards if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Deck</b><div class="pills">${pill('deck', 'small', '12 pairs')}${pill('deck', 'big', '16 pairs')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `The Polish children's classic, known elsewhere as Old Maid. The deck is pairs of pets plus one card with no pair: the Piotruś. Lay down your pairs, then take turns drawing a face-down card from the player on your right. Whoever is left holding the Piotruś loses.`,
+    rules: `<ol>
+      <li>The deck is <b>12 pairs of pets</b> (16 in the big deck) and <b>one Piotruś</b>, the tuxedo cat with no pair. All the cards are dealt out, so some players may get one card more. Empty seats are played by bots.</li>
+      <li>Everyone first <b>lays down every pair</b> they were dealt. That happens by itself.</li>
+      <li>Then, going clockwise, each player <b>draws one card</b>, face down, from the player <b>on their right</b> (the one who played before them). You only see the backs.</li>
+      <li>If the card you draw <b>makes a pair</b> with one you hold, the pair goes to the table. If not, you keep it.</li>
+      <li>Everyone can see <b>which card you reach for</b> before you take it, so watch the other player's face. On a phone, tap a card to reach for it and tap it again to take it.</li>
+      <li>You can <b>shuffle your own cards</b> at any time, so nobody can follow where the Piotruś went. A card you draw also lands at a random spot in your hand.</li>
+      <li>Run out of cards and you are <b>safe</b>. The first one out wins. The player <b>left holding the Piotruś loses</b>.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, the card you were reaching for is taken, or a random one. Shortcuts: <b>← →</b> reach for a card, <b>Enter</b> takes it, <b>S</b> shuffles your cards.</li>
     </ol>`,
   },
   pips: {
@@ -872,7 +892,7 @@ function openSupport() {
   const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
   const { el, close } = modal(`
     <h2>${L('Support the site', 'Wesprzyj stronę')} ☕</h2>
-    <p>${L(`${SITE} is free and stays free. If you like it, you can chip in for the server on Ko-fi. As a thank-you you get the Supporter pack: seven café items for your avatar.`, `${SITE} jest i będzie za darmo. Jeśli ci się tu podoba, możesz dorzucić się do serwera na Ko-fi. W podziękowaniu dostajesz Pakiet wspierających: siedem kawiarnianych rzeczy dla awatara.`)}</p>
+    <p>${L(`${SITE} is free and stays free. If you like it, you can chip in for the server on Ko-fi. As a thank-you you get the Supporter pack: seven café items for your avatar, plus a name colour, frame, title, card background, win effect and sticker pack.`, `${SITE} jest i będzie za darmo. Jeśli ci się tu podoba, możesz dorzucić się do serwera na Ko-fi. W podziękowaniu dostajesz Pakiet wspierających: siedem kawiarnianych rzeczy dla awatara, a do tego kolor imienia, ramkę, tytuł, tło wizytówki, efekt wygranej i paczkę naklejek.`)}</p>
     <div class="suppics">${ids.map(([k, i]) => `<figure><img alt="" data-sp="${k}:${i}"><figcaption>${esc(OPT[k][+i])}</figcaption></figure>`).join('')}</div>
     ${got ? `<p class="supok">${L('Thank you! The Supporter pack is yours. It is in your Wardrobe.', 'Dziękujemy! Pakiet wspierających jest twój. Znajdziesz go w Garderobie.')}</p>
       <div class="suprow"><button type="button" class="btn" data-ward>${L('Open the Wardrobe', 'Otwórz Garderobę')}</button><a class="btn w" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Open Ko-fi', 'Otwórz Ko-fi')}</a></div>`
@@ -1033,6 +1053,7 @@ const HUB_GAMES = [
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
+  ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
@@ -1215,7 +1236,7 @@ function hubLine(m, prev) {
     ${cont ? '<span class="hcav"></span>' : `<span class="hcav">${avatarHtml(m.color, m.av, 34, frameCls(m.fl))}</span>`}
     <div class="hcbody">
       ${cont ? '' : `<div class="hcmeta"><b class="hcname">${flairName(m.name, m.fl)}</b>${m.lv ? lvChip(m.lv, m.icon, m.rank) : ''}${titleHtml(m.fl)}<time datetime="${new Date(m.at).toISOString()}">${esc(hcTime(m.at))}</time></div>`}
-      <p>${esc(Array.isArray(m.grid) ? srvText(m.text) : m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
+      <p${!m.grid && emoOnly(m.text) ? ' class="hcbig"' : ''}>${esc(Array.isArray(m.grid) ? srvText(m.text) : m.text)}</p>${Array.isArray(m.grid) ? gridHtml(m.grid) : ''}
     </div>
     ${m.del ? `<button type="button" class="hcdel" data-act="hubdel" data-id="${esc(m.id)}" aria-label="${L('Remove this message', 'Usuń tę wiadomość')}" title="${L('Remove', 'Usuń')}">×</button>` : ''}
   </div>`;
@@ -1230,8 +1251,36 @@ function hubFootHtml() {
   if (!st.me) return '';
   if (!st.me.user) return `<div class="hcguest"><span>${L('Make a free account to join the chat.', 'Załóż darmowe konto, żeby pisać na czacie.')}</span>
     <button type="button" class="btn sm m" data-act="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn sm w" data-act="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
-  return `<form class="hcform" data-form="hubchat"><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="${L('Say something to everyone…', 'Napisz coś do wszystkich…')}" autocomplete="off" enterkeyhint="send" aria-label="${L('Message to everyone', 'Wiadomość do wszystkich')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>`;
+  return `<div class="hcemo" id="hc-emo" hidden></div><form class="hcform" data-form="hubchat"><button type="button" class="hcemobtn" data-act="hcemo" aria-expanded="false" aria-controls="hc-emo" aria-label="${L('Emotes', 'Emotki')}" title="${L('Emotes', 'Emotki')}">😊</button><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="${L('Say something to everyone…', 'Napisz coś do wszystkich…')}" autocomplete="off" enterkeyhint="send" aria-label="${L('Message to everyone', 'Wiadomość do wszystkich')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>`;
 }
+// The emote picker: the same six free emoji and bought sticker packs as the reaction row in table chat (react.js,
+// cosmetics.js). Picking one types it into the message at the cursor; it is plain text, so nothing new reaches the server.
+function hubEmoHtml() {
+  const mine = stickersOf(st.me), all = mine.length === STICKERS.length;
+  const btn = (e, lbl) => `<button type="button" data-act="hcemo-put" data-e="${esc(e)}" aria-label="${lbl} ${e}">${e}</button>`;
+  return `<div class="hcemorow">${EMOJI.map(e => btn(e, L('Emote', 'Emotka'))).join('')}${mine.map(s => btn(s.e, L('Sticker', 'Naklejka'))).join('')}</div>`
+    + (all ? '' : `<button type="button" class="hcemomore" data-act="hcemo-shop">${mine.length ? L('More sticker packs in the Wardrobe', 'Więcej naklejek w Garderobie') : L('Get sticker packs in the Wardrobe', 'Paczki naklejek kupisz w Garderobie')} ›</button>`);
+}
+function hubEmoToggle(open) {
+  const box = document.getElementById('hc-emo'), b = document.querySelector('.hcemobtn'); if (!box || !b) return;
+  open ??= box.hidden; if (open) box.innerHTML = hubEmoHtml();
+  const end = hubAtEnd(); // the log gets shorter while the picker is open: stay at the newest line
+  box.hidden = !open; b.setAttribute('aria-expanded', open); b.classList.toggle('on', open); if (end) hubScrollEnd();
+}
+function hubEmoPut(e) {
+  const inp = document.getElementById('hc-in'); if (!inp) return;
+  const a = inp.selectionStart ?? inp.value.length, z = inp.selectionEnd ?? a, v = inp.value.slice(0, a) + e + inp.value.slice(z);
+  if (v.length > inp.maxLength) { sfx.bad(); return; }
+  inp.value = v; const c = a + e.length;
+  if (matchMedia('(pointer: fine)').matches) inp.focus(); // on phones focusing would pop the keyboard over the picker
+  inp.setSelectionRange(c, c);
+}
+document.addEventListener('pointerdown', e => { const box = document.getElementById('hc-emo'); if (box && !box.hidden && !e.target.closest('#hc-foot')) hubEmoToggle(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hc-emo')?.hidden === false) { hubEmoToggle(false); document.querySelector('.hcemobtn')?.focus(); } });
+// A line that is only emoji (up to six) is shown bigger, like a sticker.
+const EMO_ONLY = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|\u200d|\ufe0f|\u20e3|\s)+$/u;
+const emoOnly = t => typeof t === 'string' && EMO_ONLY.test(t) && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(t)
+  && [...new Intl.Segmenter().segment(t.replace(/\s/g, ''))].length <= 6;
 const $hcLog = () => document.getElementById('hc-log');
 const hubAtEnd = () => { const el = $hcLog(); return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 60; };
 function hubScrollEnd() { const el = $hcLog(); if (el) el.scrollTop = el.scrollHeight; }
@@ -1256,7 +1305,7 @@ $app.addEventListener('submit', e => {
   if (e.target.dataset.form !== 'hubchat') return;
   e.preventDefault();
   const inp = e.target.querySelector('input'), text = inp.value.trim(); if (!text) return;
-  st.hc.pending = text; send({ t: 'hubchat', text }); inp.value = '';
+  st.hc.pending = text; send({ t: 'hubchat', text }); inp.value = ''; hubEmoToggle(false);
 });
 
 // "3 playing now · 128 visitors so far" under the hero buttons.
@@ -1526,17 +1575,17 @@ const coinIco = '<i class="cn" aria-hidden="true"></i>';
 const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
-const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️'];
+const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕'];
 const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
   ti: L('A title under your name. Titles with a goal are earned by playing.', 'Tytuł pod twoim imieniem. Tytuły z celem zdobywa się, grając.'),
   wn: L('Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', 'Pojawia się u wszystkich na ekranie, gdy wygrywasz, i zastępuje konfetti przy twoich dobrych momentach w trakcie gry. Dotknij, żeby zobaczyć.'),
-  sp: L('Extra reactions for the chat row at any table. Every pack you own is always on.', 'Dodatkowe reakcje w pasku czatu przy każdym stole. Każda paczka, którą masz, jest zawsze włączona.') };
+  sp: L('Extra reactions for the chat row at any table, and extra emotes for the main chat. Every pack you own is always on.', 'Dodatkowe reakcje w pasku czatu przy każdym stole i dodatkowe emotki na czacie głównym. Każda paczka, którą masz, jest zawsze włączona.') };
 
-function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 'all' } = {}) {
-  let color = st.color, av = st.av.slice(), sec = startSec, sub = '', filt = startFilt, undo = null, saveT = 0;
+function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = '', filt: startFilt = 'all' } = {}) {
+  let color = st.color, av = st.av.slice(), sec = startSec, sub = startSub, filt = startFilt, undo = null, saveT = 0;
   const pick = {}; // account cosmetics being tried on: kind -> index
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
   const me = () => st.me || {}, owned = () => me().owned || [], coins = () => me().coins || 0;
@@ -1631,7 +1680,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
   const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
   const cosTile = (k, i) => {
     const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
-    const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `${L('back in', 'wraca:')} ${cosSeason(k, i).back}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn ? yours : '';
+    const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `${L('back in', 'wraca:')} ${cosSeason(k, i).back}` : !own && it.pk ? `☕ ${L('supporters', 'wspierający')}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn || it.pk ? yours : '';
     return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b>${esc(it.n)}</b>`}${k === 'nm' ? `<b>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
   };
   const cosList = k => COS[k].items.map((_, i) => i).filter(i => { const s = cosState(k, i); return filt === 'mine' ? s.own : filt === 'shop' ? !s.own && !s.pr : true; })
@@ -1693,7 +1742,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', filt: startFilt = 
     showIsle();
   };
   const wants = () => [...lockedIn(av, owned()).map(id => { const [k, i] = id.split(':'); return { id, name: itemName(k, +i), p: priceOf(k, +i), pk: !!packOf(k, +i), dot: AV_COLOR_KEYS.includes(k) ? OPT[k][+i] : '' }; }),
-    ...Object.entries(pick).map(([k, i]) => ({ id: k + ':' + i, name: cosItem(k, i).n, kind: COS[k].label.toLowerCase(), p: cosItem(k, i).p }))];
+    ...Object.entries(pick).map(([k, i]) => ({ id: k + ':' + i, name: cosItem(k, i).n, kind: COS[k].label.toLowerCase(), p: cosItem(k, i).p || 0, pk: !!cosItem(k, i).pk }))];
   const paintCart = () => {
     const w = first ? [] : wants(), nb = w.filter(x => !x.pk).length, total = w.reduce((s, x) => s + x.p, 0), short = total - coins(); // nb: how many of them coins can buy
     cart.innerHTML = w.length ? `<div class="cartlist"><b>${L('Trying on', 'Przymierzasz')}</b>${w.map(x => `<span class="cartitem">${x.dot ? `<i class="dot" style="--c:${x.dot}"></i>` : ''}${esc(x.name)}${x.kind ? ` <small>${esc(x.kind)}</small>` : ''}${
@@ -1985,6 +2034,9 @@ $app.addEventListener('click', e => {
   else if (act === 'account') openAccount(b.dataset.mode);
   else if (act === 'security') openSecurity();
   else if (act === 'support') openSupport();
+  else if (act === 'hcemo') hubEmoToggle();
+  else if (act === 'hcemo-put') hubEmoPut(b.dataset.e);
+  else if (act === 'hcemo-shop') { hubEmoToggle(false); openWardrobe({ sec: 'fx', sub: 'sp' }); }
   else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
   else if (act === 'logout') { send({ t: 'logout' }); toast(L('Logged out. This browser is a guest again.', 'Wylogowano. Ta przeglądarka znów gra jako gość.')); }
   else if (act === 'host' || act === 'solo') {

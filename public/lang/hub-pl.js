@@ -26,6 +26,7 @@ export const OPT_PL = {
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
+  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -320,6 +321,22 @@ export const GAMES_PL = {
       <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy, a <b>ostatni gracz z kartami zostaje Panem</b>.</li>
       <li>Pięciu graczy siada przy stole dla sześciu: szóstą rękę bierze bot, żeby karty nadal dzieliły się po równo.</li>
       <li>Skróty: <b>Enter</b> kładzie twoją najniższą pasującą kartę, <b>T</b> bierze trzy.</li>
+    </ol>`,
+  },
+  piotr: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, te karty trzyma bot',
+    pitch: 'Piotruś z kartami zwierzaków. Zbieraj pary, ciągnij karty od sąsiada i nie zostań z Piotrusiem w ręku.',
+    howto: `Klasyczna polska gra dla dzieci, znana też jako Czarny Piotruś. Talia to pary zwierzaków i jedna karta bez pary: Piotruś. Odłóż swoje pary, a potem po kolei ciągnijcie po jednej zakrytej karcie od gracza po prawej. Przegrywa ten, kto zostanie z Piotrusiem w ręku.`,
+    rules: `<ol>
+      <li>Talia to <b>12 par zwierzaków</b> (16 w dużej talii) i <b>jeden Piotruś</b>, czarno-biały kot bez pary. Rozdaje się wszystkie karty, więc niektórzy mogą dostać o jedną więcej. Wolne miejsca zajmują boty.</li>
+      <li>Najpierw każdy <b>odkłada wszystkie pary</b>, które dostał. Dzieje się to samo.</li>
+      <li>Potem, zgodnie z ruchem wskazówek zegara, każdy gracz <b>ciągnie jedną zakrytą kartę</b> od gracza <b>po swojej prawej</b> (tego, który grał przed nim). Widzisz tylko koszulki kart.</li>
+      <li>Jeśli wyciągnięta karta <b>tworzy parę</b> z kartą w twojej ręce, para idzie na stół. Jeśli nie, karta zostaje u ciebie.</li>
+      <li>Wszyscy widzą, <b>po którą kartę sięgasz</b>, zanim ją weźmiesz, więc obserwuj minę drugiego gracza. Na telefonie dotknij karty, żeby po nią sięgnąć, i dotknij jej jeszcze raz, żeby ją wziąć.</li>
+      <li>W każdej chwili możesz <b>potasować swoje karty</b>, żeby nikt nie wyśledził, gdzie jest Piotruś. Wyciągnięta karta też trafia w losowe miejsce w twojej ręce.</li>
+      <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy. <b>Przegrywa gracz, który zostaje z Piotrusiem</b>.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas na ruch, bierzesz kartę, po którą sięgasz, albo losową. Skróty: <b>← →</b> sięgają po kartę, <b>Enter</b> ją bierze, <b>S</b> tasuje twoje karty.</li>
     </ol>`,
   },
   pips: {

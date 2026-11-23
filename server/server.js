@@ -18,6 +18,7 @@ import * as golf from './games/golf.js';
 import * as dice from './games/dice.js';
 import * as pan from './games/pan.js';
 import * as pips from './games/pips.js';
+import * as piotr from './games/piotr.js';
 import * as paw from './games/paw.js';
 import * as kart from './games/kart.js';
 import * as kitchen from './games/kitchen.js';
@@ -38,7 +39,7 @@ import * as daily from './daily.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, bean, tys, pan, pips, darts, ttt };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, bean, tys, pan, pips, darts, piotr, ttt };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
