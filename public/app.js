@@ -13,6 +13,7 @@ import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
+import { randomName } from './names.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
 
@@ -580,17 +581,19 @@ function onMsg(m) {
     openPlayer(m.p);
   } else if (m.t === 'me') {
     st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
-    // The language follows the account: the last pick made while logged in wins on every device.
-    if (m.me.user && m.me.lang && m.me.lang !== LANG) return setLang(m.me.lang);
-    if (m.me.user && !m.me.lang && picked()) send({ t: 'lang', v: LANG });
+    // Logged in: the look saved with the account is the only truth. Wear it (and keep it in this browser) before
+    // anything else, the language reload below included, so an old guest look here can never be sent back over it.
     let adopted = false;
-    if (adoptLook && m.me.user) { // just logged in: wear the look saved with the account
-      adoptLook = false; adopted = true;
+    if (m.me.user) {
+      adopted = adoptLook; adoptLook = false;
       st.name = m.me.name || st.name; st.color = m.me.color || st.color; if (m.me.av) st.av = cleanAv(m.me.av);
       LS.set('ct_name', st.name); LS.set('ct_color', st.color); LS.set('ct_av', JSON.stringify(st.av));
     }
+    // The language follows the account: the last pick made while logged in wins on every device.
+    if (m.me.user && m.me.lang && m.me.lang !== LANG) return setLang(m.me.lang);
+    if (m.me.user && !m.me.lang && picked()) send({ t: 'lang', v: LANG });
     // Wearing something this profile has not bought (say, after logging out): take it off here too.
-    if (!adopted && !st.creatorOpen && lockedIn(st.av, m.me.owned).length) {
+    if (!m.me.user && !st.creatorOpen && lockedIn(st.av, m.me.owned).length) {
       st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
     }
     st.onMe?.(); emojiPaint();
@@ -1643,15 +1646,15 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   const dropOn = () => Object.keys(SEASONS).find(sn => seasonOn(sn, today()) && (Object.values(SEASON).includes(sn) || WORNALL.some(k => COS[k].items.some(it => it.s === sn))));
   const WORNALL = Object.keys(COS);
   const sheet = modal(`
-    <form class="creator wd${first ? ' first' : ''}" data-form="profile">
+    <form class="creator wd${first ? ' first quick' : ''}" data-form="profile">
       <header class="wdhead"><h2>${first ? L('Who is joining the table?', 'Kto dosiada się do stołu?') : L('Wardrobe', 'Garderoba')}</h2>
         ${first ? `<button type="button" class="langbtn" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span>${PL ? 'EN' : 'PL'}</span></button>` : `<span class="chip wdcoins" title="${L('Coins: every finished game pays by where you finished, 10 for 1st down to 1 for last', 'Monety: każda skończona gra płaci według zajętego miejsca, 10 za 1. miejsce, aż do 1 za ostatnie')}">${coinIco}<b></b></span><button type="button" class="round wdx" data-done aria-label="${L('Close the wardrobe', 'Zamknij garderobę')}">✕</button>`}</header>
-      ${first ? `<p class="wdintro">${L('No account needed. Pick a name and a look; friends see both at the table.', 'Konto nie jest potrzebne. Wybierz imię i wygląd; znajomi zobaczą jedno i drugie przy stole.')}</p>` : ''}
+      ${first ? `<p class="wdintro">${L('No account and no setup needed. Here is a random name and look: you can change them any time.', 'Bez konta i bez ustawiania. Masz losowe imię i wygląd: zmienisz je, kiedy zechcesz.')}</p>` : ''}
       <div class="wdside">
         <div class="pv3d" id="pv"></div><div class="pv3d pvisle" id="pvi" hidden></div>
         <div class="wdme">
           <div class="wdplate" aria-label="${L('How others see you', 'Jak widzą cię inni')}"></div>
-          <div class="namecol"><label for="nm">${L('Name', 'Imię')}</label><input class="field" id="nm" maxlength="16" required placeholder="${L('e.g. Noodle Queen', 'np. Królowa Klusek')}" value="${esc(st.name)}" autocomplete="nickname"></div>
+          <div class="namecol"><label for="nm">${L('Name', 'Imię')}</label><input class="field" id="nm" maxlength="16" required placeholder="${L('e.g. Noodle Queen', 'np. Królowa Klusek')}" value="${esc(st.name || (first ? randomName(PL) : ''))}" autocomplete="nickname">${first ? `<button type="button" class="round wdreroll" data-rename title="${L('Another random name', 'Inne losowe imię')}" aria-label="${L('Another random name', 'Inne losowe imię')}">🎲</button>` : ''}</div>
           <div class="pvbar"><span class="pvseg"><button type="button" data-cam="0" aria-pressed="true">${L('Body', 'Ciało')}</button><button type="button" data-cam="1" aria-pressed="false">${L('Face', 'Twarz')}</button></span>
             <button type="button" class="btn w sm" data-rand>${L('Surprise me', 'Zaskocz mnie')}</button><button type="button" class="btn w sm" data-undo hidden>${L('Undo', 'Cofnij')}</button></div>
         </div>
@@ -1659,7 +1662,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
       <nav class="wdrail" aria-label="${L('Wardrobe sections', 'Działy garderoby')}"></nav>
       <div class="wdbody"><div class="wdsub"></div><p class="wdhint"></p><div class="wdgrid"></div></div>
       <div class="cart" aria-live="polite"></div>
-      ${first ? `<div class="wdfoot"><button class="btn big">${L("Let's go", 'Zaczynamy')}</button><button type="button" class="btn ghost-ink" data-login>${L('I already have an account', 'Mam już konto')}</button></div>` : ''}
+      ${first ? `<div class="wdfoot"><button class="btn big">${L('Play', 'Graj')}</button><button type="button" class="btn ghost-ink" data-custom>${L('Change my look', 'Zmień wygląd')}</button><button type="button" class="btn ghost-ink" data-login>${L('I already have an account', 'Mam już konto')}</button></div>` : ''}
     </form>`, !first);
   const { el, close } = sheet; el.querySelector('.sheet').classList.add('wdsheet');
   const q = s => el.querySelector(s), nm = q('#nm'), pv = q('#pv'), pvi = q('#pvi'), rail = q('.wdrail'), subEl = q('.wdsub'), hint = q('.wdhint'), grid = q('.wdgrid'), cart = q('.cart'), plate = q('.wdplate');
@@ -1816,7 +1819,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   if (me().user && !first) send({ t: 'pets' });
   sheet.onClose = () => { open = false; st.creatorOpen = false; st.onMe = null; if (!first) { saveName(); commit(); } view?.dispose(); if (!first && (st.view === 'hub' || st.view === 'lobby')) go(st.view); };
   sig = sigOf(); paint(); show(); setCam(sec === 'av1');
-  if (first) setTimeout(() => nm.focus(), 50);
+  // (no focus on the name: the welcome window is one tap on Play, and a phone keyboard popping up would hide it)
 
   nm.addEventListener('input', paintPlate);
   nm.addEventListener('change', saveName);
@@ -1833,6 +1836,8 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     const by = t.closest('[data-buy]'); if (by) { by.disabled = true; return buy(by.dataset.buy); }
     const all = t.closest('[data-buyall]'); if (all) { all.disabled = true; return wants().filter(x => !x.pk).forEach(x => buy(x.id)); }
     if (t.closest('[data-off]')) { av = wearable(av, owned()).map((v, i) => v || !av[i] ? v : st.av[i]); for (const k of Object.keys(pick)) delete pick[k]; sfx.pop(); show(); return paint(true); }
+    if (t.closest('[data-custom]')) { q('form').classList.remove('quick'); t.closest('[data-custom]').hidden = true; sfx.click(); return; }
+    if (t.closest('[data-rename]')) { nm.value = randomName(PL); sfx.pop(); paintPlate(); return; }
     if (t.closest('[data-rand]')) { undo = [color, av.slice()]; av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; q('[data-undo]').hidden = false; sfx.set(); show(); paint(); return saveSoon(); }
     if (t.closest('[data-undo]')) { if (undo) [color, av] = undo; undo = null; q('[data-undo]').hidden = true; sfx.pop(); show(); paint(); return saveSoon(); }
     const pl = t.closest('[data-pal]');
@@ -1870,7 +1875,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   });
   el.querySelector('form').addEventListener('submit', e => {
     e.preventDefault(); if (!first) return saveName();
-    const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16); if (!n) return;
+    const n = nm.value.replace(/[<>]/g, '').trim().slice(0, 16) || randomName(PL);
     st.name = n; st.color = color; st.av = wearable(av, owned());
     LS.set('ct_name', n); LS.set('ct_color', color); LS.set('ct_av', JSON.stringify(st.av));
     send({ t: 'profile', name: n, color, av: st.av });

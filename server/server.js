@@ -622,7 +622,16 @@ attach(server, '/ws', sock => {
       if (c.sock !== sock) c.since = Date.now(); // when this visit started, for the host's list
       c.sock = sock; c.lastSeen = Date.now(); c.view = 'hub';
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
-      c.id = store.session(token, c).id; c.av = store.allowedAv(store.profileOf(token), c.av); store.setLook(token, c); store.scheduleSave();
+      c.id = store.session(token, c).id;
+      const p = store.profileOf(token);
+      // An account's look is the one saved on the server. The browser's own copy may be an old guest look (a page
+      // that reloaded right after logging in, a second tab, a new browser), so it never overwrites the account:
+      // only an explicit 'profile' message (the wardrobe) changes it. A guest's profile is this browser, so it follows.
+      // (An old account with a part of its look never saved takes just that part from here.)
+      if (p?.user) { c.name = p.name || c.name; c.color = p.color || c.color; c.av = p.av ? cleanAv(p.av) : store.allowedAv(p, c.av); }
+      else c.av = store.allowedAv(p, c.av);
+      store.setLook(token, c);
+      store.scheduleSave();
       store.visit(token);
       send(c, { t: 'welcome', token, id: c.id, name: c.name });
       send(c, statsMsg()); broadcastStats();
