@@ -19,7 +19,7 @@ try {
   const map = await get('/sitemap.xml');
   assert.equal(map.r.status, 200); assert.match(map.r.headers.get('content-type'), /application\/xml/);
   assert.match(map.text, /<loc>https:\/\/zatokagier\.com\/<\/loc>/);
-  for (const f of ['/og-image.png', '/apple-touch-icon.png', '/icon-192.png', '/favicon.svg']) assert.equal((await get(f)).r.status, 200, f);
+  for (const f of ['/og-image.png', '/og-square.png', '/logo-512.png', '/favicon.ico', '/apple-touch-icon.png', '/icon-192.png', '/favicon.svg']) assert.equal((await get(f)).r.status, 200, f);
 
   const bot = await get('/', { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', 'accept-language': 'en-US' });
   assert.match(bot.text, /<html lang="pl" data-geo="pl"/);
@@ -27,12 +27,17 @@ try {
   assert.match(bot.text, /<link rel="canonical" href="https:\/\/zatokagier\.com\/">/);
   assert.match(bot.text, /og:image" content="https:\/\/zatokagier\.com\/og-image\.png"/);
   assert.match(bot.text, /<h1>Zatoka Gier<\/h1>/);
+  assert.match(bot.text, /Postępy, które zostają/);
+  const ld = JSON.parse(bot.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.ok(ld['@graph'].some(n => n.primaryImageOfPage?.url === 'https://zatokagier.com/og-square.png'));
 
   const en = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'en-GB,en' });
   assert.match(en.text, /<html lang="en" data-geo="en"/);
   assert.match(en.text, /<title>Zatoka Gier: free online games with friends<\/title>/);
   assert.match(en.text, /Free browser games to play with friends\. Host a table/);
   assert.match(en.text, /og:locale" content="en_GB"/);
+  assert.match(en.text, /Progress that stays/);
+  assert.doesNotMatch(en.text, /Postępy/);
   assert.doesNotMatch(en.text, /darmowe|Darmowe|przeglądarce/);
 
   const pl = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'pl-PL,pl' });

@@ -18,7 +18,12 @@
 <meta property="og:image:alt" content="Zatoka Gier: latająca wyspa z latarnią, pionkiem i kostką">
 <meta property="og:locale" content="pl_PL">
 <meta property="og:locale:alternate" content="en_GB">
+<meta property="og:image" content="https://zatokagier.com/og-square.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://zatokagier.com/og-image.png">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -29,7 +34,13 @@
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js" } }
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","name":"Zatoka Gier","alternateName":"zatokagier.com","url":"https://zatokagier.com/","inLanguage":["pl","en"]}
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebSite","@id":"https://zatokagier.com/#site","name":"Zatoka Gier","alternateName":"zatokagier.com","url":"https://zatokagier.com/","inLanguage":["pl","en"],"publisher":{"@id":"https://zatokagier.com/#org"}},
+{"@type":"Organization","@id":"https://zatokagier.com/#org","name":"Zatoka Gier","url":"https://zatokagier.com/","logo":{"@type":"ImageObject","url":"https://zatokagier.com/logo-512.png","width":512,"height":512},"sameAs":["https://ko-fi.com/zatokagier"]},
+{"@type":"WebPage","@id":"https://zatokagier.com/#page","url":"https://zatokagier.com/","isPartOf":{"@id":"https://zatokagier.com/#site"},"inLanguage":"pl",
+ "primaryImageOfPage":{"@type":"ImageObject","url":"https://zatokagier.com/og-square.png","width":1200,"height":1200},
+ "image":["https://zatokagier.com/og-square.png","https://zatokagier.com/og-image.png"]}
+]}
 </script>
 </head>
 <body>
@@ -37,6 +48,16 @@
 <h1>Zatoka Gier</h1>
 <p>Darmowe gry w przeglądarce do grania ze znajomymi. Załóż stół, wyślij znajomym kod i grajcie razem. Bez instalowania i bez reklam.</p>
 <p>Karty: Hot Pot, Texas Hold'em, Tysiąc, Pan, Piotruś. Kości i planszówki: Kości kłamcy, Pip Party, Chińczyk, Węże i drabiny, Pawperty, Kółko i krzyżyk. Zręcznościowe: Kart Island Race, Marble Rush, Mini Golf Party, Sky Darts, Tower Stack, Sky Bricks, Beanstalk Bounce, Cozy Kitchen Rush, Treasure Dig. Na co dzień: Farma zwierzaków, Pet Pop, Hay Hunch i Mystery Pet.</p>
+<h2>Postępy, które zostają</h2>
+<p>Grać można od razu, bez rejestracji. Darmowe konto (wystarczy nazwa i hasło) zapisuje wszystko na stałe i działa na każdym urządzeniu, razem z listą znajomych.</p>
+<ul>
+<li>Poziomy i rangi: każda rozgrywka daje doświadczenie, a rangi prowadzą od Kiełka do Legendy nieba i dalej, z gwiazdkami bez końca.</li>
+<li>Monety: każda gra płaci za zajęte miejsce. Wydajesz je w Garderobie na ubrania, czapki, dodatki, ramki i tła karty gracza. Co sezon w sklepiku pojawiają się nowe rzeczy.</li>
+<li>Rankingi: tabele najlepszych graczy w każdej grze i ranking ogólny. Liczą się tylko mecze między ludźmi.</li>
+<li>Karta gracza: twój awatar, ranga, ulubione gry i własna wyspa ze zwierzakami, którą widzą inni.</li>
+<li>Farma zwierzaków: hodujesz i krzyżujesz ponad 70 gatunków z dziedziczeniem cech i żywiołów, rozbudowujesz farmę, walczysz w turowych bitwach 3 na 3, odwiedzasz farmy znajomych i uzupełniasz album.</li>
+<li>Codziennie: nowa zagadka Mystery Pet, a do tego poziomy i rekordy w Pet Pop i Hay Hunch.</li>
+</ul>
 </main><!--/seo--></div>
 <div id="chat" hidden></div>
 <div id="toasts" aria-live="polite"></div>
