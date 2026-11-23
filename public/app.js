@@ -459,7 +459,7 @@ const GAMES = {
 // Polish: the long texts (names, pitches, rules, setting labels) live in lang/hub-pl.js and are laid over the English.
 const PLX = PL ? await import('./lang/hub-pl.js').catch(e => { console.error(e); return null; }) : null;
 if (PLX) for (const [id, x] of Object.entries(PLX.GAMES_PL)) if (GAMES[id]) Object.assign(GAMES[id], x);
-const optText = s => PLX?.OPT_PL[s] ?? s; // a table setting's heading or pill label
+const optText = (s, game) => PLX?.OPT_PL[`${game}:${s}`] ?? PLX?.OPT_PL[s] ?? s; // a table setting's heading or pill label (a game's own form first)
 const FARM_NAME = L('Pet Farm', 'Farma zwierzaków');
 
 const $app = document.getElementById('app');
@@ -1434,7 +1434,7 @@ function renderLobby() {
   const seats = Array.from({ length: max }, (_, i) => seated[i] || null);
   const watchers = [...seated.slice(max), ...r.players.filter(p => p.watch)];
   const meWatch = r.players.find(p => p.id === st.id)?.watch, saving = (r.sit || []).includes(st.id);
-  const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${optText(String(label)).replace(/^(\d+) hands$/, '$1 rozdań')}</button>`;
+  const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${optText(String(label), r.game).replace(/^(\d+) hands$/, '$1 rozdań')}</button>`;
   $app.innerHTML = `${topbar()}
   <main class="wrap lobby">
     <div class="main">

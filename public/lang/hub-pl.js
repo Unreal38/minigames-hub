@@ -10,13 +10,13 @@ export const OPT_PL = {
   Board: 'Plansza', 'Classic 100': 'Klasyczna 100', 'Quick 60': 'Szybka 60', 'Party tiles': 'Pola specjalne', 'Hard mode': 'Tryb trudny',
   'Exact roll to finish': 'Dokładny rzut na metę', 'Roll timer': 'Czas na rzut',
   Game: 'Gra', 'Seats at the table': 'Miejsca przy stole', 'Game length': 'Długość gry', '10 hands': '10 rozdań', '20 hands': '20 rozdań', 'Last one standing': 'Do ostatniego gracza',
-  'Pawns each': 'Pionki na gracza', 'Classic 4': 'Klasycznie 4', 'Quick 2': 'Szybko 2', 'Head start': 'Na dobry początek', 'One pawn out': 'Jeden pionek na planszy',
+  'Pawns each': 'Pionki na gracza', 'Classic 4': 'Klasyczne 4', 'Quick 2': 'Szybkie 2', 'Head start': 'Na dobry początek', 'One pawn out': 'Jeden pionek na planszy',
   Towers: 'Wieże', Blocks: 'Klocki', 'All the same': 'Jednakowe', 'Mixed shapes': 'Różne kształty', 'Drop timer': 'Czas na zrzut',
   'Start from': 'Start od', Finish: 'Koniec', 'On a double': 'Podwójnym polem', 'Any dart': 'Dowolną lotką', Legs: 'Legi', 'One leg': 'Jeden leg', 'Best of 3': 'Do 2 wygranych', 'Time per dart': 'Czas na lotkę',
-  Holes: 'Dołki', 'Quick 3': 'Szybko 3', Course: 'Pole', Random: 'Losowe', 'Coin bets on each hole': 'Zakłady o monety na każdym dołku',
-  'A lost call costs': 'Przegrane sprawdzenie kosztuje', 'A die': 'Kość', 'A life': 'Życie', 'Lives (life mode)': 'Życia (tryb z życiami)', 'Dice each': 'Kości na gracza', 'Classic 5': 'Klasycznie 5',
+  Holes: 'Dołki', 'Quick 3': 'Szybkie 3', Course: 'Pole', Random: 'Losowe', 'Coin bets on each hole': 'Zakłady o monety na każdym dołku',
+  'A lost call costs': 'Przegrane sprawdzenie kosztuje', 'A die': 'Kość', 'A life': 'Życie', 'Lives (life mode)': 'Życia (tryb z życiami)', 'Dice each': 'Kości na gracza', 'Classic 5': 'Klasyczne 5',
   'Ones are wild': 'Jedynki to jokery', 'Spot on calls': 'Okrzyk „Co do joty!”',
-  'Quick 10 rounds': 'Szybko: 10 rund', '20 rounds': '20 rund', 'Long 30': 'Długo: 30', 'Napping pets': 'Drzemki zwierzaków',
+  'Quick 10 rounds': 'Szybka: 10 rund', '20 rounds': '20 rund', 'Long 30': 'Długa: 30', 'Napping pets': 'Drzemki zwierzaków',
   Track: 'Trasa', 'Meadow Loop': 'Łąkowa pętla', 'Sugar Bridges': 'Cukrowe mosty', 'Twisty Peaks': 'Kręte szczyty', Laps: 'Okrążenia', 'Karts on the grid': 'Gokarty na starcie',
   'Power-ups': 'Bonusy', Chaos: 'Chaos',
   Cooks: 'Kucharze', Kitchen: 'Kuchnia', 'Sunny Diner': 'Słoneczny bar', 'Pass-Through': 'Kuchnia z okienkiem', Shift: 'Zmiana', 'Bot cooks': 'Kucharze-boty',
@@ -27,6 +27,8 @@ export const OPT_PL = {
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
+  // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
+  'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
