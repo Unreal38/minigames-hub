@@ -1173,7 +1173,10 @@ export function createScene(canvas, { onPick, onGhost }) {
   const ptrs = new Map(); let drag = null, pinch = 0, pinchAt = null;
   canvas.addEventListener('contextmenu', e => e.preventDefault()); // the right button pans
   canvas.addEventListener('pointerdown', e => {
-    canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, e);
+    // A first finger means no other finger is down: forget any touch whose end never arrived (a system swipe, the
+    // tab hidden mid-touch). A stuck one turned every later drag into a two-finger pinch, so the camera seemed dead.
+    if (e.isPrimary) { ptrs.clear(); pinch = 0; pinchAt = null; }
+    try { canvas.setPointerCapture(e.pointerId); } catch {} ptrs.set(e.pointerId, e);
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); pinchAt = null; drag = null; return; }
     const g = groundAt(e), tx = g ? g.x + N / 2 : -1, ty = g ? g.z + N / 2 : -1, st = ghost ? stepOf(ghost.type) : 1; // tx, ty: where on the grid, in tiles
     drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), moved: false,
@@ -1221,6 +1224,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     onPick?.(it ? { item: it.id } : { nothing: true });
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('lostpointercapture', e => { if (ptrs.has(e.pointerId)) { ptrs.delete(e.pointerId); pinch = 0; pinchAt = null; if (!ptrs.size) drag = null; } });
   const zoomMap = k => { mapZoom = Math.min(1, Math.max(Math.min(1, 26 / mapFar), mapZoom * k)); };
   canvas.addEventListener('wheel', e => { e.preventDefault(); if (mapOn) return zoomMap(Math.exp(e.deltaY * .0012)); cam.zoom = 0; cam.dist = Math.min(N * 2.6, Math.max(7, cam.dist * Math.exp(e.deltaY * .0012))); }, { passive: false });
 
