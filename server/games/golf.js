@@ -4,8 +4,9 @@
 import { HOLES, buildHole, simulate, spotScore, MAX_STROKES, CAP_SCORE } from '../../public/games/golf/course.js';
 import { randomAv } from '../../public/avatar.js';
 import { genSpec } from './golfgen.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'golf', name: 'Mini Golf Party', minPlayers: 1, maxPlayers: 6, bank: true, joinAt: 'hole' };
+export const meta = { id: 'golf', name: 'Mini Golf Party', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, bank: true, joinAt: 'hole' };
 
 const BOT_NAMES = ['Bogey', 'Divot', 'Putters', 'Mulligan', 'Chip', 'Birdie', 'Caddy', 'Sandy'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -16,7 +17,7 @@ const BET_MS = 15_000, LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS 
 export function cleanOpts(o = {}) {
   return {
     holes: [3, 6, 9].includes(+o.holes) ? +o.holes : 6,
-    seats: [2, 4, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     bets: o.bets === 'off' ? 'off' : 'on',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     course: o.course === 'classic' ? 'classic' : 'random',

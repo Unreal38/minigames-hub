@@ -5,7 +5,7 @@
 import { BOARDS, boardOf, cellsOf, around, validFleet, randomFleet, fleetMap, SEA, MISS, HIT, CLEAR } from '../../public/games/cove/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
-export const meta = { id: 'cove', name: 'Cove Clash', minPlayers: 1, maxPlayers: 2 };
+export const meta = { id: 'cove', name: 'Cove Clash', minPlayers: 1, maxPlayers: 2, seats: { fixed: 2 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];

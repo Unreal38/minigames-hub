@@ -3,15 +3,15 @@
 // Bets use the players' real account coins (the server fills in each balance at the start of a race, meta.bank).
 import { makeTrack, at, rng, spinAngle, trapOpen, R, DISH, GATE_S } from '../../public/games/marbles/track.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'marbles', name: 'Marble Rush', minPlayers: 1, maxPlayers: 8, bank: true };
+export const meta = { id: 'marbles', name: 'Marble Rush', minPlayers: 1, maxPlayers: 8, seats: { lo: 2, def: 4 }, bank: true };
 
 const BOT_NAMES = ['Pebble', 'Gumdrop', 'Comet', 'Biscuit', 'Wobble', 'Zoomie', 'Button', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // The marbles, in the order they are added as the field grows. Shared with the client through view().
 export const MARBLES = [['Red', '#e5543b'], ['Blue', '#4f9df0'], ['Yellow', '#ffd23f'], ['Green', '#4fc27a'],
   ['Purple', '#a070f0'], ['Orange', '#ff8a2a'], ['Pink', '#ff8fc0'], ['White', '#f6efe4']];
-const MIN_SEATS = 4; // bots fill the table up to this many bettors
 const START_COINS = 100, REFILL = 30, STAKES = [10, 25, 50, 100];
 const BET_MS = 20_000, COUNT_MS = 3200, GAP_MS = 4500, AFTER_FIRST_MS = 22_000, HEAT_MAX_MS = 100_000;
 const DT = 1 / 60, FRAME_EVERY = 3, KEEP_FRAMES = 18;
@@ -24,6 +24,7 @@ export function cleanOpts(o = {}) {
     mode: o.mode === 'knockout' ? 'knockout' : 'classic',
     chaos: o.chaos === 'off' ? 'off' : 'on',
     field: [4, 6, 8].includes(+o.field) ? +o.field : 6,
+    seats: cleanSeats(meta, o.seats), // bettors: bots fill the table up to this many
   };
 }
 
@@ -37,7 +38,7 @@ export function create(players, optsIn = {}, prev = null) {
   const taken = new Set(seats.map(s => s.color.toLowerCase()));
   const cols = [...BOT_COLS.filter(c => !taken.has(c)), ...BOT_COLS];
   let bi = 0;
-  while (seats.length < MIN_SEATS) seats.push({ id: null, wk: 'b:' + names[bi], name: names[bi], color: cols[bi++ % cols.length], av: randomAv(), bot: true, human: false });
+  while (seats.length < opts.seats) seats.push({ id: null, wk: 'b:' + names[bi], name: names[bi], color: cols[bi++ % cols.length], av: randomAv(), bot: true, human: false });
   const wallet = {};
   for (const s of seats) {
     const k = walletKey(s);

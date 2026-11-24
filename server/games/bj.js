@@ -3,8 +3,9 @@
 // Bets go in at the same time (hidden until the deal), then each player takes a turn. Bots fill empty seats.
 import { START, MIN_BET, MAX_BET, BET_STEP, DECKS, cardVal, total, isBlackjack, isPair, betRange, betOk } from '../../public/games/bj/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'bj', name: 'Blackjack', minPlayers: 1, maxPlayers: 6, joinAt: 'hand' };
+export const meta = { id: 'bj', name: 'Blackjack', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'hand' };
 
 const BOT_NAMES = ['Truffle', 'Waffles', 'Clover', 'Nugget', 'Pudding', 'Maple', 'Toffee', 'Sprout'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -18,7 +19,7 @@ const newShoe = () => shuffle(Array.from({ length: 52 * DECKS }, (_, i) => i % 5
 export function cleanOpts(o = {}) {
   return {
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     rounds: [10, 15, 20].includes(+o.rounds) ? +o.rounds : 10,
     timer: [0, 15, 20, 30].includes(+o.timer) ? +o.timer : 20,
   };

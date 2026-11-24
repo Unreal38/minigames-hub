@@ -14,6 +14,7 @@ body.in-game #toasts { top: 26%; }
 
 /* opponents */
 .opp { position: absolute; display: flex; align-items: center; gap: 10px; background: var(--plum2); border: 3px solid var(--line); border-radius: 20px; padding: 8px 10px; transition: border-color .2s, box-shadow .2s, transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.opp[hidden] { display: none; }
 .opp[data-r="1"] { left: 14px; top: 40%; transform: translateY(-50%); }
 .opp[data-r="2"] { left: 50%; top: 70px; transform: translateX(-50%); }
 .opp[data-r="3"] { right: 14px; top: 40%; transform: translateY(-50%); flex-direction: row-reverse; }

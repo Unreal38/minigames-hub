@@ -5,8 +5,9 @@
 // replays that shot on its own copy, so pops, eggs and knock-outs are all decided here.
 import { AMAX, MAXG, GRACE, HURRY, newState, lock, clone, count, encode, rowsDue, around } from '../../public/games/lagoon/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'lagoon', name: 'Bubble Lagoon', minPlayers: 1, maxPlayers: 4, joinAt: 'game' };
+export const meta = { id: 'lagoon', name: 'Bubble Lagoon', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 4 }, joinAt: 'game' };
 
 const COUNT_MS = 3600;
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Biscuit', 'Maple'];
@@ -15,7 +16,7 @@ export const BOT = { chill: { ms: 2300, slip: .3, step: 80 }, sharp: { ms: 1500,
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     speed: ['calm', 'normal', 'fast'].includes(o.speed) ? o.speed : 'normal',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };

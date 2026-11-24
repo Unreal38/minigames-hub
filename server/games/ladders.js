@@ -2,8 +2,9 @@
 // snake and party tile; clients replay the move as a little animation.
 import { makeBoard, jumpAt, specialAt, midTile, SIZES, MS } from '../../public/games/ladders/board.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'ladders', name: 'Snakes & Ladders', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
+export const meta = { id: 'ladders', name: 'Snakes & Ladders', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -14,7 +15,7 @@ export function cleanOpts(o = {}) {
     size: o.size === 'short' ? 'short' : 'classic',
     party: o.party === 'off' ? 'off' : 'on',
     bounce: o.bounce === 'off' ? 'off' : 'on',
-    seats: [2, 4, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     timer: [0, 10, 20].includes(+o.timer) ? +o.timer : 20,
     hard: o.hard === 'on' ? 'on' : 'off',
   };

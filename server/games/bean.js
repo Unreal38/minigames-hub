@@ -6,8 +6,9 @@
 import { buildTower, floorAt, ledgeOff, newClimber, cloneClimber, stepClimber, stormY, newRun, land, expire, bank, scoreOf, zoneOf,
   PACES, W, FLOOR_H, SPRING_V, MOVING, ZONE } from '../../public/games/bean/tower.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'bean', name: 'Beanstalk Bounce', minPlayers: 1, maxPlayers: 6, joinAt: 'game' };
+export const meta = { id: 'bean', name: 'Beanstalk Bounce', minPlayers: 1, maxPlayers: 6, seats: { lo: 1, def: 4 }, joinAt: 'game' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Biscuit', 'Maple'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -18,7 +19,7 @@ const STEP = 1 / 60;
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [1, 2, 4, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     pace: PACES[o.pace] ? o.pace : 'normal',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };

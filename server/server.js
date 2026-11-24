@@ -40,6 +40,7 @@ import * as chess from './games/chess.js';
 import * as pool from './games/pool.js';
 import * as bierki from './games/bierki.js';
 import * as bingo from './games/bingo.js';
+import { seatChoices, seatKey, cleanSeats, tableSize } from './seats.js';
 import * as bop from './games/bop.js';
 import * as pm from './games/pm.js';
 import * as tys from './games/tys.js';
@@ -189,11 +190,31 @@ const newCode = () => { let c; do { c = Array.from({ length: 4 }, () => CODE_CHA
 function roomInfo(r) {
   return {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
-    state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers,
+    state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers, ...seatInfo(r),
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pt: store.tagOf(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
     board: boardOf(r), played: r.played || 0, paid: r.G?.ph === 'end' && r.G.scored ? r.paid || null : null,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
+}
+// Table size, as the waiting room, the open tables list and the game all count it (see seats.js): size seats in
+// all, picked by the host from choices (one choice = fixed by the rules, none = no bots: whoever sits down).
+function seatInfo(r) {
+  const meta = GAMES[r.game].meta;
+  return { size: tableSize(meta, r.opts, seatedOf(r).length), choices: seatChoices(meta), seatKey: seatKey(meta), bots: !meta.minHumans };
+}
+// The table settings a host sent, cleaned by the game, with the seats count every game understands.
+function cleanTableOpts(game, o = {}) {
+  const mod = GAMES[game], meta = mod.meta;
+  const out = mod.cleanOpts ? mod.cleanOpts(o) : { bots: o.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+o.timer) ? +o.timer : 30 };
+  if (seatChoices(meta).length > 1) out[seatKey(meta)] = Math.max(+out[seatKey(meta)] || 0, cleanSeats(meta, o[seatKey(meta)]));
+  return out;
+}
+// More people sat down than the host's seat count: the count grows with them, so the setting shows what is played.
+function growSeats(r) {
+  const meta = GAMES[r.game].meta, k = seatKey(meta);
+  if (!seatChoices(meta).length || r.G?.ph === 'play') return;
+  const n = tableSize(meta, r.opts, seatedOf(r).length);
+  if (n > (+r.opts[k] || 0)) r.opts = cleanTableOpts(r.game, { ...r.opts, [k]: n });
 }
 // Watchers: people who joined while a game was on (r.spect). They see the game but have no seat.
 // A watcher who taps "Take a seat" goes in r.sit and takes a bot's place when the next round starts.
@@ -206,6 +227,7 @@ function fillSeats(r) {
     const id = clients.get(t)?.id;
     if (r.sit.has(id) && seatedOf(r).length < max) { r.spect.delete(id); r.sit.delete(id); }
   }
+  growSeats(r);
 }
 // Play-again votes on the results screen: ids of players still at the table who want another round.
 const againOf = r => r.G?.ph === 'end' && r.again ? r.players.map(t => clients.get(t)?.id).filter(id => r.again.has(id) && !r.spect.has(id)) : [];
@@ -247,7 +269,7 @@ function scoreGame(r) {
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
   const i = roomInfo(r), h = i.players.find(p => p.id === i.host);
-  return { code: i.code, game: i.game, gameName: i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, w: i.players.filter(p => p.watch).length,
+  return { code: i.code, game: i.game, gameName: i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, size: i.size, w: i.players.filter(p => p.watch).length,
     host: h?.name || '?', hostColor: h?.color, hostAv: h?.av };
 });
 
@@ -366,6 +388,7 @@ function joinRoom(c, r) {
   if (r.players.length >= 12) return send(c, { t: 'err', msg: 'That table is full.' });
   r.players.push(c.token); c.room = r.code;
   if (r.G && !reclaimSeat(r, c)) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
+  if (!r.G) growSeats(r);
   sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r); broadcastRooms();
 }
 
@@ -488,8 +511,7 @@ function handle(c, m) {
       if (!allow('create:' + c.token, 20, 60_000)) return send(c, { t: 'err', msg: 'Slow down a little: too many new tables.' });
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
-        opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
-          : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
+        opts: cleanTableOpts(m.game, m.opts || {}) };
       rooms.set(r.code, r); joinRoom(c, r);
       if (m.solo && !(GAMES[m.game].meta.minHumans > 1)) startGame(r);
       return;
@@ -505,9 +527,12 @@ function handle(c, m) {
     case 'opts': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
       const mod = GAMES[r.game];
-      if (mod.cleanOpts) { if (m.opts && typeof m.opts === 'object') r.opts = mod.cleanOpts({ ...r.opts, ...m.opts }); }
-      else if (m.opts?.bots) r.opts.bots = m.opts.bots === 'sharp' ? 'sharp' : 'chill';
-      if (!mod.cleanOpts && m.opts?.timer !== undefined && [0, 20, 30, 45, 60].includes(+m.opts.timer)) r.opts.timer = +m.opts.timer;
+      if (m.opts && typeof m.opts === 'object') {
+        const k = seatKey(mod.meta), want = m.opts[k];
+        r.opts = cleanTableOpts(r.game, { ...r.opts, ...m.opts });
+        // fewer seats than people already sitting down can't be picked: the count stays at what fits them all
+        if (want !== undefined && seatChoices(mod.meta).length) r.opts[k] = tableSize(mod.meta, r.opts, seatedOf(r).length);
+      }
       if (m.priv !== undefined) r.priv = !!m.priv;
       sendRoom(r); broadcastRooms(); return;
     }
@@ -783,7 +808,7 @@ for (const d of store.load()) {
   const r = { code: d.code, game: d.game, host: d.host, priv: !!d.priv, opts: d.opts || {}, chat: Array.isArray(d.chat) ? d.chat : [],
     created: d.created || Date.now(), board: d.board || {}, played: d.played || 0, players, G: null,
     spect: new Set(Array.isArray(d.spect) ? d.spect : []), sit: new Set(Array.isArray(d.sit) ? d.sit : []) };
-  if (GAMES[r.game].cleanOpts) r.opts = GAMES[r.game].cleanOpts(r.opts);
+  r.opts = cleanTableOpts(r.game, r.opts);
   for (const t of players) {
     const s = store.sessions.get(t), p = store.profiles.get(s.pid);
     clients.set(t, { token: t, id: s.id, name: p.name, color: p.color, av: cleanAv(p.av), room: r.code, sock: null,

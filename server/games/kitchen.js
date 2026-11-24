@@ -3,8 +3,9 @@
 // grab is in reach, cooks the food, runs the bots and streams the whole kitchen twenty times a second.
 import { kitchen, CRATES, CHOPPABLE, SOUPS, RECIPES, T, SPEED, REACH, move, pushOut, isFloor, inReach, token, fits, matches, goals } from '../../public/games/kitchen/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'kitchen', name: 'Cozy Kitchen Rush', minPlayers: 1, maxPlayers: 4, joinAt: 'now' };
+export const meta = { id: 'kitchen', name: 'Cozy Kitchen Rush', minPlayers: 1, maxPlayers: 4, seats: { lo: 1, def: 3 }, joinAt: 'now' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8'];
@@ -13,7 +14,7 @@ const BOTS = { chill: { speed: 2.2, hand: .6, think: 1.6 }, sharp: { speed: 3.4,
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [1, 2, 3, 4].includes(+o.seats) ? +o.seats : 3,
+    seats: cleanSeats(meta, o.seats),
     time: [120, 180, 240].includes(+o.time) ? +o.time : 180,
     map: ['diner', 'split'].includes(o.map) ? o.map : 'diner',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',

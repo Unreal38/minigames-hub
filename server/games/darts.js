@@ -2,8 +2,9 @@
 // the client sends where it aimed and how long the hand was held still, and the shared wobble (rules.js) says where it lands.
 import { DARTS, ROUNDS, MS, score, spot, apply, plan, landing, clampAim } from '../../public/games/darts/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'darts', name: 'Sky Darts', minPlayers: 1, maxPlayers: 6, joinAt: 'leg' };
+export const meta = { id: 'darts', name: 'Sky Darts', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'leg' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -13,7 +14,7 @@ export const BOTS = { chill: { sd: .13, think: [900, 1500] }, sharp: { sd: .085,
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     start: +o.start === 501 ? 501 : 301,
     out: o.out === 'any' ? 'any' : 'double',
     legs: [1, 3].includes(+o.legs) ? +o.legs : 1,

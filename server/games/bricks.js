@@ -4,8 +4,9 @@
 // The server replays that move on its own copy of the well, so rows, stone lines and knock-outs are all decided here.
 import { W, VIS, H, MAXG, GRACE, COUNT_MS, ROT, SHAPES, newState, lock, doHold, fits, spawn, dropY, encode, heightOf, fallMs, levelAt } from '../../public/games/bricks/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'bricks', name: 'Sky Bricks', minPlayers: 1, maxPlayers: 6, joinAt: 'game' };
+export const meta = { id: 'bricks', name: 'Sky Bricks', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'game' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Biscuit', 'Maple'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -14,7 +15,7 @@ export const BOT = { chill: { ms: 2200, min: 1150, slip: .15 }, sharp: { ms: 950
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     speed: ['chill', 'normal', 'fast'].includes(o.speed) ? o.speed : 'normal',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };

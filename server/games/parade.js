@@ -5,8 +5,9 @@
 // the points left in their hand. Nobody is ever sent another player's hand or the cards they drew.
 import { deck, colOf, faceOf, isWild, drawOf, fits, playable, handPoints, sortHand, NAP, TURN, GIFT, ROCK, HAND } from '../../public/games/parade/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'parade', name: 'Pet Parade', minPlayers: 1, maxPlayers: 6 };
+export const meta = { id: 'parade', name: 'Pet Parade', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -18,7 +19,7 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.r
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     stack: o.stack === true || o.stack === 'on' ? 'on' : 'off',
     timer: [0, 15, 20, 30].includes(+o.timer) ? +o.timer : 20,

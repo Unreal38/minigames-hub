@@ -21,7 +21,7 @@ if (deck().length !== 24 || new Set(deck()).size !== 24 || deck().some(c => rank
   if (!canPlay(nines.slice(1), [NINE_H], nines.slice(1)) || canPlay(nines.slice(1), [NINE_H, C('9', 1)], [C('9', 2), C('9', 3)])) fail('three nines go only onto the nine of hearts');
   if (drawCount([NINE_H]) !== 0 || drawCount([NINE_H, 8]) !== 1 || drawCount([NINE_H, 8, 9, 10, 11]) !== 3 || drawCount([]) !== 0) fail('picking up wrong');
   if (plays([C('T', 0)], pile).length || plays(ks, pile).length !== 5) fail('list of plays wrong');
-  if (seatsFor(4, 2) !== 4 || seatsFor(2, 3) !== 3 || seatsFor(4, 5) !== 6 || seatsFor(6, 1) !== 6) fail('table sizes wrong');
+  if (seatsFor(4, 2) !== 4 || seatsFor(2, 3) !== 3 || seatsFor(4, 5) !== 5 || seatsFor(6, 5) !== 6 || seatsFor(6, 1) !== 6) fail('table sizes wrong');
 }
 
 { // spades: the next turn goes to the player before, once, and then play carries on clockwise
@@ -45,7 +45,7 @@ function play(opts, human = (G, s, now) => pan._bot(G, s, now, 'chill'), people 
   const realNow = Date.now; let now = realNow(); Date.now = () => now;
   try {
     const G = pan.create(people, opts), n = G.seats.length;
-    if (n !== seatsFor(opts.seats || 4, people.length) || G.hands.some(h => h.length !== 24 / n)) fail('seats or deal wrong');
+    if (n !== seatsFor(opts.seats || 4, people.length) || G.hands.some((h, i) => h.length !== Math.floor(24 / n) + (i < 24 % n))) fail('seats or deal wrong');
     if (!G.hands[G.turn].includes(NINE_H)) fail('the holder of the nine of hearts must start');
     if (pan.act(G, G.turn, { t: 'play', cards: [NINE_H] }) && G.seats[G.turn]?.human) fail('played during the deal');
     for (let i = 0; i < 100000 && G.ph === 'play'; i++) {
@@ -78,9 +78,9 @@ function play(opts, human = (G, s, now) => pan._bot(G, s, now, 'chill'), people 
     return G;
   } finally { Date.now = realNow; }
 }
-for (const seats of [2, 3, 4, 6]) { const G = play({ seats }); console.log(`${seats} seats: ${G.seats[G.pan].name} is the pan after ${G.mv} moves`); }
+for (const seats of [2, 3, 4, 5, 6]) { const G = play({ seats }); console.log(`${seats} seats: ${G.seats[G.pan].name} is the pan after ${G.mv} moves`); }
 play({ seats: 4, bots: 'sharp', timer: 0 });
-if (play({ seats: 4 }, undefined, [...players, { id: 'c', name: 'Cy', color: '#9aa8ff', av: [2] }, { id: 'd', name: 'Di', color: '#ffb547', av: [3] }, { id: 'e', name: 'Eli', color: '#e8a0e0', av: [4] }]).seats.length !== 6) fail('five people need a table for six');
+if (play({ seats: 4 }, undefined, [...players, { id: 'c', name: 'Cy', color: '#9aa8ff', av: [2] }, { id: 'd', name: 'Di', color: '#ffb547', av: [3] }, { id: 'e', name: 'Eli', color: '#e8a0e0', av: [4] }]).seats.length !== 5) fail('five people get a table for five');
 // a human who never picks up unless forced, against bots: the bots dig the game out
 for (let k = 0; k < 20; k++) play({ seats: 3 }, (G, s) => { const o = plays(G.hands[s], G.pile).sort((a, b) => rankOf(a[0]) - rankOf(b[0])); if (!pan.act(G, s, o.length ? { t: 'play', cards: o[0] } : { t: 'draw' })) fail('move refused'); });
 // two humans who both refuse to pick up may never finish: the table is called and the game still ends
