@@ -5,7 +5,7 @@
 import { BW, BH, COLORS, SIZES, OP, ROUNDS, TIMES, THEMES, guessPts, drawPts, norm, isNear, isLetter } from '../../public/games/kal/rules.js';
 import { poolOf, LANGS } from './kalwords.js';
 
-export const meta = { id: 'kal', name: 'Sketch & Guess', minPlayers: 2, minPeople: 2, maxPlayers: 8, joinAt: 'turn' };
+export const meta = { id: 'kal', name: 'Sketch & Guess', minPlayers: 2, minHumans: 2, maxPlayers: 8, joinAt: 'turn' };
 
 // pick: time to choose a word; show: the answer stays up this long; hello: a breath before the very first turn
 export const MS = { pick: 15000, show: 6500, hello: 1500, say: 450 };

@@ -1,6 +1,7 @@
 // The pictures on the hub's game cards and the icons on the Today tiles (SVG strings).
 // Sky, clouds and sea are tagged (artsky, artcloud, artsea, artstars) so style.css can repaint them at night through the --art-* variables.
 import { cardHtml } from './games/hotpot/cards.js';
+import { pieceShape } from './games/chess/glyphs.js';
 
 const ink = '#3b2219';
 
@@ -397,6 +398,25 @@ export function panArt() {
   </svg>`;
 }
 
+// Wojna card: two kings leaning in towards each other over a green table, with a clash burst between them
+// and a face-down pile waiting behind each.
+export function wojnaArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const heart = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z" fill="#d8402a"/>`;
+  const spade = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z" fill="#3b2219"/>`;
+  const card = (x, y, rot, pip, cls) => `<g class="${cls}"><g transform="rotate(${rot} ${x + 26} ${y + 37})"><rect x="${x}" y="${y}" width="52" height="74" rx="8" fill="#fff8ec" ${o}/><text x="${x + 7}" y="${y + 24}" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="22" fill="${pip === 's' ? '#3b2219' : '#d8402a'}">K</text>${pip === 's' ? spade(x + 17, y + 33, 1.4) : heart(x + 17, y + 33, 1.4)}</g></g>`;
+  const pile = (x, y, c) => `<rect x="${x}" y="${y + 6}" width="40" height="27" rx="6" fill="#d9c3a4" ${o}/><rect x="${x}" y="${y}" width="40" height="27" rx="6" fill="${c}" ${o}/><rect x="${x + 7}" y="${y + 6}" width="26" height="15" rx="3.5" fill="none" stroke="#fff8ec" stroke-width="2.5"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Two kings facing each other over a green table with a clash between them">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="38" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="32" fill="#3f9a6a" ${o}/>
+    ${pile(48, 104, '#e5543b')}${pile(232, 104, '#4f6fc4')}
+    ${card(84, 34, -12, 'h', 'wjl')}${card(184, 34, 12, 's', 'wjr')}
+    <path class="wjspark" d="M160 40l6 15 15-6-8 14 14 8-16 3 3 16-14-9-14 9 3-16-16-3 14-8-8-14 15 6z" fill="#ffd84a" ${o}/>
+    <path class="arttick" d="M160 22v-10M136 28l-6-8M184 28l6-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Makao card: a jack of clubs on a green table with a fighting king of hearts, a two and an ace fanned on top, and a "Makao!" shout.
 export function makaoArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
@@ -433,6 +453,22 @@ export function dominoArt() {
     ${tile(52, 92, 30, 3, 5)}${tile(114, 77, 30, 5, 5, true)}${tile(146, 92, 30, 5, 2)}
     <g class="dbob"><g transform="rotate(12 244 62)">${tile(214, 46, 30, 2, 6)}</g></g>
     <path class="arttick" d="M212 96l-4 8M224 100l-2 9M278 88l8-6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Chess card: a corner of a green and cream board seen at an angle, a cream king and a dark knight standing on it, and a pawn on its way down.
+export function chessArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const piece = (type, side, x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" fill="${side ? '#4d362e' : '#fffaf0'}" stroke="${side ? '#20120d' : '#3b2219'}" stroke-width="${(3 / k).toFixed(2)}" stroke-linejoin="round">${pieceShape(type)}</g>`;
+  let sq = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) sq += `<rect x="${c * 34 - 68}" y="${r * 34 - 68}" width="34" height="34" fill="${(r + c) % 2 ? '#86b56b' : '#f8eed2'}"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A chessboard with a cream king, a dark knight and a pawn about to be put down">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="70" cy="16" r="1.5"/><circle cx="246" cy="14" r="1.3"/><circle cx="296" cy="56" r="1.5"/><circle cx="22" cy="64" r="1.2"/><circle cx="160" cy="10" r="1.2"/></g>
+    <path d="M26 38l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M252 34l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <g transform="translate(160 118) scale(1 .44) rotate(45)"><rect x="-74" y="-74" width="148" height="148" rx="6" fill="#8a5a3c" ${o} transform="translate(8 8)"/><rect x="-74" y="-74" width="148" height="148" rx="6" fill="#b9794a" ${o}/>${sq}<rect x="-68" y="-68" width="136" height="136" fill="none" stroke="#3b2219" stroke-width="3"/></g>
+    <ellipse cx="126" cy="100" rx="21" ry="6" fill="#3b221933"/><ellipse cx="196" cy="112" rx="20" ry="6" fill="#3b221933"/>
+    ${piece(6, 0, 91, 38, 2.9)}${piece(2, 1, 164, 54, 2.7)}
+    <g class="cbob">${piece(1, 0, 222, 22, 2.1)}<path class="arttick" d="M236 76v8M246 74l3 8M226 74l-3 8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/></g>
   </svg>`;
 }
 
@@ -534,6 +570,32 @@ export function bingoArt() {
   </svg>`;
 }
 
+// Państwa-miasta card: a sheet of paper with the category columns half filled in, a big letter block and a pencil.
+export function pmArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const cols = ['#4aa3ff', '#ff6b8b', '#ffd23f', '#5fcf86'];
+  const scr = (x, y, w) => `<path d="M${x} ${y}q${w / 6} -5 ${w / 3} 0t${w / 3} 0t${w / 3} 0" fill="none" stroke="#3b2219" stroke-width="2.2" stroke-linecap="round"/>`;
+  let rows = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    const x = 62 + c * 32, y = 52 + r * 20;
+    rows += `<rect x="${x}" y="${y}" width="29" height="17" rx="3" fill="#fff8ec" stroke="#3b2219" stroke-width="1.6"/>`;
+    if (r < 2 || (r === 2 && c < 2)) rows += scr(x + 5, y + 10, 14 + (r * 5 + c * 3) % 6);
+  }
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A sheet of paper with columns of words, a big letter block and a pencil on a floating island">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="46" cy="18" r="1.6"/><circle cx="212" cy="12" r="1.3"/><circle cx="292" cy="20" r="1.5"/><circle cx="44" cy="92" r="1.2"/><circle cx="276" cy="124" r="1.1"/></g>
+    <path d="M36 44l14-8 16 4 8 10-10 8H44z" class="artcloud" fill="#fff"/><path d="M236 20l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M40 130c40-12 200-12 240 0l-16 10c-40 8-168 8-208 0z" fill="#8bca60" ${o}/><path d="M56 140c40 8 168 8 208 0l-34 10h-140z" fill="#c98a5a" ${o}/>
+    <g transform="rotate(-4 126 82)"><rect x="54" y="22" width="144" height="116" rx="8" fill="#fffaf0" ${o}/>
+      ${cols.map((c, k) => `<rect x="${62 + k * 32}" y="30" width="29" height="17" rx="4" fill="${c}" stroke="#3b2219" stroke-width="1.6"/>`).join('')}
+      ${rows}</g>
+    <g transform="translate(-9 2) rotate(7 240 72)"><g class="pmblock"><path d="M208 50l12-12h54l-12 12z" fill="#ff9a7d" ${o}/><path d="M262 50l12-12v54l-12 12z" fill="#e5543b" ${o}/>
+      <rect x="208" y="50" width="54" height="54" rx="6" fill="#ff7a59" ${o}/><rect x="216" y="58" width="38" height="38" rx="6" fill="#fffaf0" stroke="#3b2219" stroke-width="2"/>
+      <text x="235" y="88" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="31" fill="#3b2219">P</text></g></g>
+    <g transform="rotate(38 214 120)"><rect x="176" y="114" width="62" height="12" rx="2" fill="#ffd23f" ${o}/><path d="M238 114l16 6-16 6z" fill="#f3d2b0" ${o}/><path d="M249 118.2l5 1.8-5 1.8z" fill="#3b2219"/><rect x="170" y="114" width="10" height="12" rx="3" fill="#ff8fab" ${o}/></g>
+    <path class="arttick" d="M280 40l8-9M286 58l12-3M204 30l-7-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Cove Clash card: a square bay with two toy boats, a splash and a red cross, and a coconut dropping in.
 export function coveArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
@@ -553,6 +615,24 @@ export function coveArt() {
     <circle cx="${mx}" cy="${my}" r="8" fill="#fff" stroke="#3b2219" stroke-width="2.5"/><path d="M${mx - 13} ${my - 12}l3 5M${mx} ${my - 16}v6M${mx + 13} ${my - 12}l-3 5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
     <g class="cnut"><circle cx="${nx}" cy="${ny - 4}" r="11" fill="#8a5a3c" ${o}/><circle cx="${nx - 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx + 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx}" cy="${ny - 2}" r="1.6" fill="#3b2219"/></g>
     <path d="M${nx - 14} ${ny - 20}l-7-9M${nx} ${ny - 24}v-10M${nx + 14} ${ny - 20}l7-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+  </svg>`;
+}
+
+// Bierki card: a heap of pick-up sticks on a round table on a floating island, and the Crown stick being drawn out
+export function bierkiArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const stick = (x0, y0, x1, y1, c) => { const mx = t => x0 + (x1 - x0) * t, my = t => y0 + (y1 - y0) * t;
+    return `<path d="M${x0} ${y0}L${x1} ${y1}" stroke="#3b2219" stroke-width="10" stroke-linecap="round"/><path d="M${x0} ${y0}L${x1} ${y1}" stroke="#fff1d6" stroke-width="5" stroke-linecap="round"/><path d="M${mx(.13)} ${my(.13)}L${mx(.87)} ${my(.87)}" stroke="${c}" stroke-width="5"/>`; };
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A heap of coloured pick-up sticks on a round table on a floating island, with one stick being drawn out">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="50" cy="16" r="1.6"/><circle cx="272" cy="14" r="1.3"/><circle cx="296" cy="64" r="1.5"/><circle cx="24" cy="70" r="1.2"/><circle cx="170" cy="8" r="1.1"/></g>
+    <path d="M44 30l14-8 16 4 8 10-10 8H52z" class="artcloud" fill="#fff"/><path d="M246 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M40 116c40-12 200-12 240 0l-10 14c-44 8-176 8-220 0z" fill="#8bca60" ${o}/><path d="M50 130c44 8 176 8 220 0l-34 19h-152z" fill="#c98a5a" ${o}/>
+    <path d="M148 100h24v26h-24z" fill="#a8683c" ${o}/>
+    <ellipse cx="160" cy="76" rx="100" ry="38" fill="#d9955b" ${o}/><ellipse cx="160" cy="71" rx="100" ry="38" fill="#e9ad74" ${o}/>
+    <ellipse cx="160" cy="71" rx="85" ry="29" fill="#5d4468" stroke="#3b2219" stroke-width="2.5"/>
+    ${stick(98, 82, 200, 56, '#3f9a52')}${stick(110, 54, 212, 86, '#2f86cc')}${stick(134, 92, 178, 48, '#d8ad72')}${stick(96, 68, 224, 72, '#e0592f')}${stick(150, 50, 198, 92, '#d9a400')}
+    <g class="bkpull">${stick(182, 62, 262, 36, '#e8b22c')}<path d="M246 26l2 10 6-5 4 7 6-7 0 12-18 5z" fill="#ffd34d" ${o} stroke-width="2.5"/></g>
+    <path class="arttick" d="M268 52l10-3M270 62l11 2" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
 
@@ -618,6 +698,31 @@ export function paradeArt() {
     ${card(174, 44, 9, '#2f86cc', '#8cc6f0', 'bun', 7)}${card(212, 54, 20, '#d9a400', '#ffd96b', '', 5)}
     <g class="ppup"><rect x="136" y="26" width="48" height="68" rx="8" fill="#8a7f76" ${o}/>${wheel(160, 54, 16)}${num(160, 88, '+4', 14)}</g>
     <path class="arttick" d="M264 62l10-8M270 80h13M54 62l-10-8M48 80H35" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Burrow Bop card: three burrows on a floating lawn, a pet popping out of the middle one under a pillow mallet,
+// a sleeper in a nightcap on the left, and three hearts.
+export function bopArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const heart = (x, y) => `<path d="M${x} ${y + 9}c-7-5-9-8-9-11 0-3 2-5 4.6-5 1.8 0 3.4 1 4.4 2.5 1-1.5 2.6-2.5 4.4-2.5 2.6 0 4.6 2 4.6 5 0 3-2 6-9 11z" fill="#ff5a7a" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const mound = x => `<ellipse cx="${x}" cy="100" rx="27" ry="10" fill="#c28a55" ${o}/><ellipse cx="${x}" cy="99" rx="18" ry="6" fill="#3a2418"/>`;
+  const lip = x => `<path d="M${x - 27} 100a27 10 0 0 0 54 0l-9 0a18 6 0 0 1-36 0z" fill="#c28a55" ${o}/>`;
+  const star = (x, y, r) => `<path d="M${x} ${y - r}l${r * .3} ${r * .7} ${r * .7} ${r * .3}-${r * .7} ${r * .3}-${r * .3} ${r * .7}-${r * .3}-${r * .7}-${r * .7}-${r * .3} ${r * .7}-${r * .3}z" fill="#ffe46b" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A pet popping out of a burrow under a pillow mallet, a sleeping pet in a nightcap in the next burrow, and three hearts">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="60" cy="52" r="1.5"/><circle cx="270" cy="20" r="1.3"/><circle cx="282" cy="78" r="1.5"/><circle cx="130" cy="14" r="1.2"/></g>
+    <path d="M232 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/><path d="M46 62l10-5 12 3 5 7-7 5H52z" class="artcloud" fill="#fff"/>
+    ${heart(58, 16)}${heart(84, 16)}${heart(110, 16)}
+    <path d="M62 122h196l-22 24H84z" fill="#c98a5a" ${o}/><path d="M48 96h224l-12 26H60z" fill="#8bca60" ${o}/><path d="M60 122h200" stroke="#3b2219" stroke-width="3"/>
+    ${mound(98)}${mound(160)}${mound(222)}
+    <g class="bbzz"><ellipse cx="98" cy="86" rx="15" ry="16" fill="#9be07a" ${o}/><path d="M90 86q3 3 6 0M100 86q3 3 6 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/><path d="M82 78q16-12 32 0l-2 4q-14-7-28 0z" fill="#fff" ${o}/><path d="M86 76q8-24 30-14-14 2-8 14z" fill="#6f8cff" ${o}/><circle cx="117" cy="62" r="4.5" fill="#fff" stroke="#3b2219" stroke-width="2.5"/>
+      <path d="M122 78h7l-7 8h7M134 64h9l-9 10h9" fill="none" stroke="#3b2219" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M122 78h7l-7 8h7M134 64h9l-9 10h9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+    ${lip(98)}
+    <g class="bbpet"><path d="M148 62l-2-14 12 8zM172 62l2-14-12 8z" fill="#ff9b54" ${o}/><ellipse cx="160" cy="80" rx="18" ry="21" fill="#ff9b54" ${o}/><ellipse cx="160" cy="88" rx="10" ry="10" fill="#ffd9b0"/>
+      <circle cx="153" cy="76" r="3.2" fill="#3b2219"/><circle cx="167" cy="76" r="3.2" fill="#3b2219"/><circle cx="152" cy="75" r="1" fill="#fff"/><circle cx="166" cy="75" r="1" fill="#fff"/><path d="M157 83q3 3 6 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/><circle cx="147" cy="83" r="2.5" fill="#ff8a9a"/><circle cx="173" cy="83" r="2.5" fill="#ff8a9a"/></g>
+    ${lip(160)}${lip(222)}
+    <g class="bbmal" transform="rotate(-38 214 52)"><rect x="210" y="52" width="8" height="46" rx="2" fill="#c98a52" ${o}/><rect x="188" y="26" width="52" height="30" rx="7" fill="#ff8fab" ${o}/><rect x="184" y="23" width="10" height="36" rx="3" fill="#fff6e6" ${o}/><rect x="234" y="23" width="10" height="36" rx="3" fill="#fff6e6" ${o}/></g>
+    ${star(136, 52, 8)}${star(184, 70, 6)}${star(150, 36, 5)}
   </svg>`;
 }
 

@@ -7,6 +7,7 @@ import { PL, plForm } from '../i18n.js';
 const TEXT = {
   // tables
   'That table is full.': 'Ten stół jest pełny.',
+  'This game needs at least two players. Invite a friend first.': 'Do tej gry potrzeba co najmniej dwóch graczy. Najpierw zaproś znajomego.',
   'That player is not around any more.': 'Tego gracza już tu nie ma.',
   'That pet is not on your farm.': 'Tego zwierzaka nie ma na twojej farmie.',
   'Slow down a little: too many new tables.': 'Zwolnij trochę: za dużo nowych stołów.',
@@ -87,7 +88,6 @@ const SEASON = { 'Winter drop': 'kolekcji zimowej', 'Spring drop': 'kolekcji wio
 const BACK = { 'mid-November': 'w połowie listopada', March: 'w marcu', June: 'w czerwcu', October: 'w październiku' };
 // [pattern, how to say it]: the function gets the captured pieces.
 const FORMS = [
-  [/^This game needs at least (.+) players\.$/, n => `Do tej gry potrzeba co najmniej ${n} graczy.`],
   [/^That is part of the (.+)\. It is back in (.+)\.$/, (s, b) => `To część ${SEASON[s] || s}. Wraca ${BACK[b] || b}.`],
   [/^You already asked (.+)\.$/, u => `Zaproszenie do gracza ${u} jest już wysłane.`],
   [/^You and (.+) are already friends\.$/, u => `Ty i ${u} już jesteście znajomymi.`],

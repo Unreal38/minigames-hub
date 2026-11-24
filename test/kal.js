@@ -29,7 +29,7 @@ if (guessPts(80, 80) !== 100 || guessPts(0, 80) !== 40 || guessPts(40, 80) !== 7
 for (const [o, want] of [[{}, '3/80/pl/all/on'], [{ rounds: 5, time: 120, lang: 'en', theme: 'pets', hints: 'off' }, '5/120/en/pets/off'], [{ rounds: 9, time: 5, lang: 'de', theme: 'x', hints: 1, bots: 'sharp' }, '3/80/pl/all/on']]) {
   const c = kal.cleanOpts(o); if ([c.rounds, c.time, c.lang, c.theme, c.hints].join('/') !== want || Object.keys(c).length !== 5) fail('options not cleaned: ' + JSON.stringify(c));
 }
-if (kal.meta.minPeople !== 2 || kal.meta.maxPlayers !== 8 || !ROUNDS.includes(3) || !TIMES.includes(80)) fail('meta wrong');
+if (kal.meta.minHumans !== 2 || kal.meta.maxPlayers !== 8 || !ROUNDS.includes(3) || !TIMES.includes(80)) fail('meta wrong');
 
 // ----- one turn, step by step, on a fake clock -----
 const realNow = Date.now; let now = realNow(); Date.now = () => now;
@@ -193,7 +193,7 @@ await wait(400);
 A.send({ t: 'create', game: 'kal', opts: { rounds: 2, time: 60, lang: 'en', theme: 'food', bots: 'sharp' } }); await wait(300);
 if (A.room?.game !== 'kal' || A.room.opts.lang !== 'en' || A.room.opts.theme !== 'food' || 'bots' in A.room.opts || A.room.max !== 8) bail('room options wrong');
 A.send({ t: 'start' }); await wait(300);
-if (A.state || !A.errs.some(e => /at least 2 players/.test(e))) bail('a table of one must not start');
+if (A.state || !A.errs.some(e => /at least two players/.test(e))) bail('a table of one must not start');
 B.send({ t: 'join', code: A.room.code }); await wait(300);
 A.send({ t: 'start' }); await wait(400);
 if (A.state?.game !== 'kal' || B.state?.game !== 'kal' || A.seats?.length !== 2 || A.seats.some(s => s.bot || !s.human)) bail('game did not start with two people');

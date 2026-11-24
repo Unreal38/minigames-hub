@@ -20,6 +20,7 @@ import * as dice from './games/dice.js';
 import * as pan from './games/pan.js';
 import * as pips from './games/pips.js';
 import * as piotr from './games/piotr.js';
+import * as wojna from './games/wojna.js';
 import * as bj from './games/bj.js';
 import * as paw from './games/paw.js';
 import * as kart from './games/kart.js';
@@ -35,8 +36,12 @@ import * as parade from './games/parade.js';
 import * as makao from './games/makao.js';
 import * as cove from './games/cove.js';
 import * as domino from './games/domino.js';
+import * as chess from './games/chess.js';
 import * as pool from './games/pool.js';
+import * as bierki from './games/bierki.js';
 import * as bingo from './games/bingo.js';
+import * as bop from './games/bop.js';
+import * as pm from './games/pm.js';
 import * as tys from './games/tys.js';
 import * as kal from './games/kal.js';
 import { cleanAv } from '../public/avatar.js';
@@ -55,7 +60,7 @@ import { isBot, pageFor } from './seo.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, kal };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, kal };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -394,9 +399,6 @@ function startGame(r) {
   // Everyone already at the table keeps their seat; watchers who asked for a seat fill what's left (bots get the rest).
   const id = t => clients.get(t)?.id, max = GAMES[r.game].meta.maxPlayers;
   const humans = [...seatedOf(r), ...r.players.filter(t => r.spect.has(id(t)) && r.sit.has(id(t)))].slice(0, max).map(t => clients.get(t));
-  // A game with no bots (Kalambury) can't start until enough people sit down.
-  const need = GAMES[r.game].meta.minPeople || 1;
-  if (humans.length < need) { send(r.players.map(t => clients.get(t)).find(c => c?.id === r.host), { t: 'err', msg: `This game needs at least ${need} players.` }); return; }
   const inGame = new Set(humans.map(c => c.id));
   for (const t of r.players) {
     if (inGame.has(id(t))) { r.spect.delete(id(t)); r.sit.delete(id(t)); } else r.spect.add(id(t));
@@ -488,7 +490,7 @@ function handle(c, m) {
         opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
           : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
       rooms.set(r.code, r); joinRoom(c, r);
-      if (m.solo) startGame(r);
+      if (m.solo && !(GAMES[m.game].meta.minHumans > 1)) startGame(r);
       return;
     }
     case 'join': {
@@ -511,6 +513,9 @@ function handle(c, m) {
     case 'start': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
+      // a game without bots (Państwa-miasta) needs enough people in seats, counting watchers who asked for one
+      const need = GAMES[r.game].meta.minHumans || 0;
+      if (need && seatedOf(r).length + r.players.filter(t => r.spect.has(clients.get(t)?.id) && r.sit.has(clients.get(t)?.id)).length < need) return send(c, { t: 'err', msg: 'This game needs at least two players. Invite a friend first.' });
       return startGame(r);
     }
     case 'lobby': { // host sends everyone back to the waiting room

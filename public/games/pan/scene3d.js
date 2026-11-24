@@ -60,7 +60,8 @@ export function createScene(canvas, { onFrame } = {}) {
   const cardGeo = cardGeometry(CW, CH); cardGeo.rotateX(-Math.PI / 2);
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   const faceMats = new Map();
-  const faceMat = c => { if (!faceMats.has(c)) faceMats.set(c, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c), roughness: .55 }))); return faceMats.get(c); };
+  // card faces are unlit, so cards on the table look exactly like the ones in your hand, day or night; the backs take the table's light
+  const faceMat = c => { if (!faceMats.has(c)) faceMats.set(c, c >= 0 ? new THREE.MeshBasicMaterial({ map: cardTexture(c) }) : toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c), roughness: .55 }))); return faceMats.get(c); };
   function makeCard(c, k = 1, b = 0) { // c = -1: a card you cannot see, back on both sides; b = whose card back (that player's fl.cb)
     const g = new THREE.Group(); g.scale.setScalar(k); const bk = -1 - (b | 0);
     const front = new THREE.Mesh(cardGeo, faceMat(c >= 0 ? c : bk)), back = new THREE.Mesh(backGeo, faceMat(bk));
