@@ -3,8 +3,9 @@
 // With four at the table the dealer sits the hand out. Nobody is ever sent another player's cards.
 import { DECK, MELD, SUITS, MIN_BID, STEP, suitOf, power, value, queen, king, ace, ten, hasMeld, melds, canMeld, maxBid, round10, FOLD_PAY, FOLDS, sortHand, beats, winnerOf, legal } from '../../public/games/tys/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'tys', name: 'Tysiąc', minPlayers: 1, maxPlayers: 4, joinAt: 'round' };
+export const meta = { id: 'tys', name: 'Tysiąc', minPlayers: 1, maxPlayers: 4, seats: { only: [3, 4], def: 3 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Zosia', 'Franek', 'Jagoda', 'Staszek', 'Hania', 'Antek', 'Basia', 'Kazik'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -16,7 +17,7 @@ const sum = a => a.reduce((x, y) => x + y, 0);
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [3, 4].includes(+o.seats) ? +o.seats : 3,
+    seats: cleanSeats(meta, o.seats),
     target: [500, 1000].includes(+o.target) ? +o.target : 1000,
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 20, 30, 45].includes(+o.timer) ? +o.timer : 30,

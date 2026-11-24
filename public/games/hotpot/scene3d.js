@@ -842,9 +842,13 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
 
   // ---------- API ----------
   return {
+    // list has one entry per place round the table; null is a place nobody sits at (a table of 2 or 3)
     setSeats(list, turnRel) {
       list.forEach((p, r) => {
         const s = seats[r];
+        s.empty = !p;
+        if (s.stool) s.stool.parent.visible = !!p;
+        if (!p) { s.av.visible = false; s.active = false; return; }
         const key = p.color + '|' + (p.av || []).join('.');
         if (key !== s.key) {
           s.key = key;
@@ -854,6 +858,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
           s.bowl.material.color.set(p.color); s.plate.material.color.set(p.color);
           s.stool?.material.color.set(p.color).multiplyScalar(.72);
         }
+        s.av.visible = r !== 0;
         s.cb = p.cb | 0; // their card back, for the cards that fly to their hand
         s.active = r === turnRel;
       });
@@ -862,6 +867,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     setTiles(list) {
       list.forEach((t, r) => {
         const s = seats[r];
+        t ||= { c: -1, n: 0 };
         s.n = t.n; setStack(s.stack, s.top, s.halo, t.n);
         s.stack.visible = t.n > 0;
         if (t.c !== s.c) { s.c = t.c; s.top.material.map = cardTexture(t.c >= 0 ? kindOf(t.c) : -1); s.top.material.needsUpdate = true; }

@@ -5,8 +5,9 @@
 // Nobody, not even the owner, is ever sent the order of a pile or a face-down card.
 import { rankOf, deckFor, seatsFor, highest, ROUNDS, TIMERS } from '../../public/games/wojna/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'wojna', name: 'Wojna', minPlayers: 1, maxPlayers: 4 };
+export const meta = { id: 'wojna', name: 'Wojna', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 2 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -20,7 +21,7 @@ const shuffle = d => { for (let i = d.length - 1; i > 0; i--) { const j = Math.r
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 2,
+    seats: cleanSeats(meta, o.seats),
     deck: o.deck === 'small' ? 'small' : 'full',
     rounds: ROUNDS.includes(+o.rounds) ? +o.rounds : 60,
     timer: TIMERS.includes(+o.timer) ? +o.timer : 5,

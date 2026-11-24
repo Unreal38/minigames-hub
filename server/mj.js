@@ -3,7 +3,8 @@
 // or a restart. The server owns the board: it checks every pair, keeps the time and does the shuffling.
 import crypto from 'node:crypto';
 import { layout, level, deal, reshuffle, canPair, findMove, tilesLeft, DAILY, XP_CLEAR, PAIR_PTS, QUICK_MS, QUICK_PTS, QUICK_MAX, HINT_COST, TIME_PTS, IDLE_MS, starsFor, coinsFor } from '../public/games/mahj/rules.js';
-import { addCoins, shopDate, scheduleSave, invalidateBoards } from './store.js';
+import { addCoins, scheduleSave, invalidateBoards } from './store.js';
+import { dayOf } from './day.js';
 import { levelOf } from '../public/ranks.js';
 
 const rnd = n => crypto.randomInt(n);
@@ -11,7 +12,7 @@ const gid = () => crypto.randomBytes(4).toString('hex');
 
 function stateOf(p) {
   const h = p.mj ||= { lv: 1, day: '', paid: 0, g: null };
-  if (h.day !== shopDate()) { h.day = shopDate(); h.paid = 0; }
+  if (h.day !== dayOf()) { h.day = dayOf(); h.paid = 0; }
   if (!h.g || !layout(h.g.lay) || h.g.b?.length !== layout(h.g.lay).n) newBoard(h);
   return h;
 }

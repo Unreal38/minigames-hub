@@ -4,8 +4,9 @@
 // Empty seats are played by bots, which daub and shout with a human-like delay.
 import { BALLS, MID, GAMES, PTS, SPEED, newCard, has, toGo, count } from '../../public/games/bingo/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'bingo', name: 'Sky Bingo', minPlayers: 1, maxPlayers: 8 };
+export const meta = { id: 'bingo', name: 'Sky Bingo', minPlayers: 1, maxPlayers: 8, seats: { lo: 2, def: 4 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle', 'Toffee', 'Sprout', 'Maple', 'Pudding'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -17,7 +18,7 @@ const rnd = ([a, b]) => a + Math.random() * (b - a);
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6, 7, 8].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     game: o.game === 'quick' ? 'quick' : 'classic',
     speed: Object.hasOwn(SPEED, o.speed) ? o.speed : 'normal',
     daub: o.daub === 'auto' ? 'auto' : 'hand',

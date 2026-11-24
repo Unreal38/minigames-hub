@@ -746,3 +746,5 @@ export function kalArt() {
     <path class="arttick" d="M84 30l-8-8M70 44H58" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+// Word in a Bottle: a corked bottle afloat with a letter tile inside.
+export const WORD_ICON = '<svg viewBox="0 0 120 120"><path d="M0 92q15-10 30 0t30 0 30 0 30 0v28H0z" fill="#3f8fd0"/><g transform="rotate(-24 60 62)"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round"><rect x="51" y="8" width="18" height="16" rx="3" fill="#c98a4b"/><path d="M48 22h24v14q16 8 16 26v34q0 10-10 10H42q-10 0-10-10V62q0-18 16-26z" fill="#c9f1ee"/><rect x="42" y="58" width="36" height="36" rx="7" fill="#ffb238"/></g><text x="60" y="87" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="30" fill="#3b2219">A</text></g><path d="M0 100q15-10 30 0t30 0 30 0 30 0v20H0z" fill="#6fb8e6" opacity=".85"/></svg>';

@@ -5,7 +5,7 @@
 import { MODES, modeOf, lines, winLine, place, full, empty, fadeNext, FADE_CAP } from '../../public/games/ttt/rules.js';
 import { randomAv } from '../../public/avatar.js';
 
-export const meta = { id: 'ttt', name: 'Tic-Tac-Toe', minPlayers: 1, maxPlayers: 2 };
+export const meta = { id: 'ttt', name: 'Tic-Tac-Toe', minPlayers: 1, maxPlayers: 2, seats: { fixed: 2 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];

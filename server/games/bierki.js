@@ -4,8 +4,9 @@
 // path and fills the same "steady hands" meter. Nothing is hidden, so view() is the same for every seat.
 import { MM, FULL, REACH, LIFT_MAX, LEN, SET_BONUS, makePile, startPull, advance, isClear, resettle, dropsWithout, plans } from '../../public/games/bierki/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'bierki', name: 'Bierki', minPlayers: 1, maxPlayers: 6 };
+export const meta = { id: 'bierki', name: 'Bierki', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 2 } };
 
 const BOT_NAMES = ['Ola', 'Patyk', 'Zosia', 'Twig', 'Splinter', 'Franek', 'Hania', 'Kijek'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -21,7 +22,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 2,
+    seats: cleanSeats(meta, o.seats),
     piles: +o.piles === 3 ? 3 : 1,
     hints: o.hints === 'off' ? 'off' : 'on',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
