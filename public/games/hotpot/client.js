@@ -1,5 +1,5 @@
 // Hot Pot game view: HUD + 3D table. Renders whatever the server says; sends intents.
-import { myBurst } from '../../winfx.js';
+import { myBurst, seatBurst } from '../../winfx.js';
 import { CATS, kindOf, catOf, cardName, canWin, bestSets, setVal } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
 import { cardHtml } from './cards.js';
@@ -215,7 +215,7 @@ export function mount(app, ctx) {
     } else if (e.t === 'eat') {
       if (e.s === S.me) sfx.win(); else sfx.lose();
       scene?.celebrate(rel(e.s), S.hands?.[e.s] || [], e.s);
-      confetti(e.s === S.me);
+      if (e.s === S.me) confetti(); else if (!seatBurst(e.s)) confetti(false); // someone else's win: their own effect
     } else if (e.t === 'end') {
       if (e.w < 0) { sfx.lose(); ctx.toast(L('30 rounds done, time to count sets!', '30 rund za nami, czas policzyć zestawy!')); }
       clearTimeout(resultsTimer);

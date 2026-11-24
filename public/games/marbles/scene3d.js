@@ -358,10 +358,10 @@ export function createScene(canvas, { onFrame }) {
     if (key === seatsKey) return;
     seatsKey = key;
     for (const m of marbles) { scene.remove(m.mesh); m.mesh.material.map.dispose(); m.mesh.material.dispose(); }
-    marbles = seats.map(p => {
+    marbles = seats.map((p, seat) => {
       const mesh = new THREE.Mesh(sharedGeo, toonMat(new THREE.MeshStandardMaterial({ map: marbleTexture(p.color) })));
       shell(mesh, 1.09); mesh.castShadow = true; mesh.rotation.y = -Math.PI / 2; scene.add(mesh);
-      return { mesh, s: 0, u: 0, st: 0, fall: 0, pop: 1, has: false, pos: new THREE.Vector3(), color: p.color, tag: { x: 0, y: 0, show: false } };
+      return { mesh, seat, s: 0, u: 0, st: 0, fall: 0, pop: 1, has: false, pos: new THREE.Vector3(), color: p.color, tag: { x: 0, y: 0, show: false } };
     });
   }
 
@@ -447,7 +447,7 @@ export function createScene(canvas, { onFrame }) {
       }
       if (playing && m.s >= T.L && !m.done) { m.done = true;
         if (!reduced) { pfx.burst(m.pos, { n: 18, colors: [m.color, '#ffffff', '#ffd84a'], speed: 5, up: 6, size: .4, life: 1 });
-          if (!won) { won = true; pfx.confetti(m.pos, { n: 150, w: 9, h: 6, size: .32, life: 3 }); shake.kick(.25); } }
+          if (!won) { won = true; pfx.confetti(m.pos, { n: 150, w: 9, h: 6, size: .32, life: 3, s: m.seat }); shake.kick(.25); } }
       } else if (m.s < T.L - 2) m.done = false;
     }
     if (!playing || marbles.every(m => m.s < T.L - 2)) won = false;

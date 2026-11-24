@@ -4,6 +4,7 @@
 //   ctx: { send(action), toast, me(), home(), account(mode) }
 import { boostName, boostWhat } from '../../wheeltext.js';
 import { sfx } from '../../sfx.js';
+import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
 import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
@@ -596,7 +597,7 @@ export function mount(app, ctx) {
       else if (e.k === 'clear') { delete u.status[e.st]; line = L(`${who(e.s)} is no longer ${STATUS[e.st].name.toLowerCase()}.`, `${who(e.s)} nie ma już efektu: ${STATUS[e.st].name.toLowerCase()}.`); ms = 600; }
       else if (e.k === 'dazed') { line = L(`${who(e.s)} is dazed and loses its turn.`, `${who(e.s)} jest w oszołomieniu i traci turę.`); scene?.ringHit(e.s, 'dazed'); floatUp(e.s, L('Dazed!', 'Oszołomienie!'), 'say down'); }
       else if (e.k === 'faint') { line = L(`${who(e.s)} fainted.`, `${who(e.s)} pada.`); scene?.ringFx(e.s, 'faint'); sfx.lose(); ms = 1100; }
-      else if (e.k === 'end') { line = e.quit ? '' : e.win ? (B.live ? L(`${esc(B.foe)} wins this time.`, `Tym razem wygrywa ${esc(B.foe)}.`) : L('The other side wins this time.', 'Tym razem wygrywa przeciwnik.')) : L('You win!', 'Wygrana!'); if (!e.quit) { (e.win ? sfx.lose : sfx.win)(); scene?.ringFx(e.win, 'win'); } ms = e.quit ? 0 : 2200; }
+      else if (e.k === 'end') { line = e.quit ? '' : e.win ? (B.live ? L(`${esc(B.foe)} wins this time.`, `Tym razem wygrywa ${esc(B.foe)}.`) : L('The other side wins this time.', 'Tym razem wygrywa przeciwnik.')) : L('You win!', 'Wygrana!'); if (!e.quit) { (e.win ? sfx.lose : sfx.win)(); scene?.ringFx(e.win, 'win'); if (!e.win) myBurst(); } ms = e.quit ? 0 : 2200; }
       note(e.k === 'end' ? undefined : e.s, e.k === 'faint' || e.k === 'end' ? 'key' : ''); paintBattle(); await beat(ms);
     }
     if (destroyed) return;

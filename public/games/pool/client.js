@@ -219,7 +219,7 @@ export function mount(app, ctx) {
     } else if (e.t === 'rack') {
       const won = e.w === mySide(), last = S.ph === 'end';
       if (won) { sfx.win(); confetti(); } else if (mySide() >= 0) sfx.lose(); else sfx.set();
-      for (let i = 0; i < S.seats.length; i++) scene?.mood(i, sideOf(i) === e.w);
+      for (let i = 0; i < S.seats.length; i++) { scene?.mood(i, sideOf(i) === e.w); if (sideOf(i) === e.w && i !== S.me) scene?.cheer(i); } // the viewer's own shower is confetti() above
       if (!last) big(mySide() < 0 ? L(`${sideName(e.w)} take${S.seats.length > 2 ? '' : 's'} the rack`, `Partię wygrywa: ${sideName(e.w)}`) : won ? L('The rack is yours!', S.seats.length > 2 ? 'Partia dla was!' : 'Partia dla ciebie!') : L('Rack lost', 'Partia przegrana'), WHY[e.why]?.() || '', 2600);
     } else if (e.t === 'late') { if (e.s === S.me) ctx.toast(L('Out of time, so the game took the shot for you.', 'Koniec czasu, więc gra uderzyła za ciebie.')); }
     else if (e.t === 'end') { clearTimeout(resultsTimer); resultsTimer = setTimeout(showResults, 1700); }

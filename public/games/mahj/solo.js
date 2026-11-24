@@ -138,7 +138,7 @@ export function mount(app, ctx) {
   function finish() {
     if (!S?.over) return;
     const r = S.res;
-    if (S.over === 'win') { sfx.win(); scene?.cheer(0, true); big(L('Board cleared!', 'Plansza wyczyszczona!'), r.coins ? `+${coins(r.coins)}` : '', 1900, 'k3'); }
+    if (S.over === 'win') { sfx.win(); scene?.cheer(0, true, 'me'); big(L('Board cleared!', 'Plansza wyczyszczona!'), r.coins ? `+${coins(r.coins)}` : '', 1900, 'k3'); }
     else { sfx.lose(); scene?.oops(0); big(L('Stuck!', 'Zablokowane!'), '', 1600, 'k0'); }
     clearTimeout(resTimer); resTimer = setTimeout(() => !destroyed && showResults(), S.over === 'win' ? 2000 : 1500);
   }
