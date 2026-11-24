@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, bierkiArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -590,6 +590,28 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins, and the <b>last player still holding cards is the Pan</b>.</li>
       <li>Five players sit at a table for six: a bot takes the spare hand, so the cards still share out evenly.</li>
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
+    </ol>`,
+  },
+  wojna: {
+    name: 'Wojna', load: () => import('./games/wojna/client.js'), start: 'Deal the cards',
+    mins: [2, 4],
+    host: { seats: 2, deck: 'full', rounds: 60, timer: 5 }, solo: { seats: 2, deck: 'full', rounds: 60, timer: 5 },
+    openSeat: 'A bot turns these cards if nobody joins', seats: r => Math.min(4, Math.max(2, r.opts.seats || 2, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Deck</b><div class="pills">${pill('deck', 'full', '52 cards')}${pill('deck', 'small', '24 cards')}</div></div>
+      <div class="opt"><b>Battles</b><div class="pills">${pill('rounds', 30, '30')}${pill('rounds', 60, '60')}${pill('rounds', 120, '120')}</div></div>
+      <div class="opt"><b>Flip timer</b><div class="pills">${pill('timer', 3, '3s')}${pill('timer', 5, '5s')}${pill('timer', 10, '10s')}</div></div>`,
+    howto: `War, the Polish children's classic. Everyone turns over the top card of their pile and the highest card takes them all. Equal cards mean war: one more card face down, one face up, winner takes the lot. Hold the most cards after the last battle to win.`,
+    rules: `<ol>
+      <li>The deck is dealt out evenly, face down. Nobody looks at their cards. Empty seats are played by bots.</li>
+      <li>In every <b>battle</b> all players turn over the <b>top card</b> of their pile. The <b>highest card takes them all</b>. Two is the lowest, ace the highest, suits do not matter.</li>
+      <li>When the highest cards are <b>equal</b>, those players go to <b>war</b>: each puts <b>one card face down and one face up</b>. The higher new card takes everything on the table. Equal again means another war.</li>
+      <li>A player who is down to their last card in a war plays it face up. With no cards left, the card they already have on the table fights on.</li>
+      <li>Won cards go <b>under your pile</b> in a mixed-up order, so no game ever goes in circles.</li>
+      <li>Run out of cards and you are <b>out</b>. Take every card and you win on the spot.</li>
+      <li>Otherwise the game ends after the set number of battles and the <b>biggest pile wins</b>. Equal biggest piles play extra battles until one is bigger.</li>
+      <li>Tap <b>Flip</b>, the table, <b>Space</b> or <b>Enter</b> to turn your card. Wait too long and it is turned for you. <b>Auto</b> (key <b>A</b>) turns every card for you.</li>
+      <li>With three players and 52 cards the two of clubs is left out, so everyone starts with 17.</li>
     </ol>`,
   },
   piotr: {
@@ -1562,6 +1584,7 @@ const HUB_GAMES = [
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
   ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
+  ['wojna', 'wojnapic', wojnaArt, 'cards', '1–4 players', 'War, the Polish classic: flip your top card, the highest takes them all, and equal cards mean war.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],

@@ -397,6 +397,25 @@ export function panArt() {
   </svg>`;
 }
 
+// Wojna card: two kings leaning in towards each other over a green table, with a clash burst between them
+// and a face-down pile waiting behind each.
+export function wojnaArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const heart = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z" fill="#d8402a"/>`;
+  const spade = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z" fill="#3b2219"/>`;
+  const card = (x, y, rot, pip, cls) => `<g class="${cls}"><g transform="rotate(${rot} ${x + 26} ${y + 37})"><rect x="${x}" y="${y}" width="52" height="74" rx="8" fill="#fff8ec" ${o}/><text x="${x + 7}" y="${y + 24}" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="22" fill="${pip === 's' ? '#3b2219' : '#d8402a'}">K</text>${pip === 's' ? spade(x + 17, y + 33, 1.4) : heart(x + 17, y + 33, 1.4)}</g></g>`;
+  const pile = (x, y, c) => `<rect x="${x}" y="${y + 6}" width="40" height="27" rx="6" fill="#d9c3a4" ${o}/><rect x="${x}" y="${y}" width="40" height="27" rx="6" fill="${c}" ${o}/><rect x="${x + 7}" y="${y + 6}" width="26" height="15" rx="3.5" fill="none" stroke="#fff8ec" stroke-width="2.5"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Two kings facing each other over a green table with a clash between them">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="38" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="32" fill="#3f9a6a" ${o}/>
+    ${pile(48, 104, '#e5543b')}${pile(232, 104, '#4f6fc4')}
+    ${card(84, 34, -12, 'h', 'wjl')}${card(184, 34, 12, 's', 'wjr')}
+    <path class="wjspark" d="M160 40l6 15 15-6-8 14 14 8-16 3 3 16-14-9-14 9 3-16-16-3 14-8-8-14 15 6z" fill="#ffd84a" ${o}/>
+    <path class="arttick" d="M160 22v-10M136 28l-6-8M184 28l6-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Makao card: a jack of clubs on a green table with a fighting king of hearts, a two and an ace fanned on top, and a "Makao!" shout.
 export function makaoArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
