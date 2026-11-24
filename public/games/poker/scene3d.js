@@ -224,12 +224,14 @@ export function createScene(canvas, { onFrame } = {}) {
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   function makeCard(c, bk = 0) { // bk: the owner's card back
     const g = new THREE.Group(), bc = -1 - (bk | 0);
-    const front = new THREE.Mesh(cardGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(c >= 0 ? c : bc), roughness: .55 })));
+    // a face is unlit, so cards on the table look exactly like the ones in your hand, day or night; a hidden card and the backs take the table's light
+    const lit = toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(bc), roughness: .55 })), face = new THREE.MeshBasicMaterial({ map: cardTexture(c >= 0 ? c : bc) });
+    const front = new THREE.Mesh(cardGeo, c >= 0 ? face : lit);
     const back = new THREE.Mesh(backGeo, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(bc), roughness: .55 })));
-    front.castShadow = true; g.add(front, back); g.userData = { c, front, bc };
+    front.castShadow = true; g.add(front, back); g.userData = { c, front, bc, lit, face };
     return g;
   }
-  function setFace(card, c) { if (card.userData.c === c) return; card.userData.c = c; card.userData.front.material.map = cardTexture(c >= 0 ? c : card.userData.bc); card.userData.front.material.needsUpdate = true; }
+  function setFace(card, c) { if (card.userData.c === c) return; const u = card.userData; u.c = c; if (c >= 0) { u.face.map = cardTexture(c); u.face.needsUpdate = true; } u.front.material = c >= 0 ? u.face : u.lit; }
 
   const board = []; // 3D board cards
   const boardPos = k => new THREE.Vector3((k - 2) * (CW + .12), .02, -.15);

@@ -68,7 +68,8 @@ export function createScene(canvas, { onFrame } = {}) {
     return tex;
   }
   // key: a card number for a face, 'b' + k for the card back k from the shop
-  const mat = key => { if (!mats.has(key)) mats.set(key, toonMat(new THREE.MeshStandardMaterial({ map: typeof key === 'string' ? cardTexture(-1 - +key.slice(1)) : faceTex(key), roughness: .55 }))); return mats.get(key); };
+  // card faces are unlit, so cards on the table look exactly like the ones in your hand, day or night; the backs take the table's light
+  const mat = key => { if (!mats.has(key)) mats.set(key, typeof key === 'string' ? toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1 - +key.slice(1)), roughness: .55 })) : new THREE.MeshBasicMaterial({ map: faceTex(key) })); return mats.get(key); };
   function makeCard(c, cb = 0, k = 1) { // c = -1: a card you cannot see, back on both sides
     const g = new THREE.Group(), inner = new THREE.Group(); g.scale.setScalar(k); g.add(inner);
     const front = new THREE.Mesh(cardGeo, mat(c < 0 ? 'b' + cb : c)), back = new THREE.Mesh(backGeo, mat('b' + cb));
