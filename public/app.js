@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, bierkiArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -615,6 +615,28 @@ const GAMES = {
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
     </ol>`,
   },
+  wojna: {
+    name: 'Wojna', load: () => import('./games/wojna/client.js'), start: 'Deal the cards',
+    mins: [2, 4],
+    host: { seats: 2, deck: 'full', rounds: 60, timer: 5 }, solo: { seats: 2, deck: 'full', rounds: 60, timer: 5 },
+    openSeat: 'A bot turns these cards if nobody joins', seats: r => Math.min(4, Math.max(2, r.opts.seats || 2, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Deck</b><div class="pills">${pill('deck', 'full', '52 cards')}${pill('deck', 'small', '24 cards')}</div></div>
+      <div class="opt"><b>Battles</b><div class="pills">${pill('rounds', 30, '30')}${pill('rounds', 60, '60')}${pill('rounds', 120, '120')}</div></div>
+      <div class="opt"><b>Flip timer</b><div class="pills">${pill('timer', 3, '3s')}${pill('timer', 5, '5s')}${pill('timer', 10, '10s')}</div></div>`,
+    howto: `War, the Polish children's classic. Everyone turns over the top card of their pile and the highest card takes them all. Equal cards mean war: one more card face down, one face up, winner takes the lot. Hold the most cards after the last battle to win.`,
+    rules: `<ol>
+      <li>The deck is dealt out evenly, face down. Nobody looks at their cards. Empty seats are played by bots.</li>
+      <li>In every <b>battle</b> all players turn over the <b>top card</b> of their pile. The <b>highest card takes them all</b>. Two is the lowest, ace the highest, suits do not matter.</li>
+      <li>When the highest cards are <b>equal</b>, those players go to <b>war</b>: each puts <b>one card face down and one face up</b>. The higher new card takes everything on the table. Equal again means another war.</li>
+      <li>A player who is down to their last card in a war plays it face up. With no cards left, the card they already have on the table fights on.</li>
+      <li>Won cards go <b>under your pile</b> in a mixed-up order, so no game ever goes in circles.</li>
+      <li>Run out of cards and you are <b>out</b>. Take every card and you win on the spot.</li>
+      <li>Otherwise the game ends after the set number of battles and the <b>biggest pile wins</b>. Equal biggest piles play extra battles until one is bigger.</li>
+      <li>Tap <b>Flip</b>, the table, <b>Space</b> or <b>Enter</b> to turn your card. Wait too long and it is turned for you. <b>Auto</b> (key <b>A</b>) turns every card for you.</li>
+      <li>With three players and 52 cards the two of clubs is left out, so everyone starts with 17.</li>
+    </ol>`,
+  },
   piotr: {
     name: 'Piotruś', load: () => import('./games/piotr/client.js'), start: 'Deal the cards',
     mins: [5, 8],
@@ -779,7 +801,7 @@ const st = {
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   hc: { log: null, max: 200, for: undefined }, // the hub's global chat
-  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), // the open tables page, the phone's hub tab, the games filter
+  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), gSort: LS.get('ct_gs', 'hub'), // the open tables page, the phone's hub tab, the games filter
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 // Solo games with no table: they open straight from the hub (like Pet Farm) and keep their progress on the account.
@@ -1585,6 +1607,7 @@ const HUB_GAMES = [
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
   ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
+  ['wojna', 'wojnapic', wojnaArt, 'cards', '1–4 players', 'War, the Polish classic: flip your top card, the highest takes them all, and equal cards mean war.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
@@ -1602,7 +1625,10 @@ const HUB_GAMES = [
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const minsText = ([a, b]) => a === b ? `~${a} min` : `${a}–${b} min`;
 const timeTag = (m, cls = 'tag ttime') => m ? `<span class="${cls}" title="${L('Usual length of one game', 'Zwykle tyle trwa jedna gra')}">${CLOCK}${minsText(m)}</span>` : '';
-const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
+// The sort menu beside the search box: hub order, by playtime (middle of mins) or by the most seats. Saved like the filter.
+const G_SORTS = [['hub', L('Default order', 'Domyślnie')], ['short', L('Shortest first', 'Najkrótsze')], ['long', L('Longest first', 'Najdłuższe')], ['many', L('Most players', 'Najwięcej graczy')], ['few', L('Fewest players', 'Najmniej graczy')]];
+const seatsMax = s => Math.max(...(String(s).match(/\d+/g) || [0]).map(Number));
+const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcard gmini" data-i="${i}" data-mins="${GAMES[id].mins ? (GAMES[id].mins[0] + GAMES[id].mins[1]) / 2 : 999}" data-seats="${seatsMax(seats)}" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>${timeTag(GAMES[id].mins, 'gtime')}</div>
   <div class="body"><h3>${esc(GAMES[id].name)}</h3><div class="gmeta"><span class="tag">${PLX ? PLX.SEATS_PL(seats) : seats}</span>
     <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
@@ -1616,7 +1642,16 @@ function filterGames() {
   document.querySelectorAll('[data-act="gfilt"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === st.gFilt));
   const none = document.getElementById('gnone'); if (none) none.hidden = shown > 0;
 }
+// Moves the cards into the chosen order (no re-render, so the pictures keep animating). Ties keep hub order.
+function sortGames() {
+  if (!G_SORTS.some(([id]) => id === st.gSort)) st.gSort = 'hub';
+  const box = document.querySelector('.games.mini'); if (!box) return;
+  const by = { hub: () => 0, short: (a, b) => a.dataset.mins - b.dataset.mins, long: (a, b) => b.dataset.mins - a.dataset.mins,
+    many: (a, b) => b.dataset.seats - a.dataset.seats, few: (a, b) => a.dataset.seats - b.dataset.seats }[st.gSort];
+  [...box.children].sort((a, b) => by(a, b) || a.dataset.i - b.dataset.i).forEach(c => box.append(c));
+}
 $app.addEventListener('input', e => { if (e.target.id === 'gfind') filterGames(); });
+$app.addEventListener('change', e => { if (e.target.id === 'gsort') { st.gSort = e.target.value; LS.set('ct_gs', st.gSort); sortGames(); } });
 // Below this width the hub is one column with a tab bar at the bottom (Games, Tables, Chat, Rankings, You).
 const narrowMq = matchMedia('(max-width: 1099px)'), narrow = () => narrowMq.matches;
 narrowMq.addEventListener('change', () => { if (st.view === 'hub') { renderTables(); paintRankings(); } });
@@ -1655,6 +1690,7 @@ function renderHub() {
         <h2>${L('Games', 'Gry')}</h2>
         <div class="gfilt" role="group" aria-label="${L('Kind of game', 'Rodzaj gry')}">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
         <input id="gfind" class="field gfind" type="search" placeholder="${L('Find a game', 'Szukaj gry')}" aria-label="${L('Find a game', 'Szukaj gry')}" autocomplete="off" spellcheck="false">
+        <select id="gsort" class="field gsort" aria-label="${L('Sort games', 'Sortuj gry')}">${G_SORTS.map(([id, n]) => `<option value="${id}"${id === st.gSort ? ' selected' : ''}>${n}</option>`).join('')}</select>
       </div>
       <div class="games mini">${HUB_GAMES.map(gameCard).join('')}</div>
       <div class="empty" id="gnone" hidden>${L('No game with that name. Try another word, or pick “All”.', 'Nie ma gry o takiej nazwie. Spróbuj innego słowa albo wybierz „Wszystkie”.')}</div>
@@ -1691,7 +1727,7 @@ function renderHub() {
   </main>
   <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
-  renderTables(); filterGames();
+  renderTables(); sortGames(); filterGames();
   document.body.classList.add('sky');
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });

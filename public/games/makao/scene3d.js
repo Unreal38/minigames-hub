@@ -63,7 +63,8 @@ export function createScene(canvas, { onFrame } = {}) {
   const backGeo = cardGeo.clone(); backGeo.rotateZ(Math.PI); backGeo.translate(0, -.004, 0);
   const mats = new Map();
   // key: a card number for a face, 'b' + k for the card back k from the shop
-  const mat = key => { if (!mats.has(key)) mats.set(key, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(typeof key === 'string' ? -1 - +key.slice(1) : key), roughness: .55 }))); return mats.get(key); };
+  // card faces are unlit, so the played cards look exactly like the ones in your hand, day or night; the backs take the table's light
+  const mat = key => { if (!mats.has(key)) mats.set(key, typeof key === 'string' ? toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1 - +key.slice(1)), roughness: .55 })) : new THREE.MeshBasicMaterial({ map: cardTexture(key) })); return mats.get(key); };
   function makeCard(c, k = 1, b = 0) { // c = -1: a card you cannot see, back on both sides; b = whose card back
     const g = new THREE.Group(); g.scale.setScalar(k);
     const front = new THREE.Mesh(cardGeo, mat(c >= 0 ? c : 'b' + (b | 0))), back = new THREE.Mesh(backGeo, mat('b' + (b | 0)));
@@ -120,7 +121,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function setStock(k) { // one card mesh for every few cards, so the deck has some height
     const want = Math.min(16, Math.ceil(k / 5));
     while (stock.children.length > want) stock.remove(stock.children[stock.children.length - 1]);
-    while (stock.children.length < want) { const c = makeCard(-1, PILE * .82, 0), j = stock.children.length; c.position.set((hash(j) - .5) * .04, .02 + j * .02, (hash(j + 9) - .5) * .04); c.rotation.y = (hash(j + 3) - .5) * .12; stock.add(c); }
+    while (stock.children.length < want) { const c = makeCard(-1, PILE, 0), j = stock.children.length; c.position.set((hash(j) - .5) * .04, .02 + j * .02, (hash(j + 9) - .5) * .04); c.rotation.y = (hash(j + 3) - .5) * .12; stock.add(c); }
     stockH = want * .02;
   }
   const pile = []; // played card meshes, bottom first (only the last few are kept)
