@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { MAXG, HURRY, RELOAD, SPEED, AMAX, LIM, trace, lock, decode, encode, rowsDue, nextRowIn } from './rules.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -67,7 +68,7 @@ export function mount(app, ctx) {
 
   function sync() {
     if (!scene || !S || !info) return;
-    scene.setHud(innerWidth <= 1150 ? 122 : 64, touch ? 26 : 46, innerWidth > 1150 ? 84 : 0); // the last: room for the chat buttons, bottom right
+    const z = uiz(); scene.setHud((innerWidth <= 1150 ? 122 : 64) * z, (touch ? 26 : 46) * z, (innerWidth > 1150 ? 84 : 0) * z); // the last: room for the chat buttons, bottom right
     scene.setSeats(info, focus); scene.setState(S); pushMine();
   }
   function pushMine() {

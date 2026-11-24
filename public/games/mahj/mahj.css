@@ -3,7 +3,7 @@ body.in-game { overflow: hidden; }
 .mj { position: fixed; inset: 0; overflow: hidden; background: #c9ecff; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .mj .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .mj.flat .g3d { display: none; }
-.mj.flat::before { content: 'The 3D board could not load on this device.'; position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+.mj.flat::before { content: 'The 3D board could not load on this device.'; position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); width: min(calc(80vw / var(--vz, 1)), 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
 .mj-ic { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.22em; }
 
 .mj .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
@@ -27,10 +27,10 @@ body.in-game { overflow: hidden; }
 .mj-clock.late span { color: inherit; opacity: .75; }
 .mj-clock.late span { text-decoration: line-through; }
 
-.mj .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
-.mj .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, 8vw, 72px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.mj .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); z-index: 3; }
+.mj .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, calc(8vw / var(--vz, 1)), 72px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .mj .shout.k0 b { color: #c9b5f0; } .mj .shout.k2 b { color: #ffb547; } .mj .shout.k3 b { color: #ffd84a; } .mj .shout.k4 b { color: #ff8a6a; }
-.mj .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 2.6vw, 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.mj .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, calc(2.6vw / var(--vz, 1)), 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .mj .shout span:empty { display: none; }
 .mj .shout.show { animation: mjbig var(--ms, 1.4s) cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes mjbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
@@ -38,7 +38,7 @@ body.in-game { overflow: hidden; }
 @keyframes mjup { 0% { opacity: 0; margin-top: 8px; transform: translate(-50%, -100%) scale(.5); } 18% { opacity: 1; transform: translate(-50%, -100%) scale(1.25); } 32% { transform: translate(-50%, -100%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; margin-top: -50px; transform: translate(-50%, -100%) scale(1); } }
 
 /* bottom: the tools */
-.mj-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 16px); pointer-events: none !important; }
+.mj-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100vw / var(--vz, 1) - 16px); pointer-events: none !important; }
 .mj-bottom > * { pointer-events: auto; }
 .mj-dock { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; background: color-mix(in srgb, var(--paper) 94%, transparent); border: 3px solid var(--ink); border-radius: 20px; padding: 7px 10px; box-shadow: 0 4px 0 var(--ink); }
 .mj-dock .btn { min-height: 44px; }
@@ -61,7 +61,7 @@ body.in-game { overflow: hidden; }
 .mj-racer.me { border-width: 3px; background: var(--card); }
 .mj-racer.done { background: var(--lantern); color: var(--ink); --on-paper: var(--ink); }
 .mj-racer.out, .mj-racer.away { opacity: .7; }
-.mj .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 16px; white-space: nowrap; max-width: calc(100vw - 28px); overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 0 #160a1255; pointer-events: none !important; }
+.mj .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 16px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 28px); overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 0 #160a1255; pointer-events: none !important; }
 .mj .banner:empty { display: none; }
 .mj .banner.hot { background: #ffd0c8; color: var(--ink); box-shadow: 0 4px 0 var(--ink); }
 .mj.race.watching .mj-bottom { display: none; }
@@ -70,7 +70,7 @@ body.in-game { overflow: hidden; }
 .mj .results, .mj .gate { position: absolute; inset: 0; background: #160a12c4; display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; animation: fade .25s both; }
 .mj .gate { background: #bfe8ffcc; }
 .mj .results[hidden], .mj .gate[hidden] { display: none; }
-.mj .results .sheet { max-height: calc(100vh - 32px); overflow: auto; gap: 12px; }
+.mj .results .sheet { max-height: calc(100vh / var(--vz, 1) - 32px); overflow: auto; gap: 12px; }
 .mj.race .results .sheet { width: min(560px, 100%); }
 .mj .sheet .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .mj .sheet .row .btn { flex: 1 1 auto; min-width: min(150px, 100%); justify-content: center; text-align: center; }
@@ -114,7 +114,7 @@ body.night .mj-sheet.win h2 { color: #ffc95e; } body.night .mj-sheet.lose h2 { c
   .mj .tl .chip { font-size: 13px; padding: 4px 10px; } .mj .tl .chip b { font-size: 16px; }
   .mj .tl .chip small { display: none; }
   .mj .round { width: 40px; height: 40px; } .mj .tr { gap: 5px; }
-  .mj-top { top: calc(max(14px, env(safe-area-inset-top)) + 52px); max-width: calc(100vw - 16px); }
+  .mj-top { top: calc(max(14px, env(safe-area-inset-top)) + 52px); max-width: calc(100vw / var(--vz, 1) - 16px); }
   .mj-stat { min-width: 72px; padding: 1px 6px 2px; } .mj-stat b { font-size: 20px; } .mj-stat span { font-size: 11px; }
   .mj-dock { flex-wrap: nowrap; gap: 6px; padding: 6px 8px; }
   .mj-dock:has(.mj-note) { flex-wrap: wrap; }
@@ -128,7 +128,7 @@ body.night .mj-sheet.win h2 { color: #ffc95e; } body.night .mj-sheet.lose h2 { c
   .mj-podium b { min-width: 3.2em; } .mj-podium strong { font-size: 14px; }
 }
 body:has(.mj) #toasts { top: 118px; }
-@media (max-width: 1150px) { .mj.race .results { align-items: flex-start; padding-top: 128px; } .mj.race .results .sheet { max-height: calc(100vh - 144px); } body:has(.mj.race .results:not([hidden])) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.mj.race) .chatbtn .lbl, body:has(.mj.race) .scorebtn .lbl { display: none; } }
+@media (max-width: 1150px) { .mj.race .results { align-items: flex-start; padding-top: 128px; } .mj.race .results .sheet { max-height: calc(100vh / var(--vz, 1) - 144px); } body:has(.mj.race .results:not([hidden])) #chat { bottom: auto; top: 66px; right: 12px; flex-direction: column-reverse; } body:has(.mj.race) .chatbtn .lbl, body:has(.mj.race) .scorebtn .lbl { display: none; } }
 
 /* night: bright stickers (lantern, mint, light tickets) keep dark text */
 body.night .mj-clock:not(.late),

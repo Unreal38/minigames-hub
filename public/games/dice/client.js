@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { FACES, NAME, faceWord, matches, legal, lowest, chance } from './rules.js';
 import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -78,15 +79,15 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x)); // keep the tag on the screen when its player is half off it
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
-    const b = $('ld-bid'); b.style.left = `${info.bid.x.toFixed(1)}px`; b.style.top = `${info.bid.y.toFixed(1)}px`;
+    const b = $('ld-bid'); b.style.left = `${(info.bid.x / uiz()).toFixed(1)}px`; b.style.top = `${(info.bid.y / uiz()).toFixed(1)}px`; // inside the (zoomed) HUD
   }
   // keep the 3D table clear of the controls at the bottom and the player list on the left
   function layout() {
     if (!scene) return;
     // the dock is tallest on your own turn: always leave that much room, so the camera does not move between turns
-    scene.setHud(Math.max($('ld-dock').offsetHeight + 30, innerWidth < 700 ? 318 : 300));
+    scene.setHud(Math.max($('ld-dock').offsetHeight + 30, innerWidth < 700 ? 318 : 300) * uiz());
   }
 
   // ----- name tags over the avatars: name, dice left, and what they last said -----

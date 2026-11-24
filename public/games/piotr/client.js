@@ -9,6 +9,7 @@ import { reactHtml } from '../../react.js';
 import { PIOTR, DECKS, petName } from './rules.js';
 import { cardHtml, backHtml, fillPics, picOf } from './cards.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -69,11 +70,11 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x)); // keep the tag on the screen when its player is half off it
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
   // keep the 3D table clear of your hand at the bottom
-  function layout() { if (scene) scene.setHud(Math.max($('pi-dock').offsetHeight + 30, innerWidth < 700 ? 250 : 240)); }
+  function layout() { if (scene) scene.setHud(Math.max($('pi-dock').offsetHeight + 30, innerWidth < 700 ? 250 : 240) * uiz()); }
 
   // ----- name tags over the avatars: name, cards left, and their last draw -----
   function buildTags() {

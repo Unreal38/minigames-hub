@@ -1,4 +1,5 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
+import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
 import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
@@ -1370,7 +1371,8 @@ gameSwitch.addEventListener('click', e => { e.stopPropagation(); switchTheme(gam
 // The game's top-left chips must stay clear of the round buttons: --tlw on the HUD is the room left of that row.
 function fitTopChips() {
   const tr = $app.querySelector('.hud .tr'), tl = tr?.parentElement.querySelector(':scope > .tl'); if (!tl) return;
-  const room = tr.getBoundingClientRect().left - parseFloat(getComputedStyle(tl).left || 0) - 8;
+  // (the HUD may be zoomed on computers, uiz.js: the rect is on screen, the CSS lengths are in the HUD's own pixels)
+  const room = tr.getBoundingClientRect().left / uiz() - parseFloat(getComputedStyle(tl).left || 0) - 8;
   if (room > 0) tl.parentElement.style.setProperty('--tlw', Math.floor(room) + 'px');
 }
 const trWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(fitTopChips) : null;

@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { boardName, cellsOf, fits, randomFleet, SEA } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -70,11 +71,11 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = t.k < .9 ? `translate(${x.toFixed(1)}px, ${t.yb.toFixed(1)}px) translate(-50%, 0)` : `translate(${x.toFixed(1)}px, ${Math.max(t.y, innerWidth < 700 ? 112 : 64).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = t.k < .9 ? `translate(${x.toFixed(1)}px, ${t.yb.toFixed(1)}px) translate(-50%, 0)` : `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 112 : 64) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
       el.classList.toggle('under', t.k < .9);
     }
   }
-  function layout() { if (scene) scene.setHud(Math.max($('cv-dock').offsetHeight + 30, 84)); }
+  function layout() { if (scene) scene.setHud(Math.max($('cv-dock').offsetHeight + 30, 84) * uiz()); }
 
   // ----- arranging your boats -----
   const N = () => S.n;

@@ -3,7 +3,7 @@ body.in-game { overflow: hidden; }
 .mr { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 38%, #4a2338 0%, var(--plum) 72%); user-select: none; }
 .mr .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
 .mr.flat .g3d { display: none; }
-.mr.flat::before { content: 'The 3D track could not load on this device. You can still bet and follow the race order.'; position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--muted); font-family: var(--fd); font-size: 18px; }
+.mr.flat::before { content: 'The 3D track could not load on this device. You can still bet and follow the race order.'; position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); width: min(calc(80vw / var(--vz, 1)), 420px); text-align: center; color: var(--muted); font-family: var(--fd); font-size: 18px; }
 .mr .tint { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .4s; }
 .mr .tint.flip { opacity: 1; background: radial-gradient(ellipse at center, #9aa8ff00 40%, #9aa8ff66); }
 .mr .tint.turbo { opacity: 1; background: radial-gradient(ellipse at center, #ffb54700 45%, #ffb54766); }
@@ -31,17 +31,17 @@ body.in-game { overflow: hidden; }
 .mr .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--lantern); font-size: 18px; margin-right: 4px; }
 .mr .chip.coins { display: inline-flex; align-items: center; gap: 6px; background: var(--paper); color: var(--on-paper); border-color: var(--ink); }
 
-.mr .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.mr .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .mr .banner:empty { display: none; }
 .mr .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.mr .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; }
-.mr .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, 9vw, 84px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
-.mr .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, 3vw, 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.mr .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
+.mr .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, calc(9vw / var(--vz, 1)), 84px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.mr .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, calc(3vw / var(--vz, 1)), 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .mr .shout.show { animation: mrbig 1.9s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes mrbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* live race order */
-.mr .board { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 18px; backdrop-filter: blur(4px); width: 214px; max-height: calc(100vh - 190px); overflow: auto; }
+.mr .board { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 18px; backdrop-filter: blur(4px); width: 214px; max-height: calc(100vh / var(--vz, 1) - 190px); overflow: auto; }
 .mr .board button { width: 100%; display: flex; align-items: center; gap: 7px; background: transparent; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; cursor: pointer; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); text-align: left; }
 .mr .board button:hover { background: #ffffff14; }
 .mr .board b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
@@ -58,7 +58,7 @@ body.in-game { overflow: hidden; }
 @keyframes mrwig { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
 
 /* betting */
-.mr .betbox { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(880px, calc(100vw - 24px)); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-height: 62vh; overflow: auto; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.mr .betbox { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(880px, calc(100vw / var(--vz, 1) - 24px)); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-height: calc(62vh / var(--vz, 1)); overflow: auto; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
 .mr .bethead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
 .mr .bethead h2 { font-size: 26px; color: var(--on-paper); }
 .mr .bethead span { font-size: 15px; color: var(--soft-tx); }
@@ -81,7 +81,7 @@ body.in-game { overflow: hidden; }
 .mr .link { background: none; border: 0; padding: 0 4px; color: #a03a26; text-decoration: underline; cursor: pointer; font-size: 14px; }
 
 /* race controls */
-.mr .racebar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 22px; padding: 10px 14px; backdrop-filter: blur(4px); max-width: calc(100vw - 24px); }
+.mr .racebar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 22px; padding: 10px 14px; backdrop-filter: blur(4px); max-width: calc(100vw / var(--vz, 1) - 24px); }
 .mr .cams { display: flex; align-items: center; gap: 8px; font-family: var(--fd); font-weight: 500; font-size: 15px; color: var(--soft); }
 .mr .cams .pills button { min-height: 40px; padding: 5px 13px; font-size: 15px; }
 .mr .sab svg { flex: none; }
@@ -112,16 +112,16 @@ body.in-game { overflow: hidden; }
 @media (max-width: 700px) {
   .mr .tcode, .mr #mr-mode { display: none; }
   .mr .banner { top: 66px; font-size: 15px; }
-  .mr .board { top: 112px; width: 164px; padding: 4px; max-height: 38vh; }
+  .mr .board { top: 112px; width: 164px; padding: 4px; max-height: calc(38vh / var(--vz, 1)); }
   .mr .board button { font-size: 13px; gap: 5px; padding: 2px 5px 2px 2px; }
   .mr .board span { display: none; }
-  .mr .betbox { padding: 12px; gap: 8px; max-height: 66vh; bottom: 10px; }
+  .mr .betbox { padding: 12px; gap: 8px; max-height: calc(66vh / var(--vz, 1)); bottom: 10px; }
   .mr .bethead h2 { font-size: 22px; }
   .mr .picks { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
   .mr .pick { min-height: 0; padding: 6px 4px 4px; }
   .mr .pick b { font-size: max(10px, min(14px, calc(100cqi / var(--w, 6)))); }
   .mr .backers { min-height: 0; }
-  .mr .racebar { width: calc(100vw - 20px); bottom: 10px; padding: 8px; gap: 8px; }
+  .mr .racebar { width: calc(100vw / var(--vz, 1) - 20px); bottom: 10px; padding: 8px; gap: 8px; }
   .mr .cams > span { display: none; }
   .mr .cams .pills { flex-wrap: nowrap; gap: 5px; }
   .mr .cams .pills button { padding: 4px 9px; font-size: 14px; }

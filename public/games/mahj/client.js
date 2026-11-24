@@ -9,6 +9,7 @@ import { reactHtml } from '../../react.js';
 import { nameHtml, frameCls } from '../../cosmetics.js';
 import { layout, layoutName, isFree, canPair, findMove, tilesLeft } from './rules.js';
 import { I, clock, loadCss } from './solo.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const crown = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 18l-1-10 6 4 4-8 4 8 6-4-1 10z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></svg>';
@@ -53,7 +54,7 @@ export function mount(app, ctx) {
   function place() {
     if (!scene) return;
     const r = $('mj-racers').getBoundingClientRect(), wide = innerWidth > 700;
-    scene.setHud(($('mj-bottom').offsetHeight || 56) + 20, wide ? 70 : Math.round(r.bottom) + 8);
+    scene.setHud((($('mj-bottom').offsetHeight || 56) + 20) * uiz(), wide ? 70 * uiz() : Math.round(r.bottom) + 8);
   }
   function showBoard(mode) {
     if (!scene || !S) return;

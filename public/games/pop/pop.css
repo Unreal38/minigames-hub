@@ -3,7 +3,7 @@ body.in-game { overflow: hidden; }
 .pp { position: fixed; inset: 0; overflow: hidden; background: #c9ecff; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .pp .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .pp.flat .g3d { display: none; }
-.pp.flat::before { content: 'The 3D shelf could not load on this device.'; position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+.pp.flat::before { content: 'The 3D shelf could not load on this device.'; position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); width: min(calc(80vw / var(--vz, 1)), 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
 .pp-ic { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.22em; }
 
 .pp .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
@@ -32,10 +32,10 @@ body.in-game { overflow: hidden; }
 .pp-moves.low { background: #ff9a8a; animation: pplow .7s ease-in-out infinite alternate; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 @keyframes pplow { to { transform: scale(1.08); } }
 
-.pp .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
-.pp .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, 8vw, 72px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.pp .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); z-index: 3; }
+.pp .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, calc(8vw / var(--vz, 1)), 72px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .pp .shout.k0 b { color: #c9b5f0; } .pp .shout.k2 b { color: #ffb547; } .pp .shout.k3 b { color: #ffd84a; }
-.pp .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 2.6vw, 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.pp .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, calc(2.6vw / var(--vz, 1)), 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .pp .shout span:empty { display: none; }
 .pp .shout.show { animation: ppbig var(--ms, 1.4s) cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes ppbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
@@ -46,7 +46,7 @@ body.in-game { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .pp-goal.hit { animation: none; } }
 
 /* bottom: score and a hint */
-.pp-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 20px); pointer-events: none !important; }
+.pp-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: max-content; max-width: calc(100vw / var(--vz, 1) - 20px); pointer-events: none !important; }
 .pp-bottom > * { pointer-events: auto; }
 .pp-dock { display: flex; align-items: center; gap: 14px; background: color-mix(in srgb, var(--paper) 94%, transparent); border: 3px solid var(--ink); border-radius: 20px; padding: 6px 14px; box-shadow: 0 4px 0 var(--ink); }
 .pp-score { display: flex; flex-direction: column; align-items: flex-start; font-family: var(--fd); color: var(--on-paper); line-height: 1; min-width: 84px; }
@@ -78,10 +78,10 @@ body.in-game { overflow: hidden; }
 @media (max-width: 700px) {
   .pp .tl .chip { font-size: 13px; padding: 4px 10px; } .pp .tl .chip b { font-size: 16px; }
   .pp .tl .chip small { display: none; }
-  .pp-top { top: calc(max(14px, env(safe-area-inset-top)) + 54px); gap: 8px; max-width: calc(100vw - 16px); }
+  .pp-top { top: calc(max(14px, env(safe-area-inset-top)) + 54px); gap: 8px; max-width: calc(100vw / var(--vz, 1) - 16px); }
   .pp-goal b { font-size: 19px; min-width: 2.1em; }
   .pp-pet { width: 38px; height: 38px; border-radius: 11px; } .pp-petimg { width: 34px; height: 34px; }
-  .pp-bottom { width: calc(100vw - 16px); }
+  .pp-bottom { width: calc(100vw / var(--vz, 1) - 16px); }
   .pp-dock { gap: 10px; padding: 5px 10px; }
   .pp-score { min-width: 70px; } .pp-score b { font-size: 23px; }
   .pp-hint { font-size: 12.5px; }

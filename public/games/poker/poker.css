@@ -3,7 +3,7 @@ body.in-game { overflow: hidden; }
 .pk { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #4a2338 0%, var(--plum) 72%); user-select: none; }
 .pk .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
 .pk.flat .g3d { display: none; }
-.pk.flat::before { content: ''; position: absolute; left: 50%; top: calc(50% - 60px); transform: translate(-50%, -50%); width: min(78vw, 760px); height: min(46vh, 400px); border-radius: 50%; background: radial-gradient(#3f9c7a, #2b7a5e); border: 14px solid #b4475a; box-shadow: 0 10px 0 #160a12; }
+.pk.flat::before { content: ''; position: absolute; left: 50%; top: calc(50% - 60px); transform: translate(-50%, -50%); width: min(calc(78vw / var(--vz, 1)), 760px); height: min(calc(46vh / var(--vz, 1)), 400px); border-radius: 50%; background: radial-gradient(#3f9c7a, #2b7a5e); border: 14px solid #b4475a; box-shadow: 0 10px 0 #160a12; }
 
 /* playing cards (HTML) */
 .pcard { --w: 44px; position: relative; display: inline-flex; flex-direction: column; align-items: flex-start; width: var(--w); height: calc(var(--w) * 1.42); background: #fff8ec; border: 2.5px solid var(--ink); border-radius: calc(var(--w) * .16); color: var(--sc, var(--ink)); padding: calc(var(--w) * .06) calc(var(--w) * .1); box-shadow: 0 3px 0 #160a1288; flex: none; overflow: hidden; }
@@ -55,21 +55,21 @@ body.in-game { overflow: hidden; }
 .pk .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .pk .hud > * { pointer-events: auto; }
 .pk .tl, .pk .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
-.pk .tl { left: 14px; flex-wrap: wrap; max-width: 40vw; } .pk .tr { right: 14px; }
+.pk .tl { left: 14px; flex-wrap: wrap; max-width: calc(40vw / var(--vz, 1)); } .pk .tr { right: 14px; }
 .pk .tl small { font-weight: 500; opacity: .75; }
 .pk .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--lantern); font-size: 18px; margin-right: 4px; }
-.pk .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.pk .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .pk .banner:empty { display: none; }
 .pk .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.pk .shout { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
-.pk .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(36px, 8vw, 76px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
-.pk .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, 3vw, 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.pk .shout { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); z-index: 3; }
+.pk .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(36px, calc(8vw / var(--vz, 1)), 76px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.pk .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(16px, calc(3vw / var(--vz, 1)), 22px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .pk .shout span:empty { display: none; }
 .pk .shout.show { animation: pkbig 2.2s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes pkbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* hand rankings, left side */
-.pk .ranks { position: absolute; left: 14px; top: 66px; width: 214px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; background: var(--plum2); border: 3px solid var(--line); border-radius: 18px; box-shadow: 0 5px 0 var(--deep); overflow: hidden; z-index: 2; }
+.pk .ranks { position: absolute; left: 14px; top: 66px; width: 214px; max-height: calc(100vh / var(--vz, 1) - 80px); display: flex; flex-direction: column; background: var(--plum2); border: 3px solid var(--line); border-radius: 18px; box-shadow: 0 5px 0 var(--deep); overflow: hidden; z-index: 2; }
 .pk .ranks:not(.open) { width: auto; border-radius: 999px; }
 .pk .ranks:empty { display: none; }
 .pk .rhead { all: unset; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 14px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); flex: none; }
@@ -90,8 +90,8 @@ body.in-game { overflow: hidden; }
 .pcard.dim { opacity: .4; }
 
 /* your cards and buttons */
-.pk .dock { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 14px 22px; flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100vw - 20px); }
-@media (min-width: 1151px) { .pk .dock { max-width: calc(100vw - 600px); min-width: 300px; } }
+.pk .dock { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 14px 22px; flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100vw / var(--vz, 1) - 20px); }
+@media (min-width: 1151px) { .pk .dock { max-width: calc(100vw / var(--vz, 1) - 600px); min-width: 300px; } }
 .pk .mine:empty { display: none; }
 .pk .mine { display: flex; align-items: flex-end; gap: 12px; }
 .pk .hole { display: flex; gap: 6px; }
@@ -117,7 +117,7 @@ body.in-game { overflow: hidden; }
 .pk .acts .row2 { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; background: #2a1422dd; border: 3px solid var(--line); border-radius: 18px; padding: 8px 12px; animation: popin .25s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pk .acts .pills button { min-height: 40px; padding: 4px 12px; font-size: 15px; }
 .pk .slide { display: flex; align-items: center; gap: 8px; }
-.pk .slide input { width: min(200px, 46vw); accent-color: var(--lantern); }
+.pk .slide input { width: min(200px, calc(46vw / var(--vz, 1))); accent-color: var(--lantern); }
 .pk .round.sm { width: 38px; height: 38px; font-size: 20px; }
 .pk .wait { margin: 0; font-family: var(--fd); font-weight: 500; color: var(--soft); background: #2a1422cc; border: 3px solid var(--line); border-radius: 999px; padding: 8px 18px; }
 
@@ -138,8 +138,8 @@ body.in-game { overflow: hidden; }
 
 @media (max-width: 760px) {
   .pk .tcode, .pk .blinds small { display: none; }
-  .pk .tl { max-width: 52vw; } .pk .tl .chip { font-size: 13px; padding: 3px 10px; }
-  .pk .banner { top: 120px; font-size: 15px; max-width: calc(100vw - 24px); }
+  .pk .tl { max-width: calc(52vw / var(--vz, 1)); } .pk .tl .chip { font-size: 13px; padding: 3px 10px; }
+  .pk .banner { top: 120px; font-size: 15px; max-width: calc(100vw / var(--vz, 1) - 24px); }
   .pk .tag .plate { padding: 1px 8px 1px 1px; gap: 4px; }
   .pk .tag .tav { display: none; }
   .pk .tag .plate { padding: 2px 9px; }
@@ -154,7 +154,7 @@ body.in-game { overflow: hidden; }
   .pk .acts .row1 .btn { min-width: 0; padding: 10px 16px; font-size: 18px; min-height: 52px; }
   .pk .meinfo .stack { font-size: 17px; }
   .pk .meinfo .hn { font-size: 14px; }
-  .pk .ranks { left: 10px; top: 94px; max-height: calc(100vh - 250px); }
+  .pk .ranks { left: 10px; top: 94px; max-height: calc(100vh / var(--vz, 1) - 250px); }
   .pk .rhead { font-size: 13px; padding: 3px 5px 3px 11px; }
   .pk .rhead i { width: 19px; height: 19px; font-size: 15px; }
 }

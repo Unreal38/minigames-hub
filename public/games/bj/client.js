@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { cardHtml } from '../poker/cards.js';
 import { nameHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -182,7 +183,7 @@ export function mount(app, ctx) {
   function dockSize() {
     const d = $('bj-dock'); if (!d || !scene) return;
     const sizer = d.querySelector('.row2'); // the bet slider shouldn't make the table jump
-    scene.setHud(Math.max(150, Math.min(innerHeight * .46, d.offsetHeight - (sizer ? sizer.offsetHeight + 10 : 0) + 24)));
+    scene.setHud(Math.max(150, Math.min(innerHeight * .46, (d.offsetHeight - (sizer ? sizer.offsetHeight + 10 : 0) + 24) * uiz())));
   }
 
   function renderTop() {

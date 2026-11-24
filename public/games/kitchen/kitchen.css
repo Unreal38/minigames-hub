@@ -3,7 +3,7 @@ body.in-game { overflow: hidden; }
 .kr { position: fixed; inset: 0; overflow: hidden; background: #c9ecff; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .kr .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .kr.flat .g3d { display: none; }
-.kr.flat::before { content: 'The 3D kitchen could not load on this device.'; position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+.kr.flat::before { content: 'The 3D kitchen could not load on this device.'; position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); width: min(calc(80vw / var(--vz, 1)), 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
 
 .kr .tags, .kr .bars { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .kr-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 4px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 7px 1px 3px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 0 #23401c55; will-change: transform; }
@@ -52,7 +52,7 @@ body.in-game { overflow: hidden; }
 @keyframes krpulse { 50% { transform: scale(1.08); } }
 
 /* order tickets */
-.kr .orders { position: absolute; left: 14px; top: 66px; margin: 0; padding: 0; list-style: none; display: flex; gap: 8px; max-width: calc(100vw - 28px); pointer-events: none; }
+.kr .orders { position: absolute; left: 14px; top: 66px; margin: 0; padding: 0; list-style: none; display: flex; gap: 8px; max-width: calc(100vw / var(--vz, 1) - 28px); pointer-events: none; }
 .kr .orders li { display: flex; align-items: center; gap: 6px; background: #fffdf6; border: 3px solid var(--ink); border-radius: 14px; padding: 5px 9px 12px 5px; position: relative; box-shadow: 0 3px 0 #23401c55; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; min-width: 0; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .kr .orders .dish { line-height: 0; flex: none; }
 .kr .orders .tk { display: flex; flex-direction: column; min-width: 0; }
@@ -68,7 +68,7 @@ body.in-game { overflow: hidden; }
 @keyframes krshake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
 
 /* cooks and their tips */
-.kr .list { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; width: max-content; min-width: 190px; max-width: min(300px, 42vw); pointer-events: none; }
+.kr .list { position: absolute; left: 14px; bottom: max(16px, env(safe-area-inset-bottom)); margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; width: max-content; min-width: 190px; max-width: min(300px, calc(42vw / var(--vz, 1))); pointer-events: none; }
 .kr .list li { display: flex; align-items: center; gap: 7px; border-radius: 10px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); }
 .kr .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .kr .list span { font-size: 14px; color: var(--soft-tx2); }
@@ -94,11 +94,11 @@ body.in-game { overflow: hidden; }
 .kr .btns .kr-chop.on { opacity: 1; animation: krpulse 1s ease-in-out infinite; }
 .kr .btns .btn span { line-height: 1; }
 
-.kr .shout { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; }
-.kr .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, 8vw, 72px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.kr .shout { position: absolute; left: 50%; top: 36%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
+.kr .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, calc(8vw / var(--vz, 1)), 72px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .kr .shout.good b { color: #ffe27a; }
 .kr .shout.bad b { color: #ffb3a6; }
-.kr .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 2.6vw, 20px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.kr .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, calc(2.6vw / var(--vz, 1)), 20px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .kr .shout span:empty { display: none; }
 .kr .shout.show { animation: krbig 1.5s cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes krbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
@@ -106,7 +106,7 @@ body.in-game { overflow: hidden; }
 /* results */
 .kr .results { position: absolute; inset: 0; background: #160a12b0; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; animation: fade .25s both; }
 .kr .results[hidden] { display: none; }
-.kr .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+.kr .results .sheet { width: min(560px, 100%); max-height: calc(100vh / var(--vz, 1) - 32px); overflow: auto; }
 .kr .results h2 { text-align: center; }
 .kr .results .fine { font-size: 13px; color: var(--soft-tx2); margin: 10px 0 0; }
 .kr-stars { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
@@ -131,7 +131,7 @@ body.in-game { overflow: hidden; }
   .kr .clock .meter { width: 84px; }
   .kr .clock .time { font-size: 16px; padding: 1px 9px; }
   .kr .clock .tips b { font-size: 17px; }
-  .kr .orders { top: calc(max(12px, env(safe-area-inset-top)) + 96px); left: 10px; gap: 5px; max-width: calc(100vw - 20px); flex-wrap: wrap; }
+  .kr .orders { top: calc(max(12px, env(safe-area-inset-top)) + 96px); left: 10px; gap: 5px; max-width: calc(100vw / var(--vz, 1) - 20px); flex-wrap: wrap; }
   .kr .orders li { padding: 3px 5px 10px 3px; border-width: 2.5px; border-radius: 12px; }
   .kr .orders .tk b { display: none; }
   .kr .orders .dish svg { width: 26px; height: 26px; }

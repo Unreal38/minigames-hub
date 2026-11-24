@@ -6,6 +6,7 @@ import { sfx } from '../../sfx.js';
 import { L, cnt, word } from '../../i18n.js';
 import { srvText } from '../../lang/server.js';
 import { N, MAX_LV, coinsFor } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -87,8 +88,8 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   function layout() {
     if (!scene) return;
-    const top = innerWidth < 700 ? 104 : 64;
-    scene.setHud(($('hh-bottom').offsetHeight || 90) + 24, top);
+    const top = innerWidth < 700 ? 104 : 64, z = uiz();
+    scene.setHud((($('hh-bottom').offsetHeight || 90) + 24) * z, top * z);
   }
   const saveMarks = () => LS.set('hh_marks', { id: fieldId, m: marks });
   const canFlip = i => S && !S.over && i >= 0 && i < N * N && S.cells[i] < 0 && Date.now() - busy > 350;

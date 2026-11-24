@@ -9,6 +9,7 @@ import { reactHtml } from '../../react.js';
 import { cardHtml, suitSvg } from '../poker/cards.js';
 import { MELD, SUIT_NAMES, STEP, SAFE_BID, FOLD_PAY, suitOf, canMeld, maxBid, melds } from './rules.js';
 import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -77,11 +78,11 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, innerWidth < 1100 ? 200 : 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 1100 ? 200 : 150) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
   // the dock is tallest while you sort out the musik: always leave about that much room, so the camera does not jump around
-  function layout() { if (scene) scene.setHud(Math.max($('ty-dock').offsetHeight + 24, innerWidth < 700 ? 250 : 290)); }
+  function layout() { if (scene) scene.setHud(Math.max($('ty-dock').offsetHeight + 24, innerWidth < 700 ? 250 : 290) * uiz()); }
 
   // ----- name tags over the avatars: name, score, and what they last said -----
   function said(i) {

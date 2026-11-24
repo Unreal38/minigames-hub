@@ -7,6 +7,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { TILES, GROUPS, STREET, CARDS, PET_NAME, LV_NAMES, LV_MAX, BATH_FEE, PASS_GO, MS, rentOf, fullStreet } from './board.js';
 import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -71,7 +72,7 @@ export function mount(app, ctx) {
     if (!on) { if (aimKey) { aimKey = ''; el.hidden = true; } return; }
     const a = info.aim, key = a.i + '/' + a.s;
     if (key !== aimKey) { aimKey = key; const t = TILES[a.i]; el.innerHTML = `${a.s === S.me ? L('You land on', 'Stajesz na polu') : L('Lands on', 'Staje na polu')} <b>${esc(t.name)}</b>`; el.style.setProperty('--c', S.seats[a.s]?.color || '#fff'); el.hidden = false; }
-    el.style.transform = `translate(${Math.round(Math.max(90, Math.min(info.w - 90, a.x)))}px, ${Math.round(Math.max(70, a.y))}px) translate(-50%, -100%)`;
+    el.style.transform = `translate(${Math.round(Math.max(90, Math.min(info.w - 90, a.x)) / uiz())}px, ${Math.round(Math.max(70, a.y) / uiz())}px) translate(-50%, -100%)`; // inside the (zoomed) HUD
   }
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
@@ -92,7 +93,8 @@ export function mount(app, ctx) {
   function layout() {
     if (!scene) return;
     const wide = innerWidth >= 1100, phone = innerWidth < 700;
-    scene.setHud(phone ? 150 : 112, wide ? 250 : 0, wide ? 76 : Math.max(phone ? 164 : 128, $('pw-list').getBoundingClientRect().bottom + 12));
+    const z = uiz();
+    scene.setHud((phone ? 150 : 112) * z, (wide ? 250 : 0) * z, wide ? 76 * z : Math.max((phone ? 164 : 128) * z, $('pw-list').getBoundingClientRect().bottom + 12));
   }
 
   // ----- what happened, in words -----

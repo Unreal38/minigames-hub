@@ -8,6 +8,7 @@ import { reactHtml } from '../../react.js';
 import { kitchen, RECIPES, CHOPPABLE, SPEED, T, move, target } from './rules.js';
 import { part, dish, tool, sticker } from './icons.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -330,7 +331,7 @@ export function mount(app, ctx) {
     if (e.pointerType === 'mouse' || !canMove() || joy.on) return;
     if (!touch) { touch = true; root.classList.add('touch'); render(); }
     joy = { on: true, id: e.pointerId, x: 0, y: 0, ox: e.clientX, oy: e.clientY };
-    stick.style.left = `${e.clientX}px`; stick.style.top = `${e.clientY}px`; stick.classList.add('live');
+    stick.style.left = `${e.clientX / uiz()}px`; stick.style.top = `${e.clientY / uiz()}px`; // inside the (zoomed) HUD stick.classList.add('live');
     canvas.setPointerCapture?.(e.pointerId);
   });
   canvas.addEventListener('pointermove', e => {

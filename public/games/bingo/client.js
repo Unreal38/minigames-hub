@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { BALLS, MID, LETTERS, PTS, colOf, letterOf, goalName, has, toGo, goalCells } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -80,7 +81,7 @@ export function mount(app, ctx) {
       if (t.mine) { el.style.display = 'none'; continue; }
       el.style.display = '';
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - inset - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, innerWidth < 700 ? 150 : 110).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 150 : 110) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
   function layout() {
@@ -88,9 +89,9 @@ export function mount(app, ctx) {
     root.classList.toggle('allopen', allOpen);
     if (!scene) return;
     const side = $('bg-side');
-    inset = wide() ? side.offsetWidth + 28 : 0;
-    if (wide()) { scene.setInset(inset); scene.setHud(innerHeight < 520 ? 20 : 84); }
-    else { scene.setInset(0); scene.setHud(side.offsetHeight + 26); }
+    inset = wide() ? (side.offsetWidth + 28) * uiz() : 0;
+    if (wide()) { scene.setInset(inset); scene.setHud((innerHeight < 520 ? 20 : 84) * uiz()); }
+    else { scene.setInset(0); scene.setHud((side.offsetHeight + 26) * uiz()); }
   }
 
   // ----- name tags over the avatars: name, points, and a bubble when they are one square away -----

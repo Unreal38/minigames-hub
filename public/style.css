@@ -1680,3 +1680,14 @@ svg.offview, svg.offview * { animation-play-state: paused !important; }
 .gfx-low body.sky { animation-play-state: paused !important; }
 /* A blurred backdrop over a live 3D scene (a game, or the hub's isle) is re-blurred every frame: only computers keep it. */
 html:not(.gfx-high) .modal, body.in-game .modal { backdrop-filter: none; -webkit-backdrop-filter: none; background: #160a12e6; }
+
+/* ---------- bigger game screens on computers (uiz.js) ----------
+   --uiz is 1 on phones and tablets and up to 1.3 on a desktop window. The game's own panels, buttons, card hands,
+   results and gates, the name tags over the players, the table chat, pop-ups and toasts grow with it; the 3D scene
+   behind them does not. Each zoomed box sets --vz, so the games' calc(Nvh / var(--vz, 1)) still means the real
+   window inside it. Only the outermost box zooms (a zoom inside a zoom would multiply). */
+body.in-game #app :is(.hud, .results, .gate):not(:is(.hud, .results, .gate) *), body.in-game #chat, body.in-game .modal, body.in-game #toasts { zoom: var(--uiz, 1); --vz: var(--uiz, 1); }
+/* name tags move by translate() in screen pixels, so the tag box stays unzoomed and only what is inside it grows */
+body.in-game #app .tags > * > * { zoom: var(--uiz, 1); }
+body.in-game .modal .sheet { max-height: calc((100vh - 32px) / var(--vz, 1)); }
+body.in-game #toasts { max-width: calc(92vw / var(--vz, 1)); top: calc(74px / var(--vz, 1)); }
