@@ -231,7 +231,15 @@ await start({ DAILY_NOW: '2026-12-24T12:00:00Z' });
   await mod.walk(14.2, 4); await mod.walk(14.2, .6); await wait(400); gus.got = []; gus.pos.clear();
   mod.do({ k: 'em', e: SIT, sp: SW }); const sw = await gus.next('em'); if (sw.sp !== SW) fail('swing seat ' + JSON.stringify(sw));
   await wait(300); if (gus.pos.has(m.me)) fail('getting on the swing moved the rider\'s place');
-  // a host starts a show: everyone hears within a second or two; guests can't
+  // rock, paper, scissors: a challenge, an answer, the room sees who won; saying no and asking too fast are told
+  gus.got = []; mod.got = []; ana.got = [];
+  ana.do({ k: 'rps', s: m.me, p: 1 }); const rq = await mod.next('rpsq'); if (rq.s !== ana.in.me) fail('challenge ' + JSON.stringify(rq));
+  gus.do({ k: 'rps', s: m.me, p: 3 }); if ((await gus.next('rpsn')).why !== 'busy') fail('a second challenge to someone already asked');
+  mod.do({ k: 'rpsa', s: ana.in.me, p: 2 }); const rr = await gus.next('rpsr'); if (rr.a !== ana.in.me || rr.b !== m.me || rr.pa !== 1 || rr.pb !== 2 || rr.w !== m.me) fail('paper beats rock ' + JSON.stringify(rr));
+  ana.do({ k: 'rps', s: m.me, p: 1 }); if ((await ana.next('rpsn')).why !== 'wait') fail('challenges come too fast');
+  await wait(4100); gus.do({ k: 'rps', s: ana.in.me, p: 2 }); await ana.next('rpsq'); ana.do({ k: 'rpsa', s: g.me, p: 0 }); if ((await gus.next('rpsn')).why !== 'no') fail('saying no');
+  await wait(4100); gus.got = []; ana.got = []; gus.do({ k: 'rps', s: ana.in.me, p: 3 }); await ana.next('rpsq'); ana.do({ k: 'rpsa', s: g.me, p: 3 }); if ((await gus.next('rpsr')).w !== 0) fail('a draw');
+    // a host starts a show: everyone hears within a second or two; guests can't
   gus.got = []; gus.do({ k: 'show' }); await wait(1300); if (gus.got.some(x => x.k === 'ev')) fail('a guest started the fireworks');
   mod.do({ k: 'show' }); const ev = await gus.next('ev'); if (ev.ev?.id !== 'show' || !(ev.ev.left > 4 * 60000)) fail('show ' + JSON.stringify(ev));
   gus.do({ k: 'peek' }); if ((await gus.next('peek')).ev !== 'show') fail('the hub button does not know about the show');

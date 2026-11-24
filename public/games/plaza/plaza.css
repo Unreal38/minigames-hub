@@ -62,6 +62,10 @@ body.night .plz { background: #1b1740; --pz-bg: #2b2856; --pz-bg2: #201d44; --pz
 .plz-evchip { background: #ffd34d; color: #3b2219; border-color: #3b2219; } .plz-evchip em { color: #3b2219; font-variant-numeric: tabular-nums; }
 .plz-evchip[hidden] { display: none; }
 .plz-showbtn { display: block; width: 100%; margin: 0 0 8px; }
+.plz-rps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.plz-rps button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 84px; padding: 8px 4px; border-radius: 16px; background: var(--pz-bg2); color: var(--pz-tx); border: 2.5px solid color-mix(in srgb, var(--pz-tx) 30%, transparent); font-family: var(--fd); font-weight: 600; font-size: 14.5px; cursor: pointer; }
+.plz-rps button span { font-size: 36px; line-height: 1.1; } .plz-rps button:hover { scale: 1.05; }
+.plz-float.big { font-size: 44px; }
 .plz-games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .plz-games button { min-height: 42px; padding: 4px 8px; border-radius: 12px; background: var(--pz-bg2); color: var(--pz-tx); border: 2.5px solid color-mix(in srgb, var(--pz-tx) 30%, transparent); font-family: var(--fd); font-weight: 600; font-size: 14.5px; line-height: 1.15; cursor: pointer; overflow-wrap: anywhere; }
 .plz-games button:hover { filter: brightness(1.06); }
 .plz.touch .plz-hint.plz-aimh { display: block; } .plz.touch .plz-hint.plz-aimh[hidden] { display: none; }
