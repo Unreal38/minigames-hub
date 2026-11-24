@@ -62,11 +62,15 @@ export function createScene(canvas, { onFrame } = {}) {
     // the stand the letter block floats over, and a globe and a stack of books at the back of the table
     put(new THREE.CylinderGeometry(.95, 1.1, .2, 8), M('#ffc94d'), BLOCK.x, .12, BLOCK.z).castShadow = true;
     put(new THREE.CylinderGeometry(.7, .7, .1, 8), M('#8a5a3c'), BLOCK.x, .26, BLOCK.z);
-    put(new THREE.CylinderGeometry(.2, .28, .1, 8), M('#8a5a3c'), -1.75, .09, -1.35);
-    put(new THREE.CylinderGeometry(.04, .04, .34, 6), M('#5b4636'), -1.75, .28, -1.35);
-    const globe = put(new THREE.IcosahedronGeometry(.4, 1), M('#4aa3ff'), -1.75, .78, -1.35); globe.castShadow = true;
+    // Both sit in the ring between the stand and the rivals' paper sheets (sheets start about 1.84 from the middle),
+    // so they never clip a sheet whatever the number of players. Built at full size in a group, then shrunk.
+    const globeG = new THREE.Group(); globeG.position.set(-1.12, 0, -.92); globeG.scale.setScalar(.7); room.add(globeG);
+    put(new THREE.CylinderGeometry(.2, .28, .1, 8), M('#8a5a3c'), 0, .13, 0, globeG);
+    put(new THREE.CylinderGeometry(.04, .04, .34, 6), M('#5b4636'), 0, .35, 0, globeG);
+    const globe = put(new THREE.IcosahedronGeometry(.4, 1), M('#4aa3ff'), 0, .85, 0, globeG); globe.castShadow = true;
     for (const [a, b, sx] of [[.5, .9, 1.25], [2.3, -.4, 1.1], [4.2, .5, .9], [5.4, -1, 1.2]]) { const l = put(new THREE.IcosahedronGeometry(.17, 0), M('#5fcf86'), 0, 0, 0, globe); l.position.setFromSphericalCoords(.33, Math.PI / 2 + b * .5, a); l.scale.set(sx, 1, 1); }
-    [['#ff6b8b', 0, .1], ['#5fcf86', .09, -.2], ['#ffd23f', .18, .25]].forEach(([c, y, r]) => { const b = put(new THREE.BoxGeometry(.72, .13, .5), M(c), 1.8, .1 + y * 1.5, -1.3); b.rotation.y = r; b.castShadow = true; put(new THREE.BoxGeometry(.66, .09, .46), M('#fffaf0'), 1.8 + .04, .1 + y * 1.5, -1.3).rotation.y = r; });
+    const booksG = new THREE.Group(); booksG.position.set(1.15, 0, -.88); booksG.scale.setScalar(.68); room.add(booksG);
+    [['#ff6b8b', 0, .1], ['#5fcf86', .09, -.2], ['#ffd23f', .18, .25]].forEach(([c, y, r]) => { const b = put(new THREE.BoxGeometry(.72, .13, .5), M(c), 0, .1 + y * 1.5, 0, booksG); b.rotation.y = r; b.castShadow = true; put(new THREE.BoxGeometry(.66, .09, .46), M('#fffaf0'), .04, .1 + y * 1.5, 0, booksG).rotation.y = r; });
     // lantern poles round the deck and a string of bunting between them
     for (const [x, z, c] of [[-6.4, -2.2, '#ffd84a'], [6.4, -2.2, '#ff8fab'], [0, -6.9, '#7ed3b2']]) {
       put(new THREE.CylinderGeometry(.07, .09, 3.6, 6), M('#8a5a3c'), x, -.6, z).castShadow = true;
