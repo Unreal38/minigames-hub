@@ -270,7 +270,7 @@ const GAMES = {
       <li>Land on your own shop and your pet is happy to see you: <b>+10</b>.</li>
       <li><b>Zoomies!</b> tiles deal a silly card. <b>Vet Visit</b> costs 40, which goes in the <b>Lost &amp; Found</b> jar. Land on the jar's corner to take everything in it.</li>
       <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. While you sit in the tub all your pets nap, so you collect no rent.</li>
-      <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, upgrades and then shops are sold back at half price, and anything still missing is let off.</li>
+      <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, <b>you pick what to sell</b> back to the bank at half price (an upgrade, or a whole shop with its upgrades). The game waits for you; if the timer runs out, it sells for you, upgrades first. Once nothing is left to sell, anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>
     </ol>`,

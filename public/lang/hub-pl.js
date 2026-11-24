@@ -199,7 +199,7 @@ export const GAMES_PL = {
       <li>Stań na własnym sklepiku, a zwierzak ucieszy się na twój widok: <b>+10</b>.</li>
       <li>Pola <b>Głupawka!</b> dają zwariowaną kartę. <b>Wizyta u weterynarza</b> kosztuje 40, które trafia do słoika <b>Znalezione</b>. Stań na rogu ze słoikiem, żeby zabrać wszystko, co w nim jest.</li>
       <li><b>Błotna kałuża</b> albo trzy dublety z rzędu wysyłają cię do <b>Kąpieli</b>. Wyrzuć dublet, żeby wyskoczyć, albo zapłać 30. Po trzech próbach płacisz i idziesz. Gdy siedzisz w wannie, wszystkie twoje zwierzaki drzemią, więc nie zbierasz czynszu.</li>
-      <li>Po dublecie rzucasz jeszcze raz. <b>Nikt nie odpada</b>: jeśli nie możesz zapłacić, sprzedawane są ulepszenia, a potem sklepiki, za pół ceny, a resztę długu się daruje.</li>
+      <li>Po dublecie rzucasz jeszcze raz. <b>Nikt nie odpada</b>: jeśli nie możesz zapłacić, <b>sam wybierasz, co sprzedać</b> bankowi za pół ceny (ulepszenie albo cały sklepik z ulepszeniami). Gra na ciebie czeka, a gdy skończy się czas, sprzedaje za ciebie, zaczynając od ulepszeń. Gdy nie ma już nic do sprzedania, resztę długu się daruje.</li>
       <li>Po ostatniej rundzie sumujemy przysmaki w ręce i wszystko, co poszło na sklepiki i ulepszenia. <b>Wygrywa najbogatszy gracz.</b></li>
       <li>Dotknij dowolnego pola, żeby o nim przeczytać. Skróty: <b>spacja</b> rzuca, adoptuje albo kończy turę, <b>N</b> to „nie, dziękuję”.</li>
     </ol>`,
