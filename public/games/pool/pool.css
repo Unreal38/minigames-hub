@@ -1,0 +1,113 @@
+/* Sky Pool view. Every class is under .pl, because other games' styles stay loaded. */
+body.in-game { overflow: hidden; }
+.pl { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(#8fd6f7, #c9eeff); user-select: none; -webkit-user-select: none; }
+.pl .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.pl.flat .g3d { display: none; }
+.pl.flat::before { content: 'The 3D table could not load on this device.'; position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+
+.pl .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.pl .pl-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; opacity: .92; }
+.pl .pl-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
+.pl .pl-tag b { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+.pl .pl-tag[hidden] { display: none; }
+.pl .pl-tag.turn { background: #ffb547; opacity: 1; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+
+.pl .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.pl .hud > * { pointer-events: auto; }
+.pl .tl, .pl .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
+.pl .tl { left: 14px; } .pl .tr { right: 14px; }
+.pl .chip { color: var(--cream); }
+.pl .chip i { font-style: normal; }
+.pl .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
+
+.pl .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.pl .banner:empty { display: none; }
+.pl .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); }
+.pl .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; }
+.pl .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(34px, 7vw, 68px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); text-wrap: balance; }
+.pl .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 2.6vw, 21px); background: var(--ink); color: var(--cream); border-radius: 18px; padding: 3px 16px; max-width: 92vw; text-wrap: balance; }
+.pl .shout.show { animation: plbig 1.9s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes plbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 12%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
+
+/* the two sides: who plays, and the balls they still have to pot */
+.pl .pl-teams { position: absolute; left: 14px; right: 14px; top: 70px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.pl .pl-team { display: flex; flex-direction: column; gap: 5px; background: #2a1422d9; border: 3px solid var(--line); border-radius: 18px; padding: 7px 10px; min-width: 0; max-width: min(300px, 48%); color: var(--cream); font-family: var(--fd); }
+.pl .pl-team.on { border-color: var(--lantern); box-shadow: 0 0 0 2px var(--lantern); }
+.pl .pl-who { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; }
+.pl .pl-who span { display: flex; align-items: center; gap: 6px; min-width: 0; opacity: .8; }
+.pl .pl-who span.up { opacity: 1; }
+.pl .pl-who span.up .avatar { box-shadow: 0 0 0 3px var(--lantern); }
+.pl .pl-who b { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 8em; }
+.pl .pl-who strong { margin-left: auto; font-size: 22px; color: var(--lantern); padding-left: 6px; }
+.pl .pl-who .avatar { border-width: 2px; flex: none; }
+.pl .pl-mine .pl-who b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.pl .pl-tray { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; min-height: 24px; }
+.pl .pl-tray small { font-size: 12px; font-weight: 600; color: var(--soft); margin-right: 4px; white-space: nowrap; }
+.pl .pl-tray em { display: flex; margin-left: 5px; opacity: .35; }
+.pl .pl-tray em.go { opacity: 1; }
+.pl .pl-open { font-size: 13px; color: var(--soft); }
+.pl .pl-b { --c: #fff; width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid var(--deep); background: var(--c); display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--fd); font-weight: 700; font-size: 11px; line-height: 1; color: #2a1422; text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff; }
+.pl .pl-b.t { background: linear-gradient(#fff8ec 0 24%, var(--c) 24% 76%, #fff8ec 76%); }
+.pl .pl-b.e { color: #fff; text-shadow: none; }
+.pl .pl-b.gone { background: transparent; border-style: dashed; border-color: color-mix(in srgb, var(--cream) 40%, transparent); }
+
+/* what to do, bottom centre, with the power strip when the table is yours */
+.pl .pl-bar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw - 20px); pointer-events: none; }
+.pl .pl-bar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 15px; background: #2a1422d9; color: var(--cream); border: 3px solid var(--line); border-radius: 16px; padding: 5px 14px; text-align: center; text-wrap: balance; max-width: min(640px, 100%); }
+.pl .pl-bar p:empty { display: none; }
+.pl .pl-bar p b { color: var(--lantern); font-weight: 600; }
+.pl .pl-ctl { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+.pl .pl-ctl[hidden] { display: none; }
+.pl .pl-ctl .round { flex: none; touch-action: none; }
+.pl .pl-pull { --p: 0; position: relative; width: min(360px, calc(100vw - 150px)); height: 46px; border-radius: 999px; background: #2a1422e6; border: 3px solid var(--cream); overflow: hidden; cursor: ew-resize; touch-action: none; }
+.pl .pl-pull i { position: absolute; top: 0; bottom: 0; right: 0; width: calc(var(--p) * 100%); background: linear-gradient(270deg, #7ed957, #ffd23f 55%, #e5543b); }
+.pl .pl-pull b { position: absolute; top: 3px; bottom: 3px; width: 34px; right: calc(3px + var(--p) * (100% - 40px)); border-radius: 999px; background: var(--cream); border: 3px solid var(--ink); box-shadow: -3px 0 0 #0003; }
+.pl .pl-pull span { position: absolute; inset: 0 46px 0 16px; display: flex; align-items: center; justify-content: flex-start; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--cream); pointer-events: none; text-shadow: 0 1px 0 #0008; white-space: nowrap; overflow: hidden; }
+.pl .pl-pull:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
+
+/* final results */
+.pl .confetti { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.pl .results { position: absolute; inset: 0; background: #160a12c4; display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 7; animation: fade .25s both; }
+.pl .results[hidden] { display: none; }
+.pl .results .sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+.pl .results h2, .pl .results .sheet > p { text-align: center; text-wrap: balance; }
+.pl .score { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pl .score li { display: flex; align-items: center; gap: 10px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 7px 12px 7px 8px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.pl .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.pl .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
+.pl .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.pl .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl .score .who span { font-size: 13px; color: var(--soft-tx2); }
+.pl .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
+
+@media (max-width: 700px) {
+  .pl .tcode, .pl .chip i { display: none; }
+  .pl .tl { left: 8px; top: 8px; } .pl .tr { right: 8px; top: 8px; gap: 5px; }
+  .pl .tl .chip { font-size: 14px; padding: 4px 10px; }
+  .pl .banner { top: 62px; font-size: 14px; padding: 3px 12px; border-width: 2px; }
+  .pl .pl-teams { left: 8px; right: 8px; top: 96px; gap: 6px; }
+  .pl .pl-team { padding: 4px 6px; border-width: 2px; border-radius: 14px; gap: 3px; flex: 1 1 0; max-width: 49%; }
+  .pl .pl-who { gap: 2px 6px; }
+  .pl .pl-who .avatar { width: 24px !important; height: 24px !important; }
+  .pl .pl-who b { font-size: 12px; max-width: 5.5em; }
+  .pl .pl-who strong { font-size: 17px; }
+  .pl .pl-b { width: 16px; height: 16px; font-size: 8px; border-width: 1.5px; }
+  .pl .pl-tray { gap: 2px; min-height: 18px; }
+  .pl .pl-tray small { font-size: 10px; width: 100%; margin: 0; }
+  .pl .pl-open { font-size: 11px; }
+  /* the hint sits beside the chat buttons, the power strip above both */
+  .pl .pl-bar { left: 8px; right: 8px; bottom: 8px; transform: none; width: auto; max-width: none; gap: 6px; align-items: stretch; }
+  .pl .pl-ctl { justify-content: center; }
+  .pl .pl-pull { width: auto; flex: 1; }
+  .pl .pl-bar p { font-size: 12px; line-height: 1.25; padding: 3px 9px; border-width: 2px; margin-right: 134px; min-height: 50px; display: flex; align-items: center; text-align: left; max-width: none; }
+  .pl .pl-bar p:empty { display: block; visibility: hidden; }
+  .pl .tags { display: none; }
+  .pl .pl-tag { font-size: 11px; }
+  .pl .shout { top: 42%; }
+}
+@media (min-width: 701px) and (max-height: 560px) { .pl .pl-teams { top: 62px; } .pl .pl-bar { bottom: 6px; gap: 4px; } .pl .pl-pull { height: 38px; } }
+body:has(.pl) #toasts { top: 150px; }
+@media (max-width: 700px) { body:has(.pl) #chat { right: 8px; bottom: 8px; } body:has(.pl) .chatbtn .lbl { display: none; } body:has(.pl) #toasts { top: 190px; } }
+
+/* night: bright stickers keep dark text */
+body.night .pl .pl-tag.turn, body.night .pl .score li.won, body.night .pl .banner.hot { color: var(--ink); }

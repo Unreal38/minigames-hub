@@ -68,6 +68,29 @@ export function pokerArt() {
   ${stack(54, 118, 4, '#ff8fab', '#fff4e2')}${stack(86, 128, 2, '#7ed3b2', '#fff4e2')}${stack(262, 120, 5, '#3b2219', '#ffb547')}${stack(234, 132, 2, '#9b6fd6', '#fff4e2')}</svg>`;
 }
 
+// Blackjack card: an ace and a jack (21) on blue felt, a gold "21" badge and the bet in front.
+export function bjArt() {
+  const suit = {
+    h: ['#d8402a', 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z'],
+    s: ['#3b2219', 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z'],
+  };
+  const card = (x, y, rot, r, s, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
+    <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
+    <text x="${x + 8}" y="${y + 24}" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="22" fill="${suit[s][0]}">${r}</text>
+    <path d="${suit[s][1]}" fill="${suit[s][0]}" transform="translate(${x + 22} ${y + 36}) scale(1.45)"/></g></g>`;
+  const chip = (x, y, c, e) => `<ellipse cx="${x}" cy="${y + 5}" rx="17" ry="7" fill="#00000044"/><ellipse cx="${x}" cy="${y}" rx="17" ry="7" fill="${c}" stroke="${ink}" stroke-width="2.5"/><ellipse cx="${x}" cy="${y}" rx="8" ry="3.2" fill="none" stroke="${e}" stroke-width="2" stroke-dasharray="3 2"/>`;
+  const stack = (x, y, n, c, e) => Array.from({ length: n }, (_, i) => chip(x, y - i * 6, c, e)).join('');
+  const burst = Array.from({ length: 20 }, (_, i) => { const a = i / 20 * Math.PI * 2, r = i % 2 ? 23 : 30; return `${(222 + Math.cos(a) * r).toFixed(1)},${(52 + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An ace and a jack making 21 on a blue table, with a gold 21 badge and stacks of chips">
+  <rect width="320" height="150" fill="#2a5f93"/>
+  <ellipse cx="160" cy="164" rx="214" ry="100" fill="#3f86b8"/>
+  <ellipse cx="160" cy="164" rx="180" ry="78" fill="none" stroke="#fff4e255" stroke-width="3" stroke-dasharray="10 8"/>
+  ${card(98, 30, -9, 'A', 's', 0)}${card(140, 30, 9, 'J', 'h', .25)}
+  <polygon points="${burst}" fill="#ffb547" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>
+  <text x="222" y="61" text-anchor="middle" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="25" fill="${ink}">21</text>
+  ${stack(62, 122, 4, '#7ed3b2', '#fff4e2')}${stack(94, 132, 2, '#ff8fab', '#fff4e2')}${stack(252, 126, 3, '#3b2219', '#ffb547')}</svg>`;
+}
+
 // Ludo card: the cross-shaped board from above with a few chunky pawns and a die.
 export function ludoArt() {
   const cols = ['#ff6b6b', '#4db5ff', '#ffc93c', '#5fd08a'], u = 9, o = `stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"`;
@@ -361,6 +384,25 @@ export function panArt() {
   </svg>`;
 }
 
+// Dominoes card: a short line of chunky tiles on a teal table, a double lying crosswise, and one more tile on its way down.
+export function dominoArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const PIP = ['', '#e5543b', '#3f8fe0', '#3fae5d', '#e08a00', '#9a5fd0', '#16999b'];
+  const SP = [[], [[1, 1]], [[0, 0], [2, 2]], [[0, 0], [1, 1], [2, 2]], [[0, 0], [2, 0], [0, 2], [2, 2]], [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]];
+  const half = (v, x, y, s) => SP[v].map(([c, r]) => `<rect x="${(x + s * (.2 + c * .3) - s * .1).toFixed(1)}" y="${(y + s * (.2 + r * .3) - s * .1).toFixed(1)}" width="${(s * .2).toFixed(1)}" height="${(s * .2).toFixed(1)}" rx="1.6" fill="${PIP[v]}"/>`).join('');
+  // a tile s wide and 2s long; up = standing upright, otherwise lying along x
+  const tile = (x, y, s, a, b, up) => `<rect x="${x}" y="${y + 5}" width="${up ? s : 2 * s}" height="${up ? 2 * s : s}" rx="7" fill="#d9c3a4" ${o}/><rect x="${x}" y="${y}" width="${up ? s : 2 * s}" height="${up ? 2 * s : s}" rx="7" fill="#fff8ec" ${o}/>
+    <path d="${up ? `M${x + 7} ${y + s}h${s - 14}` : `M${x + s} ${y + 7}v${s - 14}`}" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>${half(a, x, y, s)}${up ? half(b, x, y + s, s) : half(b, x + s, y, s)}`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A line of dominoes on a teal table with one more tile about to be added">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="40" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="34" fill="#2f8f86" ${o}/>
+    ${tile(52, 92, 30, 3, 5)}${tile(114, 77, 30, 5, 5, true)}${tile(146, 92, 30, 5, 2)}
+    <g class="dbob"><g transform="rotate(12 244 62)">${tile(214, 46, 30, 2, 6)}</g></g>
+    <path class="arttick" d="M212 96l-4 8M224 100l-2 9M278 88l8-6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Piotruś card: a fan of pet cards on a green table, with the night-sky Piotruś card peeking out of the middle.
 export function piotrArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
@@ -433,6 +475,50 @@ export function tttArt() {
   </svg>`;
 }
 
+// Cove Clash card: a square bay with two toy boats, a splash and a red cross, and a coconut dropping in.
+export function coveArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const at = (q, r) => [92 + q * 34, 34 + r * 26];
+  let tiles = '';
+  for (let r = 0; r < 4; r++) for (let q = 0; q < 5; q++) { const [x, y] = at(q, r); tiles += `<rect x="${x - 16}" y="${y - 12}" width="32" height="24" rx="4" fill="${(q + r) % 2 ? '#6acff2' : '#8fe0f8'}"/>`; }
+  const boat = (x, y, w, c) => `<path d="M${x - w / 2} ${y - 7}h${w - 12}l12 9-12 9h${-(w - 12)}z" fill="${c}" ${o}/><rect x="${x - w / 2 + 6}" y="${y - 3}" width="13" height="10" rx="2" fill="#fff4e2" stroke="#3b2219" stroke-width="2.5"/>`;
+  const X = (x, y) => `<path d="M${x - 8} ${y - 7}l16 14M${x + 8} ${y - 7}l-16 14" stroke="#3b2219" stroke-width="10" stroke-linecap="round"/><path d="M${x - 8} ${y - 7}l16 14M${x + 8} ${y - 7}l-16 14" stroke="#ff5a3c" stroke-width="5" stroke-linecap="round"/>`;
+  const [bx, by] = at(1, 1), [cx, cy] = at(3, 3), [hx, hy] = at(2, 1), [mx, my] = at(0, 3), [nx, ny] = at(3, 0);
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A square bay with toy boats, a splash, a red cross on a hit boat and a coconut dropping in">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="46" cy="14" r="1.6"/><circle cx="270" cy="12" r="1.3"/><circle cx="296" cy="60" r="1.5"/><circle cx="20" cy="70" r="1.2"/></g>
+    <path d="M24 34l14-8 16 4 8 10-10 8H32z" class="artcloud" fill="#fff"/><path d="M264 40l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <rect class="artsea" y="118" width="320" height="32" fill="#3fa9e0"/>
+    <rect x="66" y="12" width="188" height="124" rx="10" fill="#d9ab74" ${o}/><rect x="74" y="20" width="172" height="108" rx="5" fill="#2f8fc9" stroke="#3b2219" stroke-width="2.5"/>${tiles}
+    ${boat(bx + 17, by, 62, '#ff8fab')}${boat(cx - 17, cy, 62, '#ffc94d')}
+    ${X(hx, hy)}
+    <circle cx="${mx}" cy="${my}" r="8" fill="#fff" stroke="#3b2219" stroke-width="2.5"/><path d="M${mx - 13} ${my - 12}l3 5M${mx} ${my - 16}v6M${mx + 13} ${my - 12}l-3 5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <g class="cnut"><circle cx="${nx}" cy="${ny - 4}" r="11" fill="#8a5a3c" ${o}/><circle cx="${nx - 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx + 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx}" cy="${ny - 2}" r="1.6" fill="#3b2219"/></g>
+    <path d="M${nx - 14} ${ny - 20}l-7-9M${nx} ${ny - 24}v-10M${nx + 14} ${ny - 20}l7-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+  </svg>`;
+}
+
+export function poolArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const ball = (x, y, c, stripe = false) => (stripe
+    ? `<circle cx="${x}" cy="${y}" r="7" fill="#fff8ec" ${o}/><path d="M${x - 6.4} ${y - 2.6}h12.8v5.2h-12.8z" fill="${c}"/><circle cx="${x}" cy="${y}" r="7" fill="none" ${o}/>`
+    : `<circle cx="${x}" cy="${y}" r="7" fill="${c}" ${o}/>`);
+  const hole = (x, y) => `<circle cx="${x}" cy="${y}" r="7.5" fill="#2a1422" stroke="#3b2219" stroke-width="2.5"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A pool table on a floating island with a rack of plain and striped balls and a cue lined up on the white ball">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="44" cy="14" r="1.6"/><circle cx="278" cy="18" r="1.3"/><circle cx="300" cy="70" r="1.5"/><circle cx="20" cy="74" r="1.2"/><circle cx="160" cy="8" r="1.1"/></g>
+    <path d="M18 30l14-8 16 4 8 10-10 8H26z" class="artcloud" fill="#fff"/><path d="M262 40l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M30 126c44-12 216-12 260 0l-16 10c-44 8-184 8-228 0z" fill="#8bca60" ${o}/><path d="M46 136c44 8 184 8 228 0l-38 13h-152z" fill="#c98a5a" ${o}/>
+    <path d="M78 112v18h12v-18zM230 112v18h12v-18z" fill="#a8683c" ${o}/>
+    <rect x="58" y="22" width="204" height="98" rx="14" fill="#d9955b" ${o}/>
+    <rect x="72" y="35" width="176" height="72" rx="4" fill="#3fae7c" ${o}/>
+    <path d="M116 37v68" stroke="#49b987" stroke-width="2"/>
+    ${hole(72, 35)}${hole(160, 32)}${hole(248, 35)}${hole(72, 107)}${hole(160, 110)}${hole(248, 107)}
+    ${ball(190, 71, '#ffc93c')}${ball(203, 63.5, '#e5543b', true)}${ball(203, 78.5, '#4a7dff')}${ball(216, 56, '#9a6bd6')}${ball(216, 71, '#2a1422')}${ball(216, 86, '#ff8a3c', true)}
+    <g class="pcue"><path d="M52 96l56-20" stroke="#3b2219" stroke-width="9" stroke-linecap="round"/><path d="M52 96l56-20" stroke="#efc88f" stroke-width="4" stroke-linecap="round"/><path d="M52 96l14-5" stroke="#e5543b" stroke-width="4" stroke-linecap="round"/></g>
+    ${ball(122, 71, '#fff8ec')}
+    <path class="arttick" d="M270 62l12-5M272 78h14M270 94l12 5" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Small square icons for the Today tiles.
 export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <path d="M79 22 84 4l7 9 10-7-7 18z" fill="#6fc266"/><path d="M68 20h36l-10 34H78z" fill="#ff9a3d"/>
@@ -453,3 +539,23 @@ export const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-
   <path d="M46 72l28 32M74 72 46 104" stroke="#3b2219" stroke-width="4"/>
   <g fill="#fff4e2" stroke="#3b2219" stroke-width="3"><ellipse cx="60" cy="50" rx="6.5" ry="5.5"/><circle cx="50" cy="42" r="3.4"/><circle cx="60" cy="38" r="3.4"/><circle cx="70" cy="42" r="3.4"/></g></svg>`;
 export const MYSTERY_ICON = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#6a5aa8" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/><text x="60" y="84" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
+
+// Pet Parade card: a fan of four element-colour cards with big numbers and little pets, a grey wild card with the
+// colour wheel hopping in the middle, and the direction arrows round them.
+export function paradeArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pet = (x, y, c, ears) => `<g transform="translate(${x} ${y})">${ears === 'bun' ? `<ellipse cx="-5" cy="-10" rx="3.2" ry="6.5" fill="${c}" ${o}/><ellipse cx="5" cy="-10" rx="3.2" ry="6.5" fill="${c}" ${o}/>` : `<path d="M-9 -4l1-9 6 4.5zM9 -4l-1-9-6 4.5z" fill="${c}" ${o}/>`}<rect x="-10" y="-7" width="20" height="17" rx="6" fill="${c}" ${o}/><circle cx="-3.6" cy="1" r="1.7" fill="#3b2219"/><circle cx="3.6" cy="1" r="1.7" fill="#3b2219"/></g>`;
+  const num = (x, y, t, s = 15) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="${s}" fill="#fff" stroke="#3b2219" stroke-width="4" paint-order="stroke">${t}</text>`;
+  const card = (x, y, rot, col, petCol, ears, t) => `<g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="${col}" ${o}/><rect x="${x + 9}" y="${y + 10}" width="30" height="42" rx="13" fill="#fff8ec" ${o}/>${pet(x + 24, y + 30, petCol, ears)}${num(x + 9, y + 16, t)}<circle cx="${x + 24}" cy="${y + 56}" r="8" fill="${col}" ${o}/>${num(x + 24, y + 61, t, 12)}</g>`;
+  const wheel = (x, y, r) => ['#3f9a52', '#e0592f', '#2f86cc', '#d9a400'].map((c, i) => { const a0 = -Math.PI / 2 + i * Math.PI / 2, a1 = a0 + Math.PI / 2; return `<path d="M${x} ${y}L${(x + Math.cos(a0) * r).toFixed(1)} ${(y + Math.sin(a0) * r).toFixed(1)}A${r} ${r} 0 0 1 ${(x + Math.cos(a1) * r).toFixed(1)} ${(y + Math.sin(a1) * r).toFixed(1)}z" fill="${c}"/>`; }).join('') + `<circle cx="${x}" cy="${y}" r="${r}" fill="none" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A fan of green, orange, blue and yellow pet cards with numbers, and a grey wild card with a four-colour wheel in the middle">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#fff1d6" ${o}/>
+    <path d="M40 124a120 22 0 0 0 240 0" fill="none" stroke="#3f9a52" stroke-width="5" stroke-dasharray="2 14" stroke-linecap="round"/>
+    ${card(60, 54, -20, '#3f9a52', '#8fd18a', 'bun', 7)}${card(98, 44, -9, '#e0592f', '#ffab6b', '', 3)}
+    ${card(174, 44, 9, '#2f86cc', '#8cc6f0', 'bun', 7)}${card(212, 54, 20, '#d9a400', '#ffd96b', '', 5)}
+    <g class="ppup"><rect x="136" y="26" width="48" height="68" rx="8" fill="#8a7f76" ${o}/>${wheel(160, 54, 16)}${num(160, 88, '+4', 14)}</g>
+    <path class="arttick" d="M264 62l10-8M270 80h13M54 62l-10-8M48 80H35" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
