@@ -517,3 +517,23 @@ export const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-
   <path d="M46 72l28 32M74 72 46 104" stroke="#3b2219" stroke-width="4"/>
   <g fill="#fff4e2" stroke="#3b2219" stroke-width="3"><ellipse cx="60" cy="50" rx="6.5" ry="5.5"/><circle cx="50" cy="42" r="3.4"/><circle cx="60" cy="38" r="3.4"/><circle cx="70" cy="42" r="3.4"/></g></svg>`;
 export const MYSTERY_ICON = '<svg viewBox="0 0 120 120"><path d="M34 34 26 8l22 14a36 36 0 0 1 24 0L94 8l-8 26a40 38 0 1 1-52 0z" fill="#6a5aa8" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/><text x="60" y="84" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="52" fill="#ffd95a">?</text></svg>';
+
+// Pet Parade card: a fan of four element-colour cards with big numbers and little pets, a grey wild card with the
+// colour wheel hopping in the middle, and the direction arrows round them.
+export function paradeArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pet = (x, y, c, ears) => `<g transform="translate(${x} ${y})">${ears === 'bun' ? `<ellipse cx="-5" cy="-10" rx="3.2" ry="6.5" fill="${c}" ${o}/><ellipse cx="5" cy="-10" rx="3.2" ry="6.5" fill="${c}" ${o}/>` : `<path d="M-9 -4l1-9 6 4.5zM9 -4l-1-9-6 4.5z" fill="${c}" ${o}/>`}<rect x="-10" y="-7" width="20" height="17" rx="6" fill="${c}" ${o}/><circle cx="-3.6" cy="1" r="1.7" fill="#3b2219"/><circle cx="3.6" cy="1" r="1.7" fill="#3b2219"/></g>`;
+  const num = (x, y, t, s = 15) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="${s}" fill="#fff" stroke="#3b2219" stroke-width="4" paint-order="stroke">${t}</text>`;
+  const card = (x, y, rot, col, petCol, ears, t) => `<g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="${col}" ${o}/><rect x="${x + 9}" y="${y + 10}" width="30" height="42" rx="13" fill="#fff8ec" ${o}/>${pet(x + 24, y + 30, petCol, ears)}${num(x + 9, y + 16, t)}<circle cx="${x + 24}" cy="${y + 56}" r="8" fill="${col}" ${o}/>${num(x + 24, y + 61, t, 12)}</g>`;
+  const wheel = (x, y, r) => ['#3f9a52', '#e0592f', '#2f86cc', '#d9a400'].map((c, i) => { const a0 = -Math.PI / 2 + i * Math.PI / 2, a1 = a0 + Math.PI / 2; return `<path d="M${x} ${y}L${(x + Math.cos(a0) * r).toFixed(1)} ${(y + Math.sin(a0) * r).toFixed(1)}A${r} ${r} 0 0 1 ${(x + Math.cos(a1) * r).toFixed(1)} ${(y + Math.sin(a1) * r).toFixed(1)}z" fill="${c}"/>`; }).join('') + `<circle cx="${x}" cy="${y}" r="${r}" fill="none" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A fan of green, orange, blue and yellow pet cards with numbers, and a grey wild card with a four-colour wheel in the middle">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#fff1d6" ${o}/>
+    <path d="M40 124a120 22 0 0 0 240 0" fill="none" stroke="#3f9a52" stroke-width="5" stroke-dasharray="2 14" stroke-linecap="round"/>
+    ${card(60, 54, -20, '#3f9a52', '#8fd18a', 'bun', 7)}${card(98, 44, -9, '#e0592f', '#ffab6b', '', 3)}
+    ${card(174, 44, 9, '#2f86cc', '#8cc6f0', 'bun', 7)}${card(212, 54, 20, '#d9a400', '#ffd96b', '', 5)}
+    <g class="ppup"><rect x="136" y="26" width="48" height="68" rx="8" fill="#8a7f76" ${o}/>${wheel(160, 54, 16)}${num(160, 88, '+4', 14)}</g>
+    <path class="arttick" d="M264 62l10-8M270 80h13M54 62l-10-8M48 80H35" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
