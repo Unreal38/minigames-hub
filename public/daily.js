@@ -84,16 +84,16 @@ export function mount(host, api) {
     return `<section class="mpboard"><h3>${L(`Solved today <small>${B.total} ${B.total === 1 ? 'player' : 'players'}</small>`, `Rozwiązane dziś <small>${cnt(B.total, 'player', 'players', 'gracz', 'graczy', 'graczy')}</small>`)}</h3>
       ${B.rows.length ? `<ol>${B.rows.map(row).join('')}${B.mine ? row(B.mine) : ''}</ol>` : '<p class="mpnone">' + L('Nobody yet. Be the first!', 'Jeszcze nikt. Pierwsze miejsce czeka!') + '</p>'}</section>`;
   }
-  const shareText = () => L(`Mystery Pet #${V.no}: solved in ${V.guesses.length} ${V.guesses.length === 1 ? 'guess' : 'guesses'}${V.streak > 1 ? ` · ${V.streak} days in a row` : ''}`, `Mystery Pet #${V.no}: ${cnt(V.guesses.length, 'guess', 'guesses', 'próba', 'próby', 'prób')}${V.streak > 1 ? ` · ${V.streak} dni z rzędu` : ''}`) + `\n${V.grid.map(r => [...r].map(c => SQ[c]).join('')).join('\n')}`;
+  const shareText = () => L(`Mystery Pet #${V.no}: solved in ${V.guesses.length} ${V.guesses.length === 1 ? 'guess' : 'guesses'}${V.streak > 1 ? ` · ${V.streak} days in a row` : ''}`, `Zagadkowy zwierzak #${V.no}: ${cnt(V.guesses.length, 'guess', 'guesses', 'próba', 'próby', 'prób')}${V.streak > 1 ? ` · ${V.streak} dni z rzędu` : ''}`) + `\n${V.grid.map(r => [...r].map(c => SQ[c]).join('')).join('\n')}`;
 
   function paint() {
     if (!V) return;
-    const head = `<header class="mphead"><div><h2>Mystery Pet <small>#${V.no}</small></h2>
+    const head = `<header class="mphead"><div><h2>${L('Mystery Pet', 'Zagadkowy zwierzak')} <small>#${V.no}</small></h2>
       <p>${L(`One Pet Farm pet is hiding today, the same one for everybody. Guess any pet and the clues show how close you are.`, `Dziś ukrywa się jeden zwierzak z Farmy zwierzaków, ten sam dla wszystkich. Wskaż dowolnego zwierzaka, a wskazówki pokażą, jak blisko jesteś.`)}</p></div>
       <div class="mpstats">${V.guest ? '' : `<span class="mpstat"><b>🔥 ${V.streak}</b>${L(`<small>${V.streak === 1 ? 'day' : 'days'} in a row</small>`, `<small>${word(V.streak, 'day', 'days', 'dzień', 'dni', 'dni')} z rzędu</small>`)}</span><span class="mpstat"><b>${V.total}</b><small>${L(`solved so far`, `rozwiązanych do tej pory`)}</small></span>`}
         <span class="mpstat"><b id="mp-next">${clock(V.next - (Date.now() - got))}</b><small>${L(`until the next pet`, `do następnego zwierzaka`)}</small></span></div></header>`;
     if (V.guest) {
-      host.innerHTML = `${head}<div class="mpguest"><p>${L(`<b>Mystery Pet needs an account</b>, so your streak and coins have somewhere to live. It is free and takes a username and a password.`, `<b>Mystery Pet wymaga konta</b>, żeby twoja seria i monety miały gdzie mieszkać. Konto jest darmowe: wystarczy nazwa użytkownika i hasło.`)}</p>
+      host.innerHTML = `${head}<div class="mpguest"><p>${L(`<b>Mystery Pet needs an account</b>, so your streak and coins have somewhere to live. It is free and takes a username and a password.`, `<b>Zagadkowy zwierzak wymaga konta</b>, żeby twoja seria i monety miały gdzie mieszkać. Konto jest darmowe: wystarczy nazwa użytkownika i hasło.`)}</p>
         <div class="row"><button type="button" class="btn m" data-acct="register">${L(`Create account`, `Załóż konto`)}</button><button type="button" class="btn w" data-acct="login">${L(`Log in`, `Zaloguj się`)}</button></div></div>${boardHtml()}`;
       return develop();
     }
@@ -145,7 +145,7 @@ export function mount(host, api) {
       if (m.err) api.toast(esc(srvText(m.err)), true);
       if (m.solved) api.toast(L(`🎉 Solved! +${m.solved.coins} coins${m.solved.newTitle ? ' · new title unlocked: Pet Detective' : ''}`, `🎉 Rozwiązane! +${cnt(m.solved.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}${m.solved.newTitle ? ' · nowy tytuł: Detektyw od zwierzaków' : ''}`));
       if (m.sharedNow) api.toast(L('Posted in the hub chat.', 'Wysłane na czat Zatoki.'));
-      if (newDay) { filter = ''; api.toast(L('A new Mystery Pet is here!', 'Jest nowy Mystery Pet!')); }
+      if (newDay) { filter = ''; api.toast(L('A new Mystery Pet is here!', 'Jest nowy Zagadkowy zwierzak!')); }
       paint(); fresh = '';
       if (m.solved) host.closest('.sheet')?.scrollTo({ top: 0, behavior: 'smooth' });
     },

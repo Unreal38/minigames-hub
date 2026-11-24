@@ -60,7 +60,7 @@ body.in-game { overflow: hidden; }
 .pp .gate { background: #bfe8ffcc; }
 .pp .results[hidden], .pp .gate[hidden] { display: none; }
 .pp .sheet .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.pp .sheet .row .btn { flex: 1 1 150px; justify-content: center; text-align: center; }
+.pp .sheet .row .btn { flex: 1 1 auto; min-width: min(150px, 100%); justify-content: center; text-align: center; }
 .pp-sheet h2 { text-align: center; }
 .pp .sheet .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
 .pp-sheet.win h2 { color: #b56a00; } .pp-sheet.lose h2 { color: #7a4fc9; }

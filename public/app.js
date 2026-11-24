@@ -255,7 +255,7 @@ const GAMES = {
     name: 'Kart Island Race', load: () => import('./games/kart/client.js'), start: 'Start your engines',
     host: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' }, solo: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' },
     openSeat: 'A bot drives here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 6, r.players.length)),
-    settings: pill => `<div class="opt"><b>Track</b><div class="pills">${pill('track', 'random', 'Random')}${pill('track', 'meadow', 'Meadow Loop')}${pill('track', 'bakery', 'Sugar Bridges')}${pill('track', 'peaks', 'Twisty Peaks')}${pill('track', 'cliff', 'Cliffside Hairpins')}</div></div>
+    settings: pill => `<div class="opt"><b>Track</b><div class="pills">${pill('track', 'random', 'Random')}${pill('track', 'meadow', 'Meadow Loop')}${pill('track', 'bakery', 'Sugar Bridges')}${pill('track', 'peaks', 'Twisty Peaks')}${pill('track', 'cliff', 'Cliffside Hairpins')}${pill('track', 'cove', 'Pirate Cove')}${pill('track', 'frost', 'Frost Fjord')}</div></div>
       <div class="opt"><b>Laps</b><div class="pills">${pill('laps', 2, 'Quick 2')}${pill('laps', 3, '3')}${pill('laps', 5, '5')}</div></div>
       <div class="opt"><b>Karts on the grid</b><div class="pills">${pill('seats', 4, '4')}${pill('seats', 6, '6')}${pill('seats', 8, '8')}</div></div>
       <div class="opt"><b>Power-ups</b><div class="pills">${pill('items', 'on', 'On')}${pill('items', 'chaos', 'Chaos')}${pill('items', 'off', 'Off')}</div></div>
@@ -265,6 +265,7 @@ const GAMES = {
       <li>Everyone drives their own kart with their avatar at the wheel. Empty spots on the grid are bots.</li>
       <li>Your kart <b>speeds up by itself</b>. Steer with <b>← →</b> or <b>A D</b>, brake or reverse with <b>↓</b>. On a phone, use the arrow pads in the bottom corners.</li>
       <li><b>Drift</b>: hold <b>Space</b> (or the Drift pad) while turning at speed. Keep it up until the sparks glow, then let go for a speed boost. Blue sparks give a short one, orange a longer one and pink the longest. Driving on the grass slows you right down.</li>
+      <li><b>Watch the road</b>: plank walks have no rails, ramps need speed to clear the gap, ice makes you slide and Pet Farm pets wander across the road. Bump into a pet, a geyser or the hammer and you spin.</li>
       <li>Orange <b>boost pads</b> on the road shoot you forward. The grass at the side slows you down, and past the grass is the <b>edge of the island</b>: drive off and a cloud carries you back, a few seconds later. Bridges have rails.</li>
       <li>Drive through a <b>gift box</b> to get a power-up, then press <b>E</b> (or tap it) to use it:
         <b>Banana peel</b> drops behind you, <b>Wobbly jelly</b> bounces after the kart just ahead, <b>Chili boost</b> is a burst of speed, <b>Bubble shield</b> blocks the next hit, and the <b>Sleepy cloud</b> slows everyone ahead of you. The further back you are, the better the power-ups.</li>
@@ -465,7 +466,7 @@ const GAMES = {
 const PLX = PL ? await import('./lang/hub-pl.js').catch(e => { console.error(e); return null; }) : null;
 if (PLX) for (const [id, x] of Object.entries(PLX.GAMES_PL)) if (GAMES[id]) Object.assign(GAMES[id], x);
 const optText = (s, game) => PLX?.OPT_PL[`${game}:${s}`] ?? PLX?.OPT_PL[s] ?? s; // a table setting's heading or pill label (a game's own form first)
-const FARM_NAME = L('Pet Farm', 'Farma zwierzaków');
+const FARM_NAME = L('Pet Farm', 'Farma zwierzaków'), MP_NAME = L('Mystery Pet', 'Zagadkowy zwierzak');
 
 const $app = document.getElementById('app');
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -778,14 +779,14 @@ let hayLoading = null;
 function openHay() {
   if (st.hay || hayLoading) return;
   if (st.room) return toast(L('Leave this table first.', 'Najpierw wyjdź od tego stołu.'), true);
-  st.view = 'hay'; document.title = `Hay Hunch · ${SITE}`; tellWhere();
+  st.view = 'hay'; document.title = `${SOLO.hay.name} · ${SITE}`; tellWhere();
   $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking out to the hay field…', 'Idziemy na pole z sianem…') + '</p></main>';
   hayLoading = import('./games/hay/client.js').then(mod => {
     hayLoading = null;
     if (st.view !== 'hay') return;
     st.hay = mountWithCss('hay', () => mod.mount($app, { send: a => send({ t: 'hay', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closeHay(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('hay') }));
     st.hay.reopen(); placeGameSwitch();
-  }).catch(err => { console.error(err); hayLoading = null; toast(L('Could not load Hay Hunch. Refresh?', 'Nie udało się wczytać Hay Hunch. Odświeżyć stronę?'), true); go('hub'); });
+  }).catch(err => { console.error(err); hayLoading = null; toast(L('Could not load Hay Hunch. Refresh?', 'Nie udało się wczytać gry Szukanie w sianie. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closeHay() { if (!st.hay) return; st.hay.destroy(); st.hay = null; gameCss(null); }
 // Pet Pop: the solo swap-and-match puzzle, opened the same way.
@@ -793,14 +794,14 @@ let popLoading = null;
 function openPop() {
   if (st.pop || popLoading) return;
   if (st.room) return toast(L('Leave this table first.', 'Najpierw wyjdź od tego stołu.'), true);
-  st.view = 'pop'; document.title = `Pet Pop · ${SITE}`; tellWhere();
+  st.view = 'pop'; document.title = `${SOLO.pop.name} · ${SITE}`; tellWhere();
   $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Filling the pet shelf…', 'Układamy zwierzaki na półce…') + '</p></main>';
   popLoading = import('./games/pop/client.js').then(mod => {
     popLoading = null;
     if (st.view !== 'pop') return;
     st.pop = mountWithCss('pop', () => mod.mount($app, { send: a => send({ t: 'pop', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closePop(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('pop') }));
     st.pop.reopen(); placeGameSwitch();
-  }).catch(err => { console.error(err); popLoading = null; toast(L('Could not load Pet Pop. Refresh?', 'Nie udało się wczytać Pet Pop. Odświeżyć stronę?'), true); go('hub'); });
+  }).catch(err => { console.error(err); popLoading = null; toast(L('Could not load Pet Pop. Refresh?', 'Nie udało się wczytać gry Zwierzakowe trójki. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closePop() { if (!st.pop) return; st.pop.destroy(); st.pop = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
@@ -831,10 +832,10 @@ function todayHtml() {
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
   const w = st.wheelInfo, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
   const mpPic = MYSTERY_ICON;
-  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `Mystery Pet${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
+  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
     + todayTile('t-wheel' + (w && !w.guest && !w.spun ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun)
-    + todayTile('t-hay', HAY_ICON, 'Hay Hunch', hay, 'hay', L('Play', 'Graj'))
-    + todayTile('t-pop', POP_ICON, 'Pet Pop', popText, 'pop', L('Play', 'Graj'))
+    + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'))
+    + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'))
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
@@ -851,7 +852,7 @@ function openDaily() {
   import('./daily.js').then(mod => {
     if (!open) return;
     st.daily = mod.mount(sheet.el.querySelector('.mpbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close() });
-  }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load Mystery Pet. Refresh?', 'Nie udało się wczytać Mystery Pet. Odświeżyć stronę?'), true); });
+  }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load Mystery Pet. Refresh?', 'Nie udało się wczytać Zagadkowego zwierzaka. Odświeżyć stronę?'), true); });
 }
 
 // The Lucky Wheel, one free spin a day, opens in a pop-up over the hub like Mystery Pet.
@@ -894,7 +895,7 @@ function meCard() {
   const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).sort((a, b) => (b[1].games || 0) - (a[1].games || 0)).map(([id, g]) => {
     const solo = id === 'pop' ? L(`highest level cleared ${g.top || 0} · best ${num(g.best)} pts`, `najwyższy ukończony poziom: ${g.top || 0} · rekord ${num(g.best)} pkt`)
       : SOLO[id] ? L(`${cnt(g.wins, 'field')} cleared · best ×${num(g.best)}`, `${cnt(g.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · rekord ×${num(g.best)}`) : '';
-    if (solo) return `<li class="solo"><b>${esc(id === 'pop' ? 'Pet Pop' : SOLO[id].name)}</b><span>${solo}</span></li>`;
+    if (solo) return `<li class="solo"><b>${esc(SOLO[id].name)}</b><span>${solo}</span></li>`;
     const r = g.games ? Math.round(100 * (g.wins || 0) / g.games) : 0;
     return `<li><b>${esc(GAMES[id].name)}</b><span class="pgbar" role="img" aria-label="${L(`win rate ${r}%`, `skuteczność ${r}%`)}"><i style="width:${r}%"></i></span><em>${r}%</em>
       <span>${L(`${cnt(g.wins || 0, 'win')} in ${num(g.games)} · best ${num(g.best)} pts`, `${cnt(g.wins || 0, '', '', 'wygrana', 'wygrane', 'wygranych')} na ${num(g.games)} · rekord ${num(g.best)} pkt`)}</span></li>`; }).join('');
@@ -988,8 +989,8 @@ let whoSheet = null, whoTimer = null;
 const agoText = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return m < 1 ? L('just arrived', 'przed chwilą') : `${L('here for', 'na stronie od')} ${h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`}`; };
 function whereText(a) {
   if (a.k === 'farm') return FARM_NAME;
-  if (a.k === 'hay') return 'Hay Hunch';
-  if (a.k === 'pop') return 'Pet Pop';
+  if (a.k === 'hay') return SOLO.hay.name;
+  if (a.k === 'pop') return SOLO.pop.name;
   if (a.k !== 'table') return L('Hub', 'Strona główna');
   const g = GAMES[a.game]?.name || a.game;
   return `${esc(g)} <small>${a.watch ? L('watching', 'ogląda') : a.play ? L('playing', 'gra') : L('waiting room', 'poczekalnia')}${a.code ? ` · ${esc(a.code)}` : ` · ${L('private', 'prywatny')}`}</small>`;
@@ -1313,7 +1314,7 @@ function renderHub() {
       </section>
     </aside>
   </main>
-  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Hot Pot to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
+  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
   renderTables(); filterGames();
   document.body.classList.add('sky');
@@ -1331,7 +1332,7 @@ $app.addEventListener('change', e => {
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
-const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', 'Hay Hunch'], ['pop', 'Pet Pop'], ['farm', FARM_NAME]];
+const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', SOLO.hay.name], ['pop', SOLO.pop.name], ['farm', FARM_NAME]];
 const RK_NOTE = {
   overall: L('Ranked by XP from every game. Wins earn the most.', 'Ranking według XP ze wszystkich gier. Najwięcej dają wygrane.'),
   marbles: L('Ranked by bets won, then by coins won overall.', 'Ranking według wygranych zakładów, potem według łącznie wygranych monet.'),

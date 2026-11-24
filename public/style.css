@@ -70,7 +70,7 @@ button, .btn, h4, th, legend { text-wrap: balance; }
   font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--ink); background: var(--lantern);
   border: 3px solid var(--ink); border-radius: 16px; padding: 10px 20px; min-height: 48px; cursor: pointer;
   box-shadow: 0 5px 0 var(--ink); transition: transform .12s cubic-bezier(.3, 1.6, .5, 1), box-shadow .12s, filter .12s;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; user-select: none; }
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; user-select: none; text-align: center; } /* a squeezed button wraps its words, never spills past its edges */
 .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink); filter: brightness(1.05); }
 .btn:active:not(:disabled) { transform: translateY(4px) scale(.98); box-shadow: 0 1px 0 var(--ink); }
 .btn:disabled { opacity: .45; cursor: default; }
