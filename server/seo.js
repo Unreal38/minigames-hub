@@ -1,6 +1,8 @@
 // What search engines and link previews read. public/index.html is written in Polish (the site's main language).
 // Search and preview bots always get that Polish page, so Google indexes one steady version of the one address.
 // People whose language guess is English get the same page with these English texts swapped in.
+import { gamesHtml, gamesLd } from './gamelist.js';
+
 const BOTS = /googlebot|google-inspectiontool|googleother|adsbot-google|mediapartners-google|bingbot|bingpreview|duckduckbot|yandex|baiduspider|applebot|slurp|facebookexternalhit|facebot|twitterbot|discordbot|slackbot|telegrambot|whatsapp|linkedinbot|skypeuripreview|redditbot|embedly|pinterest/i;
 export const isBot = ua => BOTS.test(String(ua || ''));
 
@@ -15,8 +17,7 @@ const EN = [
 <h1>Zatoka Gier</h1>
 <p>Free browser games to play with friends. Host a table, send your friends the code and play together. Nothing to install, no ads.</p>
 <p>Tables are public by default: the Open tables list on the home page shows live every game you can join or watch, no code needed. A code or invite link is only for private tables with friends. Bots take any empty seats, so you can play at any time, even alone. The site also has a shared chat and shows how many people are online right now.</p>
-<p>Zatoka has 20+ multiplayer games and 5 daily games, and the whole site works in Polish and English.</p>
-<p>Cards: Hot Pot, Texas Hold'em, Tysiąc, Pan, Piotruś, Pet Parade, Makao, Wojna. Dice and board games: Liar's Dice, Pip Party, Ludo, Snakes &amp; Ladders, Pawperty, Tic-Tac-Toe, Mahjong Race, Cove Clash. Action: Kart Island Race, Marble Rush, Mini Golf Party, Sky Darts, Tower Stack, Sky Bricks, Beanstalk Bounce, Cozy Kitchen Rush, Treasure Dig. Every day: Pet Farm, Pet Pop, Pet Mahjong, Hay Hunch and Mystery Pet.</p>
+<!--games--><!--/games-->
 <h2>Progress that stays</h2>
 <p>You can play straight away, without signing up. A free account (just a name and a password) keeps everything for good and works on any device, along with your friends list.</p>
 <ul>
@@ -33,5 +34,10 @@ const EN = [
 export function pageFor(html, lang) {
   let out = html.replace(/<html lang="[a-z]+"/, `<html lang="${lang}" data-geo="${lang}"`);
   if (lang === 'en') for (const [from, to] of EN) out = out.replace(from, to);
+  // Every game with its description, players and playtime, read from the hub's registry (server/gamelist.js).
+  if (out.includes('<!--games-->')) try {
+    out = out.replace(/<!--games-->[\s\S]*?<!--\/games-->/, () => `<!--games-->${gamesHtml(lang)}<!--/games-->`)
+      .replace('</head>', () => `<script type="application/ld+json">${gamesLd(lang)}</script>\n</head>`);
+  } catch (e) { console.error('seo game list', e); }
   return out;
 }

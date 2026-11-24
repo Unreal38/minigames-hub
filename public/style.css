@@ -1415,6 +1415,7 @@ footer .plink:hover { color: var(--tx, var(--ink)); }
 
 /* The plain text in index.html that search engines read before the app draws the hub over it. */
 .seo-intro { padding: 40px max(4vw, 16px); font-size: 17px; line-height: 1.5; }
+.seo-intro small { opacity: .75; }
 .seo-intro h1 { font-family: var(--fd); margin: 0 0 12px; }
 
 /* ---------- the hub hero as a sky banner: text on a soft panel on the left, your isle big on the right ---------- */
