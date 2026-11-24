@@ -8,6 +8,8 @@ import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { M, finish, toonMat } from '../farm/models.js';
 import { swingPos, height, MS } from './rules.js';
 import { nightScene } from '../../scenery3d.js';
+import { seasonLookNow, lookOf } from '../../season3d.js';
+const SEA = lookOf(seasonLookNow()), WINTER = !!SEA.icicles; // the island follows the season like every game island
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff', INK = '#5a3a2e';
 const GROUND = -.55, GAP = 2.3, GRAV = 21, AV = .8, SEAT = .3 + .76 + .17, ARC = 6.3, CAM_AZ = Math.PI / 4, CAM_EL = .5;
@@ -69,8 +71,8 @@ export function createScene(canvas, { onFrame, onCue }) {
   const put = (p, geo, c, x = 0, y = 0, z = 0, ry = 0) => { const o = new THREE.Mesh(geo, M(c)); o.position.set(x, y, z); o.rotation.y = ry; p.add(o); return o; };
   {
     const g = new THREE.Group();
-    put(g, new THREE.CylinderGeometry(7.6, 7.2, .7, 11), '#8fd16a', 0, GROUND - .35, 0);
-    put(g, new THREE.CylinderGeometry(6.2, 6.4, .06, 11), '#9bdb74', 0, GROUND + .02, 0, .3);
+    put(g, new THREE.CylinderGeometry(7.6, 7.2, .7, 11), SEA.grass, 0, GROUND - .35, 0);
+    put(g, new THREE.CylinderGeometry(6.2, 6.4, .06, 11), SEA.patch, 0, GROUND + .02, 0, .3);
     const dirt = new THREE.ConeGeometry(7.2, 7.5, 11, 3), dp = dirt.attributes.position; // the rock underneath, roughened
     for (let i = 0; i < dp.count; i++) { const k = Math.round(dp.getX(i) * 9) + Math.round(dp.getY(i) * 7) * 3 + Math.round(dp.getZ(i) * 5) * 7; if (dp.getY(i) < 3.6) dp.setXYZ(i, dp.getX(i) + (hash(k, 1) - .5) * .9, dp.getY(i) + (hash(k, 2) - .5) * .5, dp.getZ(i) + (hash(k, 3) - .5) * .9); }
     dirt.computeVertexNormals(); const d = put(g, dirt, '#b98a5e', 0, GROUND - .7 - 3.75, 0); d.rotation.x = Math.PI;
@@ -81,7 +83,7 @@ export function createScene(canvas, { onFrame, onCue }) {
     put(g, new THREE.BoxGeometry(3.4, .16, 3.4), '#c3c0ca', 0, -.08, 0);
     for (const [x, z] of [[-1.85, -1.85], [1.85, -1.85], [-1.85, 1.85], [1.85, 1.85]]) { put(g, new THREE.BoxGeometry(.5, .5, .5), '#8a8794', x, GROUND + .45, z); put(g, new THREE.BoxGeometry(.3, .14, .3), '#ffe27a', x, GROUND + .77, z); }
     // trees, bushes, rocks and flowers round the edge
-    const tree = (x, z, s) => { put(g, new THREE.BoxGeometry(.26 * s, .7 * s, .26 * s), '#8a5a3c', x, GROUND + .35 * s, z); for (let i = 0; i < 3; i++) put(g, new THREE.ConeGeometry((.85 - i * .2) * s, .9 * s, 6), i % 2 ? '#5fb04a' : '#4a9a45', x, GROUND + (.95 + i * .55) * s, z, i * .5); };
+    const tree = (x, z, s) => { put(g, new THREE.BoxGeometry(.26 * s, .7 * s, .26 * s), '#8a5a3c', x, GROUND + .35 * s, z); for (let i = 0; i < 3; i++) put(g, new THREE.ConeGeometry((.85 - i * .2) * s, .9 * s, 6), i % 2 ? '#5fb04a' : '#4a9a45', x, GROUND + (.95 + i * .55) * s, z, i * .5); if (WINTER) for (let i = 0; i < 3; i++) put(g, new THREE.ConeGeometry((.85 - i * .2) * .72 * s, .32 * s, 6), '#f6faff', x, GROUND + (1.24 + i * .55) * s, z, i * .5); };
     const bush = (x, z, s) => { for (const [dx, dz, r] of [[0, 0, .42], [.36, .1, .3], [-.3, .16, .28]]) put(g, new THREE.IcosahedronGeometry(r * s, 0), '#5fb04a', x + dx * s, GROUND + r * s * .7, z + dz * s, x); };
     const rock = (x, z, s) => put(g, new THREE.IcosahedronGeometry(.34 * s, 0), '#a9a6b0', x, GROUND + .14 * s, z, x * 3).scale.set(1.2, .7, 1);
     tree(-5.6, -3.2, 1.25); tree(-6.3, -1.2, .9); tree(-2.4, -6.1, 1.05); tree(4.1, 5.2, .85); tree(6.1, 1.6, 1.1);
@@ -89,8 +91,8 @@ export function createScene(canvas, { onFrame, onCue }) {
     rock(-3.4, 3.8, 1.2); rock(3.3, 3.2, .8); rock(5.2, -4.4, 1.3); rock(-6.6, .6, .7); rock(.6, -5.4, .9);
     for (let i = 0; i < 46; i++) {
       const a = hash(i, 11) * 6.283, r = 3.6 + hash(i, 12) * 3.4, x = Math.cos(a) * r, z = Math.sin(a) * r;
-      if (i % 3) { const t = put(g, new THREE.ConeGeometry(.07, .3, 3), i % 2 ? '#6fbf52' : '#7ccc5c', x, GROUND + .15, z, a); t.rotation.z = (hash(i, 13) - .5) * .5; }
-      else { put(g, new THREE.CylinderGeometry(.11, .11, .05, 5), ['#ffffff', '#ffd66b', '#ff9fb8'][i % 9 / 3 | 0], x, GROUND + .1, z); put(g, new THREE.CylinderGeometry(.05, .05, .07, 5), '#ffb547', x, GROUND + .12, z); }
+      if (i % 3) { const t = put(g, new THREE.ConeGeometry(.07, .3, 3), i % 2 ? SEA.patch : SEA.grass, x, GROUND + .15, z, a); t.rotation.z = (hash(i, 13) - .5) * .5; }
+      else { put(g, new THREE.CylinderGeometry(.11, .11, .05, 5), SEA.petals[(i / 3 | 0) % SEA.petals.length], x, GROUND + .1, z); put(g, new THREE.CylinderGeometry(.05, .05, .07, 5), '#ffb547', x, GROUND + .12, z); }
     }
     // spare blocks waiting by the pedestal, and a wooden sign
     for (const [x, y, z, c, r] of [[3.9, 0, -3.6, '#ff8fab', .3], [4.9, 0, -2.9, '#9aa8ff', -.4], [4.3, .5, -3.3, '#ffb547', .8]]) put(g, new THREE.BoxGeometry(.9, .5, .9), c, x, GROUND + .25 + y, z, r);
