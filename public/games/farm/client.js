@@ -432,7 +432,7 @@ export function mount(app, ctx) {
         <p>${elTags(p)} ${s.blurb}</p>
         ${got.length ? `<p>${L('It has', 'Ma')} ${list(got)}.</p>` : `<p>${L('It looks just like its family.', 'Wygląda zupełnie jak jego rodzina.')}</p>`}
         ${ma ? `<div class="tree"><span class="kin">${face(ma)}<small>${esc(ma.name)}</small></span><span class="plus">+</span><span class="kin">${face(pa)}<small>${esc(pa.name)}</small></span></div>` : ''}
-        <div class="row end"><button type="button" class="btn w" data-a="petpage" data-id="${p.id}">${L(`Traits and family`, `Cechy i rodzina`)}</button><button type="button" class="btn m" data-a="shut">${L(`Lovely`, `Ślicznie`)}</button></div></div>`;
+        <div class="row end"><button type="button" class="btn w" data-a="petpage" data-id="${p.id}">${L(`Traits and family`, `Cechy i rodzina`)}</button><button type="button" class="btn m" data-a="shut">${L(`So cute!`, `Ale słodziak!`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'pet') { // everything about one pet, and its family tree
@@ -579,7 +579,7 @@ export function mount(app, ctx) {
         ${b.wild && F.wild ? `<div class="backpet found">${thumb('pet:' + b.wild.sp)}<div>${L(`<b>A wild ${SPECIES[b.wild.sp].name} stood in their way!</b><small>Level ${b.wild.lv}. Win a short battle and it may come home with you. Losing costs nothing. It waits for half an hour.</small>`, `<b>Dziki zwierzak (${SPECIES[b.wild.sp].name}) staje im na drodze!</b><small>Poziom ${b.wild.lv}. Wygraj krótką bitwę, a może wróci z tobą do domu. Porażka nic nie kosztuje. Poczeka pół godziny.</small>`)}</div><button type="button" class="btn sm m" data-a="wildfight">${L(`Battle it`, `Walcz`)}</button></div>` : ''}
         ${b.spilt ? `<p class="hint">${L(`Your storage is full (${F.cap} of each), so some of it was left behind. ${countOf(F, 'barn') ? 'Spend or swap some to make room.' : 'A Storage Barn makes room for more.'}`, `Magazyn jest pełny (${F.cap} każdego materiału), więc część została na miejscu. ${countOf(F, 'barn') ? 'Wydaj trochę albo wymień w Warsztacie, żeby zrobić miejsce.' : 'Stodoła pomieści więcej.'}`)}</p>` : ''}
         ${b.full ? '<p class="hint">' + L('A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.', 'Dziki zwierzak chciał pójść z nimi, ale wszystkie łóżka są zajęte. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.') + '</p>' : ''}
-        <button type="button" class="btn big m" data-a="shut">${L(`Lovely`, `Ślicznie`)}</button></div>`;
+        <button type="button" class="btn big m" data-a="shut">${L(`Great`, `Świetnie`)}</button></div>`;
     }
     const dests = box.querySelector('.dests');
     if (dests && was) { box.querySelector('.tripp').scrollTop = was.t; dests.scrollLeft = was.d; const pr = box.querySelector('.party'); if (pr) pr.scrollLeft = was.p; }

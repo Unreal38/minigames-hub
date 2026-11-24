@@ -609,7 +609,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   pips: {
-    name: 'Oczkomania', start: 'Rzuć kośćmi', openSeat: 'Jeśli nikt nie dołączy, ten arkusz wypełni bot',
+    name: 'Kości', start: 'Rzuć kośćmi', openSeat: 'Jeśli nikt nie dołączy, ten arkusz wypełni bot',
     pitch: 'Pięć kości, trzy rzuty na turę i arkusz do wypełnienia. Poluj na strity, fule i pięć jednakowych.',
     howto: `Pięć kości i arkusz z 13 polami. W każdej turze masz do trzech rzutów i między nimi zatrzymujesz dowolne kości, a potem wpisujesz rzut w jedno puste pole. Wypełnij wszystkie 13 pól; wygrywa najwyższa suma.`,
     rules: `<ol>
@@ -619,9 +619,9 @@ export const GAMES_PL = {
       <li>Zdobądź <b>63 lub więcej</b> w górnej połowie (wystarczą po trzy kości każdej liczby), a dostaniesz <b>35 punktów premii</b>.</li>
       <li><b>Trzy jednakowe</b> i <b>Cztery jednakowe</b>: suma wszystkich pięciu kości, gdy co najmniej trzy (albo cztery) pokazują tę samą liczbę.</li>
       <li><b>Ful</b>, trzy kości jednej liczby i dwie innej: <b>25</b>. <b>Mały strit</b>, cztery liczby po kolei: <b>30</b>. <b>Duży strit</b>, pięć po kolei: <b>40</b>.</li>
-      <li><b>Oczkomania</b>, pięć jednakowych kości: <b>50</b>. <b>Szansa</b>: suma wszystkich pięciu kości, cokolwiek pokazują.</li>
-      <li><b>Kolejne Oczkomanie</b>: gdy w polu Oczkomania masz już 50, każde następne pięć jednakowych daje <b>100 punktów premii</b> oprócz tego, co wpiszesz w puste pole, więc pole Oczkomania rośnie do 150, 250 i tak dalej. Jeśli pole górnej połowy dla tej liczby też jest już zajęte, rzut jest <b>jokerem</b>: w dolnej połowie liczy się też jako ful (25), mały strit (30), duży strit (40) albo suma kości.</li>
-      <li><b>Potrójny arkusz</b> (ustawienie stołu): każdy ma <b>trzy kolumny</b> po 13 pól, a gra trwa 39 rund. Wybierasz i kolumnę, i pole. Druga kolumna liczy się <b>podwójnie</b>, a trzecia <b>potrójnie</b>, razem z premią. Pięć jednakowych daje premię 100 razy numer kolumny, gdy wszystkie trzy pola Oczkomania mają po 50 (i gdy nie wpisano pięciu jednakowych gdzie indziej, kiedy któreś było puste), a jokerem jest wtedy, gdy zajęte są też wszystkie trzy górne pola tej liczby.</li>
+      <li><b>Generał</b>, pięć jednakowych kości: <b>50</b>. <b>Szansa</b>: suma wszystkich pięciu kości, cokolwiek pokazują.</li>
+      <li><b>Kolejne generały</b>: gdy w polu Generał masz już 50, każde następne pięć jednakowych daje <b>100 punktów premii</b> oprócz tego, co wpiszesz w puste pole, więc pole Generał rośnie do 150, 250 i tak dalej. Jeśli pole górnej połowy dla tej liczby też jest już zajęte, rzut jest <b>jokerem</b>: w dolnej połowie liczy się też jako ful (25), mały strit (30), duży strit (40) albo suma kości.</li>
+      <li><b>Potrójny arkusz</b> (ustawienie stołu): każdy ma <b>trzy kolumny</b> po 13 pól, a gra trwa 39 rund. Wybierasz i kolumnę, i pole. Druga kolumna liczy się <b>podwójnie</b>, a trzecia <b>potrójnie</b>, razem z premią. Pięć jednakowych daje premię 100 razy numer kolumny, gdy wszystkie trzy pola Generał mają po 50 (i gdy nie wpisano pięciu jednakowych gdzie indziej, kiedy któreś było puste), a jokerem jest wtedy, gdy zajęte są też wszystkie trzy górne pola tej liczby.</li>
       <li>Po 13 rundach wygrywa <b>najwyższa suma</b>. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, turę kończy za ciebie bot. Pole, które dałoby 0, wymaga drugiego dotknięcia. Skróty: klawisze od <b>1</b> do <b>5</b> zatrzymują kość, <b>R</b> albo <b>spacja</b> rzuca.</li>
     </ol>`,

@@ -8,7 +8,7 @@ export const UPPER_NEED = 63, UPPER_BONUS = 35, GEN_BONUS = 100;
 export const BOXES = ['1', '2', '3', '4', '5', '6', 'k3', 'k4', 'full', 'ss', 'ls', 'gen', 'ch'];
 export const UPPER = BOXES.slice(0, 6), LOWER = BOXES.slice(6);
 export const LABEL = L({ 1: 'Ones', 2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', k3: 'Three alike', k4: 'Four alike', full: 'Full house', ss: 'Small run', ls: 'Big run', gen: 'Pip Party', ch: 'Chance' },
-  { 1: 'Jedynki', 2: 'Dwójki', 3: 'Trójki', 4: 'Czwórki', 5: 'Piątki', 6: 'Szóstki', k3: 'Trzy jednakowe', k4: 'Cztery jednakowe', full: 'Ful', ss: 'Mały strit', ls: 'Duży strit', gen: 'Oczkomania', ch: 'Szansa' });
+  { 1: 'Jedynki', 2: 'Dwójki', 3: 'Trójki', 4: 'Czwórki', 5: 'Piątki', 6: 'Szóstki', k3: 'Trzy jednakowe', k4: 'Cztery jednakowe', full: 'Ful', ss: 'Mały strit', ls: 'Duży strit', gen: 'Generał', ch: 'Szansa' });
 export const SHORT = L({ 1: 'Ones', 2: 'Twos', 3: 'Threes', 4: 'Fours', 5: 'Fives', 6: 'Sixes', k3: '3 alike', k4: '4 alike', full: 'Full', ss: 'Sm. run', ls: 'Big run', gen: 'Party', ch: 'Chance' },
   { 1: 'Jedynki', 2: 'Dwójki', 3: 'Trójki', 4: 'Czwórki', 5: 'Piątki', 6: 'Szóstki', k3: '3 jednak.', k4: '4 jednak.', full: 'Ful', ss: 'M. strit', ls: 'D. strit', gen: 'Party', ch: 'Szansa' });
 export const HINT = L({ 1: 'Add up the ones', 2: 'Add up the twos', 3: 'Add up the threes', 4: 'Add up the fours', 5: 'Add up the fives', 6: 'Add up the sixes',
