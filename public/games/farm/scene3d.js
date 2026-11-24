@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
-import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
+import { itemModel, fenceLink, LINKS, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
@@ -192,15 +192,16 @@ export function createScene(canvas, { onPick, onGhost }) {
     const seen = new Set();
     for (const it of farm?.items || []) {
       seen.add(it.id);
-      const lv = levelOf(it), key = [it.type, it.x, it.y, it.r, N, lv].join();
+      const lv = levelOf(it), link = LINKS[it.type] ? fenceLink(farm.items, it.x, it.y, it.r, ghost?.id) : 0, key = [it.type, it.x, it.y, it.r, N, lv, link].join();
       let e = items.get(it.id);
       if (e && e.key === key) continue;
       const grew = !!e && e.type === it.type && lv > e.lv; // improved while we watch: the new look pops in with a little party
-      if (!e || e.type !== it.type || e.lv !== lv) {
+      if (!e || e.type !== it.type || e.lv !== lv || e.link !== link) { // a fence also changes shape when a neighbour comes or goes
         const held = ['pick', 'hover'].filter(k => marks[k].t?.item === it.id).map(k => [k, marks[k].t]); for (const [k] of held) setMark(k, null);
         if (e) { scene.remove(e.g); disposeModel(e.g); }
-        const g = itemModel(it.type, true, false, lv), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
-        e = { g: hold, m: g, type: it.type, lv, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
+        const g = itemModel(it.type, true, false, lv, link), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
+        const rejoin = !!e && e.type === it.type && e.lv === lv; // only its joins changed: swap quietly, no pop
+        e = { g: hold, m: g, type: it.type, lv, link, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce && !rejoin ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
         scene.add(hold); items.set(it.id, e);
         for (const [k, t] of held) setMark(k, t);
       }
@@ -885,7 +886,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), th ? th.rock : '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
-      const m = itemModel(it.type, false, true, levelOf(it, f)), [w, h] = footprint(it.type, it.r);
+      const m = itemModel(it.type, false, true, levelOf(it, f), LINKS[it.type] ? fenceLink(f.items, it.x, it.y, it.r) : 0), [w, h] = footprint(it.type, it.r);
       m.position.set(it.x + w / 2 - n / 2, 0, it.y + h / 2 - n / 2); m.rotation.y = -it.r * Math.PI / 2; land.add(m);
     }
     bake(land); toonify(land, .07);
@@ -983,26 +984,34 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!ghost) return;
     ghost.ok = !!farm && fits(farm, ghost.type, ghost.x, ghost.y, ghost.r, ghost.id);
     const [w, h] = footprint(ghost.type, ghost.r);
+    if (LINKS[ghost.type]) { const link = fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
     placeModel(ghost.g, ghost.type, ghost.x, ghost.y, ghost.r); ghost.g.position.y = .12;
     ghost.pad.scale.set(w, h, 1); ghost.pad.position.set(wx(ghost.x, w), .03, wz(ghost.y, h));
     padMat.color.set(ghost.ok ? '#7dff8a' : '#ff6b5a');
     onGhost?.(ghostInfo());
   }
   const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok };
+  function ghostModel(type, id, link) {
+    const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1, link);
+    g.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .8; m.castShadow = false; m.userData.baked = true; } });
+    return g;
+  }
   function ghostStart(type, id, x, y, r) {
     ghostCancel(true);
-    const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1);
-    g.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .8; m.castShadow = false; m.userData.baked = true; } });
+    const g = ghostModel(type, id, 0);
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
-    ghost = { type, id, x, y, r, g, pad, ok: false };
+    ghost = { type, id, x, y, r, g, pad, ok: false, link: 0 };
+    if (id && LINKS[type]) syncItems(); // the fences next to the one picked up let go of it
     for (const [iid, e] of items) e.g.visible = iid !== id;
     renderer.shadowMap.needsUpdate = true;
     gridVis(); ghostCheck();
   }
   function ghostCancel(quiet) {
     if (!ghost) return;
+    const relink = ghost.id && LINKS[ghost.type];
     scene.remove(ghost.g, ghost.pad); disposeModel(ghost.g); ghost.pad.geometry.dispose(); ghost = null;
+    if (relink) syncItems();
     for (const e of items.values()) e.g.visible = true;
     renderer.shadowMap.needsUpdate = true; gridVis();
     if (!quiet) onGhost?.(null);
