@@ -269,6 +269,13 @@ const PIECE = {
     const r = new THREE.Mesh(new THREE.TorusGeometry(.36, .04, 6, 18), SM('#fff4e2')); r.rotation.x = PI / 2; r.position.y = .13; g.add(r);
     for (const d of [-1, 1]) { const h = new THREE.Mesh(new THREE.BoxGeometry(.12, .06, .14), SM('#3b2219')); h.position.set(d * .42, .08, 0); g.add(h); }
     for (const [x, z, c] of [[-.1, .05, '#fff4e2'], [.12, -.06, '#86cc5a'], [.02, .14, '#ff9fb8']]) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.07, 0), SM(c)); m.position.set(x, .16, z); g.add(m); } },
+  dart(g) { const add = (geo, c, z, rx = PI / 2) => { const m = new THREE.Mesh(geo, SM(c)); m.position.z = z; m.rotation.x = rx; g.add(m); return m; };
+    add(new THREE.ConeGeometry(.035, .22, 8), '#c9ccd2', .4); add(new THREE.CylinderGeometry(.06, .05, .3, 10), '#ffc93c', .15); add(new THREE.CylinderGeometry(.025, .03, .26, 8), '#3b3340', -.12);
+    for (const rz of [0, PI / 2]) { const f = new THREE.Mesh(new THREE.BoxGeometry(.3, .02, .2), SM(rz ? '#e5543b' : '#ff7a59')); f.position.z = -.3; f.rotation.z = rz; g.add(f); } g.rotation.set(.5, -.7, 0); g.scale.setScalar(1.45); },
+  bubble(g) { g.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 20, 14), SM('#9fdcff', { roughness: .25 }))); const r = new THREE.Mesh(new THREE.TorusGeometry(.2, .025, 6, 16, 1.6), SM('#ffffff')); r.position.z = .23; r.rotation.z = 1.2; g.add(r);
+    const d = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), SM('#ffffff')); d.position.set(.13, -.06, .27); g.add(d); },
+  egg(g) { const e = new THREE.Mesh(new THREE.SphereGeometry(.26, 18, 14), SM('#fff4e2')); e.scale.set(1, 1.28, 1); g.add(e);
+    for (const [x, y, z, r, c] of [[.12, .12, .2, .09, '#7ed37a'], [-.14, -.08, .2, .07, '#ff9fb8'], [.05, -.2, .19, .06, '#7fc8ee'], [-.1, .2, -.17, .08, '#ffc93c'], [.18, -.05, -.17, .07, '#7ed37a']]) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), SM(c)); m.position.set(x * .8, y * .86, z * .8); g.add(m); } g.rotation.z = .2; },
   paw(g) { const m = SM('#ff9fb8'), pad = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 8), m); pad.scale.set(1.15, .9, .45); pad.position.y = -.1; g.add(pad);
     for (const [x, y] of [[-.24, .12], [-.08, .26], [.08, .26], [.24, .12]]) { const t = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 6), m); t.scale.z = .5; t.position.set(x, y, 0); g.add(t); } },
 };

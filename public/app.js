@@ -5,7 +5,7 @@ import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, cosPackIds } from './cosmetics.js';
-import { playWinFx, setSeatFx, setMyFx } from './winfx.js';
+import { playWinFx, setSeatFx, setMyFx, winPic } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
 import { progress, rankOf, nextRankOf, RANKS, STAR_EVERY } from './ranks.js';
@@ -1971,7 +1971,7 @@ const coinIco = '<i class="cn" aria-hidden="true"></i>';
 const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
-const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕'];
+const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾'];
 const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
@@ -2069,7 +2069,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     : k === 'fr' ? avatarHtml(color, av, 60, frameCls({ fr: i }))
     : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? `<em>${L('moves', 'rusza się')}</em>` : ''}</span>`
     : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl" ${fitw(it.n)}>${esc(it.n)}</span>` : `<span class="ttl none">${L('no title', 'bez tytułu')}</span>`}</span>`
-    : k === 'wn' ? `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`
+    : k === 'wn' ? (winPic(i) ? `<span class="wdemo"><img alt="" src="${winPic(i)}"></span>` : `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`)
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
     : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic${k === 'ik' ? ' isk' + i : ''}" data-isle="${k}:${i}">`
     : `<img alt="" data-kit="${k}:${i}"${skinPicNow(k, i, color, av) ? ` src="${skinPicNow(k, i, color, av)}"` : ''}>`;

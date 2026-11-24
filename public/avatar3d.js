@@ -340,7 +340,7 @@ const HAT_BRIM = { 1: .72, 2: .76, 3: .88, 9: .8, 10: .86, 11: .87, 13: .9, 14: 
 const HAT_WRAP = [32, 33, 'hood'], WRAP_AT = { hood: .92 }; // how far round from the front the sides start (radians)
 // A headband (headphones, earmuffs) stays its own size on big hair and presses a groove into it instead.
 const HAT_BAND = [6, 31, 38];
-const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38, 41], SHELL = 1.12;
+const HAT_TOP = [4, 5, 6, 7, 8, 12, 15, 18, 23, 24, 25, 28, 31, 34, 35, 37, 38, 41, 42, 43, 44, 45], SHELL = 1.12;
 // envT (hair3d.js): how far from C along the unit direction d you can go and still be inside the skull grown sideways
 // by o, the way hair and hat shells are made. skullT is the bare skull.
 const skullT = (hr, d) => envT(hr, d, 0);
@@ -429,7 +429,7 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   // A costume (suit) dresses the legs too, whatever bottom was picked, and has a hood that goes up when no hat is worn.
   const top = a.top, suit = SUITS[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC }[top] : null;
   const bot = suit ? 7 : a.bottom, botC = suit || BOTTOM_COLS[a.botC];
-  const dress = top === 6 || top === 15, skirt = [3, 5, 6].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
+  const dress = top === 6 || top === 15, skirt = [3, 5, 6, 11, 12].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31].includes(top), noSl = top === 5, lowC = dress ? topC : botC;
   const bodyC = top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : top === 26 ? '#ffc93c' : top === 27 ? '#c8342b' : top === 31 ? CREAM : suit || topC, slvC = top === 14 || top === 16 ? '#ffffff' : top === 26 ? '#2b2228' : bodyC, dk = shade(topC, .62);
 
   // torso: a soft bean. Hips take the bottom colour.
@@ -453,6 +453,9 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
   const collar = (c, k = 1) => { ring(g, lb * 1.5 * k, lb * .42, c, 0, shY, 0).rotation.x = PI / 2; };
   const tie = () => { box(g, .078, .2 * t, .02, '#d9584e', 0, chestY - .04 * t, tz(chestY - .1 * t) + .022); const tp = cone(g, .05, .09 * t, '#d9584e', 0, chestY - .185 * t, tz(chestY - .1 * t) + .022); tp.rotation.x = PI; tp.scale.z = .2; box(g, .09, .06, .034, '#b8433c', 0, chestY + .09 * t, tz(chestY + .05 * t) + .024); };
   const lapels = c => { for (const s of [-1, 1]) side(chestY - .2 * t, y0 + .93 * t, c, s * .42, .11, .02); side(wy, wy + .24 * t, c, PI, .022, .012); };
+  // a little flower printed on swim shorts: five petals round a yellow middle, turned to face out at angle an
+  const hibC = new THREE.Color(botC).getHSL({}).l > .62 ? ['#ff8fab', '#ff6f9c'] : ['#ffffff', '#fff1c4'];
+  const hibiscus = (p, x, y, z, an, r = .034) => { for (let i = 0; i < 5; i++) { const pa = i / 5 * PI * 2, d = sph(p, r, hibC[i % 2], x + Math.cos(an) * Math.cos(pa) * r * 1.1, y + Math.sin(pa) * r * 1.1, z - Math.sin(an) * Math.cos(pa) * r * 1.1); d.scale.set(1, 1, .45); d.rotation.y = an; } sph(p, r * .55, '#ffc93c', x + Math.sin(an) * .006, y, z + Math.cos(an) * .006).scale.z = .5; };
   const bow = (c, y, z, r = .06) => { for (const s of [-1, 1]) { const b = cone(g, r, r * 2, c, s * r, y, z); b.rotation.z = s * PI / 2; b.scale.z = .6; } };
   if (top === 4) for (const k of [.5, .62, .74, .86]) band(y0 + k * t - .022 * t, y0 + k * t + .022 * t, '#ffffff');
   if (top === 3) { band(wy, wy + .09 * t, shade(topC, .82), .018); collar(shade(topC, .82), 1.3); for (const an of [-.55, 0, .55, PI - .55, PI, PI + .55]) side(wy + .12 * t, y0 + .9 * t, shade(topC, .9), an, .07, .012); }
@@ -561,12 +564,15 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     sph(g, sh * .16, '#e5543b', 0, cy - hh * .02, bzc - sh * .56).scale.z = .35;
     for (const s of [-1, 1]) { side(wy + .1 * t, yT - .01 * t, COFFEE, s * .5, .08, .016); side(wy + .1 * t, yT - .01 * t, COFFEE, PI + s * .62, .08, .016); }
   }
-  if ((bot === 0 || bot === 1 || bot === 8 || bot === 9) && !dress) band(wy - .035 * t, wy + .012 * t, shade(botC, .7), .01);
+  if ((bot === 0 || bot === 1 || bot === 8 || bot === 9 || bot === 10) && !dress) band(wy - .035 * t, wy + .012 * t, shade(botC, .7), .01);
   // what tells the trousers apart: a buckle, jeans pockets and a stud, a joggers waistband with drawstrings
   if (!dress && !suit) {
     if (bot === 0 || bot === 8) box(g, .07, .045 * t, .02, gold, 0, wy - .012 * t, tz(wy - .012 * t) + .014);
     if (bot === 1) { sph(g, .02, gold, 0, wy - .012 * t, tz(wy - .012 * t) + .016); for (const s of [-1, 1]) { side(y0 + .1 * t, y0 + .3 * t, shade(botC, 1.22), PI + s * .5, .24, .012); side(y0 + .2 * t, y0 + .36 * t, shade(botC, .8), s * .62, .14, .01); } }
     if (bot === 9) { box(g, .07, .045 * t, .02, LATTE, 0, wy - .012 * t, tz(wy - .012 * t) + .014); for (const s of [-1, 1]) { side(y0 + .2 * t, y0 + .36 * t, shade(botC, .8), s * .62, .14, .01); side(y0 + .1 * t, y0 + .28 * t, CREAM, PI + s * .5, .2, .012); } }
+    if (bot === 10) { box(g, .07, .045 * t, .02, '#8a8f98', 0, wy - .012 * t, tz(wy - .012 * t) + .014); for (const s of [-1, 1]) side(y0 + .1 * t, y0 + .28 * t, fold(botC), PI + s * .5, .2, .012); }
+    if (bot === 13) { band(wy - .05 * t, wy + .012 * t, shade(botC, .75), .012); for (const s of [-1, 1]) { cyl(g, .01, .01, .12 * t, '#ffffff', s * .03, wy - .09 * t, front(s * .03, wy - .09 * t) + .014); sph(g, .016, '#ffffff', s * .03, wy - .15 * t, front(s * .03, wy - .15 * t) + .016); }
+      for (const [an, yy] of [[.5, .2], [-.9, .1], [2.4, .22], [3.6, .12]]) { const [fx, fy, fz] = round(an, y0 + yy * t, .012); hibiscus(g, fx, fy, fz, an); } }
     if (bot === 4) { band(wy - .05 * t, wy + .012 * t, '#f4f1ea', .012); for (const s of [-1, 1]) { cyl(g, .01, .01, .1 * t, '#f4f1ea', s * .03, wy - .08 * t, front(s * .03, wy - .08 * t) + .014); sph(g, .016, '#f4f1ea', s * .03, wy - .13 * t, front(s * .03, wy - .13 * t) + .016); } }
   }
 
@@ -588,15 +594,22 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     arm.userData.rx = arm.rotation.x; ud.arms.push(arm);
   }
   // legs and big rounded shoes. Seated, the legs dangle forward off the seat.
-  const tl = legLen * .5, shoeH = H * .05, sl = legLen - tl - shoeH, shortLeg = bot === 2 && !dress;
+  const tl = legLen * .5, shoeH = H * .05, sl = legLen - tl - shoeH, shortLeg = (bot === 2 || bot === 13) && !dress;
   for (const s of [-1, 1]) {
     const leg = new THREE.Group(); leg.position.set(s * Math.max(hi * .5, lb * 1.45), hipY, 0); g.add(leg);
-    const wide = bot === 8 && !skirt, slim = bot === 7 && !suit && !skirt, plain = !skirt && !suit, cuffd = bot === 9 && plain, kT = wide ? 1.7 : slim ? 1.36 : 1.55, kK = wide ? 1.6 : slim ? 1.12 : cuffd ? 1.36 : 1.3, kA = wide ? 2.05 : slim ? .92 : bot === 4 && plain ? .96 : cuffd ? 1.24 : 1.05;
+    const wide = bot === 8 && !skirt, slim = bot === 7 && !suit && !skirt, plain = !skirt && !suit, cuffd = bot === 9 && plain, cargo = bot === 10 && plain, kT = wide ? 1.7 : slim ? 1.36 : cargo ? 1.66 : 1.55, kK = wide ? 1.6 : slim ? 1.12 : cuffd ? 1.36 : cargo ? 1.44 : 1.3, kA = wide ? 2.05 : slim ? .92 : bot === 4 && plain ? .96 : cuffd ? 1.24 : cargo ? 1.08 : 1.05;
     cyl(leg, lb * kT, lb * kK, tl, skirt ? skin : botC, 0, -tl / 2, 0);
     const kn = new THREE.Group(); kn.position.y = -tl; leg.add(kn);
     const lc = skirt || shortLeg ? skin : botC; sph(kn, lb * (kK - .02), lc, 0, 0, 0); cyl(kn, lb * (kK - .04), lb * kA, sl, lc, 0, -sl / 2, 0);
     if (top === 29) { box(leg, lb * .7, tl * .7, .02, '#f4f1ea', 0, -tl * .5, lb * 1.52); box(kn, lb * .6, sl * .7, .02, '#f4f1ea', 0, -sl * .5, lb * 1.22); }
-    if (shortLeg) cyl(leg, lb * 1.42, lb * 1.46, tl * .14, shade(botC, .8), 0, -tl * .9, 0);
+    if (shortLeg && bot === 2) cyl(leg, lb * 1.42, lb * 1.46, tl * .14, shade(botC, .8), 0, -tl * .9, 0);
+    if (shortLeg && bot === 13) { cyl(leg, lb * 1.6, lb * 1.66, tl * .3, botC, 0, -tl * .82, 0); hibiscus(leg, s * lb * 1.62, -tl * .55, lb * .3, s * PI / 2 - s * .3); hibiscus(leg, s * lb * .4, -tl * .8, lb * 1.6, 0, .028); }
+    if (cargo) { // a big pocket with a flap on the outside of each thigh, and the trousers gathered at the ankle
+      const ang = -s * Math.atan2((kT - kK) * lb, tl), pk = box(leg, .03, tl * .36, lb * 1.1, shade(botC, 1.12), s * lb * 1.56, -tl * .58, 0); pk.rotation.z = ang;
+      const fl = box(leg, .036, tl * .1, lb * 1.16, fold(botC), s * lb * 1.6, -tl * .38, 0); fl.rotation.z = ang; sph(leg, .018, '#8a8f98', s * lb * 1.64, -tl * .4, 0);
+      cyl(kn, lb * 1.16, lb * 1.16, sl * .12, fold(botC), 0, -sl * .9, 0); }
+    if (bot === 12 && skirt && !dress) { // knee socks under the kilt, with a red band at the top
+      cyl(kn, lb * (kK - .02), lb * (kA + .04), sl * .74, '#f4f1ea', 0, -sl * .6, 0); cyl(kn, lb * (kK + .02), lb * (kK - .02), sl * .1, '#d9342b', 0, -sl * .24, 0); }
     if (bot === 1 && plain) { cyl(kn, lb * 1.2, lb * 1.2, sl * .22, shade(botC, 1.35), 0, -sl * .87, 0); box(leg, .012, tl * .9, .012, '#e0a04a', s * lb * 1.435, -tl * .5, 0).rotation.z = -s * Math.atan2((kT - kK) * lb, tl); }
     if (bot === 4 && plain) { cyl(kn, lb * 1.1, lb * 1.1, sl * .16, '#f4f1ea', 0, -sl * .9, 0); box(leg, .02, tl * .96, lb * .8, '#f4f1ea', s * lb * 1.425, -tl * .5, 0).rotation.z = -s * Math.atan2((kT - kK) * lb, tl); box(kn, .02, sl * .8, lb * .6, '#f4f1ea', s * lb * 1.13, -sl * .4, 0).rotation.z = -s * Math.atan2((kK - .04 - kA) * lb, sl); }
     if (bot === 0 && plain) { box(leg, .016, tl * .9, .016, fold(botC), 0, -tl * .52, lb * 1.43).rotation.x = Math.atan2((kT - kK) * lb, tl); box(kn, .016, sl * .9, .016, fold(botC), 0, -sl * .48, lb * 1.15).rotation.x = Math.atan2((kK - .04 - kA) * lb, sl); }
@@ -614,25 +627,53 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
       for (const [mx, mz] of [[-.24, .52], [.2, .78], [.12, .4]]) cyl(kn, R * .17, R * .17, R * .2, '#ffffff', mx * R, fy + R * .92, fz + mz * R);
       const hd = ring(kn, R * .36, R * .11, shoeC, s * R * 1.12, fy + shoeH * .15, fz + R * .1); hd.scale.y = .8;
     }
+    else if (so === 9) { // paw slippers: a fluffy paw with pink toe beans and a big pad, and a fluffy cuff
+      sph(kn, R * 1.12, shoeC, 0, fy + shoeH * .1, fz).scale.set(1.08, .78, 1.5); sph(kn, R * 1.06, shade(shoeC, .82), 0, fy - shoeH * .34, fz).scale.set(1.08, .2, 1.56);
+      const onTop = (x, z) => fy + shoeH * .1 + R * .874 * Math.sqrt(Math.max(0, 1 - (x / 1.21) ** 2 - (z / 1.68) ** 2)); // the top of the slipper over a point, in R
+      for (const [bx, bz] of [[-.62, .86], [-.22, 1.08], [.22, 1.08], [.62, .86]]) sph(kn, R * .2, '#ff8fab', bx * R, onTop(bx, bz) + R * .02, fz + bz * R).scale.set(1, .5, 1.15);
+      sph(kn, R * .44, '#ff8fab', 0, onTop(0, .42) + R * .01, fz + R * .42).scale.set(1.25, .3, .95);
+      cyl(kn, lb * 1.4, lb * 1.3, sl * .16, mix(shoeC, '#ffffff', .4), 0, -sl * .86, 0);
+    }
+    else if (so === 11) { // flippers: a long flat fin with ribs, a strap round the heel
+      sph(kn, R, shoeC, 0, fy + shoeH * .12, fz - R * .1).scale.set(1, .7, 1.3);
+      const fn = new THREE.Group(); fn.position.set(0, fy - shoeH * .3, fz + R * .3); fn.rotation.y = s * .22; kn.add(fn); // the fins point a little outwards, so they do not cross
+      sph(fn, R * 1.1, shoeC, 0, 0, R * 1.05).scale.set(.95, .14, 1.5);
+      for (const rx of [-.45, 0, .45]) box(fn, R * .07, R * .12, R * 1.7, mix(shoeC, '#ffffff', .4), rx * R, R * .13, R * 1.1);
+      ring(kn, lb * 1.15, lb * .2, shade(shoeC, .7), 0, fy + shoeH * .5, -lb * .3).rotation.x = PI / 2;
+    }
     else {
       const bt = so === 1 || so === 6, pale = new THREE.Color(shoeC).getHSL({}).l > .8, trim = pale ? shade(shoeC, .62) : '#ffffff';
       sph(kn, R, shoeC, 0, fy + shoeH * .12, fz).scale.set(1, .72, 1.55); sph(kn, R, bt ? shade(shoeC, .6) : pale ? '#d6d2ca' : '#ffffff', 0, fy - shoeH * .32, fz).scale.set(1.06, .24, 1.62);
       // laces across the top, and a stripe down each side of a trainer
       if (so !== 6) for (const dz2 of [.15, .45, .75]) box(kn, R * .8, R * .07, R * .13, bt ? shade(shoeC, 1.5) : trim, 0, fy + shoeH * .12 + R * .72 * Math.sqrt(1 - (dz2 / 1.55) ** 2) - R * .02, fz + dz2 * R);
-      if (so === 0 || so === 3 || so === 7) for (const e of [-1, 1]) { const st = box(kn, R * .06, R * .22, R * 1.0, trim, e * R * .96, fy + shoeH * .2, fz - R * .1); st.rotation.x = .35; }
+      if (so === 0 || so === 3 || so === 7 || so === 10) for (const e of [-1, 1]) { const st = box(kn, R * .06, R * .22, R * 1.0, trim, e * R * .96, fy + shoeH * .2, fz - R * .1); st.rotation.x = .35; }
       if (so === 6) { cyl(kn, lb * 1.5, lb * 1.36, sl * .62, shoeC, 0, -sl * .7, 0); cyl(kn, lb * 1.58, lb * 1.58, sl * .08, shade(shoeC, 1.35), 0, -sl * .4, 0); }
       else if (so === 1) { cyl(kn, lb * 1.36, lb * 1.3, sl * .42, shoeC, 0, -sl * .8, 0); cyl(kn, lb * 1.46, lb * 1.46, sl * .1, shade(shoeC, .7), 0, -sl * .62, 0); } else sph(kn, R * .5, pale ? '#d6d2ca' : '#ffffff', 0, fy + shoeH * .3, fz + R * 1.05).scale.set(1.3, .6, .7);
       if (so === 7) for (const wx of [-1, 1]) for (const wz of [-1, 1]) { cyl(kn, R * .36, R * .36, R * .3, '#ff8a2a', wx * R * .62, fy - shoeH * .5, fz + wz * R * .85).rotation.z = PI / 2; sph(kn, R * .14, '#3a3440', wx * R * .78, fy - shoeH * .5, fz + wz * R * .85); }
       if (so === 7) { box(kn, R * 1.1, R * .12, R * 2.4, '#8a8f98', 0, fy - shoeH * .42, fz); sph(kn, R * .26, '#e5543b', 0, fy - shoeH * .2, fz + R * 1.5); }
+      if (so === 10) for (let i = 0; i < 7; i++) { const an = -1.3 + i * (2.6 / 6), c2 = ['#ff5d8f', '#ffc93c', '#7ed37a', '#4fc3e8', '#b48cff', '#ff8a2a', '#ff5d8f'][i]; sph(kn, R * .14, c2, Math.sin(an) * R * 1.05, fy - shoeH * .32, fz + Math.cos(an) * R * 1.62).scale.set(1, .8, 1); }
+      if (so === 12) { cyl(kn, lb * 1.36, lb * 1.32, sl * .5, shoeC, 0, -sl * .76, 0); cyl(kn, lb * 1.44, lb * 1.44, sl * .08, '#ffffff', 0, -sl * .52, 0);
+        const yb = fy + shoeH * .12 - R * .7; for (const bz of [-.75, .85]) box(kn, R * .22, R * .3, R * .3, '#8a93a0', 0, yb - R * .08, fz + bz * R); // the blade hangs just under the boot
+        box(kn, R * .14, R * .2, R * 3.1, '#e6edf5', 0, yb - R * .26, fz + R * .1); const tp = cyl(kn, R * .26, R * .26, R * .14, '#e6edf5', 0, yb - R * .1, fz + R * 1.62); tp.rotation.z = PI / 2; }
       if (so === 3) { cyl(kn, lb * 1.32, lb * 1.3, sl * .34, shoeC, 0, -sl * .84, 0); cyl(kn, lb * 1.38, lb * 1.38, sl * .08, trim, 0, -sl * .7, 0); sph(kn, lb * .55, trim, s * lb * 1.3, -sl * .86, 0).scale.x = .3; }
     }
     if (seated) { leg.rotation.x = -PI / 2; kn.rotation.x = .5; }
     else { leg.userData.own = kn.userData.own = true; leg.userData.kn = kn; ud.legs.push(leg); } // standing legs are their own pieces, so they can walk
   }
   if (skirt) {
-    const c = dress ? topC : botC, sLen = top === 15 ? 1.7 : dress ? .75 : bot === 6 ? 1.6 : bot === 5 ? .5 : .6, yE = hipY - tl * sLen, rE = hi * (top === 15 ? 1.22 : 1.22 + .28 * Math.min(1, sLen)), kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
+    const c = dress ? topC : botC, sLen = top === 15 ? 1.7 : dress ? .75 : bot === 6 ? 1.6 : bot === 5 ? .5 : bot === 11 ? .42 : bot === 12 ? .62 : .6, yE = hipY - tl * sLen, rE = hi * (top === 15 ? 1.22 : bot === 11 && !dress ? 1.75 : 1.22 + .28 * Math.min(1, sLen)), kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
     if (seated) { sph(g, hi * 1.35, c, 0, hipY + lb * .5, tl * .36).scale.set(1, .32, 1.1); if (sLen > 1) { const dr = cyl(g, hi * 1.15, hi * 1.25, sl * .9, c, 0, hipY - sl * .15, tl * 1.0); dr.scale.z = .5; dr.rotation.x = -.5; } }
-    else { lathe(g, [[rE - .02, yE - .004], [rE, yE], [hi * 1.12, hipY + .02 * t], [wa + .006, wy]], c).scale.z = kz; if (bot === 5 && !dress) { lathe(g, [[rE + .008, yE - .002], [rE - .02, yE + .05 * H]], shade(c, 1.4)).scale.z = kz;
+    else { lathe(g, [[rE - .02, yE - .004], [rE, yE], [hi * 1.12, hipY + .02 * t], [wa + .006, wy]], c).scale.z = kz; if (bot === 11 && !dress) { // tutu: a second, paler frill of net under the first, and a satin waistband
+        lathe(g, [[rE * .9 - .02, yE - .034 * H], [rE * .9, yE - .03 * H], [hi * 1.1, hipY - .01 * t]], mix(c, '#ffffff', .45)).scale.z = kz; band(wy - .04 * t, wy + .012 * t, shade(c, .8), .016);
+        for (let i = 0; i < 18; i++) { const an = (i + .5) / 18 * PI * 2, r = rE * (i % 2 ? .97 : 1.0); sph(g, .085, i % 2 ? mix(c, '#ffffff', .25) : c, Math.sin(an) * r, yE + .01 - (i % 2) * .012, Math.cos(an) * r * kz).scale.set(1, .5, 1); } }
+      if (bot === 12 && !dress) { // kilt: a tartan of bands round and stripes down, a buckled strap, and a sporran in front
+        const tn = shade(c, .62), ln = mix(c, '#ffffff', .5), yM = (yE + hipY) / 2, len = Math.hypot(hipY - yE, rE - hi * 1.12), tilt = Math.atan2(rE - hi * 1.12, hipY - yE);
+        const at = k => [rE + (hi * 1.12 - rE) * k + .012, yE + (hipY - yE) * k];
+        for (const [k, col, w] of [[.28, tn, .12], [.62, tn, .12], [.45, ln, .04]]) lathe(g, [at(k - w / 2), at(k + w / 2)], col).scale.z = kz;
+        for (let i = 0; i < 10; i++) { const an = (i + .5) / 10 * PI * 2, r = (rE + hi * 1.12) / 2 + .016, f = Math.hypot(Math.sin(an), Math.cos(an) * kz), pl = box(g, i % 2 ? .05 : .016, len * .96, .014, i % 2 ? tn : ln, Math.sin(an) * r, yM, Math.cos(an) * r * kz); pl.rotation.order = 'YXZ'; pl.rotation.set(-Math.atan(Math.tan(tilt) * f), Math.atan2(Math.sin(an), Math.cos(an) / kz), 0); }
+        band(wy - .045 * t, wy + .012 * t, '#4a2f2a', .016); box(g, .07, .05 * t, .02, gold, hi * .5, wy - .016 * t, front(hi * .5, wy - .016 * t) + .02);
+        const sz = front(0, hipY) + .03; sph(g, .085, '#8a5a3c', 0, hipY - .025 * H, sz).scale.set(1, 1.15, .42); box(g, .13, .035, .03, '#6b4326', 0, hipY - .005 * H, sz + .01); sph(g, .022, gold, 0, hipY - .012 * H, sz + .035).scale.z = .5; for (const k of [-1, 1]) cyl(g, .012, .012, .08, '#f4f1ea', k * .035, hipY - .065 * H, sz + .03); }
+      if (bot === 5 && !dress) { lathe(g, [[rE + .008, yE - .002], [rE - .02, yE + .05 * H]], shade(c, 1.4)).scale.z = kz;
         const yM = (yE + hipY) / 2, len = Math.hypot(hipY - yE, rE - hi * 1.12), tilt = Math.atan2(rE - hi * 1.12, hipY - yE); // pleats
         for (let i = 0; i < 12; i++) { const an = (i + .5) / 12 * PI * 2, r = (rE + hi * 1.12) / 2 + .014, f = Math.hypot(Math.sin(an), Math.cos(an) * kz), pl = box(g, .026, len * .9, .02, fold(c), Math.sin(an) * r, yM + .01 * H, Math.cos(an) * r * kz); pl.rotation.order = 'YXZ'; pl.rotation.set(-Math.atan(Math.tan(tilt) * f), Math.atan2(Math.sin(an), Math.cos(an) / kz), 0); } } }
   }
@@ -768,6 +809,20 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     ring(hT, .11, .036, '#fffaf0', .37, 1.19, -.02); put(hT, G('hrtm', heartG(.085)), '#e5543b', 0, 1.18, .275);
     for (const [sx, sy, r] of [[-.06, 1.52, .06], [.05, 1.66, .048], [-.03, 1.78, .036]]) sph(hT, r, '#ffffff', sx, sy, -.02);
   }
+  // the Pet Farm's elements as hats: a Leaf sprout, an Ember candle (Flickit's), a Tide wave (Ripplet's), a Spark storm cloud
+  if (hat === 42) { sph(hT, .15, '#8a5a3c', 0, 1.0, -.02).scale.set(1.2, .4, 1.2); cyl(hT, .028, .04, .3, '#58b356', 0, 1.16, -.02);
+    for (const s of [-1, 1]) { const lf = sph(hT, .17, s < 0 ? '#63b06f' : '#4fa85a', s * .17, 1.36 + s * .02, -.02); lf.scale.set(1.15, .22, .62); lf.rotation.z = s * .55; const rb = box(hT, .3, .014, .02, '#3f8a4f', s * .17, 1.4 + s * .02, -.02); rb.rotation.z = s * .55; }
+    sph(hT, .045, '#7fd37a', 0, 1.33, -.02); }
+  if (hat === 43) { cyl(hT, .17, .2, .05, gold, 0, 1.0, -.02); cyl(hT, .1, .1, .3, '#fff4e2', 0, 1.17, -.02); ring(hT, .1, .028, '#ffffff', 0, 1.31, -.02).rotation.x = PI / 2; sph(hT, .04, '#ffffff', .1, 1.24, .02).scale.y = 1.8;
+    cyl(hT, .012, .012, .07, '#2b2228', 0, 1.35, -.02); sph(hT, .1, '#ff8a1f', 0, 1.47, -.02).scale.set(.85, 1.3, .85); cone(hT, .07, .16, '#ff8a1f', 0, 1.62, -.02); sph(hT, .06, '#ffe066', 0, 1.44, .05).scale.set(.8, 1.25, .7); }
+  if (hat === 44) { // a wave rolling over: a wide swell on the crown, a crest that curls round on itself and gets thinner, foam at the lip
+    sph(hT, .36, '#2f86cc', 0, .98, -.02).scale.set(1.15, .32, 1.0);
+    for (let i = 0; i <= 13; i++) { const k = i / 13, an = 3.5 - k * 3.9, r = .15 - k * .105, o = sph(hT, r, '#2f86cc', -.06 + Math.cos(an) * .23, 1.2 + Math.sin(an) * .23, -.02); o.scale.z = 1.9 - k * .5;
+      if (i > 2 && i < 12) sph(hT, r * .7, '#8fd0f5', -.06 + Math.cos(an) * (.23 - r * .5), 1.2 + Math.sin(an) * (.23 - r * .5), -.02).scale.z = 2.1 - k * .5; }
+    for (const [fx, fy2, fz2, r] of [[.19, 1.1, .07, .05], [.2, 1.08, -.03, .06], [.19, 1.1, -.12, .05], [.36, 1.0, .08, .05], [.38, .99, -.1, .045], [-.36, 1.02, 0, .045]]) sph(hT, r, '#ffffff', fx, fy2, fz2); }
+  if (hat === 45) { for (const [cx, cy, cz, r] of [[-.2, 1.42, -.02, .17], [0, 1.5, -.02, .21], [.21, 1.43, -.02, .16], [.02, 1.4, .1, .15], [-.04, 1.4, -.14, .15]]) sph(hT, r, cz > 0 ? '#aab2c2' : '#8f98ab', cx, cy, cz).scale.y = .85;
+    for (const [bx, by, rz, w] of [[.04, 1.27, .5, .16], [-.02, 1.19, -.6, .14], [.03, 1.1, .5, .13]]) box(hT, .05, w, .035, '#ffd23f', bx, by, .04).rotation.z = rz;
+    for (const [dx, dy] of [[-.24, 1.2], [.26, 1.22]]) sph(hT, .035, '#7fc8ee', dx, dy, 0).scale.y = 1.6; }
   if (hat === 13) { cone(hT, .38, .8, '#4b3a6b', 0, 1.36, -.02); cyl(hT, .74, .78, .06, '#3d2f58', 0, .905, -.02); cyl(hT, .345, .375, .07, gold, 0, .98, -.02); }
   // a helmet or hood: a shell over the top and round the back and sides of the head, open at the face
   const wrapShell = (c, off = .1, hf = .76, hb = .1) => { part(hT, shellPts(hf, 1, off), c, 0, A); part(hT, shellPts(hb, 1, off), c, PI, PI - A); };
