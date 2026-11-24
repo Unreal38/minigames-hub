@@ -1343,14 +1343,14 @@ function seasonHtml() {
 // The weather card under the season: the world's weather right now (the same for everyone, public/weather.js),
 // what it gives in Pet Farm, and what comes next. Sunny after dark on the player's own clock is a clear night, as on the farm.
 function weatherHtml(ms = Date.now()) {
-  const w = weatherAt(ms), nx = weatherNext(ms), d = new Date(ms), night = wxNight(d.getHours() + d.getMinutes() / 60), moon = night && w.kind === 'sunny';
+  const w = weatherAt(ms), nx = weatherNext(ms), d = new Date(ms), night = wxNight(d.getHours() + d.getMinutes() / 60), moon = night && w.kind === 'sunny', nmoon = night && nx.kind === 'sunny';
   const name = moon ? L('Clear night', 'Pogodna noc') : w.name, m = Math.max(1, Math.ceil(w.left / 60000));
-  const nname = night && nx.kind === 'sunny' ? L('Clear night', 'Pogodna noc') : nx.name, inm = cnt(m, 'minute', 'minutes', 'minutę', 'minuty', 'minut').replace(/ /g, '\u00a0'); // '10 minutes' never splits
-  return `<div class="ttile wxcard wx-${w.kind}${night ? ' wx-night' : ''}">
-  <div class="tpic" aria-hidden="true">${wxIcon(moon ? 'moon' : w.kind, 34)}</div>
-  <div class="tbody"><b ${fitw(name)}>${name}</b><span class="wxbonus">${L('Pet Farm', 'Farma')}: ${w.bonus}</span>
-    <span class="wxnext">${L(`Then ${nname} · in\u00a0${inm}`, `Potem: ${nname} · za\u00a0${inm}`)}</span></div>
-  <button type="button" class="btn sm w" data-act="farm">${L('Farm', 'Farma')}</button>
+  const nname = nmoon ? L('Clear night', 'Pogodna noc') : nx.name, inm = cnt(m, 'minute', 'minutes', 'minutę', 'minuty', 'minut');
+  const tip = esc(`${name}. ${L('Pet Farm', 'Farma')}: ${w.bonus} ${L(`Then ${nname} in ${inm}.`, `Potem: ${nname} za ${inm}.`)}`);
+  return `<div class="wxstrip wx-${w.kind}${night ? ' wx-night' : ''}" title="${tip}">
+  <span class="wxpic" aria-hidden="true">${wxIcon(moon ? 'moon' : w.kind, 22)}</span>
+  <span class="wxnow"><b>${name}</b><small>${w.short}</small></span>
+  <span class="wxnext" aria-label="${esc(L(`Then ${nname} in ${inm}`, `Potem: ${nname} za ${inm}`))}">${wxIcon(nmoon ? 'moon' : nx.kind, 16)}${m}\u00a0min</span>
 </div>`;
 }
 function paintWeather() { const el = document.getElementById('weather'), h = el && weatherHtml(); if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }

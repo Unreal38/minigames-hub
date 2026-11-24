@@ -1,14 +1,14 @@
 // The world's weather: the same for everyone, worked out from the clock alone, in 40 minute spells. A rainbow follows rain.
-// Weather never takes anything away. Each kind gives one small Pet Farm bonus while it lasts.
+// Weather never takes anything away. Each kind gives one small Pet Farm bonus while it lasts (short: the few words the hub strip shows).
 // Small on purpose: the hub shows it too, without loading the Pet Farm data (games/farm/data.js re-exports all of this).
 import { L } from './i18n.js';
 
 export const WEATHER = {
-  sunny:   { name: L('Sunny', 'Słonecznie'), bonus: L('Parties that set off now bring home 20% more.', 'Drużyny, które wyruszą teraz, przyniosą 20% więcej.') },
-  cloudy:  { name: L('Cloudy', 'Pochmurno'), bonus: L('Cool air: battles give 25% more experience.', 'Chłodne powietrze: bitwy dają 25% więcej doświadczenia.') },
-  rain:    { name: L('Rain', 'Deszcz'), bonus: L('Each garden plot you pick gives one extra berry.', 'Każda zebrana grządka daje jedną jagodę więcej.') },
-  wind:    { name: L('Windy', 'Wietrznie'), bonus: L('A tailwind: parties that set off now are back 20% sooner.', 'Wiatr w plecy: drużyny, które wyruszą teraz, wrócą 20% szybciej.') },
-  rainbow: { name: L('Rainbow', 'Tęcza'), bonus: L('Lucky: parties that set off now are far more likely to meet a wild pet.', 'Szczęście: drużyny, które wyruszą teraz, o wiele łatwiej spotkają dzikiego zwierzaka.') },
+  sunny:   { name: L('Sunny', 'Słonecznie'), bonus: L('Parties that set off now bring home 20% more.', 'Drużyny, które wyruszą teraz, przyniosą 20% więcej.'), short: L('+20% trip loot', '+20% łupów z wypraw') },
+  cloudy:  { name: L('Cloudy', 'Pochmurno'), bonus: L('Cool air: battles give 25% more experience.', 'Chłodne powietrze: bitwy dają 25% więcej doświadczenia.'), short: L('+25% battle XP', '+25% XP z bitew') },
+  rain:    { name: L('Rain', 'Deszcz'), bonus: L('Each garden plot you pick gives one extra berry.', 'Każda zebrana grządka daje jedną jagodę więcej.'), short: L('+1 berry per plot', '+1 jagoda z grządki') },
+  wind:    { name: L('Windy', 'Wietrznie'), bonus: L('A tailwind: parties that set off now are back 20% sooner.', 'Wiatr w plecy: drużyny, które wyruszą teraz, wrócą 20% szybciej.'), short: L('Trips back 20% sooner', 'Wyprawy wracają 20% szybciej') },
+  rainbow: { name: L('Rainbow', 'Tęcza'), bonus: L('Lucky: parties that set off now are far more likely to meet a wild pet.', 'Szczęście: drużyny, które wyruszą teraz, o wiele łatwiej spotkają dzikiego zwierzaka.'), short: L('More wild pets on trips', 'Więcej dzikich zwierzaków') },
 };
 export const WEATHER_MS = 40 * 60_000;
 const wHash = n => { let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
