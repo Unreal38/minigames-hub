@@ -708,6 +708,20 @@ function handle(c, m) {
       sendFriends(p); sendFriends(r.other, m.op === 'add' || m.op === 'accept' ? { from: p.name, now: r.now } : null);
       return;
     }
+    case 'tinvite': { // invite a friend who is on the site right now to the table you are at (from the waiting room)
+      const p = store.profileOf(c.token), r = rooms.get(c.room); if (!r) return;
+      if (!p?.user) return send(c, { t: 'err', msg: 'Create an account to invite friends.' });
+      const o = store.byTag(m.pt);
+      if (!o || o === p || !store.areFriends(p.pid, o.pid)) return send(c, { t: 'err', msg: 'You can only invite your friends.' });
+      const to = clientsOf(o.pid).filter(x => x.room !== r.code);
+      if (!clientsOf(o.pid).length) return send(c, { t: 'err', msg: 'That friend is not on the site right now.' });
+      if (!to.length) return send(c, { t: 'tinvited', pt: m.pt, here: true });
+      if (!allow('tinv:' + c.token, 20, 60_000)) return send(c, { t: 'err', msg: 'Slow down a little.' });
+      if (!allow(`tinv:${p.pid}:${o.pid}:${r.code}`, 1, 20_000)) return send(c, { t: 'err', msg: 'You just invited them. Give them a moment to answer.' });
+      const inv = { t: 'tinvite', from: p.name, pt: store.tagOf(p), color: p.color, av: p.av, fl: store.flair(p), game: r.game, code: r.code };
+      for (const x of to) send(x, inv);
+      return send(c, { t: 'tinvited', pt: m.pt });
+    }
     case 'hay': { // Hay Hunch: the solo puzzle, kept on the profile like Pet Farm (no table)
       if (!allow('hay:' + c.token, 120, 10_000)) return send(c, { t: 'hay', err: 'Slow down a little.' });
       const p = store.profileOf(c.token), r = hay.handle(p, m.a);

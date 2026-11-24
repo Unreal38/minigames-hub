@@ -375,6 +375,22 @@ body:has(.lobby) .scorebtn { display: none; }
   background: var(--card); color: var(--on-paper); border: 3px solid var(--card-edge); border-radius: 999px; padding: 5px 5px 5px 18px; font-family: var(--fd); font-weight: 600;
   box-shadow: 0 6px 18px #0004; max-width: calc(100vw - 32px); }
 #watchbar[hidden] { display: none; }
+/* a friend's invite to their table (app.js showInvite): top right, over games and sheets, until answered or a minute passes */
+#invitecard { position: fixed; right: 16px; top: 74px; z-index: 90; display: flex; align-items: center; gap: 10px; width: min(380px, calc(100vw - 32px));
+  background: var(--card); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 18px; padding: 8px 10px; font-family: var(--fd);
+  box-shadow: 0 6px 0 var(--deep), 0 10px 24px #0004; animation: ivin .5s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes ivin { from { opacity: 0; transform: translateY(-14px) scale(.85); } }
+#invitecard[hidden] { display: none; }
+#invitecard .ivtx { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+#invitecard .ivtx b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#invitecard .ivtx span { font-weight: 600; text-wrap: pretty; }
+#invitecard .ivtx small { font-weight: 600; color: var(--muted); font-size: 12px; }
+#invitecard .btn { flex: none; }
+body.night #invitecard { background: var(--pan); color: var(--tx); border-color: var(--edge); }
+@media (max-width: 560px) { #invitecard { left: 16px; right: 16px; width: auto; top: max(8px, env(safe-area-inset-top)); } }
+.ivsheet .ivlist { margin: 10px 0; max-height: min(52vh, 460px); overflow-y: auto; }
+.ivsheet .fract { align-items: center; }
+.ivsheet .ivlink { font-size: 14px; margin: 6px 0; }
 #watchbar .btn { min-height: 40px; padding: 6px 16px; white-space: nowrap; }
 @media (max-width: 560px) { #watchbar { left: 16px; right: 16px; bottom: max(8px, env(safe-area-inset-bottom)); transform: none; justify-content: space-between; font-size: 14px; padding-left: 14px; } }
 /* ---------- game card pictures (gameart.js) ----------

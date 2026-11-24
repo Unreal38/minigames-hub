@@ -1041,6 +1041,12 @@ function onMsg(m) {
     if (playerSheet?.pt) send({ t: 'player', pt: playerSheet.pt }); // the open profile card shows the new state
     { const now = L(`You and ${esc(m.user)} are now friends!`, `Ty i ${esc(m.user)} jesteście teraz znajomymi!`);
     toast(m.op === 'add' ? (m.now ? now : L(`Asked ${esc(m.user)} to be friends.`, `Zaproszenie do znajomych wysłane: ${esc(m.user)}.`)) : m.op === 'accept' ? now : m.op === 'remove' ? L(`${esc(m.user)} was removed from your friends.`, `${esc(m.user)} nie jest już na liście twoich znajomych.`) : L('Request declined.', 'Zaproszenie odrzucone.')); }
+  } else if (m.t === 'tinvite') showInvite(m);
+  else if (m.t === 'tinvited') {
+    const x = st.friends?.friends.find(f => f.pt === m.pt), who = esc(x?.name || L('Your friend', 'Znajomy'));
+    if (m.here) toast(L(`${who} is already at this table.`, `${who}: już przy tym stole.`));
+    else { invitedAt.set(m.pt, Date.now()); sfx.pop(); toast(L(`Invite sent to ${who}.`, `Zaproszenie wysłane: ${who}.`)); setTimeout(paintInvite, INVITE_WAIT + 50); }
+    paintInvite();
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
@@ -1075,6 +1081,8 @@ function onMsg(m) {
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
     if (m.room) { closeFarm(); closeHay(); closePop(); closeMj(); }
+    if (!m.room || m.room.state === 'play' || m.room.code !== prev?.code) inviteSheet?.close(); else paintInvite();
+    if (m.room && m.room.code === $inv.dataset.code) hideInvite(); // came in through the link or the code instead
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
     if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj') go('hub'); return; }
@@ -2082,7 +2090,8 @@ function renderLobby() {
         <div><div style="font-size:15px;color:var(--muted);margin-bottom:6px">${L('Table code', 'Kod stołu')}</div>
           <div class="codetiles" aria-label="${L('Table code', 'Kod stołu')} ${esc(r.code)}">${[...r.code].map(ch => `<span>${esc(ch)}</span>`).join('')}</div></div>
         <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
-          <button type="button" class="btn" data-act="copy">${L('Copy invite link', 'Skopiuj link z zaproszeniem')}</button>
+          <div class="row" style="gap:8px"><button type="button" class="btn m" data-act="invite">${L('Invite friends', 'Zaproś znajomych')}</button>
+          <button type="button" class="btn" data-act="copy">${canShare() ? L('Share invite link', 'Udostępnij link') : L('Copy invite link', 'Skopiuj link z zaproszeniem')}</button></div>
           <span style="font-size:14px;color:var(--muted)">${L('Friends can also type the code on the home page.', 'Znajomi mogą też wpisać kod na stronie głównej.')}</span>
         </div>
       </div>
@@ -2220,8 +2229,9 @@ $chat.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (cha
 // ---------- friends ----------
 // One list for the whole site. Friends are added by username, and anything a game does with friends reads this list.
 let friendsSheet = null;
+const frWho = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · ${L('level', 'poziom')} ${x.lv}` : ''}</small></span>`;
 function friendsHtml() {
-  const f = st.friends, who = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · ${L('level', 'poziom')} ${x.lv}` : ''}</small></span>`;
+  const f = st.friends, who = frWho;
   const h2 = `<h2>${L('Friends', 'Znajomi')}</h2>`, frUser = L("A friend's username", 'Nazwa użytkownika znajomego');
   if (!st.me?.user) return `${h2}<p>${L('Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.', 'Znajomi są zapisani na twoim koncie, więc odnajdziecie się na każdym urządzeniu. Najpierw załóż konto: wystarczy nazwa użytkownika i hasło.')}</p>
     <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn w" data-fr="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
@@ -2237,6 +2247,7 @@ function friendsHtml() {
 }
 function paintFriends() {
   for (const b of document.querySelectorAll('.frbadge')) { const n = st.friends?.reqs.length || 0; b.hidden = !n; b.textContent = n || ''; }
+  paintInvite();
   if (!friendsSheet) return;
   const box = friendsSheet.el.querySelector('.frbody'), typed = box.querySelector('#fruser')?.value || '';
   box.innerHTML = friendsHtml();
@@ -2261,6 +2272,81 @@ function openFriends() {
 }
 
 // ---------- modals ----------
+// ---------- inviting friends to a table ----------
+// From the waiting room: friends on the site right now get a card with a Join button (server 'tinvite'), and anyone
+// else can be sent the link (the phone's share menu where there is one, the clipboard on a computer).
+const INVITE_WAIT = 20_000; // the server takes one invite per friend per table in this time
+const invitedAt = new Map(); // friend's public tag -> when we invited them
+let inviteSheet = null;
+const canShare = () => !!navigator.share && matchMedia('(pointer: coarse)').matches;
+function shareLink() {
+  const r = st.room; if (!r) return;
+  const link = `${location.origin}/#${r.code}`, g = (GAMES[r.game] || {}).name || r.gameName || '';
+  const copy = () => (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast(L('Invite link copied!', 'Link z zaproszeniem skopiowany!')), () => toast(`${L('Share this', 'Udostępnij ten link')}: ${esc(link)}`));
+  if (!canShare()) return copy();
+  navigator.share({ title: 'Zatoka Gier', text: L(`Play ${g} with me on Zatoka Gier!`, `Zagraj ze mną: ${g} (Zatoka Gier)`), url: link }).catch(e => { if (e?.name !== 'AbortError') copy(); });
+}
+function inviteHtml() {
+  const r = st.room, f = st.friends, here = new Set((r?.players || []).map(p => p.pt).filter(Boolean)), now = Date.now();
+  const head = `<h2>${L('Invite friends', 'Zaproś znajomych')}</h2>`;
+  const link = `<p class="ivlink">${L('Or send the link: anyone who opens it comes straight to this table.', 'Albo wyślij link: każdy, kto go otworzy, trafi prosto do tego stołu.')}</p>
+    <div class="row" style="gap:8px"><button type="button" class="btn" data-iv="link">${canShare() ? L('Share invite link', 'Udostępnij link') : L('Copy invite link', 'Skopiuj link z zaproszeniem')}</button><button type="button" class="btn ghost-ink" data-iv="close">${L('Done', 'Gotowe')}</button></div>`;
+  if (!st.me?.user) return `${head}<p>${L('Friends are kept with your account. Create one to invite friends who are on the site.', 'Znajomi są zapisani na twoim koncie. Załóż je, żeby zapraszać znajomych, którzy są na stronie.')}</p>
+    <div class="row"><button type="button" class="btn m" data-iv="account">${L('Create an account', 'Załóż konto')}</button></div>${link}`;
+  if (!f) return `${head}<p>${L('Loading your friends…', 'Wczytujemy twoich znajomych…')}</p>${link}`;
+  const row = x => {
+    const sent = now - (invitedAt.get(x.pt) || 0) < INVITE_WAIT;
+    const right = here.has(x.pt) ? `<span class="chip">${L('At this table', 'Przy tym stole')}</span>`
+      : !x.online ? `<span class="frdot">${L('Away', 'Poza stroną')}</span>`
+      : `<span class="frdot on">${L('Here now', 'Na stronie')}</span><button type="button" class="btn sm m" data-iv="send" data-pt="${esc(x.pt)}" ${sent ? 'disabled' : ''}>${sent ? L('✓ Invited', '✓ Wysłane') : L('Invite', 'Zaproś')}</button>`;
+    return `<li>${frWho(x)}<span class="fract">${right}</span></li>`;
+  };
+  const on = f.friends.filter(x => x.online || here.has(x.pt)).length;
+  return `${head}${f.friends.length ? `<p style="font-size:14px;margin:0">${on ? L('Friends on the site get a card with a Join button.', 'Znajomi, którzy są na stronie, dostaną kartę z przyciskiem Dołącz.') : L('None of your friends is on the site right now. Send them the link instead.', 'Nikogo z twoich znajomych nie ma teraz na stronie. Wyślij im link.')}</p>
+    <ul class="frlist ivlist">${f.friends.map(row).join('')}</ul>`
+    : `<p>${L('No friends yet. Add them by username in Friends, then invite them here.', 'Nie masz jeszcze znajomych. Dodaj ich po nazwie użytkownika w Znajomych, a potem zaproś tutaj.')}</p>
+    <div class="row"><button type="button" class="btn m" data-iv="friends">${L('Open Friends', 'Otwórz Znajomych')}</button></div>`}${link}`;
+}
+function paintInvite() { if (inviteSheet) morph(inviteSheet.el.querySelector('.ivbody'), inviteHtml()); }
+function openInvite() {
+  if (inviteSheet || !st.room) return;
+  inviteSheet = modal(`<div class="ivbody"></div>`);
+  inviteSheet.el.querySelector('.sheet').classList.add('ivsheet');
+  inviteSheet.onClose = () => { inviteSheet = null; };
+  const el = inviteSheet.el;
+  paintInvite(); if (st.me?.user) send({ t: 'friends' }); // fresh "here now" dots
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-iv]'); if (!b || b.disabled) return;
+    sfx.click(); const a = b.dataset.iv;
+    if (a === 'close') inviteSheet.close();
+    else if (a === 'link') shareLink();
+    else if (a === 'account') { inviteSheet.close(); openAccount('register'); }
+    else if (a === 'friends') { inviteSheet.close(); openFriends(); }
+    else if (a === 'send') { b.disabled = true; send({ t: 'tinvite', pt: b.dataset.pt }); }
+  });
+}
+// The card a friend gets: who asks, which game, Join. It stays a minute, or until answered.
+const $inv = document.createElement('div');
+$inv.id = 'invitecard'; $inv.hidden = true; $inv.setAttribute('role', 'status'); $inv.setAttribute('aria-live', 'polite');
+document.body.append($inv);
+let invTimer = 0;
+function hideInvite() { $inv.hidden = true; delete $inv.dataset.code; clearTimeout(invTimer); }
+function showInvite(m) {
+  if (!validCode(m.code || '') || st.room?.code === m.code) return;
+  const g = esc((GAMES[m.game] || {}).name || ''), busy = st.game && st.lastState?.ph === 'play';
+  $inv.innerHTML = `${avatarHtml(m.color, m.av, 46, frameCls(m.fl))}<div class="ivtx"><b>${nameHtml(m.from, m.fl)}</b><span>${g ? L(`invites you to play ${g}`, `zaprasza cię do gry: ${g}`) : L('invites you to their table', 'zaprasza cię do stołu')}</span>${st.room ? `<small>${busy ? L('Joining leaves the game you are in.', 'Dołączenie oznacza wyjście z obecnej gry.') : L('Joining leaves your table.', 'Dołączenie oznacza wyjście od twojego stołu.')}</small>` : ''}</div>
+    <button type="button" class="btn sm m" data-iv="join">${L('Join', 'Dołącz')}</button><button type="button" class="btn sm ghost-ink" data-iv="no" aria-label="${L('No thanks', 'Nie, dziękuję')}">✕</button>`;
+  $inv.dataset.code = m.code; $inv.hidden = false; sfx.join();
+  clearTimeout(invTimer); invTimer = setTimeout(hideInvite, 60_000);
+}
+$inv.addEventListener('click', e => {
+  const b = e.target.closest('[data-iv]'); if (!b) return;
+  sfx.click(); const code = $inv.dataset.code; hideInvite();
+  if (b.dataset.iv !== 'join' || !code) return;
+  if (!st.name) { pendingJoin = code; return openProfile(true); }
+  send({ t: 'join', code });
+});
+
 function modal(html, dismissable = true) {
   const m = document.createElement('div');
   m.className = 'modal'; m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
@@ -2822,10 +2908,8 @@ $app.addEventListener('click', e => {
   else if (act === 'start') send({ t: 'start' });
   else if (act === 'sit') send({ t: 'sit', on: b.getAttribute('aria-pressed') !== 'true' });
   else if (act === 'opt') send({ t: 'opts', opts: { [b.dataset.opt]: ['timer', 'field', 'hands'].includes(b.dataset.opt) ? +b.dataset.val : b.dataset.val } });
-  else if (act === 'copy') {
-    const link = `${location.origin}/#${st.room.code}`;
-    (navigator.clipboard?.writeText(link) ?? Promise.reject()).then(() => toast(L('Invite link copied!', 'Link z zaproszeniem skopiowany!')), () => toast(`${L('Share this', 'Udostępnij ten link')}: ${esc(link)}`));
-  }
+  else if (act === 'copy') shareLink();
+  else if (act === 'invite') openInvite();
 });
 $app.addEventListener('change', e => { if (e.target.dataset.act === 'priv') send({ t: 'opts', priv: !e.target.checked }); });
 $app.addEventListener('submit', e => {

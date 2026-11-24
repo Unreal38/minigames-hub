@@ -56,6 +56,10 @@ const TEXT = {
   'That decoration is not on your farm.': 'Tej ozdoby nie ma na twojej farmie.',
   // friends
   'Create an account to add friends.': 'Załóż konto, żeby dodawać znajomych.',
+  'Create an account to invite friends.': 'Załóż konto, żeby zapraszać znajomych.',
+  'You can only invite your friends.': 'Zapraszać możesz tylko swoich znajomych.',
+  'That friend is not on the site right now.': 'Tej osoby nie ma teraz na stronie.',
+  'You just invited them. Give them a moment to answer.': 'Zaproszenie już wysłane. Daj chwilę na odpowiedź.',
   'That is you!': 'To przecież ty!',
   'That player has no account yet, so they cannot be added.': 'Ten gracz nie ma jeszcze konta, więc nie da się go dodać.',
   'That player has no account yet. Once they create one, add them by the username they chose.': 'Ten gracz nie ma jeszcze konta. Gdy je założy, dodaj go po wybranej nazwie użytkownika.',
