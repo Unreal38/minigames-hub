@@ -68,6 +68,29 @@ export function pokerArt() {
   ${stack(54, 118, 4, '#ff8fab', '#fff4e2')}${stack(86, 128, 2, '#7ed3b2', '#fff4e2')}${stack(262, 120, 5, '#3b2219', '#ffb547')}${stack(234, 132, 2, '#9b6fd6', '#fff4e2')}</svg>`;
 }
 
+// Blackjack card: an ace and a jack (21) on blue felt, a gold "21" badge and the bet in front.
+export function bjArt() {
+  const suit = {
+    h: ['#d8402a', 'M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z'],
+    s: ['#3b2219', 'M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z'],
+  };
+  const card = (x, y, rot, r, s, d) => `<g class="fan" style="--d:${d}s;transform-origin:${x + 30}px ${y + 84}px"><g transform="rotate(${rot} ${x + 30} ${y + 84})">
+    <rect x="${x}" y="${y}" width="60" height="84" rx="9" fill="#fff8ec" stroke="${ink}" stroke-width="3"/>
+    <text x="${x + 8}" y="${y + 24}" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="22" fill="${suit[s][0]}">${r}</text>
+    <path d="${suit[s][1]}" fill="${suit[s][0]}" transform="translate(${x + 22} ${y + 36}) scale(1.45)"/></g></g>`;
+  const chip = (x, y, c, e) => `<ellipse cx="${x}" cy="${y + 5}" rx="17" ry="7" fill="#00000044"/><ellipse cx="${x}" cy="${y}" rx="17" ry="7" fill="${c}" stroke="${ink}" stroke-width="2.5"/><ellipse cx="${x}" cy="${y}" rx="8" ry="3.2" fill="none" stroke="${e}" stroke-width="2" stroke-dasharray="3 2"/>`;
+  const stack = (x, y, n, c, e) => Array.from({ length: n }, (_, i) => chip(x, y - i * 6, c, e)).join('');
+  const burst = Array.from({ length: 20 }, (_, i) => { const a = i / 20 * Math.PI * 2, r = i % 2 ? 23 : 30; return `${(222 + Math.cos(a) * r).toFixed(1)},${(52 + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An ace and a jack making 21 on a blue table, with a gold 21 badge and stacks of chips">
+  <rect width="320" height="150" fill="#2a5f93"/>
+  <ellipse cx="160" cy="164" rx="214" ry="100" fill="#3f86b8"/>
+  <ellipse cx="160" cy="164" rx="180" ry="78" fill="none" stroke="#fff4e255" stroke-width="3" stroke-dasharray="10 8"/>
+  ${card(98, 30, -9, 'A', 's', 0)}${card(140, 30, 9, 'J', 'h', .25)}
+  <polygon points="${burst}" fill="#ffb547" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>
+  <text x="222" y="61" text-anchor="middle" font-family="Rubik, Nunito, sans-serif" font-weight="700" font-size="25" fill="${ink}">21</text>
+  ${stack(62, 122, 4, '#7ed3b2', '#fff4e2')}${stack(94, 132, 2, '#ff8fab', '#fff4e2')}${stack(252, 126, 3, '#3b2219', '#ffb547')}</svg>`;
+}
+
 // Ludo card: the cross-shaped board from above with a few chunky pawns and a die.
 export function ludoArt() {
   const cols = ['#ff6b6b', '#4db5ff', '#ffc93c', '#5fd08a'], u = 9, o = `stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"`;
