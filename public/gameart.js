@@ -384,6 +384,25 @@ export function panArt() {
   </svg>`;
 }
 
+// Dominoes card: a short line of chunky tiles on a teal table, a double lying crosswise, and one more tile on its way down.
+export function dominoArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const PIP = ['', '#e5543b', '#3f8fe0', '#3fae5d', '#e08a00', '#9a5fd0', '#16999b'];
+  const SP = [[], [[1, 1]], [[0, 0], [2, 2]], [[0, 0], [1, 1], [2, 2]], [[0, 0], [2, 0], [0, 2], [2, 2]], [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]];
+  const half = (v, x, y, s) => SP[v].map(([c, r]) => `<rect x="${(x + s * (.2 + c * .3) - s * .1).toFixed(1)}" y="${(y + s * (.2 + r * .3) - s * .1).toFixed(1)}" width="${(s * .2).toFixed(1)}" height="${(s * .2).toFixed(1)}" rx="1.6" fill="${PIP[v]}"/>`).join('');
+  // a tile s wide and 2s long; up = standing upright, otherwise lying along x
+  const tile = (x, y, s, a, b, up) => `<rect x="${x}" y="${y + 5}" width="${up ? s : 2 * s}" height="${up ? 2 * s : s}" rx="7" fill="#d9c3a4" ${o}/><rect x="${x}" y="${y}" width="${up ? s : 2 * s}" height="${up ? 2 * s : s}" rx="7" fill="#fff8ec" ${o}/>
+    <path d="${up ? `M${x + 7} ${y + s}h${s - 14}` : `M${x + s} ${y + 7}v${s - 14}`}" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>${half(a, x, y, s)}${up ? half(b, x, y + s, s) : half(b, x + s, y, s)}`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A line of dominoes on a teal table with one more tile about to be added">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/><circle cx="64" cy="14" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 26l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="40" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="34" fill="#2f8f86" ${o}/>
+    ${tile(52, 92, 30, 3, 5)}${tile(114, 77, 30, 5, 5, true)}${tile(146, 92, 30, 5, 2)}
+    <g class="dbob"><g transform="rotate(12 244 62)">${tile(214, 46, 30, 2, 6)}</g></g>
+    <path class="arttick" d="M212 96l-4 8M224 100l-2 9M278 88l8-6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Piotruś card: a fan of pet cards on a green table, with the night-sky Piotruś card peeking out of the middle.
 export function piotrArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';

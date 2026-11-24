@@ -42,6 +42,8 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #20: Blackjack**, everyone against one dealer at a 3D table, for pretend chips like the poker table. Equal stacks of 1000, a set number of rounds, secret simultaneous bets (10 to 500), then hit, stand, double or split once; the dealer stands on every 17 and a blackjack pays 3 to 2. Most chips after the last round wins. Rules shared by server and client live in `public/games/bj/rules.js`.
 
+**Game #21: Dominoes**, classic draw dominoes with a double-six set for 2 to 4 at a long 3D table on a sky island. Highest double opens, match an open end or draw from the pile, pass when it is empty; going out scores the pips the others hold, a blocked line goes to the lightest hand. One round, or first to 50 or 100. Chill and Sharp bots (`BOTS` in `server/games/domino.js`). Rules and the picture of the line (`layout`) are shared in `public/games/domino/rules.js`; `node test/domino.js` checks them.
+
 **Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush and Mini Golf Party bet them, and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.

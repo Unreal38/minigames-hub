@@ -25,7 +25,7 @@ export const OPT_PL = {
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
-  'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
+  'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
@@ -325,6 +325,23 @@ export const GAMES_PL = {
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, znak zostanie postawiony za ciebie.</li>
       <li>Remisy nie przeciągną meczu w nieskończoność: po 9 rundach (po 7 przy grze do dwóch, po 5 przy jednej rundzie) wygrywa ten, kto ma więcej wygranych rund. Tyle samo wygranych rund to remis w meczu.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
+    </ol>`,
+  },
+  domino: {
+    name: 'Domino', start: 'Rozdaj kostki', openSeat: 'Jeśli nikt nie dołączy, tymi kostkami zagra bot',
+    pitch: 'Klasyczne domino z dobieraniem i grubymi klockowymi kostkami. Dopasuj końce, pozbądź się kostek jako pierwszy i zgarnij oczka, które zostały innym.',
+    howto: `Dokładajcie na zmianę po jednej kostce do linii: jedna z jej liczb musi pasować do wolnego końca. Jeśli nic nie pasuje, dobierasz ze stosu. Kto pierwszy dołoży ostatnią kostkę, wygrywa rundę i zdobywa oczka, które zostały pozostałym.`,
+    rules: `<ol>
+      <li>Komplet <b>28 kostek</b> z liczbami od pustego pola do szóstki. Przy dwóch graczach każdy dostaje <b>7 kostek</b>, przy trzech albo czterech <b>5 kostek</b>. Reszta to <b>stos</b> (tzw. bazar). Wolne miejsca zajmują boty.</li>
+      <li>W pierwszej rundzie zaczyna ten, kto ma <b>najwyższy dublet</b>, i to nim otwiera grę. W kolejnych rundach zaczyna <b>zwycięzca poprzedniej</b>, dowolną kostką.</li>
+      <li>W swojej turze dołóż <b>jedną kostkę</b> do któregoś końca linii. Jedna z jej liczb musi <b>pasować do wolnego końca</b>, którego dotyka. Dublety leżą w poprzek. Kostki, które możesz dołożyć, są podniesione: dotknij jednej z nich.</li>
+      <li>Gdy kostka pasuje do <b>obu końców</b>, dotknij jej, a potem jednego z dwóch żółtych przycisków na stole, żeby wybrać koniec.</li>
+      <li>Jeśli żadna twoja kostka nie pasuje, <b>dobierasz ze stosu</b>, aż coś będzie pasować. Gdy stos jest pusty, <b>pasujesz</b>.</li>
+      <li>Kto pierwszy dołoży ostatnią kostkę, ma <b>domino</b>: wygrywa rundę i zdobywa <b>wszystkie oczka</b>, które zostały na ręku pozostałym graczom.</li>
+      <li>Gdy nikt nie może dołożyć kostki, jest <b>blokada</b> (tzw. ryba): rundę wygrywa najlżejsza ręka i zdobywa oczka pozostałych pomniejszone o własne. Jeśli najlżejsze ręce są równe, nikt nie zdobywa punktów.</li>
+      <li>Mecz toczy się do <b>100 punktów</b> (albo do 50, albo trwa jedną rundę: wybierz w ustawieniach stołu). W grze na jedną rundę o kolejnych miejscach decyduje to, kto ma lżejszą rękę.</li>
+      <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, kostka zostanie dołożona za ciebie.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   pan: {
