@@ -2,7 +2,7 @@
 //   mount(app, ctx) -> { msg(m), chat(line), chatGone(), tables(rooms), reopen(), destroy() }
 // ctx comes from app.js: send(a) (a plaza action), toast, me(), home(), account(mode), player(pt), wheel(), join(code),
 // askTables(), gameName(id), chatLog(), chatFoot() (the hub chat's own markup: the plaza shares that conversation),
-// wardrobe() (opens the Wardrobe at the emotes).
+// wardrobe() (opens the Wardrobe at the emotes), games() (ids of the table games), host(id) (opens a table).
 import { L } from '../../i18n.js';
 import { sfx } from '../../sfx.js';
 import { EMOJI, FOODS, reactHtml } from '../../react.js';
@@ -180,8 +180,8 @@ export function mount(app, ctx) {
   function tablesHtml() {
     const open = tablesList.filter(t => t.state === 'lobby' && t.n < (t.size || t.max));
     $('plz-tbln').hidden = !open.length; $('plz-tbln').textContent = open.length;
-    return `<h3>${L('Open tables', 'Otwarte stoły')}</h3>` + (open.length ? open.slice(0, 12).map(t => `<div class="plz-row"><b>${esc(ctx.gameName(t.game))}</b><span>${esc(t.host)} · ${t.n}/${t.size || t.max}</span><button type="button" class="btn sm m" data-a="join" data-code="${esc(t.code)}">${L('Join', 'Dołącz')}</button></div>`).join('')
-      : `<p class="plz-note">${L('No table is waiting for players right now. Host one from the main page and a signpost appears here for the others.', 'Nikt teraz nie czeka na graczy. Załóż stół na stronie głównej, a pojawi się tu drogowskaz dla pozostałych.')}</p>`);
+    return `<h3>${L('Open tables', 'Otwarte stoły')}</h3><button type="button" class="btn sm m plz-showbtn" data-a="hostpick">🪧 ${L('Host a table here', 'Załóż stół tutaj')}</button>` + (open.length ? open.slice(0, 12).map(t => `<div class="plz-row"><b>${esc(ctx.gameName(t.game))}</b><span>${esc(t.host)} · ${t.n}/${t.size || t.max}</span><button type="button" class="btn sm m" data-a="join" data-code="${esc(t.code)}">${L('Join', 'Dołącz')}</button></div>`).join('')
+      : `<p class="plz-note">${L('No table is waiting for players right now. Host one and your avatar stays here with a signpost for the others.', 'Nikt teraz nie czeka na graczy. Załóż stół, a twój awatar zostanie tutaj z drogowskazem dla pozostałych.')}</p>`);
   }
   function reactsHtml() {
     const mine = stickersOf(ctx.me());
@@ -210,6 +210,8 @@ export function mount(app, ctx) {
     else if (a === 'chat') setChat(!chatOpen);
     else if (a === 'rooms') { if (popKind === 'rooms') return closePop(); send({ k: 'rooms' }); openPop('rooms', roomsHtml(S?.rooms || []), 'top'); b.setAttribute('aria-expanded', 'true'); }
     else if (a === 'tables') { if (popKind === 'tables') return closePop(); ctx.askTables(); openPop('tables', tablesHtml(), 'top'); b.setAttribute('aria-expanded', 'true'); }
+    else if (a === 'hostpick') openPop('host', `<h3>${L('Host a table', 'Załóż stół')}</h3><p class="plz-note">${L('Pick a game. Your avatar stays where you stand with a signpost, so people in the plaza can join.', 'Wybierz grę. Twój awatar zostanie tam, gdzie stoisz, z drogowskazem, żeby osoby z placu mogły dołączyć.')}</p><div class="plz-games">${ctx.games().map(id => `<button type="button" data-a="host" data-game="${esc(id)}">${esc(ctx.gameName(id))}</button>`).join('')}</div>`, 'mid');
+    else if (a === 'host') { closePop(); ctx.host(b.dataset.game); }
     else if (a === 'goroom') { closePop(); send({ k: 'join', room: +b.dataset.no }); }
     else if (a === 'join') { closePop(); ctx.join(b.dataset.code); }
     else if (a === 'emos') { const on = !root.classList.contains('emos-open'); closePop(); root.classList.toggle('emos-open', on); b.setAttribute('aria-expanded', on); }
