@@ -159,7 +159,16 @@ export function mount(app, ctx) {
   // What a farmhouse level opens besides new places to explore.
   const HOUSE_OPENS = { 4: [() => L('the Pet Lodge', 'Schronisko zwierzaków')],
     5: [() => L('land up to 24 by 24', 'ziemię do 24 na 24')] };
-  let lodgeBack = null; // where the Lodge window was, so "Back to the Lodge" on a pet card returns there
+  let cardBack = null; // the window a pet card was opened from with its "i" button, so the card can go back to it
+  const infoBtn = (id, name, cls = 'pfinfo') => `<button type="button" class="${cls}" data-a="pcard" data-id="${id}" title="${L('Open its card', 'Otwórz kartę')}" aria-label="${L(`Open the card of ${esc(name)}`, `Otwórz kartę: ${esc(name)}`)}">i</button>`;
+  // Every own pet in a list or picker gets a small "i" next to it that opens its card (the pet itself picks or finds it).
+  function addInfo() {
+    const box = $('pf-panel'); if (where === 'visit' || !F || box.hidden) return;
+    for (const b of box.querySelectorAll('.pickpet[data-id], .petrow[data-id]')) {
+      const p = F.pets.find(x => x.id === b.dataset.id); if (!p || b.parentElement.classList.contains('pfiw')) continue;
+      const w = document.createElement('span'); w.className = 'pfiw' + (b.classList.contains('petrow') ? ' row' : ''); b.replaceWith(w); w.append(b); w.insertAdjacentHTML('beforeend', infoBtn(p.id, p.name));
+    }
+  }
   const LODGE_PAGE = 36, ldSort = () => { try { return localStorage.getItem('pf_lsort') || 'sp'; } catch { return 'sp'; } };
   // said wherever a new pet arrives: when the island is full it goes straight into the Pet Lodge
   const inLodge = id => F.pets.find(x => x.id === id)?.lodge ? L('The island is full, so it is waiting in your Pet Lodge.', 'Na wyspie nie ma miejsca, więc czeka w Schronisku.') : '';
@@ -234,7 +243,8 @@ export function mount(app, ctx) {
     return (on ? `<p class="helpon boost"><span><b>${boostName(type)}</b> ${on.left ? L(`runs for ${wait(on.left)} more.`, `działa jeszcze ${wait(on.left)}.`) : L(`${cnt(on.uses, 'use', 'uses')} left.`, `pozostało użyć: ${on.uses}.`)}</span></p>` : '')
       + (n && !on ? `<p class="hint">${boostWhat(type)}</p><button type="button" class="btn sm m" data-a="boost" data-type="${type}">${L(`Start booster (${n})`, `Włącz wzmocnienie (${n})`)}</button>` : n ? `<p class="hint">${L(`Boosters waiting: ${n}.`, `Czekające wzmocnienia: ${n}.`)}</p>` : ''); };
   const petRow = (p, extra = '') => `${favMark(p)}${face(p)}<b>${esc(p.name)}</b><small>${L(`Level ${p.lv}${extra}`, `Poziom ${p.lv}${extra}`)}</small>`;
-  function paintPanel() {
+  function paintPanel() { paintPanelNow(); addInfo(); }
+  function paintPanelNow() {
     // where the send panel was scrolled, so a tap on a place or a pet does not jump it back
     const box = $('pf-panel'), was = box.querySelector('.tripp .dests') && panel?.kind === 'send' ? { t: box.querySelector('.tripp').scrollTop, d: box.querySelector('.dests').scrollLeft, p: box.querySelector('.party')?.scrollLeft || 0 } : null;
     if (!panel || mode !== 'farm' || (edit && panel.kind !== 'buy')) { box.hidden = true; box.innerHTML = ''; return; }
@@ -493,7 +503,7 @@ export function mount(app, ctx) {
         shelves.length < SHELF_MAX ? `<button type="button" data-a="ldnew">+ ${L('New collection', 'Nowa kolekcja')}</button>` : ''].join('');
       const cells = vis.slice(panel.page * LODGE_PAGE, (panel.page + 1) * LODGE_PAGE).map(p => { const s = SPECIES[p.sp], on = panel.sel.includes(p.id);
         return `<div class="ldwrap"><button type="button" class="ldcell${on ? ' on' : ''}" data-a="ldpick" data-id="${p.id}" aria-pressed="${on}">${face(p, s.name)}<b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b><small>${p.name === s.name ? '' : s.name + ' · '}${L('lv', 'poz.')} ${p.lv}</small><span class="prtags">${elTags(p)}</span></button>`
-          + `<button type="button" class="ldinfo" data-a="ldcard" data-id="${p.id}" title="${L('Open its card', 'Otwórz kartę')}" aria-label="${L(`Open the card of ${esc(p.name)}`, `Otwórz kartę: ${esc(p.name)}`)}">i</button></div>`; }).join('');
+          + `${infoBtn(p.id, p.name, 'ldinfo')}</div>`; }).join('');
       const n = panel.sel.length, lodgeFree = Math.max(0, F.lodgeRoom - inside.length), isleFree = Math.max(0, F.room - isle.length);
       const acts = !n ? `<p class="hint">${tab === 'isle' ? L('Tap pets to pick them, then store them in the Lodge.', 'Dotknij zwierzaków, żeby je wybrać, i przenieś je do Schroniska.') : L('Tap pets to pick them, then sort them into a collection or move them back to the island.', 'Dotknij zwierzaków, żeby je wybrać, a potem dodaj je do kolekcji albo przenieś z powrotem na wyspę.')}</p>`
         : tab === 'isle' ? `<div class="ldacts"><span class="hint">${L(`Picked: ${n}`, `Wybrane: ${n}`)}</span><button type="button" class="btn sm m" data-a="ldin" data-v="" ${n > lodgeFree ? 'disabled' : ''}>${L('Store in the Lodge', 'Do Schroniska')}</button>${shelves.map(x => `<button type="button" class="btn sm w" data-a="ldin" data-v="${x.id}" ${n > lodgeFree ? 'disabled' : ''}>${L(`Store in ${esc(x.name)}`, `Do kolekcji ${esc(x.name)}`)}</button>`).join('')}</div>${n > lodgeFree ? `<p class="hint">${L(`The Lodge has room for ${lodgeFree} more.`, `W Schronisku zmieści się jeszcze ${lodgeFree}.`)}</p>` : ''}`
@@ -827,7 +837,7 @@ export function mount(app, ctx) {
         <div class="mvlist"><span class="hint">${ROLE_NAME[KIT[p.sp].role]}</span>${movesAt(p.sp, p.lv, p.xmove, elOf(p)).map(id => `<span class="el" style="--c:${ELEMENTS[MOVES[id].el]}">${MOVES[id].name}</span>`).join('')}</div>
         ${Object.entries(RECIPES).filter(([k, r]) => F.inv[k] && (r.xp ? p.lv < MAX_LV : r.rest && p.rest > 0)).map(([k, r]) => `<button type="button" class="btn sm m" data-a="feed" data-what="${k}" data-id="${p.id}">${L(`Give a ${r.name} (${F.inv[k]} left)`, `Podaj: ${r.name} (masz ${F.inv[k]})`)}</button>`).join('')}
         ${p.lodge ? `<p class="hint">${L('Stored in the Pet Lodge. Move it out to the island to send it anywhere.', 'Jest w Schronisku. Przenieś go na wyspę, żeby gdzieś go wysłać.')}</p>` : ''}
-        ${p.lodge ? `<button type="button" class="btn sm m" data-a="lodgeopen" data-back="1">◀ ${L('Back to the Lodge', 'Wróć do Schroniska')}</button>` : ''}
+        ${cardBack ? `<button type="button" class="btn sm m" data-a="cardback">◀ ${cardBack.kind === 'lodge' ? L('Back to the Lodge', 'Wróć do Schroniska') : cardBack.kind === 'pets' ? L('Back to My pets', 'Wróć do listy zwierzaków') : L('Back', 'Wróć')}</button>` : ''}
         ${F.lodgeRoom ? `<button type="button" class="btn sm w" data-a="lodge" data-id="${p.id}" data-on="${p.lodge ? '' : '1'}">${p.lodge ? L('Move to the island', 'Przenieś na wyspę') : L('Store in the Lodge', 'Do Schroniska')}</button>` : ''}
         <button type="button" class="btn sm w" data-a="petpage" data-id="${p.id}">${L(`Traits and family`, `Cechy i rodzina`)}</button></div>
         <button type="button" class="round x" data-a="close" aria-label="${L(`Close`, `Zamknij`)}">×</button>`;
@@ -996,11 +1006,12 @@ export function mount(app, ctx) {
     else if (a === 'petpage') { panel = { kind: 'pet', id: b.dataset.id }; card = null; sync(); }
     else if (a === 'petopen') ctx.send({ t: 'petopen', id: b.dataset.id });
     else if (a === 'lodge') { sfx.click(); ctx.send({ t: 'lodge', ids: [b.dataset.id], on: !!b.dataset.on }); }
-    else if (a === 'lodgeopen') { panel = { kind: 'lodge', tab: 'all', sel: [], sort: ldSort(), page: 0, ...(b.dataset.back && lodgeBack || {}) }; lodgeBack = null; card = null; sfx.click(); sync(); }
+    else if (a === 'lodgeopen') { panel = { kind: 'lodge', tab: 'all', sel: [], sort: ldSort(), page: 0 }; cardBack = null; card = null; sfx.click(); sync(); }
+    else if (a === 'cardback') { if (!cardBack) return; panel = cardBack; cardBack = null; card = null; sfx.click(); sync(); }
     else if (a === 'ldtab') { panel.tab = b.dataset.v; panel.sel = []; panel.page = 0; sfx.click(); paintPanel(); }
     else if (a === 'ldsort') { panel.sort = b.dataset.v; panel.page = 0; try { localStorage.setItem('pf_lsort', b.dataset.v); } catch { /* no storage */ } sfx.click(); paintPanel(); }
     else if (a === 'ldpage') { panel.page = Math.max(0, (panel.page || 0) + +b.dataset.v); panel.sel = []; sfx.click(); paintPanel(); }
-    else if (a === 'ldcard') { lodgeBack = { tab: panel.tab, sort: panel.sort, page: panel.page }; panel = null; card = { pet: b.dataset.id }; sfx.click(); sync(); }
+    else if (a === 'pcard') { cardBack = panel; panel = null; card = { pet: b.dataset.id }; sfx.click(); sync(); }
     else if (a === 'ldpick') { const i = panel.sel.indexOf(b.dataset.id); if (i >= 0) panel.sel.splice(i, 1); else panel.sel.push(b.dataset.id); sfx.click(); paintPanel(); }
     else if (a === 'ldall') { const ids = [...$('pf-panel').querySelectorAll('.ldcell')].map(x => x.dataset.id); panel.sel = panel.sel.length === ids.length ? [] : ids; sfx.click(); paintPanel(); }
     else if (a === 'ldin') { sfx.click(); ctx.send({ t: 'lodge', ids: panel.sel, on: true, shelf: b.dataset.v || null }); panel.sel = []; }
@@ -1077,7 +1088,7 @@ export function mount(app, ctx) {
     else if (a === 'compare') { panel = { kind: 'compare' }; card = null; sync(); }
     else if (a === 'sellitem') { card = null; ctx.send({ t: 'remove', id: +b.dataset.id }); }
     else if (a === 'away') { const g = scene?.ghost(); if (g?.id) { ctx.send({ t: 'remove', id: g.id }); scene.ghostCancel(); } }
-    else if (a === 'close') { card = null; paintCard(); }
+    else if (a === 'close') { card = null; cardBack = null; paintCard(); }
     else if (a === 'grab') { const id = +b.dataset.id; setEdit(true); scene?.ghostItem(id); }
   });
   root.addEventListener('submit', e => {
