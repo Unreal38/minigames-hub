@@ -91,3 +91,6 @@ body:has(.pp) #toasts { top: 118px; }
 /* night: bright stickers (lantern, mint, light tickets) keep dark text */
 body.night .pp-pet.hay,
 body.night .pp-moves.low { color: var(--ink); }
+
+/* night: the wash behind the account window is night blue, not the pale day sky */
+body.night .pp .gate { background: #0c1236b8; }

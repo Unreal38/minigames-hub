@@ -81,3 +81,6 @@ body.night .hh-dock .hh-flip,
 body.night .hh-dock .hh-mark.on,
 body.night .hh-marks button.on,
 body.night .hh-sum li.lvl { color: var(--ink); }
+
+/* night: the wash behind the account window is night blue, not the pale day sky */
+body.night .hh .gate { background: #0c1236b8; }
