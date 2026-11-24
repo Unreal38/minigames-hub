@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -461,6 +461,27 @@ const GAMES = {
       <li>A classic game has <b>three prizes</b> on the same cards: <b>one line</b> (10 points), then <b>two lines</b> (20), then the <b>full card</b> (40). A quick game ends with the first line.</li>
       <li><b>Most points wins.</b> Players level on points are placed by how close their card is to full.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never daubs a number gets none.</li>
+    </ol>`,
+  },
+  pm: {
+    name: 'Countries & Cities', load: () => import('./games/pm/client.js'), start: 'Draw the first letter', min: 2,
+    host: { rounds: 5, time: 90, cats: 'classic', letters: 'easy', pet: 'off' }, solo: { rounds: 5, time: 90, cats: 'classic', letters: 'easy', pet: 'off' },
+    openSeat: 'Waiting for a friend (no bots in this game)', seats: r => Math.min(8, Math.max(4, r.players.length + 1)),
+    settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 3, '3')}${pill('rounds', 5, '5')}${pill('rounds', 8, '8')}</div></div>
+      <div class="opt"><b>Time to write</b><div class="pills">${pill('time', 60, '60 s')}${pill('time', 90, '90 s')}${pill('time', 120, '120 s')}</div></div>
+      <div class="opt"><b>Categories</b><div class="pills">${pill('cats', 'short', '4')}${pill('cats', 'classic', '6')}${pill('cats', 'long', '8')}</div></div>
+      <div class="opt"><b>Letters</b><div class="pills">${pill('letters', 'easy', 'Easy')}${pill('letters', 'pl', 'With Ł, Ś, Ż')}</div></div>
+      <div class="opt"><b>Extra category: Pet Farm pet</b><div class="pills">${pill('pet', 'off', 'Off')}${pill('pet', 'on', 'On')}</div></div>`,
+    howto: `A letter is drawn and everyone writes a country, a city, an animal and more, all starting with that letter. Fill every box first and press Stop, or beat the clock. Then the table checks the answers: a word nobody else wrote scores the most.`,
+    rules: `<ol>
+      <li>A game for <b>2 to 8 people</b>. There are no bots. Every round a <b>letter is drawn</b>, and no letter comes up twice in one game.</li>
+      <li>Write <b>one word in every category</b> that starts with the letter: country, city, animal, plant, name and thing (the table can play with 4 or 8 categories too). Nobody sees your words until the round is over.</li>
+      <li>When you have a word in every box, you can press <b>Stop!</b> The others then get <b>5 more seconds</b>. If nobody stops, the round ends when the time runs out.</li>
+      <li>Then <b>everyone checks the answers</b> together. Tap the thumb next to a word that is wrong. A word is thrown out when <b>more than half of the other players</b> reject it. Players who wrote the same word are judged together. Press <b>Ready</b> when you are done.</li>
+      <li>The game checks the <b>first letter</b> by itself, and it must be exactly the drawn one: Polish letters such as Ż, Ś or Ł are letters of their own, so “Żaba” does not count for Z. With the <b>Pet Farm pet</b> category on, the game also checks that the word is a real pet, and closes that box in rounds where no pet starts with the letter.</li>
+      <li>Points for each category: <b>15</b> when yours is the only good answer, <b>10</b> for a word nobody else wrote, <b>5</b> when somebody else wrote it too, <b>0</b> for an empty or rejected one. Capitals and accents don't make a word different: “Krakow” and “Kraków” are the same answer.</li>
+      <li><b>Most points after the last round wins.</b> Players level on points share the place.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never writes a word gets none.</li>
     </ol>`,
   },
   ttt: {
@@ -1462,6 +1483,7 @@ const HUB_GAMES = [
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
+  ['pm', 'pmpic', pmArt, 'board', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>
@@ -1805,7 +1827,8 @@ function renderLobby() {
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
       ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
-        ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
+        ${host && seated.length < (gm.min || 1) ? `<span class="chip">${L(`You need ${gm.min} players to start. Send the invite link to a friend.`, `Do startu potrzeba ${gm.min} graczy. Wyślij znajomemu link z zaproszeniem.`)}</span>`
+          : host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
         <button type="button" class="btn big ghost" data-act="leave">${L('Leave', 'Wyjdź')}</button>
       </div>
     </div>
