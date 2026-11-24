@@ -27,7 +27,7 @@ export const OPT_PL = {
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
-  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
+  Deck: 'Talia', '52 cards': '52 karty', '24 cards': '24 karty', Battles: 'Bitwy', 'Flip timer': 'Czas na odkrycie', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
@@ -445,6 +445,22 @@ export const GAMES_PL = {
       <li>As z kartą wartą 10 w dwóch pierwszych kartach to <b>blackjack</b>: płaci <b>3 do 2</b> (zakład 100, wygrana 150) i remisuje tylko z blackjackiem krupiera. Gdy blackjacka ma krupier, runda kończy się od razu.</li>
       <li>Bez żetonów odpadasz. Po ostatniej rundzie <b>wygrywa największy stos</b>, a monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas, gra stawia za ciebie ostatni zakład, a w twojej turze stajesz. Skróty: <b>H</b> dobierz, <b>S</b> stój, <b>D</b> podwój, <b>P</b> rozdziel, <b>Enter</b> stawia zakład.</li>
+    </ol>`,
+  },
+  wojna: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, te karty odkrywa bot',
+    pitch: 'Klasyczna wojna: odkryj wierzchnią kartę, najwyższa zabiera wszystkie, a równe karty oznaczają wojnę.',
+    howto: `Wojna, klasyczna polska gra dla dzieci. Wszyscy odkrywają wierzchnią kartę ze swojego stosu, a najwyższa zabiera wszystkie. Równe karty oznaczają wojnę: jeszcze jedna karta zakryta, jedna odkryta i zwycięzca bierze wszystko. Wygrywa ten, kto po ostatniej bitwie ma najwięcej kart.`,
+    rules: `<ol>
+      <li>Talię rozdaje się po równo, koszulkami do góry. Nikt nie ogląda swoich kart. Wolne miejsca zajmują boty.</li>
+      <li>W każdej <b>bitwie</b> wszyscy gracze odkrywają <b>wierzchnią kartę</b> ze swojego stosu. <b>Najwyższa karta zabiera wszystkie</b>. Dwójka jest najniższa, as najwyższy, kolory nie mają znaczenia.</li>
+      <li>Gdy najwyższe karty są <b>równe</b>, ci gracze toczą <b>wojnę</b>: każdy kładzie <b>jedną kartę zakrytą i jedną odkrytą</b>. Wyższa nowa karta zabiera wszystko ze stołu. Znowu równe karty to kolejna wojna.</li>
+      <li>Gracz, któremu w czasie wojny została ostatnia karta, kładzie ją odkrytą. Gdy nie ma już żadnej, walczy dalej kartą, która leży na stole.</li>
+      <li>Wygrane karty trafiają <b>pod spód twojego stosu</b> w pomieszanej kolejności, więc gra nigdy nie kręci się w kółko.</li>
+      <li>Bez kart <b>odpadasz</b>. Kto zbierze wszystkie karty, wygrywa od razu.</li>
+      <li>W innym wypadku gra kończy się po ustalonej liczbie bitew i <b>wygrywa największy stos</b>. Przy równych największych stosach gra toczy się dalej, aż jeden będzie większy.</li>
+      <li>Naciśnij <b>Odkryj</b>, dotknij stołu albo użyj <b>spacji</b> lub klawisza <b>Enter</b>, żeby odkryć kartę. Gdy czekasz za długo, karta odkrywa się sama. <b>Auto</b> (klawisz <b>A</b>) odkrywa za ciebie każdą kartę.</li>
+      <li>Przy trzech graczach i 52 kartach dwójka trefl zostaje w pudełku, więc każdy zaczyna z 17 kartami.</li>
     </ol>`,
   },
   piotr: {
