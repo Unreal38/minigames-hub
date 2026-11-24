@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -547,6 +547,29 @@ const GAMES = {
       <li>You have <b>20 seconds</b> a turn (table settings). Run out and a mark is placed for you.</li>
       <li>Draws cannot drag a match out for ever: after 9 rounds (7 when playing to two, 5 for a single round) whoever has won more rounds takes the match. Level on rounds is a drawn match.</li>
       <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
+    </ol>`,
+  },
+  chess: {
+    name: 'Chess', load: () => import('./games/chess/client.js'), start: 'Start the game',
+    mins: [10, 25],
+    host: { clock: '10+5', bots: 'easy' }, solo: { clock: 'off', bots: 'easy' },
+    openSeat: 'A bot plays here if nobody joins', seats: () => 2,
+    settings: pill => `<div class="opt"><b>Clock</b><div class="pills">${pill('clock', 'off', 'No clock')}${pill('clock', '3+2', '3 min + 2s')}${pill('clock', '5+3', '5 min + 3s')}${pill('clock', '10+5', '10 min + 5s')}${pill('clock', '15+10', '15 min + 10s')}</div></div>
+      <div class="opt"><b>Bot</b><div class="pills">${pill('bots', 'easy', 'Beginner')}${pill('bots', 'club', 'Club')}${pill('bots', 'sharp', 'Strong')}</div></div>`,
+    howto: `Classic chess for two. Tap one of your pieces to see where it can go, then tap a square to move it there. Trap the other king so it cannot escape to win: that is checkmate.`,
+    rules: `<ol>
+      <li><b>Two players</b>, White and Black. White moves first. Who gets White is drawn at random, and a rematch swaps the colours. An empty seat is played by a bot (Beginner, Club or Strong: pick it in the table settings).</li>
+      <li><b>Tap a piece</b> to see its moves: dots are free squares, red rings are pieces it can take. Tap one of them to move. The arrow keys and Enter work too.</li>
+      <li><b>How the pieces move.</b> Rook: straight lines. Bishop: diagonals. Queen: both. Knight: an L shape, and it jumps over pieces. King: one square any way. Pawn: one square forward (two from its starting square), and it takes one square diagonally forward.</li>
+      <li><b>Check</b> means your king is attacked: you have to get out of it. You may never make a move that leaves your own king attacked. The king in check glows red.</li>
+      <li><b>Checkmate</b> (the king is in check and nothing saves it) wins the game.</li>
+      <li><b>Castling</b>: once a game, if your king and a rook have not moved yet, the squares between them are empty and the king is not in check and does not cross or land on an attacked square, move the king <b>two squares towards the rook</b> and the rook hops over it.</li>
+      <li><b>En passant</b>: when a pawn jumps two squares and lands beside your pawn, you may take it on your very next move as if it had moved only one.</li>
+      <li><b>Promotion</b>: a pawn that reaches the far side turns into a queen, rook, bishop or knight of your choice.</li>
+      <li>The game is a <b>draw</b> when the player to move has no legal move and is not in check (stalemate), when the same position comes up three times, after 50 moves by each side with no capture and no pawn move, when neither side has enough pieces left to mate, or when both players agree (Offer a draw).</li>
+      <li><b>Clock</b> (table settings): each player has their own time, and a few seconds are added after every move. Run out of time and you lose, unless your opponent has only a king, or a king and a single knight or bishop: then it is a draw. With no clock you can think as long as you like.</li>
+      <li>You can <b>resign</b> at any time: tap Resign twice.</li>
+      <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place. A draw shares first place.</li>
     </ol>`,
   },
   cove: {
@@ -1619,6 +1642,7 @@ const HUB_GAMES = [
   ['bop', 'boppic', bopArt, 'action', '1–6 players', 'Bop the pets popping out of your burrows before they duck. Three hearts each, and the last one with a heart wins.'],
   ['bierki', 'bierkipic', bierkiArt, 'action', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
   ['pm', 'pmpic', pmArt, 'board', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
+  ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
