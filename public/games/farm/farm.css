@@ -93,27 +93,53 @@ body.in-game { overflow: hidden; }
 .pf .zone small { flex-basis: 100%; font-size: 13px; color: var(--pf-muted, #6b4a3c); }
 .pf .zone.off { background: var(--pf-soft, #efe2d2); } .pf .zone.off b { opacity: .6; }
 .pf .zone[aria-pressed=true], .pf .party .pickpet[aria-pressed=true] { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); transform: none; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.pf .zone.zisle { --zb: var(--pf-chip, var(--card)); position: relative; isolation: isolate; overflow: hidden; min-height: 78px; padding-right: 62px; align-content: center; }
-.pf .zone.zisle[aria-pressed=true] { --zb: var(--lantern); } .pf .zone.zisle.off { --zb: var(--pf-soft, #efe2d2); }
-.pf .zone.zisle > * { position: relative; } .pf .zone.zisle > b, .pf .zone.zisle > small { text-shadow: 0 0 3px var(--zb), 0 0 7px var(--zb), 0 0 12px var(--zb); }
-.pf .zone .zsky { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--s1, #bfe8ff), var(--s2, #eef8ff)); pointer-events: none; }
-.pf .zone .zsky::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--zb) 0, var(--zb) var(--zf, 36%), transparent calc(var(--zf, 36%) + 26%)); }
-.pf .zone .zpic { position: absolute; right: -14px; top: 50%; width: 92px; height: 92px; transform: translateY(-50%); }
-@media (max-width: 640px) { .pf .zone.zisle { padding-right: 40px; min-height: 70px; --zf: 50%; } .pf .zone .zpic { width: 72px; height: 72px; right: -14px; } }
-.pf .zone .zpic:not([src]) { visibility: hidden; }
-.pf .zone.zisle.off .zpic { filter: grayscale(.75); opacity: .55; }
-@media (hover: hover) { .pf .zone.zisle:not(.off):hover .zpic { transform: translateY(-54%); transition: transform .2s; } }
-body.night .pf .zone .zsky { background: linear-gradient(180deg, color-mix(in srgb, var(--s1, #bfe8ff) 28%, #10163a), color-mix(in srgb, var(--s2, #eef8ff) 22%, #1d2350)); }
-.pf .trips { gap: 6px; }
-.pf .trips button { color: var(--pf-tx, var(--ink)); border-color: var(--card-edge); padding: 4px 12px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
-.pf .trips button small { font-family: var(--fb, inherit); font-weight: 500; font-size: 12px; }
+.pf .tstep { margin: 4px 0 -2px; font-family: var(--fd); font-weight: 600; font-size: 17px; color: var(--pf-tx, var(--ink)); display: flex; align-items: center; gap: 8px; }
+.pf .tstep .tcount { font-size: 14px; padding: 1px 10px; border-radius: 999px; background: var(--pf-soft, #efe2d2); color: var(--pf-tx, var(--ink)); }
+/* Where to: each place is a postcard, its island large on its own sky, with the name and what it gives below. */
+.pf .dests { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 4px 2px 6px; }
+.pf .zone.dest { --zb: var(--pf-chip, var(--card)); position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 0; padding: 0; border-radius: 18px; box-shadow: 0 3px 0 var(--ink); transition: transform .15s; }
+.pf .zone.dest[aria-pressed=true] { --zb: var(--lantern); box-shadow: 0 0 0 3px var(--lantern), 0 5px 0 3px var(--ink); transform: translateY(-2px); }
+.pf .zone.dest.off { --zb: var(--pf-soft, #efe2d2); box-shadow: none; }
+.pf .dest .zsky { position: relative; display: block; height: 136px; flex: none; overflow: hidden; background: linear-gradient(180deg, var(--s1, #bfe8ff), var(--s2, #eef8ff)); pointer-events: none; }
+.pf .dest .zsky::before { content: ''; position: absolute; left: 12%; right: 12%; bottom: 6px; height: 14px; border-radius: 50%; background: rgba(40, 60, 110, .13); } /* a soft shadow the island floats over */
+.pf .dest .zpic { position: absolute; left: 50%; top: 50%; width: 140px; height: 140px; max-width: none; transform: translate(-50%, -46%); }
+.pf .dest .zpic:not([src]) { visibility: hidden; }
+.pf .dest[aria-pressed=true] .zpic { animation: pf-isle-bob 3s ease-in-out infinite; }
+@keyframes pf-isle-bob { 0%, 100% { transform: translate(-50%, -46%); } 50% { transform: translate(-50%, -51%); } }
+@media (hover: hover) { .pf .zone.dest:not(.off):not([aria-pressed=true]):hover { transform: translateY(-3px); } .pf .zone.dest:not(.off):not([aria-pressed=true]):hover .zpic { transform: translate(-50%, -50%); transition: transform .2s; } }
+@media (prefers-reduced-motion: reduce) { .pf .dest[aria-pressed=true] .zpic { animation: none; } }
+.pf .dest.off .zpic { filter: grayscale(.7); opacity: .6; }
+.pf .dest .dcap { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 7px 10px 9px; background: var(--zb); border-top: 3px solid var(--ink); }
+.pf .dest .dcap b { font-size: 16px; line-height: 1.15; text-wrap: balance; }
+.pf .dest .dline { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; }
+.pf .dest .dline small { flex-basis: auto; font-size: 12.5px; line-height: 1.25; }
+.pf .dest.off .dcap b { opacity: .65; } .pf .dest.off .dline { opacity: .7; }
+.pf .dest .dlock, .pf .dest .dtick { position: absolute; z-index: 1; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 4px; font-family: var(--fd); font-weight: 600; font-size: 12px; padding: 2px 9px 2px 7px; border-radius: 999px; background: var(--ink); color: #fff; }
+.pf .dest .dtick { left: auto; right: 8px; width: 26px; height: 26px; padding: 0; justify-content: center; font-size: 15px; background: var(--lantern); color: var(--ink); border: 3px solid var(--ink); }
+body.night .pf .dest .zsky { background: linear-gradient(180deg, color-mix(in srgb, var(--s1, #bfe8ff) 30%, #10163a), color-mix(in srgb, var(--s2, #eef8ff) 24%, #1d2350)); }
+body.night .pf .dest .zsky::before { background: rgba(0, 0, 0, .25); }
+body.night .pf .dest .zpic { filter: brightness(.92) saturate(.95); } body.night .pf .dest.off .zpic { filter: grayscale(.8) brightness(.8); }
+body.night .pf .dest .dlock { background: #0d1030; box-shadow: 0 0 0 2px rgba(255, 255, 255, .25); }
+.pf .trips { gap: 8px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pf .trips button { color: var(--pf-tx, var(--ink)); border-color: var(--card-edge); padding: 6px 8px; min-width: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.pf .trips button small { font-family: var(--fb, inherit); font-weight: 500; font-size: 12px; white-space: nowrap; }
 .pf .trips button[aria-pressed=true] { border-color: var(--ink); }
+/* A phone swipes one row of postcards sideways, so the pets stay close below. */
+@media (max-width: 640px) {
+  .pf .dests { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 44%; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; padding: 4px 2px 10px; }
+  .pf .zone.dest { scroll-snap-align: center; }
+  .pf .dest .zsky { height: 120px; } .pf .dest .zpic { width: 130px; height: 130px; }
+  .pf .trips { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .pf .trips button { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 8px; padding: 6px 10px; }
+  .pf .dest .dcap { padding: 6px 8px 8px; } .pf .dest .dcap b { font-size: 15px; }
+}
 .pf .party { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: thin; }
 .pf .party .pickpet { flex: none; width: 112px; padding: 6px; }
 .pf .party .pickpet b { font-size: 15px; } .pf .party .pickpet small { display: block; font-size: 12px; }
 /* On a wide screen the pet pickers use the room: cards wrap into rows instead of one scrolling strip. */
 @media (min-width: 641px) {
   .pf .panel.tripp { width: min(860px, 100%); }
+  .pf .panel.tripp:has(.dests) { width: min(1060px, 100%); } /* room for the places in two rows of six */
   .pf .party { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); overflow-x: visible; padding-bottom: 2px; }
   .pf .party .pickpet { width: auto; }
 }
