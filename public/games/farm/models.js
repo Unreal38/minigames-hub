@@ -111,6 +111,24 @@ const gearAt = (p, x, y, z, s, c, ry = .25, hole = C.iron) => { const gear = grp
   for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, o = put(gear, G('Box', .07, .08, .06), M(c), Math.cos(a) * .2, Math.sin(a) * .2, 0); o.rotation.z = a + Math.PI / 2; }
   put(gear, G('Cylinder', .06, .06, .07, 6), M(hole)).rotation.x = Math.PI / 2; return gear; };
 // How far each level lifts a building's roof, and where its smoke and flag end up.
+// The Climbing Tower's spots, shared by its model and by the pets that climb it (ROUTES.tower). up: how much taller level 3 is.
+export const TOWER = { up: .44, step: [-.28, .42, .24], mid: [.2, .68, .02], toy: [.4, .6, .2], top: [-.08, 1.45, 0], basket: [.24, 1.14, .18],
+  hammock: { x: -.23, y: 1.08, z: -.22, sag: .22 }, hut: [-.02, 1.88, .04] };
+// How far the hammock leans, so a pet lying in it sways with it.
+export const hammockSway = T => Math.sin(T * 1.4) * .16;
+// Upgraded decorations: what a pet does on one, as a list of stops it hops between, each [what, x, y, z, seconds, facing].
+// x, y, z are where it sits in the model's own space; facing is in the model's space too (0 looks to the front), or null to
+// keep facing the way it came from. scene3d.js plays the stops in order and hops back down at the end.
+export const ROUTES = {
+  tower(lv) {
+    const T = TOWER, at = ([x, y, z]) => [x, y, z], toPost = ([x, , z]) => Math.atan2(-x, -z), toToy = Math.atan2(T.toy[0] - T.mid[0], T.toy[2] - T.mid[2]);
+    if (lv < 2) return [['perch', ...at(T.top), 8, null]];
+    const head = [['scratch', ...at(T.step), 3, toPost(T.step)], ['bat', ...at(T.mid), lv < 3 ? 4 : 3.5, toToy]];
+    if (lv < 3) return [...head, ['nap', ...at(T.top), 9, null]]; // twice as long as level 1, three times at level 3
+    const h = T.hammock;
+    return [...head, ['sway', h.x, h.y - h.sag, h.z, 6, Math.atan2(h.x, h.z)], ['groom', ...at(T.basket), 3.5, toPost(T.basket) + Math.PI], ['peek', ...at(T.hut), 8, 0]];
+  },
+};
 export const LIFT = { house: [0, 0, .9, .9], barn: [0, .4, .75], kitchen: [0, .5, 1.0], gate: [0, .55, .8] };
 const liftOf = (type, lv) => LIFT[type]?.[Math.min(LIFT[type].length, Math.max(1, lv | 0)) - 1] || 0;
 
@@ -550,10 +568,35 @@ const BUILD = {
     cyl(g, .12, .16, .1, 6, C.stoneD); cyl(g, .03, .03, .5, 5, C.stoneD, 0, .1);
     if (!live) PARTS.glow(g);
   },
-  tower(g) {
-    cyl(g, .4, .44, .1, 6, C.woodD); cyl(g, .09, .09, 1.3, 6, C.straw, 0, .1);
-    cyl(g, .32, .32, .08, 6, C.lilac, .12, .6); cyl(g, .28, .28, .08, 6, C.pink, -.08, 1.36);
-    box(g, .3, .22, .3, C.wood, .2, .1, .2); ico(g, .07, C.yellow, -.3, .9, .1);
+  // Level 2 adds sisal bands, a step, a second leg, a toy mouse on a string and a basket bed on top. Level 3 grows taller:
+  // a hammock round the back, the basket moves to a shelf and a little hideout with a pointed roof sits on top.
+  // The spots pets use are in TOWER and ROUTES.tower above: keep the two in step.
+  tower(g, live, lv) {
+    const up = lv >= 3 ? TOWER.up : 0, sisal = '#c9a544';
+    cyl(g, .4, .44, .1, 6, C.woodD); cyl(g, .09, .09, 1.3 + up, 6, C.straw, 0, .1);
+    cyl(g, .32, .32, .08, 6, C.lilac, .12, .6);
+    box(g, .3, .22, .3, C.wood, .2, .1, .2);
+    if (lv < 2) { cyl(g, .28, .28, .08, 6, C.pink, -.08, 1.36); ico(g, .07, C.yellow, -.3, .9, .1); box(g, .012, .4, .012, C.cream, -.3, .96, .1); return; }
+    for (const y of [.22, .42, .82, 1.02, 1.22, ...(lv >= 3 ? [1.44, 1.64] : [])]) cyl(g, .097, .097, .03, 6, sisal, 0, y); // rope wound round the post
+    put(g, G('Cylinder', .075, .075, .04, 8), M('#5a3a2e'), .2, .2, .35).rotation.x = Math.PI / 2; box(g, .32, .03, .32, C.woodD, .2, .32, .2); // the den at the foot has a round door
+    cyl(g, .045, .045, .5, 6, C.straw, .36, .1, -.14); cyl(g, .05, .05, .03, 6, sisal, .36, .3, -.14); // a second leg under the platform
+    const [sx, sy, sz] = TOWER.step; cyl(g, .035, .035, sy - .16, 6, C.woodD, sx, .1, sz); cyl(g, .15, .15, .06, 6, C.lilac, sx, sy - .06, sz); cyl(g, .155, .155, .015, 6, C.cream, sx, sy - .012, sz);
+    if (!live) PARTS.towerToy(g);
+    const bed = (x, y, z, r) => { cyl(g, r, r * .86, .12, 8, '#c99763', x, y, z); put(g, G('Torus', r * .92, .045, 4, 10), M(C.woodD), x, y + .12, z).rotation.x = Math.PI / 2; cyl(g, r * .82, r * .82, .05, 8, C.pink, x, y + .04, z); };
+    if (lv < 3) { cyl(g, .3, .3, .05, 6, C.woodD, -.08, 1.31); bed(-.08, 1.36, 0, .3); return; }
+    // level 3: the basket on a shelf, a hammock between the post and a new back leg, and the hideout on top
+    const [bx, by, bz] = TOWER.basket; box(g, .06, .06, .2, C.woodD, bx - .16, by - .1, bz).rotation.z = -.7; cyl(g, .26, .26, .05, 6, C.woodD, bx, by - .05, bz); bed(bx, by, bz, .26);
+    const H = TOWER.hammock, hx = H.x * 2, hz = H.z * 2; cyl(g, .045, .05, H.y + .1, 6, C.woodD, hx, 0, hz); ico(g, .06, C.gold, hx, H.y + .14, hz); cyl(g, .1, .1, .03, 6, sisal, 0, H.y - .02, 0);
+    if (!live) PARTS.towerHammock(g);
+    const ty = 1.36 + up; cyl(g, .44, .44, .08, 6, C.lilac, -.02, ty); cyl(g, .45, .45, .02, 6, C.gold, -.02, ty + .06);
+    const hut = grp(g, -.02, ty + .08, -.02), W = .72, D = .62, Hh = .62, t = .06, dw = .42, dh = .48;
+    box(hut, W, Hh, t, C.cream, 0, 0, -D / 2 + t / 2); for (const s of [-1, 1]) box(hut, t, Hh, D, C.cream, s * (W / 2 - t / 2), 0, 0);
+    for (const s of [-1, 1]) box(hut, (W - dw) / 2, Hh, t, C.cream, s * (W + dw) / 4, 0, D / 2 - t / 2);
+    box(hut, dw, Hh - dh, t, C.cream, 0, dh, D / 2 - t / 2);
+    for (const s of [-1, 1]) box(hut, .05, dh + .03, t + .06, C.wood, s * (dw / 2 + .02), 0, D / 2 - t / 2); box(hut, dw + .1, .05, t + .06, C.wood, 0, dh, D / 2 - t / 2); // a door frame with depth
+    for (const s of [-1, 1]) { put(hut, G('Cylinder', .07, .07, t + .02, 8), M(C.glass), s * (W / 2 - t / 2), .26, 0).rotation.z = Math.PI / 2; put(hut, G('Torus', .075, .02, 4, 8), M(C.gold), s * (W / 2 + .005), .26, 0).rotation.y = Math.PI / 2; } // round side windows
+    const roof = put(hut, G('Cone', .6, .36, 4), M(C.blue), 0, Hh + .18, 0); roof.rotation.y = Math.PI / 4; roof.scale.z = .9;
+    box(hut, W + .08, .04, D + .08, C.blueD, 0, Hh - .02, 0); ico(hut, .05, C.gold, 0, Hh + .38, 0); pennant(hut, 0, Hh + .36, 0, C.pink, .3, .7);
   },
   cherry(g) {
     cyl(g, .07, .1, .5, 5, C.woodD); ico(g, .32, C.pink, 0, .78, 0); ico(g, .22, '#ffc2d4', .2, .62, .12); ico(g, .2, '#ffc2d4', -.2, .66, -.1);
@@ -675,6 +718,16 @@ const BUILD = {
 // The parts that move. A picture of a model has them baked in; on the farm (live) they stay loose and FX moves them.
 // Each returns what it made so FX can get at it.
 const PARTS = {
+  // the Climbing Tower's toy mouse, hanging from the platform's edge; it swings from its top
+  towerToy(g) { const [x, y, z] = TOWER.toy, o = grp(g, x, y, z); box(o, .012, .24, .012, C.cream, 0, -.24, 0); const m = grp(o, 0, -.28, 0);
+    m.scale.setScalar(1.3); ico(m, .065, '#b9b3c4', 0, 0, 0).scale.set(.9, .8, 1.25); for (const s of [-1, 1]) ico(m, .03, C.pink, s * .045, .05, .02); ico(m, .014, '#5a3a2e', 0, -.005, .08); box(m, .012, .012, .12, C.pink, 0, -.02, -.12).rotation.x = -.5;
+    return o; },
+  // the hammock round the back: slung from the post to the back leg, it rocks round the line between them
+  towerHammock(g) { const h = TOWER.hammock, o = grp(g, h.x, h.y, h.z); o.rotation.y = Math.atan2(-h.z, h.x); const s = grp(o); // its x runs along the line from the post to the back leg
+    const len = Math.hypot(h.x, h.z) * 2 - .08; for (const e of [-1, 1]) { const r = box(s, .014, .2, .014, C.cream, e * len / 2 * .82, -.17, 0); r.rotation.z = e * .7; }
+    const cloth = ico(s, .2, '#7fc6e8', 0, -h.sag + .03, 0, 1); cloth.scale.set(len / .4, .42, 1.05); const stripe = box(s, len * .7, .02, .03, C.white, 0, -h.sag - .03, .17); stripe.rotation.x = -.5;
+    box(s, len * .7, .02, .03, C.white, 0, -h.sag - .03, -.17).rotation.x = .5;
+    return s; },
   mailbox(g) { const f = new THREE.Group(); f.position.set(.2, .76, .1); g.add(f); box(f, .04, .22, .12, C.white, 0, 0, 0); box(f, .05, .1, .14, C.yellow, 0, .14, 0); return f; },
   garden(g) { return [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]].map(([x, z]) => { const p = new THREE.Group(); p.position.set(x, .18, z); g.add(p); cone(p, .09, .22, 4, C.leaf); p.userData.berry = ico(p, .05, C.red, .07, .12, .04); return p; }); },
   yard(g) { const d = new THREE.Group(); d.position.set(-.8, 0, -.2); g.add(d); box(d, .12, .9, .12, C.wood); box(d, .7, .12, .12, C.wood, 0, .55); box(d, .34, .34, .34, C.straw, 0, .86); return d; },
@@ -794,6 +847,12 @@ const FX = {
   swing(g) { const s = PARTS.swing(g); return T => { s.rotation.x = Math.sin(T * 1.7) * .22; }; },
   hotspring(g) { const st = PARTS.hotspring(g); return T => st.forEach((m, i) => { const u = (T * .22 + i / 3) % 1; m.position.y = .3 + u * 1.1; m.position.x = Math.sin(u * 4 + i * 2) * .25; m.scale.setScalar(Math.sin(Math.PI * u) * 1.1); }); },
   lighthouse(g) { const b = new THREE.Group(); b.position.y = 1.6; g.add(b); put(b, G('Box', .08, .08, 1.5), MX('beam', '#fff3b8', { transparent: true, opacity: .4, emissive: '#ffe9a0', emissiveIntensity: 1 }), 0, 0, .8); return T => { b.rotation.y = T * 1.2; }; },
+  tower(g, lv) { // the toy mouse sways, and spins round when a pet bats it; the hammock rocks
+    if (lv < 2) return null;
+    const toy = PARTS.towerToy(g), ham = lv >= 3 ? PARTS.towerHammock(g) : null; let k = 0;
+    return (T, st) => { k += ((st.burst > 0 ? 1 : 0) - k) * .08; toy.rotation.x = Math.sin(T * 2.1) * (.12 + k * .5); toy.rotation.z = Math.sin(T * 1.6 + 1) * (.08 + k * .3); toy.children[1].rotation.y = T * k * 6;
+      if (ham) ham.rotation.x = hammockSway(T); };
+  },
   statue(g) { const o = put(g, G('Octahedron', .05, 0), SPARK(), 0, 1.5, 0); return T => { o.position.y = 1.5 + Math.sin(T * 2) * .05; o.rotation.y = T * 2; o.scale.setScalar(.7 + Math.sin(T * 3) * .3); }; },
 };
 

@@ -180,6 +180,8 @@ const UPGRADES = {
   barn: 'Miejsce na 600 sztuk więcej każdego materiału',
   nest: ['Drugie miejsce na jajko', 'Trzecie miejsce na jajko, a jajka wykluwają się o jedną czwartą szybciej'],
   yard: 'Jedno miejsce treningowe więcej',
+  tower: { what: ['Zwierzaki zostają dwa razy dłużej: drapią słupek, łapią zabawkową myszkę i drzemią w koszyku', 'Zwierzaki zostają trzy razy dłużej: hamak, półka z koszykiem i kryjówka na szczycie, z której można wyglądać'],
+    does: ['Zwierzaki wspinają się na szczyt i rozglądają.', 'Zwierzaki drapią słupek, łapią zabawkową myszkę i drzemią w koszyku na szczycie.', 'Zwierzaki drapią, łapią myszkę, bujają się w hamaku, myją się w koszyku i wyglądają z kryjówki.'] },
 };
 const WORK = {
   garden:  ['podlewa grządki', n => `Jagody dojrzewają o ${n}% szybciej`],
@@ -225,7 +227,7 @@ export function plData(D) {
   for (const [k, s] of Object.entries(D.SPECIES)) { if (BLURB[k]) s.blurb = BLURB[k]; if (HINT[k]) s.hint = HINT[k]; }
   for (const [k, f] of Object.entries(D.FAMILIES)) if (FAMILIES[k]) f[0] = FAMILIES[k];
   D.RARITY.splice(0, RARITY.length, ...RARITY); D.FORMS.splice(0, FORMS.length, ...FORMS);
-  for (const [k, what] of Object.entries(UPGRADES)) if (D.UPGRADES[k]) D.UPGRADES[k].what = what;
+  for (const [k, what] of Object.entries(UPGRADES)) if (D.UPGRADES[k]) Object.assign(D.UPGRADES[k], typeof what === 'string' || Array.isArray(what) ? { what } : what); // a decoration also has does
   for (const [k, [job, what]] of Object.entries(WORK)) if (D.WORK[k]) Object.assign(D.WORK[k], { job, what });
   for (const [k, [name, desc]] of Object.entries(RECIPES)) if (D.RECIPES[k]) Object.assign(D.RECIPES[k], { name, desc });
   for (const [k, [name, blurb]] of Object.entries(ZONES)) if (D.ZONES[k]) Object.assign(D.ZONES[k], { name, blurb });
