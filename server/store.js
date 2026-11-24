@@ -1,6 +1,8 @@
 // Everything that survives a restart: player profiles (guest or username + password),
-// browser sessions, and open lobbies with their scoreboards. One JSON file, written atomically.
+// browser sessions, and open lobbies with their scoreboards. Saved in DATA_DIR/zatoka.db (db.js), a little at a time;
+// older versions kept one JSON file (cozy-table.json), which is read once, copied over, checked and never changed.
 import fs from 'node:fs';
+import * as db from './db.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -15,8 +17,8 @@ const DIR = DATA_DIR;
 const FILE = path.join(DIR, 'cozy-table.json');
 const SESSION_TTL = 180 * 86400_000; // forget unused guest sessions after half a year
 
-export const profiles = new Map(); // pid -> profile
-export const sessions = new Map(); // browser token -> { id, pid, seen }
+export const profiles = new db.Tracked('p'); // pid -> profile (a Map that notes what was looked at, for saving)
+export const sessions = new db.Tracked('s'); // browser token -> { id, pid, seen }
 const users = new Map();           // lower-case username -> pid
 const visitors = new Set();        // hashed browser tokens of everyone who has ever opened the site
 let savedRooms = [];
@@ -30,12 +32,27 @@ const rid = n => crypto.randomBytes(n).toString('hex');
 export const safeText = s => String(s ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/"/g, '”').replace(/'/g, '’');
 
 // ---------- load / save ----------
+// mode 'db': zatoka.db (normal). mode 'json': the old whole-file save, used only when STORE=json is set or when the
+// database could not be opened or did not match the JSON file after copying it over (nothing is lost either way).
+let mode = 'json';
+export const storeMode = () => mode;
 export function load() {
-  let d;
-  try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
-  catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return []; }
-  for (const p of Object.values(d.profiles || {})) {
-    profiles.set(p.pid, p); if (p.user) users.set(p.user.toLowerCase(), p.pid);
+  if (process.env.STORE !== 'json') {
+    try { db.open(DIR); if (db.getKv('imported')) return loadDb(); }
+    catch (e) { console.error(`could not open ${path.join(DIR, db.FILE_NAME)}, staying on ${FILE}:`, e.message); db.close(); return loadJson(); }
+  }
+  const rooms = loadJson();
+  if (!db.isOpen()) return rooms;
+  const r = importJson(rooms);
+  if (r.ok) { mode = 'db'; console.log(`copied ${r.counts} from ${fs.existsSync(FILE) ? FILE : 'nothing (a new site)'} to ${db.FILE_NAME} and checked every one; the JSON file is left as it was`); }
+  else { console.error(`NOT switching to ${db.FILE_NAME}: ${r.why}. Everything stays on ${FILE}, as before.`); dropDb(); }
+  return rooms;
+}
+function dropDb() { db.close(); for (const x of ['', '-wal', '-shm']) try { fs.rmSync(path.join(DIR, db.FILE_NAME + x), { force: true }); } catch {} }
+// Fixes older saves need (the same ones, whichever file the profile came from). True when it changed something.
+function fixProfile(p) {
+  const was = JSON.stringify(p);
+  {
     if (typeof p.name === 'string') p.name = safeText(p.name);
     // Isle decor was sold for coins for a few minutes before it became Pet Farm decorations: hand those coins back.
     if (p.owned?.some(id => id.startsWith('ip:'))) { const paid = [0, 80, 80, 60, 100, 80, 120, 90, 90];
@@ -47,6 +64,13 @@ export function load() {
     // Coins arrived after people had already played: everyone starts with what their past games would have paid.
     if (!Number.isFinite(p.coins)) p.coins = 5 * (p.games || 0) + 10 * (p.wins || 0); // the old rate: 5 a game, 10 more a win
   }
+  return JSON.stringify(p) !== was;
+}
+function loadJson() {
+  let d;
+  try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return []; }
+  for (const p of Object.values(d.profiles || {})) { profiles.set(p.pid, p); if (p.user) users.set(p.user.toLowerCase(), p.pid); fixProfile(p); }
   for (const [t, s] of Object.entries(d.sessions || {})) if (profiles.has(s.pid)) sessions.set(t, s);
   if (Array.isArray(d.visitors)) for (const v of d.visitors) if (typeof v === 'string') visitors.add(v);
   for (const t of Object.keys(d.sessions || {})) visitors.add(vkey(t)); // older saves had no visitor list
@@ -56,13 +80,76 @@ export function load() {
   console.log(`loaded ${profiles.size} profiles, ${sessions.size} sessions, ${savedRooms.length} lobbies from ${FILE}`);
   return savedRooms;
 }
+function loadDb() {
+  for (const { id, v } of db.rows('p')) {
+    const p = JSON.parse(v); profiles.set(id, p); profiles.remember(id, v);
+    if (p.user) users.set(p.user.toLowerCase(), id);
+    if (!fixProfile(p)) profiles.hot.delete(id); // a fixed one is written again at the first save
+  }
+  for (const { id, v } of db.rows('s')) { const s = JSON.parse(v); sessions.remember(id, v); if (profiles.has(s.pid)) { sessions.set(id, s); sessions.hot.delete(id); } }
+  sessions.hot.clear(); // (sessions whose profile is gone are dropped at the first full save, like before)
+  for (const { id } of db.rows('v')) visitors.add(id);
+  const kv = k => { try { return JSON.parse(db.getKv(k) ?? 'null'); } catch { return null; } };
+  const k = kv('kofi'); if (Array.isArray(k?.seen) && Array.isArray(k?.pend)) kofi = { seen: k.seen, pend: k.pend };
+  const g = kv('gone'); if (Array.isArray(g)) gone = g.filter(x => typeof x?.h === 'string' && x.until > Date.now());
+  savedRooms = Array.isArray(kv('rooms')) ? kv('rooms') : [];
+  for (const x of ['kofi', 'gone', 'rooms']) lastKv[x] = db.getKv(x);
+  mode = 'db'; idleSaves();
+  console.log(`loaded ${profiles.size} profiles, ${sessions.size} sessions, ${visitors.size} visitors, ${savedRooms.length} lobbies from ${path.join(DIR, db.FILE_NAME)}`);
+  return savedRooms;
+}
+// First start on the database: copy everything loaded from the JSON file, exactly as it is in memory, then read it
+// all back and compare it, profile by profile. Only a perfect match switches the server over.
+function importJson(rooms) {
+  const now = Date.now();
+  try {
+    db.tx(() => {
+      for (const [pid, p] of profiles) { const t = JSON.stringify(p); db.put('p', pid, t); profiles.remember(pid, t); }
+      for (const [tok, x] of sessions) { const t = JSON.stringify(x); db.put('s', tok, t); sessions.remember(tok, t); }
+      for (const v of visitors) db.put('v', v, '1');
+      putKvs(rooms, now);
+    });
+    const why = checkDb(rooms, now);
+    if (why) return { ok: false, why };
+    db.putKv('imported', JSON.stringify({ at: new Date().toISOString(), from: path.basename(FILE), profiles: profiles.size, sessions: sessions.size, visitors: visitors.size }));
+    profiles.hot.clear(); sessions.hot.clear(); idleSaves();
+    return { ok: true, counts: `${profiles.size} profiles, ${sessions.size} sessions, ${visitors.size} visitors` };
+  } catch (e) { return { ok: false, why: 'copying failed: ' + e.message }; }
+}
+// What differs between memory and the database ('' when they match exactly).
+export function checkDb(rooms = savedRooms, now = Date.now()) {
+  const same = (kind, map) => {
+    const got = new Map(db.rows(kind).map(r => [r.id, r.v]));
+    if (got.size !== map.size) return `${kind === 'p' ? 'profiles' : 'sessions'}: ${map.size} in memory, ${got.size} saved`;
+    for (const [id, x] of map) if (got.get(id) !== JSON.stringify(x)) return `${kind === 'p' ? 'profile' : 'session'} ${id.slice(0, 6)}… differs`;
+    return '';
+  };
+  const v = new Set(db.rows('v').map(r => r.id));
+  return same('p', profiles) || same('s', sessions)
+    || (v.size !== visitors.size || [...visitors].some(x => !v.has(x)) ? `visitors: ${visitors.size} in memory, ${v.size} saved` : '')
+    || (db.getKv('rooms') !== JSON.stringify(rooms) ? 'open tables differ' : '')
+    || (db.getKv('kofi') !== JSON.stringify(kofi) ? 'Ko-fi records differ' : '')
+    || (db.getKv('gone') !== JSON.stringify(gone.filter(g => g.until > now)) ? 'deleted names differ' : '');
+}
+const lastKv = {};
+function putKvs(rooms, now) {
+  const vals = { rooms, kofi, gone: gone.filter(g => g.until > now) };
+  for (const [k, v] of Object.entries(vals)) { const t = JSON.stringify(v); if (t !== lastKv[k]) { db.putKv(k, t); lastKv[k] = t; } }
+}
+// The rolling part of the save moves on even when nothing calls for a save.
+let idleT = null;
+function idleSaves() { if (!idleT) idleT = setInterval(() => scheduleSave(), 15_000).unref(); }
+const newVisitors = [];
 
 let roomsFn = () => [], timer = null, warned = false;
 export function setRoomSource(fn) { roomsFn = fn; }
 export function scheduleSave() { if (!timer) timer = setTimeout(saveNow, 1500); }
 
-export function saveNow() {
+// all = true writes everything that differs (stopping); otherwise what was used since the last save plus a slice.
+export function saveNow(all = false) {
   clearTimeout(timer); timer = null;
+  if (mode === 'db') return saveDb(all === true);
+  profiles.hot.clear(); sessions.hot.clear(); profiles.gone.clear(); sessions.gone.clear(); newVisitors.length = 0;
   const rooms = roomsFn();
   const inRoom = new Set(rooms.flatMap(r => r.players));
   const now = Date.now(), keepP = {}, keepS = {};
@@ -85,12 +172,42 @@ export function saveNow() {
   }
 }
 
+// What is kept on disk, the same rules as the JSON file had: accounts always, guests once they have played, earned or
+// bought something, anyone sitting at an open table, and sessions until half a year unused.
+const worth = p => !!(p.user || p.games || p.coins || p.owned?.length);
+let fullNext = false;
+function saveDb(all) {
+  all ||= fullNext;
+  const rooms = roomsFn(), now = Date.now();
+  const inRoom = new Set(rooms.flatMap(r => r.players)), roomPids = new Set([...inRoom].map(t => sessions.peek(t)?.pid));
+  try {
+    db.tx(() => {
+      let byPid = null; // profile -> its browsers' sessions, built at most once per save and only when needed
+      profiles.flush((pid, p) => worth(p) || roomPids.has(pid), { all,
+        onNew: pid => { // a guest's first game: save their browser's session too
+          if (!byPid) { byPid = new Map(); for (const [t, s] of sessions.entries()) { const l = byPid.get(s.pid); if (l) l.push(t); else byPid.set(s.pid, [t]); } }
+          for (const t of byPid.get(pid) || []) sessions.hot.add(t);
+        } });
+      sessions.flush((t, s) => { const p = profiles.peek(s.pid); return !!p && (inRoom.has(t) || (now - (s.seen || 0) <= SESSION_TTL && worth(p))); }, { all });
+      for (const v of newVisitors) db.put('v', v, '1');
+      newVisitors.length = 0;
+      putKvs(rooms, now);
+    });
+    warned = false; fullNext = false;
+  } catch (e) {
+    if (!warned) console.error(`could not save to ${db.FILE_NAME}:`, e.message);
+    warned = true; fullNext = true; profiles.forget(); sessions.forget(); for (const k in lastKv) delete lastKv[k];
+    for (const v of visitors) newVisitors.push(v); // written again, whole, by the next save that works
+    scheduleSave();
+  }
+}
+
 // ---------- visitor count ----------
 // Counts distinct browsers. Only a short hash of each token is kept, so the list can't be used to log in.
 const vkey = t => crypto.createHash('sha256').update(String(t)).digest('hex').slice(0, 16);
 export function visit(token) {
   const k = vkey(token); if (visitors.has(k)) return false;
-  visitors.add(k); scheduleSave(); return true;
+  visitors.add(k); newVisitors.push(k); scheduleSave(); return true;
 }
 export const visitorCount = () => visitors.size;
 
@@ -493,7 +610,7 @@ export function prune(active) {
   const empty = p => !p.user && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length;
   let n = 0;
   for (const [t, s] of sessions) {
-    const p = profiles.get(s.pid);
+    const p = profiles.peek(s.pid); // peek: looking is not changing, so the save need not look at them all
     if (!p || !empty(p) || active(t) || now - s.seen < 3600_000 || held.get(s.pid) > 1) continue;
     sessions.delete(t); profiles.delete(p.pid); n++;
   }

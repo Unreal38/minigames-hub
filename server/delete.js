@@ -7,6 +7,7 @@
 // device signed in to it becomes a guest. It leaves a small file in the data folder; the running server picks it up
 // within a few seconds. The username stays taken for 30 days. Older copies of the data in your own backups (if you keep any) are not touched.
 import fs from 'node:fs';
+import { savedProfiles } from './saved.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ const user = String(process.argv[2] || '').trim();
 if (!user) { console.error('Usage: npm run delete-account -- <username>'); process.exit(1); }
 
 let data;
-try { data = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8')); }
+try { data = savedProfiles(DATA_DIR); }
 catch (e) { console.error(`Could not read the saved accounts in ${DATA_DIR} (${e.message}). Set DATA_DIR to the folder the server uses.`); process.exit(1); }
 const p = Object.values(data.profiles || {}).find(x => x.user && x.user.toLowerCase() === user.toLowerCase());
 if (!p) { console.error(`There is no account called "${user}". Usernames are shown at the top of each player's Friends list.`); process.exit(1); }

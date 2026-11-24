@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { savedText } from './saved.js';
 const PORT = 19080 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -70,7 +71,7 @@ const xpA = a.me.xp, idA = a.id;
 
 // restart
 await stop();
-const raw = fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8');
+const raw = savedText(DATA_DIR) + fs.readdirSync(DATA_DIR).map(f => fs.readFileSync(path.join(DATA_DIR, f), 'latin1')).join(); // the database file itself too
 if (raw.includes('hunter22')) fail('password stored in plain text');
 a.room = b.room = null; a.s = b.s = undefined;
 await boot();

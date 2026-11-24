@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved, writeSaved } from './saved.js';
 import * as R from '../public/games/mahj/rules.js';
 import * as race from '../server/games/mahj.js';
 const { LAYOUT_IDS, layout, deal, reshuffle, isFree, canPair, pairs, findMove, tilesLeft, kindsFor, level, starsFor, coinsFor, NKINDS, DAILY, PAIR_PTS, HINT_COST, RACE } = R;
@@ -127,8 +128,8 @@ function player(name, token) {
 let a;
 const edit = async f => { // change the saved board while the server is down
   await wait(1700); await stop();
-  const file = path.join(DATA_DIR, 'cozy-table.json'), d = JSON.parse(fs.readFileSync(file, 'utf8'));
-  f(Object.values(d.profiles).find(p => p.user === 'ana').mj); fs.writeFileSync(file, JSON.stringify(d));
+  const d = readSaved(DATA_DIR);
+  f(Object.values(d.profiles).find(p => p.user === 'ana').mj); writeSaved(DATA_DIR, d);
   await boot(); a = player('Ana', a.token); await a.ready;
   return (await a.do({ t: 'open' })).s;
 };

@@ -4,6 +4,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved } from './saved.js';
 const PORT = 18800 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-priv-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -77,7 +78,7 @@ await until(() => !ana.me.user, 'deleted screen is a guest');
 await until(() => bo.gone.includes(lineId), 'chat line removed from open screens');
 try { execFileSync('node', ['server/delete.js', 'nobody'], { env: { ...process.env, DATA_DIR }, stdio: 'pipe' }); fail('unknown user should fail'); } catch (e) { if (e.status !== 1) fail('unknown user exit code'); }
 await wait(500);
-const saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
+const saved = readSaved(DATA_DIR);
 const profs = Object.values(saved.profiles);
 if (profs.some(p => p.user === 'ana')) fail('ana still saved');
 const boP = profs.find(p => p.user === 'bob');

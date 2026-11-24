@@ -5,6 +5,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved, writeSaved, savedText } from './saved.js';
 import { AV_KEYS, OPT, packIds, wearable } from '../public/avatar.js';
 import { cosPackIds, COS } from '../public/cosmetics.js';
 const PORT = 19080 + (Math.random() * 900 | 0), KEY = 'test-kofi-token';
@@ -81,19 +82,19 @@ cy.send({ t: 'kofi', email: 'wrong@example.com' }); await wait(200);
 ok(cy.last('kofi')?.err && !has(cy), 'a wrong email claimed a payment');
 cy.send({ t: 'kofi', email: ' cy.mail@example.com ' }); await wait(400);
 ok(cy.last('kofi')?.ok && has(cy), 'the right email did not claim the payment');
-ok(!fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8').toLowerCase().includes('example.com'), 'an email was saved');
+ok(!savedText(DATA_DIR).toLowerCase().includes('example.com'), 'an email was saved');
 await stop();
 
 // the claim is used up, and the host command gives the pack by hand
-const saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
+const saved = readSaved(DATA_DIR);
 ok(saved.kofi.pend.length === 0 && saved.kofi.seen.length === 3, 'the Ko-fi list was not saved as expected');
 ok(!JSON.stringify(saved).includes('example.com') && !JSON.stringify(saved).includes('x.pl'), 'an email was saved');
 // bo_2 gets the pack as it first shipped (clothes only), to check that the server tops it up
-saved.profiles.p4 = prof('p4', 'Dee'); saved.profiles.p2.owned = saved.profiles.p2.owned.filter(id => CLOTHES.includes(id)); fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify(saved));
+saved.profiles.p4 = prof('p4', 'Dee'); saved.profiles.p2.owned = saved.profiles.p2.owned.filter(id => CLOTHES.includes(id)); writeSaved(DATA_DIR, saved);
 await boot({ KOFI_TOKEN: KEY });
 execFileSync('node', ['server/supporter.js', 'dee'], { env: { ...process.env, DATA_DIR }, stdio: 'ignore' });
 await wait(3600); await stop();
-const after = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
+const after = readSaved(DATA_DIR);
 ok(IDS.every(id => after.profiles.p4.owned?.includes(id)), 'the supporter command did not give the pack');
 ok(IDS.every(id => after.profiles.p1.owned.includes(id)), 'the pack was lost over a restart');
 ok(IDS.every(id => after.profiles.p2.owned.includes(id)), 'an early supporter did not get the account cosmetics');

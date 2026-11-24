@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readFarms } from './saved.js';
 import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, xpFor, tripLoot, canWork, workPct, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
 const PORT = 20900 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
@@ -725,7 +726,7 @@ if (!r.err) fail('freed a pet that does not exist');
 r = await a.farmDo({ t: 'open', test: { weather: 'none', ripe: true } });
 const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved
 await stop(); await boot();
-if (!fs.existsSync(path.join(DATA_DIR, 'pet-farm.json'))) fail('pet-farm.json not written');
+if (!Object.keys(readFarms(DATA_DIR).farms).length) fail('farms not saved');
 const a2 = player('Ana again'); await a2.ready;
 a2.send({ t: 'login', user: 'ana', pass: 'hunter22' }); await until(() => a2.auth, 'login');
 if (a2.auth.err) fail(a2.auth.err);

@@ -921,7 +921,7 @@ notice.load();
 let stopping = false;
 const bye = (code = 0) => {
   if (stopping) return; stopping = true;
-  store.saveNow(); farm.saveNow(); hubchat.saveNow();
+  store.saveNow(true); farm.saveNow(true); hubchat.saveNow();
   let n = 0;
   for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
   console.log(`stopping: saved, told ${n} screens to wait for the restart`);
