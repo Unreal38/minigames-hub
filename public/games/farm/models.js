@@ -129,7 +129,7 @@ export const ROUTES = {
     return [...head, ['sway', h.x, h.y - h.sag, h.z, 6, Math.atan2(h.x, h.z)], ['groom', ...at(T.basket), 3.5, toPost(T.basket) + Math.PI], ['peek', ...at(T.hut), 8, 0]];
   },
 };
-export const LIFT = { house: [0, 0, .9, .9], barn: [0, .4, .75], kitchen: [0, .5, 1.0], gate: [0, .55, .8] };
+export const LIFT = { house: [0, 0, .9, .9, .9], lodge: [0, 0, .55], barn: [0, .4, .75], kitchen: [0, .5, 1.0], gate: [0, .55, .8] };
 const liftOf = (type, lv) => LIFT[type]?.[Math.min(LIFT[type].length, Math.max(1, lv | 0)) - 1] || 0;
 
 const BUILD = {
@@ -201,6 +201,62 @@ const BUILD = {
     put(rf, G('Octahedron', .1, 0), M(C.gold), 0, 2.42, 1.05).scale.set(1, 1.5, .6); box(rf, .03, .14, .03, C.goldD, 0, 2.25, 1.05); // a gold finial over the gable
     for (const sd of [-1, 1]) box(rf, .16, .05, 2.42, C.gold, sd * 1.34, 1.3, -.1);
     lantern(g, -.46, .58, .9);
+    if (lv < 5) return;
+    // level 5, the farm estate: a square clock tower at the back right with a gold dome and a star on top
+    const k = grp(g, 1.0, 0, -1.08);
+    box(k, .62, .12, .62, C.stoneD); box(k, .54, 3.0, .54, C.cream, 0, .1); for (const [x, z] of [[-.27, -.27], [.27, -.27], [-.27, .27], [.27, .27]]) box(k, .08, 3.0, .08, C.woodD, x, .1, z);
+    box(k, .62, .1, .62, C.woodD, 0, 1.5); box(k, .64, .12, .64, C.stoneD, 0, 3.08);
+    for (const [ry, x, z] of [[0, 0, .28], [Math.PI / 2, .28, 0]]) { const f = grp(k, x, 2.55, z); f.rotation.y = ry; // a clock face on the front and the side
+      put(f, G('Cylinder', .2, .2, .04, 12), M(C.white)).rotation.x = Math.PI / 2; put(f, G('Torus', .2, .03, 4, 12), M(C.gold), 0, 0, .02);
+      box(f, .025, .13, .02, C.iron, 0, -.01, .03); box(f, .1, .025, .02, C.iron, .04, 0, .035); ico(f, .02, C.gold, 0, 0, .045); }
+    for (const sd of [-1, 1]) { const w = grp(k, sd * .28, 1.9, 0); w.rotation.y = sd * Math.PI / 2; box(w, .2, .34, .06, C.glass); box(w, .26, .05, .1, C.woodD, 0, -.04); }
+    put(k, G('Cylinder', .28, .4, .36, 4), M(C.blue), 0, 3.38, 0).rotation.y = Math.PI / 4; ico(k, .26, C.gold, 0, 3.66, 0, 1); // the dome
+    box(k, .03, .36, .03, C.goldD, 0, 3.88, 0); put(k, G('Octahedron', .11, 0), GOLDM(), 0, 4.3, 0).scale.set(1, 1.3, .4);
+    for (const sd of [-1, 1]) banner(g, sd * .36 + .02, .55, 1.4, C.blue, .14, .3); // little banners on the fence posts
+  },
+  // The Pet Lodge: a long log cabin where stored pets sleep. Level 2 adds a porch, level 3 a whole upper floor.
+  lodge(g, live, lv = 1) {
+    const up = liftOf('lodge', lv), rf = grp(g, 0, up, -.18), roof = '#5b6fb8', roofD = '#46579a', gold = lv >= 3;
+    box(g, 2.9, .14, 1.5, C.stoneD, 0, 0, -.18);
+    box(g, 2.7, 1.05 + up, 1.3, '#c58e5c', 0, .1, -.18); // log walls
+    for (let i = 0; i < 6; i++) for (const z of [-.84, .48]) put(g, G('Cylinder', .065, .065, 2.74, 6), M(i % 2 ? C.wood : '#c99763'), 0, .2 + i * .18, z).rotation.z = Math.PI / 2;
+    for (const x of [-1.33, 1.33]) for (const z of [-.86, .5]) for (let i = 0; i < 6; i++) put(g, G('Cylinder', .06, .06, .26, 6), M(C.woodD), x, .2 + i * .18, z).rotation.x = Math.PI / 2; // log ends crossing at the corners
+    const r = grp(rf, 0, 1.15, 0); r.rotation.y = Math.PI / 2; put(r, gable(1.75, .85, 3.0), M(roof)); shingles(r, 1.75, .85, 3.0, 0, 0, roofD, 4);
+    box(rf, 3.06, .1, .1, gold ? C.gold : roofD, 0, 1.97, 0); // ridge
+    for (const sd of [-1, 1]) { // the gable ends: a wooden face with a round attic window, standing just proud of the roof
+      const g2 = put(rf, gable(1.3, .62, .04), M('#c58e5c'), sd * 1.515, 1.17, 0); g2.rotation.y = Math.PI / 2;
+      const w = put(rf, G('Cylinder', .13, .13, .06, 10), M(C.glass), sd * 1.54, 1.42, 0); w.rotation.z = Math.PI / 2; put(rf, G('Torus', .14, .035, 4, 10), M(gold ? C.gold : C.woodD), sd * 1.56, 1.42, 0).rotation.y = Math.PI / 2; }
+    // the sides and the back: windows with sills, a log pile and a water barrel, so no wall is bare
+    for (const sd of [-1, 1]) { const o = grp(g, sd * 1.36, 0, -.18); o.rotation.y = sd * Math.PI / 2;
+      put(o, G('Cylinder', .16, .16, .08, 12), M(C.glass), 0, .62, .02).rotation.x = Math.PI / 2; put(o, G('Torus', .17, .035, 4, 12), M(C.woodD), 0, .62, .05);
+      box(o, .1, .26, .03, C.pink, -.09, .5, .06); box(o, .1, .26, .03, C.pink, .09, .5, .06); box(o, .42, .06, .14, C.woodD, 0, .38, .08); }
+    for (const x of [-.7, .7]) { box(g, .36, .34, .08, C.white, x, .46, -.86); box(g, .28, .26, .1, C.glass, x, .5, -.865); box(g, .03, .26, .04, C.white, x, .5, -.915); box(g, .44, .05, .14, C.woodD, x, .42, -.9); }
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 3 - i; k++) put(g, G('Cylinder', .08, .08, .5, 7), M(k % 2 ? C.wood : '#c99763'), -.05 + (k - (2 - i) / 2) * .17, .08 + i * .14, -1.0).rotation.z = Math.PI / 2; // the log pile at the back
+    barrel(g, 1.2, -.98, .75);
+    box(rf, .3, .7, .3, C.stone, -.85, 1.4, -.45); box(rf, .38, .08, .38, C.stoneD, -.85, 2.1, -.45); // chimney
+    // the front: a wide double door with a moon sign over it, and round windows with curtains
+    box(g, .86, .8, .08, C.woodD, 0, .1, .5); for (const sd of [-1, 1]) { box(g, .38, .7, .08, '#7a5a8a', sd * .2, .12, .53); ico(g, .03, C.gold, sd * .06, .46, .58); }
+    box(g, .96, .08, .14, C.woodD, 0, .88, .52); box(g, 1.0, .08, .4, C.stone, 0, 0, .72);
+    const moon = put(g, G('Torus', .14, .045, 4, 10, Math.PI * 1.3), M(C.gold), 0, 1.04 + up * .5, .58); moon.rotation.z = -.9;
+    ico(g, .035, C.yellow, .16, 1.1 + up * .5, .58); ico(g, .025, C.yellow, -.14, 1.12 + up * .5, .58);
+    for (const sd of [-1, 1]) { const x = sd * .85;
+      const w = put(g, G('Cylinder', .2, .2, .08, 12), M(C.glass), x, .62, .52); w.rotation.x = Math.PI / 2; put(g, G('Torus', .21, .04, 4, 12), M(C.woodD), x, .62, .55);
+      box(g, .14, .3, .03, C.pink, x - .1, .62, .56); box(g, .14, .3, .03, C.pink, x + .1, .62, .56); // curtains drawn: someone is napping
+      box(g, .5, .1, .16, C.woodD, x, .32, .6); [C.lilac, C.white, C.pink].forEach((c, i) => ico(g, .07, c, x - .15 + i * .15, .44, .62)); }
+    lantern(g, .6, .7, .58);
+    if (lv < 2) return;
+    // level 2: a covered porch across the front with a bench, lanterns and a sleepy rug
+    box(g, 2.6, .08, .5, C.wood, 0, .1, .72); for (const x of [-1.25, -.55, .55, 1.25]) box(g, .08, .9, .08, C.woodD, x, .18, .92);
+    const pr = put(g, G('Box', 2.8, .07, .62), M(roofD), 0, 1.12, .76); pr.rotation.x = .22;
+    for (const sd of [-1, 1]) { box(g, .5, .06, .2, C.wood, sd * 1.0, .34, .82); for (const k of [-1, 1]) box(g, .05, .24, .05, C.woodD, sd * 1.0 + k * .2, .1, .82); lantern(g, sd * 1.25, .95, .92, .9); }
+    box(g, .6, .02, .3, C.lilac, 0, .18, .78); box(g, .4, .025, .18, C.cream, 0, .19, .78);
+    if (lv < 3) return;
+    // level 3: a whole upper floor, gold trim and a star on the ridge
+    for (const sd of [-1, 1]) { const x = sd * .6; box(g, .4, .4, .08, C.white, x, 1.12, .52); box(g, .32, .32, .1, C.glass, x, 1.16, .53); box(g, .03, .32, .04, C.white, x, 1.16, .58); box(g, .48, .05, .14, C.woodD, x, 1.1, .58); }
+    for (let i = 0; i < 2; i++) for (const z of [-.84, .48]) put(g, G('Cylinder', .065, .065, 2.74, 6), M(i % 2 ? C.wood : '#c99763'), 0, 1.28 + i * .18, z).rotation.z = Math.PI / 2;
+    for (const sd of [-1, 1]) box(rf, 3.0, .05, .06, C.gold, 0, 1.17, sd * .86);
+    box(rf, .03, .4, .03, C.goldD, 1.2, 1.97, 0); put(rf, G('Octahedron', .13, 0), GOLDM(), 1.2, 2.45, 0).scale.set(1, 1.3, .4);
+    pennant(rf, -1.2, 1.97, 0, C.lilac, .5, 1.1);
   },
   hut(g, live, lv = 1) {
     const pz = lv >= 2 ? .86 : .8; // how far out the paw-print plate stands
@@ -796,6 +852,7 @@ const SPARK = () => MX('spark', '#ffe066', { emissive: '#ffc94d', emissiveIntens
 // What each building does while it works. Each gets a loose group and returns tick(T, st, root):
 //   st.on: it is busy, st.n: how far along (0 to 1), st.burst: seconds left of a short flurry after an action.
 const FX = {
+  lodge(g, lv) { const smoke = puffs(g, -.85, 2.2 + liftOf('lodge', lv), -.63, 3, .1); return T => smoke(T, .18, true); },
   house(g, lv) { const smoke = puffs(g, .7, 2.25 + liftOf('house', lv) + (lv >= 2 ? .34 : 0), -.5, 4, .12); return T => smoke(T, .22, true); },
   kitchen(g, lv) { const smoke = puffs(g, .5, 1.75 + liftOf('kitchen', lv) + (lv >= 2 ? .1 : 0), -.5, 5, .12), steam = puffs(g, -.4, .56, .82, 3, .07); return (T, st) => { smoke(T, st.burst ? .7 : .2, true, st.burst ? 1.3 : .9); steam(T, .8, st.burst > 0, .5); }; },
   workshop(g) {

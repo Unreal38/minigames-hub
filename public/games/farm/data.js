@@ -3,9 +3,11 @@
 
 import { L, PL } from '../../i18n.js';
 
-export const SIZES = [10, 12, 14, 16, 18];
-// Cost of growing the land to SIZES[i].
-export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 }];
+export const SIZES = [10, 12, 14, 16, 18, 20, 22, 24];
+// Cost of growing the land to SIZES[i]. LAND_HOUSE[i]: the farmhouse level that size needs (none when missing).
+export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 },
+  { wood: 320, stone: 260, fiber: 140, shells: 20 }, { wood: 440, stone: 360, fiber: 190, coal: 30 }, { wood: 600, stone: 480, fiber: 250, coal: 50, crystal: 3 }];
+export const LAND_HOUSE = { 7: 5 };
 export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', coins: 'Coins' };
 // What each thing in the top bar is: where it comes from, and what it is for.
 export const MAT_INFO = {
@@ -25,7 +27,7 @@ export const MAT_INFO = {
   coins:    ['Battles, helping neighbours, and the other games on the site.', 'Trees and bushes here, and the avatar shop on the main page. Coins stay with you: they cannot be traded or gifted.'],
 };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
-export const MAX_ITEMS = 300;
+export const MAX_ITEMS = 450;
 
 // kind: 'b' building, 'd' decoration. w x h is the footprint before rotation. max = how many a farm may hold.
 // fine: a small prop that snaps to half tiles (its w and h may be .5). Everything else sits on whole tiles.
@@ -33,6 +35,7 @@ export const MAX_ITEMS = 300;
 export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
   hut:      { name: 'Pet Hut', kind: 'b', w: 2, h: 2, max: 3, cost: { wood: 30, fiber: 10 }, desc: 'A snug place for four more pets to sleep.' },
+  lodge:    { name: 'Pet Lodge', kind: 'b', w: 3, h: 2, max: 1, house: 4, cost: { wood: 120, stone: 80, fiber: 60, shells: 15 }, desc: 'A big cosy lodge where 60 more pets nap indoors, sorted into collections of your own. They can still go anywhere and do anything.' },
   gate:     { name: 'Expedition Gate', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 25, stone: 15 }, desc: 'Pets set off by balloon from here and come back with materials, and sometimes a new friend.' },
   garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil. Berries ripen here every hour.' },
   kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats for your pets.' },
@@ -195,11 +198,12 @@ export const FORMS = ['Baby', 'Young', 'Adult'];
 export const formOf = lv => lv < 5 ? 0 : lv < 12 ? 1 : 2;
 export const MAX_LV = 20;
 export const xpFor = lv => 10 + lv * 10; // experience needed to go from lv to lv + 1
-// The farmhouse sleeps two pets and every Pet Hut four more.
-// Building levels. Each building starts at level 1 and can be improved twice; level n needs a farmhouse of level n.
+// Building levels. Each building starts at level 1 and can be improved once for each cost in its UPGRADES entry
+// (twice for all of them now); level n needs a farmhouse of level n.
 export const UP_MAX = 3;
 export const UPGRADES = {
   hut:    { what: 'Two more beds', cost: [{ wood: 40, fiber: 20 }, { wood: 80, fiber: 40, shells: 10 }] },
+  lodge:  { what: ['Room for 150 pets inside', 'Room for 300 pets inside'], cost: [{ wood: 200, stone: 140, fiber: 100, coal: 20 }, { wood: 320, stone: 220, fiber: 160, coal: 35, crystal: 3 }] },
   gate:   { what: 'One more party can be out exploring', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
   kitchen:  { what: ['A new recipe: Sunberry Pie', 'A new recipe: Rest Tonic'], cost: [{ wood: 40, stone: 30, shells: 6 }, { wood: 80, stone: 60, coal: 12 }] },
   workshop: { what: ['A second set of decorations, and better swaps', 'The grandest decorations, and the best swaps'], cost: [{ wood: 50, stone: 40, shells: 8 }, { wood: 100, stone: 80, coal: 15, crystal: 1 }] },
@@ -213,7 +217,8 @@ export const UPGRADES = {
     does: ['Pets climb to the top and look around.', 'Pets scratch the post, bat the toy mouse and nap in the basket on top.', 'Pets scratch, bat the mouse, rock in the hammock, wash in the basket and peek out of the hideout.'],
     cost: [{ wood: 20, fiber: 15, shells: 4 }, { wood: 40, fiber: 30, shells: 8, coal: 4 }] },
 };
-export const lvOf = item => Math.min(UP_MAX, Math.max(1, item?.lv | 0 || 1));
+export const lvMax = type => (UPGRADES[type]?.cost.length || 0) + 1; // the top level of that building
+export const lvOf = item => Math.min(lvMax(item?.type), Math.max(1, item?.lv | 0 || 1));
 export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none
 export const upCost = item => UPGRADES[item.type]?.cost[lvOf(item) - 1] || null; // what the next level costs
 export const whatUp = item => { const w = UPGRADES[item.type]?.what; return Array.isArray(w) ? w[lvOf(item) - 1] : w; }; // what the next level gives
@@ -231,11 +236,22 @@ export const canWork = (p, type) => !!WORK[type] && elsOf(p).includes(WORK[type]
 export const workPct = (p, type) => canWork(p, type) ? 5 + p.lv + 3 * (p.stars?.[WORK[type].stat] || 3) : 0; // 9% for a level 1 with one star, 40% at level 20 with five
 export const TRAIN_XP = 6; // experience an hour for each pet training at the Training Yard
 export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n + v, 0); // every friendship point earned
+// Beds on the island: the farmhouse sleeps two pets and every Pet Hut four, plus two a level: 26 at most. Kuba kept the
+// island at that size on purpose (2026-11-24): collections grow in the Pet Lodge, not on the island.
+// The Pet Lodge holds LODGE_BEDS[level] more; pets there nap indoors when they have nothing to do, so they are not
+// drawn walking about (p.lodge), which is why it can hold so many. Inside, the owner sorts them into collections
+// (f.shelves, p.shelf). allRoom is everything together: the most pets a farm can keep.
 export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
+export const LODGE_BEDS = [0, 60, 150, 300], SHELF_MAX = 12, SHELF_NAME = 16;
+export const lodgeRoom = farm => LODGE_BEDS[topLv(farm, 'lodge')] || 0;
+export const allRoom = farm => petRoom(farm) + lodgeRoom(farm);
+// How many of a building a farm may hold.
+export const maxOf = (farm, type) => ITEMS[type]?.max;
 
 // The farmhouse: HOUSE_UP[n] is the cost of reaching level n.
-export const HOUSE_MAX = 4;
-export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 }];
+export const HOUSE_MAX = 5;
+export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 },
+  { wood: 300, stone: 220, shells: 50, coal: 50, crystal: 3 }];
 
 // What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
 export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1 };

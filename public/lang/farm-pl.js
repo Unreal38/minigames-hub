@@ -25,6 +25,7 @@ const MAT_INFO = {
 const ITEMS = {
   house: ['Dom', 'Nie ma jak w domu. Większy dom otwiera nowe miejsca do zwiedzania.'],
   hut: ['Chatka zwierzaków', 'Przytulne miejsce do spania dla czterech kolejnych zwierzaków.'],
+  lodge: ['Schronisko zwierzaków', 'Duży, przytulny dom, w którym 60 kolejnych zwierzaków drzemie pod dachem, ułożonych we własne kolekcje. Dalej mogą chodzić wszędzie i robić wszystko.'],
   gate: ['Brama wypraw', 'Stąd zwierzaki ruszają balonem i wracają z materiałami, a czasem z nowym przyjacielem.'],
   garden: ['Grządka', 'Kawałek ziemi. Co godzinę dojrzewają tu jagody.'],
   kitchen: ['Kuchnia', 'Zamienia jagody w smakołyki dla zwierzaków.'],
@@ -173,6 +174,7 @@ const RARITY = ['Pospolity', 'Niepospolity', 'Rzadki', 'Tylko z jajka'];
 const FORMS = ['Maluch', 'Podrostek', 'Dorosły'];
 const UPGRADES = {
   hut: 'Dwa łóżka więcej',
+  lodge: ['Miejsce dla 150 zwierzaków w środku', 'Miejsce dla 300 zwierzaków w środku'],
   gate: 'Jedna drużyna więcej może być na wyprawie',
   kitchen: ['Nowy przepis: Słoneczna tarta', 'Nowy przepis: Tonik wypoczynku'],
   workshop: ['Drugi zestaw ozdób i korzystniejsze wymiany', 'Najwspanialsze ozdoby i najlepsze wymiany'],
@@ -309,6 +311,17 @@ export const SRV_TEXT = {
   'A pet that is out exploring cannot start training. Welcome it home first.': 'Zwierzak na wyprawie nie może zacząć treningu. Najpierw przywitaj go w domu.',
   'A pet that is cuddling in the Nest cannot train.': 'Zwierzak, który przytula się w Gnieździe, nie może trenować.',
   'The farm is as big as it gets.': 'Większa farma już nie będzie.',
+  'Build a Pet Lodge first.': 'Najpierw zbuduj Schronisko zwierzaków.',
+  'The Pet Lodge is full. Improve it to make room for more.': 'Schronisko jest pełne. Ulepsz je, żeby zmieścić więcej zwierzaków.',
+  'Every bed on the island is taken. Build or improve a Pet Hut first.': 'Wszystkie łóżka na wyspie są zajęte. Najpierw zbuduj albo ulepsz Chatkę zwierzaków.',
+  'One of them is stored in the Pet Lodge. Move it out to the island first.': 'Jeden z nich jest w Schronisku. Najpierw przenieś go na wyspę.',
+  'One of them is out exploring. Welcome it home first.': 'Jeden z nich jest na wyprawie. Najpierw przywitaj go w domu.',
+  'One of them is busy in the Nest.': 'Jeden z nich jest zajęty w Gnieździe.',
+  'Keep at least one pet out on the island.': 'Zostaw na wyspie przynajmniej jednego zwierzaka.',
+  'That collection is gone.': 'Tej kolekcji już nie ma.',
+  'Only pets stored in the Lodge go into its collections.': 'Do kolekcji trafiają tylko zwierzaki ze Schroniska.',
+  'Give it a name first.': 'Najpierw nadaj nazwę.',
+  'Move the pets stored in the Lodge out first.': 'Najpierw wyprowadź zwierzaki ze Schroniska.',
   'Not enough materials to grow the land.': 'Na powiększenie ziemi nie wystarczy materiałów.',
   'The farmhouse is as grand as it gets.': 'Okazalszy dom już nie będzie.',
   'Not enough materials to improve the farmhouse.': 'Na ulepszenie domu nie wystarczy materiałów.',
@@ -393,6 +406,9 @@ const ZONE_EN = { 'Mossy Woods': 'woods', 'Tidepool Cove': 'cove', 'Pebble Ridge
 export const SRV_FORMS = [
   [/^You can only have (\d+) of those\.$/, n => `Możesz mieć najwyżej ${n} sztuk.`],
   [/^That needs a level (\d+) Workshop\.$/, n => `To wymaga Warsztatu na poziomie ${n}.`],
+  [/^A Lodge holds up to (\d+) collections\.$/, n => `Schronisko mieści najwyżej ${n} kolekcji.`],
+  [/^That needs a level (\d+) farmhouse\.$/, n => `To wymaga domu na poziomie ${n}.`],
+  [/^Growing the land again needs a level (\d+) farmhouse\.$/, n => `Dalsze powiększanie ziemi wymaga domu na poziomie ${n}.`],
   [/^That needs (\d+) friendship points\. Help out and leave gifts to earn them\.$/, n => `To wymaga ${n} punktów przyjaźni. Zdobędziesz je, pomagając innym i zostawiając prezenty.`],
   [/^Level (\d+) needs a level \d+ farmhouse\.$/, n => `Poziom ${n} wymaga domu na poziomie ${n}.`],
   [/^All (\d+) of your parties are out\.$/, n => `Wszystkie twoje drużyny (${n}) są na wyprawie.`],

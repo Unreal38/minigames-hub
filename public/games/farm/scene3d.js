@@ -458,6 +458,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const nestItem = farm.items.find(i => i.type === 'nest'), nestsNow = (farm.nests || (farm.nest ? [farm.nest] : [])).filter(Boolean);
     for (const pet of farm.pets) {
       if ((farm.trips || (farm.trip ? [farm.trip] : [])).some(t => t.pets?.includes(pet.id))) continue; // away on an expedition (a visited farm lists its trips without the pets: those are left out already)
+      if (pet.lodge) continue; // stored in the Pet Lodge: indoors, not on the island
       seen.add(pet.id);
       const form = formOf(pet.lv);
       let p = pets.get(pet.id);
