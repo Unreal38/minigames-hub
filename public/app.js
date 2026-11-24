@@ -1668,7 +1668,7 @@ const HUB_GAMES = [
   ['bierki', 'bierkipic', bierkiArt, 'action party', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
   ['pm', 'pmpic', pmArt, 'board party', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
   ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
-  ['kal', 'kalpic', kalArt, 'action', '2–8 players', 'One player draws a secret word, everyone else races to guess it. Polish and English words, with Pet Farm pets too. For people only: no bots.'],
+  ['kal', 'kalpic', kalArt, 'action party', '2–8 players', 'One player draws a secret word, everyone else races to guess it. Polish and English words, with Pet Farm pets too. For people only: no bots.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
