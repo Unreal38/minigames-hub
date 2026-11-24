@@ -251,7 +251,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
   // ---------- frame loop ----------
   const rollAx = new THREE.Vector3(), rollQ = new THREE.Quaternion(), V = new THREE.Vector3(), proj = new THREE.Vector3();
   const look = new THREE.Vector3(), want = new THREE.Vector3();
-  let W = 0, Hh = 0, shadowIn = 0, camKey = '', padTop = 0, padBot = 0, petSide = false;
+  let W = 0, Hh = 0, shadowIn = 0, camKey = '', padTop = 0, padBot = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (w === W && h === Hh) return;
@@ -272,9 +272,10 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
       base.push([sx * (A + .82), .25, D + .85], [sx * (A + .82), .25, -(D + .85)], [sx * (A + .82), FLOOR, D + .85]);
       base.push([sx * (A + .6), top, -far * (D + 1.3)], [sx * 4.1, top, -far * (D + 1.95)]);
     }
-    const petPts = side => side
-      ? [-1, 1].flatMap(sx => [[sx * (A + 2.75), FLOOR, 2.2], [sx * (A + 2.75), FLOOR, -1.8], [sx * (A + 1.9), pt, -1.8]])
-      : [-1, 1].flatMap(sx => [[sx * (tall ? 3 : 5.1), FLOOR, far * (D + 2.4)], [sx * (tall ? 3 : 5.1), pt, far * (D + 1.55)]]);
+    // the pets sit by the far corners, next to the players and a little away from the table
+    const petPts = tall
+      ? [-1, 1].flatMap(sx => [[sx * (A + 1.95), FLOOR, -(D + .7)], [sx * (A + 1.25), pt, -(D + .7)], [0, top, -(D + 2.7)]])
+      : [-1, 1].flatMap(sx => [[sx * (A + 4.3), FLOOR, -(D - 1)], [sx * (A + 3.5), pt, -(D - 1)], [sx * (A + 3.2), pt, -(D + 1.1)]]);
     const shift = (padTop - padBot) / 2;
     const fits = (dist, pts) => {
       camera.position.set(Math.sin(yaw) * Math.cos(el) * dist, Math.sin(el) * dist, Math.cos(yaw) * Math.cos(el) * dist); camera.lookAt(look); camera.updateMatrixWorld();
@@ -287,9 +288,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
     };
     const need = pts => { let lo = 6, hi = 90; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (fits(m, pts)) hi = m; else lo = m; } return hi; };
     look.set(0, 0, 0); camera.clearViewOffset(); camera.updateProjectionMatrix();
-    const dNear = need(base.concat(petPts(false))), dSide = tall ? 1e9 : need(base.concat(petPts(true)));
-    petSide = dSide < dNear - .01;
-    const dist = Math.min(dNear, dSide);
+    const dist = need(base.concat(petPts));
     want.set(look.x + Math.sin(yaw) * Math.cos(el) * dist, look.y + Math.sin(el) * dist, look.z + Math.cos(yaw) * Math.cos(el) * dist);
     camera.position.copy(want); camera.lookAt(look);
     camera.setViewOffset(W, Hh, 0, -Math.round(shift), W, Hh);
@@ -399,7 +398,11 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
     arrow.visible = !!mine;
     if (mine) { arrow.position.copy(mine.wrap.position); arrow.position.y += 1.75 * AVS + .3; animateArrow(arrow, T); }
     pets.forEach(p => {
-      if (!p.placed) { p.placed = true; const k = p.i - 1; if (tall) { p.g.position.set(HX + 1.5, FLOOR, k * 2.1); p.g.rotation.y = -Math.PI / 2 + k * .3; } else if (petSide) { const sx = k < 0 ? -1 : 1; p.g.position.set(sx * (HX + 1.9), FLOOR, k < 0 ? .4 : k ? 1.3 : -1.1); p.g.rotation.y = -sx * Math.PI / 2 - sx * .3 * Math.sign(p.g.position.z - .1); } else { p.g.position.set(k * 4.2, FLOOR, HZ + 1.55); p.g.rotation.y = Math.PI - k * .35; } }
+      if (!p.placed) {
+        p.placed = true; const sx = p.i ? 1 : -1, out = p.i === 2; // one at each far corner, the third a step further out
+        if (tall) { p.g.position.set(out ? -(HX - 1.7) : -(HX + .7), FLOOR, sx * (HZ + 1.25)); p.g.rotation.y = Math.PI / 2 - sx * (out ? 1.3 : .8); }
+        else { p.g.position.set(sx * (HX + (out ? 3.5 : 2.4)), FLOOR, -(HZ + (out ? -1 : 1.1))); p.g.rotation.y = -sx * (out ? 1.2 : .7); }
+      }
       p.hop = Math.max(0, p.hop - dt * 1.5); p.g.position.y = FLOOR + Math.abs(Math.sin(p.hop * Math.PI * 2)) * .45 * p.hop;
       if (p.hop > 0) moving = true;
       const s = 1 + Math.sin(T * 2.2 + p.i * 2) * .02; p.g.scale.set(1 / s, s, 1 / s);
