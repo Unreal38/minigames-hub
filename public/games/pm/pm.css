@@ -104,8 +104,9 @@ body.in-game { overflow: hidden; }
 .pm-row.st-dup .pts { background: #cfe3ff; }
 .pm-row.st-empty, .pm-row.st-letter, .pm-row.st-nopet, .pm-row.st-out { background: transparent; border-style: dashed; }
 .pm-row.st-empty .pts, .pm-row.st-letter .pts, .pm-row.st-nopet .pts, .pm-row.st-out .pts { background: transparent; border-color: var(--card-edge); color: var(--soft-tx); }
-.pm-row.st-letter .word, .pm-row.st-nopet .word, .pm-row.st-out .word { color: var(--soft-tx); text-decoration: line-through; text-decoration-thickness: 2px; }
-.pm-row.st-letter .word small, .pm-row.st-nopet .word small, .pm-row.st-out .word small { display: inline-block; text-decoration: none; color: #e5543b; }
+.pm-row.st-letter .word > span, .pm-row.st-nopet .word > span, .pm-row.st-out .word > span { color: var(--soft-tx); text-decoration: line-through; text-decoration-thickness: 2px; }
+.pm-row.st-letter .word small, .pm-row.st-nopet .word small, .pm-row.st-out .word small { color: #e5543b; }
+.pm-row .word.lw { font-size: 13.5px; } .pm-row:has(.lw) .who, .pm.wide .pm-row:has(.lw) .who { width: 3.4em; } /* a very long single word: smaller letters rather than a split in the middle */
 .pm-row.st-empty .word { color: var(--faint-tx, var(--soft-tx)); }
 .pm-no { flex: none; display: inline-flex; align-items: center; gap: 4px; min-width: 40px; height: 32px; justify-content: center; font: inherit; font-size: 13px; font-weight: 700; color: #fffaf0; background: var(--card); border: 2px solid var(--card-edge); border-radius: 10px; padding: 0 7px; cursor: pointer; }
 .pm-no b { color: var(--on-paper); }

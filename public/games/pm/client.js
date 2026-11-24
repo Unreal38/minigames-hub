@@ -200,7 +200,7 @@ export function mount(app, ctx) {
         const thumb = can ? `<button type="button" class="pm-no" data-a="vote" data-c="${c}" data-s="${i}" aria-pressed="${mineNo}" aria-label="${L('Reject', 'Odrzuć')}: ${esc(word)}">${I.no}${m.no ? `<b>${m.no}/${m.need}</b>` : ''}</button>`
           : S.stage === 'check' && votable && m.no ? `<span class="pm-no off">${I.no}<b>${m.no}/${m.need}</b></span>` : '';
         return `<div class="pm-row st-${m.st}${i === S.me ? ' mine' : ''}"><i class="dot" style="background:${esc(p.color)}"></i><b class="who">${nameHtml(p.name, p.fl)}</b>
-          <span class="word">${word ? esc(word) : '—'}${note ? `<small>${note}</small>` : ''}</span>${thumb}<span class="pts">${good ? '+' + m.pts : '0'}</span></div>`;
+          <span class="word${word.split(' ').some(w => w.length > 12) ? ' lw' : ''}"><span>${word ? esc(word) : '—'}</span>${note ? `<small>${note}</small>` : ''}</span>${thumb}<span class="pts">${good ? '+' + m.pts : '0'}</span></div>`;
       }).join('');
       return `<section class="pm-cat"><h4>${esc(catName(cat))}</h4>${rows}</section>`;
     }).join('');
