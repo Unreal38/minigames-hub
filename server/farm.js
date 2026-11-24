@@ -150,6 +150,8 @@ const NPCS = {
   bruno: { name: 'Bruno', pts: 90, team: ['pebblet', 'toastoad', 'puddlepup'] },
   mira: { name: 'Mira', pts: 150, team: ['zapkit', 'axolily', 'flickit'] },
 };
+// A wild pet is rolled when it is met, so the battle shows the very pet that joins on a win.
+const wildPet = (sp, owner) => { const { col, pat, stars, talent, sparkle } = newPet(sp, owner, true); return { col, pat, stars, talent, sparkle }; };
 const bot = (sp, lv, i) => ({ id: 'bot' + i, sp, name: SPECIES[sp].name, lv, stars: [3, 3, 3, 3] });
 // The team that defends a farm: the one its owner chose, or the three highest levels.
 function defenders(f) {
@@ -503,7 +505,7 @@ export function handle(p, a, reply) {
     if (f.trips && !found && party.length && Math.random() < WILD_CHANCE) {
       const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
       const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0], lv = Math.min(MAX_LV, Math.max(2, Math.round(party.reduce((n, x) => n + x.lv, 0) / party.length) + 2));
-      f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS }; wild = { sp, lv };
+      f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS, pet: wildPet(sp, p.user) }; wild = { sp, lv };
     }
     parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1;
     return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt, wild } });
@@ -725,7 +727,7 @@ export function handle(p, a, reply) {
       if (!mine.length) return no('The pets that met it are busy right now.');
       if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
       f.wild = null; saw(f, [w.sp]);
-      const B = newBattle(mine.map(x => unit(x)), [unit(bot(w.sp, w.lv, 0))], { mode: 'wild', foe: `a wild ${SPECIES[w.sp].name}` });
+      const B = newBattle(mine.map(x => unit(x)), [unit({ ...bot(w.sp, w.lv, 0), col: w.pet?.col, pat: w.pet?.pat, sparkle: w.pet?.sparkle })], { mode: 'wild', foe: `a wild ${SPECIES[w.sp].name}` });
       B.ids = mine.map(x => x.id); B.wild = w; battles.set(p.pid, B);
       return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
     }
@@ -814,6 +816,7 @@ export function handle(p, a, reply) {
         if (f.pets.length < petRoom(f)) { const pet = newPet(B.wild.sp, p.user, true); pet.from = B.wild.zone; f.pets.push(pet); prize.joined = pet.id; }
         else { prize.noroom = true; r.coins && (f.inv.coins = (f.inv.coins || 0) + 6, prize.coins += 6); }
       }
+      if (prize.joined && B.wild.pet) Object.assign(f.pets.find(x => x.id === prize.joined), B.wild.pet); // the same coat, markings and sparkle it fought with
       f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
       for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); }
     }
@@ -913,7 +916,7 @@ export function testHook(pid, a) {
   if (a.pals) (f.pals ||= {}).test = a.pals;
   if (a.trained && f.train) f.train.at -= a.trained * HOUR;
   if (a.ripe) for (const i of f.items) if (i.type === 'garden') i.at = 0;
-  if (a.wild && own(SPECIES, a.wild)) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS };
+  if (a.wild && own(SPECIES, a.wild)) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS, pet: { ...wildPet(a.wild, 'test'), ...(a.wildTraits || {}) } };
   if (a.egg) for (const s of SLOTS) if (f[s]) f[s].at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;
 }
 // A deleted account (store.deleteAccount): its farm, pets and open trade offers go.
