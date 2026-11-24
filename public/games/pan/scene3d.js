@@ -96,7 +96,9 @@ export function createScene(canvas, { onFrame } = {}) {
     });
   }
   // a face-down row that closes up as it gets longer
-  const slot = (k, cnt) => { const step = Math.min(.36, 2.5 / Math.max(1, cnt)); return new THREE.Vector3((k - (cnt - 1) / 2) * step, .02 + k * .004, 0); };
+  // a fan is never wider than the room its seat has: at a full table the neighbours' fans would run into each other
+  const fanRoom = () => (n < 3 ? 2.5 : Math.min(2.5, 2 * ((R * .7 - .36) * Math.tan(Math.PI / n) - .32)));
+  const slot = (k, cnt) => { const step = Math.min(.36, fanRoom() / Math.max(1, cnt)); return new THREE.Vector3((k - (cnt - 1) / 2) * step, .02 + k * .004, 0); };
   function setHand(s, cnt, deal = -1) {
     while (s.cards.length > cnt) s.g.remove(s.cards.pop());
     while (s.cards.length < cnt) { const c = makeCard(-1, 1, s.cb); c.scale.setScalar(.82); c.rotation.z = Math.PI; s.g.add(c); s.cards.push(c); }

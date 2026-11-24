@@ -214,7 +214,7 @@ export function createScene(canvas, { onFrame } = {}) {
       const ring = put(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0 }), 0, 0, 0, scene);
       const rp = onRim(r, .8); ring.position.set(rp.x, .02, rp.z); ring.rotation.x = Math.PI / 2; ring.scale.set(1, 1, .8);
       const chips = new THREE.Group(); const cp = onRim(r, .6); chips.position.set(cp.x, .01, cp.z); scene.add(chips);
-      const cardsG = new THREE.Group(); const hp = onRim(r, .8); cardsG.position.set(hp.x, .02, hp.z); cardsG.rotation.y = -a + Math.PI / 2; cardsG.scale.setScalar(.82); scene.add(cardsG); cardsG.updateMatrixWorld();
+      const cardsG = new THREE.Group(); const hp = onRim(r, .8); cardsG.position.set(hp.x, .02, hp.z); cardsG.rotation.y = -a + Math.PI / 2; cardsG.scale.setScalar(HOLE); scene.add(cardsG); cardsG.updateMatrixWorld();
       return { av, stool, ring, chips, cardsG, cards: [], chipAmt: -1, a, hop: 0, nod: 0, active: false, look: 0, fold: false, key: '' };
     });
   }
@@ -234,7 +234,8 @@ export function createScene(canvas, { onFrame } = {}) {
   function setFace(card, c) { if (card.userData.c === c) return; const u = card.userData; u.c = c; if (c >= 0) { u.face.map = cardTexture(c); u.face.needsUpdate = true; } u.front.material = c >= 0 ? u.face : u.lit; }
 
   const board = []; // 3D board cards
-  const boardPos = k => new THREE.Vector3((k - 2) * (CW + .12), .02, -.15);
+  const BOARD = 1.45, HOLE = 1.05; // the shared cards are as big as the played pile in the other card games; cards in front of a seat are smaller
+  const boardPos = k => new THREE.Vector3((k - 2) * (CW * BOARD + .1), .02, -.15);
   const deckPos = new THREE.Vector3(0, .3, -.15);
   // Mango Poker: thrown-away cards gather face down in the middle, and the flop is dealt out of them
   const pilePos = new THREE.Vector3(0, .02, -.15), pile = [];
@@ -324,7 +325,7 @@ export function createScene(canvas, { onFrame } = {}) {
       pile.length = 0;
     }
     for (let k = k0; k < bl; k++) {
-      const c = makeCard(S.board[k]), j = k - k0; scene.add(c); board.push(c);
+      const c = makeCard(S.board[k]), j = k - k0; c.scale.setScalar(BOARD); scene.add(c); board.push(c);
       c.rotation.z = Math.PI; flyCard(c, fromPile && k < 3 ? pilePos.clone().setY(.06) : deckPos, boardPos(k), false, j * .12, () => pfx.sparkle(boardPos(k), { n: 4, colors: ['#fff1a8', '#ffffff'], r: .35, size: .18, life: .6 }));
       flip(c, true, .47 + j * .12);
     }
@@ -344,7 +345,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (!fresh && s.cards.length > want && want > 0) { // Mango: one card thrown into the middle pile
         const c = s.cards.pop();
         const from = s.cardsG.localToWorld(c.position.clone()); s.cardsG.remove(c);
-        setFace(c, -1); c.rotation.set(0, Math.random() * .8 - .4, Math.PI); c.scale.setScalar(.82); scene.add(c);
+        setFace(c, -1); c.rotation.set(0, Math.random() * .8 - .4, Math.PI); c.scale.setScalar(HOLE); scene.add(c);
         const to = pilePos.clone().add(new THREE.Vector3((Math.random() - .5) * .25, .012 * pile.length, (Math.random() - .5) * .2));
         pile.push(c); flyCard(c, from, to, false);
         s.cards.forEach((h, k) => { const a = h.position.clone(), b = new THREE.Vector3((k - (want - 1) / 2) * .5, .01 + k * .01, 0); tween(.3, t => h.position.lerpVectors(a, b, ease(t)), null, .1); h.rotation.y = (k - .5) * .12; });

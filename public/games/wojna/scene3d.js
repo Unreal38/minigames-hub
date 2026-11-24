@@ -104,7 +104,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const deckTop = s => new THREE.Vector3(s.at.x, .06 + Math.max(0, s.h) + .02, s.at.z);
   // Where seat s's k-th card of this battle lies: in front of them near the middle. War cards pile up on the same
   // spot, the face-down one askew so its corners show. Face-up cards all face the camera, so everyone can read them.
-  const big = () => (n === 2 ? 1.9 : 1.7), reach = () => (n === 2 ? .92 : 1.12);
+  const big = () => (n === 2 ? 1.65 : 1.45), reach = () => (n === 2 ? .88 : 1.15); // big enough to read, small enough that four of them (and a war's askew cards) keep clear of each other and of the piles
   function spot(s, k, up) {
     const d = reach() - Math.min(k, 8) * .05, j = hash(k * 7 + seats.indexOf(s) * 3);
     return { p: new THREE.Vector3(s.dir.x * d, .05 + k * .014, s.dir.z * d), ry: up ? (j - .5) * .14 : .5 + j * .25 };
