@@ -8,8 +8,10 @@
 //   clouds(opts)              soft toon clouds (one instanced mesh). Turn the group slowly for drift.
 //   island(w, d, opts)        a floating grass island with a rocky underside, flowers, trees and bushes round the rim.
 //                             Its top is y = 0 and the clear middle is w by d.
+//                             It dresses for the season (season3d.js: snow and snowy pines in winter, blossom in spring,
+//                             autumn trees, Halloween pumpkins); season: null keeps the colours and props passed in.
 //   birds(parent, R, y, n)    white birds circling far off; returns update(T).
-//   petals(parent, span, y)   petals and leaves drifting past; returns update(T).
+//   petals(parent, span, y)   petals and leaves drifting past (snow in winter); returns update(T).
 //   createFx(scene)           particles in one draw call: burst, puff, confetti, sparkle, rise; call update(dt, camera, H).
 //   shaker()                  camera shake: kick(strength) and apply(camera, dt) after lookAt.
 //   rim(color)                a hover or selection rim: show(root) wraps root's outline hull in a glowing copy.
@@ -17,6 +19,8 @@ import * as THREE from 'three';
 import { bake, hullGeo, hullMat } from './avatar3d.js';
 import { fxOf, winSheet } from './winfx.js';
 import { drawShape } from './fxart.js';
+import { seasonLookNow, lookOf, trim } from './season3d.js';
+export { seasonLookNow } from './season3d.js';
 
 export const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
@@ -179,8 +183,12 @@ export const PROPS = {
   lamp(g, s = 1) { put(g, new THREE.CylinderGeometry(.04 * s, .06 * s, 1.1 * s, 6), flat('#5b4636'), 0, .55 * s); put(g, new THREE.BoxGeometry(.2 * s, .05 * s, .2 * s), flat('#5b4636'), 0, 1.24 * s); const l = put(g, new THREE.BoxGeometry(.16 * s, .2 * s, .16 * s), flat('#ffe27a', { emissive: '#ffb547', emissiveIntensity: .8 }), 0, 1.11 * s); l.userData.noInk = true; put(g, new THREE.BoxGeometry(.2 * s, .04 * s, .2 * s), flat('#5b4636'), 0, 1 * s); },
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
-export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0, kinds = null, petals = null, under = true, clear = 0 } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props; clear: radius of a round floor in the middle that patches and flowers stay off
+export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0, kinds = null, petals = null, under = true, clear = 0, season = seasonLookNow() } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props; clear: radius of a round floor in the middle that patches and flowers stay off
   // kinds: which props stand round the rim (names from PROPS, or functions (group, size)); petals: flower colours; under: false leaves the rock underneath to the caller
+  // season: the time of year the island dresses for (season3d.js; default today's). Its look replaces the colours,
+  // flowers and props passed in, so every game island matches. season: null keeps them (Pet Farm and profile isles, themed tracks).
+  const SL = lookOf(season);
+  if (SL) { grass = SL.grass; patch = SL.patch; earth = SL.earth || '#c98a5a'; rock = SL.rock || '#857a72'; petals = SL.petals; kinds = SL.kinds; flowers = Math.round(flowers * SL.n); }
   const autoLamps = !lamps; // lamp posts light the island at night: built always, shown only at night (nightScene toggles them)
   if (autoLamps) lamps = Math.max(3, Math.round((w + d) / 5));
   const root = new THREE.Group(), deco = new THREE.Group();
@@ -191,6 +199,11 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
   else { const s = new THREE.Shape(), r = Math.min(W, D) * .3; s.moveTo(-W + r, -D); s.lineTo(W - r, -D); s.quadraticCurveTo(W, -D, W, -D + r); s.lineTo(W, D - r); s.quadraticCurveTo(W, D, W - r, D); s.lineTo(-W + r, D); s.quadraticCurveTo(-W, D, -W, D - r); s.lineTo(-W, -D + r); s.quadraticCurveTo(-W, -D, -W + r, -D);
     top = new THREE.ExtrudeGeometry(s, { depth: .5, bevelEnabled: true, bevelThickness: .08, bevelSize: .12, bevelSegments: 2, curveSegments: 6 }); top.rotateX(Math.PI / 2); }
   const lawn = put(root, top, flat(grass), 0, round ? -.25 : 0); lawn.receiveShadow = true;
+  if (SL?.icicles) { let edge; const n = Math.round((round ? R * 6.283 : (W + D) * 4) / .8);
+    if (round) edge = Array.from({ length: n }, (_, i) => [Math.cos(i / n * 6.283) * (R - .1), Math.sin(i / n * 6.283) * (R - .1)]);
+    else { const s = new THREE.Shape(), r = Math.min(W, D) * .3, X = W + .04, Z = D + .04; s.moveTo(-X + r, -Z); s.lineTo(X - r, -Z); s.quadraticCurveTo(X, -Z, X, -Z + r); s.lineTo(X, Z - r); s.quadraticCurveTo(X, Z, X - r, Z); s.lineTo(-X + r, Z); s.quadraticCurveTo(-X, Z, -X, Z - r); s.lineTo(-X, -Z + r); s.quadraticCurveTo(-X, -Z, -X + r, -Z);
+      edge = s.getSpacedPoints(n).slice(0, n).map(p => [p.x, p.y]); }
+    trim(root, season, edge, round ? -.5 : -.58, seed); }
   // earth band and a rock cone underneath, with loose stones hanging about
   const band = put(root, rough(new THREE.CylinderGeometry(R * .98, R * .7, 1.6 * depth, round ? 18 : 8, 3), .4), flat(earth), 0, -1.2 * depth);
   if (!round) band.scale.set(W / R * 1.08, 1, D / R * 1.08), band.rotation.y = Math.PI / 8;
@@ -219,9 +232,19 @@ export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf5
     const g = new THREE.Group(), kind = kinds[(i + seed) % kinds.length]; (typeof kind === 'function' ? kind : PROPS[kind])(g, (.7 + hash(i, seed + 61) * .5) * size); g.position.set(x, 0, z); g.rotation.y = hash(i, 62) * 6.283; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); root.add(g);
   }
   for (let i = 0; i < lamps; i++) { const a = (i + .5) / lamps * 6.283, g = new THREE.Group(); PROPS.lamp(g, 1); let x = Math.cos(a), z = Math.sin(a); const s = round ? R - .5 : Math.min((W - .4) / Math.abs(x || 1e-6), (D - .4) / Math.abs(z || 1e-6)); g.position.set(x * s, 0, z * s); if (autoLamps) { g.userData.nightOnly = true; g.visible = isNight(); } root.add(g); }
+  lightBulbs(root);
   bake(root);
   root.traverse(m => { if (m.isMesh && m.userData.baked) m.receiveShadow = true; });
   return toonify(root, .05);
+}
+// Fairy-light bulbs (userData.bulb, e.g. on the winter pines) become one unlit instanced mesh, so they glow at night too.
+function lightBulbs(root) {
+  const list = []; root.updateWorldMatrix(true, true); root.traverse(o => { if (o.userData.bulb) list.push(o); });
+  if (!list.length) return;
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), m = new THREE.Matrix4(), v = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+  const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: '#ffffff' }), list.length);
+  list.forEach((o, i) => { m.multiplyMatrices(inv, o.matrixWorld).decompose(v, q, s); const r = o.geometry.parameters.radius; im.setMatrixAt(i, m.compose(v, q, s.multiplyScalar(r))); im.setColorAt(i, o.material.color); o.parent.remove(o); o.geometry.dispose(); });
+  im.userData.noInk = true; im.castShadow = false; root.add(im);
 }
 
 // ---------- life in the air ----------
@@ -231,14 +254,19 @@ export function birds(parent, R, y, n = 3, size = 1) {
   for (let i = 0; i < n; i++) { const g = new THREE.Group(), a = new THREE.Mesh(wing, mt), b = new THREE.Mesh(wing, mt); b.scale.x = -1; g.add(a, b); g.scale.setScalar(size); parent.add(g); list.push({ g, a, b, ph: i * 2.1 }); }
   return T => { for (const b of list) { const t = T * .12 + b.ph, r = R * (1 + Math.sin(b.ph * 3) * .2), x = Math.cos(t) * r, z = Math.sin(t) * r; b.g.position.set(x, y + Math.sin(t * 3 + b.ph) * 1.2, z); b.g.rotation.y = -t; const w = Math.sin(T * 7 + b.ph * 5) * .7; b.a.rotation.z = w; b.b.rotation.z = -w; } };
 }
-export function petals(parent, span, y = 3, { n = 10, colors = ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8'], size = .1 } = {}) {
-  const g = new THREE.OctahedronGeometry(1, 0).scale(.5, .08, 1), list = [];
-  for (let i = 0; i < n; i++) { const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: colors[i % colors.length] })); parent.add(m); list.push({ m, ph: i * 2.37, sp: .5 + hash(i, 81) * .5 }); }
-  return T => { for (const p of list) {
+// Petals and leaves drifting past (snow in winter, falling leaves in autumn: season3d.js LOOK[season].air), one draw call.
+export function petals(parent, span, y = 3, { n = 10, colors = ['#ffc1dc', '#ffffff', '#a8e08a', '#ffd9ea', '#ffe9a8', '#c9f0a8'], size = .1, season = seasonLookNow() } = {}) {
+  const air = lookOf(season)?.air;
+  if (air) { colors = air.colors; n = Math.round(n * (air.more || 1)); if (air.size) size *= air.size / .1; }
+  const g = air?.snow ? new THREE.IcosahedronGeometry(.55, 0) : new THREE.OctahedronGeometry(1, 0).scale(.5, .08, 1), list = [];
+  const im = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ color: '#ffffff' }), n), c = new THREE.Color(), o = new THREE.Object3D();
+  for (let i = 0; i < n; i++) { im.setColorAt(i, c.set(colors[i % colors.length])); list.push({ ph: i * 2.37, sp: (.5 + hash(i, 81) * .5) * (air?.snow ? .8 : 1) }); }
+  im.frustumCulled = false; parent.add(im);
+  return T => { list.forEach((p, i) => {
     const u = ((T * p.sp * .07 + p.ph * .13) % 1 + 1) % 1, lane = Math.floor(T * p.sp * .07 + p.ph * .13);
-    p.m.position.set(-span / 2 + u * span + Math.sin(T * 1.1 + p.ph) * .5, y - u * (y - .3) + Math.sin(T * 2.3 + p.ph) * .25, (hash(lane, p.ph) - .5) * span * .8 + Math.sin(T * .8 + p.ph) * .6);
-    p.m.rotation.set(T * 2.1 + p.ph, T * 1.3, Math.sin(T * 3 + p.ph)); p.m.scale.setScalar(size * Math.min(1, u * 8, (1 - u) * 8));
-  } };
+    o.position.set(-span / 2 + u * span + Math.sin(T * 1.1 + p.ph) * .5, y - u * (y - .3) + Math.sin(T * 2.3 + p.ph) * .25, (hash(lane, p.ph) - .5) * span * .8 + Math.sin(T * .8 + p.ph) * .6);
+    o.rotation.set(T * 2.1 + p.ph, T * 1.3, Math.sin(T * 3 + p.ph)); o.scale.setScalar(size * Math.min(1, u * 8, (1 - u) * 8)); o.updateMatrix(); im.setMatrixAt(i, o.matrix);
+  }); im.instanceMatrix.needsUpdate = true; };
 }
 
 // ---------- particles ----------
