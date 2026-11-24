@@ -408,13 +408,17 @@ export function mount(app, ctx) {
     const b = e.target.closest('.btn, .round, .pills button');
     if (b && !b.disabled && !b.contains(e.relatedTarget)) sfx.hover();
   });
-  const onResize = () => { if (flat && S) onFrame(flatLayout()); ranksKey = ''; renderRanks(); dockSize(); };
+  const onResize = () => { for (const el of tagEls) el._w = 0; if (flat && S) onFrame(flatLayout()); ranksKey = ''; renderRanks(); dockSize(); };
   addEventListener('resize', onResize);
+  // poker.css can arrive after the first paint (slow connections, people who join mid-hand): until then the hand-rankings
+  // panel is page wide and the dock is unstyled, so measure them again whenever their size changes
+  const sizeWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { if (!destroyed) { scene?.setInset?.(ranksOpen && innerWidth > 1100 ? $('pk-ranks').offsetWidth + 14 : 0); dockSize(); } }) : null;
+  sizeWatch?.observe($('pk-ranks')); sizeWatch?.observe($('pk-dock'));
 
   return {
     update,
     room(r) { Rm = r; if (S) { renderTop(); renderMine(); } paintAgain(); },
     react,
-    destroy() { destroyed = true; document.body.classList.remove('in-game'); clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); removeEventListener('keydown', onKey); removeEventListener('resize', onResize); scene?.dispose(); },
+    destroy() { destroyed = true; document.body.classList.remove('in-game'); clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); removeEventListener('keydown', onKey); removeEventListener('resize', onResize); sizeWatch?.disconnect(); scene?.dispose(); },
   };
 }

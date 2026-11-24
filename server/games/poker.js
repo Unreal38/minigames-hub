@@ -395,6 +395,9 @@ export function setAway(G, s, away) {
   return true;
 }
 
+// A player who left can come back to their seat while it still has chips (the server checks who they are).
+export const canReturn = (G, s) => !G.st[s].out;
+
 // Someone watching can take over a bot's seat (and its chips) from the next hand.
 // Called by the server when a watcher taps "Take a seat" (on = true) or changes their mind (on = false).
 export function seatWatcher(G, p, on = true) {
@@ -407,11 +410,11 @@ export function seatWatcher(G, p, on = true) {
 function seatQueued(G) {
   while (G.queue.length) {
     // prefer a bot that still has chips, and never one that's in the middle of a hand (we're between hands here)
-    const free = G.seats.map((s, i) => i).filter(i => !G.seats[i].human).sort((a, b) => (G.st[b].out ? 0 : 1) - (G.st[a].out ? 0 : 1) || G.st[b].stack - G.st[a].stack);
+    const free = G.seats.map((s, i) => i).filter(i => !G.seats[i].human).sort((a, b) => (G.seats[a].left ? 1 : 0) - (G.seats[b].left ? 1 : 0) || (G.st[b].out ? 0 : 1) - (G.st[a].out ? 0 : 1) || G.st[b].stack - G.st[a].stack); // seats of people who left come last: they may be back
     if (!free.length) break;
     const p = G.queue.shift(), i = free[0], x = G.st[i];
     if (x.out) { x.out = 0; x.stack = START; }
-    Object.assign(G.seats[i], { id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true });
+    Object.assign(G.seats[i], { id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true, left: false });
     pushEv(G, { t: 'sit', s: i });
   }
 }

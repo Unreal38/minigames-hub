@@ -398,18 +398,19 @@ export function createScene(canvas, { onFrame } = {}) {
     renderer.setSize(w, h, false);
     const portrait = w / h < 1;
     camera.aspect = w / h; camera.fov = portrait ? 50 : 36; camera.clearViewOffset(); camera.updateProjectionMatrix();
-    const top = w < 760 ? 175 : 120, bottom = h - hudBottom;
+    // a panel measured before its CSS arrived can be page wide: never let one push the table off the screen
+    const inset = Math.min(hudLeft, w * .3), top = w < 760 ? 175 : 120, bottom = h - Math.min(hudBottom, h * .5);
     const FIT = [new THREE.Vector3(0, 3.4, -RZ * 1.32), new THREE.Vector3(0, .3, RZ * 1.02), new THREE.Vector3(-(portrait ? RX * 1.12 : RX * 1.32 + 1.1), 1.2, 0), new THREE.Vector3(portrait ? RX * 1.12 : RX * 1.32 + 1.1, 1.2, 0)]; // phones: side players may peek in from the edges
     let lo = 5, hi = 90;
     for (let i = 0; i < 32; i++) {
       const D = (lo + hi) / 2; place(D);
       const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]), [lx] = toPx(FIT[2]), [rx] = toPx(FIT[3]);
-      if (fy - ty <= bottom - top && lx + hudLeft / 2 >= hudLeft + 4 && rx + hudLeft / 2 <= w - 4) hi = D; else lo = D;
+      if (fy - ty <= bottom - top && lx + inset / 2 >= inset + 4 && rx + inset / 2 <= w - 4) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
     scene.fog.near = hi + 14; scene.fog.far = hi + 120;
     const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
-    camera.setViewOffset(w, h, -hudLeft / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
+    camera.setViewOffset(w, h, -inset / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
   }
 
   // ---------- loop ----------

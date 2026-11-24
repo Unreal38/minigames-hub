@@ -337,7 +337,12 @@ function leaveRoom(c) {
   if (r.G && r.G.ph === 'play') {
     GAMES[r.game].seatWatcher?.(r.G, { id: c.id }, false); // a watcher waiting for a seat changed their mind
     const s = r.G.seats.findIndex(x => x.id === c.id);
-    if (s >= 0) { GAMES[r.game].setAway(r.G, s, true); r.G.seats[s].name += ' (bot)'; r.G.seats[s].human = false; r.G.seats[s].id = null; }
+    if (s >= 0) {
+      const seat = r.G.seats[s], pid = store.profileOf(c.token)?.pid;
+      GAMES[r.game].setAway(r.G, s, true);
+      if (pid) (r.leftBy ||= new Map()).set(s, { pid, name: seat.name }); // so they get this seat back if they return
+      seat.name += ' (bot)'; seat.human = false; seat.id = null; seat.left = true;
+    }
   }
   store.scheduleSave();
   if (!r.players.length) rooms.delete(r.code);
@@ -352,11 +357,37 @@ function joinRoom(c, r) {
   if (seatedOf(r).length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
   if (r.players.length >= 12) return send(c, { t: 'err', msg: 'That table is full.' });
   r.players.push(c.token); c.room = r.code;
-  if (r.G) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
+  if (r.G && !reclaimSeat(r, c)) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
   sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r); broadcastRooms();
 }
 
+// Someone coming back to a game they were playing (after Leave, or from another device or browser on the same
+// account) gets their own seat back instead of watching while a bot, or another watcher, plays it.
+function reclaimSeat(r, c) {
+  const G = r.G, mod = GAMES[r.game], pid = store.profileOf(c.token)?.pid;
+  if (G?.ph !== 'play' || !pid) return false;
+  const pidOfId = id => { const o = r.players.map(t => clients.get(t)).find(x => x?.id === id); return o && o !== c ? [o, store.profileOf(o.token)?.pid] : [null, null]; };
+  for (let s = 0; s < G.seats.length; s++) {
+    const seat = G.seats[s], gone = r.leftBy?.get(s);
+    let old = null;
+    if (seat.human && seat.id && seat.id !== c.id) { const [o, opid] = pidOfId(seat.id); if (opid !== pid) continue; old = o; } // same account, other device
+    else if (!(!seat.human && seat.left && gone?.pid === pid)) continue; // their seat, still played by a bot
+    if (mod.canReturn && !mod.canReturn(G, s)) continue; // say, a poker seat that is already out of chips: watch and queue instead
+    if (old) { // the other device leaves the table quietly: the seat moves, it is not handed to a bot
+      if (r.host === old.id) r.host = c.id;
+      r.players = r.players.filter(t => t !== old.token); old.room = null; r.spect.delete(old.id); r.sit.delete(old.id); r.again?.delete(old.id);
+      if (old.sock) { send(old, { t: 'room', room: null }); send(old, { t: 'rooms', rooms: publicRooms() }); }
+    } else { seat.name = gone.name; r.leftBy.delete(s); }
+    mod.seatWatcher?.(G, { id: c.id }, false);
+    Object.assign(seat, { id: c.id, human: true, left: false });
+    mod.setAway(G, s, false);
+    return true;
+  }
+  return false;
+}
+
 function startGame(r) {
+  r.leftBy = null;
   r.again = new Set();
   // Everyone already at the table keeps their seat; watchers who asked for a seat fill what's left (bots get the rest).
   const id = t => clients.get(t)?.id, max = GAMES[r.game].meta.maxPlayers;

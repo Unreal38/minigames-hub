@@ -385,7 +385,7 @@ export function mount(app, ctx) {
     const b = e.target.closest('.btn, .round, .pills button');
     if (b && !b.disabled && !b.contains(e.relatedTarget)) sfx.hover();
   });
-  const onResize = () => { if (flat && S) onFrame(flatLayout()); dockSize(); };
+  const onResize = () => { for (const el of tagEls) el._w = 0; if (flat && S) onFrame(flatLayout()); dockSize(); };
   addEventListener('resize', onResize);
 
   return {

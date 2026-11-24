@@ -916,6 +916,9 @@ function mountWithCss(key, mount) {
   const r = mount();
   const added = sheetsNow().filter(l => !before.has(l));
   if (added.length) gameSheets.set(key, [...(gameSheets.get(key) || []), ...added]);
+  // On a slow connection the game paints before its stylesheet arrives, and panels measured then are page wide
+  // (the 3D table framed off to the side). When the sheet lands, games measure again as if the window was resized.
+  for (const l of added) l.addEventListener('load', () => dispatchEvent(new Event('resize')), { once: true });
   gameCss(key);
   return r;
 }
