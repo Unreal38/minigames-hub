@@ -26,7 +26,7 @@ export const OPT_PL = {
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
-  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
+  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
@@ -342,6 +342,24 @@ export const GAMES_PL = {
       <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy, a <b>ostatni gracz z kartami zostaje Panem</b>.</li>
       <li>Pięciu graczy siada przy stole dla sześciu: szóstą rękę bierze bot, żeby karty nadal dzieliły się po równo.</li>
       <li>Skróty: <b>Enter</b> kładzie twoją najniższą pasującą kartę, <b>T</b> bierze trzy.</li>
+    </ol>`,
+  },
+  bj: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, usiądzie tu bot',
+    pitch: 'Wszyscy przeciwko krupierowi. Stawiaj żetony na niby, zbliż się do 21 bardziej niż krupier i skończ z największym stosem.',
+    howto: `Każdy gra własną ręką przeciwko krupierowi, na żetony na niby. Postaw zakład, a potem dobieraj karty tak, żeby mieć jak najbliżej 21, ale nie więcej. Pokonaj rękę krupiera, żeby wygrać swój zakład. Stół wygrywa ten, kto po ostatniej rundzie ma najwięcej żetonów.`,
+    rules: `<ol>
+      <li>Każdy zaczyna z <b>1000 żetonów na niby</b> i gra ustaloną liczbę rund przeciwko temu samemu krupierowi. Na wolnych miejscach siadają boty.</li>
+      <li><b>Najpierw zakład.</b> Wszyscy jednocześnie wybierają zakład <b>od 10 do 500</b>. Zakłady są tajne, dopóki nie postawią wszyscy.</li>
+      <li>Dostajesz <b>dwie odkryte karty</b>. Krupier dostaje jedną odkrytą i jedną zakrytą. Karty z liczbami są warte tyle, ile pokazują, <b>walet, dama i król po 10</b>, a <b>as 11 albo 1</b>, zależnie od tego, co jest dla ciebie lepsze.</li>
+      <li>W swojej turze: <b>Dobierz</b> bierze kolejną kartę, <b>Stój</b> zostawia to, co masz. Powyżej <b>21</b> masz <b>furę</b>: zakład przepada od razu.</li>
+      <li><b>Podwój</b> (tylko przy dwóch pierwszych kartach) podwaja zakład, daje dokładnie jedną kartę i kończy twoją turę.</li>
+      <li><b>Rozdziel</b> (dwie karty tej samej wysokości) robi z nich dwie ręce, każdą z własnym zakładem; grasz je po kolei. Rozdzielić można raz na rundę. Rozdzielone asy dostają po jednej karcie.</li>
+      <li>Gdy wszyscy skończą, krupier odkrywa zakrytą kartę i <b>dobiera do 16, a przy 17 lub więcej staje</b>.</li>
+      <li>Bliżej 21 niż krupier albo krupier ma furę: <b>wygrywasz swój zakład</b>. Ta sama suma to <b>remis</b> i zakład wraca do ciebie. Niższa suma przegrywa.</li>
+      <li>As z kartą wartą 10 w dwóch pierwszych kartach to <b>blackjack</b>: płaci <b>3 do 2</b> (zakład 100, wygrana 150) i remisuje tylko z blackjackiem krupiera. Gdy blackjacka ma krupier, runda kończy się od razu.</li>
+      <li>Bez żetonów odpadasz. Po ostatniej rundzie <b>wygrywa największy stos</b>, a monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas, gra stawia za ciebie ostatni zakład, a w twojej turze stajesz. Skróty: <b>H</b> dobierz, <b>S</b> stój, <b>D</b> podwój, <b>P</b> rozdziel, <b>Enter</b> stawia zakład.</li>
     </ol>`,
   },
   piotr: {
