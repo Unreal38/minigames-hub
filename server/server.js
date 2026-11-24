@@ -6,7 +6,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { attach, ipOf } from './ws.js';
+import cluster from 'node:cluster';
+import os from 'node:os';
+import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
+import { attach, ipOf, trustHelpers } from './ws.js';
+import { serveHelpers } from './links.js';
 import * as geo from './geo.js';
 import { allow, blocked, note } from './limits.js';
 import * as hotpot from './games/hotpot.js';
@@ -815,7 +819,7 @@ setInterval(() => {
   if (line.length && Date.now() - lineLog > 60_000) { lineLog = Date.now(); console.log(`waiting line: ${line.length} waiting, ${liveN} online (MAX_ONLINE ${MAX_ONLINE})`); }
 }, 1000).unref();
 
-attach(server, '/ws', sock => {
+const onSocket = sock => {
   let c = null, budget = 40, dropped = 0, queued = false, admitted = false;
   const refill = setInterval(() => { budget = Math.min(40, budget + 20); dropped = Math.max(0, dropped - 20); }, 1000);
   const late = setTimeout(() => { if (!c && !queued) sock.close(1008); }, 15_000); // connected but never said hello
@@ -881,7 +885,7 @@ attach(server, '/ws', sock => {
     c.sock = null; c.lastSeen = Date.now(); broadcastStats();
     const r = rooms.get(c.room); if (r) sendRoom(r);
   });
-});
+};
 
 // ---------- persistence ----------
 // Lobbies come back after a restart with their scoreboard and chat. A game that was mid-play is lost:
@@ -925,7 +929,8 @@ const bye = (code = 0) => {
   let n = 0;
   for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
   console.log(`stopping: saved, told ${n} screens to wait for the restart`);
-  setTimeout(() => process.exit(code), n ? 200 : 0);
+  helpers?.flush();
+  setTimeout(() => process.exit(code), n ? (helpers ? 400 : 200) : 0);
 };
 process.on('SIGTERM', () => bye()); process.on('SIGINT', () => bye());
 // Restart by itself at the end of a countdown (the host's choice in Site notices). Only under systemd (it sets
@@ -957,6 +962,18 @@ if (process.env.INVOCATION_ID || process.env.NOTICE_TEST_RESTART) notice.setOnZe
   console.log(`restarting by itself at the end of the countdown (${RUNNING.slice(0, 7) || '?'} -> ${gitHead().slice(0, 7) || '?'})`);
   bye(75);
 });
+
+// How the game process is coping, in the log: how busy its loop is (100% = full) and the worst waits a message saw.
+// Every 5 minutes while anyone is online, and every minute when it gets busy. HEALTH_EVERY (ms) is for load tests.
+const loopDelay = monitorEventLoopDelay({ resolution: 10 }); loopDelay.enable();
+let elu = performance.eventLoopUtilization(), healthN = 0;
+setInterval(() => {
+  const now = performance.eventLoopUtilization(), busy = performance.eventLoopUtilization(now, elu).utilization * 100; elu = now;
+  const p99 = loopDelay.percentile(99) / 1e6, max = loopDelay.max / 1e6; loopDelay.reset();
+  const online = countLive(), hot = busy > 60 || p99 > 100;
+  if ((online && (++healthN % 5 === 0 || hot)) || process.env.HEALTH_EVERY)
+    console[hot ? 'warn' : 'log'](`health: ${online} online, game loop ${busy.toFixed(0)}% busy, delay p99 ${p99.toFixed(0)} ms (max ${max.toFixed(0)})${helpers ? `, ${helpers.screens()} screens on ${helpers.links.size} helpers` : ''}${line.length ? `, ${line.length} waiting` : ''}`);
+}, +process.env.HEALTH_EVERY || 60_000).unref();
 
 // ---------- game loop & housekeeping ----------
 setInterval(() => {
@@ -1003,4 +1020,24 @@ setInterval(() => { // forget guest profiles that never played, once their brows
 }, 10 * 60_000).unref();
 
 geo.start();
-server.listen(PORT, HOST, () => console.log(`Zatoka Gier running on http://${HOST}:${PORT}`));
+// Connection helpers (GATEWAYS=3 on a 4-core server). Without them (the default) this one process does everything, as
+// it always has. With them, the helpers own the public port and the players' connections, and this process keeps the
+// game: it takes pages from them and talks to them over two socket files (see gateway.js and links.js).
+const GATEWAYS = Math.max(0, Math.min(16, Math.floor(+process.env.GATEWAYS || 0)));
+let helpers = null;
+if (GATEWAYS) {
+  trustHelpers();
+  const base = path.join(os.tmpdir(), `zatoka-${process.pid}`), files = { http: base + '-http.sock', link: base + '-link.sock' };
+  for (const f of Object.values(files)) try { fs.unlinkSync(f); } catch {}
+  helpers = serveHelpers(files.link, onSocket);
+  process.on('exit', () => { for (const f of Object.values(files)) try { fs.unlinkSync(f); } catch {} });
+  cluster.setupPrimary({ exec: path.join(SRV, 'gateway.js') });
+  const fork = () => cluster.fork({ PORT, HOST, CORE_HTTP: files.http, CORE_LINK: files.link });
+  cluster.on('exit', (w, code, sig) => { if (stopping) return; console.error(`connection helper ${w.process.pid} stopped (${sig || code}), starting another`); setTimeout(fork, 1000); });
+  let up = 0; // "running" is said once every helper takes connections (tests and scripts wait for that line)
+  cluster.on('listening', () => { if (++up === GATEWAYS) console.log(`Zatoka Gier running on http://${HOST}:${PORT} with ${GATEWAYS} connection helpers`); });
+  server.listen(files.http, () => { for (let i = 0; i < GATEWAYS; i++) fork(); });
+} else {
+  attach(server, '/ws', onSocket);
+  server.listen(PORT, HOST, () => console.log(`Zatoka Gier running on http://${HOST}:${PORT}`));
+}

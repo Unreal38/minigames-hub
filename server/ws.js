@@ -17,9 +17,13 @@ const open = new Map();     // ip -> open connections
 // connection really comes from this machine, so nobody can fake it from outside. With Cloudflare in front, set
 // TRUST_CLOUDFLARE=1 so its CF-Connecting-IP header is used instead (only do that if the server is reachable through
 // Cloudflare alone).
+// With connection helpers (GATEWAYS) the game process takes requests only from them, over a local socket file, and
+// they always set X-Forwarded-For to the address they worked out with this same function.
+let behindHelpers = false;
+export const trustHelpers = () => { behindHelpers = true; };
 export function ipOf(req) {
   const peer = req.socket.remoteAddress || '';
-  if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)) return peer;
+  if (!behindHelpers && !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)) return peer;
   const cf = process.env.TRUST_CLOUDFLARE && req.headers['cf-connecting-ip'];
   if (cf) return String(cf).trim();
   const xff = req.headers['x-forwarded-for'];
@@ -34,6 +38,24 @@ export function limitKey(ip) {
   const [head, tail = ''] = ip.split('::'), h = head ? head.split(':') : [], t = tail ? tail.split(':') : [];
   const full = ip.includes('::') ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t] : h;
   return full.slice(0, 4).map(x => (x || '0').toLowerCase().replace(/^0+(?=.)/, '')).join(':') + '::/64';
+}
+
+// Whether one more connection from this address may open now (counted as open if so), and its closing.
+export function admit(ip) {
+  if ((open.get(ip) || 0) >= PER_IP || !allow('conn:' + ip, NEW_PER_MIN, 60_000)) return false;
+  open.set(ip, (open.get(ip) || 0) + 1); return true;
+}
+export function release(ip) { const n = (open.get(ip) || 1) - 1; if (n > 0) open.set(ip, n); else open.delete(ip); }
+
+// A whole text frame, built once and written to many screens.
+export function frameOf(op, payload) {
+  const len = payload.length;
+  let head;
+  if (len < 126) { head = Buffer.alloc(2); head[1] = len; }
+  else if (len < 65536) { head = Buffer.alloc(4); head[1] = 126; head.writeUInt16BE(len, 2); }
+  else { head = Buffer.alloc(10); head[1] = 127; head.writeBigUInt64BE(BigInt(len), 2); }
+  head[0] = 0x80 | op;
+  return Buffer.concat([head, payload]);
 }
 
 export class Socket extends EventEmitter {
@@ -65,14 +87,10 @@ export class Socket extends EventEmitter {
     if (destroy) this.sock.destroy();
     this.emit('close');
   }
-  _frame(op, payload) {
-    const len = payload.length;
-    let head;
-    if (len < 126) { head = Buffer.alloc(2); head[1] = len; }
-    else if (len < 65536) { head = Buffer.alloc(4); head[1] = 126; head.writeUInt16BE(len, 2); }
-    else { head = Buffer.alloc(10); head[1] = 127; head.writeBigUInt64BE(BigInt(len), 2); }
-    head[0] = 0x80 | op;
-    try { this.sock.write(Buffer.concat([head, payload])); } catch { this._closed(); return; }
+  _frame(op, payload) { this.sendFrame(frameOf(op, payload)); }
+  sendFrame(frame) {
+    if (!this.open) return;
+    try { this.sock.write(frame); } catch { this._closed(); return; }
     // A screen that stopped reading (a phone on a dead network that hasn't timed out yet) would make the server keep
     // everything it is sent in memory. Past MAX_QUEUE waiting bytes the connection is dropped; the page reconnects.
     if (this.sock.writableLength > MAX_QUEUE && this.open) { console.warn(`ws: ${this.ip} is not reading (${this.sock.writableLength} bytes waiting), dropping`); this.open = false; this.sock.destroy(); this.emit('close'); }
@@ -109,8 +127,9 @@ export class Socket extends EventEmitter {
   }
 }
 
-// Attach to an http.Server; calls onConnect(socket, req) for each upgrade on `path`.
-export function attach(server, path, onConnect) {
+// Attach to an http.Server; calls onConnect(socket, req) for each upgrade on `path`. With `ask` (a connection helper),
+// the go-ahead for an address comes from the game process instead: ask(ip, yes => ...) with yes = an id or 0.
+export function attach(server, path, onConnect, ask = null) {
   server.on('upgrade', (req, sock) => {
     sock.on('error', () => {}); // a client vanishing mid-handshake must not crash the server
     const url = new URL(req.url, 'http://x');
@@ -123,15 +142,16 @@ export function attach(server, path, onConnect) {
     const origin = req.headers.origin;
     if (origin) { let oh = ''; try { oh = new URL(origin).host; } catch {} if (!oh || oh.toLowerCase() !== String(req.headers.host || '').toLowerCase()) { sock.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); return; } }
     const ip = limitKey(ipOf(req));
-    if ((open.get(ip) || 0) >= PER_IP || !allow('conn:' + ip, NEW_PER_MIN, 60_000)) {
-      sock.end('HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n'); return;
-    }
-    const accept = crypto.createHash('sha1').update(key + GUID).digest('base64');
-    sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
-      `Sec-WebSocket-Accept: ${accept}\r\n\r\n`);
-    const ws = new Socket(sock, ip);
-    open.set(ip, (open.get(ip) || 0) + 1);
-    ws.once('close', () => { const n = (open.get(ip) || 1) - 1; if (n > 0) open.set(ip, n); else open.delete(ip); });
-    onConnect(ws, req);
+    const go = id => {
+      if (!id) { sock.end('HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n'); return; }
+      const accept = crypto.createHash('sha1').update(key + GUID).digest('base64');
+      sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+        `Sec-WebSocket-Accept: ${accept}\r\n\r\n`);
+      const ws = new Socket(sock, ip);
+      if (!ask) ws.once('close', () => release(ip));
+      onConnect(ws, req, id);
+      if (sock.destroyed) ws._closed(); // it went away while waiting for the go-ahead
+    };
+    if (ask) ask(ip, go); else go(admit(ip) ? 1 : 0);
   });
 }
