@@ -31,6 +31,21 @@ try {
   const ld = JSON.parse(bot.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
   assert.ok(ld['@graph'].some(n => n.primaryImageOfPage?.url === 'https://zatokagier.com/og-square.png'));
 
+  // Every hub game is listed with its Polish name, description, players and playtime, plus the Today games.
+  const { readRegistry } = await import('../server/gamelist.js');
+  const reg = readRegistry();
+  assert.ok(reg.games.length >= 35, `only ${reg.games.length} games read from app.js`);
+  const hubIds = [...fs.readFileSync('public/app.js', 'utf8').split('const HUB_GAMES = [')[1].split('].filter(')[0].matchAll(/^\s*\['(\w+)'/gm)].map(m => m[1]);
+  assert.deepEqual(reg.games.map(g => g.id), hubIds, 'every HUB_GAMES row must be readable by server/gamelist.js');
+  for (const g of reg.games) {
+    assert.match(bot.text, new RegExp(`<li id="g-${g.id}"><b>[^<]+</b>: [^<]{20,} <small>Gracze: \\d`), g.id);
+    assert.ok(g.mins && g.pitch, g.id);
+  }
+  for (const n of ['Szachy', 'Makao', 'Kalambury', 'Bierki', 'Farma zwierzaków', 'Zagadkowy zwierzak', 'Zwierzakowy mahjong']) assert.ok(bot.text.includes(`<b>${n}</b>`), n);
+  assert.match(bot.text, /W Zatoce jest \d+ gier przy stole/);
+  const games = JSON.parse(bot.text.match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"ItemList"[\s\S]*?)<\/script>/)[1]);
+  assert.equal(games.itemListElement.length, reg.games.length + 6);
+
   const en = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'en-GB,en' });
   assert.match(en.text, /<html lang="en" data-geo="en"/);
   assert.match(en.text, /<title>Zatoka Gier: free online games with friends<\/title>/);
@@ -40,6 +55,10 @@ try {
   assert.match(en.text, /Tables are public by default/);
   assert.match(bot.text, /Stoły są domyślnie publiczne/);
   assert.doesNotMatch(en.text, /Postępy/);
+  assert.match(en.text, /<li id="g-chess"><b>Chess<\/b>: Classic chess/);
+  assert.match(en.text, /Players: 1–4 \(co-op\)/);
+  assert.match(en.text, /<b>Pet Farm<\/b>/);
+  assert.doesNotMatch(en.text, /Gracze:|Wszystkie gry/);
   assert.doesNotMatch(en.text, /darmowe|Darmowe|przeglądarce/);
 
   const pl = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'pl-PL,pl' });
