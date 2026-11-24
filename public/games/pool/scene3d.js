@@ -5,6 +5,7 @@ import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, nightScene } from '../../scenery3d.js';
+import { cueMeshes } from '../../skins.js';
 import { N, R, HX, HZ, TL, TW, HEAD_X, FOOT_X, POCKETS, FRAME_HZ, simulate, aimCast, placeOk, legalFirst, kindOf, dirOf, colOf } from './rules.js';
 
 const INK = '#3b2219', SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', FLOOR = -1.75, AVS = .95;
@@ -136,25 +137,27 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
   const OK_C = new THREE.Color('#ffffff'), BAD_C = new THREE.Color('#ff6b5c');
 
   // ---------- the cue ----------
-  const CUE_L = 3.7, cue = new THREE.Group(), cueTilt = new THREE.Group(); cue.add(cueTilt); cue.visible = false; world.add(cue);
-  const seg = (x0, x1, r0, r1, color) => { // a tapered stick from x0 (nearer the tip) to x1, lying along -x
-    const g = new THREE.CylinderGeometry(r1, r0, x1 - x0, 8); g.rotateZ(Math.PI / 2); g.translate(-(x0 + x1) / 2, 0, 0);
-    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, roughness: .6 })); m.castShadow = true; cueTilt.add(m); return m;
-  };
-  seg(0, .05, .03, .032, '#6fb7ff'); seg(.05, .2, .032, .036, '#fff4e2'); seg(.2, 2.5, .036, .058, '#efc88f');
-  const cueButt = seg(2.5, CUE_L, .058, .07, '#e5543b'); cueTilt.rotation.z = -.075;
+  // Each player brings their own cue (Wardrobe, kind cu). It is rebuilt when the shooter changes; the end cap is always the shooter's colour.
+  const cue = new THREE.Group(), cueTilt = new THREE.Group(); cue.add(cueTilt); cue.visible = false; world.add(cue); cueTilt.rotation.z = -.075;
+  let cueKey = '';
+  function dressCue(color, k) {
+    const key = color + '|' + (k | 0); if (key === cueKey) return; cueKey = key;
+    for (const m of [...cueTilt.children]) { cueTilt.remove(m); m.geometry.dispose(); m.material.dispose(); }
+    for (const m of cueMeshes(k, color)) { m.castShadow = true; cueTilt.add(m); }
+  }
+  dressCue('#e5543b', 0);
 
   // ---------- players ----------
   let players = [], seatsKey = '', pets = [];
   const arrow = youArrow(); arrow.visible = false; arrow.scale.setScalar(1.5); world.add(arrow);
   function setSeats(list) {
     const k = list.map(p => p.color + p.av.join('')).join('|');
-    if (k === seatsKey) return;
+    if (k === seatsKey) { players.forEach((p, i) => { p.cu = list[i].fl?.cu | 0; }); return; }
     seatsKey = k;
     for (const p of players) { world.remove(p.wrap); disposeAvatar(p.av); }
     players = list.map((s, i) => {
       const av = avatar3d(s.color, s.av, { pose: 'stand' }), wrap = new THREE.Group(); wrap.scale.setScalar(AVS); wrap.add(av); world.add(wrap);
-      return { i, av, wrap, color: s.color, pos: new THREE.Vector3(), init: false, face: 0, walk: 0, hop: 0, mood: 0, moodT: 0, tag: { x: 0, y: 0, show: false } };
+      return { i, av, wrap, color: s.color, cu: s.fl?.cu | 0, pos: new THREE.Vector3(), init: false, face: 0, walk: 0, hop: 0, mood: 0, moodT: 0, tag: { x: 0, y: 0, show: false } };
     });
   }
   // a few Pet Farm pets watch from the lawn and hop when a ball drops
@@ -353,7 +356,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
     cue.visible = cueShown;
     if (cueShown) {
       cue.position.set(cx, R, cz); cue.rotation.y = -cueAng; cueTilt.position.x = -(R + .1 + cuePull);
-      const who = players[rep ? rep.sh.s : S.turn]; if (who && cueButt.material.color.getHexString() !== who.color.slice(1).toLowerCase()) cueButt.material.color.set(who.color);
+      const who = players[rep ? rep.sh.s : S.turn]; if (who) dressCue(who.color, who.cu);
     }
     aimLine.visible = objLine.visible = cueLine.visible = ghost.visible = false;
     if (aiming) {
