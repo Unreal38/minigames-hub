@@ -413,6 +413,23 @@ export function wojnaArt() {
     ${card(84, 34, -12, 'h', 'wjl')}${card(184, 34, 12, 's', 'wjr')}
     <path class="wjspark" d="M160 40l6 15 15-6-8 14 14 8-16 3 3 16-14-9-14 9 3-16-16-3 14-8-8-14 15 6z" fill="#ffd84a" ${o}/>
     <path class="arttick" d="M160 22v-10M136 28l-6-8M184 28l6-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+// Makao card: a jack of clubs on a green table with a fighting king of hearts, a two and an ace fanned on top, and a "Makao!" shout.
+export function makaoArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const PIP = {
+    h: (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 21.5S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.8a4.9 4.9 0 0 1 9 2.8c0 6.2-9 11.9-9 11.9z" fill="#d8402a"/>`,
+    s: (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 1.8s8.6 6.4 8.6 11.5a4.3 4.3 0 0 1-7.4 3l1.3 5.2h-5l1.3-5.2a4.3 4.3 0 0 1-7.4-3C3.4 8.2 12 1.8 12 1.8z" fill="#3b2219"/>`,
+    d: (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M12 1.8l7.6 10.2L12 22.2 4.4 12z" fill="#d8402a"/>`,
+    c: (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#3b2219"><circle cx="12" cy="7.4" r="4.3"/><circle cx="7" cy="13.4" r="4.3"/><circle cx="17" cy="13.4" r="4.3"/><path d="M10.6 13.2h2.8l1.6 8.3H9z"/></g>`,
+  };
+  const card = (x, y, rot, label, pip, cls = '') => `<g class="${cls}" style="animation-delay:${-x * 9}ms"><g transform="rotate(${rot} ${x + 24} ${y + 34})"><rect x="${x}" y="${y}" width="48" height="68" rx="8" fill="#fff8ec" ${o}/><text x="${x + 7}" y="${y + 23}" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="21" fill="${pip === 's' || pip === 'c' ? '#3b2219' : '#d8402a'}">${label}</text>${PIP[pip](x + 16, y + 30, 1.25)}</g></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A jack of clubs on a green table with a king of hearts, a two and an ace fanned on top, and a Makao shout">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="130" cy="12" r="1.6"/><circle cx="24" cy="50" r="1.3"/><circle cx="300" cy="74" r="1.5"/><circle cx="70" cy="16" r="1.2"/></g>
+    <path d="M18 30l14-8 16 4 8 10-10 8H26z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="36" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="30" fill="#3f9a6a" ${o}/>
+    ${card(50, 54, -16, 'J', 'c')}${card(96, 46, -6, 'K', 'h', 'mfan')}${card(140, 44, 4, '2', 's', 'mfan')}${card(184, 48, 13, 'A', 'd', 'mfan')}
+    <g transform="rotate(6 224 22)"><rect x="176" y="5" width="96" height="34" rx="17" fill="#ffd84a" ${o}/><text x="224" y="29" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="19" fill="#3b2219">Makao!</text></g>
+    <path class="arttick" d="M168 14l-8-6M166 30h-10" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
 

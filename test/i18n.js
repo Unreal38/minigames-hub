@@ -76,12 +76,14 @@ const blocks = [...games.matchAll(/^  (\w+): \{$/gm)].map((m, i, all) => [m[1], 
 ok(blocks.length >= 18, 'found the games in app.js');
 for (const [id, src] of blocks) {
   const p = hub.GAMES_PL[id]; ok(p, `no Polish for the game ${id}`);
+  ok(/\n    mins: \[\d+, \d+\],/.test(src), `${id}: no playtime (mins: [low, high] minutes, shown on its hub card)`);
   for (const k of ['start', 'openSeat', 'pitch', 'howto', 'rules']) ok(p[k], `${id}: no Polish ${k}`);
   const li = s => (s.match(/<li>/g) || []).length;
   ok(li(src) === li(p.rules), `${id}: the Polish rules have ${li(p.rules)} points, the English ${li(src)}`);
   const labels = [...src.matchAll(/pill\('\w+', [^,]+, (?:'([^']*)'|"([^"]*)")\)/g)].map(m => m[1] ?? m[2]).concat([...src.matchAll(/class="opt"><b>([^<]+)<\/b>/g)].map(m => m[1]));
   for (const l of labels) ok(hub.OPT_PL[l] || /^[\d ×·.]*(s|min)?$/.test(l) || ["Texas Hold'em", 'Mango Poker'].includes(l), `${id}: the table setting “${l}” has no Polish`);
 }
+for (const k of ['hay', 'pop', 'mj']) ok(new RegExp(`\n  ${k}: \\{\n    name: [^\n]+\n    mins: \\[\\d+, \\d+\\],`).test(app), `solo game ${k}: no playtime (mins)`);
 ok(hub.SOLO_PL.hay.rules, 'Hay Hunch rules');
 ok(hub.SOLO_PL.pop.rules, 'Pet Pop rules');
 ok(hub.SOLO_PL.mj.rules, 'Pet Mahjong rules');
