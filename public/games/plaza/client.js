@@ -49,9 +49,9 @@ export function mount(app, ctx) {
         <button type="button" class="plz-chip plz-evchip" data-a="ev" id="plz-ev" hidden></button>
       </div>
       <div class="tr plz-tr">
-        <button type="button" class="round plz-chatbtn" data-a="chat" aria-label="${L('Chat', 'Czat')}">💬<i class="plz-dot" id="plz-unread" hidden></i></button>
+        <button type="button" class="round plz-chatbtn" data-a="chat" aria-label="${L('Chat', 'Czat')}" title="${L('Chat', 'Czat')}">💬<i class="plz-dot" id="plz-unread" hidden></i></button>
         <button type="button" class="round plz-view" data-a="view" id="plz-view" hidden aria-label="${L('Reset the view', 'Przywróć widok')}" title="${L('Reset the view', 'Przywróć widok')}">⟲</button>
-        <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? '🔇' : '🔊'}</button>
+        <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}" title="${L('Sound on or off', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? '🔇' : '🔊'}</button>
       </div>
       <div class="plz-pop" id="plz-pop" hidden></div>
       <section class="plz-chat" id="plz-chat" aria-label="${L('Chat', 'Czat')}">
