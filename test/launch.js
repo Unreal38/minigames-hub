@@ -24,6 +24,9 @@ const srv = spawn('node', [...SERVER_ARGS, 'server/server.js'], { env: { ...proc
 await wait(1000);
 const TICK = 100;
 const cpuOf = () => { try { const f = fs.readFileSync(`/proc/${srv.pid}/stat`, 'utf8').split(') ')[1].split(' '); return (+f[11] + +f[12]) / TICK; } catch { return NaN; } };
+// With connection helpers (GATEWAYS=3 npm run load:launch) they are child processes: their CPU is shown apart.
+const kids = () => { try { return fs.readFileSync(`/proc/${srv.pid}/task/${srv.pid}/children`, 'utf8').trim().split(/\s+/).filter(Boolean); } catch { return []; } };
+const kidCpu = () => kids().reduce((s, k) => { try { const f = fs.readFileSync(`/proc/${k}/stat`, 'utf8').split(') ')[1].split(' '); return s + (+f[11] + +f[12]) / TICK; } catch { return s; } }, 0);
 const rssOf = () => { try { return +/VmRSS:\s+(\d+)/.exec(fs.readFileSync(`/proc/${srv.pid}/status`, 'utf8'))[1] / 1024; } catch { return NaN; } };
 
 let ipN = 0, msgs = 0, bytes = 0, errs = 0, states = 0, lists = 0;
@@ -104,16 +107,16 @@ async function churner(i) {
 const probe = person('Probe'); await probe.ready;
 async function measure(label, extra) {
   const lat = []; let sent = 0;
-  const t0 = performance.now(), c0 = cpuOf(), m0 = msgs, b0 = bytes, s0 = states, l0 = lists;
+  const t0 = performance.now(), c0 = cpuOf(), k0 = kidCpu(), m0 = msgs, b0 = bytes, s0 = states, l0 = lists;
   while (performance.now() - t0 < HOLD) {
     sent = performance.now(); const got = next(probe, 'stats', 5000); probe.send({ t: 'stats' });
     if (await got) lat.push(performance.now() - sent); else lat.push(5000);
     await wait(250);
   }
-  const secs = (performance.now() - t0) / 1000, cpu = (cpuOf() - c0) / secs * 100;
+  const secs = (performance.now() - t0) / 1000, cpu = (cpuOf() - c0) / secs * 100, helperCpu = (kidCpu() - k0) / secs * 100;
   lat.sort((a, b) => a - b);
   const q = f => lat.length ? lat[Math.min(lat.length - 1, Math.floor(lat.length * f))] : NaN;
-  const row = { step: label, open: all.filter(p => !p.closed).length - 1, cpu: Math.round(cpu) + '%', memMB: Math.round(rssOf()),
+  const row = { step: label, open: all.filter(p => !p.closed).length - 1, cpu: Math.round(cpu) + '%', ...(kids().length ? { helpers: Math.round(helperCpu) + '% (' + kids().length + ')' } : {}), memMB: Math.round(rssOf()),
     'replyMs p50': +q(.5).toFixed(1), 'replyMs p99': +q(.99).toFixed(1), 'msgs/s out': Math.round((msgs - m0) / secs), 'MB/s out': +((bytes - b0) / secs / 1e6).toFixed(2), 'game states/s': Math.round((states - s0) / secs), 'table lists/s': Math.round((lists - l0) / secs), ...extra };
   console.log(JSON.stringify(row));
   return row;
