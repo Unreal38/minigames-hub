@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -32,6 +32,7 @@ const COLORS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8'
 const GAMES = {
   hotpot: {
     name: 'Hot Pot', load: () => import('./games/hotpot/client.js'), start: 'Start the pot',
+    mins: [5, 10], // every game needs this: how long one game usually takes at its default settings, in minutes (the ⏱ tag on its hub card; test/i18n.js checks it)
     host: { bots: 'chill', timer: 30 }, solo: { bots: 'chill', timer: 0 },
     openSeat: 'A bot sits here if nobody joins', seats: r => r.max,
     settings: pill => `<div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
@@ -48,6 +49,7 @@ const GAMES = {
   },
   marbles: {
     name: 'Marble Rush', load: () => import('./games/marbles/client.js'), start: 'Open the betting',
+    mins: [2, 5],
     host: { mode: 'classic', chaos: 'on', field: 6 }, solo: { mode: 'classic', chaos: 'on', field: 6 },
     openSeat: 'A bot bets from this seat if nobody joins', seats: r => Math.max(4, r.players.length),
     settings: pill => `<div class="opt"><b>Race</b><div class="pills">${pill('mode', 'classic', 'Classic')}${pill('mode', 'knockout', 'Knockout')}</div></div>
@@ -66,6 +68,7 @@ const GAMES = {
   },
   ladders: {
     name: 'Snakes & Ladders', load: () => import('./games/ladders/client.js'), start: 'Start the game',
+    mins: [10, 15],
     host: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 20, hard: 'off' }, solo: { size: 'classic', party: 'on', bounce: 'on', seats: 4, timer: 0, hard: 'off' },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
     settings: pill => `<div class="opt"><b>Board</b><div class="pills">${pill('size', 'classic', 'Classic 100')}${pill('size', 'short', 'Quick 60')}</div></div>
@@ -88,6 +91,7 @@ const GAMES = {
   },
   poker: {
     name: "Texas Hold'em", load: () => import('./games/poker/client.js'), start: 'Deal the cards',
+    mins: [15, 25],
     host: { variant: 'holdem', bots: 'chill', field: 6, hands: 10, timer: 30 }, solo: { variant: 'holdem', bots: 'chill', field: 6, hands: 10, timer: 0 },
     openSeat: 'A bot sits here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.field || 6, r.players.length)),
     settings: (pill, r) => `<div class="opt"><b>Game</b><div class="pills">${pill('variant', 'holdem', "Texas Hold'em")}${pill('variant', 'mango', 'Mango Poker')}</div></div>
@@ -116,6 +120,7 @@ const GAMES = {
   },
   bj: {
     name: 'Blackjack', load: () => import('./games/bj/client.js'), start: 'Deal the cards',
+    mins: [10, 15],
     host: { seats: 4, rounds: 10, bots: 'chill', timer: 20 }, solo: { seats: 4, rounds: 10, bots: 'chill', timer: 0 },
     openSeat: 'A bot sits here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -139,6 +144,7 @@ const GAMES = {
   },
   ludo: {
     name: 'Ludo', load: () => import('./games/ludo/client.js'), start: 'Start the game',
+    mins: [20, 30],
     host: { seats: 4, pawns: 4, head: 'on', timer: 20, hard: 'off' }, solo: { seats: 4, pawns: 4, head: 'on', timer: 0, hard: 'off' },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
@@ -161,6 +167,7 @@ const GAMES = {
   },
   stack: {
     name: 'Tower Stack', load: () => import('./games/stack/client.js'), start: 'Start building',
+    mins: [5, 10],
     host: { seats: 4, towers: 3, blocks: 'classic', bots: 'chill', timer: 10 }, solo: { seats: 4, towers: 3, blocks: 'classic', bots: 'chill', timer: 0 },
     openSeat: 'A bot stacks here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
@@ -182,6 +189,7 @@ const GAMES = {
   },
   darts: {
     name: 'Sky Darts', load: () => import('./games/darts/client.js'), start: 'Game on',
+    mins: [5, 10],
     host: { seats: 4, start: 301, out: 'double', legs: 1, bots: 'chill', timer: 15 }, solo: { seats: 4, start: 301, out: 'double', legs: 1, bots: 'chill', timer: 0 },
     openSeat: 'A bot throws here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
@@ -206,6 +214,7 @@ const GAMES = {
   },
   golf: {
     name: 'Mini Golf Party', load: () => import('./games/golf/client.js'), start: 'Tee off',
+    mins: [10, 15],
     host: { holes: 6, seats: 4, bets: 'on', bots: 'chill', course: 'random' }, solo: { holes: 6, seats: 4, bets: 'on', bots: 'chill', course: 'random' },
     openSeat: 'A bot putts here if nobody joins', seats: r => Math.max(r.opts.seats || 4, r.players.length),
     settings: pill => `<div class="opt"><b>Holes</b><div class="pills">${pill('holes', 3, 'Quick 3')}${pill('holes', 6, '6')}${pill('holes', 9, '9')}</div></div>
@@ -229,6 +238,7 @@ const GAMES = {
   },
   dice: {
     name: "Liar's Dice", load: () => import('./games/dice/client.js'), start: 'Shake the cups',
+    mins: [10, 15],
     host: { seats: 4, mode: 'dice', lives: 3, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, mode: 'dice', lives: 3, dice: 5, wild: 'on', spot: 'on', bots: 'chill', timer: 0 },
     openSeat: 'A bot bluffs from this seat if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -255,6 +265,7 @@ const GAMES = {
   },
   paw: {
     name: 'Pawperty', load: () => import('./games/paw/client.js'), start: 'Open the shops',
+    mins: [15, 25],
     host: { seats: 4, rounds: 20, naps: 'on', bots: 'chill', timer: 30 }, solo: { seats: 4, rounds: 20, naps: 'on', bots: 'chill', timer: 0 },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -279,6 +290,7 @@ const GAMES = {
   },
   kart: {
     name: 'Kart Island Race', load: () => import('./games/kart/client.js'), start: 'Start your engines',
+    mins: [3, 5],
     host: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' }, solo: { seats: 6, laps: 3, track: 'random', items: 'on', bots: 'chill' },
     openSeat: 'A bot drives here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 6, r.players.length)),
     settings: pill => `<div class="opt"><b>Track</b><div class="pills">${pill('track', 'random', 'Random')}${pill('track', 'meadow', 'Meadow Loop')}${pill('track', 'bakery', 'Sugar Bridges')}${pill('track', 'peaks', 'Twisty Peaks')}${pill('track', 'cliff', 'Cliffside Hairpins')}${pill('track', 'cove', 'Pirate Cove')}${pill('track', 'frost', 'Frost Fjord')}</div></div>
@@ -302,6 +314,7 @@ const GAMES = {
   },
   kitchen: {
     name: 'Cozy Kitchen Rush', load: () => import('./games/kitchen/client.js'), start: 'Open the kitchen',
+    mins: [3, 5],
     host: { seats: 3, time: 180, map: 'diner', bots: 'chill' }, solo: { seats: 3, time: 180, map: 'diner', bots: 'chill' },
     openSeat: 'A bot cooks here if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
     settings: pill => `<div class="opt"><b>Cooks</b><div class="pills">${pill('seats', 1, '1')}${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
@@ -323,6 +336,7 @@ const GAMES = {
   },
   tys: {
     name: 'Tysiąc', load: () => import('./games/tys/client.js'), start: 'Deal the cards',
+    mins: [40, 60],
     host: { seats: 3, target: 1000, bots: 'chill', timer: 30, fold: 'free' }, solo: { seats: 3, target: 1000, bots: 'chill', timer: 0, fold: 'free' },
     openSeat: 'A bot plays this seat if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 3, '3')}${pill('seats', 4, '4 (dealer sits out)')}</div></div>
@@ -344,6 +358,7 @@ const GAMES = {
   },
   dig: {
     name: 'Treasure Dig', load: () => import('./games/dig/client.js'), start: 'Start digging',
+    mins: [10, 15],
     host: { seats: 4, size: 'big', bots: 'chill', timer: 25 }, solo: { seats: 4, size: 'big', bots: 'chill', timer: 0 },
     openSeat: 'A bot digs here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -364,6 +379,7 @@ const GAMES = {
   },
   bricks: {
     name: 'Sky Bricks', load: () => import('./games/bricks/client.js'), start: 'Start stacking',
+    mins: [3, 6],
     host: { seats: 4, speed: 'normal', bots: 'chill' }, solo: { seats: 4, speed: 'normal', bots: 'chill' },
     openSeat: 'A bot stacks here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -384,6 +400,7 @@ const GAMES = {
   },
   lagoon: {
     name: 'Bubble Lagoon', load: () => import('./games/lagoon/client.js'), start: 'Start popping',
+    mins: [3, 6],
     host: { seats: 4, speed: 'normal', bots: 'chill' }, solo: { seats: 4, speed: 'normal', bots: 'chill' },
     openSeat: 'A bot shoots here if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
@@ -405,6 +422,7 @@ const GAMES = {
   },
   mahj: {
     name: 'Mahjong Race', load: () => import('./games/mahj/client.js'), start: 'Start the race',
+    mins: [5, 10],
     host: { seats: 4, size: 'normal', bots: 'chill' }, solo: { seats: 4, size: 'normal', bots: 'chill' },
     openSeat: 'A bot plays here if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
@@ -424,6 +442,7 @@ const GAMES = {
   },
   bean: {
     name: 'Beanstalk Bounce', load: () => import('./games/bean/client.js'), start: 'Start climbing',
+    mins: [3, 5],
     host: { seats: 4, pace: 'normal', bots: 'chill' }, solo: { seats: 4, pace: 'normal', bots: 'chill' },
     openSeat: 'A bot climbs here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Climbers</b><div class="pills">${pill('seats', 1, 'Just us')}${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
@@ -444,6 +463,7 @@ const GAMES = {
   },
   bop: {
     name: 'Burrow Bop', load: () => import('./games/bop/client.js'), start: 'Start bopping',
+    mins: [1, 3],
     host: { seats: 4, pace: 'normal', bots: 'chill' }, solo: { seats: 4, pace: 'normal', bots: 'chill' },
     openSeat: 'A bot bops here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 1, 'Just us')}${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
@@ -465,6 +485,7 @@ const GAMES = {
   },
   bingo: {
     name: 'Sky Bingo', load: () => import('./games/bingo/client.js'), start: 'Start the machine',
+    mins: [5, 7],
     host: { seats: 4, game: 'classic', speed: 'normal', daub: 'hand', bots: 'chill' }, solo: { seats: 4, game: 'classic', speed: 'normal', daub: 'hand', bots: 'chill' },
     openSeat: 'A bot daubs here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}${pill('seats', 8, '8')}</div></div>
@@ -484,8 +505,31 @@ const GAMES = {
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never daubs a number gets none.</li>
     </ol>`,
   },
+  pm: {
+    name: 'Countries & Cities', load: () => import('./games/pm/client.js'), start: 'Draw the first letter', min: 2,
+    mins: [8, 12],
+    host: { rounds: 5, time: 90, cats: 'classic', letters: 'easy', pet: 'off' }, solo: { rounds: 5, time: 90, cats: 'classic', letters: 'easy', pet: 'off' },
+    openSeat: 'Waiting for a friend (no bots in this game)', seats: r => Math.min(8, Math.max(4, r.players.length + 1)),
+    settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 3, '3')}${pill('rounds', 5, '5')}${pill('rounds', 8, '8')}</div></div>
+      <div class="opt"><b>Time to write</b><div class="pills">${pill('time', 60, '60 s')}${pill('time', 90, '90 s')}${pill('time', 120, '120 s')}</div></div>
+      <div class="opt"><b>Categories</b><div class="pills">${pill('cats', 'short', '4')}${pill('cats', 'classic', '6')}${pill('cats', 'long', '8')}</div></div>
+      <div class="opt"><b>Letters</b><div class="pills">${pill('letters', 'easy', 'Easy')}${pill('letters', 'pl', 'With Ł, Ś, Ż')}</div></div>
+      <div class="opt"><b>Extra category: Pet Farm pet</b><div class="pills">${pill('pet', 'off', 'Off')}${pill('pet', 'on', 'On')}</div></div>`,
+    howto: `A letter is drawn and everyone writes a country, a city, an animal and more, all starting with that letter. Fill every box first and press Stop, or beat the clock. Then the table checks the answers: a word nobody else wrote scores the most.`,
+    rules: `<ol>
+      <li>A game for <b>2 to 8 people</b>. There are no bots. Every round a <b>letter is drawn</b>, and no letter comes up twice in one game.</li>
+      <li>Write <b>one word in every category</b> that starts with the letter: country, city, animal, plant, name and thing (the table can play with 4 or 8 categories too). Nobody sees your words until the round is over.</li>
+      <li>When you have a word in every box, you can press <b>Stop!</b> The others then get <b>5 more seconds</b>. If nobody stops, the round ends when the time runs out.</li>
+      <li>Then <b>everyone checks the answers</b> together. Tap the thumb next to a word that is wrong. A word is thrown out when <b>more than half of the other players</b> reject it. Players who wrote the same word are judged together. Press <b>Ready</b> when you are done.</li>
+      <li>The game checks the <b>first letter</b> by itself, and it must be exactly the drawn one: Polish letters such as Ż, Ś or Ł are letters of their own, so “Żaba” does not count for Z. With the <b>Pet Farm pet</b> category on, the game also checks that the word is a real pet, and closes that box in rounds where no pet starts with the letter.</li>
+      <li>Points for each category: <b>15</b> when yours is the only good answer, <b>10</b> for a word nobody else wrote, <b>5</b> when somebody else wrote it too, <b>0</b> for an empty or rejected one. Capitals and accents don't make a word different: “Krakow” and “Kraków” are the same answer.</li>
+      <li><b>Most points after the last round wins.</b> Players level on points share the place.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never writes a word gets none.</li>
+    </ol>`,
+  },
   ttt: {
     name: 'Tic-Tac-Toe', load: () => import('./games/ttt/client.js'), start: 'Start the match',
+    mins: [3, 5],
     host: { mode: 'classic', to: 3, bots: 'chill', timer: 20 }, solo: { mode: 'classic', to: 3, bots: 'chill', timer: 0 },
     openSeat: 'A bot plays here if nobody joins', seats: () => 2,
     settings: pill => `<div class="opt"><b>Board</b><div class="pills">${pill('mode', 'classic', 'Classic 3×3')}${pill('mode', 'fade', 'Vanishing 3×3')}${pill('mode', 'big', 'Big 5×5')}</div></div>
@@ -507,6 +551,7 @@ const GAMES = {
   },
   cove: {
     name: 'Cove Clash', load: () => import('./games/cove/client.js'), start: 'Start the game',
+    mins: [10, 15],
     host: { board: 'classic', bots: 'chill', timer: 20 }, solo: { board: 'classic', bots: 'chill', timer: 0 },
     openSeat: 'A bot plays here if nobody joins', seats: () => 2,
     settings: pill => `<div class="opt"><b>Bay</b><div class="pills">${pill('board', 'classic', 'Classic 10×10')}${pill('board', 'quick', 'Quick 7×7')}</div></div>
@@ -527,6 +572,7 @@ const GAMES = {
   },
   domino: {
     name: 'Dominoes', load: () => import('./games/domino/client.js'), start: 'Deal the tiles',
+    mins: [15, 25],
     host: { seats: 4, to: 100, bots: 'chill', timer: 20 }, solo: { seats: 4, to: 100, bots: 'chill', timer: 0 },
     openSeat: 'A bot plays these tiles if nobody joins', seats: r => Math.min(4, Math.max(2, r.opts.seats || 4, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
@@ -549,6 +595,7 @@ const GAMES = {
   },
   pan: {
     name: 'Pan', load: () => import('./games/pan/client.js'), start: 'Deal the cards',
+    mins: [5, 10],
     host: { seats: 4, bots: 'chill', timer: 30 }, solo: { seats: 4, bots: 'chill', timer: 0 },
     openSeat: 'A bot plays this hand if nobody joins', seats: r => [2, 3, 4, 6].find(n => n >= Math.max(r.opts.seats || 4, r.players.length)) || 6,
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
@@ -567,8 +614,31 @@ const GAMES = {
       <li>Shortcuts: <b>Enter</b> plays your lowest card that fits, <b>T</b> takes three.</li>
     </ol>`,
   },
+  wojna: {
+    name: 'Wojna', load: () => import('./games/wojna/client.js'), start: 'Deal the cards',
+    mins: [2, 4],
+    host: { seats: 2, deck: 'full', rounds: 60, timer: 5 }, solo: { seats: 2, deck: 'full', rounds: 60, timer: 5 },
+    openSeat: 'A bot turns these cards if nobody joins', seats: r => Math.min(4, Math.max(2, r.opts.seats || 2, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Deck</b><div class="pills">${pill('deck', 'full', '52 cards')}${pill('deck', 'small', '24 cards')}</div></div>
+      <div class="opt"><b>Battles</b><div class="pills">${pill('rounds', 30, '30')}${pill('rounds', 60, '60')}${pill('rounds', 120, '120')}</div></div>
+      <div class="opt"><b>Flip timer</b><div class="pills">${pill('timer', 3, '3s')}${pill('timer', 5, '5s')}${pill('timer', 10, '10s')}</div></div>`,
+    howto: `War, the Polish children's classic. Everyone turns over the top card of their pile and the highest card takes them all. Equal cards mean war: one more card face down, one face up, winner takes the lot. Hold the most cards after the last battle to win.`,
+    rules: `<ol>
+      <li>The deck is dealt out evenly, face down. Nobody looks at their cards. Empty seats are played by bots.</li>
+      <li>In every <b>battle</b> all players turn over the <b>top card</b> of their pile. The <b>highest card takes them all</b>. Two is the lowest, ace the highest, suits do not matter.</li>
+      <li>When the highest cards are <b>equal</b>, those players go to <b>war</b>: each puts <b>one card face down and one face up</b>. The higher new card takes everything on the table. Equal again means another war.</li>
+      <li>A player who is down to their last card in a war plays it face up. With no cards left, the card they already have on the table fights on.</li>
+      <li>Won cards go <b>under your pile</b> in a mixed-up order, so no game ever goes in circles.</li>
+      <li>Run out of cards and you are <b>out</b>. Take every card and you win on the spot.</li>
+      <li>Otherwise the game ends after the set number of battles and the <b>biggest pile wins</b>. Equal biggest piles play extra battles until one is bigger.</li>
+      <li>Tap <b>Flip</b>, the table, <b>Space</b> or <b>Enter</b> to turn your card. Wait too long and it is turned for you. <b>Auto</b> (key <b>A</b>) turns every card for you.</li>
+      <li>With three players and 52 cards the two of clubs is left out, so everyone starts with 17.</li>
+    </ol>`,
+  },
   piotr: {
     name: 'Piotruś', load: () => import('./games/piotr/client.js'), start: 'Deal the cards',
+    mins: [5, 8],
     host: { seats: 4, deck: 'small', timer: 20 }, solo: { seats: 4, deck: 'small', timer: 0 },
     openSeat: 'A bot holds these cards if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -587,8 +657,37 @@ const GAMES = {
       <li>If the turn timer runs out, the card you were reaching for is taken, or a random one. Shortcuts: <b>← →</b> reach for a card, <b>Enter</b> takes it, <b>S</b> shuffles your cards.</li>
     </ol>`,
   },
+  makao: {
+    name: 'Makao', load: () => import('./games/makao/client.js'), start: 'Deal the cards',
+    mins: [5, 10],
+    host: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 20 }, solo: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 0 },
+    openSeat: 'A bot plays this hand if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>The game ends</b><div class="pills">${pill('end', 'first', 'First one out wins')}${pill('end', 'last', 'Play to the last one')}</div></div>
+      <div class="opt"><b>Queen on everything</b><div class="pills">${pill('queens', 'off', 'Off')}${pill('queens', 'on', 'On')}</div></div>
+      <div class="opt"><b>Fighting kings</b><div class="pills">${pill('kings', 'on', 'On')}${pill('kings', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `The classic Polish card game with a normal 52-card deck. Put down a card of the same suit or the same rank as the one on top. Twos and threes make the next player draw, a four makes them wait, a Jack demands a rank and an Ace changes the suit. Say “Makao!” with one card left. First one out of cards wins.`,
+    rules: `<ol>
+      <li>A normal deck of <b>52 cards</b>. Everyone gets <b>5 cards</b> and one plain card is turned up. Empty seats are played by bots.</li>
+      <li>On your turn put down a card of the same <b>suit</b> or the same <b>rank</b> as the card on top. You may put down <b>several cards of one rank</b> at once: tap them in order, the first one has to fit and the last one ends up on top.</li>
+      <li>If you can't or don't want to, <b>draw a card</b>. If it fits, you may play it straight away or keep it. Either way your turn is over.</li>
+      <li><b>2 and 3</b>: the next player draws 2 or 3 cards and misses the turn. They can <b>defend</b> with another 2 or 3 of the same rank or the same suit (or a fighting king of that suit), and then the cards add up for the player after them.</li>
+      <li><b>King of hearts</b>: the next player draws 5. <b>King of spades</b>: the player <b>before you</b> draws 5, and play then carries on from them. A king can be answered with the other fighting king, or with a 2 or 3 of its suit. The kings of diamonds and clubs are plain cards.</li>
+      <li><b>4</b>: the next player misses a turn. Another 4 passes it on, and the waits add up: two fours mean two missed turns.</li>
+      <li><b>Jack</b>: you demand a rank from <b>5 to 10</b>. Everyone in turn, you last, has to play that rank or draw a card. A Jack on a Jack changes the demand.</li>
+      <li><b>Ace</b>: you pick the suit that comes next. An Ace on an Ace changes it again.</li>
+      <li><b>Queen</b>: a plain card, unless the table plays <b>Queen on everything</b>: then a Queen goes on any card and any card goes on a Queen (but it does not stop a 2, 3, 4, a king or a demand).</li>
+      <li>When your play leaves you with <b>one card</b>, press <b>“Makao!”</b> before you play. Before your <b>last card</b>, press <b>“Po makale!”</b>. If you forget, anyone can press <b>Catch</b> before the next player moves and you draw <b>5 cards</b>. You can still save yourself by pressing it first.</li>
+      <li>The <b>first one out of cards wins</b> and the others are placed by how few cards they hold. With <b>The game ends: Play to the last one</b> play goes on instead, places go in the order of getting out, and the last one holding cards loses.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, a bot plays the turn for you. Shortcuts: <b>Enter</b> plays a card that fits, <b>D</b> draws (or takes the cards, or waits), <b>K</b> keeps a drawn card, <b>1–4</b> pick a suit, <b>5–9 and 0</b> pick the demand, <b>M</b> says “Makao!” and <b>C</b> catches.</li>
+    </ol>`,
+  },
   parade: {
     name: 'Pet Parade', load: () => import('./games/parade/client.js'), start: 'Deal the cards',
+    mins: [10, 15],
     host: { seats: 4, bots: 'chill', stack: 'off', timer: 20 }, solo: { seats: 4, bots: 'chill', stack: 'off', timer: 0 },
     openSeat: 'A bot plays this hand if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -611,6 +710,7 @@ const GAMES = {
   },
   pips: {
     name: 'Pip Party', load: () => import('./games/pips/client.js'), start: 'Roll the dice',
+    mins: [10, 15],
     host: { seats: 3, sheet: 'single', bots: 'chill', timer: 45 }, solo: { seats: 3, sheet: 'single', bots: 'chill', timer: 0 },
     openSeat: 'A bot fills this sheet if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 3, r.players.length)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
@@ -632,8 +732,34 @@ const GAMES = {
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
     </ol>`,
   },
+  bierki: {
+    name: 'Bierki', load: () => import('./games/bierki/client.js'), start: 'Drop the sticks',
+    mins: [3, 6],
+    host: { seats: 2, piles: 1, hints: 'on', bots: 'chill', timer: 30 }, solo: { seats: 2, piles: 1, hints: 'on', bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.players.length, r.opts.seats || 2),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${[2, 3, 4, 5, 6].map(n => pill('seats', n, String(n))).join('')}</div></div>
+      <div class="opt"><b>Piles</b><div class="pills">${pill('piles', 1, 'One pile')}${pill('piles', 3, 'Three piles')}</div></div>
+      <div class="opt"><b>Hints</b><div class="pills">${pill('hints', 'on', 'Touching sticks glow')}${pill('hints', 'off', 'No hints')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Pull timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Classic pick-up sticks. Drag one stick out of the pile, slowly, without moving any other. Every stick you get out is yours and you go again. When another stick moves, the next player is up.`,
+    rules: `<ol>
+      <li>The sticks are dropped in a <b>pile</b>: 31 of them, or 41 with five or six players. Empty seats are played by bots.</li>
+      <li>On your turn, <b>drag a stick out of the pile</b>. Let go once it is clear of every other stick and it is yours. Then you <b>go again</b>.</li>
+      <li>The <b>Steady hands</b> meter fills whenever your stick rubs another one: a little for sliding over a stick it rests on, a lot for dragging a stick that <b>lies on top</b> of it or for <b>pushing into</b> a stick beside it. A <b>fast pull fills it much faster</b>, so take your time.</li>
+      <li>At <b>100%</b> another stick has moved: your turn ends and the stick you were holding is <b>out of play</b>. The same happens if a stick that lay on yours drops when yours is gone.</li>
+      <li>You may let go inside the pile. The stick goes back, but what it already rubbed <b>stays on the meter</b> for the rest of your turn.</li>
+      <li><b>Points</b>: plain wood 1, Leaf 2, Tide 3, Ember 4, Spark 5, a <b>pet stick</b> 8, the <b>Hook</b> 10 and the <b>Crown</b> 20. All four pet sticks in one hand pay <b>10 more</b>.</li>
+      <li>Whoever holds the <b>Hook</b> may, once a turn, <b>lift</b> a stick straight up instead of sliding it: press Lift (or hold Shift) and drag upwards. Lifting does not rub the sticks underneath.</li>
+      <li>With hints on (table settings), the sticks touching the one you point at <b>glow</b>: red for a stick lying on top of it, orange for the rest.</li>
+      <li>Drag the table or the sky to <b>turn the view</b>, scroll or pinch to zoom.</li>
+      <li>You have <b>30 seconds</b> for each stick (table settings). When the time runs out, the turn passes.</li>
+      <li>When the table is empty, the <b>most points</b> wins. With three piles the points add up. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
   pool: {
     name: 'Sky Pool', load: () => import('./games/pool/client.js'), start: 'Rack them up',
+    mins: [8, 12],
     host: { seats: 2, to: 1, bots: 'chill', timer: 30 }, solo: { seats: 2, to: 1, bots: 'chill', timer: 0 },
     openSeat: 'A bot plays here if nobody joins', seats: r => (r.players.length > 2 ? 4 : r.opts.seats || 2),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '1 against 1')}${pill('seats', 4, '2 against 2')}</div></div>
@@ -674,13 +800,14 @@ const st = {
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   hc: { log: null, max: 200, for: undefined }, // the hub's global chat
-  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), // the open tables page, the phone's hub tab, the games filter
+  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), gSort: LS.get('ct_gs', 'hub'), // the open tables page, the phone's hub tab, the games filter
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 // Solo games with no table: they open straight from the hub (like Pet Farm) and keep their progress on the account.
 const SOLO = {
   hay: {
     name: 'Hay Hunch',
+    mins: [2, 5],
     rules: `<ol>
       <li>Your field has <b>25 hay bales</b>. Under each one is a carrot bundle worth <b>×1, ×2 or ×3</b>, or a <b>napping pet</b>.</li>
       <li>The sign at the end of every row and column shows how many <b>carrots</b> it holds in total, and how many <b>pets</b> nap in it.</li>
@@ -695,6 +822,7 @@ const SOLO = {
   },
   pop: {
     name: 'Pet Pop',
+    mins: [2, 4],
     rules: `<ol>
       <li>The shelf is full of pets. <b>Swap two neighbours</b> so that <b>three or more of the same pet</b> stand in a line: they pop, and new pets drop in from the top.</li>
       <li>Swipe or drag a pet onto its neighbour, or click one and then the other. A swap that lines nothing up does not count.</li>
@@ -709,6 +837,7 @@ const SOLO = {
   },
   mj: {
     name: 'Pet Mahjong',
+    mins: [5, 10],
     rules: `<ol>
       <li>The board is a pile of tiles. Tap <b>two free tiles with the same picture</b> and the pair leaves the board. Clear every tile to finish the level.</li>
       <li>A tile is <b>free</b> when <b>nothing lies on top of it</b> and its <b>left or right side is open</b>. Tiles that are not free are a little darker.</li>
@@ -1036,13 +1165,14 @@ function openMj() {
 function closeMj() { if (!st.mj) return; st.mj.destroy(); st.mj = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
-const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
+const todayTile = (cls, pic, name, sub, act, btn, quiet, mins) => `<div class="ttile ${cls}">
   <div class="tpic" aria-hidden="true">${pic}</div>
-  <div class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span></div>
+  <div class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span>${timeTag(mins, 'ttime')}</div>
   <button type="button" class="btn sm ${quiet ? 'w' : ''}" data-act="${act}">${btn}</button>
 </div>`;
 // One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
 // The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
+const MP_MINS = [1, 3]; // Mystery Pet: a few guesses
 function todayHtml() {
   const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
   const needAcct = L('Needs an account', 'Wymaga konta');
@@ -1064,11 +1194,11 @@ function todayHtml() {
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
   const w = st.wheelInfo, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
   const mpPic = MYSTERY_ICON;
-  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done)
+  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done, MP_MINS)
     + todayTile('t-wheel' + (w && !w.guest && !w.spun ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun)
-    + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'))
-    + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'))
-    + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'))
+    + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
+    + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
+    + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins)
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
@@ -1476,18 +1606,29 @@ const HUB_GAMES = [
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
   ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
+  ['wojna', 'wojnapic', wojnaArt, 'cards', '1–4 players', 'War, the Polish classic: flip your top card, the highest takes them all, and equal cards mean war.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
+  ['makao', 'makaopic', makaoArt, 'cards', '1–6 players', 'The Polish classic with a normal deck: twos and threes to draw, fours to wait, Jacks demand, Aces change the suit, kings fight. Don\'t forget “Makao!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
   ['bop', 'boppic', bopArt, 'action', '1–6 players', 'Bop the pets popping out of your burrows before they duck. Three hearts each, and the last one with a heart wins.'],
+  ['bierki', 'bierkipic', bierkiArt, 'action', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
+  ['pm', 'pmpic', pmArt, 'board', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
 ].filter(g => GAMES[g[0]]);
-const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
-  <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>
+// The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
+const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const minsText = ([a, b]) => a === b ? `~${a} min` : `${a}–${b} min`;
+const timeTag = (m, cls = 'tag ttime') => m ? `<span class="${cls}" title="${L('Usual length of one game', 'Zwykle tyle trwa jedna gra')}">${CLOCK}${minsText(m)}</span>` : '';
+// The sort menu beside the search box: hub order, by playtime (middle of mins) or by the most seats. Saved like the filter.
+const G_SORTS = [['hub', L('Default order', 'Domyślnie')], ['short', L('Shortest first', 'Najkrótsze')], ['long', L('Longest first', 'Najdłuższe')], ['many', L('Most players', 'Najwięcej graczy')], ['few', L('Fewest players', 'Najmniej graczy')]];
+const seatsMax = s => Math.max(...(String(s).match(/\d+/g) || [0]).map(Number));
+const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcard gmini" data-i="${i}" data-mins="${GAMES[id].mins ? (GAMES[id].mins[0] + GAMES[id].mins[1]) / 2 : 999}" data-seats="${seatsMax(seats)}" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
+  <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>${timeTag(GAMES[id].mins, 'gtime')}</div>
   <div class="body"><h3>${esc(GAMES[id].name)}</h3><div class="gmeta"><span class="tag">${PLX ? PLX.SEATS_PL(seats) : seats}</span>
     <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
     <button type="button" class="btn sm" data-act="host" data-game="${id}">${L('Host a table', 'Załóż stół')}</button></div>
@@ -1500,7 +1641,16 @@ function filterGames() {
   document.querySelectorAll('[data-act="gfilt"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === st.gFilt));
   const none = document.getElementById('gnone'); if (none) none.hidden = shown > 0;
 }
+// Moves the cards into the chosen order (no re-render, so the pictures keep animating). Ties keep hub order.
+function sortGames() {
+  if (!G_SORTS.some(([id]) => id === st.gSort)) st.gSort = 'hub';
+  const box = document.querySelector('.games.mini'); if (!box) return;
+  const by = { hub: () => 0, short: (a, b) => a.dataset.mins - b.dataset.mins, long: (a, b) => b.dataset.mins - a.dataset.mins,
+    many: (a, b) => b.dataset.seats - a.dataset.seats, few: (a, b) => a.dataset.seats - b.dataset.seats }[st.gSort];
+  [...box.children].sort((a, b) => by(a, b) || a.dataset.i - b.dataset.i).forEach(c => box.append(c));
+}
 $app.addEventListener('input', e => { if (e.target.id === 'gfind') filterGames(); });
+$app.addEventListener('change', e => { if (e.target.id === 'gsort') { st.gSort = e.target.value; LS.set('ct_gs', st.gSort); sortGames(); } });
 // Below this width the hub is one column with a tab bar at the bottom (Games, Tables, Chat, Rankings, You).
 const narrowMq = matchMedia('(max-width: 1099px)'), narrow = () => narrowMq.matches;
 narrowMq.addEventListener('change', () => { if (st.view === 'hub') { renderTables(); paintRankings(); } });
@@ -1539,6 +1689,7 @@ function renderHub() {
         <h2>${L('Games', 'Gry')}</h2>
         <div class="gfilt" role="group" aria-label="${L('Kind of game', 'Rodzaj gry')}">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
         <input id="gfind" class="field gfind" type="search" placeholder="${L('Find a game', 'Szukaj gry')}" aria-label="${L('Find a game', 'Szukaj gry')}" autocomplete="off" spellcheck="false">
+        <select id="gsort" class="field gsort" aria-label="${L('Sort games', 'Sortuj gry')}">${G_SORTS.map(([id, n]) => `<option value="${id}"${id === st.gSort ? ' selected' : ''}>${n}</option>`).join('')}</select>
       </div>
       <div class="games mini">${HUB_GAMES.map(gameCard).join('')}</div>
       <div class="empty" id="gnone" hidden>${L('No game with that name. Try another word, or pick “All”.', 'Nie ma gry o takiej nazwie. Spróbuj innego słowa albo wybierz „Wszystkie”.')}</div>
@@ -1575,7 +1726,7 @@ function renderHub() {
   </main>
   <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
-  renderTables(); filterGames();
+  renderTables(); sortGames(); filterGames();
   document.body.classList.add('sky');
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
@@ -1828,7 +1979,8 @@ function renderLobby() {
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
       ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
-        ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
+        ${host && seated.length < (gm.min || 1) ? `<span class="chip">${L(`You need ${gm.min} players to start. Send the invite link to a friend.`, `Do startu potrzeba ${gm.min} graczy. Wyślij znajomemu link z zaproszeniem.`)}</span>`
+          : host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
         <button type="button" class="btn big ghost" data-act="leave">${L('Leave', 'Wyjdź')}</button>
       </div>
     </div>

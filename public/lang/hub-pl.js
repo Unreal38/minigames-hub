@@ -27,13 +27,16 @@ export const OPT_PL = {
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
-  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
+  Deck: 'Talia', '52 cards': '52 karty', '24 cards': '24 karty', Battles: 'Bitwy', 'Flip timer': 'Czas na odkrycie', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
+  'The game ends': 'Koniec gry', 'First one out wins': 'Wygrywa pierwszy bez kart', 'Play to the last one': 'Gramy do ostatniego', 'Queen on everything': 'Dama na wszystko', 'Fighting kings': 'Waleczne króle',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
+  Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
+  Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -363,6 +366,21 @@ export const GAMES_PL = {
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie zaznaczy ani jednej liczby, nie dostaje monet.</li>
     </ol>`,
   },
+  pm: {
+    name: 'Państwa-miasta', start: 'Losuj pierwszą literę', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
+    pitch: 'Klasyka z kartką i długopisem. Losujemy literę: wpisz państwo, miasto, zwierzę i resztę, zanim ktoś zawoła „Stop!”.',
+    howto: `Losujemy literę, a każdy wpisuje państwo, miasto, zwierzę i kolejne hasła na tę literę. Wypełnij wszystkie pola jako pierwszy i naciśnij „Stop!” albo zdąż przed końcem czasu. Potem cały stół sprawdza odpowiedzi: najwięcej punktów daje hasło, którego nie ma nikt inny.`,
+    rules: `<ol>
+      <li>Gra dla <b>2–8 osób</b>, bez botów. W każdej rundzie <b>losujemy literę</b>, a żadna litera nie powtarza się w jednej grze.</li>
+      <li>W <b>każdej kategorii wpisz jedno hasło</b> na wylosowaną literę: państwo, miasto, zwierzę, roślina, imię i rzecz (przy stole można też ustawić 4 albo 8 kategorii). Nikt nie widzi twoich haseł przed końcem rundy.</li>
+      <li>Gdy masz hasło w każdym polu, możesz nacisnąć <b>„Stop!”</b>. Pozostali mają wtedy jeszcze <b>5 sekund</b>. Jeśli nikt nie zatrzyma rundy, kończy ją upływ czasu.</li>
+      <li>Potem <b>wszyscy razem sprawdzają odpowiedzi</b>. Dotknij kciuka przy haśle, które jest błędne. Hasło odpada, gdy odrzuci je <b>ponad połowa pozostałych graczy</b>. Gracze z tym samym hasłem są oceniani razem. Gdy skończysz, naciśnij <b>„Gotowe”</b>.</li>
+      <li><b>Pierwszą literę</b> gra sprawdza sama i musi to być dokładnie ta wylosowana: Ż, Ś czy Ł to osobne litery, więc „Żaba” nie liczy się na Z. Przy włączonej kategorii <b>zwierzak z Farmy</b> gra sprawdza też, czy to prawdziwy zwierzak, a w rundach, w których żaden zwierzak nie zaczyna się na daną literę, to pole jest zamknięte.</li>
+      <li>Punkty w każdej kategorii: <b>15</b>, gdy tylko ty masz dobre hasło, <b>10</b> za hasło, którego nie ma nikt inny, <b>5</b>, gdy ktoś wpisał to samo, <b>0</b> za puste albo odrzucone. Wielkość liter i polskie znaki nie robią różnicy: „Krakow” i „Kraków” to ta sama odpowiedź.</li>
+      <li><b>Wygrywa najwięcej punktów po ostatniej rundzie.</b> Przy równej liczbie punktów gracze dzielą miejsce.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie wpisze ani jednego hasła, nie dostaje monet.</li>
+    </ol>`,
+  },
   ttt: {
     name: 'Kółko i krzyżyk', start: 'Zacznij mecz', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
     pitch: 'Kółko i krzyżyk na klockowej planszy 3D. Klasycznie, ze znikającymi znakami albo cztery w rzędzie na dużej planszy.',
@@ -410,6 +428,24 @@ export const GAMES_PL = {
       <li>Mecz toczy się do <b>100 punktów</b> (albo do 50, albo trwa jedną rundę: wybierz w ustawieniach stołu). W grze na jedną rundę o kolejnych miejscach decyduje to, kto ma lżejszą rękę.</li>
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, kostka zostanie dołożona za ciebie.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  bierki: {
+    name: 'Bierki', start: 'Rozsyp bierki', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Klasyczne bierki w 3D. Wyciągnij jedną bierkę ze stosu tak, żeby nie poruszyć pozostałych, i zapoluj na Króla.',
+    howto: `Klasyczne bierki. Wyciągnij jedną bierkę ze stosu, powoli, tak żeby nie poruszyć żadnej innej. Każda wyciągnięta bierka jest twoja i grasz dalej. Gdy poruszy się inna bierka, kolej przechodzi na następnego gracza.`,
+    rules: `<ol>
+      <li>Bierki są rozsypane w <b>stos</b>: jest ich 31, a przy pięciu lub sześciu graczach 41. Wolne miejsca zajmują boty.</li>
+      <li>W swojej kolejce <b>wyciągnij bierkę ze stosu</b>, przeciągając ją. Puść ją, gdy nie dotyka już żadnej innej, a będzie twoja. Potem <b>grasz dalej</b>.</li>
+      <li>Wskaźnik <b>Pewna ręka</b> rośnie, gdy twoja bierka ociera się o inną: trochę przy przesuwaniu po bierce, na której leży, a mocno przy ciągnięciu bierki, która <b>leży na niej</b>, albo przy <b>napieraniu</b> na bierkę obok. <b>Szybkie ciągnięcie napełnia go dużo szybciej</b>, więc się nie spiesz.</li>
+      <li>Przy <b>100%</b> inna bierka się poruszyła: twoja kolejka się kończy, a trzymana bierka <b>wypada z gry</b>. Tak samo jest, gdy po zabraniu twojej bierki opadnie ta, która na niej leżała.</li>
+      <li>Bierkę można puścić w stosie. Wraca wtedy na miejsce, ale to, o co się już otarła, <b>zostaje na wskaźniku</b> do końca twojej kolejki.</li>
+      <li><b>Punkty</b>: zwykła bierka 1, Liść 2, Fala 3, Żar 4, Iskra 5, <b>bierka ze zwierzakiem</b> 8, <b>Hak</b> 10 i <b>Król</b> 20. Komplet czterech bierek ze zwierzakami daje <b>10 punktów więcej</b>.</li>
+      <li>Kto ma <b>Hak</b>, może raz na kolejkę <b>podnieść</b> bierkę prosto do góry, zamiast ją przesuwać: naciśnij „Podnieś” (albo przytrzymaj Shift) i przeciągnij w górę. Podnoszenie nie ociera bierek pod spodem.</li>
+      <li>Przy włączonych podpowiedziach (ustawienia stołu) bierki dotykające tej, którą wskazujesz, <b>świecą</b>: na czerwono ta, która na niej leży, a na pomarańczowo pozostałe.</li>
+      <li>Przeciągnij stół albo niebo, żeby <b>obrócić widok</b>. Kółko myszy albo rozsunięcie palców przybliża.</li>
+      <li>Masz <b>30 sekund</b> na każdą bierkę (ustawienia stołu). Gdy czas minie, kolejka przechodzi dalej.</li>
+      <li>Gdy stół jest pusty, wygrywa <b>największa liczba punktów</b>. Przy trzech stosach punkty się sumują. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   pool: {
@@ -464,6 +500,22 @@ export const GAMES_PL = {
       <li>Gdy minie czas, gra stawia za ciebie ostatni zakład, a w twojej turze stajesz. Skróty: <b>H</b> dobierz, <b>S</b> stój, <b>D</b> podwój, <b>P</b> rozdziel, <b>Enter</b> stawia zakład.</li>
     </ol>`,
   },
+  wojna: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, te karty odkrywa bot',
+    pitch: 'Klasyczna wojna: odkryj wierzchnią kartę, najwyższa zabiera wszystkie, a równe karty oznaczają wojnę.',
+    howto: `Wojna, klasyczna polska gra dla dzieci. Wszyscy odkrywają wierzchnią kartę ze swojego stosu, a najwyższa zabiera wszystkie. Równe karty oznaczają wojnę: jeszcze jedna karta zakryta, jedna odkryta i zwycięzca bierze wszystko. Wygrywa ten, kto po ostatniej bitwie ma najwięcej kart.`,
+    rules: `<ol>
+      <li>Talię rozdaje się po równo, koszulkami do góry. Nikt nie ogląda swoich kart. Wolne miejsca zajmują boty.</li>
+      <li>W każdej <b>bitwie</b> wszyscy gracze odkrywają <b>wierzchnią kartę</b> ze swojego stosu. <b>Najwyższa karta zabiera wszystkie</b>. Dwójka jest najniższa, as najwyższy, kolory nie mają znaczenia.</li>
+      <li>Gdy najwyższe karty są <b>równe</b>, ci gracze toczą <b>wojnę</b>: każdy kładzie <b>jedną kartę zakrytą i jedną odkrytą</b>. Wyższa nowa karta zabiera wszystko ze stołu. Znowu równe karty to kolejna wojna.</li>
+      <li>Gracz, któremu w czasie wojny została ostatnia karta, kładzie ją odkrytą. Gdy nie ma już żadnej, walczy dalej kartą, która leży na stole.</li>
+      <li>Wygrane karty trafiają <b>pod spód twojego stosu</b> w pomieszanej kolejności, więc gra nigdy nie kręci się w kółko.</li>
+      <li>Bez kart <b>odpadasz</b>. Kto zbierze wszystkie karty, wygrywa od razu.</li>
+      <li>W innym wypadku gra kończy się po ustalonej liczbie bitew i <b>wygrywa największy stos</b>. Przy równych największych stosach gra toczy się dalej, aż jeden będzie większy.</li>
+      <li>Naciśnij <b>Odkryj</b>, dotknij stołu albo użyj <b>spacji</b> lub klawisza <b>Enter</b>, żeby odkryć kartę. Gdy czekasz za długo, karta odkrywa się sama. <b>Auto</b> (klawisz <b>A</b>) odkrywa za ciebie każdą kartę.</li>
+      <li>Przy trzech graczach i 52 kartach dwójka trefl zostaje w pudełku, więc każdy zaczyna z 17 kartami.</li>
+    </ol>`,
+  },
   piotr: {
     start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, te karty trzyma bot',
     pitch: 'Piotruś z kartami zwierzaków. Zbieraj pary, ciągnij karty od sąsiada i nie zostań z Piotrusiem w ręku.',
@@ -478,6 +530,26 @@ export const GAMES_PL = {
       <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy. <b>Przegrywa gracz, który zostaje z Piotrusiem</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, bierzesz kartę, po którą sięgasz, albo losową. Skróty: <b>← →</b> sięgają po kartę, <b>Enter</b> ją bierze, <b>S</b> tasuje twoje karty.</li>
+    </ol>`,
+  },
+  makao: {
+    name: 'Makao', start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, tymi kartami zagra bot',
+    pitch: 'Polski klasyk zwykłą talią: dwójki i trójki na dobieranie, czwórki na postój, walety żądają, asy zmieniają kolor, króle walczą. Nie zapomnij powiedzieć „Makao!”.',
+    howto: `Klasyczna polska gra karciana zwykłą talią 52 kart. Połóż kartę w tym samym kolorze albo o tej samej wartości co karta na wierzchu. Dwójki i trójki każą następnemu graczowi dobierać, czwórka każe mu czekać, walet żąda karty, a as zmienia kolor. Gdy zostaje ci jedna karta, powiedz „Makao!”. Wygrywa ten, kto pierwszy pozbędzie się kart.`,
+    rules: `<ol>
+      <li>Zwykła talia <b>52 kart</b>. Każdy dostaje <b>5 kart</b>, a na stół trafia jedna zwykła karta. Wolne miejsca zajmują boty.</li>
+      <li>W swojej turze połóż kartę w tym samym <b>kolorze</b> albo o tej samej <b>wartości</b> co karta na wierzchu. Możesz położyć naraz <b>kilka kart o tej samej wartości</b>: dotykaj ich po kolei, pierwsza musi pasować, a ostatnia będzie na wierzchu.</li>
+      <li>Jeśli nie możesz albo nie chcesz, <b>dobierz kartę</b>. Jeśli pasuje, możesz ją od razu zagrać albo zatrzymać. Tak czy inaczej twoja tura się kończy.</li>
+      <li><b>2 i 3</b>: następny gracz dobiera 2 albo 3 karty i traci kolejkę. Może się <b>obronić</b> kolejną dwójką lub trójką o tej samej wartości albo w tym samym kolorze (albo walecznym królem w tym kolorze), a wtedy karty sumują się dla gracza za nim.</li>
+      <li><b>Król kier</b>: następny gracz dobiera 5. <b>Król pik</b>: 5 kart dobiera gracz <b>przed tobą</b>, a gra toczy się dalej od niego. Na króla można położyć drugiego walecznego króla albo dwójkę lub trójkę w jego kolorze. Króle karo i trefl to zwykłe karty.</li>
+      <li><b>4</b>: następny gracz traci kolejkę. Kolejna czwórka przekazuje postój dalej, a postoje się sumują: dwie czwórki to dwie stracone kolejki.</li>
+      <li><b>Walet</b>: żądasz karty od <b>5 do 10</b>. Każdy po kolei, ty na końcu, musi zagrać taką kartę albo dobrać. Walet na walecie zmienia żądanie.</li>
+      <li><b>As</b>: wybierasz kolor, który będzie dalej. As na asie zmienia go jeszcze raz.</li>
+      <li><b>Dama</b>: zwykła karta, chyba że stół gra z zasadą <b>Dama na wszystko</b>: wtedy damę można położyć na każdą kartę i każdą kartę na damę (ale dama nie broni przed 2, 3, 4, królem ani żądaniem).</li>
+      <li>Gdy po twoim ruchu zostanie ci <b>jedna karta</b>, naciśnij <b>„Makao!”</b>, zanim zagrasz. Przed <b>ostatnią kartą</b> naciśnij <b>„Po makale!”</b>. Jeśli zapomnisz, każdy może nacisnąć <b>Złap</b>, zanim ruszy się następny gracz, a ty dobierasz <b>5 kart</b>. Możesz się jeszcze uratować, jeśli zdążysz nacisnąć pierwszy.</li>
+      <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>, a pozostali zajmują miejsca według liczby kart w ręce: im mniej, tym lepiej. Przy ustawieniu <b>Koniec gry: Gramy do ostatniego</b> gra toczy się dalej, miejsca idą w kolejności pozbywania się kart, a przegrywa ten, kto zostanie z kartami.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera (albo bierze karty, albo czeka), <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>5–9 i 0</b> wybierają żądanie, <b>M</b> mówi „Makao!”, a <b>C</b> łapie.</li>
     </ol>`,
   },
   parade: {

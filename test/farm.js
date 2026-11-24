@@ -324,6 +324,8 @@ if (r.farm.mail.filter(m => m.k === 'help').length !== 1 || r.farm.mail.find(m =
 await a.farmDo({ t: 'collect', test: { home: true, trips: 5 } });
 // gifts: paid by the giver, opened from the mailbox
 const bw = b.farm.inv.wood, aw = a.farm.inv.wood;
+r = await b.farmDo({ t: 'gift', id: ana.id, mat: 'coins' });
+if (!r.err || !r.visit.gift) fail('coins gifted');
 r = await b.farmDo({ t: 'gift', id: ana.id, mat: 'crystal' });
 if (!r.err) fail('gave crystal without having any');
 r = await b.farmDo({ t: 'gift', id: ana.id, mat: 'wood' });
@@ -432,6 +434,12 @@ if (!r.err) fail('empty offer accepted');
 r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 99999 } }, want: {} });
 if (!r.err) fail('offered more than owned');
 r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 20 } }, want: { mats: { coins: 1 } } });
+if (!r.err || r.farm.trades.length) fail('coins asked for in a trade');
+r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { coins: 5 } }, want: { mats: { stone: 1 } } });
+if (!r.err || r.farm.trades.length) fail('coins offered in a trade');
+{ const c0 = r.farm.inv.coins; r = await a.farmDo({ t: 'open', test: { oldOffer: boId } }); // an offer saved before coins stopped being tradable goes back whole
+  if (r.farm.trades.length || r.farm.inv.coins !== c0 || !r.farm.mail.some(m => /coins can no longer be traded/.test(m.text || ''))) fail('old coin offer not sent back ' + JSON.stringify(r.farm.trades)); }
+r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 20 } }, want: { mats: { stone: 1 } } });
 if (r.err || r.farm.inv.wood !== tWood - 20 || r.farm.trades[0]?.dir !== 'out') fail('offer ' + JSON.stringify(r.err || r.farm.trades));
 r = await a.farmDo({ t: 'offer', to: boId, give: { mats: { wood: 1 } }, want: {} });
 if (!r.err) fail('two offers to one farm');
@@ -443,18 +451,18 @@ if (r.err || r.farm.trades.length) fail('decline ' + r.err);
 r = await a.farmDo({ t: 'open' });
 if (r.farm.inv.wood !== tWood || r.farm.trades.length) fail('declined offer did not come back');
 if (!spare) fail('no spare pet to trade');
-r = await a.farmDo({ t: 'offer', to: boId, give: { pets: [spare.id], mats: { wood: 5 } }, want: { mats: { coins: 2 } } });
+r = await a.farmDo({ t: 'offer', to: boId, give: { pets: [spare.id], mats: { wood: 5 } }, want: { mats: { stone: 2 } } });
 if (r.err || !r.farm.pets.find(x => x.id === spare.id).held) fail('pet offer ' + r.err);
 r = await a.farmDo({ t: 'tradecancel', id: r.farm.trades[0].id });
 if (r.err || r.farm.pets.find(x => x.id === spare.id).held || r.farm.inv.wood !== tWood) fail('cancel ' + r.err);
-r = await a.farmDo({ t: 'offer', to: boId, give: { pets: [spare.id], mats: { wood: 5 } }, want: { mats: { coins: 2 } } });
+r = await a.farmDo({ t: 'offer', to: boId, give: { pets: [spare.id], mats: { wood: 5 } }, want: { mats: { stone: 2 } } });
 await b.farmDo({ t: 'open', test: { give: { wood: 100, stone: 100, coins: 10 } } });
 r = { err: 1 }; for (let y = 0; y < 9 && r.err; y++) for (let x = 0; x < 9 && r.err; x++) { r = await b.farmDo({ t: 'place', type: 'hut', x, y, r: 0 }); await wait(30); }
-const bCoins = b.farm.inv.coins, bPets = b.farm.pets.length, aPets = a.farm.pets.length, aCoins = a.farm.inv.coins;
+const bStone = b.farm.inv.stone, bPets = b.farm.pets.length, aPets = a.farm.pets.length, aStone = a.farm.inv.stone;
 r = await b.farmDo({ t: 'tradeans', id: b.farm.trades[0].id, ok: true });
-if (r.err || r.farm.pets.length !== bPets + 1 || r.farm.inv.coins !== bCoins - 2 || !r.farm.pets.some(x => x.id === spare.id && x.first === 'ana' && !x.held)) fail('accept ' + JSON.stringify(r.err));
+if (r.err || r.farm.pets.length !== bPets + 1 || r.farm.inv.stone !== bStone - 2 || !r.farm.pets.some(x => x.id === spare.id && x.first === 'ana' && !x.held)) fail('accept ' + JSON.stringify(r.err));
 r = await a.farmDo({ t: 'open' });
-if (r.farm.pets.length !== aPets - 1 || r.farm.inv.coins !== aCoins + 2 || r.farm.trades.length) fail('trade did not settle for the sender');
+if (r.farm.pets.length !== aPets - 1 || r.farm.inv.stone !== aStone + 2 || r.farm.trades.length) fail('trade did not settle for the sender');
 
 // ----- gardens, kitchen, storage, workshop -----
 r = await a.farmDo({ t: 'open', test: { give: { wood: 200, stone: 200, fiber: 100, coal: 20 } } });
@@ -478,8 +486,18 @@ const ate = r.farm.pets.find(x => x.id === eater.id);
 if (r.err || r.farm.inv.cookie || (ate.lv === eat0[0] && ate.xp <= eat0[1])) fail('feed ' + r.err);
 r = await a.farmDo({ t: 'feed', what: 'cookie', pet: eater.id });
 if (!r.err) fail('fed a treat that was not there');
-r = await a.farmDo({ t: 'sell', mat: 'wood', lots: 2 });
-if (!a.farm.items.some(i => i.type === 'workshop')) { if (!r.err) fail('sold without a Workshop'); await spot('workshop'); r = await a.farmDo({ t: 'open' }); const w0 = [r.farm.inv.wood, r.farm.inv.coins]; r = await a.farmDo({ t: 'sell', mat: 'wood', lots: 2 }); if (r.err || r.farm.inv.wood !== w0[0] - 20 || r.farm.inv.coins !== w0[1] + 8) fail('sell ' + r.err); }
+// the Workshop swaps materials (level 1 keeps 40%): 25 wood for 5 shells, 1 crystal for 8 shells; it no longer buys for coins
+r = await a.farmDo({ t: 'swap', give: 'wood', get: 'stone', n: 2 });
+if (!a.farm.items.some(i => i.type === 'workshop')) { if (!r.err) fail('swapped without a Workshop'); await spot('workshop'); }
+{ r = await a.farmDo({ t: 'open', test: { give: { crystal: 1 } } }); const w0 = { ...r.farm.inv };
+  r = await a.farmDo({ t: 'swap', give: 'wood', get: 'shells', n: 2 });
+  if (r.err || r.farm.inv.wood !== w0.wood - 50 || r.farm.inv.shells !== (w0.shells || 0) + 10 || r.farm.inv.coins !== w0.coins) fail('swap ' + r.err);
+  r = await a.farmDo({ t: 'swap', give: 'crystal', get: 'shells', n: 1 });
+  if (r.err || r.farm.inv.crystal !== w0.crystal - 1 || r.farm.inv.shells !== (w0.shells || 0) + 18) fail('swap crystal ' + r.err);
+  for (const bad of [{ give: 'coins', get: 'wood' }, { give: 'wood', get: 'coins' }, { give: 'wood', get: 'wood' }, { give: 'crystal', get: 'wood', n: 999 }]) { r = await a.farmDo({ t: 'swap', ...bad }); if (r.farm.inv.wood !== w0.wood - 50 || r.farm.inv.coins !== w0.coins) fail('bad swap went through ' + JSON.stringify(bad)); }
+  r = await a.farmDo({ t: 'sell', mat: 'wood', lots: 2 }); if (!r.err || r.farm.inv.coins !== w0.coins) fail('old sell still pays coins');
+  const top = r.farm.cap - r.farm.inv.shells; r = await a.farmDo({ t: 'open', test: { give: { shells: top } } }); r = await a.farmDo({ t: 'swap', give: 'wood', get: 'shells' }); if (!r.err) fail('swapped past the storage cap');
+  r = await a.farmDo({ t: 'open', test: { give: { shells: -top } } }); }
 await spot('windmill');
 if (a.farm.cap !== (a.farm.items.some(i => i.type === 'barn') ? 900 : 300)) fail('storage cap ' + a.farm.cap);
 // a juice in a practice battle heals once

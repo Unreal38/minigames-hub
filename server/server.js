@@ -20,6 +20,7 @@ import * as dice from './games/dice.js';
 import * as pan from './games/pan.js';
 import * as pips from './games/pips.js';
 import * as piotr from './games/piotr.js';
+import * as wojna from './games/wojna.js';
 import * as bj from './games/bj.js';
 import * as paw from './games/paw.js';
 import * as kart from './games/kart.js';
@@ -32,11 +33,14 @@ import * as bean from './games/bean.js';
 import * as darts from './games/darts.js';
 import * as ttt from './games/ttt.js';
 import * as parade from './games/parade.js';
+import * as makao from './games/makao.js';
 import * as cove from './games/cove.js';
 import * as domino from './games/domino.js';
 import * as pool from './games/pool.js';
+import * as bierki from './games/bierki.js';
 import * as bingo from './games/bingo.js';
 import * as bop from './games/bop.js';
+import * as pm from './games/pm.js';
 import * as tys from './games/tys.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
@@ -54,7 +58,7 @@ import { isBot, pageFor } from './seo.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, bop };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -484,7 +488,7 @@ function handle(c, m) {
         opts: GAMES[m.game].cleanOpts ? GAMES[m.game].cleanOpts(m.opts || {})
           : { bots: m.opts?.bots === 'sharp' ? 'sharp' : 'chill', timer: [0, 20, 30, 45, 60].includes(+m.opts?.timer) ? +m.opts.timer : 30 } };
       rooms.set(r.code, r); joinRoom(c, r);
-      if (m.solo) startGame(r);
+      if (m.solo && !(GAMES[m.game].meta.minHumans > 1)) startGame(r);
       return;
     }
     case 'join': {
@@ -507,6 +511,9 @@ function handle(c, m) {
     case 'start': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
+      // a game without bots (Państwa-miasta) needs enough people in seats, counting watchers who asked for one
+      const need = GAMES[r.game].meta.minHumans || 0;
+      if (need && seatedOf(r).length + r.players.filter(t => r.spect.has(clients.get(t)?.id) && r.sit.has(clients.get(t)?.id)).length < need) return send(c, { t: 'err', msg: 'This game needs at least two players. Invite a friend first.' });
       return startGame(r);
     }
     case 'lobby': { // host sends everyone back to the waiting room
