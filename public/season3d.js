@@ -4,7 +4,6 @@
 //   seasonLookNow(now)     'winter' | 'spring' | 'summer' | 'autumn' | 'halloween' for that day (default: today).
 //                      The dates are SEASONS in avatar.js (winter 15 Nov to 28 Feb, spring Mar to May, summer Jun
 //                      to Aug, Halloween 1 Oct to 7 Nov); the days no drop covers (September, 8 to 14 November) are autumn.
-//                      ?season=winter in the page address shows another season (for checking the looks).
 //   LOOK[season]       colours of the lawn, patches, earth and rock; flower colours and how many; the rim props;
 //                      the air (what petals() drops); icicles: winter hangs icicles under the lawn (trim()).
 //   SP                 the season props, each sitting on y = 0 like PROPS in scenery3d.js (snowy pine, snowman,
@@ -15,9 +14,7 @@
 import * as THREE from 'three';
 import { seasonOn } from './avatar.js';
 
-const PICK = ['winter', 'spring', 'summer', 'autumn', 'halloween'];
 export function seasonLookNow(now = new Date()) {
-  if (typeof location !== 'undefined') { const q = new URLSearchParams(location.search).get('season'); if (PICK.includes(q)) return q; }
   for (const s of ['halloween', 'winter', 'spring', 'summer']) if (seasonOn(s, now)) return s;
   return 'autumn';
 }
