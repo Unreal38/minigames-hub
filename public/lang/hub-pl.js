@@ -60,17 +60,16 @@ export const GAMES_PL = {
     </ol>`,
   },
   marbles: {
-    name: 'Wyścig kulek', start: 'Otwórz zakłady', openSeat: 'Jeśli nikt nie dołączy, z tego miejsca obstawia bot',
-    pitch: 'Wybierz kolor, postaw monety i patrz, jak kulki pędzą w dół po losowym torze 3D.',
-    howto: `Kulki nie należą do nikogo. Postaw monety na kolor i patrz, jak kulki toczą się w dół po losowym torze. W eliminacjach po każdym biegu odpada najwolniejsza kulka, aż zostanie jedna.`,
+    name: 'Wyścig kulek', start: 'Otwórz wybór kolorów', openSeat: 'Jeśli nikt nie dołączy, z tego miejsca wybiera bot',
+    pitch: 'Wybierz kolor i patrz, jak kulki pędzą w dół po losowym torze 3D.',
+    howto: `Kulki nie należą do nikogo. Wybierz kolor i patrz, jak kulki toczą się w dół po losowym torze. W eliminacjach po każdym biegu odpada najwolniejsza kulka, aż zostanie jedna.`,
     rules: `<ol>
       <li>Kulki to po prostu <b>kolory</b> i nie należą do nikogo. Kilku graczy może kibicować tej samej.</li>
-      <li>Zanim otworzy się bramka, <b>postaw monety</b> na kolor. Wyścig czeka, aż wszyscy obstawią. Zwycięski kolor wypłaca stawkę razy liczba kulek.</li>
+      <li>Zanim otworzy się bramka, <b>wybierz kolor</b>. Wyścig czeka, aż wszyscy wybiorą. Miejsce twojego koloru daje monety jak w każdej innej grze: 10 za 1. miejsce, aż do 1 za ostatnie. Nikt nie stawia monet.</li>
       <li>Tor jest <b>za każdym razem losowy</b>: kołki, wiatraki, zapadnie, pola przyspieszenia i przewężenia. Nikt nie steruje.</li>
-      <li>Masz <b>jednego banana na bieg</b>. Rzuć nim w dowolny kolor, żeby kulka się poślizgnęła.</li>
+      <li>Masz <b>jednego banana na bieg</b>. Rzuć nim w dowolny kolor, żeby kulka się poślizgnęła. Każdą kulkę można trafić raz na bieg i tylko w pierwszej połowie toru.</li>
       <li><b>Chaos na torze</b> dotyka wszystkich: odwrócona grawitacja, turbo, trzęsienia toru i zamiany miejsc.</li>
       <li><b>Eliminacje</b>: ostatnia kulka na mecie w każdym biegu odpada. Dobre do losowania, kto stawia.</li>
-      <li>Stawiasz prawdziwe monety, te same, za które kupujesz rzeczy dla awatara, więc obstawiaj z głową. Jeśli masz mniej niż 10, bank pożycza ci zakład za 10 monet.</li>
     </ol>`,
   },
   ladders: {
