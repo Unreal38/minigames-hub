@@ -2165,12 +2165,12 @@ const CHAT_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" s
 const SCORE_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/></svg>';
 const boardHtml = r => r.board?.length ? `<ol class="board">${r.board.map((e, i) => `<li${prof(e)}>
     <span class="pos">${i + 1}</span>${avatarHtml(e.color, e.av, 36, frameCls(e.fl))}
-    <b>${nameHtml(e.name, e.fl)}</b>
-    <span class="num"><b>${e.wins}</b> ${word(e.wins, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych')}</span><span class="num"><b>${e.pts}</b> ${L('pts', 'pkt')}</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> ${word(e.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}</span>` : ''}
+    <div class="who"><b ${fitw(e.name, '700 100px Rubik, sans-serif')}>${nameHtml(e.name, e.fl)}</b>
+    <div class="nums${e.coins !== undefined ? ' c3' : ''}"><span class="num"><b>${e.wins}</b> ${word(e.wins, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych')}</span><span class="num"><b>${e.pts}</b> ${L('pts', 'pkt')}</span>${e.coins !== undefined ? `<span class="num"><b>${e.coins}</b> ${word(e.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}</span>` : ''}</div></div>
   </li>`).join('')}</ol>
   <p class="boardnote">${L(`${r.played} ${r.played === 1 ? 'game' : 'games'} played at this table. Scores stay with the table, even through a server restart.`, `Gry rozegrane przy tym stole: ${r.played}. Wyniki zostają przy stole, nawet po restarcie serwera.`)}</p>`
   : `<p class="boardnote">${L('No games finished yet. Wins and points add up here for as long as the table stays open.', 'Nie skończono tu jeszcze żadnej gry. Wygrane i punkty sumują się tutaj, dopóki stół jest otwarty.')}</p>`;
-function scoresPaint() { if (st.room) $chat.querySelector('.scorebody').innerHTML = boardHtml(st.room); else $chat.querySelector('.scorepanel').hidden = true; }
+function scoresPaint() { if (st.room) morph($chat.querySelector('.scorebody'), boardHtml(st.room)); else $chat.querySelector('.scorepanel').hidden = true; }
 $chat.innerHTML = `
   <div class="chatpanel" hidden role="dialog" aria-label="${L('Table chat', 'Czat stołu')}">
     <div class="chathead"><b>${L('Table chat', 'Czat stołu')}</b><button type="button" class="round" data-c="toggle" aria-label="${L('Close chat', 'Zamknij czat')}">×</button></div>

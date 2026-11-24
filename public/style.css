@@ -315,9 +315,16 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .pergame b { font-family: var(--fd); font-weight: 600; margin-right: 8px; } .pergame span { color: var(--muted); }
 .board { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .board li { display: flex; align-items: center; gap: 10px; background: var(--plum); border-radius: 14px; padding: 8px 12px; }
+/* Every row the same: name on its own line, wins and points on one line under it. The name keeps whole words
+   and shrinks (fit.js --w) before it would ever be cut. */
+.board .who { flex: 1; min-width: 0; container-type: inline-size; display: flex; flex-direction: column; gap: 2px; }
+.board .nums { display: flex; column-gap: 10px; }
+/* Too narrow for the stats on one line: every row stacks them the same way, so no row wraps differently. */
+@container (max-width: 140px) { .board .nums { flex-direction: column; } }
+@container (max-width: 240px) { .board .nums.c3 { flex-direction: column; } }
 .board li:first-child { outline: 2px solid var(--lantern); }
 .board .pos { font-family: var(--fd); font-weight: 700; width: 18px; text-align: center; color: var(--lantern); flex: none; }
-.board li > b { font-family: var(--fd); font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board .who > b { font-family: var(--fd); font-weight: 600; font-size: max(10px, min(16px, calc(100cqi / var(--w, 6)))); line-height: 1.2; text-wrap: balance; color: var(--cream); overflow: hidden; text-overflow: ellipsis; }
 .board .num { font-size: 14px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; } .board .num b { color: var(--cream); font-family: var(--fd); }
 .authform { display: flex; flex-direction: column; gap: 8px; }
 .authform label { font-family: var(--fd); font-weight: 600; margin-top: 6px; }
@@ -359,14 +366,13 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .again .wait { font-size: 15px; }
 .sheet .chip { background: var(--card); color: var(--on-paper); border-color: var(--card-edge); }
 
-.board li { flex-wrap: wrap; row-gap: 2px; } .board li > b { min-width: 5em; }
 .boardnote { margin: 0; font-size: 14px; color: var(--muted); }
 .chatbtns { display: flex; gap: 8px; align-items: flex-end; }
 body:has(.lobby) .scorebtn { display: none; }
 .scorepanel { height: auto; max-height: min(430px, 62vh); }
 .scorebody { padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
 .scorepanel .board li { background: #f6e3cb; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .scorepanel .board .pos { color: var(--chili); }
-.scorepanel .board .num, .scorepanel .boardnote { color: var(--soft-tx2); } .scorepanel .board .num b { color: var(--on-paper); }
+.scorepanel .board .num, .scorepanel .boardnote { color: var(--soft-tx2); } .scorepanel .board .num b, .scorepanel .board .who > b { color: var(--on-paper); }
 .scorepanel .board li:first-child { outline-color: var(--ink); }
 @media (max-width: 760px) { body.in-game .scorebtn .lbl { display: none; } body.in-game .scorebtn { padding: 6px 10px; min-height: 40px; } }
 @media (max-width: 1150px) { body:has(.mr) .scorebtn .lbl { display: none; } }
