@@ -1112,7 +1112,7 @@ body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color
 .wdtxt { min-height: 46px; max-width: 100%; display: grid; place-items: center; font: 700 max(10px, min(17px, calc((100cqi - 6px) / var(--w, 6))))/1.1 var(--fd); padding: 0 2px; } .wdtxt .ttl { white-space: normal; text-wrap: balance; font-size: max(9.5px, min(12.5px, calc((100cqi - 26px) / var(--w, 6)))); }
 .wdemo { font-size: 36px; line-height: 60px; } .wdemo.sm { font-size: 19px; line-height: 1.5; letter-spacing: 1px; max-width: 84px; }
 .wdtile.cos .avatar { margin: 8px 0; }
-.wdtile.pet .palno { position: absolute; top: 5px; left: 5px; } .wdtile.pet .palpic { margin: 0; }
+.wdtile.pet .palno, .wdtile.cos .palno { position: absolute; top: 5px; left: 5px; } .wdtile.pet .palpic { margin: 0; }
 .wd.creator .cart { grid-area: cart; position: static; box-shadow: none; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; max-height: 150px; overflow: auto; }
 .wd .cartact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; } .wd .cartact .btn { white-space: nowrap; min-height: 44px; }
 .wd .cartitem small { font-weight: 500; } .wd.creator .cartlist > b { color: var(--tx, #6b4a3c); }

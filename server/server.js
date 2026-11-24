@@ -62,6 +62,7 @@ import * as word from './word.js';
 import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import * as plaza from './plaza.js';
+import { cosHas } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { distinctCols, matchColors } from './colors.js';
@@ -298,6 +299,11 @@ plaza.setup({
   pidOf: c => store.profileOf(c.token)?.pid || null,
   friends: c => store.profileOf(c.token)?.friends || [],
   mayReact: (c, k) => store.mayReact(store.profileOf(c.token), k),
+  mayEmote: (c, e) => cosHas(store.profileOf(c.token), 'em', e),
+  // a day's first visit counts towards the emotes earned by visiting; the player's own screen hears about a new one
+  visit: c => { const p = store.profileOf(c.token), r = store.plazaVisit(p); if (r.fresh) send(c, { t: 'me', me: store.me(p) }); return r; },
+  // a heart for a friend's pet: one Pet Farm friendship point a day for each friend
+  patPal: (c, o) => { const a = store.profileOf(c.token), b = store.profileOf(o.token); return !!a?.user && !!b?.user && a !== b && store.areFriends(a.pid, b.pid) && farm.plazaPat(a.pid, b.pid); },
   // an open table people can still walk to: public, in its waiting room, with a free seat
   table: code => { const r = rooms.get(code); if (!r) return null; const free = GAMES[r.game].meta.maxPlayers - seatedOf(r).length; return { game: r.game, free, open: !r.priv && !r.G && free > 0 }; },
   // the daily present: once a day (Warsaw's midnight, like every daily thing), accounts only
@@ -535,7 +541,7 @@ function handle(c, m) {
       const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
       const ids = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
       if (pal && ids.some(id => !farm.petOf(p?.pid, id))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
-      const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : m.k === 'fp' ? store.islePieces(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
+      const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : m.k === 'fp' ? store.islePieces(p, m.i) : m.k === 'eb' ? store.emoteBar(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
       const room = rooms.get(c.room); if (room) sendRoom(room); plaza.refresh(c);
