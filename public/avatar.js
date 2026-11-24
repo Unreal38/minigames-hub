@@ -103,6 +103,19 @@ export const seasonOn = (name, now = new Date()) => {
   const [m0, d0, m1, d1] = s.span, at = (now.getMonth() + 1) * 100 + now.getDate(), a = m0 * 100 + d0, b = m1 * 100 + d1;
   return a <= b ? at >= a && at <= b : at >= a || at <= b;
 };
+// Which season is on at `now`, with its first and last day (local dates at noon). Between drops it says which one comes next:
+// { key, start, end } while one runs, { key: null, start: <day after the last one>, end: <day before the next>, next } in a gap.
+export function seasonNow(now = new Date()) {
+  const day = (y, m, d) => new Date(y, m - 1, d, 12), y = now.getFullYear(), runs = [];
+  for (const [key, { span: [m0, d0, m1, d1] }] of Object.entries(SEASONS))
+    for (const yy of [y - 1, y, y + 1]) runs.push({ key, start: day(yy, m0, d0), end: day(m0 * 100 + d0 <= m1 * 100 + d1 ? yy : yy + 1, m1, d1) });
+  runs.sort((a, b) => a.start - b.start);
+  const t = day(y, now.getMonth() + 1, now.getDate()), on = runs.find(r => r.start <= t && t <= r.end);
+  if (on) return on;
+  const next = runs.find(r => r.start > t), prev = runs.filter(r => r.end < t).pop();
+  const plus = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, 12);
+  return { key: null, start: plus(prev.end, 1), end: plus(next.start, -1), next };
+}
 export const seasonOf = (k, i) => SEASON[k + ':' + i] || null;
 // Can this item be bought right now? (Anything not seasonal always can.)
 export const onSale = (k, i, now) => seasonOn(SEASON[k + ':' + i], now);
