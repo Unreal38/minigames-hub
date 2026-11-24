@@ -137,20 +137,48 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
   if (A.pos !== 1 || A.cash !== c3 + PASS_GO) fail('passing the Welcome Mat should pay ' + PASS_GO);
   // nobody is knocked out: a broke player sells back at half price and is let off the rest
   G.nap.fill(false); B.inBath = false; B.cash = 5; G.own.fill(-1); G.lv.fill(0); G.own[1] = o; G.own[3] = s; G.lv[3] = 2; B.pos = 0;
-  const c4 = A.cash; pw._roll(G, o, now, [1, 2]); run(() => G.turn === s && G.stage === 'roll');
-  const paid = 5 + TILES[1].price / 2;
-  if (G.own[1] !== -1 || B.cash !== Math.max(0, paid - TILES[3].rent[2]) || A.cash !== c4 + Math.min(paid, TILES[3].rent[2])) fail('a broke player should sell up and pay what they can');
+  // a person picks what to sell: the game waits in 'raise' until they have sold enough
+  G.own[7] = o; G.lv[7] = 1;
+  const c4 = A.cash; pw._roll(G, o, now, [1, 2]); run(() => G.stage === 'raise');
+  const rent = TILES[3].rent[2];
+  if (A.cash !== c4 || B.cash !== 5 || G.debts.length !== 1 || G.debts[0].amt !== rent || G.debts[0].to !== s) fail('rent a player cannot cover should wait for them to sell');
+  if (pw.act(G, s, { t: 'sell', i: 3 }) || pw.act(G, o, { t: 'sell', i: 3 }) || pw.act(G, o, { t: 'end' }) || pw.act(G, o, { t: 'roll' })) fail('wrong things accepted while raising treats');
+  if (pw.view(G, o).debts[0]?.amt !== rent) fail('the view should show the debt');
+  if (!pw.act(G, o, { t: 'sellup', i: 7 }) || G.lv[7] !== 0 || B.cash !== 5 + TILES[7].up / 2 || G.stage !== 'raise') fail('selling an upgrade went wrong');
+  if (!pw.act(G, o, { t: 'sell', i: 1 }) || G.own[1] !== -1) fail('selling a shop went wrong');
+  const have = 5 + TILES[7].up / 2 + TILES[1].price / 2;
+  if (have < rent ? G.stage !== 'raise' : G.debts.length) fail('debt not settled after selling enough');
+  if (have < rent && (!pw.act(G, o, { t: 'sell', i: 7 }) || G.debts.length)) fail('selling the last shop should settle the debt');
+  const tot = have + TILES[7].price / 2 * (have < rent ? 1 : 0);
+  if (B.cash !== Math.max(0, tot - rent) || A.cash !== c4 + Math.min(tot, rent)) fail('a broke player should pay what they raised');
+  run(() => G.turn === s && G.stage === 'roll');
   if (G.ph !== 'play' || B.cash < 0) fail('a broke player must stay in the game');
+  // selling a shop off a whole street knocks the street's palaces down to a toy box
+  G.own.fill(-1); G.lv.fill(0); for (const j of STREET[0]) G.own[j] = s; G.lv[STREET[0][1]] = 3; const c5 = A.cash;
+  pw._botSell(G, s); if (G.lv[STREET[0][1]] !== 2 || A.cash !== c5 + TILES[STREET[0][1]].up / 2) fail('bots should sell the palace first');
+  G.lv[STREET[0][1]] = 3; G.debts.push({ s, to: -1, amt: 1e6, why: 'test' }); G.stage = 'raise'; G.held = { stage: 'roll', rest: 0 };
+  pw.act(G, s, { t: 'sell', i: STREET[0][0] }); if (G.lv[STREET[0][1]] !== 2 || G.own[STREET[0][0]] !== -1) fail('a palace stayed without the whole street');
+  pw.act(G, s, { t: 'autosell' }); if (G.debts.length || G.own.some(x => x === s) || A.cash !== 0 || G.stage !== 'roll') fail('selling for me should sell everything needed and carry on');
+  A.cash = 300;
   // the timer plays for a player who is not looking, and a watcher gets a bot's seat at the next round
   const H = pw.create([players[0]], { seats: 3, rounds: 30, timer: 20 });
   for (let i = 0; i < 4000 && !(H.turn === 0 && H.stage === 'roll'); i++) { now += 50; pw.tick(H, now); }
   const n0 = H.rollN; now += 20100; pw.tick(H, now); if (H.rollN === n0) fail('the timer did not roll');
+  { // the timer sells for a person who does not pick in time
+    const H2 = pw.create([players[0], players[1]], { seats: 2, rounds: 30, timer: 20 }), x = H2.turn, y = 1 - x;
+    H2.own[3] = y; H2.lv[3] = 2; H2.own[1] = x; H2.lv[1] = 1; H2.own[4] = x; H2.seats[x].cash = 2; H2.seats[x].pos = 0;
+    pw._roll(H2, x, now, [1, 2]); for (let i = 0; i < 400 && H2.stage !== 'raise'; i++) { now += 50; pw.tick(H2, now); }
+    if (H2.stage !== 'raise') fail('no raise stage for a person short of rent');
+    now += 29000; pw.tick(H2, now); if (H2.stage !== 'raise') fail('the raise timer ran out too early');
+    now += 1500; pw.tick(H2, now); if (H2.stage === 'raise' || H2.debts.length || H2.seats[x].cash < 0) fail('the raise timer did not sell');
+    if (H2.lv[1] !== 0) fail('the timer should sell upgrades before shops');
+  }
   pw.seatWatcher(H, { id: 'c', name: 'Cy', color: '#9aa8ff', av: [2] });
   if (H.seats.some(x => x.id === 'c')) fail('watcher seated in the middle of a round');
   const r0 = H.round; for (let i = 0; i < 40000 && H.round === r0; i++) { now += 50; pw.tick(H, now); }
   if (!H.seats.some(x => x.id === 'c' && x.human && !x.bot)) fail('watcher was not seated at the new round');
   Date.now = realNow;
-  console.log('OK rules: adopt, rent, upgrades, naps, doubles, bath, jar, puddle, Welcome Mat, going broke, timer, watcher');
+  console.log('OK rules: adopt, rent, upgrades, naps, doubles, bath, jar, puddle, Welcome Mat, choosing what to sell, timer, watcher');
 }
 
 // ----- over the real server (waits are 25 times shorter) -----
@@ -172,9 +200,12 @@ send({ t: 'opts', opts: { seats: 3, rounds: 10 } }); await wait(200);
 if (room.opts.seats !== 3 || room.opts.rounds !== 10 || room.opts.naps !== 'off' || room.opts.timer !== 20) bail('option change lost');
 send({ t: 'start' }); await wait(300);
 if (state?.game !== 'paw' || state.seats.length !== 3 || state.seats[state.me].cash !== START_CASH || state.own.length !== N) bail('game did not start');
-let acts = 0;
+let acts = 0, raised = 0;
 for (let i = 0; i < 2500 && state.ph === 'play'; i++) {
-  if (state.turn === state.me && ['roll', 'buy', 'done'].includes(state.stage)) {
+  if (state.stage === 'raise' && state.debts.some(d => d.s === state.me)) {
+    const mine = state.own.findIndex(o => o === state.me); raised++;
+    send({ t: 'act', a: mine >= 0 && state.lv[mine] ? { t: 'sellup', i: mine } : mine >= 0 ? { t: 'sell', i: mine } : { t: 'autosell' } }); await wait(40);
+  } else if (state.turn === state.me && ['roll', 'buy', 'done'].includes(state.stage)) {
     const a = state.stage === 'roll' ? { t: 'roll' } : state.stage === 'buy' ? { t: 'buy' } : state.can.length ? { t: 'build', i: state.can[0] } : { t: 'end' };
     const key = state.stage + state.can.length + (state.roll?.n || 0) + '/' + state.seats[state.me].cash;
     send({ t: 'act', a }); acts++;
@@ -185,5 +216,5 @@ if (state.ph !== 'end') bail('game over the server did not finish');
 await wait(300);
 if (!me?.gain || me.gain.coins < 1) bail('no coins or XP paid at the end: ' + JSON.stringify(me?.gain));
 if (!room.board?.length) bail('table scoreboard empty');
-console.log('OK server game:', acts, 'moves,', state.win === state.me ? 'won' : 'came ' + (state.res.order.indexOf(state.me) + 1), '· gained', JSON.stringify(me.gain));
+console.log('OK server game:', acts, 'moves,', raised, 'sales to pay up,', state.win === state.me ? 'won' : 'came ' + (state.res.order.indexOf(state.me) + 1), '· gained', JSON.stringify(me.gain));
 srv.kill(); process.exit(0);

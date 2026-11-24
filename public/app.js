@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -14,6 +14,7 @@ import { rankIcon } from './rankicons.js';
 import { CONS, SETS, conOf, conArt, conTile, conGlyph, isDone, doneIds, inProgress } from './constellations.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
+import { DAILY as MJ_DAILY } from './games/mahj/rules.js';
 import { randomName } from './names.js';
 import { fitw } from './fit.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
@@ -270,7 +271,7 @@ const GAMES = {
       <li>Land on your own shop and your pet is happy to see you: <b>+10</b>.</li>
       <li><b>Zoomies!</b> tiles deal a silly card. <b>Vet Visit</b> costs 40, which goes in the <b>Lost &amp; Found</b> jar. Land on the jar's corner to take everything in it.</li>
       <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. While you sit in the tub all your pets nap, so you collect no rent.</li>
-      <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, upgrades and then shops are sold back at half price, and anything still missing is let off.</li>
+      <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, <b>you pick what to sell</b> back to the bank at half price (an upgrade, or a whole shop with its upgrades). The game waits for you; if the timer runs out, it sells for you, upgrades first. Once nothing is left to sell, anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>
     </ol>`,
@@ -398,6 +399,25 @@ const GAMES = {
       <li>Eggs sent to you wait beside your raft and float up when your next shot pops nothing. They never match. An egg <b>cracks</b> when bubbles pop right next to it, and eggs you cut loose fall and are sent on. Popping bubbles first <b>knocks waiting eggs back</b>.</li>
       <li>The <b>reef pushes a new row</b> down every few seconds, faster and faster. Don't dawdle: after 7 seconds the launcher fires by itself.</li>
       <li>When a bubble ends up <b>below the dashed line</b>, you are <b>out</b>. The <b>last player afloat wins</b>.</li>
+      <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  mahj: {
+    name: 'Mahjong Race', load: () => import('./games/mahj/client.js'), start: 'Start the race',
+    host: { seats: 4, size: 'normal', bots: 'chill' }, solo: { seats: 4, size: 'normal', bots: 'chill' },
+    openSeat: 'A bot plays here if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Board</b><div class="pills">${pill('size', 'short', 'Small')}${pill('size', 'normal', 'Medium')}${pill('size', 'long', 'Big')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone gets the same board of stacked tiles and clears it on their own screen at the same time. A tile is free when nothing lies on it and its left or right side is open. Tap two free tiles with the same picture and the pair is gone. The first to clear the whole board wins.`,
+    rules: `<ol>
+      <li>Everyone gets the <b>same board</b>, dealt the same way, and plays on their <b>own screen at the same time</b>. Empty seats are played by bots.</li>
+      <li>A tile is <b>free</b> when <b>nothing lies on top of it</b> and its <b>left or right side is open</b>. Tiles that are not free are a little darker.</li>
+      <li>Tap <b>two free tiles with the same picture</b> and the pair leaves the board. There are leaves, berries and stars counted 1 to 9, and nine Pet Farm pets, four tiles of each.</li>
+      <li>The <b>first player to clear the whole board wins</b> and the race ends. Everyone else is placed by how few tiles they have left.</li>
+      <li>When you have <b>no pair left</b>, your tiles are <b>shuffled</b> for you and you wait 4 seconds. Think before you take a pair: sometimes one choice keeps more tiles free.</li>
+      <li><b>Hint</b> (or the <b>H</b> key) shows a pair, then rests for 8 seconds.</li>
+      <li>The bars on the side show how far everyone is.</li>
       <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
@@ -665,6 +685,20 @@ const SOLO = {
       <li>Out of moves? The level stays the same and you get a fresh shelf. Keys: arrows to move, <b>Enter</b> to pick up a pet, then an arrow to swap it.</li>
     </ol>`,
   },
+  mj: {
+    name: 'Pet Mahjong',
+    rules: `<ol>
+      <li>The board is a pile of tiles. Tap <b>two free tiles with the same picture</b> and the pair leaves the board. Clear every tile to finish the level.</li>
+      <li>A tile is <b>free</b> when <b>nothing lies on top of it</b> and its <b>left or right side is open</b>. Tiles that are not free are a little darker.</li>
+      <li>There are <b>leaves, berries and stars</b> counted 1 to 9, and nine <b>Pet Farm pets</b>. The number in the corner helps tell 6 from 7.</li>
+      <li><b>Hint</b> (or the <b>H</b> key) shows a pair and costs 15 points.</li>
+      <li>No pair left? <b>Shuffle</b> mixes the tiles that are still on the board. You can also shuffle earlier, but any shuffle costs a star.</li>
+      <li>Every pair is worth <b>20 points</b>, and pairs made quickly one after another are worth more. Finishing fast adds a bonus.</li>
+      <li>Up to <b>3 stars</b>: one for clearing the board, one for beating the time on the clock, one for not shuffling. The clock only runs while you play.</li>
+      <li>A cleared level pays <b>3 coins + 1 per star</b>, up to 40 coins a day. After that you can keep climbing levels for the rankings.</li>
+      <li>The boards grow from 24 tiles to 144. <b>New deal</b> starts the level again with fresh tiles.</li>
+    </ol>`,
+  },
 };
 if (PLX) for (const [id, x] of Object.entries(PLX.SOLO_PL)) if (SOLO[id]) Object.assign(SOLO[id], x);
 const validCode = s => /^[A-Z0-9]{4}$/.test(s);
@@ -734,7 +768,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) reco
 addEventListener('online', reconnectNow);
 export function send(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
 function reloadForUpdate() {
-  try { if (['farm', 'hay', 'pop'].includes(st.view)) sessionStorage.setItem('ct_resume', st.view); } catch {}
+  try { if (['farm', 'hay', 'pop', 'mj'].includes(st.view)) sessionStorage.setItem('ct_resume', st.view); } catch {}
   $conn.hidden = false; $conn.classList.add('restart'); $conn.innerHTML = `<b>${L('Updated!', 'Zaktualizowane!')}</b> ${L('Loading the new version…', 'Wczytywanie nowej wersji…')}`;
   ws?.close(); ws = null; replaced = true; // no more reconnects from this copy of the page
   location.reload();
@@ -742,14 +776,14 @@ function reloadForUpdate() {
 function resumeAfterUpdate() {
   let v = null; try { v = sessionStorage.getItem('ct_resume'); sessionStorage.removeItem('ct_resume'); } catch {}
   if (!v || !st.name || st.room || st.view !== 'hub') return;
-  if (v === 'farm') openFarm(); else if (v === 'hay') openHay(); else if (v === 'pop') openPop();
+  if (v === 'farm') openFarm(); else if (v === 'hay') openHay(); else if (v === 'pop') openPop(); else if (v === 'mj') openMj();
 }
 
 function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
-    st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); // back after a dropped connection
+    st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); st.mj?.reopen(); // back after a dropped connection
     tellWhere(); setTimeout(resumeAfterUpdate, 300); // after a reload for an update (a table, if any, is back by then)
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); send({ t: 'wheel' }); }
   } else if (m.t === 'pets') {
@@ -782,7 +816,7 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
       if (st.skyWas && m.me.sky?.stars > st.skyWas.stars) { sfx.win?.(); toast(`★ ${L('A new star! Light it in Profile › Your sky.', 'Nowa gwiazda! Zapal ją w: Profil › Twoje niebo.')}`); }
     }
-    if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me();
+    if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me(); else if (st.view === 'mj') st.mj?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); send({ t: 'wheel' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
@@ -801,6 +835,8 @@ function onMsg(m) {
     st.hay?.msg(m);
   } else if (m.t === 'pop') {
     st.pop?.msg(m);
+  } else if (m.t === 'mj') {
+    st.mj?.msg(m);
   } else if (m.t === 'daily') {
     st.dailyInfo = m; st.daily?.msg(m); paintToday();
   } else if (m.t === 'wheel') {
@@ -823,10 +859,10 @@ function onMsg(m) {
     if (st.view === 'hub') renderTables();
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
-    if (m.room) { closeFarm(); closeHay(); closePop(); }
+    if (m.room) { closeFarm(); closeHay(); closePop(); closeMj(); }
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop') go('hub'); return; }
+    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
@@ -881,6 +917,9 @@ function mountWithCss(key, mount) {
   const r = mount();
   const added = sheetsNow().filter(l => !before.has(l));
   if (added.length) gameSheets.set(key, [...(gameSheets.get(key) || []), ...added]);
+  // On a slow connection the game paints before its stylesheet arrives, and panels measured then are page wide
+  // (the 3D table framed off to the side). When the sheet lands, games measure again as if the window was resized.
+  for (const l of added) l.addEventListener('load', () => dispatchEvent(new Event('resize')), { once: true });
   gameCss(key);
   return r;
 }
@@ -957,6 +996,21 @@ function openPop() {
   }).catch(err => { console.error(err); popLoading = null; toast(L('Could not load Pet Pop. Refresh?', 'Nie udało się wczytać gry Zwierzakowe trójki. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closePop() { if (!st.pop) return; st.pop.destroy(); st.pop = null; gameCss(null); }
+// Pet Mahjong: the solo tile matching game, opened the same way.
+let mjLoading = null;
+function openMj() {
+  if (st.mj || mjLoading) return;
+  if (st.room) return toast(L('Leave this table first.', 'Najpierw wyjdź od tego stołu.'), true);
+  st.view = 'mj'; document.title = `${SOLO.mj.name} · ${SITE}`; tellWhere();
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Stacking the tiles…', 'Układamy płytki…') + '</p></main>';
+  mjLoading = import('./games/mahj/solo.js').then(mod => {
+    mjLoading = null;
+    if (st.view !== 'mj') return;
+    st.mj = mountWithCss('mj', () => mod.mount($app, { send: a => send({ t: 'mj', a }), toast, me: () => ({ ...(st.me || {}), color: st.color, av: st.av }), home: () => { closeMj(); go('hub'); }, account: mode => openAccount(mode), rules: () => openRules('mj') }));
+    st.mj.reopen(); placeGameSwitch();
+  }).catch(err => { console.error(err); mjLoading = null; toast(L('Could not load Pet Mahjong. Refresh?', 'Nie udało się wczytać gry Zwierzakowy mahjong. Odświeżyć stronę?'), true); go('hub'); });
+}
+function closeMj() { if (!st.mj) return; st.mj.destroy(); st.mj = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
 const todayTile = (cls, pic, name, sub, act, btn, quiet) => `<div class="ttile ${cls}">
@@ -975,6 +1029,8 @@ function todayHtml() {
   const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today · level ${me.hay.lv}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet · poziom ${me.hay.lv}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
   const popPaid = me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
   const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today · level ${popLv}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet · poziom ${popLv}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
+  const mjPaid = me?.mj?.paid || 0, mjLv = me?.mj?.lv || 1;
+  const mjText = !me?.user ? needAcct : mjPaid >= MJ_DAILY ? L(`All ${MJ_DAILY} coins earned today · level ${mjLv}`, `Dziś zdobyte wszystkie ${MJ_DAILY} monet · poziom ${mjLv}`) : L(`${MJ_DAILY - mjPaid} coins left today · level ${mjLv}`, `Dziś do zdobycia jeszcze ${cnt(MJ_DAILY - mjPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${mjLv}`);
   const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
   const ownFarm = L('Your own pet farm', 'Twoja własna farma zwierzaków');
   const farm = !me?.user ? needAcct : !f ? ownFarm
@@ -989,6 +1045,7 @@ function todayHtml() {
     + todayTile('t-wheel' + (w && !w.guest && !w.spun ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun)
     + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'))
     + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'))
+    + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'))
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
@@ -1046,7 +1103,7 @@ function meCard() {
   const pct = Math.round(100 * m.into / m.need), rate = m.games ? Math.round(100 * m.wins / m.games) : 0;
   // every game played, most played first: table games get a win-rate bar, solo games their own line
   const per = Object.entries(m.byGame || {}).filter(([id]) => GAMES[id] || SOLO[id]).sort((a, b) => (b[1].games || 0) - (a[1].games || 0)).map(([id, g]) => {
-    const solo = id === 'pop' ? L(`highest level cleared ${g.top || 0} · best ${num(g.best)} pts`, `najwyższy ukończony poziom: ${g.top || 0} · rekord ${num(g.best)} pkt`)
+    const solo = id === 'pop' || id === 'mj' ? L(`highest level cleared ${g.top || 0} · best ${num(g.best)} pts`, `najwyższy ukończony poziom: ${g.top || 0} · rekord ${num(g.best)} pkt`)
       : SOLO[id] ? L(`${cnt(g.wins, 'field')} cleared · best ×${num(g.best)}`, `${cnt(g.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · rekord ×${num(g.best)}`) : '';
     if (solo) return `<li class="solo"><b>${esc(SOLO[id].name)}</b><span>${solo}</span></li>`;
     const r = g.games ? Math.round(100 * (g.wins || 0) / g.games) : 0;
@@ -1136,7 +1193,7 @@ function openStats() {
 }
 // Tells the server which screen this browser is on (hub, Pet Farm or Hay Hunch), for the host's "Who's here" list.
 // Tables need nothing: the server knows who sits where.
-function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' || st.view === 'pop' ? st.view : 'hub' }); }
+function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' || st.view === 'pop' || st.view === 'mj' ? st.view : 'hub' }); }
 // "Who's here": everyone on the site right now, for hosts only (the server sends it only to ADMINS accounts).
 let whoSheet = null, whoTimer = null;
 const agoText = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return m < 1 ? L('just arrived', 'przed chwilą') : `${L('here for', 'na stronie od')} ${h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`}`; };
@@ -1144,6 +1201,7 @@ function whereText(a) {
   if (a.k === 'farm') return FARM_NAME;
   if (a.k === 'hay') return SOLO.hay.name;
   if (a.k === 'pop') return SOLO.pop.name;
+  if (a.k === 'mj') return SOLO.mj.name;
   if (a.k !== 'table') return L('Hub', 'Strona główna');
   const g = GAMES[a.game]?.name || a.game;
   return `${esc(g)} <small>${a.watch ? L('watching', 'ogląda') : a.play ? L('playing', 'gra') : L('waiting room', 'poczekalnia')}${a.code ? ` · ${esc(a.code)}` : ` · ${L('private', 'prywatny')}`}</small>`;
@@ -1390,6 +1448,7 @@ const HUB_GAMES = [
   ['dig', 'digpic', digArt, 'board', '1–6 players', 'Take turns digging up a grass field for gems and a golden chest. Like Minesweeper with friends.'],
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['lagoon', 'lagoonpic', lagoonArt, 'action', '1–4 players', 'Shoot pet bubbles in your own lagoon, pop three of a kind and send eggs to your friends. Last one afloat wins.'],
+  ['mahj', 'mahjpic', mahjArt, 'board', '1–4 players', 'Everyone gets the same board of tiles. Match free pairs faster than your friends and clear it first.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
   ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
@@ -1507,13 +1566,14 @@ $app.addEventListener('change', e => {
 
 // ---------- global rankings ----------
 // One leaderboard per minigame across every player on the site (bots never count), plus an overall one by XP.
-const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', SOLO.hay.name], ['pop', SOLO.pop.name], ['farm', FARM_NAME]];
+const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', SOLO.hay.name], ['pop', SOLO.pop.name], ['mj', SOLO.mj.name], ['farm', FARM_NAME]];
 const RK_NOTE = {
   overall: L('Ranked by XP from every game. Wins earn the most.', 'Ranking według XP ze wszystkich gier. Najwięcej dają wygrane.'),
   marbles: L('Ranked by bets won, then by coins won overall.', 'Ranking według wygranych zakładów, potem według łącznie wygranych monet.'),
   farm: L('The Pet Farm ladder: points from Arena battles against other farms.', 'Drabinka Farmy zwierzaków: punkty z walk na Arenie przeciwko innym farmom.'),
   hay: L('Ranked by the best harvest from one field, then by fields cleared.', 'Ranking według najlepszych zbiorów z jednego pola, potem według oczyszczonych pól.'),
   pop: L('Ranked by the highest level cleared, then by the best score on one shelf.', 'Ranking według najwyższego ukończonego poziomu, potem według najlepszego wyniku na jednej półce.'),
+  mj: L('Ranked by the highest level cleared, then by the best score on one board.', 'Ranking według najwyższego ukończonego poziomu, potem według najlepszego wyniku na jednej planszy.'),
   default: L('Ranked by wins, then win rate.', 'Ranking według wygranych, potem według skuteczności.'),
 };
 const cWins = n => cnt(n, 'win', 'wins', 'wygrana', 'wygrane', 'wygranych'), cGames = n => cnt(n, 'game', 'games', 'gra', 'gry', 'gier');
@@ -1522,6 +1582,7 @@ function rkStat(game, r) {
   if (game === 'farm') return [cnt(r.pts, 'pt', 'pts', 'pkt'), `${cnt(r.pets, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')} · ${L('best Lv', 'najwyższy poz.')} ${r.top}`];
   if (game === 'hay') return [`×${num(r.best)}`, L(`${cnt(r.wins, 'field')} cleared · top level ${r.top || 1}`, `${cnt(r.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · najwyższy poziom ${r.top || 1}`)];
   if (game === 'pop') return [L(`Level ${r.top || 0}`, `Poziom ${r.top || 0}`), L(`best score ${num(r.best)} · ${cnt(r.games, 'shelf', 'shelves')} played`, `rekord ${num(r.best)} · rozegrane półki: ${num(r.games)}`)];
+  if (game === 'mj') return [L(`Level ${r.top || 0}`, `Poziom ${r.top || 0}`), L(`best score ${num(r.best)} · ${cnt(r.games, 'board')} played`, `rekord ${num(r.best)} · rozegrane plansze: ${num(r.games)}`)];
   if (game === 'marbles') return [L(cnt(r.wins, 'bet') + ' won', cnt(r.wins, '', '', 'wygrany zakład', 'wygrane zakłady', 'wygranych zakładów')), `${cnt(r.games, 'race', 'races', 'wyścig', 'wyścigi', 'wyścigów')} · ${r.net >= 0 ? '+' : '−'}${cnt(Math.abs(r.net), 'coin', 'coins', 'moneta', 'monety', 'monet')}`];
   return [cWins(r.wins), `${cGames(r.games)} · ${r.rate}%${r.best ? ` · ${L('best', 'rekord')} ${r.best} ${L('pts', 'pkt')}` : ''}`];
 }
@@ -2454,6 +2515,7 @@ $app.addEventListener('click', e => {
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
   else if (act === 'pop') { if (!st.name) return openProfile(true); openPop(); }
+  else if (act === 'mj') { if (!st.name) return openProfile(true); openMj(); }
   else if (act === 'daily') { if (!st.name) return openProfile(true); openDaily(); }
   else if (act === 'wheel') { if (!st.name) return openProfile(true); openWheel(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });

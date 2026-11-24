@@ -80,6 +80,10 @@ export function mount(app, ctx) {
   const yours = i => (i === S.me ? 'your' : nameOf(i) + '’s');
   const mine = () => !!(S && S.ph === 'play' && S.turn === S.me && me() && !me().bot);
   const myTurn = () => mine() && ['roll', 'buy', 'done'].includes(S.stage);
+  // raising treats: what I owe right now (the game waits while I pick what to sell)
+  const myDebt = () => (S && S.ph === 'play' && S.stage === 'raise' && me() && !me().bot ? (S.debts || []).filter(d => d.s === S.me) : []);
+  const owing = () => myDebt().length > 0;
+  const toWhom = d => (d.to >= 0 ? (d.to === S.me ? L('you', 'ciebie') : nameOf(d.to)) : d.to === -2 ? L('the jar', 'słoik') : L('the bank', 'bank'));
   const busy = () => Date.now() - sent < 900;
   const shopName = i => esc(TILES[i].name), petName = i => PET_NAME[TILES[i].pet];
   const pic = (i, cls = '') => (pics[TILES[i].pet] ? `<img class="pw-pet ${cls}" src="${pics[TILES[i].pet]}" alt="${petName(i)}">` : `<span class="pw-pet none ${cls}" style="background:${GROUPS[TILES[i].g].col}"></span>`);
@@ -118,6 +122,8 @@ export function mount(app, ctx) {
       case 'build': return `${W('Budujesz', 'buduje')}: ${LV_NAMES[e.lv]} (${shopName(i)})`;
       case 'sellup': return `${W('Sprzedajesz ulepszenie, żeby zapłacić', 'sprzedaje ulepszenie, żeby zapłacić')} (${shopName(i)})`;
       case 'sell': return `${W('Oddajesz sklepik, żeby zapłacić', 'oddaje sklepik, żeby zapłacić')} (${shopName(i)})`;
+      case 'raise': return e.who.length === 1 ? (e.who[0] === S.me ? 'Brakuje ci przysmaków: wybierz, co sprzedać' : `${nameOf(e.who[0])} wybiera, co sprzedać, żeby zapłacić`) : 'Kilku graczy wybiera, co sprzedać, żeby zapłacić';
+      case 'paid': return `${W('Spłacasz', 'spłaca')} ${e.amt} (${e.to >= 0 ? (e.to === S.me ? 'dla ciebie' : 'dla: ' + nameOf(e.to)) : e.to === -2 ? 'do słoika' : 'do banku'})`;
       case 'forgive': return `Życzliwy sąsiad daruje ${s ? 'ci' : 'graczowi ' + nameOf(e.s)} ${e.amt} przysmaków`;
       case 'naps': return e.tiles.length ? cnt(e.tiles.length, '', '', 'zwierzak przysnął', 'zwierzaki przysnęły', 'zwierzaków przysnęło') : '';
       case 'topdog': return W('Już prowadzisz', 'już prowadzi');
@@ -151,6 +157,8 @@ export function mount(app, ctx) {
       case 'build': return `${A} built a ${LV_NAMES[e.lv]} at the ${shopName(i)}`;
       case 'sellup': return `${A} sold an upgrade at the ${shopName(i)} to pay up`;
       case 'sell': return `${A} gave the ${shopName(i)} back to pay up`;
+      case 'raise': return e.who.length === 1 ? (e.who[0] === S.me ? 'You are short of treats: pick what to sell' : `${nameOf(e.who[0])} is picking what to sell to pay up`) : 'A few players are picking what to sell to pay up';
+      case 'paid': return `${A} paid up ${e.amt} to ${e.to >= 0 ? (e.to === S.me ? 'you' : nameOf(e.to)) : e.to === -2 ? 'the jar' : 'the bank'}`;
       case 'forgive': return `A kind neighbour let ${s ? 'you' : nameOf(e.s)} off ${e.amt} treats`;
       case 'naps': return e.tiles.length ? `${e.tiles.length} pet${e.tiles.length === 1 ? '' : 's'} dozed off` : '';
       case 'topdog': return `${A} ${s ? 'are' : 'is'} already top dog`;
@@ -208,9 +216,10 @@ export function mount(app, ctx) {
     const p = me(), ctl = $('pw-ctl'), bld = $('pw-build');
     if (!S || S.ph !== 'play') { setHtml(ctl, ''); setHtml(bld, ''); return; }
     const t = S.seats[S.turn];
+    if (S.stage === 'raise') { renderRaise(ctl, bld); layout(); return; }
     if (myTurn() && !busy()) {
       if (S.stage === 'roll' && p.inBath) setHtml(ctl, `<p class="pw-hint">${L(`You are in the tub. Roll doubles to hop out${p.tries ? ` (${3 - p.tries} tr${3 - p.tries === 1 ? 'y' : 'ies'} left)` : ''}, or pay your way out.`, `Siedzisz w wannie. Wyrzuć dublet, żeby wyskoczyć${p.tries ? ` (zostało prób: ${3 - p.tries})` : ''}, albo zapłać za wyjście.`)}</p>
-        <div class="pw-go"><button type="button" class="btn big" data-a="roll">${L(`Roll for doubles`, `Rzuć na dublet`)}</button><button type="button" class="btn big w" data-a="pay">${L('Pay', 'Zapłać')} ${treats(BATH_FEE)}${L(' to hop out', ', żeby wyjść')}</button></div>`);
+        <div class="pw-go"><button type="button" class="btn big" data-a="roll">${L(`Roll for doubles`, `Rzuć na dublet`)}</button>${p.cash >= BATH_FEE ? `<button type="button" class="btn big w" data-a="pay">${L('Pay', 'Zapłać')} ${treats(BATH_FEE)}${L(' to hop out', ', żeby wyjść')}</button>` : ''}</div>`);
       else if (S.stage === 'roll') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big pw-pulse" data-a="roll">${L(`Roll the dice`, `Rzuć kośćmi`)}</button></div>`);
       else if (S.stage === 'buy') setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="buy">${L('Adopt for', 'Adoptuj za')} ${treats(TILES[S.offer].price)}</button><button type="button" class="btn big w" data-a="pass">${L(`No thanks`, `Nie, dziękuję`)}</button></div>`);
       else setHtml(ctl, `<div class="pw-go"><button type="button" class="btn big" data-a="end">${L(`End turn`, `Zakończ turę`)}</button></div>`);
@@ -224,15 +233,39 @@ export function mount(app, ctx) {
     layout();
   }
 
+  // Short of treats: every shop you own, with what selling its top upgrade or the whole shop brings in.
+  function renderRaise(ctl, bld) {
+    const debt = myDebt(), p = me();
+    if (!debt.length) {
+      const who = [...new Set((S.debts || []).map(d => d.s))].filter(i => i !== S.me);
+      const w = who[0] ?? S.turn, wp = S.seats[w];
+      setHtml(ctl, `<span class="pw-wait">${avatarHtml(wp.color, wp.av, 30)}<span>${who.length > 1 ? L('Players are picking what to sell…', 'Gracze wybierają, co sprzedać…') : L(`${nameOf(w)} is picking what to sell…`, `${nameOf(w)} wybiera, co sprzedać…`)}</span></span>`);
+      setHtml(bld, ''); return;
+    }
+    const owe = debt.reduce((t, d) => t + d.amt, 0), short = Math.max(0, owe - p.cash), d0 = debt[0];
+    const why = d0.why === 'rent' ? L(`Rent at the ${shopName(d0.i)} for ${toWhom(d0)}`, `Czynsz: ${shopName(d0.i)} (dla: ${toWhom(d0)})`)
+      : d0.why === 'vet' ? L('The vet bill', 'Rachunek u weterynarza') : d0.why === 'bath' ? L('The bath fee', 'Opłata za kąpiel') : L(`A Zoomies card: pay ${toWhom(d0)}`, `Karta Głupawki: zapłać (${toWhom(d0)})`);
+    setHtml(ctl, `<p class="pw-hint pw-owe">${why}: ${treats(owe)}. ${L(`You have ${treats(p.cash)}, so you are`, `Masz ${treats(p.cash)}, więc brakuje ci`)} <b>${treats(short)}</b>${L(' short.', '.')}<br><small>${L('Pick what to sell. The game waits for you.', 'Wybierz, co sprzedać. Gra na ciebie czeka.')}</small></p>
+      <div class="pw-go"><button type="button" class="btn big w" data-a="autosell">${L('Sell for me', 'Sprzedaj za mnie')}</button></div>`);
+    const shops = S.own.map((o, i) => (o === S.me ? i : -1)).filter(i => i >= 0).sort((a, b) => TILES[a].g - TILES[b].g || a - b);
+    const btn = (i, a, label, val) => `<button type="button" data-a="${a}" data-i="${i}" title="${esc(label)}" style="--g:${GROUPS[TILES[i].g].col}">${pic(i, 'sm')}<span><b>${label}</b><small>${esc(TILES[i].name)}</small></span><em class="pw-gain">+${treats(val)}</em></button>`;
+    setHtml(bld, `<span class="pw-blbl">${L('Sell back at half price', 'Sprzedaj za pół ceny')}</span><div class="pw-ups pw-sells">${shops.map(i => {
+      const t2 = TILES[i], lv = S.lv[i];
+      return (lv ? btn(i, 'sellup', LV_NAMES[lv], t2.up / 2) : '')
+        + btn(i, 'sell', lv ? L('Shop and upgrades', 'Sklepik z ulepszeniami') : L('Shop', 'Sklepik'), t2.price / 2 + t2.up / 2 * lv);
+    }).join('')}</div>`);
+  }
+
   function renderBanner() {
     const el = $('pw-banner'); let msg = '';
     if (!S) return;
-    const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.left >= 0 && myTurn() ? ` · ${secs}s` : '';
+    const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000)), t = S.left >= 0 && (myTurn() || owing()) ? ` · ${secs}s` : '';
     if (S.ph === 'end') msg = S.win >= 0 ? L(`${S.win === S.me ? 'You are top dog' : nameOf(S.win) + ' is top dog'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
+    else if (owing()) msg = L('Short of treats', 'Brakuje przysmaków') + t;
     else if (myTurn()) msg = (S.stage === 'buy' ? L(`Adopt ${petName(S.offer)}?`, `Adoptować zwierzaka (${petName(S.offer)})?`) : S.stage === 'done' ? L('Upgrade or end your turn', 'Ulepsz sklepik albo zakończ turę') : me().inBath ? L('Your turn · you are in the tub', 'Twoja kolej · siedzisz w wannie') : S.dbl ? L('Doubles! Roll again', 'Dublet! Rzuć jeszcze raz') : L('Your turn · roll the dice', 'Twoja kolej · rzuć kośćmi')) + t;
     else if (S.turn >= 0) msg = L(`${nameOf(S.turn)}’s turn`, `Kolej: ${nameOf(S.turn)}`);
     if (el.innerHTML !== msg) el.innerHTML = msg;
-    el.classList.toggle('hot', myTurn());
+    el.classList.toggle('hot', myTurn() || owing());
   }
 
   function render() {
@@ -297,7 +330,7 @@ export function mount(app, ctx) {
     endsAt = performance.now() + Math.max(0, s.left);
     if (s.roll && !fresh && s.roll.ago < 200) { sfx.draw(); setTimeout(() => !destroyed && sfx.place(), MS.roll * .85); }
     if (s.card && s.stage === 'card') showCard(s.card);
-    if (!fresh && myTurn() && was !== s.turn + '/' + s.stage + '/' + (s.roll?.n || 0)) { sfx.turn(); lastTick = -1; sent = 0; }
+    if (!fresh && (myTurn() || owing()) && was !== s.turn + '/' + s.stage + '/' + (s.roll?.n || 0)) { sfx.turn(); lastTick = -1; sent = 0; }
     render(); scene?.setState(s);
     if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
   }
@@ -364,7 +397,7 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'play') return;
     renderBanner();
     if (sent && Date.now() - sent >= 900) { sent = 0; renderDock(); }
-    if (myTurn() && S.left >= 0) {
+    if ((myTurn() || owing()) && S.left >= 0) {
       const n = Math.ceil((endsAt - performance.now()) / 1000);
       if (n !== lastTick && n <= 5 && n > 0) { lastTick = n; sfx.tick(); }
     }
@@ -372,6 +405,7 @@ export function mount(app, ctx) {
 
   // ----- input -----
   function go(a) {
+    if (owing()) { if (busy() || !['sell', 'sellup', 'autosell'].includes(a.t)) return; sent = Date.now() - 600; sfx.click(); ctx.act(a); return; }
     if (!myTurn() || busy()) return;
     if (a.t !== 'build') sent = Date.now();
     sfx.click(); ctx.act(a); renderDock();
@@ -405,6 +439,7 @@ export function mount(app, ctx) {
     const a = b.dataset.a;
     if (['roll', 'pay', 'buy', 'pass', 'end'].includes(a)) go({ t: a });
     else if (a === 'build') go({ t: 'build', i: +b.dataset.i });
+    else if (a === 'sell' || a === 'sellup' || a === 'autosell') go({ t: a, i: +b.dataset.i || 0 });
     else if (a === 'unpin') pin(-1);
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }

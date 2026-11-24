@@ -78,6 +78,7 @@ const TEXT = {
   'Unknown move.': 'Nieznany ruch.',
   'Finish this field first.': 'Najpierw dokończ to pole.',
   'Finish this shelf first.': 'Najpierw dokończ tę półkę.',
+  'Finish this board first.': 'Najpierw dokończ tę planszę.', 'This board is finished.': 'Ta plansza jest już skończona.',
   'No pet there.': 'Tam nie ma zwierzaka.',
   'Flip a bale first.': 'Najpierw odwróć jakąś belę.',
   'No bale there.': 'Tam nie ma beli.',

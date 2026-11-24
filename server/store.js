@@ -238,7 +238,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === shopDate() ? p.pop.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === shopDate() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === shopDate() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }
@@ -587,6 +587,7 @@ const ORDER = {
   marbles: (a, b) => b.wins - a.wins || b.net - a.net || a.games - b.games,
   hay: (a, b) => b.best - a.best || b.wins - a.wins || b.pts - a.pts, // Hay Hunch is solo: best single field, then fields cleared
   pop: (a, b) => b.top - a.top || b.best - a.best || b.wins - a.wins, // Pet Pop is solo: highest level cleared, then best score
+  mj: (a, b) => b.top - a.top || b.best - a.best || b.wins - a.wins, // Pet Mahjong (solo): highest level cleared, then best score
   default: (a, b) => b.wins - a.wins || b.rate - a.rate || b.best - a.best || a.games - b.games,
 };
 function boardRows(game) {

@@ -7,6 +7,7 @@ import { SUIT_COLS, SUIT_PATHS, CLUB_DOTS } from './cards.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, createFx, shaker, STAR, DOT, HEART } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { siteLogo } from '../../art.js';
 
 const INK = '#3b2219';
 const RX = 5.3, RZ = 3.35; // table half-width and half-depth
@@ -67,10 +68,22 @@ function feltTexture() {
     const a = i / 24 * Math.PI * 2, x = S / 2 + Math.cos(a) * S * .43, y = S / 2 + Math.sin(a) * S * .43;
     g.globalAlpha = .22; suitPath(g, i % 4, x - 14, y - 14, 28); g.globalAlpha = 1;
   }
-  g.fillStyle = '#fff4e21c'; g.font = '700 64px Rubik, Nunito, sans-serif'; g.textAlign = 'center';
-  g.fillText('ZATOKA GIER', S / 2, S / 2 + 230);
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  feltLogo(t, g, S / 2, S / 2 + 205, 170, '#1f5c46', RX / RZ);
   return t;
+}
+// The site logo printed on the felt: one cream colour with the outlines in a darker felt shade, faint like a print.
+// The felt circle is squashed into an oval, so `tall` stretches the logo back to its true shape on the table.
+// The SVG loads as an image, so the texture is redrawn once it is ready.
+export function feltLogo(tex, g, x, y, size, line, tall = 1, alpha = .24) {
+  const svg = siteLogo(size).replace(/fill="(#[0-9a-f]{3,8})"/gi, 'fill="#fff4e2"').replace(/var\(--ink, #3b2219\)/g, line).replace(' opacity=".85"', '');
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = c.height = size; c.getContext('2d').drawImage(img, 0, 0, size, size);
+    g.save(); g.globalAlpha = alpha; g.drawImage(c, x - size / 2, y - size * tall / 2, size, size * tall); g.restore();
+    tex.needsUpdate = true;
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
 }
 function woodTexture(base = '#8a4e2c', ring = '#6e3a1e') {
   const cv = document.createElement('canvas'); cv.width = cv.height = 256;
@@ -385,18 +398,19 @@ export function createScene(canvas, { onFrame } = {}) {
     renderer.setSize(w, h, false);
     const portrait = w / h < 1;
     camera.aspect = w / h; camera.fov = portrait ? 50 : 36; camera.clearViewOffset(); camera.updateProjectionMatrix();
-    const top = w < 760 ? 175 : 120, bottom = h - hudBottom;
+    // a panel measured before its CSS arrived can be page wide: never let one push the table off the screen
+    const inset = Math.min(hudLeft, w * .3), top = w < 760 ? 175 : 120, bottom = h - Math.min(hudBottom, h * .5);
     const FIT = [new THREE.Vector3(0, 3.4, -RZ * 1.32), new THREE.Vector3(0, .3, RZ * 1.02), new THREE.Vector3(-(portrait ? RX * 1.12 : RX * 1.32 + 1.1), 1.2, 0), new THREE.Vector3(portrait ? RX * 1.12 : RX * 1.32 + 1.1, 1.2, 0)]; // phones: side players may peek in from the edges
     let lo = 5, hi = 90;
     for (let i = 0; i < 32; i++) {
       const D = (lo + hi) / 2; place(D);
       const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]), [lx] = toPx(FIT[2]), [rx] = toPx(FIT[3]);
-      if (fy - ty <= bottom - top && lx + hudLeft / 2 >= hudLeft + 4 && rx + hudLeft / 2 <= w - 4) hi = D; else lo = D;
+      if (fy - ty <= bottom - top && lx + inset / 2 >= inset + 4 && rx + inset / 2 <= w - 4) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
     scene.fog.near = hi + 14; scene.fog.far = hi + 120;
     const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
-    camera.setViewOffset(w, h, -hudLeft / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
+    camera.setViewOffset(w, h, -inset / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
   }
 
   // ---------- loop ----------

@@ -15,8 +15,8 @@ const EN = [
 <h1>Zatoka Gier</h1>
 <p>Free browser games to play with friends. Host a table, send your friends the code and play together. Nothing to install, no ads.</p>
 <p>Tables are public by default: the Open tables list on the home page shows live every game you can join or watch, no code needed. A code or invite link is only for private tables with friends. Bots take any empty seats, so you can play at any time, even alone. The site also has a shared chat and shows how many people are online right now.</p>
-<p>Zatoka has 20+ multiplayer games and 4 daily games, and the whole site works in Polish and English.</p>
-<p>Cards: Hot Pot, Texas Hold'em, Tysiąc, Pan, Piotruś, Pet Parade. Dice and board games: Liar's Dice, Pip Party, Ludo, Snakes &amp; Ladders, Pawperty, Tic-Tac-Toe, Cove Clash. Action: Kart Island Race, Marble Rush, Mini Golf Party, Sky Darts, Tower Stack, Sky Bricks, Beanstalk Bounce, Cozy Kitchen Rush, Treasure Dig. Every day: Pet Farm, Pet Pop, Hay Hunch and Mystery Pet.</p>
+<p>Zatoka has 20+ multiplayer games and 5 daily games, and the whole site works in Polish and English.</p>
+<p>Cards: Hot Pot, Texas Hold'em, Tysiąc, Pan, Piotruś, Pet Parade. Dice and board games: Liar's Dice, Pip Party, Ludo, Snakes &amp; Ladders, Pawperty, Tic-Tac-Toe, Mahjong Race, Cove Clash. Action: Kart Island Race, Marble Rush, Mini Golf Party, Sky Darts, Tower Stack, Sky Bricks, Beanstalk Bounce, Cozy Kitchen Rush, Treasure Dig. Every day: Pet Farm, Pet Pop, Pet Mahjong, Hay Hunch and Mystery Pet.</p>
 <h2>Progress that stays</h2>
 <p>You can play straight away, without signing up. A free account (just a name and a password) keeps everything for good and works on any device, along with your friends list.</p>
 <ul>
@@ -25,7 +25,7 @@ const EN = [
 <li>Rankings: leaderboards for every game plus an overall ranking. Only matches between people count.</li>
 <li>Player card: your avatar, rank, favourite games and your own isle with pets that others can see.</li>
 <li>Pet Farm: raise and breed 70+ species with inherited traits and elements, grow your farm, fight turn-based 3v3 battles, visit friends' farms and fill your album.</li>
-<li>Every day: a new Mystery Pet puzzle, plus levels and best scores in Pet Pop and Hay Hunch.</li>
+<li>Every day: a new Mystery Pet puzzle, plus levels and best scores in Pet Pop, Pet Mahjong and Hay Hunch.</li>
 </ul>
 </main><!--/seo-->`],
 ];

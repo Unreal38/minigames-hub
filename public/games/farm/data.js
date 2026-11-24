@@ -205,7 +205,7 @@ export const UPGRADES = {
   workshop: { what: ['A second set of decorations', 'The grandest decorations'], cost: [{ wood: 50, stone: 40, shells: 8 }, { wood: 100, stone: 80, coal: 15, crystal: 1 }] },
   garden: { what: ['Ripens 15 minutes sooner, and grows a Sunberry each time', 'Ripens 15 minutes sooner again, and grows two Sunberries'], cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
-  nest:   { what: ['A second egg slot', 'Eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
+  nest:   { what: ['A second egg slot', 'A third egg slot, and eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
   yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
 };
 export const lvOf = item => Math.min(UP_MAX, Math.max(1, item?.lv | 0 || 1));

@@ -27,7 +27,10 @@ export const COS = {
     { n: 'Paw prints', p: 80, t: 'p' }, { n: 'Checkers', p: 80, t: 'p' }, { n: 'Stars', p: 90, t: 'p' }, { n: 'Hearts', p: 90, t: 'p' }, { n: 'Confetti', p: 100, t: 'p' },
     { n: 'Hot Pot table', p: 200, t: 's' }, { n: 'Beanstalk sky', p: 200, t: 's' }, { n: 'Pet Farm meadow', p: 200, t: 's' }, { n: 'Kart island', p: 220, t: 's' }, { n: 'Card table', p: 220, t: 's' },
     { n: 'Drifting clouds', p: 350, t: 'a' }, { n: 'Falling petals', p: 350, t: 'a' }, { n: 'Twinkling night', p: 400, t: 'a', d: 1 },
-    { n: 'Podium', t: 'e', earn: { top: 3 } }, { n: 'Golden champion', t: 'e', a: 1, earn: { top: 1 } }, { n: 'Egg nest', t: 'e', earn: { sp: 10 } }, { n: 'Pet parade', t: 'e', earn: { sp: 30 } }, { n: 'Café', t: 'p', pk: 'kofi' }] },
+    { n: 'Podium', t: 'e', earn: { top: 3 } }, { n: 'Golden champion', t: 'e', a: 1, earn: { top: 1 } }, { n: 'Egg nest', t: 'e', earn: { sp: 10 } }, { n: 'Pet parade', t: 'e', earn: { sp: 30 } }, { n: 'Café', t: 'p', pk: 'kofi' },
+    { n: 'Leaf sprouts', p: 100, t: 'p' }, { n: 'Ember flames', p: 100, t: 'p' }, { n: 'Tide waves', p: 100, t: 'p' }, { n: 'Spark bolts', p: 100, t: 'p' }, { n: 'Stone pebbles', p: 100, t: 'p' }, // the Pet Farm's elements
+    { n: 'Bubble lagoon', p: 200, t: 's' }, { n: 'Dartboard', p: 200, t: 's' }, { n: 'Dice table', p: 200, t: 's' }, { n: 'Mini golf green', p: 220, t: 's' },
+    { n: 'Beach', p: 220, t: 's', s: 'summer' }, { n: 'Pumpkin patch', p: 220, t: 's', d: 1, s: 'halloween' }, { n: 'Snowy night', p: 350, t: 'a', d: 1, s: 'winter' }, { n: 'Thunderstorm', p: 400, t: 'a', d: 1 }] },
   ti: { label: 'Title', items: [{ n: 'None' },
     { n: 'Pot Wizard', earn: { g: 'hotpot', w: 5 } }, { n: 'Card Shark', earn: { g: 'poker', w: 5 } }, { n: 'Kart Menace', earn: { g: 'kart', w: 5 } },
     { n: 'Marble Whisperer', earn: { g: 'marbles', w: 5 } }, { n: 'Ladder Legend', earn: { g: 'ladders', w: 5 } }, { n: 'Ludo Lord', earn: { g: 'ludo', w: 5 } },

@@ -87,8 +87,9 @@ const unwork = (f, ids) => { for (const k of Object.keys(f.work || {})) if (ids.
 const away = (f, id, back = false) => parties(f).some(t => (back || t.until > Date.now()) && t.pets.includes(id)); // back: also count a party waiting to be welcomed home
 const tripView = t => ({ id: t.id, zone: t.zone, trip: t.trip, pets: t.pets, left: Math.max(0, t.until - Date.now()) });
 // The Nest: two pets cuddle, then an egg sits until it hatches. Times are worked out from when it started.
-// A level 2 Nest has a second slot, kept in f.nest2.
-const SLOTS = ['nest', 'nest2'];
+// Each Nest level adds an egg slot: level 2 keeps the second egg in f.nest2, level 3 the third in f.nest3.
+const SLOTS = ['nest', 'nest2', 'nest3'];
+const nestMax = f => Math.min(SLOTS.length, Math.max(1, topLv(f, 'nest')));
 function nestView(f, slot = 'nest') {
   const n = f[slot]; if (!n) return null;
   const now = Date.now(), egg = n.at + CUDDLE_H * HOUR, done = egg + n.hours * HOUR;
@@ -323,7 +324,7 @@ const view = (f, p) => ({
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f),
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
-  trips: parties(f).map(tripView), partyMax: Math.max(1, topLv(f, 'gate')), nests: SLOTS.map(s => nestView(f, s)).filter(Boolean), nestMax: topLv(f, 'nest') >= 2 ? 2 : 1,
+  trips: parties(f).map(tripView), partyMax: Math.max(1, topLv(f, 'gate')), nests: SLOTS.map(s => nestView(f, s)).filter(Boolean), nestMax: nestMax(f),
   trip: parties(f).length ? tripView([...parties(f)].sort((a, b) => a.until - b.until)[0]) : null, // the party that is back first
   next: SIZES.indexOf(f.size) + 1 < SIZES.length ? { size: SIZES[SIZES.indexOf(f.size) + 1], cost: EXPAND[SIZES.indexOf(f.size) + 1] } : null,
 });
@@ -504,7 +505,7 @@ export function handle(p, a, reply) {
   }
   if (a.t === 'pair') { // two pets go to the Nest; b may be a friend's pet that is open for playdates
     if (!countOf(f, 'nest')) return no('Build a Nest first.');
-    const slot = SLOTS.slice(0, topLv(f, 'nest') >= 2 ? 2 : 1).find(s => !f[s]); if (!slot) return no('The Nest is busy.');
+    const slot = SLOTS.slice(0, nestMax(f)).find(s => !f[s]); if (!slot) return no('The Nest is busy.');
     const A = f.pets.find(x => x.id === a.a); let Bp, friend = null, host = null;
     if (a.friend) {
       const hit = byFid(a.friend); if (!hit || hit[1] === f) return no('That farm is not around any more.');

@@ -27,6 +27,7 @@ import * as kitchen from './games/kitchen.js';
 import * as dig from './games/dig.js';
 import * as bricks from './games/bricks.js';
 import * as lagoon from './games/lagoon.js';
+import * as mahj from './games/mahj.js';
 import * as bean from './games/bean.js';
 import * as darts from './games/darts.js';
 import * as ttt from './games/ttt.js';
@@ -42,6 +43,7 @@ import * as store from './store.js';
 import * as farm from './farm.js';
 import * as hay from './hay.js';
 import * as pop from './pop.js';
+import * as mj from './mj.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
 import * as wheel from './wheel.js';
@@ -51,7 +53,7 @@ import { isBot, pageFor } from './seo.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -285,7 +287,7 @@ function sendFriends(p, news = null) {
 }
 // Everyone on the site right now, for hosts (ADMINS). One row per person (a phone and a laptop count once), with
 // where they are. Names only: no addresses, no tokens.
-const WHERE = new Set(['hub', 'farm', 'hay', 'pop']);
+const WHERE = new Set(['hub', 'farm', 'hay', 'pop', 'mj']);
 function whoList() {
   const rows = new Map();
   for (const c of clients.values()) {
@@ -335,7 +337,12 @@ function leaveRoom(c) {
   if (r.G && r.G.ph === 'play') {
     GAMES[r.game].seatWatcher?.(r.G, { id: c.id }, false); // a watcher waiting for a seat changed their mind
     const s = r.G.seats.findIndex(x => x.id === c.id);
-    if (s >= 0) { GAMES[r.game].setAway(r.G, s, true); r.G.seats[s].name += ' (bot)'; r.G.seats[s].human = false; r.G.seats[s].id = null; }
+    if (s >= 0) {
+      const seat = r.G.seats[s], pid = store.profileOf(c.token)?.pid;
+      GAMES[r.game].setAway(r.G, s, true);
+      if (pid) (r.leftBy ||= new Map()).set(s, { pid, name: seat.name }); // so they get this seat back if they return
+      seat.name += ' (bot)'; seat.human = false; seat.id = null; seat.left = true;
+    }
   }
   store.scheduleSave();
   if (!r.players.length) rooms.delete(r.code);
@@ -350,11 +357,37 @@ function joinRoom(c, r) {
   if (seatedOf(r).length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
   if (r.players.length >= 12) return send(c, { t: 'err', msg: 'That table is full.' });
   r.players.push(c.token); c.room = r.code;
-  if (r.G) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
+  if (r.G && !reclaimSeat(r, c)) r.spect.add(c.id); // a game is on: watch it, and take a seat next round if you like
   sendRoom(r); send(c, { t: 'chatlog', log: r.chat }); sendState(r); broadcastRooms();
 }
 
+// Someone coming back to a game they were playing (after Leave, or from another device or browser on the same
+// account) gets their own seat back instead of watching while a bot, or another watcher, plays it.
+function reclaimSeat(r, c) {
+  const G = r.G, mod = GAMES[r.game], pid = store.profileOf(c.token)?.pid;
+  if (G?.ph !== 'play' || !pid) return false;
+  const pidOfId = id => { const o = r.players.map(t => clients.get(t)).find(x => x?.id === id); return o && o !== c ? [o, store.profileOf(o.token)?.pid] : [null, null]; };
+  for (let s = 0; s < G.seats.length; s++) {
+    const seat = G.seats[s], gone = r.leftBy?.get(s);
+    let old = null;
+    if (seat.human && seat.id && seat.id !== c.id) { const [o, opid] = pidOfId(seat.id); if (opid !== pid) continue; old = o; } // same account, other device
+    else if (!(!seat.human && seat.left && gone?.pid === pid)) continue; // their seat, still played by a bot
+    if (mod.canReturn && !mod.canReturn(G, s)) continue; // say, a poker seat that is already out of chips: watch and queue instead
+    if (old) { // the other device leaves the table quietly: the seat moves, it is not handed to a bot
+      if (r.host === old.id) r.host = c.id;
+      r.players = r.players.filter(t => t !== old.token); old.room = null; r.spect.delete(old.id); r.sit.delete(old.id); r.again?.delete(old.id);
+      if (old.sock) { send(old, { t: 'room', room: null }); send(old, { t: 'rooms', rooms: publicRooms() }); }
+    } else { seat.name = gone.name; r.leftBy.delete(s); }
+    mod.seatWatcher?.(G, { id: c.id }, false);
+    Object.assign(seat, { id: c.id, human: true, left: false });
+    mod.setAway(G, s, false);
+    return true;
+  }
+  return false;
+}
+
 function startGame(r) {
+  r.leftBy = null;
   r.again = new Set();
   // Everyone already at the table keeps their seat; watchers who asked for a seat fill what's left (bots get the rest).
   const id = t => clients.get(t)?.id, max = GAMES[r.game].meta.maxPlayers;
@@ -439,7 +472,7 @@ function handle(c, m) {
     case 'rankings': { // the hub's global leaderboards, one per minigame
       const g = String(m.game ?? ''), pid = store.profileOf(c.token)?.pid;
       if (g === 'farm') return send(c, { t: 'rankings', ...farm.ladder(pid) });
-      if (g !== 'overall' && g !== 'hay' && g !== 'pop' && !isGame(g)) return;
+      if (g !== 'overall' && g !== 'hay' && g !== 'pop' && g !== 'mj' && !isGame(g)) return;
       return send(c, { t: 'rankings', ...store.leaderboard(g, pid) });
     }
     case 'create': {
@@ -580,6 +613,14 @@ function handle(c, m) {
       const msg = { t: 'pop', ...r };
       for (const o of p?.user ? clientsOf(p.pid) : [c]) send(o, msg); // the same shelf on every screen of this account
       if (r.s?.over && r.steps) for (const o of clientsOf(p.pid)) send(o, { t: 'me', me: store.me(p) });
+      return;
+    }
+    case 'mj': { // Pet Mahjong (solo): the tile matching puzzle, kept on the profile like Pet Pop (no table)
+      if (!allow('mj:' + c.token, 160, 10_000)) return send(c, { t: 'mj', err: 'Slow down a little.' });
+      const p = store.profileOf(c.token), r = mj.handle(p, m.a);
+      const msg = { t: 'mj', ...r };
+      for (const o of p?.user ? clientsOf(p.pid) : [c]) send(o, msg); // the same board on every screen of this account
+      if (r.s?.over && (r.took || r.lost)) for (const o of clientsOf(p.pid)) send(o, { t: 'me', me: store.me(p) });
       return;
     }
     case 'farm': { // Pet Farm: a persistent game with no table, so it is handled outside the rooms

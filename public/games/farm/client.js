@@ -13,6 +13,7 @@ import { srvText, addServerText } from '../../lang/server.js';
 if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV_TEXT, pl.SRV_FORMS); }
 import { WEATHER, weatherAt } from './data.js';
 import { flairOf, piecesOf } from '../../cosmetics.js';
+import { islePic, isleCached } from '../../islepic.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -41,6 +42,12 @@ const costHtml = (cost, inv) => Object.keys(cost || {}).length ? Object.entries(
 const wait = ms => { const m = Math.ceil(ms / 60000); return m >= 60 ? L(`${m / 60 | 0}h ${m % 60}m`, `${m / 60 | 0} godz. ${m % 60} min`) : L(`${m}m`, `${m} min`); };
 const span = min => min >= 60 ? cnt(min / 60, 'hour', 'hours', 'godzina', 'godziny', 'godzin') : cnt(min, 'minute', 'minutes', 'minuta', 'minuty', 'minut');
 const elTags = p => elTag(elOf(p)) + (SPECIES[p.sp].el2 ? elTag(SPECIES[p.sp].el2) : '');
+// Each place to explore drawn as its matching isle ground (COS.ig index, same island as the profile isle) on its own sky: [top, bottom].
+const ZONE_ISLE = { woods: [5, '#b9e4ff', '#e9f8ff'], cove: [6, '#93d6ff', '#d9f3ff'], ridge: [2, '#c6d3e8', '#eef2f8'], hills: [8, '#ffc79a', '#ffeccf'], meadow: [14, '#cfdcff', '#f6f1c6'],
+  grove: [3, '#bfe9ff', '#fff3d2'], patch: [4, '#c9e6ff', '#eef8e2'], bakery: [11, '#ffd9b5', '#fff3e2'], sweets: [7, '#ffcde8', '#fff0f8'], reef: [12, '#a2e2f4', '#e0f8ff'],
+  peak: [1, '#d6e6f7', '#ffffff'], night: [13, '#3b2f73', '#7a68b8'] };
+const zoneSky = k => { const z = ZONE_ISLE[k]; if (!z) return ''; const u = isleCached('zn', z[0]); return `<span class="zsky" aria-hidden="true"><img class="zpic" data-ig="${z[0]}" alt=""${u ? ` src="${u}"` : ''} width="96" height="96"></span>`; };
+const zoneVars = k => ZONE_ISLE[k] ? ` style="--s1:${ZONE_ISLE[k][1]};--s2:${ZONE_ISLE[k][2]}"` : '';
 const elTag = e => `<span class="el" style="--c:${ELEMENTS[e]}">${elName(e)}</span>`;
 const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' and ', ' i ') + a.at(-1);
 
@@ -442,7 +449,7 @@ export function mount(app, ctx) {
       const z = ZONES[panel.zone], party = F.pets.filter(p => panel.pets.includes(p.id));
       const zones = Object.entries(ZONES).map(([k, zn]) => {
         const locked = F.house < zn.house;
-        return `<button type="button" class="zone${locked ? ' off' : ''}" data-a="zone" data-zone="${k}" aria-pressed="${panel.zone === k}">
+        return `<button type="button" class="zone zisle${locked ? ' off' : ''}" data-a="zone" data-zone="${k}" aria-pressed="${panel.zone === k}"${zoneVars(k)}>${zoneSky(k)}
           <b>${zn.name}</b>${elTag(zn.el)}<small>${locked ? L(`Opens at farmhouse level ${zn.house}`, `Otwiera się, gdy dom ma poziom ${zn.house}`) : list(Object.keys(zn.gives).filter(m => m !== 'coins').map(m => MATS[m].toLowerCase()))}</small></button>`;
       }).join('');
       const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
@@ -475,6 +482,19 @@ export function mount(app, ctx) {
         ${b.full ? '<p class="hint">' + L('A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.', 'Dziki zwierzak chciał pójść z nimi, ale wszystkie łóżka są zajęte. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.') + '</p>' : ''}
         <button type="button" class="btn big m" data-a="shut">${L(`Lovely`, `Ślicznie`)}</button></div>`;
     }
+    if (box.querySelector('img.zpic:not([src])')) drawZonePics();
+  }
+  // The island pictures are small 3D renders: draw one a frame so the picker opens at once, then keep them cached.
+  let zpBusy = false;
+  function drawZonePics() {
+    if (zpBusy) return; zpBusy = true;
+    const step = () => {
+      const im = !destroyed && $('pf-panel')?.querySelector('img.zpic:not([src])'), u = im && islePic('zn', +im.dataset.ig);
+      if (!u) { zpBusy = false; return; }
+      for (const x of $('pf-panel').querySelectorAll(`img.zpic[data-ig="${im.dataset.ig}"]`)) x.src = u;
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
   // ---------- battles ----------
   const side = s => shown.sides[s], act = s => side(s).pets[side(s).on];
@@ -665,7 +685,8 @@ export function mount(app, ctx) {
       else if (item.type === 'flag') more = `${L(`<p class="hint">You have ${F.pts} ladder points.</p>`, `<p class="hint">Masz punktów rankingowych: ${F.pts}.</p>`)}<button type="button" class="btn sm m" data-a="arena">${L('Find a match', 'Znajdź mecz')}</button>`;
       else if (item.type === 'mailbox') more = `<button type="button" class="btn sm m" data-a="mail">${L(`Open mail (${F.mail.length})`, `Otwórz pocztę (${F.mail.length})`)}</button>`;
       else if (item.type === 'nest') more = F.nests.map(n => `<p class="hint">${nestTxt(n)}</p>${n.stage === 'ready' ? `<button type="button" class="btn sm m" data-a="hatch" data-slot="${n.slot}">${L(`Hatch the egg`, `Wykluj jajko`)}</button>` : ''}`).join('')
-        + (F.nests.length < F.nestMax ? `<button type="button" class="btn sm m" data-a="nest">${L(`${F.nests.length ? 'Choose two more pets' : 'Choose two pets'}`, `${F.nests.length ? 'Wybierz kolejne dwa zwierzaki' : 'Wybierz dwa zwierzaki'}`)}</button>` : '');
+        + (F.nests.length < F.nestMax ? `<button type="button" class="btn sm m" data-a="nest">${L(`${F.nests.length ? 'Choose two more pets' : 'Choose two pets'}`, `${F.nests.length ? 'Wybierz kolejne dwa zwierzaki' : 'Wybierz dwa zwierzaki'}`)}</button>` : '')
+        + `<p class="hint">${L(`Eggs: ${F.nests.length} of ${F.nestMax}.${lvOf(item) >= 3 ? ' Eggs here hatch a quarter sooner.' : ''}`, `Jajka: ${F.nests.length} z ${F.nestMax}.${lvOf(item) >= 3 ? ' Jajka wykluwają się tu o jedną czwartą szybciej.' : ''}`)}</p>`;
       else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : `<p class="hint">${L(`Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.`, `Każda grządka daje ${BERRIES} jagody na godzinę. Następne dojrzeją za około ${wait(Math.max(1, gardenAt - Date.now()))}.`)}</p>`;
       else if (item.type === 'kitchen') more = `${L(`<p class="hint">You have ${F.inv.berries || 0} berries.</p>`, `<p class="hint">Masz jagód: ${F.inv.berries || 0}.</p>`)}<button type="button" class="btn sm m" data-a="cookopen">${L(`Cook treats`, `Gotuj smakołyki`)}</button>`;
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
