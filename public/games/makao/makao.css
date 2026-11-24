@@ -90,7 +90,7 @@ body.in-game { overflow: hidden; }
 .mko .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
 .mko .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .mko .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mko .score .who span { font-size: 13px; color: var(--soft-tx2); }
+.mko .score .who > span { font-size: 13px; color: var(--soft-tx2); } /* only the stat line: the little cards are spans too */
 .mko .score strong { font-family: var(--fd); font-weight: 700; font-size: 20px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
 .mko .score small { font-size: 12px; font-weight: 600; color: var(--soft-tx); }
 .mko .results .btn.ghost { color: var(--on-paper); border-color: var(--card-edge); }
@@ -154,7 +154,11 @@ body.night .mk-go .btn.y, body.night .mk-tag .bub .one { color: var(--ink); }
 .mk-tag .bub .top { gap: 2px; }
 .mk-tag.out .plate { opacity: .75; }
 .mk-tag .bub .outp { opacity: 1; background: #c9f2d2; color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
-.mko .score .mk-left .pcard { --w: 22px; }
+.mko .score .mk-left .pcard { --w: 27px; color: var(--sc, #3b2219); }
+.mko .score .mk-left .pcard b { font-size: 15px; }
+.mko .score .mk-left .pcard .ps { display: none; }
+.mko .score .mk-left .pcard .pbig svg { width: 13px; height: 13px; }
+.mko .score .mk-left { gap: 3px; margin-top: 4px; }
 .mko .score li.last { border-style: dashed; }
 /* what the table asks for, over the played cards */
 .mk-top { padding: 3px 6px; }
