@@ -29,6 +29,7 @@ export const OPT_PL = {
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
+  'The game ends': 'Koniec gry', 'First one out wins': 'Wygrywa pierwszy bez kart', 'Play to the last one': 'Gramy do ostatniego', 'Queen on everything': 'Dama na wszystko', 'Fighting kings': 'Waleczne króle',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
@@ -477,6 +478,26 @@ export const GAMES_PL = {
       <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy. <b>Przegrywa gracz, który zostaje z Piotrusiem</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, bierzesz kartę, po którą sięgasz, albo losową. Skróty: <b>← →</b> sięgają po kartę, <b>Enter</b> ją bierze, <b>S</b> tasuje twoje karty.</li>
+    </ol>`,
+  },
+  makao: {
+    name: 'Makao', start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, tymi kartami zagra bot',
+    pitch: 'Polski klasyk zwykłą talią: dwójki i trójki na dobieranie, czwórki na postój, walety żądają, asy zmieniają kolor, króle walczą. Nie zapomnij powiedzieć „Makao!”.',
+    howto: `Klasyczna polska gra karciana zwykłą talią 52 kart. Połóż kartę w tym samym kolorze albo o tej samej wartości co karta na wierzchu. Dwójki i trójki każą następnemu graczowi dobierać, czwórka każe mu czekać, walet żąda karty, a as zmienia kolor. Gdy zostaje ci jedna karta, powiedz „Makao!”. Wygrywa ten, kto pierwszy pozbędzie się kart.`,
+    rules: `<ol>
+      <li>Zwykła talia <b>52 kart</b>. Każdy dostaje <b>5 kart</b>, a na stół trafia jedna zwykła karta. Wolne miejsca zajmują boty.</li>
+      <li>W swojej turze połóż kartę w tym samym <b>kolorze</b> albo o tej samej <b>wartości</b> co karta na wierzchu. Możesz położyć naraz <b>kilka kart o tej samej wartości</b>: dotykaj ich po kolei, pierwsza musi pasować, a ostatnia będzie na wierzchu.</li>
+      <li>Jeśli nie możesz albo nie chcesz, <b>dobierz kartę</b>. Jeśli pasuje, możesz ją od razu zagrać albo zatrzymać. Tak czy inaczej twoja tura się kończy.</li>
+      <li><b>2 i 3</b>: następny gracz dobiera 2 albo 3 karty i traci kolejkę. Może się <b>obronić</b> kolejną dwójką lub trójką o tej samej wartości albo w tym samym kolorze (albo walecznym królem w tym kolorze), a wtedy karty sumują się dla gracza za nim.</li>
+      <li><b>Król kier</b>: następny gracz dobiera 5. <b>Król pik</b>: 5 kart dobiera gracz <b>przed tobą</b>, a gra toczy się dalej od niego. Na króla można położyć drugiego walecznego króla albo dwójkę lub trójkę w jego kolorze. Króle karo i trefl to zwykłe karty.</li>
+      <li><b>4</b>: następny gracz traci kolejkę. Kolejna czwórka przekazuje postój dalej, a postoje się sumują: dwie czwórki to dwie stracone kolejki.</li>
+      <li><b>Walet</b>: żądasz karty od <b>5 do 10</b>. Każdy po kolei, ty na końcu, musi zagrać taką kartę albo dobrać. Walet na walecie zmienia żądanie.</li>
+      <li><b>As</b>: wybierasz kolor, który będzie dalej. As na asie zmienia go jeszcze raz.</li>
+      <li><b>Dama</b>: zwykła karta, chyba że stół gra z zasadą <b>Dama na wszystko</b>: wtedy damę można położyć na każdą kartę i każdą kartę na damę (ale dama nie broni przed 2, 3, 4, królem ani żądaniem).</li>
+      <li>Gdy po twoim ruchu zostanie ci <b>jedna karta</b>, naciśnij <b>„Makao!”</b>, zanim zagrasz. Przed <b>ostatnią kartą</b> naciśnij <b>„Po makale!”</b>. Jeśli zapomnisz, każdy może nacisnąć <b>Złap</b>, zanim ruszy się następny gracz, a ty dobierasz <b>5 kart</b>. Możesz się jeszcze uratować, jeśli zdążysz nacisnąć pierwszy.</li>
+      <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>, a pozostali zajmują miejsca według liczby kart w ręce: im mniej, tym lepiej. Przy ustawieniu <b>Koniec gry: Gramy do ostatniego</b> gra toczy się dalej, miejsca idą w kolejności pozbywania się kart, a przegrywa ten, kto zostanie z kartami.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera (albo bierze karty, albo czeka), <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>5–9 i 0</b> wybierają żądanie, <b>M</b> mówi „Makao!”, a <b>C</b> łapie.</li>
     </ol>`,
   },
   parade: {
