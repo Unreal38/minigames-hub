@@ -389,20 +389,50 @@ export function createScene(canvas, { onPick, onGhost }) {
   let walkGrid = new Uint8Array(100);
   const heartGeo = new THREE.OctahedronGeometry(.12, 0), heartMat = toonMat(new THREE.MeshStandardMaterial({ color: '#ff6f91', emissive: '#ff6f91', emissiveIntensity: .45 }));
   const PET_SIZE = .42;
-  // A tiny second renderer for pictures of single models. It is made on first use and kept.
-  const shots = new Map(); let shotR = null, shotS = null, shotC = null;
+  // Pictures of single models are drawn by the island's own renderer into a small off-screen target and read back. A second
+  // renderer (as before) has its own GL context, so it had to build every shader again, which on browsers without background
+  // compiling (Firefox) stuttered the first seconds after the island showed. The little scene is set up like the island
+  // (same lights, a shadow-casting sun, fog) and the target writes the same colours as the screen, so the shaders the island
+  // already built are reused as they are.
+  const shots = new Map(); let shotT = null, shotS = null, shotC = null, shotBuf = null, shotCv = null; const shotClear = new THREE.Color();
   function photo(g, pet, size) {
     try {
-      if (!shotR) {
-        const cv = document.createElement('canvas'); shotR = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true }); shotR.setPixelRatio(1);
-        shotS = new THREE.Scene(); shotC = new THREE.PerspectiveCamera(30, 1, .1, 50);
-        shotS.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9)); const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(3, 6, 4); shotS.add(l);
+      const sm = renderer.shadowMap, pending = sm.needsUpdate;
+      let first = false;
+      if (!shotS) {
+        first = true;
+        shotS = new THREE.Scene(); shotS.fog = new THREE.Fog('#ffffff', 1e4, 2e4); shotC = new THREE.PerspectiveCamera(30, 1, .1, 50);
+        shotS.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9)); const l = new THREE.DirectionalLight('#ffffff', 1.6); l.position.set(3, 6, 4);
+        l.castShadow = true; l.shadow.mapSize.set(16, 16); shotS.add(l, l.target); // its shadow map is drawn once, empty: nothing in the pictures is shaded by it
+        shotCv = document.createElement('canvas');
       }
-      shotR.setSize(size, size, false); shotS.add(g);
+      if (!shotT || shotT.width !== size) {
+        shotT?.dispose(); shotT = new THREE.WebGLRenderTarget(size, size, { samples: 4 });
+        shotT.isXRRenderTarget = true; shotT.texture.colorSpace = THREE.SRGBColorSpace; shotT.texture.internalFormat = 'RGBA8'; // stores screen colours as they are, so the island's shaders fit (three.js keys a shader's output colour on this)
+        shotBuf = new Uint8Array(size * size * 4); shotCv.width = shotCv.height = size;
+      }
+      shotS.add(g);
       const box = new THREE.Box3().setFromObject(g), ctr = box.getCenter(new THREE.Vector3()), rad = box.getSize(new THREE.Vector3()).length() / 2;
       const d = rad / Math.sin(15 * Math.PI / 180) * (pet ? .78 : 1.02);
       shotC.position.set(ctr.x + d * .5, ctr.y + d * .42, ctr.z + d * .75); shotC.lookAt(ctr);
-      shotR.render(shotS, shotC); const u = shotR.domElement.toDataURL('image/png'); shotS.remove(g); return u;
+      const was = renderer.getRenderTarget(), cc = renderer.getClearColor(shotClear), ca = renderer.getClearAlpha();
+      if (first) { shotS.remove(g); sm.needsUpdate = true; renderer.setRenderTarget(shotT); renderer.render(shotS, shotC); shotS.add(g); } // the empty shadow map
+      sm.needsUpdate = false; // the island's own shadow update (if one is due) stays for its next frame
+      renderer.setRenderTarget(shotT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(shotS, shotC);
+      renderer.setRenderTarget(was); renderer.setClearColor(cc, ca); sm.needsUpdate = pending;
+      shotS.remove(g);
+      renderer.readRenderTargetPixels(shotT, 0, 0, size, size, shotBuf);
+      // GL rows run bottom up, and the edges come out premultiplied by their coverage
+      const cx = shotCv.getContext('2d'), img = cx.createImageData(size, size), o = img.data, row = size * 4;
+      for (let y = 0; y < size; y++) {
+        const src = (size - 1 - y) * row, dst = y * row;
+        for (let i = 0; i < row; i += 4) {
+          const a = shotBuf[src + i + 3]; if (!a) continue;
+          const k = a === 255 ? 1 : 255 / a;
+          o[dst + i] = Math.min(255, shotBuf[src + i] * k); o[dst + i + 1] = Math.min(255, shotBuf[src + i + 1] * k); o[dst + i + 2] = Math.min(255, shotBuf[src + i + 2] * k); o[dst + i + 3] = a;
+        }
+      }
+      cx.putImageData(img, 0, 0); return shotCv.toDataURL('image/png');
     } catch (e) { console.warn('no picture', e); return null; }
   }
   const lookKey = l => l ? JSON.stringify(l) : '';
@@ -1150,6 +1180,32 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   let T = 0;
   let warming = false; // while the shaders compile in the background, nothing is drawn (drawing would compile them all at once)
+  // Shaders are compiled a few at a time before the first picture, so the page never freezes for seconds. Where the browser
+  // can compile in the background (KHR_parallel_shader_compile, most Chrome-based browsers) three.js does it all at once.
+  // Firefox and some drivers can't: there a program is built the first time it is used, all of them in the first frame,
+  // which froze the page on an empty sky. So each new program is built on its own, with a frame for the page in between.
+  const parallel = !!renderer.extensions.has('KHR_parallel_shader_compile'), built = new WeakSet();
+  const breath = () => new Promise(r => { const t = setTimeout(r, 40); requestAnimationFrame(() => { clearTimeout(t); r(); }); });
+  async function buildShaders(root) {
+    if (parallel) { await Promise.race([renderer.compileAsync(root, camera).catch(() => {}), new Promise(r => setTimeout(r, 4000))]); return; }
+    // one object per kind of program: same material, same shadow and instancing settings, same vertex colours
+    const seen = new Set(), todo = [];
+    root.traverse(o => {
+      if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !o.material) return;
+      const k = [].concat(o.material).map(m => m.uuid).join() + (o.receiveShadow ? 'r' : '') + (o.isInstancedMesh ? 'i' : '') + (o.isSkinnedMesh ? 's' : '') + (o.geometry?.attributes.color ? 'c' : '') + (o.geometry?.morphAttributes.position ? 'm' : '');
+      if (!seen.has(k)) { seen.add(k); todo.push(o); }
+    });
+    const progs = renderer.info.programs; let t = performance.now();
+    for (const o of todo) {
+      if (dead) return;
+      try { renderer.compile(o, camera, root); } catch (e) { console.warn('shader', e); }
+      for (const p of progs) if (!built.has(p)) { built.add(p); p.getUniforms(); } // links it now, not in the first frame
+      if (performance.now() - t > 10) { await breath(); t = performance.now(); }
+    }
+  }
+  // Resolves once a real frame of the island has been drawn and is on screen.
+  let drawnWait = [];
+  const afterDraw = () => { if (!drawnWait.length) return; const w = drawnWait; drawnWait = []; requestAnimationFrame(() => w.forEach(f => f())); };
   function loop(dt) {
     if (dead) return;
     resize(); if (warming) return; T += dt;
@@ -1159,7 +1215,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const d = Math.max(7.2, 7.4 * H / Math.max(1, W));
       const sk = fx.shake * .12, v = fx.view, z = 1 - v.zoom, sway = Math.sin(T * .23) * .45; // drifts a little, leans in on the action
       camera.position.set((-1.2 + sway) * z + v.x * .3 + Math.sin(T * 61) * sk, d * .42 * z + Math.sin(T * 47) * sk, d * z + v.z * .3); camera.lookAt(v.x * .45, .95, v.z * .45);
-      moveRing(dt, T); renderer.render(ring, camera); return;
+      moveRing(dt, T); renderer.render(ring, camera); afterDraw(); return;
     }
     if (mapOn) { // the neighbourhood from above; drag to turn it
       const d = mapFar * mapZoom * Math.max(1, 1.2 * H / Math.max(1, W)), off = mapOut * (1 - mapZoom) * .8; // zoomed in, the view slides to the near side: turn the map to bring islands round
@@ -1178,7 +1234,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       }
       wclouds.rotation.y += dt * .006 * (1 + air.wind * 6); moveAir(dt, T, true);
       mapBirds(T);
-      renderer.render(world, camera); return;
+      renderer.render(world, camera); afterDraw(); return;
     }
     const k = Math.max(1, (starters ? 1.1 : .75) * H / Math.max(1, W)); // narrow screens need to stand further back
     const fp = cam.follow && pets.get(cam.follow); if (cam.follow && !fp) followPet(null); else if (fp) { cam.gx = fp.g.position.x; cam.gz = fp.g.position.z; }
@@ -1197,7 +1253,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (skyLook) skyLook.tick(T, camera, { night: air.night, dusk: air.dusk, clear: air.dim, wind: air.wind, bow: air.bow });
     pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
-    renderer.render(scene, camera);
+    renderer.render(scene, camera); afterDraw();
   }
   buildLand();
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
@@ -1223,14 +1279,15 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (ghost) ghostCheck();
     },
     setStarters,
-    // Compile the shaders for what is on the island now without freezing the page (where the browser can), before the
-    // first picture. Resolves when the island can be drawn; gives up waiting after a few seconds.
+    // Compile the shaders for what is on the island now without freezing the page, before the first picture.
+    // Resolves when the island can be drawn.
     warm() {
-      if (warming || !renderer.compileAsync) return Promise.resolve();
-      warming = true; const t0 = performance.now();
-      return Promise.race([renderer.compileAsync(scene, camera).catch(() => {}), new Promise(r => setTimeout(r, 4000))])
-        .then(() => { warming = false; renderer.shadowMap.needsUpdate = true; return performance.now() - t0; });
+      if (warming) return Promise.resolve();
+      warming = true; const t0 = performance.now(); res.prep(scene);
+      return buildShaders(scene).catch(e => console.warn('warm', e)).then(() => { warming = false; renderer.shadowMap.needsUpdate = true; return performance.now() - t0; });
     },
+    // Resolves after the next real frame has been drawn and shown (the loading note stays up until then).
+    drawn: () => new Promise(r => drawnWait.push(r)),
     setSky(hour, weather) { airTo.hour = hour; airTo.w = weather; },
     setOwner(o, g = []) { owner = o; guests = g; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
@@ -1272,7 +1329,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       return out;
     },
     dispose() {
-      dead = true; ticker.stop(); look = { ...look, ik: 0, fp: [] }; lookSky(); if (shotR) { shotR.dispose(); shotR.forceContextLoss?.(); shotR = null; }
+      dead = true; ticker.stop(); look = { ...look, ik: 0, fp: [] }; lookSky(); if (shotT) { shotT.dispose(); shotT = null; }
       ghostCancel(true);
       for (const id of [...pets.keys()]) dropPet(id);
       for (const e of items.values()) disposeModel(e.g);

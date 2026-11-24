@@ -102,9 +102,16 @@ export function mount(app, ctx) {
     if (destroyed) return;
     scene = m.createScene(canvas, { onPick, onGhost: paintGhost });
     sync();
-    // the loading note stays until the island has been drawn; the little pictures start once it is on screen
-    scene.warm().then(() => requestAnimationFrame(() => requestAnimationFrame(() => { if (destroyed) return; $('pf-load').hidden = true; thumbGo = true; thumbLater(400); })));
   }).catch(err => { console.warn('3D unavailable', err); $('pf-load').hidden = true; root.classList.add('flat'); });
+  // The loading note stays until the farm itself has been drawn: its shaders are built first (a few at a time, so the page
+  // keeps moving), and only once the farm's own data is in, not for an empty island. The little pictures start after that.
+  let revealed = false;
+  function reveal() {
+    if (revealed || !scene || mode === 'load') return; revealed = true;
+    const done = () => { if (destroyed || $('pf-load').hidden) return; $('pf-load').hidden = true; thumbGo = true; thumbLater(1500); };
+    setTimeout(done, 30000); // whatever happens, never leave the note up for good
+    scene.warm().then(() => scene.drawn?.()).then(done);
+  }
 
   // A picture not drawn yet shows a soft tile and is swapped in when ready; ones on screen are drawn first.
   const thumbWant = new Set(); let thumbRest = null, thumbT = 0, thumbGo = false;
@@ -164,6 +171,7 @@ export function mount(app, ctx) {
     const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
     if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av, isle: flairOf(ctx.me()) }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, theme: z.theme, out: F.trips.some(t => t.zone === key), fly: F.trips.filter(t => t.zone === key).map(t => ({ left: t.left, total: TRIPS[t.trip].min * 60000 }))[0], note: F.trips.some(t => t.zone === key) ? (F.trips.some(t => t.zone === key && t.left > 0) ? L('your party is here', 'twoja drużyna jest tutaj') : L('your party is back', 'twoja drużyna wróciła')) : F.house < z.house ? L(`farmhouse level ${z.house}`, `dom na poziomie ${z.house}`) : L('tap to explore', 'dotknij, żeby zwiedzać') })) : []); }
     scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
+    reveal();
   }
   function paintTop() {
     $('pf-title').textContent = B ? (B.mode === 'live' ? L(`Live battle with ${B.foe}`, `Bitwa na żywo: ${B.foe}`) : B.mode === 'arena' ? L(`Match against ${B.foe}`, `Mecz: ${B.foe}`) : B.mode === 'wild' ? L(`Meeting ${B.foe}`, `Spotkanie: ${B.foe}`) : L('Practice battle', 'Bitwa treningowa')) : where === 'map' && F ? L('The neighbourhood', 'Okolica') : where === 'visit' && V ? L(`${V.name}'s farm`, `Farma gracza ${V.name}`) : F ? L(`${F.owner}'s farm`, `Farma gracza ${F.owner}`) : L('Pet Farm', 'Farma zwierzaków');
