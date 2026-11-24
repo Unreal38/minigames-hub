@@ -101,7 +101,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const edgesGeo = new THREE.EdgesGeometry(cageGeo), wires = new THREE.LineSegments(edgesGeo, new THREE.LineBasicMaterial({ color: INK, transparent: true, opacity: .55 })); cage.add(wires);
   const ballGeo = new THREE.IcosahedronGeometry(1, 2);
   const N_IN = small ? 14 : 20;
-  const tumble = new THREE.InstancedMesh(ballGeo, M('#ffffff', { roughness: .55 }), N_IN); tumble.castShadow = false; scene.add(tumble);
+  const tumble = new THREE.InstancedMesh(ballGeo, new THREE.MeshBasicMaterial({ color: '#ffffff' }), N_IN); scene.add(tumble); // unlit, so the colours are exactly the card's
   const tb = Array.from({ length: N_IN }, (_, i) => ({ p: new THREE.Vector3((Math.random() - .5), -.5 + Math.random() * .3, (Math.random() - .5)).multiplyScalar(.8), v: new THREE.Vector3(), c: new THREE.Color(BALL_COLS[i % 5]) }));
   tb.forEach((b, i) => tumble.setColorAt(i, b.c));
   const dummy = new THREE.Object3D();
@@ -124,7 +124,9 @@ export function createScene(canvas, { onFrame } = {}) {
   const texOf = new Map();
   function makeBall(n) {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(ballGeo, M(BALL_COLS[colOf(n)], { roughness: .5 })); body.castShadow = true; g.add(body);
+    // mostly self-lit: the ball shows the very colour of its column on the card (plain lighting turned orange into brown), with only a hint of shading
+    const col = new THREE.Color(BALL_COLS[colOf(n)]);
+    const body = new THREE.Mesh(ballGeo, new THREE.MeshStandardMaterial({ color: col.clone().multiplyScalar(.22), emissive: col, emissiveIntensity: .82, roughness: .6, flatShading: true })); body.castShadow = true; g.add(body);
     const ink = new THREE.Mesh(ballGeo, inkMat); ink.scale.setScalar(1.08); g.add(ink);
     let tex = texOf.get(n); if (!tex) texOf.set(n, tex = labelTex(n));
     const lab = new THREE.Mesh(labelGeo, new THREE.MeshBasicMaterial({ map: tex, transparent: true })); lab.renderOrder = 3; g.add(lab);
