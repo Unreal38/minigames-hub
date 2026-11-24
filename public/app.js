@@ -1606,22 +1606,23 @@ const myDecor = () => decorOf(st.me).filter(t => (st.decor || []).some(x => x.t 
 const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id)).filter(Boolean);
 const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open that player's profile card
 // The games you host a table for, in hub order: id, picture class, picture, category, seats, one-line pitch.
+// Category is cards, board or action, plus ' party' for games that shine with a big group (it also shows under Party).
 // Solo games (Hay Hunch, Pet Farm, Mystery Pet) are not here: they live in the Today column.
-const HUB_CATS = [['all', L('All', 'Wszystkie')], ['cards', L('Cards', 'Karciane')], ['board', L('Board', 'Planszowe')], ['action', L('Action', 'Zręcznościowe')]];
+const HUB_CATS = [['all', L('All', 'Wszystkie')], ['cards', L('Cards', 'Karciane')], ['board', L('Board', 'Planszowe')], ['action', L('Action', 'Zręcznościowe')], ['party', L('Party', 'Imprezowe')]];
 const HUB_GAMES = [
   ['hotpot', '', hotpotArt, 'cards', '1–4 players', 'Draw, swap and collect three sets of three ingredients, then call “Let\'s Eat!” before anyone else.'],
-  ['marbles', 'marblepic', marbleArt, 'action', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
+  ['marbles', 'marblepic', marbleArt, 'action party', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
   ['ladders', 'ladderpic', laddersArt, 'board', '1–6 players', 'The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.'],
   ['poker', 'pokerpic', pokerArt, 'cards', '1–6 players', 'Cozy no-limit poker for pretend chips. Also Mango Poker, where the flop comes from the cards you all throw away.'],
   ['bj', 'bjpic', bjArt, 'cards', '1–6 players', 'Everyone against the dealer. Bet pretend chips, get closer to 21 than the dealer and finish with the biggest stack.'],
   ['ludo', 'ludopic', ludoArt, 'board', '1–4 players', 'Race your pawns round a chunky 3D board and bump your friends back to their yard.'],
-  ['stack', 'stackpic', stackArt, 'action', '1–6 players', 'Take turns dropping swinging blocks on one shared, wobbly tower. Don\'t be the one who knocks it down.'],
+  ['stack', 'stackpic', stackArt, 'action party', '1–6 players', 'Take turns dropping swinging blocks on one shared, wobbly tower. Don\'t be the one who knocks it down.'],
   ['golf', 'golfpic', golfArt, 'action', '1–6 players', 'Take turns putting the same blocky 3D hole, and bet coins on who takes each hole.'],
-  ['dice', 'dicepic', diceArt, 'cards', '1–6 players', 'Roll in secret under your cup, bid on everyone\'s dice and bluff. Call “Liar!” when you smell one.'],
+  ['dice', 'dicepic', diceArt, 'cards party', '1–6 players', 'Roll in secret under your cup, bid on everyone\'s dice and bluff. Call “Liar!” when you smell one.'],
   ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
   ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],
   ['kart', 'kartpic', kartArt, 'action', '1–8 players', 'Race little low-poly karts round roads that hop between floating islands.'],
-  ['kitchen', 'kitchenpic', kitchenArt, 'action', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
+  ['kitchen', 'kitchenpic', kitchenArt, 'action party', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
   ['dig', 'digpic', digArt, 'board', '1–6 players', 'Take turns digging up a grass field for gems and a golden chest. Like Minesweeper with friends.'],
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
   ['lagoon', 'lagoonpic', lagoonArt, 'action', '1–4 players', 'Shoot pet bubbles in your own lagoon, pop three of a kind and send eggs to your friends. Last one afloat wins.'],
@@ -1638,10 +1639,10 @@ const HUB_GAMES = [
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
-  ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
-  ['bop', 'boppic', bopArt, 'action', '1–6 players', 'Bop the pets popping out of your burrows before they duck. Three hearts each, and the last one with a heart wins.'],
-  ['bierki', 'bierkipic', bierkiArt, 'action', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
-  ['pm', 'pmpic', pmArt, 'board', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
+  ['bingo', 'bingopic', bingoArt, 'board party', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
+  ['bop', 'boppic', bopArt, 'action party', '1–6 players', 'Bop the pets popping out of your burrows before they duck. Three hearts each, and the last one with a heart wins.'],
+  ['bierki', 'bierkipic', bierkiArt, 'action party', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
+  ['pm', 'pmpic', pmArt, 'board party', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
   ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
@@ -1661,7 +1662,7 @@ const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcar
 function filterGames() {
   if (!HUB_CATS.some(([id]) => id === st.gFilt)) st.gFilt = 'all';
   const q = (document.getElementById('gfind')?.value || '').trim().toLowerCase(); let shown = 0;
-  document.querySelectorAll('.gmini').forEach(c => { const on = (st.gFilt === 'all' || c.dataset.cat === st.gFilt) && (!q || c.dataset.name.includes(q)); c.hidden = !on; shown += on; });
+  document.querySelectorAll('.gmini').forEach(c => { const on = (st.gFilt === 'all' || c.dataset.cat.split(' ').includes(st.gFilt)) && (!q || c.dataset.name.includes(q)); c.hidden = !on; shown += on; });
   document.querySelectorAll('[data-act="gfilt"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === st.gFilt));
   const none = document.getElementById('gnone'); if (none) none.hidden = shown > 0;
 }
@@ -1687,14 +1688,14 @@ function setHubTab(tab) {
   scrollTo(0, 0); if (st.htab === 'chat') hubScrollEnd();
 }
 function renderHub() {
-  const cnt = c => c === 'all' ? HUB_GAMES.length : HUB_GAMES.filter(g => g[3] === c).length;
+  const cnt = c => c === 'all' ? HUB_GAMES.length : HUB_GAMES.filter(g => g[3].split(' ').includes(c)).length;
   const tab = (id, ico, label, extra = '') => `<button type="button" data-act="htab" data-tab="${id}" aria-selected="${id === st.htab}"><span aria-hidden="true">${ico}</span>${label}${extra}</button>`;
   $app.innerHTML = `${topbar()}
   <main class="wrap hubgrid" data-tab="${st.htab}">
     <section class="hero">
       <div>
         <h1>${L('Hop on an isle. Pick a game.', 'Wskakuj na wyspę. Wybierz grę.')}</h1>
-        <p>${L("Card, board and party games for you and your friends, plus solo puzzles and your own Pet Farm. Host a table and share its four-letter code, or join one with a friend's code.", 'Gry karciane, planszowe i imprezowe dla ciebie i znajomych, a do tego łamigłówki dla jednej osoby i własna Farma zwierzaków. Załóż stół i podaj znajomym jego czteroznakowy kod albo dołącz do stołu z kodem od znajomego.')}</p>
+        <p>${L("Card, board, action and party games for you and your friends, plus solo puzzles and your own Pet Farm. Host a table and share its four-letter code, or join one with a friend's code.", 'Gry karciane, planszowe, zręcznościowe i imprezowe dla ciebie i znajomych, a do tego łamigłówki dla jednej osoby i własna Farma zwierzaków. Załóż stół i podaj znajomym jego czteroznakowy kod albo dołącz do stołu z kodem od znajomego.')}</p>
         <div class="row herorow">
           <button type="button" class="btn big" data-act="host">${L('Host a table', 'Załóż stół')}</button>
           <form class="codeform" data-form="join">
