@@ -42,6 +42,15 @@ function stickGeo(kind) {
   } else if (kind !== 'pet') { band(-.95, .09, '#fff8ec'); band(.95, .09, '#fff8ec'); if (KINDS[kind].pts > 2) band(-.78, .05, '#fff8ec'); if (KINDS[kind].pts > 3) band(.78, .05, '#fff8ec'); if (KINDS[kind].pts > 4) band(0, .09, '#fff8ec'); }
   return merged(parts);
 }
+// The dark outline drawn behind a stick: the same shape as the stick, a little fatter, so it hugs the pointed tips
+// (a plain fat rod here used to stick out past the points as a dark block).
+const INK_W = .016;
+function inkGeo(kind) {
+  const h = LEN / 2, tip = .24, e = INK_W, parts = [rod(-h + tip, h - tip, R + e), rod(-h - e * 1.4, -h + tip, .012 + e * .7, R + e), rod(h - tip, h + e * 1.4, R + e, .012 + e * .7)];
+  if (kind === 'hook') { const w = 2 * e; parts.push(boxAt(h - .1, 0, .09, .09 + w, .08 + w, .22 + w), boxAt(h - .22, 0, .2, .3 + w, .08 + w, .09 + w), boxAt(h - .36, 0, .13, .09 + w, .08 + w, .16 + w)); }
+  const geo = merged(parts.map(g => [g, '#000'])); geo.deleteAttribute('color'); geo.deleteAttribute('normal');
+  return geo;
+}
 function crownModel() {
   const g = new THREE.Group(), gold = new THREE.MeshStandardMaterial({ color: '#f2bd2c', flatShading: true, roughness: .5 });
   const base = new THREE.Mesh(new THREE.CylinderGeometry(.15, .13, .13, 8), gold); base.position.y = .065; g.add(base);
@@ -85,14 +94,14 @@ export function createScene(canvas, cb = {}) {
   }
 
   // ---------- sticks ----------
-  const geos = {}, inkGeo = rod(-LEN / 2 - .012, LEN / 2 + .012, R + .016, R + .016, 6), inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
+  const geos = {}, inks = {}, inkMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
   const baseMat = toonMat(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .7 }));
   const tints = {}; // a pet stick's body is tinted in its element colour
   let sticks = [], pileKey = '', S = null, me = -1, petMaker = null, pendingPets = false;
   const V = new THREE.Vector3(), V2 = new THREE.Vector3(), proj = new THREE.Vector3();
   // the picked stick: a thick bright rim, and a faint copy of it that shows through the sticks lying over it
   const selMat = new THREE.MeshBasicMaterial({ color: '#ffe23d', side: THREE.BackSide }), hovMat = new THREE.MeshBasicMaterial({ color: '#fff6d8', side: THREE.BackSide });
-  const xray = new THREE.Mesh(inkGeo, new THREE.MeshBasicMaterial({ color: '#ffe23d', transparent: true, opacity: .16, depthTest: false, depthWrite: false })); xray.renderOrder = 6; xray.scale.set(1, 1.9, 1.9);
+  const xray = new THREE.Mesh(inks.plain = inkGeo('plain'), new THREE.MeshBasicMaterial({ color: '#ffe23d', transparent: true, opacity: .16, depthTest: false, depthWrite: false })); xray.renderOrder = 6; xray.scale.set(1, 1.9, 1.9);
   const EM = { none: new THREE.Color(0x000000), sel: new THREE.Color('#8a6a00'), top: new THREE.Color('#8a1408'), touch: new THREE.Color('#6a3c00'), hover: new THREE.Color('#33332a') };
 
   function clearSticks() {
@@ -106,7 +115,7 @@ export function createScene(canvas, cb = {}) {
       const geo = geos[s.k] ||= stickGeo(s.k), mat = baseMat.clone();
       if (s.k === 'pet') mat.color.set(tints[s.pet] ||= new THREE.Color(colOf(s)).lerp(new THREE.Color('#ffffff'), .25));
       const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true;
-      const out = new THREE.Mesh(inkGeo, inkMat); m.add(out);
+      const out = new THREE.Mesh(inks[s.k] ||= inkGeo(s.k), inkMat); m.add(out);
       const g = new THREE.Group(); g.add(m); world.add(g);
       const k = { s, g, m, mat, out, top: null, y0: s.y0, y1: s.y1, off: new THREE.Vector3(), want: new THREE.Vector3(), jig: 0, state: s.g, fly: null, born: fresh ? performance.now() + s.id * 28 : 0, glow: 'none' };
       if (s.k === 'crown') { k.top = crownModel(); world.add(k.top); }
@@ -234,30 +243,43 @@ export function createScene(canvas, cb = {}) {
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(), hit = new THREE.Vector3();
   const ptrs = new Map();
   let mode = '', grab = null, last = null, pinch = 0, hover = -1, liftMode = false, shift = false, lastSent = null, lastAt = 0;
-  const shiftY = () => (padTop - padBot) / 2;
-  function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top - shiftY()) / r.height * 2 - 1)); ray.setFromCamera(ndc, camera); return r; }
-  // The stick nearest the pointer on screen. A higher stick wins a close call, since it hides the ones under it.
+  // The camera's view offset already moves the picture down for the HUD, so screen points need no extra shift
+  // (adding it a second time put every hit box about 30 px away from the stick you could see).
+  function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1)); ray.setFromCamera(ndc, camera); return r; }
+  const toScreen = (x, y, z) => { proj.set(x, y, z).project(camera); return [(proj.x + 1) / 2 * W, (1 - proj.y) / 2 * Hh, proj.z]; };
+  // Which stick the pointer means. First the stick actually drawn under the pointer (its outline and the pet or
+  // crown on it count too), so at a crossing you get the one lying on top. If the pointer is on bare cloth, the
+  // stick whose middle line is nearest on screen wins, within `slack` px.
+  const hitList = [];
   function stickAt(e, slack) {
-    const r = canvas.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    const r = aim(e), px = e.clientX - r.left, py = e.clientY - r.top;
+    // only the stick itself and its pet or crown: not the outline, which grows while a stick is highlighted
+    let top = -1, near = Infinity;
+    for (const k of sticks) {
+      if (k.s.g || k.fly || !k.g.visible) continue;
+      hitList.length = 0; ray.intersectObject(k.m, false, hitList); if (k.top) ray.intersectObject(k.top, true, hitList);
+      for (const h of hitList) if (h.distance < near) { near = h.distance; top = k.s.id; }
+    }
+    if (top >= 0) return top;
     let best = -1, bd = slack;
     for (const k of sticks) {
-      if (k.s.g || k.fly) continue;
+      if (k.s.g || k.fly || !k.g.visible) continue;
       const [a, b] = ends(k.s, k.off);
-      proj.set(a.x, a.y, a.z).project(camera); const ax = (proj.x + 1) / 2 * W, ay = (1 - proj.y) / 2 * Hh + shiftY();
-      proj.set(b.x, b.y, b.z).project(camera); const bx = (proj.x + 1) / 2 * W, by = (1 - proj.y) / 2 * Hh + shiftY();
+      const [ax, ay] = toScreen(a.x, a.y, a.z), [bx, by] = toScreen(b.x, b.y, b.z);
       const ex = bx - ax, ey = by - ay, u = clamp(((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1), 0, 1);
-      const d = Math.hypot(px - (ax + ex * u), py - (ay + ey * u)) - (k.s.y0 + k.s.y1) * 4;
+      const d = Math.hypot(px - (ax + ex * u), py - (ay + ey * u));
       if (d < bd) { bd = d; best = k.s.id; }
     }
     return best;
   }
+  const slackOf = e => (e.pointerType === 'mouse' ? 18 : 30);
   function planeAt(e, y) { aim(e); plane.set(V2.set(0, 1, 0), -y); return ray.ray.intersectPlane(plane, hit) ? hit.clone() : null; }
   const mayLift = () => !!cb.canLift?.() && (liftMode || shift);
   function down(e) {
     canvas.setPointerCapture?.(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.size === 2) { if (mode === 'pull') letGo(); mode = 'pinch'; const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); last = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; return; }
     last = { x: e.clientX, y: e.clientY }; shift = e.shiftKey;
-    const id = cb.canPull?.() ? stickAt(e, e.pointerType === 'mouse' ? 16 : 26) : -1;
+    const id = cb.canPull?.() ? stickAt(e, slackOf(e)) : -1;
     if (id < 0) { mode = 'orbit'; return; }
     const st = cb.pick?.(id); if (!st) { mode = 'orbit'; return; }
     held = { id, st }; mode = 'pull'; hover = -1;
@@ -267,15 +289,15 @@ export function createScene(canvas, cb = {}) {
   }
   function move(e) {
     const pt = ptrs.get(e.pointerId);
-    if (!pt) { if (e.pointerType === 'mouse' && !mode) { const h = cb.canPull?.() ? stickAt(e, 14) : -1; if (h !== hover) { hover = h; cb.hover?.(h); dirty = 1; } canvas.style.cursor = h >= 0 ? 'grab' : ''; } return; }
+    if (!pt) { if (e.pointerType === 'mouse' && !mode) { const h = cb.canPull?.() ? stickAt(e, slackOf(e)) : -1; if (h !== hover) { hover = h; cb.hover?.(h); dirty = 1; } canvas.style.cursor = h >= 0 ? 'grab' : ''; } return; }
     pt.x = e.clientX; pt.y = e.clientY;
     if (mode === 'pinch' && ptrs.size >= 2) {
       const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       orb.tzoom = clamp(orb.tzoom * pinch / Math.max(1, d), .45, 1.5); pinch = d;
-      orb.tyaw = clamp(orb.tyaw - (mx - last.x) * .006, -1.25, 1.25); orb.tel = clamp(orb.tel + (my - last.y) * .005, .45, 1.45); last = { x: mx, y: my };
+      orb.tyaw -= (mx - last.x) * .006; orb.tel = clamp(orb.tel + (my - last.y) * .005, .45, 1.45); last = { x: mx, y: my };
       return;
     }
-    if (mode === 'orbit') { orb.tyaw = clamp(orb.tyaw - (e.clientX - last.x) * .006, -1.25, 1.25); orb.tel = clamp(orb.tel + (e.clientY - last.y) * .005, .45, 1.45); last = { x: e.clientX, y: e.clientY }; return; }
+    if (mode === 'orbit') { orb.tyaw -= (e.clientX - last.x) * .006; orb.tel = clamp(orb.tel + (e.clientY - last.y) * .005, .45, 1.45); last = { x: e.clientX, y: e.clientY }; return; }
     if (mode !== 'pull' || !held) return;
     const st = held.st, k = sticks[held.id]; let x, y, z;
     const lift = mayLift();
@@ -337,7 +359,7 @@ export function createScene(canvas, cb = {}) {
         k.glow = g; k.mat.emissive.copy(EM[g]);
         const rim = g === 'sel' ? 2 : g === 'hover' ? 1.7 : 1;
         k.out.material = g === 'sel' ? selMat : g === 'hover' ? hovMat : inkMat; k.out.scale.set(1, rim, rim);
-        if (g === 'sel') k.m.add(xray); else if (xray.parent === k.m) k.m.remove(xray);
+        if (g === 'sel') { xray.geometry = k.out.geometry; k.m.add(xray); } else if (xray.parent === k.m) k.m.remove(xray);
         moving = true;
       }
       if (g === 'sel' && !reduced) { const p = 2 + Math.sin(T * 6) * .22; k.out.scale.set(1, p, p); moving = true; }
@@ -364,7 +386,7 @@ export function createScene(canvas, cb = {}) {
     for (const p of players) {
       proj.copy(p.wrap.position); proj.y += 1.8 * AVS; proj.project(camera);
       p.tag.show = proj.z < 1 && Math.abs(proj.x) < 1.1 && Math.abs(proj.y) < 1.1;
-      p.tag.x = (proj.x + 1) / 2 * W; p.tag.y = (1 - proj.y) / 2 * Hh + shiftY();
+      p.tag.x = (proj.x + 1) / 2 * W; p.tag.y = (1 - proj.y) / 2 * Hh;
     }
     cb.onFrame?.({ tags: players.map(p => p.tag) });
   }
@@ -378,9 +400,9 @@ export function createScene(canvas, cb = {}) {
     // my own pull ended (taken, failed, put back or cancelled by the server)
     release() { held = null; if (mode === 'pull') mode = ''; dirty = 2; },
     holding: () => (held ? held.id : -1),
-    resetView() { orb.tyaw = 0; orb.tel = .93; orb.tzoom = 1; },
+    resetView() { const turns = Math.round(orb.yaw / (Math.PI * 2)) * Math.PI * 2; orb.yaw -= turns; orb.tyaw = 0; orb.tel = .93; orb.tzoom = 1; },
     // where a stick is on the screen, for the "+3" that floats up from it
-    screenOf(id) { const k = sticks[id]; if (!k) return null; proj.copy(k.g.position).project(camera); return { x: (proj.x + 1) / 2 * W, y: (1 - proj.y) / 2 * Hh + shiftY() }; },
+    screenOf(id) { const k = sticks[id]; if (!k) return null; proj.copy(k.g.position).project(camera); return { x: (proj.x + 1) / 2 * W, y: (1 - proj.y) / 2 * Hh }; },
     sparkle(id, color) { const k = sticks[id]; if (k && !reduced) fx.burst(V2.copy(k.g.position), { n: 12, colors: [color, '#ffd84a', '#ffffff'], speed: 1.8, up: 2.4, size: .13, life: .7, shape: [STAR, DOT] }); },
     thud(id) { const k = sticks[id]; if (k && !reduced) fx.burst(V2.copy(k.g.position), { n: 10, colors: ['#ffffff', '#ffb0a0'], speed: 1.6, up: 1.2, size: .12, life: .5, shape: DOT }); },
     mood(i, good) { const p = players[i]; if (p) { p.mood = good ? 1 : -1; p.moodT = 1.6; if (good) p.hop = 1; } },
@@ -392,7 +414,7 @@ export function createScene(canvas, cb = {}) {
       canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel);
       removeEventListener('keydown', keyDown); removeEventListener('keyup', keyUp);
       for (const p of players) disposeAvatar(p.av);
-      clearSticks(); for (const k in geos) geos[k].dispose(); inkGeo.dispose(); inkMat.dispose(); selMat.dispose(); hovMat.dispose(); xray.material.dispose();
+      clearSticks(); for (const k in geos) geos[k].dispose(); for (const k in inks) inks[k].dispose(); inkMat.dispose(); selMat.dispose(); hovMat.dispose(); xray.material.dispose();
       disposeToon(land); disposeToon(tg); disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); renderer.dispose(); renderer.forceContextLoss();
     },
   };
