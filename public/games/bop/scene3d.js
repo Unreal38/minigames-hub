@@ -46,6 +46,7 @@ export function createScene(canvas, { onFrame, clock } = {}) {
   const pfx = createFx(scene), shake = shaker();
   const zTx = zTexture(), zMat = new THREE.SpriteMaterial({ map: zTx, transparent: true, depthWrite: false });
   const hGeo = heartGeo();
+  const glowGeo = new THREE.RingGeometry(1.0, 1.42, 8); glowGeo.rotateX(-Math.PI / 2); glowGeo.rotateY(Math.PI / 8);
 
   // ---------- the pets: one model a species, copied (the copies share its shapes) for every burrow that needs one ----------
   const protos = PETS.map(sp => {
@@ -103,15 +104,17 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     const head = new THREE.Group(); head.position.y = 1.5; mal.add(head);
     put(new THREE.BoxGeometry(1.05, .66, .7), M('#ff8fab'), 0, 0, 0, head); for (const sx of [-1, 1]) put(new THREE.BoxGeometry(.14, .76, .8), M('#fff6e6'), sx * .56, 0, 0, head);
     toonify(mal, .04);
+    // the ring that lights up round the burrow the mouse is on
+    const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({ color: '#fff27a', transparent: true, opacity: .9, depthWrite: false })); glow.visible = false; glow.renderOrder = 2; g.add(glow);
     const avG = new THREE.Group(); avG.position.set(0, FEET * AV_S, AV_Z); avG.scale.setScalar(AV_S); g.add(avG);
     scene.add(g);
-    return { g, deco, holes, mal, head, avG, av: null, key: '', x: 0, z: 0, s: 1, seat: -1, hop: 0, nod: 0, dead: false, gp: 0, bonk: new Map(), pool: PETS.map(() => []),
+    return { g, deco, holes, mal, head, glow, hov: -1, avG, av: null, key: '', x: 0, z: 0, s: 1, seat: -1, hop: 0, nod: 0, dead: false, gp: 0, bonk: new Map(), pool: PETS.map(() => []),
       sw: { t: 1, x: 0, y: 0, z: 0 }, rest: null, bob: Math.random() * 6 };
   }
   function freeGarden(w) {
     scene.remove(w.g); if (w.av) disposeAvatar(w.av); disposeToon(w.deco);
     for (const H of w.holes) for (const o of [H.cap, H.crown, H.heart]) disposeToon(o);
-    disposeToon(w.mal);
+    disposeToon(w.mal); w.glow.material.dispose();
   }
 
   // ---------- who plays where ----------
@@ -223,23 +226,36 @@ export function createScene(canvas, { onFrame, clock } = {}) {
   function swing(seat, x, y, z) { const w = wells[seat]; if (!w) return; w.sw.t = 0; w.sw.x = x; w.sw.y = y; w.sw.z = z; }
 
   // ---------- pointing ----------
-  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), box = new THREE.Box3();
-  // which burrow of the big garden is under this point of the screen? { h: 0..8 or -1, x, z: the spot on the lawn }
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), hit = new THREE.Vector3(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const sA = { x: 0, y: 0 }, sB = { x: 0, y: 0 }, sC = { x: 0, y: 0 };
+  // Which burrow of the big garden does this point of the screen mean? { h: 0..8 or -1, x, z: the spot on the lawn }
+  // Measured on the screen, so it follows what the player sees: a burrow is its mound, and while a pet is out also
+  // the whole pet standing over it. The nearest burrow wins, a pet that is out a little more readily than a hole.
   function pick(cx, cy) {
     const w = wells[focus]; if (!w || !cw) return null;
-    const rc = canvas.getBoundingClientRect(); ndc.set((cx - rc.left) / rc.width * 2 - 1, 1 - (cy - rc.top) / rc.height * 2);
-    ray.setFromCamera(ndc, camera);
-    let best = -1, bd = 1e9; const R = 1.3;
+    const rc = canvas.getBoundingClientRect(), px = cx - rc.left, py = cy - rc.top;
+    // how many pixels one step between burrows is, across and into the picture
+    toScreen(at(w, holeX(3), RIM, holeZ(3)), sA); toScreen(at(w, holeX(5), RIM, holeZ(5)), sB); const ux = Math.abs(sB.x - sA.x) / 2;
+    toScreen(at(w, holeX(1), RIM, holeZ(1)), sA); toScreen(at(w, holeX(7), RIM, holeZ(7)), sB); const uz = Math.abs(sB.y - sA.y) / 2;
+    let best = -1, bd = 1e9;
     for (let h = 0; h < HOLES; h++) {
-      const x = w.x + holeX(h) * w.s, z = w.z + holeZ(h) * w.s;
-      box.min.set(x - R * w.s, 0, z - R * w.s); box.max.set(x + R * w.s, (RIM + PH + .15) * w.s, z + R * w.s);
-      if (ray.ray.intersectBox(box, hit)) { const d = hit.distanceTo(ray.ray.origin); if (d < bd) { bd = d; best = h; } }
+      const H = w.holes[h], out = H.cur >= 0 && H.riser.visible ? Math.max(0, 1 + H.lift.position.y / (PH + .25)) : 0; // 0..1: how far the pet is out
+      toScreen(at(w, holeX(h), RIM, holeZ(h)), sA);
+      let dx = (px - sA.x) / ux, dy = (py - sA.y) / uz, d = Math.hypot(dx, dy);
+      if (out > .15) { // the pet: anywhere along it, from the mound up to the top of its head
+        toScreen(at(w, holeX(h), RIM + PH * out, holeZ(h)), sC);
+        const vy = sC.y - sA.y, k = vy ? Math.max(0, Math.min(1, (py - sA.y) / vy)) : 0;
+        dx = (px - sA.x) / ux; dy = (py - (sA.y + vy * k)) / ux; d = Math.min(d, Math.hypot(dx, dy)) * .7;
+      }
+      if (d < bd) { bd = d; best = h; }
     }
+    if (bd > .62) best = -1; // out on the lawn, between nothing
+    ndc.set(px / rc.width * 2 - 1, 1 - py / rc.height * 2); ray.setFromCamera(ndc, camera);
     const g = ray.ray.intersectPlane(ground, hit);
     return { h: best, x: g ? (hit.x - w.x) / w.s : 0, z: g ? (hit.z - w.z) / w.s : 0, on: !!g };
   }
-  // the mallet waits over the lawn where the mouse points (null: put it away)
-  function hover(p) { const w = wells[focus]; if (w) w.rest = p; }
+  // the mallet waits where the mouse points, and the burrow under it lights up (null: put it away)
+  function hover(p) { const w = wells[focus]; if (w) { w.rest = p; w.hov = p ? p.h : -1; } }
   function tap(seat, h, x, z) { if (h >= 0) swing(seat, holeX(h), RIM + .25, holeZ(h)); else swing(seat, Math.max(-X0, Math.min(X0, x)), .25, Math.max(ZB + 1.5, Math.min(ZF, z))); }
 
   // ---------- loop ----------
@@ -292,11 +308,16 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     if (sw.t < 1) {
       sw.t = Math.min(1, sw.t + dt / .26);
       const u = sw.t, k = u < .27 ? u / .27 : u < .5 ? 1 : 1 - (u - .5) / .5, th = .55 + 1.2 * k * k;
-      mal.visible = true; mal.position.set(sw.x + 1.476, sw.y + .6, sw.z + .12); mal.rotation.z = th;
+      mal.visible = true; mal.scale.setScalar(1); mal.position.set(sw.x + 1.476, sw.y + .6, sw.z + .12); mal.rotation.z = th;
       w.head.scale.set(1, u > .25 && u < .5 ? .72 : 1, 1);
     } else if (big && w.rest && mineOn) {
-      mal.visible = true; mal.position.set(w.rest.x + 1.2, 1.9 + Math.sin(T * 3) * .06, w.rest.z + .12); mal.rotation.z = .55; w.head.scale.set(1, 1, 1);
+      // it waits small and low beside the burrow, so it never hides the pets in the row behind
+      const on = w.hov >= 0, rx = on ? holeX(w.hov) : w.rest.x, rz = on ? holeZ(w.hov) : w.rest.z;
+      mal.visible = true; mal.scale.setScalar(.75); mal.position.set(rx + .75, .3 + Math.sin(T * 3) * .05, rz + 1.25); mal.rotation.z = -1; w.head.scale.set(1, 1, 1);
     } else mal.visible = false;
+    const lit = big && mineOn && w.hov >= 0 && !w.dead;
+    w.glow.visible = lit;
+    if (lit) { w.glow.position.set(holeX(w.hov), RIM * .55, holeZ(w.hov)); w.glow.scale.setScalar(1 + (reduced ? 0 : Math.sin(T * 7) * .04)); w.glow.material.opacity = .78 + (reduced ? 0 : Math.sin(T * 7) * .14); }
     // the avatar
     w.hop = Math.max(0, w.hop - dt * 1.6); w.nod += ((w.dead ? 1 : 0) - w.nod) * Math.min(1, dt * 4);
     if (w.av) { w.av.position.y = Math.abs(Math.sin(w.hop * Math.PI * 2)) * .3 * w.hop; w.av.rotation.z = w.nod * .1; animateAvatar(w.av, T, { seed: w.seat, active: !w.dead && stage === 'go', hop: w.hop, nod: w.nod * 1.4 }); }
@@ -332,7 +353,7 @@ export function createScene(canvas, { onFrame, clock } = {}) {
       dead = true; ticker.stop();
       for (const w of wells) freeGarden(w);
       for (const p of protos) disposeModel(p.hold);
-      pfx.dispose(); zTx.dispose(); zMat.dispose(); hGeo.dispose(); renderer.dispose(); renderer.forceContextLoss();
+      pfx.dispose(); zTx.dispose(); zMat.dispose(); hGeo.dispose(); glowGeo.dispose(); renderer.dispose(); renderer.forceContextLoss();
     },
   };
 }
