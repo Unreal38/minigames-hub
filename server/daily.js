@@ -16,6 +16,7 @@ const FIRST_DAY = '2026-11-22';      // puzzle number 1
 export const HINTS = [3, 5, 7];      // wrong guesses before: the outline, the baby form, a blurred picture
 // Coins for solving: 20 on the first guess, two fewer for each guess after it, never under 5.
 export const reward = guesses => Math.max(5, 22 - 2 * guesses);
+export const XP_SOLVE = 8;               // account XP for solving, like Word in a Bottle
 const NO_REPEAT = 30;                // days before a pet may come round again (fewer when there are few pets)
 const TOP = 25;
 const FILE = path.join(DATA_DIR, 'mystery-pet.json');
@@ -141,7 +142,7 @@ export function handle(p, m, reply, chat) {
     if (sp === secret) {
       s.done = now(); s.streak = streakOf(s, day) + 1; s.best = Math.max(s.best || 0, s.streak); s.last = day; s.solved = (s.solved || 0) + 1;
       solved = { coins: reward(s.g.length), streak: s.streak, newTitle: s.best === 7 && s.streak === 7 };
-      addCoins(p.pid, solved.coins);
+      solved.xp = XP_SOLVE; p.xp = (p.xp || 0) + XP_SOLVE; addCoins(p.pid, solved.coins);
     }
     scheduleSave();
     return reply({ ...view(p), solved });
