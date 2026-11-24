@@ -136,3 +136,6 @@ body.night .mj .btn.pulse,
 body.night .mj-racer.done,
 body.night .mj .banner.hot,
 body.night .mj-podium .won { color: var(--ink); }
+
+/* night: the wash behind the account window is night blue, not the pale day sky */
+body.night .mj .gate { background: #0c1236b8; }

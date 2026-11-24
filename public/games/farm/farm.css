@@ -318,6 +318,7 @@ body.night .pf .dest .dlock { background: #0d1030; box-shadow: 0 0 0 2px rgba(25
 
 /* night: the website's dark mode reaches Pet Farm's panels and buttons only; the farm's own sky and weather stay as they are */
 body.night .pf { --pf-bg: var(--paper); --pf-tx: var(--on-paper); --pf-ontx: var(--on-paper); --pf-chip: var(--card); --pf-muted: var(--soft-tx); --pf-soft: #221f4a; }
+body.night .pf .gate:not(.low) { background: #0c1236a8; } /* the wash behind a window: night blue, not the day's pale sky */
 body.night .pf .btn.btn:disabled, body.night .pf .btn.btn:disabled * { opacity: 1; background: #221f4a; color: #bcbfeb; box-shadow: none; }
 body.night .pf .btn, body.night .pf .btn * { color: var(--ink); }
 body.night .pf .btn.r, body.night .pf .btn.r * { color: #fff; }
@@ -362,9 +363,13 @@ body.night .pf .dots i,
 body.night .pf .dots i.out,
 body.night .pf .rkn.top1,
 body.night .pf .rkn.top2,
+body.night .pf .rkn.top3,
 body.night .pf .tm.on,
 body.night .pf .formrow button.chip.on,
 body.night .pf .wxrow.on { color: var(--ink); }
+/* (their small print reads --pf-muted, which .pf set to the light night text: give it the dark text again) */
+body.night .pf .item[aria-pressed=true], body.night .pf .pickpet[aria-pressed=true], body.night .pf .zone[aria-pressed=true],
+body.night .pf .wxrow.on, body.night .pf .formrow button.chip.on, body.night .pf .swmat[aria-pressed=true] { --pf-tx: var(--ink); --pf-ontx: var(--ink); --pf-muted: var(--soft-on-acc); }
 /* My pets: the list of every pet on the farm; tapping one finds it on the island. */
 .pf .pfsort { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pf .pfsort .pills { display: flex; flex-wrap: wrap; gap: 6px; }
