@@ -31,21 +31,21 @@ export const SCALE = 1.65;    // the control points below are multiplied by this
 // Item boxes sit in rows across the road at these fractions of a lap; pads give a short boost.
 export const TRACKS = {
   meadow: {
-    name: L('Meadow Loop', 'Łąkowa pętla'), blurb: L('Rolling hills, a little jump and sheep on the road', 'Pagórki, mały skok i owce na drodze'),
+    isle: 0, name: L('Meadow Loop', 'Łąkowa pętla'), blurb: L('Rolling hills, a little jump and sheep on the road', 'Pagórki, mały skok i owce na drodze'),
     pts: [[0, 0, 0], [28, 0, 0], [48, -3, 1], [66, 2, 2.6], [78, 14, 3.6, 'b'], [82, 32, 2.6], [78, 46, 1.4], [66, 53, .8], [53, 45, .6], [40, 53, .6], [26, 62, 1.4],
       [12, 66, 2.2, 'j'], [2, 66, 1.6], [-12, 66, 1], [-28, 70, .6, 'b'], [-46, 68, 1.4], [-60, 60, 2.8], [-66, 48, 3.6], [-62, 38, 3.6], [-52, 35, 3.2], [-43, 28, 2.6], [-43, 17, 1.8], [-40, 6, .8], [-30, 1, .2], [-16, 0, 0]],
     boxes: [.12, .44, .76], pads: [.3, .47, .93], sky: 0,
     hz: [{ k: 'pet', sp: 'petalpuff', p: [80, 38], amp: 3.2, per: 4.4 }, { k: 'pet', sp: 'mossbun', p: [46, 49], lat: -2.4 }, { k: 'pet', sp: 'petalpuff', p: [-56, 64], amp: 3.2, per: 3.8, ph: .5 }],
   },
   bakery: {
-    name: L('Sugar Bridges', 'Cukrowe mosty'), blurb: L('A figure-eight with a high bridge, a climb and a jump', 'Ósemka z wysokim mostem, podjazdem i skokiem'),
+    isle: 7, name: L('Sugar Bridges', 'Cukrowe mosty'), blurb: L('A figure-eight with a high bridge, a climb and a jump', 'Ósemka z wysokim mostem, podjazdem i skokiem'),
     pts: [[0, 10, 2], [20, 10, 2], [34, 18, 2], [42, 32, 2], [50, 48, 2], [60, 62, 2.4], [76, 70, 3], [94, 66, 4], [104, 54, 5, 'n'], [106, 38, 6.2], [103, 24, 7], [94, 15, 7.4], [84, 17, 7.6],
       [79, 27, 7.6, 'b'], [64, 34, 7.6, 'b'], [46, 40, 7.6, 'b'], [32, 50, 7.4], [22, 60, 6.6], [10, 69, 5.8], [-2, 64, 5.2], [-13, 65, 4.6], [-23, 56, 3.9], [-28, 44, 3.4, 'j'], [-29, 34, 2.4], [-26, 22, 2.1], [-14, 12, 2]],
     boxes: [.1, .36, .62, .84], pads: [.22, .5, .77, .96], sky: 1,
     hz: [{ k: 'pet', sp: 'cupcowl', p: [68, 67, 2.7], lat: 2.4 }, { k: 'pet', sp: 'mallowlamb', p: [100, 28, 6.8], amp: 3.2, per: 3.6 }, { k: 'pet', sp: 'donuseal', p: [4, 66, 5.5], lat: 0 }],
   },
   peaks: {
-    name: L('Twisty Peaks', 'Kręte szczyty'), blurb: L('Switchbacks up to an icy summit, then a big drop', 'Serpentyny na oblodzony szczyt, a potem wielki zjazd'),
+    isle: 5, name: L('Twisty Peaks', 'Kręte szczyty'), blurb: L('Switchbacks up to an icy summit, then a big drop', 'Serpentyny na oblodzony szczyt, a potem wielki zjazd'),
     pts: [[0, 0, 0], [24, 0, 0], [44, 0, .6], [56, 3, 1.2], [60, 9, 1.8], [56, 15, 2.4], [44, 16, 3], [24, 16, 3.8], [10, 17, 4.4], [2, 21, 5], [1, 27, 5.6], [6, 32, 6.2], [18, 33, 6.8],
       [40, 32, 7.8], [58, 34, 8.8], [72, 42, 9.6, 'i'], [76, 56, 10, 'i'], [68, 68, 10], [52, 74, 9.8], [36, 76, 9.4], [22, 75, 8.8, 'j'], [10, 73, 7], [-6, 68, 6.2, 'b'],
       [-22, 58, 5.2, 'n'], [-32, 44, 4, 'n'], [-36, 28, 2.6], [-33, 13, 1.2], [-24, 3, .3], [-12, 0, 0]],
@@ -53,14 +53,14 @@ export const TRACKS = {
     hz: [{ k: 'pet', sp: 'tricerock', p: [30, 16, 3.5], lat: 2.2 }, { k: 'pet', sp: 'ringbear', p: [46, 75, 9.6], amp: 3, per: 4 }, { k: 'pet', sp: 'snowfox', p: [75, 50, 9.8], lat: -2 }],
   },
   cliff: {
-    name: L('Cliffside Hairpins', 'Klifowe nawroty'), blurb: L('Hairpins, a chicane and a narrow cliff road', 'Ostre nawroty, szykana i wąska droga nad urwiskiem'),
+    isle: 2, name: L('Cliffside Hairpins', 'Klifowe nawroty'), blurb: L('Hairpins, a chicane and a narrow cliff road', 'Ostre nawroty, szykana i wąska droga nad urwiskiem'),
     pts: [[0, 0, 0], [30, 0, 0], [52, 0, .4], [62, 3, .8], [64, 10, 1.2], [58, 15, 1.6], [48, 15, 2], [28, 16, 2.6, 'n'], [12, 16, 3], [2, 19, 3.4], [0, 26, 3.8], [6, 31, 4], [16, 31, 4.2],
       [32, 30.4, 4.4], [41, 33.6, 4.4], [50, 30.4, 4.4], [59, 33.6, 4.4], [68, 32, 4.4, 'n'], [80, 36, 4, 'n'], [90, 48, 3.4], [86, 62, 2.8], [76, 66, 2.4], [70, 74, 2, 'b'], [62, 82, 1.6],
       [36, 84, 1.2], [14, 82, .8], [-4, 78, .6], [-18, 72, .4, 'n'], [-24, 58, .2, 'n'], [-24, 40, 0], [-22, 24, 0], [-26, 10, 0], [-18, 1, 0], [-8, 0, 0]],
     boxes: [.1, .4, .7], pads: [.3, .62, .9], sky: 2,
   },
   cove: {
-    name: L('Pirate Cove', 'Piracka zatoka'), blurb: L('Plank walks, a jump, pets on the road and a risky shortcut', 'Kładki, skok, zwierzaki na drodze i ryzykowny skrót'), theme: 'beach',
+    isle: 6, name: L('Pirate Cove', 'Piracka zatoka'), blurb: L('Plank walks, a jump, pets on the road and a risky shortcut', 'Kładki, skok, zwierzaki na drodze i ryzykowny skrót'), theme: 'beach',
     pts: [[0, 0, 1], [28, 0, 1], [44, 2, 1, 'p'], [66, 8, 1.2, 'p'], [80, 18, 1.4], [88, 32, 1.6], [90, 42, 1.8, 'j'], [90, 52, 1.8], [88, 66, 1.4], [78, 78, 1.2],
       [63, 83, 1], [51, 77, 1], [38, 85, 1], [26, 80, 1], [10, 84, 1], [-6, 93, 1.2, 'p'], [-23, 99, 1.4], [-43, 96, 1.6], [-56, 83, 1.6],
       [-59, 64, 1.4], [-53, 45, 1.2], [-46, 26, 1], [-40, 10, 1], [-28, 2, 1], [-14, 0, 1]],
@@ -70,7 +70,7 @@ export const TRACKS = {
     cuts: [[[13, 79.5, 1], [0, 74, 1.1], [-14, 70, 1.3], [-30, 66, 1.4], [-44, 61, 1.4], [-56, 57, 1.4]]],
   },
   frost: {
-    name: L('Frost Fjord', 'Mroźny fiord'), blurb: L('Slippery ice, geysers and a swinging hammer', 'Śliski lód, gejzery i wahadłowy młot'), theme: 'snow',
+    isle: 1, name: L('Frost Fjord', 'Mroźny fiord'), blurb: L('Slippery ice, geysers and a swinging hammer', 'Śliski lód, gejzery i wahadłowy młot'), theme: 'snow',
     pts: [[0, 0, 2], [30, 0, 2], [50, -4, 2.2], [66, -12, 2.4, 'i'], [82, -8, 2.6, 'i'], [92, 6, 2.8], [90, 22, 3], [82, 38, 3.4], [68, 44, 3.8], [48, 44, 4], [32, 45, 4, 'i'],
       [20, 47, 4, 'i'], [14, 53, 4, 'i'], [15, 61, 4, 'i'], [21, 66, 4], [34, 69, 4], [52, 72, 3.4, 'n'], [68, 80, 2.8, 'n'], [74, 94, 2.4], [66, 104, 2], [50, 106, 1.8, 'b'], [30, 104, 1.6],
       [6, 100, 1.4, 'i'], [-14, 92, 1.4, 'i'], [-26, 78, 1.6], [-28, 60, 1.8], [-24, 42, 2], [-30, 26, 2], [-24, 10, 2], [-12, 1, 2]],
