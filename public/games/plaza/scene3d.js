@@ -7,7 +7,7 @@
 // and pets get a soft blob under them instead of real shadows, and models are built a few a frame, nearest first.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, toonMat, createFx, STAR, HEART, hash } from '../../scenery3d.js';
+import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, toonMat, createFx, STAR, HEART, hash, seasonLookNow } from '../../scenery3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { itemModel } from '../farm/models.js';
 import { formOf } from '../farm/data.js';
@@ -49,9 +49,6 @@ function mergeStatic(root, ink) {
 }
 
 // ---------- the pieces only the plaza has ----------
-function snowPine(g, s = 1) { put(g, new THREE.CylinderGeometry(.07 * s, .1 * s, .4 * s, 6), flat('#7a5236'), 0, .2 * s); for (let i = 0; i < 3; i++) { put(g, new THREE.ConeGeometry((.5 - i * .12) * s, .55 * s, 7), flat(i % 2 ? '#3f8c5a' : '#35795a'), 0, (.6 + i * .3) * s); put(g, new THREE.ConeGeometry((.36 - i * .1) * s, .3 * s, 7), flat(SNOW), 0, (.76 + i * .3) * s); } }
-function snowRock(g, s = 1) { const r = put(g, new THREE.IcosahedronGeometry(.3 * s, 0), flat('#9aa3b5'), 0, .15 * s, 0); r.scale.y = .7; const c = put(g, new THREE.IcosahedronGeometry(.24 * s, 0), flat(SNOW), 0, .3 * s, 0); c.scale.y = .4; }
-function snowBush(g, s = 1) { put(g, new THREE.IcosahedronGeometry(.3 * s, 0), flat('#4a9a6a'), 0, .2 * s, 0); const c = put(g, new THREE.IcosahedronGeometry(.27 * s, 0), flat(SNOW), 0, .36 * s, 0); c.scale.y = .45; put(g, new THREE.IcosahedronGeometry(.05 * s, 0), flat('#e5543b'), .2 * s, .28 * s, .2 * s); }
 function snowman(g) {
   put(g, new THREE.IcosahedronGeometry(.62, 1), flat(SNOW), 0, .55); put(g, new THREE.IcosahedronGeometry(.45, 1), flat(SNOW), 0, 1.35); put(g, new THREE.IcosahedronGeometry(.33, 1), flat(SNOW), 0, 1.98);
   put(g, new THREE.ConeGeometry(.07, .34, 6), flat('#ff8c42'), 0, 1.98, .42).rotation.x = Math.PI / 2; for (const sx of [-.12, .12]) put(g, new THREE.IcosahedronGeometry(.045, 0), flat('#2b2b2b'), sx, 2.08, .29);
@@ -103,6 +100,28 @@ const ORN_GEO = {
     [at(new THREE.BoxGeometry(.07, .16, .06), -.05, -.44, 0), '#ffffff'], [at(new THREE.BoxGeometry(.07, .16, .06), .05, -.44, 0), '#ffffff'], [at(new THREE.IcosahedronGeometry(.025, 0), 0, -.24, .04), '#fff6e0'], [at(new THREE.IcosahedronGeometry(.025, 0), 0, -.31, .04), '#fff6e0']]),
   snow: () => paint([0, 1, 2].map(i => [at(new THREE.BoxGeometry(.44, .07, .05), 0, -.24, 0, 0, i * Math.PI / 3), '#ffffff'])),
 };
+// Meshes that share a material and never move apart become one mesh (the carousel's turning top, a pet's two eyes).
+// skip(o): leave this child and everything under it alone.
+function fuse(root, skip) {
+  root.updateWorldMatrix(true, true);
+  const inv = root.matrixWorld.clone().invert(), by = new Map(), m4 = new THREE.Matrix4();
+  const walk = o => { for (const c of [...o.children]) { if (skip?.(c)) continue;
+    if (c.isMesh && !c.isInstancedMesh && !c.children.length && c.visible && !c.material.map && !c.userData.ink && !c.userData.baked && c.geometry.attributes.normal) {
+      const g = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone(); g.applyMatrix4(m4.multiplyMatrices(inv, c.matrixWorld));
+      let b = by.get(c.material); if (!b) by.set(c.material, b = { parts: [], n: 0, first: c }); b.parts.push(g); b.n += g.attributes.position.count; c.removeFromParent();
+    } else walk(c); } };
+  walk(root);
+  for (const [mt, b] of by) {
+    const pos = new Float32Array(b.n * 3), nor = new Float32Array(b.n * 3), hasCol = b.parts.every(g => g.attributes.color), col = hasCol ? new Float32Array(b.n * 3) : null; let o = 0;
+    for (const g of b.parts) { pos.set(g.attributes.position.array, o); nor.set(g.attributes.normal.array, o); if (col) col.set(g.attributes.color.array.subarray(0, g.attributes.position.count * 3), o); o += g.attributes.position.count * 3; g.dispose(); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); if (col) g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mesh = new THREE.Mesh(g, mt); mesh.userData = { ...b.first.userData }; mesh.castShadow = b.first.castShadow; mesh.receiveShadow = b.first.receiveShadow; mesh.renderOrder = b.first.renderOrder; root.add(mesh);
+  }
+  return root;
+}
+// Someone else's pet, seen from across the square: the whole pet as one mesh and one outline (its ears and tail keep
+// still), and its eyes as one. A handful of draw calls instead of fifteen, so a full room stays light.
+function litePet(g) { const out = mergeStatic(g, .045); out.scale.copy(g.scale); fuse(out); out.traverse(o => { if (o.isMesh) o.castShadow = false; }); return out; }
 const ORN_SHAPE = { star: 'star', bell: 'bell', cane: 'cane', ginger: 'ginger', snow: 'snow' };
 
 export function createScene(canvas, opts = {}) {
@@ -119,9 +138,9 @@ export function createScene(canvas, opts = {}) {
 
   // ---- the island
   const C = 2 * (R_WALK - 2.4);
-  const isle = island(C, C, winter
-    ? { round: true, props: 46, seed: 4, rim: 3.4, flowers: 0, clear: R_WALK, size: 1.7, depth: 1.1, open: .2, grass: SNOW, patch: '#e3ecfa', earth: '#b9c4dc', rock: '#8791a8', kinds: [snowPine, snowBush, snowPine, snowRock, snowPine, snowBush] }
-    : { round: true, props: 46, seed: 4, rim: 3.4, flowers: 120, clear: R_WALK, size: 1.7, depth: 1.1, open: .2 });
+  // (dressed by season3d.js like every game island; the plaza's own theme decides between the tree and the fountain)
+  const today = seasonLookNow(), isle = island(C, C, { round: true, props: 46, seed: 4, rim: 3.4, flowers: 120, clear: R_WALK, size: 1.7, depth: 1.1, open: .2, season: winter ? 'winter' : today === 'winter' ? 'spring' : today });
+  for (const c of [...isle.children]) if (c.userData.nightOnly) isle.remove(c); // the plaza has its own lamps round the square
   scene.add(isle);
   const stat = new THREE.Group(), live = [];
   const paveM = flat(winter ? '#dfe3ee' : '#ead9bd'), paveD = flat(winter ? '#c3c9da' : '#d9c3a0'), ringM = flat(winter ? '#aab2c8' : '#c9ae88');
@@ -136,7 +155,9 @@ export function createScene(canvas, opts = {}) {
     let g;
     if (kind === 'snowman') { g = new THREE.Group(); snowman(g); bake(g); }
     else if (kind === 'gifts') { g = new THREE.Group(); gifts(g); bake(g); }
-    else if (LIVE.has(kind)) { g = itemModel(kind, true); g.traverse(o => { if (o.isMesh) { o.castShadow = !o.userData.noInk; o.receiveShadow = false; } }); g.scale.setScalar(s); g.position.set(x, .03, z); g.rotation.y = ry; scene.add(g); if (g.userData.tick) live.push(g); continue; }
+    else if (LIVE.has(kind)) { g = itemModel(kind, true); g.traverse(o => { if (o.isMesh) { o.castShadow = !o.userData.noInk; o.receiveShadow = false; } }); g.scale.setScalar(s); g.position.set(x, .03, z); g.rotation.y = ry; scene.add(g); if (g.userData.tick) live.push(g);
+      if (kind === 'carousel') g.traverse(o => { if (o.children.some(c => c.userData.bob !== undefined)) { fuse(o, c => c.userData.bob !== undefined); for (const r of o.children) if (r.userData.bob !== undefined && r.children[1]) fuse(r.children[1]); } }); // its turning top: 85 little meshes down to a dozen
+      continue; }
     else g = itemModel(kind, false, true);
     g.scale.setScalar(s); g.position.set(x, .03, z); g.rotation.y = ry; stat.add(g);
   }
@@ -191,7 +212,7 @@ export function createScene(canvas, opts = {}) {
   // ---- people
   const folk = new Map(); let me = null, queue = [];
   const petsShown = m => m === me ? 3 : petCap;
-  let petCap = level === 'high' ? 3 : 1;
+  let petCap = level === 'high' ? 3 : 1, noInk = level === 'low'; // light graphics: other people are drawn without their outline (half the triangles of a crowd)
   function dropModel(m) {
     if (m.wrap) { scene.remove(m.wrap); disposeAvatar(m.av); m.wrap = m.av = null; }
     for (const p of m.pets) if (p.g) { scene.remove(p.g); p.g.traverse(o => { if (o.isMesh && !o.material.userData?.shared) o.geometry.dispose(); }); }
@@ -200,9 +221,9 @@ export function createScene(canvas, opts = {}) {
   function build(m) {
     if (!folk.has(m.s)) return;
     const p = m.p;
-    if (!m.wrap) { m.wrap = new THREE.Group(); m.wrap.scale.setScalar(K); m.av = avatar3d(p.c, p.av, { pose: 'stand' }); m.av.position.y = .76; m.av.traverse(o => { if (o.isMesh) o.castShadow = false; }); m.wrap.add(m.av); m.wrap.position.set(m.x, 0, m.z); m.wrap.rotation.y = m.ry; scene.add(m.wrap); return true; }
+    if (!m.wrap) { m.wrap = new THREE.Group(); m.wrap.scale.setScalar(K); m.av = avatar3d(p.c, p.av, { pose: 'stand' }); m.av.position.y = .76; m.av.traverse(o => { if (o.isMesh) { o.castShadow = false; if (noInk && m !== me && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; } }); m.wrap.add(m.av); m.wrap.position.set(m.x, 0, m.z); m.wrap.rotation.y = m.ry; scene.add(m.wrap); return true; }
     const want = (p.pets || []).slice(0, petsShown(m));
-    if (m.pets.length < want.length) { const k = m.pets.length, x = want[k], f = formOf(x.lv | 0); let g; try { g = petModel(x.sp, f, x.look || null); } catch { return false; }
+    if (m.pets.length < want.length) { const k = m.pets.length, x = want[k], f = formOf(x.lv | 0); let g; try { g = petModel(x.sp, f, x.look || null); if (m !== me) g = litePet(g); } catch { return false; }
       const sc = .44 + .06 * f; g.scale.multiplyScalar(sc); const back = .95 + k * .75, side = (k % 2 ? -1 : 1) * (.45 + k * .1);
       const pet = { g, k, sc: g.scale.x, back, side, x: m.x - Math.sin(m.ry) * back, z: m.z - Math.cos(m.ry) * back, ry: m.ry, seed: m.s * 3 + k, ph: 0, sp: 0 }; g.position.set(pet.x, 0, pet.z); scene.add(g); m.pets.push(pet); return true; }
     return false;
@@ -368,7 +389,7 @@ export function createScene(canvas, opts = {}) {
     if (!drawn) { drawn = true; opts.ready?.(); }
   }, { onSlow: () => { // slow for a few seconds: other people's pets go first (yours stay), then the usual graphics steps
     if (++slowN === 1 && petCap > 1) { petCap = 1; for (const m of folk.values()) if (m !== me) while (m.pets.length > 1) scene.remove(m.pets.pop().g); return; }
-    if (slowN === 2 && petCap > 0) { petCap = 0; for (const m of folk.values()) if (m !== me) while (m.pets.length) scene.remove(m.pets.pop().g); return; }
+    if (slowN <= 2 && !noInk) { noInk = true; for (const m of folk.values()) if (m !== me && m.av) m.av.traverse(o => { if (o.isMesh && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; }); return; }
     res.lower(); } });
 
   return {

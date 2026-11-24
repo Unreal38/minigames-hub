@@ -1509,6 +1509,7 @@ function whereText(a) {
   if (a.k === 'hay') return SOLO.hay.name;
   if (a.k === 'pop') return SOLO.pop.name;
   if (a.k === 'mj') return SOLO.mj.name;
+  if (a.k === 'plaza') return L('Plaza', 'Plac');
   if (a.k !== 'table') return L('Hub', 'Strona główna');
   const g = GAMES[a.game]?.name || a.game;
   return `${esc(g)} <small>${a.watch ? L('watching', 'ogląda') : a.play ? L('playing', 'gra') : L('waiting room', 'poczekalnia')}${a.code ? ` · ${esc(a.code)}` : ` · ${L('private', 'prywatny')}`}</small>`;
