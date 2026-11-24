@@ -25,6 +25,7 @@ export const OPT_PL = {
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
+  Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
@@ -324,6 +325,22 @@ export const GAMES_PL = {
       <li><b>Duża 5×5</b>: większa plansza, na której trzeba ułożyć <b>cztery w linii</b>.</li>
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, znak zostanie postawiony za ciebie.</li>
       <li>Remisy nie przeciągną meczu w nieskończoność: po 9 rundach (po 7 przy grze do dwóch, po 5 przy jednej rundzie) wygrywa ten, kto ma więcej wygranych rund. Tyle samo wygranych rund to remis w meczu.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
+    </ol>`,
+  },
+  cove: {
+    name: 'Bitwa w zatoce', start: 'Zacznij grę', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Ukryj swoje łódki w zatoce i rzucaj kokosami w zatokę znajomego. Wygrywa ten, kto pierwszy zatopi całą flotę.',
+    howto: `Ukryj swoje łódki w zatoce, a potem na zmianę rzucajcie kokosami w pola drugiej zatoki. Trafienie daje kolejny strzał. Wygrywa ten, kto pierwszy zatopi całą flotę rywala.`,
+    rules: `<ol>
+      <li><b>Dwoje graczy</b>, każdy ma własną zatokę. Wolne miejsce zajmuje bot.</li>
+      <li>Najpierw <b>ustawiasz swoje łódki</b>: przeciągnij łódkę, żeby ją przesunąć, dotknij jej, żeby ją obrócić, albo naciśnij <b>Wylosuj</b>, żeby dostać nowe losowe ustawienie. Łódki <b>nie mogą się stykać</b>, nawet rogami. Gdy ustawienie ci pasuje, naciśnij <b>Gotowe</b>. Masz na to 60 sekund.</li>
+      <li>Klasyczna flota to <b>dziesięć łódek</b>: jedna na 4 pola, dwie na 3, trzy na 2 i cztery na 1. Szybka zatoka ma 7×7 pól i sześć łódek: jedną na 3 pola, dwie na 2 i trzy na 1.</li>
+      <li>Potem strzelacie na zmianę. <b>Dotknij pola</b> w drugiej zatoce, żeby rzucić w nie kokosem (albo wybierz pole strzałkami i naciśnij Enter).</li>
+      <li>Plusk oznacza <b>pudło</b> i kolejka przechodzi dalej. Czerwony krzyżyk oznacza <b>trafienie</b> i <b>strzelasz jeszcze raz</b>.</li>
+      <li>Gdy wszystkie pola łódki są trafione, łódka jest <b>zatopiona</b>: pokazuje się w całości, a woda wokół niej zostaje oznaczona, bo nie może tam stać żadna inna łódka. Załodze nic nie jest: pływa sobie w kole ratunkowym.</li>
+      <li>Masz <b>20 sekund</b> na strzał (ustawienia stołu). Gdy czas minie, strzał zostanie oddany za ciebie w losowe pole.</li>
+      <li>Wygrywa ten, kto pierwszy <b>zatopi całą flotę rywala</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
     </ol>`,
   },
