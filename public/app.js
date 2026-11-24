@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -564,6 +564,33 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins. The player <b>left holding the Piotruś loses</b>.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, the card you were reaching for is taken, or a random one. Shortcuts: <b>← →</b> reach for a card, <b>Enter</b> takes it, <b>S</b> shuffles your cards.</li>
+    </ol>`,
+  },
+  makao: {
+    name: 'Makao', load: () => import('./games/makao/client.js'), start: 'Deal the cards',
+    host: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 20 }, solo: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 0 },
+    openSeat: 'A bot plays this hand if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>The game ends</b><div class="pills">${pill('end', 'first', 'First one out wins')}${pill('end', 'last', 'Play to the last one')}</div></div>
+      <div class="opt"><b>Queen on everything</b><div class="pills">${pill('queens', 'off', 'Off')}${pill('queens', 'on', 'On')}</div></div>
+      <div class="opt"><b>Fighting kings</b><div class="pills">${pill('kings', 'on', 'On')}${pill('kings', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `The classic Polish card game with a normal 52-card deck. Put down a card of the same suit or the same rank as the one on top. Twos and threes make the next player draw, a four makes them wait, a Jack demands a rank and an Ace changes the suit. Say “Makao!” with one card left. First one out of cards wins.`,
+    rules: `<ol>
+      <li>A normal deck of <b>52 cards</b>. Everyone gets <b>5 cards</b> and one plain card is turned up. Empty seats are played by bots.</li>
+      <li>On your turn put down a card of the same <b>suit</b> or the same <b>rank</b> as the card on top. You may put down <b>several cards of one rank</b> at once: tap them in order, the first one has to fit and the last one ends up on top.</li>
+      <li>If you can't or don't want to, <b>draw a card</b>. If it fits, you may play it straight away or keep it. Either way your turn is over.</li>
+      <li><b>2 and 3</b>: the next player draws 2 or 3 cards and misses the turn. They can <b>defend</b> with another 2 or 3 of the same rank or the same suit (or a fighting king of that suit), and then the cards add up for the player after them.</li>
+      <li><b>King of hearts</b>: the next player draws 5. <b>King of spades</b>: the player <b>before you</b> draws 5, and play then carries on from them. A king can be answered with the other fighting king, or with a 2 or 3 of its suit. The kings of diamonds and clubs are plain cards.</li>
+      <li><b>4</b>: the next player misses a turn. Another 4 passes it on, and the waits add up: two fours mean two missed turns.</li>
+      <li><b>Jack</b>: you demand a rank from <b>5 to 10</b>. Everyone in turn, you last, has to play that rank or draw a card. A Jack on a Jack changes the demand.</li>
+      <li><b>Ace</b>: you pick the suit that comes next. An Ace on an Ace changes it again.</li>
+      <li><b>Queen</b>: a plain card, unless the table plays <b>Queen on everything</b>: then a Queen goes on any card and any card goes on a Queen (but it does not stop a 2, 3, 4, a king or a demand).</li>
+      <li>When your play leaves you with <b>one card</b>, press <b>“Makao!”</b> before you play. Before your <b>last card</b>, press <b>“Po makale!”</b>. If you forget, anyone can press <b>Catch</b> before the next player moves and you draw <b>5 cards</b>. You can still save yourself by pressing it first.</li>
+      <li>The <b>first one out of cards wins</b> and the others are placed by how few cards they hold. With <b>The game ends: Play to the last one</b> play goes on instead, places go in the order of getting out, and the last one holding cards loses.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, a bot plays the turn for you. Shortcuts: <b>Enter</b> plays a card that fits, <b>D</b> draws (or takes the cards, or waits), <b>K</b> keeps a drawn card, <b>1–4</b> pick a suit, <b>5–9 and 0</b> pick the demand, <b>M</b> says “Makao!” and <b>C</b> catches.</li>
     </ol>`,
   },
   parade: {
@@ -1457,6 +1484,7 @@ const HUB_GAMES = [
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
+  ['makao', 'makaopic', makaoArt, 'cards', '1–6 players', 'The Polish classic with a normal deck: twos and threes to draw, fours to wait, Jacks demand, Aces change the suit, kings fight. Don\'t forget “Makao!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
