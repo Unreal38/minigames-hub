@@ -65,7 +65,7 @@ export function mount(app, ctx) {
       <div class="plz-hint" id="plz-hint">${L('WASD or arrows to walk, or click the ground', 'Chodzisz klawiszami WASD lub strzałkami albo klikając ziemię')}</div>
     </div>
   </div>`;
-  const root = app.querySelector('.plz'), $ = id => root.querySelector('#' + id), canvas = root.querySelector('.plz-cv'), tagBox = $('plz-tags');
+  const root = app.querySelector('.plz'), $ = id => root.querySelector('#' + id), tagBox = $('plz-tags'); let canvas = root.querySelector('.plz-cv');
   const coarse = matchMedia('(pointer: coarse)').matches;
   root.classList.toggle('touch', coarse);
   let S = null, scene = null, destroyed = false, tags = new Map(), signs = new Map(), tablesList = [], chatOpen = !coarse && !matchMedia('(max-width: 760px)').matches, unread = 0, gift = false, myOrn = 0;
@@ -202,6 +202,7 @@ export function mount(app, ctx) {
   joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd);
   // taps and pinches on the island itself
   const pts = new Map(); let down = null, pinch = 0;
+  function bindCanvas() {
   canvas.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 1) down = { x: e.clientX, y: e.clientY, t: performance.now() }; else { down = null; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
     if (popKind || root.classList.contains('emos-open')) { closePop(); down = null; } });
   canvas.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
@@ -210,6 +211,8 @@ export function mount(app, ctx) {
   canvas.addEventListener('pointercancel', up);
   canvas.addEventListener('pointerup', e => { up(e); if (!down || !scene || performance.now() - down.t > 500 || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) { down = null; return; } down = null; tap(e.clientX, e.clientY); });
   canvas.addEventListener('wheel', e => { e.preventDefault(); scene?.setZoom(scene.zoom() * (e.deltaY > 0 ? .9 : 1.1)); }, { passive: false });
+  canvas.addEventListener('webglcontextlost', lost);
+  }
   function tap(x, y) {
     const hit = scene.pick(x, y); if (!hit) return;
     $('plz-hint').hidden = true;
@@ -226,7 +229,7 @@ export function mount(app, ctx) {
     S = { room: m.room, cap: m.cap, me: m.me, theme: m.theme, who: new Map(m.who.map(p => [p.s, p])), rooms: m.rooms || [], tree: m.tree || [], mod: !!m.mod };
     gift = !!m.gift; myOrn = 0;
     for (const s of [...tags.keys()]) dropTag(s); for (const c of [...signs.keys()]) dropSign(c);
-    if (scene && (scene.theme !== m.theme || scene.lost())) { scene.destroy(); scene = null; }
+    if (scene && (scene.theme !== m.theme || scene.lost())) { const old = canvas; canvas = old.cloneNode(false); scene.destroy(); scene = null; old.replaceWith(canvas); pts.clear(); bindCanvas(); } // a scene gives its GPU context back when it goes, so the new one gets a new canvas
     if (!scene) scene = createScene(canvas, { theme: m.theme, send, frame, ready: () => { $('plz-load').hidden = true; } });
     scene.setPeople(m.who, m.me); scene.setTree(m.tree || []);
     const mine = who(m.me); myOrn = (m.tree || []).find(o => o.pt && o.pt === mine?.pt)?.k || 0;
@@ -265,8 +268,9 @@ export function mount(app, ctx) {
     for (const p of S.who.values()) if (p.pt === line.pt) { bubble(p.s, srvTextSafe(line)); break; }
   }
   const srvTextSafe = line => Array.isArray(line.grid) ? srvText(line.text) : line.text;
-  const lost = e => { e.preventDefault(); setTimeout(() => { if (!destroyed && S) send({ k: 'join', room: S.room }); }, 500); };
-  canvas.addEventListener('webglcontextlost', lost);
+  // The graphics card dropped the picture (a sleeping phone, a driver hiccup): ask for the room again and draw it afresh.
+  function lost(e) { e.preventDefault(); const cv = e.target; setTimeout(() => { if (!destroyed && S && cv === canvas) send({ k: 'join', room: S.room }); }, 500); }
+  bindCanvas();
 
   send({ k: 'join' });
   return {

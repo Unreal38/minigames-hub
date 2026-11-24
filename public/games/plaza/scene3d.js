@@ -404,6 +404,6 @@ export function createScene(canvas, opts = {}) {
     hide(s, on) { const m = folk.get(s); if (m && m !== me) m.hid = !!on; },
     lost: () => renderer.getContext().isContextLost(),
     destroy() { loop.stop(); ro.disconnect(); for (const m of folk.values()) dropModel(m); folk.clear(); fx.dispose();
-      scene.traverse(o => { if (o.isMesh || o.isPoints) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared) mt.dispose(); } }); renderer.dispose(); },
+      scene.traverse(o => { if (o.isMesh || o.isPoints) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared) mt.dispose(); } }); renderer.dispose(); renderer.forceContextLoss(); },
   };
 }

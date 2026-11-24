@@ -99,7 +99,8 @@ body.night .plz { background: #1b1740; --pz-bg: #2b2856; --pz-bg2: #201d44; --pz
 .plz.touch .plz-hint { display: none; }
 
 /* phones, and anything narrow: the emotes fold into one button, the chat opens across the top */
-@media (max-width: 900px), (pointer: coarse) {
+@media (min-width: 1101px) and (max-width: 1500px) and (pointer: fine) { .plz.chat-open .plz-bar, .plz.chat-open .plz-acts, .plz.chat-open .plz-pop.corner { left: calc(50% + 170px); } }
+@media (max-width: 1100px), (pointer: coarse) {
   .plz-bar { left: auto; right: 12px; translate: none; flex-direction: column; align-items: flex-end; gap: 10px; }
   .plz-emobtn { display: inline-flex; }
   .plz-emos { display: none; position: absolute; right: 0; bottom: calc(100% + 10px); grid-template-columns: repeat(3, 80px); gap: 6px; padding: 8px; background: var(--pz-bg); border: 3px solid var(--pz-edge); border-radius: 18px; box-shadow: 0 5px 0 var(--pz-sh); }
