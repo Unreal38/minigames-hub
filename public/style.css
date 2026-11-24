@@ -1861,3 +1861,10 @@ body.sky.night:not(.in-game) .ttile.t-word .tpic, body.sky.night:not(.in-game) .
 .plazalink { margin-left: auto; background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); border: 2.5px solid var(--ink); border-radius: 999px; padding: 3px 12px; min-height: 34px; font-family: var(--fd); font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; }
 .plazalink:hover { filter: brightness(1.06); }
 @media (max-width: 760px) { .plazabtn { flex: 1 1 100%; } .plzb-faces { margin-left: auto; } }
+
+/* Pop-ups opened inside a game or the Plaza at night: the hub's panel colours are not set there, so pieces that
+   fall back to cream and dark ink (profile card boxes, the table kit, their headings) get the night ones. */
+body.night.in-game .modal { --chip: var(--card); --edge: var(--card-edge); --tx: var(--on-paper); --tx2: var(--soft-tx); --pan: var(--paper); --pan2: #201d44; --muted2: var(--soft-tx); --you: #3a3479; }
+
+/* the hero's code box and Plaza button: the button never squeezes into a sliver beside the code box, it drops below */
+.hubgrid .herorow { flex-wrap: wrap; } .hubgrid .herorow .plazabtn { flex: 0 0 auto; max-width: 100%; }

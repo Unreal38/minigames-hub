@@ -9,7 +9,7 @@ import path from 'node:path';
 import { DATA_DIR, safeText, shopDate } from './store.js';
 import { now as clock, dayOf, startOf, addDays } from './day.js';
 import { allow } from './limits.js';
-import { CAP, R_WALK, SPEED, SPAWN, Q, TREE_R, TREE_REACH, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, SLOTS, themeOf, clampWalk, THROW_RANGE, THROW_HIT, THROW_WAIT } from '../public/games/plaza/layout.js';
+import { CAP, R_WALK, SPEED, SPAWN, Q, TREE_R, TREE_REACH, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, SLOTS, themeOf, clampWalk, THROW_RANGE, THROW_HIT, THROW_WAIT, thingsOf, POKE_REACH, POKE_WAIT } from '../public/games/plaza/layout.js';
 
 const FILE = path.join(DATA_DIR, 'plaza.json');
 const MUTE_MS = 10 * 60_000, KICK_MS = 10 * 60_000;
@@ -116,11 +116,11 @@ export function leave(c) {
 // ----- table signs -----
 // Someone in the plaza opened a table: a signpost stays where they stood, so the others can follow them to the game
 // with one tap. It goes when the table starts, fills up or closes (checked once a second).
-const signView = (g, t) => ({ code: g.code, x: g.x, z: g.z, n: g.n, game: t.game, free: t.free });
+const signView = (g, t) => ({ code: g.code, x: g.x, z: g.z, r: g.r, n: g.n, c: g.c, av: g.av, game: t.game, free: t.free }); // c, av: the host's look, so their avatar can stay standing under the sign
 const signsOf = r => r.signs.map(g => { const t = hooks.table(g.code); return t?.open ? signView(g, t) : null; }).filter(Boolean);
 export function sign(c, code) {
   const r = where.get(c.token), m = r?.m.get(c.token), t = hooks.table(code); if (!m || !t?.open) return;
-  const g = { code, x: m.x, z: m.z, n: hooks.info(c).n, free: t.free }; r.signs = r.signs.filter(x => x.n !== g.n).slice(-5); r.signs.push(g);
+  const i = hooks.info(c), g = { code, x: m.x, z: m.z, r: m.r, n: i.n, c: i.c, av: i.av, free: t.free }; r.signs = r.signs.filter(x => x.n !== g.n).slice(-5); r.signs.push(g);
   toRoom(r, { t: 'plaza', k: 'sign', g: signView(g, t) }, m);
 }
 function checkSigns() {
@@ -173,7 +173,8 @@ export function handle(c, a) {
       let sp = -1;
       if (EMOTES[e]?.id === 'sit' && Number.isInteger(a.sp) && SPOTS[a.sp]) {
         const s = SPOTS[a.sp];
-        if (spotFree(r, a.sp, m) && Math.hypot(s.x - m.x / Q, s.z - m.z / Q) <= SPOT_REACH + .5) { sp = a.sp; m.x = Math.round(s.x * Q); m.z = Math.round(s.z * Q); m.r = int(((s.ry % 6.2832) + 6.2832) % 6.2832 * 10, 0, 62); m.bank = 3; r.dirty.add(m); }
+        if (spotFree(r, a.sp, m) && Math.hypot(s.x - m.x / Q, s.z - m.z / Q) <= (s.reach || SPOT_REACH) + .5) { sp = a.sp;
+          if (s.k !== 'ride' && s.k !== 'swing') { m.x = Math.round(s.x * Q); m.z = Math.round(s.z * Q); m.r = int(((s.ry % 6.2832) + 6.2832) % 6.2832 * 10, 0, 62); m.bank = 3; r.dirty.add(m); } } // on the carousel or the swing your own place stays where you got on
       }
       m.e = EMOTES[e]?.loop ? e : 0; m.sp = sp;
       toRoom(r, { t: 'plaza', k: 'em', s: m.s, e, sp }); // the writer too: their page waits for the seat to be confirmed
@@ -190,6 +191,13 @@ export function handle(c, a) {
       const t = [...r.m.values()].find(x => x.s === (a.s | 0)); if (!t) return;
       toRoom(r, { t: 'plaza', k: 'pat', s: t.s, i: int(a.i, 0, 2), by: m.s });
       if (t !== m && hooks.patPal(c, t.c)) say(c, { t: 'plaza', k: 'pal', n: hooks.info(t.c).n }); // a friend's pet: a Pet Farm friendship point, once a day each
+      return;
+    }
+    case 'poke': { // tap a decoration you stand by: everyone in the room sees it react
+      if (now - (m.pokeAt || 0) < POKE_WAIT) return;
+      const all = thingsOf(theme()), i = int(a.i, 0, all.length), t = i === all.length ? [0, 0, 0, 0, 0, TREE_R] : all[i];
+      if (Math.hypot(t[1] - m.x / Q, t[2] - m.z / Q) > Math.max(t[5], .5) + POKE_REACH + 1) return;
+      m.pokeAt = now; toRoom(r, { t: 'plaza', k: 'poke', s: m.s, i });
       return;
     }
     case 'sb': { // throw a snowball (a soft ball outside winter) at a spot; whoever stands there gets a puff of snow
