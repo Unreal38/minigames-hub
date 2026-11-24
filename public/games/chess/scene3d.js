@@ -138,9 +138,9 @@ export function createScene(canvas, { onFrame } = {}) {
   const dotGeo = new THREE.CircleGeometry(CELL * .16, 14); dotGeo.rotateX(-Math.PI / 2);
   const ringGeoT = new THREE.RingGeometry(CELL * .38, CELL * .47, 20); ringGeoT.rotateX(-Math.PI / 2);
   const hiMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthWrite: false });
-  const mats = { last: hiMat('#ffe14d', .55), sel: hiMat('#ffb020', .8), check: hiMat('#ff3b30', .75), cur: hiMat('#4fb4ff', .6), dot: hiMat('#3b2219', .42), ring: hiMat('#e5402f', .9) };
+  const mats = { hov: hiMat('#ffffff', .5), last: hiMat('#ffe14d', .55), sel: hiMat('#ffb020', .8), check: hiMat('#ff3b30', .75), cur: hiMat('#4fb4ff', .6), dot: hiMat('#3b2219', .42), ring: hiMat('#e5402f', .9) };
   const tile = k => { const m = new THREE.Mesh(flatGeo, mats[k]); m.visible = false; m.renderOrder = 2; boardG.add(m); return m; };
-  const hi = { lastF: tile('last'), lastT: tile('last'), sel: tile('sel'), check: tile('check'), cur: tile('cur') };
+  const hi = { lastF: tile('last'), lastT: tile('last'), sel: tile('sel'), check: tile('check'), cur: tile('cur'), hov: tile('hov') };
   const showTile = (m, s) => { m.visible = s >= 0; if (s >= 0) { sqPos(s, m.position); m.position.y = TOP + .008; } };
   const marks = []; // pooled dots and rings
   function setTargets(list) {
@@ -243,29 +243,46 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   // ---------- pointer: which square is under it ----------
-  // A tap on a tall piece should mean that piece, not the square showing behind its head, so pieces are tried first
-  // (as upright sticks), then the board itself.
+  // From this angle a tall piece in the front row hides the feet of the one behind it, so "nearest piece under the pointer"
+  // picked the king when you meant the pawn. Every piece the ray passes is a candidate (as an upright stick about as thick
+  // as the piece), and so is the square the ray lands on. `want(s)` says which squares a tap could do something with:
+  // only those compete, a solid hit on the nearest of them wins, otherwise the one whose middle the ray passes closest.
   const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP), hit = new THREE.Vector3(), ndc = new THREE.Vector2();
   const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3();
-  function squareAt(px, py) {
+  const RAD = [0, .24, .29, .27, .3, .3, .3]; // how thick each piece is for the pointer, in squares
+  function squareAt(px, py, want) {
     if (!W) return -1;
     const r = canvas.getBoundingClientRect();
     ndc.set((px - r.left) / r.width * 2 - 1, -((py - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
-    let best = -1, bestD = Infinity;
+    const cands = [];
     for (const [s, x] of pieces) {
-      sqPos(s, _a); _b.copy(_a); _b.y = TOP + HEIGHT[x.p & 7] * .92;
+      const t = x.p & 7, rad = CELL * RAD[t];
+      sqPos(s, _a); _a.y = TOP; _b.copy(_a); _b.y = TOP + HEIGHT[t] * .95;
       const d2 = ray.ray.distanceSqToSegment(_a, _b, _c, _d);
-      if (d2 < (CELL * .3) ** 2) { const d = _c.distanceTo(ray.ray.origin); if (d < bestD) { bestD = d; best = s; } }
+      if (d2 < rad * rad) cands.push({ s, score: d2 / (rad * rad), d: _c.distanceTo(ray.ray.origin) });
     }
-    if (best >= 0) return best;
-    if (!ray.ray.intersectPlane(plane, hit)) return -1;
-    const cx = Math.floor(hit.x / CELL + 4), cz = Math.floor(hit.z / CELL + 4);
-    if (cx < 0 || cx > 7 || cz < 0 || cz > 7) return -1;
-    return flip ? cz * 8 + (7 - cx) : (7 - cz) * 8 + cx;
+    let floor = -1;
+    if (ray.ray.intersectPlane(plane, hit)) {
+      const cx = Math.floor(hit.x / CELL + 4), cz = Math.floor(hit.z / CELL + 4);
+      if (cx >= 0 && cx <= 7 && cz >= 0 && cz <= 7) floor = flip ? cz * 8 + (7 - cx) : (7 - cz) * 8 + cx;
+    }
+    const byNear = (a, b) => a.d - b.d;
+    if (want) {
+      const ok = cands.filter(c => want(c.s));
+      const solid = ok.filter(c => c.score < .5).sort(byNear)[0];
+      if (solid) return solid.s;
+      if (floor >= 0 && want(floor)) return floor;
+      if (ok.length) return ok.sort((a, b) => a.score - b.score)[0].s;
+    }
+    cands.sort(byNear);
+    return cands.length ? cands[0].s : floor;
   }
   let sel = -1;
-  function setSelect(s, targets = []) { sel = s; showTile(hi.sel, s); setTargets(s >= 0 ? targets : []); }
+  function setSelect(s, targets = []) { sel = s; showTile(hi.sel, s); if (hov >= 0) showTile(hi.hov, hov === sel ? -1 : hov); setTargets(s >= 0 ? targets : []); }
   function setCursor(s) { showTile(hi.cur, s); }
+  // the piece or square under the mouse: a pale tile, and the piece rises a little and swells
+  let hov = -1;
+  function setHover(s) { if (s === hov) return; hov = s; showTile(hi.hov, s === sel ? -1 : s); }
 
   // ---------- state from the server ----------
   let S = null, gid = '', mvN = -1, board = null;
@@ -358,9 +375,9 @@ export function createScene(canvas, { onFrame } = {}) {
     });
     // the picked piece floats a little
     for (const [s, x] of pieces) {
-      const u = x.g.userData, want = s === sel ? 1 : 0;
-      if (u.lift !== want) { u.lift += Math.sign(want - u.lift) * Math.min(Math.abs(want - u.lift), dt * 9); if (!tweens.length) x.g.position.y = TOP + u.lift * .16; }
-      else if (want && !reduced && !tweens.length) x.g.position.y = TOP + .16 + Math.sin(T * 5) * .025;
+      const u = x.g.userData, want = s === sel ? 1 : s === hov ? .45 : 0;
+      if (u.lift !== want) { u.lift += Math.sign(want - u.lift) * Math.min(Math.abs(want - u.lift), dt * 9); if (!tweens.length) { x.g.position.y = TOP + u.lift * .16; x.g.scale.setScalar(1 + Math.min(u.lift, .45) * .18); } }
+      else if (want === 1 && !reduced && !tweens.length) x.g.position.y = TOP + .16 + Math.sin(T * 5) * .025;
     }
     mats.check.opacity = .55 + Math.sin(T * 6) * .2;
     cloudRing.rotation.y = T * .006; flyBirds(T); drift(T);
@@ -379,7 +396,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
 
   return {
-    setState, squareAt, setSelect, setCursor,
+    setState, squareAt, setSelect, setCursor, setHover,
     squarePx(s) { sqPos(s, tv); tv.y = TOP + .5; tv.project(camera); return { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H }; },
     flipped: () => flip,
     setHud(px) { if (Math.abs(px - hudBottom) > 6) { hudBottom = px; resize(true); } },
