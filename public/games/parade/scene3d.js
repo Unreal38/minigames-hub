@@ -142,7 +142,9 @@ export function createScene(canvas, { onFrame } = {}) {
     stockH = want * .02;
   }
   const pile = []; // played card meshes, bottom first (only the last few are kept)
-  const spot = (c, k) => { const j = hash(c * 7 + k); return { p: new THREE.Vector3(DISC.x + (j - .5) * .3, .03 + k * .008, DISC.z + (hash(c + 5 * k) - .5) * .26), ry: (j - .5) * .9 }; };
+  // each played card lies a clear step above the one under it (the cards are drawn bigger, so their backs sit lower too): no flicker
+  const pileY = k => .04 + k * .016;
+  const spot = (c, k) => { const j = hash(c * 7 + k); return { p: new THREE.Vector3(DISC.x + (j - .5) * .3, pileY(k), DISC.z + (hash(c + 5 * k) - .5) * .26), ry: (j - .5) * .9 }; };
   function setPile(cards, animateFrom = null, cb = 0) {
     // a card just played is added on top with a throw; anything else (a new game, a reshuffle) is laid out as it is
     const prev = pile.map(m => m.userData.c), base = cards.slice(0, -1);
@@ -153,9 +155,10 @@ export function createScene(canvas, { onFrame } = {}) {
       return;
     }
     while (pile.length > base.length) scene.remove(pile.shift());
+    pile.forEach((q, i) => { q.position.y = pileY(i); }); // the cards left move down a step, so the new one never shares a height
     const c = cards[cards.length - 1], k = cards.length - 1, m = makeCard(c, PILE, cb), { p, ry } = spot(c, k), from = animateFrom.clone(), r0 = ry + Math.PI * .6;
     m.position.copy(from); m.rotation.set(0, r0, Math.PI); scene.add(m); pile.push(m);
-    tween(.5, t => { const e = ease(t); m.position.lerpVectors(from, p, e); m.position.y += Math.sin(e * Math.PI) * 1.1; m.rotation.y = r0 + (ry - r0) * e; m.rotation.z = Math.PI * (1 - e); },
+    tween(.5, t => { const e = ease(t); p.y = pileY(Math.max(0, pile.indexOf(m))); m.position.lerpVectors(from, p, e); m.position.y += Math.sin(e * Math.PI) * 1.1; m.rotation.y = r0 + (ry - r0) * e; m.rotation.z = Math.PI * (1 - e); },
       () => { pfx.ring(p.clone().setY(.05), { color: '#' + colTo.getHexString(), size: 1.4 }); });
   }
   const seatSpot = i => { const s = seats[i]; return s ? s.g.localToWorld(new THREE.Vector3(0, .1, 0)) : new THREE.Vector3(); };
