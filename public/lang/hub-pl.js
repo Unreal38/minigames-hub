@@ -27,6 +27,7 @@ export const OPT_PL = {
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
+  'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
@@ -392,6 +393,23 @@ export const GAMES_PL = {
       <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy. <b>Przegrywa gracz, który zostaje z Piotrusiem</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, bierzesz kartę, po którą sięgasz, albo losową. Skróty: <b>← →</b> sięgają po kartę, <b>Enter</b> ją bierze, <b>S</b> tasuje twoje karty.</li>
+    </ol>`,
+  },
+  parade: {
+    name: 'Parada Zwierzaków', start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, tymi kartami zagra bot',
+    pitch: 'Dopasuj kolor albo liczbę na kartach ze zwierzakami z Farmy. Drzemki, Zawrotki, Prezenty +2 i Lawiny. Nie zapomnij zawołać „Ostatnia!”.',
+    howto: `Gra karciana w dopasowywanie kolorów ze zwierzakami z Farmy. Połóż kartę w tym samym kolorze albo z tą samą liczbą lub znakiem co karta na wierzchu, albo szarą kartę dowolnego koloru. Nie możesz? Dobierz jedną. Gdy zostanie ci ostatnia karta, zawołaj „Ostatnia!”. Wygrywa ten, kto pierwszy pozbędzie się kart.`,
+    rules: `<ol>
+      <li>Talia ma <b>104 karty</b> w czterech kolorach żywiołów: <b>Liść, Żar, Fala i Iskra</b>. W każdym kolorze są dwa razy <b>liczby od 1 do 9</b>, każda z własnym zwierzakiem, i po dwie karty każdej akcji. Do tego <b>8 szarych kart Kamienia</b> w dowolnym kolorze. Każdy dostaje <b>7 kart</b>, a na stół trafia jedna karta z liczbą. Wolne miejsca zajmują boty.</li>
+      <li>W swojej turze połóż <b>jedną kartę</b> w tym samym <b>kolorze</b> co karta na wierzchu albo z tą samą <b>liczbą</b> lub znakiem. Szara karta pasuje do wszystkiego.</li>
+      <li>Jeśli nie możesz albo nie chcesz, <b>dobierz kartę</b>. Jeśli pasuje, możesz ją od razu zagrać albo zatrzymać. Tak czy inaczej twoja tura się kończy.</li>
+      <li><b>Drzemka</b> (księżyc): następny gracz traci kolejkę. <b>Zawrotka</b> (strzałki): gra zmienia kierunek wokół stołu; przy dwóch graczach działa jak Drzemka. <b>Prezent +2</b>: następny gracz dobiera 2 karty i traci kolejkę.</li>
+      <li><b>Kamyk</b> (dowolny kolor): wybierasz kolor, który będzie dalej. <b>Lawina</b> (dowolny kolor, +4): wybierasz kolor, a następny gracz dobiera 4 karty i traci kolejkę.</li>
+      <li>Gdy w ustawieniach jest włączone <b>Przekazywanie Prezentów i Lawin</b>, gracz trafiony Prezentem może go przekazać dalej kolejnym Prezentem albo Lawiną, a Lawinę kolejną Lawiną. Karty się sumują, aż ktoś weźmie je wszystkie.</li>
+      <li>Zostały ci <b>dwie karty</b>? Naciśnij <b>„Ostatnia!”</b>, zanim zagrasz. Jeśli zapomnisz, każdy może nacisnąć <b>Złap</b>, zanim ruszy się następny gracz, a ty dobierasz <b>2 karty</b>. Możesz się jeszcze uratować, jeśli zdążysz pierwszy nacisnąć „Ostatnia!”.</li>
+      <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>. Pozostali zajmują miejsca według <b>punktów kart w ręce</b>: liczby liczą się według wartości, akcje po 10, karty dowolnego koloru po 20. Im mniej, tym lepiej.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera, <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>L</b> woła „Ostatnia!”, a <b>C</b> łapie.</li>
     </ol>`,
   },
   pips: {

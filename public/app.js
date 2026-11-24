@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -501,6 +501,28 @@ const GAMES = {
       <li>Run out of cards and you are <b>safe</b>. The first one out wins. The player <b>left holding the Piotruś loses</b>.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, the card you were reaching for is taken, or a random one. Shortcuts: <b>← →</b> reach for a card, <b>Enter</b> takes it, <b>S</b> shuffles your cards.</li>
+    </ol>`,
+  },
+  parade: {
+    name: 'Pet Parade', load: () => import('./games/parade/client.js'), start: 'Deal the cards',
+    host: { seats: 4, bots: 'chill', stack: 'off', timer: 20 }, solo: { seats: 4, bots: 'chill', stack: 'off', timer: 0 },
+    openSeat: 'A bot plays this hand if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Pass on Gifts and Rockslides</b><div class="pills">${pill('stack', 'off', 'Off')}${pill('stack', 'on', 'On')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `A colour-matching card game with Pet Farm pets. Put down a card of the same colour or the same number or sign as the one on top, or a grey wild card. Can't? Draw one. Down to your last card, say “Last one!”. First one out of cards wins.`,
+    rules: `<ol>
+      <li>The deck has <b>104 cards</b> in the four element colours, <b>Leaf, Ember, Tide and Spark</b>: the numbers <b>1 to 9</b> twice in each colour, each with its own pet, and two of each action card. There are also <b>8 grey Stone wild cards</b>. Everyone gets <b>7 cards</b> and one number card is turned up. Empty seats are played by bots.</li>
+      <li>On your turn put down <b>one card</b> that matches the top card's <b>colour</b>, or its <b>number</b> or sign. A grey wild card goes on anything.</li>
+      <li>If you can't or don't want to, <b>draw a card</b>. If it fits, you may play it straight away or keep it. Either way your turn is over.</li>
+      <li><b>Nap</b> (moon): the next player misses a turn. <b>Turnabout</b> (arrows): play turns the other way round the table; with two players it works like a Nap. <b>Gift +2</b>: the next player takes 2 cards and misses a turn.</li>
+      <li><b>Pebble</b> (wild): you pick the colour that comes next. <b>Rockslide</b> (wild, +4): you pick the colour, and the next player takes 4 cards and misses a turn.</li>
+      <li>With <b>Pass on Gifts and Rockslides</b> switched on, a player hit by a Gift may pass it on with another Gift or a Rockslide, and a Rockslide may be passed on with another Rockslide. The cards add up until someone takes them all.</li>
+      <li>Down to <b>two cards</b>? Press <b>“Last one!”</b> before you play. If you forget, anyone can press <b>Catch</b> before the next player moves, and you take <b>2 cards</b>. You can still save yourself by pressing “Last one!” first.</li>
+      <li>The first one <b>out of cards wins</b>. Everyone else is placed by the <b>points left in their hand</b>: numbers count their value, action cards 10 and wild cards 20. The fewer, the better.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, a bot plays your turn. Shortcuts: <b>Enter</b> plays a card that fits, <b>D</b> draws, <b>K</b> keeps a drawn card, <b>1–4</b> pick a colour, <b>L</b> says “Last one!” and <b>C</b> catches.</li>
     </ol>`,
   },
   pips: {
@@ -1298,6 +1320,7 @@ const HUB_GAMES = [
   ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
+  ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
 ].filter(g => GAMES[g[0]]);
