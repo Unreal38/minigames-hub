@@ -24,7 +24,7 @@ export const OPT_PL = {
   'First one free': 'Pierwsze za darmo', 'Always 60': 'Zawsze 60', 'No folding': 'Bez poddawania',
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie', 'bop:Calm': 'Spokojne',
-  Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
+  Climbers: 'Wspinacze', Storm: 'Burza', Wild: 'Dzika',
   Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '52 cards': '52 karty', '24 cards': '24 karty', Battles: 'Bitwy', 'Flip timer': 'Czas na odkrycie', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
