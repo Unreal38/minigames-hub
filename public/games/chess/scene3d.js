@@ -138,7 +138,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const dotGeo = new THREE.CircleGeometry(CELL * .16, 14); dotGeo.rotateX(-Math.PI / 2);
   const ringGeoT = new THREE.RingGeometry(CELL * .38, CELL * .47, 20); ringGeoT.rotateX(-Math.PI / 2);
   const hiMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthWrite: false });
-  const mats = { hov: hiMat('#ffffff', .5), last: hiMat('#ffe14d', .55), sel: hiMat('#ffb020', .8), check: hiMat('#ff3b30', .75), cur: hiMat('#4fb4ff', .6), dot: hiMat('#3b2219', .42), ring: hiMat('#e5402f', .9) };
+  const mats = { hov: hiMat('#7fdcff', .75), last: hiMat('#ffe14d', .55), sel: hiMat('#ffb020', .8), check: hiMat('#ff3b30', .75), cur: hiMat('#4fb4ff', .6), dot: hiMat('#3b2219', .42), ring: hiMat('#e5402f', .9) };
   const tile = k => { const m = new THREE.Mesh(flatGeo, mats[k]); m.visible = false; m.renderOrder = 2; boardG.add(m); return m; };
   const hi = { lastF: tile('last'), lastT: tile('last'), sel: tile('sel'), check: tile('check'), cur: tile('cur'), hov: tile('hov') };
   const showTile = (m, s) => { m.visible = s >= 0; if (s >= 0) { sqPos(s, m.position); m.position.y = TOP + .008; } };
@@ -375,8 +375,8 @@ export function createScene(canvas, { onFrame } = {}) {
     });
     // the picked piece floats a little
     for (const [s, x] of pieces) {
-      const u = x.g.userData, want = s === sel ? 1 : s === hov ? .45 : 0;
-      if (u.lift !== want) { u.lift += Math.sign(want - u.lift) * Math.min(Math.abs(want - u.lift), dt * 9); if (!tweens.length) { x.g.position.y = TOP + u.lift * .16; x.g.scale.setScalar(1 + Math.min(u.lift, .45) * .18); } }
+      const u = x.g.userData, want = s === sel ? 1 : s === hov ? .6 : 0;
+      if (u.lift !== want) { u.lift += Math.sign(want - u.lift) * Math.min(Math.abs(want - u.lift), dt * 9); if (!tweens.length) { x.g.position.y = TOP + u.lift * .16; x.g.scale.setScalar(1 + Math.min(u.lift, .6) * .2); } }
       else if (want === 1 && !reduced && !tweens.length) x.g.position.y = TOP + .16 + Math.sin(T * 5) * .025;
     }
     mats.check.opacity = .55 + Math.sin(T * 6) * .2;
