@@ -214,13 +214,6 @@ const ZONES = {
   night: ['Wyspa Spadających Gwiazd', 'Wyspa, na której zawsze jest tuż po zmierzchu.'],
 };
 const TRIPS = { stroll: ['Spacer', 'Na czas gry'], outing: ['Wycieczka', 'Na przerwę obiadową'], trek: ['Wędrówka', 'Gdy masz inne zajęcia'], camp: ['Biwak', 'Na noc'] };
-const WEATHER = {
-  sunny: ['Słonecznie', 'Drużyny, które wyruszą teraz, przyniosą 20% więcej.'],
-  cloudy: ['Pochmurno', 'Chłodne powietrze: bitwy dają 25% więcej doświadczenia.'],
-  rain: ['Deszcz', 'Każda zebrana grządka daje jedną jagodę więcej.'],
-  wind: ['Wietrznie', 'Wiatr w plecy: drużyny, które wyruszą teraz, wrócą 20% szybciej.'],
-  rainbow: ['Tęcza', 'Szczęście: drużyny, które wyruszą teraz, o wiele łatwiej spotkają dzikiego zwierzaka.'],
-};
 
 /** data.js: D holds its tables. */
 export function plData(D) {
@@ -234,7 +227,6 @@ export function plData(D) {
   for (const [k, [name, desc]] of Object.entries(RECIPES)) if (D.RECIPES[k]) Object.assign(D.RECIPES[k], { name, desc });
   for (const [k, [name, blurb]] of Object.entries(ZONES)) if (D.ZONES[k]) Object.assign(D.ZONES[k], { name, blurb });
   for (const [k, [name, blurb]] of Object.entries(TRIPS)) if (D.TRIPS[k]) Object.assign(D.TRIPS[k], { name, blurb });
-  for (const [k, [name, bonus]] of Object.entries(WEATHER)) if (D.WEATHER[k]) Object.assign(D.WEATHER[k], { name, bonus });
 }
 
 const COATS = ['Naturalny', 'Różany', 'Błękitny', 'Miętowy', 'Liliowy', 'Kakaowy'];
@@ -292,7 +284,7 @@ export function plBattle(D) {
 }
 
 /** What test/i18n.js checks: every key of the English tables has Polish here. */
-export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, WEATHER, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
+export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
 
 // What the farm's server code says (server/farm.js), for srvText() in lang/server.js.
 export const SRV_TEXT = {
