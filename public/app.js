@@ -778,7 +778,7 @@ const st = {
   av: (() => { try { const a = JSON.parse(LS.get('ct_av', 'null')); return a ? cleanAv(a) : randomAv(); } catch { return randomAv(); } })(),
   rk: {}, rkTab: LS.get('ct_rk', 'overall'),
   hc: { log: null, max: 200, for: undefined }, // the hub's global chat
-  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), // the open tables page, the phone's hub tab, the games filter
+  tPage: 0, htab: 'games', gFilt: LS.get('ct_gf', 'all'), gSort: LS.get('ct_gs', 'hub'), // the open tables page, the phone's hub tab, the games filter
   token: LS.get('ct_token', ''), id: null, me: null, rooms: [], room: null, view: 'hub', game: null, gameLoading: null, lastState: null, farm: null,
 };
 // Solo games with no table: they open straight from the hub (like Pet Farm) and keep their progress on the account.
@@ -1601,7 +1601,10 @@ const HUB_GAMES = [
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const minsText = ([a, b]) => a === b ? `~${a} min` : `${a}–${b} min`;
 const timeTag = (m, cls = 'tag ttime') => m ? `<span class="${cls}" title="${L('Usual length of one game', 'Zwykle tyle trwa jedna gra')}">${CLOCK}${minsText(m)}</span>` : '';
-const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
+// The sort menu beside the search box: hub order, by playtime (middle of mins) or by the most seats. Saved like the filter.
+const G_SORTS = [['hub', L('Default order', 'Domyślnie')], ['short', L('Shortest first', 'Najkrótsze')], ['long', L('Longest first', 'Najdłuższe')], ['many', L('Most players', 'Najwięcej graczy')], ['few', L('Fewest players', 'Najmniej graczy')]];
+const seatsMax = s => Math.max(...(String(s).match(/\d+/g) || [0]).map(Number));
+const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcard gmini" data-i="${i}" data-mins="${GAMES[id].mins ? (GAMES[id].mins[0] + GAMES[id].mins[1]) / 2 : 999}" data-seats="${seatsMax(seats)}" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span>${timeTag(GAMES[id].mins, 'gtime')}</div>
   <div class="body"><h3>${esc(GAMES[id].name)}</h3><div class="gmeta"><span class="tag">${PLX ? PLX.SEATS_PL(seats) : seats}</span>
     <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
@@ -1615,7 +1618,16 @@ function filterGames() {
   document.querySelectorAll('[data-act="gfilt"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === st.gFilt));
   const none = document.getElementById('gnone'); if (none) none.hidden = shown > 0;
 }
+// Moves the cards into the chosen order (no re-render, so the pictures keep animating). Ties keep hub order.
+function sortGames() {
+  if (!G_SORTS.some(([id]) => id === st.gSort)) st.gSort = 'hub';
+  const box = document.querySelector('.games.mini'); if (!box) return;
+  const by = { hub: () => 0, short: (a, b) => a.dataset.mins - b.dataset.mins, long: (a, b) => b.dataset.mins - a.dataset.mins,
+    many: (a, b) => b.dataset.seats - a.dataset.seats, few: (a, b) => a.dataset.seats - b.dataset.seats }[st.gSort];
+  [...box.children].sort((a, b) => by(a, b) || a.dataset.i - b.dataset.i).forEach(c => box.append(c));
+}
 $app.addEventListener('input', e => { if (e.target.id === 'gfind') filterGames(); });
+$app.addEventListener('change', e => { if (e.target.id === 'gsort') { st.gSort = e.target.value; LS.set('ct_gs', st.gSort); sortGames(); } });
 // Below this width the hub is one column with a tab bar at the bottom (Games, Tables, Chat, Rankings, You).
 const narrowMq = matchMedia('(max-width: 1099px)'), narrow = () => narrowMq.matches;
 narrowMq.addEventListener('change', () => { if (st.view === 'hub') { renderTables(); paintRankings(); } });
@@ -1654,6 +1666,7 @@ function renderHub() {
         <h2>${L('Games', 'Gry')}</h2>
         <div class="gfilt" role="group" aria-label="${L('Kind of game', 'Rodzaj gry')}">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
         <input id="gfind" class="field gfind" type="search" placeholder="${L('Find a game', 'Szukaj gry')}" aria-label="${L('Find a game', 'Szukaj gry')}" autocomplete="off" spellcheck="false">
+        <select id="gsort" class="field gsort" aria-label="${L('Sort games', 'Sortuj gry')}">${G_SORTS.map(([id, n]) => `<option value="${id}"${id === st.gSort ? ' selected' : ''}>${n}</option>`).join('')}</select>
       </div>
       <div class="games mini">${HUB_GAMES.map(gameCard).join('')}</div>
       <div class="empty" id="gnone" hidden>${L('No game with that name. Try another word, or pick “All”.', 'Nie ma gry o takiej nazwie. Spróbuj innego słowa albo wybierz „Wszystkie”.')}</div>
@@ -1690,7 +1703,7 @@ function renderHub() {
   </main>
   <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
-  renderTables(); filterGames();
+  renderTables(); sortGames(); filterGames();
   document.body.classList.add('sky');
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
