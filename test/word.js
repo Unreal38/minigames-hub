@@ -13,7 +13,7 @@ const until = async (fn, what) => { for (let i = 0; i < 200; i++) { if (fn()) re
 
 // 1. The marking rules and the word lists, straight from the module.
 process.env.DATA_DIR = dir;
-const { mark, answersOf, isWord, REWARD, TRIES } = await import('../server/word.js');
+const { mark, answersOf, isWord, REWARD, CONSOLATION, TRIES } = await import('../server/word.js');
 const eq = (a, b, what) => { if (a !== b) fail(`${what}: ${a} != ${b}`); };
 eq(mark('robot', 'robot'), 'hhhhh', 'all right');
 eq(mark('lalka', 'bilet'), 'mmhmm', 'one l in the word marks one l only');
@@ -96,11 +96,11 @@ if (!/^📜 Word in a Bottle #7 \(PL\): 3\/6$/.test(line.text) || line.grid?.len
 v = await ana.word({ lang: 'pl', share: true });
 if (!v.err) fail('shared twice');
 
-// Six wrong tries: the day is over, no coins, the answer is told.
+// Six wrong tries: the day is over, a few consolation coins, the answer is told.
 const boCoins = bo.me.coins;
 for (const w of wrong('en', TRIES)) v = await bo.word({ lang: 'en', guess: w });
 if (!v.over || v.over.won || !v.L.en.done || v.L.en.won || v.L.en.answer !== sec.en || v.L.en.played !== 1 || v.L.en.wins !== 0) fail('six wrong ' + JSON.stringify(v.L.en));
-await wait(60); if (bo.me.coins !== boCoins) fail('coins for a lost day');
+await until(() => bo.me.coins === boCoins + CONSOLATION, 'consolation coins for a lost day'); if (v.L.en.got !== CONSOLATION) fail('lost day view');
 
 // The next day: a fresh board, yesterday's streak carries on; a missed day ends it.
 ana.send({ t: 'daily', test: { skip: 1 } }); await wait(40);
