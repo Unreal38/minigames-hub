@@ -617,6 +617,7 @@ const GAMES = {
   },
   makao: {
     name: 'Makao', load: () => import('./games/makao/client.js'), start: 'Deal the cards',
+    mins: [5, 10],
     host: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 20 }, solo: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 0 },
     openSeat: 'A bot plays this hand if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
