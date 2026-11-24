@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { kartPaint } from '../../skins.js';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
-import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
+import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, put, flat, ico, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
+import { groundOf, R as ISLE, finish } from '../../isle3d.js';
 import { buildTrack, locate, at, headingAt, angDiff, hazardAt, ROAD, SHOULDER, RAIL, KART_R, RAMP, RAMP_H, CUT_W, driftFlags } from './track.js';
 import { petModel } from '../farm/pets3d.js';
 
@@ -63,10 +64,30 @@ function mesher() {
 }
 
 // ---------- the track ----------
-const GROUND = { grass: ['#7fbf56', '#8bca60'], beach: ['#ecd08c', '#f6dc98'], snow: ['#e4f2fb', '#f4fbff'] };
+// Every track wears the look of one Pet Farm island (def.isle = a ground from isle3d.js): its colours and what stands on it.
+const lookOf = T => groundOf(T.def.isle | 0);
+const cylP = (g, rt, rb, h, c, x, y, z, seg = 8) => put(g, new THREE.CylinderGeometry(rt, rb, h, seg), flat(c), x, y, z);
+// roadside pieces the islands do not have themselves
+const EXTRA = {
+  0: [(g, s) => { cylP(g, .09 * s, .13 * s, .7 * s, '#8a5a3c', 0, .35 * s, 0, 6); ico(g, .45 * s, '#5fb04a', 0, .95 * s, 0); ico(g, .32 * s, '#86cc5a', .22 * s, 1.18 * s, .08 * s); ico(g, .3 * s, '#5fb04a', -.24 * s, .82 * s, -.1 * s); },
+    (g, s) => { ico(g, .3 * s, '#5fb04a', 0, .2 * s, 0); ico(g, .24 * s, '#86cc5a', .25 * s, .15 * s, .05 * s); ico(g, .07 * s, '#ff9fb8', .1 * s, .45 * s, .15 * s); },
+    (g, s) => { for (let k = 0; k < 3; k++) { cylP(g, .05 * s, .05 * s, .5 * s, '#fff4e2', (k - 1) * .5 * s, .25 * s, 0, 5); } put(g, new THREE.BoxGeometry(1.2 * s, .07 * s, .05 * s), flat('#fff4e2'), 0, .38 * s, 0); put(g, new THREE.BoxGeometry(1.2 * s, .07 * s, .05 * s), flat('#fff4e2'), 0, .2 * s, 0); }],
+  6: [ISLE.coral],
+  7: [(g, s) => { // candy cane
+      for (let k = 0; k < 6; k++) cylP(g, .07 * s, .07 * s, .2 * s, k % 2 ? '#ff5a6e' : '#ffffff', 0, (.1 + k * .2) * s, 0);
+      for (let k = 0; k < 4; k++) { const a = k * .6 + .3; cylP(g, .07 * s, .07 * s, .2 * s, k % 2 ? '#ffffff' : '#ff5a6e', (.25 - Math.cos(a) * .25) * s, (1.2 + Math.sin(a) * .25) * s, 0).rotation.z = -a; } },
+    (g, s) => { // gumdrops
+      const cs = ['#ff5a6e', '#7cc4ee', '#ffd65a', '#c9b5ff', '#86cc5a'], o = Math.floor(s * 97) % 5;
+      for (let k = 0; k < 3; k++) { const r = (.26 - k * .05) * s, m = put(g, new THREE.SphereGeometry(r, 8, 5, 0, 6.2832, 0, 1.5708), flat(cs[(o + k * 2) % 5]), [0, .42, -.2][k] * s, 0, [0, .18, .36][k] * s); m.scale.y = 1.25; } },
+    (g, s) => { // cupcake
+      cylP(g, .34 * s, .24 * s, .4 * s, '#c9a27a', 0, .2 * s, 0, 10); const c = ['#ff9ec4', '#fff4fa', '#c9b5ff'][Math.floor(s * 53) % 3];
+      ico(g, .36 * s, c, 0, .5 * s, 0).scale.y = .6; ico(g, .26 * s, c, 0, .7 * s, 0).scale.y = .6; ico(g, .15 * s, c, 0, .86 * s, 0).scale.y = .7; ico(g, .08 * s, '#ff5a6e', 0, 1 * s, 0); },
+    (g, s) => { // doughnut on its side
+      const m = put(g, new THREE.TorusGeometry(.42 * s, .2 * s, 6, 12), flat('#e8a85a'), 0, .62 * s, 0), t = put(g, new THREE.TorusGeometry(.42 * s, .21 * s, 6, 12, 3.6), flat(s * 53 % 2 < 1 ? '#ff9ec4' : '#7b4a2e'), 0, .64 * s, .03 * s); t.rotation.z = -.2; m.rotation.y = t.rotation.y = .3; }],
+};
 const solid = sf => sf === 0 || sf === 2 || sf === 4; // island land (the rest is wood or air)
 function buildTrackMesh(T) {
-  const M = mesher(), n = T.n;
+  const M = mesher(), n = T.n, th = lookOf(T), earth2 = shade(th.earth, .92), rock2 = shade(th.rock, .92), rock3 = shade(th.rock, .8);
   // On the inside of a hairpin the land would fold over itself (and leave a hole): nothing reaches past the middle of the bend.
   const inner = new Float32Array(n);
   for (let i = 0; i < n; i++) { const turn = angDiff(headingAt(T, i + 3), headingAt(T, i - 3)); inner[i] = Math.abs(turn) > .05 ? -Math.sign(turn) * 6 * T.step / Math.abs(turn) * .9 : 0; }
@@ -133,19 +154,19 @@ function buildTrackMesh(T) {
       M.quad(P(i, r0, .05), P(i, r1, .05), P(j, q1, .05), P(j, q0, .05), cc, UP);
       M.quad(P(i, r0, 0), P(i, r0, .05), P(j, q0, .05), P(j, q0, 0), cc, sd > 0 ? rgt : lft);
       const eI = edge(i) * sd, eJ = edge(j) * sd;
-      const g1 = GROUND[T.def.theme || 'grass'][hash(i * 3 + (sd > 0 ? 1 : 0), 7) < .25 ? 0 : 1];
+      const g1 = hash(i * 3 + (sd > 0 ? 1 : 0), 7) < .25 ? th.patch : th.grass;
       M.quad(P(i, r1), P(i, eI), P(j, eJ), P(j, q1), g1, UP);
-      M.quad(P(i, eI), P(i, eI * .97, -1.3), P(j, eJ * .97, -1.3), P(j, eJ), (i >> 1) % 3 ? '#c98a5a' : '#b97c4f', out);
+      M.quad(P(i, eI), P(i, eI * .97, -1.3), P(j, eJ * .97, -1.3), P(j, eJ), (i >> 1) % 3 ? th.earth : earth2, out);
       const dI = -4.5 - 2.5 * hash(i, 11), dJ = -4.5 - 2.5 * hash(j, 11);
-      M.quad(P(i, eI * .97, -1.3), P(i, eI * .4, dI), P(j, eJ * .4, dJ), P(j, eJ * .97, -1.3), (i >> 2) % 2 ? '#857a72' : '#7a706a', [out[0], -.6, out[2]]);
+      M.quad(P(i, eI * .97, -1.3), P(i, eI * .4, dI), P(j, eJ * .4, dJ), P(j, eJ * .97, -1.3), (i >> 2) % 2 ? th.rock : rock2, [out[0], -.6, out[2]]);
     }
-    M.quad(P(i, -edge(i) * .4, -4.5 - 2.5 * hash(i, 11)), P(i, edge(i) * .4, -4.5 - 2.5 * hash(i, 11)), P(j, edge(j) * .4, -4.5 - 2.5 * hash(j, 11)), P(j, -edge(j) * .4, -4.5 - 2.5 * hash(j, 11)), '#6d645f', [0, -1, 0]);
+    M.quad(P(i, -edge(i) * .4, -4.5 - 2.5 * hash(i, 11)), P(i, edge(i) * .4, -4.5 - 2.5 * hash(i, 11)), P(j, edge(j) * .4, -4.5 - 2.5 * hash(j, 11)), P(j, -edge(j) * .4, -4.5 - 2.5 * hash(j, 11)), rock3, [0, -1, 0]);
     // the land ends where a bridge starts: close it off with a cliff face
     for (const [k, nb, dir] of [[i, !solid(T.sf[(i - 1 + n) % n]), -1], [j, !solid(T.sf[j]), 1]]) {
       if (!nb || (dir === 1 && k !== j)) continue;
       const e = edge(k), d = -4.5 - 2.5 * hash(k, 11), o = [fwd[0] * dir, 0, fwd[2] * dir];
       const ring = [P(k, -e), P(k, e), P(k, e * .97, -1.3), P(k, e * .4, d), P(k, -e * .4, d), P(k, -e * .97, -1.3)];
-      for (let q = 1; q < ring.length - 1; q++) M.tri3(ring[0], ring[q], ring[q + 1], q < 2 ? '#c98a5a' : '#857a72', o);
+      for (let q = 1; q < ring.length - 1; q++) M.tri3(ring[0], ring[q], ring[q + 1], q < 2 ? th.earth : th.rock, o);
     }
   }
   // start line: a chequered strip and a balloon arch
@@ -164,7 +185,7 @@ function buildTrackMesh(T) {
 
 // grass tufts and flowers on the shoulders, and floating islands round about
 function buildDeco(T, sky) {
-  const grp = new THREE.Group(), parts = [], n = T.n, theme = T.def.theme;
+  const grp = new THREE.Group(), parts = [], n = T.n, theme = T.def.theme, th = lookOf(T), isle = T.def.isle | 0;
   const tuft = new THREE.ConeGeometry(.16, .4, 4), petal = new THREE.IcosahedronGeometry(.11, 0), bush = new THREE.IcosahedronGeometry(.42, 0);
   for (let i = 0; i < n; i += 2) {
     if (!solid(T.sf[i]) || T.ew[i] < SHOULDER - .5) continue;
@@ -179,6 +200,12 @@ function buildDeco(T, sky) {
       if (theme === 'snow') { // snow drifts and the odd little fir
         if (r < .6) parts.push([bush, '#ffffff', [p.x, p.y + .05, p.z], [0, i, 0], [1.3, .5, 1.1]]);
         else { parts.push([tuft, '#3f8f5a', [p.x, p.y + .5, p.z], [0, 0, 0], [2.6, 2.6, 2.6]]); parts.push([tuft, '#ffffff', [p.x, p.y + .95, p.z], [0, 0, 0], [1.3, 1.1, 1.3]]); }
+        continue;
+      }
+      if (isle) { // an island of its own: its flowers, or pebbles where nothing grows
+        if (!th.flowers) { if (r < .6) parts.push([petal, shade(th.rock, 1.1), [p.x, p.y + .08, p.z], [0, i, 0], [1.6, .8, 1.3]]); }
+        else if (r < .6) { const pc = th.petals || ['#ffffff', '#ffd0e4', '#fff1a8']; parts.push([petal, pc[i % pc.length], [p.x, p.y + .1, p.z], [0, 0, 0], [1.1, .55, 1.1]]); }
+        else parts.push([tuft, shade(th.patch, .9), [p.x, p.y + .18, p.z]]);
         continue;
       }
       if (r < .45) parts.push([tuft, '#5fb04a', [p.x, p.y + .18, p.z]]);
@@ -197,6 +224,19 @@ function buildDeco(T, sky) {
     parts.push([post, '#8a5433', [p.x, p.y + .55, p.z]], [board, '#e5543b', [p.x, p.y + 1.5, p.z], [0, h, 0]]);
     for (const o of [-.42, .2]) parts.push([arrow, '#fff4e2', [p.x + cx * o * sd - sx * .1, p.y + 1.5, p.z - sx * o * sd - cx * .1], [0, h, -sd * Math.PI / 2], [1.2, 1, .3]]);
   }
+  // what stands on this island in the Pet Farm, along the outer edge of the shoulders
+  const kinds = [...(th.kinds || []).filter(k => typeof k === 'function'), ...(EXTRA[isle] || [])], props = new THREE.Group();
+  if (kinds.length) for (let i = 0; i < n; i += 5) {
+    if (!solid(T.sf[i]) || T.nar[i] || T.ew[i] < SHOULDER - .5) continue;
+    const turn = angDiff(headingAt(T, i + 3), headingAt(T, i - 3)), tight = Math.abs(turn) >= 6 * T.step / 11;
+    for (const sd of [-1, 1]) {
+      if (hash(i, sd + 60) > .4 || (tight && sd === Math.sign(turn))) continue; // the arrow boards stand there
+      const p = at(T, i, sd * (T.ew[i] - 1.4)), g = new THREE.Group(), s = 2 + hash(i, sd + 61) * 1.1;
+      kinds[Math.floor(hash(i, sd + 62) * kinds.length)](g, s);
+      g.position.set(p.x, p.y, p.z); g.rotation.y = hash(i, sd + 63) * 6.283; props.add(g);
+    }
+  }
+  if (props.children.length) { finish(props, .05); grp.add(props); }
   const tufts = new THREE.Mesh(merged(parts), toonMat(vmat())); tufts.userData.noInk = true; grp.add(tufts);
   // islands: spots away from the road, below it, with trees and lamps
   const spots = [];
@@ -211,7 +251,7 @@ function buildDeco(T, sky) {
   }
   spots.sort((a, b) => hash(a.i, 5) - hash(b.i, 5));
   for (const s of spots.slice(0, 13)) {
-    const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: 20, size: 1.4, grass: theme === 'snow' ? '#f4fbff' : theme === 'beach' ? '#f6dc98' : sky === 1 ? '#9fd36a' : '#8bca60' });
+    const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: th.flowers ? 20 : 0, size: 1.4, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null });
     isl.position.set(s.x, s.y, s.z); isl.rotation.y = hash(s.i, 8) * 6.28; isl.userData.bob = hash(s.i, 9) * 6.28; grp.add(isl);
   }
   return grp;
