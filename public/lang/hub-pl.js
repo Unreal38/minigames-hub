@@ -17,7 +17,7 @@ export const OPT_PL = {
   'A lost call costs': 'Przegrane sprawdzenie kosztuje', 'A die': 'Kość', 'A life': 'Życie', 'Lives (life mode)': 'Życia (tryb z życiami)', 'Dice each': 'Kości na gracza', 'Classic 5': 'Klasyczne 5',
   'Ones are wild': 'Jedynki to jokery', 'Spot on calls': 'Okrzyk „Co do joty!”',
   'Quick 10 rounds': 'Szybka: 10 rund', '20 rounds': '20 rund', 'Long 30': 'Długa: 30', 'Napping pets': 'Drzemki zwierzaków',
-  Track: 'Trasa', 'Meadow Loop': 'Łąkowa pętla', 'Sugar Bridges': 'Cukrowe mosty', 'Twisty Peaks': 'Kręte szczyty', Laps: 'Okrążenia', 'Karts on the grid': 'Gokarty na starcie',
+  Track: 'Trasa', 'Meadow Loop': 'Łąkowa pętla', 'Sugar Bridges': 'Cukrowe mosty', 'Twisty Peaks': 'Kręte szczyty', 'Cliffside Hairpins': 'Klifowe nawroty', 'Pirate Cove': 'Piracka zatoka', 'Frost Fjord': 'Mroźny fiord', Laps: 'Okrążenia', 'Karts on the grid': 'Gokarty na starcie',
   'Power-ups': 'Bonusy', Chaos: 'Chaos',
   Cooks: 'Kucharze', Kitchen: 'Kuchnia', 'Sunny Diner': 'Słoneczny bar', 'Pass-Through': 'Kuchnia z okienkiem', Shift: 'Zmiana', 'Bot cooks': 'Kucharze-boty',
   '4 (dealer sits out)': '4 (rozdający pauzuje)', 'Play to': 'Gramy do', 'Classic 1000': '1000 (klasycznie)', 'Quick 500': '500 (szybko)', Folding: 'Poddanie gry',
@@ -28,7 +28,7 @@ export const OPT_PL = {
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
-  'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
+  'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -36,7 +36,7 @@ export const SEATS_PL = s => s.replace('players', 'graczy').replace('Co-op', 'Ko
 
 export const GAMES_PL = {
   hotpot: {
-    start: 'Nastaw garnek', openSeat: 'Jeśli nikt nie dołączy, usiądzie tu bot',
+    name: 'Gorący kociołek', start: 'Nastaw garnek', openSeat: 'Jeśli nikt nie dołączy, usiądzie tu bot',
     pitch: 'Dobieraj, wymieniaj i zbierz trzy zestawy po trzy składniki, a potem zawołaj „Smacznego!”, zanim zrobi to ktoś inny.',
     howto: `Masz 8 kart. W każdej turze dobierasz jedną (z garnka albo z odrzuconych kart znajomego), a potem jedną odrzucasz. Ułóż trzy zestawy po trzy karty: trzy takie same składniki albo trzy różne składniki w jednym kolorze, i zawołaj „Smacznego!”.`,
     rules: `<ol>
@@ -49,7 +49,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   marbles: {
-    start: 'Otwórz zakłady', openSeat: 'Jeśli nikt nie dołączy, z tego miejsca obstawia bot',
+    name: 'Wyścig kulek', start: 'Otwórz zakłady', openSeat: 'Jeśli nikt nie dołączy, z tego miejsca obstawia bot',
     pitch: 'Wybierz kolor, postaw monety i patrz, jak kulki pędzą w dół po losowym torze 3D.',
     howto: `Kulki nie należą do nikogo. Postaw monety na kolor i patrz, jak kulki toczą się w dół po losowym torze. W eliminacjach po każdym biegu odpada najwolniejsza kulka, aż zostanie jedna.`,
     rules: `<ol>
@@ -116,7 +116,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   stack: {
-    start: 'Zacznij budować', openSeat: 'Jeśli nikt nie dołączy, układa tu bot',
+    name: 'Chwiejna wieża', start: 'Zacznij budować', openSeat: 'Jeśli nikt nie dołączy, układa tu bot',
     pitch: 'Na zmianę zrzucajcie rozhuśtane klocki na jedną wspólną, chwiejną wieżę. Nie bądź tą osobą, która ją przewróci.',
     howto: `Wszyscy budują razem jedną chwiejną wieżę. W twojej turze nad szczytem buja się klocek: dotknij, żeby go zrzucić. Za równe ułożenie są punkty, ale kto przewróci wieżę, sporo traci. Wygrywa ten, kto po ostatniej wieży ma najwięcej punktów.`,
     rules: `<ol>
@@ -131,7 +131,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   darts: {
-    start: 'Zaczynamy', openSeat: 'Jeśli nikt nie dołączy, rzuca tu bot',
+    name: 'Podniebne rzutki', start: 'Zaczynamy', openSeat: 'Jeśli nikt nie dołączy, rzuca tu bot',
     pitch: 'Klasyczne 301 w lotki na podniebnej wyspie. Uspokój rękę, celuj w potrójne pola i skończ podwójnym.',
     howto: `Każdy zaczyna z 301 punktami i po kolei rzuca trzema lotkami. To, w co trafisz, odejmuje się od twojego wyniku. Wyceluj w tarczę, przytrzymaj, żeby uspokoić rękę, i puść, żeby rzucić. Wygrywa ten, kto pierwszy zejdzie dokładnie do zera.`,
     rules: `<ol>
@@ -148,7 +148,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   golf: {
-    start: 'Pierwsze uderzenie', openSeat: 'Jeśli nikt nie dołączy, gra tu bot',
+    name: 'Imprezowy minigolf', start: 'Pierwsze uderzenie', openSeat: 'Jeśli nikt nie dołączy, gra tu bot',
     pitch: 'Na zmianę uderzajcie na tym samym klockowym dołku 3D i obstawiajcie monetami, kto go wygra.',
     howto: `Wszyscy grają ten sam dołek i uderzają po kolei, po jednym uderzeniu, każdy swoją piłką. Odciągnij i puść, żeby uderzyć. Wygrywa najmniej uderzeń w całej rundzie, a przed każdym dołkiem możesz postawić monety na to, kto go wygra.`,
     rules: `<ol>
@@ -182,7 +182,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   paw: {
-    start: 'Otwórz sklepiki', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    name: 'Łapolis', start: 'Otwórz sklepiki', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
     pitch: 'Adoptuj zwierzaki w sklepikach wokół przytulnej planszy 3D i zbieraj czynsz w przysmakach.',
     howto: `Chodź awatarem po planszy pełnej sklepików ze zwierzakami, adoptuj te, na które trafisz, i zbieraj czynsz w przysmakach, gdy odwiedzą cię znajomi. Ulepszaj sklepiki, unikaj Kąpieli i dobieraj zwariowane karty Głupawki. Nikt nie odpada: po ostatniej rundzie wygrywa najbogatszy gracz.`,
     rules: `<ol>
@@ -200,13 +200,14 @@ export const GAMES_PL = {
     </ol>`,
   },
   kart: {
-    start: 'Zapuść silniki', openSeat: 'Jeśli nikt nie dołączy, pojedzie tu bot',
+    name: 'Wyspiarskie gokarty', start: 'Zapuść silniki', openSeat: 'Jeśli nikt nie dołączy, pojedzie tu bot',
     pitch: 'Ścigaj się małymi gokartami low-poly po drogach, które przeskakują między latającymi wyspami.',
     howto: `Awatar każdego gracza prowadzi mały gokart po drogach przeskakujących między latającymi wyspami. Zbieraj prezenty, żeby dostać zwariowane bonusy, driftuj na zakrętach po przyspieszenie i nie spadnij z krawędzi. Wygrywa pierwszy na mecie po ostatnim okrążeniu.`,
     rules: `<ol>
       <li>Każdy prowadzi własny gokart ze swoim awatarem za kierownicą. Wolne miejsca na starcie zajmują boty.</li>
       <li>Gokart <b>przyspiesza sam</b>. Skręcaj klawiszami <b>← →</b> albo <b>A D</b>, hamuj lub cofaj <b>↓</b>. Na telefonie użyj strzałek w dolnych rogach.</li>
-      <li><b>Drift</b>: przytrzymaj <b>spację</b> (albo przycisk Drift), skręcając przy dużej prędkości. Trzymaj, aż iskry się rozżarzą, a potem puść, żeby dostać przyspieszenie. Pomarańczowe iskry dają dłuższe.</li>
+      <li><b>Drift</b>: przytrzymaj <b>spację</b> (albo przycisk Drift), skręcając przy dużej prędkości. Trzymaj, aż iskry się rozżarzą, a potem puść, żeby dostać przyspieszenie. Niebieskie iskry dają krótkie, pomarańczowe dłuższe, a różowe najdłuższe. Jazda po trawie mocno cię spowalnia.</li>
+      <li><b>Uważaj na drogę</b>: kładki nie mają barierek, rampy wymagają rozpędu, żeby przeskoczyć przerwę, na lodzie wpadasz w poślizg, a przez drogę chodzą zwierzaki z Farmy zwierzaków. Zderzenie ze zwierzakiem, gejzerem albo młotem kończy się obrotem.</li>
       <li>Pomarańczowe <b>pola przyspieszenia</b> na drodze wystrzeliwują cię do przodu. Trawa na poboczu spowalnia, a za trawą jest <b>krawędź wyspy</b>: jeśli spadniesz, po kilku sekundach chmurka odniesie cię z powrotem. Mosty mają barierki.</li>
       <li>Przejedź przez <b>prezent</b>, żeby dostać bonus, a potem naciśnij <b>E</b> (albo go dotknij), żeby go użyć:
         <b>Skórka od banana</b> spada za tobą, <b>Rozchwiana galaretka</b> skacze za gokartem tuż przed tobą, <b>Ostra papryczka</b> to zastrzyk prędkości, <b>Bańka ochronna</b> blokuje następne trafienie, a <b>Senna chmurka</b> spowalnia wszystkich przed tobą. Im dalej z tyłu jedziesz, tym lepsze bonusy.</li>
@@ -216,7 +217,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   kitchen: {
-    start: 'Otwórz kuchnię', openSeat: 'Jeśli nikt nie dołączy, gotuje tu bot',
+    name: 'Gorączka w kuchni', start: 'Otwórz kuchnię', openSeat: 'Jeśli nikt nie dołączy, gotuje tu bot',
     pitch: 'Siekajcie, gotujcie i wydawajcie zamówienia razem w małej kuchni na podniebnej wyspie, zanim skończy się czas.',
     howto: `Wszyscy gotują razem w jednej małej kuchni. Bierzcie składniki ze skrzynek, siekajcie je, gotujcie zupy i smażcie kotlety, nakładajcie na talerze i wydawajcie zamówienia, zanim skończy się ich czas. Cała kuchnia zarabia napiwki i gwiazdki, a gwiazdą kuchni zostaje ten, kto przyłożył rękę do największej części napiwków.`,
     rules: `<ol>
@@ -247,7 +248,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   dig: {
-    start: 'Zacznij kopać', openSeat: 'Jeśli nikt nie dołączy, kopie tu bot',
+    name: 'Poszukiwacze skarbów', start: 'Zacznij kopać', openSeat: 'Jeśli nikt nie dołączy, kopie tu bot',
     pitch: 'Na zmianę przekopujcie łąkę w poszukiwaniu klejnotów i złotej skrzyni. Jak Saper, tylko ze znajomymi.',
     howto: `Łąka kryje klejnoty, złotą skrzynię i pułapki. Kopiecie po kolei, po jednym polu. Puste pola pokazują, ile pułapek ich dotyka, jak w Saperze, i błyszczą, gdy obok leży klejnot. Znajdź klejnot, a kopiesz jeszcze raz; traf na pułapkę, a tracisz punkty. Wygrywa najwięcej punktów w chwili znalezienia ostatniego klejnotu.`,
     rules: `<ol>
@@ -262,7 +263,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   bricks: {
-    start: 'Zacznij układać', openSeat: 'Jeśli nikt nie dołączy, układa tu bot',
+    name: 'Podniebne klocki', start: 'Zacznij układać', openSeat: 'Jeśli nikt nie dołączy, układa tu bot',
     pitch: 'Układaj spadające klocki we własnej studni i wysyłaj znajomym kamienne rzędy. Wygrywa ostatni, kto wciąż układa.',
     howto: `Wszyscy jednocześnie układają spadające klocki, każdy we własnej studni. Zapełnij rząd, a zniknie. Usuń dwa rzędy lub więcej naraz, a komuś innemu wyrosną od dołu kamienne rzędy. Zapełnij studnię po sam szczyt, a odpadasz. Wygrywa ostatni, kto wciąż układa.`,
     rules: `<ol>
@@ -277,8 +278,25 @@ export const GAMES_PL = {
       <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
+  lagoon: {
+    name: 'Bąbelkowa laguna', start: 'Zacznij strzelać', openSeat: 'Jeśli nikt nie dołączy, strzela tu bot',
+    pitch: 'Strzelaj bąbelkami ze zwierzakami we własnej lagunie, zbijaj trójki i wysyłaj znajomym jajka. Wygrywa ostatnia osoba na wodzie.',
+    howto: `Każdy ma własną lagunę i wszyscy grają jednocześnie. Pod rafą koralową wiszą bąbelki z uwięzionymi zwierzakami. Strzelaj bąbelkami z muszli: trzy takie same zwierzaki lub więcej pękają. Bąbelki, które po tym wiszą w powietrzu, spadają i wypływają jako jajka w lagunie rywala. Rafa wciąż wypycha nowe rzędy. Bąbelek poniżej linii oznacza koniec gry. Wygrywa ostatnia osoba na wodzie.`,
+    rules: `<ol>
+      <li>Każdy ma <b>własną lagunę</b> i wszyscy grają <b>jednocześnie</b>, z takim samym początkiem i tymi samymi bąbelkami w tej samej kolejności. Wolne miejsca zajmują boty.</li>
+      <li><b>Celuj</b> myszką i <b>kliknij</b>, żeby strzelić, albo użyj <b>← →</b> i <b>spacji</b>. Na telefonie przeciągnij palcem, żeby wycelować, i puść, żeby strzelić. Strzały <b>odbijają się od bocznych ścian</b>.</li>
+      <li>Trzy lub więcej stykających się bąbelków z <b>takim samym zwierzakiem</b> <b>pęka</b>, a zwierzaki odpływają wolne.</li>
+      <li>Mały bąbelek z napisem <b>Następny</b> dostaniesz po tym, który masz teraz. <b>Prawy przycisk myszy</b>, <b>Shift</b> albo dotknięcie go <b>zamienia</b> je miejscami.</li>
+      <li>Bąbelki, które <b>nie mają się czego trzymać</b>, spadają do wody. Każdy spadający bąbelek wysyła rywalowi jedno <b>jajko</b>. Zbicie pięciu lub więcej naraz dodaje jajko, zbijanie w trzech strzałach z rzędu dodaje jajko, a wyczyszczenie całej laguny dodaje cztery.</li>
+      <li>Twoje jajka trafiają do gracza, któremu <b>idzie najlepiej</b>: tego, kto ma najmniej bąbelków.</li>
+      <li>Jajka wysłane do ciebie czekają obok tratwy i wypływają, gdy twój następny strzał niczego nie zbije. Do niczego nie pasują. Jajko <b>pęka</b>, gdy tuż obok pękają bąbelki, a jajka odcięte od rafy spadają i lecą dalej do rywala. Zbijając bąbelki, najpierw <b>odbijasz czekające jajka</b>.</li>
+      <li><b>Rafa wypycha nowy rząd</b> co kilka sekund, coraz szybciej. Nie zwlekaj: po 7 sekundach muszla strzela sama.</li>
+      <li>Gdy jakiś bąbelek znajdzie się <b>poniżej przerywanej linii</b>, <b>odpadasz</b>. <b>Wygrywa ostatni gracz na wodzie</b>.</li>
+      <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
   bean: {
-    start: 'Zacznij wspinaczkę', openSeat: 'Jeśli nikt nie dołączy, wspina się tu bot',
+    name: 'Fasolowe skoki', start: 'Zacznij wspinaczkę', openSeat: 'Jeśli nikt nie dołączy, wspina się tu bot',
     pitch: 'Ścigaj się ze znajomymi w górę wielkiej łodygi fasoli, skacząc z półki na półkę, zanim dogoni was burza.',
     howto: `Awatary wszystkich graczy wspinają się jednocześnie po tej samej wielkiej łodydze fasoli, skacząc z półki na półkę, a od dołu nadciąga burza. Biegnij, żeby nabrać prędkości, bo im szybciej biegniesz, tym wyżej skaczesz. Łącz duże skoki w serie po dodatkowe punkty i trzymaj się przed burzą.`,
     rules: `<ol>
@@ -359,7 +377,7 @@ export const GAMES_PL = {
     </ol>`,
   },
   pips: {
-    start: 'Rzuć kośćmi', openSeat: 'Jeśli nikt nie dołączy, ten arkusz wypełni bot',
+    name: 'Oczkomania', start: 'Rzuć kośćmi', openSeat: 'Jeśli nikt nie dołączy, ten arkusz wypełni bot',
     pitch: 'Pięć kości, trzy rzuty na turę i arkusz do wypełnienia. Poluj na strity, fule i pięć jednakowych.',
     howto: `Pięć kości i arkusz z 13 polami. W każdej turze masz do trzech rzutów i między nimi zatrzymujesz dowolne kości, a potem wpisujesz rzut w jedno puste pole. Wypełnij wszystkie 13 pól; wygrywa najwyższa suma.`,
     rules: `<ol>
@@ -369,9 +387,9 @@ export const GAMES_PL = {
       <li>Zdobądź <b>63 lub więcej</b> w górnej połowie (wystarczą po trzy kości każdej liczby), a dostaniesz <b>35 punktów premii</b>.</li>
       <li><b>Trzy jednakowe</b> i <b>Cztery jednakowe</b>: suma wszystkich pięciu kości, gdy co najmniej trzy (albo cztery) pokazują tę samą liczbę.</li>
       <li><b>Ful</b>, trzy kości jednej liczby i dwie innej: <b>25</b>. <b>Mały strit</b>, cztery liczby po kolei: <b>30</b>. <b>Duży strit</b>, pięć po kolei: <b>40</b>.</li>
-      <li><b>Pip Party</b>, pięć jednakowych kości: <b>50</b>. <b>Szansa</b>: suma wszystkich pięciu kości, cokolwiek pokazują.</li>
-      <li><b>Kolejne Pip Party</b>: gdy w polu Pip Party masz już 50, każde następne pięć jednakowych daje <b>100 punktów premii</b> oprócz tego, co wpiszesz w puste pole, więc pole Pip Party rośnie do 150, 250 i tak dalej. Jeśli pole górnej połowy dla tej liczby też jest już zajęte, rzut jest <b>jokerem</b>: w dolnej połowie liczy się też jako ful (25), mały strit (30), duży strit (40) albo suma kości.</li>
-      <li><b>Potrójny arkusz</b> (ustawienie stołu): każdy ma <b>trzy kolumny</b> po 13 pól, a gra trwa 39 rund. Wybierasz i kolumnę, i pole. Druga kolumna liczy się <b>podwójnie</b>, a trzecia <b>potrójnie</b>, razem z premią. Pięć jednakowych daje premię 100 razy numer kolumny, gdy wszystkie trzy pola Pip Party mają po 50 (i gdy nie wpisano pięciu jednakowych gdzie indziej, kiedy któreś było puste), a jokerem jest wtedy, gdy zajęte są też wszystkie trzy górne pola tej liczby.</li>
+      <li><b>Oczkomania</b>, pięć jednakowych kości: <b>50</b>. <b>Szansa</b>: suma wszystkich pięciu kości, cokolwiek pokazują.</li>
+      <li><b>Kolejne Oczkomanie</b>: gdy w polu Oczkomania masz już 50, każde następne pięć jednakowych daje <b>100 punktów premii</b> oprócz tego, co wpiszesz w puste pole, więc pole Oczkomania rośnie do 150, 250 i tak dalej. Jeśli pole górnej połowy dla tej liczby też jest już zajęte, rzut jest <b>jokerem</b>: w dolnej połowie liczy się też jako ful (25), mały strit (30), duży strit (40) albo suma kości.</li>
+      <li><b>Potrójny arkusz</b> (ustawienie stołu): każdy ma <b>trzy kolumny</b> po 13 pól, a gra trwa 39 rund. Wybierasz i kolumnę, i pole. Druga kolumna liczy się <b>podwójnie</b>, a trzecia <b>potrójnie</b>, razem z premią. Pięć jednakowych daje premię 100 razy numer kolumny, gdy wszystkie trzy pola Oczkomania mają po 50 (i gdy nie wpisano pięciu jednakowych gdzie indziej, kiedy któreś było puste), a jokerem jest wtedy, gdy zajęte są też wszystkie trzy górne pola tej liczby.</li>
       <li>Po 13 rundach wygrywa <b>najwyższa suma</b>. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, turę kończy za ciebie bot. Pole, które dałoby 0, wymaga drugiego dotknięcia. Skróty: klawisze od <b>1</b> do <b>5</b> zatrzymują kość, <b>R</b> albo <b>spacja</b> rzuca.</li>
     </ol>`,
@@ -380,7 +398,7 @@ export const GAMES_PL = {
 
 export const SOLO_PL = {
   hay: {
-    rules: `<ol>
+    name: 'Szukanie w sianie', rules: `<ol>
       <li>Na twoim polu leży <b>25 bel siana</b>. Pod każdą jest pęczek marchewek wart <b>×1, ×2 albo ×3</b> albo <b>drzemiący zwierzak</b>.</li>
       <li>Tabliczka na końcu każdego rzędu i każdej kolumny pokazuje, ile jest tam w sumie <b>marchewek</b> i ile drzemie tam <b>zwierzaków</b>.</li>
       <li>Odwróć belę, żeby zajrzeć pod spód. Twoje <b>zbiory</b> mnożą się przez znalezione marchewki, więc ×2 i ×3 dają ×6.</li>
@@ -393,7 +411,7 @@ export const SOLO_PL = {
     </ol>`,
   },
   pop: {
-    rules: `<ol>
+    name: 'Zwierzakowe trójki', rules: `<ol>
       <li>Półka jest pełna zwierzaków. <b>Zamień miejscami dwa sąsiednie</b>, żeby <b>trzy takie same albo więcej</b> stanęły w jednej linii: znikają, a z góry wskakują nowe.</li>
       <li>Przesuń albo przeciągnij zwierzaka na sąsiada albo kliknij jednego, a potem drugiego. Zamiana, która niczego nie ustawia, się nie liczy.</li>
       <li>Każdy poziom ma <b>cele</b> (zebrać dość zwierzaków danego gatunku, rozbić bele siana) i określoną liczbę <b>ruchów</b>. Zrealizuj wszystkie cele, zanim ruchy się skończą.</li>

@@ -45,7 +45,7 @@ function boardTexture() {
   g.fillStyle = '#a5dc86'; g.fillRect(0, 0, S, S);
   for (let i = 0; i < 44; i++) { const a = i * 2.39996, r = 150 + (i % 9) * 92; paw(S / 2 + Math.cos(a) * r, S / 2 + Math.sin(a) * r * .9, 34 + (i % 3) * 10, a, '#98d279'); }
   g.save(); g.translate(S / 2, S / 2 - 110); g.rotate(-.06);
-  text('Pawperty', 0, 0, 350, '#fff6e4', INK, 46); g.restore();
+  text(L('Pawperty', 'Łapolis'), 0, 0, 350, '#fff6e4', INK, 46); g.restore();
   paw(S / 2 + 740, S / 2 + 150, 84, .4, '#ffb547'); paw(S / 2 - 760, S / 2 + 180, 70, -.5, '#ff8fab');
   text(L('adopt · upgrade · nap', 'adopcje · ulepszenia · drzemki'), S / 2, S / 2 + 150, 86, '#3f7a3a');
 
@@ -125,7 +125,7 @@ function squash(root) {
   return root;
 }
 const EMPTY = new THREE.BufferGeometry();
-function freePet(g) { g.traverse(m => { if (m.isMesh && (m.userData.mine || m.userData.ink)) m.geometry.dispose(); }); }
+function freePet(g) { g.traverse(m => { if (m.isMesh && (m.userData.mine || m.userData.ink || m.userData.baked)) m.geometry.dispose(); }); }
 function makePet(sp, form) { return squash(petModel(sp, form)); }
 
 // ---------- little props ----------

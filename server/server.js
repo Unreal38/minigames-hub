@@ -25,6 +25,7 @@ import * as kart from './games/kart.js';
 import * as kitchen from './games/kitchen.js';
 import * as dig from './games/dig.js';
 import * as bricks from './games/bricks.js';
+import * as lagoon from './games/lagoon.js';
 import * as bean from './games/bean.js';
 import * as darts from './games/darts.js';
 import * as ttt from './games/ttt.js';
@@ -38,13 +39,14 @@ import * as hay from './hay.js';
 import * as pop from './pop.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
+import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import { isBot, pageFor } from './seo.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, bean, tys, pan, pips, darts, piotr, ttt, domino };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, bean, tys, pan, pips, darts, piotr, ttt, domino };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -516,6 +518,12 @@ function handle(c, m) {
       if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
       return;
     }
+    case 'wheel': { // Lucky Wheel: one free spin a day (server/wheel.js)
+      if (!allow('wheel:' + c.token, 30, 10_000)) return;
+      const p = store.profileOf(c.token);
+      if (m.test) wheel.testHook(p, m.test);
+      return wheel.handle(p, m, msg => { send(c, msg); if (msg.won && p) send(c, { t: 'me', me: store.me(p) }); });
+    }
     case 'daily': { // Mystery Pet: the daily guess-the-pet puzzle (server/daily.js)
       const p = store.profileOf(c.token);
       if (m.test) daily.testHook(m.test, msg => send(c, msg));
@@ -722,6 +730,7 @@ farm.load();
 store.notePodium();
 hubchat.load();
 daily.load();
+wheel.load();
 notice.load();
 // Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and
 // close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the

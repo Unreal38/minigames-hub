@@ -15,6 +15,7 @@ export const M = (c, o) => {
 };
 // A special material (glowing, see-through) kept under its own name so it is made once.
 export const MX = (key, c, o) => { let m = mats.get(key); if (!m) mats.set(key, m = new THREE.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true, ...o })); return m; };
+const GOLDM = () => MX('luckgold', '#ffd24a', { emissive: '#c98f1c', emissiveIntensity: .35, roughness: .5 });
 const geos = new Map();
 export const G = (type, ...a) => {
   const k = type + a.join();
@@ -467,10 +468,18 @@ const BUILD = {
     box(g, .08, .72, .08, C.woodD, -.74, 1.14, .34); box(g, .07, .07, .9, C.woodD, -.74, 1.84, .7); const br = box(g, .05, .44, .05, C.woodD, -.74, 1.5, .5); br.rotation.x = -.75;
     box(g, .02, .44, .02, C.cream, -.74, 1.4, 1.1); crate(g, -.74, 1.1, .24, 1.16, .3);
   },
-  fence(g) {
-    for (const x of [-.4, .4]) { box(g, .12, .5, .12, C.wood, x); cone(g, .09, .1, 4, C.wood, x, .5); box(g, .14, .04, .14, C.woodD, x, .44); }
-    box(g, .96, .08, .06, C.cream, 0, .34); box(g, .96, .08, .06, C.cream, 0, .14);
-    for (const x of [-.2, 0, .2]) { box(g, .08, .42, .04, C.cream, x, .04, .03); cone(g, .056, .07, 4, C.cream, x, .46, .03).rotation.y = Math.PI / 4; }
+  fence(g, live, lv, link = 0) { // link: which sides join a neighbour, see fenceLink below
+    const nb = link & 15, own = link >> 4 & 15, arch = link >> 8 & 15, ones = [0, 1, 2, 3].filter(d => nb >> d & 1).length;
+    const arms = ones === 0 ? 5 : ones === 1 ? nb | (nb << 2 | nb >> 2) & 15 : nb; // a lone piece runs along its own x; an end piece carries its neighbour's line on
+    const post = (x, z) => { box(g, .12, .5, .12, C.wood, x, 0, z); cone(g, .09, .1, 4, C.wood, x, .5, z); box(g, .14, .04, .14, C.woodD, x, .44, z); };
+    for (let d = 0; d < 4; d++) {
+      if (!(arms >> d & 1)) continue;
+      const dx = [1, 0, -1, 0][d], dz = [0, 1, 0, -1][d], len = arch >> d & 1 ? .56 : .5, along = d % 2 === 0; // into an arch the rails reach its post
+      for (const y of [.34, .14]) box(g, along ? len : .06, .08, along ? .06 : len, C.cream, dx * len / 2, y, dz * len / 2);
+      for (const t of [.125, .325]) { const x = dx * t + (along ? 0 : .03), z = dz * t + (along ? .03 : 0); box(g, along ? .08 : .04, .42, along ? .04 : .08, C.cream, x, .04, z); cone(g, .056, .07, 4, C.cream, x, .46, z).rotation.y = Math.PI / 4; }
+      if (!(nb >> d & 1) || own >> d & 1) post(dx * .5, dz * .5); // an open end gets a post; a post shared with a neighbour is drawn by one of the two
+    }
+    if (arms !== 5 && arms !== 10) post(0, 0); // corners, T and cross pieces stand on a post of their own
   },
   path(g) {
     for (const [x, z, r] of [[-.2, -.18, .3], [.24, -.22, .22], [-.24, .24, .22], [.2, .2, .3], [0, 0, .16]]) cyl(g, r, r * 1.05, .05, 6, C.stone, x, 0, z).rotation.y = x * 5;
@@ -616,6 +625,51 @@ const BUILD = {
     box(g, .42, .02, .02, C.cream, 0, .86);
   },
   ball(g) { ico(g, .22, C.red, 0, .22, 0, 1); put(g, G('Cylinder', .224, .224, .07, 10), M(C.white), 0, .22, 0); },
+  // ----- the lucky set: prizes of the Lucky Wheel -----
+  clover(g) {
+    for (const [x, z, s, c] of [[-.08, .02, 1, C.leaf], [.1, -.06, .8, C.leafL], [.03, .12, .7, C.leafD]]) { const o = grp(g, x, 0, z); o.scale.setScalar(s); cyl(o, .012, .012, .16, 4, C.leafD);
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + x * 9, l = put(o, G('Cylinder', .07, .07, .02, 6), M(c), Math.cos(a) * .07, .17, Math.sin(a) * .07); l.rotation.x = .25 * Math.sin(a); l.rotation.z = -.25 * Math.cos(a); } }
+    put(g, G('Octahedron', .035, 0), GOLDM(), -.08, .24, .02);
+    g.scale.setScalar(1.7);
+  },
+  carousel(g, live) {
+    // a two-step stone plinth with a gold lip; the platform, column and roof turn (PARTS.carousel)
+    cyl(g, .96, 1.0, .1, 12, C.stoneD); cyl(g, .9, .92, .08, 12, C.stone, 0, .1); cyl(g, .93, .93, .03, 12, C.gold, 0, .17);
+    if (!live) PARTS.carousel(g);
+  },
+  chest(g) {
+    box(g, .4, .2, .28, C.wood, 0, 0, 0); for (const x of [-.16, .16]) box(g, .05, .22, .3, C.goldD, x, 0, 0);
+    const lid = grp(g, 0, .2, -.14); lid.rotation.x = -.9; box(lid, .4, .1, .28, C.woodD, 0, 0, .14); for (const x of [-.16, .16]) box(lid, .05, .11, .3, C.goldD, x, 0, .14);
+    for (const [x, y, z] of [[-.09, .2, .02], [.06, .21, -.02], [0, .24, .05], [.11, .2, .07], [-.05, .23, -.06]]) put(g, G('Cylinder', .05, .05, .02, 6), GOLDM(), x, y, z).rotation.x = x * 6;
+    put(g, G('Octahedron', .05, 0), MX('gemR', '#e8615a', { emissive: '#b8433c', emissiveIntensity: .5 }), .02, .3, 0); box(g, .07, .08, .03, C.gold, 0, .1, .145);
+  },
+  goldpet(g) {
+    box(g, .7, .14, .7, C.stoneD); box(g, .56, .16, .56, C.stone, 0, .14); box(g, .3, .08, .02, C.gold, 0, .18, .285);
+    const m = GOLDM(); put(g, G('Icosahedron', .25, 1), m, 0, .56, 0).scale.set(1, .95, 1.1); put(g, G('Icosahedron', .19, 1), m, 0, .92, .06);
+    for (const x of [-.11, .11]) { put(g, G('Cone', .07, .2, 4), m, x, 1.12, .04); put(g, G('Icosahedron', .07, 0), m, x * 1.2, .34, .2); }
+    const tail = put(g, G('Cone', .06, .3, 4), m, 0, .6, -.3); tail.rotation.x = -.9;
+  },
+  balloon(g, live) {
+    cyl(g, .2, .24, .1, 6, C.stoneD); box(g, .1, .1, .1, C.iron, 0, .1); // the weight it is tied to
+    if (!live) PARTS.balloon(g);
+  },
+  coinfount(g, live) {
+    cyl(g, .92, .96, .28, 8, C.stone); cyl(g, .95, .95, .06, 8, C.gold, 0, .26); cyl(g, .8, .8, .32, 8, C.water);
+    cyl(g, .16, .22, .7, 6, C.stoneD, 0, .3); cyl(g, .44, .28, .12, 8, C.gold, 0, .95); cyl(g, .36, .36, .14, 8, C.water, 0, .97);
+    for (let i = 0; i < 9; i++) { const a = i * 2.4, r = .3 + (i % 3) * .2; put(g, G('Cylinder', .06, .06, .02, 6), GOLDM(), Math.cos(a) * r, .33, Math.sin(a) * r).rotation.y = a; }
+    if (!live) PARTS.coinfount(g);
+  },
+  horseshoe(g) {
+    for (const x of [-.4, .4]) { box(g, .12, .9, .12, C.woodD, x, 0); cyl(g, .1, .12, .08, 6, C.stoneD, x, 0); }
+    const u = put(g, G('Torus', .4, .08, 4, 10, Math.PI), GOLDM(), 0, .9, 0); u.scale.y = 1.1;
+    for (let i = 0; i < 5; i++) { const a = (i + .5) / 5 * Math.PI; put(g, G('Box', .05, .05, .2), M(C.iron), Math.cos(a) * .4, .9 + Math.sin(a) * .44, 0); }
+    for (const x of [-.4, .4]) ico(g, .08, C.leaf, x, .5, .08); ico(g, .05, C.pink, -.36, .56, .12); ico(g, .05, C.yellow, .44, .44, .12);
+  },
+  miniwheel(g, live) {
+    box(g, .7, .08, .4, C.woodD); for (const x of [-.22, .22]) { const l = box(g, .07, .86, .07, C.wood, x, .06, -.06); l.rotation.z = x * 1.1; }
+    put(g, G('Cylinder', .4, .4, .05, 12), M(C.gold), 0, .78, -.02).rotation.x = Math.PI / 2; put(g, G('Cone', .07, .16, 4), M(C.red), 0, 1.22, .04).rotation.z = Math.PI;
+    if (!live) PARTS.miniwheel(g);
+  },
 };
 
 // The parts that move. A picture of a model has them baked in; on the farm (live) they stay loose and FX moves them.
@@ -634,6 +688,41 @@ const PARTS = {
     const hub = new THREE.Group(); hub.position.set(0, 1.4, .36); hub.rotation.z = .5; g.add(hub);
     for (let i = 0; i < 4; i++) { const b = put(hub, G('Box', .16, .7, .03), M(C.white), 0, .4, 0); const arm = new THREE.Group(); arm.rotation.z = i * Math.PI / 2; hub.add(arm); arm.add(b); }
     put(hub, G('Box', .12, .12, .08), M(C.woodD)); return hub;
+  },
+  carousel(g) {
+    const t = new THREE.Group(); t.position.y = .22; g.add(t);
+    // The roof sits high (1.75) on a tall column, so riders show under it from the farm camera. H is used by scene3d.js too.
+    const H = 1.75, N = 10, seg = Math.PI * 2 / N;
+    cyl(t, .86, .86, .06, 12, C.red, 0, -.02); cyl(t, .7, .7, .02, 12, C.cream, 0, .04);                 // the turning platform
+    cyl(t, .13, .16, H, 8, C.cream, 0, 0); for (const y of [.28, .78, 1.28]) cyl(t, .145, .15, .12, 8, C.red, 0, y); // candy-striped column
+    cyl(t, .2, .2, .08, 8, C.gold, 0, .04); cyl(t, .22, .16, .1, 8, C.gold, 0, H - .1);
+    for (let i = 0; i < N; i++) { // striped big top: ten panels, red and cream by turns, each with a scallop and a bulb
+      const a = i * seg, c = i % 2 ? C.cream : C.red, mid = a + seg / 2;
+      put(t, G('Cone', .98, .5, 1, 1, false, a, seg), M(c), 0, H + .31, 0);
+      put(t, G('Cylinder', .98, .98, .12, 1, 1, false, a, seg), M(i % 2 ? C.red : C.cream), 0, H, 0);
+      const sc = put(t, G('Cone', .12, .14, 4), M(c), Math.sin(mid) * .95, H - .12, Math.cos(mid) * .95); sc.rotation.x = Math.PI; sc.rotation.y = mid;
+      put(t, G('Icosahedron', .04, 0), MX('glow2', '#fff3b8', { emissive: '#ffd66b', emissiveIntensity: .9 }), Math.sin(a) * .98, H - .02, Math.cos(a) * .98);
+    }
+    cyl(t, .16, .2, .1, 8, C.gold, 0, H + .54); ico(t, .09, C.gold, 0, H + .72, 0); pennant(t, 0, H + .76, 0, C.yellow, .3, .8);
+    ['#fff4e2', C.pink, C.water, C.lilac].forEach((c, i) => { const a = i * Math.PI / 2, o = grp(t, Math.cos(a) * .6, 0, Math.sin(a) * .6); o.rotation.y = -a; o.userData.bob = i;
+      cyl(o, .02, .02, 1.75, 5, C.gold); const b = grp(o, 0, .38, 0); b.scale.setScalar(1.3); box(b, .14, .16, .34, c, 0, 0, 0); box(b, .1, .16, .12, c, 0, .12, .16); for (const x of [-.04, .04]) box(b, .03, .07, .03, c, x, .28, .2); box(b, .15, .05, .12, C.red, 0, .16, -.02); for (const z of [-.12, .12]) box(b, .1, .14, .05, c, 0, -.14, z); });
+    return t;
+  },
+  balloon(g) {
+    const b = new THREE.Group(); g.add(b); box(b, .015, 1.0, .015, C.cream, 0, .18, 0);
+    const e = put(b, G('Icosahedron', .34, 1), M(C.red), 0, 1.5, 0); e.scale.y = 1.15; put(b, G('Cylinder', .345, .345, .12, 10), M(C.yellow), 0, 1.5, 0); put(b, G('Cone', .08, .1, 5), M(C.redD), 0, 1.1, 0).rotation.x = Math.PI;
+    return b;
+  },
+  coinfount(g) {
+    const out = [put(g, G('Octahedron', .12, 0), MX('fount', C.white, { transparent: true, opacity: .8 }), 0, 1.26, 0)];
+    for (const a of [0, 2.1, 4.2]) out.push(put(g, G('Cylinder', .06, .06, .02, 6), GOLDM(), Math.cos(a) * .5, .6, Math.sin(a) * .5));
+    return out;
+  },
+  miniwheel(g) {
+    const w = new THREE.Group(); w.position.set(0, .78, .03); g.add(w);
+    ['#ffb547', '#7ed3b2', '#ff8fab', '#6fb8e6', '#ffd84a', '#e5543b', '#a58be0', '#7ed3b2'].forEach((c, i) => { const a = (i + .5) / 8 * Math.PI * 2, m = put(w, G('Cylinder', .36, .36, .05, 8, 1, false, i / 8 * Math.PI * 2, Math.PI / 4), M(c)); m.rotation.x = Math.PI / 2; put(w, G('Box', .04, .04, .05), M(C.cream), Math.cos(a) * .33, Math.sin(a) * .33, .03); });
+    put(w, G('Octahedron', .08, 0), GOLDM(), 0, 0, .05);
+    return w;
   },
   glow(g) { const o = put(g, G('Octahedron', .17, 0), MX('glow', '#8fe3f5', { emissive: '#8fe3f5', emissiveIntensity: .8 }), 0, .78, 0); o.scale.set(1, 1.4, 1); return o; },
   campfire(g) { return [put(g, G('Cone', .13, .34, 5), MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), 0, .26, 0), put(g, G('Cone', .07, .2, 5), MX('fire2', '#ffd95a', { emissive: '#ffc94d', emissiveIntensity: 1 }), .04, .2, .03)]; },
@@ -696,6 +785,10 @@ const FX = {
   flag(g) { const f = PARTS.flag(g); return T => { f.rotation.y = Math.sin(T * 2.2) * .28 + Math.sin(T * 5.1) * .06; }; },
   fountain(g) { const d = PARTS.fountain(g); return T => d.forEach((m, i) => { if (!i) { m.position.y = 1.32 + Math.sin(T * 5) * .06; m.rotation.y = T * 2; return; } const u = (T * .9 + i / 3) % 1, a = i * 2.1 + T * .3; m.position.set(Math.cos(a) * (.1 + u * .5), 1.1 + u * .5 - u * u * 1.2, Math.sin(a) * (.1 + u * .5)); }); },
   windmill(g) { const hub = PARTS.windmill(g); return T => { hub.rotation.z = T * 1.1; }; },
+  carousel(g) { const t = PARTS.carousel(g), riders = t.children.filter(o => o.userData.bob !== undefined); return T => { t.rotation.y = -T * .5; /* the horses go nose first; scene3d.js seats riders by the same numbers */ riders.forEach(o => { o.children[1].position.y = .38 + Math.sin(T * 2 + o.userData.bob * 1.6) * .12; }); }; },
+  balloon(g) { const b = PARTS.balloon(g); return T => { b.rotation.z = Math.sin(T * .9) * .09; b.rotation.x = Math.sin(T * .7 + 1) * .06; b.position.y = Math.sin(T * 1.3) * .04; }; },
+  coinfount(g) { const d = PARTS.coinfount(g); return T => d.forEach((m, i) => { if (!i) { m.position.y = 1.26 + Math.sin(T * 5) * .06; m.rotation.y = T * 2; return; } const u = (T * .7 + i / 3) % 1, a = i * 2.1 + T * .3; m.position.set(Math.cos(a) * (.1 + u * .5), 1.05 + u * .6 - u * u * 1.3, Math.sin(a) * (.1 + u * .5)); m.rotation.x = T * 6; }); },
+  miniwheel(g) { const w = PARTS.miniwheel(g); return T => { const u = T % 6; w.rotation.z = -(Math.floor(T / 6) + (u < 4 ? 1 - Math.pow(1 - u / 4, 3) : 1)) * 13.35; }; }, // spins for four seconds, rests for two
   glow(g) { const o = PARTS.glow(g); return T => { o.position.y = .78 + Math.sin(T * 1.8) * .05; o.rotation.y = T * .9; }; },
   campfire(g) { const [a, b] = PARTS.campfire(g), smoke = puffs(g, 0, .5, 0, 3, .06); return T => { a.scale.set(1 + Math.sin(T * 11) * .12, 1 + Math.sin(T * 13 + 1) * .2, 1 + Math.cos(T * 9) * .12); b.scale.y = 1 + Math.sin(T * 17) * .3; b.rotation.y = T * 3; smoke(T, .35, true, .8); }; },
   swing(g) { const s = PARTS.swing(g); return T => { s.rotation.x = Math.sin(T * 1.7) * .22; }; },
@@ -718,9 +811,10 @@ export function signModel(kind) {
 
 // live: for the farm itself, where the moving parts stay loose. g.userData.tick(T, st, g) moves them.
 // lv: the building's level (1 to 3, the farmhouse to 4). Each level has its own look.
-export function itemModel(type, live = false, raw = false, lv = 1) {
+// link: for pieces that join their neighbours (fences), the number fenceLink gives.
+export function itemModel(type, live = false, raw = false, lv = 1, link = 0) {
   const g = new THREE.Group();
-  (BUILD[type] || BUILD.rock)(g, live, lv);
+  (BUILD[type] || BUILD.rock)(g, live, lv, link);
   finish(g, raw);
   if (live && FX[type]) { const fx = new THREE.Group(); g.add(fx); g.userData.tick = FX[type](fx, lv); toonify(fx); fx.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); }
   return g;
@@ -739,12 +833,28 @@ export function balloonModel() {
   return g;
 }
 
+// Which sides of a fence at (x, y) turned r join something, in the piece's own directions (0 +x, 1 +z, 2 -x, 3 -z):
+//   bits 0-3 a fence or a lined-up Flower Arch next door, bits 4-7 the shared post on that side is this piece's to draw
+//   (the piece to the west or north draws it), bits 8-11 the neighbour is an arch. skip: an item id to leave out (one being moved).
+export const LINKS = { fence: true };
+export function fenceLink(items, x, y, r = 0, skip) {
+  let link = 0;
+  for (let w = 0; w < 4; w++) {
+    const nx = x + [1, 0, -1, 0][w], ny = y + [0, 1, 0, -1][w];
+    const o = items?.find(i => i.id !== skip && (i.type === 'fence' || i.type === 'arch') && i.x === nx && i.y === ny);
+    if (!o || o.type === 'arch' && (o.r | 0) % 2 !== w % 2) continue; // an arch joins only along its own line
+    const d = (w - (r | 0) + 4) % 4;
+    link |= 1 << d; if (o.type === 'arch') link |= 256 << d; else if (w < 2) link |= 16 << d;
+  }
+  return link;
+}
+
 // Frees what a model owns. Shared geometries and the cached plain materials stay.
 export function disposeModel(g) {
   const shared = new Set(mats.values());
   g.traverse(m => {
     if (!m.isMesh) return;
     if (m.userData.baked) m.geometry.dispose();
-    if (!shared.has(m.material)) m.material.dispose();
+    if (!shared.has(m.material) && !m.material.userData.keep) m.material.dispose();
   });
 }

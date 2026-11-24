@@ -2,6 +2,7 @@
 // Unlike the table games this one has no room: app.js mounts it straight from the hub.
 //   mount(app, ctx) -> { msg(m), me(), reopen(), destroy() }
 //   ctx: { send(action), toast, me(), home(), account(mode) }
+import { boostName, boostWhat } from '../../wheeltext.js';
 import { sfx } from '../../sfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
@@ -162,6 +163,9 @@ export function mount(app, ctx) {
   const helpRow = type => { const w = WORK[type], h = helperOf(type); // the helper line on a building's card
     return h ? `<p class="helpon">${face(h)}<span>${L(`<b>${esc(h.name)}</b> ${w.job}. ${w.what(workPct(h, type))}.`, `<b>${esc(h.name)}</b> ${w.job}. ${w.what(workPct(h, type))}.`)}</span></p><button type="button" class="btn sm w" data-a="workopen" data-type="${type}">${L(`Change helper`, `Zmień pomocnika`)}</button>`
       : `<p class="hint">${L(`${elTag(w.el)} pets can help here.`, `Tu mogą pomagać zwierzaki żywiołu ${elTag(w.el)}.`)}</p><button type="button" class="btn sm w" data-a="workopen" data-type="${type}">${L(`Choose a helper`, `Wybierz pomocnika`)}</button>`; };
+  const boostRow = type => { const on = F.buff?.[type], n = F.tokens?.[type] || 0; // Lucky Wheel boosters on a building's card
+    return (on ? `<p class="helpon boost"><span><b>${boostName(type)}</b> ${on.left ? L(`runs for ${wait(on.left)} more.`, `działa jeszcze ${wait(on.left)}.`) : L(`${cnt(on.uses, 'use', 'uses')} left.`, `pozostało użyć: ${on.uses}.`)}</span></p>` : '')
+      + (n && !on ? `<p class="hint">${boostWhat(type)}</p><button type="button" class="btn sm m" data-a="boost" data-type="${type}">${L(`Start booster (${n})`, `Włącz wzmocnienie (${n})`)}</button>` : n ? `<p class="hint">${L(`Boosters waiting: ${n}.`, `Czekające wzmocnienia: ${n}.`)}</p>` : ''); };
   const petRow = (p, extra = '') => `${face(p)}<b>${esc(p.name)}</b><small>${L(`Level ${p.lv}${extra}`, `Poziom ${p.lv}${extra}`)}</small>`;
   function paintPanel() {
     const box = $('pf-panel');
@@ -170,7 +174,7 @@ export function mount(app, ctx) {
     if (panel.kind === 'buy') { // a closer look at something from the build menu before paying for it
       const type = panel.type, it = ITEMS[type], have = countOf(F, type), up = UPGRADES[type];
       const gift = F.stash[type] || 0;
-      const why = gift ? '' : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
+      const why = gift ? '' : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
         : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
         : it.max && have >= it.max ? L(`You already have ${it.max === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`)
         : !canAfford(F.inv, it.cost) ? L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.') : '';
@@ -265,7 +269,7 @@ export function mount(app, ctx) {
       box.innerHTML = `<div class="panel tripp"><h2>${L(`A gift for ${esc(V.name)}`, `Prezent dla gracza ${esc(V.name)}`)}</h2><p>${L(`It comes out of your own stock and lands in their Mailbox. One gift a day for each neighbour.`, `Prezent pochodzi z twoich zapasów i trafia do Skrzynki pocztowej sąsiada. Jeden prezent dziennie na sąsiada.`)}</p>
         <div class="zones">${rows}</div>
         <p>${L(`<b>Or a decoration.</b> You pay for it, and they can place it for free.`, `<b>Albo ozdoba.</b> Ty płacisz, a sąsiad stawia ją za darmo.`)}</p>
-        <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
+        <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !it.wheel && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       return;
     }
@@ -289,17 +293,17 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'mail') {
       const box2 = !!countOf(F, 'mailbox');
-      const rows = F.mail.map(m => { const got = m.item ? `<span class="mat">${thumb(m.item)}${ITEMS[m.item]?.name || L('A decoration', 'Ozdoba')}</span>` : m.got && Object.entries(m.got).map(([k, n]) => mat(k, n)).join('');
-        const text = m.k === 'gift' ? `<b>${L(`A gift from ${esc(m.from)}`, `Prezent od gracza ${esc(m.from)}`)}</b>${m.text ? `<small>${esc(m.text)}</small>` : ''}` : m.k === 'note' ? `<b>${esc(srvText(m.text))}</b>` : m.k === 'date' ? `<b>${L(`${esc(m.from)} came for a playdate with ${esc(m.pet)}</b><small>A thank-you is inside.`, `${esc(m.from)}: wspólna zabawa z twoim zwierzakiem ${esc(m.pet)}</b><small>W środku czeka podziękowanie.`)}</small>` : m.k === 'help' ? `<b>${L(`${esc(m.from)} helped out</b><small>${m.n} ${m.n === 1 ? 'time' : 'times'} today. Thank them with a visit.`, `${esc(m.from)} pomaga na twojej farmie</b><small>Dziś ${cnt(m.n, 'time', 'times', 'raz', 'razy', 'razy')}. Podziękuj wizytą.`)}</small>`
+      const rows = F.mail.map(m => { const got = m.pet ? `<span class="mat">${thumb('pet:' + m.pet.sp)}${SPECIES[m.pet.sp]?.name || ''}${m.pet.el ? ' · ' + elTag(m.pet.el) : ''}</span>` : m.boost ? `<span class="mat">${boostName(m.boost)}</span>` : m.item ? `<span class="mat">${thumb(m.item)}${ITEMS[m.item]?.name || L('A decoration', 'Ozdoba')}</span>` : m.got && Object.entries(m.got).map(([k, n]) => mat(k, n)).join('');
+        const text = m.k === 'wheel' ? `<b>${L('A Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</b>${m.pet ? `<small>${L('A baby pet. It needs a free bed.', 'Mały zwierzak. Potrzebuje wolnego łóżka.')}</small>` : m.boost ? `<small>${boostWhat(m.boost)}</small>` : ''}` : m.k === 'gift' ? `<b>${L(`A gift from ${esc(m.from)}`, `Prezent od gracza ${esc(m.from)}`)}</b>${m.text ? `<small>${esc(m.text)}</small>` : ''}` : m.k === 'note' ? `<b>${esc(srvText(m.text))}</b>` : m.k === 'date' ? `<b>${L(`${esc(m.from)} came for a playdate with ${esc(m.pet)}</b><small>A thank-you is inside.`, `${esc(m.from)}: wspólna zabawa z twoim zwierzakiem ${esc(m.pet)}</b><small>W środku czeka podziękowanie.`)}</small>` : m.k === 'help' ? `<b>${L(`${esc(m.from)} helped out</b><small>${m.n} ${m.n === 1 ? 'time' : 'times'} today. Thank them with a visit.`, `${esc(m.from)} pomaga na twojej farmie</b><small>Dziś ${cnt(m.n, 'time', 'times', 'raz', 'razy', 'razy')}. Podziękuj wizytą.`)}</small>`
           : `<b>${L(`${esc(m.from)} challenged your farm</b><small>${m.held ? 'Your team held. You earned 5 coins.' : 'Your team lost this one. Nothing was taken.'}`, `${esc(m.from)} rzuca wyzwanie twojej farmie</b><small>${m.held ? 'Twoja drużyna się obroniła. Dostajesz 5 monet.' : 'Tym razem twoja drużyna przegrała. Nic nie przepada.'}`)}</small>`;
-        return `<div class="letter"><div>${text}${got ? `<div class="mats">${got}</div>` : ''}</div>${m.got || m.item ? `<button type="button" class="btn sm m" data-a="claim" data-id="${m.id}" ${box2 ? '' : 'disabled'}>${L(`Open`, `Otwórz`)}</button>` : ''}</div>`; }).join('');
+        return `<div class="letter"><div>${text}${got ? `<div class="mats">${got}</div>` : ''}</div>${m.got || m.item || m.pet || m.boost ? `<button type="button" class="btn sm m" data-a="claim" data-id="${m.id}" ${box2 ? '' : 'disabled'}>${L(`Open`, `Otwórz`)}</button>` : ''}</div>`; }).join('');
       const side = x => [...x.pets.map(q => q ? `<span class="kin">${face(q)}<small>${esc(q.name)}${L(`<br>level ${q.lv}`, `<br>poziom ${q.lv}`)}</small></span>` : '<span class="kin"><span class="nothumb">?</span><small>' + L('a pet that moved on', 'zwierzak, którego już tu nie ma') + '</small></span>'), ...Object.entries(x.mats).map(([k, n]) => mat(k, n))].join('') || '' + L('<span class="hint">nothing</span>', '<span class="hint">nic</span>') + '';
       const deals = F.trades.map(t => `<div class="letter deal"><div><b>${L(`${t.dir === 'in' ? `${esc(t.who)} offers a trade` : `Your offer to ${esc(t.who)}`}`, `${t.dir === 'in' ? `${esc(t.who)} proponuje wymianę` : `Twoja oferta dla gracza ${esc(t.who)}`}`)}</b><small>${L(`${t.dir === 'in' ? 'Answer' : 'Waits'} for ${t.left > 36 * 3600000 ? Math.round(t.left / 86400000) + ' days' : wait(t.left)} more.`, `${t.dir === 'in' ? 'Czas na odpowiedź' : 'Oferta czeka jeszcze'}: ${t.left > 36 * 3600000 ? Math.round(t.left / 86400000) + ' dni' : wait(t.left)}.`)}</small>
           <div class="swap"><div><small>${L(`${t.dir === 'in' ? 'You get' : 'You give'}`, `${t.dir === 'in' ? 'Dostajesz' : 'Dajesz'}`)}</small><div class="mats">${side(t.give)}</div></div><div><small>${L(`${t.dir === 'in' ? 'You give' : 'You get'}`, `${t.dir === 'in' ? 'Dajesz' : 'Dostajesz'}`)}</small><div class="mats">${side(t.want)}</div></div></div></div>
           <div class="dealbtns">${t.dir === 'in' ? `<button type="button" class="btn sm m" data-a="tradeyes" data-id="${t.id}">${L(`Accept`, `Przyjmij`)}</button><button type="button" class="btn sm w" data-a="tradecounter" data-id="${t.id}">${L(`Counter`, `Kontroferta`)}</button><button type="button" class="btn sm ghost-ink" data-a="tradeno" data-id="${t.id}">${L(`Decline`, `Odrzuć`)}</button>` : `<button type="button" class="btn sm w" data-a="tradecancel" data-id="${t.id}">${L(`Take it back`, `Wycofaj`)}</button>`}</div></div>`).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Mailbox`, `Skrzynka pocztowa`)}</h2>${box2 ? '' : '<p>' + L('Build a Mailbox on your farm to open gifts.', 'Zbuduj na farmie Skrzynkę pocztową, żeby otwierać prezenty.') + '</p>'}
         ${deals}${rows || (deals ? '' : '<p class="hint">' + L('Nothing new. Gifts, trade offers and news from neighbours land here.', 'Nic nowego. Trafiają tu prezenty, oferty wymiany i wieści od sąsiadów.') + '</p>')}
-        <div class="row end">${box2 && F.mail.some(m => !m.got && !m.item) ? '<button type="button" class="btn w" data-a="mailread">' + L('Clear the news', 'Wyczyść wieści') + '</button>' : ''}<button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
+        <div class="row end">${box2 && F.mail.some(m => !m.got && !m.item && !m.pet && !m.boost) ? '<button type="button" class="btn w" data-a="mailread">' + L('Clear the news', 'Wyczyść wieści') + '</button>' : ''}<button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'nest') { // choose the two parents and see what the egg might hold
@@ -586,10 +590,10 @@ export function mount(app, ctx) {
     el.hidden = !(mode === 'farm' && edit);
     if (el.hidden) return;
     const g = scene?.ghost();
-    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals : it.kind === tab && !it.craft && !it.pals)).map(([type, it]) => {
-      const have = countOf(F, type), full = it.max && have >= it.max, gift = F.stash[type] || 0, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals;
-      return `<button type="button" class="item${full || poor || locked || shy ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
-        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${it.max}`, `Masz ${have} z ${it.max}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
+    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals || it.wheel : it.kind === tab && !it.craft && !it.pals && !it.wheel)).map(([type, it]) => {
+      const have = countOf(F, type), full = it.max && have >= it.max, gift = F.stash[type] || 0, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && it.wheel && !have;
+      return `<button type="button" class="item${full || poor || locked || shy || luck ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
+        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${it.max}`, `Masz ${have} z ${it.max}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
     }).join('');
     const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) ? '' : ' off'}" data-a="expand">
         <span class="nothumb grow">${F.next.size}</span><b>${L(`More land`, `Więcej ziemi`)}</b><span class="cost">${costHtml(F.next.cost, F.inv)}</span></button>` : '';
@@ -668,9 +672,10 @@ export function mount(app, ctx) {
       else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="sellopen">' + L('Sell spare materials', 'Sprzedaj zbędne materiały') + '</button>';
       else if (item.type === 'hut') more = `<p class="hint">${L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}</p>`;
       if (WORK[item.type]) more += helpRow(item.type);
+      more += boostRow(item.type);
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
         ${up}<button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">${L(`Move it`, `Przesuń`)}</button>
-        ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">${L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}</button>`}</div>
+        ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">${it.wheel ? L('Put it away', 'Schowaj') : L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}</button>`}</div>
         <button type="button" class="round x" data-a="close" aria-label="${L(`Close`, `Zamknij`)}">×</button>`;
     }
   }
@@ -796,6 +801,7 @@ export function mount(app, ctx) {
     else if (a === 'leafform') { panel.form = +b.dataset.form; sfx.click(); paintPanel(); }
     else if (a === 'leaf') { panel = { kind: 'album', sp: b.dataset.sp }; sync(); }
     else if (a === 'claim') ctx.send({ t: 'claim', id: b.dataset.id });
+    else if (a === 'boost') ctx.send({ t: 'boost', type: b.dataset.type });
     else if (a === 'mailread') ctx.send({ t: 'mailread' });
     else if (a === 'practice') openTeam('practice');
     else if (a === 'ranks') { ranks = null; panel = { kind: 'ranks' }; card = null; sync(); ctx.send({ t: 'ranks' }); }
@@ -930,6 +936,9 @@ export function mount(app, ctx) {
     else if (m.did === 'collect') { sfx.win(); card = null; panel = { kind: 'back', back: m.back }; }
     else if (m.did === 'help') { sfx.set(); ctx.toast(L(`You tidied up for ${esc(V.name)} and earned 3 coins.`, `Sprzątanie u gracza ${esc(V.name)} gotowe. Dostajesz 3 monety.`)); }
     else if (m.did === 'gift') { sfx.join(); panel = null; ctx.toast(L(`Your gift is in ${esc(V.name)}'s Mailbox.`, `Twój prezent jest już w Skrzynce pocztowej gracza ${esc(V.name)}.`)); }
+    else if (m.did === 'claim' && m.born) { sfx.join(); const b = F.pets.find(x => x.id === m.born); ctx.toast(L(`${b ? b.name : 'A new pet'} has moved in!`, `${b ? b.name : 'Nowy zwierzak'}: nowy mieszkaniec farmy!`)); }
+    else if (m.did === 'claim' && m.boost) { sfx.join(); ctx.toast(L(`${boostName(m.boost)}: tap the ${ITEMS[m.boost].name} to start it.`, `${boostName(m.boost)}: dotknij budynku (${ITEMS[m.boost].name}), żeby je włączyć.`)); }
+    else if (m.did === 'boost') { sfx.join(); ctx.toast(boostWhat(m.type)); }
     else if (m.did === 'claim' && m.item) { sfx.join(); ctx.toast(L(`${ITEMS[m.item].name} is yours. Find it under Edit farm and place it for free.`, `${ITEMS[m.item].name}: to teraz twoje. Znajdziesz to w Urządź farmę i postawisz za darmo.`)); }
     else if (m.did === 'claim') { sfx.join(); ctx.toast(L('You got ', 'Dostajesz: ') + Object.entries(m.got).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') + '.'); }
     else if (m.did === 'duel') { sfx.join(); panel = null; ctx.toast(L(`Invitation sent. The battle starts as soon as ${esc(V?.name || 'they')} says yes.`, `Zaproszenie wysłane. Bitwa zacznie się, gdy tylko ${esc(V?.name || 'druga strona')} się zgodzi.`)); }

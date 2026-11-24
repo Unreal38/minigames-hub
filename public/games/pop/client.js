@@ -54,7 +54,7 @@ export function mount(app, ctx) {
   let S = null, scene = null, destroyed = false, shelfId = null, pending = false, resTimer = 0, bigTimer = 0, quiet = 0, hintTimer = 0;
   let shown = null;       // the numbers on screen: they tick up while the steps play, then the server's take over
   let picked = -1, cursor = -1, drag = null;
-  const send = a => { ctx.send(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) { pending = false; ctx.toast(L('Pet Pop did not answer. Check your connection. If the game was just updated, the server needs a restart.', 'Pet Pop nie odpowiada. Sprawdź połączenie. Jeśli gra była właśnie aktualizowana, serwer wymaga restartu.'), true); } }, 4000); };
+  const send = a => { ctx.send(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) { pending = false; ctx.toast(L('Pet Pop did not answer. Check your connection. If the game was just updated, the server needs a restart.', 'Gra Zwierzakowe trójki nie odpowiada. Sprawdź połączenie. Jeśli gra była właśnie aktualizowana, serwer wymaga restartu.'), true); } }, 4000); };
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -77,7 +77,7 @@ export function mount(app, ctx) {
     if (!S || !shown) return;
     setHtml($('pp-lv'), L(`Level <b>${S.lv}</b>`, `Poziom <b>${S.lv}</b>`));
     setHtml($('pp-coins'), `${coinSvg}<b>${S.paid}</b><small>/${S.daily} ${L('today', 'dziś')}</small>`);
-    $('pp-coins').title = S.paid >= S.daily ? L('You have every coin Pet Pop pays today. Levels still count for the rankings.', 'Masz już wszystkie monety, jakie Pet Pop dziś wypłaca. Poziomy nadal liczą się do rankingów.') : L(`Clearing a level pays coins, up to ${S.daily} a day.`, `Za ukończony poziom są monety, najwyżej ${S.daily} dziennie.`);
+    $('pp-coins').title = S.paid >= S.daily ? L('You have every coin Pet Pop pays today. Levels still count for the rankings.', 'Masz już wszystkie monety, jakie ta gra dziś wypłaca. Poziomy nadal liczą się do rankingów.') : L(`Clearing a level pays coins, up to ${S.daily} a day.`, `Za ukończony poziom są monety, najwyżej ${S.daily} dziennie.`);
     const goals = S.goals.map((g, k) => {
       const have = shown.have[k], done = have >= g.n;
       const pic = g.k === 'pet' ? `<i class="pp-pet" style="background:${KIND_COLOR[g.kind]}">${petImg({ sp: KINDS[g.kind], lv: 20, name: petName(g.kind) }, 40, 'pp-petimg')}</i>` : `<i class="pp-pet hay">${baleSvg}</i>`;
@@ -257,7 +257,7 @@ export function mount(app, ctx) {
       if (destroyed) return;
       clearTimeout(quiet);
       if (m.need === 'account') {
-        gate(`<h2>Pet Pop</h2><p>${L('Your level and best scores are kept between visits, so Pet Pop needs an account. It only takes a username and a password.', 'Twój poziom i rekordy zapisują się między wizytami, więc Pet Pop wymaga konta. Wystarczy nazwa użytkownika i hasło.')}</p>
+        gate(`<h2>${L('Pet Pop', 'Zwierzakowe trójki')}</h2><p>${L('Your level and best scores are kept between visits, so Pet Pop needs an account. It only takes a username and a password.', 'Twój poziom i rekordy zapisują się między wizytami, więc ta gra wymaga konta. Wystarczy nazwa użytkownika i hasło.')}</p>
           <div class="row"><button type="button" class="btn big" data-a="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn ghost" data-a="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>
           <button type="button" class="btn ghost" data-a="home">${L('Back to the hub', 'Wróć do Zatoki')}</button>`);
         return;

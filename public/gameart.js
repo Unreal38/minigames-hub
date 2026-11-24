@@ -241,6 +241,30 @@ export function digArt() {
   </svg>`;
 }
 
+// Bubble Lagoon card: a pool of pet bubbles under a coral reef, a shell launcher on a raft, one bubble on its way up
+// and an egg flying off to a rival.
+export function lagoonArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const C = { c: ['#ff9b54', '#e0642a'], z: ['#ffe46b', '#e3b81e'], s: ['#9be07a', '#4fa83a'], w: ['#8fd0ff', '#3b8fd6'], b: ['#b49bff', '#7652d8'], a: ['#ffb3d1', '#e0679b'] };
+  // a bubble: a glossy ball with two little eyes, so it reads as "a pet inside"
+  const bub = (x, y, k, r = 8) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${C[k][0]}" stroke="#3b2219" stroke-width="2"/><path d="M${x - r * .1} ${y + r * .72}a${r * .8} ${r * .8} 0 0 0 ${r * .78}-${r * .55}" fill="none" stroke="${C[k][1]}" stroke-width="2" stroke-linecap="round"/><circle cx="${x - r * .3}" cy="${y + r * .05}" r="${r * .17}" fill="#3b2219"/><circle cx="${x + r * .3}" cy="${y + r * .05}" r="${r * .17}" fill="#3b2219"/><ellipse cx="${x - r * .38}" cy="${y - r * .5}" rx="${r * .3}" ry="${r * .15}" fill="#fff" opacity=".85" transform="rotate(-28 ${x - r * .38} ${y - r * .5})"/>`;
+  const rows = ['czzswwba', 'cssw.ba', 'c.sw..aa', '..ww...'];
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Bubbles with pets inside hanging under a coral reef, and a shell launcher on a raft shooting one more up">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="50" cy="20" r="1.6"/><circle cx="272" cy="16" r="1.3"/><circle cx="288" cy="70" r="1.5"/><circle cx="42" cy="84" r="1.2"/><circle cx="262" cy="110" r="1.1"/></g>
+    <path d="M40 52l14-8 16 4 8 10-10 8H48z" class="artcloud" fill="#fff"/><path d="M246 40l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <rect x="94" y="22" width="132" height="112" fill="#1f8fb8" ${o}/><path d="M96 80h128v52H96z" fill="#14709a"/><path d="M118 24l14 0-26 108h-10zM170 24h16l-22 108h-12z" fill="#fff" opacity=".1"/>
+    <rect x="84" y="20" width="12" height="116" fill="#a3b4c4" ${o}/><rect x="224" y="20" width="12" height="116" fill="#a3b4c4" ${o}/>
+    <path d="M80 10h160v16H80z" fill="#d9707a" ${o}/><path d="M86 4h18v10H86zM112 1h16v12h-16zM140 5h20v9h-20zM172 0h16v13h-16zM200 4h22v10h-22z" fill="#ffb26b" ${o}/><path d="M100 24h14v8h-14zM150 24h18v6h-18zM196 24h14v9h-14z" fill="#e2679a" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/>
+    ${rows.map((r, y) => [...r].map((k, x) => (k === '.' ? '' : bub(104 + x * 16 + (y % 2) * 8, 40 + y * 14, k))).join('')).join('')}
+    <path d="M160 112l-14-34" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 8"/>
+    <g class="blshot">${bub(141, 68, 's')}</g>
+    <path d="M90 128h140v10H90z" fill="#c98a52" ${o}/><path d="M118 128v10M146 128v10M174 128v10M202 128v10" stroke="#3b2219" stroke-width="2"/>
+    <path d="M146 128l14-20 14 20z" fill="#ffd6c2" ${o}/><path d="M160 112v14M153 120l-3 7M167 120l3 7" stroke="#e8a58a" stroke-width="2" stroke-linecap="round"/>
+    ${bub(160, 107, 'a', 7)}
+    <g class="blegg"><ellipse cx="258" cy="84" rx="9" ry="11.5" fill="#fff6e6" ${o} transform="rotate(20 258 84)"/><circle cx="255" cy="80" r="1.6" fill="#c9a27c"/><circle cx="261" cy="87" r="1.6" fill="#c9a27c"/><circle cx="257" cy="91" r="1.3" fill="#c9a27c"/><path d="M240 98l8-5M244 106l7-3" stroke="#fff" stroke-width="3" stroke-linecap="round"/></g>
+    <path d="M62 104l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>
+  </svg>`;
+}
 // Sky Bricks card: a well of pastel bricks on a floating island, one brick falling in and a stone flying off.
 export function bricksArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
@@ -434,6 +458,9 @@ export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-w
   <path d="M14 56 30 40h62l16 16z" fill="#ffe08a"/><path d="M14 56h94v46H14z" fill="#f5bd42"/></g>
   <path d="M40 40 28 56v46M82 40l12 16v46" fill="none" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/>
   <path d="M40 70h14M62 84h18M44 92h10M70 68h10" stroke="#c98a1e" stroke-width="5" stroke-linecap="round"/></svg>`;
+// Lucky Wheel tile: a blocky eight-slice wheel with a red pointer and a gold hub.
+export const WHEEL_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="4" stroke-linejoin="round"><path d="M60 62 43.2 21.3 76.8 21.3z" fill="#ffb547"/><path d="M60 62 76.8 21.3 100.7 45.2z" fill="#7ed3b2"/><path d="M60 62 100.7 45.2 100.7 78.8z" fill="#ff8fab"/><path d="M60 62 100.7 78.8 76.8 102.7z" fill="#6fb8e6"/><path d="M60 62 76.8 102.7 43.2 102.7z" fill="#ffd84a"/><path d="M60 62 43.2 102.7 19.3 78.8z" fill="#e5543b"/><path d="M60 62 19.3 78.8 19.3 45.2z" fill="#a58be0"/><path d="M60 62 19.3 45.2 43.2 21.3z" fill="#7ed3b2"/>
+  <rect x="50" y="52" width="20" height="20" rx="3" fill="#fff4e2"/><path d="M50 6h20v12l-10 14-10-14z" fill="#e5543b"/></g></svg>`;
 export const POP_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <rect x="10" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="44" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/><rect x="78" y="42" width="32" height="36" rx="9" fill="#ff9a4d"/>
   <rect x="44" y="6" width="32" height="34" rx="9" fill="#6fa8ee"/><rect x="44" y="80" width="32" height="34" rx="9" fill="#8fd16a"/></g>

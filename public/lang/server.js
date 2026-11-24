@@ -72,7 +72,8 @@ const TEXT = {
   // Mystery Pet and Hay Hunch
   'Solve it first, then share.': 'Najpierw rozwiąż zagadkę, potem się nią podziel.',
   'You already shared today’s result.': 'Dzisiejszy wynik jest już udostępniony.',
-  'You already solved today’s Mystery Pet.': 'Dzisiejsza zagadka Mystery Pet jest już rozwiązana.',
+  'You already had today’s spin. Come back tomorrow.': 'Dzisiejszy obrót już za tobą. Wróć jutro.',
+  'You already solved today’s Mystery Pet.': 'Dzisiejszy Zagadkowy zwierzak jest już odgadnięty.',
   'You already tried that one.': 'Ten zwierzak już był zgadywany.',
   'Unknown move.': 'Nieznany ruch.',
   'Finish this field first.': 'Najpierw dokończ to pole.',
@@ -91,7 +92,7 @@ const FORMS = [
   [/^You need (\d+) more coins for that\.$/, n => `Brakuje ci na to ${n} ${plForm(+n, 'monety', 'monet', 'monet')}.`],
   [/^You're already signed in as (.+)\.$/, u => `Zalogowano cię już jako ${u}.`],
   [/^Your isle has room for (\d+) decorations\.$/, n => `Na twojej wyspie zmieści się ${n} ozdób.`],
-  [/^🐾 Mystery Pet #(\d+): solved in (\d+) guess(?:es)?(?: · 🔥 (\d+) days in a row)?$/, (no, n, d) => `🐾 Mystery Pet #${no}: ${n} ${plForm(+n, 'próba', 'próby', 'prób')}${d ? ` · 🔥 ${d} dni z rzędu` : ''}`],
+  [/^🐾 Mystery Pet #(\d+): solved in (\d+) guess(?:es)?(?: · 🔥 (\d+) days in a row)?$/, (no, n, d) => `🐾 Zagadkowy zwierzak #${no}: ${n} ${plForm(+n, 'próba', 'próby', 'prób')}${d ? ` · 🔥 ${d} dni z rzędu` : ''}`],
 ];
 /** More sentences for a part of the site that loads later (Pet Farm adds its own). */
 export function addServerText(text = {}, forms = []) { Object.assign(TEXT, text); FORMS.push(...forms); }

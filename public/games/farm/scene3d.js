@@ -12,8 +12,8 @@ import * as THREE from 'three';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
-import { itemModel, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
-import { petModel, eggModel } from './pets3d.js';
+import { itemModel, fenceLink, LINKS, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
+import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
 import { groundOf, R as RIMS, BASE, finish, pieceModel } from '../../isle3d.js';
@@ -192,15 +192,16 @@ export function createScene(canvas, { onPick, onGhost }) {
     const seen = new Set();
     for (const it of farm?.items || []) {
       seen.add(it.id);
-      const lv = levelOf(it), key = [it.type, it.x, it.y, it.r, N, lv].join();
+      const lv = levelOf(it), link = LINKS[it.type] ? fenceLink(farm.items, it.x, it.y, it.r, ghost?.id) : 0, key = [it.type, it.x, it.y, it.r, N, lv, link].join();
       let e = items.get(it.id);
       if (e && e.key === key) continue;
       const grew = !!e && e.type === it.type && lv > e.lv; // improved while we watch: the new look pops in with a little party
-      if (!e || e.type !== it.type || e.lv !== lv) {
+      if (!e || e.type !== it.type || e.lv !== lv || e.link !== link) { // a fence also changes shape when a neighbour comes or goes
         const held = ['pick', 'hover'].filter(k => marks[k].t?.item === it.id).map(k => [k, marks[k].t]); for (const [k] of held) setMark(k, null);
         if (e) { scene.remove(e.g); disposeModel(e.g); }
-        const g = itemModel(it.type, true, false, lv), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
-        e = { g: hold, m: g, type: it.type, lv, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
+        const g = itemModel(it.type, true, false, lv, link), hold = new THREE.Group(); hold.add(g); // hold is placed and popped; g is left to its own animation
+        const rejoin = !!e && e.type === it.type && e.lv === lv; // only its joins changed: swap quietly, no pop
+        e = { g: hold, m: g, type: it.type, lv, link, top: new THREE.Box3().setFromObject(g).max.y, pop: seenOnce && !rejoin ? 1 : 0, burst: 0, sign: null, st: { on: false, n: 1, burst: 0 } };
         scene.add(hold); items.set(it.id, e);
         for (const [k, t] of held) setMark(k, t);
       }
@@ -412,7 +413,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form + lookKey(look), face: 0 };
     pets.set(id, p); return p;
   }
-  function dropPet(id) { const p = pets.get(id); if (!p) return; if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
+  function dropPet(id) { const p = pets.get(id); if (!p) return; endUse(p); if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
   const tileOf = p => [Math.max(0, Math.min(N - 1, Math.floor(p.x + N / 2))), Math.max(0, Math.min(N - 1, Math.floor(p.z + N / 2)))];
   function freeTileNear(tx, ty) {
     let best = null, bd = 1e9;
@@ -467,7 +468,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (const id of [...pets.keys()]) if (!seen.has(id)) dropPet(id);
   }
   // A short stroll: breadth-first over free tiles, then walk to a random one nearby.
-  function stroll(p) {
+  // want: the id of something it has been called over to (friends joining a carousel ride).
+  function stroll(p, want = null) {
     const [sx, sy] = tileOf(p), start = sy * N + sx, prev = new Int16Array(N * N).fill(-1), dist = new Uint8Array(N * N), q = [start], reach = [];
     prev[start] = start;
     for (let i = 0; i < q.length; i++) {
@@ -482,8 +484,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!reach.length) return;
     let c = reach[Math.random() * reach.length | 0]; const path = [];
     p.goal = null;
-    if (farm && !starters && Math.random() < .55) { // pick a building or decoration that is free, and the closest tile to it that can be walked to
-      const list = farm.items.filter(it => USE[it.type] && items.get(it.id) && !items.get(it.id).user);
+    if (farm && !starters && (want !== null || Math.random() < .55)) { // pick a building or decoration that is free, and the closest tile to it that can be walked to
+      const list = farm.items.filter(it => USE[it.type] && items.get(it.id) && !taken(items.get(it.id)) && (want === null || it.id === want));
       for (let tries = 0; tries < 4 && list.length && !p.goal; tries++) {
         const it = list[Math.random() * list.length | 0], e = items.get(it.id), [w, h] = footprint(it.type, it.r), gx = e.g.position.x, gz = e.g.position.z, lim = Math.max(w, h) / 2 + 1.05;
         let best = -1, bd = 1e9;
@@ -501,7 +503,9 @@ export function createScene(canvas, { onPick, onGhost }) {
     garden: ['sniff', 4], flowers: ['sniff', 3.5], bush: ['sniff', 3.5], shrooms: ['dance', 4.5],
     pond: ['soak', 9], hotspring: ['soak', 11], fountain: ['drink', 4], birdbath: ['drink', 3.5], well: ['drink', 4],
     bench: ['sit', 8], palbench: ['sit', 8], picnic: ['sit', 8], campfire: ['warm', 9],
-    tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5] };
+    tower: ['perch', 8], haybale: ['perch', 7], rock: ['perch', 7], swing: ['swing', 9], ball: ['play', 3.5],
+    // the lucky set from the Lucky Wheel
+    clover: ['sniff', 3.5], carousel: ['ride', 14], chest: ['look', 3], goldpet: ['look', 3.5], balloon: ['look', 3.5], coinfount: ['drink', 4], horseshoe: ['cheer', 2.4], miniwheel: ['cheer', 2.6] };
   const SEAT = { bench: .24, palbench: .24, picnic: .04, pond: -.1, hotspring: -.12 }; // how high a pet sits on or in something
   const BM2 = { drop: new THREE.MeshBasicMaterial({ color: '#7cc8ff' }), steam: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .7 }) };
   // A building just got better: confetti and stars burst from it, and dust puffs out round its foot.
@@ -558,14 +562,25 @@ export function createScene(canvas, { onPick, onGhost }) {
     }
   }
   const splash = (x, y, z, n = 3) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = .5 + Math.random() * .5; bit(BIT.ball, BM2.drop, .5, (m, u, t) => { m.position.set(x + Math.cos(a) * t * v, y + t * 1.6 - t * t * 4, z + Math.sin(a) * t * v); m.scale.setScalar(.035 * (1 - u)); }); } };
-  const endUse = p => { if (p.act?.k === 'use' && p.act.e.user === p) p.act.e.user = null; };
+  const endUse = p => { if (p.act?.k !== 'use') return; const e = p.act.e; if (e.user === p) e.user = null; const i = e.riders ? e.riders.indexOf(p) : -1; if (i >= 0) e.riders[i] = null; };
+  // The Little Carousel seats four, one pet a horse; everything else is used by one pet at a time.
+  const RIDE = 4, taken = e => e.type === 'carousel' ? (e.riders || []).filter(Boolean).length >= RIDE : !!e.user;
+  // A pet that climbs onto an empty carousel often calls its friends over, so now and then every horse has a rider.
+  function callRiders(first, id, e) {
+    const idle = [...pets.values()].filter(o => o !== first && !o.path.length && !o.train && !o.fixed && !o.nest && o.act?.k !== 'use' && o.act?.k !== 'greet');
+    idle.sort(() => Math.random() - .5);
+    for (const o of idle.slice(0, Math.random() < .5 ? RIDE - 1 : 1 + (Math.random() * 2 | 0))) { o.act = null; stroll(o, id); if (o.goal) { o.run = true; o.wait = 0; } }
+  }
   // Chooses what a pet does now that it has stopped walking, and for how long.
   function rest(p) {
     p.topY ??= new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y;
     const goal = p.goal, ge = goal && items.get(goal.id); p.goal = null;
-    if (ge && ge.key === goal.key && !ge.user) { // arrived at something: use it
+    if (ge && ge.key === goal.key && !taken(ge)) { // arrived at something: use it
       const [use, secs] = USE[goal.type], dur = secs * (.8 + Math.random() * .5);
-      ge.user = p; p.act = { k: 'use', use, t: 0, dur, e: ge, id: goal.id, key: ge.key, z: .6, gx: ge.g.position.x, gz: ge.g.position.z }; p.wait = dur + .6 + Math.random() * 2; return;
+      let seat = 0;
+      if (use === 'ride') { const r = ge.riders ||= Array(RIDE).fill(null), alone = !r.some(Boolean); seat = r.indexOf(null); r[seat] = p; if (alone && Math.random() < .6) callRiders(p, goal.id, ge); }
+      else ge.user = p;
+      p.act = { k: 'use', use, seat, t: 0, dur, e: ge, id: goal.id, key: ge.key, z: .6, gx: ge.g.position.x, gz: ge.g.position.z }; p.wait = dur + .6 + Math.random() * 2; return;
     }
     const r = Math.random(); let k = null, dur = 2;
     const pal = [...pets.values()].find(o => o !== p && !o.path.length && !o.train && !o.fixed && (!o.act || o.act.k === 'sit' || o.act.k === 'look') && Math.hypot(o.x - p.x, o.z - p.z) < 1.7);
@@ -637,9 +652,13 @@ export function createScene(canvas, { onPick, onGhost }) {
             else if (U === 'play') { up = Math.abs(Math.sin(A.t * 5.5)) * .22 * ease; ox = hx * .3 * Math.abs(Math.sin(A.t * 2.75)) * ease; oz = hz * .3 * Math.abs(Math.sin(A.t * 2.75)) * ease; if ((A.z -= dt) <= 0) { A.z = 1.14; A.e.pop = 1; } }
             else if (U === 'warm') { sit = .16 * ease; turn = Math.sin(A.t * .9) * .12 * ease; tilt = Math.sin(A.t * 1.3) * .05 * ease; }
             else { // onto or into it: a hop there, a stay, and a hop back
-              const top = U === 'perch' ? Math.min(1.5, A.e.top - .02) : U === 'swing' ? .36 : SEAT[A.e.type] ?? .2;
-              ox = hx * hop; oz = hz * hop; up = top * hop + arc * .3; sit = .14 * ease;
+              // on the carousel the seat is a horse: it goes round with the platform and bobs on its pole (the same numbers as models.js)
+              const ride = U === 'ride', ra = ride ? A.e.g.rotation.y - T * .5 : 0, sa = A.seat * Math.PI / 2, rx = ride ? .6 * Math.cos(sa - ra) : 0, rz = ride ? .6 * Math.sin(sa - ra) : 0;
+              const top = ride ? .9 + Math.sin(T * 2 + A.seat * 1.6) * .12 : U === 'perch' ? Math.min(1.5, A.e.top - .02) : U === 'swing' ? .36 : SEAT[A.e.type] ?? .2;
+              ox = (hx + rx) * hop; oz = (hz + rz) * hop;
+              if (ride) { p.face = ra - sa; if ((A.z -= dt) <= 0) { A.z = 2.2; say(BIT.star, BM.star, 1, .05); } } up = top * hop + arc * .3; sit = .14 * ease;
               if (U === 'swing') { const ang = Math.sin(T * 1.7) * .22, ry = A.e.g.rotation.y, k = hop * .82; ox += Math.sin(ry) * -Math.sin(ang) * k; oz += Math.cos(ry) * -Math.sin(ang) * k; up += (1 - Math.cos(ang)) * k; p.face = ry; pitch = ang * hop; }
+              else if (ride) {}
               else if (U === 'perch') { p.face += Math.PI; turn = Math.sin(A.t * 1.2) * .6 * ease; }
               else if (U === 'soak') { p.face += Math.sin(A.t * .4) * 1.5; up += Math.sin(T * 2.2 + p.seed) * .02; if (hop > .95 && (A.z -= dt) <= 0) { A.z = 1; if (A.e.type === 'hotspring') floatUp(BIT.ball, BM2.steam, p.x + ox, .5, p.z + oz, .06, 1.5); else splash(p.x + ox, .12, p.z + oz, 2); } if (!A.wet && hop > .9) { A.wet = true; splash(p.x + ox, .15, p.z + oz, 7); } }
               else if (U === 'sit') { p.face += Math.PI; turn = Math.sin(A.t * .8) * .3 * ease; }
@@ -655,6 +674,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
       const blink = asleep || (T + p.seed) % 3.6 < .12 ? .15 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11 + p.seed) * .1);
+      if (!asleep) wiggle(p.g, T, p.seed, moving ? .5 : 0);
       if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
       if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
       p.blob.position.set(p.x + ox, .015, p.z + oz); p.blob.visible = up < .3; p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
@@ -832,6 +852,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       p.blob.position.set(p.g.position.x, .04, p.g.position.z); p.blob.scale.setScalar(p.base * 3 / (1 + p.g.position.y * .5));
       const blink = (T + p.seed) % 3.6 < .12 || p.down ? .15 : p.low ? .6 : 1; for (const e of p.g.userData.eyes) e.scale.z = blink;
       for (const fl of p.g.userData.flames) fl.scale.y = fl.scale.x * (1 + Math.sin(T * 11) * .1);
+      if (!p.down) wiggle(p.g, T, p.seed || 0, p.win ? 1 : 0);
       p.blob.visible = p.fall < .5;
     }
   }
@@ -865,7 +886,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), th ? th.rock : '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
-      const m = itemModel(it.type, false, true, levelOf(it, f)), [w, h] = footprint(it.type, it.r);
+      const m = itemModel(it.type, false, true, levelOf(it, f), LINKS[it.type] ? fenceLink(f.items, it.x, it.y, it.r) : 0), [w, h] = footprint(it.type, it.r);
       m.position.set(it.x + w / 2 - n / 2, 0, it.y + h / 2 - n / 2); m.rotation.y = -it.r * Math.PI / 2; land.add(m);
     }
     bake(land); toonify(land, .07);
@@ -963,26 +984,34 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (!ghost) return;
     ghost.ok = !!farm && fits(farm, ghost.type, ghost.x, ghost.y, ghost.r, ghost.id);
     const [w, h] = footprint(ghost.type, ghost.r);
+    if (LINKS[ghost.type]) { const link = fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
     placeModel(ghost.g, ghost.type, ghost.x, ghost.y, ghost.r); ghost.g.position.y = .12;
     ghost.pad.scale.set(w, h, 1); ghost.pad.position.set(wx(ghost.x, w), .03, wz(ghost.y, h));
     padMat.color.set(ghost.ok ? '#7dff8a' : '#ff6b5a');
     onGhost?.(ghostInfo());
   }
   const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok };
+  function ghostModel(type, id, link) {
+    const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1, link);
+    g.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .8; m.castShadow = false; m.userData.baked = true; } });
+    return g;
+  }
   function ghostStart(type, id, x, y, r) {
     ghostCancel(true);
-    const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1);
-    g.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = .8; m.castShadow = false; m.userData.baked = true; } });
+    const g = ghostModel(type, id, 0);
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
-    ghost = { type, id, x, y, r, g, pad, ok: false };
+    ghost = { type, id, x, y, r, g, pad, ok: false, link: 0 };
+    if (id && LINKS[type]) syncItems(); // the fences next to the one picked up let go of it
     for (const [iid, e] of items) e.g.visible = iid !== id;
     renderer.shadowMap.needsUpdate = true;
     gridVis(); ghostCheck();
   }
   function ghostCancel(quiet) {
     if (!ghost) return;
+    const relink = ghost.id && LINKS[ghost.type];
     scene.remove(ghost.g, ghost.pad); disposeModel(ghost.g); ghost.pad.geometry.dispose(); ghost = null;
+    if (relink) syncItems();
     for (const e of items.values()) e.g.visible = true;
     renderer.shadowMap.needsUpdate = true; gridVis();
     if (!quiet) onGhost?.(null);

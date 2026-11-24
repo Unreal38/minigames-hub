@@ -76,6 +76,15 @@ export const ITEMS = {
   palbench: { name: "Friends' Bench", kind: 'd', w: 1, h: 1, pals: 5, cost: { wood: 12 }, desc: 'A bench for two. Unlocked by friendship.' },
   palflag:  { name: 'Friendship Flag', kind: 'd', w: .5, h: .5, fine: true, pals: 15, cost: { wood: 6, fiber: 10 }, desc: 'Bunting that says friends live here.' },
   ball:     { name: 'Pet Ball', kind: 'd', w: .5, h: .5, fine: true, walk: true, cost: { fiber: 6 }, desc: 'A toy for the pets.' },
+  // The lucky set (wheel: true): prizes of the Lucky Wheel on the main page. Never bought or crafted; won ones wait under Edit farm.
+  clover:    { name: 'Lucky Clover Patch', kind: 'd', w: .5, h: .5, fine: true, walk: true, wheel: true, max: 1, cost: {}, desc: 'Every leaf has four leaves. Won on the Lucky Wheel.' },
+  carousel:  { name: 'Little Carousel', kind: 'd', w: 2, h: 2, wheel: true, max: 1, cost: {}, desc: 'It turns all day, with or without riders. Won on the Lucky Wheel.' },
+  chest:     { name: 'Treasure Chest', kind: 'd', w: .5, h: .5, fine: true, wheel: true, max: 1, cost: {}, desc: 'Full to the brim and far too heavy to carry off. Won on the Lucky Wheel.' },
+  goldpet:   { name: 'Golden Pet Statue', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'A pet in shining gold. Won on the Lucky Wheel.' },
+  balloon:   { name: 'Tethered Balloon', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'It tugs at its rope whenever the wind picks up. Won on the Lucky Wheel.' },
+  coinfount: { name: 'Coin Fountain', kind: 'd', w: 2, h: 2, wheel: true, max: 1, cost: {}, desc: 'Somebody has thrown in a lot of wishes. Won on the Lucky Wheel.' },
+  horseshoe: { name: 'Horseshoe Gate', kind: 'd', w: 1, h: 1, walk: true, wheel: true, max: 1, cost: {}, desc: 'Walk under it for good luck. Won on the Lucky Wheel.' },
+  miniwheel: { name: 'Mini Lucky Wheel', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'A small wheel that never stops on a bad day. Won on the Lucky Wheel.' },
 };
 
 export const ELEMENTS = { Leaf: '#3f9a52', Ember: '#e0592f', Tide: '#2f86cc', Spark: '#d9a400', Stone: '#8a7f76' };

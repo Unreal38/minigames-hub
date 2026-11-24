@@ -2,7 +2,7 @@
 // Real time: every browser drives its own kart with the shared physics in track.js and reports where it is about
 // ten times a second. The server checks those reports, drives the bots with the same physics, counts laps, owns the
 // item boxes and the power-ups, decides every hit, and streams the whole race back twenty times a second (fast()).
-import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, bump, autoDrive, locate, at, progOf, KART_R, MAX_V, headingAt } from '../../public/games/kart/track.js';
+import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, bump, autoDrive, locate, at, progOf, KART_R, MAX_V, headingAt, driftFlags } from '../../public/games/kart/track.js';
 import { randomAv } from '../../public/avatar.js';
 
 export const meta = { id: 'kart', name: 'Kart Island Race', minPlayers: 1, maxPlayers: 8, joinAt: 'game' };
@@ -187,7 +187,8 @@ function botStep(G, s, dt, now) {
     const d = locate(T, O.x, O.z, k.i), ahead = ((d.s - k.s) % T.L + T.L) % T.L;
     if (ahead > 2 && ahead < 16 && Math.abs(d.lat - st.lane) < 2.2 && Math.random() < (sharp ? .9 : .6)) avoid = d.lat > 0 ? d.lat - 2.6 : d.lat + 2.6;
   }
-  const inp = autoDrive(T, k, { lane: st.lane, care: sharp ? 1 : 1.15, avoid });
+  const t = (now - G.goAt) / 1000; // pets, geysers and hammers move by the race clock, the same in every browser
+  const inp = autoDrive(T, k, { lane: st.lane, care: sharp ? 1 : 1.15, avoid, t });
   // keep the pack together: bots far ahead of the people ease off, bots far behind try harder
   let top = TOP[G.opts.bots];
   const humans = G.seats.map((x, i) => x.human && !x.bot ? G.karts[i].prog : null).filter(v => v != null);
@@ -196,7 +197,7 @@ function botStep(G, s, dt, now) {
     top *= gap > 40 ? .9 : gap < -60 ? 1.06 : 1;
   }
   if (st.fin) top *= .6;
-  stepKart(T, k, inp, dt, top);
+  stepKart(T, k, inp, dt, top, t);
   // items: use them when it makes sense, or after a while anyway
   const it = G.item[s];
   if (it && now > it.at + ROLL_MS + 300) {
@@ -267,7 +268,7 @@ function finish(G, now) {
   G.dirty = true;
 }
 
-const flagsOf = k => (k.fall > 0 ? 1 : 0) | (k.spin > 0 ? 2 : 0) | (k.boost > 0 ? 4 : 0) | (k.slow > 0 ? 8 : 0) | (k.dr > 0 ? 32 : 0) | (k.dr < 0 ? 64 : 0) | (k.grass ? 128 : 0) | (k.ghost > 0 ? 256 : 0) | (k.charge > 1.4 ? 512 : k.charge > .65 ? 1024 : 0);
+const flagsOf = k => (k.fall > 0 ? 1 : 0) | (k.spin > 0 ? 2 : 0) | (k.boost > 0 ? 4 : 0) | (k.slow > 0 ? 8 : 0) | (k.dr > 0 ? 32 : 0) | (k.dr < 0 ? 64 : 0) | (k.grass ? 128 : 0) | (k.ghost > 0 ? 256 : 0) | driftFlags(k.charge);
 
 // ---------- what people send ----------
 export function act(G, s, a) {
@@ -284,8 +285,8 @@ export function act(G, s, a) {
     if (!ok) { st.bad++; return false; }
     st.bad = 0;
     const ax = k.x, az = k.z, prevS = k.s;
-    const loc = locate(T, x, z, far > 20 ? -1 : k.i);
-    Object.assign(k, { x, z, y: loc.y, h, v: Math.max(-8, Math.min(MAX_V * 1.6, v)), i: loc.i, lat: loc.lat, s: loc.s });
+    const loc = locate(T, x, z, far > 20 ? -1 : k.i, k.y);
+    Object.assign(k, { x, z, y: loc.y + T.lift[loc.i], h, v: Math.max(-8, Math.min(MAX_V * 1.6, v)), i: loc.i, lat: loc.lat, s: loc.s });
     // laps are counted here, from the reported places, never taken from the browser. st.run is how far along the
     // track the kart has really driven since it last crossed the line: a jump let through after a run of refused
     // reports (a lag spike) moves the kart but adds nothing to it, so teleporting round the track never earns a lap.
