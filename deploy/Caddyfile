@@ -1,7 +1,36 @@
 # Replace example.com with your domain. Caddy gets and renews the HTTPS certificate by itself.
 example.com {
 	encode gzip zstd
-	reverse_proxy 127.0.0.1:8080
+	# The page's files (scripts, styles, pictures, fonts) come straight from disk through Caddy, which uses every core,
+	# so the game server's single core is kept for players. A first visit is about 180 files, so a crowd arriving at
+	# once would otherwise queue behind the game. Pages (.html, /) still go to Node, which adds the language and the
+	# Content Security Policy. Anything not on disk falls through to Node too.
+	@static {
+		path *.js *.css *.png *.svg *.ico *.woff2 *.json *.webmanifest *.txt *.xml
+		file {
+			root /opt/cozy-table/public
+		}
+	}
+	handle @static {
+		root * /opt/cozy-table/public
+		# Always check for a newer copy (cheap: unchanged files answer "304 not modified"), so a browser never mixes
+		# old and new files after an update. Fonts never change under the same name, so they are kept a month.
+		@notfont not path /fonts/*
+		header @notfont Cache-Control "no-cache"
+		header /fonts/* Cache-Control "public, max-age=2592000"
+		header {
+			X-Content-Type-Options nosniff
+			X-Frame-Options DENY
+			Referrer-Policy same-origin
+			Cross-Origin-Opener-Policy same-origin
+			Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+			Strict-Transport-Security max-age=31536000
+		}
+		file_server
+	}
+	handle {
+		reverse_proxy 127.0.0.1:8080
+	}
 	# Access logs (IP, time, page, browser) are kept 14 days, as the privacy page (/privacy) promises. Caddy only rolls
 	# a log at 100 MB, which a small site may take months to reach, so logrotate rolls it daily instead (README, Privacy page).
 	log {

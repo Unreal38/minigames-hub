@@ -927,6 +927,22 @@ function connBar(mode) {
     $conn.querySelector('button').onclick = () => { replaced = false; retry = 0; connBar('reconnecting'); connect(); };
   } else $conn.textContent = L('Reconnecting…', 'Łączenie ponownie…');
 }
+// The site is full (a big crowd at once): the server keeps this screen in a waiting line and says its place now and
+// then. It lets the page in by itself, so the card only says where you are and to keep the tab open.
+let $line = null;
+function waitLine(m) {
+  if (!m) { $line?.remove(); $line = null; return; }
+  if (!$line) {
+    $line = document.createElement('div'); $line.id = 'line'; $line.setAttribute('role', 'status');
+    $line.innerHTML = `<div class="linecard"><div class="linewave" aria-hidden="true">🌊</div><h2>${L(`${SITE} is full right now`, `${SITE} jest teraz pełna`)}</h2>
+      <p>${L('Lots of people came at once, so there is a short line.', 'Przyszło naraz mnóstwo osób, więc jest krótka kolejka.')}</p>
+      <div class="linepos"><b></b><span></span></div>
+      <p class="linenote">${L('You will get in by yourself. Keep this tab open.', 'Wejdziesz automatycznie. Nie zamykaj tej karty.')}</p></div>`;
+    document.body.append($line);
+  }
+  $line.querySelector('.linepos b').textContent = m.pos;
+  $line.querySelector('.linepos span').textContent = L(`your place in line, of ${m.n}`, `Twoje miejsce w kolejce (z ${m.n})`);
+}
 function connect() {
   clearTimeout(retryT); retryT = 0;
   if (replaced || (ws && ws.readyState <= 1)) return;
@@ -939,7 +955,9 @@ function connect() {
     let m; try { m = JSON.parse(e.data); } catch { return; }
     if (m.t === 'replaced') { replaced = true; return; }
     if (m.t === 'bye') { restarting = Date.now(); connBar('restart'); return; }
+    if (m.t === 'queue') { waitLine(m); return; }
     if (m.t === 'welcome') {
+      waitLine(null);
       if (m.build && st.build && m.build !== st.build) return reloadForUpdate();
       st.build = m.build || st.build; restarting = 0; connBar(null); clearTimeout(stableT); stableT = setTimeout(() => { retry = 0; }, 10_000); }
     onMsg(m);
