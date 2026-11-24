@@ -165,3 +165,5 @@ body:has(.pk) #toasts { top: 118px; }
 body.night .pk .tag.active .plate,
 body.night .pk .tag.won .plate,
 body.night .pk .score li.won { color: var(--ink); }
+/* little cards on a results sheet keep their own red and dark colours (the stat line's text colour must not repaint them, least of all at night) */
+.results .score .who span.pcard { color: var(--sc, #3b2219); }

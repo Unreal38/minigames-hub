@@ -554,7 +554,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     const plate = put(plateGeo, M('#ff8fab', { roughness: .3, side: THREE.DoubleSide }), tx, 0, tz);
     plate.scale.set(.86, 1, 1.08); plate.receiveShadow = true; plate.castShadow = true; plate.userData.dyn = true;
     const stack = new THREE.Mesh(cardBlock(.78, 1.07, .1), M('#efe3cf')); stack.castShadow = true; stack.receiveShadow = true;
-    const top = new THREE.Mesh(CARD_GEO, new THREE.MeshStandardMaterial({ map: cardTexture(-1), roughness: .6 }));
+    const top = new THREE.Mesh(CARD_GEO, new THREE.MeshBasicMaterial({ map: cardTexture(-1) })); // only ever shown face up: unlit like the cards in your hand
     top.rotation.x = -Math.PI / 2; top.userData.tile = r;
     const halo = new THREE.Mesh(cardGeometry(1.02, 1.32, .2), new THREE.MeshBasicMaterial({ color: '#7ed3b2', transparent: true, opacity: 0 }));
     halo.rotation.x = -Math.PI / 2; halo.userData.tile = r;
@@ -603,7 +603,8 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
 
   function flyCard(from, to, kind, faceUp, delay = 0, done, grow = false, back) { // back: whose card back it shows (a seat's cb)
     const g = new THREE.Group();
-    const front = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind, back), roughness: .6 })));
+    // a face is unlit, so a card in the air looks exactly like the ones in your hand, day or night
+    const front = new THREE.Mesh(CARD_GEO, kind >= 0 ? new THREE.MeshBasicMaterial({ map: cardTexture(kind, back) }) : toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(kind, back), roughness: .6 })));
     const backM = new THREE.Mesh(CARD_GEO, toonMat(new THREE.MeshStandardMaterial({ map: cardTexture(-1, back), roughness: .6 })));
     backM.rotation.y = Math.PI; g.add(front, backM); g.visible = false; scene.add(g);
     const lift = 1.2 + from.distanceTo(to) * .12;
