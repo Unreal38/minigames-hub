@@ -436,6 +436,11 @@ body.night .gcard .pic .arttick { stroke: #fff6d8; } /* motion ticks drawn on th
 .kitchenpic .krbun { animation: dcup 3s ease-in-out infinite; }
 .pawpic .pwbun { animation: bob 2.4s ease-in-out infinite; }
 .pawpic .pwbone { animation: dcup 3s ease-in-out infinite; }
+.gcard .pic.lagoonpic { background: var(--art-sky); padding: 0; }
+.gcard .pic.lagoonpic svg { width: 100%; height: 100%; display: block; }
+.lagoonpic .blshot { animation: bob 1.8s ease-in-out infinite; }
+.lagoonpic .blegg { animation: dcup 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .lagoonpic .blshot, .lagoonpic .blegg { animation: none; } }
 .gcard .pic.brickspic { background: var(--art-sky); padding: 0; }
 .gcard .pic.brickspic svg { width: 100%; height: 100%; display: block; }
 .brickspic .sbfall { animation: bob 1.6s steps(4) infinite; }

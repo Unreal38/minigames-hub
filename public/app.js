@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -353,6 +353,27 @@ const GAMES = {
       <li>Stone lines wait in the <b>red bar</b> beside your well and come up when your next brick lands without clearing anything. Clear rows first and you <b>knock them back</b> instead.</li>
       <li>The bricks fall <b>faster every 20 seconds</b>. Late in the game the <b>stone tide</b> starts: lines rise for everyone, quicker and quicker.</li>
       <li>When a new brick has no room to appear, you are <b>out</b>. The <b>last player stacking wins</b>.</li>
+      <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  lagoon: {
+    name: 'Bubble Lagoon', load: () => import('./games/lagoon/client.js'), start: 'Start popping',
+    host: { seats: 4, speed: 'normal', bots: 'chill' }, solo: { seats: 4, speed: 'normal', bots: 'chill' },
+    openSeat: 'A bot shoots here if nobody joins', seats: r => Math.min(4, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Reef</b><div class="pills">${pill('speed', 'calm', 'Calm')}${pill('speed', 'normal', 'Normal')}${pill('speed', 'fast', 'Fast')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone has their own lagoon and plays at the same time. Pets are stuck in bubbles under a coral reef. Shoot bubbles from your shell launcher: three or more of the same pet pop. Bubbles left hanging on nothing fall and come up as eggs in a rival's lagoon. The reef keeps pushing new rows down. A bubble over the line and you are out. The last one afloat wins.`,
+    rules: `<ol>
+      <li>Everyone has their <b>own lagoon</b> and plays at the <b>same time</b>, with the same start and the same bubbles in the same order. Empty seats are played by bots.</li>
+      <li><b>Aim</b> with the mouse and <b>click</b> to shoot, or use <b>← →</b> and <b>Space</b>. On a phone, drag your finger to aim and let go to shoot. Shots <b>bounce off the side walls</b>.</li>
+      <li>Three or more bubbles with the <b>same pet</b> touching each other <b>pop</b>, and the pets swim free.</li>
+      <li>The small bubble marked <b>Next</b> is the one you get after this one. <b>Right click</b>, <b>Shift</b> or a tap on it <b>swaps</b> the two.</li>
+      <li>Bubbles left <b>hanging on nothing</b> fall into the water. Every fallen bubble sends one <b>egg</b> to a rival. Popping five or more at once adds an egg, popping on three shots in a row adds an egg, and clearing your whole lagoon adds four.</li>
+      <li>Your eggs go to the player who is <b>doing best</b>: the one with the fewest bubbles left.</li>
+      <li>Eggs sent to you wait beside your raft and float up when your next shot pops nothing. They never match. An egg <b>cracks</b> when bubbles pop right next to it, and eggs you cut loose fall and are sent on. Popping bubbles first <b>knocks waiting eggs back</b>.</li>
+      <li>The <b>reef pushes a new row</b> down every few seconds, faster and faster. Don't dawdle: after 7 seconds the launcher fires by itself.</li>
+      <li>When a bubble ends up <b>below the dashed line</b>, you are <b>out</b>. The <b>last player afloat wins</b>.</li>
       <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
@@ -1220,6 +1241,7 @@ const HUB_GAMES = [
   ['kitchen', 'kitchenpic', kitchenArt, 'action', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
   ['dig', 'digpic', digArt, 'board', '1–6 players', 'Take turns digging up a grass field for gems and a golden chest. Like Minesweeper with friends.'],
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],
+  ['lagoon', 'lagoonpic', lagoonArt, 'action', '1–4 players', 'Shoot pet bubbles in your own lagoon, pop three of a kind and send eggs to your friends. Last one afloat wins.'],
   ['bean', 'beanpic', beanArt, 'action', '1–6 players', 'Race your friends up a giant beanstalk, hopping from ledge to ledge, ahead of the storm.'],
   ['pan', 'panpic', panArt, 'cards', '1–6 players', 'The Polish card game: nine of hearts starts, play the same or higher, or pick up three.'],
   ['piotr', 'piotrpic', piotrArt, 'cards', '1–6 players', 'The Polish Old Maid with pet cards. Pair them up, draw from your neighbour and don\'t get stuck with the Piotruś.'],

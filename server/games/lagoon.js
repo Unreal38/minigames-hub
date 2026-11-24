@@ -132,7 +132,7 @@ export function act(G, s, a) {
   if (!a || typeof a !== 'object' || s < 0 || !G.seats[s] || !playing(G, s) || G.ph !== 'play' || G.stage !== 'go') return false;
   const st = G.st[s], x = G.x[s], now = Date.now();
   if (st.dead || a.y0 !== x.sync || a.t !== 's') return false; // sent before the browser took the server's copy: stale
-  const resync = () => { if (process.env.LG_DEBUG) console.log('resync', s, JSON.stringify(a), st.locks, st.rows, now - x.lockAt, rowsDue(G.opts.speed, now - G.goAt - 3000), rowsDue(G.opts.speed, now - G.goAt + 400), st.pend.length); x.sync++; G.dirty = true; return false; };
+  const resync = () => { x.sync++; G.dirty = true; return false; };
   if (a.n !== st.locks + 1 || now - x.lockAt < 120) return resync();
   if (![a.a, a.w, a.g, a.k].every(Number.isInteger) || Math.abs(a.a) > AMAX) return resync();
   // the reef's rows follow the clock: the browser may be a little behind it, never ahead
