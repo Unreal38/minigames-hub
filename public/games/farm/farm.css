@@ -433,3 +433,24 @@ body.night .pf .swflip:not(:disabled), body.night .pf .swflip:not(:disabled) * {
 .pf .pfegg { width: 34px; height: 42px; border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%; border: 3px solid var(--ink); background: radial-gradient(circle at 34% 30%, #fff 0 14%, transparent 15%), radial-gradient(circle at 66% 62%, #8fd16a 0 13%, transparent 14%), radial-gradient(circle at 30% 70%, #ffb3c7 0 11%, transparent 12%), #fff4dc; transform-origin: 50% 90%; animation: pfwobble 1s ease-in-out infinite; }
 @keyframes pfwobble { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(9deg); } }
 @media (prefers-reduced-motion: reduce) { .pf .pfegg { animation: none; } }
+
+/* favourite pets: a heart badge on every pet picker tile, and a heart toggle on the pet card, pet page and My pets list */
+.pf .pickpet { position: relative; }
+.pf .pffav { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; background: var(--fav, #e8507a); color: #fff; border: 2.5px solid var(--ink); display: grid; place-items: center; z-index: 1; box-shadow: 0 2px 0 var(--ink); }
+.pf .pffav svg { display: block; }
+.pf .pfheart { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink); background: var(--pf-chip, var(--card)); color: var(--fav, #e8507a); display: grid; place-items: center; cursor: pointer; padding: 0; box-shadow: 0 2px 0 var(--ink); transition: transform .12s; }
+.pf .pfheart:hover { transform: scale(1.08); } .pf .pfheart:active { transform: translateY(2px); box-shadow: none; }
+.pf .pfheart[aria-pressed=true] { background: var(--fav, #e8507a); color: #fff; animation: pf-fav-pop .32s ease-out; }
+.pf .pfheart.big { width: 42px; height: 42px; }
+.pf .pfheart svg { display: block; }
+@keyframes pf-fav-pop { 0% { transform: scale(.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .pf .pfheart[aria-pressed=true] { animation: none; } }
+.pf .petcell { position: relative; display: grid; min-width: 0; }
+.pf .petcell .petrow { padding-right: 52px; }
+.pf .petcell .pfheart { position: absolute; right: 8px; top: 50%; margin-top: -19px; }
+.pf .petcell .pfheart:hover { transform: scale(1.08); } .pf .petcell .pfheart:active { transform: translateY(2px); }
+.pf .petrow.fav { border-color: var(--fav-edge, #c23a63); }
+.pf h2.pfname { display: flex; align-items: center; gap: 10px; }
+.pf .pfheartdot { display: inline-grid; place-items: center; color: var(--fav, #e8507a); font-style: normal; margin-right: 4px; vertical-align: -2px; }
+.pf .pills [aria-pressed=true] .pfheartdot { color: inherit; }
+body.night .pf { --fav: #f06d93; --fav-edge: #f06d93; }

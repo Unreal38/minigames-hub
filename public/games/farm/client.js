@@ -49,6 +49,12 @@ const ZONE_ISLE = { woods: [5, '#b9e4ff', '#e9f8ff'], cove: [6, '#93d6ff', '#d9f
   grove: [3, '#bfe9ff', '#fff3d2'], patch: [4, '#c9e6ff', '#eef8e2'], bakery: [11, '#ffd9b5', '#fff3e2'], sweets: [7, '#ffcde8', '#fff0f8'], reef: [12, '#a2e2f4', '#e0f8ff'],
   peak: [1, '#d6e6f7', '#ffffff'], night: [13, '#3b2f73', '#7a68b8'] };
 const zoneSky = k => { const z = ZONE_ISLE[k]; if (!z) return ''; const u = isleCached('zn', z[0]); return `<span class="zsky" aria-hidden="true"><img class="zpic" data-ig="${z[0]}" alt=""${u ? ` src="${u}"` : ''} width="160" height="160"></span>`; };
+const HEART_D = 'M8 14.2 2.4 8.8A3.4 3.4 0 0 1 8 4.3a3.4 3.4 0 0 1 5.6 4.5Z';
+const HEART = (w = 14) => `<svg viewBox="0 0 16 16" width="${w}" height="${w}" aria-hidden="true"><path d="${HEART_D}" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+const HEART_O = (w = 18) => `<svg viewBox="0 0 16 16" width="${w}" height="${w}" aria-hidden="true"><path d="${HEART_D}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+// favourite pets come first in every pet list (a stable sort keeps the list's own order inside each group)
+const favFirst = list => list.map((p, i) => ({ p, i })).sort((a, b) => (b.p.fav ? 1 : 0) - (a.p.fav ? 1 : 0) || a.i - b.i).map(x => x.p);
+const favMark = p => p?.fav ? `<span class="pffav" role="img" title="${L('Favourite', 'Ulubiony')}" aria-label="${L('Favourite', 'Ulubiony')}">${HEART(12)}</span>` : '';
 const LOCK = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="2.5" y="7" width="11" height="8" rx="2" fill="currentColor"/></svg>';
 const zoneVars = k => ZONE_ISLE[k] ? ` style="--s1:${ZONE_ISLE[k][1]};--s2:${ZONE_ISLE[k][2]}"` : '';
 const elTag = e => `<span class="el" style="--c:${ELEMENTS[e]}">${elName(e)}</span>`;
@@ -151,6 +157,7 @@ export function mount(app, ctx) {
       : p.held ? { cls: '', text: L('Promised in a trade', 'W ofercie wymiany') }
       : p.rest > 0 ? { cls: '', text: L(`Resting for ${wait(p.rest)}`, `Odpoczywa jeszcze ${wait(p.rest)}`) }
       : { cls: '', text: L('Free to play', 'Wolny, bawi się') }; };
+  const favBtn = (p, cls = '') => `<button type="button" class="pfheart${cls}" data-a="fav" data-id="${p.id}" aria-pressed="${!!p.fav}" title="${p.fav ? L('Remove from favourites', 'Usuń z ulubionych') : L('Mark as favourite', 'Dodaj do ulubionych')}" aria-label="${p.fav ? L(`Remove ${esc(p.name)} from favourites`, `Usuń z ulubionych: ${esc(p.name)}`) : L(`Mark ${esc(p.name)} as a favourite`, `Dodaj do ulubionych: ${esc(p.name)}`)}">${p.fav ? HEART(18) : HEART_O(18)}</button>`;
   const petSort = () => { try { return localStorage.getItem('pf_psort') || 'new'; } catch { return 'new'; } };
   // ---------- painting ----------
   function sync() {
@@ -209,7 +216,7 @@ export function mount(app, ctx) {
   const boostRow = type => { const on = F.buff?.[type], n = F.tokens?.[type] || 0; // Lucky Wheel boosters on a building's card
     return (on ? `<p class="helpon boost"><span><b>${boostName(type)}</b> ${on.left ? L(`runs for ${wait(on.left)} more.`, `działa jeszcze ${wait(on.left)}.`) : L(`${cnt(on.uses, 'use', 'uses')} left.`, `pozostało użyć: ${on.uses}.`)}</span></p>` : '')
       + (n && !on ? `<p class="hint">${boostWhat(type)}</p><button type="button" class="btn sm m" data-a="boost" data-type="${type}">${L(`Start booster (${n})`, `Włącz wzmocnienie (${n})`)}</button>` : n ? `<p class="hint">${L(`Boosters waiting: ${n}.`, `Czekające wzmocnienia: ${n}.`)}</p>` : ''); };
-  const petRow = (p, extra = '') => `${face(p)}<b>${esc(p.name)}</b><small>${L(`Level ${p.lv}${extra}`, `Poziom ${p.lv}${extra}`)}</small>`;
+  const petRow = (p, extra = '') => `${favMark(p)}${face(p)}<b>${esc(p.name)}</b><small>${L(`Level ${p.lv}${extra}`, `Poziom ${p.lv}${extra}`)}</small>`;
   function paintPanel() {
     // where the send panel was scrolled, so a tap on a place or a pet does not jump it back
     const box = $('pf-panel'), was = box.querySelector('.tripp .dests') && panel?.kind === 'send' ? { t: box.querySelector('.tripp').scrollTop, d: box.querySelector('.dests').scrollLeft, p: box.querySelector('.party')?.scrollLeft || 0 } : null;
@@ -233,7 +240,7 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
       const away = outAll(), what = panel.mode === 'defend' ? L('Defence team', 'Drużyna obrony') : panel.mode === 'live' ? L(`Live battle with ${esc(panel.foeName)}`, `Bitwa na żywo: ${esc(panel.foeName)}`) : panel.mode === 'arena' ? L(`Match against ${esc(panel.foeName)}`, `Mecz: ${esc(panel.foeName)}`) : L('Practice battle', 'Bitwa treningowa');
-      const pets = F.pets.map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
+      const pets = favFirst(F.pets).map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
         return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="team" data-id="${p.id}" data-why="${out}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="num">${i + 1}</span>` : ''}
           ${petRow(p, out ? ' · ' + out : ' · ' + elName(elOf(p)))}</button>`; }).join('');
       const note = panel.mode === 'live' ? `${L(`You both play at the same time, with ${TURN_S} seconds to choose each turn. Everyone fights at level 20. ${panel.invite ? '' : `${esc(panel.foeName)} has to be online to say yes.`}`, `Gracie jednocześnie i macie ${TURN_S} sekund na wybór w każdej turze. Wszyscy walczą na poziomie 20. ${panel.invite ? '' : `${esc(panel.foeName)} musi być online, żeby się zgodzić.`}`)}`
@@ -248,7 +255,7 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'work') { // who helps at this building
       const type = panel.type, w = WORK[type], now = helperOf(type), jobs = Object.entries(F.work || {});
-      const pets = F.pets.filter(p => canWork(p, type)).sort((a, b) => workPct(b, type) - workPct(a, type)).map(p => { const out = busyFor(p, 'train'), other = jobs.find(([k, id]) => id === p.id && k !== type);
+      const pets = favFirst(F.pets.filter(p => canWork(p, type)).sort((a, b) => workPct(b, type) - workPct(a, type))).map(p => { const out = busyFor(p, 'train'), other = jobs.find(([k, id]) => id === p.id && k !== type);
         return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="workpick" data-id="${p.id}" data-why="${out}" aria-pressed="${now?.id === p.id}">${petRow(p, ` · ${STAR_NAME[w.stat]} ${p.stars?.[w.stat] || 3}★ · <b>${workPct(p, type)}%</b>` + (out ? ' · ' + out : other ? L(` · leaves the ${ITEMS[other[0]].name}`, ` · zostawi pracę: ${ITEMS[other[0]].name}`) : F.train.ids.includes(p.id) ? L(' · stops training', ' · przerwie trening') : ''))}</button>`; }).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Helper at the ${ITEMS[type].name}`, `Pomocnik: ${ITEMS[type].name}`)}</h2>
         <p>${L(`One ${elTag(w.el)} pet can work here. ${w.what('X')}, where X grows with the pet's level and its ${STAR_NAME[w.stat]} stars. A pet has one job at a time: sending it exploring, training or to the Nest ends its work here.`, `Może tu pracować jeden zwierzak żywiołu ${elTag(w.el)}. ${w.what('X')}, a X rośnie z poziomem zwierzaka i jego gwiazdkami cechy ${STAR_NAME[w.stat]}. Zwierzak ma jedno zajęcie naraz: wyprawa, trening albo Gniazdo kończą jego pracę tutaj.`)}</p>
@@ -257,7 +264,7 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'train') {
-      const gone = outAll(), pets = F.pets.map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = busyFor(p, 'train');
+      const gone = outAll(), pets = favFirst(F.pets).map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = busyFor(p, 'train');
         return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out}" aria-pressed="${on}">${petRow(p, out ? ' · ' + out : full ? L(' · fully grown', ' · w pełni dorosły') : L(' · level ', ' · poziom ') + p.lv)}</button>`; }).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Who trains at the yard?`, `Kto trenuje na placu?`)}</h2><p>${L(`Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring or cuddling in the Nest cannot train, and sending a pet exploring ends its training.`, `Wybierz najwyżej ${F.train.slots}. Każdy zdobywa ${TRAIN_XP} doświadczenia na godzinę, także pod twoją nieobecność. Zwierzak na wyprawie albo w Gnieździe nie może trenować, a wysłanie go na wyprawę kończy trening.`)}</p>
         <div class="party">${pets}</div>
@@ -351,7 +358,7 @@ export function mount(app, ctx) {
       const mats = (sideKey, inv) => Object.keys(MATS).filter(k => k !== 'coins').filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
         return `<div class="tm${n ? ' on' : ''}">${matIcon(k, 30)}<span class="tmn"><b>${MATS[k]}</b>${inv ? `${L(`<small>You have ${inv[k] || 0}</small>`, `<small>Masz: ${inv[k] || 0}</small>`)}` : ''}</span>
           <span class="step"><button type="button" data-a="tmstep" data-d="-1" aria-label="${L(`Less ${MATS[k]}`, `Mniej: ${MATS[k]}`)}">−</button><input class="field" type="number" inputmode="numeric" min="0" max="${max}" data-tm="${sideKey}" data-mat="${k}" value="${n || ''}" placeholder="0" aria-label="${L(`${MATS[k]}, how many`, `${MATS[k]}, ile`)}"><button type="button" data-a="tmstep" data-d="1" aria-label="${L(`More ${MATS[k]}`, `Więcej: ${MATS[k]}`)}">+</button></span></div>`; }).join('');
-      const mine = F.pets.map(x => petBtn(x, 'give', x.held ? L('promised', 'obiecany') : away.includes(x.id) ? 'exploring' : inNest(x.id) ? L('in the Nest', 'w Gnieździe') : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
+      const mine = favFirst(F.pets).map(x => petBtn(x, 'give', x.held ? L('promised', 'obiecany') : away.includes(x.id) ? 'exploring' : inNest(x.id) ? L('in the Nest', 'w Gnieździe') : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
       const theirs = V.pets.map(x => petBtn(x, 'want', x.can ? '' : L('staying', 'zostaje'))).join('');
       box.innerHTML = `<div class="panel tripp trade"><h2>${L(`Trade with ${esc(V.name)}`, `Wymiana z graczem ${esc(V.name)}`)}</h2>
         <p>${L(`Choose what you give and what you want back. Your side is set aside until ${esc(V.name)} answers from their Mailbox, or for a week.`, `Wybierz, co dajesz i co chcesz w zamian. Twoja część jest odłożona, aż ${esc(V.name)} odpowie ze swojej Skrzynki pocztowej, najdłużej przez tydzień.`)}</p>
@@ -380,7 +387,7 @@ export function mount(app, ctx) {
     if (panel.kind === 'nest') { // choose the two parents and see what the egg might hold
       const fr = panel.friend, pool = F.pets, pk = panel.pick;
       const A = pool.find(x => x.id === pk[0]), Bp = fr ? fr.pet : pool.find(x => x.id === pk[1]);
-      const rows = pool.map(x => { const why = cannotPair(x), on = pk.includes(x.id);
+      const rows = favFirst(pool).map(x => { const why = cannotPair(x), on = pk.includes(x.id);
         return `<button type="button" class="pickpet${why ? ' off' : ''}" data-a="nestpick" data-id="${x.id}" aria-pressed="${on}">${petRow(x, why ? ' · ' + why : '')}</button>`; }).join('');
       let pre = '';
       if (A && Bp) {
@@ -424,7 +431,7 @@ export function mount(app, ctx) {
       const p = F.pets.find(x => x.id === panel.id); if (!p) { panel = null; box.hidden = true; return; }
       const s = SPECIES[p.sp], kin = k => k ? `<span class="kin">${face(k)}<small>${esc(k.name)}${k.own && k.own !== F.owner ? `${L(`<br>${esc(k.own)}'s`, `<br>(${esc(k.own)})`)}` : ''}</small></span>` : '';
       const tree = p.par ? `<p><b>${L(`Family`, `Rodzina`)}</b></p><div class="tree">${p.par.map(k => `<span class="branch">${kin(k)}${k.par?.length ? `<span class="gp">${k.par.map(kin).join('')}</span>` : ''}</span>`).join('')}</div>` : `<p class="hint">${L(`${p.from ? `Found in ${ZONES[p.from]?.name || 'the wild'}.` : 'Your first friend on the farm.'}`, `${p.from ? `Znaleziony tutaj: ${ZONES[p.from]?.name || 'w dziczy'}.` : 'Twój pierwszy przyjaciel na farmie.'}`)}</p>`;
-      box.innerHTML = `<div class="panel tripp"><h2>${esc(p.name)}</h2>
+      box.innerHTML = `<div class="panel tripp"><h2 class="pfname">${esc(p.name)}${favBtn(p, ' big')}</h2>
         <div class="leafpage">${face(p, s.name)}<div><p>${elTags(p)} ${s.name} · ${FORMS[formOf(p.lv)]} · ${L('Level', 'Poziom')} ${p.lv}${p.sparkle ? L(' · ✨ Sparkling', ' · ✨ Błyszczący') : ''}</p>
           <p class="hint">${L(`${p.first && p.first !== ctx.me()?.user ? `First raised by ${esc(p.first)}. ` : ''}${p.rest > 0 ? `Resting for ${wait(p.rest)} before the next egg. ` : ''}${p.open ? 'Friends who visit can pick it for a playdate.' : ''}`, `${p.first && p.first !== ctx.me()?.user ? `Pierwszy opiekun: ${esc(p.first)}. ` : ''}${p.rest > 0 ? `Odpoczywa jeszcze ${wait(p.rest)} przed kolejnym jajkiem. ` : ''}${p.open ? 'Odwiedzający znajomi mogą go wybrać do wspólnej zabawy.' : ''}`)}</p></div></div>
         <div class="starsrow">${STAR_NAME.map((n, i) => `<span>${n} ${stars(p.stars?.[i] || 3)}</span>`).join('')}</div>
@@ -451,17 +458,17 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'pets') { // every pet on the farm: tap one to find it on the island
-      const els = [...new Set(F.pets.map(elOf))], on = els.includes(panel.el) ? panel.el : '';
+      const els = [...new Set(F.pets.map(elOf))], favs = F.pets.some(p => p.fav), on = els.includes(panel.el) || (panel.el === 'fav' && favs) ? panel.el : '';
       const order = { lv: (a, b) => b.lv - a.lv || b.xp - a.xp, name: (a, b) => a.name.localeCompare(b.name, PL ? 'pl' : 'en'), el: (a, b) => Object.keys(ELEMENTS).indexOf(elOf(a)) - Object.keys(ELEMENTS).indexOf(elOf(b)) || b.lv - a.lv };
-      const vis = F.pets.map((p, i) => ({ p, i })).filter(x => !on || elOf(x.p) === on).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p);
+      const vis = favFirst(F.pets.map((p, i) => ({ p, i })).filter(x => !on || (on === 'fav' ? x.p.fav : elOf(x.p) === on)).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p));
       const pill = (a, k, v, label) => `<button type="button" data-a="${a}" data-v="${v}" aria-pressed="${k === v}">${label}</button>`;
       const rows = vis.map(p => { const s = SPECIES[p.sp], st = petStatus(p);
-        return `<button type="button" class="petrow${st.away ? ' away' : ''}" data-a="petfind" data-id="${p.id}">${face(p, s.name)}<span class="pr"><b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b>
-          <small>${p.name === s.name ? '' : s.name + ' · '}${FORMS[formOf(p.lv)]} · ${L('level', 'poziom')} ${p.lv}</small><span class="prtags">${elTags(p)}<em class="${st.cls}">${st.text}</em></span></span></button>`; }).join('');
+        return `<div class="petcell"><button type="button" class="petrow${st.away ? ' away' : ''}${p.fav ? ' fav' : ''}" data-a="petfind" data-id="${p.id}">${face(p, s.name)}<span class="pr"><b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b>
+          <small>${p.name === s.name ? '' : s.name + ' · '}${FORMS[formOf(p.lv)]} · ${L('level', 'poziom')} ${p.lv}</small><span class="prtags">${elTags(p)}<em class="${st.cls}">${st.text}</em></span></span></button>${favBtn(p)}</div>`; }).join('');
       box.innerHTML = `<div class="panel tripp pets"><h2>${L(`My pets`, `Moje zwierzaki`)}</h2>
-        <p>${L(`${F.pets.length} of ${F.room} places taken. Tap a pet to find it on the farm.`, `Zajęte miejsca: ${F.pets.length} z ${F.room}. Dotknij zwierzaka, żeby znaleźć go na farmie.`)}</p>
+        <p>${L(`${F.pets.length} of ${F.room} places taken. Tap a pet to find it on the farm. Tap the heart to make it a favourite: favourites come first wherever you pick pets.`, `Zajęte miejsca: ${F.pets.length} z ${F.room}. Dotknij zwierzaka, żeby znaleźć go na farmie. Dotknij serca, żeby dodać go do ulubionych: ulubione są pierwsze wszędzie, gdzie wybierasz zwierzaki.`)}</p>
         <div class="pfsort"><span class="hint">${L('Sort', 'Kolejność')}</span><div class="pills">${pill('petsort', panel.sort || 'new', 'new', L('Newest', 'Najnowsze'))}${pill('petsort', panel.sort || 'new', 'lv', L('Level', 'Poziom'))}${pill('petsort', panel.sort || 'new', 'name', L('Name', 'Imię'))}${pill('petsort', panel.sort || 'new', 'el', L('Element', 'Żywioł'))}</div></div>
-        ${els.length > 1 ? `<div class="pfsort"><span class="hint">${L('Show', 'Pokaż')}</span><div class="pills">${pill('petel', on, '', L('All', 'Wszystkie'))}${els.map(e => pill('petel', on, e, `<i class="dot" style="--c:${ELEMENTS[e]}"></i>${elName(e)}`)).join('')}</div></div>` : ''}
+        ${els.length > 1 || favs ? `<div class="pfsort"><span class="hint">${L('Show', 'Pokaż')}</span><div class="pills">${pill('petel', on, '', L('All', 'Wszystkie'))}${favs ? pill('petel', on, 'fav', `<i class="pfheartdot">${HEART(12)}</i>${L('Favourites', 'Ulubione')}`) : ''}${(els.length > 1 ? els : []).map(e => pill('petel', on, e, `<i class="dot" style="--c:${ELEMENTS[e]}"></i>${elName(e)}`)).join('')}</div></div>` : ''}
         <div class="petlist">${rows}</div>
         <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
@@ -535,7 +542,7 @@ export function mount(app, ctx) {
           <span class="dcap"><b>${zn.name}</b><span class="dline">${elTag(zn.el)}<small>${gives}</small></span></span></button>`;
       }).join('');
       const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
-      const pets = F.pets.map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
+      const pets = favFirst(F.pets).map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
         ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? L(' · training (ends if sent)', ' · trenuje (wyprawa przerwie trening)') : Object.values(F.work || {}).includes(p.id) ? L(' · helping at a building (ends if sent)', ' · pomaga przy budynku (wyprawa to przerwie)') : atHome(z, p.sp, elOf(p)) ? L(' · +25% here', ' · +25% tutaj') : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
       const full = F.pets.length >= F.room;
@@ -742,7 +749,7 @@ export function mount(app, ctx) {
       const p = F.pets.find(x => x.id === card.pet); if (!p) { card = null; el.hidden = true; return; }
       const s = SPECIES[p.sp];
       el.innerHTML = `${face(p, s.name)}<div class="info">
-        <form class="namer"><input class="field" id="pf-name" maxlength="14" value="${esc(p.name)}" aria-label="${L(`Pet name`, `Imię zwierzaka`)}" autocomplete="off"><button class="btn sm w">${L(`Rename`, `Zmień imię`)}</button></form>
+        <form class="namer"><input class="field" id="pf-name" maxlength="14" value="${esc(p.name)}" aria-label="${L(`Pet name`, `Imię zwierzaka`)}" autocomplete="off"><button class="btn sm w">${L(`Rename`, `Zmień imię`)}</button>${favBtn(p, ' big')}</form>
         <p>${elTags(p)} ${s.name} · ${FORMS[formOf(p.lv)]} · ${L('Level', 'Poziom')} ${p.lv}</p>
         ${p.lv < MAX_LV ? `<div class="xp" title="${L(`Experience`, `Doświadczenie`)}"><i style="width:${Math.round(p.xp / xpFor(p.lv) * 100)}%"></i><span>${L(`${p.xp} of ${xpFor(p.lv)} to level ${p.lv + 1}`, `${p.xp} z ${xpFor(p.lv)} do poziomu ${p.lv + 1}`)}</span></div>` : ''}
         <p class="hint">${s.blurb}</p>
@@ -912,6 +919,7 @@ export function mount(app, ctx) {
     else if (a === 'hatch') ctx.send({ t: 'hatch', slot: b.dataset.slot });
     else if (a === 'petpage') { panel = { kind: 'pet', id: b.dataset.id }; card = null; sync(); }
     else if (a === 'petopen') ctx.send({ t: 'petopen', id: b.dataset.id });
+    else if (a === 'fav') { const p = F?.pets.find(x => x.id === b.dataset.id); if (!p) return; p.fav = !p.fav; sfx.click(); ctx.send({ t: 'fav', id: p.id, on: p.fav }); if (panel) paintPanel(); if (card?.pet) paintCard(); }
     else if (a === 'freeask') { if (b.dataset.why) return ctx.toast(esc(b.dataset.why), true); panel.free = true; paintPanel(); }
     else if (a === 'freeno') { panel.free = false; paintPanel(); }
     else if (a === 'freeyes') ctx.send({ t: 'free', id: b.dataset.id });
