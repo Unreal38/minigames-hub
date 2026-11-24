@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -440,6 +440,27 @@ const GAMES = {
       <li>A <b>storm</b> rises from below, slowly at first and then faster and faster. If it catches you, you are out and watch the others.</li>
       <li>Your score is <b>10 points for every floor</b> of the highest floor you reached, plus your streak points. The game ends when the storm has caught everyone. Highest score wins.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  bop: {
+    name: 'Burrow Bop', load: () => import('./games/bop/client.js'), start: 'Start bopping',
+    host: { seats: 4, pace: 'normal', bots: 'chill' }, solo: { seats: 4, pace: 'normal', bots: 'chill' },
+    openSeat: 'A bot bops here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 1, 'Just us')}${pill('seats', 2, '2')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Speed</b><div class="pills">${pill('pace', 'calm', 'Calm')}${pill('pace', 'normal', 'Normal')}${pill('pace', 'fast', 'Fast')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone has their own garden with nine burrows and plays at the same time. Pets pop out of the burrows: tap one to bop it with your pillow mallet before it ducks back down. You have three hearts. A pet that gets away costs a heart, and so does bopping a sleeping pet in a nightcap. The pets come quicker and quicker. The last player with a heart wins.`,
+    rules: `<ol>
+      <li>Everyone has their <b>own garden</b> with nine burrows and plays at the <b>same time</b>. Everybody gets the same pets, in the same burrows, at the same moments. Empty seats are played by bots.</li>
+      <li><b>Click or tap a pet</b> to bop it with your pillow mallet. On a keyboard the burrows are <b>Q W E</b>, <b>A S D</b> and <b>Z X C</b> (or the number pad).</li>
+      <li>You have <b>3 hearts</b>. A pet that <b>ducks back down before you bop it</b> costs one heart.</li>
+      <li>A pet in a <b>nightcap is asleep</b>. Let it sleep: bopping it costs a heart.</li>
+      <li>A pet with a <b>crown</b> is worth 50 points instead of 10 and hides quickly. A pet carrying a <b>heart</b> gives a lost heart back. Missing either of them costs nothing.</li>
+      <li>Every bop in a row adds <b>2 more points</b> to the next one, up to 20 extra. Losing a heart starts the run again.</li>
+      <li>Tapping an <b>empty burrow costs nothing</b>.</li>
+      <li>The pets come <b>quicker and quicker</b>. When your hearts run out you are <b>out</b>. The <b>last player with a heart wins</b>. If two players lose their last heart to the same pet, the higher score is placed higher.</li>
+      <li>After <b>3 minutes</b> no more pets come, and whoever still has a heart is placed by <b>score</b>.</li>
+      <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   bingo: {
@@ -1463,6 +1484,7 @@ const HUB_GAMES = [
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
+  ['bop', 'boppic', bopArt, 'action', '1–6 players', 'Bop the pets popping out of your burrows before they duck. Three hearts each, and the last one with a heart wins.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>
