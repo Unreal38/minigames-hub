@@ -1043,7 +1043,7 @@ function openSupport() {
     <h2>${L('Support the site', 'Wesprzyj stronę')} ☕</h2>
     <p>${L(`${SITE} is free and stays free. If you like it, you can chip in for the server on Ko-fi. As a thank-you you get the whole Supporter pack below, yours to keep.`, `${SITE} jest i będzie za darmo. Jeśli ci się tu podoba, możesz dorzucić się do serwera na Ko-fi. W podziękowaniu dostajesz cały Pakiet wspierających poniżej, na zawsze.`)}</p>
     <h3 class="suph">${L('For your avatar', 'Dla awatara')}</h3>
-    <div class="suppics">${ids.map(([k, i]) => `<figure><img alt="" data-sp="${k}:${i}"><figcaption>${esc(OPT[k][+i])}</figcaption></figure>`).join('')}</div>
+    <div class="suppics"><figure><img alt="" data-sp="all"><figcaption>${L('The whole outfit', 'Cały strój')}</figcaption></figure>${ids.map(([k, i]) => `<figure><img alt="" data-sp="${k}:${i}"><figcaption>${esc(OPT[k][+i])}</figcaption></figure>`).join('')}</div>
     <h3 class="suph">${L('For your name and card', 'Dla imienia i wizytówki')}</h3>
     <div class="suppics wide">${cosIds.filter(([k]) => !KIT.includes(k)).map(cosFig).join('')}</div>
     <h3 class="suph">${L('For your game pieces', 'Do gier')}</h3>
@@ -1067,7 +1067,12 @@ function openSupport() {
       <div class="suprow"><button type="button" class="btn" data-reg>${L('Create account', 'Załóż konto')}</button><a class="btn w" href="${KOFI}" target="_blank" rel="noopener noreferrer">${L('Open Ko-fi', 'Otwórz Ko-fi')}</a></div>`}
     <button type="button" class="btn ghost-ink" data-close>${L('Close', 'Zamknij')}</button>`);
   const done = () => { onKofi = null; close(); };
-  ipReady.then(() => { if (IP) for (const im of el.querySelectorAll('[data-sp]')) { const [k, i] = im.dataset.sp.split(':'); const u = IP.itemPic(k, +i, st.color, st.av); if (u) im.src = u; } });
+  // the pictures show the whole Supporter outfit on your face and hair, not the clothes you have on now
+  const suit = cleanAv(st.av); for (const [k, i] of ids) suit[AV_KEYS.indexOf(k)] = +i;
+  suit[AV_KEYS.indexOf('botC')] = 3; suit[AV_KEYS.indexOf('shoeC')] = 0; // coffee-brown trousers and cream slippers to go with it
+  ipReady.then(() => { if (IP) for (const im of el.querySelectorAll('[data-sp]')) {
+    const [k, i] = im.dataset.sp === 'all' ? ['body', suit[AV_KEYS.indexOf('body')]] : im.dataset.sp.split(':');
+    const u = IP.itemPic(k, +i, st.color, suit); if (u) im.src = u; } });
   for (const im of el.querySelectorAll('img[data-kit]')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, st.color, st.av).then(u => { if (u && im.isConnected) im.src = u; }); }
   el.querySelector('[data-close]').addEventListener('click', () => { sfx.click(); done(); });
   el.querySelector('[data-ward]')?.addEventListener('click', () => { done(); openWardrobe({ sec: 'av4' }); });
