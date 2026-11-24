@@ -1,4 +1,5 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
+import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their scroll (Pet Farm pickers, Wardrobe, shop...)
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
