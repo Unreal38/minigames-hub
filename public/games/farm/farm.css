@@ -95,7 +95,7 @@ body.in-game { overflow: hidden; }
 .pf .zone[aria-pressed=true], .pf .party .pickpet[aria-pressed=true] { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); transform: none; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .pf .zone.zisle { --zb: var(--pf-chip, var(--card)); position: relative; isolation: isolate; overflow: hidden; min-height: 78px; padding-right: 62px; align-content: center; }
 .pf .zone.zisle[aria-pressed=true] { --zb: var(--lantern); } .pf .zone.zisle.off { --zb: var(--pf-soft, #efe2d2); }
-.pf .zone.zisle > * { position: relative; }
+.pf .zone.zisle > * { position: relative; } .pf .zone.zisle > b, .pf .zone.zisle > small { text-shadow: 0 0 3px var(--zb), 0 0 7px var(--zb), 0 0 12px var(--zb); }
 .pf .zone .zsky { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--s1, #bfe8ff), var(--s2, #eef8ff)); pointer-events: none; }
 .pf .zone .zsky::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--zb) 0, var(--zb) var(--zf, 36%), transparent calc(var(--zf, 36%) + 26%)); }
 .pf .zone .zpic { position: absolute; right: -14px; top: 50%; width: 92px; height: 92px; transform: translateY(-50%); }
