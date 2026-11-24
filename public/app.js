@@ -1144,7 +1144,10 @@ function mountWithCss(key, mount) {
   if (added.length) gameSheets.set(key, [...(gameSheets.get(key) || []), ...added]);
   // On a slow connection the game paints before its stylesheet arrives, and panels measured then are page wide
   // (the 3D table framed off to the side). When the sheet lands, games measure again as if the window was resized.
-  for (const l of added) l.addEventListener('load', () => dispatchEvent(new Event('resize')), { once: true });
+  // Not once: a sheet switched back on by gameCss (the same game opened again in this visit) is applied a frame
+  // later, not at once, and fires load again then. Without this the second game of a visit opened with the
+  // island pushed off to the left and name tags in mid-air, until something resized the window (Kuba, 2026-11-24).
+  for (const l of added) l.addEventListener('load', () => dispatchEvent(new Event('resize')));
   gameCss(key);
   return r;
 }
