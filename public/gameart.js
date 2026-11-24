@@ -600,3 +600,24 @@ export function paradeArt() {
     <path class="arttick" d="M264 62l10-8M270 80h13M54 62l-10-8M48 80H35" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Kalambury: an easel with a half-finished doodle of a cat, a big pencil drawing it, and two guess bubbles.
+export function kalArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An easel with a doodle of a cat, a pencil drawing it, and two speech bubbles with guesses">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="52" cy="20" r="1.6"/><circle cx="258" cy="14" r="1.3"/><circle cx="286" cy="70" r="1.5"/><circle cx="44" cy="96" r="1.2"/></g>
+    <path d="M44 38l14-8 16 4 8 10-10 8H52z" class="artcloud" fill="#fff"/><path d="M236 104l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M48 134c40-10 184-10 224 0l-16 9c-40 7-152 7-192 0z" fill="#8bca60" ${o}/><path d="M64 143c40 7 152 7 192 0l-30 7H94z" fill="#c98a5a" ${o}/>
+    <path d="M112 108l-10 30M208 108l10 30M160 108v28" fill="none" stroke="#8a5a3c" stroke-width="7" stroke-linecap="round"/><path d="M112 108l-10 30M208 108l10 30M160 108v28" fill="none" stroke="#3b2219" stroke-width="10" stroke-linecap="round" opacity=".001"/>
+    <rect x="92" y="18" width="136" height="96" rx="7" fill="#b9794a" ${o}/><rect x="101" y="27" width="118" height="78" rx="3" fill="#fffdf6" stroke="#3b2219" stroke-width="2.4"/>
+    <g fill="none" stroke="#3b2219" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M128 60l-2-18 14 9c7-3 15-3 22 0l14-9-2 18c5 8 4 20-4 27-10 8-28 8-38 0-8-7-9-19-4-27z" fill="#ffd9a8"/>
+      <path d="M142 68v3M160 68v3"/><path d="M148 77c2 2 4 2 6 0" /><path d="M126 76l-12-2M126 81l-11 3M176 76l12-2M176 81l11 3" stroke-width="2.4"/>
+    </g>
+    <path d="M186 44c6-6 16-6 20 0" fill="none" stroke="#e5392f" stroke-width="3.4" stroke-linecap="round"/><path d="M190 96h18" fill="none" stroke="#37b8f2" stroke-width="3.4" stroke-linecap="round"/>
+    <g class="kpen"><path d="M196 86l8-4 44-46 10 10-44 46z" fill="#ffd23f" ${o}/><path d="M248 36l8-8c3-3 7-3 10 0s3 7 0 10l-8 8z" fill="#ff8fab" ${o}/><path d="M196 86l8-4 6 6-4 8z" fill="#f6c9a0" ${o}/><path d="M196 86l4-2 3 3-2 4z" fill="#3b2219"/></g>
+    <g><path d="M36 54h44c5 0 8 3 8 8v18c0 5-3 8-8 8H62l-10 10v-10H36c-5 0-8-3-8-8V62c0-5 3-8 8-8z" fill="#fffdf6" ${o}/><circle cx="44" cy="71" r="3.4" fill="#3b2219"/><circle cx="58" cy="71" r="3.4" fill="#3b2219"/><circle cx="72" cy="71" r="3.4" fill="#3b2219"/></g>
+    <g><path d="M244 60h36c5 0 8 3 8 8v14c0 5-3 8-8 8h-8v9l-10-9h-18c-5 0-8-3-8-8V68c0-5 3-8 8-8z" fill="#7ed3b2" ${o}/><path d="M252 75l7 7 14-14" fill="none" stroke="#3b2219" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <path class="arttick" d="M84 30l-8-8M70 44H58" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}

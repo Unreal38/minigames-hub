@@ -37,6 +37,7 @@ import * as domino from './games/domino.js';
 import * as pool from './games/pool.js';
 import * as bingo from './games/bingo.js';
 import * as tys from './games/tys.js';
+import * as kal from './games/kal.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
@@ -53,7 +54,7 @@ import { isBot, pageFor } from './seo.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, kal };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -392,6 +393,9 @@ function startGame(r) {
   // Everyone already at the table keeps their seat; watchers who asked for a seat fill what's left (bots get the rest).
   const id = t => clients.get(t)?.id, max = GAMES[r.game].meta.maxPlayers;
   const humans = [...seatedOf(r), ...r.players.filter(t => r.spect.has(id(t)) && r.sit.has(id(t)))].slice(0, max).map(t => clients.get(t));
+  // A game with no bots (Kalambury) can't start until enough people sit down.
+  const need = GAMES[r.game].meta.minPeople || 1;
+  if (humans.length < need) { send(r.players.map(t => clients.get(t)).find(c => c?.id === r.host), { t: 'err', msg: `This game needs at least ${need} players.` }); return; }
   const inGame = new Set(humans.map(c => c.id));
   for (const t of r.players) {
     if (inGame.has(id(t))) { r.spect.delete(id(t)); r.sit.delete(id(t)); } else r.spect.add(id(t));
@@ -542,7 +546,8 @@ function handle(c, m) {
     case 'chat': {
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastChat || 0) < 500) return; c.lastChat = now;
-      const text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
+      let text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
+      if (r.G && GAMES[r.game].hush) text = GAMES[r.game].hush(r.G, text); // a game with a secret word keeps it out of the chat
       const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), pt: store.tagOf(store.profileOf(c.token)), text };
       r.chat.push(msg); if (r.chat.length > 40) r.chat.shift();
       for (const t of r.players) send(clients.get(t), msg);
@@ -844,7 +849,7 @@ setInterval(() => {
   }
 }, 150);
 
-// Real-time games (Kart Island Race, Sky Bricks, Beanstalk Bounce) export fast(G, now): it runs twenty times a second and streams the race.
+// Real-time games (Kart Island Race, Sky Bricks, Beanstalk Bounce, Kalambury) export fast(G, now): it runs twenty times a second and streams the race.
 setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {

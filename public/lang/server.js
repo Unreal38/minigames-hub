@@ -87,6 +87,7 @@ const SEASON = { 'Winter drop': 'kolekcji zimowej', 'Spring drop': 'kolekcji wio
 const BACK = { 'mid-November': 'w połowie listopada', March: 'w marcu', June: 'w czerwcu', October: 'w październiku' };
 // [pattern, how to say it]: the function gets the captured pieces.
 const FORMS = [
+  [/^This game needs at least (.+) players\.$/, n => `Do tej gry potrzeba co najmniej ${n} graczy.`],
   [/^That is part of the (.+)\. It is back in (.+)\.$/, (s, b) => `To część ${SEASON[s] || s}. Wraca ${BACK[b] || b}.`],
   [/^You already asked (.+)\.$/, u => `Zaproszenie do gracza ${u} jest już wysłane.`],
   [/^You and (.+) are already friends\.$/, u => `Ty i ${u} już jesteście znajomymi.`],

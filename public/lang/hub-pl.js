@@ -34,6 +34,8 @@ export const OPT_PL = {
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
+  Rounds: 'Rundy', 'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
+  'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -344,6 +346,23 @@ export const GAMES_PL = {
       <li>W klasycznej grze są <b>trzy nagrody</b> na tych samych kartach: <b>jedna linia</b> (10 punktów), potem <b>dwie linie</b> (20), a na koniec <b>cała karta</b> (40). Szybka gra kończy się po pierwszej linii.</li>
       <li><b>Wygrywa najwięcej punktów.</b> Przy równej liczbie punktów wyżej jest ten, komu mniej brakuje do całej karty.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie zaznaczy ani jednej liczby, nie dostaje monet.</li>
+    </ol>`,
+  },
+  kal: {
+    name: 'Kalambury', start: 'Zacznij rysowanie', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
+    pitch: 'Jedna osoba rysuje tajne hasło, reszta ściga się, kto pierwszy zgadnie. Hasła po polsku i po angielsku, także zwierzaki z farmy. Tylko dla ludzi: bez botów.',
+    howto: `Jedna osoba rysuje tajne hasło, a pozostali wpisują, co to może być. Im szybciej zgadniesz, tym więcej punktów, a rysujący dostaje punkty za każdego, kto zgadnie. Rysuje się po kolei. Do gry potrzeba co najmniej dwóch osób: nie ma tu botów.`,
+    rules: `<ol>
+      <li>Do gry potrzeba <b>od 2 do 8 osób</b>. Nie ma botów, więc gospodarz może zacząć, gdy przy stole siedzą dwie osoby.</li>
+      <li>W każdej turze jedna osoba <b>rysuje</b>. Dostaje <b>trzy hasła</b> i 15 sekund na wybór jednego. Jeśli nie wybierze, hasło zostaje wylosowane.</li>
+      <li>Rysujący przedstawia hasło na tablicy pisakiem, gumką i wypełnianiem kolorem. <b>Bez liter i cyfr</b>, bo to psuje zabawę.</li>
+      <li>Pozostali <b>wpisują odpowiedzi</b> w polu. Wielkie litery, polskie znaki, spacje i myślniki nie mają znaczenia. Błędną odpowiedź widzą wszyscy, trafiona zostaje w tajemnicy.</li>
+      <li>Jeśli odpowiedź różni się jedną literą, tylko ty dostajesz wiadomość, że jest <b>bardzo blisko</b>.</li>
+      <li>Kreski nad tablicą pokazują, <b>jak długie jest hasło</b>. Gdy czas ucieka, odkrywa się kilka liter (przy stole można to wyłączyć).</li>
+      <li>Trafiona odpowiedź daje <b>100 punktów</b> na początku tury i coraz mniej, aż do <b>40</b> na końcu. Rysujący dostaje <b>średnią</b> punktów zgadujących, więc najbardziej opłaca się rysunek, który wszyscy szybko odgadną.</li>
+      <li>Tura kończy się, gdy wszyscy zgadną albo minie czas. Rysujący może też <b>poddać</b> hasło. Po trafieniu możesz dalej pisać, ale widzą to tylko gracze, którzy już znają hasło.</li>
+      <li>W jednej rundzie każdy rysuje raz. Po ostatniej rundzie <b>wygrywa najwięcej punktów</b>. Kto dołączy później, może usiąść od następnej tury.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie narysuje ani jednej kreski i nie wpisze żadnej odpowiedzi, nie dostaje monet.</li>
     </ol>`,
   },
   ttt: {
