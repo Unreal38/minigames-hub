@@ -433,6 +433,32 @@ export function tttArt() {
   </svg>`;
 }
 
+// Sky Bingo card: a bingo card with a finished row of daubs on a floating island, and three numbered balls hopping past.
+export function bingoArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const cols = ['#4aa3ff', '#ff6b8b', '#ffd23f', '#5fcf86', '#ff9440'];
+  const daubed = new Set([1, 5, 10, 11, 12, 13, 14, 18, 22]);
+  let cells = '';
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    const x = 80 + c * 20, y = 46 + r * 17, i = r * 5 + c;
+    cells += `<rect x="${x}" y="${y}" width="17" height="14" rx="3" fill="#fff8ec" stroke="#3b2219" stroke-width="1.6"/>`;
+    if (i === 12) cells += `<path d="M${x + 8.5} ${y + 2.4}l1.7 3.4 3.7.5-2.7 2.6.7 3.7-3.4-1.8-3.4 1.8.7-3.7-2.7-2.6 3.7-.5z" fill="#ffd84a" stroke="#3b2219" stroke-width="1.2" stroke-linejoin="round"/>`;
+    else if (daubed.has(i)) cells += `<ellipse cx="${x + 8.5}" cy="${y + 7}" rx="6.2" ry="5.2" fill="${r === 2 ? '#ff7a59' : '#7ed3b2'}" opacity=".92"/>`;
+    else cells += `<path d="M${x + 5} ${y + 7}h7" stroke="#c9a99a" stroke-width="2.4" stroke-linecap="round"/>`;
+  }
+  const ball = (x, y, r, c, n, d) => `<g class="bball" style="--d:${d}ms"><circle cx="${x}" cy="${y}" r="${r}" fill="${c}" ${o}/><circle cx="${x}" cy="${y}" r="${r * .62}" fill="#fff8ec" stroke="#3b2219" stroke-width="2"/><text x="${x}" y="${y + r * .25}" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="${r * .72}" fill="#3b2219">${n}</text></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A bingo card with one finished row on a floating island, and three numbered balls hopping past">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="46" cy="18" r="1.6"/><circle cx="212" cy="12" r="1.3"/><circle cx="292" cy="20" r="1.5"/><circle cx="50" cy="84" r="1.2"/><circle cx="270" cy="126" r="1.1"/></g>
+    <path d="M40 40l14-8 16 4 8 10-10 8H48z" class="artcloud" fill="#fff"/><path d="M196 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M40 130c40-12 200-12 240 0l-16 10c-40 8-168 8-208 0z" fill="#8bca60" ${o}/><path d="M56 140c40 8 168 8 208 0l-34 10h-140z" fill="#c98a5a" ${o}/>
+    <g transform="rotate(-5 130 82)"><rect x="72" y="18" width="116" height="118" rx="9" fill="#ff7a59" ${o}/>
+      ${cols.map((c, k) => `<rect x="${80 + k * 20}" y="26" width="17" height="15" rx="4" fill="${c}" stroke="#3b2219" stroke-width="1.6"/><text x="${88.5 + k * 20}" y="38" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="12" fill="#3b2219">${'BINGO'[k]}</text>`).join('')}
+      ${cells}</g>
+    ${ball(232, 58, 21, cols[0], 7, 0)}${ball(262, 98, 17, cols[2], 42, -700)}${ball(214, 106, 15, cols[3], 53, -1400)}
+    <path class="arttick" d="M258 34l8-9M272 50l12-4M200 80l-9-7" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Small square icons for the Today tiles.
 export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <path d="M79 22 84 4l7 9 10-7-7 18z" fill="#6fc266"/><path d="M68 20h36l-10 34H78z" fill="#ff9a3d"/>
