@@ -31,7 +31,9 @@ const INK = '#2b2230', UP = new THREE.Vector3(0, 1, 0);
 const WH = () => MX('shine', '#ffffff', { emissive: '#ffffff', emissiveIntensity: .9 });
 // One eye: a dark dome that hugs the curve of the head (turn: how far it leans to its side), with two white glints
 // that blink away with it. Faces +Z; the scene squashes scale.z to blink.
-const EYEM = new THREE.MeshBasicMaterial({ vertexColors: true }); EYEM.userData.keep = true; // shared by every pet, never disposed
+// Pulled a few depth steps toward the camera: seen from far away (the profile isle, games) the depth buffer is too coarse to
+// tell the eye dome from the skin it sits on, and on some graphics cards the eyes sank out of sight.
+const EYEM = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }); EYEM.userData.keep = true; // shared by every pet, never disposed
 // The eye: a dark dome with a big iris in the pet's element colour (shaded deep under the lid, light at the bottom), a big
 // soft pupil and glints. All of it is one mesh coloured per vertex, so an eye is one draw call. A big iris and pupil read
 // as friendly; a small pupil in a bright iris reads as a stare, so keep them large.
@@ -1294,7 +1296,7 @@ const BODY = {
   snoozloth(g, F, K, X) { // a sloth in a nightcap: a pale face with sleepy stripes and long arms with three claws
     const d = mix(K.a, '#4a3a32', .6), A = sitter(g, F, K, X, { arms: false, faceO: { nose: '#3a2a2a', eye: [1.1, 1, .9][F] } }), h = A.head, b = A.body;
     Sp(g, h.r * .8, K.b, [0, h.p[1] - h.r * .02, h.p[2] + h.r * .3], [1.02, .88, .9]);
-    for (const s of [-1, 1]) { Bx(g, [h.r * .36, h.r * .09, .04], d, [s * h.r * .56, h.p[1] - h.r * .04, h.p[2] + h.r * .96], [0, s * .55, -s * .4]);
+    for (const s of [-1, 1]) { Sp(g, h.r * .25, d, [s * h.r * .43, h.p[1] - h.r * .06, h.p[2] + h.r * .8], [1.3, .8, .35]); // sleepy dark patches the eyes sit in
       const L = [.5, .8, 1.05][F], a = Grp(g, [s * b.r[0] * .9, b.p[1] * 1.35, b.r[2] * .2], [-.5, 0, s * .22]); Rd(a, [.22, L, .22], K.a, [0, -L / 2, 0]); for (let i = -1; i <= 1; i++) Co(a, [.035, .2, 4], '#f3e6d2', [i * .07, -L - .06, .04], [PI, 0, 0]); }
     if (X.own('top')) X.sig(A.top, A.fs);
     return A;
@@ -1555,7 +1557,7 @@ export function petModel(sp, form = 0, look = null) {
   const kc = look?.cat && COAT[look.cat] ? look.cat : sp; // a pet can wear the colours of another species in its family
   const coat = CATCOAT[sp] && !CATCOAT[kc] ? sp : kc; // cats also swap markings, when the other cat has its own
   const g = new THREE.Group(), F = Math.max(0, Math.min(2, form | 0)), K = coatOf(kc, look), eyes = [];
-  if (sp === 'sizzlet' && K.el && !look.coat) K.a = DRAGON[K.el].body; // the dragon's own colours
+  if (sp === 'sizzlet' && DRAGON[K.el] && !look.coat) K.a = DRAGON[K.el].body; // the dragon's own colours
   const borrowed = look?.feat && look.feat !== sp && FEAT[look.feat] ? look.feat : null;
   const SLOTWIG = { top: 'top', tail: 'tail' };
   const part = (f, pos, k) => { const o = Grp(g, pos, null, k); FEAT[f].b(o, F, K); const w = SLOTWIG[FEAT[f].slot]; let inner = false; o.traverse(c => { if (c !== o && c.userData.wig) inner = true; }); if (w && !inner) o.userData.wig = w; return o; };
@@ -1567,7 +1569,7 @@ export function petModel(sp, form = 0, look = null) {
   if (K.el && sp !== 'sizzlet' && A.head) { const h = A.head, hr = h.r[0] || h.r; CHARM[K.el](Grp(g, [h.p[0] - hr * .6, h.p[1] + hr * .72, h.p[2] + hr * .15], [0, 0, .45], hr / .65)); }
   markings(g, A, look?.pat, K);
   if (look?.spark) for (let i = 0; i < 5; i++) { const a = i * 1.3; Oc(g, .09, GL('#fff6c8', 1), [Math.sin(a) * 1.1, .5 + i * .38, Math.cos(a) * 1.1], [1, 1.7, 1]); }
-  chibi(g, A, F); snout(g);
+  chibi(g, A, F); snout(g); seatEyes(g, eyes);
   // Merge the still parts into one mesh, and each part that moves (ears, tails, wings) into its own with its own outline.
   const wigs = []; g.traverse(o => { if (o.userData.wig) { wigs.push(o); o.userData.dyn = true; } else if (o.isMesh && (o.userData.noInk || o.material.transparent || o.material.emissiveIntensity > 0 && o.material.emissive?.getHex())) o.userData.dyn = true; });
   g.traverse(o => { if (o.userData.flame) o.userData.dyn = true; });
@@ -1605,6 +1607,23 @@ function snout(g) {
   for (const n of noses) push([n], need(n));
 }
 const _d3 = new THREE.Vector3();
+// Eyes sit on the face like every other pet's: an eye whose centre floats in front of the skin (the face sphere was rounder
+// than the real head, as on long sea pets, or the chibi warp moved the head away) is slid back along its own facing until
+// its dome rests on the skin. An eye with no skin close behind it (a face on a disc or a shell) is left where it is.
+const _f3 = new THREE.Vector3(), _w3 = new THREE.Vector3(), _q3 = new THREE.Quaternion();
+function seatEyes(g, eyes) {
+  g.updateWorldMatrix(true, true);
+  const solid = []; g.traverse(m => { if (m.isMesh && !eyes.includes(m) && !m.userData.noInk && !m.material.transparent && m.material.side !== THREE.BackSide) solid.push(m); });
+  for (const e of eyes) {
+    const h = e.parent; h.getWorldPosition(_w3); h.getWorldQuaternion(_q3); _f3.set(0, 0, 1).applyQuaternion(_q3);
+    const er = _v.setFromMatrixScale(h.matrixWorld).x; if (!er) continue;
+    _ray.set(_d3.copy(_w3).addScaledVector(_f3, er * .3), _v.copy(_f3).negate()); _hits.length = 0; _ray.intersectObjects(solid, false, _hits);
+    if (!_hits.length) continue;
+    const gap = (_hits[0].distance - er * .3) / er; // in eye radii; a well seated eye is about -0.1 (its rim tucked into the skin)
+    if (gap <= .15 || gap > 2.5) continue;
+    _w3.addScaledVector(_f3, -(gap + .1) * er); h.parent.worldToLocal(_w3); h.position.copy(_w3); h.updateMatrixWorld(true);
+  }
+}
 // Chibi proportions for every build at once: whatever belongs to the head grows around the head's centre, the rest shrinks
 // towards the ground under the body, part by part (each part keeps its own shape). Pets that are one ball are left alone.
 const CHIBI = [[1, 1], [1.13, .9], [1.2, .84]]; // [head, body] per form
