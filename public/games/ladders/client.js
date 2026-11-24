@@ -119,11 +119,12 @@ export function mount(app, ctx) {
   function renderList() {
     if (!S) return;
     const el = $('sl-list'), N = S.board.size;
-    const ord = S.seats.map((_, i) => i);
+    const ord = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].pos - S.seats[a].pos || a - b); // furthest along first
     setHtml(el, ord.map(i => {
       const p = S.seats[i], now = i === S.turn && S.ph === 'play';
       const where = moving(i) ? '…' : p.pos >= N ? '🏁' : p.pos ? L(`tile ${p.pos}`, `pole ${p.pos}`) : 'start';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b>${p.nap ? '<em title="' + L('napping', 'drzemie') + '">Zz</em>' : ''}<span>${where}</span></li>`;
+      const short = moving(i) || p.pos >= N || !p.pos ? where : p.pos; // phones: just the number
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b>${p.nap ? '<em title="' + L('napping', 'drzemie') + '">Zz</em>' : ''}<span><i class="lg">${where}</i><i class="sh">${short}</i></span></li>`;
     }).join(''));
   }
 
@@ -134,7 +135,8 @@ export function mount(app, ctx) {
     if (myTurn()) {
       setHtml(el, `<button type="button" class="btn big r rollbtn" data-a="roll">${dieSvg(5, 36)}${L('Roll the die', 'Rzuć kostką')}</button>`);
     } else if (S.stage === 'move' || busy) {
-      setHtml(el, `<span class="rolled">${dieSvg(S.move?.die || 1, 30)}<span>${L(`${youOr(S.move?.s)} rolled a <b>${S.move?.die}</b>`, yo(S.move?.s, `Wyrzucasz <b>${S.move?.die}</b>`, `wyrzuca <b>${S.move?.die}</b>`))}</span></span>`);
+      const again = S.move?.die === 6 && S.seats[S.move.s]?.pos < S.board.size ? `<small>${L('roll again!', 'jeszcze jeden rzut!')}</small>` : '';
+      setHtml(el, `<span class="rolled">${dieSvg(S.move?.die || 1, 30)}<span>${L(`${youOr(S.move?.s)} rolled a <b>${S.move?.die}</b>`, yo(S.move?.s, `Wyrzucasz <b>${S.move?.die}</b>`, `wyrzuca <b>${S.move?.die}</b>`))}${again}</span></span>`);
     } else {
       const p = S.seats[S.turn];
       setHtml(el, `<span class="rolled">${avatarHtml(p.color, p.av, 30)}<span>${S.turn === S.me ? L('A bot is rolling for you', 'Bot rzuca za ciebie') : L(`${nameOf(S.turn)} is rolling…`, `${nameOf(S.turn)} rzuca…`)}</span></span>`);
@@ -146,9 +148,8 @@ export function mount(app, ctx) {
     if (!S) return;
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
     if (S.ph === 'end') msg = S.win >= 0 ? L(`${youOr(S.win)} win${S.win === S.me ? '' : 's'}!`, S.win === S.me ? 'Wygrywasz!' : `Wygrywa ${nameOf(S.win)}!`) : '';
-    else if (S.stage === 'move' || busy) msg = S.move ? L(`${youOr(S.move.s)} rolled a ${S.move.die}`, yo(S.move.s, `Wyrzucasz ${S.move.die}`, `wyrzuca ${S.move.die}`)) + (S.move.die === 6 && S.seats[S.move.s].pos < S.board.size ? L(' · roll again!', ' · jeszcze jeden rzut!') : '') : '';
+    // (who rolled what, and who is rolling, is already on the bar at the bottom: the banner only adds your own countdown)
     else if (myTurn()) msg = S.left >= 0 ? L(`Your turn · ${secs}s`, `Twoja kolej · ${secs} s`) : L('Your turn!', 'Twoja kolej!');
-    else msg = L(`${nameOf(S.turn)}'s turn`, `Kolej: ${nameOf(S.turn)}`);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', myTurn());
   }

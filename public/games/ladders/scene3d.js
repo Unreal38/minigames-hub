@@ -415,7 +415,7 @@ export function createScene(canvas, { onFrame, onCue }) {
     const D = B.rows * U, hw = HALF + (tall ? 1.4 : 2.6), hd = D / 2 + (tall ? 2 : 1.6), el = tall ? 1.08 : .98, fv = camera.fov * Math.PI / 360;
     const dist = (Math.max(hd * Math.sin(el) / Math.tan(fv), hw / (Math.tan(fv) * camera.aspect)) * 1.04 + hd * Math.cos(el) * .5) * (tall ? .72 : 1);
     const focus = toks[mv && t < mv.ms ? mv.s : turn];
-    look.set(tall ? 0 : .5, 0, tall ? .8 : .3); if (focus) look.lerp(focus.cur, tall ? .5 : .14);
+    look.set(tall ? 0 : .5, 0, tall ? -.6 : .3); if (focus) look.lerp(focus.cur, tall ? .5 : .14);
     want.set(look.x, look.y + Math.sin(el) * dist, look.z + Math.cos(el) * dist);
     if (!camInit) { camAt.copy(want); lookNow.copy(look); camInit = true; }
     camAt.lerp(want, Math.min(1, dt * 2)); lookNow.lerp(look, Math.min(1, dt * 2)); camera.position.copy(camAt);
