@@ -23,8 +23,8 @@ export function readRegistry(src) {
   for (const m of src.matchAll(/^ {2}(\w+): \{\n {4}name: (?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")[^\n]*\n {4}mins: \[(\d+), (\d+)\]/gm))
     info[m[1]] = { name: unq([0, m[2], m[3]]), mins: [+m[4], +m[5]] };
   const hub = src.slice(src.indexOf('const HUB_GAMES = ['), src.indexOf('].filter(g => GAMES[g[0]])'));
-  const row = new RegExp(String.raw`\['(\w+)', '[^']*', \w+, '(\w+)', '([^']*)', (?:${STR})\]`, 'g');
-  const games = [...hub.matchAll(row)].filter(m => info[m[1]]).map(m => ({ id: m[1], cat: m[2], seats: m[3], pitch: unq([0, m[4], m[5]]), ...info[m[1]] }));
+  const row = new RegExp(String.raw`\['(\w+)', '[^']*', \w+, '([\w ]+)', '([^']*)', (?:${STR})\]`, 'g');
+  const games = [...hub.matchAll(row)].filter(m => info[m[1]]).map(m => ({ id: m[1], cat: m[2].split(' ')[0], tags: m[2].split(' '), seats: m[3], pitch: unq([0, m[4], m[5]]), ...info[m[1]] }));
   const mp = src.match(/const MP_MINS = \[(\d+), (\d+)\]/);
   return { games, solo: info, mpMins: mp ? [+mp[1], +mp[2]] : null };
 }
