@@ -192,7 +192,7 @@ export function mount(app, ctx) {
     $('ch-info').textContent = L(`Move ${S.pos.full}`, `Ruch ${S.pos.full}`) + ' · ' + (S.clock ? S.clockName : L('no clock', 'bez zegara'));
     $('ch-code').textContent = Rm?.code || '';
     buildTags(); renderMoves(); renderDock(); renderBanner();
-    if (!myTurn()) { select(-1); cursor = -1; scene?.setCursor(-1); closePromo(); }
+    if (!myTurn()) { select(-1); cursor = -1; scene?.setCursor(-1); scene?.setHover(-1); closePromo(); }
   }
 
   function big(text, sub = '', ms = 1500) {
@@ -312,7 +312,7 @@ export function mount(app, ctx) {
     if (S && S.ph === 'play') renderDock();
   }
   function send(f, t, p) {
-    sent = Date.now(); select(-1); closePromo(); cursor = -1; scene?.setCursor(-1);
+    sent = Date.now(); select(-1); closePromo(); cursor = -1; scene?.setCursor(-1); scene?.setHover(-1);
     ctx.act({ t: 'move', f, to: t, p }); renderDock();
   }
   function closePromo() { pend = null; const el = $('ch-promo'); if (!el.hidden) { el.hidden = true; el.innerHTML = ''; } }
@@ -341,20 +341,24 @@ export function mount(app, ctx) {
     }
     select(-1);
   }
+  // squares a tap can do something with right now: where the picked piece can go, and my pieces that can move
+  const useful = s => s >= 0 && (targets.some(x => x.t === s) || (mine(s) && movesFrom(s).length > 0));
   const onMove = e => {
     if (e.pointerType === 'touch' || !scene || !S) return;
-    let hot = false;
-    if (myTurn() && !busy()) { const s = scene.squareAt(e.clientX, e.clientY); hot = s >= 0 && ((mine(s) && movesFrom(s).length > 0) || targets.some(x => x.t === s)); }
-    canvas.classList.toggle('pick', hot);
+    let s = -1;
+    if (myTurn() && !busy() && !pend) { s = scene.squareAt(e.clientX, e.clientY, useful); if (!useful(s)) s = -1; }
+    canvas.classList.toggle('pick', s >= 0); scene.setHover(s);
   };
   let downAt = null;
   const onDown = e => { downAt = { x: e.clientX, y: e.clientY }; };
   const onUp = e => {
     if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 14) { downAt = null; return; }
     downAt = null;
-    if (scene && myTurn()) { cursor = -1; scene.setCursor(-1); tap(scene.squareAt(e.clientX, e.clientY)); }
+    if (scene && myTurn()) { cursor = -1; scene.setCursor(-1); scene.setHover(-1); tap(scene.squareAt(e.clientX, e.clientY, useful)); }
   };
   canvas.addEventListener('pointermove', onMove); canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointerup', onUp);
+  const onLeave = () => { scene?.setHover(-1); canvas.classList.remove('pick'); };
+  canvas.addEventListener('pointerleave', onLeave);
   const onKey = e => {
     if (!myTurn() || e.target.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key, flip = scene?.flipped() ? -1 : 1;
