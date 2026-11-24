@@ -441,7 +441,7 @@ const GAMES = {
     name: 'Beanstalk Bounce', load: () => import('./games/bean/client.js'), start: 'Start climbing',
     mins: [3, 5],
     host: { seats: 4, pace: 'normal', bots: 'chill' }, solo: { seats: 4, pace: 'normal', bots: 'chill' },
-    openSeat: 'A bot climbs here if nobody joins', seatWord: 'Climbers', seatLabels: { 1: 'Just us' },
+    openSeat: 'A bot climbs here if nobody joins', seatWord: 'Climbers',
     settings: pill => `
       <div class="opt"><b>Storm</b><div class="pills">${pill('pace', 'chill', 'Chill')}${pill('pace', 'normal', 'Normal')}${pill('pace', 'wild', 'Wild')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
@@ -462,7 +462,7 @@ const GAMES = {
     name: 'Burrow Bop', load: () => import('./games/bop/client.js'), start: 'Start bopping',
     mins: [1, 3],
     host: { seats: 4, pace: 'normal', bots: 'chill' }, solo: { seats: 4, pace: 'normal', bots: 'chill' },
-    openSeat: 'A bot bops here if nobody joins', seatLabels: { 1: 'Just us' },
+    openSeat: 'A bot bops here if nobody joins',
     settings: pill => `
       <div class="opt"><b>Speed</b><div class="pills">${pill('pace', 'calm', 'Calm')}${pill('pace', 'normal', 'Normal')}${pill('pace', 'fast', 'Fast')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,

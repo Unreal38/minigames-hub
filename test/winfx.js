@@ -49,4 +49,15 @@ setSeatFx([0, 6, 99]); setMyFx(6);
 if (fxOf(0) !== 0 || fxOf(1) !== 6 || fxOf(2) !== 0 || fxOf('me') !== 6) fail('fxOf: each seat\'s own effect, unknown ones count as none');
 if (myBurst() !== true || seatBurst(1) !== true || seatBurst(0) !== false || seatBurst(5) !== false) fail('myBurst/seatBurst: true only when that player has an effect on');
 setMyFx(0); if (myBurst() !== false) fail('myBurst: false with no effect on (the game draws its own confetti)');
+// Centred labels (the "X wins!" banner and the like): a rule centred with translate(-50%) must not run an animation whose
+// keyframes set transform, because the animation replaces the transform and the label slides off centre.
+{
+  const css = [...files, ...fs.readdirSync(root).filter(f => f.endsWith('.css')).map(f => path.join(root, f))].map(f => [rel(f), fs.readFileSync(f, 'utf8')]), kf = {};
+  for (const [, src] of css) for (const m of src.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g)) kf[m[1]] = (kf[m[1]] || '') + m[2];
+  for (const [name, src] of css) for (const m of src.matchAll(/([^{}]{1,200})\{([^{}]*)\}/g)) {
+    if (!/transform:[^;]*-50%/.test(m[2])) continue;
+    const a = m[2].match(/animation(?:-name)?:\s*([^;]+)/); if (!a) continue;
+    for (const k of a[1].split(/[\s,]+/)) if (kf[k] && /transform/.test(kf[k]) && !/-50%/.test(kf[k])) fail(`${name}: "${m[1].trim().slice(-50)}" is centred with translate(-50%) but its animation ${k} sets transform and undoes it; centre it with left:0;right:0;margin:auto instead`);
+  }
+}
 console.log(`ok winfx: ${showers} in-game showers and ${own} game confetti() functions use the players' win effects`);

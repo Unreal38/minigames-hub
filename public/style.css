@@ -904,7 +904,8 @@ body.sky.night:not(.in-game) .hcname { color: var(--lantern); } body.sky.night:n
 .chatemoji.more { flex-wrap: wrap; justify-content: flex-start; max-height: 96px; overflow-y: auto; }
 /* win effects (public/winfx.js) */
 .winfx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 80; pointer-events: none; }
-.winfxtag { position: fixed; left: 50%; top: 16%; transform: translateX(-50%); z-index: 81; pointer-events: none; font: 700 clamp(22px, 5vw, 40px)/1.1 var(--fd); color: #fff; background: #3b2219cc; border: 3px solid #fff; border-radius: 999px; padding: 8px 22px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+/* centred with auto margins, not translateX(-50%): the popin animation sets transform and would undo it (bug: banner sat right of centre) */
+.winfxtag { position: fixed; left: 0; right: 0; margin: 0 auto; width: max-content; box-sizing: border-box; top: 16%; z-index: 81; pointer-events: none; font: 700 clamp(22px, 5vw, 40px)/1.1 var(--fd); color: #fff; background: #3b2219cc; border: 3px solid #fff; border-radius: 999px; padding: 8px 22px; animation: popin .4s cubic-bezier(.3, 1.6, .5, 1) both; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 1500px) { .top .me[data-act=profile] > small { display: none; } }
 @media (max-width: 1340px) { .top .coinbtn > small { display: none; } }
 body.sky.night:not(.in-game) .creator .cart { box-shadow: 0 -8px 0 var(--pan); }

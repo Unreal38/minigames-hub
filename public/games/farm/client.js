@@ -302,19 +302,37 @@ export function mount(app, ctx) {
         <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
       return;
     }
-    if (panel.kind === 'swap') { // the Workshop swaps one material for another: pick what you need, then what you pay with
-      const wLv = Math.max(1, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), keep = Math.round(SWAP_KEEP[wLv - 1] * 100), n = panel.n || 1, k = panel.get;
-      const room = m => STORED.includes(m) ? Math.max(0, (F.cap || Infinity) - (F.inv[m] || 0)) : Infinity;
-      const gets = Object.keys(WORTH).map(m => `<button type="button" class="zone" data-a="swapget" data-mat="${m}" aria-pressed="${m === k}">${matIcon(m, 30)}<b>${MATS[m]}</b><small>${L(`You have ${F.inv[m] || 0}`, `Masz: ${F.inv[m] || 0}`)}</small></button>`).join('');
-      const pays = k ? Object.keys(WORTH).filter(m => m !== k).map(m => { const d = swapDeal(m, k, wLv); if (!d?.get) return '';
-        const pay = d.pay * n, got = d.get * n, off = (F.inv[m] || 0) < pay ? 'few' : got > room(k) ? 'room' : '';
-        return `<button type="button" class="zone${off ? ' off' : ''}" data-a="swap" data-give="${m}" data-off="${off}">${matIcon(m, 30)}<b>${pay} ${MATS[m].toLowerCase()}</b><small>${L(`for ${got} ${MATS[k].toLowerCase()} · you have ${F.inv[m] || 0}`, `za ${MATS[k].toLowerCase()}: ${got} · masz: ${F.inv[m] || 0}`)}</small></button>`; }).join('') : '';
-      box.innerHTML = `<div class="panel tripp"><h2>${L('Swap materials', 'Wymiana materiałów')}</h2><p>${L(`Trade spare materials for ones you need. The Workshop keeps a small cut: at level ${wLv} you get back ${keep}% of the value.${wLv < SWAP_KEEP.length ? ' Improve it for better swaps.' : ''}`, `Wymień zbędne materiały na te, których potrzebujesz. Warsztat bierze małą prowizję: na poziomie ${wLv} oddaje ${keep}% wartości.${wLv < SWAP_KEEP.length ? ' Ulepsz go, żeby wymieniać korzystniej.' : ''}`)}</p>
-        <h3>${L('1. What do you need?', '1. Czego potrzebujesz?')}</h3><div class="zones">${gets}</div>
-        ${k ? `<h3>${L('2. What do you pay with?', '2. Czym płacisz?')}</h3>
-        <div class="pills swapn" role="group" aria-label="${L('How many swaps at once', 'Ile wymian naraz')}">${[1, 5, SWAP_MAX].map(x => `<button type="button" data-a="swapn" data-n="${x}" aria-pressed="${x === n}">×${x}</button>`).join('')}</div>
-        <div class="zones">${pays}</div>` : ''}
-        <div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
+    if (panel.kind === 'swap') { // the Workshop swaps one material for another: pick what you give and what you get, see the deal, press Swap
+      const wLv = Math.max(1, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), keep = Math.round(SWAP_KEEP[wLv - 1] * 100);
+      const have = m => F.inv[m] || 0, room = m => STORED.includes(m) ? Math.max(0, (F.cap || Infinity) - have(m)) : Infinity;
+      const g = panel.give, k = panel.get, d = g && k ? swapDeal(g, k, wLv) : null;
+      const most = d?.get ? Math.min(SWAP_MAX, Math.floor(have(g) / d.pay), Math.floor(room(k) / d.get)) : 0, n = Math.max(1, Math.min(panel.n || 1, most || 1)); panel.n = n;
+      const pay = d ? d.pay * n : 0, got = d ? d.get * n : 0, off = !d?.get ? 'pick' : have(g) < pay ? 'few' : got > room(k) ? 'room' : '';
+      const chip = (side, m) => { const on = side === 'give' ? m === g : m === k, dd = side === 'give' && k && m !== k ? swapDeal(m, k, wLv) : null, dim = side === 'give' && (!have(m) || dd && have(m) < dd.pay);
+        return `<button type="button" class="swmat${dim ? ' off' : ''}" data-a="${side === 'give' ? 'swgive' : 'swget'}" data-mat="${m}" aria-pressed="${on}">${matIcon(m, 30)}<b>${MATS[m]}</b><small>${have(m)}</small></button>`; };
+      const side = (cls, title, m, amount, after) => `<div class="swside ${cls}${m ? '' : ' empty'}"><small class="swlab">${title}</small>${m ? `${matIcon(m, 46)}<b class="swn">${amount}</b><span class="swname">${MATS[m]}</span><small>${after}</small>` : `<span class="swq" aria-hidden="true">?</span><span class="swname">${L('Not picked yet', 'Jeszcze nie wybrano')}</span>`}</div>`;
+      const why = off === 'few' ? L(`You have ${have(g)}, and one swap needs ${d.pay}.`, `Masz ${have(g)}, a jedna wymiana wymaga ${d.pay}.`)
+        : off === 'room' ? L(`Your storage holds ${F.cap} of each, so there is no room for that many. Spend some, or build a Storage Barn.`, `Magazyn mieści ${F.cap} każdego materiału, więc nie ma na tyle miejsca. Wydaj trochę albo zbuduj Stodołę.`)
+        : !g || !k ? L('Pick what you give and what you get.', 'Wybierz, co dajesz i co dostajesz.') : '';
+      const mats = Object.keys(WORTH), top = box.querySelector('.panel')?.scrollTop || 0;
+      box.innerHTML = `<div class="panel tripp swapp"><h2>${L('Swap materials', 'Wymiana materiałów')}</h2>
+        <p>${L('Give the Workshop something you have plenty of, and get something you need.', 'Daj Warsztatowi coś, czego masz dużo, a dostaniesz to, czego potrzebujesz.')}</p>
+        <div class="swpicks">
+          <section><h3>${L('1. You give', '1. Dajesz')}</h3><div class="swmats">${mats.map(m => chip('give', m)).join('')}</div></section>
+          <section><h3>${L('2. You get', '2. Dostajesz')}</h3><div class="swmats">${mats.map(m => chip('get', m)).join('')}</div></section>
+        </div>
+        <div class="swdeal">
+          ${side('give', L('You give', 'Dajesz'), g, pay || '', g ? L(`You have ${have(g)}`, `Masz: ${have(g)}`) : '')}
+          <button type="button" class="swflip" data-a="swflip" ${g && k ? '' : 'disabled'} aria-label="${L('Turn the swap around', 'Odwróć wymianę')}" title="${L('Turn the swap around', 'Odwróć wymianę')}"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M4 8h13m-4-4 4 4-4 4M20 16H7m4-4-4 4 4 4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          ${side('get', L('You get', 'Dostajesz'), k, got || '', k ? (d?.get && !off ? L(`You will have ${have(k) + got}`, `Będziesz mieć: ${have(k) + got}`) : L(`You have ${have(k)}`, `Masz: ${have(k)}`)) : '')}
+        </div>
+        ${d?.get ? `<div class="swhow"><div class="pills swapn" role="group" aria-label="${L('How many swaps at once', 'Ile wymian naraz')}">
+          <button type="button" data-a="swn" data-n="${n - 1}" ${n > 1 ? '' : 'disabled'} aria-label="${L('Fewer', 'Mniej')}">−</button><span class="swtimes">×${n}</span><button type="button" data-a="swn" data-n="${n + 1}" ${n < most ? '' : 'disabled'} aria-label="${L('More', 'Więcej')}">+</button><button type="button" data-a="swn" data-n="${most}" ${most > 1 && n < most ? '' : 'disabled'}>${L('Most', 'Maks.')}</button></div>
+          <small class="swrate">${L('One swap:', 'Jedna wymiana:')} <span>${d.pay} ${matIcon(g, 18)}</span> → <span>${d.get} ${matIcon(k, 18)}</span></small></div>` : ''}
+        ${why ? `<p class="swwhy${off === 'pick' ? '' : ' bad'}">${why}</p>` : ''}
+        <p class="hint">${L(`The Workshop keeps a small cut: at level ${wLv} you get back ${keep}% of the value.${wLv < SWAP_KEEP.length ? ' Improve it for better swaps.' : ''}`, `Warsztat bierze małą prowizję: na poziomie ${wLv} oddaje ${keep}% wartości.${wLv < SWAP_KEEP.length ? ' Ulepsz go, żeby wymieniać korzystniej.' : ''}`)}</p>
+        <div class="row end"><button type="button" class="btn big w" data-a="shut">${L('Done', 'Gotowe')}</button><button type="button" class="btn big m" data-a="swdo" ${off ? 'disabled' : ''}>${d?.get ? L(`Swap ×${n}`, `Wymień ×${n}`) : L('Swap', 'Wymień')}</button></div></div>`;
+      const pn = box.querySelector('.panel'); if (pn) pn.scrollTop = top;
       return;
     }
     if (panel.kind === 'gift') {
@@ -862,11 +880,12 @@ export function mount(app, ctx) {
     else if (a === 'wxinfo') { if (edit || B) return; panel = { kind: 'wx' }; card = null; sfx.click(); sync(); }
     else if (a === 'matinfo') { if (edit || B) return; panel = { kind: 'mat', mat: b.dataset.mat }; card = null; sfx.click(); sync(); }
     else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
-    else if (a === 'swapopen') { panel = { kind: 'swap', n: 1 }; card = null; sync(); }
-    else if (a === 'swapget') { panel.get = b.dataset.mat; sfx.click(); sync(); }
-    else if (a === 'swapn') { panel.n = +b.dataset.n || 1; sfx.click(); sync(); }
+    else if (a === 'swapopen') { const most = Object.keys(WORTH).filter(m => STORED.includes(m)).sort((x, y) => (F.inv[y] || 0) - (F.inv[x] || 0))[0]; panel = { kind: 'swap', n: 1, give: F.inv[most] ? most : null }; card = null; sync(); }
+    else if (a === 'swgive' || a === 'swget') { const m = b.dataset.mat, mine = a === 'swgive' ? 'give' : 'get', other = mine === 'give' ? 'get' : 'give'; if (panel[other] === m) panel[other] = panel[mine] && panel[mine] !== m ? panel[mine] : mine === 'get' ? Object.keys(WORTH).filter(x => x !== m && STORED.includes(x)).sort((x, y) => (F.inv[y] || 0) - (F.inv[x] || 0))[0] : null; panel[mine] = m; sfx.click(); sync(); }
+    else if (a === 'swflip') { [panel.give, panel.get] = [panel.get, panel.give]; sfx.click(); sync(); }
+    else if (a === 'swn') { panel.n = Math.max(1, +b.dataset.n || 1); sfx.click(); sync(); }
     else if (a === 'cook') { if (b.dataset.lv) return ctx.toast(L(`Improve the Kitchen to level ${b.dataset.lv} for that recipe.`, `Ten przepis wymaga Kuchni na poziomie ${b.dataset.lv}.`), true); if (b.classList.contains('off')) return ctx.toast(L('Not enough for that yet. Garden Plots grow more every hour, and better plots grow Sunberries.', 'Na to jeszcze nie wystarczy. Grządki co godzinę dają więcej, a lepsze grządki dają słoneczne jagody.'), true); ctx.send({ t: 'cook', what: b.dataset.what }); }
-    else if (a === 'swap') { if (b.dataset.off) return ctx.toast(b.dataset.off === 'room' ? L('There is no room for that many. Spend some, or build a Storage Barn.', 'Nie ma na tyle miejsca. Wydaj trochę albo zbuduj Stodołę.') : L('You do not have enough of that to swap.', 'Masz za mało, żeby to wymienić.'), true); ctx.send({ t: 'swap', give: b.dataset.give, get: panel.get, n: panel.n || 1 }); }
+    else if (a === 'swdo') { if (panel?.give && panel.get) ctx.send({ t: 'swap', give: panel.give, get: panel.get, n: panel.n || 1 }); }
     else if (a === 'feed') ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id });
     else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
     else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
