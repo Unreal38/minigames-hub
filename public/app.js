@@ -284,6 +284,7 @@ const GAMES = {
       <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. While you sit in the tub all your pets nap, so you collect no rent.</li>
       <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, <b>you pick what to sell</b> back to the bank at half price (an upgrade, or a whole shop with its upgrades). The game waits for you; if the timer runs out, it sells for you, upgrades first. Once nothing is left to sell, anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
+      <li>Drag the board to turn it, right-drag (or two fingers) to slide it, and scroll or pinch to zoom. The arrow button brings the usual view back.</li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>
     </ol>`,
   },
