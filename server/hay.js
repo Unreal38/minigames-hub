@@ -3,7 +3,8 @@
 // The browser only ever sees bales that have been flipped, until the field is over.
 import crypto from 'node:crypto';
 import { N, MAX_LV, PET, deal, hints, harvestOf, goal, found, coinsFor, DAILY, XP_CLEAR } from '../public/games/hay/rules.js';
-import { addCoins, shopDate, scheduleSave, invalidateBoards } from './store.js';
+import { addCoins, scheduleSave, invalidateBoards } from './store.js';
+import { dayOf } from './day.js';
 import { levelOf } from '../public/ranks.js';
 
 const rnd = n => crypto.randomInt(n);
@@ -11,7 +12,7 @@ const fid = () => crypto.randomBytes(4).toString('hex');
 
 function stateOf(p) {
   const h = p.hay ||= { lv: 1, top: 1, day: '', paid: 0, f: null };
-  if (h.day !== shopDate()) { h.day = shopDate(); h.paid = 0; }
+  if (h.day !== dayOf()) { h.day = dayOf(); h.paid = 0; }
   if (!h.f) newField(h);
   return h;
 }

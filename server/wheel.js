@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, addCoins, scheduleSave } from './store.js';
-import { dayOf, untilNext } from './daily.js';
+import { dayOf, untilNext } from './day.js';
 import { wheelMail } from './farm.js';
 import { ORDER, PRIZES, LUCKY, PITY, SET_COINS, BOOSTS, PET_RARITY } from '../public/wheelprizes.js';
 import { SPECIES, ELEMENTS } from '../public/games/farm/data.js';

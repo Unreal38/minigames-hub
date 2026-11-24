@@ -12,6 +12,7 @@ import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, ST
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
+import { dayOf } from './day.js';
 
 // Coins are the account's, not the farm's: f.inv.coins reads and writes the owner's account balance, so everything
 // below can keep treating coins as one more material. A farm saved before that pays its coins into the account once.
@@ -111,7 +112,7 @@ const battles = new Map(); // profile id -> battle
 const ARENA_LV = 20, HOLDS_DAILY = 10, DAILY = { arena: 5, practice: 3, wild: 999 }, WILD_CHANCE = .3, WILD_MS = 30 * 60_000;
 const WIN = { arena: { coins: 25, xp: 20, pts: 10 }, practice: { coins: 0, xp: 12, pts: 0 }, wild: { coins: 4, xp: 15, pts: 0 } };
 const LOSE = { arena: { coins: 5, xp: 8, pts: 2 }, practice: { coins: 0, xp: 5, pts: 0 }, wild: { coins: 0, xp: 6, pts: 0 } };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => dayOf(); // midnight in Warsaw, like every daily thing on the site (server/day.js)
 const used = (f, mode) => f.fights?.day === today() ? f.fights[mode] || 0 : 0;
 // Three neighbours who are always up for a match, so the arena works before friends join.
 const NPCS = {
@@ -630,7 +631,7 @@ export function handle(p, a, reply) {
       const out = parties(x).find(t => t.until > Date.now()), egg = SLOTS.find(s => x[s] && nestView(x, s).stage !== 'ready');
       const plot = x.items.find(i => i.type === 'garden' && ripeIn(x, i) > 0);
       if (out) out.until -= HELP_CUT; else if (plot) plot.at -= HELP_CUT; /* watering */ else if (egg) { x[egg].at -= HELP_CUT; x[egg].cheers = (x[egg].cheers || 0) + 1; } else x.inv.coins = (x.inv.coins || 0) + 2;
-      const m = (x.mail || []).find(q => q.k === 'help' && q.from === p.name && new Date(q.at).toISOString().slice(0, 10) === today());
+      const m = (x.mail || []).find(q => q.k === 'help' && q.from === p.name && dayOf(q.at) === today());
       if (m) m.n++; else post(x, { k: 'help', from: p.name, n: 1 });
       scheduleSave();
       return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'help' });

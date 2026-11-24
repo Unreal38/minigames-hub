@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, addCoins, scheduleSave } from './store.js';
-import { dayOf, untilNext } from './daily.js';
+import { dayOf, untilNext, dayBefore, daysBetween } from './day.js';
 
 export const LANGS = ['pl', 'en'], LEN = 5, TRIES = 6;
 const FIRST_DAY = '2026-11-24';                     // puzzle number 1
@@ -23,8 +23,7 @@ for (const lang of LANGS) { VALID[lang] = new Set(read(lang + '-valid')); ANSWER
 export const answersOf = lang => ANSWERS[lang];
 export const isWord = (lang, w) => VALID[lang].has(w);
 
-const dayNo = day => Math.round((Date.parse(day + 'T00:00Z') - Date.parse(FIRST_DAY + 'T00:00Z')) / 86400_000) + 1;
-const dayBefore = day => new Date(Date.parse(day + 'T00:00Z') - 86400_000).toISOString().slice(0, 10);
+const dayNo = day => daysBetween(FIRST_DAY, day) + 1;
 
 // ---------- which word is it ----------
 // Each day's words are rolled once and written down, so editing the lists (or restarting) never changes today's.
