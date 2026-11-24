@@ -13,6 +13,7 @@ import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
 if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV_TEXT, pl.SRV_FORMS); }
 import { WEATHER, weatherAt } from './data.js';
+import { wxIcon } from '../../weather.js';
 import { flairOf, piecesOf } from '../../cosmetics.js';
 import { islePic, isleCached } from '../../islepic.js';
 import { uiz } from '../../uiz.js';
@@ -31,16 +32,6 @@ const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" a
 const eggIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3c4 0 7 6.5 7 11a7 7 0 0 1-14 0c0-4.5 3-11 7-11z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="2"/><circle cx="9.5" cy="13" r="1.4" fill="#8fd16a"/><circle cx="14" cy="16.5" r="1.2" fill="#8fd16a"/><circle cx="13.5" cy="10" r="1" fill="#8fd16a"/></svg>';
 // Small material badges: a coloured block with the amount beside it.
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
-// Weather and time of day: tiny pictures for the chip at the top and the window behind it.
-const WX_ICON = {
-  sunny: '<circle cx="12" cy="12" r="5" fill="#ffc94d" stroke="#5a3a2e" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
-  cloudy: '<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 18z" fill="#fff" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
-  rain: '<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 14z" fill="#cfe0f0" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/><path d="M8 17l-1 4M12 17l-1 4M16 17l-1 4" stroke="#4f9df0" stroke-width="2" stroke-linecap="round"/>',
-  wind: '<path d="M3 9h10a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6" fill="none" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
-  rainbow: '<path d="M3 18a9 9 0 0 1 18 0" fill="none" stroke="#e8615a" stroke-width="2.4"/><path d="M6 18a6 6 0 0 1 12 0" fill="none" stroke="#ffc94d" stroke-width="2.4"/><path d="M9 18a3 3 0 0 1 6 0" fill="none" stroke="#6fb7e8" stroke-width="2.4"/>',
-  moon: '<path d="M16 3a9 9 0 1 0 5 13A7.5 7.5 0 0 1 16 3z" fill="#fff3b8" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
-};
-const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
 const DAY_PL = { Night: 'Noc', Morning: 'Poranek', Daytime: 'Dzień', Sunset: 'Zachód słońca', Evening: 'Wieczór' }, dayName = h => L(dayPart(h), DAY_PL[dayPart(h)]);
 const dayPart = h => h < 4.6 || h >= 21 ? 'Night' : h < 8 ? 'Morning' : h < 17 ? 'Daytime' : h < 19.5 ? 'Sunset' : 'Evening';
 const mat = (k, n, cls = '') => `<span class="mat ${cls}" title="${MATS[k]}">${matIcon(k)}${n}<small>${MATS[k].toLowerCase()}</small></span>`;
