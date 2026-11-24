@@ -51,22 +51,21 @@ const GAMES = {
     </ol>`,
   },
   marbles: {
-    name: 'Marble Rush', load: () => import('./games/marbles/client.js'), start: 'Open the betting',
+    name: 'Marble Rush', load: () => import('./games/marbles/client.js'), start: 'Open the picks',
     mins: [2, 5],
     host: { mode: 'classic', chaos: 'on', field: 6 }, solo: { mode: 'classic', chaos: 'on', field: 6 },
-    openSeat: 'A bot bets from this seat if nobody joins',
+    openSeat: 'A bot picks from this seat if nobody joins',
     settings: pill => `<div class="opt"><b>Race</b><div class="pills">${pill('mode', 'classic', 'Classic')}${pill('mode', 'knockout', 'Knockout')}</div></div>
       <div class="opt"><b>Chaos events</b><div class="pills">${pill('chaos', 'on', 'On')}${pill('chaos', 'off', 'Off')}</div></div>
       <div class="opt"><b>Marbles on the track</b><div class="pills">${pill('field', 4, '4')}${pill('field', 6, '6')}${pill('field', 8, '8')}</div></div>`,
-    howto: `Nobody owns a marble. Bet your coins on a colour, then watch the marbles tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
+    howto: `Nobody owns a marble. Pick a colour, then watch the marbles tumble down a random track. Knockout drops the slowest marble after every heat until one is left.`,
     rules: `<ol>
       <li>The marbles are plain <b>colours</b> and belong to nobody. Several players can back the same one.</li>
-      <li>Before the gate opens, <b>bet coins</b> on a colour. The race waits until everyone has bet. The winning colour pays your stake times the number of marbles.</li>
+      <li>Before the gate opens, <b>pick a colour</b>. The race waits until everyone has picked. Where your colour finishes pays coins like any other game: 10 for 1st, down to 1 for last. Nobody stakes coins.</li>
       <li>The track is <b>random every race</b>: pins, spinners, trapdoors, boost pads and squeezes. Nobody steers.</li>
-      <li>You get <b>one banana per heat</b>. Throw it at any colour to slip it up.</li>
+      <li>You get <b>one banana per heat</b>. Throw it at any colour to slip it up. Each marble can only be slipped once per heat, and only in the first half of the track.</li>
       <li><b>Chaos events</b> hit everyone: gravity flips, turbo, marblequakes and switcheroos.</li>
       <li><b>Knockout</b>: the last marble home each heat is out. Handy for deciding who pays.</li>
-      <li>Bets use your real coins, the same ones that buy avatar items in the shop, so bet what you can spare. If you have under 10, the house spots you a 10-coin bet.</li>
     </ol>`,
   },
   ladders: {
@@ -1746,7 +1745,7 @@ const prof = x => x?.pt ? ` data-prof="${esc(x.pt)}"` : ''; // makes a row open 
 const HUB_CATS = [['all', L('All', 'Wszystkie')], ['cards', L('Cards', 'Karciane')], ['board', L('Board', 'Planszowe')], ['action', L('Action', 'Zręcznościowe')], ['party', L('Party', 'Imprezowe')]];
 const HUB_GAMES = [
   ['hotpot', '', hotpotArt, 'cards', '1–4 players', 'Draw, swap and collect three sets of three ingredients, then call “Let\'s Eat!” before anyone else.'],
-  ['marbles', 'marblepic', marbleArt, 'action party', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
+  ['marbles', 'marblepic', marbleArt, 'action party', '1–8 players', 'Pick a colour and watch the marbles tumble down a random 3D track.'],
   ['ladders', 'ladderpic', laddersArt, 'board', '1–6 players', 'The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.'],
   ['poker', 'pokerpic', pokerArt, 'cards', '1–6 players', 'Cozy no-limit poker for pretend chips. Also Mango Poker, where the flop comes from the cards you all throw away.'],
   ['bj', 'bjpic', bjArt, 'cards', '1–6 players', 'Everyone against the dealer. Bet pretend chips, get closer to 21 than the dealer and finish with the biggest stack.'],
@@ -1907,7 +1906,7 @@ $app.addEventListener('change', e => {
 const RK_TABS = [['overall', L('Overall', 'Ogólny')], ...Object.entries(GAMES).map(([id, g]) => [id, g.name]), ['hay', SOLO.hay.name], ['pop', SOLO.pop.name], ['mj', SOLO.mj.name], ['farm', FARM_NAME]];
 const RK_NOTE = {
   overall: L('Ranked by XP from every game. Wins earn the most.', 'Ranking według XP ze wszystkich gier. Najwięcej dają wygrane.'),
-  marbles: L('Ranked by bets won, then by coins won overall.', 'Ranking według wygranych zakładów, potem według łącznie wygranych monet.'),
+  marbles: L('Ranked by races your colour won.', 'Ranking według wyścigów wygranych przez twój kolor.'),
   farm: L('The Pet Farm ladder: points from Arena battles against other farms.', 'Drabinka Farmy zwierzaków: punkty z walk na Arenie przeciwko innym farmom.'),
   hay: L('Ranked by the best harvest from one field, then by fields cleared.', 'Ranking według najlepszych zbiorów z jednego pola, potem według oczyszczonych pól.'),
   pop: L('Ranked by the highest level cleared, then by the best score on one shelf.', 'Ranking według najwyższego ukończonego poziomu, potem według najlepszego wyniku na jednej półce.'),
@@ -1921,7 +1920,7 @@ function rkStat(game, r) {
   if (game === 'hay') return [`×${num(r.best)}`, L(`${cnt(r.wins, 'field')} cleared · top level ${r.top || 1}`, `${cnt(r.wins, '', '', 'oczyszczone pole', 'oczyszczone pola', 'oczyszczonych pól')} · najwyższy poziom ${r.top || 1}`)];
   if (game === 'pop') return [L(`Level ${r.top || 0}`, `Poziom ${r.top || 0}`), L(`best score ${num(r.best)} · ${cnt(r.games, 'shelf', 'shelves')} played`, `rekord ${num(r.best)} · rozegrane półki: ${num(r.games)}`)];
   if (game === 'mj') return [L(`Level ${r.top || 0}`, `Poziom ${r.top || 0}`), L(`best score ${num(r.best)} · ${cnt(r.games, 'board')} played`, `rekord ${num(r.best)} · rozegrane plansze: ${num(r.games)}`)];
-  if (game === 'marbles') return [L(cnt(r.wins, 'bet') + ' won', cnt(r.wins, '', '', 'wygrany zakład', 'wygrane zakłady', 'wygranych zakładów')), `${cnt(r.games, 'race', 'races', 'wyścig', 'wyścigi', 'wyścigów')} · ${r.net >= 0 ? '+' : '−'}${cnt(Math.abs(r.net), 'coin', 'coins', 'moneta', 'monety', 'monet')}`];
+  if (game === 'marbles') return [L(cnt(r.wins, 'race') + ' won', cnt(r.wins, '', '', 'wygrany wyścig', 'wygrane wyścigi', 'wygranych wyścigów')), cnt(r.games, 'race', 'races', 'wyścig', 'wyścigi', 'wyścigów')];
   return [cWins(r.wins), `${cGames(r.games)} · ${r.rate}%${r.best ? ` · ${L('best', 'rekord')} ${r.best} ${L('pts', 'pkt')}` : ''}`];
 }
 function rkRow(game, r) {
