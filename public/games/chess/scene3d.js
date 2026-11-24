@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 import { chessLook } from '../../pieceskins.js';
@@ -400,7 +401,7 @@ export function createScene(canvas, { onFrame } = {}) {
     setState, squareAt, setSelect, setCursor, setHover,
     squarePx(s) { sqPos(s, tv); tv.y = TOP + .5; tv.project(camera); return { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H }; },
     flipped: () => flip,
-    setHud(px) { if (Math.abs(px - hudBottom) > 6) { hudBottom = px; resize(true); } },
+    setHud(px) { if ((Math.abs(px - hudBottom) > 6) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
