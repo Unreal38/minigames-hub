@@ -216,7 +216,7 @@ export function mount(app, ctx) {
     if (e.t === 'sit') { sfx.join?.(); ctx.toast(e.s === S.me ? L('You took over a bot. Good luck!', 'Przejmujesz miejsce bota. Powodzenia!') : L(`${nameOf(e.s)} took over a bot`, `${nameOf(e.s)} przejmuje miejsce bota`)); }
     else if (e.t === 'turn') { if (e.s === S.me && !S.seats[S.me].bot) { sfx.turn(); lastTick = -1; } if (e.s === S.first && e.round > 1 && e.round === S.rounds) ctx.toast(L('Last round!', 'Ostatnia runda!')); }
     else if (e.t === 'roll') { sfx.draw(); setTimeout(() => !destroyed && sfx.draw(), 160); setTimeout(() => !destroyed && sfx.place(), S.ms.roll * .8); }
-    else if (e.t === 'gen') setTimeout(() => { if (destroyed) return; big(L('Pip Party!', 'Oczkomania!'), L(`${youOr(e.s)} rolled five of a kind`, `${e.s === S.me ? 'Wyrzucasz' : nameOf(e.s) + ' wyrzuca'} pięć jednakowych`), 1800); sfx.win(); }, S.ms.roll);
+    else if (e.t === 'gen') setTimeout(() => { if (destroyed) return; big(L('Pip Party!', 'Generał!'), L(`${youOr(e.s)} rolled five of a kind`, `${e.s === S.me ? 'Wyrzucasz' : nameOf(e.s) + ' wyrzuca'} pięć jednakowych`), 1800); sfx.win(); }, S.ms.roll);
     else if (e.t === 'pick') {
       floatAt(e.s, `${e.pts ? '+' + e.pts : '0'} ${SHORT[e.box]}${triple() ? ` ×${MULT[e.col]}` : ''}`, !e.pts);
       e.pts ? sfx.pop() : sfx.plop();

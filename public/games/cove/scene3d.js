@@ -12,7 +12,7 @@ import { cellsOf, MISS, HIT, CLEAR } from './rules.js';
 const SKY_TOP = '#4fb0f2', SKY_LOW = '#d3f1ff';
 const BW = 10;            // a bay is this wide, whatever the number of squares
 const RIM = .45;          // the wooden walkway round a bay
-const ISL = BW / 2 + 2.5; // how far the islet's middle is from the bay's
+const ISL = BW / 2 + 3.2; // how far the islet's middle is from the bay's (leaves a short bridge between islet and walkway)
 const AV = .9;            // avatar size
 const SAND = .22;         // height of the islet's top
 const SMALL = .52;        // on a phone the bay you are not using is drawn this much smaller
@@ -149,7 +149,12 @@ export function createScene(canvas, { onFrame } = {}) {
       put(new THREE.IcosahedronGeometry(.16, 0), M('#7a4a2b'), -.5, 2.24, .12, palm); put(new THREE.IcosahedronGeometry(.16, 0), M('#7a4a2b'), -.32, 2.2, -.14, palm);
       for (const [x, y, z] of [[1.25, .16, .5], [1.5, .16, .25], [1.22, .16, .12], [1.34, .4, .3]]) put(new THREE.IcosahedronGeometry(.19, 0), M('#7a4a2b'), x, SAND + y, z, deco);
       put(new THREE.BoxGeometry(.07, 1.7, .07), M('#8a5a3c'), 1.35, SAND + .85, -.75, deco); put(new THREE.BoxGeometry(.62, .4, .04), M(p.color), 1.69, SAND + 1.46, -.75, deco);
-      put(new THREE.BoxGeometry(.9, .12, 1.3), M(wood), 0, .06, 2.05, deco); // a plank down to the walkway
+      // a little bridge from the sand to the walkway: it starts inside the sand and ends on the walkway's outer half,
+      // never over the water squares (the walkway's outer edge is ISL - BW / 2 - RIM from the islet's middle)
+      const edge = ISL - BW / 2 - RIM, from = 1.7, to = edge + RIM * .45;
+      put(new THREE.BoxGeometry(.86, .1, to - from), M(wood), 0, .15, (from + to) / 2, deco);
+      for (let z = 2.05; z < to - .1; z += .26) put(new THREE.BoxGeometry(.9, .02, .05), M(wood2), 0, .21, z, deco);
+      for (const sx of [-1, 1]) { put(new THREE.CylinderGeometry(.06, .07, .7, 6), M(wood2), sx * .4, -.21, (2.0 + edge) / 2, deco); put(new THREE.CylinderGeometry(.07, .07, .5, 6), M(wood2), sx * .43, .4, edge - .05, deco); }
       bake(deco); toonify(deco, .04);
       const avWrap = new THREE.Group(); avWrap.scale.setScalar(AV); avWrap.position.set(.15, SAND + .06 + .76 * AV, .25); isl.add(avWrap);
       const av = avatar3d(p.color, p.av, { pose: 'stand' }); avWrap.add(av);
@@ -184,7 +189,7 @@ export function createScene(canvas, { onFrame } = {}) {
     bays.forEach((B, i) => {
       if (!tall) { B.tp.set((i === mine ? -1 : 1) * (BW / 2 + RIM + .8), 0, 0); B.ts = 1; B.ip.set(0, 0, -ISL); B.ir = 0; }
       else if (i === big) { B.tp.set(0, 0, -2.4); B.ts = 1; B.ip.set(0, 0, -ISL); B.ir = 0; }
-      else { const w = (BW / 2 + RIM) * SMALL; B.tp.set(-BW / 2 - RIM + w, 0, -2.4 + BW / 2 + RIM + .7 + w); B.ts = SMALL; B.ip.set(BW / 2 + 3.4, 0, .6); B.ir = -Math.PI / 2; }
+      else { const w = (BW / 2 + RIM) * SMALL; B.tp.set(-BW / 2 - RIM + w, 0, -2.4 + BW / 2 + RIM + .7 + w); B.ts = SMALL; B.ip.set(ISL, 0, .6); B.ir = -Math.PI / 2; }
       if (snap || !B.set) { B.set = true; B.g.position.copy(B.tp); B.g.scale.setScalar(B.ts); B.isl.position.copy(B.ip); B.isl.rotation.y = B.ir; }
       const e = (BW / 2 + RIM + .15) * B.ts;
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) fitPts.push(new THREE.Vector3(B.tp.x + sx * e, 0, B.tp.z + sz * e));
