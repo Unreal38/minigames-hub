@@ -11,6 +11,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
 import { setGfx } from '../../frames.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -83,15 +84,16 @@ export function mount(app, ctx) {
   let layout = null, potPt = null;
   // In 3D, name tags follow the avatars: under the side seats, beside the far seat.
   function placeBadges() {
-    if (potPt) Object.assign(root.querySelector('.deck').style, { left: potPt.x + 'px', top: potPt.y + 'px' });
+    const z = uiz(); // these sit inside the HUD, which is zoomed on computers: screen pixels / z
+    if (potPt) Object.assign(root.querySelector('.deck').style, { left: potPt.x / z + 'px', top: potPt.y / z + 'px' });
     const on = layout && innerWidth >= 760;
     for (let r = 1; r < 4; r++) {
       const el = root.querySelector(`.opp[data-r="${r}"]`);
       if (!on) { el.style.left = el.style.top = el.style.right = ''; continue; }
-      const p = layout[r], w = el.offsetWidth, h = el.offsetHeight;
+      const p = layout[r], w = el.offsetWidth * z, h = el.offsetHeight * z;
       let x = r === 2 ? p.x + 70 : p.x - w / 2, y = r === 2 ? p.y - h / 2 : p.y;
       x = Math.max(10, Math.min(innerWidth - w - 10, x)); y = Math.max(60, Math.min(innerHeight * .62, y));
-      Object.assign(el.style, { left: x + 'px', top: y + 'px', right: 'auto' });
+      Object.assign(el.style, { left: x / z + 'px', top: y / z + 'px', right: 'auto' });
     }
   }
   const onResize = () => requestAnimationFrame(placeBadges);

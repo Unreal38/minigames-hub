@@ -3,7 +3,7 @@ body.in-game { overflow: hidden; }
 .hh { position: fixed; inset: 0; overflow: hidden; background: #c9ecff; user-select: none; -webkit-tap-highlight-color: transparent; }
 .hh .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
 .hh.flat .g3d { display: none; }
-.hh.flat::before { content: 'The 3D field could not load on this device.'; position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); width: min(80vw, 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
+.hh.flat::before { content: 'The 3D field could not load on this device.'; position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); width: min(calc(80vw / var(--vz, 1)), 420px); text-align: center; color: var(--ink); font-family: var(--fd); font-size: 18px; }
 .hh-ic { width: 1.15em; height: 1.15em; flex: none; vertical-align: -.22em; }
 
 .hh .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
@@ -14,13 +14,13 @@ body.in-game { overflow: hidden; }
 .hh .tl .chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--fd); font-weight: 600; font-size: 16px; }
 .hh .tl .chip b { font-weight: 700; font-size: 19px; }
 .hh .tl .chip small { font-size: 13px; color: var(--soft-tx); font-weight: 600; }
-.hh .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 3px 0 #23401c55; }
+.hh .banner { position: absolute; left: 50%; top: max(14px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; box-shadow: 0 3px 0 #23401c55; }
 .hh .banner:empty { display: none; }
 
-.hh .shout { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: 92vw; z-index: 3; }
-.hh .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, 8vw, 76px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
+.hh .shout { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); z-index: 3; }
+.hh .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, calc(8vw / var(--vz, 1)), 76px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
 .hh .shout.k0 b { color: #c9b5f0; } .hh .shout.k2 b { color: #ffb547; } .hh .shout.k3 b { color: #ffd84a; }
-.hh .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, 2.6vw, 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
+.hh .shout span { font-family: var(--fd); font-weight: 600; font-size: clamp(15px, calc(2.6vw / var(--vz, 1)), 21px); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 3px 16px; }
 .hh .shout span:empty { display: none; }
 .hh .shout.show { animation: hhbig var(--ms, 1.6s) cubic-bezier(.3, 1.6, .5, 1) both; }
 @keyframes hhbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 12%, 82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
@@ -29,7 +29,7 @@ body.in-game { overflow: hidden; }
 @keyframes hhup { 0% { opacity: 0; margin-top: 10px; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; margin-top: -70px; } }
 
 /* bottom: harvest, take it home, marks */
-.hh-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw - 20px); pointer-events: none; }
+.hh-bottom { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw / var(--vz, 1) - 20px); pointer-events: none; }
 .hh-bottom > * { pointer-events: auto; }
 .hh-dock { display: flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--paper) 94%, transparent); border: 3px solid var(--ink); border-radius: 20px; padding: 6px 8px 6px 14px; box-shadow: 0 4px 0 var(--ink); }
 .hh-harvest { display: flex; flex-direction: column; align-items: flex-start; font-family: var(--fd); color: var(--on-paper); line-height: 1; min-width: 92px; }
@@ -67,8 +67,8 @@ body.in-game { overflow: hidden; }
 @media (max-width: 700px) {
   .hh .tl .chip { font-size: 13px; padding: 4px 10px; } .hh .tl .chip b { font-size: 16px; }
   .hh .tl .chip small { display: none; }
-  .hh .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw - 28px); padding: 5px 14px; }
-  .hh-bottom { gap: 6px; width: calc(100vw - 16px); }
+  .hh .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw / var(--vz, 1) - 28px); padding: 5px 14px; }
+  .hh-bottom { gap: 6px; width: calc(100vw / var(--vz, 1) - 16px); }
   .hh-dock { width: 100%; box-sizing: border-box; gap: 6px; padding: 5px 6px 5px 10px; justify-content: space-between; }
   .hh-harvest { min-width: 0; } .hh-harvest b { font-size: 24px; }
   .hh-dock .btn { min-height: 42px; padding: 5px 11px; font-size: 15px; }

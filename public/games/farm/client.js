@@ -14,6 +14,7 @@ if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV
 import { WEATHER, weatherAt } from './data.js';
 import { flairOf, piecesOf } from '../../cosmetics.js';
 import { islePic, isleCached } from '../../islepic.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -573,7 +574,7 @@ export function mount(app, ctx) {
   // A word or number that floats up from a pet in the ring.
   function floatUp(s, text, cls = '', dy = 0) {
     const at = scene?.ringSpot?.(s), box = $('pf-fl'); if (!at || !box) return;
-    const n = document.createElement('span'); n.className = 'bfn ' + cls; n.textContent = text; n.style.left = at.x + 'px'; n.style.top = at.y + dy + 'px';
+    const n = document.createElement('span'); n.className = 'bfn ' + cls; n.textContent = text; n.style.left = at.x / uiz() + 'px'; n.style.top = (at.y + dy) / uiz() + 'px'; // inside the (zoomed) HUD
     n.addEventListener('animationend', () => n.remove()); box.appendChild(n); setTimeout(() => n.remove(), 2200);
   }
   const note = (s, c = '') => { if (line) blogs.push({ h: line, c: 'bl' + (s === undefined ? 'n' : s) + (c ? ' ' + c : '') }); };

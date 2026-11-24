@@ -9,6 +9,7 @@ import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { cardHtml, fillCards, preload, colName, colDot, faceName } from './cards.js';
 import { fits, playable, isWild, faceOf, HEX, GIFT, ROCK } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -77,12 +78,12 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
-    const b = $('pp-top'); b.style.left = `${info.pile.x.toFixed(1)}px`; b.style.top = `${info.pile.y.toFixed(1)}px`;
-    const d = $('pp-deck'); d.style.left = `${info.stock.x.toFixed(1)}px`; d.style.top = `${info.stock.y.toFixed(1)}px`;
+    const b = $('pp-top'), z = uiz(); b.style.left = `${(info.pile.x / z).toFixed(1)}px`; b.style.top = `${(info.pile.y / z).toFixed(1)}px`; // inside the (zoomed) HUD
+    const d = $('pp-deck'); d.style.left = `${(info.stock.x / z).toFixed(1)}px`; d.style.top = `${(info.stock.y / z).toFixed(1)}px`;
   }
-  function layout() { if (scene) scene.setHud(Math.max($('pp-dock').offsetHeight + 30, innerWidth < 700 ? 250 : 240)); }
+  function layout() { if (scene) scene.setHud(Math.max($('pp-dock').offsetHeight + 30, innerWidth < 700 ? 250 : 240) * uiz()); }
 
   // ----- name tags: name, cards left, "Last one!", and their last move -----
   function buildTags() {

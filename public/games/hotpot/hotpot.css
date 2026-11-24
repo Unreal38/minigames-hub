@@ -1,10 +1,10 @@
 /* Hot Pot table view */
 body.in-game { overflow: hidden; }
 body.in-game #toasts { top: 26%; }
-.hp { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 38%, #4a2338 0%, var(--plum) 72%); user-select: none; --cw: clamp(56px, 7.4vw, 104px); --hh: calc(var(--cw) * 1.38 + 40px); }
+.hp { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 38%, #4a2338 0%, var(--plum) 72%); user-select: none; --cw: clamp(56px, calc(7.4vw / var(--vz, 1)), 104px); --hh: calc(var(--cw) * 1.38 + 40px); }
 .hp .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
 .hp .flatbg { display: none; }
-.hp.flat .flatbg { display: block; position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(86vw, 760px); height: 54vh; }
+.hp.flat .flatbg { display: block; position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(calc(86vw / var(--vz, 1)), 760px); height: calc(54vh / var(--vz, 1)); }
 .hp.flat .g3d { display: none; }
 .hud { position: absolute; inset: 0; pointer-events: none; }
 .hud > * { pointer-events: auto; }
@@ -34,7 +34,7 @@ body.in-game #toasts { top: 26%; }
 .card.takeable:active { transform: scale(.94); }
 
 /* turn banner */
-.turn { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 4px 18px 4px 4px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw - 32px); }
+.turn { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 4px 18px 4px 4px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); }
 .turn #hp-msg { overflow: hidden; text-overflow: ellipsis; }
 .turn.myturn { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .turn.pulse { animation: bigpop .5s cubic-bezier(.3, 1.6, .5, 1); }
@@ -119,13 +119,13 @@ body.in-game #toasts { top: 26%; }
   .hp .mine { display: none; }
 }
 @media (max-width: 760px) {
-  .hp { --cw: clamp(40px, 10.6vw, 64px); }
+  .hp { --cw: clamp(40px, calc(10.6vw / var(--vz, 1)), 64px); }
   .hud .tl .chip { font-size: 13px; padding: 3px 9px; }
   .hud .tcode { display: none; }
   .hud .round { width: 40px; height: 40px; }
   .turn { top: 92px; font-size: 15px; } /* below the two chips, which stack under the round buttons' row */
-  .opp { top: 140px !important; transform: none !important; padding: 5px 6px; gap: 5px; border-radius: 16px; width: calc((100vw - 24px) / 3); justify-content: space-between; }
-  .opp[data-r="1"] { left: 6px; } .opp[data-r="2"] { left: calc(12px + (100vw - 24px) / 3); } .opp[data-r="3"] { right: 6px; left: auto; flex-direction: row; }
+  .opp { top: 140px !important; transform: none !important; padding: 5px 6px; gap: 5px; border-radius: 16px; width: calc((calc(100vw / var(--vz, 1)) - 24px) / 3); justify-content: space-between; }
+  .opp[data-r="1"] { left: 6px; } .opp[data-r="2"] { left: calc(12px + (calc(100vw / var(--vz, 1)) - 24px) / 3); } .opp[data-r="3"] { right: 6px; left: auto; flex-direction: row; }
   .opp .who { flex: 1; overflow: hidden; }
   .opp .avatar { --s: 32px !important; }
   /* three across a phone: the name goes under the avatar so it has the box's width instead of a sliver of it */
@@ -150,7 +150,7 @@ body.in-game #toasts { top: 26%; }
 .emotes .emo { font-size: 22px; line-height: 1; display: block; }
 .saybubble { position: fixed; z-index: 41; max-width: 260px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 16px 16px 16px 4px; padding: 6px 12px; font-weight: 700; font-size: 15px; line-height: 1.3; box-shadow: 0 4px 0 var(--deep); animation: toast 4.2s cubic-bezier(.3, 1.6, .5, 1) both; pointer-events: none; overflow-wrap: anywhere; }
 body.in-game #chat { right: 14px; bottom: 14px; }
-@media (max-width: 760px) { body.in-game #chat { right: 8px; bottom: calc(clamp(40px, 10.6vw, 64px) * 1.38 + 50px); } body.in-game .chatbtn .lbl { display: none; } body.in-game .chatbtn { padding: 6px 10px; min-height: 40px; } }
+@media (max-width: 760px) { body.in-game #chat { right: 8px; bottom: calc(clamp(40px, calc(10.6vw / var(--vz, 1)), 64px) * 1.38 + 50px); } body.in-game .chatbtn .lbl { display: none; } body.in-game .chatbtn { padding: 6px 10px; min-height: 40px; } }
 
 /* cards wiggle when you point at them */
 .hand.pick .card:hover svg, .card.takeable:hover svg { animation: fxwiggle .5s ease-in-out infinite; }

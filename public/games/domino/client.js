@@ -9,6 +9,7 @@ import { reactHtml } from '../../react.js';
 import { TILES, sides, ends } from './rules.js';
 import { tileSvg, tileHtml, halfHtml, tileName } from './tiles.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -75,13 +76,13 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x)); // keep the tag on the screen when its player is half off it
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
-    for (const k of ['l', 'r']) { const b = $('dm-end' + k), p = info.ends[k]; b.style.left = `${Math.max(34, Math.min(innerWidth - 34, p.x)).toFixed(1)}px`; b.style.top = `${p.y.toFixed(1)}px`; }
-    const p = $('dm-pile'); p.style.left = `${info.pile.x.toFixed(1)}px`; p.style.top = `${info.pile.y.toFixed(1)}px`;
+    for (const k of ['l', 'r']) { const b = $('dm-end' + k), p = info.ends[k]; b.style.left = `${(Math.max(34, Math.min(innerWidth - 34, p.x)) / uiz()).toFixed(1)}px`; b.style.top = `${(p.y / uiz()).toFixed(1)}px`; } // inside the (zoomed) HUD
+    const p = $('dm-pile'); p.style.left = `${(info.pile.x / uiz()).toFixed(1)}px`; p.style.top = `${(info.pile.y / uiz()).toFixed(1)}px`;
   }
   // keep the 3D table clear of your tiles at the bottom
-  function layout() { if (scene) scene.setHud(Math.max($('dm-dock').offsetHeight + 26, innerWidth < 700 ? 230 : 220)); }
+  function layout() { if (scene) scene.setHud(Math.max($('dm-dock').offsetHeight + 26, innerWidth < 700 ? 230 : 220) * uiz()); }
 
   // ----- name tags over the avatars: name, tiles left, points, and their last move -----
   function buildTags() {

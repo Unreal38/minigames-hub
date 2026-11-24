@@ -8,6 +8,7 @@ import { reactHtml } from '../../react.js';
 import { score, handName, bestFive, catOf, HAND_ORDER, RANK_NAMES } from './rules.js';
 import { cardHtml } from './cards.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -205,13 +206,13 @@ export function mount(app, ctx) {
     el.innerHTML = `<button type="button" class="rhead" data-a="ranks" aria-expanded="${ranksOpen}"><span>${L(`Hand rankings`, `Ranking układów`)}</span><i aria-hidden="true">${ranksOpen ? '−' : '+'}</i></button>
       ${ranksOpen ? `<ol>${HAND_ORDER.map(([name, how], i) => `<li class="${i === hi ? 'now' : ''}" title="${esc(how)}"><div class="rn"><em>${i + 1}</em><b>${esc(name)}</b>${i === hi ? '<span class="you">' + L('You', 'Ty') + '</span>' : ''}</div>
         <div class="rc">${EX[i][0].map((c, k) => cardHtml(c, { cls: `xs${k >= EX[i][1] ? ' dim' : ''}` })).join('')}</div></li>`).join('')}</ol>` : ''}`;
-    scene?.setInset?.(ranksOpen && innerWidth > 1100 ? el.offsetWidth + 14 : 0);
+    scene?.setInset?.(ranksOpen && innerWidth > 1100 ? (el.offsetWidth + 14) * uiz() : 0);
   }
 
   function dockSize() {
     const d = $('pk-dock'); if (!d || !scene) return;
     const sizer = d.querySelector('.row2'); // opening the raise slider shouldn't make the table jump
-    scene.setHud(Math.max(150, d.offsetHeight - (sizer ? sizer.offsetHeight + 10 : 0) + 24));
+    scene.setHud(Math.max(150, d.offsetHeight - (sizer ? sizer.offsetHeight + 10 : 0) + 24) * uiz());
   }
 
   function renderTop() {
@@ -412,7 +413,7 @@ export function mount(app, ctx) {
   addEventListener('resize', onResize);
   // poker.css can arrive after the first paint (slow connections, people who join mid-hand): until then the hand-rankings
   // panel is page wide and the dock is unstyled, so measure them again whenever their size changes
-  const sizeWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { if (!destroyed) { scene?.setInset?.(ranksOpen && innerWidth > 1100 ? $('pk-ranks').offsetWidth + 14 : 0); dockSize(); } }) : null;
+  const sizeWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { if (!destroyed) { scene?.setInset?.(ranksOpen && innerWidth > 1100 ? ($('pk-ranks').offsetWidth + 14) * uiz() : 0); dockSize(); } }) : null;
   sizeWatch?.observe($('pk-ranks')); sizeWatch?.observe($('pk-dock'));
 
   return {

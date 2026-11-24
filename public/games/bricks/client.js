@@ -23,6 +23,7 @@ const I = {
   crown: '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 18l-1-10 6 4 4-8 4 8 6-4-1 10z" fill="#ffd84a" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></svg>',
 };
 import { ord } from '../../i18n.js';
+import { uiz } from '../../uiz.js';
 const clock = ms => { const s = Math.max(0, ms) / 1000; return `${s / 60 | 0}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 const DAS = 150, ARR = 38; // hold a direction this long before it repeats, then this fast
 const CLEAR_WORDS = ['', '', L('Double!', 'Podwójnie!'), L('Triple!', 'Potrójnie!'), L('Sky high!', 'Pod niebo!')];
@@ -78,7 +79,7 @@ export function mount(app, ctx) {
 
   function sync() {
     if (!scene || !S || !info) return;
-    scene.setHud(innerWidth <= 1150 ? 122 : 64, touch ? 152 : 46, innerWidth > 1150 ? 84 : 0); // the last: room for the chat buttons, bottom right
+    const z = uiz(); scene.setHud((innerWidth <= 1150 ? 122 : 64) * z, (touch ? 152 : 46) * z, (innerWidth > 1150 ? 84 : 0) * z); // the last: room for the chat buttons, bottom right
     scene.setSeats(info, focus); scene.setState(S); pushMine();
   }
   function pushMine() {

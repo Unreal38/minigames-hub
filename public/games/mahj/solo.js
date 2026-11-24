@@ -7,6 +7,7 @@ import { sfx } from '../../sfx.js';
 import { L, cnt, num } from '../../i18n.js';
 import { srvText } from '../../lang/server.js';
 import { layout, layoutName, isFree, canPair, tilesLeft, kindName, HINT_COST, IDLE_MS } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -69,7 +70,7 @@ export function mount(app, ctx) {
   function place() {
     if (!scene) return;
     const top = $('mj-top').getBoundingClientRect();
-    scene.setHud(($('mj-bottom').offsetHeight || 60) + 22, Math.round(top.bottom) + 8);
+    scene.setHud((($('mj-bottom').offsetHeight || 60) + 22) * uiz(), Math.round(top.bottom) + 8);
   }
   const board = () => scene?.board() || S?.b || [];
   const nowMs = () => !S ? 0 : S.ms + (S.run ? Math.min(IDLE_MS, performance.now() - recvAt) : 0);

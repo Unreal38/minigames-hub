@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { BOXES, UPPER, LOWER, LABEL, SHORT, HINT, ROLLS, UPPER_NEED, UPPER_BONUS, MULT, worth, open, colTotal, upperSum, lowerSum, bonusOf } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -79,13 +80,13 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
   function layout() {
     if (!scene) return;
-    scene.setHud(Math.max($('pp-dock').offsetHeight + 30, innerWidth < 700 ? 300 : 250));
-    scene.setInset(wide() ? $('pp-side').offsetWidth + 24 : 0);
+    scene.setHud(Math.max($('pp-dock').offsetHeight + 30, innerWidth < 700 ? 300 : 250) * uiz());
+    scene.setInset(wide() ? ($('pp-side').offsetWidth + 24) * uiz() : 0);
   }
 
   // ----- name tags: name and score so far -----

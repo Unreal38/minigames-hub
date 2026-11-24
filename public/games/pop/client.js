@@ -8,6 +8,7 @@ import { L, cnt, num, word } from '../../i18n.js';
 import { srvText } from '../../lang/server.js';
 import { petImg, petPics } from '../../petpic.js';
 import { W, H, N, KINDS, KIND_COLOR, isPet, isBale, kindOf, movable, canSwap, findMove } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const svg = d => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -68,7 +69,7 @@ export function mount(app, ctx) {
   function layout() {
     if (!scene) return;
     const top = $('pp-top').getBoundingClientRect();
-    scene.setHud(($('pp-bottom').offsetHeight || 60) + 22, Math.round(top.bottom) + 10);
+    scene.setHud((($('pp-bottom').offsetHeight || 60) + 22) * uiz(), Math.round(top.bottom) + 10);
   }
   const snap = s => ({ left: s.left, score: s.score, have: s.goals.map(g => g.have) });
 

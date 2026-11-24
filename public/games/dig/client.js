@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { PTS, TRAP } from './rules.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -77,13 +78,13 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 100) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 60).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 60 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
   function layout() {
     if (!scene) return;
-    const top = innerWidth < 700 ? 104 : 64;
-    scene.setHud(Math.max($('td-bottom').offsetHeight + 24, innerWidth < 700 ? 150 : 110), top);
+    const top = innerWidth < 700 ? 104 : 64, z = uiz();
+    scene.setHud(Math.max($('td-bottom').offsetHeight + 24, innerWidth < 700 ? 150 : 110) * z, top * z);
   }
 
   // ----- name tags: name and points -----

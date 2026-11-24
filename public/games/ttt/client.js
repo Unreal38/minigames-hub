@@ -7,6 +7,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { place } from './rules.js';
+import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -67,10 +68,10 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, innerWidth < 700 ? 200 : 150).toFixed(1)}px) translate(-50%, -100%)`;
+      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 200 : 150) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
-  function layout() { if (scene) scene.setHud(Math.max($('tt-dock').offsetHeight + 34, 100)); }
+  function layout() { if (scene) scene.setHud(Math.max($('tt-dock').offsetHeight + 34, 100) * uiz()); }
 
   // ----- name tags over the avatars: mark, name, round wins -----
   function buildTags() {
