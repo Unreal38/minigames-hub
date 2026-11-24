@@ -138,11 +138,11 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the deck and the played cards ----------
   const stock = new THREE.Group(); stock.position.copy(STOCK); scene.add(stock);
   let stockH = 0;
-  function setStock(k) { // one card mesh for every few cards, so the deck has some height
+  function setStock(k) { // one card mesh for every few cards, so the deck has some height; the bottom card (and its back, .004 under it) sits clear above the cloth top (.02), so a last card never z-fights with it
     const want = Math.min(16, Math.ceil(k / 5));
     while (stock.children.length > want) stock.remove(stock.children[stock.children.length - 1]);
-    while (stock.children.length < want) { const c = makeCard(-1, PILE * .82, 0), j = stock.children.length; c.position.set((hash(j) - .5) * .04, .02 + j * .02, (hash(j + 9) - .5) * .04); c.rotation.y = (hash(j + 3) - .5) * .12; stock.add(c); }
-    stockH = want * .02;
+    while (stock.children.length < want) { const c = makeCard(-1, PILE * .82, 0), j = stock.children.length; c.position.set((hash(j) - .5) * .04, .045 + j * .02, (hash(j + 9) - .5) * .04); c.rotation.y = (hash(j + 3) - .5) * .12; stock.add(c); }
+    stockH = .025 + want * .02;
   }
   const pile = []; // played card meshes, bottom first (only the last few are kept)
   // each played card lies a clear step above the one under it (the cards are drawn bigger, so their backs sit lower too): no flicker
