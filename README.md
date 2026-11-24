@@ -293,6 +293,26 @@ Static files: Node serves about 2,700 file requests a second on a first visit (a
 13,000 a second for returning visitors, whose browsers only check that nothing changed.
 `npm run load` (test/load.js) measures tables only: turn games and 8-driver kart races.
 
+**Waiting line.** Past `MAX_ONLINE` screens at once (3,000 by default) newcomers see "Zatoka Gier is full right
+now", their place in line, and get in by themselves as screens close, first come first served. People at a table,
+people who dropped out in the last 5 minutes (a reload, a flaky network) and hosts (ADMINS) always get straight in.
+People waiting are not counted as visitors until they are in. Tested: with 2,000 in and the cap at 2,000, 8,000
+more arriving at once all waited in line while the server sat at 15% and players inside noticed nothing. The server
+log says how long the line is once a minute while there is one (`journalctl -u cozy-table | grep "waiting line"`).
+To change the cap: `sudo systemctl edit cozy-table`, add `[Service]` and `Environment=MAX_ONLINE=4000`, restart.
+
+**Page files from Caddy.** `deploy/Caddyfile` serves the page's files (scripts, styles, pictures, fonts) straight
+from `/opt/cozy-table/public`, so Caddy (which uses every core) does that work and Node's one core is kept for the
+games. Only pages (`/`, `.html`) and the game connection go to Node. Caddy needs to read the folder; check with
+`sudo -u caddy test -r /opt/cozy-table/public/app.js && echo ok`, and after editing the Caddyfile run
+`sudo caddy validate --config /etc/caddy/Caddyfile` before `sudo systemctl reload caddy`.
+
+**Cloudflare (optional, not needed at this size).** Putting the free Cloudflare plan in front would cache files
+near players and absorb floods. If it is ever needed: add zatokagier.com to Cloudflare, switch the nameservers at
+GoDaddy to Cloudflare's, set SSL to "Full (strict)", then set `TRUST_CLOUDFLARE=1` for the game (so rate limits see
+players' real addresses) and allow ports 80/443 on Oracle only from Cloudflare's address list, or anyone could fake
+that header. Cloudflare then sees every visit, so the privacy page must name it before switching it on.
+
 Limits that keep one person or script from hurting everyone: 40 open connections and 60 new ones a minute per
 address (`WS_PER_IP` changes the first), 120 new guest profiles an hour per address, 20 messages a second per
 connection, wrong table codes (30 per 10 minutes), hub chat (one line per 1.2 s, 8 per 30 s, 20 a minute per

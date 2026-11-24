@@ -13,6 +13,8 @@ StateDirectory=cozy-table
 Environment=DATA_DIR=/var/lib/cozy-table
 # Hosts: usernames (comma separated) who can moderate the hub chat and see who is online.
 #Environment=ADMINS=yourusername
+# Screens online at once before newcomers wait in line (default 3000; one core carries about 3,000-4,000).
+#Environment=MAX_ONLINE=3000
 # The privacy page (/privacy): where people write about their data, and where the server stands.
 #Environment=PRIVACY_CONTACT=you@example.com
 #Environment="SERVER_PLACE=Oracle Cloud, Frankfurt (Germany)"

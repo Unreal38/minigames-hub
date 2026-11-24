@@ -209,6 +209,18 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .toast.bad { background: #ffd4cc; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 #conn { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 90; background: var(--chili); color: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 6px 16px; font-family: var(--fd); font-weight: 600; }
 #conn.replaced { background: var(--ink); }
+/* the waiting line when the site is full (app.js waitLine) */
+#line { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; padding: 16px; background: rgba(22, 10, 18, .55); backdrop-filter: blur(3px); }
+#line .linecard { max-width: 380px; width: 100%; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 22px; padding: 22px 20px; text-align: center; box-shadow: 0 6px 0 var(--ink); }
+#line h2 { margin: 4px 0 6px; font-family: var(--fd); font-size: 22px; text-wrap: balance; }
+#line p { margin: 0 0 12px; color: var(--body-tx); text-wrap: pretty; }
+#line .linewave { font-size: 38px; animation: linebob 2.4s ease-in-out infinite; }
+#line .linepos { margin: 6px auto 12px; padding: 10px 14px; border-radius: 16px; background: var(--note-bg); color: var(--note-tx); border: 2px solid var(--note-edge); }
+#line .linepos b { display: block; font-family: var(--fd); font-size: 40px; line-height: 1.1; }
+#line .linepos span { font-size: 14px; }
+#line .linenote { margin: 0; font-size: 14px; color: var(--soft-tx); }
+@keyframes linebob { 50% { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { #line .linewave { animation: none; } }
 #conn button { margin-left: 8px; font: inherit; background: var(--card); color: var(--on-paper); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 12px; cursor: pointer; }
 
 /* ---------- chat & reactions ---------- */

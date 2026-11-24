@@ -790,16 +790,47 @@ function signedOut(t) {
   const r = rooms.get(o.room); if (r) sendRoom(r);
 }
 
+// ---------- waiting line ----------
+// Past MAX_ONLINE screens at once (a big stream sends everyone at the same minute) newcomers wait in a line instead of
+// slowing the site down for everyone already playing. They see their place and get in by themselves, first come
+// first served, as screens close. People at a table, people who dropped out a few minutes ago (a reload, a flaky
+// network) and hosts (ADMINS) always get straight in. Someone only counts as a visitor once they are in.
+// One server core carries about 3,000-4,000 people (README, "How many people it can take").
+const MAX_ONLINE = +process.env.MAX_ONLINE || 3000;
+const line = [];            // waiting sockets, first come first served: { sock, go }
+let liveN = 0, letIn = 0;   // screens online at the last count, and let in since
+const countLive = () => { let n = 0; for (const c of clients.values()) if (c.sock) n++; return n; };
+function mustWait(token) {
+  if (!line.length && liveN + letIn < MAX_ONLINE) return false;
+  const c = token && clients.get(token);
+  if (c && (c.room || c.sock || Date.now() - c.lastSeen < 5 * 60_000)) return false;
+  return !store.isAdmin(token && store.profileOf(token));
+}
+let lineTick = 0, lineLog = 0;
+setInterval(() => {
+  liveN = countLive(); letIn = 0;
+  for (let i = line.length - 1; i >= 0; i--) if (!line[i].sock.open) line.splice(i, 1);
+  for (let free = MAX_ONLINE - liveN; free > 0 && line.length; free--) line.shift().go();
+  if (++lineTick % 3 === 0 && line.length) line.forEach((q, i) => q.sock.send({ t: 'queue', pos: i + 1, n: line.length }));
+  if (line.length && Date.now() - lineLog > 60_000) { lineLog = Date.now(); console.log(`waiting line: ${line.length} waiting, ${liveN} online (MAX_ONLINE ${MAX_ONLINE})`); }
+}, 1000).unref();
+
 attach(server, '/ws', sock => {
-  let c = null, budget = 40, dropped = 0;
+  let c = null, budget = 40, dropped = 0, queued = false, admitted = false;
   const refill = setInterval(() => { budget = Math.min(40, budget + 20); dropped = Math.max(0, dropped - 20); }, 1000);
-  const late = setTimeout(() => { if (!c) sock.close(1008); }, 15_000); // connected but never said hello
+  const late = setTimeout(() => { if (!c && !queued) sock.close(1008); }, 15_000); // connected but never said hello
   sock.on('message', raw => {
     if (--budget < 0) { if (++dropped > 400) { console.warn(`ws: ${sock.ip} flooded messages, closing`); sock.close(1008); } return; } // ~20 s of flooding
     let m; try { m = JSON.parse(raw); } catch { return; }
     if (!m || typeof m !== 'object') return;
     if (!c) {
-      if (m.t !== 'hello') return;
+      if (m.t !== 'hello' || queued) return;
+      if (!admitted && mustWait(typeof m.token === 'string' ? m.token : '')) { // the site is full: wait in line
+        queued = true;
+        line.push({ sock, go: () => { queued = false; admitted = true; if (!sock.open) return; try { hello(m); } catch (e) { console.error('hello error', e); } } });
+        sock.send({ t: 'queue', pos: line.length, n: line.length });
+        return;
+      }
       try { hello(m); } catch (e) { console.error('hello error', e); }
       return;
     }
@@ -814,6 +845,7 @@ attach(server, '/ws', sock => {
         if (!allow('new:' + sock.ip, 120, 3600_000)) { console.warn(`ws: ${sock.ip} made too many new guests, closing`); sock.close(1008); return; }
         token = token || crypto.randomBytes(12).toString('hex');
       }
+      letIn++;
       c = clients.get(token);
       if (c) { if (c.sock && c.sock !== sock) { console.log(`ws: ${c.id} opened a second connection (${sock.ip}), closing the older one (${c.sock.ip})`); c.sock.send({ t: 'replaced' }); c.sock.close(4000); } }
       else { c = { token, id: null, room: null }; clients.set(token, c); }
