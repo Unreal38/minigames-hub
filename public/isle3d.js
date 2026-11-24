@@ -171,7 +171,7 @@ function farmDecor(root, types, ticks, st) {
 
 export function buildIsle(look = {}) {
   const ig = look.ig | 0, ib = BASE[look.ib | 0] ? look.ib | 0 : 0, th = groundOf(ig), ticks = [], root = new THREE.Group();
-  const land = island(3.3, 3.3, { round: true, seed: 7, props: 14, open: .8, rim: 1.3, size: th.size || .9, flowers: th.flowers, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null, under: !ib || ib === 3 });
+  const land = island(3.3, 3.3, { round: true, seed: 7, props: 14, open: .8, rim: 1.3, size: th.size || .9, flowers: th.flowers, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null, under: !ib || ib === 3, season: null }); // the owner's look, never the season's
   root.add(land);
   if (th.lava) { // pools that glow and pulse
     const g = dyn(root), mt = new THREE.MeshBasicMaterial({ color: '#ff7a2a' });

@@ -196,9 +196,13 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .pills button:not(:disabled):active { transform: scale(.94); }
 .pills button:disabled { cursor: default; }
 .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--fd); font-weight: 500; cursor: pointer; }
-.toggle input { appearance: none; width: 58px; height: 34px; border-radius: 999px; background: var(--dash); border: 3px solid var(--ink); position: relative; cursor: pointer; transition: background .2s; flex: none; }
-.toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.toggle input:checked { background: var(--mint); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .toggle input:checked::after { transform: translateX(23px); }
+/* on/off switch: 58x34 track with a 3px border leaves a 52x28 inside; the 22px knob sits 3px in on every side.
+   Pseudo-elements are not matched by the * box-sizing rule, so the knob sets border-box itself (it overflowed by 4px before). */
+.toggle input { appearance: none; -webkit-appearance: none; margin: 0; width: 58px; height: 34px; border-radius: 999px; background: var(--dash); border: 3px solid var(--ink); position: relative; cursor: pointer; transition: background .2s, box-shadow .2s; flex: none; box-shadow: inset 0 2px 0 rgba(0,0,0,.14); }
+.toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); box-shadow: 0 2px 0 rgba(0,0,0,.18); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.toggle input:checked { background: var(--mint); box-shadow: inset 0 2px 0 rgba(0,0,0,.08); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .toggle input:checked::after { transform: translateX(24px); }
+.toggle input:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
+.toggle input:disabled { cursor: default; opacity: .6; } .toggle:has(input:disabled) { cursor: default; }
 .howto { background: var(--plum); border-radius: 16px; padding: 16px; font-size: 15px; color: var(--soft); }
 .howto b { font-family: var(--fd); font-weight: 600; color: var(--lantern); }
 
@@ -716,7 +720,7 @@ body.sky:not(.in-game) .seat.open { border-color: #ffffffcc; background: var(--g
 body.sky:not(.in-game) .seat.open b { color: var(--tx); }
 body.sky:not(.in-game) .pills button { color: var(--tx); border-color: var(--edge); background: var(--chip); }
 body.sky:not(.in-game) .pills button[aria-pressed=true] { border-color: var(--tx); background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
-body.sky:not(.in-game) .toggle input { background: var(--edge); }
+body.sky:not(.in-game) .toggle input:not(:checked) { background: var(--edge); } /* on stays mint, so on and off never look alike */
 body.sky:not(.in-game) .howto { background: var(--pan2); color: var(--tx); border: 2px solid var(--edge); }
 body.sky:not(.in-game) .howto b { color: #d9532f; }
 /* pop-ups, toasts and chat: cream stickers with ink shadows on a soft blue veil */
