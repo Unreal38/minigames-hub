@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -440,6 +440,27 @@ const GAMES = {
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
+  bingo: {
+    name: 'Sky Bingo', load: () => import('./games/bingo/client.js'), start: 'Start the machine',
+    host: { seats: 4, game: 'classic', speed: 'normal', daub: 'hand', bots: 'chill' }, solo: { seats: 4, game: 'classic', speed: 'normal', daub: 'hand', bots: 'chill' },
+    openSeat: 'A bot daubs here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}${pill('seats', 8, '8')}</div></div>
+      <div class="opt"><b>Prizes</b><div class="pills">${pill('game', 'quick', 'Quick · one line')}${pill('game', 'classic', 'Classic · all three')}</div></div>
+      <div class="opt"><b>Ball speed</b><div class="pills">${pill('speed', 'chill', 'Chill')}${pill('speed', 'normal', 'Normal')}${pill('speed', 'fast', 'Fast')}</div></div>
+      <div class="opt"><b>Daubing</b><div class="pills">${pill('daub', 'hand', 'By hand')}${pill('daub', 'auto', 'Automatic')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `A machine draws a ball with a number every few seconds. Find the number on your card and tap it. When you have a full line, press Bingo before anybody else does. Then the game goes on for two lines and for the full card.`,
+    rules: `<ol>
+      <li>Everyone has their <b>own card</b> with 24 numbers and a free star in the middle. The <b>B</b> column holds numbers 1 to 15, <b>I</b> 16 to 30, <b>N</b> 31 to 45, <b>G</b> 46 to 60 and <b>O</b> 61 to 75. Empty seats are played by bots.</li>
+      <li>The machine draws <b>one ball every few seconds</b>, 75 balls in all. The bar next to the ball shows how long until the next one.</li>
+      <li><b>Tap the number</b> on your card when it is called. You can also daub it later: <b>Called</b> opens the list of every number drawn so far. Nobody daubs for you (unless the table uses automatic daubing).</li>
+      <li>A <b>line</b> is five squares in a row, a column or a diagonal. The star in the middle counts for you.</li>
+      <li>When your daubed squares make the prize, press <b>Bingo!</b> (or Space). The <b>first to shout</b> takes it, so two players who finish on the same ball race each other.</li>
+      <li>A classic game has <b>three prizes</b> on the same cards: <b>one line</b> (10 points), then <b>two lines</b> (20), then the <b>full card</b> (40). A quick game ends with the first line.</li>
+      <li><b>Most points wins.</b> Players level on points are placed by how close their card is to full.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never daubs a number gets none.</li>
+    </ol>`,
+  },
   ttt: {
     name: 'Tic-Tac-Toe', load: () => import('./games/ttt/client.js'), start: 'Start the match',
     host: { mode: 'classic', to: 3, bots: 'chill', timer: 20 }, solo: { mode: 'classic', to: 3, bots: 'chill', timer: 0 },
@@ -458,6 +479,26 @@ const GAMES = {
       <li><b>Big 5×5</b>: a bigger board where you need <b>four in a line</b>.</li>
       <li>You have <b>20 seconds</b> a turn (table settings). Run out and a mark is placed for you.</li>
       <li>Draws cannot drag a match out for ever: after 9 rounds (7 when playing to two, 5 for a single round) whoever has won more rounds takes the match. Level on rounds is a drawn match.</li>
+      <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
+    </ol>`,
+  },
+  cove: {
+    name: 'Cove Clash', load: () => import('./games/cove/client.js'), start: 'Start the game',
+    host: { board: 'classic', bots: 'chill', timer: 20 }, solo: { board: 'classic', bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: () => 2,
+    settings: pill => `<div class="opt"><b>Bay</b><div class="pills">${pill('board', 'classic', 'Classic 10×10')}${pill('board', 'quick', 'Quick 7×7')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Hide your boats in your bay, then take turns lobbing coconuts at squares of the other bay. A hit gives you another shot. The first to sink the whole rival fleet wins.`,
+    rules: `<ol>
+      <li><b>Two players</b>, each with their own bay. An empty seat is played by a bot.</li>
+      <li>First you <b>arrange your boats</b>: drag a boat to move it, tap it to turn it, or press <b>Shuffle</b> for a new random layout. Boats <b>can’t touch</b>, not even at the corners. Press <b>Ready</b> when you are happy. You have 60 seconds.</li>
+      <li>The classic fleet is <b>ten boats</b>: one of 4 squares, two of 3, three of 2 and four of 1. The quick bay is 7×7 with six boats: one of 3, two of 2 and three of 1.</li>
+      <li>Then you take turns. <b>Tap a square</b> in the other bay to lob a coconut at it (or move with the arrow keys and press Enter).</li>
+      <li>A splash means a <b>miss</b>, and the turn passes. A red cross means a <b>hit</b>, and you <b>shoot again</b>.</li>
+      <li>When every square of a boat is hit it is <b>sunk</b>: the boat shows itself and the water around it is marked for you, because no other boat can be there. The crew is fine: they float in a swim ring.</li>
+      <li>You have <b>20 seconds</b> a shot (table settings). Run out and a random shot is taken for you.</li>
+      <li>The first to <b>sink the whole rival fleet</b> wins.</li>
       <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
     </ol>`,
   },
@@ -566,6 +607,29 @@ const GAMES = {
       <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A five of a kind pays the bonus of 100 times its column once all three Pip Party boxes scored 50 (and you never wrote a five of a kind elsewhere while one was empty), and it is a joker once all three top boxes for that number are filled too.</li>
       <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
+    </ol>`,
+  },
+  pool: {
+    name: 'Sky Pool', load: () => import('./games/pool/client.js'), start: 'Rack them up',
+    host: { seats: 2, to: 1, bots: 'chill', timer: 30 }, solo: { seats: 2, to: 1, bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => (r.players.length > 2 ? 4 : r.opts.seats || 2),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '1 against 1')}${pill('seats', 4, '2 against 2')}</div></div>
+      <div class="opt"><b>Match</b><div class="pills">${pill('to', 1, 'One rack')}${pill('to', 2, 'Best of 3')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Shot timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Classic 8-ball. One side pots the seven plain balls, the other the seven striped ones, and then the black. Drag on the table to aim, pull the cue back and let go. Pot a ball and you shoot again.`,
+    rules: `<ol>
+      <li><b>Two players</b>, or <b>two teams of two</b> whose partners take turns at the table. Empty seats are played by bots.</li>
+      <li><b>Aim</b> by dragging on the table (a tap aims straight at that spot; the arrow buttons, the arrow keys or the mouse wheel make small corrections). Then <b>pull the cue back</b> on the strip at the bottom and let go: the further you pull, the harder the shot. The line shows where the white ball meets the first ball and which way that ball will go.</li>
+      <li>The match starts with a <b>break</b>: the white ball may be placed anywhere behind the line. The table stays <b>open</b> after it, whatever went in.</li>
+      <li>The first ball potted after the break decides the sides: whoever potted it plays that kind, <b>plain</b> or <b>striped</b>, and the other side gets the rest.</li>
+      <li>Pot one of <b>your own</b> balls and you <b>shoot again</b>. Otherwise the other side comes to the table. Balls of theirs that you knock in stay in.</li>
+      <li>A <b>foul</b> is: the white ball goes in, the white ball touches nothing, or it touches a wrong ball first (theirs, or the black while you still have balls left). After a foul the other side has the <b>ball in hand</b>: they may put the white ball anywhere.</li>
+      <li>When all seven of your balls are down, pot the <b>black</b> to win the rack. There is no need to name a pocket.</li>
+      <li>Pot the black <b>too early</b>, or with a foul, and you <b>lose the rack</b>. On the break the black just goes back on its spot.</li>
+      <li>A match is <b>one rack</b> or <b>best of three</b> (table settings). The break changes sides every rack.</li>
+      <li>You have <b>30 seconds</b> a shot (table settings). Run out and the game plays a clumsy shot for you.</li>
+      <li>Coins go by your final place: <b>10 for the winners</b>. A match with a bot in it does not count for the rankings.</li>
     </ol>`,
   },
 };
@@ -1379,6 +1443,9 @@ const HUB_GAMES = [
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
+  ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
+  ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
+  ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>

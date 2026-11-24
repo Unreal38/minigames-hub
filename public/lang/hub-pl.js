@@ -25,12 +25,15 @@ export const OPT_PL = {
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
+  Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
+  Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
+  '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -328,6 +331,21 @@ export const GAMES_PL = {
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
+  bingo: {
+    name: 'Podniebne bingo', start: 'Włącz maszynę', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Maszyna losuje kule z liczbami. Zaznaczaj je na swojej karcie szybciej niż znajomi i wołaj „Bingo!” za linię, dwie linie i całą kartę.',
+    howto: `Maszyna co kilka sekund losuje kulę z liczbą. Znajdź tę liczbę na swojej karcie i ją dotknij. Gdy masz całą linię, naciśnij „Bingo!”, zanim zrobi to ktoś inny. Potem gra toczy się dalej o dwie linie i o całą kartę.`,
+    rules: `<ol>
+      <li>Każdy ma <b>własną kartę</b> z 24 liczbami i darmową gwiazdką na środku. W kolumnie <b>B</b> są liczby od 1 do 15, w <b>I</b> od 16 do 30, w <b>N</b> od 31 do 45, w <b>G</b> od 46 do 60, a w <b>O</b> od 61 do 75. Wolne miejsca zajmują boty.</li>
+      <li>Maszyna losuje <b>jedną kulę co kilka sekund</b>, razem 75 kul. Pasek obok kuli pokazuje, ile zostało do następnej.</li>
+      <li><b>Dotknij liczby</b> na swojej karcie, gdy zostanie wylosowana. Możesz ją zaznaczyć także później: przycisk <b>Wylosowane</b> otwiera listę wszystkich liczb, które już padły. Nikt nie zaznacza za ciebie (chyba że przy stole włączono automatyczne zaznaczanie).</li>
+      <li><b>Linia</b> to pięć pól w rzędzie, w kolumnie albo po skosie. Gwiazdka na środku liczy się jako zaznaczona.</li>
+      <li>Gdy zaznaczone pola dają nagrodę, naciśnij <b>Bingo!</b> (albo spację). Nagrodę bierze ten, kto <b>zawoła pierwszy</b>, więc gracze, którzy kończą na tej samej kuli, ścigają się ze sobą.</li>
+      <li>W klasycznej grze są <b>trzy nagrody</b> na tych samych kartach: <b>jedna linia</b> (10 punktów), potem <b>dwie linie</b> (20), a na koniec <b>cała karta</b> (40). Szybka gra kończy się po pierwszej linii.</li>
+      <li><b>Wygrywa najwięcej punktów.</b> Przy równej liczbie punktów wyżej jest ten, komu mniej brakuje do całej karty.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie zaznaczy ani jednej liczby, nie dostaje monet.</li>
+    </ol>`,
+  },
   ttt: {
     name: 'Kółko i krzyżyk', start: 'Zacznij mecz', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
     pitch: 'Kółko i krzyżyk na klockowej planszy 3D. Klasycznie, ze znikającymi znakami albo cztery w rzędzie na dużej planszy.',
@@ -341,6 +359,22 @@ export const GAMES_PL = {
       <li><b>Duża 5×5</b>: większa plansza, na której trzeba ułożyć <b>cztery w linii</b>.</li>
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, znak zostanie postawiony za ciebie.</li>
       <li>Remisy nie przeciągną meczu w nieskończoność: po 9 rundach (po 7 przy grze do dwóch, po 5 przy jednej rundzie) wygrywa ten, kto ma więcej wygranych rund. Tyle samo wygranych rund to remis w meczu.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
+    </ol>`,
+  },
+  cove: {
+    name: 'Bitwa w zatoce', start: 'Zacznij grę', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Ukryj swoje łódki w zatoce i rzucaj kokosami w zatokę znajomego. Wygrywa ten, kto pierwszy zatopi całą flotę.',
+    howto: `Ukryj swoje łódki w zatoce, a potem na zmianę rzucajcie kokosami w pola drugiej zatoki. Trafienie daje kolejny strzał. Wygrywa ten, kto pierwszy zatopi całą flotę rywala.`,
+    rules: `<ol>
+      <li><b>Dwoje graczy</b>, każdy ma własną zatokę. Wolne miejsce zajmuje bot.</li>
+      <li>Najpierw <b>ustawiasz swoje łódki</b>: przeciągnij łódkę, żeby ją przesunąć, dotknij jej, żeby ją obrócić, albo naciśnij <b>Wylosuj</b>, żeby dostać nowe losowe ustawienie. Łódki <b>nie mogą się stykać</b>, nawet rogami. Gdy ustawienie ci pasuje, naciśnij <b>Gotowe</b>. Masz na to 60 sekund.</li>
+      <li>Klasyczna flota to <b>dziesięć łódek</b>: jedna na 4 pola, dwie na 3, trzy na 2 i cztery na 1. Szybka zatoka ma 7×7 pól i sześć łódek: jedną na 3 pola, dwie na 2 i trzy na 1.</li>
+      <li>Potem strzelacie na zmianę. <b>Dotknij pola</b> w drugiej zatoce, żeby rzucić w nie kokosem (albo wybierz pole strzałkami i naciśnij Enter).</li>
+      <li>Plusk oznacza <b>pudło</b> i kolejka przechodzi dalej. Czerwony krzyżyk oznacza <b>trafienie</b> i <b>strzelasz jeszcze raz</b>.</li>
+      <li>Gdy wszystkie pola łódki są trafione, łódka jest <b>zatopiona</b>: pokazuje się w całości, a woda wokół niej zostaje oznaczona, bo nie może tam stać żadna inna łódka. Załodze nic nie jest: pływa sobie w kole ratunkowym.</li>
+      <li>Masz <b>20 sekund</b> na strzał (ustawienia stołu). Gdy czas minie, strzał zostanie oddany za ciebie w losowe pole.</li>
+      <li>Wygrywa ten, kto pierwszy <b>zatopi całą flotę rywala</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
     </ol>`,
   },
@@ -359,6 +393,24 @@ export const GAMES_PL = {
       <li>Mecz toczy się do <b>100 punktów</b> (albo do 50, albo trwa jedną rundę: wybierz w ustawieniach stołu). W grze na jedną rundę o kolejnych miejscach decyduje to, kto ma lżejszą rękę.</li>
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, kostka zostanie dołożona za ciebie.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  pool: {
+    name: 'Podniebny bilard', start: 'Ustaw bile', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Bilard, czyli ósemka, na stole na podniebnej wyspie. Pełne kontra połówki, jeden na jednego albo w dwuosobowych drużynach.',
+    howto: `Klasyczna ósemka. Jedna strona wbija siedem pełnych bil, druga siedem połówek, a na koniec czarną. Przeciągnij po stole, żeby wycelować, odciągnij kij i puść. Po wbiciu swojej bili uderzasz jeszcze raz.`,
+    rules: `<ol>
+      <li><b>Dwoje graczy</b> albo <b>dwie dwuosobowe drużyny</b>, w których partnerzy podchodzą do stołu na zmianę. Wolne miejsca zajmują boty.</li>
+      <li><b>Celujesz</b>, przeciągając po stole (dotknięcie celuje prosto w to miejsce; przyciski ze strzałkami, klawisze strzałek albo kółko myszy służą do drobnych poprawek). Potem <b>odciągnij kij</b> na pasku na dole i puść: im dalej odciągniesz, tym mocniejsze uderzenie. Linia pokazuje, gdzie biała bila trafi pierwszą bilę i w którą stronę ta bila pojedzie.</li>
+      <li>Mecz zaczyna się od <b>rozbicia</b>: białą bilę można postawić w dowolnym miejscu za linią. Po rozbiciu stół jest <b>otwarty</b>, niezależnie od tego, co wpadło.</li>
+      <li>Pierwsza bila wbita po rozbiciu rozstrzyga podział: ten, kto ją wbił, gra tym rodzajem, <b>pełnymi</b> albo <b>połówkami</b>, a druga strona dostaje pozostałe.</li>
+      <li>Po wbiciu <b>swojej</b> bili <b>uderzasz jeszcze raz</b>. W przeciwnym razie do stołu podchodzi druga strona. Bile przeciwnika, które wpadną po twoim uderzeniu, zostają w łuzach.</li>
+      <li><b>Faul</b> to: biała bila wpada do łuzy, biała bila niczego nie dotyka albo najpierw dotyka niewłaściwej bili (bili przeciwnika albo czarnej, gdy masz jeszcze swoje bile). Po faulu druga strona ma <b>bilę w ręce</b>: może postawić białą bilę w dowolnym miejscu.</li>
+      <li>Gdy wszystkie siedem twoich bil jest już w łuzach, wbij <b>czarną</b>, żeby wygrać partię. Nie trzeba deklarować łuzy.</li>
+      <li>Wbicie czarnej <b>za wcześnie</b> albo z faulem oznacza <b>przegraną partię</b>. Przy rozbiciu czarna po prostu wraca na swoje miejsce.</li>
+      <li>Mecz to <b>jedna partia</b> albo gra <b>do dwóch wygranych</b> (ustawienia stołu). Rozbijający zmienia się co partię.</li>
+      <li>Masz <b>30 sekund</b> na uderzenie (ustawienia stołu). Gdy czas minie, gra wykona za ciebie niezdarne uderzenie.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 dla zwycięzców</b>. Mecz z botem nie liczy się do rankingów.</li>
     </ol>`,
   },
   pan: {
