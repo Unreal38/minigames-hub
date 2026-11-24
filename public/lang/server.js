@@ -7,6 +7,7 @@ import { PL, plForm } from '../i18n.js';
 const TEXT = {
   // tables
   'That table is full.': 'Ten stół jest pełny.',
+  'This game needs at least two players. Invite a friend first.': 'Do tej gry potrzeba co najmniej dwóch graczy. Najpierw zaproś znajomego.',
   'That player is not around any more.': 'Tego gracza już tu nie ma.',
   'That pet is not on your farm.': 'Tego zwierzaka nie ma na twojej farmie.',
   'Slow down a little: too many new tables.': 'Zwolnij trochę: za dużo nowych stołów.',

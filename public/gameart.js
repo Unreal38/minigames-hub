@@ -553,6 +553,32 @@ export function bingoArt() {
   </svg>`;
 }
 
+// Państwa-miasta card: a sheet of paper with the category columns half filled in, a big letter block and a pencil.
+export function pmArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const cols = ['#4aa3ff', '#ff6b8b', '#ffd23f', '#5fcf86'];
+  const scr = (x, y, w) => `<path d="M${x} ${y}q${w / 6} -5 ${w / 3} 0t${w / 3} 0t${w / 3} 0" fill="none" stroke="#3b2219" stroke-width="2.2" stroke-linecap="round"/>`;
+  let rows = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    const x = 62 + c * 32, y = 52 + r * 20;
+    rows += `<rect x="${x}" y="${y}" width="29" height="17" rx="3" fill="#fff8ec" stroke="#3b2219" stroke-width="1.6"/>`;
+    if (r < 2 || (r === 2 && c < 2)) rows += scr(x + 5, y + 10, 14 + (r * 5 + c * 3) % 6);
+  }
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A sheet of paper with columns of words, a big letter block and a pencil on a floating island">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="46" cy="18" r="1.6"/><circle cx="212" cy="12" r="1.3"/><circle cx="292" cy="20" r="1.5"/><circle cx="44" cy="92" r="1.2"/><circle cx="276" cy="124" r="1.1"/></g>
+    <path d="M36 44l14-8 16 4 8 10-10 8H44z" class="artcloud" fill="#fff"/><path d="M236 20l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M40 130c40-12 200-12 240 0l-16 10c-40 8-168 8-208 0z" fill="#8bca60" ${o}/><path d="M56 140c40 8 168 8 208 0l-34 10h-140z" fill="#c98a5a" ${o}/>
+    <g transform="rotate(-4 126 82)"><rect x="54" y="22" width="144" height="116" rx="8" fill="#fffaf0" ${o}/>
+      ${cols.map((c, k) => `<rect x="${62 + k * 32}" y="30" width="29" height="17" rx="4" fill="${c}" stroke="#3b2219" stroke-width="1.6"/>`).join('')}
+      ${rows}</g>
+    <g transform="translate(-9 2) rotate(7 240 72)"><g class="pmblock"><path d="M208 50l12-12h54l-12 12z" fill="#ff9a7d" ${o}/><path d="M262 50l12-12v54l-12 12z" fill="#e5543b" ${o}/>
+      <rect x="208" y="50" width="54" height="54" rx="6" fill="#ff7a59" ${o}/><rect x="216" y="58" width="38" height="38" rx="6" fill="#fffaf0" stroke="#3b2219" stroke-width="2"/>
+      <text x="235" y="88" text-anchor="middle" font-family="Rubik, system-ui, sans-serif" font-weight="700" font-size="31" fill="#3b2219">P</text></g></g>
+    <g transform="rotate(38 214 120)"><rect x="176" y="114" width="62" height="12" rx="2" fill="#ffd23f" ${o}/><path d="M238 114l16 6-16 6z" fill="#f3d2b0" ${o}/><path d="M249 118.2l5 1.8-5 1.8z" fill="#3b2219"/><rect x="170" y="114" width="10" height="12" rx="3" fill="#ff8fab" ${o}/></g>
+    <path class="arttick" d="M280 40l8-9M286 58l12-3M204 30l-7-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Cove Clash card: a square bay with two toy boats, a splash and a red cross, and a coconut dropping in.
 export function coveArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
@@ -572,6 +598,24 @@ export function coveArt() {
     <circle cx="${mx}" cy="${my}" r="8" fill="#fff" stroke="#3b2219" stroke-width="2.5"/><path d="M${mx - 13} ${my - 12}l3 5M${mx} ${my - 16}v6M${mx + 13} ${my - 12}l-3 5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
     <g class="cnut"><circle cx="${nx}" cy="${ny - 4}" r="11" fill="#8a5a3c" ${o}/><circle cx="${nx - 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx + 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx}" cy="${ny - 2}" r="1.6" fill="#3b2219"/></g>
     <path d="M${nx - 14} ${ny - 20}l-7-9M${nx} ${ny - 24}v-10M${nx + 14} ${ny - 20}l7-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+  </svg>`;
+}
+
+// Bierki card: a heap of pick-up sticks on a round table on a floating island, and the Crown stick being drawn out
+export function bierkiArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const stick = (x0, y0, x1, y1, c) => { const mx = t => x0 + (x1 - x0) * t, my = t => y0 + (y1 - y0) * t;
+    return `<path d="M${x0} ${y0}L${x1} ${y1}" stroke="#3b2219" stroke-width="10" stroke-linecap="round"/><path d="M${x0} ${y0}L${x1} ${y1}" stroke="#fff1d6" stroke-width="5" stroke-linecap="round"/><path d="M${mx(.13)} ${my(.13)}L${mx(.87)} ${my(.87)}" stroke="${c}" stroke-width="5"/>`; };
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A heap of coloured pick-up sticks on a round table on a floating island, with one stick being drawn out">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="50" cy="16" r="1.6"/><circle cx="272" cy="14" r="1.3"/><circle cx="296" cy="64" r="1.5"/><circle cx="24" cy="70" r="1.2"/><circle cx="170" cy="8" r="1.1"/></g>
+    <path d="M44 30l14-8 16 4 8 10-10 8H52z" class="artcloud" fill="#fff"/><path d="M246 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M40 116c40-12 200-12 240 0l-10 14c-44 8-176 8-220 0z" fill="#8bca60" ${o}/><path d="M50 130c44 8 176 8 220 0l-34 19h-152z" fill="#c98a5a" ${o}/>
+    <path d="M148 100h24v26h-24z" fill="#a8683c" ${o}/>
+    <ellipse cx="160" cy="76" rx="100" ry="38" fill="#d9955b" ${o}/><ellipse cx="160" cy="71" rx="100" ry="38" fill="#e9ad74" ${o}/>
+    <ellipse cx="160" cy="71" rx="85" ry="29" fill="#5d4468" stroke="#3b2219" stroke-width="2.5"/>
+    ${stick(98, 82, 200, 56, '#3f9a52')}${stick(110, 54, 212, 86, '#2f86cc')}${stick(134, 92, 178, 48, '#d8ad72')}${stick(96, 68, 224, 72, '#e0592f')}${stick(150, 50, 198, 92, '#d9a400')}
+    <g class="bkpull">${stick(182, 62, 262, 36, '#e8b22c')}<path d="M246 26l2 10 6-5 4 7 6-7 0 12-18 5z" fill="#ffd34d" ${o} stroke-width="2.5"/></g>
+    <path class="arttick" d="M268 52l10-3M270 62l11 2" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
 

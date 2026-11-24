@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -483,6 +483,28 @@ const GAMES = {
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never daubs a number gets none.</li>
     </ol>`,
   },
+  pm: {
+    name: 'Countries & Cities', load: () => import('./games/pm/client.js'), start: 'Draw the first letter', min: 2,
+    mins: [8, 12],
+    host: { rounds: 5, time: 90, cats: 'classic', letters: 'easy', pet: 'off' }, solo: { rounds: 5, time: 90, cats: 'classic', letters: 'easy', pet: 'off' },
+    openSeat: 'Waiting for a friend (no bots in this game)', seats: r => Math.min(8, Math.max(4, r.players.length + 1)),
+    settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 3, '3')}${pill('rounds', 5, '5')}${pill('rounds', 8, '8')}</div></div>
+      <div class="opt"><b>Time to write</b><div class="pills">${pill('time', 60, '60 s')}${pill('time', 90, '90 s')}${pill('time', 120, '120 s')}</div></div>
+      <div class="opt"><b>Categories</b><div class="pills">${pill('cats', 'short', '4')}${pill('cats', 'classic', '6')}${pill('cats', 'long', '8')}</div></div>
+      <div class="opt"><b>Letters</b><div class="pills">${pill('letters', 'easy', 'Easy')}${pill('letters', 'pl', 'With Ł, Ś, Ż')}</div></div>
+      <div class="opt"><b>Extra category: Pet Farm pet</b><div class="pills">${pill('pet', 'off', 'Off')}${pill('pet', 'on', 'On')}</div></div>`,
+    howto: `A letter is drawn and everyone writes a country, a city, an animal and more, all starting with that letter. Fill every box first and press Stop, or beat the clock. Then the table checks the answers: a word nobody else wrote scores the most.`,
+    rules: `<ol>
+      <li>A game for <b>2 to 8 people</b>. There are no bots. Every round a <b>letter is drawn</b>, and no letter comes up twice in one game.</li>
+      <li>Write <b>one word in every category</b> that starts with the letter: country, city, animal, plant, name and thing (the table can play with 4 or 8 categories too). Nobody sees your words until the round is over.</li>
+      <li>When you have a word in every box, you can press <b>Stop!</b> The others then get <b>5 more seconds</b>. If nobody stops, the round ends when the time runs out.</li>
+      <li>Then <b>everyone checks the answers</b> together. Tap the thumb next to a word that is wrong. A word is thrown out when <b>more than half of the other players</b> reject it. Players who wrote the same word are judged together. Press <b>Ready</b> when you are done.</li>
+      <li>The game checks the <b>first letter</b> by itself, and it must be exactly the drawn one: Polish letters such as Ż, Ś or Ł are letters of their own, so “Żaba” does not count for Z. With the <b>Pet Farm pet</b> category on, the game also checks that the word is a real pet, and closes that box in rounds where no pet starts with the letter.</li>
+      <li>Points for each category: <b>15</b> when yours is the only good answer, <b>10</b> for a word nobody else wrote, <b>5</b> when somebody else wrote it too, <b>0</b> for an empty or rejected one. Capitals and accents don't make a word different: “Krakow” and “Kraków” are the same answer.</li>
+      <li><b>Most points after the last round wins.</b> Players level on points share the place.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never writes a word gets none.</li>
+    </ol>`,
+  },
   ttt: {
     name: 'Tic-Tac-Toe', load: () => import('./games/ttt/client.js'), start: 'Start the match',
     mins: [3, 5],
@@ -686,6 +708,31 @@ const GAMES = {
       <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A five of a kind pays the bonus of 100 times its column once all three Pip Party boxes scored 50 (and you never wrote a five of a kind elsewhere while one was empty), and it is a joker once all three top boxes for that number are filled too.</li>
       <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
+    </ol>`,
+  },
+  bierki: {
+    name: 'Bierki', load: () => import('./games/bierki/client.js'), start: 'Drop the sticks',
+    mins: [3, 6],
+    host: { seats: 2, piles: 1, hints: 'on', bots: 'chill', timer: 30 }, solo: { seats: 2, piles: 1, hints: 'on', bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.players.length, r.opts.seats || 2),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${[2, 3, 4, 5, 6].map(n => pill('seats', n, String(n))).join('')}</div></div>
+      <div class="opt"><b>Piles</b><div class="pills">${pill('piles', 1, 'One pile')}${pill('piles', 3, 'Three piles')}</div></div>
+      <div class="opt"><b>Hints</b><div class="pills">${pill('hints', 'on', 'Touching sticks glow')}${pill('hints', 'off', 'No hints')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Pull timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Classic pick-up sticks. Drag one stick out of the pile, slowly, without moving any other. Every stick you get out is yours and you go again. When another stick moves, the next player is up.`,
+    rules: `<ol>
+      <li>The sticks are dropped in a <b>pile</b>: 31 of them, or 41 with five or six players. Empty seats are played by bots.</li>
+      <li>On your turn, <b>drag a stick out of the pile</b>. Let go once it is clear of every other stick and it is yours. Then you <b>go again</b>.</li>
+      <li>The <b>Steady hands</b> meter fills whenever your stick rubs another one: a little for sliding over a stick it rests on, a lot for dragging a stick that <b>lies on top</b> of it or for <b>pushing into</b> a stick beside it. A <b>fast pull fills it much faster</b>, so take your time.</li>
+      <li>At <b>100%</b> another stick has moved: your turn ends and the stick you were holding is <b>out of play</b>. The same happens if a stick that lay on yours drops when yours is gone.</li>
+      <li>You may let go inside the pile. The stick goes back, but what it already rubbed <b>stays on the meter</b> for the rest of your turn.</li>
+      <li><b>Points</b>: plain wood 1, Leaf 2, Tide 3, Ember 4, Spark 5, a <b>pet stick</b> 8, the <b>Hook</b> 10 and the <b>Crown</b> 20. All four pet sticks in one hand pay <b>10 more</b>.</li>
+      <li>Whoever holds the <b>Hook</b> may, once a turn, <b>lift</b> a stick straight up instead of sliding it: press Lift (or hold Shift) and drag upwards. Lifting does not rub the sticks underneath.</li>
+      <li>With hints on (table settings), the sticks touching the one you point at <b>glow</b>: red for a stick lying on top of it, orange for the rest.</li>
+      <li>Drag the table or the sky to <b>turn the view</b>, scroll or pinch to zoom.</li>
+      <li>You have <b>30 seconds</b> for each stick (table settings). When the time runs out, the turn passes.</li>
+      <li>When the table is empty, the <b>most points</b> wins. With three piles the points add up. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   pool: {
@@ -1547,6 +1594,8 @@ const HUB_GAMES = [
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
+  ['bierki', 'bierkipic', bierkiArt, 'action', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
+  ['pm', 'pmpic', pmArt, 'board', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1894,7 +1943,8 @@ function renderLobby() {
       ${watchers.length ? `<p style="margin:0;color:var(--muted)">${L('Watching', 'Oglądają')}: ${watchers.map(p => nameHtml(p.name, p.fl)).join(', ')}</p>` : ''}
       ${meWatch ? `<div class="row"><button type="button" class="btn m" data-act="sit" aria-pressed="${saving}">${saving ? L('✓ Next free seat is yours', '✓ Następne wolne miejsce jest twoje') : L('Take a seat', 'Zajmij miejsce')}</button></div>` : ''}
       <div class="row" style="margin-top:6px">
-        ${host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
+        ${host && seated.length < (gm.min || 1) ? `<span class="chip">${L(`You need ${gm.min} players to start. Send the invite link to a friend.`, `Do startu potrzeba ${gm.min} graczy. Wyślij znajomemu link z zaproszeniem.`)}</span>`
+          : host ? `<button type="button" class="btn big r" data-act="start">${gm.start}</button>` : `<span class="chip">${L('Waiting for the host to start…', 'Czekamy, aż gospodarz zacznie…')}</span>`}
         <button type="button" class="btn big ghost" data-act="leave">${L('Leave', 'Wyjdź')}</button>
       </div>
     </div>
