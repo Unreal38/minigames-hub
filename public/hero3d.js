@@ -17,7 +17,7 @@ function build() {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, alpha: true });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, .1, 200);
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, 2, 200); // near plane well away from the camera: small pets' eyes need the depth precision
   const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2); scene.add(hemi);
   const key = new THREE.DirectionalLight('#ffffff', 1.5); key.position.set(5, 12, 8); key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 40 }); key.shadow.normalBias = .03; scene.add(key);
