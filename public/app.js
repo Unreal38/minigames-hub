@@ -956,6 +956,7 @@ function openFarm() {
   if (st.farm || farmLoading) return;
   st.view = 'farm'; document.title = `${FARM_NAME} · ${SITE}`; tellWhere();
   $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking to the farm…', 'Idziemy na farmę…') + '</p></main>';
+  import('./games/farm/scene3d.js').catch(() => {}); // fetched alongside the farm's own code, not after it
   farmLoading = import('./games/farm/client.js').then(mod => {
     farmLoading = null;
     if (st.view !== 'farm') return;
