@@ -6,11 +6,12 @@
 import { L } from '../../i18n.js';
 import { sfx } from '../../sfx.js';
 import { EMOJI, FOODS, reactHtml } from '../../react.js';
-import { stickersOf, nameHtml, emotesOf, cosItem, COS, cosHas } from '../../cosmetics.js';
+import { stickersOf, nameHtml, emotesOf, cosItem, COS, cosHas, frameCls } from '../../cosmetics.js';
+import { avatarHtml } from '../../avatar.js';
 import { srvText } from '../../lang/server.js';
 import { uiz } from '../../uiz.js';
 import { createScene } from './scene3d.js';
-import { CAP, Q, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, TREE_REACH, THINGS, THROW_WAIT } from './layout.js';
+import { CAP, Q, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, TREE_REACH, THINGS, THROW_WAIT, POKE } from './layout.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LS = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
@@ -49,6 +50,7 @@ export function mount(app, ctx) {
       </div>
       <div class="tr plz-tr">
         <button type="button" class="round plz-chatbtn" data-a="chat" aria-label="${L('Chat', 'Czat')}">💬<i class="plz-dot" id="plz-unread" hidden></i></button>
+        <button type="button" class="round plz-view" data-a="view" id="plz-view" hidden aria-label="${L('Reset the view', 'Przywróć widok')}" title="${L('Reset the view', 'Przywróć widok')}">⟲</button>
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? '🔇' : '🔊'}</button>
       </div>
       <div class="plz-pop" id="plz-pop" hidden></div>
@@ -65,7 +67,7 @@ export function mount(app, ctx) {
       </div>
       <div class="plz-joy" id="plz-joy" aria-hidden="true"><i></i></div>
       <div class="plz-hint plz-aimh" id="plz-aimh" hidden></div>
-      <div class="plz-hint" id="plz-hint">${L('WASD or arrows to walk, or click the ground', 'Chodzisz klawiszami WASD lub strzałkami albo klikając ziemię')}</div>
+      <div class="plz-hint" id="plz-hint">${L('WASD or arrows to walk, or click the ground. Drag to look around.', 'Chodzisz klawiszami WASD lub strzałkami albo klikając ziemię. Przeciągnij, żeby się rozejrzeć.')}</div>
     </div>
   </div>`;
   const root = app.querySelector('.plz'), $ = id => root.querySelector('#' + id), tagBox = $('plz-tags'); let canvas = root.querySelector('.plz-cv');
@@ -120,7 +122,7 @@ export function mount(app, ctx) {
     const el = document.createElement('div'); el.className = 'plz-tag'; el.innerHTML = '<div class="plz-bub" hidden></div><div class="plz-name"></div>';
     tagBox.append(el); t = { el, bub: el.firstChild, name: el.lastChild, until: 0, shown: null }; tags.set(s, t); return t;
   }
-  function paintTag(p) { const t = tagOf(p.s); t.name.innerHTML = (p.s === S.me ? `<i>${L('You', 'Ty')}</i>` : nameHtml(p.n, p.fl)); t.el.classList.toggle('plz-me', p.s === S.me); }
+  function paintTag(p) { const t = tagOf(p.s); t.name.innerHTML = avatarHtml(p.c, p.av, 26, frameCls(p.fl)) + (p.s === S.me ? `<i>${L('You', 'Ty')}</i>` : `<span>${nameHtml(p.n, p.fl)}</span>`); t.el.classList.toggle('plz-me', p.s === S.me); }
   function dropTag(s) { tags.get(s)?.el.remove(); tags.delete(s); }
   function bubble(s, text) { const t = tags.get(s); if (!t) return; t.bub.textContent = text.length > 90 ? text.slice(0, 88) + '…' : text; t.bub.hidden = false; t.until = performance.now() + 3800 + Math.min(4000, text.length * 55); }
   function floaty(s, k) { const t = tags.get(s); if (!t) return; const f = document.createElement('div'); f.className = 'plz-float'; f.innerHTML = reactHtml(k); t.el.append(f); setTimeout(() => f.remove(), 1700); }
@@ -128,9 +130,12 @@ export function mount(app, ctx) {
     let el = signs.get(g.code)?.el;
     if (!el) { el = document.createElement('button'); el.type = 'button'; el.className = 'plz-sign'; el.dataset.a = 'join'; el.dataset.code = g.code; tagBox.append(el); }
     el.innerHTML = `<span aria-hidden="true">🪧</span><b>${esc(g.n)}</b> ${L('is hosting', 'zaprasza do gry')} <b>${esc(ctx.gameName(g.game))}</b><small>${L(`${g.free} ${g.free === 1 ? 'seat' : 'seats'} free · tap to join`, `wolne miejsca: ${g.free} · dotknij, by dołączyć`)}</small>`;
+    if (!signs.has(g.code)) scene?.setGhost(g.code, g); // the host's avatar stays standing where they were, waving people over
     signs.set(g.code, { el, g });
   }
-  function dropSign(code) { signs.get(code)?.el.remove(); signs.delete(code); }
+  function dropSign(code) { signs.get(code)?.el.remove(); signs.delete(code); scene?.dropGhost(code); }
+  // something floating up from a spot on the island (a poked decoration)
+  function floatAt(x, y, z, text) { const [sx, sy, on] = scene.project(x, y, z); if (!on) return; const el = document.createElement('div'); el.className = 'plz-tag'; el.style.transform = `translate3d(${sx.toFixed(1)}px,${sy.toFixed(1)}px,0)`; el.innerHTML = `<div class="plz-float">${text}</div>`; tagBox.append(el); setTimeout(() => el.remove(), 1700); }
   function frame(folk, me, W, H) {
     const now = performance.now();
     for (const m of folk.values()) {
@@ -140,19 +145,20 @@ export function mount(app, ctx) {
       if (show) t.el.style.transform = `translate3d(${m.sx.toFixed(1)}px,${m.sy.toFixed(1)}px,0)`;
       if (t.until && now > t.until) { t.until = 0; t.bub.hidden = true; }
     }
-    for (const { el, g } of signs.values()) { const [x, y, on] = scene.project(g.x / Q, 2.6, g.z / Q); el.style.display = on ? '' : 'none'; if (on) el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`; }
+    for (const { el, g } of signs.values()) { const [x, y, on] = scene.project(g.x / Q, 2.75, g.z / Q); el.style.display = on ? '' : 'none'; if (on) el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`; }
   }
 
   // ---- things to do where you stand
   const WHEEL = THINGS.find(t => t[0] === 'miniwheel');
-  function nearSeat() { const m = scene?.me(); if (!m) return -1; let best = -1, bd = SPOT_REACH; SPOTS.forEach((q, i) => { const d = Math.hypot(q.x - m.x, q.z - m.z); if (d < bd && !scene.spotTaken(i)) { bd = d; best = i; } }); return best; }
+  function nearSeat() { const m = scene?.me(); if (!m) return -1; let best = -1, bd = 1; SPOTS.forEach((q, i) => { const d = Math.hypot(q.x - m.x, q.z - m.z) / (q.reach || SPOT_REACH); if (d < bd && !scene.spotTaken(i)) { bd = d; best = i; } }); return best; }
   let actsKey = '';
   function paintActs() {
     const m = scene?.me(); if (!m || !S) return;
     const out = [], d = Math.hypot(m.x, m.z), winter = S.theme === 'winter', acct = !!ctx.me()?.user;
     if (winter && d < TREE_REACH) { if (gift && acct) out.push(['gift', '🎁', giftN > 5 ? L("Open today's double present", 'Otwórz dzisiejszy podwójny prezent') : L("Open today's present", 'Otwórz dzisiejszy prezent')]); out.push(['orn', '🎄', myOrn ? L('Change your ornament', 'Zmień swoją ozdobę') : L('Hang an ornament', 'Zawieś ozdobę')]); }
     if (WHEEL && Math.hypot(m.x - WHEEL[1], m.z - WHEEL[2]) < 3.4) out.push(['wheel', '🎡', L('Spin the Lucky Wheel', 'Zakręć Kołem szczęścia')]);
-    if (m.sp < 0 && nearSeat() >= 0) out.push(['seat', '🪑', L('Sit here', 'Usiądź tutaj')]);
+    if (m.sp < 0 && nearSeat() >= 0) out.push(SPOTS[nearSeat()].k === 'ride' ? ['seat', '🎠', L('Ride the carousel', 'Przejedź się na karuzeli')] : SPOTS[nearSeat()].k === 'swing' ? ['seat', '🤸', L('Swing', 'Pohuśtaj się')] : ['seat', '🪑', L('Sit here', 'Usiądź tutaj')]);
+    $('plz-view').hidden = !scene.turned();
     const key = out.map(o => o[0] + o[2]).join('|'); if (key === actsKey) return; actsKey = key;
     $('plz-acts').innerHTML = out.map(([a, e, t]) => `<button type="button" class="plz-act" data-a="${a}"><span aria-hidden="true">${e}</span>${t}</button>`).join('');
   }
@@ -209,6 +215,7 @@ export function mount(app, ctx) {
     else if (a === 'emos') { const on = !root.classList.contains('emos-open'); closePop(); root.classList.toggle('emos-open', on); b.setAttribute('aria-expanded', on); }
     else if (a === 'emo') { root.classList.remove('emos-open'); doEmote(+b.dataset.e); }
     else if (a === 'moremo') { root.classList.remove('emos-open'); ctx.wardrobe(); }
+    else if (a === 'view') { scene?.resetView(); b.hidden = true; }
     else if (a === 'aim') { closePop(); aiming = !aiming; paintAim(); }
     else if (a === 'ev') { if (ev) ctx.toast(ev.mid ? L("🎆 New Year's Eve at the plaza: the big fireworks start at midnight.", '🎆 Sylwester na placu: o północy zaczyna się wielki pokaz fajerwerków.') : ev.id === 'party' ? L('🎆 Saturday party: fireworks over the plaza every Saturday from 20:00 to 21:00.', '🎆 Sobotnia impreza: fajerwerki nad placem w każdą sobotę od 20:00 do 21:00.') : L('🎆 Fireworks over the plaza!', '🎆 Fajerwerki nad placem!'), false, 5000); }
     else if (a === 'show') { closePop(); send({ k: 'show' }); }
@@ -230,7 +237,8 @@ export function mount(app, ctx) {
   let joy = null;
   const typing = () => { const el = document.activeElement; return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable); };
   function pushMove() { if (!scene) return; if (joy) return scene.setMove(joy[0], joy[1]); let x = 0, z = 0; for (const k of keys) { x += KEY[k][0]; z += KEY[k][1]; } const l = Math.hypot(x, z); scene.setMove(l ? x / l : 0, l ? z / l : 0); }
-  const onKey = e => { if (!KEY[e.code] || e.ctrlKey || e.metaKey || e.altKey) return; if (e.type === 'keydown') { if (typing() || document.querySelector('.modal')) return; e.preventDefault(); keys.add(e.code); $('plz-hint').hidden = true; } else keys.delete(e.code); pushMove(); };
+  const onKey = e => { if ((e.code === 'KeyQ' || e.code === 'KeyE') && e.type === 'keydown' && !e.ctrlKey && !e.metaKey && !e.altKey && !typing() && !document.querySelector('.modal')) { scene?.turn(e.code === 'KeyQ' ? -.16 : .16); return; }
+    if (!KEY[e.code] || e.ctrlKey || e.metaKey || e.altKey) return; if (e.type === 'keydown') { if (typing() || document.querySelector('.modal')) return; e.preventDefault(); keys.add(e.code); $('plz-hint').hidden = true; } else keys.delete(e.code); pushMove(); };
   const onBlur = () => { keys.clear(); joy = null; pushMove(); };
   addEventListener('keydown', onKey); addEventListener('keyup', onKey); addEventListener('blur', onBlur);
   const joyEl = $('plz-joy'), knob = joyEl.firstChild; let joyId = null;
@@ -240,13 +248,17 @@ export function mount(app, ctx) {
   const joyEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joy = null; knob.style.transform = ''; joyEl.classList.remove('on'); pushMove(); };
   joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd);
   // taps and pinches on the island itself
-  const pts = new Map(); let down = null, pinch = 0;
+  const pts = new Map(); let down = null, pinch = 0, drag = null;
   function bindCanvas() {
-  canvas.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 1) down = { x: e.clientX, y: e.clientY, t: performance.now() }; else { down = null; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  canvas.draggable = false; for (const ev of ['dragstart', 'selectstart']) canvas.addEventListener(ev, e => e.preventDefault());
+  canvas.addEventListener('pointerdown', e => { if (e.button > 0) return; e.preventDefault(); document.activeElement?.blur?.(); try { canvas.setPointerCapture(e.pointerId); } catch {}
+    pts.set(e.pointerId, [e.clientX, e.clientY]); drag = null; if (pts.size === 1) down = { x: e.clientX, y: e.clientY, t: performance.now() }; else { down = null; const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
     if (popKind || root.classList.contains('emos-open')) { closePop(); down = null; } });
-  canvas.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
+  canvas.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; const was = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    // one finger (or the left button) dragged across the island turns the view round you
+    if (pts.size === 1 && scene && (drag || (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10))) { if (!drag) { drag = true; down = null; $('plz-hint').hidden = true; } scene.turn(-(e.clientX - was[0]) * .0075, (e.clientY - was[1]) * .004); }
     if (pts.size === 2 && scene) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) scene.setZoom(scene.zoom() * d / pinch); pinch = d; } });
-  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = 0; };
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = 0; if (!pts.size) drag = null; };
   canvas.addEventListener('pointercancel', up);
   canvas.addEventListener('pointerup', e => { up(e); if (!down || !scene || performance.now() - down.t > 500 || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) { down = null; return; } down = null; tap(e.clientX, e.clientY); });
   canvas.addEventListener('wheel', e => { e.preventDefault(); scene?.setZoom(scene.zoom() * (e.deltaY > 0 ? .9 : 1.1)); }, { passive: false });
@@ -261,9 +273,16 @@ export function mount(app, ctx) {
     if (hit.kind === 'player') { const p = who(hit.s); if (p) { sfx.click(); openPop('player', playerHtml(p), 'at', [x - r.left, y - r.top - 30]); } }
     else if (hit.kind === 'pet') { send({ k: 'pat', s: hit.s, i: hit.i }); }
     else if (hit.kind === 'orn') { const o = S.tree?.find(q => q.i === hit.i); if (o) ctx.toast(L(`${esc(ORN_NAME[ORNAMENTS[o.k].id]())}, hung by ${esc(o.n)}`, `${esc(ORN_NAME[ORNAMENTS[o.k].id]())}, zawiesza: ${esc(o.n)}`)); }
-    else if (hit.kind === 'tree') { const m = scene.me(); if (m && Math.hypot(m.x, m.z) < TREE_REACH) openPop('orn', ornHtml(), 'mid'); else scene.walkTo(x - r.left < r.width / 2 ? -3 : 3, 5.2); }
+    else if (hit.kind === 'tree') { const m = scene.me(); if (m && Math.hypot(m.x, m.z) < TREE_REACH) openPop('orn', ornHtml(), 'mid'); else if (m) { const d = Math.hypot(m.x, m.z) || 1; scene.walkTo(m.x / d * 4.6, m.z / d * 4.6, () => openPop('orn', ornHtml(), 'mid')); } }
+    else if (hit.kind === 'thing') { if (scene.nearThing(hit.i)) useThing(hit.i); else { const p = scene.standBy(hit.i); if (p) scene.walkTo(p[0], p[1], () => useThing(hit.i)); } }
     else if (hit.kind === 'ground') scene.walkTo(hit.x, hit.z);
   }
+
+  // A decoration you walked up to: seats seat you, the little wheel opens the Lucky Wheel, the rest react for everyone.
+  function useThing(i) { const t = scene?.thingAt(i); if (!t) return;
+    if ((t.kind === 'bench' || t.kind === 'haybale' || t.kind === 'carousel' || t.kind === 'swing') && scene.me()?.sp < 0 && nearSeat() >= 0) return doEmote(EMOTES.findIndex(x => x?.id === 'sit'));
+    if (t.kind === 'miniwheel') return ctx.wheel();
+    send({ k: 'poke', i }); }
 
   // ---- the server's messages
   function start(m) {
@@ -297,6 +316,7 @@ export function mount(app, ctx) {
       case 'em': scene.emote(m.s, m.e, m.sp); if (m.s === S.me) { paintActs(); } if (EMOTES[m.e]?.id === 'cheer' || EMOTES[m.e]?.id === 'jump') sfx.pop?.(); break;
       case 're': if (!isHid(who(m.s))) floaty(m.s, m.i); break;
       case 'pat': scene.pat(m.s, m.i); break;
+      case 'poke': { const t = scene.thingAt(m.i); if (t && !isHid(who(m.s))) { scene.poke(m.i); floatAt(t.x, Math.min(t.h, 3.4) + .4, t.z, POKE[t.kind] || '✨'); if (m.s === S.me) sfx.pop?.(); } break; }
       case 'pal': sfx.pop?.(); ctx.toast(L(`💛 +1 friendship with ${esc(m.n)} on the Pet Farm`, `💛 +1 do przyjaźni z ${esc(m.n)} na Farmie zwierzaków`)); break;
       case 'sb': if (!isHid(who(m.s))) { scene.throwBall(m.s, m.x, m.z, m.h); if (m.s === S.me || m.h === S.me) sfx.pop?.(); } break;
       case 'ev': setEv(m.ev); break;
