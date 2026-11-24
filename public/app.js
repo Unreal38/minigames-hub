@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, poolArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -479,6 +479,29 @@ const GAMES = {
       <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A five of a kind pays the bonus of 100 times its column once all three Pip Party boxes scored 50 (and you never wrote a five of a kind elsewhere while one was empty), and it is a joker once all three top boxes for that number are filled too.</li>
       <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
+    </ol>`,
+  },
+  pool: {
+    name: 'Sky Pool', load: () => import('./games/pool/client.js'), start: 'Rack them up',
+    host: { seats: 2, to: 1, bots: 'chill', timer: 30 }, solo: { seats: 2, to: 1, bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => (r.players.length > 2 ? 4 : r.opts.seats || 2),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '1 against 1')}${pill('seats', 4, '2 against 2')}</div></div>
+      <div class="opt"><b>Match</b><div class="pills">${pill('to', 1, 'One rack')}${pill('to', 2, 'Best of 3')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Shot timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Classic 8-ball. One side pots the seven plain balls, the other the seven striped ones, and then the black. Drag on the table to aim, pull the cue back and let go. Pot a ball and you shoot again.`,
+    rules: `<ol>
+      <li><b>Two players</b>, or <b>two teams of two</b> whose partners take turns at the table. Empty seats are played by bots.</li>
+      <li><b>Aim</b> by dragging on the table (a tap aims straight at that spot; the arrow buttons, the arrow keys or the mouse wheel make small corrections). Then <b>pull the cue back</b> on the strip at the bottom and let go: the further you pull, the harder the shot. The line shows where the white ball meets the first ball and which way that ball will go.</li>
+      <li>The match starts with a <b>break</b>: the white ball may be placed anywhere behind the line. The table stays <b>open</b> after it, whatever went in.</li>
+      <li>The first ball potted after the break decides the sides: whoever potted it plays that kind, <b>plain</b> or <b>striped</b>, and the other side gets the rest.</li>
+      <li>Pot one of <b>your own</b> balls and you <b>shoot again</b>. Otherwise the other side comes to the table. Balls of theirs that you knock in stay in.</li>
+      <li>A <b>foul</b> is: the white ball goes in, the white ball touches nothing, or it touches a wrong ball first (theirs, or the black while you still have balls left). After a foul the other side has the <b>ball in hand</b>: they may put the white ball anywhere.</li>
+      <li>When all seven of your balls are down, pot the <b>black</b> to win the rack. There is no need to name a pocket.</li>
+      <li>Pot the black <b>too early</b>, or with a foul, and you <b>lose the rack</b>. On the break the black just goes back on its spot.</li>
+      <li>A match is <b>one rack</b> or <b>best of three</b> (table settings). The break changes sides every rack.</li>
+      <li>You have <b>30 seconds</b> a shot (table settings). Run out and the game plays a clumsy shot for you.</li>
+      <li>Coins go by your final place: <b>10 for the winners</b>. A match with a bot in it does not count for the rankings.</li>
     </ol>`,
   },
 };
@@ -1253,6 +1276,7 @@ const HUB_GAMES = [
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
+  ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>

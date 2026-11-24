@@ -433,6 +433,28 @@ export function tttArt() {
   </svg>`;
 }
 
+export function poolArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const ball = (x, y, c, stripe = false) => (stripe
+    ? `<circle cx="${x}" cy="${y}" r="7" fill="#fff8ec" ${o}/><path d="M${x - 6.4} ${y - 2.6}h12.8v5.2h-12.8z" fill="${c}"/><circle cx="${x}" cy="${y}" r="7" fill="none" ${o}/>`
+    : `<circle cx="${x}" cy="${y}" r="7" fill="${c}" ${o}/>`);
+  const hole = (x, y) => `<circle cx="${x}" cy="${y}" r="7.5" fill="#2a1422" stroke="#3b2219" stroke-width="2.5"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A pool table on a floating island with a rack of plain and striped balls and a cue lined up on the white ball">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="44" cy="14" r="1.6"/><circle cx="278" cy="18" r="1.3"/><circle cx="300" cy="70" r="1.5"/><circle cx="20" cy="74" r="1.2"/><circle cx="160" cy="8" r="1.1"/></g>
+    <path d="M18 30l14-8 16 4 8 10-10 8H26z" class="artcloud" fill="#fff"/><path d="M262 40l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M30 126c44-12 216-12 260 0l-16 10c-44 8-184 8-228 0z" fill="#8bca60" ${o}/><path d="M46 136c44 8 184 8 228 0l-38 13h-152z" fill="#c98a5a" ${o}/>
+    <path d="M78 112v18h12v-18zM230 112v18h12v-18z" fill="#a8683c" ${o}/>
+    <rect x="58" y="22" width="204" height="98" rx="14" fill="#d9955b" ${o}/>
+    <rect x="72" y="35" width="176" height="72" rx="4" fill="#3fae7c" ${o}/>
+    <path d="M116 37v68" stroke="#49b987" stroke-width="2"/>
+    ${hole(72, 35)}${hole(160, 32)}${hole(248, 35)}${hole(72, 107)}${hole(160, 110)}${hole(248, 107)}
+    ${ball(190, 71, '#ffc93c')}${ball(203, 63.5, '#e5543b', true)}${ball(203, 78.5, '#4a7dff')}${ball(216, 56, '#9a6bd6')}${ball(216, 71, '#2a1422')}${ball(216, 86, '#ff8a3c', true)}
+    <g class="pcue"><path d="M52 96l56-20" stroke="#3b2219" stroke-width="9" stroke-linecap="round"/><path d="M52 96l56-20" stroke="#efc88f" stroke-width="4" stroke-linecap="round"/><path d="M52 96l14-5" stroke="#e5543b" stroke-width="4" stroke-linecap="round"/></g>
+    ${ball(122, 71, '#fff8ec')}
+    <path class="arttick" d="M270 62l12-5M272 78h14M270 94l12 5" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Small square icons for the Today tiles.
 export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <path d="M79 22 84 4l7 9 10-7-7 18z" fill="#6fc266"/><path d="M68 20h36l-10 34H78z" fill="#ff9a3d"/>

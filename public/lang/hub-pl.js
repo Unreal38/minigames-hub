@@ -29,6 +29,7 @@ export const OPT_PL = {
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
+  '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -325,6 +326,24 @@ export const GAMES_PL = {
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, znak zostanie postawiony za ciebie.</li>
       <li>Remisy nie przeciągną meczu w nieskończoność: po 9 rundach (po 7 przy grze do dwóch, po 5 przy jednej rundzie) wygrywa ten, kto ma więcej wygranych rund. Tyle samo wygranych rund to remis w meczu.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
+    </ol>`,
+  },
+  pool: {
+    name: 'Podniebny bilard', start: 'Ustaw bile', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Bilard, czyli ósemka, na stole na podniebnej wyspie. Pełne kontra połówki, jeden na jednego albo w dwuosobowych drużynach.',
+    howto: `Klasyczna ósemka. Jedna strona wbija siedem pełnych bil, druga siedem połówek, a na koniec czarną. Przeciągnij po stole, żeby wycelować, odciągnij kij i puść. Po wbiciu swojej bili uderzasz jeszcze raz.`,
+    rules: `<ol>
+      <li><b>Dwoje graczy</b> albo <b>dwie dwuosobowe drużyny</b>, w których partnerzy podchodzą do stołu na zmianę. Wolne miejsca zajmują boty.</li>
+      <li><b>Celujesz</b>, przeciągając po stole (dotknięcie celuje prosto w to miejsce; przyciski ze strzałkami, klawisze strzałek albo kółko myszy służą do drobnych poprawek). Potem <b>odciągnij kij</b> na pasku na dole i puść: im dalej odciągniesz, tym mocniejsze uderzenie. Linia pokazuje, gdzie biała bila trafi pierwszą bilę i w którą stronę ta bila pojedzie.</li>
+      <li>Mecz zaczyna się od <b>rozbicia</b>: białą bilę można postawić w dowolnym miejscu za linią. Po rozbiciu stół jest <b>otwarty</b>, niezależnie od tego, co wpadło.</li>
+      <li>Pierwsza bila wbita po rozbiciu rozstrzyga podział: ten, kto ją wbił, gra tym rodzajem, <b>pełnymi</b> albo <b>połówkami</b>, a druga strona dostaje pozostałe.</li>
+      <li>Po wbiciu <b>swojej</b> bili <b>uderzasz jeszcze raz</b>. W przeciwnym razie do stołu podchodzi druga strona. Bile przeciwnika, które wpadną po twoim uderzeniu, zostają w łuzach.</li>
+      <li><b>Faul</b> to: biała bila wpada do łuzy, biała bila niczego nie dotyka albo najpierw dotyka niewłaściwej bili (bili przeciwnika albo czarnej, gdy masz jeszcze swoje bile). Po faulu druga strona ma <b>bilę w ręce</b>: może postawić białą bilę w dowolnym miejscu.</li>
+      <li>Gdy wszystkie siedem twoich bil jest już w łuzach, wbij <b>czarną</b>, żeby wygrać partię. Nie trzeba deklarować łuzy.</li>
+      <li>Wbicie czarnej <b>za wcześnie</b> albo z faulem oznacza <b>przegraną partię</b>. Przy rozbiciu czarna po prostu wraca na swoje miejsce.</li>
+      <li>Mecz to <b>jedna partia</b> albo gra <b>do dwóch wygranych</b> (ustawienia stołu). Rozbijający zmienia się co partię.</li>
+      <li>Masz <b>30 sekund</b> na uderzenie (ustawienia stołu). Gdy czas minie, gra wykona za ciebie niezdarne uderzenie.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 dla zwycięzców</b>. Mecz z botem nie liczy się do rankingów.</li>
     </ol>`,
   },
   pan: {
