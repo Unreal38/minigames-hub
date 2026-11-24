@@ -1214,7 +1214,7 @@ function openPlaza() {
     if (st.view !== 'plaza') return;
     st.plaza = mountWithCss('plaza', () => mod.mount($app, { send: a => send({ t: 'plaza', a }), toast, me: () => st.me, home: () => { closePlaza(); go('hub'); }, account: mode => openAccount(mode),
       player: pt => send({ t: 'player', pt }), wheel: () => openWheel(), join: code => send({ t: 'join', code }), askTables: () => send({ t: 'rooms' }), gameName: id => GAMES[id]?.name || id,
-      chatLog: hubLogHtml, chatFoot: hubFootHtml, wardrobe: () => { if (!st.name) return openProfile(true); openWardrobe({ sec: 'emo' }); } }));
+      chatLog: hubLogHtml, chatFoot: hubFootHtml, games: () => HUB_GAMES.map(g => g[0]).filter(id => GAMES[id]), host: game => { if (!GAMES[game]) return; if (!st.name) return openProfile(true); send({ t: 'create', game, opts: GAMES[game].host }); }, wardrobe: () => { if (!st.name) return openProfile(true); openWardrobe({ sec: 'emo' }); } }));
     st.plaza.tables(st.rooms); placeGameSwitch();
   }).catch(err => { console.error(err); plazaLoading = null; toast(L('Could not load the plaza. Refresh?', 'Nie udało się wczytać placu. Odświeżyć stronę?'), true); go('hub'); });
 }
