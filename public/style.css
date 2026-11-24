@@ -1713,3 +1713,7 @@ body.in-game #toasts { max-width: calc(92vw / var(--vz, 1)); top: calc(74px / va
 .tclock, .gmini .pic .gtime .tclock, body.sky:not(.in-game) .gmini .pic .gtime .tclock { position: static; width: 12px; height: 12px; min-width: 0; max-width: none; flex: none; inset: auto; transform: none; }
 .ttile .tbody .ttime { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted2, var(--muted)); opacity: .9; }
 body.sky.night:not(.in-game) .gtime { background: var(--chip); color: var(--tx); border-color: var(--edge); }
+
+/* games sort menu beside the search box (sortGames in app.js) */
+.field.gsort { flex: 0 0 auto; width: auto; min-height: 40px; padding: 4px 12px; font-size: 15px; border-radius: 999px; background: var(--chip, var(--card)); color: var(--tx, var(--ink)); cursor: pointer; }
+@media (max-width: 1099px) { .field.gfind { flex: 1 1 0; min-width: 120px; } .field.gsort { order: 3; } }
