@@ -110,6 +110,16 @@ export function mount(app, ctx) {
   const freeWhy = p => F.pets.length < 2 ? L('Your farm keeps at least one pet.', 'Na farmie musi zostać przynajmniej jeden zwierzak.') : p.held ? L(`${p.name} is promised in a trade. Take the offer back first.`, `${p.name} jest w ofercie wymiany. Najpierw wycofaj ofertę.`) : outAll().includes(p.id) ? L(`${p.name} is out exploring. Welcome it home first.`, `${p.name} jest na wyprawie. Najpierw przywitaj drużynę w domu.`) : inNest(p.id) ? L(`${p.name} is cuddling in the Nest.`, `${p.name} przytula się w Gnieździe.`) : '';
   const freeFor = job => id => { const p = F.pets.find(x => x.id === id); return p && !busyFor(p, job); };
   const outNow = () => F.trips.filter(t => t.left > 0).flatMap(t => t.pets), outAll = () => F.trips.flatMap(t => t.pets); // away right now; away or waiting to be welcomed
+  // What a pet is up to right now, for the pet list. away: it is not on the island, so the camera cannot find it.
+  const petStatus = p => { const t = F.trips.find(t => t.pets.includes(p.id)), job = Object.entries(F.work || {}).find(([, id]) => id === p.id);
+    return t ? (t.left > 0 ? { away: true, cls: 'out', text: L(`Exploring ${ZONES[t.zone].name}, back in ${wait(t.left)}`, `Na wyprawie: ${ZONES[t.zone].name}, powrót za ${wait(t.left)}`) } : { away: true, cls: 'back', text: L(`Back from ${ZONES[t.zone].name}: welcome the party`, `Wraca: ${ZONES[t.zone].name}. Przywitaj drużynę`) })
+      : inNest(p.id) ? { cls: 'job', text: L('Cuddling in the Nest', 'Przytula się w Gnieździe') }
+      : F.train.ids.includes(p.id) ? { cls: 'job', text: L('Training at the yard', 'Trenuje na placu') }
+      : job ? { cls: 'job', text: L(`Helping at the ${ITEMS[job[0]].name}`, `Pomaga: ${ITEMS[job[0]].name}`) }
+      : p.held ? { cls: '', text: L('Promised in a trade', 'W ofercie wymiany') }
+      : p.rest > 0 ? { cls: '', text: L(`Resting for ${wait(p.rest)}`, `Odpoczywa jeszcze ${wait(p.rest)}`) }
+      : { cls: '', text: L('Free to play', 'Wolny, bawi się') }; };
+  const petSort = () => { try { return localStorage.getItem('pf_psort') || 'new'; } catch { return 'new'; } };
   // ---------- painting ----------
   function sync() {
     if (F) for (const t of [...F.trips, F.trip, ...F.nests, F.nest]) if (t && t.due) t.left = Math.max(0, t.due - Date.now());
@@ -154,6 +164,7 @@ export function mount(app, ctx) {
       <button type="button" class="btn w" data-a="map">${L(`World map`, `Mapa świata`)}</button>
       <button type="button" class="btn w" data-a="friends">${L(`Friends`, `Znajomi`)}</button>
       <button type="button" class="btn w" data-a="ranks">${L(`Ranking`, `Ranking`)}</button>
+      <button type="button" class="btn w" data-a="pets">${L(`My pets`, `Moje zwierzaki`)} ${F.pets.length}</button>
       <button type="button" class="btn w" data-a="album">${L(`Pet Album`, `Album zwierzaków`)}</button>
       ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">${L('Mail', 'Poczta')} ${F.mail.length + F.trades.filter(t => t.dir === 'in').length || ''}</button>` : ''}
       ${F.nests.map(n => n.stage === 'ready' ? `<button type="button" class="btn m" data-a="hatch" data-slot="${n.slot}">${L(`Hatch the egg`, `Wykluj jajko`)}</button>` : `<span class="chip">${n.stage === 'cuddle' ? L('Egg in', 'Jajko za') : L('Hatches in', 'Wykluje się za')} ${wait(n.left)}</span>`).join('')}`;
@@ -376,6 +387,22 @@ export function mount(app, ctx) {
         <div class="byeface">${face(g, SPECIES[g.sp].name)}</div>
         <p>${L(`${esc(g.name)} gave you one last nuzzle and set off to explore the islands on its own.`, `${esc(g.name)} przytula się jeszcze raz na pożegnanie i rusza zwiedzać wyspy na własną łapę.`)}</p>
         <p class="hint">${L(`It left you ${panel.got} berries as a thank-you. Its page stays in your Pet Album.`, `W podziękowaniu zostawia ci jagody: ${panel.got}. Jego strona zostaje w Albumie zwierzaków.`)}</p>
+        <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'pets') { // every pet on the farm: tap one to find it on the island
+      const els = [...new Set(F.pets.map(elOf))], on = els.includes(panel.el) ? panel.el : '';
+      const order = { lv: (a, b) => b.lv - a.lv || b.xp - a.xp, name: (a, b) => a.name.localeCompare(b.name, PL ? 'pl' : 'en'), el: (a, b) => Object.keys(ELEMENTS).indexOf(elOf(a)) - Object.keys(ELEMENTS).indexOf(elOf(b)) || b.lv - a.lv };
+      const vis = F.pets.map((p, i) => ({ p, i })).filter(x => !on || elOf(x.p) === on).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p);
+      const pill = (a, k, v, label) => `<button type="button" data-a="${a}" data-v="${v}" aria-pressed="${k === v}">${label}</button>`;
+      const rows = vis.map(p => { const s = SPECIES[p.sp], st = petStatus(p);
+        return `<button type="button" class="petrow${st.away ? ' away' : ''}" data-a="petfind" data-id="${p.id}">${face(p, s.name)}<span class="pr"><b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b>
+          <small>${p.name === s.name ? '' : s.name + ' · '}${FORMS[formOf(p.lv)]} · ${L('level', 'poziom')} ${p.lv}</small><span class="prtags">${elTags(p)}<em class="${st.cls}">${st.text}</em></span></span></button>`; }).join('');
+      box.innerHTML = `<div class="panel tripp pets"><h2>${L(`My pets`, `Moje zwierzaki`)}</h2>
+        <p>${L(`${F.pets.length} of ${F.room} places taken. Tap a pet to find it on the farm.`, `Zajęte miejsca: ${F.pets.length} z ${F.room}. Dotknij zwierzaka, żeby znaleźć go na farmie.`)}</p>
+        <div class="pfsort"><span class="hint">${L('Sort', 'Kolejność')}</span><div class="pills">${pill('petsort', panel.sort || 'new', 'new', L('Newest', 'Najnowsze'))}${pill('petsort', panel.sort || 'new', 'lv', L('Level', 'Poziom'))}${pill('petsort', panel.sort || 'new', 'name', L('Name', 'Imię'))}${pill('petsort', panel.sort || 'new', 'el', L('Element', 'Żywioł'))}</div></div>
+        ${els.length > 1 ? `<div class="pfsort"><span class="hint">${L('Show', 'Pokaż')}</span><div class="pills">${pill('petel', on, '', L('All', 'Wszystkie'))}${els.map(e => pill('petel', on, e, `<i class="dot" style="--c:${ELEMENTS[e]}"></i>${elName(e)}`)).join('')}</div></div>` : ''}
+        <div class="petlist">${rows}</div>
         <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
     }
@@ -778,6 +805,11 @@ export function mount(app, ctx) {
     else if (a === 'feed') ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id });
     else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
     else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
+    else if (a === 'pets') { panel = { kind: 'pets', sort: petSort() }; card = null; sync(); }
+    else if (a === 'petsort') { panel.sort = b.dataset.v; try { localStorage.setItem('pf_psort', b.dataset.v); } catch { /* no storage */ } sfx.click(); paintPanel(); }
+    else if (a === 'petel') { panel.el = b.dataset.v; sfx.click(); paintPanel(); }
+    else if (a === 'petfind') { const p = F.pets.find(x => x.id === b.dataset.id); if (!p) return; const st = petStatus(p);
+      panel = null; card = { pet: p.id }; sfx.click(); sync(); if (st.away) ctx.toast(L(`${esc(p.name)} is away exploring, so it is not on the farm right now.`, `${esc(p.name)} jest na wyprawie, więc teraz nie ma go na farmie.`)); }
     else if (a === 'nest') { if (F.nests.length >= F.nestMax) return; panel = { kind: 'nest', pick: [] }; card = null; sync(); }
     else if (a === 'playdate') {
       const pet = V?.pets.find(x => x.id === b.dataset.id); if (!pet) return;
