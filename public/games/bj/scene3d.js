@@ -3,7 +3,7 @@
 // middle and everyone's own cards lie face up in front of them, turned to the camera so they are easy to read.
 import * as THREE from 'three';
 import { cardGeometry } from '../../cardgeo.js';
-import { cardTexture, suitPath } from '../poker/scene3d.js';
+import { cardTexture, suitPath, feltLogo } from '../poker/scene3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, createFx, shaker } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
@@ -30,9 +30,8 @@ function feltTexture() {
     const a = i / 24 * Math.PI * 2, x = S / 2 + Math.cos(a) * S * .45, y = S / 2 + Math.sin(a) * S * .45;
     g.globalAlpha = .2; suitPath(g, i % 4, x - 14, y - 14, 28); g.globalAlpha = 1;
   }
-  g.fillStyle = '#fff4e21c'; g.font = '700 64px Rubik, Nunito, sans-serif'; g.textAlign = 'center';
-  g.fillText('ZATOKA GIER', S / 2, S / 2 + 250);
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  feltLogo(t, g, S / 2, S / 2 + 250, 150, '#1f4a75', RX / RZ);
   return t;
 }
 function woodTexture(base = '#8a4e2c', ring = '#6e3a1e') {
