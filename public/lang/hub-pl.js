@@ -25,8 +25,8 @@ export const OPT_PL = {
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
-  'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
-  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
+  'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
+  Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
@@ -328,6 +328,23 @@ export const GAMES_PL = {
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
     </ol>`,
   },
+  domino: {
+    name: 'Domino', start: 'Rozdaj kostki', openSeat: 'Jeśli nikt nie dołączy, tymi kostkami zagra bot',
+    pitch: 'Klasyczne domino z dobieraniem i grubymi klockowymi kostkami. Dopasuj końce, pozbądź się kostek jako pierwszy i zgarnij oczka, które zostały innym.',
+    howto: `Dokładajcie na zmianę po jednej kostce do linii: jedna z jej liczb musi pasować do wolnego końca. Jeśli nic nie pasuje, dobierasz ze stosu. Kto pierwszy dołoży ostatnią kostkę, wygrywa rundę i zdobywa oczka, które zostały pozostałym.`,
+    rules: `<ol>
+      <li>Komplet <b>28 kostek</b> z liczbami od pustego pola do szóstki. Przy dwóch graczach każdy dostaje <b>7 kostek</b>, przy trzech albo czterech <b>5 kostek</b>. Reszta to <b>stos</b> (tzw. bazar). Wolne miejsca zajmują boty.</li>
+      <li>W pierwszej rundzie zaczyna ten, kto ma <b>najwyższy dublet</b>, i to nim otwiera grę. W kolejnych rundach zaczyna <b>zwycięzca poprzedniej</b>, dowolną kostką.</li>
+      <li>W swojej turze dołóż <b>jedną kostkę</b> do któregoś końca linii. Jedna z jej liczb musi <b>pasować do wolnego końca</b>, którego dotyka. Dublety leżą w poprzek. Kostki, które możesz dołożyć, są podniesione: dotknij jednej z nich.</li>
+      <li>Gdy kostka pasuje do <b>obu końców</b>, dotknij jej, a potem jednego z dwóch żółtych przycisków na stole, żeby wybrać koniec.</li>
+      <li>Jeśli żadna twoja kostka nie pasuje, <b>dobierasz ze stosu</b>, aż coś będzie pasować. Gdy stos jest pusty, <b>pasujesz</b>.</li>
+      <li>Kto pierwszy dołoży ostatnią kostkę, ma <b>domino</b>: wygrywa rundę i zdobywa <b>wszystkie oczka</b>, które zostały na ręku pozostałym graczom.</li>
+      <li>Gdy nikt nie może dołożyć kostki, jest <b>blokada</b> (tzw. ryba): rundę wygrywa najlżejsza ręka i zdobywa oczka pozostałych pomniejszone o własne. Jeśli najlżejsze ręce są równe, nikt nie zdobywa punktów.</li>
+      <li>Mecz toczy się do <b>100 punktów</b> (albo do 50, albo trwa jedną rundę: wybierz w ustawieniach stołu). W grze na jedną rundę o kolejnych miejscach decyduje to, kto ma lżejszą rękę.</li>
+      <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, kostka zostanie dołożona za ciebie.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
   pool: {
     name: 'Podniebny bilard', start: 'Ustaw bile', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
     pitch: 'Bilard, czyli ósemka, na stole na podniebnej wyspie. Pełne kontra połówki, jeden na jednego albo w dwuosobowych drużynach.',
@@ -360,6 +377,24 @@ export const GAMES_PL = {
       <li>Bez kart jesteś <b>bezpieczny</b>. Wygrywa ten, kto pozbędzie się ich pierwszy, a <b>ostatni gracz z kartami zostaje Panem</b>.</li>
       <li>Pięciu graczy siada przy stole dla sześciu: szóstą rękę bierze bot, żeby karty nadal dzieliły się po równo.</li>
       <li>Skróty: <b>Enter</b> kładzie twoją najniższą pasującą kartę, <b>T</b> bierze trzy.</li>
+    </ol>`,
+  },
+  bj: {
+    start: 'Rozdaj karty', openSeat: 'Jeśli nikt nie dołączy, usiądzie tu bot',
+    pitch: 'Wszyscy przeciwko krupierowi. Stawiaj żetony na niby, zbliż się do 21 bardziej niż krupier i skończ z największym stosem.',
+    howto: `Każdy gra własną ręką przeciwko krupierowi, na żetony na niby. Postaw zakład, a potem dobieraj karty tak, żeby mieć jak najbliżej 21, ale nie więcej. Pokonaj rękę krupiera, żeby wygrać swój zakład. Stół wygrywa ten, kto po ostatniej rundzie ma najwięcej żetonów.`,
+    rules: `<ol>
+      <li>Każdy zaczyna z <b>1000 żetonów na niby</b> i gra ustaloną liczbę rund przeciwko temu samemu krupierowi. Na wolnych miejscach siadają boty.</li>
+      <li><b>Najpierw zakład.</b> Wszyscy jednocześnie wybierają zakład <b>od 10 do 500</b>. Zakłady są tajne, dopóki nie postawią wszyscy.</li>
+      <li>Dostajesz <b>dwie odkryte karty</b>. Krupier dostaje jedną odkrytą i jedną zakrytą. Karty z liczbami są warte tyle, ile pokazują, <b>walet, dama i król po 10</b>, a <b>as 11 albo 1</b>, zależnie od tego, co jest dla ciebie lepsze.</li>
+      <li>W swojej turze: <b>Dobierz</b> bierze kolejną kartę, <b>Stój</b> zostawia to, co masz. Powyżej <b>21</b> masz <b>furę</b>: zakład przepada od razu.</li>
+      <li><b>Podwój</b> (tylko przy dwóch pierwszych kartach) podwaja zakład, daje dokładnie jedną kartę i kończy twoją turę.</li>
+      <li><b>Rozdziel</b> (dwie karty tej samej wysokości) robi z nich dwie ręce, każdą z własnym zakładem; grasz je po kolei. Rozdzielić można raz na rundę. Rozdzielone asy dostają po jednej karcie.</li>
+      <li>Gdy wszyscy skończą, krupier odkrywa zakrytą kartę i <b>dobiera do 16, a przy 17 lub więcej staje</b>.</li>
+      <li>Bliżej 21 niż krupier albo krupier ma furę: <b>wygrywasz swój zakład</b>. Ta sama suma to <b>remis</b> i zakład wraca do ciebie. Niższa suma przegrywa.</li>
+      <li>As z kartą wartą 10 w dwóch pierwszych kartach to <b>blackjack</b>: płaci <b>3 do 2</b> (zakład 100, wygrana 150) i remisuje tylko z blackjackiem krupiera. Gdy blackjacka ma krupier, runda kończy się od razu.</li>
+      <li>Bez żetonów odpadasz. Po ostatniej rundzie <b>wygrywa największy stos</b>, a monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy minie czas, gra stawia za ciebie ostatni zakład, a w twojej turze stajesz. Skróty: <b>H</b> dobierz, <b>S</b> stój, <b>D</b> podwój, <b>P</b> rozdziel, <b>Enter</b> stawia zakład.</li>
     </ol>`,
   },
   piotr: {

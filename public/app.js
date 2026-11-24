@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, poolArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, poolArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -109,6 +109,29 @@ const GAMES = {
       <li>Everyone gets <b>three secret cards</b> and throws one away, face down, before the first round of betting.</li>
       <li>The <b>flop is three cards picked at random from the thrown-away pile</b>. Nobody knows whose they were, so the card you threw might come back to help you, or someone else.</li>
       <li>The turn and the river come from the deck as usual, and the rest is normal Hold'em.</li>
+    </ol>`,
+  },
+  bj: {
+    name: 'Blackjack', load: () => import('./games/bj/client.js'), start: 'Deal the cards',
+    host: { seats: 4, rounds: 10, bots: 'chill', timer: 20 }, solo: { seats: 4, rounds: 10, bots: 'chill', timer: 0 },
+    openSeat: 'A bot sits here if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
+      <div class="opt"><b>Game length</b><div class="pills">${pill('rounds', 10, '10 rounds')}${pill('rounds', 15, '15 rounds')}${pill('rounds', 20, '20 rounds')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Everyone plays their own hand against the dealer, for pretend chips. Bet, then take cards to get as close to 21 as you can without going over. Beat the dealer's hand to win your bet. Most chips after the last round wins the table.`,
+    rules: `<ol>
+      <li>Everyone starts with <b>1000 pretend chips</b> and plays a set number of rounds against the same dealer. Empty seats get bots.</li>
+      <li><b>Bet first.</b> Everyone picks a bet from <b>10 to 500</b> at the same time. Bets stay secret until all of them are in.</li>
+      <li>You get <b>two cards face up</b>. The dealer gets one face up and one face down. Number cards count their number, <b>jack, queen and king count 10</b>, and an <b>ace counts 11 or 1</b>, whichever is better for you.</li>
+      <li>On your turn: <b>Hit</b> takes another card, <b>Stand</b> keeps what you have. Go over <b>21</b> and you are <b>bust</b>: the bet is lost straight away.</li>
+      <li><b>Double</b> (only on your first two cards) doubles your bet, gives you exactly one more card and ends your turn.</li>
+      <li><b>Split</b> (two cards of the same rank) turns them into two hands, each with its own bet, and you play them one after the other. You can split once a round. Split aces get one card each.</li>
+      <li>When everyone is done the dealer turns the hidden card over and <b>draws up to 16, and stands on 17 or more</b>.</li>
+      <li>Closer to 21 than the dealer, or the dealer busts: you <b>win your bet</b>. The same total is a <b>push</b> and the bet comes back. Lower loses it.</li>
+      <li>An ace with a ten-card in your first two cards is a <b>blackjack</b>: it pays <b>3 to 2</b> (bet 100, win 150) and only a dealer blackjack ties it. If the dealer has a blackjack the round ends at once.</li>
+      <li>Run out of chips and you are out. After the last round the <b>biggest stack wins</b>, and coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the timer runs out, your last bet is placed for you, and in your turn you stand. Shortcuts: <b>H</b> hit, <b>S</b> stand, <b>D</b> double, <b>P</b> split, <b>Enter</b> places the bet.</li>
     </ol>`,
   },
   ludo: {
@@ -416,6 +439,28 @@ const GAMES = {
       <li>You have <b>20 seconds</b> a turn (table settings). Run out and a mark is placed for you.</li>
       <li>Draws cannot drag a match out for ever: after 9 rounds (7 when playing to two, 5 for a single round) whoever has won more rounds takes the match. Level on rounds is a drawn match.</li>
       <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
+    </ol>`,
+  },
+  domino: {
+    name: 'Dominoes', load: () => import('./games/domino/client.js'), start: 'Deal the tiles',
+    host: { seats: 4, to: 100, bots: 'chill', timer: 20 }, solo: { seats: 4, to: 100, bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays these tiles if nobody joins', seats: r => Math.min(4, Math.max(2, r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}</div></div>
+      <div class="opt"><b>Match</b><div class="pills">${pill('to', 0, 'One round')}${pill('to', 50, 'To 50')}${pill('to', 100, 'To 100')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 15, '15s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Take turns adding a tile to the line: one of its numbers has to match an open end. If nothing fits, draw from the pile. Be the first to put down your last tile to win the round and score the pips the others are left holding.`,
+    rules: `<ol>
+      <li>A set of <b>28 tiles</b> with numbers from blank to six. With two players everyone gets <b>7 tiles</b>, with three or four <b>5 tiles</b>. The rest are the <b>pile</b>. Empty seats are played by bots.</li>
+      <li>In the first round, whoever holds the <b>highest double</b> starts with it. After that, the <b>winner of the last round</b> starts with any tile.</li>
+      <li>On your turn, add <b>one tile</b> to either end of the line. One of its numbers has to <b>match the open end</b> it touches. Doubles are laid crosswise. Tiles you can play are lifted: tap one.</li>
+      <li>When a tile fits <b>both ends</b>, tap it and then tap one of the two yellow buttons on the table to choose the end.</li>
+      <li>If nothing you hold fits, <b>draw from the pile</b> until something does. When the pile is empty, you <b>pass</b>.</li>
+      <li>The first to put down their last tile calls <b>domino</b>, wins the round, and scores <b>every pip</b> left in the other players' hands.</li>
+      <li>If nobody can move, the line is <b>blocked</b>: the lightest hand wins the round and scores the others' pips minus its own. If the lightest hands are level, nobody scores.</li>
+      <li>The match goes to <b>100 points</b> (or 50, or a single round: pick it in the table settings). In a single round, the places after the winner go to the lighter hands.</li>
+      <li>You have <b>20 seconds</b> a turn (table settings). Run out and a tile is played for you.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   pan: {
@@ -1259,6 +1304,7 @@ const HUB_GAMES = [
   ['marbles', 'marblepic', marbleArt, 'action', '1–8 players', 'Pick a colour, bet your coins and watch the marbles tumble down a random 3D track.'],
   ['ladders', 'ladderpic', laddersArt, 'board', '1–6 players', 'The classic race to the top on a fresh 3D board every game, with your avatars as tokens and a few party tiles.'],
   ['poker', 'pokerpic', pokerArt, 'cards', '1–6 players', 'Cozy no-limit poker for pretend chips. Also Mango Poker, where the flop comes from the cards you all throw away.'],
+  ['bj', 'bjpic', bjArt, 'cards', '1–6 players', 'Everyone against the dealer. Bet pretend chips, get closer to 21 than the dealer and finish with the biggest stack.'],
   ['ludo', 'ludopic', ludoArt, 'board', '1–4 players', 'Race your pawns round a chunky 3D board and bump your friends back to their yard.'],
   ['stack', 'stackpic', stackArt, 'action', '1–6 players', 'Take turns dropping swinging blocks on one shared, wobbly tower. Don\'t be the one who knocks it down.'],
   ['golf', 'golfpic', golfArt, 'action', '1–6 players', 'Take turns putting the same blocky 3D hole, and bet coins on who takes each hole.'],
@@ -1276,6 +1322,7 @@ const HUB_GAMES = [
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
+  ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
