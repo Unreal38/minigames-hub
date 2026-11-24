@@ -5,8 +5,9 @@
 // Real time: each browser plays its own garden and reports every bop; the clock here decides what got away.
 import { LIVES, TOTAL, PET, SLEEP, LAG, EARLY, schedule, newPlayer, resolve } from '../../public/games/bop/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'bop', name: 'Burrow Bop', minPlayers: 1, maxPlayers: 6, joinAt: 'game' };
+export const meta = { id: 'bop', name: 'Burrow Bop', minPlayers: 1, maxPlayers: 6, seats: { lo: 1, def: 4 }, joinAt: 'game' };
 
 const COUNT_MS = 3600;
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Biscuit', 'Maple'];
@@ -16,7 +17,7 @@ export const BOT = { chill: { lo: 430, hi: 900, slip: .008, nap: .04 }, sharp: {
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [1, 2, 4, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     pace: ['calm', 'normal', 'fast'].includes(o.pace) ? o.pace : 'normal',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };

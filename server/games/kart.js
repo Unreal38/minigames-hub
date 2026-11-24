@@ -4,8 +4,9 @@
 // item boxes and the power-ups, decides every hit, and streams the whole race back twenty times a second (fast()).
 import { buildTrack, TRACK_IDS, TRACKS, newKart, stepKart, bump, autoDrive, locate, at, progOf, KART_R, MAX_V, headingAt, driftFlags } from '../../public/games/kart/track.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'kart', name: 'Kart Island Race', minPlayers: 1, maxPlayers: 8, joinAt: 'game' };
+export const meta = { id: 'kart', name: 'Kart Island Race', minPlayers: 1, maxPlayers: 8, seats: { lo: 2, def: 6 }, joinAt: 'game' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Biscuit', 'Maple'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -19,7 +20,7 @@ const SAFE_MS = 1400;          // after a hit you can't be hit again for a momen
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [4, 6, 8].includes(+o.seats) ? +o.seats : 6,
+    seats: cleanSeats(meta, o.seats),
     laps: [2, 3, 5].includes(+o.laps) ? +o.laps : 3,
     track: o.track === 'random' || TRACKS[o.track] ? o.track : 'random',
     items: o.items === 'off' ? 'off' : o.items === 'chaos' ? 'chaos' : 'on',

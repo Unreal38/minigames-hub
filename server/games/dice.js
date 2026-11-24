@@ -3,8 +3,9 @@
 // Last player with dice wins. Nobody is ever sent another player's dice until the cups lift.
 import { FACES, matches, countFace, legal, lowest, atLeast, chance } from '../../public/games/dice/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'dice', name: "Liar's Dice", minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
+export const meta = { id: 'dice', name: "Liar's Dice", minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -15,7 +16,7 @@ const d6 = () => 1 + (Math.random() * 6 | 0);
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     dice: [3, 5].includes(+o.dice) ? +o.dice : 5,
     mode: o.mode === 'lives' ? 'lives' : 'dice', // 'lives': a lost call costs a life and everyone keeps all their dice
     lives: [2, 3, 5].includes(+o.lives) ? +o.lives : 3,

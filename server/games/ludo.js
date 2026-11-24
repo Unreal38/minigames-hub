@@ -2,8 +2,9 @@
 // (captures included); clients replay it as a little animation.
 import { RING, LAST, HOME, MS, ringIndex, safeIndex, cornersFor } from '../../public/games/ludo/board.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'ludo', name: 'Ludo', minPlayers: 1, maxPlayers: 4, joinAt: 'round' };
+export const meta = { id: 'ludo', name: 'Ludo', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 4 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 // Corner colours. A player keeps their own colour unless someone before them already has one too close to it.
@@ -12,7 +13,7 @@ const BOT_MS = 800, BOT_PICK = 650, MAX_ROUNDS = 400;
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     pawns: +o.pawns === 2 ? 2 : 4,
     head: o.head === 'off' ? 'off' : 'on',
     timer: [0, 10, 20].includes(+o.timer) ? +o.timer : 20,

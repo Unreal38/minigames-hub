@@ -2,8 +2,9 @@
 import { DECK_SIZE, HAND, PTS_WIN, bestSets, canWin, evalHand } from '../../public/games/hotpot/rules.js';
 
 import { randomAv } from '../../public/avatar.js';
+import { tableSize } from '../seats.js';
 
-export const meta = { id: 'hotpot', name: 'Hot Pot', minPlayers: 1, maxPlayers: 4 };
+export const meta = { id: 'hotpot', name: 'Hot Pot', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 4 } };
 
 const BOT_NAMES = ['Miso', 'Bao', 'Yuzu', 'Sesame', 'Mochi', 'Pepper', 'Dango', 'Tamago'];
 const BOT_COLS = ['#ff8fab', '#7ec8a9', '#ffb86b', '#9aa8ff', '#e8a0e0', '#7fd1e8'];
@@ -14,11 +15,12 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 export function create(players, opts = {}, prev = null) {
   const used = new Set(players.map(p => p.name));
   const names = shuffle(BOT_NAMES.filter(n => !used.has(n)));
-  const seats = players.slice(0, 4).map(p => ({ id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true }));
+  const n = tableSize(meta, opts, players.length); // 2 to 4 seats, as the host picked
+  const seats = players.slice(0, n).map(p => ({ id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true }));
   let bi = 0;
-  while (seats.length < 4) seats.push({ id: null, name: names[bi], color: BOT_COLS[bi++ % BOT_COLS.length], av: randomAv(), bot: true, human: false });
+  while (seats.length < n) seats.push({ id: null, name: names[bi], color: BOT_COLS[bi++ % BOT_COLS.length], av: randomAv(), bot: true, human: false });
   const deck = shuffle([...Array(DECK_SIZE).keys()]);
-  const start = prev ? (prev.start + 1) % 4 : 0;
+  const start = prev ? (prev.start + 1) % n : 0;
   const G = {
     ph: 'play', gid: Math.random().toString(36).slice(2, 8), seats,
     hands: seats.map(() => deck.splice(0, HAND)), disc: seats.map(() => []), deck,
@@ -71,7 +73,7 @@ function discard(G, s, c) {
   if (i < 0) return false;
   G.hands[s].splice(i, 1); G.disc[s].push(c);
   pushEv(G, { t: 'disc', s, c });
-  G.turn = (G.turn + 1) % 4;
+  G.turn = (G.turn + 1) % G.seats.length;
   if (G.turn === G.start && ++G.round > G.maxR) { finish(G, -1); return true; }
   startTurn(G);
   return true;
@@ -106,7 +108,7 @@ function botMove(G, s) {
   const h = G.hands[s], noise = G.level === 'sharp' ? 1 : 9;
   if (G.step === 'draw') {
     let best = -1, bestV = evalHand(h) + (G.level === 'sharp' ? 5 : 2);
-    for (let o = 0; o < 4; o++) {
+    for (let o = 0; o < G.seats.length; o++) {
       const top = G.disc[o].at(-1);
       if (o === s || top === undefined) continue;
       const hh = [...h, top];

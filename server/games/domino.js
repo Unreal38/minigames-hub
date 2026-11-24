@@ -6,8 +6,9 @@
 // Nobody is ever sent another player's hand while a round is being played.
 import { TILES, isDouble, pipsOf, handPips, handSize, sortHand, sides, playable, place, opener, ends } from '../../public/games/domino/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'domino', name: 'Dominoes', minPlayers: 1, maxPlayers: 4 };
+export const meta = { id: 'domino', name: 'Dominoes', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 4 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -17,7 +18,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     to: [0, 50, 100].includes(+o.to) ? +o.to : 100,
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 15, 20, 30].includes(+o.timer) ? +o.timer : 20,

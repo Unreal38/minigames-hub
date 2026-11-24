@@ -4,8 +4,9 @@
 // have stopped, so the screen and the rules never run ahead of each other.
 import { N, R, HX, HZ, HEAD_X, FOOT_X, POCKETS, ROLL, DRAG, V_MIN, V_MAX, rack, simulate, judge, placeOk, freeSpot, aimCast, legalFirst, kindOf, leftOf, sideOf, dirOf } from '../../public/games/pool/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'pool', name: 'Sky Pool', minPlayers: 1, maxPlayers: 4 };
+export const meta = { id: 'pool', name: 'Sky Pool', minPlayers: 1, maxPlayers: 4, seats: { only: [2, 4], def: 2 } };
 
 const BOT_NAMES = ['Chalky', 'Cushion', 'Pocket', 'Felty', 'Rails', 'Banks', 'Stripes', 'Dot'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -23,7 +24,7 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
 
 export function cleanOpts(o = {}) {
   return {
-    seats: +o.seats === 4 ? 4 : 2,
+    seats: cleanSeats(meta, o.seats),
     to: +o.to === 2 ? 2 : 1,                       // racks needed: 1 = a single rack, 2 = best of three
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 20, 30, 45].includes(+o.timer) ? +o.timer : 30,

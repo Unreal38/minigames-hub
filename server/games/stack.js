@@ -2,8 +2,9 @@
 // decides where every block lands; clients draw the same swing (rules.js) and replay the drops.
 import { KINDS, MIXED, PTS, MS, MAX_LEVEL, makeSwing, drop, check, swingPos, topOf } from '../../public/games/stack/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'stack', name: 'Tower Stack', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
+export const meta = { id: 'stack', name: 'Tower Stack', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -11,7 +12,7 @@ const MAX_TURNS = 600;
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 4, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     towers: [1, 3, 5].includes(+o.towers) ? +o.towers : 3,
     blocks: o.blocks === 'mixed' ? 'mixed' : 'classic',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',

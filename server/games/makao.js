@@ -6,8 +6,9 @@
 // player is left holding cards. Nobody is ever sent another player's hand or drawn cards.
 import { deck, rankOf, suitOf, fits, canPlay, playable, sameRank, sortHand, drawOf, isFight, isPlain, HAND, PENALTY, DEMANDS, FOUR, JACK, ACE, KS, KH } from '../../public/games/makao/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'makao', name: 'Makao', minPlayers: 1, maxPlayers: 6 };
+export const meta = { id: 'makao', name: 'Makao', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 } };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -19,7 +20,7 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.r
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     queens: o.queens === true || o.queens === 'on' ? 'on' : 'off', // Queen on everything, everything on the Queen
     end: o.end === 'last' ? 'last' : 'first',                      // the game ends when the first player is out, or goes on to the last one holding cards

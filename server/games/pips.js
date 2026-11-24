@@ -3,8 +3,9 @@
 // Everything here is public (there is nothing secret in a dice game), so view() is the same for every seat.
 import { ROUNDS, ROLLS, NDICE, BOXES, UPPER, MULT, score, genBonus, open, openCount, total, upperSum, blankCols, isGen, counts } from '../../public/games/pips/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'pips', name: 'Pip Party', minPlayers: 1, maxPlayers: 4, joinAt: 'round' };
+export const meta = { id: 'pips', name: 'Pip Party', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 3 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -17,7 +18,7 @@ const d6 = () => 1 + (Math.random() * 6 | 0);
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 3,
+    seats: cleanSeats(meta, o.seats),
     sheet: o.sheet === 'triple' ? 'triple' : 'single',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 30, 45, 60].includes(+o.timer) ? +o.timer : 45,

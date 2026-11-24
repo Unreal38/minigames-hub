@@ -4,8 +4,9 @@
 // found, the most points wins. Nothing under the grass is ever sent to a player before it is dug.
 import { KIND, PTS, TRAP, SIZES, MS, waitFor, around, isGem, homeOf, standOf, walkMs } from '../../public/games/dig/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'dig', name: 'Treasure Dig', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
+export const meta = { id: 'dig', name: 'Treasure Dig', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -14,7 +15,7 @@ const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.r
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     size: o.size === 'small' ? 'small' : 'big',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 15, 25].includes(+o.timer) ? +o.timer : 25,

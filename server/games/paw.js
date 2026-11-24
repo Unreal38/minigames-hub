@@ -6,8 +6,9 @@
 import { N, START, BATH, LOST, MUD, PASS_GO, START_CASH, BATH_FEE, VET_FEE, RUB, BOWL, JAR_START, NAP_CHANCE, LV_MAX,
   TILES, SHOP_TILES, STREET, CARDS, MS as MS_SHOWN, rentOf, fullStreet, worthOf } from '../../public/games/paw/board.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'paw', name: 'Pawperty', minPlayers: 1, maxPlayers: 6, joinAt: 'round' };
+export const meta = { id: 'paw', name: 'Pawperty', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'round' };
 
 const BOT_NAMES = ['Biscuit', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Noodle', 'Bean'];
 const PALETTE = ['#ff6b6b', '#4db5ff', '#ffc93c', '#5fd08a', '#c58bff', '#ff9f43'];
@@ -17,7 +18,7 @@ const FAST = Math.max(1, +process.env.PAW_FAST || 1), MS = Object.fromEntries(Ob
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4, 5, 6].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     rounds: [10, 20, 30].includes(+o.rounds) ? +o.rounds : 20,
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     naps: o.naps === 'off' ? 'off' : 'on',

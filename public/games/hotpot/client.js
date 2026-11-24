@@ -89,6 +89,7 @@ export function mount(app, ctx) {
     const on = layout && innerWidth >= 760;
     for (let r = 1; r < 4; r++) {
       const el = root.querySelector(`.opp[data-r="${r}"]`);
+      if (el.hidden) continue;
       if (!on) { el.style.left = el.style.top = el.style.right = ''; continue; }
       const p = layout[r], w = el.offsetWidth * z, h = el.offsetHeight * z;
       let x = r === 2 ? p.x + 70 : p.x - w / 2, y = r === 2 ? p.y - h / 2 : p.y;
@@ -98,9 +99,13 @@ export function mount(app, ctx) {
   }
   const onResize = () => requestAnimationFrame(placeBadges);
   addEventListener('resize', onResize);
+  // Places round the table: 0 is you (front), 1 left, 2 across, 3 right. A table of 2 or 3 leaves some empty:
+  // POS[n][k] is the place of the k-th player after you.
+  const POS = { 2: [0, 2], 3: [0, 1, 3], 4: [0, 1, 2, 3] };
+  const nSeats = () => S?.seats?.length || 4;
   const base = () => (S && S.me >= 0 ? S.me : 0);
-  const rel = i => (i - base() + 4) % 4;
-  const abs = r => (base() + r) % 4;
+  const rel = i => POS[nSeats()][(i - base() + nSeats()) % nSeats()];
+  const abs = r => { const k = POS[nSeats()].indexOf(r); return k < 0 ? -1 : (base() + k) % nSeats(); }; // -1: nobody sits there
   const myTurn = () => S && S.ph === 'play' && S.me >= 0 && S.turn === S.me;
   const myDraw = () => myTurn() && S.step === 'draw';
   const myDisc = () => myTurn() && S.step === 'disc';
@@ -117,6 +122,7 @@ export function mount(app, ctx) {
     $('hp-code').textContent = R?.code || '';
     for (let r = 1; r < 4; r++) {
       const i = abs(r), p = S.seats[i], el = root.querySelector(`.opp[data-r="${r}"]`);
+      el.hidden = !p; if (!p) continue;
       const active = S.ph === 'play' && S.turn === i;
       el.className = `opp${active ? ' active' : ''}${cardBgCls(p.fl, 1)}`;
       el.dataset.r = r;
@@ -192,8 +198,8 @@ export function mount(app, ctx) {
 
   function syncScene() {
     if (!scene || !S) return;
-    scene.setSeats([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { color: p.color, av: p.av, n: p.n, me: r === 0 && S.me >= 0, cb: p.fl?.cb }; }), S.ph === 'play' ? rel(S.turn) : -1);
-    scene.setTiles([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return { c: p.top, n: p.dn }; }));
+    scene.setSeats([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return p && { color: p.color, av: p.av, n: p.n, me: r === 0 && S.me >= 0, cb: p.fl?.cb }; }), S.ph === 'play' ? rel(S.turn) : -1);
+    scene.setTiles([0, 1, 2, 3].map(r => { const p = S.seats[abs(r)]; return p && { c: p.top, n: p.dn }; }));
     scene.setInteract({ tiles: new Set([1, 2, 3].filter(r => canTake(abs(r)))), deck: myDraw() });
   }
 

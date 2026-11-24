@@ -5,8 +5,9 @@
 // on its own copy, so progress and the finish are decided here.
 import { layout, deal, reshuffle, canPair, findMove, pairs, tilesLeft, kindsFor, RACE, SHUFFLE_HOLD, RACE_MAX } from '../../public/games/mahj/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'mahj', name: 'Mahjong Race', minPlayers: 1, maxPlayers: 4, joinAt: 'game' };
+export const meta = { id: 'mahj', name: 'Mahjong Race', minPlayers: 1, maxPlayers: 4, seats: { lo: 2, def: 4 }, joinAt: 'game' };
 
 const COUNT_MS = 3600;
 const BOT_NAMES = ['Noodle', 'Pudding', 'Sprout', 'Mochi', 'Toffee', 'Clover', 'Waffle', 'Pip', 'Biscuit', 'Maple'];
@@ -16,7 +17,7 @@ const rnd = n => (Math.random() * n) | 0;
 
 export function cleanOpts(o = {}) {
   return {
-    seats: [2, 3, 4].includes(+o.seats) ? +o.seats : 4,
+    seats: cleanSeats(meta, o.seats),
     size: ['short', 'normal', 'long'].includes(o.size) ? o.size : 'normal',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };

@@ -3,8 +3,9 @@
 // (or when one player has every chip). Bots fill empty seats. Nobody ever sees another hand until showdown.
 import { score, handName, rankOf, suitOf } from '../../public/games/poker/rules.js';
 import { randomAv } from '../../public/avatar.js';
+import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'poker', name: "Texas Hold'em", minPlayers: 1, maxPlayers: 6, joinAt: 'hand' };
+export const meta = { id: 'poker', name: "Texas Hold'em", minPlayers: 1, maxPlayers: 6, seats: { key: 'field', lo: 2, def: 6 }, joinAt: 'hand' };
 
 const BOT_NAMES = ['Truffle', 'Waffles', 'Clover', 'Nugget', 'Pudding', 'Maple', 'Toffee', 'Sprout'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
@@ -30,7 +31,7 @@ export function cleanOpts(o = {}) {
   return {
     variant: VARIANTS[o.variant] ? o.variant : 'holdem',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
-    field: Math.max(VARIANTS[o.variant]?.minSeats || 2, [2, 4, 6].includes(+o.field) ? +o.field : 6),
+    field: Math.max(VARIANTS[o.variant]?.minSeats || 2, cleanSeats(meta, o.field)),
     hands: [10, 20, 0].includes(+o.hands) ? +o.hands : 10,
     timer: [0, 20, 30, 45].includes(+o.timer) ? +o.timer : 30,
   };
