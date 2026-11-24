@@ -25,8 +25,8 @@ export function readRegistry(src) {
   const hub = src.slice(src.indexOf('const HUB_GAMES = ['), src.indexOf('].filter(g => GAMES[g[0]])'));
   const row = new RegExp(String.raw`\['(\w+)', '[^']*', \w+, '([\w ]+)', '([^']*)', (?:${STR})\]`, 'g');
   const games = [...hub.matchAll(row)].filter(m => info[m[1]]).map(m => ({ id: m[1], cat: m[2].split(' ')[0], tags: m[2].split(' '), seats: m[3], pitch: unq([0, m[4], m[5]]), ...info[m[1]] }));
-  const mp = src.match(/const MP_MINS = \[(\d+), (\d+)\]/);
-  return { games, solo: info, mpMins: mp ? [+mp[1], +mp[2]] : null };
+  const mp = src.match(/const MP_MINS = \[(\d+), (\d+)\]/), wd = src.match(/WORD_MINS = \[(\d+), (\d+)\]/);
+  return { games, solo: info, mpMins: mp ? [+mp[1], +mp[2]] : null, wordMins: wd ? [+wd[1], +wd[2]] : null };
 }
 
 const CATS = { cards: ['Card games', 'Gry karciane'], board: ['Board and dice games', 'Gry planszowe i w kości'], action: ['Action and party games', 'Gry zręcznościowe i imprezowe'] };
@@ -38,6 +38,9 @@ const TODAY = [
   ['mp', 'Mystery Pet', 'Zagadkowy zwierzak',
     'A new puzzle every day: guess the hidden Pet Farm pet from the clues each guess gives you. Everyone gets the same pet that day.',
     'Codziennie nowa zagadka: zgadnij ukrytego zwierzaka z Farmy na podstawie wskazówek, które daje każda próba. Tego dnia wszyscy zgadują tego samego zwierzaka.'],
+  ['word', 'Word in a Bottle', 'Słowo w butelce',
+    'A daily word puzzle: find the five-letter word in six tries. Every try shows which letters are in the right spot, in another spot or not in the word. One Polish and one English word a day, the same for everyone.',
+    'Codzienna zagadka słowna: znajdź słowo na pięć liter w sześciu próbach. Każda próba pokazuje, które litery są na dobrym miejscu, które na innym, a których w słowie nie ma. Codziennie jedno słowo po polsku i jedno po angielsku, takie samo dla wszystkich.'],
   ['pop', 'Pet Pop', 'Zwierzakowe trójki',
     'A match-3 puzzle with Pet Farm pets. Swap neighbours to line up three or more, make special pets from bigger matches and clear the goals of each level before the moves run out.',
     'Układanka „trzy w rzędzie” ze zwierzakami z Farmy. Zamieniaj sąsiadów, żeby ustawić trzy albo więcej takich samych, twórz specjalne zwierzaki z większych układów i spełnij cele poziomu, zanim skończą się ruchy.'],
@@ -65,7 +68,7 @@ function view(lang, reg = readRegistry()) {
     const x = pl ? GAMES_PL[g.id] || {} : {}, [lo, hi = lo] = range(g.seats);
     return { ...g, name: x.name || g.name, text: x.pitch || g.pitch, lo, hi, coop: /co-?op/i.test(g.seats) };
   });
-  const today = TODAY.map(([k, en, p, ten, tp]) => ({ game: !!k, name: T(en, p), text: T(ten, tp), mins: k === 'mp' ? reg.mpMins : k ? reg.solo[k]?.mins : null,
+  const today = TODAY.map(([k, en, p, ten, tp]) => ({ game: !!k, name: T(en, p), text: T(ten, tp), mins: k === 'mp' ? reg.mpMins : k === 'word' ? reg.wordMins : k ? reg.solo[k]?.mins : null,
     ...(k && SOLO_PL[k] && pl ? { name: SOLO_PL[k].name } : {}) }));
   return { pl, T, games, today };
 }

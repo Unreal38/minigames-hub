@@ -41,10 +41,10 @@ try {
     assert.match(bot.text, new RegExp(`<li id="g-${g.id}"><b>[^<]+</b>: [^<]{20,} <small>Gracze: \\d`), g.id);
     assert.ok(g.mins && g.pitch, g.id);
   }
-  for (const n of ['Szachy', 'Makao', 'Kalambury', 'Bierki', 'Farma zwierzaków', 'Zagadkowy zwierzak', 'Zwierzakowy mahjong']) assert.ok(bot.text.includes(`<b>${n}</b>`), n);
+  for (const n of ['Szachy', 'Makao', 'Kalambury', 'Bierki', 'Farma zwierzaków', 'Zagadkowy zwierzak', 'Słowo w butelce', 'Zwierzakowy mahjong']) assert.ok(bot.text.includes(`<b>${n}</b>`), n);
   assert.match(bot.text, /W Zatoce jest \d+ gier przy stole/);
   const games = JSON.parse(bot.text.match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"ItemList"[\s\S]*?)<\/script>/)[1]);
-  assert.equal(games.itemListElement.length, reg.games.length + 6);
+  assert.equal(games.itemListElement.length, reg.games.length + 7);
 
   const en = await get('/', { 'user-agent': 'Mozilla/5.0 Firefox/130', 'accept-language': 'en-GB,en' });
   assert.match(en.text, /<html lang="en" data-geo="en"/);
