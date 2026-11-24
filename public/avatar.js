@@ -79,6 +79,12 @@ shop('back', [['Backpack', 90], ['Angel wings', 220], ['Fairy wings', 180], ['Je
 export const PACK = {};
 const pack = (name, items) => { for (const [k, v] of items) { OPT[k].push(v); PACK[k + ':' + (OPT[k].length - 1)] = name; } };
 pack('kofi', [['hat', 'Coffee mug hat'], ['glasses', 'Café glasses'], ['neck', 'Coffee bean necklace'], ['top', 'Barista sweater'], ['bottom', 'Cuffed trousers'], ['shoes', 'Cocoa slippers'], ['back', 'Takeaway cup']]);
+// Filling the gaps (2026-11-24, after the pack so its indexes stay): the first bottoms and more shoes for sale, and four hats after the Pet Farm's elements
+// (a Leaf sprout, an Ember candle like Flickit's, a Tide wave like Ripplet's, a Spark storm cloud).
+shop('bottom', [['Cargo trousers', 90], ['Tutu', 110], ['Plaid kilt', 120], ['Swim shorts', 80, 'summer']]);
+shop('shoes', [['Paw slippers', 110], ['Light-up sneakers', 120], ['Flippers', 90, 'summer'], ['Ice skates', 130, 'winter']]);
+shop('hat', [['Sprout', 120], ['Candle flame', 140], ['Wave curl', 140], ['Storm cloud', 160]]);
+
 export const packOf = (k, i) => PACK[k + ':' + i] || null;
 export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);
 // Does this item have to be in the owned list before it can be worn (bought, or part of a pack)?

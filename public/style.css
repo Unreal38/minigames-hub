@@ -465,6 +465,10 @@ body.night .gcard .pic .arttick { stroke: #fff6d8; } /* motion ticks drawn on th
 .lagoonpic .blshot { animation: bob 1.8s ease-in-out infinite; }
 .lagoonpic .blegg { animation: dcup 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .lagoonpic .blshot, .lagoonpic .blegg { animation: none; } }
+.gcard .pic.mahjpic { background: var(--art-sky); padding: 0; }
+.gcard .pic.mahjpic svg { width: 100%; height: 100%; display: block; }
+.mahjpic .mjtop { animation: bob 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .mahjpic .mjtop { animation: none; } }
 .gcard .pic.brickspic { background: var(--art-sky); padding: 0; }
 .gcard .pic.brickspic svg { width: 100%; height: 100%; display: block; }
 .brickspic .sbfall { animation: bob 1.6s steps(4) infinite; }
@@ -1184,7 +1188,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .ttile .tpic { flex: none; width: 54px; height: 54px; border-radius: 14px; border: 3px solid var(--ink); overflow: hidden; display: grid; place-items: center; background: #bfe8ff; }
 .ttile .tpic svg { width: auto; height: 100%; max-width: none; display: block; }
 .ttile.t-mp .tpic { background: linear-gradient(160deg, #ffe9a8, #ffc2d6); } .ttile.t-mp.done .tpic { background: linear-gradient(160deg, #c9f2c6, #a8e0f5); }
-.ttile.t-hay .tpic { background: linear-gradient(160deg, #fff1b8, #ffd08a); } .ttile.t-pop .tpic { background: linear-gradient(160deg, #ffe3ef, #cfe4ff); } .ttile.t-farm .tpic { background: linear-gradient(160deg, #d6f5c4, #a8e0f5); }
+.ttile.t-hay .tpic { background: linear-gradient(160deg, #fff1b8, #ffd08a); } .ttile.t-pop .tpic { background: linear-gradient(160deg, #ffe3ef, #cfe4ff); } .ttile.t-mj .tpic { background: linear-gradient(160deg, #d9f3e6, #bfe4f5); } .ttile.t-farm .tpic { background: linear-gradient(160deg, #d6f5c4, #a8e0f5); }
 .ttile .tpic svg { height: 84%; }
 .ttile .tbody { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .ttile .tbody b { font-family: var(--fd); font-weight: 600; font-size: max(12px, min(18px, calc(100cqi / var(--w, 6)))); line-height: 1.1; } /* wraps between words and shrinks a long word (fit.js) instead of cutting it */ .ttile .tbody b small { font-size: 13px; font-weight: 500; opacity: .7; }
@@ -1640,3 +1644,29 @@ body.night .lwstage { background: radial-gradient(#fff 1px, transparent 1.6px) 1
 .helpon.boost { border-style: dashed; }
 @media (max-width: 760px) { .lwgrid { grid-template-columns: minmax(0, 1fr); } .lwstage { max-width: 440px; width: 100%; justify-self: center; } .lw .lwh { font-size: 22px; } }
 @media (prefers-reduced-motion: reduce) { .ttile.t-wheel.ready .tpic, .lwwon.pop, .lwcard { animation: none; } }
+/* More name colours and frames (2026-11-24): spring and summer drops, and the Pet Farm's Spark and Stone elements. */
+.nm12 { --g: linear-gradient(90deg, #e0558f, #f08ab0, #7ab84a, #e0558f); animation: nmslide 5s linear infinite; }
+.nm13 { --g: linear-gradient(90deg, #f08a1f, #e8478a, #12a8a0, #f08a1f); animation: nmslide 4.5s linear infinite; }
+.nm14 { --g: linear-gradient(90deg, #6268e0, #8088f2 38%, #f2c230 47%, #ffe98a 50%, #f2c230 53%, #8088f2 62%, #6268e0); animation: nmslide 1.8s linear infinite; }
+.nm15 { --g: linear-gradient(90deg, #8a7f76, #b0a498, #6f665e, #b0a498, #8a7f76); }
+.fr10 { --f3: #ffc1d6aa; --fa: url("frames/f10.svg"); }
+.fr11 { --f3: #ffe2a8aa; --fa: url("frames/f11.svg"); }
+.fr12 { --f3: #f08a2499; --fa: url("frames/f12.svg"); }
+.fr13 { --f3: #ffd23faa; --fa: url("frames/f13.svg"); }
+.fr14 { --f3: #b9afa488; --fa: url("frames/f14.svg"); }
+.fr13 { animation: frglow 1.4s ease-in-out infinite alternate; }
+.wdemo img { width: 52px; height: 52px; vertical-align: middle; }
+/* More card backgrounds (2026-11-24): the Pet Farm's five elements as patterns, four game scenes, a beach, a pumpkin patch, and two that move. */
+.pb19, .pb20, .pb21, .pb22, .pb23 { background: color-mix(in srgb, var(--pt) 20%, transparent); }
+:is(.pb19, .pb20, .pb21, .pb22, .pb23)::before { background: var(--pi) 0 0 / 58px repeat; opacity: .55; }
+:is(.pb19, .pb20, .pb21, .pb22, .pb23)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 45%, transparent) 30%, transparent 80%); }
+.pb19 { --pt: #3f9a52; --pi: url(cardbg/el-leaf.svg); } .pb20 { --pt: #e0592f; --pi: url(cardbg/el-ember.svg); } .pb21 { --pt: #2f86cc; --pi: url(cardbg/el-tide.svg); }
+.pb22 { --pt: #d9a400; --pi: url(cardbg/el-spark.svg); } .pb23 { --pt: #8a7f76; --pi: url(cardbg/el-stone.svg); }
+.pb24 { background-image: url(cardbg/lagoon.svg); } .pb25 { background-image: url(cardbg/darts.svg); } .pb26 { background-image: url(cardbg/dice.svg); } .pb27 { background-image: url(cardbg/golf.svg); }
+.pb28 { background-image: url(cardbg/beach.svg); } .pb29 { background-image: url(cardbg/pumpkins.svg); }
+.pb30 { background-image: url(cardbg/snow-base.svg); }
+.pb30::before { top: -240px; background: url(cardbg/snow.svg) 100% 0 / 180px 240px repeat; animation: pbfall 11s linear infinite; will-change: transform; }
+.pb31 { background-image: url(cardbg/storm-base.svg); }
+.pb31::before { background: url(cardbg/storm-flash.svg) right center / cover no-repeat; opacity: 0; animation: pbflash 5.5s linear infinite; will-change: opacity; }
+:is(.pb29, .pb30, .pb31)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
+@keyframes pbflash { 0%, 61%, 66%, 70%, 100% { opacity: 0; } 62%, 64% { opacity: 1; } 63% { opacity: .35; } 68% { opacity: .8; } }
