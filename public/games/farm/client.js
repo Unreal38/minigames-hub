@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, SELL, SELL_LOT, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
@@ -53,7 +53,10 @@ const zoneVars = k => ZONE_ISLE[k] ? ` style="--s1:${ZONE_ISLE[k][1]};--s2:${ZON
 const elTag = e => `<span class="el" style="--c:${ELEMENTS[e]}">${elName(e)}</span>`;
 const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' and ', ' i ') + a.at(-1);
 
-let cssLoaded = false, thumbs = null;
+let cssLoaded = false;
+// Little pictures for menus and pet chips: about 120 of them, so they are drawn a few at a time after the island
+// shows (drawing them all at once held the island back for seconds). Kept for the whole visit to the site.
+const thumbs = {}, thumbAll = () => [...Object.keys(ITEMS), ...Object.keys(SPECIES).map(s => 'pet:' + s)];
 function loadCss() {
   if (cssLoaded) return; cssLoaded = true;
   const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = new URL('./farm.css', import.meta.url).href;
@@ -78,6 +81,7 @@ export function mount(app, ctx) {
     </div>
     <div class="gate" id="pf-panel" hidden></div>
     <div class="gate" id="pf-gate" hidden></div>
+    <div class="pfload" id="pf-load" role="status"><span class="pfegg" aria-hidden="true"></span>${L('Walking to the farm…', 'Idziemy na farmę…')}</div>
   </div>`;
   const root = app.querySelector('.pf'), $ = id => root.querySelector('#' + id), canvas = root.querySelector('.g3d');
   let F = null, scene = null, destroyed = false, mode = 'load', edit = false, tab = 'b', pick = null, card = null, panel = null, tripAt = 0, nestAt = 0, lastType = null, lastSpot = null;
@@ -96,11 +100,29 @@ export function mount(app, ctx) {
   import('./scene3d.js').then(m => {
     if (destroyed) return;
     scene = m.createScene(canvas, { onPick, onGhost: paintGhost });
-    thumbs ||= scene.thumbs([...Object.keys(ITEMS), ...Object.keys(SPECIES).map(s => 'pet:' + s)]);
     sync();
-  }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
+    // the loading note stays until the island has been drawn; the little pictures start once it is on screen
+    scene.warm().then(() => requestAnimationFrame(() => requestAnimationFrame(() => { if (destroyed) return; $('pf-load').hidden = true; thumbGo = true; thumbLater(400); })));
+  }).catch(err => { console.warn('3D unavailable', err); $('pf-load').hidden = true; root.classList.add('flat'); });
 
-  const thumb = (k, alt = '') => thumbs?.[k] ? `<img src="${thumbs[k]}" alt="${esc(alt)}" width="56" height="56">` : '<span class="nothumb"></span>';
+  // A picture not drawn yet shows a soft tile and is swapped in when ready; ones on screen are drawn first.
+  const thumbWant = new Set(); let thumbRest = null, thumbT = 0, thumbGo = false;
+  const thumbImg = (k, alt) => `<img src="${thumbs[k]}" alt="${esc(alt)}" width="56" height="56">`;
+  const thumb = (k, alt = '') => { if (thumbs[k]) return thumbImg(k, alt); if (k in thumbs) return '<span class="nothumb"></span>'; thumbWant.add(k); thumbLater(20); return `<span class="nothumb" data-th="${esc(k)}" data-alt="${esc(alt)}"></span>`; };
+  function thumbLater(ms) { if (!thumbT && thumbGo && !destroyed) thumbT = setTimeout(thumbStep, ms); }
+  function thumbStep() {
+    thumbT = 0; if (destroyed || !scene) return;
+    thumbRest ||= thumbAll();
+    // pictures on screen right now get a bigger share of the turn; the rest are drawn a few milliseconds at a time
+    const t0 = performance.now(), front = thumbWant.size > 0, budget = front ? 60 : 10, done = [];
+    while (performance.now() - t0 < budget) {
+      const k = front ? thumbWant.values().next().value : thumbRest.pop(); if (k === undefined) break;
+      thumbWant.delete(k); if (k in thumbs) continue;
+      const u = scene.thumbs([k])[k]; thumbs[k] = u || ''; if (u) done.push(k);
+    }
+    for (const k of done) for (const el of root.querySelectorAll(`.nothumb[data-th="${CSS.escape(k)}"]`)) el.outerHTML = thumbImg(k, el.dataset.alt || '');
+    if (thumbWant.size || thumbRest.length) thumbT = setTimeout(thumbStep, thumbWant.size ? 16 : 40);
+  }
 
   // A pet's own picture: its real form, coat and markings.
   const face = (p, alt = '') => { const u = p && scene?.portrait?.(p.sp, formOf(p.lv || 1), p.look || null); return u ? `<img src="${u}" alt="${esc(alt || p.name || '')}" width="56" height="56">` : thumb('pet:' + p?.sp, alt); };
@@ -278,10 +300,19 @@ export function mount(app, ctx) {
         <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
       return;
     }
-    if (panel.kind === 'sell') {
-      const rows = Object.entries(SELL).map(([k, n]) => `<button type="button" class="zone${(F.inv[k] || 0) < SELL_LOT ? ' off' : ''}" data-a="sell" data-mat="${k}">${matIcon(k, 30)}<b>${L(`${SELL_LOT} ${MATS[k].toLowerCase()} for ${n} coins`, `${MATS[k]}: ${SELL_LOT} szt. za ${cnt(n, 'coin', 'coins', 'monetę', 'monety', 'monet')}`)}</b><small>${L(`You have ${F.inv[k] || 0}`, `Masz: ${F.inv[k] || 0}`)}</small></button>`).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>${L('Sell spare materials', 'Sprzedaj zbędne materiały')}</h2><p>${L(`The Workshop pays coins for materials you do not need. You have ${F.inv.coins || 0} coins.`, `Warsztat płaci monetami za materiały, których nie potrzebujesz. Masz monet: ${F.inv.coins || 0}.`)}</p>
-        <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
+    if (panel.kind === 'swap') { // the Workshop swaps one material for another: pick what you need, then what you pay with
+      const wLv = Math.max(1, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), keep = Math.round(SWAP_KEEP[wLv - 1] * 100), n = panel.n || 1, k = panel.get;
+      const room = m => STORED.includes(m) ? Math.max(0, (F.cap || Infinity) - (F.inv[m] || 0)) : Infinity;
+      const gets = Object.keys(WORTH).map(m => `<button type="button" class="zone" data-a="swapget" data-mat="${m}" aria-pressed="${m === k}">${matIcon(m, 30)}<b>${MATS[m]}</b><small>${L(`You have ${F.inv[m] || 0}`, `Masz: ${F.inv[m] || 0}`)}</small></button>`).join('');
+      const pays = k ? Object.keys(WORTH).filter(m => m !== k).map(m => { const d = swapDeal(m, k, wLv); if (!d?.get) return '';
+        const pay = d.pay * n, got = d.get * n, off = (F.inv[m] || 0) < pay ? 'few' : got > room(k) ? 'room' : '';
+        return `<button type="button" class="zone${off ? ' off' : ''}" data-a="swap" data-give="${m}" data-off="${off}">${matIcon(m, 30)}<b>${pay} ${MATS[m].toLowerCase()}</b><small>${L(`for ${got} ${MATS[k].toLowerCase()} · you have ${F.inv[m] || 0}`, `za ${MATS[k].toLowerCase()}: ${got} · masz: ${F.inv[m] || 0}`)}</small></button>`; }).join('') : '';
+      box.innerHTML = `<div class="panel tripp"><h2>${L('Swap materials', 'Wymiana materiałów')}</h2><p>${L(`Trade spare materials for ones you need. The Workshop keeps a small cut: at level ${wLv} you get back ${keep}% of the value.${wLv < SWAP_KEEP.length ? ' Improve it for better swaps.' : ''}`, `Wymień zbędne materiały na te, których potrzebujesz. Warsztat bierze małą prowizję: na poziomie ${wLv} oddaje ${keep}% wartości.${wLv < SWAP_KEEP.length ? ' Ulepsz go, żeby wymieniać korzystniej.' : ''}`)}</p>
+        <h3>${L('1. What do you need?', '1. Czego potrzebujesz?')}</h3><div class="zones">${gets}</div>
+        ${k ? `<h3>${L('2. What do you pay with?', '2. Czym płacisz?')}</h3>
+        <div class="pills swapn" role="group" aria-label="${L('How many swaps at once', 'Ile wymian naraz')}">${[1, 5, SWAP_MAX].map(x => `<button type="button" data-a="swapn" data-n="${x}" aria-pressed="${x === n}">×${x}</button>`).join('')}</div>
+        <div class="zones">${pays}</div>` : ''}
+        <div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'gift') {
@@ -297,7 +328,7 @@ export function mount(app, ctx) {
       const T = panel, away = outNow();
       const petBtn = (x, sideKey, off) => `<button type="button" class="pickpet${off ? ' off' : ''}" data-a="tradepet" data-side="${sideKey}" data-id="${x.id}" aria-pressed="${T[sideKey].pets.includes(x.id)}">${petRow(x, off ? ' · ' + off : T[sideKey].pets.includes(x.id) ? L(' · in the offer', ' · w ofercie') : '')}</button>`;
       const FOOD = ['sunberry', 'cookie', 'cake', 'juice', 'pie', 'tonic'];
-      const mats = (sideKey, inv) => Object.keys(MATS).filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
+      const mats = (sideKey, inv) => Object.keys(MATS).filter(k => k !== 'coins').filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
         return `<div class="tm${n ? ' on' : ''}">${matIcon(k, 30)}<span class="tmn"><b>${MATS[k]}</b>${inv ? `${L(`<small>You have ${inv[k] || 0}</small>`, `<small>Masz: ${inv[k] || 0}</small>`)}` : ''}</span>
           <span class="step"><button type="button" data-a="tmstep" data-d="-1" aria-label="${L(`Less ${MATS[k]}`, `Mniej: ${MATS[k]}`)}">−</button><input class="field" type="number" inputmode="numeric" min="0" max="${max}" data-tm="${sideKey}" data-mat="${k}" value="${n || ''}" placeholder="0" aria-label="${L(`${MATS[k]}, how many`, `${MATS[k]}, ile`)}"><button type="button" data-a="tmstep" data-d="1" aria-label="${L(`More ${MATS[k]}`, `Więcej: ${MATS[k]}`)}">+</button></span></div>`; }).join('');
       const mine = F.pets.map(x => petBtn(x, 'give', x.held ? L('promised', 'obiecany') : away.includes(x.id) ? 'exploring' : inNest(x.id) ? L('in the Nest', 'w Gnieździe') : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
@@ -507,7 +538,7 @@ export function mount(app, ctx) {
         ${rows}
         ${found ? `<div class="backpet found">${thumb('pet:' + found.sp)}<div>${L(`<b>A wild ${SPECIES[found.sp].name} followed them home!</b>`, `<b>Dziki zwierzak (${SPECIES[found.sp].name}) wraca z nimi do domu!</b>`)}<small>${elTag(SPECIES[found.sp].el)} ${RARITY[SPECIES[found.sp].rare]} · ${SPECIES[found.sp].blurb}</small></div></div>` : ''}
         ${b.wild && F.wild ? `<div class="backpet found">${thumb('pet:' + b.wild.sp)}<div>${L(`<b>A wild ${SPECIES[b.wild.sp].name} stood in their way!</b><small>Level ${b.wild.lv}. Win a short battle and it may come home with you. Losing costs nothing. It waits for half an hour.</small>`, `<b>Dziki zwierzak (${SPECIES[b.wild.sp].name}) staje im na drodze!</b><small>Poziom ${b.wild.lv}. Wygraj krótką bitwę, a może wróci z tobą do domu. Porażka nic nie kosztuje. Poczeka pół godziny.</small>`)}</div><button type="button" class="btn sm m" data-a="wildfight">${L(`Battle it`, `Walcz`)}</button></div>` : ''}
-        ${b.spilt ? `<p class="hint">${L(`Your storage is full (${F.cap} of each), so some of it was left behind. ${countOf(F, 'barn') ? 'Spend or sell some to make room.' : 'A Storage Barn makes room for more.'}`, `Magazyn jest pełny (${F.cap} każdego materiału), więc część została na miejscu. ${countOf(F, 'barn') ? 'Wydaj albo sprzedaj trochę, żeby zrobić miejsce.' : 'Stodoła pomieści więcej.'}`)}</p>` : ''}
+        ${b.spilt ? `<p class="hint">${L(`Your storage is full (${F.cap} of each), so some of it was left behind. ${countOf(F, 'barn') ? 'Spend or swap some to make room.' : 'A Storage Barn makes room for more.'}`, `Magazyn jest pełny (${F.cap} każdego materiału), więc część została na miejscu. ${countOf(F, 'barn') ? 'Wydaj trochę albo wymień w Warsztacie, żeby zrobić miejsce.' : 'Stodoła pomieści więcej.'}`)}</p>` : ''}
         ${b.full ? '<p class="hint">' + L('A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.', 'Dziki zwierzak chciał pójść z nimi, ale wszystkie łóżka są zajęte. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.') + '</p>' : ''}
         <button type="button" class="btn big m" data-a="shut">${L(`Lovely`, `Ślicznie`)}</button></div>`;
     }
@@ -719,7 +750,7 @@ export function mount(app, ctx) {
       else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : `<p class="hint">${L(`Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.`, `Każda grządka daje ${BERRIES} jagody na godzinę. Następne dojrzeją za około ${wait(Math.max(1, gardenAt - Date.now()))}.`)}</p>`;
       else if (item.type === 'kitchen') more = `${L(`<p class="hint">You have ${F.inv.berries || 0} berries.</p>`, `<p class="hint">Masz jagód: ${F.inv.berries || 0}.</p>`)}<button type="button" class="btn sm m" data-a="cookopen">${L(`Cook treats`, `Gotuj smakołyki`)}</button>`;
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
-      else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="sellopen">' + L('Sell spare materials', 'Sprzedaj zbędne materiały') + '</button>';
+      else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="swapopen">' + L('Swap materials', 'Wymień materiały') + '</button>';
       else if (item.type === 'hut') more = `<p class="hint">${L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}</p>`;
       if (WORK[item.type]) more += helpRow(item.type);
       more += boostRow(item.type);
@@ -821,9 +852,11 @@ export function mount(app, ctx) {
     else if (a === 'wxinfo') { if (edit || B) return; panel = { kind: 'wx' }; card = null; sfx.click(); sync(); }
     else if (a === 'matinfo') { if (edit || B) return; panel = { kind: 'mat', mat: b.dataset.mat }; card = null; sfx.click(); sync(); }
     else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
-    else if (a === 'sellopen') { panel = { kind: 'sell' }; card = null; sync(); }
+    else if (a === 'swapopen') { panel = { kind: 'swap', n: 1 }; card = null; sync(); }
+    else if (a === 'swapget') { panel.get = b.dataset.mat; sfx.click(); sync(); }
+    else if (a === 'swapn') { panel.n = +b.dataset.n || 1; sfx.click(); sync(); }
     else if (a === 'cook') { if (b.dataset.lv) return ctx.toast(L(`Improve the Kitchen to level ${b.dataset.lv} for that recipe.`, `Ten przepis wymaga Kuchni na poziomie ${b.dataset.lv}.`), true); if (b.classList.contains('off')) return ctx.toast(L('Not enough for that yet. Garden Plots grow more every hour, and better plots grow Sunberries.', 'Na to jeszcze nie wystarczy. Grządki co godzinę dają więcej, a lepsze grządki dają słoneczne jagody.'), true); ctx.send({ t: 'cook', what: b.dataset.what }); }
-    else if (a === 'sell') { if (b.classList.contains('off')) return ctx.toast(L(`You need at least ${SELL_LOT} to sell.`, `Do sprzedaży potrzeba co najmniej ${SELL_LOT} sztuk.`), true); ctx.send({ t: 'sell', mat: b.dataset.mat, lots: 1 }); }
+    else if (a === 'swap') { if (b.dataset.off) return ctx.toast(b.dataset.off === 'room' ? L('There is no room for that many. Spend some, or build a Storage Barn.', 'Nie ma na tyle miejsca. Wydaj trochę albo zbuduj Stodołę.') : L('You do not have enough of that to swap.', 'Masz za mało, żeby to wymienić.'), true); ctx.send({ t: 'swap', give: b.dataset.give, get: panel.get, n: panel.n || 1 }); }
     else if (a === 'feed') ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id });
     else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
     else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
@@ -999,7 +1032,7 @@ export function mount(app, ctx) {
     else if (m.did === 'duel') { sfx.join(); panel = null; ctx.toast(L(`Invitation sent. The battle starts as soon as ${esc(V?.name || 'they')} says yes.`, `Zaproszenie wysłane. Bitwa zacznie się, gdy tylko ${esc(V?.name || 'druga strona')} się zgodzi.`)); }
     else if (m.did === 'pick') { sfx.join(); card = null; ctx.toast(L(`You picked ${m.got} berries${m.wet ? ` (${m.wet} extra thanks to the rain)` : ''}${m.sun ? ` and ${m.sun} ${m.sun > 1 ? 'sunberries' : 'sunberry'}` : ''}.`, `Zebrane jagody: ${m.got}${m.wet ? ` (${m.wet} dodatkowo dzięki deszczowi)` : ''}${m.sun ? ` i słoneczne jagody: ${m.sun}` : ''}.`)); }
     else if (m.did === 'cook') { sfx.set(); scene?.work('kitchen'); ctx.toast(m.extra ? L(`${esc(helperOf('kitchen')?.name || 'Your helper')} baked a second one for free! Two ${RECIPES[m.what].name}s are ready.`, `${esc(helperOf('kitchen')?.name || 'Twój pomocnik')} piecze drugą porcję za darmo! Gotowe: ${RECIPES[m.what].name} × 2.`) : L(`One ${RECIPES[m.what].name} is ready.`, `Gotowe: ${RECIPES[m.what].name}.`)); }
-    else if (m.did === 'sell') { sfx.join(); scene?.work('workshop'); ctx.toast(L(`Sold for ${m.coins} coins.`, `Sprzedane za ${cnt(m.coins, 'coin', 'coins', 'monetę', 'monety', 'monet')}.`)); }
+    else if (m.did === 'swap') { sfx.join(); scene?.work('workshop'); ctx.toast(L(`Swapped ${m.pay} ${MATS[m.give].toLowerCase()} for ${m.got} ${MATS[m.get].toLowerCase()}.`, `Wymiana gotowa: ${MATS[m.give].toLowerCase()} (${m.pay}) za ${MATS[m.get].toLowerCase()} (${m.got}).`)); }
     else if (m.did === 'feed') { sfx.win(); const p = F.pets.find(x => x.id === m.pet); scene?.cheer(m.pet); ctx.toast(m.what === 'tonic' ? L(`${esc(p.name)} feels fresh and rested.`, `${esc(p.name)} ma znów pełno sił.`) : L(`${esc(p.name)} loved it.${m.grew ? (m.grew.form ? ` It grew up into its ${FORMS[m.grew.form].toLowerCase()} form!` : ` It reached level ${m.grew.lv}!`) : ''}`, `${esc(p.name)}: pycha!${m.grew ? (m.grew.form ? ` Nowa forma: ${FORMS[m.grew.form].toLowerCase()}!` : ` Poziom ${m.grew.lv}!`) : ''}`)); }
     else if (m.did === 'upgrade') { sfx.win(); scene?.pop(m.id); const it = F.items.find(x => x.id === m.id); ctx.toast(L(`${ITEMS[it.type].name} is now level ${lvOf(it)}.`, `${ITEMS[it.type].name}: teraz poziom ${lvOf(it)}.`)); }
     else if (m.did === 'train') { sfx.set(); panel = null; ctx.toast(F.train.ids.length ? L('Training plan saved.', 'Plan treningu zapisany.') : L('Nobody is training now.', 'Teraz nikt nie trenuje.')); }
@@ -1033,6 +1066,6 @@ export function mount(app, ctx) {
     reopen() { ctx.send({ t: 'open' }); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast(L('Finish the battle first.', 'Najpierw dokończ bitwę.'), true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
-    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
+    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); clearTimeout(thumbT); scene?.dispose(); },
   };
 }
