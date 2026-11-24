@@ -8,7 +8,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress, starsOf, RANKS } from '../public/ranks.js';
 import { tidySky, lightStar, freeStars, isDone } from '../public/constellations.js';
-import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack, cosPackIds } from '../public/cosmetics.js';
+import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack, cosPackIds, emotesOf, EMOTE_BAR } from '../public/cosmetics.js';
 import { dayOf, untilNext, dateOf } from './day.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds } from '../public/avatar.js';
 
@@ -281,6 +281,7 @@ function buyCos(p, k, i) {
   if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
   p.coins -= price; p.owned.push(id);
   if (WORN.includes(k)) (p.cos ||= {})[k] = i;
+  if (k === 'em') { const bar = emotesOf(p); if (bar.length < EMOTE_BAR && !bar.includes(i)) (p.cos ||= {}).eb = [...bar, i]; } // a new emote goes straight on the bar when there is room
   board = null; scheduleSave(); coinHook(p.pid);
   return { id, price, cos: true };
 }
@@ -334,6 +335,20 @@ export const flair = p => {
 // Isle decor comes from the player's Pet Farm: onDecor tells this file how to ask which decorations a farm has.
 let decorHook = () => [];
 export const onDecor = fn => { decorHook = fn; };
+// The Plaza's emote bar: up to EMOTE_BAR emotes the player has, in their order.
+export function emoteBar(p, list) {
+  if (!p) return { err: 'Not connected.' };
+  if (!Array.isArray(list) || list.length > EMOTE_BAR || new Set(list).size !== list.length || list.some(i => !Number.isInteger(i) || i < 1 || !cosHas(p, 'em', i))) return { err: 'Unknown.' };
+  (p.cos ||= {}).eb = list.slice(); scheduleSave();
+  return { ok: true };
+}
+// A visit to the Plaza: counted once a day for accounts (emotes are earned by it). Returns the days so far and whether today was new.
+export function plazaVisit(p) {
+  if (!p?.user) return { days: 0, fresh: false };
+  const z = p.plz ||= {}, fresh = z.seen !== dayOf();
+  if (fresh) { z.seen = dayOf(); z.days = (z.days || 0) + 1; scheduleSave(); }
+  return { days: z.days || 0, fresh };
+}
 // Which game pieces float round the isle (free for everyone).
 export function islePieces(p, list) {
   if (!p) return { err: 'Not connected.' };
@@ -356,7 +371,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }

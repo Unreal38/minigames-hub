@@ -13,7 +13,7 @@ import { itemModel } from '../farm/models.js';
 import { formOf } from '../farm/data.js';
 import { youArrow, animateArrow } from '../../marker3d.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
-import { R_WALK, R_SQUARE, SPEED, Q, TREE_R, THINGS, WINTER, MEADOW, LAMPS, STAGE, SPOTS, EMOTES, ORNAMENTS, SLOTS, TIERS, TREE_H, slotPos, blocksOf, clampWalk } from './layout.js';
+import { R_WALK, R_SQUARE, SPEED, Q, TREE_R, THINGS, WINTER, MEADOW, LAMPS, STAGE, SPOTS, EMOTES, ORNAMENTS, SLOTS, TIERS, TREE_H, slotPos, blocksOf, clampWalk, throwMs, THROW_RANGE } from './layout.js';
 
 const K = .72;             // avatars are drawn at this size (see standing-avatar notes: the scale sits on a wrapper)
 const BODY_R = .38;        // how close you can get to things
@@ -221,7 +221,7 @@ export function createScene(canvas, opts = {}) {
   function build(m) {
     if (!folk.has(m.s)) return;
     const p = m.p;
-    if (!m.wrap) { m.wrap = new THREE.Group(); m.wrap.scale.setScalar(K); m.av = avatar3d(p.c, p.av, { pose: 'stand' }); m.av.position.y = .76; m.av.traverse(o => { if (o.isMesh) { o.castShadow = false; if (noInk && m !== me && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; } }); m.wrap.add(m.av); m.wrap.position.set(m.x, 0, m.z); m.wrap.rotation.y = m.ry; scene.add(m.wrap); return true; }
+    if (!m.wrap) { m.wrap = new THREE.Group(); m.wrap.rotation.order = 'YXZ'; m.wrap.scale.setScalar(K); m.av = avatar3d(p.c, p.av, { pose: 'stand' }); m.av.position.y = .76; m.av.traverse(o => { if (o.isMesh) { o.castShadow = false; if (noInk && m !== me && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; } }); m.wrap.add(m.av); m.wrap.position.set(m.x, 0, m.z); m.wrap.rotation.y = m.ry; scene.add(m.wrap); return true; }
     const want = (p.pets || []).slice(0, petsShown(m));
     if (m.pets.length < want.length) { const k = m.pets.length, x = want[k], f = formOf(x.lv | 0); let g; try { g = petModel(x.sp, f, x.look || null); if (m !== me) g = litePet(g); } catch { return false; }
       const sc = .44 + .06 * f; g.scale.multiplyScalar(sc); const back = .95 + k * .75, side = (k % 2 ? -1 : 1) * (.45 + k * .1);
@@ -243,13 +243,51 @@ export function createScene(canvas, opts = {}) {
   const T0 = performance.now() / 1000; let T = 0;
   function emote(s, e, sp = -1) {
     const m = folk.get(s); if (!m) return;
-    m.e = e; m.eAt = T; m.sp = sp;
+    m.e = e; m.eAt = T; m.sp = sp; m.fxN = 0;
     if (sp >= 0 && SPOTS[sp]) { const q = SPOTS[sp]; m.x = m.tx = q.x; m.z = m.tz = q.z; m.ry = m.tr = q.ry; if (m === me) { goal = null; sentX = Math.round(q.x * Q); sentZ = Math.round(q.z * Q); } }
     const head = new THREE.Vector3(m.x, 1.9, m.z);
     if (e === EM.cheer) { if (m === me) fx.confetti(head, { n: 36, w: 2.4, h: 2.2, s: 'me' }); else fx.burst(head, { n: 16, colors: ['#ffd84a', '#ff9fb8', '#8a98ff', '#7ed3b2'], shape: STAR, speed: 2.6, up: 3.4, size: .3 }); }
     if (e === EM.trick) fx.burst(head.setY(.5), { n: 10, colors: ['#ff9fb8', '#ffd84a'], shape: HEART, speed: 1.6, up: 2.6, size: .3 });
+    if (e === EM.stars) fx.burst(head, { n: few ? 12 : 22, colors: ['#ffd84a', '#fff1a8', '#ffffff', '#9fd8ff'], shape: STAR, speed: 2.2, up: 5.2, size: .34, grav: 5, life: 1.3 });
+    if (e === EM.spin || e === EM.flip) fx.puff(new THREE.Vector3(m.x, 0, m.z), { n: 8, color: winter ? '#ffffff' : '#fff4e2' });
     if (e === EM.jump) fx.puff(new THREE.Vector3(m.x, 0, m.z), { n: 8, color: winter ? '#ffffff' : '#fff4e2' });
   }
+  const few = level === 'low';
+  // ---- throwing: snowballs in winter, a soft ball the rest of the year
+  const BALLS = ['#ff8a5c', '#ffd34d', '#7ed3b2', '#8a98ff', '#ff9fb8', '#9fd8ff'];
+  const ballGeo = new THREE.SphereGeometry(.17, 10, 8), balls = [];
+  function throwBall(s, x, z, h) {
+    const m = folk.get(s); if (!m) return; x /= Q; z /= Q;
+    const d = Math.hypot(x - m.x, z - m.z); m.thr = T; m.tr = Math.atan2(x - m.x, z - m.z); if (m !== me) m.tr2 = undefined;
+    if (m.hid) return;
+    let b = balls.find(q => !q.on); if (!b) { if (balls.length >= 16) return; b = { g: new THREE.Mesh(ballGeo, new THREE.MeshLambertMaterial({ color: '#ffffff' })), on: false }; b.g.castShadow = false; scene.add(b.g); balls.push(b); }
+    b.col = winter ? '#ffffff' : BALLS[s % BALLS.length]; b.g.material.color.set(b.col);
+    Object.assign(b, { on: true, t0: T + .16, dur: throwMs(d) / 1000, x0: m.x + Math.sin(m.tr) * .3, z0: m.z + Math.cos(m.tr) * .3, x1: x, z1: z, y1: h ? 1.05 : .1, top: .7 + d * .16, h }); b.g.visible = false;
+  }
+  function stepBalls() {
+    for (const b of balls) { if (!b.on) continue; const u = (T - b.t0) / b.dur; if (u < 0) continue;
+      if (u >= 1) { b.on = false; b.g.visible = false; const at = new THREE.Vector3(b.x1, b.y1, b.z1);
+        if (winter) fx.puff(at, { n: few ? 6 : 10, color: ['#ffffff', '#e6f3ff'], size: .3, speed: 2.6 }); else fx.burst(at, { n: few ? 6 : 10, colors: [b.col, '#ffffff'], shape: STAR, speed: 2, up: 1.8, size: .22, life: .5, grav: 7 });
+        if (b.h) { const t = folk.get(b.h); if (t) { t.hitAt = T; t.hitDir = Math.atan2(b.x1 - b.x0, b.z1 - b.z0); } } else fx.puff(at.setY(0), { n: 6, color: winter ? '#ffffff' : '#fff4e2', size: .26 });
+        continue; }
+      b.g.visible = true; b.g.position.set(b.x0 + (b.x1 - b.x0) * u, 1.25 + (b.y1 - 1.25) * u + Math.sin(u * Math.PI) * b.top, b.z0 + (b.z1 - b.z0) * u); }
+  }
+  // where a tap would send a throw: the person under it, or the spot on the ground, no further than an arm can throw
+  function aim(px, py) {
+    if (!me) return null; const q = pick(px, py); let x, z;
+    if (q?.kind === 'player') { const t = folk.get(q.s); x = t.x; z = t.z; } else if (q?.kind === 'pet') { const t = folk.get(q.s), p = t?.pets.find(o => o.k === q.i); if (!p || q.mine) return null; x = p.x; z = p.z; }
+    else { const r = canvas.getBoundingClientRect(); ndc.set((px - r.left) / r.width * 2 - 1, -((py - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); if (!ray.ray.intersectPlane(ground, hit)) return null; x = hit.x; z = hit.z; }
+    const d = Math.hypot(x - me.x, z - me.z); if (d < .7) return null; if (d > THROW_RANGE) { x = me.x + (x - me.x) / d * THROW_RANGE; z = me.z + (z - me.z) / d * THROW_RANGE; }
+    return [Math.round(x * Q), Math.round(z * Q)];
+  }
+  // ---- fireworks for the timed events: rockets of stars bursting high over the square
+  const FW = [['#ff5a6e', '#ffd0d6', '#ffffff'], ['#ffd84a', '#fff1a8', '#ffffff'], ['#6ecbff', '#d6f1ff', '#ffffff'], ['#7ee08a', '#dcffd9', '#ffffff'], ['#c79bff', '#f0e2ff', '#ffffff'], ['#ff9f4a', '#ffe1bf', '#ffffff']];
+  let fwOn = 0, fwAt = 0, fwRush = 0;
+  function rocket() { const a = Math.random() * 6.283, r = 4 + Math.random() * 15, c = FW[Math.random() * FW.length | 0];
+    fx.burst(new THREE.Vector3(Math.sin(a) * r, 4.5 + Math.random() * 4.5, Math.cos(a) * r * .8 - 3), { n: few ? 16 : 34, colors: c, shape: STAR, speed: 6.5, up: 2, size: 1.05, life: 1.7, grav: 2.4, drag: 1.5 }); } // kept low: the camera looks down at the square, so anything higher would burst off the screen
+  const fireworks = rate => { fwOn = +rate || 0; }; // 0 none, 1 a full show, less for a rocket now and then
+  const volley = (secs = 12) => { fwRush = T + secs; };
+
   const spotTaken = sp => { for (const m of folk.values()) if (m.sp === sp) return true; return false; };
 
   // ---- your own walking
@@ -306,7 +344,7 @@ export function createScene(canvas, opts = {}) {
   }
 
   // ---- every frame
-  const v3 = new THREE.Vector3(), bm = new THREE.Matrix4();
+  const v3 = new THREE.Vector3(), bm = new THREE.Matrix4(), TAG_Y = { sit: 1.36, nap: .85, angel: .85 };
   let drawn = false, slowN = 0;
   function animate(m, dt) {
     const mine = m === me;
@@ -327,16 +365,47 @@ export function createScene(canvas, opts = {}) {
     if (id === 'cheer') { hop = .5 + .5 * Math.sin(t * 9); y = Math.abs(Math.sin(t * 9)) * .22; }
     if (id === 'dance') { y = Math.abs(Math.sin(t * 6.5)) * .16; lean = Math.sin(t * 6.5) * .1; }
     if (sit) y = seat ? seat.y : 0;
-    m.wrap.position.set(m.x, y, m.z); m.wrap.rotation.set(0, m.ry + (id === 'dance' ? Math.sin(t * 3.25) * .5 : 0), lean);
-    m.av.position.y = sit ? .76 - .43 : .76;
+    let rx = 0, turn = id === 'dance' ? Math.sin(t * 3.25) * .5 : 0, bend = 0, ox = 0;
+    const lie = id === 'nap' || id === 'angel';
+    if (id === 'clap') y = Math.abs(Math.sin(t * 9)) * .05;
+    if (id === 'bow') bend = Math.min(1, Math.sin(Math.min(1, u) * Math.PI) * 1.7) * 1.05;
+    if (id === 'spin') { const w = Math.min(1, u); turn = (1 - (1 - w) * (1 - w)) * Math.PI * 4; y = Math.sin(w * Math.PI) * .28; }
+    if (id === 'laugh') { rx = -.2 + Math.sin(t * 13) * .05; y = Math.abs(Math.sin(t * 13)) * .07; }
+    let oz = 0;
+    if (lie) { const w = Math.min(1, t / .45); rx = -Math.PI / 2 * w * (2 - w); y = .2 * w; ox = Math.sin(m.ry) * .55 * w; oz = Math.cos(m.ry) * .55 * w; } // lying down with the middle of the body where they stood
+    if (id === 'shiver') { ox = Math.sin(t * 58) * .022; lean = Math.sin(t * 41) * .03; }
+    if (id === 'flip') { const w = Math.min(1, u); y = Math.sin(w * Math.PI) * 1.45; bend = -w * Math.PI * 2; hop = 1 - w; }
+    if (id === 'robot') { const st = Math.floor(t * 2.6); turn = ((st % 4) - 1.5) * .28; y = (t * 2.6) % 1 < .18 ? .05 : 0; lean = st % 2 ? .07 : -.07; }
+    if (id === 'stars') { hop = .5 + .5 * Math.sin(t * 8); y = Math.abs(Math.sin(t * 8)) * .14;
+      if (m.fxN < 3 && u > (m.fxN + 1) * .26 && !m.hid) { m.fxN++; fx.burst(v3.set(m.x, 2.1, m.z), { n: few ? 8 : 16, colors: ['#ffd84a', '#fff1a8', '#ffffff', '#9fd8ff'], shape: STAR, speed: 2.4, up: 5, size: .32, grav: 5, life: 1.2 }); } }
+    if (id === 'heart' && !m.fxN && u > .45 && !m.hid) { m.fxN = 1; fx.burst(v3.set(m.x + Math.sin(m.ry) * .7, 1.5, m.z + Math.cos(m.ry) * .7), { n: 7, colors: ['#ff6f91', '#ff9fb8', '#ffd0dc'], shape: HEART, speed: .9, up: 2.2, size: .36, grav: 2, life: 1.3 }); }
+    // hit by a snowball: a short stagger away from where it came from
+    const hw = m.hitAt !== undefined ? (T - m.hitAt) / .6 : 1;
+    if (hw < 1 && !lie) { rx += -Math.sin(hw * Math.PI * 3) * (1 - hw) * .22; if (!sit) y += Math.sin(hw * Math.PI) * .08; }
+    m.wrap.position.set(m.x + ox, y, m.z + oz); m.wrap.rotation.set(rx, m.ry + turn, lean);
+    m.av.position.y = sit ? .76 - .43 : .76; m.av.rotation.x = bend;
     animateAvatar(m.av, T, { seed: m.s, hop: Math.max(0, Math.min(1, hop)), active: id === 'dance' || id === 'trick' });
     const ud = m.av.userData;
-    if (m.amt > .02 && !sit) walkAvatar(m.av, m.ph, m.amt);
-    else ud.legs?.forEach(l => { l.rotation.x = sit ? -1.5 : 0; if (l.userData.kn) l.userData.kn.rotation.x = sit ? (seat ? 1.45 : .15) : 0; });
+    const tuck = id === 'flip' ? Math.sin(Math.min(1, u) * Math.PI) : 0, sweep = id === 'angel' ? .5 - .5 * Math.cos(t * 3.2) : 0;
+    if (m.amt > .02 && !sit && !lie) { walkAvatar(m.av, m.ph, m.amt); ud.legs?.forEach(l => { l.rotation.z = 0; }); }
+    else ud.legs?.forEach((l, i) => { l.rotation.x = sit ? -1.5 : id === 'bow' ? -bend : -tuck * 1.5; l.rotation.z = (i ? 1 : -1) * sweep * .42; if (l.userData.kn) l.userData.kn.rotation.x = sit ? (seat ? 1.45 : .15) : tuck * 1.7; });
+    const thr = m.thr !== undefined ? (T - m.thr) / .42 : 1;
     ud.arms.forEach((a, i) => { a.userData.rz0 ??= a.rotation.z; a.rotation.z = a.userData.rz0;
       if (id === 'wave' && i === 1) { a.rotation.x = -2.75; a.rotation.z = a.userData.rz0 + .3 + Math.sin(t * 10) * .32; }
       if (id === 'dance') a.rotation.x = -2.2 + Math.sin(t * 6.5 + i * Math.PI) * .7;
-      if (id === 'cheer') { a.rotation.x = -2.8 + Math.sin(t * 9 + i) * .2; a.rotation.z = a.userData.rz0 + (i ? .25 : -.25); } });
+      if (id === 'cheer' || id === 'stars') { a.rotation.x = -2.8 + Math.sin(t * 9 + i) * .2; a.rotation.z = a.userData.rz0 + (i ? .25 : -.25); }
+      const out = i ? 1 : -1; // towards this arm's own side
+      if (id === 'clap') { a.rotation.x = -1.35; a.rotation.z = a.userData.rz0 - out * (.38 + .2 * Math.sin(t * 18)); }
+      if (id === 'bow') { a.rotation.x = i ? -bend * .9 : .25 * bend; a.rotation.z = a.userData.rz0 - (i ? out * bend * .55 : 0); }
+      if (id === 'spin') a.rotation.z = a.userData.rz0 + out * 1.25 * Math.sin(Math.min(1, u) * Math.PI);
+      if (id === 'laugh') { a.rotation.x = -.75; a.rotation.z = a.userData.rz0 - out * .5; }
+      if (id === 'nap') { a.rotation.x = 0; a.rotation.z = a.userData.rz0 + out * .25; }
+      if (id === 'angel') { a.rotation.x = 0; a.rotation.z = a.userData.rz0 + out * (.35 + sweep * 1.5); }
+      if (id === 'heart' && i === 1) { const k = Math.min(1, u / .45), w = u < .45 ? 0 : Math.min(1, (u - .45) / .2); a.rotation.x = -2.5 * k + w * 1.0; a.rotation.z = a.userData.rz0 - out * .55 * (1 - w); }
+      if (id === 'shiver') { a.rotation.x = -1.05; a.rotation.z = a.userData.rz0 - out * .75 + Math.sin(t * 50 + i) * .04; }
+      if (id === 'flip') a.rotation.x = -2.6 * tuck;
+      if (id === 'robot') { const st = Math.floor(t * 2.6) + i; a.rotation.x = st % 2 ? -1.55 : -.1; a.rotation.z = a.userData.rz0; }
+      if (thr < 1 && i === 1) a.rotation.x = thr < .35 ? -3.1 * (thr / .35) : -3.1 + 2.6 * ((thr - .35) / .65); });
     // pets trot after their owner in a line, and join in with a trick
     for (const p of m.pets) {
       const gx = m.x - Math.sin(m.ry) * p.back + Math.cos(m.ry) * p.side, gz = m.z - Math.cos(m.ry) * p.back - Math.sin(m.ry) * p.side;
@@ -348,7 +417,7 @@ export function createScene(canvas, opts = {}) {
       let py = Math.abs(Math.sin(p.ph)) * .16 * p.sp, spin = 0;
       if (p.pat > T) py = Math.max(py, Math.abs(Math.sin((p.pat - T) * 9)) * .3);
       if (id === 'trick') { const w = Math.min(1, u * 1.15); py = Math.sin(w * Math.PI) * .9; spin = w * Math.PI * 2; }
-      else if (id === 'cheer' || id === 'dance') py = Math.abs(Math.sin(t * 7 + p.k)) * .26;
+      else if (id === 'cheer' || id === 'dance' || id === 'stars' || id === 'clap') py = Math.abs(Math.sin(t * 7 + p.k)) * .26;
       p.g.position.set(p.x, py, p.z); p.g.rotation.y = p.ry + spin;
       wiggle(p.g, T, p.seed, id === 'cheer' || id === 'trick' ? 1 : p.sp * .6);
     }
@@ -380,11 +449,13 @@ export function createScene(canvas, opts = {}) {
     for (const g of live) g.userData.tick(T, {}, g);
     fly?.(T); blink(T);
     if (snow) { const P = snow.geometry.attributes.position; for (let i = 0; i < P.count; i++) { let y = P.getY(i) - dt * (1.1 + (i % 5) * .22); if (y < 0) y += 20; P.setY(i, y); P.setX(i, P.getX(i) + Math.sin(T + i) * dt * .25); } P.needsUpdate = true; snow.position.set(cam.x, 0, cam.z); }
+    stepBalls();
+    if ((fwOn || fwRush > T) && T > fwAt) { const rush = fwRush > T; fwAt = T + (rush ? .12 + Math.random() * .2 : (.5 + Math.random() * .9) / fwOn) * (few ? 1.8 : 1); rocket(); }
     fx.update(dt, camera, H);
     if (!drawn) renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, camera);
     // where everyone's head is on screen, for the name tags and speech bubbles
-    for (const m of folk.values()) { v3.set(m.x, (m.wrap?.position.y || 0) + (EMOTES[m.e]?.id === 'sit' ? 1.36 : 1.72), m.z).project(camera); m.on = !!m.wrap && !m.hid && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.25; m.sx = (v3.x * .5 + .5) * W; m.sy = (-v3.y * .5 + .5) * H; }
+    for (const m of folk.values()) { v3.set(m.x, (m.wrap?.position.y || 0) + (TAG_Y[EMOTES[m.e]?.id] ?? 1.72), m.z).project(camera); m.on = !!m.wrap && !m.hid && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.25; m.sx = (v3.x * .5 + .5) * W; m.sy = (-v3.y * .5 + .5) * H; }
     opts.frame?.(folk, me, W, H);
     if (!drawn) { drawn = true; opts.ready?.(); }
   }, { onSlow: () => { // slow for a few seconds: other people's pets go first (yours stay), then the usual graphics steps
@@ -393,7 +464,7 @@ export function createScene(canvas, opts = {}) {
     res.lower(); } });
 
   return {
-    setPeople, add, remove, look, moved, fix, emote, setTree, setOrn, setMove, walkTo, pick, setZoom, spotTaken,
+    setPeople, add, remove, look, moved, fix, emote, throwBall, aim, fireworks, volley, setTree, setOrn, setMove, walkTo, pick, setZoom, spotTaken,
     zoom: () => cam.zoom, me: () => me, folk: () => folk, theme,
     nearTree: () => !!me && Math.hypot(me.x, me.z),
     pat(s, i) { const m = folk.get(s), q = m?.pets.find(x => x.k === i); if (!q) return; q.pat = T + 1.05; fx.burst(new THREE.Vector3(q.x, .9, q.z), { n: 6, colors: ['#ff6f91', '#ff9fb8', '#ffffff'], shape: HEART, speed: 1.1, up: 2.6, size: .34, grav: 3, life: 1.1 }); },
@@ -403,7 +474,7 @@ export function createScene(canvas, opts = {}) {
     stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: loop.fps(), folk: folk.size, queue: queue.length }),
     hide(s, on) { const m = folk.get(s); if (m && m !== me) m.hid = !!on; },
     lost: () => renderer.getContext().isContextLost(),
-    destroy() { loop.stop(); ro.disconnect(); for (const m of folk.values()) dropModel(m); folk.clear(); fx.dispose();
+    destroy() { loop.stop(); ro.disconnect(); for (const m of folk.values()) dropModel(m); folk.clear(); fx.dispose(); ballGeo.dispose(); for (const b of balls) b.g.material.dispose();
       scene.traverse(o => { if (o.isMesh || o.isPoints) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared) mt.dispose(); } }); renderer.dispose(); renderer.forceContextLoss(); },
   };
 }

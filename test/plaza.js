@@ -1,21 +1,24 @@
 // Plaza test: rooms of 24, walking is checked, emotes and seats, reactions, pet hearts, the tree's ornaments (kept over
 // a restart), one present a day, host mute and remove, table signposts, the hub button's glance, and leaving.
+// Part 2: emotes you must own, the emote bar, emotes earned by visiting on different days, throwing, timed events,
+// the double Christmas present, and the Pet Farm friendship point for a heart given to a friend's pet.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { CAP, Q, SPOTS, EMOTES, SPAWN } from '../public/games/plaza/layout.js';
+import { CAP, Q, SPOTS, EMOTES, SPAWN, THROW_RANGE } from '../public/games/plaza/layout.js';
+import { COS, EMOTE_ICO } from '../public/cosmetics.js';
 const PORT = 21980 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-plz-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
-const start = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, ADMINS: 'mod' }, stdio: 'inherit' }); await wait(800); };
+const start = async (extra = {}) => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, ADMINS: 'mod', ...extra }, stdio: 'inherit' }); await wait(800); };
 const stop = async () => { srv.kill('SIGTERM'); await new Promise(r => srv.on('exit', r)); };
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(30); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };
 
 function player(name, token) {
-  const p = { name, token, me: null, auth: null, got: [], in: null, pos: new Map(), hub: [], hubErr: [], stats: null, room: null };
+  const p = { name, token, me: null, auth: null, got: [], errs: [], farm: null, in: null, pos: new Map(), hub: [], hubErr: [], stats: null, room: null };
   p.connect = () => new Promise((res, rej) => {
     const ws = p.ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
     p.send = m => ws.send(JSON.stringify(m));
@@ -27,6 +30,8 @@ function player(name, token) {
       if (m.t === 'welcome') p.token = m.token;
       if (m.t === 'me') { p.me = m.me; res(p); }
       if (m.t === 'auth') p.auth = m;
+      if (m.t === 'err') p.errs.push(m.msg);
+      if (m.t === 'farm') p.farm = m;
       if (m.t === 'room') p.room = m.room;
       if (m.t === 'stats') p.stats = m;
       if (m.t === 'hubchat') { if (m.msg) p.hub.push(m.msg); if (m.err) p.hubErr.push(m.err); }
@@ -46,9 +51,10 @@ function player(name, token) {
 await start();
 const guest = await player('Gus').connect();
 const ana = await player('Ana').connect();
-const mod = await player('Mo').connect();
+const mod = await player('Mo').connect(); let mod0;
 if ((await ana.ask({ t: 'register', user: 'ana', pass: 'apple123' })).ok !== 'register') fail('register ana');
 if ((await mod.ask({ t: 'register', user: 'mod', pass: 'apple123' })).ok !== 'register') fail('register mod');
+mod0 = mod.token;
 
 // 1. Joining: everyone lands in room 1 near the arch; the others are told; the site's count follows.
 const a = await ana.enter();
@@ -118,8 +124,8 @@ if (a.theme === 'winter') {
   const before = ana.me.coins | 0;
   if (!ana.in.gift) fail('present should be waiting');
   ana.got = []; ana.do({ k: 'gift' });
-  const gf = await ana.next('gift'); if (gf.coins !== 5) fail('present coins ' + JSON.stringify(gf));
-  await until(() => (ana.me.coins | 0) === before + 5, 'coins added');
+  const gf = await ana.next('gift'); if (gf.coins !== ana.in.giftN || ![5, 10].includes(gf.coins)) fail('present coins ' + JSON.stringify(gf));
+  await until(() => (ana.me.coins | 0) === before + gf.coins, 'coins added');
   ana.do({ k: 'gift' }); const gf2 = await ana.next('gift'); if (gf2.coins) fail('second present the same day');
   guest.do({ k: 'gift' }); if (!/account/.test((await guest.next('err')).msg)) fail('guest present');
   console.log('tree + present ok');
@@ -178,6 +184,64 @@ await stop(); await start();
 const ana2 = await player('Ana', ana.token).connect();
 const b = await ana2.enter();
 if (b.theme === 'winter') { if (b.tree.length !== 1 || b.tree[0].k !== 5) fail('tree after restart ' + JSON.stringify(b.tree)); if (b.gift) fail('present came back after a restart'); }
+await stop();
+
+// 11. Part 2, with the calendar pinned to Christmas Eve (a new day for Ana: her second visit).
+if (EMOTES.length !== COS.em.items.length || EMOTES.some((e, i) => i && e.e !== EMOTE_ICO[i])) fail('the emote list and the Wardrobe list differ');
+const E = id => EMOTES.findIndex(e => e?.id === id);
+await start({ DAILY_NOW: '2026-12-24T12:00:00Z' });
+{
+  const ana = await player('Ana', ana2.token).connect(), mod = await player('Mo', mod0).connect(), gus = await player('Gus').connect();
+  const a = await ana.enter(), m = await mod.enter(), g = await gus.enter();
+  if (a.visit !== 2 || ana.me.plzDays !== 2) fail('second day of visits: ' + a.visit + ' ' + ana.me.plzDays);
+  if (g.visit || a.giftN !== 10 || !a.gift) fail('Christmas present should be double and waiting');
+  if (a.ev) fail('no event expected at noon');
+  await ana.enter(); if (ana.in.visit) fail('a second visit the same day counted');
+  // emotes: only the ones you have
+  gus.got = []; ana.do({ k: 'em', e: E('clap') }); await wait(300); ana.do({ k: 'em', e: E('flip') }); await wait(300);
+  if (gus.got.some(x => x.k === 'em')) fail('an emote that is not owned went through');
+  ana.do({ k: 'em', e: E('dance') }); if ((await gus.next('em')).e !== E('dance')) fail('free emote');
+  // the bar
+  ana.send({ t: 'wear', k: 'eb', i: [2, 1, E('clap')] }); await until(() => ana.errs.length, 'bar with an emote that is not owned is refused');
+  ana.send({ t: 'wear', k: 'eb', i: [2, 1] }); await until(() => ana.me.cos?.eb?.join() === '2,1', 'bar saved');
+  ana.send({ t: 'wear', k: 'eb', i: [1, 2, 3, 4, 5, 6, 1] }); await wait(200); if (ana.me.cos.eb.join() !== '2,1') fail('a bad bar was saved');
+  ana.errs = []; ana.send({ t: 'buy', k: 'em', i: E('clap') }); await until(() => ana.errs.length, 'no coins, no emote');
+  // throwing: a throw at someone hits them; too fast is ignored; a far throw falls short
+  const pos = p => p.in.who.find(w => w.s === p.in.me);
+  await mod.walk(5, 8); await wait(300); gus.got = []; ana.got = [];
+  ana.do({ k: 'sb', x: 5 * Q + 6, z: 8 * Q + 4 });
+  const sb = await gus.next('sb'); if (sb.s !== ana.in.me || sb.h !== m.me || sb.x !== 5 * Q || sb.z !== 8 * Q) fail('throw ' + JSON.stringify(sb));
+  ana.do({ k: 'sb', x: 0, z: 0 }); await wait(300); if (gus.got.some(x => x.k === 'sb')) fail('throws come too fast');
+  await wait(1100); ana.do({ k: 'sb', x: pos(ana).x, z: pos(ana).z - 40 * Q });
+  const far = await gus.next('sb'); if (far.h || Math.abs(Math.hypot(far.x - pos(ana).x, far.z - pos(ana).z) / Q - THROW_RANGE) > .2) fail('far throw ' + JSON.stringify(far));
+  // a heart for a friend's pet: one friendship point a day, only between friends who both have a farm
+  for (const p of [ana, mod]) { p.send({ t: 'farm', a: { t: 'open' } }); await until(() => p.farm, 'farm opens'); p.farm = null; p.send({ t: 'farm', a: { t: 'starter', sp: 'mossbun' } }); await until(() => p.farm?.farm?.pets?.length === 1, 'starter'); }
+  ana.got = []; ana.do({ k: 'pat', s: m.me, i: 0 }); await ana.next('pat'); await wait(200); if (ana.got.some(x => x.k === 'pal')) fail('a point without being friends');
+  ana.send({ t: 'friend', op: 'add', user: 'mod' }); await wait(200); mod.send({ t: 'friend', op: 'accept', user: 'ana' }); await wait(300);
+  await wait(700); ana.do({ k: 'pat', s: m.me, i: 0 }); const pal = await ana.next('pal'); if (pal.n !== 'Mo') fail('friendship point ' + JSON.stringify(pal));
+  await wait(1000); ana.got = []; ana.do({ k: 'pat', s: m.me, i: 0 }); await ana.next('pat'); await wait(200); if (ana.got.some(x => x.k === 'pal')) fail('two points in a day');
+  ana.farm = null; ana.send({ t: 'farm', a: { t: 'open' } }); await until(() => ana.farm?.farm, 'farm again'); if (Object.values(ana.farm.farm.pals || {})[0] !== 1) fail('the point is not on the farm ' + JSON.stringify(ana.farm.farm.pals));
+  // a host starts a show: everyone hears within a second or two; guests can't
+  gus.got = []; gus.do({ k: 'show' }); await wait(1300); if (gus.got.some(x => x.k === 'ev')) fail('a guest started the fireworks');
+  mod.do({ k: 'show' }); const ev = await gus.next('ev'); if (ev.ev?.id !== 'show' || !(ev.ev.left > 4 * 60000)) fail('show ' + JSON.stringify(ev));
+  gus.do({ k: 'peek' }); if ((await gus.next('peek')).ev !== 'show') fail('the hub button does not know about the show');
+  for (const p of [ana, mod, gus]) p.ws.close();
+  console.log('part 2: emotes, bar, throwing, friendship, show ok');
+}
+await stop();
+// 12. The third day: the visit emote unlocks; New Year's Eve counts down to midnight.
+await start({ DAILY_NOW: '2026-12-25T12:00:00Z', PLAZA_EVENT: 'newyear', PLAZA_MID: '20' });
+{
+  const ana = await player('Ana', ana2.token).connect(), gus = await player('Gus').connect();
+  const a = await ana.enter(); await gus.enter();
+  if (a.visit !== 3 || a.ev?.id !== 'newyear' || !(a.ev.mid > 0 && a.ev.mid <= 20000)) fail('day three ' + JSON.stringify([a.visit, a.ev]));
+  if (ana.me.cos.eb.join() !== '2,1') fail('the bar was lost over a restart');
+  gus.got = []; ana.do({ k: 'em', e: E('flip') }); if ((await gus.next('em')).e !== E('flip')) fail('the emote earned by three visits');
+  await wait(300); ana.do({ k: 'em', e: E('robot') }); await wait(300); if (gus.got.some(x => x.k === 'em')) fail('seven-day emote after three days');
+  ana.send({ t: 'wear', k: 'eb', i: [E('flip'), 1] }); await until(() => ana.me.cos.eb.join() === E('flip') + ',1', 'earned emote on the bar');
+  ana.ws.close(); gus.ws.close();
+  console.log('part 2: visits and events ok');
+}
 await stop();
 fs.rmSync(DATA_DIR, { recursive: true, force: true });
 console.log('plaza: all good');

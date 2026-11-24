@@ -6,7 +6,7 @@ import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt,
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, cosPackIds } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, cosPackIds, emotesOf, EMOTE_BAR, EMOTE_ICO } from './cosmetics.js';
 import { playWinFx, setSeatFx, setMyFx, winPic } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -1056,7 +1056,7 @@ function onMsg(m) {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
   } else if (m.t === 'plaza') {
-    if (m.k === 'peek') { st.plazaPeek = m; paintPlazaBtn(); } else st.plaza?.msg(m);
+    if (m.k === 'peek') { m.at = Date.now(); st.plazaPeek = m; paintPlazaBtn(); } else st.plaza?.msg(m);
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
   } else if (m.t === 'pop') {
@@ -1214,7 +1214,7 @@ function openPlaza() {
     if (st.view !== 'plaza') return;
     st.plaza = mountWithCss('plaza', () => mod.mount($app, { send: a => send({ t: 'plaza', a }), toast, me: () => st.me, home: () => { closePlaza(); go('hub'); }, account: mode => openAccount(mode),
       player: pt => send({ t: 'player', pt }), wheel: () => openWheel(), join: code => send({ t: 'join', code }), askTables: () => send({ t: 'rooms' }), gameName: id => GAMES[id]?.name || id,
-      chatLog: hubLogHtml, chatFoot: hubFootHtml }));
+      chatLog: hubLogHtml, chatFoot: hubFootHtml, wardrobe: () => { if (!st.name) return openProfile(true); openWardrobe({ sec: 'emo' }); } }));
     st.plaza.tables(st.rooms); placeGameSwitch();
   }).catch(err => { console.error(err); plazaLoading = null; toast(L('Could not load the plaza. Refresh?', 'Nie udało się wczytać placu. Odświeżyć stronę?'), true); go('hub'); });
 }
@@ -1222,7 +1222,8 @@ function closePlaza() { if (!st.plaza) return; st.plaza.destroy(); st.plaza = nu
 // The hub's Plaza button: how many are there now, and the faces of the first few (friends first).
 function plazaBtnHtml() {
   const n = st.stats?.plaza | 0, pk = st.plazaPeek, faces = (pk?.faces || []).slice(0, 4);
-  return `<span class="plzb-ico" aria-hidden="true">${pk?.theme === 'meadow' ? '⛲' : '🎄'}</span><span class="plzb-tx"><b>${L('Plaza', 'Plac')}</b><small>${n ? L(`${n} ${n === 1 ? 'person is' : 'people are'} there now`, `teraz na placu: ${n}`) : L('Walk around and meet people', 'Pospaceruj i poznaj ludzi')}</small></span>`
+  const evTime = pk?.next ? new Date(pk.at + pk.next.in).toLocaleTimeString(PL ? 'pl-PL' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+  return `<span class="plzb-ico" aria-hidden="true">${pk?.theme === 'meadow' ? '⛲' : '🎄'}</span><span class="plzb-tx"><b>${L('Plaza', 'Plac')}</b><small>${pk?.ev ? L('🎆 Fireworks on now', '🎆 Trwają fajerwerki') + (n ? ` · ${n}` : '') : pk?.next && n < 1 ? L(`🎆 Fireworks at ${evTime}`, `🎆 Fajerwerki o ${evTime}`) : n ? L(`${n} ${n === 1 ? 'person is' : 'people are'} there now`, `teraz na placu: ${n}`) + (pk?.next ? ` · 🎆 ${evTime}` : '') : L('Walk around and meet people', 'Pospaceruj i poznaj ludzi')}</small></span>`
     + (faces.length ? `<span class="plzb-faces" aria-hidden="true">${faces.map(f => avatarHtml(f.c, f.av, 30, f.f ? 'fr' : '')).join('')}</span>` : '');
 }
 function paintPlazaBtn() { const el = document.getElementById('plaza-btn'); if (el) el.innerHTML = plazaBtnHtml(); }
@@ -2434,7 +2435,7 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾'];
-const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
+const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
@@ -2532,16 +2533,17 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     : k === 'pb' ? `<span class="wdbg${i ? '' : ' none'}">${cardBg({ pb: i })}${it.t === 'a' || it.a ? `<em>${L('moves', 'rusza się')}</em>` : ''}</span>`
     : k === 'ti' ? `<span class="wdtxt">${i ? `<span class="ttl" ${fitw(it.n)}>${esc(it.n)}</span>` : `<span class="ttl none">${L('no title', 'bez tytułu')}</span>`}</span>`
     : k === 'wn' ? (winPic(i) ? `<span class="wdemo"><img alt="" src="${winPic(i)}"></span>` : `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`)
+    : k === 'em' ? `<span class="wdemo">${EMOTE_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
     : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic${k === 'ik' ? ' isk' + i : ''}" data-isle="${k}:${i}">`
     : `<img alt="" data-kit="${k}:${i}"${skinPicNow(k, i, color, av) ? ` src="${skinPicNow(k, i, color, av)}"` : ''}>`;
   const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
   const cosTile = (k, i) => {
-    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, on = multi ? own || pick[k] === i : worn(k) === i;
+    const { it, own, pr, off } = cosState(k, i), multi = COS[k].multi, bar = k === 'em' ? emotesOf(me()).indexOf(i) : -1, on = k === 'em' ? bar >= 0 || pick[k] === i : multi ? own || pick[k] === i : worn(k) === i;
     const note = pr ? `${pr[0]}/${pr[1]} · ${esc(pr[2])}` : off ? `${L('back in', 'wraca:')} ${cosSeason(k, i).back}` : !own && it.pk ? `☕ ${L('supporters', 'wspierający')}` : !own ? `${coinIco}${it.p}${it.s ? ` ${SEASON_ICO[it.s] || ''}` : ''}` : it.p || it.earn || it.pk ? yours : '';
-    return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b ${fitw(it.n)}>${esc(it.n)}</b>`}${k === 'nm' ? `<b ${fitw(it.n)}>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
+    return `<button type="button" class="wdtile cos${own ? '' : ' lk'}${pick[k] === i ? ' try' : ''}${pr ? ' goal' : ''}"${pr || off ? ' disabled' : ''} aria-pressed="${on}" data-c="${k}" data-v="${i}">${bar >= 0 ? `<i class="palno">${bar + 1}</i>` : ''}${cosPic(k, i, it)}${k === 'ti' || k === 'nm' ? '' : `<b ${fitw(it.n)}>${esc(it.n)}</b>`}${k === 'nm' ? `<b ${fitw(it.n)}>${esc(it.n)}</b>` : ''}<small>${note}</small></button>`;
   };
-  const cosList = k => COS[k].items.map((_, i) => i).filter(i => { const s = cosState(k, i); return filt === 'mine' ? s.own : filt === 'shop' ? !s.own && !s.pr : true; })
+  const cosList = k => COS[k].items.map((_, i) => i).filter(i => { if (k === 'em' && !i) return false; const s = cosState(k, i); return filt === 'mine' ? s.own : filt === 'shop' ? !s.own && !s.pr : true; })
     .sort((a, b) => { const x = cosState(k, a), y = cosState(k, b); return (x.off || !!x.pr) - (y.off || !!y.pr); });
   const petsHtml = () => { const pets = st.pets || [], ids = showIds();
     return !me().user ? `<p class="wdnone">${L('Log in and start a Pet Farm to show off your pets.', 'Zaloguj się i załóż Farmę zwierzaków, żeby pochwalić się swoimi zwierzakami.')}</p>` : !pets.length ? `<p class="wdnone">${L('Hatch a pet in Pet Farm and it can come along.', 'Wykluj zwierzaka na Farmie zwierzaków, a będzie mógł ci towarzyszyć.')}</p>`
@@ -2674,6 +2676,12 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     const c = t.closest('[data-c]'); if (!c) return;
     const k = c.dataset.c, i = +c.dataset.v; sfx.pop();
     if (k === 'wn' && i) playWinFx(i, { ms: 2600 });
+    if (k === 'em' && has(k, i)) { // an emote you have: tap to put it on the bar, tap again to take it off
+      const l = emotesOf(me()).slice(), at = l.indexOf(i);
+      if (at >= 0) { if (l.length < 2) return toast(L('Keep at least one emote on the bar.', 'Na pasku musi zostać przynajmniej jedna emotka.')); l.splice(at, 1); }
+      else if (l.length >= EMOTE_BAR) return toast(L(`The bar holds ${EMOTE_BAR} emotes. Tap one to take it off first.`, `Na pasku mieści się ${EMOTE_BAR} emotek. Najpierw dotknij jednej, żeby ją zdjąć.`)); else l.push(i);
+      (st.me.cos ||= {}).eb = l; send({ t: 'wear', k: 'eb', i: l }); st.plaza?.me(); return paintGrid(true);
+    }
     if (has(k, i)) { delete pick[k]; if (!COS[k].multi) { (st.me.cos ||= {})[k] = i; send({ t: 'wear', k, i }); } }
     else if (pick[k] === i) delete pick[k]; else pick[k] = i;
     paintGrid(true); paintPlate(); paintCart();

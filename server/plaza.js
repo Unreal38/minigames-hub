@@ -7,8 +7,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DATA_DIR, safeText, shopDate } from './store.js';
+import { now as clock, dayOf, startOf, addDays } from './day.js';
 import { allow } from './limits.js';
-import { CAP, R_WALK, SPEED, SPAWN, Q, TREE_R, TREE_REACH, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, SLOTS, themeOf, clampWalk } from '../public/games/plaza/layout.js';
+import { CAP, R_WALK, SPEED, SPAWN, Q, TREE_R, TREE_REACH, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, SLOTS, themeOf, clampWalk, THROW_RANGE, THROW_HIT, THROW_WAIT } from '../public/games/plaza/layout.js';
 
 const FILE = path.join(DATA_DIR, 'plaza.json');
 const MUTE_MS = 10 * 60_000, KICK_MS = 10 * 60_000;
@@ -16,8 +17,38 @@ const rooms = new Map();   // room number -> { no, m: Map(token -> member), next
 const where = new Map();   // token -> room
 const muted = new Map(), kicked = new Map(); // profile id (or token for a guest) -> until
 let tree = [];             // ornaments: { i: slot, k: kind, n: name, pt: public tag, pid, at }
-let hooks = { info: () => ({}), isAdmin: () => false, friends: () => [], pidOf: () => null, mayReact: () => true, table: () => null, giftLeft: () => false, giftTake: () => 0 };
-export const GIFT = 5; // coins in the daily present under the tree
+let hooks = { info: () => ({}), isAdmin: () => false, friends: () => [], pidOf: () => null, mayReact: () => true, mayEmote: () => true, visit: () => ({ days: 0, fresh: false }), patPal: () => false, table: () => null, giftLeft: () => false, giftTake: () => 0 };
+export const GIFT = 5; // coins in the daily present under the tree (twice that from 24 to 26 December)
+const HOUR = 3600_000;
+
+// ----- timed events -----
+// Things that happen in the plaza at set times (Warsaw's clock, like every daily thing):
+//   newyear  31 December 20:00 to 1 January 02:00: fireworks, a countdown, and a big finale at midnight
+//   party    every Saturday 20:00 to 21:00: fireworks over the square
+//   show     five minutes of fireworks a host started by hand (the room menu)
+// PLAZA_EVENT pins one for tests and for looking at it.
+let showUntil = 0;
+const HOUR20 = 20 * HOUR;
+const isSat = day => new Date(day + 'T12:00Z').getUTCDay() === 6;
+export function eventAt(t = clock()) {
+  if (process.env.PLAZA_EVENT) return { id: process.env.PLAZA_EVENT, end: t + HOUR, ...(process.env.PLAZA_EVENT === 'newyear' ? { mid: t + (+process.env.PLAZA_MID || 30) * 1000 } : {}) };
+  const day = dayOf(t), [, m, d] = day.split('-').map(Number), t0 = startOf(day);
+  if (m === 12 && d === 31 && t >= t0 + HOUR20) { const mid = startOf(addDays(day, 1)); return { id: 'newyear', mid, end: mid + 2 * HOUR }; }
+  if (m === 1 && d === 1 && t < t0 + 2 * HOUR) return { id: 'newyear', mid: t0, end: t0 + 2 * HOUR };
+  if (showUntil > t) return { id: 'show', end: showUntil };
+  if (isSat(day) && t >= t0 + HOUR20 && t < t0 + 21 * HOUR) return { id: 'party', end: t0 + 21 * HOUR };
+  return null;
+}
+// The next one within a day, for the hub's button ("fireworks at 20:00").
+export function eventNext(t = clock()) {
+  if (eventAt(t)) return null;
+  for (const day of [dayOf(t), addDays(dayOf(t), 1)]) { const [, m, d] = day.split('-').map(Number), at = startOf(day) + HOUR20;
+    if (at > t && at - t < 24 * HOUR && (m === 12 && d === 31 || isSat(day))) return { id: m === 12 && d === 31 ? 'newyear' : 'party', in: at - t }; }
+  return null;
+}
+// What a page needs: which event, how long it lasts, and how far midnight is (all from now, so clocks need not agree).
+const evView = (t = clock()) => { const e = eventAt(t); return e ? { id: e.id, left: e.end - t, ...(e.mid ? { mid: e.mid - t } : {}) } : null; };
+const giftSize = () => { const [, m, d] = dayOf().split('-').map(Number); return m === 12 && d >= 24 && d <= 26 ? GIFT * 2 : GIFT; };
 export function setup(h) { hooks = { ...hooks, ...h }; }
 
 export const theme = () => { const [, m, d] = shopDate().split('-').map(Number); return themeOf(m, d); };
@@ -70,11 +101,11 @@ export function join(c, want) {
   const m = { c, s: r.next++, x: Math.round(x * Q), z: Math.round(z * Q), r: 31, e: 0, sp: -1, at: Date.now() };
   r.m.set(c.token, m); where.set(c.token, r);
   toRoom(r, { t: 'plaza', k: 'add', p: view(m) }, m);
-  hello(c, r);
+  hello(c, r, hooks.visit(c));
 }
-function hello(c, r) {
+function hello(c, r, visit) {
   const m = r.m.get(c.token);
-  say(c, { t: 'plaza', k: 'in', room: r.no, cap: CAP, me: m.s, theme: theme(), who: [...r.m.values()].map(view), signs: signsOf(r), gift: theme() === 'winter' && hooks.giftLeft(c), tree: theme() === 'winter' ? treeView() : null, rooms: roomList(c), mod: hooks.isAdmin(c) });
+  say(c, { t: 'plaza', k: 'in', ev: evView(), ...(visit?.fresh ? { visit: visit.days } : {}), giftN: giftSize(), room: r.no, cap: CAP, me: m.s, theme: theme(), who: [...r.m.values()].map(view), signs: signsOf(r), gift: theme() === 'winter' && hooks.giftLeft(c), tree: theme() === 'winter' ? treeView() : null, rooms: roomList(c), mod: hooks.isAdmin(c) });
 }
 export function leave(c) {
   const r = where.get(c.token); if (!r) return false;
@@ -102,7 +133,8 @@ export function peek(c) {
   const fr = new Set(hooks.friends(c)), faces = [];
   for (const r of rooms.values()) for (const m of r.m.values()) { const i = hooks.info(m.c); faces.push({ n: i.n, c: i.c, av: i.av, f: fr.has(hooks.pidOf(m.c)) ? 1 : 0 }); }
   faces.sort((a, b) => b.f - a.f);
-  return { t: 'plaza', k: 'peek', n: where.size, faces: faces.slice(0, 5), fr: faces.filter(x => x.f).length, theme: theme() };
+  const ev = eventAt(), next = ev ? null : eventNext();
+  return { t: 'plaza', k: 'peek', n: where.size, faces: faces.slice(0, 5), fr: faces.filter(x => x.f).length, theme: theme(), ...(ev ? { ev: ev.id } : {}), ...(next ? { next } : {}) };
 }
 
 // A player changed their look, name, pets or flair: everyone in their room sees it.
@@ -137,6 +169,7 @@ export function handle(c, a) {
     case 'em': { // an emote; sit may name a seat
       const e = int(a.e, 0, EMOTES.length - 1);
       if (now - (m.emAt || 0) < 350) return; m.emAt = now;
+      if (e && !hooks.mayEmote(c, e)) return; // bought, seasonal and earned emotes: only their owners
       let sp = -1;
       if (EMOTES[e]?.id === 'sit' && Number.isInteger(a.sp) && SPOTS[a.sp]) {
         const s = SPOTS[a.sp];
@@ -156,13 +189,28 @@ export function handle(c, a) {
       if (now - (m.patAt || 0) < 900) return; m.patAt = now;
       const t = [...r.m.values()].find(x => x.s === (a.s | 0)); if (!t) return;
       toRoom(r, { t: 'plaza', k: 'pat', s: t.s, i: int(a.i, 0, 2), by: m.s });
+      if (t !== m && hooks.patPal(c, t.c)) say(c, { t: 'plaza', k: 'pal', n: hooks.info(t.c).n }); // a friend's pet: a Pet Farm friendship point, once a day each
+      return;
+    }
+    case 'sb': { // throw a snowball (a soft ball outside winter) at a spot; whoever stands there gets a puff of snow
+      if (now - (m.sbAt || 0) < THROW_WAIT || until(muted, keyOf(c))) return; m.sbAt = now;
+      const mx = m.x / Q, mz = m.z / Q; let x = +a.x / Q, z = +a.z / Q; if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+      const d = Math.hypot(x - mx, z - mz); if (d < .6) return; if (d > THROW_RANGE) { x = mx + (x - mx) / d * THROW_RANGE; z = mz + (z - mz) / d * THROW_RANGE; }
+      let hit = null, best = THROW_HIT; for (const o of r.m.values()) { if (o === m) continue; const q = Math.hypot(o.x / Q - x, o.z / Q - z); if (q < best) { best = q; hit = o; } }
+      if (hit) { x = hit.x / Q; z = hit.z / Q; }
+      toRoom(r, { t: 'plaza', k: 'sb', s: m.s, x: Math.round(x * Q), z: Math.round(z * Q), h: hit ? hit.s : 0 });
+      return;
+    }
+    case 'show': { // hosts only: five minutes of fireworks in every room
+      if (!hooks.isAdmin(c) || !allow('plz:show:' + keyOf(c), 4, 60_000)) return;
+      showUntil = clock() + 5 * 60_000; evKey = ''; console.log(`plaza: ${hooks.info(c).n} started a fireworks show`);
       return;
     }
     case 'gift': { // the daily present under the Christmas tree
       if (theme() !== 'winter') return;
       if (!hooks.info(c).u) return say(c, { t: 'plaza', k: 'err', msg: 'Log in or make an account to open the present.' });
       if (Math.hypot(m.x / Q, m.z / Q) > TREE_REACH + 1) return say(c, { t: 'plaza', k: 'err', msg: 'Walk up to the tree first.' });
-      const coins = hooks.giftTake(c, GIFT); if (!coins) return say(c, { t: 'plaza', k: 'gift', left: false });
+      const coins = hooks.giftTake(c, giftSize()); if (!coins) return say(c, { t: 'plaza', k: 'gift', left: false });
       say(c, { t: 'plaza', k: 'gift', coins, left: false }); toRoom(r, { t: 'plaza', k: 'em', s: m.s, e: EMOTES.findIndex(e => e?.id === 'cheer'), sp: -1 });
       return;
     }
@@ -198,9 +246,9 @@ export function handle(c, a) {
 }
 
 // Ten times a second: one text per room with everyone who moved, as [id, x, z, facing].
-let signN = 0;
+let signN = 0, evKey = '';
 export function tick() {
-  if (++signN % 10 === 0) checkSigns();
+  if (++signN % 10 === 0) { checkSigns(); const e = eventAt(), k = e ? e.id + e.end : ''; if (k !== evKey) { evKey = k; all({ t: 'plaza', k: 'ev', ev: evView() }); } } // an event starting or ending reaches every room within a second
   for (const r of rooms.values()) {
     if (!r.dirty.size) continue;
     const s = JSON.stringify({ t: 'plaza', k: 'p', m: [...r.dirty].map(m => [m.s, m.x, m.z, m.r]) });

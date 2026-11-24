@@ -239,6 +239,13 @@ export function ladder(pid) {
 }
 export const fidOf = pid => { const f = farms.get(pid); return f?.pets.length ? fid(f) : null; };
 const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key] ||= {}; };
+// A heart for a friend's pet in the Plaza (server/plaza.js): one friendship point a day for each friend, for the one who gave it.
+export function plazaPat(pid, friendPid) {
+  const f = farms.get(pid), o = farms.get(friendPid); if (!f?.pets.length || !o?.pets.length) return false;
+  const done = daily(f, 'pat'), id = fid(o); if (done[id]) return false;
+  done[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1; scheduleSave();
+  return true;
+}
 // Lucky Wheel prizes (server/wheel.js). A prize is a letter: { got }, { item }, { pet: { sp, el } } or { boost: building }.
 // Wheel letters are never pushed out of a full mailbox by newer mail.
 export function wheelMail(pid, m) {

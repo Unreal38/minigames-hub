@@ -10,6 +10,8 @@
 //         or { lv: account level } or { any: wins in any one game }
 //   pk: part of a thank-you pack (PACK in avatar.js): not for sale, handed out with the pack, e.g. 'kofi' for Ko-fi supporters
 //         or { top: best place ever held in the overall ranking } or { sp: pet species in the Pet Farm album }
+//         or { pv: different days the Plaza was visited }
+//   f: free for everyone, guests too (the first emotes)
 import { seasonOn, SEASONS } from './avatar.js';
 import { levelOf } from './ranks.js';
 import { L, PL } from './i18n.js';
@@ -52,6 +54,13 @@ export const COS = {
     { n: 'Love', p: 100, e: ['🥰', '😍', '🤗', '😘', '💖', '🌸'] }, { n: 'Hype', p: 120, e: ['😎', '✨', '💪', '🏆', '⚡', '🚀'] },
     { n: 'Sleepy', p: 100, e: ['😴', '🥱', '💤', '🌙', '🛌', '🧸'] }, { n: 'Hmm', p: 100, e: ['🤔', '🧐', '🤨', '😏', '🤫', '🫣'] },
     { n: 'Winter', p: 100, s: 'winter', e: ['⛄', '🎄', '🎁', '🧣', '🦌', '🔔'] }] },
+  // Emotes for the Plaza (games/plaza/layout.js EMOTES, same order). Every emote you have is yours to use; cos.eb lists the
+  // ones on your emote bar (EMOTE_SLOTS of them, see emotesOf). Entry 0 is a placeholder so the numbers match EMOTES.
+  em: { label: 'Emotes', multi: true, where: 'What your avatar can do in the Plaza. Tap the ones you own to put up to six on your emote bar.', items: [{ n: 'None' },
+    { n: 'Wave', f: 1 }, { n: 'Dance', f: 1 }, { n: 'Sit', f: 1 }, { n: 'Jump', f: 1 }, { n: 'Cheer', f: 1 }, { n: 'Pet trick', f: 1 },
+    { n: 'Clap', p: 80 }, { n: 'Bow', p: 80 }, { n: 'Twirl', p: 120 }, { n: 'Laugh', p: 100 }, { n: 'Nap', p: 150 }, { n: 'Blow a kiss', p: 150 },
+    { n: 'Snow angel', p: 150, s: 'winter' }, { n: 'Shiver', p: 100, s: 'winter' },
+    { n: 'Backflip', earn: { pv: 3 } }, { n: 'Robot', earn: { pv: 7 } }, { n: 'Star shower', earn: { pv: 14 } }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
   cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' },
     { n: 'Leaf', p: 150 }, { n: 'Ember', p: 150 }, { n: 'Tide', p: 150 }, { n: 'Spark', p: 150 }, { n: 'Stone', p: 150 },
@@ -103,6 +112,7 @@ export const cosSeason = (k, i) => SEASONS[cosItem(k, i)?.s] || null;
 export function earnProgress(it, me) {
   const e = it?.earn; if (!e) return null;
   if (e.top) return [me?.bestPos >= 1 && me.bestPos <= e.top ? 1 : 0, 1, e.top === 1 ? L('reach 1st place in the overall ranking', 'zajmij 1. miejsce w rankingu ogólnym') : L(`reach the top ${e.top} of the overall ranking`, `wejdź do pierwszej ${e.top} rankingu ogólnego`)];
+  if (e.pv) return [Math.min(e.pv, (me?.plzDays ?? me?.plz?.days) | 0), e.pv, L(`visit the Plaza on ${e.pv} different days`, `odwiedź Plac w ${e.pv} różnych dniach`)];
   if (e.sp) return [Math.min(e.sp, me?.petSp | 0), e.sp, L(`${e.sp} pet species in your Pet Farm album`, `${e.sp} gatunków zwierzaków w albumie Farmy zwierzaków`)];
   if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, L(`${e.d} Mystery Pets solved in a row`, `Zagadkowy zwierzak odgadnięty ${e.d} dni z rzędu`)];
   if (e.lv) return [Math.min(e.lv, levelOf(me?.xp || 0)), e.lv, L(`reach level ${e.lv}`, `osiągnij poziom ${e.lv}`)];
@@ -114,7 +124,7 @@ export function earnProgress(it, me) {
 // May this player wear (or use) entry i of kind k?
 export function cosHas(me, k, i) {
   const it = cosItem(k, i); if (!it) return false;
-  if (i === 0) return true;
+  if (i === 0 || it.f) return true;
   if (it.earn) { const [a, b] = earnProgress(it, me); return a >= b; }
   return !!me?.owned?.includes(k + ':' + i);
 }
@@ -126,6 +136,11 @@ export function flairOf(me) {
   const ip = decorOf(me); if (ip.length) out.ip = ip; // the server drops any the farm no longer has (store.flair)
   return out;
 }
+
+// The emote bar: the picked emotes this player really has, or the first six (the free ones) when none were picked.
+export const EMOTE_BAR = 6;
+export const EMOTE_ICO = ['', '👋', '💃', '🪑', '🦘', '🙌', '🐾', '👏', '🙇', '🌀', '😂', '😴', '💖', '👼', '🥶', '🤸', '🤖', '🌟']; // the same pictures as layout.js EMOTES (test/plaza.js checks)
+export const emotesOf = me => { const l = (Array.isArray(me?.cos?.eb) ? me.cos.eb : [1, 2, 3, 4, 5, 6]).filter((i, n, a) => Number.isInteger(i) && i > 0 && a.indexOf(i) === n && cosHas(me, 'em', i)).slice(0, EMOTE_BAR); return l; };
 
 // ---------- stickers ----------
 // Reactions 0..11 are the free ones (react.js). From 12 on come the sticker packs, six per pack, in pack order.

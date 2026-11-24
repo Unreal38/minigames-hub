@@ -1,19 +1,19 @@
 // The Plaza's page: the 3D island (scene3d.js) with name tags, speech bubbles and buttons laid over it.
 //   mount(app, ctx) -> { msg(m), chat(line), chatGone(), tables(rooms), reopen(), destroy() }
 // ctx comes from app.js: send(a) (a plaza action), toast, me(), home(), account(mode), player(pt), wheel(), join(code),
-// askTables(), gameName(id), chatLog(), chatFoot() (the hub chat's own markup: the plaza shares that conversation).
+// askTables(), gameName(id), chatLog(), chatFoot() (the hub chat's own markup: the plaza shares that conversation),
+// wardrobe() (opens the Wardrobe at the emotes).
 import { L } from '../../i18n.js';
 import { sfx } from '../../sfx.js';
 import { EMOJI, FOODS, reactHtml } from '../../react.js';
-import { stickersOf, nameHtml } from '../../cosmetics.js';
+import { stickersOf, nameHtml, emotesOf, cosItem, COS, cosHas } from '../../cosmetics.js';
 import { srvText } from '../../lang/server.js';
 import { uiz } from '../../uiz.js';
 import { createScene } from './scene3d.js';
-import { CAP, Q, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, TREE_REACH, THINGS } from './layout.js';
+import { CAP, Q, SPOTS, SPOT_REACH, EMOTES, ORNAMENTS, TREE_REACH, THINGS, THROW_WAIT } from './layout.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LS = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
-const EMO_NAME = { wave: () => L('Wave', 'Pomachaj'), dance: () => L('Dance', 'Tańcz'), sit: () => L('Sit', 'Usiądź'), jump: () => L('Jump', 'Skocz'), cheer: () => L('Cheer', 'Wiwat'), trick: () => L('Pet trick', 'Sztuczka') };
 const ORN_NAME = { red: () => L('Red bauble', 'Czerwona bombka'), gold: () => L('Gold bauble', 'Złota bombka'), blue: () => L('Blue bauble', 'Niebieska bombka'), pink: () => L('Pink bauble', 'Różowa bombka'), silver: () => L('Silver bauble', 'Srebrna bombka'),
   star: () => L('Star', 'Gwiazdka'), bell: () => L('Bell', 'Dzwonek'), cane: () => L('Candy cane', 'Laska cukrowa'), ginger: () => L('Gingerbread', 'Piernik'), snow: () => L('Snowflake', 'Śnieżynka') };
 // Small drawn pictures of the ornaments (drawn, not emoji, so they look the same on every system).
@@ -45,6 +45,7 @@ export function mount(app, ctx) {
         <button type="button" class="plz-chip" data-a="home" aria-label="${L('Main page', 'Strona główna')}"><span aria-hidden="true">←</span><b class="plz-wide">${L('Main page', 'Strona główna')}</b></button>
         <button type="button" class="plz-chip" data-a="rooms" id="plz-room" aria-haspopup="true"></button>
         <button type="button" class="plz-chip" data-a="tables" id="plz-tbl" aria-haspopup="true" aria-label="${L('Open tables', 'Otwarte stoły')}"><span aria-hidden="true">🪧</span><b class="plz-wide">${L('Open tables', 'Otwarte stoły')}</b><i id="plz-tbln" hidden></i></button>
+        <button type="button" class="plz-chip plz-evchip" data-a="ev" id="plz-ev" hidden></button>
       </div>
       <div class="tr plz-tr">
         <button type="button" class="round plz-chatbtn" data-a="chat" aria-label="${L('Chat', 'Czat')}">💬<i class="plz-dot" id="plz-unread" hidden></i></button>
@@ -57,22 +58,56 @@ export function mount(app, ctx) {
       </section>
       <div class="plz-acts" id="plz-acts"></div>
       <div class="plz-bar" id="plz-bar">
-        <div class="plz-emos" id="plz-emos">${EMOTES.map((e, i) => e ? `<button type="button" class="plz-emo" data-a="emo" data-e="${i}"><span aria-hidden="true">${e.e}</span><b>${EMO_NAME[e.id]()}</b></button>` : '').join('')}</div>
+        <div class="plz-emos" id="plz-emos"></div>
         <button type="button" class="plz-fab plz-emobtn" data-a="emos" aria-expanded="false" aria-label="${L('Emotes', 'Emotki')}">🙌</button>
+        <button type="button" class="plz-fab plz-throw" data-a="aim" id="plz-aim" aria-pressed="false"></button>
         <button type="button" class="plz-fab" data-a="reacts" aria-expanded="false" aria-label="${L('Reactions', 'Reakcje')}">😊</button>
       </div>
       <div class="plz-joy" id="plz-joy" aria-hidden="true"><i></i></div>
+      <div class="plz-hint plz-aimh" id="plz-aimh" hidden></div>
       <div class="plz-hint" id="plz-hint">${L('WASD or arrows to walk, or click the ground', 'Chodzisz klawiszami WASD lub strzałkami albo klikając ziemię')}</div>
     </div>
   </div>`;
   const root = app.querySelector('.plz'), $ = id => root.querySelector('#' + id), tagBox = $('plz-tags'); let canvas = root.querySelector('.plz-cv');
   const coarse = matchMedia('(pointer: coarse)').matches;
   root.classList.toggle('touch', coarse);
-  let S = null, scene = null, destroyed = false, tags = new Map(), signs = new Map(), tablesList = [], chatOpen = !coarse && !matchMedia('(max-width: 760px)').matches, unread = 0, gift = false, myOrn = 0;
+  let S = null, scene = null, destroyed = false, tags = new Map(), signs = new Map(), tablesList = [], chatOpen = !coarse && !matchMedia('(max-width: 760px)').matches, unread = 0, gift = false, giftN = 5, myOrn = 0;
   const hidden = new Set(LS.get('ct_plz_hide') || []);
   const send = a => ctx.send(a);
   const who = s => S?.who.get(s);
   const isHid = p => !!p?.pt && hidden.has(p.pt);
+
+  // ---- your emote bar: the six you picked in the Wardrobe, and a way to the rest
+  let emoKey = '';
+  function paintEmos() {
+    const list = emotesOf(ctx.me()), key = list.join() + (ctx.me()?.user ? 'a' : 'g'); if (key === emoKey) return; emoKey = key;
+    $('plz-emos').innerHTML = list.map(i => EMOTES[i] ? `<button type="button" class="plz-emo" data-a="emo" data-e="${i}"><span aria-hidden="true">${EMOTES[i].e}</span><b>${esc(cosItem('em', i).n)}</b></button>` : '').join('')
+      + `<button type="button" class="plz-emo plz-more" data-a="moremo" aria-label="${L('More emotes: open the Wardrobe', 'Więcej emotek: otwórz Garderobę')}"><span aria-hidden="true">＋</span><b>${L('More', 'Więcej')}</b></button>`;
+  }
+  paintEmos();
+
+  // ---- throwing: the button turns your taps into throws until you press it again
+  let aiming = false, threwAt = 0;
+  function paintAim() { const w = S?.theme === 'winter', b = $('plz-aim'); b.textContent = w ? '❄️' : '🎾'; b.setAttribute('aria-pressed', aiming); b.setAttribute('aria-label', w ? L('Throw snowballs', 'Rzucaj śnieżkami') : L('Throw a ball', 'Rzucaj piłką'));
+    root.classList.toggle('aiming', aiming); const h = $('plz-aimh'); h.hidden = !aiming; if (aiming) { $('plz-hint').hidden = true; h.style.top = ((root.querySelector('.plz-tl').getBoundingClientRect().bottom - root.getBoundingClientRect().top) / uiz() + 10) + 'px'; h.textContent = coarse ? L('Tap where to throw', 'Dotknij tam, gdzie chcesz rzucić') : L('Click where to throw. Press the button again to stop.', 'Kliknij tam, gdzie chcesz rzucić. Naciśnij przycisk jeszcze raz, żeby przestać.'); } }
+  function throwAt(x, y) { if (!scene) return; const now = performance.now(); if (now - threwAt < THROW_WAIT) return; const p = scene.aim(x, y); if (!p) return; threwAt = now; send({ k: 'sb', x: p[0], z: p[1] });
+    const b = $('plz-aim'); b.classList.add('wait'); setTimeout(() => b.classList.remove('wait'), THROW_WAIT); }
+  paintAim();
+
+  // ---- timed events: fireworks on New Year's Eve, on Saturday evenings, and when a host starts a show
+  const EV_NAME = { newyear: () => L("New Year's Eve", 'Sylwester'), party: () => L('Saturday party', 'Sobotnia impreza'), show: () => L('Fireworks show', 'Pokaz fajerwerków') };
+  let ev = null;
+  const clockOf = ms => { const s = Math.max(0, Math.round(ms / 1000)), h = s / 3600 | 0, m = (s % 3600) / 60 | 0; return h ? `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`; };
+  function setEv(e) { const now = Date.now(); ev = e ? { id: e.id, end: now + e.left, mid: e.mid > 0 ? now + e.mid : 0 } : null; paintEv(); }
+  function paintEv() {
+    const el = $('plz-ev'), now = Date.now(); if (ev && now >= ev.end) ev = null;
+    if (ev?.mid && now >= ev.mid) { ev.mid = 0; scene?.volley(45); sfx.win?.(); ctx.toast(L('🎆 Happy New Year!', '🎆 Szczęśliwego Nowego Roku!'), false, 8000); }
+    scene?.fireworks(!ev ? 0 : ev.mid ? .22 : 1);
+    el.hidden = !ev; if (!ev) return;
+    el.innerHTML = `<span aria-hidden="true">🎆</span><b class="plz-wide">${ev.mid ? L('Midnight in', 'Do północy') : EV_NAME[ev.id]()}</b><em>${clockOf((ev.mid || ev.end) - now)}</em>`;
+    el.setAttribute('aria-label', EV_NAME[ev.id]());
+  }
+  const evT = setInterval(paintEv, 1000);
 
   // ---- chat (the hub's own conversation)
   function paintChat() { $('hc-log').innerHTML = ctx.chatLog(); $('hc-foot').innerHTML = ctx.chatFoot(); const el = $('hc-log'); el.scrollTop = el.scrollHeight; }
@@ -85,7 +120,7 @@ export function mount(app, ctx) {
     const el = document.createElement('div'); el.className = 'plz-tag'; el.innerHTML = '<div class="plz-bub" hidden></div><div class="plz-name"></div>';
     tagBox.append(el); t = { el, bub: el.firstChild, name: el.lastChild, until: 0, shown: null }; tags.set(s, t); return t;
   }
-  function paintTag(p) { const t = tagOf(p.s); t.name.innerHTML = (p.s === S.me ? `<i>${L('You', 'Ty')}</i>` : nameHtml(p.n, p.fl)); t.el.classList.toggle('me', p.s === S.me); }
+  function paintTag(p) { const t = tagOf(p.s); t.name.innerHTML = (p.s === S.me ? `<i>${L('You', 'Ty')}</i>` : nameHtml(p.n, p.fl)); t.el.classList.toggle('plz-me', p.s === S.me); }
   function dropTag(s) { tags.get(s)?.el.remove(); tags.delete(s); }
   function bubble(s, text) { const t = tags.get(s); if (!t) return; t.bub.textContent = text.length > 90 ? text.slice(0, 88) + '…' : text; t.bub.hidden = false; t.until = performance.now() + 3800 + Math.min(4000, text.length * 55); }
   function floaty(s, k) { const t = tags.get(s); if (!t) return; const f = document.createElement('div'); f.className = 'plz-float'; f.innerHTML = reactHtml(k); t.el.append(f); setTimeout(() => f.remove(), 1700); }
@@ -115,7 +150,7 @@ export function mount(app, ctx) {
   function paintActs() {
     const m = scene?.me(); if (!m || !S) return;
     const out = [], d = Math.hypot(m.x, m.z), winter = S.theme === 'winter', acct = !!ctx.me()?.user;
-    if (winter && d < TREE_REACH) { if (gift && acct) out.push(['gift', '🎁', L("Open today's present", 'Otwórz dzisiejszy prezent')]); out.push(['orn', '🎄', myOrn ? L('Change your ornament', 'Zmień swoją ozdobę') : L('Hang an ornament', 'Zawieś ozdobę')]); }
+    if (winter && d < TREE_REACH) { if (gift && acct) out.push(['gift', '🎁', giftN > 5 ? L("Open today's double present", 'Otwórz dzisiejszy podwójny prezent') : L("Open today's present", 'Otwórz dzisiejszy prezent')]); out.push(['orn', '🎄', myOrn ? L('Change your ornament', 'Zmień swoją ozdobę') : L('Hang an ornament', 'Zawieś ozdobę')]); }
     if (WHEEL && Math.hypot(m.x - WHEEL[1], m.z - WHEEL[2]) < 3.4) out.push(['wheel', '🎡', L('Spin the Lucky Wheel', 'Zakręć Kołem szczęścia')]);
     if (m.sp < 0 && nearSeat() >= 0) out.push(['seat', '🪑', L('Sit here', 'Usiądź tutaj')]);
     const key = out.map(o => o[0] + o[2]).join('|'); if (key === actsKey) return; actsKey = key;
@@ -134,7 +169,7 @@ export function mount(app, ctx) {
   }
   const roomLabel = () => { const n = S ? S.who.size : 0; $('plz-room').innerHTML = `<i class="plz-live"></i>${S?.theme === 'winter' ? '<span class="plz-wide" aria-hidden="true">🎄</span>' : ''}<b>${L('Plaza', 'Plac')} ${S?.room || ''}</b><em>${n}/${S?.cap || CAP}</em><span class="plz-wide" aria-hidden="true">▾</span>`; };
   function roomsHtml(list) {
-    return `<h3>${L('Plaza rooms', 'Pokoje placu')}</h3><p class="plz-note">${L(`Each room holds ${CAP} people.`, `W każdym pokoju mieści się ${CAP} osób.`)}</p>` + list.map(r => `<div class="plz-row"><b>${L('Plaza', 'Plac')} ${r.no}</b><span>${r.n}/${CAP}${r.fr ? ` · ${L(`${r.fr} ${r.fr === 1 ? 'friend' : 'friends'}`, `znajomi: ${r.fr}`)}` : ''}</span>${r.no === S.room ? `<i>${L('You are here', 'Tu jesteś')}</i>` : r.n >= CAP ? `<i>${L('Full', 'Pełny')}</i>` : `<button type="button" class="btn sm m" data-a="goroom" data-no="${r.no}">${L('Go', 'Idź')}</button>`}</div>`).join('');
+    return `<h3>${L('Plaza rooms', 'Pokoje placu')}</h3><p class="plz-note">${L(`Each room holds ${CAP} people.`, `W każdym pokoju mieści się ${CAP} osób.`)}</p>${S?.mod ? `<button type="button" class="btn sm w plz-showbtn" data-a="show">🎆 ${L('Start 5 minutes of fireworks', 'Włącz fajerwerki na 5 minut')}</button>` : ''}` + list.map(r => `<div class="plz-row"><b>${L('Plaza', 'Plac')} ${r.no}</b><span>${r.n}/${CAP}${r.fr ? ` · ${L(`${r.fr} ${r.fr === 1 ? 'friend' : 'friends'}`, `znajomi: ${r.fr}`)}` : ''}</span>${r.no === S.room ? `<i>${L('You are here', 'Tu jesteś')}</i>` : r.n >= CAP ? `<i>${L('Full', 'Pełny')}</i>` : `<button type="button" class="btn sm m" data-a="goroom" data-no="${r.no}">${L('Go', 'Idź')}</button>`}</div>`).join('');
   }
   function tablesHtml() {
     const open = tablesList.filter(t => t.state === 'lobby' && t.n < (t.size || t.max));
@@ -173,6 +208,10 @@ export function mount(app, ctx) {
     else if (a === 'join') { closePop(); ctx.join(b.dataset.code); }
     else if (a === 'emos') { const on = !root.classList.contains('emos-open'); closePop(); root.classList.toggle('emos-open', on); b.setAttribute('aria-expanded', on); }
     else if (a === 'emo') { root.classList.remove('emos-open'); doEmote(+b.dataset.e); }
+    else if (a === 'moremo') { root.classList.remove('emos-open'); ctx.wardrobe(); }
+    else if (a === 'aim') { closePop(); aiming = !aiming; paintAim(); }
+    else if (a === 'ev') { if (ev) ctx.toast(ev.mid ? L("🎆 New Year's Eve at the plaza: the big fireworks start at midnight.", '🎆 Sylwester na placu: o północy zaczyna się wielki pokaz fajerwerków.') : ev.id === 'party' ? L('🎆 Saturday party: fireworks over the plaza every Saturday from 20:00 to 21:00.', '🎆 Sobotnia impreza: fajerwerki nad placem w każdą sobotę od 20:00 do 21:00.') : L('🎆 Fireworks over the plaza!', '🎆 Fajerwerki nad placem!'), false, 5000); }
+    else if (a === 'show') { closePop(); send({ k: 'show' }); }
     else if (a === 'seat') doEmote(EMOTES.findIndex(x => x?.id === 'sit'));
     else if (a === 'reacts') { if (popKind === 'reacts') return closePop(); closePop(); openPop('reacts', reactsHtml(), 'corner'); b.setAttribute('aria-expanded', 'true'); }
     else if (a === 're') { send({ k: 're', i: +b.dataset.k }); closePop(); }
@@ -211,9 +250,11 @@ export function mount(app, ctx) {
   canvas.addEventListener('pointercancel', up);
   canvas.addEventListener('pointerup', e => { up(e); if (!down || !scene || performance.now() - down.t > 500 || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) { down = null; return; } down = null; tap(e.clientX, e.clientY); });
   canvas.addEventListener('wheel', e => { e.preventDefault(); scene?.setZoom(scene.zoom() * (e.deltaY > 0 ? .9 : 1.1)); }, { passive: false });
+  canvas.addEventListener('contextmenu', e => { e.preventDefault(); if (!coarse) throwAt(e.clientX, e.clientY); }); // a right click throws at once
   canvas.addEventListener('webglcontextlost', lost);
   }
   function tap(x, y) {
+    if (aiming) return throwAt(x, y);
     const hit = scene.pick(x, y); if (!hit) return;
     $('plz-hint').hidden = true;
     const r = root.getBoundingClientRect();
@@ -231,6 +272,11 @@ export function mount(app, ctx) {
     for (const s of [...tags.keys()]) dropTag(s); for (const c of [...signs.keys()]) dropSign(c);
     if (scene && (scene.theme !== m.theme || scene.lost())) { const old = canvas; canvas = old.cloneNode(false); scene.destroy(); scene = null; old.replaceWith(canvas); pts.clear(); bindCanvas(); } // a scene gives its GPU context back when it goes, so the new one gets a new canvas
     if (!scene) scene = createScene(canvas, { theme: m.theme, send, frame, ready: () => { $('plz-load').hidden = true; } });
+    giftN = m.giftN | 0; setEv(m.ev); paintAim();
+    if (m.visit) { const got = COS.em.items.findIndex(it => it.earn?.pv === m.visit); // today's first visit: say how many days that makes, and what it unlocked
+      if (got > 0) { sfx.win?.(); ctx.toast(L(`🎉 Day ${m.visit} at the plaza: you unlocked the ${esc(cosItem('em', got).n)} emote! Put it on your bar in the Wardrobe.`, `🎉 ${m.visit}. dzień na placu: odblokowano emotkę ${esc(cosItem('em', got).n)}! Ustaw ją na pasku w Garderobie.`), false, 7000); }
+      else { const nx = COS.em.items.map((it, i) => [it.earn?.pv | 0, i]).filter(([d, i]) => d > m.visit && !cosHas(ctx.me(), 'em', i)).sort((a, b) => a[0] - b[0])[0];
+        if (nx) ctx.toast(L(`Day ${m.visit} at the plaza. Come on ${nx[0]} different days to unlock the ${esc(cosItem('em', nx[1]).n)} emote.`, `${m.visit}. dzień na placu. Przyjdź w ${nx[0]} różnych dniach, żeby odblokować emotkę ${esc(cosItem('em', nx[1]).n)}.`), false, 5000); } }
     scene.setPeople(m.who, m.me); scene.setTree(m.tree || []);
     const mine = who(m.me); myOrn = (m.tree || []).find(o => o.pt && o.pt === mine?.pt)?.k || 0;
     for (const p of m.who) paintTag(p); for (const g of m.signs || []) paintSign(g);
@@ -251,6 +297,9 @@ export function mount(app, ctx) {
       case 'em': scene.emote(m.s, m.e, m.sp); if (m.s === S.me) { paintActs(); } if (EMOTES[m.e]?.id === 'cheer' || EMOTES[m.e]?.id === 'jump') sfx.pop?.(); break;
       case 're': if (!isHid(who(m.s))) floaty(m.s, m.i); break;
       case 'pat': scene.pat(m.s, m.i); break;
+      case 'pal': sfx.pop?.(); ctx.toast(L(`💛 +1 friendship with ${esc(m.n)} on the Pet Farm`, `💛 +1 do przyjaźni z ${esc(m.n)} na Farmie zwierzaków`)); break;
+      case 'sb': if (!isHid(who(m.s))) { scene.throwBall(m.s, m.x, m.z, m.h); if (m.s === S.me || m.h === S.me) sfx.pop?.(); } break;
+      case 'ev': setEv(m.ev); break;
       case 'fix': scene.fix(m.x, m.z); break;
       case 'rooms': S.rooms = m.rooms; if (popKind === 'rooms') $('plz-pop').innerHTML = roomsHtml(m.rooms); break;
       case 'orn': { S.tree = S.tree.filter(o => o.i !== m.i); if (m.o) S.tree.push(m.o); scene.setOrn(m.i, m.o); const mine = who(S.me); if (mine?.pt) myOrn = S.tree.find(o => o.pt === mine.pt)?.k || 0; paintActs(); break; }
@@ -275,10 +324,10 @@ export function mount(app, ctx) {
   send({ k: 'join' });
   return {
     msg, chat,
-    me() { $('hc-foot').innerHTML = ctx.chatFoot(); paintActs(); },
+    me() { $('hc-foot').innerHTML = ctx.chatFoot(); paintActs(); paintEmos(); },
     tables(rooms) { tablesList = rooms || []; const html = tablesHtml(); if (popKind === 'tables') $('plz-pop').innerHTML = html; },
     reopen() { send({ k: 'join', ...(S ? { room: S.room } : {}) }); },
     stats: () => scene?.stats(), scene: () => scene,
-    destroy() { destroyed = true; clearInterval(actsT); send({ k: 'leave' }); removeEventListener('keydown', onKey); removeEventListener('keyup', onKey); removeEventListener('blur', onBlur); scene?.destroy(); scene = null; document.body.classList.remove('in-game'); },
+    destroy() { destroyed = true; clearInterval(actsT); clearInterval(evT); send({ k: 'leave' }); removeEventListener('keydown', onKey); removeEventListener('keyup', onKey); removeEventListener('blur', onBlur); scene?.destroy(); scene = null; document.body.classList.remove('in-game'); },
   };
 }
