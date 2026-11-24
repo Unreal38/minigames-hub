@@ -1715,7 +1715,6 @@ function switchTheme(btn) {
 
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
-  ${st.view === 'lobby' ? `<nav class="navl" aria-label="${L('Help', 'Pomoc')}"><a href="#" data-act="rules">${L('How to play', 'Jak grać')}</a></nav>` : ''}
   <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· ${L('shop', 'sklep')}</small></button>
   <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="${L('Your account', 'Twoje konto')}">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : L('Pick a name', 'Wybierz imię')}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
   <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button>
