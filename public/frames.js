@@ -15,12 +15,12 @@ export const FPS = 60;
 export function frameLoop(draw, { fps = FPS, onSlow } = {}) {
   let raf = 0, dead = false, last = 0, lastDraw = 0, skip = 0;
   const gaps = []; let refresh = 1000 / 60; // measured time between screen refreshes, ms
-  let secAt = 0, drawn = 0, slow = 0, measured = fps;
+  let secAt = 0, drawn = 0, slow = 0, measured = fps, born = 0;
   const tick = now => {
     if (dead) return;
     raf = requestAnimationFrame(tick);
     if (document.hidden) { last = 0; return; }
-    if (!last || now - last > 500) { last = lastDraw = secAt = now; drawn = 0; skip = 0; return; } // first frame, or back from a pause
+    if (!last || now - last > 500) { born ||= now; last = lastDraw = secAt = now; drawn = 0; skip = 0; return; } // first frame, or back from a pause
     gaps.push(now - last); last = now;
     if (gaps.length >= 30) { gaps.sort((a, b) => a - b); refresh = Math.max(2, gaps[14]); gaps.length = 0; }
     // how many refreshes each drawn frame spans: 1 on a 60 or 75 Hz screen, 2 at 120 or 144 Hz, 4 at 240 Hz
@@ -31,7 +31,8 @@ export function frameLoop(draw, { fps = FPS, onSlow } = {}) {
     drawn++;
     if (now - secAt >= 1000) {
       measured = drawn * 1000 / (now - secAt);
-      slow = measured < fps * .75 ? slow + 1 : 0; drawn = 0; secAt = now;
+      // the first seconds of a scene build its shaders and upload its models: slow then says nothing about the device
+      slow = measured < fps * .75 && now - born > 3000 ? slow + 1 : 0; drawn = 0; secAt = now;
       if (slow >= 3) { slow = 0; onSlow?.(measured); }
     }
     draw(dt, now);
@@ -138,6 +139,9 @@ export function autoResolution(renderer, cap = 1.5) {
   renderer.__gfx = onLevel; live.add(new WeakRef(onLevel));
   return {
     setCap(c) { cap = c; scale = 1; apply(); },
+    // Settle the shadow settings for a scene now, before its shaders are built ahead of the first frame (a change after
+    // that would build every one of them again in the first frame).
+    prep(scene) { check = 120; fitShadows(scene); },
     // Called by a scene's onSlow. At the lowest resolution and still slow twice: this device is weak, so remember it
     // and start every scene at the low level from now on (unless the player picked a level).
     lower() {
