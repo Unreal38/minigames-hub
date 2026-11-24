@@ -23,7 +23,7 @@ export const OPT_PL = {
   '4 (dealer sits out)': '4 (rozdający pauzuje)', 'Play to': 'Gramy do', 'Classic 1000': '1000 (klasycznie)', 'Quick 500': '500 (szybko)', Folding: 'Poddanie gry',
   'First one free': 'Pierwsze za darmo', 'Always 60': 'Zawsze 60', 'No folding': 'Bez poddawania',
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
-  Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie',
+  Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie', 'bop:Calm': 'Spokojne',
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
@@ -333,6 +333,23 @@ export const GAMES_PL = {
       <li>Od dołu nadciąga <b>burza</b>, najpierw powoli, potem coraz szybciej. Jeśli cię dogoni, odpadasz i oglądasz pozostałych.</li>
       <li>Twój wynik to <b>10 punktów za każde piętro</b> najwyższego zdobytego poziomu plus punkty za serie. Gra kończy się, gdy burza dogoni wszystkich. Wygrywa najwyższy wynik.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  bop: {
+    name: 'Pac w norkę', start: 'Zacznij pacać', openSeat: 'Jeśli nikt nie dołączy, paca tu bot',
+    pitch: 'Pacaj zwierzaki wyskakujące z norek, zanim się schowają. Każdy ma trzy serca, a wygrywa ostatnia osoba z sercem.',
+    howto: `Każdy ma własny ogródek z dziewięcioma norkami i wszyscy grają jednocześnie. Z norek wyskakują zwierzaki: dotknij zwierzaka, żeby pacnąć go poduszkowym młotkiem, zanim znów się schowa. Masz trzy serca. Zwierzak, który ucieknie, kosztuje serce, tak samo jak pacnięcie śpiącego zwierzaka w szlafmycy. Zwierzaki wyskakują coraz szybciej. Wygrywa ostatnia osoba z sercem.`,
+    rules: `<ol>
+      <li>Każdy ma <b>własny ogródek</b> z dziewięcioma norkami i wszyscy grają <b>jednocześnie</b>. Wszyscy dostają te same zwierzaki, w tych samych norkach, w tych samych chwilach. Wolne miejsca zajmują boty.</li>
+      <li><b>Kliknij albo dotknij zwierzaka</b>, żeby pacnąć go poduszkowym młotkiem. Na klawiaturze norki to <b>Q W E</b>, <b>A S D</b> i <b>Z X C</b> (albo klawiatura numeryczna).</li>
+      <li>Masz <b>3 serca</b>. Zwierzak, który <b>schowa się, zanim go pacniesz</b>, kosztuje jedno serce.</li>
+      <li>Zwierzak w <b>szlafmycy śpi</b>. Daj mu spać: pacnięcie go kosztuje serce.</li>
+      <li>Zwierzak w <b>koronie</b> daje 50 punktów zamiast 10 i szybko się chowa. Zwierzak niosący <b>serce</b> oddaje jedno stracone serce. Przegapienie ich nic nie kosztuje.</li>
+      <li>Każde pacnięcie z rzędu dodaje do następnego <b>2 punkty więcej</b>, najwyżej 20 dodatkowych. Strata serca zaczyna serię od nowa.</li>
+      <li>Dotknięcie <b>pustej norki nic nie kosztuje</b>.</li>
+      <li>Zwierzaki wyskakują <b>coraz szybciej</b>. Gdy skończą ci się serca, <b>odpadasz</b>. <b>Wygrywa ostatni gracz z sercem</b>. Jeśli dwoje graczy traci ostatnie serce przez tego samego zwierzaka, wyżej jest ten z większą liczbą punktów.</li>
+      <li>Po <b>3 minutach</b> zwierzaki przestają wyskakiwać, a o miejscach graczy, którzy mają jeszcze serce, decydują <b>punkty</b>.</li>
+      <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   bingo: {

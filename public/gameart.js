@@ -700,3 +700,28 @@ export function paradeArt() {
     <path class="arttick" d="M264 62l10-8M270 80h13M54 62l-10-8M48 80H35" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Burrow Bop card: three burrows on a floating lawn, a pet popping out of the middle one under a pillow mallet,
+// a sleeper in a nightcap on the left, and three hearts.
+export function bopArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const heart = (x, y) => `<path d="M${x} ${y + 9}c-7-5-9-8-9-11 0-3 2-5 4.6-5 1.8 0 3.4 1 4.4 2.5 1-1.5 2.6-2.5 4.4-2.5 2.6 0 4.6 2 4.6 5 0 3-2 6-9 11z" fill="#ff5a7a" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const mound = x => `<ellipse cx="${x}" cy="100" rx="27" ry="10" fill="#c28a55" ${o}/><ellipse cx="${x}" cy="99" rx="18" ry="6" fill="#3a2418"/>`;
+  const lip = x => `<path d="M${x - 27} 100a27 10 0 0 0 54 0l-9 0a18 6 0 0 1-36 0z" fill="#c28a55" ${o}/>`;
+  const star = (x, y, r) => `<path d="M${x} ${y - r}l${r * .3} ${r * .7} ${r * .7} ${r * .3}-${r * .7} ${r * .3}-${r * .3} ${r * .7}-${r * .3}-${r * .7}-${r * .7}-${r * .3} ${r * .7}-${r * .3}z" fill="#ffe46b" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A pet popping out of a burrow under a pillow mallet, a sleeping pet in a nightcap in the next burrow, and three hearts">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="60" cy="52" r="1.5"/><circle cx="270" cy="20" r="1.3"/><circle cx="282" cy="78" r="1.5"/><circle cx="130" cy="14" r="1.2"/></g>
+    <path d="M232 30l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/><path d="M46 62l10-5 12 3 5 7-7 5H52z" class="artcloud" fill="#fff"/>
+    ${heart(58, 16)}${heart(84, 16)}${heart(110, 16)}
+    <path d="M62 122h196l-22 24H84z" fill="#c98a5a" ${o}/><path d="M48 96h224l-12 26H60z" fill="#8bca60" ${o}/><path d="M60 122h200" stroke="#3b2219" stroke-width="3"/>
+    ${mound(98)}${mound(160)}${mound(222)}
+    <g class="bbzz"><ellipse cx="98" cy="86" rx="15" ry="16" fill="#9be07a" ${o}/><path d="M90 86q3 3 6 0M100 86q3 3 6 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/><path d="M82 78q16-12 32 0l-2 4q-14-7-28 0z" fill="#fff" ${o}/><path d="M86 76q8-24 30-14-14 2-8 14z" fill="#6f8cff" ${o}/><circle cx="117" cy="62" r="4.5" fill="#fff" stroke="#3b2219" stroke-width="2.5"/>
+      <path d="M122 78h7l-7 8h7M134 64h9l-9 10h9" fill="none" stroke="#3b2219" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M122 78h7l-7 8h7M134 64h9l-9 10h9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+    ${lip(98)}
+    <g class="bbpet"><path d="M148 62l-2-14 12 8zM172 62l2-14-12 8z" fill="#ff9b54" ${o}/><ellipse cx="160" cy="80" rx="18" ry="21" fill="#ff9b54" ${o}/><ellipse cx="160" cy="88" rx="10" ry="10" fill="#ffd9b0"/>
+      <circle cx="153" cy="76" r="3.2" fill="#3b2219"/><circle cx="167" cy="76" r="3.2" fill="#3b2219"/><circle cx="152" cy="75" r="1" fill="#fff"/><circle cx="166" cy="75" r="1" fill="#fff"/><path d="M157 83q3 3 6 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/><circle cx="147" cy="83" r="2.5" fill="#ff8a9a"/><circle cx="173" cy="83" r="2.5" fill="#ff8a9a"/></g>
+    ${lip(160)}${lip(222)}
+    <g class="bbmal" transform="rotate(-38 214 52)"><rect x="210" y="52" width="8" height="46" rx="2" fill="#c98a52" ${o}/><rect x="188" y="26" width="52" height="30" rx="7" fill="#ff8fab" ${o}/><rect x="184" y="23" width="10" height="36" rx="3" fill="#fff6e6" ${o}/><rect x="234" y="23" width="10" height="36" rx="3" fill="#fff6e6" ${o}/></g>
+    ${star(136, 52, 8)}${star(184, 70, 6)}${star(150, 36, 5)}
+  </svg>`;
+}
