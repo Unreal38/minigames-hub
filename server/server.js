@@ -144,7 +144,8 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(file);
     // Always revalidate, so a browser never mixes old and new client files after a deploy.
     const etag = `"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`;
-    const head = { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': 'no-cache', etag, ...BASE_HEAD };
+    // Fonts never change under the same name, so browsers keep them a month instead of asking again on every visit.
+    const head = { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': ext === '.woff2' ? 'public, max-age=2592000' : 'no-cache', etag, ...BASE_HEAD };
     if (ext === '.html') head['content-security-policy'] = cspFor(req);
     if (req.headers['x-forwarded-proto'] === 'https') head['strict-transport-security'] = 'max-age=31536000'; // behind Caddy: browsers stick to HTTPS
     // The page carries the server's guess at the visitor's language (Poland: Polish), which i18n.js reads on a first visit.
@@ -338,7 +339,7 @@ function broadcastStats() {
   statsTimer = setTimeout(() => {
     statsTimer = null;
     const msg = statsMsg(), key = msg.online + '/' + msg.visitors; if (key === lastStats) return; lastStats = key;
-    for (const c of clients.values()) send(c, msg);
+    const str = JSON.stringify(msg); for (const c of clients.values()) c.sock?.send(str);
   }, 1000);
 }
 // Site notices: everyone gets them on every screen (tables too); hosts also see the note waiting for the next restart.
@@ -349,7 +350,30 @@ const lookKey = c => c.name + '|' + c.color + '|' + (c.av || []).join();
 // A host trying on outfits saves every few taps; the hub's table list catches up at most once every two seconds.
 let roomsT = 0;
 function roomsSoon() { if (!roomsT) roomsT = setTimeout(() => { roomsT = 0; broadcastRooms(); }, 2000); }
-function broadcastRooms() { const msg = { t: 'rooms', rooms: publicRooms() }; for (const c of clients.values()) if (c.sock && !c.room) send(c, msg); }
+// Every hub screen gets the open tables list when a table opens, fills, starts or closes. With a busy site that can be
+// dozens of times a second, so changes are gathered for a moment and the list is built and turned into text once
+// for everyone (it used to be rebuilt for each screen, which was the first thing to slow down under a crowd).
+// The pause grows with the crowd (1 ms per hub screen, 0.15 to 2 s): a quiet site feels instant, and a full one sends
+// each screen at most one list every two seconds instead of one per change. Only screens looking at the hub get it;
+// Pet Farm and the solo games catch up when their player comes back to the hub (the 'where' message).
+let roomsNowT = 0, roomsStr = null, roomsAt = 0, roomsVer = 0;
+const onHub = c => c.sock && !c.room && (!c.view || c.view === 'hub');
+function broadcastRooms() {
+  roomsStr = null; roomsVer++;
+  if (roomsNowT) return;
+  let n = 0; for (const c of clients.values()) if (onHub(c)) n++;
+  roomsNowT = setTimeout(broadcastRoomsNow, Math.max(150, Math.min(2000, n)));
+}
+function broadcastRoomsNow() {
+  roomsNowT = 0;
+  const str = roomsText(true);
+  for (const c of clients.values()) if (onHub(c)) { c.sock.send(str); c.roomsVer = roomsVer; }
+}
+// The list as text, shared by everyone asking within half a second (a crowd arriving all asks at once).
+function roomsText(fresh = false) {
+  if (fresh || !roomsStr || Date.now() - roomsAt > 500) { roomsStr = JSON.stringify({ t: 'rooms', rooms: publicRooms() }); roomsAt = Date.now(); }
+  return roomsStr;
+}
 function sendRoom(r) { const info = roomInfo(r); for (const t of r.players) send(clients.get(t), { t: 'room', room: info }); }
 function sendState(r) {
   if (!r.G) return;
@@ -411,7 +435,7 @@ function reclaimSeat(r, c) {
     if (old) { // the other device leaves the table quietly: the seat moves, it is not handed to a bot
       if (r.host === old.id) r.host = c.id;
       r.players = r.players.filter(t => t !== old.token); old.room = null; r.spect.delete(old.id); r.sit.delete(old.id); r.again?.delete(old.id);
-      if (old.sock) { send(old, { t: 'room', room: null }); send(old, { t: 'rooms', rooms: publicRooms() }); }
+      if (old.sock) { send(old, { t: 'room', room: null }); old.sock.send(roomsText()); }
     } else { seat.name = gone.name; r.leftBy.delete(s); }
     mod.seatWatcher?.(G, { id: c.id }, false);
     Object.assign(seat, { id: c.id, human: true, left: false });
@@ -455,7 +479,7 @@ function handle(c, m) {
       if (r && !r.priv && r.host === c.id) roomsSoon(); // the hub's open table shows the host's avatar
       return;
     }
-    case 'rooms': return send(c, { t: 'rooms', rooms: publicRooms() });
+    case 'rooms': return c.sock?.send(roomsText());
     case 'kofi': { // claim a Ko-fi payment with the email it was paid with
       if (blocked('kofic:' + (c.sock?.ip || '?'), 6, 10 * 60_000)) return send(c, { t: 'kofi', err: 'Too many tries. Wait a few minutes and try again.' });
       const r = store.kofiClaim(store.profileOf(c.token), m.email, KOFI_TOKEN);
@@ -503,7 +527,11 @@ function handle(c, m) {
       if (r.err) return send(c, { t: 'err', msg: r.err });
       return;
     }
-    case 'where': c.view = WHERE.has(m.v) ? m.v : 'hub'; return; // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
+    case 'where': {
+      const was = c.view; c.view = WHERE.has(m.v) ? m.v : 'hub';
+      if (c.view === 'hub' && was !== 'hub' && !c.room && c.roomsVer !== roomsVer) { c.sock?.send(roomsText()); c.roomsVer = roomsVer; } // back from Pet Farm or a solo game: catch up on the table list
+      return;
+    } // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
     case 'who': { // the host's "Who's here" list: only accounts named in ADMINS get it
       if (!store.isAdmin(store.profileOf(c.token))) return;
       if (!allow('who:' + c.token, 30, 60_000)) return;
@@ -532,7 +560,7 @@ function handle(c, m) {
       if (!r) { note(key, 10 * 60_000); return send(c, { t: 'err', msg: 'No table with that code. Check the letters?' }); } // so private tables can't be found by guessing
       return joinRoom(c, r);
     }
-    case 'leave': if (c.room) leaveRoom(c); send(c, { t: 'room', room: null }); send(c, { t: 'rooms', rooms: publicRooms() }); return;
+    case 'leave': if (c.room) leaveRoom(c); send(c, { t: 'room', room: null }); c.sock?.send(roomsText()); return;
     case 'opts': {
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
       const mod = GAMES[r.game];
@@ -599,7 +627,14 @@ function handle(c, m) {
       if (m.text === undefined) return send(c, { t: 'hubchat', log: hubchat.history(p), max: hubchat.MAX_LEN });
       const r = hubchat.post(p, c, c.sock?.ip || '?', m.text);
       if (r.err) return send(c, { t: 'hubchat', err: r.err });
-      if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+      if (r.msg) { // most readers get the same line, turned into text once; the writer and the moderators get their own
+        const plain = JSON.stringify({ t: 'hubchat', msg: hubchat.forReader(r.msg, null, false) });
+        for (const o of clients.values()) {
+          if (!o.sock || o.room) continue;
+          const op = store.profileOf(o.token), admin = hubchat.isAdmin(op);
+          if (admin || op?.pid === p.pid) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, op?.pid, admin) }); else o.sock.send(plain);
+        }
+      }
       return;
     }
     case 'wheel': { // Lucky Wheel: one free spin a day (server/wheel.js)
@@ -613,7 +648,14 @@ function handle(c, m) {
       if (m.test) daily.testHook(m.test, msg => send(c, msg));
       return daily.handle(p, m, msg => send(c, msg), (text, grid) => {
         const r = hubchat.post(p, c, c.sock?.ip || '?', text, grid);
-        if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+        if (r.msg) { // most readers get the same line, turned into text once; the writer and the moderators get their own
+        const plain = JSON.stringify({ t: 'hubchat', msg: hubchat.forReader(r.msg, null, false) });
+        for (const o of clients.values()) {
+          if (!o.sock || o.room) continue;
+          const op = store.profileOf(o.token), admin = hubchat.isAdmin(op);
+          if (admin || op?.pid === p.pid) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, op?.pid, admin) }); else o.sock.send(plain);
+        }
+      }
         return r.err || null;
       });
     }
@@ -623,7 +665,14 @@ function handle(c, m) {
       if (m.test) word.testHook(m.test, msg => send(c, msg));
       return word.handle(p, m, msg => send(c, msg), (text, grid) => {
         const r = hubchat.post(p, c, c.sock?.ip || '?', text, grid);
-        if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+        if (r.msg) { // most readers get the same line, turned into text once; the writer and the moderators get their own
+        const plain = JSON.stringify({ t: 'hubchat', msg: hubchat.forReader(r.msg, null, false) });
+        for (const o of clients.values()) {
+          if (!o.sock || o.room) continue;
+          const op = store.profileOf(o.token), admin = hubchat.isAdmin(op);
+          if (admin || op?.pid === p.pid) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, op?.pid, admin) }); else o.sock.send(plain);
+        }
+      }
         return r.err || null;
       });
     }
@@ -760,9 +809,9 @@ attach(server, '/ws', sock => {
   function hello(m) {
     {
       let token = typeof m.token === 'string' && /^[a-z0-9]{16,40}$/.test(m.token) ? m.token : null;
-      // A new browser makes a new guest profile. One address may make plenty (a party at someone's house), not thousands.
+      // A new browser makes a new guest profile. One address may make plenty (a party at someone's house, a school network), not thousands.
       if (!token || (!clients.has(token) && !store.sessions.has(token))) {
-        if (!allow('new:' + sock.ip, 60, 3600_000)) { console.warn(`ws: ${sock.ip} made too many new guests, closing`); sock.close(1008); return; }
+        if (!allow('new:' + sock.ip, 120, 3600_000)) { console.warn(`ws: ${sock.ip} made too many new guests, closing`); sock.close(1008); return; }
         token = token || crypto.randomBytes(12).toString('hex');
       }
       c = clients.get(token);
@@ -791,7 +840,7 @@ attach(server, '/ws', sock => {
         if (r.G) { const s = r.G.seats.findIndex(x => x.id === c.id); if (s >= 0 && GAMES[r.game].setAway(r.G, s, false)) {} }
         sendRoom(r); send(c, { t: 'chatlog', log: r.chat });
         if (r.G) sendState(r); else send(c, { t: 'state', s: null });
-      } else { c.room = null; send(c, { t: 'rooms', rooms: publicRooms() }); }
+      } else { c.room = null; c.sock.send(roomsText()); }
     }
   }
   sock.on('close', () => {

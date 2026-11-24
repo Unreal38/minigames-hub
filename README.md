@@ -273,6 +273,31 @@ sudo systemctl restart cozy-table
 cd /opt/cozy-table && sudo DATA_DIR=/var/lib/cozy-table npm run delete-account -- <username>
 ```
 
+## How many people it can take
+
+Measured on 2026-11-24 with `npm run load:launch` (test/launch.js): a local copy of the server with an empty data
+folder, so the live site, its players and its visitor count are never touched. The fake crowd is 60% on the hub,
+10% chatting on the hub every 20 s, 10% on Pet Farm, 20% at tables (turn games with bots, chess against the bot),
+with hosts opening and closing public tables all the time.
+
+| people online at once | server CPU (one core) | slowest replies (p99) | memory |
+|---|---|---|---|
+| 1,000 | 26% | 7 ms | 255 MB |
+| 2,000 | 56–75% | 17–36 ms | 300 MB |
+| 3,000 | ~65% | 114 ms | 315 MB |
+| 4,000 | 100% (full) | 180 ms | 330 MB |
+
+The server is one Node process, so it uses one core of the machine; memory and the network are nowhere near their
+limits. A burst of 300 brand-new visitors at once is welcomed in under a third of a second even at 4,000 online.
+Static files: Node serves about 2,700 file requests a second on a first visit (a first visit is ~180 files) and
+13,000 a second for returning visitors, whose browsers only check that nothing changed.
+`npm run load` (test/load.js) measures tables only: turn games and 8-driver kart races.
+
+Limits that keep one person or script from hurting everyone: 40 open connections and 60 new ones a minute per
+address (`WS_PER_IP` changes the first), 120 new guest profiles an hour per address, 20 messages a second per
+connection, wrong table codes (30 per 10 minutes), hub chat (one line per 1.2 s, 8 per 30 s, 20 a minute per
+address), logins and sign-ups, and a screen that stops reading is dropped once 4 MB waits for it.
+
 ## Customising
 
 - **Site name:** change `SITE` in `public/app.js` and the `<title>` in `public/index.html`.
