@@ -93,6 +93,17 @@ body.in-game { overflow: hidden; }
 .pf .zone small { flex-basis: 100%; font-size: 13px; color: var(--pf-muted, #6b4a3c); }
 .pf .zone.off { background: var(--pf-soft, #efe2d2); } .pf .zone.off b { opacity: .6; }
 .pf .zone[aria-pressed=true], .pf .party .pickpet[aria-pressed=true] { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); transform: none; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.pf .zone.zisle { --zb: var(--pf-chip, var(--card)); position: relative; isolation: isolate; overflow: hidden; min-height: 78px; padding-right: 62px; align-content: center; }
+.pf .zone.zisle[aria-pressed=true] { --zb: var(--lantern); } .pf .zone.zisle.off { --zb: var(--pf-soft, #efe2d2); }
+.pf .zone.zisle > * { position: relative; } .pf .zone.zisle > b, .pf .zone.zisle > small { text-shadow: 0 0 3px var(--zb), 0 0 7px var(--zb), 0 0 12px var(--zb); }
+.pf .zone .zsky { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--s1, #bfe8ff), var(--s2, #eef8ff)); pointer-events: none; }
+.pf .zone .zsky::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--zb) 0, var(--zb) var(--zf, 36%), transparent calc(var(--zf, 36%) + 26%)); }
+.pf .zone .zpic { position: absolute; right: -14px; top: 50%; width: 92px; height: 92px; transform: translateY(-50%); }
+@media (max-width: 640px) { .pf .zone.zisle { padding-right: 40px; min-height: 70px; --zf: 50%; } .pf .zone .zpic { width: 72px; height: 72px; right: -14px; } }
+.pf .zone .zpic:not([src]) { visibility: hidden; }
+.pf .zone.zisle.off .zpic { filter: grayscale(.75); opacity: .55; }
+@media (hover: hover) { .pf .zone.zisle:not(.off):hover .zpic { transform: translateY(-54%); transition: transform .2s; } }
+body.night .pf .zone .zsky { background: linear-gradient(180deg, color-mix(in srgb, var(--s1, #bfe8ff) 28%, #10163a), color-mix(in srgb, var(--s2, #eef8ff) 22%, #1d2350)); }
 .pf .trips { gap: 6px; }
 .pf .trips button { color: var(--pf-tx, var(--ink)); border-color: var(--card-edge); padding: 4px 12px; display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
 .pf .trips button small { font-family: var(--fb, inherit); font-weight: 500; font-size: 12px; }

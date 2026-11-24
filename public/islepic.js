@@ -19,6 +19,9 @@ const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(24, 1, .1, 80
 const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2), key = new THREE.DirectionalLight('#ffffff', 1.5);
 key.position.set(5, 12, 8); scene.add(hemi, key);
 
+// The picture if it is already drawn ('' if not yet), so a list can paint the cached ones at once.
+export const isleCached = (k, i) => cache.get(k + i) || '';
+
 // A data URL for entry i of isle kind k (for 'ip' a Pet Farm decoration type, for 'fp' a floating piece id) ('' if 3D is not available).
 export function islePic(k, i) {
   const id = k + i; if (cache.has(id)) return cache.get(id);
@@ -31,6 +34,7 @@ export function islePic(k, i) {
     else if (k === 'ip') { parts.push(decorOnly(i)); at(2.2, 2.3, 5.6, 0, .55, 0); }
     else if (k === 'ik') { const sky = buildSky(i); parts.push(buildIsle({}), sky); night = sky.mood === 'night'; at(0, 2.5, 46, 0, 0, 0); }
     else if (k === 'ib') { parts.push(buildIsle({ ib: i })); at(-8, 0, 23, 0, -2.6, 0); }
+    else if (k === 'zn') { parts.push(buildIsle({ ig: i })); at(0, 4.2, 15.6, 0, -1.45, 0); } // a whole island, rock base and all
     else { parts.push(buildIsle({ ig: i })); at(0, 6.4, 12.6, 0, -.3, 0); }
     hemi.color.set(night ? '#9aa6ff' : '#ffffff'); hemi.groundColor.set(night ? '#5a3a6a' : '#ffe9c9'); hemi.intensity = night ? 1.35 : 2; key.intensity = night ? .9 : 1.5;
     for (const p of parts) { p.root.traverse(o => { if (o.userData.nightOnly) o.visible = night; }); p.tick(1.3); scene.add(p.root); }
