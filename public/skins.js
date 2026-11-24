@@ -1,6 +1,7 @@
 // Table themes (cosmetics.js kinds cb, gb, kp; dice are in dice3d.js): how a player's own cards, golf ball and kart look.
 // Each game asks here with the index from the seat's fl ({ cb, dc, gb, kp }); 0 or anything unknown is the classic look.
 import * as THREE from 'three';
+import { cueLook, CUE_CLASSIC, CUE_L, CUE_CAP } from './pieceskins.js';
 
 // ---------- card backs ----------
 // Both card games paint their backs on a canvas: a coloured field, a pattern, then their own emblem on top.
@@ -168,4 +169,16 @@ export function kartPaint(k) {
   const BODY2 = { 10: '#ffc93c', 11: '#e5352b', 12: '#f08a24', 13: '#fff4e2', 14: '#4fb85a', 15: '#7cc8f0' };
   if (BODY2[k]) return { body: BODY2[k], parts };
   return { body: k === 9 ? '#ff8fab' : k === 8 ? '#2f86cc' : k === 7 ? '#2b2d6e' : k === 6 ? '#6b4326' : k === 5 ? '#f2c230' : k === 4 ? '#3f2f86' : null, parts };
+}
+
+// ---------- pool cue ----------
+// The meshes of cue k, lying along -x from the tip at 0 (see pieceskins.js). The cap at the end wears the player's colour.
+export function cueMeshes(k, color) {
+  const L = cueLook(k) || CUE_CLASSIC, out = [];
+  const seg = ([x0, x1, r0, r1, c], shine) => { const g = new THREE.CylinderGeometry(r1, r0, x1 - x0, 8); g.rotateZ(Math.PI / 2); g.translate(-(x0 + x1) / 2, 0, 0);
+    out.push(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: c, roughness: shine ? .35 : .6, emissive: shine ? c : '#000000', emissiveIntensity: shine ? .22 : 0 }))); };
+  for (const s of L.segs) seg(s, L.shine);
+  const from = L.butt || CUE_CAP; seg([from, CUE_L, L.butt ? .058 : .07, .072, color]);
+  if (L.gem) { const g = new THREE.OctahedronGeometry(.11); g.translate(-(CUE_L + .09), 0, 0); out.push(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: L.gem, roughness: .3, emissive: L.gem, emissiveIntensity: .25, flatShading: true }))); }
+  return out;
 }

@@ -7,7 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { TILES, sides, ends } from './rules.js';
-import { tileSvg, tileHtml, halfHtml, tileName } from './tiles.js';
+import { tileSvg, tileHtml, halfHtml, tileName, setTileLook } from './tiles.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
 
@@ -227,7 +227,7 @@ export function mount(app, ctx) {
   function update(s) {
     if (destroyed) return;
     const fresh = s.gid !== gid, wasTurn = S ? S.turn : -2, was = S ? S.turn + '/' + S.stage + '/' + S.mv : '';
-    S = s;
+    S = s; setTileLook(s.me >= 0 ? s.seats[s.me]?.fl?.dm : 0); // your hand wears your own tile look
     endsAt = performance.now() + Math.max(0, s.tLeft); stageEnds = performance.now() + (s.stageLeft || 0);
     if (fresh) {
       gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sent = 0; pick = -1;

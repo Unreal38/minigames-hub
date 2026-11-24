@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -979,13 +979,13 @@ function onMsg(m) {
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); st.mj?.reopen(); // back after a dropped connection
     tellWhere(); setTimeout(resumeAfterUpdate, 300); // after a reload for an update (a table, if any, is back by then)
-    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); send({ t: 'wheel' }); }
+    if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); }
   } else if (m.t === 'pets') {
     st.pets = m.pets || []; st.decor = m.decor || []; st.farmBrief = m.farm ? { ...m.farm, at: Date.now() } : null; st.onMe?.(); if (st.view === 'hub') { mountSkyHero(); paintToday(); }
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
-    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
+    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; st.meAt = Date.now(); setMyFx(flairOf(m.me).wn | 0);
     // Logged in: the look saved with the account is the only truth. Wear it (and keep it in this browser) before
     // anything else, the language reload below included, so an old guest look here can never be sent back over it.
     let adopted = false;
@@ -1011,7 +1011,7 @@ function onMsg(m) {
       if (st.skyWas && m.me.sky?.stars > st.skyWas.stars) { sfx.win?.(); toast(`★ ${L('A new star! Light it in Profile › Your sky.', 'Nowa gwiazda! Zapal ją w: Profil › Twoje niebo.')}`); }
     }
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me(); else if (st.view === 'mj') st.mj?.me();
-    if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); send({ t: 'wheel' }); }
+    if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
     if (m.me.user !== st.friendsFor) { st.friendsFor = m.me.user; st.friends = null; if (m.me.user) send({ t: 'friends' }); paintFriends(); }
   } else if (m.t === 'friends') {
@@ -1031,6 +1031,8 @@ function onMsg(m) {
     st.pop?.msg(m);
   } else if (m.t === 'mj') {
     st.mj?.msg(m);
+  } else if (m.t === 'word') {
+    st.wordInfo = m; st.word?.msg(m); paintToday();
   } else if (m.t === 'daily') {
     st.dailyInfo = m; st.daily?.msg(m); paintToday();
   } else if (m.t === 'wheel') {
@@ -1076,7 +1078,7 @@ function onMsg(m) {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
   } else if (m.t === 'rkstale') { // someone left the rankings (an account was deleted): fetch them again
-    st.rk = {}; if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'daily' }); send({ t: 'wheel' }); }
+    st.rk = {}; if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); }
   } else if (m.t === 'chatlog') {
     chat.log = Array.isArray(m.log) ? m.log : []; chatPaint();
   } else if (m.t === 'chat') {
@@ -1216,17 +1218,21 @@ const todayTile = (cls, pic, name, sub, act, btn, quiet, mins) => `<div class="t
 // One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
 // The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
 const MP_MINS = [1, 3]; // Mystery Pet: a few guesses
+const WORD_NAME = L('Word in a Bottle', 'Słowo w butelce'), WORD_MINS = [2, 5], WORD_LANG = PL ? 'pl' : 'en'; // the hub tile shows the puzzle in the site's language
 function todayHtml() {
   const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
   const needAcct = L('Needs an account', 'Wymaga konta');
   const mp = !d ? L('A new pet hides here every day', 'Codziennie kryje się tu nowy zwierzak') : d.guest ? needAcct : d.done ? `<i class="ok">✓ ${L(`solved in ${d.guesses.length}`, `odgadnięte w ${d.guesses.length}`)}</i>${fire}`
     : d.guesses.length ? `${L(`${cnt(d.guesses.length, 'guess', 'guesses')} so far`, `${cnt(d.guesses.length, '', '', 'próba', 'próby', 'prób')} do tej pory`)}${fire}` : `${L('New pet today', 'Dziś nowy zwierzak')}${d.streak ? fire : ''}`;
-  const paid = me?.hay?.paid || 0;
-  const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today · level ${me.hay.lv}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet · poziom ${me.hay.lv}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
-  const popPaid = me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
-  const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today · level ${popLv}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet · poziom ${popLv}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
-  const mjPaid = me?.mj?.paid || 0, mjLv = me?.mj?.lv || 1;
-  const mjText = !me?.user ? needAcct : mjPaid >= MJ_DAILY ? L(`All ${MJ_DAILY} coins earned today · level ${mjLv}`, `Dziś zdobyte wszystkie ${MJ_DAILY} monet · poziom ${mjLv}`) : L(`${MJ_DAILY - mjPaid} coins left today · level ${mjLv}`, `Dziś do zdobycia jeszcze ${cnt(MJ_DAILY - mjPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${mjLv}`);
+  // Coin caps start again at midnight in Warsaw; me.next is how long that was away when the server last wrote.
+  const toMid = me?.next ? me.next - (Date.now() - (st.meAt || Date.now())) : 0, fresh = me?.next && toMid <= 0;
+  const back = toMid > 0 ? ` · ${L(`new coins in ${leftText(toMid)}`, `nowe monety za ${leftText(toMid)}`)}` : '';
+  const paid = fresh ? 0 : me?.hay?.paid || 0;
+  const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet${back}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
+  const popPaid = fresh ? 0 : me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
+  const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet${back}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
+  const mjPaid = fresh ? 0 : me?.mj?.paid || 0, mjLv = me?.mj?.lv || 1;
+  const mjText = !me?.user ? needAcct : mjPaid >= MJ_DAILY ? L(`All ${MJ_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${MJ_DAILY} monet${back}`) : L(`${MJ_DAILY - mjPaid} coins left today · level ${mjLv}`, `Dziś do zdobycia jeszcze ${cnt(MJ_DAILY - mjPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${mjLv}`);
   const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
   const ownFarm = L('Your own pet farm', 'Twoja własna farma zwierzaków');
   const farm = !me?.user ? needAcct : !f ? ownFarm
@@ -1235,17 +1241,22 @@ function todayHtml() {
     : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
     : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
-  const w = st.wheelInfo, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
+  const w = st.wheelInfo, wLeft = w ? w.next - (Date.now() - (w.at || Date.now())) : 0, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun && wLeft > 0 ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
   const mpPic = MYSTERY_ICON;
+  const wi = st.wordInfo, ws = wi?.L?.[WORD_LANG], wfire = ws?.streak ? ` · 🔥 ${ws.streak}` : '';
+  const wordText = !wi ? L('A new word washes up every day', 'Codziennie morze przynosi nowe słowo') : wi.guest ? needAcct
+    : ws.done ? (ws.won ? `<i class="ok">✓ ${L(`solved in ${ws.rows.length} of ${wi.tries}`, `rozwiązane: ${ws.rows.length} z ${wi.tries}`)}</i>${wfire}` : L('Not this time. New word tomorrow', 'Nie tym razem. Jutro nowe słowo'))
+    : ws.rows.length ? `${L(`${ws.rows.length} of ${wi.tries} tries used`, `wykorzystane próby: ${ws.rows.length} z ${wi.tries}`)}${wfire}` : `${L('New word today', 'Dziś nowe słowo')}${wfire}`;
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done, MP_MINS)
-    + todayTile('t-wheel' + (w && !w.guest && !w.spun ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun)
+    + todayTile('t-word' + (ws?.done ? ' done' : ''), WORD_ICON, `${WORD_NAME}${wi ? ` <small>#${wi.no}</small>` : ''}`, wordText, 'word', ws?.done ? L('Result', 'Wynik') : ws?.rows?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), ws?.done, WORD_MINS)
+    + todayTile('t-wheel' + (w && !w.guest && !(w.spun && wLeft > 0) ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun && wLeft > 0 ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun && wLeft > 0)
     + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
     + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
     + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins)
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
-setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun)) paintToday(); }, 60_000); // keeps the farm countdown honest
+setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun || st.me?.next)) paintToday(); }, 60_000); // keeps the countdowns honest
 function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
@@ -1259,6 +1270,22 @@ function openDaily() {
     if (!open) return;
     st.daily = mod.mount(sheet.el.querySelector('.mpbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close() });
   }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load Mystery Pet. Refresh?', 'Nie udało się wczytać Zagadkowego zwierzaka. Odświeżyć stronę?'), true); });
+}
+
+// Word in a Bottle, the daily word puzzle, opens in a pop-up over the hub like Mystery Pet.
+function openWord() {
+  if (st.word) return;
+  const sheet = modal(`<div class="wbbox"><p class="wbload">${L('Uncorking today’s bottle…', 'Odkorkowuję dzisiejszą butelkę…')}</p></div>`);
+  sheet.el.querySelector('.sheet').classList.add('wbsheet');
+  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', `<button type="button" class="mpclose" aria-label="${L('Close', 'Zamknij')}">×</button>`);
+  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
+  let open = true;
+  sheet.onClose = () => { open = false; st.word?.destroy(); st.word = null; };
+  st.word = { msg() {}, destroy() {} }; // holds the place while the code loads
+  import('./word.js').then(mod => {
+    if (!open) return;
+    st.word = mod.mount(sheet.el.querySelector('.wbbox'), { send, toast, account: mode => openAccount(mode), close: () => sheet.close(), lang: WORD_LANG });
+  }).catch(err => { console.error(err); sheet.close(); toast(L('Could not load Word in a Bottle. Refresh?', 'Nie udało się wczytać Słowa w butelce. Odświeżyć stronę?'), true); });
 }
 
 // The Lucky Wheel, one free spin a day, opens in a pop-up over the hub like Mystery Pet.
@@ -1439,7 +1466,7 @@ const hasPack = () => { const have = new Set(st.me?.owned || []); return packIds
 let onKofi = null;
 function openSupport() {
   const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
-  const KIT = ['cb', 'dc', 'gb', 'kp'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
+  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
   // a small picture of one account cosmetic or game piece skin, with the kind as its caption
   const cosFig = ([k, i]) => { const it = cosItem(k, i);
     const pic = k === 'nm' ? `<span class="supbox"><b>${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</b></span>` : k === 'fr' ? `<span class="supbox">${avatarHtml(st.color, st.av, 34, frameCls({ fr: i }))}</span>`
@@ -1777,7 +1804,7 @@ function renderHub() {
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   send({ t: 'hubchat' }); hubScrollEnd();
-  send({ t: 'daily' }); send({ t: 'wheel' });
+  send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' });
   if (st.me?.user) send({ t: 'pets' }); // also brings the farm's news for the Today column
   if (!st.name && !st.creatorOpen) openProfile(true); // (the hub is drawn again when the 3D pictures load: one welcome window is enough)
 }
@@ -1858,7 +1885,7 @@ const hcTime = at => {
 };
 const hcSame = (a, b) => a && b && a.user === b.user && b.at - a.at < 3 * 60_000;
 // A shared Mystery Pet result: one row of squares per guess. Only the letters g, y and r ever become markup.
-const gridHtml = g => `<pre class="mpgrid" aria-label="${L('Their clues, without spoilers', 'Wskazówki tej osoby, bez spoilerów')}">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyr'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">${L(`and ${g.length - 10} more`, `i jeszcze ${g.length - 10}`)}</small>` : ''}`;
+const gridHtml = g => `<pre class="mpgrid" aria-label="${L('Their clues, without spoilers', 'Wskazówki tej osoby, bez spoilerów')}">${g.slice(0, 10).map(r => [...String(r)].filter(c => 'gyrhnm'.includes(c)).map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre>${g.length > 10 ? `<small class="mpmore">${L(`and ${g.length - 10} more`, `i jeszcze ${g.length - 10}`)}</small>` : ''}`;
 function hubLine(m, prev) {
   const cont = hcSame(prev, m);
   return `<div class="hcl${m.own ? ' own' : ''}${cont ? ' cont' : ''}" data-id="${esc(m.id)}"${prof(m)}>
@@ -2234,7 +2261,7 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾'];
-const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
+const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
@@ -2509,7 +2536,7 @@ function skyStrip(p) {
 }
 function openPlayer(p) {
   if (!p) return; playerSheet?.close();
-  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp'];
+  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm'];
   const sheet = playerSheet = modal(`
     <div class="profcard">
       <div class="pisle">${skyHang(p)}<div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
@@ -2765,6 +2792,7 @@ $app.addEventListener('click', e => {
   else if (act === 'pop') { if (!st.name) return openProfile(true); openPop(); }
   else if (act === 'mj') { if (!st.name) return openProfile(true); openMj(); }
   else if (act === 'daily') { if (!st.name) return openProfile(true); openDaily(); }
+  else if (act === 'word') { if (!st.name) return openProfile(true); openWord(); }
   else if (act === 'wheel') { if (!st.name) return openProfile(true); openWheel(); }
   else if (act === 'join') send({ t: 'join', code: b.dataset.code });
   else if (act === 'leave') send({ t: 'leave' });

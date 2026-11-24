@@ -84,6 +84,7 @@ function doPlay(G, s, t, side, now, auto = false) {
   const r = place(G.chain, G.first, t, side);
   if (!r) return false;
   G.chain = r.chain; G.first = r.first; G.must = -1; G.passes = 0;
+  (side === 'l' ? G.chain[0] : G.chain[G.chain.length - 1]).s = s; // who laid it: the tile keeps that player's tile look
   G.hands[s] = G.hands[s].filter(x => x !== t);
   G.st[s].moves++; G.st[s].played++; if (auto) G.st[s].auto++;
   G.mv++; G.last = { t: 'play', s, tile: t, side, mv: G.mv };

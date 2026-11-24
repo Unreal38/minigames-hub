@@ -42,6 +42,9 @@ const MARK = { ok: '✓', near: '≈', no: '✕' }, WORD = { ok: L('right', 'dob
 const HINT_NAME = [L('Its outline', 'Jego zarys'), L('Its baby form', 'Jego forma malucha'), L('A blurry photo', 'Rozmazane zdjęcie')];
 const clock = ms => { const s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} h ${String(m).padStart(2, '0')} min` : `${m} min ${String(s % 60).padStart(2, '0')} s`; };
 
+const MIN_Q = 2, SHOW = 8; // letters before any name shows, and how many names at most
+const fold = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').toLowerCase().trim();
+
 // host: the element to draw into. api: { send(msg), toast(html, bad), account(mode), close() }
 export function mount(host, api) {
   let V = null, got = 0, filter = '', busy = false, alive = true, fresh = '';
@@ -72,9 +75,13 @@ export function mount(host, api) {
       return `<div class="mphint${open ? ' open' : ''}"><div class="mpframe">${open ? img(V.secret, i === 1 ? 0 : 2, V.done ? '' : ['sil', '', 'blur'][i]) : '<span>?</span>'}</div>
         <b>${HINT_NAME[i]}</b><small>${L(`${open ? 'Unlocked' : `${at - wrong} more wrong ${at - wrong === 1 ? 'guess' : 'guesses'}`}`, `${open ? 'Odblokowane' : `jeszcze ${cnt(at - wrong, 'guess', 'guesses', 'błędna próba', 'błędne próby', 'błędnych prób')}`}`)}</small></div>`; }).join('')}</div>`;
   }
+  // No list of every pet to click through: the player types at least MIN_Q letters and sees up to SHOW names that fit.
   function pickerHtml() {
-    const tried = new Set(V.guesses.map(g => g.sp)), f = filter.trim().toLowerCase();
-    const list = order.filter(sp => !f || SPECIES[sp].name.toLowerCase().includes(f));
+    const tried = new Set(V.guesses.map(g => g.sp)), f = fold(filter);
+    if (f.length < MIN_Q) return '<p class="mpnone">' + L(`Type at least ${MIN_Q} letters of a pet’s name.`, `Wpisz co najmniej ${MIN_Q} litery nazwy zwierzaka.`) + '</p>';
+    const starts = order.filter(sp => fold(SPECIES[sp].name).startsWith(f));
+    const inside = f.length >= 3 ? order.filter(sp => !starts.includes(sp) && fold(SPECIES[sp].name).includes(f)) : [];
+    const list = [...starts, ...inside].slice(0, SHOW);
     return list.length ? list.map(sp => `<button type="button" class="mppet" data-guess="${sp}" ${tried.has(sp) || busy ? 'disabled' : ''}>${img(sp)}<b style="--w:${emw(SPECIES[sp].name)}">${esc(SPECIES[sp].name)}</b></button>`).join('')
       : '<p class="mpnone">' + L('No pet has a name like that.', 'Żaden zwierzak tak się nie nazywa.') + '</p>';
   }
@@ -105,7 +112,7 @@ export function mount(host, api) {
           <pre class="mpgrid" aria-label="${L(`Your result, without spoilers`, `Twój wynik, bez spoilerów`)}">${V.grid.map(r => [...r].map(c => `<i class="${c}"></i>`).join('')).join('\n')}</pre></div></section>`
       : `<section class="mpplay">${hintsHtml()}
           <div class="mpfind"><label for="mp-q">${L(`Your guess${n ? ` number ${n + 1}` : ''} <small>Solving it now pays ${V.pay} coins.</small>`, `Twoja próba${n ? ` numer ${n + 1}` : ''} <small>Rozwiązanie teraz daje ${cnt(V.pay, 'coin', 'coins', 'monetę', 'monety', 'monet')}.</small>`)}</label>
-            <input id="mp-q" class="field" type="search" placeholder="${L(`Type a pet’s name, or pick one below`, `Wpisz nazwę zwierzaka albo wybierz poniżej`)}" autocomplete="off" value="${esc(filter)}"></div>
+            <input id="mp-q" class="field" type="search" placeholder="${L(`Type a pet’s name`, `Wpisz nazwę zwierzaka`)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" value="${esc(filter)}"></div>
           <div class="mppick" id="mp-pick">${pickerHtml()}</div></section>`;
     const rows = n ? `<section class="mprows"><div class="mplegend"><span class="mpc ok">${L(`✓ right</span>`, `✓ dobrze</span>`)}<span class="mpc near">${L(`≈ close</span>`, `≈ blisko</span>`)}<span class="mpc no">${L(`✕ wrong</span>`, `✕ źle</span>`)}<span>${L(`▲ the mystery pet is rarer · ▼ more common`, `▲ tajemniczy zwierzak jest rzadszy · ▼ pospolitszy`)}</span></div>
         <ol class="mplist">${[...V.guesses].reverse().map((g, i) => guessRow(g, i, n)).join('')}</ol></section>`
@@ -143,7 +150,7 @@ export function mount(host, api) {
       const newDay = V && m.day !== V.day;
       V = m; got = Date.now(); busy = false;
       if (m.err) api.toast(esc(srvText(m.err)), true);
-      if (m.solved) api.toast(L(`🎉 Solved! +${m.solved.coins} coins${m.solved.newTitle ? ' · new title unlocked: Pet Detective' : ''}`, `🎉 Rozwiązane! +${cnt(m.solved.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}${m.solved.newTitle ? ' · nowy tytuł: Detektyw od zwierzaków' : ''}`));
+      if (m.solved) api.toast(L(`🎉 Solved! +${m.solved.coins} coins${m.solved.xp ? ` · +${m.solved.xp} XP` : ''}${m.solved.newTitle ? ' · new title unlocked: Pet Detective' : ''}`, `🎉 Rozwiązane! +${cnt(m.solved.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}${m.solved.xp ? ` · +${m.solved.xp} XP` : ''}${m.solved.newTitle ? ' · nowy tytuł: Detektyw od zwierzaków' : ''}`));
       if (m.sharedNow) api.toast(L('Posted in the hub chat.', 'Wysłane na czat Zatoki.'));
       if (newDay) { filter = ''; api.toast(L('A new Mystery Pet is here!', 'Jest nowy Zagadkowy zwierzak!')); }
       paint(); fresh = '';

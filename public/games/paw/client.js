@@ -45,6 +45,7 @@ export function mount(app, ctx) {
       <ol class="pw-list" id="pw-list" aria-label="${L(`Players and their treats`, `Gracze i ich przysmaki`)}"></ol>
       <div class="pw-log" id="pw-log" aria-hidden="true"></div>
       <div class="pw-deed" id="pw-deed" hidden></div>
+      <div class="pw-sell" id="pw-sell" hidden></div>
       <div class="pw-aim" id="pw-aim" hidden></div>
       <div class="pw-zoom" id="pw-zoom" hidden></div>
       <div class="shout" id="pw-big" aria-live="assertive"></div>
@@ -216,6 +217,7 @@ export function mount(app, ctx) {
   // ----- controls -----
   function renderDock() {
     const p = me(), ctl = $('pw-ctl'), bld = $('pw-build');
+    if (S?.ph !== 'play' || S.stage !== 'raise') { const sb = $('pw-sell'); if (!sb.hidden) { sb.hidden = true; sb._h = ''; } }
     if (!S || S.ph !== 'play') { setHtml(ctl, ''); setHtml(bld, ''); return; }
     const t = S.seats[S.turn];
     if (S.stage === 'raise') { renderRaise(ctl, bld); layout(); return; }
@@ -235,27 +237,39 @@ export function mount(app, ctx) {
     layout();
   }
 
-  // Short of treats: every shop you own, with what selling its top upgrade or the whole shop brings in.
+  // Short of treats: a panel with the card of every shop you own, and what selling its top upgrade or the whole shop brings in.
   function renderRaise(ctl, bld) {
-    const debt = myDebt(), p = me();
+    const debt = myDebt(), p = me(), box = $('pw-sell');
+    setHtml(bld, '');
     if (!debt.length) {
+      box.hidden = true; box._h = '';
       const who = [...new Set((S.debts || []).map(d => d.s))].filter(i => i !== S.me);
       const w = who[0] ?? S.turn, wp = S.seats[w];
       setHtml(ctl, `<span class="pw-wait">${avatarHtml(wp.color, wp.av, 30)}<span>${who.length > 1 ? L('Players are picking what to sell…', 'Gracze wybierają, co sprzedać…') : L(`${nameOf(w)} is picking what to sell…`, `${nameOf(w)} wybiera, co sprzedać…`)}</span></span>`);
-      setHtml(bld, ''); return;
+      return;
     }
+    setHtml(ctl, '');
     const owe = debt.reduce((t, d) => t + d.amt, 0), short = Math.max(0, owe - p.cash), d0 = debt[0];
     const why = d0.why === 'rent' ? L(`Rent at the ${shopName(d0.i)} for ${toWhom(d0)}`, `Czynsz: ${shopName(d0.i)} (dla: ${toWhom(d0)})`)
       : d0.why === 'vet' ? L('The vet bill', 'Rachunek u weterynarza') : d0.why === 'bath' ? L('The bath fee', 'Opłata za kąpiel') : L(`A Zoomies card: pay ${toWhom(d0)}`, `Karta Głupawki: zapłać (${toWhom(d0)})`);
-    setHtml(ctl, `<p class="pw-hint pw-owe">${why}: ${treats(owe)}. ${L(`You have ${treats(p.cash)}, so you are`, `Masz ${treats(p.cash)}, więc brakuje ci`)} <b>${treats(short)}</b>${L(' short.', '.')}<br><small>${L('Pick what to sell. The game waits for you.', 'Wybierz, co sprzedać. Gra na ciebie czeka.')}</small></p>
-      <div class="pw-go"><button type="button" class="btn big w" data-a="autosell">${L('Sell for me', 'Sprzedaj za mnie')}</button></div>`);
     const shops = S.own.map((o, i) => (o === S.me ? i : -1)).filter(i => i >= 0).sort((a, b) => TILES[a].g - TILES[b].g || a - b);
-    const btn = (i, a, label, val) => `<button type="button" data-a="${a}" data-i="${i}" title="${esc(label)}" style="--g:${GROUPS[TILES[i].g].col}">${pic(i, 'sm')}<span><b>${label}</b><small>${esc(TILES[i].name)}</small></span><em class="pw-gain">+${treats(val)}</em></button>`;
-    setHtml(bld, `<span class="pw-blbl">${L('Sell back at half price', 'Sprzedaj za pół ceny')}</span><div class="pw-ups pw-sells">${shops.map(i => {
-      const t2 = TILES[i], lv = S.lv[i];
-      return (lv ? btn(i, 'sellup', LV_NAMES[lv], t2.up / 2) : '')
-        + btn(i, 'sell', lv ? L('Shop and upgrades', 'Sklepik z ulepszeniami') : L('Shop', 'Sklepik'), t2.price / 2 + t2.up / 2 * lv);
-    }).join('')}</div>`);
+    const btn = (i, a, label, val) => `<button type="button" class="pw-sbtn${a === 'sell' ? ' all' : ''}" data-a="${a}" data-i="${i}"><span>${label}</span><em class="pw-gain">+${treats(val)}</em></button>`;
+    const card = i => {
+      const t = TILES[i], G = GROUPS[t.g], lv = S.lv[i], full = fullStreet(t.g, S.me, S.own);
+      const marks = [1, 2, 3].map(k => `<i class="${k <= lv ? 'on' : ''}"></i>`).join('');
+      return `<li class="pw-sc" style="--g:${G.col}">
+        <div class="pw-dhead" style="background:${G.col};color:${G.ink}"><span>${G.name}</span><b>${esc(t.name)}</b></div>
+        <div class="pw-scbody">${pic(i, 'md')}<div><p class="pw-run">${petName(i)}</p>
+          <p class="pw-lv"><span class="pw-marks" aria-hidden="true">${marks}</span>${lv ? LV_NAMES[lv] : L('No upgrades', 'Bez ulepszeń')}</p>
+          <p class="pw-small">${S.nap[i] ? L('Napping, no rent', 'Drzemie, bez czynszu') : `${L('Rent now', 'Czynsz teraz')} ${treats(rentOf(i, S.own, S.lv))}`}</p>${full ? `<p class="pw-small">${L('Whole street is yours', 'Cała uliczka jest twoja')}</p>` : ''}</div></div>
+        <div class="pw-scgo">${lv ? btn(i, 'sellup', L(`Sell ${LV_NAMES[lv]}`, `Sprzedaj: ${LV_NAMES[lv]}`), t.up / 2) : ''}${btn(i, 'sell', lv ? L('Sell it all', 'Sprzedaj wszystko') : L('Sell the shop', 'Sprzedaj sklepik'), t.price / 2 + t.up / 2 * lv)}</div></li>`;
+    };
+    box.hidden = false;
+    setHtml(box, `<div class="pw-shead"><div><b>${L('Short of treats', 'Brakuje przysmaków')}</b>
+        <p>${why}: ${treats(owe)}. ${L(`You have ${treats(p.cash)}, so you are`, `Masz ${treats(p.cash)}, więc brakuje ci`)} <b class="pw-short">${treats(short)}</b>${L(' short.', '.')}</p>
+        <small>${L('Everything sells back at half price. The game waits for you.', 'Wszystko sprzedajesz za pół ceny. Gra na ciebie czeka.')}</small></div>
+        <button type="button" class="btn w" data-a="autosell">${L('Sell for me', 'Sprzedaj za mnie')}</button></div>
+      <ul class="pw-scs">${shops.map(card).join('')}</ul>`);
   }
 
   function renderBanner() {

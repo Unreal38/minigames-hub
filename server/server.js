@@ -54,6 +54,7 @@ import * as pop from './pop.js';
 import * as mj from './mj.js';
 import * as hubchat from './hubchat.js';
 import * as daily from './daily.js';
+import * as word from './word.js';
 import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import { isBot, pageFor } from './seo.js';
@@ -607,6 +608,16 @@ function handle(c, m) {
         return r.err || null;
       });
     }
+    case 'word': { // Word in a Bottle: the daily word puzzle (server/word.js)
+      if (!allow('word:' + c.token, 40, 10_000)) return;
+      const p = store.profileOf(c.token);
+      if (m.test) word.testHook(m.test, msg => send(c, msg));
+      return word.handle(p, m, msg => send(c, msg), (text, grid) => {
+        const r = hubchat.post(p, c, c.sock?.ip || '?', text, grid);
+        if (r.msg) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', msg: hubchat.forReader(r.msg, store.profileOf(o.token)?.pid, hubchat.isAdmin(store.profileOf(o.token))) });
+        return r.err || null;
+      });
+    }
     case 'hubdel': {
       const id = String(m.id ?? '');
       if (hubchat.remove(store.profileOf(c.token), id)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
@@ -811,7 +822,7 @@ for (const d of store.load()) {
 farm.load();
 store.notePodium();
 hubchat.load();
-daily.load();
+daily.load(); word.load();
 wheel.load();
 notice.load();
 // Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and

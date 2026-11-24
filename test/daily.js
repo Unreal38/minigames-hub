@@ -79,7 +79,7 @@ console.log('clues ok');
 // 3. Solving pays by the number of guesses, once, and starts a streak.
 const before = ana.me.coins;
 d = await ana.daily({ guess: secret });
-if (!d.done || d.solved?.coins !== 14 || d.won !== 14 || d.streak !== 1 || d.grid.length !== 4 || d.grid[3] !== 'g'.repeat(d.cols.length)) fail('solve ' + JSON.stringify(d.solved) + d.grid);
+if (!d.done || d.solved?.coins !== 14 || d.solved?.xp !== 8 || d.won !== 14 || d.streak !== 1 || d.grid.length !== 4 || d.grid[3] !== 'g'.repeat(d.cols.length)) fail('solve ' + JSON.stringify(d.solved) + d.grid);
 if (!d.guesses[3].clues.every(c => c.s === 'ok')) fail('the answer should be all green');
 await until(() => ana.me.coins === before + 14, 'coins paid');
 d = await ana.daily({ guess: wrong[5] });

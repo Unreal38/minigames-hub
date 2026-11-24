@@ -6,7 +6,8 @@ import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js'
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { TILES, layout, footprint } from './rules.js';
-import { paintHalf, FACE } from './tiles.js';
+import { paintHalf } from './tiles.js';
+import { dominoLook } from '../../pieceskins.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const U = .56, TH = .19;      // half a tile (one square) in world units, and how thick a tile is
@@ -63,20 +64,21 @@ export function createScene(canvas, { onFrame } = {}) {
   // and its face up. The two numbers are flat pictures on top, sharing one material per number.
   const bodyGeo = new THREE.BoxGeometry(U * 2 * .95, TH, U * .95), plateGeo = new THREE.BoxGeometry(U * 2 * .95 - .1, .03, U * .95 - .1);
   const barGeo = new THREE.BoxGeometry(.035, .02, U * .62), faceGeo = new THREE.PlaneGeometry(U * .88, U * .88); faceGeo.rotateX(-Math.PI / 2);
-  const bodyMat = toonMat(M(FACE)), barMat = toonMat(M('#3b2219'));
+  const bodyMat = toonMat(M(dominoLook(0).face)), barMat = toonMat(M('#3b2219'));
   const halfMats = [], plateMats = new Map();
-  const halfMat = v => {
-    if (!halfMats[v]) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; paintHalf(cv.getContext('2d'), 128, v); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; halfMats[v] = toonMat(new THREE.MeshStandardMaterial({ map: tx, roughness: .6 })); }
+  const halfMat = (v, k = 0) => { v += k * 7;
+    if (!halfMats[v]) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; paintHalf(cv.getContext('2d'), 128, v % 7, k); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; halfMats[v] = toonMat(new THREE.MeshStandardMaterial({ map: tx, roughness: .6 })); }
     return halfMats[v];
   };
   const plateMat = c => { if (!plateMats.has(c)) plateMats.set(c, toonMat(M(c))); return plateMats.get(c); };
   const proto = new THREE.Group();
   { const b = put(bodyGeo, bodyMat, 0, TH / 2, 0, proto); b.castShadow = true; put(barGeo, barMat, 0, TH + .005, 0, proto); toonify(proto, .022); }
-  function makeTile(near = -1, far = -1, back = PILE_BACK, solid = false) { // near/far: the numbers on the -x and +x halves; -1 = a tile you cannot see
-    const g = proto.clone();
+  function makeTile(near = -1, far = -1, back = PILE_BACK, solid = false, k = 0) { // near/far: the numbers on the -x and +x halves; -1 = a tile you cannot see; k: the tile look of its owner
+    const g = proto.clone(), L = dominoLook(k);
+    if (k && dominoLook(k) !== dominoLook(0)) { g.children[0].material = plateMat(L.face); g.children[1].material = plateMat(L.bar); }
     g.userData.plate = put(plateGeo, plateMat(back), 0, -.012, 0, g);
     if (solid) g.children[0].material = plateMat(back); // a spare tile in the pile is its back colour all over
-    if (near >= 0) { put(faceGeo, halfMat(near), -U / 2, TH + .004, 0, g); put(faceGeo, halfMat(far), U / 2, TH + .004, 0, g); }
+    if (near >= 0) { put(faceGeo, halfMat(near, k), -U / 2, TH + .004, 0, g); put(faceGeo, halfMat(far, k), U / 2, TH + .004, 0, g); }
     return g;
   }
   // a tile standing on its short end inside a holder that turns its face towards (nx, nz)
@@ -172,7 +174,7 @@ export function createScene(canvas, { onFrame } = {}) {
       const o = tiles[i], to = new THREE.Vector3(o.x * U, 0, o.z * U), ry = rotOf(o);
       let m = laid.get(e.t);
       if (m) { m.position.x = to.x; m.position.z = to.z; m.rotation.y = ry; return; }
-      m = makeTile(o.near, o.far); laid.set(e.t, m); line.add(m);
+      m = makeTile(o.near, o.far, PILE_BACK, false, looks[e.s] | 0); laid.set(e.t, m); line.add(m);
       const L = st.last;
       if (animate && L?.t === 'play' && L.tile === e.t && seats[L.s]) { // it flies in from whoever played it and lands with a knock
         line.updateMatrixWorld();
@@ -186,9 +188,10 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   // ---------- state from the server ----------
-  let S = null, gid = '', mv = -1, round = 0;
+  let S = null, gid = '', mv = -1, round = 0, looks = [];
   function setState(st) {
     const list = st.seats, key = list.map(p => p.color + (p.av || []).join('')).join('|') + '/' + st.me;
+    looks = list.map(p => p.fl?.dm | 0); // each tile on the table keeps the look of whoever played it
     if (key !== seatKey) {
       const rebuilt = st.me !== me || list.length !== n || !seats.length;
       me = st.me; seatKey = key;

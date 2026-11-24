@@ -13,7 +13,7 @@ function decorOnly(type) {
   return { root, tick() {}, dispose() { disposeModel(g); m.geometry.dispose(); } };
 }
 
-const SIZE = 176, cache = new Map();
+const SIZE = 176, BIG = 288, cache = new Map(); // the expedition places show their island large, so they get a sharper picture
 let rd = null, dead = false;
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(24, 1, .1, 80);
 const hemi = new THREE.HemisphereLight('#ffffff', '#ffe9c9', 2), key = new THREE.DirectionalLight('#ffffff', 1.5);
@@ -27,7 +27,8 @@ export function islePic(k, i) {
   const id = k + i; if (cache.has(id)) return cache.get(id);
   if (dead) return '';
   try {
-    if (!rd) { const cv = document.createElement('canvas'); cv.width = cv.height = SIZE; rd = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true }); rd.setSize(SIZE, SIZE, false); }
+    if (!rd) { const cv = document.createElement('canvas'); cv.width = cv.height = SIZE; rd = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true }); }
+    const px = k === 'zn' ? BIG : SIZE; if (rd.domElement.width !== px) rd.setSize(px, px, false);
     const parts = [], at = (x, y, z, tx, ty, tz) => { cam.position.set(x, y, z); cam.lookAt(tx, ty, tz); };
     let night = false;
     if (k === 'fp') { const g = pieceModel(i); g.rotation.set(.35, .6, 0); parts.push({ root: g, tick() {}, dispose: () => disposeToon(g) }); at(0, .3, 2.6, 0, 0, 0); }
