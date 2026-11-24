@@ -53,7 +53,10 @@ const zoneVars = k => ZONE_ISLE[k] ? ` style="--s1:${ZONE_ISLE[k][1]};--s2:${ZON
 const elTag = e => `<span class="el" style="--c:${ELEMENTS[e]}">${elName(e)}</span>`;
 const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + L(' and ', ' i ') + a.at(-1);
 
-let cssLoaded = false, thumbs = null;
+let cssLoaded = false;
+// Little pictures for menus and pet chips: about 120 of them, so they are drawn a few at a time after the island
+// shows (drawing them all at once held the island back for seconds). Kept for the whole visit to the site.
+const thumbs = {}, thumbAll = () => [...Object.keys(ITEMS), ...Object.keys(SPECIES).map(s => 'pet:' + s)];
 function loadCss() {
   if (cssLoaded) return; cssLoaded = true;
   const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = new URL('./farm.css', import.meta.url).href;
@@ -78,6 +81,7 @@ export function mount(app, ctx) {
     </div>
     <div class="gate" id="pf-panel" hidden></div>
     <div class="gate" id="pf-gate" hidden></div>
+    <div class="pfload" id="pf-load" role="status"><span class="pfegg" aria-hidden="true"></span>${L('Walking to the farm…', 'Idziemy na farmę…')}</div>
   </div>`;
   const root = app.querySelector('.pf'), $ = id => root.querySelector('#' + id), canvas = root.querySelector('.g3d');
   let F = null, scene = null, destroyed = false, mode = 'load', edit = false, tab = 'b', pick = null, card = null, panel = null, tripAt = 0, nestAt = 0, lastType = null, lastSpot = null;
@@ -96,11 +100,29 @@ export function mount(app, ctx) {
   import('./scene3d.js').then(m => {
     if (destroyed) return;
     scene = m.createScene(canvas, { onPick, onGhost: paintGhost });
-    thumbs ||= scene.thumbs([...Object.keys(ITEMS), ...Object.keys(SPECIES).map(s => 'pet:' + s)]);
     sync();
-  }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
+    // the loading note stays until the island has been drawn; the little pictures start once it is on screen
+    scene.warm().then(() => requestAnimationFrame(() => requestAnimationFrame(() => { if (destroyed) return; $('pf-load').hidden = true; thumbGo = true; thumbLater(400); })));
+  }).catch(err => { console.warn('3D unavailable', err); $('pf-load').hidden = true; root.classList.add('flat'); });
 
-  const thumb = (k, alt = '') => thumbs?.[k] ? `<img src="${thumbs[k]}" alt="${esc(alt)}" width="56" height="56">` : '<span class="nothumb"></span>';
+  // A picture not drawn yet shows a soft tile and is swapped in when ready; ones on screen are drawn first.
+  const thumbWant = new Set(); let thumbRest = null, thumbT = 0, thumbGo = false;
+  const thumbImg = (k, alt) => `<img src="${thumbs[k]}" alt="${esc(alt)}" width="56" height="56">`;
+  const thumb = (k, alt = '') => { if (thumbs[k]) return thumbImg(k, alt); if (k in thumbs) return '<span class="nothumb"></span>'; thumbWant.add(k); thumbLater(20); return `<span class="nothumb" data-th="${esc(k)}" data-alt="${esc(alt)}"></span>`; };
+  function thumbLater(ms) { if (!thumbT && thumbGo && !destroyed) thumbT = setTimeout(thumbStep, ms); }
+  function thumbStep() {
+    thumbT = 0; if (destroyed || !scene) return;
+    thumbRest ||= thumbAll();
+    // pictures on screen right now get a bigger share of the turn; the rest are drawn a few milliseconds at a time
+    const t0 = performance.now(), front = thumbWant.size > 0, budget = front ? 60 : 10, done = [];
+    while (performance.now() - t0 < budget) {
+      const k = front ? thumbWant.values().next().value : thumbRest.pop(); if (k === undefined) break;
+      thumbWant.delete(k); if (k in thumbs) continue;
+      const u = scene.thumbs([k])[k]; thumbs[k] = u || ''; if (u) done.push(k);
+    }
+    for (const k of done) for (const el of root.querySelectorAll(`.nothumb[data-th="${CSS.escape(k)}"]`)) el.outerHTML = thumbImg(k, el.dataset.alt || '');
+    if (thumbWant.size || thumbRest.length) thumbT = setTimeout(thumbStep, thumbWant.size ? 16 : 40);
+  }
 
   // A pet's own picture: its real form, coat and markings.
   const face = (p, alt = '') => { const u = p && scene?.portrait?.(p.sp, formOf(p.lv || 1), p.look || null); return u ? `<img src="${u}" alt="${esc(alt || p.name || '')}" width="56" height="56">` : thumb('pet:' + p?.sp, alt); };
@@ -1044,6 +1066,6 @@ export function mount(app, ctx) {
     reopen() { ctx.send({ t: 'open' }); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast(L('Finish the battle first.', 'Najpierw dokończ bitwę.'), true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
-    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); scene?.dispose(); },
+    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); clearTimeout(thumbT); scene?.dispose(); },
   };
 }
