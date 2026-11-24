@@ -276,6 +276,19 @@ const PIECE = {
     const d = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), SM('#ffffff')); d.position.set(.13, -.06, .27); g.add(d); },
   egg(g) { const e = new THREE.Mesh(new THREE.SphereGeometry(.26, 18, 14), SM('#fff4e2')); e.scale.set(1, 1.28, 1); g.add(e);
     for (const [x, y, z, r, c] of [[.12, .12, .2, .09, '#7ed37a'], [-.14, -.08, .2, .07, '#ff9fb8'], [.05, -.2, .19, .06, '#7fc8ee'], [-.1, .2, -.17, .08, '#ffc93c'], [.18, -.05, -.17, .07, '#7ed37a']]) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), SM(c)); m.position.set(x * .8, y * .86, z * .8); g.add(m); } g.rotation.z = .2; },
+  knight(g) { const add = (w, h, d, x, y, rz = 0, c = '#fff4e2') => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), SM(c)); m.position.set(x, y, 0); m.rotation.z = rz; g.add(m); return m; };
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(.2, .26, .1, 8), SM('#e6d3ac')); b.position.y = -.3; g.add(b);
+    add(.2, .36, .22, .04, -.1, .28); add(.24, .2, .22, -.05, .13, .3); add(.2, .13, .17, -.22, .05, .3); add(.07, .36, .1, .16, -.04, .28, '#4d362e');
+    for (const z of [-.07, .07]) { const e = add(.07, .12, .06, .04, .28); e.position.z = z; } g.rotation.y = -.5; g.scale.setScalar(1.15); },
+  eight(g) { g.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 20, 14), SM('#221d2a', { roughness: .3 }))); const d = new THREE.Mesh(new THREE.CircleGeometry(.14, 18), SM('#ffffff')); d.position.z = .29; g.add(d);
+    for (const y of [.045, -.05]) { const r = new THREE.Mesh(new THREE.TorusGeometry(y > 0 ? .038 : .048, .016, 6, 14), SM('#221d2a')); r.position.set(0, y, .3); g.add(r); } g.rotation.set(-.2, .35, 0); },
+  domino(g) { const t = new THREE.Mesh(new THREE.BoxGeometry(.34, .66, .1), SM('#fff8ec')); g.add(t); const bar = new THREE.Mesh(new THREE.BoxGeometry(.24, .025, .02), SM('#3b2219')); bar.position.z = .055; g.add(bar);
+    const pip = (x, y, c) => { const m = new THREE.Mesh(new THREE.BoxGeometry(.065, .065, .02), SM(c)); m.position.set(x, y, .055); g.add(m); };
+    for (const [x, y] of [[-.09, .26], [.09, .08], [0, .17]]) pip(x, y, '#3fae5d'); for (const [x, y] of [[-.09, -.08], [.09, -.08], [-.09, -.26], [.09, -.26], [0, -.17]]) pip(x, y, '#9a5fd0'); g.rotation.set(-.1, .5, .25); },
+  bingo(g) { g.add(new THREE.Mesh(new THREE.SphereGeometry(.3, 20, 14), SM('#ffc93c', { roughness: .3 }))); const d = new THREE.Mesh(new THREE.CircleGeometry(.17, 18), SM('#ffffff')); d.position.z = .285; g.add(d);
+    const r = new THREE.Mesh(new THREE.TorusGeometry(.17, .022, 6, 20), SM('#e5543b')); r.position.z = .25; g.add(r);
+    const box = (w, h, x, y, rz = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, .02), SM('#3b2219')); m.position.set(x, y, .295); m.rotation.z = rz; g.add(m); };
+    box(.03, .15, -.05, 0); box(.09, .03, .045, .06); box(.03, .15, .055, -.01, -.3); g.rotation.set(-.15, .3, 0); },
   paw(g) { const m = SM('#ff9fb8'), pad = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 8), m); pad.scale.set(1.15, .9, .45); pad.position.y = -.1; g.add(pad);
     for (const [x, y] of [[-.24, .12], [-.08, .26], [.08, .26], [.24, .12]]) { const t = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 6), m); t.scale.z = .5; t.position.set(x, y, 0); g.add(t); } },
 };

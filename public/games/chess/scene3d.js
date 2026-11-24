@@ -7,6 +7,7 @@ import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nigh
 import { frameLoop, autoResolution } from '../../frames.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
+import { chessLook } from '../../pieceskins.js';
 const CELL = .76, B = CELL * 8; // square and board width
 const TOP = .22;                // height of the playing surface
 const EDGE = .34;               // the frame round the squares (it carries the letters and numbers)
@@ -18,9 +19,9 @@ export const HEIGHT = [0, .62, .78, .9, .74, .96, 1.12]; // roughly how tall eac
 
 // ---------- piece models ----------
 // Built from a few boxes and eight-sided columns in units of one square, facing left (the knight's nose points at -x).
-function pieceModel(type, side, ring) {
+export function pieceModel(type, side, ring, set = 0) { // set: the chess set its player wears (Wardrobe, kind cs)
   const g = new THREE.Group(), U = CELL * .98;
-  const body = side ? '#4d362e' : '#f7ecd4', shade = side ? '#38261f' : '#d8c298', trim = side ? '#7a5a4a' : '#e6d3ac', gold = '#ffc93c', slot = side ? '#f3e2bf' : '#4d362e';
+  const { body, shade, trim, gold, slot } = chessLook(set, side);
   let y = 0;
   const add = (geo, col, x, yy, z) => { const m = new THREE.Mesh(geo, M(col)); m.position.set(x * U, yy * U, z * U); m.castShadow = true; g.add(m); return m; };
   const cyl = (rt, rb, h, col = body, seg = 8) => { const m = add(new THREE.CylinderGeometry(rt * U, rb * U, h * U, seg), col, 0, y + h / 2, 0); m.rotation.y = Math.PI / 8; y += h; return m; };
@@ -157,10 +158,10 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- pieces ----------
   let protos = new Map(), protoKey = '';
   const pieces = new Map(); // square -> { g, p, y }
-  function buildProtos(ringW, ringB) {
+  function buildProtos(ringW, ringB, setW = 0, setB = 0) {
     for (const g of protos.values()) g.traverse(o => o.geometry?.dispose());
     protos = new Map();
-    for (let side = 0; side < 2; side++) for (let t = 1; t <= 6; t++) protos.set(t | side << 3, pieceModel(t, side, side ? ringB : ringW));
+    for (let side = 0; side < 2; side++) for (let t = 1; t <= 6; t++) protos.set(t | side << 3, pieceModel(t, side, side ? ringB : ringW, side ? setB : setW));
   }
   function addPiece(s, p) {
     dropPiece(s);
@@ -299,9 +300,9 @@ export function createScene(canvas, { onFrame } = {}) {
         const s = seats[i], k = p.color + (p.av || []).join(''); if (s.key === k) return;
         scene.remove(s.av); disposeAvatar(s.av); s.av = makeAv(p); seatPlace(s); s.hop = 1; s.key = k;
       });
-      const pk = list[st.white].color + '|' + list[1 - st.white].color;
-      if (pk !== protoKey) { protoKey = pk; for (const s of [...pieces.keys()]) dropPiece(s); buildProtos(list[st.white].color, list[1 - st.white].color); rebuilt = true; }
     }
+    { const W = list[st.white], Bk = list[1 - st.white], pk = W.color + '|' + Bk.color + '|' + (W.fl?.cs | 0) + '|' + (Bk.fl?.cs | 0); // each side wears its player's chess set
+      if (pk !== protoKey) { protoKey = pk; for (const s of [...pieces.keys()]) dropPiece(s); buildProtos(W.color, Bk.color, W.fl?.cs | 0, Bk.fl?.cs | 0); rebuilt = true; } }
     if (vf !== flip || !board) { flip = vf; drawLabels(); rebuilt = true; }
     const b = st.pos.b;
     if (fresh || rebuilt) { gid = st.gid; mvN = st.mv; setSelect(-1); hardSync(b); }

@@ -2,7 +2,7 @@
 // The game code that paints the real things is loaded only when a picture is first asked for; each picture is drawn once.
 const shots = new Map(); // key -> data URL ('' when it could not be drawn)
 let kit = null;
-const keyOf = (k, i, color, av) => k + '|' + (i | 0) + (k === 'kp' || (k === 'gb' && !(i | 0)) ? '|' + color : '') + (k === 'kp' ? '|' + (av || []).join('') : '');
+const keyOf = (k, i, color, av) => k + '|' + (i | 0) + (k === 'kp' || k === 'cu' || k === 'cs' || (k === 'gb' && !(i | 0)) ? '|' + color : '') + (k === 'kp' ? '|' + (av || []).join('') : '');
 export const skinPicNow = (k, i, color, av) => shots.get(keyOf(k, i, color, av)) || '';
 
 function cv2d(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
@@ -49,12 +49,34 @@ const kartPic = (i, color, av) => shot3d(async () => {
   const { makeKart } = await import('./games/kart/scene3d.js'), K = makeKart(color, av, i);
   K.bub.removeFromParent(); return { g: K.root, dir: [.62, .36, .7], zoom: .98 };
 });
+// a cue lying across the picture, tip up and to the right
+const cuePic = (i, color, { cueMeshes }) => shot3d(async THREE => {
+  const g = new THREE.Group(), c = new THREE.Group(); for (const m of cueMeshes(i, color)) c.add(m);
+  c.scale.set(1, 3.2, 3.2); c.rotation.z = -.62; g.add(c); // fattened so the pattern reads at this size
+  return { g, dir: [0, .12, 1], zoom: .78 };
+});
+// the light king and the dark knight of a chess set
+const chessPic = (i, color) => shot3d(async THREE => {
+  const { pieceModel } = await import('./games/chess/scene3d.js'), g = new THREE.Group();
+  const k = pieceModel(6, 0, color, i), n = pieceModel(2, 1, '#7a5a4a', i); k.position.set(-.36, 0, -.1); n.position.set(.4, 0, .22); n.rotation.y = -.5; g.add(k, n);
+  return { g, dir: [.1, .32, .94], zoom: .82 };
+});
+// two domino tiles drawn flat: 6-4 and the double three
+async function dominoPic(i) {
+  const { dominoLook, paintDominoHalf } = await import('./pieceskins.js'), L = dominoLook(i), [c, g] = cv2d(240, 240);
+  const one = (x, y, rot, a, b) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = INK; rr(g, -45, -85, 90, 170, 18); g.fill();
+    g.save(); rr(g, -39, -79, 78, 158, 13); g.clip(); g.fillStyle = L.face; g.fillRect(-39, -79, 78, 158);
+    g.save(); g.translate(-39, -79); paintDominoHalf(g, 78, a, i); g.translate(0, 80); paintDominoHalf(g, 78, b, i); g.restore();
+    g.strokeStyle = L.bar; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(-26, 0); g.lineTo(26, 0); g.stroke(); g.restore(); g.restore(); };
+  one(84, 128, -.2, 6, 4); one(164, 118, .16, 3, 3);
+  return c.toDataURL('image/png');
+}
 export async function skinPic(k, i, color, av) {
   const key = keyOf(k, i, color, av); if (shots.has(key)) return shots.get(key);
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }

@@ -1699,6 +1699,7 @@ body.night .lwstage { background: radial-gradient(#fff 1px, transparent 1.6px) 1
 .pb19 { --pt: #3f9a52; --pi: url(cardbg/el-leaf.svg); } .pb20 { --pt: #e0592f; --pi: url(cardbg/el-ember.svg); } .pb21 { --pt: #2f86cc; --pi: url(cardbg/el-tide.svg); }
 .pb22 { --pt: #d9a400; --pi: url(cardbg/el-spark.svg); } .pb23 { --pt: #8a7f76; --pi: url(cardbg/el-stone.svg); }
 .pb24 { background-image: url(cardbg/lagoon.svg); } .pb25 { background-image: url(cardbg/darts.svg); } .pb26 { background-image: url(cardbg/dice.svg); } .pb27 { background-image: url(cardbg/golf.svg); }
+.pb32 { background-image: url(cardbg/chess.svg); } .pb33 { background-image: url(cardbg/pool.svg); } .pb34 { background-image: url(cardbg/dominoes.svg); }
 .pb28 { background-image: url(cardbg/beach.svg); } .pb29 { background-image: url(cardbg/pumpkins.svg); }
 .pb30 { background-image: url(cardbg/snow-base.svg); }
 .pb30::before { top: -240px; background: url(cardbg/snow.svg) 100% 0 / 180px 240px repeat; animation: pbfall 11s linear infinite; will-change: transform; }
