@@ -32,41 +32,38 @@ const WH = () => MX('shine', '#ffffff', { emissive: '#ffffff', emissiveIntensity
 // One eye: a dark dome that hugs the curve of the head (turn: how far it leans to its side), with two white glints
 // that blink away with it. Faces +Z; the scene squashes scale.z to blink.
 const EYEM = new THREE.MeshBasicMaterial({ vertexColors: true }); EYEM.userData.keep = true; // shared by every pet, never disposed
-// Eye designs. Each is one mesh (rim, iris, pupil and glints fused, coloured per vertex), so an eye is one draw call.
-// The iris takes the pet's element: IRIS is set by petModel while a pet is being built ([deep, light] per element).
+// The eye: a dark dome with a big iris in the pet's element colour (shaded deep under the lid, light at the bottom), a big
+// soft pupil and glints. All of it is one mesh coloured per vertex, so an eye is one draw call. A big iris and pupil read
+// as friendly; a small pupil in a bright iris reads as a stare, so keep them large.
 const IRISES = { Leaf: ['#3f8f55', '#a4e68c'], Ember: ['#b8562f', '#ffc070'], Tide: ['#3f6fc0', '#93d4ff'], Spark: ['#b9862a', '#ffe27a'], Stone: ['#7462b8', '#c6b8f6'], none: ['#7462b8', '#c6b8f6'] };
-let EYE = 'soft', IRIS = IRISES.none, IRIS2 = null;
-export const setEyes = k => { EYE = k; };
-// Over the dark dome lie flat patches that follow its curve, each a layer higher: [colour, x, up, rx, rup, layer].
-// Colours: 'd' the deep iris, 'l' the light iris, anything else as given. A big iris and a big soft pupil read as friendly.
-const EYES = {
-  sparkle: { k: 1.12, gap: .01, y: -.01, dome: [.9, .3, 1.14], parts: [['#7d5bd0', 0, -.4, .7, .5, 1], ['#b9a2ff', 0, -.62, .44, .22, 2], ['#ffffff', .3, .5, .3, .34, 3], ['#ffffff', -.3, -.24, .13, .15, 3], ['#ffffff', -.1, -.7, .08, .09, 3]] },
-  soft: { k: 1.3, gap: .02, y: -.015, dome: [1, .24, 1.04], parts: [['d', 0, -.03, .9, .9, 1], ['l', 0, -.46, .7, .42, 2], [INK, 0, .1, .58, .6, 3], ['#ffffff', .3, .46, .3, .32, 4], ['#ffffff', -.4, -.36, .14, .15, 4]] },
-  softtall: { k: 1.3, gap: .015, y: -.015, dome: [.88, .24, 1.18], parts: [['d', 0, -.03, .9, .9, 1], ['l', 0, -.48, .7, .4, 2], [INK, 0, .1, .58, .6, 3], ['#ffffff', .3, .48, .32, .3, 4], ['#ffffff', -.4, -.38, .15, .14, 4], ['#ffffff', -.06, -.72, .09, .07, 4]] },
-  bigiris: { k: 1.32, gap: .025, y: -.02, dome: [1, .24, 1.06], parts: [['d', 0, -.02, .92, .92, 1], ['l', 0, -.34, .78, .58, 2], [INK, 0, .06, .42, .46, 3], ['#ffffff', .3, .46, .3, .32, 4], ['#ffffff', -.4, -.36, .15, .16, 4]] },
-};
+let IRIS = IRISES.none, IRIS2 = null; // set by petModel while a pet is built; a hybrid's second element lights the lower iris
+const EYE = { k: 1.3, gap: .02, y: -.015, dome: [1, .24, 1.04] };
+// Patches lie on the dome and follow its curve, each a layer higher: [colour or [top, bottom], x, up, rx, rup].
+const eyeParts = (d, l) => [[[mix(d, INK, .45), mix(d, l, .3)], 0, -.03, .9, .9], [[mix(d, l, .55), l], 0, -.47, .7, .41], [mix(d, INK, .62), 0, .1, .63, .65], [INK, 0, .1, .55, .57],
+  ['#ffffff', .3, .46, .3, .32], ['#ffffff', -.4, -.36, .14, .15], ['#ffffff', -.12, -.72, .06, .06]];
 const eyeGeos = new Map();
-function eyeG(kind) {
-  const E = EYES[kind], two = IRIS2 || IRIS, key = [kind, IRIS[0], two[1]].join(); let o = eyeGeos.get(key); if (o) return o;
-  const [dx, dy, dz] = E.dome, pos = [], col = [], shade = c => c === 'd' ? IRIS[0] : c === 'l' ? two[1] : c;
-  const dome = new THREE.IcosahedronGeometry(1, 2).toNonIndexed(); dome.scale(dx, dy, dz); _c.set(INK);
-  for (let P = dome.attributes.position, i = 0; i < P.count; i += 3) { if (P.getY(i) < 0 && P.getY(i + 1) < 0 && P.getY(i + 2) < 0) continue; for (let j = i; j < i + 3; j++) { pos.push(P.getX(j), P.getY(j), P.getZ(j)); col.push(_c.r, _c.g, _c.b); } }
-  const N = 22, on = (u, v, lift) => { const q = Math.max(0, 1 - u * u - v * v); pos.push(u * dx, Math.sqrt(q) * dy + lift, -v * dz); col.push(_c.r, _c.g, _c.b); }; // a point on the dome, up v and across u
-  for (const [c, x, up, rx, ru, layer] of E.parts) { _c.set(shade(c)); const lift = layer * .022;
-    for (let i = 0; i < N; i++) { const a = i / N * PI * 2, b = (i + 1) / N * PI * 2; on(x, up, lift); on(x + Math.cos(a) * rx, up + Math.sin(a) * ru, lift); on(x + Math.cos(b) * rx, up + Math.sin(b) * ru, lift); } }
+function eyeG() {
+  const two = IRIS2 || IRIS, key = IRIS[0] + two[1]; let o = eyeGeos.get(key); if (o) return o;
+  const [dx, dy, dz] = EYE.dome, pos = [], col = [];
+  const dome = new THREE.IcosahedronGeometry(1, 3).toNonIndexed(); dome.scale(dx, dy, dz); _c.set(INK);
+  for (let P = dome.attributes.position, i = 0; i < P.count; i += 3) { if (P.getY(i) <= 0 && P.getY(i + 1) <= 0 && P.getY(i + 2) <= 0) continue; for (let j = i; j < i + 3; j++) { pos.push(P.getX(j), Math.max(0, P.getY(j)), P.getZ(j)); col.push(_c.r, _c.g, _c.b); } }
+  const N = 30, parts = eyeParts(IRIS[0], two[1]);
+  parts.forEach(([c, x, up, rx, ru], layer) => { const lift = (layer + 1) * .02, grad = Array.isArray(c);
+    const on = (u, v) => { pos.push(u * dx, Math.sqrt(Math.max(0, 1 - u * u - v * v)) * dy + lift, -v * dz); if (grad) _c.set(c[1]).lerp(_d.set(c[0]), Math.max(0, Math.min(1, (v - up + ru) / (2 * ru)))); else _c.set(c); col.push(_c.r, _c.g, _c.b); }; // a point on the dome, up v and across u
+    for (let i = 0; i < N; i++) { const a = i / N * PI * 2, b = (i + 1) / N * PI * 2; on(x, up); on(x + Math.cos(a) * rx, up + Math.sin(a) * ru); on(x + Math.cos(b) * rx, up + Math.sin(b) * ru); } });
   o = new THREE.BufferGeometry(); o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   eyeGeos.set(key, o); return o;
 }
 // One eye: it hugs the curve of the head (turn: how far it leans to its side). Faces +Z; the scene squashes the mesh's scale.z to
 // blink, so the size lives on the holder group.
 function eyeAt(p, eyes, r, pos, tilt = 0, turn = 0, nod = 0) {
-  const h = Grp(p, pos, [nod, turn, 0], r * EYES[EYE].k), e = V(h, new THREE.Mesh(eyeG(EYE), EYEM), null, [PI / 2, 0, tilt]); e.userData.noInk = 1; h.userData.unit = 1;
+  const h = Grp(p, pos, [nod, turn, 0], r * EYE.k), e = V(h, new THREE.Mesh(eyeG(), EYEM), null, [PI / 2, 0, tilt]); e.userData.noInk = 1; h.userData.unit = 1;
   eyes.push(e); return e;
 }
 // The mouth: a tiny "w" of two curls under the nose.
 const curl = () => G('Torus', .055, .017, 4, 8, PI);
 function face(p, eyes, pos, r, { gap = .34, y = .05, eye = 1, nose = '#f59ab0', mouth = true, z = .89, blush = '#ff8a9a', ink = INK, out = 0 } = {}) { // out: push the nose and mouth forward, onto a muzzle
-  y -= .035 - EYES[EYE].y; gap += .015 + EYES[EYE].gap; // big eyes set low and wide: the baby look
+  y -= .035 - EYE.y; gap += .015 + EYE.gap; // big eyes set low and wide: the baby look
   const er = .158 * (.55 + eye * .45), zOf = (x, yy) => Math.sqrt(Math.max(0, 1 - x * x - yy * yy));
   z = Math.max(z, zOf(gap, y) - .02); // sit on the surface of a round head
   const g = Grp(p, pos, null, r), bl = MX('blush' + blush, blush, { transparent: true, opacity: .5 }), mi = ink === INK ? MX('ink', INK, { roughness: .5 }) : mat(ink);
@@ -89,7 +86,9 @@ function rbox(w, h, d, r) {
 }
 const Rb = (p, s, c, pos, rot, r = Math.min(...s) * .28) => V(p, new THREE.Mesh(rbox(...s.map(x => +x.toFixed(3)), +r.toFixed(3)), mat(c)), pos, rot);
 const tuft = (g, pos, c, k = 1, rot) => { const t = Grp(g, pos, rot, k); for (const [x, r, h] of [[0, 0, .3], [-.09, .55, .22], [.09, -.55, .22]]) Co(t, [.075, h, 5], c, [x, h / 2 - .03, 0], [0, 0, r]); return t; };
-const feet = (g, c, x, z, s = [.3, .18, .4], y = 0) => { for (const k of [-1, 1]) Sp(g, .5, c, [k * x, y + s[1] * .5, z], [s[0] * 1.1, s[1] * 1.15, s[2] * 1.05], 1); };
+// A paw: a soft lump with three toes along its front edge.
+const paw = (g, c, p, s) => { Sp(g, .5, c, p, s, 1); for (let i = -1; i <= 1; i++) Sp(g, .5, c, [p[0] + i * s[0] * .29, p[1] - s[1] * .12, p[2] + s[2] * (.4 - Math.abs(i) * .06)], [s[0] * .36, s[1] * .72, s[2] * .4], 1); };
+const feet = (g, c, x, z, s = [.3, .18, .4], y = 0) => { for (const k of [-1, 1]) paw(g, c, [k * x, y + s[1] * .5, z], [s[0] * 1.1, s[1] * 1.15, s[2] * 1.05]); };
 const legs4 = (g, c, x, zf, zb, h, w = .2) => { for (const k of [-1, 1]) for (const z of [zf, zb]) { Cy(g, [w * .5, w * .62, h, 7], c, [k * x, h / 2, z]); Sp(g, w * .66, c, [k * x, w * .3, z + w * .15], [1, .6, 1.2], 1); } };
 const flame = (g, pos, k, rot) => { // a flame the scene makes flicker
   const t = Grp(g, pos, rot, k); t.userData.flame = true;
@@ -435,20 +434,33 @@ function catTail(g, F, cols, fat = 1, kind = 's') {
     else if (kind === 'bob') Sp(t, (.2 - Math.abs(i - 1) * .04) * fat, c, [(i - 1) * .1, .16 + (i === 1 ? .1 : 0), -.2 - (i === 1 ? .08 : 0)], null, 1);
     else Sp(t, (.15 - u * .03) * fat, c, [Math.sin(u * 2.6) * .16, .08 + u * .82, -.12 - Math.sin(u * PI) * .3 + u * .12], [1, 1.15, 1], 1); }
 }
+// A cat sitting up: wide hips with a haunch and a rear paw each side, the front legs coming down out of the chest.
+function catSit(g, b, col, chest, paws, fat = 1) {
+  const lz = b.p[2] + b.r[2] * .62, H = b.p[1] * 1.05;
+  Sp(g, b.r[0] * .7, chest, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]);
+  Sp(g, 1, col, [0, b.r[1] * .5, b.p[2] - .08], [b.r[0] * 1.1, b.r[1] * .56, b.r[2] * 1.12]);
+  tuft(g, [0, b.p[1] + b.r[1] * .42, b.p[2] + b.r[2] * .98], chest, .9, [2.2, 0, 0]); // a tuft of chest fur
+  for (const s of [-1, 1]) {
+    Sp(g, 1, col, [s * b.r[0] * .8, b.r[1] * .4, b.p[2] + b.r[2] * .12], [b.r[0] * .5, b.r[1] * .46, b.r[2] * .74]);
+    paw(g, paws, [s * b.r[0] * .98, .075, b.p[2] + b.r[2] * .86], [.25, .15, .34]);
+    Cy(g, [.13, .12, H, 10], col, [s * .17 * fat, H / 2, lz - .04], [.14, 0, -s * .05]);
+    paw(g, paws, [s * .19 * fat, .08, lz + .1], [.27, .16, .32]);
+  }
+}
 // A sitting cat shared by the cat breeds: the baby is all head, then it sits up taller each form.
 function cat(g, F, K, X, { ear = K.a, inner = '#f59ab0', paws = K.b, chest = K.b, whisk = mix(K.a, '#5a4a3a', .7), fat = 1, tuftC = null, faceO = {}, earK = [1, 1], earFold = 0 } = {}) {
   const A = F === 0 ? { head: { p: [0, .78, .05], r: .74 }, body: { p: [0, .4, -.2], r: [.45 * fat, .36, .5 * fat] } }
     : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .67 : .69 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5 * fat, .6, .5 * fat] : [.52 * fat, .76, .55 * fat] } };
   const h = A.head, b = A.body;
   Sp(g, 1, K.a, b.p, b.r);
-  if (F) { Sp(g, b.r[0] * .7, chest, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.12, .15, b.p[1], 10], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
-  feet(g, paws, .26, F ? b.r[2] * .95 : .42, [.24, .16, .3]);
+  if (F) catSit(g, b, K.a, chest, paws, fat); else feet(g, paws, .26, .42, [.24, .16, .3]);
   Sp(g, h.r, K.a, h.p, [1.1, .9, .95]);
   for (const s of [-1, 1]) {
     const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2] + earFold * .12], [earFold, 0, -s * (.25 + earFold * .3)], [earK[0], earK[1], 1]); e.userData.wig = 'ear';
     Co(e, [.26, .46, 4], Array.isArray(ear) ? ear[s < 0 ? 0 : 1] : ear, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], inner, [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]);
     if (tuftC && F) Co(e, [.06, .24 + F * .06, 3], tuftC, [0, .52, 0]);
-    Bx(g, [.34, .02, .02], whisk, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]);
+    Bx(g, [.34, .02, .02], whisk, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); Bx(g, [.28, .02, .02], whisk, [s * h.r * .93, h.p[1] - h.r * .3, h.p[2] + h.r * .6], [0, -s * .5, -s * .1]);
+    for (const [y, k, a] of [[-.3, 1, 1.75], [-.44, .75, 2.1]]) Co(g, [.1 * k, .24 * k, 4], K.a, [s * h.r * 1.02, h.p[1] + h.r * y, h.p[2] + h.r * .12], [0, 0, -s * a], [1, 1, .6]); // cheek fluff
   }
   face(g, X.eyes, h.p, h.r, { eye: [1.35, 1.2, 1.1][F], ...faceO });
   A.top = [0, h.p[1] + h.r * .84, h.p[2]]; A.tail = [.2, .25, b.p[2] - b.r[2] * .9]; A.back = [0, b.p[1] + b.r[1] * .7, b.p[2] - b.r[2] * .6];
@@ -467,7 +479,7 @@ function munchkin(g, F, K, X, bun = false) { // bun: the bakery build, with fold
 }
 // Cat coats: o(K) gives the colours a build needs, m() paints the markings on whatever build wears it, t(K) colours the tail.
 const catMuzzle = (g, h, c) => Sp(g, h.r * .34, c, [0, h.p[1] - h.r * .3, h.p[2] + h.r * .66], [1.25, .7, .75]);
-const catBrow = (g, h, c) => { for (let i = 0; i < 3; i++) Bx(g, [.09, .04, i === 1 ? .34 : .24], c, [(i - 1) * .2, h.p[1] + h.r * (i === 1 ? .86 : .8), h.p[2] + .2]); };
+const catBrow = (g, h, c) => { for (let i = 0; i < 3; i++) { const x = (i - 1) * .3, z = .42, y = Math.sqrt(1 - x * x - z * z) * .9; Sp(g, 1, c, [x * h.r * 1.1, h.p[1] + h.r * (y + .015), h.p[2] + h.r * z * .95], [.05, .035, i === 1 ? .2 : .15], 1).rotation.set(.45, 0, -x * .9); } }; // three tabby marks lying on the forehead
 const CATCOAT = {
   siamew: { o: K => ({ ear: K.b, paws: K.b, chest: mix(K.a, '#ffffff', .6), whisk: '#fffaf0', faceO: { ink: '#fff3df' } }), t: K => [K.a, K.b, K.b, K.b, K.b],
     m(g, A, F, K) { Sp(g, A.head.r * .52, K.b, [0, A.head.p[1] - A.head.r * .2, A.head.p[2] + A.head.r * .5], [1.2, .78, .9]); } },
@@ -475,8 +487,8 @@ const CATCOAT = {
     m(g, A, F, K) {
       const d = mix(K.a, '#b3501c', .6), h = A.head, b = A.body; catMuzzle(g, h, K.b); catBrow(g, h, d);
       for (const s of [-1, 1]) for (let i = 0; i < F; i++) Bx(g, [.04, .08, .26], d, [s * h.r * 1.02, h.p[1] - h.r * (.02 + i * .2), h.p[2] + h.r * .1], [0, 0, s * .2]);
-      if (F) for (let i = 0; i < F + 1; i++) { const u = .55 - i * .32, k = Math.sqrt(1 - u * u) * 1.02, T = new THREE.Mesh(G('Torus', 1, .07, 4, 10, PI), M(d));
-        if (A.long) V(g, T, [0, b.p[1], b.p[2] + u * b.r[2] * .8], null, [b.r[0] * k, b.r[1] * k, 1]); else V(g, T, [0, b.p[1] + u * b.r[1], b.p[2] - .06], [PI / 2, 0, PI], [b.r[0] * k, b.r[2] * k, 1]); }
+      if (F) for (let i = 0; i < F + 1; i++) { const u = .55 - i * .32, k = Math.sqrt(1 - u * u) * 1.02, T = new THREE.Mesh(G('Torus', 1, .05, 4, 12, PI), M(d));
+        if (A.long) V(g, T, [0, b.p[1], b.p[2] + u * b.r[2] * .8], null, [b.r[0] * k, b.r[1] * k, 1]); else V(g, T, [0, b.p[1] + u * b.r[1], b.p[2] - .01], [PI / 2, 0, PI], [b.r[0] * k * .99, b.r[2] * k * .99, 1]); }
     } },
   patchkit: { o: K => ({ ear: [K.b, '#4a4350'], paws: K.a, chest: K.a }), t: K => [K.a, K.b, K.b, '#4a4350', '#4a4350', K.a],
     m(g, A, F, K) {
@@ -1341,11 +1353,10 @@ const BODY = {
     const A = F === 0 ? { head: { p: [0, .78, .05], r: .74 }, body: { p: [0, .4, -.2], r: [.45, .36, .5] } }
       : { head: { p: [0, F === 1 ? 1.38 : 1.7, .12], r: F === 1 ? .67 : .69 }, body: { p: [0, F === 1 ? .6 : .72, -.1], r: F === 1 ? [.5, .6, .5] : [.52, .76, .55] } };
     const h = A.head, b = A.body;
-    Sp(g, 1, K.a, b.p, b.r); if (F) { Sp(g, b.r[0] * .7, K.b, [0, b.p[1] + .05, b.r[2] * .55], [1, 1.2, .7]); for (const s of [-1, 1]) Cy(g, [.12, .15, b.p[1], 10], K.a, [s * .24, b.p[1] / 2, b.r[2] * .8]); }
-    feet(g, K.b, .26, F ? b.r[2] * .95 : .5, [.22, .14, .26]);
+    Sp(g, 1, K.a, b.p, b.r); if (F) catSit(g, b, K.a, K.b, K.b); else feet(g, K.b, .26, .5, [.22, .14, .26]);
     Sp(g, h.r, K.a, h.p, [1.1, .9, .95]);
-    for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); Co(e, [.26, .46, 4], K.a, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); if (F === 2) Co(e, [.06, .32, 3], dark, [0, .56, 0]); Bx(g, [.34, .02, .02], dark, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
-    for (let i = 0; i < F + 1; i++) Bx(g, [.1, .04, .22], dark, [(i - F / 2) * .2, h.p[1] + h.r * .84, h.p[2] + .22]);
+    for (const s of [-1, 1]) { const e = Grp(g, [s * h.r * .66, h.p[1] + h.r * .62, h.p[2]], [0, 0, -s * .25]); e.userData.wig = 'ear'; Co(e, [.26, .46, 4], K.a, [0, .2, 0], [0, PI / 4, 0], [1, 1, .6]); Co(e, [.14, .28, 4], '#f59ab0', [0, .16, .06], [0, PI / 4, 0], [1, 1, .5]); if (F === 2) Co(e, [.06, .32, 3], dark, [0, .56, 0]); Bx(g, [.34, .02, .02], dark, [s * h.r * .95, h.p[1] - h.r * .2, h.p[2] + h.r * .6], [0, -s * .5, s * .15]); }
+    catBrow(g, h, dark);
     if (F === 2) Oc(g, .16, GL('#ffd21f', .6), [0, b.p[1] + .35, b.r[2] * .95], [1, 1.3, .5]);
     face(g, X.eyes, h.p, h.r, { eye: [1.35, 1.2, 1.1][F] });
     
@@ -1599,7 +1610,7 @@ const _d3 = new THREE.Vector3();
 const CHIBI = [[1, 1], [1.13, .9], [1.2, .84]]; // [head, body] per form
 const _bx = new THREE.Box3(), _hc = new THREE.Vector3(), _bc = new THREE.Vector3(), _ax = new THREE.Vector3(), _cc = new THREE.Vector3(), _m1 = new THREE.Matrix4(), _m2 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s3 = new THREE.Vector3();
 function chibi(g, A, F) {
-  const [kh, kb] = CHIBI[F]; if (kh === 1 || !A.head || !A.body) return;
+  const [kh, kb] = CHIBI[A.long ? Math.max(0, F - 1) : F]; if (kh === 1 || !A.head || !A.body) return; // long pets stay long
   const hr = A.head.r[0] || A.head.r; _hc.fromArray(A.head.p); _bc.fromArray(A.body.p); _ax.subVectors(_hc, _bc);
   const L2 = _ax.lengthSq(), br = A.body.r, e = br.length ? (_ax.x / br[0]) ** 2 + (_ax.y / br[1]) ** 2 + (_ax.z / br[2]) ** 2 : 9;
   if (L2 < hr * hr * .3 || e < .8) return; // the head is the body, or a face set into it
