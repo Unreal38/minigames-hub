@@ -26,6 +26,7 @@ try {
   assert.match(bot.text, /<title>Zatoka Gier: darmowe gry online ze znajomymi<\/title>/);
   assert.match(bot.text, /<link rel="canonical" href="https:\/\/zatokagier\.com\/">/);
   assert.match(bot.text, /og:image" content="https:\/\/zatokagier\.com\/og-image\.png"/);
+  assert.equal((bot.text.match(/property="og:image"/g) || []).length, 1, "only one og:image, or Discord shows several pictures");
   assert.match(bot.text, /<h1>Zatoka Gier<\/h1>/);
   assert.match(bot.text, /Postępy, które zostają/);
   const ld = JSON.parse(bot.text.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
