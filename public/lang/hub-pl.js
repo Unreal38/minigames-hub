@@ -28,7 +28,7 @@ export const OPT_PL = {
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
-  'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
+  'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -275,6 +275,23 @@ export const GAMES_PL = {
       <li>Kamienne rzędy czekają w <b>czerwonym pasku</b> obok studni i wchodzą, gdy twój następny klocek wyląduje, nie usuwając niczego. Usuń najpierw rzędy, a <b>odbijesz je</b>.</li>
       <li>Klocki spadają <b>szybciej co 20 sekund</b>. Pod koniec gry zaczyna się <b>kamienny przypływ</b>: rzędy rosną u wszystkich, coraz szybciej.</li>
       <li>Gdy nowy klocek nie ma gdzie się pojawić, <b>odpadasz</b>. <b>Wygrywa ostatni gracz, który wciąż układa</b>.</li>
+      <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  lagoon: {
+    name: 'Bąbelkowa laguna', start: 'Zacznij strzelać', openSeat: 'Jeśli nikt nie dołączy, strzela tu bot',
+    pitch: 'Strzelaj bąbelkami ze zwierzakami we własnej lagunie, zbijaj trójki i wysyłaj znajomym jajka. Wygrywa ostatnia osoba na wodzie.',
+    howto: `Każdy ma własną lagunę i wszyscy grają jednocześnie. Pod rafą koralową wiszą bąbelki z uwięzionymi zwierzakami. Strzelaj bąbelkami z muszli: trzy takie same zwierzaki lub więcej pękają. Bąbelki, które po tym wiszą w powietrzu, spadają i wypływają jako jajka w lagunie rywala. Rafa wciąż wypycha nowe rzędy. Bąbelek poniżej linii oznacza koniec gry. Wygrywa ostatnia osoba na wodzie.`,
+    rules: `<ol>
+      <li>Każdy ma <b>własną lagunę</b> i wszyscy grają <b>jednocześnie</b>, z takim samym początkiem i tymi samymi bąbelkami w tej samej kolejności. Wolne miejsca zajmują boty.</li>
+      <li><b>Celuj</b> myszką i <b>kliknij</b>, żeby strzelić, albo użyj <b>← →</b> i <b>spacji</b>. Na telefonie przeciągnij palcem, żeby wycelować, i puść, żeby strzelić. Strzały <b>odbijają się od bocznych ścian</b>.</li>
+      <li>Trzy lub więcej stykających się bąbelków z <b>takim samym zwierzakiem</b> <b>pęka</b>, a zwierzaki odpływają wolne.</li>
+      <li>Mały bąbelek z napisem <b>Następny</b> dostaniesz po tym, który masz teraz. <b>Prawy przycisk myszy</b>, <b>Shift</b> albo dotknięcie go <b>zamienia</b> je miejscami.</li>
+      <li>Bąbelki, które <b>nie mają się czego trzymać</b>, spadają do wody. Każdy spadający bąbelek wysyła rywalowi jedno <b>jajko</b>. Zbicie pięciu lub więcej naraz dodaje jajko, zbijanie w trzech strzałach z rzędu dodaje jajko, a wyczyszczenie całej laguny dodaje cztery.</li>
+      <li>Twoje jajka trafiają do gracza, któremu <b>idzie najlepiej</b>: tego, kto ma najmniej bąbelków.</li>
+      <li>Jajka wysłane do ciebie czekają obok tratwy i wypływają, gdy twój następny strzał niczego nie zbije. Do niczego nie pasują. Jajko <b>pęka</b>, gdy tuż obok pękają bąbelki, a jajka odcięte od rafy spadają i lecą dalej do rywala. Zbijając bąbelki, najpierw <b>odbijasz czekające jajka</b>.</li>
+      <li><b>Rafa wypycha nowy rząd</b> co kilka sekund, coraz szybciej. Nie zwlekaj: po 7 sekundach muszla strzela sama.</li>
+      <li>Gdy jakiś bąbelek znajdzie się <b>poniżej przerywanej linii</b>, <b>odpadasz</b>. <b>Wygrywa ostatni gracz na wodzie</b>.</li>
       <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },

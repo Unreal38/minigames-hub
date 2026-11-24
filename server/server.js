@@ -25,6 +25,7 @@ import * as kart from './games/kart.js';
 import * as kitchen from './games/kitchen.js';
 import * as dig from './games/dig.js';
 import * as bricks from './games/bricks.js';
+import * as lagoon from './games/lagoon.js';
 import * as bean from './games/bean.js';
 import * as darts from './games/darts.js';
 import * as ttt from './games/ttt.js';
@@ -44,7 +45,7 @@ import { isBot, pageFor } from './seo.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, bean, tys, pan, pips, darts, piotr, ttt };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, bean, tys, pan, pips, darts, piotr, ttt };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
