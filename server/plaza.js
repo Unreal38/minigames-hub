@@ -109,10 +109,23 @@ function hello(c, r, visit) {
 }
 export function leave(c) {
   const r = where.get(c.token); if (!r) return false;
-  const m = r.m.get(c.token); r.m.delete(c.token); r.dirty.delete(m); where.delete(c.token);
+  const m = r.m.get(c.token); r.m.delete(c.token); r.dirty.delete(m); where.delete(c.token); if (m) rpsEnd(m, 'gone');
   if (!r.m.size) rooms.delete(r.no); else toRoom(r, { t: 'plaza', k: 'del', s: m.s });
   return true;
 }
+// ----- rock, paper, scissors -----
+// One player challenges another in the same room and picks a move at once; the other answers with theirs (or says no)
+// within RPS_SECS. The whole room sees both moves and who won. Only for fun: nothing is won or lost.
+const RPS_SECS = 20;
+// Ends the challenge m is part of (as challenger or as the one asked) and tells the other one why.
+function rpsEnd(m, why) {
+  const a = m.rps ? m : m.rpsFrom, b = a?.rps?.t; if (!a || !b) return;
+  a.rps = null; b.rpsFrom = null;
+  if (why === 'gone') { const o = m === a ? b : a; say(o.c, { t: 'plaza', k: 'rpsn', s: m.s, why }); }
+  else { say(a.c, { t: 'plaza', k: 'rpsn', s: b.s, why }); if (why === 'late') say(b.c, { t: 'plaza', k: 'rpsn', s: a.s, why: 'over' }); }
+}
+function checkRps() { const t = Date.now(); for (const r of rooms.values()) for (const m of r.m.values()) if (m.rps && m.rps.until < t) rpsEnd(m, 'late'); }
+
 // ----- table signs -----
 // Someone in the plaza opened a table: a signpost stays where they stood, so the others can follow them to the game
 // with one tap. It goes when the table starts, fills up or closes (checked once a second).
@@ -186,6 +199,21 @@ export function handle(c, a) {
       toRoom(r, { t: 'plaza', k: 're', s: m.s, i });
       return;
     }
+    case 'rps': { // challenge someone: your move comes with it, theirs decides it
+      const p = int(a.p, 1, 3), t = [...r.m.values()].find(x => x.s === (a.s | 0)); if (!t || t === m) return;
+      if (m.rps || m.rpsFrom || now - (m.rpsAt || 0) < 4000) return say(c, { t: 'plaza', k: 'rpsn', s: t.s, why: 'wait' });
+      if (t.rps || t.rpsFrom) return say(c, { t: 'plaza', k: 'rpsn', s: t.s, why: 'busy' });
+      m.rpsAt = now; m.rps = { t, p, until: now + RPS_SECS * 1000 }; t.rpsFrom = m;
+      say(t.c, { t: 'plaza', k: 'rpsq', s: m.s, secs: RPS_SECS });
+      return;
+    }
+    case 'rpsa': { // the answer: 1 rock, 2 paper, 3 scissors, 0 not now
+      const from = m.rpsFrom; if (!from?.rps || from.s !== (a.s | 0)) return;
+      const p = int(a.p, 0, 3); if (!p) return rpsEnd(m, 'no');
+      const pa = from.rps.p; from.rps = null; m.rpsFrom = null;
+      toRoom(r, { t: 'plaza', k: 'rpsr', a: from.s, b: m.s, pa, pb: p, w: pa === p ? 0 : (pa - p + 3) % 3 === 1 ? from.s : m.s });
+      return;
+    }
     case 'pat': { // a heart for someone's pet
       if (now - (m.patAt || 0) < 900) return; m.patAt = now;
       const t = [...r.m.values()].find(x => x.s === (a.s | 0)); if (!t) return;
@@ -256,7 +284,7 @@ export function handle(c, a) {
 // Ten times a second: one text per room with everyone who moved, as [id, x, z, facing].
 let signN = 0, evKey = '';
 export function tick() {
-  if (++signN % 10 === 0) { checkSigns(); const e = eventAt(), k = e ? e.id + e.end : ''; if (k !== evKey) { evKey = k; all({ t: 'plaza', k: 'ev', ev: evView() }); } } // an event starting or ending reaches every room within a second
+  if (++signN % 10 === 0) { checkSigns(); checkRps(); const e = eventAt(), k = e ? e.id + e.end : ''; if (k !== evKey) { evKey = k; all({ t: 'plaza', k: 'ev', ev: evView() }); } } // an event starting or ending reaches every room within a second
   for (const r of rooms.values()) {
     if (!r.dirty.size) continue;
     const s = JSON.stringify({ t: 'plaza', k: 'p', m: [...r.dirty].map(m => [m.s, m.x, m.z, m.r]) });

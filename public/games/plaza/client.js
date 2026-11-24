@@ -125,6 +125,7 @@ export function mount(app, ctx) {
   function paintTag(p) { const t = tagOf(p.s); t.name.innerHTML = avatarHtml(p.c, p.av, 26, frameCls(p.fl)) + (p.s === S.me ? `<i>${L('You', 'Ty')}</i>` : `<span>${nameHtml(p.n, p.fl)}</span>`); t.el.classList.toggle('plz-me', p.s === S.me); }
   function dropTag(s) { tags.get(s)?.el.remove(); tags.delete(s); }
   function bubble(s, text) { const t = tags.get(s); if (!t) return; t.bub.textContent = text.length > 90 ? text.slice(0, 88) + '…' : text; t.bub.hidden = false; t.until = performance.now() + 3800 + Math.min(4000, text.length * 55); }
+  function floatText(s, text) { const t = tags.get(s); if (!t) return; const f = document.createElement('div'); f.className = 'plz-float big'; f.textContent = text; t.el.append(f); setTimeout(() => f.remove(), 1700); }
   function floaty(s, k) { const t = tags.get(s); if (!t) return; const f = document.createElement('div'); f.className = 'plz-float'; f.innerHTML = reactHtml(k); t.el.append(f); setTimeout(() => f.remove(), 1700); }
   function paintSign(g) {
     let el = signs.get(g.code)?.el;
@@ -166,7 +167,7 @@ export function mount(app, ctx) {
 
   // ---- pop-ups
   let popKind = '';
-  function closePop() { const p = $('plz-pop'); p.hidden = true; p.innerHTML = ''; p.className = 'plz-pop'; popKind = ''; root.classList.remove('emos-open', 'pop-open'); for (const b of root.querySelectorAll('[aria-expanded]')) b.setAttribute('aria-expanded', 'false'); }
+  function closePop() { if (rpsAsk) { send({ k: 'rpsa', s: rpsAsk, p: 0 }); rpsAsk = 0; } const p = $('plz-pop'); p.hidden = true; p.innerHTML = ''; p.className = 'plz-pop'; popKind = ''; root.classList.remove('emos-open', 'pop-open'); for (const b of root.querySelectorAll('[aria-expanded]')) b.setAttribute('aria-expanded', 'false'); }
   function openPop(kind, html, cls = '', at = null) {
     const p = $('plz-pop'); p.className = 'plz-pop ' + cls; p.innerHTML = html; p.hidden = false; popKind = kind; root.classList.add('pop-open');
     p.style.left = p.style.top = p.style.right = p.style.bottom = '';
@@ -194,9 +195,23 @@ export function mount(app, ctx) {
   }
   function playerHtml(p) {
     const hid = isHid(p);
-    return `<h3>${nameHtml(p.n, p.fl)}</h3><div class="plz-menu">${p.pt ? `<button type="button" data-a="prof" data-pt="${esc(p.pt)}">${L('Profile', 'Profil')}</button>` : ''}
+    return `<h3>${nameHtml(p.n, p.fl)}</h3><div class="plz-menu">${hid ? '' : `<button type="button" data-a="rps" data-s="${p.s}">✊ ${L('Rock, paper, scissors', 'Papier, kamień, nożyce')}</button>`}${p.pt ? `<button type="button" data-a="prof" data-pt="${esc(p.pt)}">${L('Profile', 'Profil')}</button>` : ''}
       ${p.pt ? `<button type="button" data-a="hide" data-pt="${esc(p.pt)}">${hid ? L('Show this player', 'Pokaż tego gracza') : L('Hide this player', 'Ukryj tego gracza')}</button>` : ''}
       ${S.mod ? `<button type="button" class="warn" data-a="mod" data-k="mute" data-s="${p.s}">${L('Mute for 10 minutes', 'Wycisz na 10 minut')}</button><button type="button" class="warn" data-a="mod" data-k="kick" data-s="${p.s}">${L('Remove from the plaza', 'Usuń z placu')}</button>` : ''}</div>`;
+  }
+
+  // ---- rock, paper, scissors with someone in the room
+  const RPS = ['', '✊', '✋', '✌️'], RPS_NAME = ['', () => L('Rock', 'Kamień'), () => L('Paper', 'Papier'), () => L('Scissors', 'Nożyce')];
+  const rpsHtml = (p, asked) => `<h3>${asked ? L('Rock, paper, scissors?', 'Papier, kamień, nożyce?') : L('Rock, paper, scissors', 'Papier, kamień, nożyce')}</h3><p class="plz-note">${asked ? L(`${esc(p.n)} challenges you. Pick your move:`, `${esc(p.n)} rzuca ci wyzwanie. Wybierz ruch:`) : L(`Pick your move against ${esc(p.n)}:`, `Wybierz ruch przeciwko: ${esc(p.n)}`)}</p>
+    <div class="plz-rps">${[1, 2, 3].map(i => `<button type="button" data-a="${asked ? 'rpsa' : 'rpsgo'}" data-s="${p.s}" data-p="${i}"><span aria-hidden="true">${RPS[i]}</span><b>${RPS_NAME[i]()}</b></button>`).join('')}</div>${asked ? `<button type="button" class="plz-link" data-a="rpsa" data-s="${p.s}" data-p="0">${L('Not now', 'Nie teraz')}</button>` : ''}`;
+  let rpsAsk = 0; // who is asking you right now (their place number): closing the question any other way says "not now"
+  function rpsShow(m) {
+    const a = who(m.a), b = who(m.b); if (!a || !b) return;
+    for (const [p, k] of [[a, m.pa], [b, m.pb]]) if (!isHid(p)) floatText(p.s, RPS[k]);
+    const mine = m.a === S.me || m.b === S.me, other = m.a === S.me ? b : a;
+    setTimeout(() => { if (destroyed || !scene) return;
+      if (m.w && !isHid(who(m.w))) { scene.emote(m.w, EMOTES.findIndex(e => e?.id === 'cheer')); floatText(m.w, '🏆'); }
+      if (mine) { if (m.w === S.me) sfx.win?.(); else sfx.pop?.(); ctx.toast(!m.w ? L(`A draw with ${esc(other.n)}! Both of you picked ${RPS[m.pa]}.`, `Remis z ${esc(other.n)}! Oboje wybraliście ${RPS[m.pa]}.`) : m.w === S.me ? L(`You beat ${esc(other.n)}! 🏆`, `Wygrywasz z ${esc(other.n)}! 🏆`) : L(`${esc(other.n)} wins this one.`, `Tym razem wygrywa ${esc(other.n)}.`), false, 4000); } }, 900);
   }
 
   // ---- what you do
@@ -217,6 +232,9 @@ export function mount(app, ctx) {
     else if (a === 'emos') { const on = !root.classList.contains('emos-open'); closePop(); root.classList.toggle('emos-open', on); b.setAttribute('aria-expanded', on); }
     else if (a === 'emo') { root.classList.remove('emos-open'); doEmote(+b.dataset.e); }
     else if (a === 'moremo') { root.classList.remove('emos-open'); ctx.wardrobe(); }
+    else if (a === 'rps') { const p = who(+b.dataset.s); closePop(); if (p) openPop('rps', rpsHtml(p, false), 'mid'); }
+    else if (a === 'rpsgo') { const p = who(+b.dataset.s); closePop(); send({ k: 'rps', s: +b.dataset.s, p: +b.dataset.p }); if (p) ctx.toast(L(`You picked ${RPS[+b.dataset.p]}. Waiting for ${esc(p.n)}…`, `Wybierasz ${RPS[+b.dataset.p]}. Czekamy na ruch: ${esc(p.n)}…`), false, 3500); }
+    else if (a === 'rpsa') { rpsAsk = 0; send({ k: 'rpsa', s: +b.dataset.s, p: +b.dataset.p }); closePop(); }
     else if (a === 'view') { scene?.resetView(); b.hidden = true; }
     else if (a === 'aim') { closePop(); aiming = !aiming; paintAim(); }
     else if (a === 'ev') { if (ev) ctx.toast(ev.mid ? L("🎆 New Year's Eve at the plaza: the big fireworks start at midnight.", '🎆 Sylwester na placu: o północy zaczyna się wielki pokaz fajerwerków.') : ev.id === 'party' ? L('🎆 Saturday party: fireworks over the plaza every Saturday from 20:00 to 21:00.', '🎆 Sobotnia impreza: fajerwerki nad placem w każdą sobotę od 20:00 do 21:00.') : L('🎆 Fireworks over the plaza!', '🎆 Fajerwerki nad placem!'), false, 5000); }
@@ -319,6 +337,11 @@ export function mount(app, ctx) {
       case 're': if (!isHid(who(m.s))) floaty(m.s, m.i); break;
       case 'pat': scene.pat(m.s, m.i); break;
       case 'poke': { const t = scene.thingAt(m.i); if (t && !isHid(who(m.s))) { scene.poke(m.i); floatAt(t.x, Math.min(t.h, 3.4) + .4, t.z, POKE[t.kind] || '✨'); if (m.s === S.me) sfx.pop?.(); } break; }
+      case 'rpsq': { const p = who(m.s); if (!p || isHid(p)) { send({ k: 'rpsa', s: m.s, p: 0 }); break; } closePop(); sfx.join?.(); openPop('rps', rpsHtml(p, true), 'mid'); rpsAsk = m.s; break; }
+      case 'rpsr': rpsShow(m); break;
+      case 'rpsn': { const n = esc(who(m.s)?.n || L('That player', 'Ten gracz')); if (m.why === 'over') { if (rpsAsk === m.s) { rpsAsk = 0; closePop(); } break; }
+        ctx.toast(m.why === 'wait' ? L('One challenge at a time. Try again in a moment.', 'Jedno wyzwanie naraz. Spróbuj za chwilę.') : m.why === 'busy' ? L(`${n} is in another round right now.`, `${n} gra teraz z kimś innym.`) : m.why === 'late' ? L(`${n} did not answer in time.`, `${n} nie odpowiada na czas.`) : m.why === 'gone' ? L(`${n} left the plaza.`, `${n} wychodzi z placu.`) : L(`${n} does not want to play right now.`, `${n} nie chce teraz grać.`));
+        if (m.why === 'gone' && rpsAsk === m.s) { rpsAsk = 0; closePop(); } break; }
       case 'pal': sfx.pop?.(); ctx.toast(L(`💛 +1 friendship with ${esc(m.n)} on the Pet Farm`, `💛 +1 do przyjaźni z ${esc(m.n)} na Farmie zwierzaków`)); break;
       case 'sb': if (!isHid(who(m.s))) { scene.throwBall(m.s, m.x, m.z, m.h); if (m.s === S.me || m.h === S.me) sfx.pop?.(); } break;
       case 'ev': setEv(m.ev); break;
