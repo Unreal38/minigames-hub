@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, bierkiArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -593,6 +593,7 @@ const GAMES = {
   },
   makao: {
     name: 'Makao', load: () => import('./games/makao/client.js'), start: 'Deal the cards',
+    mins: [5, 10],
     host: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 20 }, solo: { seats: 4, bots: 'chill', end: 'first', queens: 'off', kings: 'on', timer: 0 },
     openSeat: 'A bot plays this hand if nobody joins', seats: r => Math.min(6, Math.max(r.opts.seats || 4, r.players.length, 2)),
     settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 5, '5')}${pill('seats', 6, '6')}</div></div>
@@ -663,6 +664,31 @@ const GAMES = {
       <li><b>Triple sheet</b> (a table setting): everyone has <b>three columns</b> of the 13 boxes and the game lasts 39 rounds. You choose the column as well as the box. The second column counts <b>double</b> and the third <b>triple</b>, bonus included. A five of a kind pays the bonus of 100 times its column once all three Pip Party boxes scored 50 (and you never wrote a five of a kind elsewhere while one was empty), and it is a joker once all three top boxes for that number are filled too.</li>
       <li>After 13 rounds the <b>highest total</b> wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot finishes your turn. A box that would score 0 asks for a second tap. Shortcuts: <b>1</b> to <b>5</b> keep a die, <b>R</b> or <b>Space</b> rolls.</li>
+    </ol>`,
+  },
+  bierki: {
+    name: 'Bierki', load: () => import('./games/bierki/client.js'), start: 'Drop the sticks',
+    mins: [3, 6],
+    host: { seats: 2, piles: 1, hints: 'on', bots: 'chill', timer: 30 }, solo: { seats: 2, piles: 1, hints: 'on', bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: r => Math.max(r.players.length, r.opts.seats || 2),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${[2, 3, 4, 5, 6].map(n => pill('seats', n, String(n))).join('')}</div></div>
+      <div class="opt"><b>Piles</b><div class="pills">${pill('piles', 1, 'One pile')}${pill('piles', 3, 'Three piles')}</div></div>
+      <div class="opt"><b>Hints</b><div class="pills">${pill('hints', 'on', 'Touching sticks glow')}${pill('hints', 'off', 'No hints')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Pull timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Classic pick-up sticks. Drag one stick out of the pile, slowly, without moving any other. Every stick you get out is yours and you go again. When another stick moves, the next player is up.`,
+    rules: `<ol>
+      <li>The sticks are dropped in a <b>pile</b>: 31 of them, or 41 with five or six players. Empty seats are played by bots.</li>
+      <li>On your turn, <b>drag a stick out of the pile</b>. Let go once it is clear of every other stick and it is yours. Then you <b>go again</b>.</li>
+      <li>The <b>Steady hands</b> meter fills whenever your stick rubs another one: a little for sliding over a stick it rests on, a lot for dragging a stick that <b>lies on top</b> of it or for <b>pushing into</b> a stick beside it. A <b>fast pull fills it much faster</b>, so take your time.</li>
+      <li>At <b>100%</b> another stick has moved: your turn ends and the stick you were holding is <b>out of play</b>. The same happens if a stick that lay on yours drops when yours is gone.</li>
+      <li>You may let go inside the pile. The stick goes back, but what it already rubbed <b>stays on the meter</b> for the rest of your turn.</li>
+      <li><b>Points</b>: plain wood 1, Leaf 2, Tide 3, Ember 4, Spark 5, a <b>pet stick</b> 8, the <b>Hook</b> 10 and the <b>Crown</b> 20. All four pet sticks in one hand pay <b>10 more</b>.</li>
+      <li>Whoever holds the <b>Hook</b> may, once a turn, <b>lift</b> a stick straight up instead of sliding it: press Lift (or hold Shift) and drag upwards. Lifting does not rub the sticks underneath.</li>
+      <li>With hints on (table settings), the sticks touching the one you point at <b>glow</b>: red for a stick lying on top of it, orange for the rest.</li>
+      <li>Drag the table or the sky to <b>turn the view</b>, scroll or pinch to zoom.</li>
+      <li>You have <b>30 seconds</b> for each stick (table settings). When the time runs out, the turn passes.</li>
+      <li>When the table is empty, the <b>most points</b> wins. With three piles the points add up. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   pool: {
@@ -1523,6 +1549,7 @@ const HUB_GAMES = [
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
+  ['bierki', 'bierkipic', bierkiArt, 'action', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';

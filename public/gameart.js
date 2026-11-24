@@ -556,6 +556,24 @@ export function coveArt() {
   </svg>`;
 }
 
+// Bierki card: a heap of pick-up sticks on a round table on a floating island, and the Crown stick being drawn out
+export function bierkiArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const stick = (x0, y0, x1, y1, c) => { const mx = t => x0 + (x1 - x0) * t, my = t => y0 + (y1 - y0) * t;
+    return `<path d="M${x0} ${y0}L${x1} ${y1}" stroke="#3b2219" stroke-width="10" stroke-linecap="round"/><path d="M${x0} ${y0}L${x1} ${y1}" stroke="#fff1d6" stroke-width="5" stroke-linecap="round"/><path d="M${mx(.13)} ${my(.13)}L${mx(.87)} ${my(.87)}" stroke="${c}" stroke-width="5"/>`; };
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A heap of coloured pick-up sticks on a round table on a floating island, with one stick being drawn out">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="50" cy="16" r="1.6"/><circle cx="272" cy="14" r="1.3"/><circle cx="296" cy="64" r="1.5"/><circle cx="24" cy="70" r="1.2"/><circle cx="170" cy="8" r="1.1"/></g>
+    <path d="M44 30l14-8 16 4 8 10-10 8H52z" class="artcloud" fill="#fff"/><path d="M246 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M40 116c40-12 200-12 240 0l-10 14c-44 8-176 8-220 0z" fill="#8bca60" ${o}/><path d="M50 130c44 8 176 8 220 0l-34 19h-152z" fill="#c98a5a" ${o}/>
+    <path d="M148 100h24v26h-24z" fill="#a8683c" ${o}/>
+    <ellipse cx="160" cy="76" rx="100" ry="38" fill="#d9955b" ${o}/><ellipse cx="160" cy="71" rx="100" ry="38" fill="#e9ad74" ${o}/>
+    <ellipse cx="160" cy="71" rx="85" ry="29" fill="#5d4468" stroke="#3b2219" stroke-width="2.5"/>
+    ${stick(98, 82, 200, 56, '#3f9a52')}${stick(110, 54, 212, 86, '#2f86cc')}${stick(134, 92, 178, 48, '#d8ad72')}${stick(96, 68, 224, 72, '#e0592f')}${stick(150, 50, 198, 92, '#d9a400')}
+    <g class="bkpull">${stick(182, 62, 262, 36, '#e8b22c')}<path d="M246 26l2 10 6-5 4 7 6-7 0 12-18 5z" fill="#ffd34d" ${o} stroke-width="2.5"/></g>
+    <path class="arttick" d="M268 52l10-3M270 62l11 2" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 export function poolArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
   const ball = (x, y, c, stripe = false) => (stripe

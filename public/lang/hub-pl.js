@@ -34,6 +34,7 @@ export const OPT_PL = {
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
+  Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
@@ -394,6 +395,24 @@ export const GAMES_PL = {
       <li>Mecz toczy się do <b>100 punktów</b> (albo do 50, albo trwa jedną rundę: wybierz w ustawieniach stołu). W grze na jedną rundę o kolejnych miejscach decyduje to, kto ma lżejszą rękę.</li>
       <li>Masz <b>20 sekund</b> na ruch (ustawienia stołu). Gdy czas minie, kostka zostanie dołożona za ciebie.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  bierki: {
+    name: 'Bierki', start: 'Rozsyp bierki', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Klasyczne bierki w 3D. Wyciągnij jedną bierkę ze stosu tak, żeby nie poruszyć pozostałych, i zapoluj na Króla.',
+    howto: `Klasyczne bierki. Wyciągnij jedną bierkę ze stosu, powoli, tak żeby nie poruszyć żadnej innej. Każda wyciągnięta bierka jest twoja i grasz dalej. Gdy poruszy się inna bierka, kolej przechodzi na następnego gracza.`,
+    rules: `<ol>
+      <li>Bierki są rozsypane w <b>stos</b>: jest ich 31, a przy pięciu lub sześciu graczach 41. Wolne miejsca zajmują boty.</li>
+      <li>W swojej kolejce <b>wyciągnij bierkę ze stosu</b>, przeciągając ją. Puść ją, gdy nie dotyka już żadnej innej, a będzie twoja. Potem <b>grasz dalej</b>.</li>
+      <li>Wskaźnik <b>Pewna ręka</b> rośnie, gdy twoja bierka ociera się o inną: trochę przy przesuwaniu po bierce, na której leży, a mocno przy ciągnięciu bierki, która <b>leży na niej</b>, albo przy <b>napieraniu</b> na bierkę obok. <b>Szybkie ciągnięcie napełnia go dużo szybciej</b>, więc się nie spiesz.</li>
+      <li>Przy <b>100%</b> inna bierka się poruszyła: twoja kolejka się kończy, a trzymana bierka <b>wypada z gry</b>. Tak samo jest, gdy po zabraniu twojej bierki opadnie ta, która na niej leżała.</li>
+      <li>Bierkę można puścić w stosie. Wraca wtedy na miejsce, ale to, o co się już otarła, <b>zostaje na wskaźniku</b> do końca twojej kolejki.</li>
+      <li><b>Punkty</b>: zwykła bierka 1, Liść 2, Fala 3, Żar 4, Iskra 5, <b>bierka ze zwierzakiem</b> 8, <b>Hak</b> 10 i <b>Król</b> 20. Komplet czterech bierek ze zwierzakami daje <b>10 punktów więcej</b>.</li>
+      <li>Kto ma <b>Hak</b>, może raz na kolejkę <b>podnieść</b> bierkę prosto do góry, zamiast ją przesuwać: naciśnij „Podnieś” (albo przytrzymaj Shift) i przeciągnij w górę. Podnoszenie nie ociera bierek pod spodem.</li>
+      <li>Przy włączonych podpowiedziach (ustawienia stołu) bierki dotykające tej, którą wskazujesz, <b>świecą</b>: na czerwono ta, która na niej leży, a na pomarańczowo pozostałe.</li>
+      <li>Przeciągnij stół albo niebo, żeby <b>obrócić widok</b>. Kółko myszy albo rozsunięcie palców przybliża.</li>
+      <li>Masz <b>30 sekund</b> na każdą bierkę (ustawienia stołu). Gdy czas minie, kolejka przechodzi dalej.</li>
+      <li>Gdy stół jest pusty, wygrywa <b>największa liczba punktów</b>. Przy trzech stosach punkty się sumują. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   pool: {

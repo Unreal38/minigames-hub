@@ -426,6 +426,11 @@ body.night .gcard .pic .arttick { stroke: #fff6d8; } /* motion ticks drawn on th
 .gcard .pic.dominopic svg { width: 100%; height: 100%; display: block; }
 .dominopic .dbob { animation: bob 2.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .dominopic .dbob { animation: none; } }
+.gcard .pic.bierkipic { background: var(--art-sky); padding: 0; }
+.gcard .pic.bierkipic svg { width: 100%; height: 100%; display: block; }
+.bierkipic .bkpull { animation: bkpull 2.6s ease-in-out infinite; }
+@keyframes bkpull { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(7px, -2px); } }
+@media (prefers-reduced-motion: reduce) { .bierkipic .bkpull { animation: none; } }
 .gcard .pic.poolpic { background: var(--art-sky); padding: 0; }
 .gcard .pic.poolpic svg { width: 100%; height: 100%; display: block; }
 .poolpic .pcue { animation: poolcue 2.4s ease-in-out infinite; }
