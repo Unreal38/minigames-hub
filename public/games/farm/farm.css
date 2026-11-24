@@ -454,3 +454,16 @@ body.night .pf .swflip:not(:disabled), body.night .pf .swflip:not(:disabled) * {
 .pf .pfheartdot { display: inline-grid; place-items: center; color: var(--fav, #e8507a); font-style: normal; margin-right: 4px; vertical-align: -2px; }
 .pf .pills [aria-pressed=true] .pfheartdot { color: inherit; }
 body.night .pf { --fav: #f06d93; --fav-edge: #f06d93; }
+.pf .pflodge { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; margin: 4px 0; }
+/* the Pet Lodge: storage, with tabs for the owner's collections and a grid of pets to pick from */
+.pf .lodgep .ldtabs .pills button small { opacity: .7; font-weight: 700; }
+.pf .lodgep .ldname { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.pf .lodgep .ldname .field { flex: 1 1 140px; min-width: 0; }
+.pf .lodgep .ldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; margin: 8px 0; }
+.pf .lodgep .ldcell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; border-radius: 14px; border: 3px solid var(--card-edge); background: var(--pf-chip, var(--card)); color: var(--pf-tx, var(--ink)); cursor: pointer; min-width: 0; text-align: center; }
+.pf .lodgep .ldcell img, .pf .lodgep .ldcell .thumb { width: 56px; height: 56px; }
+.pf .lodgep .ldcell b { font-size: 14px; max-width: 100%; overflow-wrap: anywhere; line-height: 1.15; }
+.pf .lodgep .ldcell small { font-size: 12px; opacity: .8; max-width: 100%; overflow-wrap: anywhere; }
+.pf .lodgep .ldcell.on { border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent, #ffc94d) inset; }
+.pf .lodgep .ldacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pf .lodgep .ldpages { justify-content: center; align-items: center; gap: 10px; }

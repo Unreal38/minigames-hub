@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
@@ -151,11 +151,16 @@ export function mount(app, ctx) {
   let skyKey = '';
   // One job at a time: why a pet cannot be picked for something right now ('' when it can).
   const inNest = id => F.nests.some(n => n.stage === 'cuddle' && (n.a === id || n.b === id));
-  const busyFor = (p, job) => job === 'defend' ? '' : outAll().includes(p.id) ? 'exploring' : inNest(p.id) ? L('cuddling in the Nest', 'przytula się w Gnieździe') : job === 'send' && p.held ? L('promised in a trade', 'obiecany w wymianie') : '';
+  const busyFor = (p, job) => p.lodge ? L('stored in the Pet Lodge', 'w Schronisku') : job === 'defend' ? '' : outAll().includes(p.id) ? 'exploring' : inNest(p.id) ? L('cuddling in the Nest', 'przytula się w Gnieździe') : job === 'send' && p.held ? L('promised in a trade', 'obiecany w wymianie') : '';
   const freeWhy = p => F.pets.length < 2 ? L('Your farm keeps at least one pet.', 'Na farmie musi zostać przynajmniej jeden zwierzak.') : p.held ? L(`${p.name} is promised in a trade. Take the offer back first.`, `${p.name} jest w ofercie wymiany. Najpierw wycofaj ofertę.`) : outAll().includes(p.id) ? L(`${p.name} is out exploring. Welcome it home first.`, `${p.name} jest na wyprawie. Najpierw przywitaj drużynę w domu.`) : inNest(p.id) ? L(`${p.name} is cuddling in the Nest.`, `${p.name} przytula się w Gnieździe.`) : '';
   const freeFor = job => id => { const p = F.pets.find(x => x.id === id); return p && !busyFor(p, job); };
   const outNow = () => F.trips.filter(t => t.left > 0).flatMap(t => t.pets), outAll = () => F.trips.flatMap(t => t.pets); // away right now; away or waiting to be welcomed
   // What a pet is up to right now, for the pet list. away: it is not on the island, so the camera cannot find it.
+  // What a farmhouse level opens besides new places to explore.
+  const HOUSE_OPENS = { 4: [() => L('the Pet Lodge', 'Schronisko zwierzaków')],
+    5: [() => L('two more beds in the farmhouse', 'dwa łóżka więcej w domu'), () => L('a fourth Pet Hut', 'czwartą Chatkę zwierzaków'), () => L('land up to 24 by 24', 'ziemię do 24 na 24')] };
+  const LODGE_PAGE = 36, ldSort = () => { try { return localStorage.getItem('pf_lsort') || 'sp'; } catch { return 'sp'; } };
+  const shelfName = id => id && F.shelves?.find(x => x.id === id)?.name;
   const petStatus = p => { const t = F.trips.find(t => t.pets.includes(p.id)), job = Object.entries(F.work || {}).find(([, id]) => id === p.id);
     return t ? (t.left > 0 ? { away: true, cls: 'out', text: L(`Exploring ${ZONES[t.zone].name}, back in ${wait(t.left)}`, `Na wyprawie: ${ZONES[t.zone].name}, powrót za ${wait(t.left)}`) } : { away: true, cls: 'back', text: L(`Back from ${ZONES[t.zone].name}: welcome the party`, `Wraca: ${ZONES[t.zone].name}. Przywitaj drużynę`) })
       : inNest(p.id) ? { cls: 'job', text: L('Cuddling in the Nest', 'Przytula się w Gnieździe') }
@@ -163,6 +168,7 @@ export function mount(app, ctx) {
       : job ? { cls: 'job', text: L(`Helping at the ${ITEMS[job[0]].name}`, `Pomaga: ${ITEMS[job[0]].name}`) }
       : p.held ? { cls: '', text: L('Promised in a trade', 'W ofercie wymiany') }
       : p.rest > 0 ? { cls: '', text: L(`Resting for ${wait(p.rest)}`, `Odpoczywa jeszcze ${wait(p.rest)}`) }
+      : p.lodge ? { away: true, cls: 'out', text: L(`In the Pet Lodge${shelfName(p.shelf) ? ': ' + esc(shelfName(p.shelf)) : ''}`, `W Schronisku${shelfName(p.shelf) ? ': ' + esc(shelfName(p.shelf)) : ''}`) }
       : { cls: '', text: L('Free to play', 'Wolny, bawi się') }; };
   const favBtn = (p, cls = '') => `<button type="button" class="pfheart${cls}" data-a="fav" data-id="${p.id}" aria-pressed="${!!p.fav}" title="${p.fav ? L('Remove from favourites', 'Usuń z ulubionych') : L('Mark as favourite', 'Dodaj do ulubionych')}" aria-label="${p.fav ? L(`Remove ${esc(p.name)} from favourites`, `Usuń z ulubionych: ${esc(p.name)}`) : L(`Mark ${esc(p.name)} as a favourite`, `Dodaj do ulubionych: ${esc(p.name)}`)}">${p.fav ? HEART(18) : HEART_O(18)}</button>`;
   const petSort = () => { try { return localStorage.getItem('pf_psort') || 'new'; } catch { return 'new'; } };
@@ -231,15 +237,16 @@ export function mount(app, ctx) {
     if (!panel || mode !== 'farm' || (edit && panel.kind !== 'buy')) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
     if (panel.kind === 'buy') { // a closer look at something from the build menu before paying for it
-      const type = panel.type, it = ITEMS[type], have = countOf(F, type), up = UPGRADES[type];
+      const type = panel.type, it = ITEMS[type], have = countOf(F, type), up = UPGRADES[type], most = maxOf(F, type);
       const gift = F.stash[type] || 0;
       const why = gift ? '' : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
         : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
-        : it.max && have >= it.max ? L(`You already have ${it.max === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`)
+        : it.house && F.house < it.house ? L(`Needs a level ${it.house} farmhouse. Tap your farmhouse to improve it.`, `Wymaga domu na poziomie ${it.house}. Dotknij domu, żeby go ulepszyć.`)
+        : most && have >= most ? (type === 'hut' && F.house < 5 ? L(`You already have ${have}. A level 5 farmhouse makes room for a fourth.`, `Masz już ${have}. Dom na poziomie 5 robi miejsce na czwartą.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
         : !canAfford(F.inv, it.cost) ? L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.') : '';
       const size = it.w === it.h ? (it.w < 1 ? L('Half a tile', 'Pół kratki') : it.w === 1 ? L('One tile', 'Jedna kratka') : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`)) : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`);
       box.innerHTML = `<div class="panel tripp buy"><div class="buytop">${thumb(type, it.name)}<div><h2>${it.name}</h2><p>${it.desc}</p></div></div>
-        <p class="hint">${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${it.max ? L(` · you have ${have} of ${it.max}`, ` · masz ${have} z ${it.max}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${UP_MAX}`, ` · można ulepszyć do poziomu ${UP_MAX}`) : ''}</p>
+        <p class="hint">${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${most ? L(` · you have ${have} of ${most}`, ` · masz ${have} z ${most}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${lvMax(type)}`, ` · można ulepszyć do poziomu ${lvMax(type)}`) : ''}</p>
         <p><b>${L(`Price`, `Cena`)}</b></p><div class="cost">${gift ? `<span class="mat">${L(`Free: a gift from a friend (${gift} to place)`, `Za darmo: prezent od znajomego (do postawienia: ${gift})`)}</span>` : costHtml(it.cost, F.inv)}</div>
         <p class="hint">${why || L('After buying, drag it to where you want it. Selling it later gives everything back.', 'Po zakupie przeciągnij to tam, gdzie chcesz. Przy sprzedaży wraca cały koszt.')}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
@@ -248,7 +255,7 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
       const away = outAll(), what = panel.mode === 'defend' ? L('Defence team', 'Drużyna obrony') : panel.mode === 'live' ? L(`Live battle with ${esc(panel.foeName)}`, `Bitwa na żywo: ${esc(panel.foeName)}`) : panel.mode === 'arena' ? L(`Match against ${esc(panel.foeName)}`, `Mecz: ${esc(panel.foeName)}`) : L('Practice battle', 'Bitwa treningowa');
-      const pets = favFirst(F.pets).map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
+      const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
         return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="team" data-id="${p.id}" data-why="${out}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="num">${i + 1}</span>` : ''}
           ${petRow(p, out ? ' · ' + out : ' · ' + elName(elOf(p)))}</button>`; }).join('');
       const note = panel.mode === 'live' ? `${L(`You both play at the same time, with ${TURN_S} seconds to choose each turn. Everyone fights at level 20. ${panel.invite ? '' : `${esc(panel.foeName)} has to be online to say yes.`}`, `Gracie jednocześnie i macie ${TURN_S} sekund na wybór w każdej turze. Wszyscy walczą na poziomie 20. ${panel.invite ? '' : `${esc(panel.foeName)} musi być online, żeby się zgodzić.`}`)}`
@@ -263,7 +270,7 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'work') { // who helps at this building
       const type = panel.type, w = WORK[type], now = helperOf(type), jobs = Object.entries(F.work || {});
-      const pets = favFirst(F.pets.filter(p => canWork(p, type)).sort((a, b) => workPct(b, type) - workPct(a, type))).map(p => { const out = busyFor(p, 'train'), other = jobs.find(([k, id]) => id === p.id && k !== type);
+      const pets = favFirst(F.pets.filter(p => !p.lodge && canWork(p, type)).sort((a, b) => workPct(b, type) - workPct(a, type))).map(p => { const out = busyFor(p, 'train'), other = jobs.find(([k, id]) => id === p.id && k !== type);
         return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="workpick" data-id="${p.id}" data-why="${out}" aria-pressed="${now?.id === p.id}">${petRow(p, ` · ${STAR_NAME[w.stat]} ${p.stars?.[w.stat] || 3}★ · <b>${workPct(p, type)}%</b>` + (out ? ' · ' + out : other ? L(` · leaves the ${ITEMS[other[0]].name}`, ` · zostawi pracę: ${ITEMS[other[0]].name}`) : F.train.ids.includes(p.id) ? L(' · stops training', ' · przerwie trening') : ''))}</button>`; }).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Helper at the ${ITEMS[type].name}`, `Pomocnik: ${ITEMS[type].name}`)}</h2>
         <p>${L(`One ${elTag(w.el)} pet can work here. ${w.what('X')}, where X grows with the pet's level and its ${STAR_NAME[w.stat]} stars. A pet has one job at a time: sending it exploring, training or to the Nest ends its work here.`, `Może tu pracować jeden zwierzak żywiołu ${elTag(w.el)}. ${w.what('X')}, a X rośnie z poziomem zwierzaka i jego gwiazdkami cechy ${STAR_NAME[w.stat]}. Zwierzak ma jedno zajęcie naraz: wyprawa, trening albo Gniazdo kończą jego pracę tutaj.`)}</p>
@@ -272,7 +279,7 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'train') {
-      const gone = outAll(), pets = favFirst(F.pets).map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = busyFor(p, 'train');
+      const gone = outAll(), pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = busyFor(p, 'train');
         return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out}" aria-pressed="${on}">${petRow(p, out ? ' · ' + out : full ? L(' · fully grown', ' · w pełni dorosły') : L(' · level ', ' · poziom ') + p.lv)}</button>`; }).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Who trains at the yard?`, `Kto trenuje na placu?`)}</h2><p>${L(`Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring or cuddling in the Nest cannot train, and sending a pet exploring ends its training.`, `Wybierz najwyżej ${F.train.slots}. Każdy zdobywa ${TRAIN_XP} doświadczenia na godzinę, także pod twoją nieobecność. Zwierzak na wyprawie albo w Gnieździe nie może trenować, a wysłanie go na wyprawę kończy trening.`)}</p>
         <div class="party">${pets}</div>
@@ -465,20 +472,56 @@ export function mount(app, ctx) {
         <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
     }
+    if (panel.kind === 'lodge') { // the Pet Lodge: storage for many pets, sorted into the owner's own collections
+      const shelves = F.shelves || [], inside = F.pets.filter(p => p.lodge), isle = F.pets.filter(p => !p.lodge);
+      if (panel.tab !== 'isle' && panel.tab !== 'all' && panel.tab !== 'none' && !shelves.some(x => x.id === panel.tab)) panel.tab = 'all';
+      const tab = panel.tab, sh = shelves.find(x => x.id === tab);
+      const pool = tab === 'isle' ? isle : tab === 'all' ? inside : tab === 'none' ? inside.filter(p => !shelfName(p.shelf)) : inside.filter(p => p.shelf === tab);
+      const order = { lv: (a, b) => b.lv - a.lv || b.xp - a.xp, name: (a, b) => a.name.localeCompare(b.name, PL ? 'pl' : 'en'), el: (a, b) => Object.keys(ELEMENTS).indexOf(elOf(a)) - Object.keys(ELEMENTS).indexOf(elOf(b)) || b.lv - a.lv,
+        sp: (a, b) => SPECIES[a.sp].name.localeCompare(SPECIES[b.sp].name, PL ? 'pl' : 'en') || b.lv - a.lv };
+      const vis = pool.map((p, i) => ({ p, i })).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p);
+      panel.sel = panel.sel.filter(id => vis.some(p => p.id === id));
+      const pages = Math.max(1, Math.ceil(vis.length / LODGE_PAGE)); panel.page = Math.min(panel.page || 0, pages - 1); // a page at a time, so hundreds of pets stay quick
+      const pill = (a, k, v, label) => `<button type="button" data-a="${a}" data-v="${v}" aria-pressed="${k === v}">${label}</button>`;
+      const count = (n, label) => `${label} <small>${n}</small>`;
+      const tabs = [pill('ldtab', tab, 'isle', count(isle.length, L('On the island', 'Na wyspie'))), pill('ldtab', tab, 'all', count(inside.length, L('Everyone inside', 'Wszyscy w środku'))),
+        ...(shelves.length ? [pill('ldtab', tab, 'none', count(inside.filter(p => !shelfName(p.shelf)).length, L('Not sorted', 'Bez kolekcji')))] : []),
+        ...shelves.map(x => pill('ldtab', tab, x.id, count(inside.filter(p => p.shelf === x.id).length, esc(x.name)))),
+        shelves.length < SHELF_MAX ? `<button type="button" data-a="ldnew">+ ${L('New collection', 'Nowa kolekcja')}</button>` : ''].join('');
+      const cells = vis.slice(panel.page * LODGE_PAGE, (panel.page + 1) * LODGE_PAGE).map(p => { const s = SPECIES[p.sp], on = panel.sel.includes(p.id);
+        return `<button type="button" class="ldcell${on ? ' on' : ''}" data-a="ldpick" data-id="${p.id}" aria-pressed="${on}">${face(p, s.name)}<b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b><small>${p.name === s.name ? '' : s.name + ' · '}${L('lv', 'poz.')} ${p.lv}</small><span class="prtags">${elTags(p)}</span></button>`; }).join('');
+      const n = panel.sel.length, lodgeFree = F.lodgeRoom - inside.length, isleFree = F.room - isle.length;
+      const acts = !n ? `<p class="hint">${tab === 'isle' ? L('Tap pets to pick them, then store them in the Lodge.', 'Dotknij zwierzaków, żeby je wybrać, i przenieś je do Schroniska.') : L('Tap pets to pick them, then sort them into a collection or move them back to the island.', 'Dotknij zwierzaków, żeby je wybrać, a potem dodaj je do kolekcji albo przenieś z powrotem na wyspę.')}</p>`
+        : tab === 'isle' ? `<div class="ldacts"><span class="hint">${L(`Picked: ${n}`, `Wybrane: ${n}`)}</span><button type="button" class="btn sm m" data-a="ldin" data-v="" ${n > lodgeFree ? 'disabled' : ''}>${L('Store in the Lodge', 'Do Schroniska')}</button>${shelves.map(x => `<button type="button" class="btn sm w" data-a="ldin" data-v="${x.id}" ${n > lodgeFree ? 'disabled' : ''}>${L(`Store in ${esc(x.name)}`, `Do kolekcji ${esc(x.name)}`)}</button>`).join('')}</div>${n > lodgeFree ? `<p class="hint">${L(`The Lodge has room for ${lodgeFree} more.`, `W Schronisku zmieści się jeszcze ${lodgeFree}.`)}</p>` : ''}`
+        : `<div class="ldacts"><span class="hint">${L(`Picked: ${n}. Move to`, `Wybrane: ${n}. Przenieś do`)}</span>${shelves.filter(x => x.id !== tab).map(x => `<button type="button" class="btn sm w" data-a="ldput" data-v="${x.id}">${esc(x.name)}</button>`).join('')}${shelves.length && tab !== 'none' && tab !== 'all' ? `<button type="button" class="btn sm w" data-a="ldput" data-v="">${L('Not sorted', 'Bez kolekcji')}</button>` : ''}<button type="button" class="btn sm m" data-a="ldout" ${n > isleFree ? 'disabled' : ''}>${L('Back to the island', 'Na wyspę')}</button></div>${n > isleFree ? `<p class="hint">${L(`The island has ${isleFree} free beds. Build or improve a Pet Hut for more.`, `Wolne łóżka na wyspie: ${isleFree}. Zbuduj albo ulepsz Chatkę zwierzaków, żeby było ich więcej.`)}</p>` : ''}`;
+      const shelfRow = sh ? `<form class="ldname" data-shelf="${sh.id}"><input class="field" id="pf-shelf" maxlength="${SHELF_NAME}" value="${esc(sh.name)}" aria-label="${L('Collection name', 'Nazwa kolekcji')}" autocomplete="off"><button class="btn sm w">${L('Rename', 'Zmień nazwę')}</button>
+          <button type="button" class="btn sm w" data-a="ldmove" data-v="left" aria-label="${L('Move this collection left', 'Przesuń kolekcję w lewo')}" ${shelves[0] === sh ? 'disabled' : ''}>◀</button><button type="button" class="btn sm w" data-a="ldmove" data-v="right" aria-label="${L('Move this collection right', 'Przesuń kolekcję w prawo')}" ${shelves.at(-1) === sh ? 'disabled' : ''}>▶</button>
+          <button type="button" class="btn sm w" data-a="lddel">${L('Delete collection', 'Usuń kolekcję')}</button></form>` : '';
+      box.innerHTML = `<div class="panel tripp pets lodgep"><h2>${L('Pet Lodge', 'Schronisko zwierzaków')}</h2>
+        <p>${L(`${inside.length} of ${F.lodgeRoom} stored inside, ${isle.length} of ${F.room} beds taken on the island. Stored pets rest indoors: move them back out to the island to send them anywhere.`, `W środku: ${inside.length} z ${F.lodgeRoom}. Na wyspie zajęte łóżka: ${isle.length} z ${F.room}. Zwierzaki w Schronisku odpoczywają pod dachem: przenieś je na wyspę, żeby gdzieś je wysłać.`)}</p>
+        <div class="pfsort ldtabs"><div class="pills">${tabs}</div></div>${shelfRow}
+        <div class="pfsort"><span class="hint">${L('Sort', 'Kolejność')}</span><div class="pills">${pill('ldsort', panel.sort || 'new', 'new', L('Newest', 'Najnowsze'))}${pill('ldsort', panel.sort || 'new', 'sp', L('Species', 'Gatunek'))}${pill('ldsort', panel.sort || 'new', 'lv', L('Level', 'Poziom'))}${pill('ldsort', panel.sort || 'new', 'name', L('Name', 'Imię'))}${pill('ldsort', panel.sort || 'new', 'el', L('Element', 'Żywioł'))}</div>
+          ${vis.length ? `<button type="button" class="btn sm w" data-a="ldall">${n === Math.min(vis.length, LODGE_PAGE) && n ? L('Pick none', 'Odznacz') : L('Pick this page', 'Wybierz stronę')}</button>` : ''}</div>
+        ${acts}
+        ${cells ? `<div class="ldgrid">${cells}</div>` : `<p class="hint">${tab === 'isle' ? L('No pets on the island.', 'Na wyspie nie ma zwierzaków.') : L('Nobody here yet.', 'Nikogo tu jeszcze nie ma.')}</p>`}
+        ${pages > 1 ? `<div class="row ldpages"><button type="button" class="btn sm w" data-a="ldpage" data-v="-1" ${panel.page ? '' : 'disabled'}>◀</button><span class="hint">${L(`Page ${panel.page + 1} of ${pages}`, `Strona ${panel.page + 1} z ${pages}`)}</span><button type="button" class="btn sm w" data-a="ldpage" data-v="1" ${panel.page < pages - 1 ? '' : 'disabled'}>▶</button></div>` : ''}
+        <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
+      return;
+    }
     if (panel.kind === 'pets') { // every pet on the farm: tap one to find it on the island
       const els = [...new Set(F.pets.map(elOf))], favs = F.pets.some(p => p.fav), on = els.includes(panel.el) || (panel.el === 'fav' && favs) ? panel.el : '';
       const order = { lv: (a, b) => b.lv - a.lv || b.xp - a.xp, name: (a, b) => a.name.localeCompare(b.name, PL ? 'pl' : 'en'), el: (a, b) => Object.keys(ELEMENTS).indexOf(elOf(a)) - Object.keys(ELEMENTS).indexOf(elOf(b)) || b.lv - a.lv };
-      const vis = favFirst(F.pets.map((p, i) => ({ p, i })).filter(x => !on || (on === 'fav' ? x.p.fav : elOf(x.p) === on)).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p));
+      const vis = favFirst(F.pets.map((p, i) => ({ p, i })).filter(x => !x.p.lodge).filter(x => !on || (on === 'fav' ? x.p.fav : elOf(x.p) === on)).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p));
       const pill = (a, k, v, label) => `<button type="button" data-a="${a}" data-v="${v}" aria-pressed="${k === v}">${label}</button>`;
       const rows = vis.map(p => { const s = SPECIES[p.sp], st = petStatus(p);
         return `<div class="petcell"><button type="button" class="petrow${st.away ? ' away' : ''}${p.fav ? ' fav' : ''}" data-a="petfind" data-id="${p.id}">${face(p, s.name)}<span class="pr"><b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b>
           <small>${p.name === s.name ? '' : s.name + ' · '}${FORMS[formOf(p.lv)]} · ${L('level', 'poziom')} ${p.lv}</small><span class="prtags">${elTags(p)}<em class="${st.cls}">${st.text}</em></span></span></button>${favBtn(p)}</div>`; }).join('');
       box.innerHTML = `<div class="panel tripp pets"><h2>${L(`My pets`, `Moje zwierzaki`)}</h2>
-        <p>${L(`${F.pets.length} of ${F.room} places taken. Tap a pet to find it on the farm. Tap the heart to make it a favourite: favourites come first wherever you pick pets.`, `Zajęte miejsca: ${F.pets.length} z ${F.room}. Dotknij zwierzaka, żeby znaleźć go na farmie. Dotknij serca, żeby dodać go do ulubionych: ulubione są pierwsze wszędzie, gdzie wybierasz zwierzaki.`)}</p>
+        <p>${L(`${F.pets.filter(p => !p.lodge).length} of ${F.room} beds on the island taken${F.lodgeRoom ? `, and ${F.pets.filter(p => p.lodge).length} of ${F.lodgeRoom} places in the Pet Lodge` : ''}. Tap a pet to find it on the farm. Tap the heart to make it a favourite: favourites come first wherever you pick pets.`, `Zajęte łóżka na wyspie: ${F.pets.filter(p => !p.lodge).length} z ${F.room}${F.lodgeRoom ? `, a miejsca w Schronisku: ${F.pets.filter(p => p.lodge).length} z ${F.lodgeRoom}` : ''}. Dotknij zwierzaka, żeby znaleźć go na farmie. Dotknij serca, żeby dodać go do ulubionych: ulubione są pierwsze wszędzie, gdzie wybierasz zwierzaki.`)}</p>
         <div class="pfsort"><span class="hint">${L('Sort', 'Kolejność')}</span><div class="pills">${pill('petsort', panel.sort || 'new', 'new', L('Newest', 'Najnowsze'))}${pill('petsort', panel.sort || 'new', 'lv', L('Level', 'Poziom'))}${pill('petsort', panel.sort || 'new', 'name', L('Name', 'Imię'))}${pill('petsort', panel.sort || 'new', 'el', L('Element', 'Żywioł'))}</div></div>
         ${els.length > 1 || favs ? `<div class="pfsort"><span class="hint">${L('Show', 'Pokaż')}</span><div class="pills">${pill('petel', on, '', L('All', 'Wszystkie'))}${favs ? pill('petel', on, 'fav', `<i class="pfheartdot">${HEART(12)}</i>${L('Favourites', 'Ulubione')}`) : ''}${(els.length > 1 ? els : []).map(e => pill('petel', on, e, `<i class="dot" style="--c:${ELEMENTS[e]}"></i>${elName(e)}`)).join('')}</div></div>` : ''}
         <div class="petlist">${rows}</div>
-        <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
+        <div class="row end">${F.lodgeRoom ? `<button type="button" class="btn w" data-a="lodgeopen">${L(`Pet Lodge (${F.pets.filter(p => p.lodge).length} inside)`, `Schronisko (w środku: ${F.pets.filter(p => p.lodge).length})`)}</button>` : ''}<button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'album') {
@@ -503,7 +546,7 @@ export function mount(app, ctx) {
         return own(sp) ? `<button type="button" class="leaf" data-a="leaf" data-sp="${sp}">${thumb('pet:' + sp, d.name)}<b>${d.name}</b>${elTag(d.el)}<span class="forms" title="${L(`Baby, young, adult`, `Maluch, podrostek, dorosły`)}">${a.map((x, i) => `<i class="${x ? 'on' : ''}" title="${FORMS[i]}"></i>`).join('')}</span></button>`
           : a ? `<button type="button" class="leaf seen" data-a="leaf" data-sp="${sp}">${thumb('pet:' + sp, d.name)}<b>${d.name}</b><small>${L(`Seen, not raised yet`, `Widziany, jeszcze niewychowany`)}</small></button>`
           : `<div class="leaf no"><span class="nothumb">?</span><b>${L(`Not found yet`, `Jeszcze nieodkryty`)}</b><small>${zoneOf(sp) || d.hint || ''}</small></div>`; }).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>${L(`Pet Album`, `Album zwierzaków`)}</h2><p>${L(`${have} of ${total} species found${Object.keys(F.album).length > have ? ` and ${Object.keys(F.album).length - have} more seen` : ''}. Tap a pet to read its page. The three dots are the baby, young and adult forms you have raised. Your farm has room for ${F.room} pets and ${F.pets.length} live there now. Coats found: ${F.coats.length} of ${COATS.length}. Markings found: ${F.marks.length} of ${Object.keys(PATTERNS).length}.`, `Odkryte gatunki: ${have} z ${total}${Object.keys(F.album).length > have ? `, a widziane: jeszcze ${Object.keys(F.album).length - have}` : ''}. Dotknij zwierzaka, żeby przeczytać jego stronę. Trzy kropki to wychowane formy: maluch, podrostek i dorosły. Na farmie jest miejsce dla ${F.room} zwierzaków, a mieszka ich teraz ${F.pets.length}. Odkryte kolory futra: ${F.coats.length} z ${COATS.length}. Odkryte znaczenia: ${F.marks.length} z ${Object.keys(PATTERNS).length}.`)}</p>
+      box.innerHTML = `<div class="panel tripp"><h2>${L(`Pet Album`, `Album zwierzaków`)}</h2><p>${L(`${have} of ${total} species found${Object.keys(F.album).length > have ? ` and ${Object.keys(F.album).length - have} more seen` : ''}. Tap a pet to read its page. The three dots are the baby, young and adult forms you have raised. Your farm has room for ${F.allRoom} pets and ${F.pets.length} live there now. Coats found: ${F.coats.length} of ${COATS.length}. Markings found: ${F.marks.length} of ${Object.keys(PATTERNS).length}.`, `Odkryte gatunki: ${have} z ${total}${Object.keys(F.album).length > have ? `, a widziane: jeszcze ${Object.keys(F.album).length - have}` : ''}. Dotknij zwierzaka, żeby przeczytać jego stronę. Trzy kropki to wychowane formy: maluch, podrostek i dorosły. Na farmie jest miejsce dla ${F.allRoom} zwierzaków, a mieszka ich teraz ${F.pets.length}. Odkryte kolory futra: ${F.coats.length} z ${COATS.length}. Odkryte znaczenia: ${F.marks.length} z ${Object.keys(PATTERNS).length}.`)}</p>
         <div class="album">${cells}</div>
         <div class="row end"><button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
@@ -550,10 +593,10 @@ export function mount(app, ctx) {
           <span class="dcap"><b>${zn.name}</b><span class="dline">${elTag(zn.el)}<small>${gives}</small></span></span></button>`;
       }).join('');
       const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
-      const pets = favFirst(F.pets).map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
+      const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
         ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? L(' · training (ends if sent)', ' · trenuje (wyprawa przerwie trening)') : Object.values(F.work || {}).includes(p.id) ? L(' · helping at a building (ends if sent)', ' · pomaga przy budynku (wyprawa to przerwie)') : atHome(z, p.sp, elOf(p)) ? L(' · +25% here', ' · +25% tutaj') : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
-      const full = F.pets.length >= F.room;
+      const full = F.pets.length >= F.allRoom;
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
         <h3 class="tstep">${L('Where to?', 'Dokąd?')}</h3>
         <div class="dests">${zones}</div>
@@ -713,12 +756,13 @@ export function mount(app, ctx) {
     if (el.hidden) return;
     const g = scene?.ghost();
     const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals || it.wheel : it.kind === tab && !it.craft && !it.pals && !it.wheel)).map(([type, it]) => {
-      const have = countOf(F, type), full = it.max && have >= it.max, gift = F.stash[type] || 0, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && it.wheel && !have;
-      return `<button type="button" class="item${full || poor || locked || shy || luck ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
-        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${it.max}`, `Masz ${have} z ${it.max}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
+      const have = countOf(F, type), most = maxOf(F, type), full = most && have >= most, gift = F.stash[type] || 0, small = it.house && F.house < it.house, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && it.wheel && !have;
+      return `<button type="button" class="item${full || poor || locked || shy || luck || small ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
+        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : small ? `<span class="mat">${L(`Farmhouse level ${it.house}`, `Dom poziom ${it.house}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${most}`, `Masz ${have} z ${most}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
     }).join('');
-    const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) ? '' : ' off'}" data-a="expand">
-        <span class="nothumb grow">${F.next.size}</span><b>${L(`More land`, `Więcej ziemi`)}</b><span class="cost">${costHtml(F.next.cost, F.inv)}</span></button>` : '';
+    const landLow = F.next?.house > F.house; // that size needs a bigger farmhouse first
+    const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) && !landLow ? '' : ' off'}" data-a="expand"${landLow ? ' data-low="1"' : ''}>
+        <span class="nothumb grow">${F.next.size}</span><b>${L(`More land`, `Więcej ziemi`)}</b><span class="cost">${landLow ? `<span class="mat">${L(`Farmhouse level ${F.next.house}`, `Dom poziom ${F.next.house}`)}</span>` : costHtml(F.next.cost, F.inv)}</span></button>` : '';
     const keep = el.querySelector('.items')?.scrollLeft || 0;
     el.innerHTML = `<div class="bhead"><div class="pills">
         <button type="button" data-a="tab" data-tab="b" aria-pressed="${tab === 'b'}">${L(`Buildings`, `Budynki`)}</button>
@@ -764,6 +808,8 @@ export function mount(app, ctx) {
         ${Object.entries(F.work || {}).filter(([, id]) => id === p.id).map(([k]) => `<p class="hint">${L(`Helper at the ${ITEMS[k].name}: ${WORK[k].what(workPct(p, k)).toLowerCase()}.`, `Pomocnik (${ITEMS[k].name}): ${WORK[k].what(workPct(p, k)).toLowerCase()}.`)}</p>`).join('')}
         <div class="mvlist"><span class="hint">${ROLE_NAME[KIT[p.sp].role]}</span>${movesAt(p.sp, p.lv, p.xmove, elOf(p)).map(id => `<span class="el" style="--c:${ELEMENTS[MOVES[id].el]}">${MOVES[id].name}</span>`).join('')}</div>
         ${Object.entries(RECIPES).filter(([k, r]) => F.inv[k] && (r.xp ? p.lv < MAX_LV : r.rest && p.rest > 0)).map(([k, r]) => `<button type="button" class="btn sm m" data-a="feed" data-what="${k}" data-id="${p.id}">${L(`Give a ${r.name} (${F.inv[k]} left)`, `Podaj: ${r.name} (masz ${F.inv[k]})`)}</button>`).join('')}
+        ${p.lodge ? `<p class="hint">${L('Stored in the Pet Lodge. Move it out to the island to send it anywhere.', 'Jest w Schronisku. Przenieś go na wyspę, żeby gdzieś go wysłać.')}</p>` : ''}
+        ${F.lodgeRoom ? `<button type="button" class="btn sm w" data-a="lodge" data-id="${p.id}" data-on="${p.lodge ? '' : '1'}">${p.lodge ? L('Move to the island', 'Przenieś na wyspę') : L('Store in the Lodge', 'Do Schroniska')}</button>` : ''}
         <button type="button" class="btn sm w" data-a="petpage" data-id="${p.id}">${L(`Traits and family`, `Cechy i rodzina`)}</button></div>
         <button type="button" class="round x" data-a="close" aria-label="${L(`Close`, `Zamknij`)}">×</button>`;
     } else {
@@ -772,12 +818,12 @@ export function mount(app, ctx) {
       if (UPGRADES[item.type]) { // buildings and decorations that can be improved
         const lv = lvOf(item), cost = upCost(item);
         name += L(` · Level ${lv}`, ` · Poziom ${lv}`);
-        up = lv >= UP_MAX ? '' : F.house < lv + 1 ? `<p class="hint">${L(`Level ${lv + 1} needs a level ${lv + 1} farmhouse.`, `Poziom ${lv + 1} wymaga domu na poziomie ${lv + 1}.`)}</p>`
+        up = !cost ? '' : F.house < lv + 1 ? `<p class="hint">${L(`Level ${lv + 1} needs a level ${lv + 1} farmhouse.`, `Poziom ${lv + 1} wymaga domu na poziomie ${lv + 1}.`)}</p>`
           : `<p class="hint">${L(`Level ${lv + 1}: ${whatUp(item).toLowerCase()}.`, `Poziom ${lv + 1}: ${whatUp(item).toLowerCase()}.`)}</p><div class="cost">${costHtml(cost, F.inv)}</div><button type="button" class="btn sm m" data-a="upgrade" data-id="${item.id}">${L(`Improve to level ${lv + 1}`, `Ulepsz do poziomu ${lv + 1}`)}</button>`;
       }
       if (item.type === 'house') {
         name += L(` · Level ${F.house}`, ` · Poziom ${F.house}`);
-        const opens = list(Object.values(ZONES).filter(z => z.house === F.house + 1).map(z => z.name));
+        const opens = list([...Object.values(ZONES).filter(z => z.house === F.house + 1).map(z => z.name), ...(HOUSE_OPENS[F.house + 1] || []).map(t => t())]);
         more = F.houseNext ? `<p class="hint">${L(`Level ${F.house + 1} opens ${opens}.`, `Poziom ${F.house + 1} otwiera: ${opens}.`)}</p><div class="cost">${costHtml(F.houseNext, F.inv)}</div>
           <button type="button" class="btn sm m" data-a="houseup">${L(`Improve farmhouse`, `Ulepsz dom`)}</button>` : '<p class="hint">' + L('It is as grand as it gets.', 'Okazalszy już nie będzie.') + '</p>';
       } else if (item.type === 'gate') {
@@ -793,7 +839,8 @@ export function mount(app, ctx) {
       else if (item.type === 'kitchen') more = `${L(`<p class="hint">You have ${F.inv.berries || 0} berries.</p>`, `<p class="hint">Masz jagód: ${F.inv.berries || 0}.</p>`)}<button type="button" class="btn sm m" data-a="cookopen">${L(`Cook treats`, `Gotuj smakołyki`)}</button>`;
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
       else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="swapopen">' + L('Swap materials', 'Wymień materiały') + '</button>';
-      else if (item.type === 'hut') more = `<p class="hint">${L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}</p>`;
+      else if (item.type === 'hut') more = `<p class="hint">${F.lodgeRoom ? L(`The island has beds for ${F.room} pets and the Pet Lodge for ${F.lodgeRoom} more.`, `Na wyspie są łóżka dla ${F.room} zwierzaków, a w Schronisku dla kolejnych ${F.lodgeRoom}.`) : L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}</p>`;
+      else if (item.type === 'lodge') more = `<p class="hint">${L(`Stored inside: ${F.pets.filter(p => p.lodge).length} of ${F.lodgeRoom}, in ${(F.shelves || []).length} collections.`, `W środku: ${F.pets.filter(p => p.lodge).length} z ${F.lodgeRoom}, kolekcje: ${(F.shelves || []).length}.`)}</p><button type="button" class="btn sm m" data-a="lodgeopen">${L('Open the Lodge', 'Otwórz Schronisko')}</button>`;
       if (UPGRADES[item.type]?.does) more += `<p class="hint">${UPGRADES[item.type].does[lvOf(item) - 1]}</p>`; // an improvable decoration says what pets do on it
       if (WORK[item.type]) more += helpRow(item.type);
       more += boostRow(item.type);
@@ -908,7 +955,9 @@ export function mount(app, ctx) {
     else if (a === 'petsort') { panel.sort = b.dataset.v; try { localStorage.setItem('pf_psort', b.dataset.v); } catch { /* no storage */ } sfx.click(); paintPanel(); }
     else if (a === 'petel') { panel.el = b.dataset.v; sfx.click(); paintPanel(); }
     else if (a === 'petfind') { const p = F.pets.find(x => x.id === b.dataset.id); if (!p) return; const st = petStatus(p);
-      panel = null; card = { pet: p.id }; sfx.click(); sync(); if (st.away) ctx.toast(L(`${esc(p.name)} is away exploring, so it is not on the farm right now.`, `${esc(p.name)} jest na wyprawie, więc teraz nie ma go na farmie.`)); }
+      if (p.lodge) { panel = { kind: 'lodge', tab: shelfName(p.shelf) ? p.shelf : 'all', sel: [], sort: ldSort(), page: 0 }; card = null; sfx.click(); sync(); return; }
+      panel = null; card = { pet: p.id }; sfx.click(); sync(); if (st.away) ctx.toast(L(`${esc(p.name)} is away exploring, so it is not on the farm right now.`, `${esc(p.name)} jest na wyprawie, więc teraz nie ma go na farmie.`));
+      }
     else if (a === 'nest') { if (F.nests.length >= F.nestMax) return; panel = { kind: 'nest', pick: [] }; card = null; sync(); }
     else if (a === 'playdate') {
       const pet = V?.pets.find(x => x.id === b.dataset.id); if (!pet) return;
@@ -927,6 +976,19 @@ export function mount(app, ctx) {
     else if (a === 'hatch') ctx.send({ t: 'hatch', slot: b.dataset.slot });
     else if (a === 'petpage') { panel = { kind: 'pet', id: b.dataset.id }; card = null; sync(); }
     else if (a === 'petopen') ctx.send({ t: 'petopen', id: b.dataset.id });
+    else if (a === 'lodge') { sfx.click(); ctx.send({ t: 'lodge', ids: [b.dataset.id], on: !!b.dataset.on }); }
+    else if (a === 'lodgeopen') { panel = { kind: 'lodge', tab: 'all', sel: [], sort: ldSort(), page: 0 }; card = null; sfx.click(); sync(); }
+    else if (a === 'ldtab') { panel.tab = b.dataset.v; panel.sel = []; panel.page = 0; sfx.click(); paintPanel(); }
+    else if (a === 'ldsort') { panel.sort = b.dataset.v; panel.page = 0; try { localStorage.setItem('pf_lsort', b.dataset.v); } catch { /* no storage */ } sfx.click(); paintPanel(); }
+    else if (a === 'ldpage') { panel.page = Math.max(0, (panel.page || 0) + +b.dataset.v); panel.sel = []; sfx.click(); paintPanel(); }
+    else if (a === 'ldpick') { const i = panel.sel.indexOf(b.dataset.id); if (i >= 0) panel.sel.splice(i, 1); else panel.sel.push(b.dataset.id); sfx.click(); paintPanel(); }
+    else if (a === 'ldall') { const ids = [...$('pf-panel').querySelectorAll('.ldcell')].map(x => x.dataset.id); panel.sel = panel.sel.length === ids.length ? [] : ids; sfx.click(); paintPanel(); }
+    else if (a === 'ldin') { sfx.click(); ctx.send({ t: 'lodge', ids: panel.sel, on: true, shelf: b.dataset.v || null }); panel.sel = []; }
+    else if (a === 'ldout') { sfx.click(); ctx.send({ t: 'lodge', ids: panel.sel, on: false }); panel.sel = []; }
+    else if (a === 'ldput') { sfx.click(); ctx.send({ t: 'shelf', op: 'put', id: b.dataset.v, ids: panel.sel }); panel.sel = []; }
+    else if (a === 'ldnew') { sfx.click(); ctx.send({ t: 'shelf', op: 'new', name: L(`Collection ${(F.shelves || []).length + 1}`, `Kolekcja ${(F.shelves || []).length + 1}`) }); }
+    else if (a === 'ldmove') { sfx.click(); ctx.send({ t: 'shelf', op: b.dataset.v, id: panel.tab }); }
+    else if (a === 'lddel') { sfx.click(); ctx.send({ t: 'shelf', op: 'del', id: panel.tab }); }
     else if (a === 'fav') { const p = F?.pets.find(x => x.id === b.dataset.id); if (!p) return; p.fav = !p.fav; sfx.click(); ctx.send({ t: 'fav', id: p.id, on: p.fav }); if (panel) paintPanel(); if (card?.pet) paintCard(); }
     else if (a === 'freeask') { if (b.dataset.why) return ctx.toast(esc(b.dataset.why), true); panel.free = true; paintPanel(); }
     else if (a === 'freeno') { panel.free = false; paintPanel(); }
@@ -971,7 +1033,7 @@ export function mount(app, ctx) {
     else if (a === 'send') { lastTrip = { zone: panel.zone, trip: panel.trip, pets: [...panel.pets] }; ctx.send({ t: 'send', ...lastTrip }); }
     else if (a === 'houseup') { if (!canAfford(F.inv, F.houseNext)) ctx.toast(L('Not enough materials for that yet.', 'Na to jeszcze nie wystarczy materiałów.'), true); else ctx.send({ t: 'houseup' }); }
     else if (a === 'tab') { tab = b.dataset.tab; paintBuild(); }
-    else if (a === 'expand') { if (b.classList.contains('off')) ctx.toast(L('Not enough materials to grow the land yet.', 'Na powiększenie ziemi jeszcze nie wystarczy materiałów.'), true); else ctx.send({ t: 'expand' }); }
+    else if (a === 'expand') { if (b.dataset.low) ctx.toast(L(`Growing the land again needs a level ${F.next.house} farmhouse.`, `Dalsze powiększanie ziemi wymaga domu na poziomie ${F.next.house}.`), true); else if (b.classList.contains('off')) ctx.toast(L('Not enough materials to grow the land yet.', 'Na powiększenie ziemi jeszcze nie wystarczy materiałów.'), true); else ctx.send({ t: 'expand' }); }
     else if (a === 'item') {
       scene?.ghostCancel(); panel = { kind: 'buy', type: b.dataset.type }; sfx.click(); paintPanel();
     }
@@ -999,6 +1061,7 @@ export function mount(app, ctx) {
   });
   root.addEventListener('submit', e => {
     e.preventDefault();
+    const sh = e.target.closest?.('.ldname'); if (sh) { const v = sh.querySelector('#pf-shelf')?.value.trim(); if (v) ctx.send({ t: 'shelf', op: 'name', id: sh.dataset.shelf, name: v }); return; }
     const inp = e.target.querySelector('#pf-name'); if (!inp || !card?.pet) return;
     const name = inp.value.trim(); if (name) { ctx.send({ t: 'petname', id: card.pet, name }); inp.blur(); }
   });
@@ -1085,6 +1148,11 @@ export function mount(app, ctx) {
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(L(`The farmhouse is now level ${F.house}.`, `Dom ma teraz poziom ${F.house}.`)); }
     else if (m.did === 'petname') ctx.toast(L('Renamed.', 'Imię zmienione.'));
     else if (m.did === 'work') { sfx.set(); panel = null; const h = m.pet && F.pets.find(x => x.id === m.pet); if (h) scene?.cheer(h.id); ctx.toast(h ? L(`${esc(h.name)} ${WORK[m.type].job} now. ${WORK[m.type].what(workPct(h, m.type))}.`, `${esc(h.name)} od teraz ${WORK[m.type].job}. ${WORK[m.type].what(workPct(h, m.type))}.`) : L(`Nobody helps at the ${ITEMS[m.type].name} now.`, `Teraz nikt tu nie pomaga: ${ITEMS[m.type].name}.`)); }
+    else if (m.did === 'lodge') { const p = m.ids.length === 1 && F.pets.find(x => x.id === m.ids[0]), n = m.ids.length;
+      ctx.toast(m.on ? (p ? L(`${esc(p.name)} curls up in the Pet Lodge.`, `${esc(p.name)} zwija się w kłębek w Schronisku.`) : L(`${n} pets moved into the Pet Lodge.`, `Zwierzaki przeniesione do Schroniska: ${n}.`))
+        : (p ? L(`${esc(p.name)} is back on the island.`, `${esc(p.name)} wraca na wyspę.`) : L(`${n} pets are back on the island.`, `Zwierzaki z powrotem na wyspie: ${n}.`))); }
+    else if (m.did === 'shelf' && m.op === 'new' && panel?.kind === 'lodge') { panel.tab = m.id; panel.sel = []; panel.page = 0; }
+    else if (m.did === 'shelf' && m.op === 'del' && panel?.kind === 'lodge') { panel.tab = 'all'; ctx.toast(L('Collection deleted. Its pets stay in the Lodge.', 'Kolekcja usunięta. Jej zwierzaki zostają w Schronisku.')); }
     else if (m.did === 'free') { sfx.turn(); card = null; panel = { kind: 'bye', gone: m.gone, got: m.got }; }
     else if (m.did === 'offer') { sfx.join(); panel = null; ctx.toast(L(`Your offer is on its way to ${esc(V?.name || 'them')}.`, `Twoja oferta jest w drodze${V?.name ? ` do gracza ${esc(V.name)}` : ''}.`)); }
     else if (m.did === 'tradeyes') { sfx.win(); ctx.toast(L('Trade done! Your new things are on the farm.', 'Wymiana gotowa! Nowe rzeczy są już na farmie.')); }
@@ -1099,7 +1167,7 @@ export function mount(app, ctx) {
     // keep building: after placing one fence, hold the next one ready beside it
     if (m.did === 'place' && edit && lastType && scene) {
       const it = ITEMS[lastType];
-      if (canAfford(F.inv, it.cost) && !(it.max && countOf(F, lastType) >= it.max)) scene.ghostNew(lastType, lastSpot, lastSpot[2]);
+      if (canAfford(F.inv, it.cost) && !(maxOf(F, lastType) && countOf(F, lastType) >= maxOf(F, lastType))) scene.ghostNew(lastType, lastSpot, lastSpot[2]);
     }
     lastType = null;
   }
