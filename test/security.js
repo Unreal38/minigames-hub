@@ -144,12 +144,12 @@ if (!/15 minutes/.test(m.err || '')) fail('still blocked even with the right pas
 g.close();
 console.log('login limit ok');
 
-// 8. Flooding connections from one address: past 20 at once, new ones are turned away.
+// 8. Flooding connections from one address: past 40 at once, new ones are turned away.
 const socks = [];
-for (let i = 0; i < 26; i++) { const w = new WebSocket(`ws://127.0.0.1:${PORT}/ws`); w.onerror = () => {}; socks.push(w); }
+for (let i = 0; i < 50; i++) { const w = new WebSocket(`ws://127.0.0.1:${PORT}/ws`); w.onerror = () => {}; socks.push(w); }
 await wait(800);
 const openN = socks.filter(w => w.readyState === 1).length;
-if (openN > 20 || openN < 15) fail('connection cap: ' + openN + ' open');
+if (openN > 40 || openN < 35) fail('connection cap: ' + openN + ' open');
 for (const w of socks) w.close();
 r = await get('/health'); if (r.statusCode !== 200) fail('server down after flood');
 console.log('connection cap ok', openN);

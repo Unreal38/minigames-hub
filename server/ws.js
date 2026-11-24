@@ -5,7 +5,10 @@ import { allow } from './limits.js';
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const MAX_MSG = 16 * 1024;
-const PER_IP = 20;          // open connections from one address at once (a house full of friends shares one)
+const MAX_QUEUE = 4 * 1024 * 1024; // bytes waiting to go out to one screen before it is dropped
+// Open connections from one address at once. A house full of friends shares one address, and so can a whole school
+// or office network when the site is shared around, so this is roomy. WS_PER_IP on the server changes it.
+const PER_IP = +process.env.WS_PER_IP || 40;
 const NEW_PER_MIN = 60;     // new connections from one address per minute
 const open = new Map();     // ip -> open connections
 
@@ -69,7 +72,10 @@ export class Socket extends EventEmitter {
     else if (len < 65536) { head = Buffer.alloc(4); head[1] = 126; head.writeUInt16BE(len, 2); }
     else { head = Buffer.alloc(10); head[1] = 127; head.writeBigUInt64BE(BigInt(len), 2); }
     head[0] = 0x80 | op;
-    try { this.sock.write(Buffer.concat([head, payload])); } catch { this._closed(); }
+    try { this.sock.write(Buffer.concat([head, payload])); } catch { this._closed(); return; }
+    // A screen that stopped reading (a phone on a dead network that hasn't timed out yet) would make the server keep
+    // everything it is sent in memory. Past MAX_QUEUE waiting bytes the connection is dropped; the page reconnects.
+    if (this.sock.writableLength > MAX_QUEUE && this.open) { console.warn(`ws: ${this.ip} is not reading (${this.sock.writableLength} bytes waiting), dropping`); this.open = false; this.sock.destroy(); this.emit('close'); }
   }
   _data(d) {
     this.buf = Buffer.concat([this.buf, d]);
