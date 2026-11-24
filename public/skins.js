@@ -18,6 +18,10 @@ const BACKS = [
   { bg: '#2f86cc', dot: '#e6f6ff', pat: 'elTide' },
   { bg: '#d9a400', dot: '#fff6c9', pat: 'elSpark' },
   { bg: '#8a7f76', dot: '#d8d0c6', pat: 'elStone' },
+  { bg: '#f2a65a', dot: '#fff4e2', pat: 'xPaw' },
+  { bg: '#ffd6e3', dot: '#ff8fab', pat: 'xBlossom' },   // spring
+  { bg: '#3f7fc4', dot: '#ffffff', pat: 'xFlake' },     // winter
+  { bg: '#fff8ec', dot: '#ffffff', pat: 'xRainbow' },
 ];
 export const backOf = k => BACKS[k | 0] || BACKS[0];
 // Fill the (already clipped) card area w x h with back k.
@@ -37,6 +41,14 @@ export function paintBack(g, w, h, k) {
     if (B.pat === 'elSpark') each(4, 6, (x, y, i) => { g.save(); g.translate(x, y); g.rotate(i % 2 ? .25 : -.2); g.scale(u * (i % 3 ? 1 : 1.3), u * (i % 3 ? 1 : 1.3)); g.fillStyle = i % 3 ? B.dot : '#ffffff'; g.strokeStyle = '#8a6400'; g.lineWidth = 2.5; g.lineJoin = 'round'; g.beginPath(); for (const [px, py] of [[4, -24], [-11, 3], [-2, 3], [-6, 24], [11, -5], [2, -5]]) g.lineTo(px, py); g.closePath(); g.fill(); g.stroke(); g.restore(); });
     if (B.pat === 'elStone') each(4, 7, (x, y, i) => { g.save(); g.translate(x, y); g.rotate(i * .8); g.scale(u, u); g.fillStyle = ['#d8d0c6', '#b9afa4', '#6b625b'][i % 3]; g.beginPath(); g.ellipse(0, 0, 21 - (i % 2) * 5, 14 - (i % 3) * 2, 0, 0, 7); g.fill(); g.strokeStyle = ink; g.lineWidth = 2.5; g.stroke(); g.fillStyle = '#ffffff55'; g.beginPath(); g.ellipse(-5, -4, 7, 3, -.4, 0, 7); g.fill(); g.restore(); });
   }
+  else if (B.pat?.startsWith('x')) { // the second batch, also sized by the card
+    const u = w / 256;
+    if (B.pat === 'xPaw') each(3, 5, (x, y, i) => { g.save(); g.translate(x, y); g.rotate(i % 2 ? .35 : -.3); g.scale(u * 1.15, u * 1.15); g.fillStyle = i % 3 ? B.dot : '#ffd9a8'; g.beginPath(); g.ellipse(0, 8, 13, 10.5, 0, 0, 7); g.fill(); for (const [px, py] of [[-15, -5], [-5.5, -13], [5.5, -13], [15, -5]]) { g.beginPath(); g.ellipse(px, py, 4.8, 6.2, px * .03, 0, 7); g.fill(); } g.restore(); });
+    if (B.pat === 'xBlossom') each(3, 5, (x, y, i) => { g.save(); g.translate(x, y); g.rotate(i * 1.1); g.scale(u * (i % 2 ? 1 : 1.3), u * (i % 2 ? 1 : 1.3)); g.fillStyle = i % 3 ? B.dot : '#ffffff'; g.strokeStyle = '#c2185b55'; g.lineWidth = 1.5; for (let j = 0; j < 5; j++) { g.rotate(1.2566); g.beginPath(); g.moveTo(0, -2); g.bezierCurveTo(9, -5, 8, -19, 0, -18); g.bezierCurveTo(-8, -19, -9, -5, 0, -2); g.fill(); g.stroke(); } g.fillStyle = '#ffd23f'; g.beginPath(); g.arc(0, 0, 4.2, 0, 7); g.fill(); g.restore(); });
+    if (B.pat === 'xFlake') each(3, 5, (x, y, i) => { g.save(); g.translate(x, y); g.rotate(i * .4); g.scale(u * (i % 2 ? .9 : 1.25), u * (i % 2 ? .9 : 1.25)); g.strokeStyle = i % 3 ? B.dot : '#bfe2ff'; g.lineWidth = 4; g.lineCap = 'round'; for (let j = 0; j < 3; j++) { g.rotate(Math.PI / 3); g.beginPath(); g.moveTo(0, -18); g.lineTo(0, 18); for (const sgn of [-1, 1]) { g.moveTo(-6, sgn * 16); g.lineTo(0, sgn * 10); g.lineTo(6, sgn * 16); } g.stroke(); } g.restore(); });
+    if (B.pat === 'xRainbow') { const cols = ['#e8392f', '#f08a1f', '#f2c230', '#4fb85a', '#3f8fe0', '#8a63e0'], bw = w * .13; g.save(); g.translate(w / 2, h / 2); g.rotate(-.6); for (let r = -2; r <= 2; r++) cols.forEach((c, j) => { g.fillStyle = c; g.globalAlpha = r % 2 ? .55 : 1; g.fillRect(-w * 1.5, r * bw * 7.4 + (j - 3) * bw, w * 3, bw + .5); }); g.restore(); g.globalAlpha = 1;
+      g.fillStyle = '#ffffff'; each(3, 5, (x, y, i) => { const r = (i % 2 ? 7 : 11) * u; g.beginPath(); for (let j = 0; j < 8; j++) { const an = j * Math.PI / 4, rr = j % 2 ? r * .38 : r; g.lineTo(x + Math.sin(an) * rr, y - Math.cos(an) * rr); } g.fill(); }); }
+  }
   else if (B.pat === 'leaf') each(4, 7, (x, y, i) => { g.save(); g.translate(x, y); g.rotate(i * .9); g.beginPath(); g.ellipse(0, 0, 15, 6, 0, 0, 7); g.fill(); g.restore(); });
   else each(6, 9, (x, y) => { g.beginPath(); g.arc(x, y, w * .03, 0, 7); g.fill(); });
 }
@@ -50,7 +62,7 @@ const ballTex = new Map();
 export function ballLook(k, color) {
   k |= 0;
   if (k === 5) return { color: '#ffcb3d', map: null };
-  if (k < 1 || k > 9) return { color, map: null };
+  if (k < 1 || k > 15) return { color, map: null };
   if (!ballTex.has(k)) {
     const W = 256, H = 128, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d');
     if (k === 1) { g.fillStyle = '#17141c'; g.fillRect(0, 0, W, H); for (const u of [.25, .75]) { g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(u * W, H / 2, 30, 30, 0, 0, 7); g.fill(); g.fillStyle = '#17141c'; g.font = '700 40px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('8', u * W, H / 2 + 3); } }
@@ -74,6 +86,24 @@ export function ballLook(k, color) {
       g.fillStyle = '#8a1f14'; g.fillRect(0, 0, W, 10); }
     if (k === 9) { // beach ball: six panels and a white cap at each end
       ['#e5402f', '#ffffff', '#ffc93c', '#ffffff', '#2f86cc', '#ffffff'].forEach((c, i) => { g.fillStyle = c; g.fillRect(i * W / 6, 0, W / 6 + 1, H); }); g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, 13); g.fillRect(0, H - 13, W, 13); }
+    if (k === 10) { // tennis ball: fuzzy yellow-green with the white seam curving round
+      g.fillStyle = '#cfe23a'; g.fillRect(0, 0, W, H); g.fillStyle = '#b8cc2a'; for (let i = 0; i < 90; i++) g.fillRect((i * 53) % W, (i * 31) % H, 3, 2);
+      g.strokeStyle = '#ffffff'; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); for (let x = 0; x <= W; x += 4) g.lineTo(x, H / 2 + Math.sin(x / W * Math.PI * 4) * 34); g.stroke(); }
+    if (k === 11) { // football: white with black patches
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); const pent = (x, y, r, rot) => { g.beginPath(); for (let j = 0; j < 5; j++) { const an = rot + j * Math.PI * .4; g.lineTo(x + Math.sin(an) * r * .62, y - Math.cos(an) * r); } g.closePath(); g.fill(); };
+      g.fillStyle = '#22202a'; for (let i = 0; i < 5; i++) { pent((i + .5) * W / 5, H / 2, 19, 0); pent(i * W / 5, 24, 15, Math.PI); pent(i * W / 5, H - 24, 15, 0); }
+      g.strokeStyle = '#c9ccd2'; g.lineWidth = 2; for (let i = 0; i < 5; i++) { const x = (i + .5) * W / 5; g.beginPath(); g.moveTo(x, H / 2 - 19); g.lineTo(x, 0); g.moveTo(x, H / 2 + 19); g.lineTo(x, H); g.stroke(); } g.fillRect(0, 0, W, 5); g.fillRect(0, H - 5, W, 5); }
+    if (k === 12) { // moon: grey with craters
+      g.fillStyle = '#c9ccd4'; g.fillRect(0, 0, W, H); for (let i = 0; i < 16; i++) { const x = (i * 71 + 20) % W, y = 18 + (i * 43) % 92, r = 5 + (i * 7) % 11; g.fillStyle = '#9da2b0'; g.beginPath(); g.ellipse(x, y, r * .62, r, 0, 0, 7); g.fill(); g.fillStyle = '#e6e8ee'; g.beginPath(); g.ellipse(x + r * .14, y + r * .22, r * .5, r * .8, 0, 0, 7); g.fill(); g.fillStyle = '#b3b7c3'; g.beginPath(); g.ellipse(x, y, r * .42, r * .68, 0, 0, 7); g.fill(); } }
+    if (k === 13) { // disco ball: mirror tiles, a few catching coloured light
+      const cols = ['#c9d2de', '#aeb8c8', '#e6ecf4', '#98a4b6'], hot = ['#ff7ac8', '#7ad0ff', '#fff07a', '#b48cff']; g.fillStyle = '#5f6a7c'; g.fillRect(0, 0, W, H);
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 20; c++) { const i = r * 20 + c; g.fillStyle = (i * 7) % 11 === 0 ? hot[i % 4] : (i * 5) % 13 === 0 ? '#ffffff' : cols[(r + c * 3) % 4]; g.fillRect(c * 12.8 + 1, r * 16 + 1, 10.8, 14); } }
+    if (k === 14) { // pumpkin (Halloween): ribs, a green cap, carved faces all round
+      g.fillStyle = '#f08a24'; g.fillRect(0, 0, W, H); g.strokeStyle = '#d06a12'; g.lineWidth = 5; for (let i = 0; i < 12; i++) { g.beginPath(); g.moveTo(i * W / 12 + 4, 0); g.lineTo(i * W / 12 + 4, H); g.stroke(); } g.fillStyle = '#5a8a3a'; g.fillRect(0, 0, W, 11);
+      g.fillStyle = '#3b2219'; for (const u of [.125, .375, .625, .875]) { const x = u * W, y = H / 2; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(x + s * 17, y - 6); g.lineTo(x + s * 5, y - 6); g.lineTo(x + s * 11, y - 26); g.fill(); } g.beginPath(); g.moveTo(x - 20, y + 8); g.lineTo(x - 10, y + 16); g.lineTo(x - 4, y + 9); g.lineTo(x + 4, y + 16); g.lineTo(x + 10, y + 9); g.lineTo(x + 20, y + 8); g.lineTo(x + 12, y + 30); g.lineTo(x - 12, y + 30); g.fill(); } }
+    if (k === 15) { // paw print: cream with pink paws all round
+      g.fillStyle = '#fff4e2'; g.fillRect(0, 0, W, H); g.fillStyle = '#ffd9c2'; g.fillRect(0, 0, W, 12); g.fillRect(0, H - 12, W, 12);
+      g.fillStyle = '#ff7a9c'; for (const u of [.125, .375, .625, .875]) { const x = u * W, y = H / 2 + 6; g.beginPath(); g.ellipse(x, y + 12, 15, 20, 0, 0, 7); g.fill(); for (const [px, py] of [[-17, -8], [-6, -24], [6, -24], [17, -8]]) { g.beginPath(); g.ellipse(x + px, y + py, 5.5, 10, px * .02, 0, 7); g.fill(); } } }
     const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; ballTex.set(k, t);
   }
   return { color: '#ffffff', map: ballTex.get(k) };
@@ -107,5 +137,35 @@ export function kartPaint(k) {
     for (const s of [-1, 1]) for (let i = 0; i < 6; i++) parts.push(['#ffffff', [s * .765, .42, .8 - i * .32], [.6, 0, 0], [.03, .5, .12]]);
     for (const z of [1.03, .8]) parts.push(['#ffffff', [0, .642 + (z - .93) * .255, z], [-.25, .5, 0], [1.0, .032, .1]]);
   }
+  const hy = z => .642 + (z - .93) * .255, SX = .765; // the bonnet's top at depth z, and the side panels' x
+  if (k === 10) { // taxi: yellow, a black-and-white chequered band along each side and across the bonnet
+    for (const s of [-1, 1]) for (let i = 0; i < 12; i++) for (let r = 0; r < 2; r++) parts.push([(i + r) % 2 ? '#22202a' : '#ffffff', [s * SX, .47 - r * .09, .93 - i * .17], [0, 0, 0], [.03, .09, .17]]);
+    for (let i = 0; i < 8; i++) for (let r = 0; r < 2; r++) parts.push([(i + r) % 2 ? '#22202a' : '#ffffff', [-.49 + i * .14, hy(.98 - r * .14), .98 - r * .14], [-.25, 0, 0], [.14, .03, .14]]);
+  }
+  if (k === 11) { // ladybird: red with black spots, a black line down the bonnet
+    for (const s of [-1, 1]) for (const [z, y, r] of [[.8, .46, .17], [.42, .36, .13], [.05, .47, .18], [-.35, .37, .14], [-.72, .46, .17]]) parts.push(['#22202a', [s * SX, y, z], [Math.PI / 4, 0, 0], [.03, r, r]]);
+    parts.push(['#22202a', [0, hy(.93), .93], [-.25, 0, 0], [.07, .032, .7]]);
+    for (const [x, z, r] of [[-.32, 1.08, .17], [.32, 1.08, .17], [-.3, .76, .13], [.3, .76, .13]]) parts.push(['#22202a', [x, hy(z), z], [-.25, Math.PI / 4, 0], [r, .032, r]]);
+  }
+  if (k === 12) { // tiger: orange with black stripes leaning back, a cream belly line
+    for (const s of [-1, 1]) { for (let i = 0; i < 7; i++) parts.push(['#22202a', [s * SX, .43 + (i % 2 ? .04 : -.02), .88 - i * .28], [-.5, 0, 0], [.03, i % 2 ? .22 : .32, .09]]); parts.push(['#fff4e2', [s * SX, .28, .05], [0, 0, 0], [.028, .06, 2.1]]); }
+    for (const z of [1.1, .9, .7]) for (const s of [-1, 1]) parts.push(['#22202a', [s * .26, hy(z), z], [-.25, s * .6, 0], [.44, .032, .08]]);
+  }
+  if (k === 13) { // rainbow: six bands along each side and down the bonnet of a cream kart
+    const cols = ['#e8392f', '#f08a1f', '#f2c230', '#4fb85a', '#3f8fe0', '#8a63e0'];
+    cols.forEach((c, j) => { for (const s of [-1, 1]) parts.push([c, [s * SX, .545 - j * .05, .05], [0, 0, 0], [.03, .05, 2.16]]); parts.push([c, [-.3 + j * .12, hy(.93), .93], [-.25, 0, 0], [.12, .032, .7]]); });
+  }
+  if (k === 14) { // watermelon: dark stripes on a green rind, a slice of red with seeds on the bonnet
+    for (const s of [-1, 1]) for (let i = 0; i < 8; i++) parts.push(['#1f6e33', [s * SX, .42, .92 - i * .26 + (i % 2 ? .03 : 0)], [i % 2 ? .12 : -.12, 0, 0], [.03, .32, .09]]);
+    parts.push(['#fff4e2', [0, hy(.93), .93], [-.25, 0, 0], [1.04, .03, .6]], ['#e5402f', [0, hy(.93) + .004, .93], [-.25, 0, 0], [.92, .03, .5]]);
+    for (const [x, z] of [[-.3, 1.04], [0, 1.08], [.3, 1.04], [-.16, .82], [.16, .82]]) parts.push(['#22202a', [x, hy(z) + .008, z], [-.25, .3, 0], [.05, .03, .09]]);
+  }
+  if (k === 15) { // ice (winter): pale blue, frosty white diamonds low on the sides, a snowflake on the bonnet
+    for (const s of [-1, 1]) for (let i = 0; i < 9; i++) { const sz = i % 2 ? .13 : .2; parts.push([i % 2 ? '#ffffff' : '#eaf7ff', [s * SX, .31 + sz * .3, .9 - i * .24], [Math.PI / 4, 0, 0], [.03, sz, sz]]); }
+    for (let j = 0; j < 3; j++) parts.push(['#ffffff', [0, hy(.93) + j * .002, .93], [-.25, j * Math.PI / 3, 0], [.07, .032, .6]]);
+    for (let j = 0; j < 6; j++) { const an = j * Math.PI / 3, x = Math.sin(an) * .22, z = .93 + Math.cos(an) * .22; parts.push(['#ffffff', [x, hy(z) + .008, z], [-.25, an + Math.PI / 4, 0], [.1, .032, .1]]); }
+  }
+  const BODY2 = { 10: '#ffc93c', 11: '#e5352b', 12: '#f08a24', 13: '#fff4e2', 14: '#4fb85a', 15: '#7cc8f0' };
+  if (BODY2[k]) return { body: BODY2[k], parts };
   return { body: k === 9 ? '#ff8fab' : k === 8 ? '#2f86cc' : k === 7 ? '#2b2d6e' : k === 6 ? '#6b4326' : k === 5 ? '#f2c230' : k === 4 ? '#3f2f86' : null, parts };
 }
