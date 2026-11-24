@@ -38,7 +38,11 @@ export const COS = {
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' }] },
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
-    { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }, { n: 'Café', pk: 'kofi', e: ['☕', '🥐', '🍩', '🧋', '🍪', '🫶'] }] },
+    { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }, { n: 'Café', pk: 'kofi', e: ['☕', '🥐', '🍩', '🧋', '🍪', '🫶'] },
+    { n: 'Grumpy', p: 120, e: ['😤', '😠', '😡', '💢', '😾', '🙄'] }, { n: 'Drama', earn: { n: 50 }, e: ['🥺', '😩', '😱', '🤯', '💔', '🧂'] },
+    { n: 'Love', p: 100, e: ['🥰', '😍', '🤗', '😘', '💖', '🌸'] }, { n: 'Hype', p: 120, e: ['😎', '✨', '💪', '🏆', '⚡', '🚀'] },
+    { n: 'Sleepy', p: 100, e: ['😴', '🥱', '💤', '🌙', '🛌', '🧸'] }, { n: 'Hmm', p: 100, e: ['🤔', '🧐', '🤨', '😏', '🤫', '🫣'] },
+    { n: 'Winter', p: 100, s: 'winter', e: ['⛄', '🎄', '🎁', '🧣', '🦌', '🔔'] }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
   cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' }] },
   // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
