@@ -1284,16 +1284,18 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .seasoncard.s-spring { --sfill: linear-gradient(90deg, #7fd49a, #ffb3d1); } .seasoncard.s-summer { --sfill: linear-gradient(90deg, #ffc94a, #ffe58a); }
 .seasoncard.s-halloween { --sfill: linear-gradient(90deg, #ff9a3c, #b48cff); } .seasoncard.s-autumn { --sfill: linear-gradient(90deg, #e0813a, #ffc46b); }
 
-/* the weather card under the season card: the world's weather (public/weather.js), its Pet Farm bonus and what comes next */
+/* the weather strip under the season card: the world's weather (public/weather.js), its Pet Farm bonus in a few words, and what comes next */
 #weather { margin: -12px 0 14px; }
-.wxcard .tpic { background: linear-gradient(160deg, #bfe8ff, #e9f8ff); }
-.wxcard .tpic svg { height: 70%; }
-.wxcard.wx-sunny .tpic { background: linear-gradient(160deg, #9fd8ff, #fff1b8); } .wxcard.wx-cloudy .tpic { background: linear-gradient(160deg, #c9d6e6, #eef3f8); }
-.wxcard.wx-rain .tpic { background: linear-gradient(160deg, #9fb7d1, #d6e4f0); } .wxcard.wx-wind .tpic { background: linear-gradient(160deg, #bfe9e0, #e9f8ff); }
-.wxcard.wx-rainbow .tpic { background: linear-gradient(160deg, #bfe8ff, #ffe3ef); }
-.wxcard.wx-night .tpic { background: linear-gradient(160deg, #2c2a5e, #5b5196); }
-.wxcard .tbody .wxbonus { line-height: 1.3; margin-top: 2px; }
-.wxcard .tbody .wxnext { font-size: 12px; font-weight: 700; margin-top: 3px; opacity: .85; }
+.wxstrip { display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 7px; background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 var(--ink); }
+.wxstrip .wxpic { flex: none; width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--ink); display: grid; place-items: center; background: linear-gradient(160deg, #bfe8ff, #e9f8ff); }
+.wxstrip.wx-sunny .wxpic { background: linear-gradient(160deg, #9fd8ff, #fff1b8); } .wxstrip.wx-cloudy .wxpic { background: linear-gradient(160deg, #c9d6e6, #eef3f8); }
+.wxstrip.wx-rain .wxpic { background: linear-gradient(160deg, #9fb7d1, #d6e4f0); } .wxstrip.wx-wind .wxpic { background: linear-gradient(160deg, #bfe9e0, #e9f8ff); }
+.wxstrip.wx-rainbow .wxpic { background: linear-gradient(160deg, #bfe8ff, #ffe3ef); } .wxstrip.wx-night .wxpic { background: linear-gradient(160deg, #2c2a5e, #5b5196); }
+.wxstrip .wxnow { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 7px; line-height: 1.2; }
+.wxstrip .wxnow b { font-family: var(--fd); font-weight: 600; font-size: 15px; white-space: nowrap; }
+.wxstrip .wxnow small { font-size: 12.5px; font-weight: 700; color: var(--muted2, var(--muted)); }
+.wxstrip .wxnext { flex: none; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted2, var(--muted)); white-space: nowrap; }
+.wxstrip .wxnext::before { content: '→'; margin-right: 1px; }
 
 /* the phone tab bar */
 .hubtabs { display: none; }
