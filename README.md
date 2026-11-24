@@ -123,7 +123,7 @@ Open two browser windows (or one normal and one private window) to play against 
 
 ## Word in a Bottle (daily word puzzle)
 
-Every day at midnight in Warsaw a new five-letter word "washes up", the same for everybody: one Polish word and one English word, each its own puzzle with its own streak. Six tries; every try is marked letter by letter (blue square: right spot, orange circle: other spot, dashed grey: not in the word). Solving pays 15 coins on the first try down to 5 on the sixth, once a day per language. Accounts only.
+Every day at midnight in Warsaw a new five-letter word "washes up", the same for everybody: one Polish word and one English word, each its own puzzle with its own streak. Six tries; every try is marked letter by letter (blue square: right spot, orange circle: other spot, dashed grey: not in the word). Solving pays 30 coins on the first try down to 10 on the sixth (3 for a day not solved), once a day per language. Accounts only.
 
 The server keeps the word and checks every try (`server/word.js`), so the page never knows the answer before the day is over. Each day's words are rolled once and written to `DATA_DIR/word-daily.json`. The word lists are in `server/words/` (see the README there for sources and how to add or remove a word). The page is `public/word.js`; the test is `node test/word.js`.
 
