@@ -296,6 +296,27 @@ Static files: Node serves about 2,700 file requests a second on a first visit (a
 13,000 a second for returning visitors, whose browsers only check that nothing changed.
 `npm run load` (test/load.js) measures tables only: turn games and 8-driver kart races.
 
+**Connection helpers (GATEWAYS).** With `GATEWAYS=3` (a 4-core server) the game itself stays in one process, and
+3 helper processes on the other cores hold the players' connections: they take the public port, pass pages on to
+the game, and do the framing, the heartbeat and the writing to every socket. The game sends each message once per
+helper, and a message that goes to many screens (the table list, the online numbers, a table's state) travels
+once with the list of screens. Measured the same way (fake crowd, game and helpers all squeezed on one 4-core
+machine, so these are on the safe side):
+
+| people online at once | game loop busy | worst wait (p99) | memory (game) |
+|---|---|---|---|
+| 2,000 | 8% | 13 ms | 250 MB |
+| 4,000 | 11% | 21 ms | 270 MB |
+| 7,000 | 26% | 72 ms | 400 MB |
+| ~8,700 | 51–70% | 150–670 ms (the test machine itself was out of CPU) | 450 MB |
+
+Chess bot moves run on a thread of their own and are not in "game loop busy". With helpers on, `MAX_ONLINE=6000` is
+comfortable; going toward 9,000–10,000 should be checked with fake players on a separate machine first. A helper
+that crashes is replaced within a second and its players reconnect by themselves (test/gateways.js). Without
+`GATEWAYS` (or `GATEWAYS=0`) everything runs in one process exactly as before.
+The server log has a `health:` line every 5 minutes while people are online (every minute when the game loop is
+over 60% busy or waits pass 100 ms): `journalctl -u cozy-table | grep health`.
+
 **Waiting line.** Past `MAX_ONLINE` screens at once (3,000 by default) newcomers see "Zatoka Gier is full right
 now", their place in line, and get in by themselves as screens close, first come first served. People at a table,
 people who dropped out in the last 5 minutes (a reload, a flaky network) and hosts (ADMINS) always get straight in.

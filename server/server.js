@@ -8,6 +8,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import cluster from 'node:cluster';
 import os from 'node:os';
+import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { attach, ipOf, trustHelpers } from './ws.js';
 import { serveHelpers } from './links.js';
 import * as geo from './geo.js';
@@ -961,6 +962,18 @@ if (process.env.INVOCATION_ID || process.env.NOTICE_TEST_RESTART) notice.setOnZe
   console.log(`restarting by itself at the end of the countdown (${RUNNING.slice(0, 7) || '?'} -> ${gitHead().slice(0, 7) || '?'})`);
   bye(75);
 });
+
+// How the game process is coping, in the log: how busy its loop is (100% = full) and the worst waits a message saw.
+// Every 5 minutes while anyone is online, and every minute when it gets busy. HEALTH_EVERY (ms) is for load tests.
+const loopDelay = monitorEventLoopDelay({ resolution: 10 }); loopDelay.enable();
+let elu = performance.eventLoopUtilization(), healthN = 0;
+setInterval(() => {
+  const now = performance.eventLoopUtilization(), busy = performance.eventLoopUtilization(now, elu).utilization * 100; elu = now;
+  const p99 = loopDelay.percentile(99) / 1e6, max = loopDelay.max / 1e6; loopDelay.reset();
+  const online = countLive(), hot = busy > 60 || p99 > 100;
+  if ((online && (++healthN % 5 === 0 || hot)) || process.env.HEALTH_EVERY)
+    console[hot ? 'warn' : 'log'](`health: ${online} online, game loop ${busy.toFixed(0)}% busy, delay p99 ${p99.toFixed(0)} ms (max ${max.toFixed(0)})${helpers ? `, ${helpers.screens()} screens on ${helpers.links.size} helpers` : ''}${line.length ? `, ${line.length} waiting` : ''}`);
+}, +process.env.HEALTH_EVERY || 60_000).unref();
 
 // ---------- game loop & housekeeping ----------
 setInterval(() => {

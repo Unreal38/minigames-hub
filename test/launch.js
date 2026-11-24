@@ -20,7 +20,10 @@ const HOLD = +process.env.LOAD_HOLD || 15_000;
 const STEPS = (process.env.LAUNCH_STEPS || '250,500,1000,2000').split(',').map(Number);
 const SERVER_ARGS = (process.env.SERVER_ARGS || '').split(' ').filter(Boolean);
 
-const srv = spawn('node', [...SERVER_ARGS, 'server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: ['ignore', 'ignore', 'inherit'] });
+const srv = spawn('node', [...SERVER_ARGS, 'server/server.js'], { env: { MAX_ONLINE: '100000', HEALTH_EVERY: '5000', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: ['ignore', 'pipe', 'inherit'] });
+// The server's own view (its health line every 5 s): how busy the game loop is, apart from this test's own load.
+let health = [];
+srv.stdout.on('data', d => { for (const m of String(d).matchAll(/game loop (\d+)% busy, delay p99 (\d+) ms/g)) health.push([+m[1], +m[2]]); });
 await wait(1000);
 const TICK = 100;
 const cpuOf = () => { try { const f = fs.readFileSync(`/proc/${srv.pid}/stat`, 'utf8').split(') ')[1].split(' '); return (+f[11] + +f[12]) / TICK; } catch { return NaN; } };
@@ -107,7 +110,7 @@ async function churner(i) {
 const probe = person('Probe'); await probe.ready;
 async function measure(label, extra) {
   const lat = []; let sent = 0;
-  const t0 = performance.now(), c0 = cpuOf(), k0 = kidCpu(), m0 = msgs, b0 = bytes, s0 = states, l0 = lists;
+  health = []; const t0 = performance.now(), c0 = cpuOf(), k0 = kidCpu(), m0 = msgs, b0 = bytes, s0 = states, l0 = lists;
   while (performance.now() - t0 < HOLD) {
     sent = performance.now(); const got = next(probe, 'stats', 5000); probe.send({ t: 'stats' });
     if (await got) lat.push(performance.now() - sent); else lat.push(5000);
@@ -116,7 +119,7 @@ async function measure(label, extra) {
   const secs = (performance.now() - t0) / 1000, cpu = (cpuOf() - c0) / secs * 100, helperCpu = (kidCpu() - k0) / secs * 100;
   lat.sort((a, b) => a - b);
   const q = f => lat.length ? lat[Math.min(lat.length - 1, Math.floor(lat.length * f))] : NaN;
-  const row = { step: label, open: all.filter(p => !p.closed).length - 1, cpu: Math.round(cpu) + '%', ...(kids().length ? { helpers: Math.round(helperCpu) + '% (' + kids().length + ')' } : {}), memMB: Math.round(rssOf()),
+  const row = { step: label, open: all.filter(p => !p.closed).length - 1, cpu: Math.round(cpu) + '%', ...(kids().length ? { helpers: Math.round(helperCpu) + '% (' + kids().length + ')' } : {}), memMB: Math.round(rssOf()), 'loop busy': health.length ? Math.round(health.reduce((s, h) => s + h[0], 0) / health.length) + '%' : '?', 'loop p99 ms': health.length ? Math.max(...health.map(h => h[1])) : '?',
     'replyMs p50': +q(.5).toFixed(1), 'replyMs p99': +q(.99).toFixed(1), 'msgs/s out': Math.round((msgs - m0) / secs), 'MB/s out': +((bytes - b0) / secs / 1e6).toFixed(2), 'game states/s': Math.round((states - s0) / secs), 'table lists/s': Math.round((lists - l0) / secs), ...extra };
   console.log(JSON.stringify(row));
   return row;
