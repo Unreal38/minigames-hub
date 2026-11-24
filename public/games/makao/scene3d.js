@@ -96,7 +96,9 @@ export function createScene(canvas, { onFrame } = {}) {
       return { av, stool, g, ring, mine, cb: p.fl?.cb | 0, cards: [], n: 0, hop: 0, nod: 0, look: 0, active: false, key: '' };
     });
   }
-  const slot = (k, cnt) => { const step = Math.min(.34, 2.3 / Math.max(1, cnt)); return new THREE.Vector3((k - (cnt - 1) / 2) * step, .02 + k * .004, 0); };
+  // a fan is never wider than the room its seat has: at a full table the neighbours' fans would run into each other
+  const fanRoom = () => (n < 3 ? 2.3 : Math.min(2.3, 2 * ((R * .72 - .36) * Math.tan(Math.PI / n) - .32)));
+  const slot = (k, cnt) => { const step = Math.min(.34, fanRoom() / Math.max(1, cnt)); return new THREE.Vector3((k - (cnt - 1) / 2) * step, .02 + k * .004, 0); };
   function setHand(s, cnt, deal = -1, flyIn = 0) {
     while (s.cards.length > cnt) s.g.remove(s.cards.pop());
     const had = s.cards.length;
