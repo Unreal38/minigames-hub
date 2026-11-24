@@ -393,6 +393,14 @@ if (r.err || r.farm.pets.length !== petsBefore + 1 || r.farm.nest) fail('hatch '
 const kid = r.farm.pets.find(x => x.id === r.born);
 if (!kid || kid.lv !== 1 || kid.par?.length !== 2 || !kid.par.every(x => x.sp && x.name) || !Array.isArray(kid.stars) || kid.stars.some(n => n < 1 || n > 5)) fail('baby ' + JSON.stringify(kid));
 if (![a.farm.pets.find(x => x.id === kin[0]).sp, a.farm.pets.find(x => x.id === kin[1]).sp, 'truffowl', 'magmutt', 'nimbowhale', 'glimmoth', 'geodeer', 'maplander', 'koalith', 'kettlephant', 'bangaroo', 'magnebug'].includes(kid.sp)) fail('baby species ' + kid.sp);
+// favourites: Bo hearts a pet and un-hearts it; visitors never see the mark
+r = await b.farmDo({ t: 'fav', id: b.farm.pets[0].id, on: true });
+if (r.err || r.farm.pets[0].fav !== true) fail('fav on ' + r.err);
+r = await b.farmDo({ t: 'open' });
+if (r.farm.pets[0].fav !== true) fail('fav did not stay');
+r = await b.farmDo({ t: 'fav', id: b.farm.pets[0].id, on: false });
+if (r.err || r.farm.pets[0].fav) fail('fav off ' + r.err);
+await b.farmDo({ t: 'fav', id: b.farm.pets[0].id, on: true });
 // playdate: Bo opens a pet, Ana pairs with it
 r = await b.farmDo({ t: 'petopen', id: b.farm.pets[0].id });
 if (!r.err) fail('opened a pet that is too young');

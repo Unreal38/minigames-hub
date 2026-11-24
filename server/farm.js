@@ -592,6 +592,11 @@ export function handle(p, a, reply) {
     pet.open = !pet.open;
     return ok({ did: 'petopen' });
   }
+  if (a.t === 'fav') { // mark a pet as a favourite (or not): favourites come first in every pet picker. Only the owner sees it.
+    const pet = f.pets.find(x => x.id === a.id); if (!pet) return;
+    if (a.on === undefined ? !pet.fav : a.on) pet.fav = true; else delete pet.fav;
+    return ok({ did: 'fav' });
+  }
   if (a.t === 'offer') { // propose a swap to another farm
     const hit = byFid(a.to); if (!hit || hit[1] === f) return no('That farm is not around any more.');
     if (a.give?.mats?.coins || a.want?.mats?.coins) return no('Coins cannot be traded. They stay with you.');
@@ -628,7 +633,7 @@ export function handle(p, a, reply) {
     if (f.pets.length + net > petRoom(f)) return no('You need another bed first. Build a Pet Hut.');
     if (from.pets.length - net > petRoom(from)) return no('Their farm has no bed free for your pet.');
     if (f.pets.length + net < 1 || from.pets.length - net < 1) return no('Every farm keeps at least one pet.');
-    const move = (q, a2, b2) => { a2.pets.splice(a2.pets.indexOf(q), 1); delete q.held; q.open = false; unwork(a2, [q.id]); if (a2.def) a2.def = a2.def.filter(id => id !== q.id); b2.pets.push(q); };
+    const move = (q, a2, b2) => { a2.pets.splice(a2.pets.indexOf(q), 1); delete q.held; delete q.fav; q.open = false; unwork(a2, [q.id]); if (a2.def) a2.def = a2.def.filter(id => id !== q.id); b2.pets.push(q); };
     for (const q of theirs) move(q, from, f);
     for (const q of mine) move(q, f, from);
     pay(f.inv, o.give.mats, 1); pay(f.inv, o.want.mats); pay(from.inv, o.want.mats, 1);
