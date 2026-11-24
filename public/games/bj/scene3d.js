@@ -7,6 +7,7 @@ import { cardTexture, suitPath, feltLogo } from '../poker/scene3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, createFx, shaker } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 
 const INK = '#3b2219';
 const RX = 5.3, RZ = 3.35; // table half-width and half-depth
@@ -424,7 +425,7 @@ export function createScene(canvas, { onFrame } = {}) {
     sync,
     hop(i) { if (seats[i]) seats[i].hop = 1; },
     nod(i) { if (seats[i]) seats[i].nod = 1; },
-    setHud(px) { if (px !== hudBottom) { hudBottom = px; resize(true); } },
+    setHud(px) { if ((px !== hudBottom) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) disposeAvatar(s.av);

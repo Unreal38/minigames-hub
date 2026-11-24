@@ -6,6 +6,9 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, skyDome, clouds, birds, createFx, shaker, STAR, DOT, HEART as FX_HEART, nightScene, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { seasonLookNow, lookOf } from '../../season3d.js';
+const SEA = lookOf(seasonLookNow()); // the lawn follows the season like every game island
+import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { HOLES, PETS, SLEEP, GOLD, HEART } from './rules.js';
@@ -65,11 +68,11 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     const g = new THREE.Group(), deco = new THREE.Group(); g.add(deco);
     const put = (geo, mat, x, y, z, p = deco) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); p.add(m); return m; };
     const W = X0 * 2, D = ZF - ZB, cz = (ZF + ZB) / 2;
-    put(new THREE.BoxGeometry(W, .5, D), M('#8bca60'), 0, -.25, cz);
+    put(new THREE.BoxGeometry(W, .5, D), M(SEA.grass), 0, -.25, cz);
     put(new THREE.BoxGeometry(W - .5, .8, D - .5), M('#c98a5a'), 0, -.9, cz);
     put(new THREE.BoxGeometry(W - 2.2, .9, D - 2.4), M('#b0764a'), 0, -1.7, cz);
     put(new THREE.BoxGeometry(W - 4.6, .9, D - 5), M('#96623e'), 0, -2.5, cz);
-    for (let i = 0; i < 6; i++) put(new THREE.BoxGeometry(1.5, .04, 1.5), M('#7fbf56'), -3.6 + ((i * 53) % 7) * 1.2, .02, ZB + 1 + ((i * 37) % 9) * 1.2); // darker patches of lawn
+    for (let i = 0; i < 6; i++) put(new THREE.BoxGeometry(1.5, .04, 1.5), M(SEA.patch), -3.6 + ((i * 53) % 7) * 1.2, .02, ZB + 1 + ((i * 37) % 9) * 1.2); // darker patches of lawn
     for (let h = 0; h < HOLES; h++) {
       put(new THREE.CylinderGeometry(1.05, 1.28, RIM, 8), M(h % 2 ? '#b9824f' : '#c28a55'), holeX(h), RIM / 2, holeZ(h));
       put(new THREE.CylinderGeometry(.88, .88, .04, 8), M('#3a2418'), holeX(h), RIM + .01, holeZ(h));
@@ -78,7 +81,8 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     for (let i = 0; i < 10; i++) { put(new THREE.BoxGeometry(.3, 1, .16), M('#fff6e6'), -4.5 + i, .5, ZB + .25); put(new THREE.BoxGeometry(.3, .24, .16), M('#fff6e6'), -4.5 + i, 1.08, ZB + .25).rotation.z = Math.PI / 4; }
     put(new THREE.BoxGeometry(9.5, .16, .1), M('#f0dfc4'), 0, .62, ZB + .16);
     for (const sx of [-1, 1]) { for (let i = 0; i < 2; i++) put(new THREE.BoxGeometry(.16, 1, .3), M('#fff6e6'), sx * (X0 - .25), .5, ZB + 1.1 + i);
-      put(new THREE.BoxGeometry(1.2, .9, 1.2), M('#4fa85a'), sx * 3.9, .45, ZB + 1.3); put(new THREE.BoxGeometry(.8, .5, .8), M('#5fba66'), sx * 3.9, 1.1, ZB + 1.3); }
+      put(new THREE.BoxGeometry(1.2, .9, 1.2), M('#4fa85a'), sx * 3.9, .45, ZB + 1.3); put(new THREE.BoxGeometry(.8, .5, .8), M('#5fba66'), sx * 3.9, 1.1, ZB + 1.3);
+      if (SEA.icicles) { put(new THREE.BoxGeometry(1.26, .14, 1.26), M('#f6faff'), sx * 3.9, .92, ZB + 1.3); put(new THREE.BoxGeometry(.86, .14, .86), M('#f6faff'), sx * 3.9, 1.38, ZB + 1.3); } } // snow on the hedges
     const FL = ['#ff8fab', '#ffd84a', '#ffffff', '#b49bff'];
     [[-4.3, 4], [4.3, 4.1], [-1.35, 4.2], [1.35, -1.35], [-1.35, 1.35], [4.4, .1], [-4.4, -1.3], [1.4, 4.15]].forEach(([x, z], i) => { put(new THREE.BoxGeometry(.07, .3, .07), M('#4fa85a'), x, .15, z); put(new THREE.BoxGeometry(.22, .14, .22), M(FL[i % 4]), x, .36, z); });
     bake(deco); toonify(deco, .045);
@@ -348,7 +352,7 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     setMine(on) { mineOn = on; },
     // where a burrow of the big garden is on the screen (for the points that float up)
     spot(h, o = {}) { const w = wells[focus]; if (!w) return null; return toScreen(at(w, holeX(h), RIM + PH, holeZ(h)), o); },
-    setHud(top, bottom) { if (Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6) { hudBottom = bottom; hudTop = top; resize(true); } },
+    setHud(top, bottom) { if ((Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const w of wells) freeGarden(w);

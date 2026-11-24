@@ -7,6 +7,7 @@ import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, put, flat, ico, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
 import { groundOf, R as ISLE, finish } from '../../isle3d.js';
+import { seasonLookNow, lookOf as seasonLook } from '../../season3d.js';
 import { buildTrack, locate, at, headingAt, angDiff, hazardAt, ROAD, SHOULDER, RAIL, KART_R, RAMP, RAMP_H, CUT_W, driftFlags } from './track.js';
 import { petModel } from '../farm/pets3d.js';
 
@@ -65,7 +66,9 @@ function mesher() {
 
 // ---------- the track ----------
 // Every track wears the look of one Pet Farm island (def.isle = a ground from isle3d.js): its colours and what stands on it.
-const lookOf = T => groundOf(T.def.isle | 0);
+// The Meadow track (isle 0) is the plain lawn, so it follows the season like every game island (season3d.js);
+// the themed tracks keep their island's look all year.
+const lookOf = T => { const g = groundOf(T.def.isle | 0), S = !(T.def.isle | 0) && seasonLook(seasonLookNow()); return S ? { ...g, grass: S.grass, patch: S.patch, earth: S.earth || g.earth, rock: S.rock || g.rock, petals: S.petals, season: seasonLookNow() } : { ...g, season: null }; };
 const cylP = (g, rt, rb, h, c, x, y, z, seg = 8) => put(g, new THREE.CylinderGeometry(rt, rb, h, seg), flat(c), x, y, z);
 // roadside pieces the islands do not have themselves
 const EXTRA = {
@@ -197,7 +200,7 @@ function buildDeco(T, sky) {
         else parts.push([tuft, '#8bca60', [p.x, p.y + .18, p.z]]);
         continue;
       }
-      if (theme === 'snow') { // snow drifts and the odd little fir
+      if (theme === 'snow' || th.season === 'winter') { // snow drifts and the odd little fir (the Meadow in winter too)
         if (r < .6) parts.push([bush, '#ffffff', [p.x, p.y + .05, p.z], [0, i, 0], [1.3, .5, 1.1]]);
         else { parts.push([tuft, '#3f8f5a', [p.x, p.y + .5, p.z], [0, 0, 0], [2.6, 2.6, 2.6]]); parts.push([tuft, '#ffffff', [p.x, p.y + .95, p.z], [0, 0, 0], [1.3, 1.1, 1.3]]); }
         continue;
@@ -208,8 +211,9 @@ function buildDeco(T, sky) {
         else parts.push([tuft, shade(th.patch, .9), [p.x, p.y + .18, p.z]]);
         continue;
       }
-      if (r < .45) parts.push([tuft, '#5fb04a', [p.x, p.y + .18, p.z]]);
-      else if (r < .85) { const cc = ['#ffffff', '#ff9fb8', '#fff1a8', '#d9c8ff'][i % 4]; parts.push([petal, cc, [p.x, p.y + .1, p.z], [0, 0, 0], [1, .5, 1]]); parts.push([tuft, '#6cbf4f', [p.x + .2, p.y + .15, p.z]]); }
+      const tc = th.season ? shade(th.patch, .85) : '#5fb04a', pc = th.season ? th.petals : ['#ffffff', '#ff9fb8', '#fff1a8', '#d9c8ff'];
+      if (r < .45) parts.push([tuft, tc, [p.x, p.y + .18, p.z]]);
+      else if (r < .85) { parts.push([petal, pc[i % pc.length], [p.x, p.y + .1, p.z], [0, 0, 0], [1, .5, 1]]); parts.push([tuft, th.season ? shade(th.patch, .95) : '#6cbf4f', [p.x + .2, p.y + .15, p.z]]); }
       else if (Math.abs(lat) > SHOULDER - 1.2) parts.push([bush, i % 3 ? '#5fb04a' : '#86cc5a', [p.x, p.y + .25, p.z], [0, i, 0], [1, .8, 1]]);
     }
   }
@@ -251,7 +255,7 @@ function buildDeco(T, sky) {
   }
   spots.sort((a, b) => hash(a.i, 5) - hash(b.i, 5));
   for (const s of spots.slice(0, 13)) {
-    const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: th.flowers ? 20 : 0, size: 1.4, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null });
+    const isl = island(s.size, s.size * (.7 + hash(s.i, 6) * .5), { round: hash(s.i, 7) < .5, seed: s.i + 3, props: 8 + (s.size | 0), flowers: th.flowers ? 20 : 0, size: 1.4, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds || null, petals: th.petals || null, season: th.season });
     isl.position.set(s.x, s.y, s.z); isl.rotation.y = hash(s.i, 8) * 6.28; isl.userData.bob = hash(s.i, 9) * 6.28; grp.add(isl);
   }
   return grp;

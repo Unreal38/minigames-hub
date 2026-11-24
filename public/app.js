@@ -1,5 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
+import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
 import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
@@ -20,9 +21,10 @@ import { randomName } from './names.js';
 import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
+import { PEEKS, peekPick, setPeek, setPeekHost } from './seasonpeek.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
 const HOME_TITLE = document.title || SITE; // the full title from index.html (the server swaps in English), kept for the hub tab and search engines
@@ -283,6 +285,7 @@ const GAMES = {
       <li><b>Muddy Puddle</b>, or three doubles in a row, sends you to <b>Bath Time</b>. Roll doubles to hop out, or pay 30. After three tries you pay and go. While you sit in the tub all your pets nap, so you collect no rent.</li>
       <li>Doubles roll again. <b>Nobody is knocked out</b>: if you cannot pay, <b>you pick what to sell</b> back to the bank at half price (an upgrade, or a whole shop with its upgrades). The game waits for you; if the timer runs out, it sells for you, upgrades first. Once nothing is left to sell, anything still missing is let off.</li>
       <li>After the last round, treats in hand plus everything you spent on shops and upgrades are added up. <b>The richest player wins.</b></li>
+      <li>Drag the board to turn it, right-drag (or two fingers) to slide it, and scroll or pinch to zoom. The arrow button brings the usual view back.</li>
       <li>Tap any tile to read about it. Shortcuts: <b>Space</b> rolls, adopts or ends your turn, <b>N</b> says no thanks.</li>
     </ol>`,
   },
@@ -1021,6 +1024,7 @@ function onMsg(m) {
       st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
     }
     st.onMe?.(); emojiPaint();
+    setPeekHost(m.me.admin); // the season preview works for hosts only
     if (!!m.me.admin !== !!st.noticeAdmin) { st.noticeAdmin = !!m.me.admin; send({ t: 'notice' }); } // a host just logged in (or out): with or without the hosts' extras
     if (m.gain) {
       const cg = m.gain.coins | 0;
@@ -1146,7 +1150,10 @@ function mountWithCss(key, mount) {
   if (added.length) gameSheets.set(key, [...(gameSheets.get(key) || []), ...added]);
   // On a slow connection the game paints before its stylesheet arrives, and panels measured then are page wide
   // (the 3D table framed off to the side). When the sheet lands, games measure again as if the window was resized.
-  for (const l of added) l.addEventListener('load', () => dispatchEvent(new Event('resize')), { once: true });
+  // Not once: a sheet switched back on by gameCss (the same game opened again in this visit) is applied a frame
+  // later, not at once, and fires load again then. Without this the second game of a visit opened with the
+  // island pushed off to the left and name tags in mid-air, until something resized the window (Kuba, 2026-11-24).
+  for (const l of added) l.addEventListener('load', () => dispatchEvent(new Event('resize')));
   gameCss(key);
   return r;
 }
@@ -1312,7 +1319,27 @@ function todayHtml() {
     + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins)
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
-function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
+// The season card above Today: which season is on, when it ends and how far along it is, with the way to that season's shop drop.
+// The date is the server's (Warsaw) day when we have it, so it turns over with every other daily thing.
+const SEASON_LOOK = { winter: ['❄️', L('Winter', 'Zima')], spring: ['🌷', L('Spring', 'Wiosna')], summer: ['🌴', L('Summer', 'Lato')], halloween: ['🎃', L('Halloween', 'Halloween')], autumn: ['🍂', L('Autumn', 'Jesień')] };
+const hasDrop = key => Object.values(SEASON).includes(key) || Object.values(COS).some(c => c.items.some(it => it.s === key));
+function seasonHtml() {
+  // The days no shop drop covers (September, 8 to 14 November) are autumn, the same as on the game islands (season3d.js).
+  const now = st.me?.today ? new Date(st.me.today + 'T12:00') : new Date(), s = seasonNow(now), key = s.key || 'autumn', DAY = 864e5;
+  const days = Math.round((s.end - now) / DAY), all = Math.round((s.end - s.start) / DAY) + 1, pc = Math.max(3, Math.min(100, Math.round((all - days) / all * 100))); // days after today
+  const date = d => d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long' }).replace(/ /g, '\u00a0'), /* '28 February' never splits */ dleft = cnt(days, 'day', 'days', 'dzień', 'dni', 'dni');
+  const [ico, name] = SEASON_LOOK[key], then = s.next ? SEASON_LOOK[s.next.key][1] : '';
+  const sub = days < 1 ? `<i class="ok">${s.next ? L(`Last day! ${then} starts tomorrow`, `Ostatni dzień! Jutro: ${then}`) : L('Last day!', 'Ostatni dzień!')}</i>`
+    : s.next ? L(`${then} in ${dleft} · ${date(s.next.start)}`, `${then} za ${dleft} · ${date(s.next.start)}`) : L(`Ends in ${dleft} · ${date(s.end)}`, `Koniec za ${dleft} · ${date(s.end)}`);
+  const shop = s.key && hasDrop(s.key);
+  return `<div class="ttile seasoncard s-${key}">
+  <div class="tpic" aria-hidden="true">${ico}</div>
+  <div class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span>
+    <div class="sbar" role="progressbar" aria-label="${L('How far into the season', 'Postęp sezonu')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div></div>
+  ${shop ? `<button type="button" class="btn sm w" data-act="shop" title="${esc(SEASONS[s.key].name)}">${L('Shop', 'Sklep')}</button>` : ''}
+</div>`;
+}
+function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } }
 setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun || st.me?.next)) paintToday(); }, 60_000); // keeps the countdowns honest
 function openDaily() {
   if (st.daily) return;
@@ -1590,6 +1617,7 @@ function acctHtml() {
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${m?.admin ? item('notices', '📣', L('Site notices', 'Komunikaty strony'), `<small>${L('update countdown, announcements', 'odliczanie, ogłoszenia')}</small>`) : ''}
+      ${m?.admin ? item('season', '❄️', L('Island season', 'Pora roku wysp'), `<small>${peekLabel()}</small>`) : ''}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
       ${item('gfx', '🎮', L('Graphics', 'Grafika'), `<small>${gfxLabel()}</small>`)}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
@@ -1599,6 +1627,9 @@ function acctHtml() {
         : item('account', '✨', L('Create account', 'Załóż konto'), `<small>${L('saves progress', 'zapisuje postępy')}</small>`, ' data-mode="register"') + item('account', '🔑', L('Log in', 'Zaloguj się'), '', ' data-mode="login"')}
     </div>`;
 }
+// Hosts: which season the game islands show on this computer (seasonpeek.js). Auto = today's; players always get today's.
+const PEEK_NAME = { auto: ['auto (today’s)', 'automatyczna (dzisiejsza)'], winter: ['winter', 'zima'], spring: ['spring', 'wiosna'], summer: ['summer', 'lato'], autumn: ['autumn', 'jesień'], halloween: ['Halloween', 'Halloween'] };
+const peekLabel = () => L(...PEEK_NAME[peekPick()]) + ' · ' + L('only you see it', 'widzisz tylko ty');
 // The site-wide graphics level (frames.js): Auto picks by device, Low is lightest, High is the full look.
 const GFX_NEXT = { auto: 'low', low: 'high', high: 'auto' };
 function gfxLabel() {
@@ -1841,6 +1872,7 @@ function renderHub() {
       </section>
     </aside>
     <aside class="hubside right" aria-label="${L('Today and rankings', 'Dziś i rankingi')}">
+      <section id="season" aria-label="${L('Season', 'Sezon')}">${seasonHtml()}</section>
       <section id="today">
         <div class="sidehead"><h2>${L('Today', 'Dziś')}</h2></div>
         <div class="today" id="today-list">${todayHtml()}</div>
@@ -2901,6 +2933,7 @@ $app.addEventListener('click', e => {
   else if (act === 'acct') openAcct();
   else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'gfx') { setGfx(GFX_NEXT[gfxPick()]); const sm = b.querySelector('small'); if (sm) sm.textContent = gfxLabel(); toast(`${L('Graphics', 'Grafika')}: ${esc(gfxLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
+  else if (act === 'season') { const all = ['auto', ...PEEKS]; setPeek(all[(all.indexOf(peekPick()) + 1) % all.length]); const sm = b.querySelector('small'); if (sm) sm.textContent = peekLabel(); toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
   else if (act === 'mystats') openStats();
   else if (act === 'who') openWho();
   else if (act === 'notices') { closeAcct(); openNotices(); }

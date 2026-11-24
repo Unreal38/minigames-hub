@@ -33,7 +33,7 @@ function build() {
     if (airG) { scene.remove(airG); airG.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
     isle = buildIsle(look); world.add(isle.root);
     sky = buildSky(look.ik); scene.add(sky.root); skyNo = look.ik; sky.fit(camera.aspect);
-    airG = new THREE.Group(); scene.add(airG); air = petals(airG, 9, 2.8, isle.air);
+    airG = new THREE.Group(); scene.add(airG); air = petals(airG, 9, 2.8, { ...isle.air, season: null }); // the owner's isle look, not the season
     setNight(night);
   }
 

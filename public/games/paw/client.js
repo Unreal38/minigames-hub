@@ -11,6 +11,7 @@ import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
+  view: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v4.5h4.5"/></svg>',
   sound: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
   mute: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>',
   door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
@@ -34,10 +35,11 @@ export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="pw">
-    <canvas class="g3d" aria-label="${L(`The Pawperty board. Tap a tile to read about it.`, `Plansza Łapolis. Dotknij pola, żeby o nim przeczytać.`)}"></canvas>
+    <canvas class="g3d" aria-label="${L(`The Pawperty board. Tap a tile to read about it, drag to turn the view.`, `Plansza Łapolis. Dotknij pola, żeby o nim przeczytać, przeciągnij, żeby obrócić widok.`)}"></canvas>
     <div class="hud">
       <div class="tl"><span class="chip" id="pw-info"></span></div>
       <div class="tr"><span class="tcode" id="pw-code"></span>
+        <button type="button" class="round" data-a="view" aria-label="${L(`Reset the view`, `Przywróć widok`)}" title="${L(`Reset the view`, `Przywróć widok`)}">${I.view}</button>
         <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L(`Leave table`, `Odejdź od stołu`)}">${I.door}</button></div>
@@ -443,9 +445,10 @@ export function mount(app, ctx) {
   addEventListener('resize', onResize);
   // a tap on the board (not a drag) opens that tile's card
   let down = null;
-  canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+  canvas.addEventListener('pointerdown', e => { down = e.isPrimary ? { x: e.clientX, y: e.clientY, b: e.button } : null; });
   canvas.addEventListener('pointerup', e => {
-    if (!down || !scene || !S || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) return;
+    if (!down || down.b > 0 || !scene || !S || scene.gesture() || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) { down = null; return; }
+    down = null;
     const i = scene.pick(e.clientX, e.clientY);
     if (i >= 0 && i !== pinned) { sfx.click(); pin(i); } else if (pinned >= 0) pin(-1);
   });
@@ -457,6 +460,7 @@ export function mount(app, ctx) {
     else if (a === 'build') go({ t: 'build', i: +b.dataset.i });
     else if (a === 'sell' || a === 'sellup' || a === 'autosell') go({ t: a, i: +b.dataset.i || 0 });
     else if (a === 'unpin') pin(-1);
+    else if (a === 'view') { sfx.click(); scene?.resetView(); }
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }

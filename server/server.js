@@ -64,6 +64,7 @@ import * as notice from './notice.js';
 import * as plaza from './plaza.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
+import { distinctCols, matchColors } from './colors.js';
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -399,6 +400,7 @@ function sendState(r) {
   // A game with several hands (seatWatcher hook) may seat a watcher between hands: they stop watching then.
   if (r.spect.size) for (const seat of r.G.seats) if (seat.id && r.spect.delete(seat.id)) { r.sit.delete(seat.id); sendRoom(r); }
   if (r.G.ph === 'end' && !r.G.scored) scoreGame(r);
+  matchColors(r.G); // a player who joined mid-game may wear a colour someone already has
   const mod = GAMES[r.game];
   for (const t of r.players) {
     const c = clients.get(t); if (!c?.sock) continue;
@@ -481,7 +483,9 @@ function startGame(r) {
     prev = { ...(prev?.game === r.game ? prev : { game: r.game }), wallet: { ...(prev?.game === r.game ? prev.wallet : {}) } };
     for (const c of humans) prev.wallet['h:' + c.id] = store.profileOf(c.token)?.coins || 0;
   }
-  r.G = GAMES[r.game].create(humans.map(c => ({ id: c.id, name: c.name, color: c.color, av: c.av })), r.opts, prev);
+  const cols = distinctCols(humans.map(c => c.color)); // two people in pink: the later one plays in another colour this match
+  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av })), r.opts, prev);
+  matchColors(r.G); // bots, too, keep clear of the people's colours
   sendRoom(r); sendState(r); broadcastRooms();
 }
 

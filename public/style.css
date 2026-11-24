@@ -196,9 +196,13 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 .pills button:not(:disabled):active { transform: scale(.94); }
 .pills button:disabled { cursor: default; }
 .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-family: var(--fd); font-weight: 500; cursor: pointer; }
-.toggle input { appearance: none; width: 58px; height: 34px; border-radius: 999px; background: var(--dash); border: 3px solid var(--ink); position: relative; cursor: pointer; transition: background .2s; flex: none; }
-.toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.toggle input:checked { background: var(--mint); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .toggle input:checked::after { transform: translateX(23px); }
+/* on/off switch: 58x34 track with a 3px border leaves a 52x28 inside; the 22px knob sits 3px in on every side.
+   Pseudo-elements are not matched by the * box-sizing rule, so the knob sets border-box itself (it overflowed by 4px before). */
+.toggle input { appearance: none; -webkit-appearance: none; margin: 0; width: 58px; height: 34px; border-radius: 999px; background: var(--dash); border: 3px solid var(--ink); position: relative; cursor: pointer; transition: background .2s, box-shadow .2s; flex: none; box-shadow: inset 0 2px 0 rgba(0,0,0,.14); }
+.toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); box-shadow: 0 2px 0 rgba(0,0,0,.18); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.toggle input:checked { background: var(--mint); box-shadow: inset 0 2px 0 rgba(0,0,0,.08); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .toggle input:checked::after { transform: translateX(24px); }
+.toggle input:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
+.toggle input:disabled { cursor: default; opacity: .6; } .toggle:has(input:disabled) { cursor: default; }
 .howto { background: var(--plum); border-radius: 16px; padding: 16px; font-size: 15px; color: var(--soft); }
 .howto b { font-family: var(--fd); font-weight: 600; color: var(--lantern); }
 
@@ -716,7 +720,7 @@ body.sky:not(.in-game) .seat.open { border-color: #ffffffcc; background: var(--g
 body.sky:not(.in-game) .seat.open b { color: var(--tx); }
 body.sky:not(.in-game) .pills button { color: var(--tx); border-color: var(--edge); background: var(--chip); }
 body.sky:not(.in-game) .pills button[aria-pressed=true] { border-color: var(--tx); background: var(--lantern); box-shadow: 0 3px 0 var(--ink); }
-body.sky:not(.in-game) .toggle input { background: var(--edge); }
+body.sky:not(.in-game) .toggle input:not(:checked) { background: var(--edge); } /* on stays mint, so on and off never look alike */
 body.sky:not(.in-game) .howto { background: var(--pan2); color: var(--tx); border: 2px solid var(--edge); }
 body.sky:not(.in-game) .howto b { color: #d9532f; }
 /* pop-ups, toasts and chat: cream stickers with ink shadows on a soft blue veil */
@@ -1273,6 +1277,18 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .hubside .rk .pos { font-size: 16px; } .hubside .rk .main { font-size: 16px; align-self: center; }
 .hubside .rk .sub { justify-self: start; font-size: 12px; white-space: normal; }
 
+/* the season card above Today: season, days left and a progress bar */
+#season { margin-bottom: 14px; }
+.seasoncard .tpic { font-size: 30px; line-height: 1; }
+.seasoncard.s-winter .tpic { background: linear-gradient(160deg, #e8f6ff, #b9dcff); } .seasoncard.s-spring .tpic { background: linear-gradient(160deg, #ffe3ef, #d6f5c4); }
+.seasoncard.s-summer .tpic { background: linear-gradient(160deg, #fff1b8, #a8e0f5); } .seasoncard.s-halloween .tpic { background: linear-gradient(160deg, #ffd9a8, #d9c2ff); }
+.seasoncard.s-autumn .tpic { background: linear-gradient(160deg, #ffe2b0, #f5b98a); }
+.seasoncard .sbar { margin-top: 7px; height: 12px; border: 2px solid var(--ink); border-radius: 99px; background: var(--card); overflow: hidden; }
+.seasoncard .sbar i { display: block; height: 100%; border-radius: 99px; background: var(--sfill); border-right: 2px solid var(--ink); box-sizing: border-box; }
+.seasoncard { --sfill: linear-gradient(90deg, #8fd3ff, #c9ecff); }
+.seasoncard.s-spring { --sfill: linear-gradient(90deg, #7fd49a, #ffb3d1); } .seasoncard.s-summer { --sfill: linear-gradient(90deg, #ffc94a, #ffe58a); }
+.seasoncard.s-halloween { --sfill: linear-gradient(90deg, #ff9a3c, #b48cff); } .seasoncard.s-autumn { --sfill: linear-gradient(90deg, #e0813a, #ffc46b); }
+
 /* the phone tab bar */
 .hubtabs { display: none; }
 
@@ -1295,7 +1311,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 }
 @media (max-width: 1099px) {
   .wrap.hubgrid { padding-bottom: 96px; }
-  .hubgrid:not([data-tab=games]) > .hero, .hubgrid:not([data-tab=games]) > .hubmid, .hubgrid:not([data-tab=games]) #today { display: none; }
+  .hubgrid:not([data-tab=games]) > .hero, .hubgrid:not([data-tab=games]) > .hubmid, .hubgrid:not([data-tab=games]) #today, .hubgrid:not([data-tab=games]) #season { display: none; }
   .hubgrid:not([data-tab=tables]) #tables, .hubgrid:not([data-tab=chat]) #hubchat, .hubgrid:not([data-tab=rank]) #rankings { display: none; }
   .hubgrid[data-tab=games] > .hubside.left, .hubgrid[data-tab=tables] > .hubside.right, .hubgrid[data-tab=chat] > .hubside.right, .hubgrid[data-tab=rank] > .hubside.left { display: none; }
   .hubgrid:not([data-tab=games]) > .hubside { padding-top: 18px; }

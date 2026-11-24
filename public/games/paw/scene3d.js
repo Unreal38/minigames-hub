@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, HEART, nightScene, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { petModel } from '../farm/pets3d.js';
@@ -93,6 +94,7 @@ const UP = [null, [0, 0, 0], [0, 0, Math.PI / 2], [-Math.PI / 2, 0, 0], [Math.PI
 // A Pet Farm pet is dozens of little meshes. Here up to 18 stand on the board at once, so each one is merged
 // into a single vertex-coloured mesh (plus its outline and any glowing or see-through bits).
 const _m4 = new THREE.Matrix4(), _inv = new THREE.Matrix4(), _n3 = new THREE.Matrix3(), _v = new THREE.Vector3();
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const VC = () => toonMat(new THREE.MeshStandardMaterial({ vertexColors: true }));
 function squash(root) {
   root.updateWorldMatrix(true, true); _inv.copy(root.matrixWorld).invert();
@@ -354,10 +356,62 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
       if (fy - ty <= bottom - top && rx - lx <= w - hudLeft - 8) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
+    _v.copy(camBase).sub(camLook); baseDist = _v.length(); baseEl = Math.asin(_v.y / baseDist);
     scene.fog.near = hi + 30; scene.fog.far = hi + 170;
     const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
     camera.setViewOffset(w, h, -hudLeft / 2, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
   }
+
+  // ---------- camera: drag to turn it all the way round, right-drag / Shift-drag / two fingers to slide, scroll or pinch to zoom ----------
+  // Only the player's own hands move it: UI presses never touch orb, and the fitted view (resize) is the one the
+  // reset button goes back to.
+  let baseDist = 30, baseEl = .88;
+  const orb = { yaw: 0, el: 0, zoom: 1, px: 0, pz: 0, tyaw: 0, tel: 0, tzoom: 1, tpx: 0, tpz: 0 };
+  const ZMIN = .42, ZMAX = 1.3, PAN = HALF * .85, ptrs = new Map();
+  let mode = '', last = null, pinch = 0;
+  const clampPan = () => { const d = Math.hypot(orb.tpx, orb.tpz); if (d > PAN) { orb.tpx *= PAN / d; orb.tpz *= PAN / d; } };
+  const turn = (dx, dy) => { orb.tyaw -= dx * .0065; orb.tel = clamp(orb.tel + dy * .005, .35 - baseEl, 1.42 - baseEl); };
+  function slide(dx, dy) { // the board follows the finger: move the look point the other way, in the camera's ground frame
+    const k = baseDist * orb.zoom * 1.15 / Math.max(300, H), c = Math.cos(orb.yaw), s = Math.sin(orb.yaw);
+    orb.tpx -= (dx * c + dy * s) * k; orb.tpz -= (-dx * s + dy * c) * k; clampPan();
+  }
+  function cDown(e) {
+    // stop the browser's own drag (Firefox drags the canvas as a picture, or starts a page selection)
+    e.preventDefault(); getSelection?.()?.removeAllRanges?.();
+    canvas.setPointerCapture?.(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size >= 2) { const [a, b] = [...ptrs.values()]; mode = 'pinch'; pinch = Math.hypot(a.x - b.x, a.y - b.y); last = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; return; }
+    mode = e.button === 2 || e.button === 1 || e.shiftKey ? 'pan' : 'turn'; last = { x: e.clientX, y: e.clientY };
+    canvas.style.cursor = 'grabbing';
+  }
+  function cMove(e) {
+    const pt = ptrs.get(e.pointerId); if (!pt) return;
+    pt.x = e.clientX; pt.y = e.clientY;
+    if (mode === 'pinch' && ptrs.size >= 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      orb.tzoom = clamp(orb.tzoom * pinch / Math.max(1, d), ZMIN, ZMAX); pinch = d;
+      slide(mx - last.x, my - last.y); last = { x: mx, y: my }; return;
+    }
+    const dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY };
+    if (mode === 'turn') turn(dx, dy); else if (mode === 'pan') slide(dx, dy);
+  }
+  function cUp(e) {
+    ptrs.delete(e.pointerId);
+    if (!ptrs.size) { mode = ''; canvas.style.cursor = ''; }
+    else if (mode === 'pinch') { mode = 'turn'; const a = [...ptrs.values()][0]; last = { x: a.x, y: a.y }; }
+  }
+  function cWheel(e) { e.preventDefault(); if (!e.deltaY) return; orb.tzoom = clamp(orb.tzoom * (1 + Math.sign(e.deltaY) * Math.min(.18, .09 * Math.max(1, Math.abs(e.deltaY) / 100))), ZMIN, ZMAX); }
+  const noDrag = e => e.preventDefault(); canvas.draggable = false;
+  canvas.addEventListener('dragstart', noDrag); canvas.addEventListener('selectstart', noDrag); canvas.addEventListener('contextmenu', noDrag);
+  canvas.addEventListener('pointerdown', cDown); canvas.addEventListener('pointermove', cMove);
+  canvas.addEventListener('pointerup', cUp); canvas.addEventListener('pointercancel', cUp); canvas.addEventListener('wheel', cWheel, { passive: false });
+  function placeOrbit(dt) {
+    const k = Math.min(1, dt * 12);
+    for (const n of ['yaw', 'el', 'zoom', 'px', 'pz']) orb[n] += (orb['t' + n] - orb[n]) * k;
+    const d = baseDist * orb.zoom, el = baseEl + orb.el;
+    camBase.set(camLook.x + orb.px + Math.sin(orb.yaw) * Math.cos(el) * d, camLook.y + Math.sin(el) * d, camLook.z + orb.pz + Math.cos(orb.yaw) * Math.cos(el) * d);
+    camAim.set(camLook.x + orb.px, camLook.y, camLook.z + orb.pz);
+  }
+  const camAim = new THREE.Vector3();
 
   // tap a tile to read about it
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
@@ -467,8 +521,9 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
     if (S?.seats.some(p => p.inBath) && Math.random() < dt * 5) pfx.rise(tv.copy(TUB).setY(.7).add(pa.set(Math.random() - .5, 0, Math.random() - .5)), { color: ['#ffffff', '#cdeeff'], size: .2, life: 1.2, speed: .9, wobble: .5, shape: DOT, grow: .6 });
 
     cloudRing.rotation.y = T * .005; flyBirds(T); drift(T);
+    placeOrbit(dt);
     camera.position.set(camBase.x + (reduced ? 0 : Math.sin(T * .2) * .25), camBase.y + (reduced ? 0 : Math.sin(T * .33) * .08), camBase.z);
-    camera.lookAt(camLook); if (!reduced) shake.apply(camera, dt);
+    camera.lookAt(camAim); if (!reduced) shake.apply(camera, dt);
     pfx.update(dt, camera, H);
     renderer.render(scene, camera);
     onFrame?.(info);
@@ -477,13 +532,19 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
 
   return {
     setState, effect, pick,
+    // ease back to the fitted view, turning the short way round
+    resetView() { orb.yaw -= Math.round(orb.yaw / (Math.PI * 2)) * Math.PI * 2; Object.assign(orb, { tyaw: 0, tel: 0, tzoom: 1, tpx: 0, tpz: 0 }); },
+    gesture: () => ptrs.size > 1 || mode === 'pinch',
     pin(i) { pinned = i; setMark(i >= 0 ? i : (S?.offer ?? -1)); },
     tileXY(i) { tv.copy(CEN[i]).setY(.6); const [x, y] = toPx(tv); return { x, y }; },
     stats: () => { const n = o => { let k = 0; o.traverse(m => { if (m.isMesh && m.visible && m.geometry.attributes.position) k++; }); return k; };
       return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: ticker.fps(), toks: toks.reduce((a, t) => a + n(t.g), 0), pets: [...shops.values()].reduce((a, x) => a + n(x.hold), 0), land: n(land), room: n(room) }; },
-    setHud(bottom, left = 0, top = 110) { if (Math.abs(bottom - hudBottom) > 6 || left !== hudLeft || top !== hudTop) { hudBottom = bottom; hudLeft = left; hudTop = top; resize(true); } },
+    setHud(bottom, left = 0, top = 110) { if ((Math.abs(bottom - hudBottom) > 6 || left !== hudLeft || top !== hudTop) && hudFitOk(canvas)) { hudBottom = bottom; hudLeft = left; hudTop = top; resize(true); } },
     dispose() {
-      dead = true; ticker.stop(); clearTimeout(thumbTimer);
+      dead = true; ticker.stop();
+      canvas.removeEventListener('dragstart', noDrag); canvas.removeEventListener('selectstart', noDrag); canvas.removeEventListener('contextmenu', noDrag);
+      canvas.removeEventListener('pointerdown', cDown); canvas.removeEventListener('pointermove', cMove);
+      canvas.removeEventListener('pointerup', cUp); canvas.removeEventListener('pointercancel', cUp); canvas.removeEventListener('wheel', cWheel); clearTimeout(thumbTimer);
       for (const t of toks) { disposeAvatar(t.av); t.ring.material.dispose(); }
       for (const s of shops.values()) { if (s.pet) freePet(s.pet); s.frame.material.dispose(); if (s.prop) disposeToon(s.prop); }
       disposeArrow(arrow); disposeToon(crateProto); disposeToon(deco); disposeToon(land);

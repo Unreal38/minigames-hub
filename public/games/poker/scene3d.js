@@ -7,6 +7,7 @@ import { SUIT_COLS, SUIT_PATHS, CLUB_DOTS } from './cards.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, createFx, shaker, STAR, DOT, HEART } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 import { siteLogo } from '../../art.js';
 
 const INK = '#3b2219';
@@ -468,8 +469,8 @@ export function createScene(canvas, { onFrame } = {}) {
     hop(i) { if (seats[i]) seats[i].hop = 1; },
     nod(i) { if (seats[i]) seats[i].nod = 1; },
     sparkleAt(i, col) { const s = seats[i]; if (s) sparkle(s.av.position.clone().add(new THREE.Vector3(0, 2.2, 0)), col); },
-    setInset(px) { if (px !== hudLeft) { hudLeft = px; resize(true); } }, // the open hand-rankings panel on the left
-    setHud(px) { if (px !== hudBottom) { hudBottom = px; resize(true); } },
+    setInset(px) { if ((px !== hudLeft) && hudFitOk(canvas)) { hudLeft = px; resize(true); } }, // the open hand-rankings panel on the left
+    setHud(px) { if ((px !== hudBottom) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) disposeAvatar(s.av);
