@@ -462,8 +462,10 @@ body.night .pf { --fav: #f06d93; --fav-edge: #f06d93; }
 .pf .lodgep .ldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; margin: 8px 0; }
 .pf .lodgep .ldcell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; border-radius: 14px; border: 3px solid var(--card-edge); background: var(--pf-chip, var(--card)); color: var(--pf-tx, var(--ink)); cursor: pointer; min-width: 0; text-align: center; }
 .pf .lodgep .ldcell img, .pf .lodgep .ldcell .thumb { width: 56px; height: 56px; }
-.pf .lodgep .ldcell b { font-size: 14px; max-width: 100%; overflow-wrap: anywhere; line-height: 1.15; }
-.pf .lodgep .ldcell small { font-size: 12px; opacity: .8; max-width: 100%; overflow-wrap: anywhere; }
+.pf .lodgep .ldcell b { font-size: 14px; max-width: 100%; line-height: 1.15; text-wrap: balance; }
+.pf .lodgep .ldcell small { font-size: 12px; opacity: .8; max-width: 100%; text-wrap: balance; }
+.pf .lodgep .ldwrap { position: relative; display: grid; }
+.pf .lodgep .ldinfo { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); font-family: Georgia, serif; font-style: italic; font-weight: 700; font-size: 15px; line-height: 1; padding: 0; cursor: pointer; display: grid; place-items: center; }
 .pf .lodgep .ldcell.on { border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent, #ffc94d) inset; }
 .pf .lodgep .ldacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pf .lodgep .ldpages { justify-content: center; align-items: center; gap: 10px; }
