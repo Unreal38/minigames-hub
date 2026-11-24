@@ -430,6 +430,8 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
     // the aim as whole numbers, the way the server wants it
     aimInts: () => [Math.round(Math.cos(aim.ang) * 1e6), Math.round(Math.sin(aim.ang) * 1e6)],
     mood(i, good) { const p = players[i]; if (p) { p.mood = good ? 1 : -1; p.moodT = 1.6; if (good) p.hop = 1; } },
+    // a winner's shower over their head, in their own win effect from the Wardrobe
+    cheer(i) { const p = players[i]; if (p && !reduced) fx.confetti(p.wrap.position.clone().setY(p.wrap.position.y + 1.6 * AVS + .6), { n: 60, w: 2.6, h: 2, s: i }); },
     dispose() {
       dead = true; ticker.stop();
       canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move);

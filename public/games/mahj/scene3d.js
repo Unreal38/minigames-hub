@@ -312,7 +312,8 @@ export function createScene(canvas) {
     setHover(i) { hover = i; }, setPicked(i) { picked = i; }, hint(m) { hintAt = m; },
     bad(i) { if (sp[i]) sp[i].shake = 1; },
     hop(k) { if (avs[k]) avs[k].hop = 1; },
-    cheer(k = 0, big = true) { const a = avs[k]; if (!a) return; a.hop = 1; if (big) { for (const o of avs) o.cheer = o === a; cheerT = 3; pfx.confetti(new THREE.Vector3(0, 1.5, B.position.z), { n: small ? 60 : 110, w: Math.max(6, W), h: 5, s: 'me' }); } },
+    // who: the seat whose win effect rains down ('me' in the solo game)
+    cheer(k = 0, big = true, who = k) { const a = avs[k]; if (!a) return; a.hop = 1; if (big) { for (const o of avs) o.cheer = o === a; cheerT = 3; pfx.confetti(new THREE.Vector3(0, 1.5, B.position.z), { n: small ? 60 : 110, w: Math.max(6, W), h: 5, s: who }); } },
     oops(k = 0) { if (avs[k]) avs[k].sad = 1; },
     setHud(bottom, top = hudTop) { if (Math.abs(bottom - hudBottom) > 6 || top !== hudTop) { hudBottom = bottom; hudTop = top; resize(); } },
     tilePx: () => { const a = tileScreen(0), z = lay && lay.n > 1 ? tileScreen(1) : null; return a && z ? Math.hypot(z.x - a.x, z.y - a.y) : 0; },

@@ -1,6 +1,6 @@
 // Sky Darts game view: HUD over the 3D board. Renders what the server says; turns your pointer into an aim,
 // a hold into a steady hand, and letting go into a throw.
-import { myBurst } from '../../winfx.js';
+import { myBurst, seatBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
@@ -126,7 +126,7 @@ export function mount(app, ctx) {
     floatAt(c.sx, c.sy - 26, c.lab === 'Miss' ? L('Miss', 'Pudło') : c.lab, c.bust ? 'bad' : c.m === 3 ? 't' : c.m === 2 ? 'd' : c.v ? '' : 'bad');
     if (c.out) { sfx.win(); big(mine ? L('Game shot!', 'Zwycięski rzut!') : L('Checkout!', 'Zakończenie!'), L(`${who} finish${mine ? '' : 'es'} from ${c.got}`, mine ? `Kończysz z ${c.got}` : `${who} kończy z ${c.got}`), 2400); if (mine) confetti(); }
     else if (c.bust) { sfx.bad(); big(L('Bust!', 'Fura!'), L(`${bustWhy(c)} ${mine ? 'You go' : who + ' goes'} back to ${S.seats[c.s].rem}.`, `${bustWhy(c)} ${mine ? 'Wracasz' : who + ' wraca'} do ${S.seats[c.s].rem}.`), 3000); }
-    else if (c.fin && c.got === 180) { sfx.win(); big('180!', L(`${who} hit${mine ? '' : 's'} the maximum`, mine ? 'Trafiasz maksimum' : `${who} trafia maksimum`), 2000); if (mine || !scene) confetti(mine); }
+    else if (c.fin && c.got === 180) { sfx.win(); big('180!', L(`${who} hit${mine ? '' : 's'} the maximum`, mine ? 'Trafiasz maksimum' : `${who} trafia maksimum`), 2000); if (mine) confetti(); else if (!scene && !seatBurst(c.s)) confetti(false); }
     else if (c.num === 25 && c.m === 2) { sfx.set(); big(L('Bullseye!', 'W dziesiątkę!'), '', 1100); }
     else if (c.fin && c.got >= 100) { sfx.set(); big(L('Ton!', 'Setka!'), L(`${who} score${mine ? '' : 's'} ${c.got}`, mine ? `Zdobywasz ${c.got}` : `${who} zdobywa ${c.got}`), 1300); }
     else if (c.m === 3 && c.num >= 17) sfx.set();

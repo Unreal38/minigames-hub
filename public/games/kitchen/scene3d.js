@@ -224,7 +224,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
     else if (e.t === 'burn' && e.key) { fx.puff(spot(e.key), { n: 14, color: ['#5b5560', '#7d7783'], size: .4, speed: .8, life: 1.2 }); shake.kick(.25); }
     else if (e.t === 'bin') { const p = people[e.s]; if (p) fx.puff(p.g.position.clone().setY(.5), { n: 6, color: '#cfc7c0', size: .2 }); }
     else if (e.t === 'miss') shake.kick(.4);
-    else if (e.t === 'end') fx.confetti(W(OX, OZ, 0), { n: 120, w: 10, h: 5 });
+    else if (e.t === 'end') fx.confetti(W(OX, OZ, 0), { n: 120, w: 10, h: 5, s: 'me' }); // a team win: each viewer's own effect
   }
 
   // ---------- frame loop ----------

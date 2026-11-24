@@ -281,7 +281,8 @@ export function createScene(canvas, { onFrame } = {}) {
       mv = st.mv; launch(st.last); landing = st.last; landAt = T + FLY; S = st;
     } else { S = st; if (!landAt) show(st, false); }
     bays.forEach((B, i) => { B.active = st.stage === 'play' && st.turn === i; B.aim = st.stage === 'play' && st.turn === 1 - i && st.turn === st.me ? 1 : 0; });
-    if (st.ph === 'end' && st.win >= 0 && bays[st.win]) bays[st.win].cheer = true;
+    if (st.ph === 'end' && st.win >= 0 && bays[st.win]) { const B = bays[st.win]; // the winner's own win effect over their island (the viewer's own is the client's full-screen one)
+      if (!B.cheer && !fresh && st.win !== me && !reduced) pfx.confetti(avWorld(st.win, 2.6), { n: 70, w: 3 * B.g.scale.x, h: 2.2 * B.g.scale.x, s: st.win }); B.cheer = true; }
   }
   const nuts = Array.from({ length: 3 }, () => { const m = put(G.nut, nutMat); m.visible = false; return m; });
   function launch(L) {

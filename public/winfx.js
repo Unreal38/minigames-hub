@@ -24,9 +24,13 @@ export const setMyFx = k => { myFx = KINDS[k] ? k : 0; };
 export const fxOf = s => s === 'me' ? myFx : KINDS[seatFx[s]] ? seatFx[s] : 0;
 // The player's own win effect as a short, lighter burst, in place of a game's plain confetti. False if they have none
 // on (the game then draws its own confetti).
-export function myBurst() {
-  if (!myFx) return false;
-  if (!live || live.light) playWinFx(myFx, { ms: 2300, light: true });
+export function myBurst() { return burst(myFx); }
+// The same for someone else's good moment (a seat number): their win effect, so a player who wears snowflakes never
+// gets plain confetti on anyone's screen. False if they have none on.
+export const seatBurst = s => burst(fxOf(s));
+function burst(k) {
+  if (!k) return false;
+  if (!live || live.light) playWinFx(k, { ms: 2300, light: true });
   return true;
 }
 // Every particle is drawn from a small picture made once (an emoji, a coin, a confetti strip), because drawing emoji
