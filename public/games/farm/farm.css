@@ -376,19 +376,24 @@ body.night .pf .wxrow.on, body.night .pf .formrow button.chip.on, body.night .pf
 .pf .pfsort .pills button { color: var(--pf-tx, var(--ink)); border-color: var(--card-edge); min-height: 36px; padding: 3px 12px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
 .pf .pfsort .pills button[aria-pressed=true] { border-color: var(--ink); }
 .pf .pfsort .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); border: 1.5px solid var(--ink); }
-.pf .petlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
-.pf .petrow { font: inherit; color: var(--pf-tx, var(--ink)); background: var(--pf-chip, var(--card)); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 var(--ink); padding: 6px 10px 6px 6px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; min-width: 0; }
+.pf .petlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); grid-auto-rows: 1fr; gap: 8px; }
+/* every card has the same shape and the rows the same height: the picture carries a level badge, name / species+stage / chips sit on one line each, the status gets at most two */
+.pf .petrow { font: inherit; color: var(--pf-tx, var(--ink)); background: var(--pf-chip, var(--card)); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 var(--ink); padding: 6px 10px 6px 6px; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer; min-width: 0; height: 100%; min-height: 96px; }
 .pf .petrow:hover { transform: translateY(-1px); } .pf .petrow:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.pf .petrow .prpic { position: relative; flex: none; display: grid; justify-items: center; padding-bottom: 8px; }
 .pf .petrow img, .pf .petrow .nothumb { flex: none; width: 56px; height: 56px; }
+.pf .petrow .prlv { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); white-space: nowrap; font-family: var(--fd); font-weight: 700; font-size: 11.5px; line-height: 1; padding: 3px 7px; border-radius: 999px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 2px solid var(--ink); }
 .pf .petrow.away img { filter: saturate(.5) opacity(.75); }
-.pf .petrow .pr { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pf .petrow b { font-family: var(--fd); font-weight: 600; font-size: 17px; line-height: 1.15; }
+.pf .petrow .pr { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.pf .petrow b, .pf .petrow small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pf .petrow b { font-family: var(--fd); font-weight: 600; font-size: 17px; line-height: 1.2; }
 .pf .petrow small { font-size: 13px; color: var(--pf-muted, #6b4a3c); line-height: 1.25; }
-.pf .petrow .prtags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.pf .petrow em { font-style: normal; font-size: 12.5px; line-height: 1.25; color: var(--pf-muted, #6b4a3c); }
+.pf .petrow .prtags { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; min-width: 0; }
+.pf .petrow .prtags .el { font-size: 12px; padding: 1px 8px; white-space: nowrap; }
+.pf .petrow em { font-style: normal; font-size: 12.5px; line-height: 1.25; color: var(--pf-muted, #6b4a3c); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; text-wrap: pretty; }
 .pf .petrow em.out { color: #2f6db0; } .pf .petrow em.back { color: #2f7a3c; font-weight: 700; } .pf .petrow em.job { color: #8a5a12; }
 body.night .pf .petrow em.out { color: #9cc8ff; } body.night .pf .petrow em.back { color: #8fe3b0; } body.night .pf .petrow em.job { color: #ffd38a; }
-@media (max-width: 640px) { .pf .petlist { grid-template-columns: 1fr; gap: 6px; } .pf .petrow img, .pf .petrow .nothumb { width: 48px; height: 48px; } .pf .pfsort .pills button { min-height: 34px; padding: 2px 10px; } }
+@media (max-width: 640px) { .pf .petlist { grid-template-columns: 1fr; grid-auto-rows: auto; gap: 6px; } .pf .petrow { min-height: 84px; } .pf .petrow img, .pf .petrow .nothumb { width: 48px; height: 48px; } .pf .pfsort .pills button { min-height: 34px; padding: 2px 10px; } }
 /* Workshop swaps: pick what you give and what you get, see the deal, press Swap */
 .pf .swapp h3 { margin: 0 0 6px; font-size: 17px; }
 .pf .swpicks { display: grid; gap: 12px; }
@@ -452,7 +457,7 @@ body.night .pf .swflip:not(:disabled), body.night .pf .swflip:not(:disabled) * {
 @media (prefers-reduced-motion: reduce) { .pf .pfheart[aria-pressed=true] { animation: none; } }
 .pf .petcell { position: relative; display: grid; min-width: 0; }
 .pf .petcell .petrow { padding-right: 52px; }
-.pf .petcell .pfheart { position: absolute; right: 8px; top: 50%; margin-top: -19px; }
+.pf .petcell .pfheart { position: absolute; right: 9px; top: 50%; margin-top: 2px; width: 34px; height: 34px; }
 .pf .petcell .pfheart:hover { transform: scale(1.08); } .pf .petcell .pfheart:active { transform: translateY(2px); }
 .pf .petrow.fav { border-color: var(--fav-edge, #c23a63); }
 .pf h2.pfname { display: flex; align-items: center; gap: 10px; }
@@ -475,8 +480,9 @@ body.night .pf { --fav: #f06d93; --fav-edge: #f06d93; }
 .pf .pfiw { position: relative; display: grid; flex: none; min-width: 0; }
 .pf .party .pfiw > .pickpet { width: 112px; }
 @media (min-width: 641px) { .pf .party .pfiw > .pickpet { width: auto; } .pf .party .pfiw { flex: initial; } }
-.pf .pfiw.row { display: block; } .pf .pfiw.row > .petrow { width: 100%; padding-right: 92px; }
-.pf .pfiw.row .pfinfo { top: 50%; right: 54px; margin-top: -14px; }
+.pf .pfiw.row { display: block; } .pf .pfiw.row > .petrow { width: 100%; padding-right: 52px; }
+/* My pets: the "i" sits above the heart in one column on the card's right edge, clear of the text */
+.pf .pfiw.row .pfinfo { top: 50%; right: 12px; margin-top: -32px; }
 @media (hover: hover) { .pf .lodgep .ldinfo:hover, .pf .pfinfo:hover { background: var(--lantern); } }
 .pf .lodgep .ldcell.on { border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent, #ffc94d) inset; }
 .pf .lodgep .ldacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
