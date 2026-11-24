@@ -207,6 +207,11 @@ export const UPGRADES = {
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
   nest:   { what: ['A second egg slot', 'A third egg slot, and eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
   yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
+  // Decorations that can be improved: pets stay on them longer and do more there (ROUTES in models.js has the moves).
+  // does: what pets do on it at each level, shown on its card.
+  tower:  { what: ['Pets stay twice as long: they scratch the post, bat a toy mouse and nap in a basket bed', 'Pets stay three times as long: a hammock, a basket shelf and a hideout on top to peek out of'],
+    does: ['Pets climb to the top and look around.', 'Pets scratch the post, bat the toy mouse and nap in the basket on top.', 'Pets scratch, bat the mouse, rock in the hammock, wash in the basket and peek out of the hideout.'],
+    cost: [{ wood: 20, fiber: 15, shells: 4 }, { wood: 40, fiber: 30, shells: 8, coal: 4 }] },
 };
 export const lvOf = item => Math.min(UP_MAX, Math.max(1, item?.lv | 0 || 1));
 export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none

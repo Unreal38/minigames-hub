@@ -736,7 +736,7 @@ export function mount(app, ctx) {
     } else {
       const item = F.items.find(x => x.id === card.item), it = item && ITEMS[item.type]; if (!it) { card = null; el.hidden = true; return; }
       let more = '', name = it.name, up = '';
-      if (UPGRADES[item.type]) { // buildings that can be improved
+      if (UPGRADES[item.type]) { // buildings and decorations that can be improved
         const lv = lvOf(item), cost = upCost(item);
         name += L(` · Level ${lv}`, ` · Poziom ${lv}`);
         up = lv >= UP_MAX ? '' : F.house < lv + 1 ? `<p class="hint">${L(`Level ${lv + 1} needs a level ${lv + 1} farmhouse.`, `Poziom ${lv + 1} wymaga domu na poziomie ${lv + 1}.`)}</p>`
@@ -761,6 +761,7 @@ export function mount(app, ctx) {
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
       else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="swapopen">' + L('Swap materials', 'Wymień materiały') + '</button>';
       else if (item.type === 'hut') more = `<p class="hint">${L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}</p>`;
+      if (UPGRADES[item.type]?.does) more += `<p class="hint">${UPGRADES[item.type].does[lvOf(item) - 1]}</p>`; // an improvable decoration says what pets do on it
       if (WORK[item.type]) more += helpRow(item.type);
       more += boostRow(item.type);
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
