@@ -30,6 +30,7 @@ export const OPT_PL = {
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
+  Clock: 'Zegar', 'No clock': 'Bez zegara', '3 min + 2s': '3 min + 2 s', '5 min + 3s': '5 min + 3 s', '10 min + 5s': '10 min + 5 s', '15 min + 10s': '15 min + 10 s', Bot: 'Bot', Beginner: 'Początkujący', Club: 'Klubowy', Strong: 'Mocny',
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
@@ -344,6 +345,25 @@ export const GAMES_PL = {
       <li>W klasycznej grze są <b>trzy nagrody</b> na tych samych kartach: <b>jedna linia</b> (10 punktów), potem <b>dwie linie</b> (20), a na koniec <b>cała karta</b> (40). Szybka gra kończy się po pierwszej linii.</li>
       <li><b>Wygrywa najwięcej punktów.</b> Przy równej liczbie punktów wyżej jest ten, komu mniej brakuje do całej karty.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie zaznaczy ani jednej liczby, nie dostaje monet.</li>
+    </ol>`,
+  },
+  chess: {
+    name: 'Szachy', start: 'Zacznij partię', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Klasyczne szachy z klockowymi figurami na podniebnej wyspie. Zagraj ze znajomym albo z botem, z zegarem albo bez.',
+    howto: `Klasyczne szachy dla dwóch osób. Dotknij swojej figury, żeby zobaczyć, dokąd może pójść, a potem dotknij pola, na które ma się ruszyć. Wygrywasz, gdy złapiesz króla przeciwnika tak, że nie ma ucieczki: to szach-mat.`,
+    rules: `<ol>
+      <li><b>Dwóch graczy</b>: białe i czarne. Zaczynają białe. Kolory są losowane, a w rewanżu gracze zamieniają się kolorami. Wolne miejsce zajmuje bot (początkujący, klubowy albo mocny: wybierz w ustawieniach stołu).</li>
+      <li><b>Dotknij figury</b>, żeby zobaczyć jej ruchy: kropki to wolne pola, czerwone obwódki to figury, które możesz zbić. Dotknij jednego z tych pól, żeby wykonać ruch. Działają też strzałki i Enter.</li>
+      <li><b>Jak chodzą figury.</b> Wieża: po liniach prostych. Goniec: po skosie. Hetman: tak jak wieża i goniec. Skoczek: w kształcie litery L i przeskakuje nad figurami. Król: o jedno pole w dowolną stronę. Pion: o jedno pole do przodu (z pola startowego może o dwa), a bije o jedno pole po skosie do przodu.</li>
+      <li><b>Szach</b> oznacza, że twój król jest atakowany: musisz go obronić. Nie wolno wykonać ruchu, po którym twój własny król byłby atakowany. Szachowany król świeci na czerwono.</li>
+      <li><b>Szach-mat</b> (król jest szachowany i nic go nie ratuje) kończy partię wygraną.</li>
+      <li><b>Roszada</b>: raz w partii, jeśli król i wieża jeszcze się nie ruszały, pola między nimi są puste, a król nie jest szachowany i nie przechodzi przez atakowane pole ani na nim nie staje, przesuń króla <b>o dwa pola w stronę wieży</b>, a wieża przeskoczy na jego drugą stronę.</li>
+      <li><b>Bicie w przelocie</b>: gdy pion rusza się o dwa pola i staje obok twojego piona, możesz go zbić w następnym ruchu tak, jakby przesunął się tylko o jedno pole.</li>
+      <li><b>Promocja</b>: pion, który dojdzie do ostatniej linii, zamienia się w hetmana, wieżę, gońca albo skoczka (wybierasz).</li>
+      <li>Partia kończy się <b>remisem</b>, gdy gracz, na którego przypada ruch, nie ma żadnego dozwolonego ruchu, a jego król nie jest szachowany (pat), gdy ta sama pozycja powtórzy się trzy razy, po 50 ruchach każdej ze stron bez bicia i bez ruchu pionem, gdy żadna strona nie ma już czym dać mata albo gdy obie strony zgodzą się na remis (przycisk „Zaproponuj remis”).</li>
+      <li><b>Zegar</b> (ustawienia stołu): każdy gracz ma własny czas, a po każdym ruchu dostaje kilka sekund więcej. Gdy czas się skończy, przegrywasz, chyba że przeciwnik ma samego króla albo króla i tylko jednego skoczka lub gońca: wtedy jest remis. Bez zegara możesz myśleć tak długo, jak chcesz.</li>
+      <li>W każdej chwili możesz <b>poddać partię</b>: dotknij dwa razy przycisku „Poddaj partię”.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce. Przy remisie obie strony dzielą pierwsze miejsce.</li>
     </ol>`,
   },
   ttt: {

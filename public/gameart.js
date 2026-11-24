@@ -1,6 +1,7 @@
 // The pictures on the hub's game cards and the icons on the Today tiles (SVG strings).
 // Sky, clouds and sea are tagged (artsky, artcloud, artsea, artstars) so style.css can repaint them at night through the --art-* variables.
 import { cardHtml } from './games/hotpot/cards.js';
+import { pieceShape } from './games/chess/glyphs.js';
 
 const ink = '#3b2219';
 
@@ -413,6 +414,22 @@ export function dominoArt() {
     ${tile(52, 92, 30, 3, 5)}${tile(114, 77, 30, 5, 5, true)}${tile(146, 92, 30, 5, 2)}
     <g class="dbob"><g transform="rotate(12 244 62)">${tile(214, 46, 30, 2, 6)}</g></g>
     <path class="arttick" d="M212 96l-4 8M224 100l-2 9M278 88l8-6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Chess card: a corner of a green and cream board seen at an angle, a cream king and a dark knight standing on it, and a pawn on its way down.
+export function chessArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const piece = (type, side, x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" fill="${side ? '#4d362e' : '#fffaf0'}" stroke="${side ? '#20120d' : '#3b2219'}" stroke-width="${(3 / k).toFixed(2)}" stroke-linejoin="round">${pieceShape(type)}</g>`;
+  let sq = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) sq += `<rect x="${c * 34 - 68}" y="${r * 34 - 68}" width="34" height="34" fill="${(r + c) % 2 ? '#86b56b' : '#f8eed2'}"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A chessboard with a cream king, a dark knight and a pawn about to be put down">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="70" cy="16" r="1.5"/><circle cx="246" cy="14" r="1.3"/><circle cx="296" cy="56" r="1.5"/><circle cx="22" cy="64" r="1.2"/><circle cx="160" cy="10" r="1.2"/></g>
+    <path d="M26 38l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M252 34l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <g transform="translate(160 118) scale(1 .44) rotate(45)"><rect x="-74" y="-74" width="148" height="148" rx="6" fill="#8a5a3c" ${o} transform="translate(8 8)"/><rect x="-74" y="-74" width="148" height="148" rx="6" fill="#b9794a" ${o}/>${sq}<rect x="-68" y="-68" width="136" height="136" fill="none" stroke="#3b2219" stroke-width="3"/></g>
+    <ellipse cx="126" cy="100" rx="21" ry="6" fill="#3b221933"/><ellipse cx="196" cy="112" rx="20" ry="6" fill="#3b221933"/>
+    ${piece(6, 0, 91, 38, 2.9)}${piece(2, 1, 164, 54, 2.7)}
+    <g class="cbob">${piece(1, 0, 222, 22, 2.1)}<path class="arttick" d="M236 76v8M246 74l3 8M226 74l-3 8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/></g>
   </svg>`;
 }
 
