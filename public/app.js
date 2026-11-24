@@ -1,7 +1,7 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -503,6 +503,30 @@ const GAMES = {
       <li>A classic game has <b>three prizes</b> on the same cards: <b>one line</b> (10 points), then <b>two lines</b> (20), then the <b>full card</b> (40). A quick game ends with the first line.</li>
       <li><b>Most points wins.</b> Players level on points are placed by how close their card is to full.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never daubs a number gets none.</li>
+    </ol>`,
+  },
+  kal: {
+    name: 'Sketch & Guess', load: () => import('./games/kal/client.js'), start: 'Start drawing', min: 2,
+    mins: [10, 20],
+    host: { rounds: 3, time: 80, lang: PL ? 'pl' : 'en', theme: 'all', hints: 'on' }, solo: { rounds: 3, time: 80, lang: PL ? 'pl' : 'en', theme: 'all', hints: 'on' },
+    openSeat: 'Waiting for a friend (no bots in this game)', seats: r => Math.min(8, Math.max(4, r.players.length + 1)),
+    settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 2, '2')}${pill('rounds', 3, '3')}${pill('rounds', 5, '5')}</div></div>
+      <div class="opt"><b>Time to draw</b><div class="pills">${pill('time', 60, '60s')}${pill('time', 80, '80s')}${pill('time', 120, '120s')}</div></div>
+      <div class="opt"><b>Words in</b><div class="pills">${pill('lang', 'pl', 'Polski')}${pill('lang', 'en', 'English')}</div></div>
+      <div class="opt"><b>Words about</b><div class="pills">${pill('theme', 'all', 'Everything')}${pill('theme', 'animals', 'Animals')}${pill('theme', 'food', 'Food')}${pill('theme', 'things', 'Things')}${pill('theme', 'nature', 'Nature and places')}${pill('theme', 'people', 'People and tales')}${pill('theme', 'fun', 'Rides and play')}${pill('theme', 'pets', 'Pet Farm pets')}</div></div>
+      <div class="opt"><b>Letter hints</b><div class="pills">${pill('hints', 'on', 'On')}${pill('hints', 'off', 'Off')}</div></div>`,
+    howto: `One player draws a secret word and everyone else types what they think it is. The faster you guess, the more points you get, and the drawer scores for every player who gets it. Everyone draws in turn. This game needs at least two people: there are no bots.`,
+    rules: `<ol>
+      <li>The game needs <b>2 to 8 people</b>. There are no bots, so the host can start once two players sit at the table.</li>
+      <li>Each turn one player is the <b>drawer</b>. They get <b>three words</b> and 15 seconds to pick one. If they don't, one is picked for them.</li>
+      <li>The drawer draws the word on the board with the pen, the eraser and the fill bucket. <b>No letters or numbers</b>, please: that spoils the fun.</li>
+      <li>Everyone else <b>types guesses</b> in the box. Capital letters, Polish accents, spaces and dashes don't matter. A wrong guess is shown to everybody, a right one is kept secret.</li>
+      <li>If your guess is one letter off, only you are told that it is <b>so close</b>.</li>
+      <li>The blanks over the board show <b>how long the word is</b>. As time runs out a few letters appear (the table can turn this off).</li>
+      <li>A right guess scores <b>100 points</b> at the start of the turn, sliding down to <b>40</b> at the end. The drawer scores the <b>average</b> of what the guessers got, so a drawing that everyone guesses quickly pays the most.</li>
+      <li>The turn ends when everyone has guessed or the time is up. The drawer can also <b>give up</b> a word. After a guess you can still chat, but only with the players who already know the word.</li>
+      <li>In a round everybody draws once. After the last round <b>the most points wins</b>. A friend who joins late can sit down at the next turn.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never draws a line and never types a guess gets none.</li>
     </ol>`,
   },
   pm: {
@@ -1643,6 +1667,7 @@ const HUB_GAMES = [
   ['bierki', 'bierkipic', bierkiArt, 'action', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
   ['pm', 'pmpic', pmArt, 'board', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
   ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
+  ['kal', 'kalpic', kalArt, 'action', '2–8 players', 'One player draws a secret word, everyone else races to guess it. Polish and English words, with Pet Farm pets too. For people only: no bots.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -2034,14 +2059,14 @@ function watchPaint() {
   // Snakes & Ladders and Ludo when the current round of turns ends, poker at the next hand.
   const saving = (r.sit || []).includes(st.id), when = r.joinAt || 'game';
   const bots = (st.lastState.seats || []).filter(s => !s.human).length;
-  const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : !bots;
+  const full = when === 'game' ? r.players.filter(p => !p.watch).length >= r.max : when === 'turn' ? (st.lastState.n || 0) >= r.max : !bots;
   const SOON = { game: L('when the next game starts', 'gdy zacznie się następna gra'), round: L('when this round of turns ends', 'gdy skończy się ta kolejka'), hand: L('from the next hand', 'od następnego rozdania'), hole: L('from the next hole', 'od następnego dołka'), leg: L('from the next leg', 'od następnego lega'), now: L('right away', 'od razu') };
   const soon = SOON[when] || SOON.game;
   const msg = !saving ? L('You’re watching.', 'Oglądasz grę.')
     : full ? (when === 'game' ? L('Every seat is taken. You get the next free one.', 'Wszystkie miejsca są zajęte. Dostaniesz następne wolne.') : L('Every seat has a player. You get one next game.', 'Na każdym miejscu siedzi gracz. Dostaniesz miejsce w następnej grze.'))
-    : L(`You take over a bot ${soon}.`, `Przejmiesz bota ${soon}.`);
+    : when === 'turn' ? L('You join in at the next turn.', 'Dołączysz od następnej tury.') : L(`You take over a bot ${soon}.`, `Przejmiesz bota ${soon}.`);
   const btn = saving ? L('Just watch', 'Tylko oglądaj') : full && when === 'game' ? L('Get the next free seat', 'Zajmij następne wolne miejsce')
-    : when === 'round' || when === 'now' ? L('Take over a bot', 'Przejmij bota') : when === 'hand' ? L('Play from next hand', 'Graj od następnego rozdania') : when === 'hole' ? L('Play from next hole', 'Graj od następnego dołka') : when === 'leg' ? L('Play from next leg', 'Graj od następnego lega') : L('Play next game', 'Zagraj w następnej grze');
+    : when === 'turn' ? L('Join the game', 'Dołącz do gry') : when === 'round' || when === 'now' ? L('Take over a bot', 'Przejmij bota') : when === 'hand' ? L('Play from next hand', 'Graj od następnego rozdania') : when === 'hole' ? L('Play from next hole', 'Graj od następnego dołka') : when === 'leg' ? L('Play from next leg', 'Graj od następnego lega') : L('Play next game', 'Zagraj w następnej grze');
   // Only touch the DOM when the words change: real-time games (Kart) send state 20 times a second,
   // and rebuilding the button every time made it flicker and swallowed clicks.
   const html = `<span>${msg}</span>

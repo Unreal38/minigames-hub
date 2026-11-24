@@ -43,6 +43,7 @@ import * as bingo from './games/bingo.js';
 import * as bop from './games/bop.js';
 import * as pm from './games/pm.js';
 import * as tys from './games/tys.js';
+import * as kal from './games/kal.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
@@ -59,7 +60,7 @@ import { isBot, pageFor } from './seo.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, kal };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -551,7 +552,8 @@ function handle(c, m) {
     case 'chat': {
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastChat || 0) < 500) return; c.lastChat = now;
-      const text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
+      let text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
+      if (r.G && GAMES[r.game].hush) text = GAMES[r.game].hush(r.G, text); // a game with a secret word keeps it out of the chat
       const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), pt: store.tagOf(store.profileOf(c.token)), text };
       r.chat.push(msg); if (r.chat.length > 40) r.chat.shift();
       for (const t of r.players) send(clients.get(t), msg);
@@ -853,7 +855,7 @@ setInterval(() => {
   }
 }, 150);
 
-// Real-time games (Kart Island Race, Sky Bricks, Beanstalk Bounce) export fast(G, now): it runs twenty times a second and streams the race.
+// Real-time games (Kart Island Race, Sky Bricks, Beanstalk Bounce, Kalambury) export fast(G, now): it runs twenty times a second and streams the race.
 setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {
