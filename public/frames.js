@@ -46,14 +46,14 @@ export function frameLoop(draw, { fps = FPS, onSlow } = {}) {
 }
 
 // ---------- graphics level ----------
-// One level for the whole site, picked per device:
-//   'high' computers: each game's own resolution cap, full shadows.
-//   'mid'  phones and tablets: at most 1.3 pixels per CSS pixel (phone screens are 2.5x to 3x and a mid-range phone GPU
-//          can't fill that at 60 fps), shadow maps at most 1024 and redrawn every second frame.
-//   'low'  weak phones (4 cores or fewer, or 3 GB or less memory), or any device whose 3D already had to drop to its lowest
-//          resolution and was still slow (remembered in ct_gfxa for a week): 1x resolution, no antialiasing, 512 shadow maps,
-//          plain filtering, the hub's moving pictures stand still. With no graphics card (software WebGL, SOFT) Auto goes
-//          further: about 0.3 megapixels and no shadows (see soft()), plus a tip to turn hardware acceleration on.
+// One level for the whole site, picked per device. The render resolution is the SAME on every level: the screen's own
+// pixels, up to each game's cap (Kuba, 2026-11-24: low used to drop to 1x or about 0.3 megapixels and cards, dice and text
+// turned into mush; resolution must never be dropped). The levels save work everywhere else instead:
+//   'high' computers: full shadows, antialiasing.
+//   'mid'  phones and tablets: shadow maps at most 1024 and redrawn every second frame.
+//   'low'  weak phones (4 cores or fewer, or 3 GB or less memory), any device that stayed slow at mid (remembered in
+//          ct_gfxa for a week), and Auto with no graphics card (software WebGL, SOFT, plus a tip to turn hardware
+//          acceleration on): no shadows at all, no antialiasing, the hub's moving pictures stand still.
 // A player can pin it with ct_gfx = 'low' | 'high' (Hot Pot's Graphics button and the hub's account menu); 'auto' detects.
 const LS = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
 const coarse = () => { try { return matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches; } catch { return false; } };
@@ -86,12 +86,7 @@ export function setGfx(pick) {
 }
 const live = new Set(); // WeakRefs to each open renderer's level hook, so closed games can be collected
 const tell = l => { for (const w of live) { const f = w.deref(); if (f) f(l); else live.delete(w); } };
-function markPage() { if (typeof document !== 'object') return; for (const l of ['high', 'mid', 'low']) document.documentElement.classList.toggle('gfx-' + l, l === level); document.documentElement.classList.toggle('gfx-soft', soft()); }
-// The no-graphics-card mode: Auto on a software renderer. Drawing on the CPU costs per pixel, so the 3D is drawn at about
-// 0.3 megapixels whatever the window size (the browser scales it up) and without shadows. Games stay smooth; they just look softer.
-const soft = () => SOFT && level === 'low' && gfxPick() === 'auto';
-const SOFT_PIXELS = 320_000;
-const softRatio = (w, h) => Math.max(.3, Math.min(1, Math.sqrt(SOFT_PIXELS / Math.max(1, w * h))));
+function markPage() { if (typeof document !== 'object') return; for (const l of ['high', 'mid', 'low']) document.documentElement.classList.toggle('gfx-' + l, l === level); document.documentElement.classList.toggle('gfx-soft', SOFT && level === 'low'); }
 export const AA = typeof window === 'object' ? gfx() !== 'low' : true; // antialias flag for new WebGLRenderer (fixed for the page's life)
 // Tips for the player when the browser itself holds the 3D back (app.js shows them as a toast, once a day at most):
 // 'soft' the browser draws 3D without the graphics card (hardware acceleration off or blocked, often in Opera GX);
@@ -99,27 +94,25 @@ export const AA = typeof window === 'object' ? gfx() !== 'low' : true; // antial
 let tipFn = null; const tipped = new Set();
 export function onGfxTip(fn) { tipFn = fn; }
 function tip(kind) { if (tipped.has(kind)) return; tipped.add(kind); const k = 'ct_gfxtip_' + kind, d = new Date().toDateString(); if (LS.get(k) === d) return; LS.set(k, d); tipFn?.(kind); }
-const PX = { high: 99, mid: 1.3, low: 1 }, SHADOW = { high: 99999, mid: 1024, low: 512 };
+const SHADOW = { high: 99999, mid: 1024, low: 0 }; // largest shadow map per level; 0 = no shadows
 
-// Resolution that backs off when a device can't hold the frame rate. `cap` is the most pixels per CSS pixel to draw.
-// It also fits the renderer to the graphics level: the resolution cap, and (checked every couple of seconds, so lights
-// added later are caught too) the shadow map size, filter and how often a constantly updated shadow map is redrawn.
+// Fits a renderer to the graphics level. `cap` is the most pixels per CSS pixel to draw (each game's own; the screen's
+// pixels below that). The resolution never drops with the level or when a device is slow. The level sets (checked every
+// couple of seconds, so lights added later are caught too) the shadow maps: their size, filter, how often a constantly
+// updated map is redrawn, and on low whether there are shadows at all.
 export function autoResolution(renderer, cap = 1.5) {
-  let scale = 1, lv = gfx(), floorHits = 0;
+  let lv = gfx(), slowHits = 0;
   if (SOFT) tip('soft');
-  // The soft budget is per canvas, so the ratio follows each setSize (the hub's small isle stays sharp, a full-window game drops).
-  let cw = innerWidth, ch = innerHeight, busy = false;
-  const ratio = () => soft() ? softRatio(cw, ch) * scale : Math.max(1, Math.min(devicePixelRatio, cap, PX[lv]) * scale);
-  const apply = () => { busy = true; renderer.setPixelRatio(ratio()); busy = false; };
-  const size = renderer.setSize.bind(renderer);
-  renderer.setSize = (w, h, style) => { cw = w; ch = h; if (!busy && soft() && Math.abs(renderer.getPixelRatio() - ratio()) > .001) { busy = true; renderer.setPixelRatio(ratio()); busy = false; } size(w, h, style); };
+  const apply = () => renderer.setPixelRatio(Math.max(1, Math.min(devicePixelRatio || 1, cap)));
   apply();
   const sm = renderer.shadowMap, draw = renderer.render.bind(renderer);
-  let check = 0, frame = 0, ours = false;
+  let check = 0, frame = 0, ours = false, offByUs = false;
+  const rebuild = scene => scene.traverse(o => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
   const fitShadows = scene => {
-    if (soft()) { if (sm.enabled) { sm.enabled = false; scene.traverse(o => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; }); } return; }
-    if (lv === 'low' && sm.type === 2) { sm.type = 1; sm.needsUpdate = true; } // PCFSoft -> PCF: a quarter of the samples
     const max = SHADOW[lv];
+    // low: no shadow maps at all (the biggest saving after resolution, and on a software renderer it is most of the frame)
+    if (!max) { if (sm.enabled) { sm.enabled = false; offByUs = true; rebuild(scene); } return; }
+    if (offByUs) { sm.enabled = true; offByUs = false; sm.needsUpdate = true; rebuild(scene); }
     scene.traverse(o => {
       const s = o.isLight && o.castShadow && o.shadow; if (!s) return;
       if (!s.full) s.full = s.mapSize.clone();
@@ -135,20 +128,20 @@ export function autoResolution(renderer, cap = 1.5) {
     } else if (ours) { sm.autoUpdate = true; ours = false; }
     draw(scene, camera);
   };
-  const onLevel = l => { lv = l; scale = 1; check = 0; apply(); };
+  const onLevel = l => { lv = l; slowHits = 0; check = 0; };
   renderer.__gfx = onLevel; live.add(new WeakRef(onLevel));
   return {
-    setCap(c) { cap = c; scale = 1; apply(); },
+    setCap(c) { cap = c; apply(); },
     // Settle the shadow settings for a scene now, before its shaders are built ahead of the first frame (a change after
     // that would build every one of them again in the first frame).
     prep(scene) { check = 120; fitShadows(scene); },
-    // Called by a scene's onSlow. At the lowest resolution and still slow twice: this device is weak, so remember it
-    // and start every scene at the low level from now on (unless the player picked a level).
+    // Called by a scene's onSlow (about 3 slow seconds). Slow twice: this device can't hold its level, so on Auto it drops
+    // to low (no shadows, kept for a week). Still slow at low: something outside the page holds it back, so a tip.
+    // The resolution stays as it is either way. Returns whether something was cut.
     lower() {
-      if (soft()) { if (scale > .6) { scale *= .85; apply(); return true; } return false; }
-      if (scale > .67 && Math.min(devicePixelRatio, cap, PX[lv]) * scale > 1.01) { scale *= .82; apply(); return true; }
-      if (++floorHits >= 2 && lv !== 'low' && gfxPick() === 'auto') { LS.set('ct_gfxa', String(Date.now())); level = 'low'; markPage(); tell('low'); }
-      else if (floorHits >= 4) tip('slow'); // even the low level can't keep up: something outside the page is holding it back
+      ++slowHits;
+      if (slowHits >= 2 && lv !== 'low' && gfxPick() === 'auto') { slowHits = 0; LS.set('ct_gfxa', String(Date.now())); level = 'low'; markPage(); tell('low'); return true; }
+      if (slowHits >= 4 && lv === 'low') tip('slow');
       return false;
     },
   };

@@ -707,8 +707,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
   let shadowIn = 0, frames = null;
   const res = autoResolution(renderer);
   const applyQuality = () => {
-    res.setCap(quality === 'high' ? 2 : quality === 'low' ? 1 : 1.5);
-    frames?.setFps(quality === 'low' ? 30 : FPS);
+    res.setCap(quality === 'high' ? 2 : 1.5); // low keeps the full resolution (frames.js): it saves on shadows and steam instead
     key.castShadow = quality !== 'low'; renderer.shadowMap.needsUpdate = true;
     steam.forEach((st, i) => { st.s.visible = quality !== 'low' || i < 8; });
   };
@@ -838,7 +837,7 @@ export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto'
     renderer.render(scene, camera);
   };
   // if the device can't hold the frame rate, quietly drop the resolution a step (auto only)
-  frames = frameLoop(loop, { fps: quality === 'low' ? 30 : FPS, onSlow: () => { if (quality === 'auto') res.lower(); } });
+  frames = frameLoop(loop, { fps: FPS, onSlow: () => { if (quality === 'auto') res.lower(); } });
 
   // ---------- API ----------
   return {

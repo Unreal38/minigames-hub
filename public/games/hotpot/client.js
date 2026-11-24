@@ -28,7 +28,7 @@ function loadCss() {
 }
 
 // graphics quality, remembered on this device
-const GFX = { auto: ['Auto', L('Graphics: auto', 'Grafika: automatyczna')], low: [L('Low', 'Niska'), L('Graphics: low. Easier on your laptop and battery.', 'Grafika: niska. Lżejsza dla laptopa i baterii.')], high: [L('High', 'Wysoka'), L('Graphics: high. Sharpest, and the hardest on your laptop.', 'Grafika: wysoka. Najostrzejsza i najcięższa dla laptopa.')] };
+const GFX = { auto: ['Auto', L('Graphics: auto', 'Grafika: automatyczna')], low: [L('Low', 'Niska'), L('Graphics: low. Easier on your laptop and battery.', 'Grafika: niska. Lżejsza dla laptopa i baterii.')], high: [L('High', 'Wysoka'), L('Graphics: high. Full shadows and smooth edges, the hardest on your laptop.', 'Grafika: wysoka. Pełne cienie i gładkie krawędzie, najcięższa dla laptopa.')] };
 let gfx = (() => { try { const v = localStorage.getItem('ct_gfx'); return GFX[v] ? v : 'auto'; } catch { return 'auto'; } })();
 
 export function mount(app, ctx) {
