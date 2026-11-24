@@ -5,6 +5,12 @@
 import { PL, plForm } from '../i18n.js';
 
 const TEXT = {
+  // the plaza
+  'Log in or make an account to hang an ornament.': 'Zaloguj się albo załóż konto, żeby zawiesić ozdobę.',
+  'Walk up to the tree first.': 'Najpierw podejdź do choinki.',
+  'Give the tree a moment before changing your ornament again.': 'Odczekaj chwilę, zanim znów zmienisz ozdobę.',
+  'Log in or make an account to open the present.': 'Zaloguj się albo załóż konto, żeby otworzyć prezent.',
+  'A host has muted you for a few minutes.': 'Gospodarz wyciszył cię na kilka minut.',
   // tables
   'That table is full.': 'Ten stół jest pełny.',
   'This game needs at least two players. Invite a friend first.': 'Do tej gry potrzeba co najmniej dwóch graczy. Najpierw zaproś znajomego.',
