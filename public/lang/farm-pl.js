@@ -178,7 +178,7 @@ const UPGRADES = {
   workshop: ['Drugi zestaw ozdób', 'Najwspanialsze ozdoby'],
   garden: ['Dojrzewa 15 minut szybciej i za każdym razem daje słoneczną jagodę', 'Dojrzewa kolejne 15 minut szybciej i daje dwie słoneczne jagody'],
   barn: 'Miejsce na 600 sztuk więcej każdego materiału',
-  nest: ['Drugie miejsce na jajko', 'Jajka wykluwają się o jedną czwartą szybciej'],
+  nest: ['Drugie miejsce na jajko', 'Trzecie miejsce na jajko, a jajka wykluwają się o jedną czwartą szybciej'],
   yard: 'Jedno miejsce treningowe więcej',
 };
 const WORK = {
