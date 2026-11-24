@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { CAP, Q, SPOTS, EMOTES, SPAWN, THROW_RANGE } from '../public/games/plaza/layout.js';
+import { CAP, Q, SPOTS, EMOTES, SPAWN, THROW_RANGE, thingsOf } from '../public/games/plaza/layout.js';
 import { COS, EMOTE_ICO } from '../public/cosmetics.js';
 const PORT = 21980 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-plz-'));
@@ -158,7 +158,7 @@ console.log('chat + host tools ok');
 guest.got = [];
 mod.send({ t: 'create', game: 'ttt', opts: {} });
 await until(() => mod.room, 'mod has a table');
-const sg = await guest.next('sign'); if (sg.g.code !== mod.room.code || sg.g.n !== 'Mo' || !(sg.g.free > 0)) fail('signpost ' + JSON.stringify(sg));
+const sg = await guest.next('sign'); if (sg.g.code !== mod.room.code || sg.g.n !== 'Mo' || !(sg.g.free > 0) || !sg.g.c || !Array.isArray(sg.g.av)) fail('signpost (with the host\'s look, so their avatar can stay) ' + JSON.stringify(sg));
 if ((await guest.next('del')).s !== mIn.me) fail('host left the plaza for the table');
 guest.send({ t: 'join', code: sg.g.code });
 await until(() => guest.room, 'guest joins by the signpost');
@@ -221,6 +221,16 @@ await start({ DAILY_NOW: '2026-12-24T12:00:00Z' });
   await wait(700); ana.do({ k: 'pat', s: m.me, i: 0 }); const pal = await ana.next('pal'); if (pal.n !== 'Mo') fail('friendship point ' + JSON.stringify(pal));
   await wait(1000); ana.got = []; ana.do({ k: 'pat', s: m.me, i: 0 }); await ana.next('pat'); await wait(200); if (ana.got.some(x => x.k === 'pal')) fail('two points in a day');
   ana.farm = null; ana.send({ t: 'farm', a: { t: 'open' } }); await until(() => ana.farm?.farm, 'farm again'); if (Object.values(ana.farm.farm.pals || {})[0] !== 1) fail('the point is not on the farm ' + JSON.stringify(ana.farm.farm.pals));
+  // poking a decoration: only from near it; everyone sees it
+  const ARCH = thingsOf(a.theme).findIndex(t => t[0] === 'arch');
+  gus.got = []; ana.do({ k: 'poke', i: thingsOf(a.theme).findIndex(t => t[0] === 'lighthouse') }); await wait(300); if (gus.got.some(x => x.k === 'poke')) fail('poked something far away');
+  ana.x = pos(ana).x / Q; ana.z = pos(ana).z / Q; await ana.walk(0, 15.5); await wait(300);
+  ana.do({ k: 'poke', i: ARCH }); const pk2 = await gus.next('poke'); if (pk2.i !== ARCH || pk2.s !== ana.in.me) fail('poke ' + JSON.stringify(pk2));
+  // the swing: you get on from beside it and your own place stays where you stood
+  const SW = SPOTS.findIndex(q => q.k === 'swing'), SIT = E('sit');
+  await mod.walk(14.2, 4); await mod.walk(14.2, .6); await wait(400); gus.got = []; gus.pos.clear();
+  mod.do({ k: 'em', e: SIT, sp: SW }); const sw = await gus.next('em'); if (sw.sp !== SW) fail('swing seat ' + JSON.stringify(sw));
+  await wait(300); if (gus.pos.has(m.me)) fail('getting on the swing moved the rider\'s place');
   // a host starts a show: everyone hears within a second or two; guests can't
   gus.got = []; gus.do({ k: 'show' }); await wait(1300); if (gus.got.some(x => x.k === 'ev')) fail('a guest started the fireworks');
   mod.do({ k: 'show' }); const ev = await gus.next('ev'); if (ev.ev?.id !== 'show' || !(ev.ev.left > 4 * 60000)) fail('show ' + JSON.stringify(ev));

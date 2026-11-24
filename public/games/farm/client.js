@@ -13,6 +13,7 @@ import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
 if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV_TEXT, pl.SRV_FORMS); }
 import { WEATHER, weatherAt } from './data.js';
+import { wxIcon } from '../../weather.js';
 import { flairOf, piecesOf } from '../../cosmetics.js';
 import { islePic, isleCached } from '../../islepic.js';
 import { uiz } from '../../uiz.js';
@@ -31,16 +32,6 @@ const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" a
 const eggIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3c4 0 7 6.5 7 11a7 7 0 0 1-14 0c0-4.5 3-11 7-11z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="2"/><circle cx="9.5" cy="13" r="1.4" fill="#8fd16a"/><circle cx="14" cy="16.5" r="1.2" fill="#8fd16a"/><circle cx="13.5" cy="10" r="1" fill="#8fd16a"/></svg>';
 // Small material badges: a coloured block with the amount beside it.
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
-// Weather and time of day: tiny pictures for the chip at the top and the window behind it.
-const WX_ICON = {
-  sunny: '<circle cx="12" cy="12" r="5" fill="#ffc94d" stroke="#5a3a2e" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
-  cloudy: '<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 18z" fill="#fff" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
-  rain: '<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 14z" fill="#cfe0f0" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/><path d="M8 17l-1 4M12 17l-1 4M16 17l-1 4" stroke="#4f9df0" stroke-width="2" stroke-linecap="round"/>',
-  wind: '<path d="M3 9h10a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6" fill="none" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
-  rainbow: '<path d="M3 18a9 9 0 0 1 18 0" fill="none" stroke="#e8615a" stroke-width="2.4"/><path d="M6 18a6 6 0 0 1 12 0" fill="none" stroke="#ffc94d" stroke-width="2.4"/><path d="M9 18a3 3 0 0 1 6 0" fill="none" stroke="#6fb7e8" stroke-width="2.4"/>',
-  moon: '<path d="M16 3a9 9 0 1 0 5 13A7.5 7.5 0 0 1 16 3z" fill="#fff3b8" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
-};
-const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
 const DAY_PL = { Night: 'Noc', Morning: 'Poranek', Daytime: 'Dzień', Sunset: 'Zachód słońca', Evening: 'Wieczór' }, dayName = h => L(dayPart(h), DAY_PL[dayPart(h)]);
 const dayPart = h => h < 4.6 || h >= 21 ? 'Night' : h < 8 ? 'Morning' : h < 17 ? 'Daytime' : h < 19.5 ? 'Sunset' : 'Evening';
 const mat = (k, n, cls = '') => `<span class="mat ${cls}" title="${MATS[k]}">${matIcon(k)}${n}<small>${MATS[k].toLowerCase()}</small></span>`;
@@ -179,7 +170,7 @@ export function mount(app, ctx) {
   const inLodge = id => F.pets.find(x => x.id === id)?.lodge ? L('The island is full, so it is waiting in your Pet Lodge.', 'Na wyspie nie ma miejsca, więc czeka w Schronisku.') : '';
   const shelfName = id => id && F.shelves?.find(x => x.id === id)?.name;
   const petStatus = p => { const t = F.trips.find(t => t.pets.includes(p.id)), job = Object.entries(F.work || {}).find(([, id]) => id === p.id);
-    return t ? (t.left > 0 ? { away: true, cls: 'out', text: L(`Exploring ${ZONES[t.zone].name}, back in ${wait(t.left)}`, `Na wyprawie: ${ZONES[t.zone].name}, powrót za ${wait(t.left)}`) } : { away: true, cls: 'back', text: L(`Back from ${ZONES[t.zone].name}: welcome the party`, `Wraca: ${ZONES[t.zone].name}. Przywitaj drużynę`) })
+    return t ? (t.left > 0 ? { away: true, cls: 'out', text: L(`Exploring ${ZONES[t.zone].name}, back in ${wait(t.left)}`, `Na wyprawie: ${ZONES[t.zone].name}, powrót za ${wait(t.left)}`), short: L(`Exploring, back in ${wait(t.left)}`, `Na wyprawie, powrót za ${wait(t.left)}`) } : { away: true, cls: 'back', text: L(`Back from ${ZONES[t.zone].name}: welcome the party`, `Wraca: ${ZONES[t.zone].name}. Przywitaj drużynę`), short: L('Back: welcome the party', 'Wraca: przywitaj drużynę') })
       : inNest(p.id) ? { cls: 'job', text: L('Cuddling in the Nest', 'Przytula się w Gnieździe') }
       : F.train.ids.includes(p.id) ? { cls: 'job', text: L('Training at the yard', 'Trenuje na placu') }
       : job ? { cls: 'job', text: L(`Helping at the ${ITEMS[job[0]].name}`, `Pomaga: ${ITEMS[job[0]].name}`) }
@@ -550,8 +541,9 @@ export function mount(app, ctx) {
       const vis = favFirst(F.pets.map((p, i) => ({ p, i })).filter(x => !x.p.lodge).filter(x => !on || (on === 'fav' ? x.p.fav : elOf(x.p) === on)).sort((a, b) => order[panel.sort] ? order[panel.sort](a.p, b.p) : b.i - a.i).map(x => x.p));
       const pill = (a, k, v, label) => `<button type="button" data-a="${a}" data-v="${v}" aria-pressed="${k === v}">${label}</button>`;
       const rows = vis.map(p => { const s = SPECIES[p.sp], st = petStatus(p);
-        return `<div class="petcell"><button type="button" class="petrow${st.away ? ' away' : ''}${p.fav ? ' fav' : ''}" data-a="petfind" data-id="${p.id}">${face(p, s.name)}<span class="pr"><b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b>
-          <small>${p.name === s.name ? '' : s.name + ' · '}${FORMS[formOf(p.lv)]} · ${L('level', 'poziom')} ${p.lv}</small><span class="prtags">${elTags(p)}<em class="${st.cls}">${st.text}</em></span></span></button>${favBtn(p)}</div>`; }).join('');
+        // one fixed shape per card: picture with its level badge, then name, species and stage on one line, element chips in a row, and the status on at most two lines
+        return `<div class="petcell"><button type="button" class="petrow${st.away ? ' away' : ''}${p.fav ? ' fav' : ''}" data-a="petfind" data-id="${p.id}"><span class="prpic">${face(p, s.name)}<span class="prlv" title="${L(`Level ${p.lv}`, `Poziom ${p.lv}`)}">${L('Lv', 'poz.')} ${p.lv}</span></span><span class="pr"><b>${esc(p.name)}${p.sparkle ? ' ✨' : ''}</b>
+          <small>${p.name === s.name ? '' : s.name + ' · '}${FORMS[formOf(p.lv)]}</small><span class="prtags">${elTags(p)}</span><em class="${st.cls}" title="${esc(st.text)}">${st.short || st.text}</em></span></button>${favBtn(p)}</div>`; }).join('');
       box.innerHTML = `<div class="panel tripp pets"><h2>${L(`My pets`, `Moje zwierzaki`)}</h2>
         <p>${L(`${F.pets.filter(p => !p.lodge).length} of ${F.room} beds on the island taken${F.lodgeRoom ? `, and ${F.pets.filter(p => p.lodge).length} of ${F.lodgeRoom} places in the Pet Lodge` : ''}. Tap a pet to find it on the farm. Tap the heart to make it a favourite: favourites come first wherever you pick pets.`, `Zajęte łóżka na wyspie: ${F.pets.filter(p => !p.lodge).length} z ${F.room}${F.lodgeRoom ? `, a miejsca w Schronisku: ${F.pets.filter(p => p.lodge).length} z ${F.lodgeRoom}` : ''}. Dotknij zwierzaka, żeby znaleźć go na farmie. Dotknij serca, żeby dodać go do ulubionych: ulubione są pierwsze wszędzie, gdzie wybierasz zwierzaki.`)}</p>
         <div class="pfsort"><span class="hint">${L('Sort', 'Kolejność')}</span><div class="pills">${pill('petsort', panel.sort || 'new', 'new', L('Newest', 'Najnowsze'))}${pill('petsort', panel.sort || 'new', 'lv', L('Level', 'Poziom'))}${pill('petsort', panel.sort || 'new', 'name', L('Name', 'Imię'))}${pill('petsort', panel.sort || 'new', 'el', L('Element', 'Żywioł'))}</div></div>

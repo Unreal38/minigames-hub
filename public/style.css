@@ -1273,7 +1273,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .hubside .rk .sub { justify-self: start; font-size: 12px; white-space: normal; }
 
 /* the season card above Today: season, days left and a progress bar */
-#season { margin-bottom: 14px; }
+#season { margin-bottom: 0; } /* the weather card sits right under it */
 .seasoncard .tpic { font-size: 30px; line-height: 1; }
 .seasoncard.s-winter .tpic { background: linear-gradient(160deg, #e8f6ff, #b9dcff); } .seasoncard.s-spring .tpic { background: linear-gradient(160deg, #ffe3ef, #d6f5c4); }
 .seasoncard.s-summer .tpic { background: linear-gradient(160deg, #fff1b8, #a8e0f5); } .seasoncard.s-halloween .tpic { background: linear-gradient(160deg, #ffd9a8, #d9c2ff); }
@@ -1283,6 +1283,19 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .seasoncard { --sfill: linear-gradient(90deg, #8fd3ff, #c9ecff); }
 .seasoncard.s-spring { --sfill: linear-gradient(90deg, #7fd49a, #ffb3d1); } .seasoncard.s-summer { --sfill: linear-gradient(90deg, #ffc94a, #ffe58a); }
 .seasoncard.s-halloween { --sfill: linear-gradient(90deg, #ff9a3c, #b48cff); } .seasoncard.s-autumn { --sfill: linear-gradient(90deg, #e0813a, #ffc46b); }
+
+/* the weather strip under the season card: the world's weather (public/weather.js), its Pet Farm bonus in a few words, and what comes next */
+#weather { margin: -12px 0 14px; }
+.wxstrip { display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 7px; background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 var(--ink); }
+.wxstrip .wxpic { flex: none; width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--ink); display: grid; place-items: center; background: linear-gradient(160deg, #bfe8ff, #e9f8ff); }
+.wxstrip.wx-sunny .wxpic { background: linear-gradient(160deg, #9fd8ff, #fff1b8); } .wxstrip.wx-cloudy .wxpic { background: linear-gradient(160deg, #c9d6e6, #eef3f8); }
+.wxstrip.wx-rain .wxpic { background: linear-gradient(160deg, #9fb7d1, #d6e4f0); } .wxstrip.wx-wind .wxpic { background: linear-gradient(160deg, #bfe9e0, #e9f8ff); }
+.wxstrip.wx-rainbow .wxpic { background: linear-gradient(160deg, #bfe8ff, #ffe3ef); } .wxstrip.wx-night .wxpic { background: linear-gradient(160deg, #2c2a5e, #5b5196); }
+.wxstrip .wxnow { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 7px; line-height: 1.2; }
+.wxstrip .wxnow b { font-family: var(--fd); font-weight: 600; font-size: 15px; white-space: nowrap; }
+.wxstrip .wxnow small { font-size: 12.5px; font-weight: 700; color: var(--muted2, var(--muted)); }
+.wxstrip .wxnext { flex: none; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted2, var(--muted)); white-space: nowrap; }
+.wxstrip .wxnext::before { content: '→'; margin-right: 1px; }
 
 /* the phone tab bar */
 .hubtabs { display: none; }
@@ -1306,7 +1319,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 }
 @media (max-width: 1099px) {
   .wrap.hubgrid { padding-bottom: 96px; }
-  .hubgrid:not([data-tab=games]) > .hero, .hubgrid:not([data-tab=games]) > .hubmid, .hubgrid:not([data-tab=games]) #today, .hubgrid:not([data-tab=games]) #season { display: none; }
+  .hubgrid:not([data-tab=games]) > .hero, .hubgrid:not([data-tab=games]) > .hubmid, .hubgrid:not([data-tab=games]) #today, .hubgrid:not([data-tab=games]) #season, .hubgrid:not([data-tab=games]) #weather { display: none; }
   .hubgrid:not([data-tab=tables]) #tables, .hubgrid:not([data-tab=chat]) #hubchat, .hubgrid:not([data-tab=rank]) #rankings { display: none; }
   .hubgrid[data-tab=games] > .hubside.left, .hubgrid[data-tab=tables] > .hubside.right, .hubgrid[data-tab=chat] > .hubside.right, .hubgrid[data-tab=rank] > .hubside.left { display: none; }
   .hubgrid:not([data-tab=games]) > .hubside { padding-top: 18px; }
@@ -1861,3 +1874,10 @@ body.sky.night:not(.in-game) .ttile.t-word .tpic, body.sky.night:not(.in-game) .
 .plazalink { margin-left: auto; background: var(--pan, var(--plum2)); color: var(--tx, var(--cream)); border: 2.5px solid var(--ink); border-radius: 999px; padding: 3px 12px; min-height: 34px; font-family: var(--fd); font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; }
 .plazalink:hover { filter: brightness(1.06); }
 @media (max-width: 760px) { .plazabtn { flex: 1 1 100%; } .plzb-faces { margin-left: auto; } }
+
+/* Pop-ups opened inside a game or the Plaza at night: the hub's panel colours are not set there, so pieces that
+   fall back to cream and dark ink (profile card boxes, the table kit, their headings) get the night ones. */
+body.night.in-game .modal { --chip: var(--card); --edge: var(--card-edge); --tx: var(--on-paper); --tx2: var(--soft-tx); --pan: var(--paper); --pan2: #201d44; --muted2: var(--soft-tx); --you: #3a3479; }
+
+/* the hero's code box and Plaza button: the button never squeezes into a sliver beside the code box, it drops below */
+.hubgrid .herorow { flex-wrap: wrap; } .hubgrid .herorow .plazabtn { flex: 0 0 auto; max-width: 100%; }

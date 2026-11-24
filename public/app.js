@@ -25,6 +25,7 @@ import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
 import { PEEKS, peekPick, setPeek, setPeekHost } from './seasonpeek.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
+import { weatherAt, weatherNext, wxIcon, isNight as wxNight } from './weather.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
@@ -1214,7 +1215,7 @@ function openPlaza() {
     if (st.view !== 'plaza') return;
     st.plaza = mountWithCss('plaza', () => mod.mount($app, { send: a => send({ t: 'plaza', a }), toast, me: () => st.me, home: () => { closePlaza(); go('hub'); }, account: mode => openAccount(mode),
       player: pt => send({ t: 'player', pt }), wheel: () => openWheel(), join: code => send({ t: 'join', code }), askTables: () => send({ t: 'rooms' }), gameName: id => GAMES[id]?.name || id,
-      chatLog: hubLogHtml, chatFoot: hubFootHtml, wardrobe: () => { if (!st.name) return openProfile(true); openWardrobe({ sec: 'emo' }); } }));
+      chatLog: hubLogHtml, chatFoot: hubFootHtml, games: () => HUB_GAMES.map(g => g[0]).filter(id => GAMES[id]), host: game => { if (!GAMES[game]) return; if (!st.name) return openProfile(true); send({ t: 'create', game, opts: GAMES[game].host }); }, wardrobe: () => { if (!st.name) return openProfile(true); openWardrobe({ sec: 'emo' }); } }));
     st.plaza.tables(st.rooms); placeGameSwitch();
   }).catch(err => { console.error(err); plazaLoading = null; toast(L('Could not load the plaza. Refresh?', 'Nie udało się wczytać placu. Odświeżyć stronę?'), true); go('hub'); });
 }
@@ -1340,8 +1341,22 @@ function seasonHtml() {
   ${shop ? `<button type="button" class="btn sm w" data-act="shop" title="${esc(SEASONS[s.key].name)}">${L('Shop', 'Sklep')}</button>` : ''}
 </div>`;
 }
-function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } }
-setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun || st.me?.next)) paintToday(); }, 60_000); // keeps the countdowns honest
+// The weather card under the season: the world's weather right now (the same for everyone, public/weather.js),
+// what it gives in Pet Farm, and what comes next. Sunny after dark on the player's own clock is a clear night, as on the farm.
+function weatherHtml(ms = Date.now()) {
+  const w = weatherAt(ms), nx = weatherNext(ms), d = new Date(ms), night = wxNight(d.getHours() + d.getMinutes() / 60), moon = night && w.kind === 'sunny', nmoon = night && nx.kind === 'sunny';
+  const name = moon ? L('Clear night', 'Pogodna noc') : w.name, m = Math.max(1, Math.ceil(w.left / 60000));
+  const nname = nmoon ? L('Clear night', 'Pogodna noc') : nx.name, inm = cnt(m, 'minute', 'minutes', 'minutę', 'minuty', 'minut');
+  const tip = esc(`${name}. ${L('Pet Farm', 'Farma')}: ${w.bonus} ${L(`Then ${nname} in ${inm}.`, `Potem: ${nname} za ${inm}.`)}`);
+  return `<div class="wxstrip wx-${w.kind}${night ? ' wx-night' : ''}" title="${tip}">
+  <span class="wxpic" aria-hidden="true">${wxIcon(moon ? 'moon' : w.kind, 22)}</span>
+  <span class="wxnow"><b>${name}</b><small>${w.short}</small></span>
+  <span class="wxnext" aria-label="${esc(L(`Then ${nname} in ${inm}`, `Potem: ${nname} za ${inm}`))}">${wxIcon(nmoon ? 'moon' : nx.kind, 16)}${m}\u00a0min</span>
+</div>`;
+}
+function paintWeather() { const el = document.getElementById('weather'), h = el && weatherHtml(); if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
+function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } paintWeather(); }
+setInterval(() => { if (st.view !== 'hub') return; if (st.farmBrief || st.wheelInfo?.spun || st.me?.next) paintToday(); else paintWeather(); }, 30_000); // keeps the countdowns honest (and turns the weather over on time)
 function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
@@ -1874,6 +1889,7 @@ function renderHub() {
     </aside>
     <aside class="hubside right" aria-label="${L('Today and rankings', 'Dziś i rankingi')}">
       <section id="season" aria-label="${L('Season', 'Sezon')}">${seasonHtml()}</section>
+      <section id="weather" aria-label="${L('Weather', 'Pogoda')}" aria-live="polite">${weatherHtml()}</section>
       <section id="today">
         <div class="sidehead"><h2>${L('Today', 'Dziś')}</h2></div>
         <div class="today" id="today-list">${todayHtml()}</div>

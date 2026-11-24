@@ -703,6 +703,8 @@ const wetPlots = r.farm.items.filter(i => i.type === 'garden').length;
 if (wetPlots) { r = await a.farmDo({ t: 'pick' }); if (!r.err && r.wet !== wetPlots) fail('rain gave no extra berries: ' + JSON.stringify([r.wet, wetPlots, r.err])); }
 { const w1 = weatherAt(0), w2 = weatherAt(0); if (w1.kind !== w2.kind || !WEATHER[w1.kind] || !(w1.left > 0 && w1.left <= WEATHER_MS)) fail('weather is not a steady function of the clock'); }
 { const seen = new Set(); for (let i = 0; i < 400; i++) seen.add(weatherAt(i * WEATHER_MS).kind); if (seen.size !== 5) fail('some weather never happens: ' + [...seen]); }
+{ const hub = await import('../public/weather.js'); if (hub.WEATHER !== WEATHER || hub.weatherAt(123456789).kind !== weatherAt(123456789).kind) fail('the hub and the farm disagree about the weather');
+  const t = 5 * WEATHER_MS + 1000, nx = hub.weatherNext(t); if (nx.kind !== weatherAt(6 * WEATHER_MS + 1).kind) fail('weatherNext is not the next spell'); }
 // helpers at buildings: the right element only, boost from level and stars, one job at a time
 r = await a.farmDo({ t: 'open', test: { pet: 'puddlepup', ripe: true } });
 r = await a.farmDo({ t: 'open', test: { pet: 'cindercub' } });
