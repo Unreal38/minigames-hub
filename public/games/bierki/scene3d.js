@@ -90,9 +90,13 @@ export function createScene(canvas, cb = {}) {
   const tints = {}; // a pet stick's body is tinted in its element colour
   let sticks = [], pileKey = '', S = null, me = -1, petMaker = null, pendingPets = false;
   const V = new THREE.Vector3(), V2 = new THREE.Vector3(), proj = new THREE.Vector3();
-  const EM = { none: new THREE.Color(0x000000), sel: new THREE.Color('#5a4a10'), top: new THREE.Color('#8a1408'), touch: new THREE.Color('#6a3c00'), hover: new THREE.Color('#33332a') };
+  // the picked stick: a thick bright rim, and a faint copy of it that shows through the sticks lying over it
+  const selMat = new THREE.MeshBasicMaterial({ color: '#ffe23d', side: THREE.BackSide }), hovMat = new THREE.MeshBasicMaterial({ color: '#fff6d8', side: THREE.BackSide });
+  const xray = new THREE.Mesh(inkGeo, new THREE.MeshBasicMaterial({ color: '#ffe23d', transparent: true, opacity: .16, depthTest: false, depthWrite: false })); xray.renderOrder = 6; xray.scale.set(1, 1.9, 1.9);
+  const EM = { none: new THREE.Color(0x000000), sel: new THREE.Color('#8a6a00'), top: new THREE.Color('#8a1408'), touch: new THREE.Color('#6a3c00'), hover: new THREE.Color('#33332a') };
 
   function clearSticks() {
+    xray.removeFromParent();
     for (const k of sticks) { world.remove(k.g); k.mat.dispose(); if (k.top) { world.remove(k.top); disposeToon(k.top); } }
     sticks = [];
   }
@@ -104,7 +108,7 @@ export function createScene(canvas, cb = {}) {
       const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true;
       const out = new THREE.Mesh(inkGeo, inkMat); m.add(out);
       const g = new THREE.Group(); g.add(m); world.add(g);
-      const k = { s, g, m, mat, top: null, y0: s.y0, y1: s.y1, off: new THREE.Vector3(), want: new THREE.Vector3(), jig: 0, state: s.g, fly: null, born: fresh ? performance.now() + s.id * 28 : 0, glow: 'none' };
+      const k = { s, g, m, mat, out, top: null, y0: s.y0, y1: s.y1, off: new THREE.Vector3(), want: new THREE.Vector3(), jig: 0, state: s.g, fly: null, born: fresh ? performance.now() + s.id * 28 : 0, glow: 'none' };
       if (s.k === 'crown') { k.top = crownModel(); world.add(k.top); }
       sticks.push(k);
       g.visible = !s.g; if (k.top) k.top.visible = !s.g;
@@ -329,7 +333,14 @@ export function createScene(canvas, cb = {}) {
       let g = 'none';
       if (glow) { if (glow.sel === id) g = 'sel'; else if (glow.top.includes(id)) g = 'top'; else if (glow.touch.includes(id)) g = 'touch'; }
       if (g === 'none' && hover === id) g = 'hover';
-      if (g !== k.glow) { k.glow = g; k.mat.emissive.copy(EM[g]); }
+      if (g !== k.glow) {
+        k.glow = g; k.mat.emissive.copy(EM[g]);
+        const rim = g === 'sel' ? 2 : g === 'hover' ? 1.7 : 1;
+        k.out.material = g === 'sel' ? selMat : g === 'hover' ? hovMat : inkMat; k.out.scale.set(1, rim, rim);
+        if (g === 'sel') k.m.add(xray); else if (xray.parent === k.m) k.m.remove(xray);
+        moving = true;
+      }
+      if (g === 'sel' && !reduced) { const p = 2 + Math.sin(T * 6) * .22; k.out.scale.set(1, p, p); moving = true; }
     }
     if (moving) for (const k of sticks) if (k.g.visible) place(k, T);
 
@@ -381,7 +392,7 @@ export function createScene(canvas, cb = {}) {
       canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel);
       removeEventListener('keydown', keyDown); removeEventListener('keyup', keyUp);
       for (const p of players) disposeAvatar(p.av);
-      clearSticks(); for (const k in geos) geos[k].dispose(); inkGeo.dispose(); inkMat.dispose();
+      clearSticks(); for (const k in geos) geos[k].dispose(); inkGeo.dispose(); inkMat.dispose(); selMat.dispose(); hovMat.dispose(); xray.material.dispose();
       disposeToon(land); disposeToon(tg); disposeToon(cloudRing); fx.dispose(); disposeArrow(arrow); renderer.dispose(); renderer.forceContextLoss();
     },
   };
