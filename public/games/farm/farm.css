@@ -470,7 +470,14 @@ body.night .pf { --fav: #f06d93; --fav-edge: #f06d93; }
 .pf .lodgep .ldcell b { font-size: 14px; max-width: 100%; line-height: 1.15; text-wrap: balance; }
 .pf .lodgep .ldcell small { font-size: 12px; opacity: .8; max-width: 100%; text-wrap: balance; }
 .pf .lodgep .ldwrap { position: relative; display: grid; }
-.pf .lodgep .ldinfo { position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); font-family: Georgia, serif; font-style: italic; font-weight: 700; font-size: 15px; line-height: 1; padding: 0; cursor: pointer; display: grid; place-items: center; }
+/* the small "i" that opens a pet's card from any list or picker (addInfo in client.js) */
+.pf .lodgep .ldinfo, .pf .pfinfo { position: absolute; z-index: 1; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); font-family: Georgia, serif; font-style: italic; font-weight: 700; font-size: 15px; line-height: 1; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.pf .pfiw { position: relative; display: grid; flex: none; min-width: 0; }
+.pf .party .pfiw > .pickpet { width: 112px; }
+@media (min-width: 641px) { .pf .party .pfiw > .pickpet { width: auto; } .pf .party .pfiw { flex: initial; } }
+.pf .pfiw.row { display: block; } .pf .pfiw.row > .petrow { width: 100%; padding-right: 92px; }
+.pf .pfiw.row .pfinfo { top: 50%; right: 54px; margin-top: -14px; }
+@media (hover: hover) { .pf .lodgep .ldinfo:hover, .pf .pfinfo:hover { background: var(--lantern); } }
 .pf .lodgep .ldcell.on { border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent, #ffc94d) inset; }
 .pf .lodgep .ldacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pf .lodgep .ldpages { justify-content: center; align-items: center; gap: 10px; }
