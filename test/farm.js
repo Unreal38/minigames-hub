@@ -546,11 +546,11 @@ r = await b.farmDo({ t: 'open' });
 if (!r.farm.mail.some(m => m.from === 'Zatoka Gier')) fail('server gift missed a farm');
 if (a.farm.items.some(i => i.type === 'mailbox')) { r = await a.farmDo({ t: 'claim', id: sg.id }); if (r.err || r.farm.inv.wood !== sgw + 7) fail('claim server gift ' + r.err); }
 
-// ----- several parties and a second Nest slot -----
+// ----- several parties, and a second and third Nest slot -----
 r = await a.farmDo({ t: 'open', test: { give: { wood: 500, stone: 500, fiber: 500, shells: 60, coal: 60, crystal: 9 }, home: true, lv: 8, rested: true, egg: 'ready' } });
 for (const q of r.farm.trips) { await a.farmDo({ t: 'collect', id: q.id }); await wait(40); }
 while (a.farm.nests.length) { r = await a.farmDo({ t: 'hatch', slot: a.farm.nests[0].slot }); if (r.err) fail('clearing the nest ' + r.err); await wait(40); }
-while (a.farm.pets.length < 6) { await a.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(40); }
+while (a.farm.pets.length < 8) { await a.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(40); }
 r = await a.farmDo({ t: 'open', test: { lv: 8, rested: true } });
 const P = r.farm.pets.map(x => x.id), gate = r.farm.items.find(i => i.type === 'gate'), nestB = r.farm.items.find(i => i.type === 'nest');
 if (!gate || !nestB) fail('the test farm needs a gate and a nest');
@@ -583,8 +583,15 @@ r = await a.farmDo({ t: 'pair', a: P[2], b: P[4] });
 if (!r.err) fail('a pet in both nest slots');
 r = await a.farmDo({ t: 'pair', a: P[4], b: P[5] });
 if (r.err || r.farm.nests.length !== 2 || r.farm.nests[1].slot !== 'nest2') fail('second nest slot ' + r.err);
+r = await a.farmDo({ t: 'pair', a: P[6], b: P[7] });
+if (!r.err) fail('third egg in a level 2 nest');
+while (lvOfItem(a.farm, nestB.id) < 3) { r = await a.farmDo({ t: 'upgrade', id: nestB.id }); if (r.err) { r = await a.farmDo({ t: 'houseup', test: { give: { wood: 300, stone: 300, fiber: 200, shells: 30, coal: 30, crystal: 5 } } }); if (r.err) fail('could not raise the farmhouse for the nest: ' + r.err); } await wait(40); }
+r = await a.farmDo({ t: 'pair', a: P[6], b: P[7] });
+if (r.err || r.farm.nests.length !== 3 || r.farm.nests[2].slot !== 'nest3' || r.farm.nestMax !== 3) fail('third nest slot ' + r.err);
 r = await a.farmDo({ t: 'open', test: { egg: 'ready', give: { wood: 200, fiber: 100 } } });
-while (a.farm.pets.length + 2 > a.farm.room) { await spot('hut'); }
+while (a.farm.pets.length + 3 > a.farm.room) { await spot('hut'); }
+r = await a.farmDo({ t: 'hatch', slot: 'nest3' });
+if (r.err || r.farm.nests.length !== 2) fail('hatch slot three ' + r.err);
 r = await a.farmDo({ t: 'hatch', slot: 'nest2' });
 if (r.err || r.farm.nests.length !== 1 || r.farm.nests[0].slot !== 'nest') fail('hatch slot two ' + r.err);
 r = await a.farmDo({ t: 'hatch', slot: 'nest' });
