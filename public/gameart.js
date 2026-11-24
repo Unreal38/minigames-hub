@@ -413,6 +413,9 @@ export function wojnaArt() {
     ${card(84, 34, -12, 'h', 'wjl')}${card(184, 34, 12, 's', 'wjr')}
     <path class="wjspark" d="M160 40l6 15 15-6-8 14 14 8-16 3 3 16-14-9-14 9 3-16-16-3 14-8-8-14 15 6z" fill="#ffd84a" ${o}/>
     <path class="arttick" d="M160 22v-10M136 28l-6-8M184 28l6-8" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
 // Makao card: a jack of clubs on a green table with a fighting king of hearts, a two and an ace fanned on top, and a "Makao!" shout.
 export function makaoArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
