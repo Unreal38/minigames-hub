@@ -4,6 +4,7 @@
 //   seasonLookNow(now)     'winter' | 'spring' | 'summer' | 'autumn' | 'halloween' for that day (default: today).
 //                      The dates are SEASONS in avatar.js (winter 15 Nov to 28 Feb, spring Mar to May, summer Jun
 //                      to Aug, Halloween 1 Oct to 7 Nov); the days no drop covers (September, 8 to 14 November) are autumn.
+//                      Hosts can look at another season from the Account menu (seasonpeek.js); players always get the date's.
 //   LOOK[season]       colours of the lawn, patches, earth and rock; flower colours and how many; the rim props;
 //                      the air (what petals() drops); icicles: winter hangs icicles under the lawn (trim()).
 //   SP                 the season props, each sitting on y = 0 like PROPS in scenery3d.js (snowy pine, snowman,
@@ -13,8 +14,10 @@
 // Pet Farm and profile isles wear their owner's isle look instead (they pass season: null).
 import * as THREE from 'three';
 import { seasonOn } from './avatar.js';
+import { peekSeason } from './seasonpeek.js';
 
 export function seasonLookNow(now = new Date()) {
+  const peek = peekSeason(); if (peek) return peek; // a host looking at another season (Account menu, own view only)
   for (const s of ['halloween', 'winter', 'spring', 'summer']) if (seasonOn(s, now)) return s;
   return 'autumn';
 }

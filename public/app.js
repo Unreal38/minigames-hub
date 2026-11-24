@@ -21,6 +21,7 @@ import { randomName } from './names.js';
 import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
+import { PEEKS, peekPick, setPeek, setPeekHost } from './seasonpeek.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
@@ -1023,6 +1024,7 @@ function onMsg(m) {
       st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
     }
     st.onMe?.(); emojiPaint();
+    setPeekHost(m.me.admin); // the season preview works for hosts only
     if (!!m.me.admin !== !!st.noticeAdmin) { st.noticeAdmin = !!m.me.admin; send({ t: 'notice' }); } // a host just logged in (or out): with or without the hosts' extras
     if (m.gain) {
       const cg = m.gain.coins | 0;
@@ -1582,6 +1584,7 @@ function acctHtml() {
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${m?.admin ? item('notices', '📣', L('Site notices', 'Komunikaty strony'), `<small>${L('update countdown, announcements', 'odliczanie, ogłoszenia')}</small>`) : ''}
+      ${m?.admin ? item('season', '❄️', L('Island season', 'Pora roku wysp'), `<small>${peekLabel()}</small>`) : ''}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
       ${item('gfx', '🎮', L('Graphics', 'Grafika'), `<small>${gfxLabel()}</small>`)}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
@@ -1591,6 +1594,9 @@ function acctHtml() {
         : item('account', '✨', L('Create account', 'Załóż konto'), `<small>${L('saves progress', 'zapisuje postępy')}</small>`, ' data-mode="register"') + item('account', '🔑', L('Log in', 'Zaloguj się'), '', ' data-mode="login"')}
     </div>`;
 }
+// Hosts: which season the game islands show on this computer (seasonpeek.js). Auto = today's; players always get today's.
+const PEEK_NAME = { auto: ['auto (today’s)', 'automatyczna (dzisiejsza)'], winter: ['winter', 'zima'], spring: ['spring', 'wiosna'], summer: ['summer', 'lato'], autumn: ['autumn', 'jesień'], halloween: ['Halloween', 'Halloween'] };
+const peekLabel = () => L(...PEEK_NAME[peekPick()]) + ' · ' + L('only you see it', 'widzisz tylko ty');
 // The site-wide graphics level (frames.js): Auto picks by device, Low is lightest, High is the full look.
 const GFX_NEXT = { auto: 'low', low: 'high', high: 'auto' };
 function gfxLabel() {
@@ -2892,6 +2898,7 @@ $app.addEventListener('click', e => {
   else if (act === 'acct') openAcct();
   else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'gfx') { setGfx(GFX_NEXT[gfxPick()]); const sm = b.querySelector('small'); if (sm) sm.textContent = gfxLabel(); toast(`${L('Graphics', 'Grafika')}: ${esc(gfxLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
+  else if (act === 'season') { const all = ['auto', ...PEEKS]; setPeek(all[(all.indexOf(peekPick()) + 1) % all.length]); const sm = b.querySelector('small'); if (sm) sm.textContent = peekLabel(); toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
   else if (act === 'mystats') openStats();
   else if (act === 'who') openWho();
   else if (act === 'notices') { closeAcct(); openNotices(); }
