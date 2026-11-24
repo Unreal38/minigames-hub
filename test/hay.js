@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved, writeSaved } from './saved.js';
 import { N, LEVELS, MAX_LV, PET, deal, hints, harvestOf, coinsFor, DAILY } from '../public/games/hay/rules.js';
 
 const PORT = 21900 + (Math.random() * 900 | 0);
@@ -50,7 +51,7 @@ function player(name, token) {
   return p;
 }
 // The test can read the secret field from the save file once the server has written it.
-const secret = async () => { await wait(1700); const d = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8')); return Object.values(d.profiles).find(p => p.user === 'ana').hay; };
+const secret = async () => { await wait(1700); const d = readSaved(DATA_DIR); return Object.values(d.profiles).find(p => p.user === 'ana').hay; };
 
 await boot();
 let a = player('Ana'); await a.ready;
@@ -110,7 +111,7 @@ if (a.rk.rows[0]?.name !== 'Ana' || !(a.rk.rows[0].best > 0) || a.rk.rows[0].win
 await a.do({ t: 'flip', i: (await secret()).f.cells.indexOf(1) });
 const midId = s.id;
 await stop();
-{ const f = path.join(DATA_DIR, 'cozy-table.json'), d = JSON.parse(fs.readFileSync(f, 'utf8')); const p = Object.values(d.profiles).find(p => p.user === 'ana'); p.hay.paid = DAILY - 1; fs.writeFileSync(f, JSON.stringify(d)); }
+{ const d = readSaved(DATA_DIR); const p = Object.values(d.profiles).find(p => p.user === 'ana'); p.hay.paid = DAILY - 1; writeSaved(DATA_DIR, d); }
 await boot();
 a = player('Ana', a.token); await a.ready;
 s = (await a.do({ t: 'open' })).s;

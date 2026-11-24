@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved } from './saved.js';
 const PORT = 19980 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-notice-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -97,7 +98,7 @@ srv.kill('SIGTERM');
 await until(() => ana.bye && boss.bye, 'goodbye');
 await until(() => ana.code === 1012, 'close code 1012');
 await new Promise(r => srv.once('exit', r));
-const saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
+const saved = readSaved(DATA_DIR);
 if (!Object.values(saved.profiles).some(p => p.user === 'boss')) fail('accounts saved on the way out');
 
 // Back up: the note is live for everyone, the countdown is gone, the announcement stays.

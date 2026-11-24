@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved, writeSaved } from './saved.js';
 import * as R from '../public/games/pop/rules.js';
 const { W, N, KINDS, HOLE, EMPTY, BOWL, BALE, ZOOM_H, ZOOM_V, POUNCE, level, deal, play, settle, canSwap, findMove, findGroups, coinsFor, starsFor, DAILY, MOVE_BONUS } = R;
 
@@ -117,8 +118,8 @@ function player(name, token) {
 }
 const edit = async f => { // change the saved shelf while the server is down
   await wait(1700); await stop();
-  const file = path.join(DATA_DIR, 'cozy-table.json'), d = JSON.parse(fs.readFileSync(file, 'utf8'));
-  f(Object.values(d.profiles).find(p => p.user === 'ana').pop); fs.writeFileSync(file, JSON.stringify(d));
+  const d = readSaved(DATA_DIR);
+  f(Object.values(d.profiles).find(p => p.user === 'ana').pop); writeSaved(DATA_DIR, d);
   await boot(); a = player('Ana', a.token); await a.ready;
   return (await a.do({ t: 'open' })).s;
 };

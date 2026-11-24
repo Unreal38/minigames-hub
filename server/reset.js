@@ -6,6 +6,7 @@
 // "Forgot your password?", and type their username, the code and a new password. The code works once, for 24 hours.
 // Only a hash of the code is written down, in a small file the running server picks up within a few seconds.
 import fs from 'node:fs';
+import { savedProfiles } from './saved.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ const user = String(process.argv[2] || '').trim();
 if (!user) { console.error('Usage: npm run reset-password -- <username>'); process.exit(1); }
 
 let data;
-try { data = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8')); }
+try { data = savedProfiles(DATA_DIR); }
 catch (e) { console.error(`Could not read the saved accounts in ${DATA_DIR} (${e.message}). Set DATA_DIR to the folder the server uses.`); process.exit(1); }
 const p = Object.values(data.profiles || {}).find(x => x.user && x.user.toLowerCase() === user.toLowerCase());
 if (!p) { console.error(`There is no account called "${user}". Usernames are shown at the top of each player's Friends list.`); process.exit(1); }

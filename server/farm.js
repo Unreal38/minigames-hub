@@ -5,6 +5,7 @@ import { BOOSTS } from '../public/wheelprizes.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
@@ -25,23 +26,52 @@ function bindCoins(pid, f) {
 const unit = (pet, lv) => rawUnit({ ...pet, look: lookOf(pet) }, lv); // battles show each pet as it really looks
 
 const FILE = path.join(DATA_DIR, 'pet-farm.json');
-const farms = new Map(); // profile id -> farm
+const farms = new db.Tracked('f'); // profile id -> farm (saved in zatoka.db a little at a time, see db.js)
 const rid = () => crypto.randomBytes(5).toString('hex');
 const rnd = n => crypto.randomInt(n);
 
 // ---------- load / save ----------
+// Farms live in zatoka.db next to the profiles (store.js). The first start on the database copies pet-farm.json over,
+// reads every farm back and compares it; only a perfect match switches, otherwise farms stay on the JSON file as before.
+let mode = 'json';
+export const farmMode = () => mode;
+const take = (pid, f) => { if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); bindCoins(pid, f); farms.set(pid, f); return true; } return false; };
 export function load() {
-  let d;
-  try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
-  catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); return; }
-  for (const [pid, f] of Object.entries(d.farms || {})) if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); bindCoins(pid, f); farms.set(pid, f); }
+  if (db.isOpen() && db.getKv('imported:farms')) {
+    for (const { id, v } of db.rows('f')) { take(id, JSON.parse(v)); farms.remember(id, v); }
+    mode = 'db';
+  } else {
+    let d = {};
+    try { d = JSON.parse(fs.readFileSync(FILE, 'utf8')); }
+    catch (e) { if (e.code !== 'ENOENT') console.error('could not read', FILE, e.message); }
+    for (const [pid, f] of Object.entries(d.farms || {})) take(pid, f);
+    if (db.isOpen()) {
+      let why = '';
+      try {
+        db.tx(() => { for (const [pid, f] of farms) { const t = JSON.stringify(f); db.put('f', pid, t); farms.remember(pid, t); } });
+        const got = new Map(db.rows('f').map(r => [r.id, r.v]));
+        if (got.size !== farms.size) why = `${farms.size} farms in memory, ${got.size} saved`;
+        else for (const [pid, f] of farms) if (got.get(pid) !== JSON.stringify(f)) { why = `farm ${pid.slice(0, 6)}… differs`; break; }
+      } catch (e) { why = 'copying failed: ' + e.message; }
+      if (why) { console.error(`NOT moving farms to the database: ${why}. Farms stay on ${FILE}, as before.`); try { db.tx(() => { for (const { id } of db.rows('f')) db.del('f', id); }); } catch {} farms.forget(); }
+      else { db.putKv('imported:farms', JSON.stringify({ at: new Date().toISOString(), farms: farms.size })); mode = 'db'; console.log(`copied ${farms.size} farms from ${FILE} to the database and checked every one; the JSON file is left as it was`); }
+    }
+  }
+  farms.hot.clear();
+  if (mode === 'db') setInterval(() => scheduleSave(), 15_000).unref(); // the rolling part of the save moves on when idle too
   for (const [pid, f] of farms) { const p = profiles.get(pid); if (p) p.petSp = Object.values(album(f)).filter(a => a.some(Boolean)).length; }
-  console.log(`loaded ${farms.size} farms from ${FILE}`);
+  console.log(`loaded ${farms.size} farms from ${mode === 'db' ? 'the database' : FILE}`);
 }
 let timer = null, dirty = false, warned = false;
 function scheduleSave() { dirty = true; if (!timer) timer = setTimeout(saveNow, 1500); }
-export function saveNow() {
+export function saveNow(all = false) {
   clearTimeout(timer); timer = null;
+  if (mode === 'db') {
+    try { db.tx(() => farms.flush(() => true, { all: all === true })); dirty = false; warned = false; }
+    catch (e) { if (!warned) console.error('could not save farms to the database:', e.message); warned = true; farms.forget(); scheduleSave(); }
+    return;
+  }
+  farms.hot.clear(); farms.gone.clear();
   if (!dirty) return;
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });

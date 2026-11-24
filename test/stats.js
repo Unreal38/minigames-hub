@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { readSaved } from './saved.js';
 const PORT = 19980 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -37,7 +38,7 @@ if (a.stats.visitors !== 2 || b2.stats.visitors !== 2) fail('returning visitor c
 a.close(); b2.close(); await wait(200);
 await stop();
 
-const saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'cozy-table.json'), 'utf8'));
+const saved = readSaved(DATA_DIR);
 if (saved.visitors?.length !== 2 || saved.visitors.includes(a.token)) fail('visitors not saved as hashes ' + JSON.stringify(saved.visitors));
 
 await boot();
