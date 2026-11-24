@@ -24,9 +24,11 @@ const coins = n => cnt(n, 'coin', 'coins', 'moneta', 'monety', 'monet');
 export const clock = ms => { const s = Math.max(0, ms) / 1000; return `${s / 60 | 0}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 const NAME = L('Pet Mahjong', 'Zwierzakowy mahjong');
 
-let cssLoaded = false;
-export function loadCss() {
-  if (cssLoaded) return; cssLoaded = true;
+// Solo and the race share mahj.css, but the hub keeps only the open game's own sheets switched on (gameCss in
+// app.js), so each of the two adds its own <link>: one shared link was switched off when the other game opened.
+const cssFor = new Set();
+export function loadCss(who = 'solo') {
+  if (cssFor.has(who)) return; cssFor.add(who);
   const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = new URL('./mahj.css', import.meta.url).href;
   document.head.append(l);
 }

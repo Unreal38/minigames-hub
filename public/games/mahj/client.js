@@ -16,7 +16,7 @@ const HINT_WAIT = 8000; // a hint, then a wait before the next one
 const tiles = n => cnt(n, 'tile', 'tiles', 'płytka', 'płytki', 'płytek');
 
 export function mount(app, ctx) {
-  loadCss();
+  loadCss('race');
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="mj race">
     <canvas class="g3d" aria-label="${L('Your board of tiles. Tap two free tiles with the same picture.', 'Twoja plansza z płytkami. Wskaż dwie wolne płytki z tym samym obrazkiem.')}"></canvas>
