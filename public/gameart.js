@@ -242,6 +242,19 @@ export function digArt() {
 }
 
 // Bubble Lagoon card: a pool of pet bubbles under a coral reef, a shell launcher on a raft, one bubble on its way up
+// Mahjong Race card: a little pyramid of chunky tiles (leaves, berries, stars) on a wooden tray.
+const mjSym = (k, x, y, r = 9) => k === 'l' ? `<path d="M${x} ${y - r}c${r * .95} ${r * .4} ${r * .95} ${r * 1.6} 0 ${r * 2}c${-r * .95}${-r * .4} ${-r * .95}${-r * 1.6} 0${-r * 2}z" fill="#52b455" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round" transform="rotate(28 ${x} ${y})"/>`
+  : k === 'b' ? `<circle cx="${x}" cy="${y}" r="${r * .86}" fill="#ee5d74" stroke="${ink}" stroke-width="2.2"/><circle cx="${x - r * .28}" cy="${y - r * .3}" r="${r * .22}" fill="#fff" opacity=".75"/>`
+  : `<path d="${Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .5 : r * 1.08; return `${i ? 'L' : 'M'}${(x + Math.cos(a) * q).toFixed(1)} ${(y + Math.sin(a) * q).toFixed(1)}`; }).join('')}z" fill="#ffc23a" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/>`;
+const mjTile = (x, y, k, w = 30, h = 38) => `<rect x="${x}" y="${y + 7}" width="${w}" height="${h}" rx="5" fill="#3fa58f" stroke="${ink}" stroke-width="3"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="#fff6e2" stroke="${ink}" stroke-width="3"/>${mjSym(k, x + w / 2, y + h / 2, w * .3)}`;
+export function mahjArt() {
+  const row = (ks, x, y) => [...ks].map((k, i) => mjTile(x + i * 30, y, k, 30, 31)).join('');
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A pyramid of tiles with leaves, berries and stars on a wooden tray">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="52" cy="22" r="1.6"/><circle cx="270" cy="18" r="1.3"/><circle cx="284" cy="74" r="1.5"/><circle cx="44" cy="86" r="1.2"/><circle cx="238" cy="40" r="1.1"/></g>
+    <path d="M44 50l14-8 16 4 8 10-10 8H52z" class="artcloud" fill="#fff"/><path d="M240 62l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M56 128h208v16H56z" fill="#a86a42" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/><path d="M62 124h196v8H62z" fill="#2f7f78" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>
+    ${row('lbsbls', 70, 90)}${row('slbs', 100, 57)}<g class="mjtop">${row('bl', 130, 24)}</g></svg>`;
+}
 // and an egg flying off to a rival.
 export function lagoonArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
@@ -439,6 +452,8 @@ export const HAY_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-w
   <path d="M14 56 30 40h62l16 16z" fill="#ffe08a"/><path d="M14 56h94v46H14z" fill="#f5bd42"/></g>
   <path d="M40 40 28 56v46M82 40l12 16v46" fill="none" stroke="#3b2219" stroke-width="5" stroke-linejoin="round"/>
   <path d="M40 70h14M62 84h18M44 92h10M70 68h10" stroke="#c98a1e" stroke-width="5" stroke-linecap="round"/></svg>`;
+// Pet Mahjong tile: two chunky tiles, a star and a leaf.
+export const MJ_ICON = `<svg viewBox="0 0 120 120"><g transform="rotate(-8 60 60)">${mjTile(18, 26, 's', 46, 60)}</g><g transform="rotate(7 60 60)">${mjTile(58, 34, 'l', 46, 60)}</g></svg>`;
 // Lucky Wheel tile: a blocky eight-slice wheel with a red pointer and a gold hub.
 export const WHEEL_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="4" stroke-linejoin="round"><path d="M60 62 43.2 21.3 76.8 21.3z" fill="#ffb547"/><path d="M60 62 76.8 21.3 100.7 45.2z" fill="#7ed3b2"/><path d="M60 62 100.7 45.2 100.7 78.8z" fill="#ff8fab"/><path d="M60 62 100.7 78.8 76.8 102.7z" fill="#6fb8e6"/><path d="M60 62 76.8 102.7 43.2 102.7z" fill="#ffd84a"/><path d="M60 62 43.2 102.7 19.3 78.8z" fill="#e5543b"/><path d="M60 62 19.3 78.8 19.3 45.2z" fill="#a58be0"/><path d="M60 62 19.3 45.2 43.2 21.3z" fill="#7ed3b2"/>
   <rect x="50" y="52" width="20" height="20" rx="3" fill="#fff4e2"/><path d="M50 6h20v12l-10 14-10-14z" fill="#e5543b"/></g></svg>`;

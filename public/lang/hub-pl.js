@@ -27,6 +27,7 @@ export const OPT_PL = {
   Climbers: 'Wspinacze', 'Just us': 'Tylko my', Storm: 'Burza', Wild: 'Dzika',
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par',
+  Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
@@ -278,6 +279,21 @@ export const GAMES_PL = {
       <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
+  mahj: {
+    name: 'Mahjongowy wyścig', start: 'Zacznij wyścig', openSeat: 'Jeśli nikt nie dołączy, gra tu bot',
+    pitch: 'Wszyscy dostają tę samą planszę z płytkami. Dobieraj wolne pary szybciej niż znajomi i wyczyść ją jako pierwszy.',
+    howto: `Wszyscy dostają tę samą planszę z ułożonymi płytkami i czyszczą ją jednocześnie, każdy na swoim ekranie. Płytka jest wolna, gdy nic na niej nie leży i ma odsłonięty lewy albo prawy bok. Wskaż dwie wolne płytki z tym samym obrazkiem, a para znika. Wygrywa ten, kto pierwszy wyczyści całą planszę.`,
+    rules: `<ol>
+      <li>Wszyscy dostają <b>tę samą planszę</b>, rozdaną tak samo, i grają <b>jednocześnie, każdy na swoim ekranie</b>. Wolne miejsca zajmują boty.</li>
+      <li>Płytka jest <b>wolna</b>, gdy <b>nic na niej nie leży</b> i ma <b>odsłonięty lewy albo prawy bok</b>. Płytki, które nie są wolne, są trochę ciemniejsze.</li>
+      <li>Wskaż <b>dwie wolne płytki z tym samym obrazkiem</b>, a para znika z planszy. Są listki, jagody i gwiazdki od 1 do 9 oraz dziewięć zwierzaków z Farmy, po cztery płytki każdego rodzaju.</li>
+      <li><b>Wygrywa ten, kto pierwszy wyczyści całą planszę</b>, i wyścig się kończy. Pozostałe miejsca zależą od tego, komu zostało najmniej płytek.</li>
+      <li>Gdy <b>nie masz już żadnej pary</b>, twoje płytki są <b>mieszane</b>, a ty czekasz 4 sekundy. Pomyśl, zanim weźmiesz parę: czasem jeden wybór zostawia więcej wolnych płytek.</li>
+      <li><b>Podpowiedź</b> (albo klawisz <b>H</b>) pokazuje parę, a potem odpoczywa 8 sekund.</li>
+      <li>Paski z boku pokazują, jak daleko jest każdy z graczy.</li>
+      <li>Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
   lagoon: {
     name: 'Bąbelkowa laguna', start: 'Zacznij strzelać', openSeat: 'Jeśli nikt nie dołączy, strzela tu bot',
     pitch: 'Strzelaj bąbelkami ze zwierzakami we własnej lagunie, zbijaj trójki i wysyłaj znajomym jajka. Wygrywa ostatnia osoba na wodzie.',
@@ -404,6 +420,19 @@ export const SOLO_PL = {
       <li><b>Bel siana</b> nie da się przesuwać. Rozbija je ustawienie tuż obok oraz wszystko, co przez nie przebiega. Bela w drewnianej ramie wymaga dwóch trafień.</li>
       <li>Skończ z zapasem ruchów, żeby dostać <b>do 3 gwiazdek</b>. Ukończony poziom daje <b>3 monety + 1 za każdą gwiazdkę</b>, do 40 monet dziennie. Potem możesz dalej piąć się po poziomach w rankingu.</li>
       <li>Koniec ruchów? Poziom zostaje ten sam, a ty dostajesz nową półkę. Klawisze: strzałki przesuwają, <b>Enter</b> podnosi zwierzaka, a strzałka go zamienia.</li>
+    </ol>`,
+  },
+  mj: {
+    name: 'Zwierzakowy mahjong', rules: `<ol>
+      <li>Plansza to stos płytek. Wskaż <b>dwie wolne płytki z tym samym obrazkiem</b>, a para znika z planszy. Zdejmij wszystkie płytki, żeby ukończyć poziom.</li>
+      <li>Płytka jest <b>wolna</b>, gdy <b>nic na niej nie leży</b> i ma <b>odsłonięty lewy albo prawy bok</b>. Płytki, które nie są wolne, są trochę ciemniejsze.</li>
+      <li>Są <b>listki, jagody i gwiazdki</b> od 1 do 9 oraz dziewięć <b>zwierzaków z Farmy</b>. Cyfra w rogu pomaga odróżnić 6 od 7.</li>
+      <li><b>Podpowiedź</b> (albo klawisz <b>H</b>) pokazuje parę i kosztuje 15 punktów.</li>
+      <li>Nie ma już pary? <b>Wymieszaj</b> miesza płytki, które zostały na planszy. Możesz też mieszać wcześniej, ale każde mieszanie kosztuje gwiazdkę.</li>
+      <li>Każda para daje <b>20 punktów</b>, a pary zdejmowane szybko jedna po drugiej dają więcej. Szybkie ukończenie to dodatkowa premia.</li>
+      <li>Do zdobycia są <b>3 gwiazdki</b>: za wyczyszczenie planszy, za zmieszczenie się w czasie na zegarze i za grę bez mieszania. Zegar chodzi tylko wtedy, gdy grasz.</li>
+      <li>Ukończony poziom daje <b>3 monety + 1 za każdą gwiazdkę</b>, do 40 monet dziennie. Potem możesz dalej piąć się po poziomach dla rankingów.</li>
+      <li>Plansze rosną od 24 do 144 płytek. <b>Nowe rozdanie</b> zaczyna poziom od nowa ze świeżymi płytkami.</li>
     </ol>`,
   },
 };
