@@ -1,19 +1,21 @@
 // Marble Rush: authoritative marble race. The server runs the physics and streams positions;
 // clients only draw. The marbles are neutral colours that nobody owns: players only bet on one.
-// Bets use the players' real account coins (the server fills in each balance at the start of a race, meta.bank).
+// A bet is a pick, not a stake: your colour's finishing place pays the usual placement coins (10 for 1st down to 1 for
+// last, out of the number of marbles), the same as every other game. Coins are never wagered (Kuba, 2026-11-24: the old
+// stakes paid n times on top of placement coins, which people farmed).
 import { makeTrack, at, rng, spinAngle, trapOpen, R, DISH, GATE_S } from '../../public/games/marbles/track.js';
 import { randomAv } from '../../public/avatar.js';
 import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'marbles', name: 'Marble Rush', minPlayers: 1, maxPlayers: 8, seats: { lo: 2, def: 4 }, bank: true };
+export const meta = { id: 'marbles', name: 'Marble Rush', minPlayers: 1, maxPlayers: 8, seats: { lo: 2, def: 4 } };
 
 const BOT_NAMES = ['Pebble', 'Gumdrop', 'Comet', 'Biscuit', 'Wobble', 'Zoomie', 'Button', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // The marbles, in the order they are added as the field grows. Shared with the client through view().
 export const MARBLES = [['Red', '#e5543b'], ['Blue', '#4f9df0'], ['Yellow', '#ffd23f'], ['Green', '#4fc27a'],
   ['Purple', '#a070f0'], ['Orange', '#ff8a2a'], ['Pink', '#ff8fc0'], ['White', '#f6efe4']];
-const START_COINS = 100, REFILL = 30, STAKES = [10, 25, 50, 100];
 const BET_MS = 20_000, COUNT_MS = 3200, GAP_MS = 4500, AFTER_FIRST_MS = 22_000, HEAT_MAX_MS = 100_000;
+const HOME = .5; // bananas only work on the first half of the track
 const DT = 1 / 60, FRAME_EVERY = 3, KEEP_FRAMES = 18;
 const G_ACC = 16, ROLL = .714;
 export const CHAOS = ['flip', 'turbo', 'quake', 'swap'];
@@ -28,31 +30,21 @@ export function cleanOpts(o = {}) {
   };
 }
 
-const walletKey = seat => seat.wk;
-
-export function create(players, optsIn = {}, prev = null) {
+export function create(players, optsIn = {}) {
   const opts = cleanOpts(optsIn);
   const used = new Set(players.map(p => p.name));
   const names = BOT_NAMES.filter(n => !used.has(n)).sort(() => Math.random() - .5);
-  const seats = players.slice(0, 8).map(p => ({ id: p.id, wk: 'h:' + p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true }));
+  const seats = players.slice(0, 8).map(p => ({ id: p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true }));
   const taken = new Set(seats.map(s => s.color.toLowerCase()));
   const cols = [...BOT_COLS.filter(c => !taken.has(c)), ...BOT_COLS];
   let bi = 0;
-  while (seats.length < opts.seats) seats.push({ id: null, wk: 'b:' + names[bi], name: names[bi], color: cols[bi++ % cols.length], av: randomAv(), bot: true, human: false });
-  const wallet = {};
-  for (const s of seats) {
-    const k = walletKey(s);
-    let c = prev?.game === 'marbles' ? prev.wallet[k] : undefined;
-    if (c === undefined) c = START_COINS;
-    if (c < STAKES[0]) c = s.bot ? REFILL : STAKES[0]; // the house spots you a small bet
-    wallet[k] = c;
-  }
+  while (seats.length < opts.seats) seats.push({ id: null, name: names[bi], color: cols[bi++ % cols.length], av: randomAv(), bot: true, human: false });
   const n = opts.field, now = Date.now(), marbles = MARBLES.slice(0, n).map(([name, color]) => ({ name, color }));
   const G = {
-    game: 'marbles', ph: 'play', stage: 'bet', gid: Math.random().toString(36).slice(2, 8), seats, marbles, opts, wallet,
+    game: 'marbles', ph: 'play', stage: 'bet', gid: Math.random().toString(36).slice(2, 8), seats, marbles, opts,
     seed: Math.random() * 2 ** 31 | 0, track: null, rnd: null,
     m: marbles.map(() => ({ s: 0, u: 0, vs: 0, vu: 0, st: 0, fallT: 0, sticky: 0, place: 0, fin: 0, out: 0 })),
-    sab: seats.map(() => false),
+    sab: seats.map(() => false), hit: marbles.map(() => false),
     bets: seats.map(() => null), heat: 0, heats: opts.mode === 'knockout' ? n - 1 : 1,
     stageEnd: now + BET_MS, simT: 0, step: 0, wall: 0, frames: [], fi: 0, firstFin: 0, placed: 0,
     chaos: null, chaosAt: 0, botSab: seats.map(() => 0),
@@ -78,7 +70,7 @@ function newHeat(G) {
   });
   G.simT = 0; G.step = 0; G.frames = []; G.firstFin = 0; G.placed = 0; G.chaos = null;
   G.chaosAt = 6 + G.rnd() * 5;
-  G.sab = G.seats.map(() => false);
+  G.sab = G.seats.map(() => false); G.hit = G.m.map(() => false);
   G.botSab = G.seats.map(() => 5 + G.rnd() * 14);
   frame(G);
 }
@@ -198,18 +190,16 @@ function sabotage(G, s, target) {
   const m = G.m[target];
   if (G.stage !== 'race' || !G.seats[s] || !m || G.sab[s]) return false;
   if (m.out || m.place || m.st !== 0) return false;
-  G.sab[s] = true;
+  // Against banana pile-ups (a group backing one marble and slipping every rival): each marble takes one banana per
+  // heat, and nobody can be slipped on the home stretch, so a banana can't snatch a race that is already decided.
+  if (G.hit[target] || m.s > G.track.L * HOME) return false;
+  G.sab[s] = true; G.hit[target] = true;
   m.vs *= .15; m.vu += (G.rnd() < .5 ? -1 : 1) * 4; m.sticky = G.simT + 1.6;
   pushEv(G, { t: 'sab', by: s, m: target });
   return true;
 }
 
-function botBet(G, s) {
-  const coins = G.wallet[walletKey(G.seats[s])];
-  const stake = STAKES.filter(x => x <= coins);
-  if (!stake.length) return;
-  G.bets[s] = { m: Math.random() * G.m.length | 0, amt: stake[Math.random() * stake.length | 0] };
-}
+function botBet(G, s) { G.bets[s] = { m: Math.random() * G.m.length | 0 }; }
 
 // ---------- flow ----------
 function ranking(G) { // racing order right now: finished first, then by distance
@@ -238,15 +228,10 @@ function endHeat(G) {
 function finish(G, lastOrder) {
   // final standings: the last heat's order, then knocked-out marbles, latest first
   const outs = G.m.map((m, i) => i).filter(i => !lastOrder.includes(i)).sort((a, b) => G.m[b].out - G.m[a].out);
-  const order = [...lastOrder, ...outs], w = order[0], n = G.m.length;
-  const pay = G.seats.map((seat, s) => {
-    const b = G.bets[s], k = walletKey(seat);
-    const won = b && b.m === w ? b.amt * n : 0;
-    G.wallet[k] += won;
-    return { bet: b, won, net: won - (b ? b.amt : 0), coins: G.wallet[k] };
-  });
+  const order = [...lastOrder, ...outs], w = order[0];
+  const pay = G.seats.map((_, s) => { const b = G.bets[s]; return { bet: b, won: !!b && b.m === w, place: b ? order.indexOf(b.m) + 1 : 0 }; });
   G.ph = 'end'; G.stage = 'end'; G.win = w; G.endAt = Date.now();
-  G.res = { order, pay, mult: n };
+  G.res = { order, pay };
   pushEv(G, { t: 'end', w });
 }
 
@@ -254,11 +239,9 @@ export function act(G, s, a) {
   if (!a || typeof a !== 'object' || s < 0 || !G.seats[s]?.human) return false;
   if (a.t === 'bet') {
     if (G.stage !== 'bet') return false;
-    const m = +a.m, coins = G.wallet[walletKey(G.seats[s])];
+    const m = +a.m;
     if (!Number.isInteger(m) || !G.m[m]) return false;
-    const amt = Math.min(coins, a.amt === 'all' ? STAKES.at(-1) : STAKES.includes(+a.amt) ? +a.amt : 0); // older pages may still send 'all'
-    if (amt <= 0) return false;
-    G.bets[s] = { m, amt };
+    G.bets[s] = { m };
     return true;
   }
   if (a.t === 'nobet') { if (G.stage !== 'bet' || !G.bets[s]) return false; G.bets[s] = null; return true; }
@@ -279,12 +262,6 @@ export function tick(G, now = Date.now()) {
     if (undecided(G).length) return false; // betting stays open until everyone here has bet
     if (G.seats.some(x => x.human && !x.bot) && G.stageEnd - now > 3000) G.stageEnd = now + 3000;
     if (now < G.stageEnd) return false;
-    for (let s = 0; s < G.seats.length; s++) { // stakes leave the wallet when betting closes
-      const b = G.bets[s]; if (!b) continue;
-      const k = walletKey(G.seats[s]);
-      b.amt = Math.min(b.amt, G.wallet[k]); G.wallet[k] -= b.amt;
-      if (b.amt <= 0) G.bets[s] = null;
-    }
     G.stage = 'count'; G.stageEnd = now + COUNT_MS;
     pushEv(G, { t: 'count' });
     return true;
@@ -312,7 +289,7 @@ export function tick(G, now = Date.now()) {
     }
     for (let s = 0; s < G.seats.length; s++) { // bots (and away players) throw their banana at the leader, unless it's their pick
       if (!G.seats[s].bot || G.sab[s] || G.simT < G.botSab[s]) continue;
-      const lead = ranking(G).find(i => i !== G.bets[s]?.m && !G.m[i].place && G.m[i].st === 0);
+      const lead = ranking(G).find(i => i !== G.bets[s]?.m && !G.m[i].place && G.m[i].st === 0 && !G.hit[i] && G.m[i].s <= G.track.L * HOME);
       if (lead === undefined || !sabotage(G, s, lead)) G.botSab[s] = G.simT + 3;
     }
     stepSim(G);
@@ -339,22 +316,23 @@ export function view(G, s) {
     left: Math.max(0, G.stageEnd - now), simT: Math.round(G.simT * 1000), win: G.win,
     seats: G.seats.map((x, i) => ({
       name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id,
-      coins: G.wallet[walletKey(x)], bet: G.bets[i], sab: G.sab[i],
+      bet: G.bets[i], sab: G.sab[i],
     })),
-    marbles: G.marbles.map((x, i) => ({ name: x.name, color: x.color, out: G.m[i].out, place: G.m[i].place })),
+    marbles: G.marbles.map((x, i) => ({ name: x.name, color: x.color, out: G.m[i].out, place: G.m[i].place, hit: G.hit[i] })),
+    home: HOME,
     chaos: G.chaos ? { k: G.chaos.k, left: Math.max(0, Math.round((G.chaos.until - G.simT) * 1000)) } : null,
     frames: G.stage === 'race' ? G.frames : G.frames.slice(-1),
-    res: G.res, ev: G.ev, mult: G.m.length,
+    res: G.res, ev: G.ev, n: G.m.length,
   };
 }
 
 // Per-seat outcome of a finished race: 10 points for every marble your colour beat, plus 15 if it won.
-// No bet, no points.
+// No pick, no points and no coins. place/of: your colour's finish out of all the marbles pays the placement coins.
 export function results(G) {
   if (G.ph !== 'end' || !G.res) return null;
   const n = G.m.length;
   return G.seats.map((_, i) => {
-    const pay = G.res.pay[i], place = pay.bet ? G.res.order.indexOf(pay.bet.m) : n - 1; // place/of: your colour's finish pays the coins
-    return { pts: pay.bet ? (n - 1 - place) * 10 + (pay.won > 0 ? 15 : 0) : 0, win: pay.won > 0, place: place + 1, of: n, coins: pay.coins, idle: !pay.bet, coinNet: pay.net };
+    const pay = G.res.pay[i], place = pay.bet ? pay.place : n;
+    return { pts: pay.bet ? (n - place) * 10 + (pay.won ? 15 : 0) : 0, win: pay.won, place, of: n, idle: !pay.bet };
   });
 }

@@ -39,7 +39,7 @@ export function mount(app, ctx) {
     <div class="tint" aria-hidden="true"></div>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
-      <div class="tl"><span class="chip" id="mr-mode"></span><span class="chip coins" id="mr-coins"></span></div>
+      <div class="tl"><span class="chip" id="mr-mode"></span></div>
       <div class="tr"><span class="tcode" id="mr-code"></span>
         <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
@@ -56,7 +56,7 @@ export function mount(app, ctx) {
   const root = app.querySelector('.mr'), $ = id => root.querySelector('#' + id);
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0;
-  let stake = 25, follow = 'lead', picking = false, order = [], live = null, tagEls = [], tagKey = '';
+  let follow = 'lead', picking = false, order = [], live = null, tagEls = [], tagKey = '';
   let resultsTimer = 0, bigTimer = 0, lastCount = -1, endsAt = 0, boardAt = 0;
 
   import('./scene3d.js').then(m => {
@@ -75,8 +75,10 @@ export function mount(app, ctx) {
   const mName = i => { const n = S.marbles[i]?.name; return esc(PL ? MARBLE_PL[n] || n : n); };
   const ball = (i, size = 28) => `<i class="ball" style="--c:${S.marbles[i].color};--z:${size}px"></i>`;
   const racing = i => !S.marbles[i].out;
+  // A banana can land on a marble that is rolling, has not been slipped yet this heat and is still in the first part of the track.
+  const hittable = i => racing(i) && !S.marbles[i].place && !S.marbles[i].hit && live?.st?.[i] === 0 && (live?.s?.[i] ?? 0) <= (live?.L ?? 0) * (S.home ?? 1);
   const backers = i => S.seats.map((p, k) => (p.bet?.m === i ? k : -1)).filter(k => k >= 0);
-  const backerHtml = (i, size) => backers(i).map(k => `<i title="${esc(S.seats[k].name)}${L(' bet ', ': zakład ')}${S.seats[k].bet.amt}">${avatarHtml(S.seats[k].color, S.seats[k].av, size)}</i>`).join('');
+  const backerHtml = (i, size) => backers(i).map(k => `<i title="${esc(S.seats[k].name)}${L(' picked this', ': ten kolor')}">${avatarHtml(S.seats[k].color, S.seats[k].av, size)}</i>`).join('');
   const undecided = () => S.seats.map((_, i) => i).filter(i => S.seats[i].human && !S.seats[i].bot && !S.seats[i].bet);
   const yours = i => (i === myPick() ? L('Your pick, ', 'Twój typ, ') : '');
 
@@ -110,7 +112,7 @@ export function mount(app, ctx) {
     if (S.stage === 'race' && now - boardAt > 200) { boardAt = now; renderBoard(); }
   }
 
-  // A marble's tag shows who has coins on it. Your own pick gets the bobbing arrow instead.
+  // A marble's tag shows who picked it. Your own pick gets the bobbing arrow instead.
   function buildTags() {
     const key = S.seats.map(p => p.color + p.av.join('') + (p.bet?.m ?? '')).join('|') + S.me + '/' + S.marbles.length;
     if (key === tagKey) return; tagKey = key;
@@ -139,9 +141,9 @@ export function mount(app, ctx) {
     const el = $('mr-board');
     if (S.stage === 'bet') { el.hidden = true; return; }
     el.hidden = false;
-    const ord = liveOrder(), key = ord.join(',') + '|' + S.marbles.map(p => `${p.place}${p.out}`).join('') + '|' + S.seats.map(p => p.bet?.m ?? '').join() + '|' + (live?.target ?? '') + picking + (live?.st || []).join('');
+    const ord = liveOrder(), key = ord.join(',') + '|' + S.marbles.map(p => `${p.place}${p.out}`).join('') + '|' + S.seats.map(p => p.bet?.m ?? '').join() + '|' + (live?.target ?? '') + picking + (live?.st || []).join('') + (picking ? S.marbles.map((_, i) => hittable(i) ? 1 : 0).join('') : '');
     if (key === renderBoard.key) return; renderBoard.key = key;
-    const pick = myPick(), canHit = i => picking && racing(i) && !S.marbles[i].place && live?.st?.[i] === 0;
+    const pick = myPick(), canHit = i => picking && hittable(i);
     el.innerHTML = ord.map((i, n) => {
       const p = S.marbles[i], out = !racing(i);
       const status = out ? L('out', 'odpada') : p.place && S.stage !== 'count' ? '🏁' : live?.st?.[i] === 1 ? L('oops!', 'ups!') : '';
@@ -157,14 +159,13 @@ export function mount(app, ctx) {
     const el = $('mr-bet'), my = me();
     el.hidden = S.stage !== 'bet';
     if (el.hidden) return;
-    const coins = my ? my.coins : 0;
-    setHtml(el, `<div class="bethead"><h2>${L(`Pick a colour`, `Wybierz kolor`)}</h2><span>${L(`The winning colour pays`, `Zwycięski kolor płaci`)} <b>${S.mult}×</b>${my ? ` · ${L('you have', 'masz')} ${I.coin}<b>${coins}</b>` : ''}</span></div>
+    setHtml(el, `<div class="bethead"><h2>${L(`Pick a colour`, `Wybierz kolor`)}</h2><span>${L(`Your colour's finish pays`, `Miejsce twojego koloru daje`)} ${I.coin}<b>10</b> ${L('for 1st, down to', 'za 1., aż do')} ${I.coin}<b>1</b> ${L('for last', 'za ostatnie')}</span></div>
       <div class="picks">${S.marbles.map((p, i) => `<button type="button" class="pick${my?.bet?.m === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${my ? '' : 'disabled'} aria-pressed="${my?.bet?.m === i}">
         ${ball(i, 46)}<b ${fitw(mName(i))}>${mName(i)}</b>
         <span class="backers">${backerHtml(i, 20)}</span></button>`).join('')}</div>
-      ${my ? `<div class="stakes"><span>${L(`Stake`, `Stawka`)}</span><div class="pills">${[10, 25, 50, 100].map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins && v > 10 ? 'disabled' : ''}>${v}</button>`).join('')}</div>
-        ${my.bet ? `<span class="mybet">${I.coin}<b>${my.bet.amt}</b> ${L('on', 'na kolor:')} ${mName(my.bet.m)} <button type="button" class="link" data-a="nobet">${L('remove', 'usuń')}</button></span>` : `<span class="mybet">${L('Tap a marble to bet on its colour. The race starts once everyone has bet.', 'Dotknij kulki, żeby postawić na jej kolor. Wyścig rusza, gdy wszyscy obstawią.')}</span>`}
-        ${ctx.isHost() ? `<button type="button" class="btn m" data-a="ready" ${undecided().length ? 'disabled' : ''}>${undecided().length ? L('Waiting for bets', 'Czekamy na zakłady') : L('Start the race', 'Rozpocznij wyścig')}</button>` : ''}</div>` : `<div class="stakes"><span class="mybet">${L('You are watching this race.', 'Oglądasz ten wyścig.')}</span></div>`}`);
+      ${my ? `<div class="stakes">
+        ${my.bet ? `<span class="mybet">${L('Your pick:', 'Twój typ:')} <b>${mName(my.bet.m)}</b> <button type="button" class="link" data-a="nobet">${L('remove', 'usuń')}</button></span>` : `<span class="mybet">${L('Tap a marble to pick its colour. The race starts once everyone has picked.', 'Dotknij kulki, żeby wybrać jej kolor. Wyścig rusza, gdy wszyscy wybiorą.')}</span>`}
+        ${ctx.isHost() ? `<button type="button" class="btn m" data-a="ready" ${undecided().length ? 'disabled' : ''}>${undecided().length ? L('Waiting for picks', 'Czekamy na wybory') : L('Start the race', 'Rozpocznij wyścig')}</button>` : ''}</div>` : `<div class="stakes"><span class="mybet">${L('You are watching this race.', 'Oglądasz ten wyścig.')}</span></div>`}`);
   }
 
   function renderRace() {
@@ -176,14 +177,13 @@ export function mount(app, ctx) {
     const cam = (k, label, ok = true) => ok ? `<button type="button" data-a="cam" data-k="${k}" aria-pressed="${follow === k}">${label}</button>` : '';
     setHtml(el, `<div class="cams"><span>${L(`Camera`, `Kamera`)}</span><div class="pills">${cam('lead', L('Leader', 'Lider'))}${cam('bet', L('My pick', 'Mój typ'), !!my?.bet && racing(my.bet.m))}</div></div>
       ${my ? `<button type="button" class="btn ${picking ? 'w' : 'p'} sab" data-a="sab" ${canSab ? '' : 'disabled'}>${I.banana}${my.sab ? L('Banana thrown', 'Banan rzucony') : picking ? L('Cancel', 'Anuluj') : L('Throw banana', 'Rzuć bananem')}</button>` : ''}
-      ${picking ? `<p class="hint">${L('Pick a colour on the left to slip it up. One banana per heat!', 'Wybierz kolor po lewej, żeby kulka się poślizgnęła. Jeden banan na bieg!')}</p>` : ''}`);
+      ${picking ? `<p class="hint">${L('Pick a colour on the left to slip it up. One banana per heat, each marble can be slipped once, and only in the first half of the track!', 'Wybierz kolor po lewej, żeby kulka się poślizgnęła. Jeden banan na bieg, każdą kulkę można trafić raz i tylko w pierwszej połowie toru!')}</p>` : ''}`);
   }
 
   function render() {
     if (!S) return;
     $('mr-mode').textContent = S.mode === 'knockout' ? L(`Knockout · heat ${S.heat} of ${S.heats}`, `Eliminacje · bieg ${S.heat} z ${S.heats}`) : L('Classic race', 'Klasyczny wyścig');
     const my = me();
-    setHtml($('mr-coins'), my ? `${I.coin}${my.coins}` : L('Watching', 'Oglądasz'));
     $('mr-code').textContent = Rm?.code || '';
     buildTags(); renderBet(); renderRace(); renderBanner(); renderBoard();
     root.classList.toggle('picking', picking);
@@ -194,7 +194,7 @@ export function mount(app, ctx) {
     const secs = Math.max(0, Math.ceil((endsAt - performance.now()) / 1000));
     if (S.stage === 'bet') {
       const w = undecided();
-      msg = !secs && w.length ? (w.includes(S.me) ? L('Pick a colour to start the race', 'Wybierz kolor, żeby wyścig ruszył') : L(`Waiting for ${w.slice(0, 3).map(i => S.seats[i].name).join(', ')}${w.length > 3 ? '…' : ''} to bet`, `Czekamy na zakłady: ${w.slice(0, 3).map(i => S.seats[i].name).join(', ')}${w.length > 3 ? '…' : ''}`)) : L(`Place your bets · ${secs}s`, `Obstawiajcie · ${secs} s`);
+      msg = !secs && w.length ? (w.includes(S.me) ? L('Pick a colour to start the race', 'Wybierz kolor, żeby wyścig ruszył') : L(`Waiting for ${w.slice(0, 3).map(i => S.seats[i].name).join(', ')}${w.length > 3 ? '…' : ''} to pick`, `Czekamy na wybór: ${w.slice(0, 3).map(i => S.seats[i].name).join(', ')}${w.length > 3 ? '…' : ''}`)) : L(`Pick your colours · ${secs}s`, `Wybierajcie kolory · ${secs} s`);
     }
     else if (S.stage === 'count') msg = S.mode === 'knockout' ? L(`Heat ${S.heat}: last marble home is out`, `Bieg ${S.heat}: ostatnia kulka na mecie odpada`) : L('Marbles at the gate…', 'Kulki na starcie…');
     else if (S.stage === 'race') {
@@ -244,7 +244,6 @@ export function mount(app, ctx) {
     if (fresh) {
       gid = s.gid; hideResults(); clearTimeout(resultsTimer); follow = 'lead'; picking = false; lastCount = -1;
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
-      const coins = me()?.coins ?? 0; stake = coins >= 25 ? 25 : 10;
       if (s.ph === 'end') showResults(); else if (s.stage === 'bet') sfx.draw();
     }
     endsAt = performance.now() + s.left;
@@ -257,17 +256,17 @@ export function mount(app, ctx) {
   function showResults() {
     if (!S || S.ph !== 'end' || !S.res) return;
     const el = root.querySelector('.results'), w = S.win, my = S.me >= 0 ? S.res.pay[S.me] : null;
-    const line = my ? (my.net > 0 ? L(`You're up ${I.coin}<b>${my.net}</b> this race.`, `W tym wyścigu zyskujesz ${I.coin}<b>${my.net}</b>.`) : my.net < 0 ? L(`You dropped ${I.coin}<b>${-my.net}</b> this race.`, `W tym wyścigu tracisz ${I.coin}<b>${-my.net}</b>.`) : L('You broke even this race.', 'W tym wyścigu wychodzisz na zero.')) : '';
-    const seats = S.seats.map((_, i) => i).sort((a, b) => S.res.pay[b].net - S.res.pay[a].net);
+    const line = my?.bet ? L(`Your pick ${mName(my.bet.m)} came ${ORD(my.place)}.`, `Twój typ ${mName(my.bet.m)}: miejsce ${my.place}.`) : my ? L('You did not pick a colour this race.', 'W tym wyścigu nie wybrano koloru.') : '';
+    const seats = S.seats.map((_, i) => i).sort((a, b) => (S.res.pay[a].place || 99) - (S.res.pay[b].place || 99));
     el.innerHTML = `<div class="sheet">
       <h2>${ball(w, 34)}${L(`${mName(w)} wins!`, `${mName(w)} wygrywa!`)}</h2>
       <ol class="finish" aria-label="${L(`Finishing order`, `Kolejność na mecie`)}">${S.res.order.map((i, n) => `<li class="${i === myPick() ? 'me' : ''}" title="${L(ORD(n + 1) + ':', (n + 1) + '.')} ${mName(i)}"><small>${n + 1}</small>${ball(i, 26)}</li>`).join('')}</ol>
-      <p>${line} ${L('Coins stay with this table for the next race.', 'Monety zostają przy tym stole na następny wyścig.')}</p>
+      <p>${line}</p>
       <ol class="score">${seats.map((i, n) => {
         const p = S.seats[i], pay = S.res.pay[i], b = pay.bet;
         return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${b ? L(`bet ${b.amt} on ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(S.res.order.indexOf(b.m) + 1)}`, `zakład ${b.amt}: ${ball(b.m, 14)}${mName(b.m)}, miejsce ${S.res.order.indexOf(b.m) + 1}`) : L('no bet', 'bez zakładu')}</span></div>
-          <strong class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}<small>${I.coin}${pay.coins}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${b ? L(`picked ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(pay.place)}`, `typ: ${ball(b.m, 14)}${mName(b.m)}, miejsce ${pay.place}`) : L('no pick', 'bez wyboru')}</span></div>
+          <strong>${b ? pay.place : '–'}</strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Race again', 'Ścigajcie się jeszcze raz'))}</div></div>`;
     el.hidden = false; votes = (Rm?.again || []).length;
@@ -332,11 +331,8 @@ export function mount(app, ctx) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
-    if (a === 'bet') { sfx.pop(); ctx.act({ t: 'bet', m: +b.dataset.i, amt: stake }); }
-    else if (a === 'stake') {
-      stake = +b.dataset.v; sfx.click();
-      const cur = me()?.bet; if (cur) ctx.act({ t: 'bet', m: cur.m, amt: stake }); else renderBet();
-    } else if (a === 'nobet') { sfx.click(); ctx.act({ t: 'nobet' }); }
+    if (a === 'bet') { sfx.pop(); ctx.act({ t: 'bet', m: +b.dataset.i }); }
+    else if (a === 'nobet') { sfx.click(); ctx.act({ t: 'nobet' }); }
     else if (a === 'ready') { sfx.click(); ctx.act({ t: 'ready' }); }
     else if (a === 'cam') { sfx.click(); follow = b.dataset.k; renderRace(); sync(); }
     else if (a === 'sab') { sfx.click(); picking = !picking; renderBoard.key = ''; render(); }

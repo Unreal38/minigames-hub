@@ -91,8 +91,6 @@ button, .btn, h4, th, legend { text-wrap: balance; }
 .brand { display: flex; align-items: center; gap: 10px; font-family: var(--fd); font-weight: 700; font-size: 27px; color: var(--cream); text-decoration: none; }
 .brand .steam path { animation: steam 2.4s ease-in-out infinite; }
 .brand b { color: var(--lantern); font-weight: 700; } .sitelogo { overflow: visible; flex: none; }
-.navl { display: flex; gap: 22px; font-family: var(--fd); font-weight: 500; }
-.navl a { color: var(--cream); text-decoration: none; } .navl a:hover { color: var(--lantern); }
 .me { display: flex; align-items: center; gap: 10px; background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 4px 16px 4px 4px; font-family: var(--fd); font-weight: 600; cursor: pointer; color: var(--cream); min-height: 48px; }
 .me small { opacity: .6; font-weight: 400; font-size: 15px; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 max(4vw, 16px); }
@@ -290,7 +288,6 @@ footer { padding: 22px; text-align: center; font-size: 14px; color: #a97b93; bor
 @keyframes toast { 0% { opacity: 0; transform: translateY(-14px) scale(.8); } 10%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); } }
 
 @media (max-width: 600px) {
-  .navl { display: none; }
   .hero { padding-top: 24px; }
   .codeform { width: 100%; } .codeform label { flex: 1; }
   .sheet { padding: 22px; }
@@ -661,7 +658,6 @@ body.sky:not(.in-game) .top { border-bottom: 0; }
 body.sky:not(.in-game) .brand, body.sky:not(.in-game) section h2, body.sky:not(.in-game) .sidehead h2 { color: #fff; paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink); text-shadow: 0 3px 0 var(--ink); letter-spacing: .5px; }
 body.sky:not(.in-game) .brand { -webkit-text-stroke-width: 5px; }
 body.sky:not(.in-game) .rk .who em { color: #d9532f; }
-body.sky:not(.in-game) .navl a { color: #fff; font-weight: 600; text-shadow: 0 2px 0 #3b221999; } body.sky:not(.in-game) .navl a:hover { color: #fff6a8; }
 body.sky:not(.in-game) .me { background: var(--pan); border-color: var(--tx); color: var(--tx); box-shadow: 0 4px 0 var(--ink); }
 body.sky:not(.in-game) .hero h1 { color: #fff; paint-order: stroke fill; -webkit-text-stroke: 7px var(--ink); text-shadow: 0 5px 0 var(--ink); letter-spacing: 1px; }
 body.sky:not(.in-game) .hero p { color: var(--tx2); font-weight: 600; }
@@ -748,7 +744,6 @@ body.sky.night:not(.in-game)::after { content: ''; position: fixed; inset: 0; z-
   background-size: 380px 280px; animation: twinkle 4s ease-in-out infinite alternate; }
 @keyframes twinkle { from { opacity: .55; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { body.sky.night:not(.in-game)::after { animation: none; } }
-body.sky.night:not(.in-game) .navl a { text-shadow: 0 2px 0 #000a; }
 body.sky.night:not(.in-game) .tcode, body.sky.night:not(.in-game) .rk .pos, body.sky.night:not(.in-game) .rk .who em { color: var(--lantern); }
 /* in a game at night the room code sits straight on the dark sky, so it turns lantern gold like the hub's codes */
 body.night .tr .tcode, body.night .pw .tcode { color: var(--lantern); }

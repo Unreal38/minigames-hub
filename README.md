@@ -64,7 +64,7 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Game #34: Kalambury (Sketch & Guess)**, the draw-and-guess party game for 2 to 8 people, with no bots. Each turn one player picks one of three words and draws it on an easel on a sky island while the others type guesses; a right guess is kept secret, a near miss is told only to the guesser, and the word is starred out of the table chat. Faster guesses score more (100 down to 40) and the drawer scores the average of the guessers. Words come in Polish and English (about 700 each, in six themes) plus a Pet Farm pets theme where the drawer sees the pet's picture. The board is the page's own canvas laid over the 3D easel, so it is sharp and works with a finger; strokes are streamed as they are drawn through the `fast()` hook, and each screen only gets the strokes it has not had yet.
 
-**Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Marble Rush and Mini Golf Party bet them, and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
+**Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Mini Golf Party bets them, and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
 - Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
@@ -93,9 +93,9 @@ Open two browser windows (or one normal and one private window) to play against 
 ## Marble Rush rules
 
 - 1 to 8 players, with bots betting from empty seats up to 4. The track has 4, 6 or 8 coloured marbles (host's choice) and nobody owns one.
-- The race starts once every player at the table has bet (the host can start it early from then on; players who are away do not hold it up). The winning colour pays your stake times the number of marbles, and several players can back the same colour.
+- The race starts once every player at the table has bet (the host can start it early from then on; players who are away do not hold it up). Nobody stakes coins: where your colour finishes pays the usual placement coins (10 for 1st down to 1 for last, out of the number of marbles), like every other game. Several players can pick the same colour.
 - Bets use your account coins (see Coins and the avatar shop). Stakes are 10, 25, 50 or 100, and anyone with under 10 coins is spotted a 10-coin bet.
-- Each player has one banana per heat: it slows one marble of your choice for a moment.
+- Each player has one banana per heat: it slows one marble of your choice for a moment. Each marble can only be slipped once per heat, and only in the first half of the track, so a group can't banana every rival of their marble.
 - Chaos events (gravity flip, turbo, marblequake, switcheroo) can be switched off by the host.
 - Knockout runs short heats on a fresh track each time. The last marble home is out until one is left.
 - The server runs the physics and streams positions, so everyone sees the same race and nobody can cheat from devtools.
