@@ -16,9 +16,11 @@ import { L, PL } from './i18n.js';
 
 export const COS = {
   nm: { label: 'Name colour', items: [{ n: 'Plain' }, { n: 'Sunset', p: 120 }, { n: 'Ocean', p: 120 }, { n: 'Mint', p: 100 }, { n: 'Candy', p: 150 },
-    { n: 'Gold', p: 220 }, { n: 'Fire', p: 220 }, { n: 'Rainbow', p: 300 }, { n: 'Sparkle', p: 260 }, { n: 'Frost', p: 160, s: 'winter' }, { n: 'Spooky', p: 160, s: 'halloween' }, { n: 'Latte', pk: 'kofi' }] },
+    { n: 'Gold', p: 220 }, { n: 'Fire', p: 220 }, { n: 'Rainbow', p: 300 }, { n: 'Sparkle', p: 260 }, { n: 'Frost', p: 160, s: 'winter' }, { n: 'Spooky', p: 160, s: 'halloween' }, { n: 'Latte', pk: 'kofi' },
+    { n: 'Blossom', p: 160, s: 'spring' }, { n: 'Tropical', p: 160, s: 'summer' }, { n: 'Thunder', p: 180 }, { n: 'Pebble', p: 120 }] },
   fr: { label: 'Profile frame', items: [{ n: 'None' }, { n: 'Cloud', p: 120 }, { n: 'Vine', p: 120 }, { n: 'Hearts', p: 140 }, { n: 'Stars', p: 180 },
-    { n: 'Gold', p: 250 }, { n: 'Flame', p: 220 }, { n: 'Rainbow', p: 280 }, { n: 'Snow', p: 160, s: 'winter' }, { n: 'Coffee ring', pk: 'kofi' }] },
+    { n: 'Gold', p: 250 }, { n: 'Flame', p: 220 }, { n: 'Rainbow', p: 280 }, { n: 'Snow', p: 160, s: 'winter' }, { n: 'Coffee ring', pk: 'kofi' },
+    { n: 'Blossom', p: 160, s: 'spring' }, { n: 'Seashells', p: 160, s: 'summer' }, { n: 'Pumpkins', p: 160, s: 'halloween' }, { n: 'Lightning', p: 200 }, { n: 'Pebbles', p: 140 }] },
   // Card backgrounds: what sits behind your name wherever your card shows (waiting rooms, your profile card, the wardrobe plate, the account menu).
   // The art is CSS and SVG (style.css .pbN, public/cardbg/). t: 'p' pattern, 's' game scene, 'a' animated, 'e' earned. d: dark art, so the text on it turns light.
   pb: { label: 'Card background', items: [{ n: 'None' },
@@ -34,9 +36,11 @@ export const COS = {
     { n: 'Regular', earn: { n: 25 } }, { n: 'Champion', earn: { w: 50 } },
     { n: 'Snack Lord', p: 100 }, { n: 'Lucky Duck', p: 100 }, { n: 'Just Vibing', p: 80 }, { n: 'Sore Loser', p: 80 }, { n: 'Bot Bully', p: 120 },
     { n: 'Certified Goblin', p: 150 }, { n: 'Big Spender', p: 400 },
-    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }, { n: 'Party Roller', earn: { g: 'pips', w: 5 } }, { n: 'Bullseye', earn: { g: 'darts', w: 5 } }, { n: 'Coffee’s on me', pk: 'kofi' }, { n: 'Three in a Row', earn: { g: 'ttt', w: 5 } }, { n: 'Double Six', earn: { g: 'domino', w: 5 } }, { n: 'Parade Leader', earn: { g: 'parade', w: 5 } }, { n: 'Coconut Captain', earn: { g: 'cove', w: 5 } }, { n: 'Eagle Eye', earn: { g: 'bingo', w: 5 } }] },
+    { n: 'Trick Taker', earn: { g: 'tys', w: 5 } }, { n: 'Brick Boss', earn: { g: 'bricks', w: 5 } }, { n: 'Bean Bouncer', earn: { g: 'bean', w: 5 } }, { n: 'Pet Detective', earn: { d: 7 } }, { n: 'Party Roller', earn: { g: 'pips', w: 5 } }, { n: 'Bullseye', earn: { g: 'darts', w: 5 } }, { n: 'Coffee’s on me', pk: 'kofi' }, { n: 'Three in a Row', earn: { g: 'ttt', w: 5 } }, { n: 'Double Six', earn: { g: 'domino', w: 5 } }, { n: 'Parade Leader', earn: { g: 'parade', w: 5 } }, { n: 'Coconut Captain', earn: { g: 'cove', w: 5 } }, { n: 'Eagle Eye', earn: { g: 'bingo', w: 5 } },
+    { n: 'Bubble Buster', earn: { g: 'lagoon', w: 5 } }, { n: 'Nine of Hearts', earn: { g: 'pan', w: 5 } }, { n: 'Pair Master', earn: { g: 'piotr', w: 5 } }, { n: 'Pet Collector', earn: { sp: 20 } }] },
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
-    { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' }] },
+    { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' },
+    { n: 'Blossoms', p: 180, s: 'spring' }, { n: 'Bubbles', p: 180, s: 'summer' }, { n: 'Bats', p: 180, s: 'halloween' }, { n: 'Paw prints', p: 160 }] },
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
     { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }, { n: 'Café', pk: 'kofi', e: ['☕', '🥐', '🍩', '🧋', '🍪', '🫶'] },
     { n: 'Grumpy', p: 120, e: ['😤', '😠', '😡', '💢', '😾', '🙄'] }, { n: 'Drama', earn: { n: 50 }, e: ['🥺', '😩', '😱', '🤯', '💔', '🧂'] },
@@ -44,12 +48,13 @@ export const COS = {
     { n: 'Sleepy', p: 100, e: ['😴', '🥱', '💤', '🌙', '🛌', '🧸'] }, { n: 'Hmm', p: 100, e: ['🤔', '🧐', '🤨', '😏', '🤫', '🫣'] },
     { n: 'Winter', p: 100, s: 'winter', e: ['⛄', '🎄', '🎁', '🧣', '🦌', '🔔'] }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
-  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' }] },
+  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' },
+    { n: 'Leaf', p: 150 }, { n: 'Ember', p: 150 }, { n: 'Tide', p: 150 }, { n: 'Spark', p: 150 }, { n: 'Stone', p: 150 }] }, // the Pet Farm's five elements
   // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
   dc: { label: 'Dice', where: 'Your dice in Liar’s Dice, Pip Party, Ludo, Snakes & Ladders and Pawperty.', items: [{ n: 'Classic' }, { n: 'Ruby gem', p: 100 }, { n: 'Carved jade', p: 100 }, { n: 'Bubblegum', p: 100 }, { n: 'Starry midnight', p: 120 }, { n: 'Solid gold', p: 250 },
     { n: 'Oak wood', p: 120 }, { n: 'Ice crystal', p: 220 }, { n: 'Paw prints', p: 150 }, { n: 'Lava rock', p: 200 }, { n: 'Snowball', p: 160, s: 'winter' }, { n: 'Choc-chip cookie', p: 140 }, { n: 'Mossy stone', p: 150 }, { n: 'Pixel', p: 120 }, { n: 'Sugar cube', pk: 'kofi' }] },
-  gb: { label: 'Golf ball', where: 'Your ball in Mini Golf Party.', items: [{ n: 'Classic' }, { n: '8-ball', p: 100 }, { n: 'Watermelon', p: 120 }, { n: 'Planet', p: 150 }, { n: 'Eyeball', p: 150 }, { n: 'Gold', p: 250 }, { n: 'Latte art', pk: 'kofi' }] },
-  kp: { label: 'Kart paint', where: 'Your kart in Kart Island Race.', items: [{ n: 'Classic' }, { n: 'Racing stripes', p: 120 }, { n: 'Checkers', p: 120 }, { n: 'Flames', p: 150 }, { n: 'Galaxy', p: 200 }, { n: 'Gold', p: 300 }, { n: 'Mocha', pk: 'kofi' }] },
+  gb: { label: 'Golf ball', where: 'Your ball in Mini Golf Party.', items: [{ n: 'Classic' }, { n: '8-ball', p: 100 }, { n: 'Watermelon', p: 120 }, { n: 'Planet', p: 150 }, { n: 'Eyeball', p: 150 }, { n: 'Gold', p: 250 }, { n: 'Latte art', pk: 'kofi' }, { n: 'Bubble', p: 150 }, { n: 'Fireball', p: 150 }, { n: 'Beach ball', p: 120, s: 'summer' }] },
+  kp: { label: 'Kart paint', where: 'Your kart in Kart Island Race.', items: [{ n: 'Classic' }, { n: 'Racing stripes', p: 120 }, { n: 'Checkers', p: 120 }, { n: 'Flames', p: 150 }, { n: 'Galaxy', p: 200 }, { n: 'Gold', p: 300 }, { n: 'Mocha', pk: 'kofi' }, { n: 'Lightning', p: 180 }, { n: 'Ocean waves', p: 150 }, { n: 'Candy stripes', p: 150 }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
   // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
@@ -64,12 +69,12 @@ export const COS_KEYS = Object.keys(COS);
 export const WORN = COS_KEYS.filter(k => !COS[k].multi);
 export const DECOR_SLOTS = 3;
 // The game pieces that float round a player's isle. Free: cos.fp lists the ones picked, in order (none saved = the classic set, an empty list = none).
-export const PIECES = { marble: 'Marble', die: 'Die', pawn: 'Ludo pawn', card: 'Card', chip: 'Poker chip', golf: 'Golf ball', block: 'Tower blocks', tyre: 'Kart tyre', coin: 'Coin', star: 'Star', bean: 'Magic bean', pot: 'Hot pot', paw: 'Paw print' };
+export const PIECES = { marble: 'Marble', die: 'Die', pawn: 'Ludo pawn', card: 'Card', chip: 'Poker chip', golf: 'Golf ball', block: 'Tower blocks', tyre: 'Kart tyre', coin: 'Coin', star: 'Star', bean: 'Magic bean', pot: 'Hot pot', paw: 'Paw print', dart: 'Dart', bubble: 'Bubble', egg: 'Pet egg' };
 export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 'chip', 'golf'];
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
-  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', lagoon: 'Bubble Lagoon', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś', ttt: 'Tic-Tac-Toe', bj: 'Blackjack', domino: 'Dominoes', parade: 'Pet Parade', cove: 'Cove Clash', pool: 'Sky Pool', bingo: 'Sky Bingo' };
+  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', lagoon: 'Bubble Lagoon', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś', ttt: 'Tic-Tac-Toe', bj: 'Blackjack', domino: 'Dominoes', parade: 'Pet Parade', cove: 'Cove Clash', pool: 'Sky Pool', bingo: 'Sky Bingo', pan: 'Pan' };
 
 if (PL) { Object.assign(GAME_NAMES, { hotpot: 'Gorący kociołek', kart: 'Wyspiarskie gokarty', marbles: 'Wyścig kulek', ladders: 'Węże i drabiny', ludo: 'Chińczyk', stack: 'Chwiejna wieża',
   golf: 'Imprezowy minigolf', dice: 'Kości kłamcy', paw: 'Łapolis', kitchen: 'Gorączka w kuchni', dig: 'Poszukiwacze skarbów', bricks: 'Podniebne klocki', lagoon: 'Bąbelkowa laguna', bean: 'Fasolowe skoki', pips: 'Oczkomania', darts: 'Podniebne rzutki', ttt: 'Kółko i krzyżyk', domino: 'Domino', parade: 'Parada Zwierzaków', cove: 'Bitwa w zatoce', pool: 'Podniebny bilard', bingo: 'Podniebne bingo' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }

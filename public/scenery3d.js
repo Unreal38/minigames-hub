@@ -260,6 +260,10 @@ const WINLOOK = {
   5: { n: .6, size: 1.3, grav: 4.5, spin: 1, flutter: .6 },
   6: { n: .7, size: 1.5, grav: .9, spin: 2, flutter: 2.4, life: 1.7 },
   7: { n: .6, size: 2.4, grav: 2.4, spin: 2, flutter: 1.2 },
+  8: { n: .7, size: 2.2, grav: 1.1, spin: 2, flutter: 2.4, life: 1.5 },
+  9: { n: .6, size: 2.2, grav: -.5, spin: 0, flutter: 1.6, life: 1.3 },
+  10: { n: .55, size: 2.6, grav: .6, spin: .6, flutter: 2.2, life: 1.2 },
+  11: { n: .6, size: 2.2, grav: 2.4, spin: 2, flutter: 1.2 },
 };
 const WIN0 = 8; // shape numbers from here on are cells of the win effect strip
 export function createFx(scene, { max = 900 } = {}) {
@@ -278,7 +282,7 @@ export function createFx(scene, { max = 900 } = {}) {
     fragmentShader: `uniform sampler2D map; uniform sampler2D map2; varying vec3 vC; varying float vA; varying float vR; varying float vK;
       void main() { vec2 p = gl_PointCoord - .5; float c = cos(vR), s = sin(vR); p = vec2(c * p.x - s * p.y, s * p.x + c * p.y) + .5;
         if (p.x < 0. || p.x > 1. || p.y < 0. || p.y > 1.) discard;
-        vec4 t = texture2D(map, vec2((min(vK, 7.) + p.x) / 8., 1. - p.y)), w = texture2D(map2, vec2((max(vK, 8.) - 8. + p.x) / 16., 1. - p.y)); t.rgb *= t.a; if (vK > 7.5) t = w; if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb * vA, t.a * vA); }`,
+        vec4 t = texture2D(map, vec2((min(vK, 7.) + p.x) / 8., 1. - p.y)), w = texture2D(map2, vec2((max(vK, 8.) - 8. + p.x) / 24., 1. - p.y)); t.rgb *= t.a; if (vK > 7.5) t = w; if (t.a * vA < .02) discard; gl_FragColor = vec4(vC * t.rgb * vA, t.a * vA); }`,
   });
   const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts);
   let n = 0, ringI = 0; const col = new THREE.Color();

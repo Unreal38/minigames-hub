@@ -1640,3 +1640,15 @@ body.night .lwstage { background: radial-gradient(#fff 1px, transparent 1.6px) 1
 .helpon.boost { border-style: dashed; }
 @media (max-width: 760px) { .lwgrid { grid-template-columns: minmax(0, 1fr); } .lwstage { max-width: 440px; width: 100%; justify-self: center; } .lw .lwh { font-size: 22px; } }
 @media (prefers-reduced-motion: reduce) { .ttile.t-wheel.ready .tpic, .lwwon.pop, .lwcard { animation: none; } }
+/* More name colours and frames (2026-11-24): spring and summer drops, and the Pet Farm's Spark and Stone elements. */
+.nm12 { --g: linear-gradient(90deg, #e0558f, #f08ab0, #7ab84a, #e0558f); animation: nmslide 5s linear infinite; }
+.nm13 { --g: linear-gradient(90deg, #f08a1f, #e8478a, #12a8a0, #f08a1f); animation: nmslide 4.5s linear infinite; }
+.nm14 { --g: linear-gradient(90deg, #6268e0, #8088f2 38%, #f2c230 47%, #ffe98a 50%, #f2c230 53%, #8088f2 62%, #6268e0); animation: nmslide 1.8s linear infinite; }
+.nm15 { --g: linear-gradient(90deg, #8a7f76, #b0a498, #6f665e, #b0a498, #8a7f76); }
+.fr10 { --f3: #ffc1d6aa; --fa: url("frames/f10.svg"); }
+.fr11 { --f3: #ffe2a8aa; --fa: url("frames/f11.svg"); }
+.fr12 { --f3: #f08a2499; --fa: url("frames/f12.svg"); }
+.fr13 { --f3: #ffd23faa; --fa: url("frames/f13.svg"); }
+.fr14 { --f3: #b9afa488; --fa: url("frames/f14.svg"); }
+.fr13 { animation: frglow 1.4s ease-in-out infinite alternate; }
+.wdemo img { width: 52px; height: 52px; vertical-align: middle; }
