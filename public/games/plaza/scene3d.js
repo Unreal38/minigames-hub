@@ -213,7 +213,7 @@ export function createScene(canvas, opts = {}) {
   // ---- people
   const folk = new Map(); let me = null, queue = [];
   const petsShown = m => m === me ? 3 : petCap;
-  let petCap = level === 'high' ? 3 : 1, noInk = level === 'low'; // light graphics: other people are drawn without their outline (half the triangles of a crowd)
+  let petCap = 3, noInk = level === 'low'; // light graphics: other people are drawn without their outline (half the triangles of a crowd)
   function dropModel(m) {
     if (m.wrap) { scene.remove(m.wrap); disposeAvatar(m.av); m.wrap = m.av = null; }
     for (const p of m.pets) if (p.g) { scene.remove(p.g); p.g.traverse(o => { if (o.isMesh && !o.material.userData?.shared) o.geometry.dispose(); }); }
@@ -514,9 +514,10 @@ export function createScene(canvas, opts = {}) {
     for (const m of folk.values()) { v3.set(m.wrap ? m.wrap.position.x : m.x, (m.wrap?.position.y || 0) + (TAG_Y[EMOTES[m.e]?.id] ?? 2.12), m.wrap ? m.wrap.position.z : m.z).project(camera); m.on = !!m.wrap && !m.hid && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.25; m.sx = (v3.x * .5 + .5) * W; m.sy = (-v3.y * .5 + .5) * H; }
     opts.frame?.(folk, me, W, H);
     if (!drawn) { drawn = true; opts.ready?.(); }
-  }, { onSlow: () => { // slow for a few seconds: other people's pets go first (yours stay), then the usual graphics steps
-    if (++slowN === 1 && petCap > 1) { petCap = 1; for (const m of folk.values()) if (m !== me) while (m.pets.length > 1) scene.remove(m.pets.pop().g); return; }
-    if (slowN <= 2 && !noInk) { noInk = true; for (const m of folk.values()) if (m !== me && m.av) m.av.traverse(o => { if (o.isMesh && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; }); return; }
+  }, { onSlow: () => { // slow for a few seconds: outlines of the others go first, then the usual graphics steps (never the resolution);
+    // other people's second and third pets are the last thing to go (Kuba: everyone's pets should show)
+    if (++slowN >= 5 && petCap > 1) { petCap = 1; for (const m of folk.values()) if (m !== me) while (m.pets.length > 1) scene.remove(m.pets.pop().g); return; }
+    if (!noInk) { noInk = true; for (const m of folk.values()) if (m !== me && m.av) m.av.traverse(o => { if (o.isMesh && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; }); return; }
     res.lower(); } });
 
   return {
