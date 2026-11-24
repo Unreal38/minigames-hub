@@ -24,7 +24,11 @@ const I = {
   mute: svg('<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 6M22 9l-5 6"/>'),
   door: svg('<path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/>'),
   turn: svg('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>'),
+  menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
 };
+// little pictures for the one-line summary of parties out and eggs in the Nest
+const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 21V4" stroke="#5a3a2e" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#ff8f6b" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/></svg>';
+const eggIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3c4 0 7 6.5 7 11a7 7 0 0 1-14 0c0-4.5 3-11 7-11z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="2"/><circle cx="9.5" cy="13" r="1.4" fill="#8fd16a"/><circle cx="14" cy="16.5" r="1.2" fill="#8fd16a"/><circle cx="13.5" cy="10" r="1" fill="#8fd16a"/></svg>';
 // Small material badges: a coloured block with the amount beside it.
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
 // Weather and time of day: tiny pictures for the chip at the top and the window behind it.
@@ -76,7 +80,7 @@ export function mount(app, ctx) {
   app.innerHTML = `<div class="pf">
     <canvas class="g3d" aria-label="${L(`Your farm`, `Twoja farma`)}"></canvas>
     <div class="hud">
-      <div class="tl"><span class="chip" id="pf-title">${L('Pet Farm', 'Farma zwierzaków')}</span><div class="mats" id="pf-mats"></div></div>
+      <div class="tl"><span class="chip" id="pf-title">${L('Pet Farm', 'Farma zwierzaków')}</span><div class="pfmatsrow"><div class="mats" id="pf-mats"></div><button type="button" class="round pfmatsmore" data-a="matsmore" aria-expanded="false" aria-label="${L('Show all materials', 'Pokaż wszystkie materiały')}"><i class="pfcaret" aria-hidden="true"></i></button></div></div>
       <div class="tr">
         <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="home" aria-label="${L(`Back to the hub`, `Wróć do Zatoki`)}">${I.door}</button></div>
@@ -96,6 +100,7 @@ export function mount(app, ctx) {
   let quiet = 0;
   const say = ctx.send;
   ctx = { ...ctx, send(a) { say(a); clearTimeout(quiet); quiet = setTimeout(() => { if (!destroyed) ctx.toast(L('The farm did not answer. Check your connection. If the game was just updated, the server needs a restart.', 'Farma nie odpowiada. Sprawdź połączenie. Jeśli gra była właśnie aktualizowana, serwer wymaga restartu.'), true); }, 4000); } };
+  let sumOpen = false, navOpen = false, matsOpen = false; // phone HUD: trip/egg details, the menu, every material
   let where = 'home', world = null, V = null; // home, map (the neighbourhood), or visit (someone else's farm, in V)
   let B = null, shown = null, playing = false, foes = null, line = '', blogs = [], lastEl = null, ranks = null;
   let elOpen = false; // the elements guide in a battle
@@ -200,6 +205,7 @@ export function mount(app, ctx) {
   }
   function paintTop() {
     $('pf-title').textContent = B ? (B.mode === 'live' ? L(`Live battle with ${B.foe}`, `Bitwa na żywo: ${B.foe}`) : B.mode === 'arena' ? L(`Match against ${B.foe}`, `Mecz: ${B.foe}`) : B.mode === 'wild' ? L(`Meeting ${B.foe}`, `Spotkanie: ${B.foe}`) : L('Practice battle', 'Bitwa treningowa')) : where === 'map' && F ? L('The neighbourhood', 'Okolica') : where === 'visit' && V ? L(`${V.name}'s farm`, `Farma gracza ${V.name}`) : F ? L(`${F.owner}'s farm`, `Farma gracza ${F.owner}`) : L('Pet Farm', 'Farma zwierzaków');
+    const mb = root.querySelector('.pfmatsrow'); mb.hidden = !(F && mode === 'farm' && !B); mb.classList.toggle('open', matsOpen); mb.querySelector('.pfmatsmore').setAttribute('aria-expanded', matsOpen);
     $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${MATS[k]}${L(`. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}`, `. Skąd: ${MAT_INFO[k][0]} Do czego: ${MAT_INFO[k][1]}`)}">${mat(k, F.inv[k] || 0)}</button>`).join('') + (() => { const { hour, w } = skyNow(), night = dayPart(hour) === 'Night'; return `<button type="button" class="matbtn" data-a="wxinfo" title="${w.name}. ${w.bonus}"><span class="mat wxchip">${wxIcon(night && w.kind === 'sunny' ? 'moon' : w.kind)}${night && w.kind === 'sunny' ? L('Clear night', 'Pogodna noc') : w.name}</span></button>`; })() : '';
   }
   function paintMain() {
@@ -220,19 +226,35 @@ export function mount(app, ctx) {
         ${V.pal ? `<span class="chip">${L(`Friendship ${V.pal}`, `Przyjaźń ${V.pal}`)}</span>` : ''}`;
       return;
     }
-    const trip = !countOf(F, 'gate') ? '<span class="chip">' + L('Build an Expedition Gate to send pets exploring', 'Zbuduj Bramę wypraw, żeby wysyłać zwierzaki na wyprawy') + '</span>'
-      : F.trips.map(t => t.left > 0 ? `<span class="chip">${L(`Back from ${ZONES[t.zone].name} in ${wait(t.left)}`, `${ZONES[t.zone].name}: powrót za ${wait(t.left)}`)}</span>` : `<button type="button" class="btn big m" data-a="collect" data-id="${t.id}">${L(`Welcome them back${F.trips.length > 1 ? ` from ${ZONES[t.zone].name}` : ''}`, `Przywitaj drużynę${F.trips.length > 1 ? ` (${ZONES[t.zone].name})` : ''}`)}</button>`).join('')
-        + (F.wild ? `<button type="button" class="btn m" data-a="wildfight">${L(`Battle the wild ${SPECIES[F.wild.sp].name}`, `Walcz z dzikim zwierzakiem: ${SPECIES[F.wild.sp].name}`)}</button>` : '')
-        + (F.trips.length < F.partyMax ? `<button type="button" class="btn m" data-a="explore">${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '');
-    el.innerHTML = `<button type="button" class="btn big" data-a="edit">${L(`Edit farm`, `Urządź farmę`)}</button>${trip}
-      ${F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : ''}
+    // Big farms have many parties out, eggs in the Nest and materials: each kind gets one line, and on phones the
+    // menu folds into one button, so the HUD never covers the farm (a high-level farm filled a phone screen).
+    const out = F.trips.filter(t => t.left > 0).sort((a, b) => a.left - b.left), home = F.trips.filter(t => !(t.left > 0));
+    const eggs = F.nests.filter(n => n.stage !== 'ready').sort((a, b) => a.left - b.left), hatch = F.nests.filter(n => n.stage === 'ready');
+    const tripLine = t => L(`Back from ${ZONES[t.zone].name} in ${wait(t.left)}`, `${ZONES[t.zone].name}: powrót za ${wait(t.left)}`);
+    const eggLine = n => `${n.stage === 'cuddle' ? L('Egg in', 'Jajko za') : L('Hatches in', 'Wykluje się za')} ${wait(n.left)}`;
+    const same = list => list[list.length - 1].left - list[0].left < 60000; // all due in the same minute: no "first"
+    const more = out.length + eggs.length > 1 && (out.length > 1 || eggs.length > 1);
+    const sum = !more ? '' : `<button type="button" class="chip pfsum" data-a="pfsum" aria-expanded="${sumOpen}"><span class="pfsuml">${[
+      out.length > 1 ? `<span>${tripIcon}${same(out) ? L(`${cnt(out.length, 'party', 'parties')} out · back in ${wait(out[0].left)}`, `${cnt(out.length, '', '', 'wyprawa', 'wyprawy', 'wypraw')} · powrót za ${wait(out[0].left)}`) : L(`${cnt(out.length, 'party', 'parties')} out · first back in ${wait(out[0].left)}`, `${cnt(out.length, '', '', 'wyprawa', 'wyprawy', 'wypraw')} · pierwsza wraca za ${wait(out[0].left)}`)}</span>` : out.length ? `<span>${tripIcon}${tripLine(out[0])}</span>` : '',
+      eggs.length > 1 ? `<span>${eggIcon}${L(`${cnt(eggs.length, 'egg')} · first in ${wait(eggs[0].left)}`, `${cnt(eggs.length, '', '', 'jajko', 'jajka', 'jajek')} · pierwsze za ${wait(eggs[0].left)}`)}</span>` : eggs.length ? `<span>${eggIcon}${eggLine(eggs[0])}</span>` : ''].filter(Boolean).join('')}</span><i class="pfcaret" aria-hidden="true"></i></button>`
+      + (sumOpen ? `<div class="pfsumlist">${out.map(t => `<span class="chip">${tripLine(t)}</span>`).join('')}${eggs.map(n => `<span class="chip">${eggLine(n)}</span>`).join('')}</div>` : '');
+    const stat = (!countOf(F, 'gate') ? '<span class="chip">' + L('Build an Expedition Gate to send pets exploring', 'Zbuduj Bramę wypraw, żeby wysyłać zwierzaki na wyprawy') + '</span>' : '')
+      + (home.length ? `<button type="button" class="btn m" data-a="collect" data-id="${home[0].id}">${home.length > 1 ? L(`Welcome the parties back (${home.length})`, `Przywitaj drużyny (${home.length})`) : L(`Welcome them back${F.trips.length > 1 ? ` from ${ZONES[home[0].zone].name}` : ''}`, `Przywitaj drużynę${F.trips.length > 1 ? ` (${ZONES[home[0].zone].name})` : ''}`)}</button>` : '')
+      + (hatch.length ? `<button type="button" class="btn m" data-a="hatch" data-slot="${hatch[0].slot}">${hatch.length > 1 ? L(`Hatch the eggs (${hatch.length})`, `Wykluj jajka (${hatch.length})`) : L(`Hatch the egg`, `Wykluj jajko`)}</button>` : '')
+      + (F.wild ? `<button type="button" class="btn m" data-a="wildfight">${L(`Battle the wild ${SPECIES[F.wild.sp].name}`, `Walcz z dzikim zwierzakiem: ${SPECIES[F.wild.sp].name}`)}</button>` : '')
+      + (F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : '')
+      + (more ? sum : (out.length ? `<span class="chip">${tripLine(out[0])}</span>` : '') + (eggs.length ? `<span class="chip">${eggLine(eggs[0])}</span>` : ''))
+      + (countOf(F, 'gate') && F.trips.length < F.partyMax ? `<button type="button" class="btn m" data-a="explore">${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '');
+    const mails = F.mail.length + F.trades.filter(t => t.dir === 'in').length;
+    el.innerHTML = `${stat ? `<div class="pfstat">${stat}</div>` : ''}<div class="pfrow"><button type="button" class="btn big" data-a="edit">${L(`Edit farm`, `Urządź farmę`)}</button>
+      <button type="button" class="btn w pfmenu" data-a="pfmenu" aria-expanded="${navOpen}">${I.menu}${L('Menu', 'Menu')}${mails ? `<span class="pfbadge">${mails}</span>` : ''}</button>
+      <div class="pfnav${navOpen ? ' open' : ''}">
       <button type="button" class="btn w" data-a="map">${L(`World map`, `Mapa świata`)}</button>
       <button type="button" class="btn w" data-a="friends">${L(`Friends`, `Znajomi`)}</button>
       <button type="button" class="btn w" data-a="ranks">${L(`Ranking`, `Ranking`)}</button>
       <button type="button" class="btn w" data-a="pets">${L(`My pets`, `Moje zwierzaki`)} ${F.pets.length}</button>
       <button type="button" class="btn w" data-a="album">${L(`Pet Album`, `Album zwierzaków`)}</button>
-      ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">${L('Mail', 'Poczta')} ${F.mail.length + F.trades.filter(t => t.dir === 'in').length || ''}</button>` : ''}
-      ${F.nests.map(n => n.stage === 'ready' ? `<button type="button" class="btn m" data-a="hatch" data-slot="${n.slot}">${L(`Hatch the egg`, `Wykluj jajko`)}</button>` : `<span class="chip">${n.stage === 'cuddle' ? L('Egg in', 'Jajko za') : L('Hatches in', 'Wykluje się za')} ${wait(n.left)}</span>`).join('')}`;
+      ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">${L('Mail', 'Poczta')} ${mails || ''}</button>` : ''}</div></div>`;
   }
   // ---------- expeditions ----------
   const helperOf = type => F.pets.find(p => p.id === F.work?.[type]);
@@ -929,10 +951,14 @@ export function mount(app, ctx) {
     const a = b.dataset.a;
     if (a === 'mute') { b.innerHTML = sfx.toggle() ? I.mute : I.sound; return; }
     sfx.click();
+    if (navOpen && b.closest('.pfnav')) navOpen = false; // the phone menu folds away once something in it is picked
     if (a === 'home') ctx.home();
     else if (a === 'account') ctx.account(b.dataset.mode);
     else if (a === 'pick') { pick = b.dataset.sp; sync(); }
     else if (a === 'start') { if (pick) ctx.send({ t: 'starter', sp: pick }); }
+    else if (a === 'pfsum') { sumOpen = !sumOpen; paintMain(); }
+    else if (a === 'pfmenu') { navOpen = !navOpen; paintMain(); }
+    else if (a === 'matsmore') { matsOpen = !matsOpen; paintTop(); }
     else if (a === 'edit') setEdit(true);
     else if (a === 'done') setEdit(false);
     else if (a === 'map') { where = 'map'; V = null; world = null; card = null; panel = null; sync(); ctx.send({ t: 'world' }); }
