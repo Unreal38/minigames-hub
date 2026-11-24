@@ -34,7 +34,7 @@ export function mount(app, ctx) {
     <canvas class="g3d" aria-label="${L('The table with the letter block', 'Stół z kostką z literą')}"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
-      <div class="tl"><span class="chip" id="pm-info"></span><span class="chip pm-mine" id="pm-mine" hidden></span></div>
+      <div class="tl"><span class="chip" id="pm-info"></span><div class="pm-board" id="pm-board" role="list" aria-label="${L('Points', 'Punkty')}" hidden></div></div>
       <div class="tr"><span class="tcode" id="pm-code"></span>
         <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
@@ -82,6 +82,7 @@ export function mount(app, ctx) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (t.mine) { el.style.display = 'none'; continue; }
       el.style.display = '';
+      if (!el._w || el._w > innerWidth * .6) el._w = el.offsetWidth;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - inset - half, t.x));
       el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 150 : 110) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
@@ -119,6 +120,20 @@ export function mount(app, ctx) {
       setHtml(el.firstElementChild, bub);
     });
     for (const el of tagEls) el._w = el.offsetWidth;
+  }
+
+  // ----- the small score table in the top left: everyone's total, and this round's points while the answers are checked -----
+  function renderBoard() {
+    const el = $('pm-board'), pend = S.ph === 'play' && S.stage === 'check' ? roundPts() : null;
+    const sum = i => S.tot[i] + (pend?.[i] || 0);
+    let order = S.seats.map((_, i) => i).sort((a, b) => sum(b) - sum(a) || a - b);
+    // on a phone the table would cover the island: the top three and you
+    if (!wide() && order.length > 4) order = order.filter((i, k) => k < 3 || i === S.me);
+    el.hidden = !S.seats.length;
+    setHtml(el, order.map(i => {
+      const p = S.seats[i];
+      return `<div class="pm-sc${i === S.me ? ' mine' : ''}" role="listitem"><i class="dot" style="background:${esc(p.color)}"></i><b class="who">${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b>${pend && pend[i] > 0 ? `<em>+${pend[i]}</em>` : ''}<span class="tot">${sum(i)}</span></div>`;
+    }).join(''));
   }
 
   // ----- the head of the panel: the letter, what is going on and the clock -----
@@ -207,14 +222,7 @@ export function mount(app, ctx) {
       }).join('');
       return `<section class="pm-cat"><h4>${esc(catName(cat))}</h4>${rows}</section>`;
     }).join('');
-    // everyone's points at a glance: this round (still changing while the thumbs go down) and the total so far
-    const pend = roundPts(), scored = S.stage !== 'check';
-    const order = S.seats.map((_, i) => i).sort((a, b) => (S.tot[b] + (scored ? 0 : pend?.[b] || 0)) - (S.tot[a] + (scored ? 0 : pend?.[a] || 0)) || a - b);
-    const sum = pend ? `<div class="pm-sum" role="list" aria-label="${L('Points', 'Punkty')}">${order.map(i => {
-      const p = S.seats[i], total = S.tot[i] + (scored ? 0 : pend[i]);
-      return `<div class="pm-sc${i === S.me ? ' mine' : ''}" role="listitem"><i class="dot" style="background:${esc(p.color)}"></i><b class="who">${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b><span class="add">+${pend[i]}</span><span class="tot" title="${L('Total', 'Razem')}">${total}</span></div>`;
-    }).join('')}</div><p class="pm-sumnote">${scored ? L('Points this round and the total so far.', 'Punkty w tej rundzie i suma.') : L('Points this round and the total if nothing more is rejected.', 'Punkty w tej rundzie i suma, jeśli nic więcej nie zostanie odrzucone.')}</p>` : '';
-    setHtml(body, `${sum}<div class="pm-check">${html}</div>`);
+    setHtml(body, `<div class="pm-check">${html}</div>`);
   }
 
   function renderFoot() {
@@ -253,9 +261,7 @@ export function mount(app, ctx) {
     if (!S) return;
     $('pm-info').innerHTML = S.ph === 'end' ? L('Game over', 'Koniec gry') : `${L('Round', 'Runda')} ${S.round + 1}/${S.rounds}`;
     $('pm-code').textContent = Rm?.code || '';
-    const mineEl = $('pm-mine'), pend = roundPts();
-    mineEl.hidden = S.me < 0;
-    if (S.me >= 0) setHtml(mineEl, `${L('Your points', 'Twoje punkty')}: <b>${S.tot[S.me]}</b>${pend && S.stage === 'check' && pend[S.me] > 0 ? ` <em>+${pend[S.me]}</em>` : ''}`);
+    renderBoard();
     root.classList.toggle('checking', checking());
     buildTags(); renderHead();
     if (checking()) renderCheck(); else renderForm();

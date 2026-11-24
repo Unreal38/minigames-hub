@@ -13,10 +13,18 @@ body.in-game { overflow: hidden; }
 .pm-tag .plate .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .pm-tag .plate .cnt { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 24px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 8px; font-size: 15px; font-weight: 700; box-sizing: border-box; }
 .pm-tag.now .plate { background: var(--lantern); box-shadow: 0 3px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.pm-tag .plate .cnt em, .pm .pm-mine em { font-style: normal; color: var(--mint); margin-left: 4px; }
-.pm .pm-mine em { color: inherit; background: var(--mint); color: var(--ink); border-radius: 999px; padding: 0 6px; margin-left: 2px; }
-.pm .pm-mine b { font-weight: 700; }
-@media (max-width: 639px) { .pm .hud .tl { flex-direction: column; align-items: flex-start; } }
+.pm-tag .plate .cnt em { font-style: normal; color: var(--mint); margin-left: 4px; }
+/* the small score table under the round chip */
+.pm .hud .tl { flex-direction: column; align-items: flex-start; }
+.pm-board { display: flex; flex-direction: column; gap: 3px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 14px; padding: 6px 6px 6px 8px; box-shadow: 0 3px 0 #23401c55; font-family: var(--fd); font-weight: 600; font-size: 14px; min-width: 150px; max-width: 220px; }
+.pm-board:empty { display: none; }
+.pm-sc { display: flex; align-items: center; gap: 6px; white-space: nowrap; border-radius: 999px; padding: 1px 2px 1px 4px; }
+.pm-sc.mine { background: var(--lantern); color: var(--ink); }
+.pm-sc .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
+.pm-sc .who { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.pm-sc em { font-style: normal; font-weight: 700; font-size: 12px; color: var(--ink); background: var(--mint); border-radius: 999px; padding: 0 6px; }
+.pm-sc .tot { display: inline-flex; justify-content: center; min-width: 26px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 7px; font-weight: 700; }
+@media (max-width: 639px) { .pm-board { font-size: 12px; min-width: 120px; max-width: 160px; padding: 4px 4px 4px 6px; } }
 .pm-tag .bub:empty { display: none; }
 .pm-tag .bub > span { display: inline-flex; background: var(--mint); border: 2.5px solid var(--ink); border-radius: 12px; padding: 1px 10px; font-size: 14px; box-shadow: 0 3px 0 var(--ink); animation: popin .3s cubic-bezier(.3, 1.6, .5, 1) both; color: var(--ink); white-space: nowrap; }
 .pm-tag .bub > span.win { background: var(--lantern); font-size: 18px; font-weight: 700; }
@@ -70,7 +78,7 @@ body.in-game { overflow: hidden; }
 .pm-sec { flex: none; min-width: 3.2em; text-align: right; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pm-sec.hurry { color: #e5543b; animation: pmpulse .5s ease-in-out infinite alternate; }
 
-.pm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
+.pm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin: -4px; padding: 4px; } /* room for the yellow focus ring on the first and last box */
 .pm-form { display: flex; flex-direction: column; gap: 6px; }
 .pm-box { position: relative; display: grid; grid-template-columns: minmax(84px, 30%) 1fr; align-items: center; gap: 8px; }
 .pm-box > span { font-size: 15px; font-weight: 600; line-height: 1.1; overflow-wrap: break-word; hyphens: none; }
@@ -91,14 +99,6 @@ body.in-game { overflow: hidden; }
 .pm .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 
 /* everyone's answers */
-.pm-sum { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; }
-.pm-sc { display: inline-flex; align-items: center; gap: 6px; background: var(--paper); color: var(--on-paper); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 4px 2px 8px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; }
-.pm-sc.mine { background: var(--lantern); color: var(--ink); }
-.pm-sc .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
-.pm-sc .who { font-weight: 600; max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
-.pm-sc .add { color: var(--ink); background: var(--mint); border-radius: 999px; padding: 0 6px; font-weight: 700; }
-.pm-sc .tot { display: inline-flex; justify-content: center; min-width: 24px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 7px; font-weight: 700; }
-.pm-sumnote { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--soft-tx); }
 .pm-check { display: flex; flex-direction: column; gap: 10px; }
 .pm.wide.checking .pm-check { display: block; columns: 2 250px; column-gap: 12px; }
 .pm.wide .pm-row .who { width: 6.6em; }
