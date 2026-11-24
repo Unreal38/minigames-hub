@@ -18,6 +18,7 @@ import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { DAILY as MJ_DAILY } from './games/mahj/rules.js';
 import { randomName } from './names.js';
 import { fitw } from './fit.js';
+import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
@@ -1965,7 +1966,7 @@ const tableRow = r => `<div class="trow">
 function tablePage(el, pager, rooms) {
   const pages = Math.max(1, Math.ceil(rooms.length / TABLES_PER_PAGE));
   st.tPage = Math.max(0, Math.min(st.tPage, pages - 1));
-  el.innerHTML = rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(tableRow).join('');
+  morph(el, rooms.slice(st.tPage * TABLES_PER_PAGE, (st.tPage + 1) * TABLES_PER_PAGE).map(tableRow).join('')); // patched, so live updates never blink the rows
   if (pager) pager.innerHTML = pages < 2 ? '' : `<button type="button" class="btn sm w" data-act="tpage" data-d="-1" aria-label="${L('Previous page', 'Poprzednia strona')}" ${st.tPage ? '' : 'disabled'}>‹</button>
     <span>${L('Page', 'Strona')} <b>${st.tPage + 1}</b> ${L('of', 'z')} ${pages} · ${cTables(rooms.length)}</span>
     <button type="button" class="btn sm w" data-act="tpage" data-d="1" aria-label="${L('Next page', 'Następna strona')}" ${st.tPage < pages - 1 ? '' : 'disabled'}>›</button>`;
@@ -1981,7 +1982,7 @@ function renderTables() {
   const pager = document.getElementById('tables-pager'), more = document.getElementById('tables-all-btn');
   if (!rooms.length) { el.innerHTML = `<div class="empty tnone"><span>${L('No open tables yet.', 'Nie ma jeszcze otwartych stołów.')}</span><button type="button" class="btn sm" data-act="host">${L('Host one', 'Załóż stół')}</button></div>`; pager.innerHTML = ''; more.hidden = true; return; }
   if (narrow()) { tablePage(el, pager, rooms); more.hidden = true; return; }
-  el.innerHTML = rooms.slice(0, TABLES_SHORT).map(tableRow).join(''); pager.innerHTML = '';
+  morph(el, rooms.slice(0, TABLES_SHORT).map(tableRow).join('')); pager.innerHTML = '';
   more.hidden = rooms.length <= TABLES_SHORT; more.textContent = L(`Show all ${rooms.length} tables`, `Pokaż wszystkie stoły (${rooms.length})`);
 }
 function openTables() {
@@ -2010,7 +2011,7 @@ function renderLobby() {
   const watchers = [...seated.slice(max), ...r.players.filter(p => p.watch)];
   const meWatch = r.players.find(p => p.id === st.id)?.watch, saving = (r.sit || []).includes(st.id);
   const pill = (opt, val, label) => `<button type="button" aria-pressed="${String(r.opts[opt]) === String(val)}" data-act="opt" data-opt="${opt}" data-val="${val}" ${host ? '' : 'disabled'}>${optText(String(label), r.game).replace(/^(\d+) hands$/, '$1 rozdań')}</button>`;
-  $app.innerHTML = `${topbar()}
+  const html = `${topbar()}
   <main class="wrap lobby">
     <div class="main">
       <div class="crumb">${siteLogo(34)} ${esc(gm.name || r.gameName)} · ${L('waiting room', 'poczekalnia')}</div>
@@ -2044,6 +2045,10 @@ function renderLobby() {
       <div class="howto"><b>${L('How to win', 'Jak wygrać')}</b><br>${gm.howto} <a href="#" data-act="rules">${L('Full rules', 'Pełne zasady')}</a></div>
     </aside>
   </main>`;
+  // Already showing this waiting room: patch only what changed. A full rebuild on every look save, coin update or
+  // seat change made the table code, seats and avatars blink for everyone at the table (and repainted them all).
+  if ($app.querySelector(':scope > main.lobby') && $app.dataset.lobby === r.code) { if (!morph($app, html)) return; }
+  else { $app.innerHTML = html; $app.dataset.lobby = r.code; }
   petPics();
 }
 

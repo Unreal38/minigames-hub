@@ -322,6 +322,10 @@ function broadcastStats() {
 const HOLD_MSG = 'An update is coming, so new games are on hold until it is done. Games already running carry on.';
 const noticeFor = c => ({ t: 'notice', ...notice.view(store.isAdmin(store.profileOf(c.token))) });
 notice.setOnChange(() => { for (const c of clients.values()) if (c.sock) send(c, noticeFor(c)); });
+const lookKey = c => c.name + '|' + c.color + '|' + (c.av || []).join();
+// A host trying on outfits saves every few taps; the hub's table list catches up at most once every two seconds.
+let roomsT = 0;
+function roomsSoon() { if (!roomsT) roomsT = setTimeout(() => { roomsT = 0; broadcastRooms(); }, 2000); }
 function broadcastRooms() { const msg = { t: 'rooms', rooms: publicRooms() }; for (const c of clients.values()) if (c.sock && !c.room) send(c, msg); }
 function sendRoom(r) { const info = roomInfo(r); for (const t of r.players) send(clients.get(t), { t: 'room', room: info }); }
 function sendState(r) {
@@ -416,10 +420,15 @@ function startGame(r) {
 function handle(c, m) {
   switch (m.t) {
     case 'profile': {
+      const was = lookKey(c);
       const n = cleanName(m.name); if (n) c.name = n; c.color = cleanColor(m.color); c.av = store.allowedAv(store.profileOf(c.token), m.av);
-      store.setLook(c.token, c);
+      const same = lookKey(c) === was;
+      if (!same) store.setLook(c.token, c);
       { const p = store.profileOf(c.token); if (p) send(c, { t: 'me', me: store.me(p) }); } // so every screen (Pet Farm too) wears the new look
-      const r = rooms.get(c.room); if (r) { if (!r.G) sendRoom(r); }
+      if (same) return; // nothing new: the table and the hub need no update
+      const r = rooms.get(c.room);
+      if (r && !r.G) sendRoom(r);
+      if (r && !r.priv && r.host === c.id) roomsSoon(); // the hub's open table shows the host's avatar
       return;
     }
     case 'rooms': return send(c, { t: 'rooms', rooms: publicRooms() });
