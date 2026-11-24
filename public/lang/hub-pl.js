@@ -36,6 +36,7 @@ export const OPT_PL = {
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
+  Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -346,6 +347,21 @@ export const GAMES_PL = {
       <li>W klasycznej grze są <b>trzy nagrody</b> na tych samych kartach: <b>jedna linia</b> (10 punktów), potem <b>dwie linie</b> (20), a na koniec <b>cała karta</b> (40). Szybka gra kończy się po pierwszej linii.</li>
       <li><b>Wygrywa najwięcej punktów.</b> Przy równej liczbie punktów wyżej jest ten, komu mniej brakuje do całej karty.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie zaznaczy ani jednej liczby, nie dostaje monet.</li>
+    </ol>`,
+  },
+  pm: {
+    name: 'Państwa-miasta', start: 'Losuj pierwszą literę', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
+    pitch: 'Klasyka z kartką i długopisem. Losujemy literę: wpisz państwo, miasto, zwierzę i resztę, zanim ktoś zawoła „Stop!”.',
+    howto: `Losujemy literę, a każdy wpisuje państwo, miasto, zwierzę i kolejne hasła na tę literę. Wypełnij wszystkie pola jako pierwszy i naciśnij „Stop!” albo zdąż przed końcem czasu. Potem cały stół sprawdza odpowiedzi: najwięcej punktów daje hasło, którego nie ma nikt inny.`,
+    rules: `<ol>
+      <li>Gra dla <b>2–8 osób</b>, bez botów. W każdej rundzie <b>losujemy literę</b>, a żadna litera nie powtarza się w jednej grze.</li>
+      <li>W <b>każdej kategorii wpisz jedno hasło</b> na wylosowaną literę: państwo, miasto, zwierzę, roślina, imię i rzecz (przy stole można też ustawić 4 albo 8 kategorii). Nikt nie widzi twoich haseł przed końcem rundy.</li>
+      <li>Gdy masz hasło w każdym polu, możesz nacisnąć <b>„Stop!”</b>. Pozostali mają wtedy jeszcze <b>5 sekund</b>. Jeśli nikt nie zatrzyma rundy, kończy ją upływ czasu.</li>
+      <li>Potem <b>wszyscy razem sprawdzają odpowiedzi</b>. Dotknij kciuka przy haśle, które jest błędne. Hasło odpada, gdy odrzuci je <b>ponad połowa pozostałych graczy</b>. Gracze z tym samym hasłem są oceniani razem. Gdy skończysz, naciśnij <b>„Gotowe”</b>.</li>
+      <li><b>Pierwszą literę</b> gra sprawdza sama i musi to być dokładnie ta wylosowana: Ż, Ś czy Ł to osobne litery, więc „Żaba” nie liczy się na Z. Przy włączonej kategorii <b>zwierzak z Farmy</b> gra sprawdza też, czy to prawdziwy zwierzak, a w rundach, w których żaden zwierzak nie zaczyna się na daną literę, to pole jest zamknięte.</li>
+      <li>Punkty w każdej kategorii: <b>15</b>, gdy tylko ty masz dobre hasło, <b>10</b> za hasło, którego nie ma nikt inny, <b>5</b>, gdy ktoś wpisał to samo, <b>0</b> za puste albo odrzucone. Wielkość liter i polskie znaki nie robią różnicy: „Krakow” i „Kraków” to ta sama odpowiedź.</li>
+      <li><b>Wygrywa najwięcej punktów po ostatniej rundzie.</b> Przy równej liczbie punktów gracze dzielą miejsce.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie wpisze ani jednego hasła, nie dostaje monet.</li>
     </ol>`,
   },
   ttt: {
