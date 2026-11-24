@@ -276,10 +276,13 @@ export function createScene(canvas, cb = {}) {
   function planeAt(e, y) { aim(e); plane.set(V2.set(0, 1, 0), -y); return ray.ray.intersectPlane(plane, hit) ? hit.clone() : null; }
   const mayLift = () => !!cb.canLift?.() && (liftMode || shift);
   function down(e) {
+    // stop the browser's own drag (Firefox drags the canvas as a picture, or the page selection) so the view and
+    // the sticks get the drag instead
+    e.preventDefault(); getSelection?.()?.removeAllRanges?.();
     canvas.setPointerCapture?.(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.size === 2) { if (mode === 'pull') letGo(); mode = 'pinch'; const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); last = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; return; }
     last = { x: e.clientX, y: e.clientY }; shift = e.shiftKey;
-    const id = cb.canPull?.() ? stickAt(e, slackOf(e)) : -1;
+    let id = -1; try { if (cb.canPull?.()) id = stickAt(e, slackOf(e)); } catch (err) { console.warn('bierki pick', err); }
     if (id < 0) { mode = 'orbit'; return; }
     const st = cb.pick?.(id); if (!st) { mode = 'orbit'; return; }
     held = { id, st }; mode = 'pull'; hover = -1;
@@ -289,7 +292,7 @@ export function createScene(canvas, cb = {}) {
   }
   function move(e) {
     const pt = ptrs.get(e.pointerId);
-    if (!pt) { if (e.pointerType === 'mouse' && !mode) { const h = cb.canPull?.() ? stickAt(e, slackOf(e)) : -1; if (h !== hover) { hover = h; cb.hover?.(h); dirty = 1; } canvas.style.cursor = h >= 0 ? 'grab' : ''; } return; }
+    if (!pt) { if (e.pointerType === 'mouse' && !mode) { let h = -1; try { if (cb.canPull?.()) h = stickAt(e, slackOf(e)); } catch {} if (h !== hover) { hover = h; cb.hover?.(h); dirty = 1; } canvas.style.cursor = h >= 0 ? 'grab' : ''; } return; }
     pt.x = e.clientX; pt.y = e.clientY;
     if (mode === 'pinch' && ptrs.size >= 2) {
       const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
@@ -324,6 +327,8 @@ export function createScene(canvas, cb = {}) {
   }
   function wheel(e) { e.preventDefault(); orb.tzoom = clamp(orb.tzoom * (1 + Math.sign(e.deltaY) * .09), .45, 1.5); }
   const keyDown = e => { if (e.key === 'Shift') shift = true; }, keyUp = e => { if (e.key === 'Shift') shift = false; };
+  const noDrag = e => e.preventDefault(); canvas.draggable = false;
+  canvas.addEventListener('dragstart', noDrag); canvas.addEventListener('selectstart', noDrag);
   canvas.addEventListener('pointerdown', down); canvas.addEventListener('pointermove', move);
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up); canvas.addEventListener('wheel', wheel, { passive: false });
   addEventListener('keydown', keyDown); addEventListener('keyup', keyUp);
@@ -410,7 +415,7 @@ export function createScene(canvas, cb = {}) {
     cheer(i) { const p = players[i]; if (p && !reduced) fx.confetti(p.wrap.position.clone().setY(p.wrap.position.y + 1.6 * AVS + .6), { n: 60, w: 2.6, h: 2, s: i }); },
     dispose() {
       dead = true; ticker.stop();
-      canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move);
+      canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('dragstart', noDrag); canvas.removeEventListener('selectstart', noDrag); canvas.removeEventListener('pointermove', move);
       canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel);
       removeEventListener('keydown', keyDown); removeEventListener('keyup', keyUp);
       for (const p of players) disposeAvatar(p.av);
