@@ -61,6 +61,8 @@ import * as daily from './daily.js';
 import * as word from './word.js';
 import * as wheel from './wheel.js';
 import * as notice from './notice.js';
+import * as plaza from './plaza.js';
+import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 
 const PORT = +process.env.PORT || 8080;
@@ -288,12 +290,25 @@ store.onCoins(pid => { if (!coinWait.has(pid)) coinWait.set(pid, setTimeout(() =
 const palView = x => ({ sp: x.sp, name: x.name, lv: x.lv, look: x.look });
 const palsOf = p => (p?.user ? store.showPets(p).map(id => farm.petOf(p.pid, id)).filter(Boolean).map(palView) : []); // every pet they show off on their isle
 const palOf = p => palsOf(p)[0];
+// The Plaza (plaza.js) asks here how a player looks to the others and who may do what.
+plaza.setup({
+  info: c => { const p = store.profileOf(c.token); return { n: c.name, c: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p), u: p?.user ? 1 : 0, pets: palsOf(p), ...store.badge(p) }; },
+  isAdmin: c => store.isAdmin(store.profileOf(c.token)),
+  pidOf: c => store.profileOf(c.token)?.pid || null,
+  friends: c => store.profileOf(c.token)?.friends || [],
+  mayReact: (c, k) => store.mayReact(store.profileOf(c.token), k),
+  // an open table people can still walk to: public, in its waiting room, with a free seat
+  table: code => { const r = rooms.get(code); if (!r) return null; const free = GAMES[r.game].meta.maxPlayers - seatedOf(r).length; return { game: r.game, free, open: !r.priv && !r.G && free > 0 }; },
+  // the daily present: once a day (Warsaw's midnight, like every daily thing), accounts only
+  giftLeft: c => { const p = store.profileOf(c.token); return !!p?.user && p.plz?.gift !== dayOf(); },
+  giftTake: (c, n) => { const p = store.profileOf(c.token); if (!p?.user || p.plz?.gift === dayOf()) return 0; (p.plz ||= {}).gift = dayOf(); store.addCoins(p.pid, n); store.scheduleSave(); return n; },
+});
 store.onPack(pid => { const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) { send(c, { t: 'me', me: store.me(p) }); send(c, { t: 'pack', k: 'kofi' }); } });
 // An account was deleted (by its owner from their profile card, or by the host's npm run delete-account): its farm,
 // hub chat lines, table chat lines and table scoreboard rows go, ex-friends get a fresh friends list, and its screens
 // become guests. A seat it holds in a game stays put, so the match carries on and that screen plays it out as a guest.
 store.onForget((pid, toks, { tag, pals = [] } = {}) => {
-  farm.forget(pid);
+  farm.forget(pid); plaza.forget(pid);
   for (const id of hubchat.forget(pid)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
   for (const r of rooms.values()) {
     let changed = false;
@@ -322,7 +337,7 @@ function sendFriends(p, news = null) {
 }
 // Everyone on the site right now, for hosts (ADMINS). One row per person (a phone and a laptop count once), with
 // where they are. Names only: no addresses, no tokens.
-const WHERE = new Set(['hub', 'farm', 'hay', 'pop', 'mj']);
+const WHERE = new Set(['hub', 'farm', 'hay', 'pop', 'mj', 'plaza']);
 function whoList() {
   const rows = new Map();
   for (const c of clients.values()) {
@@ -336,13 +351,13 @@ function whoList() {
   return [...rows.values()].sort((a, b) => (b.at.k === 'table') - (a.at.k === 'table') || a.since - b.since);
 }
 // Live "playing now" + all-time visitor numbers for the hub. Batched so a burst of joins sends one update.
-const statsMsg = () => ({ t: 'stats', online: [...clients.values()].filter(c => c.sock).length, visitors: store.visitorCount() });
+const statsMsg = () => ({ t: 'stats', online: [...clients.values()].filter(c => c.sock).length, visitors: store.visitorCount(), plaza: plaza.count() });
 let statsTimer = null, lastStats = '';
 function broadcastStats() {
   if (statsTimer) return;
   statsTimer = setTimeout(() => {
     statsTimer = null;
-    const msg = statsMsg(), key = msg.online + '/' + msg.visitors; if (key === lastStats) return; lastStats = key;
+    const msg = statsMsg(), key = msg.online + '/' + msg.visitors + '/' + msg.plaza; if (key === lastStats) return; lastStats = key;
     const str = JSON.stringify(msg); for (const c of clients.values()) c.sock?.send(str);
   }, 1000);
 }
@@ -415,6 +430,7 @@ function leaveRoom(c) {
 function joinRoom(c, r) {
   if (c.room === r.code) { sendRoom(r); sendState(r); return; }
   if (c.room) leaveRoom(c);
+  if (plaza.leave(c)) broadcastStats();
   const mod = GAMES[r.game];
   if (seatedOf(r).length >= mod.meta.maxPlayers && !r.G) return send(c, { t: 'err', msg: 'That table is full.' });
   if (r.players.length >= 12) return send(c, { t: 'err', msg: 'That table is full.' });
@@ -478,6 +494,7 @@ function handle(c, m) {
       if (!same) store.setLook(c.token, c);
       { const p = store.profileOf(c.token); if (p) send(c, { t: 'me', me: store.me(p) }); } // so every screen (Pet Farm too) wears the new look
       if (same) return; // nothing new: the table and the hub need no update
+      plaza.refresh(c);
       const r = rooms.get(c.room);
       if (r && !r.G) sendRoom(r);
       if (r && !r.priv && r.host === c.id) roomsSoon(); // the hub's open table shows the host's avatar
@@ -507,7 +524,7 @@ function handle(c, m) {
       const p = store.profileOf(c.token), r = store.setSky(p, { light: m.light, shown: m.shown });
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
-      const room = rooms.get(c.room); if (room) sendRoom(room);
+      const room = rooms.get(c.room); if (room) sendRoom(room); plaza.refresh(c);
       return;
     }
     case 'wear': { // put on a name colour, frame, title or win effect, or pick the Pet Farm pets to show off
@@ -517,7 +534,7 @@ function handle(c, m) {
       const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : m.k === 'fp' ? store.islePieces(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
-      const room = rooms.get(c.room); if (room) sendRoom(room);
+      const room = rooms.get(c.room); if (room) sendRoom(room); plaza.refresh(c);
       return;
     }
     case 'stats': return send(c, statsMsg());
@@ -533,6 +550,7 @@ function handle(c, m) {
     }
     case 'where': {
       const was = c.view; c.view = WHERE.has(m.v) ? m.v : 'hub';
+      if (c.view !== 'plaza' && plaza.leave(c)) broadcastStats(); // walked out of the plaza
       if (c.view === 'hub' && was !== 'hub' && !c.room && c.roomsVer !== roomsVer) { c.sock?.send(roomsText()); c.roomsVer = roomsVer; } // back from Pet Farm or a solo game: catch up on the table list
       return;
     } // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
@@ -553,7 +571,8 @@ function handle(c, m) {
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       const r = { code: newCode(), game: m.game, host: c.id, priv: !!m.priv, players: [], spect: new Set(), sit: new Set(), G: null, chat: [], created: Date.now(),
         opts: cleanTableOpts(m.game, m.opts || {}) };
-      rooms.set(r.code, r); joinRoom(c, r);
+      rooms.set(r.code, r); if (!r.priv) plaza.sign(c, r.code); // opened from the plaza: a signpost stays behind for the others
+      joinRoom(c, r);
       if (m.solo && !(GAMES[m.game].meta.minHumans > 1)) startGame(r);
       return;
     }
@@ -629,6 +648,7 @@ function handle(c, m) {
     case 'hubchat': { // the hub's global chat: no text = send me the conversation
       const p = store.profileOf(c.token);
       if (m.text === undefined) return send(c, { t: 'hubchat', log: hubchat.history(p), max: hubchat.MAX_LEN });
+      if (plaza.mutedFor(c)) return send(c, { t: 'hubchat', err: 'A host has muted you for a few minutes.' });
       const r = hubchat.post(p, c, c.sock?.ip || '?', m.text);
       if (r.err) return send(c, { t: 'hubchat', err: r.err });
       if (r.msg) { // most readers get the same line, turned into text once; the writer and the moderators get their own
@@ -750,6 +770,14 @@ function handle(c, m) {
       if (m.a?.test) farm.testHook(store.profileOf(c.token)?.pid, m.a.test);
       return farm.handle(store.profileOf(c.token), m.a, msg => send(c, msg));
     }
+    case 'plaza': { // the 3D hangout (plaza.js): only for people who are not at a table
+      if (c.room) return;
+      const was = plaza.count();
+      if (m.a?.k === 'join') c.view = 'plaza';
+      plaza.handle(c, m.a);
+      if (plaza.count() !== was) broadcastStats();
+      return;
+    }
     case 'react': { // little food emote shown over your seat
       const r = rooms.get(c.room); if (!r) return;
       const now = Date.now(); if (now - (c.lastReact || 0) < 700) return; c.lastReact = now;
@@ -853,7 +881,7 @@ const onSocket = sock => {
       return;
     }
     c.lastSeen = Date.now();
-    try { handle(c, m); if (m.t !== 'act' && m.t !== 'react' && m.t !== 'rooms') store.scheduleSave(); } catch (e) { console.error('handler error', e); }
+    try { handle(c, m); if (m.t !== 'act' && m.t !== 'react' && m.t !== 'rooms' && m.t !== 'plaza') store.scheduleSave(); } catch (e) { console.error('handler error', e); }
   });
   function hello(m) {
     {
@@ -896,7 +924,7 @@ const onSocket = sock => {
   sock.on('close', () => {
     clearInterval(refill); clearTimeout(late);
     if (!c || c.sock !== sock) return;
-    c.sock = null; c.lastSeen = Date.now(); broadcastStats();
+    c.sock = null; c.lastSeen = Date.now(); plaza.leave(c); broadcastStats();
     const r = rooms.get(c.room); if (r) sendRoom(r);
   });
 };
@@ -933,13 +961,14 @@ hubchat.load();
 daily.load(); word.load();
 wheel.load();
 notice.load();
+plaza.load();
 // Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and
 // close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the
 // goodbye frames reach the players before the process ends.
 let stopping = false;
 const bye = (code = 0) => {
   if (stopping) return; stopping = true;
-  store.saveNow(true); farm.saveNow(true); hubchat.saveNow();
+  store.saveNow(true); farm.saveNow(true); hubchat.saveNow(); plaza.saveNow();
   let n = 0;
   for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
   console.log(`stopping: saved, told ${n} screens to wait for the restart`);
@@ -1020,6 +1049,8 @@ setInterval(() => {
     try { if (r.G && mod.fast && mod.fast(r.G, now)) sendState(r); } catch (e) { console.error(`fast tick error in ${r.game} table ${r.code}`, e); }
   }
 }, 50);
+
+setInterval(() => { try { plaza.tick(); } catch (e) { console.error('plaza tick error', e); } }, 100);
 
 setInterval(() => { // heartbeat + forget long-gone clients
   const now = Date.now();

@@ -981,7 +981,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) reco
 addEventListener('online', reconnectNow);
 export function send(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
 function reloadForUpdate() {
-  try { if (['farm', 'hay', 'pop', 'mj'].includes(st.view)) sessionStorage.setItem('ct_resume', st.view); } catch {}
+  try { if (['farm', 'hay', 'pop', 'mj', 'plaza'].includes(st.view)) sessionStorage.setItem('ct_resume', st.view); } catch {}
   $conn.hidden = false; $conn.classList.add('restart'); $conn.innerHTML = `<b>${L('Updated!', 'Zaktualizowane!')}</b> ${L('Loading the new version…', 'Wczytywanie nowej wersji…')}`;
   ws?.close(); ws = null; replaced = true; // no more reconnects from this copy of the page
   location.reload();
@@ -989,14 +989,14 @@ function reloadForUpdate() {
 function resumeAfterUpdate() {
   let v = null; try { v = sessionStorage.getItem('ct_resume'); sessionStorage.removeItem('ct_resume'); } catch {}
   if (!v || !st.name || st.room || st.view !== 'hub') return;
-  if (v === 'farm') openFarm(); else if (v === 'hay') openHay(); else if (v === 'pop') openPop(); else if (v === 'mj') openMj();
+  if (v === 'farm') openFarm(); else if (v === 'plaza') openPlaza(); else if (v === 'hay') openHay(); else if (v === 'pop') openPop(); else if (v === 'mj') openMj();
 }
 
 function onMsg(m) {
   if (m.t === 'welcome') {
     st.token = m.token; st.id = m.id; LS.set('ct_token', m.token);
     if (pendingJoin && st.name) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
-    st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); st.mj?.reopen(); // back after a dropped connection
+    st.farm?.reopen(); st.hay?.reopen(); st.pop?.reopen(); st.mj?.reopen(); st.plaza?.reopen(); // back after a dropped connection
     tellWhere(); setTimeout(resumeAfterUpdate, 300); // after a reload for an update (a table, if any, is back by then)
     if (st.view === 'hub') { send({ t: 'rankings', game: st.rkTab }); send({ t: 'hubchat' }); send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); }
   } else if (m.t === 'pets') {
@@ -1029,6 +1029,7 @@ function onMsg(m) {
       if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
       if (st.skyWas && m.me.sky?.stars > st.skyWas.stars) { sfx.win?.(); toast(`★ ${L('A new star! Light it in Profile › Your sky.', 'Nowa gwiazda! Zapal ją w: Profil › Twoje niebo.')}`); }
     }
+    if (st.view === 'plaza') st.plaza?.me();
     if (st.view === 'hub') { if (adopted) renderHub(); else { paintMe(); mountSkyHero(); } } else if (st.view === 'lobby') renderLobby(); else if (st.view === 'farm') st.farm?.me(); else if (st.view === 'hay') st.hay?.me(); else if (st.view === 'pop') st.pop?.me(); else if (st.view === 'mj') st.mj?.me();
     if (m.me.user !== st.dailyFor) { st.dailyFor = m.me.user; if (st.view === 'hub' || st.daily) send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); }
     if (m.me.user !== st.hc.for) { st.hc.for = m.me.user; paintHubFoot(); if (st.view === 'hub') send({ t: 'hubchat' }); }
@@ -1050,6 +1051,8 @@ function onMsg(m) {
   } else if (m.t === 'farm') {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
+  } else if (m.t === 'plaza') {
+    if (m.k === 'peek') { st.plazaPeek = m; paintPlazaBtn(); } else st.plaza?.msg(m);
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
   } else if (m.t === 'pop') {
@@ -1068,7 +1071,7 @@ function onMsg(m) {
   } else if (m.t === 'hubchat') {
     onHubChat(m);
   } else if (m.t === 'stats') {
-    st.stats = { online: m.online | 0, visitors: m.visitors | 0 }; paintStats(); if (whoSheet) send({ t: 'who' });
+    { const was = st.stats?.plaza | 0; st.stats = { online: m.online | 0, visitors: m.visitors | 0, plaza: m.plaza | 0 }; if (st.view === 'hub' && was !== st.stats.plaza) { paintPlazaBtn(); send({ t: 'plaza', a: { k: 'peek' } }); } } paintStats(); if (whoSheet) send({ t: 'who' });
   } else if (m.t === 'notice') {
     onNotice(m);
   } else if (m.t === 'who') {
@@ -1078,14 +1081,15 @@ function onMsg(m) {
   } else if (m.t === 'rooms') {
     st.rooms = m.rooms || [];
     if (st.view === 'hub') renderTables();
+    st.plaza?.tables(st.rooms);
   } else if (m.t === 'room') {
     const prev = st.room; st.room = m.room;
-    if (m.room) { closeFarm(); closeHay(); closePop(); closeMj(); }
+    if (m.room) { closeFarm(); closeHay(); closePop(); closeMj(); closePlaza(); }
     if (!m.room || m.room.state === 'play' || m.room.code !== prev?.code) inviteSheet?.close(); else paintInvite();
     if (m.room && m.room.code === $inv.dataset.code) hideInvite(); // came in through the link or the code instead
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj') go('hub'); return; }
+    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj' && st.view !== 'plaza') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
@@ -1189,6 +1193,32 @@ function openFarm() {
   }).catch(err => { console.error(err); farmLoading = null; toast(L('Could not load Pet Farm. Refresh?', 'Nie udało się wczytać Farmy zwierzaków. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closeFarm() { if (!st.farm) return; st.farm.destroy(); st.farm = null; gameCss(null); }
+
+// The Plaza: a 3D island to walk around with everyone who is on the site. No table: it opens straight from the hub.
+let plazaLoading = null;
+function openPlaza() {
+  if (st.plaza || plazaLoading) return;
+  st.view = 'plaza'; document.title = `${L('Plaza', 'Plac')} · ${SITE}`; tellWhere();
+  if (!st.hc.log) send({ t: 'hubchat' });
+  $app.innerHTML = '<main class="wrap"><p style="padding:40px 0;font-family:var(--fd);font-size:22px">' + L('Walking to the plaza…', 'Idziemy na plac…') + '</p></main>';
+  import('./games/plaza/scene3d.js').catch(() => {});
+  plazaLoading = import('./games/plaza/client.js').then(mod => {
+    plazaLoading = null;
+    if (st.view !== 'plaza') return;
+    st.plaza = mountWithCss('plaza', () => mod.mount($app, { send: a => send({ t: 'plaza', a }), toast, me: () => st.me, home: () => { closePlaza(); go('hub'); }, account: mode => openAccount(mode),
+      player: pt => send({ t: 'player', pt }), wheel: () => openWheel(), join: code => send({ t: 'join', code }), askTables: () => send({ t: 'rooms' }), gameName: id => GAMES[id]?.name || id,
+      chatLog: hubLogHtml, chatFoot: hubFootHtml }));
+    st.plaza.tables(st.rooms); placeGameSwitch();
+  }).catch(err => { console.error(err); plazaLoading = null; toast(L('Could not load the plaza. Refresh?', 'Nie udało się wczytać placu. Odświeżyć stronę?'), true); go('hub'); });
+}
+function closePlaza() { if (!st.plaza) return; st.plaza.destroy(); st.plaza = null; gameCss(null); }
+// The hub's Plaza button: how many are there now, and the faces of the first few (friends first).
+function plazaBtnHtml() {
+  const n = st.stats?.plaza | 0, pk = st.plazaPeek, faces = (pk?.faces || []).slice(0, 4);
+  return `<span class="plzb-ico" aria-hidden="true">${pk?.theme === 'meadow' ? '⛲' : '🎄'}</span><span class="plzb-tx"><b>${L('Plaza', 'Plac')}</b><small>${n ? L(`${n} ${n === 1 ? 'person is' : 'people are'} there now`, `teraz na placu: ${n}`) : L('Walk around and meet people', 'Pospaceruj i poznaj ludzi')}</small></span>`
+    + (faces.length ? `<span class="plzb-faces" aria-hidden="true">${faces.map(f => avatarHtml(f.c, f.av, 30, f.f ? 'fr' : '')).join('')}</span>` : '');
+}
+function paintPlazaBtn() { const el = document.getElementById('plaza-btn'); if (el) el.innerHTML = plazaBtnHtml(); }
 
 // Hay Hunch: the solo puzzle, also with no table.
 let hayLoading = null;
@@ -1443,7 +1473,7 @@ function openStats() {
 }
 // Tells the server which screen this browser is on (hub, Pet Farm or Hay Hunch), for the host's "Who's here" list.
 // Tables need nothing: the server knows who sits where.
-function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' || st.view === 'pop' || st.view === 'mj' ? st.view : 'hub' }); }
+function tellWhere() { send({ t: 'where', v: st.view === 'farm' || st.view === 'hay' || st.view === 'pop' || st.view === 'mj' || st.view === 'plaza' ? st.view : 'hub' }); }
 // "Who's here": everyone on the site right now, for hosts only (the server sends it only to ADMINS accounts).
 let whoSheet = null, whoTimer = null;
 const agoText = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return m < 1 ? L('just arrived', 'przed chwilą') : `${L('here for', 'na stronie od')} ${h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`}`; };
@@ -1777,6 +1807,7 @@ function renderHub() {
             <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
             <button class="btn m">${L('Join', 'Dołącz')}</button>
           </form>
+          <button type="button" class="plazabtn" id="plaza-btn" data-act="plaza">${plazaBtnHtml()}</button>
         </div>
         <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
       </div>
@@ -1802,7 +1833,7 @@ function renderHub() {
         <button type="button" class="btn sm w tall" id="tables-all-btn" data-act="tables" hidden></button>
       </section>
       <section id="hubchat">
-        <div class="sidehead"><h2>${L('Chat', 'Czat')}</h2></div>
+        <div class="sidehead"><h2>${L('Chat', 'Czat')}</h2><button type="button" class="plazalink" data-act="plaza">${L('Join in the plaza', 'Dołącz na placu')} ›</button></div>
         <div class="hccard">
           <div class="hclog" id="hc-log" role="log" aria-live="polite">${hubLogHtml()}</div>
           <div class="hcfoot" id="hc-foot">${hubFootHtml()}</div>
@@ -1974,6 +2005,7 @@ function onHubChat(m) {
   if (Array.isArray(m.log)) { hc.log = m.log; hc.max = m.max || 200; paintHubLog(); paintHubFoot(); return; }
   if (m.gone) { if (hc.log) hc.log = hc.log.filter(x => x.id !== m.gone); paintHubLog(); return; }
   if (!m.msg || !hc.log) return;
+  st.plaza?.chat(m.msg);
   const end = hubAtEnd() || m.msg.own, prev = hc.log.at(-1);
   hc.log.push(m.msg); if (hc.log.length > 120) hc.log.shift();
   if (m.msg.own) hc.pending = '';
@@ -2897,6 +2929,7 @@ $app.addEventListener('click', e => {
   else if (act === 'theme') { switchTheme(b); sfx.click(); }
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
+  else if (act === 'plaza') { if (!st.name) return openProfile(true); openPlaza(); }
   else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
   else if (act === 'pop') { if (!st.name) return openProfile(true); openPop(); }
   else if (act === 'mj') { if (!st.name) return openProfile(true); openMj(); }
