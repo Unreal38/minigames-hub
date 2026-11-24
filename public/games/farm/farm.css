@@ -358,6 +358,10 @@ body.night .pf .wxrow.on { color: var(--ink); }
 .pf .petrow em.out { color: #2f6db0; } .pf .petrow em.back { color: #2f7a3c; font-weight: 700; } .pf .petrow em.job { color: #8a5a12; }
 body.night .pf .petrow em.out { color: #9cc8ff; } body.night .pf .petrow em.back { color: #8fe3b0; } body.night .pf .petrow em.job { color: #ffd38a; }
 @media (max-width: 640px) { .pf .petlist { grid-template-columns: 1fr; gap: 6px; } .pf .petrow img, .pf .petrow .nothumb { width: 48px; height: 48px; } .pf .pfsort .pills button { min-height: 34px; padding: 2px 10px; } }
+/* Workshop swaps: how many at once */
+.pf .swapn { margin: 2px 0 10px; gap: 6px; }
+.pf .swapn button { color: var(--pf-tx, var(--ink)); border-color: var(--card-edge); min-height: 40px; padding: 4px 16px; font-size: 15px; }
+.pf .swapn button[aria-pressed=true] { border-color: var(--ink); background: var(--lantern); color: var(--ink); }
 /* Shown over the sky until the island has been drawn the first time */
 .pf .pfload { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 26px; border: 3px solid var(--ink); border-radius: 22px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); box-shadow: 0 4px 0 #23401c55; font-family: var(--fd); font-weight: 700; font-size: 20px; text-align: center; pointer-events: none; z-index: 1; }
 .pf .pfload[hidden] { display: none; }

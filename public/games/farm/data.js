@@ -15,14 +15,14 @@ export const MAT_INFO = {
   shells:   ['Expeditions to Tidepool Cove (farmhouse level 2).', 'Improving buildings and fancy decorations.'],
   coal:     ['Expeditions to Ember Hills (farmhouse level 3).', 'Higher building levels and fancy decorations.'],
   crystal:  ['Rare. Expeditions to Pebble Ridge (farmhouse level 2) and Thunder Meadow (level 4). Longer trips with more pets find more.', 'The Nest, top building levels and the fanciest decorations.'],
-  berries:  ['Garden Plots grow them every hour. Tap "Pick berries".', 'Cooking treats in the Kitchen. Spare ones sell at the Workshop.'],
+  berries:  ['Garden Plots grow them every hour. Tap "Pick berries".', 'Cooking treats in the Kitchen. Spare ones can be swapped at the Workshop.'],
   sunberry: ['Garden Plots of level 2 or 3 grow them with each harvest.', 'The best Kitchen recipes: Sunberry Pie and Rest Tonic.'],
   cookie:   ['Cooked in the Kitchen from 4 berries.', 'Tap a pet and feed it one for 30 experience.'],
   cake:     ['Cooked in the Kitchen from 10 berries and 5 fiber.', 'Tap a pet and feed it one for 90 experience.'],
   juice:    ['Cooked in the Kitchen from 6 berries.', 'Drink one in a practice or arena battle to heal 40%, once a battle.'],
   pie:      ['Cooked in a level 2 Kitchen.', 'Tap a pet and feed it one for 220 experience.'],
   tonic:    ['Cooked in a level 3 Kitchen.', 'Give it to a resting pet so it can go to the Nest again at once.'],
-  coins:    ['Battles, helping neighbours, selling materials at the Workshop, and the other games on the site.', 'Trees and bushes here, trades with friends, and the avatar shop on the main page.'],
+  coins:    ['Battles, helping neighbours, and the other games on the site.', 'Trees and bushes here, and the avatar shop on the main page. Coins stay with you: they cannot be traded or gifted.'],
 };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 export const MAX_ITEMS = 300;
@@ -41,7 +41,7 @@ export const ITEMS = {
   yard:     { name: 'Training Yard', kind: 'b', w: 3, h: 2, max: 1, cost: { wood: 25, stone: 25 }, desc: 'Pets practise their moves here against friendly partners.' },
   flag:     { name: 'Arena Flag', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 10, fiber: 10 }, desc: 'Challenge other farms here, and choose the team that defends yours.' },
   mailbox:  { name: 'Mailbox', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 8 }, desc: 'Gifts and letters from friends land here.' },
-  workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Unlocks fancier decorations, and buys your spare materials for coins.' },
+  workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Unlocks fancier decorations, and swaps spare materials for ones you need.' },
 
   fence:    { name: 'Fence', kind: 'd', w: 1, h: 1, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
   path:     { name: 'Stone Path', kind: 'd', w: 1, h: 1, walk: true, cost: { stone: 1 }, desc: 'Pets like to stroll along it.' },
@@ -202,7 +202,7 @@ export const UPGRADES = {
   hut:    { what: 'Two more beds', cost: [{ wood: 40, fiber: 20 }, { wood: 80, fiber: 40, shells: 10 }] },
   gate:   { what: 'One more party can be out exploring', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
   kitchen:  { what: ['A new recipe: Sunberry Pie', 'A new recipe: Rest Tonic'], cost: [{ wood: 40, stone: 30, shells: 6 }, { wood: 80, stone: 60, coal: 12 }] },
-  workshop: { what: ['A second set of decorations', 'The grandest decorations'], cost: [{ wood: 50, stone: 40, shells: 8 }, { wood: 100, stone: 80, coal: 15, crystal: 1 }] },
+  workshop: { what: ['A second set of decorations, and better swaps', 'The grandest decorations, and the best swaps'], cost: [{ wood: 50, stone: 40, shells: 8 }, { wood: 100, stone: 80, coal: 15, crystal: 1 }] },
   garden: { what: ['Ripens 15 minutes sooner, and grows a Sunberry each time', 'Ripens 15 minutes sooner again, and grows two Sunberries'], cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
   nest:   { what: ['A second egg slot', 'A third egg slot, and eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
@@ -233,7 +233,9 @@ export const HOUSE_MAX = 4;
 export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 }];
 
 // What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
-export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1, coins: 10 };
+export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1 };
+// Coins are the player's account money (the avatar shop, other games), so they never move between players: not in gifts, not in trades.
+export const TRADE_MATS = Object.keys(MATS).filter(k => k !== 'coins');
 // Gardens, kitchen, barn and workshop.
 export const GROW_MIN = 60, BERRIES = 3; // each Garden Plot gives 3 berries an hour
 export const RECIPES = {
@@ -246,7 +248,17 @@ export const RECIPES = {
 export const STORED = ['wood', 'stone', 'fiber', 'shells', 'coal', 'berries'], CAP = { base: 300, barn: 900 }; // the most a farm can hold of each
 export const capOf = f => { const lv = topLv(f, 'barn'); return lv ? CAP.barn + 600 * (lv - 1) : CAP.base; };
 export const growMin = item => GROW_MIN - 15 * (lvOf(item) - 1);
-export const SELL = { wood: 4, stone: 4, fiber: 4, shells: 12, coal: 12, berries: 8 }, SELL_LOT = 10; // coins the Workshop pays for a lot of ten
+// The Workshop swaps one material for another. WORTH is what one of each is worth, SWAP_LOT how many one swap hands
+// you, and SWAP_KEEP the share of the value you get back at Workshop level 1, 2 and 3 (the rest is the Workshop's cut,
+// so swapping back and forth always loses a little).
+export const WORTH = { wood: 1, stone: 1, fiber: 1, berries: 2, shells: 3, coal: 3, crystal: 40 };
+export const SWAP_LOT = { wood: 10, stone: 10, fiber: 10, berries: 5, shells: 5, coal: 5, crystal: 1 }, SWAP_KEEP = [.6, .7, .8], SWAP_MAX = 10;
+// One swap of `give` for `get` at a Workshop of level lv: { pay, get } (how many go in, how many come out).
+export function swapDeal(give, get, lv) {
+  if (!WORTH[give] || !WORTH[get] || give === get) return null;
+  const keep = SWAP_KEEP[Math.min(SWAP_KEEP.length, Math.max(1, lv | 0)) - 1], need = SWAP_LOT[get] * WORTH[get] / (WORTH[give] * keep);
+  return need <= 1 ? { pay: 1, get: Math.floor(WORTH[give] * keep / WORTH[get]) } : { pay: Math.ceil(need - 1e-9), get: SWAP_LOT[get] };
+}
 
 // ---------- expeditions ----------
 // A party of 1 to 3 pets flies to a zone and comes back with materials. Nothing can go wrong on a trip.

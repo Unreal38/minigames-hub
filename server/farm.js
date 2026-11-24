@@ -8,7 +8,7 @@ import crypto from 'node:crypto';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
-  BERRIES, RECIPES, STORED, capOf, SELL, SELL_LOT, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
+  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
@@ -237,14 +237,22 @@ const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), na
 const TRADE_MS = 7 * 24 * HOUR, TRADE_OPEN = 5, TRADE_PETS = 3;
 const cuddling = (f, id) => SLOTS.some(s => f[s] && nestView(f, s).stage === 'cuddle' && (f[s].a === id || f[s].b === id));
 const tradable = (f, x) => !x.held && f.pets.length > 1 && !away(f, x.id) && !cuddling(f, x.id) && !(f.def || []).includes(x.id);
-const cleanMats = m => { const out = {}; for (const [k, n] of Object.entries(m && typeof m === 'object' ? m : {})) if (own(MATS, k) && Number.isInteger(n) && n > 0 && n <= 9999) out[k] = n; return out; };
+const cleanMats = m => { const out = {}; for (const [k, n] of Object.entries(m && typeof m === 'object' ? m : {})) if (own(MATS, k) && TRADE_MATS.includes(k) && Number.isInteger(n) && n > 0 && n <= 9999) out[k] = n; return out; };
 const cleanIds = a => Array.isArray(a) ? [...new Set(a.map(String))].slice(0, TRADE_PETS) : [];
 function release(f, o) { // hand back what an offer was holding
   pay(f.inv, o.give.mats, 1);
   for (const x of f.pets) if (x.held === o.id) delete x.held;
   f.offers.splice(f.offers.indexOf(o), 1);
 }
-function sweep(f) { for (const o of [...(f.offers || [])]) if (Date.now() - o.at > TRADE_MS || !farms.has(o.to)) release(f, o); }
+// Coins stopped being tradable (Kuba, 2026-11-24): an offer from before that, giving or asking for coins, is sent back
+// whole, with a note, the next time anyone looks at trades.
+const hasCoins = o => !!(o.give.mats.coins || o.want.mats.coins);
+function sweep(f) {
+  for (const o of [...(f.offers || [])]) {
+    if (hasCoins(o)) { release(f, o); post(f, { k: 'note', text: `Your trade offer to ${nameOf(o.to, farms.get(o.to) || {})} came back, because coins can no longer be traded. Everything is back on your farm.` }); }
+    else if (Date.now() - o.at > TRADE_MS || !farms.has(o.to)) release(f, o);
+  }
+}
 const FREE_GIFT = 3, FREE_GIFT_LV = 12; // berries a pet leaves when it is let go: 3 plus one per level, up to 15
 const tiny = x => x ? { id: x.id, sp: x.sp, name: x.name, lv: x.lv, look: lookOf(x) } : null;
 // For the rest of the site: a player's pets (to pick a companion from) and one of them by id, or null once it has moved on.
@@ -496,12 +504,15 @@ export function handle(p, a, reply) {
     f.inv[a.what]--;
     return ok({ did: 'feed', what: a.what, pet: pet.id, grew: learn(pet, r.xp) });
   }
-  if (a.t === 'sell') { // the Workshop buys spare materials in lots of ten
-    const lots = Math.max(1, Math.min(50, a.lots | 0)), price = own(SELL, a.mat); if (!price) return;
+  if (a.t === 'sell') return no('The Workshop swaps materials now. Open it again to swap.'); // an old page still showing the sell window
+  if (a.t === 'swap') { // the Workshop swaps one material for another (rates in data.js swapDeal)
     if (!countOf(f, 'workshop')) return no('Build a Workshop first.');
-    if ((f.inv[a.mat] || 0) < lots * SELL_LOT) return no('You do not have that many to sell.');
-    f.inv[a.mat] -= lots * SELL_LOT; f.inv.coins = (f.inv.coins || 0) + lots * price;
-    return ok({ did: 'sell', coins: lots * price });
+    const d = swapDeal(String(a.give), String(a.get), topLv(f, 'workshop')); if (!d || !d.get) return no('The Workshop cannot do that swap.');
+    const n = Math.max(1, Math.min(SWAP_MAX, a.n | 0)), pay = d.pay * n, get = d.get * n;
+    if ((f.inv[a.give] || 0) < pay) return no('You do not have enough of that to swap.');
+    if (STORED.includes(a.get) && (f.inv[a.get] || 0) + get > capOf(f)) return no('There is no room for that many. Spend some, or build a Storage Barn.');
+    f.inv[a.give] -= pay; f.inv[a.get] = (f.inv[a.get] || 0) + get;
+    return ok({ did: 'swap', give: a.give, pay, get: a.get, got: get });
   }
   if (a.t === 'pair') { // two pets go to the Nest; b may be a friend's pet that is open for playdates
     if (!countOf(f, 'nest')) return no('Build a Nest first.');
@@ -552,6 +563,7 @@ export function handle(p, a, reply) {
   }
   if (a.t === 'offer') { // propose a swap to another farm
     const hit = byFid(a.to); if (!hit || hit[1] === f) return no('That farm is not around any more.');
+    if (a.give?.mats?.coins || a.want?.mats?.coins) return no('Coins cannot be traded. They stay with you.');
     const [tpid, x] = hit, give = { pets: cleanIds(a.give?.pets), mats: cleanMats(a.give?.mats) }, want = { pets: cleanIds(a.want?.pets), mats: cleanMats(a.want?.mats) };
     if (!give.pets.length && !want.pets.length && !Object.keys(give.mats).length && !Object.keys(want.mats).length) return no('Put something in the offer first.');
     if ((f.offers || []).length >= TRADE_OPEN) return no('You have five offers waiting already.');
@@ -574,6 +586,7 @@ export function handle(p, a, reply) {
   if (a.t === 'tradeans') { // accept or decline an offer made to me
     let from = null, o = null, fpid = null;
     for (const [spid, x] of farms) { const q = (x.offers || []).find(y => y.id === a.id && y.to === p.pid); if (q) { from = x; o = q; fpid = spid; } }
+    if (o && hasCoins(o)) { sweep(from); o = null; }
     if (!o) return no('That offer is gone.');
     if (!a.ok) { release(from, o); post(from, { k: 'note', text: `${p.name} said no to your trade offer. Everything came back.` }); return ok({ did: 'tradeno' }); }
     const theirs = o.give.pets.map(id => from.pets.find(q => q.id === id)), mine = o.want.pets.map(id => f.pets.find(q => q.id === id));
@@ -633,7 +646,7 @@ export function handle(p, a, reply) {
         scheduleSave();
         return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'gift' });
       }
-      const n = own(GIFTS, a.mat); if (!n) return;
+      const n = own(GIFTS, a.mat); if (!n) return reply({ t: 'farm', err: a.mat === 'coins' ? 'Coins cannot be gifted. They stay with you.' : 'That cannot be a gift.', visit: there(), farm: view(f, p) });
       if ((f.inv[a.mat] || 0) < n) return reply({ t: 'farm', err: 'You do not have enough of that to give.', visit: there(), farm: view(f, p) });
       f.inv[a.mat] -= n; g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
       post(x, { k: 'gift', from: p.name, got: { [a.mat]: n } });
@@ -857,6 +870,7 @@ export function testHook(pid, a) {
   if (a.liveUsed !== undefined) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = a.liveUsed; }
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
+  if (a.oldOffer) { const hit = byFid(a.oldOffer); if (hit) { f.inv.coins -= 5; (f.offers ||= []).push({ id: rid(), to: hit[0], give: { pets: [], mats: { coins: 5 } }, want: { pets: [], mats: {} }, at: Date.now() }); } } // an offer from before coins stopped being tradable
   if (a.pet && own(SPECIES, a.pet)) f.pets.push({ ...newPet(a.pet, 'test', true), ...(a.traits || {}) });
   if (a.lv) for (const x of f.pets) x.lv = a.lv;
   if (a.rested) for (const x of f.pets) x.rest = 0;
