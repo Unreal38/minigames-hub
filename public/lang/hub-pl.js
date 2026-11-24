@@ -29,6 +29,7 @@ export const OPT_PL = {
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
+  Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
@@ -312,6 +313,21 @@ export const GAMES_PL = {
       <li>Od dołu nadciąga <b>burza</b>, najpierw powoli, potem coraz szybciej. Jeśli cię dogoni, odpadasz i oglądasz pozostałych.</li>
       <li>Twój wynik to <b>10 punktów za każde piętro</b> najwyższego zdobytego poziomu plus punkty za serie. Gra kończy się, gdy burza dogoni wszystkich. Wygrywa najwyższy wynik.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  bingo: {
+    name: 'Podniebne bingo', start: 'Włącz maszynę', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Maszyna losuje kule z liczbami. Zaznaczaj je na swojej karcie szybciej niż znajomi i wołaj „Bingo!” za linię, dwie linie i całą kartę.',
+    howto: `Maszyna co kilka sekund losuje kulę z liczbą. Znajdź tę liczbę na swojej karcie i ją dotknij. Gdy masz całą linię, naciśnij „Bingo!”, zanim zrobi to ktoś inny. Potem gra toczy się dalej o dwie linie i o całą kartę.`,
+    rules: `<ol>
+      <li>Każdy ma <b>własną kartę</b> z 24 liczbami i darmową gwiazdką na środku. W kolumnie <b>B</b> są liczby od 1 do 15, w <b>I</b> od 16 do 30, w <b>N</b> od 31 do 45, w <b>G</b> od 46 do 60, a w <b>O</b> od 61 do 75. Wolne miejsca zajmują boty.</li>
+      <li>Maszyna losuje <b>jedną kulę co kilka sekund</b>, razem 75 kul. Pasek obok kuli pokazuje, ile zostało do następnej.</li>
+      <li><b>Dotknij liczby</b> na swojej karcie, gdy zostanie wylosowana. Możesz ją zaznaczyć także później: przycisk <b>Wylosowane</b> otwiera listę wszystkich liczb, które już padły. Nikt nie zaznacza za ciebie (chyba że przy stole włączono automatyczne zaznaczanie).</li>
+      <li><b>Linia</b> to pięć pól w rzędzie, w kolumnie albo po skosie. Gwiazdka na środku liczy się jako zaznaczona.</li>
+      <li>Gdy zaznaczone pola dają nagrodę, naciśnij <b>Bingo!</b> (albo spację). Nagrodę bierze ten, kto <b>zawoła pierwszy</b>, więc gracze, którzy kończą na tej samej kuli, ścigają się ze sobą.</li>
+      <li>W klasycznej grze są <b>trzy nagrody</b> na tych samych kartach: <b>jedna linia</b> (10 punktów), potem <b>dwie linie</b> (20), a na koniec <b>cała karta</b> (40). Szybka gra kończy się po pierwszej linii.</li>
+      <li><b>Wygrywa najwięcej punktów.</b> Przy równej liczbie punktów wyżej jest ten, komu mniej brakuje do całej karty.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie zaznaczy ani jednej liczby, nie dostaje monet.</li>
     </ol>`,
   },
   ttt: {

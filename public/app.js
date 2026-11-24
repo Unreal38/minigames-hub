@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, bingoArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -418,6 +418,27 @@ const GAMES = {
       <li>A <b>storm</b> rises from below, slowly at first and then faster and faster. If it catches you, you are out and watch the others.</li>
       <li>Your score is <b>10 points for every floor</b> of the highest floor you reached, plus your streak points. The game ends when the storm has caught everyone. Highest score wins.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  bingo: {
+    name: 'Sky Bingo', load: () => import('./games/bingo/client.js'), start: 'Start the machine',
+    host: { seats: 4, game: 'classic', speed: 'normal', daub: 'hand', bots: 'chill' }, solo: { seats: 4, game: 'classic', speed: 'normal', daub: 'hand', bots: 'chill' },
+    openSeat: 'A bot daubs here if nobody joins', seats: r => Math.min(8, Math.max(r.opts.seats || 4, r.players.length)),
+    settings: pill => `<div class="opt"><b>Players</b><div class="pills">${pill('seats', 2, '2')}${pill('seats', 3, '3')}${pill('seats', 4, '4')}${pill('seats', 6, '6')}${pill('seats', 8, '8')}</div></div>
+      <div class="opt"><b>Prizes</b><div class="pills">${pill('game', 'quick', 'Quick · one line')}${pill('game', 'classic', 'Classic · all three')}</div></div>
+      <div class="opt"><b>Ball speed</b><div class="pills">${pill('speed', 'chill', 'Chill')}${pill('speed', 'normal', 'Normal')}${pill('speed', 'fast', 'Fast')}</div></div>
+      <div class="opt"><b>Daubing</b><div class="pills">${pill('daub', 'hand', 'By hand')}${pill('daub', 'auto', 'Automatic')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `A machine draws a ball with a number every few seconds. Find the number on your card and tap it. When you have a full line, press Bingo before anybody else does. Then the game goes on for two lines and for the full card.`,
+    rules: `<ol>
+      <li>Everyone has their <b>own card</b> with 24 numbers and a free star in the middle. The <b>B</b> column holds numbers 1 to 15, <b>I</b> 16 to 30, <b>N</b> 31 to 45, <b>G</b> 46 to 60 and <b>O</b> 61 to 75. Empty seats are played by bots.</li>
+      <li>The machine draws <b>one ball every few seconds</b>, 75 balls in all. The bar next to the ball shows how long until the next one.</li>
+      <li><b>Tap the number</b> on your card when it is called. You can also daub it later: <b>Called</b> opens the list of every number drawn so far. Nobody daubs for you (unless the table uses automatic daubing).</li>
+      <li>A <b>line</b> is five squares in a row, a column or a diagonal. The star in the middle counts for you.</li>
+      <li>When your daubed squares make the prize, press <b>Bingo!</b> (or Space). The <b>first to shout</b> takes it, so two players who finish on the same ball race each other.</li>
+      <li>A classic game has <b>three prizes</b> on the same cards: <b>one line</b> (10 points), then <b>two lines</b> (20), then the <b>full card</b> (40). A quick game ends with the first line.</li>
+      <li><b>Most points wins.</b> Players level on points are placed by how close their card is to full.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never daubs a number gets none.</li>
     </ol>`,
   },
   ttt: {
@@ -1368,6 +1389,7 @@ const HUB_GAMES = [
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
+  ['bingo', 'bingopic', bingoArt, 'board', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">
   <div class="pic ${pic}">${art()}<span class="gopen" data-g="${id}" hidden></span></div>
