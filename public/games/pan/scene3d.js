@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { cardGeometry } from '../../cardgeo.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { cardTexture } from '../poker/scene3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -17,7 +17,7 @@ const ease = t => (t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const hash = c => { const x = Math.sin(c * 91.7 + 3.1) * 43758.5; return x - Math.floor(x); };
 
 export function createScene(canvas, { onFrame } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.75);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 40, 150);

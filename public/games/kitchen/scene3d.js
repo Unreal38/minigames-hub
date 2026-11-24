@@ -3,7 +3,7 @@
 // everyone else smoothly towards where the server last saw them) and reports screen spots for the HUD.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, HEART, nightScene } from '../../scenery3d.js';
 import { kitchen, CRATES, T } from './rules.js';
@@ -86,7 +86,7 @@ function look(it) {
 export function createScene(canvas, { mapId, step, onFrame } = {}) {
   const K = kitchen(mapId), OX = K.cols / 2, OZ = K.rows / 2;
   const W = (x, z, y = 0, v = new THREE.Vector3()) => v.set(x - OX, y + BASE, z - OZ);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();

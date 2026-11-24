@@ -2,7 +2,7 @@
 // paths the server worked out, and turns a drag on the screen into an aim and a power for your next putt.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { ballLook } from '../../skins.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, disposeToon, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
@@ -55,7 +55,7 @@ function mesher() {
   return { quad, box, prism, build };
 }
 export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();

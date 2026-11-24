@@ -10,6 +10,7 @@ import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
+import { setGfx } from '../../frames.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -291,7 +292,7 @@ export function mount(app, ctx) {
     if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);
+    const q = Math.min(1.5, devicePixelRatio || 1); cv.width = innerWidth * q; cv.height = innerHeight * q; g.scale(q, q); // full phone resolution is 4x the pixels for no visible gain
     const cols = CATS.map(c => c.col).concat(['#fff4e2', '#ffb547']);
     const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45, vx: (Math.random() - .5) * 16, vy: -Math.random() * 16 - 6, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 6 + Math.random() * 8, c: cols[Math.random() * cols.length | 0], round: Math.random() < .4 }));
     let t = 0;
@@ -303,7 +304,7 @@ export function mount(app, ctx) {
         if (p.round) { g.beginPath(); g.arc(0, 0, p.s / 2, 0, 6.28); g.fill(); } else g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
         g.restore();
       }
-      if (++t < 200 && !destroyed) requestAnimationFrame(step); else g.clearRect(0, 0, innerWidth, innerHeight);
+      if (++t < 200 && !destroyed) requestAnimationFrame(step); else cv.width = cv.height = 0;
     };
     step();
   }
@@ -337,7 +338,7 @@ export function mount(app, ctx) {
     else if (a === 'eat') { if (myDisc() && canWin(S.hand)) { sfx.click(); ctx.act({ t: 'eat' }); } }
     else if (a === 'react') { const now = Date.now(); if (now - lastReact > 800) { lastReact = now; ctx.react(+b.dataset.k); } }
     else if (a === 'gfx') {
-      gfx = { auto: 'low', low: 'high', high: 'auto' }[gfx]; try { localStorage.setItem('ct_gfx', gfx); } catch {}
+      gfx = { auto: 'low', low: 'high', high: 'auto' }[gfx]; setGfx(gfx); // the site-wide level (frames.js), same as the account menu's Graphics
       b.textContent = GFX[gfx][0]; scene?.setQuality(gfx); ctx.toast(GFX[gfx][1]);
     }
     else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }

@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { petModel } from '../farm/pets3d.js';
 import { N, PET } from './rules.js';
 
@@ -100,7 +100,7 @@ function paintMarks(cv, m) {
 }
 
 export function createScene(canvas, { onFrame } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.75);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 40, 150);

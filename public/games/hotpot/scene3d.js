@@ -5,7 +5,7 @@ import { paintBack } from '../../skins.js';
 import { CATS, kindOf, catOf } from './rules.js';
 import { iconSvg, backSvg } from './icons.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { frameLoop, autoResolution, FPS } from '../../frames.js';
+import { frameLoop, autoResolution, AA, FPS } from '../../frames.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, rim as rimGlow, STAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
 
 const INK = '#3b2219';
@@ -321,7 +321,7 @@ function glyphTextures() {
 
 // Always 60 fps (see frames.js). quality: 'auto' (default), 'low' (no shadows, 1x resolution, 30 fps battery saver) or 'high' (full resolution)
 export function createScene(canvas, { onTile, onDeck, onLayout, quality = 'auto' }) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; // shadows are refreshed a few times a second, not every frame
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();

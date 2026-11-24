@@ -1,7 +1,7 @@
 // Marble Rush 3D view (three.js). Purely visual: it replays the positions the server streams.
 import * as THREE from 'three';
 import { makeTrack, world, at, spinAngle, trapOpen, R, DS, DISH, WALL_H, GATE_S } from './track.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake } from '../../avatar3d.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, createFx, shaker, disposeToon, STAR, DOT, CONF, nightScene } from '../../scenery3d.js';
 
@@ -86,7 +86,7 @@ function ribbon(rails, vScale = 1) {
 }
 
 export function createScene(canvas, { onFrame }) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();

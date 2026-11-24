@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight, flat } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { sfx } from '../../sfx.js';
@@ -75,7 +75,7 @@ function baleModel(strong) { // a hay bale; a strong one is strapped into a wood
 }
 
 export function createScene(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.75);
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 60, 190);
   const camera = new THREE.PerspectiveCamera(30, 1, .1, 500);

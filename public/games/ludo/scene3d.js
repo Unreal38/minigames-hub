@@ -2,7 +2,7 @@
 // Purely visual: it replays the rolls and moves the server worked out, and reports which pawn was tapped.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, shell, skyDome, clouds, island, birds, petals, createFx, shaker, disposeToon, STAR as FSTAR, DOT, HEART, CONF, nightScene } from '../../scenery3d.js';
@@ -50,7 +50,7 @@ function starGeo() {
 }
 
 export function createScene(canvas, { onFrame, onCue, onPick }) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();

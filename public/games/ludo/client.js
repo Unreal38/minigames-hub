@@ -253,7 +253,7 @@ export function mount(app, ctx) {
     if (own && myBurst()) return; // the player's own win effect from the Wardrobe, when they have one on
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; g.scale(devicePixelRatio, devicePixelRatio);
+    const q = Math.min(1.5, devicePixelRatio || 1); cv.width = innerWidth * q; cv.height = innerHeight * q; g.scale(q, q); // full phone resolution is 4x the pixels for no visible gain
     const cols = ['#ff6b6b', '#ffc93c', '#5fd08a', '#4db5ff', '#fff4e2', '#c58bff'];
     const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45, vx: (Math.random() - .5) * 16, vy: -Math.random() * 16 - 6, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 6 + Math.random() * 8, c: cols[Math.random() * cols.length | 0] }));
     let t = 0;
@@ -263,7 +263,7 @@ export function mount(app, ctx) {
         p.vy += .45; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
         g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); g.restore();
       }
-      if (++t < 200 && !destroyed) requestAnimationFrame(step); else g.clearRect(0, 0, innerWidth, innerHeight);
+      if (++t < 200 && !destroyed) requestAnimationFrame(step); else cv.width = cv.height = 0;
     };
     step();
   }

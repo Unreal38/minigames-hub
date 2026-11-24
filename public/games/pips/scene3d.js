@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { diceKit } from '../../dice3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 2.95;           // table radius
@@ -25,7 +25,7 @@ const LOOSE = [[-1.25, -.75], [0, -.95], [1.25, -.7], [-.62, -.05], [.66, .02]];
 const keptAt = k => [-1.44 + k * .72, 1.02];
 
 export function createScene(canvas, { onFrame, onPick } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.75);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 40, 150);
