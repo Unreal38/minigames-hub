@@ -529,6 +529,7 @@ const GAMES = {
   },
   chess: {
     name: 'Chess', load: () => import('./games/chess/client.js'), start: 'Start the game',
+    mins: [10, 25],
     host: { clock: '10+5', bots: 'easy' }, solo: { clock: 'off', bots: 'easy' },
     openSeat: 'A bot plays here if nobody joins', seats: () => 2,
     settings: pill => `<div class="opt"><b>Clock</b><div class="pills">${pill('clock', 'off', 'No clock')}${pill('clock', '3+2', '3 min + 2s')}${pill('clock', '5+3', '5 min + 3s')}${pill('clock', '10+5', '10 min + 5s')}${pill('clock', '15+10', '15 min + 10s')}</div></div>
