@@ -4,7 +4,7 @@
 // stream (snap()), drawn a moment in the past so it moves smoothly. Only the floors near the camera are drawn.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, STAR, DOT } from '../../scenery3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { buildTower, floorAt, ledgeOff, stormY, zoneOf, zoneInfo, zoneName, W, FLOOR_H, ZONE, SPRING, CRUMBLE, MOVING, CRUMBLE_S } from './tower.js';
@@ -108,7 +108,7 @@ function makeSign(big) {
 }
 
 export function createScene(canvas, { onFrame, step, clock } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, 1, .5, 900);

@@ -3,7 +3,7 @@
 // every dart lands (rules.js); this draws your wandering aim, flies the darts in and keeps them in the board.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, flat, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
 import { R, ORDER, MS, landing, wobbleR, HAND, spot } from './rules.js';
@@ -46,7 +46,7 @@ function boardTexture() {
 }
 
 export function createScene(canvas, { onFrame, onCue } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();

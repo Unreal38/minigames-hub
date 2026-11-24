@@ -7,14 +7,14 @@ import { avatar3d, animateAvatar, disposeAvatar } from './avatar3d.js';
 import { birds, petals, createFx, disposeToon, CONF } from './scenery3d.js';
 import { buildIsle, buildSky, pieceModel } from './isle3d.js';
 import { piecesOf } from './cosmetics.js';
-import { frameLoop, autoResolution } from './frames.js';
+import { frameLoop, autoResolution, AA } from './frames.js';
 
 let H = null, P = null, night = false; // H: your own isle on the hub; P: the isle in another player's profile card
 export function setHeroNight(on) { night = on; H?.setNight(on); P?.setNight(on); }
 
 function build() {
   const canvas = document.createElement('canvas'); canvas.className = 'hero3d'; canvas.setAttribute('aria-hidden', 'true');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, alpha: true });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1, .1, 200);
@@ -78,10 +78,14 @@ function build() {
       });
     }).catch(() => {});
   }
+  // Size from a ResizeObserver and drawing only while on screen: reading the canvas size every frame forced the whole hub
+  // to lay out 60 times a second, and an isle scrolled out of view (or under a game) still cost a full frame.
+  let seen = true, rw = 0, rh = 0;
+  new ResizeObserver(es => { const b = es[es.length - 1].contentRect; rw = b.width; rh = b.height; }).observe(canvas);
+  new IntersectionObserver(es => { seen = es[es.length - 1].isIntersecting; }).observe(canvas);
   const loop = dt => {
-    if (!canvas.isConnected) return;
-    const r = canvas.getBoundingClientRect();
-    if (r.width !== W || r.height !== Hh) { W = r.width; Hh = r.height; renderer.setSize(W, Hh, false); camera.aspect = W / Math.max(1, Hh); camera.updateProjectionMatrix(); sky?.fit(camera.aspect); }
+    if (!canvas.isConnected || !seen) return;
+    if (rw !== W || rh !== Hh) { W = rw; Hh = rh; renderer.setSize(W, Hh, false); camera.aspect = W / Math.max(1, Hh); camera.updateProjectionMatrix(); sky?.fit(camera.aspect); }
     if (!W || !Hh) return;
     if (!reduced) T += dt;
     world.position.y = Math.sin(T * .8) * .12; world.rotation.y = Math.sin(T * .15) * .25;

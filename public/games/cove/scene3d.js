@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, createFx, shaker, nightScene, disposeToon, hash, DOT, STAR } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { petModel } from '../farm/pets3d.js';
 import { cellsOf, MISS, HIT, CLEAR } from './rules.js';
 
@@ -24,7 +24,7 @@ const back = t => 1 + 2.2 * (t - 1) ** 3 + 1.2 * (t - 1) ** 2;
 const shadeOf = (c, k) => { const o = new THREE.Color(c); return '#' + (k < 1 ? o.multiplyScalar(k) : o.lerp(new THREE.Color('#ffffff'), k - 1)).getHexString(); };
 
 export function createScene(canvas, { onFrame } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.75);
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 60, 190);
   const camera = new THREE.PerspectiveCamera(36, 1, .1, 600);

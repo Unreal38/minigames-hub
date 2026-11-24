@@ -17,6 +17,7 @@ import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { DAILY as MJ_DAILY } from './games/mahj/rules.js';
 import { randomName } from './names.js';
 import { fitw } from './fit.js';
+import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
@@ -705,12 +706,12 @@ let pendingJoin = (location.hash.slice(1) || '').toUpperCase();
 if (!validCode(pendingJoin)) pendingJoin = '';
 
 // ---------- toasts ----------
-export function toast(html, bad = false) {
+export function toast(html, bad = false, ms = 2900) {
   const el = document.createElement('div');
   el.className = 'toast' + (bad ? ' bad' : '');
   el.innerHTML = html;
   document.getElementById('toasts').append(el);
-  setTimeout(() => el.remove(), 2900);
+  setTimeout(() => el.remove(), ms);
 }
 
 // ---------- network ----------
@@ -1310,12 +1311,22 @@ function acctHtml() {
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${m?.admin ? item('notices', '📣', L('Site notices', 'Komunikaty strony'), `<small>${L('update countdown, announcements', 'odliczanie, ogłoszenia')}</small>`) : ''}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
+      ${item('gfx', '🎮', L('Graphics', 'Grafika'), `<small>${gfxLabel()}</small>`)}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
       ${item('support', '☕', L('Support the site', 'Wesprzyj stronę'), `<small>${hasPack() ? L('thank you!', 'dziękujemy!') : L('get the Supporter pack', 'odbierz Pakiet wspierających')}</small>`)}
       <hr>
       ${m?.user ? item('security', '🔑', L('Change password', 'Zmień hasło')) + item('logout', '🚪', L('Log out', 'Wyloguj się'), `<small>${esc(m.user)}</small>`)
         : item('account', '✨', L('Create account', 'Załóż konto'), `<small>${L('saves progress', 'zapisuje postępy')}</small>`, ' data-mode="register"') + item('account', '🔑', L('Log in', 'Zaloguj się'), '', ' data-mode="login"')}
     </div>`;
+}
+// The site-wide graphics level (frames.js): Auto picks by device, Low is lightest, High is the full look.
+const GFX_NEXT = { auto: 'low', low: 'high', high: 'auto' };
+function gfxLabel() {
+  const p = gfxPick();
+  if (p === 'low') return L('low: lightest', 'niska: najlżejsza');
+  if (p === 'high') return L('high: full look', 'wysoka: pełny wygląd');
+  if (SOFT) return L('auto (light: no graphics card in use)', 'automatyczna (lekka: brak karty graficznej)');
+  return L(`auto (${{ high: 'high', mid: 'medium', low: 'low' }[gfx()]})`, `automatyczna (${{ high: 'wysoka', mid: 'średnia', low: 'niska' }[gfx()]})`);
 }
 function closeAcct() {
   document.querySelector('.acctwrap')?.remove();
@@ -2474,6 +2485,7 @@ $app.addEventListener('click', e => {
   else if (act === 'gfilt') { st.gFilt = b.dataset.cat; LS.set('ct_gf', st.gFilt); filterGames(); }
   else if (act === 'acct') openAcct();
   else if (act === 'lang') setLang(b.dataset.lang);
+  else if (act === 'gfx') { setGfx(GFX_NEXT[gfxPick()]); const sm = b.querySelector('small'); if (sm) sm.textContent = gfxLabel(); toast(`${L('Graphics', 'Grafika')}: ${esc(gfxLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
   else if (act === 'mystats') openStats();
   else if (act === 'who') openWho();
   else if (act === 'notices') { closeAcct(); openNotices(); }
@@ -2537,6 +2549,17 @@ let ipFailed = false, islePics = null;
 const ipReady = import('./itempic.js').then(m => { IP = m; }).catch(() => { ipFailed = true; });
 const p3Ready = import('./portraits.js').then(m => { P3 = m; if (st.view === 'hub' || st.view === 'lobby') go(st.view); }).catch(() => {});
 onLangSwitch(l => { if (st.me?.user) send({ t: 'lang', v: l }); });
+// Moving pictures (game card art, Today icons, profile effects) are SVG: every frame of their CSS animation lays out and
+// repaints the picture, even off screen. Pause the ones out of view; on the low graphics level they all stand still (style.css).
+{
+  const io = new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('offview', !e.isIntersecting); });
+  let q = 0; const watch = () => { q = 0; for (const s of document.querySelectorAll('#app svg:not([data-io]), .modal svg:not([data-io])')) { s.dataset.io = ''; io.observe(s); } };
+  new MutationObserver(() => { q ||= setTimeout(watch, 250); }).observe(document.body, { childList: true, subtree: true });
+}
+gfx(); // sets the html.gfx-* class before the hub draws
+onGfxTip(kind => toast(kind === 'soft'
+  ? L('Your browser draws 3D without the graphics card, so we switched to light graphics. For the full look, turn on “Use hardware acceleration” in the browser’s settings (in Opera GX: Settings > Browser > System) and restart it.', 'Twoja przeglądarka rysuje 3D bez karty graficznej, więc włączyliśmy lekką grafikę. Po pełny wygląd włącz „Użyj akceleracji sprzętowej” w ustawieniach przeglądarki (w Operze GX: Ustawienia > Przeglądarka > System) i uruchom ją ponownie.')
+  : L('The game can’t keep up even on low graphics. If you use Opera GX, check that GX Control’s CPU and RAM limiters are off and no page shader mod is on.', 'Gra nie nadąża nawet na niskiej grafice. Jeśli używasz Opery GX, sprawdź, czy limity procesora i RAM w GX Control są wyłączone i czy nie działa mod z shaderem strony.'), false, 10000));
 go('hub');
 initNotice({ send, modal, toast, sfx, me: () => st.me, inGame: () => !!st.game });
 connect();

@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, skyDome, clouds, island, birds, createFx, shaker, STAR, DOT, nightScene, disposeToon } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { petModel, eggModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { COLS, WIDTH, RH, LIM, KINDS, EGG, PETS, LX, LY, AMAX, decode, shifted } from './rules.js';
@@ -35,7 +35,7 @@ function lineTexture() {
 }
 
 export function createScene(canvas, { onFrame, step } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.75);
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 80, 260);
   const camera = new THREE.PerspectiveCamera(FOV, 1, .5, 600);

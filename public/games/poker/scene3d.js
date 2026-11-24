@@ -6,7 +6,7 @@ import { rankOf, suitOf, RANKS } from './rules.js';
 import { SUIT_COLS, SUIT_PATHS, CLUB_DOTS } from './cards.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, createFx, shaker, STAR, DOT, HEART } from '../../scenery3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { siteLogo } from '../../art.js';
 
 const INK = '#3b2219';
@@ -128,7 +128,7 @@ function softDot() {
 const DENOM = [[500, '#9b6fd6', '#fff4e2'], [100, '#3b2219', '#ffb547'], [25, '#7ed3b2', '#fff4e2'], [5, '#ff8fab', '#fff4e2'], [1, '#fff4e2', '#e5543b']];
 
 export function createScene(canvas, { onFrame } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 2); // steps the resolution down if the device can't hold 60 fps
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();

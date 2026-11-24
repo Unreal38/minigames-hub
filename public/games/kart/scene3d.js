@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { kartPaint } from '../../skins.js';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, put, flat, ico, STAR, DOT, CONF, HEART } from '../../scenery3d.js';
 import { groundOf, R as ISLE, finish } from '../../isle3d.js';
 import { buildTrack, locate, at, headingAt, angDiff, hazardAt, ROAD, SHOULDER, RAIL, KART_R, RAMP, RAMP_H, CUT_W, driftFlags } from './track.js';
@@ -364,7 +364,7 @@ function jellyGeo() {
 }
 
 export function createScene(canvas, { onFrame, step } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(62, 1, .1, 1100);

@@ -581,7 +581,8 @@ body.sky:not(.in-game)::before { content: ''; position: fixed; inset: 0; z-index
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='520'%3E%3Cg fill='%23ffffff'%3E%3Cpolygon points='60,120 110,82 170,90 210,60 280,78 320,118 300,140 80,140'/%3E%3Cpolygon points='520,300 560,270 620,276 650,250 720,262 760,300 740,320 540,320' opacity='.85'/%3E%3Cpolygon points='300,430 330,410 380,414 400,396 450,406 470,440 320,440' opacity='.7'/%3E%3C/g%3E%3Cg fill='%23d9effc'%3E%3Cpolygon points='80,140 300,140 320,118 260,132 150,128'/%3E%3Cpolygon points='540,320 740,320 760,300 700,312 600,310' opacity='.85'/%3E%3C/g%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1300' height='760'%3E%3Cg fill='%23ffffff' opacity='.6'%3E%3Cpolygon points='900,90 930,70 980,74 1000,56 1050,66 1075,96 920,96'/%3E%3Cpolygon points='160,560 190,540 240,546 262,528 310,540 330,574 180,574'/%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: repeat-x; background-position: 0 40px, 0 140px; animation: skydrift 140s linear infinite; }
+  background-repeat: repeat-x; background-position: 0 40px, 0 140px; animation: skydrift 140s steps(1400) infinite; }
+/* steps: the clouds drift under 10 px a second, so 10 moves a second look the same as 60 and repaint the whole screen 6x less often */
 @keyframes skydrift { to { background-position: 900px 40px, -1300px 140px; } }
 @media (prefers-reduced-motion: reduce) { body.sky:not(.in-game)::before { animation: none; } }
 body.sky:not(.in-game) .top { border-bottom: 0; }
@@ -1670,3 +1671,12 @@ body.night .lwstage { background: radial-gradient(#fff 1px, transparent 1.6px) 1
 .pb31::before { background: url(cardbg/storm-flash.svg) right center / cover no-repeat; opacity: 0; animation: pbflash 5.5s linear infinite; will-change: opacity; }
 :is(.pb29, .pb30, .pb31)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
 @keyframes pbflash { 0%, 61%, 66%, 70%, 100% { opacity: 0; } 62%, 64% { opacity: 1; } 63% { opacity: .35; } 68% { opacity: .8; } }
+
+/* ---------- graphics levels (frames.js sets html.gfx-high | gfx-mid | gfx-low) ---------- */
+/* SVG pictures out of view stop moving (app.js marks them .offview): an SVG animation lays out and repaints every frame. */
+svg.offview, svg.offview * { animation-play-state: paused !important; }
+/* Low: every moving picture and painted effect on the hub stands still; the 3D scenes and the card bob (composited, cheap) stay. */
+.gfx-low #app svg, .gfx-low #app svg *, .gfx-low .modal svg * { animation-play-state: paused !important; }
+.gfx-low body.sky { animation-play-state: paused !important; }
+/* A blurred backdrop over a live 3D scene (a game, or the hub's isle) is re-blurred every frame: only computers keep it. */
+html:not(.gfx-high) .modal, body.in-game .modal { backdrop-filter: none; -webkit-backdrop-filter: none; background: #160a12e6; }

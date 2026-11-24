@@ -9,7 +9,7 @@
 //     thumbs(types)            -> { type: dataURL } little pictures for the build menu
 //     dispose()
 import * as THREE from 'three';
-import { frameLoop, autoResolution } from '../../frames.js';
+import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
 import { itemModel, fenceLink, LINKS, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
@@ -32,7 +32,7 @@ function rough(geo, amt, keepY = Infinity) {
 }
 
 export function createScene(canvas, { onPick, onGhost }) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(SKY_LOW); scene.fog = new THREE.Fog(SKY_LOW, 70, 190);
