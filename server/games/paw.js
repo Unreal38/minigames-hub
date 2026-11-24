@@ -1,6 +1,8 @@
 // Pawperty: a cozy pet-shop property game. The server rolls, walks tokens, charges rent, deals Zoomies cards and
 // runs the bots; clients only animate what it sends. Nobody is knocked out: a player who runs dry sells upgrades
-// and shops back at half price, and whatever is still missing is let off. After the last round the richest wins.
+// and shops back at half price, and whatever is still missing is let off. A person picks what to sell themselves in
+// the 'raise' stage (with a timer that sells for them); bots and players who went away sell straight away.
+// After the last round the richest wins.
 import { N, START, BATH, LOST, MUD, PASS_GO, START_CASH, BATH_FEE, VET_FEE, RUB, BOWL, JAR_START, NAP_CHANCE, LV_MAX,
   TILES, SHOP_TILES, STREET, CARDS, MS as MS_SHOWN, rentOf, fullStreet, worthOf } from '../../public/games/paw/board.js';
 import { randomAv } from '../../public/avatar.js';
@@ -48,7 +50,7 @@ export function create(players, optsIn = {}) {
     own: Array(N).fill(-1), lv: Array(N).fill(0), nap: Array(N).fill(false), jar: JAR_START,
     deck: [], card: null, cardN: 0, offer: -1, turn: Math.random() * seats.length | 0, first: 0, round: 1,
     dbl: 0, extra: false, noAgain: false, next: null, stageEnd: 0, roll: null, rollN: 0, mvN: 0,
-    ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [],
+    ev: [], evN: 0, res: null, win: -1, endAt: 0, queue: [], debts: [], held: null,
   };
   G.first = G.turn;
   beginTurn(G, Date.now());
@@ -67,26 +69,104 @@ function beginTurn(G, now) {
 }
 
 // ---------- money ----------
-// Sell things back to the bank at half price until seat s has amt treats (or has nothing left to sell).
-function raise(G, s, amt) {
-  const seat = G.seats[s];
-  while (seat.cash < amt) {
-    const up = SHOP_TILES.filter(i => G.own[i] === s && G.lv[i] > 0).sort((a, b) => TILES[b].up - TILES[a].up)[0];
-    if (up !== undefined) { G.lv[up]--; seat.cash += TILES[up].up / 2; pushEv(G, { t: 'sellup', s, i: up, lv: G.lv[up] }); continue; }
-    const shop = SHOP_TILES.filter(i => G.own[i] === s).sort((a, b) => TILES[a].price - TILES[b].price)[0];
-    if (shop === undefined) break;
-    G.own[shop] = -1; G.nap[shop] = false; seat.cash += TILES[shop].price / 2; pushEv(G, { t: 'sell', s, i: shop });
-  }
+const hasShops = (G, s) => SHOP_TILES.some(i => G.own[i] === s);
+const owes = (G, s) => G.debts.some(d => d.s === s);
+// a person at the table (not a bot, not away) picks what to sell; everyone else sells at once
+const picks = (G, s) => G.seats[s].human && !G.seats[s].bot;
+export const sellValue = i => TILES[i].price / 2;
+export const upValue = i => TILES[i].up / 2;
+
+// Sell one upgrade back to the bank at half its cost.
+function sellUp(G, s, i) {
+  if (G.own[i] !== s || G.lv[i] <= 0) return false;
+  G.lv[i]--; G.seats[s].cash += upValue(i);
+  pushEv(G, { t: 'sellup', s, i, lv: G.lv[i] });
+  return true;
 }
-// Move amt treats from seat `from` to a seat, the bank or the jar. Returns how much was actually paid.
-function pay(G, from, to, amt) {
-  const seat = G.seats[from];
-  raise(G, from, amt);
-  const paid = Math.max(0, Math.min(seat.cash, amt));
+// Give a shop back to the bank: half its price, plus half of every upgrade on it. A Pet Palace needs the whole
+// street, so the street's other palaces drop back to a Toy Box (that upgrade is sold too).
+function sellShop(G, s, i) {
+  if (G.own[i] !== s) return false;
+  const seat = G.seats[s], g = TILES[i].g;
+  seat.cash += sellValue(i) + upValue(i) * G.lv[i];
+  G.own[i] = -1; G.lv[i] = 0; G.nap[i] = false;
+  pushEv(G, { t: 'sell', s, i });
+  for (const j of STREET[g]) if (G.own[j] === s && G.lv[j] === LV_MAX) sellUp(G, s, j);
+  return true;
+}
+// What a bot (or the timer) sells next: an upgrade where it costs the least rent, else a shop from the street
+// where it owns the fewest (cheapest first), so whole streets are kept as long as possible.
+function botSell(G, s) {
+  const mine = SHOP_TILES.filter(i => G.own[i] === s);
+  const ups = mine.filter(i => G.lv[i] > 0 && !mine.some(j => TILES[j].g === TILES[i].g && G.lv[j] > G.lv[i]));
+  if (ups.length) {
+    const drop = i => TILES[i].rent[G.lv[i]] - TILES[i].rent[G.lv[i] - 1];
+    return sellUp(G, s, ups.sort((a, b) => drop(a) - drop(b))[0]);
+  }
+  const have = i => mine.filter(j => TILES[j].g === TILES[i].g).length;
+  const shop = mine.sort((a, b) => have(a) - have(b) || TILES[a].price - TILES[b].price)[0];
+  return shop !== undefined && sellShop(G, s, shop);
+}
+// Sell until seat s has amt treats (or has nothing left to sell).
+function raise(G, s, amt) {
+  while (G.seats[s].cash < amt && botSell(G, s));
+}
+function hand(G, from, to, amt) {
+  const seat = G.seats[from], paid = Math.max(0, Math.min(seat.cash, amt));
   seat.cash -= paid;
   if (to >= 0) { G.seats[to].cash += paid; G.seats[to].st.got += paid; } else if (to === JAR) G.jar += paid;
   if (paid < amt) pushEv(G, { t: 'forgive', s: from, amt: amt - paid });
   return paid;
+}
+// Move amt treats from seat `from` to a seat, the bank or the jar. Returns how much was (or will be) paid.
+// A person who is short but still has shops gets a debt instead, settled in the 'raise' stage.
+function pay(G, from, to, amt, why = '') {
+  const seat = G.seats[from];
+  if (amt > 0 && picks(G, from) && (owes(G, from) || (seat.cash < amt && hasShops(G, from)))) {
+    G.debts.push({ s: from, to, amt, why, i: seat.pos });
+    return amt;
+  }
+  raise(G, from, amt);
+  return hand(G, from, to, amt);
+}
+// Pay off seat s's debts in order while the treats cover them. With nothing left to sell, the rest is let off.
+function settle(G, s) {
+  for (let d; (d = G.debts.find(x => x.s === s));) {
+    const seat = G.seats[s];
+    if (seat.cash < d.amt && hasShops(G, s) && picks(G, s)) return false;
+    if (seat.cash < d.amt) raise(G, s, d.amt);
+    G.debts.splice(G.debts.indexOf(d), 1);
+    const paid = hand(G, s, d.to, d.amt);
+    if (d.why === 'rent') seat.st.rent += paid - d.amt; // rent was counted in full when it was charged
+    pushEv(G, { t: 'paid', s, to: d.to, amt: paid });
+  }
+  return true;
+}
+const owed = (G, s) => G.debts.reduce((t, d) => t + (d.s === s ? d.amt : 0), 0);
+const raiseMs = G => (G.opts.timer > 0 ? Math.max(30, G.opts.timer) * 1000 / FAST : 0);
+// After anything that charged someone who has to choose what to sell, the game waits for them.
+function hold(G, now) {
+  for (const s of new Set(G.debts.map(d => d.s))) settle(G, s);
+  if (!G.debts.length || G.stage === 'raise') return;
+  G.held = { stage: G.stage, rest: G.stageEnd ? Math.max(0, G.stageEnd - now) : 0, next: G.next };
+  G.stage = 'raise'; G.stageEnd = raiseMs(G) ? now + raiseMs(G) : 0;
+  pushEv(G, { t: 'raise', who: [...new Set(G.debts.map(d => d.s))] });
+}
+function unhold(G, now) {
+  const h = G.held; G.held = null;
+  G.stage = h.stage; G.next = h.next;
+  G.stageEnd = h.rest || ['walk', 'pay', 'card', 'stay', 'out'].includes(h.stage) ? now + Math.max(h.rest, MS.pause) : waitFor(G, now, MS.bot);
+}
+function raiseAct(G, s, a, now) {
+  if (!owes(G, s)) return false;
+  let ok = false;
+  if (a.t === 'sellup') ok = sellUp(G, s, a.i | 0);
+  else if (a.t === 'sell') ok = sellShop(G, s, a.i | 0);
+  else if (a.t === 'autosell') { raise(G, s, owed(G, s)); ok = true; }
+  if (!ok) return false;
+  settle(G, s);
+  if (!G.debts.length) unhold(G, now);
+  return true;
 }
 const gain = (G, s, amt) => { G.seats[s].cash += amt; };
 
@@ -131,7 +211,10 @@ function roll(G, s, now, d = [1 + (Math.random() * 6 | 0), 1 + (Math.random() * 
   G.offer = -1;
   if (seat.inBath) {
     if (dbl) { seat.inBath = false; G.noAgain = true; pushEv(G, { t: 'free', s, how: 'dbl' }); }
-    else if (++seat.tries >= 3) { pay(G, s, JAR, BATH_FEE); seat.inBath = false; G.noAgain = true; pushEv(G, { t: 'free', s, how: 'fee', amt: BATH_FEE }); }
+    else if (++seat.tries >= 3) {
+      pay(G, s, JAR, BATH_FEE, 'bath'); seat.inBath = false; G.noAgain = true; pushEv(G, { t: 'free', s, how: 'fee', amt: BATH_FEE });
+      if (owes(G, s)) { G.stage = 'out'; G.stageEnd = now + MS.roll; return true; } // the walk waits until the fee is raised
+    }
     else { pushEv(G, { t: 'soak', s, left: 3 - seat.tries }); G.stage = 'stay'; G.stageEnd = now + MS.roll + MS.pause * 2; return true; }
   } else if (dbl && ++G.dbl >= 3) { pushEv(G, { t: 'three', s }); toBath(G, s, now, MS.roll); return true; }
   walking(G, now, walk(G, s, sum, now, MS.roll + MS.aim), 'land');
@@ -148,11 +231,11 @@ function land(G, s, now) {
     } else if (o === s) { gain(G, s, RUB); pushEv(G, { t: 'rub', s, i, amt: RUB }); }
     else if (asleep(G, i)) pushEv(G, { t: 'tiptoe', s, i, o });
     else if (seat.eyes) { seat.eyes = false; pushEv(G, { t: 'eyes', s, i, o }); }
-    else { const amt = rentOf(i, G.own, G.lv), paid = pay(G, s, o, amt); seat.st.rent += paid; pushEv(G, { t: 'rent', s, i, o, amt: paid }); }
+    else { const amt = rentOf(i, G.own, G.lv), paid = pay(G, s, o, amt, 'rent'); seat.st.rent += paid; pushEv(G, { t: 'rent', s, i, o, amt: paid }); }
     return pause(G, now);
   }
   if (t.k === 'zoom') return drawCard(G, s, now);
-  if (t.k === 'vet') { const amt = pay(G, s, JAR, VET_FEE); pushEv(G, { t: 'vet', s, amt }); return pause(G, now); }
+  if (t.k === 'vet') { const amt = pay(G, s, JAR, VET_FEE, 'vet'); pushEv(G, { t: 'vet', s, amt }); return pause(G, now); }
   if (t.k === 'bowl') { gain(G, s, BOWL); pushEv(G, { t: 'bowl', s, amt: BOWL }); return pause(G, now); }
   if (t.k === 'lost') { const amt = G.jar; G.jar = 0; gain(G, s, amt); pushEv(G, { t: 'lost', s, amt }); return pause(G, now, amt ? MS.pay * 1.4 : MS.pause); }
   if (t.k === 'mud') { pushEv(G, { t: 'mud', s }); return toBath(G, s, now, MS.pause); }
@@ -178,11 +261,11 @@ function applyCard(G, s, now) {
     case 'stash': gain(G, s, 60); break;
     case 'cake': gain(G, s, 40); break;
     case 'photo': gain(G, s, 30); break;
-    case 'ate': pay(G, s, JAR, 40); break;
-    case 'pigeon': pay(G, s, BANK, 20); break;
-    case 'vase': { const n = upgrades(G, s); if (n) pay(G, s, BANK, 15 * n); break; }
-    case 'rubs': for (const o of others) pay(G, s, o, 10); break;
-    case 'show': for (const o of others) pay(G, o, s, 15); break;
+    case 'ate': pay(G, s, JAR, 40, 'card'); break;
+    case 'pigeon': pay(G, s, BANK, 20, 'card'); break;
+    case 'vase': { const n = upgrades(G, s); if (n) pay(G, s, BANK, 15 * n, 'card'); break; }
+    case 'rubs': for (const o of others) pay(G, s, o, 10, 'card'); break;
+    case 'show': for (const o of others) pay(G, o, s, 15, 'card'); break;
     case 'yawn': for (const i of SHOP_TILES) if (G.own[i] === s) G.nap[i] = true; break;
     case 'bell': G.nap.fill(false); break;
     case 'duck': seat.duck = true; break;
@@ -236,7 +319,7 @@ function passBuy(G, s, now) {
 }
 function payBath(G, s, now) {
   const seat = G.seats[s];
-  if (G.stage !== 'roll' || !seat.inBath) return false;
+  if (G.stage !== 'roll' || !seat.inBath || (picks(G, s) && seat.cash < BATH_FEE)) return false;
   pay(G, s, JAR, BATH_FEE); seat.inBath = false;
   pushEv(G, { t: 'free', s, how: 'pay', amt: BATH_FEE });
   G.stageEnd = waitFor(G, now, MS.bot);
@@ -293,8 +376,14 @@ function botBuild(G, s) {
 }
 
 export function act(G, s, a) {
-  if (!a || typeof a !== 'object' || s < 0 || !G.seats[s]?.human || G.ph !== 'play' || G.turn !== s) return false;
-  const now = Date.now();
+  const now = Date.now(), ok = act1(G, s, a, now);
+  if (ok) hold(G, now);
+  return ok;
+}
+function act1(G, s, a, now) {
+  if (!a || typeof a !== 'object' || s < 0 || !G.seats[s]?.human || G.ph !== 'play') return false;
+  if (G.stage === 'raise') return raiseAct(G, s, a, now);
+  if (G.turn !== s) return false;
   if (a.t === 'roll') return G.stage === 'roll' && roll(G, s, now);
   if (a.t === 'pay') return payBath(G, s, now);
   if (a.t === 'buy') return buy(G, s, now);
@@ -305,7 +394,20 @@ export function act(G, s, a) {
 }
 
 export function tick(G, now = Date.now()) {
+  const ok = tick1(G, now);
+  if (ok) hold(G, now);
+  return ok;
+}
+function tick1(G, now) {
   if (G.ph !== 'play') return false;
+  if (G.stage === 'raise') {
+    // bots and people who went away sell at once; when the timer runs out, it sells for everyone left
+    const late = G.stageEnd && now >= G.stageEnd, who = [...new Set(G.debts.map(d => d.s))].filter(d => late || !picks(G, d));
+    if (!who.length) return false;
+    for (const d of who) { raise(G, d, owed(G, d)); settle(G, d); }
+    if (!G.debts.length) unhold(G, now);
+    return true;
+  }
   const s = G.turn, seat = G.seats[s];
   if (['roll', 'buy', 'done'].includes(G.stage)) {
     if (!G.stageEnd || now < G.stageEnd) {
@@ -323,6 +425,7 @@ export function tick(G, now = Date.now()) {
   if (G.stage === 'card') { applyCard(G, s, now); return true; }
   if (G.stage === 'pay') { afterLand(G, s, now); return true; }
   if (G.stage === 'stay') { endTurn(G, now); return true; }
+  if (G.stage === 'out') { walking(G, now, walk(G, s, G.roll.d[0] + G.roll.d[1], now, MS.aim), 'land'); return true; }
   return false;
 }
 
@@ -362,6 +465,7 @@ export function view(G, s) {
     own: G.own, lv: G.lv, nap: G.nap.map((_, i) => asleep(G, i)), jar: G.jar, offer: G.offer, dbl: G.dbl,
     can: s === G.turn && G.ph === 'play' && (G.stage === 'roll' || G.stage === 'done') ? buildable(G, s) : [],
     roll: ago(G.roll), card: ago(G.card), res: G.res, win: G.win, ev: G.ev,
+    debts: G.debts.map(d => ({ s: d.s, to: d.to, amt: d.amt, why: d.why, i: d.i })),
   };
 }
 
@@ -379,3 +483,4 @@ export function results(G) {
 export const _roll = roll;
 export const _worth = worth;
 export const _buildable = buildable;
+export const _botSell = botSell;
