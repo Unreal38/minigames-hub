@@ -1149,9 +1149,10 @@ export function createScene(canvas, { onPick, onGhost }) {
     W = w; H = h; liftNow = -1; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
   }
   let T = 0;
+  let warming = false; // while the shaders compile in the background, nothing is drawn (drawing would compile them all at once)
   function loop(dt) {
     if (dead) return;
-    resize(); T += dt;
+    resize(); if (warming) return; T += dt;
     lift = mapOn ? 0 : fighting ? .1 : starters ? .2 : edit ? .13 : 0;
     if (lift !== liftNow && W) { liftNow = lift; if (lift) camera.setViewOffset(W, H, 0, lift * H, W, H); else camera.clearViewOffset(); }
     if (fighting) { // a fixed view of the ring, further back on narrow screens
@@ -1222,6 +1223,14 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (ghost) ghostCheck();
     },
     setStarters,
+    // Compile the shaders for what is on the island now without freezing the page (where the browser can), before the
+    // first picture. Resolves when the island can be drawn; gives up waiting after a few seconds.
+    warm() {
+      if (warming || !renderer.compileAsync) return Promise.resolve();
+      warming = true; const t0 = performance.now();
+      return Promise.race([renderer.compileAsync(scene, camera).catch(() => {}), new Promise(r => setTimeout(r, 4000))])
+        .then(() => { warming = false; renderer.shadowMap.needsUpdate = true; return performance.now() - t0; });
+    },
     setSky(hour, weather) { airTo.hour = hour; airTo.w = weather; },
     setOwner(o, g = []) { owner = o; guests = g; if (farm) syncOwner(); },
     setEdit(on) { edit = !!on; gridVis(); if (!edit) ghostCancel(); },
