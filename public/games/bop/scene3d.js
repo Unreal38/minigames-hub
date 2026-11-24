@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, skyDome, clouds, birds, createFx, shaker, STAR, DOT, HEART as FX_HEART, nightScene, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { HOLES, PETS, SLEEP, GOLD, HEART } from './rules.js';
@@ -348,7 +349,7 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     setMine(on) { mineOn = on; },
     // where a burrow of the big garden is on the screen (for the points that float up)
     spot(h, o = {}) { const w = wells[focus]; if (!w) return null; return toScreen(at(w, holeX(h), RIM + PH, holeZ(h)), o); },
-    setHud(top, bottom) { if (Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6) { hudBottom = bottom; hudTop = top; resize(true); } },
+    setHud(top, bottom) { if ((Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const w of wells) freeGarden(w);

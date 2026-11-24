@@ -6,6 +6,7 @@ import { diceKit } from '../../dice3d.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 
 const INK = '#4a2c22', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const R = 2.95;           // table radius
@@ -279,8 +280,8 @@ export function createScene(canvas, { onFrame, onPick } = {}) {
 
   return {
     setState,
-    setHud(px) { if (Math.abs(px - hudBottom) > 6) { hudBottom = px; resize(true); } },
-    setInset(px) { if (px !== hudRight) { hudRight = px; resize(true); } },
+    setHud(px) { if ((Math.abs(px - hudBottom) > 6) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
+    setInset(px) { if ((px !== hudRight) && hudFitOk(canvas)) { hudRight = px; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerdown', onDown);

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 import { W, VIS, H, ROT, SHAPES, STONE, decode } from './rules.js';
 
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -259,7 +260,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
 
   return {
     setSeats, setState, setMine, cleared, landed, attack, out, cheer,
-    setHud(top, bottom, corner = 0) { if (Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6 || corner !== hudCorner) { hudBottom = bottom; hudTop = top; hudCorner = corner; resize(true); } },
+    setHud(top, bottom, corner = 0) { if ((Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6 || corner !== hudCorner) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; hudCorner = corner; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const w of wells) freeWell(w);
