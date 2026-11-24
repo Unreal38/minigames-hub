@@ -1,6 +1,6 @@
 // Zatoka Gier hub: username, open tables, waiting rooms. Games mount on top of this.
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, poolArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, bjArt, dominoArt, paradeArt, coveArt, poolArt, HAY_ICON, POP_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -438,6 +438,26 @@ const GAMES = {
       <li><b>Big 5×5</b>: a bigger board where you need <b>four in a line</b>.</li>
       <li>You have <b>20 seconds</b> a turn (table settings). Run out and a mark is placed for you.</li>
       <li>Draws cannot drag a match out for ever: after 9 rounds (7 when playing to two, 5 for a single round) whoever has won more rounds takes the match. Level on rounds is a drawn match.</li>
+      <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
+    </ol>`,
+  },
+  cove: {
+    name: 'Cove Clash', load: () => import('./games/cove/client.js'), start: 'Start the game',
+    host: { board: 'classic', bots: 'chill', timer: 20 }, solo: { board: 'classic', bots: 'chill', timer: 0 },
+    openSeat: 'A bot plays here if nobody joins', seats: () => 2,
+    settings: pill => `<div class="opt"><b>Bay</b><div class="pills">${pill('board', 'classic', 'Classic 10×10')}${pill('board', 'quick', 'Quick 7×7')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 10, '10s')}${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Hide your boats in your bay, then take turns lobbing coconuts at squares of the other bay. A hit gives you another shot. The first to sink the whole rival fleet wins.`,
+    rules: `<ol>
+      <li><b>Two players</b>, each with their own bay. An empty seat is played by a bot.</li>
+      <li>First you <b>arrange your boats</b>: drag a boat to move it, tap it to turn it, or press <b>Shuffle</b> for a new random layout. Boats <b>can’t touch</b>, not even at the corners. Press <b>Ready</b> when you are happy. You have 60 seconds.</li>
+      <li>The classic fleet is <b>ten boats</b>: one of 4 squares, two of 3, three of 2 and four of 1. The quick bay is 7×7 with six boats: one of 3, two of 2 and three of 1.</li>
+      <li>Then you take turns. <b>Tap a square</b> in the other bay to lob a coconut at it (or move with the arrow keys and press Enter).</li>
+      <li>A splash means a <b>miss</b>, and the turn passes. A red cross means a <b>hit</b>, and you <b>shoot again</b>.</li>
+      <li>When every square of a boat is hit it is <b>sunk</b>: the boat shows itself and the water around it is marked for you, because no other boat can be there. The crew is fine: they float in a swim ring.</li>
+      <li>You have <b>20 seconds</b> a shot (table settings). Run out and a random shot is taken for you.</li>
+      <li>The first to <b>sink the whole rival fleet</b> wins.</li>
       <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
     </ol>`,
   },
@@ -1346,6 +1366,7 @@ const HUB_GAMES = [
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
+  ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
 ].filter(g => GAMES[g[0]]);
 const gameCard = ([id, pic, art, cat, seats, pitch]) => `<article class="gcard gmini" data-cat="${cat}" data-name="${esc(GAMES[id].name.toLowerCase())}" title="${esc(GAMES[id].pitch || pitch)}">

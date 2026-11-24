@@ -475,6 +475,28 @@ export function tttArt() {
   </svg>`;
 }
 
+// Cove Clash card: a square bay with two toy boats, a splash and a red cross, and a coconut dropping in.
+export function coveArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const at = (q, r) => [92 + q * 34, 34 + r * 26];
+  let tiles = '';
+  for (let r = 0; r < 4; r++) for (let q = 0; q < 5; q++) { const [x, y] = at(q, r); tiles += `<rect x="${x - 16}" y="${y - 12}" width="32" height="24" rx="4" fill="${(q + r) % 2 ? '#6acff2' : '#8fe0f8'}"/>`; }
+  const boat = (x, y, w, c) => `<path d="M${x - w / 2} ${y - 7}h${w - 12}l12 9-12 9h${-(w - 12)}z" fill="${c}" ${o}/><rect x="${x - w / 2 + 6}" y="${y - 3}" width="13" height="10" rx="2" fill="#fff4e2" stroke="#3b2219" stroke-width="2.5"/>`;
+  const X = (x, y) => `<path d="M${x - 8} ${y - 7}l16 14M${x + 8} ${y - 7}l-16 14" stroke="#3b2219" stroke-width="10" stroke-linecap="round"/><path d="M${x - 8} ${y - 7}l16 14M${x + 8} ${y - 7}l-16 14" stroke="#ff5a3c" stroke-width="5" stroke-linecap="round"/>`;
+  const [bx, by] = at(1, 1), [cx, cy] = at(3, 3), [hx, hy] = at(2, 1), [mx, my] = at(0, 3), [nx, ny] = at(3, 0);
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A square bay with toy boats, a splash, a red cross on a hit boat and a coconut dropping in">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="46" cy="14" r="1.6"/><circle cx="270" cy="12" r="1.3"/><circle cx="296" cy="60" r="1.5"/><circle cx="20" cy="70" r="1.2"/></g>
+    <path d="M24 34l14-8 16 4 8 10-10 8H32z" class="artcloud" fill="#fff"/><path d="M264 40l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <rect class="artsea" y="118" width="320" height="32" fill="#3fa9e0"/>
+    <rect x="66" y="12" width="188" height="124" rx="10" fill="#d9ab74" ${o}/><rect x="74" y="20" width="172" height="108" rx="5" fill="#2f8fc9" stroke="#3b2219" stroke-width="2.5"/>${tiles}
+    ${boat(bx + 17, by, 62, '#ff8fab')}${boat(cx - 17, cy, 62, '#ffc94d')}
+    ${X(hx, hy)}
+    <circle cx="${mx}" cy="${my}" r="8" fill="#fff" stroke="#3b2219" stroke-width="2.5"/><path d="M${mx - 13} ${my - 12}l3 5M${mx} ${my - 16}v6M${mx + 13} ${my - 12}l-3 5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <g class="cnut"><circle cx="${nx}" cy="${ny - 4}" r="11" fill="#8a5a3c" ${o}/><circle cx="${nx - 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx + 3}" cy="${ny - 7}" r="1.6" fill="#3b2219"/><circle cx="${nx}" cy="${ny - 2}" r="1.6" fill="#3b2219"/></g>
+    <path d="M${nx - 14} ${ny - 20}l-7-9M${nx} ${ny - 24}v-10M${nx + 14} ${ny - 20}l7-9" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+  </svg>`;
+}
+
 export function poolArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
   const ball = (x, y, c, stripe = false) => (stripe
