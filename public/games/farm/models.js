@@ -468,10 +468,18 @@ const BUILD = {
     box(g, .08, .72, .08, C.woodD, -.74, 1.14, .34); box(g, .07, .07, .9, C.woodD, -.74, 1.84, .7); const br = box(g, .05, .44, .05, C.woodD, -.74, 1.5, .5); br.rotation.x = -.75;
     box(g, .02, .44, .02, C.cream, -.74, 1.4, 1.1); crate(g, -.74, 1.1, .24, 1.16, .3);
   },
-  fence(g) {
-    for (const x of [-.4, .4]) { box(g, .12, .5, .12, C.wood, x); cone(g, .09, .1, 4, C.wood, x, .5); box(g, .14, .04, .14, C.woodD, x, .44); }
-    box(g, .96, .08, .06, C.cream, 0, .34); box(g, .96, .08, .06, C.cream, 0, .14);
-    for (const x of [-.2, 0, .2]) { box(g, .08, .42, .04, C.cream, x, .04, .03); cone(g, .056, .07, 4, C.cream, x, .46, .03).rotation.y = Math.PI / 4; }
+  fence(g, live, lv, link = 0) { // link: which sides join a neighbour, see fenceLink below
+    const nb = link & 15, own = link >> 4 & 15, arch = link >> 8 & 15, ones = [0, 1, 2, 3].filter(d => nb >> d & 1).length;
+    const arms = ones === 0 ? 5 : ones === 1 ? nb | (nb << 2 | nb >> 2) & 15 : nb; // a lone piece runs along its own x; an end piece carries its neighbour's line on
+    const post = (x, z) => { box(g, .12, .5, .12, C.wood, x, 0, z); cone(g, .09, .1, 4, C.wood, x, .5, z); box(g, .14, .04, .14, C.woodD, x, .44, z); };
+    for (let d = 0; d < 4; d++) {
+      if (!(arms >> d & 1)) continue;
+      const dx = [1, 0, -1, 0][d], dz = [0, 1, 0, -1][d], len = arch >> d & 1 ? .56 : .5, along = d % 2 === 0; // into an arch the rails reach its post
+      for (const y of [.34, .14]) box(g, along ? len : .06, .08, along ? .06 : len, C.cream, dx * len / 2, y, dz * len / 2);
+      for (const t of [.125, .325]) { const x = dx * t + (along ? 0 : .03), z = dz * t + (along ? .03 : 0); box(g, along ? .08 : .04, .42, along ? .04 : .08, C.cream, x, .04, z); cone(g, .056, .07, 4, C.cream, x, .46, z).rotation.y = Math.PI / 4; }
+      if (!(nb >> d & 1) || own >> d & 1) post(dx * .5, dz * .5); // an open end gets a post; a post shared with a neighbour is drawn by one of the two
+    }
+    if (arms !== 5 && arms !== 10) post(0, 0); // corners, T and cross pieces stand on a post of their own
   },
   path(g) {
     for (const [x, z, r] of [[-.2, -.18, .3], [.24, -.22, .22], [-.24, .24, .22], [.2, .2, .3], [0, 0, .16]]) cyl(g, r, r * 1.05, .05, 6, C.stone, x, 0, z).rotation.y = x * 5;
@@ -803,9 +811,10 @@ export function signModel(kind) {
 
 // live: for the farm itself, where the moving parts stay loose. g.userData.tick(T, st, g) moves them.
 // lv: the building's level (1 to 3, the farmhouse to 4). Each level has its own look.
-export function itemModel(type, live = false, raw = false, lv = 1) {
+// link: for pieces that join their neighbours (fences), the number fenceLink gives.
+export function itemModel(type, live = false, raw = false, lv = 1, link = 0) {
   const g = new THREE.Group();
-  (BUILD[type] || BUILD.rock)(g, live, lv);
+  (BUILD[type] || BUILD.rock)(g, live, lv, link);
   finish(g, raw);
   if (live && FX[type]) { const fx = new THREE.Group(); g.add(fx); g.userData.tick = FX[type](fx, lv); toonify(fx); fx.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); }
   return g;
@@ -822,6 +831,22 @@ export function balloonModel() {
   put(g, G('Cone', .3, .3, 6), M(C.yellow), 0, 3.35, 0);
   finish(g); g.traverse(m => { if (m.isMesh) m.receiveShadow = false; });
   return g;
+}
+
+// Which sides of a fence at (x, y) turned r join something, in the piece's own directions (0 +x, 1 +z, 2 -x, 3 -z):
+//   bits 0-3 a fence or a lined-up Flower Arch next door, bits 4-7 the shared post on that side is this piece's to draw
+//   (the piece to the west or north draws it), bits 8-11 the neighbour is an arch. skip: an item id to leave out (one being moved).
+export const LINKS = { fence: true };
+export function fenceLink(items, x, y, r = 0, skip) {
+  let link = 0;
+  for (let w = 0; w < 4; w++) {
+    const nx = x + [1, 0, -1, 0][w], ny = y + [0, 1, 0, -1][w];
+    const o = items?.find(i => i.id !== skip && (i.type === 'fence' || i.type === 'arch') && i.x === nx && i.y === ny);
+    if (!o || o.type === 'arch' && (o.r | 0) % 2 !== w % 2) continue; // an arch joins only along its own line
+    const d = (w - (r | 0) + 4) % 4;
+    link |= 1 << d; if (o.type === 'arch') link |= 256 << d; else if (w < 2) link |= 16 << d;
+  }
+  return link;
 }
 
 // Frees what a model owns. Shared geometries and the cached plain materials stay.
