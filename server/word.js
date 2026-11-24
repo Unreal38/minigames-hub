@@ -11,8 +11,8 @@ import { dayOf, untilNext, dayBefore, daysBetween } from './day.js';
 
 export const LANGS = ['pl', 'en'], LEN = 5, TRIES = 6;
 const FIRST_DAY = '2026-11-24';                     // puzzle number 1
-// Coins for solving, by the number of tries used. A day not solved pays nothing. Once a day per language.
-export const REWARD = [15, 13, 11, 9, 7, 5];
+// Coins for solving, by the number of tries used, and a small thank-you for a day not solved. Once a day per language.
+export const REWARD = [30, 25, 20, 16, 13, 10], CONSOLATION = 3;
 export const XP_SOLVE = 8;
 const NO_REPEAT = 500;                              // days before a word may come round again
 const FILE = path.join(DATA_DIR, 'word-daily.json');
@@ -107,8 +107,9 @@ export function handle(p, m, reply, chat) {
       over = { won: true, coins: s.coins, streak: s.streak };
       addCoins(p.pid, s.coins);
     } else if (s.g.length >= TRIES) {
-      s.done = Date.now(); s.won = false; s.streak = 0; s.played = (s.played || 0) + 1; s.coins = 0;
-      over = { won: false, coins: 0, streak: 0 };
+      s.done = Date.now(); s.won = false; s.streak = 0; s.played = (s.played || 0) + 1; s.coins = CONSOLATION;
+      over = { won: false, coins: s.coins, streak: 0 };
+      addCoins(p.pid, s.coins);
     }
     scheduleSave();
     return reply({ ...view(p), lang, over, fresh: true });

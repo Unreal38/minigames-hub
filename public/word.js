@@ -53,7 +53,7 @@ export function mount(host, api) {
       <h3>${s.won ? L('Solved!', 'Rozwiązane!') : L('Not this time', 'Nie tym razem')}</h3>
       <p class="wbans">${L('Today’s word:', 'Dzisiejsze słowo:')} <b>${esc(s.answer)}</b></p>
       <p class="wbgot">${s.won ? L(`In <b>${n}</b> of ${V.tries} tries · <b>+${s.got}</b> ${s.got === 1 ? 'coin' : 'coins'}${s.streak > 1 ? ` · 🔥 <b>${s.streak}</b> days in a row` : ''}`, `Prób: <b>${n}</b> z ${V.tries} · <b>+${s.got}</b> ${form(s.got, 'coin', 'coins', 'moneta', 'monety', 'monet')}${s.streak > 1 ? ` · 🔥 <b>${s.streak}</b> dni z rzędu` : ''}`)
-        : L('A new bottle washes up at midnight.', 'O północy morze wyrzuci nową butelkę.')}</p>
+        : L(`<b>+${s.got}</b> ${s.got === 1 ? 'coin' : 'coins'} for trying · a new bottle washes up at midnight.`, `<b>+${s.got}</b> ${form(s.got, 'coin', 'coins', 'moneta', 'monety', 'monet')} za próbę · o północy morze wyrzuci nową butelkę.`)}</p>
       <div class="wbstats4">${stat(s.played, L('played', 'rozegrane'))}${stat(pct + '%', L('solved', 'rozwiązane'))}${stat('🔥 ' + s.streak, L('in a row', 'z rzędu'))}${stat(s.best, L('best streak', 'najdłuższa seria'))}</div>
       <div class="wbdist" aria-label="${L('How many tries your solved words took', 'Ile prób zajęły rozwiązane słowa')}">${s.dist.map((c, i) => `<div class="wbbar${s.won && i === n - 1 ? ' now' : ''}"><span>${i + 1}</span><i style="--p:${Math.round(100 * c / top)}%"><b>${c}</b></i></div>`).join('')}</div>
       <div class="row wbbtns"><button type="button" class="btn m" data-share ${s.shared ? 'disabled' : ''}>${s.shared ? L('Posted in the chat', 'Wysłane na czat') : L('Post result in the chat', 'Wyślij wynik na czat')}</button><button type="button" class="btn w" data-copy>${L('Copy result', 'Skopiuj wynik')}</button></div>
@@ -138,7 +138,7 @@ export function mount(host, api) {
       if (m.over) {
         clearTimeout(burstT);
         burstT = setTimeout(() => {
-          if (m.over.won) { sfx.win(); myBurst(); api.toast(L(`🎉 Solved! +${cnt(m.over.coins, 'coin')}`, `🎉 Rozwiązane! +${cnt(m.over.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}`)); } else sfx.lose();
+          if (m.over.won) { sfx.win(); myBurst(); api.toast(L(`🎉 Solved! +${cnt(m.over.coins, 'coin')}`, `🎉 Rozwiązane! +${cnt(m.over.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}`)); } else { sfx.lose(); if (m.over.coins) api.toast(L(`+${cnt(m.over.coins, 'coin')} for trying`, `+${cnt(m.over.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')} za próbę`)); }
         }, 1500);
       }
       paint();
