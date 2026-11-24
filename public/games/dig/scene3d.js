@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, HEART, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 import { homeOf as homeAt, standOf } from './rules.js';
 
 const INK = '#3b2219', SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -440,7 +441,7 @@ export function createScene(canvas, { onFrame } = {}) {
   return {
     setState, pick,
     setHover(i) { hover = i; },
-    setHud(bottom, top = hudTop) { if (Math.abs(bottom - hudBottom) > 6 || top !== hudTop) { hudBottom = bottom; hudTop = top; resize(true); } },
+    setHud(bottom, top = hudTop) { if ((Math.abs(bottom - hudBottom) > 6 || top !== hudTop) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(true); } },
     tileScreen(i) { if (!w) return null; tilePos(i, .5, tv).project(camera); return { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H }; },
     dispose() {
       dead = true; ticker.stop();

@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, nightScene, isNight, flat, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
+import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { isFree, PETS, PET_COLOR, NKINDS, isPet, suitOf, rankOf } from './rules.js';
@@ -315,7 +316,7 @@ export function createScene(canvas) {
     // who: the seat whose win effect rains down ('me' in the solo game)
     cheer(k = 0, big = true, who = k) { const a = avs[k]; if (!a) return; a.hop = 1; if (big) { for (const o of avs) o.cheer = o === a; cheerT = 3; pfx.confetti(new THREE.Vector3(0, 1.5, B.position.z), { n: small ? 60 : 110, w: Math.max(6, W), h: 5, s: who }); } },
     oops(k = 0) { if (avs[k]) avs[k].sad = 1; },
-    setHud(bottom, top = hudTop) { if (Math.abs(bottom - hudBottom) > 6 || top !== hudTop) { hudBottom = bottom; hudTop = top; resize(); } },
+    setHud(bottom, top = hudTop) { if ((Math.abs(bottom - hudBottom) > 6 || top !== hudTop) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(); } },
     tilePx: () => { const a = tileScreen(0), z = lay && lay.n > 1 ? tileScreen(1) : null; return a && z ? Math.hypot(z.x - a.x, z.y - a.y) : 0; },
     fps: () => ticker.fps(), stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
     dispose() {
