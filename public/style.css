@@ -1277,6 +1277,18 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .hubside .rk .pos { font-size: 16px; } .hubside .rk .main { font-size: 16px; align-self: center; }
 .hubside .rk .sub { justify-self: start; font-size: 12px; white-space: normal; }
 
+/* the season card above Today: season, days left and a progress bar */
+#season { margin-bottom: 14px; }
+.seasoncard .tpic { font-size: 30px; line-height: 1; }
+.seasoncard.s-winter .tpic { background: linear-gradient(160deg, #e8f6ff, #b9dcff); } .seasoncard.s-spring .tpic { background: linear-gradient(160deg, #ffe3ef, #d6f5c4); }
+.seasoncard.s-summer .tpic { background: linear-gradient(160deg, #fff1b8, #a8e0f5); } .seasoncard.s-halloween .tpic { background: linear-gradient(160deg, #ffd9a8, #d9c2ff); }
+.seasoncard.s-autumn .tpic { background: linear-gradient(160deg, #ffe2b0, #f5b98a); }
+.seasoncard .sbar { margin-top: 7px; height: 12px; border: 2px solid var(--ink); border-radius: 99px; background: var(--card); overflow: hidden; }
+.seasoncard .sbar i { display: block; height: 100%; border-radius: 99px; background: var(--sfill); border-right: 2px solid var(--ink); box-sizing: border-box; }
+.seasoncard { --sfill: linear-gradient(90deg, #8fd3ff, #c9ecff); }
+.seasoncard.s-spring { --sfill: linear-gradient(90deg, #7fd49a, #ffb3d1); } .seasoncard.s-summer { --sfill: linear-gradient(90deg, #ffc94a, #ffe58a); }
+.seasoncard.s-halloween { --sfill: linear-gradient(90deg, #ff9a3c, #b48cff); } .seasoncard.s-autumn { --sfill: linear-gradient(90deg, #e0813a, #ffc46b); }
+
 /* the phone tab bar */
 .hubtabs { display: none; }
 
@@ -1299,7 +1311,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 }
 @media (max-width: 1099px) {
   .wrap.hubgrid { padding-bottom: 96px; }
-  .hubgrid:not([data-tab=games]) > .hero, .hubgrid:not([data-tab=games]) > .hubmid, .hubgrid:not([data-tab=games]) #today { display: none; }
+  .hubgrid:not([data-tab=games]) > .hero, .hubgrid:not([data-tab=games]) > .hubmid, .hubgrid:not([data-tab=games]) #today, .hubgrid:not([data-tab=games]) #season { display: none; }
   .hubgrid:not([data-tab=tables]) #tables, .hubgrid:not([data-tab=chat]) #hubchat, .hubgrid:not([data-tab=rank]) #rankings { display: none; }
   .hubgrid[data-tab=games] > .hubside.left, .hubgrid[data-tab=tables] > .hubside.right, .hubgrid[data-tab=chat] > .hubside.right, .hubgrid[data-tab=rank] > .hubside.left { display: none; }
   .hubgrid:not([data-tab=games]) > .hubside { padding-top: 18px; }

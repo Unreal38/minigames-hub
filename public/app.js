@@ -23,7 +23,7 @@ import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonOf, onSale } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
 const HOME_TITLE = document.title || SITE; // the full title from index.html (the server swaps in English), kept for the hub tab and search engines
@@ -1284,7 +1284,27 @@ function todayHtml() {
     + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins)
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
-function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
+// The season card above Today: which season is on, when it ends and how far along it is, with the way to that season's shop drop.
+// The date is the server's (Warsaw) day when we have it, so it turns over with every other daily thing.
+const SEASON_LOOK = { winter: ['❄️', L('Winter', 'Zima')], spring: ['🌷', L('Spring', 'Wiosna')], summer: ['🌴', L('Summer', 'Lato')], halloween: ['🎃', L('Halloween', 'Halloween')], autumn: ['🍂', L('Autumn', 'Jesień')] };
+const hasDrop = key => Object.values(SEASON).includes(key) || Object.values(COS).some(c => c.items.some(it => it.s === key));
+function seasonHtml() {
+  // The days no shop drop covers (September, 8 to 14 November) are autumn, the same as on the game islands (season3d.js).
+  const now = st.me?.today ? new Date(st.me.today + 'T12:00') : new Date(), s = seasonNow(now), key = s.key || 'autumn', DAY = 864e5;
+  const days = Math.round((s.end - now) / DAY), all = Math.round((s.end - s.start) / DAY) + 1, pc = Math.max(3, Math.min(100, Math.round((all - days) / all * 100))); // days after today
+  const date = d => d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long' }).replace(/ /g, '\u00a0'), /* '28 February' never splits */ dleft = cnt(days, 'day', 'days', 'dzień', 'dni', 'dni');
+  const [ico, name] = SEASON_LOOK[key], then = s.next ? SEASON_LOOK[s.next.key][1] : '';
+  const sub = days < 1 ? `<i class="ok">${s.next ? L(`Last day! ${then} starts tomorrow`, `Ostatni dzień! Jutro: ${then}`) : L('Last day!', 'Ostatni dzień!')}</i>`
+    : s.next ? L(`${then} in ${dleft} · ${date(s.next.start)}`, `${then} za ${dleft} · ${date(s.next.start)}`) : L(`Ends in ${dleft} · ${date(s.end)}`, `Koniec za ${dleft} · ${date(s.end)}`);
+  const shop = s.key && hasDrop(s.key);
+  return `<div class="ttile seasoncard s-${key}">
+  <div class="tpic" aria-hidden="true">${ico}</div>
+  <div class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span>
+    <div class="sbar" role="progressbar" aria-label="${L('How far into the season', 'Postęp sezonu')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div></div>
+  ${shop ? `<button type="button" class="btn sm w" data-act="shop" title="${esc(SEASONS[s.key].name)}">${L('Shop', 'Sklep')}</button>` : ''}
+</div>`;
+}
+function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } }
 setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun || st.me?.next)) paintToday(); }, 60_000); // keeps the countdowns honest
 function openDaily() {
   if (st.daily) return;
@@ -1812,6 +1832,7 @@ function renderHub() {
       </section>
     </aside>
     <aside class="hubside right" aria-label="${L('Today and rankings', 'Dziś i rankingi')}">
+      <section id="season" aria-label="${L('Season', 'Sezon')}">${seasonHtml()}</section>
       <section id="today">
         <div class="sidehead"><h2>${L('Today', 'Dziś')}</h2></div>
         <div class="today" id="today-list">${todayHtml()}</div>
