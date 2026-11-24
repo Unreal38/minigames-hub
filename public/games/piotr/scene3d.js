@@ -107,7 +107,9 @@ export function createScene(canvas, { onFrame } = {}) {
     });
   }
   // a standing fan that closes up as it gets longer
-  const slot = (k, cnt) => { const step = Math.min(.4, 2.7 / Math.max(1, cnt)), u = k - (cnt - 1) / 2; return new THREE.Vector3(u * step, CH * HAND * .3 - Math.abs(u) * Math.abs(u) * step * .02, k * .006 + Math.abs(u) * step * .1); };
+  // a fan is never wider than the room its seat has: at a full table the neighbours' fans would run into each other
+  const fanRoom = () => (n < 3 ? 2.7 : Math.min(2.7, 2 * ((R * .74 - .3) * Math.tan(Math.PI / n) - .34)));
+  const slot = (k, cnt) => { const step = Math.min(.4, fanRoom() / Math.max(1, cnt)), u = k - (cnt - 1) / 2; return new THREE.Vector3(u * step, CH * HAND * .3 - Math.abs(u) * Math.abs(u) * step * .02, k * .006 + Math.abs(u) * step * .1); };
   function layHand(s, deal = -1) {
     const cnt = s.cards.length;
     s.cards.forEach((c, k) => {
@@ -129,7 +131,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the pairs on the table ----------
   const heap = []; // one entry per pair laid down: its two card meshes
   function heapSpot(j, side) {
-    const a = j * 2.4 + .6, r = .34 + .38 * Math.sqrt(j), ry = hash(j * 7 + 1) * 6.28;
+    const a = j * 2.4 + .6, r = .3 + .3 * Math.sqrt(j), ry = hash(j * 7 + 1) * 6.28;
     return { p: new THREE.Vector3(Math.cos(a) * r + Math.cos(ry) * side * .22, .03 + j * .012 + (side > 0 ? .006 : 0), Math.sin(a) * r * .8 - Math.sin(ry) * side * .22 - .15), ry: ry + side * .22 };
   }
   // fromSeat < 0: the pair is simply there (a game already under way)
