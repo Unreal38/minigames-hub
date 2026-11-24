@@ -20,15 +20,17 @@ const ring = (n, r, a0 = 0) => Array.from({ length: n }, (_, i) => { const a = a
 export const BENCHES = ring(6, 7.6, Math.PI / 6).map(([x, z, a]) => ({ x, z, ry: Math.atan2(-x, -z) }));
 export const FIRE = [12.6, 10.2], STAGE = [-12.4, 10.2, .78], HAY = ring(5, 2.5, .5).map(([x, z, a]) => ({ x: FIRE[0] + x, z: FIRE[1] + z, ry: Math.atan2(-x, -z) }));
 export const LAMPS = ring(10, R_SQUARE + .6, Math.PI / 10);
+export const CAROUSEL = ['carousel', -12.6, -10.4, .3, 1.9, 2.2];
+export const SWING = ['swing', 16.4, .4, -Math.PI / 2, 1.8, 1];
 export const THINGS = [
   ...BENCHES.map(b => ['bench', b.x, b.z, b.ry, 1.7, .9]),
   ['campfire', FIRE[0], FIRE[1], 0, 2.1, .9],
   ...HAY.map(h => ['haybale', h.x, h.z, h.ry, 1.5, .7]),
   ['gazebo', 12.6, -10.4, -.75, 1.9, 0],
-  ['carousel', -12.6, -10.4, .3, 1.9, 2.2],
+  CAROUSEL,
   ['hotspring', 0, -15.2, 0, 1.9, 2.1],
   ['arch', 0, 17.6, 0, 2.2, 0],
-  ['swing', 16.4, .4, -Math.PI / 2, 1.8, 1],
+  SWING,
   ['well', -16.4, .6, 0, 1.7, 1.1],
   ['balloon', -15.4, 6.6, 0, 1.7, 1],
   ['goldpet', 5.6, -15.6, -.2, 1.7, .9],
@@ -45,6 +47,14 @@ export const WINTER = [['snowman', 4.2, 15.2, -.3, 1, .8], ['snowman', -16.2, -1
 export const MEADOW = [['flowers', 4.2, 15.2, 0, 1.8, 0], ['flowers', -4.6, 15.6, 1, 1.8, 0], ['cherry', -9.6, -15.2, 0, 1.9, .5], ['cherry', 9.4, 15.4, 0, 1.9, .5],
   ['picnic', -16.2, -1.9, .4, 1.9, 0], ['flowers', 16.6, -2.6, 2, 1.8, 0]];
 
+// Everything standing on the island in a season, in one list: a poke names a thing by its place here (the middle
+// piece, tree or fountain, is one past the end).
+export const thingsOf = theme => [...THINGS, ...(theme === 'winter' ? WINTER : MEADOW)];
+export const POKE_REACH = 2.6, POKE_WAIT = 700; // how near you must stand to poke a thing, and how often you may
+// What floats up from a poked thing, by kind.
+export const POKE = { bench: '🪑', campfire: '🔥', haybale: '🌾', gazebo: '🎶', carousel: '🎠', hotspring: '♨️', arch: '💐', swing: '😄', well: '🪙', balloon: '🎈', goldpet: '✨', chest: '💎', lighthouse: '💡', windmill: '🌬️',
+  treehouse: '🐦', miniwheel: '🎡', lamp: '💡', glow: '💡', snowman: '⛄', gifts: '🎁', flowers: '🌼', cherry: '🌸', picnic: '🧺', fountain: '💦', tree: '🎄' };
+
 // What blocks walking: circles [x, z, r]. The page slides you round them; the server only checks the island's edge
 // and the middle piece, so a slow phone never gets tugged back for brushing a bench.
 export const blocksOf = theme => [[0, 0, TREE_R], ...[...THINGS, ...(theme === 'winter' ? WINTER : MEADOW)].filter(t => t[5] > 0).map(t => [t[1], t[2], t[5]])];
@@ -53,6 +63,9 @@ export const blocksOf = theme => [[0, 0, TREE_R], ...[...THINGS, ...(theme === '
 export const SPOTS = [
   ...BENCHES.flatMap(b => [-.42, .42].map(s => ({ x: b.x + Math.cos(b.ry) * s, z: b.z - Math.sin(b.ry) * s, ry: b.ry, y: .62, k: 'bench' }))),
   ...HAY.map(h => ({ x: h.x, z: h.z, ry: h.ry, y: .62, k: 'hay' })),
+  // the carousel's four horses: riders go round with it (scene3d.js), so the place here is only the carousel's middle
+  ...[0, 1, 2, 3].map(n => ({ x: CAROUSEL[1], z: CAROUSEL[2], ry: 0, y: 0, k: 'ride', n, reach: CAROUSEL[5] + 2 })),
+  { x: SWING[1], z: SWING[2], ry: SWING[3], y: 0, k: 'swing', reach: SWING[5] + 2 }, // the swing: one rider, rocking with it
 ];
 export const SPOT_REACH = 2.4; // how near you must stand to take a seat
 

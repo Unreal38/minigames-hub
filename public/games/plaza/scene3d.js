@@ -13,9 +13,10 @@ import { itemModel } from '../farm/models.js';
 import { formOf } from '../farm/data.js';
 import { youArrow, animateArrow } from '../../marker3d.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
-import { R_WALK, R_SQUARE, SPEED, Q, TREE_R, THINGS, WINTER, MEADOW, LAMPS, STAGE, SPOTS, EMOTES, ORNAMENTS, SLOTS, TIERS, TREE_H, slotPos, blocksOf, clampWalk, throwMs, THROW_RANGE } from './layout.js';
+import { R_WALK, R_SQUARE, SPEED, Q, TREE_R, THINGS, WINTER, MEADOW, LAMPS, STAGE, SPOTS, EMOTES, ORNAMENTS, SLOTS, TIERS, TREE_H, slotPos, blocksOf, clampWalk, throwMs, THROW_RANGE, thingsOf, POKE_REACH, CAROUSEL, SWING } from './layout.js';
 
 const K = .72;             // avatars are drawn at this size (see standing-avatar notes: the scale sits on a wrapper)
+const MOVING = { ride: 1, swing: 1 }; // seats that move: the rider is drawn on them, their own place stays where they got on
 const BODY_R = .38;        // how close you can get to things
 const SNOW = '#f6faff';
 const EM = Object.fromEntries(EMOTES.map((e, i) => [e?.id, i]));
@@ -244,7 +245,7 @@ export function createScene(canvas, opts = {}) {
   function emote(s, e, sp = -1) {
     const m = folk.get(s); if (!m) return;
     m.e = e; m.eAt = T; m.sp = sp; m.fxN = 0;
-    if (sp >= 0 && SPOTS[sp]) { const q = SPOTS[sp]; m.x = m.tx = q.x; m.z = m.tz = q.z; m.ry = m.tr = q.ry; if (m === me) { goal = null; sentX = Math.round(q.x * Q); sentZ = Math.round(q.z * Q); } }
+    if (sp >= 0 && SPOTS[sp] && !MOVING[SPOTS[sp].k]) { const q = SPOTS[sp]; m.x = m.tx = q.x; m.z = m.tz = q.z; m.ry = m.tr = q.ry; if (m === me) { goal = null; sentX = Math.round(q.x * Q); sentZ = Math.round(q.z * Q); } }
     const head = new THREE.Vector3(m.x, 1.9, m.z);
     if (e === EM.cheer) { if (m === me) fx.confetti(head, { n: 36, w: 2.4, h: 2.2, s: 'me' }); else fx.burst(head, { n: 16, colors: ['#ffd84a', '#ff9fb8', '#8a98ff', '#7ed3b2'], shape: STAR, speed: 2.6, up: 3.4, size: .3 }); }
     if (e === EM.trick) fx.burst(head.setY(.5), { n: 10, colors: ['#ff9fb8', '#ffd84a'], shape: HEART, speed: 1.6, up: 2.6, size: .3 });
@@ -293,11 +294,19 @@ export function createScene(canvas, opts = {}) {
   // ---- your own walking
   const blocks = blocksOf(theme);
   let inX = 0, inZ = 0, goal = null, stuck = 0, side = 0, sentX = 0, sentZ = 0, sentR = -1, sendAt = 0;
-  const setMove = (x, z) => { inX = x; inZ = z; if (x || z) { goal = null; mark.visible = false; } };
-  function walkTo(x, z) { [x, z] = clampWalk(x, z); goal = [x, z]; stuck = 0; side = 0; mark.position.set(x, .1, z); mark.visible = true; mark.scale.setScalar(1); }
+  let goalCb = null, bestD = 0, bestT = 0;
+  // keys and the joystick push relative to the screen, so they are turned by the camera's turn
+  const setMove = (x, z) => { inX = x; inZ = z; if (x || z) { goal = null; goalCb = null; mark.visible = false; } };
+  function walkTo(x, z, then = null) { [x, z] = clampWalk(x, z);
+    // a spot inside a bench or a lamp can never be reached: aim for its nearest edge instead
+    for (const b of blocks) { const dx = x - b[0], dz = z - b[1], d = Math.hypot(dx, dz), min = b[2] + BODY_R + .06; if (d < min) { const ax = d > 1e-3 ? dx / d : (me ? me.x - b[0] : 0), az = d > 1e-3 ? dz / d : (me ? me.z - b[1] : 1), l = Math.hypot(ax, az) || 1; x = b[0] + ax / l * min; z = b[1] + az / l * min; } }
+    [x, z] = clampWalk(x, z); goal = [x, z]; goalCb = then; stuck = 0; side = 0; bestD = 1e9; bestT = 0; mark.position.set(x, .1, z); mark.visible = true; mark.scale.setScalar(1); }
   function stepMe(dt) {
-    let vx = inX, vz = inZ;
-    if (!vx && !vz && goal) { const dx = goal[0] - me.x, dz = goal[1] - me.z, d = Math.hypot(dx, dz); if (d < .12 || stuck > 1) { goal = null; mark.visible = false; } else { vx = dx / d; vz = dz / d; if (d < SPEED * dt) { vx *= d / (SPEED * dt); vz *= d / (SPEED * dt); } } }
+    const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+    let vx = inX * cy + inZ * sy, vz = -inX * sy + inZ * cy;
+    if (!vx && !vz && goal) { const dx = goal[0] - me.x, dz = goal[1] - me.z, d = Math.hypot(dx, dz);
+      if (d < bestD - .05) { bestD = d; bestT = 0; } else bestT += dt; // no nearer for a while (circling something): stop
+      if (d < .12 || stuck > 1 || bestT > 1.6) { const cb = d < .6 ? goalCb : null; goal = null; goalCb = null; mark.visible = false; cb?.(); } else { vx = dx / d; vz = dz / d; if (d < SPEED * dt) { vx *= d / (SPEED * dt); vz *= d / (SPEED * dt); } } }
     const moving = !!(vx || vz);
     if (moving) {
       if (me.sp >= 0 || EMOTES[me.e]?.loop) { me.e = 0; me.sp = -1; }
@@ -320,10 +329,14 @@ export function createScene(canvas, opts = {}) {
   }
 
   // ---- camera
-  const cam = { x: 0, z: 14, zoom: 1, tall: false, fade: 1 };
+  const cam = { x: 0, z: 14, zoom: 1, tall: false, fade: 1, yaw: 0, el: 0, ty: 0, te: 0 }; // yaw/el: where the player turned the view (ty/te are where it is easing to)
   let W = 0, H = 0, rw = 0, rh = 0;
   const ro = new ResizeObserver(es => { const b = es[es.length - 1].contentRect; rw = b.width; rh = b.height; }); ro.observe(canvas);
   const setZoom = z => { cam.zoom = Math.max(.6, Math.min(1.7, z)); };
+  const EL0 = Math.atan2(.6, .8);
+  const turn = (dy, de = 0) => { cam.ty += dy; cam.te = Math.max(-.32, Math.min(.5, cam.te + de)); };
+  const resetView = () => { cam.ty = Math.round(cam.yaw / 6.2832) * 6.2832; cam.te = 0; };
+  const turned = () => Math.abs(wrapA(cam.ty)) > .04 || Math.abs(cam.te) > .04;
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
   // What is under a tap: a person (nearest head within reach), an ornament, or a spot on the ground.
   function pick(px, py) {
@@ -336,15 +349,46 @@ export function createScene(canvas, opts = {}) {
     if (best) return { kind: 'player', s: best.s };
     if (pet) return pet;
     ndc.set(x / r.width * 2 - 1, -(y / r.height) * 2 + 1); ray.setFromCamera(ndc, camera);
+    const th = pickThing(x, y, r);
     if (winter) { const hits = ray.intersectObjects(Object.values(ornMeshes), false); if (hits.length && hits[0].instanceId != null) return { kind: 'orn', i: hits[0].object.userData.slots[hits[0].instanceId] }; }
+    if (th >= 0) return th === ALL.length ? (winter ? { kind: 'tree' } : { kind: 'thing', i: th }) : { kind: 'thing', i: th };
     if (!ray.ray.intersectPlane(ground, hit)) return null;
-    if (winter && Math.hypot(hit.x, hit.z) < TREE_R) return { kind: 'tree' };
+    if (Math.hypot(hit.x, hit.z) < TREE_R) return winter ? { kind: 'tree' } : { kind: 'thing', i: ALL.length };
     if (Math.hypot(hit.x, hit.z) > R_WALK + 1.5) return null;
     return { kind: 'ground', x: hit.x, z: hit.z };
   }
 
+  // ---- the things standing on the island: which one is under a tap, and what it does when someone pokes it
+  const ALL = thingsOf(theme);
+  const TALL = { lighthouse: 4.4, windmill: 3.8, treehouse: 3.8, balloon: 3.6, arch: 2.8, gazebo: 3.2, carousel: 3.2, lamp: 2.6, glow: 2.6, swing: 2.6, snowman: 1.9, cherry: 3.2, miniwheel: 2.6, well: 2.2, goldpet: 1.8 };
+  const thingAt = i => i === ALL.length ? { kind: winter ? 'tree' : 'fountain', x: 0, z: 0, r: TREE_R, h: winter ? 8 : 2.4 } : ALL[i] ? { kind: ALL[i][0], x: ALL[i][1], z: ALL[i][2], r: ALL[i][5], h: TALL[ALL[i][0]] || 1.3 } : null;
+  function pickThing(x, y, r) {
+    let best = -1, bd = 1e9; const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
+    for (let i = 0; i <= ALL.length; i++) { const t = thingAt(i), wide = i === ALL.length ? 2 : Math.max(.75, t.r) + .15, n = Math.max(2, Math.ceil(t.h / 1.1));
+      for (let k = 0; k < n; k++) { const yy = .35 + (t.h - .5) * k / (n - 1), w = i === ALL.length ? wide * (1.5 - k / n) : wide;
+        v3.set(t.x, yy, t.z).project(camera); if (v3.z > 1) continue; const px = (v3.x * .5 + .5) * r.width, py = (-v3.y * .5 + .5) * r.height;
+        v3.set(t.x + rx * w, yy, t.z + rz * w).project(camera); const pr = Math.abs((v3.x * .5 + .5) * r.width - px), dd = Math.hypot(px - x, py - y);
+        if (dd < pr && dd / pr < bd) { bd = dd / pr; best = i; } } }
+    return best;
+  }
+  const POKE_FX = { campfire: [['#ff8a3c', '#ffd34d', '#ff5a3c'], STAR], well: [['#ffd34d', '#fff1a8'], STAR], goldpet: [['#ffd34d', '#fff1a8', '#ffffff'], STAR], chest: [['#6ecbff', '#ffd34d', '#ff9fb8'], STAR], arch: [['#ff9fb8', '#ff6f91'], HEART], swing: [['#ff9fb8', '#ffd0dc'], HEART],
+    cherry: [['#ffb7d1', '#ffd6e6'], HEART], flowers: [['#ff9fb8', '#ffd34d', '#c79bff'], STAR], gifts: [['#ff5a6e', '#7ee08a', '#6ecbff', '#ffd34d'], STAR], lighthouse: [['#fff1a8', '#ffffff'], STAR], lamp: [['#fff1a8', '#ffd34d'], STAR], glow: [['#bfe9ff', '#ffffff'], STAR] };
+  function poke(i) { const t = thingAt(i); if (!t) return; const f = POKE_FX[t.kind], at = new THREE.Vector3(t.x, Math.min(t.h, 3.2) * .75, t.z);
+    if (f) fx.burst(at, { n: few ? 7 : 12, colors: f[0], shape: f[1], speed: 2, up: 3, size: .34, grav: 5, life: 1.1 });
+    else fx.puff(at.setY(t.kind === 'snowman' || t.kind === 'hotspring' || t.kind === 'fountain' ? 1 : .2), { n: 10, color: winter || t.kind === 'hotspring' ? '#ffffff' : '#fff4e2', size: .4, speed: 2.6 });
+    fx.sparkle?.(new THREE.Vector3(t.x, 1, t.z), { n: 6, r: Math.max(.8, t.r), colors: ['#ffffff', '#fff1a8'] }); }
+  // Where to stand to reach thing i: its edge on your side. [x, z]
+  function standBy(i) { const t = thingAt(i); if (!t || !me) return null; const dx = me.x - t.x, dz = me.z - t.z, d = Math.hypot(dx, dz) || 1, rr = Math.max(t.r, .5) + BODY_R + .3; return clampWalk(t.x + dx / d * rr, t.z + dz / d * rr); }
+  const nearThing = i => { const t = thingAt(i); return !!t && !!me && Math.hypot(me.x - t.x, me.z - t.z) < Math.max(t.r, .5) + POKE_REACH; };
+
+  // ---- hosts who left for their table: their avatar stays where they stood, under the signpost
+  const ghosts = new Map();
+  function setGhost(code, g) { dropGhost(code); if (!g || !g.c) return; const wrap = new THREE.Group(); wrap.scale.setScalar(K); let av; try { av = avatar3d(g.c, g.av, { pose: 'stand' }); } catch { return; }
+    av.position.y = .76; av.traverse(o => { if (o.isMesh) o.castShadow = false; }); wrap.add(av); wrap.position.set(g.x / Q, 0, g.z / Q); wrap.rotation.y = (g.r || 0) / 10; scene.add(wrap); ghosts.set(code, { wrap, av, x: g.x / Q, z: g.z / Q, seed: g.x + g.z }); }
+  function dropGhost(code) { const g = ghosts.get(code); if (!g) return; scene.remove(g.wrap); disposeAvatar(g.av); ghosts.delete(code); }
+
   // ---- every frame
-  const v3 = new THREE.Vector3(), bm = new THREE.Matrix4(), TAG_Y = { sit: 1.36, nap: .85, angel: .85 };
+  const v3 = new THREE.Vector3(), bm = new THREE.Matrix4(), TAG_Y = { sit: 1.78, nap: 1.0, angel: 1.0 };
   let drawn = false, slowN = 0;
   function animate(m, dt) {
     const mine = m === me;
@@ -359,7 +403,7 @@ export function createScene(canvas, opts = {}) {
     if (!m.wrap) return;
     const def = EMOTES[m.e], id = def?.id, t = T - m.eAt, u = def?.ms ? t / (def.ms / 1000) : 0;
     if (def && !def.loop && u >= 1) m.e = 0;
-    const sit = id === 'sit', seat = sit && m.sp >= 0 ? SPOTS[m.sp] : null;
+    const sit = id === 'sit', seat = sit && m.sp >= 0 ? SPOTS[m.sp] : null, ride = seat?.k === 'ride', swing = seat?.k === 'swing';
     let y = 0, hop = 0, lean = 0;
     if (id === 'jump') { y = Math.sin(Math.min(1, u) * Math.PI) * 1.15; hop = 1 - u; }
     if (id === 'cheer') { hop = .5 + .5 * Math.sin(t * 9); y = Math.abs(Math.sin(t * 9)) * .22; }
@@ -383,12 +427,20 @@ export function createScene(canvas, opts = {}) {
     const hw = m.hitAt !== undefined ? (T - m.hitAt) / .6 : 1;
     if (hw < 1 && !lie) { rx += -Math.sin(hw * Math.PI * 3) * (1 - hw) * .22; if (!sit) y += Math.sin(hw * Math.PI) * .08; }
     m.wrap.position.set(m.x + ox, y, m.z + oz); m.wrap.rotation.set(rx, m.ry + turn, lean);
+    if (ride) { // on a carousel horse: the same numbers as the model's own turning (farm/models.js FX.carousel)
+      const sc = CAROUSEL[4], a = seat.n * Math.PI / 2, ph = -T * .5 + CAROUSEL[3], lx = Math.cos(a) * .6 * sc, lz = Math.sin(a) * .6 * sc;
+      m.wrap.position.set(CAROUSEL[1] + lx * Math.cos(ph) + lz * Math.sin(ph), (.75 + Math.sin(T * 2 + seat.n * 1.6) * .12) * sc - .2, CAROUSEL[2] - lx * Math.sin(ph) + lz * Math.cos(ph));
+      m.wrap.rotation.set(0, ph - a, 0); }
+    if (swing) { // on the swing: rocking with its seat (farm/models.js FX.swing)
+      const sc = SWING[4], th = Math.sin(T * 1.7) * .22, lz = .8 * Math.sin(th) * sc * -1;
+      m.wrap.position.set(SWING[1] + lz * Math.sin(SWING[3]), (1.16 - .78 * Math.cos(th)) * sc - .22, SWING[2] + lz * Math.cos(SWING[3]));
+      m.wrap.rotation.set(th, SWING[3], 0); }
     m.av.position.y = sit ? .76 - .43 : .76; m.av.rotation.x = bend;
     animateAvatar(m.av, T, { seed: m.s, hop: Math.max(0, Math.min(1, hop)), active: id === 'dance' || id === 'trick' });
     const ud = m.av.userData;
     const tuck = id === 'flip' ? Math.sin(Math.min(1, u) * Math.PI) : 0, sweep = id === 'angel' ? .5 - .5 * Math.cos(t * 3.2) : 0;
     if (m.amt > .02 && !sit && !lie) { walkAvatar(m.av, m.ph, m.amt); ud.legs?.forEach(l => { l.rotation.z = 0; }); }
-    else ud.legs?.forEach((l, i) => { l.rotation.x = sit ? -1.5 : id === 'bow' ? -bend : -tuck * 1.5; l.rotation.z = (i ? 1 : -1) * sweep * .42; if (l.userData.kn) l.userData.kn.rotation.x = sit ? (seat ? 1.45 : .15) : tuck * 1.7; });
+    else ud.legs?.forEach((l, i) => { l.rotation.x = ride ? -.3 : sit ? -1.5 : id === 'bow' ? -bend : -tuck * 1.5; l.rotation.z = ride ? (i ? 1 : -1) * .5 : (i ? 1 : -1) * sweep * .42; if (l.userData.kn) l.userData.kn.rotation.x = ride ? .5 : sit ? (seat ? 1.45 + (swing ? Math.sin(T * 1.7) * .5 : 0) : .15) : tuck * 1.7; });
     const thr = m.thr !== undefined ? (T - m.thr) / .42 : 1;
     ud.arms.forEach((a, i) => { a.userData.rz0 ??= a.rotation.z; a.rotation.z = a.userData.rz0;
       if (id === 'wave' && i === 1) { a.rotation.x = -2.75; a.rotation.z = a.userData.rz0 + .3 + Math.sin(t * 10) * .32; }
@@ -435,14 +487,18 @@ export function createScene(canvas, opts = {}) {
     for (const m of folk.values()) { animate(m, dt);
       if (m.wrap) m.wrap.visible = !m.hid; for (const p of m.pets) p.g.visible = !m.hid;
       if (m.hid) continue;
-      if (m.wrap && nb < BLOBS) blobs.setMatrixAt(nb++, bm.makeScale(.42, 1, .42).setPosition(m.x, .05, m.z));
+      if (m.wrap && nb < BLOBS && !(m.sp >= 0 && MOVING[SPOTS[m.sp]?.k])) blobs.setMatrixAt(nb++, bm.makeScale(.42, 1, .42).setPosition(m.x, .05, m.z));
       for (const p of m.pets) if (nb < BLOBS) blobs.setMatrixAt(nb++, bm.makeScale(.3, 1, .3).setPosition(p.x, .05, p.z)); }
+    for (const g of ghosts.values()) { animateAvatar(g.av, T, { seed: g.seed }); const a = g.av.userData.arms?.[1]; if (a) { a.userData.rz0 ??= a.rotation.z; a.rotation.x = -2.75; a.rotation.z = a.userData.rz0 + .3 + Math.sin(T * 6) * .3; } // waving people over
+      if (nb < BLOBS) blobs.setMatrixAt(nb++, bm.makeScale(.42, 1, .42).setPosition(g.x, .05, g.z)); }
     blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
     // the camera follows you from the south, looking down; the tree turns see-through when you walk behind it
     if (me) { const k = Math.min(1, dt * 5); cam.x += (me.x - cam.x) * k; cam.z += (me.z - cam.z) * k; arrow.position.set(me.x, (me.wrap?.position.y || 0) + 2.25, me.z); animateArrow(arrow, T); }
-    const d = (cam.tall ? 54 : 37) / cam.zoom, lz = cam.z - (cam.tall ? 4 : 2.6);
-    camera.position.set(cam.x * .92, d * .6, lz + d * .8); camera.lookAt(cam.x * .92, 1.6, lz);
-    if (winter && me) { const behind = me.z < -TREE_R * .5 && Math.abs(me.x - cam.x * .08) < 4.4 && me.z > -15.5, to = behind ? .28 : 1;
+    { const k = Math.min(1, dt * 14); cam.yaw += (cam.ty - cam.yaw) * k; cam.el += (cam.te - cam.el) * k; }
+    const d = (cam.tall ? 54 : 37) / cam.zoom, off = cam.tall ? 4 : 2.6, sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw), el = EL0 + cam.el;
+    const lx = cam.x * .92 - sy * off, lz = cam.z - cy * off;
+    camera.position.set(lx + sy * Math.cos(el) * d, Math.sin(el) * d, lz + cy * Math.cos(el) * d); camera.lookAt(lx, 1.6, lz);
+    if (winter && me) { const dep = me.x * sy + me.z * cy, lat = me.x * cy - me.z * sy, behind = dep < -TREE_R * .5 && Math.abs(lat) < 4.4 && dep > -15.5, to = behind ? .28 : 1;
       if (Math.abs(cam.fade - to) > .005) { cam.fade += (to - cam.fade) * Math.min(1, dt * 6); if (Math.abs(cam.fade - to) < .01) cam.fade = to; const solid = cam.fade >= 1;
         for (const mt of treeMats) { if (mt.transparent === solid) { mt.transparent = !solid; mt.needsUpdate = true; } mt.opacity = cam.fade; mt.depthWrite = solid; } } }
     if (mark.visible) mark.scale.setScalar(1 + Math.sin(T * 6) * .12);
@@ -455,7 +511,7 @@ export function createScene(canvas, opts = {}) {
     if (!drawn) renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, camera);
     // where everyone's head is on screen, for the name tags and speech bubbles
-    for (const m of folk.values()) { v3.set(m.x, (m.wrap?.position.y || 0) + (TAG_Y[EMOTES[m.e]?.id] ?? 1.72), m.z).project(camera); m.on = !!m.wrap && !m.hid && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.25; m.sx = (v3.x * .5 + .5) * W; m.sy = (-v3.y * .5 + .5) * H; }
+    for (const m of folk.values()) { v3.set(m.wrap ? m.wrap.position.x : m.x, (m.wrap?.position.y || 0) + (TAG_Y[EMOTES[m.e]?.id] ?? 2.12), m.wrap ? m.wrap.position.z : m.z).project(camera); m.on = !!m.wrap && !m.hid && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.25; m.sx = (v3.x * .5 + .5) * W; m.sy = (-v3.y * .5 + .5) * H; }
     opts.frame?.(folk, me, W, H);
     if (!drawn) { drawn = true; opts.ready?.(); }
   }, { onSlow: () => { // slow for a few seconds: other people's pets go first (yours stay), then the usual graphics steps
@@ -464,7 +520,7 @@ export function createScene(canvas, opts = {}) {
     res.lower(); } });
 
   return {
-    setPeople, add, remove, look, moved, fix, emote, throwBall, aim, fireworks, volley, setTree, setOrn, setMove, walkTo, pick, setZoom, spotTaken,
+    setPeople, add, remove, look, moved, fix, emote, throwBall, aim, fireworks, volley, turn, resetView, turned, poke, standBy, nearThing, thingAt, setGhost, dropGhost, setTree, setOrn, setMove, walkTo, pick, setZoom, spotTaken,
     zoom: () => cam.zoom, me: () => me, folk: () => folk, theme,
     nearTree: () => !!me && Math.hypot(me.x, me.z),
     pat(s, i) { const m = folk.get(s), q = m?.pets.find(x => x.k === i); if (!q) return; q.pat = T + 1.05; fx.burst(new THREE.Vector3(q.x, .9, q.z), { n: 6, colors: ['#ff6f91', '#ff9fb8', '#ffffff'], shape: HEART, speed: 1.1, up: 2.6, size: .34, grav: 3, life: 1.1 }); },
@@ -474,7 +530,7 @@ export function createScene(canvas, opts = {}) {
     stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: loop.fps(), folk: folk.size, queue: queue.length }),
     hide(s, on) { const m = folk.get(s); if (m && m !== me) m.hid = !!on; },
     lost: () => renderer.getContext().isContextLost(),
-    destroy() { loop.stop(); ro.disconnect(); for (const m of folk.values()) dropModel(m); folk.clear(); fx.dispose(); ballGeo.dispose(); for (const b of balls) b.g.material.dispose();
+    destroy() { loop.stop(); ro.disconnect(); for (const m of folk.values()) dropModel(m); folk.clear(); for (const c of [...ghosts.keys()]) dropGhost(c); fx.dispose(); ballGeo.dispose(); for (const b of balls) b.g.material.dispose();
       scene.traverse(o => { if (o.isMesh || o.isPoints) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared) mt.dispose(); } }); renderer.dispose(); renderer.forceContextLoss(); },
   };
 }

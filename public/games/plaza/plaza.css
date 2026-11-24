@@ -16,6 +16,10 @@ body.night .plz { background: #1b1740; --pz-bg: #2b2856; --pz-bg2: #201d44; --pz
 .plz-tag { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .plz-name { font-family: var(--fd); font-weight: 600; font-size: 13px; line-height: 1.15; color: #fff; background: #241a3cb8; border-radius: 999px; padding: 2px 9px; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 .plz-name i { font-style: normal; }
+.plz-name { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 2px; max-width: 190px; overflow: visible; }
+.plz-name > span, .plz-name > i { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.plz-name .avatar { flex: none; border-width: 2px; }
+.plz .plz-view { font-size: 22px; } .plz .plz-view[hidden] { display: none; }
 .plz-tag.plz-me .plz-name { background: #ffd34d; color: #3b2219; }
 .plz-bub { font-weight: 700; font-size: 14px; line-height: 1.25; color: #3b2219; background: #fff; border: 2.5px solid #3b2219; border-radius: 14px; padding: 5px 10px; width: max-content; max-width: 210px; overflow-wrap: break-word; text-align: center; box-shadow: 0 3px 0 #1c254040; animation: plzpop .22s cubic-bezier(.3, 1.6, .5, 1) both; }
 .plz-bub[hidden] { display: none; }
