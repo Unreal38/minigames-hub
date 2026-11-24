@@ -1270,7 +1270,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
   .hcemorow { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
   .hcemorow button { flex: none; }
   .hubgrid .hero h1 { font-size: clamp(26px, 6vw, 38px); line-height: 1.14; } .hubgrid .hero p { font-size: 15px; }
-  .hubgrid .herorow { flex-wrap: wrap; } .hubgrid .codeform label { display: none; } .hubgrid .codeform { padding-left: 4px; }
+  .hubgrid .herorow { flex-wrap: wrap; } .hubgrid .codeform { padding-left: 12px; }
   .hubside.right { margin-top: 18px; }
   .today { flex-direction: row; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * max(4vw, 16px)); padding: 2px max(4vw, 16px) 8px; scroll-snap-type: x proximity; }
   .today::-webkit-scrollbar { display: none; }

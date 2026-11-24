@@ -1743,9 +1743,8 @@ function renderHub() {
     <section class="hero">
       <div>
         <h1>${L('Hop on an isle. Pick a game.', 'Wskakuj na wyspę. Wybierz grę.')}</h1>
-        <p>${L("Card, board, action and party games for you and your friends, plus solo puzzles and your own Pet Farm. Host a table and share its four-letter code, or join one with a friend's code.", 'Gry karciane, planszowe, zręcznościowe i imprezowe dla ciebie i znajomych, a do tego łamigłówki dla jednej osoby i własna Farma zwierzaków. Załóż stół i podaj znajomym jego czteroznakowy kod albo dołącz do stołu z kodem od znajomego.')}</p>
+        <p>${L("Card, board, action and party games for you and your friends, plus solo puzzles and your own Pet Farm. Pick a game below to host a table and share its four-letter code, or join one with a friend's code.", 'Gry karciane, planszowe, zręcznościowe i imprezowe dla ciebie i znajomych, a do tego łamigłówki dla jednej osoby i własna Farma zwierzaków. Wybierz grę poniżej, żeby założyć stół i podać znajomym jego czteroznakowy kod, albo dołącz do stołu z kodem od znajomego.')}</p>
         <div class="row herorow">
-          <button type="button" class="btn big" data-act="host">${L('Host a table', 'Załóż stół')}</button>
           <form class="codeform" data-form="join">
             <label for="code">${L('Got a code?', 'Masz kod?')}</label>
             <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
@@ -2004,7 +2003,7 @@ function renderTables() {
   if (all) { if (rooms.length) tablePage(all, document.getElementById('tables-all-pager'), rooms); else tablesSheet?.close(); }
   const el = document.getElementById('tables-list'); if (!el) return;
   const pager = document.getElementById('tables-pager'), more = document.getElementById('tables-all-btn');
-  if (!rooms.length) { el.innerHTML = `<div class="empty tnone"><span>${L('No open tables yet.', 'Nie ma jeszcze otwartych stołów.')}</span><button type="button" class="btn sm" data-act="host">${L('Host one', 'Załóż stół')}</button></div>`; pager.innerHTML = ''; more.hidden = true; return; }
+  if (!rooms.length) { el.innerHTML = `<div class="empty tnone"><span>${L('No open tables yet. Pick a game to host one.', 'Nie ma jeszcze otwartych stołów. Wybierz grę i załóż własny.')}</span></div>`; pager.innerHTML = ''; more.hidden = true; return; }
   if (narrow()) { tablePage(el, pager, rooms); more.hidden = true; return; }
   el.innerHTML = rooms.slice(0, TABLES_SHORT).map(tableRow).join(''); pager.innerHTML = '';
   more.hidden = rooms.length <= TABLES_SHORT; more.textContent = L(`Show all ${rooms.length} tables`, `Pokaż wszystkie stoły (${rooms.length})`);
@@ -2781,8 +2780,9 @@ $app.addEventListener('click', e => {
   else if (act === 'hubdel') send({ t: 'hubdel', id: b.dataset.id });
   else if (act === 'logout') { send({ t: 'logout' }); toast(L('Logged out. This browser is a guest again.', 'Wylogowano. Ta przeglądarka znów gra jako gość.')); }
   else if (act === 'host' || act === 'solo') {
+    const game = b.dataset.game;
+    if (!GAMES[game]) return;
     if (!st.name) return openProfile(true);
-    const game = GAMES[b.dataset.game] ? b.dataset.game : 'hotpot';
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
   else if (act === 'theme') { switchTheme(b); sfx.click(); }
