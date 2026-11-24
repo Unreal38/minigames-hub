@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { xpFor, placeCoins, levelOf, progress, starsOf, RANKS } from '../public/ranks.js';
 import { tidySky, lightStar, freeStars, isDone } from '../public/constellations.js';
 import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack, cosPackIds } from '../public/cosmetics.js';
+import { dayOf, untilNext, dateOf } from './day.js';
 import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
@@ -124,9 +125,9 @@ export function setLook(token, { name, color, av }) {
 // same balance. onCoins lets the server tell every open screen when it changes.
 let coinHook = () => {};
 export const onCoins = fn => { coinHook = fn; };
-// Tests move the shop's calendar with SHOP_DATE (e.g. 2026-07-01), so seasonal drops can be checked any day of the year.
-const now = () => process.env.SHOP_DATE ? Date.parse(process.env.SHOP_DATE + 'T12:00') : Date.now();
-export const shopDate = () => { const d = new Date(now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+// The shop's calendar is Warsaw's date (server/day.js). Tests move it with SHOP_DATE (e.g. 2026-07-01), so seasonal
+// drops can be checked any day of the year; the daily coin caps use dayOf directly and ignore SHOP_DATE.
+export const shopDate = () => process.env.SHOP_DATE || dayOf();
 export const coinsOf = pid => profiles.get(pid)?.coins || 0;
 // debt: true lets the balance go below zero. Only bets lost at a coin-betting table (Marble Rush, golf) do that:
 // their stakes come from the balance the table saw when the round began, so a player who spent those coins in the
@@ -147,7 +148,7 @@ export function buy(p, k, i) {
   if (!AV_KEYS.includes(k) || !OPT[k][i] || !price) return { err: 'That is not in the shop.' };
   p.owned ||= [];
   if (p.owned.includes(id)) return { err: 'You already have that.' };
-  if (!onSale(k, i, new Date(now()))) return { err: `That is part of the ${SEASONS[seasonOf(k, i)].name}. It is back in ${SEASONS[seasonOf(k, i)].back}.` };
+  if (!onSale(k, i, dateOf(shopDate()))) return { err: `That is part of the ${SEASONS[seasonOf(k, i)].name}. It is back in ${SEASONS[seasonOf(k, i)].back}.` };
   if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
   p.coins -= price; p.owned.push(id); scheduleSave(); coinHook(p.pid);
   return { id, price };
@@ -159,7 +160,7 @@ function buyCos(p, k, i) {
   if (!it || !price) return { err: 'That is not in the shop.' };
   p.owned ||= [];
   if (p.owned.includes(id)) return { err: 'You already have that.' };
-  if (!cosOnSale(k, i, new Date(now()))) return { err: `That is part of the ${cosSeason(k, i).name}. It is back in ${cosSeason(k, i).back}.` };
+  if (!cosOnSale(k, i, dateOf(shopDate()))) return { err: `That is part of the ${cosSeason(k, i).name}. It is back in ${cosSeason(k, i).back}.` };
   if ((p.coins || 0) < price) return { err: `You need ${price - (p.coins || 0)} more coins for that.` };
   p.coins -= price; p.owned.push(id);
   if (WORN.includes(k)) (p.cos ||= {})[k] = i;
@@ -238,7 +239,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === shopDate() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === shopDate() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === shopDate() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }

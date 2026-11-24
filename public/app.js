@@ -989,7 +989,7 @@ function onMsg(m) {
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
-    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; setMyFx(flairOf(m.me).wn | 0);
+    st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; st.meAt = Date.now(); setMyFx(flairOf(m.me).wn | 0);
     // Logged in: the look saved with the account is the only truth. Wear it (and keep it in this browser) before
     // anything else, the language reload below included, so an old guest look here can never be sent back over it.
     let adopted = false;
@@ -1228,12 +1228,15 @@ function todayHtml() {
   const needAcct = L('Needs an account', 'Wymaga konta');
   const mp = !d ? L('A new pet hides here every day', 'Codziennie kryje się tu nowy zwierzak') : d.guest ? needAcct : d.done ? `<i class="ok">✓ ${L(`solved in ${d.guesses.length}`, `odgadnięte w ${d.guesses.length}`)}</i>${fire}`
     : d.guesses.length ? `${L(`${cnt(d.guesses.length, 'guess', 'guesses')} so far`, `${cnt(d.guesses.length, '', '', 'próba', 'próby', 'prób')} do tej pory`)}${fire}` : `${L('New pet today', 'Dziś nowy zwierzak')}${d.streak ? fire : ''}`;
-  const paid = me?.hay?.paid || 0;
-  const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today · level ${me.hay.lv}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet · poziom ${me.hay.lv}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
-  const popPaid = me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
-  const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today · level ${popLv}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet · poziom ${popLv}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
-  const mjPaid = me?.mj?.paid || 0, mjLv = me?.mj?.lv || 1;
-  const mjText = !me?.user ? needAcct : mjPaid >= MJ_DAILY ? L(`All ${MJ_DAILY} coins earned today · level ${mjLv}`, `Dziś zdobyte wszystkie ${MJ_DAILY} monet · poziom ${mjLv}`) : L(`${MJ_DAILY - mjPaid} coins left today · level ${mjLv}`, `Dziś do zdobycia jeszcze ${cnt(MJ_DAILY - mjPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${mjLv}`);
+  // Coin caps start again at midnight in Warsaw; me.next is how long that was away when the server last wrote.
+  const toMid = me?.next ? me.next - (Date.now() - (st.meAt || Date.now())) : 0, fresh = me?.next && toMid <= 0;
+  const back = toMid > 0 ? ` · ${L(`new coins in ${leftText(toMid)}`, `nowe monety za ${leftText(toMid)}`)}` : '';
+  const paid = fresh ? 0 : me?.hay?.paid || 0;
+  const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet${back}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
+  const popPaid = fresh ? 0 : me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
+  const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet${back}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
+  const mjPaid = fresh ? 0 : me?.mj?.paid || 0, mjLv = me?.mj?.lv || 1;
+  const mjText = !me?.user ? needAcct : mjPaid >= MJ_DAILY ? L(`All ${MJ_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${MJ_DAILY} monet${back}`) : L(`${MJ_DAILY - mjPaid} coins left today · level ${mjLv}`, `Dziś do zdobycia jeszcze ${cnt(MJ_DAILY - mjPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${mjLv}`);
   const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
   const ownFarm = L('Your own pet farm', 'Twoja własna farma zwierzaków');
   const farm = !me?.user ? needAcct : !f ? ownFarm
@@ -1242,7 +1245,7 @@ function todayHtml() {
     : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
     : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
     : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
-  const w = st.wheelInfo, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
+  const w = st.wheelInfo, wLeft = w ? w.next - (Date.now() - (w.at || Date.now())) : 0, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun && wLeft > 0 ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
   const mpPic = MYSTERY_ICON;
   const wi = st.wordInfo, ws = wi?.L?.[WORD_LANG], wfire = ws?.streak ? ` · 🔥 ${ws.streak}` : '';
   const wordText = !wi ? L('A new word washes up every day', 'Codziennie morze przynosi nowe słowo') : wi.guest ? needAcct
@@ -1250,14 +1253,14 @@ function todayHtml() {
     : ws.rows.length ? `${L(`${ws.rows.length} of ${wi.tries} tries used`, `wykorzystane próby: ${ws.rows.length} z ${wi.tries}`)}${wfire}` : `${L('New word today', 'Dziś nowe słowo')}${wfire}`;
   return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done, MP_MINS)
     + todayTile('t-word' + (ws?.done ? ' done' : ''), WORD_ICON, `${WORD_NAME}${wi ? ` <small>#${wi.no}</small>` : ''}`, wordText, 'word', ws?.done ? L('Result', 'Wynik') : ws?.rows?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), ws?.done, WORD_MINS)
-    + todayTile('t-wheel' + (w && !w.guest && !w.spun ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun)
+    + todayTile('t-wheel' + (w && !w.guest && !(w.spun && wLeft > 0) ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun && wLeft > 0 ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun && wLeft > 0)
     + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
     + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
     + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins)
     + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
 }
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); }
-setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun)) paintToday(); }, 60_000); // keeps the farm countdown honest
+setInterval(() => { if (st.view === 'hub' && (st.farmBrief || st.wheelInfo?.spun || st.me?.next)) paintToday(); }, 60_000); // keeps the countdowns honest
 function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);

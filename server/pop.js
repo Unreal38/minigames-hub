@@ -3,7 +3,8 @@
 // shelf: it checks every swap and rolls the pets that drop in, so the browser never knows what comes next.
 import crypto from 'node:crypto';
 import { N, KINDS, level, deal, play, DAILY, XP_CLEAR, MOVE_BONUS, coinsFor, starsFor } from '../public/games/pop/rules.js';
-import { addCoins, shopDate, scheduleSave, invalidateBoards } from './store.js';
+import { addCoins, scheduleSave, invalidateBoards } from './store.js';
+import { dayOf } from './day.js';
 import { levelOf } from '../public/ranks.js';
 
 const rnd = n => crypto.randomInt(n);
@@ -11,7 +12,7 @@ const gid = () => crypto.randomBytes(4).toString('hex');
 
 function stateOf(p) {
   const h = p.pop ||= { lv: 1, day: '', paid: 0, g: null };
-  if (h.day !== shopDate()) { h.day = shopDate(); h.paid = 0; }
+  if (h.day !== dayOf()) { h.day = dayOf(); h.paid = 0; }
   if (!h.g) newShelf(h);
   return h;
 }

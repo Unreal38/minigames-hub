@@ -9,8 +9,9 @@ import { DATA_DIR, profiles, addCoins, scheduleSave, flair, areFriends } from '.
 import { SPECIES, ZONES, RARITY, STARTERS } from '../public/games/farm/data.js';
 import { KIT, MOVES, ROLE_NAME } from '../public/games/farm/battle.js';
 import { COAT } from '../public/games/farm/breed.js';
+import { TZ, now, skip, dayOf, untilNext, dayBefore, daysBetween } from './day.js';
 
-export const TZ = 'Europe/Warsaw';
+export { TZ };
 const FIRST_DAY = '2026-11-22';      // puzzle number 1
 export const HINTS = [3, 5, 7];      // wrong guesses before: the outline, the baby form, a blurred picture
 // Coins for solving: 20 on the first guess, two fewer for each guess after it, never under 5.
@@ -20,17 +21,9 @@ const TOP = 25;
 const FILE = path.join(DATA_DIR, 'mystery-pet.json');
 
 // ---------- the calendar ----------
-// Tests pin the clock with DAILY_NOW (an ISO time) and move it with the test hook.
-let shift = 0;
-const now = () => (process.env.DAILY_NOW ? Date.parse(process.env.DAILY_NOW) : Date.now()) + shift;
-const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
-const parts = ms => Object.fromEntries(fmt.formatToParts(new Date(ms)).map(p => [p.type, p.value]));
-export const dayOf = (ms = now()) => { const p = parts(ms); return `${p.year}-${p.month}-${p.day}`; };
-const dayNo = day => Math.round((Date.parse(day + 'T00:00Z') - Date.parse(FIRST_DAY + 'T00:00Z')) / 86400_000) + 1;
-const dayBefore = day => new Date(Date.parse(day + 'T00:00Z') - 86400_000).toISOString().slice(0, 10);
-// Milliseconds until the next puzzle. On the two days a year the clocks change this is an hour out, and the page
-// simply asks again when its countdown ends.
-export const untilNext = (ms = now()) => { const p = parts(ms); return Math.max(1000, 86400_000 - ((+p.hour * 60 + +p.minute) * 60 + +p.second) * 1000); };
+// The shared midnight-in-Warsaw clock lives in server/day.js; tests pin it with DAILY_NOW and the skip hook below.
+export { dayOf, untilNext };
+const dayNo = day => daysBetween(FIRST_DAY, day) + 1;
 
 // ---------- which pet is it ----------
 // The answer for each day is rolled once and written down, so adding a pet (or restarting) never changes today's.
@@ -167,6 +160,6 @@ export function handle(p, m, reply, chat) {
 // Tests only (DAILY_TEST set): { skip: days } moves the calendar, { peek: true } tells the answer.
 export function testHook(a, reply) {
   if (!process.env.DAILY_TEST || !a) return;
-  if (Number.isFinite(a.skip)) shift += a.skip * 86400_000;
+  if (Number.isFinite(a.skip)) skip(a.skip);
   if (a.peek) reply({ t: 'dailypeek', day: dayOf(), secret: secretOf(dayOf()) });
 }
