@@ -311,7 +311,6 @@ export const SRV_TEXT = {
   'A pet that is out exploring cannot start training. Welcome it home first.': 'Zwierzak na wyprawie nie może zacząć treningu. Najpierw przywitaj go w domu.',
   'A pet that is cuddling in the Nest cannot train.': 'Zwierzak, który przytula się w Gnieździe, nie może trenować.',
   'The farm is as big as it gets.': 'Większa farma już nie będzie.',
-  'A level 5 farmhouse makes room for a fourth Pet Hut.': 'Dom na poziomie 5 robi miejsce na czwartą Chatkę zwierzaków.',
   'Build a Pet Lodge first.': 'Najpierw zbuduj Schronisko zwierzaków.',
   'The Pet Lodge is full. Improve it to make room for more.': 'Schronisko jest pełne. Ulepsz je, żeby zmieścić więcej zwierzaków.',
   'Every bed on the island is taken. Build or improve a Pet Hut first.': 'Wszystkie łóżka na wyspie są zajęte. Najpierw zbuduj albo ulepsz Chatkę zwierzaków.',

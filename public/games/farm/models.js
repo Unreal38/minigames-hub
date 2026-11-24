@@ -223,8 +223,16 @@ const BUILD = {
     for (const x of [-1.33, 1.33]) for (const z of [-.86, .5]) for (let i = 0; i < 6; i++) put(g, G('Cylinder', .06, .06, .26, 6), M(C.woodD), x, .2 + i * .18, z).rotation.x = Math.PI / 2; // log ends crossing at the corners
     const r = grp(rf, 0, 1.15, 0); r.rotation.y = Math.PI / 2; put(r, gable(1.75, .85, 3.0), M(roof)); shingles(r, 1.75, .85, 3.0, 0, 0, roofD, 4);
     box(rf, 3.06, .1, .1, gold ? C.gold : roofD, 0, 1.97, 0); // ridge
-    for (const sd of [-1, 1]) { const g2 = put(rf, gable(1.3, .62, .05), M('#c58e5c'), sd * 1.36, 1.15, 0); g2.rotation.y = Math.PI / 2; } // the gable ends
-    for (const sd of [-1, 1]) { const w = put(rf, G('Cylinder', .13, .13, .06, 10), M(C.glass), sd * 1.39, 1.45, 0); w.rotation.z = Math.PI / 2; put(rf, G('Torus', .14, .03, 4, 10), M(gold ? C.gold : C.woodD), sd * 1.41, 1.45, 0).rotation.y = Math.PI / 2; }
+    for (const sd of [-1, 1]) { // the gable ends: a wooden face with a round attic window, standing just proud of the roof
+      const g2 = put(rf, gable(1.3, .62, .04), M('#c58e5c'), sd * 1.515, 1.17, 0); g2.rotation.y = Math.PI / 2;
+      const w = put(rf, G('Cylinder', .13, .13, .06, 10), M(C.glass), sd * 1.54, 1.42, 0); w.rotation.z = Math.PI / 2; put(rf, G('Torus', .14, .035, 4, 10), M(gold ? C.gold : C.woodD), sd * 1.56, 1.42, 0).rotation.y = Math.PI / 2; }
+    // the sides and the back: windows with sills, a log pile and a water barrel, so no wall is bare
+    for (const sd of [-1, 1]) { const o = grp(g, sd * 1.36, 0, -.18); o.rotation.y = sd * Math.PI / 2;
+      put(o, G('Cylinder', .16, .16, .08, 12), M(C.glass), 0, .62, .02).rotation.x = Math.PI / 2; put(o, G('Torus', .17, .035, 4, 12), M(C.woodD), 0, .62, .05);
+      box(o, .1, .26, .03, C.pink, -.09, .5, .06); box(o, .1, .26, .03, C.pink, .09, .5, .06); box(o, .42, .06, .14, C.woodD, 0, .38, .08); }
+    for (const x of [-.7, .7]) { box(g, .36, .34, .08, C.white, x, .46, -.86); box(g, .28, .26, .1, C.glass, x, .5, -.865); box(g, .03, .26, .04, C.white, x, .5, -.915); box(g, .44, .05, .14, C.woodD, x, .42, -.9); }
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 3 - i; k++) put(g, G('Cylinder', .08, .08, .5, 7), M(k % 2 ? C.wood : '#c99763'), -.05 + (k - (2 - i) / 2) * .17, .08 + i * .14, -1.0).rotation.z = Math.PI / 2; // the log pile at the back
+    barrel(g, 1.2, -.98, .75);
     box(rf, .3, .7, .3, C.stone, -.85, 1.4, -.45); box(rf, .38, .08, .38, C.stoneD, -.85, 2.1, -.45); // chimney
     // the front: a wide double door with a moon sign over it, and round windows with curtains
     box(g, .86, .8, .08, C.woodD, 0, .1, .5); for (const sd of [-1, 1]) { box(g, .38, .7, .08, '#7a5a8a', sd * .2, .12, .53); ico(g, .03, C.gold, sd * .06, .46, .58); }
@@ -276,21 +284,6 @@ const BUILD = {
       [[.5, .98, .7], [1.6, 1.0, .68], [2.9, .96, .72], [-1.2, 1.0, .68], [-2.4, .98, .7], [1.0, 1.86, .52], [-.4, 1.9, .5], [2.6, 1.9, .5], [-2.0, 1.86, .52], [.2, 2.2, .28], [3.3, 2.2, .28]].forEach(([a, y, r], i) => put(g, G('Octahedron', .075, 0), M([C.pink, C.white, C.yellow, C.lilac][i % 4]), Math.sin(a) * r, y, Math.cos(a) * r).scale.y = .6);
       box(g, .34, .04, .11, C.gold, 0, .845, pz - .02); pennant(g, 0, 2.38, 0, C.pink, .56, 1.2);
       vine(g, -.5, .66, .72, 3, -.07, -.16, -.05);
-    }
-    if (lv >= 4) { // level 4: a round sleeping pod hung on the side wall, and fairy lights under the upper roof
-      const pod = sd => { const o = grp(g, sd * .9, 0, .3); o.rotation.y = sd * .7; // a round sleeping basket on a stump, under the eaves
-        cyl(o, .12, .14, .14, 6, C.woodD); const shell = ico(o, .26, C.straw, 0, .38, 0, 1); shell.scale.set(1, .85, 1);
-        for (const y of [.26, .44]) cyl(o, .262, .262, .03, 10, '#d4a94a', 0, y, 0);
-        put(o, G('Cylinder', .15, .15, .06, 10), M('#6b4a3a'), 0, .4, .22).rotation.x = Math.PI / 2; // the round way in
-        put(o, G('Torus', .15, .035, 4, 10), M(C.woodD), 0, .4, .24);
-        ico(o, .08, C.lilac, 0, .36, .2); ico(o, .06, C.leafL, .08, .6, .04); ico(o, .05, C.pink, -.06, .62, .02); // a cushion inside, a sprig on top
-      };
-      pod(-1); if (lv >= 5) pod(1);
-      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + .2; put(g, G('Icosahedron', .06, 0), LIT(), Math.sin(a) * .95, 1.56 - (i % 2) * .05, Math.cos(a) * .95).userData.dyn = true; }
-    }
-    if (lv >= 5) { // level 5: crystal lamps by the door and a gold band round the upper roof
-      for (const sd of [-1, 1]) { box(g, .14, .3, .14, C.stone, sd * .56, 0, .92); box(g, .18, .04, .18, C.stoneD, sd * .56, .3, .92); put(g, G('Octahedron', .08, 0), MX('crystal', '#c8a2f2', { emissive: '#a070e0', emissiveIntensity: .8 }), sd * .56, .43, .92).userData.dyn = true; }
-      cyl(g, .88, .88, .05, 6, C.gold, 0, 1.62);
     }
     const d = put(g, G('Cylinder', .3, .3, .1, 10), M(C.iron), 0, .36, .74); d.rotation.x = Math.PI / 2; d.scale.z = 1.25; // a round doorway
     const r = put(g, G('Torus', .31, .05, 4, 10), M(C.woodD), 0, .36, .78); r.scale.y = 1.25;

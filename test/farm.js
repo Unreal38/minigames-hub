@@ -731,7 +731,7 @@ if (!r.err) fail('freed a pet that does not exist');
   if (r.got < 4 || r.farm.inv.berries !== before.inv.berries + r.got) fail('free gift ' + r.got);
   if (Object.keys(r.farm.album || {}).length !== pages || !r.farm.album[freed.sp]?.some(Boolean)) fail('album lost a page after a pet left');
   if (r.farm.train.ids.includes(freed.id) || r.farm.def.includes(freed.id)) fail('a freed pet is still listed'); }
-// the late game: a level 5 farmhouse, a fourth Pet Hut, huts up to level 5, land up to 24 and the Pet Lodge
+// the late game: a level 5 farmhouse, land up to 24 and the Pet Lodge. The island stays at 26 beds (Kuba's pick).
 { const c = player('Cy'); await c.ready;
   c.send({ t: 'register', user: 'cyra', pass: 'hunter22' }); await until(() => c.auth, 'register c');
   await c.farmDo({ t: 'starter', sp: 'mossbun' });
@@ -744,20 +744,19 @@ if (!r.err) fail('freed a pet that does not exist');
   r = await c.farmDo({ t: 'place', type: 'lodge', x: 1, y: 19, r: 0 }); if (r.err) fail('lodge at farmhouse 4 ' + r.err);
   const huts = [];
   for (let i = 0; i < 4; i++) { r = await c.farmDo({ t: 'place', type: 'hut', x: 1 + i * 3, y: 15, r: 0 }); if (i < 3 && r.err) fail('hut ' + r.err); if (!r.err) huts.push(r.farm.items.at(-1).id); }
-  if (huts.length !== 3) fail('a fourth hut before farmhouse 5');
+  if (huts.length !== 3) fail('a fourth hut');
   if (c.farm.room !== 2 + 3 * 4 || c.farm.lodgeRoom !== 60 || c.farm.allRoom !== 74) fail('room at farmhouse 4 ' + [c.farm.room, c.farm.lodgeRoom]);
   r = await c.farmDo({ t: 'houseup' }); if (r.err || r.farm.house !== 5 || r.farm.houseNext) fail('farmhouse 5 ' + r.err);
-  if (r.farm.room !== 4 + 3 * 4) fail('farmhouse 5 should sleep four');
+  if (r.farm.room !== 2 + 3 * 4) fail('farmhouse 5 should not add beds');
   r = await c.farmDo({ t: 'expand' }); if (r.err || r.farm.size !== 24 || r.farm.next) fail('land 24 ' + r.err);
-  r = await c.farmDo({ t: 'place', type: 'hut', x: 13, y: 16, r: 0 }); if (r.err) fail('fourth hut ' + r.err); huts.push(r.farm.items.at(-1).id);
-  r = await c.farmDo({ t: 'place', type: 'hut', x: 16, y: 16, r: 0 }); if (!r.err) fail('a fifth hut');
-  for (const id of huts) for (let n = 0; n < 4; n++) { r = await c.farmDo({ t: 'upgrade', id }); if (r.err) fail('hut level ' + (n + 2) + ' ' + r.err); }
-  r = await c.farmDo({ t: 'upgrade', id: huts[0] }); if (!r.err) fail('hut past level 5');
-  if (lvOfItem(c.farm, huts[0]) !== 5 || c.farm.room !== 4 + 4 * 12) fail('52 beds on the island, not ' + c.farm.room);
+  r = await c.farmDo({ t: 'place', type: 'hut', x: 13, y: 16, r: 0 }); if (!r.err) fail('a fourth hut at farmhouse 5');
+  for (const id of huts) for (let n = 0; n < 2; n++) { r = await c.farmDo({ t: 'upgrade', id }); if (r.err) fail('hut level ' + (n + 2) + ' ' + r.err); }
+  r = await c.farmDo({ t: 'upgrade', id: huts[0] }); if (!r.err) fail('hut past level 3');
+  if (lvOfItem(c.farm, huts[0]) !== 3 || c.farm.room !== 26) fail('26 beds on the island, not ' + c.farm.room);
   const lodge = c.farm.items.find(i => i.type === 'lodge').id;
   if (c.farm.lodgeRoom !== 60) fail('a level 1 lodge stores 60, not ' + c.farm.lodgeRoom);
   for (let n = 0; n < 2; n++) { r = await c.farmDo({ t: 'upgrade', id: lodge }); if (r.err) fail('lodge level ' + r.err); }
-  if (c.farm.lodgeRoom !== 300 || c.farm.allRoom !== 352) fail('lodge room ' + c.farm.lodgeRoom);
+  if (c.farm.lodgeRoom !== 300 || c.farm.allRoom !== 326) fail('lodge room ' + c.farm.lodgeRoom);
   for (let i = 0; i < 4; i++) { await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(60); }
   const [p1, p2, p3] = c.farm.pets.map(x => x.id);
   r = await c.farmDo({ t: 'lodge', ids: [p1, p2], on: true }); if (r.err || !r.farm.pets[0].lodge || !r.farm.pets[1].lodge) fail('store in the lodge ' + r.err);
@@ -777,11 +776,11 @@ if (!r.err) fail('freed a pet that does not exist');
   r = await c.farmDo({ t: 'shelf', op: 'del', id: s1 }); if (r.farm.shelves.length !== 1 || r.farm.pets.some(x => x.shelf === s1) || !r.farm.pets.find(x => x.id === p1).lodge) fail('delete collection');
   r = await c.farmDo({ t: 'lodge', ids: [p1, p2, p3], on: false }); if (r.err || r.farm.pets.some(x => x.lodge || x.shelf)) fail('back to the island ' + r.err);
   // a full island: a new pet goes into storage by itself, and nobody moves out onto a full island
-  for (let i = c.farm.pets.length; i < 52; i++) { await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(60); }
+  for (let i = c.farm.pets.length; i < 26; i++) { await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(60); }
   r = await c.farmDo({ t: 'lodge', ids: [p1], on: true });
   await c.farmDo({ t: 'open', test: { pet: 'mossbun' } });
   r = await c.farmDo({ t: 'lodge', ids: [p1], on: false }); if (!r.err) fail('moved onto a full island');
-  r = await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); if (!r.farm.pets.at(-1).lodge || r.farm.pets.filter(x => !x.lodge).length !== 52) fail('a new pet should go into storage when the island is full');
+  r = await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); if (!r.farm.pets.at(-1).lodge || r.farm.pets.filter(x => !x.lodge).length !== 26) fail('a new pet should go into storage when the island is full');
   c.ws.close(); }
 r = await a.farmDo({ t: 'open', test: { weather: 'none', ripe: true } });
 const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved

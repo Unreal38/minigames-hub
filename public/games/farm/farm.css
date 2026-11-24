@@ -467,3 +467,34 @@ body.night .pf { --fav: #f06d93; --fav-edge: #f06d93; }
 .pf .lodgep .ldcell.on { border-color: var(--ink); box-shadow: 0 0 0 3px var(--accent, #ffc94d) inset; }
 .pf .lodgep .ldacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pf .lodgep .ldpages { justify-content: center; align-items: center; gap: 10px; }
+/* Sending pets out happens in two steps: first the islands fill the panel, then the picked island's summary sits above
+   the trip lengths and the pets, so nobody has to find the pets below a wall of islands. */
+.pf .tstep .tnum { flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--lantern); color: var(--ink); border: 2.5px solid var(--ink); font-size: 14px; }
+.pf .sendwhere .tstep .tcount { margin-left: auto; font-family: var(--fb, inherit); font-weight: 600; }
+.pf .zsum { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: stretch; padding: 8px; border-radius: 18px; border: 3px solid var(--card-edge); background: var(--pf-chip, var(--card)); }
+.pf .zsum .zbig { position: relative; border-radius: 14px; overflow: hidden; border: 3px solid var(--ink); }
+.pf .zsum .zbig .zsky { position: relative; display: block; height: 100%; min-height: 140px; background: linear-gradient(180deg, var(--s1, #bfe8ff), var(--s2, #eef8ff)); }
+.pf .zsum .zbig .zpic { position: absolute; left: 50%; top: 50%; width: 160px; height: 160px; max-width: none; transform: translate(-50%, -46%); animation: pf-isle-bob 3s ease-in-out infinite; }
+.pf .zsum .zbig .zpic:not([src]) { visibility: hidden; }
+.pf .zsum .zinfo { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.pf .zsum .zinfo .mats .mat { padding-top: 2px; padding-bottom: 2px; }
+.pf .zsum .zname { font-family: var(--fd); font-size: 22px; line-height: 1.1; }
+.pf .zsum .dline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.pf .zsum .wilds { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf .zsum .wildpet { width: 38px; height: 38px; border-radius: 12px; background: var(--pf-soft, #efe2d2); display: grid; place-items: center; overflow: hidden; }
+.pf .zsum .wildpet img, .pf .zsum .wildpet .nothumb { width: 38px; height: 38px; }
+.pf .zsum .wildpet.unknown { font-family: var(--fd); font-weight: 700; font-size: 20px; color: var(--pf-tx, var(--ink)); opacity: .6; }
+/* a short screen: the island shrinks to a strip, so the pets come into view without scrolling */
+@media (max-height: 760px) and (min-width: 641px) {
+  .pf .zsum { grid-template-columns: 130px 1fr; } .pf .zsum .zbig .zsky { min-height: 110px; } .pf .zsum .zbig .zpic { width: 128px; height: 128px; }
+  .pf .zsum .zname { font-size: 19px; } .pf .zsum .zinfo > .hint { display: none; } .pf .zsum .zinfo { gap: 4px; }
+  .pf .sendwhere .dest .zsky { height: 104px; } .pf .sendwhere .dest .zpic { width: 112px; height: 112px; }
+}
+.pf .sendwho .sendbar { position: sticky; bottom: -18px; z-index: 2; background: var(--pf-bg, var(--paper)); padding: 10px 0 14px; margin-bottom: -14px; border-top: 2px solid var(--card-edge); } /* the Send button stays in reach */
+body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix(in srgb, var(--s1, #bfe8ff) 30%, #10163a), color-mix(in srgb, var(--s2, #eef8ff) 24%, #1d2350)); }
+@media (prefers-reduced-motion: reduce) { .pf .zsum .zbig .zpic { animation: none; } }
+@media (max-width: 640px) {
+  .pf .sendwhere .dests { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; grid-auto-columns: auto; overflow-x: visible; scroll-snap-type: none; }
+  .pf .zsum { grid-template-columns: 1fr; gap: 10px; padding: 8px; }
+  .pf .zsum .zbig .zsky { min-height: 130px; height: 130px; } .pf .zsum .zbig .zpic { width: 150px; height: 150px; }
+}

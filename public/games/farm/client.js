@@ -158,7 +158,7 @@ export function mount(app, ctx) {
   // What a pet is up to right now, for the pet list. away: it is not on the island, so the camera cannot find it.
   // What a farmhouse level opens besides new places to explore.
   const HOUSE_OPENS = { 4: [() => L('the Pet Lodge', 'Schronisko zwierzaków')],
-    5: [() => L('two more beds in the farmhouse', 'dwa łóżka więcej w domu'), () => L('a fourth Pet Hut', 'czwartą Chatkę zwierzaków'), () => L('land up to 24 by 24', 'ziemię do 24 na 24')] };
+    5: [() => L('land up to 24 by 24', 'ziemię do 24 na 24')] };
   const LODGE_PAGE = 36, ldSort = () => { try { return localStorage.getItem('pf_lsort') || 'sp'; } catch { return 'sp'; } };
   const shelfName = id => id && F.shelves?.find(x => x.id === id)?.name;
   const petStatus = p => { const t = F.trips.find(t => t.pets.includes(p.id)), job = Object.entries(F.work || {}).find(([, id]) => id === p.id);
@@ -242,7 +242,7 @@ export function mount(app, ctx) {
       const why = gift ? '' : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
         : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
         : it.house && F.house < it.house ? L(`Needs a level ${it.house} farmhouse. Tap your farmhouse to improve it.`, `Wymaga domu na poziomie ${it.house}. Dotknij domu, żeby go ulepszyć.`)
-        : most && have >= most ? (type === 'hut' && F.house < 5 ? L(`You already have ${have}. A level 5 farmhouse makes room for a fourth.`, `Masz już ${have}. Dom na poziomie 5 robi miejsce na czwartą.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
+        : most && have >= most ? (type === 'hut' && countOf(F, 'lodge') ? L(`You already have ${have}. The Pet Lodge stores many more pets.`, `Masz już ${have}. Schronisko pomieści o wiele więcej zwierzaków.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
         : !canAfford(F.inv, it.cost) ? L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.') : '';
       const size = it.w === it.h ? (it.w < 1 ? L('Half a tile', 'Pół kratki') : it.w === 1 ? L('One tile', 'Jedna kratka') : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`)) : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`);
       box.innerHTML = `<div class="panel tripp buy"><div class="buytop">${thumb(type, it.name)}<div><h2>${it.name}</h2><p>${it.desc}</p></div></div>
@@ -597,18 +597,31 @@ export function mount(app, ctx) {
         ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? L(' · training (ends if sent)', ' · trenuje (wyprawa przerwie trening)') : Object.values(F.work || {}).includes(p.id) ? L(' · helping at a building (ends if sent)', ' · pomaga przy budynku (wyprawa to przerwie)') : atHome(z, p.sp, elOf(p)) ? L(' · +25% here', ' · +25% tutaj') : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
       const full = F.pets.length >= F.allRoom;
-      box.innerHTML = `<div class="panel tripp"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
-        <h3 class="tstep">${L('Where to?', 'Dokąd?')}</h3>
-        <div class="dests">${zones}</div>
-        <h3 class="tstep">${L('For how long?', 'Na jak długo?')}</h3>
+      if (panel.step === 'where') { // step 1 of 2: the whole panel is the places, so nothing hides below them
+        box.innerHTML = `<div class="panel tripp sendwhere"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
+          <h3 class="tstep"><span class="tnum">1</span>${L('Where to? Tap an island.', 'Dokąd? Dotknij wyspy.')}<span class="tcount">${L('next: who goes', 'potem: kto idzie')}</span></h3>
+          <div class="dests">${zones}</div>
+          <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
+      } else {
+      // step 2 of 2: the island they picked, what it gives, then how long and who goes
+      const wild = Object.entries(z.wild).sort((a, b) => b[1] - a[1]).map(([sp]) => F.album?.[sp] ? `<span class="wildpet" title="${esc(SPECIES[sp].name)}">${thumb('pet:' + sp, SPECIES[sp].name)}</span>` : `<span class="wildpet unknown" title="${L('Not met yet', 'Jeszcze nie spotkany')}">?</span>`).join('');
+      const perPet = Object.entries(z.gives).filter(([m]) => m !== 'coins').map(([m, n]) => mat(m, '~' + (n < 1 ? n : Math.round(n)))).join('');
+      box.innerHTML = `<div class="panel tripp sendwho"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
+        <div class="zsum"${zoneVars(panel.zone)}><div class="dest zbig">${zoneSky(panel.zone)}</div>
+          <div class="zinfo"><b class="zname">${z.name}</b><span class="dline">${elTag(z.el)}<small>${z.blurb}</small></span>
+            <span class="hint">${L('Each pet brings back about this much an hour:', 'Każdy zwierzak przynosi mniej więcej tyle na godzinę:')}</span><div class="mats">${perPet}</div>
+            <span class="hint">${L('Wild pets live here. The ones you have not met yet show as ?', 'Tu żyją dzikie zwierzaki. Te, których jeszcze nie znasz, mają znak ?')}</span><div class="wilds">${wild}</div>
+            <button type="button" class="btn sm w" data-a="where">◀ ${L('Pick another island', 'Wybierz inną wyspę')}</button></div></div>
+        <h3 class="tstep"><span class="tnum">2</span>${L('For how long?', 'Na jak długo?')}</h3>
         <div class="pills trips">${trips}</div>
-        <h3 class="tstep">${L(`Who goes? Pick up to ${PARTY}.`, `Kto idzie? Wybierz najwyżej ${PARTY}.`)} <span class="tcount">${party.length} / ${PARTY}</span></h3>
+        <h3 class="tstep"><span class="tnum">3</span>${L(`Who goes? Pick up to ${PARTY}.`, `Kto idzie? Wybierz najwyżej ${PARTY}.`)} <span class="tcount">${party.length} / ${PARTY}</span></h3>
         <div class="party">${pets}</div>
         <div class="est">${party.length ? `${L(`<span class="hint">Should bring back</span>`, `<span class="hint">Powinni przynieść</span>`)}<div class="mats">${est}</div>` : '<span class="hint">' + L('Tap a pet to add it to the party.', 'Dotknij zwierzaka, żeby dodać go do drużyny.') + '</span>'}</div>
         <p class="hint">${L(`${full ? 'Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.' : `Chance a wild pet follows them home: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}`, `${full ? 'Wszystkie łóżka są zajęte, więc żaden dziki zwierzak się nie wprowadzi. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.' : `Szansa, że dziki zwierzak wróci z drużyną: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}`)}</p>
         ${(() => { const w = skyNow().w; return ['sunny', 'wind', 'rainbow'].includes(w.kind) ? `<p class="wxnow">${wxIcon(w.kind)} <b>${w.name}:</b> ${w.bonus}</p>` : ''; })()}
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
+        <div class="row end sendbar"><button type="button" class="btn ghost-ink" data-a="where">${L(`Back`, `Wstecz`)}</button>
           <button type="button" class="btn big m" data-a="send" ${party.length ? '' : 'disabled'}>${L(`Send ${party.length ? list(party.map(p => esc(p.name))) : 'them'}`, `Wyślij${party.length ? ': ' + list(party.map(p => esc(p.name))) : ''}`)}</button></div></div>`;
+      }
     } else {
       const b = panel.back, z = ZONES[b.zone], found = b.found && F.pets.find(p => p.id === b.found);
       const who = F.pets.filter(p => b.pets.includes(p.id));
@@ -632,10 +645,11 @@ export function mount(app, ctx) {
   // The island pictures are small 3D renders: draw one a frame so the picker opens at once, then keep them cached.
   let zpBusy = false;
   function drawZonePics() {
-    if (zpBusy) return; zpBusy = true;
+    if (zpBusy) return; zpBusy = true; let tries = 0;
     const step = () => {
       const im = !destroyed && $('pf-panel')?.querySelector('img.zpic:not([src])'), u = im && islePic('zn', +im.dataset.ig);
-      if (!u) { zpBusy = false; return; }
+      if (!im) { zpBusy = false; return; }
+      if (!u) { if (++tries < 20) setTimeout(() => requestAnimationFrame(step), 250); else zpBusy = false; return; } // the picture maker is still loading: try again shortly
       for (const x of $('pf-panel').querySelectorAll(`img.zpic[data-ig="${im.dataset.ig}"]`)) x.src = u;
       requestAnimationFrame(step);
     };
@@ -730,7 +744,7 @@ export function mount(app, ctx) {
     if (!countOf(F, 'gate')) return ctx.toast(L('Build an Expedition Gate first.', 'Najpierw zbuduj Bramę wypraw.'), true);
     if (F.trips.length >= F.partyMax) return;
     const zone = panel?.zone || lastTrip.zone, ok = ZONES[zone] && F.house >= ZONES[zone].house;
-    panel = { kind: 'send', zone: ok ? zone : 'woods', trip: lastTrip.trip, pets: lastTrip.pets.filter(freeFor('send')) };
+    panel = { kind: 'send', step: 'where', zone: ok ? zone : 'woods', trip: lastTrip.trip, pets: lastTrip.pets.filter(freeFor('send')) };
     card = null; sync();
   }
   function paintGate() {
@@ -1022,7 +1036,8 @@ export function mount(app, ctx) {
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect', id: b.dataset.id });
     else if (a === 'shut') { const inv = panel?.kind === 'invite' ? panel.id : panel?.invite; if (inv) ctx.send({ t: 'duelno', id: inv }); panel = null; sync(); }
-    else if (a === 'zone') { if (b.classList.contains('off')) return ctx.toast(L(`${ZONES[b.dataset.zone].name} opens at farmhouse level ${ZONES[b.dataset.zone].house}. Tap your farmhouse to improve it.`, `${ZONES[b.dataset.zone].name} otwiera się, gdy dom ma poziom ${ZONES[b.dataset.zone].house}. Dotknij domu, żeby go ulepszyć.`), true); panel.zone = b.dataset.zone; paintPanel(); }
+    else if (a === 'zone') { if (b.classList.contains('off')) return ctx.toast(L(`${ZONES[b.dataset.zone].name} opens at farmhouse level ${ZONES[b.dataset.zone].house}. Tap your farmhouse to improve it.`, `${ZONES[b.dataset.zone].name} otwiera się, gdy dom ma poziom ${ZONES[b.dataset.zone].house}. Dotknij domu, żeby go ulepszyć.`), true); panel.zone = b.dataset.zone; panel.step = 'who'; sfx.click(); paintPanel(); $('pf-panel').querySelector('.tripp')?.scrollTo?.(0, 0); }
+    else if (a === 'where') { panel.step = 'where'; sfx.click(); paintPanel(); }
     else if (a === 'trip') { panel.trip = b.dataset.trip; paintPanel(); }
     else if (a === 'party') {
       if (b.classList.contains('off')) return ctx.toast(L(`That pet is ${b.dataset.why}.`, `Ten zwierzak jest teraz zajęty: ${b.dataset.why}.`), true);

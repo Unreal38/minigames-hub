@@ -412,8 +412,8 @@ export function handle(p, a, reply) {
   if (a.t === 'place') {
     const it = own(ITEMS, a.type); if (!it || it.fixed) return;
     if (f.items.length >= MAX_ITEMS) return no('The farm is full. Put something away first.');
-    const most = maxOf(f, a.type);
-    if (most && countOf(f, a.type) >= most) return no(a.type === 'hut' && most < 4 ? 'A level 5 farmhouse makes room for a fourth Pet Hut.' : `You can only have ${most} of those.`);
+    const max = maxOf(f, a.type);
+    if (max && countOf(f, a.type) >= max) return no(`You can only have ${max} of those.`);
     if (it.house && (f.house || 1) < it.house) return no(`That needs a level ${it.house} farmhouse.`);
     const gifted = f.stash?.[a.type] > 0; // a decoration a friend gave: placed for free, whatever it normally needs
     if (!gifted && it.wheel) return no('That one only comes from the Lucky Wheel.');

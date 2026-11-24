@@ -199,10 +199,10 @@ export const formOf = lv => lv < 5 ? 0 : lv < 12 ? 1 : 2;
 export const MAX_LV = 20;
 export const xpFor = lv => 10 + lv * 10; // experience needed to go from lv to lv + 1
 // Building levels. Each building starts at level 1 and can be improved once for each cost in its UPGRADES entry
-// (twice for most, four times for the Pet Hut); level n needs a farmhouse of level n.
+// (twice for all of them now); level n needs a farmhouse of level n.
 export const UP_MAX = 3;
 export const UPGRADES = {
-  hut:    { what: 'Two more beds', cost: [{ wood: 40, fiber: 20 }, { wood: 80, fiber: 40, shells: 10 }, { wood: 140, fiber: 70, coal: 15 }, { wood: 220, fiber: 110, shells: 20, crystal: 2 }] },
+  hut:    { what: 'Two more beds', cost: [{ wood: 40, fiber: 20 }, { wood: 80, fiber: 40, shells: 10 }] },
   lodge:  { what: ['Room for 150 pets inside', 'Room for 300 pets inside'], cost: [{ wood: 200, stone: 140, fiber: 100, coal: 20 }, { wood: 320, stone: 220, fiber: 160, coal: 35, crystal: 3 }] },
   gate:   { what: 'One more party can be out exploring', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
   kitchen:  { what: ['A new recipe: Sunberry Pie', 'A new recipe: Rest Tonic'], cost: [{ wood: 40, stone: 30, shells: 6 }, { wood: 80, stone: 60, coal: 12 }] },
@@ -236,17 +236,17 @@ export const canWork = (p, type) => !!WORK[type] && elsOf(p).includes(WORK[type]
 export const workPct = (p, type) => canWork(p, type) ? 5 + p.lv + 3 * (p.stars?.[WORK[type].stat] || 3) : 0; // 9% for a level 1 with one star, 40% at level 20 with five
 export const TRAIN_XP = 6; // experience an hour for each pet training at the Training Yard
 export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n + v, 0); // every friendship point earned
-// Beds on the island: the farmhouse sleeps two pets (four from level 5) and every Pet Hut four, plus two a level.
+// Beds on the island: the farmhouse sleeps two pets and every Pet Hut four, plus two a level: 26 at most. Kuba kept the
+// island at that size on purpose (2026-11-24): collections grow in the Pet Lodge, not on the island.
 // The Pet Lodge holds LODGE_BEDS[level] more; pets there nap indoors when they have nothing to do, so they are not
 // drawn walking about (p.lodge), which is why it can hold so many. Inside, the owner sorts them into collections
 // (f.shelves, p.shelf). allRoom is everything together: the most pets a farm can keep.
-export const HOUSE_BEDS = farm => (farm.house || 1) >= 5 ? 4 : 2;
-export const petRoom = farm => HOUSE_BEDS(farm) + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
+export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
 export const LODGE_BEDS = [0, 60, 150, 300], SHELF_MAX = 12, SHELF_NAME = 16;
 export const lodgeRoom = farm => LODGE_BEDS[topLv(farm, 'lodge')] || 0;
 export const allRoom = farm => petRoom(farm) + lodgeRoom(farm);
-// How many of a building a farm may hold. A level 5 farmhouse makes room for a fourth Pet Hut.
-export const maxOf = (farm, type) => type === 'hut' && (farm.house || 1) >= 5 ? 4 : ITEMS[type]?.max;
+// How many of a building a farm may hold.
+export const maxOf = (farm, type) => ITEMS[type]?.max;
 
 // The farmhouse: HOUSE_UP[n] is the cost of reaching level n.
 export const HOUSE_MAX = 5;
