@@ -143,7 +143,7 @@ export function mount(host, api) {
       const newDay = V && m.day !== V.day;
       V = m; got = Date.now(); busy = false;
       if (m.err) api.toast(esc(srvText(m.err)), true);
-      if (m.solved) api.toast(L(`🎉 Solved! +${m.solved.coins} coins${m.solved.newTitle ? ' · new title unlocked: Pet Detective' : ''}`, `🎉 Rozwiązane! +${cnt(m.solved.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}${m.solved.newTitle ? ' · nowy tytuł: Detektyw od zwierzaków' : ''}`));
+      if (m.solved) api.toast(L(`🎉 Solved! +${m.solved.coins} coins${m.solved.xp ? ` · +${m.solved.xp} XP` : ''}${m.solved.newTitle ? ' · new title unlocked: Pet Detective' : ''}`, `🎉 Rozwiązane! +${cnt(m.solved.coins, 'coin', 'coins', 'moneta', 'monety', 'monet')}${m.solved.xp ? ` · +${m.solved.xp} XP` : ''}${m.solved.newTitle ? ' · nowy tytuł: Detektyw od zwierzaków' : ''}`));
       if (m.sharedNow) api.toast(L('Posted in the hub chat.', 'Wysłane na czat Zatoki.'));
       if (newDay) { filter = ''; api.toast(L('A new Mystery Pet is here!', 'Jest nowy Zagadkowy zwierzak!')); }
       paint(); fresh = '';
