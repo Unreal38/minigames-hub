@@ -17,6 +17,7 @@ const EN = [
 <h1>Zatoka Gier</h1>
 <p>Free browser games to play with friends. Host a table, send your friends the code and play together. Nothing to install, no ads.</p>
 <p>Tables are public by default: the Open tables list on the home page shows live every game you can join or watch, no code needed. A code or invite link is only for private tables with friends. Bots take any empty seats, so you can play at any time, even alone. The site also has a shared chat and shows how many people are online right now.</p>
+<p>Can\'t decide what to play? The Game wheel on the home page picks a game from the ones you tick, for example only games that fit your group or short ones. Spin as often as you like, for free.</p>
 <!--games--><!--/games-->
 <h2>Progress that stays</h2>
 <p>You can play straight away, without signing up. A free account (just a name and a password) keeps everything for good and works on any device, along with your friends list.</p>
