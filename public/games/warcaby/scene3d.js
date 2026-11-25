@@ -36,7 +36,10 @@ export function pieceModel(king, side, ring, set = 0, cell = B / 10) {
     else if (top === 'chips') { around(5, (c, s2) => add(new THREE.IcosahedronGeometry(.06 * U, 0), trim, c * .22, y + .02, s2 * .22), .4); add(new THREE.IcosahedronGeometry(.06 * U, 0), trim, .02, y + .02, -.03); }
     else if (top === 'holes') { torus(.33, .03, trim); around(4, (c, s2) => flat(.05, .02, trim, c * .1, s2 * .1, 6), Math.PI / 4); }
     else if (top === 'coin') { torus(.34, .035, trim); around(16, (c, s2, a) => { const m = add(new THREE.BoxGeometry(.03 * U, .08 * U, .06 * U), shade, c * .42, y - .05, s2 * .42); m.rotation.y = -a; }); flat(.13, .025, trim, 0, 0, 5); }
-    else if (top === 'paw') { const pad = flat(.13, .025, trim, 0, .05, 10); pad.scale.set(1.15, 1, .9); around(4, (c, s2) => flat(.055, .025, trim, c * .19, s2 * .19 - .02, 8), -Math.PI * .85); }
+    else if (top === 'paw') { // a paw print, toes away from the viewer: a wide three-lobed pad and four oval toe beans in an arc
+      flat(.12, .03, trim, 0, .1, 12).scale.set(1.25, 1, .85); flat(.075, .03, trim, -.085, .16, 10); flat(.075, .03, trim, .085, .16, 10);
+      for (const [x, z] of [[-.2, -.04], [-.075, -.15], [.075, -.15], [.2, -.04]]) flat(.06, .03, trim, x, z, 10).scale.set(.85, 1, 1.2);
+    }
     else if (top === 'flower') { around(5, (c, s2) => { const m = flat(.1, .022, trim, c * .14, s2 * .14, 8); m.scale.set(1, 1, 1); }, Math.PI / 2); flat(.08, .035, gold, 0, 0, 8); }
     else if (top === 'star') { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = (i % 2 ? .11 : .26) * U; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
       const geo = new THREE.ExtrudeGeometry(sh, { depth: .03 * U, bevelEnabled: false }); geo.rotateX(-Math.PI / 2); add(geo, trim, 0, y, 0); }
