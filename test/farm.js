@@ -183,6 +183,11 @@ if (pet1.lv !== 2 || pet1.xp !== TRIPS.outing.xp - xpFor(1) || r.back.grew[0]?.l
 // the first trip always brings a wild pet home, from that zone
 const wild = r.farm.pets.find(x => x.id === r.back.found);
 if (r.farm.pets.length !== 2 || !wild || !(wild.sp in ZONES.woods.wild) || wild.lv !== 1 || wild.name !== SPECIES[wild.sp].name) fail('no wild pet on the first trip');
+// a species the farm never had wears a "new" label until its card is opened
+if (wild.sp !== me.sp && (!wild.nu || !r.back.fresh)) fail('first-ever species not marked new ' + JSON.stringify([wild.nu, r.back.fresh]));
+if (wild.sp === me.sp && (wild.nu || r.back.fresh)) fail('a species already owned marked new');
+r = await a.farmDo({ t: 'seen', id: wild.id });
+if (r.err || r.farm.pets.find(x => x.id === wild.id).nu) fail('seen did not clear the new label');
 // with every bed taken nobody new can move in
 r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [me.id, wild.id] });
 if (r.err || r.farm.trip.pets.length !== 2) fail('party of two');

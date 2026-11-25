@@ -584,3 +584,9 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .grpx { width: 34px; min-height: 44px; border: 0; background: none; color: var(--pf-muted, inherit); font-size: 20px; cursor: pointer; }
 .pf .grpform { display: flex; gap: 6px; flex-basis: 100%; }
 .pf .grpform .field { flex: 1; min-width: 0; min-height: 40px; padding: 4px 10px; font-size: 16px; }
+/* "New" label: a pet the farm never had before, until its card is opened */
+.pf .pfnew { display: inline-block; white-space: nowrap; font-family: var(--fd); font-weight: 700; font-size: 11px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; padding: 3px 6px; border-radius: 999px; background: #ffd23f; color: #3a2400; border: 2px solid #3a2400; }
+.pf .petrow .prpic .pfnew, .pf .lodgep .ldcell .pfnew { position: absolute; top: -4px; left: -4px; z-index: 1; transform: rotate(-8deg); }
+.pf .lodgep .ldcell { position: relative; }
+.pf .pfnew.big { font-size: 13px; padding: 4px 8px; margin-bottom: 4px; }
+body.night .pf .pfnew { background: #ffcf3a; color: #241400; border-color: #241400; }

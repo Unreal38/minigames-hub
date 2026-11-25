@@ -276,6 +276,9 @@ function album(f) {
   }
   return f.album;
 }
+// A pet the farm has never had: a species never owned, or a species never owned in this element (album rules).
+// It wears a "new" label (pet.nu) until the owner opens its card.
+const firstOf = (f, pet) => { album(f); return !f.album[pet.sp]?.some(Boolean) || !f.vars[pet.sp]?.includes(elOf(pet)); };
 // A farm as its neighbours see it. Nothing here can be changed by the viewer.
 // The owner's isle look (ground, rock base, sky, floating pieces): their farm island wears it too.
 const isleOf = pr => { const f = pr ? flairOf(pr) : {}, o = {}; for (const k of ['ig', 'ib', 'ik']) if (f[k]) o[k] = f[k]; if (f.fp) o.fp = f.fp; return o; };
@@ -523,7 +526,7 @@ export function handle(p, a, reply) {
       else {
         const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
         const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0];
-        found = newPet(sp, p.user, true); found.from = t.zone; f.pets.push(found); settle(f, found);
+        found = newPet(sp, p.user, true); found.from = t.zone; if (firstOf(f, found)) found.nu = 1; f.pets.push(found); settle(f, found);
       }
     }
     // Sometimes a wild pet stands in the way instead: a short battle the party can take or leave.
@@ -534,7 +537,7 @@ export function handle(p, a, reply) {
       f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS, pet: wildPet(sp, p.user) }; wild = { sp, lv };
     }
     parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1;
-    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt, wild } });
+    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, fresh: !!found?.nu, full, spilt, wild } });
   }
   if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
     const ripe = f.items.filter(i => i.type === 'garden' && !ripeIn(f, i)); if (!ripe.length) return no('Nothing is ripe yet.');
@@ -619,6 +622,10 @@ export function handle(p, a, reply) {
     if (!pet.open && f.pets.filter(x => x.open).length >= 3) return no('Three pets can be open for playdates at once.');
     pet.open = !pet.open;
     return ok({ did: 'petopen' });
+  }
+  if (a.t === 'seen') { // the owner has looked at a new pet: its "new" label goes
+    const pet = f.pets.find(x => x.id === a.id); if (!pet?.nu) return;
+    delete pet.nu; return ok({ did: 'seen' });
   }
   if (a.t === 'fav') { // mark a pet as a favourite (or not): favourites come first in every pet picker. Only the owner sees it.
     const pet = f.pets.find(x => x.id === a.id); if (!pet) return;
@@ -843,6 +850,7 @@ export function handle(p, a, reply) {
         else { prize.noroom = true; r.coins && (f.inv.coins = (f.inv.coins || 0) + 6, prize.coins += 6); }
       }
       if (prize.joined && B.wild.pet) Object.assign(f.pets.find(x => x.id === prize.joined), B.wild.pet); // the same coat, markings and sparkle it fought with
+      if (prize.joined) { const j = f.pets.find(x => x.id === prize.joined); delete j.nu; f.pets.splice(f.pets.indexOf(j), 1); if (firstOf(f, j)) { j.nu = 1; prize.fresh = true; } f.pets.push(j); }
       f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
       for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); }
     }
