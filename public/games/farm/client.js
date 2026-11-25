@@ -6,8 +6,8 @@ import { boostName, boostWhat } from '../../wheeltext.js';
 import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
-import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds, charmsFor, sparkleOdds } from './breed.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_MAX, CHARMS, CHARM_HOUSE, charmHouse, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
@@ -138,6 +138,13 @@ export function mount(app, ctx) {
   const face = (p, alt = '') => { const u = p && scene?.portrait?.(p.sp, formOf(p.lv || 1), p.look || null); return u ? `<img src="${u}" alt="${esc(alt || p.name || '')}" width="56" height="56">` : thumb('pet:' + p?.sp, alt); };
   const stars = n => `<span class="stars" aria-label="${L(`${n} of 5 stars`, `${n} z 5 gwiazdek`)}">${'★'.repeat(n)}<i>${'★'.repeat(5 - n)}</i></span>`;
   const swatch = (c, name) => `<span class="sw" title="${name}"><i style="background:${c}"></i>${name}</span>`;
+  // The Nest charms row in the Nest window: one toggle per kind that can change this pair's egg (ready: both picked).
+  const charmPick = (ready, can, ch) => {
+    if (F.house < CHARM_HOUSE) return `<p class="hint">${L(`Nest charms open at farmhouse level ${CHARM_HOUSE}.`, `Amulety do Gniazda otwierają się przy domu na poziomie ${CHARM_HOUSE}.`)}</p>`;
+    const chips = Object.entries(CHARMS).filter(([k]) => F.house >= charmHouse(k) || F.charms?.[k] > 0).map(([k, c]) => { const n = F.charms?.[k] || 0, off = !ready || !can[k] || !n;
+      return `<button type="button" class="swmat chm${off ? ' off' : ''}" data-a="charmuse" data-kind="${k}" aria-pressed="${!!ch[k]}" title="${c.desc}">${matIcon('charm_' + k, 30)}<b>${c.name}</b><small>${ready && !can[k] ? L('no effect here', 'tu nic nie da') : L(`You have ${n}`, `Masz: ${n}`)}</small></button>`; }).join('');
+    return `<div class="pre charms"><b>${L(`Nest charms`, `Amulety do Gniazda`)}</b><div class="chms">${chips}</div><button type="button" class="btn sm w" data-a="charmshop">${L(`Make charms`, `Zrób amulety`)}</button></div>`;
+  };
   const nestTxt = n => n.stage === 'cuddle' ? L(`An egg will appear in ${wait(n.left)}.`, `Jajko pojawi się za ${wait(n.left)}.`) : n.stage === 'egg' ? L(`The egg hatches in ${wait(n.left)}.`, `Jajko wykluje się za ${wait(n.left)}.`) : L('The egg is ready to hatch!', 'Jajko jest gotowe do wyklucia!');
   const cannotPair = p => p.lv < BREED_LV ? L(`Needs level ${BREED_LV}`, `Wymaga poziomu ${BREED_LV}`) : p.rest > 0 ? L(`Resting for ${wait(p.rest)}`, `Odpoczywa jeszcze ${wait(p.rest)}`) : outNow().includes(p.id) ? L('Away exploring', 'Na wyprawie') : inNest(p.id) ? L('Already in the Nest', 'Już w Gnieździe') : F.train.ids.includes(p.id) ? L('Training at the yard', 'Trenuje na placu') : '';
   // The hour is the player's own clock; the weather is the same for everyone (a test or the pf_sky setting can pin both).
@@ -153,8 +160,9 @@ export function mount(app, ctx) {
   const outNow = () => F.trips.filter(t => t.left > 0).flatMap(t => t.pets), outAll = () => F.trips.flatMap(t => t.pets); // away right now; away or waiting to be welcomed
   // What a pet is up to right now, for the pet list. away: it is not on the island, so the camera cannot find it.
   // What a farmhouse level opens besides new places to explore.
-  const HOUSE_OPENS = { 4: [() => L('the Pet Lodge', 'Schronisko zwierzaków')],
-    5: [() => L('land up to 24 by 24', 'ziemię do 24 na 24')] };
+  // (Buildings with a farmhouse level in ITEMS and zones are listed on their own.)
+  const HOUSE_OPENS = { 5: [() => L('land up to 24 by 24', 'ziemię do 24 na 24')], [CHARM_HOUSE]: [() => L('Nest charms', 'amulety do Gniazda')] };
+  for (const k of Object.keys(CHARMS)) if (charmHouse(k) > CHARM_HOUSE) (HOUSE_OPENS[charmHouse(k)] ||= []).push(() => CHARMS[k].name);
   let cardBack = null; // the window a pet card was opened from with its "i" button, so the card can go back to it
   const infoBtn = (id, name, cls = 'pfinfo') => `<button type="button" class="${cls}" data-a="pcard" data-id="${id}" title="${L('Open its card', 'Otwórz kartę')}" aria-label="${L(`Open the card of ${esc(name)}`, `Otwórz kartę: ${esc(name)}`)}">i</button>`;
   // Every own pet in a list or picker gets a small "i" next to it that opens its card (the pet itself picks or finds it).
@@ -351,6 +359,12 @@ export function mount(app, ctx) {
         <div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Got it`, `Jasne`)}</button></div></div>`;
       return;
     }
+    if (panel.kind === 'charms') { // make Nest charms from crystal
+      const rows = Object.entries(CHARMS).map(([k, c]) => `<button type="button" class="zone${canAfford(F.inv, c.cost) && F.house >= charmHouse(k) ? '' : ' off'}" data-a="charmmake" data-kind="${k}" data-lv="${F.house >= charmHouse(k) ? '' : charmHouse(k)}">${matIcon('charm_' + k, 34)}<b>${c.name}</b><small>${F.house >= charmHouse(k) ? c.desc : L(`Needs a level ${charmHouse(k)} farmhouse.`, `Wymaga domu na poziomie ${charmHouse(k)}.`)}</small><span class="cost">${costHtml(c.cost, F.inv)}</span><small>${L(`You have ${F.charms?.[k] || 0}`, `Masz: ${F.charms?.[k] || 0}`)}</small></button>`).join('');
+      box.innerHTML = `<div class="panel tripp"><h2>${L(`Nest charms`, `Amulety do Gniazda`)}</h2><p>${L(`Put a charm into the Nest with two pets to change what their egg may hold. Each charm is used up by one egg, and one egg can take one of each.`, `Włóż amulet do Gniazda razem z dwoma zwierzakami, żeby zmienić, co może być w ich jajku. Każdy amulet zużywa się na jedno jajko, a jedno jajko może dostać po jednym amulecie każdego rodzaju.`)}</p>
+        <div class="zones">${rows}</div><div class="row end">${panel.back ? `<button type="button" class="btn w" data-a="charmback">${L(`Back to the Nest`, `Wróć do Gniazda`)}</button>` : ''}<button type="button" class="btn big m" data-a="${panel.back ? 'charmback' : 'shut'}">${L(`Done`, `Gotowe`)}</button></div></div>`;
+      return;
+    }
     if (panel.kind === 'cook') {
       const kLv = Math.max(0, ...F.items.filter(i => i.type === 'kitchen').map(lvOf));
       const rows = Object.entries(RECIPES).filter(([, r]) => F.house >= (r.house || 0)).map(([k, r]) => `<button type="button" class="zone${canAfford(F.inv, r.cost) && kLv >= (r.lv || 1) ? '' : ' off'}" data-a="cook" data-what="${k}" data-lv="${kLv >= (r.lv || 1) ? '' : r.lv}">${matIcon(k, 34)}<b>${r.name}</b><small>${kLv >= (r.lv || 1) ? r.desc : L(`Needs a level ${r.lv} Kitchen.`, `Wymaga Kuchni na poziomie ${r.lv}.`)}</small><span class="cost">${costHtml(r.cost, F.inv)}</span><small>${L(`You have ${F.inv[k] || 0}`, `Masz: ${F.inv[k] || 0}`)}</small></button>`).join('');
@@ -439,23 +453,25 @@ export function mount(app, ctx) {
       const rows = favFirst(pool).map(x => { const why = cannotPair(x), on = pk.includes(x.id);
         return `<button type="button" class="pickpet${why ? ' off' : ''}" data-a="nestpick" data-id="${x.id}" aria-pressed="${on}">${petRow(x, why ? ' · ' + why : '')}</button>`; }).join('');
       let pre = '';
+      const can = A && Bp ? charmsFor(A, Bp) : {}, ch = Object.fromEntries((panel.ch || []).filter(k => can[k] && F.charms?.[k] > 0).map(k => [k, true]));
       if (A && Bp) {
-        const odds = speciesOdds(A.sp, Bp.sp), genes = [...new Set([...(A.col || [0]), ...(Bp.col || [0])])], parts = [A, Bp].filter(x => x.sp !== (x === A ? Bp : A).sp).map(x => PART[x.sp]);
+        const odds = speciesOdds(A.sp, Bp.sp, ch), genes = [...new Set([...(A.col || [0]), ...(Bp.col || [0])])], parts = [A, Bp].filter(x => x.sp !== (x === A ? Bp : A).sp).map(x => PART[x.sp]);
         const marks = [...new Set([...(A.pat || []), ...(Bp.pat || [])])];
-        const vars = Object.entries(odds.filter(o => !o.hybrid).reduce((m, o) => { for (const [e, c] of variantOdds(o.sp, A, Bp)) m[e] = Math.max(m[e] || 0, c); return m; }, {}));
+        const vars = Object.entries(odds.filter(o => !o.hybrid).reduce((m, o) => { for (const [e, c] of variantOdds(o.sp, A, Bp, ch)) m[e] = Math.max(m[e] || 0, c); return m; }, {}));
         pre = `<div class="pre"><b>${L(`What might hatch`, `Co może się wykluć`)}</b>
           <div class="odds">${odds.map(o => o.hybrid && !F.album[o.sp] ? `<span class="odd"><span class="nothumb">?</span><small>${L(`Something new · ${Math.round(o.p * 100)}%`, `Coś nowego · ${Math.round(o.p * 100)}%`)}</small></span>` : `<span class="odd">${thumb('pet:' + o.sp, SPECIES[o.sp].name)}<small>${SPECIES[o.sp].name} · ${Math.round(o.p * 100)}%</small></span>`).join('')}</div>
           <p>${L('Coat', 'Futro')}: ${genes.map(g => swatch(g ? COATS[g].c : coatHex({ sp: odds[0].sp, col: [0] }), COATS[g].name)).join('')}<span class="hint">${L(` or a colour one of them is hiding.`, ` albo kolor, który któreś z nich ukrywa.`)}</span></p>
           ${vars.length ? `<p>${L('Element', 'Żywioł')}: ${vars.map(([e, c]) => `${elTag(e)} ${Math.round(c * 100)}%`).join(' ')}<span class="hint">${L(` chance the baby hatches as a variant with that element instead of its own.`, ` szans, że maluch wykluje się jako odmiana z tym żywiołem zamiast własnego.`)}</span></p>` : ''}
           ${familyOf(A.sp) && familyOf(A.sp) === familyOf(Bp.sp) && (A.sp !== Bp.sp || kinCoat(A) !== kinCoat(Bp)) ? `<p>${L(`Same family (${FAMILIES[familyOf(A.sp)][0].toLowerCase()}): the baby takes its build from one parent and its coat from either, ${coatName(kinCoat(A))} or ${coatName(kinCoat(Bp))}.`, `Ta sama rodzina (${FAMILIES[familyOf(A.sp)][0].toLowerCase()}): maluch bierze budowę po jednym rodzicu, a futro po którymkolwiek: ${coatName(kinCoat(A))} albo ${coatName(kinCoat(Bp))}.`)}</p>` : ''}
-          ${marks.length ? `<p>${L(`Markings it may get: ${list(marks.map(k => PATTERNS[k].toLowerCase()))}.`, `Możliwe znaczenia: ${list(marks.map(k => PATTERNS[k].toLowerCase()))}.`)}</p>` : ''}
+          ${marks.length ? `<p>${ch.pat ? L(`Markings: at least one of ${list(marks.map(k => PATTERNS[k].toLowerCase()))}, thanks to the Pattern Charm.`, `Znaczenia: przynajmniej jedno z: ${list(marks.map(k => PATTERNS[k].toLowerCase()))}, dzięki Amuletowi wzoru.`) : L(`Markings it may get: ${list(marks.map(k => PATTERNS[k].toLowerCase()))}.`, `Możliwe znaczenia: ${list(marks.map(k => PATTERNS[k].toLowerCase()))}.`)}</p>` : ''}
           ${parts.length ? `<p>${L(`It may borrow ${list(parts)}.`, `Może odziedziczyć: ${list(parts)}.`)}</p>` : ''}
+          ${ch.spk ? `<p>${L(`Chance it sparkles: 1 in ${Math.round(1 / sparkleOdds(A, Bp, ch))}.`, `Szansa na blask: 1 na ${Math.round(1 / sparkleOdds(A, Bp, ch))}.`)}</p>` : ''}
           <p class="hint">${L(`The egg appears after ${CUDDLE_H} hours and hatches ${[...new Set([Math.min(...odds.map(o => hatchHours(o.sp))), Math.max(...odds.map(o => hatchHours(o.sp)))])].join(' to ')} hours later. Both rest for a while afterwards.`, `Jajko pojawi się po ${CUDDLE_H} godz., a wykluje się ${[...new Set([Math.min(...odds.map(o => hatchHours(o.sp))), Math.max(...odds.map(o => hatchHours(o.sp)))])].join('–')} godz. później. Potem oboje rodzice chwilę odpoczywają.`)}</p></div>`;
       }
       box.innerHTML = `<div class="panel tripp"><h2>${L(`${fr ? `Playdate with ${esc(fr.pet.name)}` : 'The Nest'}`, `${fr ? `Wspólna zabawa: ${esc(fr.pet.name)}` : 'Gniazdo'}`)}</h2>
         <p>${L(`${fr ? `Pick one of your pets to meet ${esc(fr.name)}'s ${esc(fr.pet.name)}. The egg comes home to your Nest.` : 'Pick two pets. Any two can have an egg together, and the baby takes after both.'}`, `${fr ? `Wybierz swojego zwierzaka na spotkanie: ${esc(fr.pet.name)} (${esc(fr.name)}). Jajko trafi do twojego Gniazda.` : 'Wybierz dwa zwierzaki. Każda para może mieć jajko, a maluch dziedziczy po obojgu.'}`)}</p>
         ${fr ? `<div class="party"><span class="pickpet" aria-pressed="true">${petRow(fr.pet, ' · ' + esc(fr.name))}</span></div>` : ''}
-        <div class="party">${rows}</div>${pre}
+        <div class="party">${rows}</div>${pre}${charmPick(A && Bp, can, ch)}
         <div class="row end stick"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn big m" data-a="pair" ${A && Bp ? '' : 'disabled'}>${L(`Off to the Nest`, `Do Gniazda`)}</button></div></div>`;
       return;
     }
@@ -904,7 +920,7 @@ export function mount(app, ctx) {
       }
       if (item.type === 'house') {
         name += L(` · Level ${F.house}`, ` · Poziom ${F.house}`);
-        const opens = list([...Object.values(ZONES).filter(z => z.house === F.house + 1).map(z => z.name), ...(HOUSE_OPENS[F.house + 1] || []).map(t => t())]);
+        const opens = list([...Object.values(ZONES).filter(z => z.house === F.house + 1).map(z => z.name), ...Object.values(ITEMS).filter(it => it.house === F.house + 1).map(it => it.name), ...(HOUSE_OPENS[F.house + 1] || []).map(t => t())]);
         more = F.houseNext ? `<p class="hint">${L(`Level ${F.house + 1} opens ${opens}.`, `Poziom ${F.house + 1} otwiera: ${opens}.`)}</p><div class="cost">${costHtml(F.houseNext, F.inv)}</div>
           <button type="button" class="btn sm m" data-a="houseup">${L(`Improve farmhouse`, `Ulepsz dom`)}</button>` : '<p class="hint">' + L('It is as grand as it gets.', 'Okazalszy już nie będzie.') + '</p>';
       } else if (item.type === 'gate') {
@@ -915,7 +931,8 @@ export function mount(app, ctx) {
       else if (item.type === 'mailbox') more = `<button type="button" class="btn sm m" data-a="mail">${L(`Open mail (${F.mail.length})`, `Otwórz pocztę (${F.mail.length})`)}</button>`;
       else if (item.type === 'nest') more = F.nests.map(n => `<p class="hint">${nestTxt(n)}</p>${n.stage === 'ready' ? `<button type="button" class="btn sm m" data-a="hatch" data-slot="${n.slot}">${L(`Hatch the egg`, `Wykluj jajko`)}</button>` : ''}`).join('')
         + (F.nests.length < F.nestMax ? `<button type="button" class="btn sm m" data-a="nest">${L(`${F.nests.length ? 'Choose two more pets' : 'Choose two pets'}`, `${F.nests.length ? 'Wybierz kolejne dwa zwierzaki' : 'Wybierz dwa zwierzaki'}`)}</button>` : '')
-        + `<p class="hint">${L(`Eggs: ${F.nests.length} of ${F.nestMax}.${lvOf(item) >= 3 ? ' Eggs here hatch a quarter sooner.' : ''}`, `Jajka: ${F.nests.length} z ${F.nestMax}.${lvOf(item) >= 3 ? ' Jajka wykluwają się tu o jedną czwartą szybciej.' : ''}`)}</p>`;
+        + `<p class="hint">${L(`Eggs: ${F.nests.length} of ${F.nestMax}.${lvOf(item) >= 3 ? ' Eggs here hatch a quarter sooner.' : ''}`, `Jajka: ${F.nests.length} z ${F.nestMax}.${lvOf(item) >= 3 ? ' Jajka wykluwają się tu o jedną czwartą szybciej.' : ''}`)}</p>`
+        + (F.house >= CHARM_HOUSE ? `<p class="hint">${L('Nest charms', 'Amulety')}: ${Object.entries(CHARMS).filter(([k]) => F.house >= charmHouse(k) || F.charms?.[k] > 0).map(([k, c]) => `${c.name} × ${F.charms?.[k] || 0}`).join(', ')}.</p><button type="button" class="btn sm w" data-a="charmshop">${L(`Make charms`, `Zrób amulety`)}</button>` : '');
       else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : `<p class="hint">${L(`Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.`, `Każda grządka daje ${BERRIES} jagody na godzinę. Następne dojrzeją za około ${wait(Math.max(1, gardenAt - Date.now()))}.`)}</p>`;
       else if (item.type === 'kitchen') more = `${L(`<p class="hint">You have ${F.inv.berries || 0} berries.</p>`, `<p class="hint">Masz jagód: ${F.inv.berries || 0}.</p>`)}<button type="button" class="btn sm m" data-a="cookopen">${L(`Cook treats`, `Gotuj smakołyki`)}</button>`;
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
@@ -1064,7 +1081,17 @@ export function mount(app, ctx) {
       if (i >= 0) panel.pick.splice(i, 1); else { if (panel.pick.length >= max) panel.pick.shift(); panel.pick.push(id); }
       sync();
     }
-    else if (a === 'pair') ctx.send(panel.friend ? { t: 'pair', a: panel.pick[0], friend: panel.friend.id, b: panel.friend.pet.id } : { t: 'pair', a: panel.pick[0], b: panel.pick[1] });
+    else if (a === 'pair') { const pA = F.pets.find(x => x.id === panel.pick[0]), pB = panel.friend ? panel.friend.pet : F.pets.find(x => x.id === panel.pick[1]), can = pA && pB ? charmsFor(pA, pB) : {};
+      const charms = (panel.ch || []).filter(k => can[k] && F.charms?.[k] > 0);
+      ctx.send(panel.friend ? { t: 'pair', a: panel.pick[0], friend: panel.friend.id, b: panel.friend.pet.id, charms } : { t: 'pair', a: panel.pick[0], b: panel.pick[1], charms }); }
+    else if (a === 'charmuse') {
+      const k = b.dataset.kind;
+      if (b.classList.contains('off')) return ctx.toast(panel.pick.length < (panel.friend ? 1 : 2) ? L('Pick the pets first.', 'Najpierw wybierz zwierzaki.') : !(F.charms?.[k] > 0) ? L(`You have no ${CHARMS[k].name}. Tap Make charms.`, `Nie masz: ${CHARMS[k].name}. Dotknij Zrób amulety.`) : L(`That charm would not change anything for these two.`, `Ten amulet nic nie zmieni dla tej pary.`), true);
+      panel.ch = (panel.ch || []).includes(k) ? panel.ch.filter(x => x !== k) : [...(panel.ch || []), k]; sfx.pop(); sync();
+    }
+    else if (a === 'charmshop') { panel = { kind: 'charms', back: panel?.kind === 'nest' ? panel : null }; card = null; sync(); }
+    else if (a === 'charmback') { panel = panel.back; sync(); }
+    else if (a === 'charmmake') { if (b.dataset.lv) return ctx.toast(L(`That charm needs a level ${b.dataset.lv} farmhouse.`, `Ten amulet wymaga domu na poziomie ${b.dataset.lv}.`), true); if (b.classList.contains('off')) return ctx.toast(L('Not enough crystal for that charm yet.', 'Na ten amulet nie wystarczy jeszcze kryształów.'), true); ctx.send({ t: 'charm', kind: b.dataset.kind }); }
     else if (a === 'hatch') ctx.send({ t: 'hatch', slot: b.dataset.slot });
     else if (a === 'petpage') { panel = { kind: 'pet', id: b.dataset.id }; card = null; sync(); }
     else if (a === 'petopen') ctx.send({ t: 'petopen', id: b.dataset.id });
@@ -1257,6 +1284,7 @@ export function mount(app, ctx) {
     else if (m.did === 'upgrade') { sfx.win(); scene?.pop(m.id); const it = F.items.find(x => x.id === m.id); ctx.toast(L(`${ITEMS[it.type].name} is now level ${lvOf(it)}.`, `${ITEMS[it.type].name}: teraz poziom ${lvOf(it)}.`)); }
     else if (m.did === 'train') { sfx.set(); panel = null; ctx.toast(F.train.ids.length ? L('Training plan saved.', 'Plan treningu zapisany.') : L('Nobody is training now.', 'Teraz nikt nie trenuje.')); }
     else if (m.did === 'defend') { panel = null; ctx.toast(L('Defence team saved.', 'Drużyna obrony zapisana.')); }
+    else if (m.did === 'charm') { sfx.set(); ctx.toast(L(`You made a ${CHARMS[m.kind].name}.`, `Gotowe: ${CHARMS[m.kind].name}.`)); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(L(`The farmhouse is now level ${F.house}.`, `Dom ma teraz poziom ${F.house}.`)); }
     else if (m.did === 'petname') ctx.toast(L('Renamed.', 'Imię zmienione.'));
     else if (m.did === 'group' && panel?.kind === 'send') { if (m.op !== 'del') { panel.grp = m.id; panel.grpNew = false; } ctx.toast(m.op === 'new' ? L('Group saved.', 'Grupa zapisana.') : m.op === 'save' ? L('Group updated.', 'Grupa zaktualizowana.') : L('Group deleted.', 'Grupa usunięta.')); }

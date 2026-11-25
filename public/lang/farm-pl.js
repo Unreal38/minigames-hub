@@ -224,6 +224,12 @@ const ZONES = {
   night: ['Wyspa Spadających Gwiazd', 'Wyspa, na której zawsze jest tuż po zmierzchu.'],
   legend: ['Wyspa Legend', 'Mglista wyspa daleko za krawędzią mapy, gdzie żyją zwierzaki z dawnych opowieści.'],
 };
+const CHARMS = {
+  el: ['Amulet żywiołu', 'Szansa na odmianę rośnie z 15% do 40%.'],
+  hyb: ['Amulet krzyżówki', 'Szansa na zwierzaka tylko z hodowli rośnie z 20% do 40%.'],
+  pat: ['Amulet wzoru', 'Maluch na pewno zachowa przynajmniej jedno znaczenie rodziców.'],
+  spk: ['Amulet blasku', 'Lśniący maluch jest cztery razy bardziej prawdopodobny.'],
+};
 const TRIPS = { stroll: ['Spacer', 'Na czas gry'], outing: ['Wycieczka', 'Na przerwę obiadową'], trek: ['Wędrówka', 'Gdy masz inne zajęcia'], camp: ['Biwak', 'Na noc'], voyage: ['Rejs', 'Pół dnia drogi'], odyssey: ['Wielki rejs', 'Cały dzień drogi'] };
 
 /** data.js: D holds its tables. */
@@ -238,6 +244,7 @@ export function plData(D) {
   for (const [k, [name, desc]] of Object.entries(RECIPES)) if (D.RECIPES[k]) Object.assign(D.RECIPES[k], { name, desc });
   for (const [k, [name, blurb]] of Object.entries(ZONES)) if (D.ZONES[k]) Object.assign(D.ZONES[k], { name, blurb });
   for (const [k, [name, blurb]] of Object.entries(TRIPS)) if (D.TRIPS[k]) Object.assign(D.TRIPS[k], { name, blurb });
+  for (const [k, [name, desc]] of Object.entries(CHARMS)) if (D.CHARMS?.[k]) Object.assign(D.CHARMS[k], { name, desc });
 }
 
 const COATS = ['Naturalny', 'Różany', 'Błękitny', 'Miętowy', 'Liliowy', 'Kakaowy'];
@@ -296,7 +303,7 @@ export function plBattle(D) {
 }
 
 /** What test/i18n.js checks: every key of the English tables has Polish here. */
-export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
+export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
 
 // What the farm's server code says (server/farm.js), for srvText() in lang/server.js.
 export const SRV_TEXT = {
@@ -357,6 +364,9 @@ export const SRV_TEXT = {
   'You do not have enough of that to swap.': 'Masz za mało, żeby to wymienić.',
   'There is no room for that many. Spend some, or build a Storage Barn.': 'Nie ma na tyle miejsca. Wydaj trochę albo zbuduj Stodołę.',
   'Build a Nest first.': 'Najpierw zbuduj Gniazdo.',
+  'You do not have enough for that charm.': 'Na ten amulet nie wystarczy ci materiałów.',
+  'That charm would not change anything for these two.': 'Ten amulet nic nie zmieni dla tej pary.',
+  'You do not have that charm.': 'Nie masz tego amuletu.',
   'The Nest is busy.': 'Gniazdo jest zajęte.',
   'That farm is not around any more.': 'Tej farmy już nie ma.',
   'That pet is not open for playdates.': 'Ten zwierzak nie bierze udziału we wspólnych zabawach.',
@@ -417,6 +427,7 @@ export const SRV_FORMS = [
   [/^You can only have (\d+) of those\.$/, n => `Możesz mieć najwyżej ${n} sztuk.`],
   [/^That needs a level (\d+) Workshop\.$/, n => `To wymaga Warsztatu na poziomie ${n}.`],
   [/^A Lodge holds up to (\d+) collections\.$/, n => `Schronisko mieści najwyżej ${n} kolekcji.`],
+  [/^That charm needs a level (\d+) farmhouse\.$/, n => `Ten amulet wymaga domu na poziomie ${n}.`],
   [/^You can save up to (\d+) groups\.$/, n => `Możesz zapisać najwyżej ${n} grup.`],
   [/^That needs a level (\d+) farmhouse\.$/, n => `To wymaga domu na poziomie ${n}.`],
   [/^Growing the land again needs a level (\d+) farmhouse\.$/, n => `Dalsze powiększanie ziemi wymaga domu na poziomie ${n}.`],
