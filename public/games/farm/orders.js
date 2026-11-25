@@ -13,7 +13,7 @@ export const ORDER_WORTH = { ...WORTH, sunberry: 8, cookie: 8, juice: 12, cake: 
 // The value one daily order asks for, by farmhouse level: [smallest, biggest]. Levels past the table use its last row.
 export const ORDER_SIZE = [null, [50, 90], [100, 170], [170, 260], [250, 360], [320, 460]];
 export const BIG_X = 6, BIG_BONUS = 1.5; // the weekly order is six daily orders big and pays half as much again per value
-export const STAMP_VALUE = 60; // one stamp for about this much value delivered
+export const STAMP_VALUE = 80; // one stamp for about this much value delivered (was 60; Kuba asked for a bit fewer, 2026-11-25)
 const TREATS = ['cookie', 'juice', 'cake', 'pie', 'sunberry'];
 
 export const sizeAt = house => ORDER_SIZE[Math.min(ORDER_SIZE.length - 1, Math.max(1, house | 0))];
