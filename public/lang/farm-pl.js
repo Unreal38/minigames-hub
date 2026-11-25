@@ -417,6 +417,7 @@ export const SRV_TEXT = {
   'Their farm has no bed free for your pet.': 'Na tamtej farmie nie ma wolnego łóżka dla twojego zwierzaka.',
   'Every farm keeps at least one pet.': 'Na każdej farmie musi zostać przynajmniej jeden zwierzak.',
   'You have helped here as much as you can today.': 'Na dziś to już cała pomoc, jakiej można tu udzielić.',
+  'You have used all 5 helps for today. Come back tomorrow.': 'Na dziś wykorzystano już wszystkie 5 pomocy. Wróć jutro.',
   'One gift a day for each neighbour.': 'Jeden prezent dziennie na sąsiada.',
   'Your Workshop cannot make that yet.': 'Twój Warsztat jeszcze tego nie robi.',
   'You do not have the materials for that.': 'Nie masz na to materiałów.',
