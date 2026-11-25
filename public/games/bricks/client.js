@@ -62,7 +62,7 @@ export function mount(app, ctx) {
   const root = app.querySelector('.sb'), $ = id => root.querySelector('#' + id);
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, info = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0;
-  let recvAt = 0, tagEls = [], tagKey = '', labHold = null, labNext = null, resultsTimer = 0, bigTimer = 0, lastCount = 99, focus = 0, tideSaid = false;
+  let recvAt = 0, tagsW = 0, tagEls = [], tagKey = '', labHold = null, labNext = null, resultsTimer = 0, bigTimer = 0, lastCount = 99, focus = 0, tideSaid = false;
   // ----- your own well, played here -----
   let st = null, P = null, syncNo = -1, pid = 0, fallAcc = 0, lockT = 0, resets = 0, gy = 0, flash = 0, playing = false;
   const held = { left: 0, right: 0, soft: false }; let dir = 0, dasT = 0, arrT = 0;
@@ -163,8 +163,13 @@ export function mount(app, ctx) {
       const t = fr.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, 0)`;
-      const mw = Math.max(84, Math.round(t.w)); if (el._w !== mw) { el._w = mw; el.style.maxWidth = mw + 'px'; }
+      const mw = Math.max(84, Math.round(t.w)); if (el._w !== mw) { el._w = mw; el.style.maxWidth = mw + 'px'; el._ow = 0; }
+      if (!el._ow) { // measured only when the tag's text or room changes
+        const ttl = el.querySelector('.ttl'); if (ttl) { ttl.style.display = ''; if (ttl.offsetWidth < 40) ttl.style.display = 'none'; } // a title squeezed to a sliver is left out
+        el._ow = el.offsetWidth; tagsW = tagsEl.clientWidth;
+      }
+      const half = el._ow / 2 + 4, x = tagsW > half * 2 ? Math.min(tagsW - half, Math.max(half, t.x)) : t.x; // never half off the screen
+      el.style.transform = `translate(${x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, 0)`;
     }
     if (labHold) {
       const show = playing && !!st;
@@ -186,8 +191,10 @@ export function mount(app, ctx) {
       const el = tagEls[i]; if (!el) return;
       const x = S.x[i], dead = !!x[0];
       el.classList.toggle('out', dead); el.classList.toggle('hot', !dead && x[3] >= 4);
+      const was = el.className + el.querySelector('.cnt')._h + el.querySelector('b')._h;
       setHtml(el.querySelector('.cnt'), dead ? (x[4] ? ord(x[4]) : L('out', 'koniec')) : String(x[1]));
       setHtml(el.querySelector('b'), nameHtml(p.name, p.fl) + (p.bot && p.human ? L(' (away)', ' (poza grą)') : ''));
+      if (was !== el.className + el.querySelector('.cnt')._h + el.querySelector('b')._h) el._ow = 0; // its size may have changed
     });
   }
 

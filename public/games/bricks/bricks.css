@@ -13,6 +13,9 @@ body.in-game { overflow: hidden; }
 .sb-tag[hidden], .sb-lab[hidden] { display: none; }
 .sb-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .sb-tag b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* a long title gives way first (then the name), so nothing spills out of the pill into the wells beside it */
+.sb-tag { overflow: hidden; }
+.sb-tag .ttl { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: 0; }
 .sb-tag .cnt { background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 7px; min-width: 1.3em; text-align: center; flex: none; }
 .sb-tag.hot { background: #ffd0c8; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .sb-tag.out { background: #dcd8e4; color: #5d566b; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
@@ -83,6 +86,7 @@ body.in-game { overflow: hidden; }
   .sb:not(.touch) .banner { bottom: 46px; }
   .sb-tag { font-size: 11px; padding: 0 3px; gap: 3px; border-width: 2px; }
   .sb-tag i { display: none; }
+  .sb-tag .ttl { display: none; }
   .sb-tag .cnt { padding: 0 5px; }
   .sb-lab { font-size: 11px; padding: 1px 8px; }
   .sb .round { width: 40px; height: 40px; }
