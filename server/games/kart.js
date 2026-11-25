@@ -217,6 +217,9 @@ export function fast(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
   const dt = Math.min(.25, (now - G.last) / 1000); G.last = now;
   const T = T_(G);
+  // reports from before the last stream went out with it; keep the ones that came in since
+  G.tickN = (G.tickN || 0) + 1;
+  for (const k of G.karts) if (k.trail?.length) { k.trail = k.trail.filter(e => e.n >= G.tickN - 1); if (!k.trail.length) k.trail = null; }
   if (G.stage === 'count') {
     if (now >= G.goAt) { G.stage = 'race'; pushEv(G, { t: 'go' }); }
     return tickOut(G);
@@ -229,7 +232,7 @@ export function fast(G, now = Date.now()) {
     for (const s of bots) botStep(G, s, dt / steps, now);
     for (const s of bots) for (let o = 0; o < G.karts.length; o++) if (o !== s) bump(G.karts[s], G.karts[o], true, false);
   }
-  for (const s of bots) { const k = G.karts[s]; k.prog = progOf(T, k); touch(G, s, prev[s][0], prev[s][1], now); G.st[s].flags = flagsOf(k); }
+  for (const s of bots) { const k = G.karts[s]; k.prog = progOf(T, k); k.ts = now; touch(G, s, prev[s][0], prev[s][1], now); G.st[s].flags = flagsOf(k); }
   moveJellies(G, dt, now);
   if (G.opts.items === 'chaos' && Math.random() < dt * .35) { // chaos: peels rain down from the sky
     const i = Math.random() * T.n | 0, p = at(T, i, (Math.random() - .5) * 7);
@@ -245,7 +248,8 @@ export function fast(G, now = Date.now()) {
   if (allIn || (G.doneAt && now - G.doneAt > 5000) || (G.firstFin && now - G.firstFin > AFTER_MS) || raceMs(G, now) > G.opts.laps * 150_000) finish(G, now);
   return tickOut(G);
 }
-function tickOut(G) { G.full = G.dirty || ++G.sendN % 20 === 0; G.dirty = false; return true; }
+function tickOut(G) { for (const k of G.karts) k.sent = k.ts || 0; // the stream that goes out now carries these
+  G.full = G.dirty || ++G.sendN % 20 === 0; G.dirty = false; return true; }
 
 function laps(G, s, now) {
   const k = G.karts[s], st = G.st[s];
@@ -271,6 +275,18 @@ function finish(G, now) {
 
 const flagsOf = k => (k.fall > 0 ? 1 : 0) | (k.spin > 0 ? 2 : 0) | (k.boost > 0 ? 4 : 0) | (k.slow > 0 ? 8 : 0) | (k.dr > 0 ? 32 : 0) | (k.dr < 0 ? 64 : 0) | (k.grass ? 128 : 0) | (k.ghost > 0 ? 256 : 0) | driftFlags(k.charge);
 
+// The server-clock time of a report taken at browser time c (ms). st.off is the quickest trip seen (server ms minus
+// browser ms), let go of slowly so clocks that drift apart are followed. Never in the future, never before the last one.
+function clockOf(st, c, now, last = 0) {
+  if (!Number.isFinite(c)) return now;
+  const o = now - c;
+  if (st.off == null || o < st.off || Math.abs(o - st.off) > 3000) st.off = o; // first report, a quicker trip, or a reloaded page
+  else st.off = Math.min(o, st.off + (now - st.offAt) * .0005);
+  st.offAt = now;
+  const ts = Math.min(now, Math.max(last + 1, c + st.off));
+  return ts;
+}
+
 // ---------- what people send ----------
 export function act(G, s, a) {
   if (!a || typeof a !== 'object' || s < 0 || !G.seats[s]?.human || G.seats[s].bot || G.ph !== 'play') return false;
@@ -284,10 +300,16 @@ export function act(G, s, a) {
     const far = Math.hypot(x - k.x, z - k.z), fair = far <= MAX_V * 1.5 * Math.min(gap, 1) + 6, ok = fair || st.bad > 8;
     st.repAt = now;
     if (!ok) { st.bad++; return false; }
+    // when the browser really took this place, on the server's clock: its own clock (a.c, ms) plus the quickest
+    // trip seen so far, so the other browsers can draw it at an even pace however bumpy the way here was
+    const c = +a.c, ts = clockOf(st, c, now, G.karts[s].ts || 0);
     st.bad = 0;
     const ax = k.x, az = k.z, prevS = k.s;
+    // a run of reports arriving between two stream ticks (after a hiccup): the earlier ones go out too, so the other
+    // browsers still see every place this kart was, not one big leap
+    if (k.ts > (k.sent || 0) && G.stage === 'race') { (k.trail ||= []).push({ n: G.tickN || 0, r: kartRow(G, s) }); if (k.trail.length > 6) k.trail.shift(); }
     const loc = locate(T, x, z, far > 20 ? -1 : k.i, k.y);
-    Object.assign(k, { x, z, y: loc.y + T.lift[loc.i], h, v: Math.max(-8, Math.min(MAX_V * 1.6, v)), i: loc.i, lat: loc.lat, s: loc.s });
+    Object.assign(k, { x, z, y: loc.y + T.lift[loc.i], h, v: Math.max(-8, Math.min(MAX_V * 1.6, v)), i: loc.i, lat: loc.lat, s: loc.s, ts });
     // laps are counted here, from the reported places, never taken from the browser. st.run is how far along the
     // track the kart has really driven since it last crossed the line: a jump let through after a run of refused
     // reports (a lag spike) moves the kart but adds nothing to it, so teleporting round the track never earns a lap.
@@ -318,12 +340,15 @@ export function setAway(G, s, away) {
 }
 
 const r2 = v => Math.round(v * 100) / 100;
+const kartRow = (G, i) => { const k = G.karts[i]; return [r2(k.x), r2(k.z), r2(k.y), r2(k.h), r2(k.v), G.seats[i].bot ? flagsOf(k) : G.st[i].flags, Math.round((k.ts || G.startAt) - G.goAt)]; };
 export function view(G, s) {
   const now = Date.now();
   const out = {
     game: 'kart', ph: G.ph, stage: G.stage, gid: G.gid, me: s, track: G.trackId, laps: G.opts.laps, items: G.opts.items,
     t: now - G.goAt, after: G.firstFin ? Math.max(0, AFTER_MS - (now - G.firstFin)) : -1,
-    k: G.karts.map((k, i) => [r2(k.x), r2(k.z), r2(k.y), r2(k.h), r2(k.v), G.seats[i].bot ? flagsOf(k) : G.st[i].flags]),
+    // [x, z, y, heading, speed, flags, when that place was taken (race ms)]
+    k: G.karts.map((k, i) => kartRow(G, i)),
+    kt: G.karts.some(k => k.trail?.length) ? G.karts.map(k => k.trail?.length ? k.trail.map(e => e.r) : 0) : undefined, // earlier places since the last stream, oldest first
     lap: G.karts.map(k => k.lap), place: order(G), fin: G.st.map(x => x.fin),
     it: G.item.map(x => (x ? [x.k, Math.max(0, x.at + ROLL_MS - now)] : null)), sh: G.shield.map(x => x > now ? 1 : 0),
     bx: G.boxes.map(x => (x > now ? 0 : 1)), obj: G.obj.map(o => [o.id, o.k, r2(o.x), r2(o.z), r2(o.y)]),
