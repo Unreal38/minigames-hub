@@ -93,6 +93,10 @@ body.night .ln { background: linear-gradient(#0c1236, #2d2b63); }
 .ln .ln-taps { position: relative; height: 220px; background: var(--card); border: 2.5px solid var(--card-edge); border-radius: 18px; }
 .ln .ln-taps button { position: absolute; left: var(--x); top: var(--y); width: 58px; height: 58px; border-radius: 16px; font-size: 32px; line-height: 1; background: var(--paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); cursor: pointer; transition: scale .2s, opacity .2s; }
 .ln .ln-taps button.ok { scale: .4; opacity: 0; }
+.ln .ln-taps.pick { height: 190px; }
+.ln .ln-taps button.no { animation: ln-no .35s; background: #ffd9d2; }
+@keyframes ln-no { 25% { translate: -6px 0; } 50% { translate: 6px 0; } 75% { translate: -3px 0; } }
+.ln .ln-seq.emo button i { font-style: normal; font-size: 28px; line-height: 1.1; }
 .ln .ln-seq { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .ln .ln-seq button { aspect-ratio: 3 / 4; border-radius: 14px; background: #3a3466; border: 3px solid var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; filter: grayscale(1) brightness(.75); }
 .ln .ln-seq button svg { width: 60%; height: auto; }
