@@ -1225,6 +1225,8 @@ body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background:
 .me.acctbtn .arow .lvslot .lv { transform: scale(.88); transform-origin: left center; margin-right: -5px; }
 .me.acctbtn .arank { font: 600 12.5px var(--fd); opacity: .85; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; }
 .me.acctbtn.haspb :is(.aname, .arank) { text-shadow: 0 0 3px var(--pbs), 0 0 3px var(--pbs), 0 0 6px var(--pbs); }
+/* a coloured name is gradient-clipped text: a text-shadow would paint over it, so it gets a drop-shadow halo instead */
+.me.acctbtn.haspb .aname .nmfx { text-shadow: none; filter: drop-shadow(0 0 1.5px var(--pbs)) drop-shadow(0 0 1.5px var(--pbs)); }
 .me.acctbtn .acaret { display: grid; place-items: center; flex: none; width: 28px; height: 28px; margin-left: 4px; border-radius: 9px; border: 2px solid currentColor; font-size: 11px;
   background: color-mix(in srgb, var(--pbs, var(--pan, var(--plum2))) 88%, transparent); transition: transform .2s; }
 .me.acctbtn[aria-expanded=true] .acaret { transform: rotate(180deg); }
