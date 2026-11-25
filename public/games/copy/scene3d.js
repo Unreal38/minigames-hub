@@ -189,13 +189,16 @@ export function createScene(canvas, opts = {}) {
   const fly = winter ? null : birds(scene, 36, 12, 4, 1.4);
   const { live, roof } = buildIsland(scene, season);
 
+  // ground markers (rings, blobs) are pulled towards the camera in the depth test so they never flicker into the
+  // ground or a paving slab, even far away where depth is coarse
+  const LIFT = { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 };
   // ---- the copyable things standing about: one merged mesh, no shadows, a blob each
   const tpl = new Map(); // kind -> an outlined model to clone for disguises and decoys
   const model = k => { let t = tpl.get(k); if (!t) tpl.set(k, t = toonify(propModel(k, season), .05)); const g = t.clone(); g.traverse(o => { if (o.isMesh) o.castShadow = false; }); return g; };
   { const stand = new THREE.Group();
     for (const [k, x, z, ry] of PROPS) { const g = propModel(k, season); g.position.set(x, heightAt(x, z), z); g.rotation.y = ry; stand.add(g); }
     const m = mergeStatic(stand, .05); m.traverse(o => { if (o.isMesh) o.castShadow = false; }); scene.add(m); }
-  const BLOBS = PROPS.length + 80, blobs = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#1c2540', transparent: true, opacity: .2, depthWrite: false }), BLOBS);
+  const BLOBS = PROPS.length + 80, blobs = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 14).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#1c2540', transparent: true, opacity: .2, depthWrite: false, ...LIFT }), BLOBS);
   blobs.frustumCulled = false; blobs.renderOrder = 1; scene.add(blobs);
   const bm = new THREE.Matrix4();
   let nStatic = 0;
@@ -203,10 +206,10 @@ export function createScene(canvas, opts = {}) {
 
   const fx = createFx(scene, { max: 500 });
   // the target ring: what E (or a tap) would copy or boop
-  const ring = new THREE.Mesh(new THREE.RingGeometry(.86, 1, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd34d', transparent: true, opacity: .95, depthWrite: false }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.86, 1, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd34d', transparent: true, opacity: .95, depthWrite: false, ...LIFT }));
   ring.visible = false; ring.renderOrder = 2; scene.add(ring);
   // the sniff ring round a seeker: how far the pet's nose reaches
-  const sniffRing = new THREE.Mesh(new THREE.RingGeometry(.96, 1, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false }));
+  const sniffRing = new THREE.Mesh(new THREE.RingGeometry(.96, 1, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, ...LIFT }));
   sniffRing.renderOrder = 2; scene.add(sniffRing);
   nightScene(scene, { wx: { size: 40 } });
   res.prep(scene);
@@ -327,7 +330,7 @@ export function createScene(canvas, opts = {}) {
   }
   function target(t, color) {
     if (!t) { ring.visible = false; return; }
-    const r = KINDS[KIND_LIST[t.k]].r + .3; ring.visible = true; ring.position.set(t.x, heightAt(t.x, t.z) + .08, t.z); ring.scale.setScalar(r); ring.material.color.set(color || '#ffd34d');
+    const r = KINDS[KIND_LIST[t.k]].r + .3; ring.visible = true; ring.position.set(t.x, heightAt(t.x, t.z) + .12, t.z); ring.scale.setScalar(r); ring.material.color.set(color || '#ffd34d');
   }
 
   // ---- effects for the server's events
@@ -337,7 +340,7 @@ export function createScene(canvas, opts = {}) {
   const pingGeo = new THREE.RingGeometry(.9, 1, 40).rotateX(-Math.PI / 2);
   function squeak(x, z, own) {
     fx.burst(at(x, z, 1.1), { n: few ? 6 : 12, colors: NOTE, shape: own ? HEART : STAR, speed: 1.8, up: 3.6, size: .38, grav: 2, life: 1.3 });
-    let p = pings.find(q => !q.on); if (!p) { if (pings.length > 8) return; p = { g: new THREE.Mesh(pingGeo, new THREE.MeshBasicMaterial({ color: '#ffd34d', transparent: true, depthWrite: false })) }; p.g.renderOrder = 2; scene.add(p.g); pings.push(p); }
+    let p = pings.find(q => !q.on); if (!p) { if (pings.length > 8) return; p = { g: new THREE.Mesh(pingGeo, new THREE.MeshBasicMaterial({ color: '#ffd34d', transparent: true, depthWrite: false, ...LIFT })) }; p.g.renderOrder = 2; scene.add(p.g); pings.push(p); }
     p.on = true; p.t0 = T; p.g.position.copy(at(x, z, .09)); p.g.visible = true;
   }
   function caught(x, z, by, k) {
@@ -385,7 +388,9 @@ export function createScene(canvas, opts = {}) {
         if (m.amt > .02 && m.role !== 2) { walkAvatar(m.av, m.ph, m.amt); ud.legs?.forEach(l => { l.rotation.z = 0; }); }
         else ud.legs?.forEach(l => { l.rotation.x = 0; l.rotation.z = 0; });
         // seekers waiting in the hut cover their eyes
-        if (m.role === 1 && opts.stage?.() === 'hide') ud.arms?.forEach((a, k) => { a.userData.rz0 ??= a.rotation.z; a.rotation.x = -2.5; a.rotation.z = a.userData.rz0 + (k ? -.55 : .55); });
+        // (animateAvatar only resets the arms' swing, so their sideways angle is put back by hand once the hide ends)
+        const cover = m.role === 1 && opts.stage?.() === 'hide';
+        ud.arms?.forEach((a, k) => { a.userData.rz0 ??= a.rotation.z; if (cover) a.rotation.x = -2.5; a.rotation.z = a.userData.rz0 + (cover ? (k ? -.55 : .55) : 0); });
       }
     }
     // the seeker's pet trots behind, and sniffs about when asked
@@ -442,7 +447,7 @@ export function createScene(canvas, opts = {}) {
     // squeak rings and the sniff ring
     for (const p of pings) { if (!p.on) continue; const u = (T - p.t0) / 1.4; if (u >= 1) { p.on = false; p.g.visible = false; continue; } p.g.scale.setScalar(.5 + u * 4); p.g.material.opacity = (1 - u) * .9; }
     { const t0 = sniffRing.userData.t0, u = t0 === undefined ? 1 : (T - t0) / 1.8; sniffRing.visible = u < 1 && !!m; if (sniffRing.visible) { sniffRing.position.set(m.x, heightAt(m.x, m.z) + .1, m.z); sniffRing.scale.setScalar(LY.SNIFF_R * Math.min(1, u * 3)); sniffRing.material.opacity = (1 - u) * .85; } }
-    if (ring.visible) ring.material.opacity = .7 + Math.sin(T * 7) * .25;
+    if (ring.visible) ring.material.opacity = .85 + Math.sin(T * 4) * .1; // a gentle glow, not a blink
     for (const g of live) g.userData.tick(T, {}, g);
     fly?.(T);
     fx.update(dt, camera, H);
