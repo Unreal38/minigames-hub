@@ -1,4 +1,4 @@
-// Looks for the pieces of Sky Pool (cue, kind cu), Chess (set, kind cs) and Dominoes (tiles, kind dm).
+// Looks for the pieces of Sky Pool (cue, kind cu), Chess (set, kind cs), Dominoes (tiles, kind dm) and Checkers (set, kind ck).
 // Plain data and a little drawing, no 3D imports, so the HUD and the Wardrobe pictures can use it too.
 // Every list is in the same order as its kind in cosmetics.js: indexes are saved, append only. Index 0 is the classic look.
 
@@ -44,6 +44,26 @@ const SETS = [
   { w: army('#f2fff7', '#9fe8c4', '#3df2a0', '#ff4fd8', '#1b1b2a'), b: army('#1b1b2a', '#0f0f1a', '#ff4fd8', '#3df2a0', '#7af7c0') }, // neon
 ];
 export const chessLook = (k, side) => (SETS[k | 0] || SETS[0])[side ? 'b' : 'w'];
+
+// ---------- checkers (warcaby) sets ----------
+// Each set has a light army (w) and a dark one (b), so the two sides can always be told apart whatever the two players wear.
+// body (the disc), shade (its foot), trim (the decoration on top), gold (the king's crown). top: what is on the disc's face
+// (ridge, grooves, chips, holes, coin, paw, flower, star, flake, pumpkin, gem), built in public/games/warcaby/scene3d.js.
+const disc = (body, shade, trim, gold = '#ffc93c') => ({ body, shade, trim, gold });
+const CHECKERS = [
+  { top: 'ridge', w: disc('#f7ecd4', '#d8c298', '#d8c298'), b: disc('#4d362e', '#38261f', '#7a5a4a') },
+  { top: 'grooves', w: disc('#f0cf98', '#d4a866', '#c08a4a'), b: disc('#5e3a22', '#43261a', '#8a5a36') },            // wood
+  { top: 'chips', w: disc('#f6dca6', '#e0b878', '#7a4a2a'), b: disc('#5a3420', '#3e2214', '#f6dca6') },              // cookies
+  { top: 'holes', w: disc('#ffd6e4', '#f3a9c3', '#c2417a'), b: disc('#23356e', '#16224a', '#8fb0ff') },              // buttons
+  { top: 'coin', w: disc('#ffe07a', '#e0b030', '#c9901a', '#fff4c2'), b: disc('#7a4a1e', '#5a3412', '#c98a4a') },    // coins
+  { top: 'paw', w: disc('#fff6ee', '#e8d8c8', '#ff8fab'), b: disc('#2e2a35', '#1d1a22', '#ff8fab') },                // paws
+  { top: 'flower', w: disc('#fff0f6', '#ffc4da', '#ff6f9f'), b: disc('#4a2550', '#311838', '#ffb547') },             // flowers
+  { top: 'star', w: disc('#fff6cc', '#f0d878', '#ffb020'), b: disc('#1f2558', '#121738', '#ffd84a') },               // stars
+  { top: 'flake', w: disc('#f4fbff', '#b8daf0', '#7cc8f0'), b: disc('#2b4a6b', '#1b3350', '#bfe9ff') },              // frost (winter)
+  { top: 'pumpkin', w: disc('#ffb35c', '#f08a2a', '#d06a12'), b: disc('#3a2552', '#24153a', '#ff8a1f', '#ff8a1f') }, // pumpkins (halloween)
+  { top: 'gem', w: disc('#e8fbff', '#a8e4f2', '#5fd3ff'), b: disc('#3a1f5c', '#25123d', '#d07cff') },                // gems
+];
+export const checkersLook = (k, side) => { const s = CHECKERS[k | 0] || CHECKERS[0]; return { ...s[side ? 'b' : 'w'], top: s.top }; };
 
 // ---------- domino tiles ----------
 // face (the tile), edge (the thin line round each half), bar (the divider), pips: one colour per number 0..6, shape of a pip.
