@@ -67,7 +67,7 @@ import * as word from './word.js';
 import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import * as plaza from './plaza.js';
-import { cosHas } from '../public/cosmetics.js';
+import { cosHas, COS } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { distinctCols, matchColors } from './colors.js';
@@ -511,7 +511,8 @@ function startGame(r) {
     for (const c of humans) prev.wallet['h:' + c.id] = store.profileOf(c.token)?.coins || 0;
   }
   const cols = distinctCols(humans.map(c => c.color)); // two people in pink: the later one plays in another colour this match
-  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av })), r.opts, prev);
+  const emOf = c => { const p = store.profileOf(c.token); return COS.em.items.map((_, i) => i).filter(i => i && cosHas(p, 'em', i)); }; // the Plaza emotes each one has (Sky Runway poses)
+  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av, ...(GAMES[r.game].meta.emotes ? { em: emOf(c) } : {}) })), r.opts, prev);
   matchColors(r.G); // bots, too, keep clear of the people's colours
   r.G.bornAt = Date.now(); // when the match began: a short match against bots pays its share (botpay.js)
   sendRoom(r); sendState(r); broadcastRooms();

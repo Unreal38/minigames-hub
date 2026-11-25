@@ -6,8 +6,8 @@ import { L, ord } from '../../i18n.js';
 import { avatarHtml, OPT, AV_KEYS, AV_COLOR_KEYS, needsOwning, packOf, priceOf, seasonOf, cleanAv } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
-import { themeName, twistName, FREE_KEYS, POSES, poseName, WRITE_MAX, cleanTheme } from './rules.js';
+import { nameHtml, titleHtml, frameCls, COS, EMOTE_ICO } from '../../cosmetics.js';
+import { themeName, twistName, FREE_KEYS, POSES, poseName, WRITE_MAX, cleanTheme, EMOTE_POSE } from './rules.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -169,7 +169,8 @@ export function mount(app, ctx) {
     setHtml($('rw-dsub'), S.twist ? esc(twistName(S.twist)) : S.stage === 'theme' ? L('Get ready…', 'Przygotuj się…') : L('Tap a piece to put it on', 'Dotknij rzeczy, żeby ją założyć'));
     barAnim(el.querySelector('.rw-bar i'), S.gid + S.round + S.stage);
     setHtml($('rw-tabs'), TABS.map(([k, en, pl]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === tab}">${L(en, pl)}</button>`).join(''));
-    setHtml($('rw-poses'), `<b>${L('Pose', 'Poza')}</b>${POSES.map((_, p) => `<button type="button" data-pose="${p}" aria-pressed="${p === myPose}">${esc(poseName(p))}</button>`).join('')}`);
+    setHtml($('rw-poses'), `<b>${L('Pose', 'Poza')}</b>${POSES.map((_, p) => `<button type="button" data-pose="${p}" aria-pressed="${p === myPose}">${esc(poseName(p))}</button>`).join('')}${(S.myEm || []).map(e => { const p = EMOTE_POSE + e, n = COS.em.items[e]?.n || ''; // your own Plaza emotes, as small icon buttons
+      return `<button type="button" class="emo" data-pose="${p}" aria-pressed="${p === myPose}" title="${esc(n)}" aria-label="${esc(n)}">${EMOTE_ICO[e] || '✨'}</button>`; }).join('')}`);
     const here = S.seats.map((x, i) => i).filter(i => S.seats[i].human && !S.seats[i].bot), rdy = here.filter(i => S.ready[i]).length;
     setHtml($('rw-ready'), `<span>${L(`Ready: ${rdy} of ${here.length}`, `Gotowi: ${rdy} z ${here.length}`)}</span>${S.seats.map((p, i) => `<i class="dot${S.ready[i] ? ' ok' : ''}" style="background:${esc(p.color)}" title="${esc(p.name)}"></i>`).join('')}`);
     const go = el.querySelector('.rw-go'), r = !!S.ready[S.me];

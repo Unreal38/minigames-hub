@@ -1731,7 +1731,7 @@ const hasPack = () => { const have = new Set(st.me?.owned || []); return packIds
 let onKofi = null;
 function openSupport() {
   const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
-  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
+  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
   // a small picture of one account cosmetic or game piece skin, with the kind as its caption
   const cosFig = ([k, i]) => { const it = cosItem(k, i);
     const pic = k === 'nm' ? `<span class="supbox"><b>${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</b></span>` : k === 'fr' ? `<span class="supbox">${avatarHtml(st.color, st.av, 34, frameCls({ fr: i }))}</span>`
@@ -2652,8 +2652,8 @@ const coinIco = '<i class="cn" aria-hidden="true"></i>';
 const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
-const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾'];
-const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
+const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾', '🏮', '📸', '🔤'];
+const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
@@ -3003,7 +3003,7 @@ function skyStrip(p) {
 }
 function openPlayer(p) {
   if (!p) return; playerSheet?.close();
-  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck'];
+  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln'];
   const sheet = playerSheet = modal(`
     <div class="profcard">
       <div class="pisle">${skyHang(p)}<div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
