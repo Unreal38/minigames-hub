@@ -37,7 +37,7 @@ function save() {
   try { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(FILE + '.tmp', JSON.stringify({ v: 1, days })); fs.renameSync(FILE + '.tmp', FILE); }
   catch (e) { console.error(`could not save ${FILE}:`, e.message); }
 }
-const pool = () => Object.keys(SPECIES).filter(sp => KIT[sp] && COAT[sp]);
+const pool = () => Object.keys(SPECIES).filter(sp => KIT[sp] && COAT[sp] && !SPECIES[sp].wheel); // Lucky Wheel pets are too rare to guess
 function secretOf(day) {
   if (SPECIES[days[day]]) return days[day];
   const all = pool(), keep = Math.min(NO_REPEAT, all.length - 1), recent = new Set();

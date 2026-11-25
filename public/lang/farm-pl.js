@@ -172,6 +172,7 @@ const BLURB = {
   yetiny: 'Kudłate małe yeti z oszronionymi rogami i wielkimi stopami jak rakiety śnieżne.',
   gargoylet: 'Mały kamienny gargulec, który siedzi nieruchomo jak posąg, dopóki nie odwrócisz wzroku.',
   nessling: 'Mały potwór z jeziora z długą szyją, rzędem garbów i czterema płetwami.',
+  tusklet: 'Pulchny mały mors w czapce z pomponem i czerwonym szaliku. Co zimę jego kły są trochę dłuższe.',
   truffowl: 'Okrągła sowa, której rośnie własny kapelusz grzyba.',
   magmutt: 'Szczeniak z lawy w płaszczu z popękanej skały.',
   nimbowhale: 'Malutki wieloryb, który nosi własną chmurę deszczową.',
@@ -184,6 +185,7 @@ const BLURB = {
   magnebug: 'Żuk z magnesem zamiast rogu. Kamyki chodzą za nim krok w krok.',
 };
 const HINT = {
+  tusklet: 'Można go wygrać tylko zimą na Kole szczęścia.',
   truffowl: 'Wykluwa się tam, gdzie mech spotyka przypływ.',
   magmutt: 'Wykluwa się tam, gdzie ogień ogrzewa kamień.',
   nimbowhale: 'Wykluwa się tam, gdzie deszcz spotyka błyskawicę.',
@@ -196,7 +198,7 @@ const HINT = {
   magnebug: 'Wykluwa się tam, gdzie piorun uderza w skałę.',
 };
 const FAMILIES = { cat: 'Koty', bunny: 'Króliki', fox: 'Lisy', frog: 'Żaby i ropuchy', bear: 'Niedźwiedzie', chick: 'Kurczaki', seal: 'Foki', hedgehog: 'Jeże', crab: 'Kraby', dog: 'Psy', whale: 'Wieloryby', owl: 'Sowy', ferret: 'Fretki', turtle: 'Żółwie', squirrel: 'Wiewiórki', sheep: 'Owce' };
-const RARITY = ['Pospolity', 'Niepospolity', 'Rzadki', 'Tylko z jajka'];
+const RARITY = ['Pospolity', 'Niepospolity', 'Rzadki', 'Tylko z jajka', 'Tylko z Koła szczęścia'];
 const FORMS = ['Maluch', 'Podrostek', 'Dorosły'];
 const UPGRADES = {
   hut: 'Dwa łóżka więcej',
@@ -268,7 +270,7 @@ export function plData(D) {
 const COATS = ['Naturalny', 'Różany', 'Błękitny', 'Miętowy', 'Liliowy', 'Kakaowy'];
 const PATTERNS = { spots: 'Cętki', stripes: 'Paski', star: 'Gwiazdka', patch: 'Łata' };
 // What a baby can borrow from the other side of its family. Used after a colon ("Może odziedziczyć: ...").
-const PART = { griffling: 'skrzydła gryfa', bloomicorn: 'róg jednorożca', dreampir: 'bańka snów', yetiny: 'oszronione rogi', gargoylet: 'kamienny ogon', nessling: 'garby potworka',
+const PART = { tusklet: 'czapka z pomponem', griffling: 'skrzydła gryfa', bloomicorn: 'róg jednorożca', dreampir: 'bańka snów', yetiny: 'oszronione rogi', gargoylet: 'kamienny ogon', nessling: 'garby potworka',
   mossbun: 'królicze uszy', sproutle: 'kiełek', petalpuff: 'korona z kwiatów', truffowl: 'kapelusz grzyba', cindercub: 'ogon z płomienia',
   toastoad: 'kostka masła', flickit: 'płomyk świecy', magmutt: 'kamienie z lawy', puddlepup: 'focze płetwy', bubblefin: 'płetwa jak żagiel', axolily: 'liść lilii',
   nimbowhale: 'chmura deszczowa', zapkit: 'ogon z błyskawicy', buzzlet: 'bzyczące skrzydełka', voltvole: 'iskrzący czubek', glimmoth: 'świecące skrzydła', pebblet: 'kolce z kamyków',
@@ -394,6 +396,7 @@ export const SRV_TEXT = {
   'The Nest is busy.': 'Gniazdo jest zajęte.',
   'That farm is not around any more.': 'Tej farmy już nie ma.',
   'That pet is not open for playdates.': 'Ten zwierzak nie bierze udziału we wspólnych zabawach.',
+  'A Lucky Wheel pet cannot have eggs.': 'Zwierzak z Koła szczęścia nie składa jajek.',
   'One playdate a day with each friend.': 'Jedna wspólna zabawa dziennie z każdym znajomym.',
   'Pick two different pets.': 'Wybierz dwa różne zwierzaki.',
   'One of them is still resting.': 'Jeden z nich jeszcze odpoczywa.',
@@ -491,7 +494,7 @@ export const zonePl = en => ZONES[ZONE_EN[en]]?.[0] || en;
 export const CLUE_PL = {
   Element: 'Żywioł', Home: 'Dom', Rarity: 'Rzadkość', Style: 'Styl', Colour: 'Kolor', Moves: 'Ruchy',
   'The Nest': 'Gniazdo', ...Object.fromEntries(Object.entries(ZONE_EN).map(([en, k]) => [en, ZONES[k][0]])),
-  Common: RARITY[0], Uncommon: RARITY[1], Rare: RARITY[2], 'Breeding only': RARITY[3],
+  Common: RARITY[0], Uncommon: RARITY[1], Rare: RARITY[2], 'Breeding only': RARITY[3], 'Lucky Wheel only': RARITY[4],
   Balanced: ROLE_NAME.balanced, Tank: ROLE_NAME.tank, Support: ROLE_NAME.support, 'Fast attacker': ROLE_NAME.fast, 'Glass cannon': ROLE_NAME.glass, Trickster: ROLE_NAME.trickster, Bruiser: ROLE_NAME.bruiser, Healer: ROLE_NAME.healer,
   White: 'Biały', Grey: 'Szary', Cream: 'Kremowy', Brown: 'Brązowy', Pink: 'Różowy', Red: 'Czerwony', Orange: 'Pomarańczowy', Yellow: 'Żółty', Green: 'Zielony', Blue: 'Niebieski', Purple: 'Fioletowy',
   ...EL_PL,

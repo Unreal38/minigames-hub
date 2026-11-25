@@ -356,6 +356,14 @@ export const FEAT = {
   dreampir: { slot: 'top', name: 'a dream bubble', b(g, F) { // a see-through bubble with a little star asleep inside
     const k = [.6, .8, 1][F]; Sp(g, .3 * k, TR('#d9ccff', .45), [.08, .4 * k, 0]); Oc(g, .1 * k, GL('#fff3a0', .8), [.08, .4 * k, 0], [1, 1, .45]); Sp(g, .08 * k, TR('#d9ccff', .5), [-.12, .08, .04], null, 1);
   } },
+  tusklet: { slot: 'top', name: 'a bobble hat', b(g, F) { // a knitted winter hat: red with white stripes, a turned-up cuff and a big pompom
+    const k = [.85, .95, 1][F], h = Grp(g, [0, 0, 0], [-.12, 0, .1], k), red = '#e0453a', wh = '#fff6ec';
+    Sp(h, .56, red, [0, .02, 0], [1, .82, 1]);
+    for (const y of [.2, .34]) To(h, [Math.sqrt(Math.max(0, 1 - ((y - .02) / .46) ** 2)) * .56, .035, 5, 18], wh, [0, y, 0], [PI / 2, 0, 0]); // knitted stripes
+    To(h, [.55, .11, 6, 18], wh, [0, -.08, 0], [PI / 2, 0, 0]); // the cuff
+    Sp(h, .2, wh, [0, .55, 0], null, 1); for (let i = 0; i < 6; i++) { const a = i * 1.05; Gm(h, .08, wh, [Math.cos(a) * .15, .58 + (i % 2) * .08, Math.sin(a) * .15]); } // a fluffy pompom
+    if (F) { const f = Grp(h, [.24, -.06, .62], [0, .38, 0], F === 2 ? 1 : .7); for (let j = 0; j < 3; j++) Bx(f, [.28, .05, .05], GL('#5fb4f0', .5), [0, 0, 0], [0, 0, j * PI / 3]); } // a snowflake badge on the cuff, bigger on an adult
+  } },
   yetiny: { slot: 'top', name: 'frosty horns', b(g, F) { // two little curled horns with icy tips
     const k = [.85, 1.1, 1.3][F];
     for (const s of [-1, 1]) { const h = Grp(g, [s * .3, .02, 0], [0, 0, -s * .55], k); Co(h, [.1, .3, 6], '#efe6d6', [0, .14, 0]); Co(h, [.065, .2, 6], GL('#bfe8ff', .35), [s * .05, .36, 0], [0, 0, -s * .7]); }
@@ -1075,6 +1083,31 @@ const BODY = {
     for (let i = 0; i < 6 + F * 3; i++) { const a = i * 2.3 + .6, e = .45 + (i % 4) * .3; Oc(g, .07 + (i % 2) * .03, GL('#fff3a0', .8), [b.p[0] + Math.sin(a) * Math.sin(e) * b.r[0] * 1.02, b.p[1] + Math.cos(e) * b.r[1] * 1.02, b.p[2] + Math.cos(a) * Math.sin(e) * b.r[2] * 1.02], [1, 1, .4]); } // stars in its coat
     Sp(g, .11, K.a, [0, A.tail[1] + .05, A.tail[2] - .02], null, 1);
     if (F) for (let i = 0; i < F + 1; i++) Sp(g, .07 + i * .04, TR('#d9ccff', .5), [.1 + (i % 2) * .08, tp[1] + .15 + i * .22, tp[2] + .12 + i * .1], null, 1); // dream bubbles
+    if (X.own('top')) X.sig(A.top, A.fs);
+    return A;
+  },
+  tusklet(g, F, K, X) { // a walrus pup: a plump body sitting up on its flippers, a whiskery muzzle, tusks that grow with it, and a red scarf
+    const r = [.66, .7, .78][F], hr = [.62, .6, .62][F], by = [.6, .66, .74][F], hy = by + r * .62 + hr * .42;
+    const A = { head: { p: [0, hy, .14], r: hr }, body: { p: [0, by, 0], r: [r * 1.05, by, r * .95] } }, b = A.body, h = A.head, red = '#e0453a', wh = '#fff6ec';
+    Sp(g, 1, K.a, b.p, b.r); Sp(g, b.r[0] * .7, K.b, [0, by * .8, b.r[2] * .45], [1, 1.05, .62]); // round tummy
+    Sp(g, hr, K.a, h.p, [1.08, .94, 1]);
+    for (const s of [-1, 1]) { // front flippers splayed out to the sides, back flippers behind
+      Rd(g, [.26, .11, .5], K.a, [s * b.r[0] * .92, .1, b.r[2] * .35], [0, -s * .55, s * .25]);
+      Rd(g, [.24, .09, .46], mix(K.a, '#6b4a3c', .2), [s * .2, .06, -b.r[2] - .12], [0, s * .5, 0]);
+    }
+    const mz = [h.p[0], h.p[1] - h.r * .34, h.p[2] + h.r * .8], pad = h.r * [.3, .32, .34][F];
+    for (const s of [-1, 1]) { Sp(g, pad, K.b, [s * pad * .78, mz[1], mz[2]], [1, .82, .78]); for (let i = 0; i < 3; i++) Sp(g, .022, '#6b4a3c', [s * (pad * .55 + (i % 2) * .09), mz[1] + .04 - i * .06, mz[2] + pad * .74], null, 0); } // whisker pads with dots
+    Sp(g, .08, '#5a3a3a', [0, mz[1] + pad * .62, mz[2] + pad * .5], [1.3, .8, .9], 1); // the nose on top of the pads
+    const tl = [.14, .36, .52][F]; // tusks: tiny nubs on a baby, long and icy on an adult
+    for (const s of [-1, 1]) Co(g, [.045 + F * .012, tl, 6], F === 2 ? mix('#fffaf0', '#cfeeff', .35) : '#fffaf0', [s * pad * .6, mz[1] - pad * .5 - tl * .42, mz[2] + pad * .62], [PI - .38, 0, -s * .1]);
+    face(g, X.eyes, [h.p[0], h.p[1] + h.r * .12, h.p[2]], h.r, { eye: [1.35, 1.2, 1.1][F], nose: null, mouth: false, gap: .36, y: .1 });
+    // the red scarf round its neck, with a white stripe, and one end hanging down its front
+    const ny = h.p[1] - h.r * .98, nr = Math.max(b.r[0] * Math.sqrt(Math.max(.2, 1 - ((ny - by) / by) ** 2)), h.r * .62) + .02;
+    To(g, [nr * .96, .1, 6, 18], red, [0, ny, .06], [PI / 2, 0, 0], [1, .95, 1.1]);
+    To(g, [nr * 1.03, .04, 5, 18], wh, [0, ny, .06], [PI / 2, 0, 0], [1, .95, 1.1]);
+    const end = Grp(g, [nr * .45, ny - .04, .06 + nr * .9], [.25, 0, .18]);
+    Rb(end, [.2, .46, .07], red, [0, -.22, 0]); Bx(end, [.21, .05, .075], wh, [0, -.2, 0]); for (let i = 0; i < 4; i++) Bx(end, [.025, .1, .03], wh, [(i - 1.5) * .05, -.49, 0]); // fringe
+    A.top = [0, h.p[1] + h.r * .68, h.p[2] - .02]; A.tail = [0, .1, -b.r[2]]; A.back = [0, by * 1.5, -b.r[2] * .6]; A.fs = [.8, .9, 1][F];
     if (X.own('top')) X.sig(A.top, A.fs);
     return A;
   },

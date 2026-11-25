@@ -191,6 +191,9 @@ export const SPECIES = {
   yetiny: { name: 'Yetiny', el: 'Tide', rare: 2, far: true, blurb: 'A shaggy yeti cub with frosty horns and big snowshoe feet.' },
   gargoylet: { name: 'Gargoylet', el: 'Stone', rare: 2, far: true, blurb: 'A little stone gargoyle that sits as still as a statue until you look away.' },
   nessling: { name: 'Nessling', el: 'Tide', rare: 2, far: true, blurb: 'A baby lake monster with a long neck, a row of humps and four flippers.' },
+  // Lucky Wheel pets (wheel: the season they can be won in): won only from the daily wheel, never found, hatched, sold or traded,
+  // and they cannot have eggs. rare 4 keeps them out of the pet of the day, Mystery Pet and everything that rolls a species.
+  tusklet: { name: 'Tusklet', el: 'Tide', rare: 4, wheel: 'winter', blurb: 'A chubby walrus pup in a knitted bobble hat and a red scarf. Its tusks grow longer every winter.', hint: 'Won only on the Lucky Wheel in winter.' },
   // breeding only: two elements, never found in the wild. hint is all the Pet Album gives away.
   truffowl:   { name: 'Truffowl', el: 'Leaf', el2: 'Tide', rare: 3, blurb: 'A round owl that grows its own mushroom cap.', hint: 'Hatches where moss meets the tide.' },
   magmutt:    { name: 'Magmutt', el: 'Ember', el2: 'Stone', rare: 3, blurb: 'A lava puppy in a coat of cracked rock.', hint: 'Hatches where fire warms the stone.' },
@@ -221,7 +224,8 @@ export const atHome = (z, sp, el = SPECIES[sp]?.el) => !!SPECIES[sp] && (z.theme
 // Element variants: a pet of a one-element species can hatch with another element (p.el), which replaces its own.
 export const elOf = p => { const d = SPECIES[p.sp]; return d && !d.el2 && p.el && ELEMENTS[p.el] ? p.el : d?.el; };
 export const variantOf = p => elOf(p) !== SPECIES[p.sp]?.el ? elOf(p) : null;
-export const RARITY = ['Common', 'Uncommon', 'Rare', 'Breeding only'];
+export const RARITY = ['Common', 'Uncommon', 'Rare', 'Breeding only', 'Lucky Wheel only'];
+export const wheelOnly = sp => !!SPECIES[sp]?.wheel; // a Lucky Wheel pet: no eggs, no trades, no playdates
 export const STARTERS = ['mossbun', 'cindercub', 'puddlepup'];
 export const FORMS = ['Baby', 'Young', 'Adult'];
 export const formOf = lv => lv < 5 ? 0 : lv < 12 ? 1 : 2;
@@ -267,9 +271,10 @@ export function upBlock(farm, item) {
 }
 // The museum's five medallions, Leaf Ember Tide Spark Stone: how full each is in eighths (8 only when every species of
 // that element is found; a hybrid counts for both of its elements). A 5-digit string, so a model can be keyed on it.
+// A Lucky Wheel pet counts once it has been won, and is never needed for a full medallion.
 export function museumFill(album) {
   return Object.keys(ELEMENTS).map(e => {
-    const all = Object.entries(SPECIES).filter(([, d]) => d.el === e || d.el2 === e), got = all.filter(([sp]) => album?.[sp]?.some?.(Boolean)).length;
+    const all = Object.entries(SPECIES).filter(([sp, d]) => (d.el === e || d.el2 === e) && (!d.wheel || album?.[sp]?.some?.(Boolean))), got = all.filter(([sp]) => album?.[sp]?.some?.(Boolean)).length;
     return got >= all.length ? 8 : Math.min(7, Math.floor(got / all.length * 8));
   }).join('');
 }
