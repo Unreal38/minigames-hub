@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, HEART, nightScene } from '../../scenery3d.js';
+import { petModel, wiggle } from '../farm/pets3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { L } from '../../i18n.js';
@@ -111,21 +112,26 @@ export function createScene(canvas, { onFrame } = {}) {
   const room = new THREE.Group(); scene.add(room);
   const put = (geo, mat, x = 0, y = 0, z = 0, parent = room) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
   const LEN = RUN.z1 - RUN.z0, MID = (RUN.z0 + RUN.z1) / 2;
-  const cz = STAGE.z - STAGE.d / 2 + .1, POSE_Z = RUN.z0 + .5 + LEN - 1.4; // the curtain's line; where a walk stops to pose
+  const cz = STAGE.z - STAGE.d / 2 + .1, POSE_Z = RUN.z0 + .5 + LEN - 1.4, PAD_R = 1.55, PAD_IN = 1.25; // the curtain's line; where a walk stops to pose
   {
     // runway and stage: white boards, a striped pink carpet with little stars, gold trim; a round platform at the front end
-    const carpet = new THREE.MeshStandardMaterial({ map: carpetTex(LEN / 2.2), roughness: .8 });
-    const rw = put(new THREE.BoxGeometry(RUN.w, RUN.h, LEN), M('#fbf7ff'), 0, RUN.h / 2, MID); rw.castShadow = rw.receiveShadow = true;
-    put(new THREE.BoxGeometry(RUN.w - .5, .03, LEN - .3), carpet, 0, RUN.h + .015, MID).receiveShadow = true;
+    // the runway ends where it meets the round pose platform (each part stops at the platform's edge, nothing runs through it)
+    const meet = (half, r) => POSE_Z - Math.sqrt(r * r - half * half) + .02, seg = (z1, x = 0) => [z1 - RUN.z0, (RUN.z0 + z1) / 2];
+    // the carpet tucks in under the platform's pink top (which sits a hair higher), so its square end never shows
+    const [bl, bm] = seg(meet(RUN.w / 2, PAD_R)), [cl, cm] = seg(POSE_Z - PAD_IN + .3);
+    const carpet = new THREE.MeshStandardMaterial({ map: carpetTex(cl / 2.2), roughness: .8 });
+    const rw = put(new THREE.BoxGeometry(RUN.w, RUN.h, bl), M('#fbf7ff'), 0, RUN.h / 2, bm); rw.castShadow = rw.receiveShadow = true;
+    put(new THREE.BoxGeometry(RUN.w - .5, .03, cl - .15), carpet, 0, RUN.h + .015, cm + .075).receiveShadow = true;
     const st = put(new THREE.BoxGeometry(STAGE.w, RUN.h, STAGE.d), M('#fbf7ff'), 0, RUN.h / 2, STAGE.z); st.castShadow = st.receiveShadow = true;
     put(new THREE.BoxGeometry(STAGE.w - .5, .03, STAGE.d - .5), M('#ffd3df'), 0, RUN.h + .015, STAGE.z).receiveShadow = true;
-    for (const sx of [-1, 1]) put(new THREE.BoxGeometry(.08, .06, LEN), M('#ffc94d'), sx * (RUN.w / 2 - .04), RUN.h + .03, MID);
+    { const [tl, tm] = seg(meet(RUN.w / 2 - .04, PAD_R)); for (const sx of [-1, 1]) put(new THREE.BoxGeometry(.08, .06, tl), M('#ffc94d'), sx * (RUN.w / 2 - .04), RUN.h + .03, tm); }
     put(new THREE.BoxGeometry(STAGE.w, .08, .1), M('#ffc94d'), 0, RUN.h + .04, STAGE.z + STAGE.d / 2 - .05); // gold lip on the stage front
     // the pose platform: a round end where the looks stop, with a gold star to stand on
-    const pad = put(new THREE.CylinderGeometry(1.55, 1.55, RUN.h, 28), M('#fbf7ff'), 0, RUN.h / 2, POSE_Z); pad.castShadow = pad.receiveShadow = true;
-    put(new THREE.CylinderGeometry(1.32, 1.32, .03, 28), M('#ff8fab'), 0, RUN.h + .016, POSE_Z).receiveShadow = true;
-    put(new THREE.TorusGeometry(1.5, .045, 4, 40), M('#ffc94d'), 0, RUN.h + .03, POSE_Z).rotation.x = Math.PI / 2;
-    const star = put(new THREE.ExtrudeGeometry(starShape(.62, .27), { depth: .02, bevelEnabled: false }), M('#ffd54a'), 0, RUN.h + .035, POSE_Z);
+    // its rim: a gold band round the top of the side (a little wider than the white base, so no face is shared)
+    const pad = put(new THREE.CylinderGeometry(PAD_R, PAD_R, RUN.h, 32), M('#fbf7ff'), 0, RUN.h / 2, POSE_Z); pad.castShadow = pad.receiveShadow = true;
+    put(new THREE.CylinderGeometry(PAD_R + .02, PAD_R + .02, .1, 32, 1, true), M('#ffc94d', { side: THREE.DoubleSide }), 0, RUN.h - .045, POSE_Z);
+    put(new THREE.CylinderGeometry(PAD_IN, PAD_IN, .04, 32), M('#ff8fab'), 0, RUN.h + .02, POSE_Z).receiveShadow = true;
+    const star = put(new THREE.ExtrudeGeometry(starShape(.62, .27), { depth: .02, bevelEnabled: false }), M('#ffd54a'), 0, RUN.h + .03, POSE_Z);
     star.rotation.x = -Math.PI / 2; star.receiveShadow = true;
     // the curtain: one draped sheet with deep folds, and two side drapes tied back with gold bands
     const red = M('#c0302a', { roughness: .95 }), redD = M('#93201b', { roughness: .95 });
@@ -146,8 +152,8 @@ export function createScene(canvas, { onFrame } = {}) {
       put(new THREE.CylinderGeometry(.08, .11, 5.4, 6), M('#3a3440'), sx * 3.7, 2.7, -5.2).castShadow = true;
       const hd = put(new THREE.CylinderGeometry(.24, .34, .55, 10), M('#3a3440'), sx * 3.7, 5.5, -5.2); hd.rotation.set(-.55, 0, sx * .5);
     }
-    // flower stands at the corners of the stage front and beside the pose platform
-    for (const [x, z, sz] of [[-3.05, STAGE.z + 1.3, 1], [3.05, STAGE.z + 1.3, 1], [-2.15, POSE_Z + 1.1, .8], [2.15, POSE_Z + 1.1, .8]]) {
+    // flower stands at the corners of the stage front
+    for (const [x, z, sz] of [[-3.05, STAGE.z + 1.3, 1], [3.05, STAGE.z + 1.3, 1]]) {
       const g = new THREE.Group(); g.position.set(x, z < -6 ? RUN.h : 0, z); g.scale.setScalar(sz); room.add(g);
       put(new THREE.CylinderGeometry(.26, .2, .45, 8), M('#ffffff'), 0, .22, 0, g); put(new THREE.CylinderGeometry(.28, .28, .06, 8), gold, 0, .44, 0, g);
       const cols = ['#ff8fab', '#ffd54a', '#ffffff', '#ff6f91', '#c9a7ff'];
@@ -167,7 +173,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const bulbMat = new THREE.MeshStandardMaterial({ color: '#fff0b0', emissive: '#ffc94d', emissiveIntensity: .5, roughness: .4 });
   const spots = [];
   for (let z = RUN.z0 + .4; z < POSE_Z - 1.4; z += .8) for (const sx of [-1, 1]) spots.push([sx * (RUN.w / 2 + .05), RUN.h + .08, z]);
-  for (let k = 0; k < 22; k++) { const a = Math.PI * (.62 + k / 21 * 1.76) + Math.PI / 2; const x = Math.cos(a) * 1.62, z = POSE_Z - Math.sin(a) * 1.62; if (Math.abs(x) > RUN.w / 2 + .1 || z > POSE_Z) spots.push([x, RUN.h + .08, z]); }
+  for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, x = Math.sin(a) * 1.41, z = POSE_Z + Math.cos(a) * 1.41; if (Math.abs(x) > RUN.w / 2 + .12 || z > POSE_Z) spots.push([x, RUN.h + .08, z]); }
   for (let k = 0; k < 13; k++) spots.push([-3.6 + k * .6, RUN.h + 5.15, cz + .62]);
   for (const sx of [-1, 1]) for (let k = 0; k < 7; k++) spots.push([sx * 3.85, RUN.h + .7 + k * .65, cz + .6]);
   const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(.075, 8, 6), bulbMat, spots.length);
@@ -196,6 +202,29 @@ export function createScene(canvas, { onFrame } = {}) {
     const sz = Math.min(.62, h * .78), n = new THREE.Mesh(new THREE.PlaneGeometry(sz, sz), new THREE.MeshBasicMaterial({ map: placeTex(k + 1), transparent: true })); n.position.set(x, h / 2 - .02, .711); n.userData.dyn = true; podium.add(n);
   });
   toonify(podium, .035);
+  // the press: Pet Farm pets sitting by the front of the runway, either side of it, with little cameras, cheering and snapping flashes
+  const PRESS = ['mossbun', 'tuxpurr', 'cupcowl', 'puddlepup', 'glazemew', 'cindercub'];
+  const camGeo = [new THREE.BoxGeometry(.3, .2, .14), new THREE.CylinderGeometry(.075, .085, .12, 10), new THREE.BoxGeometry(.1, .06, .06)];
+  const camMats = [M('#3a3440'), M('#9fe6ff', { roughness: .3 }), M('#fff8dc', { emissive: '#ffffff', emissiveIntensity: 0 })];
+  const press = PRESS.map((sp, i) => {
+    const side = i % 2 ? 1 : -1, row = i >> 1;
+    const g = new THREE.Group(); g.position.set(side * (1.72 + (row % 2) * .12), 0, .9 + row * .95); g.rotation.y = Math.atan2(-g.position.x * .6, POSE_Z - .6 - g.position.z); scene.add(g);
+    let h = .8, pet = null;
+    try {
+      pet = petModel(sp, 1); const bb = new THREE.Box3().setFromObject(pet), size = bb.getSize(new THREE.Vector3()), k = .62 / Math.max(size.y, size.x * .8, .01);
+      pet.scale.multiplyScalar(k); pet.position.y = -bb.min.y * k; h = size.y * k; g.add(pet);
+    } catch (e) { console.warn('press pet', sp, e); }
+    // the camera, held up in front of the face, its lens to the runway
+    const cam = new THREE.Group(); cam.position.set(0, h * .6, .34); cam.scale.setScalar(.8); g.add(cam);
+    const body = new THREE.Mesh(camGeo[0], camMats[0]), lens = new THREE.Mesh(camGeo[1], camMats[1]), bulb = new THREE.Mesh(camGeo[2], camMats[2].clone());
+    lens.rotation.x = Math.PI / 2; lens.position.z = .11; bulb.position.set(-.08, .13, 0); cam.add(body, lens, bulb);
+    toonify(cam, .03);
+    return { g, pet, cam, bulb: bulb.material ? bulb : null, seed: i * 1.7, hop: 0, lit: 0 };
+  });
+  const snap = (x, k = 1) => {
+    x.lit = 1; x.hop = Math.max(x.hop, .6 * k); flash = Math.max(flash, .7 * k);
+    x.cam.getWorldPosition(tv); tv.y += .1; pfx.sparkle(tv, { n: 4, colors: ['#ffffff', '#fff6c8'], r: .12, size: .34, life: .3 });
+  };
 
   // ---------- avatars: one standing and one seated model per look, made when needed ----------
   const models = new Map(); // key -> { wrap, av, used }
@@ -321,14 +350,23 @@ export function createScene(canvas, { onFrame } = {}) {
         x.m.wrap.position.set(0, x.m.wrap.position.y, z); x.m.wrap.rotation.y = ry; walkZ = z;
         if (posing && !reduced && (snapT -= dt) <= 0) {
           // photographers in the crowd: a flash from the front sides now and then
-          snapT = .28 + Math.random() * .4; flash = 1;
-          const sx = Math.random() < .5 ? -1 : 1; pfx.sparkle(tv.set(sx * (2.6 + Math.random() * 1.4), 1.2 + Math.random() * .8, z + .5 + Math.random() * 2.5), { n: 5, colors: ['#ffffff', '#fff6c8'], r: .25, size: .3, life: .35 });
+          snapT = .22 + Math.random() * .35; snap(press[Math.random() * press.length | 0]);
         }
         if (posing && !x.puff && !reduced) { x.puff = 1; pfx.burst(new THREE.Vector3(0, 2.4, z), { n: 18, colors: ['#ffd84a', '#ffffff', '#ff8fab'], speed: 2.6, up: 2.4, size: .22, life: .8, shape: p_shape(x.pose) }); }
       }
     }
     // the judges turn their heads to follow whoever walks
     for (const x of shown) if (x.kind === 'judge') { const u = x.m.av.userData; u.head.rotation.y += Math.max(-1, Math.min(1, Math.atan2(walkZ - x.z, Math.abs(x.x)) * (x.x < 0 ? -1 : 1))) * .7; }
+    // the press cheers: hops and wagging while a look walks or the podium is up, a quick hop with every photo
+    const cheer = S.stage === 'walk' || S.stage === 'reveal' || S.stage === 'end' ? 1 : .25;
+    if (S.stage === 'reveal' && !reduced && (snapT -= dt) <= 0) { snapT = .6 + Math.random() * .9; snap(press[Math.random() * press.length | 0], .5); }
+    for (const x of press) {
+      x.hop = Math.max(0, x.hop - dt * 2.2); x.lit = Math.max(0, x.lit - dt * 6);
+      const b = reduced ? 0 : Math.abs(Math.sin(T * 5 + x.seed)) * .08 * cheer + Math.sin(x.hop * Math.PI) * .18;
+      if (x.pet) { x.pet.position.y = x.pet.userData.y0 ??= x.pet.position.y; x.pet.position.y += b; wiggle(x.pet, T, x.seed, cheer); }
+      x.cam.position.y = (x.cam.userData.y0 ??= x.cam.position.y) + b; x.cam.rotation.z = reduced ? 0 : Math.sin(T * 3 + x.seed) * .08 * cheer;
+      x.bulb.material.emissiveIntensity = x.lit * 4;
+    }
     frame(S.stage, walkZ);
     const k = first ? 1 : Math.min(1, dt * (S.stage === 'walk' ? 2.5 : 3.2)); first = false;
     cam.pos.lerp(goal.pos, k); cam.look.lerp(goal.look, k);
@@ -367,6 +405,7 @@ export function createScene(canvas, { onFrame } = {}) {
     dispose() {
       dead = true; ticker.stop();
       for (const m of models.values()) disposeAvatar(m.av);
+      for (const g of camGeo) g.dispose(); for (const m of camMats) m.dispose(); for (const x of press) x.bulb.material.dispose();
       sign.t.dispose(); pfx.dispose(); bulbMat.dispose(); beamMat.map.dispose(); beamMat.dispose(); pool.material.map.dispose(); pool.material.dispose();
       renderer.dispose(); renderer.forceContextLoss();
     },
