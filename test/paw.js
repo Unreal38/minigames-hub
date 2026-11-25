@@ -183,7 +183,7 @@ console.log(`OK all ${seen.size} Zoomies cards came up, ${builds} upgrades stand
 
 // ----- over the real server (waits are 25 times shorter) -----
 const PORT = 22080 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}`, PAW_FAST: '25' }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}`, PAW_FAST: '25' }, stdio: 'inherit' });
 const bail = msg => { srv.kill(); fail(msg); };
 await new Promise(r => setTimeout(r, 600));
 const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);

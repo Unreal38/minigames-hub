@@ -12,7 +12,7 @@ const PORT = 23100 + (Math.random() * 800 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-move-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv, log = '';
-const boot = async (env = {}) => { log = ''; srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); srv.stdout.on('data', d => log += d); srv.stderr.on('data', d => log += d); await wait(800); };
+const boot = async (env = {}) => { log = ''; srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1', ...env }, stdio: ['ignore', 'pipe', 'pipe'] }); srv.stdout.on('data', d => log += d); srv.stderr.on('data', d => log += d); await wait(800); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 const fail = m => { console.error('FAIL', m, '\n--- server log ---\n' + log); srv?.kill(); process.exit(1); };
 const until = async (f, what, ms = 20000) => { const t0 = Date.now(); while (!f()) { await wait(50); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };
@@ -51,7 +51,7 @@ const hashes = { a: sha('cozy-table.json'), f: sha('pet-farm.json') };
 
 // 2. The dry run says it all matches, and leaves no database behind.
 let out = '';
-try { out = execFileSync('node', ['server/dbcheck.js'], { env: { ...process.env, DATA_DIR }, encoding: 'utf8' }); } catch (e) { fail('db-check failed:\n' + e.stdout + e.stderr); }
+try { out = execFileSync('node', ['server/dbcheck.js'], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR }, encoding: 'utf8' }); } catch (e) { fail('db-check failed:\n' + e.stdout + e.stderr); }
 if (!/everything matched/.test(out) || !/visitors so far \(the number on the hub\): 3/.test(out) || !/accounts 2,/.test(out)) fail('db-check output:\n' + out);
 if (fs.existsSync(path.join(DATA_DIR, 'zatoka.db'))) fail('db-check made a database in the real folder');
 
@@ -96,7 +96,7 @@ const res = execFileSync('node', ['--input-type=module', '-e', `
   for (let i = 0; i < 50; i++) store.profileOf('t' + String(i * 997).padStart(19, '0')).coins += 5;
   t0 = performance.now(); store.saveNow(); const small = performance.now() - t0;
   console.log(JSON.stringify({ full: Math.round(full), small: Math.round(small), visitors: store.visitorCount() }));
-`], { env: { ...process.env, DATA_DIR: BIG }, encoding: 'utf8' });
+`], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR: BIG }, encoding: 'utf8' });
 const r = JSON.parse(res.trim().split('\n').at(-1));
 console.log(`50,000 players: first full save ${r.full} ms, a save after 50 changes ${r.small} ms`);
 if (r.small > 40) fail('a small save took ' + r.small + ' ms');

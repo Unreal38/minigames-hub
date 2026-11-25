@@ -104,7 +104,7 @@ for (const ids of Object.values(RACE)) for (const id of ids) if (!layout(id)) fa
 }
 
 // ----- the solo game on a real server -----
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 function player(name, token) {
   const p = { token, me: null, auth: null, last: null, rk: null };

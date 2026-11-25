@@ -16,7 +16,7 @@ fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, 
   pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 2920, owned: ['ip:1'], cos: { pets: ['gone'], pet: 'gone' } }, // bought a Tent while isle decor was sold: refunded on load
   pb: { pid: 'pb', user: 'bo', name: 'Bo', color: '#5b9bd5', av: null, xp: 0, games: 1, wins: 0, pts: 0, byGame: { hotpot: { games: 1, wins: 0, best: 0 } }, coins: 5, owned: [] } },
   sessions: { [TA]: { id: 'aaa', pid: 'pa', seen: Date.now() }, [TB]: { id: 'bbb', pid: 'pb', seen: Date.now() } }, rooms: [] }));
-srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10', FARM_TEST: '1' }, stdio: 'inherit' });
+srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10', FARM_TEST: '1' }, stdio: 'inherit' });
 await wait(700);
 function player(token, name) {
   const p = { msgs: [], me: null, room: null, rk: null };
@@ -162,7 +162,7 @@ if (seen().fp?.length !== 0) fail('floating pieces could not all be taken away')
 if (Object.keys(flairOf({ cos: { nm: 3, ti: SHARK, fr: 99 }, owned: [], byGame: {} })).length) fail('flairOf let unowned cosmetics through');
 // everything survives a restart
 const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done;
-srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700);
+srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700);
 const c = player(TA, 'Ana'); await c.connect(); await wait(300);
 if (c.me.cos.pet !== pets[0].id || c.me.cos.kp !== 2 || c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
 // card backgrounds: patterns and scenes are bought, the podium ones come with a place in the overall ranking, the pet ones with album species

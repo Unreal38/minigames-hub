@@ -95,7 +95,7 @@ const fixed = () => 3; // new pets are all kind 3, so the test knows what drops 
 if (starsFor(0, 20) !== 1 || starsFor(3, 20) !== 2 || starsFor(6, 20) !== 3 || coinsFor(3) > 10) fail('stars or coins off');
 
 // ----- the server -----
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 function player(name, token) {
   const p = { token, me: null, auth: null, last: null, rk: null };

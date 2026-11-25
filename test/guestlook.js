@@ -8,7 +8,7 @@ import path from 'node:path';
 const PORT = 19080 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' });
 await wait(700);
 process.on('exit', () => srv.kill());
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };

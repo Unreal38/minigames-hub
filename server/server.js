@@ -72,7 +72,7 @@ import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { distinctCols, matchColors } from './colors.js';
 import { botPay } from './botpay.js';
-const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tests check exact placement coins from quick bot matches (test/persist.js checks the real share)
+const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tests check exact placement coins from quick bot matches, so each test's server gets BOT_PAY=full (test/persist.js checks the real share)
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';

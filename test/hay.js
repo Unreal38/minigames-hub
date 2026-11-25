@@ -29,7 +29,7 @@ for (let k = 0; k < 400; k++) {
 if (harvestOf([1, 2, 3, 0], [1, 1, 1, 0]) !== 6 || harvestOf([1, 2], [0, 0]) !== 0 || harvestOf([1, 1], [1, 0]) !== 1) fail('harvest maths');
 
 // ----- the server -----
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 function player(name, token) {
   const p = { token, me: null, auth: null, last: null, rk: null };

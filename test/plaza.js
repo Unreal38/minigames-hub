@@ -12,7 +12,7 @@ const PORT = 21980 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-plz-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
-const start = async (extra = {}) => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, ADMINS: 'mod', ...extra }, stdio: 'inherit' }); await wait(800); };
+const start = async (extra = {}) => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, ADMINS: 'mod', ...extra }, stdio: 'inherit' }); await wait(800); };
 const stop = async () => { srv.kill('SIGTERM'); await new Promise(r => srv.on('exit', r)); };
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(30); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };

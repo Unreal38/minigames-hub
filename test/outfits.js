@@ -10,7 +10,7 @@ const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
 const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 function player(token) {
   const p = { msgs: [], me: null };

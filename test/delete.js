@@ -12,7 +12,7 @@ const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-del-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv, crashed = false;
 const start = async () => {
-  srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off', ADMINS: 'boss' }, stdio: ['ignore', 'inherit', 'inherit'] });
+  srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off', ADMINS: 'boss' }, stdio: ['ignore', 'inherit', 'inherit'] });
   srv.on('exit', code => { if (code && code !== 143 && !srv.killed) crashed = true; });
   await wait(700);
 };

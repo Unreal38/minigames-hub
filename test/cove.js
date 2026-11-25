@@ -111,7 +111,7 @@ for (const board of ['classic', 'quick']) {
 
 // ----- over the real server: one person against a bot, a whole quick game -----
 const PORT = 27080 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}`, COVE_FAST: 20 }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}`, COVE_FAST: 20 }, stdio: 'inherit' });
 const bail = msg => { srv.kill(); fail(msg); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 // Wait for the server's answer instead of a fixed time: a busy test machine (or Nagle's delay on the test's own

@@ -19,7 +19,7 @@ const prof = (pid, user) => ({ pid, user, name: user, color: '#ff8fab', av: null
 const T = { ana: 'a'.repeat(24), bo: 'b'.repeat(24), cy: 'c'.repeat(24) };
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles: { p1: prof('p1', 'Ana'), p2: prof('p2', 'bo_2'), p3: prof('p3', 'Cy') },
   sessions: { [T.ana]: { id: 'a1', pid: 'p1', seen: Date.now() }, [T.bo]: { id: 'b1', pid: 'p2', seen: Date.now() }, [T.cy]: { id: 'c1', pid: 'p3', seen: Date.now() } }, rooms: [] }));
-const boot = async env => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off', ...env }, stdio: 'inherit' }); await wait(700); };
+const boot = async env => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off', ...env }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 
 function player(token) {
@@ -92,7 +92,7 @@ ok(!JSON.stringify(saved).includes('example.com') && !JSON.stringify(saved).incl
 // bo_2 gets the pack as it first shipped (clothes only), to check that the server tops it up
 saved.profiles.p4 = prof('p4', 'Dee'); saved.profiles.p2.owned = saved.profiles.p2.owned.filter(id => CLOTHES.includes(id)); writeSaved(DATA_DIR, saved);
 await boot({ KOFI_TOKEN: KEY });
-execFileSync('node', ['server/supporter.js', 'dee'], { env: { ...process.env, DATA_DIR }, stdio: 'ignore' });
+execFileSync('node', ['server/supporter.js', 'dee'], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR }, stdio: 'ignore' });
 await wait(3600); await stop();
 const after = readSaved(DATA_DIR);
 ok(IDS.every(id => after.profiles.p4.owned?.includes(id)), 'the supporter command did not give the pack');

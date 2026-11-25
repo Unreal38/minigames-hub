@@ -30,7 +30,7 @@ ok(geo.langFor('5.8.1.1', 'en-US') === 'pl', 'a Polish address gets Polish');
 ok(geo.langFor('5.9.1.1', 'en-US') === 'en' && geo.langFor('5.9.1.1', 'pl') === 'pl', 'elsewhere the browser language decides');
 
 // ----- the page carries the guess, and an account remembers the pick -----
-srv = spawn('node', ['server/server.js'], { env: { ...process.env, CT_LANG: '', PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off' }, stdio: 'inherit' });
+srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, CT_LANG: '', PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off' }, stdio: 'inherit' });
 await wait(700);
 const page = async al => { const r = await fetch(`http://127.0.0.1:${PORT}/`, { headers: { 'accept-language': al } }); return { html: await r.text(), etag: r.headers.get('etag'), csp: r.headers.get('content-security-policy') }; };
 const pl = await page('pl-PL,pl;q=0.9'), en = await page('en-GB,en;q=0.9');
@@ -146,7 +146,7 @@ const plCheck = spawnSync(process.execPath, ['--input-type=module', '-e', `
   const [paw, pips, kart, kitchen, poker] = await Promise.all(['paw/board.js', 'pips/rules.js', 'kart/track.js', 'kitchen/rules.js', 'poker/rules.js'].map(f => import(new URL(f, ${JSON.stringify(gamesDir.href)}).href)));
   const out = [paw.TILES[0].name, paw.LV_NAMES[1], pips.LABEL.ch, kitchen.RECIPES.salad.name, poker.cardLabel(12), poker.HAND_ORDER[3][0]].join('|');
   if (out !== 'Wycieraczka|Legowisko|Szansa|Sałatka ogrodowa|As kier|Ful') { console.error(out); process.exit(1); }
-`], { env: { ...process.env, CT_LANG: 'pl' }, encoding: 'utf8' });
+`], { env: { BOT_PAY: 'full', ...process.env, CT_LANG: 'pl' }, encoding: 'utf8' });
 ok(plCheck.status === 0, 'shared game files in Polish: ' + (plCheck.stderr || '').slice(0, 300));
 console.log('i18n: all good');
 process.exit(0);
