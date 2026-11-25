@@ -327,6 +327,11 @@ export function createScene(canvas, opts = {}) {
     const now = performance.now();
     if ((qx !== sentX || qz !== sentZ || qr !== sentR) && (now - sendAt > 160)) { sendAt = now; sentX = qx; sentZ = qz; sentR = qr; opts.send?.({ k: 'mv', x: qx, z: qz, r: qr }); }
   }
+  // Send where you stand right now, before taking a seat. The carousel and the swing leave your place where you got on,
+  // so a step still waiting to be sent would reach the server after the seat and count as walking off: everyone else
+  // would see you standing beside the carousel while your own screen showed you riding.
+  function flush() { if (!me) return; const qx = Math.round(me.x * Q), qz = Math.round(me.z * Q), qr = Math.round(((me.tr % 6.2832) + 6.2832) % 6.2832 * 10);
+    if (qx === sentX && qz === sentZ && qr === sentR) return; sendAt = performance.now(); sentX = qx; sentZ = qz; sentR = qr; opts.send?.({ k: 'mv', x: qx, z: qz, r: qr }); }
 
   // ---- camera
   const cam = { x: 0, z: 14, zoom: 1, tall: false, fade: 1, yaw: 0, el: 0, ty: 0, te: 0 }; // yaw/el: where the player turned the view (ty/te are where it is easing to)
@@ -521,7 +526,7 @@ export function createScene(canvas, opts = {}) {
     res.lower(); } });
 
   return {
-    setPeople, add, remove, look, moved, fix, emote, throwBall, aim, fireworks, volley, turn, resetView, turned, poke, standBy, nearThing, thingAt, setGhost, dropGhost, setTree, setOrn, setMove, walkTo, pick, setZoom, spotTaken,
+    setPeople, add, remove, look, moved, fix, emote, throwBall, aim, fireworks, volley, turn, resetView, turned, poke, standBy, nearThing, thingAt, setGhost, dropGhost, setTree, setOrn, setMove, walkTo, pick, setZoom, spotTaken, flush,
     zoom: () => cam.zoom, me: () => me, folk: () => folk, theme,
     nearTree: () => !!me && Math.hypot(me.x, me.z),
     pat(s, i) { const m = folk.get(s), q = m?.pets.find(x => x.k === i); if (!q) return; q.pat = T + 1.05; fx.burst(new THREE.Vector3(q.x, .9, q.z), { n: 6, colors: ['#ff6f91', '#ff9fb8', '#ffffff'], shape: HEART, speed: 1.1, up: 2.6, size: .34, grav: 3, life: 1.1 }); },
