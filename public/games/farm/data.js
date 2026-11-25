@@ -96,8 +96,8 @@ export const ITEMS = {
   jpost:   { name: 'Signpost', kind: 'd', w: .5, h: .5, fine: true, jn: 3, max: 1, cost: {}, desc: 'Points the way to every island. A Farm Journal reward.' },
   jcradle: { name: 'Egg Cradle', kind: 'd', w: .5, h: .5, fine: true, jn: 4, max: 1, cost: {}, desc: 'A soft basket that rocks a spotted egg. A Farm Journal reward.' },
   jtable:  { name: 'Neighbours’ Table', kind: 'd', w: 1, h: 1, jn: 5, max: 1, cost: {}, desc: 'Room for everyone, and tea for two. A Farm Journal reward.' },
-  jvane:   { name: 'Golden Weathervane', kind: 'd', w: .5, h: .5, fine: true, jn: 6, max: 1, cost: {}, desc: 'A golden pet turns with the wind. A Farm Journal reward.' },
-  jscope:  { name: 'Star Telescope', kind: 'd', w: 1, h: 1, jn: 7, max: 1, cost: {}, desc: 'For looking past the clouds. A Farm Journal reward.' },
+  jvane:   { name: 'Prize Pumpkin', kind: 'd', w: 1, h: 1, jn: 6, max: 1, cost: {}, desc: 'A blue ribbon for the best farm around. A Farm Journal reward.' },
+  jscope:  { name: 'Star Globe', kind: 'd', w: 1, h: 1, jn: 7, max: 1, cost: {}, desc: 'Brass rings turn slowly round a little star. A Farm Journal reward.' },
   jcup:    { name: 'Collector’s Cup', kind: 'd', w: 1, h: 1, jn: 8, max: 1, cost: {}, desc: 'For a farmer who found nearly everything. A Farm Journal reward.' },
 };
 
