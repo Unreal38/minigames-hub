@@ -14,21 +14,42 @@ export const LULL_REACH = 1.9; // how near a Sneak must stand to lull someone
 export const REPORT_REACH = 3.4; // how near you must be to a sleeper to ring for a meeting
 export const GLOW = 7.5, GLOW_SNEAK = 9.5, GLOW_DARK = 3.4; // how far you see: islanders, Sneaks, islanders while the lighthouse is out
 
-// Chore places: [id, Pet Farm decoration, x, z, turn, size, blocking radius, chore kind]; sp = where you stand (else in
+// Chore places: [id, Pet Farm decoration, x, z, turn, size, blocking radius]; sp = where you stand (else in
 // front of the place, on the side that faces the campfire). Each sits in its own walled corner of the island (see WALLS).
-// Kinds (client.js draws them): hold = press and hold, taps = tap every target, seq = tap 1..5 in order, fill = stop the bar in the band.
 export const STATIONS = [
-  { id: 'light', item: 'lighthouse', x: -16, z: -14, ry: .5, s: 2.2, r: 1.25, kind: 'seq', name: () => L('Lighthouse', 'Latarnia'), job: () => L('Light the lamps', 'Zapal lampy') },
-  { id: 'mill', item: 'windmill', x: 14.5, z: -15, ry: -.6, s: 2.1, r: 1.3, kind: 'hold', name: () => L('Windmill', 'Wiatrak'), job: () => L('Crank the windmill', 'Zakręć wiatrakiem') },
-  { id: 'barn', item: 'barn', x: -17, z: 2, ry: 1.57, s: 1.5, r: 2.1, kind: 'taps', name: () => L('Pet barn', 'Stodoła'), job: () => L('Feed the pets', 'Nakarm zwierzaki') },
-  { id: 'kitchen', item: 'kitchen', x: 2, z: -18, ry: 0, s: 1.5, r: 2.1, kind: 'taps', name: () => L('Kitchen hut', 'Kuchnia'), job: () => L('Sort the snacks', 'Posortuj przekąski') },
-  { id: 'garden', item: 'garden', x: 18.4, z: 7.2, ry: -1.3, s: 1.5, r: 0, sp: [18.4, 5.6], kind: 'fill', name: () => L('Garden', 'Ogród'), job: () => L('Water the garden', 'Podlej ogród') },
-  { id: 'well', item: 'well', x: -10, z: 14.5, ry: .3, s: 1.8, r: 1.05, kind: 'hold', name: () => L('Well', 'Studnia'), job: () => L('Draw water', 'Wyciągnij wodę') },
-  { id: 'dock', item: null, x: 7.5, z: 20.4, ry: 0, s: 1, r: 0, sp: [7.5, 19.6], kind: 'fill', name: () => L('Dock', 'Przystań'), job: () => L('Coil the rope', 'Zwiń linę') },
+  { id: 'light', item: 'lighthouse', x: -16, z: -14, ry: .5, s: 2.2, r: 1.25, name: () => L('Lighthouse', 'Latarnia') },
+  { id: 'mill', item: 'windmill', x: 14.5, z: -15, ry: -.6, s: 2.1, r: 1.3, name: () => L('Windmill', 'Wiatrak') },
+  { id: 'barn', item: 'barn', x: -17, z: 2, ry: 1.57, s: 1.5, r: 2.1, name: () => L('Pet barn', 'Stodoła') },
+  { id: 'kitchen', item: 'kitchen', x: 2, z: -18, ry: 0, s: 1.5, r: 2.1, name: () => L('Kitchen hut', 'Kuchnia') },
+  { id: 'garden', item: 'garden', x: 18.4, z: 7.2, ry: -1.3, s: 1.5, r: 0, sp: [18.4, 5.6], name: () => L('Garden', 'Ogród') },
+  { id: 'well', item: 'well', x: -10, z: 14.5, ry: .3, s: 1.8, r: 1.05, name: () => L('Well', 'Studnia') },
+  { id: 'dock', item: null, x: 7.5, z: 20.4, ry: 0, s: 1, r: 0, sp: [7.5, 19.6], name: () => L('Dock', 'Przystań') },
 ];
+// The chores: two at every place, a player's list never has two at the same place. Kinds (client.js draws them):
+// hold = press and hold, taps = tap every target, seq = tap 1..5 in order, fill = stop the bar in the band,
+// pick = tap only the right things (a wrong tap buzzes). job = the list line, how = the one-line hint in the panel.
+const T = (kind, job, how, more = {}) => ({ kind, job, how, ...more });
+const TASKS = {
+  light: [T('seq', () => L('Light the lamps', 'Zapal lampy'), () => L('Light the lamps in order: 1, 2, 3, 4, 5.', 'Zapal lampy po kolei: 1, 2, 3, 4, 5.')),
+    T('taps', () => L('Wipe the lens', 'Przetrzyj soczewkę'), () => L('Tap every smudge to wipe it off.', 'Dotknij każdej smugi, żeby ją zetrzeć.'), { pics: ['💧', '💨', '💧', '💨', '💧', '💨'] })],
+  mill: [T('hold', () => L('Crank the windmill', 'Zakręć wiatrakiem'), () => L('Press and hold until the wheel is full.', 'Przytrzymaj, aż koło się wypełni.')),
+    T('pick', () => L('Sort the grain', 'Przesiej ziarno'), () => L('Tap only the grain, not the pebbles.', 'Dotknij tylko ziaren, nie kamyków.'), { good: '🌾', bad: '🪨' })],
+  barn: [T('taps', () => L('Feed the pets', 'Nakarm zwierzaki'), () => L('Tap every treat to put it in a bowl.', 'Dotknij każdego smakołyku, żeby włożyć go do miski.'), { pics: ['🥕', '🍎', '🌽', '🥬', '🍓', '🥜'] }),
+    T('pick', () => L('Collect the eggs', 'Zbierz jajka'), () => L('Tap only the eggs, not the feathers.', 'Dotknij tylko jajek, nie piórek.'), { good: '🥚', bad: '🪶' })],
+  kitchen: [T('taps', () => L('Sort the snacks', 'Posortuj przekąski'), () => L('Tap every snack to put it on the shelf.', 'Dotknij każdej przekąski, żeby odłożyć ją na półkę.'), { pics: ['🍪', '🧁', '🥐', '🍩', '🍬', '🥨'] }),
+    T('hold', () => L('Stir the soup', 'Zamieszaj zupę'), () => L('Press and hold to stir until the wheel is full.', 'Przytrzymaj i mieszaj, aż koło się wypełni.'))],
+  garden: [T('fill', () => L('Water the garden', 'Podlej ogród'), () => L('Hold to pour and let go in the green band.', 'Przytrzymaj, żeby lać, i puść w zielonym pasku.'), { btn: () => L('Pour', 'Lej') }),
+    T('pick', () => L('Pull the weeds', 'Wyrwij chwasty'), () => L('Tap only the weeds, leave the flowers.', 'Dotknij tylko chwastów, zostaw kwiatki.'), { good: '🌿', bad: '🌷' })],
+  well: [T('hold', () => L('Draw water', 'Wyciągnij wodę'), () => L('Press and hold until the wheel is full.', 'Przytrzymaj, aż koło się wypełni.')),
+    T('seq', () => L('Mend the bucket', 'Napraw wiadro'), () => L('Hammer the nails in order: 1, 2, 3, 4, 5.', 'Wbij gwoździe po kolei: 1, 2, 3, 4, 5.'), { icon: '🔨' })],
+  dock: [T('fill', () => L('Coil the rope', 'Zwiń linę'), () => L('Hold to pull and let go in the green band.', 'Przytrzymaj, żeby ciągnąć, i puść w zielonym pasku.'), { btn: () => L('Pull', 'Ciągnij') }),
+    T('taps', () => L('Patch the boat', 'Załataj łódkę'), () => L('Tap every hole to patch it.', 'Dotknij każdej dziury, żeby ją załatać.'), { pics: ['🕳️', '🕳️', '🕳️', '🕳️', '🕳️', '🕳️'] })],
+};
+STATIONS.forEach(st => { st.tasks = TASKS[st.id]; });
+export const taskOf = (st, v = 0) => STATIONS[st]?.tasks[v ? 1 : 0];
 export const ST = Object.fromEntries(STATIONS.map((s, i) => [s.id, i]));
 export const spotOf = st => { if (st.sp) return st.sp; const d = Math.hypot(st.x, st.z) || 1, k = st.r + 1.1; return [st.x - st.x / d * k, st.z - st.z / d * k]; };
-export const CHORE_MS = { hold: 2600, taps: 2200, seq: 2000, fill: 1500 }; // the quickest a chore can really be done (the server checks)
+export const CHORE_MS = { hold: 2600, taps: 2200, seq: 2000, fill: 1500, pick: 1800 }; // the quickest a chore can really be done (the server checks)
 
 // Hollow logs: only Sneaks can crawl in and pop out of the next one round the island.
 export const LOGS = [[-19.6, -5.4, 0], [-6.6, -19.4, 1.57], [20.2, -3.6, 0], [-2.4, 20.2, 1.57]];

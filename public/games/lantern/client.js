@@ -12,7 +12,7 @@ import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
 import { EL_PL } from '../../lang/farm-pl.js';
 import { PL } from '../../i18n.js';
-import { STATIONS, spotOf, LOGS, ROPES, BELL, REACH, LULL_REACH, REPORT_REACH, R_WALK, SIZE_WORD, WALLS, WALL_KIND } from './layout.js';
+import { STATIONS, spotOf, LOGS, ROPES, BELL, REACH, LULL_REACH, REPORT_REACH, R_WALK, SIZE_WORD, WALLS, WALL_KIND, taskOf } from './layout.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const near = (m, x, z, r) => !!m && Math.hypot(m.x - x, m.z - z) <= r;
@@ -180,7 +180,7 @@ export function mount(app, ctx) {
     if (!out) { const bed = S.beds.find(b => !b[3] && near(m, b[1], b[2], REPORT_REACH)); if (bed) o.push({ a: 'ring', main: true, label: L('Ring for a meeting', 'Zwołaj naradę'), sub: L(`${nameOf(bed[0])} is asleep!`, `${nameOf(bed[0])} śpi!`), cls: 'alarm' }); }
     if (!out && !isSneak && S.mis?.k === 'ropes') ROPES.forEach(([x, z], i) => { if (near(m, x, z, REACH)) o.push({ a: 'rope', i, main: true, label: rope === i ? L('Let go', 'Puść linę') : L('Hold the rope', 'Trzymaj linę'), sub: L('Two of you, both ropes at once', 'Dwie osoby, obie liny naraz'), cls: 'alarm' }); });
     if (!out && !isSneak && S.mis?.k === 'dark' && near(m, ...spotOf(STATIONS[0]), REACH)) o.push({ a: 'relight', main: true, label: L('Relight the lighthouse', 'Zapal latarnię'), cls: 'alarm' });
-    y.jobs.forEach(([st, done], i) => { if (!done && near(m, ...spotOf(STATIONS[st]), REACH)) o.push({ a: 'job', i, main: true, label: STATIONS[st].job(), sub: isSneak ? L('Pretend: it fills nothing', 'Udawaj: to nic nie daje') : '' }); });
+    y.jobs.forEach(([st, done, v], i) => { if (!done && near(m, ...spotOf(STATIONS[st]), REACH)) o.push({ a: 'job', i, main: true, label: taskOf(st, v).job(), sub: isSneak ? L('Pretend: it fills nothing', 'Udawaj: to nic nie daje') : '' }); });
     if (!out && near(m, ...BELL, REACH)) o.push({ a: 'bell', main: true, label: L('Ring the bell', 'Zadzwoń dzwonem'), sub: y.bell ? L('Once a game: calls a meeting', 'Raz na grę: zwołuje naradę') : L('You already rang it', 'Już dzwoniono'), off: !y.bell || !!S.mis });
     if (isSneak && !out) {
       const t = target(); o.push({ a: 'lull', label: L('Lull', 'Uśpij'), sub: y.lull > 0 ? `${Math.ceil(left2(y.lull) / 1000)} s` : t >= 0 ? nameOf(t) : L('Nobody near', 'Nikogo obok'), off: t < 0 || left2(y.lull) > 0, cls: 'sneak' });
@@ -215,17 +215,19 @@ export function mount(app, ctx) {
 
   // ---- chores: small one-thumb jobs
   function openJob(i) {
-    const st = STATIONS[you().jobs[i][0]]; job = { i, kind: st.kind, t0: performance.now(), n: 0 };
+    const [sti, , v] = you().jobs[i], st = STATIONS[sti], tk = taskOf(sti, v); job = { i, kind: tk.kind, t0: performance.now(), n: 0 };
     ctx.act({ t: 'cs', i }); scene?.freeze(true); sfx.click();
     const el = $('ln-job'); el.hidden = false;
-    const head = `<div class="ln-jhead"><b>${st.job()}</b><span>${st.name()}</span><button type="button" class="round sm" data-a="jclose" aria-label="${L('Close', 'Zamknij')}">×</button></div>`;
-    if (st.kind === 'hold') el.innerHTML = `${head}<p>${L('Press and hold until the wheel is full.', 'Przytrzymaj, aż koło się wypełni.')}</p><button type="button" class="ln-hold" id="ln-hold"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="bg"/><circle cx="50" cy="50" r="40" class="fg" id="ln-holdc" pathLength="100"/></svg><span>${L('Hold', 'Trzymaj')}</span></button>`;
-    else if (st.kind === 'taps') { const pics = st.id === 'barn' ? ['🥕', '🍎', '🌽', '🥬', '🍓', '🥜'] : ['🍪', '🧁', '🥐', '🍩', '🍬', '🥨'];
-      el.innerHTML = `${head}<p>${st.id === 'barn' ? L('Tap every treat to put it in a bowl.', 'Dotknij każdego smakołyku, żeby włożyć go do miski.') : L('Tap every snack to put it on the shelf.', 'Dotknij każdej przekąski, żeby odłożyć ją na półkę.')}</p><div class="ln-taps">${pics.map((p, k) => `<button type="button" data-tap="${k}" style="--x:${(8 + (k * 37) % 76)}%;--y:${(10 + (k * 53) % 70)}%">${p}</button>`).join('')}</div>`; }
-    else if (st.kind === 'seq') { const order = [1, 2, 3, 4, 5].sort(() => Math.random() - .5);
-      el.innerHTML = `${head}<p>${L('Light the lamps in order: 1, 2, 3, 4, 5.', 'Zapal lampy po kolei: 1, 2, 3, 4, 5.')}</p><div class="ln-seq">${order.map(k => `<button type="button" data-seq="${k}">${I.lantern}<b>${k}</b></button>`).join('')}</div>`; }
+    const head = `<div class="ln-jhead"><b>${tk.job()}</b><span>${st.name()}</span><button type="button" class="round sm" data-a="jclose" aria-label="${L('Close', 'Zamknij')}">×</button></div><p>${tk.how()}</p>`;
+    const spot = k => `--x:${6 + (k % 3) * 30 + ((k * 7) % 5) * 2}%;--y:${8 + (k / 3 | 0) * 44 + ((k * 11) % 4) * 4}%`; // a loose 3 x 2 grid: never two on top of each other
+    if (tk.kind === 'hold') el.innerHTML = `${head}<button type="button" class="ln-hold" id="ln-hold"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="bg"/><circle cx="50" cy="50" r="40" class="fg" id="ln-holdc" pathLength="100"/></svg><span>${L('Hold', 'Trzymaj')}</span></button>`;
+    else if (tk.kind === 'taps') el.innerHTML = `${head}<div class="ln-taps">${tk.pics.map((p, k) => `<button type="button" data-tap="${k}" style="${spot(k)}">${p}</button>`).join('')}</div>`;
+    else if (tk.kind === 'pick') { const items = [...Array(4).fill(1), ...Array(4).fill(0)].sort(() => Math.random() - .5); // four right ones among four wrong ones
+      el.innerHTML = `${head}<div class="ln-taps pick">${items.map((g, k) => `<button type="button" data-pick="${g}" style="--x:${(6 + (k % 4) * 23)}%;--y:${(12 + (k >> 2) * 44 + (k % 2) * 10)}%">${g ? tk.good : tk.bad}</button>`).join('')}</div>`; }
+    else if (tk.kind === 'seq') { const order = [1, 2, 3, 4, 5].sort(() => Math.random() - .5);
+      el.innerHTML = `${head}<div class="ln-seq${tk.icon ? ' emo' : ''}">${order.map(k => `<button type="button" data-seq="${k}">${tk.icon ? `<i>${tk.icon}</i>` : I.lantern}<b>${k}</b></button>`).join('')}</div>`; }
     else { const lo = 55 + Math.random() * 20 | 0; job.lo = lo; job.hi = lo + 16;
-      el.innerHTML = `${head}<p>${st.id === 'garden' ? L('Hold to pour and let go in the green band.', 'Przytrzymaj, żeby lać, i puść w zielonym pasku.') : L('Hold to pull and let go in the green band.', 'Przytrzymaj, żeby ciągnąć, i puść w zielonym pasku.')}</p><div class="ln-fill"><i style="bottom:${lo}%;height:${job.hi - lo}%"></i><u id="ln-fillv"></u></div><button type="button" class="btn m" id="ln-pour">${st.id === 'garden' ? L('Pour', 'Lej') : L('Pull', 'Ciągnij')}</button>`; }
+      el.innerHTML = `${head}<div class="ln-fill"><i style="bottom:${lo}%;height:${job.hi - lo}%"></i><u id="ln-fillv"></u></div><button type="button" class="btn m" id="ln-pour">${tk.btn()}</button>`; }
     jobLoop();
   }
   function jobLoop() {
@@ -246,6 +248,7 @@ export function mount(app, ctx) {
     if (!job || job.finished) return;
     if (e.target.closest('#ln-hold, #ln-pour')) { e.preventDefault(); job.down = true; e.target.closest('button').setPointerCapture?.(e.pointerId); }
     const tap = e.target.closest('[data-tap]'); if (tap && !tap.disabled) { tap.disabled = true; tap.classList.add('ok'); sfx.pop(); if (++job.n >= 6) doneJob(); }
+    const pk = e.target.closest('[data-pick]'); if (pk && !pk.disabled) { if (pk.dataset.pick === '1') { pk.disabled = true; pk.classList.add('ok'); sfx.pop(); if (++job.n >= 4) doneJob(); } else { sfx.bad(); pk.classList.remove('no'); void pk.offsetWidth; pk.classList.add('no'); } }
     const sq = e.target.closest('[data-seq]'); if (sq && !sq.disabled) { if (+sq.dataset.seq === job.n + 1) { sq.disabled = true; sq.classList.add('ok'); sfx.set(); if (++job.n >= 5) doneJob(); } else { sfx.bad(); job.n = 0; for (const b of $('ln-job').querySelectorAll('[data-seq]')) { b.disabled = false; b.classList.remove('ok'); } } }
   });
   const upJob = () => { if (!job || !job.down) return; job.down = false; if (job.kind === 'fill') { if (job.v >= job.lo && job.v <= job.hi) doneJob(); else { sfx.bad(); job.v = 0; } } };
@@ -266,7 +269,7 @@ export function mount(app, ctx) {
     const html = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="${(R_WALK + 1) / (2 * R) * 100}" class="isle"/>
       ${WALLS.map(w => `<line x1="${px(w.a[0]).toFixed(1)}" y1="${px(w.a[1]).toFixed(1)}" x2="${px(w.b[0]).toFixed(1)}" y2="${px(w.b[1]).toFixed(1)}" class="w ${w.k}"/>`).join('')}
       ${STATIONS.map((st, i) => `<g class="${todo.has(i) ? 'todo' : ''}"><circle cx="${px(st.x)}" cy="${px(st.z)}" r="3.4"/><text x="${px(st.x)}" y="${px(st.z) + 7.5}">${esc(st.name())}</text></g>`).join('')}
-      <circle cx="50" cy="50" r="2.4" class="fire"/>${sneak() ? LOGS.map(([x, z]) => `<circle cx="${px(x)}" cy="${px(z)}" r="1.8" class="log"/>`).join('') : ''}
+      <circle cx="50" cy="50" r="2.4" class="fire"/><text x="50" y="${50 + 7.5}">${L('Campfire', 'Ognisko')}</text>${sneak() ? LOGS.map(([x, z]) => `<circle cx="${px(x)}" cy="${px(z)}" r="1.8" class="log"/>`).join('') : ''}
       ${m ? `<circle cx="${px(m.x)}" cy="${px(m.z)}" r="2.2" class="me"/>` : ''}</svg>`;
     setHtml(el, `<div class="ln-mapbox"><button type="button" class="round sm" data-a="map" aria-label="${L('Close', 'Zamknij')}">×</button>${html}</div>`);
   }
@@ -275,7 +278,7 @@ export function mount(app, ctx) {
   function paintJobs() {
     const y = you(); const el = $('ln-jobs');
     if (!y || ended()) { setHtml(el, ''); return; }
-    setHtml(el, `<li class="ln-jt">${sneak() ? L('Pretend chores', 'Udawane prace') : L('Your chores', 'Twoje prace')}</li>${y.jobs.map(([st, done]) => `<li class="${done ? 'done' : ''}">${done ? '✓' : '•'} ${STATIONS[st].job()} <span>${STATIONS[st].name()}</span></li>`).join('')}`);
+    setHtml(el, `<li class="ln-jt">${sneak() ? L('Pretend chores', 'Udawane prace') : L('Your chores', 'Twoje prace')}</li>${y.jobs.map(([st, done, v]) => `<li class="${done ? 'done' : ''}">${done ? '✓' : '•'} ${taskOf(st, v).job()} <span>${STATIONS[st].name()}</span></li>`).join('')}`);
   }
   function paintTop() {
     const y = you(), [d, a] = S.bar || [0, 1];

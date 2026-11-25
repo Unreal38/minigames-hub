@@ -8,7 +8,7 @@
 // Netcode as in Kart Island Race: each page walks its own player and reports where it is; fast() streams the table 20
 // times a second, and every player's stream shows only what their own lantern lights up (a page can't peek).
 import { SPECIES } from '../../public/games/farm/data.js';
-import { STATIONS, ST, spotOf, CHORE_MS, LOGS, ROPES, ROPE_MS, DARK_FIX, MISCHIEF_WAIT, MISCHIEF_FIRST, LULL_WAIT, R_WALK, SPEED, GHOST_SPEED, BELL, REACH, LULL_REACH, REPORT_REACH,
+import { STATIONS, ST, spotOf, CHORE_MS, taskOf, LOGS, ROPES, ROPE_MS, DARK_FIX, MISCHIEF_WAIT, MISCHIEF_FIRST, LULL_WAIT, R_WALK, SPEED, GHOST_SPEED, BELL, REACH, LULL_REACH, REPORT_REACH,
   GLOW, GLOW_SNEAK, GLOW_DARK, ringAt, sneaksFor, TALK, CHORES, clampWalk, throughWall, sees } from '../../public/games/lantern/layout.js';
 
 export const meta = { id: 'lantern', name: 'Lantern Night', minPlayers: 4, maxPlayers: 10, minHumans: 4, joinAt: 'game' };
@@ -50,7 +50,7 @@ export function create(players, optsIn = {}) {
     role: seats.map((_, i) => (sneak.has(i) ? 'sneak' : 'isle')), pet: pets,
     pos: seats.map((_, i) => { const [x, z] = ringAt(i, n); return { x, z, r: Math.atan2(-x, -z), at: now, bad: 0, j: 1 }; }),
     out: seats.map(() => 0), // 0 awake, 1 lulled (asleep), 2 ferried, 3 left the table
-    jobs: seats.map(() => shuffle(jobs.slice()).slice(0, opts.chores).map(st => ({ st, done: false }))),
+    jobs: seats.map(() => shuffle(jobs.slice()).slice(0, opts.chores).map(st => ({ st, v: Math.random() < .5 ? 1 : 0, done: false }))), // one of the place's two chores
     doing: seats.map(() => null), bells: seats.map(() => 1), lullAt: seats.map(() => now + MS.intro + opts.lull * 1000), hopAt: seats.map(() => 0),
     beds: [], // sleepers: { s, x, z, by, clue: 'el' | 'size', found }
     lulls: 0, mis: null, misAt: now + MS.intro + MISCHIEF_FIRST, ropes: [-1, -1],
@@ -174,7 +174,7 @@ export function act(G, s, a) {
     const i = a.i | 0, job = G.jobs[s][i]; if (!job || job.done) return false;
     if (!near(p, ...spotOf(STATIONS[job.st]), REACH + .6)) return false;
     if (a.t === 'cs') { G.doing[s] = { i, st: job.st, at: now }; return false; }
-    const d = G.doing[s]; if (!d || d.i !== i || now - d.at < CHORE_MS[STATIONS[job.st].kind] - 150) return false;
+    const d = G.doing[s]; if (!d || d.i !== i || now - d.at < CHORE_MS[taskOf(job.st, job.v).kind] - 150) return false;
     G.doing[s] = null; job.done = true; if (!sneak) G.choresDone[s]++;
     if (job.st === ST[DARK_FIX] && G.mis?.k === 'dark' && !sneak) { G.mis = null; G.misAt = now + MISCHIEF_WAIT; pushEv(G, { t: 'fixed', k: 'dark', s }, now); }
     if (!sneak) check(G, now); // a Sneak's list is only for show: their chores fill nothing
@@ -274,7 +274,7 @@ export function view(G, s) {
     res: end ? { ...G.res, chores: G.choresDone } : null, win: G.win,
   };
   if (me >= 0) {
-    out.you = { role: G.role[me], j: G.pos[me].j, jobs: G.jobs[me].map(j => [j.st, j.done ? 1 : 0]), doing: G.doing[me]?.i ?? -1, bell: G.bells[me], vote: G.votes[me],
+    out.you = { role: G.role[me], j: G.pos[me].j, jobs: G.jobs[me].map(j => [j.st, j.done ? 1 : 0, j.v]), doing: G.doing[me]?.i ?? -1, bell: G.bells[me], vote: G.votes[me],
       lull: Math.max(0, G.lullAt[me] - now), hop: Math.max(0, G.hopAt[me] - now), prank: Math.max(0, G.misAt - now), glow: glowOf(G, me) };
     if (sneak) out.you.team = G.role.map((r, i) => (r === 'sneak' ? i : -1)).filter(i => i >= 0);
   }

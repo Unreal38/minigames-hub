@@ -2,7 +2,7 @@
 // meetings with votes and the ferry, pranks, every way to win, what each player's stream may show (no peeking), the
 // chat hooks and the coins order.
 import * as ln from '../server/games/lantern.js';
-import { STATIONS, spotOf, LOGS, ROPES, BELL, MISCHIEF_FIRST, ROPE_MS, CHORE_MS, sneaksFor, findPath, throughWall, sees, WALLS } from '../public/games/lantern/layout.js';
+import { STATIONS, spotOf, LOGS, ROPES, BELL, MISCHIEF_FIRST, ROPE_MS, CHORE_MS, taskOf, sneaksFor, findPath, throughWall, sees, WALLS } from '../public/games/lantern/layout.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
 let now = 1_000_000; const realNow = Date.now; Date.now = () => now;
@@ -21,7 +21,13 @@ for (let k = 0; k < 40; k++) {
   const els = {}; for (const p of G.pet) els[p.el] = (els[p.el] || 0) + 1;
   if (Object.values(els).some(c => c < 2)) fail(`a pet element only one player has (${n} players): ` + JSON.stringify(els));
   if (new Set(G.pet.map(p => p.sp)).size < n - 1) fail('the same pet twice');
-  if (G.jobs.some(l => l.length !== 5 || new Set(l.map(j => j.st)).size !== 5)) fail('chore lists wrong');
+  if (G.jobs.some(l => l.length !== 5 || new Set(l.map(j => j.st)).size !== 5 || l.some(j => !taskOf(j.st, j.v)))) fail('chore lists wrong');
+}
+
+{ // both chores of every place get dealt, and every chore has its words and a known kind
+  const seen = new Set(); for (let k = 0; k < 60; k++) for (const l of ln.create(people(6), {}).jobs) for (const j of l) seen.add(j.st + ':' + j.v);
+  if (seen.size !== STATIONS.length * 2) fail('not every chore gets dealt: ' + seen.size);
+  for (const st of STATIONS) { if (st.tasks.length !== 2) fail(st.id + ' should have two chores'); for (const t of st.tasks) if (!CHORE_MS[t.kind] || !t.job() || !t.how()) fail(st.id + ' has a broken chore'); }
 }
 
 // ----- walking -----
@@ -42,7 +48,7 @@ for (let k = 0; k < 40; k++) {
   walkTo(G, isle, x, z);
   ln.act(G, isle, { t: 'cs', i: 0 }); if (!G.doing[isle]) fail('chore did not start');
   now += 500; if (ln.act(G, isle, { t: 'cd', i: 0 })) fail('a chore was done too fast');
-  now += CHORE_MS[STATIONS[job.st].kind]; if (!ln.act(G, isle, { t: 'cd', i: 0 }) || !job.done || ln.bar(G)[0] !== 1) fail('chore not counted');
+  now += CHORE_MS[taskOf(job.st, job.v).kind]; if (!ln.act(G, isle, { t: 'cd', i: 0 }) || !job.done || ln.bar(G)[0] !== 1) fail('chore not counted');
   const sj = G.jobs[sn][0], [sx, sz] = spotOf(STATIONS[sj.st]); walkTo(G, sn, sx, sz);
   ln.act(G, sn, { t: 'cs', i: 0 }); now += 3000; ln.act(G, sn, { t: 'cd', i: 0 });
   if (ln.bar(G)[0] !== 1 || ln.bar(G)[1] !== 20) fail('a Sneak\'s pretend chore filled the bar: ' + ln.bar(G));
