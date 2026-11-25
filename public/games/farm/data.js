@@ -8,7 +8,7 @@ export const SIZES = [10, 12, 14, 16, 18, 20, 22, 24];
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 },
   { wood: 320, stone: 260, fiber: 140, shells: 20 }, { wood: 440, stone: 360, fiber: 190, coal: 30 }, { wood: 600, stone: 480, fiber: 250, coal: 50, crystal: 3 }];
 export const LAND_HOUSE = { 7: 5 };
-export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', coins: 'Coins' };
+export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', pack: 'Trail Packs', coins: 'Coins' };
 // What each thing in the top bar is: where it comes from, and what it is for.
 export const MAT_INFO = {
   wood:     ['Expeditions, most of all Mossy Woods.', 'Most buildings and decorations.'],
@@ -16,7 +16,7 @@ export const MAT_INFO = {
   fiber:    ['Expeditions to Mossy Woods and Tidepool Cove.', 'Huts, the Nest, soft decorations and Honey Cakes.'],
   shells:   ['Expeditions to Tidepool Cove (farmhouse level 2).', 'Improving buildings and fancy decorations.'],
   coal:     ['Expeditions to Ember Hills (farmhouse level 3).', 'Higher building levels and fancy decorations.'],
-  crystal:  ['Rare. Expeditions to Pebble Ridge (farmhouse level 2) and Thunder Meadow (level 4). Longer trips with more pets find more.', 'The Nest, top building levels and the fanciest decorations.'],
+  crystal:  ['Rare. Expeditions to Pebble Ridge (farmhouse level 2) and Thunder Meadow (level 4). Longer trips with more pets find more.', 'The Nest, top building levels, the fanciest decorations, and balloon fuel for far expeditions.'],
   berries:  ['Garden Plots grow them every hour. Tap "Pick berries".', 'Cooking treats in the Kitchen. Spare ones can be swapped at the Workshop.'],
   sunberry: ['Garden Plots of level 2 or 3 grow them with each harvest.', 'The best Kitchen recipes: Sunberry Pie and Rest Tonic.'],
   cookie:   ['Cooked in the Kitchen from 4 berries.', 'Tap a pet and feed it one for 30 experience.'],
@@ -24,6 +24,7 @@ export const MAT_INFO = {
   juice:    ['Cooked in the Kitchen from 6 berries.', 'Drink one in a practice or arena battle to heal 40%, once a battle.'],
   pie:      ['Cooked in a level 2 Kitchen.', 'Tap a pet and feed it one for 220 experience.'],
   tonic:    ['Cooked in a level 3 Kitchen.', 'Give it to a resting pet so it can go to the Nest again at once.'],
+  pack:     ['Packed in the Kitchen from 8 berries, 10 fiber and 4 coal.', 'Food for the long way: every far expedition takes a few.'],
   coins:    ['Battles, helping neighbours, and the other games on the site.', 'Trees and bushes here, and the avatar shop on the main page. Coins stay with you: they cannot be traded or gifted.'],
 };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
@@ -162,6 +163,13 @@ export const SPECIES = {
   starjelly: { name: 'Starjelly', el: 'Tide', rare: 0, blurb: 'A star-shaped jellyfish with glowing tips.' },
   cometail: { name: 'Cometail', el: 'Spark', rare: 2, blurb: 'A streak of a ferret with a comet for a tail.' },
   ringbear: { name: 'Ringbear', el: 'Stone', rare: 0, blurb: 'A dozy bear cub that wears a planet ring.' },
+  // pets from old stories: found only on Legend Isle, at the end of a far expedition (far: true)
+  griffling: { name: 'Griffling', el: 'Ember', rare: 2, far: true, blurb: 'A griffin chick with sunset feathers, little wings and the tufted tail of a lion cub.' },
+  bloomicorn: { name: 'Bloomicorn', el: 'Leaf', rare: 2, far: true, blurb: 'A unicorn foal with a mane of blossoms and a little spiral horn.' },
+  dreampir: { name: 'Dreampir', el: 'Spark', rare: 2, far: true, blurb: 'A baby tapir with a starry coat that blows dream bubbles from its trunk.' },
+  yetiny: { name: 'Yetiny', el: 'Tide', rare: 2, far: true, blurb: 'A shaggy yeti cub with frosty horns and big snowshoe feet.' },
+  gargoylet: { name: 'Gargoylet', el: 'Stone', rare: 2, far: true, blurb: 'A little stone gargoyle that sits as still as a statue until you look away.' },
+  nessling: { name: 'Nessling', el: 'Tide', rare: 2, far: true, blurb: 'A baby lake monster with a long neck, a row of humps and four flippers.' },
   // breeding only: two elements, never found in the wild. hint is all the Pet Album gives away.
   truffowl:   { name: 'Truffowl', el: 'Leaf', el2: 'Tide', rare: 3, blurb: 'A round owl that grows its own mushroom cap.', hint: 'Hatches where moss meets the tide.' },
   magmutt:    { name: 'Magmutt', el: 'Ember', el2: 'Stone', rare: 3, blurb: 'A lava puppy in a coat of cracked rock.', hint: 'Hatches where fire warms the stone.' },
@@ -263,6 +271,7 @@ export const RECIPES = {
   cookie: { name: 'Berry Cookie', cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
   cake:   { name: 'Honey Cake', cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
   juice:  { name: 'Berry Juice', cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
+  pack:   { name: 'Trail Pack', house: 6, cost: { berries: 8, fiber: 10, coal: 4 }, desc: 'Food for the long way. Every far expedition takes a few.' },
   pie:    { name: 'Sunberry Pie', lv: 2, cost: { sunberry: 3, berries: 6 }, xp: 220, desc: 'Feed it to a pet for 220 experience.' },
   tonic:  { name: 'Rest Tonic', lv: 3, cost: { sunberry: 4, crystal: 1 }, rest: true, desc: 'A pet that drinks it is rested at once and can go to the Nest again.' },
 };
@@ -298,6 +307,8 @@ export const ZONES = {
   reef:   { name: 'Coral Reef', el: 'Tide', theme: 'sea', house: 3, gives: { shells: 10, stone: 4, coins: 5 }, wild: { shrimplet: 5, coralcolt: 2, driftle: 2, rocktopus: 2, zapuff: 2, skipfin: 1 }, blurb: 'A reef in the sky where the sea pets drift between the corals.' },
   peak:   { name: 'Weather Peak', el: 'Tide', theme: 'weather', house: 4, gives: { stone: 8, shells: 4, crystal: 1, coins: 5 }, wild: { dripfrog: 5, snowfox: 2, twistret: 2, sunlion: 1 }, blurb: 'Sun, snow and rain, all at once.' },
   night:  { name: 'Starfall Isle', el: 'Spark', theme: 'night', house: 4, gives: { crystal: 1.5, stone: 6, coins: 6 }, wild: { starjelly: 5, ringbear: 5, moonbun: 2, cometail: 1 }, blurb: 'An island where it is always just after dusk.' },
+  // far islands (far: true): only far trips go there, and they are the only home of their pets. A new one can come each season.
+  legend: { name: 'Legend Isle', el: 'Spark', theme: 'legend', far: true, house: 6, gives: { shells: 2, coal: 2, coins: 4 }, wild: { griffling: 3, bloomicorn: 3, yetiny: 3, gargoylet: 3, nessling: 2, dreampir: 2 }, blurb: 'A misty island far past the edge of the map, where the pets from old stories live.' },
 };
 // find: chance that a wild pet follows the party home. xp: what every pet in the party learns.
 export const TRIPS = {
@@ -305,7 +316,15 @@ export const TRIPS = {
   outing: { name: 'Outing', min: 60, find: .22, xp: 22, blurb: 'A lunch break' },
   trek:   { name: 'Trek', min: 240, find: .4, xp: 60, blurb: 'While you are busy' },
   camp:   { name: 'Camp-out', min: 480, find: .6, xp: 100, blurb: 'Overnight' },
+  // Far expeditions (Kuba's economy plan, 2026-11-25): a big sink for late players. Only these go to a far island, and a
+  // party pays its fuel when it sets off: crystal for the balloon and Trail Packs from the Kitchen (500 to 800 WORTH).
+  voyage: { name: 'Voyage', far: true, min: 720, find: .6, xp: 160, fuel: { crystal: 8, pack: 4 }, blurb: 'Half a day away' },
+  odyssey: { name: 'Grand Voyage', far: true, min: 1440, find: .9, xp: 280, fuel: { crystal: 14, pack: 6 }, blurb: 'A whole day away' },
 };
+// Can this trip go to this zone? Far trips go to far islands and nowhere else.
+export const tripFits = (zone, trip) => !!ZONES[zone] && !!TRIPS[trip] && !ZONES[zone].far === !TRIPS[trip].far;
+// A pet found on a far island may come in another element (see variantOf), which wild pets elsewhere never do.
+export const FAR_VARIANT = .2;
 export const PARTY = 3;
 // The economy pass (Kuba, 2026-11-25: a dedicated player maxed every building in 6 days, so make it grindier): a trip
 // pays TRIP_MAT of the zone's `gives` in materials, and its own TRIP_SHARE of coins and crystal. tripRate is what one
