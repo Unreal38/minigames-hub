@@ -7,7 +7,7 @@ import { avatarHtml, OPT, AV_KEYS, AV_COLOR_KEYS, needsOwning, packOf, priceOf, 
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
-import { themeName, twistName, FREE_KEYS, POSES, poseName } from './rules.js';
+import { themeName, twistName, FREE_KEYS, POSES, poseName, WRITE_MAX, cleanTheme } from './rules.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,6 +46,12 @@ export function mount(app, ctx) {
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L('Leave table', 'Odejdź od stołu')}">${I.door}</button></div>
       <div class="shout" id="rw-big" aria-live="assertive"></div>
+      <section class="rw-card rw-pick" id="rw-pick" hidden>
+        <div class="rw-whead"><b id="rw-ptitle"></b><span class="rw-wsec"></span></div>
+        <div class="rw-plist" id="rw-plist" role="group"></div>
+        <form class="rw-pwrite" id="rw-pwrite" autocomplete="off"><input type="text" maxlength="${WRITE_MAX}" autocomplete="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" placeholder="${L('Or write your own theme…', 'Albo wpisz własny temat…')}" aria-label="${L('Your own theme', 'Własny temat')}"><button type="submit" class="btn sm m">${L('Add', 'Dodaj')}</button></form>
+        <p class="rw-hint" id="rw-phint"></p>
+      </section>
       <section class="rw-card rw-theme" id="rw-theme" hidden></section>
       <section class="rw-card rw-dress" id="rw-dress" hidden>
         <div class="rw-dhead"><div class="rw-dtx"><b id="rw-dtitle"></b><span id="rw-dsub"></span></div><div class="rw-clock"><div class="rw-bar"><i></i></div><span class="rw-sec"></span></div></div>
@@ -101,7 +107,7 @@ export function mount(app, ctx) {
   function layout() {
     root.classList.toggle('wide', wide());
     if (!scene) return;
-    const dress = $('rw-dress'), panel = [dress, $('rw-walk'), $('rw-reveal'), $('rw-theme')].find(x => !x.hidden);
+    const dress = $('rw-dress'), panel = [dress, $('rw-walk'), $('rw-reveal'), $('rw-theme'), $('rw-pick')].find(x => !x.hidden);
     const force = (panel?.id || '') !== lastPanel; lastPanel = panel?.id || '';
     if (wide() && panel === dress) { scene.setInset((dress.offsetWidth + 28) * uiz(), force); scene.setHud(0, force); }
     else { scene.setInset(0, force); scene.setHud(panel ? (panel.offsetHeight + 24) * uiz() : 0, force); }
@@ -116,7 +122,7 @@ export function mount(app, ctx) {
     const hurry = S.stage === 'dress' && s <= 10; el.classList.toggle('hurry', hurry);
     if (hurry && el._s !== s && s > 0 && s <= 5 && S.me >= 0) sfx.tick();
     el._s = s;
-    const ws = root.querySelector('.rw-wsec'); if (ws) { const t = `${secLeft()} s`; if (ws.textContent !== t) ws.textContent = t; }
+    for (const ws of root.querySelectorAll('.rw-wsec')) { const t = `${secLeft()} s`; if (ws.textContent !== t) ws.textContent = t; }
   }
   const clockTimer = setInterval(paintClock, 200);
   function barAnim(el, key) {
@@ -124,11 +130,26 @@ export function mount(app, ctx) {
     const done = Math.max(0, S.all - S.left); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = `rwbar ${S.all}ms linear ${-done}ms both`;
   }
 
+  // ----- the theme vote: 3 random themes and the written ones -----
+  function renderPick() {
+    const el = $('rw-pick'), on = S.ph === 'play' && S.stage === 'pick';
+    el.hidden = !on; if (!on) return;
+    const can = S.me >= 0 && !me().bot;
+    setHtml($('rw-ptitle'), `${L('Round', 'Runda')} ${S.round + 1}/${S.rounds} · ${L('pick the theme', 'wybierz temat')}`);
+    setHtml($('rw-plist'), S.picks.map((p, k) => `<button type="button" class="rw-pk${k === S.myPick ? ' on' : ''}${p.th[0] === '*' ? ' own' : ''}" data-pk="${k}"${!can || p.mine ? ' disabled' : ''} aria-pressed="${k === S.myPick}">
+      <b>${p.th[0] === '*' ? '✎ ' : ''}${esc(themeName(p.th))}</b>${p.mine ? `<small>${L('yours', 'twój')}</small>` : ''}<span class="rw-pn">${p.n ? '●'.repeat(Math.min(8, p.n)) : ''}</span></button>`).join(''));
+    const form = $('rw-pwrite'); form.hidden = !can || S.wrote || S.picks.length >= 11;
+    setHtml($('rw-phint'), !can ? L('Watching the vote', 'Oglądasz głosowanie')
+      : S.myPick < 0 ? L('Tap the theme you want. Most votes wins, a tie is drawn.', 'Dotknij tematu, który chcesz. Wygrywa najwięcej głosów, remis rozstrzyga losowanie.')
+      : L(`Voted: ${S.nPicked} of ${S.seats.filter(x => x.human && !x.bot).length} · tap another to change`, `Zagłosowało: ${S.nPicked} z ${S.seats.filter(x => x.human && !x.bot).length} · możesz zmienić`));
+    paintClock();
+  }
+
   // ----- the theme card -----
   function renderTheme() {
     const el = $('rw-theme'); el.hidden = !(S.ph === 'play' && S.stage === 'theme');
     if (el.hidden) return;
-    setHtml(el, `<small>${L('Round', 'Runda')} ${S.round + 1}/${S.rounds} · ${L('the theme is', 'temat to')}</small><h2>${esc(themeName(S.theme))}</h2>${S.twist ? `<span class="rw-twist">${esc(twistName(S.twist))}</span>` : ''}
+    setHtml(el, `<small>${L('Round', 'Runda')} ${S.round + 1}/${S.rounds} · ${S.theme[0] === '*' ? L('a written theme won', 'wygrał wpisany temat') : L('the theme is', 'temat to')}</small><h2>${esc(themeName(S.theme))}</h2>${S.twist ? `<span class="rw-twist">${esc(twistName(S.twist))}</span>` : ''}
       <p>${L(`Dress up in ${S.opts.time} seconds. Everything in the shop is on loan for the show.`, `Masz ${S.opts.time} sekund na przebranie. Wszystko ze sklepu możesz pożyczyć na pokaz.`)}</p>`);
   }
 
@@ -209,9 +230,9 @@ export function mount(app, ctx) {
 
   function render() {
     if (!S) return;
-    $('rw-info').innerHTML = S.ph === 'end' ? L('Show is over', 'Koniec pokazu') : `${L('Round', 'Runda')} ${S.round + 1}/${S.rounds} · ${esc(themeName(S.theme))}`;
+    $('rw-info').innerHTML = S.ph === 'end' ? L('Show is over', 'Koniec pokazu') : `${L('Round', 'Runda')} ${S.round + 1}/${S.rounds}${S.theme ? ' · ' + esc(themeName(S.theme)) : ''}`;
     $('rw-code').textContent = Rm?.code || '';
-    renderTheme(); renderDress(); renderWalk(); renderReveal();
+    renderPick(); renderTheme(); renderDress(); renderWalk(); renderReveal();
     layout();
   }
 
@@ -222,7 +243,8 @@ export function mount(app, ctx) {
     clearTimeout(bigTimer); bigTimer = setTimeout(() => el.classList.remove('show'), ms);
   }
   function playEv(e) {
-    if (e.t === 'theme') { sfx.draw(); }
+    if (e.t === 'pick') { sfx.draw(); }
+    else if (e.t === 'theme') { sfx.set(); if (e.tie && e.n > 0) big(L('A tie!', 'Remis!'), L('Drawn at random', 'Rozstrzyga losowanie'), 1300); }
     else if (e.t === 'dress') { sfx.set(); big(L('Dress up!', 'Przebieraj się!'), esc(themeName(S.theme)), 1400); }
     else if (e.t === 'lock') { flush(); sfx.thunk(); }
     else if (e.t === 'walk') { if (e.s === S.me) { sfx.win(); big(L('Your walk!', 'Twój wybieg!'), '', 1200); } else sfx.pop(); }
@@ -322,6 +344,7 @@ export function mount(app, ctx) {
     if (b.dataset.tab) { tab = b.dataset.tab; sfx.click(); renderDress(); $('rw-grid').scrollTop = 0; return; }
     if (b.dataset.i != null && dressing()) { setPart(tab, +b.dataset.i); return; }
     if (b.dataset.pose != null && dressing()) { myPose = +b.dataset.pose; sfx.click(); ctx.act({ t: 'pose', p: myPose }); renderDress(); return; }
+    if (b.dataset.pk != null) { sfx.click(); ctx.act({ t: 'pick', k: +b.dataset.pk }); return; }
     if (b.dataset.v != null) { sfx.click(); ctx.act({ t: 'vote', v: +b.dataset.v }); return; }
     const a = b.dataset.a; if (!a) return;
     if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
@@ -340,6 +363,14 @@ export function mount(app, ctx) {
     else if (a === 'lobby') { sfx.click(); ctx.toLobby(); }
     else if (a === 'sit') { sfx.click(); ctx.sit?.(b.getAttribute('aria-pressed') !== 'true'); }
   });
+  // your own theme: sent once, then the box goes away (one each per round)
+  $('rw-pwrite').addEventListener('submit', e => {
+    e.preventDefault();
+    const inp = e.target.querySelector('input'), txt = cleanTheme(inp.value);
+    if (!txt || !S || S.stage !== 'pick') { inp.focus(); return; }
+    sfx.place(); ctx.act({ t: 'write', text: txt }); inp.value = ''; inp.blur();
+  });
+  $('rw-pwrite').addEventListener('keydown', e => e.stopPropagation()); // typing here never reaches the table's own keys
   root.addEventListener('pointerover', e => { const b = e.target.closest('.btn, .round'); if (b && !b.disabled && !b.contains(e.relatedTarget)) sfx.hover(); });
 
   return {

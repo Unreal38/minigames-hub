@@ -2,13 +2,13 @@
 // every coin-shop item on loan (Supporter pack items too), then walks the runway one by one while the others give
 // 1 to 5 stars. Points per look = average stars x 20 (with 5+ judges the highest and lowest vote are dropped).
 // Nothing worn here is saved: the look lives only in this game. People only, no bots.
-import { THEMES, TWISTS, FREE_KEYS, POSES, ROUNDS, TIMES, scoreLook } from '../../public/games/runway/rules.js';
+import { THEMES, TWISTS, FREE_KEYS, POSES, ROUNDS, TIMES, PICK_N, cleanTheme, scoreLook } from '../../public/games/runway/rules.js';
 import { cleanAv, AV_KEYS } from '../../public/avatar.js';
 
 export const meta = { id: 'runway', name: 'Sky Runway', minPlayers: 3, maxPlayers: 8, minHumans: 3 };
 
-// theme: the theme card; walk: one look on the runway (the walk, the pose, the votes); reveal: the round's podium.
-export const MS = { theme: 5000, walk: 8500, reveal: 8000, early: 1200 };
+// pick: the theme vote (3 random themes + written ones); theme: the theme card; walk: one look on the runway (the walk, the pose, the votes); reveal: the round's podium.
+export const MS = { pick: 20000, theme: 5000, walk: 8500, reveal: 8000, early: 1200 };
 const FREE = FREE_KEYS.map(k => AV_KEYS.indexOf(k));
 
 export function cleanOpts(o = {}) {
@@ -24,7 +24,7 @@ export function create(players, optsIn = {}) {
   const seats = players.slice(0, meta.maxPlayers).map(p => ({ id: p.id, name: p.name, color: p.color, av: cleanAv(p.av), bot: false, human: true }));
   const G = {
     game: 'runway', ph: 'play', stage: 'theme', gid: Math.random().toString(36).slice(2, 8), seats, opts,
-    round: -1, theme: '', twist: '', used: [], tEnd: 0, tAll: 0,
+    round: -1, theme: '', twist: '', used: [], picks: [], pv: [], tEnd: 0, tAll: 0,
     looks: seats.map(x => x.av.slice()), pose: seats.map(() => 0), ready: seats.map(() => false),
     order: [], walk: -1, votes: [], last: null,
     tot: seats.map(() => 0), fives: seats.map(() => 0), hist: [], busy: seats.map(() => false),
@@ -39,12 +39,24 @@ const setStage = (G, stage, now, ms) => { G.stage = stage; G.tAll = ms; G.tEnd =
 const present = (G, s) => G.seats[s].human && !G.seats[s].bot;
 
 function nextRound(G, now) {
-  let pool = THEMES.filter(t => !G.used.includes(t[0])); if (!pool.length) pool = THEMES;
-  G.round++; G.theme = pool[Math.random() * pool.length | 0][0]; G.used.push(G.theme);
-  G.twist = G.round > 0 && Math.random() < .5 ? TWISTS[Math.random() * TWISTS.length | 0][0] : '';
+  // the theme vote: PICK_N random themes not used yet this game, plus whatever the players write
+  let pool = THEMES.filter(t => !G.used.includes(t[0])); if (pool.length < PICK_N) pool = THEMES.slice();
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  G.round++; G.theme = ''; G.twist = '';
+  G.picks = pool.slice(0, PICK_N).map(t => ({ th: t[0], by: -1 })); G.pv = G.seats.map(() => -1);
   G.ready = G.seats.map(() => false); G.votes = G.seats.map(() => G.seats.map(() => 0)); G.last = null; G.walk = -1; G.order = [];
+  setStage(G, 'pick', now, MS.pick);
+  pushEv(G, { t: 'pick', r: G.round });
+}
+// most votes wins; a tie (or no votes at all) is settled at random among the tied
+function closePick(G, now) {
+  const n = G.picks.map((_, k) => G.pv.filter(v => v === k).length), top = Math.max(...n);
+  const tied = G.picks.map((_, k) => k).filter(k => n[k] === top);
+  const k = tied[Math.random() * tied.length | 0];
+  G.theme = G.picks[k].th; G.used.push(G.theme);
+  G.twist = G.round > 0 && Math.random() < .5 ? TWISTS[Math.random() * TWISTS.length | 0][0] : '';
   setStage(G, 'theme', now, MS.theme);
-  pushEv(G, { t: 'theme', r: G.round });
+  pushEv(G, { t: 'theme', r: G.round, k, n: top, tie: tied.length > 1 });
 }
 function startWalks(G, now) {
   // everyone still at the table walks, in a fresh random order each round
@@ -98,6 +110,22 @@ function setLook(G, s, av) {
 export function act(G, s, a) {
   if (!a || typeof a !== 'object' || s < 0 || !G.seats[s] || G.ph !== 'play') return false;
   const now = Date.now(), dressing = G.stage === 'theme' || G.stage === 'dress';
+  if (a.t === 'write') {
+    // one written theme each per round; it can't be changed once votes could be on it
+    if (G.stage !== 'pick' || now > G.tEnd || G.picks.some(p => p.by === s)) return false;
+    const txt = cleanTheme(a.text); if (!txt) return false;
+    const key = txt.toLocaleLowerCase();
+    if (G.picks.some(p => (p.th[0] === '*' ? p.th.slice(1).toLocaleLowerCase() : '') === key)) return false;
+    G.picks.push({ th: '*' + txt, by: s }); G.busy[s] = true;
+    return true;
+  }
+  if (a.t === 'pick') {
+    // one vote each, changeable until the vote closes; never for the theme you wrote yourself
+    const k = a.k;
+    if (G.stage !== 'pick' || now > G.tEnd || !Number.isInteger(k) || !G.picks[k] || G.picks[k].by === s || G.pv[s] === k) return false;
+    G.pv[s] = k; G.busy[s] = true;
+    return true;
+  }
   if (a.t === 'look') return dressing && setLook(G, s, a.av);
   if (a.t === 'pose') { if (!dressing || !Number.isInteger(a.p) || !POSES[a.p] || G.pose[s] === a.p) return false; G.pose[s] = a.p; G.busy[s] = true; return true; }
   if (a.t === 'ready') {
@@ -124,6 +152,12 @@ export function tick(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
   // with fewer than two people left there is nobody to judge: the game ends as it stands
   if (G.seats.filter(x => x.human).length < 2) return finish(G, now);
+  if (G.stage === 'pick') {
+    // everyone present has voted: the vote closes a moment later
+    const here = G.seats.map((_, j) => j).filter(j => present(G, j));
+    if (here.length && here.every(j => G.pv[j] >= 0) && G.tEnd - now > MS.early + 500) { G.tEnd = now + MS.early; return true; }
+    if (now < G.tEnd) return false; closePick(G, now); return true;
+  }
   if (G.stage === 'theme') { if (now < G.tEnd) return false; setStage(G, 'dress', now, G.opts.time * 1000); pushEv(G, { t: 'dress' }); return true; }
   if (G.stage === 'dress') {
     const here = G.seats.map((_, s) => s).filter(s => present(G, s));
@@ -150,7 +184,11 @@ export function view(G, s) {
   const walked = new Set(secret ? [] : G.stage === 'walk' ? G.order.slice(0, G.walk + 1) : G.stage === 'reveal' || G.stage === 'end' ? G.order : []);
   return {
     game: 'runway', ph: G.ph, stage: G.stage, gid: G.gid, me: s, opts: G.opts,
-    round: G.round, rounds: G.opts.rounds, theme: G.theme, twist: G.twist, left: Math.max(0, G.tEnd - now), all: G.tAll,
+    round: G.round, rounds: G.opts.rounds, theme: G.theme,
+    // the theme vote: the choices (written ones show who wrote them only to the writer), the vote counts, your vote
+    picks: G.stage === 'pick' ? G.picks.map((p, k) => ({ th: p.th, mine: p.by === s && s >= 0, n: G.pv.filter(v => v === k).length })) : [],
+    myPick: G.stage === 'pick' && s >= 0 ? G.pv[s] : -1, wrote: G.stage === 'pick' && s >= 0 && G.picks.some(p => p.by === s),
+    nPicked: G.stage === 'pick' ? G.pv.filter(v => v >= 0).length : 0, twist: G.twist, left: Math.max(0, G.tEnd - now), all: G.tAll,
     // nobody sees the other looks before they walk; your own look is always yours
     looks: G.looks.map((a, i) => (i === s || walked.has(i) || G.ph === 'end' ? a : null)), pose: G.pose.map((p, i) => (i === s || walked.has(i) || G.ph === 'end' ? p : 0)),
     ready: G.ready, order: G.stage === 'walk' || G.stage === 'reveal' ? G.order : [], walk: G.walk,

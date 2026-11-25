@@ -21,7 +21,18 @@ export const TWISTS = [
   ['glasses', 'Twist: glasses or a mask', 'Haczyk: okulary albo maska'], ['pink', 'Twist: something pink', 'Haczyk: coś różowego'], ['back', 'Twist: something on your back', 'Haczyk: coś na plecach'],
   ['hair', 'Twist: a new hairstyle', 'Haczyk: nowa fryzura'], ['shoes', 'Twist: show off your shoes', 'Haczyk: pokaż buty'],
 ];
-export const themeName = id => { const t = THEMES.find(x => x[0] === id); return t ? L(t[1], t[2]) : ''; };
+// A theme a player wrote is kept as '*' + their text (ids never start with '*').
+export const themeName = id => { if (typeof id === 'string' && id[0] === '*') return id.slice(1); const t = THEMES.find(x => x[0] === id); return t ? L(t[1], t[2]) : ''; };
+// Theme vote before each round: PICK_N random themes plus one written theme per player, at most WRITE_MAX characters.
+export const PICK_N = 3, WRITE_MAX = 40;
+// A written theme: no control or invisible characters, spaces squashed, at most WRITE_MAX characters ('' = not usable).
+export function cleanTheme(s) {
+  const t = String(s ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ')
+    .replace(/[\u00ad\u061c\u115f\u1160\u180e\u200b\u200c\u200e\u200f\u202a-\u202e\u2060-\u206f\u3164\ufeff\uffa0\ufff0-\ufffb]/g, '')
+    .replace(/\s+/g, ' ').trim();
+  const c = Array.from(t).slice(0, WRITE_MAX).join('').trim();
+  return /[\p{L}\p{N}]/u.test(c) ? c : '';
+}
 export const twistName = id => { const t = TWISTS.find(x => x[0] === id); return t ? L(t[1], t[2]) : ''; };
 
 // What can be changed for the show. Body, height, skin and the face stay yours, so friends still know who is walking.

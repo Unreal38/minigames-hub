@@ -126,7 +126,7 @@ export function createScene(canvas, { onFrame } = {}) {
     hideAll(); shown = []; for (const s of stools) s.visible = false;
     const st = S.stage, me = S.me;
     podium.visible = st === 'reveal' || st === 'end';
-    if (st === 'dress' || st === 'theme') {
+    if (st === 'dress' || st === 'theme' || st === 'pick') {
       if (me >= 0) { const m = model(S.seats[me].color, lookOf(me), 'stand'); m.wrap.visible = true; m.wrap.position.set(0, RUN.h, STAGE.z + .4); m.wrap.rotation.set(0, 0, 0); shown.push({ m, i: me, kind: 'me' }); }
     }
     if (st === 'walk') {
@@ -179,7 +179,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function frame(stage, walkZ = 0) {
     const portrait = W / Math.max(1, H) < 1, far = portrait ? 1.45 : 1;
     if (stage === 'dress') { goal.look.set(0, RUN.h + .95, STAGE.z + .4); goal.pos.set(0, RUN.h + 1.5, STAGE.z + .4 + 7.4 * (portrait ? 1.75 : 1)); }
-    else if (stage === 'theme') { goal.look.set(0, 3.2, STAGE.z); goal.pos.set(0, 4.2, RUN.z1 + 6.5 * far); }
+    else if (stage === 'theme' || stage === 'pick') { goal.look.set(0, 3.2, STAGE.z); goal.pos.set(0, 4.2, RUN.z1 + 6.5 * far); }
     else if (stage === 'walk') { goal.look.set(0, 1.3, Math.min(RUN.z1 - 2, (walkZ + RUN.z1) / 2 - 1.5)); goal.pos.set(portrait ? 0 : 1.2, portrait ? 4.4 : 3.5, RUN.z1 + 4.5 * far); }
     else { goal.look.set(0, RUN.h + 2, STAGE.z + .3); goal.pos.set(0, RUN.h + 3, STAGE.z + 8.6 * far); }
   }

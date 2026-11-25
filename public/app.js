@@ -583,9 +583,9 @@ const GAMES = {
     settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 2, '2')}${pill('rounds', 3, '3')}${pill('rounds', 5, '5')}</div></div>
       <div class="opt"><b>Time to dress up</b><div class="pills">${pill('time', 60, '60 s')}${pill('time', 90, '90 s')}${pill('time', 120, '120 s')}</div></div>
       <div class="opt"><b>On the runway</b><div class="pills">${pill('names', 'shown', 'Names shown')}${pill('names', 'secret', 'Secret walk')}</div></div>`,
-    howto: `A dress-up show. Each round has a theme: dress up against the clock with everything in the shop on loan, then walk the runway while your friends give 1 to 5 stars. The most stars after all rounds wins.`,
+    howto: `A dress-up show. Each round you vote on a theme (or write your own): dress up against the clock with everything in the shop on loan, then walk the runway while your friends give 1 to 5 stars. The most stars after all rounds wins.`,
     rules: `<ol>
-      <li>A game for <b>3 to 8 people</b>, no bots. Each round starts with a <b>theme</b>, like Royal ball or Pirate beach party, sometimes with a twist.</li>
+      <li>A game for <b>3 to 8 people</b>, no bots. Each round starts with a <b>theme vote</b>: 3 random themes, like Royal ball or Pirate beach party, and anyone can <b>write their own</b> (one each). Everyone votes, the most votes wins and a tie is drawn at random. You can't vote for the theme you wrote. Sometimes a twist comes with it.</li>
       <li><b>Dress up</b> before the clock runs out. <b>Everything in the shop is on loan</b> for the show, Supporter pack pieces too. Your body, height, skin and face stay yours, so friends know it's you. Pick a pose for the end of the runway, then press Ready.</li>
       <li>Nobody sees the other looks until they walk. Then everyone walks the <b>runway</b> one by one, in a random order. The others give each look <b>1 to 5 stars</b>. You can't vote for yourself.</li>
       <li>A look's points are its average stars × 20. With 5 or more judges, each look's highest and lowest vote are dropped.</li>

@@ -2,7 +2,7 @@
 // Secret walk, early ends, people who leave), then a short game with three people over the real WebSocket server.
 import { spawn } from 'node:child_process';
 import * as rw from '../server/games/runway.js';
-import { THEMES, TWISTS, FREE_KEYS, POSES, scoreLook } from '../public/games/runway/rules.js';
+import { THEMES, TWISTS, FREE_KEYS, POSES, PICK_N, WRITE_MAX, cleanTheme, themeName, scoreLook } from '../public/games/runway/rules.js';
 import { AV_KEYS, OPT } from '../public/avatar.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
@@ -23,16 +23,18 @@ if (FREE_KEYS.some(k => !(k in IX)) || ['body', 'height', 'skin', 'face', 'eyes'
 for (const [o, want] of [[{}, '3/90/shown'], [{ rounds: 5, time: 60, names: 'secret' }, '5/60/secret'], [{ rounds: 4, time: 7, names: 'x', bots: 3 }, '3/90/shown']]) {
   const c = rw.cleanOpts(o); if ([c.rounds, c.time, c.names].join('/') !== want || Object.keys(c).length !== 3) fail('options not cleaned: ' + JSON.stringify(c));
 }
+if (cleanTheme('  Under\u0000 the\u202e   sea  ') !== 'Under the sea' || cleanTheme(' !!! ') !== '' || Array.from(cleanTheme('ż'.repeat(90))).length !== WRITE_MAX) fail('written themes not cleaned');
+if (themeName('*Under the sea') !== 'Under the sea' || !themeName('pirate')) fail('theme names wrong');
 if (rw.meta.minHumans !== 3 || rw.meta.maxPlayers !== 8 || rw.meta.minPlayers !== 3) fail('meta wrong');
 
 // ----- whole games on a fake clock -----
 let now = 1_000_000; const realNow = Date.now; Date.now = () => now;
 const run = (G, ms) => { const end = now + ms; while (now < end && G.ph === 'play') { now += 100; rw.tick(G, now); } };
-const toDress = G => { run(G, rw.MS.theme + 200); if (G.stage !== 'dress') fail('no dressing after the theme: ' + G.stage); };
+const toDress = G => { run(G, rw.MS.pick + rw.MS.theme + 300); if (G.stage !== 'dress') fail('no dressing after the theme: ' + G.stage); };
 
 { // a whole game: dressing, the looks stay hidden, every vote, the reveal, the end
   const G = rw.create(people(6), { rounds: 2, time: 60 });
-  if (G.seats.length !== 6 || G.seats.some(s => s.bot) || G.stage !== 'theme' || !THEMES.some(t => t[0] === G.theme)) fail('game did not start right');
+  if (G.seats.length !== 6 || G.seats.some(s => s.bot) || G.stage !== 'pick' || G.picks.length !== PICK_N || G.picks.some(p => !THEMES.some(t => t[0] === p.th))) fail('game did not start right');
   for (let r = 0; r < 2; r++) {
     toDress(G);
     // a look: changes what may change, keeps body, height, skin and face
@@ -75,6 +77,29 @@ const toDress = G => { run(G, rw.MS.theme + 200); if (G.stage !== 'dress') fail(
   if (R.length !== 6 || R.some(x => x.idle)) fail('voting players are not idle');
   const v = rw.view(G, 3); if (v.looks.some(x => !x)) fail('every look shows at the end');
   console.log(`fake game: themes ${G.hist.map(h => h.theme).join(', ')}, points ${G.tot.join(' ')}`);
+}
+
+{ // the theme vote: written themes, one each, no voting for your own, early end, ties at random
+  const G = rw.create(people(4), {});
+  if (rw.act(G, 0, { t: 'look', av: av({ hat: 3 }) })) fail('dressed during the theme vote');
+  if (!rw.act(G, 0, { t: 'write', text: '  Under the sea ' }) || G.picks.length !== PICK_N + 1 || G.picks[PICK_N].th !== '*Under the sea') fail('written theme not added');
+  if (rw.act(G, 0, { t: 'write', text: 'Another one' })) fail('two written themes from one player');
+  if (rw.act(G, 1, { t: 'write', text: 'under THE sea' })) fail('the same written theme twice');
+  if (rw.act(G, 1, { t: 'write', text: '???' })) fail('an empty written theme');
+  if (rw.act(G, 0, { t: 'pick', k: PICK_N })) fail('voted for your own theme');
+  if (rw.act(G, 0, { t: 'pick', k: 9 }) || rw.act(G, 0, { t: 'pick', k: '1' })) fail('a bad vote');
+  const v2 = rw.view(G, 2); if (v2.picks.length !== PICK_N + 1 || v2.picks[PICK_N].mine || !rw.view(G, 0).picks[PICK_N].mine || 'by' in v2.picks[PICK_N]) fail('pick view wrong');
+  rw.act(G, 1, { t: 'pick', k: PICK_N }); rw.act(G, 2, { t: 'pick', k: 0 }); rw.act(G, 2, { t: 'pick', k: PICK_N });
+  if (rw.view(G, 3).picks[PICK_N].n !== 2 || rw.view(G, 2).myPick !== PICK_N) fail('vote counts wrong');
+  rw.act(G, 0, { t: 'pick', k: 1 }); rw.setAway(G, 3, true); // the one away holds nothing up
+  rw.tick(G, now); if (G.tEnd - now > rw.MS.early + 100) fail('everyone voted: the vote should end early');
+  run(G, rw.MS.early + 200);
+  if (G.stage !== 'theme' || G.theme !== '*Under the sea' || G.used[0] !== '*Under the sea') fail('the most votes should win: ' + G.theme);
+  if (rw.act(G, 1, { t: 'pick', k: 0 }) || rw.act(G, 1, { t: 'write', text: 'Too late' })) fail('voted after the vote');
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) { const H = rw.create(people(3), {}); rw.act(H, 0, { t: 'pick', k: 0 }); rw.act(H, 1, { t: 'pick', k: 1 }); run(H, rw.MS.pick + 200); seen.add(H.theme === H.picks[0].th ? 0 : H.theme === H.picks[1].th ? 1 : 9); }
+  if (seen.has(9) || seen.size !== 2) fail('a tie should go at random between the tied: ' + [...seen]);
+  const N = rw.create(people(3), {}); run(N, rw.MS.pick + 200); if (N.stage !== 'theme' || !N.picks.some(p => p.th === N.theme)) fail('no votes: a random choice');
 }
 
 { // Secret walk: nobody else learns who walks until the reveal
@@ -124,10 +149,15 @@ ana.send({ t: 'start' }); await wait(300);
 if (ana.s || !ana.errs.some(e => /at least 3 players/.test(e))) bail('the game started with two players');
 cy.send({ t: 'join', code: ana.room.code }); await wait(300);
 ana.send({ t: 'start' }); await wait(400);
-if (ana.s?.game !== 'runway' || ana.s.seats.length !== 3 || ana.s.seats.some(x => x.bot) || ana.s.stage !== 'theme') bail('game did not start');
+if (ana.s?.game !== 'runway' || ana.s.seats.length !== 3 || ana.s.seats.some(x => x.bot) || ana.s.stage !== 'pick' || ana.s.picks.length !== 3) bail('game did not start');
 const all = [ana, bo, cy];
 const until = async (f, ms = 25000) => { for (let t = 0; t < ms; t += 50) { if (f()) return; await wait(50); } bail('timed out waiting in stage ' + ana.s?.stage); };
 for (let r = 0; r < 2; r++) {
+  await until(() => ana.s.round === r && ana.s.stage === 'pick');
+  if (r === 0) { bo.send({ t: 'act', a: { t: 'write', text: 'Tea party' } }); await until(() => ana.s.picks.length === 4); }
+  for (const p of all) p.send({ t: 'act', a: { t: 'pick', k: r === 0 && p !== bo ? 3 : 0 } });
+  await until(() => ana.s.stage === 'theme', 5000);
+  if (r === 0 && ana.s.theme !== '*Tea party') bail('the written theme should have won: ' + ana.s.theme);
   await until(() => ana.s.round === r && ana.s.stage === 'dress');
   const mine = ana.s.looks[ana.s.me].slice(); mine[IX.hat] = 47; mine[IX.hand] = 4;
   ana.send({ t: 'act', a: { t: 'look', av: mine } }); await wait(200);
