@@ -32,6 +32,7 @@ export const OPT_PL = {
   'The game ends': 'Koniec gry', 'First one out wins': 'Wygrywa pierwszy bez kart', 'Play to the last one': 'Gramy do ostatniego', 'Queen on everything': 'Dama na wszystko', 'Fighting kings': 'Waleczne króle',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Clock: 'Zegar', 'No clock': 'Bez zegara', '3 min + 2s': '3 min + 2 s', '5 min + 3s': '5 min + 3 s', '10 min + 5s': '10 min + 5 s', '15 min + 10s': '15 min + 10 s', Bot: 'Bot', Beginner: 'Początkujący', Club: 'Klubowy', Strong: 'Mocny',
+  'Polish 10×10': 'Polska 10×10', 'Small 8×8': 'Mała 8×8',
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
@@ -384,6 +385,25 @@ export const GAMES_PL = {
       <li><b>Promocja</b>: pion, który dojdzie do ostatniej linii, zamienia się w hetmana, wieżę, gońca albo skoczka (wybierasz).</li>
       <li>Partia kończy się <b>remisem</b>, gdy gracz, na którego przypada ruch, nie ma żadnego dozwolonego ruchu, a jego król nie jest szachowany (pat), gdy ta sama pozycja powtórzy się trzy razy, po 50 ruchach każdej ze stron bez bicia i bez ruchu pionem, gdy żadna strona nie ma już czym dać mata albo gdy obie strony zgodzą się na remis (przycisk „Zaproponuj remis”).</li>
       <li><b>Zegar</b> (ustawienia stołu): każdy gracz ma własny czas, a po każdym ruchu dostaje kilka sekund więcej. Gdy czas się skończy, przegrywasz, chyba że przeciwnik ma samego króla albo króla i tylko jednego skoczka lub gońca: wtedy jest remis. Bez zegara możesz myśleć tak długo, jak chcesz.</li>
+      <li>W każdej chwili możesz <b>poddać partię</b>: dotknij dwa razy przycisku „Poddaj partię”.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce. Przy remisie obie strony dzielą pierwsze miejsce.</li>
+    </ol>`,
+  },
+  warcaby: {
+    name: 'Warcaby', start: 'Zacznij partię', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Klasyczne warcaby polskie: skacz, bij i zdobywaj damki. Na dużej planszy 10×10 albo małej 8×8, ze znajomym albo z botem.',
+    howto: `Klasyczne warcaby polskie dla dwóch osób. Dotknij swojego pionka, a potem pola, na które ma pójść. Przeskakuj pionki przeciwnika, żeby je zbić. Bicie jest obowiązkowe i trzeba bić jak najwięcej. Wygrywasz, gdy zbijesz wszystkie pionki przeciwnika albo zostawisz go bez ruchu.`,
+    rules: `<ol>
+      <li><b>Dwóch graczy</b>: białe i czarne, każdy ma 20 pionków na ciemnych polach planszy 10×10 (na małej planszy 8×8 po 12). Zaczynają białe. Kolory są losowane, a w rewanżu gracze zamieniają się kolorami. Wolne miejsce zajmuje bot (początkujący, klubowy albo mocny: wybierz w ustawieniach stołu).</li>
+      <li><b>Pionek</b> idzie o jedno pole po skosie <b>do przodu</b>, na wolne pole.</li>
+      <li><b>Bicie</b>: przeskocz pionek przeciwnika, który stoi tuż obok, na wolne pole za nim. Pionki biją <b>do przodu i do tyłu</b>. Jeśli po skoku możesz bić dalej, skaczesz dalej w tym samym ruchu.</li>
+      <li><b>Bicie jest obowiązkowe</b> i trzeba wybrać bicie <b>największej liczby</b> pionków (damka liczy się tak samo jak pionek). Pionki, które mogą bić, świecą na pomarańczowo.</li>
+      <li>Zbite pionki znikają z planszy dopiero po całym ruchu, więc tego samego pionka nie da się przeskoczyć dwa razy.</li>
+      <li>Pionek, który <b>kończy ruch</b> na ostatnim rzędzie, zostaje <b>damką</b>. Pionek, który tylko przez ten rząd przeskakuje i bije dalej, zostaje pionkiem.</li>
+      <li><b>Damka</b> chodzi po skosie o dowolną liczbę pól. Bije pionek stojący gdziekolwiek na jej linii, jeśli pola przed nim są wolne, i może stanąć na dowolnym wolnym polu za nim.</li>
+      <li><b>Wygrywasz</b>, gdy przeciwnik nie ma już pionków albo nie może się ruszyć.</li>
+      <li>Partia kończy się <b>remisem</b>, gdy ta sama pozycja powtórzy się trzy razy, po 25 ruchach każdej ze stron samymi damkami bez bicia, gdy samotna damka wytrzyma 16 ruchów przeciw trzem pionkom (5 ruchów przeciw dwóm albo jednemu) albo gdy obie strony zgodzą się na remis (przycisk „Zaproponuj remis”).</li>
+      <li><b>Zegar</b> (ustawienia stołu): każdy gracz ma własny czas, a po każdym ruchu dostaje kilka sekund więcej. Gdy czas się skończy, przegrywasz. Bez zegara możesz myśleć tak długo, jak chcesz.</li>
       <li>W każdej chwili możesz <b>poddać partię</b>: dotknij dwa razy przycisku „Poddaj partię”.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce. Przy remisie obie strony dzielą pierwsze miejsce.</li>
     </ol>`,
