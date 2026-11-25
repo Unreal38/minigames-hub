@@ -206,9 +206,14 @@ export function createScene(canvas, { onFrame } = {}) {
   const PRESS = ['mossbun', 'tuxpurr', 'cupcowl', 'puddlepup', 'glazemew', 'cindercub'];
   const camGeo = [new THREE.BoxGeometry(.3, .2, .14), new THREE.CylinderGeometry(.075, .085, .12, 10), new THREE.BoxGeometry(.1, .06, .06)];
   const camMats = [M('#3a3440'), M('#9fe6ff', { roughness: .3 }), M('#fff8dc', { emissive: '#ffffff', emissiveIntensity: 0 })];
+  // they sit on a low white press bench each side, a step away from the runway's edge, so they are up level with the show
+  const PRESS_X = 2.15, BENCH_H = .4;
+  { const b = new THREE.Group(); for (const sx of [-1, 1]) { const m = put(new THREE.BoxGeometry(.8, BENCH_H, 2.6), M('#fbf7ff'), sx * PRESS_X, BENCH_H / 2, 1.6, b); m.castShadow = m.receiveShadow = true;
+      put(new THREE.BoxGeometry(.84, .05, 2.64), M('#ff8fab'), sx * PRESS_X, BENCH_H - .02, 1.6, b).receiveShadow = true; }
+    scene.add(b); toonify(b, .035); }
   const press = PRESS.map((sp, i) => {
     const side = i % 2 ? 1 : -1, row = i >> 1;
-    const g = new THREE.Group(); g.position.set(side * (1.72 + (row % 2) * .12), 0, .9 + row * .95); g.rotation.y = Math.atan2(-g.position.x * .6, POSE_Z - .6 - g.position.z); scene.add(g);
+    const g = new THREE.Group(); g.position.set(side * PRESS_X, BENCH_H, .75 + row * .85); scene.add(g);
     let h = .8, pet = null;
     try {
       pet = petModel(sp, 1); const bb = new THREE.Box3().setFromObject(pet), size = bb.getSize(new THREE.Vector3()), k = .62 / Math.max(size.y, size.x * .8, .01);
@@ -219,7 +224,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const body = new THREE.Mesh(camGeo[0], camMats[0]), lens = new THREE.Mesh(camGeo[1], camMats[1]), bulb = new THREE.Mesh(camGeo[2], camMats[2].clone());
     lens.rotation.x = Math.PI / 2; lens.position.z = .11; bulb.position.set(-.08, .13, 0); cam.add(body, lens, bulb);
     toonify(cam, .03);
-    return { g, pet, cam, bulb: bulb.material ? bulb : null, seed: i * 1.7, hop: 0, lit: 0 };
+    return { g, pet, cam, bulb: bulb.material ? bulb : null, seed: i * 1.7, hop: 0, lit: 0, ry: null };
   });
   const snap = (x, k = 1) => {
     x.lit = 1; x.hop = Math.max(x.hop, .6 * k); flash = Math.max(flash, .7 * k);
@@ -360,7 +365,13 @@ export function createScene(canvas, { onFrame } = {}) {
     // the press cheers: hops and wagging while a look walks or the podium is up, a quick hop with every photo
     const cheer = S.stage === 'walk' || S.stage === 'reveal' || S.stage === 'end' ? 1 : .25;
     if (S.stage === 'reveal' && !reduced && (snapT -= dt) <= 0) { snapT = .6 + Math.random() * .9; snap(press[Math.random() * press.length | 0], .5); }
+    // they turn to follow whoever is on the runway (or the podium), but only so far: they stay side-on to the runway, faces to the crowd
+    const aim = shown.find(x => x.kind === 'walk')?.m.wrap.position || (S.stage === 'reveal' || S.stage === 'end' ? podium.position : null);
     for (const x of press) {
+      const gz = x.g.position.z, az = Math.max(gz - 1.1, Math.min(gz + 2.2, aim ? aim.z : POSE_Z - .6));
+      const goalY = Math.atan2(-x.g.position.x, az - gz);
+      if (x.ry == null) x.ry = goalY; else { let d = goalY - x.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); x.ry += d * Math.min(1, dt * 4); }
+      x.g.rotation.y = x.ry;
       x.hop = Math.max(0, x.hop - dt * 2.2); x.lit = Math.max(0, x.lit - dt * 6);
       const b = reduced ? 0 : Math.abs(Math.sin(T * 5 + x.seed)) * .08 * cheer + Math.sin(x.hop * Math.PI) * .18;
       if (x.pet) { x.pet.position.y = x.pet.userData.y0 ??= x.pet.position.y; x.pet.position.y += b; wiggle(x.pet, T, x.seed, cheer); }
