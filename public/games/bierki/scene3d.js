@@ -173,7 +173,7 @@ export function createScene(canvas, cb = {}) {
     for (const p of players) { world.remove(p.wrap); disposeAvatar(p.av); }
     const n = list.length, span = Math.min(2.5, .62 * (n - 1));
     players = list.map((s, i) => {
-      const av = avatar3d(s.color, s.av, { pose: 'stand' }), wrap = new THREE.Group(); wrap.scale.setScalar(AVS); wrap.add(av); world.add(wrap);
+      const av = avatar3d(s.color, s.av, { pose: 'stand', hand: false }), wrap = new THREE.Group(); wrap.scale.setScalar(AVS); wrap.add(av); world.add(wrap);
       const a = -Math.PI / 2 + (n > 1 ? (i / (n - 1) - .5) * span : 0); // a row round the far side of the table
       return { i, av, wrap, a, r: TR + 1.25, hop: 0, mood: 0, moodT: 0, tag: { x: 0, y: 0, show: false } };
     });

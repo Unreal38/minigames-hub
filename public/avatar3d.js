@@ -421,7 +421,7 @@ export const hidesBottom = top => top === 6 || top === 15 || top === 32 || top i
 // Drawn in a frame at the centre of the mitten: y up, z towards the front, x to the avatar's left (the side it is held on).
 // u scales with the avatar's height, r is the mitten's radius (a grip should pass through it, not float beside it).
 // Items in HANG are carried at the side with the arm down; the rest are held up in front, forearm forward.
-const HANG = [2, 5, 9, 13, 16, 17, 18];
+const HANG = [2, 5, 9, 13, 16, 17, 18], HAND_LEAN = { z: .3, x: .2 }, WIDE = [4, 10, 12];
 function handItem(p, i, u, r, { gold, COFFEE, LATTE, CREAM }) {
   // a star of five flat points round (x, y, z), facing the front
   const star = (R, c, x, y, z) => { for (let k = 0; k < 5; k++) { const an = k / 5 * PI * 2, pt = cone(p, R * .42, R, c, x - Math.sin(an) * R * .5, y + Math.cos(an) * R * .5, z); pt.rotation.z = an; pt.scale.z = .45; } sph(p, R * .36, c, x, y, z).scale.z = .55; };
@@ -529,7 +529,7 @@ function handItem(p, i, u, r, { gold, COFFEE, LATTE, CREAM }) {
   }
 }
 
-export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
+export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // hand: false drops the held item (games that put props in the hands)
   const a = avObj(avIn), seated = pose !== 'stand';
   const root = new THREE.Group(), g = new THREE.Group(), ud = { arms: [], legs: [], eyes: [], dyn: true }; root.add(g);
   const H = 2.4 * [.93, 1, 1.07][a.height], B = BODIES[a.body];
@@ -712,13 +712,13 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     sph(g, sh * .16, '#e5543b', 0, cy - hh * .02, bzc - sh * .56).scale.z = .35;
     for (const s of [-1, 1]) { side(wy + .1 * t, yT - .01 * t, COFFEE, s * .5, .08, .016); side(wy + .1 * t, yT - .01 * t, COFFEE, PI + s * .62, .08, .016); }
   }
-  if (bk === 12) { // Flickit (the Pet Farm's ember chick) perched on the left shoulder, its candle flame lit
-    const px = -sh * 1.08, py = yT - .02, pz = -.04, c = '#ffe27a', F = new THREE.Group(); F.position.set(px, py, pz); F.scale.setScalar(1.45); g.add(F);
-    sph(F, .17, c, 0, .14, 0).scale.set(1, .95, 1.05); sph(F, .13, c, 0, .34, .05);
-    const bk2 = cone(F, .04, .08, '#f0a23c', 0, .32, .19); bk2.rotation.x = PI / 2;
-    for (const e of [-1, 1]) { sph(F, .025, '#1a1014', e * .055, .37, .16).scale.z = .5; const w = sph(F, .08, mix(c, '#e08a1c', .45), e * .16, .14, -.01); w.scale.set(.35, .8, 1.1); w.rotation.z = e * .3; cyl(F, .012, .012, .05, '#f0a23c', e * .05, .01, .04); }
-    sph(F, .1, '#fff6c8', 0, .1, .1).scale.set(1, 1, .6);
-    cyl(F, .03, .03, .07, '#fff6c8', 0, .49, .04); const fl = cone(F, .04, .12, '#ff8a2a', 0, .58, .04); fl.scale.z = .7; sph(F, .025, '#ffe066', 0, .55, .06);
+  if (bk === 12) { // pirate flag: a pole tucked in the back strap, a black flag with a skull and crossbones flying out to the side
+    const px = -sh * .45, pz = bz(chestY) - .07, yb = y0 + .25 * t, ytop = shY + headH * 1.95; // the flag flies above the head and most hats
+    cyl(g, .028, .028, ytop - yb, '#8a5a3c', px, (ytop + yb) / 2, pz); sph(g, .05, gold, px, ytop + .03, pz);
+    side(wy + .1 * t, yT - .01 * t, '#4a2f2a', -.5, .07, .018); side(wy + .1 * t, yT - .01 * t, '#4a2f2a', PI + .62, .07, .018);
+    const fl = new THREE.Group(); fl.position.set(px, ytop - .26, pz); fl.rotation.y = -.3; g.add(fl);
+    box(fl, .62, .42, .03, '#24222c', -.32, 0, 0); for (const sz2 of [-1, 1]) { sph(fl, .085, '#f4f1ea', -.33, .05, sz2 * .02).scale.set(1, .95, .3); for (const e of [-1, 1]) sph(fl, .022, '#24222c', -.33 + e * .03, .06, sz2 * .03).scale.z = .4;
+      for (const r2 of [-1, 1]) { const bn = box(fl, .3, .035, .02, '#f4f1ea', -.33, -.09, sz2 * .022); bn.rotation.z = r2 * .55; } }
   }
   if (bk === 13) { // electric guitar on the back on a strap across the chest
     const gx = 0, gy = y0 + .45 * t, gz = bz(chestY) - .09, gr = new THREE.Group(); gr.position.set(gx, gy, gz); gr.rotation.z = .55; g.add(gr);
@@ -757,13 +757,16 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     if (top === 35) for (const k of [.3, .6]) sph(arm, .016, '#c9ccd2', s * lb * .9, -ua * k, lb * .5);
     if (seated) { arm.rotation.x = -.45; el.rotation.x = -.95; }
     // the held item (standing only: seated avatars rest their hands on the table, where cards and cues go)
-    if (s === 1 && !seated && a.hand > 0) {
+    if (s === 1 && !seated && hand && a.hand > 0) {
       const hang = HANG.includes(a.hand);
-      if (!hang) { arm.rotation.x = -.25; el.rotation.x = -1.05; } else arm.rotation.z += .22; // carried things hang clear of the leg
+      // held up: the arm reaches forward and a little out, so the item stands clear of the big head; carried: hangs clear of the leg
+      if (!hang) { arm.rotation.x = -.5; arm.rotation.z += .2; el.rotation.x = -1.0; } else arm.rotation.z += .22;
       const hd = new THREE.Group(); hd.position.y = -fa - lb * .5; el.add(hd);
-      // turn the item back upright, whatever the arm and elbow are doing
+      // turn the item back upright, whatever the arm and elbow are doing, then lean a held-up item forward and away from the face
       hd.quaternion.setFromEuler(arm.rotation).multiply(new THREE.Quaternion().setFromEuler(el.rotation)).invert();
+      if (!hang) { hd.rotateZ(-HAND_LEAN.z); hd.rotateX(HAND_LEAN.x); }
       handItem(hd, a.hand, H / 2.4 * 1.45, lb * 1.22, { gold, COFFEE, LATTE, CREAM });
+      if (WIDE.includes(a.hand)) for (const o of hd.children) { o.position.z += lb * .7; o.position.x += lb * .35; } // a big round item sits out on the palm, off the chin
       arm.userData.hold = true;
     }
     arm.userData.rx = arm.rotation.x; ud.arms.push(arm);
@@ -977,12 +980,18 @@ export function avatar3d(color, avIn, { pose = 'sit' } = {}) {
     }
     box(hg, .07, .014, .014, fr, 0, ey + .01, fz(0, ey, .02));
   }
-  if (gl === 13) { // masquerade mask: a purple mask over both eyes with gold trim and two feathers on one side
-    const mk = shapeG(sp => { sp.moveTo(-.32, .03); sp.bezierCurveTo(-.3, .14, -.1, .15, 0, .06); sp.bezierCurveTo(.1, .15, .3, .14, .32, .03); sp.bezierCurveTo(.3, -.1, .12, -.12, 0, -.04); sp.bezierCurveTo(-.12, -.12, -.3, -.1, -.32, .03); });
-    for (const s of [-1, 1]) { const half = put(hg, G('mskh', mk), '#7b4fc4', s * .1, ey, gz + .004); half.scale.set(.62, 1, 1); half.rotation.y = s * .36; }
-    for (const s of [-1, 1]) { const rim = ring(hg, .095, .014, gold, s * ex, ey, gz + .012); rim.rotation.y = s * .36; rim.scale.y = .7; lens('mke', () => new THREE.CircleGeometry(.07, 14), '#1a1014', s * ex, .006).scale.y = .7; }
-    for (const [dx, an, c] of [[0, .3, '#e5543b'], [.04, -.1, '#ffd23f']]) { const f = sph(hg, .1, c, ex + .2 + dx, ey + .2, gz - .08); f.scale.set(.3, 1.3, .12); f.rotation.set(0, .5, an - .3); }
-    strap('#3d2f58');
+  if (gl === 13) { // masquerade mask: one wide purple band that follows the face, only the eyes showing through, big swept wings,
+    // sequins, and feathers at one side (no rims or strap, so it never reads as glasses)
+    const mc = '#7b4fc4', R = y => hr(y) + .028, aE = Math.asin(ex / hr(ey)), dE = Math.asin(.1 / hr(ey)), aO = aE + dE + .3;
+    const band2 = (ya, yb, mid, half, c = mc, o = 0) => part(hg, [[R(ya) + o, ya], [R((ya + yb) / 2) + o, (ya + yb) / 2], [R(yb) + o, yb]], c, mid, half);
+    band2(ey + .065, ey + .17, 0, aO); band2(ey - .15, ey - .06, 0, aO - .12); band2(ey - .065, ey + .07, 0, aE - dE);
+    for (const sx of [-1, 1]) { band2(ey - .065, ey + .07, sx * (aE + dE + .15), .15);
+      const wx = sx * Math.sin(aO - .02) * R(ey + .12), wz = Math.cos(aO - .02) * R(ey + .12), wg = cone(hg, .11, .3, mc, wx, ey + .22, wz); wg.rotation.set(0, sx * aO, -sx * .6); wg.scale.z = .3;
+      for (let k = 0; k < 4; k++) { const an = sx * (aE + dE * (k - 1.5) * .9), yy = ey + .13; sph(hg, .016, k % 2 ? gold : '#ffffff', Math.sin(an) * (R(yy) + .006), yy, Math.cos(an) * (R(yy) + .006)).scale.z = .5; }
+      for (let k = 0; k < 3; k++) { const an = sx * (aE + (k - 1) * .16), yy = ey - .11; sph(hg, .014, gold, Math.sin(an) * (R(yy) + .006), yy, Math.cos(an) * (R(yy) + .006)).scale.z = .5; } }
+    band2(ey + .165, ey + .18, 0, aO, gold, .004);
+    sph(hg, .04, '#7fd1e8', 0, ey + .12, R(ey + .12) + .012).scale.z = .5;
+    for (const [dx, an, c] of [[0, .2, '#e5543b'], [.05, -.25, '#ffd23f'], [-.04, .55, '#ff8fab']]) { const f = sph(hg, .11, c, .34 + dx, ey + .36, .3); f.scale.set(.26, 1.4, .12); f.rotation.set(0, .7, an - .45); }
   }
   if (gl === 14) { // cat-eye glasses: dark frames swept up at the outer corners
     for (const s of [-1, 1]) { const rg = ring(hg, .1, .02, '#24222c', s * ex, ey, gz); rg.rotation.y = s * .36; rg.scale.y = .78; const wg = cone(hg, .045, .12, '#24222c', s * (ex + .1), ey + .07, gz - .03); wg.rotation.z = -s * 1.0; wg.scale.z = .4; arm(s, .1, '#24222c'); }
