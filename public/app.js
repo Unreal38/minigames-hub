@@ -1856,12 +1856,14 @@ function paintMe() {
 // Day or night: the sky look comes in both. Saved per browser; first visit follows the system setting.
 let heroMod = null; // the hub's 3D hero module, loaded on first visit to the hub
 const isNight = () => document.body.classList.contains('night');
+// The 3D skies (hub isle, profile isles, games) follow the real clock, not the switch (Kuba, 2026-11-25).
+const skyNight = () => { const d = new Date(); return wxNight(d.getHours() + d.getMinutes() / 60); };
+{ let was = skyNight(); setInterval(() => { const on = skyNight(); if (on !== was) { was = on; heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {}); } }, 30_000); }
 function setNight(on, save) {
   document.body.classList.toggle('night', on);
   if (save) LS.set('ct_theme', on ? 'night' : 'day');
   [...document.querySelectorAll('.themebtn'), gameSwitch].forEach(b => { b.textContent = on ? '☀️' : '🌙'; b.title = b.ariaLabel = on ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc'); });
-  heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {});
-  if (document.body.classList.contains('in-game')) import('./scenery3d.js').then(m => m.setScenesNight(on)).catch(() => {}); // repaint the game's sky live
+  // (the 3D skies, the hub isle and the games, follow the real clock instead: skyNight above)
 }
 // Inside the games (which draw their own screens, without the top bar) the switch joins the game's round
 // buttons at the top right, just before the sound button.
@@ -1937,7 +1939,7 @@ function mountSkyHero() {
   art.classList.add('sky3d');
   paintIsleKit();
   const frame = art.closest('.hero'); // the hero is a banner painted in your isle's sky
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }, { frame, zoom: 1.15 }); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }, { frame, zoom: 1.15 }); }).catch(() => {});
   if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
 // The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
@@ -2716,7 +2718,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   // The isle sections show the isle itself in place of the avatar, wearing what is on plus anything being tried.
   const showIsle = () => {
     const on = !first && (sec === 'isle' || sec === 'pets'); pvi.hidden = !on; pv.hidden = on; el.querySelector('form').classList.toggle('isleview', on);
-    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor(), fp: me().cos?.fp }); }).catch(() => {});
+    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor(), fp: me().cos?.fp }); }).catch(() => {});
   };
 
   // Saving: only what is owned is ever saved, so a tried-on item never reaches other players.
@@ -3045,7 +3047,7 @@ function openPlayer(p) {
   for (const im of el.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, p.color, p.av).then(u => { if (u && im.isConnected) im.src = u; }); }
   const box = el.querySelector('.pisle .art');
   box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets, p.fl, box.closest('.pisle')); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets, p.fl, box.closest('.pisle')); }).catch(() => {});
   sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; };
   el.addEventListener('click', e => {
     const fr = e.target.closest('[data-fr]');

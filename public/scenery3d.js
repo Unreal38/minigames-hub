@@ -20,7 +20,7 @@ import { bake, hullGeo, hullMat } from './avatar3d.js';
 import { fxOf, winSheet } from './winfx.js';
 import { drawShape } from './fxart.js';
 import { seasonLookNow, lookOf, trim } from './season3d.js';
-import { WX_LOOK } from './weather.js';
+import { WX_LOOK, isNight as clockNight } from './weather.js';
 import { wxShown, onWeather, weatherLayer } from './weather3d.js';
 export { seasonLookNow } from './season3d.js';
 
@@ -82,7 +82,9 @@ export function shell(mesh, grow = 1.1, color = '#4a2c22') {
 // sky and clouds exist. It notes the scene's daytime look, then paints it for the current mode: at night a
 // starry navy sky, moonlight for sunlight, tinted clouds, a moon, and the islands' lamp posts. The switch can be
 // flipped mid-game: setScenesNight(on) repaints every live scene both ways.
-export const isNight = () => typeof document !== 'undefined' && document.body.classList.contains('night');
+// Since 2026-11-25 (Kuba) the skies follow the real clock, like Pet Farm: night from 21:00 to 4:36 on the player's own
+// clock. The day/night switch (body.night) only changes the panels and buttons, never a 3D sky.
+export const isNight = () => { const d = new Date(); return clockNight(d.getHours() + d.getMinutes() / 60); };
 export const NIGHT_TOP = '#0c1236', NIGHT_LOW = '#2d2b63';
 const liveScenes = new Set(); // WeakRefs, so a finished game's scene can still be collected
 // It also dresses the scene for the world weather (weather3d.js, the same spell as Pet Farm): a greyer sky and clouds,
@@ -108,6 +110,8 @@ export function setScenesNight(on) {
 // The weather turned over (or a host previews another kind): repaint every live scene for it.
 const wxScenes = kind => { for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, s.userData.dayNight.on, kind); else liveScenes.delete(r); } };
 if (typeof window === 'object') onWeather(wxScenes);
+// Dusk or dawn came on the clock: repaint every live scene (checked every 30 s).
+if (typeof window === 'object') { let was = isNight(); setInterval(() => { const on = isNight(); if (on !== was) { was = on; setScenesNight(on); } }, 30_000); }
 const GREY_DAY = new THREE.Color('#8f9bb3'), GREY_NIGHT = new THREE.Color('#2a2d52'); // Pet Farm's rainy grey, and a moonlit one
 function applyNight(scene, on, kind = wxShown()) {
   const S = scene.userData.dayNight; if (!S) return;

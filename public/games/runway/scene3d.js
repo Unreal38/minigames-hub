@@ -5,7 +5,7 @@
 // Purely visual: it draws what the server sends. The fitting room, stars and results are the page (client.js).
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, HEART, nightScene } from '../../scenery3d.js';
+import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, HEART, nightScene, isNight } from '../../scenery3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
@@ -385,7 +385,7 @@ export function createScene(canvas, { onFrame } = {}) {
     camera.lookAt(cam.look); if (!reduced) shake.apply(camera, dt);
     signMesh.position.y = RUN.h + 6.1 + (S.stage === 'theme' && !reduced ? Math.max(0, 1 - stageT * 1.4) * 4 : 0);
     cloudRing.rotation.y = T * .006; flyBirds(T); drift(T);
-    const night = document.body.classList.contains('night');
+    const night = isNight();
     bulbMat.emissiveIntensity = (night ? 1.6 : .55) + (reduced ? 0 : Math.sin(T * 4) * .15);
     // the shafts dim while you dress (the camera is close), the follow spot and its pool sit on whoever is on show
     const close = S.stage === 'dress' ? .35 : 1; beamMat.opacity = (night ? .3 : .13) * close;
