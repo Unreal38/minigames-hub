@@ -14,7 +14,7 @@ import { itemModel } from '../farm/models.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { mergeStatic, litePet } from '../plaza/scene3d.js';
-import { R_WALK, SPEED, GHOST_SPEED, Q, STATIONS, DECOR, LOGS, ROPES, BELL, spotOf, unblock, clampWalk } from './layout.js';
+import { R_WALK, SPEED, GHOST_SPEED, Q, STATIONS, DECOR, LOGS, ROPES, BELL, WALLS, WALL_KIND, spotOf, unblock, clampWalk, findPath } from './layout.js';
 
 const K = .72;                  // avatars are drawn at this size, on a wrapper (animateAvatar owns the avatar's own scale)
 const LIFT = .76;               // a standing avatar's feet are .76 below its middle
@@ -38,10 +38,10 @@ function bell(g) {
   put(g, new THREE.IcosahedronGeometry(.07, 0), flat('#6b4a2c'), .62, 1.44);
   put(g, new THREE.CylinderGeometry(.02, .02, .26, 4), flat('#e3c7ad'), .62, 1.93); // the rope's top ends inside the beam (no shared face)
 }
-function dock(g) { // planks from the island's edge out over the water, posts down into it
+function dock(g, x0) { // planks from the island's edge out over the water, posts down into it
   const plank = flat(WOOD), dark = flat(WOOD_D);
-  for (let i = 0; i < 11; i++) put(g, new THREE.BoxGeometry(5.2 - (i % 2) * .08, .14, .62), i % 3 ? plank : dark, 0, .02, 21.2 + i * .66);
-  for (const sx of [-2.5, 2.5]) for (const z of [22, 24.5, 27]) put(g, new THREE.CylinderGeometry(.16, .18, 2.6, 6), dark, sx, -.9, z);
+  for (let i = 0; i < 11; i++) put(g, new THREE.BoxGeometry(5.2 - (i % 2) * .08, .14, .62), i % 3 ? plank : dark, x0, .02, 21.2 + i * .66);
+  for (const sx of [-2.5, 2.5]) for (const z of [22, 24.5, 27]) put(g, new THREE.CylinderGeometry(.16, .18, 2.6, 6), dark, x0 + sx, -.9, z);
 }
 function bollard(g) { put(g, new THREE.CylinderGeometry(.22, .26, .7, 8), flat(WOOD_D), 0, .35); put(g, new THREE.CylinderGeometry(.3, .3, .08, 8), flat(WOOD), 0, .74); put(g, new THREE.TorusGeometry(.24, .06, 5, 10), flat('#e8d2a8'), 0, .45).rotation.x = Math.PI / 2; }
 function ferryBoat() {
@@ -56,11 +56,44 @@ function ferryBoat() {
   for (const sx of [-1, 1]) put(g, new THREE.TorusGeometry(.32, .1, 6, 12), white, sx * 1.76, .5, -.6).rotation.y = Math.PI / 2;
   bake(g); return toonify(g, .05);
 }
-// A path of stepping stones from the fire out to a place.
-function stones(g, x, z, light, darkM) {
-  const d = Math.hypot(x, z), n = Math.round((d - 3.2) / 1.05);
-  for (let k = 0; k < n; k++) { const r = 2.6 + k * 1.05; put(g, new THREE.CylinderGeometry(.36, .38, .05, 7), k % 2 ? light : darkM, x / d * r + Math.sin(k * 5 + x) * .14, .012, z / d * r + Math.cos(k * 3 + z) * .14); }
+// Stepping stones from the campfire square out to a place, along the way you walk there (round the walls).
+function stones(g, x, z, light, darkM, laid) {
+  const d = Math.hypot(x, z) || 1, sx = x / d * 2.8, sz = z / d * 2.8, way = findPath(sx, sz, x, z); if (!way) return;
+  let px = sx, pz = sz, k = 0, carry = 0;
+  for (const [wx, wz] of way) { const len = Math.hypot(wx - px, wz - pz);
+    for (let t = 1.05 - carry; t < len; t += 1.05) { const qx = px + (wx - px) * t / len, qz = pz + (wz - pz) * t / len; k++;
+      if (Math.hypot(qx, qz) < 6.9 || laid.some(([lx, lz]) => Math.hypot(lx - qx, lz - qz) < .7)) continue; laid.push([qx, qz]);
+      put(g, new THREE.CylinderGeometry(.36, .38, .05, 7), k % 2 ? light : darkM, qx + Math.sin(k * 5 + x) * .12, .012, qz + Math.cos(k * 3 + z) * .12); }
+    carry = (len + carry) % 1.05; px = wx; pz = wz; }
 }
+// The island's walls: stone with a cap, clipped hedges, plank sheds with posts, low fences with two rails.
+// Each piece runs half a thickness past its ends so corners close (the same as the walking rules: walls are capsules).
+function wallPiece(w) {
+  const g = new THREE.Group(), K = WALL_KIND[w.k], dx = w.b[0] - w.a[0], dz = w.b[1] - w.a[1], len = Math.hypot(dx, dz), L = len + (w.k === 'fence' ? 0 : K.t);
+  g.position.set((w.a[0] + w.b[0]) / 2, .02, (w.a[1] + w.b[1]) / 2); g.rotation.y = -Math.atan2(dz, dx);
+  const seed = Math.abs(Math.sin(w.a[0] * 12.9 + w.a[1] * 78.2)) * 9;
+  if (w.k === 'stone') {
+    put(g, new THREE.BoxGeometry(L, K.h - .1, K.t), flat('#9b8f84'), 0, (K.h - .1) / 2);
+    put(g, new THREE.BoxGeometry(L + .08, .16, K.t + .08), flat('#b9ada0'), 0, K.h - .04);
+    for (let i = 0, n = Math.floor(L / 1.3); i < n; i++) for (const sd of [-1, 1]) { const x = -L / 2 + .65 + i * 1.3 + Math.sin(seed + i * 3 + sd) * .2; // a few stones stand out of the face
+      put(g, new THREE.BoxGeometry(.42, .22, .06), flat((i + sd) % 2 ? '#877b70' : '#a89c90'), x, .3 + ((i * 7 + seed) % 3) * .2, sd * (K.t / 2 + .02)); }
+  } else if (w.k === 'hedge') {
+    put(g, new THREE.BoxGeometry(L, K.h, K.t), flat('#4f8f45'), 0, K.h / 2);
+    put(g, new THREE.BoxGeometry(L - .1, .14, K.t - .14), flat('#64a957'), 0, K.h + .05);
+    for (let i = 0, n = Math.floor(L / 1.6); i < n; i++) { const sd = i % 2 ? 1 : -1, x = -L / 2 + .8 + i * 1.6 + Math.sin(seed + i) * .3; // berries and leaf tufts
+      put(g, new THREE.IcosahedronGeometry(.2, 0), flat('#5ea052'), x, .5 + (i % 3) * .22, sd * (K.t / 2 + .03)).scale.z = .45;
+      if (i % 3 === 1) put(g, new THREE.IcosahedronGeometry(.06, 0), flat('#e0524a'), x + .15, .78, sd * (K.t / 2 + .09)); }
+  } else if (w.k === 'plank') {
+    put(g, new THREE.BoxGeometry(L, K.h, K.t), flat('#a8774f'), 0, K.h / 2);
+    for (let i = 1; i < 4; i++) for (const sd of [-1, 1]) put(g, new THREE.BoxGeometry(L - .04, .04, .03), flat('#8c6140'), 0, i * K.h / 4, sd * (K.t / 2 + .012)); // plank seams
+    const n = Math.max(1, Math.round(L / 2.2)); for (let i = 0; i <= n; i++) put(g, new THREE.BoxGeometry(.22, K.h + .16, K.t + .1), flat('#6f4a2f'), -L / 2 + .13 + (L - .26) * i / n, (K.h + .16) / 2); // end posts stop just short of the plank's end
+  } else {
+    const n = Math.max(1, Math.round(L / 1.2)); for (let i = 0; i <= n; i++) put(g, new THREE.BoxGeometry(.14, K.h, .14), flat('#7d5234'), -L / 2 + L * i / n, K.h / 2);
+    for (const y of [.3, .58]) put(g, new THREE.BoxGeometry(L, .08, .06), flat('#b07a4a'), 0, y);
+  }
+  bake(g); return g;
+}
+export const _wallPiece = wallPiece; // (for the flicker checker)
 
 export function createScene(canvas, opts = {}) {
   const level = gfx(), few = level === 'low';
@@ -81,9 +114,8 @@ export function createScene(canvas, opts = {}) {
   const stat = new THREE.Group(), live = [];
   { const pav = new THREE.Group(), a = flat('#e2cfae'), b = flat('#cdb38c');
     put(pav, new THREE.CylinderGeometry(6.6, 6.6, .05, 40), flat('#cdb38c'), 0, .005); put(pav, new THREE.CylinderGeometry(6.3, 6.3, .05, 40), flat('#e2cfae'), 0, .016);
-    for (const st of STATIONS) stones(pav, ...spotOf(st), a, b);
-    for (const [x, z] of LOGS) stones(pav, x * .86, z * .86, a, b);
-    dock(pav); bake(pav); stat.add(pav); }
+    const laid = []; for (const st of STATIONS) stones(pav, ...spotOf(st), a, b, laid);
+    dock(pav, STATIONS.find(st => st.id === 'dock').x); bake(pav); stat.add(pav); }
   for (const st of STATIONS) {
     if (!st.item) continue;
     if (LIVE.has(st.item)) { const g = itemModel(st.item, true); g.traverse(o => { if (o.isMesh) { o.castShadow = !o.userData.noInk; o.receiveShadow = false; } }); g.scale.setScalar(st.s); g.position.set(st.x, .03, st.z); g.rotation.y = st.ry; scene.add(g); if (g.userData.tick) live.push(g); continue; }
@@ -93,6 +125,7 @@ export function createScene(canvas, opts = {}) {
     if (LIVE.has(kind)) { const g = itemModel(kind, true); g.traverse(o => { if (o.isMesh) { o.castShadow = !o.userData.noInk; o.receiveShadow = false; } }); g.scale.setScalar(s); g.position.set(x, .03, z); g.rotation.y = ry; scene.add(g); if (g.userData.tick) live.push(g); continue; }
     const g = itemModel(kind, false, true); g.scale.setScalar(s); g.position.set(x, .03, z); g.rotation.y = ry; stat.add(g);
   }
+  for (const w of WALLS) stat.add(wallPiece(w));
   for (const [x, z, ry] of LOGS) { const g = new THREE.Group(); hollowLog(g); bake(g); g.position.set(x, .03, z); g.rotation.y = ry; stat.add(g); }
   for (const [x, z] of ROPES) { const g = new THREE.Group(); bollard(g); bake(g); g.position.set(x, .03, z); stat.add(g); }
   { const g = new THREE.Group(); bell(g); bake(g); g.position.set(BELL[0], .03, BELL[1]); stat.add(g); }
@@ -160,14 +193,15 @@ export function createScene(canvas, opts = {}) {
   let inX = 0, inZ = 0, goal = null, stuck = 0, sentX = 0, sentZ = 0, sentR = -1, sendAt = 0, frozen = true, bestD = 0, bestT = 0;
   const setMove = (x, z) => { inX = x; inZ = z; if (x || z) { goal = null; mark.visible = false; } };
   const ghostMe = () => !!me && me.out > 0;
-  function walkTo(x, z) { if (!me) return; [x, z] = ghostMe() ? clampWalk(x, z) : unblock(x, z, .44); goal = [x, z]; stuck = 0; bestD = 1e9; bestT = 0; mark.position.set(x, .1, z); mark.visible = true; }
+  function walkTo(x, z) { if (!me) return; [x, z] = ghostMe() ? clampWalk(x, z) : unblock(x, z, .44); goal = ghostMe() ? [[x, z]] : findPath(me.x, me.z, x, z) || [[x, z]]; /* round the walls */ stuck = 0; bestD = 1e9; bestT = 0; mark.position.set(x, .1, z); mark.visible = true; }
   function stepMe(dt) {
     if (frozen) { me.spd = 0; return; }
     const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
     let vx = inX * cy + inZ * sy, vz = -inX * sy + inZ * cy;
-    if (!vx && !vz && goal) { const dx = goal[0] - me.x, dz = goal[1] - me.z, d = Math.hypot(dx, dz);
+    if (!vx && !vz && goal) { const [gx, gz] = goal[0], last = goal.length === 1, dx = gx - me.x, dz = gz - me.z, d = Math.hypot(dx, dz);
       if (d < bestD - .05) { bestD = d; bestT = 0; } else bestT += dt;
-      if (d < .12 || stuck > 1 || bestT > 1.6) { goal = null; mark.visible = false; } else { vx = dx / d; vz = dz / d; } }
+      if (!last && d < .35) { goal.shift(); bestD = 1e9; bestT = 0; }
+      else if (d < .12 || stuck > 1 || bestT > 1.6) { goal = null; mark.visible = false; } else { vx = dx / d; vz = dz / d; } }
     const speed = ghostMe() ? GHOST_SPEED : SPEED;
     if (vx || vz) {
       const l = Math.hypot(vx, vz), k = l > 1 ? 1 / l : 1, ox = me.x, oz = me.z;
