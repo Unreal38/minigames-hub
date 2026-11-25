@@ -6,6 +6,7 @@ import { siteLogo, tableArt } from './art.js';
 import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
+import { openGameWheel, GW_ICON } from './gamewheel.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
 import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync, cosPackIds, emotesOf, EMOTE_BAR, EMOTE_ICO } from './cosmetics.js';
 import { playWinFx, setSeatFx, setMyFx, winPic } from './winfx.js';
@@ -2008,6 +2009,15 @@ const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcar
     <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
     <button type="button" class="btn sm" data-act="host" data-game="${id}">${L('Host a table', 'Załóż stół')}</button></div>
 </article>`;
+// The Game wheel (Koło gier) pop-up: spins the games the player put on it. It pays nothing; see public/gamewheel.js.
+function openWheelPicker() {
+  const games = HUB_GAMES.map(([id, pic, art, cat, seats]) => ({ id, pic, art, cat, seats, seatsText: PLX ? PLX.SEATS_PL(seats) : seats, name: GAMES[id].name, mins: GAMES[id].mins }));
+  openGameWheel({
+    games, modal, saved: st.me?.gw,
+    save: v => { if (st.me) st.me.gw = v; send({ t: 'gwheel', v }); },
+    host: game => { if (!GAMES[game]) return; if (!st.name) return openProfile(true); send({ t: 'create', game, opts: GAMES[game].host }); },
+  });
+}
 // The category pills and the search box only hide cards; nothing is re-rendered, so the pictures keep animating.
 function filterGames() {
   if (!HUB_CATS.some(([id]) => id === st.gFilt)) st.gFilt = 'all';
@@ -2065,6 +2075,7 @@ function renderHub() {
       <div class="ghead">
         <h2>${L('Games', 'Gry')}</h2>
         <div class="gfilt" role="group" aria-label="${L('Kind of game', 'Rodzaj gry')}">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
+        <button type="button" class="gwbtn" data-act="gwheel" title="${L('Spin a wheel to pick a game', 'Zakręć kołem i wylosuj grę')}">${GW_ICON}<span>${L('Game wheel', 'Koło gier')}</span></button>
         <input id="gfind" class="field gfind" type="search" placeholder="${L('Find a game', 'Szukaj gry')}" aria-label="${L('Find a game', 'Szukaj gry')}" autocomplete="off" spellcheck="false">
         <select id="gsort" class="field gsort" aria-label="${L('Sort games', 'Sortuj gry')}">${G_SORTS.map(([id, n]) => `<option value="${id}"${id === st.gSort ? ' selected' : ''}>${n}</option>`).join('')}</select>
       </div>
@@ -3284,6 +3295,7 @@ $app.addEventListener('click', e => {
     if (!st.name) return openProfile(true);
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
+  else if (act === 'gwheel') { sfx.click(); openWheelPicker(); }
   else if (act === 'theme') { switchTheme(b); sfx.click(); if (b.matches('.aphone')) closeAcct(); } // from the phone account menu: the menu closes as the sky turns
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
