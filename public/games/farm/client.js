@@ -308,7 +308,7 @@ export function mount(app, ctx) {
     if (go.a === 'card') { setEdit(false); panel = null; card = { item: item.id }; scene?.look?.(item.id); sync(); return; }
     if (go.a === 'land') { setEdit(true); tab = 'b'; paintBuild(); ctx.toast(L('Tap “More land” at the end of the Buildings list.', 'Dotknij „Więcej ziemi” na końcu listy Budynków.')); return; }
     panel = null; card = null;
-    if (go.a === 'explore') { if (!countOf(F, 'gate')) return openBuy('gate'); if (go.zone) panel = { zone: go.zone }; if (F.trips.length >= F.partyMax) { sync(); return ctx.toast(L('Your parties are out. Send the next one when they are back.', 'Twoje drużyny są na wyprawie. Wyślij kolejną, gdy wrócą.')); } return openSend(); }
+    if (go.a === 'explore') { if (!countOf(F, 'gate')) return openBuy('gate'); if (F.trips.length >= F.partyMax) { sync(); return ctx.toast(L('Your parties are out. Send the next one when they are back.', 'Twoje drużyny są na wyprawie. Wyślij kolejną, gdy wrócą.')); } if (go.zone) panel = { zone: go.zone }; return openSend(); } // the zone is set only when the send window really opens: a bare { zone } panel is an empty dimmed window
     if (go.a === 'collect') { const t = F.trips.find(x => x.left <= 0); if (t) return ctx.send({ t: 'collect', id: t.id }); sync(); return ctx.toast(F.trips.length ? L(`They are on their way. Back in ${wait(F.trips[0].left)}.`, `Są w drodze. Powrót za ${wait(F.trips[0].left)}.`) : L('Send a party exploring first.', 'Najpierw wyślij drużynę na wyprawę.')); }
     if (go.a === 'berries') { if (F.garden.ripe) return ctx.send({ t: 'pick' }); sync(); return ctx.toast(L('Nothing is ripe yet. Berries ripen every hour.', 'Jeszcze nic nie dojrzało. Jagody dojrzewają co godzinę.')); }
     if (go.a === 'pets') panel = { kind: 'pets', sort: petSort() };
@@ -910,7 +910,7 @@ export function mount(app, ctx) {
   }
   function openSend() {
     if (!countOf(F, 'gate')) return ctx.toast(L('Build an Expedition Gate first.', 'Najpierw zbuduj Bramę wypraw.'), true);
-    if (F.trips.length >= F.partyMax) return;
+    if (F.trips.length >= F.partyMax) { if (panel && !panel.kind) { panel = null; sync(); } return; }
     const zone = panel?.zone || lastTrip.zone, ok = ZONES[zone] && F.house >= ZONES[zone].house;
     panel = { kind: 'send', step: 'where', zone: ok ? zone : 'woods', trip: lastTrip.trip, pets: lastTrip.pets.filter(freeFor('send')) };
     card = null; sync();
