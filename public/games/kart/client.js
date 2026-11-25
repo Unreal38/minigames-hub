@@ -129,7 +129,7 @@ export function mount(app, ctx) {
     if (S.stage === 'race' && now - sentAt > 95) {
       sentAt = now;
       const f = (mk.fall > 0 ? 1 : 0) | (mk.spin > 0 ? 2 : 0) | (mk.boost > 0 ? 4 : 0) | (mk.slow > 0 ? 8 : 0) | (mk.dr > 0 ? 32 : 0) | (mk.dr < 0 ? 64 : 0) | (mk.grass ? 128 : 0) | (mk.ghost > 0 ? 256 : 0) | driftFlags(mk.charge);
-      ctx.act({ t: 'p', x: +mk.x.toFixed(2), z: +mk.z.toFixed(2), h: +mk.h.toFixed(3), v: +mk.v.toFixed(2), f });
+      ctx.act({ t: 'p', x: +mk.x.toFixed(2), z: +mk.z.toFixed(2), h: +mk.h.toFixed(3), v: +mk.v.toFixed(2), f, c: Math.round(now) });
     }
   }
   // take the kart over from what the server has (the start, or coming back after a bot drove for you)
