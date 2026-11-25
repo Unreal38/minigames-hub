@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
@@ -180,6 +180,11 @@ export function mount(app, ctx) {
       : { cls: '', text: L('Free to play', 'Wolny, bawi się') }; };
   const favBtn = (p, cls = '') => `<button type="button" class="pfheart${cls}" data-a="fav" data-id="${p.id}" aria-pressed="${!!p.fav}" title="${p.fav ? L('Remove from favourites', 'Usuń z ulubionych') : L('Mark as favourite', 'Dodaj do ulubionych')}" aria-label="${p.fav ? L(`Remove ${esc(p.name)} from favourites`, `Usuń z ulubionych: ${esc(p.name)}`) : L(`Mark ${esc(p.name)} as a favourite`, `Dodaj do ulubionych: ${esc(p.name)}`)}">${p.fav ? HEART(18) : HEART_O(18)}</button>`;
   const petSort = () => { try { return localStorage.getItem('pf_psort') || 'new'; } catch { return 'new'; } };
+  // The arrows on a pet's details page step through the pets in the order the player sees them: island pets as in My pets, stored pets as in the Lodge.
+  const PET_ORDER = { lv: (a, b) => b.lv - a.lv || b.xp - a.xp, name: (a, b) => a.name.localeCompare(b.name, PL ? 'pl' : 'en'), el: (a, b) => Object.keys(ELEMENTS).indexOf(elOf(a)) - Object.keys(ELEMENTS).indexOf(elOf(b)) || b.lv - a.lv,
+    sp: (a, b) => SPECIES[a.sp].name.localeCompare(SPECIES[b.sp].name, PL ? 'pl' : 'en') || b.lv - a.lv };
+  const browseList = p => { const key = p.lodge ? ldSort() : petSort(), v = F.pets.filter(x => !!x.lodge === !!p.lodge).map((x, i) => ({ p: x, i })).sort((a, b) => PET_ORDER[key] ? PET_ORDER[key](a.p, b.p) : b.i - a.i).map(x => x.p); return p.lodge ? v : favFirst(v); };
+  const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
   // ---------- painting ----------
   function sync() {
     if (F) for (const t of [...F.trips, F.trip, ...F.nests, F.nest]) if (t && t.due) t.left = Math.max(0, t.due - Date.now());
@@ -472,7 +477,8 @@ export function mount(app, ctx) {
       const p = F.pets.find(x => x.id === panel.id); if (!p) { panel = null; box.hidden = true; return; }
       const s = SPECIES[p.sp], kin = k => k ? `<span class="kin">${face(k)}<small>${esc(k.name)}${k.own && k.own !== F.owner ? `${L(`<br>${esc(k.own)}'s`, `<br>(${esc(k.own)})`)}` : ''}</small></span>` : '';
       const tree = p.par ? `<p><b>${L(`Family`, `Rodzina`)}</b></p><div class="tree">${p.par.map(k => `<span class="branch">${kin(k)}${k.par?.length ? `<span class="gp">${k.par.map(kin).join('')}</span>` : ''}</span>`).join('')}</div>` : `<p class="hint">${L(`${p.from ? `Found in ${ZONES[p.from]?.name || 'the wild'}.` : 'Your first friend on the farm.'}`, `${p.from ? `Znaleziony tutaj: ${ZONES[p.from]?.name || 'w dziczy'}.` : 'Twój pierwszy przyjaciel na farmie.'}`)}</p>`;
-      box.innerHTML = `<div class="panel tripp"><h2 class="pfname">${esc(p.name)}${favBtn(p, ' big')}</h2>
+      const all = browseList(p), at = all.indexOf(p), nav = all.length > 1 ? `<div class="petnav"><button type="button" class="round" data-a="petstep" data-v="-1" aria-label="${L('Previous pet', 'Poprzedni zwierzak')}" title="${L('Previous pet', 'Poprzedni zwierzak')}">◀</button><span class="hint">${at + 1} / ${all.length}</span><button type="button" class="round" data-a="petstep" data-v="1" aria-label="${L('Next pet', 'Następny zwierzak')}" title="${L('Next pet', 'Następny zwierzak')}">▶</button></div>` : '';
+      box.innerHTML = `<div class="panel tripp petpage"><div class="pfnamerow"><h2 class="pfname">${esc(p.name)}${favBtn(p, ' big')}</h2>${nav}</div>
         <div class="leafpage">${face(p, s.name)}<div><p>${elTags(p)} ${s.name} · ${FORMS[formOf(p.lv)]} · ${L('Level', 'Poziom')} ${p.lv}${p.sparkle ? L(' · ✨ Sparkling', ' · ✨ Błyszczący') : ''}</p>
           <p class="hint">${L(`${p.first && p.first !== ctx.me()?.user ? `First raised by ${esc(p.first)}. ` : ''}${p.rest > 0 ? `Resting for ${wait(p.rest)} before the next egg. ` : ''}${p.open ? 'Friends who visit can pick it for a playdate.' : ''}`, `${p.first && p.first !== ctx.me()?.user ? `Pierwszy opiekun: ${esc(p.first)}. ` : ''}${p.rest > 0 ? `Odpoczywa jeszcze ${wait(p.rest)} przed kolejnym jajkiem. ` : ''}${p.open ? 'Odwiedzający znajomi mogą go wybrać do wspólnej zabawy.' : ''}`)}</p></div></div>
         <div class="starsrow">${STAR_NAME.map((n, i) => `<span>${n} ${stars(p.stars?.[i] || 3)}</span>`).join('')}</div>
@@ -643,6 +649,7 @@ export function mount(app, ctx) {
         <h3 class="tstep"><span class="tnum">2</span>${L('For how long?', 'Na jak długo?')}</h3>
         <div class="pills trips">${trips}</div>
         <h3 class="tstep"><span class="tnum">3</span>${L(`Who goes? Pick up to ${PARTY}.`, `Kto idzie? Wybierz najwyżej ${PARTY}.`)} <span class="tcount">${party.length} / ${PARTY}</span></h3>
+        ${groupsRow(party)}
         <div class="party">${pets}</div>
         <div class="est">${party.length ? `${L(`<span class="hint">Should bring back</span>`, `<span class="hint">Powinni przynieść</span>`)}<div class="mats">${est}</div>` : '<span class="hint">' + L('Tap a pet to add it to the party.', 'Dotknij zwierzaka, żeby dodać go do drużyny.') + '</span>'}</div>
         <p class="hint">${L(`${full ? 'Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.' : `Chance a wild pet follows them home: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}`, `${full ? 'Wszystkie łóżka są zajęte, więc żaden dziki zwierzak się nie wprowadzi. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.' : `Szansa, że dziki zwierzak wróci z drużyną: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}`)}</p>
@@ -767,6 +774,25 @@ export function mount(app, ctx) {
     if (mode !== 'defend' && mode !== 'live' && !countOf(F, mode === 'arena' ? 'flag' : 'yard')) return;
     const keep = (mode === 'defend' ? F.def : lastTeam).filter(id => F.pets.some(p => p.id === id) && freeFor(mode)(id));
     panel = { kind: 'team', mode, foe: foe?.id, foeName: foe?.name, invite: foe?.invite, pets: keep }; card = null; sync();
+  }
+  function stepPet(d) { // the arrows on a pet's details page: the previous or next pet, wrapping round
+    const p = F?.pets.find(x => x.id === panel?.id); if (!p) return;
+    const all = browseList(p); if (all.length < 2) return;
+    panel = { kind: 'pet', id: all[(all.indexOf(p) + d + all.length) % all.length].id }; sfx.click(); paintPanel(); $('pf-panel').querySelector('.tripp')?.scrollTo?.(0, 0);
+  }
+  // Saved expedition groups: tap one to fill the party, or save the party picked by hand as a new group.
+  function groupsRow(party) {
+    const gs = F.groups || [], ids = party.map(p => p.id), same = gs.find(g => sameSet(g.pets, ids)), cur = gs.find(g => g.id === panel.grp);
+    const chips = gs.map(g => {
+      const who = g.pets.map(id => F.pets.find(x => x.id === id)).filter(Boolean);
+      if (panel.grpDel === g.id) return `<span class="grp ask"><span>${L(`Delete ${esc(g.name)}?`, `Usunąć grupę ${esc(g.name)}?`)}</span><button type="button" class="btn sm r" data-a="grpdelyes" data-id="${g.id}">${L('Delete', 'Usuń')}</button><button type="button" class="btn sm w" data-a="grpdelno">${L('Keep', 'Zostaw')}</button></span>`;
+      return `<span class="grp"><button type="button" class="grpuse" data-a="grpuse" data-id="${g.id}" aria-pressed="${same === g}"><span class="grpfaces">${who.map(x => face(x, x.name)).join('')}</span><b>${esc(g.name)}</b></button><button type="button" class="grpx" data-a="grpdel" data-id="${g.id}" aria-label="${L(`Delete the group ${esc(g.name)}`, `Usuń grupę ${esc(g.name)}`)}" title="${L('Delete group', 'Usuń grupę')}">×</button></span>`;
+    }).join('');
+    const form = panel.grpNew ? `<form class="grpform"><input class="field" id="pf-grp" maxlength="${GROUP_NAME}" placeholder="${L('Group name', 'Nazwa grupy')}" aria-label="${L('Group name', 'Nazwa grupy')}" autocomplete="off"><button class="btn sm m">${L('Save', 'Zapisz')}</button><button type="button" class="btn sm ghost-ink" data-a="grpnewno">${L('Cancel', 'Anuluj')}</button></form>` : '';
+    const acts = panel.grpNew || !party.length || same ? '' : (cur ? `<button type="button" class="btn sm w" data-a="grpupd">${L(`Update ${esc(cur.name)}`, `Zapisz zmiany: ${esc(cur.name)}`)}</button>` : '')
+      + (gs.length < GROUP_MAX ? `<button type="button" class="btn sm w" data-a="grpnew">+ ${L('Save as a group', 'Zapisz jako grupę')}</button>` : '');
+    if (!gs.length && !party.length) return '';
+    return `<div class="grps"><span class="hint">${gs.length ? L('Your groups', 'Twoje grupy') : L('Save this party as a group to pick it with one tap next time.', 'Zapisz tę drużynę jako grupę, żeby następnym razem wybrać ją jednym dotknięciem.')}</span>${chips}${acts}${form}</div>`;
   }
   function openSend() {
     if (!countOf(F, 'gate')) return ctx.toast(L('Build an Expedition Gate first.', 'Najpierw zbuduj Bramę wypraw.'), true);
@@ -1079,7 +1105,9 @@ export function mount(app, ctx) {
     else if (a === 'giveup') { if (!playing) ctx.send({ t: 'bquit' }); }
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect', id: b.dataset.id });
-    else if (a === 'shut') { const inv = panel?.kind === 'invite' ? panel.id : panel?.invite; if (inv) ctx.send({ t: 'duelno', id: inv }); panel = null; sync(); }
+    else if (a === 'shut') { const inv = panel?.kind === 'invite' ? panel.id : panel?.invite; if (inv) ctx.send({ t: 'duelno', id: inv });
+      const keep = panel?.kind === 'pet' && where === 'home' && F?.pets.some(p => p.id === panel.id) ? panel.id : null; // closing a pet's details leaves its card open, so a rename is one step away
+      panel = null; if (keep) card = { pet: keep }; sync(); }
     else if (a === 'zone') { if (b.classList.contains('off')) return ctx.toast(L(`${ZONES[b.dataset.zone].name} opens at farmhouse level ${ZONES[b.dataset.zone].house}. Tap your farmhouse to improve it.`, `${ZONES[b.dataset.zone].name} otwiera się, gdy dom ma poziom ${ZONES[b.dataset.zone].house}. Dotknij domu, żeby go ulepszyć.`), true); panel.zone = b.dataset.zone; panel.step = 'who'; sfx.click(); paintPanel(); $('pf-panel').querySelector('.tripp')?.scrollTo?.(0, 0); }
     else if (a === 'where') { panel.step = 'where'; sfx.click(); paintPanel(); }
     else if (a === 'trip') { panel.trip = b.dataset.trip; paintPanel(); }
@@ -1089,6 +1117,19 @@ export function mount(app, ctx) {
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= PARTY) return ctx.toast(L(`A party is ${PARTY} pets at most.`, `Drużyna to najwyżej ${PARTY} zwierzaki.`), true); else panel.pets.push(id);
       paintPanel();
     }
+    else if (a === 'grpuse') {
+      const g = F.groups?.find(x => x.id === b.dataset.id); if (!g) return;
+      const free = g.pets.filter(freeFor('send')).slice(0, PARTY), busy = g.pets.filter(id => !free.includes(id)).map(id => F.pets.find(x => x.id === id)).filter(Boolean);
+      panel.pets = free; panel.grp = g.id; panel.grpDel = null; panel.grpNew = false; sfx.click(); paintPanel();
+      if (busy.length) ctx.toast(L(`${list(busy.map(p => esc(p.name)))} ${busy.length > 1 ? 'are' : 'is'} busy, so ${busy.length > 1 ? 'they stay' : 'it stays'} home.`, `Zajęte, więc zostają w domu: ${list(busy.map(p => esc(p.name)))}.`), true);
+    }
+    else if (a === 'grpdel') { panel.grpDel = b.dataset.id; paintPanel(); }
+    else if (a === 'grpdelno') { panel.grpDel = null; paintPanel(); }
+    else if (a === 'grpdelyes') { panel.grpDel = null; if (panel.grp === b.dataset.id) panel.grp = null; ctx.send({ t: 'group', op: 'del', id: b.dataset.id }); }
+    else if (a === 'grpnew') { panel.grpNew = true; paintPanel(); $('pf-grp')?.focus(); }
+    else if (a === 'grpnewno') { panel.grpNew = false; paintPanel(); }
+    else if (a === 'grpupd') { if (panel.grp) ctx.send({ t: 'group', op: 'save', id: panel.grp, pets: [...panel.pets] }); }
+    else if (a === 'petstep') stepPet(+b.dataset.v);
     else if (a === 'send') { lastTrip = { zone: panel.zone, trip: panel.trip, pets: [...panel.pets] }; ctx.send({ t: 'send', ...lastTrip }); }
     else if (a === 'houseup') { if (!canAfford(F.inv, F.houseNext)) ctx.toast(L('Not enough materials for that yet.', 'Na to jeszcze nie wystarczy materiałów.'), true); else ctx.send({ t: 'houseup' }); }
     else if (a === 'tab') { tab = b.dataset.tab; paintBuild(); }
@@ -1120,12 +1161,14 @@ export function mount(app, ctx) {
   });
   root.addEventListener('submit', e => {
     e.preventDefault();
+    if (e.target.closest?.('.grpform') && panel?.kind === 'send') { const v = $('pf-grp')?.value.trim() || ''; if (panel.pets.length) ctx.send({ t: 'group', op: 'save', name: v, pets: [...panel.pets] }); return; }
     const sh = e.target.closest?.('.ldname'); if (sh) { const v = sh.querySelector('#pf-shelf')?.value.trim(); if (v) ctx.send({ t: 'shelf', op: 'name', id: sh.dataset.shelf, name: v }); return; }
     const inp = e.target.querySelector('#pf-name'); if (!inp || !card?.pet) return;
     const name = inp.value.trim(); if (name) { ctx.send({ t: 'petname', id: card.pet, name }); inp.blur(); }
   });
   const onKey = e => {
     if (e.target.closest?.('input, textarea')) return;
+    if (panel?.kind === 'pet' && !panel.free && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); stepPet(e.key === 'ArrowLeft' ? -1 : 1); return; }
     const arrow = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] }[e.key]; // the arrow keys slide the view over the farm
     if (arrow && mode === 'farm' && !panel) { e.preventDefault(); scene?.pan(...arrow); return; }
     if (!scene?.ghost()) return;
@@ -1206,6 +1249,7 @@ export function mount(app, ctx) {
     else if (m.did === 'defend') { panel = null; ctx.toast(L('Defence team saved.', 'Drużyna obrony zapisana.')); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(L(`The farmhouse is now level ${F.house}.`, `Dom ma teraz poziom ${F.house}.`)); }
     else if (m.did === 'petname') ctx.toast(L('Renamed.', 'Imię zmienione.'));
+    else if (m.did === 'group' && panel?.kind === 'send') { if (m.op !== 'del') { panel.grp = m.id; panel.grpNew = false; } ctx.toast(m.op === 'new' ? L('Group saved.', 'Grupa zapisana.') : m.op === 'save' ? L('Group updated.', 'Grupa zaktualizowana.') : L('Group deleted.', 'Grupa usunięta.')); }
     else if (m.did === 'work') { sfx.set(); panel = null; const h = m.pet && F.pets.find(x => x.id === m.pet); if (h) scene?.cheer(h.id); ctx.toast(h ? L(`${esc(h.name)} ${WORK[m.type].job} now. ${WORK[m.type].what(workPct(h, m.type))}.`, `${esc(h.name)} od teraz ${WORK[m.type].job}. ${WORK[m.type].what(workPct(h, m.type))}.`) : L(`Nobody helps at the ${ITEMS[m.type].name} now.`, `Teraz nikt tu nie pomaga: ${ITEMS[m.type].name}.`)); }
     else if (m.did === 'lodge') { const p = m.ids.length === 1 && F.pets.find(x => x.id === m.ids[0]), n = m.ids.length;
       ctx.toast(m.on ? (p ? L(`${esc(p.name)} curls up in the Pet Lodge.`, `${esc(p.name)} zwija się w kłębek w Schronisku.`) : L(`${n} pets moved into the Pet Lodge.`, `Zwierzaki przeniesione do Schroniska: ${n}.`))

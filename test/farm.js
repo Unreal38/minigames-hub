@@ -779,6 +779,13 @@ if (!r.err) fail('freed a pet that does not exist');
   r = await c.farmDo({ t: 'lodge', ids: [p3], on: true, shelf: s2 }); if (r.farm.pets.find(x => x.id === p3).shelf !== s2) fail('store straight into a collection');
   r = await c.farmDo({ t: 'shelf', op: 'del', id: s1 }); if (r.farm.shelves.length !== 1 || r.farm.pets.some(x => x.shelf === s1) || !r.farm.pets.find(x => x.id === p1).lodge) fail('delete collection');
   r = await c.farmDo({ t: 'lodge', ids: [p1, p2, p3], on: false }); if (r.err || r.farm.pets.some(x => x.lodge || x.shelf)) fail('back to the island ' + r.err);
+  // saved expedition groups: save, update, delete; pets that leave drop out of the group
+  r = await c.farmDo({ t: 'group', op: 'save', name: 'Diggers', pets: [p1, p2, 'nope'] }); const g1 = r.id; if (r.err || r.farm.groups[0]?.name !== 'Diggers' || r.farm.groups[0].pets.join() !== [p1, p2].join()) fail('save a group ' + r.err);
+  r = await c.farmDo({ t: 'group', op: 'save', pets: [] }); if (!r.err) fail('an empty group was saved');
+  r = await c.farmDo({ t: 'group', op: 'save', id: g1, pets: [p3, p2, p1, p1] }); if (r.err || r.farm.groups.length !== 1 || r.farm.groups[0].pets.join() !== [p3, p2, p1].join() || r.farm.groups[0].name !== 'Diggers') fail('update a group ' + r.err);
+  for (let i = 1; i < 8; i++) await c.farmDo({ t: 'group', op: 'save', pets: [p1] });
+  r = await c.farmDo({ t: 'group', op: 'save', pets: [p1] }); if (!r.err || r.farm.groups.length !== 8) fail('more than 8 groups');
+  r = await c.farmDo({ t: 'group', op: 'del', id: g1 }); if (r.err || r.farm.groups.some(g => g.id === g1)) fail('delete a group ' + r.err);
   // a full island: a new pet goes into storage by itself, and nobody moves out onto a full island
   for (let i = c.farm.pets.length; i < 26; i++) { await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); await wait(60); }
   r = await c.farmDo({ t: 'lodge', ids: [p1], on: true });
