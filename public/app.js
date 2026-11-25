@@ -1914,11 +1914,11 @@ function srvTime() { return srvFmt.format(new Date()); }
 setInterval(() => { const t = srvTime(); for (const el of document.querySelectorAll('.srvclock b')) if (el.textContent !== t) el.textContent = t; }, 10_000);
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
-  <span class="srvclock" title="${L('Server time (Warsaw). Daily puzzles, the wheel and coin limits reset at midnight.', 'Czas serwera (Warszawa). Codzienne zagadki, koło i limity monet odnawiają się o północy.')}"><span aria-hidden="true">🕒</span><b>${srvTime()}</b></span>
   <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}" aria-label="${L('Coins: open the shop', 'Monety: otwórz sklep')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span></button>
   ${acctBtn()}
   <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button>
   <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}" title="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}">${isNight() ? '☀️' : '🌙'}</button>
+  <span class="srvclock" title="${L('Server time (Warsaw). Daily puzzles, the wheel and coin limits reset at midnight.', 'Czas serwera (Warszawa). Codzienne zagadki, koło i limity monet odnawiają się o północy.')}"><span aria-hidden="true">🕒</span><b>${srvTime()}</b></span>
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
