@@ -317,6 +317,7 @@ plaza.setup({
   table: code => { const r = rooms.get(code); if (!r) return null; const free = GAMES[r.game].meta.maxPlayers - seatedOf(r).length; return { game: r.game, free, open: !r.priv && !r.G && free > 0 }; },
   // the daily present: once a day (Warsaw's midnight, like every daily thing), accounts only
   giftLeft: c => { const p = store.profileOf(c.token); return !!p?.user && p.plz?.gift !== dayOf(); },
+  seenToday: c => store.profileOf(c.token)?.plz?.seen === dayOf(),
   giftTake: (c, n) => { const p = store.profileOf(c.token); if (!p?.user || p.plz?.gift === dayOf()) return 0; (p.plz ||= {}).gift = dayOf(); store.addCoins(p.pid, n); store.scheduleSave(); return n; },
 });
 store.onPack(pid => { const p = store.profiles.get(pid); if (p) for (const c of clientsOf(pid)) { send(c, { t: 'me', me: store.me(p) }); send(c, { t: 'pack', k: 'kofi' }); } });
