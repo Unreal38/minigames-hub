@@ -839,3 +839,22 @@ export function reefArt() {
     <path class="arttick" d="M212 50l8-6M214 66l10 0" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+// Sky Runway: a pink runway running towards you on an island, a red curtain at the back, a model in a gown striking a
+// pose with a bouquet, and star cards held up by the judges.
+export function runwayArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A model in a gown posing on a pink runway while judges hold up star cards">
+    <rect class="artsky" width="320" height="150" fill="#bfe6ff"/>
+    <path d="M24 26l12-6 14 4 6 8-8 6H32z" class="artcloud" fill="#fff"/><path d="M262 18l10-5 12 3 5 7-7 5h-20z" class="artcloud" fill="#fff"/>
+    <path d="M10 150c20-40 280-40 300 0z" fill="#8bca60" ${o}/>
+    <g ${o}><rect x="104" y="14" width="112" height="72" rx="4" fill="#c8342b"/><path d="M118 14v72M132 14v72M146 14v72M174 14v72M188 14v72M202 14v72" stroke-width="2"/><rect x="98" y="8" width="124" height="12" rx="3" fill="#ffc94d"/></g>
+    <path d="M124 86h72l34 64H90z" fill="#fbf7ff" ${o}/><path d="M134 90h52l26 60h-104z" fill="#ff8fab"/>
+    <g fill="#fff0b0" stroke="#3b2219" stroke-width="1.6"><circle cx="122" cy="96" r="3"/><circle cx="113" cy="114" r="3.4"/><circle cx="103" cy="134" r="3.8"/><circle cx="198" cy="96" r="3"/><circle cx="207" cy="114" r="3.4"/><circle cx="217" cy="134" r="3.8"/></g>
+    <g ${o}><path d="M146 112l14-34 14 34z" fill="#ffc94d"/><rect x="153" y="66" width="14" height="16" rx="4" fill="#ffc94d"/><circle cx="160" cy="56" r="11" fill="#f6c9a0"/><path d="M149 52c2-12 20-12 22 0l-4-2-7 3-7-3z" fill="#7a4a2b"/>
+      <path d="M152 46l3-7 5 5 5-5 3 7z" fill="#ffe27a" stroke-width="2"/><path d="M167 72l14-14" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M181 58l-3-8 9 2z" fill="#ff8fab" stroke-width="2"/><path d="M153 72l-10 8" stroke-width="5" stroke-linecap="round" fill="none"/></g>
+    <circle cx="156.5" cy="56" r="1.5" fill="#3b2219"/><circle cx="163.5" cy="56" r="1.5" fill="#3b2219"/><path d="M157 61q3 2 6 0" fill="none" stroke="#3b2219" stroke-width="1.6" stroke-linecap="round"/>
+    <g ${o}><rect x="34" y="86" width="26" height="22" rx="4" fill="#fff4e2"/><path d="M47 90l2.4 5 5.4.6-4 3.6 1.2 5.3-5-2.8-5 2.8 1.2-5.3-4-3.6 5.4-.6z" fill="#ffc93c" stroke-width="1.5"/><path d="M47 108v14" stroke-width="3"/></g>
+    <g ${o}><rect x="258" y="80" width="26" height="22" rx="4" fill="#fff4e2"/><path d="M271 84l2.4 5 5.4.6-4 3.6 1.2 5.3-5-2.8-5 2.8 1.2-5.3-4-3.6 5.4-.6z" fill="#ffc93c" stroke-width="1.5"/><path d="M271 102v16" stroke-width="3"/></g>
+    <path class="arttick" d="M134 40l-8-4M188 40l8-4M160 30v-6" fill="none" stroke="#3b2219" stroke-width="2.6" stroke-linecap="round"/>
+  </svg>`;
+}
