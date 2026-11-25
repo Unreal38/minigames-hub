@@ -74,7 +74,7 @@ export function mount(app, ctx) {
   root._rf = { state: () => S, px: i => live?.px?.(i), zoomed: () => !!scene?.zoomed(), hand: () => ({ draft: draft.length, sel, order: order.join('') }) }; // for the browser test: what the page shows, and where a square is on the screen
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
-  let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, chalEnds = 0, lastTick = -1, sent = 0;
+  let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, chalEnds = 0, chalStart = 0, chalKey = '', lastTick = -1, sent = 0;
   // your tray as you have arranged it, the tiles you have put on the board, the tile you picked up, swap marks
   let lastPend = [], order = [], draft = [], sel = -1, swapping = false, marks = new Set(), picking = null, rackKey = '';
 
@@ -185,14 +185,28 @@ export function mount(app, ctx) {
   }
   // the words just played, and Challenge / Looks fine for everyone else
   function chalHtml() {
-    const P = S.pend, secs = Math.max(0, Math.ceil((chalEnds - performance.now()) / 1000)), mine = P.s === S.me;
+    const P = S.pend, secs = '<b class="rf-secs"></b>', mine = P.s === S.me;
     const words = `<div class="rf-words">${P.words.map(w => `<span><b>${up(w.w)}</b>${w.pts}</span>`).join('')}${P.full ? `<span class="x">${L('full tray', 'cały stojak')} +${FULL_BONUS}</span>` : ''}${P.nests.length ? `<span class="x">${L('nest', 'gniazdo')} +${P.nests.length * 10}</span>` : ''}<span class="sum">= ${P.pts}</span></div>`;
-    const bar = `<div class="rf-clock"><i style="--t:${Math.max(.3, chalEnds - performance.now())}ms"></i></div>`;
+    const bar = '<div class="rf-clock"><i></i></div>';
     if (mine) return `<div class="rf-chal">${words}<p>${L(`Your words are down. The others can challenge them for ${secs}s.`, `Twoje słowa leżą. Pozostali mogą je sprawdzić jeszcze przez ${secs} s.`)}</p>${bar}</div>`;
     if (!judge()) return `<div class="rf-chal">${words}<p>${L(`${nameOf(P.s)} plays. Challenge time: ${secs}s`, `Gra: ${nameOf(P.s)}. Czas na sprawdzenie: ${secs} s`)}</p>${bar}</div>`;
     const done = P.fine.includes(S.me);
     return `<div class="rf-chal">${words}<p>${done ? L('Waiting for the others…', 'Czekamy na pozostałych…') : L(`Is every word real? If one is not, challenge and it comes back off. If they all are, ${nameOf(P.s)} gets +${CHAL_BONUS}.`, `Czy każde słowo istnieje? Jeśli któreś nie, sprawdź je, a płytki wrócą. Jeśli wszystkie są dobre, ${nameOf(P.s)} dostaje +${CHAL_BONUS}.`)}</p>
       ${done ? '' : `<div class="rf-go"><button type="button" class="btn big rf-chalbtn" data-a="chal">${L('Challenge!', 'Sprawdzam!')}</button><button type="button" class="btn big m" data-a="fine">${L('Looks fine', 'W porządku')}</button></div>`}${bar}</div>`;
+  }
+
+  // the challenge clock: the markup above never changes during one challenge, so the bar is not rebuilt;
+  // a bar that does get rebuilt picks up where it was through a negative animation delay
+  function syncClock() {
+    const box = $('rf-ctl');
+    for (const b of box.querySelectorAll('.rf-secs')) { const t = String(Math.max(0, Math.ceil((chalEnds - performance.now()) / 1000))); if (b.textContent !== t) b.textContent = t; }
+    const i = box.querySelector('.rf-clock i'); if (!i) return;
+    const key = chalStart + ':' + Math.round(chalEnds);
+    if (i._k === key) return;
+    i._k = key;
+    const total = Math.max(1, chalEnds - chalStart), gone = Math.min(total, performance.now() - chalStart);
+    i.style.animation = 'none'; void i.offsetWidth;
+    i.style.animation = `rfclock ${total}ms linear ${-gone}ms both`;
   }
 
   function renderBanner() {
@@ -212,7 +226,7 @@ export function mount(app, ctx) {
     if (!S) return; syncLook();
     $('rf-info').textContent = L(`Bag: ${S.bag}`, `Worek: ${S.bag}`) + ` · ${S.lang === 'pl' ? 'PL' : 'EN'}`;
     $('rf-code').textContent = Rm?.code || '';
-    syncRack(); renderBoard(); renderLast(); renderRack(); renderCtl(); renderBanner(); renderPick();
+    syncRack(); renderBoard(); renderLast(); renderRack(); renderCtl(); if (S.stage === 'chal') syncClock(); renderBanner(); renderPick();
     scene?.setDraft(draft);
     layout();
   }
@@ -256,7 +270,14 @@ export function mount(app, ctx) {
     const fresh = s.gid !== gid, wasTurn = S ? S.turn + S.stage : '', was = S ? S.mv : -1;
     S = s;
     endsAt = performance.now() + Math.max(0, s.tLeft);
-    if (s.pend) { chalEnds = performance.now() + s.pend.left; lastPend = s.pend.tiles; }
+    if (s.pend) {
+      const now = performance.now(), ends = now + s.pend.left;
+      // a new challenge starts the clock; later pushes only move the end when it really moved (bots-only cut), not for network jitter
+      const k = s.pend.s + JSON.stringify(s.pend.tiles);
+      if (k !== chalKey || !chalStart) { chalKey = k; chalStart = now; chalEnds = ends; }
+      else if (Math.abs(ends - chalEnds) > 400) chalEnds = ends;
+      lastPend = s.pend.tiles;
+    } else { chalStart = 0; chalKey = ''; }
     if (fresh) {
       gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sent = 0; order = []; rackKey = ''; draft = []; sel = -1;
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
@@ -332,7 +353,7 @@ export function mount(app, ctx) {
   const timer = setInterval(() => {
     if (!S || S.ph !== 'play') return;
     renderBanner();
-    if (S.stage === 'chal') { const el = $('rf-ctl').querySelector('.rf-chal p'); if (el) { el._h = ''; setHtml($('rf-ctl'), chalHtml()); } }
+    if (S.stage === 'chal') syncClock();
     if (sent && Date.now() - sent >= 1500) { sent = 0; render(); }
     if (myTurn() && S.tLeft >= 0) {
       const n = Math.ceil((endsAt - performance.now()) / 1000);
