@@ -148,7 +148,7 @@ const BLURB = {
   starjelly: 'Meduza w kształcie gwiazdy ze świecącymi końcami.',
   cometail: 'Fretka szybka jak smuga, z kometą zamiast ogona.',
   ringbear: 'Senny niedźwiadek, który nosi pierścień planety.',
-  griffling: 'Pisklę gryfa w piórach koloru zachodu słońca, z małymi skrzydłami i ogonem z kitką jak u lwiątka.',
+  griffling: 'Młody gryf z białą głową orła, zakrzywionym dziobem, dużymi brązowymi skrzydłami i lwim ogonem z kitką.',
   bloomicorn: 'Źrebię jednorożca z grzywą z kwiatów i małym spiralnym rogiem.',
   dreampir: 'Mały tapir w gwiaździstym futerku, który wydmuchuje trąbką bańki snów.',
   yetiny: 'Kudłate małe yeti z oszronionymi rogami i wielkimi stopami jak rakiety śnieżne.',

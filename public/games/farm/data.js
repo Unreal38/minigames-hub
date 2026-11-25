@@ -165,7 +165,7 @@ export const SPECIES = {
   cometail: { name: 'Cometail', el: 'Spark', rare: 2, blurb: 'A streak of a ferret with a comet for a tail.' },
   ringbear: { name: 'Ringbear', el: 'Stone', rare: 0, blurb: 'A dozy bear cub that wears a planet ring.' },
   // pets from old stories: found only on Legend Isle, at the end of a far expedition (far: true)
-  griffling: { name: 'Griffling', el: 'Ember', rare: 2, far: true, blurb: 'A griffin chick with sunset feathers, little wings and the tufted tail of a lion cub.' },
+  griffling: { name: 'Griffling', el: 'Ember', rare: 2, far: true, blurb: 'A griffin cub with the white head and hooked beak of an eagle, big brown wings and the tufted tail of a lion.' },
   bloomicorn: { name: 'Bloomicorn', el: 'Leaf', rare: 2, far: true, blurb: 'A unicorn foal with a mane of blossoms and a little spiral horn.' },
   dreampir: { name: 'Dreampir', el: 'Spark', rare: 2, far: true, blurb: 'A baby tapir with a starry coat that blows dream bubbles from its trunk.' },
   yetiny: { name: 'Yetiny', el: 'Tide', rare: 2, far: true, blurb: 'A shaggy yeti cub with frosty horns and big snowshoe feet.' },

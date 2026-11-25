@@ -18,7 +18,7 @@ export const COAT = {
   munchmew: ['#f3c98a', '#fff3df'], glazemew: ['#f0b878', '#fff3df'],
   rocktopus: ['#b08ad0', '#e6d4f5'], driftle: ['#8fd0c0', '#f0ead0'], zapuff: ['#ffe27a', '#fffaf0'], ottershell: ['#9a6a4a', '#f0dcc0'], cinnapanda: ['#c8683f', '#fff3df'], yuzubara: ['#b98a5e', '#d9b48a'], snoozloth: ['#a89880', '#f0e6d2'], glidenut: ['#b5a08a', '#fff3df'],
   pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
-  griffling: ['#f0a24a', '#fff0d0'], bloomicorn: ['#fbf3ff', '#ffb3d1'], dreampir: ['#4a4f8a', '#b4abeb'], yetiny: ['#f4f8ff', '#8fc4e8'], gargoylet: ['#9a97a8', '#c9c6d4'], nessling: ['#6fc4a8', '#e6f6d8'],
+  griffling: ['#c99a5e', '#fffaf2'], bloomicorn: ['#fbf3ff', '#ffb3d1'], dreampir: ['#4a4f8a', '#b4abeb'], yetiny: ['#f4f8ff', '#8fc4e8'], gargoylet: ['#9a97a8', '#c9c6d4'], nessling: ['#6fc4a8', '#e6f6d8'],
   maplander: ['#a8c860', '#fff0c0'], koalith: ['#b0aeb8', '#e6e2dc'], kettlephant: ['#8fb8d8', '#e6f2fa'], bangaroo: ['#d39a66', '#fff0d8'], magnebug: ['#6f6a88', '#c9c4d8'],
 };
 // Coat colour genes. A pet carries two; the one earlier in this list is the one that shows.
