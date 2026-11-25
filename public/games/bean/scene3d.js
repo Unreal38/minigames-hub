@@ -7,6 +7,7 @@ import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { toonMat, skyDome, clouds as cloudSea, island, birds, createFx, shaker, disposeToon, nightScene, hash, STAR, DOT } from '../../scenery3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
+import { L } from '../../i18n.js';
 import { buildTower, floorAt, ledgeOff, stormY, zoneOf, zoneInfo, zoneName, W, FLOOR_H, ZONE, SPRING, CRUMBLE, MOVING, CRUMBLE_S } from './tower.js';
 
 const DELAY = 110;        // ms behind the newest server update that other climbers are drawn
@@ -276,7 +277,7 @@ export function createScene(canvas, { onFrame, step, clock } = {}) {
         _m.compose(_v.set(cx, y, .1), _q, _s.set(1.25 * (1 + sq * .5), 1.25 * (1 - sq), 1.25 * (1 + sq * .5))); shrooms.setMatrixAt(n, _m); shroomInk.setMatrixAt(n, _m);
       } else { _m.makeScale(0, 0, 0); shrooms.setMatrixAt(n, _m); shroomInk.setMatrixAt(n, _m); }
       // signs: the floor number every five floors, a banner where a new zone starts
-      if (full && i > 0 && bi < banners.length) { const B = banners[bi++]; B.set(zoneName(zoneOf(i)), 'Floor ' + i, Z.top); B.sp.position.set(0, y + 1.3, -1.45); B.sp.visible = true; }
+      if (full && i > 0 && bi < banners.length) { const B = banners[bi++]; B.set(zoneName(zoneOf(i)), L('Floor ', 'Piętro ') + i, Z.top); B.sp.position.set(0, y + 1.3, -1.45); B.sp.visible = true; }
       else if (i % 5 === 0 && i > 0 && !full && si < signs.length) { const S = signs[si++]; S.set(String(i), '', '#fff4e2'); S.sp.position.set(x1 + dx - .4, y + .95, -.8); S.sp.visible = true; }
     }
     for (; pi < NF * 2; pi++) { _m.makeScale(0, 0, 0); puffs.setMatrixAt(pi, _m); }

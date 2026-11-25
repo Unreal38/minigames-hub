@@ -10,6 +10,14 @@ import { reactHtml } from '../../react.js';
 import { readPlay, boardOf, value, alphabet, WILD, FULL_BONUS, CHAL_BONUS } from './rules.js';
 import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
+import { reefLook, paintReefMotif } from '../../pieceskins.js';
+// your own tile set (Wardrobe kind rt) on the HUD tiles: colours plus the little corner picture
+const motifUrl = new Map();
+function tileLookVars(el, k) {
+  const T = reefLook(k);
+  if (!motifUrl.has(k)) { let u = 'none'; if (T.motif) { const c = document.createElement('canvas'); c.width = c.height = 64; paintReefMotif(c.getContext('2d'), 64, k); u = `url(${c.toDataURL()})`; } motifUrl.set(k, u); }
+  el.style.setProperty('--rf-face', T.face); el.style.setProperty('--rf-body', T.body); el.style.setProperty('--rf-ink', T.ink); el.style.setProperty('--rf-motif', motifUrl.get(k));
+}
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -78,6 +86,7 @@ export function mount(app, ctx) {
 
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
+  let mySk = -1; const syncLook = () => { const k = Math.max(0, me()?.fl?.rt | 0); if (k !== mySk) { mySk = k; tileLookVars(root, k); } };
   const nameOf = i => esc(S.seats[i]?.name);
   const myTurn = () => !!(S && S.ph === 'play' && S.stage === 'play' && S.turn === S.me && me() && !me().bot);
   const busy = () => Date.now() - sent < 1500;
@@ -200,7 +209,7 @@ export function mount(app, ctx) {
   }
 
   function render() {
-    if (!S) return;
+    if (!S) return; syncLook();
     $('rf-info').textContent = L(`Bag: ${S.bag}`, `Worek: ${S.bag}`) + ` · ${S.lang === 'pl' ? 'PL' : 'EN'}`;
     $('rf-code').textContent = Rm?.code || '';
     syncRack(); renderBoard(); renderLast(); renderRack(); renderCtl(); renderBanner(); renderPick();

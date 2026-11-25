@@ -68,7 +68,7 @@ import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import * as plaza from './plaza.js';
 import * as modr from './mod.js';
-import { cosHas } from '../public/cosmetics.js';
+import { cosHas, COS } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { distinctCols, matchColors } from './colors.js';
@@ -592,7 +592,8 @@ function startGame(r) {
     for (const c of humans) prev.wallet['h:' + c.id] = store.profileOf(c.token)?.coins || 0;
   }
   const cols = distinctCols(humans.map(c => c.color)); // two people in pink: the later one plays in another colour this match
-  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av })), r.opts, prev);
+  const emOf = c => { const p = store.profileOf(c.token); return COS.em.items.map((_, i) => i).filter(i => i && cosHas(p, 'em', i)); }; // the Plaza emotes each one has (Sky Runway poses)
+  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av, ...(GAMES[r.game].meta.emotes ? { em: emOf(c) } : {}) })), r.opts, prev);
   matchColors(r.G); // bots, too, keep clear of the people's colours
   r.G.bornAt = Date.now(); // when the match began: a short match against bots pays its share (botpay.js)
   sendRoom(r); sendState(r); broadcastRooms();
@@ -1131,8 +1132,12 @@ notice.setExtra(() => { const now = gitHead(); return { pulled: !!(now && RUNNIN
 function checkCode() {
   const files = [...['server', 'server/games', 'public', 'public/lang'].flatMap(d => { try { return fs.readdirSync(path.join(REPO, d)).filter(f => f.endsWith('.js')).map(f => path.join(REPO, d, f)); } catch { return []; } }),
     ...(() => { try { return fs.readdirSync(path.join(REPO, 'public/games')).flatMap(g => { try { return fs.readdirSync(path.join(REPO, 'public/games', g)).filter(f => f.endsWith('.js')).map(f => path.join(REPO, 'public/games', g, f)); } catch { return []; } }); } catch { return []; } })()];
-  return Promise.all(files.map(f => new Promise(res => execFile(process.execPath, ['--check', f], { timeout: 30_000 }, err => res(err ? path.relative(REPO, f) : null)))))
-    .then(bad => bad.filter(Boolean));
+  // A few checks at a time, not all ~300 at once: that many node processes together need gigabytes of memory, and on
+  // a busy machine some ran past their time limit and were counted as broken, which cancelled a good restart.
+  const check = f => new Promise(res => execFile(process.execPath, ['--check', f], { timeout: 30_000 }, err => res(err ? path.relative(REPO, f) : null)));
+  const bad = [], queue = [...files];
+  const lane = async () => { for (let f; (f = queue.shift());) { const b = await check(f); if (b) bad.push(b); } };
+  return Promise.all(Array.from({ length: Math.max(2, Math.min(8, os.availableParallelism?.() || os.cpus().length)) }, lane)).then(() => bad.sort());
 }
 if (process.env.INVOCATION_ID || process.env.NOTICE_TEST_RESTART) notice.setOnZero(async () => {
   const bad = await checkCode();

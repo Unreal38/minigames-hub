@@ -14,6 +14,9 @@ const KINDS = {
   9: { n: 70, glyph: ['bubble'], from: 'bottom', spin: 0 },                                                                // bubbles (summer)
   10: { n: 60, glyph: ['bat', 'bat', 'pumpkin'], from: 'bottom', spin: 1 },                                                 // bats (Halloween)
   11: { n: 60, glyph: ['paw', 'paw2', 'paw3'], from: 'top', spin: 2 },                                                      // paw prints
+  12: { n: 45, glyph: ['lantern', 'lantern2'], from: 'bottom', spin: .4 },                                                  // sky lanterns (Lantern Night)
+  13: { n: 60, glyph: ['flash', 'camera', 'flash2'], from: 'top', spin: 1.5 },                                             // camera flashes (Sky Runway)
+  14: { n: 60, glyph: ['tileW', 'tileI', 'tileN'], from: 'top', spin: 3 },                                                // letter rain (Word Reef): W, I, N
 };
 let live = null;
 // Who has which win effect on: app.js keeps this up to date, so a game scene only names a seat (createFx().confetti
@@ -53,6 +56,16 @@ const blossom = (pet, mid) => (g, s) => { for (let i = 0; i < 5; i++) { g.save()
   g.fillStyle = mid; g.beginPath(); g.arc(0, 0, s * .2, 0, 6.3); g.fill(); g.fillStyle = '#c2185b'; for (let i = 0; i < 5; i++) { g.beginPath(); g.arc(Math.sin(i * 1.2566 + .6) * s * .32, -Math.cos(i * 1.2566 + .6) * s * .32, s * .045, 0, 6.3); g.fill(); } };
 const pawPic = (fill, pad) => (g, s) => { inked(g, s, fill, () => g.arc(0, 0, s * .92, 0, 6.3)); g.fillStyle = pad; g.beginPath(); g.ellipse(0, s * .28, s * .4, s * .32, 0, 0, 6.3); g.fill();
   for (const [x, y] of [[-.5, -.08], [-.19, -.42], [.19, -.42], [.5, -.08]]) { g.beginPath(); g.ellipse(x * s, y * s, s * .15, s * .19, x * .6, 0, 6.3); g.fill(); } };
+// a paper sky lantern rising: a rounded shade with a warm glow inside and a little flame at the open bottom
+function skyLantern(fill, glow) { return (g, s) => { const gr = g.createRadialGradient(0, 0, 0, 0, 0, s * .95); gr.addColorStop(0, glow + 'aa'); gr.addColorStop(1, glow + '00'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, s * .95, 0, 6.3); g.fill();
+  inked(g, s, fill, () => { g.moveTo(-s * .3, -s * .72); g.quadraticCurveTo(0, -s * .86, s * .3, -s * .72); g.quadraticCurveTo(s * .7, -s * .2, s * .36, s * .6); g.lineTo(-s * .36, s * .6); g.quadraticCurveTo(-s * .7, -s * .2, -s * .3, -s * .72); });
+  g.fillStyle = glow; g.beginPath(); g.ellipse(0, s * .1, s * .22, s * .42, 0, 0, 6.3); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(0, s * .5, s * .08, s * .12, 0, 0, 6.3); g.fill(); }; }
+// a camera flash: a four-point sparkle
+function flashPic(fill, rim) { return (g, s) => { inked(g, s, fill, () => { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, r = (i % 2 ? .22 : .95) * s; g[i ? 'lineTo' : 'moveTo'](Math.sin(a) * r, -Math.cos(a) * r); } g.closePath(); });
+  g.fillStyle = rim; g.beginPath(); g.arc(0, 0, s * .16, 0, 6.3); g.fill(); }; }
+// a Word Reef letter tile
+function letterTile(l) { return (g, s) => { inked(g, s, '#e2c793', () => g.roundRect(-s * .8, -s * .72, s * 1.6, s * 1.6, s * .26)); g.fillStyle = '#fff4dc'; g.beginPath(); g.roundRect(-s * .72, -s * .8, s * 1.44, s * 1.4, s * .22); g.fill();
+  g.fillStyle = INK; g.font = `900 ${s * 1.05}px Rubik, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(l, -s * .05, -s * .08); g.font = `700 ${s * .36}px Rubik, Arial, sans-serif`; g.fillText(l === 'W' ? '4' : '1', s * .48, s * .4); }; }
 const PICS = {
   blossom: blossom('#ffc1d6', '#fff1a8'), blossom2: blossom('#ffffff', '#ffd23f'),
   petal: (g, s) => inked(g, s, '#ff9fc0', () => { g.moveTo(0, s * .8); g.bezierCurveTo(s * .75, s * .2, s * .5, -s * .8, 0, -s * .7); g.bezierCurveTo(-s * .5, -s * .8, -s * .75, s * .2, 0, s * .8); }),
@@ -64,6 +77,12 @@ const PICS = {
   pumpkin: (g, s) => { inked(g, s, '#5a8a3a', () => g.rect(-s * .08, -s * .85, s * .18, s * .3)); for (const [x, w, c] of [[-.42, .5, '#e8731f'], [.42, .5, '#e8731f'], [0, .46, '#f79a2e']]) inked(g, s, c, () => g.ellipse(x * s, s * .1, w * s, s * .66, 0, 0, 6.3));
     g.fillStyle = INK; for (const x of [-1, 1]) { g.beginPath(); g.moveTo(x * s * .34, -s * .02); g.lineTo(x * s * .14, -s * .02); g.lineTo(x * s * .24, -s * .24); g.fill(); } g.beginPath(); g.moveTo(-s * .38, s * .24); g.quadraticCurveTo(0, s * .62, s * .38, s * .24); g.quadraticCurveTo(0, s * .4, -s * .38, s * .24); g.fill(); },
   paw: pawPic('#fff4e2', '#ff8fab'), paw2: pawPic('#c98a4a', '#6b4326'), paw3: pawPic('#8a8f98', '#ffd3df'),
+  lantern: skyLantern('#ff9a3c', '#ffd27a'), lantern2: skyLantern('#ff6f61', '#ffc0a0'),
+  camera: (g, s) => { inked(g, s, '#4a4458', () => g.roundRect(-s * .85, -s * .45, s * 1.7, s * 1.1, s * .2)); inked(g, s, '#6a6478', () => g.rect(-s * .5, -s * .66, s * .5, s * .22));
+    inked(g, s, '#bfe6ff', () => g.arc(0, s * .1, s * .38, 0, 6.3)); g.fillStyle = '#2a4a6a'; g.beginPath(); g.arc(0, s * .1, s * .2, 0, 6.3); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(-s * .1, 0, s * .08, 0, 6.3); g.fill();
+    g.fillStyle = '#ffd23f'; g.fillRect(s * .45, -s * .35, s * .25, s * .14); },
+  flash: flashPic('#ffffff', '#ffe680'), flash2: flashPic('#fff1a8', '#ff9ad0'),
+  tileW: letterTile('W'), tileI: letterTile('I'), tileN: letterTile('N'),
 };
 const glyphSprite = ch => PICS[ch] ? sprite('p' + ch, 64, PICS[ch]) : sprite('g' + ch, 64, (g, s) => { g.font = `${s}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 0, 2); });
 const coinSprite = () => sprite('coin', 30, g => { g.fillStyle = '#ffc93c'; g.strokeStyle = '#b97c12'; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 26, 0, 6.283); g.fill(); g.stroke(); });
@@ -73,10 +92,10 @@ export const winPic = k => { const n = KINDS[k]?.glyph?.[0]; try { return PICS[n
 // The same pictures as one strip, for the in-game showers (scenery3d.js createFx): `at` lists each effect's cells, the
 // plain strip and the firework spark are white so the shower tints them with `cols`.
 export function winSheet(C = 96) {
-  const pics = [rectSprite('#ffffff'), dotSprite(), ...KINDS[2].glyph.map(glyphSprite), fishSprite(), coinSprite(), flakeSprite(), ...KINDS[7].glyph.map(glyphSprite), ...['blossom', 'petal', 'blossom2', 'bubble', 'bat', 'pumpkin', 'paw', 'paw2', 'paw3'].map(glyphSprite)], n = 24;
+  const pics = [rectSprite('#ffffff'), dotSprite(), ...KINDS[2].glyph.map(glyphSprite), fishSprite(), coinSprite(), flakeSprite(), ...KINDS[7].glyph.map(glyphSprite), ...['blossom', 'petal', 'blossom2', 'bubble', 'bat', 'pumpkin', 'paw', 'paw2', 'paw3', 'lantern', 'lantern2', 'flash', 'camera', 'flash2', 'tileW', 'tileI', 'tileN'].map(glyphSprite)], n = 32;
   const cv = document.createElement('canvas'); cv.width = C * n; cv.height = C; const g = cv.getContext('2d');
   pics.forEach((im, i) => g.drawImage(im, C * i + 2, 2, C - 4, C - 4));
-  return { cv, n, at: { 1: [0], 4: [1], 2: [2, 3, 4, 5], 3: [6], 5: [7], 6: [8], 7: [9, 10, 11, 12], 8: [13, 14, 15], 9: [16], 10: [17, 17, 18], 11: [19, 20, 21] }, cols: { 1: KINDS[1].cols, 4: KINDS[4].cols } };
+  return { cv, n, at: { 1: [0], 4: [1], 2: [2, 3, 4, 5], 3: [6], 5: [7], 6: [8], 7: [9, 10, 11, 12], 8: [13, 14, 15], 9: [16], 10: [17, 17, 18], 11: [19, 20, 21], 12: [22, 23], 13: [24, 25, 26], 14: [27, 28, 29] }, cols: { 1: KINDS[1].cols, 4: KINDS[4].cols } };
 }
 const rectSprite = c => sprite('r' + c, 16, g => { g.fillStyle = c; g.fillRect(-16, -8, 32, 16); });
 export function playWinFx(k, { ms = 4200, banner = '', light = false } = {}) {

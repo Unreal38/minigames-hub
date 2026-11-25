@@ -114,7 +114,7 @@ export function mount(app, ctx) {
     const mine = c.s === S.me;
     if (c.k === 'putt') { if (mine) sfx.place(); else sfx.tick(); }
     else if (c.k === 'hit') { if (c.kind === 'c') { sfx.pop(); if (mine) big(L('Too fast!', 'Za szybko!'), L('It skipped right over the hole', 'Piłka przeskoczyła nad dołkiem'), 1500); } else if (mine) (c.kind === 'p' ? sfx.pop : sfx.tick)(); }
-    else if (c.k === 'water') { sfx.plop(); if (mine) { big('Splash!', 'One stroke, and back you go', 1500); sfx.bad(); } }
+    else if (c.k === 'water') { sfx.plop(); if (mine) { big(L('Splash!', 'Plum!'), L('One stroke, and back you go', 'Jedno uderzenie kary i wracasz na miejsce'), 1500); sfx.bad(); } }
     else if (c.k === 'sunk') {
       const p = S.seats[c.s]; if (!p) return;
       if (mine) { sfx.win(); if (p.strokes <= S.par) confetti(); big(scoreName(p.strokes, S.par), L(`In the hole in ${p.strokes}`, `W dołku za ${p.strokes}`), 2000); }

@@ -61,7 +61,7 @@ export function load() {
   }
   farms.hot.clear();
   if (mode === 'db') setInterval(() => scheduleSave(), 15_000).unref(); // the rolling part of the save moves on when idle too
-  for (const [pid, f] of farms) { const p = profiles.get(pid); if (p) p.petSp = Object.values(album(f)).filter(a => a.some(Boolean)).length; }
+  for (const [pid, f] of farms) { const p = profiles.get(pid); if (p) { p.petSp = Object.values(album(f)).filter(a => a.some(Boolean)).length; p.pf = pfOf(f); } }
   console.log(`loaded ${farms.size} farms from ${mode === 'db' ? 'the database' : FILE}`);
 }
 let timer = null, dirty = false, warned = false;
@@ -354,8 +354,18 @@ function hubXp(p, n) { if (!p || !n) return; p.xp = (p.xp || 0) + n; saveHub(); 
 function albumXp(f, p) { // paid once for every species ever owned, including ones owned before this existed
   const owned = Object.values(album(f)).filter(a => a.some(Boolean)).length, add = owned - (f.albumXp || 0);
   if (p && p.petSp !== owned) { p.petSp = owned; saveHub(); if (add <= 0) push(p.pid, { t: 'me', me: hubMe(p) }); } // the account remembers it: card backgrounds are unlocked by it (cosmetics.js, earn.sp)
+  syncPf(f, p, add <= 0);
   if (add > 0) { f.albumXp = owned; hubXp(p, add * RANK_XP.species); scheduleSave(); return add * RANK_XP.species; }
   return 0;
+}
+// Farm progress the account remembers, for the titles and card backgrounds it unlocks (cosmetics.js, earn.pf):
+// jn Farm Journal chapters claimed, far far trips finished, lg Legend Isle species owned, mus Pet Museum level, ord orders delivered.
+export const pfOf = f => ({ jn: f.jn?.got || 0, far: f.far || 0, lg: Object.entries(album(f)).filter(([sp, a]) => SPECIES[sp]?.far && a.some(Boolean)).length,
+  mus: topLv(f, 'museum'), ord: f.ordersDone || 0 });
+function syncPf(f, p, tell) {
+  if (!p) return; const pf = pfOf(f), was = p.pf || {};
+  if (Object.keys(pf).every(k => (was[k] || 0) === pf[k])) return;
+  p.pf = pf; saveHub(); if (tell) push(p.pid, { t: 'me', me: hubMe(p) });
 }
 // Pets at the Training Yard earn a little experience for every full hour, worked out when the farm is next used.
 function trainTick(f) {

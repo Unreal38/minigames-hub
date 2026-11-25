@@ -102,3 +102,85 @@ export function paintDominoHalf(g, S, v, k = 0) {
   g.fillStyle = L.pips[v];
   for (const [c, r] of SPOTS[v] || []) { g.save(); g.translate(S * (.22 + c * .28), S * (.22 + r * .28)); g.scale(S * .2, S * .2); g.fill(P); g.restore(); }
 }
+
+// ---------- Word Reef letter tiles (kind rt) ----------
+// face (the top), body (the block under it), ink (letter and value), wild (the letter on a wild tile), motif: a little
+// picture in the top left corner, away from the letter and its value. Letters stay dark on light faces (or light on the dark one).
+const reefTile = (face, body, ink, motif = '', wild = '#1f8a86') => ({ face, body, ink, wild, motif });
+const REEF_TILES = [
+  reefTile('#fff4dc', '#f3dfb6', '#3b2219'),
+  reefTile('#ecd6ae', '#b98a58', '#4a2c1a', 'grain'),                // driftwood
+  reefTile('#ffe3e0', '#ff9e8e', '#7a1f2c', 'coral', '#c2417a'),     // coral
+  reefTile('#f8f3ff', '#d6c8ee', '#43295e', 'pearl', '#7a4ac0'),     // pearl
+  reefTile('#d9f6ec', '#8fd6bf', '#154f47', 'wave', '#1f6fae'),      // sea glass
+  reefTile('#26306c', '#171f4c', '#fff1cf', 'stars', '#7fe9d6'),     // ink
+  reefTile('#ffeab0', '#f2b84a', '#5e3010', 'star', '#c0561a'),      // starfish
+  reefTile('#ecf8ff', '#a8dcf5', '#1d4a7a', 'flake', '#2a8fd0'),     // ice (winter)
+  reefTile('#ffc98a', '#ef8a2c', '#3b1a0a', 'pumpkin', '#6a2a8a'),   // pumpkin (halloween)
+];
+export const reefLook = k => REEF_TILES[k | 0] || REEF_TILES[0];
+// the corner picture, drawn on a canvas square of side S (also used for the HUD tray via reefMotifSvg)
+export function paintReefMotif(g, S, k) {
+  const m = reefLook(k).motif; if (!m) return;
+  const L = reefLook(k); g.save(); g.translate(S * .17, S * .17); const u = S * .09;
+  if (m === 'grain') { g.strokeStyle = L.body; g.lineWidth = S * .025; for (const y of [-.9, 0, .9]) { g.beginPath(); g.moveTo(-u * 1.2, y * u); g.quadraticCurveTo(0, y * u - u * .6, u * 1.2, y * u); g.stroke(); } }
+  else if (m === 'coral') { g.strokeStyle = L.body; g.lineWidth = S * .04; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, u * 1.2); g.lineTo(0, -u); g.moveTo(0, u * .2); g.lineTo(-u, -u * .6); g.moveTo(0, 0); g.lineTo(u, -u * .9); g.stroke(); }
+  else if (m === 'pearl') { g.fillStyle = L.body; g.beginPath(); g.arc(0, 0, u * 1.05, 0, 7); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(-u * .35, -u * .35, u * .35, 0, 7); g.fill(); }
+  else if (m === 'wave') { g.strokeStyle = L.body; g.lineWidth = S * .035; g.lineCap = 'round'; for (const y of [-.5, .6]) { g.beginPath(); g.moveTo(-u * 1.3, y * u); g.quadraticCurveTo(-u * .65, y * u - u * .8, 0, y * u); g.quadraticCurveTo(u * .65, y * u + u * .8, u * 1.3, y * u); g.stroke(); } }
+  else if (m === 'stars' || m === 'star' || m === 'flake') {
+    g.fillStyle = m === 'stars' ? '#ffd84a' : L.body; g.strokeStyle = L.body; g.lineWidth = S * .03; g.lineCap = 'round';
+    if (m === 'flake') { for (let i = 0; i < 3; i++) { g.rotate(Math.PI / 3); g.beginPath(); g.moveTo(-u * 1.2, 0); g.lineTo(u * 1.2, 0); g.stroke(); } }
+    else { const r = m === 'star' ? 1.25 : .9; g.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5, q = (i % 2 ? .45 : 1) * r * u; g[i ? 'lineTo' : 'moveTo'](Math.sin(a) * q, -Math.cos(a) * q); } g.closePath(); g.fill();
+      if (m === 'stars') { g.beginPath(); g.arc(u * 1.4, u * 1.2, u * .28, 0, 7); g.fill(); } }
+  } else if (m === 'pumpkin') { g.fillStyle = '#d0661a'; g.beginPath(); g.ellipse(0, u * .2, u * 1.2, u * .9, 0, 0, 7); g.fill(); g.fillStyle = '#3f8a3a'; g.fillRect(-u * .15, -u * 1.05, u * .3, u * .5); }
+  g.restore();
+}
+
+// ---------- Lantern Night lanterns (kind ln) ----------
+// The lantern that bobs beside you on the island, and the tint of the light round you on your own screen. Only the look
+// changes: every lantern lights the same distance. shape: box (paper), jar, candle, crystal, star, pumpkin.
+// frame (cap and handle), glass (the shade), light (the flame and the glow), shape.
+const lamp = (shape, frame, glass, light) => ({ shape, frame, glass, light });
+const LANTERNS = [
+  lamp('box', '#5a3a2a', '#ffb84a', '#ffd27a'),
+  lamp('box', '#3b2f28', '#ff6f61', '#ffc0a0'),      // paper lantern (red)
+  lamp('jar', '#8a6a4a', '#c9f0d8', '#d9ff7a'),      // firefly jar
+  lamp('candle', '#c98a4a', '#fff4e2', '#ffe08a'),   // candle
+  lamp('crystal', '#6a5aa0', '#b8f0ff', '#9fe8ff'),  // crystal
+  lamp('star', '#c9901a', '#ffe680', '#fff1a8'),     // star
+  lamp('pumpkin', '#3f8a3a', '#ff9a2c', '#ffc05a'),  // pumpkin (halloween)
+];
+export const lanternLook = k => LANTERNS[k | 0] || LANTERNS[0];
+// The lantern as a little 3D model (THREE passed in, so this file needs no three.js import). About .5 tall, centred on
+// its middle. The shade and flame are unlit so it glows by day and by night.
+export function lanternModel(THREE, k) {
+  const L = lanternLook(k), g = new THREE.Group(), std = c => new THREE.MeshStandardMaterial({ color: c, roughness: .55, flatShading: true });
+  const glowM = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: .9 });
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+  const flame = (y, s = 1) => { const f = add(new THREE.OctahedronGeometry(.055 * s), new THREE.MeshBasicMaterial({ color: L.light }), 0, y, 0); f.scale.y = 1.6; f.userData.noInk = true; return f; };
+  const handle = y => { const h = add(new THREE.TorusGeometry(.08, .018, 4, 10, Math.PI), std(L.frame), 0, y, 0); return h; };
+  if (L.shape === 'box') {
+    add(new THREE.CylinderGeometry(.17, .17, .05, 6), std(L.frame), 0, .2); add(new THREE.CylinderGeometry(.18, .18, .05, 6), std(L.frame), 0, -.2);
+    add(new THREE.CylinderGeometry(.16, .16, .36, 6), glowM(L.glass)); flame(0); handle(.23);
+  } else if (L.shape === 'jar') {
+    add(new THREE.CylinderGeometry(.15, .16, .36, 10), new THREE.MeshBasicMaterial({ color: L.glass, transparent: true, opacity: .55 }));
+    add(new THREE.CylinderGeometry(.13, .13, .07, 10), std(L.frame), 0, .21); handle(.25);
+    for (const [x, y, z] of [[-.06, .05, .05], [.07, -.06, .02], [0, -.1, -.07], [.04, .1, -.04]]) { const f = add(new THREE.SphereGeometry(.03, 6, 4), new THREE.MeshBasicMaterial({ color: L.light }), x, y, z); f.userData.noInk = true; }
+  } else if (L.shape === 'candle') {
+    add(new THREE.CylinderGeometry(.2, .22, .05, 10), std(L.frame), 0, -.22); add(new THREE.CylinderGeometry(.08, .08, .3, 10), std(L.glass), 0, -.05); flame(.16, 1.3);
+    const r = add(new THREE.TorusGeometry(.07, .02, 4, 8), std(L.frame), .2, -.16, 0); r.rotation.y = Math.PI / 2;
+  } else if (L.shape === 'crystal') {
+    const c = add(new THREE.OctahedronGeometry(.18), glowM(L.glass)); c.scale.y = 1.5; c.userData.noInk = true;
+    add(new THREE.CylinderGeometry(.08, .1, .06, 6), std(L.frame), 0, -.27); add(new THREE.CylinderGeometry(.06, .08, .06, 6), std(L.frame), 0, .27); handle(.3); flame(0, .8);
+  } else if (L.shape === 'star') {
+    const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .1 : .22; sh[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: .1, bevelEnabled: false }); geo.translate(0, 0, -.05); add(geo, glowM(L.glass)).userData.noInk = false;
+    add(new THREE.CylinderGeometry(.03, .03, .08, 6), std(L.frame), 0, .25); handle(.3);
+  } else if (L.shape === 'pumpkin') {
+    const p = add(new THREE.SphereGeometry(.2, 10, 8), glowM(L.glass)); p.scale.y = .8;
+    for (const x of [-.07, .07]) { const e = add(new THREE.ConeGeometry(.035, .06, 3), new THREE.MeshBasicMaterial({ color: '#4a1a00' }), x, .04, .16); e.rotation.x = Math.PI / 2; e.userData.noInk = true; }
+    add(new THREE.BoxGeometry(.12, .025, .02), new THREE.MeshBasicMaterial({ color: '#4a1a00' }), 0, -.05, .17).userData.noInk = true;
+    add(new THREE.CylinderGeometry(.025, .035, .08, 6), std(L.frame), 0, .19); handle(.22);
+  }
+  return g;
+}

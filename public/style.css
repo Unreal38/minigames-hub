@@ -1189,6 +1189,7 @@ body.sky.night:not(.in-game) .wdsw { border-color: var(--edge); }
 .isk2, body.night .isk2, .wd.creator .pvisle.isk2, body.sky.night:not(.in-game) .creator .pv3d.isk2 { background: linear-gradient(#0c1236, #2d2b63 60%, #4a3f8a); }
 .isk3, body.night .isk3, .wd.creator .pvisle.isk3, body.sky.night:not(.in-game) .creator .pv3d.isk3 { background: linear-gradient(#06142e, #123a55 55%, #2b2856); }
 .isk4, body.night .isk4, .wd.creator .pvisle.isk4, body.sky.night:not(.in-game) .creator .pv3d.isk4 { background: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
+.isk5, body.night .isk5, .wd.creator .pvisle.isk5, body.sky.night:not(.in-game) .creator .pv3d.isk5 { background: linear-gradient(#1a1440, #3a2a5e 55%, #8a4a58); }
 .wd.creator .pvisle { background: linear-gradient(#8fd0f7, #d9f1ff); position: relative; cursor: pointer; }
 body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
 .wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -1543,6 +1544,7 @@ body .hubgrid .hero.isk1 { --sky: linear-gradient(#4b3a8f, #ff7a6a 58%, #ffc27a)
 body .hubgrid .hero.isk2 { --sky: linear-gradient(#0c1236, #2d2b63 60%, #4a3f8a); }
 body .hubgrid .hero.isk3 { --sky: linear-gradient(#06142e, #123a55 55%, #2b2856); }
 body .hubgrid .hero.isk4 { --sky: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
+body .hubgrid .hero.isk5 { --sky: linear-gradient(#1a1440, #3a2a5e 55%, #8a4a58); }
 .hubgrid .hero > div:first-child { position: relative; z-index: 1; }
 .hubgrid .herorow .btn.big { flex-shrink: 0; }
 .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex: 0 0 clamp(280px, 30vw, 520px); align-self: stretch; height: auto; min-height: 300px; position: relative; margin: -26px -28px -26px 0; overflow: hidden; border-radius: 0 23px 23px 0; }
@@ -2027,6 +2029,7 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
   .hubtabs .tdot:not([hidden]) { display: block; position: absolute; top: 2px; left: calc(50% + 9px); width: 11px; height: 11px; border-radius: 50%; background: var(--lantern); border: 2px solid var(--ink); }
 }
 
+<<<<<<< HEAD
 /* ---------- moderation: reports, the ban screen, the hosts' Admin panel (admin.js) ---------- */
 .pdelrow { gap: 8px; align-items: center; flex-wrap: wrap; }
 .punfr { align-self: center; }
@@ -2092,3 +2095,20 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .mhist.hot { border-left: 4px solid var(--chili); }
 .thxcoins { font: 700 22px var(--fd); color: var(--on-paper); display: flex; align-items: center; gap: 6px; margin: 4px 0; }
 .banleft { font-size: 17px; } .banleft b { font-variant-numeric: tabular-nums; }
+=======
+/* Cosmetics for the 2026-11-25 games and Pet Farm features: Lantern Night, Copycat Isle, Sky Runway, Word Reef, Checkers, the Pet Museum and Legend Isle. */
+.nm16 { --g: linear-gradient(90deg, #c9700c, #ffb84a 35%, #fff1b8 50%, #ffb84a 65%, #c9700c); animation: nmslide 3.4s ease-in-out infinite; }
+.fr15 { --f3: #ffb84aaa; --fa: url("frames/f15.svg"); }
+.fr16 { --f3: #7ed37a77; --fa: url("frames/f16.svg"); }
+.fr17 { --f3: #ff7a2aaa; --fa: url("frames/f17.svg"); }
+.fr18 { --f3: #4fb0ee88; --fa: url("frames/f18.svg"); }
+.fr15::before { animation: frsway 2.8s ease-in-out infinite alternate; }
+.fr17 { animation: frember 1.6s ease-in-out infinite alternate; }
+@keyframes frsway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@keyframes frember { from { box-shadow: 0 0 calc(var(--s, 52px) * .16) calc(var(--s, 52px) * .02) #ff7a2a55; } to { box-shadow: 0 0 calc(var(--s, 52px) * .28) calc(var(--s, 52px) * .06) #ffb02ebb; } }
+.pb35 { background-image: url(cardbg/lantern-base.svg); }
+.pb35::before { background: url(cardbg/lantern-flies.svg) 100% 0 / 180px 120px repeat; animation: pbtwinkle 2.6s ease-in-out infinite alternate; will-change: opacity; }
+.pb36 { background-image: url(cardbg/copycat.svg); } .pb37 { background-image: url(cardbg/runway.svg); } .pb38 { background-image: url(cardbg/reef.svg); } .pb39 { background-image: url(cardbg/checkers.svg); }
+.pb40 { background-image: url(cardbg/museum.svg); } .pb41 { background-image: url(cardbg/legend.svg); }
+:is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
+>>>>>>> origin/main

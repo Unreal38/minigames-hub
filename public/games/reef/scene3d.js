@@ -10,6 +10,7 @@ import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { boardOf, value, WILD } from './rules.js';
 import { paintKind, KIND_COL } from './icons.js';
+import { reefLook, paintReefMotif } from '../../pieceskins.js';
 export { paintKind, KIND_COL };
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -18,9 +19,11 @@ const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .
 const ease = t => (t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const SAND2 = '#eed8a6';
 // the face of a letter tile
-export function paintTile(g, S, l, wild, lang, face = '#fff4dc') {
-  g.fillStyle = face; g.fillRect(0, 0, S, S);
-  g.fillStyle = wild ? '#1f8a86' : '#3b2219';
+// k: the tile set of the player who laid it (Wardrobe kind rt, public/pieceskins.js)
+export function paintTile(g, S, l, wild, lang, k = 0) {
+  const T = reefLook(k);
+  g.fillStyle = T.face; g.fillRect(0, 0, S, S); paintReefMotif(g, S, k);
+  g.fillStyle = wild ? T.wild : T.ink;
   g.font = `800 ${S * .62}px Rubik, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(l === WILD ? '' : l.toUpperCase(), S * .46, S * .53);
   if (!wild && l !== WILD) { g.font = `700 ${S * .24}px Rubik, Arial, sans-serif`; g.fillText(String(value(lang, l)), S * .82, S * .8); }
@@ -108,11 +111,14 @@ export function createScene(canvas, { onFrame } = {}) {
   const bodyMat = toonMat(M('#f3dfb6')), draftMat = toonMat(M('#bff0d8')), pendMat = toonMat(M('#ffe48a'));
   const faceMats = new Map();
   let lang = 'pl';
-  const faceMat = (l, w) => { const k = lang + l + (w ? '*' : ''); if (!faceMats.has(k)) faceMats.set(k, new THREE.MeshStandardMaterial({ map: texOf(128, (g, S) => paintTile(g, S, l, w, lang)), roughness: .7 })); return faceMats.get(k); };
-  function makeTile(l, w, body = bodyMat) {
+  const faceMat = (l, w, sk = 0) => { const k = lang + l + (w ? '*' : '') + '/' + sk; if (!faceMats.has(k)) faceMats.set(k, new THREE.MeshStandardMaterial({ map: texOf(128, (g, S) => paintTile(g, S, l, w, lang, sk)), roughness: .7 })); return faceMats.get(k); };
+  // a laid tile's block wears its player's tile set (classic = the sand colour); pending and draft blocks keep their state colours
+  const skinBodies = new Map(), skinBody = sk => !sk ? bodyMat : skinBodies.get(sk) || skinBodies.set(sk, toonMat(M(reefLook(sk).body))).get(sk);
+  const skinAt = (st, s) => Math.max(0, st.seats?.[s]?.fl?.rt | 0);
+  function makeTile(l, w, body = bodyMat, sk = 0) {
     const g = new THREE.Group(), b = put(tileGeo, body, 0, TH / 2, 0, g); b.castShadow = true;
-    if (l) put(faceGeo, faceMat(l, w), 0, TH + .003, 0, g);
-    return g;
+    if (l) put(faceGeo, faceMat(l, w, sk), 0, TH + .003, 0, g);
+    g.userData.sk = sk; return g;
   }
   const tileBackMat = c => (backMats.get(c) || backMats.set(c, toonMat(M(c))).get(c));
   const backMats = new Map();
@@ -172,9 +178,9 @@ export function createScene(canvas, { onFrame } = {}) {
     st.cells.forEach((l, i) => {
       if (!l) return;
       let m = laid.get(i);
-      const isPend = pend.has(i);
+      const isPend = pend.has(i), sk = skinAt(st, st.who[i]);
       if (!m) {
-        m = makeTile(l, st.wild[i], isPend ? pendMat : bodyMat); m.userData.l = l + st.wild[i]; laid.set(i, m); tilesG.add(m);
+        m = makeTile(l, st.wild[i], isPend ? pendMat : skinBody(sk), sk); m.userData.l = l + st.wild[i]; laid.set(i, m); tilesG.add(m);
         const to = pos(i);
         if (animate && isPend && seats[P.s] && !drafts.has(i) && !reduced) {
           const from = seatSpot(P.s), k0 = P.tiles.findIndex(t => t.i === i);
@@ -184,7 +190,8 @@ export function createScene(canvas, { onFrame } = {}) {
           seats[P.s].hop = .5;
         } else m.position.copy(to);
       }
-      const want = isPend ? pendMat : bodyMat;
+      const want = isPend ? pendMat : skinBody(sk);
+      if (m.children[1] && m.userData.sk !== sk) { m.userData.sk = sk; m.children[1].material = faceMat(l, st.wild[i], sk); }
       if (m.children[0].material !== want) { // a play that stood: its tiles settle with a ring in the player's colour
         m.children[0].material = want;
         if (!isPend && animate && pendSet.has(i)) { const p = pos(i).setY(TOP + .05); pfx.ring(p, { color: seats[st.who[i]]?.color || '#ffd84a', size: .7 }); }
@@ -208,7 +215,7 @@ export function createScene(canvas, { onFrame } = {}) {
     for (const [i, m] of drafts) { const t = want.get(i); if (!t || m.userData.key !== t.l + t.w) { tilesG.remove(m); drafts.delete(i); } }
     for (const [i, t] of want) {
       if (drafts.has(i)) continue;
-      const m = makeTile(t.l, t.w, draftMat); m.userData.key = t.l + t.w; m.position.copy(pos(i)); m.userData.lift = .12;
+      const m = makeTile(t.l, t.w, draftMat, mySkin); m.userData.key = t.l + t.w; m.position.copy(pos(i)); m.userData.lift = .12;
       m.scale.setScalar(.7); tween(.16, e => m.scale.setScalar(.7 + .3 * ease(e)));
       drafts.set(i, m); tilesG.add(m);
     }
@@ -218,9 +225,9 @@ export function createScene(canvas, { onFrame } = {}) {
   function setHover(i) { if (!B || i < 0 || B.kinds[i] === '#') { hover.visible = false; return; } hover.visible = true; hover.position.copy(pos(i)).setY(TOP + .02); }
 
   // ---------- state from the server ----------
-  let S = null, gid = '';
+  let S = null, gid = '', mySkin = 0;
   function setState(st) {
-    lang = st.lang;
+    lang = st.lang; mySkin = skinAt(st, st.me);
     if (!B || st.board !== boardKind) { boardKind = st.board; buildBoard(st.board); for (const m of laid.values()) tilesG.remove(m); laid.clear(); for (const p of pets.values()) scene.remove(p); pets.clear(); force = true; }
     const list = st.seats, key = list.map(p => p.color + (p.av || []).join('')).join('|') + '/' + st.me;
     if (key !== seatKey) {
@@ -340,6 +347,7 @@ export function createScene(canvas, { onFrame } = {}) {
       dead = true; ticker.stop();
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }
       for (const m of faceMats.values()) { m.map?.dispose(); m.dispose(); }
+      for (const m of skinBodies.values()) m.dispose();
       pfx.dispose(); tileGeo.dispose(); faceGeo.dispose(); ringGeo.dispose();
       renderer.dispose(); renderer.forceContextLoss();
     },
