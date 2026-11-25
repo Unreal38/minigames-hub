@@ -120,6 +120,7 @@ export function mount(app, ctx) {
   // Drawn on a canvas: a soft circle of light round you, minus the shadow behind every wall you can't see over. The light
   // goes on a second canvas first so shadows and the dark beyond the glow are the very same shade (no double dark).
   const dg = dark.getContext('2d'), lightC = document.createElement('canvas'), lg = lightC.getContext('2d');
+  let darkKey = ''; // what the dark was last painted for (see paintDark)
   function shadows(mx, mz, R) { // per wall: [[x, z, y], ...] from its top edge out to R round you
     const out = [];
     for (const w of WALLS) { if (WALL_KIND[w.k].see) continue;
@@ -137,6 +138,12 @@ export function mount(app, ctx) {
     if (!on) return;
     const W = dark.clientWidth, H = dark.clientHeight, k = Math.min(2, devicePixelRatio || 1), cw = Math.round(W * k), ch = Math.round(H * k);
     if (!W || !H) return;
+    const sk = info?.[S.me]?.fl?.ln | 0; // your Lantern's colour (Wardrobe kind ln) tints the lit circle a little; the classic one leaves it as it is
+    // Nothing moved (standing at a chore, waiting by the fire): the dark from last frame is still right, so it is not
+    // painted again. Two full-screen canvas passes every frame were the costliest part of this game on phones.
+    const key = `${cw}x${ch} ${scene.camKey()} ${m.x.toFixed(3)} ${m.z.toFixed(3)} ${y.glow} ${sk}`;
+    if (key === darkKey) return;
+    darkKey = key;
     if (dark.width !== cw || dark.height !== ch) { dark.width = lightC.width = cw; dark.height = lightC.height = ch; }
     const [x, yy, ppm] = scene.project(m.x, .8, m.z), r = Math.max(40, y.glow * ppm);
     lg.setTransform(k, 0, 0, k, 0, 0); lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, W, H);
@@ -150,7 +157,6 @@ export function mount(app, ctx) {
     lg.fill('nonzero');
     dg.setTransform(1, 0, 0, 1, 0, 0); dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, cw, ch); dg.fillStyle = 'rgba(9,7,30,.83)'; dg.fillRect(0, 0, cw, ch);
     dg.globalCompositeOperation = 'destination-out'; dg.drawImage(lightC, 0, 0); dg.globalCompositeOperation = 'source-over';
-    const sk = info?.[S.me]?.fl?.ln | 0; // your Lantern's colour (Wardrobe kind ln) tints the lit circle a little; the classic one leaves it as it is
     if (sk > 0) { lg.globalCompositeOperation = 'source-in'; lg.fillStyle = lanternLook(sk).light; lg.fillRect(0, 0, W, H); lg.globalCompositeOperation = 'source-over'; dg.globalAlpha = .14; dg.drawImage(lightC, 0, 0); dg.globalAlpha = 1; }
   }
 

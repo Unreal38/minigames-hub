@@ -311,6 +311,8 @@ export function createScene(canvas, opts = {}) {
     shower(s) { if (!me) return; fx.confetti(new THREE.Vector3(me.x, 2, me.z), { n: 40, w: 3, h: 2.4, s }); },
     // a point of the island on the screen (for the lantern's light): [x, y, pixels per metre there]
     project(x, y, z) { v3.set(x, y, z).project(camera); const px = (v3.x * .5 + .5) * W, py = (-v3.y * .5 + .5) * H; v3.set(x + Math.cos(cam.yaw), y, z - Math.sin(cam.yaw)).project(camera); return [px, py, Math.hypot((v3.x * .5 + .5) * W - px, (-v3.y * .5 + .5) * H - py)]; },
+    // where the camera is looking from, rounded well under a pixel: the lantern's dark is repainted only when it changes
+    camKey() { const p = camera.position, q = camera.quaternion; return `${W}x${H} ${p.x.toFixed(3)} ${p.y.toFixed(3)} ${p.z.toFixed(3)} ${q.x.toFixed(4)} ${q.y.toFixed(4)} ${q.z.toFixed(4)} ${q.w.toFixed(4)} ${camera.aspect.toFixed(4)}`; },
     stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: loop.fps(), folk: folk.size, queue: queue.length }),
     lost: () => renderer.getContext().isContextLost(),
     destroy() { loop.stop(); ro.disconnect(); for (const m of folk.values()) dropModel(m); folk.clear(); for (const b of beds.values()) disposeAvatar(b.av); fx.dispose();
