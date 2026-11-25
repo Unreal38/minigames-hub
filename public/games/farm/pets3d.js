@@ -342,11 +342,11 @@ export const FEAT = {
   cometail: { slot: 'tail', name: 'a comet tail', b(g, F) { const n = 6 + F * 2; for (let i = 0; i < n; i++) { const t = i / (n - 1); Sp(g, (.3 + F * .04) * (1 - t * .85), GL(mix('#fff6c8', '#7fd0ff', t), .7 - t * .3), [Math.sin(t * 4) * .06, .1 + t * .5, -.15 - t * (.9 + F * .3)], null, 1); } } },
   ringbear: { slot: 'back', name: 'a planet ring', b(g, F) { const k = [.5, .7, .9][F], r = Grp(g, [0, .35 * k, -.1], [.5, 0, .25], k); Sp(r, .26, '#f2c9a0', [0, 0, 0]); To(r, [.5, .06, 4, 18], '#c9b5ff', [0, 0, 0], [PI / 2, 0, 0], [1, 1, .35]); Sp(g, .08, '#e9e4ff', [.45 * k, .7 * k, 0], null, 1); } },
   // Legend Isle (far expeditions)
-  griffling: { slot: 'back', name: 'griffin wings', b(g, F) { // feathered wings in sunset colours, longest feathers at the back
-    const k = [.75, 1.15, 1.45][F], cs = ['#fff0d0', '#ffc66a', '#f39a42', '#e0683a'];
-    for (const s of [-1, 1]) { const w = Grp(g, [s * .12, .02, 0], [.3, s * .35, -s * .7], k); w.userData.wig = s < 0 ? 'wingL' : 'wingR';
-      Sp(w, .16, cs[0], [0, .18, 0], [1, 1.5, .5], 1);
-      for (let i = 0; i < 4; i++) Oc(w, .26, cs[i], [s * (.04 + i * .09), .36 - i * .09, -.02 - i * .04], [.38, 1.25 - i * .12, .1], [0, 0, -s * (.15 + i * .3)]); }
+  griffling: { slot: 'back', name: 'griffin wings', b(g, F) { // big eagle wings raised high: brown flight feathers with golden edges
+    const k = [.9, 1.3, 1.6][F], cs = ['#f4e2bc', '#c98a3e', '#9c6430', '#7a4a22', '#5e3a1c'];
+    for (const s of [-1, 1]) { const w = Grp(g, [s * .14, .02, 0], [.15, s * .3, -s * .45], k); w.userData.wig = s < 0 ? 'wingL' : 'wingR';
+      Sp(w, .17, cs[1], [s * .05, .2, 0], [1, 1.6, .5], 1); Sp(w, .12, cs[0], [s * .07, .3, .04], [1, 1.2, .4], 1); // the shoulder and its pale covert feathers
+      for (let i = 0; i < 5; i++) { const t = i / 4; Oc(w, .24, cs[1 + Math.min(3, i)], [s * (.08 + t * .42), .52 - t * .32, -.03 - t * .05], [.3, 1.45 - t * .3, .09], [0, 0, -s * (.1 + t * .95)]); Oc(w, .1, '#f2c45a', [s * (.1 + t * .52), .8 - t * .55, -.04 - t * .05], [.3, 1, .09], [0, 0, -s * (.1 + t * .95)]); } }
   } },
   bloomicorn: { slot: 'top', name: 'a unicorn horn', b(g, F) { // a pearly spiral horn with a blossom at its root
     const k = [.68, .85, 1][F], t = Grp(g, [0, -.04, .12], [.35, 0, 0], k);
@@ -1011,33 +1011,42 @@ const BODY = {
     return A;
   },
   // ---------- Legend Isle: pets from old stories (far expeditions) ----------
-  griffling(g, F, K, X) { // a griffin chick: a fluffy ball with a beak, then a lion cub's body under a feathered eagle's head, wings and a tufted tail
-    const beak = '#ffc23e', paw = mix(K.a, '#b8602e', .3);
+  griffling(g, F, K, X) { // a griffin cub: a white eagle head with a hooked beak and stern little brows on a tawny lion cub's body, eagle wings and a tufted lion tail
+    const beak = '#ffbe2e', paw = mix(K.a, '#7a4a22', .25), brow = mix(K.a, '#4a2c14', .45);
     let A;
-    if (F === 0) A = ball(g, F, K, X, { c: K.b, feetC: beak, faceO: { nose: null, mouth: false, y: .14 } });
-    else {
-      const w = [.5, .48, .56][F], L = [.5, .62, .76][F], hr = [.64, .6, .62][F], leg = [.16, .28, .34][F], by = leg + w * .8;
-      A = { head: { p: [0, by + hr * .5, L * .95], r: hr }, body: { p: [0, by, -.05], r: [w, w * .88, L] } };
-      Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, mix(K.a, '#fff3df', .45), [0, by - w * .25, -.05], [w * .85, w * .66, L * .88]);
+    if (F === 0) { // a round cub: tawny below, a white feathered hood above, lion paws
+      A = ball(g, F, K, X, { c: K.b, feetC: paw, faceO: { nose: null, mouth: false, y: .14 } });
+      const r = A.body.r[0]; Sp(g, r * .9, K.a, [0, A.body.p[1] - r * .32, -r * .2], [1.08, .8, 1]); // the tawny lion half shows below and behind
+    } else {
+      const w = [.5, .5, .58][F], L = [.5, .64, .8][F], hr = [.64, .6, .62][F], leg = [.16, .28, .34][F], by = leg + w * .8;
+      A = { head: { p: [0, by + hr * .55, L * .95], r: hr }, body: { p: [0, by, -.05], r: [w, w * .88, L] } };
+      Sp(g, 1, K.a, A.body.p, A.body.r); Sp(g, 1, mix(K.a, '#fff3df', .35), [0, by - w * .25, -.05], [w * .85, w * .66, L * .88]);
       legs4(g, K.a, w * .55, L * .55, -L * .6, leg + .12, .27);
-      for (const s of [-1, 1]) for (let i = -1; i <= 1; i++) Co(g, [.04, .1, 4], beak, [s * w * .55 + i * .07, .05, L * .55 + .2], [PI / 2, 0, 0]); // talons on the front feet
-      Sp(g, w * .62, K.b, [0, by + .08, L * .62], [1, 1.15, .85]); // a fluffy feathered chest
-      Sp(g, hr, K.b, A.head.p, [1.06, .95, 1]);
-      face(g, X.eyes, A.head.p, hr, { eye: [1.35, 1.2, 1.1][F], nose: null, mouth: false, y: .12 });
+      for (const s of [-1, 1]) for (let i = -1; i <= 1; i++) Co(g, [.04, .1, 4], '#5e3a1c', [s * w * .55 + i * .07, .05, L * .55 + .2], [PI / 2, 0, 0]); // claws on the front paws
+      for (let i = 0; i < 7; i++) { const a = (i / 6 - .5) * 2.6; Oc(g, .2, K.b, [Math.sin(a) * hr * .7, by + w * .25 + Math.cos(a) * .12, L * .55], [.7, 1.25, .5], [0, 0, -a * .6]); } // a ruff of white neck feathers
+      Sp(g, hr, K.b, A.head.p, [1.02, .95, 1]);
       A.top = [0, A.head.p[1] + hr * .88, A.head.p[2]]; A.tail = [0, by + .1, -.05 - L]; A.back = [0, by + w * .8, -.1]; A.fs = [.8, .9, 1][F];
     }
-    const h = A.head, hr = h.r, front = hr * .95;
-    Co(g, [hr * .18, hr * .36, 6], beak, [0, h.p[1] - hr * .2, h.p[2] + front + hr * .1], [PI / 2 + .35, 0, 0]); Co(g, [hr * .1, hr * .16, 6], mix(beak, '#c98a2a', .4), [0, h.p[1] - hr * .32, h.p[2] + front + .02], [PI / 2 + .9, 0, 0]);
-    for (const s of [-1, 1]) Co(g, [.1, .3 + F * .06, 4], mix(K.b, K.a, .35), [s * hr * .58, h.p[1] + hr * .72, h.p[2] - .05], [-.3, 0, -s * .5], [1, 1, .5]); // ear tufts of feathers
-    if (X.own('top')) for (let i = 0; i < 3; i++) Co(g, [.08, .3 + (i === 1) * .12 + F * .04, 4], ['#ffc66a', '#f39a42', '#e0683a'][i], [(i - 1) * .1, h.p[1] + hr * .9, h.p[2] - .1], [-.5, 0, (i - 1) * -.35], [1, 1, .5]); // a crest
-    if (F && X.own('tail')) { const n = 6 + F; let tp; for (let i = 0; i < n; i++) { const t = i / (n - 1); tp = [0, A.tail[1] - .15 + Math.sin(t * 2.6) * .5, A.tail[2] - .02 - t * .5]; Sp(g, .075, K.a, tp, null, 1); } Sp(g, .16 + F * .03, paw, [0, tp[1] + .08, tp[2] - .06], [1, 1.3, 1]); } // a lion's tail with a tuft
-    if (X.own('back')) X.sig(A.back, A.fs * 1.25);
+    const h = A.head, hr = h.r, front = hr * .96, r0 = F ? hr : A.body.r[0];
+    if (F) face(g, X.eyes, h.p, hr, { eye: [1.35, 1.2, 1.1][F], nose: null, mouth: false, y: .12 });
+    // the eagle's hooked beak: a deep upper bill that curves down over a small lower one
+    Sp(g, r0 * .26, beak, [0, h.p[1] - r0 * .1, h.p[2] + front - r0 * .04], [.8, .72, 1.3]);
+    Co(g, [r0 * .12, r0 * .3, 6], mix(beak, '#c07818', .3), [0, h.p[1] - r0 * .3, h.p[2] + front + r0 * .22], [PI - .45, 0, 0]);
+    Sp(g, r0 * .13, mix(beak, '#e8a020', .3), [0, h.p[1] - r0 * .32, h.p[2] + front - r0 * .04], [.75, .5, 1]);
+    for (const s of [-1, 1]) Oc(g, r0 * .2, brow, [s * r0 * .3, h.p[1] + r0 * .4, h.p[2] + front * .88], [1.2, .26, .5], [-.35, 0, s * .4]); // stern little brows over the eyes
+    for (const s of [-1, 1]) Co(g, [.11, .34 + F * .06, 4], mix(K.b, K.a, .55), [s * r0 * .55, h.p[1] + r0 * .62, h.p[2] - r0 * .2], [-1.1, 0, -s * .45], [1, 1, .5]); // feather tufts swept back like ears
+    if (X.own('top')) for (let i = 0; i < 3; i++) Co(g, [.1, .36 + F * .05, 4], mix(K.b, K.a, .3 + (i !== 1) * .3), [(i - 1) * .14, h.p[1] + r0 * .5, h.p[2] - r0 * .72], [-2, 0, (i - 1) * .35], [1, 1, .5]); // nape feathers swept back
+    if (X.own('tail')) { const n = 5 + F * 2, base = F ? A.tail : [0, A.body.p[1] - r0 * .3, -r0 * .9]; let tp; for (let i = 0; i < n; i++) { const t = i / (n - 1); tp = [0, base[1] - .1 + Math.sin(t * 2.6) * (.3 + F * .1), base[2] - .02 - t * (.3 + F * .1)]; Sp(g, .06 + F * .01, K.a, tp, null, 1); } Sp(g, .13 + F * .04, paw, [0, tp[1] + .06, tp[2] - .05], [1, 1.3, 1]); } // a lion's tail with a dark tuft
+    if (X.own('back')) X.sig(A.back, A.fs * 1.2);
     return A;
   },
   bloomicorn(g, F, K, X) { // a unicorn foal: folded up as a baby, then up on long wobbly legs, with a mane and tail of blossoms
     const hoof = '#e8b84a', mane = ['#ff9ec4', '#ffc4dc', '#c9b5ff', '#fff1a8'];
     let A;
-    if (F === 0) { A = { head: { p: [0, .9, .4], r: .6 }, body: { p: [0, .42, -.2], r: [.5, .4, .7] } }; Sp(g, 1, K.a, A.body.p, A.body.r); for (const s of [-1, 1]) { Rd(g, [.18, .16, .5], K.a, [s * .42, .08, .3]); Rd(g, [.18, .16, .18], hoof, [s * .42, .08, .6]); } }
+    if (F === 0) { // a chubby foal on four short stumpy legs
+      A = { head: { p: [0, 1.04, .38], r: .6 }, body: { p: [0, .56, -.18], r: [.5, .4, .66] } }; Sp(g, 1, K.a, A.body.p, A.body.r);
+      for (const s of [-1, 1]) for (const z of [.18, -.52]) { Cy(g, [.15, .14, .3, 7], K.a, [s * .26, .26, z]); Cy(g, [.14, .16, .12, 7], hoof, [s * .26, .06, z]); }
+    }
     else {
       const lh = F === 1 ? .66 : .92, L = F === 1 ? .6 : .74, by = lh + .34;
       A = { head: { p: [0, by + (F === 1 ? .78 : 1.0), L * .95], r: .52 }, body: { p: [0, by, -.05], r: [.42, .4, L] } };
