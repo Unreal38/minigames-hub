@@ -162,8 +162,8 @@ const line = (G, str) => { for (const m of str.split(' ')) if (!go(G, m.slice(0,
 }
 
 // ----- bots -----
-for (const lv of ['club', 'sharp']) for (const [fen, want] of [['6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'Rd8#'], ['r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', 'Qxf7#'], ['4k3/8/8/8/8/5q2/8/4K2R b K - 0 1', 'Qxh1+']]) {
-  const p = C.fromFen(fen), got = C.san(p, think(p, { ...LEVELS[lv], ms: 300 })); if (got !== want) fail(`${lv} bot played ${got}, expected ${want}`);
+for (const lv of ['club', 'sharp']) for (const [fen, want] of [['6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1', 'Rd8#'], ['r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', 'Qxf7#'], ['4k3/8/8/8/8/5q2/8/4K2R b K - 0 1', 'Qxh1+|Qe4+']]) { // Qe4+ forks king and rook: it wins the rook too, and club's noise may pick it
+  const p = C.fromFen(fen), got = C.san(p, think(p, { ...LEVELS[lv], ms: 300 })); if (!want.split('|').includes(got)) fail(`${lv} bot played ${got}, expected ${want}`);
 }
 { // every level always answers with a legal move, and whole bot games end properly
   const ends = {};

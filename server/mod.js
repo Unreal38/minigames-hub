@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { DATA_DIR, profiles, sessions, tagOf, byTag, isAdmin, scheduleSave } from './store.js';
+import { DATA_DIR, profiles, sessions, tagOf, byTag, isAdmin, scheduleSave, addCoins } from './store.js';
 
 const FILE = path.join(DATA_DIR, 'reports.json');
 export const REASONS = ['chat', 'spam', 'cheat', 'grief', 'name', 'other'];
@@ -20,6 +20,9 @@ const KEEP_DONE = 90 * 24 * 3600_000;   // closed reports are kept this long, th
 const KEEP_OPEN = 180 * 24 * 3600_000;  // an open report nobody looked at goes after this
 const KEEP_LOG = 180 * 24 * 3600_000;   // the hosts' list of what they did
 const MAX_REPORTS = 2000, MAX_LOG = 500;
+// Kuba (2026-11-25): when a report leads to a ban, the reporter is thanked with a few coins. At most REWARD_WEEK
+// rewards a week, and one per banned player, so alt accounts reporting each other can't farm it.
+export const REWARD = 25, REWARD_WEEK = 3;
 
 let reports = [], log = [];
 // Bans of a device (the random id the page keeps in the browser) or an address (a salted hash of it; IPv6 by its /64),
@@ -99,8 +102,13 @@ const pub = x => x && { until: x.until || 0, why: x.why || '' };
 const pubT = x => x && { ...pub(x), tier: x.tier || 'acct' }; // for hosts: with the tier
 /** What the player is told about their own standing: { mute, ban, warn } (warn = the newest warning not yet read). */
 export function mine(p, token, c = null) {
-  const w = (p?.mod?.warns || []).filter(x => !x.seen).at(-1);
-  return { t: 'modme', mute: pub(muteOf(p)), ban: pub(banOf(p, token, c)), warn: w ? { id: w.id, why: w.why, at: w.at } : null };
+  const w = (p?.mod?.warns || []).filter(x => !x.seen).at(-1), th = p?.mod?.thanks?.[0];
+  return { t: 'modme', mute: pub(muteOf(p)), ban: pub(banOf(p, token, c)), warn: w ? { id: w.id, why: w.why, at: w.at } : null, thanks: th ? { id: th.id, name: th.name, coins: th.coins } : null };
+}
+export function thanked(p, id) {
+  const l = p?.mod?.thanks; if (!l?.some(x => x.id === id)) return false;
+  p.mod.thanks = l.filter(x => x.id !== id); if (!p.mod.thanks.length) delete p.mod.thanks;
+  scheduleSave(); return true;
 }
 export function seen(p, id) {
   const w = p?.mod?.warns?.find(x => x.id === id); if (!w || w.seen) return false;
@@ -225,10 +233,21 @@ export function act(admin, m) {
   }
   const closed = [];
   if (k !== 'unmute' && k !== 'unban') for (const r of reports) if (!r.done && r.tpid === p.pid) { r.done = { at: now, k, by, why, until, ...(k === 'ban' ? { tier: p.mod.ban.tier } : {}) }; closed.push(r); }
+  // a ban that came from reports: every reporter is thanked (and rewarded, within the limits), now or on their next visit
+  const rewarded = [];
+  if (k === 'ban') for (const rpid of new Set(closed.map(r => r.rpid).filter(Boolean))) {
+    const rp = profiles.get(rpid); if (!rp || rp === p) continue;
+    rp.mod ||= {}; const rew = (rp.mod.rew ||= []).filter(x => now - x.at < 365 * 24 * 3600_000);
+    const coins = rew.some(x => x.tpid === p.pid) || rew.filter(x => now - x.at < 7 * 24 * 3600_000).length >= REWARD_WEEK ? 0 : REWARD;
+    if (coins) { rew.push({ at: now, tpid: p.pid }); addCoins(rpid, coins); }
+    rp.mod.rew = rew;
+    (rp.mod.thanks ||= []).push({ id: newId(), name: line(p.name, 16) || 'Guest', coins }); if (rp.mod.thanks.length > 5) rp.mod.thanks.shift();
+    rewarded.push(rpid);
+  }
   log.push({ at: now, k, by, tpid: p.pid, name: p.name, user: p.user || '', why, until, reports: closed.length, ...(k === 'ban' ? { tier: p.mod.ban.tier } : {}) });
   if (log.length > MAX_LOG) log.shift();
   save(); scheduleSave();
-  return { p, k, until, closed };
+  return { p, k, until, closed, rewarded };
 }
 
 // An account was deleted: reports about it go, its own reports keep only the name it had, its sanctions went with it.

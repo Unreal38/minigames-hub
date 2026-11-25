@@ -9,6 +9,7 @@ const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
 const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
+process.on('uncaughtException', e => fail(e.stack || e)); process.on('unhandledRejection', e => fail(e?.stack || e));
 const TA = 'a'.repeat(24), TB = 'b'.repeat(24);
 // Ana has coins and five Hot Pot wins (so the Pot Wizard title is earned); Bo has nothing.
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles: {
@@ -165,7 +166,11 @@ srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '
 const c = player(TA, 'Ana'); await c.connect(); await wait(300);
 if (c.me.cos.pet !== pets[0].id || c.me.cos.kp !== 2 || c.me.cos.nm !== NM || c.me.cos.ti !== WIZ || !c.me.owned.includes('sp:' + PARTY)) fail('restart lost the cosmetics');
 // card backgrounds: patterns and scenes are bought, the podium ones come with a place in the overall ranking, the pet ones with album species
-const PB = n => COS.pb.items.findIndex(x => x.n === n), cardFl = async () => { c.msgs.length = 0; c.send({ t: 'player', pt: c.me.pt }); await wait(200); return c.msgs.find(m => m.t === 'player').p.fl; };
+const PB = n => COS.pb.items.findIndex(x => x.n === n), cardFl = async () => { // wait for the answer: a fixed short wait crashed here when the server was slow to reply
+  c.msgs.length = 0; c.send({ t: 'player', pt: c.me.pt });
+  for (let k = 0; k < 500 && !c.msgs.some(m => m.t === 'player'); k++) await wait(10);
+  const m = c.msgs.find(m => m.t === 'player'); if (!m) fail('no answer about the profile card'); return m.p.fl;
+};
 if (c.me.bestPos !== 1 || c.me.petSp !== 2) fail(`best ranking place or album count not on the account: ${c.me.bestPos} ${c.me.petSp}`);
 c.send({ t: 'wear', k: 'pb', i: PB('Paw prints') }); await wait(200);
 if (!c.err(/not unlocked/) || (await cardFl()).pb) fail('wore a card background without buying it');

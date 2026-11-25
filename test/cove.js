@@ -113,25 +113,34 @@ for (const board of ['classic', 'quick']) {
 const PORT = 27080 + (Math.random() * 900 | 0);
 const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}`, COVE_FAST: 20 }, stdio: 'inherit' });
 const bail = msg => { srv.kill(); fail(msg); };
-await new Promise(r => setTimeout(r, 600));
-const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
-let room = null, state = null, me = null;
-const send = msg => ws.send(JSON.stringify(msg));
-ws.onopen = () => send({ t: 'hello', name: 'Ana', color: '#ff8fab' });
-ws.onmessage = e => { const msg = JSON.parse(e.data); if (msg.t === 'room') room = msg.room; if (msg.t === 'state') state = msg.s; if (msg.t === 'me' && msg.gain) me = msg; };
 const wait = ms => new Promise(r => setTimeout(r, ms));
-await wait(300);
+// Wait for the server's answer instead of a fixed time: a busy test machine (or Nagle's delay on the test's own
+// socket, ~40-200 ms) can hold a message back longer than a short sleep.
+const until = async (ok, ms = 5000) => { for (const end = Date.now() + ms; !ok() && Date.now() < end;) await wait(10); return ok(); };
+let ws = null; // the server may take a moment to start: try again until it answers
+for (let k = 0; k < 100 && !ws; k++) {
+  await wait(100);
+  const w = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
+  if (await new Promise(r => { w.onopen = () => r(true); w.onerror = () => r(false); })) ws = w;
+}
+if (!ws) bail('could not reach the server');
+let room = null, state = null, me = null, me0 = null;
+const send = msg => ws.send(JSON.stringify(msg));
+send({ t: 'hello', name: 'Ana', color: '#ff8fab' });
+ws.onmessage = e => { const msg = JSON.parse(e.data); if (msg.t === 'room') room = msg.room; if (msg.t === 'state') state = msg.s; if (msg.t === 'me') me0 = msg; if (msg.t === 'me' && msg.gain) me = msg; };
+await until(() => me0);
 send({ t: 'create', game: 'cove', opts: { board: 'quick', timer: 10, seats: 6 } });
-await wait(300);
+await until(() => room);
 if (room?.game !== 'cove' || room.opts.board !== 'quick' || room.opts.timer !== 10 || 'seats' in room.opts || room.max !== 2) bail('room options wrong');
-send({ t: 'opts', opts: { bots: 'sharp' } }); await wait(200);
+send({ t: 'opts', opts: { bots: 'sharp' } }); await until(() => room.opts.bots === 'sharp');
 if (room.opts.bots !== 'sharp' || room.opts.board !== 'quick') bail('option change lost');
-send({ t: 'start' }); await wait(300);
+send({ t: 'start' }); await until(() => state);
 if (state?.game !== 'cove' || state.stage !== 'setup' || state.seats.length !== 2 || !state.seats[1 - state.me].bot || state.boats[1 - state.me].length) bail('game did not start with the boats to arrange');
 const mine = randomFleet('quick');
-send({ t: 'act', a: { t: 'layout', boats: mine.map(b => [b.c, b.v]) } }); await wait(150);
-if (state.boats[state.me].some((b, i) => b.c !== mine[i].c || b.v !== mine[i].v)) bail('my layout was not kept');
-send({ t: 'act', a: { t: 'ready' } }); await wait(300);
+const kept = () => state.boats[state.me].every((b, i) => b.c === mine[i].c && b.v === mine[i].v);
+send({ t: 'act', a: { t: 'layout', boats: mine.map(b => [b.c, b.v]) } }); await until(kept);
+if (!kept()) bail('my layout was not kept');
+send({ t: 'act', a: { t: 'ready' } }); await until(() => state.stage !== 'setup');
 if (state.stage === 'setup') bail('game did not begin after Ready');
 let shots = 0;
 for (let i = 0; i < 6000 && state.ph === 'play'; i++) {
@@ -139,12 +148,12 @@ for (let i = 0; i < 6000 && state.ph === 'play'; i++) {
     const sea = state.sea[1 - state.me], free = sea.map((x, c) => (x === SEA ? c : -1)).filter(c => c >= 0);
     if (state.boats[1 - state.me].some((b, k) => b && !b.sunk)) bail('saw a boat that is not sunk');
     const mv = state.mv; send({ t: 'act', a: { t: 'fire', c: free[Math.random() * free.length | 0] } });
-    for (let k = 0; k < 40 && state.mv === mv && state.ph === 'play'; k++) await wait(10);
+    await until(() => state.mv !== mv || state.ph !== 'play', 400); // a shot sent during the lock is refused: try again
     if (state.mv > mv) shots++;
   } else await wait(15);
 }
 if (state.ph !== 'end') bail('game over the server did not finish');
-await wait(300);
+await until(() => me?.gain && room.paid);
 const won = state.win === state.me;
 if (!me?.gain || me.gain.coins !== (won ? 10 : 1)) bail('wrong coins paid at the end: ' + JSON.stringify(me?.gain));
 if (me.gain.ranked) bail('a game against a bot must not count for the rankings');

@@ -10,8 +10,8 @@ import { groundOf, R as ISLE, finish } from '../../isle3d.js';
 import { seasonLookNow, lookOf as seasonLook } from '../../season3d.js';
 import { buildTrack, locate, at, headingAt, angDiff, hazardAt, ROAD, SHOULDER, RAIL, KART_R, RAMP, RAMP_H, CUT_W, driftFlags } from './track.js';
 import { petModel } from '../farm/pets3d.js';
+import { createSmoother } from './smooth.js';
 
-const DELAY = 110; // ms behind the newest server update that other karts are drawn
 const SKIES = [['#6fbdf2', '#d6f1ff'], ['#f59ac0', '#ffe3c4'], ['#7fc8ff', '#e9f7ff']];
 const AV_K = .5;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -377,7 +377,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
   const fx = createFx(scene, { max: 1400 }), shake = shaker(), reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let T = null, trackKey = '', trackG = null, deco = null, hazards = null, skyM = null, cloudG = null, flyBirds = null;
   let karts = [], seatsKey = '', me = -1, mineK = null, stage = 'count', tGo = 0, watchI = 0;
-  const snaps = []; // [{ at, k }] newest last
+  const smooth = createSmoother(); // other karts: drawn a moment in the past on the server's clock (smooth.js)
   let boxesMesh = null, ribbonMesh = null, boxUp = [], boxPop = [];
   const objs = new Map(); const pGeo = peelGeo(), jGeo = jellyGeo(), objMat = toonMat(vmat());
   const shadowGeo = new THREE.CircleGeometry(1.25, 16).rotateX(-Math.PI / 2), shadowMat = new THREE.MeshBasicMaterial({ color: '#2a1422', transparent: true, opacity: .25, depthWrite: false });
@@ -431,8 +431,7 @@ export function createScene(canvas, { onFrame, step } = {}) {
   // a fresh update from the server
   function snap(S) {
     const now = performance.now();
-    snaps.push({ at: now, k: S.k });
-    while (snaps.length > 2 && now - snaps[1].at > DELAY + 400) snaps.shift();
+    smooth.push(S, now);
     stage = S.stage; tGo = now - S.t;
     if (T) {
       S.bx?.forEach((u, b) => { if (u && !boxUp[b]) boxPop[b] = 0; boxUp[b] = u; });
@@ -449,21 +448,8 @@ export function createScene(canvas, { onFrame, step } = {}) {
   }
 
   // where kart i is right now: your own from the physics, others from the stream a moment back
-  const cur = [];
-  function others(now) {
-    const t = now - DELAY;
-    let a = null, b = null;
-    for (let i = snaps.length - 1; i >= 0; i--) { if (snaps[i].at <= t) { a = snaps[i]; b = snaps[i + 1] || null; break; } }
-    if (!a) { a = snaps[0]; b = null; }
-    if (!a) return;
-    const u = b ? clamp((t - a.at) / (b.at - a.at || 1), 0, 1) : 0;
-    for (let i = 0; i < a.k.length; i++) {
-      const p = a.k[i], q = b?.k[i] || p, o = cur[i] ||= {};
-      const far = Math.hypot(q[0] - p[0], q[1] - p[1]) > 12; // a respawn: jump, don't glide
-      const w = far ? (u > .5 ? 1 : 0) : u;
-      o.x = p[0] + (q[0] - p[0]) * w; o.z = p[1] + (q[1] - p[1]) * w; o.y = p[2] + (q[2] - p[2]) * w; o.h = lerpA(p[3], q[3], w); o.v = p[4] + (q[4] - p[4]) * w; o.f = (w < .5 ? p : q)[5];
-    }
-  }
+  let cur = [];
+  function others(now) { cur = smooth.at(now); }
 
   function event(e) {
     const K = karts[e.s], p = K ? K.root.position : null;

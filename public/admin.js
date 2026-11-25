@@ -58,7 +58,7 @@ export function openReport(p, from = 'hub') {
 }
 
 // ---------- what the player is under: a ban screen, a warning, a note about a mute ----------
-let banEl = null, warnShown = '', muteShown = -1;
+let banEl = null, warnShown = '', muteShown = -1, thanksShown = '';
 export function onModMe(m) {
   if (m.ban) {
     const html = `<div class="banbox"><div class="banico" aria-hidden="true">⛔</div><h2>${L('You can’t play right now', 'Nie możesz teraz grać')}</h2>
@@ -79,6 +79,15 @@ export function onModMe(m) {
       <p>${L('Please keep the site friendly. Next time it can be a mute or a ban.', 'Prosimy, żeby było tu miło. Następnym razem może to być wyciszenie albo blokada.')}</p>
       <div class="row"><button type="button" class="btn" data-ok>${L('I understand', 'Rozumiem')}</button></div>`, false);
     w.el.querySelector('[data-ok]').addEventListener('click', () => { d.sfx.click(); w.close(); d.send({ t: 'mod', op: 'seen', id: m.warn.id }); });
+  }
+  if (m.thanks && thanksShown !== m.thanks.id) {
+    thanksShown = m.thanks.id;
+    const t = d.modal(`<h2>💛 ${L('Thank you!', 'Dziękujemy!')}</h2>
+      <p>${L(`You reported <b>${esc(m.thanks.name)}</b>, a host looked into it and they are now banned. Thanks for helping keep ${'Zatoka Gier'} a friendly place!`, `Zgłosiłeś(-aś) gracza <b>${esc(m.thanks.name)}</b>, gospodarz to sprawdził i ten gracz jest teraz zablokowany. Dzięki, że pomagasz dbać o to, żeby w Zatoce Gier było miło!`)}</p>
+      ${m.thanks.coins ? `<p class="thxcoins">+${m.thanks.coins} <i class="cn" aria-hidden="true"></i> ${L('a small thank-you', 'małe podziękowanie')}</p>` : ''}
+      <div class="row"><button type="button" class="btn" data-ok>${L('You’re welcome', 'Nie ma za co')}</button></div>`, false);
+    if (m.thanks.coins) d.sfx.join?.();
+    t.el.querySelector('[data-ok]').addEventListener('click', () => { d.sfx.click(); t.close(); d.send({ t: 'mod', op: 'thanked', id: m.thanks.id }); });
   }
   const mu = m.mute ? m.mute.until || 0 : -1;
   if (m.mute && muteShown !== mu && LSget('ct_mute_seen') !== String(mu)) {

@@ -53,6 +53,7 @@ import * as tys from './games/tys.js';
 import * as kal from './games/kal.js';
 import * as lantern from './games/lantern.js';
 import * as copy from './games/copy.js';
+import * as runway from './games/runway.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
@@ -77,7 +78,7 @@ const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tes
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, runway };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -410,7 +411,8 @@ function applySanction(r) {
     if (r.k === 'ban') { if (o.room) { leaveRoom(o); send(o, { t: 'room', room: null }); } plaza.leave(o); }
     tellStanding(o);
   }
-  if (r.k !== 'dismiss') {
+  for (const rpid of r.rewarded || []) { const rp = store.profiles.get(rpid); for (const o of clientsOf(rpid)) { send(o, { t: 'me', me: store.me(rp) }); tellStanding(o); } }
+  if (r.k !== 'dismiss' && r.k !== 'ban') { // (a ban's reporters got their thank-you above)
     const thanked = new Set();
     for (const x of r.closed) {
       if (!x.rpid || thanked.has(x.rpid)) continue; thanked.add(x.rpid);
@@ -422,6 +424,7 @@ function applySanction(r) {
 function modMsg(c, m) {
   const p = store.profileOf(c.token), op = String(m.op ?? '');
   if (op === 'seen') { modr.seen(p, String(m.id ?? '')); return tellStanding(c); }
+  if (op === 'thanked') { modr.thanked(p, String(m.id ?? '')); return tellStanding(c); }
   if (op === 'report') {
     const o = store.byTag(m.pt);
     if (!allow('rep:' + (p?.pid || c.token), 8, 3600_000) || !allow('repip:' + (c.sock?.ip || '?'), 30, 3600_000))
