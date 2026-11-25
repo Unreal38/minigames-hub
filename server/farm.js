@@ -228,6 +228,7 @@ function liveTurn(L, quit = null) { // both have chosen, time ran out, or someon
 }
 
 // ---------- neighbours: the world map, visiting, helping, gifts, mail ----------
+// HELPS: helps a day in total, over every farm (Kuba, 2026-11-25: it used to be 5 on each farm, about 450 coins a day for clicking)
 const HELPS = 5, HELP_CUT = 10 * 60_000, MAIL_MAX = 30;
 const byFid = id => [...farms].find(([, x]) => x.fid === id);
 // A player's farm tag, for the hub's friends list (null if they have not started a farm).
@@ -240,6 +241,7 @@ export function ladder(pid) {
   return { game: 'farm', total: rows.length, rows: rows.slice(0, 25).map(strip), mine: at >= 25 ? strip(rows[at], at) : null };
 }
 export const fidOf = pid => { const f = farms.get(pid); return f?.pets.length ? fid(f) : null; };
+const helpsLeft = f => Math.max(0, HELPS - Object.values(daily(f, 'help')).reduce((n, v) => n + (+v || 0), 0));
 const daily = (f, key) => { if (f.social?.day !== today()) f.social = { day: today(), help: {}, gift: {} }; return f.social[key] ||= {}; };
 // A heart for a friend's pet in the Plaza (server/plaza.js): one friendship point a day for each friend, for the one who gave it.
 export function plazaPat(pid, friendPid) {
@@ -471,7 +473,9 @@ export function handle(p, a, reply) {
     if (!gifted && it.pals && palsOf(f) < it.pals) return no(`That needs ${it.pals} friendship points. Help out and leave gifts to earn them.`);
     if (!fits(f, a.type, a.x, a.y, a.r)) return no('That spot is taken.');
     if (gifted) { if (!--f.stash[a.type]) delete f.stash[a.type]; } else pay(f.inv, it.cost);
-    f.items.push({ id: f.nid++, type: a.type, x: a.x, y: a.y, r: a.r, ...(a.type === 'garden' ? { at: Date.now() } : {}) });
+    // gf: placed for free from the stash (a friend's gift, a wheel or journal prize). Put away, it goes back to the
+    // stash; it never pays out its cost, or a gifted cherry tree would hand its 15 coins from the giver to the friend.
+    f.items.push({ id: f.nid++, type: a.type, x: a.x, y: a.y, r: a.r, ...(gifted ? { gf: 1 } : {}), ...(a.type === 'garden' ? { at: Date.now() } : {}) });
     return ok({ did: 'place' });
   }
   if (a.t === 'move') {
@@ -486,12 +490,14 @@ export function handle(p, a, reply) {
     if (it.fixed) return no('The farmhouse stays, but you can move it.');
     if (f.items[i].type === 'nest' && SLOTS.some(s => f[s])) return no('The Nest is in use right now.');
     if (f.items[i].type === 'gate' && parties(f).length) return no('Your pets are still out exploring.');
-    pay(f.inv, it.cost, 1); for (let n = 1; n < lvOf(f.items[i]); n++) pay(f.inv, UPGRADES[f.items[i].type].cost[n - 1], 1); // improvements come back too
-    if (it.wheel || it.jn) (f.stash ||= {})[f.items[i].type] = (f.stash[f.items[i].type] || 0) + 1; // a wheel prize is kept, never sold
-    if (f.items[i].type === 'lodge' && f.pets.some(q => q.lodge)) return no('Move the pets stored in the Lodge out first.');
+    if (f.items[i].type === 'lodge' && f.pets.some(q => q.lodge)) return no('Move the pets stored in the Lodge out first.'); // before anything is paid back: this check used to come after the refund, so tapping it again and again printed materials
+    const back = it.wheel || it.jn || f.items[i].gf; // a prize or a gift goes back to the stash, never sold
+    if (!back) pay(f.inv, it.cost, 1);
+    for (let n = 1; n < lvOf(f.items[i]); n++) pay(f.inv, UPGRADES[f.items[i].type].cost[n - 1], 1); // improvements come back too
+    if (back) (f.stash ||= {})[f.items[i].type] = (f.stash[f.items[i].type] || 0) + 1;
     f.items.splice(i, 1);
     if (f.train) f.train.ids = f.train.ids.slice(0, topLv(f, 'yard'));
-    return ok({ did: 'remove', got: Object.keys(it.cost).length ? costText(it.cost) : '' });
+    return ok({ did: 'remove', got: !back && Object.keys(it.cost).length ? costText(it.cost) : '' });
   }
   if (a.t === 'upgrade') { // improve one building by a level
     const item = f.items.find(i => i.id === a.id), cost = item && upCost(item); if (!item) return no('That is not on the farm any more.');
@@ -738,7 +744,7 @@ export function handle(p, a, reply) {
     const mine = daily(f, 'help'), gifts = daily(f, 'gift');
     const pals = new Set(friendPids(p.pid));
     const others = [...farms].filter(([, x]) => x !== f && x.pets.length).sort((a, b) => pals.has(b[0]) - pals.has(a[0]) || (b[1].seen || 0) - (a[1].seen || 0)).slice(0, 30)
-      .map(([pid, x]) => ({ ...look(pid, x), friend: pals.has(pid), helps: HELPS - (mine[fid(x)] || 0), gift: !gifts[fid(x)], pal: f.pals?.[fid(x)] || 0,
+      .map(([pid, x]) => ({ ...look(pid, x), friend: pals.has(pid), helps: helpsLeft(f), gift: !gifts[fid(x)], pal: f.pals?.[fid(x)] || 0,
         open: x.pets.some(q => q.open), egg: SLOTS.some(s => x[s] && nestView(x, s).stage !== 'cuddle') }));
     return reply({ t: 'farm', world: others, farm: view(f, p) });
   }
@@ -750,9 +756,9 @@ export function handle(p, a, reply) {
     saw(f, x.pets.filter(q => !away(x, q.id)).map(q => q.sp));
     const there = () => ({ ...look(pid, x), pets: x.pets.filter(q => !away(x, q.id)).map(q => ({ id: q.id, sp: q.sp, name: q.name, lv: q.lv, look: lookOf(q), col: q.col, pat: q.pat, el: q.el, cat: q.cat, open: !!q.open, lodge: !!q.lodge, can: tradable(x, q), rest: Math.max(0, (q.rest || 0) - Date.now()) })), nest: nestView(x), nests: SLOTS.map(q => nestView(x, q)).filter(Boolean), garden: gardenView(x), train: { ids: x.train?.ids || [] }, trips: parties(x).map(t => ({ left: Math.max(1, t.until - Date.now()) })).filter(t => t.left > 1),
       album: album(x),
-      helps: HELPS - (daily(f, 'help')[id] || 0), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
+      helps: helpsLeft(f), gift: !daily(f, 'gift')[id], dated: !!daily(f, 'date')[id], pal: f.pals?.[id] || 0, team: defenders(x).length });
     if (a.t === 'help') { // a little tidying: coins for the helper, and the owner's party comes home sooner
-      const h = daily(f, 'help'); if ((h[id] || 0) >= HELPS) return reply({ t: 'farm', err: 'You have helped here as much as you can today.', visit: there(), farm: view(f, p) });
+      const h = daily(f, 'help'); if (!helpsLeft(f)) return reply({ t: 'farm', err: 'You have used all 5 helps for today. Come back tomorrow.', visit: there(), farm: view(f, p) });
       h[id] = (h[id] || 0) + 1; f.inv.coins = (f.inv.coins || 0) + 3;
       const out = parties(x).find(t => t.until > Date.now()), egg = SLOTS.find(s => x[s] && nestView(x, s).stage !== 'ready');
       const plot = x.items.find(i => i.type === 'garden' && ripeIn(x, i) > 0);

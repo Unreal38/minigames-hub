@@ -680,6 +680,11 @@ if (!r.err) {
   r = await a.farmDo({ t: 'claim', id: dg.id }); if (r.err || r.farm.stash.fence !== 1) fail('claim decoration ' + r.err);
   const fw = r.farm.inv.wood; r = { err: 1 }; for (let y = 0; y < 12 && r.err; y++) for (let x = 0; x < 12 && r.err; x++) { r = await a.farmDo({ t: 'place', type: 'fence', x, y, r: 0 }); await wait(30); }
   if (r.err || r.farm.inv.wood !== fw || r.farm.stash.fence) fail('gifted decoration was not free ' + r.err);
+  // put away, a gift goes back to the stash: its cost was the giver's, so it is never paid out (that moved coins between players)
+  const gi = r.farm.items.filter(i => i.type === 'fence').pop(); r = await a.farmDo({ t: 'remove', id: gi.id });
+  if (r.err || r.farm.inv.wood !== fw || r.farm.stash.fence !== 1 || r.got) fail('a gifted decoration paid its cost back ' + JSON.stringify([r.err, r.farm.inv.wood, fw, r.farm.stash]));
+  r = { err: 1 }; for (let y = 0; y < 12 && r.err; y++) for (let x = 0; x < 12 && r.err; x++) { r = await a.farmDo({ t: 'place', type: 'fence', x, y, r: 0 }); await wait(30); }
+  if (r.err || r.farm.stash.fence) fail('gift placed again ' + r.err);
 }
 r = await a.farmDo({ t: 'cook', what: 'pie', test: { give: { sunberry: 10, berries: 30 } } });
 if (!r.err) fail('level 2 recipe in a level 1 kitchen');
@@ -813,7 +818,9 @@ if (!r.err) fail('freed a pet that does not exist');
   r = await c.farmDo({ t: 'defend', pets: [p1] }); if (!r.err) fail('a stored pet defended');
   if (r.farm.def.includes(p1) || r.farm.def.includes(p2)) fail('stored pets in the defence team');
   r = await c.farmDo({ t: 'petopen', id: p1 }); if (!r.err) fail('a stored pet opened for playdates');
-  r = await c.farmDo({ t: 'remove', id: lodge }); if (!r.err) fail('a lodge with pets inside was put away');
+  { const inv0 = JSON.stringify(c.farm.inv); // refused twice: nothing may come back (the refund used to be paid before this check)
+    for (let n = 0; n < 2; n++) { r = await c.farmDo({ t: 'remove', id: lodge }); if (!r.err) fail('a lodge with pets inside was put away'); }
+    if (JSON.stringify(r.farm.inv) !== inv0) fail('a refused Lodge removal paid materials back ' + JSON.stringify(r.farm.inv) + ' vs ' + inv0); }
   // collections: make, rename, sort into, reorder, delete
   r = await c.farmDo({ t: 'shelf', op: 'new', name: 'Bunnies' }); const s1 = r.id; if (r.err || r.farm.shelves[0]?.name !== 'Bunnies') fail('new collection ' + r.err);
   r = await c.farmDo({ t: 'shelf', op: 'new', name: '<i>Best</i> of all the pets' }); const s2 = r.id; if (r.farm.shelves[1].name !== 'iBest/i of all t') fail('collection name not cleaned: ' + r.farm.shelves[1].name);

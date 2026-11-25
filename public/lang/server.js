@@ -33,6 +33,7 @@ const TEXT = {
   'Too many wrong codes. Wait a few minutes and try again.': 'Za dużo błędnych kodów. Odczekaj kilka minut i spróbuj ponownie.',
   'No table with that code. Check the letters?': 'Nie ma stołu z takim kodem. Sprawdź litery.',
   'Every seat is taken. You will get the next free one.': 'Wszystkie miejsca są zajęte. Dostaniesz następne wolne.',
+  'You are already playing at this table on another screen. This one watches.': 'Grasz już przy tym stole na innym ekranie. Ten tylko ogląda.',
   'This account was deleted, as asked. You are a guest now.': 'To konto zostało usunięte na twoją prośbę. Grasz teraz jako gość.',
   'The password of your account was changed, so this device was logged out. Log in again with the new password.': 'Hasło do twojego konta zostało zmienione, więc to urządzenie zostało wylogowane. Zaloguj się ponownie nowym hasłem.',
   // accounts

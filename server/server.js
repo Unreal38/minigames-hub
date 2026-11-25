@@ -265,13 +265,16 @@ function scoreGame(r) {
   r.paid = G.seats.map(seat => (seat.human && seat.id ? null : 'b'));
   // A match with a bot seat (bot: true, a seat the game filled with a bot) never counts toward the rankings. A person
   // who left mid-game and was swapped for a bot does not count as a bot seat, so the others' match still counts.
-  const ranked = !G.seats.some(seat => seat.bot);
+  // A run alone at a table (one seat, no bots) is always first of one, so it never counts toward the rankings either.
+  const solo = G.seats.length <= 1, ranked = !solo && !G.seats.some(seat => seat.bot);
   // With bots at the table, XP and placement coins are paid as a share: weaker bots, fewer of them and a quicker match pay less (botpay.js).
   const ms = G.bornAt ? Date.now() - G.bornAt : Infinity, level = r.opts?.bots ?? G.opts?.bots;
+  const paidPids = new Set(); // an account is paid once a match, whatever happens to its seats
   G.seats.forEach((seat, i) => {
     if (!seat.human || !seat.id) return;
     const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
-    const p = store.profileOf(c.token); if (!p) return;
+    const p = store.profileOf(c.token); if (!p || paidPids.has(p.pid)) return;
+    paidPids.add(p.pid);
     const e = r.board[p.pid] ||= { pid: p.pid, name: c.name, color: c.color, av: c.av, games: 0, wins: 0, pts: 0 };
     Object.assign(e, { name: c.name, color: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p) });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
@@ -279,7 +282,7 @@ function scoreGame(r) {
     const pay = FULL_BOT_PAY ? 1 : botPay(G.seats, i, { level, max: mod.meta.maxPlayers, ms });
     const gain = store.credit(p, r.game, { ...res[i], of, ranked, pay });
     r.paid[i] = gain.coins;
-    send(c, { t: 'me', me: store.me(p), gain });
+    send(c, { t: 'me', me: store.me(p), gain: solo ? { ...gain, solo: true } : gain });
   });
   for (const pid of store.notePodium()) for (const c of clientsOf(pid)) send(c, { t: 'me', me: store.me(store.profileOf(c.token)) }); // a new best place in the overall ranking can unlock a card background
   // The winner's win effect plays on every screen at the table (the first human winner with one on).
@@ -581,11 +584,19 @@ function startGame(r) {
   r.again = new Set();
   // Everyone already at the table keeps their seat; watchers who asked for a seat fill what's left (bots get the rest).
   const id = t => clients.get(t)?.id, max = GAMES[r.game].meta.maxPlayers;
-  const humans = [...seatedOf(r), ...r.players.filter(t => r.spect.has(id(t)) && r.sit.has(id(t)))].slice(0, max).map(t => clients.get(t));
+  // One seat per account: a second screen signed in to the same account watches instead, or one person could play
+  // against themselves and be paid for every seat (two browsers at one Tic-Tac-Toe table paid both the win and the loss).
+  const acct = new Set(), twice = [];
+  const humans = [...seatedOf(r), ...r.players.filter(t => r.spect.has(id(t)) && r.sit.has(id(t)))].map(t => clients.get(t)).filter(c => {
+    const k = store.profileOf(c.token)?.pid || c.token;
+    if (acct.has(k)) { twice.push(c); return false; }
+    acct.add(k); return true;
+  }).slice(0, max);
   const inGame = new Set(humans.map(c => c.id));
   for (const t of r.players) {
     if (inGame.has(id(t))) { r.spect.delete(id(t)); r.sit.delete(id(t)); } else r.spect.add(id(t));
   }
+  for (const c of twice) send(c, { t: 'err', msg: 'You are already playing at this table on another screen. This one watches.' });
   // Games that bet coins (Marble Rush) start every round from each player's account balance; bots keep their own.
   let prev = r.G || r.last || null;
   if (GAMES[r.game].meta.bank) {
