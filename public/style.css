@@ -1215,19 +1215,7 @@ body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background:
 .btn.tall { align-self: stretch; }
 
 /* top bar: brand, coins, account, day/night */
-.top .tdock { margin-left: auto; }
-/* the dock: coins, language and day/night as one pill split by thin lines; the account card stands alone after it */
-.tdock { display: flex; align-items: center; height: 54px; padding: 0 3px; border-radius: 999px; background: var(--plum2); border: 3px solid var(--line); }
-body.sky:not(.in-game) .tdock { background: var(--pan); border-color: var(--tx); box-shadow: 0 4px 0 var(--ink); }
-.tdock > :is(.me, .langbtn, .themebtn) { height: 44px; min-height: 0; margin: 0; border: 0 !important; background: none !important; box-shadow: none !important; border-radius: 999px; color: inherit; }
-body.sky:not(.in-game) .tdock > :is(.me, .langbtn, .themebtn) { color: var(--tx); }
-.tdock > :is(.me, .langbtn, .themebtn):hover { background: color-mix(in srgb, var(--tx, var(--ink)) 9%, transparent) !important; }
-.tdock > .langbtn:hover { transform: none; } .tdock > .themebtn:hover { transform: scale(1.08); } .tdock > .themebtn:active, .tdock > .langbtn:active { transform: scale(.92); }
-body.night .tdock > .themebtn:hover { transform: rotate(360deg) scale(1.08); }
-.tdock .me.coinbtn { padding: 0 14px 0 13px; font-size: 18px; gap: 3px; }
-.tdock .langbtn { padding: 0 6px; } .tdock .themebtn { width: 48px; }
-.tdiv { flex: none; width: 2px; height: 26px; border-radius: 1px; background: color-mix(in srgb, var(--tx, var(--cream)) 22%, transparent); }
-.top .me.acctbtn { margin-left: 2px; }
+.top .me.coinbtn { margin-left: auto; }
 .me.acctbtn { position: relative; gap: 9px; min-height: 58px; padding: 4px 18px 4px 5px; --pbr: 999px; }
 .me.acctbtn .aname { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me.acctbtn .acaret { font-size: 13px; opacity: .7; transition: transform .2s; } .me.acctbtn[aria-expanded=true] .acaret { transform: rotate(180deg); }
@@ -1402,8 +1390,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 @keyframes sheetup { from { transform: translateY(40%); opacity: 0; } }
 @media (max-width: 600px) { .top .me.acctbtn .lvslot { display: none; } .top .me.acctbtn { padding: 3px; min-height: 0; } .top .me.coinbtn { margin-right: 0; } .top { gap: 8px; } .brand { font-size: 22px; } }
 @media (min-width: 380px) and (max-width: 600px) { .top .me.acctbtn.haspb { padding-right: 14px; } }
-@media (max-width: 600px) { .tdiv { display: none; } .tdock { height: 50px; padding: 0 2px; } .tdock .me.coinbtn { padding: 0 10px; font-size: inherit; } }
-@media (max-width: 420px) { .top .brand { font-size: 19px; gap: 6px; } .top .brand .sitelogo { width: 34px; height: 34px; } .top .tdock .me.coinbtn { padding: 0 8px; } }
+@media (max-width: 420px) { .top .brand { font-size: 19px; gap: 6px; } .top .brand .sitelogo { width: 34px; height: 34px; } .top .me.coinbtn { padding: 0 9px; } }
 @media (prefers-reduced-motion: reduce) { .acctmenu { animation: none; } }
 
 /* ---------- card backgrounds (cosmetics.js, kind pb): the picture behind a player's name on their card ----------

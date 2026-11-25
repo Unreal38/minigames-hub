@@ -1903,15 +1903,12 @@ function switchTheme(btn) {
 
 // The account button in the top bar: avatar in its frame on the player's card background, name, level, menu caret.
 const acctBtn = () => { const fl = flairOf(st.me); return `<button type="button" class="me acctbtn${cardBgCls(fl)}" data-act="acct" aria-haspopup="menu" aria-expanded="${document.querySelector('.acctwrap') ? 'true' : 'false'}" aria-label="${L('Your account', 'Twoje konto')}">${cardBg(fl)}${avatarHtml(st.color, st.av, 46, frameCls(fl))}<span class="aname">${st.name ? nameHtml(st.name, fl) : L('Pick a name', 'Wybierz imię')}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>`; };
-// Top bar: brand on the left; on the right one dock (coins, language, day/night) and the account card.
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
-  <div class="tdock">
-  <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}" aria-label="${L('Coins: open the shop', 'Monety: otwórz sklep')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span></button><i class="tdiv" aria-hidden="true"></i>
-  <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button><i class="tdiv" aria-hidden="true"></i>
-  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}" title="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}">${isNight() ? '☀️' : '🌙'}</button>
-  </div>
+  <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}" aria-label="${L('Coins: open the shop', 'Monety: otwórz sklep')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span></button>
   ${acctBtn()}
+  <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button>
+  <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}" title="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
