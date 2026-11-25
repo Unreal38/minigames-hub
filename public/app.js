@@ -218,13 +218,12 @@ const GAMES = {
   golf: {
     name: 'Mini Golf Party', load: () => import('./games/golf/client.js'), start: 'Tee off',
     mins: [10, 15],
-    host: { holes: 6, seats: 4, bets: 'on', bots: 'chill', course: 'random' }, solo: { holes: 6, seats: 4, bets: 'on', bots: 'chill', course: 'random' },
+    host: { holes: 6, seats: 4, bots: 'chill', course: 'random' }, solo: { holes: 6, seats: 4, bots: 'chill', course: 'random' },
     openSeat: 'A bot putts here if nobody joins',
     settings: pill => `<div class="opt"><b>Holes</b><div class="pills">${pill('holes', 3, 'Quick 3')}${pill('holes', 6, '6')}${pill('holes', 9, '9')}</div></div>
       <div class="opt"><b>Course</b><div class="pills">${pill('course', 'random', 'Random')}${pill('course', 'classic', 'Classic')}</div></div>
-      <div class="opt"><b>Coin bets on each hole</b><div class="pills">${pill('bets', 'on', 'On')}${pill('bets', 'off', 'Off')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
-    howto: `Everyone plays the same hole and takes turns, one putt each, with their own ball. Drag back and let go to putt. Fewest strokes over the round wins, and before each hole you can bet coins on who will take it.`,
+    howto: `Everyone plays the same hole and takes turns, one putt each, with their own ball. Drag back and let go to putt. Fewest strokes over the round wins.`,
     rules: `<ol>
       <li>Everyone plays the same hole and <b>takes turns</b>, one putt each, until every ball is in. You each have your own ball, and balls pass through each other. Whoever took the last hole tees off first.</li>
       <li>You have <b>25 seconds</b> for a putt. If the time runs out, the game makes a clumsy putt for you.</li>
@@ -234,7 +233,6 @@ const GAMES = {
       <li>Hit it <b>too hard</b> and the ball skips right over the hole, so slow down near the cup.</li>
       <li><b>Random</b> courses are built fresh every round, so no two are the same. <b>Classic</b> plays the nine hand-made holes.</li>
       <li>The hole goes to the <b>fewest strokes</b>. A tie goes to whoever holed out first.</li>
-      <li>With bets on, before each hole you can <b>bet coins</b> on who will take it, yourself included. A right call pays your stake times the number of players. It is optional, and it uses your real coins, the ones that buy avatar items.</li>
       <li>After the last hole the <b>fewest strokes in total</b> wins the round. Empty seats are played by bots.</li>
     </ol>`,
   },
@@ -1963,7 +1961,7 @@ const HUB_GAMES = [
   ['bj', 'bjpic', bjArt, 'cards', '1–6 players', 'Everyone against the dealer. Bet pretend chips, get closer to 21 than the dealer and finish with the biggest stack.'],
   ['ludo', 'ludopic', ludoArt, 'board', '1–4 players', 'Race your pawns round a chunky 3D board and bump your friends back to their yard.'],
   ['stack', 'stackpic', stackArt, 'action party', '1–6 players', 'Take turns dropping swinging blocks on one shared, wobbly tower. Don\'t be the one who knocks it down.'],
-  ['golf', 'golfpic', golfArt, 'action', '1–6 players', 'Take turns putting the same blocky 3D hole, and bet coins on who takes each hole.'],
+  ['golf', 'golfpic', golfArt, 'action', '1–6 players', 'Take turns putting the same blocky 3D hole. Fewest strokes takes the round.'],
   ['dice', 'dicepic', diceArt, 'cards party', '1–6 players', 'Roll in secret under your cup, bid on everyone\'s dice and bluff. Call “Liar!” when you smell one.'],
   ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
   ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],

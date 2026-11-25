@@ -1,34 +1,29 @@
 // Mini Golf Party: everyone plays the same hole and takes turns, one putt each, each with their own ball (balls
 // pass through each other). The server works out every shot with the shared physics and sends the path; clients replay it.
-// Before each hole players may bet account coins on who will win it (meta.bank fills in the balances).
-// Bets are a pot, never paid by the house: everyone's stakes go in, and the people who backed the winner share the
-// whole pot in proportion to their stakes. No coins are ever made, so a table that agrees on a winner and lets them
-// win (the 2026-11-25 coin farm: everyone 50 on one player) only gets its own stakes back. Bet profits per account
-// per day are capped too (store.js BET_DAY_CAP), so two accounts can't funnel coins to each other through the pot.
+// No coin bets (taken out 2026-11-25: tables farmed them by all backing one player and letting them win). The 'bet'
+// stage is now just a short look at the new hole before the first putt.
 import { HOLES, buildHole, simulate, spotScore, MAX_STROKES, CAP_SCORE } from '../../public/games/golf/course.js';
 import { randomAv } from '../../public/avatar.js';
 import { genSpec } from './golfgen.js';
 import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'golf', name: 'Mini Golf Party', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, bank: true, joinAt: 'hole' };
+export const meta = { id: 'golf', name: 'Mini Golf Party', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, joinAt: 'hole' };
 
 const BOT_NAMES = ['Bogey', 'Divot', 'Putters', 'Mulligan', 'Chip', 'Birdie', 'Caddy', 'Sandy'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
-export const STAKES = [10, 25, 50];
 const NOISE = { chill: [.25, .34], sharp: [.16, .22] }; // how much a bot's aim (radians) and power wobble
-const BET_MS = 15_000, LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS = 500, DONE_MS = 6500, SETTLE_MS = 900;
+const LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS = 500, DONE_MS = 6500, SETTLE_MS = 900;
 
 export function cleanOpts(o = {}) {
   return {
     holes: [3, 6, 9].includes(+o.holes) ? +o.holes : 6,
     seats: cleanSeats(meta, o.seats),
-    bets: o.bets === 'off' ? 'off' : 'on',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     course: o.course === 'classic' ? 'classic' : 'random',
   };
 }
 
-export function create(players, optsIn = {}, prev = null) {
+export function create(players, optsIn = {}) {
   const opts = cleanOpts(optsIn);
   const used = new Set(players.map(p => p.name));
   const names = BOT_NAMES.filter(n => !used.has(n)).sort(() => Math.random() - .5);
@@ -42,13 +37,11 @@ export function create(players, optsIn = {}, prev = null) {
   if (opts.holes < order.length) order = order.sort(() => Math.random() - .5).slice(0, opts.holes).sort((a, b) => a - b);
   // a random course is made fresh for every round
   if (opts.course === 'random') order = order.map(() => null); // each one is made when the round gets to it
-  const wallet = {};
-  for (const s of seats) wallet[s.wk] = s.human ? Math.max(0, prev?.wallet?.[s.wk] | 0) : 0;
   const G = {
-    game: 'golf', ph: 'play', stage: 'bet', gid: Math.random().toString(36).slice(2, 8), seats, opts, wallet,
+    game: 'golf', ph: 'play', stage: 'bet', gid: Math.random().toString(36).slice(2, 8), seats, opts,
     order, mirror: order.map(() => Math.random() < .5), hi: -1, H: null, holeAt: 0, stageEnd: 0,
-    balls: [], cards: seats.map(() => []), wins: seats.map(() => 0), shots: seats.map(() => 0), net: seats.map(() => 0),
-    bets: seats.map(() => null), holeRes: null, shotN: 0, queue: [],
+    balls: [], cards: seats.map(() => []), wins: seats.map(() => 0), shots: seats.map(() => 0),
+    holeRes: null, shotN: 0, queue: [],
     turn: -1, turnFrom: 0, turnEnd: 0, first: -1, slow: seats.map(() => false),
     ev: [], evN: 0, res: null, win: -1, endAt: 0,
   };
@@ -57,8 +50,6 @@ export function create(players, optsIn = {}, prev = null) {
 }
 
 function pushEv(G, e) { e.n = ++G.evN; G.ev.push(e); if (G.ev.length > 20) G.ev.shift(); }
-const present = (G, i) => G.seats[i].human && !G.seats[i].bot;
-const betting = G => G.opts.bets === 'on' && G.seats.length > 1;
 
 function nextHole(G, now) {
   G.hi++;
@@ -67,20 +58,12 @@ function nextHole(G, now) {
   G.H = buildHole(G.order[G.hi], G.mirror[G.hi]);
   G.H.key = G.gid + ':' + G.hi;
   G.balls = G.seats.map(() => ({ x: G.H.tee.x, z: G.H.tee.z, strokes: 0, sunk: 0, out: false, busy: 0, shot: null, think: 0 }));
-  // someone who cannot afford the smallest stake has nothing to decide, so betting does not wait for them
-  G.bets = G.seats.map(x => (x.human && (G.wallet[x.wk] || 0) < STAKES[0] ? 'skip' : null));
   G.holeRes = null;
-  G.stage = 'bet'; G.stageEnd = now + (betting(G) ? BET_MS : LOOK_MS);
+  G.stage = 'bet'; G.stageEnd = now + LOOK_MS;
   pushEv(G, { t: 'hole', i: G.hi });
 }
 
 function startPlay(G, now) {
-  for (let s = 0; s < G.seats.length; s++) { // stakes leave the wallet when betting closes
-    const b = G.bets[s]; if (!b || b === 'skip') { G.bets[s] = null; continue; }
-    const k = G.seats[s].wk;
-    b.amt = Math.min(b.amt, G.wallet[k]); G.wallet[k] -= b.amt;
-    if (b.amt <= 0) G.bets[s] = null;
-  }
   G.stage = 'play'; G.holeAt = now;
   // whoever took the last hole tees off first; otherwise the start moves round the table
   const n = G.seats.length, w = G.first >= 0 ? G.first : G.hi % n;
@@ -195,25 +178,9 @@ function endHole(G, now) {
   scores.forEach((sc, i) => G.cards[i].push(sc));
   if (w >= 0) G.wins[w]++;
   G.first = w; G.turn = -1;
-  const pay = potPay(G.bets, w);
-  pay.forEach((p, s) => { if (!p) return; G.wallet[G.seats[s].wk] += p.won; G.net[s] += p.net; });
-  G.holeRes = { win: w, scores, pay, par: G.H.par };
+  G.holeRes = { win: w, scores, par: G.H.par };
   G.stage = 'done'; G.stageEnd = now + DONE_MS;
   pushEv(G, { t: 'holeEnd', i: G.hi, w });
-}
-
-// Splits one hole's pot. Everyone's stakes go in; whoever backed the winner shares all of it by stake (rounded
-// down, the odd coins to the biggest stakes, earliest seat first). Nobody won the hole, or nobody backed the winner:
-// every stake comes back. The coins paid out always add up to exactly the coins put in.
-export function potPay(bets, w) {
-  const live = bets.map(b => (b && b !== 'skip' && b.amt > 0 ? b : null));
-  const pot = live.reduce((a, b) => a + (b ? b.amt : 0), 0);
-  const right = live.reduce((a, b) => a + (b && b.on === w ? b.amt : 0), 0);
-  const won = live.map(b => (!b ? 0 : w < 0 || !right ? b.amt : b.on === w ? Math.floor(pot * b.amt / right) : 0));
-  let left = pot - won.reduce((a, b) => a + b, 0);
-  const odd = live.map((b, i) => i).filter(i => live[i] && (w < 0 || !right || live[i].on === w)).sort((a, b) => live[b].amt - live[a].amt || a - b);
-  for (let k = 0; left > 0 && odd.length; k++, left--) won[odd[k % odd.length]]++;
-  return live.map((b, i) => (b ? { on: b.on, amt: b.amt, won: won[i], net: won[i] - b.amt } : null));
 }
 
 const totalOf = (G, i) => G.cards[i].reduce((a, b) => a + b, 0);
@@ -232,24 +199,12 @@ export function act(G, s, a) {
     if (!Number.isFinite(ang) || !Number.isFinite(pow) || pow < 0 || pow > 1) return false;
     return shoot(G, s, ang, pow, now);
   }
-  if (a.t === 'bet') {
-    if (G.stage !== 'bet' || !betting(G)) return false;
-    const on = +a.on, coins = G.wallet[G.seats[s].wk];
-    if (!Number.isInteger(on) || !G.seats[on]) return false;
-    const amt = STAKES.includes(+a.amt) ? +a.amt : 0;
-    if (amt <= 0 || amt > coins) return false;
-    G.bets[s] = { on, amt };
-    return true;
-  }
-  if (a.t === 'skip') { if (G.stage !== 'bet') return false; G.bets[s] = 'skip'; return true; }
   return false;
 }
 
 export function tick(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
   if (G.stage === 'bet') {
-    // betting closes early once everyone who is here has bet or passed
-    if (betting(G) && G.seats.some((_, i) => present(G, i)) && G.seats.every((_, i) => !present(G, i) || G.bets[i]) && G.stageEnd - now > 1200) G.stageEnd = now + 1200;
     if (now < G.stageEnd) return false;
     startPlay(G, now);
     return true;
@@ -298,7 +253,6 @@ function seatQueued(G) {
     if (i < 0) break;
     const p = G.queue.shift();
     Object.assign(G.seats[i], { id: p.id, wk: 'h:' + p.id, name: p.name, color: p.color, av: p.av, bot: false, human: true });
-    G.wallet[G.seats[i].wk] ??= 0; G.net[i] = 0;
     pushEv(G, { t: 'sit', s: i });
   }
 }
@@ -309,15 +263,14 @@ export function view(G, s) {
     game: 'golf', ph: G.ph, stage: G.stage, gid: G.gid, me: s, hole: G.hi + 1, holes: G.order.length,
     hdef: { key: G.H.key, i: G.order[G.hi], mirror: G.mirror[G.hi] }, par: G.H.par, name: G.H.name,
     pars: G.order.filter(i => i != null).map(parOf), left: Math.max(0, G.stageEnd - now), clock: G.stage === 'play' ? now - G.holeAt : 0,
-    bets: betting(G), pot: G.bets.reduce((a, b) => a + (b && b !== 'skip' ? b.amt : 0), 0), max: MAX_STROKES, cap: CAP_SCORE,
+    max: MAX_STROKES, cap: CAP_SCORE,
     turn: G.stage === 'play' ? G.turn : -1, tin: G.stage === 'play' ? Math.max(0, G.turnFrom - now) : 0,
     seats: G.seats.map((x, i) => {
       const b = G.balls[i], sh = b.shot;
       return {
         name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id,
         x: b.x, z: b.z, strokes: b.strokes, sunk: !!b.sunk, out: b.out, wait: Math.max(0, b.busy - now),
-        card: G.cards[i], total: totalOf(G, i), wins: G.wins[i], coins: x.human ? G.wallet[x.wk] : null, net: G.net[i],
-        bet: G.bets[i] === 'skip' ? 'skip' : G.bets[i],
+        card: G.cards[i], total: totalOf(G, i), wins: G.wins[i],
         // the path is only sent while the shot is still worth replaying
         shot: sh ? { n: sh.n, ms: sh.ms, ago: now - sh.at, sunk: sh.sunk, water: sh.water, x0: sh.x0, z0: sh.z0, ang: sh.ang, pow: sh.pow, ...(now - sh.at < sh.ms + 1500 ? { path: sh.path, fx: sh.fx } : {}) } : null,
       };
@@ -327,13 +280,13 @@ export function view(G, s) {
 }
 
 // Per-seat outcome: 10 points for every player you beat, 5 for every hole you won, 10 more for winning the round.
-// Coins won or lost on bets go straight to the account (coinNet). Never hit a ball: no reward.
+// Never hit a ball: no reward.
 export function results(G) {
   if (G.ph !== 'end' || !G.res) return null;
   const n = G.seats.length;
   return G.seats.map((_, i) => {
     const place = G.res.order.indexOf(i);
-    return { pts: (n - 1 - place) * 10 + G.wins[i] * 5 + (place === 0 ? 10 : 0), win: place === 0, place: place + 1, idle: !G.shots[i], coinNet: G.net[i] };
+    return { pts: (n - 1 - place) * 10 + G.wins[i] * 5 + (place === 0 ? 10 : 0), win: place === 0, place: place + 1, idle: !G.shots[i] };
   });
 }
 

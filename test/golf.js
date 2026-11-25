@@ -42,24 +42,18 @@ for (let i = 0; i < HOLES.length; i++) for (const mirror of [false, true]) {
   if (JSON.stringify(a) !== JSON.stringify(b)) fail('physics is not repeatable');
 }
 
-function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
+function play(opts) {
   const realNow = Date.now;
   let now = realNow();
   Date.now = () => now;
   try {
-    const G = golf.create(players, opts, { wallet });
+    const G = golf.create(players, opts);
     const o = golf.cleanOpts(opts);
     if (G.seats.length !== Math.max(2, o.seats) || G.order.length !== o.holes) fail('wrong seats or holes');
     if (golf.act(G, 0, { t: 'shot', ang: 0, pow: .5 })) fail('putted before the hole opened');
-    let betOn = -1, start = 100;
     for (let i = 0; i < 400000 && G.ph === 'play'; i++) {
       now += 150;
-      if (G.stage === 'bet' && o.bets === 'on' && !G.bets[0]) {
-        if (golf.act(G, 1, { t: 'bet', on: 0, amt: 10 })) fail('bet with too few coins');
-        if (golf.act(G, 0, { t: 'bet', on: 9, amt: 10 }) || golf.act(G, 0, { t: 'bet', on: 1, amt: 7 })) fail('bad bet accepted');
-        if (!golf.act(G, 0, { t: 'bet', on: 1, amt: 25 })) fail('bet refused');
-        golf.act(G, 1, { t: 'skip' }); betOn = 1; start = G.wallet['h:a'];
-      }
+      if (G.stage === 'bet' && (golf.act(G, 0, { t: 'bet', on: 0, amt: 10 }) || golf.act(G, 0, { t: 'skip' }))) fail('golf has no bets any more');
       if (G.stage === 'play') {
         const b = G.balls[0];
         if (G.turn !== 0 && golf.act(G, 0, { t: 'shot', ang: 0, pow: .5 })) fail('putted out of turn');
@@ -78,10 +72,6 @@ function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
         const R = G.holeRes;
         if (R.scores.some(s => s < 1 || s > CAP_SCORE)) fail('bad hole scores');
         if (R.win >= 0 && R.scores[R.win] !== Math.min(...R.scores)) fail('hole winner did not have the fewest strokes');
-        if (betOn >= 0) {
-          const want = start; // only a's 25 is in the pot, so whatever happens it comes back: bets never make coins
-          if (G.wallet['h:a'] !== want) fail(`bet settled wrong: ${G.wallet['h:a']} vs ${want}`);
-        }
       }
       JSON.stringify(golf.view(G, 0));
     }
@@ -90,42 +80,23 @@ function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
     if (r.filter(x => x.win).length !== 1 || !r[G.win].win) fail('results disagree');
     if (G.res.totals[G.win] !== Math.min(...G.res.totals)) fail('winner does not have the fewest strokes');
     if (G.cards.some(c => c.length !== o.holes)) fail('scorecards incomplete');
-    if (r[0].coinNet !== G.wallet['h:a'] - 100 || r[1].coinNet !== 0 || !r[1].idle || r[0].idle) fail('coin results wrong');
+    if (r.some(x => 'coinNet' in x) || !r[1].idle || r[0].idle) fail('results wrong');
+    if ('coins' in golf.view(G, 0).seats[0] || golf.meta.bank) fail('golf still has a coin wallet');
     return G;
   } finally { Date.now = realNow; }
 }
-const g1 = play({ holes: 3, seats: 4, bets: 'on', course: 'classic' });
-const g3 = play({ holes: 3, seats: 4, bets: 'on' });
+const g1 = play({ holes: 3, seats: 4, course: 'classic' });
+const g3 = play({ holes: 3, seats: 4 });
 if (g3.opts.course !== 'random' || g3.order.some(o => typeof o !== 'object')) fail('default course is not random');
-console.log('3 holes with bets: winner', g1.seats[g1.win].name, 'totals', g1.res.totals.join(' '));
-// the pot: everyone's stakes in, backers of the winner share it, nothing made or lost in total
-{
-  const sum = ps => ps.reduce((a, p) => a + (p ? p.won : 0), 0);
-  const farm = golf.potPay([{ on: 0, amt: 50 }, { on: 0, amt: 50 }, { on: 0, amt: 50 }], 0); // the 2026-11-25 farm
-  if (farm.some(p => p.net !== 0)) fail('everyone backing the winner still made coins');
-  const mix = golf.potPay([{ on: 0, amt: 50 }, { on: 1, amt: 25 }, { on: 0, amt: 10 }, 'skip', null], 0);
-  if (sum(mix) !== 85 || mix[0].won !== 71 || mix[2].won !== 14 || mix[1].won !== 0 || mix[3] || mix[4]) fail('pot split wrong: ' + JSON.stringify(mix));
-  const odd = golf.potPay([{ on: 2, amt: 10 }, { on: 2, amt: 10 }, { on: 2, amt: 10 }, { on: 1, amt: 25 }], 2);
-  if (sum(odd) !== 55) fail('odd coins lost');
-  const none = golf.potPay([{ on: 1, amt: 50 }, { on: 2, amt: 10 }], 0);
-  if (none[0].net || none[1].net) fail('nobody backed the winner: stakes should come back');
-  const nowin = golf.potPay([{ on: 1, amt: 50 }, { on: 1, amt: 10 }], -1);
-  if (nowin[0].net || nowin[1].net) fail('nobody won: stakes should come back');
-  for (let t = 0; t < 2000; t++) {
-    const bets = Array.from({ length: 2 + (Math.random() * 5 | 0) }, () => (Math.random() < .2 ? null : { on: Math.random() * 6 | 0, amt: [10, 25, 50][Math.random() * 3 | 0] }));
-    const pot = bets.reduce((a, b) => a + (b ? b.amt : 0), 0);
-    if (sum(golf.potPay(bets, (Math.random() * 7 | 0) - 1)) !== pot) fail('pot not zero-sum: ' + JSON.stringify(bets));
-  }
-}
-const g2 = play({ holes: 9, seats: 6, bets: 'off', bots: 'sharp', course: 'classic' });
-if (g2.wallet['h:a'] !== 100) fail('coins moved with bets off');
+console.log('3 holes: winner', g1.seats[g1.win].name, 'totals', g1.res.totals.join(' '));
+const g2 = play({ holes: 9, seats: 6, bots: 'sharp', course: 'classic' });
 console.log('9 holes, sharp bots: winner', g2.seats[g2.win].name, 'totals', g2.res.totals.join(' '), 'par', g2.res.par);
 // bots finish holes in a sensible number of strokes
 if (g2.res.totals.slice(2).some(t => t > g2.res.par + 22)) fail('sharp bots are hopeless: ' + g2.res.totals);
 
 // a watcher takes over a bot at the next hole and keeps its score
 {
-  const G = golf.create(players, { holes: 3, seats: 4 }, { wallet: {} });
+  const G = golf.create(players, { holes: 3, seats: 4 });
   golf.seatWatcher(G, { id: 'c', name: 'Cy', color: '#9aa8ff', av: [2, 2, 2, 2] }, true);
   if (G.seats.some(s => s.id === 'c')) fail('watcher seated mid-hole');
   let now = Date.now();
@@ -145,7 +116,7 @@ ws.onopen = () => send({ t: 'hello', name: 'Ana', color: '#ff8fab' });
 ws.onmessage = e => { const m = JSON.parse(e.data); if (m.t === 'room') room = m.room; if (m.t === 'state') state = m.s; };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await wait(300);
-send({ t: 'create', game: 'golf', opts: { holes: 3, seats: 6, bets: 'on', timer: 10 } });
+send({ t: 'create', game: 'golf', opts: { holes: 3, seats: 6, timer: 10 } });
 await wait(300);
 if (room?.game !== 'golf' || room.opts.holes !== 3 || room.opts.seats !== 6 || 'timer' in room.opts) bail('room options wrong');
 send({ t: 'opts', opts: { seats: 2 } }); await wait(200);
@@ -153,7 +124,6 @@ if (room.opts.seats !== 2 || room.opts.holes !== 3) bail('option change lost');
 send({ t: 'start' });
 for (let i = 0; i < 40 && state?.game !== 'golf'; i++) await wait(250); // a random hole takes a moment to make
 if (state?.game !== 'golf' || state.seats.length !== 2 || state.stage !== 'bet' || state.holes !== 3) bail('game did not start');
-send({ t: 'act', a: { t: 'skip' } });
 for (let i = 0; i < 20 && state.stage !== 'play'; i++) await wait(300);
 if (state.stage !== 'play') bail('hole never opened');
 for (let i = 0; i < 80 && state.seats[state.me].strokes < 1; i++) { await wait(300); send({ t: 'act', a: { t: 'shot', ang: 0, pow: .5 } }); }

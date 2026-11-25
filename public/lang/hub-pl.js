@@ -13,7 +13,7 @@ export const OPT_PL = {
   'Pawns each': 'Pionki na gracza', 'Classic 4': 'Klasyczne 4', 'Quick 2': 'Szybkie 2', 'Head start': 'Na dobry początek', 'One pawn out': 'Jeden pionek na planszy',
   Towers: 'Wieże', Blocks: 'Klocki', 'All the same': 'Jednakowe', 'Mixed shapes': 'Różne kształty', 'Drop timer': 'Czas na zrzut',
   'Start from': 'Start od', Finish: 'Kończysz', 'On a double': 'Podwójnym polem', 'Any dart': 'Dowolną lotką', Legs: 'Legi', 'One leg': 'Jeden leg', 'Best of 3': 'Do 2 wygranych', 'Time per dart': 'Czas na lotkę',
-  Holes: 'Dołki', 'Quick 3': 'Szybkie 3', Course: 'Pole', Random: 'Losowe', 'Coin bets on each hole': 'Zakłady o monety na każdym dołku',
+  Holes: 'Dołki', 'Quick 3': 'Szybkie 3', Course: 'Pole', Random: 'Losowe',
   'A lost call costs': 'Przegrane sprawdzenie kosztuje', 'A die': 'Kość', 'A life': 'Życie', 'Lives (life mode)': 'Życia (tryb z życiami)', 'Dice each': 'Kości na gracza', 'Classic 5': 'Klasyczne 5',
   'Ones are wild': 'Jedynki to jokery', 'Spot on calls': 'Okrzyk „Co do joty!”',
   'Quick 10 rounds': 'Szybka: 10 rund', '20 rounds': '20 rund', 'Long 30': 'Długa: 30', 'Napping pets': 'Drzemki zwierzaków',
@@ -164,8 +164,8 @@ export const GAMES_PL = {
   },
   golf: {
     name: 'Imprezowy minigolf', start: 'Pierwsze uderzenie', openSeat: 'Jeśli nikt nie dołączy, gra tu bot',
-    pitch: 'Na zmianę uderzajcie na tym samym klockowym dołku 3D i obstawiajcie monetami, kto go wygra.',
-    howto: `Wszyscy grają ten sam dołek i uderzają po kolei, po jednym uderzeniu, każdy swoją piłką. Odciągnij i puść, żeby uderzyć. Wygrywa najmniej uderzeń w całej rundzie, a przed każdym dołkiem możesz postawić monety na to, kto go wygra.`,
+    pitch: 'Na zmianę uderzajcie na tym samym klockowym dołku 3D. Rundę wygrywa najmniej uderzeń.',
+    howto: `Wszyscy grają ten sam dołek i uderzają po kolei, po jednym uderzeniu, każdy swoją piłką. Odciągnij i puść, żeby uderzyć. Wygrywa najmniej uderzeń w całej rundzie.`,
     rules: `<ol>
       <li>Wszyscy grają ten sam dołek i <b>uderzają po kolei</b>, po jednym uderzeniu, aż wszystkie piłki wpadną. Każdy ma swoją piłkę, a piłki przenikają przez siebie. Zaczyna ten, kto wygrał poprzedni dołek.</li>
       <li>Masz <b>25 sekund</b> na uderzenie. Gdy czas minie, gra wykona za ciebie niezdarne uderzenie.</li>
@@ -175,7 +175,6 @@ export const GAMES_PL = {
       <li>Uderz <b>za mocno</b>, a piłka przeskoczy nad dołkiem, więc przy dołku zwolnij.</li>
       <li><b>Losowe</b> pola powstają od nowa w każdej rundzie, więc nie ma dwóch takich samych. <b>Klasyczne</b> to dziewięć ręcznie zrobionych dołków.</li>
       <li>Dołek wygrywa <b>najmniej uderzeń</b>. Przy remisie ten, kto trafił pierwszy.</li>
-      <li>Przy włączonych zakładach przed każdym dołkiem możesz <b>postawić monety</b> na to, kto go wygra, także na siebie. Trafiony typ wypłaca stawkę razy liczba graczy. To nieobowiązkowe i gra się o prawdziwe monety, te od rzeczy dla awatara.</li>
       <li>Po ostatnim dołku rundę wygrywa <b>najmniejsza łączna liczba uderzeń</b>. Wolne miejsca zajmują boty.</li>
     </ol>`,
   },
