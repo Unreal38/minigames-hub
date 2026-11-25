@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -664,6 +664,31 @@ const GAMES = {
       <li>You have <b>20 seconds</b> a shot (table settings). Run out and a random shot is taken for you.</li>
       <li>The first to <b>sink the whole rival fleet</b> wins.</li>
       <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place.</li>
+    </ol>`,
+  },
+  reef: {
+    name: 'Word Reef', load: () => import('./games/reef/client.js'), start: 'Hand out the tiles',
+    mins: [20, 40],
+    host: { seats: 2, lang: PL ? 'pl' : 'en', board: 'small', bag: 'short', bots: 'normal', timer: 90 }, solo: { seats: 2, lang: PL ? 'pl' : 'en', board: 'small', bag: 'short', bots: 'normal', timer: 0 },
+    openSeat: 'A bot plays these tiles if nobody joins',
+    settings: pill => `<div class="opt"><b>Words in</b><div class="pills">${pill('lang', 'pl', 'Polski')}${pill('lang', 'en', 'English')}</div></div>
+      <div class="opt"><b>Island</b><div class="pills">${pill('board', 'small', 'Small 13×13')}${pill('board', 'big', 'Big 15×15')}</div></div>
+      <div class="opt"><b>Tile bag</b><div class="pills">${pill('bag', 'short', 'Short 64')}${pill('bag', 'full', 'Full 100')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'easy', 'Easy')}${pill('bots', 'normal', 'Normal')}${pill('bots', 'hard', 'Hard')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 60, '60s')}${pill('timer', 90, '90s')}${pill('timer', 120, '120s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Lay letter tiles on the island to make words that join the ones already there, like a crossword. Bonus squares, a full tray and pet nests add points. Nobody checks the words when you play them: the others may challenge, so bluff at your own risk.`,
+    rules: `<ol>
+      <li><b>2 to 4 players</b>, each with a tray of <b>7 letter tiles</b> from a shared bag. Empty seats are played by bots. The host picks Polish or English words.</li>
+      <li>On your turn, lay one or more tiles in <b>one row or one column</b>, with no gaps, so they make a word together with the letters between them. Tap a tile and then a square, or drag it. The <b>first word</b> covers the <b>star</b> in the middle; after that every play has to <b>join</b> the letters already down.</li>
+      <li>Every new word your tiles make, across and down, scores the <b>points on its letters</b>. The page shows what a play scores before you press Play.</li>
+      <li>Bonus squares count only when you cover them: <b>pearl</b> doubles a letter, <b>starfish</b> triples it, a <b>wave</b> doubles the whole word, a <b>whirlpool</b> triples it, and the <b>star</b> in the middle doubles the first word.</li>
+      <li>Using <b>all 7 tiles</b> in one turn adds <b>+40</b>. Covering one of the four <b>pet nests</b> adds <b>+10</b>, and a Pet Farm pet comes to sit by it.</li>
+      <li>The two <b>wild tiles</b> can be any letter (you pick it) and score 0.</li>
+      <li>Words are <b>not checked</b> when you play. For a few seconds everyone else can press <b>Challenge</b>. If any word of the play is not in the dictionary, the tiles go back to the player and the turn scores nothing. If every word is real, the player gets <b>+10</b> for the trouble. Press <b>Looks fine</b> to move on sooner.</li>
+      <li>Instead of playing you can <b>swap</b> tiles with the bag or <b>pass</b>. You have 90 seconds a turn (table settings); run out and you pass.</li>
+      <li>The game ends when the bag is empty and someone uses their <b>last tile</b>, or when nobody scores for <b>two whole rounds</b>. Points on the tiles still in your tray are taken off your score.</li>
+      <li>The Polish words come from the SJP.PL word game dictionary, the English ones from the ENABLE list.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   domino: {
@@ -1861,6 +1886,7 @@ const HUB_GAMES = [
   ['makao', 'makaopic', makaoArt, 'cards', '1–6 players', 'The Polish classic with a normal deck: twos and threes to draw, fours to wait, Jacks demand, Aces change the suit, kings fight. Don\'t forget “Makao!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
+  ['reef', 'reefpic', reefArt, 'board', '1–4 players', 'Our own crossword tile game on an island board. Make words from your letters, cover the bonus squares, and challenge words you think are made up.'],
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board party', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
