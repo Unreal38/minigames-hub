@@ -1105,6 +1105,7 @@ function onMsg(m) {
   } else if (m.t === 'player') {
     openPlayer(m.p);
   } else if (m.t === 'me') {
+    if (st.me?.user !== m.me.user && st.view === 'hub') send({ t: 'plaza', a: { k: 'peek' } }); // logged in or out: the plaza marker is per account
     st.skyWas = st.me?.user === m.me.user ? st.me.sky : null; st.me = m.me; st.meAt = Date.now(); setMyFx(flairOf(m.me).wn | 0);
     // Logged in: the look saved with the account is the only truth. Wear it (and keep it in this browser) before
     // anything else, the language reload below included, so an old guest look here can never be sent back over it.
@@ -1154,7 +1155,7 @@ function onMsg(m) {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
   } else if (m.t === 'plaza') {
-    if (m.k === 'peek') { m.at = Date.now(); st.plazaPeek = m; paintPlazaBtn(); } else st.plaza?.msg(m);
+    if (m.k === 'peek') { m.at = Date.now(); st.plazaPeek = m; paintToday(); } // the button, its marker and the Games tab dot else st.plaza?.msg(m);
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
   } else if (m.t === 'pop') {
@@ -1321,10 +1322,12 @@ function closePlaza() { if (!st.plaza) return; st.plaza.destroy(); st.plaza = nu
 function plazaBtnHtml() {
   const n = st.stats?.plaza | 0, pk = st.plazaPeek, faces = (pk?.faces || []).slice(0, 4);
   const evTime = pk?.next ? new Date(pk.at + pk.next.in).toLocaleTimeString(PL ? 'pl-PL' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-  return `<span class="plzb-ico" aria-hidden="true">${pk?.theme === 'meadow' ? '⛲' : '🎄'}</span><span class="plzb-tx"><b>${L('Plaza', 'Plac')}</b><small>${pk?.ev ? L('🎆 Fireworks on now', '🎆 Trwają fajerwerki') + (n ? ` · ${n}` : '') : pk?.next && n < 1 ? L(`🎆 Fireworks at ${evTime}`, `🎆 Fajerwerki o ${evTime}`) : n ? L(`${n} ${n === 1 ? 'person is' : 'people are'} there now`, `teraz na placu: ${n}`) + (pk?.next ? ` · 🎆 ${evTime}` : '') : L('Walk around and meet people', 'Pospaceruj i poznaj ludzi')}</small></span>`
+  const todo = !pk?.ev && plazaTodo(); // something of yours waiting there today (the "!" marker is the button's todo class)
+  return `<span class="plzb-ico" aria-hidden="true">${pk?.theme === 'meadow' ? '⛲' : '🎄'}</span><span class="plzb-tx"><b>${L('Plaza', 'Plac')}</b><small>${pk?.ev ? L('🎆 Fireworks on now', '🎆 Trwają fajerwerki') + (n ? ` · ${n}` : '') : todo ? todo + (n ? ` · ${n}` : '') : pk?.next && n < 1 ? L(`🎆 Fireworks at ${evTime}`, `🎆 Fajerwerki o ${evTime}`) : n ? L(`${n} ${n === 1 ? 'person is' : 'people are'} there now`, `teraz na placu: ${n}`) + (pk?.next ? ` · 🎆 ${evTime}` : '') : L('Walk around and meet people', 'Pospaceruj i poznaj ludzi')}</small></span>`
     + (faces.length ? `<span class="plzb-faces" aria-hidden="true">${faces.map(f => avatarHtml(f.c, f.av, 30, f.f ? 'fr' : '')).join('')}</span>` : '');
 }
-function paintPlazaBtn() { const el = document.getElementById('plaza-btn'); if (el) el.innerHTML = plazaBtnHtml(); }
+// Patched (morph), so the faces and the marker never blink when the count or the day's list changes.
+function paintPlazaBtn() { const el = document.getElementById('plaza-btn'); if (!el) return; morph(el, plazaBtnHtml()); el.classList.toggle('todo', !!plazaTodo()); }
 
 // Hay Hunch: the solo puzzle, also with no table.
 let hayLoading = null;
@@ -1375,8 +1378,9 @@ function closeMj() { if (!st.mj) return; st.mj.destroy(); st.mj = null; gameCss(
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
 // The whole tile is the button (a compact two-column grid since the 2026-11-25 hub re-plan); the old button word stays as its tooltip.
 // A tile with something waiting for you (free spin) gets the "ready" class: a green ring and a "!" badge.
+// A tile you have not done yet today gets the "todo" class (todayLeft below): the same "!" badge, without the ring.
 const todayTile = (cls, pic, name, sub, act, btn, quiet, mins) => `<button type="button" class="ttile ${cls}" data-act="${act}" title="${esc(btn)}">
-  <span class="tpic" aria-hidden="true">${pic}</span>
+  <span class="tpic" aria-hidden="true">${pic}</span>${/\b(todo|ready)\b/.test(cls) ? `<span class="tmark">${L('Not done yet today', 'Jeszcze nie dziś')}</span>` : ''}
   <span class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span>${timeTag(mins, 'ttime')}</span>
 </button>`;
 // One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
@@ -1384,7 +1388,39 @@ const todayTile = (cls, pic, name, sub, act, btn, quiet, mins) => `<button type=
 // Pet Farm is not here since 2026-11-25: it is the "Visit your isle" button in the hero, with its news in a bubble (isleKit).
 const MP_MINS = [1, 3]; // Mystery Pet: a few guesses
 const WORD_NAME = L('Word in a Bottle', 'Słowo w butelce'), WORD_MINS = [2, 5], WORD_LANG = PL ? 'pl' : 'en'; // the hub tile shows the puzzle in the site's language
+// What is left to do today (Kuba, 2026-11-25: markers on the hub for the daily things not done yet). Accounts only,
+// because every daily thing needs one. The puzzles until solved or given up, the wheel until spun, the solo games until
+// the first coins of the day, and the plaza (plazaTodo). Everything turns over at Warsaw's midnight with the server.
+function todayLeft() {
+  const me = st.me; if (!me?.user) return {};
+  const d = st.dailyInfo, wi = st.wordInfo, ws = wi?.L?.[WORD_LANG], w = st.wheelInfo;
+  const toMid = me.next ? me.next - (Date.now() - (st.meAt || Date.now())) : 0, fresh = me.next && toMid <= 0;
+  const wLeft = w ? w.next - (Date.now() - (w.at || Date.now())) : 0, t = {};
+  if (d && !d.guest && !d.done) t.daily = 1;
+  if (ws && !wi.guest && !ws.done) t.word = 1;
+  if (w && !w.guest && !(w.spun && wLeft > 0)) t.wheel = 1;
+  for (const k of ['hay', 'pop', 'mj']) if (fresh || !(me[k]?.paid > 0)) t[k] = 1;
+  if (plazaTodo()) t.plaza = 1;
+  return t;
+}
+// The plaza's own list (server/plaza.js todoOf): a first visit today, the present under the tree, your ornament.
+// A fireworks show on right now counts too, for everyone. Returns the line for the button, or ''.
+function plazaTodo() {
+  const pk = st.plazaPeek, t = pk?.todo || {};
+  if (pk?.ev) return L('🎆 Fireworks on now', '🎆 Trwają fajerwerki');
+  if (t.gift) return L('🎁 A present waits under the tree', '🎁 Pod choinką czeka prezent');
+  if (t.orn) return L('🎄 Hang your ornament on the tree', '🎄 Powieś bombkę na choince');
+  if (t.in) return L('👋 Not visited today', '👋 Dziś jeszcze cię nie było');
+  return '';
+}
+// The count next to "Today" (and on the phone's Games tab): how many tiles still wait. Guests see nothing.
+function todayCount() {
+  if (!st.me?.user || !st.dailyInfo) return '';
+  const n = Object.keys(todayLeft()).filter(k => k !== 'plaza').length;
+  return n ? L(`${n} to do`, `${n} do zrobienia`) : L('✓ All done', '✓ Wszystko');
+}
 function todayHtml() {
+  const left = todayLeft(), todo = k => left[k] ? ' todo' : '';
   const d = st.dailyInfo, me = st.me, fire = d ? ` · 🔥 ${d.streak}` : '';
   const needAcct = L('Needs an account', 'Wymaga konta');
   const mp = !d ? L('A new pet hides here every day', 'Codziennie kryje się tu nowy zwierzak') : d.guest ? needAcct : d.done ? `<i class="ok">✓ ${L(`solved in ${d.guesses.length}`, `odgadnięte w ${d.guesses.length}`)}</i>${fire}`
@@ -1406,12 +1442,12 @@ function todayHtml() {
   const wordText = !wi ? L('A new word washes up every day', 'Codziennie morze przynosi nowe słowo') : wi.guest ? needAcct
     : ws.done ? (ws.won ? `<i class="ok">✓ ${L(`solved in ${ws.rows.length} of ${wi.tries}`, `rozwiązane: ${ws.rows.length} z ${wi.tries}`)}</i>${wfire}` : L('Not this time. New word tomorrow', 'Nie tym razem. Jutro nowe słowo'))
     : ws.rows.length ? `${L(`${ws.rows.length} of ${wi.tries} tries used`, `wykorzystane próby: ${ws.rows.length} z ${wi.tries}`)}${wfire}` : `${L('New word today', 'Dziś nowe słowo')}${wfire}`;
-  return todayTile('t-mp' + (d?.done ? ' done' : ''), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done, MP_MINS)
-    + todayTile('t-word' + (ws?.done ? ' done' : ''), WORD_ICON, `${WORD_NAME}${wi ? ` <small>#${wi.no}</small>` : ''}`, wordText, 'word', ws?.done ? L('Result', 'Wynik') : ws?.rows?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), ws?.done, WORD_MINS)
+  return todayTile('t-mp' + (d?.done ? ' done' : '') + todo('daily'), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done, MP_MINS)
+    + todayTile('t-word' + (ws?.done ? ' done' : '') + todo('word'), WORD_ICON, `${WORD_NAME}${wi ? ` <small>#${wi.no}</small>` : ''}`, wordText, 'word', ws?.done ? L('Result', 'Wynik') : ws?.rows?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), ws?.done, WORD_MINS)
     + todayTile('t-wheel' + (w && !w.guest && !(w.spun && wLeft > 0) ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun && wLeft > 0 ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun && wLeft > 0)
-    + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
-    + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
-    + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins);
+    + todayTile('t-hay' + todo('hay'), HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
+    + todayTile('t-pop' + todo('pop'), POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
+    + todayTile('t-mj' + todo('mj'), MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins);
 }
 // The season card above Today: which season is on, when it ends and how far along it is, with the way to that season's shop drop.
 // The date is the server's (Warsaw) day when we have it, so it turns over with every other daily thing.
@@ -1456,9 +1492,21 @@ function paintSkyWx() {
   if (want && !document.querySelector('.wxfall')) { const f = document.createElement('div'); f.className = 'wxfall'; f.setAttribute('aria-hidden', 'true'); b.prepend(f); }
   for (const c of WX_CLS) b.classList.toggle(c, c === want);
 }
-function paintToday() { paintIsleKit(); const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } paintWeather(); }
+function paintToday() {
+  paintIsleKit(); const el = document.getElementById('today-list'); if (el) morph(el, todayHtml()); // patched, so the 30 s tick never blinks a tile
+  const tc = document.getElementById('today-count'), tcs = tc && todayCount(); if (tc && tc.textContent !== tcs) { tc.textContent = tcs; tc.classList.toggle('alldone', tcs.startsWith('✓')); }
+  const dot = document.getElementById('tabs-todo'); if (dot) dot.hidden = !Object.keys(todayLeft()).length;
+  paintPlazaBtn(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } paintWeather(); }
 paintSkyWx();
-setInterval(() => { if (st.view !== 'hub') return paintSkyWx(); if (st.farmBrief || st.wheelInfo?.spun || st.me?.next) paintToday(); else paintWeather(); }, 30_000); // keeps the countdowns honest (and turns the weather over on time)
+setInterval(() => { if (st.view !== 'hub') return paintSkyWx(); newDayAsk(); if (st.farmBrief || st.wheelInfo?.spun || st.me?.next) paintToday(); else paintWeather(); }, 30_000); // keeps the countdowns honest (and turns the weather over on time)
+// Past midnight the markers come back: ask the server for the new day's puzzles, wheel and plaza once (the coin caps
+// follow me.next on their own). Asked a minute late, so the server's own day has surely turned.
+let askedDay = 0;
+function newDayAsk() {
+  const me = st.me; if (!me?.next || !st.meAt) return;
+  const mid = st.meAt + me.next; if (Date.now() < mid + 60_000 || askedDay === mid) return;
+  askedDay = mid; send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); send({ t: 'plaza', a: { k: 'peek' } });
+}
 function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
@@ -1979,7 +2027,7 @@ function renderHub() {
             <input id="code" class="field code-in" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" required>
             <button class="btn m">${L('Join', 'Dołącz')}</button>
           </form>
-          <button type="button" class="plazabtn" id="plaza-btn" data-act="plaza">${plazaBtnHtml()}</button>
+          <button type="button" class="plazabtn${plazaTodo() ? ' todo' : ''}" id="plaza-btn" data-act="plaza">${plazaBtnHtml()}</button>
         </div>
         <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
       </div>
@@ -2016,7 +2064,7 @@ function renderHub() {
       <section id="season" aria-label="${L('Season', 'Sezon')}">${seasonHtml()}</section>
       <section id="weather" aria-label="${L('Weather', 'Pogoda')}" aria-live="polite">${weatherHtml()}</section>
       <section id="today">
-        <div class="sidehead"><h2>${L('Today', 'Dziś')}</h2></div>
+        <div class="sidehead"><h2>${L('Today', 'Dziś')}</h2><span class="tcount tdcount${todayCount().startsWith('✓') ? ' alldone' : ''}" id="today-count">${todayCount()}</span></div>
         <div class="today" id="today-list">${todayHtml()}</div>
       </section>
       <section id="rankings">
@@ -2029,13 +2077,13 @@ function renderHub() {
     </aside>
   </main>
   <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
-  <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'))}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
+  <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'), `<i class="tdot" id="tabs-todo"${Object.keys(todayLeft()).length ? '' : ' hidden'}></i>`)}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
   renderTables(); sortGames(); filterGames();
   document.body.classList.add('sky');
   mountSkyHero();
   send({ t: 'rankings', game: st.rkTab });
   send({ t: 'hubchat' }); hubScrollEnd();
-  send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' });
+  send({ t: 'daily' }); send({ t: 'word' }); send({ t: 'wheel' }); send({ t: 'plaza', a: { k: 'peek' } }); // the plaza's peek brings its marker
   if (st.me?.user) send({ t: 'pets' }); // also brings the farm's news for the Today column
   if (!st.name && !st.creatorOpen) openProfile(true); // (the hub is drawn again when the 3D pictures load: one welcome window is enough)
 }

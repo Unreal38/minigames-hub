@@ -8,7 +8,7 @@ export const SIZES = [10, 12, 14, 16, 18, 20, 22, 24];
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 },
   { wood: 320, stone: 260, fiber: 140, shells: 20 }, { wood: 440, stone: 360, fiber: 190, coal: 30 }, { wood: 600, stone: 480, fiber: 250, coal: 50, crystal: 3 }];
 export const LAND_HOUSE = { 7: 5 };
-export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', coins: 'Coins' };
+export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', pack: 'Trail Packs', coins: 'Coins' };
 // What each thing in the top bar is: where it comes from, and what it is for.
 export const MAT_INFO = {
   wood:     ['Expeditions, most of all Mossy Woods.', 'Most buildings and decorations.'],
@@ -16,7 +16,7 @@ export const MAT_INFO = {
   fiber:    ['Expeditions to Mossy Woods and Tidepool Cove.', 'Huts, the Nest, soft decorations and Honey Cakes.'],
   shells:   ['Expeditions to Tidepool Cove (farmhouse level 2).', 'Improving buildings and fancy decorations.'],
   coal:     ['Expeditions to Ember Hills (farmhouse level 3).', 'Higher building levels and fancy decorations.'],
-  crystal:  ['Rare. Expeditions to Pebble Ridge (farmhouse level 2) and Thunder Meadow (level 4). Longer trips with more pets find more.', 'The Nest, top building levels and the fanciest decorations.'],
+  crystal:  ['Rare. Expeditions to Pebble Ridge (farmhouse level 2) and Thunder Meadow (level 4). Longer trips with more pets find more.', 'The Nest, top building levels, the fanciest decorations, and balloon fuel for far expeditions.'],
   berries:  ['Garden Plots grow them every hour. Tap "Pick berries".', 'Cooking treats in the Kitchen. Spare ones can be swapped at the Workshop.'],
   sunberry: ['Garden Plots of level 2 or 3 grow them with each harvest.', 'The best Kitchen recipes: Sunberry Pie and Rest Tonic.'],
   cookie:   ['Cooked in the Kitchen from 4 berries.', 'Tap a pet and feed it one for 30 experience.'],
@@ -24,6 +24,7 @@ export const MAT_INFO = {
   juice:    ['Cooked in the Kitchen from 6 berries.', 'Drink one in a practice or arena battle to heal 40%, once a battle.'],
   pie:      ['Cooked in a level 2 Kitchen.', 'Tap a pet and feed it one for 220 experience.'],
   tonic:    ['Cooked in a level 3 Kitchen.', 'Give it to a resting pet so it can go to the Nest again at once.'],
+  pack:     ['Packed in the Kitchen from 8 berries, 10 fiber and 4 coal.', 'Food for the long way: every far expedition takes a few.'],
   coins:    ['Battles, helping neighbours, and the other games on the site.', 'Trees and bushes here, and the avatar shop on the main page. Coins stay with you: they cannot be traded or gifted.'],
 };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
@@ -36,6 +37,7 @@ export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
   hut:      { name: 'Pet Hut', kind: 'b', w: 2, h: 2, max: 3, cost: { wood: 30, fiber: 10 }, desc: 'A snug place for four more pets to sleep.' },
   lodge:    { name: 'Pet Lodge', kind: 'b', w: 3, h: 2, max: 1, house: 4, cost: { wood: 120, stone: 80, fiber: 60, shells: 15 }, desc: 'A big cosy lodge where 60 more pets nap indoors, sorted into collections of your own. They can still go anywhere and do anything.' },
+  museum:   { name: 'Pet Museum', kind: 'b', w: 3, h: 3, max: 1, house: 6, cost: { wood: 200, stone: 200, fiber: 80, shells: 20 }, desc: 'A grand hall that shows off your Pet Album. Its five medallions fill up as you find pets of each element.' },
   gate:     { name: 'Expedition Gate', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 25, stone: 15 }, desc: 'Pets set off by balloon from here and come back with materials, and sometimes a new friend.' },
   garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil. Berries ripen here every hour.' },
   kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats for your pets.' },
@@ -88,6 +90,15 @@ export const ITEMS = {
   coinfount: { name: 'Coin Fountain', kind: 'd', w: 2, h: 2, wheel: true, max: 1, cost: {}, desc: 'Somebody has thrown in a lot of wishes. Won on the Lucky Wheel.' },
   horseshoe: { name: 'Horseshoe Gate', kind: 'd', w: 1, h: 1, walk: true, wheel: true, max: 1, cost: {}, desc: 'Walk under it for good luck. Won on the Lucky Wheel.' },
   miniwheel: { name: 'Mini Lucky Wheel', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'A small wheel that never stops on a bad day. Won on the Lucky Wheel.' },
+  // The Farm Journal set (jn: the chapter that gives it, see journal.js). Never bought or crafted; each waits under Edit farm.
+  jsign:   { name: 'Welcome Sign', kind: 'd', w: 1, h: .5, fine: true, jn: 1, max: 1, cost: {}, desc: 'Says hello to every visitor. A Farm Journal reward.' },
+  jboard:  { name: 'Notice Board', kind: 'd', w: 1, h: .5, fine: true, jn: 2, max: 1, cost: {}, desc: 'Notes, lists and a drawing of a pet. A Farm Journal reward.' },
+  jpost:   { name: 'Signpost', kind: 'd', w: .5, h: .5, fine: true, jn: 3, max: 1, cost: {}, desc: 'Points the way to every island. A Farm Journal reward.' },
+  jcradle: { name: 'Egg Cradle', kind: 'd', w: .5, h: .5, fine: true, jn: 4, max: 1, cost: {}, desc: 'A soft basket that rocks a spotted egg. A Farm Journal reward.' },
+  jtable:  { name: 'Neighbours’ Table', kind: 'd', w: 1, h: 1, jn: 5, max: 1, cost: {}, desc: 'Room for everyone, and tea for two. A Farm Journal reward.' },
+  jvane:   { name: 'Prize Pumpkin', kind: 'd', w: 1, h: 1, jn: 6, max: 1, cost: {}, desc: 'A blue ribbon for the best farm around. A Farm Journal reward.' },
+  jscope:  { name: 'Star Globe', kind: 'd', w: 1, h: 1, jn: 7, max: 1, cost: {}, desc: 'Brass rings turn slowly round a little star. A Farm Journal reward.' },
+  jcup:    { name: 'Collector’s Cup', kind: 'd', w: 1, h: 1, jn: 8, max: 1, cost: {}, desc: 'For a farmer who found nearly everything. A Farm Journal reward.' },
 };
 
 export const ELEMENTS = { Leaf: '#3f9a52', Ember: '#e0592f', Tide: '#2f86cc', Spark: '#d9a400', Stone: '#8a7f76' };
@@ -162,6 +173,13 @@ export const SPECIES = {
   starjelly: { name: 'Starjelly', el: 'Tide', rare: 0, blurb: 'A star-shaped jellyfish with glowing tips.' },
   cometail: { name: 'Cometail', el: 'Spark', rare: 2, blurb: 'A streak of a ferret with a comet for a tail.' },
   ringbear: { name: 'Ringbear', el: 'Stone', rare: 0, blurb: 'A dozy bear cub that wears a planet ring.' },
+  // pets from old stories: found only on Legend Isle, at the end of a far expedition (far: true)
+  griffling: { name: 'Griffling', el: 'Ember', rare: 2, far: true, blurb: 'A griffin cub with the white head and hooked beak of an eagle, big brown wings and the tufted tail of a lion.' },
+  bloomicorn: { name: 'Bloomicorn', el: 'Leaf', rare: 2, far: true, blurb: 'A unicorn foal with a mane of blossoms and a little spiral horn.' },
+  dreampir: { name: 'Dreampir', el: 'Spark', rare: 2, far: true, blurb: 'A baby tapir with a starry coat that blows dream bubbles from its trunk.' },
+  yetiny: { name: 'Yetiny', el: 'Tide', rare: 2, far: true, blurb: 'A shaggy yeti cub with frosty horns and big snowshoe feet.' },
+  gargoylet: { name: 'Gargoylet', el: 'Stone', rare: 2, far: true, blurb: 'A little stone gargoyle that sits as still as a statue until you look away.' },
+  nessling: { name: 'Nessling', el: 'Tide', rare: 2, far: true, blurb: 'A baby lake monster with a long neck, a row of humps and four flippers.' },
   // breeding only: two elements, never found in the wild. hint is all the Pet Album gives away.
   truffowl:   { name: 'Truffowl', el: 'Leaf', el2: 'Tide', rare: 3, blurb: 'A round owl that grows its own mushroom cap.', hint: 'Hatches where moss meets the tide.' },
   magmutt:    { name: 'Magmutt', el: 'Ember', el2: 'Stone', rare: 3, blurb: 'A lava puppy in a coat of cracked rock.', hint: 'Hatches where fire warms the stone.' },
@@ -211,6 +229,12 @@ export const UPGRADES = {
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
   nest:   { what: ['A second egg slot', 'A third egg slot, and eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
   yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
+  // The Pet Museum is a landmark: its levels change only its look, and each one needs more species in the album (need)
+  // instead of a bigger farmhouse. It is a long-term place to spend spare materials.
+  museum: { what: ['A blue dome with a gold lantern', 'Skylights, gold trim and element banners', 'Two side wings and pet statues by the steps', 'A golden dome with a star, flags and a red carpet'],
+    need: [10, 20, 32, 45],
+    cost: [{ wood: 300, stone: 300, fiber: 100, shells: 40, coal: 20, crystal: 2 }, { wood: 450, stone: 450, fiber: 150, shells: 60, coal: 40, crystal: 5 },
+      { wood: 600, stone: 600, fiber: 200, shells: 80, coal: 60, crystal: 10 }, { wood: 800, stone: 800, fiber: 300, shells: 100, coal: 80, crystal: 20 }] },
   // Decorations that can be improved: pets stay on them longer and do more there (ROUTES in models.js has the moves).
   // does: what pets do on it at each level, shown on its card.
   tower:  { what: ['Pets stay twice as long: they scratch the post, bat a toy mouse and nap in a basket bed', 'Pets stay three times as long: a hammock, a basket shelf and a hideout on top to peek out of'],
@@ -222,6 +246,22 @@ export const lvOf = item => Math.min(lvMax(item?.type), Math.max(1, item?.lv | 0
 export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none
 export const upCost = item => UPGRADES[item.type]?.cost[lvOf(item) - 1] || null; // what the next level costs
 export const whatUp = item => { const w = UPGRADES[item.type]?.what; return Array.isArray(w) ? w[lvOf(item) - 1] : w; }; // what the next level gives
+// Species with a page in the album that the player has owned (a page only seen at a friend's does not count).
+export const albumHave = album => Object.values(album || {}).filter(a => Array.isArray(a) && a.some(Boolean)).length;
+// Why an item cannot go up a level yet (English, the server's words), or '' when only materials stand in the way.
+export function upBlock(farm, item) {
+  const lv = lvOf(item), need = UPGRADES[item.type]?.need;
+  if (need) { const n = need[lv - 1] || 0; return albumHave(farm.album) < n ? `Level ${lv + 1} needs ${n} kinds of pets in the album.` : ''; }
+  return (farm.house || 1) < lv + 1 ? `Level ${lv + 1} needs a level ${lv + 1} farmhouse.` : '';
+}
+// The museum's five medallions, Leaf Ember Tide Spark Stone: how full each is in eighths (8 only when every species of
+// that element is found; a hybrid counts for both of its elements). A 5-digit string, so a model can be keyed on it.
+export function museumFill(album) {
+  return Object.keys(ELEMENTS).map(e => {
+    const all = Object.entries(SPECIES).filter(([, d]) => d.el === e || d.el2 === e), got = all.filter(([sp]) => album?.[sp]?.some?.(Boolean)).length;
+    return got >= all.length ? 8 : Math.min(7, Math.floor(got / all.length * 8));
+  }).join('');
+}
 // Helpers: one pet of the right element can work at each of these buildings. Its boost grows with its level and one of
 // its stars (stat: 0 Health, 1 Attack, 2 Defence, 3 Speed). A hybrid counts for both of its elements.
 export const WORK = {
@@ -243,15 +283,35 @@ export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n 
 // (f.shelves, p.shelf). allRoom is everything together: the most pets a farm can keep.
 export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
 export const LODGE_BEDS = [0, 60, 150, 300], SHELF_MAX = 12, SHELF_NAME = 16;
+export const GROUP_MAX = 8, GROUP_NAME = 16; // saved expedition groups
 export const lodgeRoom = farm => LODGE_BEDS[topLv(farm, 'lodge')] || 0;
 export const allRoom = farm => petRoom(farm) + lodgeRoom(farm);
 // How many of a building a farm may hold.
 export const maxOf = (farm, type) => ITEMS[type]?.max;
 
 // The farmhouse: HOUSE_UP[n] is the cost of reaching level n.
-export const HOUSE_MAX = 5;
+// Levels 6 and 7 (2026-11-25, economy plan) add no beds: they are the door to the late game (far expeditions, Nest
+// charms, landmarks), about 2,000 and 4,000 Workshop value and heavy on crystal, so they soak up a hoard.
+export const HOUSE_MAX = 7;
 export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 },
-  { wood: 300, stone: 220, shells: 50, coal: 50, crystal: 3 }];
+  { wood: 300, stone: 220, shells: 50, coal: 50, crystal: 3 },
+  { wood: 400, stone: 300, fiber: 150, shells: 60, coal: 60, crystal: 20 },
+  { wood: 600, stone: 450, fiber: 250, shells: 90, coal: 90, crystal: 50 }];
+
+// Nest charms: made at the Nest from crystal once the farmhouse is level CHARM_HOUSE, kept in f.charms { kind: count },
+// and put into a pairing (one of each kind at most). They only change what the egg holds, nothing else.
+//   el: an Element Charm lifts each parent's variant chance from 15% to 40% (50% to 70% from a parent that is a variant itself)
+//   hyb: a Hybrid Charm lifts the chance of a breeding-only species from 20% to 40%
+//   pat: a Pattern Charm makes sure the baby keeps at least one of its parents' markings
+//   spk: a Sparkle Charm makes a sparkly baby four times as likely (needs farmhouse 7)
+export const CHARM_HOUSE = 6;
+export const CHARMS = {
+  el:  { name: 'Element Charm', cost: { crystal: 6 }, desc: 'Variant chance up from 15% to 40%.' },
+  hyb: { name: 'Hybrid Charm', cost: { crystal: 8 }, desc: 'Chance of a breeding-only pet up from 20% to 40%.' },
+  pat: { name: 'Pattern Charm', cost: { crystal: 3, berries: 20 }, desc: "The baby keeps at least one of its parents' markings." },
+  spk: { name: 'Sparkle Charm', house: 7, cost: { crystal: 15, sunberry: 5 }, desc: 'A sparkly baby is four times as likely.' },
+};
+export const charmHouse = k => CHARMS[k]?.house || CHARM_HOUSE;
 
 // What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
 export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1 };
@@ -263,6 +323,7 @@ export const RECIPES = {
   cookie: { name: 'Berry Cookie', cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
   cake:   { name: 'Honey Cake', cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
   juice:  { name: 'Berry Juice', cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
+  pack:   { name: 'Trail Pack', house: 6, cost: { berries: 8, fiber: 10, coal: 4 }, desc: 'Food for the long way. Every far expedition takes a few.' },
   pie:    { name: 'Sunberry Pie', lv: 2, cost: { sunberry: 3, berries: 6 }, xp: 220, desc: 'Feed it to a pet for 220 experience.' },
   tonic:  { name: 'Rest Tonic', lv: 3, cost: { sunberry: 4, crystal: 1 }, rest: true, desc: 'A pet that drinks it is rested at once and can go to the Nest again.' },
 };
@@ -298,6 +359,8 @@ export const ZONES = {
   reef:   { name: 'Coral Reef', el: 'Tide', theme: 'sea', house: 3, gives: { shells: 10, stone: 4, coins: 5 }, wild: { shrimplet: 5, coralcolt: 2, driftle: 2, rocktopus: 2, zapuff: 2, skipfin: 1 }, blurb: 'A reef in the sky where the sea pets drift between the corals.' },
   peak:   { name: 'Weather Peak', el: 'Tide', theme: 'weather', house: 4, gives: { stone: 8, shells: 4, crystal: 1, coins: 5 }, wild: { dripfrog: 5, snowfox: 2, twistret: 2, sunlion: 1 }, blurb: 'Sun, snow and rain, all at once.' },
   night:  { name: 'Starfall Isle', el: 'Spark', theme: 'night', house: 4, gives: { crystal: 1.5, stone: 6, coins: 6 }, wild: { starjelly: 5, ringbear: 5, moonbun: 2, cometail: 1 }, blurb: 'An island where it is always just after dusk.' },
+  // far islands (far: true): only far trips go there, and they are the only home of their pets. A new one can come each season.
+  legend: { name: 'Legend Isle', el: 'Spark', theme: 'legend', far: true, house: 6, gives: { shells: 2, coal: 2, coins: 4 }, wild: { griffling: 3, bloomicorn: 3, yetiny: 3, gargoylet: 3, nessling: 2, dreampir: 2 }, blurb: 'A misty island far past the edge of the map, where the pets from old stories live.' },
 };
 // find: chance that a wild pet follows the party home. xp: what every pet in the party learns.
 export const TRIPS = {
@@ -305,7 +368,15 @@ export const TRIPS = {
   outing: { name: 'Outing', min: 60, find: .22, xp: 22, blurb: 'A lunch break' },
   trek:   { name: 'Trek', min: 240, find: .4, xp: 60, blurb: 'While you are busy' },
   camp:   { name: 'Camp-out', min: 480, find: .6, xp: 100, blurb: 'Overnight' },
+  // Far expeditions (Kuba's economy plan, 2026-11-25): a big sink for late players. Only these go to a far island, and a
+  // party pays its fuel when it sets off: crystal for the balloon and Trail Packs from the Kitchen (500 to 800 WORTH).
+  voyage: { name: 'Voyage', far: true, min: 720, find: .6, xp: 160, fuel: { crystal: 8, pack: 4 }, blurb: 'Half a day away' },
+  odyssey: { name: 'Grand Voyage', far: true, min: 1440, find: .9, xp: 280, fuel: { crystal: 14, pack: 6 }, blurb: 'A whole day away' },
 };
+// Can this trip go to this zone? Far trips go to far islands and nowhere else.
+export const tripFits = (zone, trip) => !!ZONES[zone] && !!TRIPS[trip] && !ZONES[zone].far === !TRIPS[trip].far;
+// A pet found on a far island may come in another element (see variantOf), which wild pets elsewhere never do.
+export const FAR_VARIANT = .2;
 export const PARTY = 3;
 // The economy pass (Kuba, 2026-11-25: a dedicated player maxed every building in 6 days, so make it grindier): a trip
 // pays TRIP_MAT of the zone's `gives` in materials, and its own TRIP_SHARE of coins and crystal. tripRate is what one
@@ -366,4 +437,4 @@ export { WEATHER, WEATHER_MS, weatherAt } from '../../weather.js';
 const EL_PL = PL ? (await import('../../lang/farm-pl.js')).EL_PL : null;
 /** An element's name as shown to the player. The English name stays the key everywhere. */
 export const elName = e => EL_PL?.[e] || e;
-if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS });
+if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS });

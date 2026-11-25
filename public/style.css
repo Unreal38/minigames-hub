@@ -1996,3 +1996,16 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
 /* phones: day/night sits in the account menu instead of on its own row under the top bar */
 .aitems .aphone { display: none; }
 @media (max-width: 600px) { .top .themebtn { display: none; } .aitems .aphone { display: flex; } }
+
+/* ===== daily markers (2026-11-25): what is not done yet today =====
+   A Today tile you have not done gets a yellow "!" badge (.todo); the wheel's free spin keeps its green ring and badge
+   (.ready). The plaza button wears the same badge when the plaza has something of yours (todoOf in server/plaza.js),
+   "Today" shows how many are left, and on phones the Games tab gets a dot. The words are for screen readers only. */
+.ttile .tmark { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.today .ttile.todo::after, .plazabtn.todo::after { content: '!'; position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; background: var(--lantern); color: #3b2219; border: 2.5px solid var(--ink); font: 900 13px/17px var(--fd); text-align: center; pointer-events: none; }
+.plazabtn { position: relative; }
+.tdcount:not(:empty) { font-size: 12.5px; white-space: nowrap; background: var(--lantern); } .tdcount.alldone { background: var(--mint); }
+.tdot { display: none; }
+@media (max-width: 1099px) {
+  .hubtabs .tdot:not([hidden]) { display: block; position: absolute; top: 2px; left: calc(50% + 9px); width: 11px; height: 11px; border-radius: 50%; background: var(--lantern); border: 2px solid var(--ink); }
+}
