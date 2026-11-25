@@ -107,6 +107,16 @@ const c0 = p.coins, g2 = store.credit(p, 'ludo', { pts: 10, place: 2, of: 4 });
 if (g2.coins !== 7 || p.coins !== c0 + 7) fail('2nd of 4 should pay 7 ' + JSON.stringify(g2));
 if (store.credit(p, 'golf', { pts: 0, place: 1, of: 3, idle: true }).coins !== 0) fail('idle player was paid');
 if (store.credit(p, 'stack', { pts: 0, win: true }).coins !== 10) fail('a win with no place should pay 1st');
+// bet profits stop at BET_DAY_CAP a day (losses never do), so accounts can't pass coins on through a pot
+{
+  const room = store.betRoom(p);
+  const a = store.credit(p, 'golf', { pts: 0, place: 3, of: 3, coinNet: room - 50, idle: true });
+  const b = store.credit(p, 'golf', { pts: 0, place: 3, of: 3, coinNet: 200, idle: true });
+  const c = store.credit(p, 'golf', { pts: 0, place: 3, of: 3, coinNet: 100, idle: true });
+  const d = store.credit(p, 'golf', { pts: 0, place: 3, of: 3, coinNet: -30, idle: true });
+  if (a.coins !== room - 50 || b.coins !== 50 || c.coins !== 0 || d.coins !== -30 || store.betRoom(p) !== 0) fail('bet day cap ' + [a.coins, b.coins, c.coins, d.coins]);
+  p.betd = undefined;
+}
 const after = store.leaderboard('marbles', 'mia');
 if (after.rows[0].net !== 105 || after.rows[0].games !== 11) fail('board not refreshed after credit');
 // A match with a bot seat pays XP and coins but adds nothing the rankings count.
