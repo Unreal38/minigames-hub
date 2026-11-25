@@ -9,49 +9,14 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { boardOf, value, WILD } from './rules.js';
+import { paintKind, KIND_COL } from './icons.js';
+export { paintKind, KIND_COL };
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const U = .62, TH = .2, TOP = .34;       // a square in world units, how thick a tile is, the board's top surface
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 const ease = t => (t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-export const KIND_COL = { '.': '#f4e2b4', p: '#ffc4d6', s: '#ffb062', w: '#86d0f2', v: '#a493f2', n: '#c3e39a', '*': '#ffd84a' };
 const SAND2 = '#eed8a6';
-
-// the picture on a bonus square: its shape and how much it multiplies
-export function paintKind(g, S, k) {
-  g.clearRect(0, 0, S, S);
-  const c = S / 2, ink = '#3b2219';
-  g.lineJoin = 'round'; g.lineCap = 'round';
-  if (k === 'p') { // pearl in an open shell
-    g.fillStyle = '#ffe3ec'; g.strokeStyle = ink; g.lineWidth = S * .035;
-    g.beginPath(); g.moveTo(c - S * .3, c + S * .05); g.quadraticCurveTo(c, c - S * .42, c + S * .3, c + S * .05); g.closePath(); g.fill(); g.stroke();
-    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(c, c - S * .02, S * .1, 0, 7); g.fill(); g.stroke();
-  } else if (k === 's') { // starfish
-    g.fillStyle = '#ff8a3d'; g.strokeStyle = ink; g.lineWidth = S * .035; g.beginPath();
-    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? S * .12 : S * .3; g.lineTo(c + Math.cos(a) * r, c - S * .06 + Math.sin(a) * r); }
-    g.closePath(); g.fill(); g.stroke();
-  } else if (k === 'w') { // a wave
-    g.strokeStyle = '#ffffff'; g.lineWidth = S * .07;
-    for (const y of [-.14, .02]) { g.beginPath(); for (let x = -.32; x <= .32; x += .02) g.lineTo(c + x * S, c + (y + Math.sin(x * 16) * .05) * S); g.stroke(); }
-  } else if (k === 'v') { // a whirlpool
-    g.strokeStyle = '#ffffff'; g.lineWidth = S * .055; g.beginPath();
-    for (let a = 0; a < 15; a += .2) { const r = S * .02 * a; g.lineTo(c + Math.cos(a) * r, c - S * .06 + Math.sin(a) * r); }
-    g.stroke();
-  } else if (k === 'n') { // a nest with an egg
-    g.fillStyle = '#9b6a3e'; g.strokeStyle = ink; g.lineWidth = S * .035;
-    g.beginPath(); g.ellipse(c, c + S * .02, S * .3, S * .16, 0, 0, 7); g.fill(); g.stroke();
-    g.fillStyle = '#fff6e0'; g.beginPath(); g.ellipse(c, c - S * .08, S * .1, S * .14, 0, 0, 7); g.fill(); g.stroke();
-  } else if (k === '*') { // the middle: a big star
-    g.fillStyle = '#fff3b0'; g.strokeStyle = ink; g.lineWidth = S * .035; g.beginPath();
-    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? S * .15 : S * .36; g.lineTo(c + Math.cos(a) * r, c + Math.sin(a) * r); }
-    g.closePath(); g.fill(); g.stroke(); return;
-  }
-  const label = { p: '×2', s: '×3', w: '×2', v: '×3', n: '+10' }[k];
-  if (!label) return;
-  g.font = `800 ${S * .3}px Rubik, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.lineWidth = S * .06; g.strokeStyle = k === 'w' || k === 'v' ? '#1d4f8a' : ink; g.fillStyle = '#ffffff';
-  g.strokeText(label, c, c + S * .3); g.fillText(label, c, c + S * .3);
-}
 // the face of a letter tile
 export function paintTile(g, S, l, wild, lang, face = '#fff4dc') {
   g.fillStyle = face; g.fillRect(0, 0, S, S);
@@ -105,6 +70,12 @@ export function createScene(canvas, { onFrame } = {}) {
     for (let k = 1; k < 4; k++) { const j = (r + dr * k) * B.N + c + dc * k; if (B.kinds[j] === '#') return j; }
     return i;
   };
+  // bonus pictures; painted again once the badge font has loaded so the x2 / x3 never show in a fallback font
+  const kindMat = k => {
+    const paint = (g, S) => paintKind(g, S, k), map = texOf(256, paint), m = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
+    document.fonts?.load(`900 40px Rubik`).then(() => { const cv = map.image; paint(cv.getContext('2d'), cv.width); map.needsUpdate = true; }, () => {});
+    return m;
+  };
   function buildBoard(kind) {
     if (boardG) { scene.remove(boardG); boardG.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
     B = boardOf(kind); boardG = new THREE.Group(); scene.add(boardG);
@@ -125,7 +96,7 @@ export function createScene(canvas, { onFrame } = {}) {
     });
     boardG.add(sqMesh);
     for (const [k, list] of Object.entries(byKind)) {
-      const dm = kindMats['d' + k] ||= new THREE.MeshBasicMaterial({ map: texOf(128, (g, S) => paintKind(g, S, k)), transparent: true, depthWrite: false });
+      const dm = kindMats['d' + k] ||= kindMat(k);
       const im = new THREE.InstancedMesh(decal, dm, list.length); im.renderOrder = 1;
       list.forEach((i, j) => { const p = pos(i); mx.makeTranslation(p.x, TOP + .002, p.z); im.setMatrixAt(j, mx); });
       boardG.add(im);
