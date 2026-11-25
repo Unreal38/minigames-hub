@@ -1369,8 +1369,6 @@ function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
   sheet.el.querySelector('.sheet').classList.add('wide', 'mpsheet');
-  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', `<button type="button" class="mpclose" aria-label="${L('Close', 'Zamknij')}">×</button>`);
-  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
   let open = true;
   sheet.onClose = () => { open = false; st.daily?.destroy(); st.daily = null; };
   st.daily = { msg() {}, destroy() {} }; // holds the place while the pictures' code loads
@@ -1385,8 +1383,6 @@ function openWord() {
   if (st.word) return;
   const sheet = modal(`<div class="wbbox"><p class="wbload">${L('Uncorking today’s bottle…', 'Odkorkowuję dzisiejszą butelkę…')}</p></div>`);
   sheet.el.querySelector('.sheet').classList.add('wbsheet');
-  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', `<button type="button" class="mpclose" aria-label="${L('Close', 'Zamknij')}">×</button>`);
-  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
   let open = true;
   sheet.onClose = () => { open = false; st.word?.destroy(); st.word = null; };
   st.word = { msg() {}, destroy() {} }; // holds the place while the code loads
@@ -1401,8 +1397,6 @@ function openWheel() {
   if (st.wheel) return;
   const sheet = modal(`<div class="lwbox"><p class="mpload">${L('Rolling the wheel out…', 'Wytaczamy koło…')}</p></div>`);
   sheet.el.querySelector('.sheet').classList.add('wide', 'mpsheet', 'lwsheet');
-  sheet.el.querySelector('.sheet').insertAdjacentHTML('afterbegin', `<button type="button" class="mpclose" aria-label="${L('Close', 'Zamknij')}">×</button>`);
-  sheet.el.querySelector('.mpclose').addEventListener('click', () => { sfx.click(); sheet.close(); });
   let open = true;
   sheet.onClose = () => { open = false; st.wheel?.destroy(); st.wheel = null; send({ t: 'wheel' }); };
   st.wheel = { msg() {}, destroy() {} }; // holds the place while the 3D code loads
@@ -1494,7 +1488,7 @@ function openSky() {
       return `<div class="cncard${fin ? ' done' : ''}">${conTile(c, k, { size: 150, pop: pop === c.id })}<div class="nm">${esc(c.n)}<span>${locked ? '' : `${k} / `}${n} ★</span></div>
         ${fin ? (c.id === sky.shown ? `<div class="state on">✓ ${L('Shown by your rank', 'Widać przy randze')}</div>` : `<button type="button" class="btn w" data-shown="${c.id}">${L('Show by my rank', 'Pokaż przy randze')}</button>`)
           : free ? `<button type="button" class="btn" data-light="${c.id}">★ ${L('Light a star', 'Zapal gwiazdę')}</button>` : ''}</div>`; };
-    box.innerHTML = `<h2>${L('Your sky', 'Twoje niebo')}</h2>
+    box.innerHTML = `${sheetX()}<h2>${L('Your sky', 'Twoje niebo')}</h2>
       <p class="lead">${L(`After ${esc(top.name)} you get one star every ${STAR_EVERY} levels. Light a point of any constellation with it: the choice is yours, and a lit star stays for good. Finished constellations show on your profile card, and one of them sits by your rank.`, `Po randze ${esc(top.name)} co ${STAR_EVERY} poziomów dostajesz gwiazdę. Zapalasz nią punkt w dowolnym gwiazdozbiorze: wybór należy do ciebie, a zapalona gwiazda zostaje na zawsze. Ukończone gwiazdozbiory widać na twojej karcie profilu, a jeden z nich stoi przy twojej randze.`)}</p>
       ${locked ? `<div class="cnlock"><b>🔒 ${L(`Unlocks at ${esc(top.name)} (level ${top.lv})`, `Odblokujesz od rangi ${esc(top.name)} (poziom ${top.lv})`)}</b><span>${L(`You are level ${m.level}. For now this is a preview of what you will collect.`, `Masz poziom ${m.level}. Na razie to podgląd tego, co będziesz zbierać.`)}</span></div>`
         : `<div class="cnsum"><span class="chip${free ? ' hot' : ''}">★ ${L(`Stars to light: ${free}`, `Gwiazdy do zapalenia: ${free}`)}</span><span class="chip">${L(`Constellations: ${doneIds(sky).length} of ${CONS.length}`, `Gwiazdozbiory: ${doneIds(sky).length} z ${CONS.length}`)}</span><span class="chip">${L(`${sky.stars ? 'Next' : 'First'} star at level ${m.nextRankLv}`, `${sky.stars ? 'Następna' : 'Pierwsza'} gwiazda od poziomu ${m.nextRankLv}`)}</span></div>`}
@@ -2461,13 +2455,16 @@ $inv.addEventListener('click', e => {
   send({ t: 'join', code });
 });
 
+const sheetX = () => `<button type="button" class="mpclose sheetx" aria-label="${L('Close', 'Zamknij')}" title="${L('Close', 'Zamknij')}">×</button>`;
 function modal(html, dismissable = true) {
   const m = document.createElement('div');
-  m.className = 'modal'; m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  m.className = 'modal'; m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${dismissable ? sheetX() : ''}${html}</div>`;
   const api = { el: m, onClose: null };
   const close = () => { m.remove(); document.removeEventListener('keydown', onKey); api.onClose?.(); api.onClose = null; };
   const onKey = e => { if (e.key === 'Escape' && dismissable) close(); };
-  if (dismissable) m.addEventListener('click', e => { if (e.target === m) close(); });
+  // a tap outside, or on the round × that stays at the top corner while the sheet scrolls (phones have no Escape key
+  // and hardly any backdrop to tap, so every closable pop-up needs it)
+  if (dismissable) m.addEventListener('click', e => { if (e.target === m) close(); else if (e.target.closest('.sheetx')) { sfx.click(); close(); } });
   document.addEventListener('keydown', onKey);
   document.body.append(m);
   api.close = close; return api;
@@ -2771,7 +2768,7 @@ function openPlayer(p) {
     <div class="profcard">
       <div class="pisle">${skyHang(p)}<div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
       <div class="pinfo">
-        <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2>${nameHtml(p.name, p.fl)} ${p.lv ? lvChip(p.lv, p.cn) : ''}</h2>
+        <div class="phead${cardBgCls(p.fl)}">${cardBg(p.fl)}${avatarHtml(p.color, p.av, 72, frameCls(p.fl))}<div><h2><span class="pname" ${fitw(p.name, '700 100px Rubik, sans-serif')}>${nameHtml(p.name, p.fl)}</span> ${p.lv ? lvChip(p.lv, p.cn) : ''}</h2>
           ${titleHtml(p.fl)}<small>${p.me ? L('This is you', 'To ty') : p.online ? `<i class="dot on"></i>${L('Online now', 'Teraz online')}` : L('Not online', 'Offline')}${p.guest ? L(' · guest', ' · gość') : ''} · ${esc(p.lv ? rankOf(p.lv).name : p.rank || '')}${conOf(p.cn) ? ` · ${L('constellation', 'gwiazdozbiór')}: ${esc(conOf(p.cn).n)}` : ''}</small></div></div>
         <div class="pstats"><span><b>${num(p.games)}</b>${L('games', 'gry')}</span><span><b>${num(p.wins)}</b>${L('wins', 'wygrane')}</span><span><b>${rate}%</b>${L('win rate', 'skuteczność')}</span><span><b>${num(p.xp)}</b>XP</span></div>
         ${skyStrip(p)}
