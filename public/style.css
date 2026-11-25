@@ -22,6 +22,8 @@ TYPE   Rubik for display, Nunito for text (both self-hosted, full Polish)
   /* "not found yet" placeholder tiles, and notice banners (found a pet, a wild pet, good news) */
   --ph-bg: #efe2d2; --ph-box: #e2d3c2; --ph-tx: #8a7060;
   --note-bg: var(--lantern); --note-edge: var(--ink); --note-tx: var(--ink); --note-soft: #5a3b2e;
+  /* accent text on paper panels (numbers, places, good/bad): dark enough on cream by day, bright on indigo at night */
+  --acc-tx: #9a5b00; --good-tx: #2a6e55; --bad-tx: #b13a25;
   color-scheme: dark;
 }
 /* ---------- night palette: one indigo family everywhere (hub, pop-ups, game HUDs, Pet Farm panels) ----------
@@ -36,6 +38,7 @@ body.night {
   --ph-bg: #1c1a3a; --ph-box: #2a2752; --ph-tx: #9a9ccc;
   --note-bg: #3e2f1a; --note-edge: #f0b14d; --note-tx: #ffd48a; --note-soft: #f1dfc0;
   --mint: #52b08f; --chili: #c8412f; --btn-w: #3a3479;
+  --acc-tx: #ffc56b; --good-tx: #8fe3b0; --bad-tx: #ff9b8a;
 }
 body.night .btn.w, body.night .btn.w *, body.sky.night:not(.in-game) .btn.w, body.sky.night:not(.in-game) .btn.w * { color: var(--on-paper); }
 /* disabled buttons at night: flat and solid, never a faded bright fill */
@@ -82,6 +85,9 @@ button, .btn, h4, th, legend { text-wrap: balance; }
 .chip { font-family: var(--fd); font-weight: 600; background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 5px 14px; white-space: nowrap; }
 .round { width: 46px; height: 46px; border-radius: 50%; padding: 0; background: var(--plum2); border: 3px solid var(--line); color: var(--cream); font-family: var(--fd); font-weight: 700; font-size: 19px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: transform .12s; }
 .round:hover { transform: scale(1.08); } .round:active { transform: scale(.92); }
+/* In games, chips and round buttons are paper stickers with an ink edge (dark indigo at night through --paper), never the old plum.
+   :where() keeps this as weak as the plain .chip/.round rules, so a game's own ".xx .chip" styling still wins. */
+:where(body.in-game) .chip, :where(body.in-game) .round { background: var(--paper); color: var(--on-paper); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
 .avatar { width: var(--s, 52px); height: var(--s, 52px); border-radius: 50%; overflow: hidden; background: color-mix(in srgb, var(--c) 40%, var(--paper)); border: 3px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--fd); font-weight: 700; font-size: calc(var(--s, 52px) * .42); color: var(--on-paper); flex: none; }
 .field { background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 14px; font-family: var(--fd); font-weight: 600; font-size: 18px; min-height: 50px; }
 .field::placeholder { color: #a48a7e; }
@@ -722,7 +728,7 @@ body.sky:not(.in-game) .chip { background: var(--pan); border-color: var(--tx); 
 /* waiting room */
 body.sky:not(.in-game) .lobby aside { background: var(--pan); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); color: var(--tx); }
 body.sky:not(.in-game) .crumb { color: var(--tx2); }
-body.sky:not(.in-game) .lobby .main [style*="color:var(--muted)"] { color: var(--tx2) !important; }
+body.sky:not(.in-game) .lobby :is(.main, aside) [style*="color:var(--muted)"] { color: var(--tx2) !important; }
 body.sky:not(.in-game) .codetiles span { box-shadow: 0 6px 0 var(--ink); }
 body.sky:not(.in-game) .seats { row-gap: 40px; padding-bottom: 18px; }
 body.sky:not(.in-game) .seat.full { position: relative; box-shadow: 0 6px 0 var(--ink), 0 12px 0 var(--grass), 0 15px 0 var(--ink); }

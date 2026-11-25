@@ -31,7 +31,7 @@ body.in-game { overflow: hidden; }
 .mr .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--lantern); font-size: 18px; margin-right: 4px; }
 .mr .chip.coins { display: inline-flex; align-items: center; gap: 6px; background: var(--paper); color: var(--on-paper); border-color: var(--ink); }
 
-.mr .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.mr .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .mr .banner:empty { display: none; }
 .mr .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mr .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
@@ -41,12 +41,12 @@ body.in-game { overflow: hidden; }
 @keyframes mrbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* live race order */
-.mr .board { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 18px; backdrop-filter: blur(4px); width: 214px; max-height: calc(100vh / var(--vz, 1) - 190px); overflow: auto; }
-.mr .board button { width: 100%; display: flex; align-items: center; gap: 7px; background: transparent; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; cursor: pointer; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); text-align: left; }
-.mr .board button:hover { background: #ffffff14; }
+.mr .board { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 18px; backdrop-filter: blur(4px); width: 214px; max-height: calc(100vh / var(--vz, 1) - 190px); overflow: auto; }
+.mr .board button { width: 100%; display: flex; align-items: center; gap: 7px; background: transparent; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; cursor: pointer; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--on-paper); text-align: left; }
+.mr .board button:hover { background: color-mix(in srgb, var(--on-paper) 8%, transparent); }
 .mr .board b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.mr .board span { font-size: 13px; color: var(--muted); white-space: nowrap; }
-.mr .board .pos { font-style: normal; width: 20px; text-align: center; color: var(--lantern); font-weight: 700; flex: none; }
+.mr .board span { font-size: 13px; color: var(--soft-tx); white-space: nowrap; }
+.mr .board .pos { font-style: normal; width: 20px; text-align: center; color: var(--acc-tx); font-weight: 700; flex: none; }
 .mr .board .avatar { border-width: 2px; }
 .mr .board .backers { min-height: 0; flex-wrap: nowrap; gap: 0; }
 .mr .board .backers i + i { margin-left: -7px; }
@@ -78,14 +78,15 @@ body.in-game { overflow: hidden; }
 .mr .stakes .pills button:disabled { opacity: .4; }
 .mr .mybet { flex: 1 1 200px; font-size: 15px; color: var(--soft-tx); }
 .mr .mybet b { font-family: var(--fd); color: var(--on-paper); }
-.mr .link { background: none; border: 0; padding: 0 4px; color: #a03a26; text-decoration: underline; cursor: pointer; font-size: 14px; }
+.mr .link { background: none; border: 0; padding: 0 4px; color: var(--bad-tx); text-decoration: underline; cursor: pointer; font-size: 14px; }
 
 /* race controls */
-.mr .racebar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; background: #2a1422cc; border: 3px solid var(--line); border-radius: 22px; padding: 10px 14px; backdrop-filter: blur(4px); max-width: calc(100vw / var(--vz, 1) - 24px); }
-.mr .cams { display: flex; align-items: center; gap: 8px; font-family: var(--fd); font-weight: 500; font-size: 15px; color: var(--soft); }
-.mr .cams .pills button { min-height: 40px; padding: 5px 13px; font-size: 15px; }
+.mr .racebar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 22px; padding: 10px 14px; backdrop-filter: blur(4px); max-width: calc(100vw / var(--vz, 1) - 24px); }
+.mr .cams { display: flex; align-items: center; gap: 8px; font-family: var(--fd); font-weight: 500; font-size: 15px; color: var(--soft-tx); }
+.mr .cams .pills button { min-height: 40px; padding: 5px 13px; font-size: 15px; color: var(--on-paper); border-color: var(--card-edge); }
+.mr .cams .pills button[aria-pressed=true] { color: var(--ink); border-color: var(--ink); }
 .mr .sab svg { flex: none; }
-.mr .hint { flex-basis: 100%; margin: 0; text-align: center; font-size: 14px; color: var(--pink); font-family: var(--fd); }
+.mr .hint { flex-basis: 100%; margin: 0; text-align: center; font-size: 14px; color: var(--bad-tx); font-family: var(--fd); }
 
 /* results */
 .mr .results h2 { display: flex; align-items: center; justify-content: center; gap: 10px; }

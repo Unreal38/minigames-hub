@@ -39,8 +39,8 @@ body.in-game { overflow: hidden; }
 @keyframes blbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 12%, 80% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 .bl.touch .keys { display: none; }
-.bl .keys { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; background: #2a1422b8; color: var(--soft); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
-.bl .keys b { color: var(--cream); font-family: var(--fd); }
+.bl .keys { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; background: var(--paper); color: var(--soft-tx); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
+.bl .keys b { color: var(--on-paper); font-family: var(--fd); }
 .bl.watching .keys { display: none; }
 
 /* results */
