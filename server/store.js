@@ -689,9 +689,12 @@ export function friendsView(p, online = () => false, extra = () => ({})) {
 // counts as 1st and anything else as last.
 // ranked: false for a match that had a bot seat. It still pays XP and coins, but adds nothing to the games, wins and
 // points that the rankings (and win-based unlocks) count, so wins against bots never move anyone up a board.
-export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1, ranked = true }) {
+// pay: the share of XP and placement coins a match with bots pays (server/botpay.js); 1 for people only. Bets
+// (coinNet) are never scaled.
+export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1, ranked = true, pay = 1 }) {
   if (!Number.isFinite(place)) place = win ? 1 : Math.max(1, of);
-  const before = levelOf(p.xp), gain = xpFor({ pts, win }), coins = (idle ? 0 : placeCoins(place, of)) + (Number.isFinite(coinNet) ? coinNet : 0);
+  pay = Number.isFinite(pay) ? Math.max(0, Math.min(1, pay)) : 1;
+  const before = levelOf(p.xp), gain = Math.round(xpFor({ pts, win }) * pay), coins = (idle ? 0 : Math.round(placeCoins(place, of) * pay)) + (Number.isFinite(coinNet) ? coinNet : 0);
   p.xp += gain;
   if (ranked) {
     p.games++; p.pts += Math.max(0, pts); if (win) p.wins++;
@@ -703,7 +706,7 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
   board = null;
   const had = p.coins || 0; addCoins(p.pid, coins, Number.isFinite(coinNet) && coinNet < 0);
   scheduleSave();
-  return { xp: gain, win, pts, place, of, ranked, coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
+  return { xp: gain, win, pts, place, of, ranked, pay: Math.round(pay * 100), coins: (p.coins || 0) - had, level: levelOf(p.xp), levelUp: levelOf(p.xp) > before };
 }
 
 // ---------- global rankings ----------

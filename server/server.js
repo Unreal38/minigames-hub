@@ -69,6 +69,8 @@ import { cosHas } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { distinctCols, matchColors } from './colors.js';
+import { botPay } from './botpay.js';
+const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tests check exact placement coins from quick bot matches (test/persist.js checks the real share)
 
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -260,6 +262,8 @@ function scoreGame(r) {
   // A match with a bot seat (bot: true, a seat the game filled with a bot) never counts toward the rankings. A person
   // who left mid-game and was swapped for a bot does not count as a bot seat, so the others' match still counts.
   const ranked = !G.seats.some(seat => seat.bot);
+  // With bots at the table, XP and placement coins are paid as a share: weaker bots, fewer of them and a quicker match pay less (botpay.js).
+  const ms = G.bornAt ? Date.now() - G.bornAt : Infinity, level = r.opts?.bots ?? G.opts?.bots;
   G.seats.forEach((seat, i) => {
     if (!seat.human || !seat.id) return;
     const c = r.players.map(t => clients.get(t)).find(x => x?.id === seat.id); if (!c) return;
@@ -268,7 +272,8 @@ function scoreGame(r) {
     Object.assign(e, { name: c.name, color: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p) });
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
-    const gain = store.credit(p, r.game, { ...res[i], of, ranked });
+    const pay = FULL_BOT_PAY ? 1 : botPay(G.seats, i, { level, max: mod.meta.maxPlayers, ms });
+    const gain = store.credit(p, r.game, { ...res[i], of, ranked, pay });
     r.paid[i] = gain.coins;
     send(c, { t: 'me', me: store.me(p), gain });
   });
@@ -505,6 +510,7 @@ function startGame(r) {
   const cols = distinctCols(humans.map(c => c.color)); // two people in pink: the later one plays in another colour this match
   r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av })), r.opts, prev);
   matchColors(r.G); // bots, too, keep clear of the people's colours
+  r.G.bornAt = Date.now(); // when the match began: a short match against bots pays its share (botpay.js)
   sendRoom(r); sendState(r); broadcastRooms();
 }
 

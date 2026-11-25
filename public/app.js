@@ -1106,7 +1106,7 @@ function onMsg(m) {
     if (m.gain) {
       const cg = m.gain.coins | 0;
       const pl = m.gain.place;
-      toast(`${m.gain.win ? L('Win! ', 'Wygrana! ') : pl > 1 && m.gain.of > 1 ? `${ord(pl)} ${L('place', 'miejsce')} · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${cnt(Math.abs(cg), 'coin', 'coins', 'moneta', 'monety', 'monet')}` : ''}${m.gain.ranked === false ? L(' · played with bots, not ranked', ' · gra z botami, bez rankingu') : ''}`);
+      toast(`${m.gain.win ? L('Win! ', 'Wygrana! ') : pl > 1 && m.gain.of > 1 ? `${ord(pl)} ${L('place', 'miejsce')} · ` : ''}+${m.gain.xp} XP${cg ? ` · ${cg > 0 ? '+' : '−'}${cnt(Math.abs(cg), 'coin', 'coins', 'moneta', 'monety', 'monet')}` : ''}${m.gain.ranked === false ? L(' · played with bots, not ranked', ' · gra z botami, bez rankingu') : ''}${m.gain.pay < 100 ? L(` · bots pay ${m.gain.pay}%`, ` · boty: ${m.gain.pay}% nagrody`) : ''}`);
       if (m.gain.levelUp) { sfx.join(); toast(`<span class="tic">${rankIcon(rankOf(m.me.level).icon)}</span> ${L('Level', 'Poziom')} ${m.me.level}: ${esc(rankOf(m.me.level).name)}`); }
       if (st.skyWas && m.me.sky?.stars > st.skyWas.stars) { sfx.win?.(); toast(`★ ${L('A new star! Light it in Profile › Your sky.', 'Nowa gwiazda! Zapal ją w: Profil › Twoje niebo.')}`); }
     }
