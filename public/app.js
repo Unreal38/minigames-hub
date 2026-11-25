@@ -1521,6 +1521,7 @@ function paintSkyWx() {
   const k = peekWeather() || weatherAt().kind, b = document.body, want = k === 'sunny' ? '' : 'wx-' + k;
   if (want && !document.querySelector('.wxfall')) { const f = document.createElement('div'); f.className = 'wxfall'; f.setAttribute('aria-hidden', 'true'); b.prepend(f); }
   for (const c of WX_CLS) b.classList.toggle(c, c === want);
+  b.classList.toggle('skynight', skyNight()); // the page's sky follows the real clock; the switch (body.night) is only the UI
 }
 function paintToday() {
   paintIsleKit(); const el = document.getElementById('today-list'); if (el) morph(el, todayHtml()); // patched, so the 30 s tick never blinks a tile
@@ -1857,7 +1858,7 @@ function paintMe() {
 let heroMod = null; // the hub's 3D hero module, loaded on first visit to the hub
 const isNight = () => document.body.classList.contains('night');
 // The 3D skies (hub isle, profile isles, games) follow the real clock, not the switch (Kuba, 2026-11-25).
-const skyNight = () => { const d = new Date(); return wxNight(d.getHours() + d.getMinutes() / 60); };
+function skyNight() { const d = new Date(); return wxNight(d.getHours() + d.getMinutes() / 60); } // (hoisted: paintSkyWx runs earlier)
 { let was = skyNight(); setInterval(() => { const on = skyNight(); if (on !== was) { was = on; heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {}); } }, 30_000); }
 function setNight(on, save) {
   document.body.classList.toggle('night', on);
@@ -1907,8 +1908,13 @@ function switchTheme(btn) {
 // The account button in the top bar, a small profile card: avatar in its frame on the player's card background,
 // name over level + rank title, and the menu arrow in its own square.
 const acctBtn = () => { const fl = flairOf(st.me); return `<button type="button" class="me acctbtn${cardBgCls(fl)}" data-act="acct" aria-haspopup="menu" aria-expanded="${document.querySelector('.acctwrap') ? 'true' : 'false'}" aria-label="${L('Your account', 'Twoje konto')}">${cardBg(fl)}${avatarHtml(st.color, st.av, 46, frameCls(fl))}<span class="astack"><span class="aname">${st.name ? nameHtml(st.name, fl) : L('Pick a name', 'Wybierz imię')}</span><span class="arow"><span class="lvslot">${meChip()}</span>${st.me ? `<span class="arank">${esc(rankOf(st.me.level).name)}</span>` : ''}</span></span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>`; };
+// The server's clock (Warsaw time, where every daily thing turns over) in the top bar, ticking every 10 s.
+const srvFmt = new Intl.DateTimeFormat(LOCALE, { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit', hour12: false });
+function srvTime() { return srvFmt.format(new Date()); }
+setInterval(() => { const t = srvTime(); for (const el of document.querySelectorAll('.srvclock b')) if (el.textContent !== t) el.textContent = t; }, 10_000);
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
+  <span class="srvclock" title="${L('Server time (Warsaw). Daily puzzles, the wheel and coin limits reset at midnight.', 'Czas serwera (Warszawa). Codzienne zagadki, koło i limity monet odnawiają się o północy.')}"><span aria-hidden="true">🕒</span><b>${srvTime()}</b></span>
   <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}" aria-label="${L('Coins: open the shop', 'Monety: otwórz sklep')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span></button>
   ${acctBtn()}
   <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button>

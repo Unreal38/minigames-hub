@@ -753,17 +753,18 @@ body.sky:not(.in-game) .lobby .opt b, body.sky:not(.in-game) .toggle { color: va
 body.sky.night:not(.in-game) {
   /* one cool indigo family: panels sit a step lighter than the sky, outlines are near-black navy, text is soft white,
      secondary text stays above 7:1 on the panels, lantern yellow is the only warm accent */
-  --sky1: #110e2b; --sky2: #221b48; --sky3: #352760;
   --pan: #2b2856; --pan2: #201d44; --edge: #4d4a8c; --chip: #1c1a3a; --you: #3a3479; --glass: #ffffff12; --grass: #4d4a8c; /* the strip under game cards: a moonlit edge, not daytime green */
   --tx: #f5f2ff; --tx2: #dcdcff; --muted2: #bcbfeb; --ink: #0e0c22;
   color-scheme: dark;
 }
-body.sky.night:not(.in-game)::before { opacity: .16; }
-body.sky.night:not(.in-game)::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+/* the page's sky itself follows the real clock (body.skynight, set in app.js paintSkyWx), not the switch (Kuba, 2026-11-25) */
+body.sky.skynight:not(.in-game) { --sky1: #110e2b; --sky2: #221b48; --sky3: #352760; }
+body.sky.skynight:not(.in-game)::before { opacity: .16; }
+body.sky.skynight:not(.in-game)::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image: radial-gradient(1.6px 1.6px at 20px 30px, #fff, transparent), radial-gradient(1.2px 1.2px at 140px 90px, #fff9, transparent), radial-gradient(2px 2px at 260px 50px, #ffe9a8, transparent), radial-gradient(1.2px 1.2px at 330px 160px, #fffc, transparent), radial-gradient(1.6px 1.6px at 90px 200px, #fff8, transparent), radial-gradient(1px 1px at 210px 240px, #fff, transparent);
   background-size: 380px 280px; animation: twinkle 4s ease-in-out infinite alternate; }
 @keyframes twinkle { from { opacity: .55; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { body.sky.night:not(.in-game)::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { body.sky.skynight:not(.in-game)::after { animation: none; } }
 body.sky.night:not(.in-game) .tcode, body.sky.night:not(.in-game) .rk .pos, body.sky.night:not(.in-game) .rk .who em { color: var(--lantern); }
 /* in a game at night the room code sits straight on the dark sky, so it turns lantern gold like the hub's codes */
 body.night .tr .tcode, body.night .pw .tcode { color: var(--lantern); }
@@ -1191,7 +1192,7 @@ body.sky.night:not(.in-game) .wdsw { border-color: var(--edge); }
 .isk4, body.night .isk4, .wd.creator .pvisle.isk4, body.sky.night:not(.in-game) .creator .pv3d.isk4 { background: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
 .isk5, body.night .isk5, .wd.creator .pvisle.isk5, body.sky.night:not(.in-game) .creator .pv3d.isk5 { background: linear-gradient(#1a1440, #3a2a5e 55%, #8a4a58); }
 .wd.creator .pvisle { background: linear-gradient(#8fd0f7, #d9f1ff); position: relative; cursor: pointer; }
-body.sky.night:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
+body.sky.skynight:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
 .wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* Isle frames: the sky gradient starts at the outer edge, under the border. With the default padding-box origin the
    gradient repeats into the border, and at fractional zoom its bottom colour shows as a thin line along the top. */
@@ -1541,7 +1542,7 @@ footer .plink:hover { color: var(--tx, var(--ink)); }
 /* the panel and the sky are two layers of the hero's own background */
 .hubgrid .hero { --sky: linear-gradient(#8fd0f7, #d9f1ff); --panel: linear-gradient(90deg, var(--pan) 0, color-mix(in srgb, var(--pan) 88%, transparent) 46%, transparent 68%);
   background: var(--panel), var(--sky) !important; background-origin: border-box !important; background-clip: padding-box !important; }
-body.night .hubgrid .hero { --sky: linear-gradient(#1c1a4a, #3a3478); }
+body.skynight .hubgrid .hero { --sky: linear-gradient(#1c1a4a, #3a3478); }
 body .hubgrid .hero.isk1 { --sky: linear-gradient(#4b3a8f, #ff7a6a 58%, #ffc27a); }
 body .hubgrid .hero.isk2 { --sky: linear-gradient(#0c1236, #2d2b63 60%, #4a3f8a); }
 body .hubgrid .hero.isk3 { --sky: linear-gradient(#06142e, #123a55 55%, #2b2856); }
@@ -1939,31 +1940,31 @@ body.night.in-game .modal { --chip: var(--card); --edge: var(--card-edge); --tx:
 /* ---------- the world weather on the hub sky (the same spell as Pet Farm, weather.js; app.js paintSkyWx sets body.wx-<kind>) ----------
    Cloud and rain turn the sky greyer, wind speeds the clouds up, a rainbow follows rain. The rain is one layer behind the
    panels that only the compositor moves (transform), so it never repaints the page; low graphics and reduced motion leave it out. */
-body.sky.wx-cloudy:not(.night):not(.in-game) { --sky1: #8fb0cf; --sky2: #c6d8e8; --sky3: #e2ebf3; }
-body.sky.wx-rain:not(.night):not(.in-game) { --sky1: #7d95ae; --sky2: #b3c3d4; --sky3: #d7e0ea; }
-body.sky.wx-wind:not(.night):not(.in-game) { --sky1: #6ab6ec; --sky2: #bde2fb; }
-body.sky.night.wx-cloudy:not(.in-game) { --sky1: #16152c; --sky2: #26234a; --sky3: #36315a; }
-body.sky.night.wx-rain:not(.in-game) { --sky1: #141428; --sky2: #232244; --sky3: #322f55; }
+body.sky.wx-cloudy:not(.skynight):not(.in-game) { --sky1: #8fb0cf; --sky2: #c6d8e8; --sky3: #e2ebf3; }
+body.sky.wx-rain:not(.skynight):not(.in-game) { --sky1: #7d95ae; --sky2: #b3c3d4; --sky3: #d7e0ea; }
+body.sky.wx-wind:not(.skynight):not(.in-game) { --sky1: #6ab6ec; --sky2: #bde2fb; }
+body.sky.skynight.wx-cloudy:not(.in-game) { --sky1: #16152c; --sky2: #26234a; --sky3: #36315a; }
+body.sky.skynight.wx-rain:not(.in-game) { --sky1: #141428; --sky2: #232244; --sky3: #322f55; }
 body.sky.wx-cloudy:not(.in-game)::before, body.sky.wx-rain:not(.in-game)::before { opacity: 1; }
-body.sky.night.wx-cloudy:not(.in-game)::before { opacity: .3; } body.sky.night.wx-rain:not(.in-game)::before { opacity: .34; }
-body.sky.night.wx-cloudy:not(.in-game)::after { opacity: .45; animation: none; } body.sky.night.wx-rain:not(.in-game)::after { display: none; } /* stars behind the cloud */
+body.sky.skynight.wx-cloudy:not(.in-game)::before { opacity: .3; } body.sky.skynight.wx-rain:not(.in-game)::before { opacity: .34; }
+body.sky.skynight.wx-cloudy:not(.in-game)::after { opacity: .45; animation: none; } body.sky.skynight.wx-rain:not(.in-game)::after { display: none; } /* stars behind the cloud */
 body.sky.wx-wind:not(.in-game)::before { animation-duration: 50s; animation-timing-function: steps(1000); } /* the clouds hurry past */
 .wxfall { display: none; position: fixed; left: 0; right: 0; top: -220px; bottom: 0; z-index: -1; pointer-events: none; }
 body.sky.wx-rain:not(.in-game) .wxfall { display: block; opacity: .5; will-change: transform; animation: wxrain .5s linear infinite;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='220'%3E%3Cg stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M20 10l-5 24M70 60l-5 24M120 25l-5 24M45 130l-5 24M100 150l-5 24M150 100l-5 24M10 180l-5 24'/%3E%3C/g%3E%3C/svg%3E"); }
-body.sky.night.wx-rain:not(.in-game) .wxfall { opacity: .32; }
+body.sky.skynight.wx-rain:not(.in-game) .wxfall { opacity: .32; }
 @keyframes wxrain { to { transform: translateY(220px); } }
 /* the rainbow: Pet Farm's six colours in a soft arch over the top of the page, still */
 body.sky.wx-rainbow:not(.in-game) .wxfall { display: block; top: 0; opacity: .36;
   background: radial-gradient(closest-side, transparent 80%, #b79cf0 80% 83.3%, #6fb7e8 83.3% 86.6%, #7fd08a 86.6% 90%, #ffe066 90% 93.3%, #ffb547 93.3% 96.6%, #e8615a 96.6% 100%, transparent 100%) no-repeat 50% 340px / 1500px 1500px;
   -webkit-mask: linear-gradient(#000 0 300px, transparent 640px); mask: linear-gradient(#000 0 300px, transparent 640px); }
-body.sky.night.wx-rainbow:not(.in-game) .wxfall { opacity: .14; }
+body.sky.skynight.wx-rainbow:not(.in-game) .wxfall { opacity: .14; }
 html.gfx-low body.sky.wx-rain .wxfall { display: none; }
 @media (prefers-reduced-motion: reduce) { body.sky.wx-rain .wxfall { display: none; } }
 /* the hero banner's plain sky greys too (a bought isle sky keeps its look; the rain falls in its 3D isle either way) */
-body.wx-cloudy:not(.night) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#a9c3da, #e0ebf3); }
-body.wx-rain:not(.night) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#90a6bc, #cdd9e4); }
-body.night.wx-rain .hubgrid .hero:not([class*=isk]), body.night.wx-cloudy .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#1d1c3c, #34315f); }
+body.wx-cloudy:not(.skynight) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#a9c3da, #e0ebf3); }
+body.wx-rain:not(.skynight) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#90a6bc, #cdd9e4); }
+body.skynight.wx-rain .hubgrid .hero:not([class*=isk]), body.skynight.wx-cloudy .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#1d1c3c, #34315f); }
 
 /* ---------- hub re-plan, Układ 1 (2026-11-25): slim hero with your isle as the way to Pet Farm, Today as a compact grid ---------- */
 /* the hero: a one-line heading; the short line under it only on wide screens (2200px+), where the hero is taller */
@@ -2174,3 +2175,14 @@ span.gwtog b { min-width: 18px; text-align: center; font-variant-numeric: tabula
 @media (max-width: 1099px) { .ghead .gfilt { order: 1; } .gwbtn { margin-left: auto; } }
 body.sky .gcard.gwcard { box-shadow: 0 7px 0 var(--deep); } body.sky .gcard.gwcard::before, body.sky .gcard.gwcard::after { display: none; }
 @media (max-width: 760px) { .gwrow .btn { font-size: 15px; } }
+
+/* ---------- the server clock in the top bar (Warsaw time: daily things turn over at its midnight), 2026-11-25 ---------- */
+.top .srvclock { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; height: 54px; padding: 0 14px; border: 3px solid var(--ink); border-radius: 16px;
+  background: var(--pan, var(--paper)); color: var(--tx, var(--ink)); box-shadow: 0 4px 0 var(--ink); font: 700 18px/1 var(--fd); font-variant-numeric: tabular-nums; white-space: nowrap; cursor: default; }
+.top .srvclock > span { font-size: 17px; }
+.top .srvclock ~ .me.coinbtn { margin-left: 0; }
+@media (max-width: 600px) { .top .srvclock { height: 48px; padding: 0 9px; border-radius: 14px; font-size: 15px; } .top .srvclock > span { display: none; } }
+/* when the clock's sky and the chosen UI disagree (night UI on a day sky, or the other way), boxes that were see-through
+   over the sky get a solid panel so their text stays readable */
+body.sky.night:not(.skynight):not(.in-game) .empty, body.sky.skynight:not(.night):not(.in-game) .empty { background: color-mix(in srgb, var(--pan) 92%, transparent); border-color: var(--edge); color: var(--tx2); }
+@media (max-width: 480px) { .top .srvclock { display: none; } } /* phones: no room beside coins and the account card */
