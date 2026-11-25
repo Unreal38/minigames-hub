@@ -154,7 +154,7 @@ export function mount(app, ctx) {
   // ---- name tags over people you can see, and "Zzz" over sleepers
   function buildTags() {
     const team = new Set(you()?.team || []);
-    tagsEl.innerHTML = info.map((p, i) => `<div class="ln-tag${i === S.me ? ' me' : ''}${team.has(i) && i !== S.me ? ' mate' : ''}" hidden>${team.has(i) && i !== S.me ? '<i class="ln-eye" title="Sneak"></i>' : ''}<b>${nameHtml(p.name, p.fl)}</b></div>`).join('');
+    tagsEl.innerHTML = info.map((p, i) => `<div class="ln-tag${i === S.me ? ' me' : ''}${team.has(i) && i !== S.me ? ' mate' : ''}" hidden>${team.has(i) && i !== S.me ? `<i class="ln-eye" title="${L('Sneak', 'Łasuch')}"></i>` : ''}<b>${nameHtml(p.name, p.fl)}</b></div>`).join('');
     tagEls = [...tagsEl.children]; bedEls = new Map();
   }
   function onFrame(folk, me, beds) {
