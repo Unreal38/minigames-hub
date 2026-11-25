@@ -51,8 +51,8 @@ export const SP = {
     cyl(g, .1 * s, .12 * s, .16 * s, '#2e2a3a', 0, 1.16 * s, 0, 8); cyl(g, .17 * s, .17 * s, .03 * s, '#2e2a3a', 0, 1.09 * s, 0, 10); },
   gifts(g, s = 1) { for (const [x, z, w, h, c, r] of [[0, 0, .34, .3, '#e5343b', '#ffd65a'], [.32, .08, .26, .22, '#4a9ae0', '#ffffff'], [.05, .3, .22, .18, '#3fa06a', '#ff5a6e']]) {
       put(g, G('gb' + w + h, () => new THREE.BoxGeometry(w * s, h * s, w * s)), c, x * s, h / 2 * s, z * s);
-      put(g, G('gr' + w + h, () => new THREE.BoxGeometry(w * 1.04 * s, h * 1.02 * s, .05 * s)), r, x * s, h / 2 * s, z * s);
-      put(g, G('gq' + w + h, () => new THREE.BoxGeometry(.05 * s, h * 1.02 * s, w * 1.04 * s)), r, x * s, h / 2 * s, z * s); } },
+      put(g, G('gr' + w + h, () => new THREE.BoxGeometry(w * 1.04 * s, h * 1.05 * s, .05 * s)), r, x * s, h / 2 * s, z * s);
+      put(g, G('gq' + w + h, () => new THREE.BoxGeometry(.05 * s, h * 1.05 * s, w * 1.04 * s)), r, x * s, h / 2 * s, z * s); } },
   // spring
   blossom(g, s = 1) { const c = pickOf(s, 97, ['#ffc1dc', '#ffd9ea', '#ffb0cf']); cyl(g, .09 * s, .13 * s, .7 * s, TRUNK, 0, .35 * s);
     ico(g, .45 * s, c, 0, .95 * s, 0); ico(g, .32 * s, '#ffffff', .22 * s, 1.18 * s, .08 * s); ico(g, .3 * s, c, -.24 * s, .82 * s, -.1 * s); ico(g, .2 * s, '#ffe9f3', .1 * s, .7 * s, .3 * s); },

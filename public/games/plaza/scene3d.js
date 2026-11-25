@@ -147,7 +147,7 @@ export function createScene(canvas, opts = {}) {
   const paveM = flat(winter ? '#dfe3ee' : '#ead9bd'), paveD = flat(winter ? '#c3c9da' : '#d9c3a0'), ringM = flat(winter ? '#aab2c8' : '#c9ae88');
   { const pav = new THREE.Group(); const disc = (r, m, y) => put(pav, new THREE.CylinderGeometry(r, r, .06, 56), m, 0, y);
     disc(R_SQUARE + .35, ringM, 0); disc(R_SQUARE, paveM, .012); disc(TREE_R + 1.3, paveD, .024); disc(TREE_R + 1, paveM, .036);
-    for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283, r = (R_SQUARE + TREE_R + 1.3) / 2; put(pav, new THREE.BoxGeometry(.09, .05, R_SQUARE - TREE_R - 1.6), paveD, Math.cos(a) * r, .02, Math.sin(a) * r).rotation.y = -a + Math.PI / 2; }
+    for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283, r = (R_SQUARE + TREE_R + 1.3) / 2; put(pav, new THREE.BoxGeometry(.09, .05, R_SQUARE - TREE_R - 1.6), paveD, Math.cos(a) * r, .026, Math.sin(a) * r).rotation.y = -a + Math.PI / 2; }
     for (const [x, z] of [[12.6, 10.2], [-12.4, 10.2], [-12.6, -10.4], [12.6, -10.4], [0, 15.6], [0, -14.4], [15.4, .4], [-15.4, .6]]) { const d = Math.hypot(x, z), n = Math.round((d - R_SQUARE - .6) / .95); // stepping stones out to each corner
       for (let k = 0; k < n; k++) { const r = R_SQUARE + .9 + k * .95; put(pav, new THREE.CylinderGeometry(.36, .36, .05, 7), k % 2 ? paveM : paveD, x / d * r + Math.sin(k * 5 + x) * .12, .01, z / d * r + Math.cos(k * 3 + z) * .12); } }
     { const s = new THREE.Group(); s.position.set(STAGE[0], 0, STAGE[1]); s.rotation.y = STAGE[2]; stage(s, winter); pav.add(s); }
