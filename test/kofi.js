@@ -36,7 +36,7 @@ function player(token) {
 const hook = (d, token = KEY) => fetch(`http://127.0.0.1:${PORT}/kofi`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
   body: new URLSearchParams({ data: JSON.stringify({ verification_token: token, type: 'Donation', ...d }) }) }).then(r => r.status);
 const CLOTHES = packIds('kofi'), COSM = cosPackIds('kofi'), IDS = [...CLOTHES, ...COSM], has = p => IDS.every(id => p.me.owned.includes(id));
-ok(CLOTHES.length === 7 && COSM.length === 10, 'the Supporter pack should be seven clothes and ten account cosmetics');
+ok(CLOTHES.length === 8 && COSM.length === 10, 'the Supporter pack should be eight avatar items (one per Wardrobe slot) and ten account cosmetics');
 
 // without KOFI_TOKEN the address does not exist
 await boot({});
