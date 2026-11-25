@@ -266,7 +266,7 @@ export function mount(app, ctx) {
     const html = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="${(R_WALK + 1) / (2 * R) * 100}" class="isle"/>
       ${WALLS.map(w => `<line x1="${px(w.a[0]).toFixed(1)}" y1="${px(w.a[1]).toFixed(1)}" x2="${px(w.b[0]).toFixed(1)}" y2="${px(w.b[1]).toFixed(1)}" class="w ${w.k}"/>`).join('')}
       ${STATIONS.map((st, i) => `<g class="${todo.has(i) ? 'todo' : ''}"><circle cx="${px(st.x)}" cy="${px(st.z)}" r="3.4"/><text x="${px(st.x)}" y="${px(st.z) + 7.5}">${esc(st.name())}</text></g>`).join('')}
-      <circle cx="50" cy="50" r="2.4" class="fire"/>${sneak() ? LOGS.map(([x, z]) => `<circle cx="${px(x)}" cy="${px(z)}" r="1.8" class="log"/>`).join('') : ''}
+      <circle cx="50" cy="50" r="2.4" class="fire"/><text x="50" y="${50 + 7.5}">${L('Campfire', 'Ognisko')}</text>${sneak() ? LOGS.map(([x, z]) => `<circle cx="${px(x)}" cy="${px(z)}" r="1.8" class="log"/>`).join('') : ''}
       ${m ? `<circle cx="${px(m.x)}" cy="${px(m.z)}" r="2.2" class="me"/>` : ''}</svg>`;
     setHtml(el, `<div class="ln-mapbox"><button type="button" class="round sm" data-a="map" aria-label="${L('Close', 'Zamknij')}">×</button>${html}</div>`);
   }
