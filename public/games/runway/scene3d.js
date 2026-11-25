@@ -251,13 +251,13 @@ export function createScene(canvas, { onFrame } = {}) {
   let S = null, gid = '', T = 0, evN = 0, stageT = 0, stageKey = '';
   let shown = []; // what is on screen this stage: { m, i, kind: 'walk' | 'judge' | 'me' | 'pod', at, place }
   const pfx = createFx(scene), shake = shaker();
-  const lookOf = i => S.looks[i] || S.seats[i].av;
+  const lookOf = i => S.looks[i] || S.seats[i].av, tcOf = i => S.tc?.[i] || S.seats[i].color; // a look's top colour
   function arrange() {
     hideAll(); shown = []; for (const s of stools) s.visible = false;
     const st = S.stage, me = S.me;
     podium.visible = st === 'reveal' || st === 'end';
     if (st === 'dress' || st === 'theme' || st === 'pick') {
-      if (me >= 0) { const m = model(S.seats[me].color, lookOf(me), 'stand'); m.wrap.visible = true; m.wrap.position.set(0, RUN.h, STAGE.z + .4); m.wrap.rotation.set(0, 0, 0); shown.push({ m, i: me, kind: 'me' }); }
+      if (me >= 0) { const m = model(tcOf(me), lookOf(me), 'stand'); m.wrap.visible = true; m.wrap.position.set(0, RUN.h, STAGE.z + .4); m.wrap.rotation.set(0, 0, 0); shown.push({ m, i: me, kind: 'me' }); }
     }
     if (st === 'walk') {
       const w = S.walker, cur = S.cur;
@@ -277,7 +277,7 @@ export function createScene(canvas, { onFrame } = {}) {
       const pts = st === 'end' ? S.res.tot : S.last.map(l => l?.pts ?? -1);
       const top = S.seats.map((_, i) => i).filter(i => pts[i] >= 0 && S.seats[i].human !== false).sort((a, b) => pts[b] - pts[a]).slice(0, 3);
       top.forEach((i, k) => {
-        const m = model(S.seats[i].color, lookOf(i), 'stand'), [x, h] = PODIUM[k];
+        const m = model(tcOf(i), lookOf(i), 'stand'), [x, h] = PODIUM[k];
         m.wrap.visible = true; m.wrap.position.set(x, RUN.h + h, STAGE.z + .3); m.wrap.rotation.set(0, 0, 0);
         shown.push({ m, i, kind: 'pod', place: k });
       });
@@ -288,7 +288,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const fresh = st.gid !== gid;
     if (fresh) { gid = st.gid; evN = st.ev?.length ? st.ev[st.ev.length - 1].n : 0; }
     S = st;
-    const key = [st.stage, st.walk, st.round, st.me, st.walker, st.cur ? st.cur.av.join('.') + st.cur.pose : '', st.me >= 0 ? (st.looks[st.me] || []).join('.') : '', st.seats.map(p => p.color + p.human).join()].join('/');
+    const key = [st.stage, st.walk, st.round, st.me, st.walker, st.cur ? st.cur.av.join('.') + st.cur.pose : '', st.me >= 0 ? (st.looks[st.me] || []).join('.') + st.tc?.[st.me] : '', (st.tc || []).join(), st.seats.map(p => p.color + p.human).join()].join('/');
     if (key !== stageKey) { if (stageKey.split('/')[0] !== st.stage || stageKey.split('/')[1] !== String(st.walk)) stageT = 0; stageKey = key; arrange(); }
     paintSign(sign, themeName(st.theme) || 'Sky Runway', st.twist && st.ph !== 'end' ? twistName(st.twist) : st.ph === 'end' ? L("Show's over!", 'Koniec pokazu!') : `${L('Round', 'Runda')} ${st.round + 1}/${st.rounds}`);
     if (!fresh) for (const e of st.ev || []) {

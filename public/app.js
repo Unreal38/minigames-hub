@@ -586,7 +586,7 @@ const GAMES = {
     howto: `A dress-up show. Each round you vote on a theme (or write your own): dress up against the clock with everything in the shop on loan, then walk the runway while your friends give 1 to 5 stars. The most stars after all rounds wins.`,
     rules: `<ol>
       <li>A game for <b>3 to 8 people</b>, no bots. Each round starts with a <b>theme vote</b>: 3 random themes, like Royal ball or Pirate beach party, and anyone can <b>write their own</b> (one each). Everyone votes, the most votes wins and a tie is drawn at random. You can't vote for the theme you wrote. Sometimes a twist comes with it.</li>
-      <li><b>Dress up</b> before the clock runs out. <b>Everything in the shop is on loan</b> for the show, Supporter pack pieces too. Your body, height, skin and face stay yours, so friends know it's you. Pick a pose for the end of the runway, then press Ready.</li>
+      <li><b>Dress up</b> before the clock runs out. <b>Everything in the shop is on loan</b> for the show, Supporter pack pieces too. Everyone starts in the same plain outfit; your body, height, skin, face and hair stay yours, so friends know it's you. Pick a pose for the end of the runway, then press Ready.</li>
       <li>Nobody sees the other looks until they walk. Then everyone walks the <b>runway</b> one by one, in a random order. The others give each look <b>1 to 5 stars</b>. You can't vote for yourself.</li>
       <li>A look's points are its average stars × 20. With 5 or more judges, each look's highest and lowest vote are dropped.</li>
       <li>With <b>Secret walk</b> on, names are hidden on the runway and show only on the podium.</li>
@@ -1300,7 +1300,7 @@ function mountGame() {
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
       again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), sit: on => send({ t: 'sit', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
       toast, rules: () => openRules(st.room?.game),
-      owned: () => st.me?.owned || [], keepLook: av => keepLook(av),
+      owned: () => st.me?.owned || [], keepLook: (av, tc) => keepLook(av, tc),
     }));
     st.game.room(st.room); placeGameSwitch();
     st.gameLoading = null;
@@ -2989,9 +2989,10 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
 }
 // Sky Runway's "Keep this look": the pieces you own (and free ones) go on at once; borrowed ones are tried on in the
 // Wardrobe, whose buy bar (and Supporter pack button) takes them from there. Nothing borrowed is saved.
-function keepLook(look) {
+function keepLook(look, tc) {
   const a = cleanAv(look), cur = cleanAv(st.av), have = new Set(st.me?.owned || []);
   const mine = a.map((v, i) => (needsOwning(AV_KEYS[i], v) && !have.has(AV_KEYS[i] + ':' + v) ? cur[i] : v));
+  if (COLORS.includes(tc) && tc !== st.color) { st.color = tc; LS.set('ct_color', tc); if (st.name) send({ t: 'profile', name: st.name, color: st.color, av: mine }); } // the top colour is free: it is kept too
   if (st.name && mine.join() !== cur.join()) { st.av = mine; LS.set('ct_av', JSON.stringify(mine)); send({ t: 'profile', name: st.name, color: st.color, av: mine }); }
   openWardrobe({ sec: 'av0', tryAv: a });
 }

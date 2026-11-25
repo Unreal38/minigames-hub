@@ -449,7 +449,7 @@ export const GAMES_PL = {
     howto: `Pokaz mody. W każdej rundzie głosujecie na temat (albo wpisujecie własny): przebierz się na czas, pożyczając wszystko ze sklepu, a potem przejdź po wybiegu, gdy znajomi dają od 1 do 5 gwiazdek. Po wszystkich rundach wygrywa najwięcej gwiazdek.`,
     rules: `<ol>
       <li>Gra dla <b>3–8 osób</b>, bez botów. Każda runda zaczyna się od <b>głosowania na temat</b>: 3 losowe tematy, na przykład Bal królewski albo Piracka impreza na plaży, a każdy może <b>wpisać własny</b> (jeden na osobę). Wygrywa temat z największą liczbą głosów, a remis rozstrzyga losowanie. Na swój wpisany temat nie można głosować. Czasem dochodzi haczyk.</li>
-      <li><b>Przebierz się</b>, zanim skończy się czas. <b>Wszystko ze sklepu możesz pożyczyć</b> na pokaz, także rzeczy z Pakietu wspierających. Ciało, wzrost, skóra i twarz zostają twoje, żeby znajomi wiedzieli, że to ty. Wybierz pozę na koniec wybiegu i naciśnij Gotowe.</li>
+      <li><b>Przebierz się</b>, zanim skończy się czas. <b>Wszystko ze sklepu możesz pożyczyć</b> na pokaz, także rzeczy z Pakietu wspierających. Wszyscy zaczynają w tym samym zwykłym stroju; ciało, wzrost, skóra, twarz i fryzura zostają twoje, żeby znajomi wiedzieli, że to ty. Wybierz pozę na koniec wybiegu i naciśnij Gotowe.</li>
       <li>Nikt nie widzi strojów innych, póki nie wyjdą na wybieg. Potem wszyscy po kolei, w losowej kolejności, przechodzą po <b>wybiegu</b>. Reszta daje każdemu strojowi od <b>1 do 5 gwiazdek</b>. Na siebie nie można głosować.</li>
       <li>Punkty za strój to średnia gwiazdek × 20. Przy 5 lub więcej sędziach najwyższa i najniższa ocena każdego stroju odpadają.</li>
       <li>Przy włączonym <b>tajnym wybiegu</b> imiona są ukryte na wybiegu i pokazują się dopiero na podium.</li>

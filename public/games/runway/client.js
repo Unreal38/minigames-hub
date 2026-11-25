@@ -7,7 +7,7 @@ import { avatarHtml, OPT, AV_KEYS, AV_COLOR_KEYS, needsOwning, packOf, priceOf, 
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, COS, EMOTE_ICO } from '../../cosmetics.js';
-import { themeName, twistName, FREE_KEYS, POSES, poseName, WRITE_MAX, cleanTheme, EMOTE_POSE } from './rules.js';
+import { themeName, twistName, FREE_KEYS, POSES, poseName, TOP_COLS, WRITE_MAX, cleanTheme, EMOTE_POSE } from './rules.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,7 +19,7 @@ const I = {
   star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 16.8l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="currentColor" stroke="#3b2219" stroke-width="1.8" stroke-linejoin="round"/></svg>',
 };
 // the fitting room's tabs: label (EN, PL) and the avatar slot
-const TABS = [['top', 'Top', 'Góra'], ['bottom', 'Bottom', 'Dół'], ['botC', 'Bottom colour', 'Kolor dołu'], ['shoes', 'Shoes', 'Buty'], ['shoeC', 'Shoe colour', 'Kolor butów'],
+const TABS = [['top', 'Top', 'Góra'], ['tc', 'Top colour', 'Kolor góry'], ['bottom', 'Bottom', 'Dół'], ['botC', 'Bottom colour', 'Kolor dołu'], ['shoes', 'Shoes', 'Buty'], ['shoeC', 'Shoe colour', 'Kolor butów'],
   ['hat', 'Hat', 'Czapka'], ['glasses', 'Glasses', 'Okulary'], ['neck', 'Neck', 'Szyja'], ['back', 'Back', 'Plecy'], ['hand', 'In hand', 'W dłoni'],
   ['hair', 'Hair', 'Fryzura'], ['hairC', 'Hair colour', 'Kolor włosów'], ['facial', 'Beard', 'Zarost'], ['marks', 'Face marks', 'Znaki na twarzy']];
 const IX = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
@@ -55,8 +55,8 @@ export function mount(app, ctx) {
       <section class="rw-card rw-theme" id="rw-theme" hidden></section>
       <section class="rw-card rw-dress" id="rw-dress" hidden>
         <div class="rw-dhead"><div class="rw-dtx"><b id="rw-dtitle"></b><span id="rw-dsub"></span></div><div class="rw-clock"><div class="rw-bar"><i></i></div><span class="rw-sec"></span></div></div>
-        <div class="rw-tabs" id="rw-tabs" role="tablist"></div>
-        <div class="rw-grid" id="rw-grid"></div>
+        <div class="rw-body"><div class="rw-tabs" id="rw-tabs" role="tablist" aria-orientation="vertical"></div>
+        <div class="rw-grid" id="rw-grid"></div></div>
         <div class="rw-poses" id="rw-poses"></div>
         <div class="rw-dfoot"><div class="rw-ready" id="rw-ready"></div>
           <div class="rw-dbtns"><button type="button" class="btn sm w" data-a="rand">${L('Surprise me', 'Zaskocz mnie')}</button><button type="button" class="btn sm w" data-a="mine">${L('My clothes', 'Moje ubrania')}</button>
@@ -71,7 +71,7 @@ export function mount(app, ctx) {
   const root = app.querySelector('.rw'), $ = id => root.querySelector('#' + id);
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0;
-  let lastPanel = '', resultsTimer = 0, bigTimer = 0, sendTimer = 0, deadline = 0, stageKey = '', tab = 'top', look = null, lookKey = '', gridKey = '', picJob = 0, sentKey = '', myPose = 0;
+  let lastPanel = '', resultsTimer = 0, bigTimer = 0, sendTimer = 0, deadline = 0, stageKey = '', tab = 'top', look = null, myTc = '', lookKey = '', gridKey = '', picJob = 0, sentKey = '', myPose = 0;
 
   Promise.all([import('./scene3d.js'), import('../../itempic.js')]).then(([m, ip]) => {
     if (destroyed) return;
@@ -158,7 +158,7 @@ export function mount(app, ctx) {
     if (!IP || !S || S.me < 0) return '';
     const a = look.slice();
     if (k !== 'hand') a[IX.hand] = 0; if (k !== 'back') a[IX.back] = 0; // a held item or a back piece would cover the clothes in a small picture
-    return IP.itemPic(k, i, me().color, a);
+    return IP.itemPic(k, i, myTc || me().color, a);
   }
   function renderDress() {
     const el = $('rw-dress'), on = dressing() && S.me >= 0;
@@ -179,7 +179,14 @@ export function mount(app, ctx) {
     paintGrid();
   }
   function paintGrid() {
-    const grid = $('rw-grid'), n = OPT[tab].length, key = tab + '/' + S.gid + '/' + (IP ? 1 : 0) + '/' + (AV_COLOR_KEYS.includes(tab) ? '' : look.map((v, i) => (AV_KEYS[i] === tab ? '' : v)).join('.'));
+    const grid = $('rw-grid');
+    if (tab === 'tc') { // the top colour: the Wardrobe's colours (your seat colour first, when it is not one of them)
+      const cols = topCols(), key = 'tc/' + cols.join();
+      if (key !== gridKey) { gridKey = key; ++picJob; grid.classList.add('sw'); grid.innerHTML = cols.map((c, i) => `<button type="button" class="rw-sw" data-i="${i}" style="--c:${esc(c)}" aria-label="${esc(c)}"></button>`).join(''); }
+      for (const b of grid.children) b.setAttribute('aria-pressed', cols[+b.dataset.i] === myTc);
+      return;
+    }
+    const n = OPT[tab].length, key = tab + '/' + S.gid + '/' + (IP ? 1 : 0) + '/' + myTc + '/' + (AV_COLOR_KEYS.includes(tab) ? '' : look.map((v, i) => (AV_KEYS[i] === tab ? '' : v)).join('.'));
     const cur = look[IX[tab]];
     if (key !== gridKey) {
       gridKey = key; const job = ++picJob, swatch = AV_COLOR_KEYS.includes(tab);
@@ -193,15 +200,17 @@ export function mount(app, ctx) {
     }
     for (const b of grid.children) b.setAttribute('aria-pressed', +b.dataset.i === cur);
   }
+  const topCols = () => (me() && !TOP_COLS.includes(me().color) ? [me().color, ...TOP_COLS] : TOP_COLS);
   function setPart(k, i) {
+    if (k === 'tc') { const c = topCols()[i]; if (!c || c === myTc) return; myTc = c; sfx.place(); sendSoon(); renderDress(); return; }
     if (!look || look[IX[k]] === i) return;
     look[IX[k]] = i; sfx.place(); sendSoon(); renderDress();
   }
   function flush() {
     clearTimeout(sendTimer); sendTimer = 0;
     if (!S || S.me < 0 || !dressing()) return;
-    const k = S.gid + '/' + look.join('.'); if (k === sentKey) return;
-    sentKey = k; ctx.act({ t: 'look', av: look.slice() });
+    const k = S.gid + '/' + look.join('.') + myTc; if (k === sentKey) return;
+    sentKey = k; ctx.act({ t: 'look', av: look.slice(), tc: myTc });
   }
   const sendSoon = () => { if (!sendTimer) sendTimer = setTimeout(flush, 180); };
 
@@ -269,7 +278,7 @@ export function mount(app, ctx) {
     }
     // a new round or a new game: start from the look the server has for you
     const lk = s.gid + '/' + s.round + '/' + s.me;
-    if (s.me >= 0 && (lk !== lookKey || !look)) { lookKey = lk; look = cleanAv(s.looks[s.me]); myPose = s.pose[s.me] | 0; sentKey = s.gid + '/' + look.join('.'); gridKey = ''; }
+    if (s.me >= 0 && (lk !== lookKey || !look)) { lookKey = lk; look = cleanAv(s.looks[s.me]); myTc = s.tc?.[s.me] || s.seats[s.me].color; myPose = s.pose[s.me] | 0; sentKey = s.gid + '/' + look.join('.') + myTc; gridKey = ''; }
     if (key !== stageKey || Math.abs(deadline - (performance.now() + s.left)) > 700) deadline = performance.now() + s.left;
     stageKey = key;
     render(); scene?.setState(s);
@@ -285,10 +294,12 @@ export function mount(app, ctx) {
     const sub = L(`Themes: ${R.hist.map(h => themeName(h.theme)).join(', ')}.`, `Tematy: ${R.hist.map(h => themeName(h.theme)).join(', ')}.`) + (mineP > 1 ? ' ' + L(`You came ${ord(mineP)}.`, `Twoje miejsce: ${mineP}.`) : '');
     let keep = '';
     if (S.me >= 0 && S.looks[S.me]) {
-      const a = cleanAv(S.looks[S.me]), mine = me().av ? cleanAv(me().av) : a;
-      const changed = FREE_KEYS.filter(k => a[IX[k]] !== mine[IX[k]]);
+      const a = cleanAv(S.looks[S.me]), mine = me().av ? cleanAv(me().av) : a, tcOn = S.tc?.[S.me] || me().color;
+      // only a look you dressed up (not the plain starting outfit) that differs from your own clothes
+      const plain = FREE_KEYS.every(k => k === 'hair' || k === 'hairC' || !a[IX[k]]) && tcOn === me().color;
+      const changed = plain ? [] : FREE_KEYS.filter(k => a[IX[k]] !== mine[IX[k]]).concat(tcOn !== me().color ? ['tc'] : []);
       const borrowed = changed.filter(k => loaned(k, a[IX[k]]));
-      if (changed.length) keep = `<div class="rw-keep"><div class="rw-keeppic">${avatarHtml(me().color, a, 64)}</div><div class="rw-keeptx"><b>${L('Keep this look?', 'Zachować ten strój?')}</b>
+      if (changed.length) keep = `<div class="rw-keep"><div class="rw-keeppic">${avatarHtml(tcOn, a, 64)}</div><div class="rw-keeptx"><b>${L('Keep this look?', 'Zachować ten strój?')}</b>
         <span>${borrowed.length ? L(`Your own pieces are put on now. ${borrowed.length} borrowed ${borrowed.length === 1 ? 'piece goes' : 'pieces go'} to the Wardrobe to buy.`, `Twoje rzeczy założysz od razu. Pożyczone (${borrowed.length}) trafią do Garderoby do kupienia.`) : L('Everything in it is yours already.', 'Wszystko w nim już masz.')}</span>
         <ul>${borrowed.map(k => { const i = a[IX[k]]; return `<li>${esc(OPT[k][i])} ${packOf(k, i) ? `<span class="heart">♥ ${L('Supporter pack', 'Pakiet wspierających')}</span>` : `<span class="coin">${priceOf(k, i)}</span>`}</li>`; }).join('')}</ul>
         <button type="button" class="btn sm" data-a="keep">${L('Keep this look', 'Zachowaj ten strój')}</button></div></div>`;
@@ -298,7 +309,7 @@ export function mount(app, ctx) {
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], best = R.hist.reduce((b, h) => (h.pts[i] > (b?.pts[i] ?? -1) ? h : b), null);
         const note = best && best.pts[i] > 0 ? L(`Best look: ${themeName(best.theme)} +${best.pts[i]}`, `Najlepszy strój: ${themeName(best.theme)} +${best.pts[i]}`) : L('No stars this time', 'Tym razem bez gwiazdek');
-        return `<li class="${R.place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(p.color, S.looks[i] || p.av, 44, frameCls(p.fl))}
+        return `<li class="${R.place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(S.tc?.[i] || p.color, S.looks[i] || p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${note}</span></div>
           <strong><span>${R.tot[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>${keep}
@@ -353,10 +364,11 @@ export function mount(app, ctx) {
     else if (a === 'rand') {
       // a random look from everything in the shop (body, height, skin and face stay yours)
       for (const k of FREE_KEYS) { const n = OPT[k].length, keepOff = { facial: .6, marks: .7, glasses: .5, neck: .4, back: .5, hand: .4 }[k] || 0; look[IX[k]] = Math.random() < keepOff ? 0 : Math.random() * n | 0; }
+      myTc = TOP_COLS[Math.random() * TOP_COLS.length | 0];
       sfx.place(); sendSoon(); renderDress();
     }
-    else if (a === 'mine') { const own = cleanAv(me().av); for (const k of FREE_KEYS) look[IX[k]] = own[IX[k]]; sfx.click(); sendSoon(); renderDress(); }
-    else if (a === 'keep') { sfx.click(); ctx.keepLook?.(cleanAv(S.looks[S.me])); }
+    else if (a === 'mine') { const own = cleanAv(me().av); for (const k of FREE_KEYS) look[IX[k]] = own[IX[k]]; myTc = me().color; sfx.click(); sendSoon(); renderDress(); }
+    else if (a === 'keep') { sfx.click(); ctx.keepLook?.(cleanAv(S.looks[S.me]), S.tc?.[S.me]); }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
