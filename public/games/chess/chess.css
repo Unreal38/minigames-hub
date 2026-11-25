@@ -82,7 +82,7 @@ body.in-game { overflow: hidden; }
 .ch-wait.go .btn.paper { background: #fff4e2; color: var(--ink); }
 .ch-moves { display: flex; align-items: center; gap: 7px; max-width: min(640px, calc(100vw / var(--vz, 1) - 16px)); overflow-x: auto; scrollbar-width: none; background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 999px; padding: 5px 16px; font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--on-paper); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; box-sizing: border-box; }
 .ch-moves::-webkit-scrollbar { display: none; }
-.ch-moves i { font-style: normal; color: var(--soft-tx); font-weight: 600; margin-left: 3px; }
+.ch-moves i { flex: none; font-style: normal; color: var(--soft-tx); font-weight: 600; margin-left: 3px; }
 .ch-moves span { flex: none; padding: 0 5px; border-radius: 8px; }
 .ch-moves span.last { background: var(--lantern); color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
 .ch-moves .none { color: var(--soft-tx); font-weight: 600; }

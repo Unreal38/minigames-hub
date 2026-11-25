@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -530,6 +530,30 @@ const GAMES = {
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never draws a line and never types a guess gets none.</li>
     </ol>`,
   },
+  lantern: {
+    name: 'Lantern Night', load: () => import('./games/lantern/client.js'), start: 'Light the lanterns', min: 4,
+    mins: [6, 12],
+    host: { sneaks: 'auto', talk: 45, chores: 5, lull: 30, reveal: 'side', clues: 'on' }, solo: { sneaks: 'auto', talk: 45, chores: 5, lull: 30, reveal: 'side', clues: 'on' },
+    openSeat: 'Waiting for a friend (no bots in this game)',
+    settings: pill => `<div class="opt"><b>Sneaks</b><div class="pills">${pill('sneaks', 'auto', 'Auto')}${pill('sneaks', 1, '1')}${pill('sneaks', 2, '2')}</div></div>
+      <div class="opt"><b>Talk at meetings</b><div class="pills">${pill('talk', 30, '30 s')}${pill('talk', 45, '45 s')}${pill('talk', 90, '90 s')}</div></div>
+      <div class="opt"><b>Chores each</b><div class="pills">${pill('chores', 3, '3')}${pill('chores', 5, '5')}${pill('chores', 7, '7')}</div></div>
+      <div class="opt"><b>Time between lulls</b><div class="pills">${pill('lull', 20, '20 s')}${pill('lull', 30, '30 s')}${pill('lull', 45, '45 s')}</div></div>
+      <div class="opt"><b>The ferry shows</b><div class="pills">${pill('reveal', 'side', 'Their side')}${pill('reveal', 'none', 'Nothing')}</div></div>
+      <div class="opt"><b>Pawprint clues</b><div class="pills">${pill('clues', 'on', 'On')}${pill('clues', 'off', 'Off')}</div></div>`,
+    howto: `Walk the island at dusk as your avatar with a Pet Farm pet. Islanders do chores; one or two secret Sneaks lull people to sleep when nobody is looking. Find a sleeper or ring the bell, talk it over (best on voice) and vote someone onto the ferry. Islanders win by finishing every chore or sending every Sneak away.`,
+    rules: `<ol>
+      <li>A game for <b>4 to 10 people</b>, no bots. Everyone gets a secret card: most are <b>Islanders</b>, and <b>1 Sneak</b> (2 from 7 players) hides among them. Press and hold your card at the top to look at it again.</li>
+      <li>Everyone walks round the island with a <b>Pet Farm pet</b> picked for this game. It is dusk: you only see what your lantern lights up round you.</li>
+      <li><b>Islanders</b> do their chores at the marked places: light the lighthouse lamps, crank the windmill, feed the pets, water the garden and more. Every chore fills the island's bar. <b>When the bar is full, the islanders win.</b></li>
+      <li><b>Sneaks</b> get a pretend chore list. When an islander is close, a Sneak can <b>lull</b> them to sleep (then wait a while before the next one). Sneaks can crawl into a <b>hollow log</b> and come out of the next one, and play <b>pranks</b>: put the lighthouse out (islanders see much less until someone relights it) or untie the ferry (two islanders must hold both ropes at the dock within 40 seconds, or the Sneaks win).</li>
+      <li>Found a sleeper? <b>Ring for a meeting.</b> Everyone can also ring the <b>bell</b> by the campfire once a game. At a meeting everyone gathers at the fire. With pawprint clues on, the prints by the sleeper tell one thing about the Sneak's pet: its element or its size.</li>
+      <li>Talk it over (on voice, or in the chat, which opens only at meetings), then <b>vote</b> for a player or skip. The most votes sends that player away on the <b>ferry</b>. A tie, or more skips, sends nobody.</li>
+      <li>Players who fall asleep or leave on the ferry are <b>out</b>, but they go on as their pet: they can still finish chores and chat with other pets, and nobody awake hears them.</li>
+      <li><b>Islanders win</b> when every chore is done or every Sneak is gone. <b>Sneaks win</b> when they are as many as the islanders still awake, or when the ferry drifts away.</li>
+      <li>Coins: the winning side shares <b>1st place</b> (10 coins each); everyone else is placed by how long they stayed awake.</li>
+    </ol>`,
+  },
   pm: {
     name: 'Countries & Cities', load: () => import('./games/pm/client.js'), start: 'Draw the first letter', min: 2,
     mins: [8, 12],
@@ -593,6 +617,30 @@ const GAMES = {
       <li><b>Promotion</b>: a pawn that reaches the far side turns into a queen, rook, bishop or knight of your choice.</li>
       <li>The game is a <b>draw</b> when the player to move has no legal move and is not in check (stalemate), when the same position comes up three times, after 50 moves by each side with no capture and no pawn move, when neither side has enough pieces left to mate, or when both players agree (Offer a draw).</li>
       <li><b>Clock</b> (table settings): each player has their own time, and a few seconds are added after every move. Run out of time and you lose, unless your opponent has only a king, or a king and a single knight or bishop: then it is a draw. With no clock you can think as long as you like.</li>
+      <li>You can <b>resign</b> at any time: tap Resign twice.</li>
+      <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place. A draw shares first place.</li>
+    </ol>`,
+  },
+  warcaby: {
+    name: 'Checkers', load: () => import('./games/warcaby/client.js'), start: 'Start the game',
+    mins: [10, 30],
+    host: { board: '10', clock: '10+5', bots: 'easy' }, solo: { board: '10', clock: 'off', bots: 'easy' },
+    openSeat: 'A bot plays here if nobody joins',
+    settings: pill => `<div class="opt"><b>Board</b><div class="pills">${pill('board', '10', 'Polish 10×10')}${pill('board', '8', 'Small 8×8')}</div></div>
+      <div class="opt"><b>Clock</b><div class="pills">${pill('clock', 'off', 'No clock')}${pill('clock', '3+2', '3 min + 2s')}${pill('clock', '5+3', '5 min + 3s')}${pill('clock', '10+5', '10 min + 5s')}${pill('clock', '15+10', '15 min + 10s')}</div></div>
+      <div class="opt"><b>Bot</b><div class="pills">${pill('bots', 'easy', 'Beginner')}${pill('bots', 'club', 'Club')}${pill('bots', 'sharp', 'Strong')}</div></div>`,
+    howto: `Classic Polish draughts for two. Tap one of your pieces, then the square it goes to. Jump over the other player's pieces to take them; taking is a must, and you must take as many as you can. Take every piece, or leave them no move, to win.`,
+    rules: `<ol>
+      <li><b>Two players</b>, White and Black, each with 20 pieces on the dark squares of a 10×10 board (12 each on the small 8×8 board). White moves first. Who gets White is drawn at random, and a rematch swaps the colours. An empty seat is played by a bot (Beginner, Club or Strong: pick it in the table settings).</li>
+      <li>A <b>man</b> moves one square diagonally <b>forward</b> onto an empty square.</li>
+      <li><b>Taking</b>: jump over an enemy piece right next to you onto the empty square behind it. Men take <b>forwards and backwards</b>. If you land where you can take again, you keep jumping in the same move.</li>
+      <li><b>Taking is a must</b>, and you must take the <b>most pieces</b> you can (a king counts the same as a man). The pieces that can take glow orange.</li>
+      <li>Taken pieces leave the board when your move is over, so you can never jump the same piece twice.</li>
+      <li>A man that <b>ends its move</b> on the far row becomes a <b>king</b>. A man that only passes through it while still jumping stays a man.</li>
+      <li>A <b>king</b> flies any distance along a diagonal. It takes a piece anywhere along its line, as long as the squares before it are empty, and it can land on any empty square behind it.</li>
+      <li><b>You win</b> when the other player has no pieces left or cannot move.</li>
+      <li>The game is a <b>draw</b> when the same position comes up three times, after 25 moves each with only kings moving and nothing taken, when a lone king holds out for 16 moves against three pieces (5 moves against two or one), or when both players agree (Offer a draw).</li>
+      <li><b>Clock</b> (table settings): each player has their own time, and a few seconds are added after every move. Run out of time and you lose. With no clock you can think as long as you like.</li>
       <li>You can <b>resign</b> at any time: tap Resign twice.</li>
       <li>Coins go by your final place: <b>10 for the winner</b>, 1 for second place. A draw shares first place.</li>
     </ol>`,
@@ -1594,7 +1642,7 @@ const hasPack = () => { const have = new Set(st.me?.owned || []); return packIds
 let onKofi = null;
 function openSupport() {
   const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
-  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
+  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
   // a small picture of one account cosmetic or game piece skin, with the kind as its caption
   const cosFig = ([k, i]) => { const it = cosItem(k, i);
     const pic = k === 'nm' ? `<span class="supbox"><b>${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</b></span>` : k === 'fr' ? `<span class="supbox">${avatarHtml(st.color, st.av, 34, frameCls({ fr: i }))}</span>`
@@ -1846,7 +1894,9 @@ const HUB_GAMES = [
   ['bierki', 'bierkipic', bierkiArt, 'action party', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
   ['pm', 'pmpic', pmArt, 'board party', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],
   ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
+  ['warcaby', 'warcabypic', warcabyArt, 'board', '1–2 players', 'Classic Polish draughts: jump to take, crown your kings. On the big 10×10 board or the small 8×8 one, against a friend or a bot.'],
   ['kal', 'kalpic', kalArt, 'action party', '2–8 players', 'One player draws a secret word, everyone else races to guess it. Polish and English words, with Pet Farm pets too. For people only: no bots.'],
+  ['lantern', 'lanternpic', lanternArt, 'action party', '4–10 players', 'A cozy hidden-roles game on an island at dusk. Do chores, catch the Sneaks lulling your friends to sleep, and vote them onto the ferry. For people only: no bots.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -2506,7 +2556,7 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾'];
-const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
+const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
@@ -2789,7 +2839,7 @@ function skyStrip(p) {
 }
 function openPlayer(p) {
   if (!p) return; playerSheet?.close();
-  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm'];
+  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck'];
   const sheet = playerSheet = modal(`
     <div class="profcard">
       <div class="pisle">${skyHang(p)}<div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>

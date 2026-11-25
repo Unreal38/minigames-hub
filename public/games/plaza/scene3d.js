@@ -25,7 +25,7 @@ const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); return (a < 0 ? a + Math
 
 // Merge every baked mesh under root (the Pet Farm decorations arrive as one or two vertex-coloured meshes each) into one
 // mesh per kind of surface, then give the lot one outline. Fifty decorations cost about as much to draw as one.
-function mergeStatic(root, ink) {
+export function mergeStatic(root, ink) {
   root.updateWorldMatrix(true, true);
   const inv = root.matrixWorld.clone().invert(), buckets = new Map(), keep = [], m4 = new THREE.Matrix4(), sc = new THREE.Vector3();
   root.traverse(o => { if (!o.isMesh || o.userData.ink) return;
@@ -103,7 +103,7 @@ const ORN_GEO = {
 };
 // Meshes that share a material and never move apart become one mesh (the carousel's turning top, a pet's two eyes).
 // skip(o): leave this child and everything under it alone.
-function fuse(root, skip) {
+export function fuse(root, skip) {
   root.updateWorldMatrix(true, true);
   const inv = root.matrixWorld.clone().invert(), by = new Map(), m4 = new THREE.Matrix4();
   const walk = o => { for (const c of [...o.children]) { if (skip?.(c)) continue;
@@ -122,7 +122,7 @@ function fuse(root, skip) {
 }
 // Someone else's pet, seen from across the square: the whole pet as one mesh and one outline (its ears and tail keep
 // still), and its eyes as one. A handful of draw calls instead of fifteen, so a full room stays light.
-function litePet(g) { const out = mergeStatic(g, .045); out.scale.copy(g.scale); fuse(out); out.traverse(o => { if (o.isMesh) o.castShadow = false; }); return out; }
+export function litePet(g) { const out = mergeStatic(g, .045); out.scale.copy(g.scale); fuse(out); out.traverse(o => { if (o.isMesh) o.castShadow = false; }); return out; }
 const ORN_SHAPE = { star: 'star', bell: 'bell', cane: 'cane', ginger: 'ginger', snow: 'snow' };
 
 export function createScene(canvas, opts = {}) {
