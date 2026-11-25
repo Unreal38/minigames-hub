@@ -9,7 +9,7 @@ import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
-  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, upBlock, museumFill, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
+  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, upBlock, museumFill, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt, tripFits, FAR_VARIANT } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
@@ -384,6 +384,7 @@ const view = (f, p) => ({
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
   album: album(f), vars: f.vars, coats: f.coats, marks: f.marks, mail: f.mail || [], tokens: f.tokens || {}, buff: buffView(f), pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
+  far: f.far || 0, // far expeditions finished
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f), lodgeRoom: lodgeRoom(f), allRoom: allRoom(f), shelves: f.shelves || [],
   groups: (f.groups || []).map(g => ({ ...g, pets: g.pets.filter(id => f.pets.some(x => x.id === id)) })), // saved expedition groups, without pets that left
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
@@ -500,7 +501,10 @@ export function handle(p, a, reply) {
     if (ids.some(id => away(f, id, true))) return no('One of them is already out with another party.');
     if (f.pets.some(x => x.held && ids.includes(x.id))) return no('One of them is promised in a trade.');
     if ((f.house || 1) < z.house) return no(`${z.name} opens at farmhouse level ${z.house}.`);
+    if (!tripFits(a.zone, a.trip)) return no(z.far ? 'Only a Voyage reaches a far island.' : 'A Voyage only goes to a far island.');
+    if (tr.fuel && !canAfford(f.inv, tr.fuel)) return no('Not enough fuel for that trip. A Voyage takes crystal and Trail Packs.');
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
+    if (tr.fuel) pay(f.inv, tr.fuel); // balloon fuel and Trail Packs for a far expedition
     const w = wx(); // the weather they set off in travels with them: more loot in the sun, a tailwind, rainbow luck
     parties(f).push({ id: rid(), zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 * (w === 'wind' ? .8 : 1) * (1 - (unwork(f, ids), boost(f, 'gate'))) * (buffUse(f, 'gate') ? BOOSTS.gate.x : 1), ...(w === 'sunny' || w === 'rainbow' || w === 'wind' ? { w } : {}) });
     if (f.train?.ids.some(id => ids.includes(id))) { trainTick(f); f.train.ids = f.train.ids.filter(id => !ids.includes(id)); } // leaving on a trip ends its training
@@ -526,7 +530,9 @@ export function handle(p, a, reply) {
       else {
         const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
         const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0];
-        found = newPet(sp, p.user, true); found.from = t.zone; if (firstOf(f, found)) found.nu = 1; f.pets.push(found); settle(f, found);
+        found = newPet(sp, p.user, true); found.from = t.zone;
+        if (z.far && Math.random() < FAR_VARIANT) { const els = Object.keys(ELEMENTS).filter(e => e !== SPECIES[sp].el); found.el = els[rnd(els.length)]; } // far islands' pets may come in another element
+        if (firstOf(f, found)) found.nu = 1; f.pets.push(found); settle(f, found);
       }
     }
     // Sometimes a wild pet stands in the way instead: a short battle the party can take or leave.
@@ -536,7 +542,7 @@ export function handle(p, a, reply) {
       const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0], lv = Math.min(MAX_LV, Math.max(2, Math.round(party.reduce((n, x) => n + x.lv, 0) / party.length) + 2));
       f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS, pet: wildPet(sp, p.user) }; wild = { sp, lv };
     }
-    parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1;
+    parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1; if (z.far) f.far = (f.far || 0) + 1; // far expeditions finished (the Farm Journal counts them)
     return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, fresh: !!found?.nu, full, spilt, wild } });
   }
   if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
@@ -551,6 +557,7 @@ export function handle(p, a, reply) {
     const r = own(RECIPES, a.what); if (!r) return;
     if (!countOf(f, 'kitchen')) return no('Build a Kitchen first.');
     if (topLv(f, 'kitchen') < (r.lv || 1)) return no(`That recipe needs a level ${r.lv} Kitchen.`);
+    if ((f.house || 1) < (r.house || 0)) return no('That recipe opens with a bigger farmhouse.');
     if (!canAfford(f.inv, r.cost)) return no('Not enough for that recipe yet.');
     const extra = Math.random() < boost(f, 'kitchen'); // the helper at the oven sometimes bakes a second one
     const twice = buffUse(f, 'kitchen'); // a Lucky Wheel booster doubles the batch
