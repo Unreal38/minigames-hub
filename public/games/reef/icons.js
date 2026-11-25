@@ -16,22 +16,22 @@ function shine(g, x, y, rx, ry, a = .8) { g.save(); g.fillStyle = `rgba(255,255,
 
 // the frame every bonus square gets: a sunk rim in the square's own colour
 function frame(g, S, base) {
-  const m = S * .045;
+  const m = S * .03;
   rr(g, m, m, S - 2 * m, S - 2 * m, S * .14);
   g.lineWidth = S * .035; g.strokeStyle = dark(base, .25); g.globalAlpha = .5; g.stroke(); g.globalAlpha = 1;
 }
 
 // x2 / x3 badges at the bottom of the square
 function badge(g, S, text, kind, col) {
-  const c = S / 2, y = S * .79;
-  g.font = `900 ${S * .37}px Rubik, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const c = S / 2, y = S * .725;
+  g.font = `900 ${S * .33}px Rubik, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
   if (kind === 'letter') { // a little cream letter tile
-    const w = S * .62, h = S * .37, x = c - w / 2, t = y - h / 2;
+    const w = S * .56, h = S * .32, x = c - w / 2, t = y - h / 2;
     rr(g, x, t + S * .025, w, h, S * .05); g.fillStyle = '#c79a5e'; g.fill();
     rr(g, x, t, w, h, S * .05); g.fillStyle = lin(g, 0, t, 0, t + h, ['#fffaf0', '#f6e3bd']); g.fill(); outline(g, S, .022);
     g.fillStyle = col; g.fillText(text, c, y + S * .008);
   } else { // a dark pill for the whole word
-    const w = S * .78, h = S * .36, x = c - w / 2, t = y - h / 2;
+    const w = S * .7, h = S * .32, x = c - w / 2, t = y - h / 2;
     rr(g, x, t, w, h, h / 2); g.fillStyle = lin(g, 0, t, 0, t + h, [light(col, .15), dark(col, .12)]); g.fill(); outline(g, S, .022);
     g.fillStyle = '#ffffff'; g.fillText(text, c, y + S * .008);
   }
@@ -175,7 +175,7 @@ export function paintKind(g, S, k) {
   if (!ICON[k]) return;
   g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
   frame(g, S, KIND_COL[k]);
-  g.translate(S / 2, S * .35); g.scale(1.02, 1.02); g.translate(-S / 2, -S * .41);
+  g.translate(S / 2, S * .37); g.scale(.75, .75); g.translate(-S / 2, -S * .41);
   ICON[k](g, S);
   g.restore();
   g.save(); g.lineJoin = 'round'; const [t, kind, col] = BADGE[k]; badge(g, S, t, kind, col); g.restore();
