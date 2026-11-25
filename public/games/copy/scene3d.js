@@ -112,7 +112,9 @@ function buildIsland(scene, season) {
   const winter = season === 'winter', look = lookOf(season) || {}, lawn = look.grass || '#8bca60';
   const C = 2 * (SIZE - 1.6);
   const base = island(C, C, { props: 0, rim: 1.6, flowers: 70, seed: 7, depth: 1.3, size: 1.2, season });
-  for (const c of [...base.children]) if (c.userData.nightOnly) base.remove(c);
+  // the island's own night lamps stand on its square outline and float off our rounded corners; the map has its own lamps
+  const night = []; base.traverse(o => { if (o.userData.nightOnly) night.push(o); }); for (const o of night) o.removeFromParent();
+  base.position.y = -.08; // the lawn's bevelled top is at +.08: sink it so the ground is y = 0, under the paving, rugs and shadows
   scene.add(base);
   const stat = new THREE.Group(), live = [];
   const pave = winter ? '#dfe3ee' : '#e8d9bd', paveD = winter ? '#c3c9da' : '#d9c3a0', stone = winter ? '#d9d6e0' : '#dccdb4';

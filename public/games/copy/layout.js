@@ -99,7 +99,7 @@ export function wallRuns(w) {
 }
 
 // ---------- scenery that can't be copied: [kind, x, z, turn, size, blocking radius] ----------
-const PINES = [[-26, -4], [-26, 6], [-8, -26], [-3, -26.2], [4, -26], [8, -25], [26, -8], [26, 12.5], [-26, 26], [-9, 26.2], [8, 26.4], [-26, -9.5], [-26.4, 20.5], [26.2, 24]];
+const PINES = [[-26, -4], [-26, 6], [-8, -26], [-3, -26.2], [4, -26], [8, -25], [26, -8], [26, 12.5], [-23.4, 23.6], [-9, 26.2], [8, 26.4], [-26, -9.5], [-26.4, 20.5], [25.6, 22.6]];
 export const SCENERY = [
   ['tree', 0, 0, 0, 1, TREE_R],
   ...PINES.map(([x, z], i) => ['pine', x, z, i * 1.7, 2.6 + (i * 37 % 10) / 10, .9]),
@@ -167,8 +167,8 @@ export const PROPS = [
   ...AT('chest', [[24, 16.8], [11.6, 13.9]]),
   // the café
   ...AT('table', [[18.4, 22.2], [21.6, 22.2], [18.4, 24.6], [21.6, 24.6], [12.4, 23], [14.6, 25.4]], 0),
-  ...AT('chair', [[17.4, 22.2, -1.57], [19.4, 22.2, 1.57], [20.6, 22.2, -1.57], [22.6, 22.2, 1.57], [17.4, 24.6, -1.57], [19.4, 24.6, 1.57], [20.6, 24.6, -1.57], [22.6, 24.6, 1.57], [11.4, 23, -1.57], [13.4, 23, 1.57], [13.6, 25.4, -1.57], [15.6, 25.4, 1.57]]),
-  ...AT('birdbath', [[9.2, 25.6], [25.8, 25.6], [25.8, 20.6]], 0),
+  ...AT('chair', [[17.4, 22.2, 1.57], [19.4, 22.2, -1.57], [20.6, 22.2, 1.57], [22.6, 22.2, -1.57], [17.4, 24.6, 1.57], [19.4, 24.6, -1.57], [20.6, 24.6, 1.57], [22.6, 24.6, -1.57], [11.4, 23, 1.57], [13.4, 23, -1.57], [13.6, 25.4, 1.57], [15.6, 25.4, -1.57]]),
+  ...AT('birdbath', [[9.2, 25.6], [23.4, 24.6], [25.8, 20.6]], 0),
   // round the edges
   ...AT('bush', [[-26, -16], [-26, 13], [-1.6, -26], [26, -2], [26, 7], [26.4, 18.2], [-6, -12], [6, -12], [-26, 23]]),
   ...AT('rock', [[-11, 6], [11, -5.5], [-6.5, 10.5], [26, -11.4]]),
@@ -197,16 +197,33 @@ export function blocks() {
   return BLOCKS;
 }
 const near = (x, z) => blocks().grid.get(Math.floor(x / 4) * 1000 + Math.floor(z / 4)) || [];
+// The island's corners are rounded (scenery3d island(): a quadratic curve r = 30% of the half width): a point is on
+// the island, m metres in from its edge, when it is inside that outline shrunk by m.
+const CORNER = SIZE * .3;
+export function onIsle(x, z, m = .6) {
+  const W = SIZE - m, a = Math.abs(x) - (W - CORNER), b = Math.abs(z) - (W - CORNER);
+  if (Math.abs(x) > W || Math.abs(z) > W) return false;
+  if (a <= 0 || b <= 0) return true;
+  return Math.sqrt(1 - a / CORNER) + Math.sqrt(1 - b / CORNER) >= 1;
+}
 export function blocked(x, z, r = BODY_R) {
-  if (Math.abs(x) > EDGE || Math.abs(z) > EDGE) return true;
+  if (!onIsle(x, z)) return true;
   for (const b of near(x, z)) if ((x - b[0]) ** 2 + (z - b[1]) ** 2 < (b[2] + r) ** 2) return true;
   return false;
 }
 // One step of walking from (x, z) by (dx, dz): slides along whatever is in the way. Returns [x, z].
+// Already overlapping something (copying a big thing next to it makes you wider): any step that does not go deeper in
+// is allowed, so you can always walk out.
+export function depth(x, z, r = BODY_R) {
+  if (!onIsle(x, z)) return 9;
+  let d = 0; for (const b of near(x, z)) d = Math.max(d, b[2] + r - Math.hypot(x - b[0], z - b[1]));
+  return d;
+}
 export function walk(x, z, dx, dz, r = BODY_R) {
-  if (!blocked(x + dx, z + dz, r)) return [x + dx, z + dz];
-  if (!blocked(x + dx, z, r)) return [x + dx, z];
-  if (!blocked(x, z + dz, r)) return [x, z + dz];
+  const d0 = blocked(x, z, r) ? depth(x, z, r) : 0, ok = (a, b) => d0 > 0 ? depth(a, b, r) <= d0 + 1e-6 : !blocked(a, b, r);
+  if (ok(x + dx, z + dz)) return [x + dx, z + dz];
+  if (ok(x + dx, z)) return [x + dx, z];
+  if (ok(x, z + dz)) return [x, z + dz];
   return [x, z];
 }
 
