@@ -1111,14 +1111,16 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     lathe(hT, HP.map(([r, y]) => [r * 1.13, C + (y - C) * (y > C ? 1.12 : 1.04)]), G0);
     const sn = sph(hT, .34, G0, 0, .43, .5); sn.scale.set(.9, .62, 1.24); // upper snout
     const jw = sph(hT, .3, BL, 0, .23, .46); jw.scale.set(.8, .38, 1.12); // pale lower jaw
+    // cute, not scary: big shiny eyes, round blush and no frown (the teeth stay sharp)
     for (let i = 0; i < 9; i++) { const an = (i - 4) * .26, tt = cone(hT, .03, .075, '#ffffff', Math.sin(an) * .29, .27, .5 + Math.cos(an) * .38); tt.rotation.x = PI; }
     for (const s of [-1, 1]) {
-      const ns = sph(hT, .034, '#2d5e33', s * .1, .6, .84); ns.scale.set(1.2, .6, .6); ns.rotation.x = -.6;
-      const bl = sph(hT, .07, '#ff9fb2', s * .24, .44, .68); bl.scale.set(.5, .7, .3); bl.rotation.y = s * .75;
-      sph(hT, .17, G0, s * .23, .73, .46); // the bumps the eyes sit in
-      const br = sph(hT, .12, DK, s * .25, .86, .56); br.scale.set(1.15, .34, .7); br.rotation.z = -s * .3;
+      const ns = sph(hT, .03, '#2d5e33', s * .1, .6, .84); ns.scale.set(1.2, .6, .6); ns.rotation.x = -.6;
+      const bl = sph(hT, .085, '#ff9fb2', s * .25, .45, .66); bl.scale.set(.55, .6, .3); bl.rotation.y = s * .8;
+      sph(hT, .16, G0, s * .23, .73, .46); // the bumps the eyes sit in
+      const ey = sph(hT, .135, '#ffffff', s * .23, .74, .55); ey.scale.z = .8;
+      const pu = sph(hT, .095, '#2a1a22', s * .22, .73, .62); pu.scale.set(1, 1.1, .55);
+      sph(hT, .032, '#ffffff', s * .22 + .03, .78, .67); sph(hT, .016, '#ffffff', s * .22 - .03, .7, .67);
     }
-    eyesOn(.125, .73, .56, .23);
     for (let i = 0; i < 6; i++) { const an = .45 + i * .4, sz = 1.1 - i * .1, sp = cone(hT, .1 * sz, .24 * sz, DK, 0, C + Math.cos(an) * .63, -Math.sin(an) * .62); sp.rotation.x = -an; sp.scale.x = .62; }
   }
   const tmpGeo = fitHat(hg, hH, hT, hatKey, hr);
