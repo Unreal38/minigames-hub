@@ -1115,10 +1115,10 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     for (const s of [-1, 1]) {
       const ns = sph(hT, .034, '#2d5e33', s * .1, .6, .84); ns.scale.set(1.2, .6, .6); ns.rotation.x = -.6;
       const bl = sph(hT, .07, '#ff9fb2', s * .24, .44, .68); bl.scale.set(.5, .7, .3); bl.rotation.y = s * .75;
-      sph(hT, .17, G0, s * .23, .93, .3); // the bumps the eyes sit in
-      const br = sph(hT, .12, DK, s * .25, 1.06, .38); br.scale.set(1.15, .34, .7); br.rotation.z = -s * .3;
+      sph(hT, .17, G0, s * .23, .79, .4); // the bumps the eyes sit in
+      const br = sph(hT, .12, DK, s * .25, .92, .5); br.scale.set(1.15, .34, .7); br.rotation.z = -s * .3;
     }
-    eyesOn(.125, .93, .4, .23);
+    eyesOn(.125, .79, .5, .23);
     for (let i = 0; i < 6; i++) { const an = .45 + i * .4, sz = 1.1 - i * .1, sp = cone(hT, .1 * sz, .24 * sz, DK, 0, C + Math.cos(an) * .63, -Math.sin(an) * .62); sp.rotation.x = -an; sp.scale.x = .62; }
   }
   const tmpGeo = fitHat(hg, hH, hT, hatKey, hr);
