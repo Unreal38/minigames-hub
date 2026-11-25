@@ -37,6 +37,7 @@ export const OPT_PL = {
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
+  Sneaks: 'Łasuchy', Auto: 'Automatycznie', 'Talk at meetings': 'Rozmowa na naradzie', 'Chores each': 'Prace na osobę', 'Time between lulls': 'Odstęp między uśpieniami', 'The ferry shows': 'Prom pokazuje', 'Their side': 'Stronę gracza', Nothing: 'Nic', 'Pawprint clues': 'Tropy łap',
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
   'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
@@ -401,6 +402,22 @@ export const GAMES_PL = {
       <li>Punkty w każdej kategorii: <b>15</b>, gdy tylko ty masz dobre hasło, <b>10</b> za hasło, którego nie ma nikt inny, <b>5</b>, gdy ktoś wpisał to samo, <b>0</b> za puste albo odrzucone. Wielkość liter i polskie znaki nie robią różnicy: „Krakow” i „Kraków” to ta sama odpowiedź.</li>
       <li><b>Wygrywa najwięcej punktów po ostatniej rundzie.</b> Przy równej liczbie punktów gracze dzielą miejsce.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie wpisze ani jednego hasła, nie dostaje monet.</li>
+    </ol>`,
+  },
+  lantern: {
+    name: 'Noc latarni', start: 'Zapal latarnie', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
+    pitch: 'Przytulna gra w ukryte role na wyspie o zmierzchu. Rób prace, przyłap Łasuchy na usypianiu znajomych i wyślij je promem. Tylko dla ludzi: bez botów.',
+    howto: `Chodzisz po wyspie o zmierzchu jako swój awatar ze zwierzakiem z Farmy. Wyspiarze wykonują prace, a jeden lub dwa ukryte Łasuchy usypiają innych, gdy nikt nie patrzy. Znajdź śpiocha albo zadzwoń dzwonem, naradźcie się (najlepiej na głosowym) i wyślijcie kogoś promem. Wyspiarze wygrywają, gdy skończą wszystkie prace albo odeślą wszystkie Łasuchy.`,
+    rules: `<ol>
+      <li>Gra dla <b>4–10 osób</b>, bez botów. Każdy dostaje tajną kartę: większość to <b>Wyspiarze</b>, a wśród nich ukrywa się <b>1 Łasuch</b> (od 7 graczy dwa). Przytrzymaj swoją kartę u góry ekranu, żeby jeszcze raz na nią zerknąć.</li>
+      <li>Wszyscy chodzą po wyspie ze <b>zwierzakiem z Farmy</b> wylosowanym na tę grę. Jest zmierzch: widzisz tylko to, co oświetla twoja latarnia.</li>
+      <li><b>Wyspiarze</b> wykonują prace w zaznaczonych miejscach: zapalają lampy w latarni, kręcą wiatrakiem, karmią zwierzaki, podlewają ogród i tak dalej. Każda praca wypełnia pasek wyspy. <b>Gdy pasek jest pełny, wygrywają wyspiarze.</b></li>
+      <li><b>Łasuchy</b> dostają udawaną listę prac. Gdy wyspiarz jest blisko, Łasuch może go <b>uśpić</b> (potem musi chwilę odczekać). Łasuchy mogą wejść do <b>pustej kłody</b> i wyjść z następnej oraz robić <b>psikusy</b>: zgasić latarnię (wyspiarze widzą dużo mniej, póki ktoś jej nie zapali) albo odwiązać prom (dwoje wyspiarzy musi w ciągu 40 sekund złapać obie liny na przystani, inaczej wygrywają Łasuchy).</li>
+      <li>Znajdziesz śpiocha? <b>Zwołaj naradę.</b> Każdy może też raz na grę zadzwonić <b>dzwonem</b> przy ognisku. Na naradzie wszyscy zbierają się przy ognisku. Przy włączonych tropach ślady łap przy śpiochu zdradzają jedną rzecz o zwierzaku Łasucha: jego żywioł albo wielkość.</li>
+      <li>Naradźcie się (na głosowym albo na czacie, który otwiera się tylko na naradach), potem <b>zagłosujcie</b> na gracza albo wstrzymajcie się. Gracz z największą liczbą głosów odpływa <b>promem</b>. Przy remisie albo większej liczbie wstrzymanych nikt nie odpływa.</li>
+      <li>Kto zaśnie albo odpłynie promem, jest <b>poza grą</b>, ale gra dalej jako swój zwierzak: może kończyć prace i rozmawiać z innymi zwierzakami, a nikt, kto nie śpi, go nie słyszy.</li>
+      <li><b>Wyspiarze wygrywają</b>, gdy wszystkie prace są zrobione albo nie ma już żadnego Łasucha. <b>Łasuchy wygrywają</b>, gdy jest ich tyle, ilu wyspiarzy, którzy jeszcze nie śpią, albo gdy prom odpłynie.</li>
+      <li>Monety: zwycięska strona dzieli <b>1. miejsce</b> (po 10 monet), a reszta zajmuje miejsca według tego, jak długo nie spała.</li>
     </ol>`,
   },
   kal: {

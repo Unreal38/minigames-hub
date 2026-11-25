@@ -5,6 +5,8 @@
 import { PL, plForm } from '../i18n.js';
 
 const TEXT = {
+  // Lantern Night
+  'The chat opens at meetings. Talk on voice, or find a sleeper and ring the bell.': 'Czat otwiera się na naradach. Rozmawiajcie na głosowym albo znajdź śpiocha i zadzwoń dzwonem.',
   // the plaza
   'Log in or make an account to hang an ornament.': 'Zaloguj się albo załóż konto, żeby zawiesić ozdobę.',
   'Walk up to the tree first.': 'Najpierw podejdź do choinki.',
@@ -103,6 +105,7 @@ const FORMS = [
   [/^That is part of the (.+)\. It is back in (.+)\.$/, (s, b) => `To część ${SEASON[s] || s}. Wraca ${BACK[b] || b}.`],
   [/^You already asked (.+)\.$/, u => `Zaproszenie do gracza ${u} jest już wysłane.`],
   [/^You and (.+) are already friends\.$/, u => `Ty i ${u} już jesteście znajomymi.`],
+  [/^This game needs at least (\d+) players\. Invite more friends first\.$/, n => `Do tej gry potrzeba co najmniej ${n} graczy. Najpierw zaproś więcej znajomych.`],
   [/^You need (\d+) more coins for that\.$/, n => `Brakuje ci na to ${n} ${plForm(+n, 'monety', 'monet', 'monet')}.`],
   [/^You're already signed in as (.+)\.$/, u => `Zalogowano cię już jako ${u}.`],
   [/^Your isle has room for (\d+) decorations\.$/, n => `Na twojej wyspie zmieści się ${n} ozdób.`],
