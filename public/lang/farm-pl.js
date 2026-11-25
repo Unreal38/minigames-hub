@@ -4,14 +4,14 @@
 // and so on needs its Polish here: test/i18n.js fails when one is missing.
 export const EL_PL = { Leaf: 'Liść', Ember: 'Żar', Tide: 'Fala', Spark: 'Iskra', Stone: 'Kamień' };
 
-const MATS = { wood: 'Drewno', stone: 'Kamień', fiber: 'Włókno', shells: 'Muszle', coal: 'Węgiel', crystal: 'Kryształ', berries: 'Jagody', sunberry: 'Słoneczne jagody', cookie: 'Jagodowe ciastka', cake: 'Miodowe ciasta', juice: 'Sok jagodowy', pie: 'Słoneczne tarty', tonic: 'Toniki wypoczynku', coins: 'Monety', stamps: 'Znaczki' };
+const MATS = { wood: 'Drewno', stone: 'Kamień', fiber: 'Włókno', shells: 'Muszle', coal: 'Węgiel', crystal: 'Kryształ', berries: 'Jagody', sunberry: 'Słoneczne jagody', cookie: 'Jagodowe ciastka', cake: 'Miodowe ciasta', juice: 'Sok jagodowy', pie: 'Słoneczne tarty', pack: 'Prowiant', tonic: 'Toniki wypoczynku', coins: 'Monety', stamps: 'Znaczki' };
 const MAT_INFO = {
   wood:     ['Wyprawy, najwięcej z Omszałego Lasu.', 'Większość budynków i ozdób.'],
   stone:    ['Wyprawy, najwięcej z Kamykowej Grani.', 'Budynki, ścieżki i kamienne ozdoby.'],
   fiber:    ['Wyprawy do Omszałego Lasu i Zatoczki Pływów.', 'Chatki, Gniazdo, miękkie ozdoby i Miodowe ciasta.'],
   shells:   ['Wyprawy do Zatoczki Pływów (dom na poziomie 2).', 'Ulepszanie budynków i wyszukane ozdoby.'],
   coal:     ['Wyprawy na Żarzące Wzgórza (dom na poziomie 3).', 'Wyższe poziomy budynków i wyszukane ozdoby.'],
-  crystal:  ['Rzadki. Wyprawy na Kamykową Grań (dom na poziomie 2) i Burzową Łąkę (poziom 4). Dłuższe wyprawy z większą liczbą zwierzaków znajdują więcej.', 'Gniazdo, najwyższe poziomy budynków i najbardziej wyszukane ozdoby.'],
+  crystal:  ['Rzadki. Wyprawy na Kamykową Grań (dom na poziomie 2) i Burzową Łąkę (poziom 4). Dłuższe wyprawy z większą liczbą zwierzaków znajdują więcej.', 'Gniazdo, najwyższe poziomy budynków, najbardziej wyszukane ozdoby i paliwo do balonu na dalekie wyprawy.'],
   berries:  ['Rosną na Grządkach co godzinę. Dotknij „Zbierz jagody”.', 'Gotowanie smakołyków w Kuchni. Nadmiar wymienisz w Warsztacie.'],
   sunberry: ['Grządki na poziomie 2 lub 3 dają je przy każdych zbiorach.', 'Najlepsze przepisy w Kuchni: Słoneczna tarta i Tonik wypoczynku.'],
   cookie:   ['Pieczone w Kuchni z 4 jagód.', 'Dotknij zwierzaka i podaj mu jedno: 30 doświadczenia.'],
@@ -20,12 +20,14 @@ const MAT_INFO = {
   pie:      ['Pieczone w Kuchni na poziomie 2.', 'Dotknij zwierzaka i podaj mu jedną: 220 doświadczenia.'],
   tonic:    ['Robione w Kuchni na poziomie 3.', 'Podaj odpoczywającemu zwierzakowi, żeby od razu mógł wrócić do Gniazda.'],
   stamps:   ['Dostarczanie zamówień z wysp na Tablicy zamówień.', 'Ozdoby za znaczki, w Urządź farmę, Znaczki. Znaczki zostają na twojej farmie: nie można ich wymieniać, dawać w prezencie ani zamieniać w Warsztacie.'],
+  pack:     ['Pakowany w Kuchni z 8 jagód, 10 włókien i 4 węgli.', 'Jedzenie na długą drogę: każda daleka wyprawa zabiera kilka.'],
   coins:    ['Bitwy, pomaganie sąsiadom i inne gry w Zatoce.', 'Drzewa i krzewy tutaj oraz sklep z ubraniami na stronie głównej. Monety zostają u ciebie: nie można ich wymieniać ani dawać w prezencie.'],
 };
 // [name, description]
 const ITEMS = {
   house: ['Dom', 'Nie ma jak w domu. Większy dom otwiera nowe miejsca do zwiedzania.'],
   hut: ['Chatka zwierzaków', 'Przytulne miejsce do spania dla czterech kolejnych zwierzaków.'],
+  museum: ['Muzeum zwierzaków', 'Wielka sala, w której wystawiasz swój Album zwierzaków. Jej pięć medalionów wypełnia się, gdy znajdujesz zwierzaki każdego żywiołu.'],
   lodge: ['Schronisko zwierzaków', 'Duży, przytulny dom, w którym 60 kolejnych zwierzaków drzemie pod dachem, ułożonych we własne kolekcje. Dalej mogą chodzić wszędzie i robić wszystko.'],
   gate: ['Brama wypraw', 'Stąd zwierzaki ruszają balonem i wracają z materiałami, a czasem z nowym przyjacielem.'],
   garden: ['Grządka', 'Kawałek ziemi. Co godzinę dojrzewają tu jagody.'],
@@ -86,6 +88,14 @@ const ITEMS = {
   telescope: ['Gwiezdny teleskop', 'Mosiężny teleskop, który powoli przeczesuje niebo w poszukiwaniu nowych wysp.'],
   bandstand: ['Altana dla orkiestry', 'Okrągła scenka z pasiastym dachem. Przez cały dzień wypływają z niej nuty.'],
   miniwheel: ['Małe Koło szczęścia', 'Małe koło, które nigdy nie zatrzymuje się na złym dniu. Nagroda z Koła szczęścia.'],
+  jsign: ['Tablica powitalna', 'Wita każdego gościa. Nagroda z Dziennika farmy.'],
+  jboard: ['Tablica ogłoszeń', 'Notatki, listy i rysunek zwierzaka. Nagroda z Dziennika farmy.'],
+  jpost: ['Drogowskaz', 'Wskazuje drogę na każdą wyspę. Nagroda z Dziennika farmy.'],
+  jcradle: ['Kołyska na jajko', 'Miękki koszyk, który kołysze nakrapiane jajko. Nagroda z Dziennika farmy.'],
+  jtable: ['Stół sąsiadów', 'Miejsce dla wszystkich i herbata dla dwojga. Nagroda z Dziennika farmy.'],
+  jvane: ['Złoty wiatrowskaz', 'Złoty zwierzak obraca się z wiatrem. Nagroda z Dziennika farmy.'],
+  jscope: ['Gwiezdna luneta', 'Do patrzenia ponad chmury. Nagroda z Dziennika farmy.'],
+  jcup: ['Puchar kolekcjonera', 'Dla farmera, który znalazł prawie wszystko. Nagroda z Dziennika farmy.'],
 };
 const BLURB = {
   mossbun: 'Króliczek, któremu na grzbiecie rośnie mech.',
@@ -156,6 +166,12 @@ const BLURB = {
   starjelly: 'Meduza w kształcie gwiazdy ze świecącymi końcami.',
   cometail: 'Fretka szybka jak smuga, z kometą zamiast ogona.',
   ringbear: 'Senny niedźwiadek, który nosi pierścień planety.',
+  griffling: 'Młody gryf z białą głową orła, zakrzywionym dziobem, dużymi brązowymi skrzydłami i lwim ogonem z kitką.',
+  bloomicorn: 'Źrebię jednorożca z grzywą z kwiatów i małym spiralnym rogiem.',
+  dreampir: 'Mały tapir w gwiaździstym futerku, który wydmuchuje trąbką bańki snów.',
+  yetiny: 'Kudłate małe yeti z oszronionymi rogami i wielkimi stopami jak rakiety śnieżne.',
+  gargoylet: 'Mały kamienny gargulec, który siedzi nieruchomo jak posąg, dopóki nie odwrócisz wzroku.',
+  nessling: 'Mały potwór z jeziora z długą szyją, rzędem garbów i czterema płetwami.',
   truffowl: 'Okrągła sowa, której rośnie własny kapelusz grzyba.',
   magmutt: 'Szczeniak z lawy w płaszczu z popękanej skały.',
   nimbowhale: 'Malutki wieloryb, który nosi własną chmurę deszczową.',
@@ -184,6 +200,7 @@ const RARITY = ['Pospolity', 'Niepospolity', 'Rzadki', 'Tylko z jajka'];
 const FORMS = ['Maluch', 'Podrostek', 'Dorosły'];
 const UPGRADES = {
   hut: 'Dwa łóżka więcej',
+  museum: ['Niebieska kopuła ze złotą latarnią', 'Świetliki w dachu, złote zdobienia i chorągwie żywiołów', 'Dwa boczne skrzydła i posągi zwierzaków przy schodach', 'Złota kopuła z gwiazdą, flagi i czerwony dywan'],
   lodge: ['Miejsce dla 150 zwierzaków w środku', 'Miejsce dla 300 zwierzaków w środku'],
   gate: 'Jedna drużyna więcej może być na wyprawie',
   kitchen: ['Nowy przepis: Słoneczna tarta', 'Nowy przepis: Tonik wypoczynku'],
@@ -206,6 +223,7 @@ const RECIPES = {
   cookie: ['Jagodowe ciastko', 'Podaj zwierzakowi: 30 doświadczenia.'],
   cake: ['Miodowe ciasto', 'Podaj zwierzakowi: 90 doświadczenia.'],
   juice: ['Sok jagodowy', 'Wypity w bitwie przywraca 40% zdrowia. Jeden na bitwę.'],
+  pack: ['Prowiant', 'Jedzenie na długą drogę. Każda daleka wyprawa zabiera kilka.'],
   pie: ['Słoneczna tarta', 'Podaj zwierzakowi: 220 doświadczenia.'],
   tonic: ['Tonik wypoczynku', 'Zwierzak, który go wypije, od razu jest wypoczęty i może wrócić do Gniazda.'],
 };
@@ -222,8 +240,15 @@ const ZONES = {
   reef: ['Rafa Koralowa', 'Rafa na niebie, gdzie morskie zwierzaki dryfują między koralami.'],
   peak: ['Szczyt Pogody', 'Słońce, śnieg i deszcz naraz.'],
   night: ['Wyspa Spadających Gwiazd', 'Wyspa, na której zawsze jest tuż po zmierzchu.'],
+  legend: ['Wyspa Legend', 'Mglista wyspa daleko za krawędzią mapy, gdzie żyją zwierzaki z dawnych opowieści.'],
 };
-const TRIPS = { stroll: ['Spacer', 'Na czas gry'], outing: ['Wycieczka', 'Na przerwę obiadową'], trek: ['Wędrówka', 'Gdy masz inne zajęcia'], camp: ['Biwak', 'Na noc'] };
+const CHARMS = {
+  el: ['Amulet żywiołu', 'Szansa na odmianę rośnie z 15% do 40%.'],
+  hyb: ['Amulet krzyżówki', 'Szansa na zwierzaka tylko z hodowli rośnie z 20% do 40%.'],
+  pat: ['Amulet wzoru', 'Maluch na pewno zachowa przynajmniej jedno znaczenie rodziców.'],
+  spk: ['Amulet blasku', 'Lśniący maluch jest cztery razy bardziej prawdopodobny.'],
+};
+const TRIPS = { stroll: ['Spacer', 'Na czas gry'], outing: ['Wycieczka', 'Na przerwę obiadową'], trek: ['Wędrówka', 'Gdy masz inne zajęcia'], camp: ['Biwak', 'Na noc'], voyage: ['Rejs', 'Pół dnia drogi'], odyssey: ['Wielki rejs', 'Cały dzień drogi'] };
 
 /** data.js: D holds its tables. */
 export function plData(D) {
@@ -237,12 +262,14 @@ export function plData(D) {
   for (const [k, [name, desc]] of Object.entries(RECIPES)) if (D.RECIPES[k]) Object.assign(D.RECIPES[k], { name, desc });
   for (const [k, [name, blurb]] of Object.entries(ZONES)) if (D.ZONES[k]) Object.assign(D.ZONES[k], { name, blurb });
   for (const [k, [name, blurb]] of Object.entries(TRIPS)) if (D.TRIPS[k]) Object.assign(D.TRIPS[k], { name, blurb });
+  for (const [k, [name, desc]] of Object.entries(CHARMS)) if (D.CHARMS?.[k]) Object.assign(D.CHARMS[k], { name, desc });
 }
 
 const COATS = ['Naturalny', 'Różany', 'Błękitny', 'Miętowy', 'Liliowy', 'Kakaowy'];
 const PATTERNS = { spots: 'Cętki', stripes: 'Paski', star: 'Gwiazdka', patch: 'Łata' };
 // What a baby can borrow from the other side of its family. Used after a colon ("Może odziedziczyć: ...").
-const PART = { mossbun: 'królicze uszy', sproutle: 'kiełek', petalpuff: 'korona z kwiatów', truffowl: 'kapelusz grzyba', cindercub: 'ogon z płomienia',
+const PART = { griffling: 'skrzydła gryfa', bloomicorn: 'róg jednorożca', dreampir: 'bańka snów', yetiny: 'oszronione rogi', gargoylet: 'kamienny ogon', nessling: 'garby potworka',
+  mossbun: 'królicze uszy', sproutle: 'kiełek', petalpuff: 'korona z kwiatów', truffowl: 'kapelusz grzyba', cindercub: 'ogon z płomienia',
   toastoad: 'kostka masła', flickit: 'płomyk świecy', magmutt: 'kamienie z lawy', puddlepup: 'focze płetwy', bubblefin: 'płetwa jak żagiel', axolily: 'liść lilii',
   nimbowhale: 'chmura deszczowa', zapkit: 'ogon z błyskawicy', buzzlet: 'bzyczące skrzydełka', voltvole: 'iskrzący czubek', glimmoth: 'świecące skrzydła', pebblet: 'kolce z kamyków',
   shrimplet: 'ogon jak wachlarz', siamew: 'czekoladowy ogon', coralcolt: 'korona z koralu', skipfin: 'piłka plażowa',
@@ -294,7 +321,7 @@ export function plBattle(D) {
 }
 
 /** What test/i18n.js checks: every key of the English tables has Polish here. */
-export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
+export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
 
 // What the farm's server code says (server/farm.js), for srvText() in lang/server.js.
 export const SRV_TEXT = {
@@ -329,11 +356,17 @@ export const SRV_TEXT = {
   'That collection is gone.': 'Tej kolekcji już nie ma.',
   'Only pets stored in the Lodge go into its collections.': 'Do kolekcji trafiają tylko zwierzaki ze Schroniska.',
   'Give it a name first.': 'Najpierw nadaj nazwę.',
+  'Pick some pets for the group first.': 'Najpierw wybierz zwierzaki do grupy.',
+  'That group is gone.': 'Tej grupy już nie ma.',
   'Move the pets stored in the Lodge out first.': 'Najpierw wyprowadź zwierzaki ze Schroniska.',
   'Not enough materials to grow the land.': 'Na powiększenie ziemi nie wystarczy materiałów.',
   'The farmhouse is as grand as it gets.': 'Okazalszy dom już nie będzie.',
   'Not enough materials to improve the farmhouse.': 'Na ulepszenie domu nie wystarczy materiałów.',
   'Build an Expedition Gate first.': 'Najpierw zbuduj Bramę wypraw.',
+  'That recipe opens with a bigger farmhouse.': 'Ten przepis odblokuje większy dom.',
+  'Only a Voyage reaches a far island.': 'Na daleką wyspę dociera tylko Rejs.',
+  'A Voyage only goes to a far island.': 'Rejs płynie tylko na daleką wyspę.',
+  'Not enough fuel for that trip. A Voyage takes crystal and Trail Packs.': 'Za mało paliwa na tę wyprawę. Rejs wymaga kryształu i Prowiantu.',
   'One of them is cuddling in the Nest.': 'Jeden z nich przytula się w Gnieździe.',
   'Your pets are already out exploring.': 'Twoje zwierzaki są już na wyprawie.',
   'One of them is already out with another party.': 'Jeden z nich jest już na wyprawie z inną drużyną.',
@@ -355,6 +388,9 @@ export const SRV_TEXT = {
   'You do not have enough of that to swap.': 'Masz za mało, żeby to wymienić.',
   'There is no room for that many. Spend some, or build a Storage Barn.': 'Nie ma na tyle miejsca. Wydaj trochę albo zbuduj Stodołę.',
   'Build a Nest first.': 'Najpierw zbuduj Gniazdo.',
+  'You do not have enough for that charm.': 'Na ten amulet nie wystarczy ci materiałów.',
+  'That charm would not change anything for these two.': 'Ten amulet nic nie zmieni dla tej pary.',
+  'You do not have that charm.': 'Nie masz tego amuletu.',
   'The Nest is busy.': 'Gniazdo jest zajęte.',
   'That farm is not around any more.': 'Tej farmy już nie ma.',
   'That pet is not open for playdates.': 'Ten zwierzak nie bierze udziału we wspólnych zabawach.',
@@ -389,6 +425,9 @@ export const SRV_TEXT = {
   'That is not in your mailbox any more.': 'Tego nie ma już w twojej skrzynce.',
   'Your Lucky Wheel prize is in the Mailbox!': 'Nagroda z Koła szczęścia czeka w Skrzynce pocztowej!',
   'That one only comes from the Lucky Wheel.': 'To można zdobyć tylko na Kole szczęścia.',
+  'That one is a reward from the Farm Journal.': 'To nagroda z Dziennika farmy.',
+  'Every chapter is done.': 'Wszystkie rozdziały są ukończone.',
+  'That chapter is not finished yet.': 'Ten rozdział nie jest jeszcze ukończony.',
   'There is no bed free. Build a Pet Hut and the baby will wait here.': 'Nie ma wolnego łóżka. Zbuduj Chatkę zwierzaków, a maluch tu poczeka.',
   'You have no booster for that building.': 'Nie masz wzmocnienia do tego budynku.',
   'You need that building on your farm first.': 'Najpierw potrzebujesz tego budynku na farmie.',
@@ -410,14 +449,17 @@ export const SRV_TEXT = {
   'Build a Expedition Gate first.': 'Najpierw zbuduj Bramę wypraw.',
   'Practice partners': 'Partnerzy treningowi',
 };
-const ZONE_EN = { 'Mossy Woods': 'woods', 'Tidepool Cove': 'cove', 'Pebble Ridge': 'ridge', 'Ember Hills': 'hills', 'Thunder Meadow': 'meadow', 'Fruit Grove': 'grove', 'Veggie Patch': 'patch', 'Bakery Bluff': 'bakery', 'Sweet Shop Isle': 'sweets', 'Coral Reef': 'reef', 'Weather Peak': 'peak', 'Starfall Isle': 'night' };
+const ZONE_EN = { 'Mossy Woods': 'woods', 'Tidepool Cove': 'cove', 'Pebble Ridge': 'ridge', 'Ember Hills': 'hills', 'Thunder Meadow': 'meadow', 'Fruit Grove': 'grove', 'Veggie Patch': 'patch', 'Bakery Bluff': 'bakery', 'Sweet Shop Isle': 'sweets', 'Coral Reef': 'reef', 'Weather Peak': 'peak', 'Starfall Isle': 'night', 'Legend Isle': 'legend' };
 export const SRV_FORMS = [
   [/^You can only have (\d+) of those\.$/, n => `Możesz mieć najwyżej ${n} sztuk.`],
   [/^That needs a level (\d+) Workshop\.$/, n => `To wymaga Warsztatu na poziomie ${n}.`],
   [/^A Lodge holds up to (\d+) collections\.$/, n => `Schronisko mieści najwyżej ${n} kolekcji.`],
+  [/^That charm needs a level (\d+) farmhouse\.$/, n => `Ten amulet wymaga domu na poziomie ${n}.`],
+  [/^You can save up to (\d+) groups\.$/, n => `Możesz zapisać najwyżej ${n} grup.`],
   [/^That needs a level (\d+) farmhouse\.$/, n => `To wymaga domu na poziomie ${n}.`],
   [/^Growing the land again needs a level (\d+) farmhouse\.$/, n => `Dalsze powiększanie ziemi wymaga domu na poziomie ${n}.`],
   [/^That needs (\d+) friendship points\. Help out and leave gifts to earn them\.$/, n => `To wymaga ${n} punktów przyjaźni. Zdobędziesz je, pomagając innym i zostawiając prezenty.`],
+  [/^Level (\d+) needs (\d+) kinds of pets in the album\.$/, (n, k) => `Poziom ${n} wymaga gatunków w albumie: ${k}.`],
   [/^Level (\d+) needs a level \d+ farmhouse\.$/, n => `Poziom ${n} wymaga domu na poziomie ${n}.`],
   [/^All (\d+) of your parties are out\.$/, n => `Wszystkie twoje drużyny (${n}) są na wyprawie.`],
   [/^(.+) opens at farmhouse level (\d+)\.$/, (z, n) => `${ZONES[ZONE_EN[z]]?.[0] || z} otwiera się, gdy dom ma poziom ${n}.`],

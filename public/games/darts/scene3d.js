@@ -158,7 +158,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
     if (key === avKey) return; avKey = key;
     for (const a of avs) { scene.remove(a.wrap); disposeAvatar(a.av); }
     avs = list.map((s, i) => {
-      const av = avatar3d(s.color, s.av, { pose: 'stand' }); av.position.y = .76; // feet on the ground (see standing-avatar notes)
+      const av = avatar3d(s.color, s.av, { pose: 'stand', hand: false }); av.position.y = .76; // feet on the ground (see standing-avatar notes)
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av); scene.add(wrap);
       const [hx, hz, hy] = homeOf(i); wrap.position.set(hx, hy, hz);
       av.traverse(o => { if (o.isMesh) o.castShadow = true; });

@@ -55,6 +55,10 @@ const mod = await player('Mo').connect(); let mod0;
 if ((await ana.ask({ t: 'register', user: 'ana', pass: 'apple123' })).ok !== 'register') fail('register ana');
 if ((await mod.ask({ t: 'register', user: 'mod', pass: 'apple123' })).ok !== 'register') fail('register mod');
 mod0 = mod.token;
+// The hub button's marker (todoOf): before the first visit an account has the visit, present and ornament waiting; guests nothing.
+ana.do({ k: 'peek' }); const pk0 = await ana.next('peek');
+if (!pk0.todo?.in || (pk0.theme === 'winter') !== !!(pk0.todo.gift && pk0.todo.orn)) fail('todo before the visit ' + JSON.stringify(pk0.todo));
+guest.do({ k: 'peek' }); if ((await guest.next('peek')).todo) fail('guests get no todo');
 
 // 1. Joining: everyone lands in room 1 near the arch; the others are told; the site's count follows.
 const a = await ana.enter();
@@ -135,6 +139,8 @@ if (a.theme === 'winter') {
 const out = await player('Hub').connect();
 out.do({ k: 'peek' });
 const pk = await out.next('peek'); if (pk.n !== 3 || pk.faces.length !== 3 || !pk.faces[0].n) fail('peek ' + JSON.stringify(pk).slice(0, 200));
+ana.do({ k: 'peek' }); const pk1 = await ana.next('peek'); if (!pk1.todo || Object.keys(pk1.todo).length) fail('todo after visit, present and ornament ' + JSON.stringify(pk1.todo));
+console.log('hub marker ok');
 
 // 7. Chat is the site's one conversation; a host's mute stops it; a remove sends you out for a while.
 ana.send({ t: 'hubchat', text: 'hello plaza' });

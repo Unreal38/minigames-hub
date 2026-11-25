@@ -383,7 +383,7 @@ Hot Pot is an unofficial fan project inspired by Palia's Hotpot minigame, and is
 
 ## Ko-fi supporters
 
-The site links to a Ko-fi page (`KOFI` in `public/app.js`). People who support it get the Supporter pack: seven café items for their avatar that coins cannot buy. It is handed out by itself:
+The site links to a Ko-fi page (`KOFI` in `public/app.js`). People who support it get the Supporter pack: eight café items for their avatar (one per Wardrobe slot, the Coffee pot held in the hand) that coins cannot buy. It is handed out by itself:
 
 1. The supporter writes their site username in the Ko-fi message. Ko-fi tells the server about the payment and the pack lands on that account, live.
 2. If they forgot the username, the payment waits. In **Support the site** they type the email they paid with and get the pack. Each payment can be claimed once. Emails are not saved, only a keyed hash.

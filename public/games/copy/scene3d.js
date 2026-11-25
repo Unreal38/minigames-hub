@@ -234,7 +234,7 @@ export function createScene(canvas, opts = {}) {
   }
   function buildAv(m) {
     m.wrap = new THREE.Group(); m.wrap.rotation.order = 'YXZ'; m.wrap.scale.setScalar(K);
-    m.av = avatar3d(m.p.color, m.p.av, { pose: 'stand' }); m.av.position.y = .76; m.av.traverse(o => { if (o.isMesh) o.castShadow = false; });
+    m.av = avatar3d(m.p.color, m.p.av, { pose: 'stand', hand: false }); m.av.position.y = .76; m.av.traverse(o => { if (o.isMesh) o.castShadow = false; });
     m.wrap.add(m.av); m.wrap.visible = false; scene.add(m.wrap); m.ghost = false;
   }
   function setGhost(m, on) {

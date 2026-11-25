@@ -11,7 +11,8 @@
 import * as THREE from 'three';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
+import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
+import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
@@ -187,11 +188,13 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
   const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
+  // A fence's joins, or the Pet Museum's medallions (from the album when the farm has one, else what the server sent).
+  const linkOf = (it, f = farm, skip) => it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {
       seen.add(it.id);
-      const lv = levelOf(it), link = LINKS[it.type] ? fenceLink(farm.items, it.x, it.y, it.r, ghost?.id) : 0, key = [it.type, it.x, it.y, it.r, N, lv, link].join();
+      const lv = levelOf(it), link = linkOf(it, farm, ghost?.id), key = [it.type, it.x, it.y, it.r, N, lv, link].join();
       let e = items.get(it.id);
       if (e && e.key === key) continue;
       const grew = !!e && e.type === it.type && lv > e.lv; // improved while we watch: the new look pops in with a little party
@@ -223,6 +226,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const full = farm.cap && ['wood', 'stone', 'fiber'].some(k => (farm.inv?.[k] || 0) >= farm.cap);
     const canOrder = [farm.orders?.big, ...(farm.orders?.list || [])].some(o => o && !o.done && Object.entries(o.want).every(([k, n]) => (o.got?.[k] || 0) + (farm.inv?.[k] || 0) >= n));
     let firstNest = true, firstGate = true, firstBarn = true;
+    const jp = farm.jn && pinned(farm.jn), want = jp?.task?.at; let quest = !!want; // the Farm Journal's pinned task points at its building
     for (const it of farm.items) {
       const e = items.get(it.id); if (!e) continue; let on = false, n = 1, sign = '';
       if (it.type === 'mailbox') { on = mail > 0; if (on) sign = 'mail'; }
@@ -232,6 +236,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       else if (it.type === 'gate') { on = out; if (firstGate && back) sign = 'ready'; firstGate = false; }
       else if (it.type === 'barn') { on = false; if (firstBarn && full) sign = 'ready'; firstBarn = false; }
       else if (it.type === 'board') { if (canOrder) sign = 'ready'; } // an island order can be delivered
+      if (!sign && quest && it.type === want) { sign = 'quest'; quest = false; }
       e.st.on = on; e.st.n = n;
       if ((e.sign?.kind || '') !== sign) {
         if (e.sign) { e.g.remove(e.sign.g); disposeModel(e.sign.g); e.sign = null; }
@@ -982,7 +987,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), th ? th.rock : '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
-      const m = itemModel(it.type, false, true, levelOf(it, f), LINKS[it.type] ? fenceLink(f.items, it.x, it.y, it.r) : 0), [w, h] = footprint(it.type, it.r);
+      const m = itemModel(it.type, false, true, levelOf(it, f), linkOf(it, f)), [w, h] = footprint(it.type, it.r);
       m.position.set(it.x + w / 2 - n / 2, 0, it.y + h / 2 - n / 2); m.rotation.y = -it.r * Math.PI / 2; land.add(m);
     }
     bake(land); toonify(land, .07);
@@ -1006,7 +1011,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   // A place to explore, shown at the edge of the map. z: { key, name, el, note, out }
   function zoneIsle(z) {
     const g = new THREE.Group(), land = new THREE.Group(), top = { Leaf: '#6fbf5a', Tide: '#ead9a0', Stone: '#a9a6b0', Ember: '#b5553c', Spark: '#c9d65a' }[z.el] || '#8fd16a', th = z.theme,
-      top2 = { fruit: '#8fd16a', veggie: '#9a6a4a', bakery: '#e8c890', sweets: '#ffc4dc', weather: '#eef6ff', night: '#5a4a8a', sea: '#f2dcb0' }[th] || top;
+      top2 = { fruit: '#8fd16a', veggie: '#9a6a4a', bakery: '#e8c890', sweets: '#ffc4dc', weather: '#eef6ff', night: '#5a4a8a', sea: '#f2dcb0', legend: '#b4c4e6' }[th] || top;
     const mk = (geo, c, x = 0, y = 0, zz = 0) => { const m = new THREE.Mesh(geo, flat(c)); m.position.set(x, y, zz); land.add(m); return m; };
     mk(new THREE.CylinderGeometry(2.3, 1.9, .5, 7), top2, 0, -.25); mk(rough(new THREE.ConeGeometry(1.9, 2.6, 7, 2), .3), '#857a72', 0, -1.8).rotation.x = Math.PI;
     const spots = [[-1, -.6], [.9, -.9], [-.3, .9], [1.1, .6], [0, -.1]];
@@ -1018,6 +1023,9 @@ export function createScene(canvas, { onPick, onGhost }) {
       else if (th === 'sea') { if (i === 4) mk(new THREE.CylinderGeometry(.75, .75, .06, 9), '#6fc7e8', x, .03, zz); else { const c = ['#ff7a8a', '#ffb14a', '#c98ae0', '#ff9ec4'][i]; mk(new THREE.CylinderGeometry(.07, .11, .6 + i * .1, 5), c, x, .3, zz); for (let k = 0; k < 3; k++) { const b = mk(new THREE.CylinderGeometry(.05, .07, .4, 5), c, x + Math.sin(k * 2.1) * .2, .6 + k * .1, zz + Math.cos(k * 2.1) * .2); b.rotation.set(Math.cos(k * 2.1) * .6, 0, -Math.sin(k * 2.1) * .6); } mk(new THREE.OctahedronGeometry(.13), '#fff3df', x * .6 + .3, .1, zz * .6); } }
       else if (th === 'weather') { if (i < 2) mk(new THREE.ConeGeometry(.6, 1.1 + i * .3, 6), '#cfe0f0', x, .55, zz); else if (i === 2) { mk(new THREE.IcosahedronGeometry(.34, 1), '#ffd21f', x, 1.9, zz); } else if (i === 3) { for (let k = 0; k < 3; k++) mk(new THREE.IcosahedronGeometry(.3 - k * .04, 1), '#ffffff', x + (k - 1) * .34, 1.5 + (k % 2) * .12, zz); mk(new THREE.OctahedronGeometry(.07), '#6fb7e8', x, 1.05, zz).scale.y = 1.8; } else mk(new THREE.CylinderGeometry(.5, .5, .05, 7), '#8fd4ff', x, .03, zz); }
       else if (th === 'night') { mk(new THREE.OctahedronGeometry(.14 + (i % 2) * .05), '#fff3a0', x, 1 + i * .25, zz).scale.y = 1.5; mk(rough(new THREE.DodecahedronGeometry(.28), .06), '#7a6ab0', x * .8, .2, zz * .8); if (i === 4) { const m = mk(new THREE.TorusGeometry(.5, .16, 6, 12, Math.PI * 1.2), '#ffe27a', 0, 2, 0); m.rotation.z = 1.2; m.scale.z = .6; } }
+      else if (th === 'legend') { if (i === 4) { for (const k of [-1, 1]) mk(new THREE.CylinderGeometry(.15, .17, 1.3, 8), '#f2ece0', k * .45, .65, zz); mk(new THREE.BoxGeometry(1.3, .2, .36), '#e6dfcf', x, 1.4, zz); mk(new THREE.OctahedronGeometry(.16), '#9ff0ff', x, 1.75, zz).scale.y = 1.6; } // a ruined arch with a glowing gem
+        else if (i % 2) { mk(new THREE.CylinderGeometry(.15, .17, .7 + i * .12, 8), '#f2ece0', x, .35 + i * .06, zz); mk(new THREE.BoxGeometry(.4, .1, .4), '#e6dfcf', x, .75 + i * .12, zz); }
+        else { const r = mk(rough(new THREE.DodecahedronGeometry(.26), .05), '#6e6694', x, .36, zz); r.scale.set(.8, 1.5, .55); mk(new THREE.OctahedronGeometry(.08), '#9ff0ff', x, .42, zz + .15).scale.z = .3; } }
       else if (z.el === 'Leaf') { mk(new THREE.CylinderGeometry(.09, .09, .5, 5), '#8a5a3c', x, .25, zz); mk(new THREE.ConeGeometry(.5, 1.1 + i * .12, 6), i % 2 ? '#4a9a45' : '#5fb04a', x, 1, zz); }
       else if (z.el === 'Tide') { if (i < 2) mk(new THREE.CylinderGeometry(.6, .6, .06, 7), '#6fb7e8', x, .03, zz); else mk(new THREE.OctahedronGeometry(.2), i % 2 ? '#ffb6c9' : '#fff3df', x, .16, zz); }
       else if (z.el === 'Stone') { mk(rough(new THREE.DodecahedronGeometry(.45 + i * .08), .08), i % 2 ? '#8a8794' : '#a9a6b0', x, .35, zz); if (i === 4) mk(new THREE.OctahedronGeometry(.22), '#8fe3f5', x, 1, zz); }
@@ -1043,7 +1051,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     rings.forEach((g, k) => { for (let j = 0; j < g.n; j++) { const a = j / g.n * 6.283 - .6 + k * .37; put(list[g.at + j], Math.cos(a) * g.r, Math.sin(a) * g.r, false, g.at + j + 1); } });
     mapOut = Math.max(zones.length ? R : 0, rings.length ? rings[rings.length - 1].r : 0, 8); mapFar = (mapOut + 4.5) * 2.75;
     mapZoom = Math.min(1, 62 / mapFar);                           // a big neighbourhood opens a little closer in; scroll or pinch for the rest
-    zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = -1 + (hash(i, 77) - .5); g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 });
+    zones.forEach((z, i) => { const g = zoneIsle(z), a = i / zones.length * 6.283 + 2.2, y = z.far ? .3 : -1 + (hash(i, 77) - .5); // a far island floats a little higher
+      g.position.set(Math.cos(a) * R, y, Math.sin(a) * R); world.add(g); isles.push({ zone: z.key, g, y, ph: i * 2.3 + 1, r: 2.4 });
       if (z.out) { // the party's balloon flies out to the zone, waits there, and is home again when the time is up
         const b = balloonModel(); b.scale.setScalar(.7); world.add(b);
         flights.push({ b, to: g.position, end: performance.now() + (z.fly?.left || 0), total: z.fly?.total || 1 }); }
@@ -1094,7 +1103,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   function ghostStart(type, id, x, y, r) {
     ghostCancel(true);
-    const g = ghostModel(type, id, 0);
+    const g = ghostModel(type, id, type === 'museum' ? linkOf({ type }) : 0);
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
     ghost = { type, id, x, y, r, g, pad, ok: false, link: 0 };
