@@ -290,9 +290,28 @@ export const allRoom = farm => petRoom(farm) + lodgeRoom(farm);
 export const maxOf = (farm, type) => ITEMS[type]?.max;
 
 // The farmhouse: HOUSE_UP[n] is the cost of reaching level n.
-export const HOUSE_MAX = 5;
+// Levels 6 and 7 (2026-11-25, economy plan) add no beds: they are the door to the late game (far expeditions, Nest
+// charms, landmarks), about 2,000 and 4,000 Workshop value and heavy on crystal, so they soak up a hoard.
+export const HOUSE_MAX = 7;
 export const HOUSE_UP = [null, null, { wood: 60, stone: 40, fiber: 30 }, { wood: 120, stone: 90, shells: 30 }, { wood: 200, stone: 150, shells: 40, coal: 40 },
-  { wood: 300, stone: 220, shells: 50, coal: 50, crystal: 3 }];
+  { wood: 300, stone: 220, shells: 50, coal: 50, crystal: 3 },
+  { wood: 400, stone: 300, fiber: 150, shells: 60, coal: 60, crystal: 20 },
+  { wood: 600, stone: 450, fiber: 250, shells: 90, coal: 90, crystal: 50 }];
+
+// Nest charms: made at the Nest from crystal once the farmhouse is level CHARM_HOUSE, kept in f.charms { kind: count },
+// and put into a pairing (one of each kind at most). They only change what the egg holds, nothing else.
+//   el: an Element Charm lifts each parent's variant chance from 15% to 40% (50% to 70% from a parent that is a variant itself)
+//   hyb: a Hybrid Charm lifts the chance of a breeding-only species from 20% to 40%
+//   pat: a Pattern Charm makes sure the baby keeps at least one of its parents' markings
+//   spk: a Sparkle Charm makes a sparkly baby four times as likely (needs farmhouse 7)
+export const CHARM_HOUSE = 6;
+export const CHARMS = {
+  el:  { name: 'Element Charm', cost: { crystal: 6 }, desc: 'Variant chance up from 15% to 40%.' },
+  hyb: { name: 'Hybrid Charm', cost: { crystal: 8 }, desc: 'Chance of a breeding-only pet up from 20% to 40%.' },
+  pat: { name: 'Pattern Charm', cost: { crystal: 3, berries: 20 }, desc: "The baby keeps at least one of its parents' markings." },
+  spk: { name: 'Sparkle Charm', house: 7, cost: { crystal: 15, sunberry: 5 }, desc: 'A sparkly baby is four times as likely.' },
+};
+export const charmHouse = k => CHARMS[k]?.house || CHARM_HOUSE;
 
 // What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
 export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1 };
@@ -418,4 +437,4 @@ export { WEATHER, WEATHER_MS, weatherAt } from '../../weather.js';
 const EL_PL = PL ? (await import('../../lang/farm-pl.js')).EL_PL : null;
 /** An element's name as shown to the player. The English name stays the key everywhere. */
 export const elName = e => EL_PL?.[e] || e;
-if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS });
+if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS });

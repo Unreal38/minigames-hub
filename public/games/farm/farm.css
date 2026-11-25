@@ -639,3 +639,7 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .pfnew.big { font-size: 13px; padding: 4px 8px; margin-bottom: 4px; }
 body.night .pf .pfnew { background: #ffcf3a; color: #241400; border-color: #241400; }
 .pf .pfjnclaim { display: flex; justify-content: flex-end; margin-top: 10px; }
+/* Nest charms in the Nest window: one chip per kind, pressed = put into this egg */
+.pf .pre.charms { gap: 8px; } .pf .pre.charms > .btn { align-self: flex-start; }
+.pf .chms { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; }
+.pf .swmat.chm { padding: 6px 4px 5px; } .pf .swmat.chm b { text-wrap: balance; }
