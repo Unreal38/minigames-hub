@@ -224,6 +224,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const out = (farm.trips || []).some(t => t.left > 0), back = (farm.trips || []).some(t => t.left <= 0);
     const nests = farm.nests || (farm.nest ? [farm.nest] : []);
     const full = farm.cap && ['wood', 'stone', 'fiber'].some(k => (farm.inv?.[k] || 0) >= farm.cap);
+    const canOrder = [farm.orders?.big, ...(farm.orders?.list || [])].some(o => o && !o.done && Object.entries(o.want).every(([k, n]) => (o.got?.[k] || 0) + (farm.inv?.[k] || 0) >= n));
     let firstNest = true, firstGate = true, firstBarn = true;
     const jp = farm.jn && pinned(farm.jn), want = jp?.task?.at; let quest = !!want; // the Farm Journal's pinned task points at its building
     for (const it of farm.items) {
@@ -234,6 +235,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       else if (it.type === 'nest') { on = nests.some(q => q.stage === 'cuddle'); if (firstNest && nests.some(q => q.stage === 'ready')) sign = 'ready'; firstNest = false; }
       else if (it.type === 'gate') { on = out; if (firstGate && back) sign = 'ready'; firstGate = false; }
       else if (it.type === 'barn') { on = false; if (firstBarn && full) sign = 'ready'; firstBarn = false; }
+      else if (it.type === 'board') { if (canOrder) sign = 'ready'; } // an island order can be delivered
       if (!sign && quest && it.type === want) { sign = 'quest'; quest = false; }
       e.st.on = on; e.st.n = n;
       if ((e.sign?.kind || '') !== sign) {

@@ -8,7 +8,7 @@ export const SIZES = [10, 12, 14, 16, 18, 20, 22, 24];
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 },
   { wood: 320, stone: 260, fiber: 140, shells: 20 }, { wood: 440, stone: 360, fiber: 190, coal: 30 }, { wood: 600, stone: 480, fiber: 250, coal: 50, crystal: 3 }];
 export const LAND_HOUSE = { 7: 5 };
-export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', pack: 'Trail Packs', coins: 'Coins' };
+export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', pack: 'Trail Packs', coins: 'Coins', stamps: 'Stamps' };
 // What each thing in the top bar is: where it comes from, and what it is for.
 export const MAT_INFO = {
   wood:     ['Expeditions, most of all Mossy Woods.', 'Most buildings and decorations.'],
@@ -24,6 +24,7 @@ export const MAT_INFO = {
   juice:    ['Cooked in the Kitchen from 6 berries.', 'Drink one in a practice or arena battle to heal 40%, once a battle.'],
   pie:      ['Cooked in a level 2 Kitchen.', 'Tap a pet and feed it one for 220 experience.'],
   tonic:    ['Cooked in a level 3 Kitchen.', 'Give it to a resting pet so it can go to the Nest again at once.'],
+  stamps:   ['Delivering island orders at the Order Board.', 'Stamp decorations, under Edit farm, Stamps. Stamps stay on your farm: they cannot be traded, gifted or swapped.'],
   pack:     ['Packed in the Kitchen from 8 berries, 10 fiber and 4 coal.', 'Food for the long way: every far expedition takes a few.'],
   coins:    ['Battles, helping neighbours, and the other games on the site.', 'Trees and bushes here, and the avatar shop on the main page. Coins stay with you: they cannot be traded or gifted.'],
 };
@@ -46,6 +47,7 @@ export const ITEMS = {
   yard:     { name: 'Training Yard', kind: 'b', w: 3, h: 2, max: 1, cost: { wood: 25, stone: 25 }, desc: 'Pets practise their moves here against friendly partners.' },
   flag:     { name: 'Arena Flag', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 10, fiber: 10 }, desc: 'Challenge other farms here, and choose the team that defends yours.' },
   mailbox:  { name: 'Mailbox', kind: 'b', w: 1, h: 1, max: 1, cost: { wood: 8 }, desc: 'Gifts and letters from friends land here.' },
+  board:    { name: 'Order Board', kind: 'b', w: 2, h: 1, max: 1, house: 2, cost: { wood: 30, stone: 15, fiber: 10 }, desc: 'Pets from the islands nearby pin their orders here. Deliver what they ask for and get Stamps.' },
   workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Unlocks fancier decorations, and swaps spare materials for ones you need.' },
 
   fence:    { name: 'Fence', kind: 'd', w: 1, h: 1, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
@@ -89,6 +91,15 @@ export const ITEMS = {
   balloon:   { name: 'Tethered Balloon', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'It tugs at its rope whenever the wind picks up. Won on the Lucky Wheel.' },
   coinfount: { name: 'Coin Fountain', kind: 'd', w: 2, h: 2, wheel: true, max: 1, cost: {}, desc: 'Somebody has thrown in a lot of wishes. Won on the Lucky Wheel.' },
   horseshoe: { name: 'Horseshoe Gate', kind: 'd', w: 1, h: 1, walk: true, wheel: true, max: 1, cost: {}, desc: 'Walk under it for good luck. Won on the Lucky Wheel.' },
+  // The stamp set (stamp: true): paid with Stamps from island orders (orders.js), never with materials, and never given as gifts.
+  vane:      { name: 'Weather Vane', kind: 'd', w: .5, h: .5, fine: true, stamp: true, cost: { stamps: 30 }, desc: 'A little pet on a pole that turns to face the wind.' },
+  topiary:   { name: 'Bunny Topiary', kind: 'd', w: 1, h: 1, stamp: true, cost: { stamps: 40 }, desc: 'A hedge trimmed into a bunny. The real bunnies are not sure what to make of it.' },
+  hives:     { name: 'Bee Hives', kind: 'd', w: 1, h: 1, stamp: true, cost: { stamps: 50 }, desc: 'Two striped hives and a few busy bees.' },
+  cart:      { name: 'Berry Cart', kind: 'd', w: 1, h: 1, stamp: true, cost: { stamps: 50 }, desc: 'A market cart with a sunshade, piled high with berries.' },
+  flowerclock:{ name: 'Flower Clock', kind: 'd', w: 1, h: 1, stamp: true, cost: { stamps: 70 }, desc: 'A round flower bed whose hands show the real time.' },
+  geode:     { name: 'Crystal Geode', kind: 'd', w: 1, h: 1, stamp: true, cost: { stamps: 80 }, desc: 'A rock split open to show the glowing crystals inside.' },
+  telescope: { name: 'Star Telescope', kind: 'd', w: 1, h: 1, stamp: true, cost: { stamps: 90 }, desc: 'A brass telescope that slowly sweeps the sky for new islands.' },
+  bandstand: { name: 'Bandstand', kind: 'd', w: 2, h: 2, stamp: true, cost: { stamps: 180 }, desc: 'A round little stage with a striped roof. Music notes drift out of it all day.' },
   miniwheel: { name: 'Mini Lucky Wheel', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'A small wheel that never stops on a bad day. Won on the Lucky Wheel.' },
   // The Farm Journal set (jn: the chapter that gives it, see journal.js). Never bought or crafted; each waits under Edit farm.
   jsign:   { name: 'Welcome Sign', kind: 'd', w: 1, h: .5, fine: true, jn: 1, max: 1, cost: {}, desc: 'Says hello to every visitor. A Farm Journal reward.' },
@@ -316,7 +327,8 @@ export const charmHouse = k => CHARMS[k]?.house || CHARM_HOUSE;
 // What one gift to a neighbour can be. The giver pays it from their own stock, once a day per neighbour.
 export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, crystal: 1, berries: 5, cookie: 1 };
 // Coins are the player's account money (the avatar shop, other games), so they never move between players: not in gifts, not in trades.
-export const TRADE_MATS = Object.keys(MATS).filter(k => k !== 'coins');
+// Stamps (island orders) stay on the farm that earned them in the same way.
+export const TRADE_MATS = Object.keys(MATS).filter(k => k !== 'coins' && k !== 'stamps');
 // Gardens, kitchen, barn and workshop.
 export const GROW_MIN = 60, BERRIES = 3; // each Garden Plot gives 3 berries an hour
 export const RECIPES = {

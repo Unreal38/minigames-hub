@@ -39,6 +39,7 @@ export const OPT_PL = {
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
+  'Time to dress up': 'Czas na przebranie', 'On the runway': 'Na wybiegu', 'Names shown': 'Imiona widoczne', 'Secret walk': 'Tajny wybieg',
   Sneaks: 'Łasuchy', Auto: 'Automatycznie', 'Talk at meetings': 'Rozmowa na naradzie', 'Chores each': 'Prace na osobę', 'Time between lulls': 'Odstęp między uśpieniami', 'The ferry shows': 'Prom pokazuje', 'Their side': 'Stronę gracza', Nothing: 'Nic', 'Pawprint clues': 'Tropy łap',
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
@@ -441,6 +442,20 @@ export const GAMES_PL = {
       <li>Punkty w każdej kategorii: <b>15</b>, gdy tylko ty masz dobre hasło, <b>10</b> za hasło, którego nie ma nikt inny, <b>5</b>, gdy ktoś wpisał to samo, <b>0</b> za puste albo odrzucone. Wielkość liter i polskie znaki nie robią różnicy: „Krakow” i „Kraków” to ta sama odpowiedź.</li>
       <li><b>Wygrywa najwięcej punktów po ostatniej rundzie.</b> Przy równej liczbie punktów gracze dzielą miejsce.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie wpisze ani jednego hasła, nie dostaje monet.</li>
+    </ol>`,
+  },
+  runway: {
+    name: 'Podniebny wybieg', start: 'Otwórz pokaz', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
+    pitch: 'Pokaz mody na podniebnym wybiegu. Przebierz się na temat rundy, pożyczając wszystko ze sklepu, przejdź po wybiegu i dawajcie sobie gwiazdki. Tylko dla ludzi: bez botów.',
+    howto: `Pokaz mody. W każdej rundzie głosujecie na temat (albo wpisujecie własny): przebierz się na czas, pożyczając wszystko ze sklepu, a potem przejdź po wybiegu, gdy znajomi dają od 1 do 5 gwiazdek. Po wszystkich rundach wygrywa najwięcej gwiazdek.`,
+    rules: `<ol>
+      <li>Gra dla <b>3–8 osób</b>, bez botów. Każda runda zaczyna się od <b>głosowania na temat</b>: 3 losowe tematy, na przykład Bal królewski albo Piracka impreza na plaży, a każdy może <b>wpisać własny</b> (jeden na osobę). Wygrywa temat z największą liczbą głosów, a remis rozstrzyga losowanie. Na swój wpisany temat nie można głosować. Czasem dochodzi haczyk.</li>
+      <li><b>Przebierz się</b>, zanim skończy się czas. <b>Wszystko ze sklepu możesz pożyczyć</b> na pokaz, także rzeczy z Pakietu wspierających. Ciało, wzrost, skóra i twarz zostają twoje, żeby znajomi wiedzieli, że to ty. Wybierz pozę na koniec wybiegu i naciśnij Gotowe.</li>
+      <li>Nikt nie widzi strojów innych, póki nie wyjdą na wybieg. Potem wszyscy po kolei, w losowej kolejności, przechodzą po <b>wybiegu</b>. Reszta daje każdemu strojowi od <b>1 do 5 gwiazdek</b>. Na siebie nie można głosować.</li>
+      <li>Punkty za strój to średnia gwiazdek × 20. Przy 5 lub więcej sędziach najwyższa i najniższa ocena każdego stroju odpadają.</li>
+      <li>Przy włączonym <b>tajnym wybiegu</b> imiona są ukryte na wybiegu i pokazują się dopiero na podium.</li>
+      <li>Po ostatniej rundzie wygrywa najwięcej punktów, a przy remisie więcej ocen 5 gwiazdek. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Podoba ci się strój? <b>Zachowaj ten strój</b> zakłada od razu twoje rzeczy, a pożyczone przenosi do Garderoby, gdzie możesz je kupić. Nic pożyczonego nie zostaje bez kupienia.</li>
     </ol>`,
   },
   lantern: {
