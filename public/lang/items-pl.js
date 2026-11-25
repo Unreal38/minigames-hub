@@ -38,7 +38,7 @@ export const OPT_PL = {
   neck: { None: NONE, Scarf: 'Szalik', 'Bow tie': 'Muszka', Necklace: 'Naszyjnik', Tie: 'Krawat', 'Gold medal': 'Złoty medal', 'Hero cape': 'Peleryna bohatera', 'Flower lei': 'Wieniec z kwiatów',
     'Bell collar': 'Obroża z dzwoneczkiem', Pearls: 'Perły', Bandana: 'Bandana', 'Candy scarf': 'Cukierkowy szalik', 'Coffee bean necklace': 'Naszyjnik z ziaren kawy', 'Feather boa': 'Boa z piór', 'Spiked collar': 'Obroża z ćwiekami', 'Ruff collar': 'Kryza' },
   back: { None: NONE, Backpack: 'Plecak', 'Angel wings': 'Anielskie skrzydła', 'Fairy wings': 'Skrzydła wróżki', Jetpack: 'Plecak odrzutowy', 'Turtle shell': 'Skorupa żółwia', Balloon: 'Balon',
-    'Bat wings': 'Skrzydła nietoperza', 'Gift sack': 'Worek z prezentami', Surfboard: 'Deska surfingowa', 'Butterfly wings': 'Skrzydła motyla', 'Takeaway cup': 'Kubek na wynos', 'Flickit on the shoulder': 'Flickit na ramieniu', Guitar: 'Gitara' },
+    'Bat wings': 'Skrzydła nietoperza', 'Gift sack': 'Worek z prezentami', Surfboard: 'Deska surfingowa', 'Butterfly wings': 'Skrzydła motyla', 'Takeaway cup': 'Kubek na wynos', 'Pirate flag': 'Piracka bandera', Guitar: 'Gitara' },
   hand: { None: NONE, Flower: 'Kwiatek', Book: 'Książka', Phone: 'Telefon', Bouquet: 'Bukiet', Umbrella: 'Parasol', 'Magic wand': 'Magiczna różdżka', Microphone: 'Mikrofon',
     'Foam sword': 'Piankowy miecz', Handbag: 'Torebka', Trophy: 'Puchar', 'Tennis racket': 'Rakieta tenisowa', 'Mossbun plush': 'Pluszowy Mossbun', Lantern: 'Latarenka',
     'Ice cream cone': 'Lody w rożku', 'Candy cane': 'Laska cukrowa', 'Pumpkin bucket': 'Dyniowe wiaderko', 'Flower basket': 'Koszyk z kwiatami', 'Coffee pot': 'Dzbanek kawy' },

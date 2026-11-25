@@ -170,7 +170,7 @@ export function createScene(canvas, { mapId, step, onFrame } = {}) {
     if (key === avKey) return; avKey = key;
     for (const p of people) { scene.remove(p.g); disposeAvatar(p.av); if (p.held) p.hand.remove(p.held); }
     people = list.map((s, i) => {
-      const g = new THREE.Group(), av = avatar3d(s.color, s.av, { pose: 'stand' }); const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.position.y = .76 * AV; wrap.add(av); g.add(wrap); /* sized by a wrapper (animateAvatar owns the avatar's own scale), feet on the floor */
+      const g = new THREE.Group(), av = avatar3d(s.color, s.av, { pose: 'stand', hand: false }); const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.position.y = .76 * AV; wrap.add(av); g.add(wrap); /* sized by a wrapper (animateAvatar owns the avatar's own scale), feet on the floor */
       const hand = new THREE.Group(); hand.position.set(0, TOP - .04, .5); hand.scale.setScalar(1.35); g.add(hand);
       const old = people[i];
       if (old) g.position.copy(old.g.position); else if (S?.pl[i]) W(S.pl[i].x, S.pl[i].z, 0, g.position);

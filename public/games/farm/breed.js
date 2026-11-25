@@ -18,13 +18,15 @@ export const COAT = {
   munchmew: ['#f3c98a', '#fff3df'], glazemew: ['#f0b878', '#fff3df'],
   rocktopus: ['#b08ad0', '#e6d4f5'], driftle: ['#8fd0c0', '#f0ead0'], zapuff: ['#ffe27a', '#fffaf0'], ottershell: ['#9a6a4a', '#f0dcc0'], cinnapanda: ['#c8683f', '#fff3df'], yuzubara: ['#b98a5e', '#d9b48a'], snoozloth: ['#a89880', '#f0e6d2'], glidenut: ['#b5a08a', '#fff3df'],
   pebblet: ['#d9b89a', '#8a8794'], cragcrab: ['#e2705a', '#f6c9a8'], dustmole: ['#8a6f63', '#c9b0a2'], geodeer: ['#c9b59a', '#f3e6d2'],
+  griffling: ['#f0a24a', '#fff0d0'], bloomicorn: ['#fbf3ff', '#ffb3d1'], dreampir: ['#4a4f8a', '#b4abeb'], yetiny: ['#f4f8ff', '#8fc4e8'], gargoylet: ['#9a97a8', '#c9c6d4'], nessling: ['#6fc4a8', '#e6f6d8'],
   maplander: ['#a8c860', '#fff0c0'], koalith: ['#b0aeb8', '#e6e2dc'], kettlephant: ['#8fb8d8', '#e6f2fa'], bangaroo: ['#d39a66', '#fff0d8'], magnebug: ['#6f6a88', '#c9c4d8'],
 };
 // Coat colour genes. A pet carries two; the one earlier in this list is the one that shows.
 export const COATS = [{ name: 'Natural' }, { name: 'Rose', c: '#f7b7d0' }, { name: 'Sky', c: '#a8d4f5' }, { name: 'Mint', c: '#a9e3bd' }, { name: 'Lilac', c: '#c9b5f0' }, { name: 'Cocoa', c: '#8a6a5a' }];
 export const PATTERNS = { spots: 'Spots', stripes: 'Stripes', star: 'Star', patch: 'Patch' };
 // The part a baby can borrow from a parent of another species (drawn in pets3d.js).
-export const PART = { mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a flower crown', truffowl: 'a mushroom cap', cindercub: 'a flame tail',
+export const PART = { griffling: 'griffin wings', bloomicorn: 'a unicorn horn', dreampir: 'a dream bubble', yetiny: 'frosty horns', gargoylet: 'a stone tail', nessling: 'lake monster humps',
+  mossbun: 'bunny ears', sproutle: 'a sprout', petalpuff: 'a flower crown', truffowl: 'a mushroom cap', cindercub: 'a flame tail',
   toastoad: 'a pat of butter', flickit: 'a candle flame', magmutt: 'lava rocks', puddlepup: 'seal flippers', bubblefin: 'a sail fin', axolily: 'a lily pad',
   nimbowhale: 'a rain cloud', zapkit: 'a lightning tail', buzzlet: 'buzzy wings', voltvole: 'a spark tuft', glimmoth: 'glowing wings', pebblet: 'pebble spines',
   shrimplet: 'a fan tail', siamew: 'a chocolate tail', coralcolt: 'a coral crown', skipfin: 'a beach ball',

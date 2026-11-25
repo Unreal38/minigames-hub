@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readFarms } from './saved.js';
-import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, UPGRADES, albumHave, museumFill, xpFor, tripLoot, canWork, workPct, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
+import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, UPGRADES, countOf, albumHave, museumFill, xpFor, tripLoot, canWork, workPct, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
 const PORT = 20900 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -34,7 +34,7 @@ function player(name, token) {
     };
   });
   // send a farm action and wait for its answer
-  p.farmDo = async a => { p.last = null; p.send({ t: 'farm', a }); await until(() => p.last, 'farm reply to ' + a.t); return p.last; };
+  p.farmDo = async a => { p.last = null; p.send({ t: 'farm', a }); await until(() => p.last, 'farm reply to ' + a.t + ' ' + JSON.stringify(a)); return p.last; };
   return p;
 }
 
@@ -224,6 +224,34 @@ r = await a.farmDo({ t: 'send', zone: 'ridge', trip: 'stroll', pets: [me.id] });
 if (r.err) fail('ridge should be open ' + r.err);
 r = await a.farmDo({ t: 'collect', test: { home: true, trips: 5 } });
 if (!r.back.loot.stone) fail('ridge gave no stone');
+
+// far expeditions: Legend Isle opens with a bigger farmhouse, takes only Voyages, and each party pays crystal and Trail Packs
+await wait(2100); // the server takes about 20 messages a second; let the budget refill
+r = await a.farmDo({ t: 'send', zone: 'legend', trip: 'voyage', pets: [me.id] });
+if (!r.err) fail('Legend Isle open at farmhouse 2');
+r = await a.farmDo({ t: 'cook', what: 'pack' });
+if (!r.err) fail('Trail Packs cooked before the farmhouse allows');
+const house0 = a.farm.house; await a.farmDo({ t: 'open', test: { house: ZONES.legend.house } });
+r = await a.farmDo({ t: 'send', zone: 'legend', trip: 'camp', pets: [me.id] });
+if (!r.err) fail('a Camp-out reached a far island');
+r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'voyage', pets: [me.id] });
+if (!r.err) fail('a Voyage went to a near island');
+r = await a.farmDo({ t: 'send', zone: 'legend', trip: 'voyage', pets: [me.id] });
+if (!r.err || r.farm.trip) fail('a Voyage set off without fuel');
+if (countOf(a.farm, 'kitchen')) { await a.farmDo({ t: 'open', test: { give: { berries: 8, fiber: 10, coal: 4 } } }); r = await a.farmDo({ t: 'cook', what: 'pack' }); if (r.err || !(r.farm.inv.pack >= 1)) fail('Trail Pack ' + r.err); }
+await a.farmDo({ t: 'open', test: { give: { crystal: TRIPS.voyage.fuel.crystal, pack: TRIPS.voyage.fuel.pack } } });
+await wait(1100);
+const fuel0 = { ...a.farm.inv };
+r = await a.farmDo({ t: 'send', zone: 'legend', trip: 'voyage', pets: [me.id] });
+if (r.err || r.farm.trip?.zone !== 'legend' || r.farm.inv.crystal !== fuel0.crystal - TRIPS.voyage.fuel.crystal || (r.farm.inv.pack || 0) !== fuel0.pack - TRIPS.voyage.fuel.pack) fail('far send ' + JSON.stringify(r.err || r.farm.inv));
+if (r.farm.trip.left <= (TRIPS.voyage.min - 1) * 60_000 * .7) fail('a Voyage came back too soon');
+r = await a.farmDo({ t: 'collect', test: { home: true, trips: 5 } });
+if (r.err || r.farm.far !== 1) fail('far trip not counted ' + JSON.stringify(r.err || r.farm.far));
+const farFound = r.back.found && r.farm.pets.find(x => x.id === r.back.found);
+if (farFound && !SPECIES[farFound.sp].far) fail('a far island gave a pet from elsewhere: ' + farFound.sp);
+for (const sp of Object.keys(ZONES.legend.wild)) if (!SPECIES[sp]?.far || Object.entries(ZONES).some(([k, z]) => k !== 'legend' && sp in z.wild)) fail(sp + ' should live only on Legend Isle');
+await a.farmDo({ t: 'open', test: { house: house0 } });
+await wait(1100);
 
 // growing the land shifts everything inwards by one tile
 const house = a.farm.items.find(i => i.type === 'house');

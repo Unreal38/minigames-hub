@@ -231,7 +231,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const look = ballLook(s.fl?.gb, s.color); if (!look.map) look.map = plainTex(); // a plain ball still needs marks, or its roll cannot be seen
       const ball = new THREE.Mesh(ballGeo, toonMat(new THREE.MeshStandardMaterial(look))); ball.rotation.y = -Math.PI / 2; /* a painted ball shows its face to the camera */ ball.castShadow = true; ball.userData.col = s.color;
       const out = new THREE.Mesh(ballGeo, inkMat); out.scale.setScalar(1.16); ball.add(out);
-      const av = avatar3d(s.color, s.av, { pose: 'stand' });
+      const av = avatar3d(s.color, s.av, { pose: 'stand', hand: false });
       const wrap = new THREE.Group(); wrap.scale.setScalar(AV); wrap.add(av);
       // putter: held in both hands. Each frame the grip goes to the hands and the head swings past the ball.
       const putter = new THREE.Group();

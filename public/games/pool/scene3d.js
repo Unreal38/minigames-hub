@@ -156,7 +156,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, canPlace, onPlace,
     seatsKey = k;
     for (const p of players) { world.remove(p.wrap); disposeAvatar(p.av); }
     players = list.map((s, i) => {
-      const av = avatar3d(s.color, s.av, { pose: 'stand' }), wrap = new THREE.Group(); wrap.scale.setScalar(AVS); wrap.add(av); world.add(wrap);
+      const av = avatar3d(s.color, s.av, { pose: 'stand', hand: false }), wrap = new THREE.Group(); wrap.scale.setScalar(AVS); wrap.add(av); world.add(wrap);
       return { i, av, wrap, color: s.color, cu: s.fl?.cu | 0, pos: new THREE.Vector3(), init: false, face: 0, walk: 0, hop: 0, mood: 0, moodT: 0, tag: { x: 0, y: 0, show: false } };
     });
   }
