@@ -7,9 +7,10 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds, charmsFor, sparkleOdds } from './breed.js';
-import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_MAX, CHARMS, CHARM_HOUSE, charmHouse, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_MAX, CHARMS, CHARM_HOUSE, charmHouse, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, TRADE_MATS, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { CHAPTERS, pinned, chapterDone } from './journal.js';
+import { missing, handIn } from './orders.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
 if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV_TEXT, pl.SRV_FORMS); }
@@ -88,7 +89,7 @@ export function mount(app, ctx) {
     <div class="pfload" id="pf-load" role="status"><span class="pfegg" aria-hidden="true"></span>${L('Walking to the farm…', 'Idziemy na farmę…')}</div>
   </div>`;
   const root = app.querySelector('.pf'), $ = id => root.querySelector('#' + id), canvas = root.querySelector('.g3d');
-  let F = null, scene = null, destroyed = false, mode = 'load', edit = false, tab = 'b', pick = null, card = null, panel = null, tripAt = 0, nestAt = 0, lastType = null, lastSpot = null;
+  let F = null, scene = null, destroyed = false, mode = 'load', edit = false, tab = 'b', pick = null, card = null, panel = null, tripAt = 0, nestAt = 0, lastType = null, lastSpot = null, ordersAt = { day: 0, week: 0 };
   // Every request gets an answer. If none comes, say so instead of leaving a button that seems dead.
   let quiet = 0;
   const say = ctx.send;
@@ -251,6 +252,7 @@ export function mount(app, ctx) {
       + (home.length ? `<button type="button" class="btn m" data-a="collect" data-id="${home[0].id}">${home.length > 1 ? L(`Welcome the parties back (${home.length})`, `Przywitaj drużyny (${home.length})`) : L(`Welcome them back${F.trips.length > 1 ? ` from ${ZONES[home[0].zone].name}` : ''}`, `Przywitaj drużynę${F.trips.length > 1 ? ` (${ZONES[home[0].zone].name})` : ''}`)}</button>` : '')
       + (hatch.length ? `<button type="button" class="btn m" data-a="hatch" data-slot="${hatch[0].slot}">${hatch.length > 1 ? L(`Hatch the eggs (${hatch.length})`, `Wykluj jajka (${hatch.length})`) : L(`Hatch the egg`, `Wykluj jajko`)}</button>` : '')
       + (F.wild ? `<button type="button" class="btn m" data-a="wildfight">${L(`Battle the wild ${SPECIES[F.wild.sp].name}`, `Walcz z dzikim zwierzakiem: ${SPECIES[F.wild.sp].name}`)}</button>` : '')
+      + (orderList().some(o => !o.done && canDeliver(o)) ? `<button type="button" class="btn m" data-a="ordersopen">${L('Deliver an order', 'Dostarcz zamówienie')}</button>` : '')
       + (F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : '')
       + (more ? sum : (out.length ? `<span class="chip">${tripLine(out[0])}</span>` : '') + (eggs.length ? `<span class="chip">${eggLine(eggs[0])}</span>` : ''))
       + (countOf(F, 'gate') && F.trips.length < F.partyMax ? `<button type="button" class="btn m" data-a="explore">${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '');
@@ -326,6 +328,24 @@ export function mount(app, ctx) {
     return (on ? `<p class="helpon boost"><span><b>${boostName(type)}</b> ${on.left ? L(`runs for ${wait(on.left)} more.`, `działa jeszcze ${wait(on.left)}.`) : L(`${cnt(on.uses, 'use', 'uses')} left.`, `pozostało użyć: ${on.uses}.`)}</span></p>` : '')
       + (n && !on ? `<p class="hint">${boostWhat(type)}</p><button type="button" class="btn sm m" data-a="boost" data-type="${type}">${L(`Start booster (${n})`, `Włącz wzmocnienie (${n})`)}</button>` : n ? `<p class="hint">${L(`Boosters waiting: ${n}.`, `Czekające wzmocnienia: ${n}.`)}</p>` : ''); };
   const petRow = (p, extra = '') => `${favMark(p)}${face(p)}<b>${esc(p.name)}</b><small>${L(`Level ${p.lv}${extra}`, `Poziom ${p.lv}${extra}`)}</small>`;
+  // ---------- island orders (orders.js, server/farmorders.js) ----------
+  const orderList = () => F?.orders ? [F.orders.big, ...F.orders.list].filter(Boolean) : [];
+  const canDeliver = o => { const g = handIn(o, F.inv), m = missing(o); return Object.keys(m).every(k => g[k] === m[k]); };
+  const ORDER_WHY = { party: () => L('for a party', 'na przyjęcie'), build: () => L('to fix up their den', 'na remont nory'), bake: () => L('for a big bake', 'na wielkie pieczenie'),
+    winter: () => L('to get ready for winter', 'na zapas przed zimą'), friend: () => L('as a present for a friend', 'na prezent dla przyjaciela'), festival: () => L('for the island festival', 'na festyn na wyspie') };
+  function orderCard(o) {
+    if (!o) return '';
+    const s = SPECIES[o.sp], z = ZONES[o.from], m = missing(o), give = handIn(o, F.inv), all = canDeliver(o), some = Object.keys(give).length > 0;
+    const why = ORDER_WHY[['party', 'build', 'bake', 'winter', 'friend', 'festival'][o.mood]]?.() || '';
+    const rows = Object.entries(o.want).map(([k, n]) => { const got = o.got?.[k] || 0, have = F.inv[k] || 0, done = got >= n;
+      return `<span class="ordw${done ? ' ok' : have + got >= n ? ' can' : ''}">${matIcon(k, 22)}<b>${got ? `${got}/` : ''}${n}</b><small>${MATS[k].toLowerCase()}</small>${done ? '' : `<small class="have">${L(`have ${have}`, `masz ${have}`)}</small>`}</span>`; }).join('');
+    const btn = o.done ? `<span class="orddone">✓ ${L('Delivered', 'Dostarczone')}</span>`
+      : `<button type="button" class="btn sm m" data-a="order" data-id="${o.id}" ${some ? '' : 'disabled'}>${all ? L('Deliver', 'Dostarcz') : L('Hand in what you have', 'Oddaj, co masz')}</button>`
+        + (!o.big && F.orders.swaps ? `<button type="button" class="btn sm w" data-a="orderswap" data-id="${o.id}">${L('Swap it', 'Wymień')}</button>` : '');
+    return `<div class="ordc${o.big ? ' big' : ''}${o.done ? ' done' : ''}">${s ? face({ sp: o.sp, lv: 12, name: s.name }, s.name) : ''}
+      <div class="ordi"><b>${o.big ? L('Big order: ', 'Duże zamówienie: ') : ''}${s?.name || ''}${z ? L(` from ${z.name}`, ` (${z.name})`) : ''}</b><small>${L(`needs these ${why}`, `potrzebuje tego ${why}`)}</small>
+      <div class="ordws">${rows}</div><div class="ordb"><span class="mat ordpay">${L('Pays', 'Płaci')} ${matIcon('stamps', 20)}${o.stamps}</span>${btn}</div></div></div>`;
+  }
   function paintPanel() { paintPanelNow(); addInfo(); }
   function paintPanelNow() {
     // where the send panel was scrolled, so a tap on a place or a pet does not jump it back
@@ -339,7 +359,7 @@ export function mount(app, ctx) {
         : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
         : it.house && F.house < it.house ? L(`Needs a level ${it.house} farmhouse. Tap your farmhouse to improve it.`, `Wymaga domu na poziomie ${it.house}. Dotknij domu, żeby go ulepszyć.`)
         : most && have >= most ? (type === 'hut' ? L(`You already have ${have}, the most a farm can hold. For more pets, build a Pet Lodge${F.house < 4 ? ' (it needs a level 4 farmhouse)' : ''}: it stores up to 300.`, `Masz już ${have}, więcej farma nie pomieści. Żeby mieć więcej zwierzaków, zbuduj Schronisko${F.house < 4 ? ' (wymaga domu na poziomie 4)' : ''}: pomieści do 300.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
-        : !canAfford(F.inv, it.cost) ? L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.') : '';
+        : !canAfford(F.inv, it.cost) ? (it.stamp ? L(`You have ${F.inv.stamps || 0} stamps. Deliver island orders at the Order Board to earn more.`, `Masz znaczki: ${F.inv.stamps || 0}. Dostarczaj zamówienia z wysp na Tablicy zamówień, żeby zdobyć więcej.`) : L('You do not have enough materials yet.', 'Nie masz jeszcze dość materiałów.')) : '';
       const size = it.w === it.h ? (it.w < 1 ? L('Half a tile', 'Pół kratki') : it.w === 1 ? L('One tile', 'Jedna kratka') : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`)) : L(`${it.w} by ${it.h} tiles`, `${it.w} na ${it.h} kratki`);
       box.innerHTML = `<div class="panel tripp buy"><div class="buytop">${thumb(type, it.name)}<div><h2>${it.name}</h2><p>${it.desc}</p></div></div>
         <p class="hint">${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${most ? L(` · you have ${have} of ${most}`, ` · masz ${have} z ${most}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${lvMax(type)}`, ` · można ulepszyć do poziomu ${lvMax(type)}`) : ''}</p>
@@ -413,6 +433,17 @@ export function mount(app, ctx) {
         <div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Got it`, `Jasne`)}</button></div></div>`;
       return;
     }
+    if (panel.kind === 'orders') { // the Order Board: today's three orders and the week's big one
+      const O = F.orders; if (!O) { panel = null; box.hidden = true; return; }
+      box.innerHTML = `<div class="panel tripp ords"><h2 class="icoh">${matIcon('stamps', 40)}${L('Island orders', 'Zamówienia z wysp')}</h2>
+        <p>${L(`Pets from the islands nearby need a hand. Deliver what they ask for and they pay in Stamps, which buy the stamp decorations. You can hand in a bit at a time.`, `Zwierzaki z pobliskich wysp potrzebują pomocy. Dostarcz to, o co proszą, a zapłacą znaczkami, za które kupisz ozdoby ze znaczków. Możesz oddawać po trochu.`)}</p>
+        <div class="mats">${mat('stamps', F.inv.stamps || 0)}</div>
+        <h3>${L('This week', 'W tym tygodniu')} <small class="hint">${L(`new one in ${wait(Math.max(60000, ordersAt.week - Date.now()))}`, `nowe za ${wait(Math.max(60000, ordersAt.week - Date.now()))}`)}</small></h3>
+        <div class="ordl">${orderCard(O.big)}</div>
+        <h3>${L('Today', 'Dzisiaj')} <small class="hint">${L(`new ones in ${wait(Math.max(60000, ordersAt.day - Date.now()))}`, `nowe za ${wait(Math.max(60000, ordersAt.day - Date.now()))}`)}</small></h3>
+        <div class="ordl">${O.list.map(orderCard).join('')}</div>
+        <p class="hint">${O.swaps ? L('Not keen on one of today’s orders? You can swap one a day for a new one.', 'Któreś z dzisiejszych zamówień ci nie pasuje? Jedno dziennie możesz wymienić na nowe.') : L('You swapped an order today already.', 'Dziś już wymieniasz zamówienie.')}</p>
+        <div class="row end"><button type="button" class="btn w" data-a="stampshop">${L('Stamp decorations', 'Ozdoby za znaczki')}</button><button type="button" class="btn big m" data-a="shut">${L('Done', 'Gotowe')}</button></div></div>`;
     if (panel.kind === 'charms') { // make Nest charms from crystal
       const rows = Object.entries(CHARMS).map(([k, c]) => `<button type="button" class="zone${canAfford(F.inv, c.cost) && F.house >= charmHouse(k) ? '' : ' off'}" data-a="charmmake" data-kind="${k}" data-lv="${F.house >= charmHouse(k) ? '' : charmHouse(k)}">${matIcon('charm_' + k, 34)}<b>${c.name}</b><small>${F.house >= charmHouse(k) ? c.desc : L(`Needs a level ${charmHouse(k)} farmhouse.`, `Wymaga domu na poziomie ${charmHouse(k)}.`)}</small><span class="cost">${costHtml(c.cost, F.inv)}</span><small>${L(`You have ${F.charms?.[k] || 0}`, `Masz: ${F.charms?.[k] || 0}`)}</small></button>`).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Nest charms`, `Amulety do Gniazda`)}</h2><p>${L(`Put a charm into the Nest with two pets to change what their egg may hold. Each charm is used up by one egg, and one egg can take one of each.`, `Włóż amulet do Gniazda razem z dwoma zwierzakami, żeby zmienić, co może być w ich jajku. Każdy amulet zużywa się na jedno jajko, a jedno jajko może dostać po jednym amulecie każdego rodzaju.`)}</p>
@@ -464,7 +495,7 @@ export function mount(app, ctx) {
       box.innerHTML = `<div class="panel tripp"><h2>${L(`A gift for ${esc(V.name)}`, `Prezent dla gracza ${esc(V.name)}`)}</h2><p>${L(`It comes out of your own stock and lands in their Mailbox. One gift a day for each neighbour.`, `Prezent pochodzi z twoich zapasów i trafia do Skrzynki pocztowej sąsiada. Jeden prezent dziennie na sąsiada.`)}</p>
         <div class="zones">${rows}</div>
         <p>${L(`<b>Or a decoration.</b> You pay for it, and they can place it for free.`, `<b>Albo ozdoba.</b> Ty płacisz, a sąsiad stawia ją za darmo.`)}</p>
-        <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !it.wheel && !it.jn && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
+        <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !it.wheel && !it.jn && !it.stamp && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       return;
     }
@@ -472,7 +503,7 @@ export function mount(app, ctx) {
       const T = panel, away = outNow();
       const petBtn = (x, sideKey, off) => `<button type="button" class="pickpet${off ? ' off' : ''}" data-a="tradepet" data-side="${sideKey}" data-id="${x.id}" aria-pressed="${T[sideKey].pets.includes(x.id)}">${petRow(x, off ? ' · ' + off : T[sideKey].pets.includes(x.id) ? L(' · in the offer', ' · w ofercie') : '')}</button>`;
       const FOOD = ['sunberry', 'cookie', 'cake', 'juice', 'pie', 'tonic', 'pack'];
-      const mats = (sideKey, inv) => Object.keys(MATS).filter(k => k !== 'coins').filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
+      const mats = (sideKey, inv) => TRADE_MATS.filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
         return `<div class="tm${n ? ' on' : ''}">${matIcon(k, 30)}<span class="tmn"><b>${MATS[k]}</b>${inv ? `${L(`<small>You have ${inv[k] || 0}</small>`, `<small>Masz: ${inv[k] || 0}</small>`)}` : ''}</span>
           <span class="step"><button type="button" data-a="tmstep" data-d="-1" aria-label="${L(`Less ${MATS[k]}`, `Mniej: ${MATS[k]}`)}">−</button><input class="field" type="number" inputmode="numeric" min="0" max="${max}" data-tm="${sideKey}" data-mat="${k}" value="${n || ''}" placeholder="0" aria-label="${L(`${MATS[k]}, how many`, `${MATS[k]}, ile`)}"><button type="button" data-a="tmstep" data-d="1" aria-label="${L(`More ${MATS[k]}`, `Więcej: ${MATS[k]}`)}">+</button></span></div>`; }).join('');
       const mine = favFirst(F.pets).map(x => petBtn(x, 'give', x.held ? L('promised', 'obiecany') : away.includes(x.id) ? 'exploring' : inNest(x.id) ? L('in the Nest', 'w Gnieździe') : F.def.includes(x.id) && F.pets.length > 3 ? '' : '')).join('');
@@ -904,7 +935,7 @@ export function mount(app, ctx) {
     el.hidden = !(mode === 'farm' && edit);
     if (el.hidden) return;
     const g = scene?.ghost();
-    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals || it.wheel || it.jn : it.kind === tab && !it.craft && !it.pals && !it.wheel && !it.jn)).map(([type, it]) => {
+    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 's' ? it.stamp : tab === 'f' ? it.craft || it.pals || it.wheel || it.jn : it.kind === tab && !it.craft && !it.pals && !it.wheel && !it.jn && !it.stamp)).map(([type, it]) => {
       const have = countOf(F, type), most = maxOf(F, type), full = most && have >= most, gift = F.stash[type] || 0, small = it.house && F.house < it.house, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && (it.wheel || it.jn) && !have;
       return `<button type="button" class="item${full || poor || locked || shy || luck || small ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
         ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${it.jn ? L(`Journal chapter ${it.jn}`, `Dziennik: rozdział ${it.jn}`) : L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : small ? `<span class="mat">${L(`Farmhouse level ${it.house}`, `Dom poziom ${it.house}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${most}`, `Masz ${have} z ${most}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
@@ -916,7 +947,8 @@ export function mount(app, ctx) {
     el.innerHTML = `<div class="bhead"><div class="pills">
         <button type="button" data-a="tab" data-tab="b" aria-pressed="${tab === 'b'}">${L(`Buildings`, `Budynki`)}</button>
         <button type="button" data-a="tab" data-tab="d" aria-pressed="${tab === 'd'}">${L(`Decorations`, `Ozdoby`)}</button>
-        <button type="button" data-a="tab" data-tab="f" aria-pressed="${tab === 'f'}">${L(`Fancy`, `Wyszukane`)}</button></div>
+        <button type="button" data-a="tab" data-tab="f" aria-pressed="${tab === 'f'}">${L(`Fancy`, `Wyszukane`)}</button>
+        <button type="button" data-a="tab" data-tab="s" aria-pressed="${tab === 's'}">${matIcon('stamps', 16)}${L(`Stamps`, `Znaczki`)}</button></div>
       <span class="hint">${L(`Tap something on the farm to move it.`, `Dotknij czegoś na farmie, żeby to przesunąć.`)}</span>
       <button type="button" class="btn m" data-a="done">${L(`Done`, `Gotowe`)}</button></div>
       <div class="items">${cards}${land}</div>`;
@@ -990,6 +1022,8 @@ export function mount(app, ctx) {
         + (F.house >= CHARM_HOUSE ? `<p class="hint">${L('Nest charms', 'Amulety')}: ${Object.entries(CHARMS).filter(([k]) => F.house >= charmHouse(k) || F.charms?.[k] > 0).map(([k, c]) => `${c.name} × ${F.charms?.[k] || 0}`).join(', ')}.</p><button type="button" class="btn sm w" data-a="charmshop">${L(`Make charms`, `Zrób amulety`)}</button>` : '');
       else if (item.type === 'garden') more = F.garden.ripe ? `<button type="button" class="btn sm m" data-a="berries">${L(`Pick berries (${F.garden.ripe * BERRIES})`, `Zbierz jagody (${F.garden.ripe * BERRIES})`)}</button>` : `<p class="hint">${L(`Each plot grows ${BERRIES} berries an hour. The next ones are ripe in about ${wait(Math.max(1, gardenAt - Date.now()))}.`, `Każda grządka daje ${BERRIES} jagody na godzinę. Następne dojrzeją za około ${wait(Math.max(1, gardenAt - Date.now()))}.`)}</p>`;
       else if (item.type === 'kitchen') more = `${L(`<p class="hint">You have ${F.inv.berries || 0} berries.</p>`, `<p class="hint">Masz jagód: ${F.inv.berries || 0}.</p>`)}<button type="button" class="btn sm m" data-a="cookopen">${L(`Cook treats`, `Gotuj smakołyki`)}</button>`;
+      else if (item.type === 'board') { const n = orderList().filter(o => !o.done).length;
+        more = `<p class="hint">${n ? L(`${cnt(n, 'order is', 'orders are')} waiting. You have ${F.inv.stamps || 0} stamps.`, `Czekające zamówienia: ${n}. Masz znaczki: ${F.inv.stamps || 0}.`) : L(`Every order is delivered. New ones come at midnight.`, `Wszystko dostarczone. Nowe zamówienia przyjdą o północy.`)}</p><button type="button" class="btn sm m" data-a="ordersopen">${L('See the orders', 'Zobacz zamówienia')}</button>`; }
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
       else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="swapopen">' + L('Swap materials', 'Wymień materiały') + '</button>';
       else if (item.type === 'hut') more = `<p class="hint">${F.lodgeRoom ? L(`The island has beds for ${F.room} pets and the Pet Lodge for ${F.lodgeRoom} more.`, `Na wyspie są łóżka dla ${F.room} zwierzaków, a w Schronisku dla kolejnych ${F.lodgeRoom}.`) : L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}${!F.lodgeRoom && countOf(F, 'hut') >= 3 && !upCost(item) ? ' ' + L(`That is as many as the island holds. A Pet Lodge${F.house < 4 ? ' (farmhouse level 4)' : ''} stores up to 300 more.`, `Więcej wyspa nie pomieści. Schronisko${F.house < 4 ? ' (dom na poziomie 4)' : ''} przechowa do 300 kolejnych.`) : ''}</p>`;
@@ -1106,6 +1140,10 @@ export function mount(app, ctx) {
     else if (a === 'wxinfo') { if (edit || B) return; panel = { kind: 'wx' }; card = null; sfx.click(); sync(); }
     else if (a === 'matinfo') { if (edit || B) return; panel = { kind: 'mat', mat: b.dataset.mat }; card = null; sfx.click(); sync(); }
     else if (a === 'cookopen') { panel = { kind: 'cook' }; card = null; sync(); }
+    else if (a === 'ordersopen') { if (!F.orders) return; panel = { kind: 'orders' }; card = null; sfx.click(); sync(); }
+    else if (a === 'order') ctx.send({ t: 'order', id: b.dataset.id });
+    else if (a === 'orderswap') ctx.send({ t: 'orderswap', id: b.dataset.id });
+    else if (a === 'stampshop') { tab = 's'; setEdit(true); }
     else if (a === 'swapopen') { const most = Object.keys(WORTH).filter(m => STORED.includes(m)).sort((x, y) => (F.inv[y] || 0) - (F.inv[x] || 0))[0]; panel = { kind: 'swap', n: 1, give: F.inv[most] ? most : null }; card = null; sync(); }
     else if (a === 'swgive' || a === 'swget') { const m = b.dataset.mat, mine = a === 'swgive' ? 'give' : 'get', other = mine === 'give' ? 'get' : 'give'; if (panel[other] === m) panel[other] = panel[mine] && panel[mine] !== m ? panel[mine] : mine === 'get' ? Object.keys(WORTH).filter(x => x !== m && STORED.includes(x)).sort((x, y) => (F.inv[y] || 0) - (F.inv[x] || 0))[0] : null; panel[mine] = m; sfx.click(); sync(); }
     else if (a === 'swflip') { [panel.give, panel.get] = [panel.get, panel.give]; sfx.click(); sync(); }
@@ -1306,7 +1344,7 @@ export function mount(app, ctx) {
     if (m.invite && !F && !B) { heldInvite = m.invite; return; } // arrived before the farm loaded: show it once it has
     if (m.invite && F && !B) { sfx.turn(); panel = { kind: 'invite', ...m.invite }; card = null; edit = false; scene?.ghostCancel(); if (mode === 'farm') sync(); }
     if (m.battle) liveAt = Date.now() + (m.battle.left || 0);
-    if (m.farm) { F = m.farm; for (const t of [...F.trips, F.trip, ...F.nests, F.nest]) if (t && t.left > 0) t.due = Date.now() + t.left; tripAt = Date.now() + (F.trip?.left || 0); nestAt = Date.now() + (F.nest?.left || 0); gardenAt = F.garden.left ? Date.now() + F.garden.left : 0; }
+    if (m.farm) { F = m.farm; if (F.orders) ordersAt = { day: Date.now() + F.orders.next, week: Date.now() + F.orders.week }; for (const t of [...F.trips, F.trip, ...F.nests, F.nest]) if (t && t.left > 0) t.due = Date.now() + t.left; tripAt = Date.now() + (F.trip?.left || 0); nestAt = Date.now() + (F.nest?.left || 0); gardenAt = F.garden.left ? Date.now() + F.garden.left : 0; }
     if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
       const starting = !B && m.battle;
       if (!m.battle) { B = null; shown = null; playing = false; if (m.farm) { mode = 'farm'; sync(); } return; }
@@ -1361,6 +1399,8 @@ export function mount(app, ctx) {
     else if (m.did === 'tradecancel') ctx.toast(L('You took the offer back.', 'Oferta wycofana.'));
     else if (m.did === 'pair') { sfx.join(); panel = null; if (where === 'visit') goHome(); ctx.toast(L(`They are cuddling in the Nest. An egg appears in ${CUDDLE_H} hours.`, `Przytulają się w Gnieździe. Jajko pojawi się za ${CUDDLE_H} godz.`)); }
     else if (m.did === 'hatch') { sfx.win(); card = null; panel = { kind: 'born', id: m.born }; }
+    else if (m.did === 'order') { scene?.work('board'); if (m.done) { sfx.win(); myBurst(); ctx.toast(L(`Delivered! You got ${cnt(m.stamps, 'stamp', 'stamps')}.`, `Dostarczone! Dostajesz znaczki: ${m.stamps}.`)); } else { sfx.set(); ctx.toast(L('Handed in. They are still waiting for the rest.', 'Oddane. Czekają jeszcze na resztę.')); } }
+    else if (m.did === 'orderswap') { sfx.turn(); ctx.toast(L('A new order is pinned to the board.', 'Na tablicy wisi nowe zamówienie.')); }
     if (first) { pick = null; edit = false; }
     if (heldInvite && !B) { panel = { kind: 'invite', ...heldInvite }; heldInvite = null; card = null; }
     sync();

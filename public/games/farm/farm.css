@@ -571,6 +571,33 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .hud > .tl > *, .pf .pfmatsrow > *, .pf .bl > :not(.pfstat):not(.pfrow), .pf .pfstat > *, .pf .pfrow > *, .pf .pfsumlist > *, .pf .pfnav > * { pointer-events: auto; }
 .pf .hud > .tl > .pfmatsrow { pointer-events: none; }
 
+/* island orders at the Order Board (client.js orderCard) */
+.pf .ords h3 { font-family: var(--fd); font-size: 17px; margin: 12px 0 6px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pf .ords h3 small { font-family: var(--ft, inherit); font-weight: 500; }
+.pf .ordl { display: grid; gap: 8px; }
+.pf .ordc { display: flex; gap: 10px; align-items: flex-start; background: var(--pf-chip, var(--card)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 14px; padding: 8px 10px; }
+.pf .ordc.big { background: color-mix(in srgb, var(--pf-chip, var(--card)) 82%, #ffc94d); }
+.pf .ordc.done { opacity: .62; }
+.pf .ordi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pf .ordi > b { font-family: var(--fd); font-size: 16px; text-wrap: balance; }
+.pf .ordi > small { color: var(--pf-muted, #6b4a3c); font-size: 13px; }
+.pf .ordws { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf .ordw { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px 2px 5px; border-radius: 999px; border: 2px solid var(--card-edge, #d9c6a5); font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; }
+.pf .ordw small { font-weight: 500; font-size: 12px; opacity: .8; }
+.pf .ordw .have { color: #c13a26; opacity: 1; }
+.pf .ordw.can .have { color: #2f8a3c; }
+.pf .ordw.ok { border-color: #5fb04a; background: rgba(120, 200, 110, .22); }
+.pf .ordb { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.pf .ordb .ordpay { margin-right: auto; }
+.pf .orddone { font-family: var(--fd); font-weight: 700; color: #2f8a3c; }
+body.night .pf .ordw .have { color: #ff9a8a; } body.night .pf .ordw.can .have, body.night .pf .orddone { color: #8fe08a; }
+body.night .pf .ordc.big { background: color-mix(in srgb, var(--pf-chip, var(--card)) 85%, #ffc94d); }
+.pf .bhead .pills button[data-tab=s] { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+/* four build tabs do not fit in one row on a phone: two by two beside Done */
+@media (max-width: 640px) {
+  .pf .bhead .pills { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .pf .bhead .pills button { min-height: 32px; padding: 2px 6px; font-size: 14px; justify-content: center; }
+}
 /* The Farm Journal: one pinned task over the bottom buttons, and the whole questline in a panel. */
 .pf .pfjn { display: flex; align-items: center; gap: 8px; max-width: min(460px, 100%); padding: 6px 8px 6px 6px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 #23401c55; }
 .pf .pfjn.claim { background: #ffe9a8; --pf-tx: #3b2216; --pf-muted: #6b4a3c; animation: pfjnGlow 1.6s ease-in-out infinite; }
