@@ -84,7 +84,7 @@ export function playWinFx(k, { ms = 4200, banner = '', light = false } = {}) {
   live?.stop();
   const cv = document.createElement('canvas'); cv.className = 'winfx'; cv.setAttribute('aria-hidden', 'true');
   const dpr = Math.min(1.5, devicePixelRatio || 1), W = innerWidth, H = innerHeight; cv.width = W * dpr; cv.height = H * dpr;
-  const x = cv.getContext('2d'); x.scale(dpr, dpr); document.body.append(cv);
+  const x = cv.getContext('2d', { willReadFrequently: false }); x.scale(dpr, dpr); document.body.append(cv); // drawn every frame: stays on the GPU
   let tag = null; if (banner) { tag = document.createElement('div'); tag.className = 'winfxtag'; tag.textContent = banner; document.body.append(tag); }
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, R = Math.random, ps = [];
   const spawn = i => {
