@@ -23,6 +23,9 @@ export const REASONS = {
 };
 const when = t => new Date(t).toLocaleString(LOCALE, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const hm = t => new Date(t).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
+// How long a ban still runs: 2 d 3 h, 5 h 12 min, 4 min 09 s.
+const leftText = u => { const s = Math.max(0, Math.ceil((u - Date.now()) / 1000)), d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+  return d ? `${d} ${L('d', 'd.')} ${h} ${L('h', 'godz.')}` : h ? `${h} ${L('h', 'godz.')} ${m} min` : `${m} min ${String(s % 60).padStart(2, '0')} s`; };
 const untilText = u => u ? L(`until ${when(u)}`, `do ${when(u)}`) : L('for good', 'na stałe');
 const durText = m => !m ? L('For good', 'Na stałe') : m < 60 ? `${m} min` : m < 1440 ? L(`${m / 60} h`, `${m / 60} godz.`)
   : m === 1440 ? L('1 day', '1 dzień') : L(`${m / 1440} days`, `${m / 1440} dni`);
@@ -58,20 +61,27 @@ export function openReport(p, from = 'hub') {
 }
 
 // ---------- what the player is under: a ban screen, a warning, a note about a mute ----------
-let banEl = null, warnShown = '', muteShown = -1, thanksShown = '';
+let banT = 0, banEl = null, warnShown = '', muteShown = -1, thanksShown = '';
 export function onModMe(m) {
   if (m.ban) {
     const html = `<div class="banbox"><div class="banico" aria-hidden="true">⛔</div><h2>${L('You can’t play right now', 'Nie możesz teraz grać')}</h2>
       <p>${m.ban.until ? L(`A host has banned this account until <b>${when(m.ban.until)}</b>.`, `Gospodarz zablokował to konto do <b>${when(m.ban.until)}</b>.`) : L('A host has banned this account for good.', 'Gospodarz zablokował to konto na stałe.')}</p>
+      ${m.ban.until ? `<p class="banleft">${L('Time left', 'Pozostało')}: <b data-banleft>${leftText(m.ban.until)}</b></p>` : ''}
       ${m.ban.why ? `<p class="banwhy">${L('Reason', 'Powód')}: ${esc(m.ban.why)}</p>` : ''}
 </div>`;
     if (!banEl) { banEl = document.createElement('div'); banEl.className = 'banwall'; banEl.setAttribute('role', 'alertdialog'); document.body.append(banEl); }
     if (banEl.dataset.h !== html) { banEl.innerHTML = html; banEl.dataset.h = html; }
     document.body.classList.add('banned'); // nothing of the site shows behind it, and no pop-up opens over it
+    clearInterval(banT);
+    if (m.ban.until) banT = setInterval(() => { // counts down, and lets the player back in by itself at the end
+      const el = banEl?.querySelector('[data-banleft]'); if (!el) return clearInterval(banT);
+      if (m.ban.until <= Date.now()) { clearInterval(banT); return location.reload(); }
+      el.textContent = leftText(m.ban.until);
+    }, 1000);
     for (const x of document.querySelectorAll('.modal')) x.remove();
     return;
   }
-  banEl?.remove(); banEl = null; document.body.classList.remove('banned');
+  clearInterval(banT); banEl?.remove(); banEl = null; document.body.classList.remove('banned');
   if (m.warn && warnShown !== m.warn.id) {
     warnShown = m.warn.id;
     const w = d.modal(`<h2>⚠️ ${L('A warning from the hosts', 'Ostrzeżenie od gospodarzy')}</h2>

@@ -2091,3 +2091,4 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .mhist .ctxlog, .mhist .ctxlog time { color: inherit; } .mhist.none { background: transparent; color: var(--soft-tx); padding: 0; }
 .mhist.hot { border-left: 4px solid var(--chili); }
 .thxcoins { font: 700 22px var(--fd); color: var(--on-paper); display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.banleft { font-size: 17px; } .banleft b { font-variant-numeric: tabular-nums; }
