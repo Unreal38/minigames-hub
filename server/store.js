@@ -702,8 +702,19 @@ export function friendsView(p, online = () => false, extra = () => ({})) {
 // points that the rankings (and win-based unlocks) count, so wins against bots never move anyone up a board.
 // pay: the share of XP and placement coins a match with bots pays (server/botpay.js); 1 for people only. Bets
 // (coinNet) are never scaled.
+// Bet profits (a positive coinNet) count against BET_DAY_CAP per account per Warsaw day; past it a win pays nothing
+// more (the coins are lost, never made). Bets are pots between players, so without a cap two accounts could pass
+// coins to each other by betting against each other; losses are never capped.
+export const BET_DAY_CAP = 300;
+export function betRoom(p) { return p?.betd?.day === dayOf() ? Math.max(0, BET_DAY_CAP - (p.betd.won || 0)) : BET_DAY_CAP; }
 export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1, ranked = true, pay = 1 }) {
   if (!Number.isFinite(place)) place = win ? 1 : Math.max(1, of);
+  if (!Number.isFinite(coinNet)) coinNet = 0;
+  if (coinNet > 0) {
+    coinNet = Math.min(Math.round(coinNet), betRoom(p));
+    if (p.betd?.day !== dayOf()) p.betd = { day: dayOf(), won: 0 };
+    p.betd.won += coinNet;
+  }
   pay = Number.isFinite(pay) ? Math.max(0, Math.min(1, pay)) : 1;
   const before = levelOf(p.xp), gain = Math.round(xpFor({ pts, win }) * pay), coins = (idle ? 0 : Math.round(placeCoins(place, of) * pay)) + (Number.isFinite(coinNet) ? coinNet : 0);
   p.xp += gain;

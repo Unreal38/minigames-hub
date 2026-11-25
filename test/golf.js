@@ -79,7 +79,7 @@ function play(opts, wallet = { 'h:a': 100, 'h:b': 5 }) {
         if (R.scores.some(s => s < 1 || s > CAP_SCORE)) fail('bad hole scores');
         if (R.win >= 0 && R.scores[R.win] !== Math.min(...R.scores)) fail('hole winner did not have the fewest strokes');
         if (betOn >= 0) {
-          const want = start - 25 + (R.win < 0 ? 25 : R.win === betOn ? 25 * G.seats.length : 0);
+          const want = start; // only a's 25 is in the pot, so whatever happens it comes back: bets never make coins
           if (G.wallet['h:a'] !== want) fail(`bet settled wrong: ${G.wallet['h:a']} vs ${want}`);
         }
       }
@@ -98,6 +98,25 @@ const g1 = play({ holes: 3, seats: 4, bets: 'on', course: 'classic' });
 const g3 = play({ holes: 3, seats: 4, bets: 'on' });
 if (g3.opts.course !== 'random' || g3.order.some(o => typeof o !== 'object')) fail('default course is not random');
 console.log('3 holes with bets: winner', g1.seats[g1.win].name, 'totals', g1.res.totals.join(' '));
+// the pot: everyone's stakes in, backers of the winner share it, nothing made or lost in total
+{
+  const sum = ps => ps.reduce((a, p) => a + (p ? p.won : 0), 0);
+  const farm = golf.potPay([{ on: 0, amt: 50 }, { on: 0, amt: 50 }, { on: 0, amt: 50 }], 0); // the 2026-11-25 farm
+  if (farm.some(p => p.net !== 0)) fail('everyone backing the winner still made coins');
+  const mix = golf.potPay([{ on: 0, amt: 50 }, { on: 1, amt: 25 }, { on: 0, amt: 10 }, 'skip', null], 0);
+  if (sum(mix) !== 85 || mix[0].won !== 71 || mix[2].won !== 14 || mix[1].won !== 0 || mix[3] || mix[4]) fail('pot split wrong: ' + JSON.stringify(mix));
+  const odd = golf.potPay([{ on: 2, amt: 10 }, { on: 2, amt: 10 }, { on: 2, amt: 10 }, { on: 1, amt: 25 }], 2);
+  if (sum(odd) !== 55) fail('odd coins lost');
+  const none = golf.potPay([{ on: 1, amt: 50 }, { on: 2, amt: 10 }], 0);
+  if (none[0].net || none[1].net) fail('nobody backed the winner: stakes should come back');
+  const nowin = golf.potPay([{ on: 1, amt: 50 }, { on: 1, amt: 10 }], -1);
+  if (nowin[0].net || nowin[1].net) fail('nobody won: stakes should come back');
+  for (let t = 0; t < 2000; t++) {
+    const bets = Array.from({ length: 2 + (Math.random() * 5 | 0) }, () => (Math.random() < .2 ? null : { on: Math.random() * 6 | 0, amt: [10, 25, 50][Math.random() * 3 | 0] }));
+    const pot = bets.reduce((a, b) => a + (b ? b.amt : 0), 0);
+    if (sum(golf.potPay(bets, (Math.random() * 7 | 0) - 1)) !== pot) fail('pot not zero-sum: ' + JSON.stringify(bets));
+  }
+}
 const g2 = play({ holes: 9, seats: 6, bets: 'off', bots: 'sharp', course: 'classic' });
 if (g2.wallet['h:a'] !== 100) fail('coins moved with bets off');
 console.log('9 holes, sharp bots: winner', g2.seats[g2.win].name, 'totals', g2.res.totals.join(' '), 'par', g2.res.par);

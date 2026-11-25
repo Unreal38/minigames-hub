@@ -1,6 +1,10 @@
 // Mini Golf Party: everyone plays the same hole and takes turns, one putt each, each with their own ball (balls
 // pass through each other). The server works out every shot with the shared physics and sends the path; clients replay it.
 // Before each hole players may bet account coins on who will win it (meta.bank fills in the balances).
+// Bets are a pot, never paid by the house: everyone's stakes go in, and the people who backed the winner share the
+// whole pot in proportion to their stakes. No coins are ever made, so a table that agrees on a winner and lets them
+// win (the 2026-11-25 coin farm: everyone 50 on one player) only gets its own stakes back. Bet profits per account
+// per day are capped too (store.js BET_DAY_CAP), so two accounts can't funnel coins to each other through the pot.
 import { HOLES, buildHole, simulate, spotScore, MAX_STROKES, CAP_SCORE } from '../../public/games/golf/course.js';
 import { randomAv } from '../../public/avatar.js';
 import { genSpec } from './golfgen.js';
@@ -184,22 +188,32 @@ export function makeHole(used = []) {
 }
 
 function endHole(G, now) {
-  const n = G.seats.length, scores = G.balls.map(b => (b.sunk && b.sunk <= now ? b.strokes : CAP_SCORE));
+  const scores = G.balls.map(b => (b.sunk && b.sunk <= now ? b.strokes : CAP_SCORE));
   // the hole goes to the fewest strokes; a tie goes to whoever holed out first. Nobody in: nobody wins.
   let w = -1;
   G.balls.forEach((b, i) => { if (b.sunk && b.sunk <= now && (w < 0 || scores[i] < scores[w] || (scores[i] === scores[w] && b.sunk < G.balls[w].sunk))) w = i; });
   scores.forEach((sc, i) => G.cards[i].push(sc));
   if (w >= 0) G.wins[w]++;
   G.first = w; G.turn = -1;
-  const pay = G.seats.map((seat, s) => {
-    const b = G.bets[s]; if (!b) return null;
-    const won = w < 0 ? b.amt : b.on === w ? b.amt * n : 0; // no winner: stakes come back
-    G.wallet[seat.wk] += won; G.net[s] += won - b.amt;
-    return { on: b.on, amt: b.amt, won, net: won - b.amt };
-  });
+  const pay = potPay(G.bets, w);
+  pay.forEach((p, s) => { if (!p) return; G.wallet[G.seats[s].wk] += p.won; G.net[s] += p.net; });
   G.holeRes = { win: w, scores, pay, par: G.H.par };
   G.stage = 'done'; G.stageEnd = now + DONE_MS;
   pushEv(G, { t: 'holeEnd', i: G.hi, w });
+}
+
+// Splits one hole's pot. Everyone's stakes go in; whoever backed the winner shares all of it by stake (rounded
+// down, the odd coins to the biggest stakes, earliest seat first). Nobody won the hole, or nobody backed the winner:
+// every stake comes back. The coins paid out always add up to exactly the coins put in.
+export function potPay(bets, w) {
+  const live = bets.map(b => (b && b !== 'skip' && b.amt > 0 ? b : null));
+  const pot = live.reduce((a, b) => a + (b ? b.amt : 0), 0);
+  const right = live.reduce((a, b) => a + (b && b.on === w ? b.amt : 0), 0);
+  const won = live.map(b => (!b ? 0 : w < 0 || !right ? b.amt : b.on === w ? Math.floor(pot * b.amt / right) : 0));
+  let left = pot - won.reduce((a, b) => a + b, 0);
+  const odd = live.map((b, i) => i).filter(i => live[i] && (w < 0 || !right || live[i].on === w)).sort((a, b) => live[b].amt - live[a].amt || a - b);
+  for (let k = 0; left > 0 && odd.length; k++, left--) won[odd[k % odd.length]]++;
+  return live.map((b, i) => (b ? { on: b.on, amt: b.amt, won: won[i], net: won[i] - b.amt } : null));
 }
 
 const totalOf = (G, i) => G.cards[i].reduce((a, b) => a + b, 0);
@@ -295,7 +309,7 @@ export function view(G, s) {
     game: 'golf', ph: G.ph, stage: G.stage, gid: G.gid, me: s, hole: G.hi + 1, holes: G.order.length,
     hdef: { key: G.H.key, i: G.order[G.hi], mirror: G.mirror[G.hi] }, par: G.H.par, name: G.H.name,
     pars: G.order.filter(i => i != null).map(parOf), left: Math.max(0, G.stageEnd - now), clock: G.stage === 'play' ? now - G.holeAt : 0,
-    bets: betting(G), mult: G.seats.length, max: MAX_STROKES, cap: CAP_SCORE,
+    bets: betting(G), pot: G.bets.reduce((a, b) => a + (b && b !== 'skip' ? b.amt : 0), 0), max: MAX_STROKES, cap: CAP_SCORE,
     turn: G.stage === 'play' ? G.turn : -1, tin: G.stage === 'play' ? Math.max(0, G.turnFrom - now) : 0,
     seats: G.seats.map((x, i) => {
       const b = G.balls[i], sh = b.shot;
