@@ -455,6 +455,14 @@ body.night .gcard .pic .arttick { stroke: #fff6d8; } /* motion ticks drawn on th
 .gcard .pic.makaopic svg { width: 100%; height: 100%; display: block; }
 .makaopic .mfan { animation: bob 2.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .makaopic .mfan { animation: none; } }
+.gcard .pic.copypic { background: var(--art-sky); padding: 0; }
+.gcard .pic.copypic svg { width: 100%; height: 100%; display: block; }
+.copypic .ccpeek { animation: ccpeek 2.6s steps(1) infinite; }
+.copypic .ccsq { animation: ccsq 2.6s steps(1) infinite; }
+.copypic .ccseek { animation: bob 1.8s ease-in-out infinite; }
+@keyframes ccpeek { 0%, 60% { opacity: 1; } 61%, 70% { opacity: 0; } }
+@keyframes ccsq { 0%, 30% { opacity: 0; } 31%, 55% { opacity: 1; } 56% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .copypic .ccpeek, .copypic .ccsq, .copypic .ccseek { animation: none; } }
 .gcard .pic.boppic { background: var(--art-sky); padding: 0; }
 .gcard .pic.boppic svg { width: 100%; height: 100%; display: block; }
 .boppic .bbpet { animation: bob 1.6s ease-in-out infinite; }

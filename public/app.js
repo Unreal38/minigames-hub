@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -311,6 +311,27 @@ const GAMES = {
       <li>Once the first kart finishes, everyone else has <b>25 seconds</b> to cross the line. After that the rest are placed by how far round they got.</li>
       <li><b>Chaos</b> power-ups rain banana peels from the sky and hand out more jellies and clouds.</li>
       <li>Coins go by your finishing place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  copy: {
+    name: 'Copycat Isle', load: () => import('./games/copy/client.js'), start: 'Start hiding',
+    mins: [4, 16],
+    host: { seats: 6, time: 180, caught: 'ghost' }, solo: { seats: 6, time: 180, caught: 'ghost' },
+    openSeat: 'A bot hides here if nobody joins', seatWord: 'Players on the island',
+    settings: pill => `<div class="opt"><b>Seeking time</b><div class="pills">${pill('time', 120, '2 min')}${pill('time', 180, '3 min')}${pill('time', 240, '4 min')}</div></div>
+      <div class="opt"><b>Found hiders</b><div class="pills">${pill('caught', 'ghost', 'Float as ghosts')}${pill('caught', 'join', 'Join the seekers')}</div></div>`,
+    howto: `Hide and seek on a little island. Hiders turn into anything lying about, a bench, a hay bale, a pumpkin, and keep very still. Seekers walk round booping things that look a bit odd, with their own pet sniffing the air. Everyone seeks once.`,
+    rules: `<ol>
+      <li>Every round one player <b>seeks</b> (two with 8 players or more) and everyone else <b>hides</b>. There is a round for every person, so everyone seeks once. Bots only ever hide.</li>
+      <li>Hiders get <b>30 seconds</b> while the seekers wait in the pet hut with their eyes covered. Walk up to anything you can copy (it gets a yellow ring) and press <b>E</b> or tap it to turn into it. In those 30 seconds you can copy as often as you like, after that only <b>twice</b> more.</li>
+      <li>Keep still in a spot where that thing would belong. Press <b>R</b> to <b>lock your turn</b> so you can look round without turning. A hider who forgets to copy anything turns into the nearest thing when seeking starts.</li>
+      <li>Seekers have <b>3 minutes</b> (2 or 4 if the host picks). Walk up to something and press <b>E</b> (or tap it) to <b>boop</b> it. Boop a hider and they are found. Boop a plain old thing and you get <b>dizzy</b> for 2 seconds.</li>
+      <li>Your first isle pet comes along to help: press <b>F</b> to <b>sniff</b> every 20 seconds. It tells you how close the nearest hider is: <b>cold</b>, <b>cool</b>, <b>warm</b> or <b>hot</b> (within 12 metres).</li>
+      <li>Every hider <b>squeaks</b> by itself every 40 seconds, and the squeak shows on the map. Brave hiders can squeak on purpose with <b>Q</b> for a bonus point (up to 3 a round).</li>
+      <li>Loose things get scattered somewhere new every round, so a bench that was not there last time is not always a person. The pond is slippery ice in winter and shallow water the rest of the year. The barn roof goes see-through when you walk in.</li>
+      <li>Points: hiders get <b>1 for every 10 seconds</b> they stay hidden and <b>5 for lasting the round</b>. Seekers get <b>6 for every find</b>, 2 more for a find in the first minute, and 3 if they find everyone. The host picks whether found hiders float about as ghosts or <b>join the seekers</b>.</li>
+      <li>After the last round the most points wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>Walk with <b>W A S D</b> or the arrow keys (a joystick on phones), drag to look round, and scroll or pinch to zoom.</li>
     </ol>`,
   },
   kitchen: {
@@ -1798,6 +1819,7 @@ const HUB_GAMES = [
   ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
   ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],
   ['kart', 'kartpic', kartArt, 'action', '1–8 players', 'Race little low-poly karts round roads that hop between floating islands.'],
+  ['copy', 'copypic', copyArt, 'action party', '1–10 players', 'Hide and seek on a little island. Turn into a bench, a hay bale or a pumpkin and keep still while your friends hunt for you.'],
   ['kitchen', 'kitchenpic', kitchenArt, 'action party', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
   ['dig', 'digpic', digArt, 'board', '1–6 players', 'Take turns digging up a grass field for gems and a golden chest. Like Minesweeper with friends.'],
   ['bricks', 'brickspic', bricksArt, 'action', '1–6 players', 'Stack falling bricks in your own well and send stone lines to your friends. Last one stacking wins.'],

@@ -40,6 +40,7 @@ export const OPT_PL = {
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
   'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
+  'Seeking time': 'Czas szukania', 'Found hiders': 'Znalezieni chowający', 'Float as ghosts': 'Unoszą się jako duszki', 'Join the seekers': 'Dołączają do szukających', 'Players on the island': 'Gracze na wyspie',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
 
@@ -225,6 +226,23 @@ export const GAMES_PL = {
       <li>Gdy pierwszy gokart dojedzie do mety, reszta ma <b>25 sekund</b> na przekroczenie linii. Potem pozostali zajmują miejsca według przejechanej drogi.</li>
       <li>Bonusy w trybie <b>Chaos</b>: z nieba pada deszcz skórek od banana, a galaretek i chmurek jest więcej.</li>
       <li>Monety zależą od miejsca na mecie: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  copy: {
+    name: 'Wyspa Przebierańców', start: 'Zaczynamy chowanego', openSeat: 'Jeśli nikt nie dołączy, schowa się tu bot',
+    pitch: 'Zabawa w chowanego na małej wyspie. Zamień się w ławkę, belę siana albo dynię i nie ruszaj się, gdy znajomi cię szukają.',
+    howto: `Zabawa w chowanego na małej wyspie. Chowający zamieniają się w cokolwiek, co leży w pobliżu: ławkę, belę siana, dynię, i nie ruszają się. Szukający chodzą po wyspie i pstrykają rzeczy, które wyglądają trochę podejrzanie, a pomaga im ich własny zwierzak, który węszy. Każdy szuka raz.`,
+    rules: `<ol>
+      <li>W każdej rundzie jeden gracz <b>szuka</b> (dwóch, gdy gra 8 osób lub więcej), a reszta <b>się chowa</b>. Rund jest tyle, ile osób, więc każdy szuka raz. Boty tylko się chowają.</li>
+      <li>Chowający mają <b>30 sekund</b>, a szukający czekają w budce dla zwierzaków z zakrytymi oczami. Podejdź do czegoś, co da się skopiować (dostaje żółte kółko), i naciśnij <b>E</b> albo dotknij tego, żeby się w to zamienić. Przez te 30 sekund kopiujesz, ile chcesz, potem już tylko <b>dwa</b> razy.</li>
+      <li>Nie ruszaj się w miejscu, gdzie taka rzecz pasuje. Klawisz <b>R</b> <b>blokuje obrót</b>, więc możesz się rozglądać i się nie obracać. Kto zapomni niczego skopiować, na początku szukania zamienia się w najbliższą rzecz.</li>
+      <li>Szukający mają <b>3 minuty</b> (albo 2 lub 4, jeśli tak wybierze gospodarz). Podejdź do czegoś i naciśnij <b>E</b> (albo tego dotknij), żeby to <b>pstryknąć</b>. Pstryknięty chowający jest znaleziony. Pstryknięcie zwykłej rzeczy sprawia, że przez 2 sekundy <b>kręci ci się w głowie</b>.</li>
+      <li>Pomaga ci twój pierwszy zwierzak z wyspy: co 20 sekund możesz nacisnąć <b>F</b>, żeby <b>powęszył</b>. Powie ci, jak blisko jest najbliższy chowający: <b>zimno</b>, <b>chłodno</b>, <b>ciepło</b> albo <b>gorąco</b> (do 12 metrów).</li>
+      <li>Każdy chowający sam <b>piszczy</b> co 40 sekund, a pisk widać na mapie. Odważni mogą piszczeć specjalnie klawiszem <b>Q</b> i dostać punkt (najwyżej 3 w rundzie).</li>
+      <li>Luźne rzeczy w każdej rundzie leżą gdzie indziej, więc ławka, której wcześniej nie było, nie zawsze jest graczem. Staw zimą jest śliskim lodem, a przez resztę roku płytką wodą. Dach stodoły robi się przezroczysty, gdy wchodzisz do środka.</li>
+      <li>Punkty: chowający dostają <b>1 za każde 10 sekund</b> w ukryciu i <b>5 za przetrwanie rundy</b>. Szukający dostają <b>6 za każde znalezienie</b>, 2 więcej za znalezienie w pierwszej minucie i 3, jeśli znajdą wszystkich. Gospodarz wybiera, czy znalezieni unoszą się jako duszki, czy <b>dołączają do szukających</b>.</li>
+      <li>Po ostatniej rundzie wygrywa ten, kto ma najwięcej punktów. Monety zależą od miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Chodź klawiszami <b>W A S D</b> albo strzałkami (na telefonie joystickiem), przeciągnij, żeby się rozejrzeć, a kółkiem myszy lub dwoma palcami przybliżaj.</li>
     </ol>`,
   },
   kitchen: {
