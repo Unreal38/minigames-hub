@@ -164,7 +164,7 @@ const BUILD = {
     for (const sd of [-1, 1]) {
       box(g, .5, .5, .05, C.white, sd * .72, .46, .85); box(g, .42, .42, .08, C.glass, sd * .72, .5, .86);
       box(g, .03, .4, .03, C.white, sd * .72, .51, .9); box(g, .4, .03, .03, C.white, sd * .72, .7, .9);
-      for (const k of [-1, 1]) box(g, .1, .46, .05, C.teal, sd * .72 + k * .29, .48, .88); // shutters
+      for (const k of [-1, 1]) box(g, .1, .46, .05, C.teal, sd * .72 + k * .3, .48, .88); // shutters (clear of the window frame, so no edges share a plane)
       box(g, .6, .16, .2, C.woodD, sd * .72, .28, .98);          // flower boxes
       [[-.18, C.pink], [0, C.yellow], [.18, C.lilac]].forEach(([x, c], i) => { ico(g, .09, sd > 0 ? [C.yellow, C.pink, C.white][i] : c, sd * .72 + x, .52, 1.0); ico(g, .05, C.leaf, sd * .72 + x + .08, .46, 1.04); });
     }
@@ -201,11 +201,12 @@ const BUILD = {
     if (lv < 4) return;
     // level 4, the grand farmhouse: a stone tower with a pointed roof and a flag, a blue slate roof with a gold ridge
     const t = grp(g, -.98, 0, -.95); t.scale.set(1.25, 1, 1.25); // wide enough to swallow the corner of the eaves
-    cyl(t, .44, .47, 2.75, 8, C.stone); cyl(t, .5, .5, .1, 8, C.stoneD, 0, 0); cyl(t, .5, .46, .12, 8, C.stoneD, 0, 2.7); cyl(t, .47, .47, .07, 8, C.woodD, 0, 1.3);
+    const TH = 3.25; // tall enough that its roof (and the level 6 gallery) clears the main roof's slope
+    cyl(t, .44, .47, TH, 8, C.stone); cyl(t, .5, .5, .1, 8, C.stoneD, 0, 0); cyl(t, .5, .46, .12, 8, C.stoneD, 0, TH - .05); cyl(t, .47, .47, .07, 8, C.woodD, 0, 1.3);
     for (const [a, y] of [[.5, .5], [1.9, 1.0], [-.6, 1.7], [1.2, 2.2], [-1.5, .8], [2.6, 2.4], [0, 2.45]]) box(t, .2, .09, .03, C.stoneD, Math.sin(a) * .445, y, Math.cos(a) * .445).rotation.y = a;
-    for (const [a, y] of [[-.785, 2.05], [-2.356, 2.05], [-.785, .8]]) { const o = grp(t, Math.sin(a) * .44, y, Math.cos(a) * .44); o.rotation.y = a; box(o, .2, .34, .06, C.glass, 0, 0, 0); box(o, .26, .05, .08, C.stoneD, 0, -.05, 0); box(o, .26, .05, .08, C.stoneD, 0, .34, 0); }
-    if (lv < 6) { cone(t, .62, .16, 8, C.blueD, 0, 2.8); cone(t, .56, .95, 8, C.blue, 0, 2.86); ico(t, .07, C.gold, 0, 3.86, 0);
-      box(t, .03, .5, .03, C.woodD, 0, 3.86, 0); box(t, .34, .2, .03, C.red, .19, 4.14, 0); box(t, .1, .08, .04, C.gold, .14, 4.2, 0); }
+    for (const [a, y] of [[-.785, 2.05], [-2.356, 2.05], [-.785, .8], [-1.57, 2.65]]) { const o = grp(t, Math.sin(a) * .44, y, Math.cos(a) * .44); o.rotation.y = a; box(o, .2, .34, .06, C.glass, 0, 0, 0); box(o, .26, .05, .08, C.stoneD, 0, -.05, 0); box(o, .26, .05, .08, C.stoneD, 0, .34, 0); }
+    if (lv < 6) { cone(t, .62, .16, 8, C.blueD, 0, TH + .05); cone(t, .56, .95, 8, C.blue, 0, TH + .11); ico(t, .07, C.gold, 0, TH + 1.11, 0);
+      box(t, .03, .5, .03, C.woodD, 0, TH + 1.11, 0); box(t, .34, .2, .03, C.red, .19, TH + 1.39, 0); box(t, .1, .08, .06, C.gold, .14, TH + 1.45, 0); }
     for (const sd of [-1, 1]) banner(g, sd * .36, 1.51 + up - .9, .9, trim, .2, .5);
     put(rf, G('Octahedron', .1, 0), M(C.gold), 0, 2.42, 1.05).scale.set(1, 1.5, .6); box(rf, .03, .14, .03, C.goldD, 0, 2.25, 1.05); // a gold finial over the gable
     for (const sd of [-1, 1]) box(rf, .16, .05, 2.42, C.gold, sd * 1.34, 1.3, -.1);
@@ -215,17 +216,17 @@ const BUILD = {
     const k = grp(g, 1.0, 0, -1.08);
     box(k, .64, .12, .64, C.stoneD); box(k, .54, 3.0, .54, C.cream, 0, .1); for (const [x, z] of [[-.27, -.27], [.27, -.27], [-.27, .27], [.27, .27]]) box(k, .08, 3.0, .08, C.woodD, x, .1, z);
     box(k, .62, .1, .62, C.woodD, 0, 1.5); box(k, .64, .12, .64, C.stoneD, 0, 3.08);
-    for (const [ry, x, z] of [[0, 0, .28], [Math.PI / 2, .28, 0]]) { const f = grp(k, x, 2.55, z); f.rotation.y = ry; // a clock face on the front and the side
+    for (const [ry, x, z] of [[0, 0, .28], [Math.PI / 2, .28, 0]]) { const f = grp(k, x, 2.84, z); f.rotation.y = ry; // a clock face on the front and the side, high enough to clear the roof
       put(f, G('Cylinder', .2, .2, .04, 12), M(C.white)).rotation.x = Math.PI / 2; put(f, G('Torus', .2, .03, 4, 12), M(C.gold), 0, 0, .02);
       box(f, .025, .13, .02, C.iron, 0, -.01, .03); box(f, .1, .025, .02, C.iron, .04, 0, .035); ico(f, .02, C.gold, 0, 0, .045); }
-    for (const sd of [-1, 1]) { const w = grp(k, sd * .28, 1.9, 0); w.rotation.y = sd * Math.PI / 2; box(w, .2, .34, .06, C.glass); box(w, .26, .05, .1, C.woodD, 0, -.04); }
+    for (const [ry, x, z] of [[Math.PI / 2, .28, 0], [Math.PI, 0, -.28]]) { const w = grp(k, x, 1.9, z); w.rotation.y = ry; box(w, .2, .34, .06, C.glass); box(w, .26, .05, .1, C.woodD, 0, -.04); } // windows on the outer sides (the inner ones would sit inside the house)
     put(k, G('Cylinder', .28, .4, .36, 4), M(trim), 0, 3.38, 0).rotation.y = Math.PI / 4; ico(k, .26, C.gold, 0, 3.66, 0, 1); // the dome
     if (!sky) { box(k, .03, .36, .03, C.goldD, 0, 3.88, 0); put(k, G('Octahedron', .11, 0), GOLDM(), 0, 4.3, 0).scale.set(1, 1.3, .4); } // (at level 7 a sky crystal floats there instead, FX.house)
     for (const sd of [-1, 1]) banner(g, sd * .36 + .02, .55, 1.4, trim, .14, .3); // little banners on the fence posts
     if (lv < 6) return;
     // level 6, the explorer's house: the stone tower becomes an observatory, a copper dome with a brass telescope that
     // looks out past the clouds (far expeditions open at this level), and a weathervane rides the roof
-    const T0 = [-.98, 2.82, -.95], domeC = sky ? C.gold : C.patina, domeD = sky ? C.goldD : C.patinaD, D0 = T0[1] + .5; // D0: where the dome sits
+    const T0 = [-.98, TH + .07, -.95], domeC = sky ? C.gold : C.patina, domeD = sky ? C.goldD : C.patinaD, D0 = T0[1] + .5; // D0: where the dome sits
     cyl(g, .74, .74, .08, 8, C.woodD, T0[0], T0[1], T0[2]); // a lookout gallery round the top of the tower, with a rail
     for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; box(g, .035, .22, .035, C.white, T0[0] + Math.sin(a) * .7, T0[1] + .08, T0[2] + Math.cos(a) * .7); }
     put(g, G('Torus', .7, .022, 3, 16), M(C.white), T0[0], T0[1] + .31, T0[2]).rotation.x = Math.PI / 2;
@@ -238,7 +239,7 @@ const BUILD = {
     for (const [r, h, z, c] of [[.07, .5, .3, C.brass], [.085, .06, .6, C.gold], [.095, .2, .66, C.brass], [.105, .05, .86, C.gold]]) put(tel, G('Cylinder', r, r, h, 8), M(c), 0, 0, z + h / 2).rotation.x = Math.PI / 2;
     put(tel, G('Cylinder', .085, .085, .02, 8), M(C.glass), 0, 0, .915).rotation.x = Math.PI / 2;
     pennant(g, T0[0], D0 + .5, T0[2], sky ? C.plum : C.red, .5); // the flag moves to the top of the dome
-    const wv = grp(rf, -.35, 2.3, -.55); box(wv, .035, .5, .035, C.iron); // the weathervane's post and its compass arms (the arrow turns, FX.house)
+    const wv = grp(rf, 0, 2.3, .25); box(wv, .035, .5, .035, C.iron); // the weathervane's post and its compass arms (the arrow turns, FX.house)
     for (const ry of [0, Math.PI / 2]) { const arm = box(wv, .34, .025, .025, C.iron, 0, .3, 0); arm.rotation.y = ry; }
     for (const [x, z] of [[.17, 0], [-.17, 0], [0, .17], [0, -.17]]) ico(wv, .028, C.gold, x, .31, z);
     if (lv < 7) return;
@@ -972,7 +973,7 @@ const FX = {
     const up = liftOf('house', lv), smoke = puffs(g, .7, 2.25 + up + (lv >= 2 ? .34 : 0), -.5, 4, .12);
     let vane = null, gem = null, shards = [];
     if (lv >= 6) { // the weathervane's arrow swings about in the breeze
-      vane = grp(g, -.35, 2.3 + up + .5, -.55); box(vane, .42, .03, .03, C.iron, 0, -.015, 0); cone(vane, .05, .12, 4, C.gold, .25, 0, 0).rotation.z = -Math.PI / 2;
+      vane = grp(g, 0, 2.3 + up + .5, .25); box(vane, .42, .03, .03, C.iron, 0, -.015, 0); cone(vane, .05, .12, 4, C.gold, .25, 0, 0).rotation.z = -Math.PI / 2;
       box(vane, .1, .1, .02, C.gold, -.2, -.05, 0); ico(vane, .035, C.gold, 0, .02, 0);
     }
     if (lv >= 7) { // a sky crystal floats over the clock tower and turns, with three little shards going round it
