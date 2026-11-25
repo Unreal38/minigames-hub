@@ -98,6 +98,7 @@ shop('hat', [['Tiara', 200], ['Veil', 150], ['Sweatband', 60], ['Deerstalker', 1
 shop('glasses', [['Masquerade mask', 140], ['Cat-eye glasses', 100]]);
 shop('neck', [['Feather boa', 130], ['Spiked collar', 90], ['Ruff collar', 110]]);
 shop('back', [['Pirate flag', 160], ['Guitar', 170]]);
+shop('top', [['Llama onesie', 260]]); // a full mascot costume like the dino (2026-11-25)
 
 export const packOf = (k, i) => PACK[k + ':' + i] || null;
 export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);

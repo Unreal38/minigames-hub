@@ -23,6 +23,8 @@ export function itemPic(k, i, color, av) {
   // a hood or a hat would hide the hair being picked, and a costume hood would hide the hat
   if (k === 'hair' || k === 'hairC') a[IX.hat] = 0;
   if (k === 'eyes' || k === 'eyeC' || k === 'brows') a[IX.glasses] = 0; // glasses would cover them
+  // the dino and llama onesies' full heads (no hat on) would hide the face and hair being picked: show them under a plain T-shirt
+  if ((a[IX.top] === 23 || a[IX.top] === 38) && a[IX.hat] === 0 && ['face', 'skin', 'eyes', 'eyeC', 'brows', 'nose', 'mouth', 'marks', 'hair', 'hairC', 'facial', 'glasses'].includes(k)) a[IX.top] = 0;
   // a dress or a costume would hide the bottom being picked: show it under a plain T-shirt
   if ((k === 'bottom' || k === 'botC') && hidesBottom(a[IX.top])) a[IX.top] = 0;
   if (k === 'shoes' || k === 'shoeC') { if (a[IX.top] === 15 || a[IX.top] === 32) a[IX.top] = 0; if (a[IX.bottom] === 6) a[IX.bottom] = 0; } // a kimono or long skirt hides the shoes
