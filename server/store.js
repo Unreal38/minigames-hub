@@ -10,7 +10,7 @@ import { xpFor, placeCoins, levelOf, progress, starsOf, RANKS } from '../public/
 import { tidySky, lightStar, freeStars, isDone } from '../public/constellations.js';
 import { COS, WORN, DECOR_SLOTS, PIECES, PIECE_SLOTS, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, flairOf, stickerPack, cosPackIds, emotesOf, EMOTE_BAR } from '../public/cosmetics.js';
 import { dayOf, untilNext, dateOf } from './day.js';
-import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds } from '../public/avatar.js';
+import { PRICE, priceOf, wearable, onSale, seasonOf, SEASONS, AV_KEYS, OPT, packIds, cleanAv, OUTFITS } from '../public/avatar.js';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../data'));
 const DIR = DATA_DIR;
@@ -335,6 +335,17 @@ export const flair = p => {
 // Isle decor comes from the player's Pet Farm: onDecor tells this file how to ask which decorations a farm has.
 let decorHook = () => [];
 export const onDecor = fn => { decorHook = fn; };
+// Saved outfits (the Wardrobe's Outfits section): up to OUTFITS looks, each a name, a colour and the 22 avatar numbers.
+// They may hold items the player has not bought (yet, or any more): putting one on only ever wears what is owned,
+// the rest is tried on in the Wardrobe, and the profile message strips it the usual way (allowedAv).
+export function setOutfits(p, list) {
+  if (!p) return { err: 'Not connected.' };
+  if (!Array.isArray(list) || list.length > OUTFITS) return { err: `You can keep ${OUTFITS} outfits.` };
+  const l = list.map(f => f && typeof f === 'object' && /^#[0-9a-f]{6}$/i.test(f.c) && Array.isArray(f.av) ? { n: safeText(f.n).trim().slice(0, 16), c: f.c.toLowerCase(), av: cleanAv(f.av) } : null);
+  if (l.some(f => !f)) return { err: 'Unknown.' };
+  if (l.length) p.fits = l; else delete p.fits; scheduleSave();
+  return { ok: true };
+}
 // The Plaza's emote bar: up to EMOTE_BAR emotes the player has, in their order.
 export function emoteBar(p, list) {
   if (!p) return { err: 'Not connected.' };
@@ -371,7 +382,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }
@@ -622,7 +633,7 @@ export function logout(token, look) {
 export function prune(active) {
   const now = Date.now(), held = new Map();
   for (const s of sessions.values()) held.set(s.pid, (held.get(s.pid) || 0) + 1);
-  const empty = p => !p.user && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length;
+  const empty = p => !p.user && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length && !p.fits?.length;
   let n = 0;
   for (const [t, s] of sessions) {
     const p = profiles.peek(s.pid); // peek: looking is not changing, so the save need not look at them all

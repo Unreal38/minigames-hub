@@ -110,7 +110,7 @@ const quoted = /(?:err|msg): (?:'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`)/g;
 for (const f of ['server.js', 'store.js', 'hubchat.js', 'plaza.js', 'daily.js', 'word.js', 'hay.js', 'pop.js', 'mj.js', 'notice.js']) {
   const src = fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8');
   for (const m of src.matchAll(quoted)) {
-    const text = (m[1] ?? m[2]).replace(/\\'/g, "'").replace(/\$\{[^}]*(SEASON|cosSeason)[^}]*name\}/g, 'Winter drop').replace(/\$\{[^}]*back\}/g, 'March').replace(/\$\{[^}]*(price|DECOR_SLOTS)[^}]*\}/g, '3').replace(/\$\{[^}]*\}/g, 'Ola');
+    const text = (m[1] ?? m[2]).replace(/\\'/g, "'").replace(/\$\{[^}]*(SEASON|cosSeason)[^}]*name\}/g, 'Winter drop').replace(/\$\{[^}]*back\}/g, 'March').replace(/\$\{[^}]*(price|DECOR_SLOTS|OUTFITS)[^}]*\}/g, '3').replace(/\$\{[^}]*\}/g, 'Ola');
     ok(srvText(text) !== text, `${f}: “${text}” has no Polish`);
     seen++;
   }

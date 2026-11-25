@@ -26,7 +26,7 @@ import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek,
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { weatherAt, weatherNext, wxIcon, isNight as wxNight } from './weather.js';
-import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
+import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, OUTFITS, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
 const HOME_TITLE = document.title || SITE; // the full title from index.html (the server swaps in English), kept for the hub tab and search engines
@@ -2636,6 +2636,7 @@ const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the
 
 function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = '', filt: startFilt = 'all' } = {}) {
   let color = st.color, av = st.av.slice(), sec = startSec, sub = startSub, filt = startFilt, undo = null, saveT = 0;
+  let fitSel = -1, fitRen = false, fitDel = false; // Outfits: the one picked (its actions show above the tiles), renaming it, asking to delete it
   const pick = {}; // account cosmetics being tried on: kind -> index
   if (st.me?.user) send({ t: 'pets' }); // a fresh farm list, so pets sold or traded since don't show up as pickable
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
@@ -2696,6 +2697,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   const sections = () => {
     const d = dropOn();
     return [...(d && !first ? [{ id: 'drop', name: `${SEASON_ICO[d]} ${SEASONS[d].name}`, drop: d }] : []),
+      ...(first ? [] : [{ id: 'fits', name: L('Outfits', 'Stroje'), grp: L('Avatar', 'Awatar') }]),
       ...AV_TABS.map(([name, rows], i) => ({ id: 'av' + i, name, rows, grp: L('Avatar', 'Awatar') })),
       ...(first ? [] : WD_ACC.map(([id, name, kinds]) => ({ id, name, kinds, grp: L('Account', 'Konto') })))];
   };
@@ -2753,6 +2755,43 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     .filter(([k, i, c]) => { const own = c ? has(k, i) : !isLocked(k, i); return filt === 'mine' ? own : filt === 'shop' ? !own : true; })
     .map(([k, i, c]) => c ? cosTile(k, i) : avTile(k, i)).join('');
 
+  // ----- saved outfits -----
+  // A saved outfit is a whole look (colour + every avatar slot). Putting one on wears what you own; anything you
+  // don't own (not bought yet, or no longer yours) is tried on like a shop item, or left out if it can't be bought now.
+  const fits = () => me().fits || [];
+  const sameLook = f => f.c === color && cleanAv(f.av).join() === av.join();
+  const fitPic = (i, col, look) => { const f = i < 0 ? { c: col, av: look } : fits()[i]; if (!f) return ''; const a = cleanAv(f.av); return IP.itemPic('body', a[KI.body], f.c, a); };
+  const sendFits = l => { (st.me ||= {}).fits = l; send({ t: 'fits', l }); sig = sigOf(); };
+  const fitsHtml = () => {
+    const l = fits(), full = l.length >= OUTFITS, saved = l.some(sameLook);
+    return `<button type="button" class="wdtile fit add"${full || saved ? ' disabled' : ''} data-fitsave><img alt="" data-fitpic="-1"><i class="fitplus" aria-hidden="true">+</i><b ${fitw(L('Save this look', 'Zapisz ten wygląd'))}>${L('Save this look', 'Zapisz ten wygląd')}</b><small>${
+      saved ? L('✓ saved', '✓ zapisany') : full ? L(`${OUTFITS} is the most`, `najwięcej ${OUTFITS}`) : `${l.length}/${OUTFITS}`}</small></button>` +
+      l.map((f, i) => { const miss = lockedIn(f.av, owned()).length, on = sameLook(f);
+        return `<button type="button" class="wdtile fit${i === fitSel ? ' sel' : ''}" aria-pressed="${on}" data-fit="${i}"><img alt="" data-fitpic="${i}"><b ${fitw(f.n)}>${esc(f.n)}</b><small>${on ? L('✓ on', '✓ założony') : miss ? `🔒 ${L(`${miss} not yours`, `brakuje: ${miss}`)}` : ''}</small></button>`; }).join('');
+  };
+  const fitBar = () => {
+    const f = fits()[fitSel]; if (!f) return '';
+    return `<div class="wdfitbar">${fitRen ? `<input class="field" data-fitname maxlength="16" value="${esc(f.n)}" aria-label="${L('Outfit name', 'Nazwa stroju')}"><button type="button" class="btn sm" data-fitok>${L('Save', 'Zapisz')}</button><button type="button" class="btn sm w" data-fitno>${L('Cancel', 'Anuluj')}</button>`
+      : `<b>${esc(f.n)}</b><button type="button" class="btn sm w" data-fitren>✎ ${L('Rename', 'Zmień nazwę')}</button><button type="button" class="btn sm w" data-fitput${sameLook(f) ? ' disabled' : ''}>⤓ ${L('Save changes', 'Zapisz zmiany')}</button><button type="button" class="btn sm ${fitDel ? 'r' : 'w'}" data-fitdel>🗑 ${fitDel ? L('Sure? Delete', 'Na pewno? Usuń') : L('Delete', 'Usuń')}</button>`}</div>`;
+  };
+  const wearFit = i => {
+    const f = fits()[i]; if (!f) return;
+    undo = [color, av.slice()]; q('[data-undo]').hidden = false;
+    const now = wearable(av, owned()), next = cleanAv(f.av), gone = [];
+    next.forEach((v, j) => { const k = AV_KEYS[j]; if (isLocked(k, v) && !packOf(k, v) && !onSale(k, v, today())) { gone.push(itemName(k, v)); next[j] = now[j]; } });
+    color = f.c; av = next; fitSel = i; fitRen = fitDel = false;
+    const tried = lockedIn(av, owned()).length;
+    if (gone.length) toast(L(`Not for sale right now, so left out: ${gone.join(', ')}`, `Teraz nie do kupienia, więc pominięte: ${gone.join(', ')}`));
+    else if (tried) toast(L('Some things in this outfit aren’t yours: they are only tried on (see the bar at the bottom).', 'Części rzeczy z tego stroju nie masz: tylko je przymierzasz (zobacz pasek na dole).'));
+    sfx.set(); show(); paint(true); saveSoon();
+  };
+  const renameFit = () => {
+    const inp = q('[data-fitname]'), l = fits().slice(), f = l[fitSel]; fitRen = false;
+    const n = (inp?.value || '').replace(/[<>]/g, '').trim().slice(0, 16);
+    if (f && n && n !== f.n) { l[fitSel] = { ...f, n }; sendFits(l); }
+    paintGrid(true);
+  };
+
   const fillPics = () => {
     for (const im of grid.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, color, av).then(u => { if (u && im.isConnected) im.src = u; }); }
     petPics(grid);
@@ -2761,10 +2800,10 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
       const next = () => { if (!open) return; while (j < isles.length && !isles[j].isConnected) j++; if (j >= isles.length) return; const im = isles[j++], [k, i] = im.dataset.isle.split(':'), u = m.islePic(k, k === 'ip' || k === 'fp' ? i : +i); if (u) im.src = u; requestAnimationFrame(next); };
       next(); }).catch(() => {});
     if (!IP) return;
-    const imgs = [...grid.querySelectorAll('img[data-ip]:not([src])')], look = av.slice(), col = color; let n = 0;
+    const imgs = [...grid.querySelectorAll('img[data-ip]:not([src]), img[data-fitpic]:not([src])')], look = av.slice(), col = color; let n = 0;
     const step = () => { // a few per frame, so a long list never freezes the page
       if (!open) return; const t0 = performance.now();
-      while (n < imgs.length && performance.now() - t0 < 12) { const im = imgs[n++]; if (!im.isConnected) continue; const [k, i] = im.dataset.ip.split(':'), u = IP.itemPic(k, +i, col, look); if (u) im.src = u; }
+      while (n < imgs.length && performance.now() - t0 < 12) { const im = imgs[n++]; if (!im.isConnected) continue; if (im.dataset.fitpic) { const u = fitPic(+im.dataset.fitpic, col, look); if (u) im.src = u; continue; } const [k, i] = im.dataset.ip.split(':'), u = IP.itemPic(k, +i, col, look); if (u) im.src = u; }
       if (n < imgs.length) requestAnimationFrame(step);
     };
     step();
@@ -2773,14 +2812,14 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     const s = cur(), top = keep ? grid.scrollTop : 0; sec = s.id;
     const subs = s.rows ? s.rows.map(([k, l]) => [k, l]) : s.kinds?.length ? s.kinds.map(k => [k, COS[k]?.label || (k === 'fp' ? L('Floating pieces', 'Latające elementy') : L('Decor', 'Ozdoby'))]) : [];
     if (!subs.some(([k]) => k === sub)) sub = subs[0]?.[0] || '';
-    const noFilt = first || s.id === 'pets' || sub === 'ip' || sub === 'fp';
+    const noFilt = first || s.id === 'pets' || s.id === 'fits' || sub === 'ip' || sub === 'fp';
     subEl.innerHTML = `<div class="wdchips">${subs.length > 1 ? subs.map(([k, l]) => `<button type="button" data-sub="${k}" aria-pressed="${k === sub}">${l}</button>`).join('') : ''}</div>${
-      noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="${L('Show', 'Pokaż')}">${[['all', L('All', 'Wszystko')], ['mine', L('Mine', 'Moje')], ['shop', L('Shop', 'Sklep')]].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
-    hint.textContent = s.drop ? L(`Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.`, `Edycja limitowana: w sprzedaży do ${SEASONS[s.drop].ends}. To, co kupisz, zostaje z tobą na zawsze.`) : s.id === 'pets' ? L(`Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`, `Na twojej wyspie mogą stać najwyżej ${PET_SLOTS} zwierzaki z Farmy zwierzaków. Pierwszy siedzi też obok ciebie w poczekalniach.`)
+      s.id === 'fits' ? fitBar() : noFilt ? '' : `<span class="pvseg wdfilt" role="group" aria-label="${L('Show', 'Pokaż')}">${[['all', L('All', 'Wszystko')], ['mine', L('Mine', 'Moje')], ['shop', L('Shop', 'Sklep')]].map(([f, l]) => `<button type="button" data-f="${f}" aria-pressed="${f === filt}">${l}</button>`).join('')}</span>`}`;
+    hint.textContent = s.id === 'fits' ? (fitRen || fits()[fitSel] ? '' : L('Save looks you like and put one back on with a tap. Anything in an outfit that you don’t own is only tried on, so nobody else sees it.', 'Zapisuj ulubione stroje i zakładaj je jednym dotknięciem. Rzeczy ze stroju, których nie masz, tylko przymierzasz, więc nikt inny ich nie widzi.')) : s.drop ? L(`Limited: on sale until ${SEASONS[s.drop].ends}. What you buy is yours to keep.`, `Edycja limitowana: w sprzedaży do ${SEASONS[s.drop].ends}. To, co kupisz, zostaje z tobą na zawsze.`) : s.id === 'pets' ? L(`Up to ${PET_SLOTS} of your Pet Farm pets stand on your isle. The first one also sits beside you in waiting rooms.`, `Na twojej wyspie mogą stać najwyżej ${PET_SLOTS} zwierzaki z Farmy zwierzaków. Pierwszy siedzi też obok ciebie w poczekalniach.`)
       : sub === 'fp' ? L(`Pick up to ${PIECE_SLOTS} game pieces to float round your isle. They are free.`, `Wybierz do ${PIECE_SLOTS} elementów z gier, które będą latać wokół twojej wyspy. Są darmowe.`)
       : sub === 'ip' ? L(`Up to ${DECOR_SLOTS} decorations from your Pet Farm can stand on your isle. They stay on the farm too.`, `Na twojej wyspie może stanąć do ${DECOR_SLOTS} ozdób z Farmy zwierzaków. Zostają też na farmie.`)
       : s.kinds ? COS[sub].where || COS_HINT[sub] || '' : '';
-    const html = s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : sub === 'ip' ? decorHtml() : sub === 'fp' ? piecesHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
+    const html = s.id === 'fits' ? fitsHtml() : s.drop ? dropHtml(s.drop) : s.id === 'pets' ? petsHtml() : sub === 'ip' ? decorHtml() : sub === 'fp' ? piecesHtml() : s.rows ? avList(sub).map(i => avTile(sub, i)).join('') : cosList(sub).map(i => cosTile(sub, i)).join('');
     grid.className = 'wdgrid' + (ipFailed ? ' nopic' : '') + (s.rows && (sub === 'color' || AV_COLOR_KEYS.includes(sub)) ? ' sws' : '');
     grid.innerHTML = html || `<p class="wdnone">${filt === 'mine' ? L('Nothing of yours here yet. Look under Shop.', 'Nie masz tu jeszcze nic swojego. Zajrzyj do Sklepu.') : filt === 'shop' ? L('Nothing left to buy here.', 'Nie ma tu już nic do kupienia.') : L('Nothing here.', 'Nic tu nie ma.')}</p>`;
     grid.scrollTop = top; fillPics();
@@ -2808,7 +2847,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   const setCam = face => { view?.face(face); camBtns(face); };
 
   let sig = '';
-  const sigOf = () => owned().length + JSON.stringify(me().cos || {}) + (st.pets?.length | 0) + (st.decor?.length | 0) + (me().user || '');
+  const sigOf = () => owned().length + JSON.stringify(me().cos || {}) + JSON.stringify(me().fits || []) + (st.pets?.length | 0) + (st.decor?.length | 0) + (me().user || '');
   st.onMe = () => {
     if (!open) return;
     for (const k of Object.keys(pick)) if (has(k, pick[k])) delete pick[k];
@@ -2821,13 +2860,17 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   // (no focus on the name: the welcome window is one tap on Play, and a phone keyboard popping up would hide it)
 
   nm.addEventListener('input', paintPlate);
+  el.addEventListener('keydown', e => { // naming an outfit: Enter saves it (and doesn't submit the form), Escape gives up
+    if (!e.target.closest?.('[data-fitname]')) return;
+    if (e.key === 'Enter') { e.preventDefault(); renameFit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fitRen = false; paintGrid(true); }
+  });
   nm.addEventListener('change', saveName);
   el.addEventListener('click', e => {
     const t = e.target;
     if (t.closest('[data-done]')) return close();
     const lg = t.closest('[data-lang]'); if (lg) return setLang(lg.dataset.lang);
     if (t.closest('[data-login]')) { close(); return openAccount('login'); }
-    const sb = t.closest('[data-sec]'); if (sb) { sec = sb.dataset.sec; sub = ''; sfx.click(); paintRail(); paintGrid(); showIsle(); return setCam(sec === 'av1'); }
+    const sb = t.closest('[data-sec]'); if (sb) { sec = sb.dataset.sec; sub = ''; fitRen = fitDel = false; sfx.click(); paintRail(); paintGrid(); showIsle(); return setCam(sec === 'av1'); }
     const su = t.closest('[data-sub]'); if (su) { sub = su.dataset.sub; sfx.click(); return paintGrid(); }
     const fb = t.closest('[data-f]'); if (fb) { filt = fb.dataset.f; sfx.click(); return paintGrid(); }
     const cb = t.closest('[data-cam]'); if (cb) return setCam(cb.dataset.cam === '1');
@@ -2839,6 +2882,22 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     if (t.closest('[data-rename]')) { nm.value = randomName(PL); sfx.pop(); paintPlate(); return; }
     if (t.closest('[data-rand]')) { undo = [color, av.slice()]; av = randomAv(); color = COLORS[Math.random() * COLORS.length | 0]; q('[data-undo]').hidden = false; sfx.set(); show(); paint(); return saveSoon(); }
     if (t.closest('[data-undo]')) { if (undo) [color, av] = undo; undo = null; q('[data-undo]').hidden = true; sfx.pop(); show(); paint(); return saveSoon(); }
+    const ft = t.closest('[data-fit]'); if (ft) return wearFit(+ft.dataset.fit);
+    if (t.closest('[data-fitsave]')) { // the look on the preview (tried-on things too) becomes a new outfit
+      const l = fits().slice(); if (l.length >= OUTFITS) return;
+      const base = L('Outfit', 'Strój'), names = new Set(l.map(f => f.n)); let n = l.length + 1; while (names.has(`${base} ${n}`)) n++;
+      l.push({ n: `${base} ${n}`, c: color, av: av.slice() }); fitSel = l.length - 1; fitRen = fitDel = false;
+      sendFits(l); sfx.set(); return paintGrid(true);
+    }
+    if (t.closest('[data-fitput]')) { const l = fits().slice(); if (!l[fitSel]) return; l[fitSel] = { ...l[fitSel], c: color, av: av.slice() }; fitDel = false; sendFits(l); sfx.set(); toast(L('Outfit saved', 'Strój zapisany')); return paintGrid(true); }
+    if (t.closest('[data-fitren]')) { fitRen = true; fitDel = false; sfx.click(); paintGrid(true); const inp = q('[data-fitname]'); inp?.focus(); inp?.select(); return; }
+    if (t.closest('[data-fitok]')) return renameFit();
+    if (t.closest('[data-fitno]')) { fitRen = false; return paintGrid(true); }
+    if (t.closest('[data-fitdel]')) {
+      if (!fitDel) { fitDel = true; sfx.click(); return paintGrid(true); }
+      const l = fits().slice(); l.splice(fitSel, 1); fitSel = -1; fitDel = false; sendFits(l); sfx.pop(); return paintGrid(true);
+    }
+    if (fitDel && sec === 'fits') { fitDel = false; paintGrid(true); } // a tap anywhere else takes back the "Sure?"
     const pl = t.closest('[data-pal]');
     if (pl) { // tap to add a pet to the next free slot, tap again to take it off
       const id = pl.dataset.pal, ids = showIds(), at = ids.indexOf(id);

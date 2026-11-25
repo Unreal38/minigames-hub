@@ -1106,7 +1106,7 @@ body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color
 .wdplate b { font: 700 19px/1.15 var(--fd); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; overflow-wrap: anywhere; } .wdplate small { font-size: 12.5px; color: var(--tx2, #6b4a3c); }
 .wdplate .petpal { flex: none; }
 .wd.creator .namecol { flex: none; flex-direction: row; align-items: center; gap: 10px; } .wd.creator .namecol .field { min-width: 0; padding-top: 8px; padding-bottom: 8px; }
-.wd.creator .pvbar { flex-wrap: nowrap; justify-content: flex-start; } .wd .pvseg button { min-height: 40px; }
+.wd.creator .pvbar { flex-wrap: wrap; justify-content: flex-start; } .wd .pvbar .btn, .wd .pvseg button { white-space: nowrap; } .wd .pvseg button { min-height: 40px; }
 .wdrail { grid-area: rail; display: flex; flex-direction: column; gap: 2px; overflow: auto; padding-right: 10px; border-right: 3px dashed var(--edge, #e6cfbd); }
 .wdrail button { font: 600 16px/1.2 var(--fd); text-align: left; min-height: 44px; padding: 6px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--tx, var(--ink)); cursor: pointer; flex: none; }
 .wdrail button:hover { background: var(--pan2, #ffe9cf); }
@@ -1138,6 +1138,17 @@ body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color
 .wdemo { font-size: 36px; line-height: 60px; } .wdemo.sm { font-size: 19px; line-height: 1.5; letter-spacing: 1px; max-width: 84px; }
 .wdtile.cos .avatar { margin: 8px 0; }
 .wdtile.pet .palno, .wdtile.cos .palno { position: absolute; top: 5px; left: 5px; } .wdtile.pet .palpic { margin: 0; }
+/* saved outfits: the whole avatar on each tile, a + on the "Save this look" one, actions for the picked one above */
+.wdtile.fit img[data-fitpic] { width: 84px; height: 84px; object-fit: contain; } .wdgrid.nopic img[data-fitpic] { display: none; }
+.wdtile.fit.add { border-style: dashed; } .wdtile.fit.add:disabled { border-style: dotted; }
+.fitplus { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 20px/1 var(--fd); font-style: normal; background: var(--mint); color: var(--ink); border: 2.5px solid var(--ink); }
+.wdtile.fit.add:disabled .fitplus { opacity: .5; }
+.wdtile.fit.sel:not([aria-pressed=true]) { border-style: solid; border-color: var(--ink); }
+.wdsub:has(.wdfitbar) .wdchips { display: none; }
+.wdfitbar { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.wdfitbar > b { flex: 1 1 120px; min-width: 0; font: 700 17px/1.2 var(--fd); color: var(--tx, var(--on-paper)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wdfitbar .field { flex: 1 1 140px; min-width: 0; padding-top: 8px; padding-bottom: 8px; }
+.wdfitbar .btn { white-space: nowrap; }
 .wd.creator .cart { grid-area: cart; position: static; box-shadow: none; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; max-height: 150px; overflow: auto; }
 .wd .cartact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-left: auto; } .wd .cartact .btn { white-space: nowrap; min-height: 44px; }
 .wd .cartitem small { font-weight: 500; } .wd.creator .cartlist > b { color: var(--tx, #6b4a3c); }

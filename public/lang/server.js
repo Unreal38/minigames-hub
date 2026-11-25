@@ -109,6 +109,7 @@ const FORMS = [
   [/^You need (\d+) more coins for that\.$/, n => `Brakuje ci na to ${n} ${plForm(+n, 'monety', 'monet', 'monet')}.`],
   [/^You're already signed in as (.+)\.$/, u => `Zalogowano cię już jako ${u}.`],
   [/^Your isle has room for (\d+) decorations\.$/, n => `Na twojej wyspie zmieści się ${n} ozdób.`],
+  [/^You can keep (\d+) outfits\.$/, n => `Możesz mieć najwyżej ${n} strojów.`],
   [/^📜 Word in a Bottle #(\d+) \((PL|EN)\): ([\dX])\/(\d)(?: · 🔥 (\d+) days in a row)?$/, (no, l, n, of, d) => `📜 Słowo w butelce #${no} (${l}): ${n}/${of}${d ? ` · 🔥 ${d} dni z rzędu` : ''}`],
   [/^🐾 Mystery Pet #(\d+): solved in (\d+) guess(?:es)?(?: · 🔥 (\d+) days in a row)?$/, (no, n, d) => `🐾 Zagadkowy zwierzak #${no}: ${n} ${plForm(+n, 'próba', 'próby', 'prób')}${d ? ` · 🔥 ${d} dni z rzędu` : ''}`],
 ];
