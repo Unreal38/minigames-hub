@@ -112,6 +112,32 @@ for (let seed = 1; seed <= 60; seed++) for (const big of [false, true]) {
   if (G.pull.st.off.y !== 0 || bierki.view(G, s).lift) fail('only one lift a turn');
 }
 
+// ----- a page refresh mid-pull: the server lets go of the stick, so the fresh page starts with empty hands -----
+{
+  at(2.5e12);
+  const G = bierki.create(players, { seats: 2, timer: 30 }); at(clock + 2000);
+  const s = G.turn, other = 1 - s;
+  const touch = G.pile.find(x => { const st = startPull(G.pile, x); return st.touch.length && !st.onTop.length; });
+  bierki.act(G, s, { t: 'pick', id: touch.id }); at(clock + 1000);
+  bierki.act(G, s, { t: 'drag', p: [[Math.round(touch.dx * 40), 0, Math.round(touch.dz * 40), 900]] });
+  if (G.pull && G.turn === s) {
+    const rub = G.pull.st.meter;
+    if (bierki.letGo(G, other)) fail('only the player holding the stick lets go');
+    if (!bierki.letGo(G, s) || G.pull || G.turn !== s || G.pile[touch.id].g) fail('a refresh puts a stick inside the pile back, and it is still your turn');
+    if (Math.abs((G.carry[touch.id] || 0) - rub) > 1e-9 || bierki.view(G, s).pull) fail('the rub stays for the turn and no pull is left hanging');
+    if (bierki.letGo(G, s)) fail('nothing to let go twice');
+  }
+  // a stick already out of the pile when the page went away is yours
+  at(clock + 1000);
+  const easy = G.pile.filter(x => !x.g).map(x => ({ x, p: plans(G.pile, x)[0] })).sort((a, b) => a.p.m - b.p.m)[0];
+  if (G.turn === s && easy.p.m < 50) {
+    bierki.act(G, s, { t: 'pick', id: easy.x.id }); at(clock + 10000);
+    const path = []; for (let i = 1; i <= 16; i++) path.push([Math.round(easy.p.x * easy.p.dist * MM * i / 16), 0, Math.round(easy.p.z * easy.p.dist * MM * i / 16), 500]);
+    bierki.act(G, s, { t: 'drag', p: path });
+    if (G.pull && isClear(G.pile, G.pull.st)) { bierki.letGo(G, s); if (G.pile[easy.x.id].g !== 1 || G.pile[easy.x.id].by !== s) fail('a stick out of the pile is taken on a refresh'); }
+  }
+}
+
 // ----- whole games by bots, on a fake clock -----
 for (const [seats, piles, bots] of [[2, 1, 'chill'], [4, 1, 'sharp'], [6, 1, 'chill'], [3, 3, 'chill']]) {
   at(3e12);
