@@ -23,6 +23,7 @@ export const OPT_PL = {
   '4 (dealer sits out)': '4 (rozdający pauzuje)', 'Play to': 'Gramy do', 'Classic 1000': '1000 (klasycznie)', 'Quick 500': '500 (szybko)', Folding: 'Poddanie gry',
   'First one free': 'Pierwsze za darmo', 'Always 60': 'Zawsze 60', 'No folding': 'Bez poddawania',
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
+  Island: 'Wyspa', 'Small 13×13': 'Mała 13×13', 'Big 15×15': 'Duża 15×15', 'Tile bag': 'Worek z płytkami', 'Short 64': 'Mały 64', 'Full 100': 'Pełny 100', Hard: 'Trudne',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie', 'bop:Calm': 'Spokojne',
   Climbers: 'Wspinacze', Storm: 'Burza', Wild: 'Dzika',
   Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
@@ -450,6 +451,24 @@ export const GAMES_PL = {
       <li>Masz <b>20 sekund</b> na strzał (ustawienia stołu). Gdy czas minie, strzał zostanie oddany za ciebie w losowe pole.</li>
       <li>Wygrywa ten, kto pierwszy <b>zatopi całą flotę rywala</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
+    </ol>`,
+  },
+  reef: {
+    name: 'Słowna rafa', start: 'Rozdaj płytki', openSeat: 'Jeśli nikt nie dołączy, tymi płytkami zagra bot',
+    pitch: 'Nasza własna gra w układanie słów z płytek na planszy-wyspie. Układaj słowa z liter, zajmuj premiowe pola i sprawdzaj słowa, które wyglądają na zmyślone.',
+    howto: `Układaj płytki z literami na wyspie tak, żeby tworzyły słowa połączone z tymi, które już leżą, jak w krzyżówce. Premiowe pola, cały stojak i gniazda zwierzaków dają dodatkowe punkty. Nikt nie sprawdza słów, gdy je układasz: pozostali mogą powiedzieć „Sprawdzam”, więc blefujesz na własne ryzyko.`,
+    rules: `<ol>
+      <li><b>Od 2 do 4 graczy</b>, każdy ma stojak z <b>7 płytkami</b> z liter, dobieranymi ze wspólnego worka. Wolne miejsca zajmują boty. Gospodarz wybiera słowa polskie albo angielskie.</li>
+      <li>W swojej kolejce połóż jedną albo więcej płytek w <b>jednym rzędzie albo w jednej kolumnie</b>, bez przerw, tak żeby razem z literami między nimi tworzyły słowo. Dotknij płytki, a potem pola, albo przeciągnij ją. <b>Pierwsze słowo</b> musi przykryć <b>gwiazdę</b> na środku, a każde kolejne musi się <b>łączyć</b> z literami, które już leżą.</li>
+      <li>Każde nowe słowo, które tworzą twoje płytki, w poziomie i w pionie, zdobywa <b>punkty z liter</b>. Zanim naciśniesz Zagraj, widzisz, ile punktów da ruch.</li>
+      <li>Premiowe pola liczą się tylko wtedy, gdy je przykrywasz: <b>perła</b> podwaja literę, <b>rozgwiazda</b> ją potraja, <b>fala</b> podwaja całe słowo, <b>wir</b> je potraja, a <b>gwiazda</b> na środku podwaja pierwsze słowo.</li>
+      <li>Wyłożenie <b>wszystkich 7 płytek</b> w jednym ruchu daje <b>+40</b>. Przykrycie jednego z czterech <b>gniazd</b> daje <b>+10</b>, a obok siada zwierzak z Farmy.</li>
+      <li>Dwie <b>puste płytki</b> mogą być dowolną literą (wybierasz ją przy układaniu) i są warte 0 pkt.</li>
+      <li>Słowa <b>nie są sprawdzane</b> przy układaniu. Przez kilka sekund każdy inny gracz może nacisnąć <b>Sprawdzam</b>. Jeśli któregoś słowa nie ma w słowniku, płytki wracają do gracza, a ruch nie daje punktów. Jeśli wszystkie słowa istnieją, gracz dostaje <b>+10</b> za kłopot. Naciśnij <b>W porządku</b>, żeby gra ruszyła szybciej.</li>
+      <li>Zamiast układać słowo możesz <b>wymienić</b> płytki z workiem albo <b>spasować</b>. Masz 90 sekund na ruch (ustawienia stołu); gdy czas minie, pasujesz.</li>
+      <li>Gra kończy się, gdy worek jest pusty i ktoś wyłoży <b>ostatnią płytkę</b>, albo gdy przez <b>dwie pełne kolejki</b> nikt nie zdobędzie punktów. Punkty z płytek, które zostały na stojaku, odejmuje się od wyniku.</li>
+      <li>Polskie słowa pochodzą ze słownika do gier słownych SJP.PL, angielskie z listy ENABLE.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   domino: {
