@@ -33,3 +33,15 @@ export const WX_ICON = {
 export const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
 // Night on the player's own clock (the same hours as the Pet Farm sky): a sunny spell is a clear night then.
 export const isNight = h => h < 4.6 || h >= 21;
+
+// How each kind looks in the hub and the minigames (weather3d.js, the hub sky in style.css). Pet Farm keeps its own,
+// stronger mix in games/farm/scene3d.js; the games stay brighter so boards and cards read as well as on a sunny day.
+//   sky: how much of the sky's own colour is kept (the rest goes grey); hemi, sun: light strength kept;
+//   fall: rain (or snow in winter); wind: streaks blowing past; bow: the rainbow; clouds: how grey the clouds get.
+export const WX_LOOK = {
+  sunny:   { sky: 1,   hemi: 1,   sun: 1,   fall: 0, wind: 0, bow: 0, clouds: 0 },
+  cloudy:  { sky: .78, hemi: .96, sun: .78, fall: 0, wind: 0, bow: 0, clouds: .45 },
+  rain:    { sky: .62, hemi: .93, sun: .66, fall: 1, wind: 0, bow: 0, clouds: .7 },
+  wind:    { sky: .94, hemi: 1,   sun: .96, fall: 0, wind: 1, bow: 0, clouds: .1 },
+  rainbow: { sky: 1,   hemi: 1,   sun: 1,   fall: 0, wind: 0, bow: 1, clouds: 0 },
+};

@@ -20,6 +20,8 @@ import { bake, hullGeo, hullMat } from './avatar3d.js';
 import { fxOf, winSheet } from './winfx.js';
 import { drawShape } from './fxart.js';
 import { seasonLookNow, lookOf, trim } from './season3d.js';
+import { WX_LOOK } from './weather.js';
+import { wxShown, onWeather, weatherLayer } from './weather3d.js';
 export { seasonLookNow } from './season3d.js';
 
 export const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -83,9 +85,12 @@ export function shell(mesh, grow = 1.1, color = '#4a2c22') {
 export const isNight = () => typeof document !== 'undefined' && document.body.classList.contains('night');
 export const NIGHT_TOP = '#0c1236', NIGHT_LOW = '#2d2b63';
 const liveScenes = new Set(); // WeakRefs, so a finished game's scene can still be collected
-export function nightScene(scene, { top = NIGHT_TOP, low = NIGHT_LOW, stars = 320, moon = true } = {}) {
+// It also dresses the scene for the world weather (weather3d.js, the same spell as Pet Farm): a greyer sky and clouds,
+// a softer sun, rain or wind streaks, a rainbow. wx: { size } for a scene whose camera roams far from the middle
+// (the width of the box of air kept round the view); wx: false for a scene that must stay dry.
+export function nightScene(scene, { top = NIGHT_TOP, low = NIGHT_LOW, stars = 320, moon = true, wx = {} } = {}) {
   if (!scene.userData.dayNight) {
-    const S = scene.userData.dayNight = { top: new THREE.Color(top), low: new THREE.Color(low), stars, moon, lights: [], domes: [], clouds: [], on: false,
+    const S = scene.userData.dayNight = { top: new THREE.Color(top), low: new THREE.Color(low), stars, moon, lights: [], domes: [], clouds: [], on: false, key: '', wxOpts: wx,
       bg: scene.background?.isColor ? scene.background.clone() : null, fog: scene.fog ? scene.fog.color.clone() : null };
     scene.traverse(o => {
       if (o.isHemisphereLight || o.isDirectionalLight || o.isAmbientLight) S.lights.push({ o, c: o.color.clone(), g: o.groundColor?.clone(), i: o.intensity });
@@ -100,28 +105,43 @@ export function nightScene(scene, { top = NIGHT_TOP, low = NIGHT_LOW, stars = 32
 export function setScenesNight(on) {
   for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, on); else liveScenes.delete(r); }
 }
-function applyNight(scene, on) {
+// The weather turned over (or a host previews another kind): repaint every live scene for it.
+const wxScenes = kind => { for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, s.userData.dayNight.on, kind); else liveScenes.delete(r); } };
+if (typeof window === 'object') onWeather(wxScenes);
+const GREY_DAY = new THREE.Color('#8f9bb3'), GREY_NIGHT = new THREE.Color('#2a2d52'); // Pet Farm's rainy grey, and a moonlit one
+function applyNight(scene, on, kind = wxShown()) {
   const S = scene.userData.dayNight; if (!S) return;
   scene.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // island lamps
-  if (S.on === on) return; S.on = on;
+  if (S.wxOpts === false) kind = 'sunny';
+  const key = on + kind; if (S.key === key) return; S.key = key; S.on = on;
+  const W = WX_LOOK[kind] || WX_LOOK.sunny, grey = on ? GREY_NIGHT : GREY_DAY, dull = 1 - W.sky; // dull: how far the sky goes grey
   const moonC = new THREE.Color('#c9d2ff'), c = new THREE.Color();
-  if (S.bg && scene.background?.isColor) scene.background.copy(on ? S.low : S.bg);
-  if (S.fog && scene.fog) scene.fog.color.copy(on ? S.low : S.fog);
+  if (S.bg && scene.background?.isColor) scene.background.copy(on ? S.low : S.bg).lerp(grey, dull);
+  if (S.fog && scene.fog) scene.fog.color.copy(on ? S.low : S.fog).lerp(grey, dull);
   for (const { o, c: dc, g, i } of S.lights) {
     o.color.copy(dc); if (g) o.groundColor.copy(g); o.intensity = i;
-    if (!on) continue;
-    if (o.isHemisphereLight) { o.color.lerp(new THREE.Color('#8f9cff'), .75); o.groundColor.set('#3b2f5e'); o.intensity *= .55; }
-    else if (o.isDirectionalLight) { o.color.lerp(moonC, .8); o.intensity *= .55; }
-    else { o.color.lerp(moonC, .6); o.intensity *= .6; }
+    if (on) {
+      if (o.isHemisphereLight) { o.color.lerp(new THREE.Color('#8f9cff'), .75); o.groundColor.set('#3b2f5e'); o.intensity *= .55; }
+      else if (o.isDirectionalLight) { o.color.lerp(moonC, .8); o.intensity *= .55; }
+      else { o.color.lerp(moonC, .6); o.intensity *= .6; }
+    }
+    if (o.isDirectionalLight) o.intensity *= W.sun; else o.intensity *= W.hemi; // a softer sun under cloud, the sky light nearly as bright
   }
   for (const { o, day } of S.domes) { // repaint the dome's gradient
     const g = o.geometry, p = g.attributes.position, col = g.attributes.color;
     if (!on) col.array.set(day);
     else { const r = g.boundingSphere?.radius || (g.computeBoundingSphere(), g.boundingSphere.radius);
       for (let i = 0; i < p.count; i++) { c.copy(S.low).lerp(S.top, Math.min(1, Math.max(0, p.getY(i) / r * 1.5 + .1))); col.setXYZ(i, c.r, c.g, c.b); } }
+    if (dull) for (let i = 0; i < p.count; i++) { c.fromArray(col.array, i * 3).lerp(grey, dull); col.setXYZ(i, c.r, c.g, c.b); }
     col.needsUpdate = true;
   }
-  for (const k of S.clouds) k.o.material = on ? k.night : k.day;
+  for (const k of S.clouds) {
+    const base = on ? k.night : k.day;
+    if (!W.clouds) { k.o.material = base; continue; }
+    k.wx ||= k.day.clone(); k.wx.color.copy(base.color).lerp(on ? GREY_NIGHT : new THREE.Color('#9aa4b8'), W.clouds); k.o.material = k.wx; // rain clouds
+  }
+  const U = scene.userData; // the layer lives on the scene, so a game that registers its scene again (kart tracks) keeps one
+  if (W.fall || W.wind || W.bow || U.wxLayer) { try { (U.wxLayer ||= weatherLayer(scene, S.wxOpts || {})).set(kind, on); } catch {} }
   if (on && !S.sky) { // stars and moon are made the first time night falls, then just shown and hidden
     S.sky = new THREE.Group(); S.sky.userData.nightOnly = true; scene.add(S.sky);
     if (S.stars) { // a fixed dome of stars, far out past the fog
@@ -137,7 +157,7 @@ function applyNight(scene, on) {
       S.sky.add(grp);
     }
   }
-  if (S.sky) S.sky.visible = on;
+  if (S.sky) S.sky.visible = on && dull < .3; // rain clouds hide the stars and the moon
 }
 
 // ---------- sky and clouds ----------

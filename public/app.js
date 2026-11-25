@@ -22,7 +22,7 @@ import { randomName } from './names.js';
 import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
-import { PEEKS, peekPick, setPeek, setPeekHost } from './seasonpeek.js';
+import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek, peekWeather } from './seasonpeek.js';
 import { initNotice, onNotice, openNotices } from './notice.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { weatherAt, weatherNext, wxIcon, isNight as wxNight } from './weather.js';
@@ -1025,7 +1025,7 @@ function onMsg(m) {
       st.av = wearable(st.av, m.me.owned); LS.set('ct_av', JSON.stringify(st.av)); send({ t: 'profile', name: st.name, color: st.color, av: st.av });
     }
     st.onMe?.(); emojiPaint();
-    setPeekHost(m.me.admin); // the season preview works for hosts only
+    setPeekHost(m.me.admin); paintSkyWx(); // the season and weather previews work for hosts only
     if (!!m.me.admin !== !!st.noticeAdmin) { st.noticeAdmin = !!m.me.admin; send({ t: 'notice' }); } // a host just logged in (or out): with or without the hosts' extras
     if (m.gain) {
       const cg = m.gain.coins | 0;
@@ -1354,9 +1354,19 @@ function weatherHtml(ms = Date.now()) {
   <span class="wxnext" aria-label="${esc(L(`Then ${nname} in ${inm}`, `Potem: ${nname} za ${inm}`))}">${wxIcon(nmoon ? 'moon' : nx.kind, 16)}${m}\u00a0min</span>
 </div>`;
 }
-function paintWeather() { const el = document.getElementById('weather'), h = el && weatherHtml(); if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
+function paintWeather() { paintSkyWx(); const el = document.getElementById('weather'), h = el && weatherHtml(); if (el && el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } }
+// The hub's sky follows the same weather (body.wx-<kind>, the block "the world weather on the hub sky" in style.css):
+// greyer under cloud and rain, faster clouds in the wind, a rainbow after rain. Rain falls in one layer behind the panels
+// (.wxfall, moved by the compositor only). A host previewing a kind (Account menu) sees that one.
+const WX_CLS = ['wx-cloudy', 'wx-rain', 'wx-wind', 'wx-rainbow'];
+function paintSkyWx() {
+  const k = peekWeather() || weatherAt().kind, b = document.body, want = k === 'sunny' ? '' : 'wx-' + k;
+  if (want && !document.querySelector('.wxfall')) { const f = document.createElement('div'); f.className = 'wxfall'; f.setAttribute('aria-hidden', 'true'); b.prepend(f); }
+  for (const c of WX_CLS) b.classList.toggle(c, c === want);
+}
 function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } paintWeather(); }
-setInterval(() => { if (st.view !== 'hub') return; if (st.farmBrief || st.wheelInfo?.spun || st.me?.next) paintToday(); else paintWeather(); }, 30_000); // keeps the countdowns honest (and turns the weather over on time)
+paintSkyWx();
+setInterval(() => { if (st.view !== 'hub') return paintSkyWx(); if (st.farmBrief || st.wheelInfo?.spun || st.me?.next) paintToday(); else paintWeather(); }, 30_000); // keeps the countdowns honest (and turns the weather over on time)
 function openDaily() {
   if (st.daily) return;
   const sheet = modal(`<div class="mpbox"><p class="mpload">${L('Looking for today’s pet…', 'Szukamy dzisiejszego zwierzaka…')}</p></div>`);
@@ -1635,6 +1645,7 @@ function acctHtml() {
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
       ${m?.admin ? item('notices', '📣', L('Site notices', 'Komunikaty strony'), `<small>${L('update countdown, announcements', 'odliczanie, ogłoszenia')}</small>`) : ''}
       ${m?.admin ? item('season', '❄️', L('Island season', 'Pora roku wysp'), `<small>${peekLabel()}</small>`) : ''}
+      ${m?.admin ? item('wxpeek', '🌦️', L('Weather look', 'Wygląd pogody'), `<small>${wxPeekLabel()}</small>`) : ''}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
       ${item('gfx', '🎮', L('Graphics', 'Grafika'), `<small>${gfxLabel()}</small>`)}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
@@ -1647,6 +1658,9 @@ function acctHtml() {
 // Hosts: which season the game islands show on this computer (seasonpeek.js). Auto = today's; players always get today's.
 const PEEK_NAME = { auto: ['auto (today’s)', 'automatyczna (dzisiejsza)'], winter: ['winter', 'zima'], spring: ['spring', 'wiosna'], summer: ['summer', 'lato'], autumn: ['autumn', 'jesień'], halloween: ['Halloween', 'Halloween'] };
 const peekLabel = () => L(...PEEK_NAME[peekPick()]) + ' · ' + L('only you see it', 'widzisz tylko ty');
+// Hosts: which weather the hub sky and the games show on this computer (Pet Farm keeps the real one).
+const WXPEEK_NAME = { auto: ['auto (Pet Farm’s)', 'automatyczna (jak na Farmie)'], sunny: ['sunny', 'słonecznie'], cloudy: ['cloudy', 'pochmurno'], rain: ['rain', 'deszcz'], wind: ['windy', 'wietrznie'], rainbow: ['rainbow', 'tęcza'] };
+const wxPeekLabel = () => L(...WXPEEK_NAME[wxPeekPick()]) + ' · ' + L('only you see it', 'widzisz tylko ty');
 // The site-wide graphics level (frames.js): Auto picks by device, Low is lightest, High is the full look.
 const GFX_NEXT = { auto: 'low', low: 'high', high: 'auto' };
 function gfxLabel() {
@@ -2957,6 +2971,7 @@ $app.addEventListener('click', e => {
   else if (act === 'acct') openAcct();
   else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'gfx') { setGfx(GFX_NEXT[gfxPick()]); const sm = b.querySelector('small'); if (sm) sm.textContent = gfxLabel(); toast(`${L('Graphics', 'Grafika')}: ${esc(gfxLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
+  else if (act === 'wxpeek') { const all = ['auto', ...WX_PEEKS]; setWxPeek(all[(all.indexOf(wxPeekPick()) + 1) % all.length]); const sm = b.querySelector('small'); if (sm) sm.textContent = wxPeekLabel(); paintSkyWx(); import('./weather3d.js').then(m => m.wxRecheck()).catch(() => {}); }
   else if (act === 'season') { const all = ['auto', ...PEEKS]; setPeek(all[(all.indexOf(peekPick()) + 1) % all.length]); const sm = b.querySelector('small'); if (sm) sm.textContent = peekLabel(); toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
   else if (act === 'mystats') openStats();
   else if (act === 'who') openWho();
