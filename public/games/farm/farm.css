@@ -633,3 +633,4 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .lodgep .ldcell { position: relative; }
 .pf .pfnew.big { font-size: 13px; padding: 4px 8px; margin-bottom: 4px; }
 body.night .pf .pfnew { background: #ffcf3a; color: #241400; border-color: #241400; }
+.pf .pfjnclaim { display: flex; justify-content: flex-end; margin-top: 10px; }

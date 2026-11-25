@@ -281,7 +281,7 @@ export function mount(app, ctx) {
       const done = chapterDone(j, i);
       return `<div class="pfjnc open"><h3>${i + 1}. ${c.name()}</h3><p>${c.intro()}</p><ul class="pfjnl">${tasks}</ul>
         <p><b>${L('Reward', 'Nagroda')}</b></p>${rewardHtml(i, i < j.old)}
-        ${done ? `<div class="row end"><button type="button" class="btn big m" data-a="jclaim">${L('Claim the reward', 'Odbierz nagrodę')}</button></div>` : ''}</div>`;
+        ${done ? `<div class="pfjnclaim"><button type="button" class="btn big m" data-a="jclaim">${L('Claim the reward', 'Odbierz nagrodę')}</button></div>` : ''}</div>`;
     }).join('');
     const all = j.got >= CHAPTERS.length;
     return `<div class="panel tripp pfjnp"><h2 class="icoh">${bookIcon}${L('Farm Journal', 'Dziennik farmy')}</h2>
