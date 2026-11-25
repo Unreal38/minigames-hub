@@ -570,6 +570,12 @@ function handle(c, m) {
       const room = rooms.get(c.room); if (room) sendRoom(room); plaza.refresh(c);
       return;
     }
+    case 'fits': { // the Wardrobe's saved outfits, sent whole after every change
+      if (!allow('fits:' + c.id, 40, 60_000)) return;
+      const p = store.profileOf(c.token), r = store.setOutfits(p, m.l);
+      if (r.err) { send(c, { t: 'err', msg: r.err }); }
+      return send(c, { t: 'me', me: store.me(p) });
+    }
     case 'stats': return send(c, statsMsg());
     case 'notice': { // the hosts' Site notices window: maintenance countdown, announcement, "What's new"
       const p = store.profileOf(c.token);
