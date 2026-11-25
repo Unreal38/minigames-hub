@@ -12,7 +12,7 @@ const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
 const TA = 'a'.repeat(24), TB = 'b'.repeat(24);
 // Ana has coins and five Hot Pot wins (so the Pot Wizard title is earned); Bo has nothing.
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles: {
-  pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 2920, owned: ['ip:1'] }, // bought a Tent while isle decor was sold: refunded on load
+  pa: { pid: 'pa', user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 5, pts: 50, byGame: { hotpot: { games: 10, wins: 5, best: 9 } }, coins: 2920, owned: ['ip:1'], cos: { pets: ['gone'], pet: 'gone' } }, // bought a Tent while isle decor was sold: refunded on load
   pb: { pid: 'pb', user: 'bo', name: 'Bo', color: '#5b9bd5', av: null, xp: 0, games: 1, wins: 0, pts: 0, byGame: { hotpot: { games: 1, wins: 0, best: 0 } }, coins: 5, owned: [] } },
   sessions: { [TA]: { id: 'aaa', pid: 'pa', seen: Date.now() }, [TB]: { id: 'bbb', pid: 'pb', seen: Date.now() } }, rooms: [] }));
 srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-07-10', FARM_TEST: '1' }, stdio: 'inherit' });
@@ -83,6 +83,10 @@ a.send({ t: 'farm', a: { t: 'starter', sp: 'mossbun' } }); await wait(200);
 a.send({ t: 'pets' }); await wait(200);
 const pets = a.msgs.find(m => m.t === 'pets')?.pets || [];
 if (pets.length !== 1 || pets[0].sp !== 'mossbun') fail('no pets to pick a companion from');
+// a pet that left the farm (sold, traded) but is still saved on the isle never blocks a new pick
+a.msgs.length = 0; a.send({ t: 'wear', k: 'pets', i: ['gone', pets[0].id] }); await wait(200);
+if (a.err(/not on your farm/) || a.me.cos.pets?.join() !== pets[0].id) fail('a pet that left the farm blocked picking isle pets');
+a.send({ t: 'wear', k: 'pets', i: [] }); await wait(200);
 a.msgs.length = 0; a.send({ t: 'wear', k: 'pet', i: 'nope' }); await wait(200);
 if (!a.err(/not on your farm/) || b.room.players.find(p => p.name === 'Ana').pet) fail('brought a pet that is not theirs');
 a.send({ t: 'wear', k: 'pet', i: pets[0].id }); await wait(200);

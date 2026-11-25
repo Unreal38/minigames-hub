@@ -906,11 +906,14 @@ if (!validCode(pendingJoin)) pendingJoin = '';
 
 // ---------- toasts ----------
 export function toast(html, bad = false, ms = 2900) {
-  const el = document.createElement('div');
+  const box = document.getElementById('toasts');
+  const same = [...box.children].find(x => x.dataset.html === html); // the same note again: keep one, just show it longer
+  if (same) { clearTimeout(same._t); same._t = setTimeout(() => same.remove(), ms); return; }
+  const el = document.createElement('div'); el.dataset.html = html;
   el.className = 'toast' + (bad ? ' bad' : '');
   el.innerHTML = html;
-  document.getElementById('toasts').append(el);
-  setTimeout(() => el.remove(), ms);
+  box.append(el);
+  el._t = setTimeout(() => el.remove(), ms);
 }
 
 // ---------- network ----------
@@ -1765,7 +1768,9 @@ function mountSkyHero() {
 // The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
 let petsAsked = false;
 const PET_SLOTS = 3;
-const showIds = () => { const c = st.me?.cos || {}; return (c.pets || (c.pet ? [c.pet] : [])).slice(0, PET_SLOTS); };
+// Pets shown on the isle. Once the farm list is in, ids of pets that have left the farm are skipped, so a gone pet
+// never holds an invisible slot (it made the first pick land as number 2 and the server say "not on your farm").
+const showIds = () => { const c = st.me?.cos || {}, l = (c.pets || (c.pet ? [c.pet] : [])); return (st.pets ? l.filter(id => st.pets.some(x => x.id === id)) : l).slice(0, PET_SLOTS); };
 // The Pet Farm decorations you put on your isle, less any the farm no longer has.
 const myDecor = () => decorOf(st.me).filter(t => (st.decor || []).some(x => x.t === t));
 const myShow = () => showIds().map(id => (st.pets || []).find(x => x.id === id)).filter(Boolean);
@@ -2475,6 +2480,7 @@ const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the
 function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = '', filt: startFilt = 'all' } = {}) {
   let color = st.color, av = st.av.slice(), sec = startSec, sub = startSub, filt = startFilt, undo = null, saveT = 0;
   const pick = {}; // account cosmetics being tried on: kind -> index
+  if (st.me?.user) send({ t: 'pets' }); // a fresh farm list, so pets sold or traded since don't show up as pickable
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
   const me = () => st.me || {}, owned = () => me().owned || [], coins = () => me().coins || 0;
   const today = () => me().today ? new Date(me().today + 'T12:00') : new Date();
