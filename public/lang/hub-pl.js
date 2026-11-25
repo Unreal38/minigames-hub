@@ -23,6 +23,7 @@ export const OPT_PL = {
   '4 (dealer sits out)': '4 (rozdający pauzuje)', 'Play to': 'Gramy do', 'Classic 1000': '1000 (klasycznie)', 'Quick 500': '500 (szybko)', Folding: 'Poddanie gry',
   'First one free': 'Pierwsze za darmo', 'Always 60': 'Zawsze 60', 'No folding': 'Bez poddawania',
   Field: 'Pole', 'Big 10×10': 'Duże 10×10', 'Quick 8×8': 'Szybkie 8×8',
+  Island: 'Wyspa', 'Small 13×13': 'Mała 13×13', 'Big 15×15': 'Duża 15×15', 'Tile bag': 'Worek z płytkami', 'Short 64': 'Mały 64', 'Full 100': 'Pełny 100', Hard: 'Trudne',
   Speed: 'Tempo', Normal: 'Normalne', Fast: 'Szybkie', 'bop:Calm': 'Spokojne',
   Climbers: 'Wspinacze', Storm: 'Burza', Wild: 'Dzika',
   Bay: 'Zatoka', 'Classic 10×10': 'Klasyczna 10×10', 'Quick 7×7': 'Szybka 7×7',
@@ -32,11 +33,13 @@ export const OPT_PL = {
   'The game ends': 'Koniec gry', 'First one out wins': 'Wygrywa pierwszy bez kart', 'Play to the last one': 'Gramy do ostatniego', 'Queen on everything': 'Dama na wszystko', 'Fighting kings': 'Waleczne króle',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Clock: 'Zegar', 'No clock': 'Bez zegara', '3 min + 2s': '3 min + 2 s', '5 min + 3s': '5 min + 3 s', '10 min + 5s': '10 min + 5 s', '15 min + 10s': '15 min + 10 s', Bot: 'Bot', Beginner: 'Początkujący', Club: 'Klubowy', Strong: 'Mocny',
+  'Polish 10×10': 'Polska 10×10', 'Small 8×8': 'Mała 8×8',
   Prizes: 'Nagrody', 'Quick · one line': 'Szybka gra · jedna linia', 'Classic · all three': 'Klasyczna gra · wszystkie trzy', 'Ball speed': 'Tempo kul', Daubing: 'Zaznaczanie', 'By hand': 'Ręczne', Automatic: 'Automatyczne',
   // One game's own form where the shared word would not agree with its heading ('game:Label'; looked up first).
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
+  Sneaks: 'Łasuchy', Auto: 'Automatycznie', 'Talk at meetings': 'Rozmowa na naradzie', 'Chores each': 'Prace na osobę', 'Time between lulls': 'Odstęp między uśpieniami', 'The ferry shows': 'Prom pokazuje', 'Their side': 'Stronę gracza', Nothing: 'Nic', 'Pawprint clues': 'Tropy łap',
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
   'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
@@ -406,6 +409,25 @@ export const GAMES_PL = {
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce. Przy remisie obie strony dzielą pierwsze miejsce.</li>
     </ol>`,
   },
+  warcaby: {
+    name: 'Warcaby', start: 'Zacznij partię', openSeat: 'Jeśli nikt nie dołączy, zagra tu bot',
+    pitch: 'Klasyczne warcaby polskie: skacz, bij i zdobywaj damki. Na dużej planszy 10×10 albo małej 8×8, ze znajomym albo z botem.',
+    howto: `Klasyczne warcaby polskie dla dwóch osób. Dotknij swojego pionka, a potem pola, na które ma pójść. Przeskakuj pionki przeciwnika, żeby je zbić. Bicie jest obowiązkowe i trzeba bić jak najwięcej. Wygrywasz, gdy zbijesz wszystkie pionki przeciwnika albo zostawisz go bez ruchu.`,
+    rules: `<ol>
+      <li><b>Dwóch graczy</b>: białe i czarne, każdy ma 20 pionków na ciemnych polach planszy 10×10 (na małej planszy 8×8 po 12). Zaczynają białe. Kolory są losowane, a w rewanżu gracze zamieniają się kolorami. Wolne miejsce zajmuje bot (początkujący, klubowy albo mocny: wybierz w ustawieniach stołu).</li>
+      <li><b>Pionek</b> idzie o jedno pole po skosie <b>do przodu</b>, na wolne pole.</li>
+      <li><b>Bicie</b>: przeskocz pionek przeciwnika, który stoi tuż obok, na wolne pole za nim. Pionki biją <b>do przodu i do tyłu</b>. Jeśli po skoku możesz bić dalej, skaczesz dalej w tym samym ruchu.</li>
+      <li><b>Bicie jest obowiązkowe</b> i trzeba wybrać bicie <b>największej liczby</b> pionków (damka liczy się tak samo jak pionek). Pionki, które mogą bić, świecą na pomarańczowo.</li>
+      <li>Zbite pionki znikają z planszy dopiero po całym ruchu, więc tego samego pionka nie da się przeskoczyć dwa razy.</li>
+      <li>Pionek, który <b>kończy ruch</b> na ostatnim rzędzie, zostaje <b>damką</b>. Pionek, który tylko przez ten rząd przeskakuje i bije dalej, zostaje pionkiem.</li>
+      <li><b>Damka</b> chodzi po skosie o dowolną liczbę pól. Bije pionek stojący gdziekolwiek na jej linii, jeśli pola przed nim są wolne, i może stanąć na dowolnym wolnym polu za nim.</li>
+      <li><b>Wygrywasz</b>, gdy przeciwnik nie ma już pionków albo nie może się ruszyć.</li>
+      <li>Partia kończy się <b>remisem</b>, gdy ta sama pozycja powtórzy się trzy razy, po 25 ruchach każdej ze stron samymi damkami bez bicia, gdy samotna damka wytrzyma 16 ruchów przeciw trzem pionkom (5 ruchów przeciw dwóm albo jednemu) albo gdy obie strony zgodzą się na remis (przycisk „Zaproponuj remis”).</li>
+      <li><b>Zegar</b> (ustawienia stołu): każdy gracz ma własny czas, a po każdym ruchu dostaje kilka sekund więcej. Gdy czas się skończy, przegrywasz. Bez zegara możesz myśleć tak długo, jak chcesz.</li>
+      <li>W każdej chwili możesz <b>poddać partię</b>: dotknij dwa razy przycisku „Poddaj partię”.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce. Przy remisie obie strony dzielą pierwsze miejsce.</li>
+    </ol>`,
+  },
   pm: {
     name: 'Państwa-miasta', start: 'Losuj pierwszą literę', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
     pitch: 'Klasyka z kartką i długopisem. Losujemy literę: wpisz państwo, miasto, zwierzę i resztę, zanim ktoś zawoła „Stop!”.',
@@ -419,6 +441,22 @@ export const GAMES_PL = {
       <li>Punkty w każdej kategorii: <b>15</b>, gdy tylko ty masz dobre hasło, <b>10</b> za hasło, którego nie ma nikt inny, <b>5</b>, gdy ktoś wpisał to samo, <b>0</b> za puste albo odrzucone. Wielkość liter i polskie znaki nie robią różnicy: „Krakow” i „Kraków” to ta sama odpowiedź.</li>
       <li><b>Wygrywa najwięcej punktów po ostatniej rundzie.</b> Przy równej liczbie punktów gracze dzielą miejsce.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Kto nie wpisze ani jednego hasła, nie dostaje monet.</li>
+    </ol>`,
+  },
+  lantern: {
+    name: 'Noc latarni', start: 'Zapal latarnie', openSeat: 'Czekamy na znajomego (w tej grze nie ma botów)',
+    pitch: 'Przytulna gra w ukryte role na wyspie o zmierzchu. Rób prace, przyłap Łasuchy na usypianiu znajomych i wyślij je promem. Tylko dla ludzi: bez botów.',
+    howto: `Chodzisz po wyspie o zmierzchu jako swój awatar ze zwierzakiem z Farmy. Wyspiarze wykonują prace, a jeden lub dwa ukryte Łasuchy usypiają innych, gdy nikt nie patrzy. Znajdź śpiocha albo zadzwoń dzwonem, naradźcie się (najlepiej na głosowym) i wyślijcie kogoś promem. Wyspiarze wygrywają, gdy skończą wszystkie prace albo odeślą wszystkie Łasuchy.`,
+    rules: `<ol>
+      <li>Gra dla <b>4–10 osób</b>, bez botów. Każdy dostaje tajną kartę: większość to <b>Wyspiarze</b>, a wśród nich ukrywa się <b>1 Łasuch</b> (od 7 graczy dwa). Przytrzymaj swoją kartę u góry ekranu, żeby jeszcze raz na nią zerknąć.</li>
+      <li>Wszyscy chodzą po wyspie ze <b>zwierzakiem z Farmy</b> wylosowanym na tę grę. Jest zmierzch: widzisz tylko to, co oświetla twoja latarnia.</li>
+      <li><b>Wyspiarze</b> wykonują prace w zaznaczonych miejscach: zapalają lampy w latarni, kręcą wiatrakiem, karmią zwierzaki, podlewają ogród i tak dalej. Każda praca wypełnia pasek wyspy. <b>Gdy pasek jest pełny, wygrywają wyspiarze.</b></li>
+      <li><b>Łasuchy</b> dostają udawaną listę prac. Gdy wyspiarz jest blisko, Łasuch może go <b>uśpić</b> (potem musi chwilę odczekać). Łasuchy mogą wejść do <b>pustej kłody</b> i wyjść z następnej oraz robić <b>psikusy</b>: zgasić latarnię (wyspiarze widzą dużo mniej, póki ktoś jej nie zapali) albo odwiązać prom (dwoje wyspiarzy musi w ciągu 40 sekund złapać obie liny na przystani, inaczej wygrywają Łasuchy).</li>
+      <li>Znajdziesz śpiocha? <b>Zwołaj naradę.</b> Każdy może też raz na grę zadzwonić <b>dzwonem</b> przy ognisku. Na naradzie wszyscy zbierają się przy ognisku. Przy włączonych tropach ślady łap przy śpiochu zdradzają jedną rzecz o zwierzaku Łasucha: jego żywioł albo wielkość.</li>
+      <li>Naradźcie się (na głosowym albo na czacie, który otwiera się tylko na naradach), potem <b>zagłosujcie</b> na gracza albo wstrzymajcie się. Gracz z największą liczbą głosów odpływa <b>promem</b>. Przy remisie albo większej liczbie wstrzymanych nikt nie odpływa.</li>
+      <li>Kto zaśnie albo odpłynie promem, jest <b>poza grą</b>, ale gra dalej jako swój zwierzak: może kończyć prace i rozmawiać z innymi zwierzakami, a nikt, kto nie śpi, go nie słyszy.</li>
+      <li><b>Wyspiarze wygrywają</b>, gdy wszystkie prace są zrobione albo nie ma już żadnego Łasucha. <b>Łasuchy wygrywają</b>, gdy jest ich tyle, ilu wyspiarzy, którzy jeszcze nie śpią, albo gdy prom odpłynie.</li>
+      <li>Monety: zwycięska strona dzieli <b>1. miejsce</b> (po 10 monet), a reszta zajmuje miejsca według tego, jak długo nie spała.</li>
     </ol>`,
   },
   kal: {
@@ -468,6 +506,24 @@ export const GAMES_PL = {
       <li>Masz <b>20 sekund</b> na strzał (ustawienia stołu). Gdy czas minie, strzał zostanie oddany za ciebie w losowe pole.</li>
       <li>Wygrywa ten, kto pierwszy <b>zatopi całą flotę rywala</b>.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za wygraną</b>, 1 za drugie miejsce.</li>
+    </ol>`,
+  },
+  reef: {
+    name: 'Słowna rafa', start: 'Rozdaj płytki', openSeat: 'Jeśli nikt nie dołączy, tymi płytkami zagra bot',
+    pitch: 'Nasza własna gra w układanie słów z płytek na planszy-wyspie. Układaj słowa z liter, zajmuj premiowe pola i sprawdzaj słowa, które wyglądają na zmyślone.',
+    howto: `Układaj płytki z literami na wyspie tak, żeby tworzyły słowa połączone z tymi, które już leżą, jak w krzyżówce. Premiowe pola, cały stojak i gniazda zwierzaków dają dodatkowe punkty. Nikt nie sprawdza słów, gdy je układasz: pozostali mogą powiedzieć „Sprawdzam”, więc blefujesz na własne ryzyko.`,
+    rules: `<ol>
+      <li><b>Od 2 do 4 graczy</b>, każdy ma stojak z <b>7 płytkami</b> z liter, dobieranymi ze wspólnego worka. Wolne miejsca zajmują boty. Gospodarz wybiera słowa polskie albo angielskie.</li>
+      <li>W swojej kolejce połóż jedną albo więcej płytek w <b>jednym rzędzie albo w jednej kolumnie</b>, bez przerw, tak żeby razem z literami między nimi tworzyły słowo. Dotknij płytki, a potem pola, albo przeciągnij ją. <b>Pierwsze słowo</b> musi przykryć <b>gwiazdę</b> na środku, a każde kolejne musi się <b>łączyć</b> z literami, które już leżą.</li>
+      <li>Każde nowe słowo, które tworzą twoje płytki, w poziomie i w pionie, zdobywa <b>punkty z liter</b>. Zanim naciśniesz Zagraj, widzisz, ile punktów da ruch.</li>
+      <li>Premiowe pola liczą się tylko wtedy, gdy je przykrywasz: <b>perła</b> podwaja literę, <b>rozgwiazda</b> ją potraja, <b>fala</b> podwaja całe słowo, <b>wir</b> je potraja, a <b>gwiazda</b> na środku podwaja pierwsze słowo.</li>
+      <li>Wyłożenie <b>wszystkich 7 płytek</b> w jednym ruchu daje <b>+40</b>. Przykrycie jednego z czterech <b>gniazd</b> daje <b>+10</b>, a obok siada zwierzak z Farmy.</li>
+      <li>Dwie <b>puste płytki</b> mogą być dowolną literą (wybierasz ją przy układaniu) i są warte 0 pkt.</li>
+      <li>Słowa <b>nie są sprawdzane</b> przy układaniu. Przez kilka sekund każdy inny gracz może nacisnąć <b>Sprawdzam</b>. Jeśli któregoś słowa nie ma w słowniku, płytki wracają do gracza, a ruch nie daje punktów. Jeśli wszystkie słowa istnieją, gracz dostaje <b>+10</b> za kłopot. Naciśnij <b>W porządku</b>, żeby gra ruszyła szybciej.</li>
+      <li>Zamiast układać słowo możesz <b>wymienić</b> płytki z workiem albo <b>spasować</b>. Masz 90 sekund na ruch (ustawienia stołu); gdy czas minie, pasujesz.</li>
+      <li>Gra kończy się, gdy worek jest pusty i ktoś wyłoży <b>ostatnią płytkę</b>, albo gdy przez <b>dwie pełne kolejki</b> nikt nie zdobędzie punktów. Punkty z płytek, które zostały na stojaku, odejmuje się od wyniku.</li>
+      <li>Polskie słowa pochodzą ze słownika do gier słownych SJP.PL, angielskie z listy ENABLE.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   domino: {

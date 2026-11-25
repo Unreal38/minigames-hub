@@ -8,7 +8,7 @@ const PORT = 19080 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, BOT_PAY: '', PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };
 
@@ -53,8 +53,8 @@ const pts = a.s.res.map(r => r.pts);
 const rowA = a.room.board.find(e => e.name === 'Ana'), rowB = a.room.board.find(e => e.name === 'Bo');
 if (rowA.games !== 1 || rowA.pts !== pts[0] || rowB.pts !== pts[1]) fail('scoreboard points wrong ' + JSON.stringify(a.room.board));
 if (a.room.board.some(e => e.pid)) fail('scoreboard leaks profile ids');
-// Two people + two bots: XP and coins are paid, but a match with bots adds nothing to the rankings.
-if (a.me.xp < 15 || a.gain.ranked !== false || a.me.games !== 0 || a.me.wins !== 0 || a.me.byGame.hotpot) fail('bot match should pay XP but not count ' + JSON.stringify(a.me));
+// Two people + two bots: XP and coins are paid (a share: quick match, see botpay.js), but a match with bots adds nothing to the rankings.
+if (a.me.xp < 1 || !(a.gain.pay < 100) || a.gain.ranked !== false || a.me.games !== 0 || a.me.wins !== 0 || a.me.byGame.hotpot) fail('bot match should pay XP but not count ' + JSON.stringify(a.me));
 const xpGame = a.me.xp;
 console.log('scored', JSON.stringify(a.room.board.map(e => [e.name, e.wins, e.pts])), 'xp', a.me.xp, b.me.xp);
 

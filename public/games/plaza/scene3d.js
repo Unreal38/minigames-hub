@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, toonMat, createFx, STAR, HEART, hash, seasonLookNow, mergeStatic } from '../../scenery3d.js';
+export { mergeStatic }; // lantern and other games still import it from here
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { itemModel } from '../farm/models.js';
 import { formOf } from '../farm/data.js';
@@ -77,7 +78,7 @@ const ORN_GEO = {
 };
 // Meshes that share a material and never move apart become one mesh (the carousel's turning top, a pet's two eyes).
 // skip(o): leave this child and everything under it alone.
-function fuse(root, skip) {
+export function fuse(root, skip) {
   root.updateWorldMatrix(true, true);
   const inv = root.matrixWorld.clone().invert(), by = new Map(), m4 = new THREE.Matrix4();
   const walk = o => { for (const c of [...o.children]) { if (skip?.(c)) continue;
@@ -96,7 +97,7 @@ function fuse(root, skip) {
 }
 // Someone else's pet, seen from across the square: the whole pet as one mesh and one outline (its ears and tail keep
 // still), and its eyes as one. A handful of draw calls instead of fifteen, so a full room stays light.
-function litePet(g) { const out = mergeStatic(g, .045); out.scale.copy(g.scale); fuse(out); out.traverse(o => { if (o.isMesh) o.castShadow = false; }); return out; }
+export function litePet(g) { const out = mergeStatic(g, .045); out.scale.copy(g.scale); fuse(out); out.traverse(o => { if (o.isMesh) o.castShadow = false; }); return out; }
 const ORN_SHAPE = { star: 'star', bell: 'bell', cane: 'cane', ginger: 'ginger', snow: 'snow' };
 
 export function createScene(canvas, opts = {}) {
