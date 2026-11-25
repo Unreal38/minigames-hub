@@ -1042,8 +1042,12 @@ notice.setExtra(() => { const now = gitHead(); return { pulled: !!(now && RUNNIN
 function checkCode() {
   const files = [...['server', 'server/games', 'public', 'public/lang'].flatMap(d => { try { return fs.readdirSync(path.join(REPO, d)).filter(f => f.endsWith('.js')).map(f => path.join(REPO, d, f)); } catch { return []; } }),
     ...(() => { try { return fs.readdirSync(path.join(REPO, 'public/games')).flatMap(g => { try { return fs.readdirSync(path.join(REPO, 'public/games', g)).filter(f => f.endsWith('.js')).map(f => path.join(REPO, 'public/games', g, f)); } catch { return []; } }); } catch { return []; } })()];
-  return Promise.all(files.map(f => new Promise(res => execFile(process.execPath, ['--check', f], { timeout: 30_000 }, err => res(err ? path.relative(REPO, f) : null)))))
-    .then(bad => bad.filter(Boolean));
+  // A few checks at a time, not all ~300 at once: that many node processes together need gigabytes of memory, and on
+  // a busy machine some ran past their time limit and were counted as broken, which cancelled a good restart.
+  const check = f => new Promise(res => execFile(process.execPath, ['--check', f], { timeout: 30_000 }, err => res(err ? path.relative(REPO, f) : null)));
+  const bad = [], queue = [...files];
+  const lane = async () => { for (let f; (f = queue.shift());) { const b = await check(f); if (b) bad.push(b); } };
+  return Promise.all(Array.from({ length: Math.max(2, Math.min(8, os.availableParallelism?.() || os.cpus().length)) }, lane)).then(() => bad.sort());
 }
 if (process.env.INVOCATION_ID || process.env.NOTICE_TEST_RESTART) notice.setOnZero(async () => {
   const bad = await checkCode();
