@@ -39,7 +39,11 @@ export const twistName = id => { const t = TWISTS.find(x => x[0] === id); return
 export const FREE_KEYS = ['hair', 'hairC', 'facial', 'marks', 'top', 'bottom', 'botC', 'shoes', 'shoeC', 'hat', 'glasses', 'neck', 'back', 'hand'];
 // The poses at the end of the runway, free for everyone.
 export const POSES = [['wave', 'Wave', 'Machanie'], ['twirl', 'Twirl', 'Obrót'], ['cheer', 'Cheer', 'Hurra']];
-export const poseName = i => POSES[i] ? L(POSES[i][1], POSES[i][2]) : '';
+// Plaza emotes a player owns can be struck as poses too: pose number EMOTE_POSE + the emote's number (cosmetics.js COS.em).
+// Only the ones that work standing on a runway (no sitting, lying down or pet tricks).
+export const EMOTE_POSE = 100;
+export const RUNWAY_EMOTES = ['wave', 'dance', 'jump', 'cheer', 'clap', 'bow', 'spin', 'laugh', 'heart', 'shiver', 'flip', 'robot', 'stars', 'pose', 'strut'];
+export const poseName = (i, emName) => POSES[i] ? L(POSES[i][1], POSES[i][2]) : i >= EMOTE_POSE && emName ? emName(i - EMOTE_POSE) : '';
 
 export const ROUNDS = [2, 3, 5], TIMES = [60, 90, 120];
 

@@ -76,7 +76,8 @@ export const EMOTES = [null,
   // the ones that are bought, seasonal or earned by visiting (cosmetics.js COS.em, same order: only append)
   { id: 'clap', e: '👏', ms: 2000 }, { id: 'bow', e: '🙇', ms: 1800 }, { id: 'spin', e: '🌀', ms: 1500 }, { id: 'laugh', e: '😂', ms: 2400 },
   { id: 'nap', e: '😴', loop: true }, { id: 'heart', e: '💖', ms: 2200 }, { id: 'angel', e: '👼', loop: true }, { id: 'shiver', e: '🥶', ms: 2200 },
-  { id: 'flip', e: '🤸', ms: 1100 }, { id: 'robot', e: '🤖', loop: true }, { id: 'stars', e: '🌟', ms: 2400 }];
+  { id: 'flip', e: '🤸', ms: 1100 }, { id: 'robot', e: '🤖', loop: true }, { id: 'stars', e: '🌟', ms: 2400 },
+  { id: 'pose', e: '💁', ms: 2600 }, { id: 'strut', e: '🚶', loop: true }];
 
 // Throwing: a snowball in winter, a soft ball otherwise. Only for fun: a hit is a puff and a wobble.
 export const THROW_RANGE = 13, THROW_HIT = .95, THROW_WAIT = 1200;

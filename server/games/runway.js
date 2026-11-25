@@ -2,10 +2,11 @@
 // every coin-shop item on loan (Supporter pack items too), then walks the runway one by one while the others give
 // 1 to 5 stars. Points per look = average stars x 20 (with 5+ judges the highest and lowest vote are dropped).
 // Nothing worn here is saved: the look lives only in this game. People only, no bots.
-import { THEMES, TWISTS, FREE_KEYS, POSES, ROUNDS, TIMES, PICK_N, cleanTheme, scoreLook } from '../../public/games/runway/rules.js';
+import { THEMES, TWISTS, FREE_KEYS, POSES, ROUNDS, TIMES, PICK_N, cleanTheme, scoreLook, EMOTE_POSE, RUNWAY_EMOTES } from '../../public/games/runway/rules.js';
+import { EMOTES } from '../../public/games/plaza/layout.js';
 import { cleanAv, AV_KEYS } from '../../public/avatar.js';
 
-export const meta = { id: 'runway', name: 'Sky Runway', minPlayers: 3, maxPlayers: 8, minHumans: 3 };
+export const meta = { id: 'runway', name: 'Sky Runway', minPlayers: 3, maxPlayers: 8, minHumans: 3, emotes: true }; // emotes: players arrive with em, the Plaza emotes they own
 
 // pick: the theme vote (3 random themes + written ones); theme: the theme card; walk: one look on the runway (the walk, the pose, the votes); reveal: the round's podium.
 export const MS = { pick: 20000, theme: 5000, walk: 8500, reveal: 8000, early: 1200 };
@@ -19,9 +20,11 @@ export function cleanOpts(o = {}) {
   };
 }
 
+// the owned emotes that can be struck on a runway
+const poseEmotes = em => (Array.isArray(em) ? em : []).filter(i => Number.isInteger(i) && RUNWAY_EMOTES.includes(EMOTES[i]?.id));
 export function create(players, optsIn = {}) {
   const opts = cleanOpts(optsIn);
-  const seats = players.slice(0, meta.maxPlayers).map(p => ({ id: p.id, name: p.name, color: p.color, av: cleanAv(p.av), bot: false, human: true }));
+  const seats = players.slice(0, meta.maxPlayers).map(p => ({ id: p.id, name: p.name, color: p.color, av: cleanAv(p.av), bot: false, human: true, em: poseEmotes(p.em) }));
   const G = {
     game: 'runway', ph: 'play', stage: 'theme', gid: Math.random().toString(36).slice(2, 8), seats, opts,
     round: -1, theme: '', twist: '', used: [], picks: [], pv: [], tEnd: 0, tAll: 0,
@@ -127,7 +130,7 @@ export function act(G, s, a) {
     return true;
   }
   if (a.t === 'look') return dressing && setLook(G, s, a.av);
-  if (a.t === 'pose') { if (!dressing || !Number.isInteger(a.p) || !POSES[a.p] || G.pose[s] === a.p) return false; G.pose[s] = a.p; G.busy[s] = true; return true; }
+  if (a.t === 'pose') { if (!dressing || !Number.isInteger(a.p) || !(POSES[a.p] || a.p >= EMOTE_POSE && G.seats[s].em?.includes(a.p - EMOTE_POSE)) || G.pose[s] === a.p) return false; G.pose[s] = a.p; G.busy[s] = true; return true; }
   if (a.t === 'ready') {
     if (G.stage !== 'dress' || G.ready[s] === !!a.on) return false;
     if (a.av) setLook(G, s, a.av);
@@ -187,6 +190,7 @@ export function view(G, s) {
     round: G.round, rounds: G.opts.rounds, theme: G.theme,
     // the theme vote: the choices (written ones show who wrote them only to the writer), the vote counts, your vote
     picks: G.stage === 'pick' ? G.picks.map((p, k) => ({ th: p.th, mine: p.by === s && s >= 0, n: G.pv.filter(v => v === k).length })) : [],
+    myEm: s >= 0 ? G.seats[s].em || [] : [], // your own Plaza emotes, offered as poses
     myPick: G.stage === 'pick' && s >= 0 ? G.pv[s] : -1, wrote: G.stage === 'pick' && s >= 0 && G.picks.some(p => p.by === s),
     nPicked: G.stage === 'pick' ? G.pv.filter(v => v >= 0).length : 0, twist: G.twist, left: Math.max(0, G.tEnd - now), all: G.tAll,
     // nobody sees the other looks before they walk; your own look is always yours

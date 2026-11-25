@@ -9,7 +9,33 @@ import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, STAR
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { L } from '../../i18n.js';
-import { themeName, twistName } from './rules.js';
+import { themeName, twistName, EMOTE_POSE } from './rules.js';
+import { EMOTES } from '../plaza/layout.js';
+
+// A Plaza emote struck as a pose at the front of the runway (a short take on the Plaza's own moves in plaza/scene3d.js).
+// q: 0..1 through the pose, T: the clock, u: the avatar's userData. Returns how the whole body moves.
+function emotePose(id, q, T, u) {
+  let y = 0, ry = 0, bend = 0, lean = 0; const t = q * 2.2;
+  const arms = (fn) => u.arms.forEach((a, i) => { a.userData.rz0 ??= a.rotation.z; a.rotation.z = a.userData.rz0; fn(a, i, i ? 1 : -1); });
+  const snap = Math.min(1, q / .15) * Math.min(1, (1 - q) / .1);
+  switch (id) {
+    case 'wave': arms((a, i) => { if (i) { a.rotation.x = -2.75; a.rotation.z += .3 + Math.sin(T * 10) * .32; } }); break;
+    case 'dance': y = Math.abs(Math.sin(T * 6.5)) * .16; lean = Math.sin(T * 6.5) * .1; ry = Math.sin(T * 3.25) * .5; arms((a, i) => { a.rotation.x = -2.2 + Math.sin(T * 6.5 + i * Math.PI) * .7; }); break;
+    case 'jump': y = Math.abs(Math.sin(q * Math.PI * 2)) * 1; break;
+    case 'cheer': case 'stars': y = Math.abs(Math.sin(T * 9)) * .22; arms((a, i, o) => { a.rotation.x = -2.8 + Math.sin(T * 9 + i) * .2; a.rotation.z += o * .25; }); break;
+    case 'clap': y = Math.abs(Math.sin(T * 9)) * .05; arms((a, i, o) => { a.rotation.x = -1.35; a.rotation.z -= o * (.38 + .2 * Math.sin(T * 18)); }); break;
+    case 'bow': bend = Math.sin(q * Math.PI) * 1.05; arms((a, i, o) => { a.rotation.x = i ? -bend * .9 : .25 * bend; if (i) a.rotation.z -= o * bend * .55; }); break;
+    case 'spin': ry = (1 - (1 - q) * (1 - q)) * Math.PI * 4; y = Math.sin(q * Math.PI) * .28; arms((a, i, o) => { a.rotation.z += o * 1.25 * Math.sin(q * Math.PI); }); break;
+    case 'laugh': bend = -.2 + Math.sin(T * 13) * .05; y = Math.abs(Math.sin(T * 13)) * .07; arms((a, i, o) => { a.rotation.x = -.75; a.rotation.z -= o * .5; }); break;
+    case 'heart': arms((a, i, o) => { if (i) { const k = Math.min(1, q / .45), w = q < .45 ? 0 : Math.min(1, (q - .45) / .2); a.rotation.x = -2.5 * k + w; a.rotation.z -= o * .55 * (1 - w); } }); break;
+    case 'shiver': lean = Math.sin(T * 41) * .03; arms((a, i, o) => { a.rotation.x = -1.05; a.rotation.z += -o * .75 + Math.sin(T * 50 + i) * .04; }); break;
+    case 'flip': { const w = Math.min(1, q * 1.6); y = Math.sin(w * Math.PI) * 1.45; bend = -w * Math.PI * 2; arms(a => { a.rotation.x = -2.6 * Math.sin(w * Math.PI); }); break; }
+    case 'robot': { const st = Math.floor(T * 2.6); ry = ((st % 4) - 1.5) * .28; lean = st % 2 ? .07 : -.07; arms((a, i) => { a.rotation.x = (st + i) % 2 ? -1.55 : -.1; }); break; }
+    case 'pose': ry = -.45 * snap; lean = .1 * snap; arms((a, i, o) => { if (i) { a.rotation.x = -2.9 * snap; a.rotation.z += .35 * snap; } else { a.rotation.x = -.45 * snap; a.rotation.z -= o * .95 * snap; } }); break;
+    case 'strut': lean = Math.sin(T * 7) * .08; ry = Math.sin(T * 3.5) * .12; arms((a, i, o) => { if (!i) { a.rotation.x = -.45; a.rotation.z -= o * .95; } }); break;
+  }
+  return { y, ry, bend, lean, walk: id === 'strut' };
+}
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff', INK = '#3b2219';
 const K = .72, LIFT = .76;            // avatars on a wrapper at this size; a standing avatar's feet are .76 below its middle
@@ -216,11 +242,12 @@ export function createScene(canvas, { onFrame } = {}) {
         animateAvatar(a, T, { seed: 3 });
         if (amt) walkAvatar(a, stageT * 6.8, 1);
         if (posing) {
-          const q = (k - .42) / .26, p = x.pose | 0;
-          if (p === 0) { u.arms[1].rotation.x = -2.75; u.arms[1].rotation.z = (u.arms[1].userData.rz0 ??= u.arms[1].rotation.z) + .3 + Math.sin(T * 10) * .3; }
+          const q = (k - .42) / .26, p = x.pose | 0, em = p >= EMOTE_POSE ? EMOTES[p - EMOTE_POSE]?.id : '';
+          if (em) { const e = emotePose(em, q, T, u); if (e.walk) walkAvatar(a, T * 7, .9); ry = e.ry; a.rotation.x = e.bend; x.m.wrap.rotation.z = e.lean; x.m.wrap.position.y = RUN.h + e.y; }
+          else if (p === 0) { u.arms[1].rotation.x = -2.75; u.arms[1].rotation.z = (u.arms[1].userData.rz0 ??= u.arms[1].rotation.z) + .3 + Math.sin(T * 10) * .3; }
           else if (p === 1) ry = q * Math.PI * 2;
           else { for (const r of u.arms) r.rotation.x = -2.8 + Math.sin(T * 9) * .2; x.m.wrap.position.y = RUN.h + Math.abs(Math.sin(q * Math.PI * 3)) * .3; }
-        } else x.m.wrap.position.y = RUN.h;
+        } else { x.m.wrap.position.y = RUN.h; a.rotation.x = 0; x.m.wrap.rotation.z = 0; }
         x.m.wrap.position.set(0, x.m.wrap.position.y, z); x.m.wrap.rotation.y = ry; walkZ = z;
         if (posing && !x.puff && !reduced) { x.puff = 1; pfx.burst(new THREE.Vector3(0, 2.4, z), { n: 18, colors: ['#ffd84a', '#ffffff', '#ff8fab'], speed: 2.6, up: 2.4, size: .22, life: .8, shape: p_shape(x.pose) }); }
       }

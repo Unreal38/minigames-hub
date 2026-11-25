@@ -1,6 +1,7 @@
 // Lantern Night's page: the 3D island (scene3d.js) with the lantern's darkness, name tags, the chore list and chores,
 // the action buttons, the island map, meetings with voting, the ferry and the results.
 // Your own player walks here (scene3d.js) and the server checks every chore, lull, ring and vote.
+import { lanternLook } from '../../pieceskins.js';
 import { sfx } from '../../sfx.js';
 import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
@@ -98,7 +99,7 @@ export function mount(app, ctx) {
 
   function sync(fresh = false) {
     if (!scene || !S || !info) return;
-    const key = info.map(p => p.name + p.color + JSON.stringify(p.av)).join('|') + S.me + JSON.stringify(S.pet);
+    const key = info.map(p => p.name + p.color + JSON.stringify(p.av) + (p.fl?.ln | 0)).join('|') + S.me + JSON.stringify(S.pet);
     if (fresh || key !== seatsKey) { seatsKey = key; scene.setSeats(info, S.pet, S.me); buildTags(); }
     scene.setAt(S.at, S.you?.j | 0);
     scene.setBeds(S.beds);
@@ -149,6 +150,8 @@ export function mount(app, ctx) {
     lg.fill('nonzero');
     dg.setTransform(1, 0, 0, 1, 0, 0); dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, cw, ch); dg.fillStyle = 'rgba(9,7,30,.83)'; dg.fillRect(0, 0, cw, ch);
     dg.globalCompositeOperation = 'destination-out'; dg.drawImage(lightC, 0, 0); dg.globalCompositeOperation = 'source-over';
+    const sk = info?.[S.me]?.fl?.ln | 0; // your Lantern's colour (Wardrobe kind ln) tints the lit circle a little; the classic one leaves it as it is
+    if (sk > 0) { lg.globalCompositeOperation = 'source-in'; lg.fillStyle = lanternLook(sk).light; lg.fillRect(0, 0, W, H); lg.globalCompositeOperation = 'source-over'; dg.globalAlpha = .14; dg.drawImage(lightC, 0, 0); dg.globalAlpha = 1; }
   }
 
   // ---- name tags over people you can see, and "Zzz" over sleepers

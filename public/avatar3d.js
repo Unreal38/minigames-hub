@@ -421,7 +421,7 @@ export const hidesBottom = top => top === 6 || top === 15 || top === 32 || top i
 // Drawn in a frame at the centre of the mitten: y up, z towards the front, x to the avatar's left (the side it is held on).
 // u scales with the avatar's height, r is the mitten's radius (a grip should pass through it, not float beside it).
 // Items in HANG are carried at the side with the arm down; the rest are held up in front, forearm forward.
-const HANG = [2, 5, 9, 13, 16, 17, 18], HAND_LEAN = { z: .3, x: .2 }, WIDE = [4, 10, 12];
+const HANG = [2, 5, 9, 13, 16, 17, 18], HAND_LEAN = { z: .3, x: .2 }, WIDE = [4, 10, 12, 20, 21];
 function handItem(p, i, u, r, { gold, COFFEE, LATTE, CREAM }) {
   // a star of five flat points round (x, y, z), facing the front
   const star = (R, c, x, y, z) => { for (let k = 0; k < 5; k++) { const an = k / 5 * PI * 2, pt = cone(p, R * .42, R, c, x - Math.sin(an) * R * .5, y + Math.cos(an) * R * .5, z); pt.rotation.z = an; pt.scale.z = .45; } sph(p, R * .36, c, x, y, z).scale.z = .55; };
@@ -526,6 +526,23 @@ function handItem(p, i, u, r, { gold, COFFEE, LATTE, CREAM }) {
     lathe(p, [[.135 * u, -.255 * u], [.1 * u, -.16 * u], [.08 * u, -.1 * u]], '#d8ecf2').position.z = z; ring(p, .135 * u, .008 * u, '#ffffff', 0, -.25 * u, z).rotation.x = PI / 2;
     cyl(p, .085 * u, .09 * u, .05 * u, CREAM, 0, -.08 * u, z); sph(p, .03 * u, LATTE, 0, -.05 * u, z); const sp = cone(p, .025 * u, .06 * u, '#e8f1f4', 0, -.12 * u, z + .1 * u); sp.rotation.x = 1.1;
     box(p, .02 * u, .16 * u, .03 * u, COFFEE, 0, -.18 * u, .08 * u);
+  }
+  if (i === 19) { // magnifying glass (2026-11-25, for Lantern Night and Copycat Isle sleuths): a brass ring and lens on a wooden handle
+    cyl(p, .028 * u, .034 * u, .24 * u, '#7a4a2a', 0, .05 * u, 0); cyl(p, .036 * u, .036 * u, .04 * u, gold, 0, .19 * u, 0);
+    const rg = ring(p, .12 * u, .022 * u, gold, 0, .33 * u, 0); rg.rotation.y = .5;
+    const ln = cyl(p, .11 * u, .11 * u, .012 * u, '#bfe9ff', 0, .33 * u, 0, 18); ln.rotation.set(PI / 2, 0, -.5); sph(p, .025 * u, '#ffffff', -.04 * u, .37 * u, .03 * u).scale.z = .3;
+  }
+  if (i === 20) { // folding fan (Sky Runway): open, ribs spreading up from the grip
+    const cs = ['#ff7fa8', '#ffffff'];
+    for (let k = 0; k < 9; k++) { const an = (k - 4) * .19, len = .3 * u, b2 = box(p, .07 * u, len, .012 * u, cs[k % 2], Math.sin(an) * len * .55, .06 * u + Math.cos(an) * len * .55, 0); b2.rotation.z = -an; }
+    for (let k = 0; k < 9; k++) { const an = (k - 4) * .19; const rb = box(p, .012 * u, .34 * u, .016 * u, '#6b4326', Math.sin(an) * .17 * u, .06 * u + Math.cos(an) * .17 * u, .008 * u); rb.rotation.z = -an; }
+    sph(p, .03 * u, gold, 0, .06 * u, .01 * u); bloom(0, .26 * u, .02 * u, .045 * u, '#ff5d8f');
+  }
+  if (i === 21) { // camera (Sky Runway): a chunky body, a big lens towards the world and a flash on top
+    const cam = new THREE.Group(); cam.position.set(0, .16 * u, .04 * u); cam.rotation.y = -.2; p.add(cam);
+    box(cam, .28 * u, .18 * u, .12 * u, '#3a3440', 0, 0, 0); box(cam, .12 * u, .06 * u, .08 * u, '#4a4452', -.06 * u, .11 * u, 0); box(cam, .06 * u, .04 * u, .06 * u, '#fff4c4', .07 * u, .11 * u, 0);
+    const lz = cyl(cam, .07 * u, .07 * u, .08 * u, '#24222c', .02 * u, -.01 * u, .09 * u, 14); lz.rotation.x = PI / 2; const gl = cyl(cam, .05 * u, .05 * u, .02 * u, '#7fc8ee', .02 * u, -.01 * u, .135 * u, 14); gl.rotation.x = PI / 2;
+    box(cam, .29 * u, .03 * u, .125 * u, '#e5543b', 0, -.07 * u, 0);
   }
 }
 

@@ -14,6 +14,7 @@ import { itemModel } from '../farm/models.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { mergeStatic, litePet } from '../plaza/scene3d.js';
+import { lanternModel } from '../../pieceskins.js';
 import { R_WALK, SPEED, GHOST_SPEED, Q, STATIONS, DECOR, LOGS, ROPES, BELL, WALLS, WALL_KIND, spotOf, unblock, clampWalk, findPath } from './layout.js';
 
 const K = .72;                  // avatars are drawn at this size, on a wrapper (animateAvatar owns the avatar's own scale)
@@ -149,12 +150,14 @@ export function createScene(canvas, opts = {}) {
   // ---- people: an avatar and its pet each; out players are only their pet
   const folk = new Map(); let me = null, queue = [], noInk = few;
   function dropModel(m) {
-    if (m.wrap) { scene.remove(m.wrap); disposeAvatar(m.av); m.wrap = m.av = null; }
+    if (m.wrap) { scene.remove(m.wrap); disposeAvatar(m.av); m.lamp?.traverse(o => { o.geometry?.dispose(); o.material?.dispose?.(); }); m.wrap = m.av = m.lamp = null; }
     if (m.pet) { scene.remove(m.pet.g); m.pet = null; }
   }
   function build(m) {
     if (!folk.has(m.s)) return false;
-    if (!m.wrap) { m.wrap = new THREE.Group(); m.wrap.rotation.order = 'YXZ'; m.wrap.scale.setScalar(K); m.av = avatar3d(m.p.color, m.p.av, { pose: 'stand' }); m.av.position.y = LIFT; m.av.traverse(o => { if (o.isMesh) { o.castShadow = false; if (noInk && m !== me && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; } }); m.wrap.add(m.av); m.wrap.position.set(m.x, 0, m.z); scene.add(m.wrap); return true; }
+    if (!m.wrap) { m.wrap = new THREE.Group(); m.wrap.rotation.order = 'YXZ'; m.wrap.scale.setScalar(K); m.av = avatar3d(m.p.color, m.p.av, { pose: 'stand' }); m.av.position.y = LIFT; m.av.traverse(o => { if (o.isMesh) { o.castShadow = false; if (noInk && m !== me && o.material.isMeshBasicMaterial && o.material.side === THREE.BackSide) o.visible = false; } }); m.wrap.add(m.av);
+      m.lamp = toonify(lanternModel(THREE, m.p.fl?.ln | 0), .03); m.lamp.scale.setScalar(.9); m.lamp.position.set(.72, 1.25, .1); m.lamp.traverse(o => { if (o.isMesh) o.castShadow = false; }); m.wrap.add(m.lamp); // your Lantern (Wardrobe kind ln): looks only, the light reaches as far for everyone
+      m.wrap.position.set(m.x, 0, m.z); scene.add(m.wrap); return true; }
     if (!m.pet && m.pp) { let g; try { g = petModel(m.pp.sp, m.pp.f || 0, null); if (m !== me) g = litePet(g); } catch { m.pp = null; return false; }
       g.scale.multiplyScalar(.44 + .06 * (m.pp.f || 0)); m.pet = { g, x: m.x - 1.2, z: m.z, ry: 0, ph: 0, sp: 0, seed: m.s * 3 }; g.position.set(m.pet.x, 0, m.pet.z); scene.add(g); return true; }
     return false;
@@ -247,7 +250,8 @@ export function createScene(canvas, opts = {}) {
     const want = m.seen && (mine || view !== 'hide') ? 1 : 0; m.fade += (want - m.fade) * Math.min(1, dt * 6); if (m.fade < .01) m.fade = 0;
     const show = m.fade > .02, petOnly = m.out > 0;
     if (m.wrap) { m.wrap.visible = show && !petOnly; if (m.wrap.visible) { m.wrap.position.set(m.x, 0, m.z); m.wrap.rotation.set(0, m.ry, 0); m.wrap.scale.setScalar(K * Math.min(1, .6 + m.fade * .4));
-      animateAvatar(m.av, T, { seed: m.s }); if (m.amt > .02) walkAvatar(m.av, m.ph, m.amt); } }
+      animateAvatar(m.av, T, { seed: m.s }); if (m.amt > .02) walkAvatar(m.av, m.ph, m.amt);
+      if (m.lamp) { m.lamp.position.y = 1.25 + Math.sin(T * 2.2 + m.s) * .06; m.lamp.rotation.y = Math.sin(T * .9 + m.s) * .5; m.lamp.rotation.z = Math.sin(T * 1.7 + m.s) * .08; } } }
     if (m.pet) { const p = m.pet;
       if (petOnly) { p.x = m.x; p.z = m.z; p.ry = m.ry; p.sp = m.amt; } // out: you are the pet
       else { const gx = m.x - Math.sin(m.ry) * 1.2 + Math.cos(m.ry) * .7, gz = m.z - Math.cos(m.ry) * 1.2 - Math.sin(m.ry) * .7, dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz);
