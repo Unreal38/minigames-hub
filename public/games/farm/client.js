@@ -444,6 +444,8 @@ export function mount(app, ctx) {
         <div class="ordl">${O.list.map(orderCard).join('')}</div>
         <p class="hint">${O.swaps ? L('Not keen on one of today’s orders? You can swap one a day for a new one.', 'Któreś z dzisiejszych zamówień ci nie pasuje? Jedno dziennie możesz wymienić na nowe.') : L('You swapped an order today already.', 'Dziś już wymieniasz zamówienie.')}</p>
         <div class="row end"><button type="button" class="btn w" data-a="stampshop">${L('Stamp decorations', 'Ozdoby za znaczki')}</button><button type="button" class="btn big m" data-a="shut">${L('Done', 'Gotowe')}</button></div></div>`;
+      return;
+    }
     if (panel.kind === 'charms') { // make Nest charms from crystal
       const rows = Object.entries(CHARMS).map(([k, c]) => `<button type="button" class="zone${canAfford(F.inv, c.cost) && F.house >= charmHouse(k) ? '' : ' off'}" data-a="charmmake" data-kind="${k}" data-lv="${F.house >= charmHouse(k) ? '' : charmHouse(k)}">${matIcon('charm_' + k, 34)}<b>${c.name}</b><small>${F.house >= charmHouse(k) ? c.desc : L(`Needs a level ${charmHouse(k)} farmhouse.`, `Wymaga domu na poziomie ${charmHouse(k)}.`)}</small><span class="cost">${costHtml(c.cost, F.inv)}</span><small>${L(`You have ${F.charms?.[k] || 0}`, `Masz: ${F.charms?.[k] || 0}`)}</small></button>`).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Nest charms`, `Amulety do Gniazda`)}</h2><p>${L(`Put a charm into the Nest with two pets to change what their egg may hold. Each charm is used up by one egg, and one egg can take one of each.`, `Włóż amulet do Gniazda razem z dwoma zwierzakami, żeby zmienić, co może być w ich jajku. Każdy amulet zużywa się na jedno jajko, a jedno jajko może dostać po jednym amulecie każdego rodzaju.`)}</p>
