@@ -8,6 +8,8 @@ import { birds, petals, createFx, disposeToon, CONF } from './scenery3d.js';
 import { buildIsle, buildSky, pieceModel } from './isle3d.js';
 import { piecesOf } from './cosmetics.js';
 import { frameLoop, autoResolution, AA } from './frames.js';
+import { WX_LOOK } from './weather.js';
+import { wxShown, onWeather, weatherLayer } from './weather3d.js';
 
 let H = null, P = null, night = false; // H: your own isle on the hub; P: the isle in another player's profile card
 export function setHeroNight(on) { night = on; H?.setNight(on); P?.setNight(on); }
@@ -46,6 +48,7 @@ function build() {
   }
   const flyBirds = birds(scene, 9, 4.5, 3, .6);
   const fx = createFx(scene, { max: 200 });
+  const wx = weatherLayer(scene, { size: 26 }); // the world weather (same as Pet Farm): rain, wind, a rainbow behind the isle
 
   let av = null, avKey = '', hop = 0, look = 0, lookWant = 0, T = 0, W = 0, Hh = 0;
   const camAt = new THREE.Vector3(0, 3.4, 19.5), target = new THREE.Vector3(0, -.2, 0);
@@ -103,11 +106,14 @@ function build() {
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
   function setNight(want) { // moonlight: cooler and dimmer, lamps glowing. A night or day sky decides for itself; a sunset warms the light.
     const mood = sky?.mood || '', on = mood === 'night' || (want && mood !== 'day' && mood !== 'sunset'), warm = mood === 'sunset';
-    hemi.color.set(on ? '#9aa6ff' : warm ? '#ffd9c0' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : warm ? '#ff9a8a' : '#ffe9c9'); hemi.intensity = on ? 1.35 : warm ? 1.7 : 2;
-    key.color.set(on ? '#c8d0ff' : warm ? '#ffc08a' : '#ffffff'); key.intensity = on ? .9 : 1.5;
+    const W = WX_LOOK[wxShown()] || WX_LOOK.sunny; // under cloud the sun is softer
+    hemi.color.set(on ? '#9aa6ff' : warm ? '#ffd9c0' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : warm ? '#ff9a8a' : '#ffe9c9'); hemi.intensity = (on ? 1.35 : warm ? 1.7 : 2) * W.hemi;
+    key.color.set(on ? '#c8d0ff' : warm ? '#ffc08a' : '#ffffff'); key.intensity = (on ? .9 : 1.5) * W.sun;
+    wx.set(wxShown(), on);
     isle?.root.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
   }
   setIsle(null);
+  onWeather(() => setNight(night));
   const setZoom = k => { camAt.set(0, 3.4, 19.5 / k); target.y = -.2 - (k - 1) * 1.2; };
   return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, skyNo: () => skyNo, lost: () => renderer.getContext().isContextLost() };
 }

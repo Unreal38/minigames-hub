@@ -1881,3 +1881,32 @@ body.night.in-game .modal { --chip: var(--card); --edge: var(--card-edge); --tx:
 
 /* the hero's code box and Plaza button: the button never squeezes into a sliver beside the code box, it drops below */
 .hubgrid .herorow { flex-wrap: wrap; } .hubgrid .herorow .plazabtn { flex: 0 0 auto; max-width: 100%; }
+
+/* ---------- the world weather on the hub sky (the same spell as Pet Farm, weather.js; app.js paintSkyWx sets body.wx-<kind>) ----------
+   Cloud and rain turn the sky greyer, wind speeds the clouds up, a rainbow follows rain. The rain is one layer behind the
+   panels that only the compositor moves (transform), so it never repaints the page; low graphics and reduced motion leave it out. */
+body.sky.wx-cloudy:not(.night):not(.in-game) { --sky1: #8fb0cf; --sky2: #c6d8e8; --sky3: #e2ebf3; }
+body.sky.wx-rain:not(.night):not(.in-game) { --sky1: #7d95ae; --sky2: #b3c3d4; --sky3: #d7e0ea; }
+body.sky.wx-wind:not(.night):not(.in-game) { --sky1: #6ab6ec; --sky2: #bde2fb; }
+body.sky.night.wx-cloudy:not(.in-game) { --sky1: #16152c; --sky2: #26234a; --sky3: #36315a; }
+body.sky.night.wx-rain:not(.in-game) { --sky1: #141428; --sky2: #232244; --sky3: #322f55; }
+body.sky.wx-cloudy:not(.in-game)::before, body.sky.wx-rain:not(.in-game)::before { opacity: 1; }
+body.sky.night.wx-cloudy:not(.in-game)::before { opacity: .3; } body.sky.night.wx-rain:not(.in-game)::before { opacity: .34; }
+body.sky.night.wx-cloudy:not(.in-game)::after { opacity: .45; animation: none; } body.sky.night.wx-rain:not(.in-game)::after { display: none; } /* stars behind the cloud */
+body.sky.wx-wind:not(.in-game)::before { animation-duration: 50s; animation-timing-function: steps(1000); } /* the clouds hurry past */
+.wxfall { display: none; position: fixed; left: 0; right: 0; top: -220px; bottom: 0; z-index: -1; pointer-events: none; }
+body.sky.wx-rain:not(.in-game) .wxfall { display: block; opacity: .5; will-change: transform; animation: wxrain .5s linear infinite;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='220'%3E%3Cg stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M20 10l-5 24M70 60l-5 24M120 25l-5 24M45 130l-5 24M100 150l-5 24M150 100l-5 24M10 180l-5 24'/%3E%3C/g%3E%3C/svg%3E"); }
+body.sky.night.wx-rain:not(.in-game) .wxfall { opacity: .32; }
+@keyframes wxrain { to { transform: translateY(220px); } }
+/* the rainbow: Pet Farm's six colours in a soft arch over the top of the page, still */
+body.sky.wx-rainbow:not(.in-game) .wxfall { display: block; top: 0; opacity: .36;
+  background: radial-gradient(closest-side, transparent 80%, #b79cf0 80% 83.3%, #6fb7e8 83.3% 86.6%, #7fd08a 86.6% 90%, #ffe066 90% 93.3%, #ffb547 93.3% 96.6%, #e8615a 96.6% 100%, transparent 100%) no-repeat 50% 340px / 1500px 1500px;
+  -webkit-mask: linear-gradient(#000 0 300px, transparent 640px); mask: linear-gradient(#000 0 300px, transparent 640px); }
+body.sky.night.wx-rainbow:not(.in-game) .wxfall { opacity: .14; }
+html.gfx-low body.sky.wx-rain .wxfall { display: none; }
+@media (prefers-reduced-motion: reduce) { body.sky.wx-rain .wxfall { display: none; } }
+/* the hero banner's plain sky greys too (a bought isle sky keeps its look; the rain falls in its 3D isle either way) */
+body.wx-cloudy:not(.night) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#a9c3da, #e0ebf3); }
+body.wx-rain:not(.night) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#90a6bc, #cdd9e4); }
+body.night.wx-rain .hubgrid .hero:not([class*=isk]), body.night.wx-cloudy .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#1d1c3c, #34315f); }
