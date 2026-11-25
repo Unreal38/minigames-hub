@@ -243,6 +243,7 @@ export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n 
 // (f.shelves, p.shelf). allRoom is everything together: the most pets a farm can keep.
 export const petRoom = farm => 2 + farm.items.filter(i => i.type === 'hut').reduce((n, i) => n + 2 + 2 * lvOf(i), 0);
 export const LODGE_BEDS = [0, 60, 150, 300], SHELF_MAX = 12, SHELF_NAME = 16;
+export const GROUP_MAX = 8, GROUP_NAME = 16; // saved expedition groups
 export const lodgeRoom = farm => LODGE_BEDS[topLv(farm, 'lodge')] || 0;
 export const allRoom = farm => petRoom(farm) + lodgeRoom(farm);
 // How many of a building a farm may hold.

@@ -8,7 +8,7 @@ import crypto from 'node:crypto';
 import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
-  xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
+  xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
@@ -382,6 +382,7 @@ const view = (f, p) => ({
   album: album(f), vars: f.vars, coats: f.coats, marks: f.marks, mail: f.mail || [], tokens: f.tokens || {}, buff: buffView(f), pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f), lodgeRoom: lodgeRoom(f), allRoom: allRoom(f), shelves: f.shelves || [],
+  groups: (f.groups || []).map(g => ({ ...g, pets: g.pets.filter(id => f.pets.some(x => x.id === id)) })), // saved expedition groups, without pets that left
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
   trips: parties(f).map(tripView), partyMax: Math.max(1, topLv(f, 'gate')), nests: SLOTS.map(s => nestView(f, s)).filter(Boolean), nestMax: nestMax(f),
   trip: parties(f).length ? tripView([...parties(f)].sort((a, b) => a.until - b.until)[0]) : null, // the party that is back first
@@ -928,6 +929,23 @@ export function handle(p, a, reply) {
     if (a.op === 'name') { if (!name) return no('Give it a name first.'); sh.name = name; return ok({ did: 'shelf', op: 'name', id: sh.id }); }
     if (a.op === 'left' || a.op === 'right') { const i = f.shelves.indexOf(sh), j = i + (a.op === 'left' ? -1 : 1); if (j >= 0 && j < f.shelves.length) [f.shelves[i], f.shelves[j]] = [f.shelves[j], f.shelves[i]]; return ok({ did: 'shelf', op: 'move', id: sh.id }); }
     if (a.op === 'del') { for (const x of f.pets) if (x.shelf === sh.id) delete x.shelf; f.shelves.splice(f.shelves.indexOf(sh), 1); return ok({ did: 'shelf', op: 'del' }); }
+    return;
+  }
+  if (a.t === 'group') { // saved expedition groups: a name and up to PARTY pets, so a usual party is one tap away
+    f.groups ||= [];
+    const g = a.id && f.groups.find(x => x.id === a.id);
+    if (a.op === 'save') {
+      const ids = cleanIds(a.pets).filter(id => f.pets.some(x => x.id === id)).slice(0, PARTY);
+      if (!ids.length) return no('Pick some pets for the group first.');
+      const name = safeText(String(a.name || '')).trim().slice(0, GROUP_NAME);
+      if (a.id && !g) return no('That group is gone.');
+      if (g) { g.pets = ids; if (name) g.name = name; return ok({ did: 'group', op: 'save', id: g.id }); }
+      const max = GROUP_MAX; if (f.groups.length >= max) return no(`You can save up to ${max} groups.`);
+      const n = { id: rid(), name: name || `#${f.groups.length + 1}`, pets: ids }; f.groups.push(n);
+      return ok({ did: 'group', op: 'new', id: n.id });
+    }
+    if (!g) return no('That group is gone.');
+    if (a.op === 'del') { f.groups.splice(f.groups.indexOf(g), 1); return ok({ did: 'group', op: 'del' }); }
     return;
   }
   if (a.t === 'free') { // let a pet go for good: it leaves a few berries as a thank-you, and the album keeps its page
