@@ -1331,9 +1331,6 @@ body.sky:not(.in-game) .gmini::after { display: none; }
   .hubgrid .hero h1 { font-size: clamp(26px, 6vw, 38px); line-height: 1.14; } .hubgrid .hero p { font-size: 15px; }
   .hubgrid .herorow { flex-wrap: wrap; } .hubgrid .codeform { padding-left: 12px; }
   .hubside.right { margin-top: 18px; }
-  .today { flex-direction: row; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * max(4vw, 16px)); padding: 2px max(4vw, 16px) 8px; scroll-snap-type: x proximity; }
-  .today::-webkit-scrollbar { display: none; }
-  .today .ttile { flex: 0 0 min(300px, 82vw); scroll-snap-align: center; }
   .gfilt { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * max(4vw, 16px)); padding: 2px max(4vw, 16px) 6px; flex: 1 1 100%; } .gfilt::-webkit-scrollbar { display: none; }
   .gfilt button { flex: none; }
   .field.gfind { margin-left: 0; flex: 1 1 100%; width: auto; order: 3; }
@@ -1910,3 +1907,56 @@ html.gfx-low body.sky.wx-rain .wxfall { display: none; }
 body.wx-cloudy:not(.night) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#a9c3da, #e0ebf3); }
 body.wx-rain:not(.night) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#90a6bc, #cdd9e4); }
 body.night.wx-rain .hubgrid .hero:not([class*=isk]), body.night.wx-cloudy .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#1d1c3c, #34315f); }
+
+/* ---------- hub re-plan, Układ 1 (2026-11-25): slim hero with your isle as the way to Pet Farm, Today as a compact grid ---------- */
+/* the hero: a one-line heading; the short line under it only on wide screens (2200px+), where the hero is taller */
+.hubgrid .hero h1 { font-size: clamp(28px, 1.8vw, 38px); line-height: 1.1; }
+.hubgrid .hero .hsub { display: none; }
+@media (min-width: 1100px) {
+  .hubgrid .hero { padding-block: 22px; }
+  .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { min-height: 250px; flex-basis: clamp(280px, 24vw, 460px); }
+  .hubgrid .hero > div:first-child { justify-content: center; }
+}
+@media (min-width: 2200px) {
+  .hubgrid .hero { padding-block: 38px; }
+  .hubgrid .hero > div:first-child { gap: 20px; }
+  .hubgrid .hero h1 { font-size: 54px; }
+  .hubgrid .hero .hsub { display: block; font-size: 19px; max-width: 34em; margin: 0; opacity: .9; }
+  .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { min-height: 400px; flex-basis: clamp(420px, 32vw, 760px); }
+  .hubgrid .herorow { gap: 16px; } .hubgrid .codeform .code-in { width: 100px; font-size: 21px; min-height: 46px; } .hubgrid .codeform .btn { min-height: 46px; font-size: 18px; }
+  .hubgrid .herorow .plazabtn { min-height: 60px; } .plzb-tx b { font-size: 21px; } .plzb-tx small { font-size: 14px; }
+  .isletag { font-size: 18px; padding: 7px 20px; } .islebub { font-size: 16px; } .islebrush { width: 48px; height: 48px; font-size: 22px; }
+}
+/* the isle kit: "Visit your isle" (Pet Farm) under the isle, the round brush for the Wardrobe's isle page, the farm news bubble */
+.islekit { display: contents; }
+.isletag { display: inline-flex; align-items: center; gap: 6px; background: #ffd34d; color: #3b2219; }
+.isletag i { width: 22px; height: 22px; flex: none; display: block; } .isletag i svg { width: 100%; height: 100%; display: block; }
+.islebrush { position: absolute; right: 12px; top: 12px; z-index: 2; width: 42px; height: 42px; display: grid; place-items: center; padding: 0; font-size: 19px; line-height: 1;
+  background: #fff8ec; border: 3px solid var(--ink); border-radius: 50%; box-shadow: 0 4px 0 var(--ink); cursor: pointer; transition: transform .12s; }
+.islebrush:hover { transform: rotate(-10deg) translateY(-2px); } .islebrush:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.islebub { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2; max-width: calc(100% - 110px); white-space: nowrap;
+  background: #fff8ec; color: #3b2219; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 4px 0 var(--ink); padding: 5px 12px; font-weight: 800; font-size: 14px; animation: islebub .5s cubic-bezier(.3, 1.6, .5, 1) both; }
+.islebub::after { content: ''; position: absolute; left: 50%; bottom: -10px; width: 12px; height: 12px; background: #fff8ec; border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+@keyframes islebub { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .islebub { animation: none; } }
+@media (max-width: 1099px) { .islebub { font-size: 13px; top: 10px; } .islebrush { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 18px; } .isletag { font-size: 14px; } }
+
+/* Today: small tiles two to a row wherever the column has room (one per row in the narrow 290px column), the whole tile is the button */
+.today { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
+.today .ttile { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 2px 10px; padding: 9px 10px; min-width: 0; width: auto;
+  font: inherit; text-align: left; cursor: pointer; transition: transform .12s; }
+.today .ttile:hover { transform: translateY(-2px); } .today .ttile:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.today .ttile .tpic { width: 40px; height: 40px; border-radius: 11px; border-width: 2.5px; }
+.today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cqi / var(--w, 6)))); line-height: 1.1; }
+html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cqi / var(--w, 6)))); }
+.today .ttile .tbody b small { font-size: 11px; }
+.today .ttile .tbody > span { font-size: 11.5px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.today .ttile .tbody .ttime { display: none; }
+/* something waiting for you (the free spin): a green ring and a "!" */
+.today .ttile.ready { box-shadow: 0 5px 0 var(--ink), 0 0 0 3px #3fbf8a; }
+.today .ttile.ready::after { content: '!'; position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; background: #3fbf8a; color: #14302a; border: 2.5px solid var(--ink); font: 900 13px/17px var(--fd); text-align: center; }
+@media (min-width: 1100px) and (max-width: 1299px) { .today .ttile .tpic { width: 40px; height: 40px; } }
+
+/* phones: day/night sits in the account menu instead of on its own row under the top bar */
+.aitems .aphone { display: none; }
+@media (max-width: 600px) { .top .themebtn { display: none; } .aitems .aphone { display: flex; } }
