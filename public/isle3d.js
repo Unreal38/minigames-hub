@@ -63,6 +63,10 @@ export const R = {
   trophy(g, s = 1) { box(g, .34 * s, .3 * s, .34 * s, '#fff4e2', 0, .15 * s); box(g, .4 * s, .05 * s, .4 * s, '#e3d6c2', 0, .32 * s); const c = '#ffc93c';
     cyl(g, .09 * s, .11 * s, .05 * s, c, 0, .37 * s, 0, 8); cyl(g, .025 * s, .025 * s, .14 * s, c, 0, .46 * s); cyl(g, .16 * s, .08 * s, .24 * s, c, 0, .65 * s, 0, 8);
     for (const d of [-1, 1]) put(g, new THREE.TorusGeometry(.07 * s, .02 * s, 4, 8), flat(c), d * .16 * s, .66 * s, 0); },
+  ruin(g, s = 1) { const h = (.62 + (s * 97 % 1) * .5) * s; box(g, .46 * s, .1 * s, .46 * s, '#ddd5c4', 0, .05 * s, 0); cyl(g, .15 * s, .17 * s, h, '#f2ece0', 0, .1 * s + h / 2, 0, 8); // an old stone column, some still capped
+    if (s * 53 % 2 < 1) box(g, .42 * s, .1 * s, .42 * s, '#e6dfcf', 0, .15 * s + h, 0); else { const b = ico(g, .14 * s, '#e6dfcf', .32 * s, .1 * s, .14 * s); b.scale.y = .7; } },
+  rune(g, s = 1) { const r = put(g, rough(new THREE.DodecahedronGeometry(.26 * s), .05), flat('#6e6694'), 0, .3 * s, 0); r.scale.set(.8, 1.5, .55); // a standing stone with a glowing rune
+    glow(g, new THREE.OctahedronGeometry(.09 * s), '#9ff0ff', 0, .36 * s, .15 * s).scale.z = .3; },
   pennant(g, s = 1) { const cols = ['#ff6f61', '#6ec6f5', '#ffc93c', '#9b7bff']; cyl(g, .03 * s, .04 * s, 1.3 * s, '#fff4e2', 0, .65 * s); ico(g, .05 * s, '#ffc93c', 0, 1.33 * s, 0);
     const f = put(g, new THREE.ConeGeometry(.17 * s, .46 * s, 3), flat(cols[Math.floor(s * 71) % 4]), .23 * s, 1.1 * s, 0); f.rotation.z = -PI / 2; f.scale.z = .15; },
 };
@@ -102,6 +106,8 @@ const GROUND = [
     kinds: [R.star, R.moonrock, R.star, R.star, R.moonrock], air: { colors: ['#fff3a0', '#ffffff', '#c9b5ff'], n: 16, size: .05 } },
   { size: 1.3, grass: '#c9d65a', patch: '#b8c64c', flowers: 16, petals: ['#ffc94d', '#ffffff'],                                                   // 14 Thunder Meadow
     kinds: [R.spark, 'bush', R.spark, R.spark, 'rock', R.spark, R.spark, 'bush', R.spark, R.spark], air: { colors: ['#ffc94d', '#fff1a8', '#c9f0a8'], n: 12, size: .06 } },
+  { size: 1.3, grass: '#b4c4e6', patch: '#a4b4da', earth: '#857aae', rock: '#564e7a', flowers: 12, petals: ['#ffffff', '#c9b5ff', '#9ff0ff'], water: '#c9b5ff', // 15 Legend Isle (far expeditions only, not a wardrobe ground)
+    kinds: [R.ruin, R.rune, R.ruin, R.crystal, R.ruin, R.rune, R.ruin, R.cloud, R.ruin, R.rune], air: { colors: ['#ffffff', '#e6ddff', '#9ff0ff'], n: 16, size: .06 } },
 ];
 export const groundOf = ig => ({ grass: '#8bca60', patch: '#7fbf56', earth: '#c98a5a', rock: '#857a72', flowers: 32, water: '#6ec6f5', ...(GROUND[ig] || GROUND[0]) });
 

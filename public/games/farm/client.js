@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { CHAPTERS, pinned, chapterDone } from './journal.js';
 import { L, PL, cnt, word } from '../../i18n.js';
@@ -44,7 +44,7 @@ const elTags = p => elTag(elOf(p)) + (SPECIES[p.sp].el2 ? elTag(SPECIES[p.sp].el
 // Each place to explore drawn as its matching isle ground (COS.ig index, same island as the profile isle) on its own sky: [top, bottom].
 const ZONE_ISLE = { woods: [5, '#b9e4ff', '#e9f8ff'], cove: [6, '#93d6ff', '#d9f3ff'], ridge: [2, '#c6d3e8', '#eef2f8'], hills: [8, '#ffc79a', '#ffeccf'], meadow: [14, '#cfdcff', '#f6f1c6'],
   grove: [3, '#bfe9ff', '#fff3d2'], patch: [4, '#c9e6ff', '#eef8e2'], bakery: [11, '#ffd9b5', '#fff3e2'], sweets: [7, '#ffcde8', '#fff0f8'], reef: [12, '#a2e2f4', '#e0f8ff'],
-  peak: [1, '#d6e6f7', '#ffffff'], night: [13, '#3b2f73', '#7a68b8'] };
+  peak: [1, '#d6e6f7', '#ffffff'], night: [13, '#3b2f73', '#7a68b8'], legend: [15, '#b8c4e8', '#f3e9ff'] };
 const zoneSky = k => { const z = ZONE_ISLE[k]; if (!z) return ''; const u = isleCached('zn', z[0]); return `<span class="zsky" aria-hidden="true"><img class="zpic" data-ig="${z[0]}" alt=""${u ? ` src="${u}"` : ''} width="160" height="160"></span>`; };
 const HEART_D = 'M8 14.2 2.4 8.8A3.4 3.4 0 0 1 8 4.3a3.4 3.4 0 0 1 5.6 4.5Z';
 const HEART = (w = 14) => `<svg viewBox="0 0 16 16" width="${w}" height="${w}" aria-hidden="true"><path d="${HEART_D}" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
@@ -200,7 +200,7 @@ export function mount(app, ctx) {
     if (mode === 'starter') { scene.setFarm(null); scene.setStarters(pick || ''); }
     else { const meAv = { color: ctx.me()?.color, av: ctx.me()?.av }; if (where === 'visit' && V) scene.setOwner({ color: V.color, av: V.av }, [meAv]); else scene.setOwner(meAv, where === 'home' ? F?.guests || [] : []); scene.setStarters(null); scene.setFarm(mode !== 'farm' ? null : where === 'visit' && V ? V : F); scene.setEdit(edit); }
     const map = mode === 'farm' && where === 'map' && !B && world ? world : null;
-    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av, isle: flairOf(ctx.me()) }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, theme: z.theme, out: F.trips.some(t => t.zone === key), fly: F.trips.filter(t => t.zone === key).map(t => ({ left: t.left, total: TRIPS[t.trip].min * 60000 }))[0], note: F.trips.some(t => t.zone === key) ? (F.trips.some(t => t.zone === key && t.left > 0) ? L('your party is here', 'twoja drużyna jest tutaj') : L('your party is back', 'twoja drużyna wróciła')) : F.house < z.house ? L(`farmhouse level ${z.house}`, `dom na poziomie ${z.house}`) : L('tap to explore', 'dotknij, żeby zwiedzać') })) : []); }
+    if (map !== mapShown) { mapShown = map; scene.setWorld(map, map && { ...F, name: F.owner, color: ctx.me()?.color, av: ctx.me()?.av, isle: flairOf(ctx.me()) }, map ? Object.entries(ZONES).map(([key, z]) => ({ key, name: z.name, el: z.el, theme: z.theme, far: !!z.far, out: F.trips.some(t => t.zone === key), fly: F.trips.filter(t => t.zone === key).map(t => ({ left: t.left, total: TRIPS[t.trip].min * 60000 }))[0], note: F.trips.some(t => t.zone === key) ? (F.trips.some(t => t.zone === key && t.left > 0) ? L('your party is here', 'twoja drużyna jest tutaj') : L('your party is back', 'twoja drużyna wróciła')) : F.house < z.house ? L(`farmhouse level ${z.house}`, `dom na poziomie ${z.house}`) : L('tap to explore', 'dotknij, żeby zwiedzać') })) : []); }
     scene.setBattle(!!B && mode === 'farm'); if (B) for (const s of [0, 1]) scene.ringPet(s, shown.sides[s].pets[shown.sides[s].on]);
     reveal();
   }
@@ -407,7 +407,7 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'cook') {
       const kLv = Math.max(0, ...F.items.filter(i => i.type === 'kitchen').map(lvOf));
-      const rows = Object.entries(RECIPES).map(([k, r]) => `<button type="button" class="zone${canAfford(F.inv, r.cost) && kLv >= (r.lv || 1) ? '' : ' off'}" data-a="cook" data-what="${k}" data-lv="${kLv >= (r.lv || 1) ? '' : r.lv}">${matIcon(k, 34)}<b>${r.name}</b><small>${kLv >= (r.lv || 1) ? r.desc : L(`Needs a level ${r.lv} Kitchen.`, `Wymaga Kuchni na poziomie ${r.lv}.`)}</small><span class="cost">${costHtml(r.cost, F.inv)}</span><small>${L(`You have ${F.inv[k] || 0}`, `Masz: ${F.inv[k] || 0}`)}</small></button>`).join('');
+      const rows = Object.entries(RECIPES).filter(([, r]) => F.house >= (r.house || 0)).map(([k, r]) => `<button type="button" class="zone${canAfford(F.inv, r.cost) && kLv >= (r.lv || 1) ? '' : ' off'}" data-a="cook" data-what="${k}" data-lv="${kLv >= (r.lv || 1) ? '' : r.lv}">${matIcon(k, 34)}<b>${r.name}</b><small>${kLv >= (r.lv || 1) ? r.desc : L(`Needs a level ${r.lv} Kitchen.`, `Wymaga Kuchni na poziomie ${r.lv}.`)}</small><span class="cost">${costHtml(r.cost, F.inv)}</span><small>${L(`You have ${F.inv[k] || 0}`, `Masz: ${F.inv[k] || 0}`)}</small></button>`).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Kitchen`, `Kuchnia`)}</h2><p>${L(`You have ${F.inv.berries || 0} berries${F.inv.sunberry ? ` and ${F.inv.sunberry} sunberries` : ''}. To feed a treat, tap a pet on your farm.`, `Masz jagody: ${F.inv.berries || 0}${F.inv.sunberry ? ` i słoneczne jagody: ${F.inv.sunberry}` : ''}. Żeby podać smakołyk, dotknij zwierzaka na farmie.`)}</p>
         <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
       return;
@@ -457,7 +457,7 @@ export function mount(app, ctx) {
     if (panel.kind === 'trade') { // build an offer for the farm being visited
       const T = panel, away = outNow();
       const petBtn = (x, sideKey, off) => `<button type="button" class="pickpet${off ? ' off' : ''}" data-a="tradepet" data-side="${sideKey}" data-id="${x.id}" aria-pressed="${T[sideKey].pets.includes(x.id)}">${petRow(x, off ? ' · ' + off : T[sideKey].pets.includes(x.id) ? L(' · in the offer', ' · w ofercie') : '')}</button>`;
-      const FOOD = ['sunberry', 'cookie', 'cake', 'juice', 'pie', 'tonic'];
+      const FOOD = ['sunberry', 'cookie', 'cake', 'juice', 'pie', 'tonic', 'pack'];
       const mats = (sideKey, inv) => Object.keys(MATS).filter(k => k !== 'coins').filter(k => T[sideKey].mats[k] || (inv ? inv[k] > 0 : T.more || !FOOD.includes(k))).map(k => { const n = T[sideKey].mats[k] || 0, max = inv ? inv[k] || 0 : 9999;
         return `<div class="tm${n ? ' on' : ''}">${matIcon(k, 30)}<span class="tmn"><b>${MATS[k]}</b>${inv ? `${L(`<small>You have ${inv[k] || 0}</small>`, `<small>Masz: ${inv[k] || 0}</small>`)}` : ''}</span>
           <span class="step"><button type="button" data-a="tmstep" data-d="-1" aria-label="${L(`Less ${MATS[k]}`, `Mniej: ${MATS[k]}`)}">−</button><input class="field" type="number" inputmode="numeric" min="0" max="${max}" data-tm="${sideKey}" data-mat="${k}" value="${n || ''}" placeholder="0" aria-label="${L(`${MATS[k]}, how many`, `${MATS[k]}, ile`)}"><button type="button" data-a="tmstep" data-d="1" aria-label="${L(`More ${MATS[k]}`, `Więcej: ${MATS[k]}`)}">+</button></span></div>`; }).join('');
@@ -678,14 +678,17 @@ export function mount(app, ctx) {
     }
     if (panel.kind === 'send') {
       const z = ZONES[panel.zone], party = F.pets.filter(p => panel.pets.includes(p.id));
-      const zones = Object.entries(ZONES).map(([k, zn]) => {
+      const tile = ([k, zn]) => {
         const locked = F.house < zn.house;
-        const gives = list(Object.keys(zn.gives).filter(m => m !== 'coins').map(m => MATS[m].toLowerCase()));
-        return `<button type="button" class="zone dest${locked ? ' off' : ''}" data-a="zone" data-zone="${k}" aria-pressed="${panel.zone === k}"${zoneVars(k)}${locked ? ` title="${L(`Opens at farmhouse level ${zn.house}`, `Otwiera się, gdy dom ma poziom ${zn.house}`)}"` : ''}>${zoneSky(k)}
+        const gives = zn.far ? L('Rare pets from old stories', 'Rzadkie zwierzaki z dawnych opowieści') : list(Object.keys(zn.gives).filter(m => m !== 'coins').map(m => MATS[m].toLowerCase()));
+        return `<button type="button" class="zone dest${locked ? ' off' : ''}${zn.far ? ' far' : ''}" data-a="zone" data-zone="${k}" aria-pressed="${panel.zone === k}"${zoneVars(k)}${locked ? ` title="${L(`Opens at farmhouse level ${zn.house}`, `Otwiera się, gdy dom ma poziom ${zn.house}`)}"` : ''}>${zoneSky(k)}
           ${locked ? `<span class="dlock">${LOCK}${L(`Farmhouse level ${zn.house}`, `Dom: poziom ${zn.house}`)}</span>` : panel.zone === k ? '<span class="dtick" aria-hidden="true">✓</span>' : ''}
-          <span class="dcap"><b>${zn.name}</b><span class="dline">${elTag(zn.el)}<small>${gives}</small></span></span></button>`;
-      }).join('');
-      const trips = Object.entries(TRIPS).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
+          <span class="dcap"><b>${zn.name}</b><span class="dline">${zn.far ? '' : elTag(zn.el)}<small>${gives}</small></span></span></button>`;
+      };
+      const zones = Object.entries(ZONES).filter(([, zn]) => !zn.far).map(tile).join(''), far = Object.entries(ZONES).filter(([, zn]) => zn.far).map(tile).join('');
+      if (!tripFits(panel.zone, panel.trip)) panel.trip = Object.keys(TRIPS).find(k => tripFits(panel.zone, k)) || 'stroll'; // far islands take a Voyage, the rest never do
+      const fuel = TRIPS[panel.trip].fuel, broke = !!fuel && !canAfford(F.inv, fuel);
+      const trips = Object.entries(TRIPS).filter(([k]) => tripFits(panel.zone, k)).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
       const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
         ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : F.train.ids.includes(p.id) ? L(' · training (ends if sent)', ' · trenuje (wyprawa przerwie trening)') : Object.values(F.work || {}).includes(p.id) ? L(' · helping at a building (ends if sent)', ' · pomaga przy budynku (wyprawa to przerwie)') : atHome(z, p.sp, elOf(p)) ? L(' · +25% here', ' · +25% tutaj') : '')}</button>`).join('');
       const est = party.length ? Object.entries(tripLoot(panel.zone, panel.trip, party)).map(([k, n]) => [k, Math.round(n)]).filter(([, n]) => n > 0).map(([k, n]) => mat(k, '~' + n)).join('') : '';
@@ -694,6 +697,7 @@ export function mount(app, ctx) {
         box.innerHTML = `<div class="panel tripp sendwhere"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
           <h3 class="tstep"><span class="tnum">1</span>${L('Where to? Tap an island.', 'Dokąd? Dotknij wyspy.')}<span class="tcount">${L('next: who goes', 'potem: kto idzie')}</span></h3>
           <div class="dests">${zones}</div>
+          ${far ? `<h3 class="tstep farhead">${L('Far expeditions', 'Dalekie wyprawy')}<span class="tcount">${L('12 to 24 hours', '12 do 24 godzin')}</span></h3><div class="dests">${far}</div>` : ''}
           <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       } else {
       // step 2 of 2: the island they picked, what it gives, then how long and who goes
@@ -701,20 +705,22 @@ export function mount(app, ctx) {
       const perPet = Object.entries(z.gives).filter(([m]) => m !== 'coins').map(([m, n]) => [m, tripRate(m, n)]).map(([m, n]) => mat(m, '~' + (n < 1 ? +n.toFixed(1) : Math.round(n)))).join('');
       box.innerHTML = `<div class="panel tripp sendwho"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
         <div class="zsum"${zoneVars(panel.zone)}><div class="dest zbig">${zoneSky(panel.zone)}</div>
-          <div class="zinfo"><b class="zname">${z.name}</b><span class="dline">${elTag(z.el)}<small>${z.blurb}</small></span>
+          <div class="zinfo"><b class="zname">${z.name}</b><span class="dline">${z.far ? '' : elTag(z.el)}<small>${z.blurb}</small></span>
             <span class="hint">${L('Each pet brings back about this much an hour:', 'Każdy zwierzak przynosi mniej więcej tyle na godzinę:')}</span><div class="mats">${perPet}</div>
             <span class="hint">${L('Wild pets live here. The ones you have not met yet show as ?', 'Tu żyją dzikie zwierzaki. Te, których jeszcze nie znasz, mają znak ?')}</span><div class="wilds">${wild}</div>
             <button type="button" class="btn sm w" data-a="where">◀ ${L('Pick another island', 'Wybierz inną wyspę')}</button></div></div>
         <h3 class="tstep"><span class="tnum">2</span>${L('For how long?', 'Na jak długo?')}</h3>
-        <div class="pills trips">${trips}</div>
+        <div class="pills trips${z.far ? ' two' : ''}">${trips}</div>
+        ${fuel ? `<div class="fuel${broke ? ' short' : ''}"><span class="hint">${L('Fuel for the balloon and food for the way, paid when they set off:', 'Paliwo do balonu i jedzenie na drogę, płacone przy wyruszeniu:')}</span><div class="mats">${Object.entries(fuel).map(([k, n]) => mat(k, `${n}`, (F.inv[k] || 0) < n ? 'short' : '')).join('')}</div>
+          ${broke ? `<p class="hint">${(F.inv.pack || 0) < (fuel.pack || 0) ? L('Pack Trail Packs in the Kitchen (8 berries, 10 fiber, 4 coal each).', 'Spakuj Prowiant w Kuchni (8 jagód, 10 włókien i 4 węgle za sztukę).') + ' ' : ''}${(F.inv.crystal || 0) < (fuel.crystal || 0) ? L('Crystal comes from Pebble Ridge, Thunder Meadow and Starfall Isle, or a Workshop swap.', 'Kryształ znajdziesz na Kamykowej Grani, Burzowej Łące i Wyspie Spadających Gwiazd albo wymienisz w Warsztacie.') : ''}</p>` : ''}</div>` : ''}
         <h3 class="tstep"><span class="tnum">3</span>${L(`Who goes? Pick up to ${PARTY}.`, `Kto idzie? Wybierz najwyżej ${PARTY}.`)} <span class="tcount">${party.length} / ${PARTY}</span></h3>
         ${groupsRow(party)}
         <div class="party">${pets}</div>
         <div class="est">${party.length ? `${L(`<span class="hint">Should bring back</span>`, `<span class="hint">Powinni przynieść</span>`)}<div class="mats">${est}</div>` : '<span class="hint">' + L('Tap a pet to add it to the party.', 'Dotknij zwierzaka, żeby dodać go do drużyny.') + '</span>'}</div>
-        <p class="hint">${L(`${full ? 'Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.' : `Chance a wild pet follows them home: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}`, `${full ? 'Wszystkie łóżka są zajęte, więc żaden dziki zwierzak się nie wprowadzi. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.' : `Szansa, że dziki zwierzak wróci z drużyną: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.`}`)}</p>
+        <p class="hint">${L(`${full ? 'Every bed is taken, so no wild pet can move in. Build a Pet Hut to make room.' : `Chance a wild pet follows them home: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.${z.far ? ` Chance it comes in another element: ${Math.round(FAR_VARIANT * 100)}%.` : ''}`}`, `${full ? 'Wszystkie łóżka są zajęte, więc żaden dziki zwierzak się nie wprowadzi. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.' : `Szansa, że dziki zwierzak wróci z drużyną: ${Math.round((F.first ? 1 : TRIPS[panel.trip].find) * 100)}%.${z.far ? ` Szansa, że będzie miał inny żywioł: ${Math.round(FAR_VARIANT * 100)}%.` : ''}`}`)}</p>
         ${(() => { const w = skyNow().w; return ['sunny', 'wind', 'rainbow'].includes(w.kind) ? `<p class="wxnow">${wxIcon(w.kind)} <b>${w.name}:</b> ${w.bonus}</p>` : ''; })()}
         <div class="row end sendbar"><button type="button" class="btn ghost-ink" data-a="where">${L(`Back`, `Wstecz`)}</button>
-          <button type="button" class="btn big m" data-a="send" ${party.length ? '' : 'disabled'}>${L(`Send ${party.length ? list(party.map(p => esc(p.name))) : 'them'}`, `Wyślij${party.length ? ': ' + list(party.map(p => esc(p.name))) : ''}`)}</button></div></div>`;
+          <button type="button" class="btn big m" data-a="send" ${party.length && !broke ? '' : 'disabled'}>${L(`Send ${party.length ? list(party.map(p => esc(p.name))) : 'them'}`, `Wyślij${party.length ? ': ' + list(party.map(p => esc(p.name))) : ''}`)}</button></div></div>`;
       }
     } else {
       const b = panel.back, z = ZONES[b.zone], found = b.found && F.pets.find(p => p.id === b.found);
@@ -725,7 +731,7 @@ export function mount(app, ctx) {
       box.innerHTML = `<div class="panel tripp back"><h2>${L(`Back from ${z.name}</h2>`, `Powrót: ${z.name}</h2>`)}${wnote ? `<p class="hint">${wxIcon(b.w)} ${wnote}</p>` : ''}
         <div class="mats">${Object.entries(b.loot).map(([k, n]) => mat(k, '+' + n)).join('') || '<span class="hint">' + L('They came back empty-handed this time.', 'Tym razem wrócili z pustymi łapami.') + '</span>'}</div>
         ${rows}
-        ${found ? `<div class="backpet found">${thumb('pet:' + found.sp)}<div>${newTag(b.fresh, ' big')}${L(`<b>A wild ${SPECIES[found.sp].name} followed them home!</b>`, `<b>Dziki zwierzak (${SPECIES[found.sp].name}) wraca z nimi do domu!</b>`)}<small>${elTag(SPECIES[found.sp].el)} ${RARITY[SPECIES[found.sp].rare]} · ${SPECIES[found.sp].blurb}${inLodge(found.id) ? ' ' + inLodge(found.id) : ''}</small></div></div>` : ''}
+        ${found ? `<div class="backpet found">${thumb('pet:' + found.sp)}<div>${newTag(b.fresh, ' big')}${L(`<b>A wild ${SPECIES[found.sp].name} followed them home!</b>`, `<b>Dziki zwierzak (${SPECIES[found.sp].name}) wraca z nimi do domu!</b>`)}<small>${elTag(elOf(found))} ${RARITY[SPECIES[found.sp].rare]}${variantOf(found) ? L(' · a rare element variant!', ' · rzadka odmiana żywiołu!') : ''} · ${SPECIES[found.sp].blurb}${inLodge(found.id) ? ' ' + inLodge(found.id) : ''}</small></div></div>` : ''}
         ${b.wild && F.wild ? `<div class="backpet found">${thumb('pet:' + b.wild.sp)}<div>${L(`<b>A wild ${SPECIES[b.wild.sp].name} stood in their way!</b><small>Level ${b.wild.lv}. Win a short battle and it may come home with you. Losing costs nothing. It waits for half an hour.</small>`, `<b>Dziki zwierzak (${SPECIES[b.wild.sp].name}) staje im na drodze!</b><small>Poziom ${b.wild.lv}. Wygraj krótką bitwę, a może wróci z tobą do domu. Porażka nic nie kosztuje. Poczeka pół godziny.</small>`)}</div><button type="button" class="btn sm m" data-a="wildfight">${L(`Battle it`, `Walcz`)}</button></div>` : ''}
         ${b.spilt ? `<p class="hint">${L(`Your storage is full (${F.cap} of each), so some of it was left behind. ${countOf(F, 'barn') ? 'Spend or swap some to make room.' : 'A Storage Barn makes room for more.'}`, `Magazyn jest pełny (${F.cap} każdego materiału), więc część została na miejscu. ${countOf(F, 'barn') ? 'Wydaj trochę albo wymień w Warsztacie, żeby zrobić miejsce.' : 'Stodoła pomieści więcej.'}`)}</p>` : ''}
         ${b.full ? '<p class="hint">' + L('A wild pet wanted to come along, but every bed is taken. Build a Pet Hut to make room.', 'Dziki zwierzak chciał pójść z nimi, ale wszystkie łóżka są zajęte. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.') + '</p>' : ''}
