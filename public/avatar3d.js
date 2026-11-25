@@ -414,7 +414,7 @@ function fitHat(hg, hH, hT, hat, hr) {
 }
 
 // Costume tops that dress the legs too (their leg colour), and the tops that are long enough to hide any bottom.
-const SUITS = { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 29: '#1c1a22' };
+const LLAMA = '#e8cda0', SUITS = { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 29: '#1c1a22', 38: LLAMA };
 export const hidesBottom = top => top === 6 || top === 15 || top === 32 || top in SUITS;
 
 // ---------- things to hold ----------
@@ -539,9 +539,9 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   const headH = H / P.N * FSH[a.face].h, legLen = H * P.leg, neckL = H * .008, hipY = legLen, shY = H - headH - neckL;
   const W = P.wide, sh = B.sh * H * W, ch = B.ch * H * W, wa = B.wa * H * W, hi = B.hi * H * W, lb = B.lb * H * P.limb, dz = B.dz + .16;
   // A costume (suit) dresses the legs too, whatever bottom was picked, and has a hood that goes up when no hat is worn.
-  const top = a.top, suit = SUITS[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC }[top] : null;
-  // the dino onesie with no hat is a full mascot head: the face, hair and glasses are all inside it
-  const dino = top === 23 && a.hat === 0;
+  const top = a.top, suit = SUITS[top], hoodC = a.hat === 0 ? { 23: '#62c267', 24: '#ffd93b', 25: '#f7f5ee', 26: '#2b2228', 28: topC, 38: LLAMA }[top] : null;
+  // the dino and llama onesies with no hat are a full mascot head: the face, hair and glasses are all inside it
+  const mascot = (top === 23 || top === 38) && a.hat === 0;
   const bot = suit ? 7 : a.bottom, botC = suit || BOTTOM_COLS[a.botC];
   const gown = top === 32, dress = top === 6 || top === 15 || gown, skirt = [3, 5, 6, 11, 12].includes(bot) || dress, longSl = [1, 2, 3, 9, 11, 12, 14, 15, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 33, 34, 35, 36].includes(top), noSl = top === 5 || gown, lowC = dress ? topC : botC;
   const LEATHER = '#2b2a30', bodyC = top === 35 ? LEATHER : top === 10 ? '#ffffff' : top === 19 ? '#24222c' : top === 21 ? '#a8b0ba' : top === 22 ? '#f4f1ea' : top === 26 ? '#ffc93c' : top === 27 ? '#c8342b' : top === 31 ? CREAM : suit || topC, slvC = top === 14 || top === 16 ? '#ffffff' : top === 26 ? '#2b2228' : bodyC, dk = shade(topC, .62);
@@ -610,6 +610,13 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     panel(y0 + .1 * t, chestY + .06 * t, '#d9f2a6', .55, .012);
     for (const k of [.3, .5, .7, .88]) { const sp = cone(g, .07, .15, '#3f9a4a', 0, y0 + k * t, bz(y0 + k * t) - .05); sp.rotation.x = -PI / 2 + .5; sp.scale.x = .55; }
     const tl2 = cone(g, hi * .55, .42 * t + .2, suit, 0, y0 + .1 * t, bz(y0 + .14 * t) - .16); tl2.rotation.x = -PI / 2 - .35;
+  }
+  if (top === 38) { // llama onesie: a woolly collar, a bright striped blanket on the back and a fluffy pompom tail
+    for (let i = 0; i < 14; i++) { const an = i / 14 * PI * 2; sph(g, lb * .7, i % 2 ? '#fffaf0' : '#f7ecd8', Math.sin(an) * lb * 1.75, shY - .005 * H, Math.cos(an) * lb * 1.75 * Math.max(dz, .8)); }
+    side(y0 + .5 * t, y0 + .86 * t, '#ff7fa8', PI, .62, .02); side(y0 + .6 * t, y0 + .66 * t, '#4fc3c8', PI, .64, .026); side(y0 + .72 * t, y0 + .77 * t, '#ffd23f', PI, .64, .026);
+    for (const k of [.52, .84]) side(y0 + k * t - .015 * t, y0 + k * t + .015 * t, '#ffffff', PI, .65, .028);
+    panel(y0 + .12 * t, chestY + .04 * t, '#fbf4e6', .5, .012);
+    for (const [dx, dy, r] of [[0, 0, .1], [-.06, .05, .075], [.06, .05, .075], [0, .09, .07]]) sph(g, r, '#fffaf0', dx, y0 + .1 * t + dy, bz(y0 + .14 * t) - .06);
   }
   if (top === 24) { // banana suit: ridges down the sides, peel flaps over the shoulders, a brown tip
     for (const s of [-1, 1]) side(y0 + .04 * t, yT - .06 * t, '#eab420', s * PI / 2, .1, .012);
@@ -760,10 +767,10 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     if (seated) { arm.rotation.x = -.45; el.rotation.x = -.95; }
     // the held item (standing only: seated avatars rest their hands on the table, where cards and cues go)
     if (s === 1 && !seated && hand && a.hand > 0) {
-      // a dino holds things out to the side, clear of its snout
+      // a mascot head holds things out to the side, clear of its snout
       const hang = HANG.includes(a.hand);
       // held up: the arm reaches forward and a little out, so the item stands clear of the big head; carried: hangs clear of the leg
-      if (!hang) { if (dino) { arm.rotation.x = -.6; arm.rotation.z += .8; el.rotation.x = -.1; } else { arm.rotation.x = -.5; arm.rotation.z += .2; el.rotation.x = -1.0; } } else arm.rotation.z += .22;
+      if (!hang) { if (mascot) { arm.rotation.x = -.6; arm.rotation.z += .8; el.rotation.x = -.1; } else { arm.rotation.x = -.5; arm.rotation.z += .2; el.rotation.x = -1.0; } } else arm.rotation.z += .22;
       const hd = new THREE.Group(); hd.position.y = -fa - lb * .5; el.add(hd);
       // turn the item back upright, whatever the arm and elbow are doing, then lean a held-up item forward and away from the face
       hd.quaternion.setFromEuler(arm.rotation).multiply(new THREE.Quaternion().setFromEuler(el.rotation)).invert();
@@ -923,14 +930,14 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   // hair: a shell over the skull plus chunky clumps and pointed bangs
   // An afro is too big to tuck under a covering hat (or inside a flower crown), so it shows as curls there.
   // Hair goes in hH and the hat in hT, so fitHat() can squash the hair under a hat or lift a small topper onto big hair.
-  const hat = a.hat, hatKey = dino ? 'dino' : hoodC ? 'hood' : hat, hs = a.hair === 13 && (HAT_BRIM[hatKey] != null || hat === 23) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
+  const hat = a.hat, hatKey = mascot ? 'mascot' : hoodC ? 'hood' : hat, hs = a.hair === 13 && (HAT_BRIM[hatKey] != null || hat === 23) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
   // rings get closer together towards the crown, where the skull curves fastest, so the shell never dips below it
   const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 14; j++) { const y = ya + (yb - ya) * Math.sin(j / 14 * PI / 2); p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
   // one sculpted piece per style (hair3d.js), in three tones of the hair colour
   const tieC = '#ff8fab', tones = [hair, shade(hair, .87), shade(hair, .66), mix(hair, '#ffffff', .22)];
-  if (!dino) for (const p of hairParts(hs, a.face, hr, seated ? .26 : 0, a.back > 0 || top === 22 || top === 26)) { const o = put(hH, p.geo, p.c === 'tie' ? tieC : hair); if (p.c !== 'tie') o.userData.cs = tones; }
+  if (!mascot) for (const p of hairParts(hs, a.face, hr, seated ? .26 : 0, a.back > 0 || top === 22 || top === 26)) { const o = put(hH, p.geo, p.c === 'tie' ? tieC : hair); if (p.c !== 'tie') o.userData.cs = tones; }
   // facial hair: modelled, so it has the same chunky look as the hair (stubble is painted on the face)
-  const fh = dino ? 0 : a.facial, tash = (curl) => { for (const s of [-1, 1]) {
+  const fh = mascot ? 0 : a.facial, tash = (curl) => { for (const s of [-1, 1]) {
     const m = sph(hg, .1, hD, s * .075, .252, fz(.075, .252, .012)); m.scale.set(1, .42, .5); m.rotation.set(0, s * .3, -s * .32);
     const tip = sph(hg, .05, hD, s * (curl ? .17 : .15), curl ? .285 : .215, fz(.16, .25, .004)); tip.scale.set(curl ? .8 : 1, curl ? 1 : .75, .55);
   } };
@@ -940,7 +947,7 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   if (fh === 4) put(hg, beardGeo(a.face, .125, .44, .5, 1.05, 1.46, .06, .07, .035), hair);
   if (fh === 5) put(hg, beardGeo(a.face, .075, .44, 1.0, 1.3, 1.46, .03, .012, 0), hair);
   // glasses
-  const gl = dino ? 0 : a.glasses, ex = .18, ey = .4, gz = fz(ex, ey, .035);
+  const gl = mascot ? 0 : a.glasses, ex = .18, ey = .4, gz = fz(ex, ey, .035);
   // a thin bar from point a to point b, and a path of them through several points
   const _z = new THREE.Vector3(0, 0, 1);
   const rod = (p, a, b, t, c) => { const d = new THREE.Vector3().subVectors(b, a), L = d.length(), o = box(p, t, t, L + t, c, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); o.quaternion.setFromUnitVectors(_z, d.divideScalar(L)); return o; };
@@ -1096,7 +1103,7 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     sph(hT, .05, '#4a2f2a', 0, 1.2, -.02).scale.x = 1.6;
   }
   // the pulled-up hood of a costume top (only when no hat is worn)
-  if (hoodC && !dino) {
+  if (hoodC && !mascot) {
     const hw2 = WRAP_AT.hood, lip = shade(hoodC, .86);
     part(hT, shellPts(.78, 1, .11), hoodC, 0, hw2 + .02); part(hT, shellPts(.1, 1, .11), hoodC, PI, PI - hw2);
     part(hT, shellPts(.74, .82, .14), lip, 0, hw2 + .06); for (const s of [-1, 1]) part(hT, shellPts(.1, .8, .14).slice(0, 15), lip, s * (hw2 + .03), .07);
@@ -1106,7 +1113,10 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     if (top === 26) for (const s of [-1, 1]) { cyl(hT, .014, .014, .3, '#2b2228', s * .16, 1.2, .1).rotation.z = -s * .3; sph(hT, .06, '#ffc93c', s * .21, 1.35, .1); }
     if (top === 28) for (const s of [-1, 1]) { sph(hT, .15, hoodC, s * .34, 1.06, 0).scale.z = .6; sph(hT, .09, shade(hoodC, 1.5), s * .34, 1.06, .06).scale.z = .5; }
   }
-  if (dino) { // a big round dino head over the whole head, with a long snout, a toothy grin, eyes on bumps and spikes
+  // big shiny cartoon eyes for the mascot heads
+  const cuteEye = (x, y, z, r = .135) => { const ey = sph(hT, r, '#ffffff', x, y, z); ey.scale.z = .8; const pu = sph(hT, r * .7, '#2a1a22', x - Math.sign(x) * .01, y - .01, z + r * .52); pu.scale.set(1, 1.1, .55);
+    sph(hT, r * .24, '#ffffff', x - Math.sign(x) * .01 + .03, y + .04, z + r * .9); sph(hT, r * .12, '#ffffff', x - Math.sign(x) * .01 - .03, y - .04, z + r * .9); };
+  if (mascot && top === 23) { // a big round dino head over the whole head, with a long snout, a toothy grin, eyes on bumps and spikes
     const G0 = hoodC, DK = '#3f9a4a', BL = '#d9f2a6', C = .47;
     lathe(hT, HP.map(([r, y]) => [r * 1.13, C + (y - C) * (y > C ? 1.12 : 1.04)]), G0);
     const sn = sph(hT, .34, G0, 0, .43, .5); sn.scale.set(.9, .62, 1.24); // upper snout
@@ -1117,11 +1127,23 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
       const ns = sph(hT, .03, '#2d5e33', s * .1, .6, .84); ns.scale.set(1.2, .6, .6); ns.rotation.x = -.6;
       const bl = sph(hT, .085, '#ff9fb2', s * .25, .45, .66); bl.scale.set(.55, .6, .3); bl.rotation.y = s * .8;
       sph(hT, .16, G0, s * .23, .73, .46); // the bumps the eyes sit in
-      const ey = sph(hT, .135, '#ffffff', s * .23, .74, .55); ey.scale.z = .8;
-      const pu = sph(hT, .095, '#2a1a22', s * .22, .73, .62); pu.scale.set(1, 1.1, .55);
-      sph(hT, .032, '#ffffff', s * .22 + .03, .78, .67); sph(hT, .016, '#ffffff', s * .22 - .03, .7, .67);
+      cuteEye(s * .23, .74, .55);
     }
     for (let i = 0; i < 6; i++) { const an = .45 + i * .4, sz = 1.1 - i * .1, sp = cone(hT, .1 * sz, .24 * sz, DK, 0, C + Math.cos(an) * .63, -Math.sin(an) * .62); sp.rotation.x = -an; sp.scale.x = .62; }
+  }
+  if (mascot && top === 38) { // a fluffy llama head: a long soft muzzle, tall banana ears and a woolly tuft on top
+    const C = .47, MZ = '#fbf4e6', IN = '#ffb3c4', TU = '#fffaf0';
+    lathe(hT, HP.map(([r, y]) => [r * 1.12, C + (y - C) * (y > C ? 1.1 : 1.04)]), LLAMA);
+    const mz = sph(hT, .3, MZ, 0, .33, .5); mz.scale.set(.86, .74, 1.05); // muzzle
+    for (const s of [-1, 1]) {
+      const ns = sph(hT, .03, '#5a3a32', s * .07, .44, .8); ns.scale.set(1.3, .7, .6); ns.rotation.z = s * .5;
+      const bl = sph(hT, .085, '#ff9fb2', s * .3, .44, .6); bl.scale.set(.55, .6, .3); bl.rotation.y = s * .8;
+      cuteEye(s * .22, .68, .5, .125);
+      const er = sph(hT, .13, LLAMA, s * .3, 1.2, -.02); er.scale.set(.45, 1.25, .38); er.rotation.z = -s * .28; // ears
+      const ei = sph(hT, .1, IN, s * .3, 1.2, .025); ei.scale.set(.38, 1.05, .2); ei.rotation.z = -s * .28;
+    }
+    const mo = ring(hT, .05, .012, '#5a3a32', 0, .33, .8, PI); mo.rotation.z = PI; mo.scale.y = .7; // a little smile
+    for (const [x, y, z, r] of [[0, 1.12, .12, .12], [-.12, 1.09, .06, .1], [.12, 1.09, .06, .1], [0, 1.1, -.04, .11], [-.06, 1.02, .26, .09], [.07, 1.02, .25, .085]]) sph(hT, r, TU, x, y, z);
   }
   const tmpGeo = fitHat(hg, hH, hT, hatKey, hr);
 
@@ -1132,11 +1154,11 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   const to = paintFace(a, false), tc = paintFace(a, true);
   const faceMat = new THREE.MeshToonMaterial({ map: to, gradientMap: grad });
   const faceGeo = new THREE.LatheGeometry(HP.map(([r, y]) => new THREE.Vector2(r, y)), SEG + 4, -PI, PI * 2);
-  const face = new THREE.Mesh(faceGeo, faceMat); face.castShadow = true; face.userData.face = true; face.visible = !dino; hg.add(face);
+  const face = new THREE.Mesh(faceGeo, faceMat); face.castShadow = true; face.userData.face = true; face.visible = !mascot; hg.add(face);
   root.updateWorldMatrix(true, true);
   // the face joins the head's outline so the whole head gets one clean rim
   const fg = faceGeo.toNonIndexed(); fg.applyMatrix4(new THREE.Matrix4().copy(hp.matrixWorld).invert().multiply(face.matrixWorld));
-  merge(hp, mat, dino ? [] : [{ pos: fg.attributes.position.array, nor: fg.attributes.normal.array }]); fg.dispose();
+  merge(hp, mat, mascot ? [] : [{ pos: fg.attributes.position.array, nor: fg.attributes.normal.array }]); fg.dispose();
   for (const t of tmpGeo) t.dispose();
   for (const arm of ud.arms) merge(arm, mat);
   for (const leg of ud.legs) { merge(leg.userData.kn, mat); merge(leg, mat); }
