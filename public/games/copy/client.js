@@ -132,7 +132,7 @@ export function mount(app, ctx) {
         [x, z] = LY.walk(me.x, me.z, vx * dt, vz * dt, r);
         // the loose things block you too (a decoy you can walk through would give itself away)
         for (const [ox2, oz2, k] of scene.objects()) { const R = LY.KINDS[KIND_LIST[k]].r + r, dx = x - ox2, dz = z - oz2, d = Math.hypot(dx, dz); if (d < R && d > 1e-3) { x = ox2 + dx / d * R; z = oz2 + dz / d * R; } }
-        if (LY.blocked(x, z, r * .7)) { x = ox; z = oz; me.vx = me.vz = 0; }
+        if (LY.blocked(x, z, r * .7) && LY.depth(x, z, r * .7) > LY.depth(ox, oz, r * .7) + 1e-6) { x = ox; z = oz; me.vx = me.vz = 0; } // never deeper in, but always free to walk out
       }
       me.x = x; me.z = z;
       const went = Math.hypot(x - ox, z - oz);

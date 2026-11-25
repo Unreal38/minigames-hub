@@ -151,4 +151,13 @@ LY.PROPS.forEach(([k, x, z], i) => {
   copy.act(G, h, { t: 'p', x: Math.round((x0 + .3) * LY.Q), z: Math.round(p.z * LY.Q), h: 0 });
   if (Math.abs(p.x - (x0 + .3)) > .06) fail('a normal step is taken');
 }
+// 9. copying a wide thing right next to it must never leave you stuck inside it; every prop stands on the rounded island
+{
+  for (const [k, x, z] of LY.PROPS) if (!LY.onIsle(x, z, LY.KINDS[k].r)) fail(`${k} at ${x}, ${z} hangs off the island's rounded corner`);
+  if (LY.onIsle(27, 27, 0)) fail('the island corner is rounded');
+  const [, rx, rz] = LY.PROPS.find(p => p[0] === 'rock'), r = LY.KINDS.rock.r * .8, x = rx + LY.KINDS.rock.r + .2;
+  if (!LY.blocked(x, rx === x ? 0 : rz, r)) fail('the test starts inside the rock');
+  if (LY.walk(x, rz, .1, 0, r)[0] <= x) fail('a hider overlapping a rock can walk away from it');
+  if (LY.walk(x, rz, -.1, 0, r)[0] < x) fail('but not further into it');
+}
 console.log('copy ok');
