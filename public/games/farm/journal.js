@@ -91,7 +91,7 @@ export const CHAPTERS = [
       { id: 'sp60', text: () => L('Find 60 species', 'Znajdź 60 gatunków'), done: f => owned(f) >= 60, go: { a: 'album' }, n: f => [owned(f), 60] },
       { id: 'els', text: () => L('Raise one species in all five elements', 'Wychowaj jeden gatunek we wszystkich pięciu żywiołach'), done: f => allEls(f), go: { a: 'album' } },
       { id: 'house7', text: () => L('Improve the farmhouse to level 7', 'Ulepsz dom do poziomu 7'), done: f => (f.house || 1) >= 7, go: { a: 'card', type: 'house' }, at: 'house' },
-      { id: 'museum', text: () => L('Open the Pet Museum and finish all five halls', 'Otwórz Muzeum zwierzaków i ukończ wszystkie pięć sal'), done: f => topLv(f, 'museum') >= 5, go: { a: 'card', type: 'museum', buy: 'museum' }, at: 'museum' },
+      { id: 'museum', text: () => L('Improve the Pet Museum to level 5', 'Ulepsz Muzeum zwierzaków do poziomu 5'), done: f => topLv(f, 'museum') >= 5, go: { a: 'card', type: 'museum', buy: 'museum' }, at: 'museum' },
     ] },
 ];
 

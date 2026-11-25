@@ -17,7 +17,7 @@ const rooms = new Map();   // room number -> { no, m: Map(token -> member), next
 const where = new Map();   // token -> room
 const muted = new Map(), kicked = new Map(); // profile id (or token for a guest) -> until
 let tree = [];             // ornaments: { i: slot, k: kind, n: name, pt: public tag, pid, at }
-let hooks = { info: () => ({}), isAdmin: () => false, friends: () => [], pidOf: () => null, mayReact: () => true, mayEmote: () => true, visit: () => ({ days: 0, fresh: false }), patPal: () => false, table: () => null, giftLeft: () => false, giftTake: () => 0 };
+let hooks = { info: () => ({}), isAdmin: () => false, friends: () => [], pidOf: () => null, mayReact: () => true, mayEmote: () => true, visit: () => ({ days: 0, fresh: false }), patPal: () => false, table: () => null, giftLeft: () => false, giftTake: () => 0, seenToday: () => true };
 export const GIFT = 5; // coins in the daily present under the tree (twice that from 24 to 26 December)
 const HOUR = 3600_000;
 
@@ -147,7 +147,18 @@ export function peek(c) {
   for (const r of rooms.values()) for (const m of r.m.values()) { const i = hooks.info(m.c); faces.push({ n: i.n, c: i.c, av: i.av, f: fr.has(hooks.pidOf(m.c)) ? 1 : 0 }); }
   faces.sort((a, b) => b.f - a.f);
   const ev = eventAt(), next = ev ? null : eventNext();
-  return { t: 'plaza', k: 'peek', n: where.size, faces: faces.slice(0, 5), fr: faces.filter(x => x.f).length, theme: theme(), ...(ev ? { ev: ev.id } : {}), ...(next ? { next } : {}) };
+  return { t: 'plaza', k: 'peek', n: where.size, faces: faces.slice(0, 5), fr: faces.filter(x => x.f).length, theme: theme(), ...(ev ? { ev: ev.id } : {}), ...(next ? { next } : {}), ...todoOf(c) };
+}
+// What the asker has not done in the plaza yet today, for the marker on the hub's button (accounts only):
+// in = no visit yet today (every visit day counts towards the emotes earned by visiting), gift = the present under the
+// tree is still wrapped, orn = no ornament of theirs on the tree. The last two are winter only, like the tree.
+function todoOf(c) {
+  const pid = hooks.pidOf(c); if (!pid || !hooks.info(c).u) return {};
+  const winter = theme() === 'winter', t = {};
+  if (!hooks.seenToday(c)) t.in = 1;
+  if (winter && hooks.giftLeft(c)) t.gift = 1;
+  if (winter && !tree.some(o => o.pid === pid)) t.orn = 1;
+  return { todo: t };
 }
 
 // A player changed their look, name, pets or flair: everyone in their room sees it.

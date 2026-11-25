@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf } from './data.js';
+import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
 import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
@@ -188,11 +188,13 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
   const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
+  // A fence's joins, or the Pet Museum's medallions (from the album when the farm has one, else what the server sent).
+  const linkOf = (it, f = farm, skip) => it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {
       seen.add(it.id);
-      const lv = levelOf(it), link = LINKS[it.type] ? fenceLink(farm.items, it.x, it.y, it.r, ghost?.id) : 0, key = [it.type, it.x, it.y, it.r, N, lv, link].join();
+      const lv = levelOf(it), link = linkOf(it, farm, ghost?.id), key = [it.type, it.x, it.y, it.r, N, lv, link].join();
       let e = items.get(it.id);
       if (e && e.key === key) continue;
       const grew = !!e && e.type === it.type && lv > e.lv; // improved while we watch: the new look pops in with a little party
@@ -983,7 +985,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     mk(rough(new THREE.ConeGeometry(R * .47, n * .7, 7, 3), n * .05), th ? th.rock : '#857a72', -2.4 - n * .35).rotation.x = Math.PI;
     for (const it of f.items.slice(0, 90)) {
       if (!ITEMS[it.type]) continue;
-      const m = itemModel(it.type, false, true, levelOf(it, f), LINKS[it.type] ? fenceLink(f.items, it.x, it.y, it.r) : 0), [w, h] = footprint(it.type, it.r);
+      const m = itemModel(it.type, false, true, levelOf(it, f), linkOf(it, f)), [w, h] = footprint(it.type, it.r);
       m.position.set(it.x + w / 2 - n / 2, 0, it.y + h / 2 - n / 2); m.rotation.y = -it.r * Math.PI / 2; land.add(m);
     }
     bake(land); toonify(land, .07);
@@ -1095,7 +1097,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
   function ghostStart(type, id, x, y, r) {
     ghostCancel(true);
-    const g = ghostModel(type, id, 0);
+    const g = ghostModel(type, id, type === 'museum' ? linkOf({ type }) : 0);
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
     ghost = { type, id, x, y, r, g, pad, ok: false, link: 0 };

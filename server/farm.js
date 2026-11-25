@@ -8,8 +8,8 @@ import crypto from 'node:crypto';
 import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
-  xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
-  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
+  xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
+  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, upBlock, museumFill, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
@@ -277,11 +277,14 @@ function album(f) {
   }
   return f.album;
 }
+// A pet the farm has never had: a species never owned, or a species never owned in this element (album rules).
+// It wears a "new" label (pet.nu) until the owner opens its card.
+const firstOf = (f, pet) => { album(f); return !f.album[pet.sp]?.some(Boolean) || !f.vars[pet.sp]?.includes(elOf(pet)); };
 // A farm as its neighbours see it. Nothing here can be changed by the viewer.
 // The owner's isle look (ground, rock base, sky, floating pieces): their farm island wears it too.
 const isleOf = pr => { const f = pr ? flairOf(pr) : {}, o = {}; for (const k of ['ig', 'ib', 'ik']) if (f[k]) o[k] = f[k]; if (f.fp) o.fp = f.fp; return o; };
 const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, isle: isleOf(pr), size: f.size, house: f.house || 1, pts: f.pts || 0,
-  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r, ...(i.lv > 1 ? { lv: i.lv } : {}) })) }; }; // lv: visitors and the map see each building at its level
+  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r, ...(i.lv > 1 ? { lv: i.lv } : {}), ...(i.type === 'museum' ? { mu: museumFill(album(f)) } : {}) })) }; }; // mu: how full the museum's medallions are // lv: visitors and the map see each building at its level
 
 // ---------- trading ----------
 // An offer lives on the sender's farm. What they offer is set aside at once (materials leave the stock, pets are
@@ -402,6 +405,7 @@ const view = (f, p) => ({
   album: album(f), vars: f.vars, coats: f.coats, marks: f.marks, mail: f.mail || [], tokens: f.tokens || {}, buff: buffView(f), pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f), lodgeRoom: lodgeRoom(f), allRoom: allRoom(f), shelves: f.shelves || [],
+  groups: (f.groups || []).map(g => ({ ...g, pets: g.pets.filter(id => f.pets.some(x => x.id === id)) })), // saved expedition groups, without pets that left
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
   trips: parties(f).map(tripView), partyMax: Math.max(1, topLv(f, 'gate')), nests: SLOTS.map(s => nestView(f, s)).filter(Boolean), nestMax: nestMax(f),
   trip: parties(f).length ? tripView([...parties(f)].sort((a, b) => a.until - b.until)[0]) : null, // the party that is back first
@@ -477,7 +481,7 @@ export function handle(p, a, reply) {
   if (a.t === 'upgrade') { // improve one building by a level
     const item = f.items.find(i => i.id === a.id), cost = item && upCost(item); if (!item) return no('That is not on the farm any more.');
     if (!cost) return no('That is as good as it gets.');
-    if ((f.house || 1) < lvOf(item) + 1) return no(`Level ${lvOf(item) + 1} needs a level ${lvOf(item) + 1} farmhouse.`);
+    album(f); const block = upBlock(f, item); if (block) return no(block); // a farmhouse level, or album pages for the museum
     if (!canAfford(f.inv, cost)) return no('Not enough materials for that yet.');
     pay(f.inv, cost); item.lv = lvOf(item) + 1;
     return ok({ did: 'upgrade', id: item.id });
@@ -543,7 +547,7 @@ export function handle(p, a, reply) {
       else {
         const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
         const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0];
-        found = newPet(sp, p.user, true); found.from = t.zone; f.pets.push(found); settle(f, found);
+        found = newPet(sp, p.user, true); found.from = t.zone; if (firstOf(f, found)) found.nu = 1; f.pets.push(found); settle(f, found);
       }
     }
     // Sometimes a wild pet stands in the way instead: a short battle the party can take or leave.
@@ -554,7 +558,7 @@ export function handle(p, a, reply) {
       f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS, pet: wildPet(sp, p.user) }; wild = { sp, lv };
     }
     parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1;
-    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, full, spilt, wild } });
+    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, fresh: !!found?.nu, full, spilt, wild } });
   }
   if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
     const ripe = f.items.filter(i => i.type === 'garden' && !ripeIn(f, i)); if (!ripe.length) return no('Nothing is ripe yet.');
@@ -639,6 +643,10 @@ export function handle(p, a, reply) {
     if (!pet.open && f.pets.filter(x => x.open).length >= 3) return no('Three pets can be open for playdates at once.');
     pet.open = !pet.open;
     return ok({ did: 'petopen' });
+  }
+  if (a.t === 'seen') { // the owner has looked at a new pet: its "new" label goes
+    const pet = f.pets.find(x => x.id === a.id); if (!pet?.nu) return;
+    delete pet.nu; return ok({ did: 'seen' });
   }
   if (a.t === 'fav') { // mark a pet as a favourite (or not): favourites come first in every pet picker. Only the owner sees it.
     const pet = f.pets.find(x => x.id === a.id); if (!pet) return;
@@ -863,6 +871,7 @@ export function handle(p, a, reply) {
         else { prize.noroom = true; r.coins && (f.inv.coins = (f.inv.coins || 0) + 6, prize.coins += 6); }
       }
       if (prize.joined && B.wild.pet) Object.assign(f.pets.find(x => x.id === prize.joined), B.wild.pet); // the same coat, markings and sparkle it fought with
+      if (prize.joined) { const j = f.pets.find(x => x.id === prize.joined); delete j.nu; f.pets.splice(f.pets.indexOf(j), 1); if (firstOf(f, j)) { j.nu = 1; prize.fresh = true; } f.pets.push(j); }
       f.inv.coins = (f.inv.coins || 0) + r.coins; f.pts = (f.pts || 0) + r.pts;
       for (const id of B.ids) { const pet = f.pets.find(x => x.id === id), g = pet && learn(pet, prize.xp); if (g) prize.grew.push(g); }
     }
@@ -951,6 +960,23 @@ export function handle(p, a, reply) {
     if (a.op === 'del') { for (const x of f.pets) if (x.shelf === sh.id) delete x.shelf; f.shelves.splice(f.shelves.indexOf(sh), 1); return ok({ did: 'shelf', op: 'del' }); }
     return;
   }
+  if (a.t === 'group') { // saved expedition groups: a name and up to PARTY pets, so a usual party is one tap away
+    f.groups ||= [];
+    const g = a.id && f.groups.find(x => x.id === a.id);
+    if (a.op === 'save') {
+      const ids = cleanIds(a.pets).filter(id => f.pets.some(x => x.id === id)).slice(0, PARTY);
+      if (!ids.length) return no('Pick some pets for the group first.');
+      const name = safeText(String(a.name || '')).trim().slice(0, GROUP_NAME);
+      if (a.id && !g) return no('That group is gone.');
+      if (g) { g.pets = ids; if (name) g.name = name; return ok({ did: 'group', op: 'save', id: g.id }); }
+      const max = GROUP_MAX; if (f.groups.length >= max) return no(`You can save up to ${max} groups.`);
+      const n = { id: rid(), name: name || `#${f.groups.length + 1}`, pets: ids }; f.groups.push(n);
+      return ok({ did: 'group', op: 'new', id: n.id });
+    }
+    if (!g) return no('That group is gone.');
+    if (a.op === 'del') { f.groups.splice(f.groups.indexOf(g), 1); return ok({ did: 'group', op: 'del' }); }
+    return;
+  }
   if (a.t === 'free') { // let a pet go for good: it leaves a few berries as a thank-you, and the album keeps its page
     const pet = f.pets.find(x => x.id === a.id); if (!pet) return no('That pet is not here any more.');
     if (f.pets.length <= 1) return no('Every farm keeps at least one pet.');
@@ -1015,8 +1041,8 @@ export function testHook(pid, a) {
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
   if (a.jn !== undefined) { if (a.jn) f.jn = a.jn; else delete f.jn; } // null: a farm from before the Farm Journal
-  if (a.house) f.house = a.house;
   if (a.album) for (const sp of a.album) if (own(SPECIES, sp)) (f.album ||= {})[sp] = [1, 0, 0];
+  if (a.house) f.house = a.house; // a farmhouse level, e.g. one that has not been built into the game yet
   if (a.oldOffer) { const hit = byFid(a.oldOffer); if (hit) { f.inv.coins -= 5; (f.offers ||= []).push({ id: rid(), to: hit[0], give: { pets: [], mats: { coins: 5 } }, want: { pets: [], mats: {} }, at: Date.now() }); } } // an offer from before coins stopped being tradable
   if (a.pet && own(SPECIES, a.pet)) { const q = { ...newPet(a.pet, 'test', true), ...(a.traits || {}) }; f.pets.push(q); settle(f, q); }
   if (a.lv) for (const x of f.pets) x.lv = a.lv;

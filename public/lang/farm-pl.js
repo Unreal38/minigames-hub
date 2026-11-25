@@ -25,6 +25,7 @@ const MAT_INFO = {
 const ITEMS = {
   house: ['Dom', 'Nie ma jak w domu. Większy dom otwiera nowe miejsca do zwiedzania.'],
   hut: ['Chatka zwierzaków', 'Przytulne miejsce do spania dla czterech kolejnych zwierzaków.'],
+  museum: ['Muzeum zwierzaków', 'Wielka sala, w której wystawiasz swój Album zwierzaków. Jej pięć medalionów wypełnia się, gdy znajdujesz zwierzaki każdego żywiołu.'],
   lodge: ['Schronisko zwierzaków', 'Duży, przytulny dom, w którym 60 kolejnych zwierzaków drzemie pod dachem, ułożonych we własne kolekcje. Dalej mogą chodzić wszędzie i robić wszystko.'],
   gate: ['Brama wypraw', 'Stąd zwierzaki ruszają balonem i wracają z materiałami, a czasem z nowym przyjacielem.'],
   garden: ['Grządka', 'Kawałek ziemi. Co godzinę dojrzewają tu jagody.'],
@@ -182,6 +183,7 @@ const RARITY = ['Pospolity', 'Niepospolity', 'Rzadki', 'Tylko z jajka'];
 const FORMS = ['Maluch', 'Podrostek', 'Dorosły'];
 const UPGRADES = {
   hut: 'Dwa łóżka więcej',
+  museum: ['Niebieska kopuła ze złotą latarnią', 'Świetliki w dachu, złote zdobienia i chorągwie żywiołów', 'Dwa boczne skrzydła i posągi zwierzaków przy schodach', 'Złota kopuła z gwiazdą, flagi i czerwony dywan'],
   lodge: ['Miejsce dla 150 zwierzaków w środku', 'Miejsce dla 300 zwierzaków w środku'],
   gate: 'Jedna drużyna więcej może być na wyprawie',
   kitchen: ['Nowy przepis: Słoneczna tarta', 'Nowy przepis: Tonik wypoczynku'],
@@ -321,6 +323,8 @@ export const SRV_TEXT = {
   'That collection is gone.': 'Tej kolekcji już nie ma.',
   'Only pets stored in the Lodge go into its collections.': 'Do kolekcji trafiają tylko zwierzaki ze Schroniska.',
   'Give it a name first.': 'Najpierw nadaj nazwę.',
+  'Pick some pets for the group first.': 'Najpierw wybierz zwierzaki do grupy.',
+  'That group is gone.': 'Tej grupy już nie ma.',
   'Move the pets stored in the Lodge out first.': 'Najpierw wyprowadź zwierzaki ze Schroniska.',
   'Not enough materials to grow the land.': 'Na powiększenie ziemi nie wystarczy materiałów.',
   'The farmhouse is as grand as it gets.': 'Okazalszy dom już nie będzie.',
@@ -410,9 +414,11 @@ export const SRV_FORMS = [
   [/^You can only have (\d+) of those\.$/, n => `Możesz mieć najwyżej ${n} sztuk.`],
   [/^That needs a level (\d+) Workshop\.$/, n => `To wymaga Warsztatu na poziomie ${n}.`],
   [/^A Lodge holds up to (\d+) collections\.$/, n => `Schronisko mieści najwyżej ${n} kolekcji.`],
+  [/^You can save up to (\d+) groups\.$/, n => `Możesz zapisać najwyżej ${n} grup.`],
   [/^That needs a level (\d+) farmhouse\.$/, n => `To wymaga domu na poziomie ${n}.`],
   [/^Growing the land again needs a level (\d+) farmhouse\.$/, n => `Dalsze powiększanie ziemi wymaga domu na poziomie ${n}.`],
   [/^That needs (\d+) friendship points\. Help out and leave gifts to earn them\.$/, n => `To wymaga ${n} punktów przyjaźni. Zdobędziesz je, pomagając innym i zostawiając prezenty.`],
+  [/^Level (\d+) needs (\d+) kinds of pets in the album\.$/, (n, k) => `Poziom ${n} wymaga gatunków w albumie: ${k}.`],
   [/^Level (\d+) needs a level \d+ farmhouse\.$/, n => `Poziom ${n} wymaga domu na poziomie ${n}.`],
   [/^All (\d+) of your parties are out\.$/, n => `Wszystkie twoje drużyny (${n}) są na wyprawie.`],
   [/^(.+) opens at farmhouse level (\d+)\.$/, (z, n) => `${ZONES[ZONE_EN[z]]?.[0] || z} otwiera się, gdy dom ma poziom ${n}.`],
