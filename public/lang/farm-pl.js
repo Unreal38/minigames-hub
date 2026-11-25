@@ -93,8 +93,8 @@ const ITEMS = {
   jpost: ['Drogowskaz', 'Wskazuje drogę na każdą wyspę. Nagroda z Dziennika farmy.'],
   jcradle: ['Kołyska na jajko', 'Miękki koszyk, który kołysze nakrapiane jajko. Nagroda z Dziennika farmy.'],
   jtable: ['Stół sąsiadów', 'Miejsce dla wszystkich i herbata dla dwojga. Nagroda z Dziennika farmy.'],
-  jvane: ['Złoty wiatrowskaz', 'Złoty zwierzak obraca się z wiatrem. Nagroda z Dziennika farmy.'],
-  jscope: ['Gwiezdna luneta', 'Do patrzenia ponad chmury. Nagroda z Dziennika farmy.'],
+  jvane: ['Nagrodzona dynia', 'Niebieska wstęga dla najlepszej farmy w okolicy. Nagroda z Dziennika farmy.'],
+  jscope: ['Gwiezdny globus', 'Mosiężne obręcze krążą powoli wokół małej gwiazdy. Nagroda z Dziennika farmy.'],
   jcup: ['Puchar kolekcjonera', 'Dla farmera, który znalazł prawie wszystko. Nagroda z Dziennika farmy.'],
 };
 const BLURB = {

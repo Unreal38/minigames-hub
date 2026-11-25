@@ -98,6 +98,7 @@ shop('hat', [['Tiara', 200], ['Veil', 150], ['Sweatband', 60], ['Deerstalker', 1
 shop('glasses', [['Masquerade mask', 140], ['Cat-eye glasses', 100]]);
 shop('neck', [['Feather boa', 130], ['Spiked collar', 90], ['Ruff collar', 110]]);
 shop('back', [['Pirate flag', 160], ['Guitar', 170]]);
+shop('top', [['Llama onesie', 260]]); // a full mascot costume like the dino (2026-11-25)
 
 export const packOf = (k, i) => PACK[k + ':' + i] || null;
 export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);
@@ -140,6 +141,7 @@ export const wearable = (a, owned = []) => { const have = new Set(owned); return
 export const lockedIn = (a, owned = []) => { const have = new Set(owned); return cleanAv(a).map((v, i) => AV_KEYS[i] + ':' + v).filter(id => locks(id) && !have.has(id)); };
 
 export const AV_KEYS = Object.keys(OPT);
+export const OUTFITS = 12; // saved outfits in the Wardrobe
 export const AV_COLOR_KEYS = ['skin', 'eyeC', 'hairC', 'botC', 'shoeC'];
 export const AV_MAX = AV_KEYS.map(k => OPT[k].length - 1);
 const IX = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
