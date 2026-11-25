@@ -25,6 +25,12 @@ for (const [o, want] of [[{}, '3/90/shown'], [{ rounds: 5, time: 60, names: 'sec
 }
 if (cleanTheme('  Under\u0000 the\u202e   sea  ') !== 'Under the sea' || cleanTheme(' !!! ') !== '' || Array.from(cleanTheme('ż'.repeat(90))).length !== WRITE_MAX) fail('written themes not cleaned');
 if (themeName('*Under the sea') !== 'Under the sea' || !themeName('pirate')) fail('theme names wrong');
+{ // everyone starts in the plain outfit, with their own body, face and hair
+  const own = av({ body: 3, skin: 4, face: 2, hair: 7, hairC: 5, top: 30, bottom: 6, shoes: 4, hat: 12, glasses: 3, neck: 2, back: 4, hand: 5, marks: 2, botC: 3, shoeC: 2 });
+  const G = rw.create([{ id: 'a', name: 'A', color: '#ff8fab', av: own }, ...people(3).slice(1)]), l = G.looks[0];
+  if (['top', 'bottom', 'shoes', 'hat', 'glasses', 'neck', 'back', 'hand', 'marks', 'botC', 'shoeC'].some(k => l[IX[k]] !== 0)) fail('the show should start in the plain outfit: ' + l);
+  if (l[IX.body] !== 3 || l[IX.skin] !== 4 || l[IX.face] !== 2 || l[IX.hair] !== 7 || l[IX.hairC] !== 5) fail('body, face and hair should stay the player own: ' + l);
+}
 if (rw.meta.minHumans !== 3 || rw.meta.maxPlayers !== 8 || rw.meta.minPlayers !== 3) fail('meta wrong');
 
 // ----- whole games on a fake clock -----
@@ -77,6 +83,13 @@ const toDress = G => { run(G, rw.MS.pick + rw.MS.theme + 300); if (G.stage !== '
   if (R.length !== 6 || R.some(x => x.idle)) fail('voting players are not idle');
   const v = rw.view(G, 3); if (v.looks.some(x => !x)) fail('every look shows at the end');
   console.log(`fake game: themes ${G.hist.map(h => h.theme).join(', ')}, points ${G.tot.join(' ')}`);
+}
+
+{ // the top colour: one of the Wardrobe colours (or your seat colour), hidden from others until the walk
+  const G = rw.create(people(3)); run(G, rw.MS.pick + rw.MS.theme + 300);
+  if (G.tc[0] !== G.seats[0].color) fail('the top colour should start as the seat colour');
+  if (!rw.act(G, 0, { t: 'look', tc: '#ff7a59' }) || G.tc[0] !== '#ff7a59' || rw.act(G, 0, { t: 'look', tc: '#123456' }) || G.tc[0] !== '#ff7a59') fail('top colour not taken or a bad one let through');
+  const v = rw.view(G, 1); if (v.tc[0] !== null || v.tc[1] !== G.seats[1].color || rw.view(G, 0).tc[0] !== '#ff7a59') fail('top colour shows before the walk');
 }
 
 { // the theme vote: written themes, one each, no voting for your own, early end, ties at random

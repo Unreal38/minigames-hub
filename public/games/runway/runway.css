@@ -77,11 +77,13 @@ body:has(.rw) #toasts { top: 118px; }
 @keyframes rwbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 .rw-sec { min-width: 3em; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rw-sec.hurry { color: #e5543b; }
-.rw-tabs { display: flex; gap: 4px; overflow-x: auto; flex: none; scrollbar-width: none; padding-bottom: 2px; }
-.rw-tabs::-webkit-scrollbar { display: none; }
-.rw-tabs button { flex: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--on-paper); background: var(--card); border: 2px solid var(--card-edge); border-radius: 12px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+/* the categories in a column down the left of the fitting room, the item tiles beside them */
+.rw-body { flex: 1 1 auto; min-height: 0; display: flex; gap: 8px; }
+.rw-tabs { display: flex; flex-direction: column; gap: 4px; flex: none; width: 104px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 1px 2px 2px 1px; }
+.rw-tabs button { flex: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--on-paper); background: var(--card); border: 2px solid var(--card-edge); border-radius: 12px; padding: 5px 8px; cursor: pointer; text-align: left; line-height: 1.15; text-wrap: balance; }
+@media (max-width: 700px) { .rw-body { gap: 6px; } .rw-tabs { width: 84px; gap: 3px; } .rw-tabs button { font-size: 12px; padding: 4px 7px; border-radius: 10px; } }
 .rw-tabs button[aria-selected="true"] { background: var(--lantern); border-color: var(--ink); color: var(--ink); }
-.rw-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; align-content: start; scrollbar-width: thin; padding: 3px; margin: -3px; }
+.rw-grid { flex: 1 1 auto; min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; align-content: start; scrollbar-width: thin; padding: 3px; margin: -3px; }
 .rw-grid.sw { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); }
 .rw-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; font: inherit; color: var(--on-paper); background: var(--card); border: 2px solid var(--card-edge); border-radius: 14px; padding: 3px 3px 5px; cursor: pointer; }
 .rw-tile img { width: 100%; aspect-ratio: 1; display: block; border-radius: 10px; }

@@ -45,6 +45,9 @@ export const EMOTE_POSE = 100;
 export const RUNWAY_EMOTES = ['wave', 'dance', 'jump', 'cheer', 'clap', 'bow', 'spin', 'laugh', 'heart', 'shiver', 'flip', 'robot', 'stars', 'pose', 'strut'];
 export const poseName = (i, emName) => POSES[i] ? L(POSES[i][1], POSES[i][2]) : i >= EMOTE_POSE && emName ? emName(i - EMOTE_POSE) : '';
 
+// Top colours to pick from in the fitting room: the Wardrobe's own colours (so Keep this look can keep it too).
+export const TOP_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
+
 export const ROUNDS = [2, 3, 5], TIMES = [60, 90, 120];
 
 // A look's stars: with 5 or more judges the highest and the lowest vote are dropped. Points = average × 20.

@@ -2,7 +2,7 @@
 // every coin-shop item on loan (Supporter pack items too), then walks the runway one by one while the others give
 // 1 to 5 stars. Points per look = average stars x 20 (with 5+ judges the highest and lowest vote are dropped).
 // Nothing worn here is saved: the look lives only in this game. People only, no bots.
-import { THEMES, TWISTS, FREE_KEYS, POSES, ROUNDS, TIMES, PICK_N, cleanTheme, scoreLook, EMOTE_POSE, RUNWAY_EMOTES } from '../../public/games/runway/rules.js';
+import { THEMES, TWISTS, FREE_KEYS, POSES, ROUNDS, TIMES, TOP_COLS, PICK_N, cleanTheme, scoreLook, EMOTE_POSE, RUNWAY_EMOTES } from '../../public/games/runway/rules.js';
 import { EMOTES } from '../../public/games/plaza/layout.js';
 import { cleanAv, AV_KEYS } from '../../public/avatar.js';
 
@@ -11,6 +11,10 @@ export const meta = { id: 'runway', name: 'Sky Runway', minPlayers: 3, maxPlayer
 // pick: the theme vote (3 random themes + written ones); theme: the theme card; walk: one look on the runway (the walk, the pose, the votes); reveal: the round's podium.
 export const MS = { pick: 20000, theme: 5000, walk: 8500, reveal: 8000, early: 1200 };
 const FREE = FREE_KEYS.map(k => AV_KEYS.indexOf(k));
+// Everyone starts the show in the same plain outfit (T-shirt, trousers, sneakers, no accessories), not their own clothes.
+// Body, height, skin, face and hair stay theirs, so friends still know who is who.
+const KEEP = ['hair', 'hairC'].map(k => AV_KEYS.indexOf(k));
+export const startLook = av => { const a = cleanAv(av); for (const i of FREE) if (!KEEP.includes(i)) a[i] = 0; return a; };
 
 export function cleanOpts(o = {}) {
   return {
@@ -28,7 +32,8 @@ export function create(players, optsIn = {}) {
   const G = {
     game: 'runway', ph: 'play', stage: 'theme', gid: Math.random().toString(36).slice(2, 8), seats, opts,
     round: -1, theme: '', twist: '', used: [], picks: [], pv: [], tEnd: 0, tAll: 0,
-    looks: seats.map(x => x.av.slice()), pose: seats.map(() => 0), ready: seats.map(() => false),
+    // tc: the top colour of each look (starts as the seat colour)
+    looks: seats.map(x => startLook(x.av)), tc: seats.map(x => x.color), pose: seats.map(() => 0), ready: seats.map(() => false),
     order: [], walk: -1, votes: [], last: null,
     tot: seats.map(() => 0), fives: seats.map(() => 0), hist: [], busy: seats.map(() => false),
     ev: [], evN: 0, res: null, win: -1, endAt: 0,
@@ -101,10 +106,11 @@ function finish(G, now) {
 }
 
 // a look from the page: only the parts that may change are taken, the rest stays the player's own
-function setLook(G, s, av) {
-  if (!Array.isArray(av)) return false;
-  const a = cleanAv(av), cur = G.looks[s];
+function setLook(G, s, av, tc) {
   let ch = false;
+  if (typeof tc === 'string' && tc !== G.tc[s] && (TOP_COLS.includes(tc) || tc === G.seats[s].color)) { G.tc[s] = tc; ch = true; }
+  if (!Array.isArray(av)) { if (ch) { G.busy[s] = true; G.ready[s] = false; } return ch; }
+  const a = cleanAv(av), cur = G.looks[s];
   for (const i of FREE) if (a[i] !== cur[i]) { cur[i] = a[i]; ch = true; }
   if (ch) { G.busy[s] = true; G.ready[s] = false; }
   return ch;
@@ -129,11 +135,11 @@ export function act(G, s, a) {
     G.pv[s] = k; G.busy[s] = true;
     return true;
   }
-  if (a.t === 'look') return dressing && setLook(G, s, a.av);
+  if (a.t === 'look') return dressing && setLook(G, s, a.av, a.tc);
   if (a.t === 'pose') { if (!dressing || !Number.isInteger(a.p) || !(POSES[a.p] || a.p >= EMOTE_POSE && G.seats[s].em?.includes(a.p - EMOTE_POSE)) || G.pose[s] === a.p) return false; G.pose[s] = a.p; G.busy[s] = true; return true; }
   if (a.t === 'ready') {
     if (G.stage !== 'dress' || G.ready[s] === !!a.on) return false;
-    if (a.av) setLook(G, s, a.av);
+    if (a.av || a.tc) setLook(G, s, a.av, a.tc);
     G.ready[s] = !!a.on;
     return true;
   }
@@ -197,7 +203,8 @@ export function view(G, s) {
     looks: G.looks.map((a, i) => (i === s || walked.has(i) || G.ph === 'end' ? a : null)), pose: G.pose.map((p, i) => (i === s || walked.has(i) || G.ph === 'end' ? p : 0)),
     ready: G.ready, order: G.stage === 'walk' || G.stage === 'reveal' ? G.order : [], walk: G.walk,
     walker: secret && w !== s ? -2 : w, // -2: someone is walking, but the names are a secret until the reveal
-    cur: w >= 0 ? { av: G.looks[w], color: G.seats[w].color, pose: G.pose[w] } : null,
+    cur: w >= 0 ? { av: G.looks[w], color: G.tc[w], pose: G.pose[w] } : null,
+    tc: G.tc.map((c, i) => (i === s || walked.has(i) || G.ph === 'end' ? c : null)),
     myVote: w >= 0 && s >= 0 ? G.votes[w][s] : 0, nVotes: w >= 0 ? G.votes[w].filter(Boolean).length : 0,
     judges: w >= 0 ? G.seats.filter((_, j) => j !== w && present(G, j)).length : 0,
     last: G.stage === 'reveal' || G.stage === 'end' ? G.last : null, tot: G.tot, fives: G.fives,
