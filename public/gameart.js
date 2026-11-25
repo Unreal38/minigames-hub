@@ -472,6 +472,24 @@ export function chessArt() {
   </svg>`;
 }
 
+// Warcaby card: a draughts board on a slant, a crowned cream king, dark men, and a cream man hopping over one to take it.
+export function warcabyArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const disc = (x, y, side, h = 7) => { const f = side ? '#4d362e' : '#fffaf0', e = side ? '#20120d' : '#3b2219', r = side ? '#7a5a4a' : '#d8c298';
+    return `<path d="M${x - 20} ${y}v${h}a20 8.5 0 0 0 40 0v-${h}" fill="${f}" stroke="${e}" stroke-width="3" stroke-linejoin="round"/><ellipse cx="${x}" cy="${y}" rx="20" ry="8.5" fill="${f}" stroke="${e}" stroke-width="3"/><ellipse cx="${x}" cy="${y}" rx="12" ry="4.6" fill="none" stroke="${r}" stroke-width="2.4"/>`; };
+  const king = (x, y) => `${disc(x, y + 9, 0)}${disc(x, y, 0)}<path d="M${x - 10} ${y - 2}l2-11 5 6 3-9 3 9 5-6 2 11z" fill="#ffc93c" ${o}/>`;
+  let sq = '';
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) sq += `<rect x="${c * 34 - 68}" y="${r * 34 - 68}" width="34" height="34" fill="${(r + c) % 2 ? '#86b56b' : '#f8eed2'}"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A draughts board with a crowned cream king, and a cream piece hopping over a dark one to take it">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="70" cy="16" r="1.5"/><circle cx="246" cy="14" r="1.3"/><circle cx="296" cy="56" r="1.5"/><circle cx="22" cy="64" r="1.2"/><circle cx="160" cy="10" r="1.2"/></g>
+    <path d="M26 38l14-8 16 4 8 10-10 8H34z" class="artcloud" fill="#fff"/><path d="M252 34l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <g transform="translate(160 118) scale(1 .44) rotate(45)"><rect x="-74" y="-74" width="148" height="148" rx="6" fill="#8a5a3c" ${o} transform="translate(8 8)"/><rect x="-74" y="-74" width="148" height="148" rx="6" fill="#b9794a" ${o}/>${sq}<rect x="-68" y="-68" width="136" height="136" fill="none" stroke="#3b2219" stroke-width="3"/></g>
+    ${disc(146, 126, 1)}${disc(98, 116, 1)}${king(108, 84)}${disc(206, 114, 1)}
+    <path class="arttick" d="M246 104q-38-52-82 0" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 8"/>
+    <g class="wjump">${disc(206, 62, 0)}</g>
+  </svg>`;
+}
+
 // Piotruś card: a fan of pet cards on a green table, with the night-sky Piotruś card peeking out of the middle.
 export function piotrArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
