@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
+import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
@@ -224,6 +225,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const nests = farm.nests || (farm.nest ? [farm.nest] : []);
     const full = farm.cap && ['wood', 'stone', 'fiber'].some(k => (farm.inv?.[k] || 0) >= farm.cap);
     let firstNest = true, firstGate = true, firstBarn = true;
+    const jp = farm.jn && pinned(farm.jn), want = jp?.task?.at; let quest = !!want; // the Farm Journal's pinned task points at its building
     for (const it of farm.items) {
       const e = items.get(it.id); if (!e) continue; let on = false, n = 1, sign = '';
       if (it.type === 'mailbox') { on = mail > 0; if (on) sign = 'mail'; }
@@ -232,6 +234,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       else if (it.type === 'nest') { on = nests.some(q => q.stage === 'cuddle'); if (firstNest && nests.some(q => q.stage === 'ready')) sign = 'ready'; firstNest = false; }
       else if (it.type === 'gate') { on = out; if (firstGate && back) sign = 'ready'; firstGate = false; }
       else if (it.type === 'barn') { on = false; if (firstBarn && full) sign = 'ready'; firstBarn = false; }
+      if (!sign && quest && it.type === want) { sign = 'quest'; quest = false; }
       e.st.on = on; e.st.n = n;
       if ((e.sign?.kind || '') !== sign) {
         if (e.sign) { e.g.remove(e.sign.g); disposeModel(e.sign.g); e.sign = null; }
