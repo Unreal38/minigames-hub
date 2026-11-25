@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
@@ -633,7 +633,7 @@ export function mount(app, ctx) {
       } else {
       // step 2 of 2: the island they picked, what it gives, then how long and who goes
       const wild = Object.entries(z.wild).sort((a, b) => b[1] - a[1]).map(([sp]) => F.album?.[sp] ? `<span class="wildpet" title="${esc(SPECIES[sp].name)}">${thumb('pet:' + sp, SPECIES[sp].name)}</span>` : `<span class="wildpet unknown" title="${L('Not met yet', 'Jeszcze nie spotkany')}">?</span>`).join('');
-      const perPet = Object.entries(z.gives).filter(([m]) => m !== 'coins').map(([m, n]) => mat(m, '~' + (n < 1 ? n : Math.round(n)))).join('');
+      const perPet = Object.entries(z.gives).filter(([m]) => m !== 'coins').map(([m, n]) => [m, tripRate(m, n)]).map(([m, n]) => mat(m, '~' + (n < 1 ? +n.toFixed(1) : Math.round(n)))).join('');
       box.innerHTML = `<div class="panel tripp sendwho"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
         <div class="zsum"${zoneVars(panel.zone)}><div class="dest zbig">${zoneSky(panel.zone)}</div>
           <div class="zinfo"><b class="zname">${z.name}</b><span class="dline">${elTag(z.el)}<small>${z.blurb}</small></span>

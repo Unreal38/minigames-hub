@@ -283,7 +283,7 @@ export function swapDeal(give, get, lv) {
 
 // ---------- expeditions ----------
 // A party of 1 to 3 pets flies to a zone and comes back with materials. Nothing can go wrong on a trip.
-// gives: materials per pet per hour. house: farmhouse level that opens the zone. wild: species found there and how often.
+// gives: materials per pet per hour before the economy pass (tripRate scales them). house: farmhouse level that opens the zone. wild: species found there and how often.
 export const ZONES = {
   woods:  { name: 'Mossy Woods', el: 'Leaf', house: 1, gives: { wood: 14, fiber: 10, stone: 5, coins: 3 }, wild: { mossbun: 5, sproutle: 5, petalpuff: 2, acornip: 2, bambear: 2, patchkit: 2, snoozloth: 1 }, blurb: 'Tall trees and soft moss.' },
   cove:   { name: 'Tidepool Cove', el: 'Tide', house: 2, gives: { shells: 8, fiber: 10, stone: 5, coins: 3 }, wild: { puddlepup: 5, bubblefin: 5, ottershell: 5, ripplet: 2, waddlet: 2, axolily: 1, fluffcoon: 1 }, blurb: 'Warm pools full of shells.' },
@@ -307,13 +307,18 @@ export const TRIPS = {
   camp:   { name: 'Camp-out', min: 480, find: .6, xp: 100, blurb: 'Overnight' },
 };
 export const PARTY = 3;
+// The economy pass (Kuba, 2026-11-25: a dedicated player maxed every building in 6 days, so make it grindier): a trip
+// pays TRIP_MAT of the zone's `gives` in materials, and its own TRIP_SHARE of coins and crystal. tripRate is what one
+// pet brings an hour, the number the expedition panel shows. TRIP_CURVE: how much longer trips lose per hour.
+export const TRIP_CURVE = .8, TRIP_MAT = .5, TRIP_SHARE = { coins: 1 / 3, crystal: .4 };
+export const tripRate = (k, n) => n * (TRIP_SHARE[k] ?? TRIP_MAT);
 // What a party should bring back, before luck (the server adds up to 15% either way).
-// Longer trips bring a little less per hour, pets at home in the zone (atHome) 25% more, and each level 4% more.
+// Longer trips bring less per hour, pets at home in the zone (atHome) 25% more, and each level 4% more.
 export function tripLoot(zone, trip, pets) {
-  const z = ZONES[zone], hours = Math.pow(TRIPS[trip].min / 60, .9), out = {};
+  const z = ZONES[zone], hours = Math.pow(TRIPS[trip].min / 60, TRIP_CURVE), out = {};
   let power = 0;
   for (const p of pets) power += (atHome(z, p.sp, elOf(p)) ? 1.25 : 1) * (1 + (p.lv - 1) * .04);
-  for (const [k, n] of Object.entries(z.gives)) out[k] = n * hours * power;
+  for (const [k, n] of Object.entries(z.gives)) out[k] = tripRate(k, n) * hours * power;
   return out;
 }
 
