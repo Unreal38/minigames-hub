@@ -67,7 +67,7 @@ body.in-game { overflow: hidden; }
 
 @media (max-width: 700px) {
   .ludo .tcode, .ludo #lu-round { display: none; }
-  .ludo .banner { top: 66px; font-size: 15px; }
+  .ludo .banner { top: 66px; font-size: 15px; left: 14px; transform: none; max-width: calc(100vw / var(--vz, 1) - 150px); width: max-content; white-space: normal; text-wrap: balance; border-radius: 18px; } /* clear of the scores and chat buttons */
   .ludo .list { top: 112px; width: max-content; min-width: 150px; max-width: calc(48vw / var(--vz, 1)); padding: 4px; max-height: calc(34vh / var(--vz, 1)); }
   .ludo .list li { font-size: 13px; gap: 5px; padding: 2px 5px 2px 2px; }
   .ludo .list span { font-size: 12px; }

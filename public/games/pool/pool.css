@@ -84,7 +84,7 @@ body.in-game { overflow: hidden; }
   .pl .tcode, .pl .chip i { display: none; }
   .pl .tl { left: 8px; top: 8px; } .pl .tr { right: 8px; top: 8px; gap: 5px; }
   .pl .tl .chip { font-size: 14px; padding: 4px 10px; }
-  .pl .banner { top: 62px; font-size: 14px; padding: 3px 12px; border-width: 2px; }
+  .pl .banner { top: 62px; font-size: 14px; padding: 3px 12px; border-width: 2px; left: 14px; transform: none; max-width: calc(100vw / var(--vz, 1) - 150px); width: max-content; white-space: normal; text-wrap: balance; border-radius: 18px; } /* clear of the scores and chat buttons */
   .pl .pl-teams { left: 8px; right: 8px; top: 96px; gap: 6px; }
   .pl .pl-team { padding: 4px 6px; border-width: 2px; border-radius: 14px; gap: 3px; flex: 1 1 0; max-width: 49%; }
   .pl .pl-who { gap: 2px 6px; }

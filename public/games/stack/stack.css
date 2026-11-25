@@ -80,7 +80,7 @@ body.in-game { overflow: hidden; }
 @media (max-width: 700px) {
   .tws .tcode, .tws .list { display: none; }
   .tws .tl .chip { font-size: 14px; padding: 4px 10px; }
-  .tws .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; }
+  .tws .banner { top: calc(max(14px, env(safe-area-inset-top)) + 56px); font-size: 15px; left: 14px; transform: none; max-width: calc(100vw / var(--vz, 1) - 150px); width: max-content; white-space: normal; text-wrap: balance; border-radius: 18px; } /* clear of the scores and chat buttons */
   .tws .meter { left: 50%; transform: translateX(-50%); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 74px); width: min(240px, calc(70vw / var(--vz, 1))); }
   .tws .dropbar { bottom: max(14px, env(safe-area-inset-bottom)); }
   .tws .tws-tag { font-size: 12px; }
