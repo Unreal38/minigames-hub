@@ -33,8 +33,8 @@ const CATS = { cards: ['Card games', 'Gry karciane'], board: ['Board and dice ga
 // The Today column: [key in SOLO (for mins) or null, English name, Polish name, English text, Polish text].
 const TODAY = [
   ['farm', 'Pet Farm', 'Farma zwierzaków',
-    'Your own farm on a floating island. Hatch, raise and breed 70+ pet species with inherited traits and elements, build and decorate freely, send pets on expeditions, fight turn-based 3v3 battles and visit or help your friends\' farms.',
-    'Własna farma na latającej wyspie. Wykluwasz, wychowujesz i krzyżujesz ponad 70 gatunków zwierzaków z dziedziczeniem cech i żywiołów, budujesz i urządzasz farmę, wysyłasz zwierzaki na wyprawy, walczysz w turowych bitwach 3 na 3 i odwiedzasz albo wspierasz farmy znajomych.'],
+    'Your own farm on a floating island. Hatch, raise and breed 70+ pet species with inherited traits and elements, build and decorate freely, send pets on expeditions and far trips to Legend Isle for rare pets, follow the Farm Journal, fill island orders for Stamps, grow the Pet Museum, fight turn-based 3v3 battles and visit or help your friends\' farms.',
+    'Własna farma na latającej wyspie. Wykluwasz, wychowujesz i krzyżujesz ponad 70 gatunków zwierzaków z dziedziczeniem cech i żywiołów, budujesz i urządzasz farmę, wysyłasz zwierzaki na wyprawy i dalekie wyprawy na Wyspę Legend po rzadkie gatunki, idziesz za Dziennikiem farmy, realizujesz zamówienia za znaczki, rozbudowujesz Muzeum zwierzaków, walczysz w turowych bitwach 3 na 3 i odwiedzasz albo wspierasz farmy znajomych.'],
   ['mp', 'Mystery Pet', 'Zagadkowy zwierzak',
     'A new puzzle every day: guess the hidden Pet Farm pet from the clues each guess gives you. Everyone gets the same pet that day.',
     'Codziennie nowa zagadka: zgadnij ukrytego zwierzaka z Farmy na podstawie wskazówek, które daje każda próba. Tego dnia wszyscy zgadują tego samego zwierzaka.'],
