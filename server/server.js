@@ -67,7 +67,8 @@ import * as word from './word.js';
 import * as wheel from './wheel.js';
 import * as notice from './notice.js';
 import * as plaza from './plaza.js';
-import { cosHas } from '../public/cosmetics.js';
+import * as modr from './mod.js';
+import { cosHas, COS } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
 import { distinctCols, matchColors } from './colors.js';
@@ -326,7 +327,7 @@ store.onPack(pid => { const p = store.profiles.get(pid); if (p) for (const c of 
 // hub chat lines, table chat lines and table scoreboard rows go, ex-friends get a fresh friends list, and its screens
 // become guests. A seat it holds in a game stays put, so the match carries on and that screen plays it out as a guest.
 store.onForget((pid, toks, { tag, pals = [] } = {}) => {
-  farm.forget(pid); plaza.forget(pid);
+  farm.forget(pid); plaza.forget(pid); modr.forget(pid);
   for (const id of hubchat.forget(pid)) for (const o of clients.values()) if (o.sock && !o.room) send(o, { t: 'hubchat', gone: id });
   for (const r of rooms.values()) {
     let changed = false;
@@ -367,6 +368,86 @@ function whoList() {
     rows.set(key, { name: c.name, user: p?.user || '', color: c.color, av: c.av, fl: store.flair(p), pt: store.tagOf(p), ...store.badge(p), at, since: c.since || Date.now(), n: 1 });
   }
   return [...rows.values()].sort((a, b) => (b.at.k === 'table') - (a.at.k === 'table') || a.since - b.since);
+}
+// ---------- reports and the hosts' moderation (server/mod.js) ----------
+// '' = may talk; 'site' = a host's mute from the Admin panel; 'plaza' = a host's ten minutes of quiet on the Plaza.
+const muted = c => modr.muteOf(store.profileOf(c.token)) ? 'site' : plaza.mutedFor(c) ? 'plaza' : '';
+// Where a screen is, the way the hosts' lists show it (a private table's code too: only hosts read it).
+function locOf(c) {
+  const r = rooms.get(c?.room);
+  return r ? { k: 'table', game: r.game, code: r.code, priv: !!r.priv, play: !!r.G && r.G.ph !== 'end', watch: r.spect.has(c.id) } : { k: c?.sock ? c.view || 'hub' : 'off' };
+}
+// What a player is under (mute, ban, an unread warning), and for hosts how many players have open reports.
+function tellStanding(c) {
+  const p = store.profileOf(c.token);
+  modr.seenOn(p, c);
+  send(c, modr.mine(p, c.token, c));
+  if (store.isAdmin(p)) send(c, { t: 'mod', op: 'count', n: modr.openCount() });
+}
+function tellAdmins() {
+  const msg = { t: 'mod', op: 'count', n: modr.openCount() };
+  for (const c of clients.values()) if (c.sock && store.isAdmin(store.profileOf(c.token))) send(c, msg);
+}
+// The context a report carries, taken the moment it is sent: where both players are, the reported player's last hub
+// chat lines and the talk around the newest one, and the chat of the table they share (or the one they are at).
+function reportCtx(c, o) {
+  const tag = store.tagOf(o), theirs = clientsOf(o.pid), atTable = theirs.find(x => rooms.has(x.room));
+  let r = rooms.get(c.room);
+  if (r && !theirs.some(x => x.room === r.code) && !r.chat.some(x => x.pt === tag)) r = null;
+  r ||= rooms.get(atTable?.room);
+  return {
+    where: locOf(c), twhere: theirs.length ? locOf(atTable || theirs[0]) : { k: 'off' }, ...hubchat.contextOf(o.pid),
+    table: r ? { game: r.game, code: r.code, lines: r.chat.slice(-20).map(x => ({ at: x.at || 0, name: x.name, text: x.text, ...(x.pt === tag ? { me: 1 } : {}) })) } : null,
+  };
+}
+// After a host's action: the player's screens hear about it at once (a ban also takes them away from their table and
+// the Plaza), and players whose reports it answered get a thank-you.
+function applySanction(r) {
+  const pid = r.p.pid;
+  // (a device or address ban reaches other profiles too; lifting one may free any screen, so everyone hears again)
+  const screens = [...clients.values()].filter(o => o.sock && (r.k === 'unban' || store.profileOf(o.token)?.pid === pid || store.sessions.peek(o.token)?.banPid === pid
+    || r.k === 'ban' && modr.banOf(store.profileOf(o.token), o.token, o)?.pid === pid));
+  for (const o of screens) {
+    if (r.k === 'ban') { if (o.room) { leaveRoom(o); send(o, { t: 'room', room: null }); } plaza.leave(o); }
+    tellStanding(o);
+  }
+  for (const rpid of r.rewarded || []) { const rp = store.profiles.get(rpid); for (const o of clientsOf(rpid)) { send(o, { t: 'me', me: store.me(rp) }); tellStanding(o); } }
+  if (r.k !== 'dismiss' && r.k !== 'ban') { // (a ban's reporters got their thank-you above)
+    const thanked = new Set();
+    for (const x of r.closed) {
+      if (!x.rpid || thanked.has(x.rpid)) continue; thanked.add(x.rpid);
+      for (const o of clientsOf(x.rpid)) send(o, { t: 'mod', op: 'thanks', name: x.who.name });
+    }
+  }
+  tellAdmins();
+}
+function modMsg(c, m) {
+  const p = store.profileOf(c.token), op = String(m.op ?? '');
+  if (op === 'seen') { modr.seen(p, String(m.id ?? '')); return tellStanding(c); }
+  if (op === 'thanked') { modr.thanked(p, String(m.id ?? '')); return tellStanding(c); }
+  if (op === 'report') {
+    const o = store.byTag(m.pt);
+    if (!allow('rep:' + (p?.pid || c.token), 8, 3600_000) || !allow('repip:' + (c.sock?.ip || '?'), 30, 3600_000))
+      return send(c, { t: 'mod', op: 'report', err: 'You have sent a lot of reports. Try again later.' });
+    const r = modr.report(p, o, m, o && o !== p ? reportCtx(c, o) : {});
+    if (r.err) return send(c, { t: 'mod', op: 'report', err: r.err });
+    console.log(`report: ${p.user || p.name} reported ${o.user || o.name} (${r.r.why})`);
+    send(c, { t: 'mod', op: 'report', ok: true });
+    return tellAdmins();
+  }
+  if (!store.isAdmin(p)) return;
+  if (!allow('modq:' + p.pid, 90, 60_000)) return send(c, { t: 'err', msg: 'Slow down a little.' });
+  if (op === 'list') return send(c, { t: 'mod', op: 'list', ...modr.list(), active: modr.active(), mins: { mute: modr.MUTE_MINS, ban: modr.BAN_MINS } });
+  if (op === 'find') return send(c, { t: 'mod', op: 'find', q: String(m.q ?? '').slice(0, 20), rows: modr.find(m.q) });
+  if (op === 'peek') return send(c, { t: 'mod', op: 'peek', p: modr.peek(m.pt), mins: { mute: modr.MUTE_MINS, ban: modr.BAN_MINS } });
+  if (op === 'act') {
+    const o = store.byTag(m.pt), on = o ? [...clients.values()].filter(x => x.sock && store.profileOf(x.token) === o) : [];
+    const r = modr.act(p, { ...m, live: { devs: on.map(x => x.dev), ips: on.map(x => x.iph) } });
+    if (r.err) return send(c, { t: 'err', msg: r.err });
+    console.log(`moderation: ${p.user} ${r.k} ${r.p.user || r.p.name}${r.k === 'mute' || r.k === 'ban' ? (r.until ? ` until ${new Date(r.until).toISOString()}` : ' for good') : ''}`);
+    applySanction(r);
+    return send(c, { t: 'mod', op: 'done', k: r.k, pt: m.pt, name: r.p.name, until: r.until });
+  }
 }
 // Live "playing now" + all-time visitor numbers for the hub. Batched so a burst of joins sends one update.
 const statsMsg = () => ({ t: 'stats', online: [...clients.values()].filter(c => c.sock).length, visitors: store.visitorCount(), plaza: plaza.count() });
@@ -511,13 +592,17 @@ function startGame(r) {
     for (const c of humans) prev.wallet['h:' + c.id] = store.profileOf(c.token)?.coins || 0;
   }
   const cols = distinctCols(humans.map(c => c.color)); // two people in pink: the later one plays in another colour this match
-  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av })), r.opts, prev);
+  const emOf = c => { const p = store.profileOf(c.token); return COS.em.items.map((_, i) => i).filter(i => i && cosHas(p, 'em', i)); }; // the Plaza emotes each one has (Sky Runway poses)
+  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av, ...(GAMES[r.game].meta.emotes ? { em: emOf(c) } : {}) })), r.opts, prev);
   matchColors(r.G); // bots, too, keep clear of the people's colours
   r.G.bornAt = Date.now(); // when the match began: a short match against bots pays its share (botpay.js)
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
+// While a host's ban is on, a screen gets nothing but the ban notice (and may still pick a language).
+const BAN_OK = new Set(['lang', 'where', 'stats', 'notice']);
 function handle(c, m) {
+  if (!BAN_OK.has(m.t) && modr.banOf(store.profileOf(c.token), c.token, c)) { if (allow('banned:' + c.token, 1, 3000)) send(c, modr.mine(store.profileOf(c.token), c.token, c)); return; }
   switch (m.t) {
     case 'profile': {
       const was = lookKey(c);
@@ -550,7 +635,7 @@ function handle(c, m) {
     case 'player': { // another player's profile card, by their public tag
       if (!allow('prof:' + c.id, 30, 60_000)) return;
       const o = store.byTag(m.pt); if (!o) return send(c, { t: 'err', msg: 'That player is not around any more.' });
-      return send(c, { t: 'player', p: { ...store.publicProfile(o), pets: palsOf(o), online: clientsOf(o.pid).length > 0, me: o === store.profileOf(c.token), rel: store.relation(store.profileOf(c.token), o) } });
+      return send(c, { t: 'player', p: { ...store.publicProfile(o), pets: palsOf(o), online: clientsOf(o.pid).length > 0, me: o === store.profileOf(c.token), rel: store.relation(store.profileOf(c.token), o), ...(store.isAdmin(store.profileOf(c.token)) && o !== store.profileOf(c.token) ? { mod: !store.isAdmin(o) } : {}) } });
     }
     case 'sky': { // constellations: light a point with a free star, or pick the finished one to show in the level chip
       const p = store.profileOf(c.token), r = store.setSky(p, { light: m.light, shown: m.shown });
@@ -595,6 +680,7 @@ function handle(c, m) {
       if (c.view === 'hub' && was !== 'hub' && !c.room && c.roomsVer !== roomsVer) { c.sock?.send(roomsText()); c.roomsVer = roomsVer; } // back from Pet Farm or a solo game: catch up on the table list
       return;
     } // which solo screen (Pet Farm, Hay Hunch) or the hub, for the host's list
+    case 'mod': return modMsg(c, m); // reports from players; the hosts' Reports tab (server/mod.js)
     case 'who': { // the host's "Who's here" list: only accounts named in ADMINS get it
       if (!store.isAdmin(store.profileOf(c.token))) return;
       if (!allow('who:' + c.token, 30, 60_000)) return;
@@ -685,7 +771,8 @@ function handle(c, m) {
       // players who are out talk only among themselves). Lines not everyone may read stay out of the saved log.
       const mod = GAMES[r.game], live = r.G?.ph === 'play', seatOf = id => r.G.seats.findIndex(x => x.id === id), from = live ? seatOf(c.id) : -1;
       if (live && mod.chatOk && !mod.chatOk(r.G, from)) return send(c, { t: 'err', msg: mod.chatShut?.(r.G, from) || 'The chat is closed right now.' });
-      const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), pt: store.tagOf(store.profileOf(c.token)), text };
+      if (muted(c)) return send(c, { t: 'err', msg: 'A host has muted you.' });
+      const msg = { t: 'chat', at: now, id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), pt: store.tagOf(store.profileOf(c.token)), text };
       const to = r.players.map(t => clients.get(t)).filter(o => o && (!live || !mod.chatSee || mod.chatSee(r.G, from, seatOf(o.id))));
       if (to.length === r.players.length) { r.chat.push(msg); if (r.chat.length > 40) r.chat.shift(); }
       for (const o of to) send(o, msg);
@@ -694,7 +781,7 @@ function handle(c, m) {
     case 'hubchat': { // the hub's global chat: no text = send me the conversation
       const p = store.profileOf(c.token);
       if (m.text === undefined) return send(c, { t: 'hubchat', log: hubchat.history(p), max: hubchat.MAX_LEN });
-      if (plaza.mutedFor(c)) return send(c, { t: 'hubchat', err: 'A host has muted you for a few minutes.' });
+      if (muted(c)) return send(c, { t: 'hubchat', err: muted(c) === 'site' ? 'A host has muted you.' : 'A host has muted you for a few minutes.' });
       const r = hubchat.post(p, c, c.sock?.ip || '?', m.text);
       if (r.err) return send(c, { t: 'hubchat', err: r.err });
       if (r.msg) { // most readers get the same line, turned into text once; the writer and the moderators get their own
@@ -760,7 +847,7 @@ function handle(c, m) {
     case 'logout': {
       const p = store.logout(c.token, c); if (!p) return;
       c.av = store.allowedAv(p, c.av); store.setLook(c.token, c);
-      send(c, { t: 'me', me: store.me(p) });
+      send(c, { t: 'me', me: store.me(p) }); tellStanding(c);
       const r = rooms.get(c.room); if (r) sendRoom(r);
       return;
     }
@@ -868,7 +955,7 @@ function auth(c, m) {
     if (m.t === 'delacct') { note('del:' + ip, 3600_000); console.log(`account ${r.user} deleted by its owner (${(r.out || []).length + 1} screens signed out)`); return send(c, { t: 'auth', ok: m.t }); }
     if (m.t === 'login' || m.t === 'recover') { c.name = p.name; c.color = p.color; if (p.av) c.av = p.av; }
     for (const t of r.out || []) signedOut(t);
-    send(c, { t: 'auth', ok: m.t, code: r.code }); send(c, { t: 'me', me: store.me(p) });
+    send(c, { t: 'auth', ok: m.t, code: r.code }); send(c, { t: 'me', me: store.me(p) }); tellStanding(c);
     const room = rooms.get(c.room); if (room) sendRoom(room);
   }, e => { console.error('auth error', e); send(c, { t: 'auth', op: m.t, err: 'Something went wrong. Try again.' }); });
 }
@@ -944,6 +1031,7 @@ const onSocket = sock => {
       if (c.sock !== sock) c.since = Date.now(); // when this visit started, for the host's list
       c.sock = sock; c.lastSeen = Date.now(); c.view = 'hub';
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
+      c.dev = modr.cleanDev(m.dev) || c.dev || ''; c.iph = modr.ipHash(sock.ip); // for a host's device or address ban (server/mod.js)
       c.id = store.session(token, c).id;
       const p = store.profileOf(token);
       // An account's look is the one saved on the server. The browser's own copy may be an old guest look (a page
@@ -959,6 +1047,7 @@ const onSocket = sock => {
       send(c, noticeFor(c));
       send(c, statsMsg()); broadcastStats();
       send(c, { t: 'me', me: store.me(store.profileOf(token)) });
+      tellStanding(c);
       const r = rooms.get(c.room);
       if (r) {
         if (r.G) { const s = r.G.seats.findIndex(x => x.id === c.id); if (s >= 0) { GAMES[r.game].setAway(r.G, s, false); letGo(r, c); } }
@@ -1007,6 +1096,7 @@ hubchat.load();
 daily.load(); word.load();
 wheel.load();
 notice.load();
+modr.load();
 plaza.load();
 // Stopping (systemctl restart/stop, Ctrl+C): save everything first, then tell every screen "back in a moment" and
 // close with 1012 (service restart), so pages wait for the server and reconnect on their own. The pause lets the
@@ -1014,7 +1104,7 @@ plaza.load();
 let stopping = false;
 const bye = (code = 0) => {
   if (stopping) return; stopping = true;
-  store.saveNow(true); farm.saveNow(true); hubchat.saveNow(); plaza.saveNow();
+  store.saveNow(true); farm.saveNow(true); hubchat.saveNow(); plaza.saveNow(); modr.saveNow();
   let n = 0;
   for (const c of clients.values()) if (c.sock) { n++; try { c.sock.send({ t: 'bye' }); c.sock.close(1012); } catch {} }
   console.log(`stopping: saved, told ${n} screens to wait for the restart`);

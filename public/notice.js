@@ -115,12 +115,11 @@ function paintSheet() {
   sheet.el.querySelector('[data-form="maint"]').hidden = !!cur.maint;
   const pl = sheet.el.querySelector('[data-pull]'); if (pl) pl.innerHTML = pulledHtml();
 }
-export function openNotices() {
-  if (!deps?.me()?.admin) return;
-  sheet?.close();
+/** The Site notices tab of the Admin panel (admin.js), drawn into `box`. Returns the function that stops it. */
+export function mountNotices(box) {
+  if (!deps?.me()?.admin) return () => {};
   deps.send({ t: 'notice' }); // fresh state, with the note waiting for the restart
-  const w = sheet = deps.modal(`<h2>${L('Site notices', 'Komunikaty strony')}</h2>
-    <p class="rknote">${L('Only hosts see this window. Write in one language or both: players read theirs, or the other one if that is all there is.', 'To okno widzą tylko gospodarze. Pisz w jednym języku albo w obu: gracze czytają swój, a jeśli go nie ma, ten drugi.')}</p>
+  box.innerHTML = `<p class="rknote">${L('Only hosts see this tab. Write in one language or both: players read theirs, or the other one if that is all there is.', 'Tę kartę widzą tylko gospodarze. Pisz w jednym języku albo w obu: gracze czytają swój, a jeśli go nie ma, ten drugi.')}</p>
     <section class="ntsec"><h3>🔧 ${L('Maintenance countdown', 'Odliczanie do aktualizacji')}</h3>
       <div data-st="maint" hidden></div>
       <div data-form="maint">
@@ -145,17 +144,15 @@ export function openNotices() {
       <p class="nthint">${L('A short note everyone sees once, in a pop-up. Write it during the countdown and it appears after the restart.', 'Krótka notka, którą każdy zobaczy raz, w okienku. Napisz ją w trakcie odliczania, a pojawi się po restarcie.')}</p>
       ${pairHtml('ntn', true, ['Kart Island Race has a new track!', 'W grze Wyspiarskie gokarty jest nowa trasa!'])}
       <div class="row ntrow"><button type="button" class="btn" data-nt="newsnext">${L('Show after the restart', 'Pokaż po restarcie')}</button><button type="button" class="btn w" data-nt="newsnow">${L('Show now', 'Pokaż teraz')}</button></div>
-    </section>
-    <div class="row" style="margin-top:14px"><button type="button" class="btn w" data-x>${L('Done', 'Gotowe')}</button></div>`);
-  w.el.querySelector('.sheet').classList.add('listsheet', 'ntsheet');
-  w.onClose = () => { if (sheet === w) sheet = null; clearInterval(pollT); };
+    </section>`;
+  const w = sheet = { el: box };
+  const stop = () => { if (sheet === w) sheet = null; clearInterval(pollT); box.removeEventListener('click', onClick); };
   clearInterval(pollT); pollT = setInterval(() => deps.send({ t: 'notice' }), 15_000); // notices a git pull while the window is open
   const val = id => ({ pl: w.el.querySelector(`#${id}-pl`).value.trim(), en: w.el.querySelector(`#${id}-en`).value.trim() });
   const clear = id => { w.el.querySelector(`#${id}-pl`).value = ''; w.el.querySelector(`#${id}-en`).value = ''; };
   const need = (v, id) => { if (v.pl || v.en) return true; deps.toast(L('Write the text first, in Polish or English.', 'Najpierw wpisz tekst, po polsku albo po angielsku.'), true); w.el.querySelector(`#${id}-${PL ? 'pl' : 'en'}`).focus(); return false; };
-  w.el.addEventListener('click', e => {
+  const onClick = e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.x !== undefined) { deps.sfx?.click?.(); return w.close(); }
     if (b.dataset.min) { mins = +b.dataset.min; for (const x of w.el.querySelectorAll('[data-min]')) x.setAttribute('aria-pressed', x === b); return; }
     const op = b.dataset.nt; if (!op) return;
     deps.sfx?.click?.();
@@ -165,6 +162,8 @@ export function openNotices() {
     else if (op === 'anndown') deps.send({ t: 'notice', op: 'ann' });
     else if (op === 'newsnext' || op === 'newsnow') { const v = val('ntn'); if (!need(v, 'ntn')) return; deps.send({ t: 'notice', op: 'news', when: op === 'newsnow' ? 'now' : 'restart', ...v }); clear('ntn'); }
     else if (op === 'newsclear') deps.send({ t: 'notice', op: 'news', when: 'clear' });
-  });
+  };
+  box.addEventListener('click', onClick);
   paintSheet();
+  return stop;
 }

@@ -52,7 +52,7 @@ footer a { color: var(--link); font-weight: 700; }
 
 <article class="pl" lang="pl">
 <h1>Prywatność</h1>
-<p class="muted">Ostatnia aktualizacja: 23 listopada 2026</p>
+<p class="muted">Ostatnia aktualizacja: 25 listopada 2026</p>
 <p class="lead">Zatoka Gier to hobbystyczna strona z grami dla znajomych, prowadzona przez jedną osobę prywatną. Nie ma tu reklam, statystyk odwiedzin ani śledzenia, a strona nie używa plików cookie. Poniżej opisujemy dokładnie, jakie dane przechowujemy, w jakim celu i jak długo.</p>
 
 <div class="box"><b>Kontakt w sprawie twoich danych:</b> <!--contact:pl-->wiadomość na Ko-fi: <a href="https://ko-fi.com/zatokagier" rel="noopener">ko-fi.com/zatokagier</a><!--/contact--><br>
@@ -73,8 +73,17 @@ Napisz tam, jeśli chcesz sprawdzić, poprawić albo usunąć swoje dane. Wysła
 <h2>Gdy grasz jako gość</h2>
 <p>Przeglądarka dostaje losowy identyfikator, a serwer zapisuje pod nim postępy gościa (monety, wyniki, wygląd). Nieużywane sesje gości są usuwane po pół roku, a puste profile gości po godzinie. Licznik odwiedzin przechowuje tylko krótki, nieodwracalny skrót tego identyfikatora, po którym nie da się nikogo rozpoznać.</p>
 
+<h2>Zgłoszenia i moderacja</h2>
+<ul>
+<li><b>Gdy zgłaszasz gracza:</b> zapisujemy powód, twoją notkę, kto zgłasza i kogo, kiedy, gdzie byliście (stół, Plac, strona główna) oraz ostatnie wiadomości z czatu głównego i czatu stołu, żeby gospodarze widzieli, co się działo. Zgłoszenia czytają tylko gospodarze. Zgłoszony gracz nie dowiaduje się, kto go zgłosił.</li>
+<li><b>Jak długo:</b> zamknięte zgłoszenia są usuwane po 90 dniach, nieprzejrzane po 180 dniach. Lista decyzji gospodarzy (ostrzeżenie, wyciszenie, blokada) jest przechowywana 180 dni. Ostrzeżenia, wyciszenia i blokady zostają przy profilu, dopóki trwają albo dopóki istnieje konto.</li>
+<li><b>Żeby blokady działały:</b> profil pamięta 5 ostatnich identyfikatorów urządzeń (losowy <code>ct_dev</code> w pamięci przeglądarki) oraz, przez 14 dni, skróty (hash z tajną solą) adresów IP, z których przychodził. Z takiego skrótu nie da się odczytać adresu. Gdy gospodarz zablokuje urządzenie albo adres, skrót jest trzymany do końca blokady.</li>
+<li>Gdy usuniesz konto, znikają też zgłoszenia na ciebie. Blokada urządzenia lub adresu trwa jednak do swojego końca.</li>
+</ul>
+<p><b>Podstawa prawna:</b> prawnie uzasadniony interes, czyli dbanie o to, żeby strona była bezpieczna i przyjazna (art. 6 ust. 1 lit. f RODO).</p>
+
 <h2>Pamięć przeglądarki zamiast plików cookie</h2>
-<p>Strona nie zapisuje plików cookie. W pamięci przeglądarki (localStorage) trzyma tylko to, co jest potrzebne do działania: identyfikator logowania (<code>ct_token</code>), twoją nazwę i wygląd, motyw dzienny lub nocny, język, wyciszenie dźwięku, jakość grafiki i kilka ustawień gier. Nic z tego nie służy do śledzenia. Te dane możesz usunąć w ustawieniach przeglądarki. Spowoduje to wylogowanie.</p>
+<p>Strona nie zapisuje plików cookie. W pamięci przeglądarki (localStorage) trzyma tylko to, co jest potrzebne do działania: identyfikator logowania (<code>ct_token</code>), identyfikator urządzenia (<code>ct_dev</code>, tylko do blokad), twoją nazwę i wygląd, motyw dzienny lub nocny, język, wyciszenie dźwięku, jakość grafiki i kilka ustawień gier. Nic z tego nie służy do śledzenia. Te dane możesz usunąć w ustawieniach przeglądarki. Spowoduje to wylogowanie.</p>
 
 <h2>Adres IP i logi serwera</h2>
 <ul>
@@ -100,7 +109,7 @@ Napisz tam, jeśli chcesz sprawdzić, poprawić albo usunąć swoje dane. Wysła
 
 <article class="en" lang="en">
 <h1>Privacy</h1>
-<p class="muted">Last updated: 23 November 2026</p>
+<p class="muted">Last updated: 25 November 2026</p>
 <p class="lead">Zatoka Gier is a hobby games site for friends, run by one private person. There are no ads, no analytics and no tracking, and the site uses no cookies. Here is exactly what we keep, why, and for how long.</p>
 
 <div class="box"><b>Contact about your data:</b> <!--contact:en-->a message on Ko-fi: <a href="https://ko-fi.com/zatokagier" rel="noopener">ko-fi.com/zatokagier</a><!--/contact--><br>
@@ -121,8 +130,17 @@ Write there if you want to see, correct or delete your data. You don't need to p
 <h2>If you play as a guest</h2>
 <p>Your browser gets a random id, and the server keeps a guest's progress (coins, scores, look) under it. Unused guest sessions are forgotten after six months, and empty guest profiles after an hour. The "visitors so far" counter keeps only a short hash of that id, which can't tell anyone who you are.</p>
 
+<h2>Reports and moderation</h2>
+<ul>
+<li><b>When you report a player:</b> we keep the reason, your note, who reported whom and when, where you both were (a table, the Plaza, the hub) and the latest hub chat and table chat lines, so the hosts can see what happened. Only the hosts read reports. The reported player is not told who reported them.</li>
+<li><b>How long:</b> closed reports are deleted after 90 days, reports nobody looked at after 180 days. The hosts' list of decisions (warning, mute, ban) is kept for 180 days. Warnings, mutes and bans stay on the profile while they last or while the account exists.</li>
+<li><b>So that bans work:</b> a profile remembers its last 5 device ids (a random <code>ct_dev</code> in browser storage) and, for 14 days, hashes (with a secret salt) of the IP addresses it came from. The address can't be read back from such a hash. When a host bans a device or an address, the hash is kept until the ban ends.</li>
+<li>If you delete your account, reports about you go too. A device or address ban still runs until it ends.</li>
+</ul>
+<p><b>Legal basis:</b> legitimate interest in keeping the site safe and friendly (GDPR Art. 6(1)(f)).</p>
+
 <h2>Browser storage instead of cookies</h2>
-<p>The site sets no cookies. It keeps only what it needs to work in your browser's storage (localStorage): your sign-in id (<code>ct_token</code>), your look and name, day or night theme, language, sound on or off, graphics quality and a few in-game settings. None of it is used for tracking. You can clear it in your browser settings (that signs you out).</p>
+<p>The site sets no cookies. It keeps only what it needs to work in your browser's storage (localStorage): your sign-in id (<code>ct_token</code>), a device id (<code>ct_dev</code>, only for bans), your look and name, day or night theme, language, sound on or off, graphics quality and a few in-game settings. None of it is used for tracking. You can clear it in your browser settings (that signs you out).</p>
 
 <h2>IP addresses and server logs</h2>
 <ul>

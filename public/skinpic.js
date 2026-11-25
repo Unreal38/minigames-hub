@@ -77,12 +77,26 @@ async function dominoPic(i) {
   one(84, 128, -.2, 6, 4); one(164, 118, .16, 3, 3);
   return c.toDataURL('image/png');
 }
+// two Word Reef tiles, an R and a F, in that set's colours
+async function reefPic(i) {
+  const { reefLook, paintReefMotif } = await import('./pieceskins.js'), L = reefLook(i), [c, g] = cv2d(240, 240);
+  const one = (x, y, rot, l, v) => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = INK; rr(g, -64, -64, 128, 136, 22); g.fill(); g.fillStyle = L.body; rr(g, -58, -58, 116, 124, 17); g.fill();
+    g.fillStyle = L.face; rr(g, -58, -58, 116, 112, 17); g.fill(); g.save(); g.translate(-58, -58); paintReefMotif(g, 116, i); g.restore();
+    g.fillStyle = L.ink; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '800 70px Rubik, Arial, sans-serif'; g.fillText(l, -6, 2); g.font = '700 26px Rubik, Arial, sans-serif'; g.fillText(v, 36, 34); g.restore(); };
+  one(82, 108, -.16, 'R', '1'); one(162, 138, .12, 'F', '4');
+  return c.toDataURL('image/png');
+}
+// the lantern itself, bobbing in the air
+const lanternPic = i => shot3d(async THREE => {
+  const { lanternModel } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), g = lanternModel(THREE, i); toonify(g, .03);
+  return { g, dir: [.25, .3, .92], zoom: .92 };
+});
 export async function skinPic(k, i, color, av) {
   const key = keyOf(k, i, color, av); if (shots.has(key)) return shots.get(key);
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }

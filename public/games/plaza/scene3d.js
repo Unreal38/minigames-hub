@@ -400,6 +400,10 @@ export function createScene(canvas, opts = {}) {
     if (id === 'shiver') { ox = Math.sin(t * 58) * .022; lean = Math.sin(t * 41) * .03; }
     if (id === 'flip') { const w = Math.min(1, u); y = Math.sin(w * Math.PI) * 1.45; bend = -w * Math.PI * 2; hop = 1 - w; }
     if (id === 'robot') { const st = Math.floor(t * 2.6); turn = ((st % 4) - 1.5) * .28; y = (t * 2.6) % 1 < .18 ? .05 : 0; lean = st % 2 ? .07 : -.07; }
+    const posed = id === 'pose' ? Math.min(1, u / .18) * Math.min(1, (1 - Math.min(1, u)) / .12) : 0; // strike a pose: snap into it, hold, let go
+    if (id === 'pose') { turn = -.45 * posed; lean = .1 * posed;
+      if (m.fxN < 2 && u > .25 + m.fxN * .3 && !m.hid) { m.fxN++; fx.burst(v3.set(m.x + Math.sin(m.ry) * 1.1, 1.9, m.z + Math.cos(m.ry) * 1.1), { n: 6, colors: ['#ffffff', '#fff1a8'], shape: STAR, speed: 1.6, up: 1, size: .42, grav: 0, life: .35 }); } } // camera flashes
+    if (id === 'strut') { lean = Math.sin(t * 7) * .08; turn = Math.sin(t * 3.5) * .12; y = Math.abs(Math.sin(t * 7)) * .04; }
     if (id === 'stars') { hop = .5 + .5 * Math.sin(t * 8); y = Math.abs(Math.sin(t * 8)) * .14;
       if (m.fxN < 3 && u > (m.fxN + 1) * .26 && !m.hid) { m.fxN++; fx.burst(v3.set(m.x, 2.1, m.z), { n: few ? 8 : 16, colors: ['#ffd84a', '#fff1a8', '#ffffff', '#9fd8ff'], shape: STAR, speed: 2.4, up: 5, size: .32, grav: 5, life: 1.2 }); } }
     if (id === 'heart' && !m.fxN && u > .45 && !m.hid) { m.fxN = 1; fx.burst(v3.set(m.x + Math.sin(m.ry) * .7, 1.5, m.z + Math.cos(m.ry) * .7), { n: 7, colors: ['#ff6f91', '#ff9fb8', '#ffd0dc'], shape: HEART, speed: .9, up: 2.2, size: .36, grav: 2, life: 1.3 }); }
@@ -419,7 +423,7 @@ export function createScene(canvas, opts = {}) {
     animateAvatar(m.av, T, { seed: m.s, hop: Math.max(0, Math.min(1, hop)), active: id === 'dance' || id === 'trick' });
     const ud = m.av.userData;
     const tuck = id === 'flip' ? Math.sin(Math.min(1, u) * Math.PI) : 0, sweep = id === 'angel' ? .5 - .5 * Math.cos(t * 3.2) : 0;
-    if (m.amt > .02 && !sit && !lie) { walkAvatar(m.av, m.ph, m.amt); ud.legs?.forEach(l => { l.rotation.z = 0; }); }
+    if ((m.amt > .02 || id === 'strut') && !sit && !lie) { walkAvatar(m.av, m.amt > .02 ? m.ph : t * 7, m.amt > .02 ? m.amt : .9); ud.legs?.forEach(l => { l.rotation.z = 0; }); }
     else ud.legs?.forEach((l, i) => { l.rotation.x = ride ? -.3 : sit ? -1.5 : id === 'bow' ? -bend : -tuck * 1.5; l.rotation.z = ride ? (i ? 1 : -1) * .5 : (i ? 1 : -1) * sweep * .42; if (l.userData.kn) l.userData.kn.rotation.x = ride ? .5 : sit ? (seat ? 1.45 + (swing ? Math.sin(T * 1.7) * .5 : 0) : .15) : tuck * 1.7; });
     const thr = m.thr !== undefined ? (T - m.thr) / .42 : 1;
     ud.arms.forEach((a, i) => { a.userData.rz0 ??= a.rotation.z; a.rotation.z = a.userData.rz0;
@@ -437,6 +441,8 @@ export function createScene(canvas, opts = {}) {
       if (id === 'shiver') { a.rotation.x = -1.05; a.rotation.z = a.userData.rz0 - out * .75 + Math.sin(t * 50 + i) * .04; }
       if (id === 'flip') a.rotation.x = -2.6 * tuck;
       if (id === 'robot') { const st = Math.floor(t * 2.6) + i; a.rotation.x = st % 2 ? -1.55 : -.1; a.rotation.z = a.userData.rz0; }
+      if (id === 'pose') { if (i === 1) { a.rotation.x = -2.9 * posed; a.rotation.z = a.userData.rz0 + .35 * posed; } else { a.rotation.x = -.45 * posed; a.rotation.z = a.userData.rz0 - out * .95 * posed; } } // one hand up, one on the hip
+      if (id === 'strut' && i === 0) { a.rotation.x = -.45; a.rotation.z = a.userData.rz0 - out * .95; } // hand on the hip, the other swings
       if (thr < 1 && i === 1) a.rotation.x = thr < .35 ? -3.1 * (thr / .35) : -3.1 + 2.6 * ((thr - .35) / .65); });
     // pets trot after their owner in a line, and join in with a trick
     for (const p of m.pets) {
