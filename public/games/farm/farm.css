@@ -53,7 +53,7 @@ body.in-game { overflow: hidden; }
 .pf .item:active { transform: scale(.95); }
 .pf .item b { font-family: var(--fd); font-weight: 600; font-size: 14px; line-height: 1.15; }
 .pf .item .cost { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; }
-.pf .item .mat { font-size: 13px; } .pf .item .mat small { display: none; } .pf .item .mat i { width: 11px; height: 11px; border-radius: 3px; }
+.pf .item .cost { max-width: 100%; } .pf .item .mat { font-size: 13px; max-width: 100%; white-space: normal; text-wrap: balance; justify-content: center; line-height: 1.15; } /* labels like "Nagroda z Koła szczęścia" wrap inside the card */ .pf .item .mat small { display: none; } .pf .item .mat i { width: 11px; height: 11px; border-radius: 3px; }
 .pf .item.off { background: var(--pf-soft, #efe2d2); } .pf .item.off img { opacity: .5; }
 .pf .item[aria-pressed=true] { background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
