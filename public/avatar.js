@@ -1,6 +1,6 @@
 // Avatar options shared by the server (validation), the creator, the 3D model and the little round pictures.
 //
-// An avatar is a list of 22 numbers, one per entry of AV_KEYS, each an index into the list of the same name in OPT.
+// An avatar is a list of 23 numbers, one per entry of AV_KEYS, each an index into the list of the same name in OPT.
 // The player's own colour is the top colour, so it is not stored here.
 // Only append to these lists: saved avatars store indexes.
 //
@@ -37,6 +37,7 @@ export const OPT = {
   glasses: ['None', 'Glasses', 'Round glasses', 'Sunglasses'],
   neck: ['None', 'Scarf', 'Bow tie', 'Necklace', 'Tie'],
   back: ['None'], // things worn on the back: all from the shop. Added later, so avatars saved with 21 numbers get 0 here.
+  hand: ['None', 'Flower', 'Book', 'Phone'], // something held in the right hand (standing avatars only). Added later still: 22-number saves get 0.
 };
 
 // ---------- the coin shop ----------
@@ -84,6 +85,19 @@ pack('kofi', [['hat', 'Coffee mug hat'], ['glasses', 'Café glasses'], ['neck', 
 shop('bottom', [['Cargo trousers', 90], ['Tutu', 110], ['Plaid kilt', 120], ['Swim shorts', 80, 'summer']]);
 shop('shoes', [['Paw slippers', 110], ['Light-up sneakers', 120], ['Flippers', 90, 'summer'], ['Ice skates', 130, 'winter']]);
 shop('hat', [['Sprout', 120], ['Candle flame', 140], ['Wave curl', 140], ['Storm cloud', 160]]);
+// The dress-up batch (2026-11-25, for the Sky Runway themes): things to hold, and clothes for formal, royal, pirate, rock,
+// sporty and disco looks. The Ko-fi pack gets a held Coffee pot so supporters have one item in every slot.
+shop('hand', [['Bouquet', 140], ['Umbrella', 120], ['Magic wand', 160], ['Microphone', 130], ['Foam sword', 120], ['Handbag', 140], ['Trophy', 180],
+  ['Tennis racket', 110], ['Mossbun plush', 150], ['Lantern', 120], ['Ice cream cone', 90, 'summer'], ['Candy cane', 80, 'winter'], ['Pumpkin bucket', 110, 'halloween'],
+  ['Flower basket', 110, 'spring']]);
+pack('kofi', [['hand', 'Coffee pot']]);
+shop('top', [['Ball gown', 260], ['Royal robe', 240], ['Pirate coat', 200], ['Leather jacket', 170], ['Tracksuit top', 120], ['Sequin top', 160]]);
+shop('bottom', [['Flared trousers', 100], ['Ripped jeans', 100], ['Track trousers', 90]]);
+shop('shoes', [['Heels', 110], ['Cowboy boots', 130], ['Platform boots', 140]]);
+shop('hat', [['Tiara', 200], ['Veil', 150], ['Sweatband', 60], ['Deerstalker', 130]]);
+shop('glasses', [['Masquerade mask', 140], ['Cat-eye glasses', 100]]);
+shop('neck', [['Feather boa', 130], ['Spiked collar', 90], ['Ruff collar', 110]]);
+shop('back', [['Flickit on the shoulder', 200], ['Guitar', 170]]);
 
 export const packOf = (k, i) => PACK[k + ':' + i] || null;
 export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);
@@ -137,7 +151,7 @@ export const AV_TABS = [
   ['Face', [['face', 'Face shape'], ['eyes', 'Eyes'], ['eyeC', 'Eye colour'], ['brows', 'Brows'], ['nose', 'Nose'], ['mouth', 'Mouth'], ['marks', 'Face marks']]],
   ['Hair', [['hair', 'Hair style'], ['hairC', 'Hair colour'], ['facial', 'Facial hair']]],
   ['Outfit', [['top', 'Top'], ['color', 'Top colour'], ['bottom', 'Bottom'], ['botC', 'Bottom colour'], ['shoes', 'Shoes'], ['shoeC', 'Shoe colour']]],
-  ['Extras', [['hat', 'Hat'], ['glasses', 'Glasses'], ['neck', 'Neck'], ['back', 'Back']]],
+  ['Extras', [['hat', 'Hat'], ['glasses', 'Glasses'], ['neck', 'Neck'], ['back', 'Back'], ['hand', 'In hand']]],
 ];
 
 // In Polish the names above are swapped for the Polish ones (browser only: the server always keeps English).
@@ -159,12 +173,12 @@ function fromOld(a) {
   return o;
 }
 
-// Lists from before a slot was added are shorter (21 numbers before 'back'): the missing slots are 0.
+// Lists from before a slot was added are shorter (21 numbers before 'back', 22 before 'hand'): the missing slots are 0.
 export const cleanAv = a => Array.isArray(a) && a.length >= 21 && a.length <= AV_KEYS.length ? AV_MAX.map((m, i) => int(a[i] ?? 0, m)) : fromOld(a);
 
 export const randomAv = () => {
   const o = AV_KEYS.map(k => { let v; do v = Math.random() * OPT[k].length | 0; while (locks(k + ':' + v)); return v; }), r = (k, p) => { if (Math.random() < p) o[IX[k]] = 0; };
-  r('facial', .6); r('hat', .6); r('glasses', .65); r('neck', .65); r('marks', .6);
+  r('facial', .6); r('hat', .6); r('hand', .85); r('glasses', .65); r('neck', .65); r('marks', .6);
   if (Math.random() < .7) o[IX.hairC] = [0, 1, 2, 3, 10, 11][Math.random() * 6 | 0];
   return o;
 };
