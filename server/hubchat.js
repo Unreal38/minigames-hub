@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { DATA_DIR, safeText, badge, flair, tagOf, isAdmin } from './store.js';
 import { allow } from './limits.js';
+import { muteOf } from './mod.js';
 
 export const MAX_LEN = 200;  // characters per message
 const KEEP = 100;            // messages kept on the server
@@ -54,6 +55,7 @@ export const history = p => log.slice(-SEND).map(m => view(m, p?.pid, isAdmin(p)
 // grid: a Mystery Pet result (rows of g / y / r squares) or a Word in a Bottle one (h / n / m) shown under the line.
 export function post(p, c, ip, raw, grid = null) {
   if (!p?.user) return { err: 'Log in or make an account to chat.' };
+  if (muteOf(p)) return { err: 'A host has muted you.' };
   const text = cleanText(raw); if (!text) return {};
   const last = [...log].reverse().find(m => m.pid === p.pid);
   if (last && last.text.toLowerCase() === text.toLowerCase() && Date.now() - last.at < 30_000) return { err: 'You just said that.' };
@@ -82,4 +84,10 @@ export function forget(pid) {
   const gone = log.filter(m => m.pid === pid).map(m => m.id);
   if (gone.length) { log = log.filter(m => m.pid !== pid); scheduleSave(); saveNow(); }
   return gone;
+}
+// For a report: the reported player's last lines, and the conversation around their newest one (who said what, when).
+const ctxRow = (m, pid) => ({ at: m.at, name: m.name, user: m.user || '', text: m.text, ...(m.pid === pid ? { me: 1 } : {}) });
+export function contextOf(pid) {
+  const last = log.findLastIndex(m => m.pid === pid);
+  return { hub: log.filter(m => m.pid === pid).slice(-10).map(m => ctxRow(m, pid)), around: last < 0 ? [] : log.slice(Math.max(0, last - 6), last + 4).map(m => ctxRow(m, pid)) };
 }

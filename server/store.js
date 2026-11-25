@@ -633,7 +633,7 @@ export function logout(token, look) {
 export function prune(active) {
   const now = Date.now(), held = new Map();
   for (const s of sessions.values()) held.set(s.pid, (held.get(s.pid) || 0) + 1);
-  const empty = p => !p.user && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length && !p.fits?.length;
+  const empty = p => !p.user && !p.mod && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length && !p.fits?.length;
   let n = 0;
   for (const [t, s] of sessions) {
     const p = profiles.peek(s.pid); // peek: looking is not changing, so the save need not look at them all

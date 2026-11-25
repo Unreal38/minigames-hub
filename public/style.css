@@ -2029,6 +2029,73 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
   .hubtabs .tdot:not([hidden]) { display: block; position: absolute; top: 2px; left: calc(50% + 9px); width: 11px; height: 11px; border-radius: 50%; background: var(--lantern); border: 2px solid var(--ink); }
 }
 
+<<<<<<< HEAD
+/* ---------- moderation: reports, the ban screen, the hosts' Admin panel (admin.js) ---------- */
+.pdelrow { gap: 8px; align-items: center; flex-wrap: wrap; }
+.punfr { align-self: center; }
+body.tagpick .tags > * { pointer-events: auto; cursor: pointer; }
+.repsheet { width: min(480px, 100%); }
+.repwhy { border: 0; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.repwhy legend { font: 700 17px var(--fd); margin-bottom: 4px; color: var(--on-paper); }
+.repwhy label { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border: 2px solid var(--card-edge); border-radius: 12px; cursor: pointer; color: var(--on-paper); font-size: 16px; }
+.repwhy label:has(input:checked) { border-color: var(--ink); background: var(--lantern); color: var(--ink); }
+.repwhy input { width: 20px; height: 20px; accent-color: var(--chili); flex: none; margin: 0; }
+.repform textarea.field { resize: vertical; font-family: 'Nunito', system-ui, sans-serif; font-weight: 500; font-size: 16px; }
+.banwall { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; background: #160a12f2; backdrop-filter: blur(8px); }
+.banbox { width: min(440px, 100%); background: var(--card); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 22px; padding: 22px 20px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; box-sizing: border-box; }
+.banbox h2 { margin: 0; text-wrap: balance; } .banbox p { margin: 0; text-wrap: pretty; }
+.banico { font-size: 46px; line-height: 1; }
+.banwhy { padding: 8px 12px; border-radius: 12px; background: var(--note-bg, #fff3d6); color: var(--note-tx, var(--ink)); border-left: 4px solid var(--chili); text-align: left; overflow-wrap: anywhere; }
+.hcmuted span { color: var(--soft-tx); }
+.admsheet { width: min(760px, 100%); }
+.admtabs { flex: none; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; margin: 0 -2px; }
+.admtabs button { flex: none; position: relative; font: 600 15px var(--fd); min-height: 44px; padding: 6px 14px; border-radius: 12px; border: 2px solid var(--card-edge); background: transparent; color: var(--on-paper); cursor: pointer; white-space: nowrap; }
+.admtabs button[aria-selected=true] { background: var(--lantern); border-color: var(--ink); color: var(--ink); }
+.admtabs .frbadge, .aitems .admcount { position: static; display: inline-block; margin-left: 6px; vertical-align: 1px; }
+.admtabs .frbadge[hidden], .aitems .admcount[hidden] { display: none; }
+.admbody { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.admbody h3 { margin: 6px 0 0; font: 700 18px var(--fd); color: var(--on-paper); }
+.admbody h4 { margin: 8px 0 2px; font: 700 15px var(--fd); color: var(--on-paper); }
+.mcase { flex: none; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 2px solid var(--card-edge); min-width: 0; }
+.mcase.done { opacity: .85; }
+.mwho { display: flex; gap: 10px; align-items: center; min-width: 0; cursor: pointer; }
+.mwho > div { min-width: 0; } .mwho b { font: 700 17px var(--fd); color: var(--on-paper); overflow-wrap: anywhere; } .mwho small { color: var(--soft-tx); }
+.mchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.mchips .chip, .mline .chip { font-size: 13px; padding: 2px 10px; border-width: 2px; white-space: normal; }
+.chip.mban { background: var(--chili); color: #fff; } .chip.mmute { background: #9aa8ff; color: var(--ink); } .chip.mwhy { background: var(--lantern); color: var(--ink); }
+.mrep { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 2px dashed var(--card-edge); min-width: 0; }
+.mline { margin: 0; font-size: 14px; color: var(--soft-tx); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mline a { color: var(--on-paper); font-weight: 700; }
+.mrep blockquote { margin: 0; padding: 8px 12px; border-left: 4px solid var(--note-edge, var(--lantern)); background: var(--note-bg, #fff3d6); color: var(--note-tx, var(--ink)); border-radius: 0 10px 10px 0; overflow-wrap: anywhere; }
+.mrep details summary { cursor: pointer; font-weight: 700; min-height: 32px; display: flex; align-items: center; color: var(--on-paper); }
+.ctxlog { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 14px; color: var(--on-paper); }
+.ctxlog li { padding: 3px 8px; border-radius: 8px; overflow-wrap: anywhere; }
+.ctxlog li.them { background: var(--note-bg, #fff3d6); color: var(--note-tx, var(--ink)); }
+.ctxlog time { font-variant-numeric: tabular-nums; color: var(--soft-tx); font-size: 12.5px; }
+.ctxlog li.them time { color: inherit; opacity: .7; }
+.mact { display: flex; flex-wrap: wrap; gap: 8px; }
+.admfind { display: flex; gap: 8px; } .admfind .field { flex: 1; min-width: 0; font-size: 16px; min-height: 44px; }
+.mlist { display: flex; flex-direction: column; gap: 8px; }
+.mrow { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 14px; background: var(--card); border: 2px solid var(--card-edge); min-width: 0; }
+.mrow .mwho { flex: 1; }
+.mlog b[data-prof] { cursor: pointer; text-decoration: underline dotted; }
+.modsheet { width: min(520px, 100%); }
+.modbody { display: flex; flex-direction: column; gap: 10px; }
+.modbody .field { font-size: 16px; min-height: 44px; }
+.modbody .row { flex-wrap: wrap; }
+@media (max-width: 560px) {
+  .admtabs button { padding: 6px 10px; font-size: 14px; }
+  .mcase { padding: 10px; }
+  .mrow { flex-wrap: wrap; } .mrow .btn { margin-left: auto; }
+}
+body.banned > :not(.banwall) { display: none !important; }
+body.banned .banwall { background: var(--paper, #160a12); }
+.mhist { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--note-bg); color: var(--note-tx); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.mhist .ctxlog, .mhist .ctxlog time { color: inherit; } .mhist.none { background: transparent; color: var(--soft-tx); padding: 0; }
+.mhist.hot { border-left: 4px solid var(--chili); }
+.thxcoins { font: 700 22px var(--fd); color: var(--on-paper); display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.banleft { font-size: 17px; } .banleft b { font-variant-numeric: tabular-nums; }
+=======
 /* Cosmetics for the 2026-11-25 games and Pet Farm features: Lantern Night, Copycat Isle, Sky Runway, Word Reef, Checkers, the Pet Museum and Legend Isle. */
 .nm16 { --g: linear-gradient(90deg, #c9700c, #ffb84a 35%, #fff1b8 50%, #ffb84a 65%, #c9700c); animation: nmslide 3.4s ease-in-out infinite; }
 .fr15 { --f3: #ffb84aaa; --fa: url("frames/f15.svg"); }
@@ -2044,3 +2111,4 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
 .pb36 { background-image: url(cardbg/copycat.svg); } .pb37 { background-image: url(cardbg/runway.svg); } .pb38 { background-image: url(cardbg/reef.svg); } .pb39 { background-image: url(cardbg/checkers.svg); }
 .pb40 { background-image: url(cardbg/museum.svg); } .pb41 { background-image: url(cardbg/legend.svg); }
 :is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
+>>>>>>> origin/main
