@@ -140,7 +140,7 @@ export function createScene(canvas, { onFrame, onCue }) {
   let tower = [], topY = 0, steady = 1, jolt = 0;
   let sw = null, swStart = 0, swMesh = null, frozen = -1, frozenAt = 0;
   let dr = null, drStart = 0, drMesh = null, drLanded = false, drFrom = 0, lastDrop = 0, turn = -1, playing = false;
-  let camY = 1, isleY = .45, shake = 0, firstFit = true;
+  let camY = 1, isleY = .45, shake = 0, firstFit = true, towerN = -1;
 
   // the balloon that carries the swinging block, and the mark showing where it would land
   const balloon = new THREE.Group(); balloon.visible = false; towerG.add(balloon);
@@ -183,12 +183,31 @@ export function createScene(canvas, { onFrame, onCue }) {
   }
 
   // ---------- state from the server ----------
+  const sameBlock = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y && a.z === b.z && a.w === b.w && a.d === b.d && a.h === b.h;
+  function popBlock(k) { if (k && !k.gone) { k.gone = true; fx.push({ m: k.m, pop: true, t: 0, life: .35 }); } }
+  // Ends the drop on show right away, without its sounds: a landed block sits in its place, a crash clears the blocks above the joint.
+  function finishDrop() {
+    const d = dr; if (!d) return;
+    if (!drLanded) {
+      if (d.res === 'ok' || d.res === 'perfect') { const k = blocks[d.i]; if (k) k.falling = false; }
+      else if (d.res === 'crash') { if (blocks[d.i]) blocks[d.i].falling = false; while (blocks.length > d.at) popBlock(blocks.pop()); }
+      else if (drMesh) freeBlock(drMesh);
+    }
+    if (drMesh && (d.res === 'ok' || d.res === 'perfect')) { drMesh.scale.set(1, 1, 1); drMesh.position.set(d.x, d.y, d.z); }
+    dr = null; drMesh = null; drLanded = false;
+  }
   function setState(S) {
     playing = S.ph === 'play'; turn = S.turn; steady = S.steady ?? 1;
     const d = S.drop, now = performance.now();
     const fresh = d && d.n !== lastDrop;
+    // A new tower: whatever is left of the old one goes, even if this page never saw it fall (a hidden tab, a slow link)
+    if (S.towerN !== towerN) { if (towerN >= 0) { finishDrop(); while (blocks.length) popBlock(blocks.pop()); } towerN = S.towerN; }
+    // a drop this page has not finished showing (frames stop while the tab is hidden) settles at once before the next one
+    if (fresh) finishDrop();
     // blocks no longer in the tower: debris keeps falling by itself, anything still standing pops away
-    while (blocks.length > S.tower.length) { const k = blocks.pop(); if (!k.gone) { k.pop = 1; fx.push({ m: k.m, pop: true, t: 0, life: .35 }); } }
+    while (blocks.length > S.tower.length) popBlock(blocks.pop());
+    // a standing block that is not where the server says it is (left over from a drop this page missed) is redrawn
+    for (let i = 0; i < blocks.length; i++) { const k = blocks[i]; if (k && !k.falling && !sameBlock(k.b, S.tower[i])) { popBlock(k); blocks[i] = null; } }
     tower = S.tower; sizeTower();
     if (fresh) {
       lastDrop = d.n; frozen = -1;
@@ -199,6 +218,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       if (!m) { m = blockMesh(b, colorOf(d.s)); towerG.add(m); }
       m.castShadow = true;
       const stays = d.res === 'ok' || d.res === 'perfect' || d.res === 'crash';
+      if (stays && blocks[d.i]) { popBlock(blocks[d.i]); blocks[d.i] = null; } // never two meshes for one place in the tower
       if (live && !reduced) {
         drFrom = d.y + GAP; m.position.set(d.x, drFrom, d.z); m.rotation.set(0, 0, 0);
         dr = d; drStart = now - d.ago; drMesh = m; drLanded = false;
@@ -207,7 +227,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       } else {
         dr = null; drMesh = null;
         if (stays && d.res !== 'crash') { m.position.set(d.x, d.y, d.z); m.rotation.set(0, 0, 0); blocks[d.i] = { m, b: S.tower[d.i] }; }
-        else { freeBlock(m); if (d.res === 'crash') blocks.length = Math.min(blocks.length, d.at); }
+        else { freeBlock(m); if (d.res === 'crash') while (blocks.length > d.at) popBlock(blocks.pop()); }
       }
       balloon.visible = false; guide.visible = false; shadowFor = 90;
     }
@@ -282,7 +302,8 @@ export function createScene(canvas, { onFrame, onCue }) {
       shake = 1;
       const [dx, dz] = d.dir;
       for (let i = d.at; i < blocks.length; i++) {
-        const k2 = blocks[i], up = i - d.at, sp = 1.3 + up * .42;
+        const k2 = blocks[i]; if (!k2) continue;
+        const up = i - d.at, sp = 1.3 + up * .42;
         tumble(k2, dx * sp + (Math.random() - .5) * .8, .6 + Math.random() * 1.2, dz * sp + (Math.random() - .5) * .8,
           new THREE.Vector3(dz * (1.6 + up * .25) + (Math.random() - .5), (Math.random() - .5) * 2, -dx * (1.6 + up * .25) + (Math.random() - .5)));
       }
