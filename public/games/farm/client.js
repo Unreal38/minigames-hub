@@ -9,6 +9,7 @@ import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TUR
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
 import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
+import { CHAPTERS, pinned, chapterDone } from './journal.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
 if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV_TEXT, pl.SRV_FORMS); }
@@ -29,6 +30,7 @@ const I = {
 };
 // little pictures for the one-line summary of parties out and eggs in the Nest
 const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 21V4" stroke="#5a3a2e" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#ff8f6b" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/></svg>';
+const bookIcon = '<svg class="pfsi pfjni" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M3 5.5C6 4 9 4 12 6c3-2 6-2 9-.5V19c-3-1.5-6-1.5-9 .5-3-2-6-2-9-.5z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 6v13.5" stroke="#5a3a2e" stroke-width="1.6"/><path d="M5.5 8.5c1.5-.5 3-.5 4.5.3M5.5 11.5c1.5-.5 3-.5 4.5.3M14 8.8c1.5-.8 3-.8 4.5-.3" stroke="#c9a77a" stroke-width="1.3" stroke-linecap="round"/><path d="M15 11v6l1.5-1.2L18 17v-6z" fill="#e0592f" stroke="#5a3a2e" stroke-width="1.2" stroke-linejoin="round"/></svg>';
 const eggIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3c4 0 7 6.5 7 11a7 7 0 0 1-14 0c0-4.5 3-11 7-11z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="2"/><circle cx="9.5" cy="13" r="1.4" fill="#8fd16a"/><circle cx="14" cy="16.5" r="1.2" fill="#8fd16a"/><circle cx="13.5" cy="10" r="1" fill="#8fd16a"/></svg>';
 // Small material badges: a coloured block with the amount beside it.
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
@@ -237,7 +239,7 @@ export function mount(app, ctx) {
       + (more ? sum : (out.length ? `<span class="chip">${tripLine(out[0])}</span>` : '') + (eggs.length ? `<span class="chip">${eggLine(eggs[0])}</span>` : ''))
       + (countOf(F, 'gate') && F.trips.length < F.partyMax ? `<button type="button" class="btn m" data-a="explore">${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '');
     const mails = F.mail.length + F.trades.filter(t => t.dir === 'in').length;
-    el.innerHTML = `${stat ? `<div class="pfstat">${stat}</div>` : ''}<div class="pfrow"><button type="button" class="btn big" data-a="edit">${L(`Edit farm`, `Urządź farmę`)}</button>
+    el.innerHTML = `${journalCard()}${stat ? `<div class="pfstat">${stat}</div>` : ''}<div class="pfrow"><button type="button" class="btn big" data-a="edit">${L(`Edit farm`, `Urządź farmę`)}</button>
       <button type="button" class="btn w pfmenu" data-a="pfmenu" aria-expanded="${navOpen}">${I.menu}${L('Menu', 'Menu')}${mails ? `<span class="pfbadge">${mails}</span>` : ''}</button>
       <div class="pfnav${navOpen ? ' open' : ''}">
       <button type="button" class="btn w" data-a="map">${L(`World map`, `Mapa świata`)}</button>
@@ -245,8 +247,60 @@ export function mount(app, ctx) {
       <button type="button" class="btn w" data-a="ranks">${L(`Ranking`, `Ranking`)}</button>
       <button type="button" class="btn w" data-a="pets">${L(`My pets`, `Moje zwierzaki`)} ${F.pets.length}</button>
       <button type="button" class="btn w" data-a="album">${L(`Pet Album`, `Album zwierzaków`)}</button>
+      <button type="button" class="btn w" data-a="journal">${L(`Farm Journal`, `Dziennik farmy`)}${F.jn && pinned(F.jn)?.claim ? '<span class="pfbadge">!</span>' : ''}</button>
       ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">${L('Mail', 'Poczta')} ${mails || ''}</button>` : ''}</div></div>`;
   }
+  // ---------- the Farm Journal (journal.js): one pinned task on the farm, the whole questline in a panel ----------
+  const jCount = (i, k) => { const n = F.jn.n[i]?.[k]; return n ? ` <span class="pfjnn">${Math.min(n[0], n[1])}/${n[1]}</span>` : ''; };
+  function journalCard() {
+    const jp = F.jn && pinned(F.jn); if (!jp) return '';
+    const c = CHAPTERS[jp.ch], ticks = F.jn.tick[jp.ch], done = ticks.filter(Boolean).length;
+    const dots = `<span class="pfjnd" aria-label="${L(`${done} of ${ticks.length} done`, `Zrobione: ${done} z ${ticks.length}`)}">${ticks.map(t => `<i class="${t ? 'on' : ''}"></i>`).join('')}</span>`;
+    return `<div class="pfjn${jp.claim ? ' claim' : ''}"><button type="button" class="pfjnb" data-a="journal">${bookIcon}<span class="pfjnt"><small>${L(`Farm Journal · ${jp.ch + 1}. ${c.name()}`, `Dziennik farmy · ${jp.ch + 1}. ${c.name()}`)}</small>
+      <b>${jp.claim ? L('Chapter done! Claim the reward', 'Rozdział ukończony! Odbierz nagrodę') : jp.task.text() + jCount(jp.ch, jp.k)}</b>${dots}</span></button>
+      ${jp.claim ? `<button type="button" class="btn sm m" data-a="jclaim">${L('Claim', 'Odbierz')}</button>` : jp.task.go ? `<button type="button" class="btn sm w" data-a="jgo">${L('Show me', 'Pokaż')}</button>` : ''}</div>`;
+  }
+  const rewardHtml = (i, old) => { const c = CHAPTERS[i], it = ITEMS[c.deco], bits = [];
+    if (!old) for (const [k, n] of Object.entries(c.mats || {})) bits.push(mat(k, n));
+    if (c.stamps) bits.push(`<span class="mat">${matIcon('stamps')}${c.stamps}<small>${L('stamps', 'znaczki')}</small></span>`);
+    if (c.charm) bits.push(`<span class="mat">${matIcon('charm')}${c.charm}<small>${L('Element Charm', 'amulet żywiołu')}</small></span>`);
+    return `<div class="pfjnrw">${thumb(c.deco, it.name)}<div><b>${it.name}</b><div class="cost">${bits.join('')}</div>${old && c.mats ? `<p class="hint">${L('Finished before the journal opened, so this chapter gives no materials.', 'Ukończone, zanim pojawił się dziennik, więc ten rozdział nie daje materiałów.')}</p>` : ''}</div></div>`; };
+  function journalHtml() {
+    const j = F.jn, rows = CHAPTERS.map((c, i) => {
+      const tasks = c.tasks.map((q, k) => `<li class="${j.tick[i][k] ? 'on' : ''}"><span class="pfjnx" aria-hidden="true">${j.tick[i][k] ? '✓' : ''}</span><span>${q.text()}${j.tick[i][k] ? '' : jCount(i, k)}</span>${i === j.got && !j.tick[i][k] && q.go ? `<button type="button" class="btn sm w" data-a="jgo" data-ch="${i}" data-k="${k}">${L('Show me', 'Pokaż')}</button>` : ''}</li>`).join('');
+      if (i < j.got) return `<div class="pfjnc got"><h3><span class="pfjnx" aria-hidden="true">✓</span>${i + 1}. ${c.name()}</h3><span class="hint">${L(`Reward: ${ITEMS[c.deco].name}`, `Nagroda: ${ITEMS[c.deco].name}`)}</span></div>`;
+      if (i > j.got) return `<div class="pfjnc lock"><h3>${i + 1}. ${c.name()}</h3><span class="hint">${L(`Opens after chapter ${i}.`, `Otworzy się po rozdziale ${i}.`)}</span></div>`;
+      const done = chapterDone(j, i);
+      return `<div class="pfjnc open"><h3>${i + 1}. ${c.name()}</h3><p>${c.intro()}</p><ul class="pfjnl">${tasks}</ul>
+        <p><b>${L('Reward', 'Nagroda')}</b></p>${rewardHtml(i, i < j.old)}
+        ${done ? `<div class="row end"><button type="button" class="btn big m" data-a="jclaim">${L('Claim the reward', 'Odbierz nagrodę')}</button></div>` : ''}</div>`;
+    }).join('');
+    const all = j.got >= CHAPTERS.length;
+    return `<div class="panel tripp pfjnp"><h2 class="icoh">${bookIcon}${L('Farm Journal', 'Dziennik farmy')}</h2>
+      <p class="hint">${all ? L('Every chapter is done. New chapters arrive with the seasons.', 'Wszystkie rozdziały ukończone. Nowe rozdziały przyjdą z porami roku.') : L('Tasks tick themselves off as you play. Finish a chapter to claim its reward and open the next one.', 'Zadania odhaczają się same podczas gry. Ukończ rozdział, żeby odebrać nagrodę i otworzyć następny.')}</p>
+      ${panel.got !== undefined ? `<div class="pfjngot">${L(`Chapter ${panel.got + 1} done! The ${ITEMS[CHAPTERS[panel.got].deco].name} waits under Edit farm, free to place.`, `Rozdział ${panel.got + 1} ukończony! ${ITEMS[CHAPTERS[panel.got].deco].name}: czeka w Urządzaniu farmy i stawiasz za darmo.`)}<button type="button" class="btn sm m" data-a="jplace" data-type="${CHAPTERS[panel.got].deco}">${L('Place it now', 'Postaw teraz')}</button></div>` : ''}
+      <div class="pfjncs">${rows}</div>
+      <div class="row end"><button type="button" class="btn big m" data-a="shut">${L('Close', 'Zamknij')}</button></div></div>`;
+  }
+  // "Show me": take the player to the place on the farm where the task is done.
+  function journalGo(ch, k) {
+    const jp = pinned(F.jn), q = ch !== undefined ? CHAPTERS[ch]?.tasks[k] : jp?.task, go = q?.go; if (!go) return;
+    const item = go.type && F.items.find(i => i.type === go.type);
+    if (go.a === 'buy' || (go.a === 'card' && !item && (go.buy || ITEMS[go.type]?.kind === 'b'))) return openBuy(go.buy || go.type);
+    if (go.a === 'card') { setEdit(false); panel = null; card = { item: item.id }; scene?.look?.(item.id); sync(); return; }
+    if (go.a === 'land') { setEdit(true); tab = 'b'; paintBuild(); ctx.toast(L('Tap “More land” at the end of the Buildings list.', 'Dotknij „Więcej ziemi” na końcu listy Budynków.')); return; }
+    panel = null; card = null;
+    if (go.a === 'explore') { if (!countOf(F, 'gate')) return openBuy('gate'); if (go.zone) panel = { zone: go.zone }; if (F.trips.length >= F.partyMax) { sync(); return ctx.toast(L('Your parties are out. Send the next one when they are back.', 'Twoje drużyny są na wyprawie. Wyślij kolejną, gdy wrócą.')); } return openSend(); }
+    if (go.a === 'collect') { const t = F.trips.find(x => x.left <= 0); if (t) return ctx.send({ t: 'collect', id: t.id }); sync(); return ctx.toast(F.trips.length ? L(`They are on their way. Back in ${wait(F.trips[0].left)}.`, `Są w drodze. Powrót za ${wait(F.trips[0].left)}.`) : L('Send a party exploring first.', 'Najpierw wyślij drużynę na wyprawę.')); }
+    if (go.a === 'berries') { if (F.garden.ripe) return ctx.send({ t: 'pick' }); sync(); return ctx.toast(L('Nothing is ripe yet. Berries ripen every hour.', 'Jeszcze nic nie dojrzało. Jagody dojrzewają co godzinę.')); }
+    if (go.a === 'pets') panel = { kind: 'pets', sort: petSort() };
+    else if (go.a === 'album') panel = { kind: 'album' };
+    else if (go.a === 'friends') return ctx.friends?.();
+    else if (go.a === 'map') { where = 'map'; V = null; world = null; sync(); ctx.send({ t: 'world' }); return; }
+    sync();
+  }
+  function openBuy(type) { setEdit(true); tab = ITEMS[type]?.kind === 'b' ? 'b' : ITEMS[type]?.craft || ITEMS[type]?.jn ? 'f' : 'd'; paintBuild(); panel = { kind: 'buy', type }; paintPanel(); }
+
   // ---------- expeditions ----------
   const helperOf = type => F.pets.find(p => p.id === F.work?.[type]);
   const helpRow = type => { const w = WORK[type], h = helperOf(type); // the helper line on a building's card
@@ -265,7 +319,7 @@ export function mount(app, ctx) {
     if (panel.kind === 'buy') { // a closer look at something from the build menu before paying for it
       const type = panel.type, it = ITEMS[type], have = countOf(F, type), up = UPGRADES[type], most = maxOf(F, type);
       const gift = F.stash[type] || 0;
-      const why = gift ? '' : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
+      const why = gift ? '' : it.jn && !have ? L(`This one cannot be bought. It is the reward for chapter ${it.jn} of the Farm Journal.`, `Tego nie da się kupić. To nagroda za rozdział ${it.jn} Dziennika farmy.`) : it.wheel && !have ? L('This one cannot be bought. It is a prize of the Lucky Wheel on the main page, one free spin a day.', 'Tego nie da się kupić. To nagroda z Koła szczęścia na stronie głównej: jeden darmowy obrót dziennie.') : it.pals && F.palpts < it.pals ? L(`Unlocks at ${it.pals} friendship points (you have ${F.palpts}). You earn them by helping out and leaving gifts.`, `Odblokuje się przy ${it.pals} punktach przyjaźni (masz ${F.palpts}). Zdobywasz je, pomagając innym i zostawiając prezenty.`)
         : it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft ? (it.craft > 1 ? L(`Needs a level ${it.craft} Workshop. Tap your Workshop to improve it.`, `Wymaga Warsztatu na poziomie ${it.craft}. Dotknij swojego Warsztatu, żeby go ulepszyć.`) : L('Needs a Workshop on your farm. It is under Buildings.', 'Wymaga Warsztatu na farmie. Znajdziesz go w Budynkach.'))
         : it.house && F.house < it.house ? L(`Needs a level ${it.house} farmhouse. Tap your farmhouse to improve it.`, `Wymaga domu na poziomie ${it.house}. Dotknij domu, żeby go ulepszyć.`)
         : most && have >= most ? (type === 'hut' ? L(`You already have ${have}, the most a farm can hold. For more pets, build a Pet Lodge${F.house < 4 ? ' (it needs a level 4 farmhouse)' : ''}: it stores up to 300.`, `Masz już ${have}, więcej farma nie pomieści. Żeby mieć więcej zwierzaków, zbuduj Schronisko${F.house < 4 ? ' (wymaga domu na poziomie 4)' : ''}: pomieści do 300.`) : L(`You already have ${most === 1 ? 'one, and one is the most a farm can hold' : `${have}, the most a farm can hold`}.`, `Masz już ${have}, a więcej farma nie pomieści.`))
@@ -388,7 +442,7 @@ export function mount(app, ctx) {
       box.innerHTML = `<div class="panel tripp"><h2>${L(`A gift for ${esc(V.name)}`, `Prezent dla gracza ${esc(V.name)}`)}</h2><p>${L(`It comes out of your own stock and lands in their Mailbox. One gift a day for each neighbour.`, `Prezent pochodzi z twoich zapasów i trafia do Skrzynki pocztowej sąsiada. Jeden prezent dziennie na sąsiada.`)}</p>
         <div class="zones">${rows}</div>
         <p>${L(`<b>Or a decoration.</b> You pay for it, and they can place it for free.`, `<b>Albo ozdoba.</b> Ty płacisz, a sąsiad stawia ją za darmo.`)}</p>
-        <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !it.wheel && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
+        <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !it.wheel && !it.jn && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       return;
     }
@@ -552,6 +606,7 @@ export function mount(app, ctx) {
         <div class="row end">${F.lodgeRoom ? `<button type="button" class="btn w" data-a="lodgeopen">${L(`Pet Lodge (${F.pets.filter(p => p.lodge).length} inside)`, `Schronisko (w środku: ${F.pets.filter(p => p.lodge).length})`)}</button>` : ''}<button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
     }
+    if (panel.kind === 'journal') { box.innerHTML = journalHtml(); return; }
     if (panel.kind === 'album') {
       const zoneOf = sp => Object.values(ZONES).find(z => sp in z.wild)?.name;
       const total = Object.keys(SPECIES).length, own = sp => F.album[sp]?.some(Boolean), have = Object.keys(SPECIES).filter(own).length;
@@ -797,10 +852,10 @@ export function mount(app, ctx) {
     el.hidden = !(mode === 'farm' && edit);
     if (el.hidden) return;
     const g = scene?.ghost();
-    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals || it.wheel : it.kind === tab && !it.craft && !it.pals && !it.wheel)).map(([type, it]) => {
-      const have = countOf(F, type), most = maxOf(F, type), full = most && have >= most, gift = F.stash[type] || 0, small = it.house && F.house < it.house, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && it.wheel && !have;
+    const cards = Object.entries(ITEMS).filter(([, it]) => !it.fixed && (tab === 'f' ? it.craft || it.pals || it.wheel || it.jn : it.kind === tab && !it.craft && !it.pals && !it.wheel && !it.jn)).map(([type, it]) => {
+      const have = countOf(F, type), most = maxOf(F, type), full = most && have >= most, gift = F.stash[type] || 0, small = it.house && F.house < it.house, poor = !gift && !canAfford(F.inv, it.cost), wsLv = Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)), locked = !gift && it.craft && wsLv < it.craft, shy = !gift && it.pals && F.palpts < it.pals, luck = !gift && (it.wheel || it.jn) && !have;
       return `<button type="button" class="item${full || poor || locked || shy || luck || small ? ' off' : ''}" data-a="item" data-type="${type}" aria-pressed="${g?.type === type && !g.id}">
-        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : small ? `<span class="mat">${L(`Farmhouse level ${it.house}`, `Dom poziom ${it.house}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${most}`, `Masz ${have} z ${most}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
+        ${thumb(type)}<b>${it.name}</b><span class="cost">${gift ? `<span class="mat">${L(`Gift: ${gift} to place`, `Prezent: ${gift} do postawienia`)}</span>` : luck ? `<span class="mat">${it.jn ? L(`Journal chapter ${it.jn}`, `Dziennik: rozdział ${it.jn}`) : L('Lucky Wheel prize', 'Nagroda z Koła szczęścia')}</span>` : shy ? `<span class="mat">${L(`Friendship ${F.palpts} of ${it.pals}`, `Przyjaźń ${F.palpts} z ${it.pals}`)}</span>` : locked ? `<span class="mat">${L(`${it.craft > 1 ? `Workshop level ${it.craft}` : 'Needs a Workshop'}`, `${it.craft > 1 ? `Warsztat poziom ${it.craft}` : 'Wymaga Warsztatu'}`)}</span>` : small ? `<span class="mat">${L(`Farmhouse level ${it.house}`, `Dom poziom ${it.house}`)}</span>` : full ? `<span class="mat">${L(`Have ${have} of ${most}`, `Masz ${have} z ${most}`)}</span>` : costHtml(it.cost, F.inv)}</span></button>`;
     }).join('');
     const landLow = F.next?.house > F.house; // that size needs a bigger farmhouse first
     const land = tab === 'b' && F.next ? `<button type="button" class="item land${canAfford(F.inv, F.next.cost) && !landLow ? '' : ' off'}" data-a="expand"${landLow ? ' data-low="1"' : ''}>
@@ -889,7 +944,7 @@ export function mount(app, ctx) {
       more += boostRow(item.type);
       el.innerHTML = `${thumb(item.type, it.name)}<div class="info"><b>${name}</b><p>${it.desc}</p>${more}
         ${up}<button type="button" class="btn sm w" data-a="grab" data-id="${item.id}">${L(`Move it`, `Przesuń`)}</button>
-        ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">${it.wheel ? L('Put it away', 'Schowaj') : L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}</button>`}</div>
+        ${it.fixed ? '' : `<button type="button" class="btn sm p" data-a="sellitem" data-id="${item.id}">${it.wheel || it.jn ? L('Put it away', 'Schowaj') : L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}</button>`}</div>
         <button type="button" class="round x" data-a="close" aria-label="${L(`Close`, `Zamknij`)}">×</button>`;
     }
   }
@@ -998,6 +1053,10 @@ export function mount(app, ctx) {
     else if (a === 'feed') ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id });
     else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
     else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
+    else if (a === 'journal') { panel = { kind: 'journal' }; card = null; sync(); }
+    else if (a === 'jgo') journalGo(b.dataset.ch === undefined ? undefined : +b.dataset.ch, +b.dataset.k);
+    else if (a === 'jclaim') ctx.send({ t: 'jclaim' });
+    else if (a === 'jplace') openBuy(b.dataset.type);
     else if (a === 'pets') { panel = { kind: 'pets', sort: petSort() }; card = null; sync(); }
     else if (a === 'petsort') { panel.sort = b.dataset.v; try { localStorage.setItem('pf_psort', b.dataset.v); } catch { /* no storage */ } sfx.click(); paintPanel(); }
     else if (a === 'petel') { panel.el = b.dataset.v; sfx.click(); paintPanel(); }
@@ -1197,6 +1256,7 @@ export function mount(app, ctx) {
     else if (m.did === 'defend') { panel = null; ctx.toast(L('Defence team saved.', 'Drużyna obrony zapisana.')); }
     else if (m.did === 'houseup') { sfx.win(); ctx.toast(L(`The farmhouse is now level ${F.house}.`, `Dom ma teraz poziom ${F.house}.`)); }
     else if (m.did === 'petname') ctx.toast(L('Renamed.', 'Imię zmienione.'));
+    else if (m.did === 'jclaim') { sfx.win(); myBurst(); card = null; panel = { kind: 'journal', got: m.ch }; if (Object.keys(m.spilt || {}).length) ctx.toast(L('The barn is full, so some of the materials did not fit.', 'Stodoła jest pełna, więc część materiałów się nie zmieściła.'), true); }
     else if (m.did === 'work') { sfx.set(); panel = null; const h = m.pet && F.pets.find(x => x.id === m.pet); if (h) scene?.cheer(h.id); ctx.toast(h ? L(`${esc(h.name)} ${WORK[m.type].job} now. ${WORK[m.type].what(workPct(h, m.type))}.`, `${esc(h.name)} od teraz ${WORK[m.type].job}. ${WORK[m.type].what(workPct(h, m.type))}.`) : L(`Nobody helps at the ${ITEMS[m.type].name} now.`, `Teraz nikt tu nie pomaga: ${ITEMS[m.type].name}.`)); }
     else if (m.did === 'lodge') { const p = m.ids.length === 1 && F.pets.find(x => x.id === m.ids[0]), n = m.ids.length;
       ctx.toast(m.on ? (p ? L(`${esc(p.name)} curls up in the Pet Lodge.`, `${esc(p.name)} zwija się w kłębek w Schronisku.`) : L(`${n} pets moved into the Pet Lodge.`, `Zwierzaki przeniesione do Schroniska: ${n}.`))
