@@ -221,7 +221,7 @@ export function mount(app, ctx) {
     soup: () => `<span class="art"><i class="steam">${'<b>💨</b>'.repeat(3)}</i><i class="spoon">🥄</i><i class="pot">🍲</i><i class="fire">🔥</i></span>`,
     well: () => `<span class="art"><i class="beam"></i><i class="shaft"><i class="water"></i></i><i class="rope"></i><i class="bucket">🪣</i></span>`,
     plant: (lo, hi) => `<span class="art"><i class="jar"><i class="band" style="bottom:${lo}%;height:${hi - lo}%"></i><i class="lvl"></i></i><i class="can"><svg viewBox="0 0 70 50" width="70" aria-hidden="true"><path d="M44 22 L66 8 L68 12 L48 28 Z" fill="#5fae6a" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><rect x="62" y="4" width="8" height="10" rx="2" fill="#5fae6a" stroke="#3b2219" stroke-width="2.5" transform="rotate(-30 66 9)"/><rect x="8" y="16" width="40" height="30" rx="7" fill="#6dbb5a" stroke="#3b2219" stroke-width="3"/><path d="M12 18 C12 4 40 4 40 18" fill="none" stroke="#3b2219" stroke-width="4"/></svg></i><i class="drops"><b>💧</b><b>💧</b><b>💧</b></i><i class="bed"><i class="sprout">🌱</i></i></span>`,
-    boat: (lo, hi) => `<span class="art"><i class="sea"></i><i class="dockz" style="left:${lo}%;width:${hi - lo}%"></i><i class="pier"></i><i class="post">⚓</i><i class="line"></i><i class="boat">⛵</i></span>`,
+    boat: (lo, hi) => `<span class="art"><i class="sea"></i><i class="dockz" style="left:${lo}%;width:${hi - lo}%"></i><i class="pier"></i><i class="post">⚓</i><svg class="line" aria-hidden="true"><line x1="0" y1="100%" x2="100%" y2="0" vector-effect="non-scaling-stroke"/></svg><i class="boat">⛵</i></span>`,
   };
   function openJob(i) {
     const [sti, , v] = you().jobs[i], st = STATIONS[sti], tk = taskOf(sti, v); job = { i, kind: tk.kind, t0: performance.now(), n: 0 };
