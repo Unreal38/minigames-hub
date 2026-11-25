@@ -414,6 +414,16 @@ function sendState(r) {
   }
 }
 
+// A browser that went away (a page refresh, a closed tab, a lost connection) cannot still be holding anything: a game
+// with a hand-held move in progress (Bierki's stick) exports letGo(G, seat) to end it as if the player had let go.
+// The page that comes back starts with empty hands, so the server must not keep the old pull waiting for it.
+function letGo(r, c) {
+  const mod = GAMES[r.game];
+  if (!r.G || !mod.letGo) return false;
+  const s = r.G.seats.findIndex(x => x.id === c.id);
+  return s >= 0 && mod.letGo(r.G, s);
+}
+
 function leaveRoom(c) {
   const r = rooms.get(c.room); c.room = null;
   if (!r) return;
@@ -928,7 +938,7 @@ const onSocket = sock => {
       send(c, { t: 'me', me: store.me(store.profileOf(token)) });
       const r = rooms.get(c.room);
       if (r) {
-        if (r.G) { const s = r.G.seats.findIndex(x => x.id === c.id); if (s >= 0 && GAMES[r.game].setAway(r.G, s, false)) {} }
+        if (r.G) { const s = r.G.seats.findIndex(x => x.id === c.id); if (s >= 0) { GAMES[r.game].setAway(r.G, s, false); letGo(r, c); } }
         sendRoom(r); send(c, { t: 'chatlog', log: r.chat });
         if (r.G) sendState(r); else send(c, { t: 'state', s: null });
       } else { c.room = null; c.sock.send(roomsText()); }
@@ -938,7 +948,7 @@ const onSocket = sock => {
     clearInterval(refill); clearTimeout(late);
     if (!c || c.sock !== sock) return;
     c.sock = null; c.lastSeen = Date.now(); plaza.leave(c); broadcastStats();
-    const r = rooms.get(c.room); if (r) sendRoom(r);
+    const r = rooms.get(c.room); if (r) { if (letGo(r, c)) sendState(r); sendRoom(r); }
   });
 };
 

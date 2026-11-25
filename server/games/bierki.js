@@ -227,6 +227,15 @@ export function setAway(G, s, away) {
   return true;
 }
 
+// The player's page went away or came back (a refresh) while they held a stick: they let go of it. A stick that was
+// already out of the pile is theirs, one still inside goes back with its rub kept for the turn, as with any let-go.
+// Without this the server kept the old pull, so the fresh page showed a frozen meter and a stick hanging in the air.
+export function letGo(G, s) {
+  if (G.ph !== 'play' || G.stage !== 'play' || G.turn !== s || !G.pull || G.pull.by !== s || G.bot) return false;
+  drop(G, Date.now());
+  return true;
+}
+
 export function view(G, s) {
   const now = Date.now(), P = G.pull, lite = G.lite && now - G.lite < 3;
   const out = {
