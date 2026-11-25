@@ -12,7 +12,7 @@ import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
 import { EL_PL } from '../../lang/farm-pl.js';
 import { PL } from '../../i18n.js';
-import { STATIONS, spotOf, LOGS, ROPES, BELL, REACH, LULL_REACH, REPORT_REACH, R_WALK, SIZE_WORD } from './layout.js';
+import { STATIONS, spotOf, LOGS, ROPES, BELL, REACH, LULL_REACH, REPORT_REACH, R_WALK, SIZE_WORD, WALLS, WALL_KIND } from './layout.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const near = (m, x, z, r) => !!m && Math.hypot(m.x - x, m.z - z) <= r;
@@ -46,7 +46,7 @@ export function mount(app, ctx) {
   const touch = matchMedia('(pointer: coarse)').matches;
   app.innerHTML = `<div class="ln${touch ? ' touch' : ''}">
     <canvas class="g3d" aria-label="${L('The island at dusk. Walk with the arrow keys or WASD, Space does the action.', 'Wyspa o zmierzchu. Chodź strzałkami albo WASD, Spacja wykonuje akcję.')}"></canvas>
-    <div class="ln-dark" id="ln-dark" aria-hidden="true"></div>
+    <canvas class="ln-dark" id="ln-dark" aria-hidden="true"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl">
@@ -116,12 +116,39 @@ export function mount(app, ctx) {
   }
 
   // ---- the lantern: darkness everywhere but round you (players who are out, watchers and the end see everything)
+  // Drawn on a canvas: a soft circle of light round you, minus the shadow behind every wall you can't see over. The light
+  // goes on a second canvas first so shadows and the dark beyond the glow are the very same shade (no double dark).
+  const dg = dark.getContext('2d'), lightC = document.createElement('canvas'), lg = lightC.getContext('2d');
+  function shadows(mx, mz, R) { // per wall: [[x, z, y], ...] from its top edge out to R round you
+    const out = [];
+    for (const w of WALLS) { if (WALL_KIND[w.k].see) continue;
+      const [ax, az] = w.a, [bx, bz] = w.b, dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((mx - ax) * dx + (mz - az) * dz) / (dx * dx + dz * dz)));
+      const d = Math.hypot(mx - ax - dx * t, mz - az - dz * t); if (d > R || d < .15) continue;
+      const ta = Math.atan2(az - mz, ax - mx); let span = Math.atan2(bz - mz, bx - mx) - ta; span = Math.atan2(Math.sin(span), Math.cos(span)); if (Math.abs(span) > 3) continue;
+      const h = WALL_KIND[w.k].h, poly = [[ax, az, h], [bx, bz, h]], n = Math.ceil(Math.abs(span) / .25);
+      for (let i = n; i >= 0; i--) { const a = ta + span * i / n; poly.push([mx + Math.cos(a) * R, mz + Math.sin(a) * R, 0]); }
+      out.push(poly); }
+    return out;
+  }
   function paintDark() {
     const m = meP(), y = you(), on = !!(m && y && S.stage === 'walk' && !outMe() && !ended());
     dark.classList.toggle('on', on);
     if (!on) return;
+    const W = dark.clientWidth, H = dark.clientHeight, k = Math.min(2, devicePixelRatio || 1), cw = Math.round(W * k), ch = Math.round(H * k);
+    if (!W || !H) return;
+    if (dark.width !== cw || dark.height !== ch) { dark.width = lightC.width = cw; dark.height = lightC.height = ch; }
     const [x, yy, ppm] = scene.project(m.x, .8, m.z), r = Math.max(40, y.glow * ppm);
-    dark.style.transform = `translate(${x.toFixed(1)}px, ${yy.toFixed(1)}px) translate(-50%, -50%) scale(${(r / 100).toFixed(3)})`;
+    lg.setTransform(k, 0, 0, k, 0, 0); lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, W, H);
+    const gr = lg.createRadialGradient(x, yy, 0, x, yy, r); gr.addColorStop(0, '#000'); gr.addColorStop(.62, '#000'); gr.addColorStop(.84, 'rgba(0,0,0,.42)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    lg.fillStyle = gr; lg.beginPath(); lg.arc(x, yy, r, 0, Math.PI * 2); lg.fill();
+    lg.globalCompositeOperation = 'destination-out'; lg.fillStyle = '#000';
+    lg.beginPath(); // one path, every shadow wound the same way round, so neighbours join without a seam
+    for (const poly of shadows(m.x, m.z, y.glow * 1.45)) { const pts = poly.map(([px, pz, ph]) => scene.project(px, ph, pz)); let area = 0;
+      for (let i = 0; i < pts.length; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length]; area += x1 * y2 - x2 * y1; }
+      if (area < 0) pts.reverse(); pts.forEach(([sx, sy], i) => (i ? lg.lineTo(sx, sy) : lg.moveTo(sx, sy))); lg.closePath(); }
+    lg.fill('nonzero');
+    dg.setTransform(1, 0, 0, 1, 0, 0); dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, cw, ch); dg.fillStyle = 'rgba(9,7,30,.83)'; dg.fillRect(0, 0, cw, ch);
+    dg.globalCompositeOperation = 'destination-out'; dg.drawImage(lightC, 0, 0); dg.globalCompositeOperation = 'source-over';
   }
 
   // ---- name tags over people you can see, and "Zzz" over sleepers
@@ -237,6 +264,7 @@ export function mount(app, ctx) {
     const R = R_WALK + 3, px = v => (v + R) / (2 * R) * 100, m = meP(), y = you();
     const todo = new Set((y?.jobs || []).filter(j => !j[1]).map(j => j[0]));
     const html = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="${(R_WALK + 1) / (2 * R) * 100}" class="isle"/>
+      ${WALLS.map(w => `<line x1="${px(w.a[0]).toFixed(1)}" y1="${px(w.a[1]).toFixed(1)}" x2="${px(w.b[0]).toFixed(1)}" y2="${px(w.b[1]).toFixed(1)}" class="w ${w.k}"/>`).join('')}
       ${STATIONS.map((st, i) => `<g class="${todo.has(i) ? 'todo' : ''}"><circle cx="${px(st.x)}" cy="${px(st.z)}" r="3.4"/><text x="${px(st.x)}" y="${px(st.z) + 7.5}">${esc(st.name())}</text></g>`).join('')}
       <circle cx="50" cy="50" r="2.4" class="fire"/>${sneak() ? LOGS.map(([x, z]) => `<circle cx="${px(x)}" cy="${px(z)}" r="1.8" class="log"/>`).join('') : ''}
       ${m ? `<circle cx="${px(m.x)}" cy="${px(m.z)}" r="2.2" class="me"/>` : ''}</svg>`;

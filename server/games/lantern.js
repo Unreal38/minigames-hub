@@ -9,7 +9,7 @@
 // times a second, and every player's stream shows only what their own lantern lights up (a page can't peek).
 import { SPECIES } from '../../public/games/farm/data.js';
 import { STATIONS, ST, spotOf, CHORE_MS, LOGS, ROPES, ROPE_MS, DARK_FIX, MISCHIEF_WAIT, MISCHIEF_FIRST, LULL_WAIT, R_WALK, SPEED, GHOST_SPEED, BELL, REACH, LULL_REACH, REPORT_REACH,
-  GLOW, GLOW_SNEAK, GLOW_DARK, ringAt, sneaksFor, TALK, CHORES, clampWalk } from '../../public/games/lantern/layout.js';
+  GLOW, GLOW_SNEAK, GLOW_DARK, ringAt, sneaksFor, TALK, CHORES, clampWalk, throughWall, sees } from '../../public/games/lantern/layout.js';
 
 export const meta = { id: 'lantern', name: 'Lantern Night', minPlayers: 4, maxPlayers: 10, minHumans: 4, joinAt: 'game' };
 // intro: the role card; news: who called the meeting and the pawprints; vote: after the talk; ferry: off it sails
@@ -162,7 +162,9 @@ export function act(G, s, a) {
     if (!fair && p.bad < 8) { p.bad++; return false; } // a page can only have walked so far since its last report
     p.bad = 0;
     if (me) [x, z] = clampWalk(x, z); else { const d = Math.hypot(x, z); if (d > R_WALK + 4) { x *= (R_WALK + 4) / d; z *= (R_WALK + 4) / d; } }
-    p.x = x; p.z = z; p.r = r;
+    if (me && throughWall(p.x, p.z, x, z)) { // no walking through walls: after a few tries the page is put back where it stands
+      if ((p.wall = (p.wall | 0) + 1) >= 8) { p.wall = 0; p.j++; G.dirty = true; } return false; }
+    p.wall = 0; p.x = x; p.z = z; p.r = r;
     if (G.doing[s] && !near(p, ...spotOf(STATIONS[G.doing[s].st]), REACH + .8)) G.doing[s] = null; // walked away from the chore
     if (G.mis?.k === 'ropes') for (const i of [0, 1]) if (G.ropes[i] === s && !near(p, ...ROPES[i], REACH + .6)) { G.ropes[i] = -1; G.dirty = true; }
     return false; // the stream carries it to everyone
@@ -202,13 +204,13 @@ export function act(G, s, a) {
     G.bells[s]--; callMeeting(G, s, null, now); return true;
   }
   if (a.t === 'ring') { // found a sleeper: everyone to the fire
-    const b = G.beds.find(b => !b.found && near(p, b.x, b.z, REPORT_REACH + .4)); if (!b) return false;
+    const b = G.beds.find(b => !b.found && near(p, b.x, b.z, REPORT_REACH + .4) && sees(p.x, p.z, b.x, b.z)); if (!b) return false;
     callMeeting(G, s, b, now); return true;
   }
   if (!sneak) return false;
   if (a.t === 'lull') { // a Sneak puts someone to sleep: close by, and not too often
     const t = a.s | 0;
-    if (!G.seats[t] || t === s || !alive(G, t) || isSneak(G, t) || now < G.lullAt[s] || !near(p, G.pos[t].x, G.pos[t].z, LULL_REACH + .5)) return false;
+    if (!G.seats[t] || t === s || !alive(G, t) || isSneak(G, t) || now < G.lullAt[s] || !near(p, G.pos[t].x, G.pos[t].z, LULL_REACH + .5) || !sees(p.x, p.z, G.pos[t].x, G.pos[t].z)) return false;
     goOut(G, t, 1, now); G.lullAt[s] = now + G.opts.lull * 1000; G.lulls++;
     G.beds.push({ s: t, x: G.pos[t].x, z: G.pos[t].z, by: s, clue: G.lulls % 2 ? 'el' : 'size', found: false });
     pushEv(G, { t: 'lull', s: t, by: s }, now);
@@ -257,10 +259,10 @@ export function view(G, s) {
     if (i === me) return [r1(p.x), r1(p.z), Math.round(p.r * 10), G.out[i]];
     if (G.out[i] === 3) return null;
     if (G.out[i] && !ghost) return null;
-    if (!ghost && G.stage === 'walk' && mp && !near(mp, p.x, p.z, glow)) return null;
+    if (!ghost && G.stage === 'walk' && mp && (!near(mp, p.x, p.z, glow) || !sees(mp.x, mp.z, p.x, p.z))) return null; // too far, or behind a wall
     return [r1(p.x), r1(p.z), Math.round(p.r * 10), G.out[i] === 1 ? 2 : G.out[i]]; // asleep players walk on as pets: shown like ferried ones
   });
-  const showBed = b => b.found || ghost || (mp && near(mp, b.x, b.z, glow)) || (sneak && G.stage === 'walk');
+  const showBed = b => b.found || ghost || (mp && near(mp, b.x, b.z, glow) && sees(mp.x, mp.z, b.x, b.z)) || (sneak && G.stage === 'walk');
   const out = {
     game: 'lantern', ph: G.ph, stage: G.stage, gid: G.gid, me, opts: G.opts, left: G.tEnd ? Math.max(0, G.tEnd - now) : 0, all: G.tAll,
     at, beds: G.beds.filter(showBed).map(b => [b.s, r1(b.x), r1(b.z), b.found ? 1 : 0]),

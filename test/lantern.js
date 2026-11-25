@@ -2,13 +2,15 @@
 // meetings with votes and the ferry, pranks, every way to win, what each player's stream may show (no peeking), the
 // chat hooks and the coins order.
 import * as ln from '../server/games/lantern.js';
-import { STATIONS, spotOf, LOGS, ROPES, BELL, MISCHIEF_FIRST, ROPE_MS, CHORE_MS, sneaksFor } from '../public/games/lantern/layout.js';
+import { STATIONS, spotOf, LOGS, ROPES, BELL, MISCHIEF_FIRST, ROPE_MS, CHORE_MS, sneaksFor, findPath, throughWall, sees, WALLS } from '../public/games/lantern/layout.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
 let now = 1_000_000; const realNow = Date.now; Date.now = () => now;
 const people = n => Array.from({ length: n }, (_, i) => ({ id: 'p' + i, name: 'P' + i, color: '#ff8fab', av: [i, 0, 0, 0] }));
 const run = (G, ms) => { const end = now + ms; while (now < end) { now += 50; ln.fast(G, now); } };
-const walkTo = (G, s, x, z) => { const p = G.pos[s]; let guard = 0; while (Math.hypot(p.x - x, p.z - z) > .05 && guard++ < 400) { const d = Math.hypot(x - p.x, z - p.z), k = Math.min(1, .2 / d); now += 50; ln.act(G, s, { t: 'p', x: p.x + (x - p.x) * k, z: p.z + (z - p.z) * k, r: 0, j: p.j }); ln.fast(G, now); } };
+const walkLeg = (G, s, x, z) => { const p = G.pos[s]; let guard = 0; while (Math.hypot(p.x - x, p.z - z) > .05 && guard++ < 400) { const d = Math.hypot(x - p.x, z - p.z), k = Math.min(1, .2 / d); now += 50; ln.act(G, s, { t: 'p', x: p.x + (x - p.x) * k, z: p.z + (z - p.z) * k, r: 0, j: p.j }); ln.fast(G, now); } };
+// walks the way a tap would (round the walls); a straight line when you are out (pets go through everything)
+const walkTo = (G, s, x, z) => { const p = G.pos[s], way = G.out[s] ? [[x, z]] : findPath(p.x, p.z, x, z); if (!way) fail(`no way from ${p.x},${p.z} to ${x},${z}`); for (const [wx, wz] of way) walkLeg(G, s, wx, wz); if (Math.hypot(p.x - x, p.z - z) > .7) fail(`walked to ${p.x.toFixed(2)},${p.z.toFixed(2)}, not ${x},${z}`); };
 const start = (n, o = {}) => { const G = ln.create(people(n), o); run(G, ln.MS.intro + 100); if (G.stage !== 'walk') fail('no walk after the intro'); return G; };
 
 // ----- dealing -----
@@ -55,6 +57,7 @@ for (let k = 0; k < 40; k++) {
 {
   const G = start(5, { lull: 20 }), sn = G.role.indexOf('sneak'), [a, b, c] = G.role.map((r, i) => r === 'isle' ? i : -1).filter(i => i >= 0);
   walkTo(G, a, 0, 15); walkTo(G, b, 0, -15); walkTo(G, c, 15, 0); walkTo(G, sn, 0, 13.6);
+  G.lullAt[sn] = now + 1000; // (walking round the walls took longer than the first wait)
   if (ln.act(G, sn, { t: 'lull', s: a })) fail('lulled before the wait was over');
   run(G, 21_000);
   if (ln.act(G, a, { t: 'lull', s: sn })) fail('an islander lulled someone');
@@ -142,6 +145,26 @@ for (let k = 0; k < 40; k++) {
   if (G.out[s] !== 3) fail('a player who left should be out');
   G.seats.forEach((x, i) => { if (i !== s && G.seats.filter(y => y.human).length > 2) { x.human = false; } }); run(G, 100);
   if (G.ph !== 'end' || G.res.why !== 'empty') fail('a near empty table should end');
+}
+
+// ----- the walls: every place can be reached, nothing stands in a wall, walls stop steps and sight -----
+{
+  const L = await import('../public/games/lantern/layout.js');
+  const segD = (x, z, w) => { const [ax, az] = w.a, dx = w.b[0] - ax, dz = w.b[1] - az, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz))); return Math.hypot(x - ax - dx * t, z - az - dz * t); };
+  const things = [...L.STATIONS.map(s => [s.id, s.x, s.z, s.r]), ...L.DECOR.map(d => [d[0], d[1], d[2], d[5]]), ...L.LOGS.map(l => ['log', l[0], l[1], .7])];
+  for (const [n, x, z, r] of things) for (const w of WALLS) if (segD(x, z, w) < L.WALL_KIND[w.k].t / 2 + r + .1) fail(`${n} at ${x},${z} stands in a wall`);
+  const goals = [...STATIONS.map(st => spotOf(st)), ...LOGS.map(([x, z]) => [x + 1, z]), ...ROPES.map(([x, z]) => [x, z - .9]), [BELL[0] + 1, BELL[1]]];
+  for (const [x, z] of goals) if (!findPath(0, 6, x, z)) fail(`no way from the fire to ${x},${z}`);
+  if (WALLS.length < 30) fail('the island lost its walls');
+  // a step through a wall is refused; a page that keeps trying is put back where it stands
+  const G = start(5), w = WALLS.find(w => w.k === 'plank'), [mx, mz] = [(w.a[0] + w.b[0]) / 2, (w.a[1] + w.b[1]) / 2], dx = w.b[0] - w.a[0], dz = w.b[1] - w.a[1], l = Math.hypot(dx, dz), nx = -dz / l, nz = dx / l;
+  const p = G.pos[0]; walkTo(G, 0, mx + nx * .7, mz + nz * .7); const j = p.j;
+  now += 300; ln.act(G, 0, { t: 'p', x: mx - nx * .7, z: mz - nz * .7, r: 0, j: p.j }); if (Math.hypot(p.x - mx, p.z - mz) > 1) fail('walked through a wall');
+  for (let k = 0; k < 9; k++) { now += 300; ln.act(G, 0, { t: 'p', x: mx - nx * .7, z: mz - nz * .7, r: 0, j }); }
+  if (p.j === j || !throughWall(mx + nx * .7, mz + nz * .7, mx - nx * .7, mz - nz * .7)) fail('a page pushing into a wall was not put back');
+  // someone right behind the wall is not in the stream, though well inside your glow
+  walkTo(G, 1, mx - nx * 1.2, mz - nz * 1.2);
+  if (sees(p.x, p.z, G.pos[1].x, G.pos[1].z) || ln.view(G, 0).at[1] !== null) fail('saw someone through a wall');
 }
 
 Date.now = realNow;
