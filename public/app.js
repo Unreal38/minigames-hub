@@ -1279,13 +1279,15 @@ function openMj() {
 function closeMj() { if (!st.mj) return; st.mj.destroy(); st.mj = null; gameCss(null); }
 // Mystery Pet, the daily guess-the-pet puzzle, opens in a pop-up over the hub. The hub card shows today's state.
 const leftText = ms => { const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60); return h >= 24 ? `${Math.floor(h / 24)}${L('d', ' d')} ${h % 24}${L('h', ' godz.')}` : h ? `${h}${L('h', ' godz.')} ${m % 60}${L('m', ' min')}` : `${m}${L('m', ' min')}`; };
-const todayTile = (cls, pic, name, sub, act, btn, quiet, mins) => `<div class="ttile ${cls}">
-  <div class="tpic" aria-hidden="true">${pic}</div>
-  <div class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span>${timeTag(mins, 'ttime')}</div>
-  <button type="button" class="btn sm ${quiet ? 'w' : ''}" data-act="${act}">${btn}</button>
-</div>`;
+// The whole tile is the button (a compact two-column grid since the 2026-11-25 hub re-plan); the old button word stays as its tooltip.
+// A tile with something waiting for you (free spin) gets the "ready" class: a green ring and a "!" badge.
+const todayTile = (cls, pic, name, sub, act, btn, quiet, mins) => `<button type="button" class="ttile ${cls}" data-act="${act}" title="${esc(btn)}">
+  <span class="tpic" aria-hidden="true">${pic}</span>
+  <span class="tbody"><b ${fitw(name)}>${name}</b><span>${sub}</span>${timeTag(mins, 'ttime')}</span>
+</button>`;
 // One blocky emblem per Today tile, on a tinted square like Mystery Pet's: a hay bale with a carrot, and a little barn.
-// The hub's Today column: the daily puzzle and the two solo games, each with the one thing worth knowing right now.
+// The hub's Today column: the daily puzzles, the wheel and the solo games, each with the one thing worth knowing right now.
+// Pet Farm is not here since 2026-11-25: it is the "Visit your isle" button in the hero, with its news in a bubble (isleKit).
 const MP_MINS = [1, 3]; // Mystery Pet: a few guesses
 const WORD_NAME = L('Word in a Bottle', 'Słowo w butelce'), WORD_MINS = [2, 5], WORD_LANG = PL ? 'pl' : 'en'; // the hub tile shows the puzzle in the site's language
 function todayHtml() {
@@ -1297,19 +1299,13 @@ function todayHtml() {
   const toMid = me?.next ? me.next - (Date.now() - (st.meAt || Date.now())) : 0, fresh = me?.next && toMid <= 0;
   const back = toMid > 0 ? ` · ${L(`new coins in ${leftText(toMid)}`, `nowe monety za ${leftText(toMid)}`)}` : '';
   const paid = fresh ? 0 : me?.hay?.paid || 0;
-  const hay = !me?.user ? needAcct : paid >= HAY_DAILY ? L(`All ${HAY_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${HAY_DAILY} monet${back}`) : L(`${HAY_DAILY - paid} coins left today · level ${me.hay?.lv || 1}`, `Dziś do zdobycia jeszcze ${cnt(HAY_DAILY - paid, '', '', 'moneta', 'monety', 'monet')} · poziom ${me.hay?.lv || 1}`);
-  const popPaid = fresh ? 0 : me?.pop?.paid || 0, popLv = me?.pop?.lv || 1;
-  const popText = !me?.user ? needAcct : popPaid >= POP_DAILY ? L(`All ${POP_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${POP_DAILY} monet${back}`) : L(`${POP_DAILY - popPaid} coins left today · level ${popLv}`, `Dziś do zdobycia jeszcze ${cnt(POP_DAILY - popPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${popLv}`);
-  const mjPaid = fresh ? 0 : me?.mj?.paid || 0, mjLv = me?.mj?.lv || 1;
-  const mjText = !me?.user ? needAcct : mjPaid >= MJ_DAILY ? L(`All ${MJ_DAILY} coins earned today${back}`, `Dziś zdobyte wszystkie ${MJ_DAILY} monet${back}`) : L(`${MJ_DAILY - mjPaid} coins left today · level ${mjLv}`, `Dziś do zdobycia jeszcze ${cnt(MJ_DAILY - mjPaid, '', '', 'moneta', 'monety', 'monet')} · poziom ${mjLv}`);
-  const f = st.farmBrief, gone = f ? Date.now() - f.at : 0, eggLeft = f?.egg ? f.egg.left - gone : 0, tripLeft = f?.trip ? f.trip.left - gone : 0;
-  const ownFarm = L('Your own pet farm', 'Twoja własna farma zwierzaków');
-  const farm = !me?.user ? needAcct : !f ? ownFarm
-    : f.egg && (f.egg.stage === 'ready' || (f.egg.stage === 'egg' && eggLeft <= 0)) ? `<i class="ok">${L('An egg is ready to hatch!', 'Jajko jest gotowe do wyklucia!')}</i>`
-    : f.trip && tripLeft <= 0 ? `<i class="ok">${L('Your expedition is back!', 'Twoja wyprawa wróciła!')}</i>`
-    : f.egg?.stage === 'egg' ? L(`Egg hatches in ${leftText(eggLeft)}`, `Jajko wykluje się za ${leftText(eggLeft)}`)
-    : f.trip ? L(`Expedition back in ${leftText(tripLeft)}`, `Wyprawa wraca za ${leftText(tripLeft)}`)
-    : f.pets ? L(`${cnt(f.pets, 'pet')} on your farm`, `${cnt(f.pets, '', '', 'zwierzak', 'zwierzaki', 'zwierzaków')} na twojej farmie`) : ownFarm;
+  // Short enough for the compact tiles: what is left to earn today, or when the coins come back.
+  const coinsLeft = (paidNow, cap) => !me?.user ? needAcct : paidNow >= cap ? L(`All coins earned${back}`, `Monety zdobyte${back}`) : L(`${cap - paidNow} coins left today`, `Jeszcze ${cnt(cap - paidNow, '', '', 'moneta', 'monety', 'monet')} dziś`);
+  const hay = coinsLeft(paid, HAY_DAILY);
+  const popPaid = fresh ? 0 : me?.pop?.paid || 0;
+  const popText = coinsLeft(popPaid, POP_DAILY);
+  const mjPaid = fresh ? 0 : me?.mj?.paid || 0;
+  const mjText = coinsLeft(mjPaid, MJ_DAILY);
   const w = st.wheelInfo, wLeft = w ? w.next - (Date.now() - (w.at || Date.now())) : 0, wheelText = !w ? L('One free spin a day', 'Jeden darmowy obrót dziennie') : w.guest ? needAcct : w.spun && wLeft > 0 ? L(`Next spin in ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`, `Następny obrót za ${leftText(w.next - (Date.now() - (w.at || Date.now())))}`) : `<i class="ok">${L('Your free spin is ready!', 'Twój darmowy obrót czeka!')}</i>`;
   const mpPic = MYSTERY_ICON;
   const wi = st.wordInfo, ws = wi?.L?.[WORD_LANG], wfire = ws?.streak ? ` · 🔥 ${ws.streak}` : '';
@@ -1321,8 +1317,7 @@ function todayHtml() {
     + todayTile('t-wheel' + (w && !w.guest && !(w.spun && wLeft > 0) ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun && wLeft > 0 ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun && wLeft > 0)
     + todayTile('t-hay', HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
     + todayTile('t-pop', POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
-    + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins)
-    + todayTile('t-farm', FARM_ICON, FARM_NAME, farm, 'farm', L('Visit', 'Odwiedź'));
+    + todayTile('t-mj', MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins);
 }
 // The season card above Today: which season is on, when it ends and how far along it is, with the way to that season's shop drop.
 // The date is the server's (Warsaw) day when we have it, so it turns over with every other daily thing.
@@ -1367,7 +1362,7 @@ function paintSkyWx() {
   if (want && !document.querySelector('.wxfall')) { const f = document.createElement('div'); f.className = 'wxfall'; f.setAttribute('aria-hidden', 'true'); b.prepend(f); }
   for (const c of WX_CLS) b.classList.toggle(c, c === want);
 }
-function paintToday() { const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } paintWeather(); }
+function paintToday() { paintIsleKit(); const el = document.getElementById('today-list'); if (el) el.innerHTML = todayHtml(); const sc = document.getElementById('season'), sh = sc && seasonHtml(); if (sc && sc.dataset.h !== sh) { sc.innerHTML = sh; sc.dataset.h = sh; } paintWeather(); }
 paintSkyWx();
 setInterval(() => { if (st.view !== 'hub') return paintSkyWx(); if (st.farmBrief || st.wheelInfo?.spun || st.me?.next) paintToday(); else paintWeather(); }, 30_000); // keeps the countdowns honest (and turns the weather over on time)
 function openDaily() {
@@ -1651,6 +1646,7 @@ function acctHtml() {
       ${m?.admin ? item('wxpeek', '🌦️', L('Weather look', 'Wygląd pogody'), `<small>${wxPeekLabel()}</small>`) : ''}
       ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
       ${item('gfx', '🎮', L('Graphics', 'Grafika'), `<small>${gfxLabel()}</small>`)}
+      ${item('theme', isNight() ? '☀️' : '🌙', L('Day or night', 'Dzień czy noc'), `<small>${isNight() ? L('night now', 'teraz noc') : L('day now', 'teraz dzień')}</small>`, ' class="aphone"')}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
       ${item('support', '☕', L('Support the site', 'Wesprzyj stronę'), `<small>${hasPack() ? L('thank you!', 'dziękujemy!') : L('get the Supporter pack', 'odbierz Pakiet wspierających')}</small>`)}
       <hr>
@@ -1755,12 +1751,28 @@ const topbar = () => `<header class="top">
 </header>`;
 
 // The hub's live 3D hero (your avatar on a floating island). The SVG table stays as the fallback until three.js loads.
-// The button on your isle: it opens the Wardrobe on the isle page; a guest gets a nudge to make their own.
-const isleTag = () => `<button type="button" class="isletag${st.me?.user ? '' : ' guest'}" data-act="isle">${st.me?.user ? L('Dress your isle', 'Urządź wyspę') : L('Make yours', 'Zrób swoją')} ›</button>`;
+// The buttons on your isle (2026-11-25 re-plan): "Visit your isle" opens Pet Farm (its island wears your isle look), the round
+// brush opens the Wardrobe on the isle page, and a speech bubble shows farm news, only when something is waiting for you.
+function farmNews() {
+  const f = st.farmBrief; if (!st.me?.user || !f) return '';
+  const gone = Date.now() - f.at;
+  if (f.egg && (f.egg.stage === 'ready' || (f.egg.stage === 'egg' && f.egg.left - gone <= 0))) return `🥚 ${L('An egg is ready to hatch!', 'Jajko gotowe do wyklucia!')}`;
+  if (f.trip && f.trip.left - gone <= 0) return `🧭 ${L('Your expedition is back!', 'Wyprawa wróciła!')}`;
+  return '';
+}
+const dressLabel = () => st.me?.user ? L('Dress your isle', 'Urządź wyspę') : L('Make your own isle', 'Zrób swoją wyspę');
+function isleKit() {
+  const news = farmNews(), dress = dressLabel();
+  return `<span class="islekit" data-k="${esc(news + dress)}">${news ? `<span class="islebub" role="status">${news}</span>` : ''}`
+    + `<button type="button" class="islebrush" data-act="isle" title="${dress}" aria-label="${dress}">🎨</button>`
+    + `<button type="button" class="isletag" data-act="farm"><i aria-hidden="true">${FARM_ICON}</i>${L('Visit your isle', 'Odwiedź wyspę')} ›</button></span>`;
+}
+// Only redrawn when the news or the label changes, so hovering the buttons never blinks.
+function paintIsleKit() { const k = document.querySelector('.hero .islekit'); if (k && k.getAttribute('data-k') !== farmNews() + dressLabel()) k.outerHTML = isleKit(); }
 function mountSkyHero() {
   const art = document.querySelector('.hero .art'), box = art?.querySelector('.icv'); if (!box) return;
   art.classList.add('sky3d');
-  const tag = art.querySelector('.isletag'); if (tag) tag.outerHTML = isleTag();
+  paintIsleKit();
   const frame = art.closest('.hero'); // the hero is a banner painted in your isle's sky
   (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(isNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }, { frame, zoom: 1.15 }); }).catch(() => {});
   if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
@@ -1858,6 +1870,8 @@ function setHubTab(tab) {
   document.querySelectorAll('.hubtabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === st.htab));
   scrollTo(0, 0); if (st.htab === 'chat') hubScrollEnd();
 }
+// The short line under the hero heading (shown on wide screens only). Outside renderHub, whose own cnt() counts games per filter.
+const heroSub = () => L(`${cnt(HUB_GAMES.length, 'game')} for you and your friends. Host a table and share its code, or join your friends.`, `${cnt(HUB_GAMES.length, '', '', 'gra', 'gry', 'gier')} dla ciebie i znajomych. Załóż stół i podaj kod albo dołącz do znajomych.`);
 function renderHub() {
   const cnt = c => c === 'all' ? HUB_GAMES.length : HUB_GAMES.filter(g => g[3].split(' ').includes(c)).length;
   const tab = (id, ico, label, extra = '') => `<button type="button" data-act="htab" data-tab="${id}" aria-selected="${id === st.htab}"><span aria-hidden="true">${ico}</span>${label}${extra}</button>`;
@@ -1865,8 +1879,8 @@ function renderHub() {
   <main class="wrap hubgrid" data-tab="${st.htab}">
     <section class="hero">
       <div>
-        <h1>${L('Hop on an isle. Pick a game.', 'Wskakuj na wyspę. Wybierz grę.')}</h1>
-        <p>${L("Card, board, action and party games for you and your friends, plus solo puzzles and your own Pet Farm. Pick a game below to host a table and share its four-letter code, or join one with a friend's code.", 'Gry karciane, planszowe, zręcznościowe i imprezowe dla ciebie i znajomych, a do tego łamigłówki dla jednej osoby i własna Farma zwierzaków. Wybierz grę poniżej, żeby założyć stół i podać znajomym jego czteroznakowy kod, albo dołącz do stołu z kodem od znajomego.')}</p>
+        <h1>${L('What are we playing today?', 'W co dziś gramy?')}</h1>
+        <p class="hsub">${heroSub()}</p>
         <div class="row herorow">
           <form class="codeform" data-form="join">
             <label for="code">${L('Got a code?', 'Masz kod?')}</label>
@@ -1877,7 +1891,7 @@ function renderHub() {
         </div>
         <p class="livestats" id="live-stats" aria-live="polite">${statsHtml()}</p>
       </div>
-      <div class="art"><div class="icv">${tableArt()}</div>${isleTag()}</div>
+      <div class="art"><div class="icv">${tableArt()}</div>${isleKit()}</div>
     </section>
     <div class="hubmid">
     <section id="games">
@@ -3004,7 +3018,7 @@ $app.addEventListener('click', e => {
     if (!st.name) return openProfile(true);
     send(act === 'host' ? { t: 'create', game, opts: GAMES[game].host } : { t: 'create', game, priv: true, solo: true, opts: GAMES[game].solo });
   }
-  else if (act === 'theme') { switchTheme(b); sfx.click(); }
+  else if (act === 'theme') { switchTheme(b); sfx.click(); if (b.matches('.aphone')) closeAcct(); } // from the phone account menu: the menu closes as the sky turns
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
   else if (act === 'plaza') { if (!st.name) return openProfile(true); openPlaza(); }
