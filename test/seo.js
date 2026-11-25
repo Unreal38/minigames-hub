@@ -7,7 +7,7 @@ import path from 'node:path';
 
 const PORT = 18000 + Math.floor(Math.random() * 1000);
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'seo-'));
-const srv = spawn(process.execPath, ['server/server.js'], { env: { ...process.env, PORT, GEO: 'off', DATA_DIR: dir, HOST: '127.0.0.1' }, stdio: 'inherit' });
+const srv = spawn(process.execPath, ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, GEO: 'off', DATA_DIR: dir, HOST: '127.0.0.1' }, stdio: 'inherit' });
 const base = `http://127.0.0.1:${PORT}`;
 const get = async (p, headers = {}) => { const r = await fetch(base + p, { headers }); return { r, text: await r.text() }; };
 try {

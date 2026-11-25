@@ -156,7 +156,7 @@ const WORDS = l => ['Aa', 'Bb', 'Cc'].map(x => l + x.toLowerCase());
 
 // ----- over the real server -----
 const PORT = 28080 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}` }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}` }, stdio: 'inherit' });
 const bail = msg => { srv.kill(); fail(msg); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await wait(600);

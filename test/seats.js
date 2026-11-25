@@ -60,7 +60,7 @@ for (const m of hub.matchAll(/^\s*\['(\w+)', '[^']*', \w+, '[^']*', '([^']*)'/gm
 // ----- a live server: what the waiting room and the open tables list are sent -----
 const PORT = 19400 + (Math.random() * 500 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-seats-'));
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off' }, stdio: ['ignore', 'ignore', 'inherit'] });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off' }, stdio: ['ignore', 'ignore', 'inherit'] });
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(30); if (Date.now() - t0 > ms) { fail('timeout: ' + what); return false; } } return true; };
 function player(name) {

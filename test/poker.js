@@ -188,7 +188,7 @@ if (score(C('Ah Ad 9c 9s 4d 4h Kc')) !== score(C('Ah Ad 9c 9s Kd 3h 2c'))) fail(
 
 // ----- over the wire -----
 const PORT = 19980 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: '/tmp/cozy-poker-test-' + PORT }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: '/tmp/cozy-poker-test-' + PORT }, stdio: 'inherit' });
 const bail = m => { srv.kill(); fail(m); };
 await new Promise(r => setTimeout(r, 600));
 function player(name) {

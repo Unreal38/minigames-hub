@@ -9,7 +9,7 @@ const PORT = 20900 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1' }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1' }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 const lvOfItem = (farm, id) => farm.items.find(i => i.id === id)?.lv || 1;
 const fail = m => { console.error('FAIL', m); srv?.kill(); process.exit(1); };

@@ -7,7 +7,7 @@ import http from 'node:http';
 const PORT = 19080 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-sec-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' });
 await wait(700);
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(50); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };
@@ -115,9 +115,9 @@ console.log('recovery code ok', code3 !== code2);
 
 // 6. The host's reset code (npm run reset-password).
 await wait(1800); // the account is on disk
-const out = execFileSync('node', ['server/reset.js', 'ANA'], { env: { ...process.env, DATA_DIR } }).toString();
+const out = execFileSync('node', ['server/reset.js', 'ANA'], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR } }).toString();
 const reset = /Reset code for ana:\s+([A-Z2-9-]{14})/.exec(out)?.[1]; if (!reset) fail('reset script output: ' + out);
-try { execFileSync('node', ['server/reset.js', 'nobody'], { env: { ...process.env, DATA_DIR }, stdio: 'pipe' }); fail('reset for unknown user'); } catch {}
+try { execFileSync('node', ['server/reset.js', 'nobody'], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR }, stdio: 'pipe' }); fail('reset for unknown user'); } catch {}
 await wait(3500); // the server picks the file up
 if (fs.readdirSync(DATA_DIR).some(f => f.startsWith('reset-'))) fail('reset file left behind');
 const d = await player('Ana again').connect();

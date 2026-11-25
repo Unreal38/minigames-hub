@@ -16,7 +16,7 @@ const TOKEN = 'a'.repeat(24), PID = 'p1';
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles: { [PID]: { pid: PID, user: 'ana', name: 'Ana', color: '#ff8fab', av: null, xp: 300, games: 10, wins: 2, pts: 50, byGame: {} } },
   sessions: { [TOKEN]: { id: 'abc', pid: PID, seen: Date.now() } }, rooms: [] }));
 fs.writeFileSync(path.join(DATA_DIR, 'pet-farm.json'), JSON.stringify({ v: 1, farms: { [PID]: { v: 1, size: 8, nid: 2, items: [], pets: [], inv: { wood: 5, coins: 40 } } } }));
-const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-12-10' }, stdio: 'inherit' }); await wait(700); };
+const boot = async () => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, SHOP_DATE: '2026-12-10' }, stdio: 'inherit' }); await wait(700); };
 const stop = async () => { const done = new Promise(r => srv.once('exit', r)); srv.kill('SIGTERM'); await done; };
 
 function player(token, av) {

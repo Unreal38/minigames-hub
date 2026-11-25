@@ -1,7 +1,7 @@
 // Smoke test: two simulated players host/join a table and play a full game against bots.
 import { spawn } from 'node:child_process';
 const PORT = 18080 + (Math.random() * 1000 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1' }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1' }, stdio: 'inherit' });
 await new Promise(r => setTimeout(r, 600));
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 

@@ -23,7 +23,7 @@ const STEPS = {
 };
 const ONLY = process.env.LOAD_ONLY;
 
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: ['ignore', 'ignore', 'inherit'] });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: ['ignore', 'ignore', 'inherit'] });
 await wait(800);
 
 // ---------- server process numbers (Linux /proc) ----------

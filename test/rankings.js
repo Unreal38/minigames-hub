@@ -20,7 +20,7 @@ for (let i = 0; i < 30; i++) profiles['f' + i] = prof('f' + i, 'Filler ' + i, { 
 const sessions = { lowtoken00000000bb: { id: 'aa', pid: 'low', seen: Date.now() }, miatoken00000000aa: { id: 'bb', pid: 'mia', seen: Date.now() } };
 fs.writeFileSync(path.join(DATA_DIR, 'cozy-table.json'), JSON.stringify({ v: 1, profiles, sessions, rooms: [] }));
 
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR }, stdio: 'inherit' });
 await wait(700);
 function open(token) {
   const p = { boards: {} };

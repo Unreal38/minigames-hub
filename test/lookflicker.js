@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 const PORT = 21700 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-look-'));
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off' }, stdio: ['ignore', 'ignore', 'inherit'] });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off' }, stdio: ['ignore', 'ignore', 'inherit'] });
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(30); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };

@@ -29,7 +29,7 @@ if (!isWord('pl', 'żółty') || !isWord('pl', 'łódka') || isWord('pl', 'qwert
 console.log('rules ok');
 
 // 2. The server.
-srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, DATA_DIR: dir, DAILY_TEST: '1', DAILY_NOW: '2026-11-30T10:00:00Z', GEO: 'off' }, stdio: ['ignore', 'pipe', 'inherit'] });
+srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, DATA_DIR: dir, DAILY_TEST: '1', DAILY_NOW: '2026-11-30T10:00:00Z', GEO: 'off' }, stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise(r => srv.stdout.on('data', d => String(d).includes('http') && r()));
 function player(name) {
   const p = { name, me: null, auth: null, w: null, peek: null, chat: [] };

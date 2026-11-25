@@ -192,7 +192,7 @@ play({ seats: 3 }, (G, s, now) => { if (G.stage === 'drawn') pp.act(G, s, { t: '
 
 // ----- over the real server -----
 const PORT = 22080 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}` }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}` }, stdio: 'inherit' });
 const bail = msg => { srv.kill(); fail(msg); };
 await new Promise(r => setTimeout(r, 600));
 const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);

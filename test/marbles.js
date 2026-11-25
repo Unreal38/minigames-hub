@@ -73,7 +73,7 @@ console.log('knockout: winner', k.marbles[k.win].name, 'after', k.heat, 'heats')
 
 // over the wire
 const PORT = 19080 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1' }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1' }, stdio: 'inherit' });
 const bail = m => { srv.kill(); fail(m); };
 await new Promise(r => setTimeout(r, 600));
 const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);

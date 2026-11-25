@@ -1,7 +1,7 @@
 // Watch test: someone who joins mid-game watches, asks for a seat, and plays the next round in a seat a bot would have had.
 import { spawn } from 'node:child_process';
 const PORT = 20080 + (Math.random() * 900 | 0);
-const srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: '/tmp/cozy-watch-' + PORT }, stdio: 'inherit' });
+const srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: '/tmp/cozy-watch-' + PORT }, stdio: 'inherit' });
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 const until = async (f, what, ms = 20000) => { const t0 = Date.now(); while (!f()) { await wait(30); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };

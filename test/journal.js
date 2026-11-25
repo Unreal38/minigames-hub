@@ -28,7 +28,7 @@ if (total > 300) fail('tutorial materials too generous: ' + total);
 if (Object.keys(rewardOf(0, true).mats).length || !rewardOf(0, true).deco) fail('an old chapter pays the decoration only');
 
 process.on('uncaughtException', e => fail(e.stack));
-srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1' }, stdio: 'inherit' });
+srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, FARM_TEST: '1' }, stdio: 'inherit' });
 await wait(700);
 function player(name) {
   const p = { me: null, auth: null, farm: null, last: null };

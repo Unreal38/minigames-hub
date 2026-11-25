@@ -9,7 +9,7 @@ const PORT = 18800 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-priv-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv;
-const start = async env => { srv = spawn('node', ['server/server.js'], { env: { ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off', ...env }, stdio: 'inherit' }); await wait(700); };
+const start = async env => { srv = spawn('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR, GEO: 'off', ...env }, stdio: 'inherit' }); await wait(700); };
 const fail = m => { console.error('FAIL', m); srv.kill(); process.exit(1); };
 const until = async (f, what, ms = 8000) => { const t0 = Date.now(); while (!f()) { await wait(50); if (Date.now() - t0 > ms) fail('timeout: ' + what); } };
 const get = async (p, headers = {}) => { const r = await fetch(`http://127.0.0.1:${PORT}${p}`, { headers }); return { r, text: await r.text() }; };
@@ -71,12 +71,12 @@ ana.send({ t: 'hubchat', text: 'hello from ana' }); await until(() => bo.got.len
 const lineId = bo.got[0].id;
 await wait(2000); // let the server save, so the command can find the account
 
-const out = execFileSync('node', ['server/delete.js', 'ANA'], { env: { ...process.env, DATA_DIR }, encoding: 'utf8' });
+const out = execFileSync('node', ['server/delete.js', 'ANA'], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR }, encoding: 'utf8' });
 if (!/Account ana will be deleted/.test(out)) fail('delete command said: ' + out);
 await until(() => ana.errs.some(e => /deleted/.test(e)), 'deleted screen told');
 await until(() => !ana.me.user, 'deleted screen is a guest');
 await until(() => bo.gone.includes(lineId), 'chat line removed from open screens');
-try { execFileSync('node', ['server/delete.js', 'nobody'], { env: { ...process.env, DATA_DIR }, stdio: 'pipe' }); fail('unknown user should fail'); } catch (e) { if (e.status !== 1) fail('unknown user exit code'); }
+try { execFileSync('node', ['server/delete.js', 'nobody'], { env: { BOT_PAY: 'full', ...process.env, DATA_DIR }, stdio: 'pipe' }); fail('unknown user should fail'); } catch (e) { if (e.status !== 1) fail('unknown user exit code'); }
 await wait(500);
 const saved = readSaved(DATA_DIR);
 const profs = Object.values(saved.profiles);
