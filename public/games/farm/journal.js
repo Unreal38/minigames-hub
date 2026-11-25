@@ -79,7 +79,7 @@ export const CHAPTERS = [
     intro: () => L('Past level 5 the farmhouse opens far islands and Nest charms.', 'Powyżej poziomu 5 dom otwiera dalekie wyspy i amulety do Gniazda.'),
     tasks: [
       { id: 'house6', text: () => L('Improve the farmhouse to level 6', 'Ulepsz dom do poziomu 6'), done: f => (f.house || 1) >= 6, go: { a: 'card', type: 'house' }, at: 'house' },
-      { id: 'far', text: () => L('Come back from a far expedition', 'Wróć z dalekiej wyprawy'), done: f => (f.far || 0) >= 1, go: { a: 'explore' }, at: 'gate' },
+      { id: 'far', text: () => L('Come back from a far expedition', 'Wróć z dalekiej wyprawy'), done: f => (f.far || 0) >= 1, go: { a: 'explore', zone: 'legend' }, at: 'gate' },
       { id: 'charm', text: () => L('Use a Nest charm', 'Użyj amuletu w Gnieździe'), done: f => (f.charmsUsed || 0) >= 1, go: { a: 'card', type: 'nest' }, at: 'nest' },
       { id: 'variant', text: () => L('Hatch a pet in an element that is not its usual one', 'Wykluj zwierzaka w nietypowym dla niego żywiole'), done: f => variant(f), go: { a: 'card', type: 'nest' }, at: 'nest' },
     ] },
