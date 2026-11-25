@@ -79,6 +79,7 @@ const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, runway };
+const GAME_IDS = new Set(Object.keys(GAMES)); // the Game wheel keeps only these
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -673,6 +674,12 @@ function handle(c, m) {
       const p = store.profileOf(c.token), r = store.setOutfits(p, m.l);
       if (r.err) { send(c, { t: 'err', msg: r.err }); }
       return send(c, { t: 'me', me: store.me(p) });
+    }
+    case 'gwheel': { // the hub's Game wheel: what is on it and the saved wheels (it pays nothing)
+      if (!allow('gwheel:' + c.id, 60, 60_000)) return;
+      const p = store.profileOf(c.token);
+      store.setGameWheel(p, m.v, GAME_IDS); // no answer: the page already shows what it sent
+      return;
     }
     case 'stats': return send(c, statsMsg());
     case 'notice': { // the hosts' Site notices window: maintenance countdown, announcement, "What's new"
