@@ -97,7 +97,7 @@ shop('shoes', [['Heels', 110], ['Cowboy boots', 130], ['Platform boots', 140]]);
 shop('hat', [['Tiara', 200], ['Veil', 150], ['Sweatband', 60], ['Deerstalker', 130]]);
 shop('glasses', [['Masquerade mask', 140], ['Cat-eye glasses', 100]]);
 shop('neck', [['Feather boa', 130], ['Spiked collar', 90], ['Ruff collar', 110]]);
-shop('back', [['Flickit on the shoulder', 200], ['Guitar', 170]]);
+shop('back', [['Pirate flag', 160], ['Guitar', 170]]);
 
 export const packOf = (k, i) => PACK[k + ':' + i] || null;
 export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);
