@@ -9,10 +9,10 @@ import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
-  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
+  BERRIES, RECIPES, STORED, capOf, CHARMS, charmHouse, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
-import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
+import { lookOf, makeBaby, charmsFor, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 import { dayOf } from './day.js';
 
 // Coins are the account's, not the farm's: f.inv.coins reads and writes the owner's account balance, so everything
@@ -381,13 +381,15 @@ const view = (f, p) => ({
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
   album: album(f), vars: f.vars, coats: f.coats, marks: f.marks, mail: f.mail || [], tokens: f.tokens || {}, buff: buffView(f), pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
-  house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f), lodgeRoom: lodgeRoom(f), allRoom: allRoom(f), shelves: f.shelves || [],
+  charms: f.charms || {}, house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f), lodgeRoom: lodgeRoom(f), allRoom: allRoom(f), shelves: f.shelves || [],
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
   trips: parties(f).map(tripView), partyMax: Math.max(1, topLv(f, 'gate')), nests: SLOTS.map(s => nestView(f, s)).filter(Boolean), nestMax: nestMax(f),
   trip: parties(f).length ? tripView([...parties(f)].sort((a, b) => a.until - b.until)[0]) : null, // the party that is back first
   next: SIZES.indexOf(f.size) + 1 < SIZES.length ? { size: SIZES[SIZES.indexOf(f.size) + 1], cost: EXPAND[SIZES.indexOf(f.size) + 1], house: LAND_HOUSE[SIZES.indexOf(f.size) + 1] || 0 } : null,
 });
 
+// Adds Nest charms to a farm (made at the Nest, or given as a reward). kind: a key of data.js CHARMS.
+export const giveCharm = (f, kind, n = 1) => { if (CHARMS[kind] && n > 0) (f.charms ||= {})[kind] = (f.charms[kind] || 0) + n; };
 const pay = (inv, cost, sign = -1) => { for (const [k, n] of Object.entries(cost || {})) inv[k] = Math.max(0, (inv[k] || 0) + sign * n); };
 const cleanPetName = s => safeText(s).trim().slice(0, 14);
 // Looks a player's choice up in one of the game's tables. Only the table's own entries count, never built-in
@@ -484,6 +486,14 @@ export function handle(p, a, reply) {
     if (!canAfford(f.inv, HOUSE_UP[lv])) return no('Not enough materials to improve the farmhouse.');
     pay(f.inv, HOUSE_UP[lv]); f.house = lv;
     return ok({ did: 'houseup' });
+  }
+  if (a.t === 'charm') { // make a Nest charm (data.js CHARMS) from crystal
+    const c = own(CHARMS, a.kind); if (!c) return;
+    const house = charmHouse(a.kind); if ((f.house || 1) < house) return no(`That charm needs a level ${house} farmhouse.`);
+    if (!countOf(f, 'nest')) return no('Build a Nest first.');
+    if (!canAfford(f.inv, c.cost)) return no('You do not have enough for that charm.');
+    pay(f.inv, c.cost); giveCharm(f, a.kind);
+    return ok({ did: 'charm', kind: a.kind });
   }
   if (a.t === 'send') { // a party sets off on an expedition
     const z = own(ZONES, a.zone), tr = own(TRIPS, a.trip);
@@ -591,7 +601,12 @@ export function handle(p, a, reply) {
     if (away(f, A.id) || (!friend && away(f, Bp.id))) return no('One of them is away exploring.');
     if (cuddling(f, A.id) || (!friend && cuddling(f, Bp.id))) return no('One of them is already in the Nest.');
     if (f.train?.ids.some(id => id === A.id || (!friend && id === Bp.id))) return no('One of them is training at the yard. Take it off training first.');
-    const kid = makeBaby(A, Bp);
+    // Nest charms: one of each kind at most, only the ones that can change this egg, and only ones the farm owns
+    const want = [...new Set(Array.isArray(a.charms) ? a.charms.filter(k => own(CHARMS, k)) : [])], can = charmsFor(A, Bp);
+    if (want.some(k => !can[k])) return no('That charm would not change anything for these two.');
+    if (want.some(k => !(f.charms?.[k] > 0))) return no('You do not have that charm.');
+    const kid = makeBaby(A, Bp, Math.random, Object.fromEntries(want.map(k => [k, true])));
+    if (want.length) { for (const k of want) f.charms[k]--; f.charmsUsed = (f.charmsUsed || 0) + want.length; kid.charms = want; }
     kid.par = [A, Bp].map((x, i) => ({ ...snapshot(x, i && friend ? friend.name : p.name), par: (x.par || []).map(g => ({ name: g.name, sp: g.sp, lv: g.lv, look: g.look, own: g.own })) }));
     f[slot] = { a: A.id, b: friend ? snapshot(Bp, friend.name) : Bp.id, friend, at: now, hours: hatchHours(kid.sp) * (topLv(f, 'nest') >= 3 ? .75 : 1) * (1 - (unwork(f, [A.id, friend ? '' : Bp.id]), boost(f, 'nest'))) * (buffUse(f, 'nest') ? BOOSTS.nest.x : 1), shell: shellOf(A, Bp), kid };
     const rest = x => { x.rest = now + (CUDDLE_H + REST_H * (x.talent === 5 ? .5 : 1)) * HOUR; x.kids = (x.kids || 0) + 1; };

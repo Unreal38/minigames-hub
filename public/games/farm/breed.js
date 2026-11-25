@@ -53,7 +53,9 @@ export const STAR_NAME = ['Health', 'Attack', 'Defence', 'Speed'];
 // Two parents of these elements can have the breeding-only species. The game never shows this table.
 const RECIPE = { 'Leaf+Tide': 'truffowl', 'Ember+Stone': 'magmutt', 'Spark+Tide': 'nimbowhale', 'Leaf+Spark': 'glimmoth', 'Stone+Tide': 'geodeer',
   'Ember+Leaf': 'maplander', 'Leaf+Stone': 'koalith', 'Ember+Tide': 'kettlephant', 'Ember+Spark': 'bangaroo', 'Spark+Stone': 'magnebug' };
-export const HYBRID_CHANCE = .2, VARIANT_CHANCE = .15, VARIANT_KEEP = .5, BREED_LV = 5, CUDDLE_H = 2, REST_H = 6, HATCH_H = [4, 6, 8, 12];
+export const HYBRID_CHANCE = .2, VARIANT_CHANCE = .15, VARIANT_KEEP = .5,
+  CHARMED = { hyb: .4, el: .4, keep: .7 }, // the odds with a Nest charm (data.js CHARMS)
+  BREED_LV = 5, CUDDLE_H = 2, REST_H = 6, HATCH_H = [4, 6, 8, 12];
 
 const hex = n => n.toString(16).padStart(2, '0');
 export function mixHex(a, b, t = .5) {
@@ -85,30 +87,39 @@ export function hybridOf(a, b) {
   return null;
 }
 // The species a pair can have, with chances that add up to 1.
-export function speciesOdds(a, b) {
+// ch: the Nest charms put into this pairing, as { el, hyb, pat } (any of them true).
+export function speciesOdds(a, b, ch = {}) {
   if (a === b) return [{ sp: a, p: 1 }];
-  const h = hybridOf(a, b), rest = h ? 1 - HYBRID_CHANCE : 1;
-  return [{ sp: a, p: rest / 2 }, { sp: b, p: rest / 2 }, ...(h ? [{ sp: h, p: HYBRID_CHANCE, hybrid: true }] : [])];
+  const h = hybridOf(a, b), hc = ch.hyb ? CHARMED.hyb : HYBRID_CHANCE, rest = h ? 1 - hc : 1;
+  return [{ sp: a, p: rest / 2 }, { sp: b, p: rest / 2 }, ...(h ? [{ sp: h, p: hc, hybrid: true }] : [])];
 }
 // The other elements a baby of this species could hatch with, and the chance each parent gives it.
-export function variantOdds(sp, a, b) {
+export function variantOdds(sp, a, b, ch = {}) {
   const d = SPECIES[sp]; if (d.el2) return [];
-  return [a, b].flatMap(p => (SPECIES[p.sp].el2 ? els(p.sp) : [elOf(p)]).filter(e => e !== d.el).map(e => [e, variantOf(p) === e ? VARIANT_KEEP : VARIANT_CHANCE]));
+  const [keep, chance] = ch.el ? [CHARMED.keep, CHARMED.el] : [VARIANT_KEEP, VARIANT_CHANCE];
+  return [a, b].flatMap(p => (SPECIES[p.sp].el2 ? els(p.sp) : [elOf(p)]).filter(e => e !== d.el).map(e => [e, variantOf(p) === e ? keep : chance]));
 }
+// Which Nest charms can change anything for this pair (a charm that cannot is not offered and not taken).
+export function charmsFor(a, b) {
+  const odds = speciesOdds(a.sp, b.sp);
+  return { hyb: odds.some(o => o.hybrid), el: odds.some(o => !o.hybrid && variantOdds(o.sp, a, b).length), pat: pats(a).length + pats(b).length > 0, spk: true };
+}
+// The chance of a sparkly baby: 1 in 64, 1 in 16 with one sparkly parent, 1 in 4 with two; a Sparkle Charm makes it four times as likely (at most 1 in 2).
+export const sparkleOdds = (a, b, ch = {}) => Math.min(.5, (a.sparkle && b.sparkle ? 1 / 4 : a.sparkle || b.sparkle ? 1 / 16 : 1 / 64) * (ch.spk ? 4 : 1));
 export const hatchHours = sp => HATCH_H[SPECIES[sp].rare] || 4;
 // The egg: its shell is the colour of one parent and its speckles the colour of the other.
 export const shellOf = (a, b) => ({ base: mixHex(coatHex(a), '#fff6e6', .45), speck: mixHex(coatHex(b), '#6b4a3c', .25) });
 
 // Rolls a baby. a and b are full pet records (b may belong to a friend). Returns the new pet's traits, without id or name.
-export function makeBaby(a, b, rnd = Math.random) {
+export function makeBaby(a, b, rnd = Math.random, ch = {}) {
   const pick = list => list[Math.floor(rnd() * list.length)];
   let r = rnd(), sp = a.sp;
-  for (const o of speciesOdds(a.sp, b.sp)) { if (r < o.p) { sp = o.sp; break; } r -= o.p; }
+  for (const o of speciesOdds(a.sp, b.sp, ch)) { if (r < o.p) { sp = o.sp; break; } r -= o.p; }
   const other = sp === a.sp ? b : sp === b.sp ? a : pick([a, b]);
   const kid = { sp, lv: 1, xp: 0 };
   if (kin(a.sp, b.sp)) { const c = pick([kinCoat(a), kinCoat(b)]); if (c !== sp) kid.cat = c; } // one family: the coat can come from either side
   // an element variant: a one-element baby can take the element of a parent, more easily from a parent that is a variant itself
-  for (const [e, c] of variantOdds(sp, a, b)) if (rnd() < c) { kid.el = e; break; }
+  for (const [e, c] of variantOdds(sp, a, b, ch)) if (rnd() < c) { kid.el = e; break; }
   kid.col = [pick(a.col || [0, 0]), pick(b.col || [0, 0])].sort((x, y) => x - y);
   // a soft blend of both coats, or two tones, when the parents show different colours
   const ca = coatHex(a, sp), cb = coatHex(b, sp);
@@ -116,14 +127,17 @@ export function makeBaby(a, b, rnd = Math.random) {
   const got = new Set();
   for (const p of [a, b]) for (const k of pats(p)) if (rnd() < .45) got.add(k);
   if (rnd() < .1) got.add(pick(Object.keys(PATTERNS)));
-  kid.pat = [...got].slice(0, 2);
+  const from = [...pats(a), ...pats(b)]; let keep = [...got];
+  if (ch.pat && from.length && !keep.some(k => from.includes(k))) keep = [pick(from), ...keep]; // a Pattern Charm: one of theirs for sure
+  else if (ch.pat) keep.sort((x, y) => from.includes(y) - from.includes(x)); // and it is never the one cut off below
+  kid.pat = keep.slice(0, 2);
   // one visible part from the other side of the family; a borrowed part can be handed down again
   const parts = [a, b].map(p => p.feat).filter(f => f && f !== sp);
   if (other.sp !== sp && rnd() < .4) kid.feat = other.sp; else if (parts.length && rnd() < .5) kid.feat = pick(parts);
   kid.stars = [0, 1, 2, 3].map(i => Math.max(1, Math.min(5, Math.round(((a.stars?.[i] || 3) + (b.stars?.[i] || 3)) / 2 + (rnd() < .5 ? -.01 : .01)) + pick([-1, 0, 0, 1]))));
   const t = rnd(); kid.talent = t < .4 ? a.talent || 0 : t < .8 ? b.talent || 0 : Math.floor(rnd() * TALENTS.length);
   if (other.sp !== sp && rnd() < .5) { const extra = (KIT[other.sp]?.moves || []).filter(m => !KIT[sp].moves.includes(m)); if (extra.length) kid.xmove = pick(extra); }
-  kid.sparkle = rnd() < (a.sparkle && b.sparkle ? 1 / 4 : a.sparkle || b.sparkle ? 1 / 16 : 1 / 64);
+  kid.sparkle = rnd() < sparkleOdds(a, b, ch);
   return kid;
 }
 

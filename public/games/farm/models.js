@@ -104,7 +104,7 @@ export function finish(g, raw = false) {
 const C = { wood: '#b07a4f', woodD: '#8a5a3c', cream: '#f4e3c1', red: '#d9584e', redD: '#b8433c', stone: '#a9a6b0', stoneD: '#8a8794',
   leaf: '#5fb04a', leafD: '#4a9a45', leafL: '#86cc5a', straw: '#e8c860', glass: '#bfe6fb', soil: '#8a5a3c', sand: '#e8cf9a',
   teal: '#5aa9a0', iron: '#5b4636', white: '#ffffff', yellow: '#ffc94d', pink: '#ff9fb8', lilac: '#c8a2f2', water: '#6fb7e8', slate: '#6f7f8f',
-  gold: '#f2b92e', goldD: '#c98f1c', copper: '#b9683c', brick: '#b9583f', brickD: '#96432f', blue: '#4f7fc4', blueD: '#3b62a0' };
+  gold: '#f2b92e', goldD: '#c98f1c', plum: '#7b62c9', plumD: '#5f4aa6', patina: '#5fb3a1', patinaD: '#448f80', brass: '#d9a441', copper: '#b9683c', brick: '#b9583f', brickD: '#96432f', blue: '#4f7fc4', blueD: '#3b62a0' };
 // Parts the upgraded buildings share. Level 2 adds to a building, level 3 makes it grand: taller, gold trim, finer roofs.
 const grp = (p, x = 0, y = 0, z = 0) => { const o = new THREE.Group(); o.position.set(x, y, z); p.add(o); return o; };
 const pennant = (p, x, y, z, c, h = .5, s = 1) => { box(p, .04, h, .04, C.woodD, x, y, z); box(p, .26 * s, .16 * s, .03, c, x + .15 * s, y + h - .18 * s, z); ico(p, .04, C.gold, x, y + h + .02, z); };
@@ -138,13 +138,13 @@ export const ROUTES = {
     return [...head, ['sway', h.x, h.y - h.sag, h.z, 6, Math.atan2(h.x, h.z)], ['groom', ...at(T.basket), 3.5, toPost(T.basket) + Math.PI], ['peek', ...at(T.hut), 8, 0]];
   },
 };
-export const LIFT = { house: [0, 0, .9, .9, .9], lodge: [0, 0, .55], barn: [0, .4, .75], kitchen: [0, .5, 1.0], gate: [0, .55, .8] };
+export const LIFT = { house: [0, 0, .9, .9, .9, .9, .9], lodge: [0, 0, .55], barn: [0, .4, .75], kitchen: [0, .5, 1.0], gate: [0, .55, .8] };
 const liftOf = (type, lv) => LIFT[type]?.[Math.min(LIFT[type].length, Math.max(1, lv | 0)) - 1] || 0;
 
 const BUILD = {
   house(g, live, lv = 1) {
-    const up = liftOf('house', lv), rf = grp(g, 0, up, 0), grand = lv >= 4;
-    const roof = grand ? C.blue : C.red, roofD = grand ? C.blueD : C.redD;
+    const up = liftOf('house', lv), rf = grp(g, 0, up, 0), grand = lv >= 4, sky = lv >= 7;
+    const roof = sky ? C.plum : grand ? C.blue : C.red, roofD = sky ? C.plumD : grand ? C.blueD : C.redD, trim = sky ? C.plum : C.blue;
     box(g, 2.42, .16, 2.02, C.stoneD, 0, 0, -.1);                // stone footing
     box(g, 2.3, 1.25, 1.9, C.cream, 0, 0, -.1);
     for (const x of [-1.13, 1.13]) for (const z of [.83, -1.03]) box(g, .12, 1.25 + up, .12, C.woodD, x, 0, z); // timber frame
@@ -204,9 +204,9 @@ const BUILD = {
     cyl(t, .44, .47, 2.75, 8, C.stone); cyl(t, .5, .5, .1, 8, C.stoneD, 0, 0); cyl(t, .5, .46, .12, 8, C.stoneD, 0, 2.7); cyl(t, .47, .47, .07, 8, C.woodD, 0, 1.3);
     for (const [a, y] of [[.5, .5], [1.9, 1.0], [-.6, 1.7], [1.2, 2.2], [-1.5, .8], [2.6, 2.4], [0, 2.45]]) box(t, .2, .09, .03, C.stoneD, Math.sin(a) * .445, y, Math.cos(a) * .445).rotation.y = a;
     for (const [a, y] of [[-.785, 2.05], [-2.356, 2.05], [-.785, .8]]) { const o = grp(t, Math.sin(a) * .44, y, Math.cos(a) * .44); o.rotation.y = a; box(o, .2, .34, .06, C.glass, 0, 0, 0); box(o, .26, .05, .08, C.stoneD, 0, -.05, 0); box(o, .26, .05, .08, C.stoneD, 0, .34, 0); }
-    cone(t, .62, .16, 8, C.blueD, 0, 2.8); cone(t, .56, .95, 8, C.blue, 0, 2.86); ico(t, .07, C.gold, 0, 3.86, 0);
-    box(t, .03, .5, .03, C.woodD, 0, 3.86, 0); box(t, .34, .2, .03, C.red, .19, 4.14, 0); box(t, .1, .08, .04, C.gold, .14, 4.2, 0);
-    for (const sd of [-1, 1]) banner(g, sd * .36, 1.51 + up - .9, .9, C.blue, .2, .5);
+    if (lv < 6) { cone(t, .62, .16, 8, C.blueD, 0, 2.8); cone(t, .56, .95, 8, C.blue, 0, 2.86); ico(t, .07, C.gold, 0, 3.86, 0);
+      box(t, .03, .5, .03, C.woodD, 0, 3.86, 0); box(t, .34, .2, .03, C.red, .19, 4.14, 0); box(t, .1, .08, .04, C.gold, .14, 4.2, 0); }
+    for (const sd of [-1, 1]) banner(g, sd * .36, 1.51 + up - .9, .9, trim, .2, .5);
     put(rf, G('Octahedron', .1, 0), M(C.gold), 0, 2.42, 1.05).scale.set(1, 1.5, .6); box(rf, .03, .14, .03, C.goldD, 0, 2.25, 1.05); // a gold finial over the gable
     for (const sd of [-1, 1]) box(rf, .16, .05, 2.42, C.gold, sd * 1.34, 1.3, -.1);
     lantern(g, -.46, .58, .9);
@@ -219,9 +219,35 @@ const BUILD = {
       put(f, G('Cylinder', .2, .2, .04, 12), M(C.white)).rotation.x = Math.PI / 2; put(f, G('Torus', .2, .03, 4, 12), M(C.gold), 0, 0, .02);
       box(f, .025, .13, .02, C.iron, 0, -.01, .03); box(f, .1, .025, .02, C.iron, .04, 0, .035); ico(f, .02, C.gold, 0, 0, .045); }
     for (const sd of [-1, 1]) { const w = grp(k, sd * .28, 1.9, 0); w.rotation.y = sd * Math.PI / 2; box(w, .2, .34, .06, C.glass); box(w, .26, .05, .1, C.woodD, 0, -.04); }
-    put(k, G('Cylinder', .28, .4, .36, 4), M(C.blue), 0, 3.38, 0).rotation.y = Math.PI / 4; ico(k, .26, C.gold, 0, 3.66, 0, 1); // the dome
-    box(k, .03, .36, .03, C.goldD, 0, 3.88, 0); put(k, G('Octahedron', .11, 0), GOLDM(), 0, 4.3, 0).scale.set(1, 1.3, .4);
-    for (const sd of [-1, 1]) banner(g, sd * .36 + .02, .55, 1.4, C.blue, .14, .3); // little banners on the fence posts
+    put(k, G('Cylinder', .28, .4, .36, 4), M(trim), 0, 3.38, 0).rotation.y = Math.PI / 4; ico(k, .26, C.gold, 0, 3.66, 0, 1); // the dome
+    if (!sky) { box(k, .03, .36, .03, C.goldD, 0, 3.88, 0); put(k, G('Octahedron', .11, 0), GOLDM(), 0, 4.3, 0).scale.set(1, 1.3, .4); } // (at level 7 a sky crystal floats there instead, FX.house)
+    for (const sd of [-1, 1]) banner(g, sd * .36 + .02, .55, 1.4, trim, .14, .3); // little banners on the fence posts
+    if (lv < 6) return;
+    // level 6, the explorer's house: the stone tower becomes an observatory, a copper dome with a brass telescope that
+    // looks out past the clouds (far expeditions open at this level), and a weathervane rides the roof
+    const T0 = [-.98, 2.82, -.95], domeC = sky ? C.gold : C.patina, domeD = sky ? C.goldD : C.patinaD, D0 = T0[1] + .5; // D0: where the dome sits
+    cyl(g, .74, .74, .08, 8, C.woodD, T0[0], T0[1], T0[2]); // a lookout gallery round the top of the tower, with a rail
+    for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; box(g, .035, .22, .035, C.white, T0[0] + Math.sin(a) * .7, T0[1] + .08, T0[2] + Math.cos(a) * .7); }
+    put(g, G('Torus', .7, .022, 3, 16), M(C.white), T0[0], T0[1] + .31, T0[2]).rotation.x = Math.PI / 2;
+    cyl(g, .5, .5, .42, 8, C.cream, T0[0], T0[1] + .08, T0[2]); // the observatory room
+    for (const a of [.35, 1.2, -.5, 2.1]) { const o = grp(g, T0[0] + Math.sin(a) * .47, T0[1] + .17, T0[2] + Math.cos(a) * .47); o.rotation.y = a; box(o, .14, .2, .06, C.glass); box(o, .2, .035, .08, C.woodD, 0, -.02); box(o, .2, .035, .08, C.woodD, 0, .2); }
+    cyl(g, .55, .55, .08, 8, domeD, T0[0], D0 - .08, T0[2]); // a drum the dome turns on
+    put(g, G('Sphere', .52, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), M(domeC), T0[0], D0, T0[2]);
+    for (let i = 0; i < 3; i++) put(g, G('Torus', .525, .022, 3, 12, Math.PI), M(domeD), T0[0], D0, T0[2]).rotation.y = i * Math.PI / 3 + .3; // ribs over the dome
+    const tel = grp(g, T0[0], D0 + .22, T0[2]); tel.rotation.copy(new THREE.Euler(-.75, -.5, 0, 'YXZ')); // the telescope looks up and out to the front left
+    for (const [r, h, z, c] of [[.07, .5, .3, C.brass], [.085, .06, .6, C.gold], [.095, .2, .66, C.brass], [.105, .05, .86, C.gold]]) put(tel, G('Cylinder', r, r, h, 8), M(c), 0, 0, z + h / 2).rotation.x = Math.PI / 2;
+    put(tel, G('Cylinder', .085, .085, .02, 8), M(C.glass), 0, 0, .915).rotation.x = Math.PI / 2;
+    pennant(g, T0[0], D0 + .5, T0[2], sky ? C.plum : C.red, .5); // the flag moves to the top of the dome
+    const wv = grp(rf, -.35, 2.3, -.55); box(wv, .035, .5, .035, C.iron); // the weathervane's post and its compass arms (the arrow turns, FX.house)
+    for (const ry of [0, Math.PI / 2]) { const arm = box(wv, .34, .025, .025, C.iron, 0, .3, 0); arm.rotation.y = ry; }
+    for (const [x, z] of [[.17, 0], [-.17, 0], [0, .17], [0, -.17]]) ico(wv, .028, C.gold, x, .31, z);
+    if (lv < 7) return;
+    // level 7, the sky manor: a plum roof, a gilded observatory, a sky crystal floating over the clock tower (FX.house)
+    // and crystal lamps lighting the way to the door
+    for (const sd of [-1, 1]) { const x = sd * .56, z = 1.17;
+      cyl(g, .07, .09, .08, 6, C.stoneD, x, 0, z); cyl(g, .028, .028, .56, 6, C.iron, x, .08, z); box(g, .1, .03, .1, C.goldD, x, .64, z);
+      put(g, G('Octahedron', .075, 0), MX('crystalglow', '#bdf2ff', { emissive: '#7fdcf5', emissiveIntensity: .8 }), x, .76, z).scale.y = 1.5;
+      box(g, .03, .14, .03, C.gold, x, .86, z); }
   },
   // The Pet Lodge: a long log cabin where stored pets sleep. Level 2 adds a porch, level 3 a whole upper floor.
   lodge(g, live, lv = 1) {
@@ -864,7 +890,25 @@ const SPARK = () => MX('spark', '#ffe066', { emissive: '#ffc94d', emissiveIntens
 //   st.on: it is busy, st.n: how far along (0 to 1), st.burst: seconds left of a short flurry after an action.
 const FX = {
   lodge(g, lv) { const smoke = puffs(g, -.85, 2.2 + liftOf('lodge', lv), -.63, 3, .1); return T => smoke(T, .18, true); },
-  house(g, lv) { const smoke = puffs(g, .7, 2.25 + liftOf('house', lv) + (lv >= 2 ? .34 : 0), -.5, 4, .12); return T => smoke(T, .22, true); },
+  house(g, lv) {
+    const up = liftOf('house', lv), smoke = puffs(g, .7, 2.25 + up + (lv >= 2 ? .34 : 0), -.5, 4, .12);
+    let vane = null, gem = null, shards = [];
+    if (lv >= 6) { // the weathervane's arrow swings about in the breeze
+      vane = grp(g, -.35, 2.3 + up + .5, -.55); box(vane, .42, .03, .03, C.iron, 0, -.015, 0); cone(vane, .05, .12, 4, C.gold, .25, 0, 0).rotation.z = -Math.PI / 2;
+      box(vane, .1, .1, .02, C.gold, -.2, -.05, 0); ico(vane, .035, C.gold, 0, .02, 0);
+    }
+    if (lv >= 7) { // a sky crystal floats over the clock tower and turns, with three little shards going round it
+      const glow = MX('skygem', '#a6ecff', { emissive: '#3fc4ec', emissiveIntensity: .8, roughness: .35 });
+      gem = grp(g, 1.0, 4.32, -1.08); put(gem, G('Octahedron', .2, 0), glow).scale.y = 1.55;
+      shards = [0, 1, 2].map(() => { const o = put(g, G('Octahedron', .045, 0), glow); o.scale.y = 1.6; return o; });
+    }
+    return T => {
+      smoke(T, .22, true);
+      if (vane) vane.rotation.y = .8 + Math.sin(T * .35) * .7 + Math.sin(T * 1.3) * .12;
+      if (gem) { gem.position.y = 4.32 + Math.sin(T * 1.4) * .05; gem.rotation.y = T * .7;
+        shards.forEach((o, i) => { const a = T * 1.1 + i * Math.PI * 2 / 3; o.position.set(1.0 + Math.cos(a) * .32, gem.position.y + Math.sin(a * 2) * .04, -1.08 + Math.sin(a) * .32); }); }
+    };
+  },
   kitchen(g, lv) { const smoke = puffs(g, .5, 1.75 + liftOf('kitchen', lv) + (lv >= 2 ? .1 : 0), -.5, 5, .12), steam = puffs(g, -.4, .56, .82, 3, .07); return (T, st) => { smoke(T, st.burst ? .7 : .2, true, st.burst ? 1.3 : .9); steam(T, .8, st.burst > 0, .5); }; },
   workshop(g) {
     const h = new THREE.Group(); h.position.set(.24, .5, .98); g.add(h); box(h, .05, .3, .05, C.woodD, 0, 0, 0); box(h, .16, .1, .1, C.stoneD, 0, .26, 0); h.rotation.z = -1.2;

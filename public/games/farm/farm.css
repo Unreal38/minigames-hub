@@ -565,3 +565,7 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .hud > .tl, .pf .hud > .bl, .pf .bl > .pfstat, .pf .bl > .pfrow, .pf .pfmatsrow, .pf .pfsumlist { pointer-events: none; }
 .pf .hud > .tl > *, .pf .pfmatsrow > *, .pf .bl > :not(.pfstat):not(.pfrow), .pf .pfstat > *, .pf .pfrow > *, .pf .pfsumlist > *, .pf .pfnav > * { pointer-events: auto; }
 .pf .hud > .tl > .pfmatsrow { pointer-events: none; }
+/* Nest charms in the Nest window: one chip per kind, pressed = put into this egg */
+.pf .pre.charms { gap: 8px; } .pf .pre.charms > .btn { align-self: flex-start; }
+.pf .chms { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; }
+.pf .swmat.chm { padding: 6px 4px 5px; } .pf .swmat.chm b { text-wrap: balance; }

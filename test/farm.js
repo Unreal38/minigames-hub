@@ -57,6 +57,18 @@ function player(name, token) {
   for (let i = 0; i < 200; i++) { if (makeBaby({ sp: 'sizzlet' }, { sp: 'cindercub' }).el) fail('same element made a variant'); const h = makeBaby({ sp: 'magmutt' }, { sp: 'magmutt', el: 'Tide' }); if (h.el) fail('a hybrid got a variant'); }
   let kept = 0; for (let i = 0; i < 400; i++) if (makeBaby({ sp: 'sizzlet', el: 'Tide' }, { sp: 'sizzlet', el: 'Tide' }).el === 'Tide') kept++;
   if (kept < 250) fail('a variant should pass down: ' + kept);
+  // Nest charms: the Element Charm lifts variants to 40%, the Hybrid Charm hybrids to 40%, the Pattern Charm keeps a marking, the Sparkle Charm x4
+  { const { charmsFor, sparkleOdds, speciesOdds } = await import('../public/games/farm/breed.js'); let ve = 0, hy = 0, hy0 = 0, pk = 0;
+    for (let i = 0; i < 3000; i++) { const k = makeBaby({ sp: 'sizzlet' }, { sp: 'puddlepup' }, Math.random, { el: true }); if (k.el) ve++; }
+    if (ve < 3000 * .3 || ve > 3000 * .5) fail('an Element Charm should give about 40% variants: ' + ve / 30);
+    for (let i = 0; i < 3000; i++) { if (SPECIES[makeBaby({ sp: 'cindercub' }, { sp: 'puddlepup' }, Math.random, { hyb: true }).sp].el2) hy++; if (SPECIES[makeBaby({ sp: 'cindercub' }, { sp: 'puddlepup' }).sp].el2) hy0++; }
+    if (hy < 3000 * .33 || hy > 3000 * .47 || hy0 > 3000 * .26) fail('a Hybrid Charm should give about 40% hybrids: ' + hy / 30 + ' vs ' + hy0 / 30);
+    for (let i = 0; i < 500; i++) { const k = makeBaby({ sp: 'mossbun', pat: ['spots'] }, { sp: 'mossbun' }, Math.random, { pat: true }); if (k.pat.includes('spots')) pk++; }
+    if (pk !== 500) fail('a Pattern Charm should always keep the marking: ' + pk);
+    const can = charmsFor({ sp: 'mossbun' }, { sp: 'mossbun' }); if (can.hyb || can.el || can.pat || !can.spk) fail('charms for two plain bunnies ' + JSON.stringify(can));
+    const can2 = charmsFor({ sp: 'cindercub', pat: ['star'] }, { sp: 'puddlepup' }); if (!can2.hyb || !can2.el || !can2.pat) fail('charms for a mixed pair ' + JSON.stringify(can2));
+    if (sparkleOdds({}, {}, { spk: true }) !== 4 / 64 || sparkleOdds({ sparkle: true }, { sparkle: true }, { spk: true }) !== .5) fail('sparkle odds');
+    if (speciesOdds('cindercub', 'puddlepup', { hyb: true }).find(o => o.hybrid).p !== .4) fail('hybrid odds shown with a charm'); }
   const tv = { id: 'x', sp: 'sizzlet', name: 'T', lv: 12, el: 'Tide' }, u = unit(tv);
   if (u.el !== 'Tide' || u.moves[0] !== 'splash' || u.moves.length !== 4 || lookOf(tv)?.el !== 'Tide') fail('variant battle unit ' + JSON.stringify(u.moves));
   if (unit({ ...tv, el: 'Ember' }).moves[0] !== movesAt('sizzlet', 12)[0] || lookOf({ ...tv, el: 'Ember' })?.el || elOf({ sp: 'magmutt', el: 'Tide' }) !== 'Ember') fail('a base element is not a variant');
@@ -750,7 +762,7 @@ if (!r.err) fail('freed a pet that does not exist');
   for (let i = 0; i < 4; i++) { r = await c.farmDo({ t: 'place', type: 'hut', x: 1 + i * 3, y: 15, r: 0 }); if (i < 3 && r.err) fail('hut ' + r.err); if (!r.err) huts.push(r.farm.items.at(-1).id); }
   if (huts.length !== 3) fail('a fourth hut');
   if (c.farm.room !== 2 + 3 * 4 || c.farm.lodgeRoom !== 60 || c.farm.allRoom !== 74) fail('room at farmhouse 4 ' + [c.farm.room, c.farm.lodgeRoom]);
-  r = await c.farmDo({ t: 'houseup' }); if (r.err || r.farm.house !== 5 || r.farm.houseNext) fail('farmhouse 5 ' + r.err);
+  r = await c.farmDo({ t: 'houseup' }); if (r.err || r.farm.house !== 5 || !r.farm.houseNext) fail('farmhouse 5 ' + r.err);
   if (r.farm.room !== 2 + 3 * 4) fail('farmhouse 5 should not add beds');
   r = await c.farmDo({ t: 'expand' }); if (r.err || r.farm.size !== 24 || r.farm.next) fail('land 24 ' + r.err);
   r = await c.farmDo({ t: 'place', type: 'hut', x: 13, y: 16, r: 0 }); if (!r.err) fail('a fourth hut at farmhouse 5');
@@ -786,6 +798,33 @@ if (!r.err) fail('freed a pet that does not exist');
   r = await c.farmDo({ t: 'lodge', ids: [p1], on: false }); if (!r.err) fail('moved onto a full island');
   r = await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); if (!r.farm.pets.at(-1).lodge || r.farm.pets.filter(x => !x.lodge).length !== 26) fail('a new pet should go into storage when the island is full');
   c.ws.close(); }
+// farmhouse levels 6 and 7 and Nest charms
+{ const d = player('Dee'); await d.ready;
+  d.send({ t: 'register', user: 'deebee', pass: 'hunter22' }); await until(() => d.auth, 'register d');
+  await d.farmDo({ t: 'starter', sp: 'mossbun' });
+  r = await d.farmDo({ t: 'open', test: { give: { wood: 2000, stone: 2000, fiber: 1000, shells: 400, coal: 400, crystal: 200, sunberry: 20, berries: 100 } } });
+  for (let i = 0; i < 4; i++) { r = await d.farmDo({ t: 'houseup' }); if (r.err) fail('houseup ' + r.err); }
+  if (r.farm.house !== 5 || r.farm.houseNext?.crystal !== HOUSE_UP[6].crystal) fail('farmhouse 5 should lead to 6 ' + JSON.stringify(r.farm.houseNext));
+  r = await d.farmDo({ t: 'charm', kind: 'el' }); if (!/level 6/.test(r.err || '')) fail('a charm before farmhouse 6 ' + r.err);
+  const room = r.farm.room, cr0 = r.farm.inv.crystal;
+  r = await d.farmDo({ t: 'houseup' }); if (r.err || r.farm.house !== 6 || r.farm.room !== room || r.farm.inv.crystal !== cr0 - HOUSE_UP[6].crystal) fail('farmhouse 6 ' + r.err);
+  r = await d.farmDo({ t: 'charm', kind: 'el' }); if (!/Nest/.test(r.err || '')) fail('a charm without a Nest ' + r.err);
+  r = { err: 1 }; for (let y = 0; y < 11 && r.err; y++) for (let x = 0; x < 11 && r.err; x++) r = await d.farmDo({ t: 'place', type: 'nest', x, y, r: 0 });
+  if (r.err) fail('no room for a nest');
+  const cr1 = d.farm.inv.crystal;
+  for (const k of ['el', 'hyb', 'pat']) { r = await d.farmDo({ t: 'charm', kind: k }); if (r.err || r.farm.charms[k] !== 1) fail('make charm ' + k + ' ' + r.err); }
+  if (r.farm.inv.crystal !== cr1 - 6 - 8 - 3) fail('charm prices ' + (cr1 - r.farm.inv.crystal));
+  r = await d.farmDo({ t: 'charm', kind: 'spk' }); if (!/level 7/.test(r.err || '')) fail('a Sparkle Charm before farmhouse 7 ' + r.err);
+  r = await d.farmDo({ t: 'houseup' }); if (r.err || r.farm.house !== 7 || r.farm.houseNext || r.farm.room !== room) fail('farmhouse 7 ' + r.err);
+  r = await d.farmDo({ t: 'houseup' }); if (!r.err || r.farm.house !== 7) fail('farmhouse past 7');
+  r = await d.farmDo({ t: 'charm', kind: 'spk' }); if (r.err || r.farm.charms.spk !== 1) fail('Sparkle Charm at farmhouse 7 ' + r.err);
+  await d.farmDo({ t: 'open', test: { pet: 'cindercub', traits: { pat: ['star'] } } }); await d.farmDo({ t: 'open', test: { pet: 'puddlepup' } }); await d.farmDo({ t: 'open', test: { pet: 'mossbun' } });
+  r = await d.farmDo({ t: 'open', test: { lv: 6, rested: true } });
+  const [m0, c0, p0, m1] = r.farm.pets.map(x => x.id);
+  r = await d.farmDo({ t: 'pair', a: m0, b: m1, charms: ['hyb'] }); if (!/not change/.test(r.err || '')) fail('a Hybrid Charm on a pair with no hybrid ' + r.err);
+  r = await d.farmDo({ t: 'pair', a: c0, b: p0, charms: ['el', 'el', 'hyb', 'pat', 'spk'] }); if (r.err) fail('pair with charms ' + r.err);
+  if (Object.values(r.farm.charms).some(n => n !== 0)) fail('charms not used up ' + JSON.stringify(r.farm.charms));
+  d.ws.close(); }
 r = await a.farmDo({ t: 'open', test: { weather: 'none', ripe: true } });
 const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved
 await stop(); await boot();
