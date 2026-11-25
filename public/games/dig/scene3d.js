@@ -194,7 +194,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function buildSeats(list) {
     for (const s of seats) freeSeat(s);
     seats = list.map((p, i) => {
-      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand' }); g.add(av); handsOf(av);
+      const g = new THREE.Group(), av = avatar3d(p.color, p.av, { pose: 'stand', hand: false }); g.add(av); handsOf(av);
       const home = homeOf(i, list.length); g.position.copy(home); g.lookAt(0, 0, 0); scene.add(g);
       const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: 0, depthWrite: false })); ring.position.y = .05; scene.add(ring);
       const shovel = makeShovel(); shovel.visible = false;
@@ -219,7 +219,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (st.seats.length !== seats.length) buildSeats(st.seats);
       else st.seats.forEach((p, i) => { // someone took over a bot: swap the avatar
         const s = seats[i], k = p.color + (p.av || []).join(''); if (s.key === k) return;
-        s.g.remove(s.av); disposeAvatar(s.av); s.av = avatar3d(p.color, p.av, { pose: 'stand' }); s.av.scale.setScalar(AV); s.g.add(s.av); handsOf(s.av); s.key = k; s.hop = 1;
+        s.g.remove(s.av); disposeAvatar(s.av); s.av = avatar3d(p.color, p.av, { pose: 'stand', hand: false }); s.av.scale.setScalar(AV); s.g.add(s.av); handsOf(s.av); s.key = k; s.hop = 1;
       });
       seatKey = key;
     }
