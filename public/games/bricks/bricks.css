@@ -53,8 +53,8 @@ body.in-game { overflow: hidden; }
 .sb .pads .acts .sm { order: -1; }
 
 .sb.touch .keys { display: none; }
-.sb .keys { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; background: #2a1422b8; color: var(--soft); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
-.sb .keys b { color: var(--cream); font-family: var(--fd); }
+.sb .keys { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); margin: 0; background: var(--paper); color: var(--soft-tx); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
+.sb .keys b { color: var(--on-paper); font-family: var(--fd); }
 .sb.watching .keys { display: none; }
 
 /* results */

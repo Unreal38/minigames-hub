@@ -16,11 +16,11 @@ body.in-game { overflow: hidden; }
 .pl .hud > * { pointer-events: auto; }
 .pl .tl, .pl .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
 .pl .tl { left: 14px; } .pl .tr { right: 14px; }
-.pl .chip { color: var(--cream); }
+.pl .chip { color: var(--on-paper); }
 .pl .chip i { font-style: normal; }
 .pl .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
-.pl .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.pl .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .pl .banner:empty { display: none; }
 .pl .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); }
 .pl .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
@@ -31,38 +31,38 @@ body.in-game { overflow: hidden; }
 
 /* the two sides: who plays, and the balls they still have to pot */
 .pl .pl-teams { position: absolute; left: 14px; right: 14px; top: 70px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
-.pl .pl-team { display: flex; flex-direction: column; gap: 5px; background: #2a1422d9; border: 3px solid var(--line); border-radius: 18px; padding: 7px 10px; min-width: 0; max-width: min(300px, 48%); color: var(--cream); font-family: var(--fd); }
-.pl .pl-team.on { border-color: var(--lantern); box-shadow: 0 0 0 2px var(--lantern); }
+.pl .pl-team { display: flex; flex-direction: column; gap: 5px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 18px; padding: 7px 10px; min-width: 0; max-width: min(300px, 48%); font-family: var(--fd); }
+.pl .pl-team.on { border-color: var(--ink); box-shadow: 0 0 0 4px var(--lantern), 0 3px 0 #23401c55; }
 .pl .pl-who { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; }
 .pl .pl-who span { display: flex; align-items: center; gap: 6px; min-width: 0; opacity: .8; }
 .pl .pl-who span.up { opacity: 1; }
 .pl .pl-who span.up .avatar { box-shadow: 0 0 0 3px var(--lantern); }
 .pl .pl-who b { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 8em; }
-.pl .pl-who strong { margin-left: auto; font-size: 22px; color: var(--lantern); padding-left: 6px; }
+.pl .pl-who strong { margin-left: auto; font-size: 22px; color: var(--acc-tx); padding-left: 6px; }
 .pl .pl-who .avatar { border-width: 2px; flex: none; }
 .pl .pl-mine .pl-who b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .pl .pl-tray { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; min-height: 24px; }
-.pl .pl-tray small { font-size: 12px; font-weight: 600; color: var(--soft); margin-right: 4px; white-space: nowrap; }
+.pl .pl-tray small { font-size: 12px; font-weight: 600; color: var(--soft-tx); margin-right: 4px; white-space: nowrap; }
 .pl .pl-tray em { display: flex; margin-left: 5px; opacity: .35; }
 .pl .pl-tray em.go { opacity: 1; }
-.pl .pl-open { font-size: 13px; color: var(--soft); }
+.pl .pl-open { font-size: 13px; color: var(--soft-tx); }
 .pl .pl-b { --c: #fff; width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid var(--deep); background: var(--c); display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-family: var(--fd); font-weight: 700; font-size: 11px; line-height: 1; color: #2a1422; text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff; }
 .pl .pl-b.t { background: linear-gradient(#fff8ec 0 24%, var(--c) 24% 76%, #fff8ec 76%); }
 .pl .pl-b.e { color: #fff; text-shadow: none; }
-.pl .pl-b.gone { background: transparent; border-style: dashed; border-color: color-mix(in srgb, var(--cream) 40%, transparent); }
+.pl .pl-b.gone { background: transparent; border-style: dashed; border-color: color-mix(in srgb, var(--on-paper) 40%, transparent); }
 
 /* what to do, bottom centre, with the power strip when the table is yours */
 .pl .pl-bar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw / var(--vz, 1) - 20px); pointer-events: none; }
-.pl .pl-bar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 15px; background: #2a1422d9; color: var(--cream); border: 3px solid var(--line); border-radius: 16px; padding: 5px 14px; text-align: center; text-wrap: balance; max-width: min(640px, 100%); }
+.pl .pl-bar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 15px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 16px; padding: 5px 14px; text-align: center; text-wrap: balance; max-width: min(640px, 100%); }
 .pl .pl-bar p:empty { display: none; }
-.pl .pl-bar p b { color: var(--lantern); font-weight: 600; }
+.pl .pl-bar p b { color: var(--acc-tx); font-weight: 600; }
 .pl .pl-ctl { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
 .pl .pl-ctl[hidden] { display: none; }
 .pl .pl-ctl .round { flex: none; touch-action: none; }
-.pl .pl-pull { --p: 0; position: relative; width: min(360px, calc(100vw / var(--vz, 1) - 150px)); height: 46px; border-radius: 999px; background: #2a1422e6; border: 3px solid var(--cream); overflow: hidden; cursor: ew-resize; touch-action: none; }
+.pl .pl-pull { --p: 0; position: relative; width: min(360px, calc(100vw / var(--vz, 1) - 150px)); height: 46px; border-radius: 999px; background: var(--card); border: 3px solid var(--ink); overflow: hidden; cursor: ew-resize; touch-action: none; }
 .pl .pl-pull i { position: absolute; top: 0; bottom: 0; right: 0; width: calc(var(--p) * 100%); background: linear-gradient(270deg, #7ed957, #ffd23f 55%, #e5543b); }
 .pl .pl-pull b { position: absolute; top: 3px; bottom: 3px; width: 34px; right: calc(3px + var(--p) * (100% - 40px)); border-radius: 999px; background: var(--cream); border: 3px solid var(--ink); box-shadow: -3px 0 0 #0003; }
-.pl .pl-pull span { position: absolute; inset: 0 46px 0 16px; display: flex; align-items: center; justify-content: flex-start; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--cream); pointer-events: none; text-shadow: 0 1px 0 #0008; white-space: nowrap; overflow: hidden; }
+.pl .pl-pull span { position: absolute; inset: 0 46px 0 16px; display: flex; align-items: center; justify-content: flex-start; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); pointer-events: none; text-shadow: 0 0 3px var(--card), 0 0 3px var(--card); white-space: nowrap; overflow: hidden; }
 .pl .pl-pull:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
 
 /* final results */

@@ -9,7 +9,7 @@
 .bj .dtag.active .plate::after { display: none; }
 .bj .dlbl { font-size: 17px; padding: 3px 14px; display: flex; align-items: center; gap: 6px; transition: background .2s; }
 .bj .dlbl.hot { background: var(--chili); color: #fff; } .bj .dlbl.hot b { color: #fff; }
-.bj .dlbl.meh b { color: #ffb3a6; }
+.bj .dlbl.meh b { color: var(--chili); }
 .bj .dlbl .mini { display: flex; gap: 3px; margin-right: 4px; }
 .bj .dlbl .pcard b { color: var(--sc, var(--ink)); }
 .bj .bub { font-size: 14px; }
@@ -18,9 +18,9 @@
 /* your hands in the dock */
 .bj .mine { align-items: flex-end; gap: 12px; }
 .bj .hands { display: flex; gap: 16px; align-items: flex-end; }
-.bj .hand { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 8px 5px; border-radius: 18px; border: 3px solid transparent; transition: background .2s, border-color .2s, opacity .2s; }
-.bj .hands.two .hand { background: #2a142266; border-color: var(--line); }
-.bj .hand.live { background: #2a1422cc; border-color: var(--lantern); box-shadow: 0 0 0 3px #ffb54744; }
+.bj .hand { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 8px 5px; border-radius: 18px; border: 3px solid var(--ink); background: var(--paper); color: var(--on-paper); box-shadow: 0 3px 0 #23401c55; transition: background .2s, border-color .2s, opacity .2s; }
+.bj .hands.two .hand:not(.live) { opacity: .85; }
+.bj .hand.live { border-color: var(--ink); box-shadow: 0 0 0 4px var(--lantern), 0 3px 0 #23401c55; }
 .bj .hand.lost .hole { opacity: .5; filter: grayscale(.6); }
 .bj .hole { gap: 0; }
 .bj .hole .pcard, .bj .hole .pcard:nth-child(1), .bj .hole .pcard:nth-child(2) { transform: none; }
@@ -29,8 +29,8 @@
 .bj .hinfo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .bj .hinfo .hn { font-family: var(--fd); font-weight: 700; font-size: 17px; background: var(--ink); color: var(--lantern); border-radius: 999px; padding: 1px 12px; white-space: nowrap; }
 .bj .hinfo .hn.gold { background: var(--lantern); color: var(--ink); }
-.bj .hand.lost .hinfo .hn { color: #ffb3a6; }
-.bj .hinfo .hbet { display: flex; align-items: center; gap: 3px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); white-space: nowrap; }
+.bj .hand.lost .hinfo .hn { color: #ffb3a6; } /* on the dark ink pill */
+.bj .hinfo .hbet { display: flex; align-items: center; gap: 3px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--on-paper); white-space: nowrap; }
 .bj .hinfo .res { font-style: normal; font-family: var(--fd); font-weight: 700; font-size: 16px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 0 10px; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
 .bj .hinfo .res.up { background: var(--mint); color: var(--ink); } .bj .hinfo .res.down { background: var(--chili); color: #fff; }
 .bj .meinfo .hn { max-width: 14em; white-space: normal; text-align: center; border-radius: 14px; }

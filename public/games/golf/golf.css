@@ -17,12 +17,12 @@ body.in-game { overflow: hidden; }
 .mg .hud > * { pointer-events: auto; }
 .mg .tl, .mg .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
 .mg .tl { left: 14px; } .mg .tr { right: 14px; }
-.mg .chip { color: var(--cream); }
+.mg .chip { color: var(--on-paper); }
 .mg .chip[hidden] { display: none; }
 .mg .chip i { font-style: normal; }
 .mg .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
-.mg .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-variant-numeric: tabular-nums; }
+.mg .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; font-variant-numeric: tabular-nums; }
 .mg .banner:empty { display: none; }
 .mg .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .shout { position: absolute; left: 50%; top: 27%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
@@ -32,10 +32,10 @@ body.in-game { overflow: hidden; }
 @keyframes mgbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* scores down the left */
-.mg .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: #2a1422d9; border: 3px solid var(--line); border-radius: 18px; width: max-content; min-width: 216px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 200px); overflow: auto; }
-.mg .list li { display: flex; align-items: center; gap: 7px; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--cream); }
+.mg .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 18px; width: max-content; min-width: 216px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 200px); overflow: auto; }
+.mg .list li { display: flex; align-items: center; gap: 7px; border: 2.5px solid transparent; border-radius: 12px; padding: 3px 8px 3px 4px; font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--on-paper); }
 .mg .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.mg .list span { font-size: 14px; color: var(--lantern); min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
+.mg .list span { font-size: 14px; color: var(--acc-tx); min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
 .mg .list em { font-style: normal; font-size: 13px; background: color-mix(in srgb, var(--paper) 15%, transparent); border-radius: 8px; padding: 0 6px; min-width: 22px; text-align: center; display: inline-flex; align-items: center; gap: 2px; }
 .mg .list em.in { background: var(--mint); color: var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .mg .list em.out { background: #e5543b; color: #fff; }
@@ -48,12 +48,12 @@ body.in-game { overflow: hidden; }
 .mg .puttbar[hidden], .mg .holecard[hidden], .mg .results[hidden] { display: none; }
 
 /* what to do, bottom centre */
-.mg .puttbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; background: #2a1422d9; color: var(--cream); border: 3px solid var(--line); border-radius: 20px; padding: 8px 18px; max-width: calc(100vw / var(--vz, 1) - 24px); pointer-events: none !important; text-align: center; }
+.mg .puttbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 20px; padding: 8px 18px; max-width: calc(100vw / var(--vz, 1) - 24px); pointer-events: none !important; text-align: center; }
 .mg .puttbar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 16px; }
-.mg .puttbar p b { color: var(--lantern); font-weight: 600; }
+.mg .puttbar p b { color: var(--acc-tx); font-weight: 600; }
 .mg .puttbar .good svg { vertical-align: -3px; margin-right: 6px; }
-.mg .puttbar .strokes { color: var(--soft); margin-left: 6px; white-space: nowrap; }
-.mg .power { width: min(300px, calc(70vw / var(--vz, 1))); height: 16px; border-radius: 999px; background: color-mix(in srgb, var(--paper) 20%, transparent); border: 2.5px solid var(--cream); overflow: hidden; }
+.mg .puttbar .strokes { color: var(--soft-tx); margin-left: 6px; white-space: nowrap; }
+.mg .power { width: min(300px, calc(70vw / var(--vz, 1))); height: 16px; border-radius: 999px; background: var(--card); border: 2.5px solid var(--ink); overflow: hidden; }
 .mg .power i { display: block; height: 100%; background: linear-gradient(90deg, #7ed957, #ffd23f 55%, #e5543b); border-radius: 999px; }
 
 /* hole summary */
@@ -104,7 +104,7 @@ body.in-game { overflow: hidden; }
   .mg .tl { left: 8px; gap: 5px; } .mg .tr { right: 8px; gap: 5px; }
   .mg .tl .chip { font-size: 14px; padding: 4px 10px; }
   .mg .banner { top: 66px; left: 8px; transform: none; font-size: 14px; padding: 4px 12px; max-width: calc(100vw / var(--vz, 1) - 150px); }
-  .mg .list { top: 108px; left: 8px; width: max-content; min-width: 132px; max-width: calc(48vw / var(--vz, 1)); padding: 3px; gap: 2px; border-width: 2px; max-height: calc(30vh / var(--vz, 1)); background: #2a1422b8; }
+  .mg .list { top: 108px; left: 8px; width: max-content; min-width: 132px; max-width: calc(48vw / var(--vz, 1)); padding: 3px; gap: 2px; border-width: 2px; max-height: calc(30vh / var(--vz, 1)); background: var(--paper); }
   .mg .list li { font-size: 12px; gap: 4px; padding: 1px 4px 1px 2px; }
   .mg .list .avatar { width: 22px !important; height: 22px !important; }
   .mg .list span { font-size: 12px; min-width: 18px; }

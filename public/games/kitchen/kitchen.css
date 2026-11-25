@@ -73,7 +73,7 @@ body.in-game { overflow: hidden; }
 .kr .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .kr .list span { font-size: 14px; color: var(--soft-tx2); }
 .kr .list .avatar { border-width: 2px; }
-.kr .list .me { background: var(--hi-tint, #ffb54740); }
+.kr .list .me { background: var(--hi-tint, #ffe9b8); }
 
 .kr .keys { position: absolute; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: color-mix(in srgb, var(--paper) 90%, transparent); border: 3px solid var(--ink); border-radius: 999px; padding: 5px 16px; font-family: var(--fd); font-size: 14px; color: var(--on-paper); white-space: nowrap; box-shadow: 0 3px 0 #23401c55; pointer-events: none; }
 .kr .keys b { background: var(--ink); color: var(--cream); border-radius: 6px; padding: 0 5px; font-weight: 600; }

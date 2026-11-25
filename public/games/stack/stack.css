@@ -39,7 +39,7 @@ body.in-game { overflow: hidden; }
 .tws .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .tws .list span { font-size: 13px; color: var(--soft-tx2); white-space: nowrap; }
 .tws .list .avatar { border-width: 2px; }
-.tws .list .me { background: var(--hi-tint, #ffb54740); }
+.tws .list .me { background: var(--hi-tint, #ffe9b8); }
 .tws .list .now { border-color: var(--ink); background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .tws .list .now span { color: var(--on-paper); }
 

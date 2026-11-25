@@ -18,20 +18,20 @@ body.in-game { overflow: hidden; }
 .bb .bb-tag[hidden] { display: none; }
 .bb .bb-tag { font-size: 14px; opacity: 1; z-index: 1; }
 .bb .bb-tag em, .bb .bb-tag u { display: none; font-style: normal; text-decoration: none; font-variant-numeric: tabular-nums; }
-.bb .bb-tag.bb-off { background: var(--plum2); color: var(--cream); border-color: var(--cream); transition: transform .12s linear; }
-.bb .bb-tag.bb-off em { display: inline; color: var(--lantern); font-size: 11px; }
-.bb .bb-tag.bb-off u { display: inline; color: var(--lantern); font-weight: 700; }
+.bb .bb-tag.bb-off { background: var(--ph-bg); color: var(--ph-tx); border-color: var(--ink); transition: transform .12s linear; }
+.bb .bb-tag.bb-off em { display: inline; color: var(--acc-tx); font-size: 11px; }
+.bb .bb-tag.bb-off u { display: inline; color: var(--acc-tx); font-weight: 700; }
 
 .bb .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .bb .hud > * { pointer-events: auto; }
 .bb .tl, .bb .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
 .bb .tl { left: 14px; } .bb .tr { right: 14px; }
-.bb .chip { color: var(--cream); display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.bb .chip { color: var(--on-paper); display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
 .bb .chip:empty { display: none; }
-.bb .chip b { color: var(--lantern); }
+.bb .chip b { color: var(--acc-tx); }
 .bb .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
-.bb .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; }
+.bb .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; }
 .bb .banner:empty { display: none; }
 .bb .shout { position: absolute; left: 50%; top: 27%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
 .bb .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(38px, calc(8vw / var(--vz, 1)), 78px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
@@ -40,13 +40,13 @@ body.in-game { overflow: hidden; }
 @keyframes bbbig { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) rotate(-6deg); } 14%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-2deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); } }
 
 /* who is highest, down the left */
-.bb .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: #2a1422c4; border: 3px solid var(--line); border-radius: 18px; width: max-content; min-width: 200px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 330px); overflow: auto; pointer-events: none !important; }
-.bb .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--cream); }
-.bb .list em { font-style: normal; width: 18px; text-align: center; color: var(--lantern); font-variant-numeric: tabular-nums; }
+.bb .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 18px; width: max-content; min-width: 200px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 330px); overflow: auto; pointer-events: none !important; }
+.bb .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); }
+.bb .list em { font-style: normal; width: 18px; text-align: center; color: var(--acc-tx); font-variant-numeric: tabular-nums; }
 .bb .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.bb .list span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: var(--mint); font-variant-numeric: tabular-nums; }
+.bb .list span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: var(--good-tx); font-variant-numeric: tabular-nums; }
 .bb .list .avatar { border-width: 2px; flex: none; }
-.bb .list .bb-me { background: var(--hi-tint, #ffb54740); box-shadow: inset 0 0 0 2px var(--lantern); }
+.bb .list .bb-me { background: var(--hi-tint, #ffe9b8); box-shadow: inset 0 0 0 2px var(--lantern); }
 .bb .list .bb-out b, .bb .list .bb-out .avatar { opacity: .55; }
 
 /* the height bar on the right: the storm fills it from the bottom, a dot for every climber */
@@ -78,8 +78,8 @@ body.in-game { overflow: hidden; }
 .bb .pads .acts { position: absolute; right: 14px; bottom: 18px; }
 .bb .pads .acts button { width: 124px; height: 96px; }
 .bb.touch .keys { display: none; }
-.bb .keys { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; background: #2a1422b8; color: var(--soft); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
-.bb .keys b { color: var(--cream); font-family: var(--fd); }
+.bb .keys { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; background: var(--paper); color: var(--soft-tx); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
+.bb .keys b { color: var(--on-paper); font-family: var(--fd); }
 .bb.watching .keys { display: none; }
 
 /* final results */
@@ -108,7 +108,7 @@ body.in-game { overflow: hidden; }
   .bb .tl { left: 8px; gap: 5px; } .bb .tr { right: 8px; gap: 5px; }
   .bb .tl .chip { font-size: 13px; padding: 4px 8px; gap: 4px; }
   .bb .banner { top: 62px; left: 8px; transform: none; font-size: 13px; padding: 4px 12px; max-width: calc(100vw / var(--vz, 1) - 16px); }
-  .bb .list { top: 104px; left: 8px; width: max-content; min-width: 132px; max-width: calc(48vw / var(--vz, 1)); padding: 3px; gap: 1px; border-width: 2px; max-height: calc(30vh / var(--vz, 1)); background: #2a1422a8; }
+  .bb .list { top: 104px; left: 8px; width: max-content; min-width: 132px; max-width: calc(48vw / var(--vz, 1)); padding: 3px; gap: 1px; border-width: 2px; max-height: calc(30vh / var(--vz, 1)); background: var(--paper); }
   .bb .list li { font-size: 12px; gap: 4px; padding: 1px 4px 1px 2px; }
   .bb .list .avatar { width: 20px !important; height: 20px !important; }
   .bb .bb-alt { right: 10px; top: 130px; bottom: 150px; width: 13px; }

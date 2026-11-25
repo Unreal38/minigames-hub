@@ -13,29 +13,29 @@ body.in-game #toasts { top: 26%; }
 .hud .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--lantern); font-size: 18px; margin-right: 4px; }
 
 /* opponents */
-.opp { position: absolute; display: flex; align-items: center; gap: 10px; background: var(--plum2); border: 3px solid var(--line); border-radius: 20px; padding: 8px 10px; transition: border-color .2s, box-shadow .2s, transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.opp { position: absolute; display: flex; align-items: center; gap: 10px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 20px; padding: 8px 10px; transition: border-color .2s, box-shadow .2s, transform .3s cubic-bezier(.3, 1.6, .5, 1); }
 .opp[hidden] { display: none; }
 .opp[data-r="1"] { left: 14px; top: 40%; transform: translateY(-50%); }
 .opp[data-r="2"] { left: 50%; top: 70px; transform: translateX(-50%); }
 .opp[data-r="3"] { right: 14px; top: 40%; transform: translateY(-50%); flex-direction: row-reverse; }
-.opp.active { border-color: var(--lantern); box-shadow: 0 0 0 6px #ffb54733, 0 0 30px #ffb54755; background: #55293f; }
+.opp.active { border-color: var(--ink); box-shadow: 0 0 0 5px #ffb54766, 0 0 30px #ffb54755; background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); color: var(--ink); }
 .opp.active .avatar { animation: hop 1s ease-in-out infinite; }
 .opp .who { min-width: 96px; display: flex; flex-direction: column; }
 .opp .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.1; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.opp .who > span { font-size: 13px; color: var(--muted); }
+.opp .who > span { font-size: 13px; color: var(--soft-tx); }
 .hp .mini { display: flex; gap: 2px; margin-top: 4px; } .hp .mini i { width: 7px; height: 10px; border-radius: 2px; background: var(--chili); border: 1.5px solid var(--ink); }
 .dotty { display: inline-flex; gap: 2px; margin-left: 4px; } .dotty i { width: 4px; height: 4px; border-radius: 50%; background: var(--lantern); animation: dot 1s infinite; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .dotty i:nth-child(2) { animation-delay: .15s; } .dotty i:nth-child(3) { animation-delay: .3s; }
 .pile { display: flex; flex-direction: column; align-items: center; gap: 2px; --cw: 54px; }
 .pile .card { cursor: default; }
-.pile em { font-style: normal; font-family: var(--fd); font-weight: 600; font-size: 13px; color: var(--mint); }
-.slot { width: 54px; height: 74px; border: 2.5px dashed var(--dash); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+.pile em { font-style: normal; font-family: var(--fd); font-weight: 600; font-size: 13px; color: var(--good-tx); }
+.slot { width: 54px; height: 74px; border: 2.5px dashed var(--card-edge); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--soft-tx); }
 .card.takeable { cursor: pointer; box-shadow: 0 0 0 4px var(--mint), 0 5px 0 var(--ink); animation: wiggle 1.6s ease-in-out infinite; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
 .card.takeable:hover { transform: scale(1.12) rotate(-3deg); animation: none; }
 .card.takeable:active { transform: scale(.94); }
 
 /* turn banner */
-.turn { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--plum2); border: 3px solid var(--line); border-radius: 999px; padding: 4px 18px 4px 4px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); }
+.turn { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 4px 18px 4px 4px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); }
 .turn #hp-msg { overflow: hidden; text-overflow: ellipsis; }
 .turn.myturn { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .turn.pulse { animation: bigpop .5s cubic-bezier(.3, 1.6, .5, 1); }
@@ -55,8 +55,9 @@ body.in-game #toasts { top: 26%; }
 .deckbtn svg { flex: none; }
 @keyframes potbob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
 
-.hp .mine { position: absolute; left: 18px; bottom: 150px; display: flex; flex-direction: column; align-items: center; gap: 4px; --cw: 54px; font-size: 12px; color: var(--muted); }
-.sets { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--hh) + 16px); font-family: var(--fd); font-weight: 500; font-size: 15px; color: var(--soft); white-space: nowrap; text-shadow: 0 2px 6px #000a; }
+.hp .mine { position: absolute; left: 18px; bottom: 150px; display: flex; flex-direction: column; align-items: center; gap: 4px; --cw: 54px; font-size: 12px; color: var(--soft-tx); background: var(--paper); border: 3px solid var(--ink); border-radius: 14px; padding: 4px 8px 8px; box-shadow: 0 3px 0 #23401c55; }
+.sets { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--hh) + 16px); font-family: var(--fd); font-weight: 600; font-size: 15px; color: var(--on-paper); background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 12px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
+.sets:empty { display: none; }
 
 /* hand */
 .hand { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; align-items: flex-end; gap: calc(var(--cw) * .16); padding: 0 8px; pointer-events: none; }
@@ -83,9 +84,9 @@ body.in-game #toasts { top: 26%; }
 .card.ghost { position: fixed; z-index: 30; margin: 0; pointer-events: none; animation: ghost .6s cubic-bezier(.5, 0, .5, 1) both; }
 
 /* emotes + eat */
-.emotes { position: absolute; left: 14px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
+.emotes { position: absolute; left: 14px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--soft-tx); background: var(--paper); border: 3px solid var(--ink); border-radius: 16px; padding: 4px 8px 8px; box-shadow: 0 3px 0 #23401c55; }
 .emotes div { display: grid; grid-template-columns: repeat(6, 40px); gap: 5px; }
-.emotes button { width: 40px; height: 40px; border-radius: 13px; background: var(--plum2); border: 3px solid var(--line); padding: 3px; cursor: pointer; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
+.emotes button { width: 40px; height: 40px; border-radius: 13px; background: var(--card); border: 3px solid var(--card-edge); padding: 3px; cursor: pointer; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
 .emotes button svg { width: 100%; height: 100%; display: block; }
 .emotes button:hover { transform: scale(1.15) rotate(-6deg); } .emotes button:active { transform: scale(.88); }
 .eat { position: absolute; left: 50%; translate: -50% 0; bottom: calc(var(--hh) + 48px); z-index: 4; animation: eatpulse 1s ease-in-out infinite; font-size: 24px; }
@@ -164,9 +165,9 @@ body.night .grp.gold .gtag { color: var(--ink); }
 
 /* night: the winner's row is a warm gold-tinted card with light text, not the day cream */
 body.night .hp .score li.won { background: color-mix(in srgb, var(--lantern) 32%, var(--card)); color: var(--on-paper); --on-paper: #f5f2ff; --soft-tx: #e6dcc0; --soft-tx2: #e6dcc0; --body-tx: #f5f2ff; }
-/* each opponent's profile card picture behind their seat panel (washed in the panel's plum so the text stays readable) */
-.hp .opp.haspb { position: absolute; --pbs: var(--plum2); --pbr: 17px; }
-.hp .opp.active.haspb { --pbs: #55293f; }
+/* each opponent's profile card picture behind their seat panel (washed in the panel's colour so the text stays readable) */
+.hp .opp.haspb { position: absolute; --pbs: var(--paper); --pbr: 17px; }
+.hp .opp.active.haspb { --pbs: var(--lantern); }
 @media (max-width: 760px) { .hp .opp.haspb { --pbr: 13px; } }
 .hp .opp.haspb .pbg::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 86%, transparent) 0 30%, color-mix(in srgb, var(--pbs) 58%, transparent) 70%, color-mix(in srgb, var(--pbs) 30%, transparent)); }
 .hp .opp.haspb .slot { background: color-mix(in srgb, var(--pbs) 75%, transparent); }

@@ -15,11 +15,11 @@ body.in-game { overflow: hidden; }
 .kr .hud > * { pointer-events: auto; }
 .kr .tl, .kr .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
 .kr .tl { left: 14px; } .kr .tr { right: 14px; }
-.kr .chip { color: var(--cream); display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
-.kr .chip b { color: var(--lantern); }
+.kr .chip { color: var(--on-paper); display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.kr .chip b { color: var(--acc-tx); }
 .kr .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
-.kr .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; font-variant-numeric: tabular-nums; }
+.kr .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none !important; font-variant-numeric: tabular-nums; }
 .kr .banner:empty { display: none; }
 .kr .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none !important; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
 .kr .shout b { font-family: var(--fd); font-weight: 700; font-size: clamp(40px, calc(9vw / var(--vz, 1)), 86px); line-height: 1; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 6px 0 var(--ink); }
@@ -34,13 +34,13 @@ body.in-game { overflow: hidden; }
 .kr .lights i.on { background: #ff5a4a; box-shadow: 0 0 14px #ff5a4a; }
 
 /* race order down the left */
-.kr .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: #2a1422c4; border: 3px solid var(--line); border-radius: 18px; width: max-content; min-width: 190px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 330px); overflow: auto; pointer-events: none !important; }
-.kr .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--cream); }
-.kr .list em { font-style: normal; width: 18px; text-align: center; color: var(--lantern); font-variant-numeric: tabular-nums; }
+.kr .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 18px; width: max-content; min-width: 190px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 330px); overflow: auto; pointer-events: none !important; }
+.kr .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); }
+.kr .list em { font-style: normal; width: 18px; text-align: center; color: var(--acc-tx); font-variant-numeric: tabular-nums; }
 .kr .list b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.kr .list span { font-size: 12px; color: var(--mint); font-variant-numeric: tabular-nums; }
+.kr .list span { font-size: 12px; color: var(--good-tx); font-variant-numeric: tabular-nums; }
 .kr .list .avatar { border-width: 2px; flex: none; }
-.kr .list .kr-me { background: var(--hi-tint, #ffb54740); box-shadow: inset 0 0 0 2px var(--lantern); }
+.kr .list .kr-me { background: var(--hi-tint, #ffe9b8); box-shadow: inset 0 0 0 2px var(--lantern); }
 
 /* big place number, bottom right */
 .kr .place { position: absolute; right: 22px; bottom: 150px; display: flex; align-items: baseline; gap: 2px; font-family: var(--fd); font-weight: 700; color: var(--cream); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink); pointer-events: none !important; }
@@ -65,7 +65,7 @@ body.in-game { overflow: hidden; }
 
 /* minimap */
 .kr .map { position: absolute; right: 16px; top: 72px; width: 170px; height: 150px; pointer-events: none !important; overflow: visible; filter: drop-shadow(0 3px 0 #160a1240); }
-.kr .map .mroad { fill: none; stroke: #2a1422b0; stroke-width: 22; stroke-linejoin: round; }
+.kr .map .mroad { fill: none; stroke: #3b2219a0; stroke-width: 22; stroke-linejoin: round; }
 .kr .map .mline { fill: none; stroke: #fff4e2; stroke-width: 8; stroke-linejoin: round; }
 .kr .map .mbridge { fill: none; stroke: #d9955b; stroke-width: 8; stroke-dasharray: 5 5; }
 .kr .map .mstart { fill: #3b2219; stroke: #fff4e2; stroke-width: 2.5; }
@@ -87,8 +87,8 @@ body.in-game { overflow: hidden; }
 .kr.touch .kr-item.rolling { animation: none; }
 .kr.touch .kr-item.ready { animation: none; }
 .kr.touch .keys { display: none; }
-.kr .keys { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; background: #2a1422b8; color: var(--soft); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
-.kr .keys b { color: var(--cream); font-family: var(--fd); }
+.kr .keys { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); margin: 0; background: var(--paper); color: var(--soft-tx); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 16px; font-size: 14px; white-space: nowrap; pointer-events: none !important; }
+.kr .keys b { color: var(--on-paper); font-family: var(--fd); }
 .kr.watching .keys, .kr.watching .place { display: none; }
 
 /* final results */

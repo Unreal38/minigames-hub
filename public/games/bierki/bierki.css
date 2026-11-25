@@ -15,11 +15,11 @@ body.in-game { overflow: hidden; }
 .bk .hud { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .bk .tl, .bk .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; pointer-events: auto; }
 .bk .tl { left: 14px; } .bk .tr { right: 14px; }
-.bk .chip { color: var(--cream); }
+.bk .chip { color: var(--on-paper); }
 .bk .chip i { font-style: normal; }
 .bk .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 
-.bk .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--plum2); color: var(--cream); border: 3px solid var(--line); border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 420px); overflow: hidden; text-overflow: ellipsis; }
+.bk .banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 999px; padding: 6px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; white-space: nowrap; max-width: calc(100vw / var(--vz, 1) - 420px); overflow: hidden; text-overflow: ellipsis; }
 .bk .banner:empty { display: none; }
 .bk .banner.hot { background: var(--lantern); color: var(--ink); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink); }
 .bk .shout { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; width: max-content; max-width: calc(92vw / var(--vz, 1)); }
@@ -30,21 +30,21 @@ body.in-game { overflow: hidden; }
 
 /* the players: points, the sticks they hold, and who is up */
 .bk .bk-seats { position: absolute; left: 14px; top: 66px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
-.bk .bk-seat { display: flex; align-items: center; gap: 7px; background: #2a1422d9; border: 3px solid var(--line); border-radius: 16px; padding: 4px 10px 4px 5px; color: var(--cream); font-family: var(--fd); min-width: 0; max-width: 220px; }
-.bk .bk-seat.on { border-color: var(--lantern); box-shadow: 0 0 0 2px var(--lantern); }
+.bk .bk-seat { display: flex; align-items: center; gap: 7px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 16px; padding: 4px 10px 4px 5px; font-family: var(--fd); min-width: 0; max-width: 220px; }
+.bk .bk-seat.on { border-color: var(--ink); box-shadow: 0 0 0 4px var(--lantern), 0 3px 0 #23401c55; }
 .bk .bk-seat .avatar { border-width: 2px; flex: none; }
 .bk .bk-who { display: flex; flex-direction: column; min-width: 0; }
 .bk .bk-who b { font-weight: 600; font-size: 14px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 7.5em; }
 .bk .bk-mine .bk-who b { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .bk .bk-who i { display: flex; flex-wrap: wrap; gap: 2px; max-width: 96px; min-height: 4px; }
 .bk .bk-who i u { width: 3px; height: 11px; border-radius: 2px; box-shadow: 0 0 0 1px #0005; }
-.bk .bk-seat em { display: flex; color: var(--lantern); }
-.bk .bk-seat strong { font-size: 21px; color: var(--lantern); font-variant-numeric: tabular-nums; margin-left: 2px; }
+.bk .bk-seat em { display: flex; color: var(--acc-tx); }
+.bk .bk-seat strong { font-size: 21px; color: var(--acc-tx); font-variant-numeric: tabular-nums; margin-left: 2px; }
 
 /* the meter, the lift button and what to do, bottom centre */
 .bk .bk-bar { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw / var(--vz, 1) - 20px); pointer-events: none; }
 .bk .bk-row { display: flex; align-items: center; gap: 10px; }
-.bk .bk-meter { --m: 0; position: relative; display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; width: min(380px, calc(100vw / var(--vz, 1) - 160px)); background: #2a1422e6; border: 3px solid var(--line); border-radius: 16px; padding: 4px 12px 8px; color: var(--cream); font-family: var(--fd); font-size: 13px; font-weight: 600; }
+.bk .bk-meter { --m: 0; position: relative; display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; width: min(380px, calc(100vw / var(--vz, 1) - 160px)); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 16px; padding: 4px 12px 8px; font-family: var(--fd); font-size: 13px; font-weight: 600; }
 .bk .bk-meter b { font-variant-numeric: tabular-nums; font-weight: 700; }
 .bk .bk-meter i { grid-column: 1 / -1; height: 12px; border-radius: 999px; background: #ffffff26; overflow: hidden; }
 .bk .bk-meter u { display: block; height: 100%; width: calc(var(--m) * 100%); border-radius: 999px; background: linear-gradient(90deg, #7ed957, #ffd23f 55%, #e5543b); background-size: calc(100% / max(var(--m), .01)) 100%; }
@@ -54,9 +54,9 @@ body.in-game { overflow: hidden; }
 .bk .bk-lift { pointer-events: auto; display: flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 15px; }
 .bk .bk-lift[hidden] { display: none; }
 .bk .bk-lift[aria-pressed="true"] { background: var(--lantern); color: var(--ink); }
-.bk .bk-bar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 15px; background: #2a1422d9; color: var(--cream); border: 3px solid var(--line); border-radius: 16px; padding: 5px 14px; text-align: center; text-wrap: balance; max-width: min(640px, 100%); }
+.bk .bk-bar p { margin: 0; font-family: var(--fd); font-weight: 500; font-size: 15px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 16px; padding: 5px 14px; text-align: center; text-wrap: balance; max-width: min(640px, 100%); }
 .bk .bk-bar p:empty { display: none; }
-.bk .bk-bar p b { color: var(--lantern); font-weight: 600; }
+.bk .bk-bar p b { color: var(--acc-tx); font-weight: 600; }
 .bk .bk-pop { position: absolute; z-index: 3; transform: translate(-50%, -50%); font-family: var(--fd); font-weight: 700; font-size: 30px; color: #fff; -webkit-text-stroke: 5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink); pointer-events: none; animation: bkpop 1.25s ease-out both; }
 @keyframes bkpop { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.5); } 15% { opacity: 1; transform: translate(-50%, -80%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
 
