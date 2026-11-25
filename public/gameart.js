@@ -764,5 +764,30 @@ export function kalArt() {
     <path class="arttick" d="M84 30l-8-8M70 44H58" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+// Lantern Night: an island at dusk, a campfire, an islander holding up a lantern, a Sneak peeking out of a hollow log
+// with glowing eyes, and the ferry waiting off the dock.
+export function lanternArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An islander with a lantern by a campfire at dusk, a Sneak peeking out of a hollow log and a ferry by the dock">
+    <rect class="artsky" width="320" height="150" fill="#b9a6e6"/><rect class="artsky" y="70" width="320" height="80" fill="#ffc7a1"/>
+    <g class="artstars" fill="#fff6d8"><circle cx="58" cy="18" r="1.6"/><circle cx="96" cy="34" r="1.2"/><circle cx="210" cy="12" r="1.4"/><circle cx="182" cy="40" r="1.1"/><circle cx="40" cy="52" r="1.2"/></g>
+    <circle cx="226" cy="40" r="15" fill="#fff1c9" stroke="#3b2219" stroke-width="2.4"/>
+    <path d="M30 34l12-6 14 4 6 8-8 6H38z" class="artcloud" fill="#fff"/>
+    <path class="artsea" d="M0 104h320v46H0z" fill="#6f7fc8"/>
+    <g ${o}><path d="M222 92l4 16h52l6-16z" fill="#e5543b"/><path d="M224 92h58" stroke-width="3"/><rect x="242" y="76" width="22" height="16" rx="2" fill="#fff4e2"/><rect x="238" y="72" width="30" height="5" rx="2" fill="#3f7fc4"/><rect x="250" y="60" width="7" height="12" fill="#3b2219"/></g>
+    <path d="M198 108h30v5h-30z" fill="#9a6a44" ${o}/>
+    <path d="M36 140c30-36 216-36 246 0z" fill="#8bca60" ${o}/><path d="M52 140c26 8 186 8 214 0l-26 10H78z" fill="#c98a5a" ${o}/>
+    <g ${o}><ellipse cx="216" cy="118" rx="26" ry="12" fill="#7a5236"/><ellipse cx="192" cy="118" rx="8" ry="11" fill="#d8b07a"/><ellipse cx="192" cy="118" rx="4.5" ry="7" fill="#2a1a12" stroke-width="2"/></g>
+    <circle cx="190.5" cy="116" r="1.6" fill="#ff5a4a"/><circle cx="194" cy="116" r="1.6" fill="#ff5a4a"/>
+    <g ${o}><path d="M150 124l12-4 12 4-12 6z" fill="#7a5236"/><path d="M162 98c8 8 10 16 0 24-10-8-8-16 0-24z" fill="#ff8a3c"/><path d="M162 108c4 4 4 9 0 13-4-4-4-9 0-13z" fill="#ffd34d" stroke-width="2"/></g>
+    <g ${o}><rect x="96" y="96" width="22" height="30" rx="6" fill="#4aa8f0"/><circle cx="107" cy="86" r="11" fill="#f6c9a0"/><path d="M96 82c2-10 20-12 22 0z" fill="#6b4a2c"/>
+      <path d="M118 100l14-12" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M118 100l14-12" stroke="#4aa8f0" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M130 70h10M135 66v4" stroke-linecap="round" fill="none"/><path d="M129 74h12l-2 14h-8z" fill="#ffd34d"/></g>
+    <circle cx="104" cy="86" r="1.6" fill="#3b2219"/><circle cx="111" cy="86" r="1.6" fill="#3b2219"/><path d="M104 91q3 2 6 0" fill="none" stroke="#3b2219" stroke-width="1.6" stroke-linecap="round"/>
+    <g ${o}><path d="M70 128c-4-8 2-14 8-12 3-6 12-6 14 0 6-2 10 6 6 12z" fill="#ffffff"/><circle cx="76" cy="114" r="3.6" fill="#ffffff"/><circle cx="90" cy="114" r="3.6" fill="#ffffff"/></g>
+    <circle cx="80" cy="121" r="1.4" fill="#3b2219"/><circle cx="87" cy="121" r="1.4" fill="#3b2219"/>
+    <path class="arttick" d="M146 74l-4-6M178 74l4-6M162 70v-8" fill="none" stroke="#3b2219" stroke-width="2.6" stroke-linecap="round"/>
+  </svg>`;
+}
 // Word in a Bottle: a corked bottle afloat with a letter tile inside.
 export const WORD_ICON = '<svg viewBox="0 0 120 120"><path d="M0 92q15-10 30 0t30 0 30 0 30 0v28H0z" fill="#3f8fd0"/><g transform="rotate(-24 60 62)"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round"><rect x="51" y="8" width="18" height="16" rx="3" fill="#c98a4b"/><path d="M48 22h24v14q16 8 16 26v34q0 10-10 10H42q-10 0-10-10V62q0-18 16-26z" fill="#c9f1ee"/><rect x="42" y="58" width="36" height="36" rx="7" fill="#ffb238"/></g><text x="60" y="87" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="30" fill="#3b2219">A</text></g><path d="M0 100q15-10 30 0t30 0 30 0 30 0v20H0z" fill="#6fb8e6" opacity=".85"/></svg>';

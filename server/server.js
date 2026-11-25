@@ -50,6 +50,7 @@ import * as bop from './games/bop.js';
 import * as pm from './games/pm.js';
 import * as tys from './games/tys.js';
 import * as kal from './games/kal.js';
+import * as lantern from './games/lantern.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
@@ -71,7 +72,7 @@ import { distinctCols, matchColors } from './colors.js';
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern };
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
 const LOBBY_DROP_MS = 15_000; // a dropped player leaves a waiting lobby after this
@@ -625,7 +626,7 @@ function handle(c, m) {
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       // a game without bots (Państwa-miasta) needs enough people in seats, counting watchers who asked for one
       const need = GAMES[r.game].meta.minHumans || 0;
-      if (need && seatedOf(r).length + r.players.filter(t => r.spect.has(clients.get(t)?.id) && r.sit.has(clients.get(t)?.id)).length < need) return send(c, { t: 'err', msg: 'This game needs at least two players. Invite a friend first.' });
+      if (need && seatedOf(r).length + r.players.filter(t => r.spect.has(clients.get(t)?.id) && r.sit.has(clients.get(t)?.id)).length < need) return send(c, { t: 'err', msg: need === 2 ? 'This game needs at least two players. Invite a friend first.' : `This game needs at least ${need} players. Invite more friends first.` });
       return startGame(r);
     }
     case 'lobby': { // host sends everyone back to the waiting room
@@ -664,9 +665,14 @@ function handle(c, m) {
       const now = Date.now(); if (now - (c.lastChat || 0) < 500) return; c.lastChat = now;
       let text = String(m.text ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160); if (!text) return;
       if (r.G && GAMES[r.game].hush) text = GAMES[r.game].hush(r.G, text); // a game with a secret word keeps it out of the chat
+      // A game with secrets (Lantern Night) may close the chat for a seat (chatOk) and decide who reads a line (chatSee:
+      // players who are out talk only among themselves). Lines not everyone may read stay out of the saved log.
+      const mod = GAMES[r.game], live = r.G?.ph === 'play', seatOf = id => r.G.seats.findIndex(x => x.id === id), from = live ? seatOf(c.id) : -1;
+      if (live && mod.chatOk && !mod.chatOk(r.G, from)) return send(c, { t: 'err', msg: mod.chatShut?.(r.G, from) || 'The chat is closed right now.' });
       const msg = { t: 'chat', id: c.id, name: c.name, color: c.color, av: c.av, fl: store.flair(store.profileOf(c.token)), pt: store.tagOf(store.profileOf(c.token)), text };
-      r.chat.push(msg); if (r.chat.length > 40) r.chat.shift();
-      for (const t of r.players) send(clients.get(t), msg);
+      const to = r.players.map(t => clients.get(t)).filter(o => o && (!live || !mod.chatSee || mod.chatSee(r.G, from, seatOf(o.id))));
+      if (to.length === r.players.length) { r.chat.push(msg); if (r.chat.length > 40) r.chat.shift(); }
+      for (const o of to) send(o, msg);
       return;
     }
     case 'hubchat': { // the hub's global chat: no text = send me the conversation

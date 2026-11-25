@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -528,6 +528,30 @@ const GAMES = {
       <li>The turn ends when everyone has guessed or the time is up. The drawer can also <b>give up</b> a word. After a guess you can still chat, but only with the players who already know the word.</li>
       <li>In a round everybody draws once. After the last round <b>the most points wins</b>. A friend who joins late can sit down at the next turn.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. A player who never draws a line and never types a guess gets none.</li>
+    </ol>`,
+  },
+  lantern: {
+    name: 'Lantern Night', load: () => import('./games/lantern/client.js'), start: 'Light the lanterns', min: 4,
+    mins: [6, 12],
+    host: { sneaks: 'auto', talk: 45, chores: 5, lull: 30, reveal: 'side', clues: 'on' }, solo: { sneaks: 'auto', talk: 45, chores: 5, lull: 30, reveal: 'side', clues: 'on' },
+    openSeat: 'Waiting for a friend (no bots in this game)',
+    settings: pill => `<div class="opt"><b>Sneaks</b><div class="pills">${pill('sneaks', 'auto', 'Auto')}${pill('sneaks', 1, '1')}${pill('sneaks', 2, '2')}</div></div>
+      <div class="opt"><b>Talk at meetings</b><div class="pills">${pill('talk', 30, '30 s')}${pill('talk', 45, '45 s')}${pill('talk', 90, '90 s')}</div></div>
+      <div class="opt"><b>Chores each</b><div class="pills">${pill('chores', 3, '3')}${pill('chores', 5, '5')}${pill('chores', 7, '7')}</div></div>
+      <div class="opt"><b>Time between lulls</b><div class="pills">${pill('lull', 20, '20 s')}${pill('lull', 30, '30 s')}${pill('lull', 45, '45 s')}</div></div>
+      <div class="opt"><b>The ferry shows</b><div class="pills">${pill('reveal', 'side', 'Their side')}${pill('reveal', 'none', 'Nothing')}</div></div>
+      <div class="opt"><b>Pawprint clues</b><div class="pills">${pill('clues', 'on', 'On')}${pill('clues', 'off', 'Off')}</div></div>`,
+    howto: `Walk the island at dusk as your avatar with a Pet Farm pet. Islanders do chores; one or two secret Sneaks lull people to sleep when nobody is looking. Find a sleeper or ring the bell, talk it over (best on voice) and vote someone onto the ferry. Islanders win by finishing every chore or sending every Sneak away.`,
+    rules: `<ol>
+      <li>A game for <b>4 to 10 people</b>, no bots. Everyone gets a secret card: most are <b>Islanders</b>, and <b>1 Sneak</b> (2 from 7 players) hides among them. Press and hold your card at the top to look at it again.</li>
+      <li>Everyone walks round the island with a <b>Pet Farm pet</b> picked for this game. It is dusk: you only see what your lantern lights up round you.</li>
+      <li><b>Islanders</b> do their chores at the marked places: light the lighthouse lamps, crank the windmill, feed the pets, water the garden and more. Every chore fills the island's bar. <b>When the bar is full, the islanders win.</b></li>
+      <li><b>Sneaks</b> get a pretend chore list. When an islander is close, a Sneak can <b>lull</b> them to sleep (then wait a while before the next one). Sneaks can crawl into a <b>hollow log</b> and come out of the next one, and play <b>pranks</b>: put the lighthouse out (islanders see much less until someone relights it) or untie the ferry (two islanders must hold both ropes at the dock within 40 seconds, or the Sneaks win).</li>
+      <li>Found a sleeper? <b>Ring for a meeting.</b> Everyone can also ring the <b>bell</b> by the campfire once a game. At a meeting everyone gathers at the fire. With pawprint clues on, the prints by the sleeper tell one thing about the Sneak's pet: its element or its size.</li>
+      <li>Talk it over (on voice, or in the chat, which opens only at meetings), then <b>vote</b> for a player or skip. The most votes sends that player away on the <b>ferry</b>. A tie, or more skips, sends nobody.</li>
+      <li>Players who fall asleep or leave on the ferry are <b>out</b>, but they go on as their pet: they can still finish chores and chat with other pets, and nobody awake hears them.</li>
+      <li><b>Islanders win</b> when every chore is done or every Sneak is gone. <b>Sneaks win</b> when they are as many as the islanders still awake, or when the ferry drifts away.</li>
+      <li>Coins: the winning side shares <b>1st place</b> (10 coins each); everyone else is placed by how long they stayed awake.</li>
     </ol>`,
   },
   pm: {
@@ -1846,6 +1870,7 @@ const HUB_GAMES = [
   ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
   ['warcaby', 'warcabypic', warcabyArt, 'board', '1–2 players', 'Classic Polish draughts: jump to take, crown your kings. On the big 10×10 board or the small 8×8 one, against a friend or a bot.'],
   ['kal', 'kalpic', kalArt, 'action party', '2–8 players', 'One player draws a secret word, everyone else races to guess it. Polish and English words, with Pet Farm pets too. For people only: no bots.'],
+  ['lantern', 'lanternpic', lanternArt, 'action party', '4–10 players', 'A cozy hidden-roles game on an island at dusk. Do chores, catch the Sneaks lulling your friends to sleep, and vote them onto the ferry. For people only: no bots.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
 const CLOCK = '<svg class="tclock" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
