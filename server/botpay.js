@@ -10,7 +10,7 @@
 
 // Weight of one bot by the table's bot level. Games whose bots have no level (pure luck: Ladders, Wojna, Marble
 // Rush, Ludo, Piotruś) use NO_LEVEL.
-export const BOT_WEIGHT = { chill: 0.15, easy: 0.15, club: 0.5, sharp: 1 };
+export const BOT_WEIGHT = { chill: 0.15, easy: 0.15, club: 0.5, normal: 0.5, sharp: 1, hard: 1 }; // a new bot level must be added here (test/botpay.js checks)
 export const NO_LEVEL = 0.5;
 export const FULL_OPPS = 3;       // this many opponents (or the table's most, if smaller) is a full table
 export const FULL_MS = 3 * 60_000; // a bot match shorter than this pays its share of the time

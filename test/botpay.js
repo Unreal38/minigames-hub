@@ -26,5 +26,14 @@ const g = credit(p, 'mahj', { pts: 18, win: true, place: 1, of: 2, ranked: false
 if (g.xp !== 5 || g.pay !== 10) fail('credit should pay a tenth: ' + JSON.stringify(g));
 const full = credit({ pid: 'y', xp: 0, games: 0, wins: 0, pts: 0, byGame: {}, coins: 0 }, 'mahj', { pts: 18, win: true, place: 1, of: 2 });
 if (full.xp !== 52 || full.pay !== 100) fail('people-only match pays as before: ' + JSON.stringify(full));
+// every bot level a game offers has a weight (otherwise it would pay like a game without levels)
+import fs from 'node:fs';
+import { BOT_WEIGHT } from '../server/botpay.js';
+for (const f of fs.readdirSync(new URL('../server/games/', import.meta.url))) {
+  const src = fs.readFileSync(new URL('../server/games/' + f, import.meta.url), 'utf8');
+  const m = src.match(/export const (?:BOTS|BOT|LEVELS) = \{([^\n]*)/); if (!m) continue;
+  for (const [, k] of m[1].matchAll(/(\w+): \{/g)) if (!(k in BOT_WEIGHT)) fail(`${f}: bot level ${k} has no weight in BOT_WEIGHT`);
+}
+for (const k of ['chill', 'sharp', 'easy', 'club', 'normal', 'hard']) if (!(k in BOT_WEIGHT)) fail('missing ' + k);
 console.log('OK');
 process.exit(0);
