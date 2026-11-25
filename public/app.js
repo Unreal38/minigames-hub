@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
@@ -573,6 +573,25 @@ const GAMES = {
       <li>Players who fall asleep or leave on the ferry are <b>out</b>, but they go on as their pet: they can still finish chores and chat with other pets, and nobody awake hears them.</li>
       <li><b>Islanders win</b> when every chore is done or every Sneak is gone. <b>Sneaks win</b> when they are as many as the islanders still awake, or when the ferry drifts away.</li>
       <li>Coins: the winning side shares <b>1st place</b> (10 coins each); everyone else is placed by how long they stayed awake.</li>
+    </ol>`,
+  },
+  runway: {
+    name: 'Sky Runway', load: () => import('./games/runway/client.js'), start: 'Open the show', min: 3,
+    mins: [8, 14],
+    host: { rounds: 3, time: 90, names: 'shown' }, solo: { rounds: 3, time: 90, names: 'shown' },
+    openSeat: 'Waiting for a friend (no bots in this game)',
+    settings: pill => `<div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 2, '2')}${pill('rounds', 3, '3')}${pill('rounds', 5, '5')}</div></div>
+      <div class="opt"><b>Time to dress up</b><div class="pills">${pill('time', 60, '60 s')}${pill('time', 90, '90 s')}${pill('time', 120, '120 s')}</div></div>
+      <div class="opt"><b>On the runway</b><div class="pills">${pill('names', 'shown', 'Names shown')}${pill('names', 'secret', 'Secret walk')}</div></div>`,
+    howto: `A dress-up show. Each round has a theme: dress up against the clock with everything in the shop on loan, then walk the runway while your friends give 1 to 5 stars. The most stars after all rounds wins.`,
+    rules: `<ol>
+      <li>A game for <b>3 to 8 people</b>, no bots. Each round starts with a <b>theme</b>, like Royal ball or Pirate beach party, sometimes with a twist.</li>
+      <li><b>Dress up</b> before the clock runs out. <b>Everything in the shop is on loan</b> for the show, Supporter pack pieces too. Your body, height, skin and face stay yours, so friends know it's you. Pick a pose for the end of the runway, then press Ready.</li>
+      <li>Nobody sees the other looks until they walk. Then everyone walks the <b>runway</b> one by one, in a random order. The others give each look <b>1 to 5 stars</b>. You can't vote for yourself.</li>
+      <li>A look's points are its average stars × 20. With 5 or more judges, each look's highest and lowest vote are dropped.</li>
+      <li>With <b>Secret walk</b> on, names are hidden on the runway and show only on the podium.</li>
+      <li>After the last round the most points wins; on equal points, more 5-star votes. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>Liked your outfit? <b>Keep this look</b> puts on the pieces you own and takes the borrowed ones to the Wardrobe to buy. Nothing borrowed is kept without buying.</li>
     </ol>`,
   },
   pm: {
@@ -1271,6 +1290,7 @@ function mountGame() {
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
       again: () => send({ t: 'start' }), vote: on => send({ t: 'again', on }), sit: on => send({ t: 'sit', on }), toLobby: () => send({ t: 'lobby' }), leave: () => send({ t: 'leave' }),
       toast, rules: () => openRules(st.room?.game),
+      owned: () => st.me?.owned || [], keepLook: av => keepLook(av),
     }));
     st.game.room(st.room); placeGameSwitch();
     st.gameLoading = null;
@@ -1966,6 +1986,7 @@ const HUB_GAMES = [
   ['chess', 'chesspic', chessArt, 'board', '1–2 players', 'Classic chess with blocky pieces on a sky island. Play a friend or a bot, with or without a clock.'],
   ['warcaby', 'warcabypic', warcabyArt, 'board', '1–2 players', 'Classic Polish draughts: jump to take, crown your kings. On the big 10×10 board or the small 8×8 one, against a friend or a bot.'],
   ['kal', 'kalpic', kalArt, 'action party', '2–8 players', 'One player draws a secret word, everyone else races to guess it. Polish and English words, with Pet Farm pets too. For people only: no bots.'],
+  ['runway', 'runwaypic', runwayArt, 'action party', '3–8 players', 'A dress-up show on a sky runway. Dress up for the theme with every shop item on loan, walk the runway and give each other stars. For people only: no bots.'],
   ['lantern', 'lanternpic', lanternArt, 'action party', '4–10 players', 'A cozy hidden-roles game on an island at dusk. Do chores, catch the Sneaks lulling your friends to sleep, and vote them onto the ferry. For people only: no bots.'],
 ].filter(g => GAMES[g[0]]);
 // The ⏱ tag: 'about 5 min' when both ends match, else '5–10 min'. Clock drawn in SVG so it looks the same everywhere.
@@ -2634,8 +2655,8 @@ const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the
   wn: L('Plays on everyone’s screen when you win, and replaces the confetti for your good moments during a match. Tap one to see it.', 'Pojawia się u wszystkich na ekranie, gdy wygrywasz, i zastępuje konfetti przy twoich dobrych momentach w trakcie gry. Dotknij, żeby zobaczyć.'),
   sp: L('Extra reactions for the chat row at any table, and extra emotes for the main chat. Every pack you own is always on.', 'Dodatkowe reakcje w pasku czatu przy każdym stole i dodatkowe emotki na czacie głównym. Każda paczka, którą masz, jest zawsze włączona.') };
 
-function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = '', filt: startFilt = 'all' } = {}) {
-  let color = st.color, av = st.av.slice(), sec = startSec, sub = startSub, filt = startFilt, undo = null, saveT = 0;
+function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = '', filt: startFilt = 'all', tryAv = null } = {}) { // tryAv: a look to start with (Sky Runway's Keep this look)
+  let color = st.color, av = tryAv ? cleanAv(tryAv) : st.av.slice(), sec = startSec, sub = startSub, filt = startFilt, undo = null, saveT = 0;
   const pick = {}; // account cosmetics being tried on: kind -> index
   if (st.me?.user) send({ t: 'pets' }); // a fresh farm list, so pets sold or traded since don't show up as pickable
   const KI = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
@@ -2888,6 +2909,14 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     if (pendingJoin) { send({ t: 'join', code: pendingJoin }); pendingJoin = ''; history.replaceState(null, '', location.pathname); }
     go(st.view === 'game' ? 'game' : st.view);
   });
+}
+// Sky Runway's "Keep this look": the pieces you own (and free ones) go on at once; borrowed ones are tried on in the
+// Wardrobe, whose buy bar (and Supporter pack button) takes them from there. Nothing borrowed is saved.
+function keepLook(look) {
+  const a = cleanAv(look), cur = cleanAv(st.av), have = new Set(st.me?.owned || []);
+  const mine = a.map((v, i) => (needsOwning(AV_KEYS[i], v) && !have.has(AV_KEYS[i] + ':' + v) ? cur[i] : v));
+  if (st.name && mine.join() !== cur.join()) { st.av = mine; LS.set('ct_av', JSON.stringify(mine)); send({ t: 'profile', name: st.name, color: st.color, av: mine }); }
+  openWardrobe({ sec: 'av0', tryAv: a });
 }
 const openProfile = (first = false) => openWardrobe({ first });
 const openStyle = () => openWardrobe({ sec: 'name' });
