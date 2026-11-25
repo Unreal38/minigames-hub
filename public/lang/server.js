@@ -13,6 +13,17 @@ const TEXT = {
   'Give the tree a moment before changing your ornament again.': 'Odczekaj chwilę, zanim znów zmienisz ozdobę.',
   'Log in or make an account to open the present.': 'Zaloguj się albo załóż konto, żeby otworzyć prezent.',
   'A host has muted you for a few minutes.': 'Gospodarz wyciszył cię na kilka minut.',
+  // reports and the hosts' moderation (mod.js)
+  'A host has muted you.': 'Gospodarz cię wyciszył.',
+  'You can’t report yourself.': 'Nie możesz zgłosić samego siebie.',
+  'Pick what happened first.': 'Najpierw wybierz, co się stało.',
+  'Write a few words about what happened.': 'Napisz kilka słów o tym, co się stało.',
+  'You already reported this player. The hosts will have a look.': 'Ten gracz jest już przez ciebie zgłoszony. Gospodarze się temu przyjrzą.',
+  'You have sent a lot of reports. Try again later.': 'Wysłano już dużo zgłoszeń. Spróbuj później.',
+  'Only hosts can do that.': 'Może to zrobić tylko gospodarz.',
+  'Hosts can’t be muted, warned or banned.': 'Gospodarzy nie da się wyciszyć, ostrzec ani zablokować.',
+  'Write the reason: the player is shown it.': 'Wpisz powód: gracz go zobaczy.',
+  'Pick how long first.': 'Najpierw wybierz, na jak długo.',
   // tables
   'That table is full.': 'Ten stół jest pełny.',
   'This game needs at least two players. Invite a friend first.': 'Do tej gry potrzeba co najmniej dwóch graczy. Najpierw zaproś znajomego.',

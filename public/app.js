@@ -23,7 +23,8 @@ import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
 import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek, peekWeather } from './seasonpeek.js';
-import { initNotice, onNotice, openNotices } from './notice.js';
+import { initNotice, onNotice } from './notice.js';
+import { initAdmin, openAdmin, openModerate, openReport, onMod, onModMe, muteNote, openCount as modOpenCount } from './admin.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
 import { weatherAt, weatherNext, wxIcon, isNight as wxNight } from './weather.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, OUTFITS, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
@@ -1044,12 +1045,19 @@ function waitLine(m) {
   $line.querySelector('.linepos b').textContent = m.pos;
   $line.querySelector('.linepos span').textContent = L(`your place in line, of ${m.n}`, `Twoje miejsce w kolejce (z ${m.n})`);
 }
+// This browser's device id: random, kept apart from the sign-in token so it stays the same after logging out or into
+// another account. Only used for a host's device ban (server/mod.js).
+function devId() {
+  let v = LS.get('ct_dev');
+  if (!/^[a-z0-9]{16,32}$/.test(v || '')) { v = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); LS.set('ct_dev', v); }
+  return v;
+}
 function connect() {
   clearTimeout(retryT); retryT = 0;
   if (replaced || (ws && ws.readyState <= 1)) return;
   const s = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   s.onopen = () => {
-    s.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av }));
+    s.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av, dev: devId() }));
   };
   s.onmessage = e => {
     if (s !== ws) return;
@@ -1175,6 +1183,8 @@ function onMsg(m) {
     onHubChat(m);
   } else if (m.t === 'stats') {
     { const was = st.stats?.plaza | 0; st.stats = { online: m.online | 0, visitors: m.visitors | 0, plaza: m.plaza | 0 }; if (st.view === 'hub' && was !== st.stats.plaza) { paintPlazaBtn(); send({ t: 'plaza', a: { k: 'peek' } }); } } paintStats(); if (whoSheet) send({ t: 'who' });
+  } else if (m.t === 'modme') { onModMe(m); paintHubFoot();
+  } else if (m.t === 'mod') { onMod(m);
   } else if (m.t === 'notice') {
     onNotice(m);
   } else if (m.t === 'who') {
@@ -1264,6 +1274,7 @@ function mountGame() {
   const g = GAMES[st.room?.game];
   if (!g) return Promise.resolve(null);
   st.view = 'game';
+  document.body.classList.toggle('tagpick', !TAG_HANDS_OFF.has(st.room.game)); // name tags open profile cards (see below)
   st.gameLoading = g.load().then(mod => {
     const game = st.room?.game;
     st.game = mountWithCss(game, () => mod.mount($app, {
@@ -1280,7 +1291,7 @@ function mountGame() {
 }
 // Only switch the sheets off when something was really open: these also run on every table update (closeFarm/closeHay)
 // and must not turn off the sheets of the game being played.
-function unmountGame() { if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
+function unmountGame() { document.body.classList.remove('tagpick'); if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
 let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
@@ -1686,18 +1697,12 @@ function whoHtml() {
   </li>`).join('')}</ol>`;
 }
 function paintWho() { const el = whoSheet?.el.querySelector('#who-list'); if (el) el.innerHTML = whoHtml(); }
-function openWho() {
-  if (!st.me?.admin) return;
-  closeAcct(); whoSheet?.close();
-  const sheet = whoSheet = modal(`<h2>${L('Who’s here', 'Kto jest na stronie')}</h2><p class="rknote">${L('Only hosts see this list. It updates by itself.', 'Tę listę widzą tylko gospodarze. Odświeża się sama.')}</p><div class="rkall" id="who-list">${whoHtml()}</div><div class="row" style="margin-top:14px"><button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
-  sheet.el.querySelector('.sheet').classList.add('listsheet');
+// The Who's here tab of the Admin panel (admin.js) draws its list here.
+function whoMount(box) {
+  const me = whoSheet = { el: box }; paintWho();
   send({ t: 'who' });
-  whoTimer = setInterval(() => send({ t: 'who' }), 10_000); // also refreshed whenever the live count changes
-  sheet.onClose = () => { whoSheet = null; clearInterval(whoTimer); };
-  sheet.el.addEventListener('click', e => {
-    if (e.target.closest('[data-x]')) { sfx.click(); return sheet.close(); }
-    if (e.target.closest('[data-prof]')) sheet.close(); // the page-wide handler opens the profile card
-  });
+  clearInterval(whoTimer); whoTimer = setInterval(() => send({ t: 'who' }), 10_000); // also refreshed whenever the live count changes
+  return () => { if (whoSheet === me) whoSheet = null; clearInterval(whoTimer); };
 }
 // The account menu: one place for everything that used to be separate buttons in the top bar and on the progress card.
 // It drops down from the avatar button; on phones it slides up as a sheet (the tab bar's "You").
@@ -1777,10 +1782,7 @@ function acctHtml() {
       ${item('mystats', '📊', L('Profile', 'Profil'), `<small>${st.me?.sky?.free && !locked0(st.me) ? `★ ${L(`stars to light: ${st.me.sky.free}`, `gwiazdy do zapalenia: ${st.me.sky.free}`)}` : L('all your stats', 'wszystkie statystyki')}</small>`)}
       ${item('profile', '👕', L('Wardrobe', 'Garderoba'), `<small>${L('avatar, style, shop', 'awatar, styl, sklep')}</small>`)}
       ${item('friends', '🤝', L('Friends', 'Znajomi'), `<span class="frbadge" ${reqs ? '' : 'hidden'}>${reqs || ''}</span>`)}
-      ${m?.admin ? item('notices', '📣', L('Site notices', 'Komunikaty strony'), `<small>${L('update countdown, announcements', 'odliczanie, ogłoszenia')}</small>`) : ''}
-      ${m?.admin ? item('season', '❄️', L('Island season', 'Pora roku wysp'), `<small>${peekLabel()}</small>`) : ''}
-      ${m?.admin ? item('wxpeek', '🌦️', L('Weather look', 'Wygląd pogody'), `<small>${wxPeekLabel()}</small>`) : ''}
-      ${m?.admin ? item('who', '👀', L('Who’s here', 'Kto jest na stronie'), `<small>${st.stats ? L(`${cnt(st.stats.online, 'person', 'people')} now`, `teraz: ${num(st.stats.online)}`) : L('host only', 'tylko dla gospodarza')}</small>`) : ''}
+      ${m?.admin ? item('admin', '🛡️', L('Admin', 'Panel gospodarza'), `<small>${L('reports, players, notices', 'zgłoszenia, gracze, komunikaty')}</small><span class="frbadge admcount" ${modOpenCount() ? '' : 'hidden'}>${modOpenCount() || ''}</span>`) : ''}
       ${item('gfx', '🎮', L('Graphics', 'Grafika'), `<small>${gfxLabel()}</small>`)}
       ${item('theme', isNight() ? '☀️' : '🌙', L('Day or night', 'Dzień czy noc'), `<small>${isNight() ? L('night now', 'teraz noc') : L('day now', 'teraz dzień')}</small>`, ' class="aphone"')}
       ${item('lang', '🌐', L('Język: polski', 'Language: English'), '', ` data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}"`)}
@@ -2186,6 +2188,7 @@ function hubFootHtml() {
   if (!st.me) return '';
   if (!st.me.user) return `<div class="hcguest"><span>${L('Make a free account to join the chat.', 'Załóż darmowe konto, żeby pisać na czacie.')}</span>
     <button type="button" class="btn sm m" data-act="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn sm w" data-act="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
+  if (muteNote()) return `<div class="hcguest hcmuted"><span>${muteNote()}. ${L('You can still read and play.', 'Nadal możesz czytać i grać.')}</span></div>`;
   return `<div class="hcemo" id="hc-emo" hidden></div><form class="hcform" data-form="hubchat"><button type="button" class="hcemobtn" data-act="hcemo" aria-expanded="false" aria-controls="hc-emo" aria-label="${L('Emotes', 'Emotki')}" title="${L('Emotes', 'Emotki')}">😊</button><input class="field" id="hc-in" maxlength="${st.hc.max}" placeholder="${L('Say something to everyone…', 'Napisz coś do wszystkich…')}" autocomplete="off" enterkeyhint="send" aria-label="${L('Message to everyone', 'Wiadomość do wszystkich')}"><button class="btn m">${L('Send', 'Wyślij')}</button></form>`;
 }
 // The emote picker: the same six free emoji and bought sticker packs as the reaction row in table chat (react.js,
@@ -2986,10 +2989,11 @@ function openPlayer(p) {
       p.rel === 'none' ? `<button type="button" class="btn big m" data-fr="add">${L('Add friend', 'Dodaj do znajomych')}</button>`
       : p.rel === 'req' ? `<button type="button" class="btn big m" data-fr="accept">${L('Accept friend request', 'Przyjmij zaproszenie')}</button>`
       : p.rel === 'sent' ? `<button type="button" class="btn big w" disabled>${L('Friend request sent', 'Zaproszenie wysłane')}</button>`
-      : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span>`
+      : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span><button type="button" class="btn w sm punfr" data-unfr>${L('Unfriend', 'Usuń ze znajomych')}</button>`
       : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
       : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>
-    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}`);
+    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}
+    ${!p.me ? `<div class="pdelrow">${p.mod ? `<button type="button" class="btn w sm" data-moderate>🛡️ ${L('Moderate', 'Moderuj')}</button>` : ''}<button type="button" class="btn ghost-ink pdel" data-report>🚩 ${L('Report', 'Zgłoś')}</button></div>` : ''}`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
@@ -3003,13 +3007,40 @@ function openPlayer(p) {
     if (fr?.dataset.fr === 'account') { sheet.close(); return openAccount('register'); }
     if (fr) { fr.disabled = true; sfx.pop(); return send({ t: 'friend', op: fr.dataset.fr, pt: p.pt }); }
     if (e.target.closest('[data-delacct]')) { sfx.click(); sheet.close(); return openDeleteAccount(); }
+    const un = e.target.closest('[data-unfr]');
+    if (un) { // a second tap confirms, so a slip of the finger doesn't end a friendship
+      sfx.click();
+      if (un.dataset.sure) { un.disabled = true; return send({ t: 'friend', op: 'remove', pt: p.pt }); }
+      un.dataset.sure = '1'; un.classList.replace('w', 'p'); un.textContent = L(`Remove ${p.name}? Tap again`, `Usunąć: ${p.name}? Dotknij jeszcze raz`);
+      setTimeout(() => { if (un.isConnected && !un.disabled) { delete un.dataset.sure; un.classList.replace('p', 'w'); un.textContent = L('Unfriend', 'Usuń ze znajomych'); } }, 4000);
+      return;
+    }
+    if (e.target.closest('[data-report]')) { sfx.click(); sheet.close(); return openReport(p, profFrom); }
+    if (e.target.closest('[data-moderate]')) { sfx.click(); sheet.close(); return openModerate(p.pt); }
     if (e.target.closest('[data-done]')) sheet.close(); else if (e.target.closest('[data-style]')) { sheet.close(); openStyle(); }
   });
 }
+// Where the last profile card was opened from, which a report on it takes along.
+let profFrom = 'hub';
+const fromOf = el => st.room ? 'table' : st.view === 'plaza' ? 'plaza' : el?.closest('#hc-log') ? 'chat' : el?.closest('#who-list') ? 'who' : 'hub';
 document.addEventListener('click', e => {
   const row = e.target.closest('[data-prof]'); if (!row) return;
-  const hit = e.target.closest('button, a, input, label'); if (hit && row.contains(hit)) return;
-  sfx.click(); send({ t: 'player', pt: row.dataset.prof });
+  const hit = e.target.closest('button, a:not([data-prof]), input, label'); if (hit && row.contains(hit)) return;
+  if (e.target.closest('a[data-prof]')) e.preventDefault();
+  profFrom = fromOf(row); sfx.click(); send({ t: 'player', pt: row.dataset.prof });
+});
+// Games where the floating name tags stay out of the way of the mouse: you aim, drag or steer right where they float.
+const TAG_HANDS_OFF = new Set(['kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
+// Inside a game: the name tags over the players and the rows of the score lists open that player's profile card too
+// (to add them as a friend or report them mid-match). Games draw them without a tag, so the name finds the player
+// among the people at this table; bots and names shared by two people open nothing.
+document.addEventListener('click', e => {
+  if (!st.game || !st.room?.players || e.target.closest('[data-prof], button, a, input, label, select, textarea, .modal, .chatwrap')) return;
+  const el = e.target.closest('li:has(.avatar), .who') || (document.body.classList.contains('tagpick') && e.target.closest('.tags > *')); if (!el || !$app.contains(el)) return;
+  const raw = (el.querySelector('b') || el).textContent.replace(/\s*\((you|ty|bot|away|poza grą)\)\s*$/i, '').trim();
+  const hits = st.room.players.filter(x => x.pt && x.name === raw);
+  if (hits.length !== 1) return;
+  profFrom = 'table'; sfx.click(); send({ t: 'player', pt: hits[0].pt });
 });
 
 function openAccount(mode = 'register') {
@@ -3193,11 +3224,11 @@ $app.addEventListener('click', e => {
   else if (act === 'acct') openAcct();
   else if (act === 'lang') setLang(b.dataset.lang);
   else if (act === 'gfx') { setGfx(GFX_NEXT[gfxPick()]); const sm = b.querySelector('small'); if (sm) sm.textContent = gfxLabel(); toast(`${L('Graphics', 'Grafika')}: ${esc(gfxLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
+  else if (act === 'admin') { closeAcct(); openAdmin(); }
   else if (act === 'wxpeek') { const all = ['auto', ...WX_PEEKS]; setWxPeek(all[(all.indexOf(wxPeekPick()) + 1) % all.length]); const sm = b.querySelector('small'); if (sm) sm.textContent = wxPeekLabel(); paintSkyWx(); import('./weather3d.js').then(m => m.wxRecheck()).catch(() => {}); }
   else if (act === 'season') { const all = ['auto', ...PEEKS]; setPeek(all[(all.indexOf(peekPick()) + 1) % all.length]); const sm = b.querySelector('small'); if (sm) sm.textContent = peekLabel(); toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); }
   else if (act === 'mystats') openStats();
-  else if (act === 'who') openWho();
-  else if (act === 'notices') { closeAcct(); openNotices(); }
+  else if (act === 'who') { closeAcct(); openAdmin('who'); }
   else if (act === 'tables') openTables();
   else if (act === 'rkall') openRankings();
   else if (act === 'tpage') { sfx.click(); st.tPage += +b.dataset.d; renderTables(); }
@@ -3272,4 +3303,7 @@ onGfxTip(kind => toast(kind === 'soft'
   : L('The game can’t keep up even on low graphics. If you use Opera GX, check that GX Control’s CPU and RAM limiters are off and no page shader mod is on.', 'Gra nie nadąża nawet na niskiej grafice. Jeśli używasz Opery GX, sprawdź, czy limity procesora i RAM w GX Control są wyłączone i czy nie działa mod z shaderem strony.'), false, 10000));
 go('hub');
 initNotice({ send, modal, toast, sfx, me: () => st.me, inGame: () => !!st.game });
+initAdmin({ send, modal, toast, sfx, srvText, me: () => st.me, avatarHtml, gameName: id => GAMES[id]?.name || SOLO[id]?.name || id, whoMount,
+  onCount: () => { for (const b of document.querySelectorAll('.admcount')) { const n = modOpenCount(); b.hidden = !n; b.textContent = n || ''; } },
+  onPeek: k => { if (k === 'weather') { paintSkyWx(); import('./weather3d.js').then(m => m.wxRecheck()).catch(() => {}); } else toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); } });
 connect();
