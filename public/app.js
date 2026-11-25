@@ -7,7 +7,7 @@ import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt,
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { EMOJI, FOODS, floatAt } from './react.js';
-import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, cosPackIds, emotesOf, EMOTE_BAR, EMOTE_ICO } from './cosmetics.js';
+import { COS, WORN, decorOf, DECOR_SLOTS, PIECES, PIECE_SLOTS, piecesOf, cosItem, cosPrice, cosOnSale, cosSeason, cosHas, earnProgress, flairOf, stickersOf, STICKERS, nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync, cosPackIds, emotesOf, EMOTE_BAR, EMOTE_ICO } from './cosmetics.js';
 import { playWinFx, setSeatFx, setMyFx, winPic } from './winfx.js';
 import { petImg, petPics } from './petpic.js';
 import { skinPic, skinPicNow } from './skinpic.js';
@@ -1843,6 +1843,9 @@ function openAcct() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.acctwrap')) { closeAcct(); document.querySelector('.me.acctbtn')?.focus(); } });
 function paintMe() {
+  // the account button follows a new look, frame or card background without redrawing the page
+  const ab = document.querySelector('.me.acctbtn');
+  if (ab) { const key = JSON.stringify([flairOf(st.me), st.av, st.color, st.name]); if (ab.dataset.k && ab.dataset.k !== key) { const f = document.activeElement === ab; ab.outerHTML = acctBtn(); const nb = document.querySelector('.me.acctbtn'); nb.dataset.k = key; pbSync(nb); if (f) nb.focus({ preventScroll: true }); } else ab.dataset.k = key; }
   const chip = document.querySelector('.me .lvslot'); if (chip) chip.innerHTML = meChip();
   const cs = document.querySelector('.coinslot'); if (cs && st.me) cs.textContent = st.me.coins;
   const menu = document.getElementById('acct-menu'); if (menu) menu.innerHTML = acctHtml();
@@ -1898,10 +1901,12 @@ function switchTheme(btn) {
 }
 { const t = LS.get('ct_theme', ''); setNight(t ? t === 'night' : matchMedia('(prefers-color-scheme: dark)').matches, false); }
 
+// The account button in the top bar: avatar in its frame on the player's card background, name, level, menu caret.
+const acctBtn = () => { const fl = flairOf(st.me); return `<button type="button" class="me acctbtn${cardBgCls(fl)}" data-act="acct" aria-haspopup="menu" aria-expanded="${document.querySelector('.acctwrap') ? 'true' : 'false'}" aria-label="${L('Your account', 'Twoje konto')}">${cardBg(fl)}${avatarHtml(st.color, st.av, 46, frameCls(fl))}<span class="aname">${st.name ? nameHtml(st.name, fl) : L('Pick a name', 'Wybierz imię')}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>`; };
 const topbar = () => `<header class="top">
   <a class="brand" href="/" data-act="home">${siteLogo(42)}<span>Zatoka <b>Gier</b></span></a>
-  <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span><small>· ${L('shop', 'sklep')}</small></button>
-  <button type="button" class="me acctbtn" data-act="acct" aria-haspopup="menu" aria-expanded="false" aria-label="${L('Your account', 'Twoje konto')}">${avatarHtml(st.color, st.av, 38, frameCls(flairOf(st.me)))}<span class="aname">${st.name ? nameHtml(st.name, flairOf(st.me)) : L('Pick a name', 'Wybierz imię')}</span><span class="lvslot">${meChip()}</span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>
+  <button type="button" class="me coinbtn" data-act="shop" title="${L('Coins: spend them in the wardrobe', 'Monety: wydasz je w garderobie')}" aria-label="${L('Coins: open the shop', 'Monety: otwórz sklep')}">${coinIco}<span class="coinslot">${st.me ? st.me.coins : '…'}</span></button>
+  ${acctBtn()}
   <button type="button" class="langbtn" data-act="lang" data-lang="${PL ? 'en' : 'pl'}" lang="${PL ? 'en' : 'pl'}" aria-label="${L('Zmień język na polski', 'Switch language to English')}" title="${L('Polski', 'English')}"><b>${PL ? 'PL' : 'EN'}</b><span aria-hidden="true">${PL ? 'EN' : 'PL'}</span></button>
   <button type="button" class="themebtn" data-act="theme" aria-label="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}" title="${isNight() ? L('Switch to day', 'Przełącz na dzień') : L('Switch to night', 'Przełącz na noc')}">${isNight() ? '☀️' : '🌙'}</button>
 </header>`;
