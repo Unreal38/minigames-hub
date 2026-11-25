@@ -207,7 +207,7 @@ body.night .ln { background: linear-gradient(#0c1236, #2d2b63); }
 /* soup: the spoon goes round the pot, steam rises as it heats */
 .ln .s-soup .fire { left: 50%; bottom: 30px; translate: -50% 0; font-size: 34px; opacity: calc(.3 + var(--v, 0) * .7); }
 .ln .s-soup .pot { left: 50%; bottom: 52px; translate: -50% 0; font-size: 92px; }
-.ln .s-soup .spoon { left: 50%; top: 52px; font-size: 40px; transform: translate(-50%, 0) rotate(var(--a, 0deg)) translateX(26px) rotate(calc(var(--a, 0deg) * -1)); z-index: 1; }
+.ln .s-soup .spoon { left: 50%; top: 40px; font-size: 40px; transform: translate(-50%, 0) rotate(var(--a, 0deg)) translateX(24px) rotate(calc(var(--a, 0deg) * -1)) rotate(180deg); z-index: 1; } /* turned over: the bowl dips into the pot, the handle sticks up */
 .ln .s-soup .steam { left: 50%; top: 8px; translate: -50% 0; display: flex; gap: 8px; opacity: var(--v, 0); }
 .ln .s-soup .steam b { font-size: 24px; animation: ln-steam 1.4s ease-in-out infinite; } .ln .s-soup .steam b:nth-child(2) { animation-delay: .4s; } .ln .s-soup .steam b:nth-child(3) { animation-delay: .8s; }
 @keyframes ln-steam { 0%, 100% { translate: 0 6px; opacity: .5; } 50% { translate: 0 -6px; opacity: 1; } }
@@ -230,10 +230,11 @@ body.night .ln { background: linear-gradient(#0c1236, #2d2b63); }
 /* dock: pull the boat in, let go when it is by the dock */
 .ln .s-boat .sea { left: 0; right: 0; bottom: 0; height: 46%; background: #4a6fc0; border-top: 3px solid #3b2219; }
 .ln .s-boat .dockz { bottom: 38%; height: 26%; background: #52b08f66; border-left: 2px dashed #2f8a55; border-right: 2px dashed #2f8a55; }
-.ln .s-boat .post { right: 12px; bottom: 50%; font-size: 34px; }
+.ln .s-boat .post { right: 12px; bottom: calc(44% + 14px); width: 34px; text-align: center; font-size: 34px; } /* stands on the pier; its ring is about 4px below its top */
 .ln .s-boat .pier { right: 0; width: 15%; bottom: 44%; height: 12px; background: #9a6a44; border: 3px solid #3b2219; border-right: 0; border-radius: 6px 0 0 6px; box-shadow: 14px 12px 0 -4px #7a5236, 34px 12px 0 -4px #7a5236; }
 .ln .s-boat .boat { left: calc(4% + var(--v, 0) * 82%); bottom: 34%; font-size: 52px; translate: -10% 0; animation: ln-bob 1.6s ease-in-out infinite; }
-.ln .s-boat .line { left: calc(4% + var(--v, 0) * 82% + 40px); right: 34px; bottom: 50%; height: 3px; background: #e8d2a8; }
+.ln .s-boat .line { position: absolute; left: calc(4% + var(--v, 0) * 82% + 40px); top: calc(56% - 44px); width: max(0px, calc(96% - var(--v, 0) * 82% - 69px)); height: calc(10% + 30px); overflow: visible; } /* from the boat's bow to the anchor's ring */
+.ln .s-boat .line line { stroke: #e8d2a8; stroke-width: 3; stroke-linecap: round; }
 @keyframes ln-bob { 0%, 100% { rotate: -4deg; } 50% { rotate: 4deg; } }
 
 /* phones */
