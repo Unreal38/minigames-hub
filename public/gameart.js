@@ -719,6 +719,29 @@ export function paradeArt() {
   </svg>`;
 }
 
+// Copycat Isle card: a lawn island with a hay bale, a bench and pumpkins; one pumpkin has peeking eyes (a hider)
+// and squeaks, while a seeker with a magnifying glass and their pet creeps up from the right.
+export function copyArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pumpkin = (x, y, s = 1, eyes = false) => `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="17" ry="13" fill="#ff8a2a" ${o}/><path d="M0 -13v26M-9 -11c-4 6-4 16 0 22M9 -11c4 6 4 16 0 22" fill="none" stroke="#c8641a" stroke-width="2"/><path d="M0 -13c0-6 3-8 6-9" fill="none" stroke="#5b8a3a" stroke-width="4" stroke-linecap="round"/>${eyes ? '<g class="ccpeek"><circle cx="-6" cy="-1" r="3.6" fill="#fff"/><circle cx="6" cy="-1" r="3.6" fill="#fff"/><circle cx="-5" cy="-1" r="1.8" fill="#3b2219"/><circle cx="7" cy="-1" r="1.8" fill="#3b2219"/></g>' : ''}</g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little island with benches, a hay bale and pumpkins. One pumpkin peeks out with two eyes while a seeker with a magnifying glass and a pet creeps closer">
+    <rect class="artsky" width="320" height="150" fill="#8fd6f7"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="40" r="1.5"/><circle cx="18" cy="50" r="1.2"/><circle cx="160" cy="30" r="1.1"/></g>
+    <path d="M30 28h34v10H30zM46 20h26v10H46z" class="artcloud" fill="#fff"/><path d="M236 18h30v9h-30zM224 26h28v9h-28z" class="artcloud" fill="#fff"/>
+    <path d="M6 108c40-24 268-24 308 0l-14 14c-34 14-246 14-280 0z" fill="#8bca60" ${o}/>
+    <path d="M20 122c34 16 246 16 280 0l-30 22H50z" fill="#c98a5a" ${o}/>
+    <g ${o}><rect x="30" y="78" width="40" height="26" rx="4" fill="#f2cc5b"/><path d="M42 78v26M58 78v26" stroke="#c99a33" stroke-width="2.5"/></g>
+    <g ${o}><path d="M82 84h46v6H82z" fill="#b77b4a"/><path d="M84 72h42v7H84z" fill="#b77b4a"/><path d="M88 90v14M122 90v14M86 72v32M124 72v32" fill="none" stroke="#5b4636" stroke-width="3"/></g>
+    ${pumpkin(150, 98)}${pumpkin(184, 101, .9, true)}${pumpkin(214, 99, .8)}
+    <g class="ccsq"><path d="M172 70l4-8M184 66v-9M196 70l-4-8" stroke="#ffd34d" stroke-width="3.5" stroke-linecap="round"/></g>
+    <g class="ccseek">
+      <circle cx="266" cy="58" r="14" fill="#f7cba6" ${o}/><path d="M252 56c2-12 26-14 28-2-8-4-18-4-28 2z" fill="#5b3a2a" ${o}/>
+      <circle cx="261" cy="60" r="2" fill="#3b2219"/><circle cx="270" cy="60" r="2" fill="#3b2219"/><path d="M262 66q4 2 7 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/>
+      <path d="M252 104l4-30h22l4 30z" fill="#7ed3b2" ${o}/><path d="M256 80l-16 6" stroke="#3b2219" stroke-width="7" stroke-linecap="round"/><path d="M256 80l-16 6" stroke="#7ed3b2" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="232" cy="88" r="10" fill="#cdeeff" fill-opacity=".7" ${o}/><path d="M238 95l6 7" stroke="#3b2219" stroke-width="5" stroke-linecap="round"/>
+      <g transform="translate(292 96)"><ellipse cx="0" cy="4" rx="13" ry="9" fill="#fff4e2" ${o}/><circle cx="-10" cy="-4" r="8" fill="#fff4e2" ${o}/><path d="M-16 -10l-2-8 6 4zM-6 -11l2-8 3 7z" fill="#ffd0dc" ${o}/><circle cx="-12" cy="-4" r="1.6" fill="#3b2219"/><circle cx="-18" cy="-2" r="1.8" fill="#3b2219"/></g>
+    </g></svg>`;
+}
+
 // Burrow Bop card: three burrows on a floating lawn, a pet popping out of the middle one under a pillow mallet,
 // a sleeper in a nightcap on the left, and three hearts.
 export function bopArt() {

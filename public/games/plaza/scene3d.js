@@ -7,7 +7,8 @@
 // and pets get a soft blob under them instead of real shadows, and models are built a few a frame, nearest first.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, toonMat, createFx, STAR, HEART, hash, seasonLookNow } from '../../scenery3d.js';
+import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, toonMat, createFx, STAR, HEART, hash, seasonLookNow, mergeStatic } from '../../scenery3d.js';
+export { mergeStatic }; // lantern and other games still import it from here
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { itemModel } from '../farm/models.js';
 import { formOf } from '../farm/data.js';
@@ -22,32 +23,6 @@ const SNOW = '#f6faff';
 const EM = Object.fromEntries(EMOTES.map((e, i) => [e?.id, i]));
 const LIVE = new Set(['campfire', 'carousel', 'balloon', 'swing', 'windmill', 'hotspring', 'fountain', 'miniwheel']); // decorations with moving parts stay their own models
 const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); return (a < 0 ? a + Math.PI * 2 : a) - Math.PI; };
-
-// Merge every baked mesh under root (the Pet Farm decorations arrive as one or two vertex-coloured meshes each) into one
-// mesh per kind of surface, then give the lot one outline. Fifty decorations cost about as much to draw as one.
-export function mergeStatic(root, ink) {
-  root.updateWorldMatrix(true, true);
-  const inv = root.matrixWorld.clone().invert(), buckets = new Map(), keep = [], m4 = new THREE.Matrix4(), sc = new THREE.Vector3();
-  root.traverse(o => { if (!o.isMesh || o.userData.ink) return;
-    const mt = o.material;
-    if (o.userData.baked && mt.isMeshStandardMaterial && mt.vertexColors && !mt.transparent && o.geometry.attributes.color) {
-      const key = (Math.round(mt.roughness * 5) / 5) + '|' + mt.side; let b = buckets.get(key); if (!b) buckets.set(key, b = { parts: [], n: 0, mt });
-      const g = o.geometry.clone(); m4.multiplyMatrices(inv, o.matrixWorld); g.applyMatrix4(m4); sc.setFromMatrixScale(m4);
-      b.parts.push([g.attributes.position.array, g.attributes.normal.array, g.attributes.color.array, g.attributes.inkd?.array, sc.x]); b.n += g.attributes.position.count;
-    } else { o.updateWorldMatrix(true, false); keep.push([o, m4.multiplyMatrices(inv, o.matrixWorld).clone()]); }
-  });
-  const out = new THREE.Group();
-  for (const b of buckets.values()) {
-    const pos = new Float32Array(b.n * 3), nor = new Float32Array(b.n * 3), col = new Float32Array(b.n * 3), sz = new Float32Array(b.n); let o = 0;
-    for (const [p, n, c, d, s] of b.parts) { pos.set(p, o * 3); nor.set(n, o * 3); col.set(c, o * 3); const cnt = p.length / 3; if (d) for (let i = 0; i < cnt; i++) sz[o + i] = d[i] * s; else sz.fill(.5, o, o + cnt); o += cnt; }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('inkd', new THREE.BufferAttribute(sz, 1));
-    const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: b.mt.roughness, side: b.mt.side })); mesh.userData.baked = true; mesh.castShadow = mesh.receiveShadow = true; out.add(mesh);
-  }
-  for (const [o, m] of keep) { o.removeFromParent(); o.matrix.copy(m); o.matrix.decompose(o.position, o.quaternion, o.scale); o.userData.noInk = true; o.castShadow = false; out.add(o); }
-  root.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
-  return toonify(out, ink);
-}
 
 // ---------- the pieces only the plaza has ----------
 function snowman(g) {
