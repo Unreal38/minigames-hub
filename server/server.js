@@ -539,8 +539,11 @@ function handle(c, m) {
     }
     case 'wear': { // put on a name colour, frame, title or win effect, or pick the Pet Farm pets to show off
       const p = store.profileOf(c.token), pal = m.k === 'pet' || m.k === 'pets';
-      const ids = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
-      if (pal && ids.some(id => !farm.petOf(p?.pid, id))) return send(c, { t: 'err', msg: 'That pet is not on your farm.' });
+      // Pets that left the farm since they were picked (sold, released, traded) are quietly dropped, so they can't
+      // sit in a slot nobody can see. Only an all-new pick that isn't theirs is an error. Lodge pets count as theirs.
+      const asked = pal ? (Array.isArray(m.i) ? m.i : m.i ? [m.i] : []).slice(0, 8).map(String) : null;
+      const ids = pal ? asked.filter(id => farm.petOf(p?.pid, id)) : null;
+      if (pal && asked.some(id => !ids.includes(id) && !store.showPets(p).includes(id))) { send(c, { t: 'me', me: store.me(p) }); return send(c, { t: 'err', msg: 'That pet is not on your farm.' }); }
       const r = pal ? store.companion(p, ids) : m.k === 'ip' ? store.isleDecor(p, m.i) : m.k === 'fp' ? store.islePieces(p, m.i) : m.k === 'eb' ? store.emoteBar(p, m.i) : store.wear(p, String(m.k ?? ''), m.i);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       send(c, { t: 'me', me: store.me(p) });
