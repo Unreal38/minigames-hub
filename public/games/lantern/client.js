@@ -214,27 +214,37 @@ export function mount(app, ctx) {
   const mainAct = () => { const o = $('ln-acts')._o || options(); doAct(o.find(b => b.main && !b.off) || o.find(b => !b.off)); };
 
   // ---- chores: small one-thumb jobs
+  // Little pictures for the hold and fill chores (drawn with CSS variables: --v = how far along 0..1, --a = a turning angle).
+  const ART = {
+    mill: () => `<span class="art"><svg viewBox="0 0 160 150" aria-hidden="true"><path d="M58 146 L68 64 H92 L102 146 Z" fill="#e9d8bd" stroke="#3b2219" stroke-width="3" stroke-linejoin="round"/><path d="M62 66 L80 40 L98 66 Z" fill="#d9534a" stroke="#3b2219" stroke-width="3" stroke-linejoin="round"/><rect x="72" y="112" width="16" height="34" rx="7" fill="#8a5a36" stroke="#3b2219" stroke-width="3"/>
+      <g class="sails">${[0, 90, 180, 270].map(r => `<g transform="rotate(${r} 80 62)"><rect x="76" y="6" width="8" height="54" rx="3" fill="#8a5a36" stroke="#3b2219" stroke-width="2.5"/><rect x="62" y="10" width="16" height="40" rx="2" fill="#fff4e2" stroke="#3b2219" stroke-width="2.5"/></g>`).join('')}<circle cx="80" cy="62" r="7" fill="#ffd34d" stroke="#3b2219" stroke-width="3"/></g></svg><i class="wind">🌬️</i></span>`,
+    soup: () => `<span class="art"><i class="steam">${'<b>💨</b>'.repeat(3)}</i><i class="spoon">🥄</i><i class="pot">🍲</i><i class="fire">🔥</i></span>`,
+    well: () => `<span class="art"><i class="beam"></i><i class="shaft"><i class="water"></i></i><i class="rope"></i><i class="bucket">🪣</i></span>`,
+    plant: (lo, hi) => `<span class="art"><i class="jar"><i class="band" style="bottom:${lo}%;height:${hi - lo}%"></i><i class="lvl"></i></i><i class="can"><svg viewBox="0 0 70 50" width="70" aria-hidden="true"><path d="M44 22 L66 8 L68 12 L48 28 Z" fill="#5fae6a" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><rect x="62" y="4" width="8" height="10" rx="2" fill="#5fae6a" stroke="#3b2219" stroke-width="2.5" transform="rotate(-30 66 9)"/><rect x="8" y="16" width="40" height="30" rx="7" fill="#6dbb5a" stroke="#3b2219" stroke-width="3"/><path d="M12 18 C12 4 40 4 40 18" fill="none" stroke="#3b2219" stroke-width="4"/></svg></i><i class="drops"><b>💧</b><b>💧</b><b>💧</b></i><i class="bed"><i class="sprout">🌱</i></i></span>`,
+    boat: (lo, hi) => `<span class="art"><i class="sea"></i><i class="dockz" style="left:${lo}%;width:${hi - lo}%"></i><i class="pier"></i><i class="post">⚓</i><i class="line"></i><i class="boat">⛵</i></span>`,
+  };
   function openJob(i) {
     const [sti, , v] = you().jobs[i], st = STATIONS[sti], tk = taskOf(sti, v); job = { i, kind: tk.kind, t0: performance.now(), n: 0 };
     ctx.act({ t: 'cs', i }); scene?.freeze(true); sfx.click();
     const el = $('ln-job'); el.hidden = false;
     const head = `<div class="ln-jhead"><b>${tk.job()}</b><span>${st.name()}</span><button type="button" class="round sm" data-a="jclose" aria-label="${L('Close', 'Zamknij')}">×</button></div><p>${tk.how()}</p>`;
     const spot = k => `--x:${6 + (k % 3) * 30 + ((k * 7) % 5) * 2}%;--y:${8 + (k / 3 | 0) * 44 + ((k * 11) % 4) * 4}%`; // a loose 3 x 2 grid: never two on top of each other
-    if (tk.kind === 'hold') el.innerHTML = `${head}<button type="button" class="ln-hold" id="ln-hold"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="bg"/><circle cx="50" cy="50" r="40" class="fg" id="ln-holdc" pathLength="100"/></svg><span>${L('Hold', 'Trzymaj')}</span></button>`;
+    if (tk.kind === 'hold') el.innerHTML = `${head}<button type="button" class="ln-scene s-${tk.art}" id="ln-hold">${ART[tk.art]()}<span class="ln-prog"><u id="ln-holdc"></u></span><span class="ln-cue">${L('Hold', 'Trzymaj')}</span></button>`;
     else if (tk.kind === 'taps') el.innerHTML = `${head}<div class="ln-taps">${tk.pics.map((p, k) => `<button type="button" data-tap="${k}" style="${spot(k)}">${p}</button>`).join('')}</div>`;
     else if (tk.kind === 'pick') { const items = [...Array(4).fill(1), ...Array(4).fill(0)].sort(() => Math.random() - .5); // four right ones among four wrong ones
       el.innerHTML = `${head}<div class="ln-taps pick">${items.map((g, k) => `<button type="button" data-pick="${g}" style="--x:${(6 + (k % 4) * 23)}%;--y:${(12 + (k >> 2) * 44 + (k % 2) * 10)}%">${g ? tk.good : tk.bad}</button>`).join('')}</div>`; }
     else if (tk.kind === 'seq') { const order = [1, 2, 3, 4, 5].sort(() => Math.random() - .5);
       el.innerHTML = `${head}<div class="ln-seq${tk.icon ? ' emo' : ''}">${order.map(k => `<button type="button" data-seq="${k}">${tk.icon ? `<i>${tk.icon}</i>` : I.lantern}<b>${k}</b></button>`).join('')}</div>`; }
-    else { const lo = 55 + Math.random() * 20 | 0; job.lo = lo; job.hi = lo + 16;
-      el.innerHTML = `${head}<div class="ln-fill"><i style="bottom:${lo}%;height:${job.hi - lo}%"></i><u id="ln-fillv"></u></div><button type="button" class="btn m" id="ln-pour">${tk.btn()}</button>`; }
+    else { const lo = 55 + Math.random() * 20 | 0; job.lo = lo; job.hi = lo + 16; job.art = tk.art;
+      el.innerHTML = `${head}<div class="ln-scene s-${tk.art}" id="ln-fillbox">${ART[tk.art](lo, job.hi)}</div><button type="button" class="btn m" id="ln-pour">${tk.btn()}</button>`; }
     jobLoop();
   }
   function jobLoop() {
     if (!job) return;
     const el = $('ln-job');
-    if (job.kind === 'hold') { const c = $('ln-holdc'); if (c) { job.v = Math.max(0, Math.min(1, (job.v || 0) + (job.down ? 1 / 150 : -1 / 90))); c.style.strokeDasharray = `${(job.v * 100).toFixed(1)} 100`; if (job.v >= 1) return doneJob(); } }
-    if (job.kind === 'fill') { const v = $('ln-fillv'); job.v = Math.max(0, Math.min(100, (job.v || 0) + (job.down ? 1.1 : 0))); if (v) v.style.height = job.v + '%'; if (job.v >= 100) { job.v = 0; sfx.bad(); } }
+    if (job.kind === 'hold') { const c = $('ln-holdc'), box = $('ln-hold'); if (c && box) { job.v = Math.max(0, Math.min(1, (job.v || 0) + (job.down ? 1 / 150 : -1 / 90))); job.ang = ((job.ang || 0) + (job.down ? 9 : .6)) % 360;
+      c.style.width = `${(job.v * 100).toFixed(1)}%`; box.style.setProperty('--v', job.v.toFixed(3)); box.style.setProperty('--a', `${job.ang.toFixed(1)}deg`); box.classList.toggle('on', !!job.down); if (job.v >= 1) return doneJob(); } }
+    if (job.kind === 'fill') { const box = $('ln-fillbox'); job.v = Math.max(0, Math.min(100, (job.v || 0) + (job.down ? 1.1 : 0))); if (box) { box.style.setProperty('--v', (job.v / 100).toFixed(3)); box.classList.toggle('on', !!job.down); } if (job.v >= 100) { job.v = 0; sfx.bad(); } }
     if (el && !el.hidden) requestAnimationFrame(jobLoop);
   }
   function doneJob() {

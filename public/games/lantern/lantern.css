@@ -188,6 +188,54 @@ body.night .ln { background: linear-gradient(#0c1236, #2d2b63); }
 .ln .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 8; }
 .ln .floaty { position: absolute; z-index: 9; pointer-events: none; animation: floaty 1.6s ease-out both; }
 
+
+/* chore scenes: the hold and fill chores as little pictures (a dusk-coloured box, the same in day and night) */
+.ln .ln-scene { position: relative; display: block; width: 100%; height: 210px; padding: 0; border-radius: 18px; border: 3px solid var(--ink); background: linear-gradient(#5a4c9a, #c98aa8 70%, #ffb48a); overflow: hidden; cursor: pointer; touch-action: none; font: inherit; color: #fff; user-select: none; -webkit-user-select: none; }
+.ln button.ln-scene:active { translate: 0 2px; }
+.ln .ln-scene .art { position: absolute; inset: 0; }
+.ln .ln-scene i { position: absolute; font-style: normal; line-height: 1; }
+.ln .ln-prog { position: absolute; left: 14px; right: 14px; bottom: 12px; height: 14px; border-radius: 999px; background: #241a3c99; border: 2px solid #fff8; overflow: hidden; }
+.ln .ln-prog u { display: block; height: 100%; width: 0; background: var(--mint); border-radius: 999px; }
+.ln .ln-cue { position: absolute; right: 12px; top: 10px; font-family: var(--fd); font-weight: 700; font-size: 15px; background: #241a3cc8; border-radius: 999px; padding: 3px 12px; transition: opacity .2s; }
+.ln .ln-scene.on .ln-cue { opacity: 0; }
+/* windmill: the sails turn faster while you hold */
+.ln .s-mill svg { position: absolute; left: 50%; bottom: 26px; width: 180px; translate: -50% 0; }
+.ln .s-mill .sails { transform-origin: 80px 62px; transform: rotate(var(--a, 0deg)); }
+.ln .s-mill .wind { left: 14%; top: 34%; font-size: 34px; opacity: 0; transition: opacity .3s; }
+.ln .s-mill.on .wind { opacity: 1; animation: ln-blow .8s linear infinite; }
+@keyframes ln-blow { from { translate: -10px 0; } to { translate: 14px 0; } }
+/* soup: the spoon goes round the pot, steam rises as it heats */
+.ln .s-soup .fire { left: 50%; bottom: 30px; translate: -50% 0; font-size: 34px; opacity: calc(.3 + var(--v, 0) * .7); }
+.ln .s-soup .pot { left: 50%; bottom: 52px; translate: -50% 0; font-size: 92px; }
+.ln .s-soup .spoon { left: 50%; top: 52px; font-size: 40px; transform: translate(-50%, 0) rotate(var(--a, 0deg)) translateX(26px) rotate(calc(var(--a, 0deg) * -1)); z-index: 1; }
+.ln .s-soup .steam { left: 50%; top: 8px; translate: -50% 0; display: flex; gap: 8px; opacity: var(--v, 0); }
+.ln .s-soup .steam b { font-size: 24px; animation: ln-steam 1.4s ease-in-out infinite; } .ln .s-soup .steam b:nth-child(2) { animation-delay: .4s; } .ln .s-soup .steam b:nth-child(3) { animation-delay: .8s; }
+@keyframes ln-steam { 0%, 100% { translate: 0 6px; opacity: .5; } 50% { translate: 0 -6px; opacity: 1; } }
+/* well: the bucket comes up the shaft on its rope */
+.ln .s-well .beam { left: 22%; right: 22%; top: 14px; height: 14px; background: #8a5a36; border: 3px solid #3b2219; border-radius: 6px; }
+.ln .s-well .shaft { left: 32%; right: 32%; top: 28px; bottom: 34px; background: #3a2a4a; border: 3px solid #3b2219; border-top: 0; border-radius: 0 0 14px 14px; box-shadow: inset 8px 0 0 #9b8f84, inset -8px 0 0 #9b8f84; overflow: hidden; }
+.ln .s-well .water { left: 0; right: 0; bottom: 0; height: 22%; background: #4aa8f0; }
+.ln .s-well .rope { left: 50%; top: 28px; width: 3px; translate: -50% 0; height: calc(16px + (1 - var(--v, 0)) * 104px); background: #e8d2a8; }
+.ln .s-well .bucket { left: 50%; top: calc(36px + (1 - var(--v, 0)) * 104px); translate: -50% 0; font-size: 40px; }
+/* garden: a jar of water with the green band, the sprout grows while you pour */
+.ln .s-plant .jar { left: 16px; top: 14px; bottom: 14px; width: 56px; border-radius: 14px; background: #ffffff33; border: 3px solid var(--ink); overflow: hidden; }
+.ln .s-plant .band { left: 0; right: 0; background: #52b08f88; border-top: 2px dashed #2f8a55; border-bottom: 2px dashed #2f8a55; }
+.ln .s-plant .lvl { left: 0; right: 0; bottom: 0; height: calc(var(--v, 0) * 100%); background: #4aa8f0cc; }
+.ln .s-plant .can { left: 38%; top: 10px; rotate: 18deg; transform-origin: 30% 60%; transition: rotate .2s; } .ln .s-plant.on .can { rotate: 32deg; }
+.ln .s-plant .drops { left: 62%; top: 50px; display: flex; gap: 10px; opacity: 0; } .ln .s-plant.on .drops { opacity: 1; }
+.ln .s-plant .drops b { font-size: 20px; animation: ln-drop .6s linear infinite; } .ln .s-plant .drops b:nth-child(2) { animation-delay: .2s; } .ln .s-plant .drops b:nth-child(3) { animation-delay: .4s; }
+@keyframes ln-drop { from { translate: 0 0; opacity: 1; } to { translate: 0 70px; opacity: 0; } }
+.ln .s-plant .bed { left: 40%; right: 10px; bottom: 14px; height: 30px; background: #8a5a36; border: 3px solid #3b2219; border-radius: 14px; }
+.ln .s-plant .sprout { left: 50%; bottom: 18px; font-size: 40px; transform-origin: 50% 100%; transform: translateX(-50%) scale(calc(.7 + var(--v, 0) * .9)); }
+/* dock: pull the boat in, let go when it is by the dock */
+.ln .s-boat .sea { left: 0; right: 0; bottom: 0; height: 46%; background: #4a6fc0; border-top: 3px solid #3b2219; }
+.ln .s-boat .dockz { bottom: 38%; height: 26%; background: #52b08f66; border-left: 2px dashed #2f8a55; border-right: 2px dashed #2f8a55; }
+.ln .s-boat .post { right: 12px; bottom: 50%; font-size: 34px; }
+.ln .s-boat .pier { right: 0; width: 15%; bottom: 44%; height: 12px; background: #9a6a44; border: 3px solid #3b2219; border-right: 0; border-radius: 6px 0 0 6px; box-shadow: 14px 12px 0 -4px #7a5236, 34px 12px 0 -4px #7a5236; }
+.ln .s-boat .boat { left: calc(4% + var(--v, 0) * 82%); bottom: 34%; font-size: 52px; translate: -10% 0; animation: ln-bob 1.6s ease-in-out infinite; }
+.ln .s-boat .line { left: calc(4% + var(--v, 0) * 82% + 40px); right: 34px; bottom: 50%; height: 3px; background: #e8d2a8; }
+@keyframes ln-bob { 0%, 100% { rotate: -4deg; } 50% { rotate: 4deg; } }
+
 /* phones */
 @media (max-width: 700px) {
   .ln .tl { top: 10px; left: 10px; gap: 6px; } .ln .tr { top: 10px; right: 10px; gap: 6px; }

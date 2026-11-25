@@ -32,17 +32,17 @@ const T = (kind, job, how, more = {}) => ({ kind, job, how, ...more });
 const TASKS = {
   light: [T('seq', () => L('Light the lamps', 'Zapal lampy'), () => L('Light the lamps in order: 1, 2, 3, 4, 5.', 'Zapal lampy po kolei: 1, 2, 3, 4, 5.')),
     T('taps', () => L('Wipe the lens', 'Przetrzyj soczewkę'), () => L('Tap every smudge to wipe it off.', 'Dotknij każdej smugi, żeby ją zetrzeć.'), { pics: ['💧', '💨', '💧', '💨', '💧', '💨'] })],
-  mill: [T('hold', () => L('Crank the windmill', 'Zakręć wiatrakiem'), () => L('Press and hold until the wheel is full.', 'Przytrzymaj, aż koło się wypełni.')),
+  mill: [T('hold', () => L('Crank the windmill', 'Zakręć wiatrakiem'), () => L('Hold to turn the sails until the bar is full.', 'Przytrzymaj, żeby kręcić skrzydłami, aż pasek się wypełni.'), { art: 'mill' }),
     T('pick', () => L('Sort the grain', 'Przesiej ziarno'), () => L('Tap only the grain, not the pebbles.', 'Dotknij tylko ziaren, nie kamyków.'), { good: '🌾', bad: '🪨' })],
   barn: [T('taps', () => L('Feed the pets', 'Nakarm zwierzaki'), () => L('Tap every treat to put it in a bowl.', 'Dotknij każdego smakołyku, żeby włożyć go do miski.'), { pics: ['🥕', '🍎', '🌽', '🥬', '🍓', '🥜'] }),
     T('pick', () => L('Collect the eggs', 'Zbierz jajka'), () => L('Tap only the eggs, not the feathers.', 'Dotknij tylko jajek, nie piórek.'), { good: '🥚', bad: '🪶' })],
   kitchen: [T('taps', () => L('Sort the snacks', 'Posortuj przekąski'), () => L('Tap every snack to put it on the shelf.', 'Dotknij każdej przekąski, żeby odłożyć ją na półkę.'), { pics: ['🍪', '🧁', '🥐', '🍩', '🍬', '🥨'] }),
-    T('hold', () => L('Stir the soup', 'Zamieszaj zupę'), () => L('Press and hold to stir until the wheel is full.', 'Przytrzymaj i mieszaj, aż koło się wypełni.'))],
-  garden: [T('fill', () => L('Water the garden', 'Podlej ogród'), () => L('Hold to pour and let go in the green band.', 'Przytrzymaj, żeby lać, i puść w zielonym pasku.'), { btn: () => L('Pour', 'Lej') }),
+    T('hold', () => L('Stir the soup', 'Zamieszaj zupę'), () => L('Hold to stir until the soup bubbles.', 'Przytrzymaj i mieszaj, aż zupa zabulgocze.'), { art: 'soup' })],
+  garden: [T('fill', () => L('Water the garden', 'Podlej ogród'), () => L('Hold to pour and let go when the water is in the green band.', 'Przytrzymaj, żeby lać, i puść, gdy woda będzie w zielonym pasku.'), { btn: () => L('Pour', 'Lej'), art: 'plant' }),
     T('pick', () => L('Pull the weeds', 'Wyrwij chwasty'), () => L('Tap only the weeds, leave the flowers.', 'Dotknij tylko chwastów, zostaw kwiatki.'), { good: '🌿', bad: '🌷' })],
-  well: [T('hold', () => L('Draw water', 'Wyciągnij wodę'), () => L('Press and hold until the wheel is full.', 'Przytrzymaj, aż koło się wypełni.')),
+  well: [T('hold', () => L('Draw water', 'Wyciągnij wodę'), () => L('Hold to wind the bucket all the way up.', 'Przytrzymaj, żeby wyciągnąć wiadro na samą górę.'), { art: 'well' }),
     T('seq', () => L('Mend the bucket', 'Napraw wiadro'), () => L('Hammer the nails in order: 1, 2, 3, 4, 5.', 'Wbij gwoździe po kolei: 1, 2, 3, 4, 5.'), { icon: '🔨' })],
-  dock: [T('fill', () => L('Coil the rope', 'Zwiń linę'), () => L('Hold to pull and let go in the green band.', 'Przytrzymaj, żeby ciągnąć, i puść w zielonym pasku.'), { btn: () => L('Pull', 'Ciągnij') }),
+  dock: [T('fill', () => L('Coil the rope', 'Zwiń linę'), () => L('Hold to pull the boat in and let go when it is by the dock.', 'Przytrzymaj, żeby przyciągnąć łódkę, i puść, gdy będzie przy pomoście.'), { btn: () => L('Pull', 'Ciągnij'), art: 'boat' }),
     T('taps', () => L('Patch the boat', 'Załataj łódkę'), () => L('Tap every hole to patch it.', 'Dotknij każdej dziury, żeby ją załatać.'), { pics: ['🕳️', '🕳️', '🕳️', '🕳️', '🕳️', '🕳️'] })],
 };
 STATIONS.forEach(st => { st.tasks = TASKS[st.id]; });
