@@ -215,7 +215,7 @@ export function mount(app, ctx) {
   }
 
   // ---- what you do
-  function doEmote(e) { const def = EMOTES[e]; if (!def) return; let sp; if (def.id === 'sit') { const n = nearSeat(); if (n >= 0) sp = n; } send({ k: 'em', e, ...(sp !== undefined ? { sp } : {}) }); }
+  function doEmote(e) { const def = EMOTES[e]; if (!def) return; let sp; if (def.id === 'sit') { const n = nearSeat(); if (n >= 0) { sp = n; scene?.flush(); } } send({ k: 'em', e, ...(sp !== undefined ? { sp } : {}) }); }
   function applyHidden() { if (!scene) return; for (const m of scene.folk().values()) scene.hide(m.s, isHid(m.p)); }
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || destroyed) return;
