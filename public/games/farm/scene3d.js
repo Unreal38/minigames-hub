@@ -109,9 +109,8 @@ export function createScene(canvas, { onPick, onGhost }) {
     const deco = new THREE.Group(), patch = flat(patchC), petal = (themed && look.whole && th.petals || ['#ffffff', '#ffd0e4', '#fff1a8']).map(c => flat(c)), mid = flat('#ffb000');
     const nFlow = themed && look.whole ? Math.round(N * 3 * th.flowers / 32) : N * 3;
     for (let i = 0; i < N * 2; i++) { const r = .5 + hash(i, 5) * .8, x = (hash(i, 1) - .5) * (N - 2 * r), z = (hash(i, 2) - .5) * (N - 2 * r), m = new THREE.Mesh(new THREE.CircleGeometry(r, 14), patch); m.rotation.x = -Math.PI / 2; m.position.set(x, .004, z); deco.add(m); }
-    for (let i = 0; i < nFlow; i++) { const x = (hash(i, 11) - .5) * (N - .6), z = (hash(i, 12) - .5) * (N - .6), pc = petal[i % petal.length];
-      for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.045, 0), pc); m.position.set(x + Math.cos(k * 1.257) * .055, .03, z + Math.sin(k * 1.257) * .055); m.scale.y = .45; deco.add(m); }
-      const c = new THREE.Mesh(new THREE.IcosahedronGeometry(.035, 0), mid); c.position.set(x, .045, z); deco.add(c); }
+    flowerAt = []; flowerKey = null; flowerG = null; // the little lawn flowers are placed with the items (placeFlowers), so none pokes up through a path or a blanket
+    for (let i = 0; i < nFlow; i++) flowerAt.push([(hash(i, 11) - .5) * (N - .6), (hash(i, 12) - .5) * (N - .6), petal[i % petal.length], mid]);
     bake(deco); deco.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = true; } }); toonify(deco); land.add(deco);
     const mk = (g, c, y, o) => { const m = new THREE.Mesh(g, tflat(c, o)); m.position.y = y; m.receiveShadow = true; land.add(m); return m; };
     const R = N / 2 * Math.SQRT2, ex = themed ? 1 : 0, ER = ex * Math.SQRT2; // ex: a themed island gets a wider rim, so its props stand on it rather than hang off it
@@ -175,7 +174,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (let i = 0; i < N; i++) { const v = i + .5 - N / 2, e = N / 2; fp.push(v, .02, -e, v, .02, e, -e, .02, v, e, .02, v); }
     const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3));
     fineLines = new THREE.LineSegments(fg, new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: .28 })); land.add(fineLines); gridVis();
-    scene.add(land); buildDrift();
+    scene.add(land); buildDrift(); placeFlowers();
     const s = N / 2 + 3; Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 50 }); sun.shadow.camera.updateProjectionMatrix();
     cam.dist = Math.min(Math.max(cam.dist, N * 1.6), N * 2.6); cam.gx = cam.gz = 0; cam.follow = cam.back = null; cam.zoom = 0;
   }
@@ -284,11 +283,24 @@ export function createScene(canvas, { onPick, onGhost }) {
   const dayMats = []; // unlit bits that should dim with the day: [material, its own colour]
   const dims = m => { dayMats.push([m, m.color.clone()]); return m; };
   const tufts = new THREE.InstancedMesh(tuftGeo, new THREE.MeshBasicMaterial({ color: '#6ab94a', side: THREE.DoubleSide }), TUFTS); tufts.frustumCulled = false; tufts.count = 0; scene.add(tufts);
-  let tuftAt = [];
+  let tuftAt = [], flowerAt = [], flowerKey = null, flowerG = null;
+  // The lawn flowers grow only where no item stands. Rebuilt (one merged mesh) only when that changes.
+  function placeFlowers() {
+    if (!land) return;
+    const rects = (farm?.items || []).map(it => { const [w, h] = footprint(it.type, it.r); return [it.x - N / 2 - .08, it.y - N / 2 - .08, it.x + w - N / 2 + .08, it.y + h - N / 2 + .08]; });
+    const keep = flowerAt.filter(([x, z]) => !rects.some(([x0, z0, x1, z1]) => x > x0 && x < x1 && z > z0 && z < z1)), key = keep.length + ':' + keep.map(f => f[0].toFixed(2)).join();
+    if (key === flowerKey) return; flowerKey = key;
+    if (flowerG) { land.remove(flowerG); flowerG.traverse(o => o.geometry?.dispose()); }
+    flowerG = new THREE.Group();
+    for (const [x, z, pc, mid] of keep) {
+      for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.045, 0), pc); m.position.set(x + Math.cos(k * 1.257) * .055, .03, z + Math.sin(k * 1.257) * .055); m.scale.y = .45; flowerG.add(m); }
+      const c = new THREE.Mesh(new THREE.IcosahedronGeometry(.035, 0), mid); c.position.set(x, .045, z); flowerG.add(c); }
+    bake(flowerG); flowerG.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = true; } }); toonify(flowerG); land.add(flowerG);
+  }
   function placeTufts() {
     tuftAt = [];
     const taken = new Uint8Array(N * N); // nothing grows under a building, a path or the training sand
-    for (const it of farm?.items || []) { const [w, h] = footprint(it.type, it.r); for (let y = it.y; y < it.y + h; y++) for (let x = it.x; x < it.x + w; x++) if (x >= 0 && y >= 0 && x < N && y < N) taken[y * N + x] = 1; }
+    for (const it of farm?.items || []) { const [w, h] = footprint(it.type, it.r); for (let y = Math.floor(it.y); y < it.y + h; y++) for (let x = Math.floor(it.x); x < it.x + w; x++) if (x >= 0 && y >= 0 && x < N && y < N) taken[y * N + x] = 1; } // small props sit on half tiles
     for (let i = 0; i < TUFTS && tuftAt.length < N * N * .9; i++) {
       const x = (hash(i, 71) - .5) * (N - .3), z = (hash(i, 72) - .5) * (N - .3), tx = Math.floor(x + N / 2), ty = Math.floor(z + N / 2);
       if (taken[ty * N + tx]) continue;
@@ -1331,7 +1343,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       const fk = f ? f.id || f.owner || f.name || '?' : ''; if (fk !== farmKey) { farmKey = fk; seenOnce = false; }
       farm = f;
       if (size !== N) { N = size; for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); for (const e of items.values()) e.key = ''; buildLand(); lookSky(); }
-      syncItems(); syncPets(); placeTufts(); syncBalloon(); syncEgg(); syncOwner();
+      syncItems(); syncPets(); placeTufts(); placeFlowers(); syncBalloon(); syncEgg(); syncOwner();
       if (ghost) ghostCheck();
     },
     setStarters,

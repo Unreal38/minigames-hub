@@ -32,6 +32,15 @@ const gable = (w, h, d) => {
   }
   return geos.get(k);
 };
+// A wall piece under a roof that slopes front to back: w wide (x), from zf at the front to zb at the back, hf tall at the front and hb at the back.
+const wedgeGeo = (w, zf, zb, hf, hb) => {
+  const k = 'wedge' + [w, zf, zb, hf, hb];
+  if (!geos.has(k)) {
+    const s = new THREE.Shape([new THREE.Vector2(-zf, 0), new THREE.Vector2(-zf, hf), new THREE.Vector2(-zb, hb), new THREE.Vector2(-zb, 0)]);
+    const g = new THREE.ExtrudeGeometry(s, { depth: w, bevelEnabled: false }); g.translate(0, 0, -w / 2); g.rotateY(Math.PI / 2); geos.set(k, g);
+  }
+  return geos.get(k);
+};
 const put = (p, g, m, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); p.add(o); return o; };
 const box = (p, w, h, d, c, x = 0, y = 0, z = 0) => put(p, G('Box', w, h, d), M(c), x, y + h / 2, z);
 const cyl = (p, rt, rb, h, seg, c, x = 0, y = 0, z = 0) => put(p, G('Cylinder', rt, rb, h, seg), M(c), x, y + h / 2, z);
@@ -41,7 +50,7 @@ const LIT = () => MX('lit', '#ffe27a', { emissive: '#ffb547', emissiveIntensity:
 const lantern = (p, x, y, z, s = 1) => { box(p, .1 * s, .03 * s, .1 * s, '#5b4636', x, y + .13 * s, z); put(p, G('Box', .08 * s, .12 * s, .08 * s), LIT(), x, y + .07 * s, z).userData.dyn = true; box(p, .1 * s, .02 * s, .1 * s, '#5b4636', x, y, z); };
 const barrel = (p, x, z, s = 1) => { cyl(p, .15 * s, .15 * s, .34 * s, 8, '#b07a4f', x, 0, z); cyl(p, .17 * s, .17 * s, .05 * s, 8, '#b07a4f', x, .145 * s, z).scale.y = 2.6; for (const y of [.06, .26]) cyl(p, .158 * s, .158 * s, .03 * s, 8, '#6f7f8f', x, y * s, z); };
 const crate = (p, x, z, s = .3, y = 0, r = 0) => { const o = box(p, s, s, s, '#c99763', x, y, z); o.rotation.y = r; const t = box(p, s * 1.06, s * .16, s * 1.06, '#8a5a3c', x, y + s * .42, z); t.rotation.y = r; return o; };
-const shingles = (p, w, h, d, y, z, c, rows = 3) => { const ang = Math.atan2(h, w / 2), len = Math.hypot(h, w / 2); for (const sd of [-1, 1]) for (let i = 0; i < rows; i++) { const t = (i + .5) / rows, o = put(p, G('Box', len / rows * .42, .035, d * 1.005), M(c), sd * w / 2 * (1 - t) + sd * Math.sin(ang) * .012, y + t * h + Math.cos(ang) * .012, z); o.rotation.z = -sd * ang; } };
+const shingles = (p, w, h, d, y, z, c, rows = 3) => { const ang = Math.atan2(h, w / 2), len = Math.hypot(h, w / 2); for (const sd of [-1, 1]) for (let i = 0; i < rows; i++) { const t = (i + .5) / rows, o = put(p, G('Box', len / rows * .42, .035, d * 1.015), M(c), sd * w / 2 * (1 - t) + sd * Math.sin(ang) * .012, y + t * h + Math.cos(ang) * .012, z); o.rotation.z = -sd * ang; } };
 const vine = (p, x, y, z, n, dx, dy, dz = 0) => { for (let i = 0; i < n; i++) ico(p, .07 + (i % 2) * .025, i % 2 ? '#86cc5a' : '#5fb04a', x + dx * i + (i % 2) * .03, y + dy * i, z + dz * i); };
 const ico = (p, r, c, x = 0, y = 0, z = 0, d = 0) => put(p, G('Icosahedron', r, d), M(c), x, y, z);
 
@@ -104,7 +113,7 @@ const bricks = (p, list, c) => { for (const [x, y, z, r = 0] of list) box(p, .2,
 // A stone ground floor w wide and d deep round (0, cz), h tall, with a gap in the front wall from x0 to x1 for the door.
 const stoneBase = (p, w, d, h, cz, x0, x1, t = .12) => { box(p, w, h, t, C.stone, 0, 0, cz - d / 2 + t / 2); for (const sd of [-1, 1]) box(p, t, h, d, C.stone, sd * (w / 2 - t / 2), 0, cz);
   const z = cz + d / 2 - t / 2, l = x0 + w / 2, r = w / 2 - x1; if (l > 0) box(p, l, h, t, C.stone, -w / 2 + l / 2, 0, z); if (r > 0) box(p, r, h, t, C.stone, w / 2 - r / 2, 0, z);
-  for (const x of [x0, x1]) box(p, .1, h + .04, t + .08, C.stoneD, x + (x === x0 ? -.05 : .05), 0, z); }; // jambs stand proud of the wall, so the doorway has depth
+  for (const x of [x0, x1]) box(p, .1, h + .04, t + .08, C.stoneD, x + (x === x0 ? -.04 : .04), 0, z); }; // jambs stand proud of the wall (and a hair into the doorway, so no faces lie flush), so the doorway has depth
 const glowBox = (p, w, h, d, x, y, z, key = 'lit', c = '#ffe27a', e = '#ffb547') => { const o = put(p, G('Box', w, h, d), MX(key, c, { emissive: e, emissiveIntensity: .7 }), x, y + h / 2, z); o.userData.dyn = true; return o; };
 const gearAt = (p, x, y, z, s, c, ry = .25, hole = C.iron) => { const gear = grp(p, x, y, z); gear.scale.setScalar(s); gear.rotation.y = ry;
   put(gear, G('Cylinder', .17, .17, .06, 8), M(c)).rotation.x = Math.PI / 2;
@@ -154,7 +163,7 @@ const BUILD = {
     lantern(g, .46, .58, .9);
     for (const sd of [-1, 1]) {
       box(g, .5, .5, .05, C.white, sd * .72, .46, .85); box(g, .42, .42, .08, C.glass, sd * .72, .5, .86);
-      box(g, .03, .42, .03, C.white, sd * .72, .5, .9); box(g, .42, .03, .03, C.white, sd * .72, .7, .9);
+      box(g, .03, .4, .03, C.white, sd * .72, .51, .9); box(g, .4, .03, .03, C.white, sd * .72, .7, .9);
       for (const k of [-1, 1]) box(g, .1, .46, .05, C.teal, sd * .72 + k * .29, .48, .88); // shutters
       box(g, .6, .16, .2, C.woodD, sd * .72, .28, .98);          // flower boxes
       [[-.18, C.pink], [0, C.yellow], [.18, C.lilac]].forEach(([x, c], i) => { ico(g, .09, sd > 0 ? [C.yellow, C.pink, C.white][i] : c, sd * .72 + x, .52, 1.0); ico(g, .05, C.leaf, sd * .72 + x + .08, .46, 1.04); });
@@ -176,15 +185,15 @@ const BUILD = {
     // level 3, a manor: a whole upper floor with a balcony over the door, on a tall stone base
     box(g, 2.3, up, 1.9, C.cream, 0, 1.25, -.1); stoneBase(g, 2.46, 2.06, .42, -.1, -.46, .46); box(rf, 2.36, .09, 1.96, C.woodD, 0, 1.16, -.1);
     box(g, .8, .06, .22, C.stoneD, 0, .1, 1.0); // a second step up to the door
-    bricks(g, [[-.8, .1, .93], [.86, .24, .93], [-.66, .28, .93], [.7, .08, .93], [-1.0, .26, .93]], C.stoneD);
+    bricks(g, [[-.8, .1, .93], [.86, .24, .93], [-.62, .17, .93], [.7, .08, .93], [-1.0, .26, .93]], C.stoneD);
     bricks(g, [[1.23, .12, .3, Math.PI / 2], [1.23, .27, -.4, Math.PI / 2], [-1.23, .1, -.2, Math.PI / 2], [-1.23, .26, .4, Math.PI / 2]], C.stoneD);
     for (const sd of [-1, 1]) {
-      box(g, .46, .46, .08, C.white, sd * .72, 1.42, .86); box(g, .38, .38, .1, C.glass, sd * .72, 1.46, .865); box(g, .03, .38, .04, C.white, sd * .72, 1.46, .905); box(g, .38, .03, .04, C.white, sd * .72, 1.64, .905); box(g, .54, .05, .14, C.woodD, sd * .72, 1.39, .9);
+      box(g, .46, .46, .08, C.white, sd * .72, 1.42, .86); box(g, .38, .38, .1, C.glass, sd * .72, 1.46, .865); box(g, .03, .36, .04, C.white, sd * .72, 1.47, .905); box(g, .36, .03, .04, C.white, sd * .72, 1.64, .905); box(g, .54, .05, .14, C.woodD, sd * .72, 1.39, .9);
       for (const k of [-1, 1]) box(g, .09, .42, .05, C.teal, sd * .72 + k * .27, 1.44, .88);
       const br = box(g, .06, .95, .05, C.woodD, sd * .36, 1.25, .86); br.rotation.z = 0;
-      box(g, .08, .44, .44, C.white, sd * 1.16, 1.42, -.1); box(g, .1, .36, .36, C.glass, sd * 1.165, 1.46, -.1); box(g, .11, .36, .03, C.white, sd * 1.17, 1.46, -.1); box(g, .14, .05, .52, C.woodD, sd * 1.19, 1.39, -.1); // side windows, with sills
+      box(g, .08, .44, .44, C.white, sd * 1.16, 1.42, -.1); box(g, .1, .36, .36, C.glass, sd * 1.165, 1.46, -.1); box(g, .11, .34, .03, C.white, sd * 1.17, 1.47, -.1); box(g, .14, .05, .52, C.woodD, sd * 1.19, 1.39, -.1); // side windows, with sills
     }
-    box(g, .96, .07, .42, C.wood, 0, 1.2, 1.06); box(g, .52, .64, .1, C.white, 0, 1.27, .87); box(g, .4, .54, .1, C.glass, 0, 1.3, .885); box(g, .035, .54, .04, C.white, 0, 1.3, .925); box(g, .4, .035, .04, C.white, 0, 1.62, .925); ico(g, .025, C.yellow, .06, 1.52, .95); // balcony and its glass door, set in a deep frame
+    box(g, .96, .07, .42, C.wood, 0, 1.2, 1.06); box(g, .52, .64, .1, C.white, 0, 1.27, .87); box(g, .4, .54, .1, C.glass, 0, 1.3, .885); box(g, .035, .52, .04, C.white, 0, 1.31, .925); box(g, .38, .035, .04, C.white, 0, 1.62, .925); ico(g, .025, C.yellow, .06, 1.52, .95); // balcony and its glass door, set in a deep frame
     for (const x of [-.4, .4]) { const b = box(g, .05, .3, .05, C.woodD, x, .98, 1.12); b.rotation.x = .75; } // struts under the balcony
     for (const x of [-.45, -.225, 0, .225, .45]) box(g, .04, .26, .04, C.white, x, 1.27, 1.25); box(g, .96, .05, .05, C.white, 0, 1.5, 1.25);
     for (const x of [-.46, .46]) { box(g, .04, .26, .04, C.white, x, 1.27, 1.08); box(g, .05, .05, .38, C.white, x, 1.5, 1.08); }
@@ -196,15 +205,15 @@ const BUILD = {
     for (const [a, y] of [[.5, .5], [1.9, 1.0], [-.6, 1.7], [1.2, 2.2], [-1.5, .8], [2.6, 2.4], [0, 2.45]]) box(t, .2, .09, .03, C.stoneD, Math.sin(a) * .445, y, Math.cos(a) * .445).rotation.y = a;
     for (const [a, y] of [[-.785, 2.05], [-2.356, 2.05], [-.785, .8]]) { const o = grp(t, Math.sin(a) * .44, y, Math.cos(a) * .44); o.rotation.y = a; box(o, .2, .34, .06, C.glass, 0, 0, 0); box(o, .26, .05, .08, C.stoneD, 0, -.05, 0); box(o, .26, .05, .08, C.stoneD, 0, .34, 0); }
     cone(t, .62, .16, 8, C.blueD, 0, 2.8); cone(t, .56, .95, 8, C.blue, 0, 2.86); ico(t, .07, C.gold, 0, 3.86, 0);
-    box(t, .03, .5, .03, C.woodD, 0, 3.86, 0); box(t, .34, .2, .03, C.red, .18, 4.14, 0); box(t, .1, .08, .04, C.gold, .14, 4.2, 0);
-    for (const sd of [-1, 1]) banner(g, sd * .36, 1.5 + up - .9, .9, C.blue, .2, .5);
+    box(t, .03, .5, .03, C.woodD, 0, 3.86, 0); box(t, .34, .2, .03, C.red, .19, 4.14, 0); box(t, .1, .08, .04, C.gold, .14, 4.2, 0);
+    for (const sd of [-1, 1]) banner(g, sd * .36, 1.51 + up - .9, .9, C.blue, .2, .5);
     put(rf, G('Octahedron', .1, 0), M(C.gold), 0, 2.42, 1.05).scale.set(1, 1.5, .6); box(rf, .03, .14, .03, C.goldD, 0, 2.25, 1.05); // a gold finial over the gable
     for (const sd of [-1, 1]) box(rf, .16, .05, 2.42, C.gold, sd * 1.34, 1.3, -.1);
     lantern(g, -.46, .58, .9);
     if (lv < 5) return;
     // level 5, the farm estate: a square clock tower at the back right with a gold dome and a star on top
     const k = grp(g, 1.0, 0, -1.08);
-    box(k, .62, .12, .62, C.stoneD); box(k, .54, 3.0, .54, C.cream, 0, .1); for (const [x, z] of [[-.27, -.27], [.27, -.27], [-.27, .27], [.27, .27]]) box(k, .08, 3.0, .08, C.woodD, x, .1, z);
+    box(k, .64, .12, .64, C.stoneD); box(k, .54, 3.0, .54, C.cream, 0, .1); for (const [x, z] of [[-.27, -.27], [.27, -.27], [-.27, .27], [.27, .27]]) box(k, .08, 3.0, .08, C.woodD, x, .1, z);
     box(k, .62, .1, .62, C.woodD, 0, 1.5); box(k, .64, .12, .64, C.stoneD, 0, 3.08);
     for (const [ry, x, z] of [[0, 0, .28], [Math.PI / 2, .28, 0]]) { const f = grp(k, x, 2.55, z); f.rotation.y = ry; // a clock face on the front and the side
       put(f, G('Cylinder', .2, .2, .04, 12), M(C.white)).rotation.x = Math.PI / 2; put(f, G('Torus', .2, .03, 4, 12), M(C.gold), 0, 0, .02);
@@ -230,12 +239,12 @@ const BUILD = {
     for (const sd of [-1, 1]) { const o = grp(g, sd * 1.36, 0, -.18); o.rotation.y = sd * Math.PI / 2;
       put(o, G('Cylinder', .16, .16, .08, 12), M(C.glass), 0, .62, .02).rotation.x = Math.PI / 2; put(o, G('Torus', .17, .035, 4, 12), M(C.woodD), 0, .62, .05);
       box(o, .1, .26, .03, C.pink, -.09, .5, .06); box(o, .1, .26, .03, C.pink, .09, .5, .06); box(o, .42, .06, .14, C.woodD, 0, .38, .08); }
-    for (const x of [-.7, .7]) { box(g, .36, .34, .08, C.white, x, .46, -.86); box(g, .28, .26, .1, C.glass, x, .5, -.865); box(g, .03, .26, .04, C.white, x, .5, -.915); box(g, .44, .05, .14, C.woodD, x, .42, -.9); }
-    for (let i = 0; i < 3; i++) for (let k = 0; k < 3 - i; k++) put(g, G('Cylinder', .08, .08, .5, 7), M(k % 2 ? C.wood : '#c99763'), -.05 + (k - (2 - i) / 2) * .17, .08 + i * .14, -1.0).rotation.z = Math.PI / 2; // the log pile at the back
+    for (const x of [-.7, .7]) { box(g, .36, .32, .08, C.white, x, .46, -.86); box(g, .28, .26, .1, C.glass, x, .49, -.865); box(g, .03, .24, .04, C.white, x, .5, -.915); box(g, .44, .05, .14, C.woodD, x, .42, -.9); }
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 3 - i; k++) put(g, G('Cylinder', .08, .08, .3, 7), M(k % 2 ? C.wood : '#c99763'), -.05 + (k - (2 - i) / 2) * .17, .08 + i * .14, -1.02).rotation.x = Math.PI / 2; // the log pile at the back, ends out
     barrel(g, 1.2, -.98, .75);
     box(rf, .3, .7, .3, C.stone, -.85, 1.4, -.45); box(rf, .38, .08, .38, C.stoneD, -.85, 2.1, -.45); // chimney
     // the front: a wide double door with a moon sign over it, and round windows with curtains
-    box(g, .86, .8, .08, C.woodD, 0, .1, .5); for (const sd of [-1, 1]) { box(g, .38, .7, .08, '#7a5a8a', sd * .2, .12, .53); ico(g, .03, C.gold, sd * .06, .46, .58); }
+    box(g, .86, .8, .08, C.woodD, 0, .1, .5); for (const sd of [-1, 1]) { box(g, .38, .7, .08, '#7a5a8a', sd * .2, .15, .53); ico(g, .03, C.gold, sd * .06, .46, .58); }
     box(g, .96, .08, .14, C.woodD, 0, .88, .52); box(g, 1.0, .08, .4, C.stone, 0, 0, .72);
     const moon = put(g, G('Torus', .14, .045, 4, 10, Math.PI * 1.3), M(C.gold), 0, 1.04 + up * .5, .58); moon.rotation.z = -.9;
     ico(g, .035, C.yellow, .16, 1.1 + up * .5, .58); ico(g, .025, C.yellow, -.14, 1.12 + up * .5, .58);
@@ -248,37 +257,37 @@ const BUILD = {
     // level 2: a covered porch across the front with a bench, lanterns and a sleepy rug
     box(g, 2.6, .08, .5, C.wood, 0, .1, .72); for (const x of [-1.25, -.55, .55, 1.25]) box(g, .08, .9, .08, C.woodD, x, .18, .92);
     const pr = put(g, G('Box', 2.8, .07, .62), M(roofD), 0, 1.12, .76); pr.rotation.x = .22;
-    for (const sd of [-1, 1]) { box(g, .5, .06, .2, C.wood, sd * 1.0, .34, .82); for (const k of [-1, 1]) box(g, .05, .24, .05, C.woodD, sd * 1.0 + k * .2, .1, .82); lantern(g, sd * 1.25, .95, .92, .9); }
+    for (const sd of [-1, 1]) { box(g, .5, .06, .2, C.wood, sd * 1.0, .34, .82); for (const k of [-1, 1]) box(g, .05, .16, .05, C.woodD, sd * 1.0 + k * .2, .18, .82); lantern(g, sd * 1.25, .95, .92, .9); }
     box(g, .6, .02, .3, C.lilac, 0, .18, .78); box(g, .4, .025, .18, C.cream, 0, .19, .78);
     if (lv < 3) return;
     // level 3: a whole upper floor, gold trim and a star on the ridge
-    for (const sd of [-1, 1]) { const x = sd * .6; box(g, .4, .4, .08, C.white, x, 1.12, .52); box(g, .32, .32, .1, C.glass, x, 1.16, .53); box(g, .03, .32, .04, C.white, x, 1.16, .58); box(g, .48, .05, .14, C.woodD, x, 1.1, .58); }
+    for (const sd of [-1, 1]) { const x = sd * .6; box(g, .4, .38, .08, C.white, x, 1.12, .52); box(g, .32, .3, .1, C.glass, x, 1.16, .53); box(g, .03, .28, .04, C.white, x, 1.17, .58); box(g, .48, .05, .14, C.woodD, x, 1.1, .58); }
     for (let i = 0; i < 2; i++) for (const z of [-.84, .48]) put(g, G('Cylinder', .065, .065, 2.74, 6), M(i % 2 ? C.wood : '#c99763'), 0, 1.28 + i * .18, z).rotation.z = Math.PI / 2;
-    for (const sd of [-1, 1]) box(rf, 3.0, .05, .06, C.gold, 0, 1.17, sd * .86);
+    for (const sd of [-1, 1]) box(rf, 3.04, .05, .06, C.gold, 0, 1.17, sd * .86);
     box(rf, .03, .4, .03, C.goldD, 1.2, 1.97, 0); put(rf, G('Octahedron', .13, 0), GOLDM(), 1.2, 2.45, 0).scale.set(1, 1.3, .4);
     pennant(rf, -1.2, 1.97, 0, C.lilac, .5, 1.1);
   },
   hut(g, live, lv = 1) {
     const pz = lv >= 2 ? .86 : .8; // how far out the paw-print plate stands
-    cyl(g, .86, .9, .1, 6, C.stoneD);
-    cyl(g, .78, .84, .75, 6, '#e9c99a', 0, .04);
+    cyl(g, .86, .9, .1, 6, C.stoneD).rotation.y = Math.PI / 6;
+    cyl(g, .78, .84, .75, 6, '#e9c99a', 0, .04).rotation.y = Math.PI / 6; // a flat wall faces the front, the posts stand at the corners
     for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + Math.PI / 6; box(g, .08, .76, .08, C.woodD, Math.sin(a) * .8, .04, Math.cos(a) * .8); }
     if (lv < 2) {
       cone(g, 1.14, .3, 6, C.leafD, 0, .72); cone(g, 1.04, .85, 6, C.leaf, 0, .78); cone(g, .6, .5, 6, C.leafL, 0, 1.2);
       ico(g, .16, C.leafL, 0, 1.72, 0); cone(g, .05, .2, 4, C.leafD, .06, 1.8, 0).rotation.z = -.5;
     } else { // level 2: a loft with its own round window under a second leafy roof
       cone(g, 1.14, .3, 6, C.leafD, 0, .72); cyl(g, .66, 1.04, .44, 6, C.leaf, 0, .78);
-      cyl(g, .56, .6, .52, 6, '#e9c99a', 0, 1.18); cyl(g, .62, .62, .06, 6, C.woodD, 0, 1.18);
+      cyl(g, .56, .6, .52, 6, '#e9c99a', 0, 1.18).rotation.y = Math.PI / 6; cyl(g, .62, .62, .06, 6, C.woodD, 0, 1.18);
       for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + Math.PI / 6; box(g, .06, .52, .06, C.woodD, Math.sin(a) * .55, 1.18, Math.cos(a) * .55); }
       for (const a of lv >= 3 ? [0, 2.094, -2.094] : [0]) { const o = grp(g, Math.sin(a) * .5, 1.45, Math.cos(a) * .5); o.rotation.y = a; put(o, G('Cylinder', .15, .15, .1, 8), M(C.glass)).rotation.x = Math.PI / 2; put(o, G('Torus', .16, .035, 4, 8), M(lv >= 3 ? C.gold : C.woodD), 0, 0, .05); }
       cone(g, .86, .24, 6, C.leafD, 0, 1.64); cone(g, .78, .7, 6, C.leaf, 0, 1.68); cone(g, .45, .42, 6, C.leafL, 0, 2.02);
       if (lv < 3) { ico(g, .14, C.leafL, 0, 2.5, 0); cone(g, .05, .2, 4, C.leafD, .06, 2.56, 0).rotation.z = -.5; }
       [C.pink, C.yellow, C.teal, C.lilac, C.yellow, C.pink].forEach((c, i) => { const a = i * Math.PI / 3; cone(g, .08, .18, 3, c, Math.sin(a) * 1.1, .56, Math.cos(a) * 1.1).rotation.x = Math.PI; }); // bunting under the eaves
       lantern(g, .44, .5, .74, 1.1); cyl(g, .13, .1, .08, 8, C.teal, -.5, 0, .9); cyl(g, .1, .1, .09, 8, C.water, -.5, 0, .9); // a lamp by the door and a water bowl
-      box(g, .5, .1, .34, C.straw, -.86, 0, -.2).rotation.y = .5; box(g, .4, .05, .26, C.lilac, -.86, .1, -.2).rotation.y = .5; // a day bed outside
+      box(g, .5, .12, .34, C.straw, -.86, 0, -.2).rotation.y = .5; box(g, .4, .05, .26, C.lilac, -.86, .12, -.2).rotation.y = .5; // a day bed outside
     }
     if (lv >= 3) { // level 3: a stone base, a roof in bloom, gold trim and a flag on top
-      put(g, G('Cylinder', .87, .92, .34, 10, 1, false, Math.PI / 6, Math.PI * 5 / 3), M(C.stone), 0, .21, 0); // open at the front, where the door is
+      put(g, G('Cylinder', .87, .92, .34, 10, 1, false, Math.PI / 6, Math.PI * 5 / 3), M(C.stone), 0, .22, 0); // open at the front, where the door is
       for (const sd of [-1, 1]) { const j = box(g, .16, .4, .2, C.stoneD, sd * .43, .04, .72); j.rotation.y = sd * Math.PI / 6; }
       for (const [a, y] of [[.9, .12], [2.2, .22], [-1.0, .2], [-2.3, .1], [3.0, .2], [1.5, .24]]) box(g, .2, .08, .06, C.stoneD, Math.sin(a) * .86, y, Math.cos(a) * .86).rotation.y = a;
       [[.5, .98, .7], [1.6, 1.0, .68], [2.9, .96, .72], [-1.2, 1.0, .68], [-2.4, .98, .7], [1.0, 1.86, .52], [-.4, 1.9, .5], [2.6, 1.9, .5], [-2.0, 1.86, .52], [.2, 2.2, .28], [3.3, 2.2, .28]].forEach(([a, y, r], i) => put(g, G('Octahedron', .075, 0), M([C.pink, C.white, C.yellow, C.lilac][i % 4]), Math.sin(a) * r, y, Math.cos(a) * r).scale.y = .6);
@@ -290,7 +299,7 @@ const BUILD = {
     // a paw-print plate, standing clear of the wider roof of a bigger hut
     box(g, .34, .2, lv >= 2 ? .1 : .05, C.cream, 0, .86, pz - (lv >= 2 ? .025 : 0)); if (lv >= 2) { box(g, .4, .05, .14, C.woodD, 0, 1.06, pz - .03); for (const x of [-.19, .19]) box(g, .04, .24, .12, C.woodD, x, .84, pz - .03); }
     ico(g, .045, C.woodD, 0, .93, pz + .03); for (const x of [-.07, 0, .07]) ico(g, .024, C.woodD, x, 1.0 + (x ? 0 : .02), pz + .03);
-    for (const sd of [-1, 1]) { const w = put(g, G('Cylinder', .12, .12, .06, 8), M(C.glass), sd * .62, .5, .42); w.rotation.set(Math.PI / 2, 0, -sd * Math.PI / 3); }
+    for (const sd of [-1, 1]) { const w = put(g, G('Cylinder', .12, .12, .06, 8), M(C.glass), sd * .615, .5, .355); /* flat on the wall face that looks 60 degrees round */ w.rotation.set(Math.PI / 2, 0, -sd * Math.PI / 3); }
     cyl(g, .13, .1, .08, 8, C.red, .56, 0, .86); cyl(g, .1, .1, .09, 8, C.wood, .56, 0, .86); // food bowl
     box(g, .44, .02, .22, C.pink, 0, 0, .98);
     for (const [x, z, h] of [[-.72, .6, .14], [-.82, .46, .1]]) { cyl(g, .025, .03, h, 5, C.cream, x, 0, z); cone(g, .07, .07, 6, C.red, x, h, z); }
@@ -309,13 +318,13 @@ const BUILD = {
     }
     if (lv >= 2) { for (const [x, z, r] of [[-.2, -.3, .2], [.18, -.2, .17], [-.1, .1, .16], [.24, .26, .19], [-.3, -.62, .15], [.1, -.68, .18]]) cyl(g, r, r * 1.05, .04, 6, C.stone, x, 0, z).rotation.y = x * 7; ico(g, .06, C.stoneD, -.72, 1.94 + up, 0); }
     if (lv >= 3) { // level 3: gold on the beam and the roofs, braces, a glowing crystal and a red carpet
-      box(g, 1.9, .05, .32, C.gold, 0, 1.27); box(g, 2.04, .04, .4, C.gold, 0, 1.6);
+      box(g, 1.86, .05, .32, C.gold, 0, 1.27); box(g, 1.86, .035, .4, C.gold, 0, 1.6);
       for (const s of [-1, 1]) { const b = box(g, .08, .5, .1, C.woodD, s * .42, .98, 0); b.rotation.z = s * .7; box(g, .56, .3, .56, C.stoneD, s * .72); box(g, .5, .08, .5, C.gold, s * .72, 1.42 + up); }
       const cr = put(g, G('Octahedron', .11, 0), MX('glow', '#8fe3f5', { emissive: '#8fe3f5', emissiveIntensity: .8 }), -.72, 2.06 + up, 0); cr.scale.y = 1.5; cr.userData.dyn = true;
-      box(g, .5, .03, 1.7, C.red, 0, .03, 0); for (const x of [-.27, .27]) box(g, .05, .035, 1.7, C.gold, x, .03, 0);
+      box(g, .5, .03, 1.7, C.red, 0, .03, 0); for (const x of [-.27, .27]) box(g, .05, .03, 1.68, C.gold, x, .04, 0);
       put(g, G('Torus', .23, .035, 4, 10), M(C.gold), 0, 1.42, .21);
     }
-    box(g, 1.9, .24, .3, C.wood, 0, 1.3); box(g, 2.0, .06, .36, C.woodD, 0, 1.54);
+    box(g, 1.88, .24, .3, C.wood, 0, 1.3); box(g, 2.0, .06, .36, C.woodD, 0, 1.54);
     const c = put(g, G('Cylinder', .2, .2, .06, 10), M(C.cream), 0, 1.42, .17); c.rotation.x = Math.PI / 2; // a compass over the way out
     const n = put(g, G('Octahedron', .06, 0), M(C.red), 0, 1.42, .21); n.scale.set(.5, 2.6, .3); n.rotation.z = -.6; put(g, G('Torus', .2, .03, 4, 10), M(C.yellow), 0, 1.42, .2);
     [C.pink, C.yellow, C.teal, C.lilac, C.yellow, C.pink].forEach((col, i) => { const t = cone(g, .07, .16, 3, col, -.5 + i * .2, 1.14, .1); t.rotation.x = Math.PI; }); // bunting
@@ -324,7 +333,7 @@ const BUILD = {
     vine(g, -.92, .1, .12, 6, 0, .2, 0); vine(g, -.6, 1.2, .2, 3, .0, -.16);
     crate(g, -.72, .62, .3); crate(g, -.44, .7, .22, 0, .5);     // packed for the road
     const roll = cyl(g, .05, .05, .34, 6, C.cream, -.72, .3, .62); roll.rotation.z = Math.PI / 2; roll.position.y = .36;
-    box(g, .24, .28, .16, C.teal, .3, 0, .78); box(g, .26, .08, .18, C.woodD, .3, .24, .78); cyl(g, .05, .05, .2, 6, C.cream, .3, .32, .78).rotation.z = Math.PI / 2; // backpack with a bedroll
+    box(g, .24, .28, .16, C.teal, .42, 0, .78); box(g, .26, .08, .18, C.woodD, .42, .24, .78); cyl(g, .05, .05, .2, 6, C.cream, .42, .32, .78).rotation.z = Math.PI / 2; // backpack with a bedroll
   },
   garden(g, live, lv = 1) {
     box(g, .92, .14, .92, lv >= 3 ? C.stone : C.woodD); box(g, .78, .18, .78, C.soil);
@@ -361,8 +370,8 @@ const BUILD = {
       for (const y of [1.36, 1.62 + up * .5, 1.5 + up]) { box(g, .2, .08, .02, C.brickD, .46, y, -.325); box(g, .02, .08, .2, C.brickD, .675, y - .1, -.5); } }
     for (const [w, d, x, z] of [[1.9, .06, 0, .63], [1.9, .06, 0, -.93], [.06, 1.56, .93, -.15], [.06, 1.56, -.93, -.15]]) box(g, w, .16, d, lv >= 3 ? C.gold : C.cream, x, .98, z); // a pale rim round the roof
     if (lv < 3) { box(g, .7, .14, .26, C.woodD, -.3, 1.22, -.62); for (let i = 0; i < 4; i++) ico(g, .09, i % 2 ? C.leafL : C.leaf, -.56 + i * .17, 1.4, -.62); ico(g, .04, C.red, -.3, 1.47, -.58); } // herbs growing up top
-    else { box(g, .52, .1, .16, C.woodD, -.38, 1.34, -.02); for (let i = 0; i < 4; i++) ico(g, .07, i % 2 ? C.leafL : C.leaf, -.56 + i * .12, 1.47, -.02); ico(g, .035, C.red, -.38, 1.52, .02); for (const x of [-.58, -.18]) box(g, .04, .1, .1, C.woodD, x, 1.26, -.06); } // once the upper room is built they grow in its window box
-    const pot = new THREE.Group(); pot.position.set(lv >= 3 ? -.5 : -.45, 1.22, lv >= 3 ? .32 : .1); g.add(pot);   // the big pot on the roof says what this is
+    else { box(g, .52, .1, .12, C.woodD, -.38, 1.34, -.04); for (let i = 0; i < 4; i++) ico(g, .07, i % 2 ? C.leafL : C.leaf, -.56 + i * .12, 1.47, -.02); ico(g, .035, C.red, -.38, 1.52, .02); for (const x of [-.58, -.18]) box(g, .04, .1, .1, C.woodD, x, 1.26, -.06); } // once the upper room is built they grow in its window box
+    const pot = new THREE.Group(); pot.position.set(lv >= 3 ? -.5 : -.45, 1.22, lv >= 3 ? .36 : .1); g.add(pot);   // the big pot on the roof says what this is
     cyl(pot, .26, .2, .26, 8, lv >= 3 ? C.copper : C.slate); cyl(pot, .29, .29, .05, 8, lv >= 3 ? C.gold : C.stoneD, 0, .24); ico(pot, .06, C.red, 0, .34, 0);
     for (const x of [-.31, .31]) box(pot, .08, .05, .1, C.iron, x, .16);
     box(g, .5, .04, .1, C.wood, 0, .78, .56); for (const [x, c] of [[-.16, C.red], [0, C.yellow], [.16, C.leafL]]) cyl(g, .05, .05, .12, 6, c, x, .82, .56); // jars on a shelf
@@ -370,19 +379,20 @@ const BUILD = {
     crate(g, .84, .98, .24); for (const [x, z] of [[.78, .94], [.9, 1.0], [.84, 1.04]]) ico(g, .06, C.red, x, .27, z);
     if (lv < 2) return;
     // level 2: a brick bread oven on the roof under a tall chimney, a pie on the counter, lights along the awning
-    const oz = lv >= 3 ? .1 : -.02; // the oven: a brick dome with a deep mouth, the fire set back inside it
-    const ov = ico(g, .36, C.brick, .5, 1.22, oz, 1); ov.scale.y = .85; box(g, .38, .3, .12, C.brickD, .5, 1.22, oz + .31); box(g, .26, .2, .04, C.iron, .5, 1.24, oz + .36); box(g, .44, .05, .16, C.brick, .5, 1.5, oz + .31);
-    put(g, G('Box', .18, .08, .03), MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), .5, 1.29, oz + .385).userData.dyn = true; box(g, .3, .03, .1, C.stoneD, .5, 1.22, oz + .42);
+    // the oven: a brick dome with a deep mouth, the fire set back inside it. Once the upper room is built it is a little smaller, so it fits in front of the room
+    const og = grp(g, .5, 1.22, lv >= 3 ? .2 : -.02); if (lv >= 3) og.scale.setScalar(.8);
+    const ov = ico(og, .36, C.brick, 0, 0, 0, 1); ov.scale.y = .85; box(og, .38, .3, .12, C.brickD, 0, 0, .31); box(og, .26, .2, .04, C.iron, 0, .02, .36); box(og, .44, .05, .16, C.brick, 0, .28, .31);
+    put(og, G('Box', .18, .08, .03), MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), 0, .07, .385).userData.dyn = true; box(og, .3, .03, .1, C.stoneD, 0, 0, .42);
     cyl(g, .11, .09, .05, 8, '#e8b877', .02, ct + .05, cz + .02); cyl(g, .08, .08, .025, 8, C.gold, .02, ct + .095, cz + .02);
     for (let i = 0; i < 6; i++) ico(g, .045, [C.yellow, C.pink, C.teal][i % 3], -.75 + i * .3, .62 - (i % 2) * .03, 1.09);
     crate(g, -.94, .5, .22); for (const [x, z] of [[-.98, .46], [-.9, .54]]) ico(g, .06, C.gold, x, .25, z);
-    for (const [x, y] of [[-.98, .0], [-.86, .0], [-.92, .1]]) { const l = cyl(g, .055, .055, .4, 6, C.wood, x, y, -.1); l.rotation.x = Math.PI / 2; l.position.y = y + .055; } // firewood for the oven
+    for (const [x, y] of [[-.96, .0], [-1.06, .0], [-1.01, .09]]) { const l = cyl(g, .05, .05, .4, 6, C.wood, x, y, -.1); l.rotation.x = Math.PI / 2; l.position.y = y + .05; } // firewood for the oven, stacked clear of the wall
     if (lv < 3) return;
     // level 3: an upper room under a tiled roof, copper pots, a gold rim and a tonic sign
-    box(g, 1.7, .62, .74, '#f7d9a8', 0, 1.22, -.48); for (const x of [-.83, .83]) for (const z of [-.83, -.13]) box(g, .08, .62, .08, C.woodD, x, 1.22, z);
+    box(g, 1.7, .62, .74, '#f7d9a8', 0, 1.22, -.48); for (const x of [-.83, .83]) for (const z of [-.83, -.13]) box(g, .08, .64, .08, C.woodD, x, 1.2, z);
     box(g, 1.76, .07, .8, C.woodD, 0, 1.8, -.48); put(g, gable(1.96, .5, .96), M(C.red), 0, 1.86, -.48); shingles(g, 1.96, .5, .96, 1.86, -.48, C.redD, 2);
     put(g, gable(1.5, .38, .04), M('#f7d9a8'), 0, 1.87, .0); box(g, .1, .06, 1.0, C.gold, 0, 2.33, -.48);
-    box(g, .42, .34, .08, C.white, -.38, 1.46, -.1); box(g, .32, .26, .1, C.glass, -.38, 1.5, -.095); box(g, .03, .26, .04, C.white, -.38, 1.5, -.05); box(g, .32, .03, .04, C.white, -.38, 1.62, -.05);
+    box(g, .42, .34, .08, C.white, -.38, 1.46, -.1); box(g, .32, .26, .1, C.glass, -.38, 1.5, -.095); box(g, .03, .24, .04, C.white, -.38, 1.51, -.05); box(g, .3, .03, .04, C.white, -.38, 1.62, -.05);
     const sg = put(g, G('Cylinder', .17, .17, .08, 10), M(C.cream), 0, 2.04, .04); sg.rotation.x = Math.PI / 2; put(g, G('Torus', .17, .035, 4, 10), M(C.gold), 0, 2.04, .08);
     box(g, .1, .14, .05, C.teal, 0, 1.95, .09); box(g, .05, .07, .05, C.teal, 0, 2.09, .09); box(g, .06, .02, .055, C.woodD, 0, 2.16, .09);
     for (const [x, c] of [[-.56, C.copper], [-.3, C.copper], [.56, C.copper]]) { cyl(g, .07, .055, .09, 6, c, x, .6, 1.0); box(g, .012, .12, .012, C.iron, x, .69, 1.0); }
@@ -398,9 +408,9 @@ const BUILD = {
     for (const sd of [-1, 1]) box(rf, .1, .07, 2.86, C.white, sd * .98, 1.18, 0);
     box(rf, .1, .08, 2.9, roofD, 0, 1.97, 0);
     put(rf, gable(1.5, .6, .04), M('#c8553d'), 0, 1.22, 1.41);
-    box(g, .92, .98, .05, C.white, 0, 0, 1.3); box(g, .8, .9, .08, '#a8433c', 0, 0, 1.31);
+    box(g, .92, .98, .05, C.white, 0, 0, 1.3); box(g, .8, .84, .08, '#a8433c', 0, .12, 1.31);
     const a = box(g, 1.1, .08, .04, C.white, 0, .41, 1.36); a.rotation.z = .84; const b = box(g, 1.1, .08, .04, C.white, 0, .41, 1.36); b.rotation.z = -.84;
-    box(rf, .42, .42, .04, C.white, 0, 1.34, 1.42); box(rf, .34, .34, .06, C.glass, 0, 1.38, 1.43); box(rf, .03, .34, .03, C.white, 0, 1.38, 1.46);
+    box(rf, .42, .42, .04, C.white, 0, 1.34, 1.42); box(rf, .34, .34, .06, C.glass, 0, 1.38, 1.43); box(rf, .03, .32, .03, C.white, 0, 1.39, 1.46);
     box(rf, .08, .08, .5, C.woodD, 0, 1.82, 1.6); box(rf, .02, .26, .02, C.cream, 0, 1.56, 1.8); box(rf, .1, .08, .1, C.iron, 0, 1.5, 1.8); // hoist over the loft
     for (const sd of [-1, 1]) { box(g, .04, .36, .36, C.white, sd * .86, .5, 0); box(g, .05, .28, .28, C.glass, sd * .87, .54, 0); }
     const vc = lv >= 3 ? C.gold : C.iron;
@@ -413,8 +423,8 @@ const BUILD = {
     // level 2: taller walls with a hay loft, a cupola on the ridge, more bales and a ladder
     box(g, 1.74, .07, 2.64, C.white, 0, 1.14, 0);
     { const hy = 1.24 + up - .4; // the hay loft: a hatch with a deep frame and its shutters swung open
-      box(g, .46, .32, .06, roofD, 0, hy + .03, 1.31); for (const y of [0, .34]) box(g, .6, .06, .14, C.white, 0, hy + y, 1.33); for (const x of [-.27, .27]) box(g, .06, .4, .14, C.white, x, hy, 1.33);
-      for (const sd of [-1, 1]) { box(g, .2, .34, .04, '#a8433c', sd * .41, hy + .03, 1.33); box(g, .2, .04, .05, C.white, sd * .41, hy + .18, 1.335); }
+      box(g, .46, .32, .06, roofD, 0, hy + .03, 1.31); for (const y of [0, .34]) box(g, .6, .06, .14, C.white, 0, hy + y, 1.35); for (const x of [-.27, .27]) box(g, .06, .4, .14, C.white, x, hy, 1.35); // the frame stands proud of the gable
+      for (const sd of [-1, 1]) { box(g, .2, .34, .04, '#a8433c', sd * .41, hy + .03, 1.33); box(g, .18, .04, .05, C.white, sd * .41, hy + .18, 1.335); }
       box(g, .4, .16, .24, C.straw, 0, hy + .06, 1.38); box(g, .3, .1, .18, '#f0d67a', .04, hy + .2, 1.4); }
     for (const sd of [-1, 1]) for (const z of [-.8, .8]) { box(g, .04, .3, .3, C.white, sd * .86, 1.24 + up - .4, z); box(g, .05, .22, .22, C.glass, sd * .87, 1.28 + up - .4, z); }
     const cu = grp(rf, 0, 1.86, .15); if (lv >= 3) cu.scale.setScalar(1.3);
@@ -425,7 +435,7 @@ const BUILD = {
     for (const z of [-.5, -.22]) box(g, .04, 1.5, .04, C.woodD, 1.0, 0, z).rotation.z = .2; for (let i = 0; i < 5; i++) box(g, .04, .03, .3, C.wood, 1.11 - i * .055, .2 + i * .27, -.36); // ladder
     if (lv < 3) return;
     // level 3: a stone ground floor, a slate roof, a gold weathervane, lamps and bunting by the door
-    stoneBase(g, 1.8, 2.7, .5, 0, -.5, .5); box(g, .9, .05, .16, C.stoneD, 0, 0, 1.4); // the stone leaves the doorway open, with a sill in front
+    stoneBase(g, 1.84, 2.74, .5, 0, -.5, .5); box(g, .9, .05, .16, C.stoneD, 0, 0, 1.4); // the stone leaves the doorway open, with a sill in front
     bricks(g, [[-.72, .12, 1.35], [.74, .3, 1.35], [-.7, .34, 1.35], [.72, .1, 1.35]], C.stoneD);
     bricks(g, [[.9, .12, .5, Math.PI / 2], [.9, .3, -.3, Math.PI / 2], [.9, .14, -1.0, Math.PI / 2], [-.9, .28, .7, Math.PI / 2], [-.9, .12, -.1, Math.PI / 2], [-.9, .3, -.9, Math.PI / 2]], C.stoneD);
     for (const sd of [-1, 1]) { lantern(g, sd * .68, .72, 1.42, 1.2); box(g, .05, .05, .12, C.iron, sd * .68, .9, 1.38); } // lamps on brackets
@@ -460,7 +470,7 @@ const BUILD = {
     const h2 = put(g, G('Octahedron', .09, 0), M(C.gold), .84, .78, -.84); h2.scale.set(1.2, 1, .45); h2.rotation.y = -.7;
   },
   yard(g, live, lv = 1) {
-    box(g, 2.8, .06, 1.8, C.sand);
+    box(g, 2.76, .06, 1.76, C.sand);
     for (const x of [-1.34, 1.34]) for (const z of [-.84, .84]) box(g, .12, .4, .12, C.woodD, x, 0, z);
     if (!live) PARTS.yard(g);
     for (const z of [-.3, .3]) box(g, .1, .42, .1, C.white, .7, 0, z);
@@ -469,7 +479,7 @@ const BUILD = {
     for (const z of [-.84, .84]) for (const y of [.2, .34]) box(g, 2.68, .03, .03, C.cream, 0, y, z); // rope rails, open at the ends
     for (const x of [-.45, .45]) for (const z of [-.84, .84]) box(g, .1, .38, .1, C.woodD, x, 0, z);
     box(g, .04, .01, 1.5, C.white, -.2, .06, 0); box(g, 1.2, .01, .04, C.white, .4, .06, -.6); // chalk lines
-    box(g, .06, .5, .06, C.woodD, 1.15, 0, -.55); const tg = put(g, G('Cylinder', .22, .22, .05, 10), M(C.white), 1.15, .62, -.52); tg.rotation.x = Math.PI / 2 - .2; const tg2 = put(g, G('Cylinder', .13, .13, .06, 10), M(C.red), 1.15, .62, -.515); tg2.rotation.x = Math.PI / 2 - .2; const tg3 = put(g, G('Cylinder', .05, .05, .07, 8), M(C.white), 1.15, .62, -.51); tg3.rotation.x = Math.PI / 2 - .2; // target
+    box(g, .06, .5, .06, C.woodD, 1.15, 0, -.55); const tg = put(g, G('Cylinder', .22, .22, .05, 10), M(C.white), 1.15, .62, -.52); tg.rotation.x = Math.PI / 2 - .2; const tg2 = put(g, G('Cylinder', .13, .13, .06, 10), M(C.red), 1.15, .62, -.505); tg2.rotation.x = Math.PI / 2 - .2; const tg3 = put(g, G('Cylinder', .05, .05, .07, 8), M(C.white), 1.15, .62, -.495); tg3.rotation.x = Math.PI / 2 - .2; // target
     cyl(g, .1, .08, .16, 8, C.teal, 1.2, .06, .6); cyl(g, .085, .085, .02, 8, C.water, 1.2, .21, .6); // water bucket
     const bar = cyl(g, .025, .025, .4, 6, C.iron, -.2, .06, .68); bar.rotation.z = Math.PI / 2; bar.position.y = .15; for (const x of [-.4, 0]) { const wt = put(g, G('Cylinder', .09, .09, .07, 8), M(C.slate), x, .15, .68); wt.rotation.z = Math.PI / 2; } // a weight to lift
     if (lv < 2) return;
@@ -485,7 +495,7 @@ const BUILD = {
     for (const z of [-.84, .84]) { box(g, .1, .34, .1, C.woodD, -1.34, .4, z); cyl(g, .16, .09, .1, 6, C.iron, -1.34, .74, z);
       const f = put(g, G('Cone', .1, .26, 5), MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), -1.34, .95, z); f.userData.dyn = true;
       box(g, .1, 1.0, .1, C.woodD, 1.34, .4, z); ico(g, .07, C.gold, 1.34, 1.44, z); }
-    box(g, .1, .1, 1.86, C.wood, 1.34, 1.24, 0); [C.red, C.yellow, C.teal, C.pink, C.yellow, C.red].forEach((c, i) => { const t = cone(g, .07, .16, 3, c, 1.34, 1.08, -.6 + i * .24); t.rotation.x = Math.PI; });
+    box(g, .12, .1, 1.86, C.wood, 1.34, 1.24, 0); [C.red, C.yellow, C.teal, C.pink, C.yellow, C.red].forEach((c, i) => { const t = cone(g, .07, .16, 3, c, 1.34, 1.08, -.6 + i * .24); t.rotation.x = Math.PI; });
     const sh = put(g, G('Cylinder', .16, .16, .05, 6), M(C.gold), 1.4, 1.3, 0); sh.rotation.z = Math.PI / 2; put(g, G('Octahedron', .08, 0), M(C.red), 1.43, 1.3, 0).scale.x = .4;
     for (const x of [-.45, .45]) for (const z of [-.84, .84]) ico(g, .06, C.gold, x, .41, z);
     box(g, .22, .26, .22, C.stone, -1.14, .06, -.62); box(g, .28, .05, .28, C.stoneD, -1.14, .32, -.62); cyl(g, .035, .06, .06, 6, C.gold, -1.14, .37, -.62); cyl(g, .09, .05, .12, 6, C.gold, -1.14, .43, -.62); for (const sd of [-1, 1]) box(g, .03, .06, .03, C.gold, -1.14 + sd * .1, .46, -.62);
@@ -510,17 +520,18 @@ const BUILD = {
     box(g, 1.7, 1.0, 1.5, '#b9a089', 0, 0, -.1);
     for (const x of [-.83, .83]) box(g, .1, 1.05, .1, C.woodD, x, 0, .63);
     for (const y of [.3, .62]) box(g, 1.6, .03, .02, '#a38b74', 0, y, .655); // plank lines
+    put(g, wedgeGeo(1.7, .65, -.85, .05, .39), M('#b9a089'), 0, 1.0, 0); // the walls rise to meet the sloping roof, so there is no gap under it at the back
     const r = box(g, 1.94, .12, 1.84, C.slate, 0, 1.2, -.1); r.rotation.x = .22; const r2 = box(g, 1.98, .06, .14, '#566472', 0, 1.02, .8); r2.rotation.x = .22;
     for (const x of [-.6, 0, .6]) { const o = box(g, .04, .05, 1.84, '#566472', x, 1.29, -.1); o.rotation.x = .22; }
     cyl(g, .1, .1, .7, 6, C.iron, -.55, 1.2, -.5); cyl(g, .14, .14, .06, 6, C.iron, -.55, 1.9, -.5); // stove pipe
-    box(g, .58, .78, .05, C.woodD, -.4, 0, .655); box(g, .5, .7, .08, '#9a6a44', -.4, 0, .66); box(g, .5, .05, .09, C.iron, -.4, .2, .665); box(g, .5, .05, .09, C.iron, -.4, .5, .665); ico(g, .04, C.yellow, -.22, .36, .72);
-    box(g, .48, .44, .05, C.woodD, .45, .38, .655); box(g, .4, .36, .08, C.glass, .45, .42, .66); box(g, .03, .36, .03, C.woodD, .45, .42, .7);
+    box(g, .58, .78, .05, C.woodD, -.4, 0, .655); box(g, .5, .64, .08, '#9a6a44', -.4, .12, .66); box(g, .52, .05, .09, C.iron, -.4, .2, .665); box(g, .52, .05, .09, C.iron, -.4, .5, .665); ico(g, .04, C.yellow, -.22, .36, .72);
+    box(g, .48, .44, .05, C.woodD, .45, .38, .655); box(g, .4, .36, .08, C.glass, .45, .42, .66); box(g, .03, .34, .03, C.woodD, .45, .43, .7);
     gearAt(g, .38, lv >= 3 ? 1.66 : 1.56, .1, lv >= 3 ? 1.9 : 1.5, lv >= 3 ? C.gold : C.yellow); box(g, .12, lv >= 3 ? .26 : .2, .1, C.iron, .38, 1.2, .1); // a big gear on the roof says what this is
     box(g, .7, .3, .36, C.wood, .5, 0, .98); box(g, .76, .04, .4, C.woodD, .5, .28, .98); box(g, .3, .12, .2, C.stoneD, .5, .3, .98); box(g, .16, .06, .14, C.stoneD, .5, .25, .98); // bench and anvil
     box(g, .04, .34, .03, C.woodD, .8, .5, .665); box(g, .14, .1, .05, C.iron, .8, .82, .67);     // tools hung on the wall
-    box(g, .03, .3, .03, C.woodD, .12, .5, .665); box(g, .2, .12, .02, C.stone, .12, .76, .67);
-    for (const [x, y] of [[-.9, 0], [-.76, 0], [-.83, .1]]) { const l = cyl(g, .06, .06, .5, 6, C.wood, x, y, .9); l.rotation.x = Math.PI / 2; l.position.y = y + .06; put(g, G('Cylinder', .045, .045, .51, 6), M(C.cream), x, y + .06, .9).rotation.x = Math.PI / 2; } // log pile
-    const wh = put(g, G('Cylinder', .16, .16, .07, 10), M(C.stone), .9, .22, .2); wh.rotation.z = Math.PI / 2; box(g, .06, .22, .3, C.woodD, .9, 0, .2); // grindstone
+    box(g, .03, .3, .03, C.woodD, .1, .5, .665); box(g, .2, .12, .02, C.stone, .1, .76, .675);
+    for (const [x, y] of [[-.9, 0], [-.76, 0], [-.83, .1]]) { const l = cyl(g, .06, .06, .4, 6, C.wood, x, y, .98); l.rotation.x = Math.PI / 2; l.position.y = y + .06; put(g, G('Cylinder', .045, .045, .41, 6), M(C.cream), x, y + .06, .98).rotation.x = Math.PI / 2; } // log pile
+    const wh = put(g, G('Cylinder', .16, .16, .07, 10), M(C.stone), .92, .22, .2); wh.rotation.z = Math.PI / 2; box(g, .06, .22, .3, C.woodD, .92, 0, .2); // grindstone
     if (lv < 2) return;
     // level 2: a second gear, a taller stove pipe with a cap, a shop sign, paint pots and planks ready to use
     gearAt(g, lv >= 3 ? .98 : .88, lv >= 3 ? 1.38 : 1.34, .16, .95, C.stone).rotation.z = .4;
@@ -528,13 +539,13 @@ const BUILD = {
     for (const x of [-.46, -.1]) box(g, .05, .16, .05, C.woodD, x, 1.0, .84); // a shop sign standing on the eave, clear of the door
     box(g, .5, .3, .05, C.woodD, -.28, 1.12, .84); box(g, .42, .22, .05, C.cream, -.28, 1.16, .87);
     box(g, .035, .15, .04, C.woodD, -.28, 1.19, .9).rotation.z = .5; box(g, .11, .07, .05, C.iron, -.33, 1.3, .9).rotation.z = .5;
-    lantern(g, -.05, .62, .68, 1.1);
+    lantern(g, -.05, .64, .68, 1.1);
     [[-.02, .92, C.pink], [.12, .9, C.teal], [.05, 1.05, C.yellow]].forEach(([x, z, c]) => { cyl(g, .065, .065, .12, 6, C.slate, x, 0, z); cyl(g, .055, .055, .02, 6, c, x, .115, z); });
     for (let i = 0; i < 3; i++) box(g, .05, 1.0, .2, i % 2 ? C.wood : '#c99763', .99, 0, -.2 - i * .23).rotation.z = .16;
     if (lv < 3) return;
     // level 3: a lit upper room, a brass gear, a copper boiler, a crane and a stone base
     stoneBase(g, 1.86, 1.66, .34, -.1, -.72, -.08); box(g, .6, .05, .18, C.stoneD, -.4, 0, .8); bricks(g, [[.16, .1, .735], [.34, .22, .735], [.76, .08, .735]], C.stoneD); // the stone leaves the doorway open
-    box(g, .84, .62, .6, '#b9a089', -.02, 1.24, -.5); for (const x of [-.44, .4]) box(g, .07, .62, .07, C.woodD, x, 1.24, -.21);
+    box(g, .84, .56, .6, '#b9a089', -.02, 1.24, -.5); put(g, wedgeGeo(.84, -.2, -.8, .02, .15), M('#b9a089'), -.02, 1.8, 0); for (const x of [-.44, .4]) box(g, .07, .6, .07, C.woodD, x, 1.22, -.21);
     for (const x of [-.22, .18]) { box(g, .28, .28, .08, C.woodD, x, 1.5, -.19); box(g, .2, .2, .1, C.glass, x, 1.54, -.185); box(g, .32, .04, .12, C.woodD, x, 1.47, -.17); }
     const r3 = box(g, 1.0, .08, .8, C.slate, -.02, 1.86, -.5); r3.rotation.x = .22; const e3 = box(g, 1.04, .05, .1, '#566472', -.02, 1.78, -.1); e3.rotation.x = .22;
     cyl(g, .19, .19, .42, 8, C.copper, .64, 1.28, -.55); ico(g, .19, C.copper, .64, 1.7, -.55, 1); for (const y of [1.36, 1.6]) cyl(g, .2, .2, .04, 8, C.goldD, .64, y, -.55); cyl(g, .035, .035, .3, 6, C.copper, .64, 1.82, -.55);
@@ -576,7 +587,7 @@ const BUILD = {
     cyl(g, .14, .18, .1, 6, C.stoneD); cyl(g, .08, .1, .1, 6, C.iron, 0, .1); cyl(g, .04, .045, 1.0, 5, C.iron, 0, .1); cyl(g, .07, .07, .05, 6, C.iron, 0, .6);
     box(g, .3, .04, .3, C.iron, 0, 1.08);
     put(g, G('Box', .22, .28, .22), M('#ffe27a', { emissive: '#ffb547', emissiveIntensity: .7 }), 0, 1.24, 0).userData.dyn = true;
-    for (const x of [-.11, .11]) for (const z of [-.11, .11]) box(g, .025, .28, .025, C.iron, x, 1.1, z);
+    for (const x of [-.11, .11]) for (const z of [-.11, .11]) box(g, .025, .29, .025, C.iron, x, 1.1, z);
     cone(g, .26, .16, 4, C.iron, 0, 1.38).rotation.y = Math.PI / 4; ico(g, .035, C.iron, 0, 1.57, 0);
   },
   pond(g) {
@@ -588,7 +599,7 @@ const BUILD = {
   bench(g) {
     for (const z of [-.1, 0, .1]) box(g, .84, .05, .09, C.wood, 0, .28, z);
     for (const y of [.42, .56]) box(g, .84, .1, .05, C.wood, 0, y, -.17);
-    for (const x of [-.34, .34]) { box(g, .08, .28, .3, C.woodD, x); box(g, .07, .7, .06, C.woodD, x, 0, -.18); box(g, .08, .05, .3, C.woodD, x, .42, -.02); }
+    for (const x of [-.34, .34]) { box(g, .08, .28, .3, C.woodD, x); box(g, .07, .7, .06, C.woodD, x, 0, -.18); box(g, .08, .05, .3, C.woodD, x, .43, -.02); }
     box(g, .22, .03, .2, C.pink, -.2, .33, 0);                   // a cushion
   },
   rock(g) {
@@ -604,10 +615,10 @@ const BUILD = {
     cyl(g, .44, .46, .14, 6, C.stoneD); cyl(g, .26, .4, 1.5, 6, C.cream);
     cyl(g, .37, .39, .08, 6, C.woodD, 0, .5); cyl(g, .31, .33, .06, 6, C.woodD, 0, 1.05); // hoops
     cyl(g, .4, .36, .06, 6, C.wood, 0, 1.46); cone(g, .36, .42, 6, C.red, 0, 1.5); ico(g, .05, C.yellow, 0, 1.95, 0);
-    box(g, .26, .4, .04, C.white, 0, .1, .385); box(g, .2, .34, .06, C.woodD, 0, .1, .39); ico(g, .025, C.yellow, .06, .26, .43);
+    box(g, .26, .4, .04, C.white, 0, .1, .385); box(g, .2, .34, .06, C.woodD, 0, .11, .39); ico(g, .025, C.yellow, .06, .26, .43);
     box(g, .22, .22, .04, C.white, 0, .77, .325); box(g, .16, .16, .06, C.glass, 0, .8, .33);
     for (const sd of [-1, 1]) box(g, .05, .18, .04, C.teal, sd * .13, .79, .335);
-    box(g, .2, .14, .16, C.cream, .36, 0, .3).rotation.y = .4; box(g, .2, .12, .16, C.cream, .34, .14, .26).rotation.y = -.2; // flour sacks
+    box(g, .2, .15, .16, C.cream, .36, 0, .3).rotation.y = .4; box(g, .2, .12, .16, C.cream, .34, .14, .26).rotation.y = -.2; // flour sacks
     if (!live) PARTS.windmill(g);
   },
   arch(g) {
@@ -636,7 +647,7 @@ const BUILD = {
     for (const y of [.22, .42, .82, 1.02, 1.22, ...(lv >= 3 ? [1.44, 1.64] : [])]) cyl(g, .097, .097, .03, 6, sisal, 0, y); // rope wound round the post
     put(g, G('Cylinder', .075, .075, .04, 8), M('#5a3a2e'), .2, .2, .35).rotation.x = Math.PI / 2; box(g, .32, .03, .32, C.woodD, .2, .32, .2); // the den at the foot has a round door
     cyl(g, .045, .045, .5, 6, C.straw, .36, .1, -.14); cyl(g, .05, .05, .03, 6, sisal, .36, .3, -.14); // a second leg under the platform
-    const [sx, sy, sz] = TOWER.step; cyl(g, .035, .035, sy - .16, 6, C.woodD, sx, .1, sz); cyl(g, .15, .15, .06, 6, C.lilac, sx, sy - .06, sz); cyl(g, .155, .155, .015, 6, C.cream, sx, sy - .012, sz);
+    const [sx, sy, sz] = TOWER.step; cyl(g, .035, .035, sy - .16, 6, C.woodD, sx, .1, sz); cyl(g, .15, .15, .06, 6, C.lilac, sx, sy - .06, sz); cyl(g, .155, .155, .02, 6, C.cream, sx, sy - .01, sz);
     if (!live) PARTS.towerToy(g);
     const bed = (x, y, z, r) => { cyl(g, r, r * .86, .12, 8, '#c99763', x, y, z); put(g, G('Torus', r * .92, .045, 4, 10), M(C.woodD), x, y + .12, z).rotation.x = Math.PI / 2; cyl(g, r * .82, r * .82, .05, 8, C.pink, x, y + .04, z); };
     if (lv < 3) { cyl(g, .3, .3, .05, 6, C.woodD, -.08, 1.31); bed(-.08, 1.36, 0, .3); return; }
@@ -644,12 +655,12 @@ const BUILD = {
     const [bx, by, bz] = TOWER.basket; box(g, .06, .06, .2, C.woodD, bx - .16, by - .1, bz).rotation.z = -.7; cyl(g, .26, .26, .05, 6, C.woodD, bx, by - .05, bz); bed(bx, by, bz, .26);
     const H = TOWER.hammock, hx = H.x * 2, hz = H.z * 2; cyl(g, .045, .05, H.y + .1, 6, C.woodD, hx, 0, hz); ico(g, .06, C.gold, hx, H.y + .14, hz); cyl(g, .1, .1, .03, 6, sisal, 0, H.y - .02, 0);
     if (!live) PARTS.towerHammock(g);
-    const ty = 1.36 + up; cyl(g, .44, .44, .08, 6, C.lilac, -.02, ty); cyl(g, .45, .45, .02, 6, C.gold, -.02, ty + .06);
+    const ty = 1.36 + up; cyl(g, .44, .44, .08, 6, C.lilac, -.02, ty); cyl(g, .45, .45, .02, 6, C.gold, -.02, ty + .05);
     const hut = grp(g, -.02, ty + .08, -.02), W = .72, D = .62, Hh = .62, t = .06, dw = .42, dh = .48;
     box(hut, W, Hh, t, C.cream, 0, 0, -D / 2 + t / 2); for (const s of [-1, 1]) box(hut, t, Hh, D, C.cream, s * (W / 2 - t / 2), 0, 0);
     for (const s of [-1, 1]) box(hut, (W - dw) / 2, Hh, t, C.cream, s * (W + dw) / 4, 0, D / 2 - t / 2);
     box(hut, dw, Hh - dh, t, C.cream, 0, dh, D / 2 - t / 2);
-    for (const s of [-1, 1]) box(hut, .05, dh + .03, t + .06, C.wood, s * (dw / 2 + .02), 0, D / 2 - t / 2); box(hut, dw + .1, .05, t + .06, C.wood, 0, dh, D / 2 - t / 2); // a door frame with depth
+    for (const s of [-1, 1]) box(hut, .05, dh + .03, t + .06, C.wood, s * (dw / 2 + .02), 0, D / 2 - t / 2); box(hut, dw + .1, .06, t + .06, C.wood, 0, dh - .01, D / 2 - t / 2); // a door frame with depth
     for (const s of [-1, 1]) { put(hut, G('Cylinder', .07, .07, t + .02, 8), M(C.glass), s * (W / 2 - t / 2), .26, 0).rotation.z = Math.PI / 2; put(hut, G('Torus', .075, .02, 4, 8), M(C.gold), s * (W / 2 + .005), .26, 0).rotation.y = Math.PI / 2; } // round side windows
     const roof = put(hut, G('Cone', .6, .36, 4), M(C.blue), 0, Hh + .18, 0); roof.rotation.y = Math.PI / 4; roof.scale.z = .9;
     box(hut, W + .08, .04, D + .08, C.blueD, 0, Hh - .02, 0); ico(hut, .05, C.gold, 0, Hh + .38, 0); pennant(hut, 0, Hh + .36, 0, C.pink, .3, .7);
@@ -658,7 +669,7 @@ const BUILD = {
     cyl(g, .07, .1, .5, 5, C.woodD); ico(g, .32, C.pink, 0, .78, 0); ico(g, .22, '#ffc2d4', .2, .62, .12); ico(g, .2, '#ffc2d4', -.2, .66, -.1);
   },
   well(g) {
-    cyl(g, .42, .44, .08, 8, C.stoneD); cyl(g, .38, .4, .4, 8, C.stone); cyl(g, .41, .41, .06, 8, C.stoneD, 0, .36); cyl(g, .3, .3, .42, 8, C.water);
+    cyl(g, .42, .44, .08, 8, C.stoneD); cyl(g, .38, .4, .4, 8, C.stone); cyl(g, .41, .41, .06, 8, C.stoneD, 0, .36); cyl(g, .3, .3, .435, 8, C.water);
     for (let i = 0; i < 5; i++) { const a = i * 1.3; box(g, .14, .08, .02, C.stoneD, Math.sin(a) * .39, .1 + (i % 2) * .14, Math.cos(a) * .39).rotation.y = a; }
     for (const x of [-.34, .34]) box(g, .07, .7, .07, C.woodD, x, .4); put(g, gable(.96, .3, .7), M(C.red), 0, 1.1, 0); shingles(g, .96, .3, .7, 1.1, 0, C.redD, 2);
     const ax = cyl(g, .03, .03, .64, 6, C.wood, 0, .9); ax.rotation.z = Math.PI / 2; ax.position.y = .93; box(g, .04, .14, .04, C.iron, .4, .86); box(g, .1, .04, .04, C.iron, .44, .84);
@@ -710,7 +721,7 @@ const BUILD = {
   },
   treehouse(g) {
     cyl(g, .2, .28, 1.3, 6, C.woodD); box(g, 1.2, .08, 1.2, C.wood, 0, 1.1); box(g, .8, .6, .8, '#f4e3c1', 0, 1.18); put(g, gable(1.0, .4, 1.0), M(C.red), 0, 1.78, 0);
-    box(g, .2, .3, .04, C.woodD, 0, 1.18, .41); ico(g, .5, C.leaf, -.6, 1.7, -.4); ico(g, .45, C.leafD, .6, 1.9, -.3); ico(g, .4, C.leafL, 0, 2.3, -.2);
+    box(g, .2, .29, .04, C.woodD, 0, 1.19, .41); ico(g, .5, C.leaf, -.6, 1.7, -.4); ico(g, .45, C.leafD, .6, 1.9, -.3); ico(g, .4, C.leafL, 0, 2.3, -.2);
     for (let i = 0; i < 5; i++) box(g, .3, .04, .05, C.wood, 0, .15 + i * .2, .62); for (const x of [-.14, .14]) box(g, .04, 1.1, .04, C.woodD, x, 0, .62);
   },
   palbench(g) {
@@ -720,7 +731,7 @@ const BUILD = {
   },
   palflag(g) {
     for (const x of [-.2, .2]) cyl(g, .025, .025, .9, 5, C.woodD, x);
-    [C.pink, C.yellow, C.lilac, C.leafL].forEach((c, i) => { const t = cone(g, .07, .14, 3, c, -.15 + i * .1, .66); t.rotation.x = Math.PI; });
+    [C.pink, C.yellow, C.lilac, C.leafL].forEach((c, i) => { const t = cone(g, .055, .14, 3, c, -.15 + i * .1, .66); t.rotation.x = Math.PI; });
     box(g, .42, .02, .02, C.cream, 0, .86);
   },
   ball(g) { ico(g, .22, C.red, 0, .22, 0, 1); put(g, G('Cylinder', .224, .224, .07, 10), M(C.white), 0, .22, 0); },
@@ -738,7 +749,7 @@ const BUILD = {
   },
   chest(g) {
     box(g, .4, .2, .28, C.wood, 0, 0, 0); for (const x of [-.16, .16]) box(g, .05, .22, .3, C.goldD, x, 0, 0);
-    const lid = grp(g, 0, .2, -.14); lid.rotation.x = -.9; box(lid, .4, .1, .28, C.woodD, 0, 0, .14); for (const x of [-.16, .16]) box(lid, .05, .11, .3, C.goldD, x, 0, .14);
+    const lid = grp(g, 0, .2, -.14); lid.rotation.x = -.9; box(lid, .4, .1, .28, C.woodD, 0, 0, .14); for (const x of [-.16, .16]) box(lid, .05, .12, .3, C.goldD, x, -.01, .14);
     for (const [x, y, z] of [[-.09, .2, .02], [.06, .21, -.02], [0, .24, .05], [.11, .2, .07], [-.05, .23, -.06]]) put(g, G('Cylinder', .05, .05, .02, 6), GOLDM(), x, y, z).rotation.x = x * 6;
     put(g, G('Octahedron', .05, 0), MX('gemR', '#e8615a', { emissive: '#b8433c', emissiveIntensity: .5 }), .02, .3, 0); box(g, .07, .08, .03, C.gold, 0, .1, .145);
   },
@@ -753,9 +764,9 @@ const BUILD = {
     if (!live) PARTS.balloon(g);
   },
   coinfount(g, live) {
-    cyl(g, .92, .96, .28, 8, C.stone); cyl(g, .95, .95, .06, 8, C.gold, 0, .26); cyl(g, .8, .8, .32, 8, C.water);
+    cyl(g, .92, .96, .28, 8, C.stone); cyl(g, .95, .95, .06, 8, C.gold, 0, .26); cyl(g, .8, .8, .335, 8, C.water); // the water stands a hair over the rim, so the rim's top never hides it
     cyl(g, .16, .22, .7, 6, C.stoneD, 0, .3); cyl(g, .44, .28, .12, 8, C.gold, 0, .95); cyl(g, .36, .36, .14, 8, C.water, 0, .97);
-    for (let i = 0; i < 9; i++) { const a = i * 2.4, r = .3 + (i % 3) * .2; put(g, G('Cylinder', .06, .06, .02, 6), GOLDM(), Math.cos(a) * r, .33, Math.sin(a) * r).rotation.y = a; }
+    for (let i = 0; i < 9; i++) { const a = i * 2.4, r = .3 + (i % 3) * .2; put(g, G('Cylinder', .06, .06, .02, 6), GOLDM(), Math.cos(a) * r, .34, Math.sin(a) * r).rotation.y = a; }
     if (!live) PARTS.coinfount(g);
   },
   horseshoe(g) {
