@@ -346,6 +346,17 @@ export function setOutfits(p, list) {
   if (l.length) p.fits = l; else delete p.fits; scheduleSave();
   return { ok: true };
 }
+// The hub's Game wheel (Koło gier): which games are on it, its two filters and up to GW_SAVED named wheels. It only
+// picks a game and pays nothing. Sent whole after each change; games the server does not know are dropped.
+const GW_SAVED = 8, GW_NAME = 20; // the same limits as public/gamewheel.js
+export function setGameWheel(p, v, gameIds) {
+  if (!p || !v || typeof v !== 'object') return { err: 'Unknown.' };
+  const ids = l => Array.isArray(l) ? [...new Set(l.filter(id => typeof id === 'string' && gameIds.has(id)))] : null;
+  const cur = ids(v.cur), w = Array.isArray(v.w) && v.w.length <= GW_SAVED ? v.w.map(x => x && typeof x === 'object' && ids(x.g) ? { n: safeText(x.n).trim().slice(0, GW_NAME), g: ids(x.g) } : null) : null;
+  if (!cur || !w || w.some(x => !x || !x.n) || !Number.isInteger(v.n) || v.n < 0 || v.n > 10) return { err: 'Unknown.' };
+  p.gw = { cur, n: v.n, q: !!v.q, w }; scheduleSave();
+  return { ok: true };
+}
 // The Plaza's emote bar: up to EMOTE_BAR emotes the player has, in their order.
 export function emoteBar(p, list) {
   if (!p) return { err: 'Not connected.' };
@@ -382,7 +393,7 @@ export const SHOP_SIZE = Object.keys(PRICE).length;
 
 // What a player sees about themselves.
 export function me(p) {
-  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, pf: p.pf || {}, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
+  return { user: p.user, lang: p.lang || '', name: p.name, color: p.color, av: p.av, games: p.games, wins: p.wins, pts: p.pts, byGame: p.byGame, coins: p.coins || 0, owned: p.owned || [], cos: p.cos || {}, fits: p.fits || [], gw: p.gw || null, daily: { best: p.daily?.best || 0 }, bestPos: p.bestPos || 0, petSp: p.petSp || 0, pf: p.pf || {}, plzDays: p.plz?.days || 0, today: shopDate(), next: untilNext(), pt: tagOf(p), hay: { lv: p.hay?.lv || 1, paid: p.hay?.day === dayOf() ? p.hay.paid || 0 : 0 }, pop: { lv: p.pop?.lv || 1, paid: p.pop?.day === dayOf() ? p.pop.paid || 0 : 0 }, mj: { lv: p.mj?.lv || 1, paid: p.mj?.day === dayOf() ? p.mj.paid || 0 : 0 }, ...(isAdmin(p) ? { admin: true } : {}), ...progress(p.xp), sky: skyOf(p) };
 }
 // The little badge other players see next to a name.
 export function badge(p) { const g = progress(p?.xp || 0), cn = g.stars ? skyOf(p).shown : ''; return { lv: g.level, rank: g.rank, icon: g.icon, stars: g.stars, ...(cn ? { cn } : {}) }; }
@@ -633,7 +644,7 @@ export function logout(token, look) {
 export function prune(active) {
   const now = Date.now(), held = new Map();
   for (const s of sessions.values()) held.set(s.pid, (held.get(s.pid) || 0) + 1);
-  const empty = p => !p.user && !p.mod && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length && !p.fits?.length;
+  const empty = p => !p.user && !p.mod && !p.games && !p.coins && !p.xp && !p.owned?.length && !p.friends?.length && !p.fits?.length && !p.gw;
   let n = 0;
   for (const [t, s] of sessions) {
     const p = profiles.peek(s.pid); // peek: looking is not changing, so the save need not look at them all

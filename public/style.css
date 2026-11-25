@@ -2031,7 +2031,6 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
   .hubtabs .tdot:not([hidden]) { display: block; position: absolute; top: 2px; left: calc(50% + 9px); width: 11px; height: 11px; border-radius: 50%; background: var(--lantern); border: 2px solid var(--ink); }
 }
 
-<<<<<<< HEAD
 /* ---------- moderation: reports, the ban screen, the hosts' Admin panel (admin.js) ---------- */
 .pdelrow { gap: 8px; align-items: center; flex-wrap: wrap; }
 .punfr { align-self: center; }
@@ -2097,7 +2096,6 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .mhist.hot { border-left: 4px solid var(--chili); }
 .thxcoins { font: 700 22px var(--fd); color: var(--on-paper); display: flex; align-items: center; gap: 6px; margin: 4px 0; }
 .banleft { font-size: 17px; } .banleft b { font-variant-numeric: tabular-nums; }
-=======
 /* Cosmetics for the 2026-11-25 games and Pet Farm features: Lantern Night, Copycat Isle, Sky Runway, Word Reef, Checkers, the Pet Museum and Legend Isle. */
 .nm16 { --g: linear-gradient(90deg, #c9700c, #ffb84a 35%, #fff1b8 50%, #ffb84a 65%, #c9700c); animation: nmslide 3.4s ease-in-out infinite; }
 .fr15 { --f3: #ffb84aaa; --fa: url("frames/f15.svg"); }
@@ -2113,4 +2111,66 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .pb36 { background-image: url(cardbg/copycat.svg); } .pb37 { background-image: url(cardbg/runway.svg); } .pb38 { background-image: url(cardbg/reef.svg); } .pb39 { background-image: url(cardbg/checkers.svg); }
 .pb40 { background-image: url(cardbg/museum.svg); } .pb41 { background-image: url(cardbg/legend.svg); }
 :is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
->>>>>>> origin/main
+
+/* ---------- Game wheel / Koło gier (public/gamewheel.js): a flat picker wheel, never pays anything ---------- */
+.gwbtn { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 3px 15px 3px 6px; border-radius: 999px; border: 3px solid var(--ink); background: var(--mint); color: var(--ink); font: 700 15px var(--fd); cursor: pointer; box-shadow: 0 3px 0 var(--ink); white-space: nowrap; transition: transform .12s; }
+.gwbtn svg { width: 30px; height: 30px; flex: none; transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); }
+.gwbtn:hover svg { transform: rotate(60deg); } .gwbtn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.sheet.gwsheet { width: min(1000px, 100%); padding: 26px 28px; }
+.gw { --gw-empty: var(--card); --gw-empty-tx: var(--soft-tx); display: flex; flex-direction: column; gap: 16px; }
+.gwhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-right: 44px; }
+.gwhead h2 { margin: 0; font-size: 30px; }
+.gwbadge { font: 700 12.5px var(--fd); padding: 4px 11px; border-radius: 999px; background: var(--card); border: 2px solid var(--card-edge); color: var(--soft-tx); }
+.gwbody { display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr); gap: 26px; align-items: start; }
+.gwleft { position: relative; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.gwwheel { width: 100%; aspect-ratio: 236 / 242; }
+.gwwheel svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 6px 0 var(--deep)); }
+.btn.gwspin { width: 100%; min-height: 58px; font-size: 22px; background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.gwwin { position: absolute; inset: -6px; display: flex; align-items: center; justify-content: center; z-index: 2; background: color-mix(in srgb, var(--deep) 55%, transparent); border-radius: 22px; }
+.gwwin[hidden] { display: none; }
+.gcard.gwcard { width: min(340px, 94%); animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.gcard.gwcard:hover { transform: none; }
+.gwcard .body { padding: 14px 18px 18px; gap: 8px; }
+.gwcard small { font: 800 13px var(--fd); color: var(--gw-pick, #c2410c); letter-spacing: .05em; text-transform: uppercase; }
+body.night .gwcard small { --gw-pick: var(--lantern); }
+.gwcard h3 { font-size: 28px; overflow-wrap: break-word; }
+.gwmeta { font-size: 14px; color: var(--soft-tx); }
+.btn.gwgo { min-height: 50px; font-size: 18px; background: var(--lantern); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
+.gwrow { display: flex; gap: 8px; } .gwrow .btn { flex: 1 1 0; min-width: 0; padding-inline: 8px; }
+.gwside { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.gwside h4 { margin: 6px 0 0; font: 700 15px var(--fd); color: var(--on-paper); }
+.gwsaved, .gwpills, .gwfilt { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.gwchip { display: inline-flex; align-items: stretch; border-radius: 999px; border: 2px solid var(--card-edge); background: var(--card); color: var(--on-paper); overflow: hidden; }
+.gwchip button, button.gwchip { min-height: 36px; padding: 0 13px; font: 600 14px var(--fd); cursor: pointer; }
+.gwchip button { border: 0; background: none; color: inherit; }
+.gwchip button i { font-style: normal; font-size: 12px; opacity: .7; }
+.gwchip.on { background: var(--lantern); border-color: var(--ink); color: var(--ink); }
+.gwchip .gwdel { padding: 0 11px 0 4px; font-size: 13px; }
+button.gwchip.add { border-style: dashed; color: var(--soft-tx); }
+.gwhint { font-size: 13px; color: var(--soft-tx); }
+.gwname { display: flex; gap: 8px; flex: 1 1 260px; } .gwname .field { flex: 1; min-width: 0; min-height: 38px; padding: 4px 12px; font-size: 15px; }
+.gwpills button, .gwtog { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 2px solid var(--card-edge); background: var(--card); color: var(--on-paper); font: 600 14px var(--fd); cursor: pointer; }
+span.gwtog { display: inline-flex; align-items: center; padding: 0; overflow: hidden; }
+span.gwtog button { align-self: stretch; padding: 0 10px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+span.gwtog button[data-gw="ntog"] { padding-left: 12px; }
+span.gwtog b { min-width: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.gwtog.on { background: var(--mint); border-color: var(--ink); color: var(--ink); }
+.gwlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 8px; max-height: 262px; overflow: auto; padding: 2px; overscroll-behavior: contain; }
+.gwlist label { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 10px; border-radius: 12px; background: var(--card); border: 2px solid var(--card-edge); color: var(--soft-tx); font-size: 14px; cursor: pointer; }
+.gwlist label.on, .gwlist label.out { color: var(--on-paper); }
+.gwlist label.on { border-color: var(--mint); }
+.gwlist input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--mint); }
+.gwlist span { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.gwlist em { font-style: normal; font: 600 11.5px var(--fd); white-space: nowrap; padding: 1px 7px; border-radius: 999px; background: var(--note-bg, var(--soft)); color: var(--note-tx, var(--ink)); }
+.gwlist label.out span { text-decoration: line-through; opacity: .7; }
+.gwnote { font-size: 13px; }
+@media (max-width: 760px) {
+  .sheet.gwsheet { padding: 20px 16px; }
+  .gwhead h2 { font-size: 25px; }
+  .gwbody { grid-template-columns: 1fr; gap: 16px; }
+  .gwleft { max-width: 420px; width: 100%; margin: 0 auto; }
+  .gwlist { max-height: 230px; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 1099px) { .ghead .gfilt { order: 1; } .gwbtn { margin-left: auto; } }
+body.sky .gcard.gwcard { box-shadow: 0 7px 0 var(--deep); } body.sky .gcard.gwcard::before, body.sky .gcard.gwcard::after { display: none; }
+@media (max-width: 760px) { .gwrow .btn { font-size: 15px; } }
