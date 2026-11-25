@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readFarms } from './saved.js';
-import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, xpFor, tripLoot, canWork, workPct, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
+import { ITEMS, START_INV, SIZES, EXPAND, ZONES, TRIPS, HOUSE_UP, SPECIES, UPGRADES, albumHave, museumFill, xpFor, tripLoot, canWork, workPct, weatherAt, WEATHER, WEATHER_MS } from '../public/games/farm/data.js';
 const PORT = 20900 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -183,6 +183,11 @@ if (pet1.lv !== 2 || pet1.xp !== TRIPS.outing.xp - xpFor(1) || r.back.grew[0]?.l
 // the first trip always brings a wild pet home, from that zone
 const wild = r.farm.pets.find(x => x.id === r.back.found);
 if (r.farm.pets.length !== 2 || !wild || !(wild.sp in ZONES.woods.wild) || wild.lv !== 1 || wild.name !== SPECIES[wild.sp].name) fail('no wild pet on the first trip');
+// a species the farm never had wears a "new" label until its card is opened
+if (wild.sp !== me.sp && (!wild.nu || !r.back.fresh)) fail('first-ever species not marked new ' + JSON.stringify([wild.nu, r.back.fresh]));
+if (wild.sp === me.sp && (wild.nu || r.back.fresh)) fail('a species already owned marked new');
+r = await a.farmDo({ t: 'seen', id: wild.id });
+if (r.err || r.farm.pets.find(x => x.id === wild.id).nu) fail('seen did not clear the new label');
 // with every bed taken nobody new can move in
 r = await a.farmDo({ t: 'send', zone: 'woods', trip: 'stroll', pets: [me.id, wild.id] });
 if (r.err || r.farm.trip.pets.length !== 2) fail('party of two');
@@ -792,6 +797,20 @@ if (!r.err) fail('freed a pet that does not exist');
   await c.farmDo({ t: 'open', test: { pet: 'mossbun' } });
   r = await c.farmDo({ t: 'lodge', ids: [p1], on: false }); if (!r.err) fail('moved onto a full island');
   r = await c.farmDo({ t: 'open', test: { pet: 'mossbun' } }); if (!r.farm.pets.at(-1).lodge || r.farm.pets.filter(x => !x.lodge).length !== 26) fail('a new pet should go into storage when the island is full');
+  // the Pet Museum: a 3x3 landmark behind farmhouse level 6 whose levels need album pages, not a bigger farmhouse
+  r = await c.farmDo({ t: 'place', type: 'museum', x: 16, y: 1, r: 0 }); if (!r.err) fail('museum below farmhouse 6');
+  await c.farmDo({ t: 'open', test: { house: 6 } });
+  let mu = { err: 1 }; for (let y = 0; y < 20 && mu.err; y++) for (let x = 0; x < 20 && mu.err; x++) mu = await c.farmDo({ t: 'place', type: 'museum', x, y, r: 0 });
+  if (mu.err) fail('no room for the museum ' + mu.err);
+  const museum = mu.farm.items.find(i => i.type === 'museum').id, have0 = albumHave(mu.farm.album);
+  r = await c.farmDo({ t: 'place', type: 'museum', x: 0, y: 0, r: 0 }); if (!r.err) fail('a second museum');
+  r = await c.farmDo({ t: 'upgrade', id: museum }); if (!r.err || !/kinds of pets/.test(r.err) || lvOfItem(r.farm, museum) !== 1) fail('museum grew without album pages ' + have0);
+  const extra = Object.keys(SPECIES).filter(sp => !c.farm.album[sp]?.some(Boolean) && !SPECIES[sp].el2).slice(0, UPGRADES.museum.need[0] - have0);
+  for (const sp of extra) await c.farmDo({ t: 'open', test: { pet: sp } });
+  const inv0 = c.farm.inv.crystal; r = await c.farmDo({ t: 'upgrade', id: museum });
+  if (r.err || lvOfItem(r.farm, museum) !== 2 || r.farm.inv.crystal !== inv0 - UPGRADES.museum.cost[0].crystal) fail('museum level 2 ' + r.err);
+  r = await c.farmDo({ t: 'upgrade', id: museum }); if (!r.err || lvOfItem(r.farm, museum) !== 2) fail('museum level 3 needs 20 kinds');
+  if (!/^[0-8]{5}$/.test(museumFill(r.farm.album)) || museumFill(Object.fromEntries(Object.keys(SPECIES).map(sp => [sp, [1, 0, 0]]))) !== '88888' || museumFill({}) !== '00000') fail('museum medallions');
   c.ws.close(); }
 r = await a.farmDo({ t: 'open', test: { weather: 'none', ripe: true } });
 const snapshot = JSON.stringify({ ...a.farm, guests: [] }); // who is visiting is not saved

@@ -223,6 +223,84 @@ const BUILD = {
     box(k, .03, .36, .03, C.goldD, 0, 3.88, 0); put(k, G('Octahedron', .11, 0), GOLDM(), 0, 4.3, 0).scale.set(1, 1.3, .4);
     for (const sd of [-1, 1]) banner(g, sd * .36 + .02, .55, 1.4, C.blue, .14, .3); // little banners on the fence posts
   },
+  // The Pet Museum, a 3x3 landmark. Five medallions over the columns show the album: Leaf, Ember, Tide, Spark, Stone,
+  // each filled in eighths (link is museumFill() from data.js, '00000' to '88888'). Level 2 adds a dome, 3 skylights,
+  // gold trim and element banners, 4 front wings and pet statues, 5 a golden dome with a star, flags and a red carpet.
+  museum(g, live, lv = 1, link = '00000') {
+    const fill = String(link || '').padEnd(5, '0').slice(0, 5).split('').map(n => Math.min(8, Math.max(0, n | 0))), full = fill.every(n => n === 8);
+    const trim = lv >= 3 ? C.gold : C.white, roof = C.blue, wall = C.cream, hz = -.35; // the hall runs from z -1.2 to .5
+    box(g, 2.9, .18, 1.9, C.stoneD, 0, 0, hz);                     // footing
+    box(g, 2.1, 1.15, 1.7, wall, 0, .18, hz);                       // the hall
+    box(g, 2.24, .1, 1.84, C.white, 0, 1.33, hz);                   // cornice
+    if (lv >= 3) box(g, 2.27, .045, 1.87, C.gold, 0, 1.3, hz);       // gold band under it
+    box(g, 2.0, .08, 1.6, '#ece6dc', 0, 1.43, hz);                  // flat roof
+    for (const x of [-1, 1]) for (const z of [-1.16, .46]) box(g, .14, 1.15, .14, '#efe4cc', x, .18, z); // corner pilasters, standing proud
+    // the portico: a raised floor, steps, four columns, a beam carrying the medallions and a blue pediment
+    box(g, 1.9, .26, .62, C.stone, 0, 0, .79);
+    box(g, 1.6, .09, .3, C.stone, 0, 0, 1.23); box(g, 1.5, .18, .2, C.stoneD, 0, 0, 1.14); // two steps up
+    for (const x of [-.72, -.24, .24, .72]) {
+      box(g, .2, .06, .2, C.white, x, .26, .95); cyl(g, .075, .085, .92, 8, C.white, x, .32, .95); box(g, .22, .06, .22, trim, x, 1.2, .95);
+    }
+    box(g, 1.96, .24, .22, C.white, 0, 1.26, .95);                  // the beam: a frieze for the medallions
+    box(g, 1.9, .06, .5, '#ece6dc', 0, 1.31, .66);                  // porch ceiling, from the hall to the beam
+    put(g, gable(2.1, .46, .66), M(roof), 0, 1.5, .79);             // pediment roof
+    put(g, gable(1.72, .32, .04), M(wall), 0, 1.55, 1.13);           // and its cream face
+    box(g, 2.12, .05, .7, trim, 0, 1.47, .79);                      // the ledge it sits on
+    const paw = trim === C.gold ? C.gold : C.yellow; ico(g, .07, paw, 0, 1.69, 1.16); // a paw over the door: one pad and four toes
+    for (const [x, y] of [[-.09, 1.78], [-.035, 1.82], [.035, 1.82], [.09, 1.78]]) ico(g, .028, paw, x, y, 1.155);
+    // the medallions: a white disc with the element's gem, and eight beads round it that take the element's colour
+    // one by one as the album fills; a gold rim once every pet of that element is found
+    const ELS = ['#3f9a52', '#e0592f', '#2f86cc', '#d9a400', '#8a7f76'];
+    fill.forEach((n, i) => {
+      const f = grp(g, -.76 + i * .38, 1.38, 1.06);
+      put(f, G('Cylinder', .1, .1, .03, 16), M(n === 8 ? C.gold : '#fbf6ea')).rotation.x = Math.PI / 2;
+      put(f, G('Torus', .1, .014, 4, 16), M(n === 8 ? C.gold : C.stoneD), 0, 0, .012);
+      put(f, G('Octahedron', .045, 0), M(ELS[i]), 0, 0, .02).scale.z = .5;
+      for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; ico(f, .019, k < n ? ELS[i] : '#d8d2c4', Math.sin(a) * .072, Math.cos(a) * .072, .02); }
+    });
+    // the door, set in a deep frame, with a gold lintel
+    box(g, .58, .8, .08, C.white, 0, .26, .53); box(g, .44, .68, .06, C.blueD, 0, .27, .56); box(g, .03, .6, .02, '#2f4f86', 0, .3, .595);
+    box(g, .64, .06, .1, C.gold, 0, 1.06, .54); ico(g, .03, C.gold, .12, .58, .6); ico(g, .03, C.gold, -.12, .58, .6);
+    box(g, .5, .02, .26, C.red, 0, .26, .74);                       // the doormat
+    // tall windows on the sides and the back, with sills, so no wall is bare
+    const win = (x, z, ry) => { const o = grp(g, x, .18, z); o.rotation.y = ry;
+      box(o, .4, .66, .05, C.white, 0, .2, 0); box(o, .3, .56, .08, C.glass, 0, .25, 0); box(o, .025, .54, .1, C.white, 0, .26, 0); box(o, .28, .025, .1, C.white, 0, .6, 0);
+      box(o, .48, .05, .14, '#efe4cc', 0, .17, .03); put(o, G('Cylinder', .2, .2, .05, 10, 1, false, -Math.PI / 2, Math.PI), M(C.white), 0, .86, 0).rotation.x = -Math.PI / 2; };
+    for (const sd of [-1, 1]) for (const z of [-.8, .1]) win(sd * 1.06, z, sd * Math.PI / 2);
+    for (const x of [-.62, .62]) win(x, -1.21, Math.PI);
+    if (full) { box(g, .03, .14, .03, C.goldD, 0, 1.93, 1.1); put(g, G('Octahedron', .12, 0), GOLDM(), 0, 2.11, 1.1).scale.set(1, 1.2, .35); } // the whole album found: a star over the pediment
+    if (lv < 4) for (const sd of [-1, 1]) { cyl(g, .12, .09, .2, 8, C.copper, sd * 1.15, 0, 1.25); ico(g, .15, C.leaf, sd * 1.15, .32, 1.25); ico(g, .05, C.pink, sd * 1.15 + .06, .42, 1.33); } // potted bushes
+    if (lv < 2) return;
+    // level 2: a drum and a blue dome with a gold lantern on top
+    const dome = lv >= 5 ? C.gold : roof;
+    cyl(g, .5, .52, .26, 12, wall, 0, 1.49, hz); cyl(g, .54, .54, .05, 12, trim, 0, 1.73, hz);
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6 + Math.PI / 12; box(g, .05, .18, .05, C.white, Math.sin(a) * .505, 1.53, hz + Math.cos(a) * .505).rotation.y = a; }
+    put(g, G('Sphere', .5, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), M(dome), 0, 1.77, hz);
+    cyl(g, .1, .12, .16, 8, C.white, 0, 2.25, hz); cone(g, .14, .12, 8, C.gold, 0, 2.41, hz); ico(g, .05, C.gold, 0, 2.56, hz);
+    if (lv < 3) return;
+    // level 3: skylights each side of the dome, and a banner in each element's colour
+    for (const sd of [-1, 1]) { box(g, .36, .04, 1.2, C.white, sd * .76, 1.51, hz); box(g, .28, .06, 1.1, C.glass, sd * .76, 1.52, hz); for (const z of [-.2, .2]) box(g, .3, .07, .03, C.white, sd * .76, 1.52, hz + z); }
+    banner(g, -1.08, .5, -.35, ELS[0], .2, .5, -Math.PI / 2); banner(g, 1.08, .5, -.35, ELS[2], .2, .5, Math.PI / 2);
+    for (const [x, c] of [[-.3, ELS[1]], [0, ELS[4]], [.3, ELS[3]]]) banner(g, x, .5, -1.23, c, .16, .46, Math.PI);
+    if (lv < 4) return;
+    // level 4: two wings either side of the portico, and pet statues guarding the steps
+    for (const sd of [-1, 1]) { const x = sd * 1.2;
+      box(g, .44, .82, .62, wall, x, .18, .78); box(g, .5, .07, .68, trim, x, 1.0, .78);
+      put(g, gable(.5, .2, .68), M(roof), x, 1.07, .78);
+      box(g, .26, .4, .05, C.white, x, .38, 1.1); box(g, .18, .32, .08, C.glass, x, .42, 1.1); box(g, .32, .05, .12, '#efe4cc', x, .36, 1.13);
+      const st = grp(g, sd * .96, 0, 1.33); st.scale.setScalar(.9);
+      box(st, .26, .22, .26, C.stoneD); box(st, .3, .04, .3, trim, 0, .22);
+      const sc = lv >= 5 ? C.gold : C.stone;
+      ico(st, .1, sc, 0, .36, -.02); ico(st, .075, sc, 0, .5, .03); for (const ex of [-.045, .045]) cone(st, .03, .07, 4, sc, ex, .54, .03);
+      put(st, G('Torus', .07, .02, 4, 8, Math.PI), M(sc), sd * -.08, .3, -.06).rotation.y = Math.PI / 2;
+    }
+    if (lv < 5) return;
+    // level 5: a golden dome with a star, flags on the corners and a red carpet up the steps
+    box(g, .03, .3, .03, C.goldD, 0, 2.6, hz); put(g, G('Octahedron', .14, 0), GOLDM(), 0, 3.02, hz).scale.set(1, 1.3, .4);
+    for (const [x, z, c] of [[-.92, -1.08, ELS[0]], [.92, -1.08, ELS[2]], [-.92, .38, ELS[1]], [.92, .38, ELS[3]]]) pennant(g, x, 1.51, z, c, .5, .9);
+    box(g, .4, .015, .3, C.red, 0, .09, 1.23); box(g, .4, .015, .2, C.red, 0, .18, 1.14); box(g, .4, .015, .48, C.red, 0, .26, .79);
+    for (const sd of [-1, 1]) { box(g, .05, .5, .05, C.iron, sd * .86, .26, .6); lantern(g, sd * .86, .76, .6, .9); }
+  },
   // The Pet Lodge: a long log cabin where stored pets sleep. Level 2 adds a porch, level 3 a whole upper floor.
   lodge(g, live, lv = 1) {
     const up = liftOf('lodge', lv), rf = grp(g, 0, up, -.18), roof = '#5b6fb8', roofD = '#46579a', gold = lv >= 3;

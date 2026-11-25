@@ -565,6 +565,11 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .hud > .tl, .pf .hud > .bl, .pf .bl > .pfstat, .pf .bl > .pfrow, .pf .pfmatsrow, .pf .pfsumlist { pointer-events: none; }
 .pf .hud > .tl > *, .pf .pfmatsrow > *, .pf .bl > :not(.pfstat):not(.pfrow), .pf .pfstat > *, .pf .pfrow > *, .pf .pfsumlist > *, .pf .pfnav > * { pointer-events: auto; }
 .pf .hud > .tl > .pfmatsrow { pointer-events: none; }
+/* Pet Museum card: one chip for each element's medallion */
+.pf .musel { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 6px; }
+.pf .mus { display: inline-flex; align-items: center; gap: 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; color: var(--pf-tx, var(--on-paper, var(--ink))); background: var(--card); border: 2px solid var(--card-edge, var(--ink)); border-radius: 999px; padding: 2px 9px 2px 5px; }
+.pf .mus i { width: 12px; height: 12px; border-radius: 50%; background: var(--el); border: 2px solid var(--ink); flex: none; }
+.pf .mus.done { border-color: #f2b92e; box-shadow: 0 0 0 2px #f2b92e55; }
 /* a pet's details page: arrows step to the previous / next pet */
 .pf .pfnamerow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .pf .pfnamerow h2.pfname { margin: 0; min-width: 0; overflow-wrap: anywhere; }
@@ -584,3 +589,9 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .grpx { width: 34px; min-height: 44px; border: 0; background: none; color: var(--pf-muted, inherit); font-size: 20px; cursor: pointer; }
 .pf .grpform { display: flex; gap: 6px; flex-basis: 100%; }
 .pf .grpform .field { flex: 1; min-width: 0; min-height: 40px; padding: 4px 10px; font-size: 16px; }
+/* "New" label: a pet the farm never had before, until its card is opened */
+.pf .pfnew { display: inline-block; white-space: nowrap; font-family: var(--fd); font-weight: 700; font-size: 11px; line-height: 1; letter-spacing: .02em; text-transform: uppercase; padding: 3px 6px; border-radius: 999px; background: #ffd23f; color: #3a2400; border: 2px solid #3a2400; }
+.pf .petrow .prpic .pfnew, .pf .lodgep .ldcell .pfnew { position: absolute; top: -4px; left: -4px; z-index: 1; transform: rotate(-8deg); }
+.pf .lodgep .ldcell { position: relative; }
+.pf .pfnew.big { font-size: 13px; padding: 4px 8px; margin-bottom: 4px; }
+body.night .pf .pfnew { background: #ffcf3a; color: #241400; border-color: #241400; }
