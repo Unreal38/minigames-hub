@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import { DATA_DIR, addCoins, scheduleSave } from './store.js';
 import { dayOf, untilNext } from './day.js';
 import { wheelMail } from './farm.js';
-import { ORDER, PRIZES, LUCKY, PITY, SET_COINS, BOOSTS, PET_RARITY } from '../public/wheelprizes.js';
+import { PRIZES, LUCKY, PITY, SET_COINS, BOOSTS, PET_RARITY, SEASON_PETS, orderOn } from '../public/wheelprizes.js';
 import { SPECIES, ELEMENTS } from '../public/games/farm/data.js';
 import { VARIANT_CHANCE } from '../public/games/farm/breed.js';
 
@@ -45,7 +45,8 @@ const stateOf = p => { const s = p.wheel ||= { day: '', n: 0, dry: 0, lucky: [] 
 function toFarm(p, s, m) { if (wheelMail(p.pid, m)) return 'mail'; (s.hold ||= []).push(m); if (s.hold.length > 60) s.hold.shift(); return 'hold'; }
 
 let fixed = null; // tests only: the next slice
-function roll(p, s) {
+function roll(p, s, day) {
+  const ORDER = orderOn(day);
   let i = fixed ?? rnd(ORDER.length); fixed = null;
   const missing = LUCKY.filter(t => !s.lucky.includes(t));
   if (ORDER[i] !== 'decor' && missing.length && s.dry >= PITY) i = ORDER.indexOf('decor'); // bad luck never lasts for ever
@@ -57,6 +58,10 @@ function roll(p, s) {
     const sp = petOfDay(), others = Object.keys(ELEMENTS).filter(e => e !== SPECIES[sp].el);
     prize.pet = { sp, ...(Math.random() < VARIANT_CHANCE ? { el: pick(others) } : {}) }; // the same odds of another element as an egg
     prize.where = toFarm(p, s, { pet: prize.pet });
+  } else if (SEASON_PETS[kind]) { // the season pet: a baby, with the same odds of another element as an egg
+    const sp = SEASON_PETS[kind].sp, others = Object.keys(ELEMENTS).filter(e => e !== SPECIES[sp].el);
+    prize.pet = { sp, ...(Math.random() < VARIANT_CHANCE ? { el: pick(others) } : {}) }; prize.season = kind;
+    prize.where = toFarm(p, s, { pet: prize.pet });
   } else if (!missing.length) { prize.coins = SET_COINS; prize.full = true; addCoins(p.pid, SET_COINS); }
   else { prize.item = pick(missing); s.lucky.push(prize.item); prize.where = toFarm(p, s, { item: prize.item }); }
   s.dry = kind === 'decor' ? 0 : s.dry + 1;
@@ -64,7 +69,7 @@ function roll(p, s) {
 }
 
 function view(p) {
-  const day = dayOf(), base = { t: 'wheel', day, next: untilNext(), pet: petOfDay(day) };
+  const day = dayOf(), base = { t: 'wheel', day, next: untilNext(), pet: petOfDay(day), order: orderOn(day) };
   if (!p?.user) return { ...base, guest: true };
   const s = stateOf(p);
   return { ...base, spun: s.day === day, last: s.day === day ? s.last : null, lucky: s.lucky, n: s.n, sure: Math.max(0, PITY - s.dry) };
@@ -74,7 +79,7 @@ export function handle(p, m, reply) {
   if (!p?.user || !m.spin) return reply(view(p));
   const day = dayOf(), s = stateOf(p);
   if (s.day === day) return reply({ ...view(p), err: 'You already had today’s spin. Come back tomorrow.' });
-  const r = roll(p, s);
+  const r = roll(p, s, day);
   s.day = day; s.n = (s.n || 0) + 1; s.last = r;
   scheduleSave();
   reply({ ...view(p), won: r });

@@ -292,7 +292,7 @@ const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), na
 // marked as promised) and comes back if the offer is declined, cancelled or a week old.
 const TRADE_MS = 7 * 24 * HOUR, TRADE_OPEN = 5, TRADE_PETS = 3;
 const cuddling = (f, id) => SLOTS.some(s => f[s] && nestView(f, s).stage === 'cuddle' && (f[s].a === id || f[s].b === id));
-const tradable = (f, x) => !x.held && f.pets.length > 1 && !away(f, x.id) && !cuddling(f, x.id) && !(f.def || []).includes(x.id);
+const tradable = (f, x) => !SPECIES[x.sp]?.wheel && !x.held && f.pets.length > 1 && !away(f, x.id) && !cuddling(f, x.id) && !(f.def || []).includes(x.id);
 const cleanMats = m => { const out = {}; for (const [k, n] of Object.entries(m && typeof m === 'object' ? m : {})) if (own(MATS, k) && TRADE_MATS.includes(k) && Number.isInteger(n) && n > 0 && n <= 9999) out[k] = n; return out; };
 const cleanIds = a => Array.isArray(a) ? [...new Set(a.map(String))].slice(0, TRADE_PETS) : [];
 function release(f, o) { // hand back what an offer was holding
@@ -639,6 +639,7 @@ export function handle(p, a, reply) {
       d[a.friend] = 1; friend = { id: a.friend, name: nameOf(hit[0], host) };
     } else Bp = f.pets.find(x => x.id === a.b);
     if (!A || !Bp || A === Bp) return no('Pick two different pets.');
+    if (SPECIES[A.sp]?.wheel || SPECIES[Bp.sp]?.wheel) return no('A Lucky Wheel pet cannot have eggs.');
     if (A.held || (!friend && Bp.held)) return no('One of them is promised in a trade.');
     if (A.lv < BREED_LV || Bp.lv < BREED_LV) return no(`Both pets need to be level ${BREED_LV} or higher.`);
     const now = Date.now();
@@ -674,6 +675,7 @@ export function handle(p, a, reply) {
   }
   if (a.t === 'petopen') { // let visiting friends pick this pet for a playdate (up to three)
     const pet = f.pets.find(x => x.id === a.id); if (!pet) return;
+    if (!pet.open && SPECIES[pet.sp]?.wheel) return no('A Lucky Wheel pet cannot have eggs.');
     if (!pet.open && pet.lv < BREED_LV) return no(`It needs to be level ${BREED_LV} first.`);
     if (!pet.open && f.pets.filter(x => x.open).length >= 3) return no('Three pets can be open for playdates at once.');
     pet.open = !pet.open;
@@ -790,6 +792,7 @@ export function handle(p, a, reply) {
       if (!SPECIES[m.pet.sp]) { f.mail.splice(f.mail.indexOf(m), 1); return ok(); }
       if (f.pets.length >= allRoom(f)) return no('There is no bed free. Build a Pet Hut and the baby will wait here.');
       const pet = newPet(m.pet.sp, p.user, true); if (m.pet.el && ELEMENTS[m.pet.el] && m.pet.el !== SPECIES[pet.sp].el) pet.el = m.pet.el;
+      if (firstOf(f, pet)) pet.nu = 1; // a kind (or element) the farm never had gets the "New" label
       f.pets.push(pet); settle(f, pet); born = pet.id;
     } else if (m.boost) { if (BOOSTS[m.boost]) (f.tokens ||= {})[m.boost] = (f.tokens[m.boost] || 0) + 1; }
     else if (m.item) { if (ITEMS[m.item]) (f.stash ||= {})[m.item] = (f.stash[m.item] || 0) + 1; } else pay(f.inv, m.got, 1);
@@ -838,7 +841,7 @@ export function handle(p, a, reply) {
       saw(f, team.map(u => u.sp));
       B = newBattle(mine.map(x => unit(x, ARENA_LV)), team, { mode, foe, to });
     } else { // practice partners match the party's size and average level
-      const lv = Math.max(1, Math.round(mine.reduce((n, x) => n + x.lv, 0) / mine.length)), all = Object.keys(SPECIES);
+      const lv = Math.max(1, Math.round(mine.reduce((n, x) => n + x.lv, 0) / mine.length)), all = Object.keys(SPECIES).filter(sp => !SPECIES[sp].wheel);
       B = newBattle(mine.map(x => unit(x)), mine.map((_, i) => unit(bot(all[rnd(all.length)], lv, i))), { mode, foe: 'Practice partners' });
     }
     B.ids = ids; battles.set(p.pid, B);

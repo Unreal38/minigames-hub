@@ -39,7 +39,7 @@ function player(name, token) {
   p.answer = async () => { p.peek = null; p.send({ t: 'daily', test: { peek: true } }); await until(() => p.peek, 'peek'); return p.peek.secret; };
   return p;
 }
-const ALL = Object.keys(SPECIES);
+const ALL = Object.keys(SPECIES).filter(sp => !SPECIES[sp].wheel); // Lucky Wheel pets are never the answer
 
 await start();
 const guest = await player('Gus').connect();

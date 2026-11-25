@@ -14,6 +14,7 @@ export const PRIZES = {
   boost: {},   // a booster token for one of BOOSTS
   pet:   {},   // a baby of the pet of the day
   decor: {},   // one of LUCKY the player does not have yet
+  winter: {},  // a baby Tusklet, the winter pet only the wheel gives (see SEASON_PETS)
 };
 // The lucky set: Pet Farm decorations only the wheel gives (ITEMS entries with wheel: true).
 export const LUCKY = ['clover', 'carousel', 'chest', 'goldpet', 'balloon', 'coinfount', 'horseshoe', 'miniwheel'];
@@ -29,3 +30,18 @@ export const BOOSTS = {
 };
 // The pet of the day: how often it is a common, uncommon or rare species. Breeding-only pets never come from the wheel.
 export const PET_RARITY = [60, 30, 10];
+// Season pets: a slice that takes the place of one 20-coin slice (at index `at`) while the season runs, and gives a baby of
+// that species. from and to are [month, day] in Warsaw, both days included; a span may run over New Year.
+// The pet is never sold, found, hatched or traded anywhere else (data.js SPECIES with wheel: <season>).
+export const SEASON_PETS = {
+  winter: { sp: 'tusklet', at: 15, from: [11, 15], to: [2, 28] },
+};
+// The wheel on a day ('YYYY-MM-DD', the Warsaw day from server/day.js): ORDER with any season slice that is on.
+export function orderOn(day) {
+  const md = +day.slice(5, 7) * 100 + +day.slice(8, 10), order = [...ORDER];
+  for (const [kind, { at, from, to }] of Object.entries(SEASON_PETS)) {
+    const a = from[0] * 100 + from[1], b = to[0] * 100 + to[1];
+    if (a <= b ? md >= a && md <= b : md >= a || md <= b) order[at] = kind;
+  }
+  return order;
+}

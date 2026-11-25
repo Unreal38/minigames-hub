@@ -1,12 +1,13 @@
 // Lucky Wheel: the daily spin, opened in a pop-up from the hub's Today column. The server picks the slice
 // (server/wheel.js); this file draws the 3D wheel, plays the spin it is told about and shows the prize.
-// The wheel has 20 equal slices in the order of ORDER, so what you see is the real odds.
+// The wheel has 20 equal slices in the order the server sends (ORDER, with a season pet slice while one is on),
+// so what you see is the real odds.
 import * as THREE from 'three';
 import { frameLoop } from './frames.js';
 import { L, cnt } from './i18n.js';
 import { sfx } from './sfx.js';
 import { srvText } from './lang/server.js';
-import { ORDER, PRIZES, LUCKY, PITY, SET_COINS } from './wheelprizes.js';
+import { ORDER, PRIZES, LUCKY, PITY, SET_COINS, SEASON_PETS } from './wheelprizes.js';
 import { boostName, boostWhat } from './wheeltext.js';
 import { SPECIES, MATS, ITEMS, RARITY, elName } from './games/farm/data.js';
 import { petPic } from './petpic.js';
@@ -17,7 +18,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const N = ORDER.length, STEP = Math.PI * 2 / N;
 const HEX = { gold: '#ffd84a', chili: '#e5543b', mint: '#7ed3b2', pink: '#ff8fab', sky: '#6fb8e6', violet: '#a58be0', cream: '#fff4e2', wood: '#a9713f', wood2: '#8a5a30', plum: '#7a2e3f' };
 // two shades per prize kind, so neighbouring slices never blend
-const SLICE = { c20: ['#ffc266', '#f5a93a'], c40: ['#ffe066', '#f2c93a'], c100: ['#f0705a', '#d9503a'], mat: ['#8fdcbf', '#6cc7a4'], fine: ['#86c6ee', '#5fa9dc'], cry: ['#b7a0ea', '#9a80d8'], treat: ['#ffa5bb', '#f3849f'], boost: ['#86c6ee', '#5fa9dc'], pet: ['#8fdcbf', '#6cc7a4'], decor: ['#fff0a0', '#ffd84a'] };
+const SLICE = { c20: ['#ffc266', '#f5a93a'], c40: ['#ffe066', '#f2c93a'], c100: ['#f0705a', '#d9503a'], mat: ['#8fdcbf', '#6cc7a4'], fine: ['#86c6ee', '#5fa9dc'], cry: ['#b7a0ea', '#9a80d8'], treat: ['#ffa5bb', '#f3849f'], boost: ['#86c6ee', '#5fa9dc'], pet: ['#8fdcbf', '#6cc7a4'], decor: ['#fff0a0', '#ffd84a'], winter: ['#f4faff', '#dcefff'] };
 const NUM = { c20: '20', c40: '40', c100: '100', mat: '40', fine: '12', cry: '2' };
 
 // ---------- words ----------
@@ -33,6 +34,7 @@ const KIND = {
   treat: () => [lots('treat'), L('Treats that level up your pets.', 'Smakołyki, po których zwierzaki rosną.')],
   boost: () => [L('Building booster', 'Wzmocnienie budynku'), L('For one Pet Farm building. You start it when you like.', 'Do jednego budynku na farmie. Włączasz je, kiedy chcesz.')],
   pet: () => [L('Pet of the day', 'Zwierzak dnia'), L('A baby of today’s species.', 'Maluch dzisiejszego gatunku.')],
+  winter: () => [`${SPECIES[SEASON_PETS.winter.sp].name}`, L('The winter pet. A baby you can only win here, until the end of February.', 'Zimowy zwierzak. Maluch, którego można wygrać tylko tutaj, do końca lutego.')],
   decor: () => [L('Lucky decoration', 'Szczęśliwa ozdoba'), L(`One of ${LUCKY.length} island decorations only the wheel gives.`, `Jedna z ${LUCKY.length} ozdób wyspy, które daje tylko koło.`)],
 };
 const where = w => w === 'hold' ? L('It waits for you in Pet Farm.', 'Czeka na ciebie na Farmie zwierzaków.') : L('It is in your Pet Farm Mailbox.', 'Jest w Skrzynce pocztowej na Farmie zwierzaków.');
@@ -40,7 +42,7 @@ function wonText(z) {
   if (z.item) return [`${ITEMS[z.item]?.name || ''}!`, L('A lucky decoration for your island. ', 'Szczęśliwa ozdoba na twoją wyspę. ') + where(z.where)];
   if (z.full) return [cnt(z.coins, 'coin', 'coins', 'moneta', 'monety', 'monet'), L('You own the whole lucky set, so the slice pays coins.', 'Masz już cały szczęśliwy zestaw, więc to pole płaci monetami.')];
   if (z.coins) return [cnt(z.coins, 'coin', 'coins', 'moneta', 'monety', 'monet'), L('Added to your coins.', 'Dodane do twoich monet.')];
-  if (z.pet) return [`${SPECIES[z.pet.sp]?.name || ''}${z.pet.el ? ` (${elName(z.pet.el)})` : ''}!`, L('A baby of the pet of the day. ', 'Maluch zwierzaka dnia. ') + where(z.where)];
+  if (z.pet) return [`${SPECIES[z.pet.sp]?.name || ''}${z.pet.el ? ` (${elName(z.pet.el)})` : ''}!`, (z.season ? L('The winter pet, only on the wheel. ', 'Zimowy zwierzak, tylko z koła. ') : L('A baby of the pet of the day. ', 'Maluch zwierzaka dnia. ')) + where(z.where)];
   if (z.boost) return [boostName(z.boost), boostWhat(z.boost) + ' ' + where(z.where)];
   return [lot(z.got || {}), where(z.where)];
 }
@@ -73,6 +75,13 @@ function figure(k) {
   if (k === 'treat') return grp(cyl(.32, .34, .22, 8, '#f6d7a3', 0, -.18, .2), cyl(.33, .33, .08, 8, HEX.pink, 0, -.03, .2), cyl(.26, .28, .18, 8, '#f6d7a3', 0, .1, .2), cyl(.27, .27, .07, 8, HEX.cream, 0, .22, .2), bx(.11, .11, .11, HEX.chili, 0, .31, .2));
   if (k === 'boost') { const bolt = mesh(new THREE.ExtrudeGeometry(flat([[.08, .42], [-.24, -.04], [-.02, -.04], [-.12, -.42], [.24, .08], [.02, .08]]), { depth: .14, bevelEnabled: false }), mat('#ffe066', { emissive: '#ffa500', emissiveIntensity: .35 }), 0, 0, .12), tile = grp(bx(.5, .5, .06, HEX.cream, 0, 0, .06)); tile.rotation.z = Math.PI / 4; return grp(tile, bolt); }
   if (k === 'pet') { const e = mesh(new THREE.IcosahedronGeometry(.3, 1), mat(HEX.cream), 0, 0, .28); e.scale.set(1, 1.28, .9); const d = (x, y, c) => bx(.12, .12, .1, c, x, y, .5); return grp(e, d(-.1, .12, HEX.mint), d(.12, -.02, HEX.pink), d(-.06, -.18, HEX.sky), bx(.5, .1, .4, '#c89a5a', 0, -.36, .26)); }
+  if (k === 'winter') { // a red bobble hat with a white cuff over a snowflake: the winter pet's own hat
+    const cap = mesh(new THREE.IcosahedronGeometry(.3, 1), mat('#e0453a'), 0, .02, .3); cap.scale.set(1, .85, .8);
+    const cuff = mesh(new THREE.TorusGeometry(.27, .08, 6, 14), mat('#fff6ec'), 0, -.12, .3); cuff.scale.y = .6; cuff.rotation.x = Math.PI / 2;
+    const flake = grp(...[0, 1, 2].map(j => { const b = bx(.86, .07, .05, '#ffffff', 0, 0, 0); b.rotation.z = j * Math.PI / 3; return b; })); flake.position.set(0, .05, .04);
+    flake.children.forEach(b => { b.material.emissive = new THREE.Color('#9fd6ff'); b.material.emissiveIntensity = .5; });
+    return grp(flake, cap, cuff, mesh(new THREE.IcosahedronGeometry(.11, 1), mat('#ffffff'), 0, .3, .32));
+  }
   const star = mesh(new THREE.ExtrudeGeometry(flat(Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? .19 : .44, a = Math.PI / 2 + i * Math.PI / 5; return [Math.cos(a) * r, Math.sin(a) * r]; })), { depth: .16, bevelEnabled: false }), mat('#ffe066', { emissive: '#ffb000', emissiveIntensity: .5 }), 0, 0, .14);
   star.userData.twirl = true; return grp(star);
 }
@@ -84,7 +93,7 @@ function numberTile(txt) {
   return new THREE.Mesh(new THREE.PlaneGeometry(.9, .45), new THREE.MeshBasicMaterial({ map: t, transparent: true }));
 }
 
-function buildScene(canvas, night) {
+function buildScene(canvas, night, order = ORDER) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(34, 1, .1, 100);
@@ -93,7 +102,7 @@ function buildScene(canvas, night) {
   sun.position.set(-4, 7, 9); scene.add(hemi, sun);
 
   const R = 3.3, R0 = .85, wheel = new THREE.Group(), twirl = [], tiles = [];
-  const wedges = ORDER.map((k, i) => {
+  const wedges = order.map((k, i) => {
     const h = STEP / 2, tall = i % 2 ? .42 : .5;
     const g = grp(new THREE.Mesh(new THREE.ExtrudeGeometry(flat([[Math.cos(-h) * R0, Math.sin(-h) * R0], [Math.cos(-h) * R, Math.sin(-h) * R], [Math.cos(h) * R, Math.sin(h) * R], [Math.cos(h) * R0, Math.sin(h) * R0]]), { depth: tall, bevelEnabled: false }), mat(SLICE[k][i % 2])));
     // The figure is fitted to its slice: never wider than the slice is at that distance, never sunk into the face,
@@ -180,6 +189,7 @@ function buildScene(canvas, night) {
 }
 
 // ---------- the window ----------
+const odds = order => Object.keys(PRIZES).map(k => { const n = order.filter(x => x === k).length, [a, b] = KIND[k](); return n ? `<tr><td><i style="background:${SLICE[k][1]}"></i></td><td><b>${a}</b>${b ? `<small>${b}</small>` : ''}</td><td>${n * 100 / N}%</td></tr>` : ''; }).join('');
 export function mount(box, ctx) {
   let info = null, view = null, busy = false, dead = false, shown = null; // shown: the result on screen
   box.classList.add('lw');
@@ -195,12 +205,17 @@ export function mount(box, ctx) {
     </div>
     <details class="lwodds"><summary>${L('What is on the wheel', 'Co jest na kole')}</summary>
       <p>${L('20 equal slices, so each one is a 5% chance. The wheel shows the real odds.', '20 równych pól, więc każde to 5% szansy. Koło pokazuje prawdziwe szanse.')}</p>
-      <table><tbody>${Object.keys(PRIZES).map(k => { const n = ORDER.filter(x => x === k).length, [a, b] = KIND[k](); return `<tr><td><i style="background:${SLICE[k][1]}"></i></td><td><b>${a}</b>${b ? `<small>${b}</small>` : ''}</td><td>${n * 100 / N}%</td></tr>`; }).join('')}</tbody></table>
+      <table><tbody id="lw-odds">${odds(ORDER)}</tbody></table>
       <p>${L(`You never win a lucky decoration twice. After ${PITY} spins in a row without one, the next spin is a sure one. With the whole set, that slice pays ${SET_COINS} coins.`, `Szczęśliwej ozdoby nie da się wygrać dwa razy. Po ${PITY} obrotach z rzędu bez ozdoby następny obrót daje ją na pewno. Gdy masz cały zestaw, to pole płaci ${SET_COINS} monet.`)}</p>
     </details>`;
   const $ = id => box.querySelector('#' + id), cv = box.querySelector('.lwcv');
-  try { view = buildScene(cv, document.body.classList.contains('night')); }
-  catch (e) { console.warn('3D unavailable', e); cv.hidden = true; box.querySelector('.lwflat').hidden = false; }
+  let order = null; // the wheel is built once the server says which slices today has (a season pet slice or not)
+  const build = o => {
+    if (order && order.join() === o.join()) return; order = o; view?.destroy(); view = null;
+    try { view = buildScene(cv, document.body.classList.contains('night'), o); }
+    catch (e) { console.warn('3D unavailable', e); cv.hidden = true; box.querySelector('.lwflat').hidden = false; }
+    $('lw-odds').innerHTML = odds(o);
+  };
   const watch = new MutationObserver(() => view?.setNight(document.body.classList.contains('night')));
   watch.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
@@ -216,8 +231,8 @@ export function mount(box, ctx) {
   }
   // The prize pop-up: what was won, as big as it deserves, over the wheel.
   function showWin(r) {
-    const z = r.prize, [a, b] = wonText(z), farm = !z.coins, el = $('lw-win');
-    el.innerHTML = `<div class="lwcard${z.item ? ' gold' : ''}" role="dialog" aria-label="${L('Your prize', 'Twoja nagroda')}"><small>${z.item ? L('Jackpot! You won', 'Główna nagroda! Wygrywasz') : L('You won', 'Wygrana')}</small>
+    const z = r.prize, [a, b] = wonText(z), farm = !z.coins, el = $('lw-win'), big = z.item || z.season;
+    el.innerHTML = `<div class="lwcard${big ? ' gold' : ''}" role="dialog" aria-label="${L('Your prize', 'Twoja nagroda')}"><small>${big ? L('Jackpot! You won', 'Główna nagroda! Wygrywasz') : L('You won', 'Wygrana')}</small>
       <div class="lwpic">${wonPic(z)}</div><b>${esc(a)}</b><p>${esc(b)}</p>
       <div class="row">${farm ? `<button type="button" class="btn w" data-w="farm">${L('Open Pet Farm', 'Otwórz Farmę zwierzaków')}</button>` : ''}<button type="button" class="btn m" data-w="ok">${L('Great!', 'Super!')}</button></div></div>`;
     el.hidden = false;
@@ -250,6 +265,7 @@ export function mount(box, ctx) {
   return {
     msg(m) {
       if (dead) return;
+      if (!busy && Array.isArray(m.order) && m.order.length === N && m.order.every(k => PRIZES[k])) build(m.order); else if (!order) build(ORDER);
       if (m.err) { busy = false; ctx.toast(srvText(m.err), true); }
       if (m.won) { // play the spin first; the prize and the new state show when the wheel stops
         const after = () => { if (dead) return; busy = false; info = m; shown = m.day; paint(); paintResult(m.won, true); showWin(m.won); (m.won.prize.item || m.won.prize.kind === 'c100' || m.won.prize.pet ? sfx.win : sfx.set).call(sfx); ctx.spun?.(); };

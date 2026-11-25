@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ORDER, PRIZES, LUCKY, PITY, SET_COINS, BOOSTS } from '../public/wheelprizes.js';
+import { ORDER, PRIZES, LUCKY, PITY, SET_COINS, BOOSTS, SEASON_PETS, orderOn } from '../public/wheelprizes.js';
 import { SPECIES, ITEMS } from '../public/games/farm/data.js';
 const PORT = 18080 + (Math.random() * 900 | 0);
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cozy-wheel-'));
@@ -41,6 +41,12 @@ function player(name, token) {
 const at = k => ORDER.indexOf(k);
 if (ORDER.length !== 20 || ORDER.some(k => !PRIZES[k])) fail('the wheel must have 20 known slices');
 if (LUCKY.some(t => !ITEMS[t]?.wheel)) fail('a lucky decoration is missing from the Pet Farm items');
+// The winter pet's slice takes the place of a 20-coin slice from 15 November to 28 February (Warsaw days).
+const WI = SEASON_PETS.winter.at, wOn = d => orderOn(d)[WI] === 'winter';
+if (ORDER[WI] !== 'c20' || !SPECIES[SEASON_PETS.winter.sp]?.wheel) fail('the winter slice must replace a 20-coin slice and give a wheel-only pet');
+for (const [d, on] of [['2026-11-14', false], ['2026-11-15', true], ['2026-12-31', true], ['2027-01-01', true], ['2027-02-28', true], ['2027-03-01', false], ['2026-07-01', false]])
+  if (wOn(d) !== on) fail(`winter slice on ${d} should be ${on ? 'on' : 'off'}`);
+if (orderOn('2026-07-01').join() !== ORDER.join()) fail('outside winter the wheel is the plain one');
 
 await start();
 const guest = await player('Gus').connect(), ana = await player('Ana').connect();
@@ -118,6 +124,22 @@ const placed = f.farm.items.find(i => i.type === d1);
 f = await ana.farm({ t: 'remove', id: placed.id });
 if (f.farm.stash[d1] !== 1) fail('putting it away lost it');
 console.log('lucky decoration ok (' + d1 + ')');
+
+// 6b. Winter: the Tusklet slice gives a baby Tusklet with the "New" label; it cannot breed, go on playdates or be traded.
+w = await ana.spin(WI, { again: true });
+if (w.order?.[WI] !== 'winter' || w.won.prize.kind !== 'winter' || w.won.prize.pet?.sp !== 'tusklet' || w.won.prize.where !== 'mail') fail('winter prize ' + JSON.stringify(w.won));
+f = await ana.farm({ t: 'open', test: { give: { wood: 400, stone: 400, fiber: 400, shells: 40 } } });
+f = await ana.farm({ t: 'place', type: 'hut', x: 0, y: 8, r: 0 }); if (f.err) fail('hut: ' + f.err);
+f = await ana.farm({ t: 'claim', id: f.farm.mail.find(m => m.pet?.sp === 'tusklet').id });
+const tusk = f.farm.pets.find(x => x.sp === 'tusklet');
+if (f.err || !tusk || tusk.lv !== 1 || !tusk.nu) fail('the Tusklet did not move in with a New label: ' + f.err + ' ' + JSON.stringify(tusk));
+f = await ana.farm({ t: 'place', type: 'nest', x: 4, y: 8, r: 0 }); if (f.err) fail('nest: ' + f.err);
+const mate = f.farm.pets.find(x => x.sp !== 'tusklet');
+f = await ana.farm({ t: 'open', test: { pet: 'tusklet', traits: { lv: 8 } } });
+const big = f.farm.pets.filter(x => x.sp === 'tusklet').pop();
+f = await ana.farm({ t: 'pair', a: big.id, b: mate.id }); if (f.err !== 'A Lucky Wheel pet cannot have eggs.') fail('a Tusklet went to the Nest: ' + f.err);
+f = await ana.farm({ t: 'petopen', id: big.id }); if (f.err !== 'A Lucky Wheel pet cannot have eggs.') fail('a Tusklet was opened for playdates: ' + f.err);
+console.log('winter pet ok');
 
 // 7. Bad luck runs out, the set never repeats, and a full set pays coins.
 w = await ana.spin(at('c20'), { again: true, dry: PITY });

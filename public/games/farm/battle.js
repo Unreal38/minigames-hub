@@ -123,6 +123,7 @@ export const KIT = {
   bloomicorn: { role: 'healer', moves: ['leafflick', 'mend', 'quickstep', 'bloomburst'] },
   dreampir: { role: 'support', moves: ['zap', 'sweetscent', 'sunnap', 'thunderpounce'] },
   yetiny: { role: 'bruiser', moves: ['splash', 'warmup', 'harden', 'tidalbump'] },
+  tusklet: { role: 'tank', moves: ['splash', 'warmup', 'bubbleshield', 'tidalbump'] }, // warms up in its scarf
   gargoylet: { role: 'tank', moves: ['pebbletoss', 'harden', 'singe', 'boulderroll'] },
   nessling: { role: 'balanced', moves: ['splash', 'sunnap', 'soak', 'tidalbump'] },
   ringbear: { role: 'tank', moves: ['pebbletoss', 'harden', 'dazeflash', 'boulderroll'] },

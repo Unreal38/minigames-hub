@@ -48,7 +48,7 @@ const fold = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').rep
 // host: the element to draw into. api: { send(msg), toast(html, bad), account(mode), close() }
 export function mount(host, api) {
   let V = null, got = 0, filter = '', busy = false, alive = true, fresh = '';
-  const order = Object.keys(SPECIES).sort((a, b) => SPECIES[a].name.localeCompare(SPECIES[b].name));
+  const order = Object.keys(SPECIES).filter(sp => !SPECIES[sp].wheel).sort((a, b) => SPECIES[a].name.localeCompare(SPECIES[b].name));
   host.classList.add('mp');
   host.innerHTML = '<p class="mpload">' + L('Looking for today’s pet…', 'Szukam dzisiejszego zwierzaka…') + '</p>';
 
