@@ -66,6 +66,8 @@ A small self-hosted website where friends pick a username (accounts are optional
 
 **Coins and the avatar shop.** Coins are one balance per player (per account once you have one) that survives restarts. Every finished game pays 5 coins, a win 10 more; Mini Golf Party bets them, and Pet Farm earns and spends the same coins. They buy avatar items in the Shop tab of the avatar creator: 59 hats, glasses, neck pieces, outfits, faces, shoes and colours from 30 to 250 coins. Everything that was in the creator before stays free. Players who already had games on the server get the coins those games would have paid, and Pet Farm coins moved into the account balance once.
 
+**Playing with bots.** A match with bots in it pays only a share of the usual XP and placement coins (`server/botpay.js`; the test script sets BOT_PAY=full so game tests see exact placement coins): each opponent counts by strength (a person 1, a Sharp bot 1, a Club bot 0.5, a Chill or Easy bot 0.15, a bot in a game without a bot level 0.5), fewer opponents than a full table (3) pay a bit less, and a bot match shorter than 3 minutes pays its share of the time. Three Sharp bots over a long match pay in full; Chill bots pay very little. People-only matches always pay in full. The +XP note says what share was paid.
+
 - Avatar creator: outfit, skin, hair, eyes, mouth, face details and extras, shown as portraits in the UI and as the 3D characters at the table.
 - Table chat and quick reactions (six snacks, six emoji) in the waiting room and during games.
 - No dependencies: plain Node.js (20+) server with its own WebSocket code. There is no `npm install` step.
