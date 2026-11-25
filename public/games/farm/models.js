@@ -204,7 +204,7 @@ const BUILD = {
     const TH = 3.25; // tall enough that its roof (and the level 6 gallery) clears the main roof's slope
     cyl(t, .44, .47, TH, 8, C.stone); cyl(t, .5, .5, .1, 8, C.stoneD, 0, 0); cyl(t, .5, .46, .12, 8, C.stoneD, 0, TH - .05); cyl(t, .47, .47, .07, 8, C.woodD, 0, 1.3);
     for (const [a, y] of [[.5, .5], [1.9, 1.0], [-.6, 1.7], [1.2, 2.2], [-1.5, .8], [2.6, 2.4], [0, 2.45]]) box(t, .2, .09, .03, C.stoneD, Math.sin(a) * .445, y, Math.cos(a) * .445).rotation.y = a;
-    for (const [a, y] of [[-.785, 2.05], [-2.356, 2.05], [-.785, .8], [-1.57, 2.65]]) { const o = grp(t, Math.sin(a) * .44, y, Math.cos(a) * .44); o.rotation.y = a; box(o, .2, .34, .06, C.glass, 0, 0, 0); box(o, .26, .05, .08, C.stoneD, 0, -.05, 0); box(o, .26, .05, .08, C.stoneD, 0, .34, 0); }
+    for (const [a, y] of [[-.785, 2.5], [-2.356, 2.5], [-.785, .8], [-1.57, 1.6]]) { /* upper windows sit above the eaves, which reach past the tower wall */ const o = grp(t, Math.sin(a) * .44, y, Math.cos(a) * .44); o.rotation.y = a; box(o, .2, .34, .06, C.glass, 0, 0, 0); box(o, .26, .05, .08, C.stoneD, 0, -.05, 0); box(o, .26, .05, .08, C.stoneD, 0, .34, 0); }
     if (lv < 6) { cone(t, .62, .16, 8, C.blueD, 0, TH + .05); cone(t, .56, .95, 8, C.blue, 0, TH + .11); ico(t, .07, C.gold, 0, TH + 1.11, 0);
       box(t, .03, .5, .03, C.woodD, 0, TH + 1.11, 0); box(t, .34, .2, .03, C.red, .19, TH + 1.39, 0); box(t, .1, .08, .06, C.gold, .14, TH + 1.45, 0); }
     for (const sd of [-1, 1]) banner(g, sd * .36, 1.51 + up - .9, .9, trim, .2, .5);
