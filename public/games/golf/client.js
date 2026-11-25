@@ -1,4 +1,4 @@
-// Mini Golf Party game view: HUD over the 3D hole. Renders what the server says; sends putts and bets.
+// Mini Golf Party game view: HUD over the 3D hole. Renders what the server says; sends putts.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { L, PL, cnt, word } from '../../i18n.js';
@@ -16,7 +16,6 @@ const I = {
   flag: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 3v18" stroke="#3b2219" stroke-width="2.6" stroke-linecap="round"/><path d="M7 4l12 4.5L7 13z" fill="#e5543b" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/></svg>',
   check: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
-const STAKES = [10, 25, 50];
 // what golfers call a score, from strokes and par
 function scoreName(n, par) {
   if (n === 1) return 'Hole in one!';
@@ -48,7 +47,7 @@ export function mount(app, ctx) {
     <canvas class="g3d" aria-label="${L(`The mini golf hole. Drag back and let go to putt, or use the arrow keys and space.`, `Dołek minigolfa. Przeciągnij do tyłu i puść, żeby uderzyć, albo użyj strzałek i spacji.`)}"></canvas>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
-      <div class="tl"><span class="chip" id="mg-hole"></span><span class="chip coins" id="mg-coins"></span></div>
+      <div class="tl"><span class="chip" id="mg-hole"></span></div>
       <div class="tr"><span class="tcode" id="mg-code"></span>
         <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L(`How to play`, `Jak grać`)}">?</button>
@@ -56,7 +55,6 @@ export function mount(app, ctx) {
       <div class="banner" id="mg-banner" aria-live="polite"></div>
       <div class="shout" id="mg-big" aria-live="assertive"></div>
       <ol class="list" id="mg-list" aria-label="${L(`Scores`, `Wyniki`)}"></ol>
-      <div class="betbox" id="mg-bet" hidden></div>
       <div class="puttbar" id="mg-putt" hidden></div>
       <div class="holecard" id="mg-done" hidden></div>
     </div>
@@ -66,7 +64,7 @@ export function mount(app, ctx) {
   const root = app.querySelector('.mg'), $ = id => root.querySelector('#' + id);
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
-  let stake = 10, tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, readyAt = 0, power = 0, aiming = false, keys = false, rolling = false, sentAt = 0, turnAt = 0;
+  let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, readyAt = 0, power = 0, aiming = false, keys = false, rolling = false, sentAt = 0, turnAt = 0;
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
@@ -142,20 +140,6 @@ export function mount(app, ctx) {
     }).join(''));
   }
 
-  function renderBet() {
-    const el = $('mg-bet'), my = me();
-    el.hidden = !(S.stage === 'bet' && S.bets && S.ph === 'play');
-    if (el.hidden) return;
-    if (!my) { setHtml(el, `<div class="bethead">${L(`<h2>Hole ${S.hole}: ${esc(S.name)}</h2><span>Par ${S.par}. You are watching this round.</span>`, `<h2>Dołek ${S.hole}: ${esc(holeName(S.name))}</h2><span>Par ${S.par}. Oglądasz tę rundę.</span>`)}</div>`); return; }
-    const coins = my.coins || 0, bet = my.bet && my.bet !== 'skip' ? my.bet : null, poor = coins < STAKES[0];
-    setHtml(el, `<div class="bethead">${L(`<h2>Who takes hole ${S.hole}?</h2><span>Fewest strokes wins it. Right calls share the pot ${I.coin}<b>${S.pot || 0}</b> · you have ${I.coin}<b>${coins}</b></span>`, `<h2>Kto wygra dołek ${S.hole}?</h2><span>Wygrywa najmniej uderzeń. Trafne typy dzielą pulę ${I.coin}<b>${S.pot || 0}</b> · masz ${I.coin}<b>${coins}</b></span>`)}</div>
-      <div class="picks">${S.seats.map((p, i) => `<button type="button" class="pick${bet?.on === i ? ' on' : ''}" data-a="bet" data-i="${i}" ${poor ? 'disabled' : ''} aria-pressed="${bet?.on === i}">
-        ${avatarHtml(p.color, p.av, 44)}${L(`<b>${i === S.me ? 'Me' : nameHtml(p.name, p.fl)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'new'}</span>`, `<b>${i === S.me ? 'Ja' : nameHtml(p.name, p.fl)}</b><span>${p.card.length ? vsPar(p.total - parSoFar(p.card.length)) : p.bot && !p.human ? 'bot' : 'nowy'}</span>`)}</button>`).join('')}</div>
-      <div class="stakes">${L(`<span>Stake</span>`, `<span>Stawka</span>`)}<div class="pills">${STAKES.map(v => `<button type="button" data-a="stake" data-v="${v}" aria-pressed="${stake === v}" ${v > coins ? 'disabled' : ''}>${v}</button>`).join('')}</div>
-        <span class="mybet">${L(`${poor ? 'You need 10 coins to bet. Finish the round to earn some.' : bet ? `${I.coin}<b>${bet.amt}</b> on ${bet.on === S.me ? 'yourself' : nameOf(bet.on)}` : my.bet === 'skip' ? 'No bet this hole.' : 'Tap a player to bet on them. All bets make one pot; nobody pays extra. Betting is optional.'}`, `${poor ? 'Do zakładu potrzeba 10 monet. Dokończ rundę, żeby trochę zarobić.' : bet ? `${I.coin}<b>${bet.amt}</b> na ${bet.on === S.me ? 'siebie' : 'gracza ' + nameOf(bet.on)}` : my.bet === 'skip' ? 'Bez zakładu na tym dołku.' : 'Dotknij gracza, żeby na niego postawić. Wszystkie stawki tworzą jedną pulę, nikt nie dopłaca. Zakłady nie są obowiązkowe.'}`)}</span>
-        <button type="button" class="btn ${my.bet === 'skip' || poor ? 'w' : 'm'}" data-a="skip" ${my.bet === 'skip' ? 'disabled' : ''}>${L(`${bet ? 'Remove bet' : my.bet === 'skip' ? 'Waiting for the others' : 'No bet, just play'}`, `${bet ? 'Wycofaj zakład' : my.bet === 'skip' ? 'Czekamy na pozostałych' : 'Bez zakładu, po prostu gram'}`)}</button></div>`);
-  }
-
   function renderPutt() {
     const el = $('mg-putt'), my = me();
     el.hidden = !(S && S.ph === 'play' && S.stage === 'play');
@@ -177,11 +161,9 @@ export function mount(app, ctx) {
     el.hidden = !(S.stage === 'done' && R && S.ph === 'play');
     if (el.hidden) return;
     const ord = S.seats.map((_, i) => i).sort((a, b) => (a === R.win ? -1 : b === R.win ? 1 : R.scores[a] - R.scores[b]));
-    const my = S.me >= 0 ? R.pay[S.me] : null;
     setHtml(el, `<h2>${L(`${R.win >= 0 ? `${youOr(R.win)} take${R.win === S.me ? '' : 's'} hole ${S.hole}` : `Nobody holed out on hole ${S.hole}`}`, `${R.win >= 0 ? (R.win === S.me ? `Dołek ${S.hole} jest twój` : `Dołek ${S.hole} wygrywa ${nameOf(R.win)}`) : `Nikt nie trafił do dołka ${S.hole}`}`)}</h2>
-      <ol>${ord.map(i => { const p = S.seats[i], sc = R.scores[i], pay = R.pay[i];
-        return `<li class="${i === R.win ? 'won' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${L(`${sc >= S.cap ? 'picked up' : scoreName(sc, R.par).replace('!', '')}`, `${sc >= S.cap ? 'podniesiona' : scoreName(sc, R.par).replace('!', '')}`)}</span><strong>${sc}</strong>${pay ? `<small class="${pay.net > 0 ? 'up' : pay.net < 0 ? 'down' : ''}">${pay.net > 0 ? '+' : ''}${pay.net}${I.coin}</small>` : ''}</li>`; }).join('')}</ol>
-      ${my ? `<p>${L(`${my.net > 0 ? `Your bet came in: +${my.net} coins.` : my.net < 0 ? `Your bet on ${my.on === S.me ? 'yourself' : nameOf(my.on)} lost ${-my.net} coins.` : R.win < 0 ? 'Nobody won the hole, so your stake came back.' : 'Your stake came back.'}`, `${my.net > 0 ? `Twój zakład wszedł: +${cnt(my.net, 'coin', 'coins', 'moneta', 'monety', 'monet')}.` : my.net < 0 ? `Twój zakład na ${my.on === S.me ? 'siebie' : 'gracza ' + nameOf(my.on)} przegrywa ${cnt(-my.net, 'coin', 'coins', 'monetę', 'monety', 'monet')}.` : R.win < 0 ? 'Nikt nie wygrał dołka, więc stawka wraca do ciebie.' : 'Stawka wraca do ciebie.'}`)}</p>` : ''}
+      <ol>${ord.map(i => { const p = S.seats[i], sc = R.scores[i];
+        return `<li class="${i === R.win ? 'won' : ''}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b><span>${L(`${sc >= S.cap ? 'picked up' : scoreName(sc, R.par).replace('!', '')}`, `${sc >= S.cap ? 'podniesiona' : scoreName(sc, R.par).replace('!', '')}`)}</span><strong>${sc}</strong></li>`; }).join('')}</ol>
       <p class="next">${L(`${S.hole < S.holes ? 'Next hole coming up…' : 'That was the last hole!'}`, `${S.hole < S.holes ? 'Zaraz następny dołek…' : 'To był ostatni dołek!'}`)}</p>`);
   }
 
@@ -189,7 +171,7 @@ export function mount(app, ctx) {
     const el = $('mg-banner'); let msg = '';
     const left = Math.max(0, endsAt - performance.now());
     if (S.ph !== 'play') msg = S.win >= 0 ? L(`${nameOf(S.win)} wins the round!`, `Rundę wygrywa ${nameOf(S.win)}!`) : '';
-    else if (S.stage === 'bet') msg = S.bets ? L(`Place your bets · ${Math.ceil(left / 1000)}s`, `Obstawiajcie · ${Math.ceil(left / 1000)} s`) : L(`Hole ${S.hole}: ${S.name} · Par ${S.par}`, `Dołek ${S.hole}: ${holeName(S.name)} · Par ${S.par}`);
+    else if (S.stage === 'bet') msg = L(`Hole ${S.hole}: ${S.name} · Par ${S.par}`, `Dołek ${S.hole}: ${holeName(S.name)} · Par ${S.par}`);
     else if (S.stage === 'play') msg = S.turn >= 0 && turnOpen() ? L(`${S.turn === S.me ? 'Your putt' : `${S.seats[S.turn]?.name}'s putt`} · ${Math.ceil(left / 1000)}s`, `${S.turn === S.me ? 'Twoje uderzenie' : `Uderza ${S.seats[S.turn]?.name}`} · ${Math.ceil(left / 1000)} s`) : holeName(S.name);
     if (el.textContent !== msg) el.textContent = msg;
     el.classList.toggle('hot', S.ph === 'play' && S.stage === 'play' && S.turn === S.me && turnOpen() && left < 6000);
@@ -199,10 +181,8 @@ export function mount(app, ctx) {
     if (!S) return;
     setHtml($('mg-hole'), `${L(`<i>Hole </i>${S.hole}/${S.holes} · Par ${S.par}`, `<i>Dołek </i>${S.hole}/${S.holes} · Par ${S.par}`)}`);
     const my = me();
-    setHtml($('mg-coins'), my ? `${I.coin}${my.coins ?? 0}` : L('Watching', 'Oglądasz'));
-    $('mg-coins').hidden = !S.bets;
     $('mg-code').textContent = Rm?.code || '';
-    buildTags(); renderTags(); renderList(); renderBet(); renderPutt(); renderDone(); renderBanner();
+    buildTags(); renderTags(); renderList(); renderPutt(); renderDone(); renderBanner();
   }
 
   function big(text, sub = '', ms = 1400) {
@@ -213,9 +193,9 @@ export function mount(app, ctx) {
   }
 
   function playEv(e) {
-    if (e.t === 'hole') { hideResults(); sfx.draw(); if (!S.bets) big(L(`Hole ${S.hole}`, `Dołek ${S.hole}`), `${esc(holeName(S.name))} · Par ${S.par}`, 2000); }
+    if (e.t === 'hole') { hideResults(); sfx.draw(); big(L(`Hole ${S.hole}`, `Dołek ${S.hole}`), `${esc(holeName(S.name))} · Par ${S.par}`, 2000); }
     else if (e.t === 'go') { big(L('Tee off!', 'Zaczynamy!'), `${esc(holeName(S.name))} · Par ${S.par}`, 1300); sfx.turn(); }
-    else if (e.t === 'holeEnd') { const R = S.holeRes, my = R?.pay?.[S.me]; if (my?.net > 0) { sfx.win(); confetti(); } else if (R?.win === S.me) sfx.set(); else sfx.pop(); }
+    else if (e.t === 'holeEnd') { const R = S.holeRes; if (R?.win === S.me) sfx.set(); else sfx.pop(); }
     else if (e.t === 'late') { if (e.s === S.me) ctx.toast(L('Out of time, so the game putted for you.', 'Koniec czasu, więc gra uderzyła za ciebie.')); }
     else if (e.t === 'sit') ctx.toast(L(`${nameOf(e.s)} joins the round.`, `${nameOf(e.s)} dołącza do rundy.`));
     else if (e.t === 'end') {
@@ -235,7 +215,7 @@ export function mount(app, ctx) {
     }
     endsAt = performance.now() + s.left; turnAt = performance.now() + (s.tin || 0);
     const my = me();
-    if (my) { readyAt = performance.now() + my.wait; if (stake > (my.coins || 0)) stake = 10; }
+    if (my) { readyAt = performance.now() + my.wait; }
     render(); sync();
     if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
   }
@@ -243,11 +223,10 @@ export function mount(app, ctx) {
   // ----- results: final standings with the full scorecard -----
   function showResults() {
     if (!S || S.ph !== 'end' || !S.res) return;
-    const el = root.querySelector('.results'), R = S.res, w = S.win, my = me();
-    const line = my && S.bets ? (my.net > 0 ? L(`Your bets made ${I.coin}<b>${my.net}</b>.`, `Zakłady dały ci ${I.coin}<b>${my.net}</b>.`) : my.net < 0 ? L(`Your bets cost ${I.coin}<b>${-my.net}</b>.`, `Zakłady kosztowały cię ${I.coin}<b>${-my.net}</b>.`) : '') : '';
+    const el = root.querySelector('.results'), R = S.res, w = S.win;
     el.innerHTML = `<div class="sheet">
       <h2>${I.flag}${L(`${w === S.me ? 'You win' : `${nameOf(w)} wins`} the round!`, `${w === S.me ? 'Wygrywasz rundę!' : `Rundę wygrywa ${nameOf(w)}!`}`)}</h2>
-      <p>${L(`${S.holes} holes, par ${R.par}. Fewest strokes wins. ${line}`, `Dołki: ${S.holes}, par ${R.par}. Wygrywa najmniej uderzeń. ${line}`)}</p>
+      <p>${L(`${S.holes} holes, par ${R.par}. Fewest strokes wins. `, `Dołki: ${S.holes}, par ${R.par}. Wygrywa najmniej uderzeń.`)}</p>
       <div class="cardwrap"><table class="mg-card"><thead><tr><th>${L('Hole', 'Dołek')}</th>${S.pars.map((_, h) => `<th>${h + 1}</th>`).join('')}<th>${L('Total', 'Razem')}</th><th>${L('Coins', 'Monety')}</th></tr>
         <tr class="par"><th>Par</th>${S.pars.map(p => `<td>${p}</td>`).join('')}<td>${R.par}</td><td></td></tr></thead>
         <tbody>${R.order.map((i, n) => { const p = S.seats[i];
@@ -304,7 +283,7 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'play') return;
     renderBanner();
     const n = Math.ceil((endsAt - performance.now()) / 1000);
-    if (n !== lastTick && n <= 5 && n > 0 && ((S.stage === 'play' && S.turn === S.me && turnOpen()) || (S.stage === 'bet' && S.bets))) { lastTick = n; sfx.tick(); }
+    if (n !== lastTick && n <= 5 && n > 0 && ((S.stage === 'play' && S.turn === S.me && turnOpen()))) { lastTick = n; sfx.tick(); }
     const r = canAim(), o = S.stage === 'play' && turnOpen();
     if (r !== wasReady || o !== wasOpen) { if (r && !wasReady) sfx.turn(); wasReady = r; wasOpen = o; renderPutt(); renderTags(); renderList(); }
   }, 100);
@@ -312,12 +291,7 @@ export function mount(app, ctx) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
-    if (a === 'bet') { sfx.pop(); ctx.act({ t: 'bet', on: +b.dataset.i, amt: stake }); }
-    else if (a === 'stake') {
-      stake = +b.dataset.v; sfx.click();
-      const cur = me()?.bet; if (cur && cur !== 'skip') ctx.act({ t: 'bet', on: cur.on, amt: stake }); else { $('mg-bet')._h = ''; renderBet(); }
-    } else if (a === 'skip') { sfx.click(); ctx.act({ t: 'skip' }); }
-    else if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
+    if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }

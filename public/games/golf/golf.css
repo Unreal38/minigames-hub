@@ -18,7 +18,6 @@ body.in-game { overflow: hidden; }
 .mg .tl, .mg .tr { position: absolute; top: 14px; display: flex; gap: 8px; align-items: center; }
 .mg .tl { left: 14px; } .mg .tr { right: 14px; }
 .mg .chip { color: var(--cream); }
-.mg .chip.coins { display: inline-flex; align-items: center; gap: 6px; background: var(--paper); color: var(--on-paper); border-color: var(--ink); }
 .mg .chip[hidden] { display: none; }
 .mg .chip i { font-style: normal; }
 .mg .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
@@ -46,25 +45,7 @@ body.in-game { overflow: hidden; }
 .mg .mg-tag.turn { background: #ffb547; opacity: 1; transform-origin: 50% 100%; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
 /* betting before a hole */
-.mg .betbox { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 16px; width: min(760px, calc(100vw / var(--vz, 1) - 24px)); background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 7px 0 var(--deep); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; max-height: calc(58vh / var(--vz, 1)); overflow: auto; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; }
-.mg .betbox[hidden], .mg .puttbar[hidden], .mg .holecard[hidden], .mg .results[hidden] { display: none; }
-.mg .bethead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
-.mg .bethead h2 { font-size: 24px; color: var(--on-paper); }
-.mg .bethead span { font-size: 15px; color: var(--soft-tx); }
-.mg .bethead b { font-family: var(--fd); color: var(--on-paper); }
-.mg .picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
-.mg .pick { display: flex; flex-direction: column; align-items: center; gap: 1px; background: var(--card); border: 3px solid var(--card-edge); border-radius: 16px; padding: 7px 6px 5px; cursor: pointer; color: var(--on-paper); transition: transform .12s cubic-bezier(.3, 1.6, .5, 1); }
-.mg .pick:not(:disabled):hover { transform: translateY(-3px); border-color: var(--ink); }
-.mg .pick:disabled { cursor: default; opacity: .6; }
-.mg .pick b { font-family: var(--fd); font-weight: 600; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mg .pick span { font-size: 13px; color: var(--soft-tx); }
-.mg .pick.on { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
-.mg .stakes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-.mg .stakes > span:first-child { font-family: var(--fd); font-weight: 600; }
-.mg .stakes .pills button { color: var(--on-paper); border-color: var(--card-edge); min-height: 40px; padding: 5px 14px; }
-.mg .stakes .pills button:disabled { opacity: .4; }
-.mg .mybet { flex: 1 1 180px; font-size: 15px; color: var(--soft-tx); }
-.mg .mybet b { font-family: var(--fd); color: var(--on-paper); }
+.mg .puttbar[hidden], .mg .holecard[hidden], .mg .results[hidden] { display: none; }
 
 /* what to do, bottom centre */
 .mg .puttbar { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; background: #2a1422d9; color: var(--cream); border: 3px solid var(--line); border-radius: 20px; padding: 8px 18px; max-width: calc(100vw / var(--vz, 1) - 24px); pointer-events: none !important; text-align: center; }
@@ -129,13 +110,6 @@ body.in-game { overflow: hidden; }
   .mg .list span { font-size: 12px; min-width: 18px; }
   .mg .list em { font-size: 11px; padding: 0 4px; min-width: 16px; }
   .mg .list em svg { width: 11px; height: 11px; }
-  .mg .betbox { padding: 10px 12px; gap: 8px; bottom: 10px; max-height: calc(52vh / var(--vz, 1)); }
-  .mg .bethead h2 { font-size: 20px; }
-  .mg .bethead span { font-size: 13px; }
-  .mg .picks { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 6px; }
-  .mg .pick { padding: 5px 4px 3px; }
-  .mg .pick .avatar { width: 34px !important; height: 34px !important; }
-  .mg .pick b { font-size: 13px; }
   .mg .puttbar { bottom: 10px; padding: 6px 12px; }
   .mg .puttbar p { font-size: 14px; }
   .mg .mg-tag { font-size: 11px; }
@@ -151,6 +125,5 @@ body:has(.mg) #toasts { top: 118px; }
 
 /* night: bright stickers (lantern, mint, light tickets) keep dark text */
 body.night .mg .mg-tag.turn,
-body.night .mg .pick.on,
 body.night .mg .holecard li.won,
 body.night .mg .mg-card tr.won { color: var(--ink); }
