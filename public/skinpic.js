@@ -2,7 +2,7 @@
 // The game code that paints the real things is loaded only when a picture is first asked for; each picture is drawn once.
 const shots = new Map(); // key -> data URL ('' when it could not be drawn)
 let kit = null;
-const keyOf = (k, i, color, av) => k + '|' + (i | 0) + (k === 'kp' || k === 'cu' || k === 'cs' || (k === 'gb' && !(i | 0)) ? '|' + color : '') + (k === 'kp' ? '|' + (av || []).join('') : '');
+const keyOf = (k, i, color, av) => k + '|' + (i | 0) + (k === 'kp' || k === 'cu' || k === 'cs' || k === 'ck' || (k === 'gb' && !(i | 0)) ? '|' + color : '') + (k === 'kp' ? '|' + (av || []).join('') : '');
 export const skinPicNow = (k, i, color, av) => shots.get(keyOf(k, i, color, av)) || '';
 
 function cv2d(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
@@ -61,6 +61,12 @@ const chessPic = (i, color) => shot3d(async THREE => {
   const k = pieceModel(6, 0, color, i), n = pieceModel(2, 1, '#7a5a4a', i); k.position.set(-.36, 0, -.1); n.position.set(.4, 0, .22); n.rotation.y = -.5; g.add(k, n);
   return { g, dir: [.1, .32, .94], zoom: .82 };
 });
+// a light king standing behind a dark man of a checkers set
+const checkersPic = (i, color) => shot3d(async THREE => {
+  const { pieceModel } = await import('./games/warcaby/scene3d.js'), g = new THREE.Group(), U = 1.25;
+  const k = pieceModel(true, 0, color, i, U), m = pieceModel(false, 1, '#7a5a4a', i, U); k.position.set(-.32, 0, -.22); m.position.set(.36, 0, .3); g.add(k, m);
+  return { g, dir: [.05, .62, .78], zoom: .96 };
+});
 // two domino tiles drawn flat: 6-4 and the double three
 async function dominoPic(i) {
   const { dominoLook, paintDominoHalf } = await import('./pieceskins.js'), L = dominoLook(i), [c, g] = cv2d(240, 240);
@@ -76,7 +82,7 @@ export async function skinPic(k, i, color, av) {
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }

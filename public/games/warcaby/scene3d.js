@@ -1,5 +1,5 @@
 // Warcaby 3D table (three.js): a chunky board on a table on a sky island, the two players' avatars on stools, and
-// round blocky draughts pieces. Cream plays against dark chocolate (or the players' chess sets from the Wardrobe);
+// round blocky draughts pieces. Cream plays against dark chocolate (or the players' checkers sets from the Wardrobe);
 // the band round each piece's foot is its player's own colour, and a king is two pieces stacked with a little crown.
 // Purely visual: it draws what the server sends and tells the HUD which square is under the pointer.
 import * as THREE from 'three';
@@ -7,7 +7,7 @@ import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js'
 import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
-import { chessLook } from '../../pieceskins.js';
+import { checkersLook } from '../../pieceskins.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const B = .76 * 8;              // board width (the same as the chessboard: a 10x10 board has smaller squares)
@@ -20,24 +20,37 @@ const LIGHT = '#f8eed2', DARK = '#86b56b';
 const MAN_H = .2, KING_H = .48; // how tall a piece stands, in squares (for picking)
 
 // ---------- piece models ----------
-// A man: a thick round disc with a ridge on top. A king: two discs and a little crown. `cell` is the square's width.
+// A man: a thick round disc with a decoration on its face (the player's checkers set picks it, Wardrobe kind ck).
+// A king: two discs and a little crown. `cell` is the square's width.
 export function pieceModel(king, side, ring, set = 0, cell = B / 10) {
   const g = new THREE.Group(), U = cell;
-  const { body, shade, trim, gold } = chessLook(set, side);
+  const { body, shade, trim, gold, top } = checkersLook(set, side);
   let y = 0;
   const add = (geo, col, x, yy, z) => { const m = new THREE.Mesh(geo, M(col)); m.position.set(x * U, yy * U, z * U); m.castShadow = true; g.add(m); return m; };
   const cyl = (rt, rb, h, col = body, seg = 14) => { const m = add(new THREE.CylinderGeometry(rt * U, rb * U, h * U, seg), col, 0, y + h / 2, 0); y += h; return m; };
-  const disc = () => {
-    cyl(.4, .4, .045, ring); cyl(.42, .4, .1); cyl(.36, .42, .03, shade);
-    // the ridge round the top and a button in the middle
-    const t = new THREE.TorusGeometry(.27 * U, .035 * U, 4, 14); t.rotateX(Math.PI / 2); add(t, trim, 0, y + .005, 0);
-    add(new THREE.CylinderGeometry(.12 * U, .14 * U, .03 * U, 10), trim, 0, y + .015, 0);
-  };
-  disc();
+  const torus = (r, t, col, yy = y + .005, seg = 14) => { const geo = new THREE.TorusGeometry(r * U, t * U, 4, seg); geo.rotateX(Math.PI / 2); return add(geo, col, 0, yy, 0); };
+  const flat = (r, h, col, x, z, seg = 8) => add(new THREE.CylinderGeometry(r * U, r * U, h * U, seg), col, x, y + h / 2, z);
+  const around = (n, fn, a0 = 0) => { for (let i = 0; i < n; i++) { const a = a0 + i * Math.PI * 2 / n; fn(Math.cos(a), Math.sin(a), a); } };
+  function face() { // the decoration on the disc's top face
+    if (top === 'grooves') { torus(.3, .022, trim); torus(.17, .022, trim); }
+    else if (top === 'chips') { around(5, (c, s2) => add(new THREE.IcosahedronGeometry(.06 * U, 0), trim, c * .22, y + .02, s2 * .22), .4); add(new THREE.IcosahedronGeometry(.06 * U, 0), trim, .02, y + .02, -.03); }
+    else if (top === 'holes') { torus(.33, .03, trim); around(4, (c, s2) => flat(.05, .02, trim, c * .1, s2 * .1, 6), Math.PI / 4); }
+    else if (top === 'coin') { torus(.34, .035, trim); around(16, (c, s2, a) => { const m = add(new THREE.BoxGeometry(.03 * U, .08 * U, .06 * U), shade, c * .42, y - .05, s2 * .42); m.rotation.y = -a; }); flat(.13, .025, trim, 0, 0, 5); }
+    else if (top === 'paw') { const pad = flat(.13, .025, trim, 0, .05, 10); pad.scale.set(1.15, 1, .9); around(4, (c, s2) => flat(.055, .025, trim, c * .19, s2 * .19 - .02, 8), -Math.PI * .85); }
+    else if (top === 'flower') { around(5, (c, s2) => { const m = flat(.1, .022, trim, c * .14, s2 * .14, 8); m.scale.set(1, 1, 1); }, Math.PI / 2); flat(.08, .035, gold, 0, 0, 8); }
+    else if (top === 'star') { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = (i % 2 ? .11 : .26) * U; i ? sh.lineTo(Math.cos(a) * r, Math.sin(a) * r) : sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: .03 * U, bevelEnabled: false }); geo.rotateX(-Math.PI / 2); add(geo, trim, 0, y, 0); }
+    else if (top === 'flake') { around(3, (c, s2, a) => { const m = add(new THREE.BoxGeometry(.52 * U, .025 * U, .05 * U), trim, 0, y + .012, 0); m.rotation.y = a; }); around(6, (c, s2) => add(new THREE.OctahedronGeometry(.045 * U, 0), trim, c * .26, y + .02, s2 * .26)); }
+    else if (top === 'pumpkin') { around(8, (c, s2, a) => { const m = add(new THREE.BoxGeometry(.045 * U, .1 * U, .06 * U), trim, c * .41, y - .06, s2 * .41); m.rotation.y = -a; }); around(4, (c, s2, a) => { const m = add(new THREE.BoxGeometry(.3 * U, .02 * U, .04 * U), trim, c * .15, y + .01, s2 * .15); m.rotation.y = -a; }, Math.PI / 4); add(new THREE.CylinderGeometry(.045 * U, .06 * U, .12 * U, 6), '#3f8a3a', 0, y + .06, 0).rotation.z = .3; }
+    else if (top === 'gem') { const m = add(new THREE.OctahedronGeometry(.2 * U, 0), trim, 0, y + .02, 0); m.scale.y = .35; torus(.33, .025, trim); }
+    else { torus(.27, .035, trim); flat(.13, .03, trim, 0, 0, 10); } // the classic ridge and a button in the middle
+  }
+  const discOne = () => { cyl(.4, .4, .045, ring); cyl(.42, .4, .1); cyl(.36, .42, .03, shade); face(); };
+  discOne();
   if (king) {
-    y += .03; disc(); y += .02;
+    y += .045; discOne(); y += .03;
     cyl(.22, .24, .05, gold, 10);
-    for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5, m = add(new THREE.ConeGeometry(.065 * U, .16 * U, 4), gold, Math.cos(a) * .17, y + .07, Math.sin(a) * .17); m.rotation.y = -a; }
+    around(5, (c, s2, a) => { const m = add(new THREE.ConeGeometry(.065 * U, .16 * U, 4), gold, c * .17, y + .07, s2 * .17); m.rotation.y = -a; });
     add(new THREE.IcosahedronGeometry(.07 * U, 0), ring, 0, y + .04, 0);
   }
   bake(g); toonify(g, .028);
@@ -306,8 +319,8 @@ export function createScene(canvas, { onFrame } = {}) {
       });
     }
     if (st.size !== N) { for (const s of [...pieces.keys()]) dropPiece(s); buildBoard(st.size); protoKey = ''; board = null; rebuilt = true; }
-    { const W = list[st.white], Bk = list[1 - st.white], pk = W.color + '|' + Bk.color + '|' + (W.fl?.cs | 0) + '|' + (Bk.fl?.cs | 0); // each side wears its player's chess set
-      if (pk !== protoKey) { protoKey = pk; for (const s of [...pieces.keys()]) dropPiece(s); buildProtos(W.color, Bk.color, W.fl?.cs | 0, Bk.fl?.cs | 0); rebuilt = true; } }
+    { const W = list[st.white], Bk = list[1 - st.white], pk = W.color + '|' + Bk.color + '|' + (W.fl?.ck | 0) + '|' + (Bk.fl?.ck | 0); // each side wears its player's checkers set
+      if (pk !== protoKey) { protoKey = pk; for (const s of [...pieces.keys()]) dropPiece(s); buildProtos(W.color, Bk.color, W.fl?.ck | 0, Bk.fl?.ck | 0); rebuilt = true; } }
     if (vf !== flip || !board) { flip = vf; drawLabels(); rebuilt = true; }
     const b = st.pos.b;
     if (fresh || rebuilt) { gid = st.gid; mvN = st.mv; setSelect(-1); setMust([]); hardSync(b); }

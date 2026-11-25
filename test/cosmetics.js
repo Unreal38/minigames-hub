@@ -71,8 +71,8 @@ a.send({ t: 'buy', k: 'sp', i: PARTY }); await wait(300);
 a.send({ t: 'react', k: STICKER_BASE }); await wait(300);
 if (!b.msgs.some(m => m.t === 'react' && m.k === STICKER_BASE)) fail('a bought sticker was not sent');
 a.send({ t: 'react', k: 3 }); await wait(900);
-// table themes ride along the same way: card backs, dice, golf balls, kart paint, pool cues, chess sets and domino tiles
-for (const k of ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm']) {
+// table themes ride along the same way: card backs, dice, golf balls, kart paint, pool cues, chess sets, domino tiles and checkers sets
+for (const k of ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck']) {
   a.send({ t: 'wear', k, i: 2 }); await wait(150);
   if (seen()[k]) fail('wore a table theme without buying it: ' + k);
   a.send({ t: 'buy', k, i: 2 }); await wait(200);

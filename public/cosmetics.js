@@ -72,13 +72,15 @@ export const COS = {
     { n: 'Tennis ball', p: 100 }, { n: 'Football', p: 120 }, { n: 'Moon', p: 150 }, { n: 'Disco ball', p: 200 }, { n: 'Pumpkin', p: 140, s: 'halloween' }, { n: 'Paw print', p: 150 }] },
   kp: { label: 'Kart paint', where: 'Your kart in Kart Island Race.', items: [{ n: 'Classic' }, { n: 'Racing stripes', p: 120 }, { n: 'Checkers', p: 120 }, { n: 'Flames', p: 150 }, { n: 'Galaxy', p: 200 }, { n: 'Gold', p: 300 }, { n: 'Mocha', pk: 'kofi' }, { n: 'Lightning', p: 180 }, { n: 'Ocean waves', p: 150 }, { n: 'Candy stripes', p: 150 },
     { n: 'Taxi', p: 150 }, { n: 'Ladybird', p: 150 }, { n: 'Tiger', p: 180 }, { n: 'Rainbow', p: 220 }, { n: 'Watermelon', p: 150 }, { n: 'Ice', p: 160, s: 'winter' }] },
-  // Looks for the pieces of Sky Pool, Chess and Dominoes (public/pieceskins.js, same order).
+  // Looks for the pieces of Sky Pool, Chess, Dominoes and Checkers (public/pieceskins.js, same order).
   cu: { label: 'Pool cue', where: 'Your cue in Sky Pool.', items: [{ n: 'Classic' }, { n: 'Ebony', p: 120 }, { n: 'Bamboo', p: 120 }, { n: 'Candy cane', p: 140, s: 'winter' }, { n: 'Pencil', p: 150 }, { n: 'Rainbow', p: 180 }, { n: 'Gold', p: 250 },
     { n: 'Magic wand', p: 200 }, { n: 'Carrot', p: 150 }, { n: 'Icicle', p: 160 }, { n: 'Lightning', p: 180 }] },
-  cs: { label: 'Chess set', where: 'Your pieces in Chess and Checkers. Your side stays light or dark, so the two armies never look alike.', items: [{ n: 'Classic' }, { n: 'Marble', p: 150 }, { n: 'Candy', p: 150 }, { n: 'Ocean', p: 150 }, { n: 'Forest', p: 150 }, { n: 'Royal', p: 250 },
+  cs: { label: 'Chess set', where: 'Your pieces in Chess. Your side stays light or dark, so the two armies never look alike.', items: [{ n: 'Classic' }, { n: 'Marble', p: 150 }, { n: 'Candy', p: 150 }, { n: 'Ocean', p: 150 }, { n: 'Forest', p: 150 }, { n: 'Royal', p: 250 },
     { n: 'Lava', p: 180 }, { n: 'Spooky', p: 160, s: 'halloween' }, { n: 'Frost', p: 160, s: 'winter' }, { n: 'Neon', p: 200 }] },
   dm: { label: 'Domino tiles', where: 'Your tiles in Dominoes: the ones in your hand and every tile you lay on the table.', items: [{ n: 'Classic' }, { n: 'Ebony', p: 120 }, { n: 'Wood', p: 120 }, { n: 'Jade', p: 150 }, { n: 'Bubblegum', p: 120 }, { n: 'Midnight', p: 150 }, { n: 'Gold', p: 250 },
     { n: 'Ice', p: 140, s: 'winter' }, { n: 'Pumpkin', p: 140, s: 'halloween' }, { n: 'Neon', p: 180 }] },
+  ck: { label: 'Checkers set', where: 'Your pieces in Checkers. Your side stays light or dark, so the two armies never look alike.', items: [{ n: 'Classic' }, { n: 'Wood', p: 120 }, { n: 'Cookies', p: 150 }, { n: 'Buttons', p: 120 },
+    { n: 'Coins', p: 200 }, { n: 'Paws', p: 150 }, { n: 'Flowers', p: 150 }, { n: 'Stars', p: 180 }, { n: 'Frost', p: 160, s: 'winter' }, { n: 'Pumpkins', p: 160, s: 'halloween' }, { n: 'Gems', p: 220 }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
   // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
