@@ -15,6 +15,7 @@ const ART = {
   juice: `<path d="M6 7h12l-1.5 14h-9z" fill="#f4e9ff" ${S}/><path d="M6.7 12h10.600L16.5 21h-9z" fill="#c86bd6" ${S}/><path d="M13 12l3-10" fill="none" ${S}/>`,
   pie: `<path d="M3 14c0-5 4-9 9-9s9 4 9 9z" fill="#f08a3c" ${S}/><path d="M1.5 14h21l-2 5h-17z" fill="#edcfa0" ${S}/><path d="M9 9.500v2.500M12 8.500V12M15 9.500v2.5" fill="none" ${S}/>`,
   tonic: `<path d="M9.5 8V5h5v3l3.5 4v8.500h-12V12z" fill="#eafaff" ${S}/><path d="M6 14h12v6.500H6z" fill="#7fd0e8" ${S}/><rect x="9" y="2" width="6" height="3" rx="1" fill="#b07a4f" ${S}/><path d="M12 15.500v3M10.5 17h3" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`,
+  stamps: `<rect x="3.5" y="2.5" width="17" height="19" rx="1" fill="#fff4dc" stroke="${K}" stroke-width="1.8" stroke-dasharray="2.1 1.3"/><rect x="6.5" y="5.5" width="11" height="13" rx="1" fill="#8fd0f0" ${S} stroke-width="1.2"/><circle cx="12" cy="14" r="2.4" fill="#e9667c"/><circle cx="9.3" cy="10.8" r="1.1" fill="#e9667c"/><circle cx="12" cy="9.6" r="1.1" fill="#e9667c"/><circle cx="14.7" cy="10.8" r="1.1" fill="#e9667c"/>`,
   coins: `<circle cx="12" cy="12" r="9" fill="#ffc94d" ${S}/><circle cx="12" cy="12" r="5.8" fill="#ffe08a" ${S} stroke-width="1.2"/><path d="M12 8.500l1.1 2.3 2.4.300-1.8 1.7.500 2.5-2.2-1.3-2.2 1.3.500-2.5-1.8-1.7 2.4-.300z" fill="#f0a020"/>`,
 };
 export const matIcon = (k, size = 20) => `<svg class="mi" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${ART[k] || `<rect x="4" y="4" width="16" height="16" rx="4" fill="#ccc" ${S}/>`}</svg>`;

@@ -14,6 +14,7 @@ import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/ga
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 import { dayOf } from './day.js';
+import { ordersView, orderAction } from './farmorders.js';
 
 // Coins are the account's, not the farm's: f.inv.coins reads and writes the owner's account balance, so everything
 // below can keep treating coins as one more material. A farm saved before that pays its coins into the account once.
@@ -381,6 +382,7 @@ const view = (f, p) => ({
   pts: f.pts || 0, def: defenders(f).map(x => x.id), fights: { arena: DAILY.arena - used(f, 'arena'), practice: DAILY.practice - used(f, 'practice') },
   album: album(f), vars: f.vars, coats: f.coats, marks: f.marks, mail: f.mail || [], tokens: f.tokens || {}, buff: buffView(f), pals: f.pals || {}, trades: tradesView(p.pid, f),
   first: !f.trips, // the first expedition always brings a wild pet home
+  orders: ordersView(f), // island orders at the Order Board (null without one), see farmorders.js
   house: f.house || 1, houseNext: (f.house || 1) < HOUSE_MAX ? HOUSE_UP[(f.house || 1) + 1] : null, room: petRoom(f), lodgeRoom: lodgeRoom(f), allRoom: allRoom(f), shelves: f.shelves || [],
   // left: time until the party is back, in ms (the two clocks may differ, so no absolute times are sent)
   trips: parties(f).map(tripView), partyMax: Math.max(1, topLv(f, 'gate')), nests: SLOTS.map(s => nestView(f, s)).filter(Boolean), nestMax: nestMax(f),
@@ -572,6 +574,7 @@ export function handle(p, a, reply) {
     f.inv[a.give] -= pay; f.inv[a.get] = (f.inv[a.get] || 0) + get;
     return ok({ did: 'swap', give: a.give, pay, get: a.get, got: get });
   }
+  if (a.t === 'order' || a.t === 'orderswap') { const r = orderAction(f, a, pay); if (!r) return; return r.err ? no(r.err) : ok(r); } // island orders, see farmorders.js
   if (a.t === 'pair') { // two pets go to the Nest; b may be a friend's pet that is open for playdates
     if (!countOf(f, 'nest')) return no('Build a Nest first.');
     const slot = SLOTS.slice(0, nestMax(f)).find(s => !f[s]); if (!slot) return no('The Nest is busy.');
@@ -701,7 +704,7 @@ export function handle(p, a, reply) {
     if (a.t === 'gift') {
       const g = daily(f, 'gift'); if (g[id]) return reply({ t: 'farm', err: 'One gift a day for each neighbour.', visit: there(), farm: view(f, p) });
       if (a.item) { // a decoration: the giver pays for it, the friend places it for free
-        const it = own(ITEMS, a.item); if (!it || it.kind !== 'd' || it.pals || it.wheel) return;
+        const it = own(ITEMS, a.item); if (!it || it.kind !== 'd' || it.pals || it.wheel || it.stamp) return; // stamps stay with the farm that earned them
         if (it.craft && topLv(f, 'workshop') < it.craft) return reply({ t: 'farm', err: 'Your Workshop cannot make that yet.', visit: there(), farm: view(f, p) });
         if (!canAfford(f.inv, it.cost)) return reply({ t: 'farm', err: 'You do not have the materials for that.', visit: there(), farm: view(f, p) });
         pay(f.inv, it.cost); g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
@@ -981,6 +984,7 @@ export function testHook(pid, a) {
   if (a.liveUsed !== undefined) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = a.liveUsed; }
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
+  if (a.orders === 'new') delete f.orders; // fresh island orders, as if a new day and week had begun
   if (a.oldOffer) { const hit = byFid(a.oldOffer); if (hit) { f.inv.coins -= 5; (f.offers ||= []).push({ id: rid(), to: hit[0], give: { pets: [], mats: { coins: 5 } }, want: { pets: [], mats: {} }, at: Date.now() }); } } // an offer from before coins stopped being tradable
   if (a.pet && own(SPECIES, a.pet)) { const q = { ...newPet(a.pet, 'test', true), ...(a.traits || {}) }; f.pets.push(q); settle(f, q); }
   if (a.lv) for (const x of f.pets) x.lv = a.lv;

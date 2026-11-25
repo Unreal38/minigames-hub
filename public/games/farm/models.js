@@ -734,6 +734,87 @@ const BUILD = {
     [C.pink, C.yellow, C.lilac, C.leafL].forEach((c, i) => { const t = cone(g, .055, .14, 3, c, -.15 + i * .1, .66); t.rotation.x = Math.PI; });
     box(g, .42, .02, .02, C.cream, 0, .86);
   },
+  // ---- the Order Board and the stamp decorations (paid with Stamps from island orders, orders.js) ----
+  board(g, live) { // 2 x 1: a little roofed notice board where the island pets pin their orders
+    box(g, 1.84, .08, .56, C.stoneD); box(g, 1.7, .05, .46, C.stone, 0, .08);
+    for (const x of [-.8, .8]) { box(g, .14, 1.52, .14, C.woodD, x, .08); box(g, .2, .08, .2, C.wood, x, .08); }
+    box(g, 1.44, .8, .08, '#c9925e', 0, .56, 0);                         // cork
+    for (const y of [.52, 1.36]) box(g, 1.52, .06, .13, C.wood, 0, y, 0); // frame top and bottom
+    for (const x of [-.74, .74]) box(g, .05, .9, .12, C.wood, x, .5, 0);
+    put(g, gable(2.0, .36, .62), M(C.red), 0, 1.6, 0); shingles(g, 2.0, .36, .62, 1.6, 0, C.redD, 2); box(g, 1.9, .06, .2, C.woodD, 0, 1.56, 0);
+    // pinned orders: paper notes, a stamp sheet and an envelope, each a hair in front of the cork
+    for (const [x, y, w, h, c, r] of [[-.5, .86, .3, .36, C.cream, .08], [-.12, .9, .26, .3, '#fff2a8', -.06], [.18, .64, .2, .2, C.pink, -.12]]) {
+      box(g, w, h, .012, c, x, y, .047).rotation.z = r; ico(g, .025, C.red, x, y + h - .05, .06);
+    }
+    for (let i = 0; i < 3; i++) box(g, .16, .012, .006, '#8a6a5a', -.5, .98 - i * .06, .055); // writing on the first note
+    const st = box(g, .14, .16, .014, '#e9667c', -.12, .98, .056); st.rotation.z = -.06;  // a stamp on the yellow one
+    box(g, .1, .12, .006, '#8fd0f0', -.12, 1.0, .07).rotation.z = -.06;
+    crate(g, .62, .26, .26); crate(g, .6, .25, .2, .26, .4); barrel(g, -.6, .24, .75);
+    ico(g, .08, C.leaf, -.32, .1, .22); ico(g, .06, C.leafL, -.22, .08, .26); put(g, G('Octahedron', .05, 0), M(C.yellow), -.27, .2, .24).scale.y = .6;
+    if (!live) PARTS.board(g);
+  },
+  vane(g, live) { // half a tile: a cat on an arrow that turns with the wind
+    cyl(g, .13, .16, .08, 6, C.stoneD); cyl(g, .03, .03, 1.06, 6, C.iron, 0, .08); cyl(g, .045, .045, .03, 6, C.gold, 0, 1.13);
+    for (const r of [0, Math.PI / 2]) { const a = box(g, .46, .025, .025, C.iron, 0, 1.0, 0); a.rotation.y = r; }
+    for (const [x, z] of [[.24, 0], [-.24, 0], [0, .24], [0, -.24]]) ico(g, .03, C.gold, x, 1.01, z);
+    if (!live) PARTS.vane(g);
+  },
+  topiary(g) { // a hedge bunny in a brick planter
+    box(g, .78, .26, .78, C.brick); box(g, .84, .06, .84, C.brickD, 0, .26); box(g, .7, .04, .7, C.soil, 0, .3);
+    for (const [x, z] of [[-.3, .3], [.3, .3], [.3, -.3]]) ico(g, .05, C.pink, x, .36, z);
+    const b = ico(g, .27, C.leafD, 0, .58, -.04, 1); b.scale.set(1, .92, 1.1);
+    ico(g, .19, C.leaf, 0, .9, .1, 1);
+    for (const s of [-1, 1]) { const e = ico(g, .07, C.leaf, s * .08, 1.14, .06); e.scale.set(.8, 2.4, .6); e.rotation.z = -s * .18; ico(g, .07, C.leafD, s * .17, .36, .2); }
+    ico(g, .09, C.leafL, 0, .52, -.34); ico(g, .02, '#3b2216', -.07, .94, .27); ico(g, .02, '#3b2216', .07, .94, .27); ico(g, .025, C.pink, 0, .88, .29);
+  },
+  hives(g, live) { // two striped hives on a stand, flowers, and bees
+    box(g, .9, .06, .5, C.woodD, 0, .26); for (const x of [-.38, .38]) for (const z of [-.18, .18]) box(g, .06, .26, .06, C.woodD, x, 0, z);
+    for (const x of [-.22, .22]) { for (let i = 0; i < 3; i++) box(g, .34 - i * .02, .12, .34 - i * .02, i % 2 ? C.cream : C.yellow, x, .32 + i * .12, 0);
+      put(g, gable(.42, .14, .42), M(C.wood), x, .68, 0); box(g, .08, .03, .02, C.iron, x, .34, .171); }
+    for (const [x, z, c] of [[-.38, .32, C.pink], [-.24, .38, C.lilac], [.3, .36, C.white], [.4, .28, C.pink]]) { cyl(g, .012, .012, .16, 4, C.leafD, x, 0, z); ico(g, .045, c, x, .18, z); }
+    if (!live) PARTS.hives(g);
+  },
+  cart(g) { // a berry cart with a sunshade
+    box(g, .7, .2, .44, C.wood, 0, .26); box(g, .74, .05, .48, C.woodD, 0, .46);
+    for (const z of [-.25, .25]) { const w = put(g, G('Cylinder', .17, .17, .05, 8), M(C.woodD), -.1, .18, z); w.rotation.x = Math.PI / 2; put(g, G('Cylinder', .05, .05, .07, 6), M(C.iron), -.1, .18, z).rotation.x = Math.PI / 2; }
+    box(g, .05, .26, .05, C.woodD, .3, 0, 0); for (const z of [-.14, .14]) { const h = box(g, .2, .04, .04, C.woodD, .43, .38, z); h.rotation.z = .25; }
+    for (const [x, z, c] of [[-.17, -.1, C.red], [.17, -.1, '#5b6fd6'], [-.17, .12, '#5b6fd6'], [.17, .12, C.red]]) { box(g, .3, .1, .2, '#c99763', x, .51, z); for (let i = 0; i < 4; i++) ico(g, .045, c, x - .07 + (i % 2) * .13, .63, z - .04 + (i >> 1) * .08); }
+    cyl(g, .025, .025, .9, 5, C.iron, -.3, .46, 0); cone(g, .46, .2, 8, C.red, -.3, 1.32); cone(g, .3, .13, 8, C.white, -.3, 1.43); ico(g, .04, C.gold, -.3, 1.58, 0);
+  },
+  flowerclock(g, live) { // a round flower bed; on the farm its hands show the real time
+    cyl(g, .47, .49, .1, 12, C.stoneD); cyl(g, .42, .42, .12, 12, C.leafD); cyl(g, .27, .27, .14, 12, '#a8dd7a');
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, r = .35, x = Math.sin(a) * r, z = -Math.cos(a) * r; ico(g, i % 3 ? .04 : .06, i % 3 ? C.white : [C.red, C.yellow, C.pink, C.lilac][i / 3], x, .15, z); }
+    cyl(g, .045, .055, .1, 8, C.gold, 0, .12);
+    if (!live) PARTS.flowerclock(g);
+  },
+  geode(g, live) { // a split rock with glowing crystals inside
+    cyl(g, .4, .44, .12, 8, C.stoneD); cyl(g, .3, .3, .15, 8, '#7d5fa8'); // a stone bowl lined with dark crystal
+    for (let i = 0; i < 6; i++) { const a = Math.PI * (.62 + i * .3), r = put(g, G('Dodecahedron', .17 - (i % 2) * .03, 0), M(i % 2 ? C.stone : C.stoneD), Math.sin(a) * .34, .14 + (i % 3) * .04, Math.cos(a) * .34); r.scale.set(1, 1.3 - (i % 3) * .15, .9); r.rotation.y = a; }
+    const gem = MX('geode', '#c8a2f2', { emissive: '#9b6fe0', emissiveIntensity: .6 }), gem2 = MX('geode2', '#8fe3f5', { emissive: '#4fb8d8', emissiveIntensity: .6 });
+    for (const [x, z, h, r, m] of [[0, -.02, .62, .1, gem], [-.13, .08, .42, .08, gem2], [.14, .06, .46, .08, gem], [.06, .17, .3, .06, gem2], [-.08, -.14, .36, .07, gem2], [.12, -.12, .3, .06, gem]]) {
+      const c = put(g, G('Cone', r, h, 5), m, x, .13 + h / 2, z); c.rotation.set(z * 1.6, 0, -x * 1.6);
+    }
+    ico(g, .06, C.leaf, .34, .06, .26); ico(g, .05, C.leafL, -.36, .05, .28);
+    if (!live) PARTS.geode(g);
+  },
+  telescope(g, live) { // a brass telescope on a tripod, next to a little star chart
+    for (let i = 0; i < 3; i++) { const a = i * 2.09 + .5, l = grp(g, Math.sin(a) * .26, 0, Math.cos(a) * .26); const s = box(l, .05, .82, .05, C.woodD); l.rotation.set(Math.cos(a) * -.3, 0, Math.sin(a) * .3); s.position.y = .41; }
+    cyl(g, .07, .07, .08, 8, C.goldD, 0, .76);
+    box(g, .32, .04, .26, C.wood, .26, .26, .26); for (const [x, z] of [[.13, .16], [.39, .16], [.13, .36], [.39, .36]]) box(g, .04, .26, .04, C.woodD, x, 0, z);
+    const chart = box(g, .24, .012, .18, '#2f3a72', .26, .3, .26); chart.rotation.y = .2; for (let i = 0; i < 4; i++) ico(g, .016, C.yellow, .19 + i * .05, .32, .24 + (i % 2) * .05);
+    if (!live) PARTS.telescope(g);
+  },
+  bandstand(g, live) { // 2 x 2: a round stage with a striped roof, drum and music stands
+    cyl(g, .96, .98, .1, 8, C.stoneD); cyl(g, .86, .88, .14, 8, C.cream, 0, .1); cyl(g, .89, .89, .03, 8, C.gold, 0, .2);
+    box(g, .5, .07, .2, C.stone, 0, 0, .96); // the step up at the front
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + Math.PI / 8; cyl(g, .035, .035, 1.08, 6, C.white, Math.sin(a) * .78, .24, Math.cos(a) * .78); }
+    for (let i = 0; i < 8; i++) put(g, G('Cone', 1.08, .56, 2, 1, false, i * Math.PI / 4, Math.PI / 4), M(i % 2 ? C.white : C.red), 0, 1.6, 0);
+    put(g, G('Cylinder', 1.06, 1.06, .07, 8), M(C.redD), 0, 1.31, 0); ico(g, .08, C.gold, 0, 1.92, 0);
+    // a bunting line under the roof, and the band's things
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, t = cone(g, .07, .14, 3, [C.yellow, C.blue, C.pink, C.leafL][i % 4], Math.sin(a) * .74, 1.08, Math.cos(a) * .74); t.rotation.x = Math.PI; }
+    cyl(g, .18, .18, .2, 10, C.red, -.24, .24, -.18); cyl(g, .185, .185, .02, 10, C.white, -.24, .44, -.18);
+    for (const [x, z] of [[.3, -.2], [.1, .25]]) { cyl(g, .012, .012, .5, 4, C.iron, x, .24, z); const st = box(g, .2, .14, .02, C.iron, x, .72, z + .02); st.rotation.x = -.4; }
+  },
   ball(g) { ico(g, .22, C.red, 0, .22, 0, 1); put(g, G('Cylinder', .224, .224, .07, 10), M(C.white), 0, .22, 0); },
   // ----- the lucky set: prizes of the Lucky Wheel -----
   clover(g) {
@@ -848,6 +929,18 @@ const PARTS = {
   campfire(g) { return [put(g, G('Cone', .13, .34, 5), MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), 0, .26, 0), put(g, G('Cone', .07, .2, 5), MX('fire2', '#ffd95a', { emissive: '#ffc94d', emissiveIntensity: 1 }), .04, .2, .03)]; },
   swing(g) { const s = new THREE.Group(); s.position.set(0, 1.16, 0); g.add(s); for (const x of [-.18, .18]) box(s, .02, .8, .02, C.cream, x, -.8); box(s, .46, .05, .2, C.pink, 0, -.82); return s; },
   hotspring(g) { return [[-.2, .5, 0], [.2, .8, .15], [0, 1.1, -.2]].map(([x, y, z]) => put(g, G('Icosahedron', .14, 0), MX('steam', C.white, { transparent: true, opacity: .55 }), x, y, z)); },
+  board(g) { const o = grp(g, .46, 1.12, .06); box(o, .22, .26, .012, C.white, 0, -.27, 0); box(o, .14, .012, .006, '#8a6a5a', 0, -.12, .008); box(o, .1, .012, .006, '#8a6a5a', 0, -.17, .008); ico(o, .025, C.blue, 0, -.02, .01); return o; }, // a note that flutters
+  vane(g) { const o = grp(g, 0, 1.16, 0); box(o, .5, .03, .03, C.gold); box(o, .02, .14, .16, C.gold, -.24, -.06, 0); put(o, G('Cone', .05, .12, 4), M(C.gold), .29, 0, 0).rotation.z = -Math.PI / 2;
+    const cat = grp(o, .02, .02, 0); cat.scale.setScalar(1.5); ico(cat, .07, C.goldD, 0, .06, 0).scale.set(1.2, .9, .8); ico(cat, .05, C.goldD, .08, .13, 0); for (const z of [-.025, .025]) cone(cat, .018, .05, 3, C.goldD, .09, .16, z);
+    const t = box(cat, .015, .12, .015, C.goldD, -.08, .06, 0); t.rotation.z = .5; return o; },
+  hives(g) { return [0, 1, 2].map(i => { const b = grp(g, 0, .7, 0); ico(b, .035, C.yellow, 0, 0, 0).scale.set(1.3, 1, 1); box(b, .02, .045, .07, '#3b2216', 0, 0, 0); for (const z of [-.03, .03]) ico(b, .025, C.white, -.01, .03, z).scale.set(.6, .3, 1); b.userData.i = i; return b; }); },
+  flowerclock(g) { const h = grp(g, 0, .235, 0), m = grp(g, 0, .27, 0); box(h, .06, .03, .2, '#3b2216', 0, 0, -.09); box(m, .045, .03, .3, '#5b3a2e', 0, 0, -.14); h.rotation.y = -Math.PI / 3; m.rotation.y = Math.PI / 3; return [h, m]; },
+  geode(g) { const o = put(g, G('Octahedron', .06, 0), MX('geode', '#c8a2f2', { emissive: '#9b6fe0', emissiveIntensity: .6 }), 0, .78, 0); o.scale.set(1, 1.5, 1); return o; },
+  telescope(g) { const o = grp(g, 0, .84, 0), t = grp(o); t.rotation.z = .55;
+    put(t, G('Cylinder', .07, .09, .7, 8), M(C.gold), 0, 0, 0).rotation.z = Math.PI / 2; put(t, G('Cylinder', .1, .1, .06, 8), M(C.goldD), .34, 0, 0).rotation.z = Math.PI / 2;
+    put(t, G('Cylinder', .085, .085, .02, 8), MX('lens', '#bfe6fb', { emissive: '#8fd0f0', emissiveIntensity: .4 }), .375, 0, 0).rotation.z = Math.PI / 2; put(t, G('Cylinder', .035, .035, .12, 6), M(C.goldD), -.4, 0, 0).rotation.z = Math.PI / 2;
+    for (const x of [-.12, .14]) put(t, G('Cylinder', .095, .095, .03, 8), M(C.goldD), x, 0, 0).rotation.z = Math.PI / 2;
+    return o; },
 };
 
 // Puffs that rise from a point and fade by shrinking. Returns move(T, speed, on).
@@ -913,6 +1006,14 @@ const FX = {
   glow(g) { const o = PARTS.glow(g); return T => { o.position.y = .78 + Math.sin(T * 1.8) * .05; o.rotation.y = T * .9; }; },
   campfire(g) { const [a, b] = PARTS.campfire(g), smoke = puffs(g, 0, .5, 0, 3, .06); return T => { a.scale.set(1 + Math.sin(T * 11) * .12, 1 + Math.sin(T * 13 + 1) * .2, 1 + Math.cos(T * 9) * .12); b.scale.y = 1 + Math.sin(T * 17) * .3; b.rotation.y = T * 3; smoke(T, .35, true, .8); }; },
   swing(g) { const s = PARTS.swing(g); return T => { s.rotation.x = Math.sin(T * 1.7) * .22; }; },
+  board(g) { const n = PARTS.board(g); let k = 0; return (T, st) => { k += ((st.burst > 0 ? 1 : 0) - k) * .1; n.rotation.x = -.06 - Math.abs(Math.sin(T * 1.3)) * .05 - k * Math.abs(Math.sin(T * 9)) * .5; n.rotation.z = Math.sin(T * .9) * .05; }; },
+  vane(g) { const v = PARTS.vane(g); return T => { v.rotation.y = Math.sin(T * .23) * 1.4 + Math.sin(T * 1.1) * .12; }; },
+  hives(g) { const bees = PARTS.hives(g); return T => bees.forEach((b, i) => { const a = T * (1.6 + i * .3) + i * 2.1, r = .3 + Math.sin(T * .7 + i) * .08; b.position.set(Math.cos(a) * r * 1.4, .78 + Math.sin(T * 2.3 + i) * .12, Math.sin(a) * r); b.rotation.y = -a; b.children[2].scale.y = Math.sin(T * 40 + i) > 0 ? .3 : .15; }); },
+  flowerclock(g) { const [h, m] = PARTS.flowerclock(g); return () => { const d = new Date(), min = d.getMinutes() + d.getSeconds() / 60; m.rotation.y = -min / 60 * Math.PI * 2; h.rotation.y = -((d.getHours() % 12) + min / 60) / 12 * Math.PI * 2; }; },
+  geode(g) { const o = PARTS.geode(g); return T => { o.position.y = .74 + Math.sin(T * 1.6) * .06; o.rotation.y = T * .8; o.scale.setScalar(.85 + Math.sin(T * 2.4) * .15).multiply({ x: 1, y: 1.5, z: 1 }); }; },
+  telescope(g) { const o = PARTS.telescope(g), t = o.children[0]; return T => { o.rotation.y = Math.sin(T * .17) * 1.2; t.rotation.z = .55 + Math.sin(T * .29) * .15; }; },
+  bandstand(g) { const notes = [0, 1, 2].map(i => { const n = grp(g, 0, 1, 0); ico(n, .06, '#3b2216', 0, 0, 0).scale.set(1.2, .8, .6); box(n, .02, .2, .02, '#3b2216', .06, 0, 0); if (i !== 1) box(n, .08, .02, .02, '#3b2216', .09, .19, 0); return n; });
+    return T => notes.forEach((n, i) => { const u = (T * .3 + i / 3) % 1, a = i * 2.1 + T * .2; n.position.set(Math.sin(a) * (.3 + u * .4), .7 + u * 1.7, Math.cos(a) * (.3 + u * .4)); n.scale.setScalar(Math.sin(Math.PI * u) * 1.1); n.rotation.y = T; }); },
   hotspring(g) { const st = PARTS.hotspring(g); return T => st.forEach((m, i) => { const u = (T * .22 + i / 3) % 1; m.position.y = .3 + u * 1.1; m.position.x = Math.sin(u * 4 + i * 2) * .25; m.scale.setScalar(Math.sin(Math.PI * u) * 1.1); }); },
   lighthouse(g) { const b = new THREE.Group(); b.position.y = 1.6; g.add(b); put(b, G('Box', .08, .08, 1.5), MX('beam', '#fff3b8', { transparent: true, opacity: .4, emissive: '#ffe9a0', emissiveIntensity: 1 }), 0, 0, .8); return T => { b.rotation.y = T * 1.2; }; },
   tower(g, lv) { // the toy mouse sways, and spins round when a pet bats it; the hammock rocks

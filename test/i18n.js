@@ -124,7 +124,7 @@ for (const [table, pl] of Object.entries(farmPl.COVER)) for (const key of Object
 const { addServerText } = await import('../public/lang/server.js');
 addServerText(farmPl.SRV_TEXT, farmPl.SRV_FORMS);
 let farmSeen = 0;
-const farmSrc = fs.readFileSync(new URL('../server/farm.js', import.meta.url), 'utf8');
+const farmSrc = fs.readFileSync(new URL('../server/farm.js', import.meta.url), 'utf8') + fs.readFileSync(new URL('../server/farmorders.js', import.meta.url), 'utf8').replace(/err: /g, 'text: '); // island orders answer with { err }
 for (const m of farmSrc.matchAll(/(?:\bno\(|(?:note|text): )(?:'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`)/g)) {
   const text = (m[1] ?? m[2]).replace(/\$\{w\.el\}/g, 'Leaf').replace(/\$\{z\.name\}/g, 'Mossy Woods').replace(/\$\{ITEMS\[[^}]*\}/g, 'Kitchen').replace(/\$\{[^}]*(max|pals|lvOf|house|\.lv|BREED_LV)[^}]*\}/g, '3').replace(/\$\{[^}]*\}/g, 'Ola');
   ok(srvText(text) !== text, `farm.js: “${text}” has no Polish`);

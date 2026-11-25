@@ -4,7 +4,7 @@
 // and so on needs its Polish here: test/i18n.js fails when one is missing.
 export const EL_PL = { Leaf: 'Liść', Ember: 'Żar', Tide: 'Fala', Spark: 'Iskra', Stone: 'Kamień' };
 
-const MATS = { wood: 'Drewno', stone: 'Kamień', fiber: 'Włókno', shells: 'Muszle', coal: 'Węgiel', crystal: 'Kryształ', berries: 'Jagody', sunberry: 'Słoneczne jagody', cookie: 'Jagodowe ciastka', cake: 'Miodowe ciasta', juice: 'Sok jagodowy', pie: 'Słoneczne tarty', tonic: 'Toniki wypoczynku', coins: 'Monety' };
+const MATS = { wood: 'Drewno', stone: 'Kamień', fiber: 'Włókno', shells: 'Muszle', coal: 'Węgiel', crystal: 'Kryształ', berries: 'Jagody', sunberry: 'Słoneczne jagody', cookie: 'Jagodowe ciastka', cake: 'Miodowe ciasta', juice: 'Sok jagodowy', pie: 'Słoneczne tarty', tonic: 'Toniki wypoczynku', coins: 'Monety', stamps: 'Znaczki' };
 const MAT_INFO = {
   wood:     ['Wyprawy, najwięcej z Omszałego Lasu.', 'Większość budynków i ozdób.'],
   stone:    ['Wyprawy, najwięcej z Kamykowej Grani.', 'Budynki, ścieżki i kamienne ozdoby.'],
@@ -19,6 +19,7 @@ const MAT_INFO = {
   juice:    ['Robiony w Kuchni z 6 jagód.', 'Wypity w bitwie treningowej lub na arenie leczy 40%, raz na bitwę.'],
   pie:      ['Pieczone w Kuchni na poziomie 2.', 'Dotknij zwierzaka i podaj mu jedną: 220 doświadczenia.'],
   tonic:    ['Robione w Kuchni na poziomie 3.', 'Podaj odpoczywającemu zwierzakowi, żeby od razu mógł wrócić do Gniazda.'],
+  stamps:   ['Dostarczanie zamówień z wysp na Tablicy zamówień.', 'Ozdoby za znaczki, w Urządź farmę, Znaczki. Znaczki zostają na twojej farmie: nie można ich wymieniać, dawać w prezencie ani zamieniać w Warsztacie.'],
   coins:    ['Bitwy, pomaganie sąsiadom i inne gry w Zatoce.', 'Drzewa i krzewy tutaj oraz sklep z ubraniami na stronie głównej. Monety zostają u ciebie: nie można ich wymieniać ani dawać w prezencie.'],
 };
 // [name, description]
@@ -34,6 +35,7 @@ const ITEMS = {
   yard: ['Plac treningowy', 'Zwierzaki ćwiczą tu swoje ruchy z przyjaznymi partnerami.'],
   flag: ['Flaga areny', 'Stąd wyzywasz inne farmy i wybierasz drużynę, która broni twojej.'],
   mailbox: ['Skrzynka pocztowa', 'Trafiają tu prezenty i listy od znajomych.'],
+  board: ['Tablica zamówień', 'Zwierzaki z pobliskich wysp przypinają tu swoje zamówienia. Dostarcz to, o co proszą, i zdobądź znaczki.'],
   workshop: ['Warsztat', 'Odblokowuje wyszukane ozdoby i wymienia zbędne materiały na te, których potrzebujesz.'],
   fence: ['Płotek', 'Pilnuje porządku.'],
   path: ['Kamienna ścieżka', 'Zwierzaki lubią po niej spacerować.'],
@@ -75,6 +77,14 @@ const ITEMS = {
   balloon: ['Balon na uwięzi', 'Szarpie za linę, gdy tylko zerwie się wiatr. Nagroda z Koła szczęścia.'],
   coinfount: ['Fontanna z monetami', 'Ktoś wrzucił tu naprawdę dużo życzeń. Nagroda z Koła szczęścia.'],
   horseshoe: ['Brama z podkową', 'Przejdź pod nią na szczęście. Nagroda z Koła szczęścia.'],
+  vane: ['Wiatrowskaz', 'Mały zwierzak na maszcie, który zawsze odwraca się do wiatru.'],
+  topiary: ['Krzew w kształcie królika', 'Żywopłot przycięty w królika. Prawdziwe króliki nie wiedzą, co o nim myśleć.'],
+  hives: ['Ule', 'Dwa pasiaste ule i kilka pracowitych pszczół.'],
+  cart: ['Wózek z jagodami', 'Targowy wózek z parasolem, wyładowany jagodami.'],
+  flowerclock: ['Kwiatowy zegar', 'Okrągła rabata, której wskazówki pokazują prawdziwą godzinę.'],
+  geode: ['Kryształowa geoda', 'Rozłupany kamień, w którym świecą kryształy.'],
+  telescope: ['Gwiezdny teleskop', 'Mosiężny teleskop, który powoli przeczesuje niebo w poszukiwaniu nowych wysp.'],
+  bandstand: ['Altana dla orkiestry', 'Okrągła scenka z pasiastym dachem. Przez cały dzień wypływają z niej nuty.'],
   miniwheel: ['Małe Koło szczęścia', 'Małe koło, które nigdy nie zatrzymuje się na złym dniu. Nagroda z Koła szczęścia.'],
 };
 const BLURB = {
@@ -289,6 +299,12 @@ export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES
 // What the farm's server code says (server/farm.js), for srvText() in lang/server.js.
 export const SRV_TEXT = {
   'You already have a farm.': 'Masz już farmę.',
+  'Build an Order Board first.': 'Najpierw zbuduj Tablicę zamówień.',
+  'That order is gone. New orders come every day.': 'Tego zamówienia już nie ma. Nowe przychodzą codziennie.',
+  'That order is already delivered.': 'To zamówienie jest już dostarczone.',
+  'You have none of what they asked for yet.': 'Nie masz jeszcze niczego, o co proszą.',
+  'The weekly order cannot be swapped.': 'Zamówienia tygodnia nie można wymienić.',
+  'You already asked for a new order today.': 'Dziś już prosisz o nowe zamówienie.',
   'The farm is full. Put something away first.': 'Farma jest pełna. Najpierw coś schowaj.',
   'Not enough materials for that.': 'Na to nie wystarczy materiałów.',
   'Build a Workshop first.': 'Najpierw zbuduj Warsztat.',
