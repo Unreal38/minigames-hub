@@ -9,7 +9,7 @@ import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
 import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
-  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
+  BERRIES, RECIPES, STORED, capOf, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, upBlock, museumFill, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
@@ -283,7 +283,7 @@ const firstOf = (f, pet) => { album(f); return !f.album[pet.sp]?.some(Boolean) |
 // The owner's isle look (ground, rock base, sky, floating pieces): their farm island wears it too.
 const isleOf = pr => { const f = pr ? flairOf(pr) : {}, o = {}; for (const k of ['ig', 'ib', 'ik']) if (f[k]) o[k] = f[k]; if (f.fp) o.fp = f.fp; return o; };
 const look = (pid, f) => { const pr = profiles.get(pid); return { id: fid(f), name: nameOf(pid, f), color: pr?.color, av: pr?.av, isle: isleOf(pr), size: f.size, house: f.house || 1, pts: f.pts || 0,
-  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r, ...(i.lv > 1 ? { lv: i.lv } : {}) })) }; }; // lv: visitors and the map see each building at its level
+  items: f.items.map(i => ({ id: i.id, type: i.type, x: i.x, y: i.y, r: i.r, ...(i.lv > 1 ? { lv: i.lv } : {}), ...(i.type === 'museum' ? { mu: museumFill(album(f)) } : {}) })) }; }; // mu: how full the museum's medallions are // lv: visitors and the map see each building at its level
 
 // ---------- trading ----------
 // An offer lives on the sender's farm. What they offer is set aside at once (materials leave the stock, pets are
@@ -460,7 +460,7 @@ export function handle(p, a, reply) {
   if (a.t === 'upgrade') { // improve one building by a level
     const item = f.items.find(i => i.id === a.id), cost = item && upCost(item); if (!item) return no('That is not on the farm any more.');
     if (!cost) return no('That is as good as it gets.');
-    if ((f.house || 1) < lvOf(item) + 1) return no(`Level ${lvOf(item) + 1} needs a level ${lvOf(item) + 1} farmhouse.`);
+    album(f); const block = upBlock(f, item); if (block) return no(block); // a farmhouse level, or album pages for the museum
     if (!canAfford(f.inv, cost)) return no('Not enough materials for that yet.');
     pay(f.inv, cost); item.lv = lvOf(item) + 1;
     return ok({ did: 'upgrade', id: item.id });
@@ -1007,6 +1007,7 @@ export function testHook(pid, a) {
   if (a.liveUsed !== undefined) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = a.liveUsed; }
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
+  if (a.house) f.house = a.house; // a farmhouse level, e.g. one that has not been built into the game yet
   if (a.oldOffer) { const hit = byFid(a.oldOffer); if (hit) { f.inv.coins -= 5; (f.offers ||= []).push({ id: rid(), to: hit[0], give: { pets: [], mats: { coins: 5 } }, want: { pets: [], mats: {} }, at: Date.now() }); } } // an offer from before coins stopped being tradable
   if (a.pet && own(SPECIES, a.pet)) { const q = { ...newPet(a.pet, 'test', true), ...(a.traits || {}) }; f.pets.push(q); settle(f, q); }
   if (a.lv) for (const x of f.pets) x.lv = a.lv;

@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds } from './breed.js';
-import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
@@ -891,7 +891,9 @@ export function mount(app, ctx) {
       if (UPGRADES[item.type]) { // buildings and decorations that can be improved
         const lv = lvOf(item), cost = upCost(item);
         name += L(` · Level ${lv}`, ` · Poziom ${lv}`);
-        up = !cost ? '' : F.house < lv + 1 ? `<p class="hint">${L(`Level ${lv + 1} needs a level ${lv + 1} farmhouse.`, `Poziom ${lv + 1} wymaga domu na poziomie ${lv + 1}.`)}</p>`
+        const need = UPGRADES[item.type].need?.[lv - 1], have = albumHave(F.album); // the museum asks for album pages instead of a bigger farmhouse
+        up = !cost ? '' : need && have < need ? `<p class="hint">${L(`Level ${lv + 1} needs ${need} kinds of pets in the album. You have ${have}.`, `Poziom ${lv + 1} wymaga gatunków w albumie: ${need}. Masz: ${have}.`)}</p>`
+          : !need && F.house < lv + 1 ? `<p class="hint">${L(`Level ${lv + 1} needs a level ${lv + 1} farmhouse.`, `Poziom ${lv + 1} wymaga domu na poziomie ${lv + 1}.`)}</p>`
           : `<p class="hint">${L(`Level ${lv + 1}: ${whatUp(item).toLowerCase()}.`, `Poziom ${lv + 1}: ${whatUp(item).toLowerCase()}.`)}</p><div class="cost">${costHtml(cost, F.inv)}</div><button type="button" class="btn sm m" data-a="upgrade" data-id="${item.id}">${L(`Improve to level ${lv + 1}`, `Ulepsz do poziomu ${lv + 1}`)}</button>`;
       }
       if (item.type === 'house') {
@@ -913,6 +915,13 @@ export function mount(app, ctx) {
       else if (item.type === 'barn') more = `<p class="hint">${L(`Your farm can hold ${F.cap} of each material.`, `Twoja farma pomieści ${F.cap} sztuk każdego materiału.`)}</p>`;
       else if (item.type === 'workshop') more = '<p class="hint">' + L('Its decorations are under Edit farm, Fancy.', 'Jego ozdoby znajdziesz w Urządź farmę, Wyszukane.') + '</p><button type="button" class="btn sm m" data-a="swapopen">' + L('Swap materials', 'Wymień materiały') + '</button>';
       else if (item.type === 'hut') more = `<p class="hint">${F.lodgeRoom ? L(`The island has beds for ${F.room} pets and the Pet Lodge for ${F.lodgeRoom} more.`, `Na wyspie są łóżka dla ${F.room} zwierzaków, a w Schronisku dla kolejnych ${F.lodgeRoom}.`) : L(`Your farm has room for ${F.room} pets.`, `Na farmie jest miejsce dla ${F.room} zwierzaków.`)}${!F.lodgeRoom && countOf(F, 'hut') >= 3 && !upCost(item) ? ' ' + L(`That is as many as the island holds. A Pet Lodge${F.house < 4 ? ' (farmhouse level 4)' : ''} stores up to 300 more.`, `Więcej wyspa nie pomieści. Schronisko${F.house < 4 ? ' (dom na poziomie 4)' : ''} przechowa do 300 kolejnych.`) : ''}</p>`;
+      else if (item.type === 'museum') { // the album on show: one medallion for each element over the columns
+        const fill = museumFill(F.album), total = Object.keys(SPECIES).length;
+        more = `<p class="hint">${L(`On show: ${albumHave(F.album)} of ${total} kinds of pets. Each medallion over the columns fills as you find pets of its element.`, `Na wystawie: ${albumHave(F.album)} z ${total} gatunków. Każdy medalion nad kolumnami wypełnia się, gdy znajdujesz zwierzaki jego żywiołu.`)}</p>
+          <div class="musel">${Object.keys(ELEMENTS).map((e, i) => { const all = Object.keys(SPECIES).filter(sp => SPECIES[sp].el === e || SPECIES[sp].el2 === e), got = all.filter(sp => F.album[sp]?.some(Boolean)).length;
+            return `<span class="mus${fill[i] === '8' ? ' done' : ''}" style="--el:${ELEMENTS[e]}"><i></i>${elName(e)} ${got}/${all.length}</span>`; }).join('')}</div>
+          <button type="button" class="btn sm m" data-a="album">${L('Open the Pet Album', 'Otwórz Album zwierzaków')}</button>`;
+      }
       else if (item.type === 'lodge') more = `<p class="hint">${L(`Stored inside: ${F.pets.filter(p => p.lodge).length} of ${F.lodgeRoom}, in ${(F.shelves || []).length} collections.`, `W środku: ${F.pets.filter(p => p.lodge).length} z ${F.lodgeRoom}, kolekcje: ${(F.shelves || []).length}.`)}</p><button type="button" class="btn sm m" data-a="lodgeopen">${L('Open the Lodge', 'Otwórz Schronisko')}</button>`;
       if (UPGRADES[item.type]?.does) more += `<p class="hint">${UPGRADES[item.type].does[lvOf(item) - 1]}</p>`; // an improvable decoration says what pets do on it
       if (WORK[item.type]) more += helpRow(item.type);

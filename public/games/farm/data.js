@@ -36,6 +36,7 @@ export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
   hut:      { name: 'Pet Hut', kind: 'b', w: 2, h: 2, max: 3, cost: { wood: 30, fiber: 10 }, desc: 'A snug place for four more pets to sleep.' },
   lodge:    { name: 'Pet Lodge', kind: 'b', w: 3, h: 2, max: 1, house: 4, cost: { wood: 120, stone: 80, fiber: 60, shells: 15 }, desc: 'A big cosy lodge where 60 more pets nap indoors, sorted into collections of your own. They can still go anywhere and do anything.' },
+  museum:   { name: 'Pet Museum', kind: 'b', w: 3, h: 3, max: 1, house: 6, cost: { wood: 200, stone: 200, fiber: 80, shells: 20 }, desc: 'A grand hall that shows off your Pet Album. Its five medallions fill up as you find pets of each element.' },
   gate:     { name: 'Expedition Gate', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 25, stone: 15 }, desc: 'Pets set off by balloon from here and come back with materials, and sometimes a new friend.' },
   garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil. Berries ripen here every hour.' },
   kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats for your pets.' },
@@ -211,6 +212,12 @@ export const UPGRADES = {
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
   nest:   { what: ['A second egg slot', 'A third egg slot, and eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
   yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
+  // The Pet Museum is a landmark: its levels change only its look, and each one needs more species in the album (need)
+  // instead of a bigger farmhouse. It is a long-term place to spend spare materials.
+  museum: { what: ['A blue dome with a gold lantern', 'Skylights, gold trim and element banners', 'Two side wings and pet statues by the steps', 'A golden dome with a star, flags and a red carpet'],
+    need: [10, 20, 32, 45],
+    cost: [{ wood: 300, stone: 300, fiber: 100, shells: 40, coal: 20, crystal: 2 }, { wood: 450, stone: 450, fiber: 150, shells: 60, coal: 40, crystal: 5 },
+      { wood: 600, stone: 600, fiber: 200, shells: 80, coal: 60, crystal: 10 }, { wood: 800, stone: 800, fiber: 300, shells: 100, coal: 80, crystal: 20 }] },
   // Decorations that can be improved: pets stay on them longer and do more there (ROUTES in models.js has the moves).
   // does: what pets do on it at each level, shown on its card.
   tower:  { what: ['Pets stay twice as long: they scratch the post, bat a toy mouse and nap in a basket bed', 'Pets stay three times as long: a hammock, a basket shelf and a hideout on top to peek out of'],
@@ -222,6 +229,22 @@ export const lvOf = item => Math.min(lvMax(item?.type), Math.max(1, item?.lv | 0
 export const topLv = (farm, type) => Math.max(0, ...farm.items.filter(i => i.type === type).map(lvOf)); // 0 when there is none
 export const upCost = item => UPGRADES[item.type]?.cost[lvOf(item) - 1] || null; // what the next level costs
 export const whatUp = item => { const w = UPGRADES[item.type]?.what; return Array.isArray(w) ? w[lvOf(item) - 1] : w; }; // what the next level gives
+// Species with a page in the album that the player has owned (a page only seen at a friend's does not count).
+export const albumHave = album => Object.values(album || {}).filter(a => Array.isArray(a) && a.some(Boolean)).length;
+// Why an item cannot go up a level yet (English, the server's words), or '' when only materials stand in the way.
+export function upBlock(farm, item) {
+  const lv = lvOf(item), need = UPGRADES[item.type]?.need;
+  if (need) { const n = need[lv - 1] || 0; return albumHave(farm.album) < n ? `Level ${lv + 1} needs ${n} kinds of pets in the album.` : ''; }
+  return (farm.house || 1) < lv + 1 ? `Level ${lv + 1} needs a level ${lv + 1} farmhouse.` : '';
+}
+// The museum's five medallions, Leaf Ember Tide Spark Stone: how full each is in eighths (8 only when every species of
+// that element is found; a hybrid counts for both of its elements). A 5-digit string, so a model can be keyed on it.
+export function museumFill(album) {
+  return Object.keys(ELEMENTS).map(e => {
+    const all = Object.entries(SPECIES).filter(([, d]) => d.el === e || d.el2 === e), got = all.filter(([sp]) => album?.[sp]?.some?.(Boolean)).length;
+    return got >= all.length ? 8 : Math.min(7, Math.floor(got / all.length * 8));
+  }).join('');
+}
 // Helpers: one pet of the right element can work at each of these buildings. Its boost grows with its level and one of
 // its stars (stat: 0 Health, 1 Attack, 2 Defence, 3 Speed). A hybrid counts for both of its elements.
 export const WORK = {
