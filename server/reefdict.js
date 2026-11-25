@@ -3,6 +3,7 @@
 // and a lookup is a binary search with no strings made. The bots' everyday words (reef-*-bot.txt, most common
 // first) become letter trees for move finding.
 import { readFileSync } from 'node:fs';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { brotliDecompressSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -15,7 +16,9 @@ const lang = l => (l === 'en' ? 'en' : 'pl');
 
 const lists = {};
 function load(l) {
-  if (lists[l]) return lists[l];
+  return (lists[l] ||= unpack(l));
+}
+function unpack(l) {
   const raw = brotliDecompressSync(readFileSync(join(here, `reef-${l}.br`)));
   let n = 0, size = 0; // first pass: how many words, and how long the list is written out in full
   for (let i = 0, line = true; i < raw.length; i++) { if (line) { size += raw[i] - 65; line = false; } else if (raw[i] === 10) { n++; size++; line = true; } else size++; }
@@ -28,10 +31,25 @@ function load(l) {
     i++; off[k++] = start; prev = start; buf[w++] = 10;
   }
   off[k] = w;
-  return (lists[l] = { buf, off, n });
+  return { buf, off, n };
 }
-// warm both lists up a little after the server starts, so the first table does not wait
-export function preload() { load('pl'); load('en'); }
+// Warm both lists up a little after the server starts, so the first table does not wait. Unpacking takes about a
+// quarter of a second, so it happens on a worker thread: done on the game loop it froze every table (and the
+// screens coming back right after a restart) for that long. A table that needs a list before the worker is done
+// unpacks it itself, and the worker's copy is then dropped.
+export function preload() {
+  if (lists.pl && lists.en) return;
+  const w = new Worker(new URL(import.meta.url), { workerData: 'reefdict' });
+  w.on('message', ({ l, buf, off, n }) => { lists[l] ||= { buf: Buffer.from(buf), off: new Uint32Array(off), n }; });
+  w.on('error', e => console.error('Word Reef dictionaries', e));
+  w.unref();
+}
+if (!isMainThread && workerData === 'reefdict') { // the preload worker: unpack both lists and hand their memory over without copying
+  for (const l of ['pl', 'en']) {
+    const { buf, off, n } = unpack(l), b = buf.byteOffset || buf.byteLength !== buf.buffer.byteLength ? new Uint8Array(buf).buffer : buf.buffer;
+    parentPort.postMessage({ l, buf: b, off: off.buffer, n }, [b, off.buffer]);
+  }
+}
 
 export function has(l, word) {
   if (typeof word !== 'string' || word.length < 2 || word.length > 15) return false;
