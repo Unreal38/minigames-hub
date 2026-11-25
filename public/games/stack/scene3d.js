@@ -54,16 +54,33 @@ export function createScene(canvas, { onFrame, onCue }) {
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     const sky = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })); sky.userData.sky = true; scene.add(sky);
   }
-  // clouds: a sea below the island and stray ones at every height the tower can reach, all one instanced mesh
-  const clouds = new THREE.Group();
-  {
-    const puffs = [], m = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
-    const cloud = (x, y, z, s) => { for (const [dx, dy, dz, r] of [[0, 0, 0, 1], [.9, -.1, .2, .75], [-.9, -.12, -.1, .7], [.2, .3, -.3, .65]]) puffs.push([x + dx * s, y + dy * s, z + dz * s, r * s]); };
-    for (let i = 0; i < 44; i++) { const a = hash(i, 1) * 6.283, d = 9 + hash(i, 2) * 90; cloud(Math.cos(a) * d, -9 - hash(i, 3) * 9 - d * .04, Math.sin(a) * d, 2.5 + hash(i, 4) * 3.5); }
-    for (let i = 0; i < 26; i++) { const a = hash(i, 5) * 6.283, d = 26 + hash(i, 6) * 70; cloud(Math.cos(a) * d, 2 + hash(i, 7) * 40, Math.sin(a) * d, 2.2 + hash(i, 8) * 3.6); }
-    const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), toon('#ffffff'), puffs.length);
-    puffs.forEach(([x, y, z, r], i) => im.setMatrixAt(i, m.compose(v.set(x, y, z), q, sc.set(r * 1.2, r * .6, r))));
-    im.frustumCulled = false; im.userData.cloud = true; clouds.add(im); scene.add(clouds);
+  // clouds: a sea below the island and stray ones at every height the tower can reach, two instanced meshes.
+  // The stray ones share the camera's heights, and on a tall phone screen the camera backs off far enough to sit
+  // among them, so any stray cloud near the camera or the line of sight shrinks away (fitClouds) instead of
+  // filling the screen with white.
+  const clouds = new THREE.Group(), cloudGeo = new THREE.IcosahedronGeometry(1, 1), cloudMat = toon('#ffffff');
+  const PUFF = [[0, 0, 0, 1], [.9, -.1, .2, .75], [-.9, -.12, -.1, .7], [.2, .3, -.3, .65]];
+  const cM_ = new THREE.Matrix4(), cQ_ = new THREE.Quaternion(), cV_ = new THREE.Vector3(), cS_ = new THREE.Vector3();
+  const puffMats = (im, list) => list.forEach((c, i) => PUFF.forEach(([dx, dy, dz, r], k) => im.setMatrixAt(i * 4 + k,
+    cM_.compose(cV_.set(c.x + dx * c.s, c.y + dy * c.s, c.z + dz * c.s), cQ_, cS_.set(r * c.s * 1.2 * c.k, r * c.s * .6 * c.k, r * c.s * c.k)))));
+  const cloudMesh = list => { const im = new THREE.InstancedMesh(cloudGeo, cloudMat, list.length * 4); puffMats(im, list); im.frustumCulled = false; im.userData.cloud = true; clouds.add(im); return im; };
+  const seaC = Array.from({ length: 44 }, (_, i) => { const a = hash(i, 1) * 6.283, d = 9 + hash(i, 2) * 90; return { x: Math.cos(a) * d, y: -9 - hash(i, 3) * 9 - d * .04, z: Math.sin(a) * d, s: 2.5 + hash(i, 4) * 3.5, k: 1 }; });
+  const strayC = Array.from({ length: 26 }, (_, i) => { const a = hash(i, 5) * 6.283, d = 26 + hash(i, 6) * 70; return { x: Math.cos(a) * d, y: 2 + hash(i, 7) * 40, z: Math.sin(a) * d, s: 2.2 + hash(i, 8) * 3.6, k: 1 }; });
+  cloudMesh(seaC); const strayM = cloudMesh(strayC); scene.add(clouds);
+  const cA_ = new THREE.Vector3(), cB_ = new THREE.Vector3(), cAB_ = new THREE.Vector3(), cP_ = new THREE.Vector3();
+  function fitClouds(dt) { // camera and look point into the turning cloud group's space, then clear the way between them
+    clouds.updateMatrixWorld(); cM_.copy(clouds.matrixWorld).invert();
+    cA_.copy(camera.position).applyMatrix4(cM_); cB_.copy(look).applyMatrix4(cM_); cAB_.subVectors(cB_, cA_); const L = cAB_.lengthSq() || 1;
+    let moved = false;
+    for (const c of strayC) {
+      cP_.set(c.x, c.y, c.z); const t = Math.min(1, Math.max(0, cV_.subVectors(cP_, cA_).dot(cAB_) / L));
+      const gap = cP_.distanceTo(cV_.copy(cA_).addScaledVector(cAB_, t)), clear = c.s * 2.4 + camera.near + 2; // a whole cloud reaches about 2 s from its middle
+      const want = gap < clear ? 0 : gap < clear + 6 ? (gap - clear) / 6 : 1;
+      if (c.k === want) continue;
+      const k = dt < 0 ? want : c.k + (want - c.k) * Math.min(1, dt * 4);
+      c.k = Math.abs(k - want) < .01 ? want : k; moved = true;
+    }
+    if (moved) { puffMats(strayM, strayC); strayM.instanceMatrix.needsUpdate = true; }
   }
   nightScene(scene); // the website's night mode carries into the game
 
@@ -123,7 +140,7 @@ export function createScene(canvas, { onFrame, onCue }) {
   let tower = [], topY = 0, steady = 1, jolt = 0;
   let sw = null, swStart = 0, swMesh = null, frozen = -1, frozenAt = 0;
   let dr = null, drStart = 0, drMesh = null, drLanded = false, drFrom = 0, lastDrop = 0, turn = -1, playing = false;
-  let camY = 1, isleY = .45, shake = 0;
+  let camY = 1, isleY = .45, shake = 0, firstFit = true;
 
   // the balloon that carries the swinging block, and the mark showing where it would land
   const balloon = new THREE.Group(); balloon.visible = false; towerG.add(balloon);
@@ -373,7 +390,7 @@ export function createScene(canvas, { onFrame, onCue }) {
     const sx = reduced ? 0 : Math.sin(T * 61) * shake * .12, sy = reduced ? 0 : Math.cos(T * 53) * shake * .12;
     look.set(sx, camY + sy, 0);
     camera.position.set(look.x + Math.sin(az) * Math.cos(CAM_EL) * dist, look.y + Math.sin(CAM_EL) * dist, look.z + Math.cos(az) * Math.cos(CAM_EL) * dist);
-    camera.lookAt(look);
+    camera.lookAt(look); fitClouds(firstFit ? -1 : dt); firstFit = false;
     sun.position.set(9, camY + 16, 5); sun.target.position.set(0, camY - 1, 0);
     if (shadowFor > 0) { shadowFor--; renderer.shadowMap.needsUpdate = true; }
 
