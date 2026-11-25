@@ -1180,7 +1180,7 @@ function onMsg(m) {
     if (st.farm) st.farm.msg(m);
     else if (m.invite) { farmInvite = m; toast(L(`${esc(m.invite.from)} invites you to a live battle. Open Pet Farm within a minute to answer.`, `${esc(m.invite.from)} zaprasza cię do walki na żywo. Otwórz Farmę zwierzaków w ciągu minuty, żeby odpowiedzieć.`)); }
   } else if (m.t === 'plaza') {
-    if (m.k === 'peek') { m.at = Date.now(); st.plazaPeek = m; paintToday(); } // the button, its marker and the Games tab dot else st.plaza?.msg(m);
+    if (m.k === 'peek') { m.at = Date.now(); st.plazaPeek = m; paintToday(); } else st.plaza?.msg(m); // peek: the button, its marker and the Games tab dot
   } else if (m.t === 'hay') {
     st.hay?.msg(m);
   } else if (m.t === 'pop') {
