@@ -90,6 +90,15 @@ export const ITEMS = {
   coinfount: { name: 'Coin Fountain', kind: 'd', w: 2, h: 2, wheel: true, max: 1, cost: {}, desc: 'Somebody has thrown in a lot of wishes. Won on the Lucky Wheel.' },
   horseshoe: { name: 'Horseshoe Gate', kind: 'd', w: 1, h: 1, walk: true, wheel: true, max: 1, cost: {}, desc: 'Walk under it for good luck. Won on the Lucky Wheel.' },
   miniwheel: { name: 'Mini Lucky Wheel', kind: 'd', w: 1, h: 1, wheel: true, max: 1, cost: {}, desc: 'A small wheel that never stops on a bad day. Won on the Lucky Wheel.' },
+  // The Farm Journal set (jn: the chapter that gives it, see journal.js). Never bought or crafted; each waits under Edit farm.
+  jsign:   { name: 'Welcome Sign', kind: 'd', w: 1, h: .5, fine: true, jn: 1, max: 1, cost: {}, desc: 'Says hello to every visitor. A Farm Journal reward.' },
+  jboard:  { name: 'Notice Board', kind: 'd', w: 1, h: .5, fine: true, jn: 2, max: 1, cost: {}, desc: 'Notes, lists and a drawing of a pet. A Farm Journal reward.' },
+  jpost:   { name: 'Signpost', kind: 'd', w: .5, h: .5, fine: true, jn: 3, max: 1, cost: {}, desc: 'Points the way to every island. A Farm Journal reward.' },
+  jcradle: { name: 'Egg Cradle', kind: 'd', w: .5, h: .5, fine: true, jn: 4, max: 1, cost: {}, desc: 'A soft basket that rocks a spotted egg. A Farm Journal reward.' },
+  jtable:  { name: 'Neighbours’ Table', kind: 'd', w: 1, h: 1, jn: 5, max: 1, cost: {}, desc: 'Room for everyone, and tea for two. A Farm Journal reward.' },
+  jvane:   { name: 'Golden Weathervane', kind: 'd', w: .5, h: .5, fine: true, jn: 6, max: 1, cost: {}, desc: 'A golden pet turns with the wind. A Farm Journal reward.' },
+  jscope:  { name: 'Star Telescope', kind: 'd', w: 1, h: 1, jn: 7, max: 1, cost: {}, desc: 'For looking past the clouds. A Farm Journal reward.' },
+  jcup:    { name: 'Collector’s Cup', kind: 'd', w: 1, h: 1, jn: 8, max: 1, cost: {}, desc: 'For a farmer who found nearly everything. A Farm Journal reward.' },
 };
 
 export const ELEMENTS = { Leaf: '#3f9a52', Ember: '#e0592f', Tide: '#2f86cc', Spark: '#d9a400', Stone: '#8a7f76' };
@@ -165,7 +174,7 @@ export const SPECIES = {
   cometail: { name: 'Cometail', el: 'Spark', rare: 2, blurb: 'A streak of a ferret with a comet for a tail.' },
   ringbear: { name: 'Ringbear', el: 'Stone', rare: 0, blurb: 'A dozy bear cub that wears a planet ring.' },
   // pets from old stories: found only on Legend Isle, at the end of a far expedition (far: true)
-  griffling: { name: 'Griffling', el: 'Ember', rare: 2, far: true, blurb: 'A griffin chick with sunset feathers, little wings and the tufted tail of a lion cub.' },
+  griffling: { name: 'Griffling', el: 'Ember', rare: 2, far: true, blurb: 'A griffin cub with the white head and hooked beak of an eagle, big brown wings and the tufted tail of a lion.' },
   bloomicorn: { name: 'Bloomicorn', el: 'Leaf', rare: 2, far: true, blurb: 'A unicorn foal with a mane of blossoms and a little spiral horn.' },
   dreampir: { name: 'Dreampir', el: 'Spark', rare: 2, far: true, blurb: 'A baby tapir with a starry coat that blows dream bubbles from its trunk.' },
   yetiny: { name: 'Yetiny', el: 'Tide', rare: 2, far: true, blurb: 'A shaggy yeti cub with frosty horns and big snowshoe feet.' },

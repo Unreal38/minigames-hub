@@ -14,6 +14,7 @@ import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/ga
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, charmsFor, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 import { dayOf } from './day.js';
+import { journalOf, chapterDone, rewardOf } from '../public/games/farm/journal.js';
 
 // Coins are the account's, not the farm's: f.inv.coins reads and writes the owner's account balance, so everything
 // below can keep treating coins as one more material. A farm saved before that pays its coins into the account once.
@@ -374,7 +375,26 @@ function callOn(p, host) { // host is a pid, or null when the visitor heads home
 // The weather right now. It only ever adds a small bonus (see WEATHER in data.js). Tests can pin it.
 let wxPin = null;
 const wx = () => wxPin || weatherAt().kind;
+// ---------- the Farm Journal (public/games/farm/journal.js) ----------
+// f.jn = { got: chapters claimed, legacy: the farm is older than the journal, old: chapters already finished then }.
+// f.jt counts the things a farm's state cannot show afterwards (berries picked, a cookie cooked, a wild pet won over).
+const jx = (f, p) => ({ old: !!f.jn?.legacy, friends: friendPids(p.pid).length, out: parties(f).length });
+function journalStart(f, p) {
+  if (f.jn) return;
+  f.jn = { got: 0, legacy: true }; // a farm from before the journal: chapters it has already finished pay no materials
+  const j = journalOf(f, jx(f, p)); let old = 0; while (old < j.tick.length && chapterDone(j, old)) old++;
+  f.jn.old = old; scheduleSave();
+}
+function tally(f, a, x) { // what was just done, for tasks the farm's state cannot show later
+  const t = f.jt ||= {}, up = k => { t[k] = (t[k] || 0) + 1; };
+  if (x.did === 'pick' || x.did === 'feed' || x.did === 'hatch' || x.did === 'help' || x.did === 'gift') up(x.did);
+  else if (x.did === 'cook' && x.what === 'cookie') up('cook');
+  else if (x.did === 'pair') { up('pair'); if (a.friend) up('date'); }
+  else if (x.did === 'collect' && x.back?.zone) (t.z ||= {})[x.back.zone] = 1;
+  else if (x.did === 'fought' && (x.prize?.joined || x.prize?.noroom)) up('wild'); // a wild pet beaten fairly
+}
 const view = (f, p) => ({
+  jn: journalOf(f, jx(f, p)),
   ...(wxPin && wxPin !== 'none' ? { weather: wxPin } : {}),
   guests: guestsOf(p.pid),
   wild: wildOf(f) ? { sp: f.wild.sp, lv: f.wild.lv, left: f.wild.until - Date.now() } : null,
@@ -406,17 +426,17 @@ export function handle(p, a, reply) {
   if (!p || !a || typeof a !== 'object') return;
   if (!p.user) return reply({ t: 'farm', need: 'account' });
   const f = farms.get(p.pid);
-  const ok = (extra = {}) => { scheduleSave(); const rank = albumXp(f, p); reply({ t: 'farm', farm: view(f, p), ...extra, ...(rank ? { rank } : {}) }); };
+  const ok = (extra = {}) => { if (extra.did) tally(f, a, extra); scheduleSave(); const rank = albumXp(f, p); reply({ t: 'farm', farm: view(f, p), ...extra, ...(rank ? { rank } : {}) }); };
   const no = msg => reply({ t: 'farm', err: msg, farm: f ? view(f, p) : null });
 
-  if (f) { f.name = p.name; f.seen = Date.now(); trainTick(f); unhold(p, f); }
+  if (f) { f.name = p.name; f.seen = Date.now(); trainTick(f); unhold(p, f); journalStart(f, p); }
   const ok0 = f && albumXp(f, p); // species gained since last time (a hatch, a trade, a wild pet) // remembered so other players can see whose farm it is
   if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: lives.has(p.pid) ? liveView(lives.get(p.pid), lives.get(p.pid).pids.indexOf(p.pid)) : battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
     if (!STARTERS.includes(a.sp)) return;
     const nf = { v: 1, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
-      name: p.name, pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now() };
+      name: p.name, pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now(), jn: { got: 0 } };
     bindCoins(p.pid, nf); farms.set(p.pid, nf); unhold(p, nf); scheduleSave();
     return reply({ t: 'farm', farm: view(nf, p), did: 'starter' });
   }
@@ -433,6 +453,7 @@ export function handle(p, a, reply) {
     if (it.house && (f.house || 1) < it.house) return no(`That needs a level ${it.house} farmhouse.`);
     const gifted = f.stash?.[a.type] > 0; // a decoration a friend gave: placed for free, whatever it normally needs
     if (!gifted && it.wheel) return no('That one only comes from the Lucky Wheel.');
+    if (!gifted && it.jn) return no('That one is a reward from the Farm Journal.');
     if (!gifted && !canAfford(f.inv, it.cost)) return no('Not enough materials for that.');
     if (!gifted && it.craft && topLv(f, 'workshop') < it.craft) return no(it.craft > 1 && countOf(f, 'workshop') ? `That needs a level ${it.craft} Workshop.` : 'Build a Workshop first.');
     if (!gifted && it.pals && palsOf(f) < it.pals) return no(`That needs ${it.pals} friendship points. Help out and leave gifts to earn them.`);
@@ -454,7 +475,7 @@ export function handle(p, a, reply) {
     if (f.items[i].type === 'nest' && SLOTS.some(s => f[s])) return no('The Nest is in use right now.');
     if (f.items[i].type === 'gate' && parties(f).length) return no('Your pets are still out exploring.');
     pay(f.inv, it.cost, 1); for (let n = 1; n < lvOf(f.items[i]); n++) pay(f.inv, UPGRADES[f.items[i].type].cost[n - 1], 1); // improvements come back too
-    if (it.wheel) (f.stash ||= {})[f.items[i].type] = (f.stash[f.items[i].type] || 0) + 1; // a wheel prize is kept, never sold
+    if (it.wheel || it.jn) (f.stash ||= {})[f.items[i].type] = (f.stash[f.items[i].type] || 0) + 1; // a wheel prize is kept, never sold
     if (f.items[i].type === 'lodge' && f.pets.some(q => q.lodge)) return no('Move the pets stored in the Lodge out first.');
     f.items.splice(i, 1);
     if (f.train) f.train.ids = f.train.ids.slice(0, topLv(f, 'yard'));
@@ -725,25 +746,25 @@ export function handle(p, a, reply) {
       if (out) out.until -= HELP_CUT; else if (plot) plot.at -= HELP_CUT; /* watering */ else if (egg) { x[egg].at -= HELP_CUT; x[egg].cheers = (x[egg].cheers || 0) + 1; } else x.inv.coins = (x.inv.coins || 0) + 2;
       const m = (x.mail || []).find(q => q.k === 'help' && q.from === p.name && dayOf(q.at) === today());
       if (m) m.n++; else post(x, { k: 'help', from: p.name, n: 1 });
-      scheduleSave();
+      tally(f, a, { did: 'help' }); scheduleSave();
       return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'help' });
     }
     if (a.t === 'gift') {
       const g = daily(f, 'gift'); if (g[id]) return reply({ t: 'farm', err: 'One gift a day for each neighbour.', visit: there(), farm: view(f, p) });
       if (a.item) { // a decoration: the giver pays for it, the friend places it for free
-        const it = own(ITEMS, a.item); if (!it || it.kind !== 'd' || it.pals || it.wheel) return;
+        const it = own(ITEMS, a.item); if (!it || it.kind !== 'd' || it.pals || it.wheel || it.jn) return;
         if (it.craft && topLv(f, 'workshop') < it.craft) return reply({ t: 'farm', err: 'Your Workshop cannot make that yet.', visit: there(), farm: view(f, p) });
         if (!canAfford(f.inv, it.cost)) return reply({ t: 'farm', err: 'You do not have the materials for that.', visit: there(), farm: view(f, p) });
         pay(f.inv, it.cost); g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
         post(x, { k: 'gift', from: p.name, item: a.item });
-        scheduleSave();
+        tally(f, a, { did: 'gift' }); scheduleSave();
         return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'gift' });
       }
       const n = own(GIFTS, a.mat); if (!n) return reply({ t: 'farm', err: a.mat === 'coins' ? 'Coins cannot be gifted. They stay with you.' : 'That cannot be a gift.', visit: there(), farm: view(f, p) });
       if ((f.inv[a.mat] || 0) < n) return reply({ t: 'farm', err: 'You do not have enough of that to give.', visit: there(), farm: view(f, p) });
       f.inv[a.mat] -= n; g[id] = 1; (f.pals ||= {})[id] = (f.pals[id] || 0) + 1;
       post(x, { k: 'gift', from: p.name, got: { [a.mat]: n } });
-      scheduleSave();
+      tally(f, a, { did: 'gift' }); scheduleSave();
       return reply({ t: 'farm', visit: there(), farm: view(f, p), did: 'gift' });
     }
     return reply({ t: 'farm', visit: there(), farm: view(f, p) });
@@ -1000,6 +1021,18 @@ export function handle(p, a, reply) {
     pet.name = name;
     return ok({ did: 'petname' });
   }
+  if (a.t === 'jclaim') { // the Farm Journal: claim the open chapter's reward once all its tasks are ticked
+    const j = journalOf(f, jx(f, p)), i = j.got;
+    if (i >= j.tick.length) return no('Every chapter is done.');
+    if (!chapterDone(j, i)) return no('That chapter is not finished yet.');
+    const r = rewardOf(i, i < (f.jn.old || 0)), spilt = {};
+    for (const [k, n] of Object.entries(r.mats)) { const got = store(f, k, n); if (got < n) spilt[k] = n - got; } // a full barn keeps only what fits
+    if (r.deco) (f.stash ||= {})[r.deco] = (f.stash[r.deco] || 0) + 1; // waits under Edit farm, placed for free
+    if (r.stamps) f.inv.stamps = (f.inv.stamps || 0) + r.stamps;
+    if (r.charm) (f.charms ||= {}).el = (f.charms.el || 0) + r.charm;
+    f.jn.got = i + 1;
+    return ok({ did: 'jclaim', ch: i, reward: r, spilt });
+  }
 }
 
 // Test hooks, only when FARM_TEST is set: bring the party home at once, or hand out materials.
@@ -1029,6 +1062,8 @@ export function testHook(pid, a) {
   if (a.liveUsed !== undefined) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = a.liveUsed; }
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
+  if (a.jn !== undefined) { if (a.jn) f.jn = a.jn; else delete f.jn; } // null: a farm from before the Farm Journal
+  if (a.album) for (const sp of a.album) if (own(SPECIES, sp)) (f.album ||= {})[sp] = [1, 0, 0];
   if (a.house) f.house = a.house; // a farmhouse level, e.g. one that has not been built into the game yet
   if (a.oldOffer) { const hit = byFid(a.oldOffer); if (hit) { f.inv.coins -= 5; (f.offers ||= []).push({ id: rid(), to: hit[0], give: { pets: [], mats: { coins: 5 } }, want: { pets: [], mats: {} }, at: Date.now() }); } } // an offer from before coins stopped being tradable
   if (a.pet && own(SPECIES, a.pet)) { const q = { ...newPet(a.pet, 'test', true), ...(a.traits || {}) }; f.pets.push(q); settle(f, q); }
