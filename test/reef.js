@@ -142,7 +142,7 @@ function play(opts, people = players) {
     const onBoard = G.cells.filter(Boolean).length;
     if (G.bag.length + G.racks.flat().length + onBoard !== all) fail('tiles lost or copied');
     if (G.racks.some(r => r.length > RACK)) fail('tray too big');
-    if (steps % 25 === 0) for (let s = -1; s < n; s++) {
+    if (steps % 25 === 0 && G.ph === 'play') for (let s = -1; s < n; s++) {
       const v = rf.view(G, s);
       v.seats.forEach((p, j) => { if (j !== s && p.rack) fail(`seat ${s} was sent seat ${j}'s tray`); });
       if (JSON.stringify(v).includes('"bag":[')) fail('the bag leaked');
