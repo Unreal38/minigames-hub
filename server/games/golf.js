@@ -16,7 +16,7 @@ const LOOK_MS = 3500, TURN_MS = 25_000, SLOW_MS = 8000, GAP_MS = 500, DONE_MS = 
 
 export function cleanOpts(o = {}) {
   return {
-    holes: [3, 6, 9].includes(+o.holes) ? +o.holes : 6,
+    holes: [1, 3, 6, 9].includes(+o.holes) ? +o.holes : 6, // 1: Friendship Trail's quick cut (hosts pick 3, 6 or 9)
     seats: cleanSeats(meta, o.seats),
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     course: o.course === 'classic' ? 'classic' : 'random',

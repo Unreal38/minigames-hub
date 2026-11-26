@@ -43,7 +43,7 @@ export const OPT_PL = {
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
   Cards: 'Karty', 'Time to dress up': 'Czas na przebranie', 'On the runway': 'Na wybiegu', 'Names shown': 'Imiona widoczne', 'Secret walk': 'Tajny wybieg',
   Sneaks: 'Łasuchy', Auto: 'Automatycznie', 'Talk at meetings': 'Rozmowa na naradzie', 'Chores each': 'Prace na osobę', 'Time between lulls': 'Odstęp między uśpieniami', 'The ferry shows': 'Prom pokazuje', 'Their side': 'Stronę gracza', Nothing: 'Nic', 'Pawprint clues': 'Tropy łap',
-  Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
+  Rounds: 'Rundy', 'Players on the trail': 'Gracze na szlaku', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
   'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
   'Wins to take the match': 'Wygrane do zwycięstwa', Arena: 'Arena', 'Mossy Woods': 'Omszały Las', 'Pebble Ridge': 'Kamykowa Grań', 'Sweet Shop': 'Wyspa Słodyczy', 'Crumbling edge': 'Kruszący się brzeg', 'Players in the maze': 'Gracze w labiryncie',
@@ -232,6 +232,23 @@ export const GAMES_PL = {
       <li>Gdy pierwszy gokart dojedzie do mety, reszta ma <b>25 sekund</b> na przekroczenie linii. Potem pozostali zajmują miejsca według przejechanej drogi.</li>
       <li>Bonusy w trybie <b>Chaos</b>: z nieba pada deszcz skórek od banana, a galaretek i chmurek jest więcej.</li>
       <li>Monety zależą od miejsca na mecie: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  trail: {
+    name: 'Szlak przyjaźni', start: 'Ruszamy na szlak', openSeat: 'Jeśli nikt nie dołączy, szlakiem pójdzie tu bot',
+    pitch: 'Imprezowy turniej na wielkim wyspiarskim szlaku. Rzucaj, wędruj ze swoim zwierzakiem z Farmy, zaprzyjaźniaj się z dzikimi zwierzakami i po każdej rundzie zagraj w szybką minigrę.',
+    howto: `Imprezowy turniej na wielkim szlaku przez wyspę. Rzucaj kością, wędruj ze swoim zwierzakiem z Farmy, zaprzyjaźniaj się po drodze z dzikimi zwierzakami i po każdej rundzie zagraj w szybką minigrę z hubu. Na koniec Pokaz zwierzaków rozdaje wstęgi.`,
+    rules: `<ol>
+      <li>Każdy zaczyna ze <b>swoim zwierzakiem z wysepki</b> (albo zwierzakiem startowym) i <b>6 przysmakami</b>. Puste miejsca zajmują boty, a boty przed każdym wyborem chwilę się zastanawiają.</li>
+      <li>W swojej kolejce <b>rzuć kością</b> i przejdź tyle kamieni. Każdy przyjaciel w twoim stadzie może raz <b>przerzucić</b> twoją kość (przyjaciel <b>Iskry</b> co rundę). Na <b>rozwidleniu</b> wybierasz trasę: Leśny skrót, Plażowy objazd, Wzgórze i mostek albo Ścieżkę na klifie.</li>
+      <li>Kamienie: <b>Przysmaki</b> +3, <b>Piknik</b> +5, <b>Jeżyny</b> −3. Kamienie specjalne: <b>Stragan</b> (zakupy w przejściu), <b>Gniazdo</b> (tajemnicze jajo, które wykluwa się po 2 turach), <b>Ławka paktu</b>, <b>Studnia życzeń</b> (życzenie za 5 przysmaków), <b>Gorące źródło</b> (przyjaciele odpoczywają, +2) i <b>Nora rzadkich</b> (wychodzi rzadki zwierzak).</li>
+      <li><b>Dzikie zwierzaki</b> czekają przy kamieniach. Stań na kamieniu z nimi albo obok i przekonaj je: <b>starciem żywiołów</b> z jednym z twoich przyjaciół (Fala pokonuje Żar, Żar Liść, Liść Kamień, Kamień Iskrę, a Iskra Falę) albo <b>przysmakami</b>, które działają zawsze. W stadzie mieści się 6 zwierzaków.</li>
+      <li>Gdy staniesz na kamieniu innego gracza, możesz za 6 przysmaków <b>zwabić</b> jego najnowszego przyjaciela (nigdy zwierzaka startowego i nie wtedy, gdy chroni go Amulet gniazda).</li>
+      <li><b>Przedmioty</b> (możesz mieć 3, używasz ich przed rzutem): Gwizdek, Pęczek jagód, Luneta, Garnek miodu, Amulet gniazda i Sakiewka z przekąskami.</li>
+      <li><b>Pakty</b> trwają 3 rundy: +3 przysmaki, gdy twój kumpel zdobędzie przyjaciela, żadnego wabienia siebie nawzajem i po +3, gdy oboje skończycie minigrę w pierwszej dwójce.</li>
+      <li>Po każdej rundzie wszyscy grają w <b>szybką minigrę</b> (jedną rundę gry z hubu). Miejsca dają przysmaki, a przyjaciel wybrany do <b>kibicowania</b> przesuwa cię o jedno miejsce w górę, każdy raz.</li>
+      <li><b>Pora roku</b> i <b>pogoda</b> zmieniają jedną zasadę i wygląd wyspy. Przycisk <b>Cała mapa</b> (albo M) pokazuje całą wyspę z podpisami.</li>
+      <li>Na <b>Pokazie zwierzaków</b> każdy przyjaciel to rozeta (1 punkt), a każda wstęga to 2 punkty: Największe stado, Najwięcej żywiołów, Najrzadszy przyjaciel, Gwiazda minigier i Skarbnik przysmaków. Wygrywa najwięcej punktów, przy remisie decydują przysmaki. Monety dostajesz raz, na koniec, za zajęte miejsce.</li>
     </ol>`,
   },
   blast: {

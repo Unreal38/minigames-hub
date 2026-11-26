@@ -398,6 +398,13 @@ const PIECE = {
     for (const y of [-.1, .12]) { const r = new THREE.Mesh(new THREE.TorusGeometry(.12, .022, 6, 16), SM('#7a4a2a')); r.rotation.x = PI / 2; r.position.y = y; g.add(r); }
     const lens = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .02, 14), SM('#7fd1e8', { emissive: '#4fb0ee', emissiveIntensity: .3 })); lens.position.y = .32; g.add(lens);
     g.rotation.set(.75, .3, -.7); },
+  signpost(g) { // a Friendship Trail signpost: a post with two arrow boards pointing different ways, on a stepping stone
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(.26, .29, .08, 9), SM('#ffd36b')); st.position.y = -.36; g.add(st);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(.06, .66, .06), SM('#8a5a32')); post.position.y = -.02; g.add(post);
+    for (const [y, ry, c] of [[.2, .5, '#ffffff'], [.04, -.6, '#ffc93c']]) { const b = new THREE.Group(); b.position.y = y; b.rotation.y = ry; g.add(b);
+      const bd = new THREE.Mesh(new THREE.BoxGeometry(.36, .1, .04), SM(c)); bd.position.x = .12; b.add(bd);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(.07, .08, 4), SM(c)); tip.rotation.z = -PI / 2; tip.position.x = .34; b.add(tip); }
+    g.rotation.set(.1, .4, 0); },
   cupcake(g) { // a Sugar Siege snack: a cupcake with icing and a cherry
     const cup = new THREE.Mesh(new THREE.CylinderGeometry(.22, .16, .24, 10), SM('#fff4e2')); cup.position.y = -.12; g.add(cup);
     const ice = new THREE.Mesh(new THREE.SphereGeometry(.24, 12, 8, 0, PI * 2, 0, PI / 2), SM('#ff8fab')); ice.position.y = 0; ice.scale.y = 1.1; g.add(ice);

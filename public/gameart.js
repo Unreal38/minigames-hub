@@ -954,3 +954,23 @@ export function blastArt() {
     <g transform="translate(96 104)"><g class="bbseed"><ellipse cx="0" cy="12" rx="12" ry="4" fill="#3b221933"/><path d="M0 10c-8 0-11-5-11-10 0-7 5-12 11-12s11 5 11 12c0 5-3 10-11 10z" fill="#f2679a" ${o}/><path d="M0-12c1-6 5-9 9-9-1 5-4 8-9 9z" fill="#3f9a52" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><circle class="arttick" cx="0" cy="-14" r="3" fill="#ffd34d"/></g></g>
   </svg>`;
 }
+
+// Friendship Trail card: an island with a winding path of stepping stones and a signpost at a fork, an avatar walking
+// with a little parade of pets behind, and a wild pet with a heart waiting further along.
+export function trailArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const stone = (x, y, c) => `<ellipse cx="${x}" cy="${y}" rx="13" ry="6" fill="${c}" ${o}/>`;
+  const pet = (x, y, c, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-7 -14l3-8 4 7M7 -14l-3-8-4 7" fill="${c}" ${o}/><ellipse cx="0" cy="-6" rx="11" ry="9" fill="${c}" ${o}/><circle cx="-4" cy="-7" r="1.6" fill="#3b2219"/><circle cx="4" cy="-7" r="1.6" fill="#3b2219"/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="An island with a winding trail of stepping stones and a signpost at a fork; an avatar walks with a parade of pets behind and a wild pet with a heart waits ahead">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="34" cy="16" r="1.5"/><circle cx="170" cy="10" r="1.3"/><circle cx="300" cy="26" r="1.5"/></g>
+    <path d="M18 30l14-8 16 4 8 10-10 8H26z" class="artcloud" fill="#fff"/><path d="M250 16l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M16 112q144 52 288 0l-24 26H40z" fill="#c98a5a" ${o}/>
+    <path d="M16 112q20-50 144-58t144 58q-144 40-288 0z" fill="#8fd06a" ${o}/>
+    <ellipse cx="226" cy="78" rx="26" ry="9" fill="#5cc4f0" ${o}/>
+    ${stone(44, 112, '#ffd36b')}${stone(78, 104, '#ffd36b')}${stone(112, 96, '#ff9fc8')}${stone(146, 92, '#ffd36b')}${stone(180, 94, '#b994f0')}${stone(212, 100, '#ffd36b')}${stone(246, 104, '#ffffff')}${stone(278, 110, '#ffd36b')}${stone(166, 70, '#ffd36b')}${stone(198, 64, '#7cc6ff')}
+    <g transform="translate(150 66)"><rect x="-2" y="0" width="4" height="26" fill="#8a5a32" ${o}/><path d="M-20 2h30l6 5-6 5h-30z" fill="#fff" ${o}/><path d="M18 12h-30l-6 5 6 5h30z" fill="#ffc93c" ${o}/></g>
+    <g class="ttwalk" transform="translate(112 90)"><rect x="-8" y="-16" width="16" height="16" rx="4" fill="#ff8fab" ${o}/><rect x="-9" y="-33" width="18" height="17" rx="6" fill="#ffd9b8" ${o}/><rect x="-10" y="-37" width="20" height="7" rx="3" fill="#5a3a22" ${o}/><circle cx="-3" cy="-24" r="1.6" fill="#3b2219"/><circle cx="4" cy="-24" r="1.6" fill="#3b2219"/></g>
+    <g class="ttpets">${pet(84, 102, '#7ed957', .9)}${pet(56, 108, '#ffb547', .8)}</g>
+    ${pet(250, 100, '#7cc6ff', 1.05)}<path class="ttheart" d="M250 70c-4-6-12-2-8 4l8 8 8-8c4-6-4-10-8-4z" fill="#ff6f9a" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg>`;
+}

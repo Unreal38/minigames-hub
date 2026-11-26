@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt, trailArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -332,6 +332,29 @@ const GAMES = {
       <li>Points: hiders get <b>1 for every 10 seconds</b> they stay hidden and <b>5 for lasting the round</b>. Seekers get <b>6 for every find</b>, 2 more for a find in the first minute, and 3 if they find everyone. The host picks whether found hiders float about as ghosts or <b>join the seekers</b>.</li>
       <li>After the last round the most points wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>Walk with <b>W A S D</b> or the arrow keys (a joystick on phones), drag to look round, and scroll or pinch to zoom.</li>
+    </ol>`,
+  },
+  trail: {
+    name: 'Friendship Trail', load: () => import('./games/trail/client.js'), start: 'Set off on the trail',
+    mins: [20, 45],
+    host: { seats: 4, bots: 'chill', rounds: 8, timer: 30 }, solo: { seats: 4, bots: 'chill', rounds: 5, timer: 0 },
+    openSeat: 'A bot walks the trail here if nobody joins', seatWord: 'Players on the trail',
+    settings: pill => `
+      <div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 5, '5')}${pill('rounds', 8, '8')}${pill('rounds', 12, '12')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `A party tournament on a big island trail. Roll the die, walk with your own Pet Farm pet, make friends with wild pets along the way, and play a quick hub minigame after every round. The Pet Show at the end hands out the ribbons.`,
+    rules: `<ol>
+      <li>Everyone starts with <b>their own isle pet</b> (or a starter pet) and <b>6 treats</b>. Empty seats are played by bots, and bots take a moment to think before each choice.</li>
+      <li>On your turn <b>roll the die</b> and walk that many stones. Every friend in your herd can <b>reroll</b> your die once (a <b>Spark</b> friend every round). At a <b>fork</b> you pick the route: the Forest shortcut, the Beach detour, the Hill and bridge or the Cliff path.</li>
+      <li>Stones: <b>Treats</b> +3, <b>Picnic</b> +5, <b>Brambles</b> −3. Special stones: the <b>Stall</b> (shop as you pass), the <b>Egg Nest</b> (a Mystery Egg that hatches in 2 turns), the <b>Pact Bench</b>, the <b>Wishing Well</b> (5 treats for a wish), the <b>Hot Spring</b> (friends rest, +2) and the <b>Rare Den</b> (a rare pet comes out).</li>
+      <li><b>Wild pets</b> wait beside the stones. Stop on or next to one and win it over: an <b>element showdown</b> with one of your friends (Tide beats Ember, Ember beats Leaf, Leaf beats Stone, Stone beats Spark, Spark beats Tide), or <b>treats</b>, which always work. A herd holds up to 6.</li>
+      <li>Stop on another player's stone and you can <b>lure</b> their newest friend for 6 treats (never their starter pet, and not while a Nest Charm guards them).</li>
+      <li><b>Items</b> (hold 3, used before you roll): Pet Whistle, Berry Bundle, Spyglass, Honey Pot, Nest Charm and Snack Pouch.</li>
+      <li><b>Buddy pacts</b> last 3 rounds: +3 treats when your buddy makes a friend, no luring each other, and +3 each when you both finish a minigame in the top two.</li>
+      <li>After every round everyone plays a <b>quick minigame</b> (one round of a hub game). Places pay treats, and a friend you picked to <b>cheer</b> moves you up one place, once per friend.</li>
+      <li>The <b>season</b> and the <b>weather</b> change a rule and the look of the island. The <b>Whole map</b> button (or M) shows the whole island with labels.</li>
+      <li>At the <b>Pet Show</b> every friend is a rosette (1 point) and each ribbon is 2 points: Biggest herd, Most elements, Rarest friend, Minigame star and Treat keeper. The most points wins; treats break ties. Coins go by your final place, once, at the end.</li>
     </ol>`,
   },
   blast: {
@@ -1329,13 +1352,16 @@ function onMsg(m) {
     if (m.room && m.room.code === $inv.dataset.code) hideInvite(); // came in through the link or the code instead
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj' && st.view !== 'plaza') go('hub'); return; }
+    if (!m.room) { partyPaint(null); unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj' && st.view !== 'plaza') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
       if (joined.length) { sfx.join(); joined.forEach(p => toast(L(`${esc(p.name)} pulled up a chair`, `${esc(p.name)} dosiada się do stołu`))); }
     }
-    if (st.game) st.game.room(m.room); else go('lobby');
+    partyPaint(m.room);
+    // A Friendship Trail table switches game for each minigame and back: the open game is swapped for the new one.
+    if ((st.game || st.gameLoading) && st.gameKey && st.gameKey !== m.room.game && m.room.state !== 'lobby') { unmountGame(); st.lastState = null; mountGame(); }
+    else if (st.game) st.game.room(m.room); else if (!st.gameLoading) go('lobby');
     watchPaint();
   } else if (m.t === 'state') {
     // Each seat gets its player's cosmetics (fl), so a game can show their card back, dice, ball or kart paint.
@@ -1403,8 +1429,10 @@ function mountGame() {
   st.view = 'game';
   document.body.classList.toggle('tagpick', !TAG_HANDS_OFF.has(st.room.game)); // name tags open profile cards (see below)
   heroMod?.then(m => m.releaseHero()).catch(() => {}); // fewer live 3D canvases while a game runs (the hub builds its isle again on the way back)
+  const key = st.room.game; st.gameKey = key;
   st.gameLoading = g.load().then(mod => {
     const game = st.room?.game;
+    if (game !== key) { st.gameLoading = null; return mountGame(); } // the table moved on to another game while this one loaded
     st.game = mountWithCss(game, () => mod.mount($app, {
       act: a => send({ t: 'act', a }), react: k => send({ t: 'react', k }),
       myId: () => st.id, room: () => st.room, isHost: () => st.room?.host === st.id,
@@ -1428,7 +1456,19 @@ document.addEventListener('webglcontextlost', e => {
   e.preventDefault(); clearTimeout(regl);
   regl = setTimeout(() => { if (!st.game || !st.room) return; unmountGame(); mountGame().then(g => { g?.update(st.lastState); watchPaint(); }); }, 300);
 }, true);
-function unmountGame() { document.body.classList.remove('tagpick'); if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
+// The pill that says a Friendship Trail minigame goes back to the trail, and the class that hides its play-again box.
+let partyEl = null, partyTimer = 0;
+function partyPaint(room) {
+  const P = room?.party;
+  document.body.classList.toggle('in-party', !!P);
+  clearInterval(partyTimer);
+  if (!P || P.back == null) { if (partyEl) partyEl.hidden = true; return; }
+  if (!partyEl) { partyEl = document.createElement('div'); partyEl.className = 'party-back'; partyEl.setAttribute('aria-live', 'polite'); document.body.append(partyEl); }
+  const end = Date.now() + P.back;
+  const paint = () => { const n = Math.max(0, Math.ceil((end - Date.now()) / 1000)); partyEl.textContent = L(`Back to the Friendship Trail in ${n}s`, `Powrót na Szlak przyjaźni za ${n} s`); };
+  partyEl.hidden = false; paint(); partyTimer = setInterval(paint, 250);
+}
+function unmountGame() { document.body.classList.remove('tagpick'); st.gameKey = null; if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
 let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
@@ -2107,6 +2147,7 @@ const HUB_GAMES = [
   ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
   ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],
   ['kart', 'kartpic', kartArt, 'action', '1–8 players', 'Race little low-poly karts round roads that hop between floating islands.'],
+  ['trail', 'trailpic', trailArt, 'board party', '1–6 players', 'A party tournament on a big island trail. Roll, walk with your Pet Farm pet, befriend wild pets, and play a quick minigame after every round.'],
   ['blast', 'blastpic', blastArt, 'action party', '1–8 players', 'Plant pop seeds in a maze on a little island. Burst crates, free pets for boosts and be the last one standing.'],
   ['copy', 'copypic', copyArt, 'action party', '1–10 players', 'Hide and seek on a little island. Turn into a bench, a hay bale or a pumpkin and keep still while your friends hunt for you.'],
   ['kitchen', 'kitchenpic', kitchenArt, 'action party', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
