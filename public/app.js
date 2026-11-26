@@ -1965,7 +1965,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.q
 function paintMe() {
   // the account button follows a new look, frame or card background without redrawing the page
   const ab = document.querySelector('.me.acctbtn');
-  if (ab) { const key = JSON.stringify([flairOf(st.me), st.av, st.color, st.name, st.me?.level]); if (ab.dataset.k && ab.dataset.k !== key) { const f = document.activeElement === ab; ab.outerHTML = acctBtn(); const nb = document.querySelector('.me.acctbtn'); nb.dataset.k = key; pbSync(nb); if (f) nb.focus({ preventScroll: true }); } else ab.dataset.k = key; }
+  // acctBtn() stamps the look it was drawn with, so the first 'me' after the page drew the button without the
+  // account (no frame, card background or rank yet) redraws it too, not only later changes
+  if (ab && ab.dataset.k !== acctKey()) { const f = document.activeElement === ab; ab.outerHTML = acctBtn(); const nb = document.querySelector('.me.acctbtn'); pbSync(nb); if (f) nb.focus({ preventScroll: true }); }
   const chip = document.querySelector('.me .lvslot'); if (chip) chip.innerHTML = meChip();
   const cs = document.querySelector('.coinslot'); if (cs && st.me) cs.textContent = st.me.coins;
   const menu = document.getElementById('acct-menu'); if (menu) menu.innerHTML = acctHtml();
@@ -2025,7 +2027,8 @@ function switchTheme(btn) {
 
 // The account button in the top bar, a small profile card: avatar in its frame on the player's card background,
 // name over level + rank title, and the menu arrow in its own square.
-const acctBtn = () => { const fl = flairOf(st.me); return `<button type="button" class="me acctbtn${cardBgCls(fl)}" data-act="acct" aria-haspopup="menu" aria-expanded="${document.querySelector('.acctwrap') ? 'true' : 'false'}" aria-label="${L('Your account', 'Twoje konto')}">${cardBg(fl)}${avatarHtml(st.color, st.av, 46, frameCls(fl))}<span class="astack"><span class="aname">${st.name ? nameHtml(st.name, fl) : L('Pick a name', 'Wybierz imię')}</span><span class="arow"><span class="lvslot">${meChip()}</span>${st.me ? `<span class="arank">${esc(rankOf(st.me.level).name)}</span>` : ''}</span></span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>`; };
+const acctKey = () => JSON.stringify([flairOf(st.me), st.av, st.color, st.name, st.me?.level, rankOf(st.me?.level || 1).name, !!st.me]);
+const acctBtn = () => { const fl = flairOf(st.me); return `<button type="button" class="me acctbtn${cardBgCls(fl)}" data-k="${esc(acctKey())}" data-act="acct" aria-haspopup="menu" aria-expanded="${document.querySelector('.acctwrap') ? 'true' : 'false'}" aria-label="${L('Your account', 'Twoje konto')}">${cardBg(fl)}${avatarHtml(st.color, st.av, 46, frameCls(fl))}<span class="astack"><span class="aname">${st.name ? nameHtml(st.name, fl) : L('Pick a name', 'Wybierz imię')}</span><span class="arow"><span class="lvslot">${meChip()}</span>${st.me ? `<span class="arank">${esc(rankOf(st.me.level).name)}</span>` : ''}</span></span><span class="acaret" aria-hidden="true">▾</span><span class="frbadge" ${st.friends?.reqs.length ? '' : 'hidden'}>${st.friends?.reqs.length || ''}</span></button>`; };
 // The server's clock (Warsaw time, where every daily thing turns over) in the top bar, ticking every 10 s.
 const srvFmt = new Intl.DateTimeFormat(LOCALE, { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit', hour12: false });
 function srvTime() { return srvFmt.format(new Date()); }
@@ -3167,9 +3170,9 @@ function openPlayer(p) {
       : p.rel === 'sent' ? `<button type="button" class="btn big w" disabled>${L('Friend request sent', 'Zaproszenie wysłane')}</button>`
       : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span><button type="button" class="btn w sm punfr" data-unfr>${L('Unfriend', 'Usuń ze znajomych')}</button>`
       : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
-      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>
-    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}
-    ${!p.me ? `<div class="pdelrow">${p.mod ? `<button type="button" class="btn w sm" data-moderate>🛡️ ${L('Moderate', 'Moderuj')}</button>` : ''}<button type="button" class="btn ghost-ink pdel" data-report>🚩 ${L('Report', 'Zgłoś')}</button></div>` : ''}`);
+      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}${
+      !p.me ? `<span class="prepgrp">${p.mod ? `<button type="button" class="btn big w" data-moderate>🛡️ ${L('Moderate', 'Moderuj')}</button>` : ''}<button type="button" class="btn big prep" data-report>🚩 ${L('Report', 'Zgłoś')}</button></span>` : ''}</div>
+    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
