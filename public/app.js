@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -887,6 +887,28 @@ const GAMES = {
       <li>The first one <b>out of cards wins</b>. Everyone else is placed by the <b>points left in their hand</b>: numbers count their value, action cards 10 and wild cards 20. The fewer, the better.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot plays your turn. Shortcuts: <b>Enter</b> plays a card that fits, <b>D</b> draws, <b>K</b> keeps a drawn card, <b>1–4</b> pick a colour, <b>L</b> says “Last one!” and <b>C</b> catches.</li>
+    </ol>`,
+  },
+  pairs: {
+    name: 'Pet Pairs', load: () => import('./games/pairs/client.js'), start: 'Lay out the cards',
+    mins: [5, 10],
+    host: { seats: 4, bots: 'chill', board: 'auto', twists: 'on', streak: 0, timer: 10 }, solo: { seats: 2, bots: 'chill', board: 'auto', twists: 'on', streak: 0, timer: 0 },
+    openSeat: 'A bot flips cards here if nobody joins',
+    settings: pill => `
+      <div class="opt"><b>Board</b><div class="pills">${pill('board', 'auto', 'Auto')}${pill('board', 'small', 'Small 4×5')}${pill('board', 'mid', 'Medium 6×6')}${pill('board', 'big', 'Big 6×8')}</div></div>
+      <div class="opt"><b>Twists</b><div class="pills">${pill('twists', 'on', 'On')}${pill('twists', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Pairs in a row</b><div class="pills">${pill('streak', 0, 'No limit')}${pill('streak', 3, 'Up to 3')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 6, '6s')}${pill('timer', 10, '10s')}${pill('timer', 15, '15s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `A memory game with Pet Farm pets. Flip two cards: the same pet and you keep the pair and go again. Everyone sees every flip, so watch closely. The most points when the last pair is found wins.`,
+    rules: `<ol>
+      <li>The cards lie face down on the table, <b>two of each pet</b>. The pets are picked at random from every Pet Farm species, so every board is different. Empty seats are played by bots.</li>
+      <li>On your turn <b>flip two cards</b>. Everyone sees them. The <b>same pet</b>: you keep the pair and flip again. <b>Different pets</b>: they turn back over and the next player goes.</li>
+      <li>A pair is worth <b>1 point</b>. With <b>Twists</b> on, three special pairs show a badge when they are flipped: the <b>Golden pair</b> is worth <b>3 points</b>, the <b>Spyglass</b> lets you secretly peek at any face-down card (the others see which card, not the pet), and the <b>Whirlwind</b> swaps two pairs of face-down cards while everyone watches.</li>
+      <li>With <b>Pairs in a row: Up to 3</b>, your turn ends after your third pair, so a lucky streak can't clear the whole table.</li>
+      <li>The board: <b>Auto</b> lays out Small 4×5 (10 pairs) for two players, Medium 6×6 (18 pairs) for three or four and Big 6×8 (24 pairs) for five or six.</li>
+      <li>When the last pair is found, the <b>most points wins</b>. Equal points share the place. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>If the turn timer runs out, random cards are flipped for you. Each pair you find starts the timer again.</li>
     </ol>`,
   },
   pips: {
@@ -2008,6 +2030,7 @@ const HUB_GAMES = [
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
+  ['pairs', 'pairspic', pairsArt, 'cards party', '1–6 players', 'A memory game with Pet Farm pets. Flip two cards, find the twins and go again. Golden, Spyglass and Whirlwind pairs shake things up.'],
   ['makao', 'makaopic', makaoArt, 'cards', '1–6 players', 'The Polish classic with a normal deck: twos and threes to draw, fours to wait, Jacks demand, Aces change the suit, kings fight. Don\'t forget “Makao!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
@@ -3104,7 +3127,7 @@ document.addEventListener('click', e => {
   profFrom = fromOf(row); sfx.click(); send({ t: 'player', pt: row.dataset.prof });
 });
 // Games where the floating name tags stay out of the way of the mouse: you aim, drag or steer right where they float.
-const TAG_HANDS_OFF = new Set(['kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
+const TAG_HANDS_OFF = new Set(['pairs', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
 // Inside a game: the name tags over the players and the rows of the score lists open that player's profile card too
 // (to add them as a friend or report them mid-match). Games draw them without a tag, so the name finds the player
 // among the people at this table; bots and names shared by two people open nothing.

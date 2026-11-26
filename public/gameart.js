@@ -876,3 +876,23 @@ export function spyArt() {
     <path class="arttick" d="M104 58l-8-5M104 94l-8 5M144 40v-8" fill="none" stroke="#3b2219" stroke-width="2.6" stroke-linecap="round"/>
   </svg>`;
 }
+
+// Pet Pairs card: a grid of face-down cards on a table, two turned up showing the same bunny (a found pair, with
+// a golden star), and one card mid-flip.
+export function pairsArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const back = (x, y) => `<g transform="translate(${x} ${y})"><rect width="34" height="44" rx="6" fill="#2f86cc" ${o}/><path d="M6 10l22 24M6 22l12 14M16 8l12 14" stroke="#4fa3e3" stroke-width="4"/><circle cx="17" cy="22" r="8" fill="#fff8ec" ${o}/><circle cx="17" cy="24" r="3" fill="#ffb547"/></g>`;
+  const bun = (x, y, gold) => `<g transform="translate(${x} ${y})"><rect width="34" height="44" rx="6" fill="${gold ? '#ffc93c' : '#fff8ec'}" ${o}/><rect x="4" y="4" width="26" height="36" rx="4" fill="#fff8ec"/>
+    <ellipse cx="12" cy="12" rx="3" ry="7" fill="#f3e9ff" ${o}/><ellipse cx="22" cy="12" rx="3" ry="7" fill="#f3e9ff" ${o}/><circle cx="17" cy="24" r="9" fill="#f3e9ff" ${o}/>
+    <circle cx="14" cy="23" r="1.6" fill="#3b2219"/><circle cx="20" cy="23" r="1.6" fill="#3b2219"/><path d="M15 27q2 1.5 4 0" fill="none" stroke="#3b2219" stroke-width="1.6" stroke-linecap="round"/>
+    ${gold ? '<circle cx="29" cy="5" r="7" fill="#ffd34d" stroke="#3b2219" stroke-width="2.5"/><path d="M29 1l1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8-2.1-1.9 2.8-.3z" fill="#fff"/>' : ''}</g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Face-down cards on a table, two turned up showing the same bunny with a golden star, and one card flipping over">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="40" cy="20" r="1.5"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="40" r="1.5"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="132" rx="156" ry="40" fill="#b9794a" ${o}/><ellipse cx="160" cy="126" rx="144" ry="34" fill="#f3e9ff" ${o}/>
+    <g transform="translate(0 -6)">${back(66, 56)}${bun(106, 52, true)}${back(186, 52)}${back(226, 56)}
+    ${back(52, 104)}${back(92, 102)}${back(186, 102)}${bun(226, 104, true)}</g>
+    <g class="prflip" transform="translate(146 78)"><rect x="-4" y="-10" width="36" height="46" rx="6" fill="#fff8ec" ${o}/><path d="M2 -2h24M2 26h24" stroke="#2f86cc" stroke-width="3" stroke-linecap="round"/></g>
+    <path class="arttick" d="M138 66l-8-8M178 66l8-8M158 58v-10" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}

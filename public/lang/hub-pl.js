@@ -30,6 +30,7 @@ export const OPT_PL = {
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '52 cards': '52 karty', '24 cards': '24 karty', Battles: 'Bitwy', 'Flip timer': 'Czas na odkrycie', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
+  'Small 4×5': 'Mała 4×5', 'Medium 6×6': 'Średnia 6×6', 'Big 6×8': 'Duża 6×8', Twists: 'Niespodzianki', 'Pairs in a row': 'Pary z rzędu', 'No limit': 'Bez limitu', 'Up to 3': 'Do 3',
   'The game ends': 'Koniec gry', 'First one out wins': 'Wygrywa pierwszy bez kart', 'Play to the last one': 'Gramy do ostatniego', 'Queen on everything': 'Dama na wszystko', 'Fighting kings': 'Waleczne króle',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Clock: 'Zegar', 'No clock': 'Bez zegara', '3 min + 2s': '3 min + 2 s', '5 min + 3s': '5 min + 3 s', '10 min + 5s': '10 min + 5 s', '15 min + 10s': '15 min + 10 s', Bot: 'Bot', Beginner: 'Początkujący', Club: 'Klubowy', Strong: 'Mocny',
@@ -692,6 +693,20 @@ export const GAMES_PL = {
       <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>, a pozostali zajmują miejsca według liczby kart w ręce: im mniej, tym lepiej. Przy ustawieniu <b>Koniec gry: Gramy do ostatniego</b> gra toczy się dalej, miejsca idą w kolejności pozbywania się kart, a przegrywa ten, kto zostanie z kartami.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera (albo bierze karty, albo czeka), <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>5–9 i 0</b> wybierają żądanie, <b>M</b> mówi „Makao!”, a <b>C</b> łapie.</li>
+    </ol>`,
+  },
+  pairs: {
+    name: 'Zwierzakowe Pary', start: 'Rozłóż karty', openSeat: 'Jeśli nikt nie dołączy, karty odkryje tu bot',
+    pitch: 'Gra w pamięć ze zwierzakami z Farmy. Odkryj dwie karty, znajdź bliźniaki i graj dalej. Złote, Lunetowe i Wichurowe pary mieszają w grze.',
+    howto: `Gra w pamięć ze zwierzakami z Farmy. Odkryj dwie karty: jeśli to ten sam zwierzak, zabierasz parę i odkrywasz dalej. Wszyscy widzą każdą odkrytą kartę, więc patrz uważnie. Gdy zostanie znaleziona ostatnia para, wygrywa najwięcej punktów.`,
+    rules: `<ol>
+      <li>Karty leżą na stole rewersem do góry, <b>po dwie z każdym zwierzakiem</b>. Zwierzaki są losowane spośród wszystkich gatunków z Farmy, więc każdy stół jest inny. Puste miejsca zajmują boty.</li>
+      <li>W swojej kolejce <b>odkryj dwie karty</b>. Wszyscy je widzą. <b>Ten sam zwierzak</b>: zabierasz parę i odkrywasz dalej. <b>Różne zwierzaki</b>: karty wracają rewersem do góry, a kolej przechodzi dalej.</li>
+      <li>Para jest warta <b>1 punkt</b>. Przy włączonych <b>niespodziankach</b> trzy specjalne pary mają znaczek, widoczny po odkryciu: <b>Złota para</b> jest warta <b>3 punkty</b>, <b>Luneta</b> pozwala po kryjomu podejrzeć dowolną zakrytą kartę (inni widzą, którą kartę, ale nie zwierzaka), a <b>Wichura</b> zamienia miejscami dwie pary zakrytych kart na oczach wszystkich.</li>
+      <li>Przy ustawieniu <b>Pary z rzędu: do 3</b> twoja kolejka kończy się po trzeciej parze, więc szczęśliwa seria nie wyczyści całego stołu.</li>
+      <li>Plansza: <b>Automatycznie</b> to Mała 4×5 (10 par) dla dwóch osób, Średnia 6×6 (18 par) dla trzech lub czterech i Duża 6×8 (24 pary) dla pięciu lub sześciu.</li>
+      <li>Gdy zostanie znaleziona ostatnia para, <b>wygrywa najwięcej punktów</b>. Równe punkty dzielą miejsce. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Gdy skończy się czas na ruch, losowe karty odkryją się same. Każda znaleziona para uruchamia czas od nowa.</li>
     </ol>`,
   },
   parade: {
