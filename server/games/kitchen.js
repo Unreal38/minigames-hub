@@ -15,7 +15,7 @@ const BOTS = { chill: { speed: 2.2, hand: .6, think: 1.6 }, sharp: { speed: 3.4,
 export function cleanOpts(o = {}) {
   return {
     seats: cleanSeats(meta, o.seats),
-    time: [120, 180, 240].includes(+o.time) ? +o.time : 180,
+    time: [60, 120, 180, 240].includes(+o.time) ? +o.time : 180, // 60: Friendship Trail's quick cut
     map: ['diner', 'split'].includes(o.map) ? o.map : 'diner',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };

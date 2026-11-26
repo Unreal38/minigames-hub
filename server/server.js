@@ -33,6 +33,7 @@ import * as dig from './games/dig.js';
 import * as bricks from './games/bricks.js';
 import * as lagoon from './games/lagoon.js';
 import * as mahj from './games/mahj.js';
+import * as trail from './games/trail.js';
 import * as bean from './games/bean.js';
 import * as darts from './games/darts.js';
 import * as ttt from './games/ttt.js';
@@ -84,7 +85,7 @@ const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tes
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, blast, runway, pairs, spy, herd, siege };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, blast, runway, pairs, spy, herd, siege, trail };
 const GAME_IDS = new Set(Object.keys(GAMES)); // the Game wheel keeps only these
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
@@ -235,6 +236,7 @@ function roomInfo(r) {
     code: r.code, game: r.game, gameName: GAMES[r.game].meta.name, joinAt: GAMES[r.game].meta.joinAt || 'game', host: r.host, priv: r.priv,
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers, ...seatInfo(r),
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pt: store.tagOf(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
+    party: r.party ? { game: r.party.game, back: r.party.backAt ? Math.max(0, r.party.backAt - Date.now()) : null } : null,
     board: boardOf(r), played: r.played || 0, paid: r.G?.ph === 'end' && r.G.scored ? r.paid || null : null,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
@@ -318,7 +320,7 @@ function scoreGame(r) {
 }
 const publicRooms = () => [...rooms.values()].filter(r => !r.priv).map(r => {
   const i = roomInfo(r), h = i.players.find(p => p.id === i.host);
-  return { code: i.code, game: i.game, gameName: i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, size: i.size, w: i.players.filter(p => p.watch).length,
+  return { code: i.code, game: r.party?.game || i.game, gameName: r.party ? GAMES[r.party.game].meta.name : i.gameName, state: i.state, n: i.players.filter(p => !p.watch).length, max: i.max, size: i.size, w: i.players.filter(p => p.watch).length,
     host: h?.name || '?', hostColor: h?.color, hostAv: h?.av };
 });
 
@@ -526,7 +528,7 @@ function sendState(r) {
   if (!r.G) return;
   // A game with several hands (seatWatcher hook) may seat a watcher between hands: they stop watching then.
   if (r.spect.size) for (const seat of r.G.seats) if (seat.id && r.spect.delete(seat.id)) { r.sit.delete(seat.id); sendRoom(r); }
-  if (r.G.ph === 'end' && !r.G.scored) scoreGame(r);
+  if (r.G.ph === 'end' && !r.G.scored) { if (r.party) partyEnd(r); else scoreGame(r); }
   matchColors(r.G); // a player who joined mid-game may wear a colour someone already has
   const mod = GAMES[r.game];
   for (const t of r.players) {
@@ -602,6 +604,54 @@ function reclaimSeat(r, c) {
     return true;
   }
   return false;
+}
+
+// ---------- party tournaments (Friendship Trail) ----------
+// A tournament game (trail.js) reaches stage 'mini' between rounds with G.mini = { game, opts }. The table then plays
+// that hub game for real: r.game and r.G switch to it (so ticks, acts, views and rejoining all reach it as usual) and
+// the tournament waits in r.party. The minigame pays and counts for nothing on its own; when it ends, its places go
+// back to the tournament (miniDone) a few seconds after its results show, and the table returns to the trail.
+const PARTY_BACK_MS = 5500, PARTY_MAX_MS = 9 * 60_000;
+const partyBots = (seats, here) => seats.map((s, i) => i).filter(i => !here(seats[i]));
+function startMini(r) {
+  const T = r.G, mg = T.mini, mod = GAMES[mg?.game];
+  if (!mod) { GAMES[r.game].miniDone(T, T.seats.map((_, i) => i + 1)); return; }
+  mg.started = true;
+  const live = new Map(r.players.map(t => clients.get(t)).filter(c => c?.sock).map(c => [c.id, c]));
+  const here = seat => seat.human && !seat.bot && live.has(seat.id); // someone away plays as a bot in the minigame too
+  const people = T.seats.filter(here).map(seat => ({ c: live.get(seat.id), seat }));
+  r.party = { game: r.game, G: T, opts: r.opts, t0: Date.now(), backAt: 0, places: null };
+  r.game = mg.game; r.opts = cleanTableOpts(mg.game, { ...mg.opts, seats: T.seats.length });
+  r.G = mod.create(people.map(({ c, seat }) => ({ id: c.id, name: c.name, color: seat.color, av: c.av,
+    ...(mod.meta.emotes ? { em: [] } : {}), ...(mod.meta.pets ? { pets: palsOf(store.profileOf(c.token)) } : {}) })), r.opts, null);
+  // the bots keep the tournament's names and looks, so everyone knows who is who
+  const tb = partyBots(T.seats, here), sb = r.G.seats.map((x, i) => i).filter(i => !r.G.seats[i].human);
+  sb.forEach((j, k) => { const from = T.seats[tb[k]]; if (from) Object.assign(r.G.seats[j], { name: from.name, color: from.color, av: from.av }); });
+  r.party.map = r.G.seats.map((x, j) => (x.human ? T.seats.findIndex(t => t.id === x.id) : tb[sb.indexOf(j)] ?? -1));
+  matchColors(r.G); r.G.bornAt = Date.now(); r.G.inParty = true;
+  sendRoom(r); sendState(r); broadcastRooms();
+}
+function partyEnd(r) {
+  const P = r.party, G = r.G; G.scored = true;
+  const raw = GAMES[r.game].results?.(G), res = raw ? withPlaces(raw) : null, n = P.G.seats.length;
+  P.places = P.G.seats.map(() => n);
+  if (res) res.forEach((x, j) => { const i = P.map[j]; if (i >= 0) P.places[i] = Math.round(x.place) || n; });
+  P.backAt = Date.now() + PARTY_BACK_MS;
+  sendRoom(r);
+}
+function backToTrail(r) {
+  const P = r.party, T = P.G;
+  r.last = null; r.game = P.game; r.opts = P.opts; r.G = T; r.party = null; r.again = new Set();
+  GAMES[r.game].miniDone(T, P.places || T.seats.map(() => T.seats.length));
+  const live = new Set(r.players.map(t => clients.get(t)).filter(c => c?.sock).map(c => c.id));
+  T.seats.forEach((seat, i) => { if (seat.human && seat.id) GAMES[r.game].setAway(T, i, !live.has(seat.id)); });
+  sendRoom(r); sendState(r); broadcastRooms();
+}
+function partyTick(r, now) {
+  if (r.party) {
+    if (r.party.backAt && now >= r.party.backAt) backToTrail(r);
+    else if (!r.party.backAt && now - r.party.t0 > PARTY_MAX_MS) { r.G.scored = true; r.party.places = null; backToTrail(r); } // a minigame that never ends
+  } else if (r.G?.stage === 'mini' && r.G.mini && !r.G.mini.started && GAMES[r.game].miniDone) startMini(r);
 }
 
 function startGame(r) {
@@ -755,7 +805,7 @@ function handle(c, m) {
     }
     case 'leave': if (c.room) leaveRoom(c); send(c, { t: 'room', room: null }); c.sock?.send(roomsText()); return;
     case 'opts': {
-      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
+      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
       const mod = GAMES[r.game];
       if (m.opts && typeof m.opts === 'object') {
         const k = seatKey(mod.meta), want = m.opts[k];
@@ -767,7 +817,7 @@ function handle(c, m) {
       sendRoom(r); broadcastRooms(); return;
     }
     case 'start': {
-      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
+      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
       if (notice.holding()) return send(c, { t: 'err', msg: HOLD_MSG });
       // a game without bots (Państwa-miasta) needs enough people in seats, counting watchers who asked for one
       const need = GAMES[r.game].meta.minHumans || 0;
@@ -775,12 +825,12 @@ function handle(c, m) {
       return startGame(r);
     }
     case 'lobby': { // host sends everyone back to the waiting room
-      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play') return;
+      const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
       r.last = r.G; r.G = null; r.again = new Set(); fillSeats(r); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
       sendRoom(r); broadcastRooms(); return;
     }
     case 'again': { // vote to play another round (shown to the host on the results screen)
-      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end' || r.spect.has(c.id)) return;
+      const r = rooms.get(c.room); if (!r || r.G?.ph !== 'end' || r.spect.has(c.id) || r.party) return;
       r.again ||= new Set();
       if (m.on === false) r.again.delete(c.id); else r.again.add(c.id);
       return sendRoom(r);
@@ -1205,7 +1255,7 @@ setInterval(() => {
 setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {
-    try { if (r.G && GAMES[r.game].tick(r.G, now)) sendState(r); }
+    try { if (r.G && GAMES[r.game].tick(r.G, now)) sendState(r); partyTick(r, now); }
     catch (e) { console.error(`tick error in ${r.game} table ${r.code}`, e); } // one broken game must not stop every other table
     for (const t of [...r.players]) {
       const c = clients.get(t);

@@ -24,7 +24,7 @@ export const BOTS = { chill: { think: .42, look: 2, skip: .35, slow: .85 }, shar
 export function cleanOpts(o = {}) {
   return {
     seats: cleanSeats(meta, o.seats),
-    wins: WINS.includes(+o.wins) ? +o.wins : 3,
+    wins: WINS.includes(+o.wins) || +o.wins === 1 ? +o.wins : 3, // 1: Friendship Trail's quick cut
     arena: ARENA_IDS.includes(o.arena) ? o.arena : 'random',
     crumble: o.crumble === 'off' ? 'off' : 'on',
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',

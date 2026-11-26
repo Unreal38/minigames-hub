@@ -2156,6 +2156,7 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .pb44 { background-image: url(cardbg/herd.svg); } .pb45 { background-image: url(cardbg/spyglass.svg); } .pb46 { background-image: url(cardbg/siege.svg); }
 .pb47 { background-image: url(cardbg/marbles.svg); } .pb48 { background-image: url(cardbg/ludo.svg); } .pb49 { background-image: url(cardbg/ladders.svg); } .pb50 { background-image: url(cardbg/stack.svg); } .pb51 { background-image: url(cardbg/kitchen.svg); }
 .pb52 { background-image: url(cardbg/dig.svg); } .pb53 { background-image: url(cardbg/bingo.svg); } .pb54 { background-image: url(cardbg/bop.svg); } .pb55 { background-image: url(cardbg/cove.svg); } .pb56 { background-image: url(cardbg/tulips.svg); }
+.pb57 { background-image: url(cardbg/trail.svg); }
 :is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
 
 /* ---------- Game wheel / Koło gier (public/gamewheel.js): a flat picker wheel, never pays anything ---------- */
@@ -2254,3 +2255,14 @@ body.sky:not(.in-game) footer { background: var(--pan); color: var(--muted2); bo
 .wanted { outline: 4px solid #ffd84a; outline-offset: 4px; border-radius: 20px; }
 @media (prefers-reduced-motion: no-preference) { .wanted { animation: wanted 1s ease-in-out 3; } }
 @keyframes wanted { 50% { outline-color: #ffffff00; } }
+
+/* Friendship Trail card */
+.gcard .pic.trailpic { background: var(--art-sky); padding: 0; }
+.gcard .pic.trailpic svg { width: 100%; height: 100%; display: block; }
+.trailpic .ttwalk, .trailpic .ttpets { animation: bob 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.trailpic .ttheart { animation: bob 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .trailpic .ttwalk, .trailpic .ttpets, .trailpic .ttheart { animation: none; } }
+/* a Friendship Trail minigame: the trail takes everyone back, so its results have no play-again box or coins */
+body.in-party .results .againbox, body.in-party .results .paid, body.in-party .results [data-paid] { display: none !important; }
+.party-back { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--lantern); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 8px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; box-shadow: 0 4px 0 var(--ink); pointer-events: none; }
+.party-back[hidden] { display: none; }
