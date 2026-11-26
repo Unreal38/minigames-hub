@@ -15,7 +15,7 @@ const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover',
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // deal; both cards of a miss stay up; a found pair is shown before the next flip; time to choose a card to peek at
 // (when the table has no timer); how long the peeked card stays up for its peeker; the Whirlwind's swaps
-export const MS = { deal: 2400, show: 1600, got: 1000, spy: 15000, peek: 1900, mix: 1700 };
+export const MS = { deal: 2400, show: 1600, got: 1500, spy: 15000, peek: 1900, mix: 1700 };
 export const PETS = Object.keys(SPECIES); // every species can turn up, so every board looks different
 
 const rnd = (a, b) => a + Math.random() * (b - a);

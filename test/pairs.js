@@ -40,7 +40,7 @@ const otherThan = (G, i) => G.sp.findIndex((p, j) => p !== G.sp[i] && G.got[j] <
   pg.act(G, s, { t: 'flip', i: j });
   if (G.stage !== 'got' || G.got[i] !== s || G.score[s] !== 1) fail('pair not taken');
   if (pg.act(G, s, { t: 'flip', i: 1 })) fail('flipped while the pair is shown');
-  T.add(1200); pg.tick(G, T.now);
+  T.add(pg.MS.got + 200); pg.tick(G, T.now);
   if (G.turn !== s || G.stage !== 'pick') fail('a match should go again');
   if (pg.act(G, s, { t: 'flip', i })) fail('flipped a found card');
   const a = G.sp.findIndex((_, k) => G.got[k] < 0), b = otherThan(G, a);
@@ -53,7 +53,7 @@ const otherThan = (G, i) => G.sp.findIndex((p, j) => p !== G.sp[i] && G.got[j] <
 { // golden counts 3, spyglass peeks for one player only, whirlwind swaps two pairs of face-down cards
   const T = clock(); const G = pg.create(ppl(2), { seats: 2, timer: 10 }); ready(G, T);
   const s = G.turn, o = 1 - s;
-  const take = kind => { const i = G.tw.findIndex((t, k) => t === kind && G.got[k] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(1100); pg.tick(G, T.now); };
+  const take = kind => { const i = G.tw.findIndex((t, k) => t === kind && G.got[k] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(pg.MS.got + 100); pg.tick(G, T.now); };
   take('gold'); if (G.score[s] !== 3) fail('golden pair is worth 3');
   take('spy'); if (G.stage !== 'spy') fail('spyglass should ask for a card');
   if (pg.act(G, o, { t: 'peek', i: 0 })) fail('the other player peeked');
@@ -73,7 +73,7 @@ const otherThan = (G, i) => G.sp.findIndex((p, j) => p !== G.sp[i] && G.got[j] <
 { // the streak cap passes the turn after 3 pairs; the timer flips random cards for you
   const T = clock(); const G = pg.create(ppl(2), { seats: 2, timer: 6, streak: 3, twists: 'off' }); ready(G, T);
   const s = G.turn;
-  for (let k = 0; k < 3; k++) { const i = G.sp.findIndex((_, x) => G.got[x] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(1100); pg.tick(G, T.now); }
+  for (let k = 0; k < 3; k++) { const i = G.sp.findIndex((_, x) => G.got[x] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(pg.MS.got + 100); pg.tick(G, T.now); }
   if (G.turn !== 1 - s || G.score[s] !== 3) fail('streak cap should pass the turn after 3 pairs');
   const mv = G.mv; T.add(6100); pg.tick(G, T.now); T.add(600); pg.tick(G, T.now);
   if (G.mv !== mv + 2) fail('the timer should flip two random cards');
@@ -81,9 +81,9 @@ const otherThan = (G, i) => G.sp.findIndex((p, j) => p !== G.sp[i] && G.got[j] <
 }
 { // equal points share first place
   const T = clock(); const G = pg.create(ppl(2), { seats: 2, timer: 0, board: 'small', twists: 'off' }); ready(G, T);
-  while (G.left > 1) { const s = G.turn, i = G.sp.findIndex((_, x) => G.got[x] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(1100); pg.tick(G, T.now); }
+  while (G.left > 1) { const s = G.turn, i = G.sp.findIndex((_, x) => G.got[x] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(pg.MS.got + 100); pg.tick(G, T.now); }
   const s = G.turn; G.score[s] = 4; G.score[1 - s] = 5;
-  const i = G.sp.findIndex((_, x) => G.got[x] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(1100); pg.tick(G, T.now);
+  const i = G.sp.findIndex((_, x) => G.got[x] < 0); pg.act(G, s, { t: 'flip', i }); pg.act(G, s, { t: 'flip', i: twinOf(G, i) }); T.add(pg.MS.got + 100); pg.tick(G, T.now);
   if (G.ph !== 'end') fail('the last pair should end the game');
   const r = pg.results(G); if (!r[0].win || !r[1].win || r[0].place !== 1 || r[1].place !== 1 || G.ev.at(-1).tie !== true) fail('a tie should share first place');
   T.done();

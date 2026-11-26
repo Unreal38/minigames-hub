@@ -7,6 +7,11 @@ body.in-game { overflow: hidden; }
 
 /* name tags over the avatars */
 .pr .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+/* portrait phones: one row (or two) of player chips under the banner, so no tag covers the cards */
+.pr .tags.strip { inset: auto 8px auto 8px; top: calc(max(14px, env(safe-area-inset-top)) + 100px); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 5px; overflow: visible; }
+.pr .tags.strip .pr-tag { position: relative; transform: none !important; will-change: auto; }
+.pr .tags.strip .pr-tag .ttl { display: none; }
+.pr .tags.strip .pr-tag .bub { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 2; white-space: nowrap; }
 .pr-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; will-change: transform; font-family: var(--fd); font-weight: 600; color: var(--on-paper); }
 .pr-tag[hidden] { display: none; }
 .pr-tag .plate { display: flex; align-items: center; gap: 5px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 5px 2px 4px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #23401c55; }
