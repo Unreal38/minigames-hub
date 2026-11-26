@@ -236,7 +236,7 @@ export function fast(G, now = Date.now()) {
     else if (!b.shot) G.walk = 0;
     if (b.shot && now >= b.fireAt) { G.walk = 0; doThrow(G, b.shot.k, b.shot.a, b.shot.pw, now); }
   }
-  if (G.jump && canWalk && p.ground) { p.vy = R.JUMP_VY; p.vx = p.face * R.JUMP_VX; p.ground = false; } G.jump = false;
+  if (G.jump && canWalk && p.ground) { if (G.walk) p.face = G.walk; /* a jump goes the way you are holding */ p.vy = R.JUMP_VY; p.vx = p.face * R.JUMP_VX; p.ground = false; p.jmp = true; } G.jump = false;
   for (let k = 0; k < steps; k++) {
     G.pets.forEach((q, i) => {
       if (q.sea) return;
@@ -295,7 +295,7 @@ export function act(G, s, a) {
     if (!(G.stage === 'aim' || G.stage === 'retreat')) return false;
     G.walk = a.d === -1 || a.d === 1 ? a.d : 0; G.walkAt = now; return false;
   }
-  if (a.t === 'jump') { if ((G.stage === 'aim' || G.stage === 'retreat') && p?.ground) G.jump = true; return false; }
+  if (a.t === 'jump') { if ((G.stage === 'aim' || G.stage === 'retreat') && p?.ground) { G.jump = true; if (a.d === -1 || a.d === 1) { G.walk = a.d; G.walkAt = now; } } return false; }
   if (a.t === 'aim') { // for everyone watching: where I'm pulling
     if (G.stage !== 'aim') return false;
     const ang = +a.a, pw = +a.p, k = R.SNACK_KEYS.includes(a.k) ? a.k : 'pie';
