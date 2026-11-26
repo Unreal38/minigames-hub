@@ -399,7 +399,7 @@ export function mount(app, ctx) {
       <h2>${head}</h2>${mine > 1 ? `<p>${L(`You came ${mine} of ${n}.`, `Twoje miejsce: ${mine} z ${n}.`)}</p>` : ''}
       <ol class="score">${S.res.order.map((i, k) => { const p = S.seats[i], q = S.pl[i], rs = ribsOf(i);
         return `<li class="${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
-          <div class="who"><b>${nameHtml(p.name, p.fl)}${isMe(i) ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${q.herd.length} friends · ${q.wins} minigame wins · ${treatsW(q.treats)}`, `przyjaciele: ${q.herd.length} · wygrane minigry: ${q.wins} · ${treatsW(q.treats)}`)}</span>
+          <div class="who"><b>${nameHtml(p.name, p.fl)}${isMe(i) ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${q.herd.length} friend${q.herd.length === 1 ? '' : 's'} · ${q.wins} minigame win${q.wins === 1 ? '' : 's'} · ${treatsW(q.treats)}`, `przyjaciele: ${q.herd.length} · wygrane minigry: ${q.wins} · ${treatsW(q.treats)}`)}</span>
           <span class="tt-herd">${q.herd.map(f => pet(f, 26)).join('')}</span>${rs.length ? `<span class="tt-rbs">${rs.map(k => `<span class="rib">${esc(RIBBONS[k])}</span>`).join('')}</span>` : ''}</div>
           <strong><span>${ptsW(S.res.pts[i])}</span></strong>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Walk the trail again', 'Przejdź szlak jeszcze raz'))}</div></div>`;
