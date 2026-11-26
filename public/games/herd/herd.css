@@ -50,6 +50,7 @@ body.in-game { overflow: hidden; }
 .hd .hd-sb .who i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); flex: none; }
 .hd .hd-sb .who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 9em; }
 .hd .hd-sb .pt { font-weight: 700; }
+.hd .hd-sb.np { min-width: 160px; } .hd .hd-sb.np li { grid-template-columns: minmax(4em, 1fr) 3.4em; }
 .hd .chip, .hd .round { background: var(--paper); color: var(--on-paper); border-color: var(--ink); box-shadow: 0 3px 0 #23401c55; }
 .hd .tcode { font-family: var(--fd); font-weight: 700; letter-spacing: 3px; color: var(--on-paper); font-size: 18px; margin-right: 4px; }
 

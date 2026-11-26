@@ -134,14 +134,16 @@ export function mount(app, ctx) {
   }
   function bubble(i, html, ms = 1900) { bubbles.set(i, { html, until: performance.now() + ms }); setTimeout(() => !destroyed && S && buildTags(), ms + 30); if (S) buildTags(); }
 
-  // ----- the scoreboard under the info chip: everyone's tiles left and points (always open on big screens, the chip opens it on phones) -----
+  // ----- the scoreboard under the info chip: everyone's tiles left, and points in games of several rounds (always open on big screens, the chip opens it on phones) -----
   let sbOpen = false;
   function renderBoard() {
-    const el = $('hd-sb'), order = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].total - S.seats[a].total || a - b);
+    const el = $('hd-sb'), pts = S.rounds > 1, order = S.seats.map((_, i) => i); // points only add up over several rounds
+    if (pts) order.sort((a, b) => S.seats[b].total - S.seats[a].total || a - b);
+    el.classList.toggle('np', !pts);
     el.classList.toggle('open', sbOpen); $('hd-info').setAttribute('aria-expanded', String(sbOpen));
-    setHtml(el, `<li class="hd-sbh"><span>${L('Player', 'Gracz')}</span><span>${L('Tiles', 'Płytki')}</span><span>${L('Points', 'Punkty')}</span></li>` + order.map(i => {
+    setHtml(el, `<li class="hd-sbh"><span>${L('Player', 'Gracz')}</span><span>${L('Tiles', 'Płytki')}</span>${pts ? `<span>${L('Points', 'Punkty')}</span>` : ''}</li>` + order.map(i => {
       const p = S.seats[i], now = S.ph === 'play' && S.turn === i;
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}"><span class="who"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b></span><span class="n">${p.n}</span><span class="pt">${p.total > 0 ? '+' : ''}${p.total}</span></li>`;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}"><span class="who"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b></span><span class="n">${p.n}</span>${pts ? `<span class="pt">${p.total > 0 ? '+' : ''}${p.total}</span>` : ''}</li>`;
     }).join(''));
   }
 
