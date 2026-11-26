@@ -2062,6 +2062,13 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
 /* ---------- moderation: reports, the ban screen, the hosts' Admin panel (admin.js) ---------- */
 .pdelrow { gap: 8px; align-items: center; flex-wrap: wrap; }
 .punfr { align-self: center; }
+/* Report (and, for hosts, Moderate) sit at the right end of the profile card's button row; Report is a soft red so it is easy to find */
+.psheet .row .prepgrp { margin-left: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.btn.prep { --rep-bg: #ffe3dc; background: var(--rep-bg); color: var(--bad-tx); }
+.btn.prep:hover:not(:disabled) { background: #ffd2c7; }
+body.night .btn.prep, body.night .btn.prep * { --rep-bg: #4a2240; color: var(--bad-tx); }
+body.night .btn.prep:hover:not(:disabled) { background: #5a2a4c; }
+@media (max-width: 600px) { .psheet .row .prepgrp { flex-wrap: nowrap; } .psheet .row .prepgrp .btn { padding-inline: 14px; font-size: 18px; white-space: nowrap; gap: 6px; } }
 body.tagpick .tags > *, .tags.pick > * { pointer-events: auto; cursor: pointer; }
 body.in-game .profrow { cursor: pointer; pointer-events: auto; }
 .repsheet { width: min(480px, 100%); }
