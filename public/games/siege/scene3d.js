@@ -3,8 +3,8 @@
 // and the aiming arc. The page (client.js) owns the rules, the HUD and the input; this file draws what the server sent.
 // Cost: the island is one draw call, particles one more (createFx), each pet a few baked meshes; no shadow maps.
 import * as THREE from 'three';
-import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, createFx, toonify, toonMat, disposeToon, flat, PROPS, STAR, DOT } from '../../scenery3d.js';
+import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
+import { island, skyDome, clouds, nightScene, createFx, toonify, toonMat, disposeToon, flat, PROPS, STAR, DOT, mergeStatic } from '../../scenery3d.js';
 import { lookOf } from '../../season3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
@@ -144,10 +144,11 @@ export function createScene(canvas, opts = {}) {
     const kinds = look.kinds || ['tree', 'bush', 'pine', 'rock', 'flowers'];
     for (let c = 3; c < COLS - 3; c += 3 + Math.floor(hash(c, hs[c] || 1) * 4)) {
       let r = ROWS - 1; while (r > 0 && !R.cellAt(grid, c, r)) r--; if (r < 2) continue;
-      const kind = kinds[Math.floor(hash(c, 9) * kinds.length)], g = new THREE.Group();
-      (typeof kind === 'function' ? kind : PROPS[kind] || PROPS.bush)(g, .85 + hash(c, 10) * .45);
+      const kind = kinds[Math.floor(hash(c, 9) * kinds.length)], raw = new THREE.Group();
+      (typeof kind === 'function' ? kind : PROPS[kind] || PROPS.bush)(raw, .85 + hash(c, 10) * .45);
+      bake(raw); const g = mergeStatic(raw, .035); // a tree was ~17 draw calls; merged it is two or three
       const x = c * BS + BS / 2, y = (r + 1) * BS + .1, z = ZC - DEPTH / 2 + .3 + hash(c, 11) * .25;
-      g.position.set(x, y, z); g.rotation.y = hash(c, 12) * 6.28; toonify(g, .035); scene.add(g); props.push({ g, x, y, z });
+      g.position.set(x, y, z); g.rotation.y = hash(c, 12) * 6.28; scene.add(g); props.push({ g, x, y, z });
     }
   }
   // frosting splats that stay on the ground where snacks land
@@ -222,7 +223,7 @@ export function createScene(canvas, opts = {}) {
     if (ops.length < applied) return false; // a different match: the page calls setWorld
     for (let k = applied; k < ops.length; k++) {
       R.applyOp(grid, ops[k]);
-      if (ops[k][0] === 'c') fx.burst(new THREE.Vector3(ops[k][1], ops[k][2], PZ), { n: 18, colors: ['#f6c97f', '#fff3df', '#e0524f', GRASS], shape: DOT, speed: 5, up: 4, size: .24, grav: 12, life: .9 });
+      if (ops[k][0] === 'c') fx.burst(new THREE.Vector3(ops[k][1], ops[k][2], ZC + DEPTH / 2 + .3), { n: 14, colors: ['#f6c97f', '#fff3df', '#c98a4b', '#ff9fb8'], shape: DOT, speed: 4.5, up: 4, size: .36, grav: 12, life: .9, face: 2 });
     }
     applied = ops.length; rebuild();
     return true;
@@ -287,15 +288,17 @@ export function createScene(canvas, opts = {}) {
   }
 
   // ---- the aiming arc: no wind, only the first part of the flight
-  const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .9, depthWrite: false }), dots = [];
-  for (let i = 0; i < 22; i++) { const d = new THREE.Mesh(new THREE.IcosahedronGeometry(.075, 1), dotMat); d.visible = false; d.renderOrder = 3; scene.add(d); dots.push(d); }
+  // one instanced mesh for all the dots (one draw call)
+  const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .9, depthWrite: false });
+  const dots = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.075, 1), dotMat, 22); dots.count = 0; dots.renderOrder = 3; dots.frustumCulled = false; scene.add(dots);
+  const dotM = new THREE.Matrix4();
   function arc(pi, k, a, pw, n) {
     const p = pets[pi]; let shown = 0;
     if (p && n && pw > 0) {
       const s = R.launch({ x: p.x, y: p.y }, k, a, pw);
-      for (let i = 0; i < n; i++) { for (let q = 0; q < 4; q++) { s.vy -= R.G / 60; s.x += s.vx / 60; s.y += s.vy / 60; } if (R.solidAt(grid, s.x, s.y)) break; dots[i].position.set(s.x, s.y, PZ); dots[i].visible = true; shown = i + 1; }
+      for (let i = 0; i < Math.min(n, 22); i++) { for (let q = 0; q < 4; q++) { s.vy -= R.G / 60; s.x += s.vx / 60; s.y += s.vy / 60; } if (R.solidAt(grid, s.x, s.y)) break; dots.setMatrixAt(i, dotM.makeTranslation(s.x, s.y, PZ)); shown = i + 1; }
     }
-    for (let i = shown; i < dots.length; i++) dots[i].visible = false;
+    if (shown || dots.count) { dots.count = shown; dots.instanceMatrix.needsUpdate = true; }
     dotMat.opacity = .9;
   }
 
@@ -303,11 +306,39 @@ export function createScene(canvas, opts = {}) {
   const v = (x, y) => new THREE.Vector3(x, y, PZ);
   let shake = 0;
   const zaps = [];
+  // Hits happen in the cake, so their bits start just in front of the island's front face and fly across the screen
+  // (never back into the island, where the cake would hide them). A flash and a ring show how big the splash was.
+  const ZFX = ZC + DEPTH / 2 + .3, vf = (x, y) => new THREE.Vector3(x, y, ZFX);
+  const shockGeo = new THREE.RingGeometry(.82, 1, 40), flashGeo = new THREE.CircleGeometry(1, 32);
+  const shocks = Array.from({ length: 6 }, () => {
+    const ink = new THREE.Mesh(new THREE.RingGeometry(.74, 1.06, 40), new THREE.MeshBasicMaterial({ color: '#3b2330', transparent: true, depthWrite: false, depthTest: false }));
+    const ring = new THREE.Mesh(shockGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false, depthTest: false }));
+    const flash = new THREE.Mesh(flashGeo, new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, depthWrite: false, depthTest: false }));
+    const g = new THREE.Group(); g.add(flash, ink, ring); ink.renderOrder = 6; ring.renderOrder = 7; flash.renderOrder = 6; g.visible = false; scene.add(g);
+    return { g, ink, ring, flash, t: 1, r: 1 };
+  });
+  let shockI = 0;
+  function shock(x, y, r, color) {
+    const s = shocks[shockI++ % shocks.length]; s.t = 0; s.r = Math.max(.9, r * 1.15); s.g.position.set(x, y, ZFX + .05); s.g.visible = true;
+    s.ring.material.color.set(color); s.flash.material.color.set('#fffdf4');
+  }
+  function updShocks(dt) {
+    for (const s of shocks) { if (!s.g.visible) continue; s.t += dt; const u = Math.min(1, s.t / .42), e = 1 - (1 - u) ** 3;
+      s.ring.scale.setScalar(s.r * (.3 + e * .8)); s.ink.scale.copy(s.ring.scale);
+      s.ring.material.opacity = s.ink.material.opacity = (1 - u) * .95;
+      const fu = Math.min(1, s.t / .2); s.flash.scale.setScalar(s.r * (.35 + fu * .5)); s.flash.material.opacity = (1 - fu) * .6;
+      if (u >= 1) s.g.visible = false; }
+  }
   function splash(e) {
-    const f = R.SNACKS[e.k] || R.SNACKS.pie, big = e.k === 'cake';
-    fx.burst(v(e.x, e.y), { n: big ? 46 : e.k === 'mini' ? 10 : 26, colors: f.col, shape: DOT, speed: big ? 7 : 5, up: 5, size: big ? .34 : .26, grav: 11, life: 1 });
-    if (f.grow) fx.burst(v(e.x, e.y + .5), { n: 14, colors: ['#8bd65a', '#c9f58f', '#ffffff'], shape: STAR, speed: 2, up: 3, size: .3, grav: 3, life: 1.1 });
-    if (f.wave) fx.puff(v(e.x, e.y + .3), { n: 22, color: ['#ffffff', '#bfe9ff', '#7fd1e8'], size: .5, speed: 5 });
+    const f = R.SNACKS[e.k] || R.SNACKS.pie, big = e.k === 'cake', mini = e.k === 'mini';
+    const sz = big ? .62 : mini ? .38 : .5, spd = (big ? 8 : mini ? 4.5 : 6) * Math.max(.7, Math.min(1.3, (f.r || 1) / 1.3));
+    if (f.r > 0) shock(e.x, e.y, f.r, f.col[0]);
+    // chunky outlined blobs in the snack's colours, then white sparkles so they pop on any background
+    fx.burst(vf(e.x, e.y), { n: big ? 34 : mini ? 9 : 20, colors: f.col, shape: [STAR, DOT, DOT], speed: spd, up: 3, size: sz, grav: 10, life: 1.1, face: 2.5 });
+    fx.burst(vf(e.x, e.y), { n: big ? 14 : mini ? 4 : 8, colors: ['#ffffff', '#fff6c8'], shape: STAR, speed: spd * .8, up: 2, size: sz * .7, grav: 4, life: .7, face: 2 });
+    if (f.grow) fx.burst(vf(e.x, e.y + .5), { n: 16, colors: ['#8bd65a', '#c9f58f', '#ffffff'], shape: STAR, speed: 2.4, up: 3, size: .45, grav: 3, life: 1.2, face: 2 });
+    if (f.wave) fx.burst(vf(e.x, e.y + .3), { n: 26, colors: ['#ffffff', '#bfe9ff', '#7fd1e8'], shape: DOT, speed: 7, up: 1.5, size: .6, grav: 2, life: .8, face: 1.5 });
+    if (f.bridge) fx.burst(vf(e.x, e.y), { n: 14, colors: f.col, shape: STAR, speed: 4, up: 2, size: .45, grav: 6, life: .9, face: 2 });
     if (e.zap) for (const i of e.zap) { const p = pets[i]; if (!p) continue;
       const pts = []; for (let k = 0; k <= 6; k++) { const u = k / 6; pts.push(new THREE.Vector3(e.x + (p.x - e.x) * u + (k % 6 ? (Math.random() - .5) * .5 : 0), e.y + (p.y + .5 - e.y) * u + (k % 6 ? (Math.random() - .5) * .5 : 0), PZ + .1)); }
       const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#ffe27a', transparent: true })); scene.add(ln); zaps.push({ ln, t: .5 }); }
@@ -317,7 +348,7 @@ export function createScene(canvas, opts = {}) {
     focus = { x: e.x, y: e.y, until: performance.now() + 900 };
   }
   function plop(e) { fx.puff(v(e.x, water + .1), { n: 14, color: ['#ffffff', '#bfe9ff'], size: .45, speed: 3 }); }
-  function crash(i) { const p = pets[i]; if (!p) return; fx.burst(v(p.x, p.y + 1.1), { n: 14, colors: ['#ffd34d', '#ff9fb8', '#ffffff'], shape: STAR, speed: 2.4, up: 3, size: .32, grav: 2, life: 1.3 }); }
+  function crash(i) { const p = pets[i]; if (!p) return; fx.burst(vf(p.x, p.y + 1.1), { n: 18, colors: ['#ffd34d', '#ff9fb8', '#ffffff'], shape: STAR, speed: 3, up: 2, size: .46, grav: 2, life: 1.3, face: 1.5 }); }
   function seaNap(i) { const p = pets[i]; if (!p) return; fx.puff(v(p.x, water), { n: 20, color: ['#ffffff', '#bfe9ff', '#4fb3e8'], size: .5, speed: 4 }); }
   function cheer(team, sad) { const m = folk[team]; if (!m) return; if (sad) m.sad = 1.8; else m.cheer = 1.8; }
   function win(team) { const m = folk[team]; if (!m) return; m.cheer = 9; const p = m.root.position; fx.confetti(new THREE.Vector3(p.x, R.WATER0 + 4, p.z), { n: 70, w: 3, h: 3, s: team }); }
@@ -385,7 +416,7 @@ export function createScene(canvas, opts = {}) {
     shake = Math.max(0, shake - dt * 1.4);
     const sx = Math.sin(T * 61) * shake * .35, sy = Math.cos(T * 53) * shake * .35;
     camera.position.set(cam.x + sx, cam.y + cam.d * .2 + sy, cam.d + PZ); camera.lookAt(cam.x + sx, cam.y + sy, PZ);
-    fx.update(dt, camera, H0);
+    updShocks(dt); fx.update(dt, camera, H0);
     renderer.render(scene, camera);
     // where tags go
     for (const p of pets) { v3.set(p.x, (p.st === 2 ? water - .2 : p.y) + (p.st ? 1.05 : 1.3), PZ).project(camera); p.on = p.placed && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.15; p.sx = (v3.x * .5 + .5) * W0; p.sy = (-v3.y * .5 + .5) * H0; }

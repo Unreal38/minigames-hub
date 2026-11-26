@@ -52,6 +52,7 @@ export function mount(app, ctx) {
         <button type="button" data-w="1" aria-label="${L('Walk right', 'Idź w prawo')}">${I.right}</button>
       </div>
       <div class="sg-tray" id="sg-tray" role="toolbar" aria-label="${L('Snacks', 'Przekąski')}"></div>
+      <div class="sg-sinfo" id="sg-sinfo" aria-live="polite" hidden></div>
       <p class="keys" id="sg-keys"></p>
     </div>
     <canvas class="confetti" aria-hidden="true"></canvas>
@@ -96,7 +97,8 @@ export function mount(app, ctx) {
       const p = pets[i], el = tagEls[i]; if (!p || !el) continue;
       if (!p.on) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${p.sx.toFixed(1)}px, ${p.sy.toFixed(1)}px) translate(-50%, -100%)`;
+      const tf = `translate(${p.sx.toFixed(1)}px, ${p.sy.toFixed(1)}px) translate(-50%, -100%)`;
+      if (el._tf !== tf) { el._tf = tf; el.style.transform = tf; } // only touch the page when a tag moved
     }
     // the slingshot band while you pull, the arc for everyone else's aim
     const band = $('sg-band'), band0 = $('sg-band0'), ring = $('sg-ring');
@@ -134,12 +136,12 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.gid + (pinfo || []).map(p => p[4]).join('|') + S.ap + S.stage;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = (pinfo || []).map((p, i) => `<div class="sg-tag${i === S.ap && (S.stage === 'aim' || S.stage === 'retreat') ? ' act' : ''}" style="--tc:${info[p[0]]?.color || '#fff'}" hidden><span class="z">Zzz</span><b>${esc(p[4])}</b><i class="bar"><u></u></i></div>`).join('');
+    tagsEl.innerHTML = (pinfo || []).map((p, i) => `<div class="sg-tag${i === S.ap && (S.stage === 'aim' || S.stage === 'retreat') ? ' act' : ''}" style="--tc:${info[p[0]]?.color || '#fff'}" hidden><span class="z"><i>Z</i><i>Z</i><i>Z</i></span><b>${esc(p[4])}</b><i class="bar"><u></u></i></div>`).join('');
     tagEls = [...tagsEl.children]; paintTags();
   }
   function paintTags() {
     S.pets?.forEach((a, i) => { const el = tagEls[i]; if (!el) return;
-      const u = el.querySelector('u'), w = a[3] + '%'; if (u.style.width !== w) { u.style.width = w; u.style.background = a[3] > 75 ? '#ff6b8a' : a[3] > 45 ? '#ffc93c' : '#7ed37a'; }
+      const u = el.querySelector('u'), w = a[3] + '%'; if (u.style.width !== w) { u.style.width = w; u.style.background = a[3] > 75 ? '#ff3d6b' : a[3] > 45 ? '#ffaa1f' : '#3fbf55'; }
       el.classList.toggle('zz', a[4] > 0); });
   }
 
@@ -155,13 +157,15 @@ export function mount(app, ctx) {
   }
   function renderTray() {
     const show = canThrow() && !!pinfo;
-    $('sg-tray').hidden = !show;
+    $('sg-tray').hidden = !show; $('sg-sinfo').hidden = !show;
     $('sg-walk').hidden = !(touch && myTurn());
     if (!show) return;
     const am = S.ammo?.[S.me] || {}, list = teamSnacks(S.me);
     if (!(am[snack] > 0)) snack = 'pie';
     setHtml($('sg-tray'), list.map((k, n) => { const c = am[k] ?? 0; return `<button type="button" class="sg-snack${k === snack ? ' on' : ''}${R.SNACKS[k].el ? ' el' : ''}" data-s="${k}" ${c > 0 ? '' : 'disabled'} title="${esc(R.snackName(k) + ': ' + R.snackHelp(k))}" aria-pressed="${k === snack}">
       <span class="em">${R.SNACKS[k].em}</span><span class="nm">${esc(R.snackShort(k))}</span><span class="n">${c >= 99 ? '∞' : c > 0 ? '×' + c : L('used', 'zużyte')}</span>${touch ? '' : `<kbd>${n + 1}</kbd>`}</button>`; }).join(''));
+    // what the picked snack does, in words
+    setHtml($('sg-sinfo'), `<b><span class="em">${R.SNACKS[snack].em}</span>${esc(R.snackName(snack))}</b><p>${esc(R.snackHelp(snack))}</p><ul>${R.snackFacts(snack).map(t => `<li>${esc(t)}</li>`).join('')}</ul>`);
   }
   function renderClock() {
     if (!S) return;

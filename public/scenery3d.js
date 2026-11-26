@@ -380,9 +380,11 @@ export function createFx(scene, { max = 900 } = {}) {
   const pick = c => Array.isArray(c) ? c[Math.floor(Math.random() * c.length)] : c;
   const api = {
     // a pop of bits flying out: stars, dots, hearts...
-    burst(p, { n: cnt = 16, colors = '#ffd84a', speed = 4, up = 3, size = .25, life = .8, shape = STAR, grav = 9, drag = 1.2, spin, y = 0, spread = 1, grow } = {}) {
-      for (let k = 0; k < cnt; k++) { const a = Math.random() * 6.283, s = speed * (.4 + Math.random() * .6);
-        add(p.x, p.y + y, p.z, Math.cos(a) * s * spread, up * (.5 + Math.random() * .8), Math.sin(a) * s * spread, pick(colors), { shape: pick(shape), size, life, grav, drag, spin, grow }); }
+    // face: for side-on games, the bits fly out across the screen (x and y) and drift towards the camera at that speed
+    burst(p, { n: cnt = 16, colors = '#ffd84a', speed = 4, up = 3, size = .25, life = .8, shape = STAR, grav = 9, drag = 1.2, spin, y = 0, spread = 1, grow, face = 0 } = {}) {
+      for (let k = 0; k < cnt; k++) { const a = Math.random() * 6.283, s = speed * (.4 + Math.random() * .6), u = up * (.5 + Math.random() * .8);
+        if (face) add(p.x, p.y + y, p.z, Math.cos(a) * s * spread, Math.sin(a) * s * spread + u, face * (.4 + Math.random() * .6), pick(colors), { shape: pick(shape), size, life, grav, drag, spin, grow });
+        else add(p.x, p.y + y, p.z, Math.cos(a) * s * spread, u, Math.sin(a) * s * spread, pick(colors), { shape: pick(shape), size, life, grav, drag, spin, grow }); }
     },
     // soft dust ring at the feet, for landings and stomps
     puff(p, { n: cnt = 10, color = '#fff4e2', size = .35, speed = 2.2, life = .55 } = {}) {

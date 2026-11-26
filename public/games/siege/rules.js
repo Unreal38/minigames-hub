@@ -46,9 +46,23 @@ export const snackName = k => ({ pie: L('Sunberry Pie', 'Placek'), jelly: L('Jel
   seed: L('Sprout seed', 'Nasionko'), chili: L('Chilli popper', 'Papryczka'), soda: L('Soda splash', 'Oranżada'), fizz: L('Fizz candy', 'Musujący cukierek'), rock: L('Rock candy', 'Twardy cukierek') }[k] || k);
 export const snackShort = k => ({ pie: L('Pie', 'Placek'), jelly: L('Jelly', 'Galaretka'), berry: L('Berries', 'Jagody'), cake: L('Cake', 'Miodownik'),
   seed: L('Seed', 'Nasionko'), chili: L('Chilli', 'Papryczka'), soda: L('Soda', 'Oranżada'), fizz: L('Fizz', 'Cukierek'), rock: L('Rock', 'Lizak') }[k] || k);
-export const snackHelp = k => ({ pie: L('Straight lob, any wind', 'Prosty rzut, wiatr go znosi'), jelly: L('Bounces, pops after 2.6 s', 'Odbija się, pęka po 2,6 s'), berry: L('Bursts into 4 berries', 'Rozpryskuje się na 4 jagody'), cake: L('Heavy, huge splash', 'Ciężki, wielki plusk'),
-  seed: L('Grows a bush: a wall or a step', 'Wyrasta krzak: ściana albo schodek'), chili: L('Small splash, big knock-back', 'Mały plusk, mocne odrzucenie'), soda: L('A wave that pushes pets', 'Fala, która spycha zwierzaki'),
-  fizz: L('Zaps up to 3 pets near each other', 'Razi do 3 zwierzaków blisko siebie'), rock: L('Leaves a candy bridge', 'Zostawia cukrowy most') }[k] || '');
+export const snackHelp = k => ({ pie: L('Your everyday throw. The wind carries it.', 'Zwykły rzut. Wiatr go znosi.'),
+  jelly: L('Bounces off the ground and pops after 2.6 s.', 'Odbija się od ziemi i pęka po 2,6 s.'),
+  berry: L('Bursts into 4 small berries when it lands.', 'Po upadku rozpryskuje się na 4 małe jagody.'),
+  cake: L('Heavy and slow, but makes a huge splash.', 'Ciężki i wolny, ale robi wielki plusk.'),
+  seed: L('Feeds nobody. Grows a bush you can use as a wall or a step.', 'Nikogo nie karmi. Wyrasta krzak: ściana albo schodek.'),
+  chili: L('Small splash, but knocks pets far away.', 'Mały plusk, ale mocno odrzuca zwierzaki.'),
+  soda: L('A wide wave that pushes pets, maybe into the sea.', 'Szeroka fala, która spycha zwierzaki, może nawet do morza.'),
+  fizz: L('Zaps up to 3 pets standing near each other.', 'Razi do 3 zwierzaków stojących blisko siebie.'),
+  rock: L('Feeds nobody. Leaves a candy bridge to walk on.', 'Nikogo nie karmi. Zostawia cukrowy most do chodzenia.') }[k] || '');
+// Short facts for the snack card: how much it fills, how big the splash, how hard it pushes, how much the wind moves it.
+export const snackFacts = k => { const f = SNACKS[k]; if (!f) return [];
+  const out = [];
+  if (f.dmg > 0) out.push(L(`Fills ${f.dmg}%`, `Karmi ${f.dmg}%`) + (f.split ? ' ×' + f.split : f.zap ? ' ×' + f.zap : ''));
+  if (f.r > 0) out.push(f.r < 1 ? L('Small splash', 'Mały plusk') : f.r < 2 ? L('Medium splash', 'Średni plusk') : L('Big splash', 'Wielki plusk'));
+  if (f.kb > 0) out.push(f.kb >= 10 ? L('Strong push', 'Mocne odrzucenie') : f.kb >= 6 ? L('Some push', 'Średnie odrzucenie') : L('Light push', 'Lekkie odrzucenie'));
+  out.push(f.wind >= .8 ? L('Wind: a lot', 'Wiatr: mocno') : f.wind >= .45 ? L('Wind: some', 'Wiatr: trochę') : L('Wind: barely', 'Wiatr: prawie wcale'));
+  return out; };
 
 // The element a pet brings: its species' element (a hybrid's first one).
 export const elementOf = sp => SPECIES[sp]?.el || null;
