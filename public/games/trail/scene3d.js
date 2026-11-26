@@ -19,7 +19,7 @@ import { hudFitOk } from '../../camfit.js';
 import { NODES, N, EL_COL } from './rules.js';
 
 const K = .42;                 // avatars are drawn at this size, on a wrapper (the standing avatar sits .76 up inside it)
-const HOP = 320;               // ms per stone, as the server counts it (MS.hop)
+const HOP = 420;               // ms per stone, as the server counts it (MS.hop)
 const SR = .62, SY = .18;      // stone radius and the height of a stone's top
 const ISLE = { x: 1.5, z: -1, rx: 23, rz: 16.5 };
 const POND = { x: -1, z: 0, rx: 4.2, rz: 3 };
@@ -98,7 +98,8 @@ export function createScene(canvas, { onFrame } = {}) {
     const t = new THREE.Group(); (snowy ? SP.snowpine : PROPS.tree)(t, 1.1); t.position.set(x, y + .25, z); world.add(t); }
 
   // ---------- the trail: stones, the dirt between them, bridges and signposts ----------
-  const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z));
+  const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z)), START = new THREE.Vector3();
+  const nodeP = i => (i < 0 ? START : P[i]);
   const DIRT = snowy ? '#d8e6ee' : '#d9b77c', DIRT_EDGE = snowy ? '#b9c9d6' : '#a9814f';
   NODES.forEach((n, i) => {
     const kind = n.kind, top = STONE[kind] || '#ffd36b';
@@ -134,8 +135,21 @@ export function createScene(canvas, { onFrame } = {}) {
   NODES.forEach((n, i) => { if (n.next.length < 2) return; const [ox, oz] = sideOf(i), s = new THREE.Group(); s.position.set(n.x - ox * 1.05, 0, n.z - oz * 1.05); world.add(s);
     cyl(s, .06, .07, 1.3, '#8a5a32', 0, .65, 0, 6);
     n.next.forEach((j, k) => { const b = NODES[j], a = Math.atan2(b.x - n.x, b.z - n.z), bd = box(s, .7, .2, .07, k ? '#ffc93c' : '#ffffff', Math.sin(a) * .3, 1.1 - k * .27, Math.cos(a) * .3); bd.rotation.y = a + Math.PI / 2; }); });
+  // the start meadow off the trail beside the first stone: everyone waits here before their first roll (Kuba 2026-11-27)
+  { const [ox, oz] = sideOf(0); START.set(NODES[0].x + ox * 3.2, SY, NODES[0].z + oz * 3.2);
+    const g = new THREE.Group(); g.position.set(START.x, 0, START.z); g.rotation.y = Math.atan2(ox, oz); world.add(g);
+    cyl(g, 1.7, 1.8, .14, snowy ? '#9aa6b6' : '#8d867e', 0, .06, 0, 14); cyl(g, 1.65, 1.65, .05, '#fff6e2', 0, .135, 0, 14); cyl(g, 1.55, 1.57, .08, '#ff9fc8', 0, .14, 0, 14);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; cyl(g, .07, .07, .05, k % 2 ? '#ffffff' : '#ffd36b', Math.cos(a) * 1.3, .2, Math.sin(a) * 1.3, 6); }
+    // an arch on the side facing the first stone, with a striped banner
+    for (const sx of [-1.05, 1.05]) cyl(g, .08, .09, 1.6, '#c98a52', sx, .8, -1.6, 6);
+    box(g, 2.3, .34, .1, '#ff6f9a', 0, 1.55, -1.6); for (let k = 0; k < 5; k++) box(g, .3, .36, .11, '#ffffff', -.8 + k * .4, 1.55, -1.6);
+    for (const sx of [-1.05, 1.05]) put(g, new THREE.ConeGeometry(.13, .3, 6), M('#ffd36b'), sx, 1.75, -1.6);
+    // dirt path from the meadow to the first stone
+    const dx = NODES[0].x - START.x, dz = NODES[0].z - START.z, l = Math.hypot(dx, dz), a = Math.atan2(dx, dz), len = l - 1.75 - SR - .1;
+    if (len > .05) { const mx = START.x + dx / l * (1.75 + len / 2), mz = START.z + dz / l * (1.75 + len / 2);
+      box(world, .74, .03, len, DIRT_EDGE, mx, .02, mz).rotation.y = a; box(world, .5, .035, len, DIRT, mx, .03, mz).rotation.y = a; } }
   // the lawn's flowers and season props, never on the trail or the water
-  const clearOf = (x, z, r) => P.every(p => Math.hypot(p.x - x, p.z - z) > r) && ((x - POND.x) / (POND.rx + .8)) ** 2 + ((z - POND.z) / (POND.rz + .8)) ** 2 > 1
+  const clearOf = (x, z, r) => P.every(p => Math.hypot(p.x - x, p.z - z) > r) && Math.hypot(START.x - x, START.z - z) > r + 1.7 && ((x - POND.x) / (POND.rx + .8)) ** 2 + ((z - POND.z) / (POND.rz + .8)) ** 2 > 1
     && Math.abs(z - STREAM_Z) > .9 + (x < POND.x ? 99 : 0) * 0 && Math.hypot((x - HILL.x) / (HILL.r + 1), (z - HILL.z) / (HILL.r + 1)) > 1 && inIsle(x, z, .9) && !(Math.abs(x) < 10 && z < -11.5) && !(x > 18 && z < 0 && z > -6);
   const notStream = (x, z) => x < POND.x + POND.rx - .5 || Math.abs(z - STREAM_Z) > .9;
   const fl = SL.petals || ['#ff8fab', '#ffffff', '#ffd84a', '#b994f0'];
@@ -223,14 +237,14 @@ export function createScene(canvas, { onFrame } = {}) {
       const av = avatar3d(p.color, p.av, { pose: 'stand', hand: false }); av.position.y = .76; wrap.add(av); scene.add(wrap);
       const ring = new THREE.Mesh(new THREE.RingGeometry(.3, .4, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: p.color, transparent: true, opacity: .9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 }));
       ring.renderOrder = 3; scene.add(ring);
-      folk.push({ i, wrap, av, ring, node: -1, q: [], hop: null, x: 0, z: 0, y: 0, ry: 0, tr: 0, ph: 0, amt: 0, steps: [], pets: [], herdKey: '', cheer: 0, sad: 0, sx: 0, sy: 0, on: false });
+      folk.push({ i, wrap, av, ring, node: null, q: [], hop: null, x: 0, z: 0, y: 0, ry: 0, tr: 0, ph: 0, amt: 0, steps: [], pets: [], herdKey: '', cheer: 0, sad: 0, sx: 0, sy: 0, on: false });
     });
   }
   // where a player stands on a stone: alone in the middle, or round the edge when others share it
   function spotOf(i, node) {
-    const same = folk.filter(f => (f.q.length ? f.q[f.q.length - 1] : f.node) === node), j = same.findIndex(f => f.i === i), n = same.length, p = P[node];
+    const same = folk.filter(f => (f.q.length ? f.q[f.q.length - 1] : f.node) === node), j = same.findIndex(f => f.i === i), n = same.length, p = nodeP(node);
     if (n <= 1 || j < 0) return [p.x, p.z];
-    const a = j / n * Math.PI * 2 + .6; return [p.x + Math.cos(a) * .36, p.z + Math.sin(a) * .36];
+    const a = j / n * Math.PI * 2 + .6, r = node < 0 ? 1 : .36; return [p.x + Math.cos(a) * r, p.z + Math.sin(a) * r];
   }
   function setHerd(f, herd) {
     const k = herd.map(h => h.sp + (h.look ? JSON.stringify(h.look) : '')).join('|'); if (k === f.herdKey) return; f.herdKey = k;
@@ -256,7 +270,8 @@ export function createScene(canvas, { onFrame } = {}) {
       let o = wild.get(w.id);
       if (!o) {
         const g = petOf(w.sp, null, w.rare === 2 ? 1.15 : .95);
-        const ring = new THREE.Mesh(new THREE.RingGeometry(.42, .54, 22).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: EL_COL[w.el], transparent: true, opacity: .95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 }));
+        // its stone gets a glowing ring in the pet's element colour: stop on that stone to meet it (Kuba 2026-11-27)
+        const ring = new THREE.Mesh(new THREE.RingGeometry(SR - .02, SR + .2, 28).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: EL_COL[w.el], transparent: true, opacity: .95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 }));
         ring.renderOrder = 2; const out = new THREE.Mesh(ringGeo, ringMat(EL_COL[w.el])); out.renderOrder = 2;
         g.position.set(x, SY, z); scene.add(g, ring, out);
         o = { g, ring, out, x, z, tx: x, tz: z, w, seed: w.id }; wild.set(w.id, o);
@@ -267,7 +282,7 @@ export function createScene(canvas, { onFrame } = {}) {
     for (const [id, o] of wild) if (!seen.has(id)) { scene.remove(o.g, o.ring, o.out); o.ring.material.dispose(); o.out.material.dispose(); fx.puff(o.g.position.clone().setY(.5), { n: 10, color: ['#ffffff', EL_COL[o.w.el]], size: .45, speed: 2 }); wild.delete(id); }
   }
   // a wild pet waits just off its stone, on the outer side
-  function wildSpot(node) { const n = NODES[node]; let [ox, oz] = sideOf(node); if (SPECIAL.has(n.kind) && n.kind !== 'picnic') { ox = -ox; oz = -oz; } return [n.x + ox * .95, n.z + oz * .95]; }
+  function wildSpot(node) { const n = NODES[node]; let [ox, oz] = sideOf(node); if (SPECIAL.has(n.kind) && n.kind !== 'picnic') { ox = -ox; oz = -oz; } return [n.x + ox * .4, n.z + oz * .4]; } // on its own stone, at the outer edge
   const honey = new Map();
   function setHoney(h) {
     const seen = new Set();
@@ -278,7 +293,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   // ---------- the dice: thrown in the roller's own dice skin (dice3d.js), tumbling onto the lawn beside them ----------
-  const kit = diceKit(), DS = .4, DIE_MS = 760, DIE_HOLD = 2300;
+  const kit = diceKit(), DS = .4, DIE_MS = 820, DIE_HOLD = 2600;
   const FACE_N = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].map(a => new THREE.Vector3(...a));
   const UPV = new THREE.Vector3(0, 1, 0);
   const thrown = []; // { m, from, to, spin, q, t0, s, k, landed }
@@ -318,8 +333,10 @@ export function createScene(canvas, { onFrame } = {}) {
   let S = null;
   function setState(s) {
     S = s; setSeats(s.seats, s.me);
+    // players who jumped (a new state, a rejoin): note everyone's stone first, so players sharing a stone spread out round it
+    const moved = s.pl.map((p, i) => { const f = folk[i]; if (!f || f.q.length || f.hop || f.node === p.pos) return false; f.node = p.pos; return true; });
     s.pl.forEach((p, i) => { const f = folk[i]; if (!f) return;
-      if (!f.q.length && !f.hop && f.node !== p.pos) { f.node = p.pos; const [x, z] = spotOf(i, p.pos); f.x = x; f.z = z; f.steps = []; }
+      if (moved[i]) { const [x, z] = spotOf(i, p.pos); f.x = x; f.z = z; f.steps = []; }
       setHerd(f, p.herd); });
     setWild(s.wild); setHoney(s.honey);
   }
@@ -392,8 +409,8 @@ export function createScene(canvas, { onFrame } = {}) {
       o.g.position.set(o.x, SY + Math.abs(Math.sin(T * (d > .01 ? 10 : 3) + o.seed)) * (d > .01 ? .2 : .08), o.z);
       o.g.rotation.y = d > .01 ? Math.atan2(o.tx - o.x, o.tz - o.z) : Math.atan2(camera.position.x - o.x, camera.position.z - o.z) + Math.sin(T * .9 + o.seed) * .5;
       o.g.children[0] && wiggle(o.g.children[0], T, o.seed, .5);
-      o.ring.position.set(o.x, SY + .012, o.z); o.ring.material.opacity = .7 + Math.sin(T * 4 + o.seed) * .25;
-      o.out.position.set(o.x, SY + .014, o.z); o.out.scale.setScalar(.8 + Math.sin(T * 3 + o.seed) * .04);
+      const sp = P[o.w.pos]; if (sp) o.ring.position.set(sp.x, SY + .012, sp.z); o.ring.material.opacity = .75 + Math.sin(T * 4 + o.seed) * .22; o.ring.scale.setScalar(1 + Math.sin(T * 4 + o.seed) * .04);
+      if (sp) o.out.position.set(sp.x, SY + .014, sp.z); o.out.scale.setScalar(SR + .5 + Math.sin(T * 3 + o.seed) * .04);
       blob(o.x, o.z, .3);
     }
     stepDice(performance.now(), blob);
@@ -449,7 +466,7 @@ export function createScene(canvas, { onFrame } = {}) {
     mapping: () => mapView,
     zoom: () => zoom,
     marks,
-    stonePx(i, y = .6) { const o = {}; const p = P[i]; return p ? proj(p.x, y, p.z, o) : null; },
+    stonePx(i, y = .6) { const o = {}; const p = nodeP(i); return p ? proj(p.x, y, p.z, o) : null; },
     seatPx(s) { const f = folk[s]; if (!f) return null; return proj(f.x, 1.2, f.z, {}); },
     walking: () => folk.some(f => f.hop || f.q.length),
     setHud(topPx, bottomPx) { if ((Math.abs(topPx - hudTop) > 4 || Math.abs(bottomPx - hudBottom) > 4) && hudFitOk(canvas)) { hudTop = topPx; hudBottom = bottomPx; } },

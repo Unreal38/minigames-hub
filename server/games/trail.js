@@ -9,7 +9,7 @@
 // Nothing here is secret: every player sees every herd, roll and wild pet. Bots think for a moment before each choice.
 import {
   NODES, N, near, dist, STRONG, ELS, oddsOf, priceOf, HERD_MAX, ITEM_MAX, LURE, PACT_ROUNDS, EGG_TURNS, WILD_MAX,
-  START_TREATS, payFor, ITEMS, ITEM_IDS, ruleSeason, WX_EL, poolFor, ROUNDS,
+  START_TREATS, START, payFor, ribbonsOf, showPts, ITEMS, ITEM_IDS, ruleSeason, WX_EL, poolFor, ROUNDS,
 } from '../../public/games/trail/rules.js';
 import { SPECIES } from '../../public/games/farm/data.js';
 import { randomAv, seasonOn } from '../../public/avatar.js';
@@ -21,9 +21,10 @@ export const meta = { id: 'trail', name: 'Friendship Trail', minPlayers: 1, maxP
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // how long things take on screen: the intro, one hop, the wheel before a minigame, the minigame results, the Pet Show
-export const MS = { intro: 3500, hop: 320, say: 900, wheel: 4200, res: 6500, show: 9000, cheer: 12000 };
+// A calm pace (Kuba 2026-11-27: the first version raced through 8 rounds in a few minutes and was hard to follow).
+export const MS = { intro: 14000, hop: 420, say: 1500, dice: 2000, turn: 1400, wheel: 5500, res: 8000, show: 13000, cheer: 14000 };
 // Bots wait a moment before each choice, so they look like they're thinking (Kuba, 2026-11-26). Sharp bots are quicker.
-export const THINK = { chill: [1100, 2200], sharp: [800, 1600] };
+export const THINK = { chill: [1400, 2600], sharp: [1100, 2000] };
 export const TIMERS = [20, 30, 45, 0];
 
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -61,7 +62,7 @@ export function create(players, optsIn = {}) {
   const pl = seats.map((seat, i) => {
     const own = seat.pet && SPECIES[seat.pet.sp] ? seat.pet : null, d = own ? SPECIES[own.sp] : null;
     const st = own ? { sp: own.sp, el: d.el2 ? d.el : d.el, rare: d.rare, name: own.name || '', look: own.look || null } : { ...starts[i % starts.length] };
-    return { pos: [0, 2, 4, 6, 8, 10][i] ?? 0, treats: START_TREATS, herd: [friendOf(st, { start: true, name: st.name || '', look: st.look || null })], items: [], egg: 0, pact: null, wins: 0, got: 0, charm: false, berry: false, whistle: false, guard: false };
+    return { pos: START, treats: START_TREATS, herd: [friendOf(st, { start: true, name: st.name || '', look: st.look || null })], items: [], egg: 0, pact: null, wins: 0, got: 0, charm: false, berry: false, whistle: false, guard: false };
   });
   const now = Date.now(), wx = weatherAt(now).kind;
   const G = {
@@ -74,13 +75,16 @@ export function create(players, optsIn = {}) {
   return G;
 }
 
+// Everyone starts in the start meadow beside the first stone (pos -1, Kuba 2026-11-27); the first step is onto stone 0.
+const at0 = pos => Math.max(0, pos);
+
 // e.n is the event's number on the screen side, so an event's own amounts go in v
 function pushEv(G, e) { e.n = ++G.evN; G.ev.push(e); if (G.ev.length > 40) G.ev.shift(); }
 const think = G => rnd(...(THINK[G.opts.bots] || THINK.chill));
 
 // ---------- wild pets ----------
 function spawnWild(G, at = null, rareOnly = false) {
-  const free = at != null ? [at] : [...Array(N).keys()].filter(i => !G.wild.some(w => dist(w.pos, i) < 6) && !G.pl.some(p => dist(p.pos, i) < 4));
+  const free = at != null ? [at] : [...Array(N).keys()].filter(i => !G.wild.some(w => dist(w.pos, i) < 8) && !G.pl.some(p => dist(at0(p.pos), i) < 5));
   const pos = at ?? (free.length ? pickOf(free) : Math.random() * N | 0);
   const wxEl = WX_EL[G.wx], rainbow = G.wx === 'rainbow';
   let pool = rareOnly ? WILD.filter(w => w.rare === 2) : WILD;
@@ -107,6 +111,8 @@ function startTurn(G, s, now) {
   G.turn = s; G.stage = 'turn'; G.die = null; G.walk = null;
   const p = G.pl[s]; p.charm = false; p.guard = false;
   pushEv(G, { t: 'turn', s });
+  // catch-up: whoever has the fewest friends gets their starter's reroll back every turn, so an early lucky streak can't snowball (Kuba 2026-11-27)
+  if (p.herd.length <= Math.min(...G.pl.map(q => q.herd.length))) { const st = p.herd.find(f => f.start); if (st && !st.rr) { st.rr = true; pushEv(G, { t: 'boost', s, sp: st.sp }); } }
   if (p.pact && G.round > p.pact.until) { const o = p.pact.w; pushEv(G, { t: 'pactend', s, o }); p.pact = null; if (G.pl[o].pact?.w === s) G.pl[o].pact = null; }
   if (p.egg && --p.egg === 0) {
     const pick = pickOf(WILD);
@@ -123,24 +129,26 @@ function roll(G, s, now) {
   const p = G.pl[s], two = p.spy; p.spy = false;
   const a = 1 + (Math.random() * 6 | 0), b = two ? 1 + (Math.random() * 6 | 0) : 0, d = Math.max(a, b);
   G.die = d; pushEv(G, { t: 'roll', s, d, a, b: two ? b : 0 });
-  G.busy = now + MS.say;
+  G.busy = now + MS.dice;
   const helpers = p.herd.map((f, i) => (f.rr ? i : -1)).filter(i => i >= 0);
   if (helpers.length) return ask(G, s, 'reroll', { f: helpers }, now);
-  return startWalk(G, s, d, now);
+  return waitDice(G, now);
 }
 function reroll(G, s, i, now) {
   const p = G.pl[s], f = p.herd[i];
   if (!f?.rr) return false;
-  f.rr = false; const d = 1 + (Math.random() * 6 | 0); G.die = d;
-  pushEv(G, { t: 'reroll', s, f: i, sp: f.sp, d }); G.busy = now + MS.say;
-  return startWalk(G, s, d, now);
+  f.rr = false; const was = G.die, d = 1 + (Math.random() * 6 | 0); G.die = d;
+  pushEv(G, { t: 'reroll', s, f: i, sp: f.sp, d, was }); G.busy = now + MS.dice;
+  return waitDice(G, now);
 }
+// The walk starts only once the dice have landed and everyone has seen the number (Kuba 2026-11-27: a reroll must be readable first).
+function waitDice(G, now) { G.pend = null; G.stage = 'rolled'; G.stageEnd = Math.max(now, G.busy); return true; }
 function startWalk(G, s, d, now) { G.walk = { left: d, path: [] }; G.stage = 'walk'; G.pend = null; return advance(G, s, now); }
 // Walk stone by stone. A fork or a stall on the way stops the walk to ask; the walk goes on after the answer.
 function advance(G, s, now) {
   const p = G.pl[s], W = G.walk;
   while (W.left > 0) {
-    const nd = NODES[p.pos];
+    const nd = p.pos < 0 ? { next: [0] } : NODES[p.pos];
     if (nd.next.length > 1 && W.fork == null) { flushHop(G, s, now); return ask(G, s, 'fork', { opts: nd.next.slice() }, now); }
     const to = W.fork ?? nd.next[0]; W.fork = null;
     p.pos = to; W.left--; W.path.push(to);
@@ -189,14 +197,14 @@ function afterLand(G, s, now) {
   if (p.whistle) {
     p.whistle = false;
     const w = [...G.wild].sort((a, b) => dist(a.pos, p.pos) - dist(b.pos, p.pos))[0];
-    if (w && !near(w.pos, p.pos)) { w.pos = NODES[p.pos].next[0]; pushEv(G, { t: 'called', s, id: w.id, sp: w.sp, pos: w.pos }); G.busy = Math.max(now, G.busy) + MS.say; }
+    if (w && w.pos !== p.pos) { w.pos = p.pos; pushEv(G, { t: 'called', s, id: w.id, sp: w.sp, pos: w.pos }); G.busy = Math.max(now, G.busy) + MS.say; }
   }
   return nextMeet(G, s, now);
 }
 function nextMeet(G, s, now) {
   const p = G.pl[s];
   p.met ||= []; // the wild pets already met on this stop (an array: tables are saved as JSON)
-  const w = G.wild.find(x => near(x.pos, p.pos) && !p.met.includes(x.id));
+  const w = G.wild.find(x => x.pos === p.pos && !p.met.includes(x.id)); // only a pet on the very stone you stop on (Kuba 2026-11-27)
   if (w) {
     p.met.push(w.id);
     if (p.herd.length >= HERD_MAX) { pushEv(G, { t: 'full', s }); return nextMeet(G, s, now); }
@@ -211,7 +219,7 @@ function tryLure(G, s, now) {
   if (o != null && p.treats >= LURE && p.herd.length < HERD_MAX) return ask(G, s, 'lure', { o }, now);
   return endTurn(G, now);
 }
-function endTurn(G, now) { G.pend = null; G.stage = 'next'; G.stageEnd = Math.max(now, G.busy) + 400; return true; }
+function endTurn(G, now) { G.pend = null; G.stage = 'next'; G.stageEnd = Math.max(now, G.busy) + MS.turn; return true; }
 
 // ---------- the choices ----------
 function befriend(G, s, w, how, now) {
@@ -226,7 +234,7 @@ function befriend(G, s, w, how, now) {
     pushEv(G, { t: 'showdown', s, f: how.k, sp: f.sp, wsp: w.sp, ok, id: w.id });
     if (ok) join(G, s, w);
     else { // it runs off down the trail
-      const far = [...Array(N).keys()].filter(i => dist(i, p.pos) > 8 && !G.wild.some(x => x !== w && dist(x.pos, i) < 3));
+      const far = [...Array(N).keys()].filter(i => dist(i, at0(p.pos)) > 8 && !G.wild.some(x => x !== w && dist(x.pos, i) < 3));
       w.pos = far.length ? pickOf(far) : w.pos; pushEv(G, { t: 'flee', id: w.id, sp: w.sp, pos: w.pos });
     }
   }
@@ -241,7 +249,7 @@ function join(G, s, w) {
 }
 function useItem(G, s, k, now) {
   const p = G.pl[s], i = p.items.indexOf(k);
-  if (i < 0) return false;
+  if (i < 0 || (k === 'honey' && p.pos < 0)) return false;
   p.items.splice(i, 1);
   if (k === 'whistle') p.whistle = true;
   if (k === 'berry') p.berry = true;
@@ -259,7 +267,7 @@ function wish(G, s, yes, now) {
   if (yes && p.treats >= 5) {
     p.treats -= 5;
     const r = Math.random();
-    if (r < .3) { const w = spawnWild(G, NODES[p.pos].next[0], true); pushEv(G, { t: 'well', s, res: 'pet', sp: w.sp }); }
+    if (r < .3) { const w = spawnWild(G, p.pos, true); pushEv(G, { t: 'well', s, res: 'pet', sp: w.sp }); }
     else if (p.items.length < ITEM_MAX) { const k = pickOf(ITEM_IDS); p.items.push(k); pushEv(G, { t: 'well', s, res: 'item', k }); }
     else { p.treats += 8; pushEv(G, { t: 'well', s, res: 'treats', v: 8 }); }
   } else pushEv(G, { t: 'well', s, res: 'no' });
@@ -352,19 +360,9 @@ function endRound(G, now) {
 }
 
 // ---------- the Pet Show ----------
-export function ribbons(G) {
-  const P = G.pl, best = (f, ok = v => v > 0) => { const v = P.map(f), m = Math.max(...v); return ok(m) ? P.map((_, i) => i).filter(i => v[i] === m) : []; };
-  return {
-    herd: best(p => p.herd.length),
-    els: best(p => new Set(p.herd.map(f => f.el)).size),
-    rare: best(p => Math.max(0, ...p.herd.filter(f => !f.start).map(f => f.rare + 1))),
-    mini: best(p => p.wins),
-    treats: best(p => p.treats),
-  };
-}
+export const ribbons = G => ribbonsOf(G.pl);
 function petShow(G, now) {
-  const rib = ribbons(G), pts = G.pl.map(p => p.herd.length);
-  for (const ids of Object.values(rib)) for (const i of ids) pts[i] += 2;
+  const rib = ribbons(G), pts = showPts(G.pl, rib);
   G.show = { rib, pts };
   G.stage = 'show'; G.stageEnd = now + MS.show; G.pend = null; G.turn = -1;
   pushEv(G, { t: 'show' });
@@ -422,7 +420,7 @@ export function botChoice(G, s) {
     }
     case 'reroll': return { t: 'reroll', i: G.die <= 2 ? P.f[0] : -1 };
     case 'fork': {
-      const score = j => { let v = Math.random() * 2, at = j; for (let k = 0; k < 6; k++) { if (G.wild.some(w => near(w.pos, at))) v += 5; at = NODES[at].next[0]; } return v; };
+      const score = j => { let v = Math.random() * 2, at = j; for (let k = 0; k < 6; k++) { if (G.wild.some(w => w.pos === at)) v += k + 1 === G.walk?.left ? 9 : 2; at = NODES[at].next[0]; } return v; };
       return { t: 'fork', j: [...P.opts].sort((a, b) => score(b) - score(a))[0] };
     }
     case 'shop': { if (Math.random() < .45 || p.treats < 9) return { t: 'shop', k: null }; const ok = ITEM_IDS.filter(k => ITEMS[k].c <= p.treats); return { t: 'shop', k: pickOf(ok) }; }
@@ -464,6 +462,7 @@ export function tick(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
   if (G.stage === 'intro') { if (now < G.stageEnd) return false; pushEv(G, { t: 'round', r: 1 }); return startTurn(G, 0, now); }
   if (G.stage === 'next') { if (now < G.stageEnd) return false; return nextTurn(G, now); }
+  if (G.stage === 'rolled') { if (now < G.stageEnd) return false; return startWalk(G, G.turn, G.die, now); }
   if (G.stage === 'cheer') {
     let ch = false;
     if (now >= G.botAt) G.seats.forEach((seat, i) => { if (seat.bot && !G.cheerDone[i]) { G.cheer[i] = botCheer(G, i); G.cheerDone[i] = true; ch = true; } });
