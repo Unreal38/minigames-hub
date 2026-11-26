@@ -343,5 +343,16 @@ const PIECE = {
   charm(g) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.22), SM('#b48cff', { flatShading: true, emissive: '#7a4ae0', emissiveIntensity: .25 })); gem.scale.y = 1.35; g.add(gem);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.3, .03, 4, 20), SM('#ffc93c')); ring.rotation.x = 1.2; g.add(ring);
     for (const [x, y, c] of [[-.24, .2, '#7ed37a'], [.25, .16, '#ff7a3a'], [.02, -.34, '#4fb0ee']]) { const s = new THREE.Mesh(new THREE.OctahedronGeometry(.055), SM(c)); s.position.set(x, y, .1); g.add(s); } },
+  // a Blast Bay pop seed: pink pod, four leaves and a glowing tip
+  seed(g) { const pod = new THREE.Mesh(new THREE.IcosahedronGeometry(.26, 1), SM('#ff8fc8', { flatShading: true })); pod.scale.y = 1.1; pod.position.y = -.08; g.add(pod);
+    for (let k = 0; k < 4; k++) { const a = k / 4 * PI * 2, lf = new THREE.Mesh(new THREE.ConeGeometry(.09, .24, 4), SM('#6cbf4a', { flatShading: true })); lf.position.set(Math.cos(a) * .13, .22, Math.sin(a) * .13); lf.rotation.set(Math.sin(a) * .6, 0, -Math.cos(a) * .6); g.add(lf); }
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), SM('#fff07a', { emissive: '#fff07a', emissiveIntensity: .6 })); tip.position.y = .3; g.add(tip); g.rotation.z = -.2; },
+  // a Pet Pairs card: blue striped back with a paw print, half turned
+  memcard(g) { const c = new THREE.Mesh(new THREE.BoxGeometry(.42, .56, .04), SM('#2f86cc')); g.add(c);
+    for (const y of [-.16, 0, .16]) { const s = new THREE.Mesh(new THREE.BoxGeometry(.44, .05, .045), SM('#4fa3e3')); s.position.y = y; s.rotation.z = .6; s.scale.x = .9; g.add(s); }
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, .05, 16), SM('#fff8ec')); disc.rotation.x = PI / 2; disc.position.z = .01; g.add(disc);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .06, 10), SM('#ffb547')); pad.rotation.x = PI / 2; pad.position.set(0, -.02, .015); g.add(pad);
+    for (const [x, y] of [[-.06, .06], [0, .08], [.06, .06]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .06, 8), SM('#ffb547')); t.rotation.x = PI / 2; t.position.set(x, y, .015); g.add(t); }
+    g.rotation.set(-.1, .5, .15); },
 };
 export function pieceModel(id) { const g = new THREE.Group(); (PIECE[id] || PIECE.marble)(g); return toonify(g, .04); }

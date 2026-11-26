@@ -916,6 +916,28 @@ export function herdArt() {
   </svg>`;
 }
 
+// Sugar Siege card: a blocky island in the sea, a bunny on the left with a slingshot band, a pie flying along a
+// dotted arc, and a round pet on the right lying asleep with a Zzz after a sweet splat.
+export function siegeArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const blk = (x, y, w, h, top) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#c98a55" ${o}/><rect x="${x}" y="${y}" width="${w}" height="8" fill="${top}" ${o}/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A blocky island where a bunny flings a pie along a dotted arc at a round pet that has fallen asleep with a Zzz">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="40" cy="20" r="1.5"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="40" r="1.5"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M244 24l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <rect y="124" width="320" height="26" fill="#5fb7e8"/><path d="M0 126q20-6 40 0t40 0 40 0 40 0 40 0 40 0 40 0 40 0" fill="none" stroke="#e6f7ff" stroke-width="3"/>
+    ${blk(20, 96, 64, 34, '#7ed957')}${blk(84, 108, 52, 22, '#7ed957')}${blk(136, 114, 44, 16, '#ff9ec4')}${blk(180, 104, 56, 26, '#7ed957')}${blk(236, 90, 66, 40, '#7ed957')}
+    <path d="M156 114q4-10 12-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <g transform="translate(52 96)"><ellipse cx="-6" cy="-34" rx="4" ry="10" fill="#f3e9ff" ${o}/><ellipse cx="6" cy="-34" rx="4" ry="10" fill="#f3e9ff" ${o}/><rect x="-14" y="-28" width="28" height="28" rx="9" fill="#f3e9ff" ${o}/>
+      <circle cx="-5" cy="-16" r="2" fill="#3b2219"/><circle cx="6" cy="-16" r="2" fill="#3b2219"/><path d="M-1 -10q2 2 4 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/></g>
+    <path d="M66 74l-18 8" stroke="#3b2219" stroke-width="5" stroke-linecap="round"/><path d="M66 74l-18 8" stroke="#ffc93c" stroke-width="2.5" stroke-linecap="round"/>
+    <path class="sgarc" d="M74 70q70-70 160 2" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 11"/>
+    <g class="sgpie" transform="translate(150 34)"><ellipse rx="15" ry="8" fill="#f2c27a" ${o}/><path d="M-12 -2q12-8 24 0" fill="#e0524f" stroke="#3b2219" stroke-width="2.5"/></g>
+    <g transform="translate(268 90)"><ellipse cx="0" cy="-10" rx="22" ry="12" fill="#ffd0a6" ${o}/><path d="M-10 -12q3 2 6 0M4 -12q3 2 6 0" fill="none" stroke="#3b2219" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="10" cy="-18" r="6" fill="#ff8fab" stroke="#3b2219" stroke-width="2.5"/><circle cx="-6" cy="-20" r="4" fill="#fff3df" stroke="#3b2219" stroke-width="2"/></g>
+    <g class="sgzz" font-family="Rubik, sans-serif" font-weight="700" fill="#6b7cff" stroke="#fff" stroke-width="3" paint-order="stroke"><text x="282" y="64" font-size="16">Z</text><text x="294" y="50" font-size="12">z</text><text x="302" y="40" font-size="9">z</text></g>
+  </svg>`;
+}
+
 export function blastArt() {
   const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
   const wall = (x, y) => `<rect x="${x}" y="${y}" width="24" height="20" rx="4" fill="#3f9a52" ${o}/><rect x="${x + 4}" y="${y + 3}" width="16" height="5" rx="2.5" fill="#6cc27a"/>`;

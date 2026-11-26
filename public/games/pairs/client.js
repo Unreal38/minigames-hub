@@ -56,7 +56,7 @@ export function mount(app, ctx) {
   import('./scene3d.js').then(m => {
     if (destroyed) return;
     scene = m.createScene(canvas, { onFrame });
-    if (S) { scene.setState(S); layout(); }
+    if (S) { scene.setState(S); scene.setBack(me()?.fl?.cb); layout(); }
   }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
   warmAll(() => !destroyed);
 
@@ -196,7 +196,7 @@ export function mount(app, ctx) {
     }
     endsAt = performance.now() + Math.max(0, s.tLeft);
     if (!fresh && myTurn() && was !== s.turn + '/' + s.stage + '/' + s.mv) { if (!s.up.length && s.stage === 'pick' && !s.streak) sfx.turn(); lastTick = -1; sent = 0; }
-    render(); scene?.setState(s);
+    render(); scene?.setState(s); scene?.setBack(me()?.fl?.cb);
     if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
   }
 
