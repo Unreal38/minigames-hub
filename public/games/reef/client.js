@@ -118,7 +118,7 @@ export function mount(app, ctx) {
 
   // ----- the score list and the name tags -----
   function renderBoard() {
-    setHtml($('rf-board'), S.seats.map((p, i) => `<div class="rf-s${i === S.turn && S.stage === 'play' ? ' now' : ''}${i === S.me ? ' me' : ''}"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="n">${p.n}</span><strong>${S.score[i]}</strong></div>`).join(''));
+    setHtml($('rf-board'), S.seats.map((p, i) => `<div class="rf-s profrow${i === S.turn && S.stage === 'play' ? ' now' : ''}${i === S.me ? ' me' : ''}"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="n">${p.n}</span><strong>${S.score[i]}</strong></div>`).join(''));
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
@@ -126,6 +126,7 @@ export function mount(app, ctx) {
       tagEls = [...tagsEl.children];
     }
     S.seats.forEach((p, i) => tagEls[i]?.classList.toggle('now', i === S.turn && S.stage === 'play'));
+    tagsEl.classList.toggle('pick', !myTurn()); // tags open profile cards while you are not placing tiles under them
     for (const el of tagEls) el._w = el.offsetWidth;
   }
   function renderLast() {

@@ -115,7 +115,10 @@ function build() {
   setIsle(null);
   onWeather(() => setNight(night));
   const setZoom = k => { camAt.set(0, 3.4, 19.5 / k); target.y = -.2 - (k - 1) * 1.2; };
-  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, skyNo: () => skyNo, lost: () => renderer.getContext().isContextLost() };
+  // Hands the WebGL context back. Phones keep only a few: a profile card's isle left alive next to a game's 3D scene
+  // made the browser drop the game's context, and the match turned plain sky blue (Kuba, Dominoes, 2026-11-26).
+  const release = () => { ticker.stop(); canvas.remove(); renderer.dispose(); renderer.forceContextLoss(); };
+  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, release, skyNo: () => skyNo, lost: () => renderer.getContext().isContextLost() };
 }
 
 // fl: the player's flair; its isle kinds (ig ground, ib rock base, ip decor, ik sky) dress the isle.
@@ -131,6 +134,9 @@ export function mountHero(box, color, av, pets = [], fl = null, { frame = null, 
   if (H.canvas.parentNode !== box) box.replaceChildren(H.canvas);
   return true;
 }
+// A closed profile card gives its isle's WebGL context back (see release above); the next card builds a new one.
+export function releaseHero() { if (!H) return; const v = H; H = null; try { v.release(); } catch {} } // a game is open: the hub's isle is out of sight
+export function releaseIsle() { if (!P) return; const v = P; P = null; try { v.release(); } catch {} }
 // The same isle for someone else: their avatar and the pets they show off, in a profile card.
 // frame: the element whose background is the sky (it gets a class isk1.. for a bought sky; see style.css).
 export function mountIsle(box, color, av, pets = [], fl = null, frame = box) {

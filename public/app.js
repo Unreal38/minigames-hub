@@ -1335,6 +1335,7 @@ function mountGame() {
   if (!g) return Promise.resolve(null);
   st.view = 'game';
   document.body.classList.toggle('tagpick', !TAG_HANDS_OFF.has(st.room.game)); // name tags open profile cards (see below)
+  heroMod?.then(m => m.releaseHero()).catch(() => {}); // fewer live 3D canvases while a game runs (the hub builds its isle again on the way back)
   st.gameLoading = g.load().then(mod => {
     const game = st.room?.game;
     st.game = mountWithCss(game, () => mod.mount($app, {
@@ -1352,6 +1353,14 @@ function mountGame() {
 }
 // Only switch the sheets off when something was really open: these also run on every table update (closeFarm/closeHay)
 // and must not turn off the sheets of the game being played.
+// A phone can take a game's WebGL context away (too many 3D canvases at once, like a profile card's isle over a match,
+// or the phone asleep): that canvas then stays plain sky blue. Build the game again from the last state the server sent.
+let regl = 0;
+document.addEventListener('webglcontextlost', e => {
+  if (!st.game || !$app.contains(e.target)) return;
+  e.preventDefault(); clearTimeout(regl);
+  regl = setTimeout(() => { if (!st.game || !st.room) return; unmountGame(); mountGame().then(g => { g?.update(st.lastState); watchPaint(); }); }, 300);
+}, true);
 function unmountGame() { document.body.classList.remove('tagpick'); if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
@@ -3098,7 +3107,7 @@ function openPlayer(p) {
   const box = el.querySelector('.pisle .art');
   box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
   (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets, p.fl, box.closest('.pisle')); }).catch(() => {});
-  sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; };
+  sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; heroMod?.then(m => { if (!playerSheet) m.releaseIsle(); }); };
   el.addEventListener('click', e => {
     const fr = e.target.closest('[data-fr]');
     if (fr?.dataset.fr === 'account') { sheet.close(); return openAccount('register'); }
@@ -3131,9 +3140,12 @@ const TAG_HANDS_OFF = new Set(['pairs', 'kart', 'golf', 'bean', 'bop', 'lagoon',
 // Inside a game: the name tags over the players and the rows of the score lists open that player's profile card too
 // (to add them as a friend or report them mid-match). Games draw them without a tag, so the name finds the player
 // among the people at this table; bots and names shared by two people open nothing.
+// A game marks any other row that shows one player's name in a <b> with the class profrow (a compact score strip).
+// Games in TAG_HANDS_OFF can still open cards from their floating tags while it is safe (not your turn, tags parked
+// in a strip): they add the class pick to their .tags box for that time.
 document.addEventListener('click', e => {
   if (!st.game || !st.room?.players || e.target.closest('[data-prof], button, a, input, label, select, textarea, .modal, .chatwrap')) return;
-  const el = e.target.closest('li:has(.avatar), .who') || (document.body.classList.contains('tagpick') && e.target.closest('.tags > *')); if (!el || !$app.contains(el)) return;
+  const el = e.target.closest('li:has(.avatar), .who, .profrow') || ((document.body.classList.contains('tagpick') || e.target.closest('.tags.pick')) && e.target.closest('.tags > *')); if (!el || !$app.contains(el)) return;
   const raw = (el.querySelector('b') || el).textContent.replace(/\s*\((you|ty|bot|away|poza grą)\)\s*$/i, '').trim();
   const hits = st.room.players.filter(x => x.pt && x.name === raw);
   if (hits.length !== 1) return;

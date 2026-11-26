@@ -81,6 +81,7 @@ export function mount(app, ctx) {
   function layout() {
     const strip = compact();
     if (tagsEl.classList.contains('strip') !== strip) { tagsEl.classList.toggle('strip', strip); for (const el of tagEls) { el.style.transform = ''; el._w = el.offsetWidth; } }
+    if (S) tagsEl.classList.toggle('pick', strip || !myTurn());
     const top = strip ? tagsEl.getBoundingClientRect().bottom + 6 : (innerWidth < 700 ? 118 : 74) * uiz();
     if (scene) scene.setHud(($('pr-dock').offsetHeight + 34) * uiz(), top);
   }
@@ -93,6 +94,7 @@ export function mount(app, ctx) {
       tagsEl.innerHTML = S.seats.map((p, i) => `<div class="pr-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
       tagEls = [...tagsEl.children];
     }
+    tagsEl.classList.toggle('pick', compact() || !myTurn()); // tags open profile cards when parked in the strip or while you are not picking cards
     const now = performance.now();
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
