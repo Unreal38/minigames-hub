@@ -3170,9 +3170,9 @@ function openPlayer(p) {
       : p.rel === 'sent' ? `<button type="button" class="btn big w" disabled>${L('Friend request sent', 'Zaproszenie wysłane')}</button>`
       : p.rel === 'friend' ? `<span class="chip pfriend">✓ ${L('Friends', 'Znajomi')}</span><button type="button" class="btn w sm punfr" data-unfr>${L('Unfriend', 'Usuń ze znajomych')}</button>`
       : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
-      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}</div>
-    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}
-    ${!p.me ? `<div class="pdelrow">${p.mod ? `<button type="button" class="btn w sm" data-moderate>🛡️ ${L('Moderate', 'Moderuj')}</button>` : ''}<button type="button" class="btn ghost-ink pdel" data-report>🚩 ${L('Report', 'Zgłoś')}</button></div>` : ''}`);
+      : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}${
+      !p.me ? `<span class="prepgrp">${p.mod ? `<button type="button" class="btn big w" data-moderate>🛡️ ${L('Moderate', 'Moderuj')}</button>` : ''}<button type="button" class="btn big prep" data-report>🚩 ${L('Report', 'Zgłoś')}</button></span>` : ''}</div>
+    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
