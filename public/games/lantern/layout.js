@@ -3,7 +3,10 @@
 // Units are metres of the 3D scene. An avatar is about 1.7 tall. +z is towards the camera (south), like the Plaza.
 import { L } from '../../i18n.js';
 
-export const R_WALK = 22.5;   // you can walk this far from the middle
+// The island was drawn at 1x and is laid out K times bigger (room for 10 players and quiet corners); doors, glow,
+// walking speed and the ring round the fire keep their real size.
+export const K = 1.4;
+export const R_WALK = Math.round(22.5 * K * 10) / 10; // you can walk this far from the middle
 export const SPEED = 4.6;     // walking, metres a second
 export const GHOST_SPEED = 5.6; // a pet (players who are out) trots a little faster and goes through everything
 export const Q = 20;          // positions travel as whole numbers: metres x Q
@@ -23,7 +26,7 @@ export const STATIONS = [
   { id: 'kitchen', item: 'kitchen', x: 2, z: -18, ry: 0, s: 1.5, r: 2.1, name: () => L('Kitchen hut', 'Kuchnia') },
   { id: 'garden', item: 'garden', x: 18.4, z: 7.2, ry: -1.3, s: 1.5, r: 0, sp: [18.4, 5.6], name: () => L('Garden', 'Ogród') },
   { id: 'well', item: 'well', x: -10, z: 14.5, ry: .3, s: 1.8, r: 1.05, name: () => L('Well', 'Studnia') },
-  { id: 'dock', item: null, x: 7.5, z: 20.4, ry: 0, s: 1, r: 0, sp: [7.5, 19.6], name: () => L('Dock', 'Przystań') },
+  { id: 'dock', item: null, x: 7.5, z: 20.4, ry: 0, s: 1, r: 0, sp: [7.5, 19.6], shore: true, name: () => L('Dock', 'Przystań') },
 ];
 // The chores: two at every place, a player's list never has two at the same place. Kinds (client.js draws them):
 // hold = press and hold, taps = tap every target, seq = tap 1..5 in order, fill = stop the bar in the band,
@@ -45,16 +48,20 @@ const TASKS = {
   dock: [T('fill', () => L('Coil the rope', 'Zwiń linę'), () => L('Hold to pull the boat in and let go when it is by the dock.', 'Przytrzymaj, żeby przyciągnąć łódkę, i puść, gdy będzie przy pomoście.'), { btn: () => L('Pull', 'Ciągnij'), art: 'boat' }),
     T('taps', () => L('Patch the boat', 'Załataj łódkę'), () => L('Tap every hole to patch it.', 'Dotknij każdej dziury, żeby ją załatać.'), { pics: ['🕳️', '🕳️', '🕳️', '🕳️', '🕳️', '🕳️'] })],
 };
-STATIONS.forEach(st => { st.tasks = TASKS[st.id]; });
+const KS = v => Math.round(v * K * 100) / 100;
+// the dock and its ropes keep their place at the shore (the planks reach the water)
+const shoreZ = z => Math.round((R_WALK - (22.5 - z)) * 100) / 100;
+STATIONS.forEach(st => { st.tasks = TASKS[st.id]; if (st.shore) { if (st.sp) st.sp = [st.sp[0], shoreZ(st.sp[1])]; st.z = shoreZ(st.z); }
+  else { st.x = KS(st.x); if (st.sp) st.sp = [KS(st.sp[0]), st.z * K + (st.sp[1] - st.z)].map(v => Math.round(v * 100) / 100); st.z = KS(st.z); } });
 export const taskOf = (st, v = 0) => STATIONS[st]?.tasks[v ? 1 : 0];
 export const ST = Object.fromEntries(STATIONS.map((s, i) => [s.id, i]));
 export const spotOf = st => { if (st.sp) return st.sp; const d = Math.hypot(st.x, st.z) || 1, k = st.r + 1.1; return [st.x - st.x / d * k, st.z - st.z / d * k]; };
 export const CHORE_MS = { hold: 2600, taps: 2200, seq: 2000, fill: 1500, pick: 1800 }; // the quickest a chore can really be done (the server checks)
 
 // Hollow logs: only Sneaks can crawl in and pop out of the next one round the island.
-export const LOGS = [[-19.6, -5.4, 0], [-6.6, -19.4, 1.57], [20.2, -3.6, 0], [-2.4, 20.2, 1.57]];
+export const LOGS = [[-19.6, -5.4, 0], [-6.6, -19.4, 1.57], [20.2, -3.6, 0], [-2.4, 20.2, 1.57]].map(([x, z, r]) => [KS(x), KS(z), r]);
 // The ferry's two mooring ropes at the dock: when the Sneaks untie the ferry, two islanders must hold both at once.
-export const ROPES = [[4.6, 20.6], [10.4, 20.6]];
+export const ROPES = [[4.6, 20.6], [10.4, 20.6]].map(([x, z]) => [x, shoreZ(z)]);
 export const ROPE_MS = 40_000;  // the ferry drifts off (Sneaks win) if nobody ties it within this
 export const DARK_FIX = 'light'; // the lighthouse is relit at its own chore place
 export const MISCHIEF_WAIT = 30_000, MISCHIEF_FIRST = 20_000; // cooldown between two pranks, and none in the first seconds
@@ -64,7 +71,7 @@ export const LULL_WAIT = { 20: 20_000, 30: 30_000, 45: 45_000 };
 // Kinds: t = thickness, h = height, see = you can see over it (low fences only). Everything else blocks sight: what is
 // behind it stays dark (the page draws its shadow) and the server sends nobody standing there.
 export const WALL_KIND = { stone: { t: .5, h: 1.1, see: false }, hedge: { t: .7, h: 1.25, see: false }, plank: { t: .3, h: 1.45, see: false }, fence: { t: .2, h: .75, see: true } };
-const WR = 21.6; // walls stop at the grass edge
+const WR = R_WALK - .9; // walls stop at the grass edge
 function clip(a, b) { // the part of a..b inside the island
   const dx = b[0] - a[0], dz = b[1] - a[1], A = dx * dx + dz * dz, B = 2 * (a[0] * dx + a[1] * dz), C = a[0] * a[0] + a[1] * a[1] - WR * WR, D = B * B - 4 * A * C;
   if (D <= 0) return null; const r = Math.sqrt(D), t0 = Math.max(0, (-B - r) / (2 * A)), t1 = Math.min(1, (-B + r) / (2 * A));
@@ -74,6 +81,7 @@ export const WALLS = [];
 const seg = (x1, z1, x2, z2, k) => { const c = clip([x1, z1], [x2, z2]); if (c && Math.hypot(c[1][0] - c[0][0], c[1][1] - c[0][1]) > .3) WALLS.push({ a: c[0], b: c[1], k }); };
 // a straight line with door gaps; gaps are [middle, width] along the line, measured from its start
 function line(x1, z1, x2, z2, k, gaps = []) {
+  [x1, z1, x2, z2] = [x1, z1, x2, z2].map(v => v * K); gaps = gaps.map(([m, w]) => [m * K, w]); // drawn at 1x
   const len = Math.hypot(x2 - x1, z2 - z1), at = t => [x1 + (x2 - x1) * t / len, z1 + (z2 - z1) * t / len]; let t = 0;
   for (const [m, w] of [...gaps].sort((p, q) => p[0] - q[0])) { if (m - w / 2 > t) seg(...at(t), ...at(m - w / 2), k); t = m + w / 2; }
   if (t < len) seg(...at(t), ...at(len), k);
@@ -107,6 +115,13 @@ function room(x1, z1, x2, z2, k, d = {}) {
   room(2.5, 12.6, 12.5, 17.2, 'plank', { n: [[7.5, 2.6]], s: [[7.5, 3]], w: [[15, 2.4]] });
   // SE: an old ruin, broken stone corners to hide behind
   line(13.4, 14.2, 17.4, 14.2, 'stone'); line(17.4, 14.2, 17.4, 17.4, 'stone');
+  // Quiet corners between the yards, out of sight of the lanes (a Sneak's favourite spots):
+  // E: the storehouse, a plank shed off the windmill field with a door to the fire side and one to the field
+  room(12.6, -6.2, 18, -1.6, 'plank', { w: [[-3.6, 2.6]], n: [[16.2, 2.6]] });
+  // S: the old chapel, a roofless stone shell between the orchard and the boathouse, in at the north and the west
+  room(-3.4, 15.2, 1.4, 18.8, 'stone', { n: [[0, 2.6]], w: [[17.4, 2.6]] });
+  // hedge screens that break the long views across the open grass
+  line(3.4, -10.8, 6.4, -10.8, 'hedge'); line(-10.6, 10.6, -7.2, 10.6, 'hedge');
 }
 
 // Other things on the island: [Pet Farm decoration, x, z, turn, size, blocking radius].
@@ -115,7 +130,7 @@ export const DECOR = [
   ...[0, 1, 2, 3, 4, 5].map(i => { const a = i / 6 * Math.PI * 2 + .3; return ['haybale', Math.cos(a) * 4.2, Math.sin(a) * 4.2, -a + Math.PI / 2, 1.5, .7]; }),
   // lamps along the lanes
   ['lamp', -3.6, -9.6, 0, 1.9, .35], ['lamp', 3.6, 9.6, 0, 1.9, .35], ['lamp', 9.8, -3.4, 0, 1.9, .35], ['lamp', -9.8, 3.6, 0, 1.9, .35],
-  ['lamp', -8.4, -16.4, 0, 1.9, .35], ['lamp', 9.4, -13.6, 0, 1.9, .35], ['lamp', -16.6, -6.8, 0, 1.9, .35], ['lamp', 8.8, 8.6, 0, 1.9, .35], ['lamp', -3, 14.6, 0, 1.9, .35],
+  ['lamp', -8.4, -16.4, 0, 1.9, .35], ['lamp', 9.4, -13.6, 0, 1.9, .35], ['lamp', -16.6, -6.8, 0, 1.9, .35], ['lamp', 8.8, 8.6, 0, 1.9, .35], ['lamp', -3, 14.1, 0, 1.9, .35],
   // the orchard round the well
   ['tree', -16.2, 11.6, 0, 1.7, .7], ['cherry', -13.2, 17.6, 0, 1.7, .7], ['tree', -6.8, 17.8, 0, 1.7, .7], ['cherry', -16.4, 15.4, .5, 1.6, .7], ['tree', -12.8, 11.2, 0, 1.6, .7],
   // the windmill field
@@ -129,7 +144,9 @@ export const DECOR = [
   // the south: by the boathouse and the beach
   ['pine', -6.6, 20.2, 0, 1.8, .7], ['rock', 14.4, 19.2, 0, 1.4, .6], ['bench', 0.4, 11.4, .2, 1.6, .85], ['pine', 19.4, -0.4, 0, 1.7, .6],
   ['tree', -20.6, 8.8, 0, 1.6, .7], ['bush', -5.6, 5.4, 0, 1.4, .5],
-];
+  // inside the storehouse and the chapel
+  ['chest', 16.8, -2.6, 0, 1.4, .45], ['haybale', 14.2, -5.2, .3, 1.4, .6], ['statue', .2, 17.8, -.3, 1.6, .55],
+].map((t, i) => i < 7 ? t : [t[0], KS(t[1]), KS(t[2]), ...t.slice(3)]); // the fire and its hay ring keep their size
 
 // What blocks walking: circles [x, z, r] and the walls. The page slides you round them; the server stops a step
 // that goes through a wall.
@@ -151,7 +168,7 @@ export const throughWall = (ax, az, bx, bz) => WALLS.some(w => cross(ax, az, bx,
 export const sees = (ax, az, bx, bz) => !WALLS.some(w => !WALL_KIND[w.k].see && cross(ax, az, bx, bz, w));
 
 // ---------- finding a way round the walls (a tap on the ground walks there) ----------
-const CELL = .5, HALF = 46, N = HALF * 2 + 1; let grid = null;
+const CELL = .5, HALF = Math.ceil((R_WALK + 1) / CELL), N = HALF * 2 + 1; let grid = null;
 const free = (x, z, body = .42) => { if (Math.hypot(x, z) > R_WALK - .1) return false;
   for (const b of BLOCKS) if (Math.hypot(x - b[0], z - b[1]) < b[2] + body) return false;
   for (const w of WALLS) if (near(x, z, w)[0] < WALL_KIND[w.k].t / 2 + body) return false; return true; };

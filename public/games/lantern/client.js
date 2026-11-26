@@ -83,7 +83,7 @@ export function mount(app, ctx) {
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
-    scene = m.createScene(canvas, { send: a => ctx.act(a), frame: onFrame });
+    scene = m.createScene(canvas, { send: a => ctx.act(a), frame: onFrame }); canvas.stats = () => scene?.stats(); // for perf checks
     if (S) sync(true);
   }).catch(err => { console.warn('3D unavailable', err); root.classList.add('flat'); });
 
