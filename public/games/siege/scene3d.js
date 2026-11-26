@@ -55,13 +55,15 @@ export function createScene(canvas, opts = {}) {
   foam.rotation.x = -Math.PI / 2; foam.position.set(W / 2, R.WATER0 + .02, ZC + DEPTH / 2 + .25); foam.renderOrder = 1; scene.add(foam);
   const fx = createFx(scene, { max: 900 });
 
-  // ---- the island: a sky-island cap (the season's grass or snow, with props) over a cake inside. Solid cells are
-  // packed into one instanced mesh with no outline (lines between packed blocks read as tiles); the cap slabs are a second mesh.
-  const N = COLS * ROWS;
+  // ---- the island: drawn as one smooth low-poly shape like the site's isles (the gameplay grid stays blocky).
+  // Marching squares over the grid's corners gives the outline: flat tops stay on the cell edges, steps become slopes.
+  // The front is coloured in bands: the season's grass or snow on top, an earth band, then flat cake layers inside.
+  // The sides of the outline make the walls you see from above; an ink ribbon along the outline is the toon line.
+  const N = COLS * ROWS, ZF = ZC + DEPTH / 2, ZB = ZC - DEPTH / 2;
   const toon = c => toonMat(flat(c));
-  const blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(BS, BS, DEPTH), toon('#ffffff'), N);
-  const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(BS + .04, .16, DEPTH + .16), toon('#ffffff'), COLS * 4);
-  for (const m of [blocks, caps]) { m.count = 0; m.frustumCulled = false; scene.add(m); }
+  const terrain = new THREE.Mesh(new THREE.BufferGeometry(), toonMat(flat('#ffffff', { vertexColors: true })));
+  const ink = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: '#4a2c22' }));
+  terrain.frustumCulled = ink.frustumCulled = false; scene.add(terrain, ink);
   const m4 = new THREE.Matrix4(), col = new THREE.Color(), seaC = new THREE.Color();
   let grid = new Uint8Array(N), applied = 0;
   const winter = season === 'winter';
@@ -70,31 +72,62 @@ export function createScene(canvas, opts = {}) {
   const CAKE = ['#f6c97f', '#f6c97f', '#fff3df', '#f0bc6c', '#f0bc6c', '#e0524f', '#f6c97f', '#f6c97f', '#fff3df', '#8a5236', '#8a5236', '#f2c27a'];
   const hash = (i, s2) => { const x = Math.sin(i * 127.1 + s2 * 311.7) * 43758.5453; return x - Math.floor(x); };
   const isTop = (c, r) => R.cellAt(grid, c, r + 1) === 0;
-  function colorOf(c, r, k) {
-    if (k === 2) return col.set(hash(c * 7 + r, 2) < .5 ? '#5fb04a' : '#4f9a44'); // a sprout bush
-    if (k === 3) return col.set((c + r) % 2 ? '#ff9ec4' : '#fff4f8'); // rock candy
-    let d = 0; while (d < 3 && R.cellAt(grid, c, r + d + 1) === 1) d++;
-    if (d < 2) col.set(SOIL).offsetHSL(0, 0, d ? -.04 : 0); // the earth band under the grass cap
-    else col.set(CAKE[(r + 40) % CAKE.length]); // flat layers of cake right across
-    if (R.cellAt(grid, c, r - 1) === 0 && r > 0 && d > 1) col.set('#6f5a52'); // the underside of an overhang: crust
+  let fieldAt = () => 0;
+  const cellK = (c, r) => R.cellAt(grid, c, Math.max(0, r)); // below row 0 the island just carries on into the sea
+  const kindNear = (c, r) => cellK(c, r) || cellK(c, r + 1) || cellK(c - 1, r) || cellK(c + 1, r) || cellK(c, r - 1) || cellK(c - 1, r - 1) || cellK(c + 1, r - 1) || cellK(c - 1, r + 1) || cellK(c + 1, r + 1) || 1;
+  function colorAt(x, y, wall) { // the colour of the island at a point (a triangle's middle)
+    const c = Math.floor(x / BS), r = Math.floor(y / BS), k = kindNear(c, r);
+    if (k === 2) col.set(hash(c * 7 + r, 2) < .5 ? '#5fb04a' : '#4f9a44'); // a sprout bush
+    else if (k === 3) col.set(r % 2 ? '#ff9ec4' : '#fff4f8'); // rock candy
+    else {
+      const cc = Math.min(COLS - 1, Math.max(0, c));
+      const d = fieldAt(x, y + .32) < .5 ? 0 : fieldAt(x, y + .7) < .5 ? 1 : 2; // grass, earth, cake: bands that follow the slopes
+      if (wall > .35 || d === 0) col.set(winter ? (hash(cc >> 1, 5) < .5 ? '#f6faff' : '#e9f2fb') : (hash(cc >> 1, 3) < .5 ? GRASS : PATCH));
+      else if (d === 1) col.set(SOIL);
+      else if (r >= 0 && !cellK(cc, r - 1) && cellK(cc, r)) col.set('#c99a6a'); // the underside of an overhang: baked crust
+      else col.set(CAKE[(r + 40) % CAKE.length]);
+      if (wall > -2 && wall <= .35) col.offsetHSL(0, 0, -.06); // the sides of holes and cliffs, a shade darker
+    }
+    if (y < water - .05) col.lerp(seaC, .45);
     return col;
   }
   function rebuild() {
-    let n = 0, nc = 0;
     seaC.set(seaNight === 1 ? '#2b3f86' : seaDay);
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-      const k = grid[c + r * COLS]; if (!k) continue;
-      const x = c * BS + BS / 2, y = r * BS + BS / 2;
-      m4.makeTranslation(x, y, ZC); blocks.setMatrixAt(n, m4);
-      colorOf(c, r, k); if (y < water - .1) col.lerp(seaC, .45); blocks.setColorAt(n, col); n++;
-      if (k === 1 && isTop(c, r) && nc < caps.instanceMatrix.count) {
-        m4.makeTranslation(x, (r + 1) * BS + .02, ZC); caps.setMatrixAt(nc, m4);
-        caps.setColorAt(nc, col.set(winter ? (hash(c, 5) < .5 ? '#f6faff' : '#e9f2fb') : (hash(c >> 1, 3) < .5 ? GRASS : PATCH)).offsetHSL(0, 0, .03)); nc++;
+    const CW = COLS + 1, V = new Float32Array(CW * (ROWS + 1));
+    for (let j = 0; j <= ROWS; j++) for (let i = 0; i <= COLS; i++) V[i + j * CW] = ((cellK(i - 1, j - 1) ? 1 : 0) + (cellK(i, j - 1) ? 1 : 0) + (cellK(i - 1, j) ? 1 : 0) + (cellK(i, j) ? 1 : 0)) / 4;
+    const P = [], C = [], I = [], seg = [];
+    const tri = (ax, ay, az, bx, by, bz, cx, cy, cz, cl) => { P.push(ax, ay, az, bx, by, bz, cx, cy, cz); for (let k = 0; k < 3; k++) C.push(cl.r, cl.g, cl.b); };
+    const quadInk = (ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz) => I.push(ax, ay, az, bx, by, bz, cx, cy, cz, ax, ay, az, cx, cy, cz, dx, dy, dz);
+    const S2 = 2, H = BS / S2, VS = (i, j) => { // the corner field, sampled between corners too (half-cell steps)
+      const fi = i / S2, fj = j / S2, i0 = Math.min(COLS - 1, Math.floor(fi)), j0 = Math.min(ROWS - 1, Math.floor(fj)), u = fi - i0, v = fj - j0;
+      return (V[i0 + j0 * CW] * (1 - u) + V[i0 + 1 + j0 * CW] * u) * (1 - v) + (V[i0 + (j0 + 1) * CW] * (1 - u) + V[i0 + 1 + (j0 + 1) * CW] * u) * v; };
+    fieldAt = (x, y) => (x < 0 || x > W || y > ROWS * BS ? 0 : VS(x / H, Math.max(0, y) / H));
+    for (let r = 0; r < ROWS * S2; r++) for (let c = 0; c < COLS * S2; c++) {
+      const cs = [[c, r], [c + 1, r], [c + 1, r + 1], [c, r + 1]], vs = cs.map(([i, j]) => VS(i, j));
+      if (vs.every(v => v < .5)) continue;
+      const poly = []; // [x, y, onOutline]
+      for (let k = 0; k < 4; k++) {
+        const [i0, j0] = cs[k], [i1, j1] = cs[(k + 1) % 4], a = vs[k], b = vs[(k + 1) % 4];
+        if (a >= .5) poly.push([i0 * H, j0 * H, false]);
+        if ((a >= .5) !== (b >= .5)) { const t = (.5 - a) / (b - a); poly.push([(i0 + (i1 - i0) * t) * H, (j0 + (j1 - j0) * t) * H, true]); }
       }
+      let mx = 0, my = 0; for (const q of poly) { mx += q[0]; my += q[1]; } mx /= poly.length; my /= poly.length;
+      colorAt(mx, my, -9); const fc = col.clone();
+      for (let k = 1; k < poly.length - 1; k++) tri(poly[0][0], poly[0][1], ZF, poly[k][0], poly[k][1], ZF, poly[k + 1][0], poly[k + 1][1], ZF, fc);
+      for (let k = 0; k < poly.length; k++) { const p = poly[k], q = poly[(k + 1) % poly.length]; if (p[2] && q[2]) seg.push([p[0], p[1], q[0], q[1]]); }
     }
-    blocks.count = n; caps.count = nc;
-    for (const m of [blocks, caps]) m.instanceMatrix.needsUpdate = true;
-    blocks.instanceColor.needsUpdate = true; if (caps.instanceColor) caps.instanceColor.needsUpdate = true;
+    for (const [ax, ay, bx, by] of seg) { // the walls along the outline, and the ink line
+      const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1, nx = dy / L, ny = -dx / L; // outward
+      const wc = colorAt((ax + bx) / 2 - nx * .1, (ay + by) / 2 - ny * .1, ny).clone();
+      tri(ax, ay, ZF, ax, ay, ZB, bx, by, ZB, wc); tri(ax, ay, ZF, bx, by, ZB, bx, by, ZF, wc);
+      const w = .055, ex = nx * w, ey = ny * w, z = ZF + .004; // a ribbon straddling the edge, on the front
+      quadInk(ax - ex * .4, ay - ey * .4, z, bx - ex * .4, by - ey * .4, z, bx + ex, by + ey, z, ax + ex, ay + ey, z);
+      if (ny > .35) quadInk(ax, ay, ZB, ax, ay + w * 1.4, ZB - .01, bx, by + w * 1.4, ZB - .01, bx, by, ZB); // the far edge of the top
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.computeVertexNormals();
+    terrain.geometry.dispose(); terrain.geometry = g;
+    const gi = new THREE.BufferGeometry(); gi.setAttribute('position', new THREE.Float32BufferAttribute(I, 3)); ink.material.side = THREE.DoubleSide;
+    ink.geometry.dispose(); ink.geometry = gi;
     for (const pr of props) if (pr.g.visible && !R.solidAt(grid, pr.x, pr.y - .25)) { pr.g.visible = false; fx.burst(new THREE.Vector3(pr.x, pr.y + .4, pr.z), { n: 12, colors: ['#5fb04a', '#ffffff', '#ff9fb8'], shape: STAR, speed: 3, up: 4, size: .22, grav: 9, life: .9 }); }
     for (const b of splats.list) if (b.on && !R.solidAt(grid, b.x, b.y - .08)) b.on = false;
     splats.sync();
@@ -128,7 +161,7 @@ export function createScene(canvas, opts = {}) {
       const px = x + (Math.random() * 2 - 1) * r * 1.1, c = Math.floor(px / BS); if (c < 0 || c >= COLS) continue;
       let rr = Math.min(ROWS - 1, Math.floor((y + r) / BS)); while (rr >= 0 && !R.cellAt(grid, c, rr)) rr--;
       if (rr < 0 || (rr + 1) * BS < y - r * 1.4) continue;
-      splats.add(px, (rr + 1) * BS + (isTop(c, rr) && grid[c + rr * COLS] === 1 ? .17 : .02), ZC + DEPTH / 2 - .2 - Math.random() * 1.6, colors[k % 2], .7 + Math.random() * .5);
+      splats.add(px, (rr + 1) * BS + .02, ZC + DEPTH / 2 - .2 - Math.random() * 1.6, colors[k % 2], .7 + Math.random() * .5);
     }
     splats.sync();
   }
