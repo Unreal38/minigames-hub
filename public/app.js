@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -502,6 +502,26 @@ const GAMES = {
       <li>Tapping an <b>empty burrow costs nothing</b>.</li>
       <li>The pets come <b>quicker and quicker</b>. When your hearts run out you are <b>out</b>. The <b>last player with a heart wins</b>. If two players lose their last heart to the same pet, the higher score is placed higher.</li>
       <li>After <b>3 minutes</b> no more pets come, and whoever still has a heart is placed by <b>score</b>.</li>
+      <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
+    </ol>`,
+  },
+  spy: {
+    name: 'Spyglass Isle', load: () => import('./games/spy/client.js'), start: 'Raise the spyglass',
+    mins: [4, 7],
+    host: { seats: 4, cards: 8, bots: 'chill' }, solo: { seats: 4, cards: 8, bots: 'chill' },
+    openSeat: 'A bot looks here if nobody joins',
+    settings: pill => `
+      <div class="opt"><b>Cards</b><div class="pills">${pill('cards', 8, '8')}${pill('cards', 12, '12')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Everyone looks at the same busy picture card full of Pet Farm pets. The pet to find is shown at the top: tap it before anyone else to take the card. A wrong tap makes you dizzy for a moment. Most cards wins.`,
+    rules: `<ol>
+      <li>Everyone sees the <b>same picture card</b> at the same moment. The pet to find is shown in the top bar. Empty seats are played by bots.</li>
+      <li>It must be the <b>exact look</b>: the same pet, as a baby or grown up, in the same colours. Lookalikes are hidden on the card too, and they don't count.</li>
+      <li><b>Tap or click</b> the pet. The <b>first correct tap takes the card</b>. Only the first finder scores.</li>
+      <li>A <b>wrong tap</b> makes you <b>dizzy for 1.5 seconds</b>, and you can't tap until it passes.</li>
+      <li><b>Zoom</b> with the mouse wheel, by pinching, or with the + and − buttons; <b>drag</b> to look around.</li>
+      <li>Each card has <b>30 seconds</b>. If nobody finds the pet, nobody gets the card. Cards get busier as the match goes on.</li>
+      <li>After the last card (8, or 12 in a long match) the <b>most cards wins</b>. On equal cards, the quicker total finding time is placed higher.</li>
       <li>Coins go by your place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
@@ -1995,6 +2015,7 @@ const HUB_GAMES = [
   ['cove', 'covepic', coveArt, 'board', '1–2 players', 'Hide your boats in your bay and lob coconuts at your friend\'s. Sink the whole fleet first to win.'],
   ['pool', 'poolpic', poolArt, 'action', '1–4 players', '8-ball pool on a sky island table. Plain against striped, one against one or in teams of two.'],
   ['bingo', 'bingopic', bingoArt, 'board party', '1–8 players', 'A ball machine calls the numbers. Daub your card faster than your friends and shout Bingo for a line, two lines and the full card.'],
+  ['spy', 'spypic', spyArt, 'action party', '1–8 players', 'Everyone hunts the same pet on a busy picture card. The first to tap it takes the card, and the most cards wins.'],
   ['bop', 'boppic', bopArt, 'action party', '1–6 players', 'Bop the pets popping out of your burrows before they duck. Three hearts each, and the last one with a heart wins.'],
   ['bierki', 'bierkipic', bierkiArt, 'action party', '1–6 players', 'Classic Polish pick-up sticks in 3D. Draw one stick out of the pile without moving the others, and go for the Crown.'],
   ['pm', 'pmpic', pmArt, 'board party', '2–8 players', 'The classic pen-and-paper word race. A letter is drawn: write a country, a city, an animal and more before somebody calls Stop.'],

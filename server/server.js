@@ -54,6 +54,7 @@ import * as kal from './games/kal.js';
 import * as lantern from './games/lantern.js';
 import * as copy from './games/copy.js';
 import * as runway from './games/runway.js';
+import * as spy from './games/spy.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
@@ -78,7 +79,7 @@ const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tes
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, runway };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, runway, spy };
 const GAME_IDS = new Set(Object.keys(GAMES)); // the Game wheel keeps only these
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
