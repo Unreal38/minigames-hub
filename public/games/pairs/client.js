@@ -67,15 +67,23 @@ export function mount(app, ctx) {
   const busy = () => Date.now() - sent < 900;
   const canPick = i => myTurn() && !busy() && i >= 0 && S.got[i] < 0 && !S.up.includes(i);
 
+  // Portrait phones: the other players sit in one strip under the banner instead of tags floating over the cards.
+  const compact = () => innerWidth < 700 && innerHeight > innerWidth;
   function onFrame(info) {
     live = info;
+    if (tagsEl.classList.contains('strip')) return;
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
       el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
-  function layout() { if (scene) scene.setHud(($('pr-dock').offsetHeight + 34) * uiz(), (innerWidth < 700 ? 118 : 74) * uiz()); }
+  function layout() {
+    const strip = compact();
+    if (tagsEl.classList.contains('strip') !== strip) { tagsEl.classList.toggle('strip', strip); for (const el of tagEls) { el.style.transform = ''; el._w = el.offsetWidth; } }
+    const top = strip ? tagsEl.getBoundingClientRect().bottom + 6 : (innerWidth < 700 ? 118 : 74) * uiz();
+    if (scene) scene.setHud(($('pr-dock').offsetHeight + 34) * uiz(), top);
+  }
 
   // ----- name tags: name, points, and what just happened to them -----
   function buildTags() {
@@ -278,7 +286,7 @@ export function mount(app, ctx) {
   });
   canvas.addEventListener('pointerleave', () => { hoverI = -1; scene?.setHover(-1); });
   canvas.addEventListener('click', e => { if (!scene || !myTurn()) return; const i = scene.pick(e.clientX, e.clientY); if (!tap(i) && i >= 0 && S.got[i] < 0) sfx.bad?.(); });
-  const onResize = () => { if (S) renderDock(); };
+  const onResize = () => { if (S) { renderDock(); layout(); } };
   addEventListener('resize', onResize);
 
   root.addEventListener('click', e => {
