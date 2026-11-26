@@ -26,7 +26,17 @@ const I = {
   me: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
   treat: '<svg class="tt-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="#e8b25a" stroke="#8a5a32" stroke-width="2"/><circle cx="9" cy="10" r="1.4" fill="#8a5a32"/><circle cx="14.5" cy="9" r="1.2" fill="#8a5a32"/><circle cx="13" cy="14.5" r="1.4" fill="#8a5a32"/></svg>',
 };
-const ITEM_GLYPH = { whistle: '♪', berry: '●', spy: '◎', honey: '◆', charm: '✦', pouch: '✚' };
+// little sticker pictures of the stall's items (ink outlines, their own colours, so they read on day and night panels)
+const IK = 'stroke="#3b2219" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+const ITEM_SVG = {
+  whistle: `<path d="M5 13h15a7 7 0 1 1-7 7v-2H5z" fill="#7cc6ff" ${IK}/><circle cx="20" cy="20" r="2.4" fill="#3b2219"/><path d="M8 13V9h6" fill="none" ${IK}/><path d="M26 7l2-2M23 5l1-2M27 11l3-1" fill="none" ${IK}/>`,
+  berry: `<path d="M16 11c-2-4-6-5-9-4 2 3 5 4 9 4zM16 11c2-4 6-5 9-4-2 3-5 4-9 4z" fill="#6cc04a" ${IK}/><circle cx="11" cy="19" r="5" fill="#d23b6c" ${IK}/><circle cx="21" cy="19" r="5" fill="#8a3bd2" ${IK}/><circle cx="16" cy="25" r="5" fill="#e5543b" ${IK}/><circle cx="14.5" cy="23.5" r="1.2" fill="#fff"/>`,
+  spy: `<path d="M4 20l5-2 2 5-5 2z" fill="#c98a52" ${IK}/><path d="M9 18l11-6 3 6-12 5z" fill="#ffc93c" ${IK}/><path d="M20 12l6-3 3 7-6 2z" fill="#c98a52" ${IK}/><path d="M14 23l-2 6M16 22l3 7" fill="none" ${IK}/><circle cx="27.5" cy="12.5" r="1.3" fill="#d4f1ff"/>`,
+  honey: `<rect x="7" y="6" width="18" height="5" rx="2" fill="#fff4e2" ${IK}/><path d="M8 11h16c2 3 2 12-1 15-2 2-12 2-14 0-3-3-3-12-1-15z" fill="#ffb547" ${IK}/><path d="M11 15c2 2 4 0 5 2s3 1 5-1" fill="none" stroke="#fff3b0" stroke-width="2" stroke-linecap="round"/>`,
+  charm: `<path d="M16 3v5" fill="none" ${IK}/><path d="M16 8l2.6 5.4 5.9.9-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.9z" fill="#ff9fc8" ${IK}/><circle cx="16" cy="17" r="2.6" fill="#fff6e2" ${IK}/><path d="M12 25l-2 5 3-1 1 2 2-5M20 25l2 5-3-1-1 2-2-5" fill="#b994f0" ${IK}/>`,
+  pouch: `<path d="M10 9c2 2 10 2 12 0l-2 4c5 3 7 8 5 12-2 3-16 3-18 0-2-4 0-9 5-12z" fill="#c98a52" ${IK}/><path d="M11 13h10" fill="none" ${IK}/><circle cx="16" cy="20" r="3" fill="#ffd36b" ${IK}/>`,
+};
+const itemIc = (k, cls = 'tt-ii') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${ITEM_SVG[k] || ''}</svg>`;
 const petName = sp => SPECIES[sp]?.name || sp;
 const RARE = [L('common', 'pospolity'), L('uncommon', 'niepospolity'), L('rare', 'rzadki')];
 const STONE_NAME = {
@@ -121,6 +131,8 @@ export function mount(app, ctx) {
     if (!show) return;
     const list = scene.marks(), seen = new Set();
     const narrow = innerWidth < 760;
+    const placed = []; // labels never sit on top of each other: wild pets first, then honey, then stones; a label that would cover another moves up, else hides
+    list.sort((a, b) => (a.k === 'wild' ? 0 : a.k === 'honey' ? 1 : 2) - (b.k === 'wild' ? 0 : b.k === 'honey' ? 1 : 2));
     for (const m of list) {
       if (narrow && m.k === 'stone' && m.kind === 'picnic') continue; // phones: fewer labels, so the rest stay readable
       const k = m.k === 'wild' ? 'w' + m.w.id : m.k === 'honey' ? 'h' + m.pos : 's' + m.i; seen.add(k);
@@ -132,14 +144,21 @@ export function mount(app, ctx) {
         else { el.className = 'tt-mark stone ' + m.kind; el.innerHTML = `<b>${STONE_NAME[m.kind]}</b>`; }
         marksEl.append(el); markEls.set(k, el);
       }
-      el.style.transform = `translate(${m.x.toFixed(1)}px, ${m.y.toFixed(1)}px) translate(-50%, -100%)`;
+      const w = el._w ||= el.offsetWidth, h = el._h ||= el.offsetHeight;
+      let y = m.y, ok = false;
+      for (let t = 0; t < 3 && !ok; t++) { ok = !placed.some(r => Math.abs(r.x - m.x) < (r.w + w) / 2 + 2 && Math.abs(r.y - y) < (r.h + h) / 2 + 2); if (!ok) y -= h * .7; }
+      el.style.visibility = ok ? '' : 'hidden';
+      if (ok) placed.push({ x: m.x, y, w, h });
+      el.style.transform = `translate(${m.x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
     for (const [k, el] of markEls) if (!seen.has(k)) { el.remove(); markEls.delete(k); }
   }
   function layout() {
+    const side = $('tt-side').getBoundingClientRect(); root.style.setProperty('--side-b', (side.bottom / uiz()).toFixed(0) + 'px'); // phones: the news sits under the player strip, however many rows it has
     const top = (root.querySelector('.tt-news')?.getBoundingClientRect().bottom || 80);
     const dock = $('tt-dock').getBoundingClientRect();
-    scene?.setHud(top, dock.height ? innerHeight - dock.top : 0);
+    // the camera keeps the bottom third clear for choices, so a tall panel (the stall) never covers the player
+    scene?.setHud(top, Math.max(dock.height ? innerHeight - dock.top : 0, innerHeight * .3));
   }
 
   // ----- name tags -----
@@ -171,7 +190,7 @@ export function mount(app, ctx) {
   function renderSide() {
     const rows = S.seats.map((p, i) => {
       const q = S.pl[i], egg = q.egg ? `<span class="tt-egg" title="${L(`Mystery Egg: hatches in ${q.egg} turn${q.egg > 1 ? 's' : ''}`, `Tajemnicze jajo: wykluje się za ${q.egg} tur${q.egg > 1 ? 'y' : 'ę'}`)}"></span>` : '';
-      const items = q.items.map(k => `<span class="tt-it" title="${esc(ITEMS[k].name)}">${ITEM_GLYPH[k]}</span>`).join('');
+      const items = q.items.map(k => `<span class="tt-it" title="${esc(ITEMS[k].name)}">${itemIc(k, 'tt-iis')}</span>`).join('');
       const pact = q.pact ? `<span class="tt-pact" title="${L(`Buddy pact with ${nm(q.pact.w)}`, `Pakt z: ${nm(q.pact.w)}`)}">♥ ${nm(q.pact.w)}</span>` : '';
       return `<div class="profrow tt-row${S.turn === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
         <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-tr">${I.treat}${q.treats}</span></div>
@@ -196,6 +215,9 @@ export function mount(app, ctx) {
   }
   const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
   const dieFace = d => `<span class="face">${Array.from({ length: 9 }, (_, k) => `<i${PIPS[d]?.includes(k) ? ' class="on"' : ''}></i>`).join('')}</span>`;
+  // the dice fly in 3D in the roller's own dice skin; the flat picture is only for when there is no 3D view
+  function throwDice(s, list, d, extra = '') {
+    if (scene?.roll) { scene.roll(s, list); setTimeout(() => !destroyed && bubble(s, `<span>${d}</span>`), 650); } else { showDie(list, extra); bubble(s, `<span>${d}</span>`); } }
   function showDie(list, extra = '') {
     const el = $('tt-die'); el.hidden = false;
     el.innerHTML = list.map(d => `<span class="die rolling">${dieFace(1 + (Math.random() * 6 | 0))}</span>`).join('') + extra;
@@ -226,44 +248,51 @@ export function mount(app, ctx) {
     layout();
   }
   const btn = (a, label, sub = '', attrs = '', cls = '') => `<button type="button" class="btn ${cls}" data-a="${a}" ${attrs}><span class="l">${label}</span>${sub ? `<small>${sub}</small>` : ''}</button>`;
+  // a choice tile: a picture, a name and a line of detail, with an optional price chip; every tile in a row is the same size
+  const opt = (a, ic, t, sub = '', attrs = '', cls = '', price = '') => `<button type="button" class="btn tt-opt ${cls}" data-a="${a}" ${attrs}><span class="ic">${ic}</span><span class="tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span>${price}</button>`;
+  const priceTag = c => `<span class="tt-price">${I.treat}${c}</span>`;
   function pendHtml(P, clock) {
     const p = S.pl[S.me];
-    const head = (h, sub = '') => `<div class="tt-q"><b>${h}</b>${sub ? `<span>${sub}</span>` : ''}${clock}</div>`;
+    const head = (h, sub = '') => `<div class="tt-q"><b>${h}</b>${clock}${sub ? `<span>${sub}</span>` : ''}</div>`;
     if (P.k === 'roll') {
       const armed = [p.spy && ITEMS.spy.name, p.berry && ITEMS.berry.name, p.whistle && ITEMS.whistle.name, p.charm && ITEMS.charm.name].filter(Boolean);
-      const items = p.items.map((k, i) => btn('item', `<span class="tt-ig">${ITEM_GLYPH[k]}</span>${esc(ITEMS[k].name)}`, esc(ITEMS[k].tx), `data-k="${k}" data-n="${i}"`, 'ghost tt-itb')).join('');
+      const items = p.items.map((k, i) => opt('item', itemIc(k), `${L('Use', 'Użyj')}: ${esc(ITEMS[k].name)}`, esc(ITEMS[k].tx), `data-k="${k}" data-n="${i}"`)).join('');
       return `${head(L('Your turn', 'Twoja kolej'), armed.length ? L(`Ready: ${armed.join(', ')}`, `Gotowe: ${armed.join(', ')}`) : p.items.length ? L('Use an item first, or just roll', 'Najpierw użyj przedmiotu albo od razu rzucaj') : '')}
-        <div class="tt-acts">${btn('roll', L('Roll the die', 'Rzuć kością'), '', '', 'big')}${items}</div>`;
+        ${items ? `<div class="tt-acts">${items}</div>` : ''}<div class="tt-acts">${btn('roll', L('Roll the die', 'Rzuć kością'), '', '', 'big')}</div>`;
     }
     if (P.k === 'reroll') return `${head(L(`You rolled ${S.die}`, `Wyrzucasz ${S.die}`), L('A friend can reroll for you, once per friend', 'Przyjaciel może przerzucić za ciebie, każdy raz'))}
-      <div class="tt-acts">${btn('keep', L(`Walk ${S.die}`, `Idź o ${S.die}`), '', '', 'big')}${P.f.map(i => { const f = p.herd[i]; return btn('reroll', `${pet(f, 28)}${L('Reroll', 'Przerzuć')}`, esc(f.name || petName(f.sp)) + (f.el === 'Spark' ? L(' · every round', ' · co rundę') : ''), `data-i="${i}"`, 'ghost'); }).join('')}</div>`;
+      <div class="tt-acts">${P.f.map(i => { const f = p.herd[i]; return opt('reroll', pet(f, 34), L(`Reroll with ${esc(f.name || petName(f.sp))}`, `Przerzuć: ${esc(f.name || petName(f.sp))}`), f.el === 'Spark' ? L('can reroll every round', 'może przerzucać co rundę') : L('once per friend', 'raz na przyjaciela'), `data-i="${i}"`); }).join('')}</div><div class="tt-acts">${btn('keep', L(`Walk ${S.die}`, `Idź o ${S.die}`), '', '', 'big')}</div>`;
     if (P.k === 'fork') return `${head(L('Which way?', 'Którędy?'), L('Wild pets near a route are marked', 'Dzikie zwierzaki przy trasie są oznaczone'))}
-      <div class="tt-acts">${P.opts.map(j => { const n = petsAhead(j); return btn('fork', esc(routeName(j)), n ? L(`${n} wild pet${n > 1 ? 's' : ''} on the way`, `dzikie zwierzaki po drodze: ${n}`) : L('no wild pets in sight', 'nie widać dzikich zwierzaków'), `data-j="${j}"`, n ? '' : 'ghost'); }).join('')}</div>`;
+      <div class="tt-acts">${P.opts.map(j => { const n = petsAhead(j); return opt('fork', `<svg class="tt-ii" viewBox="0 0 32 32" aria-hidden="true"><path d="M15 6v23" ${IK}/><path d="M6 8h16l4 3.5-4 3.5H6z" fill="#ffc93c" ${IK}/><path d="M26 17H10l-4 3.5 4 3.5h16z" fill="#fff6e2" ${IK}/></svg>`, esc(routeName(j)), n ? L(`${n} wild pet${n > 1 ? 's' : ''} on the way`, `dzikie zwierzaki po drodze: ${n}`) : L('no wild pets in sight', 'nie widać dzikich zwierzaków'), `data-j="${j}"`, n ? 'hot' : ''); }).join('')}</div>`;
     if (P.k === 'shop') return `${head(L('The stall', 'Stragan'), L(`You have ${treatsW(p.treats)} and ${p.items.length}/${ITEM_MAX} items`, `Masz ${treatsW(p.treats)} i przedmioty: ${p.items.length}/${ITEM_MAX}`))}
-      <div class="tt-acts shop">${ITEM_IDS.map(k => btn('buy', `<span class="tt-ig">${ITEM_GLYPH[k]}</span>${esc(ITEMS[k].name)}<span class="tt-price">${I.treat}${ITEMS[k].c}</span>`, esc(ITEMS[k].tx), `data-k="${k}"${ITEMS[k].c > p.treats || p.items.length >= ITEM_MAX ? ' disabled' : ''}`, 'ghost tt-itb')).join('')}${btn('buy', L('Walk on', 'Idź dalej'), '', 'data-k=""', 'big')}</div>`;
+      <div class="tt-acts shop">${ITEM_IDS.map(k => opt('buy', itemIc(k), esc(ITEMS[k].name), esc(ITEMS[k].tx), `data-k="${k}"${ITEMS[k].c > p.treats || p.items.length >= ITEM_MAX ? ' disabled' : ''}`, '', priceTag(ITEMS[k].c))).join('')}</div>
+      <div class="tt-acts">${btn('buy', L('Walk on', 'Idź dalej'), '', 'data-k=""')}</div>`;
     if (P.k === 'meet') {
       const w = S.wild.find(x => x.id === P.id); if (!w) return '';
       const c = Math.max(1, priceOf(w.rare) - (S.season === 'autumn' ? 2 : 0));
-      return `<div class="tt-q"><span class="tt-wild" style="--el:${EL_COL[w.el]}">${pet(w, 52)}</span><b>${L(`A wild ${esc(petName(w.sp))}!`, `Dziki ${esc(petName(w.sp))}!`)}</b><span>${EL_NAME[w.el]} · ${RARE[w.rare]}${p.berry ? L(' · Berry Bundle ready', ' · Pęczek jagód gotowy') : ''}</span>${clock}</div>
+      return `<div class="tt-q"><span class="tt-wild" style="--el:${EL_COL[w.el]}">${pet(w, 52)}</span><b>${L(`A wild ${esc(petName(w.sp))}!`, `Dziki ${esc(petName(w.sp))}!`)}</b>${clock}<span>${EL_NAME[w.el]} · ${RARE[w.rare]}${p.berry ? L(' · Berry Bundle ready', ' · Pęczek jagód gotowy') : ''}</span></div>
         <div class="tt-acts">${p.herd.map((f, k) => { const m = matchup(f.el, w.el), o = Math.round(oddsOf(f.el, w.el, p.berry) * 100);
-          return btn('meet', `${pet(f, 28)}${L('Showdown', 'Starcie')} ${o}%`, `${esc(f.name || petName(f.sp))} · ${EL_NAME[f.el]} · ${MATCH[m]}`, `data-k="${k}"`, m === 'strong' ? '' : 'ghost'); }).join('')}
-          ${btn('treat', L(`Give ${treatsW(c)}`, `Daj ${treatsW(c)}`), L('always works', 'zawsze działa'), p.treats < c ? 'disabled' : '', 'ghost')}${btn('skip', L('Leave it be', 'Zostaw go'), '', '', 'ghost')}</div>`;
+          return opt('meet', pet(f, 34), `${esc(f.name || petName(f.sp))} <span class="tt-odds">${o}%</span>`, `${EL_NAME[f.el]} · ${MATCH[m]}`, `data-k="${k}"`, m === 'strong' ? 'hot' : ''); }).join('')}
+          ${opt('treat', `<span class="tt-big-ic">${I.treat}</span>`, L(`Give ${treatsW(c)}`, `Daj ${treatsW(c)}`), L('always works', 'zawsze działa'), p.treats < c ? 'disabled' : '', '', priceTag(c))}</div>
+        <div class="tt-acts">${btn('skip', L('Leave it be', 'Zostaw go'), '', '', 'ghost')}</div>`;
     }
     if (P.k === 'well') return `${head(STONE_NAME.well, L('5 treats for a wish: a rare pet, an item or 8 treats', 'Życzenie za 5 przysmaków: rzadki zwierzak, przedmiot albo 8 przysmaków'))}<div class="tt-acts">${btn('well', L('Make a wish', 'Pomyśl życzenie'), '', 'data-y="1"', 'big')}${btn('well', L('No thanks', 'Nie, dziękuję'), '', 'data-y=""', 'ghost')}</div>`;
     if (P.k === 'bench') return `${head(STONE_NAME.bench, L(`Offer a buddy pact for ${PACT_ROUNDS} rounds: +3 treats when your buddy makes a friend, no luring each other, +3 each if you both finish top 2 in a minigame`, `Zaproponuj pakt na ${PACT_ROUNDS} rundy: +3 przysmaki, gdy kumpel zdobędzie przyjaciela, żadnego wabienia siebie nawzajem, po +3, gdy oboje skończycie minigrę w pierwszej dwójce`))}
-      <div class="tt-acts">${P.opts.map(o => btn('bench', `${avatarHtml(S.seats[o].color, S.seats[o].av, 26)}${nm(o)}`, '', `data-o="${o}"`, 'ghost')).join('')}${btn('bench', L('No pact', 'Bez paktu'), '', 'data-o="-1"', 'ghost')}</div>`;
+      <div class="tt-acts">${P.opts.map(o => opt('bench', avatarHtml(S.seats[o].color, S.seats[o].av, 34), nm(o), L('offer a pact', 'zaproponuj pakt'), `data-o="${o}"`)).join('')}</div>
+      <div class="tt-acts">${btn('bench', L('No pact', 'Bez paktu'), '', 'data-o="-1"', 'ghost')}</div>`;
     if (P.k === 'pact') return `${head(L(`${nm(P.from)} offers you a buddy pact`, `${nm(P.from)} proponuje ci pakt`), L(`${PACT_ROUNDS} rounds: +3 treats when your buddy makes a friend, and no luring each other`, `${PACT_ROUNDS} rundy: +3 przysmaki, gdy kumpel zdobędzie przyjaciela, i żadnego wabienia siebie nawzajem`))}
       <div class="tt-acts">${btn('pact', L('Shake on it', 'Przybij piątkę'), '', 'data-y="1"', 'big')}${btn('pact', L('No thanks', 'Nie, dziękuję'), '', 'data-y=""', 'ghost')}</div>`;
     if (P.k === 'lure') { const q = S.pl[P.o], f = q.herd[q.herd.length - 1];
       return `${head(L(`Lure ${nm(P.o)}'s newest friend?`, `Zwabić najnowszego przyjaciela gracza ${nm(P.o)}?`), L(`${LURE} treats and ${esc(petName(f.sp))} joins you`, `${LURE} przysmaków i ${esc(petName(f.sp))} dołącza do ciebie`))}
-      <div class="tt-acts">${btn('lure', `${pet(f, 28)}${L(`Lure for ${LURE}`, `Zwab za ${LURE}`)}`, '', 'data-y="1"', '')}${btn('lure', L('Leave them be', 'Zostaw'), '', 'data-y=""', 'ghost')}</div>`; }
+      <div class="tt-acts">${opt('lure', pet(f, 34), L(`Lure ${esc(petName(f.sp))}`, `Zwab: ${esc(petName(f.sp))}`), L('joins your herd', 'dołącza do twojego stada'), 'data-y="1"', 'hot', priceTag(LURE))}</div><div class="tt-acts">${btn('lure', L('Leave them be', 'Zostaw'), '', 'data-y=""', 'ghost')}</div>`; }
     return '';
   }
   function cheerHtml(clock) {
     if (!S.cheer || S.cheer.done || me()?.bot) return `<div class="tt-wait"><span>${L('Friends are picking who cheers…', 'Przyjaciele wybierają, kto kibicuje…')}</span>${clock}</div>`;
     const p = S.pl[S.me], can = p.herd.map((f, k) => (f.cheer ? k : -1)).filter(k => k >= 0);
-    return `<div class="tt-q"><b>${L('Who cheers you on?', 'Kto ci kibicuje?')}</b><span>${L('A cheering friend moves you up one place in the next minigame if you finish behind someone. Each friend cheers once.', 'Kibicujący przyjaciel przesuwa cię o jedno miejsce w górę w następnej minigrze, jeśli skończysz za kimś. Każdy kibicuje raz.')}</span>${clock}</div>
-      <div class="tt-acts">${can.map(k => btn('cheer', `${pet(p.herd[k], 28)}${esc(p.herd[k].name || petName(p.herd[k].sp))}`, EL_NAME[p.herd[k].el], `data-i="${k}"`, 'ghost')).join('')}${btn('cheer', L('Save them for later', 'Zachowaj na później'), '', 'data-i="-1"', 'ghost')}</div>`;
+    return `<div class="tt-q"><b>${L('Who cheers you on?', 'Kto ci kibicuje?')}</b>${clock}<span>${L('A cheering friend moves you up one place in the next minigame if you finish behind someone. Each friend cheers once.', 'Kibicujący przyjaciel przesuwa cię o jedno miejsce w górę w następnej minigrze, jeśli skończysz za kimś. Każdy kibicuje raz.')}</span></div>
+      <div class="tt-acts">${can.map(k => opt('cheer', pet(p.herd[k], 34), esc(p.herd[k].name || petName(p.herd[k].sp)), EL_NAME[p.herd[k].el], `data-i="${k}"`)).join('')}</div>
+      <div class="tt-acts">${btn('cheer', L('Save them for later', 'Zachowaj na później'), '', 'data-i="-1"', 'ghost')}</div>`;
   }
   function petsAhead(j) { let n = 0, at = j; const seen = new Set(); for (let k = 0; k < 6; k++) { for (const w of S.wild) if (!seen.has(w.id) && near(w.pos, at)) { seen.add(w.id); n++; } at = NODES[at].next[0]; } return n; }
 
@@ -310,8 +339,8 @@ export function mount(app, ctx) {
     switch (e.t) {
       case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}`, `Runda ${e.r} z ${S.rounds}`)); break;
       case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); if (isMe(s)) sfx.turn(); break;
-      case 'roll': showDie(e.b ? [e.a, e.b] : [e.d]); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.b ? L(' with the Spyglass', ' z Lunetą') : '')); bubble(s, `<span>${e.d}</span>`); break;
-      case 'reroll': showDie([e.d], pet({ sp: e.sp }, 34, 'tt-dpi')); sfx.whoosh?.(); say(L(`${esc(petName(e.sp))} rerolls for ${isMe(s) ? 'you' : nm(s)}: <b>${e.d}</b>`, `${esc(petName(e.sp))} przerzuca dla ${isMe(s) ? 'ciebie' : nm(s)}: <b>${e.d}</b>`)); petPics($('tt-die')); break;
+      case 'roll': throwDice(s, e.b ? [e.a, e.b] : [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.b ? L(' with the Spyglass', ' z Lunetą') : '')); break;
+      case 'reroll': throwDice(s, [e.d], e.d, pet({ sp: e.sp }, 34, 'tt-dpi')); sfx.whoosh?.(); say(L(`${esc(petName(e.sp))} rerolls for ${isMe(s) ? 'you' : nm(s)}: <b>${e.d}</b>`, `${esc(petName(e.sp))} przerzuca dla ${isMe(s) ? 'ciebie' : nm(s)}: <b>${e.d}</b>`)); petPics($('tt-die')); break;
       case 'fork': say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
       case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.(); setTimeout(hopSfx, 320); }; hopSfx(); } break;
       case 'stone': stoneEv(e); break;
