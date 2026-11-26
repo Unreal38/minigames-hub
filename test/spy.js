@@ -1,5 +1,5 @@
-// Spyglass Isle test: the shared cards (same seed, same card; the hunted look exactly once; nothing covers its
-// middle), first tap wins, wrong taps and dizziness, bots, ties, away players, then a match over the real server.
+// Spyglass Isle test: the shared cards (same seed, same card; the hunted look exactly once; no two pets touch)
+// first tap wins, wrong taps and dizziness, bots, ties, away players, then a match over the real server.
 import { spawn as launch } from 'node:child_process';
 import * as spy from '../server/games/spy.js';
 import * as R from '../public/games/spy/rules.js';
@@ -23,7 +23,8 @@ for (const seed of [1, 77, 123456, 2 ** 31 - 5]) for (const cards of R.CARDS) {
     if (c.items.length < last || c.items.length < 40 || c.items.length > 130) fail('card size ' + c.items.length);
     last = c.items.length;
     for (const it of c.items) if (it.x - it.s / 2 < 0 || it.y - it.s / 2 < 0 || it.x + it.s / 2 > R.SIZE || it.y + it.s / 2 > R.SIZE) fail('a pet sticks out of the card');
-    for (const it of c.items.slice(c.ti + 1)) if (Math.hypot(it.x - c.t.x, it.y - c.t.y) < c.t.s * .5 + it.s * .2) fail('a pet drawn over the hunted one hides its middle');
+    for (const a of c.items) for (const b of c.items) if (a !== b && Math.abs(a.x - b.x) < (a.s + b.s) / 2 && Math.abs(a.y - b.y) < (a.s + b.s) / 2) fail('two pets touch');
+    if (c.items.some(it => it.s < 50)) fail('a pet too small to see');
     const kin = c.items.filter(it => it !== c.t && M.pool[it.k].sp === c.look.sp).length;
     if (n === cards - 1 && kin < 1 && M.pool.some((l, i) => i !== tk && l.sp === c.look.sp)) fail('no lookalikes on the last card');
     if (!R.hits(c, c.t.x, c.t.y) || !R.hits(c, c.t.x + c.t.s * .4, c.t.y) || R.hits(c, c.t.x + c.t.s * .5, c.t.y)) fail('hit area');

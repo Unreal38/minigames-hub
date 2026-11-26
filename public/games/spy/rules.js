@@ -8,7 +8,7 @@ export const REVEAL_MS = 2800;   // the found pet glows before the next card
 export const COUNT_MS = 3000;    // 3, 2, 1 before the first card
 export const LOAD_MS = 12000;    // the longest the table waits for slow devices to draw the pets
 export const DIZZY_MS = 1500;    // a wrong tap
-export const HIT = .42;          // a tap this close to the pet's middle (times its size) finds it
+export const HIT = .46;          // a tap this close to the pet's middle (times its size) finds it
 export const POOL = 56;          // different pet looks in one match
 export const CARDS = [8, 12];
 export const THEMES = ['meadow', 'beach', 'snow', 'pond'];
@@ -46,30 +46,27 @@ export function makePool(seed, cards) {
 }
 
 // One card: n counts from 0. Cards get busier (40 pets on the first, 130 on the last) with more lookalikes.
-// items are in drawing order; ti is where the hunted pet is among them. The hunted look appears exactly once,
-// and nothing drawn above it covers its middle.
+// items are in drawing order; ti is where the hunted pet is among them. The hunted look appears exactly once.
+// Pets never touch: the card is cut into cells (every other row shifted by half a cell, so it doesn't look like a
+// grid, and with some cells left empty) and each pet's whole picture stays inside its own cell.
 export function makeCard(seed, n, cards, M = makePool(seed, cards)) {
   const r = rng((seed * 31 + n * 7919 + 13) >>> 0), p = cards > 1 ? n / (cards - 1) : 0;
   const count = Math.round(40 + 90 * p), theme = THEMES[Math.floor(r() * THEMES.length)];
   const tk = M.targets[n], tl = M.pool[tk];
   const kin = M.pool.map((l, i) => i).filter(i => i !== tk && M.pool[i].sp === tl.sp);
   const rest = M.pool.map((l, i) => i).filter(i => M.pool[i].sp !== tl.sp);
-  const cols = Math.ceil(Math.sqrt(count)), rows = Math.ceil(count / cols), cw = SIZE / cols, ch = SIZE / rows;
+  const cols = Math.ceil(Math.sqrt(count * 1.15)), rows = Math.ceil(count * 1.15 / cols), cw = SIZE / (cols + .5), ch = SIZE / rows;
   const cells = shuffle(Array.from({ length: cols * rows }, (_, i) => i), r);
   const look = kin.length ? Math.min(count - 1, 1 + Math.round(p * 4)) : 0;
   const items = [];
   for (let i = 0; i < count; i++) {
-    const c = cells[i % cells.length], cx = c % cols, cy = Math.floor(c / cols), cell = Math.min(cw, ch);
+    const c = cells[i], cx = c % cols, cy = Math.floor(c / cols), left = (cx + (cy % 2 ? .5 : 0)) * cw, top = cy * ch;
     const k = i === 0 ? tk : i <= look ? kin[(i - 1) % kin.length] : rest[Math.floor(r() * rest.length)];
-    const s = Math.round(cell * (i === 0 ? .95 + r() * .15 : .8 + r() * .45));
-    let x = (cx + .15 + r() * .7) * cw, y = (cy + .15 + r() * .7) * ch;
-    const m = s * .5 + 6; x = Math.round(Math.max(m, Math.min(SIZE - m, x))); y = Math.round(Math.max(m, Math.min(SIZE - m, y)));
-    items.push({ k, x, y, s, f: r() < .5 ? 1 : 0, rot: Math.round((r() - .5) * 50) / 100 });
+    const s = Math.floor(Math.min(cw, ch) * (i === 0 ? .8 + r() * .12 : .74 + r() * .18));
+    const x = Math.round(left + s / 2 + r() * (cw - s)), y = Math.round(top + s / 2 + r() * (ch - s));
+    items.push({ k, x, y, s, f: r() < .5 ? 1 : 0, rot: Math.round((r() - .5) * 30) / 100 });
   }
-  const t = items[0], below = [], above = [];
-  for (const o of shuffle(items.slice(1), r)) (Math.hypot(o.x - t.x, o.y - t.y) < t.s * .5 + o.s * .2 ? below : above).push(o);
-  const at = Math.floor(r() * (above.length + 1));
-  const order = [...below, ...above.slice(0, at), t, ...above.slice(at)];
+  const t = items[0], order = shuffle(items.slice(), r);
   return { n, theme, items: order, ti: order.indexOf(t), t, look: tl };
 }
 
