@@ -5,6 +5,7 @@
 
 // Table settings: headings and pill labels, by their English text.
 export const OPT_PL = {
+  '3 rounds': '3 rundy', 'First play': 'Pierwsze wyjście', '30 or more': '30 lub więcej', Any: 'Dowolne', 'Fit hints': 'Podpowiedzi',
   Bots: 'Boty', Chill: 'Luźne', Sharp: 'Ostre', 'Turn timer': 'Czas na ruch', Off: 'Wył.', On: 'Wł.', Yes: 'Tak', No: 'Nie', Players: 'Gracze',
   Race: 'Wyścig', Classic: 'Klasyczny', Knockout: 'Eliminacje', 'Chaos events': 'Chaos na torze', 'Marbles on the track': 'Kulki na torze',
   Board: 'Plansza', 'Classic 100': 'Klasyczna 100', 'Quick 60': 'Szybka 60', 'Party tiles': 'Pola specjalne', 'Hard mode': 'Tryb trudny',
@@ -708,6 +709,23 @@ export const GAMES_PL = {
       <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>, a pozostali zajmują miejsca według liczby kart w ręce: im mniej, tym lepiej. Przy ustawieniu <b>Koniec gry: Gramy do ostatniego</b> gra toczy się dalej, miejsca idą w kolejności pozbywania się kart, a przegrywa ten, kto zostanie z kartami.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera (albo bierze karty, albo czeka), <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>5–9 i 0</b> wybierają żądanie, <b>M</b> mówi „Makao!”, a <b>C</b> łapie.</li>
+    </ol>`,
+  },
+  herd: {
+    name: 'Stadka', start: 'Rozdaj płytki', openSeat: 'Jeśli nikt nie dołączy, tą tacką zagra bot',
+    pitch: 'Nasza własna gra z płytkami z liczbami i zwierzakami z Farmy. Układaj stadka i rzędy, przebudowuj stół, żeby zmieścić więcej, i pierwszy opróżnij tackę.',
+    howto: `Nasza własna gra z płytkami z liczbami i zwierzakami z Farmy. Wykładaj z tacki stadka (jedna liczba u różnych zwierzaków) i rzędy (jeden zwierzak, liczby po kolei) i przebudowuj to, co leży na stole, żeby zmieścić więcej. Kto pierwszy opróżni tackę, wygrywa.`,
+    rules: `<ol>
+      <li>Jest <b>106 płytek</b>: liczby <b>od 1 do 13</b> u czterech zwierzaków (<b>Cindercub, Zapkit, Sproutle i Axolily</b>), po dwie każdej, oraz <b>dwa Tajemnicze jaja</b>, które zastępują dowolną płytkę. Każdy dostaje na tackę <b>14 płytek</b>. Puste miejsca zajmują boty.</li>
+      <li><b>Stadko</b> to jedna liczba u 3 lub 4 różnych zwierzaków, np. 7 Cindercub, 7 Zapkit, 7 Axolily. <b>Rząd</b> to jeden zwierzak z 3 lub więcej liczbami po kolei, np. Sproutle 4, 5, 6. Po 13 nie ma znowu 1.</li>
+      <li>W swojej kolejce połóż <b>co najmniej jedną płytkę</b> z tacki albo <b>dobierz płytkę</b>, i twoja kolej się kończy. Gdy stos jest pusty, zamiast tego pasujesz.</li>
+      <li>Przy ustawieniu <b>Pierwsze wyjście: 30 lub więcej</b> twoje pierwsze zagranie to nowe stadka i rzędy z własnej tacki warte co najmniej <b>30 punktów</b> (płytka liczy się jako swoja liczba, jajo jako to, co zastępuje). Do tego czasu nie możesz ruszać stołu.</li>
+      <li>Potem możesz <b>rozbierać i przebudowywać</b> wszystko na stole: dzielić rzędy, przekładać płytki między grupami, odzyskać jajo, kładąc płytkę, którą zastępowało. Płytki ze stołu nie mogą trafić na twoją tackę. Gdy naciskasz <b>Gotowe</b>, każda grupa musi być stadkiem albo rzędem.</li>
+      <li>Dotknij płytek, żeby je wybrać, a potem dotknij grupy, żeby je dołożyć, sukna, żeby zacząć nową grupę, albo tacki, żeby je zabrać. Możesz je też przeciągać. <b>Cofnij turę</b> przywraca stół takim, jaki był. Przy włączonych <b>Podpowiedziach</b> świecą grupy, do których pasują wybrane płytki.</li>
+      <li>Gdy skończy się czas na ruch, stół wraca do stanu sprzed tury, a ty dobierasz płytkę.</li>
+      <li>Kto pierwszy <b>opróżni tackę</b>, wygrywa rundę i dostaje punkty za płytki, które zostały innym na tackach; pozostali tracą swoje (jajo kosztuje 30). Gdy skończy się stos i nikt nie może zagrać, wygrywa najmniejsza tacka. Przy <b>3 rundach</b> punkty się sumują.</li>
+      <li>Wygrywa najwięcej punktów na koniec; równe punkty dzielą miejsce. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Skróty w twojej kolejce: <b>Enter</b> to Gotowe, <b>D</b> dobiera, <b>N</b> tworzy nową grupę, <b>Z</b> cofa turę, a <b>Esc</b> odkłada wybrane płytki.</li>
     </ol>`,
   },
   pairs: {
