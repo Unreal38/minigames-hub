@@ -253,16 +253,16 @@ export function seedModel(THREE, k) {
 // face (the top the number and pet sit on), body (the block under it, and the back that rivals see), edge (the rim of
 // the HUD tile), ink: null keeps each pet's own number colour (best for reading), or one colour for every number on a
 // dark face; motif: a faint pattern over the face, kept light so the number and the pet stay clear.
-const herdTile = (face, body, edge, motif = '', ink = null) => ({ face, body, edge, motif, ink });
+const herdTile = (face, body, edge, motif = '', ink = null, card = null) => ({ face, body, edge, motif, ink, card });
 const HERD_TILES = [
   herdTile('#fffaf0', '#f6ead8', '#d8c3a6'),
-  herdTile('#f7e6c6', '#b98457', '#9b6a43', 'grain'),                 // wood
+  herdTile('#fbefd9', '#b98457', '#9b6a43', 'grain'),                 // wood
   herdTile('#effff7', '#7ed3b2', '#4fb08d', 'stripes'),               // mint candy
-  herdTile('#26306c', '#171f4c', '#0e1436', 'stars', '#ffd84a'),      // night sky
+  herdTile('#26306c', '#171f4c', '#0e1436', 'stars', null, '#fbf4e2'), // night sky: a cream card inside the starry frame, so the pet colours read
   herdTile('#f7f5f2', '#cfcac3', '#aaa39a', 'veins'),                 // marble
-  herdTile('#fff3c4', '#f2b84a', '#c98a1a', 'hex'),                   // honeycomb
+  herdTile('#fff8e2', '#f2b84a', '#c98a1a', 'hex'),                   // honeycomb
   herdTile('#f0faff', '#a8dcf5', '#6fb4dc', 'flake'),                 // frost (winter)
-  herdTile('#fff1b8', '#e8b030', '#b8801a', 'shine'),                 // golden herd (earned)
+  herdTile('#fff6d8', '#e8b030', '#b8801a', 'shine'),                 // golden herd (earned)
 ];
 export const herdLook = k => HERD_TILES[k | 0] || HERD_TILES[0];
 // The face background with its pattern, on a canvas of w x h (the game's tile faces are 128 x 170).
@@ -278,6 +278,12 @@ export function paintHerdFace(g, w, h, k) {
   else if (m === 'hex') { g.lineWidth = 2.5 * u; const r = 14 * u; for (let row = 0; row * r * 1.5 < h + r; row++) for (let col = 0; col * r * 1.73 < w + r; col++) { const cx = col * r * 1.73 + (row % 2 ? r * .87 : 0), cy = row * r * 1.5; g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i + Math.PI / 6; g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); g.stroke(); } }
   else if (m === 'flake') { g.lineWidth = 3 * u; for (const [x, y, s] of [[18, 18, 10], [110, 150, 12], [112, 24, 7]]) { for (let i = 0; i < 3; i++) { const a = Math.PI / 3 * i; g.beginPath(); g.moveTo((x - Math.cos(a) * s) * u, (y - Math.sin(a) * s) * u); g.lineTo((x + Math.cos(a) * s) * u, (y + Math.sin(a) * s) * u); g.stroke(); } } }
   else if (m === 'shine') { g.globalAlpha = .55; g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, 40 * u); g.lineTo(40 * u, 0); g.lineTo(62 * u, 0); g.lineTo(0, 62 * u); g.fill(); g.beginPath(); g.moveTo(w, 120 * u); g.lineTo(w - 20 * u, h); g.lineTo(w - 30 * u, h); g.lineTo(w, 108 * u); g.fill(); }
+  g.restore();
+  // readability: the number and pet sit on calm ground. Dark sets get a cream card inside their frame; the others
+  // fade their pattern out under the middle of the face, so it only shows round the edges.
+  g.save();
+  if (L.card) { const i = 9 * u, r = 10 * u; g.fillStyle = L.card; g.beginPath(); g.roundRect(i, i, w - i * 2, h - i * 2, r); g.fill(); }
+  else { const gr = g.createRadialGradient(w / 2, h * .5, 0, w / 2, h * .5, h * .5); gr.addColorStop(0, L.face); gr.addColorStop(.62, L.face); gr.addColorStop(1, L.face + '00'); g.fillStyle = gr; g.globalAlpha = .88; g.fillRect(0, 0, w, h); }
   g.restore();
 }
 
