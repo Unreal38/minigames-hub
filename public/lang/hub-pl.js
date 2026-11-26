@@ -40,7 +40,7 @@ export const OPT_PL = {
   'golf:Classic': 'Klasyczne', 'kart:Random': 'Losowa', 'bean:Chill': 'Spokojna', 'bean:Normal': 'Zwykła', Reef: 'Rafa', Calm: 'Spokojna', 'lagoon:Normal': 'Zwykła', 'lagoon:Fast': 'Szybka', 'kitchen:Chill': 'Luźni', 'kitchen:Sharp': 'Ostrzy',
   Piles: 'Stosy', 'One pile': 'Jeden stos', 'Three piles': 'Trzy stosy', Hints: 'Podpowiedzi', 'Touching sticks glow': 'Stykające się bierki świecą', 'No hints': 'Bez podpowiedzi', 'Pull timer': 'Czas na bierkę',
   '1 against 1': '1 na 1', '2 against 2': '2 na 2', 'One rack': 'Jedna partia', 'Shot timer': 'Czas na uderzenie',
-  'Time to dress up': 'Czas na przebranie', 'On the runway': 'Na wybiegu', 'Names shown': 'Imiona widoczne', 'Secret walk': 'Tajny wybieg',
+  Cards: 'Karty', 'Time to dress up': 'Czas na przebranie', 'On the runway': 'Na wybiegu', 'Names shown': 'Imiona widoczne', 'Secret walk': 'Tajny wybieg',
   Sneaks: 'Łasuchy', Auto: 'Automatycznie', 'Talk at meetings': 'Rozmowa na naradzie', 'Chores each': 'Prace na osobę', 'Time between lulls': 'Odstęp między uśpieniami', 'The ferry shows': 'Prom pokazuje', 'Their side': 'Stronę gracza', Nothing: 'Nic', 'Pawprint clues': 'Tropy łap',
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
@@ -356,6 +356,21 @@ export const GAMES_PL = {
       <li><b>Duży skok</b> kończy się co najmniej dwa piętra wyżej, niż stałeś. Duże skoki jeden po drugim tworzą <b>serię</b>, o ile każdy następuje w ciągu 3 sekund od poprzedniego. Gdy seria się kończy, daje <b>piętra × skoki × 2</b> punktów. Kończy ją mały skok albo upadek.</li>
       <li>Od dołu nadciąga <b>burza</b>, najpierw powoli, potem coraz szybciej. Jeśli cię dogoni, odpadasz i oglądasz pozostałych.</li>
       <li>Twój wynik to <b>10 punktów za każde piętro</b> najwyższego zdobytego poziomu plus punkty za serie. Gra kończy się, gdy burza dogoni wszystkich. Wygrywa najwyższy wynik.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  spy: {
+    name: 'Wyspa Lunety', start: 'Podnieś lunetę', openSeat: 'Jeśli nikt nie dołączy, szuka tu bot',
+    pitch: 'Wszyscy szukają tego samego zwierzaka na zatłoczonej karcie z obrazkiem. Kto pierwszy go dotknie, zabiera kartę, a wygrywa najwięcej kart.',
+    howto: `Wszyscy patrzą na tę samą zatłoczoną kartę pełną zwierzaków z Farmy. Zwierzak do znalezienia jest pokazany u góry: dotknij go przed innymi, żeby zabrać kartę. Pomyłka sprawia, że na chwilę kręci ci się w głowie. Wygrywa najwięcej kart.`,
+    rules: `<ol>
+      <li>Wszyscy widzą <b>tę samą kartę z obrazkiem</b> w tej samej chwili. Zwierzak do znalezienia jest pokazany na górnym pasku. Wolne miejsca zajmują boty.</li>
+      <li>Liczy się <b>dokładnie ten wygląd</b>: ten sam zwierzak, jako maluch albo dorosły, w tych samych kolorach. Na karcie są też podobne zwierzaki i one się nie liczą.</li>
+      <li><b>Dotknij albo kliknij</b> zwierzaka. <b>Pierwsze trafne dotknięcie zabiera kartę</b>. Punkt dostaje tylko pierwsza osoba.</li>
+      <li>Po <b>pomyłce</b> przez <b>1,5 sekundy kręci ci się w głowie</b> i nie możesz dotykać karty.</li>
+      <li><b>Przybliżaj</b> kółkiem myszy, rozsuwając palce albo przyciskami + i −; <b>przeciągnij</b>, żeby się rozejrzeć.</li>
+      <li>Na każdą kartę jest <b>30 sekund</b>. Jeśli nikt nie znajdzie zwierzaka, karta przepada. Z każdą kartą robi się tłoczniej.</li>
+      <li>Po ostatniej karcie (8 albo 12 w długiej grze) <b>wygrywa najwięcej kart</b>. Przy tej samej liczbie kart wyżej jest krótszy łączny czas szukania.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },

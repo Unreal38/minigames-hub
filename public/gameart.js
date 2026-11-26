@@ -858,6 +858,24 @@ export function runwayArt() {
     <path class="arttick" d="M134 40l-8-4M188 40l8-4M160 30v-6" fill="none" stroke="#3b2219" stroke-width="2.6" stroke-linecap="round"/>
   </svg>`;
 }
+// Spyglass Isle: a meadow crowded with little pets, and a brass spyglass whose lens shows the one being hunted,
+// a fox cub with a flame tail, ringed in gold.
+export function spyArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const pet = (x, y, c, e = '#3b2219', s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-12 -8l-3-11 9 6M12 -8l3-11-9 6" fill="${c}" ${o}/><ellipse cx="0" cy="0" rx="15" ry="13" fill="${c}" ${o}/><circle cx="-5" cy="-1" r="2" fill="${e}"/><circle cx="5" cy="-1" r="2" fill="${e}"/></g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A brass spyglass over a meadow crowded with little pets, its lens showing the hidden fox cub">
+    <rect class="artsky" width="320" height="150" fill="#bfe6ff"/>
+    <path d="M30 24l12-6 14 4 6 8-8 6H38z" class="artcloud" fill="#fff"/>
+    <path d="M0 150V70c60-18 260-18 320 0v80z" fill="#8bca60" ${o}/>
+    <g fill="#f7f3d0"><circle cx="40" cy="92" r="3"/><circle cx="290" cy="100" r="3"/><circle cx="150" cy="140" r="3"/></g><g fill="#f3a6c0"><circle cx="110" cy="84" r="3"/><circle cx="246" cy="138" r="3"/></g>
+    ${pet(36, 118, '#f4d06f')}${pet(82, 96, '#9ad8ff', '#3b2219', .9)}${pet(118, 132, '#c8e66b')}${pet(196, 98, '#e8a0e0', '#3b2219', .85)}${pet(232, 126, '#ffb547')}${pet(282, 132, '#7ed3b2', '#3b2219', 1.05)}${pet(262, 90, '#d9c6b0', '#3b2219', .8)}
+    <g ${o}><path d="M150 64l64-36 10 18-64 36z" fill="#e9b949"/><path d="M196 38l14-8 10 18-14 8z" fill="#c98f2a"/><path d="M214 28l8-4 10 18-8 4z" fill="#3b2219"/></g>
+    <circle cx="144" cy="76" r="27" fill="#ffe9a8" ${o}/><circle cx="144" cy="76" r="20" fill="#d8f1ff" stroke="#3b2219" stroke-width="2.4"/>
+    <g transform="translate(144 80)"><path d="M10 6c10 2 13-8 8-12-1 6-5 6-8 4z" fill="#ff8a3c" stroke="#3b2219" stroke-width="2"/><path d="M-9 -7l-3-9 8 5M9 -7l3-9-8 5" fill="#ff7a3c" stroke="#3b2219" stroke-width="2" stroke-linejoin="round"/><ellipse cx="0" cy="0" rx="12" ry="10" fill="#ff7a3c" stroke="#3b2219" stroke-width="2"/><ellipse cx="0" cy="4" rx="6" ry="4" fill="#fff3e0"/><circle cx="-4" cy="-1" r="1.7" fill="#3b2219"/><circle cx="4" cy="-1" r="1.7" fill="#3b2219"/></g>
+    <circle cx="144" cy="76" r="20" fill="none" stroke="#ffd84a" stroke-width="3" stroke-dasharray="5 4"/>
+    <path class="arttick" d="M104 58l-8-5M104 94l-8 5M144 40v-8" fill="none" stroke="#3b2219" stroke-width="2.6" stroke-linecap="round"/>
+  </svg>`;
+}
 
 // Pet Pairs card: a grid of face-down cards on a table, two turned up showing the same bunny (a found pair, with
 // a golden star), and one card mid-flip.
