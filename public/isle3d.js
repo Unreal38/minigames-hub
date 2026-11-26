@@ -347,6 +347,19 @@ const PIECE = {
     for (const x of [-.09, .09]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.04, .08, 4), SM('#ff9b6b')); ear.position.set(x, -.04, .07); g.add(ear); }
     for (const x of [-.035, .035]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.018, 6, 4), SM('#3b2219')); e.position.set(x, -.13, .115); g.add(e); }
     g.rotation.set(-.12, .45, .12); },
+  spyglass(g) { // a brass spyglass pointing up and out, three sections and a blue lens
+    const tube = (r1, r2, h, y, c) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, 12), SM(c, { metalness: .3 })); m.position.y = y; g.add(m); };
+    tube(.09, .1, .26, -.22, '#a86a42'); tube(.11, .12, .24, 0, '#ffc93c'); tube(.13, .13, .2, .21, '#d9a536');
+    for (const y of [-.1, .12]) { const r = new THREE.Mesh(new THREE.TorusGeometry(.12, .022, 6, 16), SM('#7a4a2a')); r.rotation.x = PI / 2; r.position.y = y; g.add(r); }
+    const lens = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .02, 14), SM('#7fd1e8', { emissive: '#4fb0ee', emissiveIntensity: .3 })); lens.position.y = .32; g.add(lens);
+    g.rotation.set(.75, .3, -.7); },
+  cupcake(g) { // a Sugar Siege snack: a cupcake with icing and a cherry
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(.22, .16, .24, 10), SM('#fff4e2')); cup.position.y = -.12; g.add(cup);
+    const ice = new THREE.Mesh(new THREE.SphereGeometry(.24, 12, 8, 0, PI * 2, 0, PI / 2), SM('#ff8fab')); ice.position.y = 0; ice.scale.y = 1.1; g.add(ice);
+    const top = new THREE.Mesh(new THREE.ConeGeometry(.13, .16, 10), SM('#ff8fab')); top.position.y = .3; g.add(top);
+    const cherry = new THREE.Mesh(new THREE.SphereGeometry(.065, 10, 8), SM('#d24a1f')); cherry.position.y = .41; g.add(cherry);
+    for (let i = 0; i < 6; i++) { const a = i * 1.05, d = new THREE.Mesh(new THREE.BoxGeometry(.05, .016, .016), SM(['#ffd34d', '#7fd1e8', '#8fd38a'][i % 3])); d.position.set(Math.cos(a) * .17, .1, Math.sin(a) * .17); d.rotation.y = a; g.add(d); }
+    g.rotation.set(.15, 0, .12); },
   charm(g) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.22), SM('#b48cff', { flatShading: true, emissive: '#7a4ae0', emissiveIntensity: .25 })); gem.scale.y = 1.35; g.add(gem);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.3, .03, 4, 20), SM('#ffc93c')); ring.rotation.x = 1.2; g.add(ring);
     for (const [x, y, c] of [[-.24, .2, '#7ed37a'], [.25, .16, '#ff7a3a'], [.02, -.34, '#4fb0ee']]) { const s = new THREE.Mesh(new THREE.OctahedronGeometry(.055), SM(c)); s.position.set(x, y, .1); g.add(s); } },

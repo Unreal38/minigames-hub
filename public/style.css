@@ -791,6 +791,10 @@ body.sky.skynight:not(.in-game)::after { content: ''; position: fixed; inset: 0;
 body.sky.night:not(.in-game) .tcode, body.sky.night:not(.in-game) .rk .pos, body.sky.night:not(.in-game) .rk .who em { color: var(--lantern); }
 /* in a game at night the room code sits straight on the dark sky, so it turns lantern gold like the hub's codes */
 body.night .tr .tcode, body.night .pw .tcode { color: var(--lantern); }
+/* In games the room code is a paper pill like the chips (Sugar Siege's look): the 3D sky follows the real clock, not the
+   switch, so bare text vanished on a navy night sky in day mode, or on bright snow. Wins over each game's own .xx .tcode. */
+body.in-game .tr .tcode { color: var(--on-paper); background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 2px 10px 2px 13px; font-size: 16px; text-shadow: none; box-shadow: 0 3px 0 #23401c55; }
+body.in-game .tr .tcode:empty { display: none; }
 body.sky.night:not(.in-game) .rk li.you { outline-color: var(--lantern); }
 body.sky.night:not(.in-game) .dots i { border-color: var(--tx); } body.sky.night:not(.in-game) .dots i.on { background: var(--tx); }
 body.sky.night:not(.in-game) .modal { background: #0b061899; }
@@ -2136,7 +2140,7 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .pb36 { background-image: url(cardbg/copycat.svg); } .pb37 { background-image: url(cardbg/runway.svg); } .pb38 { background-image: url(cardbg/reef.svg); } .pb39 { background-image: url(cardbg/checkers.svg); }
 .pb40 { background-image: url(cardbg/museum.svg); } .pb41 { background-image: url(cardbg/legend.svg); }
 .pb42 { background-image: url(cardbg/blast.svg); } .pb43 { background-image: url(cardbg/pairs.svg); }
-.pb44 { background-image: url(cardbg/herd.svg); }
+.pb44 { background-image: url(cardbg/herd.svg); } .pb45 { background-image: url(cardbg/spyglass.svg); } .pb46 { background-image: url(cardbg/siege.svg); }
 :is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
 
 /* ---------- Game wheel / Koło gier (public/gamewheel.js): a flat picker wheel, never pays anything ---------- */

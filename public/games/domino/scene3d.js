@@ -68,7 +68,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const bodyMat = toonMat(M(dominoLook(0).face)), barMat = toonMat(M('#3b2219'));
   const halfMats = [], plateMats = new Map();
   const halfMat = (v, k = 0) => { v += k * 7;
-    if (!halfMats[v]) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; paintHalf(cv.getContext('2d'), 128, v % 7, k); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; halfMats[v] = toonMat(new THREE.MeshStandardMaterial({ map: tx, roughness: .6 })); }
+    if (!halfMats[v]) { const cv = document.createElement('canvas'); cv.width = cv.height = 128; paintHalf(cv.getContext('2d'), 128, v % 7, k); const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; halfMats[v] = new THREE.MeshBasicMaterial({ map: tx }); /* unlit, like card faces: pips read the same day or night */ }
     return halfMats[v];
   };
   const plateMat = c => { if (!plateMats.has(c)) plateMats.set(c, toonMat(M(c))); return plateMats.get(c); };
