@@ -280,3 +280,31 @@ export function paintHerdFace(g, w, h, k) {
   else if (m === 'shine') { g.globalAlpha = .55; g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, 40 * u); g.lineTo(40 * u, 0); g.lineTo(62 * u, 0); g.lineTo(0, 62 * u); g.fill(); g.beginPath(); g.moveTo(w, 120 * u); g.lineTo(w - 20 * u, h); g.lineTo(w - 30 * u, h); g.lineTo(w, 108 * u); g.fill(); }
   g.restore();
 }
+
+// ---------- Sugar Siege slingshots (kind sl; not in the shop yet) ----------
+// The fork your pet throws with. wood: handle and prongs, dark: knots and tips, grip: the wrap on the handle,
+// band: the rubber band, pouch: the bit that holds the snack. Append only: index 0 is the classic wooden one.
+const sling = (wood, dark, grip, band, pouch, tip = 'ball') => ({ wood, dark, grip, band, pouch, tip });
+export const SLINGS = [
+  sling('#c98a4b', '#7a4a22', '#f2d9a6', '#e0524f', '#6b3f22'),   // classic wood
+];
+export const slingLook = k => SLINGS[k | 0] || SLINGS[0];
+// The slingshot as a 3D model (THREE passed in). Its origin is the crotch of the fork: the handle hangs down -y (.42),
+// the two prongs splay up in the x-y plane to about +.36. userData.tips holds the two band anchor points (local).
+export function slingModel(THREE, k) {
+  const S = slingLook(k), g = new THREE.Group(), std = c => new THREE.MeshStandardMaterial({ color: c, roughness: .6, flatShading: true });
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+  const wood = std(S.wood), dark = std(S.dark);
+  add(new THREE.CylinderGeometry(.055, .065, .42, 7), wood, 0, -.21);                       // handle
+  add(new THREE.CylinderGeometry(.07, .07, .18, 7), std(S.grip), 0, -.27);                  // grip wrap
+  add(new THREE.SphereGeometry(.075, 8, 6), wood, 0, 0);                                     // the knot where it forks
+  const tips = [];
+  for (const sd of [-1, 1]) {
+    const pr = add(new THREE.CylinderGeometry(.04, .05, .36, 6), wood, sd * .09, .16); pr.rotation.z = -sd * .5;
+    const tx = sd * .18, ty = .32;
+    if (S.tip === 'ball') add(new THREE.SphereGeometry(.055, 8, 6), dark, tx, ty);
+    tips.push(new THREE.Vector3(tx, ty, 0));
+  }
+  g.userData.tips = tips; g.userData.look = S;
+  return g;
+}

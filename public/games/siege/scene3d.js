@@ -9,6 +9,7 @@ import { lookOf } from '../../season3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import * as R from './rules.js';
+import { slingModel } from '../../pieceskins.js';
 
 const { BS, COLS, ROWS, W } = R;
 export const PZ = -.2;            // the pets' plane: a little in front of the middle of the island's top, well back from its front edge
@@ -247,6 +248,7 @@ export function createScene(canvas, opts = {}) {
       root.position.set(x, 0, PZ - .4 - row * 1.3); scene.add(root);
       folk[i] = { key, root, av, wrap, cheer: 0, sad: 0, i };
     });
+    slingK = list.map(p => p.fl?.sl | 0); // each team's slingshot look (cosmetics kind sl)
     while (folk.length > list.length) { const m = folk.pop(); scene.remove(m.root); disposeAvatar(m.av); }
   }
 
@@ -292,7 +294,46 @@ export function createScene(canvas, opts = {}) {
   const dotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .9, depthWrite: false });
   const dots = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.075, 1), dotMat, 22); dots.count = 0; dots.renderOrder = 3; dots.frustumCulled = false; scene.add(dots);
   const dotM = new THREE.Matrix4();
+
+  // ---- the slingshot: pops up by the pet whose turn it is; the band stretches back as the thrower pulls
+  let slingK = [], slingAim = null, slingGot = -1, slingG = null, slingS = 0, slingA = Math.PI / 4, slingP = 0;
+  const bandMat = new THREE.MeshBasicMaterial({ color: '#e0524f' }), bandGeo = new THREE.CylinderGeometry(.03, .03, 1, 5).translate(0, .5, 0);
+  const bands = [0, 1].map(() => { const m = new THREE.Mesh(bandGeo, bandMat); m.renderOrder = 2; scene.add(m); return m; });
+  // own materials (not the shared toon ones): their colours change with the skin and the snack
+  const pouch = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6).scale(1, .75, .75), new THREE.MeshToonMaterial({ color: '#6b3f22' })); scene.add(pouch);
+  const ammo = new THREE.Mesh(new THREE.IcosahedronGeometry(.12, 1), new THREE.MeshToonMaterial({ color: '#ffffff' })); pouch.add(ammo); ammo.position.set(0, .02, .06);
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0), _A = new THREE.Vector3(), _U = new THREE.Vector3(), _X = new THREE.Vector3(), _Z = new THREE.Vector3(), _M = new THREE.Matrix4();
+  function slingFor(k) {
+    if (slingGot === k && slingG) return;
+    if (slingG) { scene.remove(slingG); disposeToon(slingG); }
+    slingG = toonify(slingModel(THREE, k), .028); slingGot = k; scene.add(slingG);
+    const L = slingG.userData.look; bandMat.color.set(L.band); pouch.material.color.set(L.pouch);
+  }
+  function stretch(m, from, to) { _b.subVectors(to, from); const len = _b.length() || 1e-4; m.position.copy(from); m.quaternion.setFromUnitVectors(_up, _b.multiplyScalar(1 / len)); m.scale.set(1, len, 1); }
+  function updSling(dt) {
+    const p = pets[S?.ap], on = !!(p && p.placed && S?.ph === 'play' && S?.stage === 'aim' && !p.st);
+    slingS += ((on ? 1 : 0) - slingS) * Math.min(1, dt * 12);
+    const vis = slingS > .02; for (const m of bands) m.visible = vis; pouch.visible = vis;
+    if (!p) { if (slingG) slingG.visible = false; return; }
+    slingFor(slingK[p.team] | 0); slingG.visible = vis; if (!vis) return;
+    // aim: the throw's angle and power while someone pulls; otherwise held up, facing the way the pet looks
+    const aim = slingAim && slingAim.pi === S.ap ? slingAim : null, ta = aim ? aim.a : (p.face >= 0 ? .45 : Math.PI - .45), tp = aim ? aim.pw : 0;
+    let da = ta - slingA; da = Math.atan2(Math.sin(da), Math.cos(da)); slingA += da * Math.min(1, dt * 18); slingP += (tp - slingP) * Math.min(1, dt * 18);
+    // the fork stands across the throw like a real one (its prongs either side of the line), turned a little to the
+    // camera so both prongs show; it leans with the aim, and the pouch is pulled back towards the pet
+    const cx = Math.cos(slingA), cy = Math.sin(slingA), dir = cx >= 0 ? 1 : -1, sc = slingS * 1.45;
+    _A.set(cx, cy, 0); _U.set(-cy * dir, cx * dir, 0); _X.set(0, 0, .62).addScaledVector(_A, .78).normalize(); _Z.crossVectors(_X, _U);
+    slingG.quaternion.setFromRotationMatrix(_M.makeBasis(_X, _U, _Z));
+    slingG.position.set(p.x + cx * .8, p.y + .45 + Math.max(0, cy) * .3, PZ + .75); slingG.scale.setScalar(sc);
+    slingG.updateMatrixWorld();
+    const back = .1 + slingP * .95;
+    pouch.position.copy(slingG.position).addScaledVector(_U, .3 * sc).addScaledVector(_A, -back * sc); pouch.scale.setScalar(sc);
+    pouch.rotation.z = slingA;
+    const f = R.SNACKS[aim?.k] || R.SNACKS.pie; ammo.visible = !!aim; if (aim) ammo.material.color.set(f.col[0]);
+    slingG.userData.tips.forEach((t, i) => { _a.copy(t).applyMatrix4(slingG.matrixWorld); stretch(bands[i], _a, pouch.position); bands[i].scale.x = bands[i].scale.z = sc * (1 - slingP * .35); });
+  }
   function arc(pi, k, a, pw, n) {
+    slingAim = pi >= 0 && pw > 0 ? { pi, k, a, pw } : null;
     const p = pets[pi]; let shown = 0;
     if (p && n && pw > 0) {
       const s = R.launch({ x: p.x, y: p.y }, k, a, pw);
@@ -416,7 +457,7 @@ export function createScene(canvas, opts = {}) {
     shake = Math.max(0, shake - dt * 1.4);
     const sx = Math.sin(T * 61) * shake * .35, sy = Math.cos(T * 53) * shake * .35;
     camera.position.set(cam.x + sx, cam.y + cam.d * .2 + sy, cam.d + PZ); camera.lookAt(cam.x + sx, cam.y + sy, PZ);
-    updShocks(dt); fx.update(dt, camera, H0);
+    updShocks(dt); updSling(dt); fx.update(dt, camera, H0);
     renderer.render(scene, camera);
     // where tags go
     for (const p of pets) { v3.set(p.x, (p.st === 2 ? water - .2 : p.y) + (p.st ? 1.05 : 1.3), PZ).project(camera); p.on = p.placed && v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.15; p.sx = (v3.x * .5 + .5) * W0; p.sy = (-v3.y * .5 + .5) * H0; }

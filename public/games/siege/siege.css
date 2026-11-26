@@ -10,6 +10,7 @@ html[lang="pl"] .sg.flat::before { content: 'Wyspa 3D nie mogła się wczytać n
 /* the slingshot band */
 .sg .sg-aim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; opacity: 0; transition: opacity .12s; }
 .sg.aiming .sg-aim { opacity: 1; }
+.sg .sg-aim line { stroke-width: 2.5px; opacity: .45; stroke-dasharray: 2 6; } /* a faint guide to your finger: the 3D slingshot shows the pull */
 
 /* pet name tags with fullness bars */
 .sg .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
