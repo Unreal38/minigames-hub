@@ -3,7 +3,7 @@
 // over the WebSocket server that plays through a hub minigame and comes back to the trail.
 import { spawn } from 'node:child_process';
 import * as tg from '../server/games/trail.js';
-import { NODES, N, MAIN, FORKS, near, POOL, poolFor, ITEMS, oddsOf, HERD_MAX } from '../public/games/trail/rules.js';
+import { NODES, N, MAIN, FORKS, near, dist, POOL, poolFor, ITEMS, oddsOf, HERD_MAX, WILD_MAX, START } from '../public/games/trail/rules.js';
 import { SPECIES } from '../public/games/farm/data.js';
 
 const fail = m => { console.error('FAIL', m); process.exit(1); };
@@ -33,8 +33,25 @@ const clock = () => { const realNow = Date.now; let now = realNow(); Date.now = 
   if (G.seats.length !== 4 || G.seats.filter(s => s.bot).length !== 2) fail('bots should fill the table');
   if (G.pl[0].herd[0].sp !== 'axolily' || G.pl[0].herd[0].name !== 'Lily' || !G.pl[0].herd[0].start) fail('your isle pet should be your starter');
   if (G.pl.some(p => p.herd.length !== 1 || !SPECIES[p.herd[0].sp])) fail('everyone starts with one pet');
-  if (G.wild.length !== 6 || G.wild.some(w => !SPECIES[w.sp] || SPECIES[w.sp].el2)) fail('six single-element wild pets');
-  if (new Set(G.pl.map(p => p.pos)).size !== 4) fail('players start on their own stones');
+  if (G.wild.length !== WILD_MAX || G.wild.some(w => !SPECIES[w.sp] || SPECIES[w.sp].el2)) fail('WILD_MAX single-element wild pets');
+  for (const a of G.wild) for (const b of G.wild) if (a !== b && dist(a.pos, b.pos) < 8) fail('wild pets spawn bunched together');
+  if (G.pl.some(p => p.pos !== START)) fail('everyone starts in the start meadow');
+}
+
+{ // a wild pet is met only on the stone it stands on, never from a stone next to it (Kuba 2026-11-27)
+  const T = clock();
+  const ok = i => NODES[i].next.length === 1 && NODES[i].kind === 'treat';
+  const a = [...Array(N).keys()].find(i => ok(i) && ok(NODES[i].next[0]) && NODES[NODES[NODES[i].next[0]].next[0]].kind === 'treat');
+  const b = NODES[a].next[0], c = NODES[b].next[0];
+  for (const [wpos, want] of [[b, false], [NODES[c].next[0], false], [c, true]]) {
+    const G = tg.create(ppl(1), { seats: 2, timer: 0 });
+    G.stage = 'rolled'; G.turn = 0; G.pend = null; G.die = 2; G.stageEnd = 0; G.busy = 0; G.pl[0].pos = a; G.pl[1].pos = 0;
+    G.wild = [{ id: 99, sp: 'mossbun', el: 'Leaf', rare: 0, pos: wpos }];
+    tg.tick(G, T.now);
+    if (G.pl[0].pos !== c) fail('the walk should end two stones on');
+    if ((G.pend?.k === 'meet') !== want) fail('meeting a wild pet ' + (want ? 'on' : 'next to') + ' your stone: ' + G.pend?.k);
+  }
+  T.done();
 }
 
 // Play a whole tournament: bots everywhere, the minigame's places made up as server.js would hand them over.
@@ -89,6 +106,10 @@ function playOut(G, T, { onMini, onStep } = {}) {
   T.add(5000); tg.tick(G, T.now);
   if (!tg.act(G, 0, { t: 'reroll', i: 0 })) fail('could not reroll with the starter');
   if (G.pl[0].herd[0].rr) fail('the friend used its reroll');
+  const rr = G.ev[G.ev.length - 1]; if (rr.t !== 'reroll' || rr.was == null) fail('the reroll event should say what it replaced');
+  if (G.stage !== 'rolled' || G.ev.some(e => e.t === 'hop')) fail('nobody walks until the rerolled die has landed');
+  T.add(tg.MS.dice + 10); tg.tick(G, T.now);
+  if (G.pl[0].pos === START && !G.pend) fail('the walk should start after the dice');
   // drive person 0 with the safe choices until it's the bot's turn, then check the bot waits a moment
   let guard = 0;
   while (G.turn === 0 && guard++ < 500) { T.add(300); tg.tick(G, T.now); if (G.pend?.s === 0 && T.now >= G.busy) { const a = { roll: { t: 'roll' }, reroll: { t: 'reroll', i: -1 }, fork: { t: 'fork', j: G.pend.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[G.pend.k]; tg.act(G, 0, a); } }
@@ -116,7 +137,7 @@ function playOut(G, T, { onMini, onStep } = {}) {
   G.pend = { s: 0, k: 'meet', id: w.id };
   if (!tg.act(G, 0, { t: 'meet', treat: true })) fail('could not buy a friend with treats');
   if (p.herd.length !== 2 || p.herd[1].sp !== w.sp || G.wild.some(x => x.id === w.id)) fail('the bought pet should join');
-  if (G.wild.length !== 6) fail('a new wild pet should turn up');
+  if (G.wild.length !== WILD_MAX) fail('a new wild pet should turn up');
   // items: buy at a stall, use before rolling
   G.pend = { s: 0, k: 'shop' }; G.walk = { left: 0, path: [] }; G.busy = 0;
   if (!tg.act(G, 0, { t: 'shop', k: 'spy' }) || !p.items.includes('spy')) fail('could not buy a Spyglass');

@@ -53,7 +53,8 @@ export const matchup = (a, w) => (STRONG[a] === w ? 'strong' : STRONG[w] === a ?
 export const oddsOf = (a, w, berry) => { const m = matchup(a, w); return ODDS[berry ? (m === 'weak' ? 'even' : 'strong') : m]; };
 export const priceOf = rare => 4 + 3 * rare; // treats that always win a wild pet over
 
-export const HERD_MAX = 6, ITEM_MAX = 3, LURE = 6, PACT_ROUNDS = 3, EGG_TURNS = 2, WILD_MAX = 6;
+export const HERD_MAX = 6, ITEM_MAX = 3, LURE = 6, PACT_ROUNDS = 3, EGG_TURNS = 2, WILD_MAX = 8;
+export const START = -1; // everyone begins in the start meadow, off the trail, and steps onto stone 0 first
 export const START_TREATS = 6;
 export const MINI_PAY = [8, 5, 3, 1, 1, 1]; // treats for 1st, 2nd... in a minigame (scaled to the table, see payFor)
 export const payFor = (place, n) => (n <= 2 ? [8, 3] : n === 3 ? [8, 5, 2] : MINI_PAY)[place - 1] ?? 1;
@@ -105,6 +106,18 @@ export const POOL = [
 ];
 export const poolFor = n => POOL.filter(g => g.max >= n);
 
+// The Pet Show: a ribbon to whoever leads each of these (ties share it); a point per friend and 2 per ribbon.
+export function ribbonsOf(P) {
+  const best = (f, ok = v => v > 0) => { const v = P.map(f), m = Math.max(...v); return ok(m) ? P.map((_, i) => i).filter(i => v[i] === m) : []; };
+  return {
+    herd: best(p => p.herd.length),
+    els: best(p => new Set(p.herd.map(f => f.el)).size),
+    rare: best(p => Math.max(0, ...p.herd.filter(f => !f.start).map(f => f.rare + 1))),
+    mini: best(p => p.wins),
+    treats: best(p => p.treats),
+  };
+}
+export function showPts(P, rib = ribbonsOf(P)) { const pts = P.map(p => p.herd.length); for (const ids of Object.values(rib)) for (const i of ids) pts[i] += 2; return pts; }
 export const RIBBONS = {
   herd: L('Biggest herd', 'Największe stado'), els: L('Most elements', 'Najwięcej żywiołów'), rare: L('Rarest friend', 'Najrzadszy przyjaciel'),
   mini: L('Minigame star', 'Gwiazda minigier'), treats: L('Treat keeper', 'Skarbnik przysmaków'),

@@ -14,7 +14,7 @@ import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
 import {
   NODES, FORKS, routeName, near, matchup, oddsOf, priceOf, ITEMS, ITEM_IDS, ITEM_MAX, LURE, HERD_MAX, STONES, SEASON_RULE, WX_RULE,
-  POOL, RIBBONS, EL_NAME, EL_COL, PACT_ROUNDS,
+  POOL, RIBBONS, EL_NAME, EL_COL, PACT_ROUNDS, ribbonsOf, showPts,
 } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -38,6 +38,8 @@ const ITEM_SVG = {
 };
 const itemIc = (k, cls = 'tt-ii') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${ITEM_SVG[k] || ''}</svg>`;
 const petName = sp => SPECIES[sp]?.name || sp;
+// The match host: a Pet Farm Petalpuff who explains the rules at the start and calls out what happens (Kuba 2026-11-27).
+const HOST = { sp: 'petalpuff', lv: 14, name: 'Puff' };
 const RARE = [L('common', 'pospolity'), L('uncommon', 'niepospolity'), L('rare', 'rzadki')];
 const STONE_NAME = {
   stall: L('Stall', 'Stragan'), nest: L('Egg Nest', 'Gniazdo'), bench: L('Pact Bench', 'Ławka paktu'), well: L('Wishing Well', 'Studnia życzeń'),
@@ -70,7 +72,7 @@ export function mount(app, ctx) {
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L('Leave table', 'Odejdź od stołu')}">${I.door}</button></div>
-      <div class="tt-news" aria-live="polite"><div class="banner" id="tt-banner"></div><div class="tt-log" id="tt-log"></div></div>
+      <div class="tt-news" aria-live="polite"><div class="tt-host" id="tt-host"><span class="hp">${petImg(HOST, 50, 'tt-hpi')}</span><div class="banner" id="tt-banner"></div></div><div class="tt-log" id="tt-log"></div></div>
       <div class="tt-side" id="tt-side"></div>
       <div class="tt-die" id="tt-die" hidden></div>
       <div class="shout" id="tt-big" aria-live="assertive"></div>
@@ -81,6 +83,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.tt'), $ = id => root.querySelector('#' + id);
+  petPics(root.querySelector('.tt-news'));
   const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), marksEl = root.querySelector('.tt-marks');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null, stateAt = 0, sent = 0;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, dieTimer = 0, lastTick = -1, mapOn = false, ovKey = '';
@@ -188,12 +191,15 @@ export function mount(app, ctx) {
 
   // ----- the players down the side: treats, herd, items, pact -----
   function renderSide() {
+    const rib = ribbonsOf(S.pl), pts = showPts(S.pl, rib), top = Math.max(...pts);
     const rows = S.seats.map((p, i) => {
       const q = S.pl[i], egg = q.egg ? `<span class="tt-egg" title="${L(`Mystery Egg: hatches in ${q.egg} turn${q.egg > 1 ? 's' : ''}`, `Tajemnicze jajo: wykluje się za ${q.egg} tur${q.egg > 1 ? 'y' : 'ę'}`)}"></span>` : '';
       const items = q.items.map(k => `<span class="tt-it" title="${esc(ITEMS[k].name)}">${itemIc(k, 'tt-iis')}</span>`).join('');
       const pact = q.pact ? `<span class="tt-pact" title="${L(`Buddy pact with ${nm(q.pact.w)}`, `Pakt z: ${nm(q.pact.w)}`)}">♥ ${nm(q.pact.w)}</span>` : '';
+      const held = Object.keys(RIBBONS).filter(k => rib[k].includes(i)).map(k => RIBBONS[k]);
+      const ptsTip = L(`Pet Show points if it ended now: ${q.herd.length} for friends + ${held.length * 2} for ribbons${held.length ? ' (' + held.join(', ') + ')' : ''}`, `Punkty na Pokazie, gdyby był teraz: ${q.herd.length} za przyjaciół + ${held.length * 2} za wstęgi${held.length ? ' (' + held.join(', ') + ')' : ''}`);
       return `<div class="profrow tt-row${S.turn === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
-        <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-tr">${I.treat}${q.treats}</span></div>
+        <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span></div>
         <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}">${pet(f, 24)}</span>`).join('')}${egg}</div>
         ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div></div>`;
     }).join('');
@@ -205,6 +211,7 @@ export function mount(app, ctx) {
     if (LOG[0] === html) return;
     LOG.unshift(html); LOG.length = Math.min(LOG.length, 4);
     const b = $('tt-banner'); b.innerHTML = html; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    const h = $('tt-host'); h.classList.remove('talk'); void h.offsetWidth; h.classList.add('talk');
     $('tt-log').innerHTML = LOG.slice(1).map((x, i) => `<div style="opacity:${(.92 - i * .2).toFixed(2)}">${x}</div>`).join('');
     layout();
   }
@@ -216,8 +223,9 @@ export function mount(app, ctx) {
   const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
   const dieFace = d => `<span class="face">${Array.from({ length: 9 }, (_, k) => `<i${PIPS[d]?.includes(k) ? ' class="on"' : ''}></i>`).join('')}</span>`;
   // the dice fly in 3D in the roller's own dice skin; the flat picture is only for when there is no 3D view
-  function throwDice(s, list, d, extra = '') {
-    if (scene?.roll) { scene.roll(s, list); setTimeout(() => !destroyed && bubble(s, `<span>${d}</span>`), 650); } else { showDie(list, extra); bubble(s, `<span>${d}</span>`); } }
+  function throwDice(s, list, d, extra = '', was = null) {
+    const num = was != null ? `<span><s>${was}</s> → ${d}</span>` : `<span>${d}</span>`;
+    if (scene?.roll) { scene.roll(s, list); setTimeout(() => !destroyed && bubble(s, num, 2600), 700); } else { showDie(list, extra); bubble(s, num, 2600); } }
   function showDie(list, extra = '') {
     const el = $('tt-die'); el.hidden = false;
     el.innerHTML = list.map(d => `<span class="die rolling">${dieFace(1 + (Math.random() * 6 | 0))}</span>`).join('') + extra;
@@ -256,13 +264,14 @@ export function mount(app, ctx) {
     const head = (h, sub = '') => `<div class="tt-q"><b>${h}</b>${clock}${sub ? `<span>${sub}</span>` : ''}</div>`;
     if (P.k === 'roll') {
       const armed = [p.spy && ITEMS.spy.name, p.berry && ITEMS.berry.name, p.whistle && ITEMS.whistle.name, p.charm && ITEMS.charm.name].filter(Boolean);
-      const items = p.items.map((k, i) => opt('item', itemIc(k), `${L('Use', 'Użyj')}: ${esc(ITEMS[k].name)}`, esc(ITEMS[k].tx), `data-k="${k}" data-n="${i}"`)).join('');
-      return `${head(L('Your turn', 'Twoja kolej'), armed.length ? L(`Ready: ${armed.join(', ')}`, `Gotowe: ${armed.join(', ')}`) : p.items.length ? L('Use an item first, or just roll', 'Najpierw użyj przedmiotu albo od razu rzucaj') : '')}
+      const items = p.items.map((k, i) => opt('item', itemIc(k), `${L('Use', 'Użyj')}: ${esc(ITEMS[k].name)}`, k === 'honey' && p.pos < 0 ? L('Not in the start meadow', 'Nie na łące startowej') : esc(ITEMS[k].tx), `data-k="${k}" data-n="${i}"${k === 'honey' && p.pos < 0 ? ' disabled' : ''}`)).join('');
+      const hint = S.round <= 2 ? L('Roll, then walk that many stones. Stop exactly on a glowing stone to meet its wild pet.', 'Rzuć i przejdź tyle kamieni. Zatrzymaj się dokładnie na świecącym kamieniu, by spotkać dzikiego zwierzaka.') : '';
+      return `${head(L('Your turn', 'Twoja kolej'), armed.length ? L(`Ready: ${armed.join(', ')}`, `Gotowe: ${armed.join(', ')}`) : p.items.length ? L('Use an item first, or just roll', 'Najpierw użyj przedmiotu albo od razu rzucaj') : hint)}
         ${items ? `<div class="tt-acts">${items}</div>` : ''}<div class="tt-acts">${btn('roll', L('Roll the die', 'Rzuć kością'), '', '', 'big')}</div>`;
     }
     if (P.k === 'reroll') return `${head(L(`You rolled ${S.die}`, `Wyrzucasz ${S.die}`), L('A friend can reroll for you, once per friend', 'Przyjaciel może przerzucić za ciebie, każdy raz'))}
       <div class="tt-acts">${P.f.map(i => { const f = p.herd[i]; return opt('reroll', pet(f, 34), L(`Reroll with ${esc(f.name || petName(f.sp))}`, `Przerzuć: ${esc(f.name || petName(f.sp))}`), f.el === 'Spark' ? L('can reroll every round', 'może przerzucać co rundę') : L('once per friend', 'raz na przyjaciela'), `data-i="${i}"`); }).join('')}</div><div class="tt-acts">${btn('keep', L(`Walk ${S.die}`, `Idź o ${S.die}`), '', '', 'big')}</div>`;
-    if (P.k === 'fork') return `${head(L('Which way?', 'Którędy?'), L('Wild pets near a route are marked', 'Dzikie zwierzaki przy trasie są oznaczone'))}
+    if (P.k === 'fork') return `${head(L('Which way?', 'Którędy?'), L('Glowing stones have a wild pet: stop exactly on one to meet it', 'Świecące kamienie mają dzikiego zwierzaka: zatrzymaj się dokładnie na nim, by go spotkać'))}
       <div class="tt-acts">${P.opts.map(j => { const n = petsAhead(j); return opt('fork', `<svg class="tt-ii" viewBox="0 0 32 32" aria-hidden="true"><path d="M15 6v23" ${IK}/><path d="M6 8h16l4 3.5-4 3.5H6z" fill="#ffc93c" ${IK}/><path d="M26 17H10l-4 3.5 4 3.5h16z" fill="#fff6e2" ${IK}/></svg>`, esc(routeName(j)), n ? L(`${n} wild pet${n > 1 ? 's' : ''} on the way`, `dzikie zwierzaki po drodze: ${n}`) : L('no wild pets in sight', 'nie widać dzikich zwierzaków'), `data-j="${j}"`, n ? 'hot' : ''); }).join('')}</div>`;
     if (P.k === 'shop') return `${head(L('The stall', 'Stragan'), L(`You have ${treatsW(p.treats)} and ${p.items.length}/${ITEM_MAX} items`, `Masz ${treatsW(p.treats)} i przedmioty: ${p.items.length}/${ITEM_MAX}`))}
       <div class="tt-acts shop">${ITEM_IDS.map(k => opt('buy', itemIc(k), esc(ITEMS[k].name), esc(ITEMS[k].tx), `data-k="${k}"${ITEMS[k].c > p.treats || p.items.length >= ITEM_MAX ? ' disabled' : ''}`, '', priceTag(ITEMS[k].c))).join('')}</div>
@@ -294,7 +303,7 @@ export function mount(app, ctx) {
       <div class="tt-acts">${can.map(k => opt('cheer', pet(p.herd[k], 34), esc(p.herd[k].name || petName(p.herd[k].sp)), EL_NAME[p.herd[k].el], `data-i="${k}"`)).join('')}</div>
       <div class="tt-acts">${btn('cheer', L('Save them for later', 'Zachowaj na później'), '', 'data-i="-1"', 'ghost')}</div>`;
   }
-  function petsAhead(j) { let n = 0, at = j; const seen = new Set(); for (let k = 0; k < 6; k++) { for (const w of S.wild) if (!seen.has(w.id) && near(w.pos, at)) { seen.add(w.id); n++; } at = NODES[at].next[0]; } return n; }
+  function petsAhead(j) { let n = 0, at = j; const seen = new Set(); for (let k = 0; k < 6; k++) { for (const w of S.wild) if (!seen.has(w.id) && w.pos === at) { seen.add(w.id); n++; } at = NODES[at].next[0]; } return n; }
 
   // ----- the big overlays: intro, the minigame wheel, minigame results, the Pet Show -----
   function renderOv() {
@@ -302,7 +311,15 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'play') { el.hidden = true; ovKey = ''; return; }
     let key = S.stage, html = '';
     if (S.stage === 'intro') {
-      html = `<div class="tt-card"><h2>${L('Friendship Trail', 'Szlak przyjaźni')}</h2><p>${L(`${S.rounds} rounds. Make friends with wild pets, play a minigame after every round, and win ribbons at the Pet Show.`, `Rund: ${S.rounds}. Zaprzyjaźniaj się z dzikimi zwierzakami, po każdej rundzie zagraj w minigrę i zdobądź wstęgi na Pokazie zwierzaków.`)}</p>
+      const step = (n, t, x) => `<li><i>${n}</i><div><b>${t}</b><span>${x}</span></div></li>`;
+      html = `<div class="tt-card wide tt-intro"><div class="tt-hostbig">${petImg(HOST, 84, 'tt-hpi')}<p class="tt-say">${L(`Hi, I'm <b>Puff</b>, your host! Welcome to the <b>Friendship Trail</b>. Here's how it works:`, `Cześć, jestem <b>Puff</b> i prowadzę dzisiejszą zabawę! Witaj na <b>Szlaku przyjaźni</b>. Oto zasady:`)}</p></div>
+        <div class="tt-goal">${I.star || '★'} ${L(`Goal: the most <b>Pet Show points</b> after ${S.rounds} rounds. Every friend in your herd is 1 point, every ribbon is 2.`, `Cel: najwięcej <b>punktów na Pokazie zwierzaków</b> po ${S.rounds} rundach. Każdy przyjaciel w stadzie to 1 punkt, każda wstęga to 2.`)}</div>
+        <ol class="tt-steps">
+          ${step(1, L('Roll and walk', 'Rzuć i idź'), L('Everyone starts in the meadow. Roll the die and walk the trail; at a fork you pick the way.', 'Wszyscy startują na łące. Rzuć kością i idź szlakiem; na rozwidleniu wybierasz drogę.'))}
+          ${step(2, L('Make friends', 'Zdobywaj przyjaciół'), L('A glowing stone has a wild pet. Stop exactly on it, then win a showdown with one of your pets or give treats.', 'Świecący kamień ma dzikiego zwierzaka. Zatrzymaj się dokładnie na nim i wygraj starcie swoim zwierzakiem albo daj przysmaki.'))}
+          ${step(3, L('Friends help you', 'Przyjaciele pomagają'), L('Each friend can reroll your die once and cheer you on in a minigame.', 'Każdy przyjaciel raz przerzuci twoją kość i pokibicuje ci w minigrze.'))}
+          ${step(4, L('Minigame after every round', 'Minigra po każdej rundzie'), L('Everyone plays a quick game. Better places win more treats for friends and items.', 'Wszyscy grają w szybką grę. Lepsze miejsca dają więcej przysmaków na przyjaciół i przedmioty.'))}
+        </ol>
         <ul class="tt-rules"><li>${esc(SEASON_RULE[S.season])}</li><li>${esc(WX_RULE[S.wx])}</li></ul></div>`;
     } else if (S.stage === 'wheel' || S.stage === 'mini') {
       key += S.mini?.game;
@@ -340,9 +357,10 @@ export function mount(app, ctx) {
       case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}`, `Runda ${e.r} z ${S.rounds}`)); break;
       case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); if (isMe(s)) sfx.turn(); break;
       case 'roll': throwDice(s, e.b ? [e.a, e.b] : [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.b ? L(' with the Spyglass', ' z Lunetą') : '')); break;
-      case 'reroll': throwDice(s, [e.d], e.d, pet({ sp: e.sp }, 34, 'tt-dpi')); sfx.whoosh?.(); say(L(`${esc(petName(e.sp))} rerolls for ${isMe(s) ? 'you' : nm(s)}: <b>${e.d}</b>`, `${esc(petName(e.sp))} przerzuca dla ${isMe(s) ? 'ciebie' : nm(s)}: <b>${e.d}</b>`)); petPics($('tt-die')); break;
+      case 'reroll': throwDice(s, [e.d], e.d, pet({ sp: e.sp }, 34, 'tt-dpi'), e.was); sfx.whoosh?.(); say(L(`${esc(petName(e.sp))} rerolls for ${isMe(s) ? 'you' : nm(s)}: <s>${e.was}</s> → <b>${e.d}</b>. The new roll replaces the old one`, `${esc(petName(e.sp))} przerzuca dla ${isMe(s) ? 'ciebie' : nm(s)}: <s>${e.was}</s> → <b>${e.d}</b>. Nowy rzut zastępuje stary`)); petPics($('tt-die')); break;
+      case 'boost': say(who(s, L(`Fewest friends: your ${esc(petName(e.sp))} can reroll again this turn`, `Najmniej przyjaciół: twój ${esc(petName(e.sp))} znów może przerzucić w tej turze`), L(`Fewest friends: {n}'s ${esc(petName(e.sp))} can reroll again`, `Najmniej przyjaciół: {n} znów może przerzucić (${esc(petName(e.sp))})`))); break;
       case 'fork': say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
-      case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.(); setTimeout(hopSfx, 320); }; hopSfx(); } break;
+      case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.(); setTimeout(hopSfx, 420); }; hopSfx(); } break;
       case 'stone': stoneEv(e); break;
       case 'slide': say(who(s, L('Icy brambles! You slide 2 stones on', 'Oblodzone jeżyny! Ślizgasz się 2 kamienie dalej'), L('Icy brambles! {n} slides 2 stones on', 'Oblodzone jeżyny! {n} ślizga się 2 kamienie dalej'))); sfx.whoosh?.(); break;
       case 'honey': say(L(`${isMe(s) ? 'You step' : nm(s) + ' steps'} in ${isMe(e.o) ? 'your' : nm(e.o) + "'s"} honey: ${treatsW(e.v)} to ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Wchodzisz' : nm(s) + ' wchodzi'} w miód gracza ${nm(e.o)}: ${treatsW(e.v)} dla ${isMe(e.o) ? 'ciebie' : nm(e.o)}`)); scene?.cue(s, 'lose'); floatAt(scene?.seatPx(s), '−' + e.v, 'bad'); break;
