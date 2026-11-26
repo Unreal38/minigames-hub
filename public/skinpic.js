@@ -2,7 +2,7 @@
 // The game code that paints the real things is loaded only when a picture is first asked for; each picture is drawn once.
 const shots = new Map(); // key -> data URL ('' when it could not be drawn)
 let kit = null;
-const keyOf = (k, i, color, av) => k + '|' + (i | 0) + (k === 'kp' || k === 'cu' || k === 'cs' || k === 'ck' || (k === 'gb' && !(i | 0)) ? '|' + color : '') + (k === 'kp' ? '|' + (av || []).join('') : '');
+const keyOf = (k, i, color, av) => k + '|' + (i | 0) + (k === 'kp' || k === 'cu' || k === 'cs' || k === 'ck' || k === 'dt' || k === 'bt' || (k === 'gb' && !(i | 0)) ? '|' + color : '') + (k === 'kp' ? '|' + (av || []).join('') : '');
 export const skinPicNow = (k, i, color, av) => shots.get(keyOf(k, i, color, av)) || '';
 
 function cv2d(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
@@ -111,12 +111,56 @@ async function herdPic(i) {
   });
   return c.toDataURL('image/png');
 }
+// the slingshot, a little turned
+const slingPic = i => shot3d(async THREE => {
+  const { slingModel } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), g = slingModel(THREE, i), [a, b] = g.userData.tips, S = g.userData.look;
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, 1, 5), new THREE.MeshStandardMaterial({ color: S.band })); const mid = new THREE.Vector3(0, .12, .02);
+  for (const t of [a, b]) { const m = band.clone(), d = mid.clone().sub(t); m.scale.y = d.length(); m.position.copy(t).addScaledVector(d, .5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(m); }
+  const pouch = new THREE.Mesh(new THREE.BoxGeometry(.1, .06, .05), new THREE.MeshStandardMaterial({ color: S.pouch })); pouch.position.copy(mid); g.add(pouch);
+  toonify(g, .02); g.rotation.set(0, .5, -.15);
+  return { g, dir: [.2, .15, .97], zoom: .85 };
+});
+// three darts in that skin, flights in the player's colour
+const dartPic = (i, color) => shot3d(async THREE => {
+  const { dartLook } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), D = dartLook(i), g = new THREE.Group(), M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .5, flatShading: true });
+  const one = (x, rz) => { const d = new THREE.Group(); d.position.x = x; d.rotation.z = rz; g.add(d); const add = (geo, c, y) => { const m = new THREE.Mesh(geo, M(c)); m.position.y = y; d.add(m); return m; };
+    add(new THREE.ConeGeometry(.05, .3, 6), D.tip, -.75).rotation.x = Math.PI; add(new THREE.CylinderGeometry(.09, .075, .6, 8), D.barrel, -.3);
+    if (D.band) for (const y of [-.45, -.15]) add(new THREE.CylinderGeometry(.095, .095, .07, 8), D.band, y);
+    add(new THREE.CylinderGeometry(.04, .04, .4, 6), D.shaft, .2);
+    for (let n = 0; n < 2; n++) { const f = D.flight === 'feather' ? add(new THREE.BoxGeometry(.3, .7, .02), color, .52) : D.flight === 'fin' ? add(new THREE.ConeGeometry(.32, .45, 3), color, .4) : D.flight === 'heart' ? add(new THREE.OctahedronGeometry(.25), color, .45) : add(new THREE.BoxGeometry(.5, .42, .02), color, .45);
+      if (D.flight === 'fin') f.scale.z = .08; else if (D.flight === 'heart') f.scale.set(1, 1.1, .1); f.rotation.y = n * Math.PI / 2; } };
+  one(-.45, .35); one(0, 0); one(.45, -.35); toonify(g, .03);
+  return { g, dir: [.15, .1, .98], zoom: .9 };
+});
+// the bopper itself, leaning over
+const bopperPic = i => shot3d(async THREE => {
+  const { bopperModel } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), g = bopperModel(THREE, i, c => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true }));
+  g.rotation.z = -.6; toonify(g, .04); const w = new THREE.Group(); w.add(g);
+  return { g: w, dir: [.3, .25, .92], zoom: .85 };
+});
+// a two-square boat in that skin, trim and flag in the player's colour
+const boatPic = (i, color) => shot3d(async THREE => {
+  const { boatLook } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), S = boatLook(i), g = new THREE.Group();
+  const shade = (c, k) => '#' + new THREE.Color(c).multiplyScalar(k).getHexString(), M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .8, flatShading: true });
+  const box = (w, h, d, c, x, y, z = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c)); m.position.set(x, y, z); g.add(m); return m; };
+  const L = 1.72, W = .62, H = .3, hull = S.hull || shade(color, .72);
+  box(L, H, W, hull, 0, H / 2 - .06); const bow = box(.44, H, .44, hull, L / 2, H / 2 - .06); bow.rotation.y = Math.PI / 4; bow.scale.z = .7;
+  box(L + .06, .07, W + .06, color, 0, H - .07); box(L - .16, .03, W - .2, S.deck, 0, H - .02);
+  const cx = -L / 2 + .42; box(.46, .3, .4, S.cabin, cx, H + .15); box(.54, .08, .48, S.roof || color, cx, H + .34);
+  const mx = L / 2 - .34; box(.05, .5, .05, '#8a5a3c', mx, H + .25); box(.22, .14, .03, color, mx - .13, H + .43);
+  if (S.bow === 'skull') { box(.05, .26, .05, '#8a5a3c', cx, H + .5); box(.26, .18, .03, '#1c1820', cx - .15, H + .56); box(.08, .07, .035, '#ffffff', cx - .15, H + .58); }
+  if (S.bow === 'duck') { const hx = L / 2 + .1; box(.22, .26, .22, hull, hx, H + .2); box(.14, .06, .12, '#ff8a2a', hx + .16, H + .17); }
+  if (S.bow === 'dragon') { const hx = L / 2 + .1; box(.08, .4, .1, hull, hx, H + .2); box(.2, .12, .12, hull, hx + .08, H + .42); box(.06, .06, .14, '#ffc93c', hx + .1, H + .5);
+    for (let x = -L / 2 + .3; x < L / 2 - .5; x += .3) { const s = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .03, 8), M('#fff4e2')); s.rotation.x = Math.PI / 2; s.position.set(x, H - .02, W / 2 + .02); g.add(s); } }
+  toonify(g, .03);
+  return { g, dir: [.35, .5, .8], zoom: 1.05 };
+});
 export async function skinPic(k, i, color, av) {
   const key = keyOf(k, i, color, av); if (shots.has(key)) return shots.get(key);
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : k === 'bs' ? await seedPic(i | 0) : k === 'ht' ? await herdPic(i | 0) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : k === 'bs' ? await seedPic(i | 0) : k === 'ht' ? await herdPic(i | 0) : k === 'sl' ? await slingPic(i | 0) : k === 'dt' ? await dartPic(i | 0, color) : k === 'bb' ? await bopperPic(i | 0) : k === 'bt' ? await boatPic(i | 0, color) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }

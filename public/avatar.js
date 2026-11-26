@@ -101,6 +101,9 @@ shop('back', [['Pirate flag', 160], ['Guitar', 170]]);
 // For the 2026-11-25 games: a sleuth's magnifying glass (Lantern Night, Copycat Isle), a fan and a camera (Sky Runway).
 shop('hand', [['Magnifying glass', 110], ['Folding fan', 120], ['Camera', 130]]);
 shop('top', [['Llama onesie', 260]]); // a full mascot costume like the dino (2026-11-25)
+// Gap pass (2026-11-26): every seasonal drop gets something for the neck, and spring gets shoes.
+shop('neck', [['Daisy chain', 100, 'spring'], ['Shell necklace', 100, 'summer'], ['Vampire cape', 120, 'halloween']]);
+shop('shoes', [['Flower wellies', 110, 'spring']]);
 
 export const packOf = (k, i) => PACK[k + ':' + i] || null;
 export const packIds = name => Object.keys(PACK).filter(id => PACK[id] === name);

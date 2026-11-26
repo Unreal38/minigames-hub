@@ -9,6 +9,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { cellsOf, MISS, HIT, CLEAR } from './rules.js';
+import { boatLook } from '../../pieceskins.js';
 
 const SKY_TOP = '#4fb0f2', SKY_LOW = '#d3f1ff';
 const BW = 10;            // a bay is this wide, whatever the number of squares
@@ -84,28 +85,32 @@ export function createScene(canvas, { onFrame } = {}) {
     s.moveTo(-a, -w * .78); s.lineTo(a - wide * .72, -w); s.lineTo(a, 0); s.lineTo(a - wide * .72, w); s.lineTo(-a, w * .78); s.closePath();
     return s;
   }
-  function makeBoat(len, color, sp) {
-    const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-    const L = len - .28, W = .62, H = .3, dark = shadeOf(color, .72), cream = '#fff4e2';
+  function makeBoat(len, color, sp, k = 0) { // k: the owner's boat skin (kind bt, pieceskins.js); the trim and flag stay in their colour
+    const g = new THREE.Group(), body = new THREE.Group(), S = boatLook(k); g.add(body);
+    const L = len - .28, W = .62, H = .3, dark = S.hull || shadeOf(color, .72), cream = S.cabin, roof = S.roof || color;
     const hull = new THREE.ExtrudeGeometry(hullShape(L, W), { depth: H, bevelEnabled: false }); hull.rotateX(-Math.PI / 2);
     put(hull, M(dark), 0, -.06, 0, body);
     const trim = new THREE.ExtrudeGeometry(hullShape(L + .06, W + .06), { depth: .07, bevelEnabled: false }); trim.rotateX(-Math.PI / 2);
     put(trim, M(color), 0, H - .1, 0, body);
     const deck = new THREE.ExtrudeGeometry(hullShape(L - .16, W - .2), { depth: .03, bevelEnabled: false }); deck.rotateX(-Math.PI / 2);
-    put(deck, M('#e9c48c'), 0, H - .03, 0, body);
+    put(deck, M(S.deck), 0, H - .03, 0, body);
     const box = (w, h, d, c, x, y, z = 0) => put(new THREE.BoxGeometry(w, h, d), M(c), x, y, z, body);
     let petX = 0;
     if (len === 1) { box(.1, .06, W - .2, '#b9794a', -.18, H + .03); petX = .04; } // a dinghy: just a bench
     else {
       const cx = -L / 2 + .42; // the cabin sits at the back, the crew stands in front of it
-      box(.46, .3, .4, cream, cx, H + .15); box(.54, .08, .48, color, cx, H + .34);
+      box(.46, .3, .4, cream, cx, H + .15); box(.54, .08, .48, roof, cx, H + .34);
       box(.1, .1, .02, '#7fd1e8', cx + .1, H + .18, .205); box(.1, .1, .02, '#7fd1e8', cx + .1, H + .18, -.205);
       if (len >= 3) { put(new THREE.CylinderGeometry(.09, .11, .32, 6), M('#ff7a59'), cx - .02, H + .52, 0, body); put(new THREE.CylinderGeometry(.1, .1, .07, 6), M('#3b2219'), cx - .02, H + .68, 0, body); }
-      if (len >= 4) { box(.5, .2, .36, cream, cx + .72, H + .1); box(.56, .06, .42, color, cx + .72, H + .23); }
+      if (len >= 4) { box(.5, .2, .36, cream, cx + .72, H + .1); box(.56, .06, .42, roof, cx + .72, H + .23); }
       const mx = L / 2 - .34; // a little flag at the bow
       box(.05, .5, .05, '#8a5a3c', mx, H + .25); box(.22, .14, .03, color, mx - .13, H + .43);
+      if (S.bow === 'skull') { box(.05, .26, .05, '#8a5a3c', cx, H + .5); box(.26, .18, .03, '#1c1820', cx - .15, H + .56); box(.08, .07, .035, '#ffffff', cx - .15, H + .58); box(.05, .03, .035, '#ffffff', cx - .15, H + .53); }
+      if (S.bow === 'dragon') for (let x = -L / 2 + .3; x < L / 2 - .5; x += .3) for (const sz of [-1, 1]) { const sh = put(new THREE.CylinderGeometry(.1, .1, .03, 8), M(x * 7 % 2 > 1 ? color : '#fff4e2'), x, H - .02, sz * (W / 2 + .02), body); sh.rotation.x = Math.PI / 2; }
       petX = len === 2 ? .3 : len === 3 ? .45 : 1.0;
     }
+    if (S.bow === 'duck') { const hx = L / 2 - .02; box(.22, .26, .22, S.hull, hx, H + .2); box(.14, .06, .12, '#ff8a2a', hx + .16, H + .17); for (const sz of [-1, 1]) box(.04, .05, .02, '#3b2219', hx + .07, H + .26, sz * .1); }
+    if (S.bow === 'dragon') { const hx = L / 2 - .02; box(.08, .4, .1, S.hull, hx, H + .2); box(.2, .12, .12, S.hull, hx + .08, H + .42); box(.06, .06, .14, '#ffc93c', hx + .1, H + .5); box(.08, .03, .03, '#e5543b', hx + .2, H + .38); }
     bake(body); toonify(body, .035);
     const pet = crew(sp); pet.scale.setScalar(.56); pet.position.set(petX, H, 0); pet.rotation.y = Math.PI / 2; body.add(pet);
     // what is left when it sinks: the crew bobbing in a swim ring
@@ -168,7 +173,7 @@ export function createScene(canvas, { onFrame } = {}) {
       const inst = (geo, mat) => { const m = new THREE.InstancedMesh(geo, mat, n * n); m.count = 0; m.frustumCulled = false; g.add(m); return m; };
       const last = put(new THREE.TorusGeometry(cell * .4, cell * .055, 5, 20), lastMat, 0, .16, 0, g); last.rotation.x = Math.PI / 2; last.visible = false;
       return {
-        g, static: fixed, isl, deco, av, avWrap, ring, tiles, tileGeo, missGeo, clearGeo, hitGeo, last, color: p.color, key: p.color + (p.av || []).join(''),
+        g, static: fixed, isl, deco, av, avWrap, ring, tiles, tileGeo, missGeo, clearGeo, hitGeo, last, color: p.color, bt: p.fl?.bt | 0, key: p.color + (p.av || []).join(''),
         miss: inst(missGeo, missMat), clear: inst(clearGeo, clearMat), hitA: inst(hitGeo, hitMat), hitB: inst(hitGeo, hitMat),
         boats: new Map(), hop: 0, active: false, aim: 0, glow: 0,
         tp: new THREE.Vector3(), ts: 1, ip: new THREE.Vector3(0, 0, -ISL), ir: 0, set: false,
@@ -230,7 +235,7 @@ export function createScene(canvas, { onFrame } = {}) {
       if (!e) return;
       let o = B.boats.get(i);
       if (!o) {
-        o = makeBoat(e.len, B.color, CREW[(i + b * 3) % CREW.length]); o.g.scale.setScalar(cell); B.g.add(o.g); B.boats.set(i, o);
+        o = makeBoat(e.len, B.color, CREW[(i + b * 3) % CREW.length], B.bt); o.g.scale.setScalar(cell); B.g.add(o.g); B.boats.set(i, o);
         if (pop && !reduced) o.pop = 0;
         if (e.sunk && !pop) o.sink = 1;
       }
@@ -277,7 +282,7 @@ export function createScene(canvas, { onFrame } = {}) {
     });
   }
   function setState(st) {
-    const key = st.seats.map(p => p.color + (p.av || []).join('')).join('|') + '/' + st.me + '/' + st.n;
+    const key = st.seats.map(p => p.color + (p.av || []).join('') + ':' + (p.fl?.bt | 0)).join('|') + '/' + st.me + '/' + st.n;
     const fresh = st.gid !== gid || key !== bayKey;
     if (key !== bayKey) { bayKey = key; buildBays(st); }
     const wantBig = st.stage === 'setup' && st.me >= 0 ? mine : 1 - mine;
