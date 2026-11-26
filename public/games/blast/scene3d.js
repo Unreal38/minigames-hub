@@ -4,8 +4,10 @@
 // Cost rules: the floor, walls and crates are a handful of instanced meshes (one draw each, whatever the maze size),
 // blasts are two more, avatars get soft blobs instead of real shadows, and there are no shadow maps at all.
 import * as THREE from 'three';
-import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, birds, flat, createFx, STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF } from '../../scenery3d.js';
+import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
+import { skyDome, clouds, nightScene, birds, flat, put, ico, hash, PROPS, toonMat, toonify, mergeStatic, isNight, seasonLookNow, createFx, STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF } from '../../scenery3d.js';
+import { lookOf, SP, trim } from '../../season3d.js';
+import { itemModel } from '../farm/models.js';
 import { seedLook, seedModel as seedSkin } from '../../pieceskins.js';
 import { groundOf } from '../../isle3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
@@ -18,12 +20,49 @@ const SHAPES = { STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF }; // a seed lo
 const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); return (a < 0 ? a + Math.PI * 2 : a) - Math.PI; };
 const FACE = [0, Math.PI / 2, Math.PI, -Math.PI / 2]; // facing 0 down (towards the camera), 1 right, 2 up, 3 left
 
-// What each arena's walls and crates look like.
+// What each arena's walls, crates and rim look like. Walls stand clearly taller and darker than crates (Kuba found the
+// hay and the hedges too alike). Rim props are Pet Farm decorations (itemModel names) or prop functions; "tall" ones
+// stand on the sides and at the back, "low" ones also in front, where they must not hide the maze's bottom row.
 const LOOK = {
-  woods: { wall: ['#3f8c4a', '#47944f', '#3a8545'], top: '#5fb04a', crate: 'hay' },
-  ridge: { wall: ['#a9a6b0', '#98959f', '#b3b0ba'], top: null, crate: 'box' },
-  sweet: { wall: ['#7b4a2e', '#6e4128', '#83512f'], top: '#fff4fa', crate: 'cake' },
+  woods: { wall: ['#2f7a3d', '#358343', '#2b7339'], top: '#4f9e48', crate: 'hay',
+    tall: ['pine', 'tree', 'pine', 'scarecrow', 'tree', 'well', 'pine', 'windmill'], low: ['bush', 'haybale', 'shrooms', 'flowers', 'bush', 'rock', 'bench', 'haybale'] },
+  ridge: { wall: ['#7a768a', '#6e6a7e', '#858196'], top: null, crate: 'box',
+    tall: ['pine', 'geode', 'telescope', 'pine', 'well', 'statue', 'pine', 'lighthouse'], low: ['rock', 'campfire', 'rock', 'shrooms', 'bush', 'rock'] },
+  sweet: { wall: ['#6b3d24', '#5f3520', '#744429'], top: '#ffd1e6', crate: 'cake',
+    tall: ['cherry', 'topiary', 'cherry', 'balloon', 'cherry', 'vane'], low: ['picnic', 'flowers', 'ball', 'cart', 'flowers', 'hives'] },
 };
+// In a season the plain trees, bushes and rocks give way to that season's own (snowy pines and snowmen in winter).
+const SWAP = { pine: 0, tree: 1, bush: 2, rock: 3 };
+const RIM_SIDE = 3.4, RIM_BACK = 3.2, RIM_FRONT = 1.5; // how far the island reaches past the maze on each side
+const INK = new THREE.MeshBasicMaterial({ color: '#3a2620', side: THREE.BackSide }); INK.userData.shared = true;
+// An outline for an instanced mesh: a slightly bigger copy of its shape drawn inside out, sharing its instance matrices
+// (so hiding a crate hides its outline too). toonify's hulls skip instanced meshes, so these stand in for them.
+function inkFor(m, t = .035) {
+  const g = m.geometry.clone(); g.computeBoundingBox();
+  const s = g.boundingBox.getSize(new THREE.Vector3()), c = g.boundingBox.getCenter(new THREE.Vector3());
+  g.translate(-c.x, -c.y, -c.z); g.scale(1 + 2 * t / Math.max(s.x, .05), 1 + 2 * t / Math.max(s.y, .05), 1 + 2 * t / Math.max(s.z, .05)); g.translate(c.x, c.y, c.z);
+  const o = new THREE.InstancedMesh(g, INK, m.instanceMatrix.count); o.instanceMatrix = m.instanceMatrix; o.count = m.count; o.frustumCulled = false;
+  return o;
+}
+const toon = c => toonMat(flat(c));
+// a rounded rectangle from x0..x1, z0..z1 (shape y is world z once rotated flat)
+function rrect(x0, z0, x1, z1, r, path = new THREE.Shape()) {
+  path.moveTo(x0 + r, z0); path.lineTo(x1 - r, z0); path.quadraticCurveTo(x1, z0, x1, z0 + r); path.lineTo(x1, z1 - r); path.quadraticCurveTo(x1, z1, x1 - r, z1);
+  path.lineTo(x0 + r, z1); path.quadraticCurveTo(x0, z1, x0, z1 - r); path.lineTo(x0, z0 + r); path.quadraticCurveTo(x0, z0, x0 + r, z0); return path;
+}
+// Several plain geometries as one (for the petal blast's flower).
+function joinGeos(list) {
+  const parts = list.map(g => g.index ? g.toNonIndexed() : g), n = parts.reduce((a, g) => a + g.attributes.position.count, 0);
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3); let o = 0;
+  for (const g of parts) { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; }
+  const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  return out;
+}
+function flowerGeo() {
+  const ps = [];
+  for (let i = 0; i < 8; i++) { const big = i % 2 === 0, g = new THREE.SphereGeometry(.5, 6, 4); g.scale(big ? .3 : .22, big ? .16 : .13, big ? .52 : .38); g.translate(0, 0, big ? .26 : .2); g.rotateY(i * Math.PI / 4); ps.push(g); }
+  return joinGeos(ps);
+}
 
 export function createScene(canvas, opts = {}) {
   const level = gfx(), few = level === 'low';
@@ -45,17 +84,26 @@ export function createScene(canvas, opts = {}) {
   function clearWorld() {
     if (!world) return;
     scene.remove(world);
-    world.traverse(o => { if (o.isMesh) { o.geometry?.dispose(); for (const m of [].concat(o.material || [])) m.dispose?.(); } });
+    world.traverse(o => { if (o.isMesh) { o.geometry?.dispose(); for (const m of [].concat(o.material || [])) if (!m.userData?.shared) m.dispose?.(); } });
     world = null; crates = []; crateOf = new Map(); fallen = []; shakeSet = new Set();
+  }
+  // a prop for the rim: a Pet Farm decoration by name, or a prop function (season or isle props)
+  function propOf(kind, s) {
+    if (typeof kind === 'string') { const m = itemModel(kind, false, true); m.scale.setScalar(s); return m; }
+    const g = new THREE.Group(); kind(g, s); bake(g); return g;
   }
   function build(arenaId, w, h, g) {
     clearWorld();
     arena = arenaId; W = w; H = h; grid = g.slice();
     world = new THREE.Group(); scene.add(world);
-    const th = groundOf(ARENAS[arena]?.isle | 0), look = LOOK[arena] || LOOK.woods, n = W * H;
+    const season = seasonLookNow(), SL = lookOf(season), candy = arena === 'sweet';
+    const th0 = groundOf(ARENAS[arena]?.isle | 0), look = LOOK[arena] || LOOK.woods, n = W * H;
+    // the season dresses the woods and the ridge like every other island (snow in winter); the Sweet Shop stays candy
+    const th = SL && !candy ? { ...th0, grass: SL.grass, patch: SL.patch, earth: SL.earth || th0.earth, rock: SL.rock || th0.rock } : th0;
+    const snowy = season === 'winter';
     // floor tiles (a slab of lawn each, two tones like a lawn mown in squares) on a column of earth that hangs below
-    floor = new THREE.InstancedMesh(new THREE.BoxGeometry(1, .3, 1), flat('#ffffff'), n);
-    dirt = new THREE.InstancedMesh(new THREE.BoxGeometry(.98, 1, .98), flat(th.earth), n);
+    floor = new THREE.InstancedMesh(new THREE.BoxGeometry(1, .3, 1), toon('#ffffff'), n);
+    dirt = new THREE.InstancedMesh(new THREE.BoxGeometry(.98, 1, .98), toon(th.earth), n);
     depth = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = y * W + x, edge = Math.min(x, y, W - 1 - x, H - 1 - y);
@@ -67,48 +115,106 @@ export function createScene(canvas, opts = {}) {
     floor.instanceMatrix.setUsage(THREE.DynamicDrawUsage); dirt.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     world.add(floor, dirt);
     // a rock point far underneath, smaller than the maze, so a fallen tile shows sky
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(Math.min(W, H) * .32, Math.max(W, H) * .55, 7), flat(th.rock)); cone.rotation.x = Math.PI; cone.position.y = -2.6 - Math.max(W, H) * .27; world.add(cone);
-    // walls
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(Math.min(W, H) * .32, Math.max(W, H) * .55, 7), toon(th.rock)); cone.rotation.x = Math.PI; cone.position.y = -2.6 - Math.max(W, H) * .27; world.add(cone);
+    // walls: hedges with a leafy top, boulders, chocolate blocks with a blob of icing; a cap of snow in winter
     const walls = []; for (let i = 0; i < n; i++) if (grid[i] === WALL) walls.push(i);
-    const wgeo = arena === 'ridge' ? new THREE.DodecahedronGeometry(.6, 0) : arena === 'sweet' ? new THREE.BoxGeometry(.94, .8, .94) : new THREE.BoxGeometry(.96, .92, .96);
-    const wm = new THREE.InstancedMesh(wgeo, flat('#ffffff'), walls.length);
+    const wgeo = arena === 'ridge' ? new THREE.DodecahedronGeometry(.6, 0) : candy ? new THREE.BoxGeometry(.92, .86, .92) : new THREE.BoxGeometry(.92, .8, .92);
+    const wm = new THREE.InstancedMesh(wgeo, toon('#ffffff'), walls.length);
+    const place = (m, k, x, y, py, ry = 0, sx = 1, sy = 1) => { dummy.position.set(wx(x), py, wz(y)); dummy.rotation.set(0, ry, 0); dummy.scale.set(sx, sy, sx); dummy.updateMatrix(); m.setMatrixAt(k, dummy.matrix); };
     walls.forEach((i, k) => {
       const x = i % W, y = i / W | 0;
-      dummy.position.set(wx(x), arena === 'ridge' ? .36 : arena === 'sweet' ? .4 : .46, wz(y)); dummy.rotation.set(0, arena === 'ridge' ? (x * 1.7 + y * 2.3) : 0, 0);
-      dummy.scale.set(1, arena === 'ridge' ? .82 : 1, 1); dummy.updateMatrix(); wm.setMatrixAt(k, dummy.matrix);
+      if (arena === 'ridge') place(wm, k, x, y, .46, x * 1.7 + y * 2.3, 1, 1.05); else place(wm, k, x, y, candy ? .43 : .4);
       wm.setColorAt(k, col.set(look.wall[(x * 3 + y) % look.wall.length]));
     });
-    world.add(wm);
-    if (look.top) { // hedges get a bushy top, chocolate blocks a lick of icing
-      const tm = new THREE.InstancedMesh(new THREE.BoxGeometry(arena === 'sweet' ? .8 : .72, arena === 'sweet' ? .1 : .2, arena === 'sweet' ? .8 : .72), flat(look.top), walls.length);
-      walls.forEach((i, k) => { dummy.position.set(wx(i % W), arena === 'sweet' ? .85 : 1.0, wz(i / W | 0)); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); tm.setMatrixAt(k, dummy.matrix); });
-      world.add(tm);
+    world.add(wm, inkFor(wm, .04));
+    if (look.top) { // hedges get a bushy top, chocolate blocks a blob of icing (the dark block still shows round it from above)
+      const tm = new THREE.InstancedMesh(candy ? new THREE.IcosahedronGeometry(.29, 1) : new THREE.IcosahedronGeometry(.54, 1), toon(look.top), walls.length);
+      walls.forEach((i, k) => place(tm, k, i % W, i / W | 0, candy ? .88 : .84, (i * 1.3) % 6.28, 1, candy ? .32 : .5));
+      world.add(tm, inkFor(tm, .035));
     }
-    // crates: a few instanced parts each
+    if (snowy && !candy) { // a little cap only, so the wall tops never melt into a snowy floor
+      const cm = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.3, 1), toon('#f6faff'), walls.length);
+      walls.forEach((i, k) => place(cm, k, i % W, i / W | 0, arena === 'ridge' ? .98 : candy ? .97 : 1.08, i * .7, 1, .4));
+      world.add(cm);
+    }
+    // crates: a few instanced parts each [geometry, colour, offsets [x, y, z, rx, ry, rz], outlined]
     const list = []; for (let i = 0; i < n; i++) if (grid[i] === CRATE) list.push(i);
     list.forEach((i, k) => crateOf.set(i, k));
-    const parts = look.crate === 'hay' ? [[new THREE.BoxGeometry(.84, .66, .84), '#e9c357', [[0, .33, 0]]], [new THREE.BoxGeometry(.86, .68, .08), '#c99a30', [[0, .33, -.22], [0, .33, .22]]]]
-      : look.crate === 'box' ? [[new THREE.BoxGeometry(.84, .78, .84), '#c9925a', [[0, .39, 0]]], [new THREE.BoxGeometry(.88, .1, .88), '#9c6b3c', [[0, .06, 0], [0, .74, 0]]]]
-      : [[new THREE.CylinderGeometry(.42, .42, .56, 10), '#fbe0b5', [[0, .28, 0]]], [new THREE.CylinderGeometry(.44, .44, .14, 10), '#ff8fb8', [[0, .6, 0]]], [new THREE.SphereGeometry(.1, 8, 6), '#e02a3a', [[0, .74, 0]]]];
-    crates = parts.map(([geo, c, offs]) => {
-      const m = new THREE.InstancedMesh(geo, flat(c), Math.max(1, list.length * offs.length));
-      list.forEach((i, k) => offs.forEach((o, j) => { dummy.position.set(wx(i % W) + o[0], o[1], wz(i / W | 0) + o[2]); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); m.setMatrixAt(k * offs.length + j, dummy.matrix); }));
+    const H2 = Math.PI / 2;
+    const parts = look.crate === 'hay' ? [ // a round bale lying on its side, two bands of twine
+      [new THREE.CylinderGeometry(.35, .35, .76, 14), '#efcb5e', [[0, .36, 0, 0, 0, H2]], true],
+      [new THREE.CylinderGeometry(.365, .365, .07, 14), '#b9822e', [[-.2, .36, 0, 0, 0, H2], [.2, .36, 0, 0, 0, H2]], false],
+      [new THREE.CylinderGeometry(.24, .24, .772, 12), '#f7dc85', [[0, .36, 0, 0, 0, H2]], false],
+    ] : look.crate === 'box' ? [ // a planked crate with corner posts and a brace on each side
+      [new THREE.BoxGeometry(.76, .74, .76), '#d39a5e', [[0, .38, 0]], true],
+      [new THREE.BoxGeometry(.12, .8, .12), '#8a5a32', [[-.35, .4, -.35], [.35, .4, -.35], [-.35, .4, .35], [.35, .4, .35]], false],
+      [new THREE.BoxGeometry(.82, .1, .82), '#a8723f', [[0, .06, 0], [0, .74, 0]], false],
+      [new THREE.BoxGeometry(.09, .78, .03), '#a8723f', [[0, .4, .385, 0, 0, .74], [0, .4, -.385, 0, 0, -.74], [.385, .4, 0, 0, H2, .74], [-.385, .4, 0, 0, H2, -.74]], false],
+    ] : [ // a little layer cake with frosting and a cherry
+      [new THREE.CylinderGeometry(.4, .42, .5, 12), '#fbe0b5', [[0, .25, 0]], true],
+      [new THREE.CylinderGeometry(.43, .43, .16, 12), '#ff8fb8', [[0, .55, 0]], true],
+      [new THREE.CylinderGeometry(.425, .425, .06, 12), '#c9744a', [[0, .3, 0]], false],
+      [new THREE.SphereGeometry(.1, 8, 6), '#e02a3a', [[0, .7, 0]], false],
+    ];
+    const base = new THREE.Matrix4(), local = new THREE.Matrix4();
+    crates = [];
+    for (const [geo, c, offs, inked] of parts) {
+      const m = new THREE.InstancedMesh(geo, toon(c), Math.max(1, list.length * offs.length));
+      list.forEach((i, k) => {
+        const x = i % W, y = i / W | 0; dummy.position.set(wx(x), 0, wz(y)); dummy.rotation.set(0, (x * 3 + y) % 2 ? H2 : 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); base.copy(dummy.matrix);
+        offs.forEach((o, j) => { dummy.position.set(o[0], o[1], o[2]); dummy.rotation.set(o[3] || 0, o[4] || 0, o[5] || 0); dummy.updateMatrix(); local.copy(dummy.matrix); m.setMatrixAt(k * offs.length + j, local.premultiply(base)); });
+      });
       if (!list.length) m.count = 0;
-      m.userData.per = offs.length; world.add(m); return m;
-    });
-    // little floating isles of the same Pet Farm island round about
-    for (let k = 0; k < 5; k++) {
-      const a = Math.PI * (1.08 + k / 4 * .84), r = Math.max(W, H) * .78 + (k % 2) * 3;
-      const isl = island(2.4 + (k % 3), 2.4, { season: null, grass: th.grass, patch: th.patch, earth: th.earth, rock: th.rock, kinds: th.kinds, petals: th.petals, flowers: 6, props: 3, rim: .8, seed: k + 3, depth: .8 });
-      isl.position.set(Math.cos(a) * r * 1.25, -2.5 - (k % 3) * 1.3, Math.sin(a) * r - 1); isl.scale.setScalar(.9); world.add(isl);
+      m.userData.per = offs.length; world.add(m); crates.push(m);
+      if (inked) world.add(inkFor(m, .035));
     }
+    // ---- the island round the maze: a lawn frame with Pet Farm decorations on it, earth and rock below ----
+    const x0 = -W / 2 - RIM_SIDE, x1 = W / 2 + RIM_SIDE, z0 = -H / 2 - RIM_BACK, z1 = H / 2 + RIM_FRONT;
+    const hole = () => rrect(-W / 2 - .01, -H / 2 - .01, W / 2 + .01, H / 2 + .01, 0, new THREE.Path());
+    const slab = (inset, d, y, c) => { const sh = rrect(x0 + inset, z0 + inset, x1 - inset, z1 - inset, 1.4); sh.holes.push(hole());
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false, curveSegments: 5 }).rotateX(Math.PI / 2); return put(stat, geo, flat(c), 0, y, 0); };
+    const stat = new THREE.Group();
+    slab(0, .45, 0, th.grass); slab(.25, 1.1, -.45, th.earth); slab(.95, 1.3, -1.55, th.rock);
+    for (let i = 0; i < 9; i++) { const a = hash(i, 5) * 6.283, st = ico(stat, .35 + hash(i, 6) * .45, th.rock, Math.cos(a) * (W / 2 + 1.5), -3.2 - hash(i, 7) * 1.6, Math.sin(a) * (H / 2 + 1.2)); st.scale.y = 1.4; }
+    { const ic = new THREE.Group(); trim(ic, season, rrect(x0, z0, x1, z1, 1.4).getSpacedPoints(Math.round((x1 - x0 + z1 - z0) * 2 / .8)).slice(0, -1).map(p => [p.x * 1.004, p.y * 1.004]), -.45, 3); if (ic.children.length) { bake(ic); stat.add(ic); } }
+    // darker patches on the lawn
+    for (let i = 0; i < 26; i++) { const x = x0 + .8 + hash(i, 21) * (x1 - x0 - 1.6), z = z0 + .8 + hash(i, 22) * (z1 - z0 - 1.6); if (Math.abs(x) < W / 2 + .6 && Math.abs(z) < H / 2 + .6) continue;
+      const m = put(stat, new THREE.CircleGeometry(.35 + hash(i, 23) * .45, 10), flat(th.patch), x, .012, z); m.rotation.x = -Math.PI / 2; }
+    // props: tall ones on the sides and at the back, low ones in front too; this season's own trees and bushes swap in
+    const swaps = SL?.kinds ? [SL.kinds[0], SL.kinds[0], SL.kinds[1], SL.kinds[3]].map(k => typeof k === 'string' ? (gr, sz) => PROPS[k](gr, sz) : k) : null;
+    const extra = snowy ? [SP.snowman, SP.gifts] : [];
+    const pick = (arr, i) => { const k = arr[i % arr.length]; return swaps && !candy && SWAP[k] !== undefined ? swaps[SWAP[k]] : k; };
+    let t = 0, l = 0;
+    for (let z = z0 + .7; z < z1 - .5; z += 1.15) for (let x = x0 + .7; x < x1 - .5; x += 1.15) {
+      const jx = x + (hash(x * 7 + z, 31) - .5) * .5, jz = z + (hash(x + z * 5, 32) - .5) * .5;
+      const gapX = Math.abs(jx) - W / 2, front = jz > H / 2, back = jz < -H / 2;
+      if (gapX < .75 && !front && !back) continue; // over the maze
+      if (front && (jz - H / 2 < .6 || gapX < -.5 && hash(x, z) < .5)) continue;
+      if (back && jz > -H / 2 - .8) continue;
+      // keep off the rounded corners
+      const cx = Math.max(0, Math.abs(jx) - (W / 2 + RIM_SIDE - 1.4)), cz = Math.max(0, jz > 0 ? jz - (H / 2 + RIM_FRONT - 1.4) : -jz - (H / 2 + RIM_BACK - 1.4));
+      if (Math.hypot(cx, cz) > .9) continue;
+      if (hash(x * 3 + 1, z * 3 + 2) < .3) continue;
+      const tall = !front && hash(x, z + 9) < .55;
+      let kind = tall ? pick(look.tall, t++) : pick(look.low, l++);
+      if (extra.length && !tall && hash(x + 4, z) < .25) kind = extra[l % extra.length];
+      if (!tall && th0.kinds && !candy && hash(x + 8, z + 1) < .2) kind = th0.kinds[l % th0.kinds.length];
+      const s = typeof kind === 'string' ? (tall ? .85 : .75) : (tall ? 1.1 : .9) * (.85 + hash(x, z + 3) * .3);
+      const pr = propOf(kind, s); pr.position.set(jx, 0, jz); pr.rotation.y = hash(x + 2, z + 7) * 6.283; stat.add(pr);
+    }
+    world.add(mergeStatic(stat, .05));
+    // lamp posts at the corners of the rim, lit after dark like every island's
+    for (const [lx, lz] of [[x0 + 1.2, z0 + 1.2], [x1 - 1.2, z0 + 1.2], [x0 + 1, z1 - .8], [x1 - 1, z1 - .8], [x0 + .9, 0], [x1 - .9, 0]]) {
+      const lp = new THREE.Group(); PROPS.lamp(lp, 1); toonify(lp, .03); lp.position.set(lx, 0, lz); lp.userData.nightOnly = true; lp.visible = isNight(); world.add(lp);
+    }
+    if (cw && ch) fit(); // the canvas may have been sized before the maze was known
   }
   function crateGone(i) {
     const k = crateOf.get(i); if (k === undefined) return;
     crateOf.delete(i);
     dummy.position.set(0, -60, 0); dummy.scale.set(.001, .001, .001); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
     for (const m of crates) { for (let j = 0; j < m.userData.per; j++) m.setMatrixAt(k * m.userData.per + j, dummy.matrix); m.instanceMatrix.needsUpdate = true; }
-    const look = LOOK[arena] || LOOK.woods, bits = look.crate === 'hay' ? ['#e9c357', '#c99a30'] : look.crate === 'box' ? ['#c9925a', '#9c6b3c'] : ['#fbe0b5', '#ff8fb8'];
+    const look = LOOK[arena] || LOOK.woods, bits = look.crate === 'hay' ? ['#efcb5e', '#b9822e'] : look.crate === 'box' ? ['#d39a5e', '#8a5a32'] : ['#fbe0b5', '#ff8fb8'];
     fx.burst(new THREE.Vector3(wx(i % W), .5, wz(i / W | 0)), { n: few ? 6 : 10, colors: bits, shape: DOT, speed: 2.4, up: 3, size: .22, life: .7, grav: 9 });
   }
   // The server's maze: break the crates that went, drop the tiles that fell.
@@ -188,16 +294,17 @@ export function createScene(canvas, opts = {}) {
 
   // ---------- petal blasts ----------
   const BN = 260;
-  const outer = new THREE.InstancedMesh(new THREE.BoxGeometry(.96, .5, .96), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .9, depthWrite: false }), BN);
-  const core = new THREE.InstancedMesh(new THREE.BoxGeometry(.5, .62, .5), new THREE.MeshBasicMaterial({ color: '#ffffff' }), BN);
+  // each blasted tile blooms into a flower: eight petals in the seed look's blast colour round a puffy core
+  const outer = new THREE.InstancedMesh(flowerGeo(), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .92, depthWrite: false }), BN);
+  const core = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.26, 1), new THREE.MeshBasicMaterial({ color: '#ffffff' }), BN);
   for (const m of [outer, core]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; for (let i = 0; i < BN; i++) { dummy.position.set(0, -60, 0); dummy.scale.set(0, 0, 0); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); } scene.add(m); }
   const tint = new THREE.Color();
   for (let i = 0; i < BN; i++) { outer.setColorAt(i, tint.set('#ff8fc8')); core.setColorAt(i, tint.set('#fff4fa')); } // each blast is tinted by its seed's look
-  const slots = Array.from({ length: BN }, () => ({ life: 0, x: 0, z: 0 })); let bnext = 0;
+  const slots = Array.from({ length: BN }, () => ({ life: 0, x: 0, z: 0, r: 0 })); let bnext = 0;
   function blast(cells, by = -1) {
     const look = seedLook(skins[by] | 0), bits = look.bits, shape = SHAPES[look.burst] ?? HEART;
     for (const i of cells) {
-      const k = bnext, s = slots[k]; bnext = (bnext + 1) % BN; s.life = .45; s.x = wx(i % W); s.z = wz(i / W | 0);
+      const k = bnext, s = slots[k]; bnext = (bnext + 1) % BN; s.life = .45; s.x = wx(i % W); s.z = wz(i / W | 0); s.r = (i * 2.399) % 6.283;
       outer.setColorAt(k, tint.set(look.blast)); core.setColorAt(k, tint.set(look.core));
     }
     outer.instanceColor.needsUpdate = core.instanceColor.needsUpdate = true;
@@ -318,13 +425,16 @@ export function createScene(canvas, opts = {}) {
     }
     blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
     // blasts
-    for (let i = 0; i < BN; i++) { const s = slots[i]; if (s.life <= 0 && s.dead) continue;
+    let top1 = 0;
+    for (let i = 0; i < BN; i++) { const s = slots[i]; if (s.life <= 0 && s.dead) continue; top1 = i + 1;
       s.life -= dt; const k = Math.max(0, s.life / .45), pulse = .55 + .45 * Math.sin(k * Math.PI);
-      dummy.rotation.set(0, 0, 0);
       const on = s.life > 0 ? 1 : 0; // a spent blast shrinks to nothing (parked far below, a tall phone camera could still see it)
-      dummy.position.set(s.x, on ? .27 : -60, s.z); dummy.scale.set(pulse * on, (.5 + pulse * .6) * on, pulse * on); dummy.updateMatrix(); outer.setMatrixAt(i, dummy.matrix);
-      dummy.position.set(s.x, on ? .3 : -60, s.z); dummy.scale.set(pulse * 1.1 * on, on, pulse * 1.1 * on); dummy.updateMatrix(); core.setMatrixAt(i, dummy.matrix);
+      const bloom = Math.min(1, (1 - k) * 6) * (.75 + .35 * pulse); // opens fast, then breathes and closes
+      dummy.rotation.set(0, s.r + (1 - k) * 1.2, 0);
+      dummy.position.set(s.x, on ? .16 : -60, s.z); dummy.scale.set(bloom * 1.12 * on, (1 + pulse) * on, bloom * 1.12 * on); dummy.updateMatrix(); outer.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(s.x, on ? .22 + pulse * .08 : -60, s.z); dummy.scale.set(bloom * on, bloom * .75 * on, bloom * on); dummy.updateMatrix(); core.setMatrixAt(i, dummy.matrix);
       s.dead = s.life <= 0; }
+    outer.count = core.count = top1; // only draw up to the last blooming slot
     outer.instanceMatrix.needsUpdate = core.instanceMatrix.needsUpdate = true;
     // falling tiles, and the ones about to go shaking
     if (fallen.length || shaking.length) {
