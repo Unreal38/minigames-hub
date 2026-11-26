@@ -11,7 +11,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import * as R from './rules.js';
 
 const { BS, COLS, ROWS, W } = R;
-export const PZ = .55;            // the pets' plane (in front of the island's middle)
+export const PZ = -.2;            // the pets' plane: a little in front of the middle of the island's top, well back from its front edge
 const DEPTH = 2.6, ZC = -.4;      // the island's thickness and centre
 const K = .6;                     // avatars' size (a scale on a wrapper: standing-avatar rule)
 const LIFT = { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 };
@@ -146,7 +146,7 @@ export function createScene(canvas, opts = {}) {
       let r = ROWS - 1; while (r > 0 && !R.cellAt(grid, c, r)) r--; if (r < 2) continue;
       const kind = kinds[Math.floor(hash(c, 9) * kinds.length)], g = new THREE.Group();
       (typeof kind === 'function' ? kind : PROPS[kind] || PROPS.bush)(g, .85 + hash(c, 10) * .45);
-      const x = c * BS + BS / 2, y = (r + 1) * BS + .1, z = ZC - DEPTH / 2 + .45 + hash(c, 11) * .5;
+      const x = c * BS + BS / 2, y = (r + 1) * BS + .1, z = ZC - DEPTH / 2 + .3 + hash(c, 11) * .25;
       g.position.set(x, y, z); g.rotation.y = hash(c, 12) * 6.28; toonify(g, .035); scene.add(g); props.push({ g, x, y, z });
     }
   }
@@ -166,7 +166,7 @@ export function createScene(canvas, opts = {}) {
       const px = x + (Math.random() * 2 - 1) * r * 1.1, c = Math.floor(px / BS); if (c < 0 || c >= COLS) continue;
       let rr = Math.min(ROWS - 1, Math.floor((y + r) / BS)); while (rr >= 0 && !R.cellAt(grid, c, rr)) rr--;
       if (rr < 0 || (rr + 1) * BS < y - r * 1.4) continue;
-      splats.add(px, (rr + 1) * BS + .02, ZC + DEPTH / 2 - .2 - Math.random() * 1.6, colors[k % 2], .7 + Math.random() * .5);
+      splats.add(px, (rr + 1) * BS + .02, PZ + (Math.random() - .4) * 1.4, colors[k % 2], .7 + Math.random() * .5);
     }
     splats.sync();
   }
