@@ -45,9 +45,16 @@ export function paintFace(g, sp, tw, pet) {
   g.lineWidth = 6; g.strokeStyle = INK; g.strokeText(name, W / 2, H - 55); g.fillStyle = '#fff'; g.fillText(name, W / 2, H - 55);
   if (tw) badge(g, tw, W - 48, 48, 30);
 }
-// The back: sky-blue stripes round a cream paw print.
-export function paintBack(g) {
+// The back: sky-blue stripes round a cream paw print. With a card back cosmetic (kind cb, k > 0, skins.js) the
+// player's own back fills the card instead, in the same ink frame.
+export function paintBack(g, k = 0, sk = null) {
   g.clearRect(0, 0, W, H);
+  if (k > 0 && sk) {
+    g.fillStyle = INK; rr(g, 0, 0, W, H, 30); g.fill();
+    g.save(); rr(g, 9, 9, W - 18, H - 18, 22); g.clip(); g.translate(9, 9); sk.paintBack(g, W - 18, H - 18, k); g.restore();
+    g.lineWidth = 7; g.strokeStyle = CREAM; rr(g, 24, 24, W - 48, H - 48, 16); g.stroke();
+    return;
+  }
   g.fillStyle = INK; rr(g, 0, 0, W, H, 30); g.fill();
   g.save(); rr(g, 9, 9, W - 18, H - 18, 22); g.clip();
   g.fillStyle = '#2f86cc'; g.fillRect(0, 0, W, H);

@@ -73,7 +73,15 @@ export function createScene(canvas, { onFrame } = {}) {
     const redo = () => { paint(cv.getContext('2d')); tex.needsUpdate = true; }; redo(); document.fonts?.ready.then(redo);
     return { tex, redo };
   }
-  const backMat = toonMat(new THREE.MeshStandardMaterial({ map: canvasTex(paintBack).tex, roughness: .55 }));
+  // every face-down card wears your own card back (cosmetic kind cb) on your screen; 0 is Pet Pairs' own paw back
+  let backK = 0, skins = null;
+  const back = canvasTex(g => paintBack(g, backK, skins));
+  const backMat = toonMat(new THREE.MeshStandardMaterial({ map: back.tex, roughness: .55 }));
+  function setBack(k) {
+    k = k | 0; if (k === backK) return; backK = k;
+    if (!k) return back.redo();
+    import('../../skins.js').then(m => { if (dead || backK !== k) return; skins = m; back.redo(); }).catch(() => {});
+  }
   // card faces are unlit, so a pet looks the same day or night
   function faceMat(sp, tw) {
     const k = sp + '|' + tw;
@@ -351,7 +359,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
 
   return {
-    setState, cue, pick, setHover, pairFx, missFx, mix,
+    setState, cue, pick, setHover, pairFx, missFx, mix, setBack,
     cardPx(i) { const c = cards[i]; if (!c) return null; tv.copy(c.g.position); tv.y = .3; tv.project(camera); return { x: (tv.x + 1) / 2 * Wd, y: (1 - tv.y) / 2 * Ht }; },
     setHud(bottomPx, topPx = hudTop) { if ((Math.abs(bottomPx - hudBottom) > 6 || Math.abs(topPx - hudTop) > 6) && hudFitOk(canvas)) { hudBottom = bottomPx; hudTop = topPx; resize(true); } },
     dispose() {
