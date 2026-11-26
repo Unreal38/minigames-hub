@@ -11,7 +11,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import * as R from './rules.js';
 
 const { BS, COLS, ROWS, W } = R;
-export const PZ = .55;            // the pets' plane (in front of the island's middle)
+export const PZ = -.2;            // the pets' plane: a little in front of the middle of the island's top, well back from its front edge
 const DEPTH = 2.6, ZC = -.4;      // the island's thickness and centre
 const K = .6;                     // avatars' size (a scale on a wrapper: standing-avatar rule)
 const LIFT = { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 };
@@ -63,16 +63,19 @@ export function createScene(canvas, opts = {}) {
   const toon = c => toonMat(flat(c));
   const terrain = new THREE.Mesh(new THREE.BufferGeometry(), toonMat(flat('#ffffff', { vertexColors: true })));
   const ink = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: '#4a2c22' }));
-  terrain.frustumCulled = ink.frustumCulled = false; scene.add(terrain, ink);
+  // the front of the island: a painted cake cross-section (paintCake), drawn on one canvas per match
+  const PPU = 40, TW = Math.round(W * PPU), TH = Math.round(ROWS * BS * PPU), cakeCv = document.createElement('canvas'); cakeCv.width = TW; cakeCv.height = TH;
+  const cakeTex = new THREE.CanvasTexture(cakeCv); cakeTex.colorSpace = THREE.SRGBColorSpace; cakeTex.anisotropy = 4;
+  const front = new THREE.Mesh(new THREE.BufferGeometry(), toonMat(flat('#ffffff', { map: cakeTex })));
+  let cakePx = null; // the painted pixels, for the colours of the walls
+  terrain.frustumCulled = ink.frustumCulled = front.frustumCulled = false; scene.add(terrain, ink, front);
   const m4 = new THREE.Matrix4(), col = new THREE.Color(), seaC = new THREE.Color();
   let grid = new Uint8Array(N), applied = 0;
   const winter = season === 'winter';
   const GRASS = look.grass || '#8bca60', PATCH = look.patch || '#7fbf56', SOIL = look.earth || '#c98a5a', ROCK = look.rock || '#857a72';
-  // the cake inside, in flat bands right across the island (a hole shows the same layers wherever it is)
-  const CAKE = ['#f6c97f', '#f6c97f', '#fff3df', '#f0bc6c', '#f0bc6c', '#e0524f', '#f6c97f', '#f6c97f', '#fff3df', '#8a5236', '#8a5236', '#f2c27a'];
   const hash = (i, s2) => { const x = Math.sin(i * 127.1 + s2 * 311.7) * 43758.5453; return x - Math.floor(x); };
   const isTop = (c, r) => R.cellAt(grid, c, r + 1) === 0;
-  let fieldAt = () => 0;
+  let fieldAt = () => 0, field0 = () => 0;
   const cellK = (c, r) => R.cellAt(grid, c, Math.max(0, r)); // below row 0 the island just carries on into the sea
   const kindNear = (c, r) => cellK(c, r) || cellK(c, r + 1) || cellK(c - 1, r) || cellK(c + 1, r) || cellK(c, r - 1) || cellK(c - 1, r - 1) || cellK(c + 1, r - 1) || cellK(c - 1, r + 1) || cellK(c + 1, r + 1) || 1;
   function colorAt(x, y, wall) { // the colour of the island at a point (a triangle's middle)
@@ -81,12 +84,11 @@ export function createScene(canvas, opts = {}) {
     else if (k === 3) col.set(r % 2 ? '#ff9ec4' : '#fff4f8'); // rock candy
     else {
       const cc = Math.min(COLS - 1, Math.max(0, c));
-      const d = fieldAt(x, y + .32) < .5 ? 0 : fieldAt(x, y + .7) < .5 ? 1 : 2; // grass, earth, cake: bands that follow the slopes
-      if (wall > .35 || d === 0) col.set(winter ? (hash(cc >> 1, 5) < .5 ? '#f6faff' : '#e9f2fb') : (hash(cc >> 1, 3) < .5 ? GRASS : PATCH));
-      else if (d === 1) col.set(SOIL);
-      else if (r >= 0 && !cellK(cc, r - 1) && cellK(cc, r)) col.set('#c99a6a'); // the underside of an overhang: baked crust
-      else col.set(CAKE[(r + 40) % CAKE.length]);
-      if (wall > -2 && wall <= .35) col.offsetHSL(0, 0, -.06); // the sides of holes and cliffs, a shade darker
+      if (wall > .35 && field0(x, y + .4) < .5) col.set(winter ? (hash(cc >> 1, 5) < .5 ? '#f6faff' : '#e9f2fb') : (hash(cc >> 1, 3) < .5 ? GRASS : PATCH)); // the lawn on top
+      else if (cakePx) { const px = Math.max(0, Math.min(TW - 1, Math.round(x * PPU))), py = Math.max(0, Math.min(TH - 1, Math.round(TH - y * PPU))), o = (px + py * TW) * 4;
+        col.setRGB(cakePx[o] / 255, cakePx[o + 1] / 255, cakePx[o + 2] / 255, THREE.SRGBColorSpace); } // inside a bite: whatever the cake shows there
+      else col.set('#f2c47c');
+      if (wall > -2 && wall <= .35) col.offsetHSL(0, 0, -.07); // the sides of holes and cliffs, a shade darker
     }
     if (y < water - .05) col.lerp(seaC, .45);
     return col;
@@ -95,7 +97,7 @@ export function createScene(canvas, opts = {}) {
     seaC.set(seaNight === 1 ? '#2b3f86' : seaDay);
     const CW = COLS + 1, V = new Float32Array(CW * (ROWS + 1));
     for (let j = 0; j <= ROWS; j++) for (let i = 0; i <= COLS; i++) V[i + j * CW] = ((cellK(i - 1, j - 1) ? 1 : 0) + (cellK(i, j - 1) ? 1 : 0) + (cellK(i - 1, j) ? 1 : 0) + (cellK(i, j) ? 1 : 0)) / 4;
-    const P = [], C = [], I = [], seg = [];
+    const P = [], C = [], I = [], seg = [], FP = [], FU = [];
     const tri = (ax, ay, az, bx, by, bz, cx, cy, cz, cl) => { P.push(ax, ay, az, bx, by, bz, cx, cy, cz); for (let k = 0; k < 3; k++) C.push(cl.r, cl.g, cl.b); };
     const quadInk = (ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz) => I.push(ax, ay, az, bx, by, bz, cx, cy, cz, ax, ay, az, cx, cy, cz, dx, dy, dz);
     const S2 = 2, H = BS / S2, VS = (i, j) => { // the corner field, sampled between corners too (half-cell steps)
@@ -112,8 +114,9 @@ export function createScene(canvas, opts = {}) {
         if ((a >= .5) !== (b >= .5)) { const t = (.5 - a) / (b - a); poly.push([(i0 + (i1 - i0) * t) * H, (j0 + (j1 - j0) * t) * H, true]); }
       }
       let mx = 0, my = 0; for (const q of poly) { mx += q[0]; my += q[1]; } mx /= poly.length; my /= poly.length;
-      colorAt(mx, my, -9); const fc = col.clone();
-      for (let k = 1; k < poly.length - 1; k++) tri(poly[0][0], poly[0][1], ZF, poly[k][0], poly[k][1], ZF, poly[k + 1][0], poly[k + 1][1], ZF, fc);
+      const kk = kindNear(Math.floor(mx / BS), Math.floor(my / BS));
+      if (kk === 2 || kk === 3) { colorAt(mx, my, -9); const fc = col.clone(); for (let k = 1; k < poly.length - 1; k++) tri(poly[0][0], poly[0][1], ZF, poly[k][0], poly[k][1], ZF, poly[k + 1][0], poly[k + 1][1], ZF, fc); }
+      else for (let k = 1; k < poly.length - 1; k++) for (const q of [poly[0], poly[k], poly[k + 1]]) { FP.push(q[0], q[1], ZF); FU.push(q[0] / W, q[1] / (ROWS * BS)); }
       for (let k = 0; k < poly.length; k++) { const p = poly[k], q = poly[(k + 1) % poly.length]; if (p[2] && q[2]) seg.push([p[0], p[1], q[0], q[1]]); }
     }
     for (const [ax, ay, bx, by] of seg) { // the walls along the outline, and the ink line
@@ -126,6 +129,8 @@ export function createScene(canvas, opts = {}) {
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.computeVertexNormals();
     terrain.geometry.dispose(); terrain.geometry = g;
+    const gf = new THREE.BufferGeometry(); gf.setAttribute('position', new THREE.Float32BufferAttribute(FP, 3)); gf.setAttribute('uv', new THREE.Float32BufferAttribute(FU, 2)); gf.computeVertexNormals();
+    front.geometry.dispose(); front.geometry = gf;
     const gi = new THREE.BufferGeometry(); gi.setAttribute('position', new THREE.Float32BufferAttribute(I, 3)); ink.material.side = THREE.DoubleSide;
     ink.geometry.dispose(); ink.geometry = gi;
     for (const pr of props) if (pr.g.visible && !R.solidAt(grid, pr.x, pr.y - .25)) { pr.g.visible = false; fx.burst(new THREE.Vector3(pr.x, pr.y + .4, pr.z), { n: 12, colors: ['#5fb04a', '#ffffff', '#ff9fb8'], shape: STAR, speed: 3, up: 4, size: .22, grav: 9, life: .9 }); }
@@ -141,7 +146,7 @@ export function createScene(canvas, opts = {}) {
       let r = ROWS - 1; while (r > 0 && !R.cellAt(grid, c, r)) r--; if (r < 2) continue;
       const kind = kinds[Math.floor(hash(c, 9) * kinds.length)], g = new THREE.Group();
       (typeof kind === 'function' ? kind : PROPS[kind] || PROPS.bush)(g, .85 + hash(c, 10) * .45);
-      const x = c * BS + BS / 2, y = (r + 1) * BS + .1, z = ZC - DEPTH / 2 + .45 + hash(c, 11) * .5;
+      const x = c * BS + BS / 2, y = (r + 1) * BS + .1, z = ZC - DEPTH / 2 + .3 + hash(c, 11) * .25;
       g.position.set(x, y, z); g.rotation.y = hash(c, 12) * 6.28; toonify(g, .035); scene.add(g); props.push({ g, x, y, z });
     }
   }
@@ -161,14 +166,56 @@ export function createScene(canvas, opts = {}) {
       const px = x + (Math.random() * 2 - 1) * r * 1.1, c = Math.floor(px / BS); if (c < 0 || c >= COLS) continue;
       let rr = Math.min(ROWS - 1, Math.floor((y + r) / BS)); while (rr >= 0 && !R.cellAt(grid, c, rr)) rr--;
       if (rr < 0 || (rr + 1) * BS < y - r * 1.4) continue;
-      splats.add(px, (rr + 1) * BS + .02, ZC + DEPTH / 2 - .2 - Math.random() * 1.6, colors[k % 2], .7 + Math.random() * .5);
+      splats.add(px, (rr + 1) * BS + .02, PZ + (Math.random() - .4) * 1.4, colors[k % 2], .7 + Math.random() * .5);
     }
     splats.sync();
   }
   function setWorld(hs, ops) {
     grid = R.gridOf(hs); applied = 0;
     for (const op of ops) R.applyOp(grid, op);
-    applied = ops.length; splats.clear(); buildProps(hs); rebuild();
+    applied = ops.length; splats.clear(); buildProps(hs);
+    cakePx = null; rebuild(); field0 = fieldAt; paintCake(hs[0] * 31 + hs[COLS >> 1] * 7 + ops.length); rebuild();
+  }
+  // The cake cross-section, painted from the island's first shape: the season's lawn on top, pink frosting with drips
+  // and sprinkles under it, then sponge with crumbs, cream and jam fillings, and chocolate sponge at the bottom.
+  // Bites later show whatever is painted at that spot, so holes open into the cake.
+  function paintCake(seed) {
+    const g2 = cakeCv.getContext('2d'), img = g2.createImageData(TW, TH), D = img.data, cls = new Uint8Array(TW * TH);
+    let sd = seed | 0; const rnd = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+    const drips = []; for (let x = .2; x < W; x += .55 + rnd() * .9) drips.push([x, .18 + rnd() * .22, .2 + rnd() * .65]); // centre, width, length
+    const dripAt = x => { let m = 0; for (const [cx, w, l] of drips) { const u = (x - cx) / (w / 2); if (u > -1 && u < 1) m = Math.max(m, l * Math.sqrt(1 - u * u)); } return m; };
+    const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const lawn = hex(winter ? '#f6faff' : GRASS), lawn2 = hex(winter ? '#dfeaf6' : PATCH), fro = hex('#ff9ec2'), fro2 = hex('#ffc4da'), froEdge = hex('#e57aa4');
+    const sponge = hex('#f4c678'), spongeHi = hex('#f8d593'), crumbD = hex('#d99e4f'), crumbL = hex('#fff0c4'), cream = hex('#fff6e8'), jam = hex('#d8344f'), choc = hex('#7a4a2e'), chocD = hex('#5e3620');
+    const put = (o, c, k = 0) => { D[o] = Math.max(0, Math.min(255, c[0] + k)); D[o + 1] = Math.max(0, Math.min(255, c[1] + k)); D[o + 2] = Math.max(0, Math.min(255, c[2] + k)); D[o + 3] = 255; };
+    const nz = (a, b) => { const v = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return v - Math.floor(v); };
+    for (let px = 0; px < TW; px++) {
+      const x = (px + .5) / PPU, drip = dripAt(x), lawnT = .26 + .04 * Math.sin(x * 2.3), froT = lawnT + .42 + drip;
+      let out = ROWS * BS; // the y of the last point above that was outside the island
+      for (let py = 0; py < TH; py++) {
+        const y = (TH - py - .5) / PPU, o = (px + py * TW) * 4;
+        if (field0(x, y) < .5) { out = y; D[o + 3] = 0; continue; }
+        const d = out - y;
+        if (d < lawnT) { put(o, nz(Math.floor(px / 14), 1) < .5 ? lawn : lawn2); cls[px + py * TW] = 1; }
+        else if (d < froT) { put(o, d < lawnT + .07 ? fro2 : d > froT - .045 ? froEdge : fro); cls[px + py * TW] = 2; }
+        else {
+          const yw = y + .1 * Math.sin(x * 1.4) + .05 * Math.sin(x * 3.7 + 1), t = ((yw % 2.8) + 2.8) % 2.8, n = nz(Math.floor(px / 3), Math.floor(py / 3));
+          if (yw < 2.1) put(o, n < .08 ? chocD : choc, (n - .5) * 10);
+          else if (t < .38) put(o, cream, (n - .5) * 6);
+          else if (t < .52) put(o, jam, (n - .5) * 12);
+          else if (t < .6) put(o, cream, 0);
+          else put(o, n < .06 ? crumbD : n > .95 ? crumbL : t > 2.5 ? spongeHi : sponge, (n - .5) * 8);
+        }
+      }
+    }
+    g2.putImageData(img, 0, 0);
+    // sprinkles on the frosting
+    const SPR = ['#ffffff', '#ffd34d', '#7ed3f0', '#8fd46a', '#b48ae0', '#ff6b6b'];
+    for (let k = 0; k < W * 34; k++) {
+      const px = Math.floor(rnd() * TW), py = Math.floor(rnd() * TH); if (cls[px + py * TW] !== 2) continue;
+      g2.save(); g2.translate(px, py); g2.rotate(rnd() * 3.14); g2.fillStyle = SPR[Math.floor(rnd() * SPR.length)]; g2.fillRect(-5, -1.8, 10, 3.6); g2.restore();
+    }
+    cakePx = g2.getImageData(0, 0, TW, TH).data; cakeTex.needsUpdate = true;
   }
   // new changes since the last ones we drew (a splash, a bush, a bridge)
   function addOps(ops) {
@@ -353,7 +400,7 @@ export function createScene(canvas, opts = {}) {
     project(x, y) { v3.set(x, y, PZ).project(camera); return [(v3.x * .5 + .5) * W0, (-v3.y * .5 + .5) * H0]; },
     petAt(i) { const p = pets[i]; return p ? { x: p.x, y: p.y } : null; },
     stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: loop.fps() }),
-    dispose() { loop.stop(); ro.disconnect(); for (const m of folk) disposeAvatar(m.av); fx.dispose();
+    dispose() { loop.stop(); ro.disconnect(); cakeTex.dispose(); for (const m of folk) disposeAvatar(m.av); fx.dispose();
       scene.traverse(o => { if (o.isMesh || o.isPoints || o.isLine) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared && !mt.userData?.keep) mt.dispose(); } }); renderer.dispose(); renderer.forceContextLoss(); },
   };
 }

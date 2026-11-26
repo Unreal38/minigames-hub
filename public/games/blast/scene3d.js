@@ -5,12 +5,13 @@
 // blasts are two more, avatars get soft blobs instead of real shadows, and there are no shadow maps at all.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { skyDome, clouds, nightScene, birds, flat, put, ico, hash, PROPS, toonMat, toonify, mergeStatic, isNight, seasonLookNow, createFx, STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF } from '../../scenery3d.js';
+import { skyDome, clouds, nightScene, birds, flat, put, ico, hash, PROPS, toonMat, toonify, mergeStatic, isNight, seasonLookNow, petals, createFx, STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF } from '../../scenery3d.js';
 import { lookOf, SP, trim } from '../../season3d.js';
 import { itemModel } from '../farm/models.js';
 import { seedLook, seedModel as seedSkin } from '../../pieceskins.js';
 import { groundOf } from '../../isle3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
+import { litePet } from '../plaza/scene3d.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
 import { ARENAS, EL_COL, ELS, WALL, CRATE, GONE, Q } from './rules.js';
 
@@ -25,11 +26,17 @@ const FACE = [0, Math.PI / 2, Math.PI, -Math.PI / 2]; // facing 0 down (towards 
 // stand on the sides and at the back, "low" ones also in front, where they must not hide the maze's bottom row.
 const LOOK = {
   woods: { wall: ['#2f7a3d', '#358343', '#2b7339'], top: '#4f9e48', crate: 'hay',
-    tall: ['pine', 'tree', 'pine', 'scarecrow', 'tree', 'well', 'pine', 'windmill'], low: ['bush', 'haybale', 'shrooms', 'flowers', 'bush', 'rock', 'bench', 'haybale'] },
+    tall: ['pine', 'tree', 'pine', 'scarecrow', 'tree', 'well', 'pine', 'windmill'], low: ['bush', 'haybale', 'shrooms', 'flowers', 'bush', 'rock', 'bench', 'haybale'],
+    bits: ['#3f8c4a', '#7ccf5a', '#ffffff', '#ffd34d', '#ff9fb8'], snowBits: ['#ffffff', '#e3eef9', '#3f8c4a', '#e5343b'], wallBits: ['#e5343b', '#ffffff', '#ffd34d', '#ff9fb8'], dust: '#d9efbf',
+    pets: ['mossbun', 'acornip', 'bambear', 'truffowl', 'snowfox'] },
   ridge: { wall: ['#7a768a', '#6e6a7e', '#858196'], top: null, crate: 'box',
-    tall: ['pine', 'geode', 'telescope', 'pine', 'well', 'statue', 'pine', 'lighthouse'], low: ['rock', 'campfire', 'rock', 'shrooms', 'bush', 'rock'] },
+    tall: ['pine', 'geode', 'telescope', 'pine', 'well', 'statue', 'pine', 'lighthouse'], low: ['rock', 'campfire', 'rock', 'shrooms', 'bush', 'rock'],
+    bits: ['#8a8794', '#a9a6b0', '#6f6c78', '#bdb9c6'], snowBits: ['#ffffff', '#e3eef9', '#8a8794'], wallBits: ['#8fe3f5', '#c8a2f2', '#8fe3f5'], dust: '#e3e0ea',
+    pets: ['pebblet', 'cragcrab', 'dustmole', 'geodeer', 'yetiny'] },
   sweet: { wall: ['#6b3d24', '#5f3520', '#744429'], top: '#ffd1e6', crate: 'cake',
-    tall: ['cherry', 'topiary', 'cherry', 'balloon', 'cherry', 'vane'], low: ['picnic', 'flowers', 'ball', 'cart', 'flowers', 'hives'] },
+    tall: ['cherry', 'topiary', 'cherry', 'balloon', 'cherry', 'vane'], low: ['picnic', 'flowers', 'ball', 'cart', 'flowers', 'hives'],
+    bits: ['#ff5a8a', '#5ad0ff', '#ffd34d', '#7ad66b', '#ffffff', '#c9a2ff'], wallBits: ['#ff5a8a', '#5ad0ff', '#ffd34d', '#7ad66b', '#c9a2ff'], dust: '#ffe3f0',
+    pets: ['strawbun', 'donuseal', 'cupcowl', 'mallowlamb', 'glazemew'] },
 };
 // In a season the plain trees, bushes and rocks give way to that season's own (snowy pines and snowmen in winter).
 const SWAP = { pine: 0, tree: 1, bush: 2, rock: 3 };
@@ -72,20 +79,21 @@ export function createScene(canvas, opts = {}) {
   scene.add(new THREE.HemisphereLight('#ffffff', '#ffe9c9', 1.9));
   const key = new THREE.DirectionalLight('#ffffff', 1.45); key.position.set(-8, 20, 12); scene.add(key);
   skyDome(scene, '#4fa8f0', '#c9ecff'); scene.add(clouds({ near: 40, far: 14, below: -12, min: 30, max: 120 }));
-  const fly = birds(scene, 34, 10, 3, 1.3);
+  const fly = birds(scene, 34, 10, 3, 1.3), drift = petals(scene, 24, 7, { n: few ? 8 : 16, size: .12 });
   const fx = createFx(scene, { max: few ? 400 : 700 });
   nightScene(scene, { wx: { size: 30 } });
   res.prep?.(scene);
 
   // ---------- the maze ----------
   let arena = '', W = 0, H = 0, grid = null, world = null, floor = null, dirt = null, depth = [], crates = [], crateOf = new Map(), fallen = [], shakeSet = new Set();
+  let bitsMesh = null, bitsOf = new Map(), rimPets = [], dust = '#ffffff';
   const dummy = new THREE.Object3D(), col = new THREE.Color();
   const wx = x => x - (W - 1) / 2, wz = y => y - (H - 1) / 2;
   function clearWorld() {
     if (!world) return;
     scene.remove(world);
     world.traverse(o => { if (o.isMesh) { o.geometry?.dispose(); for (const m of [].concat(o.material || [])) if (!m.userData?.shared) m.dispose?.(); } });
-    world = null; crates = []; crateOf = new Map(); fallen = []; shakeSet = new Set();
+    world = null; crates = []; crateOf = new Map(); fallen = []; shakeSet = new Set(); bitsMesh = null; bitsOf = new Map(); rimPets = [];
   }
   // a prop for the rim: a Pet Farm decoration by name, or a prop function (season or isle props)
   function propOf(kind, s) {
@@ -145,46 +153,86 @@ export function createScene(canvas, opts = {}) {
       [new THREE.CylinderGeometry(.35, .35, .76, 14), '#efcb5e', [[0, .36, 0, 0, 0, H2]], true],
       [new THREE.CylinderGeometry(.365, .365, .07, 14), '#b9822e', [[-.2, .36, 0, 0, 0, H2], [.2, .36, 0, 0, 0, H2]], false],
       [new THREE.CylinderGeometry(.24, .24, .772, 12), '#f7dc85', [[0, .36, 0, 0, 0, H2]], false],
+      [new THREE.BoxGeometry(.025, .025, .34), '#f7dc85', [[-.1, .71, .02, .2, .5, 0], [.06, .705, -.04, -.15, -.7, 0], [.24, .7, .05, .1, 1.3, 0], [-.27, .69, -.06, 0, -.3, .2]], false],
     ] : look.crate === 'box' ? [ // a planked crate with corner posts and a brace on each side
       [new THREE.BoxGeometry(.76, .74, .76), '#d39a5e', [[0, .38, 0]], true],
       [new THREE.BoxGeometry(.12, .8, .12), '#8a5a32', [[-.35, .4, -.35], [.35, .4, -.35], [-.35, .4, .35], [.35, .4, .35]], false],
       [new THREE.BoxGeometry(.82, .1, .82), '#a8723f', [[0, .06, 0], [0, .74, 0]], false],
       [new THREE.BoxGeometry(.09, .78, .03), '#a8723f', [[0, .4, .385, 0, 0, .74], [0, .4, -.385, 0, 0, -.74], [.385, .4, 0, 0, H2, .74], [-.385, .4, 0, 0, H2, -.74]], false],
+      [new THREE.CylinderGeometry(1, 1, .012, 10), '#8a5a32', [[0, .797, .05, 0, 0, 0], [-.13, .797, -.09], [-.045, .797, -.15], [.045, .797, -.15], [.13, .797, -.09]], false, [.12, .05, .05, .05, .05]],
     ] : [ // a little layer cake with frosting and a cherry
       [new THREE.CylinderGeometry(.4, .42, .5, 12), '#fbe0b5', [[0, .25, 0]], true],
       [new THREE.CylinderGeometry(.43, .43, .16, 12), '#ff8fb8', [[0, .55, 0]], true],
       [new THREE.CylinderGeometry(.425, .425, .06, 12), '#c9744a', [[0, .3, 0]], false],
       [new THREE.SphereGeometry(.1, 8, 6), '#e02a3a', [[0, .7, 0]], false],
+      [new THREE.SphereGeometry(.07, 6, 4), '#ff8fb8', [[.4, .5, .05], [-.38, .49, -.12], [.08, .5, .4], [-.12, .48, -.39], [.3, .49, -.28]], false, [1, .9, 1.1, .8, .9]],
+      [new THREE.CapsuleGeometry(.02, .06, 1, 4), '#ffd34d', [[.2, .64, .1, H2, .5, 0], [-.15, .64, .2, H2, 1.9, 0], [-.22, .64, -.1, H2, 2.8, 0], [.12, .64, -.22, H2, -.6, 0], [.26, .64, -.08, H2, 1.1, 0]], false],
     ];
     const base = new THREE.Matrix4(), local = new THREE.Matrix4();
     crates = [];
-    for (const [geo, c, offs, inked] of parts) {
+    for (const [geo, c, offs, inked, sizes] of parts) {
       const m = new THREE.InstancedMesh(geo, toon(c), Math.max(1, list.length * offs.length));
       list.forEach((i, k) => {
         const x = i % W, y = i / W | 0; dummy.position.set(wx(x), 0, wz(y)); dummy.rotation.set(0, (x * 3 + y) % 2 ? H2 : 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); base.copy(dummy.matrix);
-        offs.forEach((o, j) => { dummy.position.set(o[0], o[1], o[2]); dummy.rotation.set(o[3] || 0, o[4] || 0, o[5] || 0); dummy.updateMatrix(); local.copy(dummy.matrix); m.setMatrixAt(k * offs.length + j, local.premultiply(base)); });
+        offs.forEach((o, j) => { dummy.position.set(o[0], o[1], o[2]); dummy.rotation.set(o[3] || 0, o[4] || 0, o[5] || 0); const z = sizes ? sizes[j] : 1; dummy.scale.set(z, 1, z); dummy.updateMatrix(); local.copy(dummy.matrix); dummy.scale.set(1, 1, 1); m.setMatrixAt(k * offs.length + j, local.premultiply(base)); });
       });
       if (!list.length) m.count = 0;
       m.userData.per = offs.length; world.add(m); crates.push(m);
       if (inked) world.add(inkFor(m, .035));
     }
+    // little things on the open floor: tufts and flowers, pebbles, sprinkles, lumps of snow (they go when their tile falls)
+    dust = snowy && !candy ? '#ffffff' : look.dust;
+    { const cols = snowy && look.snowBits ? look.snowBits : look.bits, spots = [];
+      for (let i = 0; i < n; i++) if (grid[i] !== WALL && hash(i, 41) < .42) { const c = 1 + (hash(i, 42) * 3 | 0); for (let j = 0; j < c; j++) spots.push([i, j]); }
+      const geo = candy ? new THREE.CapsuleGeometry(.022, .07, 1, 4) : arena === 'ridge' ? new THREE.DodecahedronGeometry(.07, 0) : new THREE.IcosahedronGeometry(.06, 0);
+      bitsMesh = new THREE.InstancedMesh(geo, toon('#ffffff'), Math.max(1, spots.length));
+      spots.forEach(([i, j], k) => {
+        const a = hash(i * 5 + j, 43) * 6.283, r = .28 + hash(i * 5 + j, 44) * .14, x = i % W, y = i / W | 0, cl = cols[(i + j * 3) % cols.length];
+        const tall = !candy && arena !== 'ridge' && !snowy && cl === cols[0]; // a grass tuft stands up, the rest lie flat
+        dummy.position.set(wx(x) + Math.cos(a) * r, candy ? .02 : .025, wz(y) + Math.sin(a) * r);
+        dummy.rotation.set(candy ? Math.PI / 2 : 0, a * 3, 0); const sc = .8 + hash(i, j + 45) * .7; dummy.scale.set(sc, tall ? sc * 2.6 : sc * (snowy ? .7 : .55), sc); dummy.updateMatrix();
+        bitsMesh.setMatrixAt(k, dummy.matrix); bitsMesh.setColorAt(k, col.set(cl)); (bitsOf.get(i) || bitsOf.set(i, []).get(i)).push(k);
+      });
+      if (!spots.length) bitsMesh.count = 0;
+      world.add(bitsMesh); }
+    // details on the walls: berries and blossoms in the hedges, crystals on the boulders, sprinkles on the icing
+    { const det = []; const cols = look.wallBits;
+      walls.forEach((i, k) => { const x = i % W, y = i / W | 0;
+        if (arena === 'ridge') { if (hash(i, 51) < .4) for (let j = 0; j < 2; j++) { const a = hash(i * 3 + j, 52) * 6.283; det.push([wx(x) + Math.cos(a) * .4, .5 + j * .12, wz(y) + Math.sin(a) * .4, a, cols[(k + j) % cols.length], 1]); } return; } // crystals growing out of the boulder's sides
+        const c = candy ? 5 : 2 + (hash(i, 55) * 3 | 0);
+        for (let j = 0; j < c; j++) {
+          if (candy) { const a = hash(i * 7 + j, 56) * 6.283, r = .06 + hash(i * 7 + j, 57) * .16; det.push([wx(x) + Math.cos(a) * r, .97, wz(y) + Math.sin(a) * r, a, cols[(i + j) % cols.length], 1]); continue; }
+          const side = (hash(i * 7 + j, 58) * 4 | 0), u = (hash(i * 7 + j, 59) - .5) * .7, hy = .25 + hash(i * 7 + j, 60) * .5;
+          const [dx, dz] = [[.47, u], [-.47, u], [u, .47], [u, -.47]][side]; det.push([wx(x) + dx, hy, wz(y) + dz, 0, cols[(i + j) % cols.length], 1]);
+        } });
+      const geo = arena === 'ridge' ? new THREE.ConeGeometry(.13, .42, 5).translate(0, .21, 0) : candy ? new THREE.CapsuleGeometry(.022, .07, 1, 4) : new THREE.IcosahedronGeometry(.055, 0);
+      const dm = new THREE.InstancedMesh(geo, arena === 'ridge' ? new THREE.MeshBasicMaterial({ color: '#ffffff' }) : toon('#ffffff'), Math.max(1, det.length));
+      det.forEach(([px, py, pz, r, c], k) => { dummy.position.set(px, py, pz); if (arena === 'ridge') dummy.rotation.set(Math.sin(r) * .75, 0, -Math.cos(r) * .75); else dummy.rotation.set(candy ? Math.PI / 2 : 0, r * 5, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); dm.setMatrixAt(k, dummy.matrix); dm.setColorAt(k, col.set(c)); });
+      if (!det.length) dm.count = 0;
+      world.add(dm); if (arena === 'ridge') world.add(inkFor(dm, .02)); }
     // ---- the island round the maze: a lawn frame with Pet Farm decorations on it, earth and rock below ----
     const x0 = -W / 2 - RIM_SIDE, x1 = W / 2 + RIM_SIDE, z0 = -H / 2 - RIM_BACK, z1 = H / 2 + RIM_FRONT;
     const hole = () => rrect(-W / 2 - .01, -H / 2 - .01, W / 2 + .01, H / 2 + .01, 0, new THREE.Path());
     const slab = (inset, d, y, c) => { const sh = rrect(x0 + inset, z0 + inset, x1 - inset, z1 - inset, 1.4); sh.holes.push(hole());
-      const geo = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false, curveSegments: 5 }).rotateX(Math.PI / 2); return put(stat, geo, flat(c), 0, y, 0); };
-    const stat = new THREE.Group();
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false, curveSegments: 5 }).rotateX(Math.PI / 2); return put(plain, geo, flat(c), 0, y, 0); };
+    const stat = new THREE.Group(), plain = new THREE.Group(); // plain: one-colour meshes, baked into vertex colours so mergeStatic can join them
     slab(0, .45, 0, th.grass); slab(.25, 1.1, -.45, th.earth); slab(.95, 1.3, -1.55, th.rock);
-    for (let i = 0; i < 9; i++) { const a = hash(i, 5) * 6.283, st = ico(stat, .35 + hash(i, 6) * .45, th.rock, Math.cos(a) * (W / 2 + 1.5), -3.2 - hash(i, 7) * 1.6, Math.sin(a) * (H / 2 + 1.2)); st.scale.y = 1.4; }
-    { const ic = new THREE.Group(); trim(ic, season, rrect(x0, z0, x1, z1, 1.4).getSpacedPoints(Math.round((x1 - x0 + z1 - z0) * 2 / .8)).slice(0, -1).map(p => [p.x * 1.004, p.y * 1.004]), -.45, 3); if (ic.children.length) { bake(ic); stat.add(ic); } }
+    for (let i = 0; i < 9; i++) { const a = hash(i, 5) * 6.283, st = ico(plain, .35 + hash(i, 6) * .45, th.rock, Math.cos(a) * (W / 2 + 1.5), -3.2 - hash(i, 7) * 1.6, Math.sin(a) * (H / 2 + 1.2)); st.scale.y = 1.4; }
+    { const ic = new THREE.Group(); trim(ic, season, rrect(x0, z0, x1, z1, 1.4).getSpacedPoints(Math.round((x1 - x0 + z1 - z0) * 2 / .8)).slice(0, -1).map(p => [p.x * 1.004, p.y * 1.004]), -.45, 3); if (ic.children.length) { bake(ic); plain.add(ic); } }
+    // a ring of stepping stones round the maze (candy buttons in the Sweet Shop)
+    { const stones = candy ? ['#ffffff', '#ff9fc8'] : arena === 'ridge' ? ['#8a8794', '#9d99a8'] : snowy ? ['#c3c9da', '#d4d9e6'] : ['#cdb38c', '#d9c3a0'];
+      const ring = rrect(-W / 2 - .6, -H / 2 - .6, W / 2 + .6, H / 2 + .6, .5), cnt = Math.round((W + H + 2.4) * 2 / .72);
+      ring.getSpacedPoints(cnt).slice(0, -1).forEach((p, k) => { if (hash(k, 71) < .12) return; const r = .2 + hash(k, 72) * .08, st = put(plain, new THREE.CylinderGeometry(r, r * 1.08, .06, candy ? 12 : 7), flat(stones[k % 2]), p.x + (hash(k, 73) - .5) * .12, .02, p.y + (hash(k, 74) - .5) * .12); st.rotation.y = hash(k, 75) * 3; }); }
     // darker patches on the lawn
     for (let i = 0; i < 26; i++) { const x = x0 + .8 + hash(i, 21) * (x1 - x0 - 1.6), z = z0 + .8 + hash(i, 22) * (z1 - z0 - 1.6); if (Math.abs(x) < W / 2 + .6 && Math.abs(z) < H / 2 + .6) continue;
-      const m = put(stat, new THREE.CircleGeometry(.35 + hash(i, 23) * .45, 10), flat(th.patch), x, .012, z); m.rotation.x = -Math.PI / 2; }
+      const m = put(plain, new THREE.CircleGeometry(.35 + hash(i, 23) * .45, 10), flat(th.patch), x, .012, z); m.rotation.x = -Math.PI / 2; }
+    bake(plain); stat.add(plain);
     // props: tall ones on the sides and at the back, low ones in front too; this season's own trees and bushes swap in
     const swaps = SL?.kinds ? [SL.kinds[0], SL.kinds[0], SL.kinds[1], SL.kinds[3]].map(k => typeof k === 'string' ? (gr, sz) => PROPS[k](gr, sz) : k) : null;
     const extra = snowy ? [SP.snowman, SP.gifts] : [];
     const pick = (arr, i) => { const k = arr[i % arr.length]; return swaps && !candy && SWAP[k] !== undefined ? swaps[SWAP[k]] : k; };
     let t = 0, l = 0;
+    const petSpots = [[x0 + 1.7, -1.2], [x1 - 1.7, 1.4], [-W / 4, z0 + 1.5], [W / 4 + 1, z0 + 1.7], [x0 + 1.9, H / 2 - .5]];
     for (let z = z0 + .7; z < z1 - .5; z += 1.15) for (let x = x0 + .7; x < x1 - .5; x += 1.15) {
       const jx = x + (hash(x * 7 + z, 31) - .5) * .5, jz = z + (hash(x + z * 5, 32) - .5) * .5;
       const gapX = Math.abs(jx) - W / 2, front = jz > H / 2, back = jz < -H / 2;
@@ -195,6 +243,7 @@ export function createScene(canvas, opts = {}) {
       const cx = Math.max(0, Math.abs(jx) - (W / 2 + RIM_SIDE - 1.4)), cz = Math.max(0, jz > 0 ? jz - (H / 2 + RIM_FRONT - 1.4) : -jz - (H / 2 + RIM_BACK - 1.4));
       if (Math.hypot(cx, cz) > .9) continue;
       if (hash(x * 3 + 1, z * 3 + 2) < .3) continue;
+      if (petSpots.some(([px, pz]) => Math.hypot(jx - px, jz - pz) < 1.15)) continue; // room for the pets that live here
       const tall = !front && hash(x, z + 9) < .55;
       let kind = tall ? pick(look.tall, t++) : pick(look.low, l++);
       if (extra.length && !tall && hash(x + 4, z) < .25) kind = extra[l % extra.length];
@@ -203,6 +252,12 @@ export function createScene(canvas, opts = {}) {
       const pr = propOf(kind, s); pr.position.set(jx, 0, jz); pr.rotation.y = hash(x + 2, z + 7) * 6.283; stat.add(pr);
     }
     world.add(mergeStatic(stat, .05));
+    // Pet Farm pets pottering about on the rim (merged into one cheap mesh each, like the Plaza's other people's pets)
+    petSpots.slice(0, few ? 3 : 5).forEach(([px, pz], k) => {
+      let g; try { const sp = (look.pets || LOOK.woods.pets)[(k + (snowy ? 0 : 1)) % look.pets.length], m = petModel(sp, 1), box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+        m.scale.multiplyScalar(Math.min(.95 / size.y, 1.1 / Math.max(size.x, size.z))); g = litePet(m); } catch { return; }
+      const o = new THREE.Group(); o.add(g); o.position.set(px, 0, pz); world.add(o); rimPets.push({ o, px, pz, ph: k * 1.7, k });
+    });
     // lamp posts at the corners of the rim, lit after dark like every island's
     for (const [lx, lz] of [[x0 + 1.2, z0 + 1.2], [x1 - 1.2, z0 + 1.2], [x0 + 1, z1 - .8], [x1 - 1, z1 - .8], [x0 + .9, 0], [x1 - .9, 0]]) {
       const lp = new THREE.Group(); PROPS.lamp(lp, 1); toonify(lp, .03); lp.position.set(lx, 0, lz); lp.userData.nightOnly = true; lp.visible = isNight(); world.add(lp);
@@ -223,7 +278,7 @@ export function createScene(canvas, opts = {}) {
     for (let i = 0; i < g.length; i++) {
       const was = grid[i], now = +g[i]; if (was === now) continue;
       if (was === CRATE && now !== CRATE) crateGone(i);
-      if (now === GONE) { fallen.push({ i, t: 0 }); shakeSet.delete(i); fx.puff(new THREE.Vector3(wx(i % W), 0, wz(i / W | 0)), { n: few ? 3 : 6, color: ['#ffffff', '#e8d9bd'], size: .4, speed: 1.2 }); }
+      if (now === GONE) { for (const k of bitsOf.get(i) || []) { dummy.position.set(0, -90, 0); dummy.scale.set(0, 0, 0); dummy.updateMatrix(); bitsMesh.setMatrixAt(k, dummy.matrix); bitsMesh.instanceMatrix.needsUpdate = true; } fallen.push({ i, t: 0 }); shakeSet.delete(i); fx.puff(new THREE.Vector3(wx(i % W), 0, wz(i / W | 0)), { n: few ? 3 : 6, color: ['#ffffff', '#e8d9bd'], size: .4, speed: 1.2 }); }
       grid[i] = now;
     }
   }
@@ -308,6 +363,7 @@ export function createScene(canvas, opts = {}) {
       outer.setColorAt(k, tint.set(look.blast)); core.setColorAt(k, tint.set(look.core));
     }
     outer.instanceColor.needsUpdate = core.instanceColor.needsUpdate = true;
+    leavePetals(cells, look);
     const mid = cells[0];
     if (mid !== undefined) {
       const p = new THREE.Vector3(wx(mid % W), .5, wz(mid / W | 0));
@@ -317,6 +373,18 @@ export function createScene(canvas, opts = {}) {
     kick = Math.min(1, kick + .35);
   }
   let kick = 0; // a small camera bump on every blast
+  // petals the blast leaves lying on the floor for a moment
+  const LN = 240, lying = new THREE.InstancedMesh(new THREE.CircleGeometry(.09, 7).scale(1, 1.8, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff' }), LN);
+  lying.frustumCulled = false; lying.instanceMatrix.setUsage(THREE.DynamicDrawUsage); lying.count = 0; scene.add(lying);
+  const lie = Array.from({ length: LN }, () => ({ life: 0, x: 0, z: 0, r: 0, s: 1 })); let lnext = 0, lmax = 0;
+  function leavePetals(cells, look) {
+    for (const i of cells) for (let j = 0; j < (few ? 1 : 2); j++) {
+      const k = lnext, p = lie[k]; lnext = (lnext + 1) % LN; lmax = Math.max(lmax, k + 1);
+      p.life = 1.6 + Math.random() * .6; p.x = wx(i % W) + (Math.random() - .5) * .7; p.z = wz(i / W | 0) + (Math.random() - .5) * .7; p.r = Math.random() * 6.28; p.s = .8 + Math.random() * .5;
+      lying.setColorAt(k, tint.set(j ? look.core : look.blast));
+    }
+    lying.count = lmax; if (lying.instanceColor) lying.instanceColor.needsUpdate = true;
+  }
 
   // ---------- pets that hopped out of crates ----------
   const pets = new Map(), protos = new Map();
@@ -403,6 +471,7 @@ export function createScene(canvas, opts = {}) {
         if (m.amt > .02 && !out) { walkAvatar(m.av, m.ph, m.amt); ud.legs?.forEach(l => { l.rotation.z = 0; }); } else ud.legs?.forEach(l => { l.rotation.x = 0; l.rotation.z = 0; });
       }
       m.ring.visible = m.placed && !out; m.ring.position.set(wx(m.x), .02, wz(m.y));
+      if (!few && !out && m.amt > .6 && (m.dust = (m.dust || 0) - dt) < 0) { m.dust = .2; fx.puff(v3.set(wx(m.x) - Math.sin(m.ry) * .18, .05, wz(m.y) - Math.cos(m.ry) * .18).clone(), { n: 2, color: [dust, '#ffffff'], size: .16, speed: .5, life: .4 }); }
       const sh = !out && (m.flags & 2), inv = !out && (m.flags & 4);
       m.bubble.visible = !!(sh || (inv && Math.sin(T * 30) > 0)); if (m.bubble.visible) m.bubble.position.set(wx(m.x), .55, wz(m.y));
       if (m.wrap.visible && !out && nb < BLOBS) blobs.setMatrixAt(nb++, bm.makeScale(.36, 1, .36).setPosition(wx(m.x), .015, wz(m.y)));
@@ -435,6 +504,9 @@ export function createScene(canvas, opts = {}) {
       dummy.position.set(s.x, on ? .22 + pulse * .08 : -60, s.z); dummy.scale.set(bloom * on, bloom * .75 * on, bloom * on); dummy.updateMatrix(); core.setMatrixAt(i, dummy.matrix);
       s.dead = s.life <= 0; }
     outer.count = core.count = top1; // only draw up to the last blooming slot
+    if (lying.count) { let top2 = 0; for (let i = 0; i < lying.count; i++) { const p = lie[i]; p.life -= dt; const on = p.life > 0 && grid?.[Math.round(p.z + (H - 1) / 2) * W + Math.round(p.x + (W - 1) / 2)] !== GONE;
+        if (on) top2 = i + 1; const k = on ? Math.min(1, p.life / .5) * p.s : 0; dummy.position.set(p.x, .012, p.z); dummy.rotation.set(0, p.r, 0); dummy.scale.set(k, 1, k); dummy.updateMatrix(); lying.setMatrixAt(i, dummy.matrix); }
+      lying.instanceMatrix.needsUpdate = true; if (!top2) { lying.count = 0; lmax = 0; } }
     outer.instanceMatrix.needsUpdate = core.instanceMatrix.needsUpdate = true;
     // falling tiles, and the ones about to go shaking
     if (fallen.length || shaking.length) {
@@ -454,7 +526,11 @@ export function createScene(canvas, opts = {}) {
     const bump = kick * .12 * Math.sin(T * 60);
     camera.position.set(camX + bump, Math.sin(TILT) * camD, camZ + Math.cos(TILT) * camD + .3);
     camera.lookAt(camX, 0, camZ + (portrait ? 1.4 : .3) - top * 4);
-    fly?.(T);
+    fly?.(T); drift?.(T);
+    // the rim pets potter about their own patch, hopping while they move, stopping now and then to look round
+    for (const p of rimPets) { const u = T * .35 + p.ph, go = Math.sin(u * .7) > -.2, a = u * 1.3;
+      if (go) { p.a = (p.a ?? a) + dt * .45; p.o.position.set(p.px + Math.cos(p.a) * .55, Math.abs(Math.sin(T * 7 + p.ph)) * .07, p.pz + Math.sin(p.a) * .4); p.o.rotation.y = -p.a; }
+      else { p.o.position.y = 0; p.o.rotation.y = -(p.a ?? 0) + Math.sin(T * 1.7 + p.ph) * .5; } }
     fx.update(dt, camera, ch);
     renderer.render(scene, camera);
     // where heads are on screen, for the name tags
