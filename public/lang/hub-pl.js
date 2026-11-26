@@ -5,6 +5,7 @@
 
 // Table settings: headings and pill labels, by their English text.
 export const OPT_PL = {
+  '3 rounds': '3 rundy', 'First play': 'Pierwsze wyjście', '30 or more': '30 lub więcej', Any: 'Dowolne', 'Fit hints': 'Podpowiedzi',
   Bots: 'Boty', Chill: 'Luźne', Sharp: 'Ostre', 'Turn timer': 'Czas na ruch', Off: 'Wył.', On: 'Wł.', Yes: 'Tak', No: 'Nie', Players: 'Gracze',
   Race: 'Wyścig', Classic: 'Klasyczny', Knockout: 'Eliminacje', 'Chaos events': 'Chaos na torze', 'Marbles on the track': 'Kulki na torze',
   Board: 'Plansza', 'Classic 100': 'Klasyczna 100', 'Quick 60': 'Szybka 60', 'Party tiles': 'Pola specjalne', 'Hard mode': 'Tryb trudny',
@@ -45,6 +46,7 @@ export const OPT_PL = {
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
   'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
+  'Wins to take the match': 'Wygrane do zwycięstwa', Arena: 'Arena', 'Mossy Woods': 'Omszały Las', 'Pebble Ridge': 'Kamykowa Grań', 'Sweet Shop': 'Wyspa Słodyczy', 'Crumbling edge': 'Kruszący się brzeg', 'Players in the maze': 'Gracze w labiryncie',
   'Seeking time': 'Czas szukania', 'Found hiders': 'Znalezieni chowający', 'Float as ghosts': 'Unoszą się jako duszki', 'Join the seekers': 'Dołączają do szukających', 'Players on the island': 'Gracze na wyspie',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
@@ -230,6 +232,20 @@ export const GAMES_PL = {
       <li>Gdy pierwszy gokart dojedzie do mety, reszta ma <b>25 sekund</b> na przekroczenie linii. Potem pozostali zajmują miejsca według przejechanej drogi.</li>
       <li>Bonusy w trybie <b>Chaos</b>: z nieba pada deszcz skórek od banana, a galaretek i chmurek jest więcej.</li>
       <li>Monety zależą od miejsca na mecie: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  blast: {
+    name: 'Zatoka Bum', start: 'Sadzimy nasiona', openSeat: 'Jeśli nikt nie dołączy, nasiona posadzi tu bot',
+    pitch: 'Sadź pękające nasiona w labiryncie na małej wyspie. Rozbijaj skrzynki, uwalniaj zwierzaki po wzmocnienia i zostań ostatni na placu.',
+    howto: `Labiryntowa zabawa na małej wyspie. Sadź pękające nasiona, które wybuchają płatkami, otwieraj skrzynki, by uwolnić zwierzaki z Farmy i zdobyć wzmocnienia, i zostań ostatni na nogach, żeby wygrać rundę.`,
+    rules: `<ol>
+      <li>Każdy zaczyna w rogu labiryntu pełnego <b>skrzynek</b>. Chodź klawiszami <b>W A S D</b> albo strzałkami (na telefonie gałką), a <b>spacją</b> (albo przyciskiem nasiona) sadzisz <b>pękające nasiono</b> tam, gdzie stoisz.</li>
+      <li>Nasiono pęka po <b>2,4 sekundy</b> i wypuszcza <b>wybuch płatków</b> w kształcie plusa. Sięga <b>2 pola</b> w każdą stronę, zatrzymuje się na ścianach i rozbija pierwszą skrzynkę, w którą trafi. Wybuch odpala inne nasiona, których dotknie.</li>
+      <li>Kto stoi w wybuchu, zostaje <b>złapany</b> i czeka do następnej rundy, także od własnych nasion. Nasiona zagradzają drogę, więc nie zamknij się sam.</li>
+      <li>W niektórych skrzynkach chowa się <b>zwierzak z Farmy</b>. Wejdź na niego, a dostaniesz wzmocnienie jego żywiołu: <b>Żar</b> zasięg wybuchu +1, <b>Fala</b> jedno nasiono więcej naraz, <b>Iskra</b> szybsze nogi, <b>Liść</b> bańka, która chroni przed jednym wybuchem, <b>Kamień</b> pozwala kopać nasiona, gdy w nie wejdziesz. Zwierzakom nic się nie dzieje.</li>
+      <li>Po <b>90 sekundach</b> brzeg wyspy zaczyna się <b>kruszyć</b>, pole po polu, aż zostanie tylko środek. Trzęsące się pola zaraz spadną. Gospodarz może to wyłączyć.</li>
+      <li><b>Ostatni na nogach</b> wygrywa rundę. Kto pierwszy zdobędzie <b>3 wygrane rundy</b> (albo 2 lub 5, jeśli tak wybierze gospodarz), wygrywa mecz. Arena jest losowana co rundę, chyba że gospodarz wybierze jedną.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Przy równej liczbie wygranych rund wyżej jest ten, kto dłużej przetrwał.</li>
     </ol>`,
   },
   copy: {
@@ -693,6 +709,23 @@ export const GAMES_PL = {
       <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>, a pozostali zajmują miejsca według liczby kart w ręce: im mniej, tym lepiej. Przy ustawieniu <b>Koniec gry: Gramy do ostatniego</b> gra toczy się dalej, miejsca idą w kolejności pozbywania się kart, a przegrywa ten, kto zostanie z kartami.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera (albo bierze karty, albo czeka), <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>5–9 i 0</b> wybierają żądanie, <b>M</b> mówi „Makao!”, a <b>C</b> łapie.</li>
+    </ol>`,
+  },
+  herd: {
+    name: 'Stadka', start: 'Rozdaj płytki', openSeat: 'Jeśli nikt nie dołączy, tą tacką zagra bot',
+    pitch: 'Nasza własna gra z płytkami z liczbami i zwierzakami z Farmy. Układaj stadka i rzędy, przebudowuj stół, żeby zmieścić więcej, i pierwszy opróżnij tackę.',
+    howto: `Nasza własna gra z płytkami z liczbami i zwierzakami z Farmy. Wykładaj z tacki stadka (jedna liczba u różnych zwierzaków) i rzędy (jeden zwierzak, liczby po kolei) i przebudowuj to, co leży na stole, żeby zmieścić więcej. Kto pierwszy opróżni tackę, wygrywa.`,
+    rules: `<ol>
+      <li>Jest <b>106 płytek</b>: liczby <b>od 1 do 13</b> u czterech zwierzaków (<b>Cindercub, Zapkit, Sproutle i Axolily</b>), po dwie każdej, oraz <b>dwa Tajemnicze jaja</b>, które zastępują dowolną płytkę. Każdy dostaje na tackę <b>14 płytek</b>. Puste miejsca zajmują boty.</li>
+      <li><b>Stadko</b> to jedna liczba u 3 lub 4 różnych zwierzaków, np. 7 Cindercub, 7 Zapkit, 7 Axolily. <b>Rząd</b> to jeden zwierzak z 3 lub więcej liczbami po kolei, np. Sproutle 4, 5, 6. Po 13 nie ma znowu 1.</li>
+      <li>W swojej kolejce połóż <b>co najmniej jedną płytkę</b> z tacki albo <b>dobierz płytkę</b>, i twoja kolej się kończy. Gdy stos jest pusty, zamiast tego pasujesz.</li>
+      <li>Przy ustawieniu <b>Pierwsze wyjście: 30 lub więcej</b> twoje pierwsze zagranie to nowe stadka i rzędy z własnej tacki warte co najmniej <b>30 punktów</b> (płytka liczy się jako swoja liczba, jajo jako to, co zastępuje). Do tego czasu nie możesz ruszać stołu.</li>
+      <li>Potem możesz <b>rozbierać i przebudowywać</b> wszystko na stole: dzielić rzędy, przekładać płytki między grupami, odzyskać jajo, kładąc płytkę, którą zastępowało. Płytki ze stołu nie mogą trafić na twoją tackę. Gdy naciskasz <b>Gotowe</b>, każda grupa musi być stadkiem albo rzędem.</li>
+      <li>Dotknij płytek, żeby je wybrać, a potem dotknij grupy, żeby je dołożyć, sukna, żeby zacząć nową grupę, albo tacki, żeby je zabrać. Możesz je też przeciągać. <b>Cofnij turę</b> przywraca stół takim, jaki był. Przy włączonych <b>Podpowiedziach</b> świecą grupy, do których pasują wybrane płytki.</li>
+      <li>Gdy skończy się czas na ruch, stół wraca do stanu sprzed tury, a ty dobierasz płytkę.</li>
+      <li>Kto pierwszy <b>opróżni tackę</b>, wygrywa rundę i dostaje punkty za płytki, które zostały innym na tackach; pozostali tracą swoje (jajo kosztuje 30). Gdy skończy się stos i nikt nie może zagrać, wygrywa najmniejsza tacka. Przy <b>3 rundach</b> punkty się sumują.</li>
+      <li>Wygrywa najwięcej punktów na koniec; równe punkty dzielą miejsce. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+      <li>Skróty w twojej kolejce: <b>Enter</b> to Gotowe, <b>D</b> dobiera, <b>N</b> tworzy nową grupę, <b>Z</b> cofa turę, a <b>Esc</b> odkłada wybrane płytki.</li>
     </ol>`,
   },
   pairs: {

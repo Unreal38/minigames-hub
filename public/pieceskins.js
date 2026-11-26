@@ -184,3 +184,67 @@ export function lanternModel(THREE, k) {
   }
   return g;
 }
+
+// ---------- Blast Bay pop seeds (kind bs) ----------
+// One look for both your seed and the blast it makes: the pod, its leaves and the glowing tip, then the colour of the
+// blast squares and the shape and colours of the bits that fly out. Only the look changes: every seed bursts the same.
+// shape: pod, long (chili), acorn, pumpkin, star, gem, bubble, bonbon (a wrapped sweet), pearl (in an open shell). burst: a scenery3d.js particle shape name.
+const seed = (shape, pod, leaf, tip, blast, core, bits, burst) => ({ shape, pod, leaf, tip, blast, core, bits, burst });
+const SEEDS = [
+  seed('pod', '#ff8fc8', '#6cbf4a', '#fff07a', '#ff8fc8', '#fff4fa', ['#ff8fc8', '#fff07a', '#ffffff', '#ffc2e0', '#7ad66b'], 'HEART'), // classic petal blast
+  seed('long', '#e8402a', '#4f9a3a', '#ffd23f', '#ff7a3a', '#fff0b0', ['#ff5a2a', '#ffb02a', '#ffe36a', '#ffffff'], 'STAR'),            // ember chili
+  seed('pod', '#6fd0ff', '#d8f4ff', '#ffffff', '#8fdcff', '#f2fbff', ['#bfeaff', '#ffffff', '#8fd0ff'], 'FLAKE'),                       // frost bud (winter)
+  seed('bubble', '#4fd6c8', '#2f9a8a', '#d6fff8', '#6fe0d8', '#e8fffb', ['#bff5ef', '#ffffff', '#6fe0d8'], 'RING'),                        // bubble pod
+  seed('bonbon', '#ffb0d8', '#9be3ff', '#ffffff', '#ffb0d8', '#fff7fb', ['#ff8fc8', '#8fd8ff', '#fff07a', '#b48cff', '#7ad66b'], 'CONF'),  // candy bonbon
+  seed('acorn', '#ffcc3a', '#a0702a', '#fff6c0', '#ffd84a', '#fffbe0', ['#ffd84a', '#ffe98a', '#ffffff'], 'COIN'),                     // golden acorn
+  seed('pumpkin', '#ff8a2a', '#3f8a3a', '#fff0a0', '#ff9a3a', '#ffe8c0', ['#ff8a2a', '#8a4ac8', '#2a1a2a', '#ffd23f'], 'DOT'),          // pumpkin (halloween)
+  seed('star', '#ffd84a', '#ffaa2a', '#ffffff', '#ffe066', '#fffbe0', ['#ffe066', '#ffffff', '#ffb02a'], 'STAR'),                      // starfruit
+  seed('gem', '#9b6aff', '#5a3ab0', '#fff07a', '#b48cff', '#f4ecff', ['#b48cff', '#fff07a', '#ffffff', '#7a5ae0'], 'STAR'),             // thunder berry
+  seed('pearl', '#f4efe6', '#2f86cc', '#9fe8ff', '#5ab8e8', '#e8f8ff', ['#5ab8e8', '#ffffff', '#ffb0a0'], 'FISH'),                       // sea pearl
+];
+export const seedLook = k => SEEDS[k | 0] || SEEDS[0];
+// The seed as a little 3D model (THREE passed in), standing on the ground, about .75 tall. The glowing tip is named
+// 'tip' so a scene can blink it.
+export function seedModel(THREE, k) {
+  const S = seedLook(k), g = new THREE.Group(), std = c => new THREE.MeshStandardMaterial({ color: c, roughness: .55, flatShading: true });
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); g.add(m); return m; };
+  const tip = y => { const t = add(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: S.tip }), 0, y, 0); t.name = 'tip'; t.userData.noInk = true; return t; };
+  const leaves = (y, n = 4, r = .15) => { for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, lf = add(new THREE.ConeGeometry(.1, .28, 4), std(S.leaf), Math.cos(a) * r, y, Math.sin(a) * r); lf.rotation.set(Math.sin(a) * .6, 0, -Math.cos(a) * .6); } };
+  const stem = y => add(new THREE.CylinderGeometry(.035, .05, .16, 6), std(S.leaf), 0, y, 0);
+  if (S.shape === 'long') {
+    const p = add(new THREE.CapsuleGeometry(.17, .32, 4, 10), std(S.pod), 0, .34); p.rotation.z = .25;
+    stem(.66).rotation.z = .25; tip(.76);
+  } else if (S.shape === 'acorn') {
+    const p = add(new THREE.SphereGeometry(.26, 12, 10), std(S.pod), 0, .26); p.scale.y = 1.15;
+    const cap = add(new THREE.SphereGeometry(.29, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), std(S.leaf), 0, .44); cap.scale.y = .6;
+    stem(.6); tip(.7);
+  } else if (S.shape === 'pumpkin') {
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, r = add(new THREE.SphereGeometry(.17, 10, 8), std(S.pod), Math.cos(a) * .13, .26, Math.sin(a) * .13); r.scale.set(.8, 1.3, .8); }
+    add(new THREE.SphereGeometry(.2, 10, 8), std(S.pod), 0, .26); stem(.52); tip(.62);
+  } else if (S.shape === 'star') {
+    const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .15 : .34; sh[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: .16, bevelEnabled: true, bevelSize: .03, bevelThickness: .03, bevelSegments: 1 }); geo.translate(0, 0, -.08);
+    add(geo, std(S.pod), 0, .36); stem(.74); tip(.84);
+  } else if (S.shape === 'gem') {
+    const p = add(new THREE.OctahedronGeometry(.28), std(S.pod), 0, .34); p.scale.y = 1.25;
+    leaves(.68, 3, .1); tip(.76);
+  } else if (S.shape === 'bubble') {
+    add(new THREE.IcosahedronGeometry(.22, 1), std(S.pod), 0, .28);
+    const sk = add(new THREE.SphereGeometry(.32, 14, 10), new THREE.MeshStandardMaterial({ color: S.tip, transparent: true, opacity: .35, roughness: .2 }), 0, .32); sk.userData.noInk = true;
+    for (const [x, y, z, r] of [[.24, .62, .05, .07], [-.2, .58, -.04, .05]]) add(new THREE.SphereGeometry(r, 8, 6), new THREE.MeshStandardMaterial({ color: S.tip, transparent: true, opacity: .5 }), x, y, z).userData.noInk = true;
+    stem(.66); tip(.76);
+  } else if (S.shape === 'bonbon') {
+    const p = add(new THREE.SphereGeometry(.24, 12, 10), std(S.pod), 0, .3); p.scale.set(1.15, 1, 1);
+    for (const sd of [-1, 1]) { const w = add(new THREE.ConeGeometry(.15, .22, 6), std(S.leaf), sd * .36, .3); w.rotation.z = sd * Math.PI / 2; }
+    const band = add(new THREE.TorusGeometry(.245, .035, 4, 16), std('#ffffff'), 0, .3); band.rotation.y = Math.PI / 2;
+    tip(.6);
+  } else if (S.shape === 'pearl') {
+    const sh = add(new THREE.SphereGeometry(.34, 12, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), std(S.leaf), 0, .3); sh.scale.y = .55;
+    const lid = add(new THREE.SphereGeometry(.34, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), std(S.leaf), 0, .32, -.18); lid.scale.y = .55; lid.rotation.x = -1.05;
+    add(new THREE.SphereGeometry(.2, 14, 10), std(S.pod), 0, .38); tip(.62);
+  } else {
+    const p = add(new THREE.IcosahedronGeometry(.3, 1), std(S.pod), 0, .3); p.scale.set(1, 1.1, 1);
+    leaves(.62); tip(.7);
+  }
+  return g;
+}
