@@ -10,14 +10,11 @@ import { petModel, wiggle } from '../farm/pets3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const PW = 12, LEAN = .26, LEG = 1.1;  // the picture (square), how far the frame leans back, how high it stands
-const FOV = 30, AV = .9;
+const FOV = 30, AV_H = 2.35; // AV_H: about a standing avatar's height at scale 1 (with the .76 lift)
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
 // the picture's middle: the frame stands on its bottom edge, leaning back
 const MID = new THREE.Vector3(0, LEG + Math.cos(LEAN) * PW / 2, -Math.sin(LEAN) * PW / 2);
 const FACING = new THREE.Vector3(0, Math.sin(LEAN), Math.cos(LEAN)); // the way the picture faces
-// where the avatars stand: a crowd on each side of the frame, a little behind it so they show beside the card
-// (the right-hand crowd stands further out, past the players' list on wide screens)
-const spot = i => { const side = i % 2 ? 1 : -1, k = Math.floor(i / 2); return new THREE.Vector3(side * (PW / 2 + (side > 0 ? 6 : 3.4) + k * .7), 0, -5.5 - k * 2.4); };
 
 export function createScene(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
@@ -60,7 +57,7 @@ export function createScene(canvas) {
     bake(stand); toonify(stand, .04);
   }
   // the mascot: a fox cub with a spyglass at the foot of the frame; hops when somebody finds the pet
-  const mascot = new THREE.Group(); scene.add(mascot); mascot.position.set(-PW / 2 - 1.6, 0, -2.4); mascot.rotation.y = .5;
+  const mascot = new THREE.Group(); scene.add(mascot); mascot.position.set(-PW / 2 - 1.6, 0, 1);
   let pet = null, petHop = 0;
   try {
     pet = petModel('cindercub', 2);
@@ -77,12 +74,13 @@ export function createScene(canvas) {
   let seats = [], seatKey = '';
   function buildSeats(list) {
     for (const s of seats) { scene.remove(s.box); disposeAvatar(s.av); }
-    seats = list.map((p, i) => {
-      const at = spot(i), box = new THREE.Group(); box.position.copy(at); box.scale.setScalar(AV); scene.add(box);
-      box.rotation.y = -Math.atan2(at.x, 9) * .7; // turned a little towards the frame
+    seats = list.map(p => {
+      const box = new THREE.Group(); scene.add(box);
       const av = avatar3d(p.color, p.av); av.position.y = .76; box.add(av); // (the size goes on a wrapper: the avatar's own scale is animated)
-      return { av, box, hop: 0, at };
+      const h = new THREE.Box3().setFromObject(box).max.y || AV_H; // the real height of this look (hats, hair, ears)
+      return { av, box, hop: 0, at: box.position, h };
     });
+    place();
   }
   function setSeats(list) {
     const key = list.map(p => p.color + (p.av || []).join('')).join('|');
@@ -93,11 +91,41 @@ export function createScene(canvas) {
     petHop = 1;
     const s = seats[i]; if (!s) return;
     s.hop = 1;
-    pfx.confetti(new THREE.Vector3(s.at.x, 3.4, s.at.z), { n: 40, w: 1.3, h: 1.3, s: i });
+    const top = s.h * s.box.scale.y; pfx.confetti(new THREE.Vector3(s.at.x, top + .6, s.at.z), { n: 40, w: top * .6, h: top * .6, s: i });
   }
 
   // ---------- the camera matches the page's card ----------
   let W = 0, H = 0, board = null;
+  // Everyone stands on the ground in a screen spot picked from the page's layout: the first half of the players to
+  // the left of the card, the rest to the right, outside the players' lists (phones: in a row along the bottom).
+  const ray = new THREE.Raycaster(), floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit = new THREE.Vector3();
+  function ground(px, py, out) {
+    ray.setFromCamera(new THREE.Vector2(px / W * 2 - 1, 1 - py / H * 2), camera);
+    if (!ray.ray.intersectPlane(floor, hit)) return false;
+    out.set(hit.x, 0, hit.z); return true;
+  }
+  const face = o => { o.rotation.y = o.userData.yaw = Math.atan2(camera.position.x - o.position.x, camera.position.z - o.position.z) * .8; };
+  function place() {
+    if (!W || !H) return;
+    const b = board || { x: W * .2, y: H * .15, size: Math.min(W * .6, H * .7), row: true, l: W * .2, r: W * .8 };
+    // feet just above the Scores and Chat buttons; everyone about a fifth of the card tall, whatever the screen
+    const n = seats.length, half = Math.ceil(n / 2), foot = H - 84, tall = Math.max(64, Math.min(130, b.size * .19));
+    const fit = (o, px, h) => { const d = o.position.distanceTo(camera.position), perPx = 2 * d * Math.tan(FOV * Math.PI / 360) / H; o.scale.setScalar(px * perPx / h); };
+    seats.forEach((s, i) => {
+      let x0, x1, k, m;
+      if (b.row) {
+        const left = i < half; k = left ? i : i - half; m = left ? half : n - half;
+        if (left) { x1 = Math.min(b.l, b.x) - 12; x0 = Math.max(8, x1 - 95 * m); if (x1 - x0 < 50 * m) { x0 = 8; x1 = b.x - 8; } }
+        else { x0 = Math.max(b.r, b.x + b.size) + 12; x1 = Math.min(W - 8, x0 + 95 * m); if (x1 - x0 < 50 * m) { x0 = b.x + b.size + 8; x1 = W - 8; } }
+      } else { x0 = 10; x1 = W - 10; k = i; m = n; }
+      const tight = (x1 - x0) / m < 70, px = x0 + (x1 - x0) * (k + .5) / m, py = foot - (tight && k % 2 ? 34 : 0);
+      s.box.visible = ground(px, py, s.box.position);
+      fit(s.box, tall * (tight && k % 2 ? .9 : 1), s.h); face(s.box);
+    });
+    // the fox cub sits right at the card's bottom-left corner
+    mascot.visible = b.row && b.x > 70 && ground(b.x - 26, foot + 6, mascot.position);
+    if (mascot.visible) { fit(mascot, tall * .55, 1.7); face(mascot); }
+  }
   const eye = new THREE.Vector3();
   function resize(force) {
     const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
@@ -110,6 +138,7 @@ export function createScene(canvas) {
     camera.setViewOffset(w, h, Math.round(w / 2 - (b.x + b.size / 2)), Math.round(h / 2 - (b.y + b.size / 2)), w, h);
     camera.updateProjectionMatrix();
     scene.fog.near = D + 40; scene.fog.far = D + 200;
+    camera.updateMatrixWorld(); place();
   }
 
   // ---------- loop ----------
@@ -119,7 +148,7 @@ export function createScene(canvas) {
     resize(); T += dt;
     petHop = Math.max(0, petHop - dt * 2.2);
     mascot.position.y = Math.abs(Math.sin(petHop * Math.PI * 2)) * .5 * petHop;
-    mascot.rotation.y = .5 + Math.sin(T * .5) * .25;
+    mascot.rotation.y = (mascot.userData.yaw || 0) + .3 + Math.sin(T * .5) * .25;
     if (pet) wiggle(pet, T, 3, petHop);
     seats.forEach((s, i) => {
       s.hop = Math.max(0, s.hop - dt * 2);
@@ -134,8 +163,9 @@ export function createScene(canvas) {
 
   return {
     setSeats, cheer,
-    // the card's box on screen, in CSS pixels of the canvas: { x, y, size }
-    setBoard(b) { const n = { x: Math.round(b.x), y: Math.round(b.y), size: Math.round(b.size) }; if (JSON.stringify(n) !== JSON.stringify(board)) { board = n; resize(true); } },
+    // the card's box on screen, in CSS pixels of the canvas: { x, y, size }, plus the layout: row (lists beside the
+    // card), l / r (the outer edges of the left and right players' lists)
+    setBoard(b) { const n = { x: Math.round(b.x), y: Math.round(b.y), size: Math.round(b.size), row: !!b.row, l: Math.round(b.l ?? b.x), r: Math.round(b.r ?? b.x + b.size) }; if (JSON.stringify(n) !== JSON.stringify(board)) { board = n; resize(true); } },
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) disposeAvatar(s.av);

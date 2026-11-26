@@ -51,20 +51,20 @@ export function mount(app, ctx) {
   app.innerHTML = `<div class="sy">
     <canvas class="g3d" aria-hidden="true"></canvas>
     <div class="sy-top">
-      <div class="sy-want" id="sy-want"><span class="sy-pic"><img id="sy-wimg" alt=""></span><span class="sy-wt"><small>${L('Find', 'Znajdź')}</small><b id="sy-wname">…</b><span id="sy-wsub"></span></span></div>
-      <div class="sy-mid"><span class="sy-no" id="sy-no"></span><span class="sy-bar"><i id="sy-bar"></i></span></div>
-      <div class="sy-tr"><span class="tcode" id="sy-code"></span>
+      <div class="sy-tl"><span class="tcode" id="sy-code"></span><div class="sy-zoom"><button type="button" class="round" data-a="zin" aria-label="${L('Zoom in', 'Przybliż')}">${I.plus}</button><button type="button" class="round" data-a="zout" aria-label="${L('Zoom out', 'Oddal')}">${I.minus}</button><button type="button" class="round" data-a="zfit" aria-label="${L('Whole card', 'Cała karta')}">${I.fit}</button></div></div>
+      <div class="sy-want" id="sy-want"><span class="sy-pic"><img id="sy-wimg" alt=""></span><span class="sy-wt"><span class="sy-wh"><small>${L('Find', 'Znajdź')}</small><span class="sy-no" id="sy-no"></span></span><b id="sy-wname">…</b><span id="sy-wsub"></span><span class="sy-bar"><i id="sy-bar"></i></span></span></div>
+      <div class="sy-tr">
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L('Leave table', 'Odejdź od stołu')}">${I.door}</button></div>
     </div>
     <div class="sy-main">
+      <ol class="sy-seats l" id="sy-sl"></ol>
       <div class="sy-stage" id="sy-stage"><div class="sy-board" id="sy-board">
         <canvas class="sy-cv" aria-label="${L('The picture card. Tap the pet shown at the top. Scroll or pinch to zoom, drag to look around.', 'Karta z obrazkiem. Dotknij zwierzaka pokazanego u góry. Przewiń albo rozsuń palce, żeby przybliżyć, przeciągnij, żeby się rozejrzeć.')}"></canvas>
-        <div class="sy-zoom"><button type="button" class="round" data-a="zin" aria-label="${L('Zoom in', 'Przybliż')}">${I.plus}</button><button type="button" class="round" data-a="zout" aria-label="${L('Zoom out', 'Oddal')}">${I.minus}</button><button type="button" class="round" data-a="zfit" aria-label="${L('Whole card', 'Cała karta')}">${I.fit}</button></div>
         <div class="sy-dizzy" id="sy-dizzy" hidden><b>💫 ${L('Dizzy!', 'Zakręciło się!')}</b><span>${L('Wrong pet', 'To nie ten')}</span></div>
       </div></div>
-      <ol class="sy-seats" id="sy-seats"></ol>
+      <ol class="sy-seats r" id="sy-sr"></ol>
     </div>
     <div class="banner" id="sy-banner" aria-live="polite"></div>
     <div class="shout" id="sy-big" aria-live="assertive"></div>
@@ -72,11 +72,11 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.sy'), $ = id => root.querySelector('#' + id);
-  const cv = root.querySelector('.sy-cv'), g = cv.getContext('2d'), board = $('sy-board'), stage = $('sy-stage'), main = root.querySelector('.sy-main'), seats = $('sy-seats');
+  const cv = root.querySelector('.sy-cv'), g = cv.getContext('2d'), board = $('sy-board'), stage = $('sy-stage'), main = root.querySelector('.sy-main'), lists = [$('sy-sl'), $('sy-sr')];
   let scene = null;
   let S = null, info = null, Rm = ctx.room(), destroyed = false, gid = null, lastEv = 0, got = 0;
   let M = null, look = [], ready = false, card = null, deco = null, side = 300, dpr = 1, need = true, raf = 0;
-  let view = { s: 1, x: 0, y: 0 }, anim = null, dzUntil = 0, pending = 0, resultsTimer = 0, bigTimer = 0, lastCount = 99, seatKey = '';
+  let view = { s: 1, x: 0, y: 0 }, anim = null, dzUntil = 0, pending = 0, resultsTimer = 0, bigTimer = 0, lastCount = 99, seatKey = '', lis = [];
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const nameOf = i => esc(info?.[i]?.name);
   const stageT = () => S ? S.t + (performance.now() - got) : 0;
@@ -100,18 +100,26 @@ export function mount(app, ctx) {
   }
 
   // ----- drawing -----
-  // The card is the biggest square that fits beside the players' list (phones and tall windows: above it).
+  // The card is the biggest square that fits between the two halves of the players' list, right in the middle
+  // (phones and tall windows: above them).
+  const rowLayout = () => !matchMedia('(max-aspect-ratio: 5/4)').matches;
   function fit() {
-    const m = main.getBoundingClientRect(), sr = seats.getBoundingClientRect(), row = getComputedStyle(main).flexDirection === 'row', gap = 12, edge = 8;
-    const s = Math.max(120, Math.floor(row ? Math.min(m.width - sr.width - gap, m.height) : Math.min(m.width, m.height - sr.height - gap)) - edge);
+    const m = main.getBoundingClientRect(), [a, b] = lists.map(l => l.getBoundingClientRect()), row = rowLayout(), gap = 12, edge = 8;
+    const s = Math.max(120, Math.floor(row ? Math.min(m.width - 2 * (Math.max(a.width, b.width) + gap), m.height) : Math.min(m.width, m.height - Math.max(a.height, b.height) - gap)) - edge);
     if (s !== side || board.style.width !== s + 'px') { side = s; board.style.width = board.style.height = s + 'px'; }
     root.classList.toggle('clocknight', isNight(new Date().getHours() + new Date().getMinutes() / 60));
     dpr = Math.min(3, devicePixelRatio || 1); // full sharpness on every device
     const px = Math.round(side * dpr); if (cv.width !== px) { cv.width = cv.height = px; }
-    clamp(); need = true; tell3d();
+    clamp(); if (S) draw(); else need = true; // straight away: a resized canvas is blank until it is drawn again
+    tell3d();
   }
   // the 3D frame sits right behind the card
-  function tell3d() { if (!scene) return; const r = board.getBoundingClientRect(), c = root.querySelector('.g3d').getBoundingClientRect(); scene.setBoard({ x: r.left - c.left, y: r.top - c.top, size: r.width }); }
+  // (and where the players' lists are, so the avatars stand clear of them)
+  function tell3d() {
+    if (!scene) return;
+    const r = board.getBoundingClientRect(), c = root.querySelector('.g3d').getBoundingClientRect(), [a, b] = lists.map(l => l.getBoundingClientRect());
+    scene.setBoard({ x: r.left - c.left, y: r.top - c.top, size: r.width, row: rowLayout(), l: a.width ? a.left - c.left : r.left - c.left, r: b.width ? b.right - c.left : r.right - c.left });
+  }
   import('./scene3d.js').then(m => {
     if (destroyed) return;
     scene = m.createScene(root.querySelector('.g3d')); tell3d(); if (info) scene.setSeats(info);
@@ -209,10 +217,13 @@ export function mount(app, ctx) {
     const k = info.map(p => p.name + p.color + (p.av || []).join()).join('|');
     if (k !== seatKey) {
       seatKey = k;
-      $('sy-seats').innerHTML = info.map((p, i) => `<li data-s="${i}" class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<span class="sy-nm"><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<small></small></span><strong></strong></li>`).join('');
+      const li = (p, i) => `<li data-s="${i}" class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<span class="sy-nm"><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<small></small></span><strong></strong></li>`;
+      const half = Math.ceil(info.length / 2); // the first half on the left of the card, the rest on the right
+      lists[0].innerHTML = info.slice(0, half).map(li).join(''); lists[1].innerHTML = info.slice(half).map((p, i) => li(p, i + half)).join('');
+      lis = [...lists[0].children, ...lists[1].children];
     }
     const top = Math.max(1, ...S.x.map(x => x[0]));
-    [...$('sy-seats').children].forEach((li, i) => {
+    lis.forEach((li, i) => {
       const x = S.x[i], p = info[i]; if (!x) return;
       setHtml(li.querySelector('strong'), `${x[0] === top && S.ph === 'end' ? I.crown : I.card}<span>${x[0]}</span>`);
       const sub = S.stage === 'load' && p.human && !p.bot && !x[3] ? L('getting ready…', 'przygotowuje się…') : p.bot && p.human ? L('away', 'poza grą') : !p.human ? L('bot', 'bot') : x[0] ? secs(x[1]) : '';
@@ -243,14 +254,14 @@ export function mount(app, ctx) {
     clearTimeout(bigTimer); bigTimer = setTimeout(() => el.classList.remove('show'), ms);
   }
   function popSeat(s) {
-    const li = $('sy-seats').children[s]; if (!li) return;
+    const li = lis[s]; if (!li) return;
     li.classList.remove('pop'); void li.offsetWidth; li.classList.add('pop');
     // a little card flies from the pet to the finder's row
     const b = board.getBoundingClientRect(), r = li.getBoundingClientRect(), k = scale();
     const f = document.createElement('div'); f.className = 'sy-fly'; f.innerHTML = I.card;
     const x0 = b.left + view.x + card.t.x * k, y0 = b.top + view.y + card.t.y * k;
     f.style.left = x0 + 'px'; f.style.top = y0 + 'px';
-    f.style.setProperty('--dx', (r.left + r.width - 30 - x0) + 'px'); f.style.setProperty('--dy', (r.top + r.height / 2 - y0) + 'px');
+    f.style.setProperty('--dx', (r.left + r.width / 2 - x0) + 'px'); f.style.setProperty('--dy', (r.top + r.height / 2 - y0) + 'px');
     root.append(f); setTimeout(() => f.remove(), 900);
   }
 
@@ -323,7 +334,7 @@ export function mount(app, ctx) {
 
   function react(m) {
     if (!S || !info) return;
-    const i = info.findIndex(p => p.id === m.id), li = $('sy-seats').children[i];
+    const i = info.findIndex(p => p.id === m.id), li = lis[i];
     const f = document.createElement('div');
     f.className = 'floaty'; f.innerHTML = reactHtml(m.k);
     const r = li ? li.getBoundingClientRect() : null;
@@ -391,7 +402,7 @@ export function mount(app, ctx) {
     e.preventDefault();
   };
   addEventListener('keydown', onKey);
-  const ro = new ResizeObserver(() => fit()); ro.observe(main); ro.observe(seats);
+  const ro = new ResizeObserver(() => fit()); ro.observe(main); lists.forEach(l => ro.observe(l));
 
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
