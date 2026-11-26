@@ -896,6 +896,25 @@ export function pairsArt() {
     <path class="arttick" d="M138 66l-8-8M178 66l8-8M158 58v-10" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
+export function herdArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const COL = ['#d24a1f', '#a87800', '#2f8a43', '#1f74bb'], PET = ['#ff9b6b', '#ffd34d', '#8fd38a', '#8cc8f5'];
+  // a cream tile with its number and a round pet face under it
+  const tile = (x, y, n, e) => `<g transform="translate(${x} ${y})"><rect y="4" width="28" height="38" rx="5" fill="#d9c3a4" ${o}/><rect width="28" height="38" rx="5" fill="#fffaf0" ${o}/>
+    ${e < 0 ? `<text x="14" y="13" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="8" fill="#8a4fb5">ANY</text><ellipse cx="14" cy="26" rx="7" ry="8.5" fill="#fff3dd" stroke="#3b2219" stroke-width="2"/><circle cx="12" cy="24" r="1.8" fill="#b07ad6"/><circle cx="16.5" cy="28.5" r="2" fill="#b07ad6"/>`
+      : `<text x="14" y="18" text-anchor="middle" font-family="Rubik, sans-serif" font-weight="700" font-size="16" fill="${COL[e]}">${n}</text><circle cx="14" cy="28" r="6.5" fill="${PET[e]}" stroke="#3b2219" stroke-width="2"/><circle cx="11.8" cy="27.5" r="1.1" fill="#3b2219"/><circle cx="16.2" cy="27.5" r="1.1" fill="#3b2219"/>`}</g>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Number tiles with pets on a teal table: a line of four in a row, a herd of three sevens, and one more tile dropping into the line">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="122" cy="14" r="1.6"/><circle cx="214" cy="12" r="1.3"/><circle cx="292" cy="50" r="1.5"/><circle cx="18" cy="60" r="1.2"/></g>
+    <path d="M22 34l14-8 16 4 8 10-10 8H30z" class="artcloud" fill="#fff"/><path d="M254 22l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <ellipse cx="160" cy="134" rx="152" ry="40" fill="#b9794a" ${o}/><ellipse cx="160" cy="128" rx="140" ry="34" fill="#2f8f86" ${o}/>
+    <rect x="38" y="92" width="136" height="46" rx="9" fill="#1f6f68" opacity=".55"/><rect x="190" y="92" width="102" height="46" rx="9" fill="#1f6f68" opacity=".55"/>
+    ${tile(44, 96, 3, 2)}${tile(76, 96, 4, 2)}${tile(108, 96, 5, 2)}${tile(140, 96, 6, 2)}
+    ${tile(196, 96, 7, 0)}${tile(228, 96, 7, 1)}${tile(260, 96, 7, 3)}
+    <g class="hbob"><g transform="rotate(-10 160 52)">${tile(146, 34, 7, 2)}</g></g>
+    <g transform="rotate(8 84 60)">${tile(70, 40, 0, -1)}</g>
+    <path class="arttick" d="M150 80l-4 6M172 80l3 6" fill="none" stroke="#3b2219" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
 
 // Sugar Siege card: a blocky island in the sea, a bunny on the left with a slingshot band, a pie flying along a
 // dotted arc, and a round pet on the right lying asleep with a Zzz after a sweet splat.

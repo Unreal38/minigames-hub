@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -953,6 +953,31 @@ const GAMES = {
       <li>If the turn timer runs out, random cards are flipped for you. Each pair you find starts the timer again.</li>
     </ol>`,
   },
+  herd: {
+    name: 'Pet Herds', load: () => import('./games/herd/client.js'), start: 'Deal the tiles',
+    mins: [15, 30],
+    host: { seats: 4, bots: 'chill', timer: 60, open: 30, hints: 'on', rounds: 1 }, solo: { seats: 3, bots: 'chill', timer: 0, open: 30, hints: 'on', rounds: 1 },
+    openSeat: 'A bot plays this tray if nobody joins',
+    settings: pill => `
+      <div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 1, 'One round')}${pill('rounds', 3, '3 rounds')}</div></div>
+      <div class="opt"><b>First play</b><div class="pills">${pill('open', 30, '30 or more')}${pill('open', 0, 'Any')}</div></div>
+      <div class="opt"><b>Fit hints</b><div class="pills">${pill('hints', 'on', 'On')}${pill('hints', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
+      <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 45, '45s')}${pill('timer', 60, '60s')}${pill('timer', 90, '90s')}${pill('timer', 0, 'Off')}</div></div>`,
+    howto: `Our own number-tile game with Pet Farm pets. Lay herds (one number in different pets) and lines (one pet, numbers in a row) from your tray, and rebuild what's on the table to fit more in. Empty your tray first to win.`,
+    rules: `<ol>
+      <li>There are <b>106 tiles</b>: the numbers <b>1 to 13</b> in four pets (<b>Cindercub, Zapkit, Sproutle and Axolily</b>), two of each, and <b>two Mystery Eggs</b> that stand in for any tile. Everyone gets <b>14 tiles</b> in their tray. Empty seats are played by bots.</li>
+      <li>A <b>herd</b> is one number in 3 or 4 different pets, like 7 Cindercub, 7 Zapkit, 7 Axolily. A <b>line</b> is one pet with 3 or more numbers in a row, like Sproutle 4, 5, 6. 13 never joins up with 1.</li>
+      <li>On your turn put down <b>at least one tile</b> from your tray, or <b>draw a tile</b> and your turn is over. When the pile is empty you pass instead.</li>
+      <li>With <b>First play: 30 or more</b>, your first play must be new herds and lines from your own tray worth <b>30 points</b> or more (a tile counts its number, an egg what it stands for). Until then you can't touch the table.</li>
+      <li>After that you may <b>take apart and rebuild</b> anything on the table: split lines, swap tiles between groups, take an egg back by putting in the tile it stood for. Tiles from the table can't go into your tray. When you press <b>Done</b>, every group must be a herd or a line.</li>
+      <li>Tap tiles to pick them, then tap a group to add them, the cloth to start a new group or your tray to take them back. Or drag them. <b>Undo turn</b> puts the table back as it was. With <b>Fit hints</b> on, the groups your picked tiles fit light up.</li>
+      <li>If the turn timer runs out, the table goes back as it was and you draw a tile.</li>
+      <li>The first to <b>empty their tray</b> wins the round and gets the points left in everyone else's trays; the others lose theirs (an egg left over costs 30). If the pile runs out and nobody can play, the smallest tray wins. With <b>3 rounds</b> the points add up.</li>
+      <li>The most points at the end wins; equal points share the place. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
+      <li>Shortcuts on your turn: <b>Enter</b> is Done, <b>D</b> draws, <b>N</b> makes a new group, <b>Z</b> undoes the turn and <b>Esc</b> drops what you picked.</li>
+    </ol>`,
+  },
   pips: {
     name: 'Pip Party', load: () => import('./games/pips/client.js'), start: 'Roll the dice',
     mins: [10, 15],
@@ -1820,7 +1845,7 @@ const hasPack = () => { const have = new Set(st.me?.owned || []); return packIds
 let onKofi = null;
 function openSupport() {
   const user = st.me?.user, got = hasPack(), ids = packIds('kofi').map(id => id.split(':'));
-  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
+  const KIT = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln', 'bs'], cosIds = cosPackIds('kofi').map(id => { const [k, i] = id.split(':'); return [k, +i]; });
   // a small picture of one account cosmetic or game piece skin, with the kind as its caption
   const cosFig = ([k, i]) => { const it = cosItem(k, i);
     const pic = k === 'nm' ? `<span class="supbox"><b>${nameHtml(st.name || L('Name', 'Imię'), { nm: i })}</b></span>` : k === 'fr' ? `<span class="supbox">${avatarHtml(st.color, st.av, 34, frameCls({ fr: i }))}</span>`
@@ -2075,6 +2100,7 @@ const HUB_GAMES = [
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
   ['siege', 'siegepic', siegeArt, 'action party', '1–4 players', 'Teams of Pet Farm pets lob pies, jelly and cake across a blocky island. Overfeed the other pets until they doze off in a sugar rush.'],
   ['pairs', 'pairspic', pairsArt, 'cards party', '1–6 players', 'A memory game with Pet Farm pets. Flip two cards, find the twins and go again. Golden, Spyglass and Whirlwind pairs shake things up.'],
+  ['herd', 'herdpic', herdArt, 'board', '1–4 players', 'Our own number-tile game with Pet Farm pets. Lay herds and lines, rebuild the table to fit more in, and empty your tray first.'],
   ['makao', 'makaopic', makaoArt, 'cards', '1–6 players', 'The Polish classic with a normal deck: twos and threes to draw, fours to wait, Jacks demand, Aces change the suit, kings fight. Don\'t forget “Makao!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
   ['domino', 'dominopic', dominoArt, 'board', '1–4 players', 'Classic draw dominoes with chunky tiles. Match the ends, empty your hand first and score what the others are left holding.'],
@@ -2761,7 +2787,7 @@ const ROW_LABEL = Object.fromEntries(AV_TABS.flatMap(([, rows]) => rows));
 const itemName = (k, i) => AV_COLOR_KEYS.includes(k) ? ROW_LABEL[k] : OPT[k][i];
 const SEASON_ICO = { winter: '❄️', spring: '🌷', summer: '🌴', halloween: '🎃' };
 const WIN_ICO = ['🚫', '🎊', '💖', '🐟', '🎆', '🪙', '❄️', '☕', '🌸', '🫧', '🦇', '🐾', '🏮', '📸', '🔤'];
-const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
+const WD_ACC = [['name', L('Name & card', 'Imię i wizytówka'), ['nm', 'fr', 'pb', 'ti']], ['kit', L('Table kit', 'Zestaw do gier'), ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln', 'bs']], ['fx', L('Effects & stickers', 'Efekty i naklejki'), ['wn', 'sp']], ['emo', L('Plaza emotes', 'Emotki na Plac'), ['em']], ['isle', L('Isle', 'Wyspa'), ['ig', 'ib', 'ip', 'ik', 'fp']], ['pets', L('Isle pets', 'Zwierzaki na wyspie'), []]];
 const ISLE_KINDS = ['ig', 'ib', 'ip', 'ik'];
 const COS_HINT = { nm: L('The colour of your name in waiting rooms, chat and the rankings.', 'Kolor twojego imienia w poczekalniach, na czacie i w rankingach.'), fr: L('A frame round your picture.', 'Ramka wokół twojego obrazka.'),
   pb: L('The picture behind your name on your card: in waiting rooms, on your profile and here on the left. Ones with a goal are earned in the rankings or in Pet Farm.', 'Obrazek za twoim imieniem na wizytówce: w poczekalniach, na profilu i tutaj po lewej. Te z celem zdobywa się w rankingach albo na Farmie zwierzaków.'),
@@ -3112,7 +3138,7 @@ function skyStrip(p) {
 }
 function openPlayer(p) {
   if (!p) return; playerSheet?.close();
-  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln'];
+  const rate = p.games ? Math.round(100 * p.wins / p.games) : 0, kit = ['cb', 'dc', 'gb', 'kp', 'cu', 'cs', 'dm', 'ck', 'rt', 'ln', 'bs'];
   const sheet = playerSheet = modal(`
     <div class="profcard">
       <div class="pisle">${skyHang(p)}<div class="art sky3d"></div>${p.pets.length ? `<div class="ppets">${p.pets.map(x => `<span>${petImg(x, 34, 'palpic')}<b>${esc(x.name)}</b> <small>${L('lv', 'poz.')} ${x.lv | 0}</small></span>`).join('')}</div>` : ''}</div>
@@ -3171,7 +3197,7 @@ document.addEventListener('click', e => {
   profFrom = fromOf(row); sfx.click(); send({ t: 'player', pt: row.dataset.prof });
 });
 // Games where the floating name tags stay out of the way of the mouse: you aim, drag or steer right where they float.
-const TAG_HANDS_OFF = new Set(['siege', 'blast', 'pairs', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
+const TAG_HANDS_OFF = new Set(['siege', 'blast', 'pairs', 'herd', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
 // Inside a game: the name tags over the players and the rows of the score lists open that player's profile card too
 // (to add them as a friend or report them mid-match). Games draw them without a tag, so the name finds the player
 // among the people at this table; bots and names shared by two people open nothing.

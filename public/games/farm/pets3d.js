@@ -1668,10 +1668,13 @@ const BODY = {
     if (X.own('top')) X.sig(A.top, A.fs);
     return A;
   },
-  geodeer(g, F, K, X) { // a fawn: folded up asleep-style as a baby, then long legs and crystal antlers
+  geodeer(g, F, K, X) { // a fawn: a chubby baby on four short stumpy legs, then long legs and crystal antlers
     const hoof = '#6b5560', gemc = GL('#8fe3ff', .5);
     let A;
-    if (F === 0) { A = { head: { p: [0, .86, .42], r: .58 }, body: { p: [0, .42, -.2], r: [.5, .4, .72] } }; Sp(g, 1, K.a, A.body.p, A.body.r); for (const s of [-1, 1]) { Rd(g, [.18, .16, .5], K.a, [s * .42, .08, .3]); Rd(g, [.18, .16, .18], hoof, [s * .42, .08, .6]); } }
+    if (F === 0) { // the legs sit right under the body so the chibi warp keeps them attached
+      A = { head: { p: [0, 1.0, .42], r: .58 }, body: { p: [0, .56, -.2], r: [.5, .4, .68] } }; Sp(g, 1, K.a, A.body.p, A.body.r);
+      for (const s of [-1, 1]) for (const z of [.2, -.56]) { Cy(g, [.15, .14, .32, 7], K.a, [s * .26, .27, z]); Cy(g, [.14, .16, .12, 7], hoof, [s * .26, .06, z]); }
+    }
     else {
       const lh = F === 1 ? .7 : 1, L = F === 1 ? .62 : .78, by = lh + .34;
       A = { head: { p: [0, by + (F === 1 ? .8 : 1.05), L * .95], r: .5 }, body: { p: [0, by, -.05], r: [.42, .4, L] } };

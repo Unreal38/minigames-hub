@@ -91,12 +91,20 @@ const lanternPic = i => shot3d(async THREE => {
   const { lanternModel } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), g = lanternModel(THREE, i); toonify(g, .03);
   return { g, dir: [.25, .3, .92], zoom: .92 };
 });
+// a pop seed beside its blast: the seed, with a ring of the blast's own bits round it
+const seedPic = i => shot3d(async THREE => {
+  const { seedModel, seedLook } = await import('./pieceskins.js'), { toonify } = await import('./scenery3d.js'), L = seedLook(i), g = new THREE.Group();
+  const s = seedModel(THREE, i); s.position.y = -.38; g.add(s);
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, b = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, .12), new THREE.MeshBasicMaterial({ color: L.bits[k % L.bits.length] })); b.position.set(Math.cos(a) * .48, Math.sin(a) * .4, -.1); b.rotation.set(a, a, 0); b.userData.noInk = true; g.add(b); }
+  toonify(g, .03);
+  return { g, dir: [.2, .35, .92], zoom: .9 };
+});
 export async function skinPic(k, i, color, av) {
   const key = keyOf(k, i, color, av); if (shots.has(key)) return shots.get(key);
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : k === 'bs' ? await seedPic(i | 0) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }
