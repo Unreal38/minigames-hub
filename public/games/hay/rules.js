@@ -4,7 +4,7 @@
 // Every bale hides a carrot bundle worth 1, 2 or 3, or a napping pet. Each row and each column has a sign with
 // the carrots it holds in total and how many pets nap in it. Flipping a bale multiplies the field's harvest by
 // its carrots. Find every 2 and 3 to clear the field and go up a level. Wake a pet and the harvest is lost and
-// you go down a level. You can take the harvest home at any time instead: it counts for the rankings but pays no coins.
+// you go back to level 1.
 
 export const N = 5;               // the field is N x N
 export const MAX_LV = 7;

@@ -41,7 +41,7 @@ function record(p, h, { pts, win, coins, xp }) {
   invalidateBoards(); scheduleSave();
 }
 
-// a = { t: 'open' | 'flip' | 'bank' | 'next', i }. Returns { s: view } or { err }.
+// a = { t: 'open' | 'flip' | 'next', i }. Returns { s: view } or { err }.
 export function handle(p, a) {
   if (!p?.user) return { need: 'account' };
   const h = stateOf(p), f = h.f, t = a?.t;
@@ -59,7 +59,7 @@ export function handle(p, a) {
     const v = f.cells[i], lvBefore = h.lv;
     if (v === PET) {
       const lost = harvestOf(f.cells, f.open);
-      h.lv = Math.max(1, h.lv - 1);
+      h.lv = 1; // Kuba: waking a pet always sends you back to level 1
       f.over = 'pet'; f.wake = i; f.res = { pts: 0, lost, coins: 0, xp: 0, from: lvBefore, to: h.lv };
       record(p, h, { pts: 0, win: false });
     } else if (found(f.cells, f.open) === goal(f.cells)) {
@@ -71,13 +71,6 @@ export function handle(p, a) {
       f.res.levelUp = levelOf(p.xp || 0) > lvl;
     }
     scheduleSave();
-    return { s: view(p) };
-  }
-  if (t === 'bank') {
-    const pts = harvestOf(f.cells, f.open);
-    if (!pts) return { err: 'Flip a bale first.' };
-    f.over = 'bank'; f.res = { pts, coins: 0, xp: 0, from: h.lv, to: h.lv };
-    record(p, h, { pts, win: false });
     return { s: view(p) };
   }
   return { err: 'Unknown move.' };
