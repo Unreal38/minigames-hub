@@ -51,9 +51,9 @@ export function mount(app, ctx) {
   app.innerHTML = `<div class="sy">
     <canvas class="g3d" aria-hidden="true"></canvas>
     <div class="sy-top">
-      <div class="sy-tl"><span class="tcode" id="sy-code"></span><div class="sy-zoom"><button type="button" class="round" data-a="zin" aria-label="${L('Zoom in', 'Przybliż')}">${I.plus}</button><button type="button" class="round" data-a="zout" aria-label="${L('Zoom out', 'Oddal')}">${I.minus}</button><button type="button" class="round" data-a="zfit" aria-label="${L('Whole card', 'Cała karta')}">${I.fit}</button></div></div>
+      <div class="sy-tl"><div class="sy-zoom"><button type="button" class="round" data-a="zin" aria-label="${L('Zoom in', 'Przybliż')}">${I.plus}</button><button type="button" class="round" data-a="zout" aria-label="${L('Zoom out', 'Oddal')}">${I.minus}</button><button type="button" class="round" data-a="zfit" aria-label="${L('Whole card', 'Cała karta')}">${I.fit}</button></div></div>
       <div class="sy-want" id="sy-want"><span class="sy-pic"><img id="sy-wimg" alt=""></span><span class="sy-wt"><span class="sy-wh"><small>${L('Find', 'Znajdź')}</small><span class="sy-no" id="sy-no"></span></span><b id="sy-wname">…</b><span id="sy-wsub"></span><span class="sy-bar"><i id="sy-bar"></i></span></span></div>
-      <div class="sy-tr">
+      <div class="sy-tr tr"><span class="tcode" id="sy-code"></span>
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L('Leave table', 'Odejdź od stołu')}">${I.door}</button></div>

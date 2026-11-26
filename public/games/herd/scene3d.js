@@ -139,7 +139,8 @@ export function createScene(canvas, { onFrame } = {}) {
       return { av, stool, rack, ring, sp, mine, color: p.color, tiles: [], n: 0, hop: 0, nod: 0, look: 0, active: false, key: p.color + (p.av || []).join('') };
     });
   }
-  function standTile(color, sk) { const h = new THREE.Group(), t = backTile(color, sk); t.rotation.set(0, Math.PI / 2, Math.PI / 2 - .3); t.position.set(.05, TL / 2 * .95, 0); h.add(t); return h; }
+  // a rival's tile standing upright on its short edge: width along the rack, back plate facing the table, leaning back towards its owner
+  function standTile(color, sk) { const h = new THREE.Group(), t = backTile(color, sk); t.rotation.set(0, Math.PI / 2, -Math.PI / 2 + .3, 'ZYX'); t.position.set(-.04, TL / 2 * Math.cos(.3) + .01, 0); h.add(t); return h; }
   function setRack(s, cnt, pop = -1) {
     if (s.mine) { s.n = cnt; return; }
     while (s.tiles.length > cnt) s.rack.remove(s.tiles.pop());
