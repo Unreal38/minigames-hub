@@ -2219,3 +2219,10 @@ body.sky.night:not(.skynight):not(.in-game) .hubgrid .hero {
   --pan: #fff4e2; --pan2: #ffe9cf; --muted2: #8a6a5c; --edge: #e3c7ad; --tx: #3b2219; --tx2: #2f4a63; --chip: #fff; --you: #fff0c9; --glass: #ffffff4d;
   --ink: #3b2219; color: var(--tx); color-scheme: light;
   --paper: #fff4e2; --card: #fff; --card-edge: #c9a99a; --on-paper: #3b2219; --soft-tx: #6b4a3c; --btn-w: #fff; --mint: #7ed3b2; }
+.gcard .pic.siegepic { background: var(--art-sky); padding: 0; }
+.gcard .pic.siegepic svg { width: 100%; height: 100%; display: block; }
+.siegepic .sgpie { animation: sgpie 2.8s ease-in-out infinite; }
+@keyframes sgpie { 0% { transform: translate(84px, 62px) rotate(0); } 50% { transform: translate(152px, 34px) rotate(160deg); } 85%, 100% { transform: translate(222px, 66px) rotate(320deg); } }
+.siegepic .sgzz { animation: sgzzart 2.4s ease-in-out infinite; transform-box: fill-box; }
+@keyframes sgzzart { 50% { transform: translate(3px, -4px); opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .siegepic .sgpie, .siegepic .sgzz { animation: none; } }
