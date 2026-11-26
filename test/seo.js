@@ -43,7 +43,7 @@ try {
     assert.ok(g.mins && g.pitch, g.id);
   }
   for (const n of ['Szachy', 'Makao', 'Kalambury', 'Bierki', 'Farma zwierzaków', 'Zagadkowy zwierzak', 'Słowo w butelce', 'Zwierzakowy mahjong']) assert.ok(bot.text.includes(`<b>${n}</b>`), n);
-  assert.match(bot.text, /W Zatoce jest \d+ gier przy stole/);
+  assert.match(bot.text, /W Zatoce jest \d+ (gier|gry) przy stole/);
   const games = JSON.parse(bot.text.match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"ItemList"[\s\S]*?)<\/script>/)[1]);
   assert.equal(games.itemListElement.length, reg.games.length + 7);
 
