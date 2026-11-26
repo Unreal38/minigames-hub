@@ -159,7 +159,6 @@ export function mount(app, ctx) {
       if (e.streak >= 2) { scene?.cue(e.s, 'streak'); bubble(e.s, `<span class="hot">${L(`${e.streak} in a row!`, `${e.streak} z rzędu!`)}</span>`); }
       if (e.tw) { sfx.set(); big(TW_NAME[e.tw](), e.tw === 'gold' ? L(`${e.s === S.me ? 'You get' : nameOf(e.s) + ' gets'} 3 points`, `${e.s === S.me ? 'Dostajesz' : nameOf(e.s) + ' dostaje'} 3 punkty`) : e.tw === 'spy' ? (e.s === S.me ? L('Peek at any face-down card', 'Podejrzyj dowolną zakrytą kartę') : L(`${nameOf(e.s)} gets a secret peek`, `${nameOf(e.s)} podejrzy jedną kartę`)) : L('Two pairs of cards swap places. Watch!', 'Dwie pary kart zamieniają się miejscami. Patrz!'), 1700); }
       else if (e.s === S.me) big(L('Pair!', 'Para!'), petName(e.sp), 1000);
-      if (e.s === S.me && !myBurst()) confetti(30);
     } else if (e.t === 'miss') { scene?.missFx(e.i, e.j); scene?.cue(e.s, 'miss'); if (e.s === S.me) sfx.bad?.(); }
     else if (e.t === 'back') sfx.plop?.();
     else if (e.t === 'late') { scene?.cue(e.s, 'late'); if (e.s === S.me) big(L('Out of time!', 'Koniec czasu!'), L('Random cards are flipped for you', 'Losowe karty odkrywają się same'), 1400); else bubble(e.s, `<span>${L('Too slow!', 'Za wolno!')}</span>`); }
@@ -234,13 +233,13 @@ export function mount(app, ctx) {
     root.append(f); setTimeout(() => f.remove(), 1600);
   }
 
-  function confetti(count = 140) {
-    if (count === 140 && myBurst()) return;
+  function confetti(own = true) {
+    if (own && myBurst()) return;
     const cv = root.querySelector('.confetti'), g = cv.getContext('2d');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const q = Math.min(1.5, devicePixelRatio || 1); cv.width = innerWidth * q; cv.height = innerHeight * q; g.scale(q, q);
     const cols = ['#3f9a52', '#e0592f', '#2f86cc', '#d9a400', '#fff4e2', '#ff8fab'];
-    const ps = Array.from({ length: count }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45, vx: (Math.random() - .5) * 16, vy: -Math.random() * 16 - 6, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 6 + Math.random() * 8, c: cols[Math.random() * cols.length | 0], round: Math.random() < .4 }));
+    const ps = Array.from({ length: 140 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45, vx: (Math.random() - .5) * 16, vy: -Math.random() * 16 - 6, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 6 + Math.random() * 8, c: cols[Math.random() * cols.length | 0], round: Math.random() < .4 }));
     let t = 0;
     const step = () => {
       g.clearRect(0, 0, innerWidth, innerHeight);
