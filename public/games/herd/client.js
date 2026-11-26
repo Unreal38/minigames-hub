@@ -94,6 +94,7 @@ export function mount(app, ctx) {
     live = info;
     if (!tagsEl.classList.contains('strip')) for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
+      el.style.visibility = t.off ? 'hidden' : '';
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
       el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
     }
