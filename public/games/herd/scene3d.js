@@ -175,7 +175,8 @@ export function createScene(canvas, { onFrame } = {}) {
   const matGeos = new Map(), edgeGeos = new Map();
   const matGeo = nT => { if (!matGeos.has(nT)) matGeos.set(nT, roundRect(groupW(nT), TL + .2, .12)); return matGeos.get(nT); };
   const edgeGeo = nT => { if (!edgeGeos.has(nT)) edgeGeos.set(nT, roundRect(groupW(nT) + .1, TL + .3, .16)); return edgeGeos.get(nT); };
-  let scaleK = 1, marks = { sel: new Set(), fit: new Set(), drop: null }, freshSet = new Set(), turnCol = '#ffb547';
+  let area = null, areaKey = ''; // where the groups lie, for the close-up camera
+  let scaleK = 1.6, marks = { sel: new Set(), fit: new Set(), drop: null }, freshSet = new Set(), turnCol = '#ffb547';
 
   // Rows of groups, back to front, scaled down as a whole once the table fills up.
   function flow(list) {
@@ -207,6 +208,14 @@ export function createScene(canvas, { onFrame } = {}) {
   function syncTable(st, animate, from = -1) {
     const list = st.table, L = flow(list);
     scaleK = L.s; nextSpot = L.next;
+    // the part of the cloth the groups use, for the close-up camera (rounded, so small shuffles do not refit)
+    if (L.at.size) {
+      let x0 = 0, x1 = 0, z0 = Infinity, z1 = L.next.z + (TL + .2) * L.s / 2;
+      for (const o of L.at.values()) { x0 = Math.min(x0, o.x - o.w / 2); x1 = Math.max(x1, o.x + o.w / 2); z0 = Math.min(z0, o.z - (TL + .2) * L.s / 2); z1 = Math.max(z1, o.z + (TL + .2) * L.s / 2); }
+      const r = v => Math.round(v * 4) / 4; area = { x0: r(x0), x1: r(x1), z0: r(z0), z1: r(z1) };
+    } else area = null;
+    const ak = area ? `${area.x0},${area.x1},${area.z0},${area.z1}` : '';
+    if (ak !== areaKey) { areaKey = ak; if (W) resize('refit'); }
     const keepG = new Set(list.map(g => g.id)), keepT = new Set(list.flatMap(g => g.t));
     for (const [id, g] of groups) if (!keepG.has(id)) { board.remove(g.mat, g.edge); g.mat.material.dispose(); g.edge.material.dispose(); groups.delete(id); }
     for (const [id, o] of tiles) if (!keepT.has(id)) { // the tile went back to a tray (or the table was put back)
@@ -358,22 +367,41 @@ export function createScene(canvas, { onFrame } = {}) {
     const DIR = new THREE.Vector3(0, portrait ? 2.4 : 2.0, 1).normalize();
     const place = dist => { camera.position.copy(DIR).multiplyScalar(dist); camera.lookAt(camLook); camera.updateMatrixWorld(); };
     camera.aspect = w / h; camera.fov = portrait ? 46 : 36; camera.clearViewOffset(); camera.updateProjectionMatrix();
-    const top = hudTop, bottom = Math.max(top + 120, h - hudBottom);
-    // portrait phones fit the cloth (the rivals are chips in the HUD); wide screens fit the whole table and its seats
-    const side = D.TX + (portrait ? .25 : n >= 4 ? 2.0 : .8);
-    const FIT = portrait
+    const top = hudTop; let bottom = Math.max(top + 120, h - hudBottom);
+    // portrait phones fit the cloth (the rivals are chips in the HUD); wide screens fit the whole table and its seats.
+    // "close" fits just the part of the cloth the groups use: the camera eases towards it as a full table shrinks the tiles
+    const side = D.TX + (portrait ? .25 : n >= 4 ? 2.0 : .8), xMax = D.TX - (n >= 4 ? 1.0 : .35);
+    const wide = portrait
       ? [new THREE.Vector3(0, .6, -D.TZ - .2), new THREE.Vector3(0, .1, D.TZ + .3), new THREE.Vector3(-side, .2, 0), new THREE.Vector3(side, .2, 0)]
       : [new THREE.Vector3(0, 2.4, -D.TZ - 1.3), new THREE.Vector3(0, .1, D.TZ + .45), new THREE.Vector3(-side, .6, 0), new THREE.Vector3(side, .6, 0)];
-    let lo = 4, hi = 110;
-    for (let i = 0; i < 32; i++) {
-      const dist = (lo + hi) / 2; place(dist);
-      const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]), [lx] = toPx(FIT[2]), [rx] = toPx(FIT[3]);
-      if (fy - ty <= bottom - top && lx >= 4 && rx <= w - 4) hi = dist; else lo = dist;
-    }
-    place(hi); camBase.copy(camera.position);
-    scene.fog.near = hi + 20; scene.fog.far = hi + 130;
-    const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
-    camera.setViewOffset(w, h, 0, (ty + fy) / 2 - (top + bottom) / 2, w, h); camera.updateProjectionMatrix();
+    const A = area || { x0: -xMax, x1: xMax, z0: -D.TZ + 1.15, z1: D.TZ - 1.35 }, cx = Math.max(-A.x0, A.x1) + .25, cz0 = A.z0 - .3, cz1 = A.z1 + .3;
+    const close = [new THREE.Vector3(0, .1, cz0), new THREE.Vector3(0, .1, cz1), new THREE.Vector3(-cx, .1, cz1), new THREE.Vector3(cx, .1, cz1)];
+    const fit = FIT => {
+      let lo = 4, hi = 110;
+      for (let i = 0; i < 32; i++) {
+        const dist = (lo + hi) / 2; place(dist);
+        const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]), [lx] = toPx(FIT[2]), [rx] = toPx(FIT[3]);
+        if (fy - ty <= bottom - top && lx >= 4 && rx <= w - 4) hi = dist; else lo = dist;
+      }
+      place(hi); const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
+      return { dist: hi, off: (ty + fy) / 2 - (top + bottom) / 2 };
+    };
+    const f = fit(wide); bottom -= 56; const c = fit(close); bottom += 56; // close up, the hint line above the tray stays clear of the last row
+    if (c.dist > f.dist) { c.dist = f.dist; c.off = f.off; } // the close view never sits further out than the wide one
+    view.wide = f; view.close = c; view.dir.copy(DIR);
+    scene.fog.near = f.dist + 20; scene.fog.far = f.dist + 130;
+    applyView(0, force !== 'refit'); // a new window size snaps; a new layout eases
+  }
+  // how close the camera sits: 0 = the whole table, 1 = just the groups; it follows the tile size, eased so it never jumps
+  const view = { wide: null, close: null, dir: new THREE.Vector3(0, 1, 1), z: 0, zTo: 0, dist: 0, off: 0, set: false };
+
+  function applyView(dt, snap) {
+    if (!view.wide) return;
+    const e = view.z * view.z * (3 - 2 * view.z), dist = view.wide.dist + (view.close.dist - view.wide.dist) * e, off = view.wide.off + (view.close.off - view.wide.off) * e;
+    if (snap || !view.set) { view.dist = dist; view.off = off; view.set = true; }
+    else { const k = 1 - Math.exp(-dt * 2.5); if (Math.abs(dist - view.dist) < 1e-3 && Math.abs(off - view.off) < .05) return; view.dist += (dist - view.dist) * k; view.off += (off - view.off) * k; }
+    camBase.copy(view.dir).multiplyScalar(view.dist);
+    camera.clearViewOffset(); camera.setViewOffset(W, H, 0, view.off, W, H); camera.updateProjectionMatrix();
   }
 
   // ---------- loop ----------
@@ -420,6 +448,8 @@ export function createScene(canvas, { onFrame } = {}) {
       s.ring.material.opacity += ((s.active ? .9 : 0) - s.ring.material.opacity) * .15;
     });
     cloudRing.rotation.y = T * .006; flyBirds(T); drift(T);
+    view.zTo = Math.min(1, Math.max(0, (1.6 - scaleK) / .6));
+    view.z += (view.zTo - view.z) * (1 - Math.exp(-real * 1.6)); applyView(real);
     camera.position.set(camBase.x + (reduced ? 0 : Math.sin(T * .22) * .08), camBase.y + (reduced ? 0 : Math.sin(T * .37) * .03), camBase.z);
     camera.lookAt(camLook); if (!reduced) shake.apply(camera, dt);
     pfx.update(dt, camera, H);
@@ -428,7 +458,7 @@ export function createScene(canvas, { onFrame } = {}) {
     // where the HUD draws name tags, group labels, the pile count and the "new group" spot
     seats.forEach((s, i) => {
       const t = info.tags[i] ||= { x: 0, y: 0, mine: false };
-      tv.set(s.sp.ax, 2.25, s.sp.az).project(camera); t.x = (tv.x + 1) / 2 * W; t.y = (1 - tv.y) / 2 * H; t.mine = s.mine;
+      tv.set(s.sp.ax, 2.25, s.sp.az).project(camera); t.x = (tv.x + 1) / 2 * W; t.y = (1 - tv.y) / 2 * H; t.mine = s.mine; t.off = view.z > .3 && t.y < hudTop * .5; // zoomed in past this seat: the scoreboard lists them instead
     });
     info.tags.length = seats.length;
     for (const id of info.groups.keys()) if (!groups.has(id)) info.groups.delete(id);
