@@ -183,6 +183,8 @@ console.log('trail rules ok');
   // play our own turns with the safe choices
   const me = () => state?.me ?? 0;
   const drive = setInterval(() => {
+    // Tower Stack waits up to 10 s on a person each turn, so a tower could outlast the wait below: drop straight away
+    if (room?.game === 'stack' && state?.stage === 'aim' && state.turn === state.me && Date.now() - stateAt > 300) { send({ t: 'act', a: { t: 'drop' } }); return; }
     if (room?.game !== 'trail' || !state || state.game !== 'trail') return;
     const P = state.pend;
     if (state.stage === 'cheer' && state.cheer && !state.cheer.done) send({ t: 'act', a: { t: 'cheer', i: -1 } });

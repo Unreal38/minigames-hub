@@ -9,7 +9,8 @@
 // swaps to the see-through one); avatars and pets get soft blob shadows, no shadow maps.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { skyDome, clouds, nightScene, birds, petals, createFx, toonMat, toonify, mergeStatic, flat, put, PROPS, hash, seasonLookNow, STAR, DOT, HEART } from '../../scenery3d.js';
+import { skyDome, clouds, nightScene, birds, petals, createFx, toonMat, toonify, mergeStatic, flat, put, shell, PROPS, hash, seasonLookNow, STAR, DOT, HEART } from '../../scenery3d.js';
+import { diceKit, SIDE } from '../../dice3d.js';
 import { lookOf, SP } from '../../season3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { itemModel } from '../farm/models.js';
@@ -19,7 +20,7 @@ import { NODES, N, EL_COL } from './rules.js';
 
 const K = .42;                 // avatars are drawn at this size, on a wrapper (the standing avatar sits .76 up inside it)
 const HOP = 320;               // ms per stone, as the server counts it (MS.hop)
-const SR = .62, SY = .16;      // stone radius and the height of a stone's top
+const SR = .62, SY = .18;      // stone radius and the height of a stone's top
 const ISLE = { x: 1.5, z: -1, rx: 23, rz: 16.5 };
 const POND = { x: -1, z: 0, rx: 4.2, rz: 3 };
 const STREAM_Z = .95;
@@ -98,18 +99,25 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- the trail: stones, the dirt between them, bridges and signposts ----------
   const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z));
-  const DIRT = snowy ? '#d8e6ee' : '#c9a46a';
+  const DIRT = snowy ? '#d8e6ee' : '#d9b77c', DIRT_EDGE = snowy ? '#b9c9d6' : '#a9814f';
   NODES.forEach((n, i) => {
     const kind = n.kind, top = STONE[kind] || '#ffd36b';
     const g = new THREE.Group(); g.position.set(n.x, 0, n.z); g.rotation.y = i * .7; world.add(g);
-    cyl(g, SR + .06, SR + .14, .14, snowy ? '#cfd6e0' : '#a9a39b', 0, .05, 0, 9);
-    cyl(g, SR, SR + .04, .08, kind === 'bramble' && snowy ? '#bfe6ff' : top, 0, .12, 0, 9);
-    if (kind === 'treat') for (let k = 0; k < 3; k++) cyl(g, .1, .1, .05, '#c98a52', Math.cos(k * 2.1) * .25, .18, Math.sin(k * 2.1) * .25, 8);
+    // a chunky grey base, a bright cream lip and the coloured top, so every stone you can stand on pops off the lawn
+    cyl(g, SR + .1, SR + .2, .16, snowy ? '#9aa6b6' : '#8d867e', 0, .06, 0, 9);
+    cyl(g, SR + .1, SR + .1, .05, '#fff6e2', 0, .135, 0, 9);
+    cyl(g, SR, SR + .03, .08, kind === 'bramble' && snowy ? '#bfe6ff' : top, 0, .14, 0, 9);
+    if (kind === 'treat') for (let k = 0; k < 3; k++) cyl(g, .1, .1, .05, '#c98a52', Math.cos(k * 2.1) * .25, .2, Math.sin(k * 2.1) * .25, 8);
     if (kind === 'bramble') for (let k = 0; k < 4; k++) { const t = put(g, new THREE.TetrahedronGeometry(.17), M(snowy ? '#e8f6ff' : '#5d8a3a'), Math.cos(k * 1.6) * .32, .25, Math.sin(k * 1.6) * .32); t.rotation.set(k, k * 2, 0); }
-    if (kind === 'picnic') { box(g, .62, .03, .62, '#ffffff', 0, .175, 0); for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) box(g, .3, .035, .3, '#ff6f9a', -.15 + a * .3, .18, -.15 + b * .3).visible = (a + b) % 2 === 0; }
+    if (kind === 'picnic') { box(g, .62, .03, .62, '#ffffff', 0, .195, 0); for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) box(g, .3, .035, .3, '#ff6f9a', -.15 + a * .3, .2, -.15 + b * .3).visible = (a + b) % 2 === 0; }
     // dirt dots to the next stones, and plank bridges over the stream
     for (const j of n.next) { const b = NODES[j];
-      for (const t of [.33, .66]) { const x = lerp(n.x, b.x, t), z = lerp(n.z, b.z, t); if (!(n.x > 3 && (n.z - STREAM_Z) * (b.z - STREAM_Z) < 0 && Math.abs(z - STREAM_Z) < .9)) cyl(world, .17, .19, .06, DIRT, x, .03, z, 7); }
+      // a dirt path with a darker edge from stone to stone (cut where a bridge crosses the stream)
+      { const dx = b.x - n.x, dz = b.z - n.z, l = Math.hypot(dx, dz), a = Math.atan2(dx, dz), cross = n.x > 3 && (n.z - STREAM_Z) * (b.z - STREAM_Z) < 0;
+        const seg = (t0, t1) => { const len = (t1 - t0) * l; if (len < .05) return; const x = n.x + dx * (t0 + t1) / 2, z = n.z + dz * (t0 + t1) / 2;
+          box(world, .74, .03, len, DIRT_EDGE, x, .02, z).rotation.y = a; box(world, .5, .035, len, DIRT, x, .03, z).rotation.y = a; };
+        const e0 = (SR + .1) / l, e1 = 1 - e0;
+        if (!cross) seg(e0, e1); else { const tc = (STREAM_Z - n.z) / dz, h = .85 / l; seg(e0, Math.max(e0, tc - h)); seg(Math.min(e1, tc + h), e1); } }
       if (n.x > 3 && (n.z - STREAM_Z) * (b.z - STREAM_Z) < 0) { const t = (STREAM_Z - n.z) / (b.z - n.z), x = lerp(n.x, b.x, t);
         const br = new THREE.Group(); br.position.set(x, .12, STREAM_Z); br.rotation.y = Math.atan2(b.x - n.x, b.z - n.z); world.add(br);
         for (let k = 0; k < 5; k++) box(br, .9, .07, .26, k % 2 ? '#b07a4a' : '#c98a52', 0, 0, -.6 + k * .3);
@@ -179,6 +187,10 @@ export function createScene(canvas, { onFrame } = {}) {
   const ringMat = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 });
   const OUTLINE = { stall: '#ffffff', nest: '#ffe9a8', bench: '#c9a8ff', well: '#7cc6ff', spring: '#9fe6f0', den: '#c9a8ff', picnic: '#ff9fc8' };
   const stoneRings = [];
+  // every other stone gets a thin cream ring in the whole-map view too, so the trail reads as one line of stepping stones
+  const plain = NODES.filter(n => !OUTLINE[n.kind]), plainRings = new THREE.InstancedMesh(new THREE.RingGeometry(.8, 1, 24).rotateX(-Math.PI / 2), ringMat('#fff6e2'), Math.max(1, plain.length));
+  plain.forEach((n, k) => plainRings.setMatrixAt(k, new THREE.Matrix4().makeScale(SR + .3, 1, SR + .3).setPosition(n.x, SY + .02, n.z)));
+  plainRings.count = plain.length; plainRings.renderOrder = 2; plainRings.frustumCulled = false; scene.add(plainRings);
   NODES.forEach((n, i) => { if (!OUTLINE[n.kind]) return; const r = new THREE.Mesh(ringGeo, ringMat(OUTLINE[n.kind])); r.position.set(n.x, SY + .02, n.z); r.scale.setScalar(SR + .5); r.renderOrder = 2; scene.add(r); stoneRings.push(r); });
 
   // ---------- pets ----------
@@ -265,6 +277,43 @@ export function createScene(canvas, { onFrame } = {}) {
     for (const [k, g] of honey) if (!seen.has(k)) { scene.remove(g); honey.delete(k); }
   }
 
+  // ---------- the dice: thrown in the roller's own dice skin (dice3d.js), tumbling onto the lawn beside them ----------
+  const kit = diceKit(), DS = .4, DIE_MS = 760, DIE_HOLD = 2300;
+  const FACE_N = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].map(a => new THREE.Vector3(...a));
+  const UPV = new THREE.Vector3(0, 1, 0);
+  const thrown = []; // { m, from, to, spin, q, t0, s, k, landed }
+  function faceUpQ(v, yaw) { const f = Math.max(0, SIDE.indexOf(v)); return new THREE.Quaternion().setFromAxisAngle(UPV, yaw).multiply(new THREE.Quaternion().setFromUnitVectors(FACE_N[f], UPV)); }
+  const dropDie = d => { scene.remove(d.m); for (const c of d.m.children) c.material.dispose(); };
+  function clearDice() { for (const d of thrown) dropDie(d); thrown.length = 0; }
+  function roll(s, vals) {
+    const f = folk[s]; if (!f || !vals?.length) return; clearDice();
+    const k = S?.seats?.[s]?.fl?.dc | 0, now = performance.now();
+    // land just in front of the roller, towards the camera, side by side when there are two
+    const cx = camera.position.x - f.x, cz = camera.position.z - f.z, l = Math.hypot(cx, cz) || 1, fx0 = cx / l, fz0 = cz / l;
+    vals.forEach((v, j) => {
+      const m = new THREE.Mesh(kit.geo(k, DS), kit.mat(k)); shell(m, 1.1); m.renderOrder = 4; scene.add(m);
+      const off = vals.length > 1 ? (j - .5) * .62 : 0;
+      const to = new THREE.Vector3(f.x + fx0 * 1.05 - fz0 * off, SY + DS / 2, f.z + fz0 * 1.05 + fx0 * off);
+      const from = new THREE.Vector3(f.x - fz0 * off * .4, 2.4, f.z + fz0 * .1);
+      m.position.copy(from);
+      thrown.push({ m, from, to, spin: new THREE.Vector3(9 + Math.random() * 8, Math.random() * 6, 9 + Math.random() * 8), q: faceUpQ(v, Math.atan2(cx, cz) + (Math.random() - .5) * .5), t0: now + j * 90, s, k, landed: false });
+    });
+  }
+  function stepDice(now, blob) {
+    for (let i = thrown.length - 1; i >= 0; i--) { const d = thrown[i], t = now - d.t0;
+      if (t < 0) { d.m.visible = false; continue; } d.m.visible = true;
+      if (t > DIE_HOLD) { const u = Math.min(1, (t - DIE_HOLD) / 220); d.m.scale.setScalar(1 - u); if (u >= 1) { dropDie(d); thrown.splice(i, 1); } continue; }
+      const u = Math.min(1, t / DIE_MS);
+      d.m.position.lerpVectors(d.from, d.to, ease(Math.min(1, u * 1.15)));
+      d.m.position.y = d.to.y + (1 - Math.min(1, u * 1.15)) * (d.from.y - d.to.y) + Math.abs(Math.sin(u * Math.PI * 2.5)) * (1 - u) * .7;
+      if (u < .72) d.m.rotation.set(d.spin.x * u, d.spin.y * u, d.spin.z * u); else d.m.quaternion.slerp(d.q, Math.min(1, (u - .72) / .28 * .7 + .15));
+      if (u >= 1) d.m.quaternion.copy(d.q);
+      if (!d.landed && u > .55) { d.landed = true; fx.puff(d.to.clone().setY(SY + .05), { n: 3, color: [DIRT], size: .1, speed: 1, life: .35 });
+        if (!few) fx.burst(d.to.clone().setY(SY + .5), { n: 8, colors: kit.sparks(d.k), shape: STAR, speed: 1.6, up: 2.4, size: .16, life: .7 }); }
+      blob(d.m.position.x, d.m.position.z, .22 * (1 - Math.min(.6, (d.m.position.y - d.to.y) * .4)));
+    }
+  }
+
   // ---------- state ----------
   let S = null;
   function setState(s) {
@@ -347,6 +396,7 @@ export function createScene(canvas, { onFrame } = {}) {
       o.out.position.set(o.x, SY + .014, o.z); o.out.scale.setScalar(.8 + Math.sin(T * 3 + o.seed) * .04);
       blob(o.x, o.z, .3);
     }
+    stepDice(performance.now(), blob);
     blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
     // camera: a close-up that follows the player in focus, or the whole island
     const f = focus >= 0 && !mapView ? folk[focus] : null;
@@ -369,6 +419,7 @@ export function createScene(canvas, { onFrame } = {}) {
     else for (const t of trees) if (t.faded) fadeTree(t, false);
     // whole-map outlines fade in as the camera pulls back
     const ro2 = Math.max(0, (zoom - .5) * 2) * .9;
+    plainRings.material.opacity = ro2 * .8; plainRings.visible = ro2 > .02;
     for (const r of stoneRings) { r.material.opacity = ro2 * (.75 + Math.sin(T * 3) * .2); r.visible = ro2 > .02; }
     for (const o of wild.values()) { o.out.material.opacity = ro2; o.out.visible = ro2 > .02; }
     cloudRing.rotation.y = T * .005; fly?.(T); drift?.(T);
@@ -391,7 +442,8 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   return {
-    setState, walk, cue,
+    setState, walk, cue, roll,
+    rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setMap(on) { mapView = !!on; },
     mapping: () => mapView,
@@ -403,7 +455,7 @@ export function createScene(canvas, { onFrame } = {}) {
     setHud(topPx, bottomPx) { if ((Math.abs(topPx - hudTop) > 4 || Math.abs(bottomPx - hudBottom) > 4) && hudFitOk(canvas)) { hudTop = topPx; hudBottom = bottomPx; } },
     stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: loop.fps?.() }),
     dispose() {
-      loop.stop(); ro.disconnect(); for (const f of folk) drop(f); folk = []; fx.dispose();
+      loop.stop(); ro.disconnect(); clearDice(); for (const f of folk) drop(f); folk = []; fx.dispose(); kit.dispose();
       scene.traverse(o => { if (o.isMesh || o.isPoints) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared) mt.dispose?.(); } });
       renderer.dispose(); renderer.forceContextLoss();
     },
