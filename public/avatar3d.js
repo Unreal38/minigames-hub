@@ -867,12 +867,15 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
       ring(kn, lb * 1.15, lb * .2, shade(shoeC, .7), 0, fy + shoeH * .5, -lb * .3).rotation.x = PI / 2;
     }
     else {
-      const bt = so === 1 || so === 6, pale = new THREE.Color(shoeC).getHSL({}).l > .8, trim = pale ? shade(shoeC, .62) : '#ffffff';
+      const bt = so === 1 || so === 6 || so === 16, pale = new THREE.Color(shoeC).getHSL({}).l > .8, trim = pale ? shade(shoeC, .62) : '#ffffff';
       sph(kn, R, shoeC, 0, fy + shoeH * .12, fz).scale.set(1, .72, 1.55); sph(kn, R, bt ? shade(shoeC, .6) : pale ? '#d6d2ca' : '#ffffff', 0, fy - shoeH * .32, fz).scale.set(1.06, .24, 1.62);
       // laces across the top, and a stripe down each side of a trainer
-      if (so !== 6) for (const dz2 of [.15, .45, .75]) box(kn, R * .8, R * .07, R * .13, bt ? shade(shoeC, 1.5) : trim, 0, fy + shoeH * .12 + R * .72 * Math.sqrt(1 - (dz2 / 1.55) ** 2) - R * .02, fz + dz2 * R);
+      if (so !== 6 && so !== 16) for (const dz2 of [.15, .45, .75]) box(kn, R * .8, R * .07, R * .13, bt ? shade(shoeC, 1.5) : trim, 0, fy + shoeH * .12 + R * .72 * Math.sqrt(1 - (dz2 / 1.55) ** 2) - R * .02, fz + dz2 * R);
       if (so === 0 || so === 3 || so === 7 || so === 10) for (const e of [-1, 1]) { const st = box(kn, R * .06, R * .22, R * 1.0, trim, e * R * .96, fy + shoeH * .2, fz - R * .1); st.rotation.x = .35; }
-      if (so === 6) { cyl(kn, lb * 1.5, lb * 1.36, sl * .62, shoeC, 0, -sl * .7, 0); cyl(kn, lb * 1.58, lb * 1.58, sl * .08, shade(shoeC, 1.35), 0, -sl * .4, 0); }
+      if (so === 6 || so === 16) { cyl(kn, lb * 1.5, lb * 1.36, sl * .62, shoeC, 0, -sl * .7, 0); cyl(kn, lb * 1.58, lb * 1.58, sl * .08, shade(shoeC, 1.35), 0, -sl * .4, 0); }
+      if (so === 16) for (const [an, y, c2] of [[.25, .86, '#ff6f8f'], [-.65, .8, '#ffc93c'], [1.2, .9, '#b48cff'], [-1.5, .88, '#ff6f8f'], [2.4, .84, '#ffc93c']]) { // flowers painted round the welly
+        const x = Math.sin(an) * lb * 1.46, z = Math.cos(an) * lb * 1.46, yy = -sl * y; for (let k = 0; k < 5; k++) { const pa = k / 5 * PI * 2; sph(kn, lb * .24, c2, x + Math.cos(pa) * lb * .24 * Math.cos(an), yy + Math.sin(pa) * lb * .24, z - Math.cos(pa) * lb * .2 * Math.sin(an)).scale.set(1, 1, .4); } sph(kn, lb * .16, c2 === '#ffc93c' ? '#ff8a2a' : '#ffc93c', x * 1.06, yy, z * 1.06); }
+      if (so === 16) { for (let k = 0; k < 5; k++) { const pa = k / 5 * PI * 2; sph(kn, R * .2, '#ff6f8f', Math.cos(pa) * R * .22, fy + shoeH * .12 + R * .62 + Math.sin(pa) * R * .05, fz + R * .95 + Math.sin(pa) * R * .2).scale.set(1, .45, 1); } sph(kn, R * .15, '#ffc93c', 0, fy + shoeH * .12 + R * .7, fz + R * .95).scale.y = .6; } // a big flower on the toe
       else if (so === 1) { cyl(kn, lb * 1.36, lb * 1.3, sl * .42, shoeC, 0, -sl * .8, 0); cyl(kn, lb * 1.46, lb * 1.46, sl * .1, shade(shoeC, .7), 0, -sl * .62, 0); } else sph(kn, R * .5, pale ? '#d6d2ca' : '#ffffff', 0, fy + shoeH * .3, fz + R * 1.05).scale.set(1.3, .6, .7);
       if (so === 7) for (const wx of [-1, 1]) for (const wz of [-1, 1]) { cyl(kn, R * .36, R * .36, R * .3, '#ff8a2a', wx * R * .62, fy - shoeH * .5, fz + wz * R * .85).rotation.z = PI / 2; sph(kn, R * .14, '#3a3440', wx * R * .78, fy - shoeH * .5, fz + wz * R * .85); }
       if (so === 7) { box(kn, R * 1.1, R * .12, R * 2.4, '#8a8f98', 0, fy - shoeH * .42, fz); sph(kn, R * .26, '#e5543b', 0, fy - shoeH * .2, fz + R * 1.5); }
@@ -937,6 +940,19 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     beads(16, .034, null, .05 * H, [COFFEE, '#8a5a3c']); const py = shY - .075 * H, pz = lb * 1.9 * 1.05 + .03;
     cyl(g, .05, .038, .075, '#fffaf0', 0, py, pz); ring(g, .026, .01, '#fffaf0', .058, py, pz); cyl(g, .04, .04, .012, COFFEE, 0, py + .036, pz);
   }
+  if (nk === 16) { // daisy chain: white daisies with yellow middles, linked round the neck
+    for (let i = 0; i < 12; i++) { const an = i / 12 * PI * 2, ff = Math.max(0, Math.cos(an)), x = Math.sin(an) * lb * 1.95, y = shY - .005 * H - ff * .045 * H, z = Math.cos(an) * lb * 1.95 * 1.05;
+      for (let k = 0; k < 5; k++) { const pa = k / 5 * PI * 2; sph(g, .026, '#ffffff', x + Math.cos(pa) * .03 * Math.cos(an), y + Math.sin(pa) * .03, z - Math.cos(pa) * .03 * Math.sin(an)).scale.set(1, 1, .5); }
+      sph(g, .02, '#ffc93c', x + Math.sin(an) * .012, y, z + Math.cos(an) * .012); } }
+  if (nk === 17) { // shell necklace: a cord of small beads with a big pink scallop shell in front
+    beads(16, .022, null, .05 * H, ['#fff4e2', '#7fd1e8', '#fff4e2', '#ffc9a8']); const py = shY - .085 * H, pz = lb * 1.9 * 1.05 + .03;
+    for (let k = 0; k < 5; k++) { const a = (k - 2) * .34, rib = box(g, .022, .1, .02, k % 2 ? '#ffb3c6' : '#ff9ab4', Math.sin(a) * .035, py + Math.cos(a) * .035, pz); rib.rotation.z = -a; }
+    sph(g, .03, '#ff9ab4', 0, py - .012, pz).scale.set(1.4, .6, .5); }
+  if (nk === 18) { // vampire cape: a black cape, two tall collar points lined in red, and a red gem clasp
+    cape('#1c1820');
+    for (const sx of [-1, 1]) { const p = cone(g, lb * 1.3, .5 * t, '#1c1820', sx * lb * 2.6, shY + .05 * H, -lb * .3); p.rotation.z = -sx * .7; p.scale.z = .35;
+      const r = cone(g, lb * 1.0, .4 * t, '#c8242f', sx * lb * 2.55, shY + .045 * H, -lb * .05); r.rotation.z = -sx * .7; r.scale.z = .3; }
+    ring(g, lb * 1.6, lb * .3, '#1c1820', 0, shY + .005 * H, 0).rotation.x = PI / 2; sph(g, .035, '#d9142b', 0, shY - .01 * H, lb * 1.85).scale.z = .6; }
   if (nk === 11) { const sc = ring(g, lb * 1.8, lb * .85, '#e5352b', 0, shY + .01 * H, 0); sc.rotation.x = PI / 2; sc.scale.z = 1.1; for (let i = 0; i < 6; i++) box(g, lb * 1.6, .06 * t, .05, i % 2 ? '#ffffff' : '#e5352b', lb * 1.2 + i * .004, chestY + .19 * t - i * .06 * t, front(lb * 1.2, chestY) + .026); }
   // head: modelled 1 unit tall with the chin at 0, inside a pivot at the neck so it can turn and nod
   const hp = new THREE.Group(); hp.userData.own = true; hp.position.y = shY + neckL + .012 * H; g.add(hp); // the flat chin rides a little above the shoulders, so scarves and ties show

@@ -12,6 +12,7 @@ import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { HOLES, PETS, SLEEP, GOLD, HEART } from './rules.js';
+import { bopperModel } from '../../pieceskins.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true, ...o });
@@ -103,16 +104,13 @@ export function createScene(canvas, { onFrame, clock } = {}) {
       holes.push({ riser, lift, cap, crown, heart, zs, pet: null, sp: -1, cur: -1, seen: false, wob: 0 });
     }
     // the pillow mallet: a wooden handle and a soft head, swung about the hand
-    const mal = new THREE.Group(); mal.visible = false; g.add(mal);
-    put(new THREE.BoxGeometry(.15, 1.5, .15), M('#c98a52'), 0, .7, 0, mal);
-    const head = new THREE.Group(); head.position.y = 1.5; mal.add(head);
-    put(new THREE.BoxGeometry(1.05, .66, .7), M('#ff8fab'), 0, 0, 0, head); for (const sx of [-1, 1]) put(new THREE.BoxGeometry(.14, .76, .8), M('#fff6e6'), sx * .56, 0, 0, head);
+    const mal = bopperModel(THREE, 0, M), head = mal.userData.head; mal.visible = false; g.add(mal); // the player's own bopper goes in once the seats are known (setBopper)
     toonify(mal, .04);
     // the ring that lights up round the burrow the mouse is on
     const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({ color: '#fff27a', transparent: true, opacity: .9, depthWrite: false })); glow.visible = false; glow.renderOrder = 2; g.add(glow);
     const avG = new THREE.Group(); avG.position.set(0, FEET * AV_S, AV_Z); avG.scale.setScalar(AV_S); g.add(avG);
     scene.add(g);
-    return { g, deco, holes, mal, head, glow, hov: -1, avG, av: null, key: '', x: 0, z: 0, s: 1, seat: -1, hop: 0, nod: 0, dead: false, gp: 0, bonk: new Map(), pool: PETS.map(() => []),
+    return { g, deco, holes, mal, head, bk: 0, glow, hov: -1, avG, av: null, key: '', x: 0, z: 0, s: 1, seat: -1, hop: 0, nod: 0, dead: false, gp: 0, bonk: new Map(), pool: PETS.map(() => []),
       sw: { t: 1, x: 0, y: 0, z: 0 }, rest: null, bob: Math.random() * 6 };
   }
   function freeGarden(w) {
@@ -140,7 +138,15 @@ export function createScene(canvas, { onFrame, clock } = {}) {
       });
       focus = -1;
     }
+    list.forEach((p, i) => setBopper(wells[i], p.fl?.bb | 0));
     if (f !== focus) { focus = f; resize(true); }
+  }
+  // each player's bopper skin (kind bb, pieceskins.js): swapped in place, keeping where and how the old one was held
+  function setBopper(w, k) {
+    if (!w || w.bk === k) return; w.bk = k;
+    const old = w.mal, nu = bopperModel(THREE, k, M); toonify(nu, .04);
+    nu.visible = old.visible; nu.position.copy(old.position); nu.rotation.copy(old.rotation); nu.scale.copy(old.scale);
+    w.g.remove(old); disposeToon(old); w.g.add(nu); w.mal = nu; w.head = nu.userData.head;
   }
   function setPops(list) { if (list !== pops) { pops = list; for (const w of wells) { w.gp = 0; w.bonk.clear(); } } }
 

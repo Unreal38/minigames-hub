@@ -1218,6 +1218,9 @@ body.sky.night:not(.in-game) .wdsw { border-color: var(--edge); }
 .isk3, body.night .isk3, .wd.creator .pvisle.isk3, body.sky.night:not(.in-game) .creator .pv3d.isk3 { background: linear-gradient(#06142e, #123a55 55%, #2b2856); }
 .isk4, body.night .isk4, .wd.creator .pvisle.isk4, body.sky.night:not(.in-game) .creator .pv3d.isk4 { background: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
 .isk5, body.night .isk5, .wd.creator .pvisle.isk5, body.sky.night:not(.in-game) .creator .pv3d.isk5 { background: linear-gradient(#1a1440, #3a2a5e 55%, #8a4a58); }
+.isk6, body.night .isk6, .wd.creator .pvisle.isk6, body.sky.night:not(.in-game) .creator .pv3d.isk6 { background: linear-gradient(#7d93b8, #b9c9e0 55%, #e8eef6); }
+.isk7, body.night .isk7, .wd.creator .pvisle.isk7, body.sky.night:not(.in-game) .creator .pv3d.isk7 { background: linear-gradient(#1d2238, #33395a 55%, #5a5878); }
+.isk8, body.night .isk8, .wd.creator .pvisle.isk8, body.sky.night:not(.in-game) .creator .pv3d.isk8 { background: linear-gradient(#a9c4f0, #f3c6dc 55%, #ffe6c8); }
 .wd.creator .pvisle { background: linear-gradient(#8fd0f7, #d9f1ff); position: relative; cursor: pointer; }
 body.sky.skynight:not(.in-game) .wd.creator .pvisle:not([class*=isk]) { background: linear-gradient(#1c1a4a, #3a3478); }
 .wd.creator .pvisle .hero3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -1575,6 +1578,9 @@ body .hubgrid .hero.isk2 { --sky: linear-gradient(#0c1236, #2d2b63 60%, #4a3f8a)
 body .hubgrid .hero.isk3 { --sky: linear-gradient(#06142e, #123a55 55%, #2b2856); }
 body .hubgrid .hero.isk4 { --sky: linear-gradient(#6ec0f5, #bfe6ff 60%, #eaf8ff); }
 body .hubgrid .hero.isk5 { --sky: linear-gradient(#1a1440, #3a2a5e 55%, #8a4a58); }
+body .hubgrid .hero.isk6 { --sky: linear-gradient(#7d93b8, #b9c9e0 55%, #e8eef6); }
+body .hubgrid .hero.isk7 { --sky: linear-gradient(#1d2238, #33395a 55%, #5a5878); }
+body .hubgrid .hero.isk8 { --sky: linear-gradient(#a9c4f0, #f3c6dc 55%, #ffe6c8); }
 .hubgrid .hero > div:first-child { position: relative; z-index: 1; }
 .hubgrid .herorow .btn.big { flex-shrink: 0; }
 .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { display: block; flex: 0 0 clamp(280px, 30vw, 520px); align-self: stretch; height: auto; min-height: 300px; position: relative; margin: -26px -28px -26px 0; overflow: hidden; border-radius: 0 23px 23px 0; }
@@ -2148,6 +2154,8 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .pb40 { background-image: url(cardbg/museum.svg); } .pb41 { background-image: url(cardbg/legend.svg); }
 .pb42 { background-image: url(cardbg/blast.svg); } .pb43 { background-image: url(cardbg/pairs.svg); }
 .pb44 { background-image: url(cardbg/herd.svg); } .pb45 { background-image: url(cardbg/spyglass.svg); } .pb46 { background-image: url(cardbg/siege.svg); }
+.pb47 { background-image: url(cardbg/marbles.svg); } .pb48 { background-image: url(cardbg/ludo.svg); } .pb49 { background-image: url(cardbg/ladders.svg); } .pb50 { background-image: url(cardbg/stack.svg); } .pb51 { background-image: url(cardbg/kitchen.svg); }
+.pb52 { background-image: url(cardbg/dig.svg); } .pb53 { background-image: url(cardbg/bingo.svg); } .pb54 { background-image: url(cardbg/bop.svg); } .pb55 { background-image: url(cardbg/cove.svg); } .pb56 { background-image: url(cardbg/tulips.svg); }
 :is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
 
 /* ---------- Game wheel / Koło gier (public/gamewheel.js): a flat picker wheel, never pays anything ---------- */

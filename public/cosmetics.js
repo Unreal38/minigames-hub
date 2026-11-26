@@ -38,7 +38,9 @@ export const COS = {
     { n: 'Lantern Night', p: 350, t: 'a', d: 1 }, { n: 'Copycat barn', p: 200, t: 's' }, { n: 'Runway lights', p: 220, t: 's', d: 1 }, { n: 'Word Reef board', p: 200, t: 's' }, { n: 'Checkers board', p: 200, t: 's' },
     { n: 'Pet Museum', t: 'e', earn: { pf: 'mus', n: 3 } }, { n: 'Legend ruins', t: 'e', earn: { pf: 'far', n: 1 } },
     { n: 'Blast Bay maze', p: 200, t: 's' }, { n: 'Pet Pairs table', p: 200, t: 's' }, { n: 'Pet Herds table', p: 200, t: 's' },
-    { n: 'Spyglass Isle', p: 200, t: 's' }, { n: 'Sugar Siege', p: 200, t: 's' }] },
+    { n: 'Spyglass Isle', p: 200, t: 's' }, { n: 'Sugar Siege', p: 200, t: 's' },
+    { n: 'Marble run', p: 200, t: 's' }, { n: 'Ludo board', p: 200, t: 's' }, { n: 'Snakes & ladders', p: 200, t: 's' }, { n: 'Tower Stack', p: 200, t: 's' }, { n: 'Kitchen counter', p: 200, t: 's' },
+    { n: 'Treasure field', p: 200, t: 's' }, { n: 'Bingo card', p: 200, t: 's' }, { n: 'Burrow lawn', p: 200, t: 's' }, { n: 'Cove battle', p: 200, t: 's' }, { n: 'Tulip field', p: 220, t: 's', s: 'spring' }] },
   ti: { label: 'Title', items: [{ n: 'None' },
     { n: 'Pot Wizard', earn: { g: 'hotpot', w: 5 } }, { n: 'Card Shark', earn: { g: 'poker', w: 5 } }, { n: 'Kart Menace', earn: { g: 'kart', w: 5 } },
     { n: 'Marble Whisperer', earn: { g: 'marbles', w: 5 } }, { n: 'Ladder Legend', earn: { g: 'ladders', w: 5 } }, { n: 'Ludo Lord', earn: { g: 'ludo', w: 5 } },
@@ -52,7 +54,8 @@ export const COS = {
     { n: 'Pool Shark', earn: { g: 'pool', w: 5 } }, { n: 'Twenty-One', earn: { g: 'bj', w: 5 } }, { n: 'Bop Champ', earn: { g: 'bop', w: 5 } }, { n: 'Spyglass Ace', earn: { g: 'spy', w: 5 } }, { n: 'Tile Racer', earn: { g: 'mahj', w: 5 } }, { n: 'Steady Hand', earn: { g: 'bierki', w: 5 } }, { n: 'King Me', earn: { g: 'warcaby', w: 5 } }, { n: 'Wordsmith', earn: { g: 'reef', w: 5 } },
     { n: 'Lamplighter', earn: { g: 'lantern', w: 5 } }, { n: 'Master of Disguise', earn: { g: 'copy', w: 5 } }, { n: 'Blast Master', earn: { g: 'blast', w: 5 } }, { n: 'Runway Star', earn: { g: 'runway', w: 5 } },
     { n: 'Journal Keeper', earn: { pf: 'jn', n: 8 } }, { n: 'Legend Seeker', earn: { pf: 'lg', n: 1 } }, { n: 'Museum Curator', earn: { pf: 'mus', n: 5 } }, { n: 'Order Runner', earn: { pf: 'ord', n: 25 } },
-    { n: 'Memory Ace', earn: { g: 'pairs', w: 5 } }, { n: 'Sugar Sieger', earn: { g: 'siege', w: 5 } }, { n: 'Herd Leader', earn: { g: 'herd', w: 5 } }] },
+    { n: 'Memory Ace', earn: { g: 'pairs', w: 5 } }, { n: 'Sugar Sieger', earn: { g: 'siege', w: 5 } }, { n: 'Herd Leader', earn: { g: 'herd', w: 5 } },
+    { n: 'Pop Star', earn: { g: 'pop', w: 30 } }, { n: 'Hay Whisperer', earn: { g: 'hay', w: 20 } }, { n: 'Tile Sage', earn: { g: 'mj', w: 20 } }] }, // the solo games: wins there are levels cleared
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' },
     { n: 'Blossoms', p: 180, s: 'spring' }, { n: 'Bubbles', p: 180, s: 'summer' }, { n: 'Bats', p: 180, s: 'halloween' }, { n: 'Paw prints', p: 160 },
@@ -73,7 +76,7 @@ export const COS = {
     { n: 'Backflip', earn: { pv: 3 } }, { n: 'Robot', earn: { pv: 7 } }, { n: 'Star shower', earn: { pv: 14 } },
     { n: 'Strike a pose', p: 120 }, { n: 'Catwalk strut', p: 150 }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
-  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, the deck you see in Hot Pot, and the face-down cards on your screen in Pet Pairs.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' },
+  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan, Piotruś, Blackjack, Makao, Wojna and Pet Parade, the deck you see in Hot Pot, and the face-down cards on your screen in Pet Pairs.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' },
     { n: 'Leaf', p: 150 }, { n: 'Ember', p: 150 }, { n: 'Tide', p: 150 }, { n: 'Spark', p: 150 }, { n: 'Stone', p: 150 },
     { n: 'Paw prints', p: 120 }, { n: 'Blossom', p: 140, s: 'spring' }, { n: 'Snowflakes', p: 140, s: 'winter' }, { n: 'Rainbow', p: 180 }] }, // the Pet Farm's five elements
   // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
@@ -104,14 +107,27 @@ export const COS = {
   // Pet Herds number tiles (public/pieceskins.js HERD_TILES, same order): the face, the block and the back rivals see.
   ht: { label: 'Herd tiles', where: 'Your tiles in Pet Herds: the ones in your tray, the backs the others see, and every tile you put on the table. The numbers and pets stay the same.', items: [{ n: 'Classic' }, { n: 'Wood', p: 120 },
     { n: 'Mint candy', p: 120 }, { n: 'Night sky', p: 160 }, { n: 'Marble', p: 150 }, { n: 'Honeycomb', p: 140 }, { n: 'Frost', p: 140, s: 'winter' }, { n: 'Golden herd', earn: { g: 'herd', w: 10 } }] },
+  // Sugar Siege slingshots (public/pieceskins.js SLINGS, same order): only shown while your pet aims. Every one throws the same.
+  sl: { label: 'Slingshot', where: 'The slingshot your pets throw with in Sugar Siege. Every slingshot throws just as far.', items: [{ n: 'Classic' }, { n: 'Candy', p: 140 },
+    { n: 'Sprout', p: 120 }, { n: 'Sweetheart', p: 140 }, { n: 'Golden', p: 250 }, { n: 'Bone', p: 140, s: 'halloween' }, { n: 'Frost', p: 140, s: 'winter' }] },
+  // Sky Darts darts, Burrow Bop boppers and Cove Clash boats (public/pieceskins.js DARTS, BOPPERS, BOATS, same order).
+  // The parts that tell players apart (dart flights, the boat's trim and flag) always stay in the player's own colour.
+  dt: { label: 'Darts', where: 'Your darts in Sky Darts. The flights stay in your own colour, so everyone can tell whose darts are in the board.', items: [{ n: 'Classic' }, { n: 'Brass', p: 150 },
+    { n: 'Feather', p: 120 }, { n: 'Candy hearts', p: 140 }, { n: 'Rocket', p: 180 }, { n: 'Starlight', p: 200 }, { n: 'Icicle', p: 140, s: 'winter' }] },
+  bb: { label: 'Bopper', where: 'What you bop with in Burrow Bop. The others see it swing over your garden. Every bopper bops just the same.', items: [{ n: 'Pillow' }, { n: 'Toy hammer', p: 120 },
+    { n: 'Baguette', p: 140 }, { n: 'Foam paw', p: 150 }, { n: 'Carrot', p: 120 }, { n: 'Fish', p: 160 }, { n: 'Candy cane', p: 140, s: 'winter' }] },
+  bt: { label: 'Boats', where: 'Your fleet in Cove Clash. The trim and the flags stay in your own colour.', items: [{ n: 'Classic' }, { n: 'Pirate', p: 180 },
+    { n: 'Rubber duck', p: 150 }, { n: 'Viking', p: 200 }, { n: 'Paper boat', p: 120 }, { n: 'Golden', p: 250 }, { n: 'Ice', p: 140, s: 'winter' }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
   // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
   ig: { label: 'Ground', where: 'Make your isle look like one of the Pet Farm islands. Everyone sees it on your profile card, and your Pet Farm island wears it too.', items: [{ n: 'Meadow' }, { n: 'Weather Peak', p: 220 }, { n: 'Pebble Ridge', p: 150 }, { n: 'Fruit Grove', p: 180 },
     { n: 'Veggie Patch', p: 180 }, { n: 'Mossy Woods', p: 120 }, { n: 'Tidepool Cove', p: 150 }, { n: 'Sweet Shop Isle', p: 200 }, { n: 'Ember Hills', p: 180 },
     { n: 'Golden isle', earn: { lv: 20 } }, { n: 'Champion’s isle', earn: { any: 50 } }, { n: 'Bakery Bluff', p: 200 }, { n: 'Coral Reef', p: 200 }, { n: 'Starfall Isle', p: 220 }, { n: 'Thunder Meadow', p: 220 }, { n: 'Legend Isle', earn: { pf: 'far', n: 1 } }] },
-  ib: { label: 'Rock base', where: 'What hangs under your isle and your Pet Farm island.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 }] },
-  ik: { label: 'Sky', where: 'The sky behind your isle and your Pet Farm island.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }, { n: 'Lantern night', p: 200 }] },
+  ib: { label: 'Rock base', where: 'What hangs under your isle and your Pet Farm island.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 },
+    { n: 'Cloud bed', p: 200 }, { n: 'Icicles', p: 160, s: 'winter' }, { n: 'Magma drips', p: 220 }] },
+  ik: { label: 'Sky', where: 'The sky behind your isle and your Pet Farm island.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }, { n: 'Lantern night', p: 200 },
+    { n: 'Snowfall', p: 160, s: 'winter' }, { n: 'Thunderstorm', p: 220 }, { n: 'Pastel dawn', p: 180, s: 'spring' }] },
 };
 export const COS_KEYS = Object.keys(COS);
 // Kinds where one entry is worn at a time (sticker packs are simply all usable once bought).
@@ -119,15 +135,17 @@ export const WORN = COS_KEYS.filter(k => !COS[k].multi);
 export const DECOR_SLOTS = 3;
 // The game pieces that float round a player's isle. Free: cos.fp lists the ones picked, in order (none saved = the classic set, an empty list = none).
 export const PIECES = { marble: 'Marble', die: 'Die', pawn: 'Ludo pawn', card: 'Card', chip: 'Poker chip', golf: 'Golf ball', block: 'Tower blocks', tyre: 'Kart tyre', coin: 'Coin', star: 'Star', bean: 'Magic bean', pot: 'Hot pot', paw: 'Paw print', dart: 'Dart', bubble: 'Bubble', egg: 'Pet egg', knight: 'Chess knight', eight: '8-ball', domino: 'Domino tile', bingo: 'Bingo ball',
-  lantern: 'Lantern', checker: 'Checker king', letter: 'Letter tile', crate: 'Copycat crate', hanger: 'Clothes hanger', stamp: 'Stamp', charm: 'Nest charm', seed: 'Pop seed', memcard: 'Memory card', herd: 'Herd tile', spyglass: 'Spyglass', cupcake: 'Cupcake' };
+  lantern: 'Lantern', checker: 'Checker king', letter: 'Letter tile', crate: 'Copycat crate', hanger: 'Clothes hanger', stamp: 'Stamp', charm: 'Nest charm', seed: 'Pop seed', memcard: 'Memory card', herd: 'Herd tile', spyglass: 'Spyglass', cupcake: 'Cupcake',
+  shovel: 'Shovel', pan: 'Frying pan', coconut: 'Coconut', mallet: 'Bopper', pencil: 'Pencil', mjtile: 'Mahjong tile', sticks: 'Bierki sticks', globe: 'Globe', xo: 'X and O', haybale: 'Hay bale', ladder: 'Ladder', brick: 'Sky brick' };
 export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 'chip', 'golf'];
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
 const GAME_NAMES = { hotpot: 'Hot Pot', poker: 'Texas Hold’em', kart: 'Kart Island Race', marbles: 'Marble Rush', ladders: 'Snakes & Ladders', ludo: 'Ludo', stack: 'Tower Stack',
-  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', lagoon: 'Bubble Lagoon', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś', ttt: 'Tic-Tac-Toe', bj: 'Blackjack', domino: 'Dominoes', parade: 'Pet Parade', pairs: 'Pet Pairs', siege: 'Sugar Siege', herd: 'Pet Herds', blast: 'Blast Bay', cove: 'Cove Clash', pool: 'Sky Pool', bingo: 'Sky Bingo', bop: 'Burrow Bop', pan: 'Pan', wojna: 'Wojna', makao: 'Makao', pm: 'Countries & Cities', chess: 'Chess', warcaby: 'Checkers', kal: 'Sketch & Guess', runway: 'Sky Runway', lantern: 'Lantern Night', copy: 'Copycat Isle', mahj: 'Mahjong Race', bierki: 'Bierki', reef: 'Word Reef', spy: 'Spyglass Isle' };
+  golf: 'Mini Golf Party', dice: 'Liar’s Dice', paw: 'Pawperty', kitchen: 'Cozy Kitchen Rush', dig: 'Treasure Dig', tys: 'Tysiąc', bricks: 'Sky Bricks', lagoon: 'Bubble Lagoon', bean: 'Beanstalk Bounce', pips: 'Pip Party', darts: 'Sky Darts', piotr: 'Piotruś', ttt: 'Tic-Tac-Toe', bj: 'Blackjack', domino: 'Dominoes', parade: 'Pet Parade', pairs: 'Pet Pairs', siege: 'Sugar Siege', herd: 'Pet Herds', blast: 'Blast Bay', cove: 'Cove Clash', pool: 'Sky Pool', bingo: 'Sky Bingo', bop: 'Burrow Bop', pan: 'Pan', wojna: 'Wojna', makao: 'Makao', pm: 'Countries & Cities', chess: 'Chess', warcaby: 'Checkers', kal: 'Sketch & Guess', runway: 'Sky Runway', lantern: 'Lantern Night', copy: 'Copycat Isle', mahj: 'Mahjong Race', bierki: 'Bierki', reef: 'Word Reef', spy: 'Spyglass Isle', pop: 'Pet Pop', hay: 'Hay Hunch', mj: 'Pet Mahjong' };
+const SOLO_GAMES = new Set(['pop', 'hay', 'mj']); // a win there is a level cleared
 
 if (PL) { Object.assign(GAME_NAMES, { hotpot: 'Gorący kociołek', kart: 'Wyspiarskie gokarty', marbles: 'Wyścig kulek', ladders: 'Węże i drabiny', ludo: 'Chińczyk', stack: 'Chwiejna wieża',
-  golf: 'Imprezowy minigolf', dice: 'Kości kłamcy', paw: 'Łapolis', kitchen: 'Gorączka w kuchni', dig: 'Poszukiwacze skarbów', bricks: 'Podniebne klocki', lagoon: 'Bąbelkowa laguna', bean: 'Fasolowe skoki', pips: 'Kości', darts: 'Podniebne rzutki', ttt: 'Kółko i krzyżyk', domino: 'Domino', parade: 'Parada Zwierzaków', pairs: 'Zwierzakowe Pary', siege: 'Słodkie Oblężenie', herd: 'Stadka', blast: 'Zatoka Bum', cove: 'Bitwa w zatoce', pool: 'Podniebny bilard', bingo: 'Podniebne bingo', bop: 'Pac w norkę', pm: 'Państwa-miasta', chess: 'Szachy', warcaby: 'Warcaby', kal: 'Kalambury', runway: 'Podniebny wybieg', lantern: 'Noc latarni', copy: 'Wyspa Przebierańców', mahj: 'Mahjongowy wyścig', reef: 'Słowna rafa', spy: 'Wyspa Lunety' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }
+  golf: 'Imprezowy minigolf', dice: 'Kości kłamcy', paw: 'Łapolis', kitchen: 'Gorączka w kuchni', dig: 'Poszukiwacze skarbów', bricks: 'Podniebne klocki', lagoon: 'Bąbelkowa laguna', bean: 'Fasolowe skoki', pips: 'Kości', darts: 'Podniebne rzutki', ttt: 'Kółko i krzyżyk', domino: 'Domino', parade: 'Parada Zwierzaków', pairs: 'Zwierzakowe Pary', siege: 'Słodkie Oblężenie', herd: 'Stadka', blast: 'Zatoka Bum', cove: 'Bitwa w zatoce', pool: 'Podniebny bilard', bingo: 'Podniebne bingo', bop: 'Pac w norkę', pm: 'Państwa-miasta', chess: 'Szachy', warcaby: 'Warcaby', kal: 'Kalambury', runway: 'Podniebny wybieg', lantern: 'Noc latarni', copy: 'Wyspa Przebierańców', mahj: 'Mahjongowy wyścig', reef: 'Słowna rafa', spy: 'Wyspa Lunety', pop: 'Zwierzakowe trójki', hay: 'Szukanie w sianie', mj: 'Zwierzakowy mahjong' }); (await import('./lang/items-pl.js')).plCosmetics(COS, PIECES); }
 
 export const cosItem = (k, i) => COS[k]?.items[i] || null;
 export const cosPackIds = name => COS_KEYS.flatMap(k => COS[k].items.map((it, i) => it.pk === name ? k + ':' + i : null).filter(Boolean));
@@ -152,6 +170,7 @@ export function earnProgress(it, me) {
   if (e.d) return [Math.min(e.d, me?.daily?.best || 0), e.d, L(`${e.d} Mystery Pets solved in a row`, `Zagadkowy zwierzak odgadnięty ${e.d} dni z rzędu`)];
   if (e.lv) return [Math.min(e.lv, levelOf(me?.xp || 0)), e.lv, L(`reach level ${e.lv}`, `osiągnij poziom ${e.lv}`)];
   if (e.any) return [Math.min(e.any, Math.max(0, ...Object.values(me?.byGame || {}).map(g => g?.wins || 0))), e.any, L(`${e.any} wins in any one game`, `${e.any} wygranych w jednej dowolnej grze`)];
+  if (e.g && SOLO_GAMES.has(e.g)) return [Math.min(e.w, me?.byGame?.[e.g]?.wins || 0), e.w, L(`clear ${e.w} levels in ${GAME_NAMES[e.g]}`, `przejdź ${e.w} poziomów w grze ${GAME_NAMES[e.g]}`)];
   if (e.g) return [Math.min(e.w, me?.byGame?.[e.g]?.wins || 0), e.w, L(`${e.w} wins in ${GAME_NAMES[e.g] || e.g}`, `${e.w} wygranych w grze ${GAME_NAMES[e.g] || e.g}`)];
   if (e.w) return [Math.min(e.w, me?.wins || 0), e.w, L(`${e.w} wins in any games`, `${e.w} wygranych w dowolnych grach`)];
   return [Math.min(e.n, me?.games || 0), e.n, L(`${e.n} games played`, `${e.n} rozegranych gier`)];

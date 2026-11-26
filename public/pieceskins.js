@@ -281,12 +281,18 @@ export function paintHerdFace(g, w, h, k) {
   g.restore();
 }
 
-// ---------- Sugar Siege slingshots (kind sl; not in the shop yet) ----------
+// ---------- Sugar Siege slingshots (kind sl) ----------
 // The fork your pet throws with. wood: handle and prongs, dark: knots and tips, grip: the wrap on the handle,
 // band: the rubber band, pouch: the bit that holds the snack. Append only: index 0 is the classic wooden one.
 const sling = (wood, dark, grip, band, pouch, tip = 'ball') => ({ wood, dark, grip, band, pouch, tip });
 export const SLINGS = [
   sling('#c98a4b', '#7a4a22', '#f2d9a6', '#e0524f', '#6b3f22'),   // classic wood
+  sling('#ff8fab', '#ffffff', '#ffffff', '#7fd1e8', '#ff5d8f', 'star'),   // candy
+  sling('#6cbf4a', '#3f8a3a', '#a8e08a', '#ffc93c', '#4f9a3a', 'leaf'),   // sprout
+  sling('#ff7fa8', '#e5435f', '#ffd6e2', '#ffffff', '#e5435f', 'heart'),  // sweetheart
+  sling('#ffc93c', '#c99a1a', '#fff1a8', '#e5543b', '#b07a20', 'star'),   // golden
+  sling('#f4efe6', '#c9c2b4', '#5a4a6a', '#8a4ac8', '#2a1a2a'),           // bone (halloween)
+  sling('#bfe9ff', '#ffffff', '#7fc8ee', '#e6f6ff', '#4f9de0', 'star'),   // frost (winter)
 ];
 export const slingLook = k => SLINGS[k | 0] || SLINGS[0];
 // The slingshot as a 3D model (THREE passed in). Its origin is the crotch of the fork: the handle hangs down -y (.42),
@@ -302,9 +308,77 @@ export function slingModel(THREE, k) {
   for (const sd of [-1, 1]) {
     const pr = add(new THREE.CylinderGeometry(.04, .05, .36, 6), wood, sd * .09, .16); pr.rotation.z = -sd * .5;
     const tx = sd * .18, ty = .32;
-    if (S.tip === 'ball') add(new THREE.SphereGeometry(.055, 8, 6), dark, tx, ty);
+    if (S.tip === 'star') { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? .04 : .09; sh[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } sh.closePath();
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: .04, bevelEnabled: false }); geo.translate(0, 0, -.02); add(geo, dark, tx, ty + .02); }
+    else if (S.tip === 'leaf') { const lf = add(new THREE.ConeGeometry(.06, .16, 4), dark, tx + sd * .03, ty + .06); lf.rotation.z = -sd * .5; lf.scale.z = .4; }
+    else if (S.tip === 'heart') { for (const hx of [-.03, .03]) add(new THREE.SphereGeometry(.04, 8, 6), dark, tx + hx, ty + .03); const pt = add(new THREE.ConeGeometry(.06, .07, 6), dark, tx, ty - .02); pt.rotation.z = Math.PI; }
+    else add(new THREE.SphereGeometry(.055, 8, 6), dark, tx, ty);
     tips.push(new THREE.Vector3(tx, ty, 0));
   }
   g.userData.tips = tips; g.userData.look = S;
   return g;
 }
+
+// ---------- Sky Darts darts (kind dt) ----------
+// barrel, shaft and tip colours, an optional band round the barrel, and the flight shape. The flights always stay in
+// the thrower's own colour, so everyone can still tell whose darts are in the board.
+// flight: 'std' (four flat vanes), 'feather' (long soft feathers), 'heart', 'fin' (swept rocket fins).
+const dart = (barrel, shaft, tip, flight = 'std', band = null) => ({ barrel, shaft, tip, flight, band });
+const DARTS = [
+  dart('#d9dde3', '#3b2219', '#5b5f66'),                         // classic
+  dart('#ffc93c', '#7a4a2a', '#c9a23a', 'std', '#fff1a8'),       // brass
+  dart('#b07a46', '#8a5a34', '#5b5f66', 'feather'),              // feather
+  dart('#ff8fab', '#ffffff', '#c9ccd2', 'heart', '#ffffff'),     // candy hearts
+  dart('#e5543b', '#c9ccd2', '#ffffff', 'fin', '#ffffff'),       // rocket
+  dart('#3a2e7a', '#241c4e', '#ffd84a', 'fin', '#ffd84a'),       // starlight
+  dart('#bfe9ff', '#e6f6ff', '#ffffff', 'std', '#7fc8ee'),       // icicle (winter)
+];
+export const dartLook = k => DARTS[k | 0] || DARTS[0];
+
+// ---------- Burrow Bop boppers (kind bb) ----------
+// Every bopper is the same size and bops the same: only the look changes. shape picks the model in bopperModel.
+const BOPPERS = [
+  { shape: 'pillow', a: '#ff8fab', b: '#fff6e6', h: '#c98a52' },   // classic pillow mallet
+  { shape: 'hammer', a: '#e5543b', b: '#ffc93c', h: '#4fa3e3' },   // squeaky toy hammer
+  { shape: 'baguette', a: '#e8a85a', b: '#fff1d0', h: '#e8a85a' }, // baguette
+  { shape: 'paw', a: '#ffb27a', b: '#ff8fab', h: '#8a5a34' },      // foam paw
+  { shape: 'carrot', a: '#ff8a2a', b: '#6cc24f', h: '#ff8a2a' },   // carrot
+  { shape: 'fish', a: '#7fc8ee', b: '#4f9de0', h: '#7fc8ee' },     // fish
+  { shape: 'cane', a: '#ffffff', b: '#e5352b', h: '#ffffff' },     // candy cane (winter)
+];
+export const bopperLook = k => BOPPERS[k | 0] || BOPPERS[0];
+// The bopper as a group: a handle 1.5 tall along +y from 0, and a group 'head' at y 1.5 holding the bopping end
+// (the scene squashes 'head' on a bop). M(colour) makes a material.
+export function bopperModel(THREE, k, M) {
+  const S = bopperLook(k), g = new THREE.Group(), add = (geo, c, x, y, z, p = g) => { const m = new THREE.Mesh(geo, M(c)); m.position.set(x, y, z); p.add(m); return m; };
+  const head = new THREE.Group(); head.position.y = 1.5; g.add(head); g.userData.head = head;
+  if (S.shape === 'baguette' || S.shape === 'carrot' || S.shape === 'cane') { // one long thing held at its end
+    if (S.shape === 'baguette') { add(new THREE.BoxGeometry(.3, 2.1, .3), S.a, 0, 1.05, 0); for (const y of [.5, 1, 1.5]) add(new THREE.BoxGeometry(.32, .08, .2), S.b, 0, y, .08).rotation.z = .5; add(new THREE.BoxGeometry(.34, .3, .34), S.a, 0, 0, 0, head); }
+    else if (S.shape === 'carrot') { add(new THREE.CylinderGeometry(.26, .08, 1.9, 6), S.a, 0, .95, 0).rotation.x = Math.PI; for (const r of [-.4, 0, .4]) add(new THREE.BoxGeometry(.1, .5, .1), S.b, Math.sin(r) * .2, -.2, 0).rotation.z = r; add(new THREE.CylinderGeometry(.28, .26, .3, 6), S.a, 0, 0, 0, head); }
+    else { add(new THREE.BoxGeometry(.16, 1.6, .16), S.a, 0, .75, 0); for (const y of [.2, .55, .9, 1.25]) add(new THREE.BoxGeometry(.18, .1, .18), S.b, 0, y, 0).rotation.y = .4;
+      const hook = new THREE.Group(); head.add(hook); for (let i = 0; i < 5; i++) { const a = i / 4 * Math.PI; add(new THREE.BoxGeometry(.17, .22, .17), i % 2 ? S.b : S.a, Math.cos(a) * .3 - .3, Math.sin(a) * .3, 0, hook).rotation.z = a; } }
+    return g;
+  }
+  add(new THREE.BoxGeometry(.15, 1.5, .15), S.h, 0, .7, 0);
+  if (S.shape === 'hammer') { add(new THREE.BoxGeometry(1.0, .6, .6), S.a, 0, 0, 0, head); for (const sx of [-1, 1]) add(new THREE.BoxGeometry(.16, .7, .7), S.b, sx * .52, 0, 0, head); add(new THREE.BoxGeometry(.2, .2, .62), S.b, 0, -.32, 0, head); }
+  else if (S.shape === 'paw') { add(new THREE.BoxGeometry(.9, .55, .7), S.a, 0, 0, 0, head); add(new THREE.BoxGeometry(.5, .06, .36), S.b, 0, -.04, .36, head); for (const x of [-.32, -.11, .11, .32]) { add(new THREE.BoxGeometry(.2, .3, .2), S.a, x, .38, .1, head); add(new THREE.BoxGeometry(.12, .06, .12), S.b, x, .38, .21, head); } }
+  else if (S.shape === 'fish') { add(new THREE.BoxGeometry(1.0, .55, .4), S.a, 0, 0, 0, head); const tail = add(new THREE.BoxGeometry(.4, .55, .1), S.b, -.62, 0, 0, head); tail.rotation.z = Math.PI / 4; add(new THREE.BoxGeometry(.1, .1, .42), '#3b2219', .34, .08, 0, head); add(new THREE.BoxGeometry(.4, .14, .42), S.b, 0, .32, 0, head); }
+  else { add(new THREE.BoxGeometry(1.05, .66, .7), S.a, 0, 0, 0, head); for (const sx of [-1, 1]) add(new THREE.BoxGeometry(.14, .76, .8), S.b, sx * .56, 0, 0, head); }
+  return g;
+}
+
+// ---------- Cove Clash boats (kind bt) ----------
+// hull: the hull's colour (null keeps a darker shade of the player's colour), deck, cabin, and a bow piece. The trim
+// round the hull and the flag stay in the player's own colour. bow: '' none, 'duck' a duck head, 'dragon' a dragon head,
+// 'skull' a black flag with a white skull instead of the plain flag, 'dragon' a dragon head with round shields along the sides.
+const boat = (hull, deck, cabin, bow = '', roof = null) => ({ hull, deck, cabin, bow, roof });
+const BOATS = [
+  boat(null, '#e9c48c', '#fff4e2'),                                // classic
+  boat('#4a3326', '#8a5a3c', '#6b4a36', 'skull', '#2b2028'),       // pirate
+  boat('#ffd23f', '#ffe98a', '#fff4e2', 'duck'),                   // rubber duck
+  boat('#a86a42', '#d9ab74', '#c98a52', 'dragon'),                 // viking
+  boat('#f4f4f0', '#ffffff', '#e8eef6', ''),                       // paper boat
+  boat('#ffc93c', '#fff1a8', '#fff8e0', '', '#e8a820'),            // golden
+  boat('#bfe9ff', '#e6f6ff', '#ffffff', '', '#9fd8f5'),            // ice (winter)
+];
+export const boatLook = k => BOATS[k | 0] || BOATS[0];

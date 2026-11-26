@@ -7,6 +7,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { toonify, toonMat, skyDome, clouds as cloudSea, island, birds, petals, createFx, shaker, flat, STAR, DOT, CONF, HEART, nightScene } from '../../scenery3d.js';
 import { R, ORDER, MS, landing, wobbleR, HAND, spot } from './rules.js';
+import { dartLook } from '../../pieceskins.js';
 
 const SKY_TOP = '#6fbdf2', SKY_LOW = '#d6f1ff', INK = '#3b2219';
 const BS = .8, BY = 1.95, BZ = 0;            // board size (world units per board unit), centre height, face z
@@ -125,23 +126,30 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
   const cLoose = new THREE.Color('#fff4e2'), cSteady = new THREE.Color('#5fe08a'), cTired = new THREE.Color('#ff6b5a'), cNow = new THREE.Color();
 
   // ---------- darts ----------
-  const steel = toonMat(flat('#d9dde3')), tipM = toonMat(flat('#5b5f66')), shaftM = toonMat(flat('#3b2219'));
-  const flightMats = new Map(), flightMat = c => { if (!flightMats.has(c)) flightMats.set(c, toonMat(flat(c))); return flightMats.get(c); };
+  const mats = new Map(), mat = c => { if (!mats.has(c)) mats.set(c, toonMat(flat(c))); return mats.get(c); };
   const barrelG = new THREE.CylinderGeometry(.022, .018, DART * .38, 6), tipG = new THREE.ConeGeometry(.012, DART * .2, 5), shaftG = new THREE.CylinderGeometry(.01, .01, DART * .22, 5);
-  const flightG = new THREE.BoxGeometry(.13, .005, DART * .26); flightG.translate(.065, 0, 0);
+  const bandG = new THREE.CylinderGeometry(.024, .024, DART * .06, 6);
+  // flight shapes (dartLook in pieceskins.js), each sticking out along +x from the shaft
+  const FLIGHT = { std: new THREE.BoxGeometry(.13, .005, DART * .26).translate(.065, 0, 0), feather: new THREE.BoxGeometry(.08, .005, DART * .42).translate(.04, 0, -DART * .06),
+    heart: (() => { const sh = new THREE.Shape(); sh.moveTo(0, -.07); sh.bezierCurveTo(.12, .02, .06, .1, 0, .04); sh.bezierCurveTo(-.06, .1, -.12, .02, 0, -.07);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: .005, bevelEnabled: false }); g.rotateZ(-Math.PI / 2); g.rotateX(Math.PI / 2); g.translate(.07, 0, 0); return g; })(),
+    fin: (() => { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(.13, .05); sh.lineTo(.13, .1); sh.lineTo(0, .14); sh.closePath();
+      const g = new THREE.ExtrudeGeometry(sh, { depth: .005, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, 0, -.07); return g; })() };
   const inkD = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
-  // a dart along +z, its tip at the origin pointing at -z
-  function makeDart(color) {
-    const g = new THREE.Group();
-    const tip = new THREE.Mesh(tipG, tipM); tip.rotation.x = -Math.PI / 2; tip.position.z = DART * .1;
-    const bar = new THREE.Mesh(barrelG, steel); bar.rotation.x = Math.PI / 2; bar.position.z = DART * .39;
+  // a dart along +z, its tip at the origin pointing at -z. color: the thrower's colour (the flights); k: their dart skin (kind dt)
+  function makeDart(color, k = 0) {
+    const D = dartLook(k), g = new THREE.Group();
+    const tip = new THREE.Mesh(tipG, mat(D.tip)); tip.rotation.x = -Math.PI / 2; tip.position.z = DART * .1;
+    const bar = new THREE.Mesh(barrelG, mat(D.barrel)); bar.rotation.x = Math.PI / 2; bar.position.z = DART * .39;
     const barInk = new THREE.Mesh(barrelG, inkD); barInk.scale.setScalar(1.25); bar.add(barInk);
-    const sh = new THREE.Mesh(shaftG, shaftM); sh.rotation.x = Math.PI / 2; sh.position.z = DART * .69;
+    if (D.band) for (const dz of [-.08, .08]) { const b = new THREE.Mesh(bandG, mat(D.band)); b.position.y = dz * DART; bar.add(b); }
+    const sh = new THREE.Mesh(shaftG, mat(D.shaft)); sh.rotation.x = Math.PI / 2; sh.position.z = DART * .69;
     g.add(tip, bar, sh);
-    for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(flightG, flightMat(color)); f.position.z = DART * .86; f.rotation.z = k * Math.PI / 2; const fi = new THREE.Mesh(flightG, inkD); fi.scale.set(1.15, 2.5, 1.1); f.add(fi); g.add(f); }
+    for (let n = 0; n < 4; n++) { const f = new THREE.Mesh(FLIGHT[D.flight] || FLIGHT.std, mat(color)); f.position.z = DART * .86; f.rotation.z = n * Math.PI / 2; const fi = new THREE.Mesh(FLIGHT[D.flight] || FLIGHT.std, inkD); fi.scale.set(1.15, 2.5, 1.1); f.add(fi); g.add(f); }
     g.traverse(o => { if (o.isMesh) o.castShadow = true; });
     return g;
   }
+  const dartOf = i => [seats[i]?.color || '#ffb547', seats[i]?.fl?.dt | 0];
   let stuck = [];      // darts in the board this turn: { g, i, wob }
   const falling = [];  // darts pulled out or bounced off: { g, v, t }
   let fly = null;      // the dart in the air: { g, from, to, t0, d, i }
@@ -194,7 +202,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
   function handPos(a, out) { const arm = a.av.userData.arms[0]; out.set(0, arm.userData.hand, 0); return arm.localToWorld(out); }
   function startFly(L, t0) {
     const a = avs[L.s]; if (!a) return stickDart(L, true);
-    const g = makeDart(seats[L.s]?.color || '#ffb547'); scene.add(g);
+    const g = makeDart(...dartOf(L.s)); scene.add(g);
     const from = new THREE.Vector3(); a.av.updateWorldMatrix(true, true); handPos(a, from);
     if (held) held.visible = false;
     fly = { g, from, to: boardPt(L.x, L.y), t0, i: L.i, L };
@@ -202,7 +210,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
   }
   const tilt = () => (Math.random() - .5) * .35;
   function stickDart(L, quiet) {
-    const g = makeDart(seats[L.s ?? S?.turn]?.color || '#ffb547');
+    const g = makeDart(...dartOf(L.s ?? S?.turn));
     const p = boardPt(L.x, L.y); const r = Math.hypot(L.x, L.y);
     const back = R.frame * BS + .22;
     if (Math.abs(p.x) > back || Math.abs(p.y - BY) > back) { // off the backboard altogether: it bounces away
@@ -261,7 +269,7 @@ export function createScene(canvas, { onFrame, onCue } = {}) {
     // --- the dart in the hand ---
     const ta = thrower >= 0 ? avs[thrower] : null;
     if (aiming && ta && Math.hypot(ta.wrap.position.x - OCHE.x, ta.wrap.position.z - OCHE.z) < .3 && !fly) {
-      if (!held || held.userData.c !== seats[thrower]?.color) { if (held) scene.remove(held); held = makeDart(seats[thrower]?.color || '#ffb547'); held.userData.c = seats[thrower]?.color; scene.add(held); }
+      const hk = dartOf(thrower).join('|'); if (!held || held.userData.c !== hk) { if (held) scene.remove(held); held = makeDart(...dartOf(thrower)); held.userData.c = hk; scene.add(held); }
       held.visible = true; ta.av.updateWorldMatrix(true, true); handPos(ta, held.position);
       boardPt(0, .6, v).sub(held.position).normalize(); held.position.addScaledVector(v, DART * .4); // held by the barrel, tip towards the board
       held.lookAt(held.position.x - v.x, held.position.y - v.y, held.position.z - v.z);
