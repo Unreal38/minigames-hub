@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -887,6 +887,27 @@ const GAMES = {
       <li>The first one <b>out of cards wins</b>. Everyone else is placed by the <b>points left in their hand</b>: numbers count their value, action cards 10 and wild cards 20. The fewer, the better.</li>
       <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>If the turn timer runs out, a bot plays your turn. Shortcuts: <b>Enter</b> plays a card that fits, <b>D</b> draws, <b>K</b> keeps a drawn card, <b>1–4</b> pick a colour, <b>L</b> says “Last one!” and <b>C</b> catches.</li>
+    </ol>`,
+  },
+  siege: {
+    name: 'Sugar Siege', load: () => import('./games/siege/client.js'), start: 'Start the siege',
+    mins: [4, 10],
+    host: { seats: 2, bots: 'chill', pets: 3, timer: 30, arc: 'short' }, solo: { seats: 2, bots: 'chill', pets: 3, timer: 30, arc: 'short' },
+    openSeat: 'A bot team throws snacks here if nobody joins',
+    settings: pill => `
+      <div class="opt"><b>Pets per team</b><div class="pills">${pill('pets', 2, '2')}${pill('pets', 3, '3')}${pill('pets', 4, '4')}</div></div>
+      <div class="opt"><b>Turn time</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}</div></div>
+      <div class="opt"><b>Aim helper</b><div class="pills">${pill('arc', 'short', 'Short')}${pill('arc', 'long', 'Long')}${pill('arc', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `Teams of Pet Farm pets take turns throwing snacks across a blocky island. Every hit fills a pet up, and at 100% it dozes off in a sugar rush. Drag back from your pet like a slingshot and let go. The last team with a pet awake wins.`,
+    rules: `<ol>
+      <li>Every player is a team of <b>2, 3 or 4 Pet Farm pets</b>: the pets you show on your isle, or starter pets if you are a guest. Empty seats are bot teams. Teams take turns, and each turn the team's next pet that is awake throws.</li>
+      <li>On your turn you can <b>walk and jump</b>, then <b>drag back from your pet</b> and let go to throw. The further you pull, the harder it flies. Watch the <b>wind</b>. The aim helper shows the start of the arc (the host picks short, long or off).</li>
+      <li>A snack that lands near a pet <b>fills it up</b> and knocks it back. At <b>100%</b> the pet falls asleep from a sugar rush. A pet that falls into the sea naps on a float and is out too. Snacks also bite holes in the island.</li>
+      <li><b>Pie</b> and <b>jelly</b> (bounces, then pops) never run out. <b>Berries</b> burst into four, and the <b>cake</b> is one huge splat. Each pet's element brings a special snack: <b>Leaf</b> grows a bush, <b>Ember</b> chili knocks pets far, <b>Tide</b> soda pushes with a wave, <b>Spark</b> fizz zaps the pets nearby, and <b>Stone</b> builds a candy bridge.</li>
+      <li>After a throw you have <b>3 seconds to run for cover</b>. When the turn clock runs out, the turn passes.</li>
+      <li>After <b>round 10</b> the <b>sugar tide</b> comes: the sea rises a block every turn.</li>
+      <li>The <b>last team with a pet awake wins</b>. The others are placed by when their last pet fell asleep. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
     </ol>`,
   },
   pairs: {
@@ -2030,6 +2051,7 @@ const HUB_GAMES = [
   ['pips', 'pipspic', pipsArt, 'board', '1–4 players', 'Five dice, three rolls a turn and a score sheet to fill. Chase runs, full houses and five of a kind.'],
   ['darts', 'dartspic', dartsArt, 'action', '1–6 players', 'Classic 301 darts on a sky island. Steady your hand, hit the trebles and finish on a double.'],
   ['parade', 'paradepic', paradeArt, 'cards', '1–6 players', 'Match the colour or the number with Pet Farm pet cards. Nap, Turnabout, Gift +2 and wild Rockslides. Don\'t forget “Last one!”'],
+  ['siege', 'siegepic', siegeArt, 'action party', '1–4 players', 'Teams of Pet Farm pets lob pies, jelly and cake across a blocky island. Overfeed the other pets until they doze off in a sugar rush.'],
   ['pairs', 'pairspic', pairsArt, 'cards party', '1–6 players', 'A memory game with Pet Farm pets. Flip two cards, find the twins and go again. Golden, Spyglass and Whirlwind pairs shake things up.'],
   ['makao', 'makaopic', makaoArt, 'cards', '1–6 players', 'The Polish classic with a normal deck: twos and threes to draw, fours to wait, Jacks demand, Aces change the suit, kings fight. Don\'t forget “Makao!”'],
   ['ttt', 'tttpic', tttArt, 'board', '1–2 players', 'Crosses and noughts on a chunky 3D board. Classic, vanishing marks, or four in a row on a big board.'],
@@ -3127,7 +3149,7 @@ document.addEventListener('click', e => {
   profFrom = fromOf(row); sfx.click(); send({ t: 'player', pt: row.dataset.prof });
 });
 // Games where the floating name tags stay out of the way of the mouse: you aim, drag or steer right where they float.
-const TAG_HANDS_OFF = new Set(['pairs', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
+const TAG_HANDS_OFF = new Set(['siege', 'pairs', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
 // Inside a game: the name tags over the players and the rows of the score lists open that player's profile card too
 // (to add them as a friend or report them mid-match). Games draw them without a tag, so the name finds the player
 // among the people at this table; bots and names shared by two people open nothing.

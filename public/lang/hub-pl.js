@@ -30,7 +30,7 @@ export const OPT_PL = {
   'Classic 3×3': 'Klasyczna 3×3', 'Vanishing 3×3': 'Znikające znaki 3×3', 'Big 5×5': 'Duża 5×5', Match: 'Mecz', 'One round': 'Jedna runda', 'To 50': 'Do 50', 'To 100': 'Do 100', 'First to 2': 'Do 2 wygranych', 'First to 3': 'Do 3 wygranych',
   Deck: 'Talia', '52 cards': '52 karty', '24 cards': '24 karty', Battles: 'Bitwy', 'Flip timer': 'Czas na odkrycie', '12 pairs': '12 par', '16 pairs': '16 par', '10 rounds': '10 rund', '15 rounds': '15 rund',
   'Pass on Gifts and Rockslides': 'Przekazywanie Prezentów i Lawin',
-  'Small 4×5': 'Mała 4×5', 'Medium 6×6': 'Średnia 6×6', 'Big 6×8': 'Duża 6×8', Twists: 'Niespodzianki', 'Pairs in a row': 'Pary z rzędu', 'No limit': 'Bez limitu', 'Up to 3': 'Do 3',
+  'Small 4×5': 'Mała 4×5', 'Medium 6×6': 'Średnia 6×6', 'Big 6×8': 'Duża 6×8', Twists: 'Niespodzianki', 'Pets per team': 'Zwierzaki w drużynie', 'Turn time': 'Czas na turę', 'Aim helper': 'Pomoc w celowaniu', Short: 'Krótka', Long: 'Długa', 'Pairs in a row': 'Pary z rzędu', 'No limit': 'Bez limitu', 'Up to 3': 'Do 3',
   'The game ends': 'Koniec gry', 'First one out wins': 'Wygrywa pierwszy bez kart', 'Play to the last one': 'Gramy do ostatniego', 'Queen on everything': 'Dama na wszystko', 'Fighting kings': 'Waleczne króle',
   Small: 'Mała', Medium: 'Średnia', Big: 'Duża',
   Clock: 'Zegar', 'No clock': 'Bez zegara', '3 min + 2s': '3 min + 2 s', '5 min + 3s': '5 min + 3 s', '10 min + 5s': '10 min + 5 s', '15 min + 10s': '15 min + 10 s', Bot: 'Bot', Beginner: 'Początkujący', Club: 'Klubowy', Strong: 'Mocny',
@@ -693,6 +693,20 @@ export const GAMES_PL = {
       <li>Wygrywa ten, kto <b>pierwszy pozbędzie się kart</b>, a pozostali zajmują miejsca według liczby kart w ręce: im mniej, tym lepiej. Przy ustawieniu <b>Koniec gry: Gramy do ostatniego</b> gra toczy się dalej, miejsca idą w kolejności pozbywania się kart, a przegrywa ten, kto zostanie z kartami.</li>
       <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
       <li>Gdy minie czas na ruch, za ciebie zagra bot. Skróty: <b>Enter</b> kładzie pasującą kartę, <b>D</b> dobiera (albo bierze karty, albo czeka), <b>K</b> zatrzymuje dobraną kartę, <b>1–4</b> wybierają kolor, <b>5–9 i 0</b> wybierają żądanie, <b>M</b> mówi „Makao!”, a <b>C</b> łapie.</li>
+    </ol>`,
+  },
+  siege: {
+    name: 'Słodkie Oblężenie', start: 'Zacznij oblężenie', openSeat: 'Jeśli nikt nie dołączy, przekąskami rzuca tu drużyna botów',
+    pitch: 'Drużyny zwierzaków z Farmy rzucają ciastami, galaretką i tortem przez klockową wyspę. Przekarm zwierzaki rywali, aż zasną w cukrowym szale.',
+    howto: `Drużyny zwierzaków z Farmy rzucają po kolei przekąskami przez klockową wyspę. Każde trafienie napełnia zwierzaka, a przy 100% zasypia w cukrowym szale. Przeciągnij od swojego zwierzaka do tyłu jak procę i puść. Wygrywa ostatnia drużyna, której zwierzak nie śpi.`,
+    rules: `<ol>
+      <li>Każdy gracz to drużyna <b>2, 3 lub 4 zwierzaków z Farmy</b>: tych, które pokazujesz na swojej wyspie, albo zwierzaków na start, jeśli grasz jako gość. Puste miejsca zajmują drużyny botów. Drużyny grają po kolei, a w każdej turze rzuca następny zwierzak drużyny, który nie śpi.</li>
+      <li>W swojej turze możesz <b>chodzić i skakać</b>, a potem <b>przeciągnąć od zwierzaka do tyłu</b> i puścić, żeby rzucić. Im dalej pociągniesz, tym mocniej poleci. Uważaj na <b>wiatr</b>. Pomoc w celowaniu pokazuje początek toru lotu (gospodarz wybiera: krótka, długa albo wyłączona).</li>
+      <li>Przekąska, która spadnie blisko zwierzaka, <b>napełnia go</b> i odrzuca. Przy <b>100%</b> zwierzak zasypia w cukrowym szale. Zwierzak, który wpadnie do morza, drzemie na kółku i też odpada. Przekąski wygryzają też dziury w wyspie.</li>
+      <li><b>Ciasta</b> i <b>galaretki</b> (odbija się, a potem pęka) nigdy się nie kończą. <b>Jagody</b> rozpryskują się na cztery, a <b>tort</b> to jedno wielkie chlup. Żywioł każdego zwierzaka daje specjalną przekąskę: <b>Liść</b> wyrasta w krzak, papryczka <b>Żaru</b> odrzuca daleko, oranżada <b>Fali</b> pcha falą, musujący cukierek <b>Iskry</b> razi zwierzaki obok, a <b>Kamień</b> buduje cukrowy most.</li>
+      <li>Po rzucie masz <b>3 sekundy na ucieczkę</b> w bezpieczne miejsce. Gdy skończy się czas na turę, kolej przechodzi dalej.</li>
+      <li>Po <b>10. rundzie</b> przychodzi <b>słodki przypływ</b>: morze podnosi się o klocek co turę.</li>
+      <li><b>Wygrywa ostatnia drużyna, której zwierzak nie śpi</b>. Pozostałe miejsca zależą od tego, kiedy zasnął ich ostatni zwierzak. Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
     </ol>`,
   },
   pairs: {

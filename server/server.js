@@ -56,6 +56,7 @@ import * as copy from './games/copy.js';
 import * as runway from './games/runway.js';
 import * as spy from './games/spy.js';
 import * as pairs from './games/pairs.js';
+import * as siege from './games/siege.js';
 import { cleanAv } from '../public/avatar.js';
 import { withPlaces, fieldOf } from '../public/ranks.js';
 import * as store from './store.js';
@@ -80,7 +81,7 @@ const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tes
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, runway, pairs, spy };
+const GAMES = { hotpot, marbles, ladders, poker, ludo, stack, golf, dice, paw, kart, kitchen, dig, bricks, lagoon, mahj, bean, tys, pan, pips, darts, piotr, ttt, bj, domino, parade, cove, pool, bingo, makao, bierki, pm, wojna, bop, chess, warcaby, kal, lantern, reef, copy, runway, pairs, spy, siege };
 const GAME_IDS = new Set(Object.keys(GAMES)); // the Game wheel keeps only these
 const isGame = id => typeof id === 'string' && Object.hasOwn(GAMES, id); // never 'constructor' and friends
 const AWAY_MS = 30_000;       // a dropped player is botted after this
@@ -607,7 +608,7 @@ function startGame(r) {
   }
   const cols = distinctCols(humans.map(c => c.color)); // two people in pink: the later one plays in another colour this match
   const emOf = c => { const p = store.profileOf(c.token); return COS.em.items.map((_, i) => i).filter(i => i && cosHas(p, 'em', i)); }; // the Plaza emotes each one has (Sky Runway poses)
-  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av, ...(GAMES[r.game].meta.emotes ? { em: emOf(c) } : {}) })), r.opts, prev);
+  r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av, ...(GAMES[r.game].meta.emotes ? { em: emOf(c) } : {}), ...(GAMES[r.game].meta.pets ? { pets: palsOf(store.profileOf(c.token)) } : {}) })), r.opts, prev);
   matchColors(r.G); // bots, too, keep clear of the people's colours
   r.G.bornAt = Date.now(); // when the match began: a short match against bots pays its share (botpay.js)
   sendRoom(r); sendState(r); broadcastRooms();
