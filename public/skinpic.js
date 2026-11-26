@@ -99,12 +99,24 @@ const seedPic = i => shot3d(async THREE => {
   toonify(g, .03);
   return { g, dir: [.2, .35, .92], zoom: .9 };
 });
+// three Pet Herds tiles in that set's look: a 7, a 7 and a Mystery Egg
+async function herdPic(i) {
+  const { herdLook } = await import('./pieceskins.js'), { paintTile, petImage } = await import('./games/herd/tiles.js'), [c, g] = cv2d(240, 240);
+  const ids = [6, 19, 104], pets = await Promise.all(ids.map(t => (t < 104 ? petImage(['cindercub', 'zapkit'][t / 13 | 0]) : null)));
+  const face = document.createElement('canvas'); face.width = 128; face.height = 170; const f = face.getContext('2d'), L = herdLook(i);
+  [[62, 128, -.18], [120, 118, 0], [178, 128, .18]].forEach(([x, y, rot], n) => {
+    paintTile(f, ids[n], pets[n], i);
+    g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = INK; rr(g, -33, -44, 66, 92, 11); g.fill(); g.fillStyle = L.body; rr(g, -29, -40, 58, 84, 8); g.fill();
+    g.save(); rr(g, -29, -40, 58, 78, 8); g.clip(); g.drawImage(face, -29, -40, 58, 78); g.restore(); g.restore();
+  });
+  return c.toDataURL('image/png');
+}
 export async function skinPic(k, i, color, av) {
   const key = keyOf(k, i, color, av); if (shots.has(key)) return shots.get(key);
   let u = '';
   try {
     const sk = await (kit ||= import('./skins.js'));
-    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : k === 'bs' ? await seedPic(i | 0) : '';
+    u = k === 'cb' ? cardPic(i | 0, sk) : k === 'dc' ? await dicePic(i | 0) : k === 'gb' ? await ballPic(i | 0, color, sk) : k === 'kp' ? await kartPic(i | 0, color, av) : k === 'cu' ? await cuePic(i | 0, color, sk) : k === 'cs' ? await chessPic(i | 0, color) : k === 'ck' ? await checkersPic(i | 0, color) : k === 'dm' ? await dominoPic(i | 0) : k === 'rt' ? await reefPic(i | 0) : k === 'ln' ? await lanternPic(i | 0) : k === 'bs' ? await seedPic(i | 0) : k === 'ht' ? await herdPic(i | 0) : '';
   } catch (e) { console.warn('no theme picture', k, e); }
   shots.set(key, u); return u;
 }

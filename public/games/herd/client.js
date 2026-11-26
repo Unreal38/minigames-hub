@@ -11,7 +11,7 @@ import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { move, turnCheck, fits, tilesOn, byNum, byPet, trayValue, check } from './rules.js';
-import { tileHtml, warmPets } from './tiles.js';
+import { tileHtml, warmPets, herdVars } from './tiles.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -236,8 +236,15 @@ export function mount(app, ctx) {
     bar.style.width = timed ? `${Math.max(0, Math.min(100, (endsAt - performance.now()) / (S.timer * 10)))}%` : '0';
   }
 
+  // your tile set (Wardrobe kind ht) on the HUD tiles: the tray and the tiles you drag
+  let mySk = -1;
+  function paintSkin() {
+    const sk = Math.max(0, me()?.fl?.ht | 0); if (sk === mySk) return; mySk = sk;
+    for (const el of [$('hd-tray'), ghost]) { for (const v of ['--ht-face', '--ht-body', '--ht-edge', '--ht-pat', '--ht-ink']) el.style.removeProperty(v); for (const d of herdVars(sk).split(';')) { const i = d.indexOf(':'); if (i > 0) el.style.setProperty(d.slice(0, i), d.slice(i + 1)); } }
+  }
   function render() {
     if (!S) return;
+    paintSkin();
     setHtml($('hd-info'), `${S.rounds > 1 ? L(`Round ${S.round} of ${S.rounds}`, `Runda ${S.round} z ${S.rounds}`) : L('Pet Herds', 'Stadka')}<span class="hd-n"> · ${L(`${S.pool} in the pile`, `w stosie: ${S.pool}`)}</span>`);
     $('hd-code').textContent = Rm?.code || '';
     buildTags(); renderPanel(); renderLabels(); renderBanner(); paintMarks();
@@ -353,7 +360,7 @@ export function mount(app, ctx) {
   }
 
   // ----- between rounds: who went out, what everyone pays -----
-  function trayRow(ids) { return `<span class="hd-mini">${ids.slice().sort(byNum).map(t => tileHtml(t, 'mini', L, 'span')).join('')}</span>`; }
+  function trayRow(ids, sk = 0) { return `<span class="hd-mini" style="${herdVars(sk)}">${ids.slice().sort(byNum).map(t => tileHtml(t, 'mini', L, 'span')).join('')}</span>`; }
   function showRound() {
     if (!S?.rd || S.ph !== 'play' || S.stage !== 'round' || roundShown === S.rd.round + S.gid) return;
     roundShown = S.rd.round + S.gid;
@@ -361,7 +368,7 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].total - S.seats[a].total);
     el.innerHTML = `<div class="sheet"><h2>${L(`Round ${R.round} of ${S.rounds}`, `Runda ${R.round} z ${S.rounds}`)}</h2>
       <p>${R.out >= 0 ? (R.out === S.me ? L('You emptied your tray!', 'Opróżniasz tackę!') : L(`${nameOf(R.out)} emptied their tray`, `${nameOf(R.out)} opróżnia tackę`)) : L('The pile ran out: the smallest tray wins', 'Skończył się stos: wygrywa najmniejsza tacka')}</p>
-      <ol class="score">${ord.map(i => { const p = S.seats[i]; return `<li class="${R.wins.includes(i) ? 'won' : ''}">${avatarHtml(p.color, p.av, 38, frameCls(p.fl))}<div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>${R.racks[i].length ? trayRow(R.racks[i]) : `<span>${L('Tray empty', 'Pusta tacka')}</span>`}</div><strong><span class="${R.pts[i] >= 0 ? 'up' : 'down'}">${ptsTxt(R.pts[i])}</span><small>${L(`total ${p.total}`, `razem ${p.total}`)}</small></strong></li>`; }).join('')}</ol>
+      <ol class="score">${ord.map(i => { const p = S.seats[i]; return `<li class="${R.wins.includes(i) ? 'won' : ''}">${avatarHtml(p.color, p.av, 38, frameCls(p.fl))}<div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>${R.racks[i].length ? trayRow(R.racks[i], p.fl?.ht) : `<span>${L('Tray empty', 'Pusta tacka')}</span>`}</div><strong><span class="${R.pts[i] >= 0 ? 'up' : 'down'}">${ptsTxt(R.pts[i])}</span><small>${L(`total ${p.total}`, `razem ${p.total}`)}</small></strong></li>`; }).join('')}</ol>
       <p class="hd-next">${L('Next round starts in a moment…', 'Następna runda za chwilę…')}</p></div>`;
     petPics(el); el.hidden = false;
   }
@@ -383,7 +390,7 @@ export function mount(app, ctx) {
         const p = S.seats[i], st = p.st, left = S.rd?.racks[i] || [];
         return `<li class="${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${tilesWord(st.played)} played · ${st.drawn} drawn`, `zagrane: ${tilesWord(st.played)} · dobrane: ${st.drawn}`)}${st.rebuilt ? L(` · ${st.rebuilt} rebuilt`, ` · przebudowy: ${st.rebuilt}`) : ''}</span>
-          ${left.length ? trayRow(left) : ''}</div>
+          ${left.length ? trayRow(left, p.fl?.ht) : ''}</div>
           <strong><span>${ptsTxt(S.res.total[i])}</span></strong>${paidHtml(Rm, i)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Deal again', 'Rozdaj jeszcze raz'))}</div></div>`;

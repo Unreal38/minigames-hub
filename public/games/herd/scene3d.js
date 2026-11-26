@@ -9,6 +9,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { PETS, check, isEgg, elOf, numOf } from './rules.js';
 import { W as FW, H as FH, paintTile, petImage, loaded } from './tiles.js';
+import { herdLook } from '../../pieceskins.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const TW = .5, TL = .66, TH = .13, GAP = .04, PAD = .13, GX = .3, GZ = .36; // tile size, gaps inside a group, between groups and rows
@@ -78,29 +79,32 @@ export function createScene(canvas, { onFrame } = {}) {
   const selMat = new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: .95, depthWrite: false });
   const dotMats = new Map(); const dotMat = c => { if (!dotMats.has(c)) dotMats.set(c, new THREE.MeshBasicMaterial({ color: c })); return dotMats.get(c); };
   const faces = new Map(); // face key -> { mat, g, id }
-  function faceMat(id) {
-    const k = faceKey(id); let f = faces.get(k);
+  function faceMat(id, sk = 0) { // one face picture per tile and tile set (Wardrobe kind ht)
+    const k = faceKey(id) + '|' + sk; let f = faces.get(k);
     if (!f) {
       const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH; const g = cv.getContext('2d');
       const sp = isEgg(id) ? null : PETS[elOf(id)];
-      paintTile(g, id, sp ? loaded.get(sp) : null);
+      paintTile(g, id, sp ? loaded.get(sp) : null, sk);
       const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 8;
       f = { mat: new THREE.MeshBasicMaterial({ map: tx }), g, id };
       faces.set(k, f);
-      if (sp && !loaded.has(sp)) petImage(sp).then(im => { if (im && !dead) { paintTile(g, id, im); tx.needsUpdate = true; } });
+      if (sp && !loaded.has(sp)) petImage(sp).then(im => { if (im && !dead) { paintTile(g, id, im, sk); tx.needsUpdate = true; } });
     }
     return f.mat;
   }
   const proto = new THREE.Group();
   { const b = put(bodyGeo, bodyMat, 0, TH / 2, 0, proto); b.castShadow = true; toonify(proto, .02); }
-  function makeTile(id) { // a face-up tile on the table; the face is added after toonify so it stays unlit
-    const g = proto.clone(); put(faceGeo, faceMat(id), 0, TH + .003, 0, g);
+  const skinBody = sk => (sk ? backMat(herdLook(sk).body) : bodyMat);
+  function makeTile(id, sk = 0) { // a face-up tile on the table; the face is added after toonify so it stays unlit
+    const g = proto.clone(); g.children[0].material = skinBody(sk); put(faceGeo, faceMat(id, sk), 0, TH + .003, 0, g);
     g.children[0].userData.tile = id;
     return g;
   }
-  function backTile(color) { // a tile seen from behind: the body in the owner's colour, a cream plate on top
-    const g = proto.clone(); g.children[0].material = backMat(color);
-    put(plateGeo, backMat('#f6ead8'), 0, TH + .005, 0, g); return g;
+  function reskin(o, id, sk) { if (o.sk === sk) return; o.sk = sk; o.m.children[0].material = skinBody(sk); const f = o.m.children.find(c => c.geometry === faceGeo); if (f) f.material = faceMat(id, sk); }
+  // a tile seen from behind: the owner's colour with a cream plate on top, or the body and face of their tile set
+  function backTile(color, sk = 0) {
+    const g = proto.clone(), L = herdLook(sk); g.children[0].material = backMat(sk ? L.body : color);
+    put(plateGeo, backMat(sk ? L.face : '#f6ead8'), 0, TH + .005, 0, g); return g;
   }
 
   // wall-clock tweens, as in Dominoes
@@ -135,12 +139,12 @@ export function createScene(canvas, { onFrame } = {}) {
       return { av, stool, rack, ring, sp, mine, color: p.color, tiles: [], n: 0, hop: 0, nod: 0, look: 0, active: false, key: p.color + (p.av || []).join('') };
     });
   }
-  function standTile(color) { const h = new THREE.Group(), t = backTile(color); t.rotation.set(0, Math.PI / 2, Math.PI / 2 - .3); t.position.set(.05, TL / 2 * .95, 0); h.add(t); return h; }
+  function standTile(color, sk) { const h = new THREE.Group(), t = backTile(color, sk); t.rotation.set(0, Math.PI / 2, Math.PI / 2 - .3); t.position.set(.05, TL / 2 * .95, 0); h.add(t); return h; }
   function setRack(s, cnt, pop = -1) {
     if (s.mine) { s.n = cnt; return; }
     while (s.tiles.length > cnt) s.rack.remove(s.tiles.pop());
     const fresh = [];
-    while (s.tiles.length < cnt) { const t = standTile(s.color); s.rack.add(t); s.tiles.push(t); fresh.push(t); }
+    while (s.tiles.length < cnt) { const t = standTile(s.color, s.sk); s.rack.add(t); s.tiles.push(t); fresh.push(t); }
     const step = Math.min(TW + .03, s.sp.w / Math.max(1, cnt)), k = Math.min(1, step / (TW + .03));
     s.tiles.forEach((t, j) => {
       const z = (j - (cnt - 1) / 2) * step;
@@ -197,6 +201,8 @@ export function createScene(canvas, { onFrame } = {}) {
     }
   }
   let nextSpot = { x: 0, z: 0 };
+  // a tile wears the tile set of whoever put it down; one put down this turn, the set of the player whose turn it is
+  const skinOf = (st, id) => { const o = st.own?.[id] ?? (st.turn >= 0 ? st.turn : -1); return Math.max(0, st.seats[o]?.fl?.ht | 0); };
   function syncTable(st, animate, from = -1) {
     const list = st.table, L = flow(list);
     scaleK = L.s; nextSpot = L.next;
@@ -225,13 +231,14 @@ export function createScene(canvas, { onFrame } = {}) {
         const to = new THREE.Vector3(x0 + i * (TW + GAP) * scaleK, .03, at.z);
         let o = tiles.get(id);
         if (!o) {
-          o = { m: makeTile(id), to, gid: g.id, dot: null }; tiles.set(id, o); board.add(o.m);
+          const sk = skinOf(st, id);
+          o = { m: makeTile(id, sk), sk, to, gid: g.id, dot: null }; tiles.set(id, o); board.add(o.m);
           o.m.scale.setScalar(scaleK);
           if (animate && !reduced && from >= 0) { // it flies in from whoever put it down
             o.m.position.copy(board.worldToLocal(seatSpot(from))); o.m.rotation.y = (Math.random() - .5) * 2; o.fly = 0;
           } else o.m.position.copy(to);
         }
-        o.to = to; o.gid = g.id;
+        o.to = to; o.gid = g.id; reskin(o, id, skinOf(st, id));
       });
     }
     paintMarks(st);
@@ -270,6 +277,7 @@ export function createScene(canvas, { onFrame } = {}) {
         s.av = avatar3d(p.color, p.av); s.av.position.copy(pos); s.av.quaternion.copy(q); s.av.visible = vis; scene.add(s.av); s.hop = 1; s.key = k;
       });
     }
+    list.forEach((p, i) => { const s = seats[i], sk = Math.max(0, p.fl?.ht | 0); if (s && s.sk !== sk) { const had = s.sk !== undefined; s.sk = sk; if (had && !s.mine) { const c = s.n; setRack(s, 0); setRack(s, c); } } });
     const fresh = st.gid !== gid, newRound = !fresh && st.round !== round;
     if (fresh) { gid = st.gid; tweens.length = 0; }
     if (fresh || newRound) {

@@ -340,6 +340,13 @@ const PIECE = {
     for (let i = 0; i < 4; i++) for (let k = 0; k < 5; k++) { const n = new THREE.Mesh(new THREE.SphereGeometry(.032, 6, 4), SM('#fff4e2')); const side = i < 2; n.position.set(side ? (i ? .22 : -.22) : (-.18 + k * .09), side ? (-.22 + k * .11) : (i === 2 ? .27 : -.27), 0); g.add(n); }
     const pic = new THREE.Mesh(new THREE.BoxGeometry(.32, .42, .035), SM('#7fc8ee')); g.add(pic); const hill = new THREE.Mesh(new THREE.BoxGeometry(.32, .14, .04), SM('#7ed37a')); hill.position.y = -.14; g.add(hill);
     const sun = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .045, 10), SM('#ffc93c')); sun.rotation.x = PI / 2; sun.position.set(.07, .1, 0); g.add(sun); g.rotation.set(-.1, .35, -.12); },
+  herd(g) { const t = new THREE.Mesh(new THREE.BoxGeometry(.44, .58, .12), SM('#fffaf0')); g.add(t); const back = new THREE.Mesh(new THREE.BoxGeometry(.44, .58, .04), SM('#e0c9a6')); back.position.z = -.07; g.add(back);
+    const ink = SM('#d24a1f'), bar = (w, h, x, y, rz = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, .03), ink); m.position.set(x, y, .065); m.rotation.z = rz; g.add(m); };
+    bar(.2, .055, 0, .21); bar(.055, .24, .01, .08, -.35); // a 7
+    const face = new THREE.Mesh(new THREE.SphereGeometry(.1, 12, 8), SM('#ff9b6b')); face.scale.z = .45; face.position.set(0, -.14, .07); g.add(face);
+    for (const x of [-.09, .09]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.04, .08, 4), SM('#ff9b6b')); ear.position.set(x, -.04, .07); g.add(ear); }
+    for (const x of [-.035, .035]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.018, 6, 4), SM('#3b2219')); e.position.set(x, -.13, .115); g.add(e); }
+    g.rotation.set(-.12, .45, .12); },
   charm(g) { const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.22), SM('#b48cff', { flatShading: true, emissive: '#7a4ae0', emissiveIntensity: .25 })); gem.scale.y = 1.35; g.add(gem);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.3, .03, 4, 20), SM('#ffc93c')); ring.rotation.x = 1.2; g.add(ring);
     for (const [x, y, c] of [[-.24, .2, '#7ed37a'], [.25, .16, '#ff7a3a'], [.02, -.34, '#4fb0ee']]) { const s = new THREE.Mesh(new THREE.OctahedronGeometry(.055), SM(c)); s.position.set(x, y, .1); g.add(s); } },

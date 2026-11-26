@@ -54,7 +54,7 @@ function deal(G, now, first) {
   G.pool = shuffle(Array.from({ length: N_TILES }, (_, i) => i));
   G.racks = G.seats.map(() => G.pool.splice(0, START).sort(byNum));
   G.opened = G.seats.map(() => !G.opts.open);
-  G.table = []; G.nid = 0; G.W = null; G.snap = null; G.passes = 0; G.rd = null; G.last = null;
+  G.table = []; G.own = {}; G.nid = 0; G.W = null; G.snap = null; G.passes = 0; G.rd = null; G.last = null;
   G.turn = first; G.stage = 'deal'; G.stageEnd = now + MS.deal; G.tEnd = 0; G.botAt = 0;
   pushEv(G, { t: 'deal', round: G.round, s: first });
 }
@@ -81,6 +81,7 @@ function commit(G, s, now, by) {
   const rebuilt = G.table.some(g => !G.W.table.some(h => h.id === g.id && h.t.join() === g.t.join()) && g.t.some(t => !placed.includes(t)));
   const first = !G.opened[s];
   G.table = G.W.table; G.nid = G.W.nid; G.racks[s] = G.racks[s].filter(t => !onT.has(t)); G.opened[s] = true;
+  for (const t of placed) G.own[t] = s; // who put each tile down: it wears their tile set (Wardrobe kind ht)
   G.W = null; G.snap = null; G.passes = 0; G.mv++;
   const st = G.st[s]; st.played += placed.length; if (rebuilt) st.rebuilt++;
   G.last = { t: 'play', s, tiles: placed, groups, mv: G.mv };
@@ -200,7 +201,7 @@ export function view(G, s) {
     timer: G.opts.timer, open: G.opts.open, hints: G.opts.hints, botsLevel: G.opts.bots,
     tLeft: G.stage === 'turn' && G.tEnd ? Math.max(0, G.tEnd - now) : -1,
     dealLeft: G.stage === 'deal' ? Math.max(0, G.stageEnd - now) : 0, roundLeft: G.stage === 'round' ? Math.max(0, G.stageEnd - now) : 0, ms: MS,
-    table, nid: G.W ? G.W.nid : G.nid,
+    table, nid: G.W ? G.W.nid : G.nid, own: G.own,
     fresh: tilesOn(table).filter(t => !committed.has(t)), // tiles put down this turn, not yet played for good
     rack: s >= 0 && G.seats[s] ? (mine ? G.W.rack : G.racks[s]).slice() : [],
     snapRack: mine ? G.snap.rack : null, snapTable: mine ? G.snap.table : null,

@@ -37,7 +37,7 @@ export const COS = {
     { n: 'Chess board', p: 200, t: 's' }, { n: 'Pool table', p: 220, t: 's' }, { n: 'Domino line', p: 200, t: 's' },
     { n: 'Lantern Night', p: 350, t: 'a', d: 1 }, { n: 'Copycat barn', p: 200, t: 's' }, { n: 'Runway lights', p: 220, t: 's', d: 1 }, { n: 'Word Reef board', p: 200, t: 's' }, { n: 'Checkers board', p: 200, t: 's' },
     { n: 'Pet Museum', t: 'e', earn: { pf: 'mus', n: 3 } }, { n: 'Legend ruins', t: 'e', earn: { pf: 'far', n: 1 } },
-    { n: 'Blast Bay maze', p: 200, t: 's' }, { n: 'Pet Pairs table', p: 200, t: 's' }] },
+    { n: 'Blast Bay maze', p: 200, t: 's' }, { n: 'Pet Pairs table', p: 200, t: 's' }, { n: 'Pet Herds table', p: 200, t: 's' }] },
   ti: { label: 'Title', items: [{ n: 'None' },
     { n: 'Pot Wizard', earn: { g: 'hotpot', w: 5 } }, { n: 'Card Shark', earn: { g: 'poker', w: 5 } }, { n: 'Kart Menace', earn: { g: 'kart', w: 5 } },
     { n: 'Marble Whisperer', earn: { g: 'marbles', w: 5 } }, { n: 'Ladder Legend', earn: { g: 'ladders', w: 5 } }, { n: 'Ludo Lord', earn: { g: 'ludo', w: 5 } },
@@ -100,6 +100,9 @@ export const COS = {
   bs: { label: 'Pop seed', where: 'Your seeds in Blast Bay and the blast they make when they pop. Every seed bursts just as far and just as fast.', items: [{ n: 'Classic' }, { n: 'Ember chili', p: 120 },
     { n: 'Frost bud', p: 140, s: 'winter' }, { n: 'Bubble pod', p: 140 }, { n: 'Candy bonbon', p: 150 }, { n: 'Golden acorn', p: 250 }, { n: 'Pumpkin', p: 140, s: 'halloween' },
     { n: 'Starfruit', p: 180 }, { n: 'Thunder berry', p: 180 }, { n: 'Sea pearl', p: 160 }] },
+  // Pet Herds number tiles (public/pieceskins.js HERD_TILES, same order): the face, the block and the back rivals see.
+  ht: { label: 'Herd tiles', where: 'Your tiles in Pet Herds: the ones in your tray, the backs the others see, and every tile you put on the table. The numbers and pets stay the same.', items: [{ n: 'Classic' }, { n: 'Wood', p: 120 },
+    { n: 'Mint candy', p: 120 }, { n: 'Night sky', p: 160 }, { n: 'Marble', p: 150 }, { n: 'Honeycomb', p: 140 }, { n: 'Frost', p: 140, s: 'winter' }, { n: 'Golden herd', earn: { g: 'herd', w: 10 } }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
   // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
@@ -115,7 +118,7 @@ export const WORN = COS_KEYS.filter(k => !COS[k].multi);
 export const DECOR_SLOTS = 3;
 // The game pieces that float round a player's isle. Free: cos.fp lists the ones picked, in order (none saved = the classic set, an empty list = none).
 export const PIECES = { marble: 'Marble', die: 'Die', pawn: 'Ludo pawn', card: 'Card', chip: 'Poker chip', golf: 'Golf ball', block: 'Tower blocks', tyre: 'Kart tyre', coin: 'Coin', star: 'Star', bean: 'Magic bean', pot: 'Hot pot', paw: 'Paw print', dart: 'Dart', bubble: 'Bubble', egg: 'Pet egg', knight: 'Chess knight', eight: '8-ball', domino: 'Domino tile', bingo: 'Bingo ball',
-  lantern: 'Lantern', checker: 'Checker king', letter: 'Letter tile', crate: 'Copycat crate', hanger: 'Clothes hanger', stamp: 'Stamp', charm: 'Nest charm', seed: 'Pop seed', memcard: 'Memory card' };
+  lantern: 'Lantern', checker: 'Checker king', letter: 'Letter tile', crate: 'Copycat crate', hanger: 'Clothes hanger', stamp: 'Stamp', charm: 'Nest charm', seed: 'Pop seed', memcard: 'Memory card', herd: 'Herd tile' };
 export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 'chip', 'golf'];
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
