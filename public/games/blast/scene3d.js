@@ -5,7 +5,8 @@
 // blasts are two more, avatars get soft blobs instead of real shadows, and there are no shadow maps at all.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, birds, flat, createFx, STAR, DOT, HEART } from '../../scenery3d.js';
+import { island, skyDome, clouds, nightScene, birds, flat, createFx, STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF } from '../../scenery3d.js';
+import { seedLook, seedModel as seedSkin } from '../../pieceskins.js';
 import { groundOf } from '../../isle3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
@@ -13,6 +14,7 @@ import { ARENAS, EL_COL, ELS, WALL, CRATE, GONE, Q } from './rules.js';
 
 const K = .44;                       // avatars are drawn at this size, on a wrapper (standing-avatar rule: the avatar sits .76 up inside it)
 const PETAL = ['#ff8fc8', '#fff07a', '#ffffff', '#ffc2e0', '#7ad66b'];
+const SHAPES = { STAR, DOT, HEART, RING, FISH, COIN, FLAKE, CONF }; // a seed look names its blast bits by shape
 const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); return (a < 0 ? a + Math.PI * 2 : a) - Math.PI; };
 const FACE = [0, Math.PI / 2, Math.PI, -Math.PI / 2]; // facing 0 down (towards the camera), 1 right, 2 up, 3 left
 
@@ -130,8 +132,9 @@ export function createScene(canvas, opts = {}) {
   const BLOBS = 64, blobs = new THREE.InstancedMesh(blobGeo, blobMat, BLOBS); blobs.frustumCulled = false; blobs.renderOrder = 1; scene.add(blobs);
   const bm = new THREE.Matrix4();
   const bubbleGeo = new THREE.IcosahedronGeometry(.62, 1);
+  let skins = []; // each seat's pop seed look (kind bs), for its seeds and its blasts
   function setSeats(list, mySeat) {
-    me = mySeat;
+    me = mySeat; skins = list.map(p => p.bs | 0);
     list.forEach((p, i) => {
       const m = folk[i], k = JSON.stringify([p.color, p.av]);
       if (m && m.key === k) return;
@@ -162,45 +165,47 @@ export function createScene(canvas, opts = {}) {
 
   // ---------- pop seeds ----------
   const seeds = new Map();
-  const podGeo = new THREE.IcosahedronGeometry(.3, 1), leafGeo = new THREE.ConeGeometry(.1, .28, 4), tipGeo = new THREE.SphereGeometry(.08, 8, 6);
-  const podMat = flat('#ff8fc8'), leafMat = flat('#6cbf4a'), tipMat = new THREE.MeshBasicMaterial({ color: '#fff07a' });
-  function seedModel() {
-    const g = new THREE.Group(), b = new THREE.Group(); g.add(b);
-    const pod = new THREE.Mesh(podGeo, podMat); pod.position.y = .3; pod.scale.set(1, 1.1, 1); b.add(pod);
-    for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2, lf = new THREE.Mesh(leafGeo, leafMat); lf.position.set(Math.cos(a) * .15, .62, Math.sin(a) * .15); lf.rotation.set(Math.sin(a) * .6, 0, -Math.cos(a) * .6); b.add(lf); }
-    const tip = new THREE.Mesh(tipGeo, tipMat); tip.position.y = .7; b.add(tip);
-    g.userData = { b, tip }; return g;
+  const seedProtos = new Map(); // one built model per seed look, cloned for each seed (they share geometry and materials)
+  function seedModel(k = 0) {
+    let p = seedProtos.get(k);
+    if (!p) { p = seedSkin(THREE, k); seedProtos.set(k, p); }
+    const g = new THREE.Group(), b = p.clone(); g.add(b);
+    g.userData = { b, tip: b.getObjectByName('tip') }; return g;
   }
   // b: [id, x, y, ms left, owner, mine-to-pass]
   function setSeeds(list, now) {
     const seen = new Set();
-    for (const [id, qx, qy, left] of list) {
+    for (const [id, qx, qy, left, owner] of list) {
       seen.add(id);
       let s = seeds.get(id);
-      if (!s) { s = { g: seedModel(), x: qx / Q, y: qy / Q, born: T }; scene.add(s.g); seeds.set(id, s); }
+      if (!s) { s = { g: seedModel(skins[owner] | 0), x: qx / Q, y: qy / Q, born: T }; scene.add(s.g); seeds.set(id, s); }
       s.tx = qx / Q; s.ty = qy / Q; s.end = now + left;
     }
     for (const [id, s] of seeds) if (!seen.has(id) && !s.local) { scene.remove(s.g); seeds.delete(id); }
   }
   // your own seed, shown the moment you plant it (until the server's copy arrives)
-  function localSeed(x, y) { const id = 'l' + x + ',' + y; if (seeds.has(id)) return; const s = { g: seedModel(), x, y, tx: x, ty: y, born: T, local: true, end: performance.now() + 2400 }; scene.add(s.g); seeds.set(id, s); setTimeout(() => { const t = seeds.get(id); if (t) { scene.remove(t.g); seeds.delete(id); } }, 500); }
+  function localSeed(x, y) { const id = 'l' + x + ',' + y; if (seeds.has(id)) return; const s = { g: seedModel(skins[me] | 0), x, y, tx: x, ty: y, born: T, local: true, end: performance.now() + 2400 }; scene.add(s.g); seeds.set(id, s); setTimeout(() => { const t = seeds.get(id); if (t) { scene.remove(t.g); seeds.delete(id); } }, 500); }
 
   // ---------- petal blasts ----------
   const BN = 260;
   const outer = new THREE.InstancedMesh(new THREE.BoxGeometry(.96, .5, .96), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .9, depthWrite: false }), BN);
   const core = new THREE.InstancedMesh(new THREE.BoxGeometry(.5, .62, .5), new THREE.MeshBasicMaterial({ color: '#ffffff' }), BN);
   for (const m of [outer, core]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; for (let i = 0; i < BN; i++) { dummy.position.set(0, -60, 0); dummy.scale.set(0, 0, 0); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); } scene.add(m); }
-  outer.material.color.set('#ff8fc8'); core.material.color.set('#fff4fa');
+  const tint = new THREE.Color();
+  for (let i = 0; i < BN; i++) { outer.setColorAt(i, tint.set('#ff8fc8')); core.setColorAt(i, tint.set('#fff4fa')); } // each blast is tinted by its seed's look
   const slots = Array.from({ length: BN }, () => ({ life: 0, x: 0, z: 0 })); let bnext = 0;
-  function blast(cells) {
+  function blast(cells, by = -1) {
+    const look = seedLook(skins[by] | 0), bits = look.bits, shape = SHAPES[look.burst] ?? HEART;
     for (const i of cells) {
-      const s = slots[bnext]; bnext = (bnext + 1) % BN; s.life = .45; s.x = wx(i % W); s.z = wz(i / W | 0);
+      const k = bnext, s = slots[k]; bnext = (bnext + 1) % BN; s.life = .45; s.x = wx(i % W); s.z = wz(i / W | 0);
+      outer.setColorAt(k, tint.set(look.blast)); core.setColorAt(k, tint.set(look.core));
     }
+    outer.instanceColor.needsUpdate = core.instanceColor.needsUpdate = true;
     const mid = cells[0];
     if (mid !== undefined) {
       const p = new THREE.Vector3(wx(mid % W), .5, wz(mid / W | 0));
-      fx.burst(p, { n: few ? 10 : 22, colors: PETAL, shape: HEART, speed: 3.4, up: 3.2, size: .3, life: .9, grav: 6 });
-      if (!few) for (const i of cells.slice(1)) if ((i * 7) % 3 === 0) fx.burst(new THREE.Vector3(wx(i % W), .4, wz(i / W | 0)), { n: 3, colors: PETAL, shape: DOT, speed: 1.6, up: 2.4, size: .2, life: .6, grav: 6 });
+      fx.burst(p, { n: few ? 10 : 22, colors: bits, shape, speed: 3.4, up: 3.2, size: .3, life: .9, grav: 6 });
+      if (!few) for (const i of cells.slice(1)) if ((i * 7) % 3 === 0) fx.burst(new THREE.Vector3(wx(i % W), .4, wz(i / W | 0)), { n: 3, colors: bits, shape: DOT, speed: 1.6, up: 2.4, size: .2, life: .6, grav: 6 });
     }
     kick = Math.min(1, kick + .35);
   }

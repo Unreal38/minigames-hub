@@ -7,6 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, frameCls } from '../../cosmetics.js';
+import { seedLook } from '../../pieceskins.js';
 import { Q, OPEN, ELS, EL_COL, BOON, ARENAS, START, SPD_STEP, CRUMBLE_S, steer, faceOf } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -84,7 +85,7 @@ export function mount(app, ctx) {
     if (!scene || !S || !info || !grid) return;
     const key = S.gid + ':' + S.round;
     if (built !== key) { built = key; scene.build(S.arena, S.w, S.h, grid); }
-    scene.setSeats(info.map(p => ({ color: p.color, av: p.av })), S.me);
+    scene.setSeats(info.map(p => ({ color: p.color, av: p.av, bs: p.fl?.bs | 0 })), S.me);
     scene.snapPlayers(S.a);
     scene.setSeeds(S.b || [], performance.now());
     scene.setItems(S.it || []);
@@ -191,6 +192,7 @@ export function mount(app, ctx) {
     $('bb-code').textContent = Rm?.code || '';
     buildTags(); renderList(); renderStats();
     root.classList.toggle('watching', S.me < 0);
+    const pod = seedLook(info[S.me]?.fl?.bs | 0).pod; if ($('bb-seed').style.getPropertyValue('--pod') !== pod) $('bb-seed').style.setProperty('--pod', pod); // the button wears your seed's colour
     $('bb-joy').hidden = !touch || !playing();
   }
   function big(text, sub = '', ms = 1400, color = '') {
@@ -205,7 +207,7 @@ export function mount(app, ctx) {
     if (e.t === 'r') { big(L(`Round ${e.r}`, `Runda ${e.r}`), ARENAS[e.arena]?.name || '', 2200); sfx.draw(); }
     else if (e.t === 'go') { big(L('Go!', 'Start!'), '', 900); sfx.turn(); }
     else if (e.t === 'pl') { if (!mine) sfx.land(); }
-    else if (e.t === 'x') { scene?.blast(e.c); sfx.boom(); }
+    else if (e.t === 'x') { scene?.blast(e.c, e.by); sfx.boom(); }
     else if (e.t === 'k') { if (!mine) sfx.thunk(); }
     else if (e.t === 'sh') { scene?.pop(e.s); if (mine) { big(L('Saved!', 'Uratowany!'), L('Your leaf bubble popped', 'Twoja listkowa bańka pękła'), 1400, '#8fe07a'); sfx.plop(); } }
     else if (e.t === 'p') {

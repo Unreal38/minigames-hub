@@ -95,6 +95,10 @@ export const COS = {
     { n: 'Sea glass', p: 140 }, { n: 'Ink', p: 160 }, { n: 'Starfish', p: 150 }, { n: 'Ice', p: 140, s: 'winter' }, { n: 'Pumpkin', p: 140, s: 'halloween' }] },
   ln: { label: 'Lantern', where: 'The lantern that floats beside you in Lantern Night, and the colour of its light on your screen. Every lantern lights just as far.', items: [{ n: 'Classic' }, { n: 'Paper lantern', p: 120 },
     { n: 'Firefly jar', p: 150 }, { n: 'Candle', p: 120 }, { n: 'Crystal', p: 180 }, { n: 'Star', p: 180 }, { n: 'Pumpkin', p: 140, s: 'halloween' }] },
+  // Blast Bay pop seeds (public/pieceskins.js SEEDS, same order): one look for the seed and the blast it makes.
+  bs: { label: 'Pop seed', where: 'Your seeds in Blast Bay and the blast they make when they pop. Every seed bursts just as far and just as fast.', items: [{ n: 'Classic' }, { n: 'Ember chili', p: 120 },
+    { n: 'Frost bud', p: 140, s: 'winter' }, { n: 'Bubble pod', p: 140 }, { n: 'Candy bonbon', p: 150 }, { n: 'Golden acorn', p: 250 }, { n: 'Pumpkin', p: 140, s: 'halloween' },
+    { n: 'Starfruit', p: 180 }, { n: 'Thunder berry', p: 180 }, { n: 'Sea pearl', p: 160 }] },
   // The profile isle: the floating island your avatar and pets stand on, on the hub and in your profile card (public/isle3d.js builds them).
   // Decor is not sold here: it is up to DECOR_SLOTS of the decorations on the player's own Pet Farm, kept as cos.ip = ['windmill', 'pond'].
   // Grounds are the Pet Farm's islands (same names and colours as its world map), plus two that are earned. Indexes are saved: append only.
