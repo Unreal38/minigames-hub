@@ -104,10 +104,10 @@ export function createScene(canvas, { onFrame } = {}) {
   const pose = (c, p, rz, ry = 0, k = 1) => { c.g.position.copy(p); c.g.rotation.set(0, ry, rz); c.g.scale.setScalar(k); };
 
   // turn a card face up or down where it lies
-  function turn(c, up, delay = 0) {
+  function turn(c, up, delay = 0, then = null) {
     const from = c.g.rotation.z, to = up ? 0 : Math.PI, p = slot(c.i), y0 = c.g.position.y;
     tweenCard(c, .36, t => { const e = ease(t); c.g.rotation.z = from + (to - from) * e; c.g.position.set(p.x, y0 + (Y0 - y0) * e + Math.sin(e * Math.PI) * .55, p.z); c.g.scale.setScalar(1); },
-      () => { if (!up) c.front.material = backMat; }, delay);
+      () => { if (!up) c.front.material = backMat; if (then) then(); }, delay);
   }
 
   // ---------- seats and the found pairs in front of them ----------
@@ -199,9 +199,11 @@ export function createScene(canvas, { onFrame } = {}) {
         else if (want === 'down') turn(c, false);
         else if (want === 'won') {
           c.owner = o; if (f) c.front.material = faceMat(f[0], f[1]);
-          const k2 = seats[o] ? seats[o].won++ : 0, lift = c.state === 'down' ? .36 : 0;
-          if (c.state === 'down') turn(c, true);
-          toPile(c, k2, .55 + lift);
+          // a card found straight from face down (the second of the pair) turns over first, then both fly together;
+          // a new tween on the card cancels the old one, so the flight waits for the turn to finish
+          const k2 = seats[o] ? seats[o].won++ : 0;
+          if (c.state === 'down') turn(c, true, 0, () => toPile(c, k2, .8));
+          else toPile(c, k2, .8 + .36);
         }
         c.state = want; if (want !== 'up') c.peekT = 0;
       });
@@ -278,17 +280,17 @@ export function createScene(canvas, { onFrame } = {}) {
     const portrait = cw / ch < 1;
     camera.aspect = cw / ch; camera.fov = portrait ? 50 : 36; camera.clearViewOffset(); camera.updateProjectionMatrix();
     const top = hudTop, bottom = Math.max(top + 120, ch - hudBottom);
-    // the whole grid and the rim must show; the avatars across the table and at the sides should, where there is room
+    // close up (Kuba): portrait phones fit just the cards, the rim may run off the sides; wide screens fit the table top, the far avatar's head may tuck under the banner
     const dc = flip ? h : w, dr = flip ? w : h, gx = dc * PX / 2 + .2, gz = dr * PZ / 2 + .2;
     const FIT = portrait
-      ? [new THREE.Vector3(0, 0, -B - .2), new THREE.Vector3(0, 0, B + .2), new THREE.Vector3(-gx - .3, 0, gz), new THREE.Vector3(gx + .3, 0, gz), new THREE.Vector3(-gx - .3, 0, -gz), new THREE.Vector3(gx + .3, 0, -gz)]
-      : [new THREE.Vector3(0, 2.6, -B - 1.35), new THREE.Vector3(0, 0, B + .2), new THREE.Vector3(-A - 1.1, 1.2, 0), new THREE.Vector3(A + 1.1, 1.2, 0)];
+      ? [new THREE.Vector3(-gx, 0, gz + .1), new THREE.Vector3(gx, 0, gz + .1), new THREE.Vector3(-gx, 0, -gz - .1), new THREE.Vector3(gx, 0, -gz - .1)]
+      : [new THREE.Vector3(0, .9, -B - .4), new THREE.Vector3(0, 0, B - .1), new THREE.Vector3(-A - .3, .3, 0), new THREE.Vector3(A + .3, .3, 0)];
     let lo = 3, hi = 120;
     for (let k = 0; k < 34; k++) {
       const D = (lo + hi) / 2; place(D);
       let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
       for (const p of FIT) { const [x, y] = toPx(p); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-      if (x1 - x0 <= cw - 16 && y1 - y0 <= bottom - top) hi = D; else lo = D;
+      if (x1 - x0 <= cw - (portrait ? 12 : 16) && y1 - y0 <= bottom - top) hi = D; else lo = D;
     }
     place(hi); camBase.copy(camera.position);
     scene.fog.near = hi + 20; scene.fog.far = hi + 130;
