@@ -39,10 +39,10 @@ try {
   const hubIds = [...fs.readFileSync('public/app.js', 'utf8').split('const HUB_GAMES = [')[1].split('].filter(')[0].matchAll(/^\s*\['(\w+)'/gm)].map(m => m[1]);
   assert.deepEqual(reg.games.map(g => g.id), hubIds, 'every HUB_GAMES row must be readable by server/gamelist.js');
   for (const g of reg.games) {
-    assert.match(bot.text, new RegExp(`<li id="g-${g.id}"><b>[^<]+</b>: [^<]{20,} <small>Gracze: \\d`), g.id);
+    assert.match(bot.text, new RegExp(`<li id="g-${g.id}"><b><a href="/gry/[a-z0-9-]+">[^<]+</a></b>: [^<]{20,} <small>Gracze: \\d`), g.id);
     assert.ok(g.mins && g.pitch, g.id);
   }
-  for (const n of ['Szachy', 'Makao', 'Kalambury', 'Bierki', 'Farma zwierzaków', 'Zagadkowy zwierzak', 'Słowo w butelce', 'Zwierzakowy mahjong']) assert.ok(bot.text.includes(`<b>${n}</b>`), n);
+  for (const n of ['Szachy', 'Makao', 'Kalambury', 'Bierki', 'Farma zwierzaków', 'Zagadkowy zwierzak', 'Słowo w butelce', 'Zwierzakowy mahjong']) assert.ok(new RegExp(`<b><a href="/gry/[a-z0-9-]+">${n}</a></b>`).test(bot.text), n);
   assert.match(bot.text, /W Zatoce jest \d+ (gier|gry) przy stole/);
   const games = JSON.parse(bot.text.match(/<script type="application\/ld\+json">(\{"@context":"https:\/\/schema.org","@type":"ItemList"[\s\S]*?)<\/script>/)[1]);
   assert.equal(games.itemListElement.length, reg.games.length + 7);
@@ -56,9 +56,9 @@ try {
   assert.match(en.text, /Tables are public by default/);
   assert.match(bot.text, /Stoły są domyślnie publiczne/);
   assert.doesNotMatch(en.text, /Postępy/);
-  assert.match(en.text, /<li id="g-chess"><b>Chess<\/b>: Classic chess/);
+  assert.match(en.text, /<li id="g-chess"><b><a href="\/en\/games\/chess">Chess<\/a><\/b>: Classic chess/);
   assert.match(en.text, /Players: 1–4 \(co-op\)/);
-  assert.match(en.text, /<b>Pet Farm<\/b>/);
+  assert.match(en.text, /<b><a href="\/en\/games\/pet-farm">Pet Farm<\/a><\/b>/);
   assert.doesNotMatch(en.text, /Gracze:|Wszystkie gry/);
   assert.doesNotMatch(en.text, /darmowe|Darmowe|przeglądarce/);
 
@@ -69,5 +69,39 @@ try {
   const csp = en.r.headers.get('content-security-policy');
   assert.match(csp, /script-src 'self' https:\/\/cdn\.jsdelivr\.net\/npm\/three@0\.170\.0\/ 'sha256-/);
   assert.equal((await get('/nope')).r.status, 404);
+
+  // Every game has its own page in both languages, listed in the sitemap with its twin (server/gamepages.js).
+  const { allGames, gameUrl } = await import('../server/gamepages.js');
+  const all = allGames();
+  assert.equal(all.length, reg.games.length + 6);
+  assert.match(bot.text, /<link rel="alternate" hreflang="en" href="https:\/\/zatokagier\.com\/en">/);
+  for (const g of all) for (const l of ['pl', 'en']) {
+    const u = gameUrl(g, l); assert.ok(map.text.includes(`<loc>https://zatokagier.com${u}</loc>`), `sitemap ${u}`);
+  }
+  const chess = await get('/gry/szachy', { 'user-agent': 'Googlebot' });
+  assert.equal(chess.r.status, 200);
+  assert.match(chess.text, /<html lang="pl">/);
+  assert.match(chess.text, /<h1>Szachy<\/h1>/);
+  assert.match(chess.text, /<link rel="canonical" href="https:\/\/zatokagier\.com\/gry\/szachy">/);
+  assert.match(chess.text, /hreflang="en" href="https:\/\/zatokagier\.com\/en\/games\/chess"/);
+  assert.match(chess.text, /<h2>Zasady<\/h2>/); assert.match(chess.text, /Roszada/);
+  assert.match(chess.text, /og:image" content="https:\/\/zatokagier\.com\/gamepics\/chess\.jpg"/);
+  assert.match(chess.text, /href="\/\?gra=chess"/);
+  assert.equal((chess.text.match(/property="og:image"/g) || []).length, 1);
+  for (const m of chess.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) JSON.parse(m[1]);
+  const enChess = await get('/en/games/chess');
+  assert.match(enChess.text, /<html lang="en">/); assert.match(enChess.text, /<h2>Rules<\/h2>/); assert.doesNotMatch(enChess.text, /Zasady|Gracze/);
+  assert.match((await get('/en/games/hot-pot')).text, /Palia/);
+  for (const g of all) {
+    assert.ok(fs.existsSync(`public/gamepics/${g.id}.jpg`) && fs.existsSync(`public/gamepics/${g.id}-s.jpg`), `no picture for ${g.id}: run node tools/gamepics.mjs`);
+    const pg = await get(gameUrl(g, 'pl')); assert.equal(pg.r.status, 200, g.id); assert.match(pg.text, /<h1>[^<]+<\/h1>/);
+  }
+  const list = await get('/gry'); assert.equal(list.r.status, 200);
+  for (const g of all) assert.ok(list.text.includes(`href="${gameUrl(g, 'pl')}"`), `list ${g.id}`);
+  assert.equal((await fetch(base + '/gry/chess', { redirect: 'manual' })).headers.get('location'), '/gry/szachy');
+  assert.equal((await get('/gry/nie-ma-takiej')).r.status, 404);
+  const enHome = await get('/en', { 'accept-language': 'pl' });
+  assert.match(enHome.text, /<html lang="en"/); assert.match(enHome.text, /<link rel="canonical" href="https:\/\/zatokagier\.com\/en">/);
+  assert.match(enHome.text, /Free browser games to play with friends/);
   console.log('seo ok');
 } finally { srv.kill(); }

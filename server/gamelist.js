@@ -22,16 +22,23 @@ export function readRegistry(src) {
   const info = {}; // id -> { name, mins }
   for (const m of src.matchAll(/^ {2}(\w+): \{\n {4}name: (?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")[^\n]*\n {4}mins: \[(\d+), (\d+)\]/gm))
     info[m[1]] = { name: unq([0, m[2], m[3]]), mins: [+m[4], +m[5]] };
+  // The "how to win" line and full rules (template strings) of every GAMES / SOLO entry, for the game pages (gamepages.js).
+  const heads = [...src.matchAll(/^ {2}(\w+): \{\n {4}name: /gm)];
+  heads.forEach((h, i) => {
+    if (!info[h[1]]) return;
+    const block = src.slice(h.index, heads[i + 1]?.index ?? src.length);
+    for (const k of ['howto', 'rules']) { const m = block.match(new RegExp(`^ {4}${k}: \`((?:[^\`\\\\]|\\\\.)*)\``, 'm')); if (m && !m[1].includes('${')) info[h[1]][k] = m[1].trim(); }
+  });
   const hub = src.slice(src.indexOf('const HUB_GAMES = ['), src.indexOf('].filter(g => GAMES[g[0]])'));
-  const row = new RegExp(String.raw`\['(\w+)', '[^']*', \w+, '([\w ]+)', '([^']*)', (?:${STR})\]`, 'g');
-  const games = [...hub.matchAll(row)].filter(m => info[m[1]]).map(m => ({ id: m[1], cat: m[2].split(' ')[0], tags: m[2].split(' '), seats: m[3], pitch: unq([0, m[4], m[5]]), ...info[m[1]] }));
+  const row = new RegExp(String.raw`\['(\w+)', '[^']*', (\w+), '([\w ]+)', '([^']*)', (?:${STR})\]`, 'g');
+  const games = [...hub.matchAll(row)].filter(m => info[m[1]]).map(m => ({ id: m[1], art: m[2], cat: m[3].split(' ')[0], tags: m[3].split(' '), seats: m[4], pitch: unq([0, m[5], m[6]]), ...info[m[1]] }));
   const mp = src.match(/const MP_MINS = \[(\d+), (\d+)\]/), wd = src.match(/WORD_MINS = \[(\d+), (\d+)\]/);
   return { games, solo: info, mpMins: mp ? [+mp[1], +mp[2]] : null, wordMins: wd ? [+wd[1], +wd[2]] : null };
 }
 
-const CATS = { cards: ['Card games', 'Gry karciane'], board: ['Board and dice games', 'Gry planszowe i w kości'], action: ['Action and party games', 'Gry zręcznościowe i imprezowe'] };
+export const CATS = { cards: ['Card games', 'Gry karciane'], board: ['Board and dice games', 'Gry planszowe i w kości'], action: ['Action and party games', 'Gry zręcznościowe i imprezowe'] };
 // The Today column: [key in SOLO (for mins) or null, English name, Polish name, English text, Polish text].
-const TODAY = [
+export const TODAY = [
   ['farm', 'Pet Farm', 'Farma zwierzaków',
     'Your own farm on a floating island. Hatch, raise and breed 70+ pet species with inherited traits and elements, build and decorate freely, send pets on expeditions and far trips to Legend Isle for rare pets, follow the Farm Journal, fill island orders for Stamps, grow the Pet Museum, fight turn-based 3v3 battles and visit or help your friends\' farms.',
     'Własna farma na latającej wyspie. Wykluwasz, wychowujesz i krzyżujesz ponad 70 gatunków zwierzaków z dziedziczeniem cech i żywiołów, budujesz i urządzasz farmę, wysyłasz zwierzaki na wyprawy i dalekie wyprawy na Wyspę Legend po rzadkie gatunki, idziesz za Dziennikiem farmy, realizujesz zamówienia za znaczki, rozbudowujesz Muzeum zwierzaków, walczysz w turowych bitwach 3 na 3 i odwiedzasz albo wspierasz farmy znajomych.'],
@@ -55,6 +62,9 @@ const TODAY = [
     'Jeden darmowy obrót dziennie: monety, materiały na Farmę, przyspieszacze, zwierzak dnia albo szczęśliwa ozdoba na wyspę.'],
 ];
 
+// The address of a game's own page (server/gamepages.js), set by gamepages.js when it loads (it imports this file).
+let pageUrl = () => '/';
+export const setPageUrl = f => { pageUrl = f; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const dash = ([a, b]) => a === b ? `${a}` : `${a}–${b}`;
 const minsText = m => m[0] === m[1] ? `~${m[0]} min` : `${m[0]}–${m[1]} min`;
@@ -68,7 +78,7 @@ function view(lang, reg = readRegistry()) {
     const x = pl ? GAMES_PL[g.id] || {} : {}, [lo, hi = lo] = range(g.seats);
     return { ...g, name: x.name || g.name, text: x.pitch || g.pitch, lo, hi, coop: /co-?op/i.test(g.seats) };
   });
-  const today = TODAY.map(([k, en, p, ten, tp]) => ({ game: !!k, name: T(en, p), text: T(ten, tp), mins: k === 'mp' ? reg.mpMins : k === 'word' ? reg.wordMins : k ? reg.solo[k]?.mins : null,
+  const today = TODAY.map(([k, en, p, ten, tp]) => ({ id: k, game: !!k, name: T(en, p), text: T(ten, tp), mins: k === 'mp' ? reg.mpMins : k === 'word' ? reg.wordMins : k ? reg.solo[k]?.mins : null,
     ...(k && SOLO_PL[k] && pl ? { name: SOLO_PL[k].name } : {}) }));
   return { pl, T, games, today };
 }
@@ -83,12 +93,12 @@ export function gamesHtml(lang, reg) {
   for (const [cat, [en, p]] of Object.entries(CATS)) {
     const list = games.filter(g => g.cat === cat); if (!list.length) continue;
     out += `<h3>${T(en, p)}</h3>\n<ul class="seo-games">\n`;
-    for (const g of list) out += `<li id="g-${g.id}"><b>${esc(g.name)}</b>: ${esc(g.text)} <small>${meta(g)}</small></li>\n`;
+    for (const g of list) out += `<li id="g-${g.id}"><b><a href="${pageUrl(g.id, lang)}">${esc(g.name)}</a></b>: ${esc(g.text)} <small>${meta(g)}</small></li>\n`;
     out += '</ul>\n';
   }
   out += `<h3>${T('Every day (on your own)', 'Na co dzień (w pojedynkę)')}</h3>\n<ul class="seo-games">\n`;
-  for (const t of today) out += `<li><b>${esc(t.name)}</b>: ${esc(t.text)}${t.mins ? ` <small>${T('One game', 'Jedna gra')}: ${minsText(t.mins)}</small>` : ''}</li>\n`;
-  return out + '</ul>\n</section>';
+  for (const t of today) out += `<li><b>${t.id && pageUrl(t.id, lang) ? `<a href="${pageUrl(t.id, lang)}">${esc(t.name)}</a>` : esc(t.name)}</b>: ${esc(t.text)}${t.mins ? ` <small>${T('One game', 'Jedna gra')}: ${minsText(t.mins)}</small>` : ''}</li>\n`;
+  return out + `</ul>\n<p><a href="${pl ? '/gry' : '/en/games'}">${T('Every game with its rules', 'Wszystkie gry z zasadami')}</a></p>\n</section>`;
 }
 
 // Structured data: the same list as a schema.org ItemList of Game entries.
@@ -97,9 +107,9 @@ export function gamesLd(lang, reg) {
   // Plain schema.org Game (not VideoGame/SoftwareApplication, which Google checks for ratings and would flag).
   const base = { '@type': 'Game', inLanguage: ['pl', 'en'], isAccessibleForFree: true, isPartOf: { '@id': 'https://zatokagier.com/#site' } };
   const items = [
-    ...games.map(g => ({ ...base, name: g.name, description: g.text, url: `https://zatokagier.com/#g-${g.id}`, genre: T(...CATS[g.cat]),
+    ...games.map(g => ({ ...base, name: g.name, description: g.text, url: `https://zatokagier.com${pageUrl(g.id, lang)}`, genre: T(...CATS[g.cat]),
       numberOfPlayers: { '@type': 'QuantitativeValue', minValue: g.lo, maxValue: g.hi } })),
-    ...today.map(t => ({ ...base, name: t.name, description: t.text, url: 'https://zatokagier.com/', numberOfPlayers: { '@type': 'QuantitativeValue', value: 1 } })),
+    ...today.map(t => ({ ...base, name: t.name, description: t.text, url: `https://zatokagier.com${(t.id && pageUrl(t.id, lang)) || '/'}`, numberOfPlayers: { '@type': 'QuantitativeValue', value: 1 } })),
   ];
   return JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', '@id': 'https://zatokagier.com/#games', name: T('Games on Zatoka Gier', 'Gry w Zatoce Gier'),
     numberOfItems: items.length, itemListElement: items.map((item, i) => ({ '@type': 'ListItem', position: i + 1, item })) }).replace(/</g, '\\u003c');

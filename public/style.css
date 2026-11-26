@@ -2250,3 +2250,7 @@ body.sky.night:not(.skynight):not(.in-game) .hubgrid .hero {
 @media (prefers-reduced-motion: reduce) { .siegepic .sgpie, .siegepic .sgzz { animation: none; } }
 /* the footer is UI, not sky: it always sits on a band in the switch's own colours */
 body.sky:not(.in-game) footer { background: var(--pan); color: var(--muted2); border-top: 3px solid var(--ink); } /* always a UI band in the switch's colours (Kuba, 2026-11-26) */
+/* A game's own page sent the visitor here (/?gra=<id>): its card glows for a moment (showWanted in app.js). */
+.wanted { outline: 4px solid #ffd84a; outline-offset: 4px; border-radius: 20px; }
+@media (prefers-reduced-motion: no-preference) { .wanted { animation: wanted 1s ease-in-out 3; } }
+@keyframes wanted { 50% { outline-color: #ffffff00; } }
