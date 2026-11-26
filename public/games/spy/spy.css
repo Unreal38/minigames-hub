@@ -3,6 +3,11 @@ body.in-game { overflow: hidden; }
 .sy { position: fixed; inset: 0; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(var(--art-sky), var(--art-sky2)); user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); gap: 10px; box-sizing: border-box; }
 
+.sy > .g3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.sy > :not(.g3d) { position: relative; z-index: 1; }
+.sy > .banner, .sy > .shout, .sy > .confetti, .sy > .results { position: absolute; }
+.sy > .confetti { z-index: 6; } .sy > .results { z-index: 7; } .sy > .shout { z-index: 3; } .sy > .banner { z-index: 2; }
+
 /* top bar */
 .sy-top { display: grid; grid-template-columns: minmax(0, auto) minmax(90px, 1fr) auto; align-items: center; gap: 12px; flex: none; }
 .sy-want { display: flex; align-items: center; gap: 10px; min-width: 0; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 18px; padding: 4px 14px 4px 4px; box-shadow: 0 4px 0 #160a1255; }
@@ -26,7 +31,7 @@ body.in-game { overflow: hidden; }
 .sy-main { flex: 1; min-height: 0; min-width: 0; display: flex; gap: 12px; align-items: center; justify-content: center; }
 .sy-stage { flex: none; display: grid; place-items: center; }
 .sy.clocknight { background: linear-gradient(#2b2d6e, #191b4a); } /* the real clock's night sky; panels still follow the light/dark switch */
-.sy-board { position: relative; border: 4px solid var(--ink); border-radius: 22px; overflow: hidden; box-shadow: 0 7px 0 #160a1255; background: #a6dc84; touch-action: none; box-sizing: content-box; }
+.sy-board { position: relative; border: 4px solid var(--ink); border-radius: 14px; overflow: hidden; background: #a6dc84; touch-action: none; box-sizing: content-box; }
 .sy-cv { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
 .sy.watching .sy-cv { cursor: grab; }
 .sy-zoom { position: absolute; right: 8px; bottom: 8px; display: flex; flex-direction: column; gap: 6px; }

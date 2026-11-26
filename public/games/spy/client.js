@@ -49,6 +49,7 @@ export function mount(app, ctx) {
   loadCss();
   document.body.classList.add('in-game');
   app.innerHTML = `<div class="sy">
+    <canvas class="g3d" aria-hidden="true"></canvas>
     <div class="sy-top">
       <div class="sy-want" id="sy-want"><span class="sy-pic"><img id="sy-wimg" alt=""></span><span class="sy-wt"><small>${L('Find', 'Znajdź')}</small><b id="sy-wname">…</b><span id="sy-wsub"></span></span></div>
       <div class="sy-mid"><span class="sy-no" id="sy-no"></span><span class="sy-bar"><i id="sy-bar"></i></span></div>
@@ -72,6 +73,7 @@ export function mount(app, ctx) {
   </div>`;
   const root = app.querySelector('.sy'), $ = id => root.querySelector('#' + id);
   const cv = root.querySelector('.sy-cv'), g = cv.getContext('2d'), board = $('sy-board'), stage = $('sy-stage'), main = root.querySelector('.sy-main'), seats = $('sy-seats');
+  let scene = null;
   let S = null, info = null, Rm = ctx.room(), destroyed = false, gid = null, lastEv = 0, got = 0;
   let M = null, look = [], ready = false, card = null, deco = null, side = 300, dpr = 1, need = true, raf = 0;
   let view = { s: 1, x: 0, y: 0 }, anim = null, dzUntil = 0, pending = 0, resultsTimer = 0, bigTimer = 0, lastCount = 99, seatKey = '';
@@ -106,8 +108,14 @@ export function mount(app, ctx) {
     root.classList.toggle('clocknight', isNight(new Date().getHours() + new Date().getMinutes() / 60));
     dpr = Math.min(3, devicePixelRatio || 1); // full sharpness on every device
     const px = Math.round(side * dpr); if (cv.width !== px) { cv.width = cv.height = px; }
-    clamp(); need = true;
+    clamp(); need = true; tell3d();
   }
+  // the 3D frame sits right behind the card
+  function tell3d() { if (!scene) return; const r = board.getBoundingClientRect(), c = root.querySelector('.g3d').getBoundingClientRect(); scene.setBoard({ x: r.left - c.left, y: r.top - c.top, size: r.width }); }
+  import('./scene3d.js').then(m => {
+    if (destroyed) return;
+    scene = m.createScene(root.querySelector('.g3d')); tell3d(); if (info) scene.setSeats(info);
+  }).catch(err => console.warn('3D unavailable', err));
   const scale = () => side / SIZE * view.s;
   function clamp() { view.s = Math.max(1, Math.min(4, view.s)); const k = scale(); view.x = Math.min(0, Math.max(side - SIZE * k, view.x)); view.y = Math.min(0, Math.max(side - SIZE * k, view.y)); }
   function makeDeco(theme, seed) {
@@ -260,6 +268,7 @@ export function mount(app, ctx) {
       if (e.s < 0) { sfx.plop(); big(L('Nobody found it', 'Nikt nie znalazł'), '', 1600, 'k4'); }
       else {
         if (card) popSeat(e.s);
+        scene?.cheer(e.s);
         if (e.s === S.me) { sfx.set(); sfx.combo(1); big(L('Found it!', 'Znalezione!'), secs(e.ms), 1600, 'k3'); }
         else { sfx.pop(); big(L(`${nameOf(e.s)} found it!`, `Znajduje: ${nameOf(e.s)}!`), secs(e.ms), 1600, 'k2'); }
       }
@@ -283,7 +292,7 @@ export function mount(app, ctx) {
     if (S.n >= 0 && (!card || card.n !== S.n)) newCard();
     if (S.me >= 0 && S.x[S.me][2] > 0) dzUntil = Math.max(dzUntil, performance.now() + S.x[S.me][2] - 40);
     if (S.stage !== 'find') pending = 0;
-    render(); need = true;
+    render(); need = true; scene?.setSeats(info);
     if (!fresh) for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); }
   }
 
@@ -412,7 +421,7 @@ export function mount(app, ctx) {
     destroy() {
       destroyed = true; document.body.classList.remove('in-game');
       removeEventListener('keydown', onKey); ro.disconnect(); cancelAnimationFrame(raf);
-      clearTimeout(resultsTimer); clearTimeout(bigTimer);
+      clearTimeout(resultsTimer); clearTimeout(bigTimer); scene?.dispose();
     },
   };
 }
