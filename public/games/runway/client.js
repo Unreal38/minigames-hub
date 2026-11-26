@@ -234,7 +234,7 @@ export function mount(app, ctx) {
     el.hidden = !on; if (!on) return;
     let order = S.seats.map((_, i) => i).filter(i => S.last[i]).sort((a, b) => S.last[b].pts - S.last[a].pts || S.last[b].fives - S.last[a].fives);
     if (!wide() && order.length > 4) order = order.filter((i, k) => k < 3 || i === S.me);
-    setHtml(el, `<h3>${esc(themeName(S.theme))}</h3><ol class="rw-rank">${order.map((i, k) => { const l = S.last[i]; return `<li class="${k === 0 ? 'top' : ''}${i === S.me ? ' mine' : ''}"><i class="dot" style="background:${esc(S.seats[i].color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(S.seats[i].name, S.seats[i].fl)}</b>${stars(l.avg)}<span class="avg">${l.n ? l.avg.toFixed(1) : '–'}</span><em>+${l.pts}</em><span class="tot">${S.tot[i]}</span></li>`; }).join('')}</ol>
+    setHtml(el, `<h3>${esc(themeName(S.theme))}</h3><ol class="rw-rank">${order.map((i, k) => { const l = S.last[i]; return `<li class="profrow${k === 0 ? ' top' : ''}${i === S.me ? ' mine' : ''}"><i class="dot" style="background:${esc(S.seats[i].color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(S.seats[i].name, S.seats[i].fl)}</b>${stars(l.avg)}<span class="avg">${l.n ? l.avg.toFixed(1) : '–'}</span><em>+${l.pts}</em><span class="tot">${S.tot[i]}</span></li>`; }).join('')}</ol>
       <p class="rw-hint">${S.round + 1 < S.rounds ? L('Next theme in a moment…', 'Za chwilę następny temat…') : L('That was the last round.', 'To była ostatnia runda.')}</p>`);
   }
 

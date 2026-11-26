@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { myBurst } from '../../winfx.js';
 import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
@@ -48,7 +48,7 @@ export function mount(app, ctx) {
   app.innerHTML = `<div class="ln${touch ? ' touch' : ''}">
     <canvas class="g3d" aria-label="${L('The island at dusk. Walk with the arrow keys or WASD, Space does the action.', 'Wyspa o zmierzchu. Chodź strzałkami albo WASD, Spacja wykonuje akcję.')}"></canvas>
     <canvas class="ln-dark" id="ln-dark" aria-hidden="true"></canvas>
-    <div class="tags" aria-hidden="true"></div>
+    <div class="tags pick" aria-hidden="true"></div>
     <div class="hud">
       <div class="tl">
         <button type="button" class="chip ln-role" id="ln-role" aria-label="${L('Your card: press and hold to look', 'Twoja karta: przytrzymaj, żeby zerknąć')}"></button>
@@ -163,7 +163,7 @@ export function mount(app, ctx) {
   // ---- name tags over people you can see, and "Zzz" over sleepers
   function buildTags() {
     const team = new Set(you()?.team || []);
-    tagsEl.innerHTML = info.map((p, i) => `<div class="ln-tag${i === S.me ? ' me' : ''}${team.has(i) && i !== S.me ? ' mate' : ''}" hidden>${team.has(i) && i !== S.me ? `<i class="ln-eye" title="${L('Sneak', 'Łasuch')}"></i>` : ''}<b>${nameHtml(p.name, p.fl)}</b></div>`).join('');
+    tagsEl.innerHTML = info.map((p, i) => `<div class="ln-tag${i === S.me ? ' me' : ''}${team.has(i) && i !== S.me ? ' mate' : ''}" hidden>${team.has(i) && i !== S.me ? `<i class="ln-eye" title="${L('Sneak', 'Łasuch')}"></i>` : ''}<b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
     tagEls = [...tagsEl.children]; bedEls = new Map();
   }
   function onFrame(folk, me, beds) {

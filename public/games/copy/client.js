@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
 import { seasonLookNow } from '../../season3d.js';
 import * as LY from './layout.js';
 
@@ -206,7 +206,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me + S.role.join('');
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map((p, i) => `<div class="cc-tag${S.role[i] === 1 ? ' seek' : S.role[i] === 2 ? ' gone' : ''}" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b></div>`).join('');
+    tagsEl.innerHTML = info.map((p, i) => `<div class="cc-tag${S.role[i] === 1 ? ' seek' : S.role[i] === 2 ? ' gone' : ''}" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
     tagEls = [...tagsEl.children];
   }
 

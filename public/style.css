@@ -2058,7 +2058,8 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
 /* ---------- moderation: reports, the ban screen, the hosts' Admin panel (admin.js) ---------- */
 .pdelrow { gap: 8px; align-items: center; flex-wrap: wrap; }
 .punfr { align-self: center; }
-body.tagpick .tags > * { pointer-events: auto; cursor: pointer; }
+body.tagpick .tags > *, .tags.pick > * { pointer-events: auto; cursor: pointer; }
+body.in-game .profrow { cursor: pointer; pointer-events: auto; }
 .repsheet { width: min(480px, 100%); }
 .repwhy { border: 0; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .repwhy legend { font: 700 17px var(--fd); margin-bottom: 4px; color: var(--on-paper); }

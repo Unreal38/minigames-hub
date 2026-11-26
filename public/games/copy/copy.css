@@ -36,6 +36,7 @@ body.night .cc { background: linear-gradient(#0c1236, #2d2b63); }
 
 /* players down the left */
 .cc .list { position: absolute; left: 14px; top: 70px; margin: 0; padding: 5px; list-style: none; display: flex; flex-direction: column; gap: 3px; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 #23401c55; border-radius: 18px; width: max-content; min-width: 190px; max-width: min(300px, calc(42vw / var(--vz, 1))); max-height: calc(100vh / var(--vz, 1) - 330px); overflow: auto; pointer-events: none !important; }
+.cc .list li { pointer-events: auto; cursor: pointer; } /* the list stays out of the camera drag, but a row opens that player's profile card */
 .cc .list li { display: flex; align-items: center; gap: 6px; border-radius: 11px; padding: 2px 8px 2px 3px; font-family: var(--fd); font-weight: 600; font-size: 14px; color: var(--on-paper); }
 .cc .list .ic { width: 20px; display: inline-flex; justify-content: center; color: var(--good-tx); flex: none; }
 .cc .list .r1 .ic { color: #ff8fa3; }
