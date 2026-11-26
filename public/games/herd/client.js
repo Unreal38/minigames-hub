@@ -39,7 +39,7 @@ export function mount(app, ctx) {
     <div class="glabs" aria-hidden="true"></div>
     <div class="tags" aria-hidden="true"></div>
     <div class="hud">
-      <div class="tl"><span class="chip" id="hd-info"></span></div>
+      <div class="tl"><button type="button" class="chip" id="hd-info" data-a="sb" aria-expanded="false"></button><ol class="hd-sb" id="hd-sb" aria-label="${L('Scoreboard', 'Tablica wyników')}"></ol></div>
       <div class="tr"><span class="tcode" id="hd-code"></span>
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
@@ -102,7 +102,7 @@ export function mount(app, ctx) {
       const g = info.groups.get(id);
       if (!g) { el.style.visibility = 'hidden'; continue; }
       el.style.visibility = '';
-      el.style.transform = `translate(${(g.x / z).toFixed(1)}px, ${(g.y / z).toFixed(1)}px) translate(-50%, -35%)`;
+      el.style.transform = `translate(${g.x.toFixed(1)}px, ${g.y.toFixed(1)}px) scale(${z}) translate(-50%, -35%)`; // the label layer is not zoomed: screen pixels, grown by uiz
     }
   }
   function layout() {
@@ -133,6 +133,17 @@ export function mount(app, ctx) {
     for (const el of tagEls) el._w = el.offsetWidth;
   }
   function bubble(i, html, ms = 1900) { bubbles.set(i, { html, until: performance.now() + ms }); setTimeout(() => !destroyed && S && buildTags(), ms + 30); if (S) buildTags(); }
+
+  // ----- the scoreboard under the info chip: everyone's tiles left and points (always open on big screens, the chip opens it on phones) -----
+  let sbOpen = false;
+  function renderBoard() {
+    const el = $('hd-sb'), order = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].total - S.seats[a].total || a - b);
+    el.classList.toggle('open', sbOpen); $('hd-info').setAttribute('aria-expanded', String(sbOpen));
+    setHtml(el, `<li class="hd-sbh"><span>${L('Player', 'Gracz')}</span><span>${L('Tiles', 'Płytki')}</span><span>${L('Points', 'Punkty')}</span></li>` + order.map(i => {
+      const p = S.seats[i], now = S.ph === 'play' && S.turn === i;
+      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}"><span class="who"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b></span><span class="n">${p.n}</span><span class="pt">${p.total > 0 ? '+' : ''}${p.total}</span></li>`;
+    }).join(''));
+  }
 
   // ----- labels under the groups: what the set is worth, or that it is not a set yet -----
   function renderLabels() {
@@ -248,7 +259,7 @@ export function mount(app, ctx) {
     paintSkin();
     setHtml($('hd-info'), `${S.rounds > 1 ? L(`Round ${S.round} of ${S.rounds}`, `Runda ${S.round} z ${S.rounds}`) : L('Pet Herds', 'Stadka')}<span class="hd-n"> · ${L(`${S.pool} in the pile`, `w stosie: ${S.pool}`)}</span>`);
     $('hd-code').textContent = Rm?.code || '';
-    buildTags(); renderPanel(); renderLabels(); renderBanner(); paintMarks();
+    buildTags(); renderBoard(); renderPanel(); renderLabels(); renderBanner(); paintMarks();
     layout();
   }
 
@@ -475,7 +486,7 @@ export function mount(app, ctx) {
     return { to: 'new' };
   }
   function moveGhost(x, y) {
-    const z = uiz(); ghost.style.transform = `translate(${(x / z).toFixed(1)}px, ${(y / z).toFixed(1)}px) translate(-50%, -80%)`;
+    const z = uiz(); ghost.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${z}) translate(-50%, -80%)`; // not zoomed either
     const d = dropTarget(x, y);
     paintMarks(d && typeof d.to === 'number' ? d.to : null);
     root.querySelector('.hd-panel')?.classList.toggle('drop', d?.to === 'rack' && press.ids.some(t => onTable().has(t)));
@@ -569,6 +580,7 @@ export function mount(app, ctx) {
     const a = b.dataset.a;
     if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; }
     else if (a === 'rules') { sfx.click(); ctx.rules(); }
+    else if (a === 'sb') { sfx.click(); sbOpen = !sbOpen; renderBoard(); }
     else if (a === 'leave') { sfx.click(); ctx.leave(); }
     else if (a === 'again') { sfx.click(); ctx.again(); }
     else if (a === 'playagain') { sfx.click(); ctx.vote(b.getAttribute('aria-pressed') !== 'true'); }
