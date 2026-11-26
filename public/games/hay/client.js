@@ -114,7 +114,6 @@ export function mount(app, ctx) {
       <div class="hh-dock">
         <div class="hh-harvest" ${L(`aria-label="Harvest"><span>Harvest</span>`, `aria-label="Zbiory"><span>Zbiory</span>`)}<b class="${S.over === 'pet' ? 'lost' : ''}">${harvest ? '×' + harvest.toLocaleString() : '–'}</b></div>
         ${touch ? `<button type="button" class="btn hh-flip" data-a="flip">${L(`Flip it`, `Odwróć`)}</button>` : ''}
-        <button type="button" class="btn hh-bank" data-a="bank" ${!S.over && S.harvest ? '' : 'disabled'} title="${L(`Keep this harvest for the rankings and start a new field at this level. Only cleared fields pay coins.`, `Zachowaj te zbiory do rankingów i zacznij nowe pole na tym poziomie. Monety są tylko za oczyszczone pola.`)}">${L(`Take the harvest`, `Zabierz zbiory`)}</button>
         <button type="button" class="btn ghost hh-mark${markMode ? ' on' : ''}" data-a="mark" aria-pressed="${markMode}" title="${L(`Mark bales with your guesses (M)`, `Oznaczaj bele swoimi typami (M)`)}">${L(`${pawSvg}Mark</button>`, `${pawSvg}Oznacz</button>`)}
       </div>
       ${markMode ? `<div class="hh-marks" role="group" aria-label="${L(`Mark to put on a bale`, `Znak do postawienia na beli`)}">${MARKS.map(([k, bit, ic, label]) => `<button type="button" class="${markKind === bit ? 'on' : ''}" data-a="kind" data-bit="${bit}" aria-pressed="${markKind === bit}" aria-label="${L(`Mark ${label}`, `Znak: ${label}`)}">${ic}</button>`).join('')}<span>${L(`Tap bales to mark them`, `Dotykaj bel, żeby je oznaczyć`)}</span></div>`
@@ -237,7 +236,6 @@ export function mount(app, ctx) {
     else if (k === 'p' || k === '0') { if (cursor >= 0) mark(cursor, 1); return; }
     else if (k === '1' || k === '2' || k === '3') { if (cursor >= 0) mark(cursor, 1 << +k); return; }
     else if (k === 'm') { markMode = !markMode; render(); return; }
-    else if (k === 'b') { if (S.harvest) bank(); return; }
     else return;
     e.preventDefault(); cursor = c; scene?.setHover(c);
   };
@@ -245,14 +243,12 @@ export function mount(app, ctx) {
   const onResize = () => layout();
   addEventListener('resize', onResize);
 
-  function bank() { if (!S || S.over || !S.harvest) return; sfx.click(); send({ t: 'bank' }); }
   function next() { if (!S?.over) return; sfx.click(); hideResults(); send({ t: 'next' }); }
 
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
     if (a === 'flip') flip(touchPick);
-    else if (a === 'bank') bank();
     else if (a === 'mark') { sfx.click(); markMode = !markMode; touchPick = -1; scene?.setPicked(-1); render(); }
     else if (a === 'kind') { sfx.click(); markKind = +b.dataset.bit; render(); }
     else if (a === 'next') next();

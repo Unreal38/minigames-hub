@@ -60,7 +60,7 @@ a.send({ t: 'register', user: 'ana', pass: 'hunter22' }); await until(() => a.au
 let s = (await a.do({ t: 'open' })).s;
 if (!s || s.level !== 1 || s.cells.some(v => v !== -1) || s.harvest !== 0) fail('fresh field wrong ' + JSON.stringify(s));
 if (s.rows.length !== N || s.cols.length !== N) fail('signs missing');
-if ((await a.do({ t: 'bank' })).err !== 'Flip a bale first.') fail('banked an empty harvest');
+if ((await a.do({ t: 'bank' })).err !== 'Unknown move.') fail('taking the harvest home was removed, the server must refuse it');
 if ((await a.do({ t: 'next' })).err == null) fail('skipped an unfinished field');
 if ((await a.do({ t: 'flip', i: 99 })).err == null || (await a.do({ t: 'flip', i: '3' })).err == null) fail('nonsense flip accepted');
 
@@ -85,22 +85,13 @@ for (let round = 0; round < 3; round++) {
   if (s.over || s.level !== round + 2 || s.lv !== round + 2) fail('next field wrong');
 }
 
-// Wake a pet: harvest gone, one level down.
+// Wake a pet: harvest gone, back to level 1 (Kuba's rule).
 {
   const h = await secret(), cells = h.f.cells, one = cells.indexOf(2) >= 0 ? cells.indexOf(2) : cells.indexOf(3), pet = cells.indexOf(PET);
   await a.do({ t: 'flip', i: one });
   const r = (await a.do({ t: 'flip', i: pet })).s;
-  if (r.over !== 'pet' || r.wake !== pet || r.res.lost < 2 || r.level !== 3 || r.res.coins) fail('waking a pet went wrong ' + JSON.stringify(r.res));
+  if (r.over !== 'pet' || r.wake !== pet || r.res.lost < 2 || r.level !== 1 || r.res.to !== 1 || r.res.coins) fail('waking a pet went wrong ' + JSON.stringify(r.res));
   if ((await a.do({ t: 'flip', i: cells.indexOf(1) })).s.over !== 'pet') fail('flipped after the field was over');
-  s = (await a.do({ t: 'next' })).s;
-}
-// Take the harvest home: points but no coins, same level.
-{
-  const h = await secret(), cells = h.f.cells, i3 = cells.indexOf(3) >= 0 ? cells.indexOf(3) : cells.indexOf(2), before = a.me.coins;
-  await a.do({ t: 'flip', i: i3 });
-  const r = (await a.do({ t: 'bank' })).s;
-  if (r.over !== 'bank' || r.res.pts !== cells[i3] || r.level !== 3 || r.res.coins) fail('bank wrong');
-  await wait(400); if (a.me.coins !== before) fail('bank paid coins');
   s = (await a.do({ t: 'next' })).s;
 }
 // The ranking shows the best field.

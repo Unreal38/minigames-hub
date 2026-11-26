@@ -817,11 +817,10 @@ export const SOLO_PL = {
       <li>Tabliczka na końcu każdego rzędu i każdej kolumny pokazuje, ile jest tam w sumie <b>marchewek</b> i ile drzemie tam <b>zwierzaków</b>.</li>
       <li>Odwróć belę, żeby zajrzeć pod spód. Twoje <b>zbiory</b> mnożą się przez znalezione marchewki, więc ×2 i ×3 dają ×6.</li>
       <li>Znajdź <b>wszystkie ×2 i ×3</b>, żeby oczyścić pole. Wchodzisz poziom wyżej (jest ich 7), a na polach przybywa zwierzaków i większych pęczków.</li>
-      <li>Obudź drzemiącego zwierzaka, a zbiory się rozsypią i spadasz <b>poziom niżej</b>.</li>
-      <li>Nie masz pewności? <b>Zabierz zbiory</b> do domu. Liczą się do rankingu, a ty zostajesz na swoim poziomie.</li>
+      <li>Obudź drzemiącego zwierzaka, a zbiory się rozsypią i wracasz na <b>poziom 1</b>.</li>
       <li>Użyj <b>Znacznika</b> (albo prawego przycisku myszy), żeby zaznaczyć, gdzie twoim zdaniem drzemią zwierzaki albo co może kryć bela.</li>
       <li>Oczyszczenie pola daje <b>poziom + 2 monety</b>, do 40 monet dziennie. Potem możesz grać dalej o najlepsze pole.</li>
-      <li>Klawisze: strzałki przesuwają, <b>Enter</b> odwraca, <b>P</b> albo <b>1</b>/<b>2</b>/<b>3</b> zaznacza, <b>B</b> zabiera zbiory.</li>
+      <li>Klawisze: strzałki przesuwają, <b>Enter</b> odwraca, <b>P</b> albo <b>1</b>/<b>2</b>/<b>3</b> zaznacza.</li>
     </ol>`,
   },
   pop: {

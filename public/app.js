@@ -1106,11 +1106,10 @@ const SOLO = {
       <li>The sign at the end of every row and column shows how many <b>carrots</b> it holds in total, and how many <b>pets</b> nap in it.</li>
       <li>Flip a bale to look underneath. Your <b>harvest</b> is multiplied by the carrots you find, so a ×2 and a ×3 make ×6.</li>
       <li>Find <b>every ×2 and ×3</b> to clear the field. You go up a level (there are 7), and the fields get more pets and bigger bundles.</li>
-      <li>Wake a napping pet and the harvest scatters, and you go <b>down a level</b>.</li>
-      <li>Not sure? <b>Take the harvest</b> home instead. It counts for the rankings and you stay on your level.</li>
+      <li>Wake a napping pet and the harvest scatters, and you go <b>back to level 1</b>.</li>
       <li>Use <b>Mark</b> (or right-click) to note where you think pets nap, or what a bale might hold.</li>
       <li>Clearing a field pays <b>level + 2 coins</b>, up to 40 coins a day. After that you can keep playing for your best field.</li>
-      <li>Keys: arrows to move, <b>Enter</b> to flip, <b>P</b> or <b>1</b>/<b>2</b>/<b>3</b> to mark, <b>B</b> to take the harvest.</li>
+      <li>Keys: arrows to move, <b>Enter</b> to flip, <b>P</b> or <b>1</b>/<b>2</b>/<b>3</b> to mark.</li>
     </ol>`,
   },
   pop: {
