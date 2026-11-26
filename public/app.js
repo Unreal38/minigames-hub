@@ -23,11 +23,11 @@ import { randomName } from './names.js';
 import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
-import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek, peekWeather } from './seasonpeek.js';
+import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek, peekWeather, skyHour } from './seasonpeek.js';
 import { initNotice, onNotice } from './notice.js';
 import { initAdmin, openAdmin, openModerate, openReport, onMod, onModMe, muteNote, openCount as modOpenCount } from './admin.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
-import { weatherAt, weatherNext, wxIcon, isNight as wxNight } from './weather.js';
+import { weatherAt, weatherNext, wxIcon, isNight as wxNight, skyPhase, WX_LOOK } from './weather.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, OUTFITS, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
@@ -1678,7 +1678,31 @@ function paintSkyWx() {
   const k = peekWeather() || weatherAt().kind, b = document.body, want = k === 'sunny' ? '' : 'wx-' + k;
   if (want && !document.querySelector('.wxfall')) { const f = document.createElement('div'); f.className = 'wxfall'; f.setAttribute('aria-hidden', 'true'); b.prepend(f); }
   for (const c of WX_CLS) b.classList.toggle(c, c === want);
-  b.classList.toggle('skynight', skyNight()); // the page's sky follows the real clock; the switch (body.night) is only the UI
+  const ph = skyPhase(skyHour());
+  b.classList.toggle('skynight', ph.n >= .5); // the page's sky follows the real clock; the switch (body.night) is only the UI
+  paintTwilight(b, k, ph);
+}
+// Dusk and dawn on the page's sky (Kuba, 2026-11-26): between day and night the sky colours are blended here, from the
+// day look (greyer for the weather) through a warm glow into the night look, and written on the body as --sky1..3 (the
+// page), --tw1/--tw2 (the hero banner's plain sky) and --stars. Outside dusk and dawn the CSS classes alone decide.
+// Repainted with the 30 s tick, a small step each time, so nothing animates and nothing costs frames.
+const HUB_SKY = { // [top, middle, bottom of the page], [banner top, banner bottom]
+  day: { sunny: [['#6fbdf2', '#bfe6ff', '#e3f5ff'], ['#8fd0f7', '#d9f1ff']], cloudy: [['#8fb0cf', '#c6d8e8', '#e2ebf3'], ['#a9c3da', '#e0ebf3']],
+    rain: [['#7d95ae', '#b3c3d4', '#d7e0ea'], ['#90a6bc', '#cdd9e4']], wind: [['#6ab6ec', '#bde2fb', '#e3f5ff'], ['#8fd0f7', '#d9f1ff']] },
+  night: { sunny: [['#110e2b', '#221b48', '#352760'], ['#1c1a4a', '#3a3478']], cloudy: [['#16152c', '#26234a', '#36315a'], ['#1d1c3c', '#34315f']],
+    rain: [['#141428', '#232244', '#322f55'], ['#1d1c3c', '#34315f']] },
+  dusk: [['#5f7fd8', '#ffb48a', '#ffd29a'], ['#7d8fe0', '#ffbc94']], dawn: [['#7fb2ee', '#ffcbc0', '#ffe2c8'], ['#8fb8ee', '#ffd6c8']],
+};
+const hexMix = (a, b, t) => '#' + [0, 2, 4].map(i => { const x = parseInt(a.slice(1 + i, 3 + i), 16), y = parseInt(b.slice(1 + i, 3 + i), 16); return Math.round(x + (y - x) * t).toString(16).padStart(2, '0'); }).join('');
+const TW_VARS = ['--sky1', '--sky2', '--sky3', '--tw1', '--tw2', '--stars'];
+function paintTwilight(b, kind, { n, g, dawn }) {
+  const on = g > .01 || (n > .01 && n < .99); b.classList.toggle('skytwi', on);
+  if (!on) { if (b.style.getPropertyValue('--sky1')) for (const v of TW_VARS) b.style.removeProperty(v); return; }
+  const day = HUB_SKY.day[kind] || HUB_SKY.day.sunny, night = HUB_SKY.night[kind] || HUB_SKY.night.sunny, glow = HUB_SKY[dawn ? 'dawn' : 'dusk'];
+  const gw = g * (1 - (1 - (WX_LOOK[kind] || WX_LOOK.sunny).sky) * 2.2); // cloud cover mutes the glow (the page sky is greyed more than 3D skies)
+  const at = (j, i) => hexMix(hexMix(day[j][i], glow[j][i], Math.max(0, gw)), night[j][i], n);
+  const vals = [at(0, 0), at(0, 1), at(0, 2), at(1, 0), at(1, 1), Math.min(1, Math.max(0, (n - .5) / .4)).toFixed(2)];
+  TW_VARS.forEach((v, i) => { if (b.style.getPropertyValue(v) !== String(vals[i])) b.style.setProperty(v, vals[i]); });
 }
 function paintToday() {
   paintIsleKit(); const el = document.getElementById('today-list'); if (el) morph(el, todayHtml()); // patched, so the 30 s tick never blinks a tile
@@ -2028,8 +2052,9 @@ function paintMe() {
 let heroMod = null; // the hub's 3D hero module, loaded on first visit to the hub
 const isNight = () => document.body.classList.contains('night');
 // The 3D skies (hub isle, profile isles, games) follow the real clock, not the switch (Kuba, 2026-11-25).
-function skyNight() { const d = new Date(); return wxNight(d.getHours() + d.getMinutes() / 60); } // (hoisted: paintSkyWx runs earlier)
-{ let was = skyNight(); setInterval(() => { const on = skyNight(); if (on !== was) { was = on; heroMod?.then(m => m.setHeroNight?.(on)).catch(() => {}); } }, 30_000); }
+// Since 2026-11-26 they pass through a dusk and a dawn (weather.js skyPhase); night is past the middle of the dusk.
+function skyNight() { return skyPhase(skyHour()).n >= .5; } // (hoisted: paintSkyWx runs earlier)
+setInterval(() => heroMod?.then(m => m.setHeroSky?.(skyPhase(skyHour()))).catch(() => {}), 30_000); // the hub and profile isles' light
 function setNight(on, save) {
   document.body.classList.toggle('night', on);
   if (save) LS.set('ct_theme', on ? 'night' : 'day');
@@ -2116,7 +2141,7 @@ function mountSkyHero() {
   art.classList.add('sky3d');
   paintIsleKit();
   const frame = art.closest('.hero'); // the hero is a banner painted in your isle's sky
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }, { frame, zoom: 1.15 }); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroSky(skyPhase(skyHour())); if (box.isConnected) m.mountHero(box, st.color, st.av, myShow(), { ...flairOf(st.me), ip: myDecor() }, { frame, zoom: 1.15 }); }).catch(() => {});
   if (st.me?.user && !st.pets && !petsAsked) { petsAsked = true; send({ t: 'pets' }); }
 }
 // The Pet Farm pets you show off on your isle (the first also sits beside you in waiting rooms).
@@ -2901,7 +2926,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
   // The isle sections show the isle itself in place of the avatar, wearing what is on plus anything being tried.
   const showIsle = () => {
     const on = !first && (sec === 'isle' || sec === 'pets'); pvi.hidden = !on; pv.hidden = on; el.querySelector('form').classList.toggle('isleview', on);
-    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor(), fp: me().cos?.fp }); }).catch(() => {});
+    if (on) (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroSky(skyPhase(skyHour())); if (open && !pvi.hidden) m.mountIsle(pvi, color, wearable(av, owned()), myShow(), { ...flNow(), ip: myDecor(), fp: me().cos?.fp }); }).catch(() => {});
   };
 
   // Saving: only what is owned is ever saved, so a tried-on item never reaches other players.
@@ -3230,7 +3255,7 @@ function openPlayer(p) {
   for (const im of el.querySelectorAll('img[data-kit]:not([src])')) { const [k, i] = im.dataset.kit.split(':'); skinPic(k, +i, p.color, p.av).then(u => { if (u && im.isConnected) im.src = u; }); }
   const box = el.querySelector('.pisle .art');
   box.innerHTML = avatarHtml(p.color, p.av, 150, frameCls(p.fl)); // stays if the 3D isle cannot load
-  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroNight(skyNight()); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets, p.fl, box.closest('.pisle')); }).catch(() => {});
+  (heroMod ||= import('./hero3d.js')).then(m => { m.setHeroSky(skyPhase(skyHour())); if (box.isConnected) m.mountIsle(box, p.color, p.av, p.pets, p.fl, box.closest('.pisle')); }).catch(() => {});
   sheet.onClose = () => { if (playerSheet === sheet) playerSheet = null; heroMod?.then(m => { if (!playerSheet) m.releaseIsle(); }); };
   el.addEventListener('click', e => {
     const fr = e.target.closest('[data-fr]');
@@ -3539,5 +3564,5 @@ go('hub');
 initNotice({ send, modal, toast, sfx, me: () => st.me, inGame: () => !!st.game });
 initAdmin({ send, modal, toast, sfx, srvText, me: () => st.me, avatarHtml, gameName: id => GAMES[id]?.name || SOLO[id]?.name || id, whoMount,
   onCount: () => { for (const b of document.querySelectorAll('.admcount')) { const n = modOpenCount(); b.hidden = !n; b.textContent = n || ''; } },
-  onPeek: k => { if (k === 'weather') { paintSkyWx(); import('./weather3d.js').then(m => m.wxRecheck()).catch(() => {}); } else toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); } });
+  onPeek: k => { if (k === 'sky') { paintSkyWx(); heroMod?.then(m => m.setHeroSky?.(skyPhase(skyHour()))).catch(() => {}); import('./scenery3d.js').then(m => m.setScenesNight()).catch(() => {}); } else if (k === 'weather') { paintSkyWx(); import('./weather3d.js').then(m => m.wxRecheck()).catch(() => {}); } else toast(`${L('Island season', 'Pora roku wysp')}: ${esc(peekLabel())}. ${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}`); } });
 connect();

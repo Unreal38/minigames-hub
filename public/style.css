@@ -1998,6 +1998,11 @@ html.gfx-low body.sky.wx-rain .wxfall { display: none; }
 body.wx-cloudy:not(.skynight) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#a9c3da, #e0ebf3); }
 body.wx-rain:not(.skynight) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#90a6bc, #cdd9e4); }
 body.skynight.wx-rain .hubgrid .hero:not([class*=isk]), body.skynight.wx-cloudy .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(#1d1c3c, #34315f); }
+/* dusk and dawn (Kuba, 2026-11-26): between day and night app.js paintTwilight blends the sky colours and writes them on the
+   body (--sky1..3 for the page, --tw1/--tw2 for the hero banner's plain sky, --stars for how far the stars are out) */
+body.sky.skytwi:not(.in-game) .hubgrid .hero:not([class*=isk]) { --sky: linear-gradient(var(--tw1), var(--tw2)); }
+body.sky.skytwi.skynight:not(.in-game)::after { filter: opacity(var(--stars, 1)); }
+body.sky.skytwi:not(.skynight):not(.in-game)::before { opacity: .8; }
 
 /* ---------- hub re-plan, Układ 1 (2026-11-25): slim hero with your isle as the way to Pet Farm, Today as a compact grid ---------- */
 /* the hero: a one-line heading; the short line under it only on wide screens (2200px+), where the hero is taller */
@@ -2229,7 +2234,7 @@ body.sky .gcard.gwcard { box-shadow: 0 7px 0 var(--deep); } body.sky .gcard.gwca
 @media (max-width: 600px) { .top .srvclock { height: 48px; padding: 0 9px; border-radius: 14px; font-size: 15px; } .top .srvclock > span { display: none; } }
 /* when the clock's sky and the chosen UI disagree (night UI on a day sky, or the other way), boxes that were see-through
    over the sky get a solid panel so their text stays readable */
-body.sky.night:not(.skynight):not(.in-game) .empty, body.sky.skynight:not(.night):not(.in-game) .empty { background: color-mix(in srgb, var(--pan) 92%, transparent); border-color: var(--edge); color: var(--tx2); }
+body.sky.night:not(.skynight):not(.in-game) .empty, body.sky.skynight:not(.night):not(.in-game) .empty, body.sky.skytwi:not(.in-game) .empty { background: color-mix(in srgb, var(--pan) 92%, transparent); border-color: var(--edge); color: var(--tx2); }
 @media (max-width: 480px) { .top .srvclock { display: none; } } /* phones: no room beside coins and the account card */
 
 /* The hero banner (sky and panel) follows the real clock like the page sky (Kuba, 2026-11-25): when the switch's UI and the

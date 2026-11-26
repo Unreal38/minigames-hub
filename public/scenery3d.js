@@ -20,7 +20,8 @@ import { bake, hullGeo, hullMat } from './avatar3d.js';
 import { fxOf, winSheet } from './winfx.js';
 import { drawShape } from './fxart.js';
 import { seasonLookNow, lookOf, trim } from './season3d.js';
-import { WX_LOOK, isNight as clockNight } from './weather.js';
+import { WX_LOOK, skyPhase, GLOW } from './weather.js';
+import { skyHour } from './seasonpeek.js';
 import { wxShown, onWeather, weatherLayer } from './weather3d.js';
 export { seasonLookNow } from './season3d.js';
 
@@ -84,7 +85,10 @@ export function shell(mesh, grow = 1.1, color = '#4a2c22') {
 // flipped mid-game: setScenesNight(on) repaints every live scene both ways.
 // Since 2026-11-25 (Kuba) the skies follow the real clock, like Pet Farm: night from 21:00 to 4:36 on the player's own
 // clock. The day/night switch (body.night) only changes the panels and buttons, never a 3D sky.
-export const isNight = () => { const d = new Date(); return clockNight(d.getHours() + d.getMinutes() / 60); };
+// Since 2026-11-26 the change is gradual: a dusk from about 18:50 and a dawn until about 7:10 (weather.js skyPhase) tint the
+// sky, the fog, the light and the clouds warm, then deepen into night; stars and the moon fade in. Lamps light up halfway.
+export const skyNow = () => skyPhase(skyHour());
+export const isNight = () => skyNow().n >= .5; // past the middle of the dusk, before the middle of the dawn
 export const NIGHT_TOP = '#0c1236', NIGHT_LOW = '#2d2b63';
 const liveScenes = new Set(); // WeakRefs, so a finished game's scene can still be collected
 // It also dresses the scene for the world weather (weather3d.js, the same spell as Pet Farm): a greyer sky and clouds,
@@ -92,76 +96,87 @@ const liveScenes = new Set(); // WeakRefs, so a finished game's scene can still 
 // (the width of the box of air kept round the view); wx: false for a scene that must stay dry.
 export function nightScene(scene, { top = NIGHT_TOP, low = NIGHT_LOW, stars = 320, moon = true, wx = {} } = {}) {
   if (!scene.userData.dayNight) {
-    const S = scene.userData.dayNight = { top: new THREE.Color(top), low: new THREE.Color(low), stars, moon, lights: [], domes: [], clouds: [], on: false, key: '', wxOpts: wx,
+    const S = scene.userData.dayNight = { top: new THREE.Color(top), low: new THREE.Color(low), stars, moon, lights: [], domes: [], clouds: [], on: false, ph: null, key: '', wxOpts: wx,
       bg: scene.background?.isColor ? scene.background.clone() : null, fog: scene.fog ? scene.fog.color.clone() : null };
     scene.traverse(o => {
       if (o.isHemisphereLight || o.isDirectionalLight || o.isAmbientLight) S.lights.push({ o, c: o.color.clone(), g: o.groundColor?.clone(), i: o.intensity });
       else if (o.isMesh && o.userData.sky) S.domes.push({ o, day: o.geometry.attributes.color.array.slice() });
-      else if (o.isInstancedMesh && o.userData.cloud) { const night = o.material.clone(); night.color.set('#6d72b4'); S.clouds.push({ o, day: o.material, night }); }
+      else if (o.isInstancedMesh && o.userData.cloud) S.clouds.push({ o, day: o.material, mix: o.material.clone() });
     });
     if (typeof WeakRef !== 'undefined') liveScenes.add(new WeakRef(scene));
   }
-  applyNight(scene, isNight());
+  applyNight(scene, skyNow());
   return isNight();
 }
+// on: true/false forces full night or full day; leave it out to follow the clock (dusk and dawn included).
 export function setScenesNight(on) {
-  for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, on); else liveScenes.delete(r); }
+  const ph = on === undefined ? skyNow() : { n: on ? 1 : 0, g: 0, dawn: false };
+  for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, ph); else liveScenes.delete(r); }
 }
 // The weather turned over (or a host previews another kind): repaint every live scene for it.
-const wxScenes = kind => { for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, s.userData.dayNight.on, kind); else liveScenes.delete(r); } };
+const wxScenes = kind => { for (const r of liveScenes) { const s = r.deref(); if (s) applyNight(s, s.userData.dayNight.ph || skyNow(), kind); else liveScenes.delete(r); } };
 if (typeof window === 'object') onWeather(wxScenes);
-// Dusk or dawn came on the clock: repaint every live scene (checked every 30 s).
-if (typeof window === 'object') { let was = isNight(); setInterval(() => { const on = isNight(); if (on !== was) { was = on; setScenesNight(on); } }, 30_000); }
+// The clock moves on: repaint every live scene a small step at a time (a repaint only happens once the step shows).
+if (typeof window === 'object') setInterval(() => setScenesNight(), 15_000);
 const GREY_DAY = new THREE.Color('#8f9bb3'), GREY_NIGHT = new THREE.Color('#2a2d52'); // Pet Farm's rainy grey, and a moonlit one
-function applyNight(scene, on, kind = wxShown()) {
+const C_HEMI_N = new THREE.Color('#8f9cff'), C_GROUND_N = new THREE.Color('#3b2f5e'), C_MOON = new THREE.Color('#c9d2ff'), C_CLOUD_N = new THREE.Color('#6d72b4'), C_CLOUD_WX = new THREE.Color('#9aa4b8');
+const GLOWC = Object.fromEntries(Object.entries(GLOW).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).map(([q, c]) => [q, new THREE.Color(c)]))]));
+const _c = new THREE.Color(), _g = new THREE.Color(), _top = new THREE.Color(), _low = new THREE.Color();
+function applyNight(scene, ph, kind = wxShown()) {
   const S = scene.userData.dayNight; if (!S) return;
-  scene.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // island lamps
+  if (typeof ph === 'boolean') ph = { n: ph ? 1 : 0, g: 0, dawn: false };
+  const n = Math.round(ph.n * 100) / 100, gl = Math.round(ph.g * 100) / 100, on = n >= .5, G = GLOWC[ph.dawn ? 'dawn' : 'dusk'];
   if (S.wxOpts === false) kind = 'sunny';
-  const key = on + kind; if (S.key === key) return; S.key = key; S.on = on;
-  const W = WX_LOOK[kind] || WX_LOOK.sunny, grey = on ? GREY_NIGHT : GREY_DAY, dull = 1 - W.sky; // dull: how far the sky goes grey
-  const moonC = new THREE.Color('#c9d2ff'), c = new THREE.Color();
-  if (S.bg && scene.background?.isColor) scene.background.copy(on ? S.low : S.bg).lerp(grey, dull);
-  if (S.fog && scene.fog) scene.fog.color.copy(on ? S.low : S.fog).lerp(grey, dull);
+  const key = n + ',' + gl + ph.dawn + kind; if (S.key === key) return; S.key = key; S.on = on; S.ph = { n, g: gl, dawn: ph.dawn };
+  scene.traverse(o => { if (o.userData.nightOnly && o !== S.sky) o.visible = on; }); // island lamps
+  const W = WX_LOOK[kind] || WX_LOOK.sunny, grey = _g.copy(GREY_DAY).lerp(GREY_NIGHT, n), dull = 1 - W.sky; // dull: how far the sky goes grey
+  const glowW = gl * (1 - dull * .7); // cloud cover mutes the glow
+  // a day colour through the glow into night
+  const shade = (out, day, glow, night) => out.copy(day).lerp(glow, glowW).lerp(night, n);
+  if (S.bg && scene.background?.isColor) shade(scene.background, S.bg, G.low, S.low).lerp(grey, dull);
+  if (S.fog && scene.fog) shade(scene.fog.color, S.fog, G.low, S.low).lerp(grey, dull);
   for (const { o, c: dc, g, i } of S.lights) {
     o.color.copy(dc); if (g) o.groundColor.copy(g); o.intensity = i;
-    if (on) {
-      if (o.isHemisphereLight) { o.color.lerp(new THREE.Color('#8f9cff'), .75); o.groundColor.set('#3b2f5e'); o.intensity *= .55; }
-      else if (o.isDirectionalLight) { o.color.lerp(moonC, .8); o.intensity *= .55; }
-      else { o.color.lerp(moonC, .6); o.intensity *= .6; }
-    }
+    if (o.isHemisphereLight) { o.color.lerp(G.hemi, glowW * .8).lerp(C_HEMI_N, .75 * n); o.groundColor.lerp(C_GROUND_N, n); o.intensity *= 1 - .1 * glowW - .45 * n; }
+    else if (o.isDirectionalLight) { o.color.lerp(G.sun, glowW * .85).lerp(C_MOON, .8 * n); o.intensity *= 1 - .12 * glowW - .45 * n; }
+    else { o.color.lerp(G.hemi, glowW * .6).lerp(C_MOON, .6 * n); o.intensity *= 1 - .4 * n; }
     if (o.isDirectionalLight) o.intensity *= W.sun; else o.intensity *= W.hemi; // a softer sun under cloud, the sky light nearly as bright
   }
   for (const { o, day } of S.domes) { // repaint the dome's gradient
     const g = o.geometry, p = g.attributes.position, col = g.attributes.color;
-    if (!on) col.array.set(day);
-    else { const r = g.boundingSphere?.radius || (g.computeBoundingSphere(), g.boundingSphere.radius);
-      for (let i = 0; i < p.count; i++) { c.copy(S.low).lerp(S.top, Math.min(1, Math.max(0, p.getY(i) / r * 1.5 + .1))); col.setXYZ(i, c.r, c.g, c.b); } }
-    if (dull) for (let i = 0; i < p.count; i++) { c.fromArray(col.array, i * 3).lerp(grey, dull); col.setXYZ(i, c.r, c.g, c.b); }
+    col.array.set(day);
+    if (glowW || n) { const r = g.boundingSphere?.radius || (g.computeBoundingSphere(), g.boundingSphere.radius);
+      for (let i = 0; i < p.count; i++) { const y = Math.min(1, Math.max(0, p.getY(i) / r * 1.5 + .1));
+        _top.copy(G.low).lerp(G.top, Math.min(1, y * 1.3)); _low.copy(S.low).lerp(S.top, y);
+        _c.fromArray(col.array, i * 3).lerp(_top, glowW).lerp(_low, n); col.setXYZ(i, _c.r, _c.g, _c.b); } }
+    if (dull) for (let i = 0; i < p.count; i++) { _c.fromArray(col.array, i * 3).lerp(grey, dull); col.setXYZ(i, _c.r, _c.g, _c.b); }
     col.needsUpdate = true;
   }
   for (const k of S.clouds) {
-    const base = on ? k.night : k.day;
-    if (!W.clouds) { k.o.material = base; continue; }
-    k.wx ||= k.day.clone(); k.wx.color.copy(base.color).lerp(on ? GREY_NIGHT : new THREE.Color('#9aa4b8'), W.clouds); k.o.material = k.wx; // rain clouds
+    if (!glowW && !n && !W.clouds) { k.o.material = k.day; continue; }
+    shade(k.mix.color, k.day.color, G.cloud, C_CLOUD_N); if (W.clouds) k.mix.color.lerp(on ? GREY_NIGHT : C_CLOUD_WX, W.clouds); k.o.material = k.mix; // rain clouds
   }
   const U = scene.userData; // the layer lives on the scene, so a game that registers its scene again (kart tracks) keeps one
   if (W.fall || W.wind || W.bow || U.wxLayer) { try { (U.wxLayer ||= weatherLayer(scene, S.wxOpts || {})).set(kind, on); } catch {} }
-  if (on && !S.sky) { // stars and moon are made the first time night falls, then just shown and hidden
-    S.sky = new THREE.Group(); S.sky.userData.nightOnly = true; scene.add(S.sky);
+  if (n > .05 && !S.sky) { // stars and moon are made the first time dusk deepens, then faded in and out
+    S.sky = new THREE.Group(); S.sky.userData.nightOnly = true; scene.add(S.sky); S.fades = [];
     if (S.stars) { // a fixed dome of stars, far out past the fog
       const pos = new Float32Array(S.stars * 3);
       for (let i = 0; i < S.stars; i++) { const a = hash(i, 71) * 6.283, e = .04 + hash(i, 72) * 1.45, r = 260; pos.set([Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r, Math.sin(a) * Math.cos(e) * r], i * 3); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff6d8', size: 2.2, sizeAttenuation: false, fog: false, transparent: true, opacity: .9, depthWrite: false }));
-      pts.renderOrder = -9; S.sky.add(pts);
+      pts.renderOrder = -9; S.sky.add(pts); S.fades.push([pts.material, .9]);
     }
     if (S.moon) {
       const grp = new THREE.Group(); grp.position.set(-120, 120, -170); grp.lookAt(0, 0, 0);
-      for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.renderOrder = -8; grp.add(m); }
+      for (const [r, o] of [[9, 1], [13, .25], [19, .1]]) { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: o, depthWrite: false, fog: false })); m.renderOrder = -8; grp.add(m); S.fades.push([m.material, o]); }
       S.sky.add(grp);
     }
   }
-  if (S.sky) S.sky.visible = on && dull < .3; // rain clouds hide the stars and the moon
+  if (S.sky) { // rain clouds hide the stars and the moon; they come out as the dusk deepens
+    const a = Math.min(1, Math.max(0, (n - .2) / .6)); S.sky.visible = a > 0 && dull < .3;
+    for (const [m, o] of S.fades) m.opacity = o * a;
+  }
 }
 
 // ---------- sky and clouds ----------
