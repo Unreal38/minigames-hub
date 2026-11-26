@@ -102,20 +102,26 @@ Date.now = realNow;
 const PORT = 24080 + (Math.random() * 900 | 0);
 const srv = launch('node', ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT, HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}` }, stdio: 'inherit' });
 const bail = msg => { srv.kill(); fail(msg); };
-await new Promise(r => setTimeout(r, 600));
-const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const until = async (ok, ms = 5000) => { for (const end = Date.now() + ms; !ok() && Date.now() < end;) await wait(10); return ok(); };
+let ws = null; // the server may take a moment to start: try again until it answers
+for (let k = 0; k < 100 && !ws; k++) {
+  await wait(100);
+  const w = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
+  if (await new Promise(r => { w.onopen = () => r(true); w.onerror = () => r(false); })) ws = w;
+}
+if (!ws) bail('could not reach the server');
 let room = null, state = null, me = null;
 const send = msg => ws.send(JSON.stringify(msg));
-ws.onopen = () => send({ t: 'hello', name: 'Ana', color: '#ff8fab' });
 ws.onmessage = e => { const msg = JSON.parse(e.data); if (msg.t === 'room') room = msg.room; if (msg.t === 'state') state = msg.s; if (msg.t === 'me' && msg.gain) me = msg; };
-const wait = ms => new Promise(r => setTimeout(r, ms));
-await wait(300);
+send({ t: 'hello', name: 'Ana', color: '#ff8fab' });
+await wait(200);
 send({ t: 'create', game: 'spy', opts: { seats: 3, cards: 12, bots: 'chill', laps: 3 } });
-await wait(300);
+await until(() => room?.game === 'spy');
 if (room?.game !== 'spy' || room.opts.cards !== 12 || 'laps' in room.opts) bail('room options wrong ' + JSON.stringify(room?.opts));
-send({ t: 'opts', opts: { seats: 2, cards: 8 } }); await wait(200);
+send({ t: 'opts', opts: { seats: 2, cards: 8 } }); await until(() => room.opts.seats === 2);
 if (room.opts.seats !== 2 || room.opts.cards !== 8) bail('option change lost');
-send({ t: 'start' }); await wait(300);
+send({ t: 'start' }); await until(() => state?.game === 'spy');
 if (state?.game !== 'spy' || state.seats.length !== 2 || state.stage !== 'load') bail('game did not start');
 send({ t: 'act', a: { t: 'rdy' } });
 const M = R.makePool(state.seed, state.cards); let tapped = -1;
@@ -124,7 +130,7 @@ for (let i = 0; i < 900 && state.ph === 'play'; i++) { // tap every card the mom
   await wait(50);
 }
 if (state.ph !== 'end' || state.res.c[state.me] < 6 || state.win !== state.me) bail('a match over the server: ' + JSON.stringify(state.res));
-await wait(300);
+await until(() => me?.gain);
 if (!me?.gain || !(me.gain.coins >= 1)) bail('coins not paid by place: ' + JSON.stringify(me?.gain));
 if (!room.board?.length) bail('table scoreboard empty');
 console.log('OK server game: cards', state.res.c.join('/'), '· gained', JSON.stringify(me.gain));
