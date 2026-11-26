@@ -4,7 +4,7 @@
 // Cost: the island is one draw call, particles one more (createFx), each pet a few baked meshes; no shadow maps.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, createFx, STAR, DOT } from '../../scenery3d.js';
+import { island, skyDome, clouds, nightScene, createFx, toonify, toonMat, disposeToon, flat, PROPS, STAR, DOT } from '../../scenery3d.js';
 import { lookOf } from '../../season3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
@@ -15,23 +15,24 @@ export const PZ = .55;            // the pets' plane (in front of the island's m
 const DEPTH = 2.6, ZC = -.4;      // the island's thickness and centre
 const K = .6;                     // avatars' size (a scale on a wrapper: standing-avatar rule)
 const LIFT = { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 };
-const PET_K = [.62, .58, .52];    // pet model size by growth form
-const mat = c => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
+const PET_K = [.72, .67, .6];    // pet model size by growth form
+const mat = c => flat(c);
 
 // one flying snack, as a little model
 function snackModel(k) {
   const g = new THREE.Group(), add = (geo, c, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, typeof c === 'string' ? mat(c) : c); m.position.set(x, y, z); g.add(m); return m; };
   if (k === 'pie') { add(new THREE.CylinderGeometry(.3, .24, .14, 10), '#e8b06a'); add(new THREE.CylinderGeometry(.24, .24, .05, 10), '#e0524f', 0, .08); g.rotation.x = 1.2; }
-  else if (k === 'jelly') { add(new THREE.CylinderGeometry(.18, .26, .32, 8), new THREE.MeshLambertMaterial({ color: '#7ed37a', transparent: true, opacity: .88 })); add(new THREE.IcosahedronGeometry(.07, 0), '#e0524f', 0, .2); }
+  else if (k === 'jelly') { add(new THREE.CylinderGeometry(.18, .26, .32, 8), mat('#7ed37a')); add(new THREE.IcosahedronGeometry(.07, 0), '#e0524f', 0, .2); }
   else if (k === 'berry') for (let i = 0; i < 4; i++) add(new THREE.IcosahedronGeometry(.13, 1), '#6c5ce7', Math.cos(i * 1.6) * .12, Math.sin(i * 1.6) * .12);
   else if (k === 'mini') add(new THREE.IcosahedronGeometry(.13, 1), '#6c5ce7');
   else if (k === 'cake') { add(new THREE.CylinderGeometry(.42, .42, .3, 12), '#ffd38a'); add(new THREE.CylinderGeometry(.43, .43, .08, 12), '#fff3df', 0, .17); add(new THREE.ConeGeometry(.05, .2, 5), '#ffc93c', 0, .32); g.rotation.z = .3; }
   else if (k === 'seed') { add(new THREE.IcosahedronGeometry(.15, 0), '#a87a4c').scale.set(1, 1.3, 1); add(new THREE.ConeGeometry(.08, .22, 5), '#5fb04a', 0, .22); }
   else if (k === 'chili') { add(new THREE.ConeGeometry(.12, .5, 7), '#ff5a3c').rotation.z = Math.PI / 2; add(new THREE.CylinderGeometry(.04, .04, .12, 5), '#3f8c4a', .3, 0).rotation.z = Math.PI / 2; }
   else if (k === 'soda') { add(new THREE.CylinderGeometry(.14, .14, .42, 10), '#3f86d6'); add(new THREE.CylinderGeometry(.145, .145, .1, 10), '#ffffff'); add(new THREE.CylinderGeometry(.02, .02, .2, 4), '#ff8fab', .04, .28).rotation.z = .3; }
-  else if (k === 'fizz') { add(new THREE.OctahedronGeometry(.18, 0), new THREE.MeshLambertMaterial({ color: '#ffe27a', emissive: '#ffcf3c', emissiveIntensity: .5 })); }
+  else if (k === 'fizz') { add(new THREE.OctahedronGeometry(.18, 0), flat('#ffe27a', { emissive: '#ffcf3c', emissiveIntensity: .4 })); }
   else if (k === 'rock') { add(new THREE.CylinderGeometry(.24, .24, .08, 12), '#ff9ec4').rotation.x = Math.PI / 2; add(new THREE.CylinderGeometry(.16, .16, .1, 12), '#ffffff').rotation.x = Math.PI / 2; add(new THREE.CylinderGeometry(.03, .03, .42, 5), '#f4e8d8', 0, -.3); }
-  return g;
+  g.scale.setScalar(1.8); toonify(g, .05);
+  const w = new THREE.Group(); w.add(g); return w;
 }
 
 export function createScene(canvas, opts = {}) {
@@ -46,51 +47,104 @@ export function createScene(canvas, opts = {}) {
   const cl = clouds({ near: 22, far: 14, below: -6, min: 30, max: 120 }); cl.position.set(W / 2, 6, -30); scene.add(cl);
   // two little islands far behind, wearing the season
   for (const [x, y, z, s, sd] of [[-14, 3, -48, 1.3, 3], [W + 12, 6, -60, 1.6, 9]]) { const isl = island(12, 9, { props: 9, seed: sd, flowers: 20, season }); isl.position.set(x, y, z); isl.scale.setScalar(s); scene.add(isl); }
-  // the sea
+  // the sea (no front slab: the island's underwater blocks take a sea tint instead)
   const seaDay = season === 'winter' ? '#7cc4ea' : '#4fb3e8'; let seaNight = -1;
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry(600, 260), new THREE.MeshLambertMaterial({ color: seaDay, transparent: true, opacity: .86 }));
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(600, 260), new THREE.MeshLambertMaterial({ color: seaDay, transparent: true, opacity: .9 }));
   sea.rotation.x = -Math.PI / 2; sea.position.set(W / 2, R.WATER0, -60); scene.add(sea);
-  const seaFront = new THREE.Mesh(new THREE.PlaneGeometry(600, 40), new THREE.MeshLambertMaterial({ color: '#3a96d0', transparent: true, opacity: .5, depthWrite: false }));
-  seaFront.position.set(W / 2, R.WATER0 - 20, 2.4); scene.add(seaFront);
-  const fx = createFx(scene, { max: 700 });
+  const foam = new THREE.Mesh(new THREE.PlaneGeometry(W + 3, .5), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .55, depthWrite: false }));
+  foam.rotation.x = -Math.PI / 2; foam.position.set(W / 2, R.WATER0 + .02, ZC + DEPTH / 2 + .25); foam.renderOrder = 1; scene.add(foam);
+  const fx = createFx(scene, { max: 900 });
 
-  // ---- the island: one instance per cell, empty cells squashed to nothing
-  const N = COLS * ROWS, blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(BS, BS, DEPTH), new THREE.MeshLambertMaterial({ color: '#ffffff' }), N);
-  const ZERO = new THREE.Matrix4().makeScale(0, 0, 0), m4 = new THREE.Matrix4(), col = new THREE.Color();
-  for (let i = 0; i < N; i++) { blocks.setMatrixAt(i, ZERO); blocks.setColorAt(i, col.set('#ffffff')); }
-  blocks.frustumCulled = false; scene.add(blocks);
+  // ---- the island: a sky-island cap (the season's grass or snow, with props) over a cake inside. Solid cells are
+  // packed into one instanced mesh with no outline (lines between packed blocks read as tiles); the cap slabs are a second mesh.
+  const N = COLS * ROWS;
+  const toon = c => toonMat(flat(c));
+  const blocks = new THREE.InstancedMesh(new THREE.BoxGeometry(BS, BS, DEPTH), toon('#ffffff'), N);
+  const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(BS + .04, .16, DEPTH + .16), toon('#ffffff'), COLS * 4);
+  for (const m of [blocks, caps]) { m.count = 0; m.frustumCulled = false; scene.add(m); }
+  const m4 = new THREE.Matrix4(), col = new THREE.Color(), seaC = new THREE.Color();
   let grid = new Uint8Array(N), applied = 0;
-  const GRASS = look.grass || '#8bca60', PATCH = look.patch || '#7fbf56', EARTH = look.earth || '#c98a5a', ROCK = look.rock || '#857a72';
-  const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
-  function paint(i) {
-    const k = grid[i];
-    if (!k) { blocks.setMatrixAt(i, ZERO); return; }
-    const c = i % COLS, r = (i / COLS) | 0, h = hash(i, 1);
-    if (k === 2) col.set(h < .5 ? '#5fb04a' : '#4f9a44'); // a sprout bush
-    else if (k === 3) col.set((c + r) % 2 ? '#ff9ec4' : '#fff4f8'); // rock candy
-    else { let d = 0; while (d < 9 && R.cellAt(grid, c, r + d + 1) === 1) d++;
-      if (r < 3) col.set(ROCK); else if (d === 0) col.set(h < .5 ? GRASS : PATCH); else if (d === 1) col.set(season === 'winter' ? '#e3ecf5' : '#a3c96a');
-      else if (d < 4) col.set(EARTH); else if (d === 6 || d === 7) col.set('#8a5636'); else col.set('#b77a4f'); }
-    col.offsetHSL(0, 0, (h - .5) * .05);
-    blocks.setMatrixAt(i, m4.makeTranslation((i % COLS) * BS + BS / 2, ((i / COLS) | 0) * BS + BS / 2, ZC)); blocks.setColorAt(i, col);
+  const winter = season === 'winter';
+  const GRASS = look.grass || '#8bca60', PATCH = look.patch || '#7fbf56', SOIL = look.earth || '#c98a5a', ROCK = look.rock || '#857a72';
+  // the cake inside, in flat bands right across the island (a hole shows the same layers wherever it is)
+  const CAKE = ['#f6c97f', '#f6c97f', '#fff3df', '#f0bc6c', '#f0bc6c', '#e0524f', '#f6c97f', '#f6c97f', '#fff3df', '#8a5236', '#8a5236', '#f2c27a'];
+  const hash = (i, s2) => { const x = Math.sin(i * 127.1 + s2 * 311.7) * 43758.5453; return x - Math.floor(x); };
+  const isTop = (c, r) => R.cellAt(grid, c, r + 1) === 0;
+  function colorOf(c, r, k) {
+    if (k === 2) return col.set(hash(c * 7 + r, 2) < .5 ? '#5fb04a' : '#4f9a44'); // a sprout bush
+    if (k === 3) return col.set((c + r) % 2 ? '#ff9ec4' : '#fff4f8'); // rock candy
+    let d = 0; while (d < 3 && R.cellAt(grid, c, r + d + 1) === 1) d++;
+    if (d < 2) col.set(SOIL).offsetHSL(0, 0, d ? -.04 : 0); // the earth band under the grass cap
+    else col.set(CAKE[(r + 40) % CAKE.length]); // flat layers of cake right across
+    if (R.cellAt(grid, c, r - 1) === 0 && r > 0 && d > 1) col.set('#6f5a52'); // the underside of an overhang: crust
+    return col;
+  }
+  function rebuild() {
+    let n = 0, nc = 0;
+    seaC.set(seaNight === 1 ? '#2b3f86' : seaDay);
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const k = grid[c + r * COLS]; if (!k) continue;
+      const x = c * BS + BS / 2, y = r * BS + BS / 2;
+      m4.makeTranslation(x, y, ZC); blocks.setMatrixAt(n, m4);
+      colorOf(c, r, k); if (y < water - .1) col.lerp(seaC, .45); blocks.setColorAt(n, col); n++;
+      if (k === 1 && isTop(c, r) && nc < caps.instanceMatrix.count) {
+        m4.makeTranslation(x, (r + 1) * BS + .02, ZC); caps.setMatrixAt(nc, m4);
+        caps.setColorAt(nc, col.set(winter ? (hash(c, 5) < .5 ? '#f6faff' : '#e9f2fb') : (hash(c >> 1, 3) < .5 ? GRASS : PATCH)).offsetHSL(0, 0, .03)); nc++;
+      }
+    }
+    blocks.count = n; caps.count = nc;
+    for (const m of [blocks, caps]) m.instanceMatrix.needsUpdate = true;
+    blocks.instanceColor.needsUpdate = true; if (caps.instanceColor) caps.instanceColor.needsUpdate = true;
+    for (const pr of props) if (pr.g.visible && !R.solidAt(grid, pr.x, pr.y - .25)) { pr.g.visible = false; fx.burst(new THREE.Vector3(pr.x, pr.y + .4, pr.z), { n: 12, colors: ['#5fb04a', '#ffffff', '#ff9fb8'], shape: STAR, speed: 3, up: 4, size: .22, grav: 9, life: .9 }); }
+    for (const b of splats.list) if (b.on && !R.solidAt(grid, b.x, b.y - .08)) b.on = false;
+    splats.sync();
+  }
+  // season props along the top, behind the pets' path; a hole under one knocks it away
+  const props = [];
+  function buildProps(hs) {
+    for (const pr of props) { scene.remove(pr.g); disposeToon(pr.g); } props.length = 0;
+    const kinds = look.kinds || ['tree', 'bush', 'pine', 'rock', 'flowers'];
+    for (let c = 3; c < COLS - 3; c += 3 + Math.floor(hash(c, hs[c] || 1) * 4)) {
+      let r = ROWS - 1; while (r > 0 && !R.cellAt(grid, c, r)) r--; if (r < 2) continue;
+      const kind = kinds[Math.floor(hash(c, 9) * kinds.length)], g = new THREE.Group();
+      (typeof kind === 'function' ? kind : PROPS[kind] || PROPS.bush)(g, .85 + hash(c, 10) * .45);
+      const x = c * BS + BS / 2, y = (r + 1) * BS + .1, z = ZC - DEPTH / 2 + .45 + hash(c, 11) * .5;
+      g.position.set(x, y, z); g.rotation.y = hash(c, 12) * 6.28; toonify(g, .035); scene.add(g); props.push({ g, x, y, z });
+    }
+  }
+  // frosting splats that stay on the ground where snacks land
+  const splats = (() => {
+    const M = 90, mesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.3, 1), toon('#ffffff'), M), list = []; let next = 0;
+    mesh.count = 0; mesh.frustumCulled = false; mesh.renderOrder = 1; scene.add(mesh);
+    const q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3();
+    return { list,
+      add(x, y, z, c, s) { const b = list[next] || (list[next] = {}); Object.assign(b, { x, y, z, c, s, on: true }); next = (next + 1) % M; },
+      sync() { let n = 0; for (const b of list) { if (!b.on) continue; pos.set(b.x, b.y, b.z); sc.set(b.s, b.s * .22, b.s * .8); mesh.setMatrixAt(n, m4.compose(pos, q, sc)); mesh.setColorAt(n, col.set(b.c)); n++; }
+        mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; },
+      clear() { for (const b of list) b.on = false; this.sync(); } };
+  })();
+  function splatAt(x, y, r, colors) {
+    for (let k = 0; k < Math.round(3 + r * 4); k++) {
+      const px = x + (Math.random() * 2 - 1) * r * 1.1, c = Math.floor(px / BS); if (c < 0 || c >= COLS) continue;
+      let rr = Math.min(ROWS - 1, Math.floor((y + r) / BS)); while (rr >= 0 && !R.cellAt(grid, c, rr)) rr--;
+      if (rr < 0 || (rr + 1) * BS < y - r * 1.4) continue;
+      splats.add(px, (rr + 1) * BS + (isTop(c, rr) && grid[c + rr * COLS] === 1 ? .17 : .02), ZC + DEPTH / 2 - .2 - Math.random() * 1.6, colors[k % 2], .7 + Math.random() * .5);
+    }
+    splats.sync();
   }
   function setWorld(hs, ops) {
     grid = R.gridOf(hs); applied = 0;
     for (const op of ops) R.applyOp(grid, op);
-    applied = ops.length;
-    for (let i = 0; i < N; i++) paint(i);
-    blocks.instanceMatrix.needsUpdate = true; blocks.instanceColor.needsUpdate = true;
+    applied = ops.length; splats.clear(); buildProps(hs); rebuild();
   }
   // new changes since the last ones we drew (a splash, a bush, a bridge)
   function addOps(ops) {
     if (ops.length < applied) return false; // a different match: the page calls setWorld
     for (let k = applied; k < ops.length; k++) {
-      const touched = R.applyOp(grid, ops[k]);
-      for (const i of touched) { paint(i); if (i >= COLS) paint(i - COLS); } // the block under a new one is no longer a top
-      if (ops[k][0] === 'c') fx.burst(new THREE.Vector3(ops[k][1], ops[k][2], PZ), { n: 16, colors: [EARTH, GRASS, '#b77a4f'], shape: DOT, speed: 5, up: 4, size: .22, grav: 12, life: .9 });
+      R.applyOp(grid, ops[k]);
+      if (ops[k][0] === 'c') fx.burst(new THREE.Vector3(ops[k][1], ops[k][2], PZ), { n: 18, colors: ['#f6c97f', '#fff3df', '#e0524f', GRASS], shape: DOT, speed: 5, up: 4, size: .24, grav: 12, life: .9 });
     }
-    applied = ops.length;
-    blocks.instanceMatrix.needsUpdate = true; blocks.instanceColor.needsUpdate = true;
+    applied = ops.length; rebuild();
     return true;
   }
 
@@ -149,7 +203,7 @@ export function createScene(canvas, opts = {}) {
       if (!f) { f = { g: snackModel(k), k }; scene.add(f.g); flying.set(id, f); }
       Object.assign(f, { x: x / 100, y: y / 100, vx: vx / 100, vy: vy / 100, t0: recvAt });
     }
-    for (const [id, f] of flying) if (!seen.has(id)) { scene.remove(f.g); flying.delete(id); }
+    for (const [id, f] of flying) if (!seen.has(id)) { scene.remove(f.g); disposeToon(f.g); flying.delete(id); }
   }
 
   // ---- the aiming arc: no wind, only the first part of the flight
@@ -177,6 +231,7 @@ export function createScene(canvas, opts = {}) {
     if (e.zap) for (const i of e.zap) { const p = pets[i]; if (!p) continue;
       const pts = []; for (let k = 0; k <= 6; k++) { const u = k / 6; pts.push(new THREE.Vector3(e.x + (p.x - e.x) * u + (k % 6 ? (Math.random() - .5) * .5 : 0), e.y + (p.y + .5 - e.y) * u + (k % 6 ? (Math.random() - .5) * .5 : 0), PZ + .1)); }
       const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#ffe27a', transparent: true })); scene.add(ln); zaps.push({ ln, t: .5 }); }
+    if (f.dmg > 0) splatAt(e.x, e.y, Math.max(.6, f.r * .8), [f.col[0], f.col[1]]);
     for (const [i, got] of e.hits || []) if (got > 0 && pets[i]) pets[i].hit = .45;
     shake = Math.min(.6, shake + (f.r || .5) * .14);
     focus = { x: e.x, y: e.y, until: performance.now() + 900 };
@@ -189,8 +244,8 @@ export function createScene(canvas, opts = {}) {
 
   // ---- camera: follows the pet whose turn it is, then the snack, then the splash; drag pans, pinch and wheel zoom
   const cam = { x: W / 2, y: 8, d: 30, tx: W / 2, ty: 8, td: 30, free: false, fit: 30 };
-  let focus = null, water = R.WATER0, waterT = R.WATER0;
-  function fitD() { const a = (cw || 1) / (ch || 1), wid = a < .8 ? 14 : a < 1.3 ? 21 : 28; return wid / (2 * Math.tan(THREE.MathUtils.degToRad(18)) * a); }
+  let focus = null, water = R.WATER0, waterT = R.WATER0, waterRow = -1;
+  function fitD() { const a = (cw || 1) / (ch || 1), wid = a < .8 ? 11 : a < 1.3 ? 20 : 28; return wid / (2 * Math.tan(THREE.MathUtils.degToRad(18)) * a); }
   const pan = (dx, dy) => { const k = cam.d * .0011 * (900 / Math.max(300, ch)); cam.tx -= dx * k; cam.ty += dy * k; cam.free = true; };
   const zoom = f => { cam.td = Math.max(cam.fit * .45, Math.min(cam.fit * 2.2, cam.td * f)); };
   const follow = () => { cam.free = false; };
@@ -207,8 +262,9 @@ export function createScene(canvas, opts = {}) {
     if (!W0 || !H0) return;
     T += dt;
     const nt = scene.userData.dayNight?.on ? 1 : 0; // the sea darkens with the clock sky
-    if (nt !== seaNight) { seaNight = nt; sea.material.color.set(nt ? '#2b3f86' : seaDay); seaFront.material.color.set(nt ? '#1c2a63' : '#3a96d0'); }
-    water += (waterT - water) * Math.min(1, dt * 1.5); sea.position.y = water + Math.sin(T * 1.3) * .03; seaFront.position.y = water - 20;
+    if (nt !== seaNight) { seaNight = nt; sea.material.color.set(nt ? '#2b3f86' : seaDay); foam.material.opacity = nt ? .3 : .55; rebuild(); }
+    water += (waterT - water) * Math.min(1, dt * 1.5); sea.position.y = water + Math.sin(T * 1.3) * .03; foam.position.y = water + .03 + Math.sin(T * 2.1) * .03; foam.material.opacity = (seaNight ? .3 : .45) + Math.sin(T * 2.1) * .1;
+    const wr = Math.floor(water / BS * 2); if (wr !== waterRow) { waterRow = wr; rebuild(); } // the tide tints a new row of blocks
     // pets
     for (const p of pets) {
       if (!p.placed) { p.wrap.visible = false; continue; }
@@ -233,7 +289,8 @@ export function createScene(canvas, opts = {}) {
     // snacks in flight: from the last report, on along their path
     for (const f of flying.values()) {
       const t = Math.min(.25, (performance.now() - f.t0) / 1000), wnd = (S?.wind || 0) * R.WIND_A * ((R.SNACKS[f.k] || R.SNACKS.pie).wind);
-      f.g.position.set(f.x + f.vx * t + .5 * wnd * t * t, f.y + f.vy * t - .5 * R.G * t * t, PZ); f.g.rotation.z += dt * 9 * (f.vx >= 0 ? -1 : 1);
+      f.g.position.set(f.x + f.vx * t + .5 * wnd * t * t, f.y + f.vy * t - .5 * R.G * t * t, PZ); f.g.rotation.z += dt * 7 * (f.vx >= 0 ? -1 : 1);
+      if ((f.tr = (f.tr || 0) - dt) <= 0) { f.tr = .035; fx.burst(f.g.position, { n: 1, colors: (R.SNACKS[f.k] || R.SNACKS.pie).col, shape: DOT, speed: .3, up: .2, size: .2, grav: 1, life: .45 }); }
     }
     for (let i = zaps.length - 1; i >= 0; i--) { const z = zaps[i]; z.t -= dt; z.ln.material.opacity = Math.max(0, z.t * 2) * (Math.sin(T * 60) > 0 ? 1 : .4); if (z.t <= 0) { scene.remove(z.ln); z.ln.geometry.dispose(); z.ln.material.dispose(); zaps.splice(i, 1); } }
     for (const m of folk) { m.cheer = Math.max(0, m.cheer - dt); m.sad = Math.max(0, m.sad - dt);
