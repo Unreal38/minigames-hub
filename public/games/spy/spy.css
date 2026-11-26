@@ -12,7 +12,7 @@ body.in-game { overflow: hidden; }
 /* top bar: the pet to find in the middle, right above the card */
 .sy-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr); align-items: center; gap: 12px; flex: none; }
 .sy-tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.sy-want { display: flex; align-items: center; gap: 12px; width: min(440px, 46vw); box-sizing: border-box; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 20px; padding: 5px 16px 5px 5px; box-shadow: 0 4px 0 #160a1255; }
+.sy-want { display: flex; align-items: center; gap: 12px; width: min(440px, calc(46vw / var(--vz, 1))); box-sizing: border-box; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 20px; padding: 5px 16px 5px 5px; box-shadow: 0 4px 0 #160a1255; }
 .sy-pic { width: 84px; height: 84px; flex: none; border-radius: 15px; background: #fff3cf; border: 2.5px solid #e9b949; display: grid; place-items: center; overflow: hidden; }
 .sy-pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .sy-pic img:not([src]) { visibility: hidden; }
@@ -143,3 +143,6 @@ body:has(.sy) #toasts { top: 118px; }
 body.night .sy-podium .won { color: var(--ink); }
 body.night .sy-pic { background: #fff3cf; }
 @media (prefers-reduced-motion: reduce) { .sy.shake .sy-board, .sy-dizzy b, .sy-seats li.dz .avatar, .sy-fly { animation: none !important; } }
+/* bigger on computers like every game (uiz.js): Spyglass has no .hud box, so its top bar, players' lists, banner and
+   shout take the zoom themselves; the picture card is sized from their on-screen rects, so it simply fits round them */
+body.in-game .sy :is(.sy-top, .sy-seats, .banner, .shout) { zoom: var(--uiz, 1); --vz: var(--uiz, 1); }

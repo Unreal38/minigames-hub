@@ -8,7 +8,7 @@ body.night .cc { background: linear-gradient(#0c1236, #2d2b63); }
 
 /* name tags */
 .cc .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.cc .cc-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; transform-origin: 50% 100%; opacity: .92; }
+.cc .cc-tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px 1px 5px; font-family: var(--fd); font-weight: 600; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; will-change: transform; transform-origin: 50% 100%; opacity: .92; }
 .cc .cc-tag i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); }
 .cc .cc-tag b { font-weight: 600; max-width: 10em; overflow: hidden; text-overflow: ellipsis; }
 .cc .cc-tag.seek { background: #ffd6de; color: #3b2219; border-color: #b8433c; }

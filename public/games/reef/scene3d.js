@@ -111,7 +111,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const bodyMat = toonMat(M('#f3dfb6')), draftMat = toonMat(M('#bff0d8')), pendMat = toonMat(M('#ffe48a'));
   const faceMats = new Map();
   let lang = 'pl';
-  const faceMat = (l, w, sk = 0) => { const k = lang + l + (w ? '*' : '') + '/' + sk; if (!faceMats.has(k)) faceMats.set(k, new THREE.MeshStandardMaterial({ map: texOf(128, (g, S) => paintTile(g, S, l, w, lang, sk)), roughness: .7 })); return faceMats.get(k); };
+  const faceMat = (l, w, sk = 0) => { const k = lang + l + (w ? '*' : '') + '/' + sk; if (!faceMats.has(k)) faceMats.set(k, new THREE.MeshBasicMaterial({ map: texOf(128, (g, S) => paintTile(g, S, l, w, lang, sk)) })); return faceMats.get(k); }; // faces unlit, like card faces: letters read the same day or night
   // a laid tile's block wears its player's tile set (classic = the sand colour); pending and draft blocks keep their state colours
   const skinBodies = new Map(), skinBody = sk => !sk ? bodyMat : skinBodies.get(sk) || skinBodies.set(sk, toonMat(M(reefLook(sk).body))).get(sk);
   const skinAt = (st, s) => Math.max(0, st.seats?.[s]?.fl?.rt | 0);
