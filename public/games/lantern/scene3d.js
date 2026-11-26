@@ -41,8 +41,8 @@ function bell(g) {
 }
 function dock(g, x0) { // planks from the island's edge out over the water, posts down into it
   const plank = flat(WOOD), dark = flat(WOOD_D);
-  for (let i = 0; i < 11; i++) put(g, new THREE.BoxGeometry(5.2 - (i % 2) * .08, .14, .62), i % 3 ? plank : dark, x0, .02, 21.2 + i * .66);
-  for (const sx of [-2.5, 2.5]) for (const z of [22, 24.5, 27]) put(g, new THREE.CylinderGeometry(.16, .18, 2.6, 6), dark, x0 + sx, -.9, z);
+  for (let i = 0; i < 11; i++) put(g, new THREE.BoxGeometry(5.2 - (i % 2) * .08, .14, .62), i % 3 ? plank : dark, x0, .02, R_WALK - 1.3 + i * .66);
+  for (const sx of [-2.5, 2.5]) for (const z of [-.5, 2, 4.5].map(d => R_WALK + d)) put(g, new THREE.CylinderGeometry(.16, .18, 2.6, 6), dark, x0 + sx, -.9, z);
 }
 function bollard(g) { put(g, new THREE.CylinderGeometry(.22, .26, .7, 8), flat(WOOD_D), 0, .35); put(g, new THREE.CylinderGeometry(.3, .3, .08, 8), flat(WOOD), 0, .74); put(g, new THREE.TorusGeometry(.24, .06, 5, 10), flat('#e8d2a8'), 0, .45).rotation.x = Math.PI / 2; }
 function ferryBoat() {
@@ -104,17 +104,17 @@ export function createScene(canvas, opts = {}) {
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1, 3, 700);
   // dusk: a warm low sun, a violet sky (the site's night mode turns it into a starry night as everywhere else)
   scene.add(new THREE.HemisphereLight('#ffe2c4', '#6b5a8c', 1.55));
-  const key = new THREE.DirectionalLight('#ffd2a1', 1.35); key.position.set(-18, 16, 10); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 90 }); key.shadow.normalBias = .05; scene.add(key);
+  const key = new THREE.DirectionalLight('#ffd2a1', 1.35); key.position.set(-25, 22.4, 14); key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -R_WALK - 8, right: R_WALK + 8, top: R_WALK + 8, bottom: -R_WALK - 8, near: 1, far: 120 }); key.shadow.normalBias = .05; scene.add(key);
   skyDome(scene, '#5a4c9a', '#ffb48a'); scene.add(clouds({ near: 50, far: 14, below: -12, min: 30, max: 120, color: '#ffd9c4' }));
 
   // ---- the island
   const C = 2 * (R_WALK - 2.2), today = seasonLookNow();
-  const isle = island(C, C, { round: true, props: 40, seed: 11, rim: 3.4, flowers: 100, clear: R_WALK, size: 1.7, depth: 1.1, open: .15, season: today });
+  const isle = island(C, C, { round: true, props: 56, seed: 11, rim: 3.4, flowers: 140, clear: R_WALK, size: 1.7, depth: 1.1, open: .15, season: today });
   scene.add(isle);
   const stat = new THREE.Group(), live = [];
   { const pav = new THREE.Group(), a = flat('#e2cfae'), b = flat('#cdb38c');
-    put(pav, new THREE.CylinderGeometry(6.6, 6.6, .05, 40), flat('#cdb38c'), 0, .005); put(pav, new THREE.CylinderGeometry(6.3, 6.3, .05, 40), flat('#e2cfae'), 0, .016);
+    put(pav, new THREE.CylinderGeometry(8.4, 8.4, .05, 48), flat('#cdb38c'), 0, .005); put(pav, new THREE.CylinderGeometry(8.1, 8.1, .05, 48), flat('#e2cfae'), 0, .016);
     const laid = []; for (const st of STATIONS) stones(pav, ...spotOf(st), a, b, laid);
     dock(pav, STATIONS.find(st => st.id === 'dock').x); bake(pav); stat.add(pav); }
   for (const st of STATIONS) {
@@ -132,7 +132,7 @@ export function createScene(canvas, opts = {}) {
   { const g = new THREE.Group(); bell(g); bake(g); g.position.set(BELL[0], .03, BELL[1]); stat.add(g); }
   scene.add(mergeStatic(stat, .05));
   // the ferry, moored off the end of the dock
-  const boat = ferryBoat(), BOAT = [7.5, 30.2]; boat.position.set(BOAT[0], -.35, BOAT[1]); boat.rotation.y = Math.PI / 2; scene.add(boat);
+  const boat = ferryBoat(), BOAT = [STATIONS.find(st => st.id === 'dock').x, R_WALK + 7.7]; boat.position.set(BOAT[0], -.35, BOAT[1]); boat.rotation.y = Math.PI / 2; scene.add(boat);
   const ropeM = new THREE.LineBasicMaterial({ color: '#e8d2a8' }), ropeG = new THREE.BufferGeometry().setFromPoints(ROPES.flatMap(([x, z]) => [new THREE.Vector3(x, .5, z), new THREE.Vector3(BOAT[0] + (x - BOAT[0]) * .3, .55, BOAT[1] - 1.6)]));
   const ropeL = new THREE.LineSegments(ropeG, ropeM); scene.add(ropeL);
   // the water round the island catches the sunset
