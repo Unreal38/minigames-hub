@@ -2229,5 +2229,5 @@ body.sky.night:not(.skynight):not(.in-game) .hubgrid .hero {
 .siegepic .sgzz { animation: sgzzart 2.4s ease-in-out infinite; transform-box: fill-box; }
 @keyframes sgzzart { 50% { transform: translate(3px, -4px); opacity: .7; } }
 @media (prefers-reduced-motion: reduce) { .siegepic .sgpie, .siegepic .sgzz { animation: none; } }
-/* the footer is UI too: when the clock's sky and the chosen UI disagree it gets a band in the UI's own colours (PR after #470) */
-body.sky.night:not(.skynight):not(.in-game) footer, body.sky.skynight:not(.night):not(.in-game) footer { background: var(--pan); color: var(--muted2); border-top-color: var(--edge); }
+/* the footer is UI, not sky: it always sits on a band in the switch's own colours */
+body.sky:not(.in-game) footer { background: var(--pan); color: var(--muted2); border-top: 3px solid var(--ink); } /* always a UI band in the switch's colours (Kuba, 2026-11-26) */
