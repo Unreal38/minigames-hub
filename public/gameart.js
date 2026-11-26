@@ -918,3 +918,20 @@ export function siegeArt() {
     <g class="sgzz" font-family="Rubik, sans-serif" font-weight="700" fill="#6b7cff" stroke="#fff" stroke-width="3" paint-order="stroke"><text x="282" y="64" font-size="16">Z</text><text x="294" y="50" font-size="12">z</text><text x="302" y="40" font-size="9">z</text></g>
   </svg>`;
 }
+
+export function blastArt() {
+  const o = 'stroke="#3b2219" stroke-width="3" stroke-linejoin="round"';
+  const wall = (x, y) => `<rect x="${x}" y="${y}" width="24" height="20" rx="4" fill="#3f9a52" ${o}/><rect x="${x + 4}" y="${y + 3}" width="16" height="5" rx="2.5" fill="#6cc27a"/>`;
+  const crate = (x, y) => `<rect x="${x}" y="${y}" width="24" height="20" rx="3" fill="#d79a52" ${o}/><path d="M${x + 3} ${y + 3}l18 14M${x + 21} ${y + 3}l-18 14" stroke="#9a5f2c" stroke-width="2.5"/>`;
+  const petal = (a) => `<ellipse cx="0" cy="-22" rx="9" ry="16" fill="#ff8fb8" ${o} transform="rotate(${a})"/>`;
+  return `<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A little maze island with hedges and crates, a pink pop seed about to burst and a flower-shaped petal blast">
+    <rect class="artsky" width="320" height="150" fill="#bfe8ff"/><g class="artstars" fill="#fff6d8"><circle cx="30" cy="18" r="1.5"/><circle cx="160" cy="10" r="1.3"/><circle cx="296" cy="30" r="1.5"/></g>
+    <path d="M14 30l14-8 16 4 8 10-10 8H22z" class="artcloud" fill="#fff"/><path d="M258 18l12-6 14 4 6 8-8 6h-18z" class="artcloud" fill="#fff"/>
+    <path d="M30 116l130 30 130-30-20 22H50z" fill="#8a6a4a" ${o}/>
+    <path d="M30 116L60 56h200l30 60z" fill="#9ccf6a" ${o}/>
+    ${wall(74, 62)}${wall(146, 62)}${wall(218, 62)}${wall(60, 90)}${wall(232, 90)}
+    ${crate(110, 62)}${crate(182, 62)}${crate(96, 90)}${crate(196, 90)}
+    <g transform="translate(160 92)"><g class="bbburst">${[0, 90, 180, 270].map(petal).join('')}<circle r="10" fill="#ffd34d" ${o}/></g></g>
+    <g transform="translate(96 104)"><g class="bbseed"><ellipse cx="0" cy="12" rx="12" ry="4" fill="#3b221933"/><path d="M0 10c-8 0-11-5-11-10 0-7 5-12 11-12s11 5 11 12c0 5-3 10-11 10z" fill="#f2679a" ${o}/><path d="M0-12c1-6 5-9 9-9-1 5-4 8-9 9z" fill="#3f9a52" stroke="#3b2219" stroke-width="2.5" stroke-linejoin="round"/><circle class="arttick" cx="0" cy="-14" r="3" fill="#ffd34d"/></g></g>
+  </svg>`;
+}
