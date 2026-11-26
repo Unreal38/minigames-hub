@@ -248,3 +248,35 @@ export function seedModel(THREE, k) {
   }
   return g;
 }
+
+// ---------- Pet Herds number tiles (kind ht) ----------
+// face (the top the number and pet sit on), body (the block under it, and the back that rivals see), edge (the rim of
+// the HUD tile), ink: null keeps each pet's own number colour (best for reading), or one colour for every number on a
+// dark face; motif: a faint pattern over the face, kept light so the number and the pet stay clear.
+const herdTile = (face, body, edge, motif = '', ink = null) => ({ face, body, edge, motif, ink });
+const HERD_TILES = [
+  herdTile('#fffaf0', '#f6ead8', '#d8c3a6'),
+  herdTile('#f7e6c6', '#b98457', '#9b6a43', 'grain'),                 // wood
+  herdTile('#effff7', '#7ed3b2', '#4fb08d', 'stripes'),               // mint candy
+  herdTile('#26306c', '#171f4c', '#0e1436', 'stars', '#ffd84a'),      // night sky
+  herdTile('#f7f5f2', '#cfcac3', '#aaa39a', 'veins'),                 // marble
+  herdTile('#fff3c4', '#f2b84a', '#c98a1a', 'hex'),                   // honeycomb
+  herdTile('#f0faff', '#a8dcf5', '#6fb4dc', 'flake'),                 // frost (winter)
+  herdTile('#fff1b8', '#e8b030', '#b8801a', 'shine'),                 // golden herd (earned)
+];
+export const herdLook = k => HERD_TILES[k | 0] || HERD_TILES[0];
+// The face background with its pattern, on a canvas of w x h (the game's tile faces are 128 x 170).
+export function paintHerdFace(g, w, h, k) {
+  const L = herdLook(k), m = L.motif, u = w / 128;
+  g.fillStyle = L.face; g.fillRect(0, 0, w, h);
+  if (!m) return;
+  g.save(); g.globalAlpha = m === 'stars' ? .9 : .28; g.strokeStyle = g.fillStyle = L.body; g.lineCap = 'round';
+  if (m === 'grain') { g.lineWidth = 2.5 * u; for (let y = 10; y < h; y += 22 * u) { g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * .3, y - 8 * u, w * .6, y + 8 * u, w, y - 3 * u); g.stroke(); } }
+  else if (m === 'stripes') { g.lineWidth = 9 * u; for (let x = -h; x < w + h; x += 26 * u) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + h, h); g.stroke(); } }
+  else if (m === 'stars') { g.fillStyle = '#fff1b8'; for (const [x, y, r] of [[14, 14, 2.4], [112, 22, 2], [20, 96, 1.6], [108, 110, 2.4], [60, 158, 1.8], [102, 154, 1.4], [16, 150, 2]]) { g.beginPath(); g.arc(x * u, y * u, r * u, 0, 7); g.fill(); } }
+  else if (m === 'veins') { g.lineWidth = 2 * u; for (const [a, b, c, d] of [[0, 30, 128, 70], [0, 120, 128, 96], [30, 0, 70, 170]]) { g.beginPath(); g.moveTo(a * u, b * u); g.bezierCurveTo((a + c) * .4 * u, b * u + 30 * u, (a + c) * .6 * u, d * u - 30 * u, c * u, d * u); g.stroke(); } }
+  else if (m === 'hex') { g.lineWidth = 2.5 * u; const r = 14 * u; for (let row = 0; row * r * 1.5 < h + r; row++) for (let col = 0; col * r * 1.73 < w + r; col++) { const cx = col * r * 1.73 + (row % 2 ? r * .87 : 0), cy = row * r * 1.5; g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i + Math.PI / 6; g[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); g.stroke(); } }
+  else if (m === 'flake') { g.lineWidth = 3 * u; for (const [x, y, s] of [[18, 18, 10], [110, 150, 12], [112, 24, 7]]) { for (let i = 0; i < 3; i++) { const a = Math.PI / 3 * i; g.beginPath(); g.moveTo((x - Math.cos(a) * s) * u, (y - Math.sin(a) * s) * u); g.lineTo((x + Math.cos(a) * s) * u, (y + Math.sin(a) * s) * u); g.stroke(); } } }
+  else if (m === 'shine') { g.globalAlpha = .55; g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, 40 * u); g.lineTo(40 * u, 0); g.lineTo(62 * u, 0); g.lineTo(0, 62 * u); g.fill(); g.beginPath(); g.moveTo(w, 120 * u); g.lineTo(w - 20 * u, h); g.lineTo(w - 30 * u, h); g.lineTo(w, 108 * u); g.fill(); }
+  g.restore();
+}

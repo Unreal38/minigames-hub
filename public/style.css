@@ -2136,6 +2136,7 @@ body.banned .banwall { background: var(--paper, #160a12); }
 .pb36 { background-image: url(cardbg/copycat.svg); } .pb37 { background-image: url(cardbg/runway.svg); } .pb38 { background-image: url(cardbg/reef.svg); } .pb39 { background-image: url(cardbg/checkers.svg); }
 .pb40 { background-image: url(cardbg/museum.svg); } .pb41 { background-image: url(cardbg/legend.svg); }
 .pb42 { background-image: url(cardbg/blast.svg); } .pb43 { background-image: url(cardbg/pairs.svg); }
+.pb44 { background-image: url(cardbg/herd.svg); }
 :is(.pb35, .pb37)::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 55%, transparent) 0 30%, transparent 75%); }
 
 /* ---------- Game wheel / Koło gier (public/gamewheel.js): a flat picker wheel, never pays anything ---------- */

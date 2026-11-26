@@ -90,15 +90,15 @@ body.in-game { overflow: hidden; }
 .hd-b:not(:disabled):active { transform: translateY(2px); }
 
 /* a tile, in the tray, the ghost you drag and the round sheet */
-.hd-t { --c: #3b2219; position: relative; width: 44px; height: 58px; padding: 0; border-radius: 8px; background: #fffaf0; border: 2px solid #d8c3a6; box-shadow: 0 3px 0 #d8c3a6, 0 4px 4px #0003; display: grid; grid-template-rows: 1fr auto; justify-items: center; color: var(--c); cursor: pointer; transition: transform .12s, box-shadow .12s; touch-action: none; box-sizing: border-box; font: inherit; }
+.hd-t { --c: #3b2219; position: relative; width: 44px; height: 58px; padding: 0; border-radius: 8px; background: var(--ht-pat, none) center / 100% 100% no-repeat, var(--ht-face, #fffaf0); border: 2px solid var(--ht-edge, #d8c3a6); box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 4px 4px #0003; display: grid; grid-template-rows: 1fr auto; justify-items: center; color: var(--ht-ink, var(--c)); cursor: pointer; transition: transform .12s, box-shadow .12s; touch-action: none; box-sizing: border-box; font: inherit; }
 .hd-t b { font: 700 24px/1 var(--fd); margin-top: 4px; }
 .hd-t .hd-pi { width: 30px; height: 30px; margin-bottom: 2px; pointer-events: none; }
 .hd-t .hd-egg { width: 28px; height: 30px; margin-bottom: 2px; }
-.hd-t.egg b { font-size: 13px; color: #8a4fb5; margin-top: 7px; }
+.hd-t.egg b { font-size: 13px; color: var(--ht-ink, #8a4fb5); margin-top: 7px; }
 .hd-t.e0 { --c: #d24a1f; } .hd-t.e1 { --c: #a87800; } .hd-t.e2 { --c: #2f8a43; } .hd-t.e3 { --c: #1f74bb; }
 .hd-t.sel { transform: translateY(-8px); box-shadow: 0 0 0 3px #3b2219, 0 0 0 6px var(--lantern), 0 8px 8px #0004; }
 .hd-t.new { animation: hdnew 1.3s ease-in-out 2; }
-@keyframes hdnew { 50% { box-shadow: 0 3px 0 #d8c3a6, 0 0 0 4px #fff, 0 0 14px 4px #ffd84a; } }
+@keyframes hdnew { 50% { box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 0 0 4px #fff, 0 0 14px 4px #ffd84a; } }
 .hd-t.idle { cursor: default; }
 .hd-t:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
 .hd-ghost { position: absolute; left: 0; top: 0; z-index: 5; display: none; gap: 3px; pointer-events: none; align-items: center; }
@@ -106,7 +106,7 @@ body.in-game { overflow: hidden; }
 .hd-ghost .hd-t { transform: rotate(-4deg); box-shadow: 0 0 0 3px #3b2219, 0 10px 14px #0005; }
 .hd-ghost em { font: 700 16px var(--fd); color: #fff; background: #3b2219; border-radius: 99px; padding: 0 8px; font-style: normal; }
 .hd-mini { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 3px; }
-.hd-t.mini { width: 26px; height: 37px; border-radius: 5px; border-width: 1.5px; box-shadow: 0 2px 0 #d8c3a6; cursor: default; grid-template-rows: auto auto; align-content: space-between; }
+.hd-t.mini { width: 26px; height: 37px; border-radius: 5px; border-width: 1.5px; box-shadow: 0 2px 0 var(--ht-body, #d8c3a6); cursor: default; grid-template-rows: auto auto; align-content: space-between; }
 .hd-t.mini b { font-size: 13px; margin-top: 3px; line-height: 1; }
 .hd-t.mini .hd-pi { width: 16px; height: 16px; margin-bottom: 2px; }
 .hd-t.mini .hd-egg { width: 14px; height: 15px; margin-bottom: 2px; }
