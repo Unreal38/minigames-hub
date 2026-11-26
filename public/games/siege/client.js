@@ -310,7 +310,7 @@ export function mount(app, ctx) {
   }
 
   // ----- input -----
-  function jump() { if (myTurn()) ctx.act({ t: 'jump' }); }
+  function jump() { if (myTurn()) ctx.act({ t: 'jump', d: walkBtn || ((keys.has('KeyA') || keys.has('ArrowLeft')) ? -1 : 0) + ((keys.has('KeyD') || keys.has('ArrowRight')) ? 1 : 0) }); } // the way you hold
   function pick(k) { if (!canThrow() || !(S.ammo?.[S.me]?.[k] > 0)) return; snack = k; sfx.click(); renderTray(); }
   const onKey = e => {
     if (e.target.closest?.('input, textarea')) return;
