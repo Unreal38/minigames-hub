@@ -47,7 +47,8 @@ export function createScene(canvas, opts = {}) {
   skyDome(scene, '#4fa8f0', '#c9ecff', { r: 320 });
   const cl = clouds({ near: 22, far: 14, below: -6, min: 30, max: 120 }); cl.position.set(W / 2, 6, -30); scene.add(cl);
   // two little islands far behind, wearing the season
-  for (const [x, y, z, s, sd] of [[-14, 3, -48, 1.3, 3], [W + 12, 6, -60, 1.6, 9]]) { const isl = island(12, 9, { props: 9, seed: sd, flowers: 20, season }); isl.position.set(x, y, z); isl.scale.setScalar(s); scene.add(isl); }
+  const farIsles = []; // they float: the sugar tide lifts them too (see the loop)
+  for (const [x, y, z, s, sd] of [[-14, 3, -48, 1.3, 3], [W + 12, 6, -60, 1.6, 9]]) { const isl = island(12, 9, { props: 9, seed: sd, flowers: 20, season }); isl.position.set(x, y, z); isl.scale.setScalar(s); scene.add(isl); farIsles.push([isl, y]); }
   // the sea (no front slab: the island's underwater blocks take a sea tint instead)
   const seaDay = season === 'winter' ? '#7cc4ea' : '#4fb3e8'; let seaNight = -1;
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(600, 260), new THREE.MeshLambertMaterial({ color: seaDay, transparent: true, opacity: .9 }));
@@ -240,7 +241,8 @@ export function createScene(canvas, opts = {}) {
       if (m) { scene.remove(m.root); disposeAvatar(m.av); }
       const side = i % 2, row = i >> 1, root = new THREE.Group();
       const x = side ? W + 2.4 + row * 2.4 : -2.4 - row * 2.4, base = R.WATER0 + 1.2 + row * .9;
-      const rock = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.5, base + 2, 7), rockMat); rock.position.y = (base - 2) / 2; root.add(rock);
+      // the rock reaches well under the sea: it rides up with the sugar tide (see the loop), so its foot never shows
+      const rock = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.5, base + 20, 7), rockMat); rock.position.y = (base - 20) / 2; root.add(rock);
       const top = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.08, .22, 7), topMat); top.position.y = base; root.add(top);
       const wrap = new THREE.Group(); wrap.scale.setScalar(K); wrap.position.y = base + .11; root.add(wrap);
       const av = avatar3d(p.color, p.av, { pose: 'stand', hand: false }); av.position.y = .76; wrap.add(av);
@@ -445,7 +447,9 @@ export function createScene(canvas, opts = {}) {
       if ((f.tr = (f.tr || 0) - dt) <= 0) { f.tr = .035; fx.burst(f.g.position, { n: 1, colors: (R.SNACKS[f.k] || R.SNACKS.pie).col, shape: DOT, speed: .3, up: .2, size: .2, grav: 1, life: .45 }); }
     }
     for (let i = zaps.length - 1; i >= 0; i--) { const z = zaps[i]; z.t -= dt; z.ln.material.opacity = Math.max(0, z.t * 2) * (Math.sin(T * 60) > 0 ? 1 : .4); if (z.t <= 0) { scene.remove(z.ln); z.ln.geometry.dispose(); z.ln.material.dispose(); zaps.splice(i, 1); } }
-    for (const m of folk) { m.cheer = Math.max(0, m.cheer - dt); m.sad = Math.max(0, m.sad - dt);
+    const lift = Math.max(0, water - R.WATER0); // the players' rocks rise with the tide, so nobody stands in the sea
+    for (const [isl, y] of farIsles) isl.position.y = y + lift;
+    for (const m of folk) { m.cheer = Math.max(0, m.cheer - dt); m.sad = Math.max(0, m.sad - dt); m.root.position.y = lift;
       animateAvatar(m.av, T, { seed: m.i, active: S?.turn === m.i && S?.ph === 'play', hop: m.cheer > 0 ? Math.abs(Math.sin(m.cheer * 7)) : 0, nod: m.sad > 0 ? .8 : 0 }); }
     // camera target
     const now = performance.now();

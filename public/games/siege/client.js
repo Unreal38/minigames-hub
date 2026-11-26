@@ -85,7 +85,7 @@ export function mount(app, ctx) {
     if (!scene || !S || !info) return;
     const sk = JSON.stringify(info.map(p => [p.color, p.av]));
     if (sk !== seatsKey || force) { seatsKey = sk; scene.setSeats(info); }
-    if (pinfo) { const pk = S.gid + JSON.stringify(pinfo); if (pk !== petsKey || force) { petsKey = pk; scene.setPets(pinfo, info.map(p => p.color)); } }
+    if (pinfo) { const pk = S.gid + JSON.stringify(pinfo); if (pk !== petsKey || force) { petsKey = pk; scene.setPets(pinfo, info.map((_, t) => R.teamCol(t))); } }
     if (S.hs && S.ops) { if (force || S.gid !== scene._gid || !scene.addOps(S.ops)) { scene.setWorld(S.hs, S.ops); scene._gid = S.gid; } }
     scene.snap(S);
   }
@@ -134,9 +134,9 @@ export function mount(app, ctx) {
   }
 
   function buildTags() {
-    const key = S.gid + (pinfo || []).map(p => p[4]).join('|') + S.ap + S.stage;
+    const key = S.gid + (pinfo || []).map(p => p[4]).join('|') + S.ap + S.stage + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = (pinfo || []).map((p, i) => `<div class="sg-tag${i === S.ap && (S.stage === 'aim' || S.stage === 'retreat') ? ' act' : ''}" style="--tc:${info[p[0]]?.color || '#fff'}" hidden><span class="z"><i>Z</i><i>Z</i><i>Z</i></span><b>${esc(p[4])}</b><i class="bar"><u></u></i></div>`).join('');
+    tagsEl.innerHTML = (pinfo || []).map((p, i) => `<div class="sg-tag${i === S.ap && (S.stage === 'aim' || S.stage === 'retreat') ? ' act' : ''}${p[0] === S.me && mySeat() >= 0 ? ' mine' : ''}" style="--tc:${R.teamCol(p[0])}" hidden><span class="z"><i>Z</i><i>Z</i><i>Z</i></span><b>${p[0] === S.me && mySeat() >= 0 ? '<s>★</s>' : ''}${esc(p[4])}</b><i class="bar"><u></u></i></div>`).join('');
     tagEls = [...tagsEl.children]; paintTags();
   }
   function paintTags() {
@@ -152,7 +152,7 @@ export function mount(app, ctx) {
       const p = info[t], mine = (S.pets || []).map((a, i) => [a, i]).filter(([, i]) => pinfo?.[i]?.[0] === t);
       const up = mine.filter(([a]) => a[4] === 0).length;
       const dots = mine.map(([a]) => `<i class="pd${a[4] ? ' zz' : ''}" style="--f:${a[4] ? 100 : a[3]}%"></i>`).join('');
-      return `<li class="${t === S.me ? 'sg-me ' : ''}${S.out?.[t] ? 'out ' : ''}${t === S.turn && S.ph === 'play' ? 'now' : ''}">${avatarHtml(p.color, p.av, 24)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span class="pds" title="${L(`${up} awake`, `nie śpi: ${up}`)}">${dots}</span></li>`;
+      return `<li class="${t === S.me ? 'sg-me ' : ''}${S.out?.[t] ? 'out ' : ''}${t === S.turn && S.ph === 'play' ? 'now' : ''}" style="--tc:${R.teamCol(t)}"><i class="tm" aria-hidden="true"></i>${avatarHtml(p.color, p.av, 24)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span class="pds" title="${L(`${up} awake`, `nie śpi: ${up}`)}">${dots}</span></li>`;
     }).join(''));
   }
   function renderTray() {
@@ -310,7 +310,7 @@ export function mount(app, ctx) {
   }
 
   // ----- input -----
-  function jump() { if (myTurn()) ctx.act({ t: 'jump' }); }
+  function jump() { if (myTurn()) ctx.act({ t: 'jump', d: walkBtn || ((keys.has('KeyA') || keys.has('ArrowLeft')) ? -1 : 0) + ((keys.has('KeyD') || keys.has('ArrowRight')) ? 1 : 0) }); } // the way you hold
   function pick(k) { if (!canThrow() || !(S.ammo?.[S.me]?.[k] > 0)) return; snack = k; sfx.click(); renderTray(); }
   const onKey = e => {
     if (e.target.closest?.('input, textarea')) return;

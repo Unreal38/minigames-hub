@@ -41,6 +41,10 @@ export const SNACKS = {
 };
 export const BASIC = ['pie', 'jelly', 'berry', 'cake'];
 export const EL_SNACK = { Leaf: 'seed', Ember: 'chili', Tide: 'soda', Spark: 'fizz', Stone: 'rock' };
+// Team colours on the island (tags, rings under pets, the team list): fixed and far apart, so teams never look alike
+// even when players picked similar colours. Seat order.
+export const TEAM_COLS = ['#3d8bff', '#ff4f5e', '#2fbf5a', '#ffae1a'];
+export const teamCol = t => TEAM_COLS[t % TEAM_COLS.length];
 export const SNACK_KEYS = [...BASIC, 'seed', 'chili', 'soda', 'fizz', 'rock'];
 export const snackName = k => ({ pie: L('Sunberry Pie', 'Placek'), jelly: L('Jelly', 'Galaretka'), berry: L('Berries', 'Jagody'), cake: L('Honey Cake', 'Miodownik'),
   seed: L('Sprout seed', 'Nasionko'), chili: L('Chilli popper', 'Papryczka'), soda: L('Soda splash', 'Oranżada'), fizz: L('Fizz candy', 'Musujący cukierek'), rock: L('Rock candy', 'Twardy cukierek') }[k] || k);
@@ -129,29 +133,74 @@ export function petCells(p) {
 export function topY(g, c) { for (let r = ROWS - 1; r >= 0; r--) if (cellAt(g, c, r)) return (r + 1) * BS; return 0; }
 
 // ---------- pets ----------
-const free = (g, x, y) => { for (const dy of [.12, .5, PET_H]) for (const dx of [-PET_W, PET_W]) if (solidAt(g, x + dx, y + dy)) return false; return true; };
-const onGround = (g, x, y) => solidAt(g, x - .22, y - .03) || solidAt(g, x + .22, y - .03) || solidAt(g, x, y - .03);
+// Pets and snacks bump into the island as it is DRAWN, not as raw blocks: the screen draws the outline where the
+// corner field below crosses one half (marching squares in scene3d.js), so walking, landing and splashing use that same
+// field. Steps become slopes you walk up, a lone block nobody can see is not a wall, and feet stand on the visible top.
+const cellB = (g, c, r) => (cellAt(g, c, Math.max(0, r)) ? 1 : 0); // below row 0 the island carries on into the sea
+const cornerV = (g, i, j) => (cellB(g, i - 1, j - 1) + cellB(g, i, j - 1) + cellB(g, i - 1, j) + cellB(g, i, j)) / 4;
+export function fieldAt(g, x, y) {
+  if (x < 0 || x > W || y > ROWS * BS) return 0;
+  const fi = x / BS, fj = Math.max(0, y) / BS, i0 = Math.min(COLS - 1, Math.floor(fi)), j0 = Math.min(ROWS - 1, Math.floor(fj)), u = fi - i0, v = fj - j0;
+  return (cornerV(g, i0, j0) * (1 - u) + cornerV(g, i0 + 1, j0) * u) * (1 - v) + (cornerV(g, i0, j0 + 1) * (1 - u) + cornerV(g, i0 + 1, j0 + 1) * u) * v;
+}
+export const solidF = (g, x, y) => fieldAt(g, x, y) >= .5;
+const FOOT = .2;
+const free = (g, x, y) => { for (const dy of [.1, .5, PET_H]) for (const dx of [-PET_W, 0, PET_W]) if (solidF(g, x + dx, y + dy)) return false; return true; };
+const feet = (g, x, y) => solidF(g, x - FOOT, y) || solidF(g, x + FOOT, y) || solidF(g, x, y);
+const onGround = (g, x, y) => feet(g, x, y - .03);
+// The lowest height from y up to y + max where the body fits at x, or null.
+const fits = (g, x, y) => !feet(g, x, y) && free(g, x, y);
+function rise(g, x, y, max) { for (let d = 0; d <= max + 1e-9; d += .01) if (fits(g, x, y + d)) return y + d; return null; }
 export { free as bodyFree };
+export const SLOPE = 1.4;           // walking climbs slopes up to about 55° (a one or two block step is drawn as 45°)
+export const LIP = .35;             // in the air, an edge this far above your feet still catches you
+export const AIR_ACC = 9;           // steering in the air, m/s²
+// Moves a pet sideways by dx at height y, climbing up to `up`. Returns false when a wall stops it.
+function slide(g, p, dx, up) {
+  const nx = p.x + dx;
+  if (fits(g, nx, p.y)) { p.x = nx; return true; }
+  const y = rise(g, nx, p.y, up);
+  if (y !== null && free(g, p.x, y)) { p.x = nx; p.y = y; return true; }
+  return false;
+}
 // One physics step for a pet. walk: -1, 0 or 1 (only the pet whose turn it is). Returns 'sea' when it fell in.
 export function stepPet(g, p, dt, walk, water) {
   if (p.sea) return null;
-  if (walk && p.ground && !p.sleep) {
-    p.face = walk; const nx = p.x + walk * WALK * dt;
-    if (free(g, nx, p.y)) p.x = nx;
-    else if (free(g, nx, p.y + BS + .02) && free(g, p.x, p.y + BS + .02)) { p.y = Math.floor(p.y / BS + 1.02) * BS; p.x = nx; } // step up one block
+  // a bush or bridge grew round it, or a bite changed the ground under it: stand on top instead of inside
+  if (!fits(g, p.x, p.y)) { const y = rise(g, p.x, p.y, 1.5); if (y !== null) p.y = y; }
+  if (walk && !p.sleep) {
+    p.face = walk;
+    if (p.ground) {
+      const dx = walk * WALK * dt, up = Math.abs(dx) * SLOPE + .04;
+      if (slide(g, p, dx, up) && !onGround(g, p.x, p.y)) { // walking down a slope keeps your feet on it
+        for (let d = .01; d <= up; d += .01) if (onGround(g, p.x, p.y - d) && fits(g, p.x, p.y - d)) { p.y -= d; break; }
+      }
+    } else if (walk * p.vx < JUMP_VX) p.vx = walk > 0 ? Math.min(JUMP_VX, p.vx + AIR_ACC * dt) : Math.max(-JUMP_VX, p.vx - AIR_ACC * dt);
   }
   if (p.vx) {
-    const nx = p.x + p.vx * dt;
-    if (free(g, nx, p.y)) p.x = nx; else p.vx *= -.3;
+    // a wall stops you; a jump keeps its push, so you carry on over the edge once you are high enough
+    if (!slide(g, p, p.vx * dt, p.ground ? Math.abs(p.vx * dt) * SLOPE + .04 : LIP) && !p.jmp) p.vx = 0;
     if (p.ground && p.vy <= 0) p.vx *= Math.pow(.004, dt);
     if (Math.abs(p.vx) < .05) p.vx = 0;
   }
-  p.vy -= G * dt; let ny = p.y + p.vy * dt;
-  if (p.vy > 0 && !free(g, p.x, ny)) { p.vy = 0; ny = p.y; }
-  if (p.vy <= 0 && onGround(g, p.x, ny)) { ny = Math.floor((ny - .03) / BS + 1) * BS; if (!free(g, p.x, ny)) ny = p.y; p.vy = 0; p.ground = true; }
-  else p.ground = false;
-  p.y = ny;
-  if (p.vy < -30) p.vy = -30;
+  if (p.ground && p.vy <= 0 && onGround(g, p.x, p.y)) { p.vy = 0; p.jmp = false; return p.y < water - .25 ? (p.sea = true, p.vx = 0, p.y = water - .25, 'sea') : null; } // standing: nothing to fall
+  p.vy = Math.max(-30, p.vy - G * dt);
+  const dy = p.vy * dt, n = Math.max(1, Math.ceil(Math.abs(dy) / .08));
+  let landed = false;
+  for (let k = 0; k < n; k++) {
+    const ny = p.y + dy / n;
+    if (dy > 0) { if (!free(g, p.x, ny)) { p.vy = 0; break; } p.y = ny; continue; } // a bump on the head
+    if (feet(g, p.x, ny)) { // touch down on the surface itself
+      let y = ny; while (y < p.y && feet(g, p.x, y)) y += .01;
+      if (free(g, p.x, y)) p.y = y;
+      landed = true; break;
+    }
+    p.y = ny;
+  }
+  if (landed || (p.vy <= 0 && onGround(g, p.x, p.y))) {
+    if (!p.ground && p.jmp) p.vx = 0; // a jump ends where it lands, no skidding on
+    p.vy = 0; p.ground = true; p.jmp = false;
+  } else p.ground = false;
   if (p.y < water - .25) { p.sea = true; p.vx = p.vy = 0; p.y = water - .25; return 'sea'; }
   return null;
 }
@@ -164,15 +213,15 @@ export function stepShot(g, s, dt, pets, wind, water, ignore) {
   s.vx += wind * WIND_A * f.wind * dt; s.vy -= G * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.age += dt;
   if (s.y < water - .3 || s.x < -15 || s.x > W + 15) return 'sea';
   if (f.bounce) {
-    if (solidAt(g, s.x, s.y)) {
+    if (solidF(g, s.x, s.y)) {
       s.x -= s.vx * dt; s.y -= s.vy * dt;
-      if (solidAt(g, s.x + s.vx * dt, s.y)) s.vx *= -.45; else s.vy *= -.45;
+      if (solidF(g, s.x + s.vx * dt, s.y)) s.vx *= -.45; else s.vy *= -.45;
       s.vx *= .75;
     }
     return s.age >= f.fuse ? 'hit' : null;
   }
   if (s.y > ROWS * BS + 30) return null; // far above the grid: nothing to hit up there
-  if (solidAt(g, s.x, s.y)) return 'hit';
+  if (solidF(g, s.x, s.y)) return 'hit';
   for (const p of pets) {
     if (p.sea || (p === ignore && s.age < .25)) continue;
     const dx = p.x - s.x, dy = p.y + .5 - s.y; if (dx * dx + dy * dy < .3) return 'hit';

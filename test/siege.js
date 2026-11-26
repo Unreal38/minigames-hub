@@ -111,5 +111,32 @@ for (const [teams, pets, bots] of [[2, 2, 'chill'], [3, 3, 'sharp'], [4, 3, 'chi
   if (order[0] !== 1 || order[1] !== 2 || order[2] !== 0 || place[1] !== 1 || place[0] !== 3) fail('standings wrong ' + JSON.stringify({ order, place }));
 }
 
+// ----- pets move on the island as it is drawn (Kuba: pets sank in, jumps bounced you backwards off the ground) -----
+{
+  const P = (x, y) => ({ x, y, vx: 0, vy: 0, face: 1, ground: false });
+  const steps = (g, p, n, walk = 0) => { let back = 0; for (let i = 0; i < n; i++) { R.stepPet(g, p, R.DT, walk, 0); if (p.vx < -.01) back++; } return back; };
+  // flat at 3 m, a one-block step at x 25, a three-block wall at x 35
+  const g = R.gridOf(Array.from({ length: R.COLS }, (_, c) => (c < 50 ? 6 : c < 70 ? 7 : 10)));
+  const p = P(20, 3.6); steps(g, p, 90);
+  if (!p.ground || Math.abs(p.y - 3) > .02) fail('a pet should stand right on the flat top, got y ' + p.y);
+  const y0 = p.y; steps(g, p, 60); if (p.y !== y0) fail('a standing pet should not creep');
+  steps(g, p, 200, 1); if (!(p.x > 26) || Math.abs(p.y - 3.5) > .03) fail('walking should climb the one-block step, got ' + p.x + ',' + p.y);
+  steps(g, p, 400, 1); if (p.x > 35) fail('walking should not climb a three-block wall');
+  p.vy = R.JUMP_VY; p.vx = R.JUMP_VX; p.ground = false; p.jmp = true;
+  if (steps(g, p, 150)) fail('a jump into a wall should never throw the pet backwards');
+  if (!p.ground || Math.abs(p.y - 5) > .03 || p.x < 35) fail('a jump at a three-block wall should land on top, got ' + p.x + ',' + p.y);
+  // jumping onto a staircase moving forward: lands on the stairs, still facing forward
+  const st = R.gridOf(Array.from({ length: R.COLS }, (_, c) => Math.max(1, Math.min(20, c - 30))));
+  const q = P(20, 12); q.vx = R.JUMP_VX; q.jmp = true;
+  if (steps(st, q, 200)) fail('landing on a slope should never bounce the pet the other way');
+  if (!q.ground || R.fieldAt(st, q.x, q.y - .03) < .5 && R.fieldAt(st, q.x - .2, q.y - .03) < .5 && R.fieldAt(st, q.x + .2, q.y - .03) < .5) fail('the pet should stand on the drawn slope');
+  // steering in the air
+  const a = P(20, 3); steps(g, a, 30); a.vy = R.JUMP_VY; a.vx = R.JUMP_VX; a.ground = false; a.jmp = true; steps(g, a, 40, -1);
+  if (!(a.vx < 0)) fail('holding the other way in the air should turn the jump round');
+  // a lone block the screen cannot draw is not a wall
+  const lone = R.gridOf(Array.from({ length: R.COLS }, () => 6)); lone[40 + 8 * R.COLS] = 1;
+  if (R.solidF(lone, 40 * R.BS + R.BS / 2, 8 * R.BS + R.BS / 2)) fail('a lone block is not drawn, so it should not block');
+}
+
 Date.now = realNow;
 console.log('siege ok');
