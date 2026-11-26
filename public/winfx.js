@@ -17,6 +17,7 @@ const KINDS = {
   12: { n: 45, glyph: ['lantern', 'lantern2'], from: 'bottom', spin: .4 },                                                  // sky lanterns (Lantern Night)
   13: { n: 60, glyph: ['flash', 'camera', 'flash2'], from: 'top', spin: 1.5 },                                             // camera flashes (Sky Runway)
   14: { n: 60, glyph: ['tileW', 'tileI', 'tileN'], from: 'top', spin: 3 },                                                // letter rain (Word Reef): W, I, N
+  15: { n: 70, glyph: ['popseed', 'heartpetal', 'petal', 'heartpetal'], from: 'top', spin: 2.5 },                            // petal pop (Blast Bay)
 };
 let live = null;
 // Who has which win effect on: app.js keeps this up to date, so a game scene only names a seat (createFx().confetti
@@ -82,6 +83,11 @@ const PICS = {
     inked(g, s, '#bfe6ff', () => g.arc(0, s * .1, s * .38, 0, 6.3)); g.fillStyle = '#2a4a6a'; g.beginPath(); g.arc(0, s * .1, s * .2, 0, 6.3); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(-s * .1, 0, s * .08, 0, 6.3); g.fill();
     g.fillStyle = '#ffd23f'; g.fillRect(s * .45, -s * .35, s * .25, s * .14); },
   flash: flashPic('#ffffff', '#ffe680'), flash2: flashPic('#fff1a8', '#ff9ad0'),
+  // a Blast Bay pop seed (pink pod, leaves, glowing tip) and the heart petals its blast throws
+  popseed: (g, s) => { inked(g, s, '#f2679a', () => { g.moveTo(0, s * .85); g.bezierCurveTo(-s * .8, s * .85, -s * .85, -s * .1, -s * .55, -s * .45); g.quadraticCurveTo(0, -s * .8, s * .55, -s * .45); g.bezierCurveTo(s * .85, -s * .1, s * .8, s * .85, 0, s * .85); });
+    inked(g, s, '#6cbf4a', () => { g.moveTo(0, -s * .55); g.quadraticCurveTo(s * .55, -s * 1, s * .7, -s * .55); g.quadraticCurveTo(s * .3, -s * .45, 0, -s * .55); });
+    g.fillStyle = '#fff07a'; g.beginPath(); g.arc(0, -s * .66, s * .16, 0, 6.3); g.fill(); g.fillStyle = '#ffffff99'; g.beginPath(); g.ellipse(-s * .28, -s * .05, s * .12, s * .22, -.4, 0, 6.3); g.fill(); },
+  heartpetal: (g, s) => inked(g, s, '#ff8fc8', () => { g.moveTo(0, s * .8); g.bezierCurveTo(-s * 1.05, s * .05, -s * .55, -s * .95, 0, -s * .35); g.bezierCurveTo(s * .55, -s * .95, s * 1.05, s * .05, 0, s * .8); }),
   tileW: letterTile('W'), tileI: letterTile('I'), tileN: letterTile('N'),
 };
 const glyphSprite = ch => PICS[ch] ? sprite('p' + ch, 64, PICS[ch]) : sprite('g' + ch, 64, (g, s) => { g.font = `${s}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, 0, 2); });
@@ -92,10 +98,10 @@ export const winPic = k => { const n = KINDS[k]?.glyph?.[0]; try { return PICS[n
 // The same pictures as one strip, for the in-game showers (scenery3d.js createFx): `at` lists each effect's cells, the
 // plain strip and the firework spark are white so the shower tints them with `cols`.
 export function winSheet(C = 96) {
-  const pics = [rectSprite('#ffffff'), dotSprite(), ...KINDS[2].glyph.map(glyphSprite), fishSprite(), coinSprite(), flakeSprite(), ...KINDS[7].glyph.map(glyphSprite), ...['blossom', 'petal', 'blossom2', 'bubble', 'bat', 'pumpkin', 'paw', 'paw2', 'paw3', 'lantern', 'lantern2', 'flash', 'camera', 'flash2', 'tileW', 'tileI', 'tileN'].map(glyphSprite)], n = 32;
+  const pics = [rectSprite('#ffffff'), dotSprite(), ...KINDS[2].glyph.map(glyphSprite), fishSprite(), coinSprite(), flakeSprite(), ...KINDS[7].glyph.map(glyphSprite), ...['blossom', 'petal', 'blossom2', 'bubble', 'bat', 'pumpkin', 'paw', 'paw2', 'paw3', 'lantern', 'lantern2', 'flash', 'camera', 'flash2', 'tileW', 'tileI', 'tileN', 'popseed', 'heartpetal'].map(glyphSprite)], n = 32;
   const cv = document.createElement('canvas'); cv.width = C * n; cv.height = C; const g = cv.getContext('2d');
   pics.forEach((im, i) => g.drawImage(im, C * i + 2, 2, C - 4, C - 4));
-  return { cv, n, at: { 1: [0], 4: [1], 2: [2, 3, 4, 5], 3: [6], 5: [7], 6: [8], 7: [9, 10, 11, 12], 8: [13, 14, 15], 9: [16], 10: [17, 17, 18], 11: [19, 20, 21], 12: [22, 23], 13: [24, 25, 26], 14: [27, 28, 29] }, cols: { 1: KINDS[1].cols, 4: KINDS[4].cols } };
+  return { cv, n, at: { 1: [0], 4: [1], 2: [2, 3, 4, 5], 3: [6], 5: [7], 6: [8], 7: [9, 10, 11, 12], 8: [13, 14, 15], 9: [16], 10: [17, 17, 18], 11: [19, 20, 21], 12: [22, 23], 13: [24, 25, 26], 14: [27, 28, 29], 15: [30, 31, 14, 31] }, cols: { 1: KINDS[1].cols, 4: KINDS[4].cols } };
 }
 const rectSprite = c => sprite('r' + c, 16, g => { g.fillStyle = c; g.fillRect(-16, -8, 32, 16); });
 export function playWinFx(k, { ms = 4200, banner = '', light = false } = {}) {

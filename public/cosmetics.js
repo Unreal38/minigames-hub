@@ -36,7 +36,8 @@ export const COS = {
     { n: 'Beach', p: 220, t: 's', s: 'summer' }, { n: 'Pumpkin patch', p: 220, t: 's', d: 1, s: 'halloween' }, { n: 'Snowy night', p: 350, t: 'a', d: 1, s: 'winter' }, { n: 'Thunderstorm', p: 400, t: 'a', d: 1 },
     { n: 'Chess board', p: 200, t: 's' }, { n: 'Pool table', p: 220, t: 's' }, { n: 'Domino line', p: 200, t: 's' },
     { n: 'Lantern Night', p: 350, t: 'a', d: 1 }, { n: 'Copycat barn', p: 200, t: 's' }, { n: 'Runway lights', p: 220, t: 's', d: 1 }, { n: 'Word Reef board', p: 200, t: 's' }, { n: 'Checkers board', p: 200, t: 's' },
-    { n: 'Pet Museum', t: 'e', earn: { pf: 'mus', n: 3 } }, { n: 'Legend ruins', t: 'e', earn: { pf: 'far', n: 1 } }] },
+    { n: 'Pet Museum', t: 'e', earn: { pf: 'mus', n: 3 } }, { n: 'Legend ruins', t: 'e', earn: { pf: 'far', n: 1 } },
+    { n: 'Blast Bay maze', p: 200, t: 's' }, { n: 'Pet Pairs table', p: 200, t: 's' }] },
   ti: { label: 'Title', items: [{ n: 'None' },
     { n: 'Pot Wizard', earn: { g: 'hotpot', w: 5 } }, { n: 'Card Shark', earn: { g: 'poker', w: 5 } }, { n: 'Kart Menace', earn: { g: 'kart', w: 5 } },
     { n: 'Marble Whisperer', earn: { g: 'marbles', w: 5 } }, { n: 'Ladder Legend', earn: { g: 'ladders', w: 5 } }, { n: 'Ludo Lord', earn: { g: 'ludo', w: 5 } },
@@ -54,7 +55,7 @@ export const COS = {
   wn: { label: 'Win effect', items: [{ n: 'None' }, { n: 'Confetti', p: 150 }, { n: 'Hearts', p: 150 }, { n: 'Fish rain', p: 200 }, { n: 'Fireworks', p: 250 },
     { n: 'Coin shower', p: 300 }, { n: 'Snowfall', p: 180, s: 'winter' }, { n: 'Coffee break', pk: 'kofi' },
     { n: 'Blossoms', p: 180, s: 'spring' }, { n: 'Bubbles', p: 180, s: 'summer' }, { n: 'Bats', p: 180, s: 'halloween' }, { n: 'Paw prints', p: 160 },
-    { n: 'Sky lanterns', p: 200 }, { n: 'Camera flashes', p: 220 }, { n: 'Letter rain', p: 180 }] },
+    { n: 'Sky lanterns', p: 200 }, { n: 'Camera flashes', p: 220 }, { n: 'Letter rain', p: 180 }, { n: 'Petal pop', p: 200 }] },
   sp: { label: 'Sticker packs', multi: true, items: [{ n: 'Basics', e: [] }, { n: 'Party', p: 100, e: ['🎉', '🥳', '💃', '🪩', '🍾', '👑'] },
     { n: 'Critters', p: 100, e: ['🐸', '🦆', '🐱', '🐶', '🦖', '🐢'] }, { n: 'Chaos', p: 120, e: ['💀', '🤡', '👀', '🫠', '🙈', '🧠'] }, { n: 'Café', pk: 'kofi', e: ['☕', '🥐', '🍩', '🧋', '🍪', '🫶'] },
     { n: 'Grumpy', p: 120, e: ['😤', '😠', '😡', '💢', '😾', '🙄'] }, { n: 'Drama', earn: { n: 50 }, e: ['🥺', '😩', '😱', '🤯', '💔', '🧂'] },
@@ -71,7 +72,7 @@ export const COS = {
     { n: 'Backflip', earn: { pv: 3 } }, { n: 'Robot', earn: { pv: 7 } }, { n: 'Star shower', earn: { pv: 14 } },
     { n: 'Strike a pose', p: 120 }, { n: 'Catwalk strut', p: 150 }] },
   // Table themes: how your own things look in the games (public/skins.js paints them). Everyone at the table sees them.
-  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, and the deck you see in Hot Pot.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' },
+  cb: { label: 'Card back', where: 'Your cards in Texas Hold’em, Tysiąc, Pan and Piotruś, the deck you see in Hot Pot, and the face-down cards on your screen in Pet Pairs.', items: [{ n: 'Classic' }, { n: 'Sky', p: 100 }, { n: 'Midnight', p: 120 }, { n: 'Candy', p: 120 }, { n: 'Koi', p: 180 }, { n: 'Gold leaf', p: 250 }, { n: 'Coffee beans', pk: 'kofi' },
     { n: 'Leaf', p: 150 }, { n: 'Ember', p: 150 }, { n: 'Tide', p: 150 }, { n: 'Spark', p: 150 }, { n: 'Stone', p: 150 },
     { n: 'Paw prints', p: 120 }, { n: 'Blossom', p: 140, s: 'spring' }, { n: 'Snowflakes', p: 140, s: 'winter' }, { n: 'Rainbow', p: 180 }] }, // the Pet Farm's five elements
   // Dice skins: shape, face art and pips for each are in public/dice3d.js (SKINS, same order).
@@ -114,7 +115,7 @@ export const WORN = COS_KEYS.filter(k => !COS[k].multi);
 export const DECOR_SLOTS = 3;
 // The game pieces that float round a player's isle. Free: cos.fp lists the ones picked, in order (none saved = the classic set, an empty list = none).
 export const PIECES = { marble: 'Marble', die: 'Die', pawn: 'Ludo pawn', card: 'Card', chip: 'Poker chip', golf: 'Golf ball', block: 'Tower blocks', tyre: 'Kart tyre', coin: 'Coin', star: 'Star', bean: 'Magic bean', pot: 'Hot pot', paw: 'Paw print', dart: 'Dart', bubble: 'Bubble', egg: 'Pet egg', knight: 'Chess knight', eight: '8-ball', domino: 'Domino tile', bingo: 'Bingo ball',
-  lantern: 'Lantern', checker: 'Checker king', letter: 'Letter tile', crate: 'Copycat crate', hanger: 'Clothes hanger', stamp: 'Stamp', charm: 'Nest charm' };
+  lantern: 'Lantern', checker: 'Checker king', letter: 'Letter tile', crate: 'Copycat crate', hanger: 'Clothes hanger', stamp: 'Stamp', charm: 'Nest charm', seed: 'Pop seed', memcard: 'Memory card' };
 export const PIECE_SLOTS = 6, PIECE_DEFAULT = ['marble', 'die', 'pawn', 'card', 'chip', 'golf'];
 export const piecesOf = me => !Array.isArray(me?.cos?.fp) ? PIECE_DEFAULT : me.cos.fp.filter((t, n, a) => Object.hasOwn(PIECES, t) && a.indexOf(t) === n).slice(0, PIECE_SLOTS);
 export const decorOf = me => (Array.isArray(me?.cos?.ip) ? me.cos.ip : []).filter((t, n, a) => typeof t === 'string' && /^[a-z]{2,16}$/.test(t) && a.indexOf(t) === n).slice(0, DECOR_SLOTS);
