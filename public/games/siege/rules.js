@@ -41,6 +41,10 @@ export const SNACKS = {
 };
 export const BASIC = ['pie', 'jelly', 'berry', 'cake'];
 export const EL_SNACK = { Leaf: 'seed', Ember: 'chili', Tide: 'soda', Spark: 'fizz', Stone: 'rock' };
+// Team colours on the island (tags, rings under pets, the team list): fixed and far apart, so teams never look alike
+// even when players picked similar colours. Seat order.
+export const TEAM_COLS = ['#3d8bff', '#ff4f5e', '#2fbf5a', '#ffae1a'];
+export const teamCol = t => TEAM_COLS[t % TEAM_COLS.length];
 export const SNACK_KEYS = [...BASIC, 'seed', 'chili', 'soda', 'fizz', 'rock'];
 export const snackName = k => ({ pie: L('Sunberry Pie', 'Placek'), jelly: L('Jelly', 'Galaretka'), berry: L('Berries', 'Jagody'), cake: L('Honey Cake', 'Miodownik'),
   seed: L('Sprout seed', 'Nasionko'), chili: L('Chilli popper', 'Papryczka'), soda: L('Soda splash', 'Oranżada'), fizz: L('Fizz candy', 'Musujący cukierek'), rock: L('Rock candy', 'Twardy cukierek') }[k] || k);
