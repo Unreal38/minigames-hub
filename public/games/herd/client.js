@@ -124,6 +124,7 @@ export function mount(app, ctx) {
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', i === S.turn && S.ph === 'play' && S.stage === 'turn');
+      tagsEl.classList.toggle('pick', tagsEl.classList.contains('strip') || !myTurn()); // tags open profile cards while you are not moving tiles under them
       el.classList.toggle('low', S.ph === 'play' && p.n > 0 && p.n <= 3);
       setHtml(el.querySelector('.plate .cnt'), `${I.tile}${p.n}${S.rounds > 1 ? `<small>${p.total}</small>` : ''}`);
       const b = bubbles.get(i);
