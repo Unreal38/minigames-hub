@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -332,6 +332,27 @@ const GAMES = {
       <li>Points: hiders get <b>1 for every 10 seconds</b> they stay hidden and <b>5 for lasting the round</b>. Seekers get <b>6 for every find</b>, 2 more for a find in the first minute, and 3 if they find everyone. The host picks whether found hiders float about as ghosts or <b>join the seekers</b>.</li>
       <li>After the last round the most points wins. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
       <li>Walk with <b>W A S D</b> or the arrow keys (a joystick on phones), drag to look round, and scroll or pinch to zoom.</li>
+    </ol>`,
+  },
+  blast: {
+    name: 'Blast Bay', load: () => import('./games/blast/client.js'), start: 'Plant the seeds',
+    mins: [6, 15],
+    host: { seats: 4, wins: 3, arena: 'random', crumble: 'on', bots: 'chill' }, solo: { seats: 4, wins: 3, arena: 'random', crumble: 'on', bots: 'chill' },
+    openSeat: 'A bot plants seeds here if nobody joins', seatWord: 'Players in the maze',
+    settings: pill => `
+      <div class="opt"><b>Wins to take the match</b><div class="pills">${pill('wins', 2, '2')}${pill('wins', 3, '3')}${pill('wins', 5, '5')}</div></div>
+      <div class="opt"><b>Arena</b><div class="pills">${pill('arena', 'random', 'Random')}${pill('arena', 'woods', 'Mossy Woods')}${pill('arena', 'ridge', 'Pebble Ridge')}${pill('arena', 'sweet', 'Sweet Shop')}</div></div>
+      <div class="opt"><b>Crumbling edge</b><div class="pills">${pill('crumble', 'on', 'On')}${pill('crumble', 'off', 'Off')}</div></div>
+      <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>`,
+    howto: `A maze party on a little island. Plant pop seeds that burst into petal blasts, open crates to free Pet Farm pets for boosts, and be the last one standing to take the round.`,
+    rules: `<ol>
+      <li>Everyone starts in a corner of a maze full of <b>crates</b>. Walk with <b>W A S D</b> or the arrow keys (a joystick on phones) and press <b>Space</b> (or the seed button) to plant a <b>pop seed</b> where you stand.</li>
+      <li>A seed bursts after <b>2.4 seconds</b> into a <b>petal blast</b> in a plus shape. It reaches <b>2 tiles</b> each way, stops at walls and breaks the first crate it hits. A blast sets off any other seed it touches.</li>
+      <li>Anyone in a blast is <b>caught</b> and sits out until the next round, your own seeds too. Seeds block the way, so don't box yourself in.</li>
+      <li>Some crates hide a <b>Pet Farm pet</b>. Walk onto it to get its element's boost: <b>Ember</b> blast reach +1, <b>Tide</b> one more seed at once, <b>Spark</b> faster feet, <b>Leaf</b> a bubble that saves you from one blast, <b>Stone</b> lets you kick seeds by walking into them. Pets are never hurt.</li>
+      <li>After <b>90 seconds</b> the island edge starts to <b>crumble</b>, tile by tile, until only the middle is left. Shaking tiles are about to drop. The host can turn this off.</li>
+      <li>The <b>last one standing</b> takes the round. The first to <b>3 round wins</b> (2 or 5 if the host picks) wins the match. The arena is picked at random each round unless the host chooses one.</li>
+      <li>Coins go by your final place: <b>10 for 1st</b>, down to 1 for last. Ties on round wins go to whoever lasted longer.</li>
     </ol>`,
   },
   kitchen: {
@@ -2042,6 +2063,7 @@ const HUB_GAMES = [
   ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
   ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],
   ['kart', 'kartpic', kartArt, 'action', '1–8 players', 'Race little low-poly karts round roads that hop between floating islands.'],
+  ['blast', 'blastpic', blastArt, 'action party', '1–8 players', 'Plant pop seeds in a maze on a little island. Burst crates, free pets for boosts and be the last one standing.'],
   ['copy', 'copypic', copyArt, 'action party', '1–10 players', 'Hide and seek on a little island. Turn into a bench, a hay bale or a pumpkin and keep still while your friends hunt for you.'],
   ['kitchen', 'kitchenpic', kitchenArt, 'action party', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],
   ['dig', 'digpic', digArt, 'board', '1–6 players', 'Take turns digging up a grass field for gems and a golden chest. Like Minesweeper with friends.'],
@@ -3153,7 +3175,7 @@ document.addEventListener('click', e => {
   profFrom = fromOf(row); sfx.click(); send({ t: 'player', pt: row.dataset.prof });
 });
 // Games where the floating name tags stay out of the way of the mouse: you aim, drag or steer right where they float.
-const TAG_HANDS_OFF = new Set(['pairs', 'herd', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
+const TAG_HANDS_OFF = new Set(['blast', 'pairs', 'herd', 'kart', 'golf', 'bean', 'bop', 'lagoon', 'pool', 'darts', 'bierki', 'marbles', 'copy', 'lantern', 'stack', 'bricks', 'reef', 'dig', 'kitchen', 'paw', 'cove']);
 // Inside a game: the name tags over the players and the rows of the score lists open that player's profile card too
 // (to add them as a friend or report them mid-match). Games draw them without a tag, so the name finds the player
 // among the people at this table; bots and names shared by two people open nothing.

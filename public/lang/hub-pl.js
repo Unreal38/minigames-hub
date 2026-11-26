@@ -46,6 +46,7 @@ export const OPT_PL = {
   Rounds: 'Rundy', 'Time to write': 'Czas na pisanie', Categories: 'Kategorie', Letters: 'Litery', Easy: 'Łatwe', 'With Ł, Ś, Ż': 'Także Ł, Ś, Ż', 'Extra category: Pet Farm pet': 'Dodatkowa kategoria: zwierzak z Farmy',
   'Time to draw': 'Czas na rysunek', 'Words in': 'Język haseł', Polski: 'Polski', English: 'English', 'Words about': 'Tematyka haseł', Everything: 'Wszystko', Animals: 'Zwierzęta', Food: 'Jedzenie', Things: 'Przedmioty',
   'Nature and places': 'Przyroda i miejsca', 'People and tales': 'Ludzie i bajki', 'Rides and play': 'Pojazdy i zabawa', 'Pet Farm pets': 'Zwierzaki z farmy', 'Letter hints': 'Podpowiedzi liter',
+  'Wins to take the match': 'Wygrane do zwycięstwa', Arena: 'Arena', 'Mossy Woods': 'Omszały Las', 'Pebble Ridge': 'Kamykowa Grań', 'Sweet Shop': 'Wyspa Słodyczy', 'Crumbling edge': 'Kruszący się brzeg', 'Players in the maze': 'Gracze w labiryncie',
   'Seeking time': 'Czas szukania', 'Found hiders': 'Znalezieni chowający', 'Float as ghosts': 'Unoszą się jako duszki', 'Join the seekers': 'Dołączają do szukających', 'Players on the island': 'Gracze na wyspie',
   'Score sheet and rounds': 'Arkusz i liczba rund', 'Classic · 13': 'Klasyczny · 13', 'Triple · 39': 'Potrójny · 39',
 };
@@ -231,6 +232,20 @@ export const GAMES_PL = {
       <li>Gdy pierwszy gokart dojedzie do mety, reszta ma <b>25 sekund</b> na przekroczenie linii. Potem pozostali zajmują miejsca według przejechanej drogi.</li>
       <li>Bonusy w trybie <b>Chaos</b>: z nieba pada deszcz skórek od banana, a galaretek i chmurek jest więcej.</li>
       <li>Monety zależą od miejsca na mecie: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie.</li>
+    </ol>`,
+  },
+  blast: {
+    name: 'Zatoka Bum', start: 'Sadzimy nasiona', openSeat: 'Jeśli nikt nie dołączy, nasiona posadzi tu bot',
+    pitch: 'Sadź pękające nasiona w labiryncie na małej wyspie. Rozbijaj skrzynki, uwalniaj zwierzaki po wzmocnienia i zostań ostatni na placu.',
+    howto: `Labiryntowa zabawa na małej wyspie. Sadź pękające nasiona, które wybuchają płatkami, otwieraj skrzynki, by uwolnić zwierzaki z Farmy i zdobyć wzmocnienia, i zostań ostatni na nogach, żeby wygrać rundę.`,
+    rules: `<ol>
+      <li>Każdy zaczyna w rogu labiryntu pełnego <b>skrzynek</b>. Chodź klawiszami <b>W A S D</b> albo strzałkami (na telefonie gałką), a <b>spacją</b> (albo przyciskiem nasiona) sadzisz <b>pękające nasiono</b> tam, gdzie stoisz.</li>
+      <li>Nasiono pęka po <b>2,4 sekundy</b> i wypuszcza <b>wybuch płatków</b> w kształcie plusa. Sięga <b>2 pola</b> w każdą stronę, zatrzymuje się na ścianach i rozbija pierwszą skrzynkę, w którą trafi. Wybuch odpala inne nasiona, których dotknie.</li>
+      <li>Kto stoi w wybuchu, zostaje <b>złapany</b> i czeka do następnej rundy, także od własnych nasion. Nasiona zagradzają drogę, więc nie zamknij się sam.</li>
+      <li>W niektórych skrzynkach chowa się <b>zwierzak z Farmy</b>. Wejdź na niego, a dostaniesz wzmocnienie jego żywiołu: <b>Żar</b> zasięg wybuchu +1, <b>Fala</b> jedno nasiono więcej naraz, <b>Iskra</b> szybsze nogi, <b>Liść</b> bańka, która chroni przed jednym wybuchem, <b>Kamień</b> pozwala kopać nasiona, gdy w nie wejdziesz. Zwierzakom nic się nie dzieje.</li>
+      <li>Po <b>90 sekundach</b> brzeg wyspy zaczyna się <b>kruszyć</b>, pole po polu, aż zostanie tylko środek. Trzęsące się pola zaraz spadną. Gospodarz może to wyłączyć.</li>
+      <li><b>Ostatni na nogach</b> wygrywa rundę. Kto pierwszy zdobędzie <b>3 wygrane rundy</b> (albo 2 lub 5, jeśli tak wybierze gospodarz), wygrywa mecz. Arena jest losowana co rundę, chyba że gospodarz wybierze jedną.</li>
+      <li>Monety zależą od zajętego miejsca: <b>10 za 1. miejsce</b>, aż do 1 za ostatnie. Przy równej liczbie wygranych rund wyżej jest ten, kto dłużej przetrwał.</li>
     </ol>`,
   },
   copy: {
