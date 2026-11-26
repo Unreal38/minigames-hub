@@ -14,9 +14,14 @@ html[lang="pl"] .sg.flat::before { content: 'Wyspa 3D nie mogła się wczytać n
 
 /* pet name tags with fullness bars */
 .sg .tags { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.sg .sg-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--tc, var(--ink)); border-radius: 12px; padding: 1px 8px 3px; font-family: var(--fd); font-weight: 600; font-size: 12px; white-space: nowrap; box-shadow: 0 2px 0 #160a1255; will-change: transform; }
+.sg .sg-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--tc, var(--paper)); color: #fff; border: 2.5px solid #2b1d24; border-radius: 12px; padding: 1px 8px 3px; font-family: var(--fd); font-weight: 700; font-size: 12.5px; white-space: nowrap; box-shadow: 0 2px 0 #160a1255; will-change: transform; }
+/* team colour fills the tag (fixed colours per seat, rules.js TEAM_COLS); your own pets get a star and a white ring */
+.sg .sg-tag b { -webkit-text-stroke: 3px #2b1d24; paint-order: stroke fill; letter-spacing: .01em; }
+.sg .sg-tag b s { text-decoration: none; color: #ffe066; margin-right: 3px; }
+.sg .sg-tag.mine { box-shadow: 0 0 0 2.5px #fff, 0 3px 0 2.5px #160a1255; }
+.sg .list .tm { flex: none; width: 6px; align-self: stretch; border-radius: 3px; background: var(--tc); border: 1.5px solid #2b1d24; }
 .sg .sg-tag[hidden] { display: none; }
-.sg .sg-tag b { font-weight: 600; max-width: 8.5em; overflow: hidden; text-overflow: ellipsis; line-height: 1.15; }
+.sg .sg-tag b { font-weight: 700; max-width: 8.5em; overflow: hidden; text-overflow: ellipsis; line-height: 1.15; }
 .sg .sg-tag .bar { display: block; width: 58px; height: 10px; border-radius: 6px; background: #fff4e2; border: 2px solid #2b1d24; overflow: hidden; box-sizing: border-box; }
 .sg .sg-tag .bar u { display: block; height: 100%; width: 0; border-right: 2px solid #2b1d24; transition: width .35s ease-out; }
 .sg .sg-tag .bar u[style*="width: 0%"] { border-right: 0; }
@@ -28,7 +33,7 @@ html[lang="pl"] .sg.flat::before { content: 'Wyspa 3D nie mogła się wczytać n
 .sg .sg-tag.zz { opacity: .85; }
 .sg .sg-tag.zz .z { display: block; }
 .sg .sg-tag.zz .bar u { background: #9aa8ff !important; }
-.sg .sg-tag.act { opacity: 1; box-shadow: 0 0 0 3px var(--lantern), 0 3px 0 #160a1255; }
+.sg .sg-tag.act { opacity: 1; box-shadow: 0 0 0 3.5px var(--lantern), 0 3px 0 3px #160a1255; }
 @keyframes sgzz {
   0% { opacity: 0; transform: translate(0, 0) scale(.45) rotate(-12deg); }
   12% { opacity: 1; }
