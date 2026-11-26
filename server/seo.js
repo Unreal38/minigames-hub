@@ -2,6 +2,7 @@
 // Search and preview bots always get that Polish page, so Google indexes one steady version of the one address.
 // People whose language guess is English get the same page with these English texts swapped in.
 import { gamesHtml, gamesLd } from './gamelist.js';
+import './gamepages.js'; // sets the game page addresses the list links to
 
 const BOTS = /googlebot|google-inspectiontool|googleother|adsbot-google|mediapartners-google|bingbot|bingpreview|duckduckbot|yandex|baiduspider|applebot|slurp|facebookexternalhit|facebot|twitterbot|discordbot|slackbot|telegrambot|whatsapp|linkedinbot|skypeuripreview|redditbot|embedly|pinterest/i;
 export const isBot = ua => BOTS.test(String(ua || ''));
@@ -33,9 +34,16 @@ const EN = [
 </main><!--/seo-->`],
 ];
 // lang is 'pl' or 'en'; <html lang> and data-geo carry it to the page (i18n.js reads data-geo on a first visit).
-export function pageFor(html, lang) {
+// enHome: the page is /en, the English twin of / (its own canonical address); both list each other through hreflang.
+const HREFLANG = '<link rel="alternate" hreflang="pl" href="https://zatokagier.com/">\n<link rel="alternate" hreflang="en" href="https://zatokagier.com/en">\n<link rel="alternate" hreflang="x-default" href="https://zatokagier.com/">';
+export function pageFor(html, lang, enHome = false) {
   let out = html.replace(/<html lang="[a-z]+"/, `<html lang="${lang}" data-geo="${lang}"`);
   if (lang === 'en') for (const [from, to] of EN) out = out.replace(from, to);
+  out = out.replace(/(<link rel="canonical" href="[^"]*">)/, `$1\n${HREFLANG}`);
+  if (enHome) out = out.replace('<link rel="canonical" href="https://zatokagier.com/">', '<link rel="canonical" href="https://zatokagier.com/en">')
+    .replace('<meta property="og:url" content="https://zatokagier.com/">', '<meta property="og:url" content="https://zatokagier.com/en">')
+    .replace('"@id":"https://zatokagier.com/#page","url":"https://zatokagier.com/"', '"@id":"https://zatokagier.com/en#page","url":"https://zatokagier.com/en"')
+    .replace(/("@id":"https:\/\/zatokagier\.com\/en#page"[^\n]*"inLanguage":)"pl"/, '$1"en"');
   // Every game with its description, players and playtime, read from the hub's registry (server/gamelist.js).
   if (out.includes('<!--games-->')) try {
     out = out.replace(/<!--games-->[\s\S]*?<!--\/games-->/, () => `<!--games-->${gamesHtml(lang)}<!--/games-->`)

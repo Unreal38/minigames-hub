@@ -76,6 +76,7 @@ import * as modr from './mod.js';
 import { cosHas, COS } from '../public/cosmetics.js';
 import { dayOf } from './day.js';
 import { isBot, pageFor } from './seo.js';
+import { route as gameRoute, sitemap } from './gamepages.js';
 import { distinctCols, matchColors } from './colors.js';
 import { botPay } from './botpay.js';
 const FULL_BOT_PAY = process.env.BOT_PAY === 'full'; // tests only: the game tests check exact placement coins from quick bot matches, so each test's server gets BOT_PAY=full (test/persist.js checks the real share)
@@ -94,7 +95,7 @@ const RESTORE_GRACE_MS = 90_000; // after a restart, players get this long to re
 // ---------- static files ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json',
-  '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8' };
+  '.jpg': 'image/jpeg', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8' };
 
 // Safety headers for every response. The page itself also gets a Content Security Policy: scripts may only come
 // from this site and three.js's own folder on jsDelivr (not the rest of jsDelivr, which serves anyone's code), so even if someone sneaks markup into a name or chat line, the browser
@@ -158,6 +159,25 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/health') { res.end('ok'); return; }
   if (p.includes('\0')) { res.writeHead(400, BASE_HEAD).end(); return; }
   if (p === '/privacy' || p === '/prywatnosc') p = '/privacy.html';
+  // The game pages, the list of all games and the sitemap are drawn from the game registry (server/gamepages.js).
+  if (p === '/sitemap.xml' || p.startsWith('/gry') || p.startsWith('/en/')) {
+    let out;
+    try { out = p === '/sitemap.xml' ? { status: 200, html: sitemap(), type: 'application/xml; charset=utf-8' } : gameRoute(p); }
+    catch (e) { console.error('game pages', e); res.writeHead(500, BASE_HEAD).end(); return; }
+    if (out?.redirect) { res.writeHead(301, { location: out.redirect + (url.search || ''), ...BASE_HEAD }).end(); return; }
+    if (out) {
+      const etag = `"${crypto.createHash('sha1').update(out.html).digest('base64url').slice(0, 16)}"`;
+      const head = { 'content-type': out.type || 'text/html; charset=utf-8', 'cache-control': 'no-cache', etag, ...BASE_HEAD };
+      if (!out.type) head['content-security-policy'] = cspFor(req);
+      if (req.headers['x-forwarded-proto'] === 'https') head['strict-transport-security'] = 'max-age=31536000';
+      if (out.status === 200 && req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }
+      res.writeHead(out.status, head).end(req.method === 'HEAD' ? undefined : out.html);
+      return;
+    }
+  }
+  // /en is the home page in English for everyone (search engines list it as the English twin of /).
+  const enHome = p === '/en';
+  if (enHome) p = '/index.html';
   if (p.endsWith('/')) p += 'index.html';
   const file = path.join(ROOT, path.normalize(p));
   if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
@@ -172,13 +192,13 @@ const server = http.createServer((req, res) => {
     if (req.headers['x-forwarded-proto'] === 'https') head['strict-transport-security'] = 'max-age=31536000'; // behind Caddy: browsers stick to HTTPS
     // The page carries the server's guess at the visitor's language (Poland: Polish), which i18n.js reads on a first visit.
     // Search and link-preview bots always get Polish, the site's main language (see seo.js).
-    const lang = ext !== '.html' ? '' : isBot(req.headers['user-agent']) ? 'pl' : geo.langFor(ipOf(req), req.headers['accept-language']);
+    const lang = ext !== '.html' ? '' : enHome ? 'en' : isBot(req.headers['user-agent']) ? 'pl' : geo.langFor(ipOf(req), req.headers['accept-language']);
     if (lang) { head.etag = `"${etag.slice(1, -1)}-${lang}"`; head.vary = 'accept-language, user-agent'; head['cache-control'] = 'private, no-cache'; }
     if (lang && req.headers['if-none-match'] === head.etag) { res.writeHead(304, head).end(); return; }
     if (lang) {
       res.writeHead(200, head);
       if (req.method === 'HEAD') { res.end(); return; }
-      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : file === PRIVACY ? privacyPage(html, lang) : pageFor(html, lang)));
+      fs.readFile(file, 'utf8', (e, html) => res.end(e ? '' : file === PRIVACY ? privacyPage(html, lang) : pageFor(html, lang, enHome)));
       return;
     }
     if (req.headers['if-none-match'] === etag) { res.writeHead(304, head).end(); return; }

@@ -1698,10 +1698,21 @@ function openWheel() {
 }
 
 // ---------- views ----------
+// /?gra=<id> comes from a game's own page (server/gamepages.js): the hub scrolls to that game's card and lights it up.
+let wantGame = (() => { try { return new URLSearchParams(location.search).get('gra') || ''; } catch { return ''; } })();
+if (wantGame) history.replaceState(null, '', location.pathname + location.hash);
+function showWanted() {
+  if (!/^\w+$/.test(wantGame)) { wantGame = ''; return; }
+  const el = document.querySelector(`.gcard [data-game="${wantGame}"]`)?.closest('.gcard') || document.querySelector(`.t-${wantGame}, [data-act="${wantGame}"]`);
+  if (!el) return;
+  wantGame = '';
+  el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  el.classList.add('wanted'); setTimeout(() => el.classList.remove('wanted'), 3200);
+}
 function go(view) {
   st.view = view; gameCss(null); tellWhere();
   document.title = view === 'lobby' && st.room ? `${st.room.code} · ${SITE}` : HOME_TITLE;
-  if (view === 'hub') renderHub();
+  if (view === 'hub') { renderHub(); if (wantGame) requestAnimationFrame(showWanted); }
   else if (view === 'lobby') renderLobby();
 }
 
@@ -2248,7 +2259,7 @@ function renderHub() {
       </section>
     </aside>
   </main>
-  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
+  <footer>${L("Made for friends. Coins are only for fun: they buy avatar items, nothing else. Poker chips are pretend. Hot Pot is a fan-made game inspired by Palia's Hotpot minigame.", 'Zrobione dla znajomych. Monety są tylko dla zabawy: kupisz za nie rzeczy dla awatara i nic więcej. Żetony w pokerze są na niby. Gorący kociołek to fanowska gra inspirowana minigrą Hotpot z Palii.')}<br>${L('Enjoying it?', 'Podoba ci się?')} ${kofiLink()} · <a class="plink" href="${L('/en/games', '/gry')}">${L('All games and rules', 'Wszystkie gry i zasady')}</a> · <a class="plink" href="/privacy">${L('Privacy', 'Prywatność')}</a></footer>
   <nav class="hubtabs" aria-label="${L('Hub sections', 'Sekcje strony')}">${tab('games', '🎮', L('Games', 'Gry'), `<i class="tdot" id="tabs-todo"${Object.keys(todayLeft()).length ? '' : ' hidden'}></i>`)}${tab('tables', '🪑', L('Tables', 'Stoły'), '<i class="tcount" id="tabs-count"></i>')}${tab('chat', '💬', L('Chat', 'Czat'))}${tab('rank', '🏆', L('Rankings', 'Rankingi'))}${tab('you', '👤', L('You', 'Ty'))}</nav>`;
   renderTables(); sortGames(); filterGames();
   document.body.classList.add('sky');
