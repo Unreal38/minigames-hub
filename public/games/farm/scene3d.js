@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { ITEMS, STARTERS, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
+import { ITEMS, STARTERS, canTilt, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
 import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
@@ -1390,7 +1390,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     pan(dx, dy) { if (!starters && !fighting && !mapOn) panBy(dx, dy); },
     ghostRotate() {
       if (!ghost) return;
-      ghost.r = (ghost.r + 1) % 4;
+      ghost.r = (ghost.r + (canTilt(ghost.type) ? .5 : 1)) % 4; // eight steps; fences and arches four
       const [w, h] = footprint(ghost.type, ghost.r); ghost.x = Math.max(0, Math.min(N - w, ghost.x)); ghost.y = Math.max(0, Math.min(N - h, ghost.y));
       ghostCheck();
     },
