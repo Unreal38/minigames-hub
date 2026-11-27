@@ -278,7 +278,7 @@ export function mount(app, ctx) {
     $('pf-coins').innerHTML = MONEY.filter(k => k === 'coins' || F.inv[k]).map(k => mbtn(k, 'pfpill')).join('');
     const food = pantryOf(F), total = food.reduce((n, k) => n + F.inv[k], 0);
     const group = (head, list) => list.length ? `<span class="pfpanh">${head}</span><div class="pfpang">${list.map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${tip(k)}">${matIcon(k)}<b>${F.inv[k]}</b><small>${MATS[k].toLowerCase()}</small></button>`).join('')}</div>` : '';
-    $('pf-pantry').innerHTML = `<button type="button" class="btn sm w pfpanb" data-a="matsmore" aria-expanded="${matsOpen}" aria-label="${L(`Pantry: ${total}`, `Spiżarnia: ${total}`)}"${food.length ? '' : ' disabled'}>${basketIcon}<span class="pfpant">${L('Pantry', 'Spiżarnia')}</span><b>${total}</b><i class="pfcaret" aria-hidden="true"></i></button>`
+    $('pf-pantry').innerHTML = `<button type="button" class="pfpanb" data-a="matsmore" aria-expanded="${matsOpen}" aria-label="${L(`Pantry: ${total}`, `Spiżarnia: ${total}`)}"${food.length ? '' : ' disabled'}>${basketIcon}<span class="pfpant">${L('Pantry', 'Spiżarnia')}</span><b>${total}</b><i class="pfcaret" aria-hidden="true"></i></button>`
       + (matsOpen && food.length ? `<div class="pfpanl">${group(L('Crops', 'Plony'), food.filter(k => !RECIPES[k]))}${group(L('Treats', 'Przysmaki'), food.filter(k => RECIPES[k]))}</div>` : '');
     root.querySelector('.pfmatsrow').classList.toggle('open', matsOpen && food.length > 0);
     paintWx();

@@ -613,17 +613,21 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .pfcoins { grid-area: coins; display: flex; gap: 6px; }
 .pf .pfmatsrow { grid-area: mats; }
 .pf .pfwx { grid-area: wx; }
+/* the title, money and materials bar share one height, the same as the round buttons on the right (Kuba) */
+.pf .hud > .tl > #pf-title, .pf .tl .pfpill, .pf .pfmatsrow { box-sizing: border-box; min-height: 46px; }
 .pf .pfcoins[hidden], .pf .pfwx[hidden], .pf .pfmatsrow[hidden], .pf .pfside[hidden] { display: none; }
 .pf .tl .matbtn { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 2px 1px; font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--pf-tx, var(--ink)); cursor: pointer; white-space: nowrap; border-radius: 8px; }
 .pf .tl .matbtn .mi { flex: none; }
 .pf .tl .matbtn small { font-family: var(--ft, inherit); font-size: 12px; font-weight: 600; color: var(--pf-muted, var(--soft-tx)); }
-.pf .tl .pfpill { background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 999px; padding: 5px 13px 5px 8px; box-shadow: 0 3px 0 #23401c55; font-size: 17px; }
+.pf .hud > .tl > #pf-title, .pf .tl .matbtn.pfpill { height: 46px; display: inline-flex; align-items: center; padding: 0 16px; }
+.pf .tl .pfpill { background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 #23401c55; font-size: 17px; }
 @media (hover: hover) { .pf .tl .matbtn:hover { transform: translateY(-1px); } }
 .pf .tl .matbtn:focus-visible, .pf .pftile:focus-visible, .pf .pfwxb:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
-.pf .pfmatsrow { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 5px 4px 12px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; }
+.pf .pfmatsrow { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 2px 16px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 23px; box-shadow: 0 3px 0 #23401c55; }
 .pf .pfmatsrow .mats { display: flex; flex-wrap: wrap; gap: 4px 13px; min-width: 0; }
-.pf .pfpantry { flex: none; display: flex; align-items: center; padding-left: 9px; border-left: 2px solid var(--card-edge); }
-.pf .pfpanb { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 3px 11px 3px 8px; font-size: 15px; white-space: nowrap; }
+.pf .pfpantry { flex: none; display: flex; align-items: center; padding-left: 12px; margin-left: 4px; border-left: 2px solid var(--card-edge); }
+.pf .tl .pfpanb { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 2px 0; font-family: var(--fd); font-weight: 600; font-size: 16px; cursor: pointer; white-space: nowrap; background: none; border: 0; box-shadow: none; color: var(--pf-tx, var(--ink)); }
+@media (hover: hover) { .pf .tl .pfpanb:not(:disabled):hover { transform: translateY(-1px); } }
 .pf .pfpanb b { font-family: var(--fd); font-weight: 700; }
 .pf .pfpanb:disabled { opacity: .6; }
 .pf .pfmatsrow.open .pfpanb .pfcaret { transform: translateY(2px) rotate(-135deg); }
@@ -686,17 +690,17 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
   body.in-game .pf .hud > .tl { max-width: none; width: calc(100vw / var(--vz, 1) - 28px); grid-template-columns: minmax(0, max-content) minmax(0, 1fr); grid-template-areas: "title title" "wx coins" "mats mats"; gap: 6px; }
   body.in-game .pf .hud .tl #pf-title { max-width: var(--tlw, 60vw); height: 46px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 40px; padding-top: 0; padding-bottom: 0; font-size: 16px; }
   .pf .pfcoins { align-self: center; }
-  .pf .tl .pfpill { font-size: 15px; padding: 3px 10px 3px 6px; }
+  .pf .tl .matbtn.pfpill { font-size: 15px; padding: 0 12px; height: 40px; }
   .pf .pfwxb { gap: 7px; padding: 3px 10px 3px 4px; border-radius: 16px; }
   .pf .pfwxi { width: 32px; height: 32px; border-radius: 10px; } .pf .pfwxi svg { width: 24px; height: 24px; }
   .pf .pfwxt b { font-size: 14px; } .pf .pfwxt small { font-size: 11.5px; }
-  .pf .pfmatsrow { justify-self: stretch; padding: 3px 4px 3px 9px; border-radius: 16px; gap: 6px; }
+  .pf .pfmatsrow { justify-self: stretch; padding: 2px 12px; gap: 6px; }
   .pf .pfmatsrow .mats { flex: 1; flex-wrap: nowrap; gap: 9px; overflow-x: auto; scrollbar-width: none; }
   .pf .pfmatsrow .mats::-webkit-scrollbar { display: none; }
   .pf .tl .matbtn { font-size: 14px; gap: 3px; } .pf .tl .matbtn .mi { width: 17px; height: 17px; }
   .pf .pfpantry { padding-left: 6px; }
   .pf .pfpant, .pf .pfpanb .pfcaret { display: none; }
-  .pf .pfpanb { min-height: 32px; padding: 2px 8px 2px 5px; font-size: 14px; gap: 4px; }
+  .pf .tl .pfpanb { min-height: 32px; font-size: 14px; gap: 4px; }
   .pf .pfpang .matbtn { font-size: 14px; }
   /* bottom: the tab bar, with the column over it */
   .pf .bl.pfhome { left: 0; right: 0; bottom: 0; max-width: none; align-items: stretch; gap: 0; }
