@@ -14,7 +14,7 @@ import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../
 import { ITEMS, STARTERS, canTilt, footprint, fits, cellsOf, stepOf, formOf, lvOf, museumFill } from './data.js';
 import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW, HEARTH, flueTop } from './models.js';
-import { fenceSnap, isDiag } from './fence.js';
+import { fenceSnap, isDiag, archLink } from './fence.js';
 import { PATHS, pathLink, pathSnap } from './paths.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
@@ -192,7 +192,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
   const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
   // A fence's joins, or the Pet Museum's medallions (from the album when the farm has one, else what the server sent).
-  const linkOf = (it, f = farm, skip) => PATHS[it.type] ? pathLink(f?.items, it.type, it.x, it.y, it.r, skip) : it.type === 'arch' ? (isDiag(it.r) ? 1 : 0) : it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
+  const linkOf = (it, f = farm, skip) => PATHS[it.type] ? pathLink(f?.items, it.type, it.x, it.y, it.r, skip) : it.type === 'arch' ? archLink(f?.items, it.x, it.y, it.r, skip) : it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {

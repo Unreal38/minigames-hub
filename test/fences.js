@@ -102,5 +102,16 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   const { fits } = await import('../public/games/farm/data.js'); const farm = { size: 8, items: [] };
   for (const i of old) { if (!fits(farm, i.type, i.x, i.y, i.r)) fail('split piece does not fit ' + JSON.stringify(i)); farm.items.push(i); } }
 
+// a fence meeting a Flower Arch at a right angle by its post joins it again (friend's report, 2026-11-27)
+{ const { archLink } = await import('../public/games/farm/fence.js');
+  const A = { id: 9, type: 'arch', x: 2, y: 2, r: 0 }; // its line runs x 2..3 at y 2.25
+  const out = [A, F(1, 3, 2.5, 1)], inn = [A, F(2, 2.5, 2.5, 1)]; // a quarter past its east end / a quarter in, beside the post
+  const a = fenceLink(out, 3, 2.5, 1, 1), b = fenceLink(inn, 2.5, 2.5, 1, 2);
+  if (st(a, 1) !== 2 || !(a >> 5 & 1)) fail('fence beside the arch end should reach its line with its own corner post ' + a);
+  if (st(b, 1) !== 2 || b >> 5 & 1) fail('fence by the arch post (inside) should reach its line without a post ' + b);
+  if (archLink(out, 2, 2, 0, 9) !== 2) fail('arch should run a rail out to the fence past its + end ' + archLink(out, 2, 2, 0, 9));
+  if (archLink(inn, 2, 2, 0, 9) !== 8) fail('arch should run a rail to the fence by its post ' + archLink(inn, 2, 2, 0, 9));
+  if (archLink([A], 2, 2, .5, 9) !== 1) fail('a diagonal arch keeps link 1'); }
+
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');
