@@ -1868,8 +1868,10 @@ body.night .lwstage { background: radial-gradient(#fff 1px, transparent 1.6px) 1
 /* ---------- graphics levels (frames.js sets html.gfx-high | gfx-mid | gfx-low) ---------- */
 /* SVG pictures out of view stop moving (app.js marks them .offview): an SVG animation lays out and repaints every frame. */
 svg.offview, svg.offview * { animation-play-state: paused !important; }
-/* Low: every moving picture and painted effect on the hub stands still; the 3D scenes and the card bob (composited, cheap) stay. */
-.gfx-low #app svg, .gfx-low #app svg *, .gfx-low .modal svg * { animation-play-state: paused !important; }
+/* Low: every moving picture and painted effect on the hub stands still; the 3D scenes and the card bob (composited, cheap) stay.
+   Not inside a game: game pieces drawn as SVG (Liar's Dice dice, card faces, buttons) pop in from opacity 0, and pausing
+   them froze them invisible on that first frame (empty "Twoje kości" on phones). */
+.gfx-low body:not(.in-game) #app svg, .gfx-low body:not(.in-game) #app svg *, .gfx-low body:not(.in-game) .modal svg * { animation-play-state: paused !important; }
 .gfx-low body.sky { animation-play-state: paused !important; }
 /* A blurred backdrop over a live 3D scene (a game, or the hub's isle) is re-blurred every frame: only computers keep it. */
 html:not(.gfx-high) .modal, body.in-game .modal { backdrop-filter: none; -webkit-backdrop-filter: none; background: #160a12e6; }
