@@ -267,3 +267,43 @@ body.night .tt-steps i { background: var(--lantern); color: var(--ink); }
 }
 /* the roll for the first turn, beside each name while the order is being decided */
 .tt-fr { flex: none; font-family: var(--fd); font-weight: 700; font-size: 12px; padding: 0 7px; border-radius: 999px; background: #ffe27a; color: #3b2219; border: 1.5px solid #3b2219; white-space: nowrap; }
+
+/* ---- the 3D line-up intro (Kuba 2026-11-27): the camera is on Tux, who talks in a big banner at the bottom ---- */
+.tt.intro .tt-news { visibility: hidden; }
+.tt-dock:has(.tt-introbar) { background: none; border: 0; box-shadow: none; padding: 0; max-width: min(1000px, calc(100vw / var(--vz, 1) - 16px)); overflow: visible; }
+.tt-introbar { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'pic bub' 'pic act'; align-items: end; gap: 6px 4px; width: min(960px, calc(100vw / var(--vz, 1) - 16px)); }
+.tt-introbar .hp { grid-area: pic; align-self: end; }
+.tt-introbar .tt-hpi { width: 112px; height: 112px; display: block; background: #fff6e2; border: 3.5px solid var(--ink); border-radius: 50%; box-shadow: 0 5px 0 var(--ink); animation: tthop 1.6s ease-in-out infinite; }
+.tt-ibub { grid-area: bub; position: relative; margin-left: 18px; background: var(--paper); color: var(--on-paper); border: 3.5px solid var(--ink); border-radius: 24px; padding: 14px 22px 12px; box-shadow: 0 5px 0 var(--ink); min-height: 92px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; }
+.tt-ibub::before { content: ''; position: absolute; left: -15px; bottom: 26px; width: 22px; height: 22px; background: var(--paper); border: solid var(--ink); border-width: 0 0 3.5px 3.5px; transform: rotate(45deg); }
+.tt-ibub .who { font-family: var(--fd); font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--soft-tx); }
+.tt-ibub p { margin: 2px 0 6px; font-size: clamp(19px, calc(1.6vw / var(--vz, 1)), 26px); line-height: 1.3; font-weight: 600; text-wrap: balance; animation: ttline .4s ease-out both; }
+@keyframes ttline { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.tt-idots { display: flex; gap: 5px; }
+.tt-idots i { width: 8px; height: 8px; border-radius: 50%; background: var(--card-edge); transition: background .3s; }
+.tt-idots i.on { background: var(--ink); }
+body.night .tt-idots i.on { background: var(--lantern); }
+.tt-introbar .tt-acts { grid-area: act; justify-content: flex-end; margin: 4px 0 0; }
+.tt-introbar .tt-skipw { background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 4px 12px; color: var(--on-paper); }
+.tt-vc { font-style: normal; font-family: var(--fd); font-size: 13px; background: var(--ink); color: var(--cream); border-radius: 999px; padding: 0 7px; margin-left: 4px; }
+@media (max-width: 760px) {
+  .tt-introbar .tt-hpi { width: 68px; height: 68px; }
+  .tt-ibub { margin-left: 12px; padding: 10px 14px 9px; min-height: 0; }
+  .tt-ibub::before { bottom: 14px; }
+  .tt-ibub p { font-size: 17px; }
+}
+/* ---- smooth pop-ups (Kuba 2026-11-27): overlays fade over a soft backdrop and rise in; they sink and fade away;
+   the choice panel at the bottom slides up whenever it changes to a new kind of choice ---- */
+.tt-ov { transition: background-color .3s ease; }
+.tt-ov.in { background: #1a10302e; }
+.tt-ov.in > .tt-card { animation: ttrise .45s cubic-bezier(.2, 1.25, .4, 1) both; }
+.tt-ov.out { background: transparent; }
+.tt-ov.out > .tt-card { animation: ttsink .26s ease-in both; }
+@keyframes ttrise { from { opacity: 0; transform: translateY(26px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes ttsink { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(18px) scale(.96); } }
+.tt-dock.swap > * { animation: ttdock .34s cubic-bezier(.2, 1.2, .4, 1) both; }
+.tt-dock.swap:has(.tt-acts) { animation: ttdockbox .34s cubic-bezier(.2, 1.2, .4, 1) both; }
+.tt-dock.swap:has(.tt-acts) > * { animation: none; }
+@keyframes ttdock { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ttdockbox { from { opacity: 0; translate: 0 18px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .tt-ov.in > .tt-card, .tt-ov.out > .tt-card, .tt-dock.swap, .tt-dock.swap > * { animation: none; } }

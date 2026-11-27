@@ -39,7 +39,7 @@ const ITEM_SVG = {
 const itemIc = (k, cls = 'tt-ii') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${ITEM_SVG[k] || ''}</svg>`;
 const petName = sp => SPECIES[sp]?.name || sp;
 // The match host: a Pet Farm Petalpuff who explains the rules at the start and calls out what happens (Kuba 2026-11-27).
-const HOST = { sp: 'petalpuff', lv: 14, name: 'Puff' };
+const HOST = { sp: 'tuxpurr', lv: 14, name: 'Tux' }; // the host: a Pet Farm Tuxpurr in his bow tie and top hat (Kuba 2026-11-27)
 const RARE = [L('common', 'pospolity'), L('uncommon', 'niepospolity'), L('rare', 'rzadki')];
 const STONE_NAME = {
   stall: L('Stall', 'Stragan'), nest: L('Egg Nest', 'Gniazdo'), bench: L('Pact Bench', 'Ławka paktu'), well: L('Wishing Well', 'Studnia życzeń'),
@@ -112,7 +112,11 @@ export function mount(app, ctx) {
     const turnish = S.ph === 'play' && ['turn', 'walk', 'land', 'next'].includes(S.stage) || (S.pend && !['pact'].includes(S.pend.k));
     scene.focus(turnish ? (S.pend && S.pend.k !== 'pact' ? S.pend.s : S.turn) : -1);
     scene.setMap(mapOn);
+    scene.setLineup?.(lineMode());
+    root.classList.toggle('lineup', !!lineMode()); root.classList.toggle('intro', S?.ph === 'play' && S.stage === 'intro');
   }
+  // the start line-up: the intro, the roll for the first turn, and the moment the order is announced
+  const lineMode = () => (!S || S.ph !== 'play' ? null : S.stage === 'intro' ? 'intro' : S.stage === 'order' || (S.stage === 'next' && S.turn < 0 && S.round === 1) ? 'order' : null);
   function paintMapBtn() {
     const b = root.querySelector('.tt-mapbtn');
     b.setAttribute('aria-pressed', mapOn ? 'true' : 'false');
@@ -244,7 +248,8 @@ export function mount(app, ctx) {
     if (!S || S.ph !== 'play') { setHtml(el, ''); return; }
     let html = '';
     const t = timeLeft(), clock = t >= 0 && S.timer ? `<span class="tt-clock${t <= 5 ? ' late' : ''}">${t}s</span>` : '';
-    if (S.stage === 'cheer') html = cheerHtml(clock);
+    if (S.stage === 'intro') html = introHtml();
+    else if (S.stage === 'cheer') html = cheerHtml(clock);
     else if (myPend() && busyLeft() > 0) html = `<div class="tt-wait"><span>${L('Wait for it…', 'Chwileczkę…')}</span></div>`;
     else if (myPend()) html = pendHtml(S.pend, clock);
     else if (S.pend && S.ph === 'play') {
@@ -254,6 +259,9 @@ export function mount(app, ctx) {
         pact: L('is thinking about a pact', 'myśli o pakcie'), lure: L('eyes a pet to lure', 'chce zwabić zwierzaka') }[S.pend.k] || L('is thinking', 'myśli');
       html = `<div class="tt-wait">${avatarHtml(w.color, w.av, 30)}<span>${isMe(S.pend.s) ? L('A bot plays for you', 'Bot gra za ciebie') : `${nm(S.pend.s)} ${what}…`}</span></div>`;
     }
+    const kind = S.stage + '|' + (S.pend ? S.pend.k + S.pend.s : '') + '|' + (myPend() ? 1 : 0);
+    if (html && kind !== el._kind) { el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); }
+    el._kind = kind;
     setHtml(el, html); petPics(el);
     layout();
   }
@@ -312,23 +320,50 @@ export function mount(app, ctx) {
   }
   function petsAhead(j) { let n = 0, at = j; const seen = new Set(); for (let k = 0; k < 6; k++) { for (const w of S.wild) if (!seen.has(w.id) && w.pos === at) { seen.add(w.id); n++; } at = NODES[at].next[0]; } return n; }
 
-  // ----- the big overlays: intro, the minigame wheel, minigame results, the Pet Show -----
+  // ----- Tux's intro: one sentence at a time in the big banner at the bottom, while the camera is on him -----
+  function introStep() {
+    const lines = INTRO_LINES(S), ms = S.introMs || 29000, el = ms - Math.max(0, S.stageLeft - (Date.now() - stateAt));
+    return { lines, k: Math.max(0, Math.min(lines.length - 1, Math.floor(el / (ms - 500) * lines.length))) };
+  }
+  const INTRO_LINES = S => [
+    L(`Hello, hello! I'm <b>Tux</b>, your host tonight!`, `Witam, witam! Jestem <b>Tux</b> i prowadzę dzisiejszą zabawę!`),
+    L('Welcome to the <b>Friendship Trail</b>!', 'Witajcie na <b>Szlaku przyjaźni</b>!'),
+    L(`Whoever has the most <b>Pet Show points</b> after ${S.rounds} rounds wins.`, `Wygrywa ten, kto po ${S.rounds} rundach ma najwięcej <b>punktów na Pokazie</b>.`),
+    L('Every friend in your herd is 1 point, and every ribbon is 2.', 'Każdy przyjaciel w stadzie to 1 punkt, a każda wstęga to 2.'),
+    L('Roll the die and walk the trail. At a fork, you pick the way.', 'Rzuć kością i idź szlakiem. Na rozwidleniu sam wybierasz drogę.'),
+    L('Stop exactly on a <b>glowing stone</b> to make friends with its wild pet.', 'Zatrzymaj się dokładnie na <b>świecącym kamieniu</b>, by zaprzyjaźnić się z jego dzikim zwierzakiem.'),
+    L('Friends reroll your die and cheer for you in minigames.', 'Przyjaciele przerzucają twoją kość i kibicują ci w minigrach.'),
+    L('After every round we all play a <b>quick minigame</b>. Better places win more treats.', 'Po każdej rundzie gramy w <b>szybką minigrę</b>. Lepsze miejsca dają więcej przysmaków.'),
+    `${esc(SEASON_RULE[S.season])} ${esc(WX_RULE[S.wx])}`,
+    L("Now, let's roll to see who goes first!", 'A teraz rzućmy, kto zaczyna!'),
+  ];
+  // skip the intro by vote: it ends once every person at the table has pressed it (bots don't vote)
+  function skipHtml() {
+    const ppl = S.seats.map((x, i) => i).filter(i => S.seats[i].human && !S.seats[i].bot), v = (S.skipV || []).filter(i => ppl.includes(i)).length;
+    if (!ppl.length) return '';
+    const mine = S.me >= 0 && ppl.includes(S.me), voted = (S.skipV || []).includes(S.me), cnt = ppl.length > 1 ? ` <i class="tt-vc">${v}/${ppl.length}</i>` : '';
+    return `<div class="tt-acts">${mine && !voted ? btn('skipintro', L('Skip the intro', 'Pomiń wstęp') + cnt, '', '', 'ghost') : `<span class="tt-skipw">${L('Waiting for everyone to skip', 'Czekamy, aż wszyscy pominą')}${cnt}</span>`}</div>`;
+  }
+  // the how-to-play card for the intro, in the dock under the line-up
+  function introHtml() {
+    const { lines, k } = introStep();
+    return `<div class="tt-introbar"><span class="hp">${petImg(HOST, 112, 'tt-hpi')}</span>
+      <div class="tt-ibub"><b class="who">Tux</b><p>${lines[k]}</p><span class="tt-idots">${lines.map((_, j) => `<i${j <= k ? ' class="on"' : ''}></i>`).join('')}</span></div>
+      ${skipHtml()}</div>`;
+  }
+  // the overlay leaves with a short fade and sink instead of vanishing
+  let ovTimer = 0;
+  function ovHide(el) {
+    if (!ovKey && el.hidden) return; ovKey = ''; clearTimeout(ovTimer);
+    if (el.hidden) return;
+    el.classList.add('out'); ovTimer = setTimeout(() => { if (!ovKey && !destroyed) { el.hidden = true; el.classList.remove('out', 'in'); } }, 300);
+  }
+  // ----- the big overlays: the minigame wheel, minigame results, the Pet Show (the intro is the 3D line-up) -----
   function renderOv() {
     const el = $('tt-ov');
-    if (!S || S.ph !== 'play') { el.hidden = true; ovKey = ''; return; }
+    if (!S || S.ph !== 'play') { ovHide(el); return; }
     let key = S.stage, html = '';
-    if (S.stage === 'intro') {
-      const step = (n, t, x) => `<li><i>${n}</i><div><b>${t}</b><span>${x}</span></div></li>`;
-      html = `<div class="tt-card wide tt-intro"><div class="tt-hostbig">${petImg(HOST, 84, 'tt-hpi')}<p class="tt-say">${L(`Hi, I'm <b>Puff</b>, your host! Welcome to the <b>Friendship Trail</b>. Here's how it works:`, `Cześć, jestem <b>Puff</b> i prowadzę dzisiejszą zabawę! Witaj na <b>Szlaku przyjaźni</b>. Oto zasady:`)}</p></div>
-        <div class="tt-goal">${I.star || '★'} ${L(`Goal: the most <b>Pet Show points</b> after ${S.rounds} rounds. Every friend in your herd is 1 point, every ribbon is 2.`, `Cel: najwięcej <b>punktów na Pokazie zwierzaków</b> po ${S.rounds} rundach. Każdy przyjaciel w stadzie to 1 punkt, każda wstęga to 2.`)}</div>
-        <ol class="tt-steps">
-          ${step(1, L('Roll and walk', 'Rzuć i idź'), L('Everyone starts in the meadow, and a first roll decides who goes first. Roll the die and walk the trail; at a fork you pick the way.', 'Wszyscy startują na łące, a pierwszy rzut decyduje, kto zaczyna. Rzuć kością i idź szlakiem; na rozwidleniu wybierasz drogę.'))}
-          ${step(2, L('Make friends', 'Zdobywaj przyjaciół'), L('A glowing stone has a wild pet. Stop exactly on it, then win a showdown with one of your pets or give treats.', 'Świecący kamień ma dzikiego zwierzaka. Zatrzymaj się dokładnie na nim i wygraj starcie swoim zwierzakiem albo daj przysmaki.'))}
-          ${step(3, L('Friends help you', 'Przyjaciele pomagają'), L('Each friend can reroll your die once and cheer you on in a minigame.', 'Każdy przyjaciel raz przerzuci twoją kość i pokibicuje ci w minigrze.'))}
-          ${step(4, L('Minigame after every round', 'Minigra po każdej rundzie'), L('Everyone plays a quick game. Better places win more treats for friends and items.', 'Wszyscy grają w szybką grę. Lepsze miejsca dają więcej przysmaków na przyjaciół i przedmioty.'))}
-        </ol>
-        <ul class="tt-rules"><li>${esc(SEASON_RULE[S.season])}</li><li>${esc(WX_RULE[S.wx])}</li></ul></div>`;
-    } else if (S.stage === 'wheel' || S.stage === 'mini') {
+    if (S.stage === 'wheel' || S.stage === 'mini') {
       key += S.mini?.game;
       const pool = POOL.filter(g => g.max >= S.seats.length), pick = S.mini?.game;
       html = `<div class="tt-card"><h2>${L('Minigame time!', 'Czas na minigrę!')}</h2><div class="tt-wheel" data-pick="${esc(pick)}">${pool.map(g => `<span data-g="${g.id}">${esc(g.name)}<small>${esc(g.cut)}</small></span>`).join('')}</div><p class="tt-sub">${L('Everyone plays at once. Places pay treats: 1st gets the most.', 'Grają wszyscy naraz. Miejsca dają przysmaki, najwięcej za 1.')}</p></div>`;
@@ -342,8 +377,13 @@ export function mount(app, ctx) {
       html = `<div class="tt-card wide"><h2>${L('The Pet Show', 'Pokaz zwierzaków')}</h2><p class="tt-sub">${L('A rosette for every friend in your herd, and 2 points for every ribbon', 'Rozeta za każdego przyjaciela w stadzie i 2 punkty za każdą wstęgę')}</p>
         <div class="tt-ribs">${Object.entries(RIBBONS).map(([k, n], j) => `<div class="tt-rib" style="animation-delay:${300 + j * 450}ms"><span class="rib">${esc(n)}</span><span>${rib[k].length ? rib[k].map(nm).join(', ') : L('nobody', 'nikt')}</span></div>`).join('')}</div>
         <ol class="tt-mres">${order.map(i => `<li><i class="pos">${ptsW(pts[i])}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32)}<b>${nm(i)}</b><span class="tt-herd">${S.pl[i].herd.map(f => pet(f, 24)).join('')}</span></li>`).join('')}</ol></div>`;
-    } else { el.hidden = true; ovKey = ''; return; }
-    if (key !== ovKey) { ovKey = key; el.innerHTML = html; petPics(el); el.hidden = false; if (S.stage === 'wheel') spinWheel(); }
+    } else { ovHide(el); return; }
+    if (key !== ovKey) {
+      // a new card: the old one (if any) slides away first, then the new one rises in over a soft dimmed backdrop
+      const swap = ovKey && !el.hidden; ovKey = key; clearTimeout(ovTimer);
+      const show = () => { if (destroyed || ovKey !== key) return; el.innerHTML = html; petPics(el); el.classList.remove('out'); el.hidden = false; void el.offsetWidth; el.classList.add('in'); if (S.stage === 'wheel') spinWheel(); };
+      if (swap) { el.classList.add('out'); ovTimer = setTimeout(show, 260); } else show();
+    }
   }
   function spinWheel() {
     const box = $('tt-ov').querySelector('.tt-wheel'); if (!box) return;
@@ -495,10 +535,12 @@ export function mount(app, ctx) {
 
   // the clock: the countdown, and the moment your choice unlocks after the walk or message it waits for
   let wasReady = false;
+  let introK = -1;
   const timer = setInterval(() => {
     if (!S || S.ph !== 'play') return;
     const r = ready();
     if (r !== wasReady) { wasReady = r; renderDock(); }
+    if (S.stage === 'intro') { const k = introStep().k; if (k !== introK) { introK = k; renderDock(); } }
     if (S.tLeft >= 0) { const n = timeLeft(); if (n !== lastTick) { lastTick = n; renderDock(); if ((myPend() || (S.stage === 'cheer' && S.cheer && !S.cheer.done)) && n <= 3 && n > 0) sfx.tick(); } }
   }, 200);
 
@@ -516,6 +558,7 @@ export function mount(app, ctx) {
     if (a === 'lobby') { sfx.click(); ctx.toLobby(); return; }
     if (a === 'sit') { sfx.click(); ctx.sit?.(b.getAttribute('aria-pressed') !== 'true'); return; }
     if (a === 'cheer') { if (S?.stage === 'cheer') send({ t: 'cheer', i: +d.i }); return; }
+    if (a === 'skipintro') { if (S?.stage === 'intro') send({ t: 'skip' }); return; }
     if (!ready()) return;
     if (a === 'roll') send({ t: 'roll' });
     else if (a === 'item') send({ t: 'item', k: d.k });

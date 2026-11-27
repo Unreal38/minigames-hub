@@ -240,6 +240,17 @@ export function createScene(canvas, { onFrame } = {}) {
       folk.push({ i, wrap, av, ring, node: null, q: [], hop: null, x: 0, z: 0, y: 0, ry: 0, tr: 0, ph: 0, amt: 0, steps: [], pets: [], herdKey: '', cheer: 0, sad: 0, sx: 0, sy: 0, on: false });
     });
   }
+  // ---------- the line-up in the start meadow (Kuba 2026-11-27) ----------
+  // During the intro everyone stands in a row facing the camera and waves, with Puff the host beside them; during the
+  // roll for the first turn they stay in the row and the camera stays on them. mode: 'intro', 'order' or null.
+  let lineup = null, lz = 0, hz0 = 0, host = null;
+  const LSP = .74;
+  function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
+  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25, START.z + .2];
+  function setLineup(mode) {
+    lineup = mode || null;
+    if (lineup && !host) { const g = petOf('tuxpurr', null, 1.15), [x, z] = hostSpot(); g.position.set(x + 2.2, SY, z); scene.add(g); host = { g, x: x + 2.2, z, seed: 7.3 }; }
+  }
   // where a player stands on a stone: alone in the middle, or round the edge when others share it
   function spotOf(i, node) {
     const same = folk.filter(f => (f.q.length ? f.q[f.q.length - 1] : f.node) === node), j = same.findIndex(f => f.i === i), n = same.length, p = nodeP(node);
@@ -307,17 +318,18 @@ export function createScene(canvas, { onFrame } = {}) {
     const cx = camera.position.x - f.x, cz = camera.position.z - f.z, l = Math.hypot(cx, cz) || 1, fx0 = cx / l, fz0 = cz / l;
     vals.forEach((v, j) => {
       const m = new THREE.Mesh(kit.geo(k, DS), kit.mat(k)); shell(m, 1.1); m.renderOrder = 4; scene.add(m);
+      const sc = lineup ? .6 : 1; m.scale.setScalar(sc); // the line-up camera is close: smaller dice, so nobody is hidden behind one
       const off = vals.length > 1 ? (j - .5) * .62 : 0;
-      const to = new THREE.Vector3(f.x + fx0 * 1.05 - fz0 * off, SY + DS / 2, f.z + fz0 * 1.05 + fx0 * off);
-      const from = new THREE.Vector3(f.x - fz0 * off * .4, 2.4, f.z + fz0 * .1);
+      const to = new THREE.Vector3(f.x + fx0 * (lineup ? .75 : 1.05) - fz0 * off, SY + DS * sc / 2, f.z + fz0 * (lineup ? .75 : 1.05) + fx0 * off);
+      const from = new THREE.Vector3(f.x - fz0 * off * .4, lineup ? 1.5 : 2.4, f.z + fz0 * .1);
       m.position.copy(from);
-      thrown.push({ m, from, to, spin: new THREE.Vector3(9 + Math.random() * 8, Math.random() * 6, 9 + Math.random() * 8), q: faceUpQ(v, Math.atan2(cx, cz) + (Math.random() - .5) * .5), t0: now + j * 90, s, k, landed: false });
+      thrown.push({ m, from, to, spin: new THREE.Vector3(9 + Math.random() * 8, Math.random() * 6, 9 + Math.random() * 8), q: faceUpQ(v, Math.atan2(cx, cz) + (Math.random() - .5) * .5), t0: now + j * 90, s, k, sc, landed: false });
     });
   }
   function stepDice(now, blob) {
     for (let i = thrown.length - 1; i >= 0; i--) { const d = thrown[i], t = now - d.t0;
       if (t < 0) { d.m.visible = false; continue; } d.m.visible = true;
-      if (t > DIE_HOLD) { const u = Math.min(1, (t - DIE_HOLD) / 220); d.m.scale.setScalar(1 - u); if (u >= 1) { dropDie(d); thrown.splice(i, 1); } continue; }
+      if (t > DIE_HOLD) { const u = Math.min(1, (t - DIE_HOLD) / 220); d.m.scale.setScalar((1 - u) * (d.sc || 1)); if (u >= 1) { dropDie(d); thrown.splice(i, 1); } continue; }
       const u = Math.min(1, t / DIE_MS);
       d.m.position.lerpVectors(d.from, d.to, ease(Math.min(1, u * 1.15)));
       d.m.position.y = d.to.y + (1 - Math.min(1, u * 1.15)) * (d.from.y - d.to.y) + Math.abs(Math.sin(u * Math.PI * 2.5)) * (1 - u) * .7;
@@ -379,12 +391,22 @@ export function createScene(canvas, { onFrame } = {}) {
       if (f.hop) { const h = f.hop; h.t = Math.min(1, h.t + dt * 1000 / (HOP * .92)); const e = ease(h.t);
         f.x = lerp(h.fx, h.x, e); f.z = lerp(h.fz, h.z, e); f.y = Math.sin(h.t * Math.PI) * .45; f.tr = Math.atan2(h.x - h.fx, h.z - h.fz); f.amt = 1;
         if (h.t >= 1) { f.node = h.to; f.hop = null; f.y = 0; if (!few) fx.puff(at(f.x, f.z, .2), { n: 3, color: ['#ffffff', DIRT], size: .2, speed: .8, life: .4 }); } }
+      else if (f.node == null || f.node < 0) { // in the meadow: walk to the line-up spot, or back to a meadow spot
+        const [tx, tz] = lineup ? lineSpot(f.i) : spotOf(f.i, -1), dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
+        if (d > .03) { const st = Math.min(d, dt * 2.4); f.x += dx / d * st; f.z += dz / d * st; f.tr = Math.atan2(dx, dz); f.amt += (1 - f.amt) * Math.min(1, dt * 8); }
+        else { f.amt += (0 - f.amt) * Math.min(1, dt * 8); if (lineup) f.tr = Math.atan2(camera.position.x - f.x, camera.position.z - f.z); }
+        f.y = 0;
+      }
       else { f.amt += (0 - f.amt) * Math.min(1, dt * 8); f.y = 0; }
       f.ry += wrapA(f.tr - f.ry) * Math.min(1, dt * 12); f.ph += dt * 12 * Math.max(f.amt, .001);
       f.cheer = Math.max(0, f.cheer - dt * 1.6); f.sad = Math.max(0, f.sad - dt * 1.2);
       f.wrap.position.set(f.x, SY + f.y + Math.abs(Math.sin(f.cheer * Math.PI * 3)) * .3 * f.cheer, f.z); f.wrap.rotation.set(f.sad * .25, f.ry, 0);
       animateAvatar(f.av, T, { seed: f.i, active: f.i === focus, hop: f.cheer });
       const ud = f.av.userData; if (f.amt > .05) { walkAvatar(f.av, f.ph, f.amt); ud.legs?.forEach(l => { l.rotation.z = 0; }); } else ud.legs?.forEach(l => { l.rotation.x = 0; l.rotation.z = 0; });
+      // waving hello in the intro line-up: one arm up and swinging, each player a little out of step
+      { const wave = lineup === 'intro' && f.amt < .2 && !f.hop, arm = ud.arms?.[f.i % 2];
+        ud.arms?.forEach(a => { a.userData.rz0 ??= a.rotation.z; if (a !== arm || !wave) a.rotation.z = a.userData.rz0; });
+        if (arm && wave) { const sg = Math.sign(arm.position.x) || 1; arm.rotation.z = sg * (2.55 + Math.sin(T * 7 + f.i * 1.7) * .32); arm.rotation.x = -.15; } }
       f.ring.position.set(f.x, SY + .015, f.z); f.ring.material.opacity = f.i === focus ? .95 : .55;
       blob(f.x, f.z, .38);
       const last = f.steps[f.steps.length - 1];
@@ -392,7 +414,8 @@ export function createScene(canvas, { onFrame } = {}) {
       f.pets.forEach((p, k) => {
         const back = (k + 1) * 7, st = f.steps[Math.max(0, f.steps.length - 1 - back)] || [f.x, f.z];
         // a pet with no footsteps to follow yet stands beside its player
-        const tx = f.steps.length > back ? st[0] : f.x + Math.cos(k * 1.3 + f.i) * (.55 + k * .12), tz = f.steps.length > back ? st[1] : f.z + Math.sin(k * 1.3 + f.i) * (.55 + k * .12);
+        let tx = f.steps.length > back ? st[0] : f.x + Math.cos(k * 1.3 + f.i) * (.55 + k * .12), tz = f.steps.length > back ? st[1] : f.z + Math.sin(k * 1.3 + f.i) * (.55 + k * .12);
+        if (lineup && (f.node == null || f.node < 0)) { tx = f.x + (k - (f.pets.length - 1) / 2) * .3 + .18; tz = f.z - .45 - k * .05; } // in the line-up: just behind their player, so the dice in front stay in view
         const px = p.g.position.x, pz = p.g.position.z, kk = 1 - Math.pow(.002, dt);
         p.g.position.x = lerp(px, tx, kk); p.g.position.z = lerp(pz, tz, kk);
         const moved = Math.hypot(p.g.position.x - px, p.g.position.z - pz);
@@ -413,23 +436,36 @@ export function createScene(canvas, { onFrame } = {}) {
       if (sp) o.out.position.set(sp.x, SY + .014, sp.z); o.out.scale.setScalar(SR + .5 + Math.sin(T * 3 + o.seed) * .04);
       blob(o.x, o.z, .3);
     }
+    // Tux the host: hops in beside the line-up, faces the camera, and bounces while talking; hops away after
+    if (host) { const [hx, hz] = lineup ? hostSpot() : [START.x + 4, START.z - 2.5], dx = hx - host.x, dz = hz - host.z, d = Math.hypot(dx, dz);
+      if (d > .03) { const st = Math.min(d, dt * 3); host.x += dx / d * st; host.z += dz / d * st; }
+      host.g.visible = !!lineup || d > .3; const run = d > .03;
+      host.g.position.set(host.x, SY + Math.abs(Math.sin(T * (run ? 9 : 3.2) + host.seed)) * (run ? .22 : .07), host.z);
+      host.g.rotation.y = run ? Math.atan2(dx, dz) : Math.atan2(camera.position.x - host.x, camera.position.z - host.z) + Math.sin(T * 1.1) * .25;
+      host.g.children[0] && wiggle(host.g.children[0], T, host.seed, .6);
+      if (host.g.visible) blob(host.x, host.z, .4); }
     stepDice(performance.now(), blob);
     blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
     // camera: a close-up that follows the player in focus, or the whole island
-    const f = focus >= 0 && !mapView ? folk[focus] : null;
-    const tx = f ? f.x : ISLE.x, tz = f ? f.z : ISLE.z - .5;
+    const f = focus >= 0 && !mapView && !lineup ? folk[focus] : null;
+    lz += ((lineup && !mapView ? 1 : 0) - lz) * (1 - Math.pow(.02, dt));
+    hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: a close-up of Tux talking
+    const lx = lerp(START.x + .35, host ? host.x - .35 : START.x, hz0), lzz = lerp(START.z + .3, host ? host.z : START.z, hz0);
+    const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
     const kk = 1 - Math.pow(.04, dt);
     camL.x = lerp(camL.x, tx, kk); camL.z = lerp(camL.z, tz, kk);
-    zoom += ((f ? 0 : 1) - zoom) * (1 - Math.pow(.03, dt));
+    zoom += ((f || (lineup && !mapView) ? 0 : 1) - zoom) * (1 - Math.pow(.03, dt));
     const port = ch > cw * 1.05, asp = cw / ch;
     // far enough back for the whole island to fit the screen under the HUD
     const vf = camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * asp), tilt = 52 * Math.PI / 180;
     const farD = Math.max((ISLE.rx + .5) / Math.tan(hf / 2), (ISLE.rz * Math.sin(tilt) + 1) / Math.tan(vf / 2) + ISLE.rz * Math.cos(tilt)) * (1 + (hudTop + hudBottom) / Math.max(1, ch) * .35);
-    const nearD = port ? 16 : 13, D = lerp(nearD, farD, zoom), tiltNow = lerp(46 * Math.PI / 180, tilt, zoom);
+    // the line-up shot: low and close, just wide enough for the whole row and Puff
+    const rowW = folk.length * LSP + 1.6, lineD = lerp(Math.max(6.5, (rowW / 2 + .6) / Math.tan(hf / 2)), port ? 6 : 4.4, hz0);
+    const nearD = port ? 16 : 13, D = lerp(lerp(nearD, lineD, lz), farD, zoom), tiltNow = lerp(lerp(46, lerp(26, 16, hz0), lz) * Math.PI / 180, tilt, zoom);
     // the HUD at the top and the choices at the bottom: the spot in focus sits in the clear band between them
     const shiftZ = (hudBottom - hudTop) / Math.max(1, ch) * D * .5;
     camera.position.set(camL.x, Math.sin(tiltNow) * D, camL.z + shiftZ + Math.cos(tiltNow) * D);
-    camera.lookAt(camL.x, lerp(.5, 0, zoom), camL.z + shiftZ);
+    camera.lookAt(camL.x, lerp(lerp(.5, lerp(.75, .7, hz0), lz), 0, zoom), camL.z + shiftZ);
     // trees between the camera and the player in focus turn see-through
     if (f && zoom < .6) { proj(f.x, .8, f.z, info); const fx0 = info.x, fy0 = info.y, cd = camera.position.distanceTo(f.wrap.position), o = {};
       for (const t of trees) { proj(t.x, 1.4, t.z, o); const dd = Math.hypot(t.x - camera.position.x, t.z - camera.position.z), hide = o.on && dd < cd && Math.abs(o.x - fx0) < Math.min(cw, ch) * .22 && o.y > fy0 - ch * .35; if (hide !== t.faded) fadeTree(t, hide); } }
@@ -446,6 +482,7 @@ export function createScene(canvas, { onFrame } = {}) {
     info.zoom = zoom; info.w = cw; info.h = ch;
     folk.forEach((f2, i) => { const t = info.tags[i] ||= {}; proj(f2.x, SY + f2.y + 1.55, f2.z, t); });
     info.tags.length = folk.length;
+    info.host = host && lineup ? proj(host.x, SY + 1.5, host.z, info.host || {}) : null;
     onFrame?.(info);
   }, { onSlow: () => res.lower?.() });
 
@@ -462,6 +499,7 @@ export function createScene(canvas, { onFrame } = {}) {
     setState, walk, cue, roll,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
+    setLineup,
     setMap(on) { mapView = !!on; },
     mapping: () => mapView,
     zoom: () => zoom,
@@ -472,7 +510,7 @@ export function createScene(canvas, { onFrame } = {}) {
     setHud(topPx, bottomPx) { if ((Math.abs(topPx - hudTop) > 4 || Math.abs(bottomPx - hudBottom) > 4) && hudFitOk(canvas)) { hudTop = topPx; hudBottom = bottomPx; } },
     stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: loop.fps?.() }),
     dispose() {
-      loop.stop(); ro.disconnect(); clearDice(); for (const f of folk) drop(f); folk = []; fx.dispose(); kit.dispose();
+      loop.stop(); ro.disconnect(); clearDice(); if (host) scene.remove(host.g); for (const f of folk) drop(f); folk = []; fx.dispose(); kit.dispose();
       scene.traverse(o => { if (o.isMesh || o.isPoints) { o.geometry?.dispose(); for (const mt of [].concat(o.material || [])) if (!mt.userData?.shared) mt.dispose?.(); } });
       renderer.dispose(); renderer.forceContextLoss();
     },
