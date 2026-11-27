@@ -183,7 +183,10 @@ export function mount(app, ctx) {
   }
   function layout() {
     const side = $('tt-side').getBoundingClientRect(); root.style.setProperty('--side-b', (side.bottom / uiz()).toFixed(0) + 'px'); // phones: the news sits under the player strip, however many rows it has
-    const top = (root.querySelector('.tt-news')?.getBoundingClientRect().bottom || 80);
+    // the clear band starts under the top bar, or under Tux's news where it sits at the top (phones); on desktop the news
+    // is in the bottom-left corner now and must not count as top HUD, or the player in focus lands at the bottom edge
+    const nw = root.querySelector('.tt-news')?.getBoundingClientRect(), bar = root.querySelector('.hud .tl')?.getBoundingClientRect();
+    const top = Math.max(bar?.bottom || 80, nw && nw.height && nw.top < innerHeight / 2 ? nw.bottom : 0);
     const dock = $('tt-dock').getBoundingClientRect();
     // the camera keeps the bottom third clear for choices, so a tall panel (the stall) never covers the player
     scene?.setHud(top, Math.max(dock.height ? innerHeight - dock.top : 0, innerHeight * .3));
@@ -462,7 +465,7 @@ export function mount(app, ctx) {
       case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}: the wild pets wait on the glowing stones`, `Runda ${e.r} z ${S.rounds}: dzikie zwierzaki czekają na świecących kamieniach`));
         peekUntil = Date.now() + 3200; camFocus(); setTimeout(() => !destroyed && camFocus(), 3250); break;
       case 'firstgo': big(L('Who goes first?', 'Kto zaczyna?'), L('Everyone rolls a die', 'Każdy rzuca kością'), 1800); say(L('Everyone rolls a die. The highest roll goes first.', 'Każdy rzuca kością. Zaczyna najwyższy wynik.')); break;
-      case 'first': throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
+      case 'first': scene?.peek?.(s, 1900); throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
       case 'order': big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
       case 'turn': scene?.emote?.(s, 'wave'); say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); splash(s); if (isMe(s)) sfx.turn(); break;
