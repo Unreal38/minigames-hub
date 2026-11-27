@@ -8,7 +8,7 @@ import { L } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { petImg, petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
@@ -218,12 +218,12 @@ export function mount(app, ctx) {
       const pact = q.pact ? `<span class="tt-pact" title="${L(`Buddy pact with ${nm(q.pact.w)}`, `Pakt z: ${nm(q.pact.w)}`)}">♥ ${nm(q.pact.w)}</span>` : '';
       const held = Object.keys(RIBBONS).filter(k => rib[k].includes(i)).map(k => RIBBONS[k]);
       const ptsTip = L(`Pet Show points if it ended now: ${q.herd.length} for friends + ${held.length * 2} for ribbons${held.length ? ' (' + held.join(', ') + ')' : ''}`, `Punkty na Pokazie, gdyby był teraz: ${q.herd.length} za przyjaciół + ${held.length * 2} za wstęgi${held.length ? ' (' + held.join(', ') + ')' : ''}`);
-      return `<div class="profrow tt-row${nowSeat() === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
+      return `<div class="${pbRowCls(p.fl)} profrow tt-row${nowSeat() === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
         <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span>${firstChip(i)}</div>
         <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}" title="${esc(`${f.name || petName(f.sp)} · ${EL_NAME[f.el]}${f.cheer ? '' : L(' · has cheered', ' · już kibicował')}`)}">${pet(f, 24)}</span>`).join('')}${egg}</div>
-        ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div></div>`;
+        ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div>${rowBg(p.fl)}</div>`;
     }).join('') + `<div class="tt-key"><span class="tt-sp">★</span>${L('Pet Show points', 'punkty na Pokazie')}<span class="tt-tr">${I.treat}</span>${L('treats', 'przysmaki')}</div>`;
-    setHtml($('tt-side'), rows); petPics($('tt-side'));
+    setHtml($('tt-side'), rows); petPics($('tt-side')); pbRows($('tt-side'));
   }
 
   // ----- messages: the newest on top until the next one; the last two under it, fading -----
@@ -519,12 +519,12 @@ export function mount(app, ctx) {
     el.innerHTML = `<div class="sheet">
       <h2>${head}</h2>${mine > 1 ? `<p>${L(`You came ${mine} of ${n}.`, `Twoje miejsce: ${mine} z ${n}.`)}</p>` : ''}
       <ol class="score">${S.res.order.map((i, k) => { const p = S.seats[i], q = S.pl[i], rs = ribsOf(i);
-        return `<li class="${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${isMe(i) ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${q.herd.length} friend${q.herd.length === 1 ? '' : 's'} · ${q.wins} minigame win${q.wins === 1 ? '' : 's'} · ${treatsW(q.treats)}`, `przyjaciele: ${q.herd.length} · wygrane minigry: ${q.wins} · ${treatsW(q.treats)}`)}</span>
           <span class="tt-herd">${q.herd.map(f => pet(f, 26)).join('')}</span>${rs.length ? `<span class="tt-rbs">${rs.map(k => `<span class="rib">${esc(RIBBONS[k])}</span>`).join('')}</span>` : ''}</div>
-          <strong><span>${ptsW(S.res.pts[i])}</span></strong>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+          <strong><span>${ptsW(S.res.pts[i])}</span></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Walk the trail again', 'Przejdź szlak jeszcze raz'))}</div></div>`;
-    petPics(el); el.hidden = false; votes = (Rm?.again || []).length;
+    petPics(el); pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

@@ -6,7 +6,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { layout, layoutName, isFree, canPair, findMove, tilesLeft } from './rules.js';
 import { I, clock, loadCss } from './solo.js';
 import { uiz } from '../../uiz.js';
@@ -172,10 +172,10 @@ export function mount(app, ctx) {
       <h2>${crown}${w === S.me ? L('You win!', 'Wygrana!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
       <p>${R.cleared ? L(`Board cleared in ${clock(R.time[w])}`, `Plansza wyczyszczona w ${clock(R.time[w])}`) : L(`Nobody cleared the board. Fewest tiles left wins.`, `Nikt nie wyczyścił planszy. Wygrywa najmniej płytek na planszy.`)}</p>
       <ol class="mj-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'mj-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong>${R.time[i] ? clock(R.time[i]) : L(`${tiles(R.left[i])} left`, `zostało: ${R.left[i]}`)}</strong><small>${L(`${cnt(R.pairs[i], 'pair')}`, `pary: ${R.pairs[i]}`)}${R.mixes[i] ? ' · ' + L(`${cnt(R.mixes[i], 'shuffle')}`, `mieszanie: ${R.mixes[i]}`) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'mj-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong>${R.time[i] ? clock(R.time[i]) : L(`${tiles(R.left[i])} left`, `zostało: ${R.left[i]}`)}</strong><small>${L(`${cnt(R.pairs[i], 'pair')}`, `pary: ${R.pairs[i]}`)}${R.mixes[i] ? ' · ' + L(`${cnt(R.mixes[i], 'shuffle')}`, `mieszanie: ${R.mixes[i]}`) : ''}</small>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

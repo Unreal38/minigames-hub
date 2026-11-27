@@ -8,7 +8,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { readPlay, boardOf, value, alphabet, WILD, FULL_BONUS, CHAL_BONUS } from './rules.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
 import { reefLook, paintReefMotif } from '../../pieceskins.js';
 // your own tile set (Wardrobe kind rt) on the HUD tiles: colours plus the little corner picture
@@ -118,7 +118,8 @@ export function mount(app, ctx) {
 
   // ----- the score list and the name tags -----
   function renderBoard() {
-    setHtml($('rf-board'), S.seats.map((p, i) => `<div class="rf-s profrow${i === S.turn && S.stage === 'play' ? ' now' : ''}${i === S.me ? ' me' : ''}"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="n">${p.n}</span><strong>${S.score[i]}</strong></div>`).join(''));
+    setHtml($('rf-board'), S.seats.map((p, i) => `<div class="${pbRowCls(p.fl)} rf-s profrow${i === S.turn && S.stage === 'play' ? ' now' : ''}${i === S.me ? ' me' : ''}"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="n">${p.n}</span><strong>${S.score[i]}</strong>${rowBg(p.fl)}</div>`).join(''));
+    pbRows($('rf-board'));
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
@@ -303,12 +304,12 @@ export function mount(app, ctx) {
       <p>${sub} ${R.out >= 0 ? L(`${R.out === S.me ? 'You' : nameOf(R.out)} used up every tile.`, R.out === S.me ? 'Wykładasz wszystkie płytki.' : `${nameOf(R.out)} wykłada wszystkie płytki.`) : L('Nobody could score any more.', 'Nikt nie mógł już zdobyć punktów.')}</p>
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], st = p.st;
-        return `<li class="${R.places[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${R.places[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${R.places[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${R.places[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${st.best ? L(`best word ${up(st.best)} (${st.bestPts})`, `najlepsze słowo: ${up(st.best)} (${st.bestPts})`) : L('no words', 'bez słów')}${R.left[i] ? ` · ${L('tiles left', 'zostało')} −${R.left[i]}` : ''}</span></div>
-          <strong><span>${S.score[i]}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${S.score[i]}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

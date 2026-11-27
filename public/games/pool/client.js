@@ -5,7 +5,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, pbRowCls, pbRows, frameCls, rowBg } from '../../cosmetics.js';
 import { N, kindOf, leftOf, sideOf, colOf } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -252,12 +252,12 @@ export function mount(app, ctx) {
       <p>${sub}</p>
       <ol class="score">${order.map((i, k) => {
         const p = S.seats[i], won = sideOf(i) === w;
-        return `<li class="${won ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${won ? 1 : 2}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${pbRowCls(p.fl)} ${won ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${won ? 1 : 2}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${cnt(p.st.pots, 'ball', 'balls')} potted · ${cnt(p.st.fouls, 'foul', 'fouls')}`, `wbite bile: ${p.st.pots} · faule: ${p.st.fouls}`)}</span></div>
-          ${paidHtml(Rm, i)}</li>`;
+          ${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Rematch', 'Rewanż'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

@@ -6,7 +6,7 @@ import { L, ord } from '../../i18n.js';
 import { avatarHtml, OPT, AV_KEYS, AV_COLOR_KEYS, needsOwning, packOf, priceOf, seasonOf, cleanAv } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls, COS, EMOTE_ICO } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, COS, EMOTE_ICO, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { themeName, twistName, FREE_KEYS, POSES, poseName, TOP_COLS, WRITE_MAX, cleanTheme, EMOTE_POSE } from './rules.js';
 import { uiz } from '../../uiz.js';
 
@@ -234,8 +234,9 @@ export function mount(app, ctx) {
     el.hidden = !on; if (!on) return;
     let order = S.seats.map((_, i) => i).filter(i => S.last[i]).sort((a, b) => S.last[b].pts - S.last[a].pts || S.last[b].fives - S.last[a].fives);
     if (!wide() && order.length > 4) order = order.filter((i, k) => k < 3 || i === S.me);
-    setHtml(el, `<h3>${esc(themeName(S.theme))}</h3><ol class="rw-rank">${order.map((i, k) => { const l = S.last[i]; return `<li class="profrow${k === 0 ? ' top' : ''}${i === S.me ? ' mine' : ''}"><i class="dot" style="background:${esc(S.seats[i].color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(S.seats[i].name, S.seats[i].fl)}</b>${stars(l.avg)}<span class="avg">${l.n ? l.avg.toFixed(1) : '–'}</span><em>+${l.pts}</em><span class="tot">${S.tot[i]}</span></li>`; }).join('')}</ol>
+    setHtml(el, `<h3>${esc(themeName(S.theme))}</h3><ol class="rw-rank">${order.map((i, k) => { const l = S.last[i]; return `<li class="${pbRowCls(S.seats[i].fl)} profrow${k === 0 ? ' top' : ''}${i === S.me ? ' mine' : ''}"><i class="dot" style="background:${esc(S.seats[i].color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(S.seats[i].name, S.seats[i].fl)}</b>${stars(l.avg)}<span class="avg">${l.n ? l.avg.toFixed(1) : '–'}</span><em>+${l.pts}</em><span class="tot">${S.tot[i]}</span>${rowBg(S.seats[i].fl)}</li>`; }).join('')}</ol>
       <p class="rw-hint">${S.round + 1 < S.rounds ? L('Next theme in a moment…', 'Za chwilę następny temat…') : L('That was the last round.', 'To była ostatnia runda.')}</p>`);
+    pbRows(el);
   }
 
   function render() {
@@ -309,12 +310,12 @@ export function mount(app, ctx) {
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], best = R.hist.reduce((b, h) => (h.pts[i] > (b?.pts[i] ?? -1) ? h : b), null);
         const note = best && best.pts[i] > 0 ? L(`Best look: ${themeName(best.theme)} +${best.pts[i]}`, `Najlepszy strój: ${themeName(best.theme)} +${best.pts[i]}`) : L('No stars this time', 'Tym razem bez gwiazdek');
-        return `<li class="${R.place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(S.tc?.[i] || p.color, S.looks[i] || p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${R.place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(S.tc?.[i] || p.color, S.looks[i] || p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${note}</span></div>
-          <strong><span>${R.tot[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${R.tot[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>${keep}
       <div class="againbox">${againHtml(ctx, Rm)}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

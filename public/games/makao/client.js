@@ -6,7 +6,7 @@ import { L } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { cardHtml, suitSvg, SUIT_COLS } from '../poker/cards.js';
 import { RANKS, cardLabel } from '../poker/rules.js';
 import { fits, playable, sameRank, rankOf, suitOf, DEMANDS, JACK, ACE, KS } from './rules.js';
@@ -285,13 +285,13 @@ export function mount(app, ctx) {
       <p>${sub} ${L(`${S.res.moves} moves in all.`, `Łącznie ruchów: ${S.res.moves}.`)}</p>
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, left = p.hand || [];
-        return `<li class="${k === 0 ? 'won' : ''}${i === S.res.loser ? ' last' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${k === 0 ? 'won' : ''}${i === S.res.loser ? ' last' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.played} played · ${st.drawn} drawn${st.waited ? ` · waited ${st.waited}×` : ''}${st.caught ? ` · caught ${st.caught}×` : ''}`, `zagrane: ${st.played} · dobrane: ${st.drawn}${st.waited ? ` · postoje: ${st.waited}` : ''}${st.caught ? ` · przyłapania: ${st.caught}` : ''}`)}</span>
           ${left.length ? `<span class="mk-left">${left.slice(0, 12).map(mini).join('')}${left.length > 12 ? `<small>+${left.length - 12}</small>` : ''}</span>` : ''}</div>
-          <strong><span>${left.length ? cardsWord(left.length) : L('Out!', 'Bez kart!')}</span></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${left.length ? cardsWord(left.length) : L('Out!', 'Bez kart!')}</span></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Deal again', 'Rozdaj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

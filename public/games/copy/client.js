@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { seasonLookNow } from '../../season3d.js';
 import * as LY from './layout.js';
 
@@ -252,8 +252,9 @@ export function mount(app, ctx) {
     const order = info.map((_, i) => i).sort((a, b) => S.pts[b] - S.pts[a] || a - b);
     setHtml($('cc-list'), order.map(i => {
       const p = info[i], r = S.role[i], icon = r === 1 ? I.seek : r === 2 ? I.ghost : I.hide;
-      return `<li class="${i === S.me ? 'cc-me ' : ''}r${r}"><span class="ic" title="${ROLE_NAME[r]}">${icon}</span>${avatarHtml(p.color, p.av, 24)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><em>${S.pts[i]}</em></li>`;
+      return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'cc-me ' : ''}r${r}"><span class="ic" title="${ROLE_NAME[r]}">${icon}</span>${avatarHtml(p.color, p.av, 24, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><em>${S.pts[i]}</em>${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows($('cc-list'));
   }
   function renderActs() {
     const role = myRole(), on = playing() && (S.stage === 'hide' || S.stage === 'seek');
@@ -395,10 +396,10 @@ export function mount(app, ctx) {
       <p>${cnt(S.rounds, 'round', 'rounds', 'runda', 'rundy', 'rund')}</p>
       <ol class="cc-podium">${R.order.map((i, n) => { const p = info[i], st = R.stat[i];
         const bits = [st.caught ? L(`found ${cnt(st.caught, 'hider')}`, `znalezieni: ${st.caught}`) : '', L(`hid ${clock(st.lived * 1000)}`, `w ukryciu ${clock(st.lived * 1000)}`), st.found ? L(`caught ${st.found}×`, `wpadki: ${st.found}`) : ''].filter(Boolean).join(' · ');
-        return `<li class="${i === S.me ? 'cc-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong>${cnt(R.pts[i], 'point', 'points', 'punkt', 'punkty', 'punktów')}</strong><small>${bits}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'cc-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong>${cnt(R.pts[i], 'point', 'points', 'punkt', 'punkty', 'punktów')}</strong><small>${bits}</small>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) confetti();
   }
   let votes = 0;

@@ -7,7 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { PTS, TRAP } from './rules.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -110,8 +110,9 @@ export function mount(app, ctx) {
     const order = S.seats.map((_, i) => i);
     setHtml($('td-list'), order.map(i => {
       const p = S.seats[i], st = p.st, now = i === S.turn && S.ph === 'play' && S.stage !== 'start';
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${L(`${shownFinds(i)} finds`, `znaleziska: ${shownFinds(i)}`)}">${gemSvg(1)}${shownFinds(i)}</span></li>`;
+      return `<li class="${pbRowCls(p.fl)} ${now ? 'now' : ''}${i === S.me ? ' td-me' : ''}">${avatarHtml(p.color, p.av, 28, frameCls(p.fl))}<b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b><strong>${shownPts(i)}</strong><span class="td-found" aria-label="${L(`${shownFinds(i)} finds`, `znaleziska: ${shownFinds(i)}`)}">${gemSvg(1)}${shownFinds(i)}</span>${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows($('td-list'));
   }
 
   function renderDock() {
@@ -220,12 +221,12 @@ export function mount(app, ctx) {
       <p>${L(`${myPlace ? (myPlace === 1 ? 'You dug up the most treasure. ' : `You came ${ORD(myPlace)}. `) : ''}Every gem has been found.`, `${myPlace ? (myPlace === 1 ? 'Masz najwięcej wykopanych skarbów. ' : `Twoje miejsce: ${myPlace}. `) : ''}Wszystkie klejnoty znalezione.`)}</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i];
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span class="td-finds">${finds(p.st)}</span></div>
-          ${L(`<strong>${p.pts}<small>points</small></strong>`, `<strong>${p.pts}<small>${word(p.pts, 'point', 'points', 'punkt', 'punkty', 'punktów')}</small></strong>`)}${paidHtml(Rm, i)}</li>`;
+          ${L(`<strong>${p.pts}<small>points</small></strong>`, `<strong>${p.pts}<small>${word(p.pts, 'point', 'points', 'punkt', 'punkty', 'punktów')}</small></strong>`)}${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Dig again', 'Kop jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

@@ -5,7 +5,7 @@ import { L, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -124,8 +124,9 @@ export function mount(app, ctx) {
       const p = S.seats[i], now = i === S.turn && S.ph === 'play';
       const where = moving(i) ? '…' : p.pos >= N ? '🏁' : p.pos ? L(`tile ${p.pos}`, `pole ${p.pos}`) : 'start';
       const short = moving(i) || p.pos >= N || !p.pos ? where : p.pos; // phones: just the number
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 30)}<b>${nameHtml(p.name, p.fl)}</b>${p.nap ? '<em title="' + L('napping', 'drzemie') + '">Zz</em>' : ''}<span><i class="lg">${where}</i><i class="sh">${short}</i></span></li>`;
+      return `<li class="${pbRowCls(p.fl)} ${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${esc(p.name)}">${avatarHtml(p.color, p.av, 30, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}</b>${p.nap ? '<em title="' + L('napping', 'drzemie') + '">Zz</em>' : ''}<span><i class="lg">${where}</i><i class="sh">${short}</i></span>${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows(el);
   }
 
   function renderRoll() {
@@ -205,12 +206,12 @@ export function mount(app, ctx) {
       <p>${myPlace ? (myPlace === 1 ? L('First to the star. ', 'Pierwsze miejsce przy gwieździe. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('That took', 'Gra trwała')} ${cnt(S.res.rounds, 'round', 'rounds', 'rundę', 'rundy', 'rund')}.</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st;
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${cnt(st.ladders, 'ladder', 'ladders', 'drabina', 'drabiny', 'drabin')} · ${cnt(st.snakes, 'snake', 'snakes', 'wąż', 'węże', 'węży')} · ${cnt(st.sixes, 'six', 'sixes', 'szóstka', 'szóstki', 'szóstek')}</span></div>
-          <strong>${p.pos >= N ? '🏁' : p.pos}<small>${p.pos >= N ? L('home', 'meta') : L('tile', 'pole')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong>${p.pos >= N ? '🏁' : p.pos}<small>${p.pos >= N ? L('home', 'meta') : L('tile', 'pole')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

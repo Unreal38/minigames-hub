@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { seasonLookNow } from '../../season3d.js';
 import * as R from './rules.js';
 
@@ -152,8 +152,9 @@ export function mount(app, ctx) {
       const p = info[t], mine = (S.pets || []).map((a, i) => [a, i]).filter(([, i]) => pinfo?.[i]?.[0] === t);
       const up = mine.filter(([a]) => a[4] === 0).length;
       const dots = mine.map(([a]) => `<i class="pd${a[4] ? ' zz' : ''}" style="--f:${a[4] ? 100 : a[3]}%"></i>`).join('');
-      return `<li class="${t === S.me ? 'sg-me ' : ''}${S.out?.[t] ? 'out ' : ''}${t === S.turn && S.ph === 'play' ? 'now' : ''}" style="--tc:${R.teamCol(t)}"><i class="tm" aria-hidden="true"></i>${avatarHtml(p.color, p.av, 24)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span class="pds" title="${L(`${up} awake`, `nie śpi: ${up}`)}">${dots}</span></li>`;
+      return `<li class="${pbRowCls(p.fl)} ${t === S.me ? 'sg-me ' : ''}${S.out?.[t] ? 'out ' : ''}${t === S.turn && S.ph === 'play' ? 'now' : ''}" style="--tc:${R.teamCol(t)}"><i class="tm" aria-hidden="true"></i>${avatarHtml(p.color, p.av, 24, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span class="pds" title="${L(`${up} awake`, `nie śpi: ${up}`)}">${dots}</span>${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows($('sg-list'));
   }
   function renderTray() {
     const show = canThrow() && !!pinfo;
@@ -266,10 +267,10 @@ export function mount(app, ctx) {
       <p>${cnt(S.round, 'round', 'rounds', 'runda', 'rundy', 'rund')}</p>
       <ol class="sg-podium">${Rs.order.map((t, n) => { const p = info[t], st = Rs.st[t];
         const bits = [Rs.awake[t] ? L(`${Rs.awake[t]} awake`, `nie śpi: ${Rs.awake[t]}`) : L('all asleep', 'wszystkie śpią'), L(`fed ${st.hits}%`, `nakarmione: ${st.hits}%`)].join(' · ');
-        return `<li class="${t === S.me ? 'sg-me' : ''}${Rs.place[t] === 1 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${Rs.place[t]}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${t === S.me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong>${cnt(Rs.awake[t], 'pet awake', 'pets awake', 'zwierzak nie śpi', 'zwierzaki nie śpią', 'zwierzaków nie śpi')}</strong><small>${bits}</small>${paidHtml(Rm, t)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${t === S.me ? 'sg-me' : ''}${Rs.place[t] === 1 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${Rs.place[t]}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${t === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong>${cnt(Rs.awake[t], 'pet awake', 'pets awake', 'zwierzak nie śpi', 'zwierzaki nie śpią', 'zwierzaków nie śpi')}</strong><small>${bits}</small>${paidHtml(Rm, t)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
     if (meWon) { confetti(); sfx.win(); } else if (mySeat() >= 0) sfx.lose();
   }
   let votes = 0;

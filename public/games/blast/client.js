@@ -6,7 +6,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { seedLook } from '../../pieceskins.js';
 import { Q, OPEN, ELS, EL_COL, BOON, ARENAS, START, SPD_STEP, CRUMBLE_S, steer, faceOf } from './rules.js';
 
@@ -153,7 +153,8 @@ export function mount(app, ctx) {
   // ----- HUD -----
   const stars = i => { const w = S.wins[i] || 0; return '★'.repeat(Math.min(w, S.goal)) + '☆'.repeat(Math.max(0, S.goal - w)); };
   function renderList() {
-    setHtml($('bb-list'), info.map((p, i) => `<li class="${i === S.me ? 'bb-me ' : ''}${standing(i) ? '' : 'out'}">${avatarHtml(p.color, p.av, 24)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><em aria-label="${cnt(S.wins[i] || 0, 'round win', 'round wins', 'wygrana runda', 'wygrane rundy', 'wygranych rund')}">${stars(i)}</em></li>`).join(''));
+    setHtml($('bb-list'), info.map((p, i) => `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'bb-me ' : ''}${standing(i) ? '' : 'out'}">${avatarHtml(p.color, p.av, 24, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><em aria-label="${cnt(S.wins[i] || 0, 'round win', 'round wins', 'wygrana runda', 'wygrane rundy', 'wygranych rund')}">${stars(i)}</em>${rowBg(p.fl)}</li>`).join(''));
+    pbRows($('bb-list'));
   }
   function renderStats() {
     const my = S.my, el = $('bb-stats');
@@ -261,10 +262,10 @@ export function mount(app, ctx) {
       <p>${cnt(S.round, 'round', 'rounds', 'runda', 'rundy', 'rund')}</p>
       <ol class="bb-podium">${R.order.map(i => { const p = info[i];
         const bits = [L(`lasted past ${cnt(R.surv[i], 'player', 'players')}`, `przetrwanych graczy: ${R.surv[i]}`), R.boons[i] ? L(`${cnt(R.boons[i], 'pet', 'pets')} freed`, `uwolnione zwierzaki: ${R.boons[i]}`) : ''].filter(Boolean).join(' · ');
-        return `<li class="${i === S.me ? 'bb-me' : ''}${R.place[i] === 1 ? ' won' : ''}" style="animation-delay:${R.order.indexOf(i) * 90}ms"><em>${R.place[i]}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong>${cnt(R.wins[i], 'round win', 'round wins', 'wygrana runda', 'wygrane rundy', 'wygranych rund')}</strong><small>${bits}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'bb-me' : ''}${R.place[i] === 1 ? ' won' : ''}" style="animation-delay:${R.order.indexOf(i) * 90}ms"><em>${R.place[i]}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong>${cnt(R.wins[i], 'round win', 'round wins', 'wygrana runda', 'wygrane rundy', 'wygranych rund')}</strong><small>${bits}</small>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
     if (R.place[S.me] === 1) scene?.cheer(S.me);
   }
   let votes = 0;
