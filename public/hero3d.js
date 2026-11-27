@@ -50,7 +50,7 @@ function build() {
   }
   const flyBirds = birds(scene, 9, 4.5, 3, .6);
   const fx = createFx(scene, { max: 200 });
-  const wx = weatherLayer(scene, { size: 26 }); // the world weather (same as Pet Farm): rain, wind, a rainbow behind the isle
+  const wx = weatherLayer(scene, { size: 26, bowFit: true }); // the world weather (same as Pet Farm): rain, wind, a rainbow behind the isle
 
   let av = null, avKey = '', hop = 0, look = 0, lookWant = 0, T = 0, W = 0, Hh = 0;
   const camAt = new THREE.Vector3(0, 3.4, 19.5), target = new THREE.Vector3(0, -.2, 0);

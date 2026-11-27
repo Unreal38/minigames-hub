@@ -70,13 +70,14 @@ const _f = new THREE.Vector3();
 
 // The arch drawn on the inside of a ball of radius 1 round the camera (a ring of directions, like a real rainbow round
 // the point opposite the sun), so it looks right from any angle the camera turns to. Its centre is +z, up is +y; ra is
-// its angular radius. A little more than half a ring; the feet fade into the haze. One mesh, one draw call.
+// its angular radius. Bands keep the same angular width at any size. A little more than half a ring; the feet fade into
+// the haze. One mesh, one draw call.
 function bowRing(ra) {
-  const SEG = 64, pos = [], col = [], idx = [], c = new THREE.Color();
+  const SEG = 72, pos = [], col = [], idx = [], c = new THREE.Color(), bw = Math.min(.03, ra * .045);
   BOW.forEach((hex, i) => {
-    c.set(hex); const r0 = ra * (1 - .04 * (i + 1)), r1 = ra * (1 - .04 * i), base = pos.length / 3;
+    c.set(hex); const r0 = ra - bw * (i + 1), r1 = ra - bw * i, base = pos.length / 3;
     for (let j = 0; j <= SEG; j++) {
-      const f = -.25 + (Math.PI + .5) * j / SEG, k0 = Math.min(1, Math.max(0, (Math.sin(f) + .08) / .42)), al = k0 * k0 * (3 - 2 * k0);
+      const f = -.25 + (Math.PI + .5) * j / SEG, k0 = Math.min(1, Math.max(0, (Math.sin(f) + .2) / .26)), al = k0 * k0 * (3 - 2 * k0);
       for (const r of [r0, r1]) { pos.push(Math.sin(r) * Math.cos(f), Math.sin(r) * Math.sin(f), Math.cos(r)); col.push(c.r, c.g, c.b, al); }
       if (j) { const q = base + (j - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
     }
@@ -85,11 +86,14 @@ function bowRing(ra) {
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); g.setIndex(idx); return g;
 }
 
-// The rainbow as part of the sky (Kuba, 2026-11-27: never stuck to the camera, and it must be easy to see, since it
-// tells players about the Pet Farm rainbow bonus). Fixed in the world like the moon and only carried along as the camera
-// moves. For each camera it settles where that camera first looks, sized to its view and raised so its top shows just
-// under the top of the screen (on the horizon when the camera sees plenty of sky). place(camera, opacity) every frame.
-export function skyBow() {
+// The rainbow as part of the sky (Kuba, 2026-11-27: never stuck to the camera, it should behave like it is far away,
+// and it must be easy to see, since it tells players about the Pet Farm rainbow bonus). Like a real distant rainbow it
+// stands on the horizon in one compass direction and only travels with the camera, so turning, tilting and moving the
+// view never shift it in the sky. Each camera gets it where it first looks, as wide as most of its view. A camera that
+// looks steeply down sees the ground, not the sky, so it sees the rainbow only once tilted up (like the real thing).
+// fit: true is for a camera that never moves and shows little sky (the hub's hero isle): the arch is lowered so its top
+// sits just under the top of that view. place(camera, opacity) every frame.
+export function skyBow({ fit = false } = {}) {
   const bow = new THREE.Group(), at = new WeakMap(), mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, fog: false, depthWrite: false, side: THREE.DoubleSide });
   const rings = new Map(); // one ring per size (cameras differ), kept for reuse
   const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat); mesh.renderOrder = -7; mesh.frustumCulled = false; bow.add(mesh);
@@ -99,8 +103,8 @@ export function skyBow() {
     if (!a) {
       camera.getWorldDirection(_f);
       const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
-      const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.round(Math.min(.52, Math.max(.21, hfov * .42)) * 50) / 50;
-      const el = Math.max(-1.05, Math.min(-.035, pitch + half - .09 - A));
+      const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.round(Math.min(.62, Math.max(.3, hfov * .4)) * 50) / 50;
+      const el = fit ? Math.max(-1.05, Math.min(-.04, pitch + half - .09 - A)) : -.04; // just under the horizon, so the feet stand on it
       _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
       if (!rings.has(A)) rings.set(A, bowRing(A));
       a = { yaw: Math.atan2(_f.x, _f.z), el, g: rings.get(A) }; at.set(camera, a);
@@ -114,14 +118,14 @@ export function skyBow() {
   return bow;
 }
 
-export function weatherLayer(scene, { size = 0 } = {}) {
+export function weatherLayer(scene, { size = 0, bowFit = false } = {}) {
   const root = new THREE.Group(); root.name = 'weather'; scene.add(root);
   const share = SHARE[gfx()] || 1;
   const common = () => ({ uT: { value: 0 }, uS: { value: 20 }, uC: { value: new THREE.Vector3() }, uNear: { value: 3 }, uA: { value: 0 } });
   const R = { ...common(), uLen: { value: .6 }, uFall: { value: 11 }, uDrift: { value: -1.2 }, uWave: { value: 0 }, uCol: { value: new THREE.Color('#a8c4e4') } };
   const W = { ...common(), uLen: { value: 2.4 }, uFall: { value: .25 }, uDrift: { value: 9 }, uWave: { value: .25 }, uCol: { value: new THREE.Color('#ffffff') } };
   const rain = streaks(Math.round(1300 * share), R), wind = streaks(Math.round(70 * share), W);
-  const bow = skyBow();
+  const bow = skyBow({ fit: bowFit });
   root.add(rain, wind, bow);
   rain.visible = wind.visible = false;
 
