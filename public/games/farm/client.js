@@ -835,8 +835,8 @@ export function mount(app, ctx) {
       const trips = Object.entries(TRIPS).filter(([k]) => tripFits(panel.zone, k)).map(([k, tr]) => `<button type="button" data-a="trip" data-trip="${k}" aria-pressed="${panel.trip === k}">${tr.name}<small>${span(tr.min)}</small></button>`).join('');
       // a short tag under each pet instead of a long note, so every tile stays the same small height; the full sentence is its tooltip
       const petTag = p => { const busy = busyFor(p, 'send'); if (busy) return '';
-        if (F.train.ids.includes(p.id)) return `<span class="ptag warn" title="${L('Training now. Sending it ends the training.', 'Teraz trenuje. Wyprawa przerwie trening.')}">${L('stops training', 'przerwie trening')}</span>`;
-        if (Object.values(F.work || {}).includes(p.id)) return `<span class="ptag warn" title="${L('Helping at a building now. Sending it ends that.', 'Teraz pomaga przy budynku. Wyprawa to przerwie.')}">${L('stops work', 'przerwie pracę')}</span>`;
+        if (F.train.ids.includes(p.id)) return `<span class="ptag warn" title="${L('Training now. Sending it ends the training.', 'Teraz trenuje. Wyprawa przerwie trening.')}">${L('training', 'trenuje')}</span>`;
+        if (Object.values(F.work || {}).includes(p.id)) return `<span class="ptag warn" title="${L('Helping at a building now. Sending it ends that.', 'Teraz pomaga przy budynku. Wyprawa to przerwie.')}">${L('working', 'pracuje')}</span>`;
         return atHome(z, p.sp, elOf(p)) ? `<span class="ptag good" title="${L('Its element matches this island: it brings back 25% more.', 'Jego żywioł pasuje do tej wyspy: przyniesie 25% więcej.')}">${L('+25% here', '+25% tutaj')}</span>` : ''; };
       const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => `<button type="button" class="pickpet${busyFor(p, 'send') ? ' off' : ''}" data-a="party" data-id="${p.id}" data-why="${busyFor(p, 'send')}" aria-pressed="${panel.pets.includes(p.id)}">
         ${petRow(p, busyFor(p, 'send') ? ' · ' + busyFor(p, 'send') : '')}${petTag(p)}</button>`).join('');
