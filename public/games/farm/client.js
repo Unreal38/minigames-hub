@@ -167,6 +167,7 @@ export function mount(app, ctx) {
   const HOUSE_OPENS = { 5: [() => L('land up to 24 by 24', 'ziemię do 24 na 24')], [CHARM_HOUSE]: [() => L('Nest charms', 'amulety do Gniazda')] };
   for (const k of Object.keys(CHARMS)) if (charmHouse(k) > CHARM_HOUSE) (HOUSE_OPENS[charmHouse(k)] ||= []).push(() => CHARMS[k].name);
   // Level caps and battle experience (2026-11-27): the farmhouse sets how far pets grow, battles teach grown pets.
+  const treatCap = () => Math.min(TREAT_LV, F.lvCap || MAX_LV); // treats give experience below this level
   const capped = p => p.lv < MAX_LV && p.lv >= (F?.lvCap || MAX_LV) && p.xp >= xpFor(p.lv); // at the cap with a full bar
   const fightsLine = () => { const x = F.fights; return x.arena > 0 ? L(`Matches with coins left today: ${x.arena}.`, `Mecze z monetami na dziś: ${x.arena}.`) : x.arenaXp > 0 ? L(`No coins left today, but ${x.arenaXp} more matches still give experience.`, `Na dziś koniec monet, ale jeszcze ${x.arenaXp} meczów da doświadczenie.`) : L('Nothing left to earn today, so matches are just for fun.', 'Na dziś nie ma już nic do zdobycia, więc mecze są tylko dla zabawy.'); };
   function xpNote(mode) { // what a fight teaches each pet, and what is left today
@@ -404,7 +405,7 @@ export function mount(app, ctx) {
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Helper at the ${ITEMS[type].name}`, `Pomocnik: ${ITEMS[type].name}`)}</h2>
         <p>${L(`One ${elTag(w.el)} pet can work here. ${w.what('X')}, where X grows with the pet's level and its ${STAR_NAME[w.stat]} stars. A pet has one job at a time: sending it exploring, training or to the Nest ends its work here.`, `Może tu pracować jeden zwierzak żywiołu ${elTag(w.el)}. ${w.what('X')}, a X rośnie z poziomem zwierzaka i jego gwiazdkami cechy ${STAR_NAME[w.stat]}. Zwierzak ma jedno zajęcie naraz: wyprawa, trening albo Gniazdo kończą jego pracę tutaj.`)}</p>
         <div class="party">${pets || `<p class="hint">${L(`You have no ${w.el} pets yet. ${Object.values(ZONES).filter(z => z.el === w.el).slice(0, 2).map(z => z.name).join(' and ')} are good places to look.`, `Nie masz jeszcze zwierzaków żywiołu ${elName(w.el)}. Warto ich poszukać tutaj: ${Object.values(ZONES).filter(z => z.el === w.el).slice(0, 2).map(z => z.name).join(', ')}.`)}</p>`}</div>
-        <div class="row end">${now ? `<button type="button" class="btn w" data-a="workoff" data-type="${type}">${L(`Send ${esc(now.name)} home`, `Odeślij do domu: ${esc(now.name)}`)}</button>` : ''}<button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
+        <div class="row end">${now ? `<button type="button" class="btn w" data-a="workoff" data-type="${type}">${L(`Send ${esc(now.name)} home`, `Odeślij do domu: ${esc(now.name)}`)}</button>` : ''}${panel.back === 'cook' ? `<button type="button" class="btn w" data-a="cookopen">${L('Back to the Kitchen', 'Wróć do Kuchni')}</button>` : ''}<button type="button" class="btn m" data-a="shut">${L(`Close`, `Zamknij`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'train') {
@@ -465,11 +466,46 @@ export function mount(app, ctx) {
         <div class="zones">${rows}</div><div class="row end">${panel.back ? `<button type="button" class="btn w" data-a="charmback">${L(`Back to the Nest`, `Wróć do Gniazda`)}</button>` : ''}<button type="button" class="btn big m" data-a="${panel.back ? 'charmback' : 'shut'}">${L(`Done`, `Gotowe`)}</button></div></div>`;
       return;
     }
-    if (panel.kind === 'cook') {
-      const kLv = Math.max(0, ...F.items.filter(i => i.type === 'kitchen').map(lvOf));
-      const rows = Object.entries(RECIPES).filter(([, r]) => F.house >= (r.house || 0)).map(([k, r]) => `<button type="button" class="zone${canAfford(F.inv, r.cost) && kLv >= (r.lv || 1) ? '' : ' off'}" data-a="cook" data-what="${k}" data-lv="${kLv >= (r.lv || 1) ? '' : r.lv}">${matIcon(k, 34)}<b>${r.name}</b><small>${kLv >= (r.lv || 1) ? r.desc : L(`Needs a level ${r.lv} Kitchen.`, `Wymaga Kuchni na poziomie ${r.lv}.`)}</small><span class="cost">${costHtml(r.cost, F.inv)}</span><small>${L(`You have ${F.inv[k] || 0}`, `Masz: ${F.inv[k] || 0}`)}</small></button>`).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>${L(`Kitchen`, `Kuchnia`)}</h2><p>${L(`You have ${F.inv.berries || 0} berries${F.inv.sunberry ? ` and ${F.inv.sunberry} sunberries` : ''}. To feed a treat, tap a pet on your farm.`, `Masz jagody: ${F.inv.berries || 0}${F.inv.sunberry ? ` i słoneczne jagody: ${F.inv.sunberry}` : ''}. Żeby podać smakołyk, dotknij zwierzaka na farmie.`)}</p>
-        <div class="zones">${rows}</div><div class="row end"><button type="button" class="btn big m" data-a="shut">${L(`Done`, `Gotowe`)}</button></div></div>`;
+    if (panel.kind === 'cook') { // the Kitchen: recipes grouped by what they are for, each with its own Cook and Give buttons
+      const kLv = Math.max(0, ...F.items.filter(i => i.type === 'kitchen').map(lvOf)), help = helperOf('kitchen'), hut = F.house || 1;
+      const grow = treatCap(), growing = F.pets.filter(p => !p.lodge && p.lv < grow).length, tired = F.pets.filter(p => !p.lodge && p.rest > 0).length;
+      const far = Object.values(TRIPS).filter(t => t.fuel?.pack).map(t => t.fuel.pack), times = (c, n) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v * n]));
+      const GROUPS = [
+        { is: r => r.xp, name: L('To grow up', 'Na wzrost'), why: L(`Young pets gain experience from treats until level ${TREAT_LV}, when they are grown up. Grown-up pets learn from battles, trips and training instead.`, `Młode zwierzaki zdobywają doświadczenie z przysmaków aż do poziomu ${TREAT_LV}, kiedy są już dorosłe. Dorosłe uczą się w bitwach, na wyprawach i na treningu.`),
+          who: growing ? L(`${cnt(growing, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')} can still grow from treats.`, `Z przysmaków może jeszcze rosnąć: ${cnt(growing, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')}.`) : L('None of your pets can grow from treats right now.', 'Żaden twój zwierzak nie może teraz rosnąć z przysmaków.') },
+        { is: r => r.heal, name: L('For battles', 'Do bitew'), why: L('A pet drinks one in a battle to win back health. One a battle.', 'Zwierzak wypija go w bitwie i odzyskuje zdrowie. Jeden na bitwę.') },
+        { is: r => r.rest, name: L('For the Nest', 'Do Gniazda'), why: L('A pet back from the Nest is tired for a while. A tonic makes it rested at once, so it can go again.', 'Zwierzak po Gnieździe jest przez chwilę zmęczony. Tonik od razu przywraca mu siły, więc może wrócić do Gniazda.'),
+          who: tired ? L(`${cnt(tired, 'pet is', 'pets are', 'zwierzak jest', 'zwierzaki są', 'zwierzaków jest')} tired now.`, `Zmęczone teraz: ${cnt(tired, 'pet', 'pets', 'zwierzak', 'zwierzaki', 'zwierzaków')}.`) : '' },
+        { is: r => !r.xp && !r.heal && !r.rest, name: L('For far expeditions', 'Na dalekie wyprawy'), why: L(`Every far expedition takes ${Math.min(...far)} to ${Math.max(...far)} Trail Packs for the way.`, `Każda daleka wyprawa zabiera na drogę od ${Math.min(...far)} do ${Math.max(...far)} sztuk Prowiantu.`) },
+      ];
+      const gain = r => r.xp ? L(`+${r.xp} experience`, `+${r.xp} doświadczenia`) : r.heal ? L(`+${Math.round(r.heal * 100)}% health`, `+${Math.round(r.heal * 100)}% zdrowia`) : r.rest ? L('Rested at once', 'Od razu wypoczęty') : L('Food for the way', 'Jedzenie na drogę');
+      const row = ([k, r]) => {
+        const lock = kLv < (r.lv || 1) ? L(`Needs a level ${r.lv} Kitchen`, `Wymaga Kuchni na poziomie ${r.lv}`) : hut < (r.house || 0) ? L(`Needs a level ${r.house} farmhouse`, `Wymaga domu na poziomie ${r.house}`) : '';
+        const have = F.inv[k] || 0, can = n => canAfford(F.inv, times(r.cost, n)), feedable = (r.xp || r.rest) && have;
+        return `<div class="kitrow${lock ? ' lock' : ''}"><span class="kitpic">${matIcon(k, 40)}${have ? `<em>${have}</em>` : ''}</span>
+          <div class="kitinfo"><b>${r.name}</b><span class="kitgain">${gain(r)}</span><span class="cost">${lock ? `<span class="kitlocked">${lock}</span>` : costHtml(r.cost, F.inv)}</span></div>
+          ${lock ? '' : `<div class="kitbtns"><button type="button" class="btn sm m${can(1) ? '' : ' off'}" data-a="cook" data-what="${k}" data-n="1">${L('Cook', 'Ugotuj')}</button>${can(5) ? `<button type="button" class="btn sm w" data-a="cook" data-what="${k}" data-n="5">×5</button>` : ''}${feedable ? `<button type="button" class="btn sm w" data-a="feedpick" data-what="${k}">${L('Give…', 'Podaj…')}</button>` : ''}</div>`}</div>`;
+      };
+      const shown = Object.entries(RECIPES);
+      const used = [...new Set(Object.values(RECIPES).flatMap(r => Object.keys(r.cost)))];
+      box.innerHTML = `<div class="panel tripp pfkit"><div class="kithead"><h2>${L('Kitchen', 'Kuchnia')}</h2><span class="kitlv">${L(`Level ${kLv}`, `Poziom ${kLv}`)}</span>
+          ${help ? `<button type="button" class="kithelp" data-a="workopen" data-type="kitchen" data-back="cook">${face(help)}<span>${L(`<b>${esc(help.name)}</b> at the oven: ${workPct(help, 'kitchen')}% chance of a free second treat`, `<b>${esc(help.name)}</b> przy piecu: ${workPct(help, 'kitchen')}% szans na drugi przysmak za darmo`)}</span></button>`
+            : `<button type="button" class="kithelp none" data-a="workopen" data-type="kitchen" data-back="cook"><span>${L(`An ${elTag('Ember')} pet at the oven sometimes bakes a second treat for free. <b>Choose a helper</b>`, `Zwierzak żywiołu ${elTag('Ember')} przy piecu czasem piecze drugi przysmak za darmo. <b>Wybierz pomocnika</b>`)}</span></button>`}</div>
+        <div class="kitpantry"><span class="hint">${L('In the pantry', 'W spiżarni')}</span>${used.map(k => mat(k, F.inv[k] || 0)).join('')}</div>
+        ${GROUPS.map(g => { const list = shown.filter(([, r]) => g.is(r)); return list.length ? `<section class="kitgrp"><h3>${g.name}</h3><p class="hint">${g.why}${g.who ? ` <b>${g.who}</b>` : ''}</p>${list.map(row).join('')}</section>` : ''; }).join('')}
+        <div class="row end"><button type="button" class="btn big m" data-a="shut">${L('Done', 'Gotowe')}</button></div></div>`;
+      return;
+    }
+    if (panel.kind === 'feed') { // give a treat from the Kitchen: pick the pet
+      const k = panel.what, r = RECIPES[k], have = F.inv[k] || 0, grow = treatCap();
+      const why = p => p.lodge ? L('in the Pet Lodge', 'w Schronisku') : outAll().includes(p.id) ? L('exploring', 'na wyprawie') : r.rest ? (p.rest > 0 ? (inNest(p.id) ? L('in the Nest', 'w Gnieździe') : '') : L('not tired', 'nie jest zmęczony'))
+        : p.lv >= MAX_LV ? L('fully grown', 'w pełni dorosły') : p.lv >= TREAT_LV ? L('grown up', 'dorosły') : p.lv >= grow || capped(p) ? L('at the level cap', 'limit poziomu') : '';
+      const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => ({ p, out: why(p) })).sort((a, b) => (a.out ? 1 : 0) - (b.out ? 1 : 0));
+      const tile = ({ p, out }) => `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="feed" data-what="${k}" data-id="${p.id}" data-why="${out}">${petRow(p, out ? ' · ' + out : '')}${!out && r.xp ? `<span class="xp mini"><i style="width:${Math.min(100, Math.round(p.xp / xpFor(p.lv) * 100))}%"></i></span>` : ''}</button>`;
+      box.innerHTML = `<div class="panel tripp pfkit"><div class="kithead"><h2>${L(`Who gets a ${r.name}?`, `Komu dać: ${r.name}?`)}</h2><span class="kitlv">${matIcon(k, 22)} ${L(`You have ${have}`, `Masz: ${have}`)}</span></div>
+        <p class="hint">${r.xp ? L(`Each one gives ${r.xp} experience. Pets from level ${TREAT_LV} on are grown up and learn from battles, trips and training instead.`, `Każdy daje ${r.xp} doświadczenia. Zwierzaki od poziomu ${TREAT_LV} są dorosłe i uczą się w bitwach, na wyprawach i na treningu.`) : r.desc}</p>
+        <div class="party">${pets.map(tile).join('')}</div>
+        <div class="row end"><button type="button" class="btn w" data-a="cookopen">${L('Back to the Kitchen', 'Wróć do Kuchni')}</button><button type="button" class="btn big m" data-a="shut">${L('Done', 'Gotowe')}</button></div></div>`;
       return;
     }
     if (panel.kind === 'swap') { // the Workshop swaps one material for another: pick what you give and what you get, see the deal, press Swap
@@ -1177,9 +1213,10 @@ export function mount(app, ctx) {
     else if (a === 'swgive' || a === 'swget') { const m = b.dataset.mat, mine = a === 'swgive' ? 'give' : 'get', other = mine === 'give' ? 'get' : 'give'; if (panel[other] === m) panel[other] = panel[mine] && panel[mine] !== m ? panel[mine] : mine === 'get' ? Object.keys(WORTH).filter(x => x !== m && STORED.includes(x)).sort((x, y) => (F.inv[y] || 0) - (F.inv[x] || 0))[0] : null; panel[mine] = m; sfx.click(); sync(); }
     else if (a === 'swflip') { [panel.give, panel.get] = [panel.get, panel.give]; sfx.click(); sync(); }
     else if (a === 'swn') { panel.n = Math.max(1, +b.dataset.n || 1); sfx.click(); sync(); }
-    else if (a === 'cook') { if (b.dataset.lv) return ctx.toast(L(`Improve the Kitchen to level ${b.dataset.lv} for that recipe.`, `Ten przepis wymaga Kuchni na poziomie ${b.dataset.lv}.`), true); if (b.classList.contains('off')) return ctx.toast(L('Not enough for that yet. Garden Plots grow more every hour, and better plots grow Sunberries.', 'Na to jeszcze nie wystarczy. Grządki co godzinę dają więcej, a lepsze grządki dają słoneczne jagody.'), true); ctx.send({ t: 'cook', what: b.dataset.what }); }
+    else if (a === 'cook') { if (b.dataset.lv) return ctx.toast(L(`Improve the Kitchen to level ${b.dataset.lv} for that recipe.`, `Ten przepis wymaga Kuchni na poziomie ${b.dataset.lv}.`), true); if (b.classList.contains('off')) return ctx.toast(L('Not enough for that yet. Garden Plots grow more every hour, and better plots grow Sunberries.', 'Na to jeszcze nie wystarczy. Grządki co godzinę dają więcej, a lepsze grządki dają słoneczne jagody.'), true); ctx.send({ t: 'cook', what: b.dataset.what, n: +b.dataset.n || 1 }); }
     else if (a === 'swdo') { if (panel?.give && panel.get) ctx.send({ t: 'swap', give: panel.give, get: panel.get, n: panel.n || 1 }); }
-    else if (a === 'feed') ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id });
+    else if (a === 'feedpick') { panel = { kind: 'feed', what: b.dataset.what }; card = null; sync(); }
+    else if (a === 'feed') { if (b.classList.contains('off')) return ctx.toast(L(`That pet cannot have it now: ${b.dataset.why}.`, `Ten zwierzak nie może tego teraz dostać: ${b.dataset.why}.`), true); ctx.send({ t: 'feed', what: b.dataset.what, pet: b.dataset.id }); }
     else if (a === 'mail') { panel = { kind: 'mail' }; card = null; sync(); }
     else if (a === 'album') { panel = { kind: 'album' }; card = null; sync(); }
     else if (a === 'journal') { panel = { kind: 'journal' }; card = null; sync(); }
@@ -1310,7 +1347,7 @@ export function mount(app, ctx) {
     else if (a === 'cancel') scene?.ghostCancel();
     else if (a === 'ok') confirmGhost();
     else if (a === 'upgrade') { const it = F.items.find(x => x.id === +b.dataset.id); if (it && !canAfford(F.inv, upCost(it))) return ctx.toast(L('Not enough materials for that yet.', 'Na to jeszcze nie wystarczy materiałów.'), true); ctx.send({ t: 'upgrade', id: +b.dataset.id }); }
-    else if (a === 'workopen') { panel = { kind: 'work', type: b.dataset.type }; card = null; sync(); }
+    else if (a === 'workopen') { panel = { kind: 'work', type: b.dataset.type, back: b.dataset.back }; card = null; sync(); }
     else if (a === 'workpick') { if (b.classList.contains('off')) return ctx.toast(L(`That pet is ${b.dataset.why}.`, `Ten zwierzak jest teraz zajęty: ${b.dataset.why}.`), true); ctx.send({ t: 'work', type: panel.type, id: b.dataset.id }); }
     else if (a === 'workoff') ctx.send({ t: 'work', type: b.dataset.type });
     else if (a === 'trainopen') { panel = { kind: 'train', pets: F.train.ids.filter(freeFor('train')) }; card = null; sync(); }
@@ -1409,7 +1446,8 @@ export function mount(app, ctx) {
     else if (m.did === 'claim') { sfx.join(); ctx.toast(L('You got ', 'Dostajesz: ') + Object.entries(m.got).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') + '.'); }
     else if (m.did === 'duel') { sfx.join(); panel = null; ctx.toast(L(`Invitation sent. The battle starts as soon as ${esc(V?.name || 'they')} says yes.`, `Zaproszenie wysłane. Bitwa zacznie się, gdy tylko ${esc(V?.name || 'druga strona')} się zgodzi.`)); }
     else if (m.did === 'pick') { sfx.join(); card = null; ctx.toast(L(`You picked ${m.got} berries${m.wet ? ` (${m.wet} extra thanks to the rain)` : ''}${m.sun ? ` and ${m.sun} ${m.sun > 1 ? 'sunberries' : 'sunberry'}` : ''}.`, `Zebrane jagody: ${m.got}${m.wet ? ` (${m.wet} dodatkowo dzięki deszczowi)` : ''}${m.sun ? ` i słoneczne jagody: ${m.sun}` : ''}.`)); }
-    else if (m.did === 'cook') { sfx.set(); scene?.work('kitchen'); ctx.toast(m.extra ? L(`${esc(helperOf('kitchen')?.name || 'Your helper')} baked a second one for free! Two ${RECIPES[m.what].name}s are ready.`, `${esc(helperOf('kitchen')?.name || 'Twój pomocnik')} piecze drugą porcję za darmo! Gotowe: ${RECIPES[m.what].name} × 2.`) : L(`One ${RECIPES[m.what].name} is ready.`, `Gotowe: ${RECIPES[m.what].name}.`)); }
+    else if (m.did === 'cook') { sfx.set(); scene?.work('kitchen'); const nm = RECIPES[m.what].name, made = m.made || 1 + (m.extra ? 1 : 0) + (m.twice ? 1 : 0), free = +m.extra || 0;
+      ctx.toast(free ? L(`${esc(helperOf('kitchen')?.name || 'Your helper')} baked ${free > 1 ? `${free} more` : 'one more'} for free! ${nm} × ${made} ready.`, `${esc(helperOf('kitchen')?.name || 'Twój pomocnik')} piecze za darmo ${free > 1 ? `jeszcze ${free}` : 'jeszcze jeden'}! Gotowe: ${nm} × ${made}.`) : made > 1 ? L(`${nm} × ${made} ready.`, `Gotowe: ${nm} × ${made}.`) : L(`One ${nm} is ready.`, `Gotowe: ${nm}.`)); }
     else if (m.did === 'swap') { sfx.join(); scene?.work('workshop'); ctx.toast(L(`Swapped ${m.pay} ${MATS[m.give].toLowerCase()} for ${m.got} ${MATS[m.get].toLowerCase()}.`, `Wymiana gotowa: ${MATS[m.give].toLowerCase()} (${m.pay}) za ${MATS[m.get].toLowerCase()} (${m.got}).`)); }
     else if (m.did === 'feed') { sfx.win(); const p = F.pets.find(x => x.id === m.pet); scene?.cheer(m.pet); ctx.toast(m.what === 'tonic' ? L(`${esc(p.name)} feels fresh and rested.`, `${esc(p.name)} ma znów pełno sił.`) : L(`${esc(p.name)} loved it.${m.grew ? (m.grew.form ? ` It grew up into its ${FORMS[m.grew.form].toLowerCase()} form!` : ` It reached level ${m.grew.lv}!`) : ''}`, `${esc(p.name)}: pycha!${m.grew ? (m.grew.form ? ` Nowa forma: ${FORMS[m.grew.form].toLowerCase()}!` : ` Poziom ${m.grew.lv}!`) : ''}`)); }
     else if (m.did === 'upgrade') { sfx.win(); scene?.pop(m.id); const it = F.items.find(x => x.id === m.id); ctx.toast(L(`${ITEMS[it.type].name} is now level ${lvOf(it)}.`, `${ITEMS[it.type].name}: teraz poziom ${lvOf(it)}.`)); }

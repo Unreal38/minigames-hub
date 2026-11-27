@@ -7,7 +7,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
-import { ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
+import { COOK_MAX, ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, CHARMS, charmHouse, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, upBlock, museumFill, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt, tripFits, FAR_VARIANT, lvCap, TREAT_LV, BATTLE_XP, FIRST_WIN_X, gapX, teamLv } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
@@ -685,11 +685,15 @@ export function handle(p, a, reply) {
     if (!countOf(f, 'kitchen')) return no('Build a Kitchen first.');
     if (topLv(f, 'kitchen') < (r.lv || 1)) return no(`That recipe needs a level ${r.lv} Kitchen.`);
     if ((f.house || 1) < (r.house || 0)) return no('That recipe opens with a bigger farmhouse.');
-    if (!canAfford(f.inv, r.cost)) return no('Not enough for that recipe yet.');
-    const extra = Math.random() < boost(f, 'kitchen'); // the helper at the oven sometimes bakes a second one
-    const twice = buffUse(f, 'kitchen'); // a Lucky Wheel booster doubles the batch
-    pay(f.inv, r.cost); f.inv[a.what] = (f.inv[a.what] || 0) + 1 + extra + twice;
-    return ok({ did: 'cook', what: a.what, extra, twice });
+    const n = Math.max(1, Math.min(COOK_MAX, a.n | 0)), all = Object.fromEntries(Object.entries(r.cost).map(([k, v]) => [k, v * n])); // cook up to COOK_MAX at once
+    if (!canAfford(f.inv, all)) return no('Not enough for that recipe yet.');
+    let extra = 0, twice = 0;
+    for (let i = 0; i < n; i++) {
+      extra += Math.random() < boost(f, 'kitchen'); // the helper at the oven sometimes bakes a second one
+      twice += buffUse(f, 'kitchen'); // a Lucky Wheel booster doubles one bake per use
+    }
+    pay(f.inv, all); f.inv[a.what] = (f.inv[a.what] || 0) + n + extra + twice;
+    return ok({ did: 'cook', what: a.what, extra, twice, made: n + extra + twice });
   }
   if (a.t === 'feed') { // a treat for one pet: experience straight away
     const r = own(RECIPES, a.what), pet = f.pets.find(x => x.id === a.pet); if (!(r?.xp || r?.rest) || !pet) return;
