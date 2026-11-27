@@ -8,7 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, pbRowCls, pbRows, frameCls, rowBg } from '../../cosmetics.js';
 import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
-import { MM, FULL, SET_BONUS, colOf, kindName, startPull, advance, isClear } from './rules.js';
+import { MM, FULL, SET_BONUS, colOf, kindName, startPull, advance, isClear, atRisk } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -80,7 +80,7 @@ export function mount(app, ctx) {
     if (!canPull()) return null;
     const stick = pile[id]; if (!stick || stick.g) return null;
     const st = startPull(pile, stick, S.carry?.[id] || 0);
-    held = { id, st, at: performance.now(), clear: false }; queue = []; peek = null;
+    held = { id, st, at: performance.now(), clear: false, risk: riskOf(id, st) }; queue = []; peek = null;
     ctx.act({ t: 'pick', id });
     sfx.tick(); paintGlow(); renderBar();
     return st;
@@ -108,15 +108,24 @@ export function mount(app, ctx) {
     held = null; scene?.release(); paintGlow(); paintMeter(); renderBar();
   }
   function endHeld() { held = null; waiting = 0; scene?.release(); paintGlow(); paintMeter(); }
+  // What pulling stick `id` puts at risk (atRisk: the same rules the server judges by). Worked out once per stick
+  // and pile, never every frame.
+  let riskKey = '', riskMemo = null;
+  function riskOf(id, st) {
+    const key = pileKey() + ':' + id;
+    if (key !== riskKey) { riskKey = key; riskMemo = atRisk(pile, pile[id], st); }
+    return riskMemo;
+  }
+  const pileKey = () => S.gid + '/' + S.pileN + '/' + pile.reduce((n, p) => n + (p.g ? 1 : 0), 0);
+  const glowOf = (id, r, hov) => ({ [hov ? 'hov' : 'sel']: id, fall: S.hints ? r.fall : [], touch: S.hints ? r.touch : [] });
   function hover(id) {
-    peek = null;
-    if (id >= 0 && S?.hints && pile?.[id] && !pile[id].g) { const st = startPull(pile, pile[id]); peek = { sel: id, top: st.onTop, touch: st.touch }; }
+    peek = id >= 0 && pile?.[id] && !pile[id].g ? glowOf(id, riskOf(id), true) : null;
     paintGlow(); renderBar();
   }
   function paintGlow() {
     if (!scene) return;
-    if (held) scene.setGlow({ sel: held.id, top: S.hints ? held.st.onTop : [], touch: S.hints ? held.st.touch : [] });
-    else if (S?.pull) scene.setGlow({ sel: S.pull.id, top: [], touch: [] });
+    if (held) scene.setGlow(glowOf(held.id, held.risk));
+    else if (S?.pull && pile?.[S.pull.id] && !pile[S.pull.id].g) scene.setGlow(glowOf(S.pull.id, riskOf(S.pull.id)));
     else scene.setGlow(peek);
   }
   function paintMeter() {
@@ -182,10 +191,10 @@ export function mount(app, ctx) {
     else if (S.turn === S.me) {
       if (my.bot) html = L('A bot is playing for you. Welcome back!', 'Bot gra za ciebie. Witaj z powrotem!');
       else if (held) {
-        const s = pile[held.id], top = held.st.onTop.length, side = held.st.touch.length - top;
+        const s = pile[held.id], top = held.risk.fall.length, side = held.risk.touch.length;
         if (held.clear) html = L('<b>It is free!</b> Let go to take it.', '<b>Wolna!</b> Puść, żeby ją zabrać.');
-        else if (!S.hints) html = L(`<b>${kindName(s)}</b> · ${cnt(s.pts, 'point', 'points')}. Pull it out slowly.`, `<b>${kindName(s)}</b> · ${cnt(s.pts, 'punkt', 'punkty', 'punktów')}. Wyciągaj powoli.`);
-        else html = `<b>${kindName(s)}</b> · ${L(cnt(s.pts, 'point', 'points'), cnt(s.pts, 'punkt', 'punkty', 'punktów'))}. ` + (top ? L(`${cnt(top, 'stick lies', 'sticks lie')} on top of it: risky!`, `Leży na niej: ${cnt(top, 'bierka', 'bierki', 'bierek')}. Ryzykowne!`) : side ? L(`It touches ${cnt(side, 'stick', 'sticks')}. Pull slowly.`, `Dotyka: ${cnt(side, 'bierka', 'bierki', 'bierek')}. Wyciągaj powoli.`) : L('Nothing touches it.', 'Nic jej nie dotyka.'));
+        else if (!S.hints) html = L(`<b>${kindName(s)}</b> · ${cnt(s.pts, 'point', 'points')}. Pull it out slowly.`, `<b>${kindName(s)}</b> · ${cnt(s.pts, 'punkt', 'punkty', 'punkt', 'punkty', 'punktów')}. Wyciągaj powoli.`);
+        else html = `<b>${kindName(s)}</b> · ${L(cnt(s.pts, 'point', 'points'), cnt(s.pts, 'punkt', 'punkty', 'punkt', 'punkty', 'punktów'))}. ` + (top ? L(`<em class="bk-fall">${cnt(top, 'stick', 'sticks')}</em> would move with it: risky!`, `Ruszy się z nią: <em class="bk-fall">${cnt(top, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}</em>. Ryzykowne!`) : side ? L(`It touches ${cnt(side, 'stick', 'sticks')}. Pull slowly.`, `Dotyka: ${cnt(side, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}. Wyciągaj powoli.`) : L('Nothing touches it.', 'Nic jej nie dotyka.'));
       }
       else if (!turnOpen() || waiting) html = L('You are up next.', 'Zaraz twoja kolej.');
       else if (liftOn && showLift) html = L('<b>Lifting.</b> Drag a stick upwards to raise it out of the pile. One lift a turn.', '<b>Podnoszenie.</b> Przeciągnij bierkę w górę, żeby unieść ją ze stosu. Jedno podniesienie na kolejkę.');
@@ -206,7 +215,7 @@ export function mount(app, ctx) {
 
   function render() {
     if (!S) return;
-    setHtml($('bk-pile'), (S.piles > 1 ? L(`<i>Pile </i>${S.pileN}/${S.piles} · `, `<i>Stos </i>${S.pileN}/${S.piles} · `) : '') + L(`${cnt(S.left, 'stick', 'sticks')}<i> left</i>`, `<i>Zostało: </i>${cnt(S.left, 'bierka', 'bierki', 'bierek')}`));
+    setHtml($('bk-pile'), (S.piles > 1 ? L(`<i>Pile </i>${S.pileN}/${S.piles} · `, `<i>Stos </i>${S.pileN}/${S.piles} · `) : '') + L(`${cnt(S.left, 'stick', 'sticks')}<i> left</i>`, `<i>Zostało: </i>${cnt(S.left, 'bierka', 'bierki', 'bierka', 'bierki', 'bierek')}`));
     $('bk-code').textContent = Rm?.code || '';
     buildTags(); renderTags(); renderSeats(); renderBar(); renderBanner(); paintMeter();
   }
@@ -278,7 +287,7 @@ export function mount(app, ctx) {
     let pos = 0;
     el.innerHTML = `<div class="sheet">
       <h2>${head}</h2>
-      <p>${L(`${cnt(top, 'point', 'points')} took the table.`, `Zwycięski wynik: ${cnt(top, 'punkt', 'punkty', 'punktów')}.`)}</p>
+      <p>${L(`${cnt(top, 'point', 'points')} took the table.`, `Zwycięski wynik: ${cnt(top, 'punkt', 'punkty', 'punkt', 'punkty', 'punktów')}.`)}</p>
       <ol class="score">${order.map((i, k) => {
         const p = S.seats[i], won = pts[i] === top; if (k === 0 || pts[i] !== pts[order[k - 1]]) pos = k + 1;
         return `<li class="${pbRowCls(p.fl)} ${won ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}

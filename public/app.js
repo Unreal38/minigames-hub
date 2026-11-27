@@ -1045,7 +1045,7 @@ const GAMES = {
       <li>You may let go inside the pile. The stick goes back, but what it already rubbed <b>stays on the meter</b> for the rest of your turn.</li>
       <li><b>Points</b>: plain wood 1, Leaf 2, Tide 3, Ember 4, Spark 5, a <b>pet stick</b> 8, the <b>Hook</b> 10 and the <b>Crown</b> 20. All four pet sticks in one hand pay <b>10 more</b>.</li>
       <li>Whoever holds the <b>Hook</b> may, once a turn, <b>lift</b> a stick straight up instead of sliding it: press Lift (or hold Shift) and drag upwards. Lifting does not rub the sticks underneath.</li>
-      <li>With hints on (table settings), the sticks touching the one you point at <b>glow</b>: red for a stick lying on top of it, orange for the rest.</li>
+      <li>The stick you point at or hold gets a bright <b>outline</b>. With hints on (table settings), the sticks that <b>would move</b> if you took it (they lie on it or would drop once it is gone) glow <b>pink</b>, and the others it only touches glow orange.</li>
       <li>Drag the table or the sky to <b>turn the view</b>, scroll or pinch to zoom.</li>
       <li>You have <b>30 seconds</b> for each stick (table settings). When the time runs out, the turn passes.</li>
       <li>When the table is empty, the <b>most points</b> wins. With three piles the points add up. Coins go by your final place: <b>10 for 1st</b>, down to 1 for last.</li>
