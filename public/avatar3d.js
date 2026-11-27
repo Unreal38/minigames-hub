@@ -889,23 +889,29 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     else { leg.userData.own = kn.userData.own = true; leg.userData.kn = kn; ud.legs.push(leg); } // standing legs are their own pieces, so they can walk
   }
   if (skirt) {
-    const c = dress ? topC : botC, sLen = top === 15 ? 1.7 : gown ? 1.8 : dress ? .75 : bot === 6 ? 1.6 : bot === 5 ? .5 : bot === 11 ? .42 : bot === 12 ? .62 : .6, yE = hipY - tl * sLen, rE = hi * (top === 15 ? 1.22 : gown ? 2.05 : bot === 11 && !dress ? 1.75 : 1.22 + .28 * Math.min(1, sLen)), kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
-    if (seated) { sph(g, hi * 1.35, c, 0, hipY + lb * .5, tl * .36).scale.set(1, .32, 1.1); if (sLen > 1) { const dr = cyl(g, hi * 1.15, hi * 1.25, sl * .9, c, 0, hipY - sl * .15, tl * 1.0); dr.scale.z = .5; dr.rotation.x = -.5; } }
-    else { lathe(g, [[rE - .02, yE - .004], [rE, yE], [hi * 1.12, hipY + .02 * t], [wa + .006, wy]], c).scale.z = kz; if (bot === 11 && !dress) { // tutu: a second, paler frill of net under the first, and a satin waistband
-        lathe(g, [[rE * .9 - .02, yE - .034 * H], [rE * .9, yE - .03 * H], [hi * 1.1, hipY - .01 * t]], mix(c, '#ffffff', .45)).scale.z = kz; band(wy - .04 * t, wy + .012 * t, shade(c, .8), .016);
+    const c = dress ? topC : botC, sLen = top === 15 ? 1.7 : gown ? 1.8 : dress ? .75 : bot === 6 ? 1.6 : bot === 5 ? .5 : bot === 11 ? .42 : bot === 12 ? .62 : .6, yE = hipY - tl * sLen, rE0 = hi * (top === 15 ? 1.22 : gown ? 2.05 : bot === 11 && !dress ? 1.75 : 1.22 + .28 * Math.min(1, sLen));
+    // The skirt's top must hold the thighs (same place and size as the leg loop above, plus a little room for the outline):
+    // on a build with thick legs and narrow hips (Athletic) hi * 1.12 is too tight, so the skirt is made wider there and
+    // deep enough that the round thigh fits in its oval, and the hem grows by the same amount so the shape stays the same.
+    const lx = Math.max(hi * .5, lb * 1.45), lr = lb * 1.55 + .014, rH = Math.max(hi * 1.12, lx + lr + .01), rE = rE0 * rH / (hi * 1.12);
+    let kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
+    for (let i = 0; i <= 24; i++) { const an = i / 24 * PI, px = lx + lr * Math.cos(an), pz = lr * Math.sin(an); if (px < rH * .995) kz = Math.max(kz, pz / (rH * Math.sqrt(1 - (px / rH) ** 2))); }
+    if (seated) { const R = Math.max(hi * 1.35, (lx + lr) * 1.1); sph(g, R, c, 0, hipY + lb * .5, tl * .36).scale.set(1, Math.max(.32, (lr - lb * .5 + .016) / R), 1.1); if (sLen > 1) { const dr = cyl(g, hi * 1.15, hi * 1.25, sl * .9, c, 0, hipY - sl * .15, tl * 1.0); dr.scale.z = .5; dr.rotation.x = -.5; } }
+    else { lathe(g, [[rE - .02, yE - .004], [rE, yE], [rH, hipY + .02 * t], [wa + .006, wy]], c).scale.z = kz; if (bot === 11 && !dress) { // tutu: a second, paler frill of net under the first, and a satin waistband
+        lathe(g, [[rE * .9 - .02, yE - .034 * H], [rE * .9, yE - .03 * H], [rH * .98, hipY - .01 * t]], mix(c, '#ffffff', .45)).scale.z = kz; band(wy - .04 * t, wy + .012 * t, shade(c, .8), .016);
         for (let i = 0; i < 18; i++) { const an = (i + .5) / 18 * PI * 2, r = rE * (i % 2 ? .97 : 1.0); sph(g, .085, i % 2 ? mix(c, '#ffffff', .25) : c, Math.sin(an) * r, yE + .01 - (i % 2) * .012, Math.cos(an) * r * kz).scale.set(1, .5, 1); } }
       if (gown) { lathe(g, [[rE + .006, yE - .004], [rE * .97, yE + .045 * H]], mix(c, '#ffffff', .45)).scale.z = kz; // a pale hem with tiny gems
         for (let i = 0; i < 16; i++) { const an = i / 16 * PI * 2; sph(g, .02, '#ffffff', Math.sin(an) * (rE * .985 + .014), yE + .055 * H, Math.cos(an) * (rE * .985 + .014) * kz); } }
       if (bot === 12 && !dress) { // kilt: a tartan of bands round and stripes down, a buckled strap, and a sporran in front
-        const tn = shade(c, .62), ln = mix(c, '#ffffff', .5), yM = (yE + hipY) / 2, len = Math.hypot(hipY - yE, rE - hi * 1.12), tilt = Math.atan2(rE - hi * 1.12, hipY - yE);
-        const at = k => [rE + (hi * 1.12 - rE) * k + .012, yE + (hipY - yE) * k];
+        const tn = shade(c, .62), ln = mix(c, '#ffffff', .5), yM = (yE + hipY) / 2, len = Math.hypot(hipY - yE, rE - rH), tilt = Math.atan2(rE - rH, hipY - yE);
+        const at = k => [rE + (rH - rE) * k + .012, yE + (hipY - yE) * k];
         for (const [k, col, w] of [[.28, tn, .12], [.62, tn, .12], [.45, ln, .04]]) lathe(g, [at(k - w / 2), at(k + w / 2)], col).scale.z = kz;
-        for (let i = 0; i < 10; i++) { const an = (i + .5) / 10 * PI * 2, r = (rE + hi * 1.12) / 2 + .016, f = Math.hypot(Math.sin(an), Math.cos(an) * kz), pl = box(g, i % 2 ? .05 : .016, len * .96, .014, i % 2 ? tn : ln, Math.sin(an) * r, yM, Math.cos(an) * r * kz); pl.rotation.order = 'YXZ'; pl.rotation.set(-Math.atan(Math.tan(tilt) * f), Math.atan2(Math.sin(an), Math.cos(an) / kz), 0); }
+        for (let i = 0; i < 10; i++) { const an = (i + .5) / 10 * PI * 2, r = (rE + rH) / 2 + .016, f = Math.hypot(Math.sin(an), Math.cos(an) * kz), pl = box(g, i % 2 ? .05 : .016, len * .96, .014, i % 2 ? tn : ln, Math.sin(an) * r, yM, Math.cos(an) * r * kz); pl.rotation.order = 'YXZ'; pl.rotation.set(-Math.atan(Math.tan(tilt) * f), Math.atan2(Math.sin(an), Math.cos(an) / kz), 0); }
         band(wy - .045 * t, wy + .012 * t, '#4a2f2a', .016); box(g, .07, .05 * t, .02, gold, hi * .5, wy - .016 * t, front(hi * .5, wy - .016 * t) + .02);
         const sz = front(0, hipY) + .03; sph(g, .085, '#8a5a3c', 0, hipY - .025 * H, sz).scale.set(1, 1.15, .42); box(g, .13, .035, .03, '#6b4326', 0, hipY - .005 * H, sz + .01); sph(g, .022, gold, 0, hipY - .012 * H, sz + .035).scale.z = .5; for (const k of [-1, 1]) cyl(g, .012, .012, .08, '#f4f1ea', k * .035, hipY - .065 * H, sz + .03); }
       if (bot === 5 && !dress) { lathe(g, [[rE + .008, yE - .002], [rE - .02, yE + .05 * H]], shade(c, 1.4)).scale.z = kz;
-        const yM = (yE + hipY) / 2, len = Math.hypot(hipY - yE, rE - hi * 1.12), tilt = Math.atan2(rE - hi * 1.12, hipY - yE); // pleats
-        for (let i = 0; i < 12; i++) { const an = (i + .5) / 12 * PI * 2, r = (rE + hi * 1.12) / 2 + .014, f = Math.hypot(Math.sin(an), Math.cos(an) * kz), pl = box(g, .026, len * .9, .02, fold(c), Math.sin(an) * r, yM + .01 * H, Math.cos(an) * r * kz); pl.rotation.order = 'YXZ'; pl.rotation.set(-Math.atan(Math.tan(tilt) * f), Math.atan2(Math.sin(an), Math.cos(an) / kz), 0); } } }
+        const yM = (yE + hipY) / 2, len = Math.hypot(hipY - yE, rE - rH), tilt = Math.atan2(rE - rH, hipY - yE); // pleats
+        for (let i = 0; i < 12; i++) { const an = (i + .5) / 12 * PI * 2, r = (rE + rH) / 2 + .014, f = Math.hypot(Math.sin(an), Math.cos(an) * kz), pl = box(g, .026, len * .9, .02, fold(c), Math.sin(an) * r, yM + .01 * H, Math.cos(an) * r * kz); pl.rotation.order = 'YXZ'; pl.rotation.set(-Math.atan(Math.tan(tilt) * f), Math.atan2(Math.sin(an), Math.cos(an) / kz), 0); } } }
   }
   cyl(g, lb * 1.1, lb * 1.3, .07 * H, shade(skin, .9), 0, shY, 0); // neck
   // neck accessories
