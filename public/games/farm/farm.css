@@ -979,3 +979,14 @@ body.night .pf .mood.happy { background: #4a2240; color: #ffd0e0; }
   .pf .build:not(.held) .bdesc, .pf .build:not(.held) .bwhy { display: none; }
 }
 @media (min-width: 641px) { .pf .build .bhrow { flex-wrap: wrap; row-gap: 2px; } .pf .build .bhn { flex: 1 1 100%; } .pf .build .bhn b { white-space: normal; } }
+/* phones: finger-sized group chips (Kuba: they were tiny), Done as a big round ✓ at the end of their row */
+.pf .build .bdone svg { width: 22px; height: 22px; flex: none; display: none; }
+@media (max-width: 640px) {
+  .pf .build .bhead { gap: 8px; align-items: center; }
+  .pf .build .bhead .cats { gap: 8px; padding: 2px 0 5px; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .pf .build .bhead .cats button { min-height: 48px; padding: 4px 18px; font-size: 17px; border-width: 3px; border-radius: 999px; }
+  .pf .build .bhead .cats button[aria-pressed=true] { box-shadow: 0 3px 0 var(--ink); }
+  .pf .build .bhead .cats button:last-child { margin-right: 36px; }
+  .pf .build .bdone { flex: none; width: 52px; height: 52px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; }
+  .pf .build .bdone svg { display: block; width: 26px; height: 26px; } .pf .build .bdone span { display: none; }
+}
