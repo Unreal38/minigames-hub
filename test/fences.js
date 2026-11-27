@@ -1,6 +1,6 @@
 // Thin fences (2026-11-27): a fence is 1 x .5 on half tiles, so a bush fits right beside it. Joins and the one-time
 // move of old whole-tile fences live in public/games/farm/fence.js.
-const { fenceLink, fenceShape, thinFences, fenceLine } = await import('../public/games/farm/fence.js');
+const { fenceLink, fenceShape, thinFences, thinArches, fenceLine } = await import('../public/games/farm/fence.js');
 let bad = 0; const fail = m => { bad++; console.error(m); };
 const F = (id, x, y, r = 0) => ({ id, type: 'fence', x, y, r });
 const st = (l, k) => l >> (k * 2) & 3;
@@ -45,6 +45,15 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   thinFences(t);
   const l = fenceLink(t, t[3].x, t[3].y, t[3].r, 4); if (st(l, 0) !== 2 && st(l, 1) !== 2) fail('T stem should reach the through line ' + JSON.stringify(t[3]));
   const cells = new Set(); for (const i of t) { const [w, h] = i.r % 2 ? [1, 2] : [2, 1]; for (let a = 0; a < w; a++) for (let b = 0; b < h; b++) { const k = (i.x * 2 + a) + ',' + (i.y * 2 + b); if (cells.has(k)) fail('moved fences overlap at ' + k); cells.add(k); } } }
+
+// a thin Flower Arch in line is a gate: the rails reach its post and no fence post stands there
+{ const it = [F(1, 0, .5), { id: 2, type: 'arch', x: 1, y: .5, r: 0 }], a = fenceLink(it, 0, .5, 0, 1);
+  if (st(a, 0) !== 3) fail('fence should join the arch in line ' + a);
+  const s = fenceShape(a); if (s.hi !== .56 || s.posts.includes(.56) || s.posts.includes(.5)) fail('arch end shape ' + JSON.stringify(s)); }
+// an old whole-tile arch moves to the half that lines up with the (already thin) fence next to it
+{ const it = [F(1, 0, .5), { id: 2, type: 'arch', x: 1, y: 0, r: 0 }, { id: 3, type: 'arch', x: 5, y: 5, r: 1 }];
+  thinArches(it); if (it[1].y !== .5 || it[1].x !== 1) fail('old arch should line up with its fence ' + JSON.stringify(it[1]));
+  if (it[2].x !== 5 || it[2].y !== 5) fail('a lone old arch should stay on its first half ' + JSON.stringify(it[2])); }
 
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');
