@@ -746,7 +746,8 @@ const BUILD = {
     if (!live) PARTS.windmill(g);
   },
   arch(g, live, lv, link = 0) { // link 1: turned 45 degrees, so it spans the diagonal of its square (and a diagonal fence's end)
-    const k = link ? 1.6 : 1, px = .4 * k;
+    const k = link & 1 ? 1.6 : 1, px = .4 * k;
+    for (const [bit, s, to] of [[2, 1, .75], [4, -1, .75], [8, 1, .25], [16, -1, .25]]) if (link & bit) for (const y of [.34, .14]) box(g, Math.abs(px - to), .08, .06, C.cream, s * (px + to) / 2, y, 0); // rails out to a fence meeting it at a corner (archLink)
     for (const x of [-px, px]) box(g, .1, 1.1, .1, C.wood, x); box(g, .96 * k, .1, .12, C.wood, 0, 1.1);
     for (const [x, y, c] of [[-.4, .5, C.pink], [-.4, .9, C.leafL], [-.2, 1.2, C.yellow], [0, 1.24, C.pink], [.2, 1.2, C.lilac], [.4, .9, C.leafL], [.4, .5, C.yellow], [-.4, .2, C.leaf], [.4, .2, C.leaf]]) ico(g, .11, c, x * k, y, 0);
   },

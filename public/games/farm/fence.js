@@ -72,6 +72,9 @@ export function fenceLink(items, x, y, r = 0, skip) {
     if (arches.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) st = 3;
     else if (others.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) { st = 1; own = dir > 0 && !metAt(E - Q) && !metAt(E + Q); }
     else if (diags.some(D => onDiag(D, px, py))) st = 2; // into a diagonal's side: the diagonal draws that post
+    else if (arches.some(A => A.o !== P.o && reachXY(A, px, py))) { // at a corner by a Flower Arch's post: the arch runs a short rail out to meet it (archLink)
+      st = 2; own = arches.some(A => A.o !== P.o && reachXY(A, px, py) === 'ext'); // beside the arch the corner post is the fence's; under it, the arch's post is right there
+    }
     else if (others.some(O => O.o !== P.o && reachXY(O, px, py))) {
       st = 2;
       const at = others.filter(O => reachXY(O, px, py)), thru = at.find(O => reachXY(O, px, py) === 'through');
@@ -84,6 +87,21 @@ export function fenceLink(items, x, y, r = 0, skip) {
   // local + end is the world b end when sgn > 0
   const [plus, minus] = sgn > 0 ? ends : [ends[1], ends[0]];
   return plus.st | minus.st << 2 | +plus.own << 4 | +minus.own << 5 | +plus.met << 6 | +minus.met << 7 | +plus.trim << 8 | +minus.trim << 9;
+}
+// A straight Flower Arch's link: bit 0 turned 45 degrees (nothing else then); bits 1/2 a fence comes in at a right angle a
+// quarter beyond its + / - end, bits 3/4 a quarter in from that end (beside its post). The arch then draws short rails from
+// its post to where the fence meets its line (fenceLink gives that fence's end st 2).
+export function archLink(items, x, y, r = 0, skip) {
+  if (isDiag(r)) return 1;
+  const A = fenceLine(x, y, r), sgn = (r | 0) < 2 ? 1 : -1;
+  const fences = (items || []).filter(i => isFence(i) && i.id !== skip && !isDiag(i.r)).map(i => fenceLine(i.x, i.y, i.r)).filter(F => F.o !== A.o);
+  const hits = u => fences.some(F => (F.a - Q === A.c || F.b + Q === A.c) && F.c === u); // a fence end a quarter short of the arch's line, right across from u
+  let l = 0;
+  for (const [k, end, dir] of [[0, A.b, 1], [1, A.a, -1]]) {
+    const side = sgn > 0 ? k : 1 - k; // local + end is the world b end when sgn > 0
+    if (hits(end + dir * Q)) l |= 2 << side; else if (hits(end - dir * Q)) l |= 8 << side;
+  }
+  return l;
 }
 // A diagonal piece's joins, in the same bits (bit 10 says it is diagonal): ends join other diagonals sharing that corner
 // (the lowest piece draws the post); straight pieces may meet its side a quarter of the way in from either end.
