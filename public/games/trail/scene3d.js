@@ -261,8 +261,8 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the line-up in the start meadow (Kuba 2026-11-27) ----------
   // During the intro everyone stands in a row facing the camera and waves, with Puff the host beside them; during the
   // roll for the first turn they stay in the row and the camera stays on them. mode: 'intro', 'order' or null.
-  let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0;
-  function peek(s, ms) { peekS = s; peekT = performance.now() + ms; } // keep the camera on someone for a moment (their die landing)
+  let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0, holdT = 0;
+  function peek(s, ms) { peekS = s; peekT = performance.now() + ms; if (s < 0) holdT = 0; } // keep the camera on someone for a moment (their die landing)
   const LSP = .74;
   function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
   const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25, START.z + .2];
@@ -378,7 +378,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const at = (x, z, y = 0) => new THREE.Vector3(x, y, z);
   function seatAt(s) { const f = folk[s]; return f ? at(f.x, f.z, .9) : at(0, 0, 1); }
   // little acted moments for the avatars (Kuba 2026-11-27): each one blends in, holds and blends out over d seconds
-  const EMOTE_S = { cheer: 1.1, win: 2.6, sad: 1.5, spin: 1.1, item: 1.1, point: .9, wave: 1.3, surprise: 1.1, slide: 1.6 };
+  const EMOTE_S = { throw: 1.2, cheer: 1.1, win: 2.6, sad: 1.5, spin: 1.1, item: 1.1, point: .9, wave: 1.3, surprise: 1.1, slide: 1.6 };
   function emote(s, k) { const f = folk[s]; if (f && EMOTE_S[k]) f.em = { k, t: 0, d: EMOTE_S[k] }; }
   let thinker = -1;
   function setThink(s) { thinker = s ?? -1; }
@@ -413,6 +413,7 @@ export function createScene(canvas, { onFrame } = {}) {
     else if (k === 'point') { const a = arms[1] || arms[0]; if (a) { mix(a, 'x', -1.55); mix(a, 'z', sgOf(a) * .15); } if (hd) hd.rotation.x += .1 * e; }
     else if (k === 'wave') { const a = arms[f.i % 2]; if (a) { mix(a, 'z', sgOf(a) * (2.55 + Math.sin(T * 8 + f.i) * .35)); mix(a, 'x', -.15); } }
     else if (k === 'think') { const a = arms[1] || arms[0], wob = Math.sin(T * 2 + f.i) * .05; if (a) { mix(a, 'x', -2.05 + wob); mix(a, 'z', -sgOf(a) * .55); } if (hd) { hd.rotation.z += .16 * e; hd.rotation.x -= .08 * e; } }
+    else if (k === 'throw') { const a = arms[1] || arms[0]; if (a) { const w = u < .25 ? u / .25 : 1; mix(a, 'x', lerp(1.1, -1.9, ease(w))); mix(a, 'z', sgOf(a) * .25); } if (hd) hd.rotation.x += (u < .25 ? .1 : -.12) * e; }
     else if (k === 'spin') { arms.forEach(a => { mix(a, 'z', sgOf(a) * 1.9); }); return ease(Math.min(1, u * 1.25)) * Math.PI * 2; }
     return 0;
   }
@@ -500,8 +501,9 @@ export function createScene(canvas, { onFrame } = {}) {
     hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: Tux talking on the right, the players beside him (Kuba: show the contestants)
     // the roll for the first turn: close on each roller (and hold on them while their die lands), then back to the row (Kuba 2026-11-27)
     const ps = performance.now() < peekT ? peekS : focus, pf = lineup === 'order' && !mapView && ps >= 0 ? folk[ps] : null;
-    if (pf) { pcx = pf.x; pcz = pf.z; }
-    pz0 += ((pf ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
+    if (pf) { pcx = pf.x; pcz = pf.z; holdT = performance.now() + 1500; } // between rollers the camera stays close and glides on, it doesn't pull back to the row
+    const close = lineup === 'order' && !mapView && (pf || performance.now() < holdT);
+    pz0 += ((close ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
     const lx = lerp(lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), pcx + .25, pz0), lzz = lerp(lerp(START.z + .3, host ? host.z : START.z, hz0), pcz + .3, pz0);
     const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
     const kk = 1 - Math.pow(pz0 > .05 ? .008 : .04, dt);
