@@ -56,12 +56,13 @@ const extPts = O => [toXY(O.o, O.a - Q, O.c), toXY(O.o, O.b + Q, O.c)];
 export const LINKS = { fence: true };
 export function fenceLink(items, x, y, r = 0, skip) {
   const all = (items || []).filter(i => isFence(i) && i.id !== skip && !(i.x === x && i.y === y && i.r === r));
+  const arches = (items || []).filter(i => i?.type === 'arch' && i.id !== skip && !isDiag(i.r)).map(i => fenceLine(i.x, i.y, i.r)); // a thin arch sits on the same lines
   const diags = all.filter(i => isDiag(i.r)).map(i => diagLine(i.x, i.y, i.r));
-  if (isDiag(r)) return diagLink(diagLine(x, y, r), all.filter(i => !isDiag(i.r)).map(i => fenceLine(i.x, i.y, i.r)), diags);
+  if (isDiag(r)) return diagLink(diagLine(x, y, r), all.filter(i => !isDiag(i.r)).map(i => fenceLine(i.x, i.y, i.r)), diags,
+    (items || []).filter(i => i?.type === 'arch' && i.id !== skip && isDiag(i.r)).map(i => diagLine(i.x, i.y, i.r)), arches);
   const P = { x, y, ...fenceLine(x, y, r) }, sgn = (r | 0) < 2 ? 1 : -1;
   const others = all.filter(i => !isDiag(i.r) && !(i.x === x && i.y === y && (i.r | 0) % 2 === P.o))
     .map(i => ({ x: i.x, y: i.y, ...fenceLine(i.x, i.y, i.r) }));
-  const arches = (items || []).filter(i => i?.type === 'arch' && i.id !== skip).map(i => fenceLine(i.x, i.y, i.r)); // a thin arch sits on the same lines
   const ends = [];
   for (const dir of [1, -1]) {
     const E = dir > 0 ? P.b : P.a, p = E + dir * Q, [px, py] = toXY(P.o, p, P.c);
@@ -86,11 +87,16 @@ export function fenceLink(items, x, y, r = 0, skip) {
 }
 // A diagonal piece's joins, in the same bits (bit 10 says it is diagonal): ends join other diagonals sharing that corner
 // (the lowest piece draws the post); straight pieces may meet its side a quarter of the way in from either end.
-function diagLink(P, straights, diags) {
+function diagLink(P, straights, diags, arches = [], gates = []) {
   const ext = straights.flatMap(extPts), key = D => [D.y, D.x, D.plus[0], D.plus[1]];
   const below = (A, B) => { const a = key(A), b = key(B); for (let i = 0; i < 4; i++) if (a[i] !== b[i]) return a[i] < b[i]; return false; };
+  const touches = (D, E) => same(D.plus, E) || same(D.minus, E);
   const bits = [P.plus, P.minus].map(E => {
-    const at = diags.filter(D => same(D.plus, E) || same(D.minus, E)), st = at.length ? 1 : 0;
+    if (arches.some(A => touches(A, E) && (A.plus[0] - A.minus[0]) * (P.plus[1] - P.minus[1]) === (A.plus[1] - A.minus[1]) * (P.plus[0] - P.minus[0]))) return { st: 3, own: false, met: false, trim: false }; // a turned arch in line: a gate
+    // an end by a straight arch's post: reach on a quarter, onto the arch's line right by its post
+    const p = [E[0] + (E[0] - P.cx) / 2, E[1] + (E[1] - P.cy) / 2];
+    if (gates.some(A => { const [u, v] = A.o ? [p[1], p[0]] : p; return v === A.c && (u === A.a + Q || u === A.b - Q); })) return { st: 2, own: false, met: false, trim: false };
+    const at = diags.filter(D => touches(D, E)), st = at.length ? 1 : 0;
     const m = [(E[0] + P.cx) / 2, (E[1] + P.cy) / 2], met = ext.some(q => same(q, m));
     return { st, own: st === 1 && at.every(D => below(P, D)), met, trim: met && !st };
   });
@@ -102,7 +108,7 @@ function diagLink(P, straights, diags) {
 export function fenceShape(link = 0) {
   const st = [link & 3, link >> 2 & 3], own = [link >> 4 & 1, link >> 5 & 1], met = [link >> 6 & 1, link >> 7 & 1], trim = [link >> 8 & 1, link >> 9 & 1];
   const diag = link >> 10 & 1, H = diag ? Math.SQRT1_2 : .5, q = diag ? Math.SQRT1_2 / 2 : Q;
-  const end = k => trim[k] ? q : st[k] === 2 ? .5 + Q : st[k] === 3 ? .56 : H, hi = end(0), lo = -end(1), posts = [];
+  const end = k => trim[k] ? q : st[k] === 2 ? H + q : st[k] === 3 ? H + .06 : H, hi = end(0), lo = -end(1), posts = [];
   for (const k of [0, 1]) {
     const s = k ? -1 : 1;
     if (met[k]) posts.push(s * q);
@@ -174,4 +180,16 @@ export function thinArches(items) {
     n++;
   }
   return n;
+}
+
+// Where a fence being placed should go: the spot itself when it joins something there, else the nearest spot half a tile
+// away that does join (so a piece dropped beside a line falls into it instead of leaving a gap). fits(x, y) checks the spot.
+export function fenceSnap(items, x, y, r, skip, fits) {
+  const joins = (x, y) => { const l = fenceLink(items, x, y, r, skip); return (l & 15) !== 0 || (l & 192) !== 0; };
+  if (joins(x, y)) return [x, y];
+  for (const [dx, dy] of [[0, .5], [0, -.5], [.5, 0], [-.5, 0], [.5, .5], [-.5, .5], [.5, -.5], [-.5, -.5]]) {
+    const nx = x + dx, ny = y + dy;
+    if (fits(nx, ny) && joins(nx, ny)) return [nx, ny];
+  }
+  return [x, y];
 }
