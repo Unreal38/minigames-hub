@@ -401,7 +401,7 @@ export function miniDone(G, places, now = Date.now()) {
 }
 function endRound(G, now) {
   G.round++;
-  // Spark friends reroll again every round
+  // Spark friends can swap your cards again every round
   for (const p of G.pl) for (const f of p.herd) if (f.el === 'Spark') f.rr = true;
   G.wx = weatherAt(now).kind;
   if (G.round > G.opts.rounds) return petShow(G, now);
