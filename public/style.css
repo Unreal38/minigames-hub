@@ -1965,7 +1965,7 @@ body.sky.night:not(.in-game) .ttile.t-word .tpic, body.sky.night:not(.in-game) .
 @media (prefers-reduced-motion: reduce) { .wbt.flip, .wbt.on, .wbrow.shake, .wbres.late { animation: none; } }
 
 /* ---------- the Plaza's way in: a wide button in the hero, and a link over the chat ---------- */
-.plazabtn { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 4px 16px 4px 10px; background: #ffd34d; color: #3b2219; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); font: inherit; text-align: left; cursor: pointer; min-width: 0; transition: transform .15s; }
+.plazabtn { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 4px 16px 4px 10px; background: var(--lantern); color: #3b2219; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); font: inherit; text-align: left; cursor: pointer; min-width: 0; transition: transform .15s; }
 .plazabtn:hover { transform: translateY(-2px); } .plazabtn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 .plzb-ico { font-size: 28px; line-height: 1; flex: none; }
 .plzb-tx { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
@@ -2039,7 +2039,7 @@ body.sky.skytwi:not(.skynight):not(.in-game)::before { opacity: .8; }
 }
 /* the isle kit: "Visit your isle" (Pet Farm) under the isle, the round brush for the Wardrobe's isle page, the farm news bubble */
 .islekit { display: contents; }
-.isletag { display: inline-flex; align-items: center; gap: 6px; background: #ffd34d; color: #3b2219; }
+.isletag { display: inline-flex; align-items: center; gap: 6px; background: var(--lantern); color: #3b2219; } /* the same yellow as every .btn */
 .isletag i { width: 22px; height: 22px; flex: none; display: block; } .isletag i svg { width: 100%; height: 100%; display: block; }
 .islebrush { position: absolute; right: 12px; top: 12px; z-index: 2; width: 42px; height: 42px; display: grid; place-items: center; padding: 0; font-size: 19px; line-height: 1;
   background: #fff8ec; border: 3px solid var(--ink); border-radius: 50%; box-shadow: 0 4px 0 var(--ink); cursor: pointer; transition: transform .12s; }
@@ -2409,3 +2409,14 @@ body.in-game .tags > .nt, body.in-game .tags > * { will-change: transform; }
 }
 /* tags under narrow boards (Burrow Bop, Sky Bricks, Bubble Lagoon) keep only the name on phones, so it is not cut short */
 @media (max-width: 700px) { body.in-game .nt.ntc { padding-left: 9px; } body.in-game .nt.ntc :is(.ntav, .ttl) { display: none; } }
+
+/* side by side (1500px+): the isle canvas's own sky (rainbow, aurora, stars) fades out on its left side into the hero's sky,
+   so it never ends in a straight edge */
+@media (min-width: 1500px) {
+  /* the isle's sky reaches the hero's top and bottom edge: its margin always undoes the hero's padding-block */
+  .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { margin-block: -22px; }
+  .hubgrid .hero .art .hero3d { -webkit-mask-image: linear-gradient(90deg, transparent, #000 26%); mask-image: linear-gradient(90deg, transparent, #000 26%); }
+}
+@media (min-width: 2200px) { .hubgrid .hero .art, body.sky:not(.in-game) .hubgrid .hero .art.sky3d { margin-block: -38px; } }
+/* 1100-1499px: the isle strip sits on top, so the hero has no top padding there (the 1100px+ padding-block left a gap above the sky) */
+@media (min-width: 1100px) and (max-width: 1499px) { .hubgrid .hero { padding-top: 0; } }
