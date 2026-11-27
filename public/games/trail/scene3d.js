@@ -17,6 +17,7 @@ import { itemModel } from '../farm/models.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { NODES, N, EL_COL } from './rules.js';
+import { stoneSvgFile } from './icons.js';
 
 const K = .42;                 // avatars are drawn at this size, on a wrapper (the standing avatar sits .76 up inside it)
 const HOP = 420;               // ms per stone, as the server counts it (MS.hop)
@@ -36,23 +37,13 @@ const INK = '#3b2219';
 // the icon for a stone kind, drawn once on a small canvas (transparent round, read with the top of the picture away from the camera)
 const iconTex = new Map();
 function stoneIcon(kind) {
+  // the same SVG as the UI icons (icons.js), drawn into a canvas once it loads
   if (iconTex.has(kind)) return iconTex.get(kind);
-  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-  g.lineJoin = g.lineCap = 'round'; g.lineWidth = 7; g.strokeStyle = INK;
-  const fill = (col, path) => { g.fillStyle = col; g.beginPath(); path(); g.fill(); g.stroke(); };
-  const circle = (x, y, r) => () => g.arc(x, y, r, 0, Math.PI * 2);
-  const plus = (x, y, r, col = '#fff') => { g.lineWidth = 16; g.strokeStyle = INK; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); g.lineWidth = 7; g.strokeStyle = col; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); g.strokeStyle = INK; };
-  const minus = (x, y, r) => { g.lineWidth = 16; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.stroke(); g.lineWidth = 7; g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.stroke(); g.strokeStyle = INK; };
-  if (kind === 'treat') { fill('#d9944f', circle(56, 66, 30)); g.fillStyle = INK; for (const [x, y] of [[46, 56], [64, 60], [52, 76], [68, 78]]) { g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); } plus(96, 34, 15); }
-  else if (kind === 'picnic') { fill('#c98a52', () => { g.moveTo(30, 58); g.lineTo(98, 58); g.lineTo(90, 100); g.lineTo(38, 100); g.closePath(); }); g.beginPath(); g.arc(64, 58, 24, Math.PI, 0); g.stroke(); fill('#ff5c8a', () => g.rect(30, 52, 68, 12)); plus(100, 32, 13); }
-  else if (kind === 'bramble') { fill('#4d7a32', () => { for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, r = k % 2 ? 18 : 38; g.lineTo(58 + Math.cos(a) * r, 68 + Math.sin(a) * r); } g.closePath(); }); minus(98, 32, 14); }
-  else if (kind === 'stall') { fill('#ffd36b', () => g.rect(34, 52, 60, 46)); g.beginPath(); g.arc(64, 52, 16, Math.PI, 0); g.stroke(); fill('#ff7a59', () => g.rect(34, 52, 60, 12)); }
-  else if (kind === 'nest') { fill('#b07a4a', () => g.ellipse(64, 84, 38, 16, 0, 0, Math.PI * 2)); fill('#fff6e2', () => g.ellipse(64, 60, 20, 26, 0, 0, Math.PI * 2)); g.fillStyle = '#9fd8ff'; g.beginPath(); g.arc(58, 54, 5, 0, 7); g.arc(70, 66, 4, 0, 7); g.fill(); }
-  else if (kind === 'bench') fill('#ff6f9a', () => { g.moveTo(64, 100); g.bezierCurveTo(14, 66, 30, 26, 64, 46); g.bezierCurveTo(98, 26, 114, 66, 64, 100); });
-  else if (kind === 'well') { fill('#ffe27a', () => { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k / 10 * Math.PI * 2, r = k % 2 ? 17 : 40; g.lineTo(64 + Math.cos(a) * r, 66 + Math.sin(a) * r); } g.closePath(); }); }
-  else if (kind === 'spring') { g.lineWidth = 9; for (const x of [44, 64, 84]) { g.beginPath(); g.moveTo(x, 96); g.bezierCurveTo(x - 14, 78, x + 14, 64, x, 44); g.stroke(); } g.lineWidth = 4; g.strokeStyle = '#fff'; for (const x of [44, 64, 84]) { g.beginPath(); g.moveTo(x, 96); g.bezierCurveTo(x - 14, 78, x + 14, 64, x, 44); g.stroke(); } }
-  else if (kind === 'den') { fill('#ffd34d', () => { for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k / 10 * Math.PI * 2, r = k % 2 ? 16 : 38; g.lineTo(64 + Math.cos(a) * r, 64 + Math.sin(a) * r); } g.closePath(); }); g.fillStyle = INK; g.beginPath(); g.arc(57, 62, 3.5, 0, 7); g.arc(71, 62, 3.5, 0, 7); g.fill(); }
+  const c = document.createElement('canvas'); c.width = c.height = 128;
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const img = new Image();
+  img.onload = () => { c.getContext('2d').drawImage(img, 0, 0, 128, 128); t.needsUpdate = true; };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(stoneSvgFile(kind, 128));
   iconTex.set(kind, t); return t;
 }
 export const SPECIAL = new Set(['stall', 'nest', 'bench', 'well', 'spring', 'den', 'picnic']);
@@ -385,8 +376,15 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- events ----------
   const at = (x, z, y = 0) => new THREE.Vector3(x, y, z);
   function seatAt(s) { const f = folk[s]; return f ? at(f.x, f.z, .9) : at(0, 0, 1); }
+  // little acted moments for the avatars (Kuba 2026-11-27): each one blends in, holds and blends out over d seconds
+  const EMOTE_S = { cheer: 1.1, win: 2.6, sad: 1.5, spin: 1.1, item: 1.1, point: .9, wave: 1.3, surprise: 1.1, slide: 1.6 };
+  function emote(s, k) { const f = folk[s]; if (f && EMOTE_S[k]) f.em = { k, t: 0, d: EMOTE_S[k] }; }
+  let thinker = -1;
+  function setThink(s) { thinker = s ?? -1; }
+  const EM_OF = { gain: 'cheer', lose: 'sad', friend: 'spin', miss: 'sad', item: 'item', win: 'win' };
   function cue(s, kind, el) {
     const f = folk[s]; if (!f) return; const p = seatAt(s);
+    if (EM_OF[kind]) emote(s, EM_OF[kind]);
     if (kind === 'gain') { f.cheer = 1; fx.burst(p, { n: few ? 8 : 14, colors: ['#ffd36b', '#ffffff', '#c98a52'], shape: DOT, speed: 2.4, up: 3.4, size: .2, life: .8 }); }
     else if (kind === 'lose') { f.sad = 1; fx.puff(p, { n: 8, color: ['#9b6b4a', '#5d8a3a'], size: .35, speed: 1.6 }); }
     else if (kind === 'friend') { f.cheer = 1; fx.burst(p.setY(1.3), { n: few ? 12 : 24, colors: [EL_COL[el] || '#ffd84a', '#ffffff', '#ff9fc8'], shape: HEART, speed: 2.6, up: 4, size: .3, life: 1.1 }); }
@@ -401,6 +399,22 @@ export function createScene(canvas, { onFrame } = {}) {
   const ro = new ResizeObserver(es => { const b = es[es.length - 1].contentRect; rw = b.width; rh = b.height; }); ro.observe(canvas);
   function fit() { camera.aspect = cw / ch; camera.updateProjectionMatrix(); }
 
+  // one pose of an emote; e: 0..1 how far it is blended in, u: 0..1 time through it. Returns extra yaw for a twirl.
+  function pose(f, ud, k, e, u) {
+    const arms = ud.arms || [], hd = ud.head, mix = (a, key, to) => { a.rotation[key] += (to - a.rotation[key]) * e; };
+    const sgOf = a => Math.sign(a.position.x) || 1;
+    if (k === 'cheer' || k === 'win') { arms.forEach((a, i) => { mix(a, 'z', sgOf(a) * (2.5 + Math.sin(T * 14 + i * Math.PI) * .28)); mix(a, 'x', -.1); });
+      if (k === 'win' && f.cheer < .2) f.cheer = .9; }
+    else if (k === 'sad') { arms.forEach(a => { mix(a, 'z', sgOf(a) * .08); mix(a, 'x', .35); }); if (hd) hd.rotation.x += .38 * e; }
+    else if (k === 'surprise') { arms.forEach(a => { mix(a, 'z', sgOf(a) * 1.45); mix(a, 'x', -.35); }); if (hd) hd.rotation.x -= .22 * e; }
+    else if (k === 'slide') { arms.forEach((a, i) => { mix(a, 'z', sgOf(a) * (1.5 + Math.sin(T * 9 + i * 2) * .25)); }); f.wrap.rotation.z = Math.sin(T * 8) * .12 * e; }
+    else if (k === 'item') { const a = arms[1] || arms[0]; if (a) { mix(a, 'z', sgOf(a) * 2.95); mix(a, 'x', -.1); } }
+    else if (k === 'point') { const a = arms[1] || arms[0]; if (a) { mix(a, 'x', -1.55); mix(a, 'z', sgOf(a) * .15); } if (hd) hd.rotation.x += .1 * e; }
+    else if (k === 'wave') { const a = arms[f.i % 2]; if (a) { mix(a, 'z', sgOf(a) * (2.55 + Math.sin(T * 8 + f.i) * .35)); mix(a, 'x', -.15); } }
+    else if (k === 'think') { const a = arms[1] || arms[0], wob = Math.sin(T * 2 + f.i) * .05; if (a) { mix(a, 'x', -2.05 + wob); mix(a, 'z', -sgOf(a) * .55); } if (hd) { hd.rotation.z += .16 * e; hd.rotation.x -= .08 * e; } }
+    else if (k === 'spin') { arms.forEach(a => { mix(a, 'z', sgOf(a) * 1.9); }); return ease(Math.min(1, u * 1.25)) * Math.PI * 2; }
+    return 0;
+  }
   // ---------- every frame ----------
   let T = 0; const T0 = performance.now() / 1000;
   const info = { tags: [], marks: [], zoom: 1, w: 0, h: 0 }, bm = new THREE.Matrix4(), pv = new THREE.Vector3();
@@ -434,6 +448,10 @@ export function createScene(canvas, { onFrame } = {}) {
       { const wave = lineup === 'intro' && f.amt < .2 && !f.hop, arm = ud.arms?.[f.i % 2];
         ud.arms?.forEach(a => { a.userData.rz0 ??= a.rotation.z; if (a !== arm || !wave) a.rotation.z = a.userData.rz0; });
         if (arm && wave) { const sg = Math.sign(arm.position.x) || 1; arm.rotation.z = sg * (2.55 + Math.sin(T * 7 + f.i * 1.7) * .32); arm.rotation.x = -.15; } }
+      { let spinY = 0;
+        if (f.em) { f.em.t += dt; const u = f.em.t / f.em.d; if (u >= 1) f.em = null; else spinY = pose(f, ud, f.em.k, Math.min(1, u * 5, (1 - u) * 5), u); }
+        else if (f.i === thinker && !lineup && !f.hop && f.amt < .2) pose(f, ud, 'think', 1, 0);
+        if (spinY) f.wrap.rotation.y = f.ry + spinY; }
       f.ring.position.set(f.x, SY + .015, f.z); f.ring.material.opacity = f.i === focus ? .95 : .55;
       blob(f.x, f.z, .38);
       const last = f.steps[f.steps.length - 1];
@@ -478,8 +496,8 @@ export function createScene(canvas, { onFrame } = {}) {
     // camera: a close-up that follows the player in focus, or the whole island
     const f = focus >= 0 && !mapView && !lineup ? folk[focus] : null;
     lz += ((lineup && !mapView ? 1 : 0) - lz) * (1 - Math.pow(.02, dt));
-    hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: a close-up of Tux talking
-    const lx = lerp(START.x + .35, host ? host.x - .35 : START.x, hz0), lzz = lerp(START.z + .3, host ? host.z : START.z, hz0);
+    hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: Tux talking on the right, the players beside him (Kuba: show the contestants)
+    const lx = lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), lzz = lerp(START.z + .3, host ? host.z : START.z, hz0);
     const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
     const kk = 1 - Math.pow(.04, dt);
     camL.x = lerp(camL.x, tx, kk); camL.z = lerp(camL.z, tz, kk);
@@ -489,7 +507,7 @@ export function createScene(canvas, { onFrame } = {}) {
     const vf = camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * asp), tilt = 52 * Math.PI / 180;
     const farD = Math.max((ISLE.rx + .5) / Math.tan(hf / 2), (ISLE.rz * Math.sin(tilt) + 1) / Math.tan(vf / 2) + ISLE.rz * Math.cos(tilt)) * (1 + (hudTop + hudBottom) / Math.max(1, ch) * .35);
     // the line-up shot: low and close, just wide enough for the whole row and Puff
-    const rowW = folk.length * LSP + 1.6, lineD = lerp(Math.max(6.5, (rowW / 2 + .6) / Math.tan(hf / 2)), port ? 6 : 4.4, hz0);
+    const rowW = folk.length * LSP + 1.6, lineD = lerp(Math.max(6.5, (rowW / 2 + .6) / Math.tan(hf / 2)), port ? 6 : 6.4, hz0);
     const nearD = port ? 16 : 13, D = lerp(lerp(nearD, lineD, lz), farD, zoom), tiltNow = lerp(lerp(46, lerp(26, 16, hz0), lz) * Math.PI / 180, tilt, zoom);
     // the HUD at the top and the choices at the bottom: the spot in focus sits in the clear band between them
     const shiftZ = (hudBottom - hudTop) / Math.max(1, ch) * D * .5;
@@ -543,7 +561,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   return {
-    setState, walk, cue, roll, setFork,
+    setState, walk, cue, emote, setThink, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,

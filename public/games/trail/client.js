@@ -12,6 +12,7 @@ import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../co
 import { petImg, petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
+import { stoneSvg, TREAT_SVG } from './icons.js';
 import {
   NODES, FORKS, routeName, near, matchup, oddsOf, priceOf, ITEMS, ITEM_IDS, ITEM_MAX, LURE, HERD_MAX, STONES, SEASON_RULE, WX_RULE,
   POOL, RIBBONS, EL_NAME, EL_COL, PACT_ROUNDS, ribbonsOf, showPts, landsOf,
@@ -24,7 +25,7 @@ const I = {
   door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
   map: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',
   me: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
-  treat: '<svg class="tt-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="#e8b25a" stroke="#8a5a32" stroke-width="2"/><circle cx="9" cy="10" r="1.4" fill="#8a5a32"/><circle cx="14.5" cy="9" r="1.2" fill="#8a5a32"/><circle cx="13" cy="14.5" r="1.4" fill="#8a5a32"/></svg>',
+  treat: TREAT_SVG, // Pawperty's bone: the site's one treat icon
 };
 // little sticker pictures of the stall's items (ink outlines, their own colours, so they read on day and night panels)
 const IK = 'stroke="#3b2219" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
@@ -109,6 +110,7 @@ export function mount(app, ctx) {
 
   // ----- the camera follows whoever is playing; between rounds it shows the whole island -----
   let peekUntil = 0; // each round opens with a short look over the whole island, so everyone sees where the wild pets are
+  let lastPendK = '';
   function camFocus() {
     if (!scene || !S) return;
     const turnish = S.ph === 'play' && ['turn', 'rolled', 'walk', 'land', 'next'].includes(S.stage) && S.turn >= 0 || (S.pend && !['pact'].includes(S.pend.k));
@@ -116,6 +118,8 @@ export function mount(app, ctx) {
     scene.setMap(mapOn || Date.now() < peekUntil);
     scene.setFork?.(S.ph === 'play' && S.pend?.k === 'fork' ? S.pl[S.pend.s].pos : null, S.pend?.opts || []);
     scene.setLineup?.(lineMode());
+    { const pk = S.pend ? S.pend.k + S.pend.s + ':' + (S.pend.id ?? '') : ''; if (pk !== lastPendK) { lastPendK = pk; if (S.pend?.k === 'meet') scene.emote?.(S.pend.s, 'surprise'); } } // a wild pet: jump back in surprise
+    scene.setThink?.(S.ph === 'play' && S.pend && ['card', 'fork', 'shop', 'meet', 'well', 'bench', 'lure'].includes(S.pend.k) ? S.pend.s : -1); // hand on chin while choosing
     root.classList.toggle('lineup', !!lineMode()); root.classList.toggle('intro', S?.ph === 'play' && S.stage === 'intro');
   }
   // the start line-up: the intro, the roll for the first turn, and the moment the order is announced
@@ -165,7 +169,7 @@ export function mount(app, ctx) {
         el = document.createElement('div');
         if (m.k === 'wild') { el.className = 'tt-mark wild'; el.style.setProperty('--el', EL_COL[m.w.el]); el.innerHTML = `<b>${esc(petName(m.w.sp))}</b><small>${EL_NAME[m.w.el]}${m.w.rare ? ' · ' + RARE[m.w.rare] : ''}</small>`; }
         else if (m.k === 'honey') { el.className = 'tt-mark honey'; el.innerHTML = `<b>${L('Honey Pot', 'Garnek miodu')}</b><small>${nm(S.honey[m.pos])}</small>`; }
-        else { el.className = 'tt-mark stone ' + m.kind; el.innerHTML = `<b>${STONE_NAME[m.kind]}</b>`; }
+        else { el.className = 'tt-mark stone ' + m.kind; el.innerHTML = `<b>${stoneSvg(m.kind)}${STONE_NAME[m.kind]}</b>`; }
         marksEl.append(el); markEls.set(k, el);
       }
       const w = el._w ||= el.offsetWidth, h = el._h ||= el.offsetHeight;
@@ -312,7 +316,7 @@ export function mount(app, ctx) {
     const at = ends[0], kind = NODES[at]?.kind;
     const where = pets.length ? L(`Wild ${esc(petName(pets[0].sp))}!`, `Dziki ${esc(petName(pets[0].sp))}!`) : fork && ends.length > 1 ? L('Fork ahead: you pick', 'Rozwidlenie: ty wybierasz') : esc(STONES[kind] || '');
     return `<button type="button" class="btn tt-tc${pets.length ? ' hot' : kind === 'bramble' && ends.length === 1 ? ' bad' : ''}" data-a="card" data-i="${i}" aria-label="${L(`Walk ${d}`, `Idź o ${d}`)}: ${where}">
-      <b>${d}</b><small>${L(d === 1 ? 'stone' : 'stones', d === 1 ? 'kamień' : d < 5 ? 'kamienie' : 'kamieni')}</small><span>${pets.length ? pet(pets[0], 30) : ''}${where}</span></button>`;
+      <b>${d}</b><small>${L(d === 1 ? 'stone' : 'stones', d === 1 ? 'kamień' : d < 5 ? 'kamienie' : 'kamieni')}</small><span>${pets.length ? pet(pets[0], 30) : fork && ends.length > 1 ? '' : stoneSvg(kind)}${where}</span></button>`;
   }
   function pendHtml(P, clock) {
     const p = S.pl[S.me];
@@ -419,7 +423,7 @@ export function mount(app, ctx) {
     if (S.stage === 'wheel' || S.stage === 'mini') {
       key += S.mini?.game;
       const pool = POOL.filter(g => g.max >= S.seats.length), pick = S.mini?.game;
-      html = `<div class="tt-card"><h2>${L('Minigame time!', 'Czas na minigrę!')}</h2><div class="tt-wheel" data-pick="${esc(pick)}">${pool.map(g => `<span data-g="${g.id}">${esc(g.name)}<small>${esc(g.cut)}</small></span>`).join('')}</div><p class="tt-sub">${L('Everyone plays at once. Places pay treats: 1st gets the most.', 'Grają wszyscy naraz. Miejsca dają przysmaki, najwięcej za 1.')}</p></div>`;
+      html = `<div class="tt-card tt-wcard"><h2>${L('Minigame time!', 'Czas na minigrę!')}</h2><div class="tt-wheel" data-pick="${esc(pick)}">${pool.map(g => `<span data-g="${g.id}"><img src="/gamepics/${g.id}-s.jpg" alt="" decoding="async"><b>${esc(g.name)}</b><small>${esc(g.cut)}</small></span>`).join('')}</div><p class="tt-sub">${L('Everyone plays at once. Places pay treats: 1st gets the most.', 'Grają wszyscy naraz. Miejsca dają przysmaki, najwięcej za 1.')}</p></div>`;
     } else if (S.stage === 'minires' && S.miniRes) {
       const R = S.miniRes; key += R.game;
       html = `<div class="tt-card"><h2>${esc(gameName(R.game))}</h2><ol class="tt-mres">${R.order.map((i, k) => { const ch = R.cheered.find(c => c.s === i);
@@ -461,16 +465,16 @@ export function mount(app, ctx) {
       case 'first': throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
       case 'order': big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
-      case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); splash(s); if (isMe(s)) sfx.turn(); break;
-      case 'card': stepsLeft.set(s, e.d); sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
+      case 'turn': scene?.emote?.(s, 'wave'); say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); splash(s); if (isMe(s)) sfx.turn(); break;
+      case 'card': scene?.emote?.(s, 'point'); stepsLeft.set(s, e.d); sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
       case 'redraw': sfx.whoosh?.(); say(who(s, L(`Your ${esc(petName(e.sp))} swaps your cards`, `Twój ${esc(petName(e.sp))} wymienia ci karty`), L(`{n}'s ${esc(petName(e.sp))} swaps their cards`, `${esc(petName(e.sp))} wymienia karty graczowi {n}`))); break;
       case 'boost': say(who(s, L(`Fewest friends: your ${esc(petName(e.sp))} can swap your cards again`, `Najmniej przyjaciół: twój ${esc(petName(e.sp))} znów może wymienić ci karty`), L(`Fewest friends: {n}'s ${esc(petName(e.sp))} can swap cards again`, `Najmniej przyjaciół: {n} znów może wymienić karty (${esc(petName(e.sp))})`))); break;
-      case 'fork': say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
+      case 'fork': scene?.emote?.(s, 'point'); say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
       case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.();
         const n = stepsLeft.get(s); if (n > 0) { stepsLeft.set(s, n - 1); if (n - 1 > 0) bubble(s, `<span class="tt-stp">${n - 1}</span>`, 520); }
         setTimeout(hopSfx, 420); }; hopSfx(); } break;
       case 'stone': stoneEv(e); break;
-      case 'slide': say(who(s, L('Icy brambles! You slide 2 stones on', 'Oblodzone jeżyny! Ślizgasz się 2 kamienie dalej'), L('Icy brambles! {n} slides 2 stones on', 'Oblodzone jeżyny! {n} ślizga się 2 kamienie dalej'))); sfx.whoosh?.(); break;
+      case 'slide': scene?.emote?.(s, 'slide'); say(who(s, L('Icy brambles! You slide 2 stones on', 'Oblodzone jeżyny! Ślizgasz się 2 kamienie dalej'), L('Icy brambles! {n} slides 2 stones on', 'Oblodzone jeżyny! {n} ślizga się 2 kamienie dalej'))); sfx.whoosh?.(); break;
       case 'honey': say(L(`${isMe(s) ? 'You step' : nm(s) + ' steps'} in ${isMe(e.o) ? 'your' : nm(e.o) + "'s"} honey: ${treatsW(e.v)} to ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Wchodzisz' : nm(s) + ' wchodzi'} w miód gracza ${nm(e.o)}: ${treatsW(e.v)} dla ${isMe(e.o) ? 'ciebie' : nm(e.o)}`)); scene?.cue(s, 'lose'); floatAt(scene?.seatPx(s), '−' + e.v, 'bad'); break;
       case 'egg': say(who(s, L('You find a Mystery Egg. It hatches in 2 turns', 'Znajdujesz tajemnicze jajo. Wykluje się za 2 tury'), L('{n} finds a Mystery Egg', '{n} znajduje tajemnicze jajo'))); scene?.cue(s, 'item'); sfx.set(); break;
       case 'hatch': say(L(`${isMe(s) ? 'Your' : nm(s) + "'s"} egg hatches: <b>${esc(petName(e.sp))}</b>!`, `Jajo ${isMe(s) ? 'się wykluwa' : 'gracza ' + nm(s) + ' się wykluwa'}: <b>${esc(petName(e.sp))}</b>!`)); scene?.cue(s, 'friend'); sfx.win?.(); break;
@@ -485,7 +489,7 @@ export function mount(app, ctx) {
       case 'flee': say(L(`${esc(petName(e.sp))} runs off down the trail`, `${esc(petName(e.sp))} ucieka dalej szlakiem`)); break;
       case 'leave': say(who(s, L(`You leave ${esc(petName(e.sp))} be`, `Zostawiasz: ${esc(petName(e.sp))}`), L(`{n} leaves ${esc(petName(e.sp))} be`, `{n} zostawia: ${esc(petName(e.sp))}`))); break;
       case 'use': say(who(s, L(`You use the ${esc(ITEMS[e.k].name)}`, `Używasz: ${esc(ITEMS[e.k].name)}`), L(`{n} uses the ${esc(ITEMS[e.k].name)}`, `{n} używa: ${esc(ITEMS[e.k].name)}`))); scene?.cue(s, 'item'); sfx.set(); break;
-      case 'buy': say(who(s, L(`You buy the ${esc(ITEMS[e.k].name)}`, `Kupujesz: ${esc(ITEMS[e.k].name)}`), L(`{n} buys the ${esc(ITEMS[e.k].name)}`, `{n} kupuje: ${esc(ITEMS[e.k].name)}`))); sfx.pop(); break;
+      case 'buy': scene?.emote?.(s, 'item'); say(who(s, L(`You buy the ${esc(ITEMS[e.k].name)}`, `Kupujesz: ${esc(ITEMS[e.k].name)}`), L(`{n} buys the ${esc(ITEMS[e.k].name)}`, `{n} kupuje: ${esc(ITEMS[e.k].name)}`))); sfx.pop(); break;
       case 'well': say(e.res === 'pet' ? L(`A wish comes true: a rare <b>${esc(petName(e.sp))}</b> appears!`, `Życzenie się spełnia: pojawia się rzadki <b>${esc(petName(e.sp))}</b>!`)
         : e.res === 'item' ? L(`The well gives ${isMe(s) ? 'you' : nm(s)} the ${esc(ITEMS[e.k].name)}`, `Studnia daje ${isMe(s) ? 'ci' : 'graczowi ' + nm(s)}: ${esc(ITEMS[e.k].name)}`)
         : e.res === 'treats' ? L(`The well gives ${isMe(s) ? 'you' : nm(s)} 8 treats`, `Studnia daje ${isMe(s) ? 'ci' : 'graczowi ' + nm(s)} 8 przysmaków`)
@@ -494,7 +498,7 @@ export function mount(app, ctx) {
       case 'pact': say(L(`${nm(s)} and ${nm(e.o)} are buddies for ${PACT_ROUNDS} rounds`, `${nm(s)} i ${nm(e.o)} mają pakt na ${PACT_ROUNDS} rundy`)); scene?.cue(s, 'gain'); scene?.cue(e.o, 'gain'); sfx.set(); break;
       case 'nopact': say(L(`${nm(e.o)} says no thanks to the pact`, `${nm(e.o)} odmawia paktu`)); break;
       case 'pactend': say(L(`The pact of ${nm(s)} and ${nm(e.o)} ends`, `Pakt: ${nm(s)} i ${nm(e.o)} dobiega końca`)); break;
-      case 'lure': say(L(`${isMe(s) ? 'You lure' : nm(s) + ' lures'} <b>${esc(petName(e.sp))}</b> away from ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Zwabiasz' : nm(s) + ' zwabia'} <b>${esc(petName(e.sp))}</b> od ${isMe(e.o) ? 'ciebie' : 'gracza ' + nm(e.o)}`)); scene?.cue(s, 'friend', SPECIES[e.sp]?.el); scene?.cue(e.o, 'miss'); sfx.whoosh?.(); break;
+      case 'lure': scene?.emote?.(s, 'surprise'); say(L(`${isMe(s) ? 'You lure' : nm(s) + ' lures'} <b>${esc(petName(e.sp))}</b> away from ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Zwabiasz' : nm(s) + ' zwabia'} <b>${esc(petName(e.sp))}</b> od ${isMe(e.o) ? 'ciebie' : 'gracza ' + nm(e.o)}`)); scene?.cue(s, 'friend', SPECIES[e.sp]?.el); scene?.cue(e.o, 'miss'); sfx.whoosh?.(); break;
       case 'cheerask': say(L('Pick a friend to cheer you on in the minigame', 'Wybierz przyjaciela, który pokibicuje ci w minigrze')); if (S.cheer && !S.cheer.done) sfx.turn(); break;
       case 'wheel': say(L('The minigame wheel spins…', 'Koło minigier się kręci…')); break;
       case 'minires': { const k = e.order.indexOf(S.me); if (k === 0) sfx.win(); say(L(`${esc(gameName(e.game))}: ${nm(e.order[0])} wins`, `${esc(gameName(e.game))}: wygrywa ${nm(e.order[0])}`)); break; }

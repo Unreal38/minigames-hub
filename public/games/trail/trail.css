@@ -149,11 +149,15 @@ body.night .tt-odds { background: var(--paper); border: 1.5px solid var(--card-e
 .tt-sub { font-size: 14px; color: var(--soft-tx); }
 .tt-rules { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; text-align: left; }
 .tt-rules li { background: var(--card); border: 2px solid var(--card-edge); border-radius: 12px; padding: 6px 10px; font-size: 15px; }
-.tt-wheel { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin: 10px 0; }
-.tt-wheel span { display: flex; flex-direction: column; background: var(--card); border: 2.5px solid var(--card-edge); border-radius: 12px; padding: 6px; font-family: var(--fd); font-weight: 600; font-size: 15px; transition: transform .08s; }
-.tt-wheel span small { font-weight: 400; font-size: 12px; color: var(--soft-tx); }
-.tt-wheel span.on { background: var(--lantern); border-color: var(--ink); color: var(--ink); transform: scale(1.05); }
-.tt-wheel span.won { animation: ttwon .6s ease-in-out 3; box-shadow: 0 4px 0 var(--ink); }
+/* the minigame wheel uses the hub's minigame cards: picture on top, name and length under it */
+.tt-card.tt-wcard { width: min(880px, 100%); }
+.tt-wheel { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 10px; margin: 12px 0 8px; }
+.tt-wheel span { display: flex; flex-direction: column; background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 16px; overflow: hidden; font-family: var(--fd); box-shadow: 0 4px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
+.tt-wheel span img { display: block; width: 100%; aspect-ratio: 480 / 252; object-fit: cover; border-bottom: 3px solid var(--ink); }
+.tt-wheel span b { font-weight: 700; font-size: 14.5px; line-height: 1.15; padding: 6px 8px 0; }
+.tt-wheel span small { font-weight: 500; font-size: 12px; color: var(--soft-tx); padding: 1px 8px 7px; }
+.tt-wheel span.on { background: var(--lantern); color: var(--ink); --soft-tx: var(--ink); transform: translateY(-4px) scale(1.06); box-shadow: 0 0 0 3px var(--lantern), 0 6px 0 var(--ink); position: relative; z-index: 1; }
+.tt-wheel span.won { animation: ttwon .6s ease-in-out 3; }
 @keyframes ttwon { 50% { transform: scale(1.15); } }
 .tt-mres { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .tt-mres li { display: flex; align-items: center; gap: 8px; background: var(--card); border: 2.5px solid var(--card-edge); border-radius: 14px; padding: 5px 10px 5px 6px; text-align: left; animation: popin .35s cubic-bezier(.3, 1.6, .5, 1) both; flex-wrap: wrap; }
@@ -365,7 +369,7 @@ body.night .tt-idots i.on { background: var(--lantern); }
 .tt .btn.tt-opt.r0 .ic { background: #ffffff; border-radius: 10px; box-shadow: inset 0 0 0 2.5px var(--ink); }
 .tt .btn.tt-opt.r1 .ic { background: #ffc93c; border-radius: 10px; box-shadow: inset 0 0 0 2.5px var(--ink); }
 .tt.lineup .tt-side .tt-rk { display: none; } /* everyone is 1st before the first turn; the roll chips need the room */
-.tt.lineup .tt-side .tt-sp, .tt.lineup .tt-side .tt-tr { display: none; }
+.tt.lineup .tt-side .tt-sp, .tt.lineup .tt-side .tt-tr, .tt.lineup .tt-side .tt-key { display: none; }
 
 /* Kuba 2026-11-27: the top middle was too busy. On desktop Tux's news sits in the bottom-left corner (phones keep it
    under the player strip). The cheer question sits in the middle of the screen and says what happens next. */
@@ -381,3 +385,9 @@ body.night .tt-idots i.on { background: var(--lantern); }
 .tt-steps li i { font-style: normal; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--lantern); color: var(--ink); border: 2.5px solid var(--ink); font: 700 14px/1 var(--fd); }
 .tt-note { margin: 0; font: 500 13px/1.3 var(--fb, inherit); color: var(--soft-tx); text-align: center; max-width: 520px; }
 @media (max-width: 760px) { .tt-steps li { font-size: 12.5px; padding: 6px 5px 7px; } .tt-dock:has(.tt-cheerq) { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); } }
+/* stone icons: the same pictures as on the 3D stones (icons.js) */
+.tt-si { width: 30px; height: 30px; flex: none; display: block; }
+.tt-mark b .tt-si { display: inline-block; width: 18px; height: 18px; vertical-align: -4px; margin-right: 3px; }
+.tt-mark.stone b { display: inline-flex; align-items: center; }
+@media (max-width: 760px) { .tt-si { width: 24px; height: 24px; } }
+@media (max-width: 760px) { .tt-wheel { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } .tt-wheel span { border-width: 2px; border-radius: 12px; box-shadow: 0 2px 0 var(--ink); } .tt-wheel span b { font-size: 12px; padding: 4px 5px 0; } .tt-wheel span small { display: none; } .tt-wheel span img { border-bottom-width: 2px; } }
