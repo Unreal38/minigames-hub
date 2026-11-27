@@ -85,9 +85,9 @@ export function shell(mesh, grow = 1.1, color = '#4a2c22') {
 // sky and clouds exist. It notes the scene's daytime look, then paints it for the current mode: at night a
 // starry navy sky, moonlight for sunlight, tinted clouds, a moon, and the islands' lamp posts. The switch can be
 // flipped mid-game: setScenesNight(on) repaints every live scene both ways.
-// Since 2026-11-25 (Kuba) the skies follow the real clock, like Pet Farm: night from 21:00 to 4:36 on the player's own
+// Since 2026-11-25 (Kuba) the skies follow the real clock, like Pet Farm: night after the real sunset (weather.js sunHour) on the player's own
 // clock. The day/night switch (body.night) only changes the panels and buttons, never a 3D sky.
-// Since 2026-11-26 the change is gradual: a dusk from about 18:50 and a dawn until about 7:10 (weather.js skyPhase) tint the
+// Since 2026-11-26 the change is gradual: a dusk round the real sunset and a dawn round the real sunrise (weather.js sunHour, skyPhase) tint the
 // sky, the fog, the light and the clouds warm, then deepen into night; stars and the moon fade in. Lamps light up halfway.
 export const skyNow = () => skyPhase(skyHour());
 export const isNight = () => skyNow().n >= .5; // past the middle of the dusk, before the middle of the dawn

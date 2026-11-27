@@ -9,7 +9,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { petPic } from '../../petpic.js';
-import { isNight } from '../../weather.js';
+import { isNight, sunHour } from '../../weather.js';
 import { seasonLookNow } from '../../season3d.js';
 import { SPECIES } from '../farm/data.js';
 import { SIZE, FIND_MS, REVEAL_MS, COUNT_MS, DIZZY_MS, makePool, makeCard, hits, key, lvOf, rng } from './rules.js';
@@ -107,7 +107,7 @@ export function mount(app, ctx) {
     const m = main.getBoundingClientRect(), [a, b] = lists.map(l => l.getBoundingClientRect()), row = rowLayout(), gap = 12, edge = 8;
     const s = Math.max(120, Math.floor(row ? Math.min(m.width - 2 * (Math.max(a.width, b.width) + gap), m.height) : Math.min(m.width, m.height - Math.max(a.height, b.height) - gap)) - edge);
     if (s !== side || board.style.width !== s + 'px') { side = s; board.style.width = board.style.height = s + 'px'; }
-    root.classList.toggle('clocknight', isNight(new Date().getHours() + new Date().getMinutes() / 60));
+    root.classList.toggle('clocknight', isNight(sunHour()));
     dpr = Math.min(3, devicePixelRatio || 1); // full sharpness on every device
     const px = Math.round(side * dpr); if (cv.width !== px) { cv.width = cv.height = px; }
     clamp(); if (S) draw(); else need = true; // straight away: a resized canvas is blank until it is drawn again
@@ -144,7 +144,7 @@ export function mount(app, ctx) {
       else g.ellipse(x, y, 16 + b * 14, 9 + b * 7, a * 3, 0, 7);
       g.fill();
     }
-    if (isNight(new Date().getHours() + new Date().getMinutes() / 60)) { g.fillStyle = 'rgba(30, 36, 110, .2)'; g.fillRect(0, 0, SIZE, SIZE); } // the real clock's night; pets stay bright
+    if (isNight(sunHour())) { g.fillStyle = 'rgba(30, 36, 110, .2)'; g.fillRect(0, 0, SIZE, SIZE); } // the real clock's night; pets stay bright
   }
   function drawPet(it) {
     const im = look[it.k];

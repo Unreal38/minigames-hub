@@ -31,7 +31,7 @@ export const WX_ICON = {
   moon: '<path d="M16 3a9 9 0 1 0 5 13A7.5 7.5 0 0 1 16 3z" fill="#fff3b8" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
 };
 export const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
-// Night on the player's own clock (the same hours as the Pet Farm sky): a sunny spell is a clear night then.
+// Night on the sky clock (sunHour below turns the real clock into it; the same hours as the Pet Farm sky): a sunny spell is a clear night then.
 export const isNight = h => h < 4.6 || h >= 21;
 // The sky between day and night (Kuba, 2026-11-26): instead of jumping at 21:00 and 4:36 it passes through a dusk and a
 // dawn. skyPhase(hour) gives n, how far into night it is (0 day .. 1 night), g, how strong the warm dawn or dusk glow
@@ -42,6 +42,33 @@ export function skyPhase(h) {
   h = ((h % 24) + 24) % 24; let i = 0; while (i < SKY_PHASES.length - 2 && SKY_PHASES[i + 1][0] <= h) i++;
   const A = SKY_PHASES[i], B = SKY_PHASES[i + 1], t = Math.min(1, Math.max(0, (h - A[0]) / (B[0] - A[0]))), u = t * t * (3 - 2 * t);
   return { n: A[1] + (B[1] - A[1]) * u, g: A[2] + (B[2] - A[2]) * u, dawn: h < 12 };
+}
+// Real sunrise and sunset (Kuba, 2026-11-27): the table above is a "sky clock" with sunrise at 6.1 and sunset at 19.8.
+// sunHour() turns the real clock into that sky clock for today's date, using central Poland's sun (the players are
+// Polish), so a November evening is dark by 17:00 and a June one stays light until after 21:00. Dawn and dusk keep their
+// real length; the day and night in between stretch or shrink. skyPhase, isNight and Pet Farm's sky all take sky hours.
+export const SUN_AT = { lat: 52.07, lon: 19.48 };      // the middle of Poland
+export const SKY_RISE = 6.1, SKY_SET = 19.8;           // where sunrise and sunset sit on the sky clock
+const sunCache = new Map();
+/** Today's sunrise and sunset as hours on this device's clock (DST included). */
+export function sunTimes(d = new Date(), at = SUN_AT) {
+  const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; let c = sunCache.get(key); if (c) return c;
+  const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12), rad = Math.PI / 180;
+  const day = (Date.UTC(noon.getFullYear(), noon.getMonth(), noon.getDate()) - Date.UTC(noon.getFullYear(), 0, 0)) / 864e5;
+  const y = 2 * Math.PI / 365 * (day - 1);               // NOAA's fractional year
+  const eqt = 229.18 * (.000075 + .001868 * Math.cos(y) - .032077 * Math.sin(y) - .014615 * Math.cos(2 * y) - .040849 * Math.sin(2 * y));
+  const dec = .006918 - .399912 * Math.cos(y) + .070257 * Math.sin(y) - .006758 * Math.cos(2 * y) + .000907 * Math.sin(2 * y) - .002697 * Math.cos(3 * y) + .00148 * Math.sin(3 * y);
+  const cosH = (Math.cos(90.833 * rad) - Math.sin(at.lat * rad) * Math.sin(dec)) / (Math.cos(at.lat * rad) * Math.cos(dec));
+  const ha = Math.acos(Math.min(1, Math.max(-1, cosH))) / rad, mid = 720 - 4 * at.lon - eqt; // minutes after midnight UTC
+  const local = m => { const t = new Date(Date.UTC(noon.getUTCFullYear(), noon.getUTCMonth(), noon.getUTCDate()) + m * 6e4); return t.getHours() + t.getMinutes() / 60 + t.getSeconds() / 3600; };
+  c = { rise: local(mid - ha * 4), set: local(mid + ha * 4) };
+  if (sunCache.size > 8) sunCache.clear(); sunCache.set(key, c); return c;
+}
+/** The real clock as a sky-clock hour (see above): what skyPhase, isNight and the Pet Farm sky should be given. */
+export function sunHour(d = new Date()) {
+  const h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600, { rise, set } = sunTimes(d);
+  const wrap = x => ((x + 12) % 24 + 24) % 24 - 12, fr = wrap(h - rise), fs = wrap(h - set); // hours from sunrise, from sunset
+  return ((Math.abs(fr) < Math.abs(fs) ? SKY_RISE + fr : SKY_SET + fs) + 24) % 24;
 }
 // The glow's colours: the sky overhead, the horizon, the light from the sky, the low sun, and the clouds it lights up.
 export const GLOW = {

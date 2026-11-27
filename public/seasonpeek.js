@@ -1,6 +1,7 @@
 // Hosts only: look at the game islands in another season (season3d.js). It changes only this browser's view, and
 // only while the server says this account is a host (me.admin), so players can't switch it. Kept apart from
 // season3d.js so the hub menu can use it without loading three.js.
+import { sunHour } from './weather.js';
 export const PEEKS = ['winter', 'spring', 'summer', 'autumn', 'halloween'];
 const KEY = 'ct_season_peek';
 const get = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
@@ -24,5 +25,6 @@ const SKEY = 'ct_sky_peek';
 const sget = () => { try { return localStorage.getItem(SKEY); } catch { return null; } };
 export const skyPeekPick = () => { const v = sget(); return v in SKY_PEEKS ? v : 'auto'; };
 export const setSkyPeek = v => { try { v in SKY_PEEKS ? localStorage.setItem(SKEY, v) : localStorage.removeItem(SKEY); } catch {} };
-/** The hour the skies show: the player's own clock, or a host's preview. */
-export const skyHour = () => { const p = host && skyPeekPick(); if (p && p !== 'auto') return SKY_PEEKS[p]; const d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; };
+/** The hour the skies show: the player's own clock turned to the sky clock (today's real sunrise and sunset,
+ * weather.js sunHour), or a host's preview. */
+export const skyHour = () => { const p = host && skyPeekPick(); if (p && p !== 'auto') return SKY_PEEKS[p]; return sunHour(); };
