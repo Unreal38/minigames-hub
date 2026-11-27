@@ -149,7 +149,7 @@ body.night .pf .dest .dlock { background: #0d1030; box-shadow: 0 0 0 2px rgba(25
   .pf .party .pickpet { width: auto; }
 }
 .pf .est { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 34px; }
-.pf .tripp .row.end { justify-content: flex-end; position: sticky; bottom: -18px; background: var(--pf-bg, var(--paper)); padding: 8px 0 18px; margin-bottom: -18px; }
+.pf .tripp .row.end { justify-content: flex-end; position: sticky; bottom: -18px; z-index: 2; background: var(--pf-bg, var(--paper)); padding: 8px 0 18px; margin-bottom: -18px; }
 .pf .backpet { display: flex; gap: 10px; align-items: center; }
 .pf .backpet b { font-family: var(--fd); font-weight: 600; font-size: 17px; display: block; }
 .pf .backpet small { font-size: 14px; color: var(--pf-muted, #6b4a3c); } .pf .backpet em { font-style: normal; font-weight: 700; color: #2f7d3a; }
