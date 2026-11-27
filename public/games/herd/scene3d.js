@@ -71,7 +71,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const pfx = createFx(scene), shake = shaker();
 
   // ---------- tiles ----------
-  const bodyGeo = new THREE.BoxGeometry(TW, TH, TL), faceGeo = new THREE.PlaneGeometry(TW * .9, TL * .9); faceGeo.rotateX(-Math.PI / 2);
+  const bodyGeo = new THREE.BoxGeometry(TW, TH, TL), faceGeo = new THREE.PlaneGeometry(TW * .97, TL * .97); faceGeo.rotateX(-Math.PI / 2);
   const plateGeo = new THREE.BoxGeometry(TW - .08, .02, TL - .08), dotGeo = new THREE.CylinderGeometry(.05, .05, .02, 12);
   const selGeo = new THREE.PlaneGeometry(TW + .14, TL + .14); selGeo.rotateX(-Math.PI / 2);
   const bodyMat = toonMat(M(herdLook(0).body));

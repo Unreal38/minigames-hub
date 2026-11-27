@@ -36,10 +36,18 @@ function stickerOf(im) {
 }
 // Paint the top of a tile on a W x H canvas. pet: the loaded picture of its pet, or null while it is being drawn;
 // k: the tile set (Wardrobe kind ht) of the player who owns it.
+// A soft bevel: the tile body's colour fades inward from the rim, so the dark sides blend into the face instead of a hard cut.
+function bevel(g, c) {
+  g.save(); g.beginPath(); g.rect(-60, -60, W + 120, H + 120); g.roundRect(4, 4, W - 8, H - 8, 12);
+  g.fillStyle = c; g.shadowColor = c; g.shadowBlur = 16; g.globalAlpha = .7; g.fill('evenodd');
+  g.shadowBlur = 0; g.globalAlpha = .45; g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.beginPath(); g.roundRect(5.5, 5.5, W - 11, H - 11, 11); g.stroke(); // a thin light lip where the bevel meets the face
+  g.restore();
+}
 export function paintTile(g, id, pet, k = 0) {
   const look = herdLook(k);
   g.clearRect(0, 0, W, H);
   paintHerdFace(g, W, H, k);
+  bevel(g, look.body);
   g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   if (isEgg(id)) {
     g.fillStyle = look.ink || EGG_INK; g.font = '700 32px Rubik, Nunito, sans-serif'; g.fillText('ANY', W / 2, 42);
