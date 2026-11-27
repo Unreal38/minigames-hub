@@ -301,7 +301,7 @@ bad = await a.farmDo({ t: 'bact', switch: 0 });
 if (!bad.err) fail('switched to the pet already out');
 const lv0 = a.farm.pets.find(x => x.id === mine[0]).lv, xp0 = a.farm.pets.find(x => x.id === mine[0]).xp;
 r = await playOut(bad);
-if (!r.prize || !r.prize.counted || r.prize.xp <= 0 || r.farm.fights.practice !== 2) fail('practice prize ' + JSON.stringify(r.prize));
+if (!r.prize || !r.prize.counted || r.prize.xp <= 0 || !r.prize.learnt || r.farm.fights.practice !== 9) fail('practice prize ' + JSON.stringify(r.prize));
 const after = r.farm.pets.find(x => x.id === mine[0]);
 if (after.lv === lv0 && after.xp !== xp0 + r.prize.xp) fail('practice xp not added');
 if (!r.ev.some(e => e.k === 'end')) fail('no end event');
@@ -310,8 +310,8 @@ if (r.battle) fail('battle should be gone after it ends');
 // giving up counts as a loss and earns nothing
 await a.farmDo({ t: 'fight', mode: 'practice', pets: [mine[0]] });
 r = await a.farmDo({ t: 'bquit' });
-if (!r.prize || r.prize.won || r.prize.counted || r.farm.fights.practice !== 2) fail('quit ' + JSON.stringify(r.prize));
-// the arena: neighbours and other players, everyone at level 20
+if (!r.prize || r.prize.won || r.prize.counted || r.prize.learnt || r.prize.xp || r.farm.fights.practice !== 9) fail('quit ' + JSON.stringify(r.prize));
+// the arena: neighbours and other players, every pet at its real level (2026-11-27)
 r = await a.farmDo({ t: 'foes' });
 const bo = r.foes.find(x => !x.npc);
 if (r.foes.filter(x => x.npc).length !== 3 || !bo || bo.name !== 'Bo' || bo.team[0].sp !== 'puddlepup' || JSON.stringify(r.foes).includes(b.me?.pid || 'no-pid')) fail('foes ' + JSON.stringify(r.foes));
@@ -320,12 +320,12 @@ if (!r.ranks || r.ranks.some(x => x.npc || ['Mira', 'Bruno', 'Farmer Hazel'].inc
 r = await a.farmDo({ t: 'fight', mode: 'arena', foe: 'nobody', pets: [mine[0]] });
 if (!r.err) fail('fought a farm that does not exist');
 r = await a.farmDo({ t: 'fight', mode: 'arena', foe: bo.id, pets: mine.slice(0, 2) });
-if (r.err || r.battle.sides[0].pets[0].lv !== 20 || r.battle.sides[1].pets[0].lv !== 20 || r.battle.sides[0].pets[0].moves.length !== 4 || r.battle.foe !== 'Bo') fail('arena start ' + JSON.stringify(r.err));
+if (r.err || r.battle.sides[0].pets[0].lv !== a.farm.pets.find(x => x.id === mine[0]).lv || r.battle.sides[1].pets[0].lv !== bo.team[0].lv || r.battle.foe !== 'Bo') fail('arena start ' + JSON.stringify(r.err || r.battle.sides.map(s => s.pets.map(x => x.lv))));
 const coins0 = a.farm.inv.coins;
 r = await playOut(r);
 if (!r.prize.counted || r.farm.inv.coins !== coins0 + r.prize.coins || r.farm.pts !== r.prize.pts || r.farm.fights.arena !== 4) fail('arena prize ' + JSON.stringify(r.prize));
 r = await a.farmDo({ t: 'fight', mode: 'arena', foe: 'npc:hazel', pets: mine.slice(0, 2) });
-if (r.err || r.battle.sides[1].pets.length !== 3) fail('npc fight');
+if (r.err || r.battle.sides[1].pets.length !== 2 || r.battle.sides[1].pets.some(x => x.lv !== Math.round((r.battle.sides[0].pets[0].lv + r.battle.sides[0].pets[1].lv) / 2))) fail('npc fight ' + JSON.stringify(r.err || r.battle.sides[1].pets.map(x => x.lv)));
 await a.farmDo({ t: 'bquit' });
 // defence team
 r = await a.farmDo({ t: 'defend', pets: [mine[1]] });
@@ -534,7 +534,7 @@ if (!r.err) fail('picked unripe berries');
 r = await a.farmDo({ t: 'cook', what: 'cookie', test: { give: { berries: 30 } } });
 if (!a.farm.items.some(i => i.type === 'kitchen')) { if (!r.err) fail('cooked without a Kitchen'); await spot('kitchen'); r = await a.farmDo({ t: 'cook', what: 'cookie' }); }
 if (r.err || r.farm.inv.cookie !== 1) fail('cook ' + r.err);
-const eater = r.farm.pets.find(x => x.lv < 20), eat0 = [eater.lv, eater.xp];
+const eater = r.farm.pets.find(x => x.lv < 8), eat0 = [eater.lv, eater.xp];
 r = await a.farmDo({ t: 'feed', what: 'cookie', pet: eater.id });
 const ate = r.farm.pets.find(x => x.id === eater.id);
 if (r.err || r.farm.inv.cookie || (ate.lv === eat0[0] && ate.xp <= eat0[1])) fail('feed ' + r.err);
