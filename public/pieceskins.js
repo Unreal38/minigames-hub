@@ -255,14 +255,14 @@ export function seedModel(THREE, k) {
 // dark face; motif: a faint pattern over the face, kept light so the number and the pet stay clear.
 const herdTile = (face, body, edge, motif = '', ink = null, card = null) => ({ face, body, edge, motif, ink, card });
 const HERD_TILES = [
-  herdTile('#fffaf0', '#f6ead8', '#d8c3a6'),
-  herdTile('#fbefd9', '#b98457', '#9b6a43', 'grain'),                 // wood
-  herdTile('#effff7', '#7ed3b2', '#4fb08d', 'stripes'),               // mint candy
-  herdTile('#26306c', '#171f4c', '#0e1436', 'stars', null, '#fbf4e2'), // night sky: a cream card inside the starry frame, so the pet colours read
-  herdTile('#f7f5f2', '#cfcac3', '#aaa39a', 'veins'),                 // marble
-  herdTile('#fff8e2', '#f2b84a', '#c98a1a', 'hex'),                   // honeycomb
-  herdTile('#f0faff', '#a8dcf5', '#6fb4dc', 'flake'),                 // frost (winter)
-  herdTile('#fff6d8', '#e8b030', '#b8801a', 'shine'),                 // golden herd (earned)
+  herdTile('#f2dfbf', '#e6cfa8', '#c9a77c'),                          // classic: warm sand
+  herdTile('#e3c08e', '#b98457', '#9b6a43', 'grain'),                 // wood: light oak
+  herdTile('#b7e6cf', '#7ed3b2', '#4fb08d', 'stripes'),               // mint candy
+  herdTile('#26306c', '#171f4c', '#0e1436', 'stars', null, '#c7d0f3'), // night sky: a pale moonlight card inside the starry frame, so the pet colours read
+  herdTile('#dedad4', '#b9b2a8', '#9a9288', 'veins'),                 // marble
+  herdTile('#f4d488', '#e0a63a', '#c98a1a', 'hex'),                   // honeycomb
+  herdTile('#cde9fa', '#8fcbee', '#6fb4dc', 'flake'),                 // frost (winter)
+  herdTile('#f2cf72', '#e0a52a', '#b8801a', 'shine'),                 // golden herd (earned)
 ];
 export const herdLook = k => HERD_TILES[k | 0] || HERD_TILES[0];
 // The face background with its pattern, on a canvas of w x h (the game's tile faces are 128 x 170).
