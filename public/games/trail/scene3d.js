@@ -100,7 +100,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the trail: stones, the dirt between them, bridges and signposts ----------
   const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z)), START = new THREE.Vector3();
   const nodeP = i => (i < 0 ? START : P[i]);
-  const DIRT = snowy ? '#d8e6ee' : '#d9b77c', DIRT_EDGE = snowy ? '#b9c9d6' : '#a9814f';
+  const DIRT = snowy ? '#c9a26a' : '#d9b77c', DIRT_EDGE = snowy ? '#8f6b3e' : '#a9814f'; // the path is cleared of snow in winter too, so the stones stand out (Kuba 2026-11-27)
   NODES.forEach((n, i) => {
     const kind = n.kind, top = STONE[kind] || '#ffd36b';
     const g = new THREE.Group(); g.position.set(n.x, 0, n.z); g.rotation.y = i * .7; world.add(g);

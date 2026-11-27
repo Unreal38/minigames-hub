@@ -40,6 +40,16 @@ for (const [id, f] of Object.entries(FORKS)) {
 export const N = NODES.length;
 export const dist = (a, b) => Math.hypot(NODES[a].x - NODES[b].x, NODES[a].z - NODES[b].z);
 export const near = (a, b) => dist(a, b) <= 2.9; // the same stone or the one next to it
+// Trail cards (Kuba 2026-11-27, instead of the die): everyone has a deck of CARD_DECK (each number twice), holds
+// HAND cards and plays one a turn to walk exactly that many stones, so you can aim for a wild pet's stone.
+export const HAND = 3, CARD_DECK = [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6];
+// Where d steps from pos ends: every stone it could stop on (two or more when a fork is on the way) and whether it
+// passes a fork (then the walker picks the way when they get there).
+export function landsOf(pos, d) {
+  let ends = [pos], fork = false;
+  for (let k = 0; k < d; k++) ends = [...new Set(ends.flatMap(i => { const nx = i < 0 ? [0] : NODES[i].next; if (nx.length > 1) fork = true; return nx; }))];
+  return { ends, fork };
+}
 export const routeName = j => (NODES[j]?.br ? FORKS[NODES[j].br].name : MAIN_NAME);
 
 // Pet Farm's element ring: each element is strong against the next one (games/farm/battle.js STRONG).
@@ -62,10 +72,10 @@ export const payFor = (place, n) => (n <= 2 ? [8, 3] : n === 3 ? [8, 5, 2] : MIN
 export const ITEMS = {
   whistle: { c: 5, name: L('Pet Whistle', 'Gwizdek'), tx: L('After you walk, the nearest wild pet comes to you.', 'Po marszu najbliższy dziki zwierzak przychodzi do ciebie.') },
   berry: { c: 4, name: L('Berry Bundle', 'Pęczek jagód'), tx: L('Your next showdown counts one step stronger.', 'Twoje następne starcie liczy się o stopień mocniej.') },
-  spy: { c: 3, name: L('Spyglass', 'Luneta'), tx: L('Roll two dice this turn and walk the higher.', 'Rzuć w tej turze dwiema kośćmi i idź o wyższy wynik.') },
+  spy: { c: 3, name: L('Spyglass', 'Luneta'), tx: L('Draw one more trail card this turn.', 'Dobierz w tej turze jeszcze jedną kartę szlaku.') },
   honey: { c: 4, name: L('Honey Pot', 'Garnek miodu'), tx: L('Leave it on your stone. The next player to stop there pays you 4 treats.', 'Zostaw go na swoim kamieniu. Następny gracz, który tam stanie, płaci ci 4 przysmaki.') },
   charm: { c: 5, name: L('Nest Charm', 'Amulet gniazda'), tx: L('Nobody can lure your friends until your next turn.', 'Nikt nie zwabi twoich przyjaciół do twojej następnej tury.') },
-  pouch: { c: 3, name: L('Snack Pouch', 'Sakiewka z przekąskami'), tx: L('Every friend can cheer and reroll again.', 'Każdy przyjaciel znów może kibicować i przerzucać.') },
+  pouch: { c: 3, name: L('Snack Pouch', 'Sakiewka z przekąskami'), tx: L('Every friend can cheer and swap your cards again.', 'Każdy przyjaciel znów może kibicować i wymieniać ci karty.') },
 };
 export const ITEM_IDS = Object.keys(ITEMS);
 

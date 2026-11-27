@@ -344,18 +344,18 @@ const GAMES = {
       <div class="opt"><b>Rounds</b><div class="pills">${pill('rounds', 5, '5')}${pill('rounds', 8, '8')}${pill('rounds', 12, '12')}</div></div>
       <div class="opt"><b>Bots</b><div class="pills">${pill('bots', 'chill', 'Chill')}${pill('bots', 'sharp', 'Sharp')}</div></div>
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
-    howto: `A party tournament on a big island trail. Roll the die, walk with your own Pet Farm pet, make friends with wild pets along the way, and play a quick hub minigame after every round. The Pet Show at the end hands out the ribbons.`,
+    howto: `A party tournament on a big island trail. Play trail cards, walk with your own Pet Farm pet, make friends with wild pets along the way, and play a quick hub minigame after every round. The Pet Show at the end hands out the ribbons.`,
     rules: `<ol>
       <li>Everyone starts in the <b>start meadow</b> with <b>their own isle pet</b> (or a starter pet) and <b>6 treats</b>. Empty seats are played by bots, and bots take a moment to think before each choice.</li>
-      <li>At the start everyone <b>rolls once</b>: the highest roll goes first, and that order holds all game (ties roll again). On your turn <b>roll the die</b> and walk that many stones. Every friend in your herd can <b>reroll</b> your die once (a <b>Spark</b> friend every round). At a <b>fork</b> you pick the route: the Forest shortcut, the Beach detour, the Hill and bridge or the Cliff path.</li>
+      <li>At the start everyone <b>rolls once</b>: the highest roll goes first, and that order holds all game (ties roll again). You hold <b>3 trail cards</b> numbered 1 to 6. On your turn <b>play one</b> and walk exactly that many stones; each card shows where it takes you. Every friend in your herd can <b>swap your hand</b> for new cards once (a <b>Spark</b> friend every round). At a <b>fork</b> you pick the route: the Forest shortcut, the Beach detour, the Hill and bridge or the Cliff path.</li>
       <li>Stones: <b>Treats</b> +3, <b>Picnic</b> +5, <b>Brambles</b> −3. Special stones: the <b>Stall</b> (shop as you pass), the <b>Egg Nest</b> (a Mystery Egg that hatches in 2 turns), the <b>Pact Bench</b>, the <b>Wishing Well</b> (5 treats for a wish), the <b>Hot Spring</b> (friends rest, +2) and the <b>Rare Den</b> (a rare pet comes out).</li>
       <li><b>Wild pets</b> wait on glowing stones. Stop exactly on a glowing stone and win its pet over: an <b>element showdown</b> with one of your friends (Tide beats Ember, Ember beats Leaf, Leaf beats Stone, Stone beats Spark, Spark beats Tide), or <b>treats</b>, which always work. A herd holds up to 6.</li>
       <li>Stop on another player's stone and you can <b>lure</b> their newest friend for 6 treats (never their starter pet, and not while a Nest Charm guards them).</li>
-      <li><b>Items</b> (hold 3, used before you roll): Pet Whistle, Berry Bundle, Spyglass, Honey Pot, Nest Charm and Snack Pouch.</li>
+      <li><b>Items</b> (hold 3, used before you play a card): Pet Whistle, Berry Bundle, Spyglass, Honey Pot, Nest Charm and Snack Pouch.</li>
       <li><b>Buddy pacts</b> last 3 rounds: +3 treats when your buddy makes a friend, no luring each other, and +3 each when you both finish a minigame in the top two.</li>
       <li>After every round everyone plays a <b>quick minigame</b> (one round of a hub game). Places pay treats, and a friend you picked to <b>cheer</b> moves you up one place, once per friend.</li>
       <li>The <b>season</b> and the <b>weather</b> change a rule and the look of the island. The <b>Whole map</b> button (or M) shows the whole island with labels.</li>
-      <li>At the <b>Pet Show</b> every friend is a rosette (1 point) and each ribbon is 2 points: Biggest herd, Most elements, Rarest friend, Minigame star and Treat keeper. The most points wins; treats break ties. Coins go by your final place, once, at the end.</li>
+      <li>At the <b>Pet Show</b> every friend is a rosette (1 point) and each ribbon is 2 points: Biggest herd, Most elements, Rarest friend, Minigame star and Treat keeper. The most points wins; treats break ties. Coins go by your final place, once, at the end: <b>50</b> for 1st down to 5 for last.</li>
     </ol>`,
   },
   blast: {
@@ -2220,7 +2220,7 @@ const HUB_GAMES = [
   ['tys', 'tyspic', tysArt, 'cards', '1–4 players', 'The Polish card classic. Bid for the musik, announce marriages to set trumps, and be first to 1000.'],
   ['paw', 'pawpic', pawArt, 'board', '1–6 players', 'Adopt pet shops round a cozy 3D board and collect rent in treats.'],
   ['kart', 'kartpic', kartArt, 'action', '1–8 players', 'Race little low-poly karts round roads that hop between floating islands.'],
-  ['trail', 'trailpic', trailArt, 'board party', '1–6 players', 'A party tournament on a big island trail. Roll, walk with your Pet Farm pet, befriend wild pets, and play a quick minigame after every round.'],
+  ['trail', 'trailpic', trailArt, 'board party', '1–6 players', 'A party tournament on a big island trail. Play trail cards, walk with your Pet Farm pet, befriend wild pets, and play a quick minigame after every round.'],
   ['blast', 'blastpic', blastArt, 'action party', '1–8 players', 'Plant pop seeds in a maze on a little island. Burst crates, free pets for boosts and be the last one standing.'],
   ['copy', 'copypic', copyArt, 'action party', '1–10 players', 'Hide and seek on a little island. Turn into a bench, a hay bale or a pumpkin and keep still while your friends hunt for you.'],
   ['kitchen', 'kitchenpic', kitchenArt, 'action party', 'Co-op · 1–4', 'Chop, cook and serve orders together in a little sky-island kitchen before the tickets run out.'],

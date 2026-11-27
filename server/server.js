@@ -308,7 +308,7 @@ function scoreGame(r) {
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
     const pay = FULL_BOT_PAY ? 1 : botPay(G.seats, i, { level, max: mod.meta.maxPlayers, ms });
-    const gain = store.credit(p, r.game, { ...res[i], of, ranked, pay });
+    const gain = store.credit(p, r.game, { ...res[i], of, ranked, pay, top: mod.meta.coins });
     r.paid[i] = gain.coins;
     send(c, { t: 'me', me: store.me(p), gain: solo ? { ...gain, solo: true } : gain });
   });
