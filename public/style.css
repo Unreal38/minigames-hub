@@ -2302,6 +2302,8 @@ body.night .pc-h { background: radial-gradient(#ffffff22 1.6px, transparent 2px)
 .pc-card h2 { margin: 0; font: 700 clamp(24px, 4vw, 32px)/1.1 var(--fd); color: var(--on-paper); -webkit-text-stroke: 0; text-shadow: none; }
 .pc-cut { font: 600 14px/1 var(--fd); background: var(--lantern); color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; padding: 5px 12px; }
 .pc-card p { margin: 4px 0 0; font-size: 17px; line-height: 1.35; color: var(--body-tx); max-width: 36ch; }
+.pc-card p.pc-how { font-size: 15.5px; max-width: 44ch; }
+@media (max-height: 700px) { .pc-card p.pc-how { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } }
 .pc-n { margin-top: 6px; font: 700 18px/1 var(--fd); background: var(--mint); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 8px 18px; box-shadow: 0 3px 0 var(--ink); }
 .pc-n:empty { display: none; }
 @media (max-height: 560px) { .pc-card img { display: none; } .pc-card { padding: 12px 16px 14px; } }
