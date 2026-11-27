@@ -68,12 +68,21 @@ function streaks(n, u) {
 const BOW = ['#e8615a', '#ffb547', '#ffe066', '#7fd08a', '#6fb7e8', '#b79cf0']; // Pet Farm's rainbow
 const _f = new THREE.Vector3();
 
-// One band of the arch: a little more than a half circle, its feet fading into the haze below the horizon.
-function bowBand(R) {
-  const g = new THREE.TorusGeometry(R, 1.15, 4, 48, Math.PI + .5); g.rotateZ(-.25);
-  const p = g.attributes.position, a = new Float32Array(p.count * 4);
-  for (let i = 0; i < p.count; i++) { const k = Math.min(1, Math.max(0, (p.getY(i) / R + .08) / .42)); a.set([1, 1, 1, k * k * (3 - 2 * k)], i * 4); }
-  g.setAttribute('color', new THREE.BufferAttribute(a, 4)); return g;
+// The arch drawn on the inside of a ball of radius 1 round the camera (a ring of directions, like a real rainbow round
+// the point opposite the sun), so it looks right from any angle the camera turns to. Its centre is +z, up is +y; ra is
+// its angular radius. A little more than half a ring; the feet fade into the haze. One mesh, one draw call.
+function bowRing(ra) {
+  const SEG = 64, pos = [], col = [], idx = [], c = new THREE.Color();
+  BOW.forEach((hex, i) => {
+    c.set(hex); const r0 = ra * (1 - .04 * (i + 1)), r1 = ra * (1 - .04 * i), base = pos.length / 3;
+    for (let j = 0; j <= SEG; j++) {
+      const f = -.25 + (Math.PI + .5) * j / SEG, k0 = Math.min(1, Math.max(0, (Math.sin(f) + .08) / .42)), al = k0 * k0 * (3 - 2 * k0);
+      for (const r of [r0, r1]) { pos.push(Math.sin(r) * Math.cos(f), Math.sin(r) * Math.sin(f), Math.cos(r)); col.push(c.r, c.g, c.b, al); }
+      if (j) { const q = base + (j - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+    }
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); g.setIndex(idx); return g;
 }
 
 // The rainbow as part of the sky (Kuba, 2026-11-27: never stuck to the camera, and it must be easy to see, since it
@@ -81,25 +90,27 @@ function bowBand(R) {
 // moves. For each camera it settles where that camera first looks, sized to its view and raised so its top shows just
 // under the top of the screen (on the horizon when the camera sees plenty of sky). place(camera, opacity) every frame.
 export function skyBow() {
-  const bow = new THREE.Group(), at = new WeakMap();
-  BOW.forEach((c, i) => bow.add(new THREE.Mesh(bowBand(58 - i * 2.2), new THREE.MeshBasicMaterial({ color: c, vertexColors: true, transparent: true, opacity: 0, fog: false, depthWrite: false }))));
-  bow.children.forEach(m => { m.renderOrder = -7; m.frustumCulled = false; });
+  const bow = new THREE.Group(), at = new WeakMap(), mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, fog: false, depthWrite: false, side: THREE.DoubleSide });
+  const rings = new Map(); // one ring per size (cameras differ), kept for reuse
+  const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat); mesh.renderOrder = -7; mesh.frustumCulled = false; bow.add(mesh);
   bow.visible = false;
   bow.place = (camera, opacity) => {
     let a = at.get(camera);
     if (!a) {
       camera.getWorldDirection(_f);
       const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
-      const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.min(.52, Math.max(.21, hfov * .42));
+      const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.round(Math.min(.52, Math.max(.21, hfov * .42)) * 50) / 50;
       const el = Math.max(-1.05, Math.min(-.035, pitch + half - .09 - A));
       _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
-      a = { yaw: Math.atan2(_f.x, _f.z), el, k: Math.tan(A) }; at.set(camera, a);
+      if (!rings.has(A)) rings.set(A, bowRing(A));
+      a = { yaw: Math.atan2(_f.x, _f.z), el, g: rings.get(A) }; at.set(camera, a);
     }
-    const far = Math.min(240, camera.far * .85), h = Math.cos(a.el) * far; // out past the scenery, always the same size in the sky
-    bow.position.set(camera.position.x + Math.sin(a.yaw) * h, camera.position.y + Math.sin(a.el) * far, camera.position.z + Math.cos(a.yaw) * h);
-    bow.rotation.set(-a.el, a.yaw, 0, 'YXZ'); bow.scale.setScalar(far * a.k / 58); bow.updateMatrixWorld(true);
-    for (const m of bow.children) m.material.opacity = opacity;
+    mesh.geometry = a.g;
+    bow.position.copy(camera.position); // a ball round the camera, out past the scenery: the sky
+    bow.rotation.set(-a.el, a.yaw, 0, 'YXZ'); bow.scale.setScalar(Math.min(240, camera.far * .85)); bow.updateMatrixWorld(true);
+    mat.opacity = opacity;
   };
+  bow.dispose = () => { for (const g of rings.values()) g.dispose(); mat.dispose(); };
   return bow;
 }
 
