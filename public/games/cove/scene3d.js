@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, createFx, shaker, nightScene, disposeToon, hash, DOT, STAR } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { cellsOf, MISS, HIT, CLEAR } from './rules.js';
 import { boatLook } from '../../pieceskins.js';
@@ -420,7 +420,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   return {
     setState, setLayout, pick, setHover,
-    setHud(px) { if ((Math.abs(px - hudBottom) > 6) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
+    setHud(px) { const fit = hudFitOk(canvas), grew = px > hudBottom + 6; if ((Math.abs(px - hudBottom) > 6) && (fit || grew)) { hudBottom = px; fit ? resize(true) : easeRefit(camera, camBase, camLook, () => resize(true)); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     dispose() {
       dead = true; ticker.stop(); freeBays();
       for (const p of petProtos.values()) disposeToon(p);

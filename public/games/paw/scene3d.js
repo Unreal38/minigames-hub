@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, HEART, nightScene, disposeToon } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { diceKit } from '../../dice3d.js';
 import { youArrow, animateArrow, disposeArrow } from '../../marker3d.js';
 import { petModel } from '../farm/pets3d.js';
@@ -539,7 +539,7 @@ export function createScene(canvas, { onFrame, onStep, onThumbs } = {}) {
     tileXY(i) { tv.copy(CEN[i]).setY(.6); const [x, y] = toPx(tv); return { x, y }; },
     stats: () => { const n = o => { let k = 0; o.traverse(m => { if (m.isMesh && m.visible && m.geometry.attributes.position) k++; }); return k; };
       return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, fps: ticker.fps(), toks: toks.reduce((a, t) => a + n(t.g), 0), pets: [...shops.values()].reduce((a, x) => a + n(x.hold), 0), land: n(land), room: n(room) }; },
-    setHud(bottom, left = 0, top = 110) { if ((Math.abs(bottom - hudBottom) > 6 || left !== hudLeft || top !== hudTop) && hudFitOk(canvas)) { hudBottom = bottom; hudLeft = left; hudTop = top; resize(true); } },
+    setHud(bottom, left = 0, top = 110) { const fit = hudFitOk(canvas), grew = bottom > hudBottom + 6 || top > hudTop + 6; if ((Math.abs(bottom - hudBottom) > 6 || left !== hudLeft || top !== hudTop) && (fit || grew)) { hudBottom = bottom; hudLeft = left; hudTop = top; fit ? resize(true) : easeRefit(camera, camBase, camLook, () => resize(true)); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     dispose() {
       dead = true; ticker.stop();
       canvas.removeEventListener('dragstart', noDrag); canvas.removeEventListener('selectstart', noDrag); canvas.removeEventListener('contextmenu', noDrag);
