@@ -29,7 +29,8 @@ const reachXY = (L, px, py) => L.o ? reach(L, py, px) : reach(L, px, py);
 const lower = (A, B) => A.y !== B.y ? A.y < B.y : A.x !== B.x ? A.x < B.x : A.o < B.o;
 
 // The joins of a fence at (x, y) turned r, as a number in the piece's own directions (+ the end at its local +x):
-//   bits 0-1 the + end: 0 open, 1 joins a piece in line, 2 reaches on a quarter to a corner; bits 2-3 the same for the - end;
+//   bits 0-1 the + end: 0 open, 1 joins a piece in line, 2 reaches on a quarter to a corner, 3 a Flower Arch in line (a gate:
+//   the rails reach its post); bits 2-3 the same for the - end;
 //   bit 4/5 the post at the + / - end (or where it reaches to) is this piece's to draw (shared posts are drawn once);
 //   bit 6/7 another piece meets this one's side a quarter in from the + / - end (a post stands there);
 //   bit 8/9 that end stops at that post instead (a clean corner). skip: an item id to leave out (one being moved).
@@ -38,13 +39,15 @@ export function fenceLink(items, x, y, r = 0, skip) {
   const P = { x, y, ...fenceLine(x, y, r) }, sgn = (r | 0) < 2 ? 1 : -1;
   const others = (items || []).filter(i => isFence(i) && i.id !== skip && !(i.x === x && i.y === y && (i.r | 0) % 2 === P.o))
     .map(i => ({ x: i.x, y: i.y, ...fenceLine(i.x, i.y, i.r) }));
+  const arches = (items || []).filter(i => i?.type === 'arch' && i.id !== skip).map(i => fenceLine(i.x, i.y, i.r)); // a thin arch sits on the same lines
   const ends = [];
   for (const dir of [1, -1]) {
     const E = dir > 0 ? P.b : P.a, p = E + dir * Q, [px, py] = toXY(P.o, p, P.c);
     let st = 0, own = false;
     const metAt = u => { const [mx, my] = toXY(P.o, u, P.c); return others.some(O => O.o !== P.o && reachXY(O, mx, my) === 'ext'); };
     // in line: the piece to the west or north draws the shared post, unless a side post stands a quarter from it anyway
-    if (others.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) { st = 1; own = dir > 0 && !metAt(E - Q) && !metAt(E + Q); }
+    if (arches.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) st = 3;
+    else if (others.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) { st = 1; own = dir > 0 && !metAt(E - Q) && !metAt(E + Q); }
     else if (others.some(O => O.o !== P.o && reachXY(O, px, py))) {
       st = 2;
       const at = others.filter(O => reachXY(O, px, py)), thru = at.find(O => reachXY(O, px, py) === 'through');
@@ -61,11 +64,11 @@ export function fenceLink(items, x, y, r = 0, skip) {
 // The piece's shape from its link, in its own terms (x from -.5 to .5): where the rails start and stop, the posts, the pickets.
 export function fenceShape(link = 0) {
   const st = [link & 3, link >> 2 & 3], own = [link >> 4 & 1, link >> 5 & 1], met = [link >> 6 & 1, link >> 7 & 1], trim = [link >> 8 & 1, link >> 9 & 1];
-  const end = k => trim[k] ? Q : st[k] === 2 ? .5 + Q : .5, hi = end(0), lo = -end(1), posts = [];
+  const end = k => trim[k] ? Q : st[k] === 2 ? .5 + Q : st[k] === 3 ? .56 : .5, hi = end(0), lo = -end(1), posts = [];
   for (const k of [0, 1]) {
     const s = k ? -1 : 1;
     if (met[k]) posts.push(s * Q);
-    if (!trim[k] && (st[k] === 0 || own[k])) posts.push(s * end(k));
+    if (!trim[k] && st[k] !== 3 && (st[k] === 0 || own[k])) posts.push(s * end(k));
   }
   const pickets = [-.625, -.325, -.125, .125, .325, .625].filter(t => t > lo + .06 && t < hi - .06 && posts.every(q => Math.abs(q - t) > .09));
   return { lo, hi, posts, pickets };
@@ -115,6 +118,21 @@ export function thinFences(items) {
     else horiz = sideOf(H(i)) === s.b || sideOf(V(i)) !== s.a; // a corner: the piece that carries the corner
     if (horiz) { i.y += .5 * sideOf(H(i)); if (r % 2) i.r = 0; }
     else { i.x += .5 * sideOf(V(i)); if (r % 2 === 0) i.r = 1; }
+    n++;
+  }
+  return n;
+}
+
+// Flower Arches saved before they were thin (1 x .5 like a fence) filled a whole tile. Each takes the half of its old tile
+// that lines up with a fence next to it along its own line, else the first half.
+export function thinArches(items) {
+  const fences = items.filter(isFence).map(i => fenceLine(i.x, i.y, i.r));
+  let n = 0;
+  for (const i of items) {
+    if (i.type !== 'arch') continue;
+    const o = (i.r | 0) % 2, a = o ? i.y : i.x, c0 = (o ? i.x : i.y) + Q;
+    const side = fences.some(F => F.o === o && F.c === c0 + .5 && (F.b === a || F.a === a + 1)) && !fences.some(F => F.o === o && F.c === c0 && (F.b === a || F.a === a + 1)) ? 1 : 0;
+    if (o) i.x += .5 * side; else i.y += .5 * side;
     n++;
   }
   return n;

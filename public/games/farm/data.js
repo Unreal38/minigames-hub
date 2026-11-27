@@ -48,7 +48,7 @@ export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 export const MAX_ITEMS = 450;
 
 // kind: 'b' building, 'd' decoration. w x h is the footprint before rotation. max = how many a farm may hold.
-// fine: a small prop that snaps to half tiles (its w and h may be .5). Everything else sits on whole tiles.
+// fine: a small prop whose w and h may be .5. Everything, buildings too, snaps to half tiles (see stepOf).
 // walk: pets can stroll across it. craft: a decoration that needs a Workshop of that level on the farm.
 export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
@@ -78,7 +78,7 @@ export const ITEMS = {
   rock:     { name: 'Mossy Rock', kind: 'd', w: .5, h: .5, fine: true, cost: { stone: 4 }, desc: 'It has always been here, probably.' },
   fountain: { name: 'Fountain', kind: 'd', w: 2, h: 2, craft: 1, cost: { stone: 30, shells: 8 }, desc: 'Splashes all day long.' },
   windmill: { name: 'Windmill', kind: 'd', w: 1, h: 1, craft: 1, cost: { wood: 30, coal: 5 }, desc: 'Turns slowly in the island breeze.' },
-  arch:     { name: 'Flower Arch', kind: 'd', w: 1, h: 1, walk: true, craft: 1, cost: { wood: 10, fiber: 15, shells: 4 }, desc: 'Pets love to walk under it.' },
+  arch:     { name: 'Flower Arch', kind: 'd', w: 1, h: .5, walk: true, craft: 1, cost: { wood: 10, fiber: 15, shells: 4 }, desc: 'Pets love to walk under it.' },
   statue:   { name: 'Pet Statue', kind: 'd', w: 1, h: 1, craft: 2, cost: { stone: 25, crystal: 1 }, desc: 'A proud little monument.' },
   glow:     { name: 'Crystal Lamp', kind: 'd', w: .5, h: .5, fine: true, craft: 2, cost: { coal: 4, crystal: 1 }, desc: 'Glows softly, day and night.' },
   tower:    { name: 'Climbing Tower', kind: 'd', w: 1, h: 1, craft: 1, cost: { wood: 15, fiber: 10, shells: 3 }, desc: 'Something to climb, scratch and nap on.' },
@@ -507,7 +507,7 @@ export function blockedTiles(farm) {
   for (let y = 0; y < n * 2; y++) for (let x = 0; x < n * 2; x++) if (h[y * n * 2 + x]) g[(y >> 1) * n + (x >> 1)] = 1;
   return g;
 }
-export const stepOf = type => ITEMS[type]?.fine ? .5 : 1;
+export const stepOf = () => .5; // everything snaps to half tiles (Kuba, 2026-11-27), so pieces line up with thin fences and each other
 
 // Would this item fit at (x, y)? ignore = id of the item being moved.
 export function fits(farm, type, x, y, r, ignore = null) {
