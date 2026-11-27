@@ -89,7 +89,7 @@ export function bake(root) {
     for (const c of o.children) {
       if (c.userData.dyn || !c.visible) continue;
       const mt = c.material;
-      if (c.isMesh && !c.isInstancedMesh && !c.children.length && mt.isMeshStandardMaterial && !mt.map && !mt.vertexColors) {
+      if (c.isMesh && !c.isInstancedMesh && !c.children.length && mt.isMeshStandardMaterial && !mt.map && !mt.vertexColors && !c.userData.noInk) {
         const rough = Math.round(mt.roughness * 5) / 5, metal = Math.round(mt.metalness * 4) / 4, op = mt.transparent ? mt.opacity : 1;
         const key = [rough, metal, mt.side, op, mt.envMapIntensity, c.castShadow, c.receiveShadow].join();
         let b = buckets.get(key);

@@ -59,7 +59,7 @@ const ITEMS = {
   path: ['Kamienna ścieżka', 'Zwierzaki lubią po niej spacerować.'],
   gravel: ['Żwirowa ścieżka', 'Chrzęści pod łapkami.'],
   plank: ['Kładka z desek', 'Ciepłe deski do dreptania.'],
-  brick: ['Ceglana ścieżka', 'Równe cegiełki, rządek przy rządku.'],
+  dirt: ['Ścieżka z ziemi', 'Szlak wydeptany przez małe łapki.'],
   moss: ['Omszałe kamyki', 'Okrągłe kamienie w miękkim mchu.'],
   tree: ['Liściaste drzewo', 'Trochę cienia.'],
   pine: ['Sosna', 'Pachnie jak spacer po lesie.'],
