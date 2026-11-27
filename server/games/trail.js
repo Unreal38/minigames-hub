@@ -9,20 +9,20 @@
 // Nothing here is secret: every player sees every herd, roll and wild pet. Bots think for a moment before each choice.
 import {
   NODES, N, near, dist, STRONG, ELS, oddsOf, priceOf, HERD_MAX, ITEM_MAX, LURE, PACT_ROUNDS, EGG_TURNS, WILD_MAX,
-  START_TREATS, START, payFor, ribbonsOf, showPts, ITEMS, ITEM_IDS, ruleSeason, WX_EL, poolFor, ROUNDS,
+  START_TREATS, START, payFor, ribbonsOf, showPts, ITEMS, ITEM_IDS, ruleSeason, WX_EL, poolFor, ROUNDS, HAND, CARD_DECK, landsOf,
 } from '../../public/games/trail/rules.js';
 import { SPECIES } from '../../public/games/farm/data.js';
 import { randomAv, seasonOn } from '../../public/avatar.js';
 import { weatherAt } from '../../public/weather.js';
 import { cleanSeats } from '../seats.js';
 
-export const meta = { id: 'trail', name: 'Friendship Trail', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, pets: true, joinAt: 'game' };
+export const meta = { id: 'trail', name: 'Friendship Trail', minPlayers: 1, maxPlayers: 6, seats: { lo: 2, def: 4 }, pets: true, joinAt: 'game', coins: 50 }; // coins: 1st place pays 50 (Kuba 2026-11-27), last 5
 
 const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover', 'Nugget', 'Pickle'];
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // how long things take on screen: the intro, one hop, the wheel before a minigame, the minigame results, the Pet Show
 // A calm pace (Kuba 2026-11-27: the first version raced through 8 rounds in a few minutes and was hard to follow).
-export const MS = { intro: 29000, hop: 420, say: 1500, dice: 2000, turn: 1400, wheel: 5500, res: 8000, show: 13000, cheer: 14000 };
+export const MS = { intro: 29000, hop: 420, say: 1500, dice: 2000, card: 1300, turn: 1400, wheel: 5500, res: 8000, show: 13000, cheer: 14000 };
 // Bots wait a moment before each choice, so they look like they're thinking (Kuba, 2026-11-26). Sharp bots are quicker.
 export const THINK = { chill: [1400, 2600], sharp: [1100, 2000] };
 export const TIMERS = [20, 30, 45, 0];
@@ -62,7 +62,7 @@ export function create(players, optsIn = {}) {
   const pl = seats.map((seat, i) => {
     const own = seat.pet && SPECIES[seat.pet.sp] ? seat.pet : null, d = own ? SPECIES[own.sp] : null;
     const st = own ? { sp: own.sp, el: d.el2 ? d.el : d.el, rare: d.rare, name: own.name || '', look: own.look || null } : { ...starts[i % starts.length] };
-    return { pos: START, treats: START_TREATS, herd: [friendOf(st, { start: true, name: st.name || '', look: st.look || null })], items: [], egg: 0, pact: null, wins: 0, got: 0, charm: false, berry: false, whistle: false, guard: false };
+    return { pos: START, hand: [], deck: [], treats: START_TREATS, herd: [friendOf(st, { start: true, name: st.name || '', look: st.look || null })], items: [], egg: 0, pact: null, wins: 0, got: 0, charm: false, berry: false, whistle: false, guard: false };
   });
   const now = Date.now(), wx = weatherAt(now).kind;
   const G = {
@@ -129,7 +129,8 @@ function startTurn(G, s, now) {
     const pick = pickOf(WILD);
     if (p.herd.length < HERD_MAX) { p.herd.push(friendOf(pick, { egg: true })); pushEv(G, { t: 'hatch', s, sp: pick.sp }); if (p.pact) G.pl[p.pact.w].treats += 3; }
   }
-  return ask(G, s, 'roll', {}, now);
+  fillHand(G, s);
+  return askCard(G, s, now);
 }
 function nextTurn(G, now) {
   G.pend = null;
@@ -166,23 +167,30 @@ function firstRoll(G, s, now) {
   G.busy = now + MS.dice; G.stageEnd = now + MS.dice + 300;
   return true;
 }
-function roll(G, s, now) {
-  const p = G.pl[s], two = p.spy; p.spy = false;
-  const a = 1 + (Math.random() * 6 | 0), b = two ? 1 + (Math.random() * 6 | 0) : 0, d = Math.max(a, b);
-  G.die = d; pushEv(G, { t: 'roll', s, d, a, b: two ? b : 0 });
-  G.busy = now + MS.dice;
-  const helpers = p.herd.map((f, i) => (f.rr ? i : -1)).filter(i => i >= 0);
-  if (helpers.length) return ask(G, s, 'reroll', { f: helpers }, now);
+// ---------- trail cards ----------
+function draw(G, s) { const p = G.pl[s]; p.deck ||= []; if (!p.deck.length) p.deck = shuffle([...CARD_DECK]); return p.deck.pop(); }
+function fillHand(G, s) { const p = G.pl[s]; p.hand ||= []; while (p.hand.length < HAND) p.hand.push(draw(G, s)); }
+// friends who can swap your hand for a new one (each once, Spark friends every round)
+const redrawers = p => p.herd.map((f, i) => (f.rr ? i : -1)).filter(i => i >= 0);
+function askCard(G, s, now) { return ask(G, s, 'card', { f: redrawers(G.pl[s]) }, now); }
+function playCard(G, s, i, now) {
+  const p = G.pl[s], d = p.hand[i];
+  if (!Number.isInteger(d)) return false;
+  p.hand.splice(i, 1); while (p.hand.length > HAND) p.deck.push(p.hand.pop()); // a Spyglass card not played goes back
+  G.die = d; pushEv(G, { t: 'card', s, d });
+  G.busy = now + MS.card;
   return waitDice(G, now);
 }
-function reroll(G, s, i, now) {
+function redraw(G, s, i, now) {
   const p = G.pl[s], f = p.herd[i];
   if (!f?.rr) return false;
-  f.rr = false; const was = G.die, d = 1 + (Math.random() * 6 | 0); G.die = d;
-  pushEv(G, { t: 'reroll', s, f: i, sp: f.sp, d, was }); G.busy = now + MS.dice;
-  return waitDice(G, now);
+  f.rr = false; const was = p.hand.slice(), n = p.hand.length;
+  p.deck.push(...was); shuffle(p.deck); p.hand = []; for (let k = 0; k < n; k++) p.hand.push(draw(G, s));
+  pushEv(G, { t: 'redraw', s, f: i, sp: f.sp, was, hand: p.hand.slice() });
+  G.busy = now + MS.say * .8;
+  return askCard(G, s, now);
 }
-// The walk starts only once the dice have landed and everyone has seen the number (Kuba 2026-11-27: a reroll must be readable first).
+// The walk starts only once everyone has seen the card played.
 function waitDice(G, now) { G.pend = null; G.stage = 'rolled'; G.stageEnd = Math.max(now, G.busy); return true; }
 function startWalk(G, s, d, now) { G.walk = { left: d, path: [] }; G.stage = 'walk'; G.pend = null; return advance(G, s, now); }
 // Walk stone by stone. A fork or a stall on the way stops the walk to ask; the walk goes on after the answer.
@@ -294,9 +302,9 @@ function useItem(G, s, k, now) {
   p.items.splice(i, 1);
   if (k === 'whistle') p.whistle = true;
   if (k === 'berry') p.berry = true;
-  if (k === 'spy') p.spy = true;
+  if (k === 'spy') { p.hand.push(draw(G, s)); if (G.pend?.k === 'card') G.pend.f = redrawers(p); }
   if (k === 'charm') p.charm = true;
-  if (k === 'pouch') p.herd.forEach(f => { f.cheer = true; f.rr = true; });
+  if (k === 'pouch') { p.herd.forEach(f => { f.cheer = true; f.rr = true; }); if (G.pend?.k === 'card') G.pend.f = redrawers(p); }
   if (k === 'honey') G.honey[p.pos] = s;
   pushEv(G, { t: 'use', s, k, pos: p.pos });
   G.busy = Math.max(now, G.busy) + MS.say * .6;
@@ -433,7 +441,7 @@ export function act(G, s, a) {
   }
   if (G.stage === 'cheer') { if (a.t !== 'cheer' || !Number.isInteger(a.i)) return false; return setCheer(G, s, a.i); }
   if (a.t === 'item') { // items are used at the start of your own turn, while you're about to roll
-    if (G.pend?.s !== s || G.pend.k !== 'roll' || typeof a.k !== 'string') return false;
+    if (G.pend?.s !== s || G.pend.k !== 'card' || typeof a.k !== 'string') return false;
     return useItem(G, s, a.k, now);
   }
   if (!G.pend || G.pend.s !== s || now < G.busy - 50) return false;
@@ -442,9 +450,8 @@ export function act(G, s, a) {
 function answer(G, s, a, now) {
   const P = G.pend;
   switch (P.k) {
-    case 'roll': return a.t === 'roll' && roll(G, s, now);
+    case 'card': if (a.t === 'redraw') return P.f.includes(a.f) && redraw(G, s, a.f, now); return a.t === 'card' && Number.isInteger(a.i) && playCard(G, s, a.i, now);
     case 'first': return a.t === 'roll' && firstRoll(G, s, now);
-    case 'reroll': if (a.t !== 'reroll') return false; if (a.i == null || a.i < 0) return startWalk(G, s, G.die, now); return P.f.includes(a.i) && reroll(G, s, a.i, now);
     case 'fork': if (a.t !== 'fork' || !P.opts.includes(a.j)) return false; G.walk.fork = a.j; G.pend = null; pushEv(G, { t: 'fork', s, j: a.j }); return advance(G, s, now);
     case 'shop': return a.t === 'shop' && (a.k == null || ITEMS[a.k] != null) && shop(G, s, a.k, now);
     case 'meet': { if (a.t !== 'meet') return false; const w = G.wild.find(x => x.id === P.id); if (!w) return nextMeet(G, s, now);
@@ -464,11 +471,14 @@ export function botChoice(G, s) {
   const P = G.pend, p = G.pl[s];
   switch (P.k) {
     case 'first': return { t: 'roll' };
-    case 'roll': {
-      const use = p.items.find(k => k === 'spy' || k === 'berry' || k === 'whistle' || (k === 'charm' && p.herd.length > 2) || (k === 'pouch' && !p.herd.some(f => f.rr || f.cheer)) || (k === 'honey' && Math.random() < .5));
-      return use ? { t: 'item', k: use } : { t: 'roll' };
+    case 'card': {
+      const use = p.items.find(k => (k === 'spy' && p.hand.length <= HAND) || k === 'berry' || k === 'whistle' || (k === 'charm' && p.herd.length > 2) || (k === 'pouch' && !p.herd.some(f => f.rr || f.cheer)) || (k === 'honey' && Math.random() < .5));
+      if (use) return { t: 'item', k: use };
+      const sc = p.hand.map(d => cardScore(G, s, d) + Math.random() * (G.opts.bots === 'sharp' ? .5 : 4));
+      const best = sc.indexOf(Math.max(...sc));
+      if (Math.max(...p.hand.map(d => cardScore(G, s, d))) <= 0 && P.f.length && Math.random() < .7) return { t: 'redraw', f: P.f[0] };
+      return { t: 'card', i: best };
     }
-    case 'reroll': return { t: 'reroll', i: G.die <= 2 ? P.f[0] : -1 };
     case 'fork': {
       const score = j => { let v = Math.random() * 2, at = j; for (let k = 0; k < 6; k++) { if (G.wild.some(w => w.pos === at)) v += k + 1 === G.walk?.left ? 9 : 2; at = NODES[at].next[0]; } return v; };
       return { t: 'fork', j: [...P.opts].sort((a, b) => score(b) - score(a))[0] };
@@ -493,8 +503,8 @@ export function botChoice(G, s) {
 function lateChoice(G, s) {
   const P = G.pend;
   switch (P.k) {
-    case 'roll': case 'first': return { t: 'roll' };
-    case 'reroll': return { t: 'reroll', i: -1 };
+    case 'first': return { t: 'roll' };
+    case 'card': return { t: 'card', i: 0 };
     case 'fork': return { t: 'fork', j: P.opts[0] };
     case 'shop': return { t: 'shop', k: null };
     case 'meet': return { t: 'meet', skip: true };
@@ -505,11 +515,20 @@ function lateChoice(G, s) {
   }
   return null;
 }
+// How good stopping after d steps looks to a bot: a wild pet's stone most, then treats; brambles are bad.
+const STONE_SCORE = { treat: 3, picnic: 5, bramble: -3, spring: 3, nest: 3, den: 4, well: 1, bench: 1, stall: 1 };
+function cardScore(G, s, d) {
+  const p = G.pl[s], { ends } = landsOf(p.pos, d);
+  return Math.max(...ends.map(at => (G.wild.some(w => w.pos === at) && p.herd.length < HERD_MAX ? 10 : 0) + (STONE_SCORE[NODES[at].kind] ?? 0)));
+}
 function botCheer(G, s) { const p = G.pl[s], k = p.herd.findIndex(f => f.cheer); return k >= 0 && Math.random() < .4 ? k : -1; }
 
 // ---------- loop ----------
 export function tick(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
+  // a table saved before trail cards (a die roll pending): carry on with cards
+  if (G.pend?.k === 'roll') { fillHand(G, G.pend.s); G.pend.k = 'card'; G.pend.f = redrawers(G.pl[G.pend.s]); return true; }
+  if (G.pend?.k === 'reroll') return startWalk(G, G.pend.s, G.die || 1, now);
   if (G.stage === 'intro') { if (now < G.stageEnd) return false; return startOrder(G, now); }
   if (G.stage === 'order' && !G.pend) { if (now < G.stageEnd) return false; return orderNext(G, now); }
   if (G.stage === 'next') { if (now < G.stageEnd) return false; if (G.startRound) { G.startRound = false; pushEv(G, { t: 'round', r: 1 }); } return nextTurn(G, now); }
@@ -548,7 +567,7 @@ export function view(G, s) {
     pend: G.pend ? { ...G.pend } : null, busy: Math.max(0, G.busy - now),
     tLeft: G.pend && G.tEnd ? Math.max(0, G.tEnd - now) : G.stage === 'cheer' ? Math.max(0, G.stageEnd - now) : -1,
     stageLeft: Math.max(0, (G.stageEnd || 0) - now),
-    pl: G.pl.map(p => ({ pos: p.pos, treats: p.treats, herd: p.herd, items: p.items, egg: p.egg, pact: p.pact, wins: p.wins, charm: p.charm, berry: p.berry, whistle: p.whistle, spy: !!p.spy })),
+    pl: G.pl.map(p => ({ pos: p.pos, hand: p.hand || [], treats: p.treats, herd: p.herd, items: p.items, egg: p.egg, pact: p.pact, wins: p.wins, charm: p.charm, berry: p.berry, whistle: p.whistle })),
     wild: G.wild, honey: G.honey, mini: G.mini ? { game: G.mini.game } : null, miniRes: G.stage === 'minires' ? G.miniRes : null,
     cheer: G.stage === 'cheer' ? { mine: G.cheer[s] ?? -1, done: G.cheerDone[s] ?? true } : null,
     show: G.show, res: G.res, win: G.win,

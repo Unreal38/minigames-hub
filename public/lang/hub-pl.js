@@ -171,9 +171,9 @@ export const GAMES_PL = {
     howto: `Wszyscy grają ten sam dołek i uderzają po kolei, po jednym uderzeniu, każdy swoją piłką. Odciągnij i puść, żeby uderzyć. Wygrywa najmniej uderzeń w całej rundzie.`,
     rules: `<ol>
       <li>Wszyscy grają ten sam dołek i <b>uderzają po kolei</b>, po jednym uderzeniu, aż wszystkie piłki wpadną. Każdy ma swoją piłkę, a piłki przenikają przez siebie. Zaczyna ten, kto wygrał poprzedni dołek.</li>
-      <li>Masz <b>25 sekund</b> na uderzenie. Gdy czas minie, gra wykona za ciebie niezdarne uderzenie.</li>
+      <li>Masz <b>25 sekund</b> na uderzenie. Gdy czas minie, gra wykona za ciebie niezdarne uderzenie, które liczy się jako uderzenie.</li>
       <li><b>Odciągnij</b> w dowolnym miejscu ekranu i <b>puść</b>, żeby uderzyć: im dalej odciągniesz, tym mocniej. Kropki pokazują pierwszą połowę drogi piłki, do pierwszego odbicia. Gdzie się zatrzyma, musisz ocenić samodzielnie. Na klawiaturze celuj i ustaw siłę strzałkami, potem spacja.</li>
-      <li>Uważaj na <b>wiatraki</b>, <b>słupki-odbijacze</b>, <b>rampy</b> i <b>piasek</b> (mocno spowalnia piłkę). Piłka w <b>wodzie</b> kosztuje uderzenie i wraca tam, skąd była uderzona.</li>
+      <li>Uważaj na <b>wiatraki</b>, <b>słupki-odbijacze</b>, <b>rampy</b> i <b>piasek</b> (mocno spowalnia piłkę). Piłka w <b>wodzie</b> wraca tam, skąd była uderzona, i kosztuje <b>uderzenie karne</b> oprócz samego uderzenia. Kary widać jako małe +1 przy wyniku.</li>
       <li>Masz <b>7 uderzeń</b> na dołek. Jeśli to nie wystarczy, zapisujesz 8.</li>
       <li>Uderz <b>za mocno</b>, a piłka przeskoczy nad dołkiem, więc przy dołku zwolnij.</li>
       <li><b>Losowe</b> pola powstają od nowa w każdej rundzie, więc nie ma dwóch takich samych. <b>Klasyczne</b> to dziewięć ręcznie zrobionych dołków.</li>
@@ -236,19 +236,19 @@ export const GAMES_PL = {
   },
   trail: {
     name: 'Szlak przyjaźni', start: 'Ruszamy na szlak', openSeat: 'Jeśli nikt nie dołączy, szlakiem pójdzie tu bot',
-    pitch: 'Imprezowy turniej na wielkim wyspiarskim szlaku. Rzucaj, wędruj ze swoim zwierzakiem z Farmy, zaprzyjaźniaj się z dzikimi zwierzakami i po każdej rundzie zagraj w szybką minigrę.',
-    howto: `Imprezowy turniej na wielkim szlaku przez wyspę. Rzucaj kością, wędruj ze swoim zwierzakiem z Farmy, zaprzyjaźniaj się po drodze z dzikimi zwierzakami i po każdej rundzie zagraj w szybką minigrę z hubu. Na koniec Pokaz zwierzaków rozdaje wstęgi.`,
+    pitch: 'Imprezowy turniej na wielkim wyspiarskim szlaku. Zagrywaj karty szlaku, wędruj ze swoim zwierzakiem z Farmy, zaprzyjaźniaj się z dzikimi zwierzakami i po każdej rundzie zagraj w szybką minigrę.',
+    howto: `Imprezowy turniej na wielkim szlaku przez wyspę. Zagrywaj karty szlaku, wędruj ze swoim zwierzakiem z Farmy, zaprzyjaźniaj się po drodze z dzikimi zwierzakami i po każdej rundzie zagraj w szybką minigrę z hubu. Na koniec Pokaz zwierzaków rozdaje wstęgi.`,
     rules: `<ol>
       <li>Każdy zaczyna na <b>łące startowej</b> ze <b>swoim zwierzakiem z wysepki</b> (albo zwierzakiem startowym) i <b>6 przysmakami</b>. Puste miejsca zajmują boty, a boty przed każdym wyborem chwilę się zastanawiają.</li>
-      <li>Na start każdy <b>rzuca raz</b>: zaczyna najwyższy wynik i ta kolejność trwa całą grę (przy remisie rzuca się jeszcze raz). W swojej kolejce <b>rzuć kością</b> i przejdź tyle kamieni. Każdy przyjaciel w twoim stadzie może raz <b>przerzucić</b> twoją kość (przyjaciel <b>Iskry</b> co rundę). Na <b>rozwidleniu</b> wybierasz trasę: Leśny skrót, Plażowy objazd, Wzgórze i mostek albo Ścieżkę na klifie.</li>
+      <li>Na start każdy <b>rzuca raz</b>: zaczyna najwyższy wynik i ta kolejność trwa całą grę (przy remisie rzuca się jeszcze raz). Masz w ręce <b>3 karty szlaku</b> z liczbami od 1 do 6. W swojej kolejce <b>zagraj jedną</b> i przejdź dokładnie tyle kamieni; każda karta pokazuje, dokąd cię zaprowadzi. Każdy przyjaciel w twoim stadzie może raz <b>wymienić ci karty</b> na nowe (przyjaciel <b>Iskry</b> co rundę). Na <b>rozwidleniu</b> wybierasz trasę: Leśny skrót, Plażowy objazd, Wzgórze i mostek albo Ścieżkę na klifie.</li>
       <li>Kamienie: <b>Przysmaki</b> +3, <b>Piknik</b> +5, <b>Jeżyny</b> −3. Kamienie specjalne: <b>Stragan</b> (zakupy w przejściu), <b>Gniazdo</b> (tajemnicze jajo, które wykluwa się po 2 turach), <b>Ławka paktu</b>, <b>Studnia życzeń</b> (życzenie za 5 przysmaków), <b>Gorące źródło</b> (przyjaciele odpoczywają, +2) i <b>Nora rzadkich</b> (wychodzi rzadki zwierzak).</li>
       <li><b>Dzikie zwierzaki</b> czekają na świecących kamieniach. Zatrzymaj się dokładnie na świecącym kamieniu i przekonaj zwierzaka: <b>starciem żywiołów</b> z jednym z twoich przyjaciół (Fala pokonuje Żar, Żar Liść, Liść Kamień, Kamień Iskrę, a Iskra Falę) albo <b>przysmakami</b>, które działają zawsze. W stadzie mieści się 6 zwierzaków.</li>
       <li>Gdy staniesz na kamieniu innego gracza, możesz za 6 przysmaków <b>zwabić</b> jego najnowszego przyjaciela (nigdy zwierzaka startowego i nie wtedy, gdy chroni go Amulet gniazda).</li>
-      <li><b>Przedmioty</b> (możesz mieć 3, używasz ich przed rzutem): Gwizdek, Pęczek jagód, Luneta, Garnek miodu, Amulet gniazda i Sakiewka z przekąskami.</li>
+      <li><b>Przedmioty</b> (możesz mieć 3, używasz ich przed zagraniem karty): Gwizdek, Pęczek jagód, Luneta, Garnek miodu, Amulet gniazda i Sakiewka z przekąskami.</li>
       <li><b>Pakty</b> trwają 3 rundy: +3 przysmaki, gdy twój kumpel zdobędzie przyjaciela, żadnego wabienia siebie nawzajem i po +3, gdy oboje skończycie minigrę w pierwszej dwójce.</li>
       <li>Po każdej rundzie wszyscy grają w <b>szybką minigrę</b> (jedną rundę gry z hubu). Miejsca dają przysmaki, a przyjaciel wybrany do <b>kibicowania</b> przesuwa cię o jedno miejsce w górę, każdy raz.</li>
       <li><b>Pora roku</b> i <b>pogoda</b> zmieniają jedną zasadę i wygląd wyspy. Przycisk <b>Cała mapa</b> (albo M) pokazuje całą wyspę z podpisami.</li>
-      <li>Na <b>Pokazie zwierzaków</b> każdy przyjaciel to rozeta (1 punkt), a każda wstęga to 2 punkty: Największe stado, Najwięcej żywiołów, Najrzadszy przyjaciel, Gwiazda minigier i Skarbnik przysmaków. Wygrywa najwięcej punktów, przy remisie decydują przysmaki. Monety dostajesz raz, na koniec, za zajęte miejsce.</li>
+      <li>Na <b>Pokazie zwierzaków</b> każdy przyjaciel to rozeta (1 punkt), a każda wstęga to 2 punkty: Największe stado, Najwięcej żywiołów, Najrzadszy przyjaciel, Gwiazda minigier i Skarbnik przysmaków. Wygrywa najwięcej punktów, przy remisie decydują przysmaki. Monety dostajesz raz, na koniec, za zajęte miejsce: <b>50</b> za 1. miejsce, aż do 5 za ostatnie.</li>
     </ol>`,
   },
   blast: {

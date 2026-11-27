@@ -143,21 +143,26 @@ function pastOrder(G, T, lead = 0) {
   const T = clock();
   const G = tg.create(ppl(1), { seats: 2, rounds: 5, timer: 20 });
   pastOrder(G, T);
-  if (G.turn !== 0 || G.pend?.k !== 'roll' || G.pend.s !== 0) fail('the first player should be asked to roll');
-  if (tg.act(G, 1, { t: 'roll' })) fail('rolled out of turn');
-  if (!tg.act(G, 0, { t: 'roll' })) fail('could not roll');
-  if (G.die < 1 || G.die > 6) fail('die out of range');
-  if (G.pend?.k !== 'reroll') fail('your starter should offer a reroll');
-  T.add(5000); tg.tick(G, T.now);
-  if (!tg.act(G, 0, { t: 'reroll', i: 0 })) fail('could not reroll with the starter');
-  if (G.pl[0].herd[0].rr) fail('the friend used its reroll');
-  const rr = G.ev[G.ev.length - 1]; if (rr.t !== 'reroll' || rr.was == null) fail('the reroll event should say what it replaced');
-  if (G.stage !== 'rolled' || G.ev.some(e => e.t === 'hop')) fail('nobody walks until the rerolled die has landed');
-  T.add(tg.MS.dice + 10); tg.tick(G, T.now);
-  if (G.pl[0].pos === START && !G.pend) fail('the walk should start after the dice');
+  // trail cards (Kuba 2026-11-27): a hand of 3, a friend can swap it once, the card played is exactly the walk
+  if (G.turn !== 0 || G.pend?.k !== 'card' || G.pend.s !== 0) fail('the first player should be asked for a card');
+  const p0 = G.pl[0];
+  if (p0.hand.length !== 3 || p0.hand.some(d => d < 1 || d > 6)) fail('a hand is 3 cards from 1 to 6');
+  if (!G.pend.f.includes(0)) fail('your starter should offer to swap your cards');
+  if (tg.act(G, 1, { t: 'card', i: 0 })) fail('played out of turn');
+  if (!tg.act(G, 0, { t: 'redraw', f: 0 })) fail('could not swap cards with the starter');
+  if (p0.herd[0].rr || G.pend?.k !== 'card' || G.pend.f.length) fail('the friend used its swap, and you still pick a card');
+  if (p0.hand.length !== 3 || G.ev[G.ev.length - 1].t !== 'redraw') fail('the swap deals a new hand of 3');
+  T.add(5000);
+  const d0 = p0.hand[1];
+  if (!tg.act(G, 0, { t: 'card', i: 1 })) fail('could not play a card');
+  if (G.die !== d0 || p0.hand.length !== 2) fail('the card played is the walk and leaves the hand');
+  if (G.stage !== 'rolled' || G.ev.some(e => e.t === 'hop')) fail('nobody walks until the card has been shown');
+  T.add(tg.MS.card + 10); tg.tick(G, T.now);
+  if (G.pl[0].pos === START && !G.pend) fail('the walk should start after the card');
+  { const { ends } = (await import('../public/games/trail/rules.js')).landsOf(START, d0); if (!G.pend && !ends.includes(G.pl[0].pos) && G.stage !== 'walk') fail('landsOf should say where a card ends'); }
   // drive person 0 with the safe choices until it's the bot's turn, then check the bot waits a moment
   let guard = 0;
-  while (G.turn === 0 && guard++ < 500) { T.add(300); tg.tick(G, T.now); if (G.pend?.s === 0 && T.now >= G.busy) { const a = { roll: { t: 'roll' }, reroll: { t: 'reroll', i: -1 }, fork: { t: 'fork', j: G.pend.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[G.pend.k]; tg.act(G, 0, a); } }
+  while (G.turn === 0 && guard++ < 500) { T.add(300); tg.tick(G, T.now); if (G.pend?.s === 0 && T.now >= G.busy) { const a = { card: { t: 'card', i: 0 }, fork: { t: 'fork', j: G.pend.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[G.pend.k]; tg.act(G, 0, a); } }
   guard = 0; while (!(G.pend?.s === 1) && guard++ < 200) { T.add(100); tg.tick(G, T.now); }
   if (G.pend?.s !== 1) fail('the bot never got its turn');
   { const was = G.evN; for (let k = 0; k < 6; k++) { T.add(100); tg.tick(G, T.now); } if (G.evN !== was) fail('a bot acted without thinking first'); }
@@ -169,7 +174,7 @@ function pastOrder(G, T, lead = 0) {
   const G = tg.create(ppl(1), { seats: 2, rounds: 5, timer: 20 });
   pastOrder(G, T);
   T.add(21000); tg.tick(G, T.now);
-  if (G.die == null) fail('the timer should roll for you');
+  if (G.die == null) fail('the timer should play a card for you');
   T.done();
 }
 
@@ -186,8 +191,8 @@ function pastOrder(G, T, lead = 0) {
   // items: buy at a stall, use before rolling
   G.pend = { s: 0, k: 'shop' }; G.walk = { left: 0, path: [] }; G.busy = 0;
   if (!tg.act(G, 0, { t: 'shop', k: 'spy' }) || !p.items.includes('spy')) fail('could not buy a Spyglass');
-  G.pend = { s: 0, k: 'roll' }; G.busy = 0;
-  if (!tg.act(G, 0, { t: 'item', k: 'spy' }) || !p.spy || p.items.includes('spy')) fail('Spyglass not used');
+  G.pend = { s: 0, k: 'card', f: [] }; G.busy = 0; p.hand = [1, 2, 3];
+  if (!tg.act(G, 0, { t: 'item', k: 'spy' }) || p.hand.length !== 4 || p.items.includes('spy')) fail('Spyglass should draw a 4th card');
   if (tg.act(G, 0, { t: 'item', k: 'charm' })) fail('used an item you do not have');
   // luring: the newest friend, never the starter
   const q = G.pl[1]; q.herd.push({ sp: 'mossbun', el: 'Leaf', rare: 0, cheer: true, rr: true });
@@ -262,7 +267,7 @@ console.log('trail rules ok');
     const P = state.pend;
     if (state.stage === 'cheer' && state.cheer && !state.cheer.done) send({ t: 'act', a: { t: 'cheer', i: -1 } });
     if (!P || P.s !== me() || Date.now() - stateAt < state.busy) return;
-    const a = { first: { t: 'roll' }, roll: { t: 'roll' }, reroll: { t: 'reroll', i: -1 }, fork: { t: 'fork', j: P.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[P.k];
+    const a = { first: { t: 'roll' }, card: { t: 'card', i: 0 }, fork: { t: 'fork', j: P.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[P.k];
     if (a) send({ t: 'act', a });
   }, 250);
   await until(() => room?.game !== 'trail' && room?.party?.game === 'trail', 90000, 'the first minigame');

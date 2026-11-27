@@ -14,7 +14,7 @@ import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
 import {
   NODES, FORKS, routeName, near, matchup, oddsOf, priceOf, ITEMS, ITEM_IDS, ITEM_MAX, LURE, HERD_MAX, STONES, SEASON_RULE, WX_RULE,
-  POOL, RIBBONS, EL_NAME, EL_COL, PACT_ROUNDS, ribbonsOf, showPts,
+  POOL, RIBBONS, EL_NAME, EL_COL, PACT_ROUNDS, ribbonsOf, showPts, landsOf,
 } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -109,7 +109,7 @@ export function mount(app, ctx) {
   // ----- the camera follows whoever is playing; between rounds it shows the whole island -----
   function camFocus() {
     if (!scene || !S) return;
-    const turnish = S.ph === 'play' && ['turn', 'walk', 'land', 'next'].includes(S.stage) || (S.pend && !['pact'].includes(S.pend.k));
+    const turnish = S.ph === 'play' && ['turn', 'rolled', 'walk', 'land', 'next'].includes(S.stage) && S.turn >= 0 || (S.pend && !['pact'].includes(S.pend.k));
     scene.focus(turnish ? (S.pend && S.pend.k !== 'pact' ? S.pend.s : S.turn) : -1);
     scene.setMap(mapOn);
     scene.setLineup?.(lineMode());
@@ -128,10 +128,23 @@ export function mount(app, ctx) {
   const markEls = new Map();
   function onFrame(info) {
     live = info;
-    for (let i = 0; i < tagEls.length; i++) {
+    // name tags never pile on each other (the start line-up, two players on one stone): whoever's go it is keeps
+    // their spot, then you, then the rest; a tag that would cover one already placed steps up above it
+    const now = S ? nowSeat() : -1, ord = tagEls.map((_, i) => i).sort((a, b) => (b === now) - (a === now) || isMe(b) - isMe(a) || a - b);
+    const put = [];
+    for (const i of ord) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       el.style.visibility = t.on ? '' : 'hidden';
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      if (!t.on) continue;
+      const pl = el.lastElementChild, w = pl._w ||= pl.offsetWidth, h = pl._h ||= pl.offsetHeight;
+      let y = t.y;
+      for (let k = 0; k < put.length + 1; k++) {
+        const hit = put.find(r => Math.abs(r.x - t.x) < (r.w + w) / 2 + 2 && Math.abs(r.y - y) < (r.h + h) / 2 + 1);
+        if (!hit) break; y = hit.y - (hit.h + h) / 2 - 2;
+      }
+      put.push({ x: t.x, y, w, h });
+      el.style.zIndex = i === now ? 3 : isMe(i) ? 2 : 1;
+      el.style.transform = `translate(${t.x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
     // labels for the wild pets, stalls and special stones once the camera has pulled back far enough
     const show = info.zoom > .55 && scene;
@@ -182,7 +195,8 @@ export function mount(app, ctx) {
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', S.ph === 'play' && (nowSeat() === i));
-      setHtml(el.querySelector('.cnt'), `${I.treat}${S.pl[i].treats}`);
+      const cnt = el.querySelector('.cnt'), was = cnt._h;
+      setHtml(cnt, `${I.treat}${S.pl[i].treats}`); if (cnt._h !== was) el.lastElementChild._w = 0; // its width changed
       const b = bubbles.get(i);
       setHtml(el.firstElementChild, b && b.until > now ? b.html : '');
     });
@@ -206,16 +220,16 @@ export function mount(app, ctx) {
       const ptsTip = L(`Pet Show points if it ended now: ${q.herd.length} for friends + ${held.length * 2} for ribbons${held.length ? ' (' + held.join(', ') + ')' : ''}`, `Punkty na Pokazie, gdyby był teraz: ${q.herd.length} za przyjaciół + ${held.length * 2} za wstęgi${held.length ? ' (' + held.join(', ') + ')' : ''}`);
       return `<div class="${pbRowCls(p.fl)} profrow tt-row${nowSeat() === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
         <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span>${firstChip(i)}</div>
-        <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}">${pet(f, 24)}</span>`).join('')}${egg}</div>
+        <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}" title="${esc(`${f.name || petName(f.sp)} · ${EL_NAME[f.el]}${f.cheer ? '' : L(' · has cheered', ' · już kibicował')}`)}">${pet(f, 24)}</span>`).join('')}${egg}</div>
         ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div>${rowBg(p.fl)}</div>`;
-    }).join('');
+    }).join('') + `<div class="tt-key"><span class="tt-sp">★</span>${L('Pet Show points', 'punkty na Pokazie')}<span class="tt-tr">${I.treat}</span>${L('treats', 'przysmaki')}</div>`;
     setHtml($('tt-side'), rows); petPics($('tt-side')); pbRows($('tt-side'));
   }
 
-  // ----- messages: the newest on top until the next one; the last three under it -----
+  // ----- messages: the newest on top until the next one; the last two under it, fading -----
   function say(html) {
     if (LOG[0] === html) return;
-    LOG.unshift(html); LOG.length = Math.min(LOG.length, 4);
+    LOG.unshift(html); LOG.length = Math.min(LOG.length, 3);
     const b = $('tt-banner'); b.innerHTML = html; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
     const h = $('tt-host'); h.classList.remove('talk'); void h.offsetWidth; h.classList.add('talk');
     $('tt-log').innerHTML = LOG.slice(1).map((x, i) => `<div style="opacity:${(.92 - i * .2).toFixed(2)}">${x}</div>`).join('');
@@ -254,7 +268,7 @@ export function mount(app, ctx) {
     else if (myPend()) html = pendHtml(S.pend, clock);
     else if (S.pend && S.ph === 'play') {
       const w = S.seats[S.pend.s];
-      const what = { first: L('rolls to see who goes first', 'rzuca, kto zaczyna'), roll: L('is about to roll', 'zaraz rzuca'), reroll: L('is deciding on a reroll', 'myśli o przerzucie'), fork: L('is picking a route', 'wybiera trasę'), shop: L('is at the stall', 'jest przy straganie'),
+      const what = { first: L('rolls to see who goes first', 'rzuca, kto zaczyna'), card: L('is picking a trail card', 'wybiera kartę szlaku'), fork: L('is picking a route', 'wybiera trasę'), shop: L('is at the stall', 'jest przy straganie'),
         meet: L('meets a wild pet', 'spotyka dzikiego zwierzaka'), well: L('is at the Wishing Well', 'stoi przy studni życzeń'), bench: L('is on the Pact Bench', 'siedzi na ławce paktu'),
         pact: L('is thinking about a pact', 'myśli o pakcie'), lure: L('eyes a pet to lure', 'chce zwabić zwierzaka') }[S.pend.k] || L('is thinking', 'myśli');
       html = `<div class="tt-wait">${avatarHtml(w.color, w.av, 30)}<span>${isMe(S.pend.s) ? L('A bot plays for you', 'Bot gra za ciebie') : `${nm(S.pend.s)} ${what}…`}</span></div>`;
@@ -269,6 +283,15 @@ export function mount(app, ctx) {
   // a choice tile: a picture, a name and a line of detail, with an optional price chip; every tile in a row is the same size
   const opt = (a, ic, t, sub = '', attrs = '', cls = '', price = '') => `<button type="button" class="btn tt-opt ${cls}" data-a="${a}" ${attrs}><span class="ic">${ic}</span><span class="tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span>${price}</button>`;
   const priceTag = c => `<span class="tt-price">${I.treat}${c}</span>`;
+  // a trail card in your hand: its number, and where it takes you (a wild pet's stone glows pink)
+  function cardHtml(d, i) {
+    const p = S.pl[S.me], { ends, fork } = landsOf(p.pos, d);
+    const pets = ends.map(at => S.wild.find(w => w.pos === at)).filter(Boolean);
+    const at = ends[0], kind = NODES[at]?.kind;
+    const where = pets.length ? L(`Wild ${esc(petName(pets[0].sp))}!`, `Dziki ${esc(petName(pets[0].sp))}!`) : fork && ends.length > 1 ? L('Fork ahead: you pick', 'Rozwidlenie: ty wybierasz') : esc(STONES[kind] || '');
+    return `<button type="button" class="btn tt-tc${pets.length ? ' hot' : kind === 'bramble' && ends.length === 1 ? ' bad' : ''}" data-a="card" data-i="${i}" aria-label="${L(`Walk ${d}`, `Idź o ${d}`)}: ${where}">
+      <b>${d}</b><small>${L(d === 1 ? 'stone' : 'stones', d === 1 ? 'kamień' : d < 5 ? 'kamienie' : 'kamieni')}</small><span>${pets.length ? pet(pets[0], 30) : ''}${where}</span></button>`;
+  }
   function pendHtml(P, clock) {
     const p = S.pl[S.me];
     const head = (h, sub = '') => `<div class="tt-q"><b>${h}</b>${clock}${sub ? `<span>${sub}</span>` : ''}</div>`;
@@ -277,15 +300,15 @@ export function mount(app, ctx) {
       return `${head(tie ? L('A tie! Roll again', 'Remis! Rzuć jeszcze raz') : L('Who goes first?', 'Kto zaczyna?'), tie ? L('Only the tied players roll again', 'Rzucają tylko gracze z remisem') : L('Everyone rolls once. The highest roll starts, then the rest in order of their rolls.', 'Każdy rzuca raz. Zaczyna najwyższy wynik, potem reszta według rzutów.'))}
         <div class="tt-acts">${btn('roll', L('Roll the die', 'Rzuć kością'), '', '', 'big')}</div>`;
     }
-    if (P.k === 'roll') {
-      const armed = [p.spy && ITEMS.spy.name, p.berry && ITEMS.berry.name, p.whistle && ITEMS.whistle.name, p.charm && ITEMS.charm.name].filter(Boolean);
+    if (P.k === 'card') {
+      const armed = [p.berry && ITEMS.berry.name, p.whistle && ITEMS.whistle.name, p.charm && ITEMS.charm.name].filter(Boolean);
       const items = p.items.map((k, i) => opt('item', itemIc(k), `${L('Use', 'Użyj')}: ${esc(ITEMS[k].name)}`, k === 'honey' && p.pos < 0 ? L('Not in the start meadow', 'Nie na łące startowej') : esc(ITEMS[k].tx), `data-k="${k}" data-n="${i}"${k === 'honey' && p.pos < 0 ? ' disabled' : ''}`)).join('');
-      const hint = S.round <= 2 ? L('Roll, then walk that many stones. Stop exactly on a glowing stone to meet its wild pet.', 'Rzuć i przejdź tyle kamieni. Zatrzymaj się dokładnie na świecącym kamieniu, by spotkać dzikiego zwierzaka.') : '';
-      return `${head(L('Your turn', 'Twoja kolej'), armed.length ? L(`Ready: ${armed.join(', ')}`, `Gotowe: ${armed.join(', ')}`) : p.items.length ? L('Use an item first, or just roll', 'Najpierw użyj przedmiotu albo od razu rzucaj') : hint)}
-        ${items ? `<div class="tt-acts">${items}</div>` : ''}<div class="tt-acts">${btn('roll', L('Roll the die', 'Rzuć kością'), '', '', 'big')}</div>`;
+      const hint = L('Play a card to walk exactly that many stones. Each card shows where it takes you.', 'Zagraj kartę, by przejść dokładnie tyle kamieni. Każda karta pokazuje, dokąd cię zaprowadzi.');
+      const swaps = (P.f || []).map(i => { const f = p.herd[i]; return opt('redraw', pet(f, 34), L(`New cards from ${esc(f.name || petName(f.sp))}`, `Nowe karty od: ${esc(f.name || petName(f.sp))}`), f.el === 'Spark' ? L('swaps your hand, every round', 'wymienia ci karty, co rundę') : L('swaps your hand, once', 'wymienia ci karty, raz'), `data-f="${i}"`); }).join('');
+      return `${head(L('Your turn: pick a trail card', 'Twoja kolej: wybierz kartę szlaku'), armed.length ? L(`Ready: ${armed.join(', ')}`, `Gotowe: ${armed.join(', ')}`) : hint)}
+        <div class="tt-hand">${p.hand.map((d, i) => cardHtml(d, i)).join('')}</div>
+        ${items || swaps ? `<div class="tt-acts">${items}${swaps}</div>` : ''}`;
     }
-    if (P.k === 'reroll') return `${head(L(`You rolled ${S.die}`, `Wyrzucasz ${S.die}`), L('A friend can reroll for you, once per friend', 'Przyjaciel może przerzucić za ciebie, każdy raz'))}
-      <div class="tt-acts">${P.f.map(i => { const f = p.herd[i]; return opt('reroll', pet(f, 34), L(`Reroll with ${esc(f.name || petName(f.sp))}`, `Przerzuć: ${esc(f.name || petName(f.sp))}`), f.el === 'Spark' ? L('can reroll every round', 'może przerzucać co rundę') : L('once per friend', 'raz na przyjaciela'), `data-i="${i}"`); }).join('')}</div><div class="tt-acts">${btn('keep', L(`Walk ${S.die}`, `Idź o ${S.die}`), '', '', 'big')}</div>`;
     if (P.k === 'fork') return `${head(L('Which way?', 'Którędy?'), L('Glowing stones have a wild pet: stop exactly on one to meet it', 'Świecące kamienie mają dzikiego zwierzaka: zatrzymaj się dokładnie na nim, by go spotkać'))}
       <div class="tt-acts">${P.opts.map(j => { const n = petsAhead(j); return opt('fork', `<svg class="tt-ii" viewBox="0 0 32 32" aria-hidden="true"><path d="M15 6v23" ${IK}/><path d="M6 8h16l4 3.5-4 3.5H6z" fill="#ffc93c" ${IK}/><path d="M26 17H10l-4 3.5 4 3.5h16z" fill="#fff6e2" ${IK}/></svg>`, esc(routeName(j)), n ? L(`${n} wild pet${n > 1 ? 's' : ''} on the way`, `dzikie zwierzaki po drodze: ${n}`) : L('no wild pets in sight', 'nie widać dzikich zwierzaków'), `data-j="${j}"`, n ? 'hot' : ''); }).join('')}</div>`;
     if (P.k === 'shop') return `${head(L('The stall', 'Stragan'), L(`You have ${treatsW(p.treats)} and ${p.items.length}/${ITEM_MAX} items`, `Masz ${treatsW(p.treats)} i przedmioty: ${p.items.length}/${ITEM_MAX}`))}
@@ -330,9 +353,9 @@ export function mount(app, ctx) {
     L('Welcome to the <b>Friendship Trail</b>!', 'Witajcie na <b>Szlaku przyjaźni</b>!'),
     L(`Whoever has the most <b>Pet Show points</b> after ${S.rounds} rounds wins.`, `Wygrywa ten, kto po ${S.rounds} rundach ma najwięcej <b>punktów na Pokazie</b>.`),
     L('Every friend in your herd is 1 point, and every ribbon is 2.', 'Każdy przyjaciel w stadzie to 1 punkt, a każda wstęga to 2.'),
-    L('Roll the die and walk the trail. At a fork, you pick the way.', 'Rzuć kością i idź szlakiem. Na rozwidleniu sam wybierasz drogę.'),
+    L('Each turn you play one of your <b>trail cards</b> and walk exactly that many stones. At a fork, you pick the way.', 'W każdej turze zagrywasz jedną z <b>kart szlaku</b> i idziesz dokładnie o tyle kamieni. Na rozwidleniu sam wybierasz drogę.'),
     L('Stop exactly on a <b>glowing stone</b> to make friends with its wild pet.', 'Zatrzymaj się dokładnie na <b>świecącym kamieniu</b>, by zaprzyjaźnić się z jego dzikim zwierzakiem.'),
-    L('Friends reroll your die and cheer for you in minigames.', 'Przyjaciele przerzucają twoją kość i kibicują ci w minigrach.'),
+    L('Friends can swap your cards for new ones and cheer for you in minigames.', 'Przyjaciele mogą wymienić ci karty na nowe i kibicują ci w minigrach.'),
     L('After every round we all play a <b>quick minigame</b>. Better places win more treats.', 'Po każdej rundzie gramy w <b>szybką minigrę</b>. Lepsze miejsca dają więcej przysmaków.'),
     `${esc(SEASON_RULE[S.season])} ${esc(WX_RULE[S.wx])}`,
     L("Now, let's roll to see who goes first!", 'A teraz rzućmy, kto zaczyna!'),
@@ -407,9 +430,9 @@ export function mount(app, ctx) {
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
       case 'order': big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
       case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); if (isMe(s)) sfx.turn(); break;
-      case 'roll': throwDice(s, e.b ? [e.a, e.b] : [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.b ? L(' with the Spyglass', ' z Lunetą') : '')); break;
-      case 'reroll': throwDice(s, [e.d], e.d, pet({ sp: e.sp }, 34, 'tt-dpi'), e.was); sfx.whoosh?.(); say(L(`${esc(petName(e.sp))} rerolls for ${isMe(s) ? 'you' : nm(s)}: <s>${e.was}</s> → <b>${e.d}</b>. The new roll replaces the old one`, `${esc(petName(e.sp))} przerzuca dla ${isMe(s) ? 'ciebie' : nm(s)}: <s>${e.was}</s> → <b>${e.d}</b>. Nowy rzut zastępuje stary`)); petPics($('tt-die')); break;
-      case 'boost': say(who(s, L(`Fewest friends: your ${esc(petName(e.sp))} can reroll again this turn`, `Najmniej przyjaciół: twój ${esc(petName(e.sp))} znów może przerzucić w tej turze`), L(`Fewest friends: {n}'s ${esc(petName(e.sp))} can reroll again`, `Najmniej przyjaciół: {n} znów może przerzucić (${esc(petName(e.sp))})`))); break;
+      case 'card': sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
+      case 'redraw': sfx.whoosh?.(); say(who(s, L(`Your ${esc(petName(e.sp))} swaps your cards`, `Twój ${esc(petName(e.sp))} wymienia ci karty`), L(`{n}'s ${esc(petName(e.sp))} swaps their cards`, `${esc(petName(e.sp))} wymienia karty graczowi {n}`))); break;
+      case 'boost': say(who(s, L(`Fewest friends: your ${esc(petName(e.sp))} can swap your cards again`, `Najmniej przyjaciół: twój ${esc(petName(e.sp))} znów może wymienić ci karty`), L(`Fewest friends: {n}'s ${esc(petName(e.sp))} can swap cards again`, `Najmniej przyjaciół: {n} znów może wymienić karty (${esc(petName(e.sp))})`))); break;
       case 'fork': say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
       case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.(); setTimeout(hopSfx, 420); }; hopSfx(); } break;
       case 'stone': stoneEv(e); break;
@@ -561,9 +584,9 @@ export function mount(app, ctx) {
     if (a === 'skipintro') { if (S?.stage === 'intro') send({ t: 'skip' }); return; }
     if (!ready()) return;
     if (a === 'roll') send({ t: 'roll' });
+    else if (a === 'card') send({ t: 'card', i: +d.i });
+    else if (a === 'redraw') send({ t: 'redraw', f: +d.f });
     else if (a === 'item') send({ t: 'item', k: d.k });
-    else if (a === 'keep') send({ t: 'reroll', i: -1 });
-    else if (a === 'reroll') send({ t: 'reroll', i: +d.i });
     else if (a === 'fork') send({ t: 'fork', j: +d.j });
     else if (a === 'buy') send({ t: 'shop', k: d.k || null });
     else if (a === 'meet') send({ t: 'meet', k: +d.k });

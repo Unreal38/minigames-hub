@@ -94,6 +94,31 @@ console.log('9 holes, sharp bots: winner', g2.seats[g2.win].name, 'totals', g2.r
 // bots finish holes in a sensible number of strokes
 if (g2.res.totals.slice(2).some(t => t > g2.res.par + 22)) fail('sharp bots are hopeless: ' + g2.res.totals);
 
+// a splash is the putt plus one penalty stroke, and the penalty is sent to every player so it can be shown
+{
+  const realNow = Date.now; let now = realNow(); Date.now = () => now;
+  try {
+    const G = golf.create(players, { holes: 9, seats: 2, course: 'classic' });
+    let found = null;
+    for (let h = 0; h < 9 && !found; h++) {
+      G.H = buildHole(h); G.H.key = 't' + h;
+      for (let k = 0; k < 600 && !found; k++) { const ang = k * .113, pow = .2 + (k % 9) / 10; if (simulate(G.H, G.H.tee.x, G.H.tee.z, ang, pow, 0, 1).water) found = { ang, pow }; }
+    }
+    if (!found) fail('no classic hole has reachable water');
+    let hit = false;
+    for (let k = 0; k < 40 && !hit; k++) { // the server rolls its own random seed, so keep trying the same water shot
+      G.stage = 'play'; G.holeAt = now; G.turn = 0; G.turnFrom = now; G.turnEnd = now + 25000;
+      G.balls = G.seats.map(() => ({ x: G.H.tee.x, z: G.H.tee.z, strokes: 0, pen: 0, sunk: 0, out: false, busy: 0, shot: null, think: 0 }));
+      if (!golf._shoot(G, 0, found.ang, found.pow, now)) fail('test water shot refused');
+      hit = G.balls[0].shot.water;
+    }
+    if (!hit) fail('water shot never splashed');
+    const b = G.balls[0], v = golf.view(G, 1).seats[0];
+    if (b.strokes !== 2 || b.pen !== 1 || b.shot.pen !== 1) fail('a splash should be 1 putt + 1 penalty');
+    if (v.pen !== 1 || v.shot.pen !== 1 || v.strokes !== 2) fail('other players are not told about the penalty');
+  } finally { Date.now = realNow; }
+}
+
 // a watcher takes over a bot at the next hole and keeps its score
 {
   const G = golf.create(players, { holes: 3, seats: 4 });

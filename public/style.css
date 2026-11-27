@@ -2279,6 +2279,34 @@ body.sky:not(.in-game) footer { background: var(--pan); color: var(--muted2); bo
 body.in-party .results .againbox, body.in-party .results .paid, body.in-party .results [data-paid] { display: none !important; }
 .party-back { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--lantern); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 8px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; box-shadow: 0 4px 0 var(--ink); pointer-events: none; }
 .party-back[hidden] { display: none; }
+/* the curtain between the trail and its minigames (app.js curtainShut/curtainOpen): two halves slide in from the sides,
+   the card pops in after them; opening runs the other way. Above the game and its HUD, under toasts and the back pill. */
+.pcurt { position: fixed; inset: 0; z-index: 59; pointer-events: none; display: grid; place-items: center; padding: 16px; overflow: hidden; }
+.pcurt.shut { pointer-events: auto; }
+.pc-h { position: absolute; top: 0; bottom: 0; width: 50.5%; background: radial-gradient(#ffffff55 1.6px, transparent 2px) 0 0 / 22px 22px, linear-gradient(160deg, #ffe7a8, #ffd0e4 55%, #d6ecff);
+  transition: transform .55s cubic-bezier(.65, 0, .35, 1) .12s; }
+body.night .pc-h { background: radial-gradient(#ffffff22 1.6px, transparent 2px) 0 0 / 22px 22px, linear-gradient(160deg, #4a2f6e, #2b2856 55%, #1d3a5c); }
+.pc-l { left: 0; transform: translateX(-101%); border-right: 4px solid var(--ink); }
+.pc-r { right: 0; transform: translateX(101%); border-left: 4px solid var(--ink); }
+.pcurt.shut .pc-h { transform: none; transition-delay: 0s; }
+.pc-card { position: relative; width: min(440px, 100%); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
+  background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 6px 0 var(--ink); padding: 16px 20px 18px;
+  opacity: 0; transform: translateY(18px) scale(.94); transition: opacity .22s ease, transform .22s ease; }
+.pcurt.shut .pc-card { opacity: 1; transform: none; transition: opacity .3s ease .45s, transform .45s cubic-bezier(.3, 1.5, .5, 1) .45s; }
+.pc-card:empty { display: none; }
+.pc-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 3px solid var(--ink); border-radius: 16px; box-sizing: border-box; margin-bottom: 4px; background: var(--ph-bg); }
+.pc-card small { font: 700 13px/1 var(--fd); letter-spacing: .08em; text-transform: uppercase; color: var(--acc-tx); }
+.pc-card h2 { margin: 0; font: 700 clamp(24px, 4vw, 32px)/1.1 var(--fd); color: var(--on-paper); -webkit-text-stroke: 0; text-shadow: none; }
+.pc-cut { font: 600 14px/1 var(--fd); background: var(--lantern); color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; padding: 5px 12px; }
+.pc-card p { margin: 4px 0 0; font-size: 17px; line-height: 1.35; color: var(--body-tx); max-width: 36ch; }
+.pc-n { margin-top: 6px; font: 700 18px/1 var(--fd); background: var(--mint); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 8px 18px; box-shadow: 0 3px 0 var(--ink); }
+.pc-n:empty { display: none; }
+@media (max-height: 560px) { .pc-card img { display: none; } .pc-card { padding: 12px 16px 14px; } }
+@media (prefers-reduced-motion: reduce) {
+  .pc-h, .pcurt.shut .pc-h { transform: none; opacity: 0; transition: opacity .3s ease; }
+  .pcurt.shut .pc-h { opacity: 1; }
+  .pc-card, .pcurt.shut .pc-card { transform: none; }
+}
 
 /* ---- party banner above the games (Friendship Trail, Kuba 2026-11-27; re-laid out the same day) ----
    One row: the trail art, the title and pitch, the Host button with the open parties. Under it, the minigames as an even
@@ -2309,7 +2337,8 @@ body.night .pb-body p { color: #fff; }
 body.night .pb-row:hover, body.night .pb-row:focus-visible { background: #ffffff14; }
 .pb-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pb-row small { color: var(--soft-tx); }
-.pb-row em { font-style: normal; font-family: var(--fd); font-weight: 700; letter-spacing: 2px; }
+.pb-row em { font-style: normal; font-family: var(--fd); font-weight: 700; font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 2px solid var(--ink); background: var(--card); color: var(--on-paper); white-space: nowrap; }
+.pb-row em.go { background: var(--mint); color: var(--ink); }
 /* the minigames: a label, then an even grid */
 .pb-minis { grid-area: minis; display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 2px dashed #3b221933; }
 body.night .pb-minis { border-top-color: #ffffff2e; }

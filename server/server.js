@@ -237,6 +237,7 @@ function roomInfo(r) {
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers, ...seatInfo(r),
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pt: store.tagOf(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
     party: r.party ? { game: r.party.game, back: r.party.backAt ? Math.max(0, r.party.backAt - Date.now()) : null } : null,
+    pre: !r.party && r.G?.mini?.readyAt && !r.G.mini.started ? { game: r.G.mini.game, left: Math.max(0, r.G.mini.readyAt - Date.now()) } : null,
     board: boardOf(r), played: r.played || 0, paid: r.G?.ph === 'end' && r.G.scored ? r.paid || null : null,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
   };
@@ -307,7 +308,7 @@ function scoreGame(r) {
     e.games++; e.pts += Math.max(0, res[i].pts); if (res[i].win) e.wins++;
     delete e.coins; // older tables kept Marble Rush coins here; coins now live on the account
     const pay = FULL_BOT_PAY ? 1 : botPay(G.seats, i, { level, max: mod.meta.maxPlayers, ms });
-    const gain = store.credit(p, r.game, { ...res[i], of, ranked, pay });
+    const gain = store.credit(p, r.game, { ...res[i], of, ranked, pay, top: mod.meta.coins });
     r.paid[i] = gain.coins;
     send(c, { t: 'me', me: store.me(p), gain: solo ? { ...gain, solo: true } : gain });
   });
@@ -611,7 +612,9 @@ function reclaimSeat(r, c) {
 // that hub game for real: r.game and r.G switch to it (so ticks, acts, views and rejoining all reach it as usual) and
 // the tournament waits in r.party. The minigame pays and counts for nothing on its own; when it ends, its places go
 // back to the tournament (miniDone) a few seconds after its results show, and the table returns to the trail.
-const PARTY_BACK_MS = 5500, PARTY_MAX_MS = 9 * 60_000;
+// PARTY_READY_MS: the "Next up" card (name, how to win, countdown) shows this long before the minigame is created, so
+// nobody is dropped into a match that already started; the minigame's own countdown then runs as usual.
+const PARTY_BACK_MS = 7000, PARTY_READY_MS = 7000, PARTY_MAX_MS = 9 * 60_000;
 const partyBots = (seats, here) => seats.map((s, i) => i).filter(i => !here(seats[i]));
 function startMini(r) {
   const T = r.G, mg = T.mini, mod = GAMES[mg?.game];
@@ -651,7 +654,10 @@ function partyTick(r, now) {
   if (r.party) {
     if (r.party.backAt && now >= r.party.backAt) backToTrail(r);
     else if (!r.party.backAt && now - r.party.t0 > PARTY_MAX_MS) { r.G.scored = true; r.party.places = null; backToTrail(r); } // a minigame that never ends
-  } else if (r.G?.stage === 'mini' && r.G.mini && !r.G.mini.started && GAMES[r.game].miniDone) startMini(r);
+  } else if (r.G?.stage === 'mini' && r.G.mini && !r.G.mini.started && GAMES[r.game].miniDone) {
+    if (!r.G.mini.readyAt) { r.G.mini.readyAt = now + PARTY_READY_MS; sendRoom(r); }
+    else if (now >= r.G.mini.readyAt) startMini(r);
+  }
 }
 
 function startGame(r) {

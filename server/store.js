@@ -718,7 +718,7 @@ export function friendsView(p, online = () => false, extra = () => ({})) {
 // coins to each other by betting against each other; losses are never capped.
 export const BET_DAY_CAP = 300;
 export function betRoom(p) { return p?.betd?.day === dayOf() ? Math.max(0, BET_DAY_CAP - (p.betd.won || 0)) : BET_DAY_CAP; }
-export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1, ranked = true, pay = 1 }) {
+export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 0, place, of = 1, ranked = true, pay = 1, top }) {
   if (!Number.isFinite(place)) place = win ? 1 : Math.max(1, of);
   if (!Number.isFinite(coinNet)) coinNet = 0;
   if (coinNet > 0) {
@@ -727,7 +727,7 @@ export function credit(p, game, { pts = 0, win = false, idle = false, coinNet = 
     p.betd.won += coinNet;
   }
   pay = Number.isFinite(pay) ? Math.max(0, Math.min(1, pay)) : 1;
-  const before = levelOf(p.xp), gain = Math.round(xpFor({ pts, win }) * pay), coins = (idle ? 0 : Math.round(placeCoins(place, of) * pay)) + (Number.isFinite(coinNet) ? coinNet : 0);
+  const before = levelOf(p.xp), gain = Math.round(xpFor({ pts, win }) * pay), coins = (idle ? 0 : Math.round(placeCoins(place, of, top) * pay)) + (Number.isFinite(coinNet) ? coinNet : 0);
   p.xp += gain;
   if (ranked) {
     p.games++; p.pts += Math.max(0, pts); if (win) p.wins++;
