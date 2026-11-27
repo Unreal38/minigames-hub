@@ -1374,7 +1374,10 @@ function onMsg(m) {
       setSeatFx(m.s.seats.map(seat => seat?.fl?.wn | 0)); } // in-game showers use each player's win effect
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
-    mountGame().then(g => { g?.update(st.lastState); watchPaint(); });
+    // Friendship Trail opens behind the party curtain too, like its minigames (Kuba 2026-11-27)
+    const opening = !st.game && !st.gameLoading && st.room?.game === PARTY_GAME && !st.room.party && st.lastState?.ph !== 'end';
+    const shutAt = Date.now(); if (opening) curtainShut('start');
+    mountGame().then(g => { g?.update(st.lastState); watchPaint(); if (opening) curtainOpen(Math.max(700, 1800 - (Date.now() - shutAt))); });
   } else if (m.t === 'react') {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
@@ -1485,6 +1488,8 @@ function curtainEl() {
   return curtEl;
 }
 function curtainCard(kind, room) {
+  if (kind === 'start') return `<img src="/gamepics/trail-s.jpg" alt="" decoding="async"><small>${L('Party time', 'Czas na imprezę')}</small>
+    <h2>${L('Friendship Trail', 'Szlak przyjaźni')}</h2><p>${L('Collect pet friends on the trail and win the minigames.', 'Zbieraj przyjaciół na szlaku i wygrywaj minigry.')}</p>`;
   if (kind === 'back') return `<img src="/gamepics/trail-s.jpg" alt="" decoding="async"><small>${L('Minigame over', 'Koniec minigry')}</small>
     <h2>${L('Back to the Friendship Trail', 'Wracamy na Szlak przyjaźni')}</h2><p>${L('Treats for the places are handed out next.', 'Zaraz rozdamy przysmaki za miejsca.')}</p>`;
   const g = PARTY_POOL.find(x => x.id === room?.pre?.game) || PARTY_POOL.find(x => x.id === room?.game);
@@ -1514,7 +1519,7 @@ function curtainPaint(room) {
   const n = curtEl?.querySelector('[data-n]'); if (n && room?.party && curtKind === 'next') n.textContent = L('Here we go!', 'Zaczynamy!');
   clearTimeout(curtBackT);
   if (room?.party?.back != null) curtBackT = setTimeout(() => curtainShut('back'), Math.max(0, room.party.back - 900));
-  else if (!room?.party && curtKind && !st.gameLoading) curtainOpen(400); // safety: never leave the curtain shut over a game
+  else if (!room?.party && curtKind && curtKind !== 'start' && !st.gameLoading) curtainOpen(400); // safety: never leave the curtain shut over a game
 }
 function unmountGame() { document.body.classList.remove('tagpick'); st.gameKey = null; if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 

@@ -277,7 +277,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   // ---------- sizing ----------
   let Wd = 0, Ht = 0, hudBottom = 120, hudTop = 110;
-  const camBase = new THREE.Vector3(), camLook = new THREE.Vector3(0, 0, -.1);
+  const camBase = new THREE.Vector3(), camAt = new THREE.Vector3(), cam = { off: 0, offTo: 0 }, camLook = new THREE.Vector3(0, 0, -.1);
   const DIR = new THREE.Vector3(0, 1.75, 1).normalize(), v = new THREE.Vector3();
   const toPx = p => { v.copy(p).project(camera); return [(v.x + 1) / 2 * Wd, (1 - v.y) / 2 * Ht]; };
   function place(D) { camera.position.copy(DIR).multiplyScalar(D); camera.lookAt(camLook); camera.updateMatrixWorld(); }
@@ -303,7 +303,9 @@ export function createScene(canvas, { onFrame } = {}) {
     place(hi); camBase.copy(camera.position);
     scene.fog.near = hi + 20; scene.fog.far = hi + 130;
     let y0 = Infinity, y1 = -Infinity; for (const p of FIT) { const [, y] = toPx(p); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    camera.setViewOffset(cw, ch, 0, (y0 + y1) / 2 - (top + bottom) / 2, cw, ch); camera.updateProjectionMatrix();
+    cam.offTo = (y0 + y1) / 2 - (top + bottom) / 2;
+    if (force !== 'ease') { camAt.copy(camBase); cam.off = cam.offTo; } // a new window size snaps; a HUD grown mid-game eases (loop)
+    camera.setViewOffset(cw, ch, 0, cam.off, cw, ch); camera.updateProjectionMatrix();
   }
 
   // ---------- loop ----------
@@ -343,7 +345,11 @@ export function createScene(canvas, { onFrame } = {}) {
       s.ring.material.opacity += ((s.active ? .9 : 0) - s.ring.material.opacity) * .15;
     });
     cloudRing.rotation.y = T * .006; flyBirds(T); drift(T);
-    camera.position.set(camBase.x + (reduced ? 0 : Math.sin(T * .22) * .1), camBase.y + (reduced ? 0 : Math.sin(T * .37) * .04), camBase.z);
+    if (camAt.distanceToSquared(camBase) > 1e-6 || Math.abs(cam.off - cam.offTo) > .05) {
+      const k = 1 - Math.exp(-dt * 3); camAt.lerp(camBase, k); cam.off += (cam.offTo - cam.off) * k;
+      camera.setViewOffset(Wd, Ht, 0, cam.off, Wd, Ht); camera.updateProjectionMatrix();
+    }
+    camera.position.set(camAt.x + (reduced ? 0 : Math.sin(T * .22) * .1), camAt.y + (reduced ? 0 : Math.sin(T * .37) * .04), camAt.z);
     camera.lookAt(camLook); if (!reduced) shake.apply(camera, dt);
     pfx.update(dt, camera, Ht);
     renderer.render(scene, camera);
@@ -361,7 +367,12 @@ export function createScene(canvas, { onFrame } = {}) {
   return {
     setState, cue, pick, setHover, pairFx, missFx, mix, setBack,
     cardPx(i) { const c = cards[i]; if (!c) return null; tv.copy(c.g.position); tv.y = .3; tv.project(camera); return { x: (tv.x + 1) / 2 * Wd, y: (1 - tv.y) / 2 * Ht }; },
-    setHud(bottomPx, topPx = hudTop) { if ((Math.abs(bottomPx - hudBottom) > 6 || Math.abs(topPx - hudTop) > 6) && hudFitOk(canvas)) { hudBottom = bottomPx; hudTop = topPx; resize(true); } },
+    setHud(bottomPx, topPx = hudTop) { // always kept: snaps while settling; mid-game the camera eases out only when the HUD grows over the cards (a two-line hint, a wrapped name strip)
+      if (Math.abs(bottomPx - hudBottom) <= 6 && Math.abs(topPx - hudTop) <= 6) return;
+      if (hudFitOk(canvas)) { hudBottom = bottomPx; hudTop = topPx; resize(true); return; }
+      if (bottomPx <= hudBottom + 6 && topPx <= hudTop + 6) return; // a shrinking HUD keeps the frame, so the camera never swings back and forth
+      hudBottom = Math.max(hudBottom, bottomPx); hudTop = Math.max(hudTop, topPx); resize('ease');
+    },
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) freeSeat(s);

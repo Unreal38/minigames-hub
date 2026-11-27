@@ -17,6 +17,7 @@ import { itemModel } from '../farm/models.js';
 import { frameLoop, autoResolution, AA, gfx } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { NODES, N, EL_COL } from './rules.js';
+import { stoneSvgFile } from './icons.js';
 
 const K = .42;                 // avatars are drawn at this size, on a wrapper (the standing avatar sits .76 up inside it)
 const HOP = 420;               // ms per stone, as the server counts it (MS.hop)
@@ -26,10 +27,25 @@ const POND = { x: -1, z: 0, rx: 4.2, rz: 3 };
 const STREAM_Z = .95;
 const HILL = { x: 3.8, z: -5.6, r: 2.7 };
 // the kinds of stone: top colour, and whether the whole-map view labels it
+// Each kind has its own bold colour and an icon painted on top (Kuba 2026-11-27: stones should be distinct at a glance,
+// like a party board's spaces): gold + for treats, pink basket for a picnic, red thorns and − for brambles...
 const STONE = {
-  treat: '#ffd36b', picnic: '#ff9fc8', bramble: '#9b6b4a', stall: '#ffffff', nest: '#fff1c4', bench: '#b994f0',
-  well: '#7cc6ff', spring: '#9fe6f0', den: '#8a7aa8',
+  treat: '#ffc93c', picnic: '#ff7fb0', bramble: '#e5543b', stall: '#ffffff', nest: '#fff1c4', bench: '#b994f0',
+  well: '#5fb4ff', spring: '#6fe0d6', den: '#6b5a9a',
 };
+const INK = '#3b2219';
+// the icon for a stone kind, drawn once on a small canvas (transparent round, read with the top of the picture away from the camera)
+const iconTex = new Map();
+function stoneIcon(kind) {
+  // the same SVG as the UI icons (icons.js), drawn into a canvas once it loads
+  if (iconTex.has(kind)) return iconTex.get(kind);
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const img = new Image();
+  img.onload = () => { c.getContext('2d').drawImage(img, 0, 0, 128, 128); t.needsUpdate = true; };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(stoneSvgFile(kind, 128));
+  iconTex.set(kind, t); return t;
+}
 export const SPECIAL = new Set(['stall', 'nest', 'bench', 'well', 'spring', 'den', 'picnic']);
 const wrapA = a => { a = (a + Math.PI) % (Math.PI * 2); return (a < 0 ? a + Math.PI * 2 : a) - Math.PI; };
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -101,16 +117,18 @@ export function createScene(canvas, { onFrame } = {}) {
   const P = NODES.map(n => new THREE.Vector3(n.x, SY, n.z)), START = new THREE.Vector3();
   const nodeP = i => (i < 0 ? START : P[i]);
   const DIRT = snowy ? '#c9a26a' : '#d9b77c', DIRT_EDGE = snowy ? '#8f6b3e' : '#a9814f'; // the path is cleared of snow in winter too, so the stones stand out (Kuba 2026-11-27)
+  const icons = new THREE.Group(); scene.add(icons); let iconYaw = 99;
+  const ICON_GEO = new THREE.PlaneGeometry(SR * 1.75, SR * 1.75), iconMats = new Map();
+  const iconMat = kind => { if (!iconMats.has(kind)) iconMats.set(kind, new THREE.MeshStandardMaterial({ map: stoneIcon(kind), transparent: true, roughness: .95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); return iconMats.get(kind); };
   NODES.forEach((n, i) => {
     const kind = n.kind, top = STONE[kind] || '#ffd36b';
     const g = new THREE.Group(); g.position.set(n.x, 0, n.z); g.rotation.y = i * .7; world.add(g);
     // a chunky grey base, a bright cream lip and the coloured top, so every stone you can stand on pops off the lawn
     cyl(g, SR + .1, SR + .2, .16, snowy ? '#9aa6b6' : '#8d867e', 0, .06, 0, 9);
     cyl(g, SR + .1, SR + .1, .05, '#fff6e2', 0, .135, 0, 9);
-    cyl(g, SR, SR + .03, .08, kind === 'bramble' && snowy ? '#bfe6ff' : top, 0, .14, 0, 9);
-    if (kind === 'treat') for (let k = 0; k < 3; k++) cyl(g, .1, .1, .05, '#c98a52', Math.cos(k * 2.1) * .25, .2, Math.sin(k * 2.1) * .25, 8);
-    if (kind === 'bramble') for (let k = 0; k < 4; k++) { const t = put(g, new THREE.TetrahedronGeometry(.17), M(snowy ? '#e8f6ff' : '#5d8a3a'), Math.cos(k * 1.6) * .32, .25, Math.sin(k * 1.6) * .32); t.rotation.set(k, k * 2, 0); }
-    if (kind === 'picnic') { box(g, .62, .03, .62, '#ffffff', 0, .195, 0); for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) box(g, .3, .035, .3, '#ff6f9a', -.15 + a * .3, .2, -.15 + b * .3).visible = (a + b) % 2 === 0; }
+    cyl(g, SR, SR + .03, .08, top, 0, .14, 0, 9);
+    // the kind's icon on top, the right way up for the camera (it is not part of the merged island: it has a picture)
+    if (STONE[kind]) { const ic = new THREE.Mesh(ICON_GEO, iconMat(kind)); ic.rotation.x = -Math.PI / 2; ic.position.set(n.x, .186, n.z); icons.add(ic); }
     // dirt dots to the next stones, and plank bridges over the stream
     for (const j of n.next) { const b = NODES[j];
       // a dirt path with a darker edge from stone to stone (cut where a bridge crosses the stream)
@@ -243,7 +261,8 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the line-up in the start meadow (Kuba 2026-11-27) ----------
   // During the intro everyone stands in a row facing the camera and waves, with Puff the host beside them; during the
   // roll for the first turn they stay in the row and the camera stays on them. mode: 'intro', 'order' or null.
-  let lineup = null, lz = 0, hz0 = 0, host = null;
+  let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0;
+  function peek(s, ms) { peekS = s; peekT = performance.now() + ms; } // keep the camera on someone for a moment (their die landing)
   const LSP = .74;
   function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
   const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25, START.z + .2];
@@ -358,8 +377,15 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- events ----------
   const at = (x, z, y = 0) => new THREE.Vector3(x, y, z);
   function seatAt(s) { const f = folk[s]; return f ? at(f.x, f.z, .9) : at(0, 0, 1); }
+  // little acted moments for the avatars (Kuba 2026-11-27): each one blends in, holds and blends out over d seconds
+  const EMOTE_S = { cheer: 1.1, win: 2.6, sad: 1.5, spin: 1.1, item: 1.1, point: .9, wave: 1.3, surprise: 1.1, slide: 1.6 };
+  function emote(s, k) { const f = folk[s]; if (f && EMOTE_S[k]) f.em = { k, t: 0, d: EMOTE_S[k] }; }
+  let thinker = -1;
+  function setThink(s) { thinker = s ?? -1; }
+  const EM_OF = { gain: 'cheer', lose: 'sad', friend: 'spin', miss: 'sad', item: 'item', win: 'win' };
   function cue(s, kind, el) {
     const f = folk[s]; if (!f) return; const p = seatAt(s);
+    if (EM_OF[kind]) emote(s, EM_OF[kind]);
     if (kind === 'gain') { f.cheer = 1; fx.burst(p, { n: few ? 8 : 14, colors: ['#ffd36b', '#ffffff', '#c98a52'], shape: DOT, speed: 2.4, up: 3.4, size: .2, life: .8 }); }
     else if (kind === 'lose') { f.sad = 1; fx.puff(p, { n: 8, color: ['#9b6b4a', '#5d8a3a'], size: .35, speed: 1.6 }); }
     else if (kind === 'friend') { f.cheer = 1; fx.burst(p.setY(1.3), { n: few ? 12 : 24, colors: [EL_COL[el] || '#ffd84a', '#ffffff', '#ff9fc8'], shape: HEART, speed: 2.6, up: 4, size: .3, life: 1.1 }); }
@@ -374,6 +400,22 @@ export function createScene(canvas, { onFrame } = {}) {
   const ro = new ResizeObserver(es => { const b = es[es.length - 1].contentRect; rw = b.width; rh = b.height; }); ro.observe(canvas);
   function fit() { camera.aspect = cw / ch; camera.updateProjectionMatrix(); }
 
+  // one pose of an emote; e: 0..1 how far it is blended in, u: 0..1 time through it. Returns extra yaw for a twirl.
+  function pose(f, ud, k, e, u) {
+    const arms = ud.arms || [], hd = ud.head, mix = (a, key, to) => { a.rotation[key] += (to - a.rotation[key]) * e; };
+    const sgOf = a => Math.sign(a.position.x) || 1;
+    if (k === 'cheer' || k === 'win') { arms.forEach((a, i) => { mix(a, 'z', sgOf(a) * (2.5 + Math.sin(T * 14 + i * Math.PI) * .28)); mix(a, 'x', -.1); });
+      if (k === 'win' && f.cheer < .2) f.cheer = .9; }
+    else if (k === 'sad') { arms.forEach(a => { mix(a, 'z', sgOf(a) * .08); mix(a, 'x', .35); }); if (hd) hd.rotation.x += .38 * e; }
+    else if (k === 'surprise') { arms.forEach(a => { mix(a, 'z', sgOf(a) * 1.45); mix(a, 'x', -.35); }); if (hd) hd.rotation.x -= .22 * e; }
+    else if (k === 'slide') { arms.forEach((a, i) => { mix(a, 'z', sgOf(a) * (1.5 + Math.sin(T * 9 + i * 2) * .25)); }); f.wrap.rotation.z = Math.sin(T * 8) * .12 * e; }
+    else if (k === 'item') { const a = arms[1] || arms[0]; if (a) { mix(a, 'z', sgOf(a) * 2.95); mix(a, 'x', -.1); } }
+    else if (k === 'point') { const a = arms[1] || arms[0]; if (a) { mix(a, 'x', -1.55); mix(a, 'z', sgOf(a) * .15); } if (hd) hd.rotation.x += .1 * e; }
+    else if (k === 'wave') { const a = arms[f.i % 2]; if (a) { mix(a, 'z', sgOf(a) * (2.55 + Math.sin(T * 8 + f.i) * .35)); mix(a, 'x', -.15); } }
+    else if (k === 'think') { const a = arms[1] || arms[0], wob = Math.sin(T * 2 + f.i) * .05; if (a) { mix(a, 'x', -2.05 + wob); mix(a, 'z', -sgOf(a) * .55); } if (hd) { hd.rotation.z += .16 * e; hd.rotation.x -= .08 * e; } }
+    else if (k === 'spin') { arms.forEach(a => { mix(a, 'z', sgOf(a) * 1.9); }); return ease(Math.min(1, u * 1.25)) * Math.PI * 2; }
+    return 0;
+  }
   // ---------- every frame ----------
   let T = 0; const T0 = performance.now() / 1000;
   const info = { tags: [], marks: [], zoom: 1, w: 0, h: 0 }, bm = new THREE.Matrix4(), pv = new THREE.Vector3();
@@ -407,6 +449,10 @@ export function createScene(canvas, { onFrame } = {}) {
       { const wave = lineup === 'intro' && f.amt < .2 && !f.hop, arm = ud.arms?.[f.i % 2];
         ud.arms?.forEach(a => { a.userData.rz0 ??= a.rotation.z; if (a !== arm || !wave) a.rotation.z = a.userData.rz0; });
         if (arm && wave) { const sg = Math.sign(arm.position.x) || 1; arm.rotation.z = sg * (2.55 + Math.sin(T * 7 + f.i * 1.7) * .32); arm.rotation.x = -.15; } }
+      { let spinY = 0;
+        if (f.em) { f.em.t += dt; const u = f.em.t / f.em.d; if (u >= 1) f.em = null; else spinY = pose(f, ud, f.em.k, Math.min(1, u * 5, (1 - u) * 5), u); }
+        else if (f.i === thinker && !lineup && !f.hop && f.amt < .2) pose(f, ud, 'think', 1, 0);
+        if (spinY) f.wrap.rotation.y = f.ry + spinY; }
       f.ring.position.set(f.x, SY + .015, f.z); f.ring.material.opacity = f.i === focus ? .95 : .55;
       blob(f.x, f.z, .38);
       const last = f.steps[f.steps.length - 1];
@@ -445,14 +491,20 @@ export function createScene(canvas, { onFrame } = {}) {
       host.g.children[0] && wiggle(host.g.children[0], T, host.seed, .6);
       if (host.g.visible) blob(host.x, host.z, .4); }
     stepDice(performance.now(), blob);
+    { const yaw = Math.atan2(camera.position.x - camL.x, camera.position.z - camL.z); if (Math.abs(yaw - iconYaw) > .01) { iconYaw = yaw; for (const ic of icons.children) ic.rotation.z = yaw; } } // icons stay upright for the camera
+    for (const a of forkArrows) { a.position.y = .55 + Math.sin(T * 4 + a.userData.k) * .09; }
     blobs.count = nb; blobs.instanceMatrix.needsUpdate = true;
     // camera: a close-up that follows the player in focus, or the whole island
     const f = focus >= 0 && !mapView && !lineup ? folk[focus] : null;
     lz += ((lineup && !mapView ? 1 : 0) - lz) * (1 - Math.pow(.02, dt));
-    hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: a close-up of Tux talking
-    const lx = lerp(START.x + .35, host ? host.x - .35 : START.x, hz0), lzz = lerp(START.z + .3, host ? host.z : START.z, hz0);
+    hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: Tux talking on the right, the players beside him (Kuba: show the contestants)
+    // the roll for the first turn: close on each roller (and hold on them while their die lands), then back to the row (Kuba 2026-11-27)
+    const ps = performance.now() < peekT ? peekS : focus, pf = lineup === 'order' && !mapView && ps >= 0 ? folk[ps] : null;
+    if (pf) { pcx = pf.x; pcz = pf.z; }
+    pz0 += ((pf ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
+    const lx = lerp(lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), pcx + .25, pz0), lzz = lerp(lerp(START.z + .3, host ? host.z : START.z, hz0), pcz + .3, pz0);
     const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
-    const kk = 1 - Math.pow(.04, dt);
+    const kk = 1 - Math.pow(pz0 > .05 ? .008 : .04, dt);
     camL.x = lerp(camL.x, tx, kk); camL.z = lerp(camL.z, tz, kk);
     zoom += ((f || (lineup && !mapView) ? 0 : 1) - zoom) * (1 - Math.pow(.03, dt));
     const port = ch > cw * 1.05, asp = cw / ch;
@@ -460,12 +512,12 @@ export function createScene(canvas, { onFrame } = {}) {
     const vf = camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * asp), tilt = 52 * Math.PI / 180;
     const farD = Math.max((ISLE.rx + .5) / Math.tan(hf / 2), (ISLE.rz * Math.sin(tilt) + 1) / Math.tan(vf / 2) + ISLE.rz * Math.cos(tilt)) * (1 + (hudTop + hudBottom) / Math.max(1, ch) * .35);
     // the line-up shot: low and close, just wide enough for the whole row and Puff
-    const rowW = folk.length * LSP + 1.6, lineD = lerp(Math.max(6.5, (rowW / 2 + .6) / Math.tan(hf / 2)), port ? 6 : 4.4, hz0);
-    const nearD = port ? 16 : 13, D = lerp(lerp(nearD, lineD, lz), farD, zoom), tiltNow = lerp(lerp(46, lerp(26, 16, hz0), lz) * Math.PI / 180, tilt, zoom);
+    const rowW = folk.length * LSP + 1.6, lineD = lerp(Math.max(6.5, (rowW / 2 + .6) / Math.tan(hf / 2)), port ? 6 : 6.4, hz0);
+    const nearD = port ? 16 : 13, D = lerp(lerp(nearD, lerp(lineD, port ? 3.4 : 2.7, pz0), lz), farD, zoom), tiltNow = lerp(lerp(46, lerp(26, 16, hz0), lz) * Math.PI / 180, tilt, zoom);
     // the HUD at the top and the choices at the bottom: the spot in focus sits in the clear band between them
     const shiftZ = (hudBottom - hudTop) / Math.max(1, ch) * D * .5;
     camera.position.set(camL.x, Math.sin(tiltNow) * D, camL.z + shiftZ + Math.cos(tiltNow) * D);
-    camera.lookAt(camL.x, lerp(lerp(.5, lerp(.75, .7, hz0), lz), 0, zoom), camL.z + shiftZ);
+    camera.lookAt(camL.x, lerp(lerp(.5, lerp(.75, .7, hz0) + pz0 * .05, lz), 0, zoom), camL.z + shiftZ);
     // trees between the camera and the player in focus turn see-through
     if (f && zoom < .6) { proj(f.x, .8, f.z, info); const fx0 = info.x, fy0 = info.y, cd = camera.position.distanceTo(f.wrap.position), o = {};
       for (const t of trees) { proj(t.x, 1.4, t.z, o); const dd = Math.hypot(t.x - camera.position.x, t.z - camera.position.z), hide = o.on && dd < cd && Math.abs(o.x - fx0) < Math.min(cw, ch) * .22 && o.y > fy0 - ch * .35; if (hide !== t.faded) fadeTree(t, hide); } }
@@ -495,8 +547,26 @@ export function createScene(canvas, { onFrame } = {}) {
     return out;
   }
 
+  // arrows on the board at a fork, one down each way (white for the first route, gold for the second, like the signposts
+  // and the choice tiles), bobbing over the next stone while the walker decides
+  let forkArrows = [], forkKey = '';
+  const ARROW = (() => { const sh = new THREE.Shape(); sh.moveTo(0, .5); sh.lineTo(.42, 0); sh.lineTo(.17, 0); sh.lineTo(.17, -.42); sh.lineTo(-.17, -.42); sh.lineTo(-.17, 0); sh.lineTo(-.42, 0); sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: .12, bevelEnabled: false }); g.rotateX(Math.PI / 2); g.translate(0, .12, 0); return g; })(); // the tip points along +z, turned toward the next stone
+  function setFork(at, opts) {
+    const key = at == null ? '' : at + ':' + opts.join(',');
+    if (key === forkKey) return; forkKey = key;
+    for (const a of forkArrows) { scene.remove(a); a.material.dispose(); for (const c of a.children) c.material.dispose(); } forkArrows = [];
+    if (at == null) return;
+    const from = nodeP(at);
+    opts.forEach((j, k) => { const to = P[j]; if (!from || !to) return;
+      const m = new THREE.Mesh(ARROW, flat(k ? '#ffc93c' : '#ffffff', { emissive: k ? '#5a3d00' : '#3a3a3a' }));
+      shell(m, 1.12);
+      m.position.set(lerp(from.x, to.x, .62), .55, lerp(from.z, to.z, .62)); m.rotation.y = Math.atan2(to.x - from.x, to.z - from.z); m.userData.k = k * 1.6;
+      scene.add(m); forkArrows.push(m); });
+  }
+
   return {
-    setState, walk, cue, roll,
+    setState, walk, cue, emote, setThink, peek, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,

@@ -111,7 +111,10 @@ export function mount(app, ctx) {
     const strip = compact();
     if (tagsEl.classList.contains('strip') !== strip) { tagsEl.classList.toggle('strip', strip); for (const el of tagEls) { el.style.transform = ''; el._w = el.offsetWidth; } }
     const top = strip ? tagsEl.getBoundingClientRect().bottom + 6 : (innerWidth < 700 ? 118 : 74) * uiz();
-    if (scene) scene.setHud(($('hd-dock').offsetHeight + 18) * uiz(), top);
+    // the line above the tray changes height from turn to turn (one or two lines, an avatar chip), so it counts as at least
+    // two lines on phones: the camera then follows only the tray's rows, which change with the game, not with each message
+    const say = $('hd-say'), panel = $('hd-panel'), sayH = Math.max(say.offsetHeight, panel.hidden ? 0 : innerWidth <= 700 ? 48 : 40);
+    if (scene) scene.setHud((sayH + (panel.hidden ? 0 : panel.offsetHeight + 5) + 18) * uiz(), top);
   }
 
   // ----- name tags -----
@@ -181,7 +184,7 @@ export function mount(app, ctx) {
     const turn = myTurn(), now = performance.now();
     for (const [t, until] of newTiles) if (until < now) newTiles.delete(t);
     const rack = sorted(S.rack);
-    $('hd-tray').classList.toggle('many', rack.length > 21);
+    $('hd-tray').classList.toggle('many', rack.length > (innerWidth <= 700 ? 16 : 21)); // phones shrink the tiles sooner: past two rows the tray would hide the table's lower groups
     setHtml($('hd-tray'), rack.length ? rack.map(t => tileHtml(t, `${sel.has(t) ? 'sel' : ''}${newTiles.has(t) ? ' new' : ''}${turn ? '' : ' idle'}`, L)).join('')
       : `<span class="hd-empty">${turn ? L('Tray empty! Press Done to win the round.', 'Tacka pusta! Naciśnij Gotowe, żeby wygrać rundę.') : L('Your tray is empty', 'Twoja tacka jest pusta')}</span>`);
     petPics($('hd-tray'));
