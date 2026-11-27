@@ -30,18 +30,38 @@ const put = (p, g, c, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(g, flat
 const ico = (p, r, c, x, y, z) => put(p, new THREE.IcosahedronGeometry(r, 0), c, x, y, z);
 const cyl = (p, a, b, h, c, x, y, z, n = 6) => put(p, new THREE.CylinderGeometry(a, b, h, n), c, x, y, z);
 const cone = (p, r, h, c, x, y, z, n = 7) => put(p, new THREE.ConeGeometry(r, h, n), c, x, y, z);
+// a five-pointed star of radius 1, t thick, standing up (the tree tops)
+const starGeo = (r, t) => { const sh = new THREE.Shape(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + Math.PI / 2, d = i % 2 ? r * .45 : r; sh[i ? 'lineTo' : 'moveTo'](Math.cos(a) * d, Math.sin(a) * d); } sh.closePath(); const g = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false }); g.translate(0, 0, -t / 2); return g; };
+export { starGeo };
 const pickOf = (s, k, list) => list[Math.floor(s * k) % list.length]; // a steady "random" choice from the prop's size
 const SNOW = '#f6faff', SNOW2 = '#e3eef9', TRUNK = '#8a5a3c', BULBS = ['#ff5a6e', '#ffd65a', '#6ec6f5', '#86e06a', '#ffffff'];
 
 export const SP = {
   // winter
-  snowpine(g, s = 1) { cyl(g, .07 * s, .1 * s, .4 * s, TRUNK, 0, .2 * s);
-    for (let i = 0; i < 3; i++) { const r = (.5 - i * .12) * s, y = (.6 + i * .3) * s; cone(g, r, .55 * s, i % 2 ? '#3f8c5a' : '#367f52', 0, y); cone(g, r * .78, .2 * s, SNOW, 0, y + .2 * s); }
-    if (pickOf(s, 61, [0, 1, 1]) ) for (let k = 0; k < 8; k++) { const a = k * 1.9 + s * 7, y = (.5 + (k % 3) * .3) * s, r = (.44 - (k % 3) * .11) * s; ico(g, .065 * s, BULBS[k % BULBS.length], Math.cos(a) * r, y, Math.sin(a) * r).userData.bulb = true; } // a string of fairy lights (island() turns them into glowing ones)
-    ico(g, .07 * s, '#ffd65a', 0, 1.42 * s, 0); },
-  snowbush(g, s = 1) { ico(g, .3 * s, '#4a9a5a', 0, .2 * s, 0); ico(g, .24 * s, '#5aa86a', .25 * s, .15 * s, .05 * s); ico(g, .2 * s, '#3f8c5a', -.22 * s, .13 * s, .06 * s);
-    const c = ico(g, .26 * s, SNOW, 0, .34 * s, 0); c.scale.y = .45; const d = ico(g, .17 * s, SNOW, .25 * s, .27 * s, .05 * s); d.scale.y = .45;
-    ico(g, .05 * s, '#e5343b', -.2 * s, .28 * s, .2 * s); ico(g, .05 * s, '#e5343b', -.12 * s, .3 * s, .24 * s); }, // holly berries
+  // A Christmas pine: three tiers of branches, each frosted with a snow cap of the same slope (so the snow hugs the
+  // branches instead of floating as flat discs), baubles hanging at the tips of every tier and a star on top.
+  // deco: true/false for a decorated or a plain snowy pine; left out, two pines in three are decorated.
+  snowpine(g, s = 1, deco = pickOf(s, 61, [0, 1, 1])) {
+    cyl(g, .08 * s, .11 * s, .36 * s, TRUNK, 0, .18 * s);
+    const tw = s * 5.3; // each tree turned its own way
+    for (let i = 0; i < 3; i++) {
+      const yb = .3 + i * .32, h = .62 - i * .06, r = .56 - i * .13, top = yb + h, rot = tw + i * .39;
+      cone(g, r * s, h * s, i % 2 ? '#3f8c5a' : '#367f52', 0, (yb + h / 2) * s, 0, 8).rotation.y = rot;
+      const f = .6 * 1.07, sh = h * f; // the snow cap: the tier's own tip, a hair bigger
+      cone(g, r * f * s, sh * s, i % 2 ? SNOW : SNOW2, 0, (top + .012 - sh / 2) * s, 0, 8).rotation.y = rot;
+      if (deco) { const n = [6, 5, 3][i], y = yb + .07, rr = r * (1 - .07 / h) + .025;
+        for (let k = 0; k < n; k++) { const a = rot + (k + .5) / n * 6.283 + i * .5;
+          ico(g, (.062 - i * .006) * s, BULBS[(k + i * 2) % BULBS.length], Math.cos(a) * rr * s, y * s, Math.sin(a) * rr * s).userData.bulb = true; } } // baubles (island() makes them glow)
+    }
+    if (deco) for (const t of [0, Math.PI / 2]) { const st = put(g, G('star', () => starGeo(1, .3)), '#ffd65a', 0, 1.56 * s, 0); st.scale.setScalar(.14 * s); st.rotation.y = t; st.userData.bulb = 'star'; } }, // two crossed stars read as a star from every side
+  // A snowy holly bush: two low-poly mounds, each wearing a snow cap cut from the same sphere, and a sprig of holly on top.
+  snowbush(g, s = 1) {
+    for (const [r, x, y, z, c] of [[.3, 0, .2, 0, '#4a9a5a'], [.21, .28, .12, .1, '#3f8c5a']]) {
+      put(g, G('bush', () => new THREE.SphereGeometry(1, 7, 6)), c, x * s, y * s, z * s).scale.set(r * s, r * .82 * s, r * s);
+      put(g, G('bushcap', () => new THREE.SphereGeometry(1.05, 7, 6, 0, 6.283, 0, Math.PI / 3)), SNOW, x * s, y * s, z * s).scale.set(r * s, r * .82 * s, r * s); } // the top two rows of the same sphere
+    const ty = .2 + .3 * .82 * 1.05; // the top of the big mound's snow
+    for (const [a, l] of [[.5, 1], [2.6, 1]]) { const lf = put(g, G('holly', () => new THREE.OctahedronGeometry(1, 0)), '#2f7a48', Math.cos(a) * .07 * s, (ty - .005) * s, Math.sin(a) * .07 * s); lf.scale.set(.09 * l * s, .02 * s, .045 * s); lf.rotation.y = -a; }
+    for (const [x, z] of [[0, .02], [.045, -.025], [-.04, -.03]]) ico(g, .038 * s, '#e5343b', x * s, (ty + .03) * s, z * s); },
   snowrock(g, s = 1) { const r = ico(g, .3 * s, '#a3a2b4', 0, .15 * s, 0); r.scale.y = .7; ico(g, .18 * s, '#8a8a9e', .28 * s, .08 * s, .1 * s); const c = ico(g, .25 * s, SNOW, 0, .27 * s, 0); c.scale.y = .35; },
   snowman(g, s = 1) { ico(g, .3 * s, SNOW, 0, .26 * s, 0).scale.y = .9; ico(g, .22 * s, SNOW, 0, .66 * s, 0); ico(g, .16 * s, SNOW, 0, .97 * s, 0);
     const n = cone(g, .035 * s, .18 * s, '#ff8a2a', 0, .97 * s, .2 * s, 5); n.rotation.x = Math.PI / 2;
