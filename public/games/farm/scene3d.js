@@ -19,6 +19,7 @@ import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
 import { groundOf, R as RIMS, BASE, finish, pieceModel } from '../../isle3d.js';
 import { worldSky } from './sky3d.js';
+import { skyBow } from '../../weather3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -342,8 +343,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     grp.visible = false; return grp; })();
   const DROPS = 280, rainPos = new Float32Array(DROPS * 6), rainAt = Array.from({ length: DROPS }, (_, i) => [hash(i, 93), hash(i, 94), hash(i, 95), .8 + hash(i, 96) * .5]);
   const rain = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: '#d6ecff', transparent: true, opacity: 0, fog: false, depthWrite: false })); rain.geometry.setAttribute('position', new THREE.BufferAttribute(rainPos, 3)); rain.frustumCulled = false; rain.visible = false;
-  const bow = new THREE.Group(); ['#e8615a', '#ffb547', '#ffe066', '#7fd08a', '#6fb7e8', '#b79cf0'].forEach((c, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(58 - i * 2.2, 1.15, 4, 40, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, fog: false, depthWrite: false })); bow.add(m); });
-  bow.visible = false; // it arches over the far side of the island, wherever the view is turned
+  const bow = skyBow(); // part of the sky, the same rainbow as the hub and the minigames (weather3d.js)
   // a warm pool of light on the grass round anything that glows, once it gets dark
   const GLOWS = { lamp: 1.5, campfire: 1.7, glow: 1.2, lighthouse: 1.6 }; // buildings light their windows instead (WINDOW in models.js)
   const glowGeo = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2); { const p = glowGeo.attributes.position, c = []; for (let i = 0; i < p.count; i++) { const v = Math.pow(Math.max(0, 1 - Math.hypot(p.getX(i), p.getZ(i))), 1) ; c.push(v, v, v); } glowGeo.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); } // bright in the middle, fading to nothing
@@ -375,7 +375,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       rain.geometry.attributes.position.needsUpdate = true;
       if (farm && !starters && Math.random() < dt * 14 * air.rain) { const x = (Math.random() - .5) * N, z = (Math.random() - .5) * N; bit(BIT.ball, BM2.drop, .35, (m, v) => { m.position.set(x, .04, z); m.scale.set(.05 + v * .16, .012, .05 + v * .16); }); }
     }
-    bow.visible = air.bow > .02 && !starters && look.ik !== 4; /* with the Rainbow sky, that one glows brighter instead */ if (bow.visible) { bow.scale.setScalar(N * .46 / 58); bow.position.set(-Math.sin(cam.az) * N * .52, -1.2, -Math.cos(cam.az) * N * .52); bow.rotation.y = cam.az; bow.children.forEach(m => { m.material.opacity = air.bow * .6 * (1 - air.night * .8); }); } // always arching over the far side
+    bow.visible = air.bow > .02 && !starters && look.ik !== 4; /* with the Rainbow sky, that one glows brighter instead */ if (bow.visible) bow.place(camera, air.bow * .7 * (1 - air.night * .65)); // fixed in the sky, carried along as the camera moves
     WINDOW.emissiveIntensity = Math.min(1, air.night * 1.4) * (.92 + Math.sin(T * 2.3) * .05);
     let n = 0; const lit = air.night > .08 && farm && !starters;
     if (lit) for (const e of items.values()) { const r = GLOWS[e.type]; if (!r || n >= 28) continue; _tm.compose(_tv.set(e.g.position.x, .03, e.g.position.z), _tq.identity(), _ts.set(r, 1, r).multiplyScalar(1 + Math.sin(T * 3 + n) * .03)); glows.setMatrixAt(n++, _tm); }
