@@ -7,6 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, pbRowCls, pbRows, frameCls, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { MM, FULL, SET_BONUS, colOf, kindName, startPull, advance, isClear } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -53,7 +54,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.bk'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let pile = null, pilePv = -1, tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, turnAt = 0;
   let held = null, queue = [], flushAt = 0, liftOn = false, peek = null, waiting = 0, lastRub = 0;
@@ -144,15 +145,15 @@ export function mount(app, ctx) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
   }
 
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => (i === S.me ? '<i hidden data-e="1"></i>' : `<div class="bk-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`)).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = S.seats.map((p, i) => (i === S.me ? '<i hidden data-e="1"></i>' : `<div class="bk-tag${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`)).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
   function renderTags() { tagEls.forEach((el, i) => el.classList?.toggle('turn', S.stage === 'play' && S.turn === i)); }
 

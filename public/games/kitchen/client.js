@@ -8,6 +8,7 @@ import { reactHtml } from '../../react.js';
 import { kitchen, RECIPES, CHOPPABLE, SPEED, T, move, target } from './rules.js';
 import { part, dish, tool, sticker } from './icons.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -57,7 +58,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.kr'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), barsEl = root.querySelector('.bars');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl), barsEl = root.querySelector('.bars');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, recvAt = 0, K = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, lastFix = -1, lastSent = 0, sentKey = '', countN = -1;
   let local = null, tgt = null, joy = { on: false, id: null, x: 0, y: 0, ox: 0, oy: 0 }, touch = matchMedia('(pointer: coarse)').matches;
@@ -140,7 +141,7 @@ export function mount(app, ctx) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
     while (barEls.length < info.bars.length) { const d = document.createElement('div'); d.className = 'kr-bar'; d.innerHTML = '<i></i>'; barsEl.append(d); barEls.push(d); }
     barEls.forEach((el, i) => {
@@ -169,8 +170,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="kr-tag${i === S.me ? ' kr-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="kr-tag${i === S.me ? ' kr-you' : ''}${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
     }
   }
   function renderList() {

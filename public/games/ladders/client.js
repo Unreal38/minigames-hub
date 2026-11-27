@@ -6,6 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -51,7 +52,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.sl'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null, busy = false;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, rolled = 0;
 
@@ -85,7 +86,7 @@ export function mount(app, ctx) {
       const want = t.show && i === S.turn && i !== S.me && S.ph === 'play'; // your own token has the 3D arrow instead
       if (!want) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
       el.classList.toggle('now', i === S.turn);
     }
   }
@@ -93,8 +94,8 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="sl-tag${i === S.me ? ' sl-you' : ''}" hidden><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="sl-tag${i === S.me ? ' sl-you' : ''}${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
 
   // A move cue from the 3D scene: sounds and the big pop-up words.

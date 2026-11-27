@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { PTS, TRAP } from './rules.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -55,7 +56,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.td'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   canvas.tileScreen = i => scene?.tileScreen(i) || null; // where a tile is on screen (used by browser tests)
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sent = 0, digN = 0, revealTimer = 0;
@@ -78,7 +79,7 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 100) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 60 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
   }
   function layout() {
@@ -92,8 +93,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="td-tag${i === S.me ? ' mine' : ''}"><div class="plate${tagCls(p)}">${tagFace(p, i === S.me ? L('You', 'Ty') : undefined)}<span class="cnt"></span>${tagBg(p)}</div></div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
     }
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;

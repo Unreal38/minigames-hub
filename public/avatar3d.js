@@ -1199,6 +1199,7 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   ud.head = hp; ud.tilt = seated ? -.26 : 0; hp.rotation.x = ud.tilt; ud.body = g; ud.k = k; ud.faceMat = faceMat; ud.to = to; ud.tc = tc; ud.mat = mat;
   ud.headH = headH * k; ud.headY = g.position.y + (shY + neckL + .03 * H + headH * .48) * k;
   root.userData = ud;
+  LIVE.add(new WeakRef(root));
   return root;
 }
 
@@ -1230,6 +1231,43 @@ export function walkAvatar(g, ph, amt = 1) {
 
 export function disposeAvatar(g) {
   const u = g.userData;
+  u.gone = true;
   g.traverse(m => { if (m.isMesh && (m.userData.baked || m.userData.face)) m.geometry.dispose(); });
   u.to?.dispose(); u.tc?.dispose(); u.faceMat?.dispose(); u.mat?.dispose();
+}
+
+// ---------- where heads are on screen (for the floating name tags, see nametag.js) ----------
+// Every avatar registers itself; each scene's render tells us its camera and canvas (Scene.onAfterRender). headSpots() then gives
+// each visible head's centre and radius in canvas pixels, so tags can sit above heads (or beside them) in every game
+// without each scene working it out. Off-screen picture renders (portraits) are ignored: their canvas is not on the page.
+const LIVE = new Set();
+let view = null, spotsAt = -1, spots = [];
+const _nsB = new THREE.Box3(), _nsS = new THREE.Sphere(), _nsC = new THREE.Vector3(), _nsU = new THREE.Vector3(), _nsK = new THREE.Vector3();
+THREE.Scene.prototype.onAfterRender = function (renderer, scene, camera) {
+  const el = renderer.domElement;
+  if (camera?.isPerspectiveCamera && !renderer.getRenderTarget() && el.isConnected && el.clientWidth > 160) view = { scene, camera, el, t: performance.now() };
+};
+const shown = (o, scene) => { for (; o; o = o.parent) { if (!o.visible) return false; if (o === scene) return true; } return false; };
+export function headSpots() {
+  if (!view || !view.el.isConnected) return [];
+  if (spotsAt === view.t) return spots;
+  spotsAt = view.t; spots = [];
+  const { scene, camera, el } = view, W = el.clientWidth, H = el.clientHeight;
+  for (const ref of LIVE) {
+    const root = ref.deref(), ud = root?.userData;
+    if (!root || ud.gone) { LIVE.delete(ref); continue; }
+    const h = ud.head; if (!h || !shown(root, scene)) continue;
+    if (!ud.hb) { // the head's bounds (hair and hats included), once, in the head's own space
+      h.updateWorldMatrix(true, true); _nsB.setFromObject(h); if (_nsB.isEmpty()) continue;
+      _nsB.getBoundingSphere(_nsS); h.getWorldScale(_nsK);
+      ud.hb = { c: h.worldToLocal(_nsS.center.clone()), r: _nsS.radius / (_nsK.x || 1) };
+    }
+    _nsC.copy(ud.hb.c); h.localToWorld(_nsC); h.getWorldScale(_nsK);
+    const r = ud.hb.r * _nsK.x * .72;
+    _nsU.setFromMatrixColumn(camera.matrixWorld, 1).normalize().multiplyScalar(r).add(_nsC);
+    _nsC.project(camera); _nsU.project(camera);
+    if (_nsC.z > 1 || Math.abs(_nsC.x) > 1.3 || Math.abs(_nsC.y) > 1.3) continue;
+    spots.push({ x: (_nsC.x + 1) / 2 * W, y: (1 - _nsC.y) / 2 * H, r: Math.abs(_nsU.y - _nsC.y) / 2 * H, el });
+  }
+  return spots;
 }

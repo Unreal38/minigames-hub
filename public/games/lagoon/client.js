@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { MAXG, HURRY, RELOAD, SPEED, AMAX, LIM, trace, lock, decode, encode, rowsDue, nextRowIn } from './rules.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -170,7 +171,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + focus;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="bl-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div>`).join('') + `<div class="bl-lab" hidden></div>`;
+    tagsEl.innerHTML = info.map(p => `<div class="bl-tag ntc${tagCls(p)}" hidden>${tagFace(p)}<span class="cnt"></span>${tagBg(p)}</div>`).join('') + `<div class="bl-lab" hidden></div>`;
     tagEls = [...tagsEl.querySelectorAll('.bl-tag')]; labNext = tagsEl.querySelector('.bl-lab');
   }
   function renderTags() {

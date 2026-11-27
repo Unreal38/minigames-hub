@@ -9,6 +9,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { petImg, petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
@@ -86,7 +87,7 @@ export function mount(app, ctx) {
   </div>`;
   const root = app.querySelector('.tt'), $ = id => root.querySelector('#' + id);
   petPics(root.querySelector('.tt-news'));
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), marksEl = root.querySelector('.tt-marks');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl), marksEl = root.querySelector('.tt-marks');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null, stateAt = 0, sent = 0;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, dieTimer = 0, lastTick = -1, mapOn = false, ovKey = '';
   const LOG = []; // newest first
@@ -151,7 +152,7 @@ export function mount(app, ctx) {
       }
       put.push({ x: t.x, y, w, h });
       el.style.zIndex = i === now ? 3 : isMe(i) ? 2 : 1;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
     // labels for the wild pets, stalls and special stones once the camera has pulled back far enough
     const show = info.zoom > .55 && scene;
@@ -197,8 +198,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map(p => `<div class="tt-tag"><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map(p => `<div class="tt-tag"><div class="bub"></div><div class="plate${tagCls(p)}">${tagFace(p)}<span class="cnt"></span>${tagBg(p)}</div></div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
       tagsEl.classList.add('pick');
     }
     const now = performance.now();

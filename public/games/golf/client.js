@@ -3,6 +3,7 @@ import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
 import { L, PL, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
@@ -62,7 +63,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.mg'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, readyAt = 0, power = 0, aiming = false, keys = false, rolling = false, sentAt = 0, turnAt = 0;
 
@@ -98,12 +99,14 @@ export function mount(app, ctx) {
     if (!S) return;
     const r = !!info.busy[S.me];
     if (r !== rolling) { rolling = r; renderPutt(); }
+    const put = [];
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      put.push({ el, x: t.x, y: t.y });
     }
+    placer.place(put);
   }
 
   // sounds and pop-ups in time with the balls on screen
@@ -143,8 +146,8 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => (i === S.me ? '<i hidden data-e="1"></i>' : `<div class="mg-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`)).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = S.seats.map((p, i) => (i === S.me ? '<i hidden data-e="1"></i>' : `<div class="mg-tag${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`)).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
 
   function renderTags() { tagEls.forEach((el, i) => el.classList?.toggle('turn', S.stage === 'play' && S.turn === i && turnOpen())); }

@@ -9,6 +9,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { readPlay, boardOf, value, alphabet, WILD, FULL_BONUS, CHAL_BONUS } from './rules.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { uiz } from '../../uiz.js';
 import { reefLook, paintReefMotif } from '../../pieceskins.js';
 // your own tile set (Wardrobe kind rt) on the HUD tiles: colours plus the little corner picture
@@ -72,7 +73,7 @@ export function mount(app, ctx) {
   </div>`;
   const root = app.querySelector('.rf'), $ = id => root.querySelector('#' + id);
   root._rf = { state: () => S, px: i => live?.px?.(i), zoomed: () => !!scene?.zoomed(), hand: () => ({ draft: draft.length, sel, order: order.join('') }) }; // for the browser test: what the page shows, and where a square is on the screen
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, chalEnds = 0, chalStart = 0, chalKey = '', lastTick = -1, sent = 0;
   // your tray as you have arranged it, the tiles you have put on the board, the tile you picked up, swap marks
@@ -100,7 +101,7 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 100) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 120 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
     const z = $('rf-zoom'), want = !scene?.zoomed();
     if (z.hidden !== want) z.hidden = want;
@@ -123,8 +124,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="rf-tag"${i === S.me ? ' hidden' : ''}><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div></div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="rf-tag"${i === S.me ? ' hidden' : ''}><div class="plate${tagCls(p)}">${tagFace(p)}${tagBg(p)}</div></div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
     }
     S.seats.forEach((p, i) => tagEls[i]?.classList.toggle('now', i === S.turn && S.stage === 'play'));
     tagsEl.classList.toggle('pick', !myTurn()); // tags open profile cards while you are not placing tiles under them

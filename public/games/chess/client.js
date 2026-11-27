@@ -6,6 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { fromBoard, legal, mFrom, mTo, mPromo, mFlag, pieceName } from './rules.js';
 import { pieceSvg } from './glyphs.js';
 import { uiz } from '../../uiz.js';
@@ -58,7 +59,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.ch'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, recvAt = 0, lastTick = -1, sent = 0;
   let sel = -1, targets = [], cursor = -1, pend = null, moves = [], movesFor = '', armed = 0, movesShown = -1;
@@ -90,7 +91,7 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 196 : 96) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
   }
   function layout() { if (scene) scene.setHud(Math.max($('ch-dock').offsetHeight + 30, 70)); }
@@ -107,8 +108,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me + '/' + S.white + '/' + !!S.clock;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="ch-tag"><div class="bub"></div><div class="plate">${pieceSvg(6, sideOf(i))}<b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}${i === S.me ? `<span class="you">${L('you', 'ty')}</span>` : ''}${S.clock ? '<span class="cnt clk"></span>' : ''}</div><div class="capt"></div></div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="ch-tag"><div class="bub"></div><div class="plate${tagCls(p)}">${pieceSvg(6, sideOf(i))}${tagFace(p)}${i === S.me ? `<span class="you">${L('you', 'ty')}</span>` : ''}${S.clock ? '<span class="cnt clk"></span>' : ''}${tagBg(p)}</div><div class="capt"></div></div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
     }
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;

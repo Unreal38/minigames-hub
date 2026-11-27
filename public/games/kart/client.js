@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTrack, newKart, stepKart, bump, autoDrive, locate, progOf, TRACKS, driftFlags } from './track.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -68,7 +69,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.kr'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, info = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, T = null, mk = null, driving = false;
   let recvAt = 0, sentAt = 0, tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, lastPlace = 0, lastCount = 99, mapKey = '', mapDots = [], lastItem = null, rollTick = 0, steerV = 0;
   const keys = new Set(), pads = new Set();
@@ -154,7 +155,7 @@ export function mount(app, ctx) {
       const t = fr.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%) scale(${Math.max(.6, Math.min(1, 26 / t.d)).toFixed(2)})`;
+      placer.add(el, t.x, t.y, Math.max(.6, Math.min(1, 26 / t.d)));
     }
     // minimap dots
     const live = scene.live();
@@ -165,8 +166,8 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="kr-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = info.map(p => `<div class="kr-tag${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
 
   function buildMap() {

@@ -7,6 +7,7 @@ import { avatarHtml, OPT, AV_KEYS, AV_COLOR_KEYS, needsOwning, packOf, priceOf, 
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, COS, EMOTE_ICO, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { themeName, twistName, FREE_KEYS, POSES, poseName, TOP_COLS, WRITE_MAX, cleanTheme, EMOTE_POSE } from './rules.js';
 import { uiz } from '../../uiz.js';
 
@@ -69,7 +70,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.rw'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0;
   let lastPanel = '', resultsTimer = 0, bigTimer = 0, sendTimer = 0, deadline = 0, stageKey = '', tab = 'top', look = null, myTc = '', lookKey = '', gridKey = '', picJob = 0, sentKey = '', myPose = 0;
 
@@ -98,9 +99,9 @@ export function mount(app, ctx) {
       if (!el) { el = document.createElement('div'); el.className = 'rw-tag'; tagsEl.append(el); tagEls.set(key, el); }
       const p = S.seats[t.i], name = t.kind === 'walk' && t.i === -2 ? '???' : p ? (t.i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)) : '';
       const vote = t.kind === 'judge' && S.stage === 'walk' && t.i === S.me && S.myVote ? `<em>${'★'.repeat(S.myVote)}</em>` : '';
-      setHtml(el, t.kind === 'pod' ? `<div class="plate gold"><b>${name}</b></div>` : `<div class="plate${t.kind === 'walk' ? ' now' : ''}">${p ? `<i class="dot" style="background:${esc(p.color)}"></i>` : ''}<b>${name}</b>${vote}</div>`);
+      setHtml(el, t.kind === 'pod' ? `<div class="plate gold"><b>${name}</b></div>` : p ? `<div class="plate${t.kind === 'walk' ? ' now' : ''}${tagCls(p)}">${tagFace(p, name)}${vote}${tagBg(p)}</div>` : `<div class="plate${t.kind === 'walk' ? ' now' : ''}"><b>${name}</b>${vote}</div>`);
       el.hidden = !t.on || (t.kind === 'me');
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 140 : 100) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+      if (!el.hidden) placer.add(el, t.x, t.y);
     }
     for (const [k, el] of tagEls) if (!seen.has(k)) { el.remove(); tagEls.delete(k); }
   }

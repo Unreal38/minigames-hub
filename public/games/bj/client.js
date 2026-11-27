@@ -95,7 +95,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = S.seats.map(p => p.name + p.color + p.av.join('')).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tag${i === S.me ? ' mine' : ''}" data-i="${i}"><div class="bub"></div><div class="plate"><span class="tav">${avatarHtml(p.color, p.av, 30)}</span><div class="tx"><b></b><span class="stk"></span></div></div><div class="shown"></div></div>`).join('');
+    tagsEl.innerHTML = S.seats.map((p, i) => `<div class="tag${i === S.me ? ' mine' : ''}" data-i="${i}"><div class="bub"></div><div class="plate${pbRowCls(p.fl)}"><span class="tav">${avatarHtml(p.color, p.av, 30, frameCls(p.fl))}</span><div class="tx"><b></b><span class="stk"></span></div>${rowBg(p.fl)}</div><div class="shown"></div></div>`).join('');
     tagEls = [...tagsEl.children];
   }
   // What a seat's speech bubble says: its bet, its totals, then what the round paid.
