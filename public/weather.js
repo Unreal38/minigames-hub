@@ -33,6 +33,21 @@ export const WX_ICON = {
 export const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
 // Night on the player's own clock (the same hours as the Pet Farm sky): a sunny spell is a clear night then.
 export const isNight = h => h < 4.6 || h >= 21;
+// The sky between day and night (Kuba, 2026-11-26): instead of jumping at 21:00 and 4:36 it passes through a dusk and a
+// dawn. skyPhase(hour) gives n, how far into night it is (0 day .. 1 night), g, how strong the warm dawn or dusk glow
+// is (0 .. 1), and dawn (morning or evening colours). Full night still starts at 21:00 and ends at 4:36, like isNight.
+//   hour, night, glow
+const SKY_PHASES = [[0, 1, 0], [4.6, 1, 0], [5.3, .55, .6], [6.1, .12, 1], [7.2, 0, 0], [18.8, 0, 0], [19.8, .12, 1], [20.5, .6, .6], [21, 1, 0], [24, 1, 0]];
+export function skyPhase(h) {
+  h = ((h % 24) + 24) % 24; let i = 0; while (i < SKY_PHASES.length - 2 && SKY_PHASES[i + 1][0] <= h) i++;
+  const A = SKY_PHASES[i], B = SKY_PHASES[i + 1], t = Math.min(1, Math.max(0, (h - A[0]) / (B[0] - A[0]))), u = t * t * (3 - 2 * t);
+  return { n: A[1] + (B[1] - A[1]) * u, g: A[2] + (B[2] - A[2]) * u, dawn: h < 12 };
+}
+// The glow's colours: the sky overhead, the horizon, the light from the sky, the low sun, and the clouds it lights up.
+export const GLOW = {
+  dawn: { top: '#7fb2ee', low: '#ffd0c0', hemi: '#ffe6d6', sun: '#ffc392', cloud: '#ffd8e2' },
+  dusk: { top: '#6f8ee0', low: '#ffb48a', hemi: '#ffd2b8', sun: '#ffa468', cloud: '#ffc2a8' },
+};
 
 // How each kind looks in the hub and the minigames (weather3d.js, the hub sky in style.css). Pet Farm keeps its own,
 // stronger mix in games/farm/scene3d.js; the games stay brighter so boards and cards read as well as on a sunny day.

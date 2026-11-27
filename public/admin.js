@@ -3,7 +3,7 @@
 // the reports and sanctions and checks that only ADMINS accounts see or change anything.
 import { L, LOCALE } from './i18n.js';
 import { mountNotices } from './notice.js';
-import { PEEKS, peekPick, setPeek, WX_PEEKS, wxPeekPick, setWxPeek } from './seasonpeek.js';
+import { PEEKS, peekPick, setPeek, WX_PEEKS, wxPeekPick, setWxPeek, SKY_PEEKS, skyPeekPick, setSkyPeek } from './seasonpeek.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LSget = k => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -204,12 +204,15 @@ function paintPlayers(body) {
 }
 function paintLooks(body) {
   const SEA = { auto: L('auto (today’s)', 'automatyczna (dzisiejsza)'), winter: L('winter', 'zima'), spring: L('spring', 'wiosna'), summer: L('summer', 'lato'), autumn: L('autumn', 'jesień'), halloween: 'Halloween' };
+  const SKY = { auto: L('auto (your clock)', 'automatyczna (twój zegar)'), dawn: L('dawn', 'świt'), day: L('midday', 'południe'), dusk: L('dusk', 'zmierzch'), night: L('night', 'noc') };
   const WX = { auto: L('auto (Pet Farm’s)', 'automatyczna (jak na Farmie)'), sunny: L('sunny', 'słonecznie'), cloudy: L('cloudy', 'pochmurno'), rain: L('rain', 'deszcz'), wind: L('windy', 'wietrznie'), rainbow: L('rainbow', 'tęcza') };
   body.innerHTML = `<p class="rknote">${L('Only you see these, on this computer. Players keep the real season and weather.', 'Widzisz to tylko ty, na tym komputerze. Gracze mają prawdziwą porę roku i pogodę.')}</p>
     <section class="ntsec"><h3>❄️ ${L('Island season', 'Pora roku wysp')}</h3><p class="nthint">${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}</p>
       <div class="pills" role="group">${['auto', ...PEEKS].map(k => `<button type="button" data-sea="${k}" aria-pressed="${peekPick() === k}">${esc(SEA[k] || k)}</button>`).join('')}</div></section>
     <section class="ntsec"><h3>🌦️ ${L('Weather look', 'Wygląd pogody')}</h3><p class="nthint">${L('The hub sky and the games. Pet Farm keeps the real weather.', 'Niebo na stronie głównej i w grach. Farma zwierzaków ma prawdziwą pogodę.')}</p>
-      <div class="pills" role="group">${['auto', ...WX_PEEKS].map(k => `<button type="button" data-wx="${k}" aria-pressed="${wxPeekPick() === k}">${esc(WX[k] || k)}</button>`).join('')}</div></section>`;
+      <div class="pills" role="group">${['auto', ...WX_PEEKS].map(k => `<button type="button" data-wx="${k}" aria-pressed="${wxPeekPick() === k}">${esc(WX[k] || k)}</button>`).join('')}</div></section>
+    <section class="ntsec"><h3>🌅 ${L('Time of day', 'Pora dnia')}</h3><p class="nthint">${L('The hub sky and the games, at another hour. Pet Farm keeps its own clock.', 'Niebo na stronie głównej i w grach o innej porze. Farma zwierzaków ma swój zegar.')}</p>
+      <div class="pills" role="group">${['auto', ...Object.keys(SKY_PEEKS)].map(k => `<button type="button" data-sky="${k}" aria-pressed="${skyPeekPick() === k}">${esc(SKY[k] || k)}</button>`).join('')}</div></section>`;
 }
 function paint() {
   if (!panel) return;
@@ -224,6 +227,7 @@ function onPanelClick(e) {
   if (b.dataset.dismiss) { d.sfx.click(); return d.send({ t: 'mod', op: 'act', pt: b.dataset.dismiss, k: 'dismiss' }); }
   if (b.dataset.closed !== undefined) { showClosed = !showClosed; return paint(); }
   if (b.dataset.sea) { setPeek(b.dataset.sea); d.onPeek('season'); return paintLooks(panel.el.querySelector('.admbody')); }
+  if (b.dataset.sky) { setSkyPeek(b.dataset.sky); d.onPeek('sky'); return paintLooks(panel.el.querySelector('.admbody')); }
   if (b.dataset.wx) { setWxPeek(b.dataset.wx); d.onPeek('weather'); return paintLooks(panel.el.querySelector('.admbody')); }
 }
 

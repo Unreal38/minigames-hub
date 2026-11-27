@@ -8,11 +8,13 @@ import { birds, petals, createFx, disposeToon, CONF } from './scenery3d.js';
 import { buildIsle, buildSky, pieceModel } from './isle3d.js';
 import { piecesOf } from './cosmetics.js';
 import { frameLoop, autoResolution, AA } from './frames.js';
-import { WX_LOOK } from './weather.js';
+import { WX_LOOK, GLOW } from './weather.js';
 import { wxShown, onWeather, weatherLayer } from './weather3d.js';
 
-let H = null, P = null, night = false; // H: your own isle on the hub; P: the isle in another player's profile card
-export function setHeroNight(on) { night = on; H?.setNight(on); P?.setNight(on); }
+let H = null, P = null, night = { n: 0, g: 0, dawn: false }; // H: your own isle on the hub; P: the isle in another player's profile card
+// The light follows the clock's sky (weather.js skyPhase: n night, g dawn or dusk glow), set from app.js every 30 s.
+export function setHeroSky(ph) { night = ph; H?.setNight(ph); P?.setNight(ph); }
+export const setHeroNight = on => setHeroSky({ n: on ? 1 : 0, g: 0, dawn: false });
 
 function build() {
   const canvas = document.createElement('canvas'); canvas.className = 'hero3d'; canvas.setAttribute('aria-hidden', 'true');
@@ -104,11 +106,16 @@ function build() {
     renderer.render(scene, camera);
   };
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
-  function setNight(want) { // moonlight: cooler and dimmer, lamps glowing. A night or day sky decides for itself; a sunset warms the light.
-    const mood = sky?.mood || '', on = mood === 'night' || (want && mood !== 'day' && mood !== 'sunset'), warm = mood === 'sunset';
-    const W = WX_LOOK[wxShown()] || WX_LOOK.sunny; // under cloud the sun is softer
-    hemi.color.set(on ? '#9aa6ff' : warm ? '#ffd9c0' : '#ffffff'); hemi.groundColor.set(on ? '#5a3a6a' : warm ? '#ff9a8a' : '#ffe9c9'); hemi.intensity = (on ? 1.35 : warm ? 1.7 : 2) * W.hemi;
-    key.color.set(on ? '#c8d0ff' : warm ? '#ffc08a' : '#ffffff'); key.intensity = (on ? .9 : 1.5) * W.sun;
+  const cD = new THREE.Color(), cG = new THREE.Color(), cN = new THREE.Color();
+  const blend = (o, day, glow, nite, g, n) => o.copy(cD.set(day)).lerp(cG.set(glow), g).lerp(cN.set(nite), n);
+  function setNight(ph) { // moonlight: cooler and dimmer, lamps glowing. A night or day sky decides for itself; a sunset warms the light.
+    if (typeof ph === 'boolean') ph = { n: ph ? 1 : 0, g: 0, dawn: false };
+    const mood = sky?.mood || '', warm = mood === 'sunset', W = WX_LOOK[wxShown()] || WX_LOOK.sunny; // under cloud the sun is softer
+    // a bought sky keeps its own hour; the plain one passes through dusk and dawn with the clock
+    const n = mood === 'night' ? 1 : mood === 'day' || warm ? 0 : ph.n, g = mood ? 0 : ph.g * (1 - (1 - W.sky) * .7), G = GLOW[ph.dawn ? 'dawn' : 'dusk'], on = n >= .5;
+    blend(hemi.color, warm ? '#ffd9c0' : '#ffffff', G.hemi, '#9aa6ff', g * .8, n); blend(hemi.groundColor, warm ? '#ff9a8a' : '#ffe9c9', '#ffb8a0', '#5a3a6a', g * .7, n);
+    hemi.intensity = ((warm ? 1.7 : 2) * (1 - .1 * g) * (1 - n) + 1.35 * n) * W.hemi;
+    blend(key.color, warm ? '#ffc08a' : '#ffffff', G.sun, '#c8d0ff', g * .85, n); key.intensity = (1.5 * (1 - .12 * g) * (1 - n) + .9 * n) * W.sun;
     wx.set(wxShown(), on);
     isle?.root.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
   }
