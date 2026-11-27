@@ -9,7 +9,7 @@
 // swaps to the see-through one); avatars and pets get soft blob shadows, no shadow maps.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { skyDome, clouds, nightScene, birds, petals, createFx, toonMat, toonify, mergeStatic, flat, put, shell, PROPS, hash, seasonLookNow, STAR, DOT, HEART } from '../../scenery3d.js';
+import { skyDome, clouds, nightScene, birds, petals, createFx, toonMat, toonify, mergeStatic, flat, put, shell, PROPS, hash, seasonLookNow, lightBulbs, STAR, DOT, HEART } from '../../scenery3d.js';
 import { diceKit, SIDE } from '../../dice3d.js';
 import { lookOf, SP } from '../../season3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
@@ -158,7 +158,7 @@ export function createScene(canvas, { onFrame } = {}) {
   if (snowy) for (const [x, z] of [[-2.5, 6.5], [5.5, 4], [-5, -8.5]]) if (clearOf(x, z, 1.2)) { const g = new THREE.Group(); SP.snowman(g, 1.1); g.position.set(x, 0, z); g.rotation.y = -.4; world.add(g); }
   for (let i = 0; i < 14; i++) { const x = -20 + hash(i, 41) * 13, z = -9 + hash(i, 42) * 18; if (!clearOf(x, z, 1)) continue; const g = new THREE.Group(); (snowy ? SP.snowrock : PROPS.shroom)(g, 1.3); g.position.set(x, 0, z); world.add(g); }
   for (let i = 0; i < 10; i++) { const x = ISLE.x + (hash(i, 51) - .5) * 40, z = ISLE.z + (hash(i, 52) - .5) * 28; if (!clearOf(x, z, 1.4) || !notStream(x, z)) continue; const g = new THREE.Group(); (snowy ? SP.snowbush : PROPS.bush)(g, 1.4); g.position.set(x, 0, z); world.add(g); }
-  bake(world);
+  lightBulbs(world); bake(world);
   const ground = mergeStatic(world, .05); scene.add(ground);
 
   // ---------- trees: instanced, a solid set and a see-through set ----------

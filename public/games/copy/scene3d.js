@@ -7,7 +7,7 @@
 // Cost rules (the Plaza's): standing scenery merged (mergeStatic), its shadows drawn once, people get blobs.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, walkAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, createFx, STAR, HEART, DOT, hash, mergeStatic, PROPS as RIM } from '../../scenery3d.js';
+import { island, skyDome, clouds, nightScene, birds, flat, put, toonify, createFx, STAR, HEART, DOT, hash, mergeStatic, lightBulbs, PROPS as RIM } from '../../scenery3d.js';
 import { SP, lookOf } from '../../season3d.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { itemModel } from '../farm/models.js';
@@ -104,7 +104,7 @@ function boat(g) {
   for (const z of [-.72, .72]) box(g, 3.1, .1, .06, '#ffffff', 0, .64, z);
 }
 function bigTree(g, winter) {
-  if (winter) { SP.snowpine(g, 3.6); ico(g, .34, '#ffd34d', 0, 5.4, 0); for (let i = 0; i < 16; i++) { const a = i * 2.4, y = 1.6 + (i % 5) * .7, r = 1.5 - (i % 5) * .23; ico(g, .14, ['#ff5a6e', '#5aa9ff', '#ffd23e', '#ffffff'][i % 4], Math.cos(a) * r, y, Math.sin(a) * r); } }
+  if (winter) SP.snowpine(g, 3.6, true); // baubles and the star come with it
   else RIM.tree(g, 3.8);
 }
 
@@ -166,7 +166,7 @@ function buildIsland(scene, season) {
     g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     stat.add(g);
   }
-  bake(stat);
+  lightBulbs(stat); bake(stat);
   scene.add(mergeStatic(stat, .05));
   // the barn roof: its own mesh, so it can go see-through while you are inside
   const roof = new THREE.Group();

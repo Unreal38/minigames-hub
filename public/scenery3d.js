@@ -303,14 +303,16 @@ export function mergeStatic(root, ink) {
   return toonify(out, ink);
 }
 
-// Fairy-light bulbs (userData.bulb, e.g. on the winter pines) become one unlit instanced mesh, so they glow at night too.
-function lightBulbs(root) {
-  const list = []; root.updateWorldMatrix(true, true); root.traverse(o => { if (o.userData.bulb) list.push(o); });
-  if (!list.length) return;
+// Fairy-light bulbs and baubles (userData.bulb, e.g. on the winter pines) become one unlit instanced mesh, so they glow
+// at night too; tree-top stars (userData.bulb === 'star') get one of their own. Scenes that build their own ground
+// from season props (Copycat Isle, Friendship Trail) call this before bake().
+export function lightBulbs(root) {
+  const balls = [], stars = []; root.updateWorldMatrix(true, true); root.traverse(o => { if (o.userData.bulb) (o.userData.bulb === 'star' ? stars : balls).push(o); });
   const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), m = new THREE.Matrix4(), v = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
-  const im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: '#ffffff' }), list.length);
-  list.forEach((o, i) => { m.multiplyMatrices(inv, o.matrixWorld).decompose(v, q, s); const r = o.geometry.parameters.radius; im.setMatrixAt(i, m.compose(v, q, s.multiplyScalar(r))); im.setColorAt(i, o.material.color); o.parent.remove(o); o.geometry.dispose(); });
-  im.userData.noInk = true; im.castShadow = false; root.add(im);
+  for (const [list, geo] of [[balls, () => new THREE.IcosahedronGeometry(1, 0)], [stars, () => stars[0].geometry.clone()]]) { if (!list.length) continue;
+    const star = list === stars, im = new THREE.InstancedMesh(geo(), new THREE.MeshBasicMaterial({ color: '#ffffff' }), list.length);
+    list.forEach((o, i) => { m.multiplyMatrices(inv, o.matrixWorld).decompose(v, q, s); if (!star) s.multiplyScalar(o.geometry.parameters.radius); im.setMatrixAt(i, m.compose(v, q, s)); im.setColorAt(i, o.material.color); o.parent.remove(o); if (!star) o.geometry.dispose(); });
+    im.userData.noInk = true; im.castShadow = false; root.add(im); }
 }
 
 // ---------- life in the air ----------
