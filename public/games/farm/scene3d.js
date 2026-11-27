@@ -1,6 +1,6 @@
 // Pet Farm 3D scene: a low-poly island floating in the sky, with a tile grid, the player's buildings and their wandering pets.
 // Purely visual plus picking: it never decides rules. The client tells it what the farm looks like.
-//   createScene(canvas, { onPick, onGhost }) ->
+//   createScene(canvas, { onPick, onGhost, onGhostAt }) ->   onGhostAt(x, y): each frame, where on the canvas the top of the piece being placed is
 //     setFarm(farm)            show this farm (null = empty island)
 //     setStarters(sp | null)   '' or a species: line up the three starters (that one hops); null: hide them
 //     setEdit(on)              grid lines on or off
@@ -33,7 +33,7 @@ function rough(geo, amt, keepY = Infinity) {
   geo.computeVertexNormals(); return geo;
 }
 
-export function createScene(canvas, { onPick, onGhost }) {
+export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: AA, powerPreference: 'high-performance' });
   const res = autoResolution(renderer, 1.5);
   renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1084,7 +1084,8 @@ export function createScene(canvas, { onPick, onGhost }) {
   }
 
   // ---------- the piece being placed ----------
-  let ghost = null; // { type, id, x, y, r, ok, g, pad }
+  let ghost = null; // { type, id, x, y, r, ok, g, pad, top }
+  const ghostAt = new THREE.Vector3();
   function gridVis() { if (gridLines) gridLines.visible = edit; if (fineLines) fineLines.visible = edit && !!ghost && stepOf(ghost.type) < 1; }
   const padMat = new THREE.MeshBasicMaterial({ color: '#7dff8a', transparent: true, opacity: .5, depthWrite: false });
   function ghostCheck() {
@@ -1093,6 +1094,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     const [w, h] = footprint(ghost.type, ghost.r);
     if (LINKS[ghost.type]) { const link = fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
     placeModel(ghost.g, ghost.type, ghost.x, ghost.y, ghost.r); ghost.g.position.y = .12;
+    ghost.top = new THREE.Box3().setFromObject(ghost.g).max.y; // the floating buttons sit just above it
     ghost.pad.scale.set(w, h, 1); ghost.pad.position.set(wx(ghost.x, w), .03, wz(ghost.y, h));
     padMat.color.set(ghost.ok ? '#7dff8a' : '#ff6b5a');
     onGhost?.(ghostInfo());
@@ -1334,6 +1336,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     if (skyLook) skyLook.tick(T, air.night, camera);
     pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
+    if (ghost && onGhostAt) { ghostAt.set(ghost.g.position.x, (ghost.top || 1) + .25, ghost.g.position.z).project(camera); onGhostAt((ghostAt.x + 1) / 2 * W, (1 - ghostAt.y) / 2 * H, ghostAt.z < 1); }
     renderer.render(scene, camera); afterDraw();
   }
   buildLand();

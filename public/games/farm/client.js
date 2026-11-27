@@ -29,6 +29,9 @@ const I = {
   door: svg('<path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/>'),
   turn: svg('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>'),
   menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  ok: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  no: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  bin: svg('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/>'),
 };
 // little pictures for the one-line summary of parties out and eggs in the Nest
 const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 21V4" stroke="#5a3a2e" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#ff8f6b" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/></svg>';
@@ -103,6 +106,7 @@ export function mount(app, ctx) {
       <div class="pfcard" id="pf-card" hidden></div>
       <div class="bt" id="pf-bt" hidden></div>
       <div class="bfl" id="pf-fl"></div>
+      <div class="pfgfloat" id="pf-gfloat" hidden></div>
       <div class="dock"><div class="ghostbar" id="pf-ghost" hidden></div><div class="build" id="pf-build" hidden></div></div>
     </div>
     <div class="gate" id="pf-panel" hidden></div>
@@ -126,7 +130,7 @@ export function mount(app, ctx) {
 
   import('./scene3d.js').then(m => {
     if (destroyed) return;
-    scene = m.createScene(canvas, { onPick, onGhost: paintGhost });
+    scene = m.createScene(canvas, { onPick, onGhost: paintGhost, onGhostAt: placeFloat });
     sync();
   }).catch(err => { console.warn('3D unavailable', err); $('pf-load').hidden = true; root.classList.add('flat'); });
   // The loading note stays until the farm itself has been drawn: its shaders are built first (a few at a time, so the page
@@ -1117,7 +1121,7 @@ export function mount(app, ctx) {
   function paintGhost(g) {
     const el = $('pf-ghost');
     el.hidden = !g;
-    if (!g) { paintBuild(); return; }
+    if (!g) { $('pf-gfloat').hidden = true; floatAt = ''; paintBuild(); return; }
     const it = ITEMS[g.type];
     el.innerHTML = `<b>${it.name}</b><span class="hint">${L(`${g.ok ? 'Drag it, or tap a tile.' : 'It does not fit there.'}`, `${g.ok ? 'Przeciągnij albo dotknij kratki.' : 'Tu się nie zmieści.'}`)}</span>
       <button type="button" class="btn sm w" data-a="rot" aria-label="${L('Turn', 'Obróć')}">${I.turn}${L('Turn', 'Obróć')}</button>
@@ -1125,6 +1129,22 @@ export function mount(app, ctx) {
       <button type="button" class="btn sm ghost" data-a="cancel">${L(`Cancel`, `Anuluj`)}</button>
       <button type="button" class="btn sm m" data-a="ok" ${g.ok ? '' : 'disabled'}>${L(`${g.id ? 'Move here' : 'Place'}`, `${g.id ? 'Przenieś tutaj' : 'Postaw'}`)}</button>`;
     el.classList.toggle('bad', !g.ok);
+    // the same buttons floating over the piece itself, so it can be placed, turned or sold without going to the bar below
+    const fl = $('pf-gfloat'), sell = g.id && !it.fixed;
+    fl.innerHTML = `<button type="button" class="round" data-a="rot" title="${L('Turn (R)', 'Obróć (R)')}" aria-label="${L('Turn', 'Obróć')}">${I.turn}</button>
+      ${sell ? `<button type="button" class="round sell" data-a="away" title="${L(`Sell (${costText(it.cost)} back)`, `Sprzedaj (zwrot: ${costText(it.cost)})`)}" aria-label="${L('Sell', 'Sprzedaj')}">${I.bin}</button>` : ''}
+      <button type="button" class="round" data-a="cancel" title="${L('Cancel (Esc)', 'Anuluj (Esc)')}" aria-label="${L('Cancel', 'Anuluj')}">${I.no}</button>
+      <button type="button" class="round okb" data-a="ok" ${g.ok ? '' : 'disabled'} title="${L(g.id ? 'Move here (Enter)' : 'Place (Enter)', g.id ? 'Przenieś tutaj (Enter)' : 'Postaw (Enter)')}" aria-label="${L(g.id ? 'Move here' : 'Place', g.id ? 'Przenieś tutaj' : 'Postaw')}">${I.ok}</button>`;
+  }
+  let floatAt = '';
+  function placeFloat(x, y, front) {
+    const fl = $('pf-gfloat'); if (!fl) return;
+    const show = !!scene?.ghost() && front; if (fl.hidden === show) fl.hidden = !show;
+    if (!show) return;
+    const z = uiz(), W = root.clientWidth / z, H = root.clientHeight / z, w = fl.offsetWidth || 180;
+    const left = Math.round(Math.max(w / 2 + 8, Math.min(W - w / 2 - 8, x / z))), top = Math.round(Math.max(56, Math.min(H - 120, y / z)));
+    const k = left + ',' + top; if (k === floatAt) return; floatAt = k;
+    fl.style.transform = `translate(${left}px, ${top}px) translate(-50%, -100%)`;
   }
   function paintCard() {
     const el = $('pf-card');
