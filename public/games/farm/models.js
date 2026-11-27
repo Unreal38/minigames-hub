@@ -1320,8 +1320,14 @@ function pathTile(g, link, kind) {
   const x0 = -e(2), x1 = e(0), z0 = -e(3), z1 = e(1);
   const bed = m => { m.userData.noInk = true; return m; };
   bed(box(g, x1 - x0, .02, z1 - z0, L.bed, (x0 + x1) / 2, 0, (z0 + z1) / 2));
-  if (kind === 'path') { const r = .12 + rnd() * .03, m = cyl(g, r, r * 1.05, .05, 6, pick(), j(.06), .01, j(.06)); m.rotation.y = rnd() * 6; m.scale.y = 1 + rnd() * .4;
-    if (rnd() < .6) cyl(g, .045, .05, .04, 6, pick(), (rnd() < .5 ? -1 : 1) * .16, .01, (rnd() < .5 ? -1 : 1) * .16).rotation.y = rnd() * 6; }
+  // stones: a layout picked by the seed (one big, two, three small, or a big and a chip), pushed off centre; a stone may lean
+  // over a joined side onto its neighbour, so a wide area reads as a scatter, not a grid
+  const lean = (v, lo, hi) => Math.max(lo, Math.min(hi, v)), lx0 = nb & 4 ? -.3 : -.12, lx1 = nb & 1 ? .3 : .12, lz0 = nb & 8 ? -.3 : -.12, lz1 = nb & 2 ? .3 : .12;
+  const stones = n => { const lay = [[[.13, 0, 0]], [[.1, -.08, -.06], [.08, .1, .08]], [[.07, -.11, -.1], [.08, .1, -.06], [.06, -.02, .12]], [[.12, -.04, .03], [.045, .15, -.14]], []][n];
+    const ox = j(.24), oz = j(.24), sx = rnd() < .5 ? -1 : 1, sz = rnd() < .5 ? -1 : 1;
+    return lay.map(([r, x, z]) => [r * (.8 + rnd() * .45), lean(ox + x * sx + j(.05), lx0, lx1), lean(oz + z * sz + j(.05), lz0, lz1)]); };
+  const pickN = full => { const q = rnd(); return full && q < .18 ? 4 : q < .38 ? 0 : q < .62 ? 1 : q < .82 ? 2 : 3; }; // a piece in the middle of a patch may be bare
+  if (kind === 'path') for (const [r, x, z] of stones(pickN(nb === 15) % 4)) { const k = 1.4, m = cyl(g, r * k, r * k * 1.05, .04 + rnd() * .02, 6, pick(), x, .01, z); m.rotation.y = rnd() * 6; m.scale.z = .8 + rnd() * .35; }
   else if (kind === 'gravel') for (let i = 0; i < 5; i++) ico(g, .03 + rnd() * .025, pick(), j(.36), .03, j(.36)).scale.y = .6;
   else if (kind === 'plank') { const across = nb & 10 && !(nb & 5); // a walk running along z gets boards lying across it
     for (const a0 of [-.12, .12]) { const a = a0 + j(.02), len = (across ? x1 - x0 : z1 - z0) - .03 - rnd() * .03, mid = across ? (x0 + x1) / 2 : (z0 + z1) / 2, jig = j(.03), hy = .04 + rnd() * .015;
@@ -1335,8 +1341,8 @@ function pathTile(g, link, kind) {
     { const r = .06 + rnd() * .05; bed(cyl(g, r, r, .022, 7, '#8f6a45', j(.2), 0, j(.2))).scale.z = .6 + rnd() * .6; }
     for (let i = 0, n = 1 + (rnd() * 2 | 0); i < n; i++) ico(g, .022 + rnd() * .018, pick(), j(.3), .02, j(.3)).scale.y = .6;
   }
-  else if (kind === 'moss') { const r = .1 + rnd() * .04, m = cyl(g, r, r, .06, 8, pick(), j(.08), .01, j(.08)); m.scale.z = .85 + rnd() * .3;
-    ico(g, .03, '#86cc5a', j(.25), .03, j(.25)); if (rnd() < .5) ico(g, .025, '#86cc5a', j(.3), .03, j(.3)); }
+  else if (kind === 'moss') { for (const [r, x, z] of stones(pickN(nb === 15))) { const m = cyl(g, r, r, .05 + rnd() * .02, 8, pick(), x, .01, z); m.scale.z = .75 + rnd() * .4; m.rotation.y = rnd() * 6; }
+    for (let i = 0, n = rnd() * 3 | 0; i < n; i++) ico(g, .022 + rnd() * .015, rnd() < .5 ? '#86cc5a' : '#4f9a3e', j(.36), .03, j(.36)); }
 }
 
 // link: for pieces that join their neighbours (fences), the number fenceLink gives.
