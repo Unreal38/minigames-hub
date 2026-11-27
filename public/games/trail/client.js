@@ -74,7 +74,7 @@ export function mount(app, ctx) {
       <div class="tl"><span class="chip" id="tt-info"></span>
         <button type="button" class="chip tt-mapbtn" data-a="map" aria-pressed="false"></button></div>
       <div class="tr"><span class="tcode" id="tt-code"></span>
-        <button type="button" class="round" data-a="music" aria-pressed="${music.on}" aria-label="${L('Toggle music', 'Włącz lub wyłącz muzykę')}" title="${L('Music', 'Muzyka')}">${music.on ? I.note : I.noteOff}</button>
+        ${music.available ? `<button type="button" class="round" data-a="music" aria-pressed="${music.on}" aria-label="${L('Toggle music', 'Włącz lub wyłącz muzykę')}" title="${L('Music', 'Muzyka')}">${music.on ? I.note : I.noteOff}</button>` : ''}
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L('Leave table', 'Odejdź od stołu')}">${I.door}</button></div>

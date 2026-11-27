@@ -101,6 +101,8 @@ export const CUES = {
 };
 
 // ----- playing -----
+// Kuba (2026-11-27): switched off for now while other directions are tried. Set to true to bring the music and its button back.
+export const MUSIC_ON = false;
 const LEVEL = .3; // well under the sound effects: friends are talking over it
 let off = (() => { try { return localStorage.getItem('ct_music') === '0'; } catch { return false; } })();
 let want = null, cur = null, timer = 0, noiseBuf = null;
@@ -170,12 +172,13 @@ function tick() {
     c.idx++;
   }
 }
-const silent = () => off || sfx.muted || (typeof document !== 'undefined' && document.hidden);
+const silent = () => !MUSIC_ON || off || sfx.muted || (typeof document !== 'undefined' && document.hidden);
 function refresh() { if (!want || silent()) halt(); else if (cur?.name !== want) start(want); }
 onMute(refresh);
 if (typeof document !== 'undefined') document.addEventListener('visibilitychange', refresh);
 
 export const music = {
+  available: MUSIC_ON,
   get on() { return !off; },
   get playing() { return cur?.name || null; },
   cue(name) { if (!CUES[name]) return; want = name; refresh(); },      // a looping cue; the same one again changes nothing
