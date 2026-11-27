@@ -66,7 +66,7 @@ export const ITEMS = {
   board:    { name: 'Order Board', kind: 'b', w: 2, h: 1, max: 1, house: 2, cost: { wood: 30, stone: 15, fiber: 10 }, desc: 'Pets from the islands nearby pin their orders here. Deliver what they ask for and get Stamps.' },
   workshop: { name: 'Workshop', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 35, stone: 25 }, desc: 'Unlocks fancier decorations, and swaps spare materials for ones you need.' },
 
-  fence:    { name: 'Fence', kind: 'd', w: 1, h: 1, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
+  fence:    { name: 'Fence', kind: 'd', w: 1, h: .5, fine: true, cost: { wood: 2 }, desc: 'Keeps things tidy.' },
   path:     { name: 'Stone Path', kind: 'd', w: 1, h: 1, walk: true, cost: { stone: 1 }, desc: 'Pets like to stroll along it.' },
   tree:     { name: 'Leafy Tree', kind: 'd', w: .5, h: .5, fine: true, cost: { coins: 8 }, desc: 'A bit of shade.' },
   pine:     { name: 'Pine Tree', kind: 'd', w: .5, h: .5, fine: true, cost: { coins: 8 }, desc: 'Smells like a walk in the woods.' },

@@ -14,6 +14,7 @@ import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/ga
 import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, charmsFor, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 import { dayOf } from './day.js';
+import { thinFences } from '../public/games/farm/fence.js';
 import { ordersView, orderAction } from './farmorders.js';
 import { journalOf, chapterDone, rewardOf } from '../public/games/farm/journal.js';
 
@@ -37,7 +38,8 @@ const rnd = n => crypto.randomInt(n);
 // reads every farm back and compares it; only a perfect match switches, otherwise farms stay on the JSON file as before.
 let mode = 'json';
 export const farmMode = () => mode;
-const take = (pid, f) => { if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); bindCoins(pid, f); farms.set(pid, f); return true; } return false; };
+// thin: fences are thin pieces (1 x .5). Farms saved before that have their old whole-tile fences moved over once (fence.js).
+const take = (pid, f) => { if (f && Array.isArray(f.items) && Array.isArray(f.pets)) { f.pets.forEach(fixPet); if (!f.thin) { thinFences(f.items); f.thin = 1; } bindCoins(pid, f); farms.set(pid, f); return true; } return false; };
 export function load() {
   if (db.isOpen() && db.getKv('imported:farms')) {
     for (const { id, v } of db.rows('f')) { take(id, JSON.parse(v)); farms.remember(id, v); }
@@ -549,7 +551,7 @@ export function handle(p, a, reply) {
   if (a.t === 'starter') {
     if (f) return no('You already have a farm.');
     if (!STARTERS.includes(a.sp)) return;
-    const nf = { v: 1, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
+    const nf = { v: 1, thin: 1, size: SIZES[0], nid: 2, items: [{ id: 1, type: 'house', x: 3, y: 1, r: 0 }], inv: { ...START_INV },
       name: p.name, pets: [newPet(a.sp, p.user)], house: 1, trip: null, trips: 0, created: Date.now(), jn: { got: 0 } };
     bindCoins(p.pid, nf); farms.set(p.pid, nf); unhold(p, nf); scheduleSave();
     return reply({ t: 'farm', farm: view(nf, p), did: 'starter' });
