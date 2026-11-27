@@ -142,7 +142,7 @@ export const ROUTES = {
 // Where a helper works at a building, in the model's own space: [x, z] of the spot it faces. The Kitchen's fire pet blows into the hearth mouth.
 export const HEARTH = { kitchen: [.5, 1.0] };
 const FLUE = [1.0, 1.25, 1.7]; // how tall the Kitchen's flue stands above the hearth, per level
-export const flueTop = lv => [HEARTH.kitchen[0] + .2, .46 + FLUE[Math.min(3, Math.max(1, lv | 0)) - 1] + (lv >= 2 ? .13 : .07), .78]; // where its smoke comes out
+export const flueTop = lv => [HEARTH.kitchen[0] + .2, .46 + FLUE[Math.min(3, Math.max(1, lv | 0)) - 1] + .02, .78]; // where its smoke comes out
 export const LIFT = { house: [0, 0, .9, .9, .9, .9, .9], lodge: [0, 0, .55], barn: [0, .4, .75], gate: [0, .55, .8] };
 const liftOf = (type, lv) => LIFT[type]?.[Math.min(LIFT[type].length, Math.max(1, lv | 0)) - 1] || 0;
 
@@ -486,7 +486,9 @@ const BUILD = {
     for (const r of [.4, -.4]) { const l = put(g, G('Cylinder', .032, .032, .24, 6), M(C.woodD), HX, .095, .92); l.rotation.set(0, r, Math.PI / 2); } // logs, crossed
     box(g, .5, .025, .24, C.stone, HX, 0, 1.13);                                     // a flat stone for the helper to stand on
     const fh = FLUE[Math.min(3, lv) - 1], fx = HX + .2, fz = .78;                    // the flue
-    box(g, .26, fh, .24, wall, fx, .46, fz); box(g, .34, .07, .32, wallD, fx, .46 + fh, fz); if (lv >= 2) box(g, .2, .06, .2, C.iron, fx, .53 + fh, fz);
+    box(g, .26, fh - .1, .24, wall, fx, .46, fz); const ty = .46 + fh; // the crown is a hollow rim round a deep plain black opening, so the smoke has somewhere to come out of
+    for (const sd of [-1, 1]) { box(g, .34, .2, .06, wallD, fx, ty - .13, fz + sd * .13); box(g, .06, .2, .2, wallD, fx + sd * .14, ty - .13, fz); }
+    box(g, .215, .16, .195, '#0d0b0b', fx, ty - .115, fz); // the inside of the opening, plain black almost to the rim
     if (lv >= 2) for (const y of [.8, 1.15, .5 + fh * .85]) { box(g, .14, .07, .02, wallD, fx - .03, y, fz + .125); box(g, .02, .07, .14, wallD, fx + .135, y - .12, fz + .01); }
     const wood = [[.93, .0, .28], [.93, .0, .1], [.93, .09, .19]]; for (const [x, y, z] of wood) { const l = cyl(g, .045, .045, .26, 6, C.wood, x, 0, z); l.rotation.x = Math.PI / 2; l.position.y = y + .05; } // firewood by the hearth
     if (lv < 2) { box(g, .74, .04, .46, C.iron, HX, .46, .775); cyl(g, .15, .12, .16, 6, C.slate, HX - .12, .5, .8); cyl(g, .16, .16, .03, 6, C.stoneD, HX - .12, .66, .8); ico(g, .03, C.iron, HX - .12, .71, .8); } // an iron hob with the soup pot on it
