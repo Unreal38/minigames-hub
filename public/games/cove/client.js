@@ -7,6 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { boardName, cellsOf, fits, randomFleet, SEA } from './rules.js';
 import { uiz } from '../../uiz.js';
 
@@ -46,7 +47,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.cv'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, setupEnds = 0, lockUntil = 0, lastTick = -1, sent = 0, cursor = -1;
   let lay = null, bad = new Set(), drag = null, laySent = '', hitNote = 0;
@@ -71,7 +72,7 @@ export function mount(app, ctx) {
     for (let i = 0; i < tagEls.length; i++) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = t.k < .9 ? `translate(${x.toFixed(1)}px, ${t.yb.toFixed(1)}px) translate(-50%, 0)` : `translate(${x.toFixed(1)}px, ${Math.max(t.y, (innerWidth < 700 ? 112 : 64) * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+      if (t.k < .9) el.style.transform = `translate(${x.toFixed(1)}px, ${t.yb.toFixed(1)}px) translate(-50%, 0)`; else placer.add(el, t.x, t.y); // a small bay on a phone keeps its tag under the bay
       el.classList.toggle('under', t.k < .9);
     }
   }
@@ -96,8 +97,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="cv-tag"><div class="bub"></div><div class="plate"><i class="dot" style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}${i === S.me ? `<span class="you">${L('you', 'ty')}</span>` : ''}<span class="cnt"></span></div></div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="cv-tag"><div class="bub"></div><div class="plate${tagCls(p)}">${tagFace(p)}${i === S.me ? `<span class="you">${L('you', 'ty')}</span>` : ''}<span class="cnt"></span>${tagBg(p)}</div></div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
     }
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;

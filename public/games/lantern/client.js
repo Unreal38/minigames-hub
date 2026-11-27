@@ -8,6 +8,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { myBurst } from '../../winfx.js';
 import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
@@ -76,7 +77,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.ln'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), dark = $('ln-dark');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl), dark = $('ln-dark');
   let S = null, info = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, seatsKey = '';
   let recvAt = 0, tagEls = [], bedEls = new Map(), resultsTimer = 0, bigTimer = 0, job = null, rope = -1, actKey = '', jobsKey = '', meetKey = '', votes = 0;
   const keys = new Set();
@@ -163,13 +164,13 @@ export function mount(app, ctx) {
   // ---- name tags over people you can see, and "Zzz" over sleepers
   function buildTags() {
     const team = new Set(you()?.team || []);
-    tagsEl.innerHTML = info.map((p, i) => `<div class="ln-tag${i === S.me ? ' me' : ''}${team.has(i) && i !== S.me ? ' mate' : ''}" hidden>${team.has(i) && i !== S.me ? `<i class="ln-eye" title="${L('Sneak', 'Łasuch')}"></i>` : ''}<b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
-    tagEls = [...tagsEl.children]; bedEls = new Map();
+    tagsEl.innerHTML = info.map((p, i) => `<div class="ln-tag${i === S.me ? ' me' : ''}${team.has(i) && i !== S.me ? ' mate' : ''}${tagCls(p)}" hidden>${team.has(i) && i !== S.me ? `<i class="ln-eye" title="${L('Sneak', 'Łasuch')}"></i>` : ''}${tagFace(p)}${tagBg(p)}</div>`).join('');
+    tagEls = [...tagsEl.children]; placer.reset(); bedEls = new Map();
   }
   function onFrame(folk, me, beds) {
     if (!S || !info) return;
     for (const [s, m] of folk) { const el = tagEls[s]; if (!el) continue; const show = m.on && (S.stage === 'walk' || ended());
-      if (el.hidden === show) el.hidden = !show; if (show) el.style.transform = `translate(${m.sx.toFixed(1)}px, ${m.sy.toFixed(1)}px) translate(-50%, -100%)`;
+      if (el.hidden === show) el.hidden = !show; if (show) placer.add(el, m.sx, m.sy);
       el.classList.toggle('pet', (m.out || 0) > 0);
       if (show) { const g = dark.classList.contains('on') && m !== me && me ? you()?.glow || 0 : 0, k = g ? Math.max(0, Math.min(1, (1 - Math.hypot(m.x - me.x, m.z - me.z) / g) / .3)) : 1, o = k.toFixed(2); // tags fade out at the lantern's edge, with the people
         if (el.style.opacity !== (o === '1.00' ? '' : o)) el.style.opacity = o === '1.00' ? '' : o; } }

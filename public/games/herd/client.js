@@ -8,6 +8,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { move, turnCheck, fits, tilesOn, byNum, byPet, trayValue, check } from './rules.js';
@@ -62,7 +63,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.hd'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), labsEl = root.querySelector('.glabs'), ghost = root.querySelector('.hd-ghost');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl), labsEl = root.querySelector('.glabs'), ghost = root.querySelector('.hd-ghost');
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, endsAt = 0, lastTick = -1, sortBy = getSort();
   let sel = new Set(), seenRack = null, newTiles = new Map(), localMv = 0, roundShown = 0;
@@ -96,7 +97,7 @@ export function mount(app, ctx) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       el.style.visibility = t.off ? 'hidden' : '';
       const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x));
-      el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
     }
     const z = uiz();
     for (const [id, el] of labEls) {
@@ -118,8 +119,8 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="hd-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="cnt"></span></div></div>`).join('');
-      tagEls = [...tagsEl.children];
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="hd-tag"${i === S.me ? ' hidden' : ''}><div class="bub"></div><div class="plate${tagCls(p)}">${tagFace(p)}<span class="cnt"></span>${tagBg(p)}</div></div>`).join('');
+      tagEls = [...tagsEl.children]; placer.reset();
     }
     const now = performance.now();
     S.seats.forEach((p, i) => {

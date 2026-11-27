@@ -7,6 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { seedLook } from '../../pieceskins.js';
 import { Q, OPEN, ELS, EL_COL, BOON, ARENAS, START, SPD_STEP, CRUMBLE_S, steer, faceOf } from './rules.js';
 
@@ -53,7 +54,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.bb'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, info = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, recvAt = 0;
   let grid = null, built = '', tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, roundKey = '', snapN = -1, sentAt = 0, sent = '', kickAt = 0;
   const me = { x: 0, y: 0, f: 0, moving: false, on: false };
@@ -139,15 +140,15 @@ export function mount(app, ctx) {
       const show = f.on && i !== S.me;
       if (!show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${f.sx.toFixed(1)}px, ${f.sy.toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, f.sx, f.sy);
     }
     renderClock();
   }
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b></div>`).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = info.map(p => `<div class="bb-tag${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
 
   // ----- HUD -----

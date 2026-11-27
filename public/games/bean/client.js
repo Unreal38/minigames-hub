@@ -8,6 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { buildTower, newClimber, stepClimber, stormY, newRun, land, expire, streakPts, cheer, zoneOf, zoneName, floorAt, PACES, FLOOR_H, STREAK_MS, SPRING } from './tower.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SV = (d, w = 22) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -57,7 +58,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.bb'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, info = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, T = null, mk = null, run = newRun(), climbing = false, dead = false;
   let recvAt = 0, sentAt = 0, goLocal = Infinity, tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, lastCount = 99, lastZone = 0, warnAt = 0, altKey = '', altDots = [], lastHud = 0;
   const keys = new Set(), pads = new Set();
@@ -143,7 +144,7 @@ export function mount(app, ctx) {
       const t = fr.tags[i], el = tagEls[i]; if (!t || !el) continue;
       if (!t.show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      placer.add(el, t.x, t.y);
       if (el._off !== t.off) { el._off = t.off; el.classList.toggle('bb-off', !!t.off); el.querySelector('em').textContent = t.off > 0 ? '▲' : t.off < 0 ? '▼' : ''; }
     }
     const now = performance.now();
@@ -154,8 +155,8 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me;
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<em></em><u></u></div>`).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = info.map(p => `<div class="bb-tag${tagCls(p)}" hidden>${tagFace(p)}<em></em><u></u>${tagBg(p)}</div>`).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
 
   // ----- HUD -----

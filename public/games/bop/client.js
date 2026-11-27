@@ -9,6 +9,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { LIVES, TOTAL, SLEEP, GOLD, HEART, schedule, newPlayer, resolve } from './rules.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -149,7 +150,7 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|');
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map(p => `<div class="bb-tag" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}<span class="hp"></span><span class="cnt"></span></div>`).join('');
+    tagsEl.innerHTML = info.map(p => `<div class="bb-tag ntc${tagCls(p)}" hidden>${tagFace(p)}<span class="hp"></span><span class="cnt"></span>${tagBg(p)}</div>`).join('');
     tagEls = [...tagsEl.querySelectorAll('.bb-tag')];
   }
   function renderTags() {

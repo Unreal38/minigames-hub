@@ -8,6 +8,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { seasonLookNow } from '../../season3d.js';
 import * as LY from './layout.js';
 
@@ -76,7 +77,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.cc'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, info = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, recvAt = 0;
   let tagEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, petsKey = '', myKey = '', dizzyTill = 0, sentAt = 0, sent = '', aimT = null;
   const me = { x: 0, z: 0, h: 0, k: -1, lock: 0, vx: 0, vz: 0, spd: 0, on: false };
@@ -197,7 +198,7 @@ export function mount(app, ctx) {
       const show = f.on && i !== S.me && (S.role[i] === 1 || myRole() !== 1 || S.ph !== 'play');
       if (!show) { if (!el.hidden) el.hidden = true; continue; }
       if (el.hidden) el.hidden = false;
-      el.style.transform = `translate(${f.sx.toFixed(1)}px, ${f.sy.toFixed(1)}px) translate(-50%, -100%) scale(${Math.max(.6, Math.min(1, 14 / f.dist)).toFixed(2)})`;
+      placer.add(el, f.sx, f.sy, Math.max(.6, Math.min(1, 14 / f.dist)));
     }
     drawMap(folk);
     renderClock();
@@ -206,8 +207,8 @@ export function mount(app, ctx) {
   function buildTags() {
     const key = info.map(p => p.name + p.color).join('|') + S.me + S.role.join('');
     if (key === tagKey) return; tagKey = key;
-    tagsEl.innerHTML = info.map((p, i) => `<div class="cc-tag${S.role[i] === 1 ? ' seek' : S.role[i] === 2 ? ' gone' : ''}" hidden><i style="background:${p.color}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div>`).join('');
-    tagEls = [...tagsEl.children];
+    tagsEl.innerHTML = info.map((p, i) => `<div class="cc-tag${S.role[i] === 1 ? ' seek' : S.role[i] === 2 ? ' gone' : ''}${tagCls(p)}" hidden>${tagFace(p)}${tagBg(p)}</div>`).join('');
+    tagEls = [...tagsEl.children]; placer.reset();
   }
 
   // the minimap: the island drawn once, people and squeaks on top

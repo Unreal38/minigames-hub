@@ -7,6 +7,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
+import { tagPlacer, tagFace, tagCls, tagBg } from '../../nametag.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -51,7 +52,7 @@ export function mount(app, ctx) {
     <div class="results" hidden></div>
   </div>`;
   const root = app.querySelector('.wj'), $ = id => root.querySelector('#' + id);
-  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags');
+  const canvas = root.querySelector('.g3d'), tagsEl = root.querySelector('.tags'), placer = tagPlacer(tagsEl);
   let S = null, Rm = ctx.room(), scene = null, destroyed = false, gid = null, lastEv = 0, live = null;
   let tagEls = [], cntEls = [], tagKey = '', resultsTimer = 0, bigTimer = 0, autoTimer = 0, endsAt = 0, lastTick = -1, sent = -1;
 
@@ -73,7 +74,7 @@ export function mount(app, ctx) {
       const t = info.tags[i], el = tagEls[i], c = cntEls[i]; if (!t) continue;
       if (el && !t.mine) {
         const half = (el._w || 120) / 2 + 4, x = Math.max(half, Math.min(innerWidth - half, t.x)); // keep the tag on the screen when its player is half off it
-        el.style.transform = `translate(${x.toFixed(1)}px, ${Math.max(t.y, 150 * uiz()).toFixed(1)}px) translate(-50%, -100%)`;
+        placer.add(el, t.x, t.y);
       }
       if (c) c.style.transform = `translate(${t.cx.toFixed(1)}px, ${t.cy.toFixed(1)}px) translate(-50%, -50%)`;
     }
@@ -86,7 +87,7 @@ export function mount(app, ctx) {
     const key = S.seats.map(p => p.name + p.color).join('|') + S.me;
     if (key !== tagKey) {
       tagKey = key;
-      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="wj-tag"${i === S.me ? ' hidden' : ''}><div class="plate"><i style="background:${esc(p.color)}"></i><b>${nameHtml(p.name, p.fl)}</b>${titleHtml(p.fl)}</div></div>`).join('')
+      tagsEl.innerHTML = S.seats.map((p, i) => `<div class="wj-tag"${i === S.me ? ' hidden' : ''}><div class="plate${tagCls(p)}">${tagFace(p)}${tagBg(p)}</div></div>`).join('')
         + S.seats.map(p => `<div class="wj-cnt" style="--c:${esc(p.color)}"></div>`).join('');
       tagEls = [...tagsEl.querySelectorAll('.wj-tag')]; cntEls = [...tagsEl.querySelectorAll('.wj-cnt')];
     }

@@ -2373,3 +2373,22 @@ body.night .pb-minis { border-top-color: #ffffff2e; }
   .pb-side { flex-direction: column; } .pb-side .btn { min-width: 0; min-height: 48px; font-size: 18px; }
 }
 @media (max-width: 1099px) { .partyban { margin-top: 14px; } }
+
+/* ---------- floating name tags in games (nametag.js) ----------
+   One look for every game's tags: the player's framed portrait, name and title on their card background, a little
+   bigger than the old pills. Placed above the head, or beside it, by tagPlacer; the game's own tag rules still set the
+   turn colour and extras (counters, bubbles). */
+body.in-game .nt { display: flex; align-items: center; gap: 6px; padding: 2px 11px 2px 2px; min-height: 32px; border-radius: 17px; background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); font-family: var(--fd); font-weight: 600; font-size: 14px; line-height: 1.1; white-space: nowrap; box-shadow: 0 3px 0 #160a1255; opacity: 1; }
+body.in-game .nt.haspb { --pbr: 15px; }
+body.in-game .nt .ntav { flex: none; border-width: 2px; }
+body.in-game .nt .ntx { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+body.in-game .nt .ntx b { font-weight: 600; max-width: 8.5em; overflow: hidden; text-overflow: ellipsis; }
+body.in-game .nt .ntx .ttl { font-size: 10px !important; padding: 0 6px; margin: 1px 0 0; line-height: 1.35; }
+body.in-game .tags > .nt, body.in-game .tags > * { will-change: transform; }
+@media (max-width: 700px) {
+  body.in-game .nt { font-size: 12.5px; min-height: 28px; gap: 5px; padding-right: 9px; }
+  body.in-game .nt .ntx b { max-width: 7em; }
+  body.in-game .nt .ntx .ttl { font-size: 9px !important; }
+}
+/* tags under narrow boards (Burrow Bop, Sky Bricks, Bubble Lagoon) keep only the name on phones, so it is not cut short */
+@media (max-width: 700px) { body.in-game .nt.ntc { padding-left: 9px; } body.in-game .nt.ntc :is(.ntav, .ttl) { display: none; } }
