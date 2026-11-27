@@ -1931,11 +1931,12 @@ function openSky() {
 }
 function openStats() {
   if (!st.me) return;
-  const sheet = modal(`<h2>${L('Your progress', 'Twoje postępy')}</h2>${meCard()}<div class="row" style="margin-top:16px">${st.me.pt ? `<button type="button" class="btn w" data-x="card">${L('How others see me', 'Jak widzą mnie inni')}</button>` : ''}<button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button></div>`);
+  const sheet = modal(`<h2>${L('Your progress', 'Twoje postępy')}</h2>${meCard()}<div class="row" style="margin-top:16px">${st.me.pt ? `<button type="button" class="btn w" data-x="card">${L('How others see me', 'Jak widzą mnie inni')}</button>` : ''}<button type="button" class="btn" data-x="close">${L('Done', 'Gotowe')}</button>${
+    st.me.user && !document.body.classList.contains('in-game') ? `<button type="button" class="btn prep sdel" data-x="del">🗑️ ${L('Delete account', 'Usuń konto')}</button>` : ''}</div>`);
   sheet.el.querySelector('.sheet').classList.add('wide', 'statsheet');
   sheet.el.addEventListener('click', e => {
     const x = e.target.closest('[data-x]')?.dataset.x; if (!x) return;
-    sfx.click(); sheet.close(); if (x === 'card') send({ t: 'player', pt: st.me.pt }); else if (x === 'sky') openSky();
+    sfx.click(); sheet.close(); if (x === 'card') send({ t: 'player', pt: st.me.pt }); else if (x === 'sky') openSky(); else if (x === 'del') openDeleteAccount();
   });
 }
 // Tells the server which screen this browser is on (hub, Pet Farm or Hay Hunch), for the host's "Who's here" list.
@@ -3329,7 +3330,7 @@ function openPlayer(p) {
       : p.rel === 'guest' && !p.guest ? `<button type="button" class="btn big w" data-fr="account">${L('Create an account to add friends', 'Załóż konto, żeby dodawać znajomych')}</button>`
       : p.rel === 'noacc' ? `<span class="pfnote">${L("Guests can't be added as friends until they make an account.", 'Gości nie da się dodać do znajomych, dopóki nie założą konta.')}</span>` : ''}${
       !p.me ? `<span class="prepgrp">${p.mod ? `<button type="button" class="btn big w" data-moderate>🛡️ ${L('Moderate', 'Moderuj')}</button>` : ''}<button type="button" class="btn big prep" data-report>🚩 ${L('Report', 'Zgłoś')}</button></span>` : ''}</div>
-    ${p.me && st.me?.user ? `<div class="pdelrow"><button type="button" class="btn ghost-ink pdel" data-delacct>${L('Delete account', 'Usuń konto')}</button></div>` : ''}`);
+`);
   sheet.pt = p.pt;
   const { el } = sheet; el.querySelector('.sheet').classList.add('wide', 'psheet');
   petPics(el);
@@ -3342,7 +3343,6 @@ function openPlayer(p) {
     const fr = e.target.closest('[data-fr]');
     if (fr?.dataset.fr === 'account') { sheet.close(); return openAccount('register'); }
     if (fr) { fr.disabled = true; sfx.pop(); return send({ t: 'friend', op: fr.dataset.fr, pt: p.pt }); }
-    if (e.target.closest('[data-delacct]')) { sfx.click(); sheet.close(); return openDeleteAccount(); }
     const un = e.target.closest('[data-unfr]');
     if (un) { // a second tap confirms, so a slip of the finger doesn't end a friendship
       sfx.click();

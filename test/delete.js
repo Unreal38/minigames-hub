@@ -1,4 +1,4 @@
-// Players deleting their own account (profile card > Delete account): the checks before it happens, and that nothing
+// Players deleting their own account (Your progress > Delete account): the checks before it happens, and that nothing
 // is left pointing at the account afterwards. Rankings, table scoreboards, table and hub chat, friends and pending
 // requests, Pet Farm, other signed-in devices, a match in progress, the username held for 30 days (also after a
 // restart), host accounts refused, and the per-address limit.
