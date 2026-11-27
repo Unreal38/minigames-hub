@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { checkersLook } from '../../pieceskins.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -420,7 +420,7 @@ export function createScene(canvas, { onFrame } = {}) {
     setState, squareAt, setSelect, setMust, setCursor, setHover,
     squarePx(s, h = .5) { sqPos(s, tv); tv.y = TOP + h; tv.project(camera); return { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H }; },
     flipped: () => flip,
-    setHud(px) { if ((Math.abs(px - hudBottom) > 6) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
+    setHud(px) { const fit = hudFitOk(canvas), grew = px > hudBottom + 6; if ((Math.abs(px - hudBottom) > 6) && (fit || grew)) { hudBottom = px; fit ? resize(true) : easeRefit(camera, camBase, camLook, () => resize(true)); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) { disposeAvatar(s.av); s.ring.material.dispose(); }

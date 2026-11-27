@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { N, PET } from './rules.js';
 
@@ -432,7 +432,7 @@ export function createScene(canvas, { onFrame } = {}) {
   return {
     setState, setMarks, setAvatar, pick, tileScreen, cheer, oops,
     setHover(i) { hover = i; }, setPicked(i) { picked = i; },
-    setHud(bottom, top = hudTop) { if ((Math.abs(bottom - hudBottom) > 6 || top !== hudTop) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(); } },
+    setHud(bottom, top = hudTop) { const fit = hudFitOk(canvas), grew = bottom > hudBottom + 6 || top > hudTop + 6; if ((Math.abs(bottom - hudBottom) > 6 || top !== hudTop) && (fit || grew)) { hudBottom = bottom; hudTop = top; fit ? resize() : easeRefit(camera, camBase, camLook, () => resize()); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     fps: () => ticker.fps(),
     dispose() {
       ticker.stop(); ro.disconnect(); if (av) disposeAvatar(av);

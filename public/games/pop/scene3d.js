@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, STAR, DOT, nightScene, isNight, flat } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { sfx } from '../../sfx.js';
@@ -431,7 +431,7 @@ export function createScene(canvas) {
     setHover(i) { hover = i; }, setPicked(i) { picked = i; }, hint(m) { hintAt = m; },
     cheer(big) { avHop = 1; if (big) { dance = 1; pfx.confetti(worldOf(0, 1, 2).clone(), { n: small ? 60 : 110, w: 8, h: 5, s: 'me' }); } },
     oops() { avSad = 1; },
-    setHud(bottom, top = hudTop) { if ((Math.abs(bottom - hudBottom) > 6 || top !== hudTop) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(); } },
+    setHud(bottom, top = hudTop) { const fit = hudFitOk(canvas), grew = bottom > hudBottom + 6 || top > hudTop + 6; if ((Math.abs(bottom - hudBottom) > 6 || top !== hudTop) && (fit || grew)) { hudBottom = bottom; hudTop = top; fit ? resize() : easeRefit(camera, camBase, camLook, () => resize()); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     fps: () => ticker.fps(), stats: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
     dispose() {
       ticker.stop(); ro.disconnect(); if (av) disposeAvatar(av); pfx.dispose();

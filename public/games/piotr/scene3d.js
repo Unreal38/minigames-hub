@@ -6,7 +6,7 @@ import { cardGeometry } from '../../cardgeo.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
 import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { cardTexture } from '../poker/scene3d.js';
 import { paintFace } from './cards.js';
 import { PIOTR } from './rules.js';
@@ -294,7 +294,7 @@ export function createScene(canvas, { onFrame } = {}) {
 
   return {
     setState, shuffle: shuffleSeat,
-    setHud(px) { if ((Math.abs(px - hudBottom) > 6) && hudFitOk(canvas)) { hudBottom = px; resize(true); } },
+    setHud(px) { const fit = hudFitOk(canvas), grew = px > hudBottom + 6; if ((Math.abs(px - hudBottom) > 6) && (fit || grew)) { hudBottom = px; fit ? resize(true) : easeRefit(camera, camBase, camLook, () => resize(true)); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     setInset(px) { if ((px !== hudLeft) && hudFitOk(canvas)) { hudLeft = px; resize(true); } },
     dispose() {
       dead = true; ticker.stop();

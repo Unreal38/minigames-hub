@@ -8,7 +8,7 @@ import { toonify, skyDome, clouds, birds, createFx, shaker, STAR, DOT, HEART as 
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { seasonLookNow, lookOf } from '../../season3d.js';
 const SEA = lookOf(seasonLookNow()); // the lawn follows the season like every game island
-import { hudFitOk } from '../../camfit.js';
+import { hudFitOk, easeRefit } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
 import { disposeModel } from '../farm/models.js';
 import { HOLES, PETS, SLEEP, GOLD, HEART } from './rules.js';
@@ -358,7 +358,7 @@ export function createScene(canvas, { onFrame, clock } = {}) {
     setMine(on) { mineOn = on; },
     // where a burrow of the big garden is on the screen (for the points that float up)
     spot(h, o = {}) { const w = wells[focus]; if (!w) return null; return toScreen(at(w, holeX(h), RIM + PH, holeZ(h)), o); },
-    setHud(top, bottom) { if ((Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6) && hudFitOk(canvas)) { hudBottom = bottom; hudTop = top; resize(true); } },
+    setHud(top, bottom) { const fit = hudFitOk(canvas), grew = bottom > hudBottom + 6 || top > hudTop + 6; if ((Math.abs(bottom - hudBottom) > 6 || Math.abs(top - hudTop) > 6) && (fit || grew)) { hudBottom = bottom; hudTop = top; fit ? resize(true) : easeRefit(camera, camBase, camLook, () => resize(true)); } }, // a HUD growing mid-game eases the camera out (camfit.js)
     dispose() {
       dead = true; ticker.stop();
       for (const w of wells) freeGarden(w);
