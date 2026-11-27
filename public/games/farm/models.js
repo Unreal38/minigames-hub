@@ -720,9 +720,10 @@ const BUILD = {
     box(g, .2, .15, .16, C.cream, .36, 0, .3).rotation.y = .4; box(g, .2, .12, .16, C.cream, .34, .14, .26).rotation.y = -.2; // flour sacks
     if (!live) PARTS.windmill(g);
   },
-  arch(g) {
-    for (const x of [-.4, .4]) box(g, .1, 1.1, .1, C.wood, x); box(g, .96, .1, .12, C.wood, 0, 1.1);
-    for (const [x, y, c] of [[-.4, .5, C.pink], [-.4, .9, C.leafL], [-.2, 1.2, C.yellow], [0, 1.24, C.pink], [.2, 1.2, C.lilac], [.4, .9, C.leafL], [.4, .5, C.yellow], [-.4, .2, C.leaf], [.4, .2, C.leaf]]) ico(g, .11, c, x, y, 0);
+  arch(g, live, lv, link = 0) { // link 1: turned 45 degrees, so it spans the diagonal of its square (and a diagonal fence's end)
+    const k = link ? 1.6 : 1, px = .4 * k;
+    for (const x of [-px, px]) box(g, .1, 1.1, .1, C.wood, x); box(g, .96 * k, .1, .12, C.wood, 0, 1.1);
+    for (const [x, y, c] of [[-.4, .5, C.pink], [-.4, .9, C.leafL], [-.2, 1.2, C.yellow], [0, 1.24, C.pink], [.2, 1.2, C.lilac], [.4, .9, C.leafL], [.4, .5, C.yellow], [-.4, .2, C.leaf], [.4, .2, C.leaf]]) ico(g, .11, c, x * k, y, 0);
   },
   statue(g) {
     box(g, .7, .2, .7, C.stoneD); box(g, .54, .3, .54, C.stone, 0, .2);

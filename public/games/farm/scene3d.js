@@ -14,6 +14,7 @@ import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../
 import { ITEMS, STARTERS, canTilt, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
 import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
+import { fenceSnap, isDiag } from './fence.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
@@ -190,7 +191,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
   const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
   // A fence's joins, or the Pet Museum's medallions (from the album when the farm has one, else what the server sent).
-  const linkOf = (it, f = farm, skip) => it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
+  const linkOf = (it, f = farm, skip) => it.type === 'arch' ? (isDiag(it.r) ? 1 : 0) : it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {
@@ -1092,13 +1093,15 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     if (!ghost) return;
     ghost.ok = !!farm && fits(farm, ghost.type, ghost.x, ghost.y, ghost.r, ghost.id);
     const [w, h] = footprint(ghost.type, ghost.r);
-    if (LINKS[ghost.type]) { const link = fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
+    if (LINKS[ghost.type] || ghost.type === 'arch') { const link = ghost.type === 'arch' ? linkOf(ghost) : fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
     placeModel(ghost.g, ghost.type, ghost.x, ghost.y, ghost.r); ghost.g.position.y = .12;
     ghost.box = new THREE.Box3().setFromObject(ghost.g); // the floating buttons keep clear of it
     ghost.pad.scale.set(w, h, 1); ghost.pad.position.set(wx(ghost.x, w), .03, wz(ghost.y, h));
     padMat.color.set(ghost.ok ? '#7dff8a' : '#ff6b5a');
     onGhost?.(ghostInfo());
   }
+  // a fence dropped half a tile off a line falls into it (fence.js fenceSnap)
+  const snapGhost = (x, y) => LINKS[ghost.type] && farm ? fenceSnap(farm.items, x, y, ghost.r, ghost.id, (a, b) => fits(farm, ghost.type, a, b, ghost.r, ghost.id)) : [x, y];
   const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok };
   function ghostModel(type, id, link) {
     const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1, link);
@@ -1225,7 +1228,8 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       const g = groundAt(e); if (!g) return;
       const [w, h] = footprint(ghost.type, ghost.r), st = stepOf(ghost.type);
       const nx = Math.max(0, Math.min(N - w, snap(g.x + N / 2, st) - drag.ox)), ny = Math.max(0, Math.min(N - h, snap(g.z + N / 2, st) - drag.oy));
-      if (nx !== ghost.x || ny !== ghost.y) { ghost.x = nx; ghost.y = ny; ghostCheck(); }
+      const [sx, sy] = snapGhost(nx, ny);
+      if (sx !== ghost.x || sy !== ghost.y) { ghost.x = sx; ghost.y = sy; ghostCheck(); }
     } else if (mapOn) { cam.waz -= dx * .006; }
     else if (drag.mode === 'pan') { if (!starters && !fighting) panBy(dx, dy); }
     else if (!starters) { cam.az -= dx * .006; cam.el = Math.min(1.35, Math.max(.16, cam.el + dy * .005)); }
@@ -1243,7 +1247,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     if (ghost) { // tap a tile: the piece jumps there
       if (tx < 0 || ty < 0 || tx >= N || ty >= N) return;
       const [w, h] = footprint(ghost.type, ghost.r), st = stepOf(ghost.type); // centre the piece on the tapped spot
-      ghost.x = Math.max(0, Math.min(N - w, snap(tx - (w - st) / 2, st))); ghost.y = Math.max(0, Math.min(N - h, snap(ty - (h - st) / 2, st))); ghostCheck(); return;
+      [ghost.x, ghost.y] = snapGhost(Math.max(0, Math.min(N - w, snap(tx - (w - st) / 2, st))), Math.max(0, Math.min(N - h, snap(ty - (h - st) / 2, st)))); ghostCheck(); return;
     }
     if (pid && !edit) { pets.get(pid).hop = 1; onPick?.({ pet: pid }); return; }
     const it = tx >= 0 && itemAt(tx, ty);

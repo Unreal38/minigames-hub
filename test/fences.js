@@ -1,6 +1,6 @@
 // Thin fences (2026-11-27): a fence is 1 x .5 on half tiles, so a bush fits right beside it. Joins and the one-time
 // move of old whole-tile fences live in public/games/farm/fence.js.
-const { fenceLink, fenceShape, thinFences, thinArches, fenceLine } = await import('../public/games/farm/fence.js');
+const { fenceLink, fenceShape, thinFences, thinArches, fenceLine, fenceSnap } = await import('../public/games/farm/fence.js');
 let bad = 0; const fail = m => { bad++; console.error(m); };
 const F = (id, x, y, r = 0) => ({ id, type: 'fence', x, y, r });
 const st = (l, k) => l >> (k * 2) & 3;
@@ -65,6 +65,17 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   if (st(h, 0) !== 2 || h >> 4 & 1) fail('straight should reach into the diagonal ' + h);
   if (!(d >> 7 & 1) || !(d >> 9 & 1)) fail('diagonal should stop at the straight one (clean corner) ' + d);
   const s = fenceShape(d); if (Math.abs(s.lo + Math.SQRT1_2 / 2) > 1e-9) fail('trimmed diagonal ' + JSON.stringify(s)); }
+
+// a diagonal fence ending by a straight arch's post reaches into it
+{ const it2 = [F(1, 0, 0, .5), { id: 2, type: 'arch', x: 1, y: 1, r: 0 }]; // diagonal (0,0)-(1,1); p beyond (1,1) = (1.25, 1.25), on the arch line by its post
+  const d = fenceLink(it2, 0, 0, .5, 1); if (st(d, 0) !== 2 || d >> 4 & 1) fail('diagonal should reach into the arch by its post ' + d); }
+// a turned arch in line with a diagonal is a gate
+{ const it = [F(1, 0, 0, .5), { id: 2, type: 'arch', x: 1, y: 1, r: .5 }], d = fenceLink(it, 0, 0, .5, 1);
+  if (st(d, 0) !== 3) fail('diagonal fence should gate into a turned arch ' + d); }
+// a fence dropped half a tile off a line falls into it
+{ const it = [F(1, 0, 0)], fit = () => true;
+  const [x, y] = fenceSnap(it, 1, .5, 0, null, fit); if (x !== 1 || y !== 0) fail(`snap into line: ${x},${y}`);
+  const [a, b] = fenceSnap(it, 5, 5, 0, null, fit); if (a !== 5 || b !== 5) fail('a lone spot should not move'); }
 
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');
