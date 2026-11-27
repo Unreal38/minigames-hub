@@ -105,12 +105,12 @@ body.in-game { overflow: hidden; }
 .hd-b:not(:disabled):active { transform: translateY(2px); }
 
 /* a tile, in the tray, the ghost you drag and the round sheet */
-.hd-t { --c: #3b2219; position: relative; width: 44px; height: 58px; padding: 0; border-radius: 8px; background: var(--ht-pat, none) center / 100% 100% no-repeat, var(--ht-face, #fffaf0); border: 2px solid var(--ht-edge, #d8c3a6); box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 4px 4px #0003; display: grid; grid-template-rows: 1fr auto; justify-items: center; color: var(--ht-ink, var(--c)); cursor: pointer; transition: transform .12s, box-shadow .12s; touch-action: none; box-sizing: border-box; font: inherit; }
+.hd-t { --c: #3b2219; position: relative; width: 44px; height: 58px; padding: 0; border-radius: 8px; background: var(--ht-pat, none) center / 100% 100% no-repeat, var(--ht-face, #f2dfbf); border: 2px solid var(--ht-edge, #c9a77c); box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 4px 4px #0003; display: grid; grid-template-rows: 1fr auto; justify-items: center; color: var(--ht-ink, var(--c)); cursor: pointer; transition: transform .12s, box-shadow .12s; touch-action: none; box-sizing: border-box; font: inherit; }
 .hd-t b { font: 700 24px/1 var(--fd); margin-top: 4px; }
-.hd-t .hd-pi { width: 30px; height: 30px; margin-bottom: 2px; pointer-events: none; }
+.hd-t .hd-pi { width: 30px; height: 30px; margin-bottom: 2px; pointer-events: none; filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff); } /* the white sticker edge, as on the table */
 .hd-t .hd-egg { width: 28px; height: 30px; margin-bottom: 2px; }
-.hd-t.egg b { font-size: 13px; color: var(--ht-ink, #8a4fb5); margin-top: 7px; }
-.hd-t.e0 { --c: #d24a1f; } .hd-t.e1 { --c: #a87800; } .hd-t.e2 { --c: #2f8a43; } .hd-t.e3 { --c: #1f74bb; }
+.hd-t.egg b { font-size: 13px; color: var(--ht-ink, #7a3aa8); margin-top: 7px; }
+.hd-t.e0 { --c: #b83a12; } .hd-t.e1 { --c: #8a6200; } .hd-t.e2 { --c: #22733a; } .hd-t.e3 { --c: #17609e; } /* tiles.js NUM_COL */
 .hd-t.sel { transform: translateY(-8px); box-shadow: 0 0 0 3px #3b2219, 0 0 0 6px var(--lantern), 0 8px 8px #0004; }
 .hd-t.new { animation: hdnew 1.3s ease-in-out 2; }
 @keyframes hdnew { 50% { box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 0 0 4px #fff, 0 0 14px 4px #ffd84a; } }

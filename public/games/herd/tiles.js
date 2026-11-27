@@ -5,6 +5,8 @@ import { petPic, petImg } from '../../petpic.js';
 import { PETS, EL_COL, isEgg, elOf, numOf } from './rules.js';
 import { herdLook, paintHerdFace } from '../../pieceskins.js';
 
+// number colours on the tinted faces: the pet colours, a shade deeper than EL_COL so they read on every set (same in herd.css)
+const NUM_COL = ['#b83a12', '#8a6200', '#22733a', '#17609e'], EGG_INK = '#7a3aa8';
 export const W = 128, H = 170; // face size on the canvas, about the shape of a tile
 const pics = new Map(); // pet -> Promise<img|null>
 export const loaded = new Map();
@@ -23,6 +25,15 @@ function eggArt(g, x, y, s) { // a speckled egg in a 100 x 106 box, scaled by s
   for (const [cx, cy, r] of [[36, 40, 8], [62, 30, 6], [66, 62, 9], [38, 74, 6], [52, 52, 5], [26, 58, 4]]) { g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); }
   g.restore();
 }
+// A pet with a white sticker edge round it, so it stands out on every face colour, even one of its own colour.
+const stickers = new WeakMap();
+function stickerOf(im) {
+  let c = stickers.get(im); if (c) return c;
+  const S = 96, s = 88 / S; c = document.createElement('canvas'); c.width = c.height = S * 2; const g = c.getContext('2d'); // drawn at 2x, so the edge stays smooth
+  for (let a = 0; a < 16; a++) g.drawImage(im, 8 + Math.cos(a / 8 * Math.PI) * 7, 8 + Math.sin(a / 8 * Math.PI) * 7, 176, 176);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = '#ffffff'; g.fillRect(0, 0, S * 2, S * 2);
+  stickers.set(im, c); return c;
+}
 // Paint the top of a tile on a W x H canvas. pet: the loaded picture of its pet, or null while it is being drawn;
 // k: the tile set (Wardrobe kind ht) of the player who owns it.
 export function paintTile(g, id, pet, k = 0) {
@@ -31,13 +42,13 @@ export function paintTile(g, id, pet, k = 0) {
   paintHerdFace(g, W, H, k);
   g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   if (isEgg(id)) {
-    g.fillStyle = look.ink || '#8a4fb5'; g.font = '700 32px Rubik, Nunito, sans-serif'; g.fillText('ANY', W / 2, 42);
+    g.fillStyle = look.ink || EGG_INK; g.font = '700 32px Rubik, Nunito, sans-serif'; g.fillText('ANY', W / 2, 42);
     eggArt(g, 22, 56, .84);
     return;
   }
-  g.fillStyle = look.ink || EL_COL[elOf(id)]; g.font = `700 ${numOf(id) >= 10 ? 70 : 78}px Rubik, Nunito, sans-serif`;
+  g.fillStyle = look.ink || NUM_COL[elOf(id)]; g.font = `700 ${numOf(id) >= 10 ? 70 : 78}px Rubik, Nunito, sans-serif`;
   g.fillText(String(numOf(id)), W / 2, 76);
-  if (pet) g.drawImage(pet, 20, 80, 88, 88);
+  if (pet) { g.drawImage(stickerOf(pet), 20 - 4, 80 - 4, 96, 96); g.drawImage(pet, 20, 80, 88, 88); }
 }
 
 // HTML tile for the tray (and the results sheet)

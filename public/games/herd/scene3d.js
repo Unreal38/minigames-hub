@@ -74,7 +74,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const bodyGeo = new THREE.BoxGeometry(TW, TH, TL), faceGeo = new THREE.PlaneGeometry(TW * .9, TL * .9); faceGeo.rotateX(-Math.PI / 2);
   const plateGeo = new THREE.BoxGeometry(TW - .08, .02, TL - .08), dotGeo = new THREE.CylinderGeometry(.05, .05, .02, 12);
   const selGeo = new THREE.PlaneGeometry(TW + .14, TL + .14); selGeo.rotateX(-Math.PI / 2);
-  const bodyMat = toonMat(M('#f6ead8'));
+  const bodyMat = toonMat(M(herdLook(0).body));
   const backMats = new Map(); const backMat = c => { if (!backMats.has(c)) backMats.set(c, toonMat(M(c))); return backMats.get(c); };
   const selMat = new THREE.MeshBasicMaterial({ color: '#ffd84a', transparent: true, opacity: .95, depthWrite: false });
   const dotMats = new Map(); const dotMat = c => { if (!dotMats.has(c)) dotMats.set(c, new THREE.MeshBasicMaterial({ color: c })); return dotMats.get(c); };
