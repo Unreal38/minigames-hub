@@ -70,14 +70,14 @@ const _f = new THREE.Vector3();
 
 // The arch drawn on the inside of a ball of radius 1 round the camera (a ring of directions, like a real rainbow round
 // the point opposite the sun), so it looks right from any angle the camera turns to. Its centre is +z, up is +y; ra is
-// its angular radius. Bands keep the same angular width at any size. A little more than half a ring; the feet fade into
-// the haze. One mesh, one draw call.
+// its angular radius. Bands keep the same angular width at any size. The lower part fades out, so the arch rises out of the
+// haze round the horizon. One mesh, one draw call.
 function bowRing(ra) {
   const SEG = 72, pos = [], col = [], idx = [], c = new THREE.Color(), bw = Math.min(.03, ra * .045);
   BOW.forEach((hex, i) => {
     c.set(hex); const r0 = ra - bw * (i + 1), r1 = ra - bw * i, base = pos.length / 3;
     for (let j = 0; j <= SEG; j++) {
-      const f = -.25 + (Math.PI + .5) * j / SEG, k0 = Math.min(1, Math.max(0, (Math.sin(f) + .2) / .26)), al = k0 * k0 * (3 - 2 * k0);
+      const f = -.25 + (Math.PI + .5) * j / SEG, k0 = Math.min(1, Math.max(0, (Math.sin(f) - .22) / .26)), al = k0 * k0 * (3 - 2 * k0);
       for (const r of [r0, r1]) { pos.push(Math.sin(r) * Math.cos(f), Math.sin(r) * Math.sin(f), Math.cos(r)); col.push(c.r, c.g, c.b, al); }
       if (j) { const q = base + (j - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
     }
@@ -104,7 +104,7 @@ export function skyBow({ fit = false } = {}) {
       camera.getWorldDirection(_f);
       const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
       const hfov = 2 * Math.atan(Math.tan(half) * (camera.aspect || 1)), A = Math.round(Math.min(.62, Math.max(.3, hfov * .4)) * 50) / 50;
-      const el = fit ? Math.max(-1.05, Math.min(-.04, pitch + half - .09 - A)) : -.04; // just under the horizon, so the feet stand on it
+      const el = fit ? Math.max(-1.05, Math.min(-.04, pitch + half - .09 - A * .6)) : -A * .4; // centre sunk under the horizon, so a low arch rises from it
       _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
       if (!rings.has(A)) rings.set(A, bowRing(A));
       a = { yaw: Math.atan2(_f.x, _f.z), el, g: rings.get(A) }; at.set(camera, a);
