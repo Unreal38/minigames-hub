@@ -105,9 +105,9 @@ body.in-game { overflow: hidden; }
 .hd-b:not(:disabled):active { transform: translateY(2px); }
 
 /* a tile, in the tray, the ghost you drag and the round sheet */
-.hd-t { --c: #3b2219; position: relative; width: 44px; height: 58px; padding: 0; border-radius: 8px; background: var(--ht-pat, none) center / 100% 100% no-repeat, var(--ht-face, #f2dfbf); border: 2px solid var(--ht-edge, #c9a77c); box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 4px 4px #0003; display: grid; grid-template-rows: 1fr auto; justify-items: center; color: var(--ht-ink, var(--c)); cursor: pointer; transition: transform .12s, box-shadow .12s; touch-action: none; box-sizing: border-box; font: inherit; }
-.hd-t b { font: 700 24px/1 var(--fd); margin-top: 4px; }
-.hd-t .hd-pi { width: 30px; height: 30px; margin-bottom: 2px; pointer-events: none; filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff); } /* the white sticker edge, as on the table */
+.hd-t { --c: #3b2219; position: relative; width: 44px; height: 58px; padding: 0; border-radius: 8px; background: var(--ht-pat, none) center / 100% 100% no-repeat, var(--ht-face, #f2dfbf); border: 2px solid var(--ht-edge, #c9a77c); box-shadow: 0 3px 0 var(--ht-body, #d8c3a6), 0 4px 4px #0003; display: grid; grid-template-rows: 1fr auto; justify-items: center; color: var(--ht-ink, var(--c)); cursor: pointer; transition: transform .12s, box-shadow .12s; touch-action: none; box-sizing: border-box; font: inherit; overflow: hidden; } /* number + pet always fit inside: see the sizes below */
+.hd-t b { font: 700 24px/1 var(--fd); margin-top: 3px; }
+.hd-t .hd-pi { width: 24px; height: 24px; margin-bottom: 2px; pointer-events: none; filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff); } /* the white sticker edge, as on the table */
 .hd-t .hd-egg { width: 28px; height: 30px; margin-bottom: 2px; }
 .hd-t.egg b { font-size: 13px; color: var(--ht-ink, #7a3aa8); margin-top: 7px; }
 .hd-t.e0 { --c: #b83a12; } .hd-t.e1 { --c: #8a6200; } .hd-t.e2 { --c: #22733a; } .hd-t.e3 { --c: #17609e; } /* tiles.js NUM_COL */
@@ -164,8 +164,8 @@ body.in-game { overflow: hidden; }
   .hd-sorts button { font-size: 12px; padding: 1px 8px; }
   .hd-bar { width: 46px; } .hd-acts { gap: 5px; }
   .hd-tray { padding: 8px 4px 5px; gap: 5px 3px; }
-  .hd-t { width: 40px; height: 54px; } .hd-t b { font-size: 21px; } .hd-t .hd-pi { width: 27px; height: 27px; }
-  .hd-tray.many .hd-t { width: 34px; height: 46px; } .hd-tray.many .hd-t b { font-size: 18px; margin-top: 3px; } .hd-tray.many .hd-t .hd-pi { width: 22px; height: 22px; }
+  .hd-t { width: 40px; height: 54px; } .hd-t b { font-size: 20px; } .hd-t .hd-pi { width: 23px; height: 23px; } .hd-t .hd-egg { width: 24px; height: 26px; }
+  .hd-tray.many .hd-t { width: 34px; height: 46px; } .hd-tray.many .hd-t b { font-size: 17px; margin-top: 2px; } .hd-tray.many .hd-t .hd-pi { width: 19px; height: 19px; }
   .hd-tray.many .hd-t.egg b { font-size: 10px; } .hd-tray.many .hd-t .hd-egg { width: 20px; height: 22px; }
   .hd-b { font-size: 12.5px; padding: 4px 10px; } .hd-b.go { font-size: 14px; padding: 4px 16px; }
   .hd .glab { font-size: 10px; }

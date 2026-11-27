@@ -990,8 +990,8 @@ const GAMES = {
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 45, '45s')}${pill('timer', 60, '60s')}${pill('timer', 90, '90s')}${pill('timer', 0, 'Off')}</div></div>`,
     howto: `Our own number-tile game with Pet Farm pets. Lay herds (one number in different pets) and lines (one pet, numbers in a row) from your tray, and rebuild what's on the table to fit more in. Empty your tray first to win.`,
     rules: `<ol>
-      <li>There are <b>106 tiles</b>: the numbers <b>1 to 13</b> in four pets (<b>Cindercub, Zapkit, Sproutle and Axolily</b>), two of each, and <b>two Mystery Eggs</b> that stand in for any tile. Everyone gets <b>14 tiles</b> in their tray. Empty seats are played by bots.</li>
-      <li>A <b>herd</b> is one number in 3 or 4 different pets, like 7 Cindercub, 7 Zapkit, 7 Axolily. A <b>line</b> is one pet with 3 or more numbers in a row, like Sproutle 4, 5, 6. 13 never joins up with 1.</li>
+      <li>There are <b>106 tiles</b>: the numbers <b>1 to 13</b> in four pets (<b>Chilipup, Zapkit, Sproutle and Waddlet</b>), two of each, and <b>two Mystery Eggs</b> that stand in for any tile. Everyone gets <b>14 tiles</b> in their tray. Empty seats are played by bots.</li>
+      <li>A <b>herd</b> is one number in 3 or 4 different pets, like 7 Chilipup, 7 Zapkit, 7 Waddlet. A <b>line</b> is one pet with 3 or more numbers in a row, like Sproutle 4, 5, 6. 13 never joins up with 1.</li>
       <li>On your turn put down <b>at least one tile</b> from your tray, or <b>draw a tile</b> and your turn is over. When the pile is empty you pass instead.</li>
       <li>With <b>First play: 30 or more</b>, your first play must be new herds and lines from your own tray worth <b>30 points</b> or more (a tile counts its number, an egg what it stands for). Until then you can't touch the table.</li>
       <li>After that you may <b>take apart and rebuild</b> anything on the table: split lines, swap tiles between groups, take an egg back by putting in the tile it stood for. Tiles from the table can't go into your tray. When you press <b>Done</b>, every group must be a herd or a line.</li>
