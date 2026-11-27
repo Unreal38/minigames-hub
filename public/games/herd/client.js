@@ -255,7 +255,7 @@ export function mount(app, ctx) {
   let mySk = -1;
   function paintSkin() {
     const sk = Math.max(0, me()?.fl?.ht | 0); if (sk === mySk) return; mySk = sk;
-    for (const el of [$('hd-tray'), ghost]) { for (const v of ['--ht-face', '--ht-body', '--ht-edge', '--ht-pat', '--ht-ink']) el.style.removeProperty(v); for (const d of herdVars(sk).split(';')) { const i = d.indexOf(':'); if (i > 0) el.style.setProperty(d.slice(0, i), d.slice(i + 1)); } }
+    for (const el of [$('hd-tray'), ghost]) { for (const v of ['--ht-face', '--ht-body', '--ht-edge', '--ht-pat', '--ht-ink']) el.style.removeProperty(v); for (const d of herdVars(sk).split(/;(?=--)/)) { const i = d.indexOf(':'); if (i > 0) el.style.setProperty(d.slice(0, i), d.slice(i + 1).replace(/;$/, '')); } } // split only before each --name: the pattern's data URL has its own ';'
   }
   function render() {
     if (!S) return;
