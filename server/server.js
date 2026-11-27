@@ -237,6 +237,7 @@ function roomInfo(r) {
     state: r.G ? r.G.ph : 'lobby', opts: r.opts, max: GAMES[r.game].meta.maxPlayers, ...seatInfo(r),
     players: r.players.map(t => { const c = clients.get(t); return { id: c.id, name: c.name, color: c.color, av: c.av, online: !!c.sock, watch: r.spect.has(c.id), fl: store.flair(store.profileOf(t)), pt: store.tagOf(store.profileOf(t)), pet: palOf(store.profileOf(t)), ...store.badge(store.profileOf(t)) }; }),
     party: r.party ? { game: r.party.game, back: r.party.backAt ? Math.max(0, r.party.backAt - Date.now()) : null } : null,
+    hold: r.hold ? { id: r.hold.id, open: !!r.hold.goAt } : null,
     pre: !r.party && r.G?.mini?.readyAt && !r.G.mini.started ? { game: r.G.mini.game, left: Math.max(0, r.G.mini.readyAt - Date.now()) } : null,
     board: boardOf(r), played: r.played || 0, paid: r.G?.ph === 'end' && r.G.scored ? r.paid || null : null,
     again: againOf(r), sit: r.players.map(t => clients.get(t)?.id).filter(id => r.sit.has(id)),
@@ -632,6 +633,7 @@ function startMini(r) {
   sb.forEach((j, k) => { const from = T.seats[tb[k]]; if (from) Object.assign(r.G.seats[j], { name: from.name, color: from.color, av: from.av }); });
   r.party.map = r.G.seats.map((x, j) => (x.human ? T.seats.findIndex(t => t.id === x.id) : tb[sb.indexOf(j)] ?? -1));
   matchColors(r.G); r.G.bornAt = Date.now(); r.G.inParty = true;
+  holdStart(r, 0); // the trail's "Next up" card already showed: wait only for every screen to draw the minigame
   sendRoom(r); sendState(r); broadcastRooms();
 }
 function partyEnd(r) {
@@ -658,6 +660,58 @@ function partyTick(r, now) {
     if (!r.G.mini.readyAt) { r.G.mini.readyAt = now + PARTY_READY_MS; sendRoom(r); }
     else if (now >= r.G.mini.readyAt) startMini(r);
   }
+}
+
+// ---------- the start curtain ----------
+// Kuba (2026-11-27): every match starts behind the curtain, like the Friendship Trail's minigames, and nothing may
+// happen before it opens. The game is created at once (so every screen can build it behind the curtain), then held:
+// no ticks, no fast ticks, no moves, no bot turns. Each screen says 'ready' once it has drawn the game; when every
+// seated player's screen has (or HOLD_MAX_MS passed: a phone asleep must not hold the table), the room says the
+// curtain opens, and HOLD_OPEN_MS later, when it is fully open, the match runs. Every clock the game set while it was
+// held (turn ends, countdowns, start times) moves on by the time it waited, so a 3-2-1 countdown starts when the
+// curtain is open. Only screens that draw the curtain (hello.curt) are waited for, so test clients and old pages
+// play at once. HOLD_MIN_MS keeps the "Get ready" card up long enough to read.
+const HOLD_MIN_MS = +(process.env.HOLD_MIN_MS ?? 2600), HOLD_MAX_MS = +(process.env.HOLD_MAX_MS ?? 12_000), HOLD_OPEN_MS = 750;
+let holdN = 0;
+// The seated people a held match waits for: online, at the table, with a page that draws the curtain.
+function holdWaits(r) {
+  const seated = new Set(r.G?.seats.filter(x => x?.human && !x.bot && x.id).map(x => x.id));
+  return r.players.map(t => clients.get(t)).filter(c => c?.sock && c.curt && seated.has(c.id));
+}
+function holdStart(r, minMs) {
+  r.hold = null;
+  if (!r.G || !holdWaits(r).length) return;
+  const now = Date.now();
+  r.hold = { id: ++holdN, at: now, min: now + minMs, max: now + HOLD_MAX_MS, ready: new Set(), goAt: 0, acts: [] };
+}
+// Every time in G (milliseconds since 1970, within a day of the hold) moves on by ms: the match begins now.
+function shiftTimes(G, at, ms) {
+  const lo = at - 864e5, hi = at + 864e5, seen = new Set();
+  const walk = o => {
+    if (!o || typeof o !== 'object' || seen.has(o)) return; seen.add(o);
+    if (ArrayBuffer.isView(o)) return;
+    if (o instanceof Map) { for (const [k, v] of o) { if (typeof v === 'number' && v > lo && v < hi) o.set(k, v + ms); else walk(v); } return; }
+    if (o instanceof Set) { for (const v of o) walk(v); return; }
+    for (const k of Object.keys(o)) { const v = o[k]; if (typeof v === 'number') { if (v > lo && v < hi) o[k] = v + ms; } else if (v && typeof v === 'object') walk(v); }
+  };
+  walk(G);
+}
+// Runs with the game loop: opens the curtain once everyone is ready, then lets the match go.
+function holdTick(r, now) {
+  const h = r.hold; if (!h) return false;
+  if (!r.G) { r.hold = null; return false; }
+  if (!h.goAt) {
+    const waits = holdWaits(r);
+    if (now < h.max && (now < h.min || waits.some(c => !h.ready.has(c.id)))) return true;
+    h.goAt = now + HOLD_OPEN_MS; sendRoom(r); // the curtains slide open on every screen
+    return true;
+  }
+  if (now < h.goAt) return true;
+  shiftTimes(r.G, h.at, h.goAt - h.at);
+  r.hold = null;
+  for (const [id, a] of h.acts) { const s = r.G.seats.findIndex(x => x.id === id); try { GAMES[r.game].act(r.G, s, a); } catch (e) { console.error(`held move error in ${r.game} table ${r.code}`, e); } }
+  sendRoom(r); sendState(r);
+  return false;
 }
 
 function startGame(r) {
@@ -689,6 +743,7 @@ function startGame(r) {
   r.G = GAMES[r.game].create(humans.map((c, i) => ({ id: c.id, name: c.name, color: cols[i], av: c.av, ...(GAMES[r.game].meta.emotes ? { em: emOf(c) } : {}), ...(GAMES[r.game].meta.pets ? { pets: palsOf(store.profileOf(c.token)) } : {}) })), r.opts, prev);
   matchColors(r.G); // bots, too, keep clear of the people's colours
   r.G.bornAt = Date.now(); // when the match began: a short match against bots pays its share (botpay.js)
+  holdStart(r, HOLD_MIN_MS);
   sendRoom(r); sendState(r); broadcastRooms();
 }
 
@@ -832,7 +887,7 @@ function handle(c, m) {
     }
     case 'lobby': { // host sends everyone back to the waiting room
       const r = rooms.get(c.room); if (!r || r.host !== c.id || r.G?.ph === 'play' || r.party) return;
-      r.last = r.G; r.G = null; r.again = new Set(); fillSeats(r); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
+      r.last = r.G; r.G = null; r.hold = null; r.again = new Set(); fillSeats(r); for (const t of r.players) send(clients.get(t), { t: 'state', s: null });
       sendRoom(r); broadcastRooms(); return;
     }
     case 'again': { // vote to play another round (shown to the host on the results screen)
@@ -855,8 +910,15 @@ function handle(c, m) {
       if (r.G?.ph === 'play' && mod.seatWatcher) { mod.seatWatcher(r.G, { id: c.id, name: c.name, color: c.color, av: c.av }, m.on !== false); }
       sendRoom(r); broadcastRooms(); return;
     }
+    case 'ready': { // this screen has drawn the held match behind the curtain
+      const r = rooms.get(c.room); if (!r?.hold || m.h !== r.hold.id) return;
+      r.hold.ready.add(c.id); holdTick(r, Date.now()); return;
+    }
     case 'act': {
       const r = rooms.get(c.room); if (!r?.G) return;
+      // Nothing moves before the curtain is open: a move sent while the match is held (a page that tells the game it
+      // has loaded, a key held down) waits and is played the moment the match begins.
+      if (r.hold) { if (r.hold.acts.length < 200) r.hold.acts.push([c.id, m.a]); return; }
       const s = r.G.seats.findIndex(x => x.id === c.id);
       if (GAMES[r.game].act(r.G, s, m.a)) sendState(r);
       return;
@@ -1130,6 +1192,7 @@ const onSocket = sock => {
       if (c.sock !== sock) c.since = Date.now(); // when this visit started, for the host's list
       c.sock = sock; c.lastSeen = Date.now(); c.view = 'hub';
       c.name = cleanName(m.name) || c.name || 'Guest'; c.color = cleanColor(m.color); c.av = cleanAv(m.av);
+      c.curt = !!m.curt; // this page draws the start curtain and says when it is ready (see holdStart)
       c.dev = modr.cleanDev(m.dev) || c.dev || ''; c.iph = modr.ipHash(sock.ip); // for a host's device or address ban (server/mod.js)
       c.id = store.session(token, c).id;
       const p = store.profileOf(token);
@@ -1261,7 +1324,7 @@ setInterval(() => {
 setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {
-    try { if (r.G && GAMES[r.game].tick(r.G, now)) sendState(r); partyTick(r, now); }
+    try { if (r.hold && holdTick(r, now)) continue; if (r.G && GAMES[r.game].tick(r.G, now)) sendState(r); partyTick(r, now); }
     catch (e) { console.error(`tick error in ${r.game} table ${r.code}`, e); } // one broken game must not stop every other table
     for (const t of [...r.players]) {
       const c = clients.get(t);
@@ -1285,7 +1348,7 @@ setInterval(() => {
   const now = Date.now();
   for (const r of rooms.values()) {
     const mod = GAMES[r.game];
-    try { if (r.G && mod.fast && mod.fast(r.G, now)) sendState(r); } catch (e) { console.error(`fast tick error in ${r.game} table ${r.code}`, e); }
+    try { if (r.G && !r.hold && mod.fast && mod.fast(r.G, now)) sendState(r); } catch (e) { console.error(`fast tick error in ${r.game} table ${r.code}`, e); }
   }
 }, 50);
 

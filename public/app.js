@@ -1207,7 +1207,7 @@ function connect() {
   if (replaced || (ws && ws.readyState <= 1)) return;
   const s = ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   s.onopen = () => {
-    s.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av, dev: devId() }));
+    s.send(JSON.stringify({ t: 'hello', token: st.token, name: st.name || 'Guest', color: st.color, av: st.av, dev: devId(), curt: 1 }));
   };
   s.onmessage = e => {
     if (s !== ws) return;
@@ -1363,7 +1363,7 @@ function onMsg(m) {
     // behind the curtain, which opens again once the new game has drawn.
     if ((st.game || st.gameLoading) && st.gameKey && st.gameKey !== m.room.game && m.room.state !== 'lobby') {
       curtainShut(m.room.party ? null : 'back'); unmountGame(); st.lastState = null;
-      mountGame().then(() => curtainOpen(650));
+      mountGame().then(() => { if (!st.room?.hold) curtainOpen(650); }); // a held minigame opens when the server says so
     }
     else if (st.game) st.game.room(m.room); else if (!st.gameLoading) go('lobby');
     watchPaint();
@@ -1375,9 +1375,11 @@ function onMsg(m) {
     st.lastState = m.s;
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     // Friendship Trail opens behind the party curtain too, like its minigames (Kuba 2026-11-27)
-    const opening = !st.game && !st.gameLoading && st.room?.game === PARTY_GAME && !st.room.party && st.lastState?.ph !== 'end';
+    // (A held match, see curtainPaint, opens when the server says everyone is ready, not here.)
+    const opening = !st.room?.hold && !st.game && !st.gameLoading && st.room?.game === PARTY_GAME && !st.room.party && st.lastState?.ph !== 'end';
     const shutAt = Date.now(); if (opening) curtainShut('start');
-    mountGame().then(g => { g?.update(st.lastState); watchPaint(); if (opening) curtainOpen(Math.max(700, 1800 - (Date.now() - shutAt))); });
+    // The game is built (or, on Play again, handed the new match) only once the curtain is fully shut, so nobody sees it swap.
+    Promise.all([mountGame(), curtainGate()]).then(([g]) => { g?.update(st.lastState); watchPaint(); if (opening) curtainOpen(Math.max(700, 1800 - (Date.now() - shutAt))); holdReady(); });
   } else if (m.t === 'react') {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
@@ -1437,7 +1439,7 @@ function mountGame() {
   document.body.classList.toggle('tagpick', !TAG_HANDS_OFF.has(st.room.game)); // name tags open profile cards (see below)
   heroMod?.then(m => m.releaseHero()).catch(() => {}); // fewer live 3D canvases while a game runs (the hub builds its isle again on the way back)
   const key = st.room.game; st.gameKey = key;
-  st.gameLoading = g.load().then(mod => {
+  st.gameLoading = Promise.all([g.load(), curtainGate()]).then(([mod]) => {
     const game = st.room?.game;
     if (game !== key) { st.gameLoading = null; return mountGame(); } // the table moved on to another game while this one loaded
     st.game = mountWithCss(game, () => mod.mount($app, {
@@ -1479,7 +1481,26 @@ function partyPaint(room) {
 // match starts too fast"). Two halves slide shut over the trail with a "Next up" card (picture, name, cut, how to win and a
 // countdown: the server waits room.pre.left before it creates the minigame), the game is swapped behind them, and they
 // open once the new game has drawn. On the way back they shut just before the trail returns, with a "Back to the trail" card.
-let curtEl = null, curtTimer = 0, curtOpenT = 0, curtBackT = 0, curtKind = '';
+//
+// Every match started from a waiting room (or Play again) opens behind it too (Kuba 2026-11-27: "the game should not
+// start until the curtain is opened"). The server holds a new match (room.hold, see holdStart in server.js): the
+// curtain shuts with a "Get ready" card for the game, the game is built behind it, this page says 'ready' once it has
+// drawn, and when every player's page has, room.hold.open comes and the curtain slides open. The match begins as it
+// finishes opening: the server moves every clock in the game on by the time it waited.
+let curtEl = null, curtTimer = 0, curtOpenT = 0, curtBackT = 0, curtKind = '', curtShutAt = 0, curtGame = '';
+const CURT_SHUT_MS = 680; // the halves take .55 s to meet (style.css .pc-h)
+// Resolves once the curtain is fully shut (at once when it is open or long shut): swap what is behind it after this.
+function curtainGate() {
+  const left = curtEl?.classList.contains('shut') ? CURT_SHUT_MS - (Date.now() - curtShutAt) : 0;
+  return left > 0 ? new Promise(res => setTimeout(res, left)) : Promise.resolve();
+}
+// This page has drawn the held match: tell the server (after two frames, so the first picture is really on screen).
+let readyFor = 0;
+function holdReady() {
+  const h = st.room?.hold; if (!h || h.open || !st.game || readyFor === h.id) return;
+  readyFor = h.id;
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (st.room?.hold?.id === h.id) send({ t: 'ready', h: h.id }); }));
+}
 function curtainEl() {
   if (curtEl) return curtEl;
   curtEl = document.createElement('div'); curtEl.className = 'pcurt'; curtEl.setAttribute('aria-live', 'polite');
@@ -1488,6 +1509,11 @@ function curtainEl() {
   return curtEl;
 }
 function curtainCard(kind, room) {
+  if (kind === 'start' && room?.game !== PARTY_GAME) { // any other game, started from its waiting room
+    const gm = GAMES[room?.game]; if (!gm) return '';
+    return `<img src="/gamepics/${room.game}-s.jpg" alt="" decoding="async"><small>${L('Get ready', 'Przygotuj się')}</small>
+      <h2>${esc(gm.name)}</h2><p class="pc-how">${gm.howto}</p><b class="pc-n" data-n></b>`;
+  }
   if (kind === 'start') return `<img src="/gamepics/trail-s.jpg" alt="" decoding="async"><small>${L('Party time', 'Czas na imprezę')}</small>
     <h2>${L('Friendship Trail', 'Szlak przyjaźni')}</h2><p>${L('Collect pet friends on the trail and win the minigames.', 'Zbieraj przyjaciół na szlaku i wygrywaj minigry.')}</p>`;
   if (kind === 'back') return `<img src="/gamepics/trail-s.jpg" alt="" decoding="async"><small>${L('Minigame over', 'Koniec minigry')}</small>
@@ -1500,7 +1526,8 @@ function curtainCard(kind, room) {
 function curtainShut(kind, room = st.room) {
   const el = curtainEl(); clearTimeout(curtOpenT);
   const k = kind || 'next';
-  if (curtKind !== k) { curtKind = k; el.querySelector('.pc-card').innerHTML = curtainCard(k, room); }
+  if (curtKind !== k || (k === 'start' && curtGame !== room?.game)) { curtKind = k; curtGame = room?.game || ''; el.querySelector('.pc-card').innerHTML = curtainCard(k, room); }
+  if (!el.classList.contains('shut')) curtShutAt = Date.now();
   el.classList.add('shut');
 }
 function curtainOpen(ms) {
@@ -1509,6 +1536,18 @@ function curtainOpen(ms) {
 }
 function curtainPaint(room) {
   clearInterval(curtTimer);
+  if (room?.hold && room.state !== 'lobby') { // a new match waits behind the curtain until every player has it drawn
+    if (!room.hold.open) {
+      curtainShut(room.party ? 'next' : 'start', room);
+      const n = curtEl.querySelector('[data-n]');
+      const paint = () => { if (n) n.textContent = readyFor === room.hold.id && st.game && Date.now() - curtShutAt > 3200 ? L('Waiting for everyone…', 'Czekamy na wszystkich…') : L('Get ready…', 'Przygotuj się…'); };
+      paint(); curtTimer = setInterval(paint, 250);
+    } else {
+      const n = curtEl?.querySelector('[data-n]'); if (n) n.textContent = L('Here we go!', 'Zaczynamy!');
+      (st.gameLoading || Promise.resolve()).then(() => curtainOpen(0)); // a page still loading opens on its game, not the waiting room
+    }
+    return;
+  }
   if (room?.pre) { // the minigame is picked: count down to it on the card
     curtainShut('next', room);
     const end = Date.now() + room.pre.left, n = curtEl.querySelector('[data-n]');
@@ -1519,7 +1558,7 @@ function curtainPaint(room) {
   const n = curtEl?.querySelector('[data-n]'); if (n && room?.party && curtKind === 'next') n.textContent = L('Here we go!', 'Zaczynamy!');
   clearTimeout(curtBackT);
   if (room?.party?.back != null) curtBackT = setTimeout(() => curtainShut('back'), Math.max(0, room.party.back - 900));
-  else if (!room?.party && curtKind && curtKind !== 'start' && !st.gameLoading) curtainOpen(400); // safety: never leave the curtain shut over a game
+  else if (!room?.party && curtKind && (curtKind !== 'start' || room?.state === 'lobby') && !st.gameLoading) curtainOpen(400); // safety: never leave the curtain shut over a game
 }
 function unmountGame() { document.body.classList.remove('tagpick'); st.gameKey = null; if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
