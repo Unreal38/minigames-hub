@@ -129,6 +129,9 @@ r = await a.farmDo({ t: 'place', type: 'fence', x: 4, y: 5, r: 0 });
 if (r.err) fail('fence beside the flowers: ' + r.err);
 r = await a.farmDo({ t: 'place', type: 'rock', x: 4.5, y: 5.5, r: 0 }); // a fence is thin (1 x .5): a small prop fits right beside it
 if (r.err) fail('rock beside the thin fence: ' + r.err);
+r = { err: 1 }; // buildings snap to half tiles too
+for (const [x, y] of [[.5, 8.5], [1.5, 9.5], [6.5, 3.5], [2.5, 3.5], [8.5, 1.5]]) if (r.err) r = await a.farmDo({ t: 'place', type: 'garden', x, y, r: 0 });
+if (r.err) fail('building on half tiles: ' + r.err);
 r = { err: 1 }; // every decoration snaps to half tiles, so it can sit flush with a fence
 for (const [x, y] of [[.5, 8.5], [1.5, 9.5], [6.5, 3.5], [2.5, 3.5], [8.5, 1.5]]) if (r.err) r = await a.farmDo({ t: 'place', type: 'picnic', x, y, r: 0 });
 if (r.err) fail('whole-tile decoration on half tiles: ' + r.err);

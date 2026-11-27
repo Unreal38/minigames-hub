@@ -48,8 +48,7 @@ export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
 export const MAX_ITEMS = 450;
 
 // kind: 'b' building, 'd' decoration. w x h is the footprint before rotation. max = how many a farm may hold.
-// fine: a small prop whose w and h may be .5. Every decoration snaps to half tiles (so it can sit flush against a thin fence);
-// buildings sit on whole tiles.
+// fine: a small prop whose w and h may be .5. Everything, buildings too, snaps to half tiles (see stepOf).
 // walk: pets can stroll across it. craft: a decoration that needs a Workshop of that level on the farm.
 export const ITEMS = {
   house:    { name: 'Farmhouse', kind: 'b', w: 3, h: 3, max: 1, fixed: true, cost: {}, desc: 'Home sweet home. A bigger farmhouse opens up new places to explore.' },
@@ -508,7 +507,7 @@ export function blockedTiles(farm) {
   for (let y = 0; y < n * 2; y++) for (let x = 0; x < n * 2; x++) if (h[y * n * 2 + x]) g[(y >> 1) * n + (x >> 1)] = 1;
   return g;
 }
-export const stepOf = type => ITEMS[type]?.fine || ITEMS[type]?.kind === 'd' ? .5 : 1;
+export const stepOf = () => .5; // everything snaps to half tiles (Kuba, 2026-11-27), so pieces line up with thin fences and each other
 
 // Would this item fit at (x, y)? ignore = id of the item being moved.
 export function fits(farm, type, x, y, r, ignore = null) {
