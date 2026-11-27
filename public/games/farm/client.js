@@ -7,7 +7,7 @@ import { sfx } from '../../sfx.js';
 import { myBurst } from '../../winfx.js';
 import { MOVES, STATUS, STAT_NAME, KIT, LEARN, ROLE_NAME, movesAt, XMOVE_LV, TURN_S, STRONG, effect } from './battle.js';
 import { COATS, PATTERNS, PART, TALENTS, STAR_NAME, BREED_LV, CUDDLE_H, speciesOdds, hatchHours, coatHex, kinCoat, coatName, variantOdds, charmsFor, sparkleOdds } from './breed.js';
-import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, wheelOnly, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_MAX, CHARMS, CHARM_HOUSE, charmHouse, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, TRADE_MATS, costText, elName } from './data.js';
+import { MAT_INFO, tripRate, ITEMS, MATS, SPECIES, FAMILIES, familyOf, atHome, elOf, variantOf, STARTERS, ELEMENTS, FORMS, RARITY, wheelOnly, ZONES, TRIPS, tripFits, FAR_VARIANT, PARTY, MAX_LV, HOUSE_LV, houseFor, TREAT_LV, BATTLE_XP, FIRST_WIN_X, HOUSE_MAX, CHARMS, CHARM_HOUSE, charmHouse, GIFTS, RECIPES, WORTH, SWAP_KEEP, SWAP_MAX, STORED, swapDeal, BERRIES, UPGRADES, UP_MAX, lvOf, lvMax, maxOf, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, upCost, whatUp, albumHave, museumFill, TRAIN_XP, WORK, canWork, workPct, formOf, xpFor, tripLoot, canAfford, countOf, TRADE_MATS, costText, elName } from './data.js';
 import { matIcon } from './icons.js';
 import { CHAPTERS, pinned, chapterDone } from './journal.js';
 import { missing, handIn } from './orders.js';
@@ -166,6 +166,19 @@ export function mount(app, ctx) {
   // (Buildings with a farmhouse level in ITEMS and zones are listed on their own.)
   const HOUSE_OPENS = { 5: [() => L('land up to 24 by 24', 'ziemię do 24 na 24')], [CHARM_HOUSE]: [() => L('Nest charms', 'amulety do Gniazda')] };
   for (const k of Object.keys(CHARMS)) if (charmHouse(k) > CHARM_HOUSE) (HOUSE_OPENS[charmHouse(k)] ||= []).push(() => CHARMS[k].name);
+  // Level caps and battle experience (2026-11-27): the farmhouse sets how far pets grow, battles teach grown pets.
+  const capped = p => p.lv < MAX_LV && p.lv >= (F?.lvCap || MAX_LV) && p.xp >= xpFor(p.lv); // at the cap with a full bar
+  const fightsLine = () => { const x = F.fights; return x.arena > 0 ? L(`Matches with coins left today: ${x.arena}.`, `Mecze z monetami na dziś: ${x.arena}.`) : x.arenaXp > 0 ? L(`No coins left today, but ${x.arenaXp} more matches still give experience.`, `Na dziś koniec monet, ale jeszcze ${x.arenaXp} meczów da doświadczenie.`) : L('Nothing left to earn today, so matches are just for fun.', 'Na dziś nie ma już nic do zdobycia, więc mecze są tylko dla zabawy.'); };
+  function xpNote(mode) { // what a fight teaches each pet, and what is left today
+    const [w, l] = BATTLE_XP[mode], x = F.fights, left = mode === 'arena' ? x.arenaXp : mode === 'live' ? x.liveXp : x.practice;
+    const first = x.first ? L(` Your first win today gives ×${FIRST_WIN_X}.`, ` Pierwsza dzisiejsza wygrana daje ×${FIRST_WIN_X}.`) : '';
+    return left > 0 ? L(`Each pet learns ${w} experience for a win, ${l} for a loss, more against a stronger team.${first} Fights with experience left today: ${left}.`, `Każdy zwierzak dostaje ${w} doświadczenia za wygraną i ${l} za porażkę, więcej z silniejszą drużyną.${first} Walki z doświadczeniem na dziś: ${left}.`)
+      : L('No more experience from these today, but you can still fight for fun.', 'Na dziś te walki nie dają już doświadczenia, ale nadal możesz walczyć dla zabawy.');
+  }
+  const bonusLine = z => { const t = [z.first && L(`First win today ×${FIRST_WIN_X}`, `Pierwsza wygrana dziś ×${FIRST_WIN_X}`), z.gap > 1 && L('Stronger team ×1.5', 'Silniejsza drużyna ×1,5'), z.gap < 1 && L('Weaker team ×0.5', 'Słabsza drużyna ×0,5')].filter(Boolean);
+    return t.length ? `<p class="hint">${t.join(' · ')}</p>` : ''; };
+  let wantArena = false; // the hub's Pet Battles tile asked for the Arena
+  function openArena() { wantArena = false; if (!countOf(F, 'flag')) return ctx.toast(L('Put up an Arena Flag first.', 'Najpierw postaw Flagę areny.'), true); foes = null; panel = { kind: 'foes' }; card = null; sync(); ctx.send({ t: 'foes' }); }
   let cardBack = null; // the window a pet card was opened from with its "i" button, so the card can go back to it
   const infoBtn = (id, name, cls = 'pfinfo') => `<button type="button" class="${cls}" data-a="pcard" data-id="${id}" title="${L('Open its card', 'Otwórz kartę')}" aria-label="${L(`Open the card of ${esc(name)}`, `Otwórz kartę: ${esc(name)}`)}">i</button>`;
   // Every own pet in a list or picker gets a small "i" next to it that opens its card (the pet itself picks or finds it).
@@ -370,18 +383,18 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'team') { // who fights (or defends), in order: the first one leads
-      const away = outAll(), what = panel.mode === 'defend' ? L('Defence team', 'Drużyna obrony') : panel.mode === 'live' ? L(`Live battle with ${esc(panel.foeName)}`, `Bitwa na żywo: ${esc(panel.foeName)}`) : panel.mode === 'arena' ? L(`Match against ${esc(panel.foeName)}`, `Mecz: ${esc(panel.foeName)}`) : L('Practice battle', 'Bitwa treningowa');
+      const away = outAll(), what = panel.mode === 'defend' ? L('Defence team', 'Drużyna obrony') : panel.mode === 'queue' ? L('Live match', 'Mecz na żywo') : panel.mode === 'live' ? L(`Live battle with ${esc(panel.foeName)}`, `Bitwa na żywo: ${esc(panel.foeName)}`) : panel.mode === 'arena' && panel.foe === 'auto' ? L('Quick match', 'Szybki mecz') : panel.mode === 'arena' ? L(`Match against ${esc(panel.foeName)}`, `Mecz: ${esc(panel.foeName)}`) : L('Practice battle', 'Bitwa treningowa');
       const pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => { const i = panel.pets.indexOf(p.id), out = busyFor(p, panel.mode);
         return `<button type="button" class="pickpet${out ? ' off' : ''}" data-a="team" data-id="${p.id}" data-why="${out}" aria-pressed="${i >= 0}">${i >= 0 ? `<span class="num">${i + 1}</span>` : ''}
           ${petRow(p, out ? ' · ' + out : ' · ' + elName(elOf(p)))}</button>`; }).join('');
-      const note = panel.mode === 'live' ? `${L(`You both play at the same time, with ${TURN_S} seconds to choose each turn. Everyone fights at level 20. ${panel.invite ? '' : `${esc(panel.foeName)} has to be online to say yes.`}`, `Gracie jednocześnie i macie ${TURN_S} sekund na wybór w każdej turze. Wszyscy walczą na poziomie 20. ${panel.invite ? '' : `${esc(panel.foeName)} musi być online, żeby się zgodzić.`}`)}`
-        : panel.mode === 'defend' ? L('These pets defend your farm when another player challenges you. They fight at level 20 and are played by the game.', 'Te zwierzaki bronią twojej farmy, gdy wyzwie cię inny gracz. Walczą na poziomie 20, a steruje nimi gra.')
-        : panel.mode === 'arena' ? `${L(`Everyone fights at level 20 with all four moves. ${F.fights.arena > 0 ? `Rewarded matches left today: ${F.fights.arena}.` : 'No rewarded matches left today, so this one is just for fun.'}`, `Wszyscy walczą na poziomie 20 i mają wszystkie cztery ruchy. ${F.fights.arena > 0 ? `Mecze z nagrodą na dziś: ${F.fights.arena}.` : 'Na dziś nie ma już meczów z nagrodą, więc ten jest tylko dla zabawy.'}`)}`
-        : `${L(`Your pets fight at their own level against partners of the same level. ${F.fights.practice > 0 ? `Practice fights that give experience today: ${F.fights.practice}.` : 'No more experience from practice today, but you can still fight for fun.'}`, `Twoje zwierzaki walczą na swoim poziomie z partnerami na tym samym poziomie. ${F.fights.practice > 0 ? `Walki treningowe z doświadczeniem na dziś: ${F.fights.practice}.` : 'Dziś trening nie daje już doświadczenia, ale nadal możesz walczyć dla zabawy.'}`)}`;
+      const note = panel.mode === 'live' || panel.mode === 'queue' ? `${L(`You both play at the same time, with ${TURN_S} seconds to choose each turn. Every pet fights at its own level.`, `Gracie jednocześnie i macie ${TURN_S} sekund na wybór w każdej turze. Każdy zwierzak walczy na swoim poziomie.`)} ${panel.mode === 'queue' ? L(`We look for someone online with a team near your level. If nobody turns up in 30 seconds, you get a farm team near your level instead.`, `Szukamy kogoś online z drużyną na podobnym poziomie. Jeśli nikt się nie pojawi w 30 sekund, zawalczysz z drużyną z farmy na twoim poziomie.`) : panel.invite ? '' : L(`${esc(panel.foeName)} has to be online to say yes.`, `${esc(panel.foeName)} musi być online, żeby się zgodzić.`)} ${xpNote('live')}`
+        : panel.mode === 'defend' ? L('These pets defend your farm when another player challenges you. They fight at their own level and are played by the game.', 'Te zwierzaki bronią twojej farmy, gdy wyzwie cię inny gracz. Walczą na swoim poziomie, a steruje nimi gra.')
+        : panel.mode === 'arena' ? `${panel.foe === 'auto' ? L('Matchmaking picks a player\'s farm team near your team\'s level, or a neighbour at your level.', 'Dobieranie przeciwnika wybierze drużynę z farmy gracza na podobnym poziomie albo sąsiada na twoim poziomie.') : L('Every pet fights at its own level.', 'Każdy zwierzak walczy na swoim poziomie.')} ${xpNote('arena')}`
+        : `${L(`Your pets fight at their own level against partners of the same level.`, `Twoje zwierzaki walczą na swoim poziomie z partnerami na tym samym poziomie.`)} ${xpNote('practice')}`;
       box.innerHTML = `<div class="panel tripp"><h2>${what}</h2><p>${L(`Pick up to ${PARTY}. The first one you tap leads.`, `Wybierz najwyżej ${PARTY}. Pierwszy dotknięty prowadzi.`)}</p>
         <div class="party">${pets}</div><p class="hint">${note}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
-          <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? L('Save team', 'Zapisz drużynę') : panel.mode === 'live' ? (panel.invite ? L('Join the battle', 'Dołącz do bitwy') : L('Send the invitation', 'Wyślij zaproszenie')) : 'Start'}</button></div></div>`;
+          <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? L('Save team', 'Zapisz drużynę') : panel.mode === 'queue' ? L('Find a player', 'Szukaj gracza') : panel.mode === 'live' ? (panel.invite ? L('Join the battle', 'Dołącz do bitwy') : L('Send the invitation', 'Wyślij zaproszenie')) : panel.foe === 'auto' ? L('Find a match', 'Znajdź mecz') : 'Start'}</button></div></div>`;
       return;
     }
     if (panel.kind === 'work') { // who helps at this building
@@ -395,8 +408,8 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'train') {
-      const gone = outAll(), pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV, out = busyFor(p, 'train');
-        return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out}" aria-pressed="${on}">${petRow(p, out ? ' · ' + out : full ? L(' · fully grown', ' · w pełni dorosły') : L(' · level ', ' · poziom ') + p.lv)}</button>`; }).join('');
+      const gone = outAll(), pets = favFirst(F.pets.filter(p => !p.lodge)).map(p => { const on = panel.pets.includes(p.id), full = p.lv >= MAX_LV || capped(p), out = busyFor(p, 'train');
+        return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out}" aria-pressed="${on}">${petRow(p, out ? ' · ' + out : full ? (p.lv >= MAX_LV ? L(' · fully grown', ' · w pełni dorosły') : L(' · at the level cap', ' · limit poziomu')) : L(' · level ', ' · poziom ') + p.lv)}</button>`; }).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Who trains at the yard?`, `Kto trenuje na placu?`)}</h2><p>${L(`Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring or cuddling in the Nest cannot train, and sending a pet exploring ends its training.`, `Wybierz najwyżej ${F.train.slots}. Każdy zdobywa ${TRAIN_XP} doświadczenia na godzinę, także pod twoją nieobecność. Zwierzak na wyprawie albo w Gnieździe nie może trenować, a wysłanie go na wyprawę kończy trening.`)}</p>
         <div class="party">${pets}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn big m" data-a="trainsave">${L(`Save`, `Zapisz`)}</button></div></div>`;
@@ -703,26 +716,37 @@ export function mount(app, ctx) {
       return;
     }
     if (panel.kind === 'foes') {
-      const rows = (foes || []).map(f => `<button type="button" class="foe" data-a="foe" data-id="${esc(f.id)}"><b>${esc(f.name)}</b><small>${L(`${f.npc ? 'Neighbour' : 'Player'} · ${f.pts} points`, `${f.npc ? 'Sąsiad' : 'Gracz'} · ${f.pts} pkt`)}</small>
+      const tlv = t => t.length ? Math.round(t.reduce((n, x) => n + x.lv, 0) / t.length) : 1;
+      const rows = (foes || []).map(f => `<button type="button" class="foe" data-a="foe" data-id="${esc(f.id)}"><b>${esc(f.name)}</b><small>${L(`${f.npc ? 'Neighbour' : 'Player'} · ${f.pts} points · ${f.npc ? 'your level' : `level ${tlv(f.team)}`}`, `${f.npc ? 'Sąsiad' : 'Gracz'} · ${f.pts} pkt · ${f.npc ? 'twój poziom' : `poziom ${tlv(f.team)}`}`)}</small>
         <span class="faces">${f.team.map(t => thumb('pet:' + t.sp, SPECIES[t.sp]?.name)).join('')}</span></button>`).join('');
-      box.innerHTML = `<div class="panel tripp"><h2>Arena</h2><p>${L(`You have ${F.pts} ladder points. Rewarded matches left today: ${F.fights.arena}.`, `Masz punktów rankingowych: ${F.pts}. Mecze z nagrodą na dziś: ${F.fights.arena}.`)}</p>
+      box.innerHTML = `<div class="panel tripp"><h2>Arena</h2><p>${L(`You have ${F.pts} ladder points. ${fightsLine()}`, `Masz punktów rankingowych: ${F.pts}. ${fightsLine()}`)}</p>
+        <div class="row pfmatch"><button type="button" class="btn big m" data-a="quick">${L('Quick match', 'Szybki mecz')}</button><button type="button" class="btn big w" data-a="queueopen">${L('Live match', 'Mecz na żywo')}</button></div>
+        <p class="hint">${L('Quick match finds a farm team near your level. Live match finds a player who is online right now.', 'Szybki mecz znajdzie drużynę z farmy na twoim poziomie. Mecz na żywo znajdzie gracza, który jest teraz online.')}</p>
+        <h3>${L('Or pick an opponent', 'Albo wybierz przeciwnika')}</h3>
         <div class="foes">${foes ? rows : '<p class="hint">' + L('Looking for opponents…', 'Szukam przeciwników…') + '</p>'}</div>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn w" data-a="defteam">${L(`Choose defence team`, `Wybierz drużynę obrony`)}</button></div></div>`;
       return;
     }
+    if (panel.kind === 'queue') { // waiting for a live opponent
+      const s = Math.max(0, Math.ceil((panel.until - Date.now()) / 1000));
+      box.innerHTML = `<div class="panel tripp"><h2>${L('Looking for a live opponent…', 'Szukam przeciwnika na żywo…')}</h2>
+        <p>${L(`Anyone online with a team near your level can join. ${s ? `If nobody turns up in ${s} s, you fight a farm team near your level.` : 'Nobody yet: finding a farm team near your level…'}`, `Może dołączyć każdy online z drużyną na podobnym poziomie. ${s ? `Jeśli nikt się nie pojawi w ${s} s, zawalczysz z drużyną z farmy na twoim poziomie.` : 'Na razie nikogo: szukam drużyny z farmy na twoim poziomie…'}`)}</p>
+        <div class="row end"><button type="button" class="btn ghost-ink" data-a="unqueue">${L('Stop looking', 'Przestań szukać')}</button></div></div>`;
+      return;
+    }
     if (panel.kind === 'invite') {
       box.innerHTML = `<div class="panel tripp"><h2>${L(`${esc(panel.from)} invites you to a live battle`, `${esc(panel.from)} zaprasza cię na bitwę na żywo`)}</h2>
-        <p>${L(`You both pick moves at the same time, with ${TURN_S} seconds for each turn. Everyone fights at level 20, and both of you earn coins and experience.`, `Wybieracie ruchy jednocześnie i macie ${TURN_S} sekund na każdą turę. Wszyscy walczą na poziomie 20, a obie strony dostają monety i doświadczenie.`)}</p>
+        <p>${L(`You both pick moves at the same time, with ${TURN_S} seconds for each turn. Every pet fights at its own level, and both of you earn coins and experience.`, `Wybieracie ruchy jednocześnie i macie ${TURN_S} sekund na każdą turę. Każdy zwierzak walczy na swoim poziomie, a obie strony dostają monety i doświadczenie.`)}</p>
         <div class="row end"><button type="button" class="btn ghost-ink" data-a="duelno">${L(`Not now`, `Nie teraz`)}</button>
           <button type="button" class="btn big m" data-a="duelpick">${L(`Pick my team`, `Wybierz drużynę`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'prize') {
       const z = panel.prize, who = F.pets.filter(p => panel.ids.includes(p.id));
-      const rows = z.counted ? who.map(p => { const g = z.grew.find(x => x.id === p.id);
+      const rows = z.learnt ?? z.counted ? who.map(p => { const g = z.grew.find(x => x.id === p.id);
         return `<div class="backpet">${thumb('pet:' + p.sp)}<div><b>${esc(p.name)}</b><small>${L(`+${z.xp} experience${g ? ` · <em>${g.form ? `grew up into its ${FORMS[g.form].toLowerCase()} form` : `reached level ${g.lv}`}</em>` : ''}`, `+${z.xp} doświadczenia${g ? ` · <em>${g.form ? `nowa forma: ${FORMS[g.form].toLowerCase()}` : `poziom ${g.lv}`}</em>` : ''}`)}</small></div></div>`; }).join('') : '';
       box.innerHTML = `<div class="panel tripp back"><h2>${L(`${z.won ? 'You won!' : panel.quit ? 'You left the ring' : 'You lost this one'}`, `${z.won ? 'Wygrana!' : panel.quit ? 'Walka przerwana' : 'Tym razem porażka'}`)}</h2>
-        ${z.counted ? `<div class="mats">${z.coins ? mat('coins', '+' + z.coins) : ''}${z.rank ? `<span class="mat">${L(`+${z.rank} rank experience`, `+${z.rank} doświadczenia rangi`)}</span>` : ''}${z.pts ? `<span class="mat">${L(`+${z.pts} ladder points`, `+${z.pts} pkt rankingowych`)}</span>` : ''}</div>${rows}${z.joined && F.pets.find(p => p.id === z.joined) ? `<div class="backpet found">${thumb('pet:' + F.pets.find(p => p.id === z.joined).sp)}<div>${newTag(z.fresh, ' big')}${L(`<b>The wild ${SPECIES[F.pets.find(p => p.id === z.joined).sp].name} came home with you!</b><small>${inLodge(z.joined) || 'It has moved in on your farm.'}</small>`, `<b>Dziki zwierzak (${SPECIES[F.pets.find(p => p.id === z.joined).sp].name}) wraca z tobą do domu!</b><small>${inLodge(z.joined) || 'Zamieszkał na twojej farmie.'}</small>`)}</div></div>` : ''}${z.noroom ? '<p class="hint">' + L('It wanted to come along, but every bed is taken. Build a Pet Hut to make room.', 'Chciał pójść z wami, ale wszystkie łóżka są zajęte. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.') + '</p>' : ''}` : `<p class="hint">${L(`${panel.quit ? 'Giving up earns nothing.' : 'No rewards left for today, so that one was just for fun.'}`, `${panel.quit ? 'Za poddanie się nie ma nagrody.' : 'Na dziś nie ma już nagród, więc ta walka była tylko dla zabawy.'}`)}</p>`}
+        ${z.learnt ?? z.counted ? `${bonusLine(z)}<div class="mats">${z.coins ? mat('coins', '+' + z.coins) : ''}${z.rank ? `<span class="mat">${L(`+${z.rank} rank experience`, `+${z.rank} doświadczenia rangi`)}</span>` : ''}${z.pts ? `<span class="mat">${L(`+${z.pts} ladder points`, `+${z.pts} pkt rankingowych`)}</span>` : ''}</div>${rows}${z.joined && F.pets.find(p => p.id === z.joined) ? `<div class="backpet found">${thumb('pet:' + F.pets.find(p => p.id === z.joined).sp)}<div>${newTag(z.fresh, ' big')}${L(`<b>The wild ${SPECIES[F.pets.find(p => p.id === z.joined).sp].name} came home with you!</b><small>${inLodge(z.joined) || 'It has moved in on your farm.'}</small>`, `<b>Dziki zwierzak (${SPECIES[F.pets.find(p => p.id === z.joined).sp].name}) wraca z tobą do domu!</b><small>${inLodge(z.joined) || 'Zamieszkał na twojej farmie.'}</small>`)}</div></div>` : ''}${z.noroom ? '<p class="hint">' + L('It wanted to come along, but every bed is taken. Build a Pet Hut to make room.', 'Chciał pójść z wami, ale wszystkie łóżka są zajęte. Zbuduj Chatkę zwierzaków, żeby zrobić miejsce.') + '</p>' : ''}${!z.counted ? `<p class="hint">${L('No coins or points left today, but your pets still learnt from it.', 'Na dziś nie ma już monet ani punktów, ale zwierzaki i tak się czegoś nauczyły.')}</p>` : ''}` : `<p class="hint">${L(`${panel.quit ? 'Giving up earns nothing.' : 'No rewards left for today, so that one was just for fun.'}`, `${panel.quit ? 'Za poddanie się nie ma nagrody.' : 'Na dziś nie ma już nagród, więc ta walka była tylko dla zabawy.'}`)}</p>`}
         <button type="button" class="btn big m" data-a="shut">${L(`Back to the farm`, `Wróć na farmę`)}</button></div>`;
       return;
     }
@@ -886,7 +910,7 @@ export function mount(app, ctx) {
     if (after) after(); else { shown = structuredClone(final); B = final; for (const s of [0, 1]) scene?.ringPet(s, act(s)); paintBattle(); }
   }
   function openTeam(mode, foe) {
-    if (mode !== 'defend' && mode !== 'live' && !countOf(F, mode === 'arena' ? 'flag' : 'yard')) return;
+    if (mode !== 'defend' && mode !== 'live' && !countOf(F, mode === 'arena' || mode === 'queue' ? 'flag' : 'yard')) return;
     const keep = (mode === 'defend' ? F.def : lastTeam).filter(id => F.pets.some(p => p.id === id) && freeFor(mode)(id));
     panel = { kind: 'team', mode, foe: foe?.id, foeName: foe?.name, invite: foe?.invite, pets: keep }; card = null; sync();
   }
@@ -987,11 +1011,13 @@ export function mount(app, ctx) {
       el.innerHTML = `${face(p, s.name)}<div class="info">
         <form class="namer"><input class="field" id="pf-name" maxlength="14" value="${esc(p.name)}" aria-label="${L(`Pet name`, `Imię zwierzaka`)}" autocomplete="off"><button class="btn sm w">${L(`Rename`, `Zmień imię`)}</button>${favBtn(p, ' big')}</form>
         <p>${elTags(p)} ${s.name} · ${FORMS[formOf(p.lv)]} · ${L('Level', 'Poziom')} ${p.lv}</p>
-        ${p.lv < MAX_LV ? `<div class="xp" title="${L(`Experience`, `Doświadczenie`)}"><i style="width:${Math.round(p.xp / xpFor(p.lv) * 100)}%"></i><span>${L(`${p.xp} of ${xpFor(p.lv)} to level ${p.lv + 1}`, `${p.xp} z ${xpFor(p.lv)} do poziomu ${p.lv + 1}`)}</span></div>` : ''}
+        ${p.lv < MAX_LV ? `<div class="xp" title="${L(`Experience`, `Doświadczenie`)}"><i style="width:${Math.min(100, Math.round(p.xp / xpFor(p.lv) * 100))}%"></i><span>${L(`${p.xp} of ${xpFor(p.lv)} to level ${p.lv + 1}`, `${p.xp} z ${xpFor(p.lv)} do poziomu ${p.lv + 1}`)}</span></div>` : ''}
+        ${capped(p) ? `<p class="hint">${L(`Level cap reached. A level ${houseFor(p.lv + 1)} farmhouse lets ${esc(p.name)} grow further.`, `Osiągnięty limit poziomu. Dom na poziomie ${houseFor(p.lv + 1)} pozwoli rosnąć dalej (${esc(p.name)}).`)}</p>` : ''}
+        ${p.lv >= TREAT_LV && p.lv < MAX_LV && !capped(p) && Object.keys(RECIPES).some(k => RECIPES[k].xp && F.inv[k]) ? `<p class="hint">${L('Grown up: treats give no more experience. It learns from battles, trips and training now.', 'Dorosły: przysmaki nie dają już doświadczenia. Teraz uczy się w bitwach, na wyprawach i na treningu.')}</p>` : ''}
         <p class="hint">${s.blurb}</p>
         ${Object.entries(F.work || {}).filter(([, id]) => id === p.id).map(([k]) => `<p class="hint">${L(`Helper at the ${ITEMS[k].name}: ${WORK[k].what(workPct(p, k)).toLowerCase()}.`, `Pomocnik (${ITEMS[k].name}): ${WORK[k].what(workPct(p, k)).toLowerCase()}.`)}</p>`).join('')}
         <div class="mvlist"><span class="hint">${ROLE_NAME[KIT[p.sp].role]}</span>${movesAt(p.sp, p.lv, p.xmove, elOf(p)).map(id => `<span class="el" style="--c:${ELEMENTS[MOVES[id].el]}">${MOVES[id].name}</span>`).join('')}</div>
-        ${Object.entries(RECIPES).filter(([k, r]) => F.inv[k] && (r.xp ? p.lv < MAX_LV : r.rest && p.rest > 0)).map(([k, r]) => `<button type="button" class="btn sm m" data-a="feed" data-what="${k}" data-id="${p.id}">${L(`Give a ${r.name} (${F.inv[k]} left)`, `Podaj: ${r.name} (masz ${F.inv[k]})`)}</button>`).join('')}
+        ${Object.entries(RECIPES).filter(([k, r]) => F.inv[k] && (r.xp ? p.lv < Math.min(TREAT_LV, F.lvCap || MAX_LV) : r.rest && p.rest > 0)).map(([k, r]) => `<button type="button" class="btn sm m" data-a="feed" data-what="${k}" data-id="${p.id}">${L(`Give a ${r.name} (${F.inv[k]} left)`, `Podaj: ${r.name} (masz ${F.inv[k]})`)}</button>`).join('')}
         ${p.lodge ? `<p class="hint">${L('Stored in the Pet Lodge. Move it out to the island to send it anywhere.', 'Jest w Schronisku. Przenieś go na wyspę, żeby gdzieś go wysłać.')}</p>` : ''}
         ${cardBack ? `<button type="button" class="btn sm m" data-a="cardback">◀ ${cardBack.kind === 'lodge' ? L('Back to the Lodge', 'Wróć do Schroniska') : cardBack.kind === 'pets' ? L('Back to My pets', 'Wróć do listy zwierzaków') : L('Back', 'Wróć')}</button>` : ''}
         ${F.lodgeRoom ? `<button type="button" class="btn sm w" data-a="lodge" data-id="${p.id}" data-on="${p.lodge ? '' : '1'}">${p.lodge ? L('Move to the island', 'Przenieś na wyspę') : L('Store in the Lodge', 'Do Schroniska')}</button>` : ''}
@@ -1011,8 +1037,8 @@ export function mount(app, ctx) {
       if (item.type === 'house') {
         name += L(` · Level ${F.house}`, ` · Poziom ${F.house}`);
         const opens = list([...Object.values(ZONES).filter(z => z.house === F.house + 1).map(z => z.name), ...Object.values(ITEMS).filter(it => it.house === F.house + 1).map(it => it.name), ...(HOUSE_OPENS[F.house + 1] || []).map(t => t())]);
-        more = F.houseNext ? `<p class="hint">${L(`Level ${F.house + 1} opens ${opens}.`, `Poziom ${F.house + 1} otwiera: ${opens}.`)}</p><div class="cost">${costHtml(F.houseNext, F.inv)}</div>
-          <button type="button" class="btn sm m" data-a="houseup">${L(`Improve farmhouse`, `Ulepsz dom`)}</button>` : '<p class="hint">' + L('It is as grand as it gets.', 'Okazalszy już nie będzie.') + '</p>';
+        more = `<p class="hint">${L(`Pets can grow up to level ${HOUSE_LV[F.house]}.`, `Zwierzaki mogą rosnąć do poziomu ${HOUSE_LV[F.house]}.`)}</p>` + (F.houseNext ? `<p class="hint">${L(`Level ${F.house + 1} opens ${opens ? opens + ' and ' : ''}pets up to level ${HOUSE_LV[F.house + 1]}.`, `Poziom ${F.house + 1} otwiera: ${opens ? opens + ' oraz ' : ''}zwierzaki do poziomu ${HOUSE_LV[F.house + 1]}.`)}</p><div class="cost">${costHtml(F.houseNext, F.inv)}</div>
+          <button type="button" class="btn sm m" data-a="houseup">${L(`Improve farmhouse`, `Ulepsz dom`)}</button>` : '<p class="hint">' + L('It is as grand as it gets.', 'Okazalszy już nie będzie.') + '</p>');
       } else if (item.type === 'gate') {
         more = F.trips.map(t => t.left > 0 ? `<p class="hint">${L(`A party is in ${ZONES[t.zone].name}, back in ${wait(t.left)}.`, `Drużyna jest tutaj: ${ZONES[t.zone].name}, wróci za ${wait(t.left)}.`)}</p>` : `<button type="button" class="btn sm m" data-a="collect" data-id="${t.id}">${L(`Welcome them back from ${ZONES[t.zone].name}`, `Przywitaj drużynę (${ZONES[t.zone].name})`)}</button>`).join('')
           + (F.trips.length < F.partyMax ? `<button type="button" class="btn sm m" data-a="explore">${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '') + `<p class="hint">${L(`Parties out: ${F.trips.length} of ${F.partyMax}.`, `Drużyny na wyprawie: ${F.trips.length} z ${F.partyMax}.`)}</p>`;
@@ -1222,8 +1248,11 @@ export function mount(app, ctx) {
     else if (a === 'mailread') ctx.send({ t: 'mailread' });
     else if (a === 'practice') openTeam('practice');
     else if (a === 'ranks') { ranks = null; panel = { kind: 'ranks' }; card = null; sync(); ctx.send({ t: 'ranks' }); }
-    else if (a === 'arena') { foes = null; panel = { kind: 'foes' }; card = null; sync(); ctx.send({ t: 'foes' }); }
+    else if (a === 'arena') openArena();
     else if (a === 'foe') { const f = foes?.find(x => x.id === b.dataset.id); if (f) openTeam('arena', f); }
+    else if (a === 'quick') openTeam('arena', { id: 'auto', name: L('a matched team', 'dobrana drużyna') });
+    else if (a === 'queueopen') openTeam('queue');
+    else if (a === 'unqueue') { ctx.send({ t: 'unqueue' }); panel = { kind: 'foes' }; sync(); }
     else if (a === 'defteam') openTeam('defend');
     else if (a === 'team') {
       if (b.classList.contains('off')) return ctx.toast(L(`That pet is ${b.dataset.why}.`, `Ten zwierzak jest teraz zajęty: ${b.dataset.why}.`), true);
@@ -1231,6 +1260,7 @@ export function mount(app, ctx) {
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= PARTY) return ctx.toast(L(`A team is ${PARTY} pets at most.`, `Drużyna to najwyżej ${PARTY} zwierzaki.`), true); else panel.pets.push(id);
       paintPanel();
     }
+    else if (a === 'fight' && panel.mode === 'queue') { lastTeam = [...panel.pets]; ctx.send({ t: 'queue', pets: lastTeam }); }
     else if (a === 'fight' && panel.mode === 'live') { lastTeam = [...panel.pets]; ctx.send(panel.invite ? { t: 'duelyes', id: panel.invite, pets: lastTeam } : { t: 'duel', to: panel.foe, pets: lastTeam }); }
     else if (a === 'wildfight') { panel = null; ctx.send({ t: 'fight', mode: 'wild' }); }
     else if (a === 'fight') { lastTeam = [...panel.pets]; ctx.send({ t: 'fight', mode: panel.mode, foe: panel.foe, pets: lastTeam }); }
@@ -1243,7 +1273,7 @@ export function mount(app, ctx) {
     else if (a === 'giveup') { if (!playing) ctx.send({ t: 'bquit' }); }
     else if (a === 'explore') openSend();
     else if (a === 'collect') ctx.send({ t: 'collect', id: b.dataset.id });
-    else if (a === 'shut') { const inv = panel?.kind === 'invite' ? panel.id : panel?.invite; if (inv) ctx.send({ t: 'duelno', id: inv });
+    else if (a === 'shut') { if (panel?.kind === 'queue') ctx.send({ t: 'unqueue' }); const inv = panel?.kind === 'invite' ? panel.id : panel?.invite; if (inv) ctx.send({ t: 'duelno', id: inv });
       const keep = panel?.kind === 'pet' && where === 'home' && F?.pets.some(p => p.id === panel.id) ? panel.id : null; // closing a pet's details leaves its card open, so a rename is one step away
       panel = null; if (keep) card = { pet: keep }; sync(); }
     else if (a === 'zone') { if (b.classList.contains('off')) return ctx.toast(L(`${ZONES[b.dataset.zone].name} opens at farmhouse level ${ZONES[b.dataset.zone].house}. Tap your farmhouse to improve it.`, `${ZONES[b.dataset.zone].name} otwiera się, gdy dom ma poziom ${ZONES[b.dataset.zone].house}. Dotknij domu, żeby go ulepszyć.`), true); panel.zone = b.dataset.zone; panel.step = 'who'; sfx.click(); paintPanel(); $('pf-panel').querySelector('.tripp')?.scrollTo?.(0, 0); }
@@ -1285,7 +1315,7 @@ export function mount(app, ctx) {
     else if (a === 'workoff') ctx.send({ t: 'work', type: b.dataset.type });
     else if (a === 'trainopen') { panel = { kind: 'train', pets: F.train.ids.filter(freeFor('train')) }; card = null; sync(); }
     else if (a === 'trainpick') {
-      if (b.classList.contains('off')) return ctx.toast(b.dataset.why ? L(`That pet is ${b.dataset.why}.`, `Ten zwierzak jest teraz zajęty: ${b.dataset.why}.`) : L('That pet is fully grown already.', 'Ten zwierzak jest już w pełni dorosły.'), true);
+      if (b.classList.contains('off')) return ctx.toast(b.dataset.why ? L(`That pet is ${b.dataset.why}.`, `Ten zwierzak jest teraz zajęty: ${b.dataset.why}.`) : L('That pet cannot learn more right now: it is fully grown or at the level cap.', 'Ten zwierzak nie może się teraz więcej nauczyć: jest w pełni dorosły albo ma limit poziomu.'), true);
       const id = b.dataset.id, i = panel.pets.indexOf(id);
       if (i >= 0) panel.pets.splice(i, 1); else if (panel.pets.length >= F.train.slots) return ctx.toast(F.train.slots < UP_MAX ? L(`The yard has ${F.train.slots} training ${F.train.slots > 1 ? 'spots' : 'spot'}. Improve it for more.`, `Miejsca treningowe na placu: ${F.train.slots}. Ulepsz plac, żeby mieć więcej.`) : L(`The yard has ${F.train.slots} training spots.`, `Miejsca treningowe na placu: ${F.train.slots}.`), true); else panel.pets.push(id);
       paintPanel();
@@ -1322,7 +1352,7 @@ export function mount(app, ctx) {
     for (const t of F.trips) if (t.due) t.left = Math.max(0, t.due - Date.now());
     if (F.trips.filter(t => t.left > 0).length < was) { sfx.turn(); ctx.toast(L('Your pets are back from their expedition!', 'Twoje zwierzaki wróciły z wyprawy!')); sync(); } else paintMain();
   }, 5000);
-  const liveTimer = setInterval(() => { const c = $('pf-clock'); if (c) c.textContent = Math.max(0, Math.ceil((liveAt - Date.now()) / 1000)); }, 500);
+  const liveTimer = setInterval(() => { const c = $('pf-clock'); if (c) c.textContent = Math.max(0, Math.ceil((liveAt - Date.now()) / 1000)); if (panel?.kind === 'queue' && !B && !destroyed) paintPanel(); }, 500);
   const skyTimer = setInterval(() => { // the sky follows the clock; say so when the weather turns
     if (destroyed || !scene || mode !== 'farm' || !F) return; const { hour, w } = skyNow(), key = w.kind + dayPart(hour); scene.setSky(hour, w.kind);
     if (key !== skyKey) { if (skyKey && !skyKey.startsWith(w.kind) && !B) ctx.toast(L(`${w.name} now. ${w.bonus}`, `Teraz: ${w.name}. ${w.bonus}`)); skyKey = key; paintTop(); if (panel?.kind === 'wx') paintPanel(); }
@@ -1351,7 +1381,7 @@ export function mount(app, ctx) {
     if (m.farm) { F = m.farm; if (F.orders) ordersAt = { day: Date.now() + F.orders.next, week: Date.now() + F.orders.week }; for (const t of [...F.trips, F.trip, ...F.nests, F.nest]) if (t && t.left > 0) t.due = Date.now() + t.left; tripAt = Date.now() + (F.trip?.left || 0); nestAt = Date.now() + (F.nest?.left || 0); gardenAt = F.garden.left ? Date.now() + F.garden.left : 0; }
     if (m.battle !== undefined && F && !(m.did === 'fought')) { // a fight starting, a turn played, or one found still running
       const starting = !B && m.battle;
-      if (!m.battle) { B = null; shown = null; playing = false; if (m.farm) { mode = 'farm'; sync(); } return; }
+      if (!m.battle) { B = null; shown = null; playing = false; if (m.farm) { mode = 'farm'; if (wantArena && where !== 'visit') return openArena(); sync(); } return; }
       if (starting) { B = m.battle; shown = structuredClone(B); playing = false; line = ''; blogs = []; $('pf-fl').innerHTML = ''; panel = null; card = null; edit = false; mode = 'farm'; sfx.turn(); sync(); return; }
       if (m.ev?.length) play(m.ev, m.battle); else { playing = false; B = m.battle; shown = structuredClone(B); sync(); }
       return;
@@ -1386,7 +1416,9 @@ export function mount(app, ctx) {
     else if (m.did === 'train') { sfx.set(); panel = null; ctx.toast(F.train.ids.length ? L('Training plan saved.', 'Plan treningu zapisany.') : L('Nobody is training now.', 'Teraz nikt nie trenuje.')); }
     else if (m.did === 'defend') { panel = null; ctx.toast(L('Defence team saved.', 'Drużyna obrony zapisana.')); }
     else if (m.did === 'charm') { sfx.set(); ctx.toast(L(`You made a ${CHARMS[m.kind].name}.`, `Gotowe: ${CHARMS[m.kind].name}.`)); }
-    else if (m.did === 'houseup') { sfx.win(); ctx.toast(L(`The farmhouse is now level ${F.house}.`, `Dom ma teraz poziom ${F.house}.`)); }
+    else if (m.did === 'houseup') { sfx.win(); ctx.toast(L(`The farmhouse is now level ${F.house}. Pets can grow up to level ${HOUSE_LV[F.house]}.`, `Dom ma teraz poziom ${F.house}. Zwierzaki mogą rosnąć do poziomu ${HOUSE_LV[F.house]}.`) + (m.grew?.length ? L(` ${m.grew.length} of them levelled up straight away!`, ` Od razu awansowały: ${m.grew.length}.`) : '')); }
+    else if (m.did === 'queue') { sfx.turn(); panel = { kind: 'queue', until: Date.now() + (m.wait || 30_000) }; card = null; }
+    else if (m.did === 'unqueue') { if (panel?.kind === 'queue') panel = { kind: 'foes' }; }
     else if (m.did === 'petname') ctx.toast(L('Renamed.', 'Imię zmienione.'));
     else if (m.did === 'jclaim') { sfx.win(); myBurst(); card = null; panel = { kind: 'journal', got: m.ch }; if (Object.keys(m.spilt || {}).length) ctx.toast(L('The barn is full, so some of the materials did not fit.', 'Stodoła jest pełna, więc część materiałów się nie zmieściła.'), true); }
     else if (m.did === 'group' && panel?.kind === 'send') { if (m.op !== 'del') { panel.grp = m.id; panel.grpNew = false; } ctx.toast(m.op === 'new' ? L('Group saved.', 'Grupa zapisana.') : m.op === 'save' ? L('Group updated.', 'Grupa zaktualizowana.') : L('Group deleted.', 'Grupa usunięta.')); }
@@ -1407,6 +1439,7 @@ export function mount(app, ctx) {
     else if (m.did === 'orderswap') { sfx.turn(); ctx.toast(L('A new order is pinned to the board.', 'Na tablicy wisi nowe zamówienie.')); }
     if (first) { pick = null; edit = false; }
     if (heldInvite && !B) { panel = { kind: 'invite', ...heldInvite }; heldInvite = null; card = null; }
+    if (wantArena && !B && where !== 'visit') return openArena();
     sync();
     if (m.did === 'collect') for (const id of m.back.pets.concat(m.back.found || [])) scene?.cheer(id);
     // keep building: after placing one fence, hold the next one ready beside it
@@ -1422,8 +1455,10 @@ export function mount(app, ctx) {
     // the account changed (signed in, out, or registered): ask again
     me() { const u = ctx.me()?.user || null; if (u !== user) { user = u; mode = 'load'; F = null; edit = false; sync(); ctx.send({ t: 'open' }); } else { const k = lookKey(); if (k !== look) { look = k; mapShown = null; sync(); } } }, // same player in a new look: redraw the avatar
     reopen() { ctx.send({ t: 'open' }); },
+    // the hub's Pet Battles tile: straight to the Arena once the farm is in
+    arena() { wantArena = true; if (F && !B) openArena(); },
     // walk straight to a friend's farm (from the site's friends list)
     visit(id) { if (B) return ctx.toast(L('Finish the battle first.', 'Najpierw dokończ bitwę.'), true); edit = false; scene?.ghostCancel(); ctx.send({ t: 'visit', id }); },
-    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); clearTimeout(thumbT); scene?.dispose(); },
+    destroy() { if (where === 'visit') ctx.send({ t: 'leave' }); if (panel?.kind === 'queue') ctx.send({ t: 'unqueue' }); destroyed = true; document.body.classList.remove('in-game'); removeEventListener('keydown', onKey); clearInterval(timer); clearInterval(nestTimer); clearInterval(gardenTimer); clearInterval(skyTimer); clearInterval(liveTimer); clearTimeout(quiet); clearTimeout(thumbT); scene?.dispose(); },
   };
 }

@@ -229,8 +229,24 @@ export const wheelOnly = sp => !!SPECIES[sp]?.wheel; // a Lucky Wheel pet: no eg
 export const STARTERS = ['mossbun', 'cindercub', 'puddlepup'];
 export const FORMS = ['Baby', 'Young', 'Adult'];
 export const formOf = lv => lv < 5 ? 0 : lv < 12 ? 1 : 2;
-export const MAX_LV = 20;
+export const MAX_LV = 30;
 export const xpFor = lv => 10 + lv * 10; // experience needed to go from lv to lv + 1
+// The farmhouse sets how far pets can grow (Kuba, 2026-11-27): HOUSE_LV[house level] is the top pet level. A pet
+// already above it (from before) keeps its level; it just learns nothing more until the farmhouse catches up.
+export const HOUSE_LV = [0, 8, 12, 15, 18, 20, 25, 30];
+export const lvCap = farm => HOUSE_LV[Math.min(HOUSE_MAX, Math.max(1, farm?.house || 1))];
+export const houseFor = lv => HOUSE_LV.findIndex(n => n >= lv); // the farmhouse level that lets a pet reach lv
+// Treats are for growing up: they give experience only below TREAT_LV (Adult). After that pets learn by doing.
+export const TREAT_LV = 12;
+// Battle experience for each pet that fought, [win, loss] (2026-11-27: battles pay more than treats for grown pets).
+// The first win of the day counts double; a foe team well above yours pays half again, one well below half.
+export const BATTLE_XP = { arena: [60, 25], live: [60, 25], wild: [50, 20], practice: [40, 15] };
+export const FIRST_WIN_X = 2, STRONG_X = 1.5, WEAK_X = .5, STRONG_GAP = 2, WEAK_GAP = 3;
+export const teamLv = pets => pets.length ? pets.reduce((n, p) => n + p.lv, 0) / pets.length : 1;
+// How a foe team's average level changes the experience: x1.5 when it is STRONG_GAP or more above, x0.5 when WEAK_GAP or more below.
+export const gapX = (mine, theirs) => theirs - mine >= STRONG_GAP ? STRONG_X : mine - theirs >= WEAK_GAP ? WEAK_X : 1;
+// Levels past 20 make pets stronger in battle only: helpers and expeditions count at most level 20, so the economy stays put.
+export const WORK_LV = 20;
 // Building levels. Each building starts at level 1 and can be improved once for each cost in its UPGRADES entry
 // (twice for all of them now); level n needs a farmhouse of level n.
 export const UP_MAX = 3;
@@ -289,7 +305,7 @@ export const WORK = {
 };
 export const elsOf = p => { const d = SPECIES[p.sp]; return d?.el2 ? [d.el, d.el2] : [elOf(p)]; };
 export const canWork = (p, type) => !!WORK[type] && elsOf(p).includes(WORK[type].el);
-export const workPct = (p, type) => canWork(p, type) ? 5 + p.lv + 3 * (p.stars?.[WORK[type].stat] || 3) : 0; // 9% for a level 1 with one star, 40% at level 20 with five
+export const workPct = (p, type) => canWork(p, type) ? 5 + Math.min(p.lv, WORK_LV) + 3 * (p.stars?.[WORK[type].stat] || 3) : 0; // 9% for a level 1 with one star, 40% at level 20 with five
 export const TRAIN_XP = 6; // experience an hour for each pet training at the Training Yard
 export const palsOf = farm => Object.values(farm.pals || {}).reduce((n, v) => n + v, 0); // every friendship point earned
 // Beds on the island: the farmhouse sleeps two pets and every Pet Hut four, plus two a level: 26 at most. Kuba kept the
@@ -405,7 +421,7 @@ export const tripRate = (k, n) => n * (TRIP_SHARE[k] ?? TRIP_MAT);
 export function tripLoot(zone, trip, pets) {
   const z = ZONES[zone], hours = Math.pow(TRIPS[trip].min / 60, TRIP_CURVE), out = {};
   let power = 0;
-  for (const p of pets) power += (atHome(z, p.sp, elOf(p)) ? 1.25 : 1) * (1 + (p.lv - 1) * .04);
+  for (const p of pets) power += (atHome(z, p.sp, elOf(p)) ? 1.25 : 1) * (1 + (Math.min(p.lv, WORK_LV) - 1) * .04);
   for (const [k, n] of Object.entries(z.gives)) out[k] = tripRate(k, n) * hours * power;
   return out;
 }

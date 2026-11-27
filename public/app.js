@@ -3,7 +3,7 @@ import './keepscroll.js'; // first: wraps innerHTML so redrawn lists keep their 
 import { uiz } from './uiz.js'; // first, so its resize handler runs before the games' own
 import './camfit.js'; // before any game, so its resize listener opens the HUD re-fit window ahead of the games' own handlers
 import { siteLogo, tableArt } from './art.js';
-import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt, trailArt } from './gameart.js';
+import { hotpotArt, marbleArt, laddersArt, pokerArt, ludoArt, stackArt, golfArt, diceArt, pawArt, kartArt, kitchenArt, digArt, beanArt, bricksArt, lagoonArt, mahjArt, tysArt, panArt, pipsArt, dartsArt, piotrArt, tttArt, chessArt, warcabyArt, bjArt, dominoArt, paradeArt, pairsArt, herdArt, makaoArt, coveArt, poolArt, bingoArt, kalArt, wojnaArt, bierkiArt, bopArt, spyArt, reefArt, copyArt, blastArt, HAY_ICON, POP_ICON, MJ_ICON, FARM_ICON, BATTLE_ICON, MYSTERY_ICON, WHEEL_ICON, WORD_ICON, pmArt, lanternArt, runwayArt, siegeArt, trailArt } from './gameart.js';
 import { backSvg } from './games/hotpot/icons.js';
 import { sfx } from './sfx.js';
 import { openGameWheel, GW_ICON } from './gamewheel.js';
@@ -1573,7 +1573,7 @@ function curtainPaint(room) {
 function unmountGame() { document.body.classList.remove('tagpick'); st.gameKey = null; if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
 // Pet Farm is a persistent game with no table: it opens straight from the hub.
-let farmInvite = null, farmLoading = null, farmVisit = null; // farmVisit: a friend's farm to walk to once the farm has loaded
+let farmInvite = null, farmLoading = null, farmVisit = null, farmArena = false; // farmVisit: a friend's farm to walk to once the farm has loaded
 function openFarm() {
   if (st.farm || farmLoading) return;
   st.view = 'farm'; document.title = `${FARM_NAME} · ${SITE}`; tellWhere();
@@ -1586,6 +1586,7 @@ function openFarm() {
     st.farm.reopen(); placeGameSwitch();
     if (farmVisit) { st.farm.visit(farmVisit); farmVisit = null; }
     if (farmInvite) { st.farm.msg(farmInvite); farmInvite = null; }
+    if (farmArena) { st.farm.arena(); farmArena = false; }
   }).catch(err => { console.error(err); farmLoading = null; toast(L('Could not load Pet Farm. Refresh?', 'Nie udało się wczytać Farmy zwierzaków. Odświeżyć stronę?'), true); go('hub'); });
 }
 function closeFarm() { if (!st.farm) return; st.farm.destroy(); st.farm = null; gameCss(null); }
@@ -1691,6 +1692,7 @@ function todayLeft() {
   if (w && !w.guest && !(w.spun && wLeft > 0)) t.wheel = 1;
   for (const k of ['hay', 'pop', 'mj']) if (fresh || !(me[k]?.paid > 0)) t[k] = 1;
   if (plazaTodo()) t.plaza = 1;
+  if (st.farmBrief?.fights?.arena > 0) t.battle = 1; // Pet Battles: Arena matches that still pay today
   return t;
 }
 // The plaza's own list (server/plaza.js todoOf): a first visit today, the present under the tree, your ornament.
@@ -1708,6 +1710,16 @@ function todayCount() {
   if (!st.me?.user || !st.dailyInfo) return '';
   const n = Object.keys(todayLeft()).filter(k => k !== 'plaza').length;
   return n ? L(`${n} to do`, `${n} do zrobienia`) : L('✓ All done', '✓ Wszystko');
+}
+// Pet Battles (Kuba, 2026-11-27: battles on the main site): today's Arena matches, straight into the Arena of Pet Farm.
+const BATTLE_MINS = [3, 10];
+function battleTile(todo) {
+  const me = st.me, b = st.farmBrief, fx = b?.fights;
+  const sub = !me?.user ? L('Needs an account', 'Wymaga konta') : !b ? L('Start a Pet Farm to battle', 'Załóż Farmę zwierzaków, żeby walczyć')
+    : !fx ? L('Put up an Arena Flag on your farm', 'Postaw Flagę areny na farmie')
+    : fx.arena > 0 ? L(`${fx.arena} of ${fx.of} matches with coins left${fx.first ? ' · first win ×2 XP' : ''}`, `Mecze z monetami: ${fx.arena} z ${fx.of}${fx.first ? ' · 1. wygrana ×2 XP' : ''}`)
+    : fx.xp > 0 ? L(`Coins done · ${fx.xp} more for experience`, `Monety zdobyte · jeszcze ${fx.xp} po doświadczenie`) : `<i class="ok">✓ ${L('All matches done today', 'Wszystkie mecze na dziś')}</i>`;
+  return todayTile('t-battle' + todo, BATTLE_ICON, L('Pet Battles', 'Bitwy zwierzaków'), sub, 'battles', L('Battle', 'Walcz'), !!fx && !fx.xp, BATTLE_MINS);
 }
 function todayHtml() {
   const left = todayLeft(), todo = k => left[k] ? ' todo' : '';
@@ -1735,6 +1747,7 @@ function todayHtml() {
   return todayTile('t-mp' + (d?.done ? ' done' : '') + todo('daily'), mpPic, `${MP_NAME}${d ? ` <small>#${d.no}</small>` : ''}`, mp, 'daily', d?.done ? L('Result', 'Wynik') : d?.guesses?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), d?.done, MP_MINS)
     + todayTile('t-word' + (ws?.done ? ' done' : '') + todo('word'), WORD_ICON, `${WORD_NAME}${wi ? ` <small>#${wi.no}</small>` : ''}`, wordText, 'word', ws?.done ? L('Result', 'Wynik') : ws?.rows?.length ? L('Go on', 'Graj dalej') : L('Guess', 'Zgaduj'), ws?.done, WORD_MINS)
     + todayTile('t-wheel' + (w && !w.guest && !(w.spun && wLeft > 0) ? ' ready' : ''), WHEEL_ICON, L('Lucky Wheel', 'Koło szczęścia'), wheelText, 'wheel', w?.spun && wLeft > 0 ? L('Look', 'Zobacz') : L('Spin', 'Zakręć'), w?.spun && wLeft > 0)
+    + battleTile(todo('battle'))
     + todayTile('t-hay' + todo('hay'), HAY_ICON, SOLO.hay.name, hay, 'hay', L('Play', 'Graj'), false, SOLO.hay.mins)
     + todayTile('t-pop' + todo('pop'), POP_ICON, SOLO.pop.name, popText, 'pop', L('Play', 'Graj'), false, SOLO.pop.mins)
     + todayTile('t-mj' + todo('mj'), MJ_ICON, SOLO.mj.name, mjText, 'mj', L('Play', 'Graj'), false, SOLO.mj.mins);
@@ -3640,6 +3653,7 @@ $app.addEventListener('click', e => {
   else if (act === 'theme') { switchTheme(b); sfx.click(); if (b.matches('.aphone')) closeAcct(); } // from the phone account menu: the menu closes as the sky turns
   else if (act === 'friends') openFriends();
   else if (act === 'farm') { if (!st.name) return openProfile(true); openFarm(); }
+  else if (act === 'battles') { if (!st.name) return openProfile(true); farmArena = true; openFarm(); }
   else if (act === 'plaza') { if (!st.name) return openProfile(true); openPlaza(); }
   else if (act === 'hay') { if (!st.name) return openProfile(true); openHay(); }
   else if (act === 'pop') { if (!st.name) return openProfile(true); openPop(); }

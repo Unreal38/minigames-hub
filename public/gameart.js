@@ -692,6 +692,11 @@ export const POP_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-w
   <rect x="44" y="6" width="32" height="34" rx="9" fill="#6fa8ee"/><rect x="44" y="80" width="32" height="34" rx="9" fill="#8fd16a"/></g>
   <g fill="#3b2219"><circle cx="21" cy="58" r="3"/><circle cx="31" cy="58" r="3"/><circle cx="55" cy="58" r="3"/><circle cx="65" cy="58" r="3"/><circle cx="89" cy="58" r="3"/><circle cx="99" cy="58" r="3"/></g>
   <path d="M14 46l4-12 8 8M106 46l-4-12-8 8M48 46l4-12 8 8M72 46l-4-12-8 8M82 46l4-12 8 8M38 46l-4-12-8 8" fill="#ff9a4d" stroke="#3b2219" stroke-width="4" stroke-linejoin="round"/></svg>`;
+// Pet Battles (the hub's Today tile): the Arena Flag on its pole, with a spark on the pennant.
+export const BATTLE_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
+  <path d="M30 14v92" fill="none"/><path d="M30 16h66L82 36l14 20H30z" fill="#e5543b"/>
+  <path d="M64 22 52 40h10l-6 14 16-20H62l6-12z" fill="#ffd84a" stroke-width="3.5"/>
+  <ellipse cx="30" cy="104" rx="20" ry="8" fill="#7ed3b2"/></g><circle cx="30" cy="12" r="6" fill="#ffd84a" stroke="#3b2219" stroke-width="4"/></svg>`;
 export const FARM_ICON = `<svg viewBox="0 0 120 120"><g stroke="#3b2219" stroke-width="5" stroke-linejoin="round">
   <path d="M22 58h76v46H22z" fill="#e5543b"/><path d="M12 60 34 28h52l22 32z" fill="#8a4a3a"/><path d="M34 28h52l-10-12H44z" fill="#a85f48"/>
   <path d="M46 72h28v32H46z" fill="#fff4e2"/></g>
