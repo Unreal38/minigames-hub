@@ -1885,6 +1885,7 @@ body.in-game #app :is(.hud, .results, .gate):not(:is(.hud, .results, .gate) *), 
 body.in-game #app .tags > * > * { zoom: var(--uiz, 1); }
 /* the profile card keeps its hub size in games (Kuba: the zoomed one was too big) */
 body.in-game .modal:has(.psheet) { zoom: 1; --vz: 1; }
+body.in-game .modal:has(.admsheet) { zoom: 1; --vz: 1; } /* the Admin panel is already big on a computer */
 body.in-game .modal .sheet { max-height: calc((100vh - 32px) / var(--vz, 1)); max-height: calc((100dvh - 32px) / var(--vz, 1)); }
 body.in-game #toasts { max-width: calc(92vw / var(--vz, 1)); top: calc(74px / var(--vz, 1)); }
 
@@ -2107,8 +2108,18 @@ body.in-game .profrow { cursor: pointer; pointer-events: auto; }
 .banico { font-size: 46px; line-height: 1; }
 .banwhy { padding: 8px 12px; border-radius: 12px; background: var(--note-bg, #fff3d6); color: var(--note-tx, var(--ink)); border-left: 4px solid var(--chili); text-align: left; overflow-wrap: anywhere; }
 .hcmuted span { color: var(--soft-tx); }
-.admsheet { width: min(760px, 100%); }
-.admtabs { flex: none; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; margin: 0 -2px; }
+.sheet.listsheet.admsheet { width: min(760px, 100%); }
+/* On a computer the Admin panel is a big panel like the profile card or Your progress: every tab fits on one row and
+   the panel keeps one height while you switch tabs, so only the tab's own content scrolls. */
+@media (min-width: 900px) and (min-height: 600px) {
+  .sheet.listsheet.admsheet { width: min(1040px, 100%); height: min(860px, calc(100dvh - 32px)); max-height: none; overflow: hidden; padding: 28px 32px; }
+  .admsheet > h2 { flex: none; }
+  .admsheet .admtabs { gap: 8px; }
+  .admsheet .admtabs button { font-size: 16px; min-height: 46px; padding: 6px 18px; }
+  .admsheet .admbody { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px 8px 8px 2px; margin-right: -8px; }
+  .admsheet .admbody .mlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 10px; }
+}
+.admtabs { flex: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0 -2px; } /* tabs wrap to a second row instead of hiding off the side */
 .admtabs button { flex: none; position: relative; font: 600 15px var(--fd); min-height: 44px; padding: 6px 14px; border-radius: 12px; border: 2px solid var(--card-edge); background: transparent; color: var(--on-paper); cursor: pointer; white-space: nowrap; }
 .admtabs button[aria-selected=true] { background: var(--lantern); border-color: var(--ink); color: var(--ink); }
 .admtabs .frbadge, .aitems .admcount { position: static; display: inline-block; margin-left: 6px; vertical-align: 1px; }
