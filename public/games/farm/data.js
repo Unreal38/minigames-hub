@@ -8,7 +8,7 @@ export const SIZES = [10, 12, 14, 16, 18, 20, 22, 24];
 export const EXPAND = [null, { wood: 40, stone: 30 }, { wood: 80, stone: 60, fiber: 30 }, { wood: 140, stone: 110, fiber: 60 }, { wood: 220, stone: 180, fiber: 100 },
   { wood: 320, stone: 260, fiber: 140, shells: 20 }, { wood: 440, stone: 360, fiber: 190, coal: 30 }, { wood: 600, stone: 480, fiber: 250, coal: 50, crystal: 3 }];
 export const LAND_HOUSE = { 7: 5 };
-export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', pack: 'Trail Packs', coins: 'Coins', stamps: 'Stamps' };
+export const MATS = { wood: 'Wood', stone: 'Stone', fiber: 'Fiber', shells: 'Shells', coal: 'Coal', crystal: 'Crystal', berries: 'Berries', sunberry: 'Sunberries', cookie: 'Berry Cookies', cake: 'Honey Cakes', juice: 'Berry Juice', pie: 'Sunberry Pies', tonic: 'Rest Tonics', pack: 'Trail Packs', herbs: 'Herbs', honey: 'Honey', chili: 'Chili peppers', chilibite: 'Chili Bites', cracker: 'Seaweed Crackers', salad: 'Herb Salads', rockcandy: 'Rock Candy', fizz: 'Fizz Drops', picnic: 'Picnic Baskets', bar: 'Training Bars', muffin: 'Love Muffins', suntea: 'Sun Tea', kite: 'Kite Crackers', puff: 'Cloud Puffs', soup: 'Storm Soup', rcake: 'Rainbow Cakes', coins: 'Coins', stamps: 'Stamps' };
 // What each thing in the top bar is: where it comes from, and what it is for.
 export const MAT_INFO = {
   wood:     ['Expeditions, most of all Mossy Woods.', 'Most buildings and decorations.'],
@@ -26,6 +26,22 @@ export const MAT_INFO = {
   tonic:    ['Cooked in a level 3 Kitchen.', 'Give it to a resting pet so it can go to the Nest again at once.'],
   stamps:   ['Delivering island orders at the Order Board.', 'Stamp decorations, under Edit farm, Stamps. Stamps stay on your farm: they cannot be traded, gifted or swapped.'],
   pack:     ['Packed in the Kitchen from 8 berries, 10 fiber and 4 coal.', 'Food for the long way: every far expedition takes a few.'],
+  herbs:    ['Garden Plots planted with herbs (farmhouse level 2).', 'Kitchen recipes: Herb Salad, Seaweed Crackers, Picnic Baskets and more.'],
+  honey:    ['Garden Plots planted with honey flowers (farmhouse level 3).', 'Kitchen recipes: Love Muffins, Training Bars, Rock Candy and more.'],
+  chili:    ['Garden Plots planted with chili (farmhouse level 3).', 'Chili Bites, the Ember battle snack.'],
+  chilibite: ['Cooked in the Kitchen from a recipe card.', 'A battle snack: Ember pets in your team get 15% more attack and defence for the whole battle.'],
+  cracker:  ['Cooked in the Kitchen from a recipe card.', 'A battle snack: Tide pets in your team get 15% more attack and defence for the whole battle.'],
+  salad:    ['Cooked in the Kitchen from a recipe card.', 'A battle snack: Leaf pets in your team get 15% more attack and defence for the whole battle.'],
+  rockcandy: ['Cooked in the Kitchen from a recipe card.', 'A battle snack: Stone pets in your team get 15% more attack and defence for the whole battle.'],
+  fizz:     ['Cooked in the Kitchen from a recipe card.', 'A battle snack: Spark pets in your team get 15% more attack and defence for the whole battle.'],
+  picnic:   ['Cooked in the Kitchen from a recipe card.', 'Pack one for an expedition: 15% more materials and a better chance of a wild pet.'],
+  bar:      ['Cooked in the Kitchen from a recipe card.', 'Give it to a pet at the Training Yard: it trains twice as fast for 2 hours.'],
+  muffin:   ['Cooked in the Kitchen from a recipe card.', 'Put one in the Nest with a pair: the egg hatches 30% sooner.'],
+  suntea:   ['Cooked in the Kitchen while it is sunny.', 'Pack it for an expedition: 30% more materials.'],
+  kite:     ['Cooked in the Kitchen while it is windy.', 'Pack them for an expedition: the party is back 25% sooner.'],
+  puff:     ['Cooked in the Kitchen while it is cloudy.', 'A battle snack for everyone: every pet in your team gets 10% more attack and defence.'],
+  soup:     ['Cooked in the Kitchen while it rains.', 'Give it to a pet at the Training Yard: it trains three times as fast for 2 hours.'],
+  rcake:    ['Cooked in the Kitchen while the rainbow is out.', 'Pack it for an expedition: the party is sure to bring a wild pet home, if there is a bed for it.'],
   coins:    ['Battles, helping neighbours, and the other games on the site.', 'Trees and bushes here, and the avatar shop on the main page. Coins stay with you: they cannot be traded or gifted.'],
 };
 export const START_INV = { wood: 150, stone: 100, fiber: 80, coins: 100 };
@@ -40,7 +56,7 @@ export const ITEMS = {
   lodge:    { name: 'Pet Lodge', kind: 'b', w: 3, h: 2, max: 1, house: 4, cost: { wood: 120, stone: 80, fiber: 60, shells: 15 }, desc: 'A big cosy lodge where 60 more pets nap indoors, sorted into collections of your own. They can still go anywhere and do anything.' },
   museum:   { name: 'Pet Museum', kind: 'b', w: 3, h: 3, max: 1, house: 6, cost: { wood: 200, stone: 200, fiber: 80, shells: 20 }, desc: 'A grand hall that shows off your Pet Album. Its five medallions fill up as you find pets of each element.' },
   gate:     { name: 'Expedition Gate', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 25, stone: 15 }, desc: 'Pets set off by balloon from here and come back with materials, and sometimes a new friend.' },
-  garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil. Berries ripen here every hour.' },
+  garden:   { name: 'Garden Plot', kind: 'b', w: 1, h: 1, max: 8, cost: { wood: 5, fiber: 5 }, desc: 'A patch of soil. Grows berries, herbs, honey flowers or chili, whichever you sow.' },
   kitchen:  { name: 'Kitchen', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 30, stone: 20 }, desc: 'Turns berries into treats for your pets.' },
   barn:     { name: 'Storage Barn', kind: 'b', w: 2, h: 3, max: 1, cost: { wood: 45, stone: 10 }, desc: 'Room for three times as many materials.' },
   nest:     { name: 'Nest', kind: 'b', w: 2, h: 2, max: 1, cost: { wood: 20, fiber: 30, crystal: 2 }, desc: 'Two pets rest here and an egg appears.' },
@@ -256,7 +272,7 @@ export const UPGRADES = {
   gate:   { what: 'One more party can be out exploring', cost: [{ wood: 40, stone: 30, shells: 8 }, { wood: 80, stone: 60, coal: 12 }] },
   kitchen:  { what: ['A new recipe: Sunberry Pie', 'A new recipe: Rest Tonic'], cost: [{ wood: 40, stone: 30, shells: 6 }, { wood: 80, stone: 60, coal: 12 }] },
   workshop: { what: ['A second set of decorations, and better swaps', 'The grandest decorations, and the best swaps'], cost: [{ wood: 50, stone: 40, shells: 8 }, { wood: 100, stone: 80, coal: 15, crystal: 1 }] },
-  garden: { what: ['Ripens 15 minutes sooner, and grows a Sunberry each time', 'Ripens 15 minutes sooner again, and grows two Sunberries'], cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
+  garden: { what: ['Ripens 15 minutes sooner, and berries bring a Sunberry each time', 'Ripens 15 minutes sooner again, and berries bring two Sunberries'], cost: [{ wood: 10, fiber: 15 }, { wood: 20, fiber: 30, shells: 4 }] },
   barn:   { what: 'Room for 600 more of each material', cost: [{ wood: 60, stone: 30 }, { wood: 120, stone: 60, coal: 10 }] },
   nest:   { what: ['A second egg slot', 'A third egg slot, and eggs hatch a quarter sooner'], cost: [{ fiber: 40, shells: 10 }, { fiber: 80, coal: 10, crystal: 2 }] },
   yard:   { what: 'One more training spot', cost: [{ wood: 40, stone: 40 }, { wood: 80, stone: 80, coal: 10 }] },
@@ -297,11 +313,11 @@ export function museumFill(album) {
 // Helpers: one pet of the right element can work at each of these buildings. Its boost grows with its level and one of
 // its stars (stat: 0 Health, 1 Attack, 2 Defence, 3 Speed). A hybrid counts for both of its elements.
 export const WORK = {
-  garden:  { el: 'Tide', stat: 3, job: 'waters the plots', what: n => `Berries ripen ${n}% sooner` },
+  garden:  { el: 'Tide', stat: 3, job: 'waters the plots', what: n => `Crops ripen ${n}% sooner` },
   nest:    { el: 'Leaf', stat: 0, job: 'keeps the Nest cosy', what: n => `New eggs hatch ${n}% sooner` },
   yard:    { el: 'Stone', stat: 2, job: 'coaches at the yard', what: n => `Training gives ${n}% more experience` },
   gate:    { el: 'Spark', stat: 3, job: 'charges the balloon', what: n => `New parties come home ${n}% sooner` },
-  kitchen: { el: 'Ember', stat: 1, job: 'tends the oven', what: n => `${n}% chance of a second treat for free` },
+  kitchen: { el: 'Ember', stat: 1, job: 'tends the oven', what: n => `Bakes ${n}% faster, with a ${n}% chance of a second treat for free` },
 };
 export const elsOf = p => { const d = SPECIES[p.sp]; return d?.el2 ? [d.el, d.el2] : [elOf(p)]; };
 export const canWork = (p, type) => !!WORK[type] && elsOf(p).includes(WORK[type].el);
@@ -352,19 +368,61 @@ export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, cryst
 export const TRADE_MATS = Object.keys(MATS).filter(k => k !== 'coins' && k !== 'stamps');
 // Gardens, kitchen, barn and workshop.
 export const GROW_MIN = 60, BERRIES = 3; // each Garden Plot gives 3 berries an hour
+// What a Garden Plot can grow (2026-11-27). min: minutes to ripen at plot level 1 (15 fewer per level), n: how many one
+// pick gives, house: the farmhouse level that opens the seed. Only berry plots grow Sunberries.
+export const CROPS = {
+  berries: { name: 'Berries', min: 60, n: 3, house: 1 },
+  herbs:   { name: 'Herbs', min: 90, n: 2, house: 2 },
+  honey:   { name: 'Honey flowers', min: 120, n: 2, house: 3 },
+  chili:   { name: 'Chili', min: 90, n: 2, house: 3 },
+};
+export const cropOf = item => CROPS[item?.crop] ? item.crop : 'berries';
 // COOK_MAX: the most of one recipe the Kitchen cooks in one go (the ×5 button).
 export const COOK_MAX = 10;
+// use: what it is for (grow, battle, trip, nest, train). min: minutes in the oven for one (0 = ready at once; a batch of n
+// takes n times as long). out: how many one bake makes. card: the recipe has to be found on an expedition first.
+// wx: it can only go into the oven in that weather. Battle snacks: el (or all) and atk, the share added to attack and
+// defence. Trip food: loot (more materials), find (added to the wild pet chance), fast (share of the trip time saved),
+// sure (a wild pet for certain). Training food: x (times as fast) for TRAIN_FOOD_H hours. Nest food: hatch (share of the time saved).
 export const RECIPES = {
-  cookie: { name: 'Berry Cookie', cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
-  cake:   { name: 'Honey Cake', cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
-  juice:  { name: 'Berry Juice', cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
-  pack:   { name: 'Trail Pack', house: 6, cost: { berries: 8, fiber: 10, coal: 4 }, desc: 'Food for the long way. Every far expedition takes a few.' },
-  pie:    { name: 'Sunberry Pie', lv: 2, cost: { sunberry: 3, berries: 6 }, xp: 220, desc: 'Feed it to a pet for 220 experience.' },
-  tonic:  { name: 'Rest Tonic', lv: 3, cost: { sunberry: 4, crystal: 1 }, rest: true, desc: 'A pet that drinks it is rested at once and can go to the Nest again.' },
+  cookie: { name: 'Berry Cookie', use: 'grow', min: 0, cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
+  cake:   { name: 'Honey Cake', use: 'grow', min: 10, cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
+  pie:    { name: 'Sunberry Pie', use: 'grow', min: 30, lv: 2, cost: { sunberry: 3, berries: 6 }, xp: 220, desc: 'Feed it to a pet for 220 experience.' },
+  juice:  { name: 'Berry Juice', use: 'battle', min: 0, cost: { berries: 6 }, heal: .4, desc: 'Drink one in a battle to get back 40% health. One a battle.' },
+  chilibite: { name: 'Chili Bites', use: 'battle', min: 20, card: true, el: 'Ember', atk: .15, cost: { chili: 3, berries: 4 }, desc: 'Ember pets in the team get 15% more attack and defence for the whole battle.' },
+  cracker:   { name: 'Seaweed Crackers', use: 'battle', min: 20, card: true, el: 'Tide', atk: .15, cost: { shells: 4, herbs: 2 }, desc: 'Tide pets in the team get 15% more attack and defence for the whole battle.' },
+  salad:     { name: 'Herb Salad', use: 'battle', min: 20, card: true, el: 'Leaf', atk: .15, cost: { herbs: 4, berries: 2 }, desc: 'Leaf pets in the team get 15% more attack and defence for the whole battle.' },
+  rockcandy: { name: 'Rock Candy', use: 'battle', min: 20, card: true, el: 'Stone', atk: .15, cost: { stone: 10, honey: 2 }, desc: 'Stone pets in the team get 15% more attack and defence for the whole battle.' },
+  fizz:      { name: 'Fizz Drops', use: 'battle', min: 20, card: true, el: 'Spark', atk: .15, out: 3, cost: { crystal: 1, honey: 2 }, desc: 'Spark pets in the team get 15% more attack and defence for the whole battle. Makes three.' },
+  puff:      { name: 'Cloud Puffs', use: 'battle', min: 15, wx: 'cloudy', all: true, atk: .1, cost: { honey: 2, berries: 4 }, desc: 'Every pet in the team gets 10% more attack and defence for the whole battle.' },
+  picnic: { name: 'Picnic Basket', use: 'trip', min: 30, lv: 2, card: true, loot: .15, find: .1, cost: { berries: 8, honey: 2, herbs: 2 }, desc: 'The party brings home 15% more materials and is more likely to find a wild pet.' },
+  suntea: { name: 'Sun Tea', use: 'trip', min: 15, wx: 'sunny', loot: .3, cost: { herbs: 2, sunberry: 2 }, desc: 'The party brings home 30% more materials.' },
+  kite:   { name: 'Kite Crackers', use: 'trip', min: 15, wx: 'wind', fast: .25, cost: { berries: 6, fiber: 4 }, desc: 'The party is back 25% sooner.' },
+  rcake:  { name: 'Rainbow Cake', use: 'trip', min: 15, wx: 'rainbow', sure: true, cost: { sunberry: 3, honey: 3, berries: 6 }, desc: 'The party is sure to bring a wild pet home, if there is a bed for it.' },
+  pack:   { name: 'Trail Pack', use: 'trip', fuel: true, min: 20, house: 6, cost: { berries: 8, fiber: 10, coal: 4 }, desc: 'Food for the long way. Every far expedition takes a few.' },
+  bar:    { name: 'Training Bar', use: 'train', min: 30, lv: 2, card: true, x: 2, cost: { berries: 4, honey: 2, fiber: 6 }, desc: 'A pet at the Training Yard trains twice as fast for 2 hours.' },
+  soup:   { name: 'Storm Soup', use: 'train', min: 15, wx: 'rain', x: 3, cost: { herbs: 3, shells: 3 }, desc: 'A pet at the Training Yard trains three times as fast for 2 hours.' },
+  muffin: { name: 'Love Muffin', use: 'nest', min: 45, lv: 2, card: true, hatch: .3, cost: { honey: 3, sunberry: 2 }, desc: 'Put one in the Nest with a pair: the egg hatches 30% sooner.' },
+  tonic:  { name: 'Rest Tonic', use: 'nest', min: 45, lv: 3, cost: { sunberry: 4, crystal: 1 }, rest: true, desc: 'A pet that drinks it is rested at once and can go to the Nest again.' },
 };
+export const TRAIN_FOOD_H = 2, HAPPY_H = 24, HAPPY_X = .1; // a pet's favourite treat makes it Happy: 10% more experience from everything else for a day
+export const CARDS = Object.keys(RECIPES).filter(k => RECIPES[k].card);
+// Recipe cards come home from expeditions: CARD_CHANCE a trip, CARD_FOOD on the food islands; an element snack's card is
+// CARD_EL times as likely on an island of its element.
+export const CARD_CHANCE = .15, CARD_FOOD = .3, CARD_EL = 3, FOOD_ZONES = ['bakery', 'grove', 'patch'];
+// Each species' favourite treat: always the same one, found by trying. It doubles the experience for a young pet, and
+// makes any pet Happy.
+export const FAV_FOODS = ['cookie', 'cake', 'pie'];
+export const favFood = sp => { let h = 7; for (const c of String(sp)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return FAV_FOODS[h % FAV_FOODS.length]; };
+// Recipes the farm can see in its Kitchen: card recipes only once the card is found.
+export const knows = (f, k) => !RECIPES[k]?.card || !!f?.cards?.includes(k);
+// How long a bake takes, in ms, before the oven helper's share comes off.
+export const bakeMs = (k, n = 1) => (RECIPES[k]?.min || 0) * 60_000 * n;
+// A battle snack's boost for one pet (el, el2: its elements): the share added to attack and defence.
+export const snackFor = (k, el, el2) => { const r = RECIPES[k]; return r?.use === 'battle' && r.atk && (r.all || r.el === el || r.el === el2) ? r.atk : 0; };
 export const STORED = ['wood', 'stone', 'fiber', 'shells', 'coal', 'berries'], CAP = { base: 300, barn: 900 }; // the most a farm can hold of each
 export const capOf = f => { const lv = topLv(f, 'barn'); return lv ? CAP.barn + 600 * (lv - 1) : CAP.base; };
-export const growMin = item => GROW_MIN - 15 * (lvOf(item) - 1);
+export const growMin = item => CROPS[cropOf(item)].min - 15 * (lvOf(item) - 1);
 // The Workshop swaps one material for another. WORTH is what one of each is worth, SWAP_LOT how many one swap hands
 // you, and SWAP_KEEP the share of the value you get back at Workshop level 1, 2 and 3 (the rest is the Workshop's cut,
 // so swapping back and forth always loses a little).
@@ -472,4 +530,4 @@ export { WEATHER, WEATHER_MS, weatherAt } from '../../weather.js';
 const EL_PL = PL ? (await import('../../lang/farm-pl.js')).EL_PL : null;
 /** An element's name as shown to the player. The English name stays the key everywhere. */
 export const elName = e => EL_PL?.[e] || e;
-if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS });
+if (PL) (await import('../../lang/farm-pl.js')).plData({ MATS, MAT_INFO, CROPS, ITEMS, SPECIES, FAMILIES, RARITY, FORMS, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS });
