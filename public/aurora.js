@@ -1,4 +1,4 @@
-// The aurora's shape and colours, shared by the 3D sky (weather3d.js skyAurora) and the hub page sky (auroraSky below),
+// The aurora's shape and colours, shared by the 3D sky (weather3d.js skyAurora) and the hub page sky (aurorasky.js),
 // so both look the same (Kuba, 2026-11-27: the isle's aurora looked far better than the page's). No three.js here.
 // Like the real thing: oxygen green with a bright, sharp lower hem that glows almost white, a pink fringe just under it
 // where the curtain is brightest, and tops fading through violet to a dim red. The light comes in vertical rays that
@@ -29,37 +29,4 @@ export function auroraColumns(T, SEG, each) {
       each(b, j, f, hem, tall, k * ends * surge * (.25 + .75 * ray) * (.45 + .55 * patch), ray);
     }
   });
-}
-
-// The hub page sky: the same curtains painted on a 2D canvas behind the panels. It draws at most 30 times a second
-// (10 on low graphics), not at all while the tab is hidden or the aurora is gone, and once only with reduced motion.
-// auroraSky(canvas) -> { on(bool), dispose() }
-export function auroraSky(cv, { low = false, still = false, skip = () => false } = {}) { // skip(): true while it is out of sight (a game is open)
-  const ctx = cv.getContext('2d'), SEG = 150, cols = AUR.map(() => []);
-  let run = false, raf = 0, last = 0, w = 0, h = 0, T = 40;
-  const fit = () => { const d = devicePixelRatio || 1, r = cv.getBoundingClientRect(); w = Math.round(r.width * d); h = Math.round(r.height * d); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } };
-  const ro = new ResizeObserver(() => { fit(); if (still && run) draw(); }); ro.observe(cv);
-  function draw() {
-    if (!w || !h) fit(); ctx.clearRect(0, 0, w, h); ctx.globalCompositeOperation = 'lighter';
-    // the sky seen flat: sideways angle across the width (the curtains fill most of it), height up from a horizon low in the layer
-    const sx = w / 1.5, hy = h * .86, sy = h * 1.55;
-    auroraColumns(T, SEG, (b, j, f, hem, tall, bright, ray) => { cols[b][j] = [w / 2 + f * sx, hem, tall, bright, ray]; });
-    cols.forEach(list => {
-      for (let j = 0; j < SEG; j++) {
-        const [x0, hem, tall, bright, ray] = list[j], x1 = list[j + 1][0], bw = Math.max(1, Math.abs(x1 - x0) * 1.35);
-        if (bright < .02) continue;
-        const yb = hy - (hem + AUR_ROWS[0][0] * tall) * sy, yt = hy - (hem + tall) * sy, g = ctx.createLinearGradient(0, yb, 0, yt);
-        AUR_ROWS.forEach(([dy, c, al], r) => { const a = al * Math.min(1, bright * (r === 0 ? .7 * ray : 1)); g.addColorStop((dy - AUR_ROWS[0][0]) / (1 - AUR_ROWS[0][0]), c + Math.round(Math.max(0, Math.min(1, a)) * 255).toString(16).padStart(2, '0')); });
-        ctx.fillStyle = g; ctx.fillRect(Math.min(x0, x1) - bw * .15, yt, bw, yb - yt);
-      }
-    });
-  }
-  function loop(t) {
-    if (!run) return; raf = requestAnimationFrame(loop);
-    if (document.hidden || skip() || t - last < (low ? 100 : 33)) return; T += Math.min(.1, (t - last) / 1000 || 0); last = t; draw();
-  }
-  return {
-    on(v) { if (v === run) return; run = v; cancelAnimationFrame(raf); if (!v) return; fit(); if (still) draw(); else { last = 0; raf = requestAnimationFrame(loop); } },
-    dispose() { run = false; cancelAnimationFrame(raf); ro.disconnect(); },
-  };
 }
