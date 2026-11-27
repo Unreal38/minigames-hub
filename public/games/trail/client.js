@@ -128,10 +128,23 @@ export function mount(app, ctx) {
   const markEls = new Map();
   function onFrame(info) {
     live = info;
-    for (let i = 0; i < tagEls.length; i++) {
+    // name tags never pile on each other (the start line-up, two players on one stone): whoever's go it is keeps
+    // their spot, then you, then the rest; a tag that would cover one already placed steps up above it
+    const now = S ? nowSeat() : -1, ord = tagEls.map((_, i) => i).sort((a, b) => (b === now) - (a === now) || isMe(b) - isMe(a) || a - b);
+    const put = [];
+    for (const i of ord) {
       const t = info.tags[i], el = tagEls[i]; if (!t || !el) continue;
       el.style.visibility = t.on ? '' : 'hidden';
-      el.style.transform = `translate(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px) translate(-50%, -100%)`;
+      if (!t.on) continue;
+      const pl = el.lastElementChild, w = pl._w ||= pl.offsetWidth, h = pl._h ||= pl.offsetHeight;
+      let y = t.y;
+      for (let k = 0; k < put.length + 1; k++) {
+        const hit = put.find(r => Math.abs(r.x - t.x) < (r.w + w) / 2 + 2 && Math.abs(r.y - y) < (r.h + h) / 2 + 1);
+        if (!hit) break; y = hit.y - (hit.h + h) / 2 - 2;
+      }
+      put.push({ x: t.x, y, w, h });
+      el.style.zIndex = i === now ? 3 : isMe(i) ? 2 : 1;
+      el.style.transform = `translate(${t.x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
     // labels for the wild pets, stalls and special stones once the camera has pulled back far enough
     const show = info.zoom > .55 && scene;
@@ -182,7 +195,8 @@ export function mount(app, ctx) {
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
       el.classList.toggle('now', S.ph === 'play' && (nowSeat() === i));
-      setHtml(el.querySelector('.cnt'), `${I.treat}${S.pl[i].treats}`);
+      const cnt = el.querySelector('.cnt'), was = cnt._h;
+      setHtml(cnt, `${I.treat}${S.pl[i].treats}`); if (cnt._h !== was) el.lastElementChild._w = 0; // its width changed
       const b = bubbles.get(i);
       setHtml(el.firstElementChild, b && b.until > now ? b.html : '');
     });
@@ -206,16 +220,16 @@ export function mount(app, ctx) {
       const ptsTip = L(`Pet Show points if it ended now: ${q.herd.length} for friends + ${held.length * 2} for ribbons${held.length ? ' (' + held.join(', ') + ')' : ''}`, `Punkty na Pokazie, gdyby był teraz: ${q.herd.length} za przyjaciół + ${held.length * 2} za wstęgi${held.length ? ' (' + held.join(', ') + ')' : ''}`);
       return `<div class="profrow tt-row${nowSeat() === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
         <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span>${firstChip(i)}</div>
-        <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}">${pet(f, 24)}</span>`).join('')}${egg}</div>
+        <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}" title="${esc(`${f.name || petName(f.sp)} · ${EL_NAME[f.el]}${f.cheer ? '' : L(' · has cheered', ' · już kibicował')}`)}">${pet(f, 24)}</span>`).join('')}${egg}</div>
         ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div></div>`;
-    }).join('');
+    }).join('') + `<div class="tt-key"><span class="tt-sp">★</span>${L('Pet Show points', 'punkty na Pokazie')}<span class="tt-tr">${I.treat}</span>${L('treats', 'przysmaki')}</div>`;
     setHtml($('tt-side'), rows); petPics($('tt-side'));
   }
 
-  // ----- messages: the newest on top until the next one; the last three under it -----
+  // ----- messages: the newest on top until the next one; the last two under it, fading -----
   function say(html) {
     if (LOG[0] === html) return;
-    LOG.unshift(html); LOG.length = Math.min(LOG.length, 4);
+    LOG.unshift(html); LOG.length = Math.min(LOG.length, 3);
     const b = $('tt-banner'); b.innerHTML = html; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
     const h = $('tt-host'); h.classList.remove('talk'); void h.offsetWidth; h.classList.add('talk');
     $('tt-log').innerHTML = LOG.slice(1).map((x, i) => `<div style="opacity:${(.92 - i * .2).toFixed(2)}">${x}</div>`).join('');

@@ -96,20 +96,20 @@ export const WX_RULE = {
 
 // The hub minigames played after each round, each as a quick preset of the real game. min/max: who it seats.
 export const POOL = [
-  { id: 'bop', name: L('Burrow Bop', 'Burrow Bop'), cut: L('one round', 'jedna runda'), max: 6, opts: { pace: 'normal' } },
-  { id: 'stack', name: L('Tower Stack', 'Chwiejna wieża'), cut: L('one tower', 'jedna wieża'), max: 6, opts: { towers: 1, timer: 10, blocks: 'classic' } },
-  { id: 'blast', name: L('Blast Bay', 'Zatoka Bum'), cut: L('first to win a round', 'do jednej wygranej rundy'), max: 8, opts: { wins: 1, arena: 'random', crumble: 'on' } },
-  { id: 'kart', name: L('Kart Island Race', 'Wyspiarskie gokarty'), cut: L('two laps', 'dwa okrążenia'), max: 8, opts: { laps: 2, track: 'random', items: 'on' } },
-  { id: 'golf', name: L('Mini Golf Party', 'Imprezowy minigolf'), cut: L('one hole', 'jeden dołek'), max: 6, opts: { holes: 1, course: 'random' } },
-  { id: 'kitchen', name: L('Cozy Kitchen Rush', 'Gorączka w kuchni'), cut: L('one minute shift', 'minutowa zmiana'), max: 4, opts: { time: 60, map: 'diner' } },
-  { id: 'bean', name: L('Beanstalk Bounce', 'Fasolowe skoki'), cut: L('one climb', 'jedna wspinaczka'), max: 6, opts: { pace: 'normal' } },
-  { id: 'bingo', name: L('Sky Bingo', 'Podniebne bingo'), cut: L('quick card', 'szybka karta'), max: 8, opts: { game: 'quick', speed: 'fast', daub: 'hand' } },
-  { id: 'dig', name: L('Treasure Dig', 'Poszukiwacze skarbów'), cut: L('small field', 'małe pole'), max: 6, opts: { size: 'small', timer: 15 } },
-  { id: 'pairs', name: L('Pet Pairs', 'Zwierzakowe Pary'), cut: L('small board', 'mała plansza'), max: 6, opts: { board: 'small', timer: 10, twists: 'on', streak: 3 } },
-  { id: 'darts', name: L('Sky Darts', 'Podniebne rzutki'), cut: L('three turns', 'trzy kolejki'), max: 6, opts: { start: 301, out: 'any', legs: 1, rounds: 3, timer: 15 } },
-  { id: 'lagoon', name: L('Bubble Lagoon', 'Bąbelkowa laguna'), cut: L('90 seconds', '90 sekund'), max: 4, opts: { speed: 'normal', time: 90 } },
-  { id: 'bricks', name: L('Sky Bricks', 'Podniebne klocki'), cut: L('90 seconds', '90 sekund'), max: 6, opts: { speed: 'normal', time: 90 } },
-  { id: 'siege', name: L('Sugar Siege', 'Słodkie Oblężenie'), cut: L('one pet each', 'jeden zwierzak na gracza'), max: 4, opts: { pets: 1, timer: 20, arc: 'short' } },
+  { id: 'bop', name: L('Burrow Bop', 'Burrow Bop'), cut: L('one round', 'jedna runda'), win: L('Bop pets as they pop up. The last one with a heart wins.', 'Bij zwierzaki, gdy wyskakują. Wygrywa ostatni z serduszkiem.'), max: 6, opts: { pace: 'normal' } },
+  { id: 'stack', name: L('Tower Stack', 'Chwiejna wieża'), cut: L('one tower', 'jedna wieża'), win: L('Drop your block on the shared tower. Don\'t be the one who knocks it down.', 'Upuść klocek na wspólną wieżę. Nie bądź tym, kto ją przewróci.'), max: 6, opts: { towers: 1, timer: 10, blocks: 'classic' } },
+  { id: 'blast', name: L('Blast Bay', 'Zatoka Bum'), cut: L('first to win a round', 'do jednej wygranej rundy'), win: L('Plant pop seeds, burst crates and be the last one standing.', 'Sadź wybuchowe nasiona, rozbijaj skrzynki i przetrwaj do końca.'), max: 8, opts: { wins: 1, arena: 'random', crumble: 'on' } },
+  { id: 'kart', name: L('Kart Island Race', 'Wyspiarskie gokarty'), cut: L('two laps', 'dwa okrążenia'), win: L('Two laps round the islands. First over the line wins.', 'Dwa okrążenia wokół wysp. Wygrywa pierwszy na mecie.'), max: 8, opts: { laps: 2, track: 'random', items: 'on' } },
+  { id: 'golf', name: L('Mini Golf Party', 'Imprezowy minigolf'), cut: L('one hole', 'jeden dołek'), win: L('One hole for everyone. The fewest strokes wins.', 'Jeden dołek dla wszystkich. Wygrywa najmniej uderzeń.'), max: 6, opts: { holes: 1, course: 'random' } },
+  { id: 'kitchen', name: L('Cozy Kitchen Rush', 'Gorączka w kuchni'), cut: L('one minute shift', 'minutowa zmiana'), win: L('Cook and serve orders together. Whoever helps with the most dishes places first.', 'Gotujcie i wydawajcie zamówienia razem. Najwyżej kończy ten, kto pomoże przy największej liczbie dań.'), max: 4, opts: { time: 60, map: 'diner' } },
+  { id: 'bean', name: L('Beanstalk Bounce', 'Fasolowe skoki'), cut: L('one climb', 'jedna wspinaczka'), win: L('Hop up the beanstalk. The highest climber wins.', 'Skacz w górę po łodydze. Wygrywa ten, kto wespnie się najwyżej.'), max: 6, opts: { pace: 'normal' } },
+  { id: 'bingo', name: L('Sky Bingo', 'Podniebne bingo'), cut: L('quick card', 'szybka karta'), win: L('Daub the called numbers. The first to shout Bingo wins.', 'Zaznaczaj wywołane liczby. Wygrywa pierwszy, kto krzyknie Bingo.'), max: 8, opts: { game: 'quick', speed: 'fast', daub: 'hand' } },
+  { id: 'dig', name: L('Treasure Dig', 'Poszukiwacze skarbów'), cut: L('small field', 'małe pole'), win: L('Take turns digging for gems. Dodge the traps and find the most treasure.', 'Kopcie po kolei w poszukiwaniu klejnotów. Omijaj pułapki i znajdź najwięcej skarbów.'), max: 6, opts: { size: 'small', timer: 15 } },
+  { id: 'pairs', name: L('Pet Pairs', 'Zwierzakowe Pary'), cut: L('small board', 'mała plansza'), win: L('Flip two cards to find twin pets. The most pairs wins.', 'Odkrywaj po dwie karty i szukaj par zwierzaków. Wygrywa najwięcej par.'), max: 6, opts: { board: 'small', timer: 10, twists: 'on', streak: 3 } },
+  { id: 'darts', name: L('Sky Darts', 'Podniebne rzutki'), cut: L('three turns', 'trzy kolejki'), win: L('Three turns of three darts. Score the most from 301 to win.', 'Trzy kolejki po trzy rzutki. Zdobądź najwięcej punktów z 301.'), max: 6, opts: { start: 301, out: 'any', legs: 1, rounds: 3, timer: 15 } },
+  { id: 'lagoon', name: L('Bubble Lagoon', 'Bąbelkowa laguna'), cut: L('90 seconds', '90 sekund'), win: L('Pop bubbles and send eggs. The last one afloat, or the clearest lagoon after 90 seconds, wins.', 'Zbijaj bąbelki i wysyłaj jajka. Wygrywa ostatni na powierzchni albo najczystsza laguna po 90 sekundach.'), max: 4, opts: { speed: 'normal', time: 90 } },
+  { id: 'bricks', name: L('Sky Bricks', 'Podniebne klocki'), cut: L('90 seconds', '90 sekund'), win: L('Clear lines and send stones. The last one stacking, or the lowest stack after 90 seconds, wins.', 'Kasuj linie i wysyłaj kamienie. Wygrywa ostatni, kto układa, albo najniższa wieża po 90 sekundach.'), max: 6, opts: { speed: 'normal', time: 90 } },
+  { id: 'siege', name: L('Sugar Siege', 'Słodkie Oblężenie'), cut: L('one pet each', 'jeden zwierzak na gracza'), win: L('Lob sweets at the other pets. The last pet still awake wins.', 'Rzucaj słodyczami w inne zwierzaki. Wygrywa ostatni zwierzak, który nie zaśnie.'), max: 4, opts: { pets: 1, timer: 20, arc: 'short' } },
 ];
 export const poolFor = n => POOL.filter(g => g.max >= n);
 

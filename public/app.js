@@ -1352,15 +1352,19 @@ function onMsg(m) {
     if (m.room && m.room.code === $inv.dataset.code) hideInvite(); // came in through the link or the code instead
     if (!m.room || m.room.code !== prev?.code) chatReset();
     $chat.hidden = !m.room; scoresPaint();
-    if (!m.room) { partyPaint(null); unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj' && st.view !== 'plaza') go('hub'); return; }
+    if (!m.room) { partyPaint(null); curtainOpen(0); unmountGame(); st.lastState = null; watchPaint(); if (st.view !== 'farm' && st.view !== 'hay' && st.view !== 'pop' && st.view !== 'mj' && st.view !== 'plaza') go('hub'); return; }
     if (prev && prev.code === m.room.code) {
       const before = new Set(prev.players.map(p => p.id));
       const joined = m.room.players.filter(p => !before.has(p.id));
       if (joined.length) { sfx.join(); joined.forEach(p => toast(L(`${esc(p.name)} pulled up a chair`, `${esc(p.name)} dosiada się do stołu`))); }
     }
-    partyPaint(m.room);
-    // A Friendship Trail table switches game for each minigame and back: the open game is swapped for the new one.
-    if ((st.game || st.gameLoading) && st.gameKey && st.gameKey !== m.room.game && m.room.state !== 'lobby') { unmountGame(); st.lastState = null; mountGame(); }
+    partyPaint(m.room); curtainPaint(m.room);
+    // A Friendship Trail table switches game for each minigame and back: the open game is swapped for the new one,
+    // behind the curtain, which opens again once the new game has drawn.
+    if ((st.game || st.gameLoading) && st.gameKey && st.gameKey !== m.room.game && m.room.state !== 'lobby') {
+      curtainShut(m.room.party ? null : 'back'); unmountGame(); st.lastState = null;
+      mountGame().then(() => curtainOpen(650));
+    }
     else if (st.game) st.game.room(m.room); else if (!st.gameLoading) go('lobby');
     watchPaint();
   } else if (m.t === 'state') {
@@ -1467,6 +1471,50 @@ function partyPaint(room) {
   const end = Date.now() + P.back;
   const paint = () => { const n = Math.max(0, Math.ceil((end - Date.now()) / 1000)); partyEl.textContent = L(`Back to the Friendship Trail in ${n}s`, `Powrót na Szlak przyjaźni za ${n} s`); };
   partyEl.hidden = false; paint(); partyTimer = setInterval(paint, 250);
+}
+// The curtain between the Friendship Trail and its minigames (Kuba 2026-11-27: the switch "pops up frantically and the
+// match starts too fast"). Two halves slide shut over the trail with a "Next up" card (picture, name, cut, how to win and a
+// countdown: the server waits room.pre.left before it creates the minigame), the game is swapped behind them, and they
+// open once the new game has drawn. On the way back they shut just before the trail returns, with a "Back to the trail" card.
+let curtEl = null, curtTimer = 0, curtOpenT = 0, curtBackT = 0, curtKind = '';
+function curtainEl() {
+  if (curtEl) return curtEl;
+  curtEl = document.createElement('div'); curtEl.className = 'pcurt'; curtEl.setAttribute('aria-live', 'polite');
+  curtEl.innerHTML = '<i class="pc-h pc-l"></i><i class="pc-h pc-r"></i><div class="pc-card"></div>';
+  document.body.append(curtEl); void curtEl.offsetWidth; // in the page before it slides, so the first shut animates too
+  return curtEl;
+}
+function curtainCard(kind, room) {
+  if (kind === 'back') return `<img src="/gamepics/trail-s.jpg" alt="" decoding="async"><small>${L('Minigame over', 'Koniec minigry')}</small>
+    <h2>${L('Back to the Friendship Trail', 'Wracamy na Szlak przyjaźni')}</h2><p>${L('Treats for the places are handed out next.', 'Zaraz rozdamy przysmaki za miejsca.')}</p>`;
+  const g = PARTY_POOL.find(x => x.id === room?.pre?.game) || PARTY_POOL.find(x => x.id === room?.game);
+  if (!g) return '';
+  return `<img src="/gamepics/${g.id}-s.jpg" alt="" decoding="async"><small>${L('Next up', 'Następna minigra')}</small>
+    <h2>${esc(g.name)}</h2><span class="pc-cut">${esc(g.cut)}</span><p>${esc(g.win)}</p><b class="pc-n" data-n></b>`;
+}
+function curtainShut(kind, room = st.room) {
+  const el = curtainEl(); clearTimeout(curtOpenT);
+  const k = kind || 'next';
+  if (curtKind !== k) { curtKind = k; el.querySelector('.pc-card').innerHTML = curtainCard(k, room); }
+  el.classList.add('shut');
+}
+function curtainOpen(ms) {
+  clearTimeout(curtOpenT); clearTimeout(curtBackT); clearInterval(curtTimer);
+  curtOpenT = setTimeout(() => { if (curtEl) curtEl.classList.remove('shut'); curtKind = ''; }, ms);
+}
+function curtainPaint(room) {
+  clearInterval(curtTimer);
+  if (room?.pre) { // the minigame is picked: count down to it on the card
+    curtainShut('next', room);
+    const end = Date.now() + room.pre.left, n = curtEl.querySelector('[data-n]');
+    const paint = () => { const s = Math.max(1, Math.ceil((end - Date.now()) / 1000)); if (n) n.textContent = L(`Starts in ${s}`, `Start za ${s}`); };
+    paint(); curtTimer = setInterval(paint, 250);
+    return;
+  }
+  const n = curtEl?.querySelector('[data-n]'); if (n && room?.party && curtKind === 'next') n.textContent = L('Here we go!', 'Zaczynamy!');
+  clearTimeout(curtBackT);
+  if (room?.party?.back != null) curtBackT = setTimeout(() => curtainShut('back'), Math.max(0, room.party.back - 900));
+  else if (!room?.party && curtKind && !st.gameLoading) curtainOpen(400); // safety: never leave the curtain shut over a game
 }
 function unmountGame() { document.body.classList.remove('tagpick'); st.gameKey = null; if (!st.game) return; st.game.destroy(); st.game = null; gameCss(null); }
 
@@ -1774,7 +1822,7 @@ function showWanted() {
   el.classList.add('wanted'); setTimeout(() => el.classList.remove('wanted'), 3200);
 }
 function go(view) {
-  st.view = view; gameCss(null); tellWhere();
+  st.view = view; gameCss(view === 'game' && st.game ? st.gameKey : null); tellWhere(); // go('game') (the first-visit sheet closing over a match) keeps the game's styles on
   document.title = view === 'lobby' && st.room ? `${st.room.code} · ${SITE}` : HOME_TITLE;
   if (view === 'hub') { renderHub(); if (wantGame) requestAnimationFrame(showWanted); }
   else if (view === 'lobby') renderLobby();
@@ -2236,8 +2284,9 @@ const partyBanHtml = () => !GAMES[PARTY_GAME] ? '' : `<section class="partyban" 
 const partyRowsHtml = () => {
   const rooms = (st.rooms || []).filter(r => r.game === PARTY_GAME).sort((a, b) => tableOpen(b) - tableOpen(a)).slice(0, PARTY_SHORT);
   if (!rooms.length) return `<span class="pb-none">${L('None yet. Host one and share the code.', 'Jeszcze żadnej. Zorganizuj i podaj kod.')}</span>`;
-  return rooms.map(r => `<button type="button" class="pb-row" data-act="join" data-code="${esc(r.code)}" title="${tableOpen(r) ? L('Join', 'Dołącz') : L('Watch', 'Oglądaj')}">
-    <span class="nm">${esc(r.host)}</span><small>${r.n}/${tableSeats(r)}${tableOpen(r) ? '' : ` · ${L('playing', 'gra trwa')}`}</small><em>${esc(r.code)}</em></button>`).join('');
+  // each row says what a tap does (join a seat, or watch a party already under way); the code stays in the tooltip
+  return rooms.map(r => `<button type="button" class="pb-row" data-act="join" data-code="${esc(r.code)}" title="${esc(r.code)}">
+    <span class="nm">${esc(r.host)}</span><small>${r.n}/${tableSeats(r)}${tableOpen(r) ? '' : ` · ${L('playing', 'gra trwa')}`}</small><em class="${tableOpen(r) ? 'go' : ''}">${tableOpen(r) ? L('Join', 'Dołącz') : L('Watch', 'Oglądaj')}</em></button>`).join('');
 };
 const paintParties = () => { const el = document.getElementById('party-open'); if (el) morph(el, partyRowsHtml()); };
 // The Game wheel (Koło gier) pop-up: spins the games the player put on it. It pays nothing; see public/gamewheel.js.
