@@ -22,7 +22,7 @@ const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover',
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // how long things take on screen: the intro, one hop, the wheel before a minigame, the minigame results, the Pet Show
 // A calm pace (Kuba 2026-11-27: the first version raced through 8 rounds in a few minutes and was hard to follow).
-export const MS = { intro: 14000, hop: 420, say: 1500, dice: 2000, turn: 1400, wheel: 5500, res: 8000, show: 13000, cheer: 14000 };
+export const MS = { intro: 29000, hop: 420, say: 1500, dice: 2000, turn: 1400, wheel: 5500, res: 8000, show: 13000, cheer: 14000 };
 // Bots wait a moment before each choice, so they look like they're thinking (Kuba, 2026-11-26). Sharp bots are quicker.
 export const THINK = { chill: [1400, 2600], sharp: [1100, 2000] };
 export const TIMERS = [20, 30, 45, 0];
@@ -425,6 +425,12 @@ function finish(G) {
 export function act(G, s, a) {
   if (!a || typeof a !== 'object' || s < 0 || !G.seats[s] || G.ph !== 'play') return false;
   const now = Date.now();
+  if (G.stage === 'intro') { // skip the intro: once every person at the table has voted, the line-up rolls straight away
+    if (a.t !== 'skip' || !G.seats[s].human || G.seats[s].bot) return false;
+    (G.skipV ||= []); if (G.skipV.includes(s)) return false; G.skipV.push(s);
+    if (G.seats.every((x, i) => !x.human || x.bot || G.skipV.includes(i))) G.stageEnd = now;
+    return true;
+  }
   if (G.stage === 'cheer') { if (a.t !== 'cheer' || !Number.isInteger(a.i)) return false; return setCheer(G, s, a.i); }
   if (a.t === 'item') { // items are used at the start of your own turn, while you're about to roll
     if (G.pend?.s !== s || G.pend.k !== 'roll' || typeof a.k !== 'string') return false;
@@ -537,7 +543,7 @@ export function setAway(G, s, away) {
 export function view(G, s) {
   const now = Date.now();
   return {
-    game: 'trail', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, rounds: G.opts.rounds, turn: G.turn, order: G.order, first: G.first ? { key: G.first.key, tie: G.first.tie } : null,
+    game: 'trail', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, rounds: G.opts.rounds, turn: G.turn, introMs: MS.intro, skipV: G.skipV || [], order: G.order, first: G.first ? { key: G.first.key, tie: G.first.tie } : null,
     season: G.season, wx: G.wx, die: G.die, botsLevel: G.opts.bots, timer: G.opts.timer,
     pend: G.pend ? { ...G.pend } : null, busy: Math.max(0, G.busy - now),
     tLeft: G.pend && G.tEnd ? Math.max(0, G.tEnd - now) : G.stage === 'cheer' ? Math.max(0, G.stageEnd - now) : -1,

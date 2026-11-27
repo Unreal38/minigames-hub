@@ -115,6 +115,15 @@ function pastOrder(G, T, lead = 0) {
   if (G.order[0] !== lead || G.turn !== lead) fail('the highest first roll should go first');
 }
 
+{ // skipping the intro: it ends once every person has voted (bots don't vote)
+  const T = clock();
+  const G = tg.create(ppl(2), { seats: 3, rounds: 5 });
+  if (!tg.act(G, 0, { t: 'skip' }) || tg.act(G, 0, { t: 'skip' }) || tg.act(G, 2, { t: 'skip' })) fail('one skip vote per person');
+  T.add(10); tg.tick(G, T.now); if (G.stage !== 'intro') fail('the intro waits for every person');
+  tg.act(G, 1, { t: 'skip' }); T.add(10); tg.tick(G, T.now); if (G.stage !== 'order') fail('everyone skipped: the roll for the first turn starts');
+  T.done();
+}
+
 { // the roll for the first turn: ties roll again, and the order holds every round
   const T = clock();
   const G = tg.create(ppl(1), { seats: 3, rounds: 5 });
