@@ -440,9 +440,9 @@ const BUILD = {
     const roll = cyl(g, .05, .05, .34, 6, C.cream, -.72, .3, .62); roll.rotation.z = Math.PI / 2; roll.position.y = .36;
     box(g, .24, .28, .16, C.teal, .42, 0, .78); box(g, .26, .08, .18, C.woodD, .42, .24, .78); cyl(g, .05, .05, .2, 6, C.cream, .42, .32, .78).rotation.z = Math.PI / 2; // backpack with a bedroll
   },
-  garden(g, live, lv = 1) {
+  garden(g, live, lv = 1, crop) {
     box(g, .92, .14, .92, lv >= 3 ? C.stone : C.woodD); box(g, .78, .18, .78, C.soil);
-    if (!live) PARTS.garden(g);
+    if (!live) PARTS.garden(g, typeof crop === 'string' ? crop : 'berries');
     const sun = (x, z, h) => { cyl(g, .022, .022, h, 4, C.leafD, x, .18, z); ico(g, .09, C.gold, x, .2 + h + .05, z); ico(g, .035, C.white, x + .04, .2 + h + .11, z + .05); for (const sd of [-1, 1]) cone(g, .05, .16, 4, C.leafL, x + sd * .07, .18 + h * .45, z).rotation.z = -sd * 1.1; };
     if (lv >= 2) { // level 2: corner posts with a rope, and the Sunberry it grows
       for (const x of [-.43, .43]) for (const z of [-.43, .43]) { box(g, .1, .3, .1, lv >= 3 ? C.stoneD : C.wood, x, 0, z); ico(g, .055, lv >= 3 ? C.gold : C.cream, x, .33, z); }
@@ -1081,7 +1081,17 @@ const PARTS = {
     const moon = grp(o, 0, .34, 0); ico(moon, .05, '#fff3b8').scale.z = .5; ico(moon, .045, '#d6a24a', .025, .015, .01).scale.z = .55; // a little moon on top (the brass half hides one side)
     o.userData.rings = rings; return o; },
   mailbox(g) { const f = new THREE.Group(); f.position.set(.2, .76, .1); g.add(f); box(f, .04, .22, .12, C.white, 0, 0, 0); box(f, .05, .1, .14, C.yellow, 0, .14, 0); return f; },
-  garden(g) { return [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]].map(([x, z]) => { const p = new THREE.Group(); p.position.set(x, .18, z); g.add(p); cone(p, .09, .22, 4, C.leaf); p.userData.berry = ico(p, .05, C.red, .07, .12, .04); return p; }); },
+  // Four plants on a plot; crop (2026-11-27): berries (a bush with a berry), herbs (a leafy sprig), honey (a flower), chili
+  // (a bush with a hanging pepper). userData.berry is the part that swells when it is ripe.
+  garden(g, crop = 'berries') { return [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]].map(([x, z], i) => { const p = new THREE.Group(); p.position.set(x, .18, z); g.add(p);
+    if (crop === 'herbs') { for (const [a, h] of [[0, .24], [2.1, .2], [4.2, .18]]) { const l = cone(p, .05, h, 4, i % 2 ? C.leafL : C.leaf, Math.cos(a) * .04, 0, Math.sin(a) * .04); l.rotation.set(Math.sin(a) * .35, 0, Math.cos(a) * .35); } p.userData.berry = ico(p, .045, '#c6f0a0', 0, .24, 0); }
+    else if (crop === 'honey') { cyl(p, .015, .015, .24, 4, C.leafD, 0, 0, 0); cone(p, .05, .1, 4, C.leafL, .04, .02, 0).rotation.z = -.9; const f = new THREE.Group(); f.position.y = .27; p.add(f);
+      for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283; ico(f, .04, i % 2 ? '#ff9fc0' : '#ffe066', Math.cos(a) * .05, 0, Math.sin(a) * .05).scale.y = .5; } ico(f, .03, '#e08a1e'); p.userData.berry = f; }
+    else if (crop === 'chili') { cone(p, .07, .16, 4, C.leafD); const c = new THREE.Group(); c.position.set(0, .16, 0); p.add(c);
+      for (const [x, z, t] of [[.08, .03, .5], [-.07, .05, -.5]]) { const pod = cone(c, .035, .16, 6, '#e2412f', x, -.08, z); pod.rotation.x = Math.PI; pod.rotation.z = t; ico(c, .022, C.leaf, x, 0, z); }
+      p.userData.berry = c; }
+    else { cone(p, .09, .22, 4, C.leaf); p.userData.berry = ico(p, .05, C.red, .07, .12, .04); }
+    return p; }); },
   yard(g) { const d = new THREE.Group(); d.position.set(-.8, 0, -.2); g.add(d); box(d, .12, .9, .12, C.wood); box(d, .7, .12, .12, C.wood, 0, .55); box(d, .34, .34, .34, C.straw, 0, .86); return d; },
   flag(g) { const f = new THREE.Group(); f.position.set(0, 1.6, 0); g.add(f); box(f, .62, .4, .04, C.red, .33, 0); box(f, .2, .14, .05, C.yellow, .3, .13); return f; },
   fountain(g) {
@@ -1198,8 +1208,8 @@ const FX = {
       root.position.y = st.on && u < 1 ? Math.sin(u * Math.PI) * .07 : 0;
     };
   },
-  garden(g) {
-    const plants = PARTS.garden(g);
+  garden(g, lv, crop) {
+    const plants = PARTS.garden(g, typeof crop === 'string' ? crop : 'berries');
     return (T, st) => plants.forEach((p, i) => {
       const n = st.n ?? 1, ripe = n >= 1; p.scale.setScalar(.3 + .7 * Math.min(1, n)); p.rotation.z = Math.sin(T * 1.6 + i * 1.7) * .06;
       const b = p.userData.berry; b.visible = n > .7; b.scale.setScalar(ripe ? 1.25 + Math.sin(T * 5 + i) * .25 : .6);
@@ -1271,7 +1281,7 @@ export function itemModel(type, live = false, raw = false, lv = 1, link = 0) {
   const g = new THREE.Group();
   (BUILD[type] || BUILD.rock)(g, live, lv, link);
   finish(g, raw);
-  if (live && FX[type]) { const fx = new THREE.Group(); g.add(fx); g.userData.tick = FX[type](fx, lv); toonify(fx); fx.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); }
+  if (live && FX[type]) { const fx = new THREE.Group(); g.add(fx); g.userData.tick = FX[type](fx, lv, link); toonify(fx); fx.traverse(m => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } }); }
   return g;
 }
 

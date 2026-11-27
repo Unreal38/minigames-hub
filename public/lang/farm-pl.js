@@ -4,7 +4,7 @@
 // and so on needs its Polish here: test/i18n.js fails when one is missing.
 export const EL_PL = { Leaf: 'Liść', Ember: 'Żar', Tide: 'Fala', Spark: 'Iskra', Stone: 'Kamień' };
 
-const MATS = { wood: 'Drewno', stone: 'Kamień', fiber: 'Włókno', shells: 'Muszle', coal: 'Węgiel', crystal: 'Kryształ', berries: 'Jagody', sunberry: 'Słoneczne jagody', cookie: 'Jagodowe ciastka', cake: 'Miodowe ciasta', juice: 'Sok jagodowy', pie: 'Słoneczne tarty', pack: 'Prowiant', tonic: 'Toniki wypoczynku', coins: 'Monety', stamps: 'Znaczki' };
+const MATS = { wood: 'Drewno', stone: 'Kamień', fiber: 'Włókno', shells: 'Muszle', coal: 'Węgiel', crystal: 'Kryształ', berries: 'Jagody', sunberry: 'Słoneczne jagody', cookie: 'Jagodowe ciastka', cake: 'Miodowe ciasta', juice: 'Sok jagodowy', pie: 'Słoneczne tarty', pack: 'Prowiant', tonic: 'Toniki wypoczynku', herbs: 'Zioła', honey: 'Miód', chili: 'Papryczki chili', chilibite: 'Chrupki chili', cracker: 'Krakersy z wodorostów', salad: 'Sałatki ziołowe', rockcandy: 'Kamienne cukierki', fizz: 'Musujące dropsy', picnic: 'Kosze piknikowe', bar: 'Batony treningowe', muffin: 'Babeczki miłości', suntea: 'Słoneczna herbata', kite: 'Latawcowe krakersy', puff: 'Chmurkowe pianki', soup: 'Burzowa zupa', rcake: 'Tęczowe torty', coins: 'Monety', stamps: 'Znaczki' };
 const MAT_INFO = {
   wood:     ['Wyprawy, najwięcej z Omszałego Lasu.', 'Większość budynków i ozdób.'],
   stone:    ['Wyprawy, najwięcej z Kamykowej Grani.', 'Budynki, ścieżki i kamienne ozdoby.'],
@@ -21,6 +21,22 @@ const MAT_INFO = {
   tonic:    ['Robione w Kuchni na poziomie 3.', 'Podaj odpoczywającemu zwierzakowi, żeby od razu mógł wrócić do Gniazda.'],
   stamps:   ['Dostarczanie zamówień z wysp na Tablicy zamówień.', 'Ozdoby za znaczki, w Urządź farmę, Znaczki. Znaczki zostają na twojej farmie: nie można ich wymieniać, dawać w prezencie ani zamieniać w Warsztacie.'],
   pack:     ['Pakowany w Kuchni z 8 jagód, 10 włókien i 4 węgli.', 'Jedzenie na długą drogę: każda daleka wyprawa zabiera kilka.'],
+  herbs:    ['Grządki obsiane ziołami (dom na poziomie 2).', 'Przepisy w Kuchni: Sałatka ziołowa, Krakersy z wodorostów, Kosz piknikowy i inne.'],
+  honey:    ['Grządki obsiane miododajnymi kwiatami (dom na poziomie 3).', 'Przepisy w Kuchni: Babeczka miłości, Baton treningowy, Kamienne cukierki i inne.'],
+  chili:    ['Grządki obsiane chili (dom na poziomie 3).', 'Chrupki chili, przekąska bitewna żywiołu Żar.'],
+  chilibite: ['Pieczone w Kuchni z karty przepisu.', 'Przekąska bitewna: zwierzaki żywiołu Żar w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  cracker:  ['Pieczone w Kuchni z karty przepisu.', 'Przekąska bitewna: zwierzaki żywiołu Fala w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  salad:    ['Robiona w Kuchni z karty przepisu.', 'Przekąska bitewna: zwierzaki żywiołu Liść w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  rockcandy: ['Robione w Kuchni z karty przepisu.', 'Przekąska bitewna: zwierzaki żywiołu Kamień w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  fizz:     ['Robione w Kuchni z karty przepisu.', 'Przekąska bitewna: zwierzaki żywiołu Iskra w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  picnic:   ['Pakowany w Kuchni z karty przepisu.', 'Weź go na wyprawę: o 15% więcej materiałów i większa szansa na dzikiego zwierzaka.'],
+  bar:      ['Pieczony w Kuchni z karty przepisu.', 'Podaj zwierzakowi na placu treningowym: przez 2 godziny trenuje dwa razy szybciej.'],
+  muffin:   ['Pieczone w Kuchni z karty przepisu.', 'Włóż jedną do Gniazda z parą: jajko wykluje się o 30% szybciej.'],
+  suntea:   ['Parzona w Kuchni, gdy jest słonecznie.', 'Weź ją na wyprawę: o 30% więcej materiałów.'],
+  kite:     ['Pieczone w Kuchni, gdy wieje wiatr.', 'Weź je na wyprawę: drużyna wraca o 25% szybciej.'],
+  puff:     ['Robione w Kuchni, gdy jest pochmurno.', 'Przekąska bitewna dla wszystkich: każdy zwierzak w drużynie ma o 10% więcej ataku i obrony.'],
+  soup:     ['Gotowana w Kuchni, gdy pada deszcz.', 'Podaj zwierzakowi na placu treningowym: przez 2 godziny trenuje trzy razy szybciej.'],
+  rcake:    ['Pieczone w Kuchni, gdy na niebie jest tęcza.', 'Weź go na wyprawę: drużyna na pewno przyprowadzi dzikiego zwierzaka, jeśli będzie dla niego łóżko.'],
   coins:    ['Bitwy, pomaganie sąsiadom i inne gry w Zatoce.', 'Drzewa i krzewy tutaj oraz sklep z ubraniami na stronie głównej. Monety zostają u ciebie: nie można ich wymieniać ani dawać w prezencie.'],
 };
 // [name, description]
@@ -30,7 +46,7 @@ const ITEMS = {
   museum: ['Muzeum zwierzaków', 'Wielka sala, w której wystawiasz swój Album zwierzaków. Jej pięć medalionów wypełnia się, gdy znajdujesz zwierzaki każdego żywiołu.'],
   lodge: ['Schronisko zwierzaków', 'Duży, przytulny dom, w którym 60 kolejnych zwierzaków drzemie pod dachem, ułożonych we własne kolekcje. Dalej mogą chodzić wszędzie i robić wszystko.'],
   gate: ['Brama wypraw', 'Stąd zwierzaki ruszają balonem i wracają z materiałami, a czasem z nowym przyjacielem.'],
-  garden: ['Grządka', 'Kawałek ziemi. Co godzinę dojrzewają tu jagody.'],
+  garden: ['Grządka', 'Kawałek ziemi. Rośnie na niej to, co zasiejesz: jagody, zioła, kwiaty na miód albo chili.'],
   kitchen: ['Kuchnia', 'Zamienia jagody w smakołyki dla zwierzaków.'],
   barn: ['Stodoła', 'Miejsce na trzy razy więcej materiałów.'],
   nest: ['Gniazdo', 'Dwa zwierzaki tu odpoczywają i pojawia się jajko.'],
@@ -207,7 +223,7 @@ const UPGRADES = {
   gate: 'Jedna drużyna więcej może być na wyprawie',
   kitchen: ['Nowy przepis: Słoneczna tarta', 'Nowy przepis: Tonik wypoczynku'],
   workshop: ['Drugi zestaw ozdób i korzystniejsze wymiany', 'Najwspanialsze ozdoby i najlepsze wymiany'],
-  garden: ['Dojrzewa 15 minut szybciej i za każdym razem daje słoneczną jagodę', 'Dojrzewa kolejne 15 minut szybciej i daje dwie słoneczne jagody'],
+  garden: ['Dojrzewa 15 minut szybciej, a jagody za każdym razem dają słoneczną jagodę', 'Dojrzewa kolejne 15 minut szybciej, a jagody dają dwie słoneczne jagody'],
   barn: 'Miejsce na 600 sztuk więcej każdego materiału',
   nest: ['Drugie miejsce na jajko', 'Trzecie miejsce na jajko, a jajka wykluwają się o jedną czwartą szybciej'],
   yard: 'Jedno miejsce treningowe więcej',
@@ -215,11 +231,11 @@ const UPGRADES = {
     does: ['Zwierzaki wspinają się na szczyt i rozglądają.', 'Zwierzaki drapią słupek, łapią zabawkową myszkę i drzemią w koszyku na szczycie.', 'Zwierzaki drapią, łapią myszkę, bujają się w hamaku, myją się w koszyku i wyglądają z kryjówki.'] },
 };
 const WORK = {
-  garden:  ['podlewa grządki', n => `Jagody dojrzewają o ${n}% szybciej`],
+  garden:  ['podlewa grządki', n => `Plony dojrzewają o ${n}% szybciej`],
   nest:    ['dba o ciepło w Gnieździe', n => `Nowe jajka wykluwają się o ${n}% szybciej`],
   yard:    ['trenuje innych na placu', n => `Trening daje o ${n}% więcej doświadczenia`],
   gate:    ['ładuje balon', n => `Nowe drużyny wracają o ${n}% szybciej`],
-  kitchen: ['pilnuje pieca', n => `${n}% szans na drugi smakołyk za darmo`],
+  kitchen: ['pilnuje pieca', n => `Piecze o ${n}% szybciej i ma ${n}% szans na drugi smakołyk za darmo`],
 };
 const RECIPES = {
   cookie: ['Jagodowe ciastko', 'Podaj zwierzakowi: 30 doświadczenia.'],
@@ -228,7 +244,21 @@ const RECIPES = {
   pack: ['Prowiant', 'Jedzenie na długą drogę. Każda daleka wyprawa zabiera kilka.'],
   pie: ['Słoneczna tarta', 'Podaj zwierzakowi: 220 doświadczenia.'],
   tonic: ['Tonik wypoczynku', 'Zwierzak, który go wypije, od razu jest wypoczęty i może wrócić do Gniazda.'],
+  chilibite: ['Chrupki chili', 'Zwierzaki żywiołu Żar w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  cracker: ['Krakersy z wodorostów', 'Zwierzaki żywiołu Fala w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  salad: ['Sałatka ziołowa', 'Zwierzaki żywiołu Liść w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  rockcandy: ['Kamienne cukierki', 'Zwierzaki żywiołu Kamień w drużynie mają przez całą bitwę o 15% więcej ataku i obrony.'],
+  fizz: ['Musujące dropsy', 'Zwierzaki żywiołu Iskra w drużynie mają przez całą bitwę o 15% więcej ataku i obrony. Wychodzą trzy.'],
+  puff: ['Chmurkowe pianki', 'Każdy zwierzak w drużynie ma przez całą bitwę o 10% więcej ataku i obrony.'],
+  picnic: ['Kosz piknikowy', 'Drużyna przynosi o 15% więcej materiałów i łatwiej znajduje dzikiego zwierzaka.'],
+  suntea: ['Słoneczna herbata', 'Drużyna przynosi o 30% więcej materiałów.'],
+  kite: ['Latawcowe krakersy', 'Drużyna wraca o 25% szybciej.'],
+  rcake: ['Tęczowy tort', 'Drużyna na pewno przyprowadzi dzikiego zwierzaka, jeśli będzie dla niego łóżko.'],
+  bar: ['Baton treningowy', 'Zwierzak na placu treningowym przez 2 godziny trenuje dwa razy szybciej.'],
+  soup: ['Burzowa zupa', 'Zwierzak na placu treningowym przez 2 godziny trenuje trzy razy szybciej.'],
+  muffin: ['Babeczka miłości', 'Włóż ją do Gniazda z parą: jajko wykluje się o 30% szybciej.'],
 };
+const CROPS = { berries: 'Jagody', herbs: 'Zioła', honey: 'Kwiaty na miód', chili: 'Chili' };
 const ZONES = {
   woods: ['Omszały Las', 'Wysokie drzewa i miękki mech.'],
   cove: ['Zatoczka Pływów', 'Ciepłe sadzawki pełne muszli.'],
@@ -262,6 +292,7 @@ export function plData(D) {
   for (const [k, what] of Object.entries(UPGRADES)) if (D.UPGRADES[k]) Object.assign(D.UPGRADES[k], typeof what === 'string' || Array.isArray(what) ? { what } : what); // a decoration also has does
   for (const [k, [job, what]] of Object.entries(WORK)) if (D.WORK[k]) Object.assign(D.WORK[k], { job, what });
   for (const [k, [name, desc]] of Object.entries(RECIPES)) if (D.RECIPES[k]) Object.assign(D.RECIPES[k], { name, desc });
+  if (D.CROPS) for (const [k, name] of Object.entries(CROPS)) if (D.CROPS[k]) D.CROPS[k].name = name;
   for (const [k, [name, blurb]] of Object.entries(ZONES)) if (D.ZONES[k]) Object.assign(D.ZONES[k], { name, blurb });
   for (const [k, [name, blurb]] of Object.entries(TRIPS)) if (D.TRIPS[k]) Object.assign(D.TRIPS[k], { name, blurb });
   for (const [k, [name, desc]] of Object.entries(CHARMS)) if (D.CHARMS?.[k]) Object.assign(D.CHARMS[k], { name, desc });
@@ -323,7 +354,7 @@ export function plBattle(D) {
 }
 
 /** What test/i18n.js checks: every key of the English tables has Polish here. */
-export const COVER = { MATS, MAT_INFO, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
+export const COVER = { MATS, MAT_INFO, CROPS, ITEMS, SPECIES: BLURB, FAMILIES, UPGRADES, WORK, RECIPES, ZONES, TRIPS, CHARMS, PATTERNS, PART, MOVES, STATUS, ROLE_NAME };
 
 // What the farm's server code says (server/farm.js), for srvText() in lang/server.js.
 export const SRV_TEXT = {
@@ -380,6 +411,12 @@ export const SRV_TEXT = {
   'There is no room for more berries. Cook some, or build a Storage Barn.': 'Nie ma miejsca na więcej jagód. Ugotuj coś z nich albo zbuduj Stodołę.',
   'Build a Kitchen first.': 'Najpierw zbuduj Kuchnię.',
   'Not enough for that recipe yet.': 'Na ten przepis jeszcze nie wystarczy.',
+  'Find that recipe card on an expedition first.': 'Najpierw znajdź kartę tego przepisu na wyprawie.',
+  'That recipe can only go into the oven in its own weather.': 'Ten przepis trafia do pieca tylko przy swojej pogodzie.',
+  'Every oven is busy. Wait for a bake to finish, or improve the Kitchen for another oven.': 'Wszystkie piece są zajęte. Poczekaj, aż coś się upiecze, albo ulepsz Kuchnię, żeby mieć kolejny piec.',
+  'That is not food for an expedition.': 'To nie jest jedzenie na wyprawę.',
+  'You have no Love Muffins left.': 'Nie masz już Babeczek miłości.',
+  'You have none of that snack left.': 'Nie masz już tej przekąski.',
   'You have none of those left.': 'Nie masz już tego.',
   'You do not have that many to sell.': 'Nie masz tyle na sprzedaż.',
   'The Workshop swaps materials now. Open it again to swap.': 'Warsztat teraz wymienia materiały. Otwórz go jeszcze raz, żeby coś wymienić.',
@@ -471,6 +508,9 @@ export const SRV_FORMS = [
   [/^(.+) opens at farmhouse level (\d+)\.$/, (z, n) => `${ZONES[ZONE_EN[z]]?.[0] || z} otwiera się, gdy dom ma poziom ${n}.`],
   [/^That recipe needs a level (\d+) Kitchen\.$/, n => `Ten przepis wymaga Kuchni na poziomie ${n}.`],
   [/^(.+) is not tired\.$/, p => `${p} nie potrzebuje odpoczynku.`],
+  [/^(.+) seeds come with a level (\d+) farmhouse\.$/, (c, n) => `Te nasiona będą dostępne z domem na poziomie ${n}.`],
+  [/^(.+) is not training\. Put it on the Training Yard first\.$/, p => `${p} nie trenuje. Najpierw wyślij go na plac treningowy.`],
+  [/^(.+) is still full of energy from the last one\.$/, p => `${p} ma jeszcze energię z poprzedniego.`],
   [/^(.+) is busy in the Nest\.$/, p => `${p} jest teraz w Gnieździe.`],
   [/^(.+) is grown up now and learns from battles, trips and training\.$/, p => `${p} jest już dorosły i uczy się teraz w bitwach, na wyprawach i na treningu.`],
   [/^(.+) has reached the level cap\. A bigger farmhouse lets it grow more\.$/, p => `${p} ma już najwyższy poziom, na jaki pozwala dom. Większy dom pozwoli mu rosnąć dalej.`],

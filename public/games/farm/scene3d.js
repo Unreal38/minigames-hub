@@ -190,7 +190,7 @@ export function createScene(canvas, { onPick, onGhost }) {
   // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
   const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
   // A fence's joins, or the Pet Museum's medallions (from the album when the farm has one, else what the server sent).
-  const linkOf = (it, f = farm, skip) => it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
+  const linkOf = (it, f = farm, skip) => it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {
@@ -1387,6 +1387,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     work(type, secs = 6) { for (const e of items.values()) if (e.type === type) e.burst = secs; },
     pop(id) { const e = items.get(id); if (e) e.pop = 1; },
     cheer(id) { const p = pets.get(id); if (p) p.hop = 1; },
+    hearts(id) { const p = pets.get(id); if (!p) return; p.hop = 1; const y = (p.topY ??= new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y) + .1; for (let i = 0; i < 6; i++) setTimeout(() => floatUp(BIT.heart, BM.heart, p.x + (Math.random() - .5) * .5, y, p.z + (Math.random() - .5) * .3, .08, 1.8), i * 140); }, // a favourite treat: a burst of hearts
     // the battle ring: show it, put a pet on a side (0 yours, 1 theirs), and play what happens
     setWorld,
     setBattle(on) { fighting = !!on; liftNow = -1; if (!on) { ringPet(0, null); ringPet(1, null); fx.clear(); } },

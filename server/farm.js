@@ -7,7 +7,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import * as db from './db.js';
 import { DATA_DIR, safeText, profiles, friendPids, addCoins, coinsOf, setCoins, me as hubMe, scheduleSave as saveHub } from './store.js';
-import { COOK_MAX, ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
+import { COOK_MAX, CROPS, cropOf, CARDS, CARD_CHANCE, CARD_FOOD, CARD_EL, FOOD_ZONES, favFood, knows, bakeMs, snackFor, TRAIN_FOOD_H, HAPPY_H, HAPPY_X, ELEMENTS, ITEMS, SIZES, EXPAND, START_INV, MAX_ITEMS, SPECIES, elOf, STARTERS, ZONES, TRIPS, PARTY, MAX_LV, HOUSE_MAX, HOUSE_UP,
   xpFor, petRoom, lodgeRoom, allRoom, maxOf, LAND_HOUSE, SHELF_MAX, SHELF_NAME, GROUP_MAX, GROUP_NAME, tripLoot, formOf, fits, canAfford, countOf, costText, GIFTS, MATS,
   BERRIES, RECIPES, STORED, capOf, CHARMS, charmHouse, swapDeal, SWAP_MAX, TRADE_MATS, UPGRADES, UP_MAX, lvOf, topLv, upCost, upBlock, museumFill, growMin, TRAIN_XP, WORK, canWork, workPct, palsOf, weatherAt, tripFits, FAR_VARIANT, lvCap, TREAT_LV, BATTLE_XP, FIRST_WIN_X, gapX, teamLv } from '../public/games/farm/data.js';
 import { unit as rawUnit, newBattle, step, pickMove, TURN_S } from '../public/games/farm/battle.js';
@@ -110,7 +110,7 @@ function fixPet(x) {
 }
 // A pet as its owner sees it. The hidden colour gene only shows once the pet has had two babies.
 const HOUR = 3_600_000;
-const petView = x => ({ ...x, look: lookOf(x), col: (x.kids || 0) >= 2 ? x.col : [x.col[0]], rest: Math.max(0, (x.rest || 0) - Date.now()) });
+const petView = x => ({ ...x, look: lookOf(x), col: (x.kids || 0) >= 2 ? x.col : [x.col[0]], rest: Math.max(0, (x.rest || 0) - Date.now()), tx: x.tx ? Math.max(0, x.tx.until - Date.now()) : 0, txx: x.tx?.x || 0, happy: Math.max(0, (x.happy || 0) - Date.now()) });
 // Expedition parties. Up to one for each level of the gate can be out at once. (Older saves had a single f.trip.)
 function parties(f) { if (f.trip) { (f.parties ||= []).push({ id: rid(), ...f.trip }); delete f.trip; } return f.parties ||= []; }
 // Helpers at buildings: f.work[type] is the pet working there. It counts only while the building stands and the pet is home.
@@ -139,7 +139,8 @@ function nestView(f, slot = 'nest') {
 // Adds experience. Returns { id, lv, form } if the pet went up a level (form is set when it grew into a new one).
 // cap: the top level it may reach now (the farmhouse's lvCap). At the cap the bar fills and waits: the experience
 // that would cross it is kept up to one full bar, so a bigger farmhouse lets it level straight away (wake()).
-function learn(pet, xp, cap = MAX_LV) {
+function learn(pet, xp, cap = MAX_LV, plain = false) { // plain: a treat, which a Happy pet's bonus does not touch
+  if (!plain && xp > 0 && (pet.happy || 0) > Date.now()) xp = Math.round(xp * (1 + HAPPY_X)); // its favourite treat made it Happy
   const before = pet.lv, top = Math.min(MAX_LV, cap); pet.xp = (pet.xp || 0) + xp;
   if (pet.talent === 3 && xp) pet.xp += Math.ceil(xp * .1);
   while (pet.lv < top && pet.xp >= xpFor(pet.lv)) { pet.xp -= xpFor(pet.lv); pet.lv++; }
@@ -220,7 +221,7 @@ function ranks(mine) {
   return out.sort((a, b) => b.pts - a.pts || b.top - a.top).slice(0, 100);
 }
 // What the player may see of a fight: everything about their own side, and the other side's faces and health.
-const battleView = B => ({ juiced: !!B.juiced, mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
+const battleView = B => ({ juiced: !!B.juiced, snack: B.snack || null, mode: B.mode, foe: B.foe, turn: B.turn, need: B.need, over: B.over,
   sides: B.sides.map(s => ({ on: s.on, pets: s.pets.map(u => ({ id: u.id, sp: u.sp, name: u.name, el: u.el, el2: u.el2, lv: u.lv, form: u.form, look: u.look, hp: u.hp, max: u.max, moves: u.moves, cd: u.cd, up: u.up, status: u.status })) })) });
 
 // ---------- live battles ----------
@@ -449,9 +450,28 @@ function syncPf(f, p, tell) {
 function trainTick(f) {
   const t = f.train; if (!t?.ids.length) return;
   const hours = Math.floor((Date.now() - t.at) / HOUR); if (hours < 1) return;
-  t.at += hours * HOUR; t.ids = t.ids.filter(id => f.pets.some(x => x.id === id));
-  for (const id of t.ids) { const pet = f.pets.find(x => x.id === id); if (!away(f, id, true)) learn(pet, Math.round(hours * TRAIN_XP * (1 + boost(f, 'yard')) * (buffOn(f, 'yard') ? BOOSTS.yard.x : 1)), lvCap(f)); }
+  const from = t.at, to = t.at + hours * HOUR; t.at = to; t.ids = t.ids.filter(id => f.pets.some(x => x.id === id));
+  for (const id of t.ids) { const pet = f.pets.find(x => x.id === id); if (away(f, id, true)) continue;
+    const tx = pet.tx, extra = tx ? Math.max(0, Math.min(to, tx.until) - Math.max(from, tx.from)) / HOUR * (tx.x - 1) : 0; // a Training Bar or Storm Soup: those hours count x times
+    if (tx && tx.until <= to) delete pet.tx;
+    learn(pet, Math.round((hours + extra) * TRAIN_XP * (1 + boost(f, 'yard')) * (buffOn(f, 'yard') ? BOOSTS.yard.x : 1)), lvCap(f)); }
   scheduleSave();
+}
+// The Kitchen's ovens: one slot for each Kitchen level. A finished bake goes into the pantry by itself.
+const ovenSlots = f => topLv(f, 'kitchen');
+function ovenTick(f) {
+  if (!f.oven?.length) return [];
+  const done = f.oven.filter(b => b.until <= Date.now());
+  for (const b of done) f.inv[b.what] = (f.inv[b.what] || 0) + b.made;
+  if (done.length) { f.oven = f.oven.filter(b => b.until > Date.now()); (f.baked ||= []).push(...done.map(b => ({ what: b.what, made: b.made }))); f.baked = f.baked.slice(-6); scheduleSave(); }
+  return done;
+}
+// Recipe cards brought home by a party: which unknown recipe it is, or null. Element snacks favour islands of their element.
+function cardFind(f, z, zoneKey) {
+  const left = CARDS.filter(k => !f.cards?.includes(k)); if (!left.length) return null;
+  if (Math.random() >= (FOOD_ZONES.includes(zoneKey) || FOOD_ZONES.includes(z.theme) ? CARD_FOOD : CARD_CHANCE)) return null;
+  const w = left.map(k => RECIPES[k].el === z.el ? CARD_EL : 1); let roll = Math.random() * w.reduce((a, b) => a + b, 0);
+  const k = left.find((_, i) => (roll -= w[i]) < 0) || left[0]; (f.cards ||= []).push(k); return k;
 }
 // Who is walking about on someone's farm right now, so the owner sees their visitors too.
 const calls = new Map(), CALL_MS = 10 * 60_000; // visitor pid -> { host pid, at }
@@ -487,6 +507,9 @@ const view = (f, p) => ({
   ...(wxPin && wxPin !== 'none' ? { weather: wxPin } : {}),
   guests: guestsOf(p.pid),
   wild: wildOf(f) ? { sp: f.wild.sp, lv: f.wild.lv, left: f.wild.until - Date.now() } : null,
+  oven: { slots: ovenSlots(f), bakes: (f.oven || []).map(b => ({ what: b.what, made: b.made, left: Math.max(0, b.until - Date.now()), ms: b.ms })) },
+  baked: (() => { const b = f.baked || []; delete f.baked; return b; })(), // bakes that came out of the oven since the last view, for a toast
+  cards: f.cards || [], tasted: f.tasted || {}, // recipe cards found; the treats each species has tried (its favourite is found once it is among them)
   garden: gardenView(f), work: Object.fromEntries(Object.keys(WORK).filter(k => helper(f, k)).map(k => [k, f.work[k]])), cap: capOf(f), stash: f.stash || {}, palpts: palsOf(f),
   train: { ids: f.train?.ids || [], slots: topLv(f, 'yard'), left: f.train?.ids.length ? Math.max(0, f.train.at + HOUR - Date.now()) : 0 },
   owner: p.name, size: f.size, items: f.items, inv: f.inv, pets: f.pets.map(petView), nest: nestView(f),
@@ -520,7 +543,7 @@ export function handle(p, a, reply) {
   const ok = (extra = {}) => { if (extra.did) tally(f, a, extra); scheduleSave(); const rank = albumXp(f, p); reply({ t: 'farm', farm: view(f, p), ...extra, ...(rank ? { rank } : {}) }); };
   const no = msg => reply({ t: 'farm', err: msg, farm: f ? view(f, p) : null });
 
-  if (f) { f.name = p.name; f.seen = Date.now(); trainTick(f); unhold(p, f); journalStart(f, p); }
+  if (f) { f.name = p.name; f.seen = Date.now(); trainTick(f); ovenTick(f); unhold(p, f); journalStart(f, p); }
   const ok0 = f && albumXp(f, p); // species gained since last time (a hatch, a trade, a wild pet) // remembered so other players can see whose farm it is
   if (a.t === 'open') return reply(f ? { t: 'farm', farm: view(f, p), battle: lives.has(p.pid) ? liveView(lives.get(p.pid), lives.get(p.pid).pids.indexOf(p.pid)) : battles.has(p.pid) ? battleView(battles.get(p.pid)) : null } : { t: 'farm', need: 'starter' });
   if (a.t === 'starter') {
@@ -631,9 +654,13 @@ export function handle(p, a, reply) {
     if (!tripFits(a.zone, a.trip)) return no(z.far ? 'Only a Voyage reaches a far island.' : 'A Voyage only goes to a far island.');
     if (tr.fuel && !canAfford(f.inv, tr.fuel)) return no('Not enough fuel for that trip. A Voyage takes crystal and Trail Packs.');
     if (!ids.length || ids.length > PARTY || ids.length !== a.pets.length || !ids.every(id => f.pets.some(x => x.id === id))) return no('Pick one to three of your pets.');
+    const food = a.food ? own(RECIPES, a.food) : null; // one packed dish for the way (Picnic Basket, Sun Tea, Kite Crackers, Rainbow Cake)
+    if (a.food && (!food || food.use !== 'trip' || food.fuel)) return no('That is not food for an expedition.');
+    if (food && !(f.inv[a.food] > 0)) return no('You have none of those left.');
     if (tr.fuel) pay(f.inv, tr.fuel); // balloon fuel and Trail Packs for a far expedition
+    if (food) f.inv[a.food]--;
     const w = wx(); // the weather they set off in travels with them: more loot in the sun, a tailwind, rainbow luck
-    parties(f).push({ id: rid(), zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 * (w === 'wind' ? .8 : 1) * (1 - (unwork(f, ids), boost(f, 'gate'))) * (buffUse(f, 'gate') ? BOOSTS.gate.x : 1), ...(w === 'sunny' || w === 'rainbow' || w === 'wind' ? { w } : {}) });
+    parties(f).push({ id: rid(), zone: a.zone, trip: a.trip, pets: ids, at: Date.now(), until: Date.now() + tr.min * 60_000 * (w === 'wind' ? .8 : 1) * (1 - (food?.fast || 0)) * (1 - (unwork(f, ids), boost(f, 'gate'))) * (buffUse(f, 'gate') ? BOOSTS.gate.x : 1), ...(w === 'sunny' || w === 'rainbow' || w === 'wind' ? { w } : {}), ...(food ? { food: a.food } : {}) });
     if (f.train?.ids.some(id => ids.includes(id))) { trainTick(f); f.train.ids = f.train.ids.filter(id => !ids.includes(id)); } // leaving on a trip ends its training
     return ok({ did: 'send' });
   }
@@ -643,7 +670,7 @@ export function handle(p, a, reply) {
     const party = f.pets.filter(x => t.pets.includes(x.id)), z = ZONES[t.zone], tr = TRIPS[t.trip];
     const loot = {};
     for (const [k, n] of Object.entries(tripLoot(t.zone, t.trip, party))) {
-      const v = n * (.85 + Math.random() * .3) * (party.some(x => x.talent === 1) ? 1.1 : 1) * (t.w === 'sunny' ? 1.2 : 1), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
+      const v = n * (.85 + Math.random() * .3) * (party.some(x => x.talent === 1) ? 1.1 : 1) * (t.w === 'sunny' ? 1.2 : 1) * (1 + (RECIPES[t.food]?.loot || 0)), whole = Math.floor(v) + (Math.random() < v % 1 ? 1 : 0); // a fraction is a chance of one more
       if (whole > 0) loot[k] = whole;
     }
     let spilt = false;
@@ -652,7 +679,7 @@ export function handle(p, a, reply) {
     for (const pet of party) { const g = learn(pet, tr.xp, lvCap(f)); if (g) grew.push(g); }
     // a wild pet may follow them home, if there is a bed for it. The very first trip always brings one.
     let found = null, full = false;
-    if (!f.trips || Math.random() < tr.find * (t.w === 'rainbow' ? 2 : 1) + (party.some(x => x.talent === 4) ? .08 : 0)) {
+    if (!f.trips || RECIPES[t.food]?.sure || Math.random() < tr.find * (t.w === 'rainbow' ? 2 : 1) + (party.some(x => x.talent === 4) ? .08 : 0) + (RECIPES[t.food]?.find || 0)) {
       if (f.pets.length >= allRoom(f)) full = true;
       else {
         const bag = Object.entries(z.wild); let roll = Math.random() * bag.reduce((n, [, w]) => n + w, 0);
@@ -669,43 +696,71 @@ export function handle(p, a, reply) {
       const sp = (bag.find(([, w]) => (roll -= w) < 0) || bag[0])[0], lv = Math.min(MAX_LV, Math.max(2, Math.round(party.reduce((n, x) => n + x.lv, 0) / party.length) + 2));
       f.wild = { sp, lv, pets: t.pets, zone: t.zone, until: Date.now() + WILD_MS, pet: wildPet(sp, p.user) }; wild = { sp, lv };
     }
+    const card = f.trips ? cardFind(f, z, t.zone) : null; // sometimes a recipe card for the Kitchen
     parties(f).splice(parties(f).indexOf(t), 1); f.trips = (f.trips || 0) + 1; if (z.far) f.far = (f.far || 0) + 1; // far expeditions finished (the Farm Journal counts them)
-    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, fresh: !!found?.nu, full, spilt, wild } });
+    return ok({ did: 'collect', back: { zone: t.zone, trip: t.trip, pets: t.pets, w: t.w || null, loot, xp: tr.xp, grew, found: found?.id || null, fresh: !!found?.nu, full, spilt, wild, card, food: t.food || null } });
   }
   if (a.t === 'pick') { // gather every ripe Garden Plot; each starts growing again
     const ripe = f.items.filter(i => i.type === 'garden' && !ripeIn(f, i)); if (!ripe.length) return no('Nothing is ripe yet.');
-    const wet = wx() === 'rain' ? ripe.length : 0; // rain-fed plots give one more each
-    const got = store(f, 'berries', ripe.length * BERRIES + wet); if (!got) return no('There is no room for more berries. Cook some, or build a Storage Barn.');
-    const sun = ripe.reduce((n, i) => n + lvOf(i) - 1, 0); if (sun) f.inv.sunberry = (f.inv.sunberry || 0) + sun; // better plots also grow Sunberries
+    const wet = wx() === 'rain' ? 1 : 0, crops = {}; // rain-fed plots give one more each
+    for (const i of ripe) crops[cropOf(i)] = (crops[cropOf(i)] || 0) + CROPS[cropOf(i)].n + wet;
+    let got = 0; for (const [k, n] of Object.entries(crops)) got += store(f, k, n);
+    if (!got) return no('There is no room for more berries. Cook some, or build a Storage Barn.');
+    const sun = ripe.filter(i => cropOf(i) === 'berries').reduce((n, i) => n + lvOf(i) - 1, 0); if (sun) f.inv.sunberry = (f.inv.sunberry || 0) + sun; // better plots also grow Sunberries
     for (const i of ripe) i.at = Date.now();
-    return ok({ did: 'pick', got, sun, wet });
+    return ok({ did: 'pick', got, sun, wet: wet ? ripe.length : 0, crops });
   }
-  if (a.t === 'cook') {
+  if (a.t === 'cook') { // into the oven: ready at once for quick recipes, otherwise it takes a free oven slot
     const r = own(RECIPES, a.what); if (!r) return;
     if (!countOf(f, 'kitchen')) return no('Build a Kitchen first.');
+    if (!knows(f, a.what)) return no('Find that recipe card on an expedition first.');
     if (topLv(f, 'kitchen') < (r.lv || 1)) return no(`That recipe needs a level ${r.lv} Kitchen.`);
     if ((f.house || 1) < (r.house || 0)) return no('That recipe opens with a bigger farmhouse.');
+    if (r.wx && wx() !== r.wx) return no('That recipe can only go into the oven in its own weather.');
     const n = Math.max(1, Math.min(COOK_MAX, a.n | 0)), all = Object.fromEntries(Object.entries(r.cost).map(([k, v]) => [k, v * n])); // cook up to COOK_MAX at once
+    const slow = bakeMs(a.what, n) > 0 && !(process.env.FARM_TEST && !f.slowOven); // (tests bake at once unless they ask for the real oven)
+    if (slow && (f.oven || []).length >= ovenSlots(f)) return no('Every oven is busy. Wait for a bake to finish, or improve the Kitchen for another oven.');
     if (!canAfford(f.inv, all)) return no('Not enough for that recipe yet.');
     let extra = 0, twice = 0;
     for (let i = 0; i < n; i++) {
       extra += Math.random() < boost(f, 'kitchen'); // the helper at the oven sometimes bakes a second one
       twice += buffUse(f, 'kitchen'); // a Lucky Wheel booster doubles one bake per use
     }
-    pay(f.inv, all); f.inv[a.what] = (f.inv[a.what] || 0) + n + extra + twice;
-    return ok({ did: 'cook', what: a.what, extra, twice, made: n + extra + twice });
+    const made = (n + extra + twice) * (r.out || 1);
+    pay(f.inv, all);
+    if (slow) { const ms = Math.round(bakeMs(a.what, n) * (1 - boost(f, 'kitchen'))); (f.oven ||= []).push({ what: a.what, made, until: Date.now() + ms, ms }); return ok({ did: 'cook', what: a.what, extra, twice, made, oven: true, ms }); }
+    f.inv[a.what] = (f.inv[a.what] || 0) + made;
+    return ok({ did: 'cook', what: a.what, extra, twice, made });
   }
-  if (a.t === 'feed') { // a treat for one pet: experience straight away
-    const r = own(RECIPES, a.what), pet = f.pets.find(x => x.id === a.pet); if (!(r?.xp || r?.rest) || !pet) return;
+  if (a.t === 'plant') { // choose what a Garden Plot grows; it starts again from seed
+    const it = f.items.find(i => i.id === a.id && i.type === 'garden'), c = own(CROPS, a.crop); if (!it || !c) return;
+    if ((f.house || 1) < c.house) return no(`${c.name} seeds come with a level ${c.house} farmhouse.`);
+    if (cropOf(it) === a.crop) return ok();
+    if (a.crop === 'berries') delete it.crop; else it.crop = a.crop; it.at = Date.now();
+    return ok({ did: 'plant', id: it.id, crop: a.crop });
+  }
+  if (a.t === 'feed') { // a treat for one pet: experience straight away, a rest, or faster training
+    const r = own(RECIPES, a.what), pet = f.pets.find(x => x.id === a.pet); if (!(r?.xp || r?.rest || r?.use === 'train') || !pet) return;
     if (!(f.inv[a.what] > 0)) return no('You have none of those left.');
     if (r.rest) { if (!((pet.rest || 0) > Date.now())) return no(`${pet.name} is not tired.`); if (cuddling(f, pet.id)) return no(`${pet.name} is busy in the Nest.`); f.inv[a.what]--; pet.rest = 0; return ok({ did: 'feed', what: a.what, pet: pet.id, grew: null }); }
-    if (pet.lv >= MAX_LV) return no(`${pet.name} is fully grown and just wants cuddles.`);
-    // treats are for growing up (2026-11-27): from Adult on, pets learn from battles, trips and training
-    if (pet.lv >= TREAT_LV) return no(`${pet.name} is grown up now and learns from battles, trips and training.`);
-    if (pet.lv >= lvCap(f)) return no(`${pet.name} has reached the level cap. A bigger farmhouse lets it grow more.`);
+    if (r.use === 'train') { // only counts at the Training Yard, from now on
+      if (!f.train?.ids.includes(pet.id)) return no(`${pet.name} is not training. Put it on the Training Yard first.`);
+      if ((pet.tx?.until || 0) > Date.now()) return no(`${pet.name} is still full of energy from the last one.`);
+      trainTick(f); f.inv[a.what]--; pet.tx = { x: r.x, from: Date.now(), until: Date.now() + TRAIN_FOOD_H * HOUR };
+      return ok({ did: 'feed', what: a.what, pet: pet.id, grew: null });
+    }
     if (away(f, pet.id)) return no(`${pet.name} is away exploring.`);
-    f.inv[a.what]--;
-    return ok({ did: 'feed', what: a.what, pet: pet.id, grew: learn(pet, r.xp, Math.min(lvCap(f), TREAT_LV)) });
+    const fav = favFood(pet.sp) === a.what, tried = (f.tasted ||= {})[pet.sp] ||= [];
+    // treats are for growing up (2026-11-27): from Adult on, pets learn from battles, trips and training. A grown-up pet
+    // still enjoys its favourite (it gets Happy), and it may taste a treat once to find out which one that is.
+    const grown = pet.lv >= TREAT_LV || pet.lv >= MAX_LV, capped = pet.lv >= lvCap(f);
+    if (grown || capped) {
+      if (!fav && tried.includes(a.what)) return no(pet.lv >= MAX_LV ? `${pet.name} is fully grown and just wants cuddles.` : grown ? `${pet.name} is grown up now and learns from battles, trips and training.` : `${pet.name} has reached the level cap. A bigger farmhouse lets it grow more.`);
+    }
+    f.inv[a.what]--; if (!tried.includes(a.what)) tried.push(a.what);
+    if (fav) pet.happy = Date.now() + HAPPY_H * HOUR;
+    const grew = grown || capped ? null : learn(pet, r.xp * (fav ? 2 : 1), Math.min(lvCap(f), TREAT_LV), true);
+    return ok({ did: 'feed', what: a.what, pet: pet.id, grew, fav, wasted: !fav && (grown || capped) });
   }
   if (a.t === 'sell') return no('The Workshop swaps materials now. Open it again to swap.'); // an old page still showing the sell window
   if (a.t === 'swap') { // the Workshop swaps one material for another (rates in data.js swapDeal)
@@ -743,9 +798,11 @@ export function handle(p, a, reply) {
     if (want.some(k => !can[k])) return no('That charm would not change anything for these two.');
     if (want.some(k => !(f.charms?.[k] > 0))) return no('You do not have that charm.');
     const kid = makeBaby(A, Bp, Math.random, Object.fromEntries(want.map(k => [k, true])));
+    const muffin = !!a.muffin; if (muffin && !(f.inv.muffin > 0)) return no('You have no Love Muffins left.');
+    if (muffin) f.inv.muffin--;
     if (want.length) { for (const k of want) f.charms[k]--; f.charmsUsed = (f.charmsUsed || 0) + want.length; kid.charms = want; }
     kid.par = [A, Bp].map((x, i) => ({ ...snapshot(x, i && friend ? friend.name : p.name), par: (x.par || []).map(g => ({ name: g.name, sp: g.sp, lv: g.lv, look: g.look, own: g.own })) }));
-    f[slot] = { a: A.id, b: friend ? snapshot(Bp, friend.name) : Bp.id, friend, at: now, hours: hatchHours(kid.sp) * (topLv(f, 'nest') >= 3 ? .75 : 1) * (1 - (unwork(f, [A.id, friend ? '' : Bp.id]), boost(f, 'nest'))) * (buffUse(f, 'nest') ? BOOSTS.nest.x : 1), shell: shellOf(A, Bp), kid };
+    f[slot] = { a: A.id, b: friend ? snapshot(Bp, friend.name) : Bp.id, friend, at: now, hours: hatchHours(kid.sp) * (topLv(f, 'nest') >= 3 ? .75 : 1) * (1 - (unwork(f, [A.id, friend ? '' : Bp.id]), boost(f, 'nest'))) * (buffUse(f, 'nest') ? BOOSTS.nest.x : 1) * (muffin ? 1 - RECIPES.muffin.hatch : 1), shell: shellOf(A, Bp), kid };
     const rest = x => { x.rest = now + (CUDDLE_H + REST_H * (x.talent === 5 ? .5 : 1)) * HOUR; x.kids = (x.kids || 0) + 1; };
     rest(A); if (!friend) rest(Bp);
     if (host) { // the friend's pet never leaves home; its owner gets a thank-you and a new album entry
@@ -904,6 +961,9 @@ export function handle(p, a, reply) {
     return ok({ did: 'defend' });
   }
   if (a.t === 'fight' || a.t === 'duel' || a.t === 'duelyes') unqueue(p.pid); // one way into a battle at a time
+  // A battle snack eaten before the fight: the matching pets on your side get more attack and defence.
+  const snack = (B, k) => { if (!k) return; for (const u of B.sides[0].pets) { const x = snackFor(k, u.el, u.el2); if (x) { u.atk = Math.round(u.atk * (1 + x)); u.def = Math.round(u.def * (1 + x)); u.snack = 1; } } f.inv[k]--; B.snack = k; };
+  if (a.t === 'fight' && a.snack && (!own(RECIPES, a.snack)?.atk || !(f.inv[a.snack] > 0))) return no('You have none of that snack left.');
   if (a.t === 'fight') { // start a battle: practice at the Training Yard, or a match at the Arena Flag
     if (a.mode === 'wild') { // the wild pet met on the way home: one try, with the party that met it
       const w = wildOf(f); if (!w) return no('The wild pet has wandered off.');
@@ -912,7 +972,7 @@ export function handle(p, a, reply) {
       if (battles.has(p.pid) || lives.has(p.pid)) return no('Finish your battle first.');
       f.wild = null; saw(f, [w.sp]);
       const B = newBattle(mine.map(x => unit(x)), [unit({ ...bot(w.sp, w.lv, 0), col: w.pet?.col, pat: w.pet?.pat, sparkle: w.pet?.sparkle })], { mode: 'wild', foe: `a wild ${SPECIES[w.sp].name}` });
-      B.ids = mine.map(x => x.id); B.wild = w; battles.set(p.pid, B);
+      B.ids = mine.map(x => x.id); B.wild = w; snack(B, a.snack); battles.set(p.pid, B);
       return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
     }
     const mode = a.mode === 'arena' ? 'arena' : 'practice';
@@ -929,8 +989,8 @@ export function handle(p, a, reply) {
       const lv = Math.max(1, Math.round(mine.reduce((n, x) => n + x.lv, 0) / mine.length)), all = Object.keys(SPECIES).filter(sp => !SPECIES[sp].wheel);
       B = newBattle(mine.map(x => unit(x)), mine.map((_, i) => unit(bot(all[rnd(all.length)], lv, i))), { mode, foe: 'Practice partners' });
     }
-    B.ids = ids; battles.set(p.pid, B);
-    return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight' });
+    B.ids = ids; snack(B, a.snack); battles.set(p.pid, B);
+    return reply({ t: 'farm', battle: battleView(B), ev: [], did: 'fight', farm: view(f, p) });
   }
   if (a.t === 'duel') { // ask another player who is here right now for a live battle
     const hit = byFid(a.to); if (!hit || hit[1] === f) return no('That farm is not around any more.');
@@ -1183,13 +1243,16 @@ export function testHook(pid, a) {
   if (a.orders === 'new') delete f.orders; // fresh island orders, as if a new day and week had begun
   if (a.jn !== undefined) { if (a.jn) f.jn = a.jn; else delete f.jn; } // null: a farm from before the Farm Journal
   if (a.album) for (const sp of a.album) if (own(SPECIES, sp)) (f.album ||= {})[sp] = [1, 0, 0];
+  if (a.cards) f.cards = a.cards === 'all' ? [...CARDS] : a.cards; // recipe cards found
+  if (a.oven !== undefined) { f.slowOven = a.oven === 'slow'; if (a.oven === 'done') for (const b of f.oven || []) b.until = 0; } // the real oven times, or every bake done now
+  if (a.happy) for (const x of f.pets) x.happy = Date.now() + HOUR;
   if (a.house) f.house = a.house; // a farmhouse level, e.g. one that has not been built into the game yet
   if (a.oldOffer) { const hit = byFid(a.oldOffer); if (hit) { f.inv.coins -= 5; (f.offers ||= []).push({ id: rid(), to: hit[0], give: { pets: [], mats: { coins: 5 } }, want: { pets: [], mats: {} }, at: Date.now() }); } } // an offer from before coins stopped being tradable
   if (a.pet && own(SPECIES, a.pet)) { const q = { ...newPet(a.pet, 'test', true), ...(a.traits || {}) }; f.pets.push(q); settle(f, q); }
   if (a.lv) for (const x of f.pets) x.lv = a.lv;
   if (a.rested) for (const x of f.pets) x.rest = 0;
   if (a.pals) (f.pals ||= {}).test = a.pals;
-  if (a.trained && f.train) f.train.at -= a.trained * HOUR;
+  if (a.trained && f.train) { f.train.at -= a.trained * HOUR; for (const x of f.pets) if (x.tx) { x.tx.from -= a.trained * HOUR; x.tx.until -= a.trained * HOUR; } } // as if that many hours had passed
   if (a.ripe) for (const i of f.items) if (i.type === 'garden') i.at = 0;
   if (a.wild && own(SPECIES, a.wild)) f.wild = { sp: a.wild, lv: 1, pets: f.pets.map(x => x.id), zone: 'woods', until: Date.now() + WILD_MS, pet: { ...wildPet(a.wild, 'test'), ...(a.wildTraits || {}) } };
   if (a.egg) for (const s of SLOTS) if (f[s]) f[s].at = a.egg === 'laid' ? Date.now() - CUDDLE_H * HOUR - 1000 : 0;

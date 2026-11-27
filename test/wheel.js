@@ -133,7 +133,7 @@ f = await ana.farm({ t: 'place', type: 'hut', x: 0, y: 8, r: 0 }); if (f.err) fa
 f = await ana.farm({ t: 'claim', id: f.farm.mail.find(m => m.pet?.sp === 'tusklet').id });
 const tusk = f.farm.pets.find(x => x.sp === 'tusklet');
 if (f.err || !tusk || tusk.lv !== 1 || !tusk.nu) fail('the Tusklet did not move in with a New label: ' + f.err + ' ' + JSON.stringify(tusk));
-f = await ana.farm({ t: 'place', type: 'nest', x: 4, y: 8, r: 0 }); if (f.err) fail('nest: ' + f.err);
+if (!f.farm.items.some(i => i.type === 'nest')) { f = await ana.farm({ t: 'place', type: 'nest', x: 4, y: 8, r: 0 }); if (f.err) fail('nest: ' + f.err); } // the booster above may already have built one
 const mate = f.farm.pets.find(x => x.sp !== 'tusklet');
 f = await ana.farm({ t: 'open', test: { pet: 'tusklet', traits: { lv: 8 } } });
 const big = f.farm.pets.filter(x => x.sp === 'tusklet').pop();
