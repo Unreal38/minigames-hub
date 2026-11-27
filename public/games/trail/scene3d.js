@@ -261,7 +261,8 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the line-up in the start meadow (Kuba 2026-11-27) ----------
   // During the intro everyone stands in a row facing the camera and waves, with Puff the host beside them; during the
   // roll for the first turn they stay in the row and the camera stays on them. mode: 'intro', 'order' or null.
-  let lineup = null, lz = 0, hz0 = 0, host = null;
+  let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0;
+  function peek(s, ms) { peekS = s; peekT = performance.now() + ms; } // keep the camera on someone for a moment (their die landing)
   const LSP = .74;
   function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
   const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25, START.z + .2];
@@ -497,9 +498,13 @@ export function createScene(canvas, { onFrame } = {}) {
     const f = focus >= 0 && !mapView && !lineup ? folk[focus] : null;
     lz += ((lineup && !mapView ? 1 : 0) - lz) * (1 - Math.pow(.02, dt));
     hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: Tux talking on the right, the players beside him (Kuba: show the contestants)
-    const lx = lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), lzz = lerp(START.z + .3, host ? host.z : START.z, hz0);
+    // the roll for the first turn: close on each roller (and hold on them while their die lands), then back to the row (Kuba 2026-11-27)
+    const ps = performance.now() < peekT ? peekS : focus, pf = lineup === 'order' && !mapView && ps >= 0 ? folk[ps] : null;
+    if (pf) { pcx = pf.x; pcz = pf.z; }
+    pz0 += ((pf ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
+    const lx = lerp(lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), pcx + .25, pz0), lzz = lerp(lerp(START.z + .3, host ? host.z : START.z, hz0), pcz + .3, pz0);
     const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
-    const kk = 1 - Math.pow(.04, dt);
+    const kk = 1 - Math.pow(pz0 > .05 ? .008 : .04, dt);
     camL.x = lerp(camL.x, tx, kk); camL.z = lerp(camL.z, tz, kk);
     zoom += ((f || (lineup && !mapView) ? 0 : 1) - zoom) * (1 - Math.pow(.03, dt));
     const port = ch > cw * 1.05, asp = cw / ch;
@@ -508,11 +513,11 @@ export function createScene(canvas, { onFrame } = {}) {
     const farD = Math.max((ISLE.rx + .5) / Math.tan(hf / 2), (ISLE.rz * Math.sin(tilt) + 1) / Math.tan(vf / 2) + ISLE.rz * Math.cos(tilt)) * (1 + (hudTop + hudBottom) / Math.max(1, ch) * .35);
     // the line-up shot: low and close, just wide enough for the whole row and Puff
     const rowW = folk.length * LSP + 1.6, lineD = lerp(Math.max(6.5, (rowW / 2 + .6) / Math.tan(hf / 2)), port ? 6 : 6.4, hz0);
-    const nearD = port ? 16 : 13, D = lerp(lerp(nearD, lineD, lz), farD, zoom), tiltNow = lerp(lerp(46, lerp(26, 16, hz0), lz) * Math.PI / 180, tilt, zoom);
+    const nearD = port ? 16 : 13, D = lerp(lerp(nearD, lerp(lineD, port ? 3.4 : 2.7, pz0), lz), farD, zoom), tiltNow = lerp(lerp(46, lerp(26, 16, hz0), lz) * Math.PI / 180, tilt, zoom);
     // the HUD at the top and the choices at the bottom: the spot in focus sits in the clear band between them
     const shiftZ = (hudBottom - hudTop) / Math.max(1, ch) * D * .5;
     camera.position.set(camL.x, Math.sin(tiltNow) * D, camL.z + shiftZ + Math.cos(tiltNow) * D);
-    camera.lookAt(camL.x, lerp(lerp(.5, lerp(.75, .7, hz0), lz), 0, zoom), camL.z + shiftZ);
+    camera.lookAt(camL.x, lerp(lerp(.5, lerp(.75, .7, hz0) + pz0 * .05, lz), 0, zoom), camL.z + shiftZ);
     // trees between the camera and the player in focus turn see-through
     if (f && zoom < .6) { proj(f.x, .8, f.z, info); const fx0 = info.x, fy0 = info.y, cd = camera.position.distanceTo(f.wrap.position), o = {};
       for (const t of trees) { proj(t.x, 1.4, t.z, o); const dd = Math.hypot(t.x - camera.position.x, t.z - camera.position.z), hide = o.on && dd < cd && Math.abs(o.x - fx0) < Math.min(cw, ch) * .22 && o.y > fy0 - ch * .35; if (hide !== t.faded) fadeTree(t, hide); } }
@@ -561,7 +566,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   return {
-    setState, walk, cue, emote, setThink, roll, setFork,
+    setState, walk, cue, emote, setThink, peek, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,
