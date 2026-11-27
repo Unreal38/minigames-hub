@@ -95,10 +95,10 @@ const b = play({ seats: 6, start: 501, legs: 3, bots: 'chill' }, wild);
 if (!b.seats.some(s => s.bot)) fail('no bots at a six seat table');
 console.log('501 best of 3: winner', b.seats[b.win].name, 'legs', b.legs.join(' '), 'rounds in last leg', b.round);
 play({ seats: 3, out: 'any', timer: 0 }, wild);
-{ // all misses at a table of two humans: the round cap ends it
+{ // all misses at a table of two humans (the other throws steady at the single 20, which never reaches the double): the round cap ends it
   const realNow = Date.now; let now = realNow(); Date.now = () => now;
   const G = dg.create([...players], { seats: 2, timer: 0 });
-  for (let i = 0; i < 200000 && G.ph === 'play'; i++) { now += 100; if (G.stage === 'aim' && now - G.aimAt >= 300) dg.act(G, G.turn, { t: 'throw', x: G.turn ? 1.3 : 0, y: G.turn ? 1.3 : spot(20, 1)[1], ms: 300, hold: 300 }); else dg.tick(G, now); }
+  for (let i = 0; i < 200000 && G.ph === 'play'; i++) { now += 100; if (G.stage === 'aim' && now - G.aimAt >= HAND.settle) dg.act(G, G.turn, { t: 'throw', x: G.turn ? 1.3 : 0, y: G.turn ? 1.3 : spot(20, 1)[1], ms: HAND.settle, hold: HAND.settle }); else dg.tick(G, now); }
   if (G.ph !== 'end' || G.round !== ROUNDS[301] + 1) fail('the round cap did not end the game');
   if (G.win !== 0 || G.rem[1] !== 301) fail('the lowest score should take a capped leg');
   Date.now = realNow;
