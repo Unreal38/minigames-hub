@@ -1113,8 +1113,8 @@ body.night .pisle { background: linear-gradient(#1c1a4a, #3a3478); }
 body.in-game .ttl { background: #ffe1a0; color: #3b2219 !important; border-color: #3b2219; font-size: 11.5px !important; width: fit-content; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 
 .pfriend { align-self: center; font: 700 17px var(--fd); padding: 8px 16px; }
-.pdelrow { display: flex; justify-content: flex-end; margin-top: 4px; } .pdel { font-size: 13px; opacity: .6; min-height: 32px; padding: 4px 8px; }
-.pdel:hover { opacity: 1; } .delist { margin: 4px 0 10px; padding-left: 22px; } .delist li { margin: 2px 0; }
+.statsheet .row .sdel { margin-left: auto; } /* Delete account sits at the right end of Your progress's buttons, like Report on a profile card */
+.delist { margin: 4px 0 10px; padding-left: 22px; } .delist li { margin: 2px 0; }
 .pfnote { align-self: center; font-size: 14px; opacity: .8; max-width: 260px; }
 .psheet .row { flex-wrap: wrap; align-items: center; }
 
@@ -1883,6 +1883,8 @@ html:not(.gfx-high) .modal, body.in-game .modal { backdrop-filter: none; -webkit
 body.in-game #app :is(.hud, .results, .gate):not(:is(.hud, .results, .gate) *), body.in-game #chat, body.in-game .modal, body.in-game #toasts { zoom: var(--uiz, 1); --vz: var(--uiz, 1); }
 /* name tags move by translate() in screen pixels, so the tag box stays unzoomed and only what is inside it grows */
 body.in-game #app .tags > * > * { zoom: var(--uiz, 1); }
+/* the profile card keeps its hub size in games (Kuba: the zoomed one was too big) */
+body.in-game .modal:has(.psheet) { zoom: 1; --vz: 1; }
 body.in-game .modal .sheet { max-height: calc((100vh - 32px) / var(--vz, 1)); max-height: calc((100dvh - 32px) / var(--vz, 1)); }
 body.in-game #toasts { max-width: calc(92vw / var(--vz, 1)); top: calc(74px / var(--vz, 1)); }
 
@@ -2081,7 +2083,6 @@ html[lang=pl] .today .ttile .tbody b { font-size: max(11px, min(15px, calc(100cq
 }
 
 /* ---------- moderation: reports, the ban screen, the hosts' Admin panel (admin.js) ---------- */
-.pdelrow { gap: 8px; align-items: center; flex-wrap: wrap; }
 .punfr { align-self: center; }
 /* Report (and, for hosts, Moderate) sit at the right end of the profile card's button row; Report is a soft red so it is easy to find */
 .psheet .row .prepgrp { margin-left: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
