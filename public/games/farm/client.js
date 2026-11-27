@@ -34,8 +34,26 @@ const I = {
 const tripIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 21V4" stroke="#5a3a2e" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#ff8f6b" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/></svg>';
 const bookIcon = '<svg class="pfsi pfjni" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M3 5.5C6 4 9 4 12 6c3-2 6-2 9-.5V19c-3-1.5-6-1.5-9 .5-3-2-6-2-9-.5z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 6v13.5" stroke="#5a3a2e" stroke-width="1.6"/><path d="M5.5 8.5c1.5-.5 3-.5 4.5.3M5.5 11.5c1.5-.5 3-.5 4.5.3M14 8.8c1.5-.8 3-.8 4.5-.3" stroke="#c9a77a" stroke-width="1.3" stroke-linecap="round"/><path d="M15 11v6l1.5-1.2L18 17v-6z" fill="#e0592f" stroke="#5a3a2e" stroke-width="1.2" stroke-linejoin="round"/></svg>';
 const eggIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3c4 0 7 6.5 7 11a7 7 0 0 1-14 0c0-4.5 3-11 7-11z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="2"/><circle cx="9.5" cy="13" r="1.4" fill="#8fd16a"/><circle cx="14" cy="16.5" r="1.2" fill="#8fd16a"/><circle cx="13.5" cy="10" r="1" fill="#8fd16a"/></svg>';
+// pictures for the home dock's buttons
+const navSvg = d => `<svg class="pfni" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">${d}</svg>`;
+const NAV = {
+  map: navSvg('<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="#bfe8ff" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M9 4v14M15 6v14" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M5 9.5c2 0 2 3 4 3M16 10c1.5 1 3 0 4 1" fill="none" stroke="#5fae55" stroke-width="1.8" stroke-linecap="round"/>'),
+  pets: navSvg('<ellipse cx="12" cy="15.5" rx="5" ry="4.2" fill="#ffb3c7" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="5.8" cy="10" r="2.2" fill="#ffb3c7" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="18.2" cy="10" r="2.2" fill="#ffb3c7" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="9.2" cy="5.8" r="2.2" fill="#ffb3c7" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="14.8" cy="5.8" r="2.2" fill="#ffb3c7" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  album: navSvg('<rect x="4" y="3" width="16" height="18" rx="2.5" fill="#7ed3b2" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><rect x="7" y="6" width="10" height="8" rx="1.5" fill="#fff4e2" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="12" cy="10" r="2" fill="#ff8fab"/><path d="M7 17.5h10" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  journal: navSvg('<path d="M3 5.5C6 4 9 4 12 6c3-2 6-2 9-.5V19c-3-1.5-6-1.5-9 .5-3-2-6-2-9-.5z" fill="#fff3c9" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M12 6v13.5" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M15 11v6l1.5-1.2L18 17v-6z" fill="#e0592f" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  friends: navSvg('<circle cx="8.5" cy="8.5" r="3.2" fill="#ffd2a8" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="16" cy="9.5" r="2.8" fill="#ffd2a8" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M2.8 19c.6-4 3-5.6 5.7-5.6s5 1.6 5.7 5.6z" fill="#8fc7ff" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M12.6 14.6c1-.9 2.1-1.3 3.4-1.3 2.4 0 4.4 1.4 5 5h-6.6" fill="#ffb547" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  rank: navSvg('<path d="M7 4h10v5a5 5 0 0 1-10 0z" fill="#ffc94d" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 6H4c0 3 1.5 4.5 3.5 4.5M17 6h3c0 3-1.5 4.5-3.5 4.5" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M12 14v3M8 20h8l-1-3H9z" fill="#ffc94d" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  mail: navSvg('<rect x="3" y="6" width="18" height="13" rx="2" fill="#fff4e2" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M3.5 7l8.5 6.5L20.5 7" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  edit: navSvg('<path d="M4 11l8-6.5 8 6.5v8.5H4z" fill="#fff4e2" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M2.5 12L12 4l9.5 8" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><rect x="10" y="14" width="4" height="5.5" fill="#e5543b" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'),
+  more: navSvg('<circle cx="6" cy="12" r="2.1" fill="currentColor"/><circle cx="12" cy="12" r="2.1" fill="currentColor"/><circle cx="18" cy="12" r="2.1" fill="currentColor"/>'),
+};
+const orderIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2" fill="#fff4e2" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.5 8h7M8.5 11.5h7M8.5 15h4" fill="none" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 // Small material badges: a coloured block with the amount beside it.
 const BASIC = ['wood', 'stone', 'fiber', 'coins'];
+// The top bar's groups: building materials, money, and everything else (crops and treats) in the Pantry.
+const BUILD = ['wood', 'stone', 'fiber', 'shells', 'coal', 'crystal'], MONEY = ['coins', 'stamps'];
+const pantryOf = f => Object.keys(MATS).filter(k => !BUILD.includes(k) && !MONEY.includes(k) && f.inv[k] > 0);
+const basketIcon = '<svg class="pfsi" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3.5 10h17l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.6a1.5 1.5 0 0 1-1.5-1.3z" fill="#e2a65f" stroke="#5a3a2e" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 10l3-6M16 10l-3-6" stroke="#5a3a2e" stroke-width="1.8" stroke-linecap="round"/><path d="M8 13.5v4M12 13.5v4M16 13.5v4" stroke="#a8693a" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="8.6" r="1.8" fill="#e8615a" stroke="#5a3a2e" stroke-width="1.2"/><circle cx="14.6" cy="8.4" r="1.6" fill="#8fd16a" stroke="#5a3a2e" stroke-width="1.2"/></svg>';
 const DAY_PL = { Night: 'Noc', Morning: 'Poranek', Daytime: 'Dzień', Sunset: 'Zachód słońca', Evening: 'Wieczór' }, dayName = h => L(dayPart(h), DAY_PL[dayPart(h)]);
 const dayPart = h => h < 4.6 || h >= 21 ? 'Night' : h < 8 ? 'Morning' : h < 17 ? 'Daytime' : h < 19.5 ? 'Sunset' : 'Evening';
 const mat = (k, n, cls = '') => `<span class="mat ${cls}" title="${MATS[k]}">${matIcon(k)}${n}<small>${MATS[k].toLowerCase()}</small></span>`;
@@ -76,11 +94,12 @@ export function mount(app, ctx) {
   app.innerHTML = `<div class="pf">
     <canvas class="g3d" aria-label="${L(`Your farm`, `Twoja farma`)}"></canvas>
     <div class="hud">
-      <div class="tl"><span class="chip" id="pf-title">${L('Pet Farm', 'Farma zwierzaków')}</span><div class="pfmatsrow"><div class="mats" id="pf-mats"></div><button type="button" class="round pfmatsmore" data-a="matsmore" aria-expanded="false" aria-label="${L('Show all materials', 'Pokaż wszystkie materiały')}"><i class="pfcaret" aria-hidden="true"></i></button></div></div>
+      <div class="tl"><span class="chip" id="pf-title">${L('Pet Farm', 'Farma zwierzaków')}</span><div class="pfcoins" id="pf-coins"></div><div class="pfmatsrow"><div class="mats" id="pf-mats"></div><div class="pfpantry" id="pf-pantry"></div></div><div class="pfwx" id="pf-wx"></div></div>
       <div class="tr">
         <button type="button" class="round" data-a="mute" aria-label="${L(`Toggle sound`, `Włącz lub wyłącz dźwięk`)}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="home" aria-label="${L(`Back to the hub`, `Wróć do Zatoki`)}">${I.door}</button></div>
       <div class="bl" id="pf-main"></div>
+      <div class="pfside" id="pf-side" hidden></div>
       <div class="pfcard" id="pf-card" hidden></div>
       <div class="bt" id="pf-bt" hidden></div>
       <div class="bfl" id="pf-fl"></div>
@@ -246,11 +265,32 @@ export function mount(app, ctx) {
   }
   function paintTop() {
     $('pf-title').textContent = B ? (B.mode === 'live' ? L(`Live battle with ${B.foe}`, `Bitwa na żywo: ${B.foe}`) : B.mode === 'arena' ? L(`Match against ${B.foe}`, `Mecz: ${B.foe}`) : B.mode === 'wild' ? L(`Meeting ${B.foe}`, `Spotkanie: ${B.foe}`) : L('Practice battle', 'Bitwa treningowa')) : where === 'map' && F ? L('The neighbourhood', 'Okolica') : where === 'visit' && V ? L(`${V.name}'s farm`, `Farma gracza ${V.name}`) : F ? L(`${F.owner}'s farm`, `Farma gracza ${F.owner}`) : L('Pet Farm', 'Farma zwierzaków');
-    const mb = root.querySelector('.pfmatsrow'); mb.hidden = !(F && mode === 'farm' && !B); mb.classList.toggle('open', matsOpen); mb.querySelector('.pfmatsmore').setAttribute('aria-expanded', matsOpen);
-    $('pf-mats').innerHTML = F && mode === 'farm' && !B ? Object.keys(MATS).filter(k => BASIC.includes(k) || F.inv[k]).map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${MATS[k]}${L(`. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}`, `. Skąd: ${MAT_INFO[k][0]} Do czego: ${MAT_INFO[k][1]}`)}">${mat(k, F.inv[k] || 0)}</button>`).join('') + (() => { const { hour, w } = skyNow(), night = dayPart(hour) === 'Night'; return `<button type="button" class="matbtn" data-a="wxinfo" title="${w.name}. ${w.bonus}"><span class="mat wxchip">${wxIcon(night && w.kind === 'sunny' ? 'moon' : w.kind)}${night && w.kind === 'sunny' ? L('Clear night', 'Pogodna noc') : w.name}</span></button>`; })() : '';
+    const on = !!(F && mode === 'farm' && !B);
+    for (const id of ['pf-coins', 'pf-wx']) $(id).hidden = !on;
+    root.querySelector('.pfmatsrow').hidden = !on;
+    if (!on) { $('pf-mats').innerHTML = $('pf-pantry').innerHTML = $('pf-coins').innerHTML = $('pf-wx').innerHTML = ''; return; }
+    // One bar of building materials (picture + number; the name is in the tooltip and the info panel), the money on
+    // its own, every crop and treat behind the Pantry button, and the weather in its own card, because the weather's
+    // bonus is the reason to send a party now (Kuba's rule: weather must be easy to see everywhere).
+    const tip = k => `${MATS[k]}${L(`. From: ${MAT_INFO[k][0]} For: ${MAT_INFO[k][1]}`, `. Skąd: ${MAT_INFO[k][0]} Do czego: ${MAT_INFO[k][1]}`)}`;
+    const mbtn = (k, cls = '') => `<button type="button" class="matbtn ${cls}" data-a="matinfo" data-mat="${k}" title="${tip(k)}" aria-label="${MATS[k]}: ${F.inv[k] || 0}">${matIcon(k)}<b>${F.inv[k] || 0}</b></button>`;
+    $('pf-mats').innerHTML = BUILD.filter(k => BASIC.includes(k) || F.inv[k]).map(k => mbtn(k)).join('');
+    $('pf-coins').innerHTML = MONEY.filter(k => k === 'coins' || F.inv[k]).map(k => mbtn(k, 'pfpill')).join('');
+    const food = pantryOf(F), total = food.reduce((n, k) => n + F.inv[k], 0);
+    const group = (head, list) => list.length ? `<span class="pfpanh">${head}</span><div class="pfpang">${list.map(k => `<button type="button" class="matbtn" data-a="matinfo" data-mat="${k}" title="${tip(k)}">${matIcon(k)}<b>${F.inv[k]}</b><small>${MATS[k].toLowerCase()}</small></button>`).join('')}</div>` : '';
+    $('pf-pantry').innerHTML = `<button type="button" class="btn sm w pfpanb" data-a="matsmore" aria-expanded="${matsOpen}" aria-label="${L(`Pantry: ${total}`, `Spiżarnia: ${total}`)}"${food.length ? '' : ' disabled'}>${basketIcon}<span class="pfpant">${L('Pantry', 'Spiżarnia')}</span><b>${total}</b><i class="pfcaret" aria-hidden="true"></i></button>`
+      + (matsOpen && food.length ? `<div class="pfpanl">${group(L('Crops', 'Plony'), food.filter(k => !RECIPES[k]))}${group(L('Treats', 'Przysmaki'), food.filter(k => RECIPES[k]))}</div>` : '');
+    root.querySelector('.pfmatsrow').classList.toggle('open', matsOpen && food.length > 0);
+    paintWx();
+  }
+  function paintWx() {
+    const el = $('pf-wx'); if (!el || el.hidden) return;
+    const { hour, w } = skyNow(), moon = dayPart(hour) === 'Night' && w.kind === 'sunny', pinned = !!F?.weather || (() => { try { return !!localStorage.getItem('pf_sky'); } catch { return false; } })();
+    el.innerHTML = `<button type="button" class="pfwxb wx-${w.kind}" data-a="wxinfo" title="${w.name}. ${w.bonus}"><span class="pfwxi">${wxIcon(moon ? 'moon' : w.kind)}</span><span class="pfwxt"><b>${moon ? L('Clear night', 'Pogodna noc') : w.name}</b><small>${w.short}${!pinned && w.left > 0 ? ` · ${wait(w.left)}` : ''}</small></span></button>`;
   }
   function paintMain() {
     const el = $('pf-main');
+    el.classList.remove('pfhome'); { const sd = $('pf-side'); sd.hidden = true; sd.innerHTML = ''; }
     if (mode !== 'farm' || edit || B) { el.innerHTML = ''; return; }
     if (where === 'map') {
       el.innerHTML = `<button type="button" class="btn big" data-a="gohome">${L(`Back to my farm`, `Wróć na moją farmę`)}</button><button type="button" class="btn w" data-a="friends">${L(`Friends`, `Znajomi`)}</button><button type="button" class="btn w" data-a="ranks">${L(`Ranking`, `Ranking`)}</button><span class="chip">${!world ? L('Looking around…', 'Rozglądam się…') : world.length ? L('Tap an island to visit. Drag to turn, scroll or pinch to zoom.', 'Dotknij wyspy, żeby ją odwiedzić. Przeciągnij, żeby obrócić, przewiń lub rozsuń palce, żeby przybliżyć.') : L('No other farms yet. They appear here when friends start one.', 'Nie ma jeszcze innych farm. Pojawią się tu, gdy znajomi założą swoje.')}</span>`;
@@ -267,37 +307,48 @@ export function mount(app, ctx) {
         ${V.pal ? `<span class="chip">${L(`Friendship ${V.pal}`, `Przyjaźń ${V.pal}`)}</span>` : ''}`;
       return;
     }
-    // Big farms have many parties out, eggs in the Nest and materials: each kind gets one line, and on phones the
-    // menu folds into one button, so the HUD never covers the farm (a high-level farm filled a phone screen).
+    // Home: the "On the farm" column (journal task, things ready now, timers, Send pets) on the right, and Edit farm
+    // beside one dock of picture buttons at the bottom. On phones the dock is a tab bar (Map, Pets, Edit, Journal,
+    // More) and the column sits over it. Several parties or eggs fold into one summary that opens their list.
+    el.classList.add('pfhome');
     const out = F.trips.filter(t => t.left > 0).sort((a, b) => a.left - b.left), home = F.trips.filter(t => !(t.left > 0));
     const eggs = F.nests.filter(n => n.stage !== 'ready').sort((a, b) => a.left - b.left), hatch = F.nests.filter(n => n.stage === 'ready');
     const tripLine = t => L(`Back from ${ZONES[t.zone].name} in ${wait(t.left)}`, `${ZONES[t.zone].name}: powrót za ${wait(t.left)}`);
     const eggLine = n => `${n.stage === 'cuddle' ? L('Egg in', 'Jajko za') : L('Hatches in', 'Wykluje się za')} ${wait(n.left)}`;
+    const pct = x => x.total > 0 ? Math.round(Math.min(1, Math.max(0, 1 - x.left / x.total)) * 100) : 0;
+    const timer = (icon, text, x) => `<div class="pftimer"><span class="pftt">${icon}<span>${text}</span></span><span class="pfbar" aria-hidden="true"><i style="width:${pct(x)}%"></i></span></div>`;
+    const timers = [...out.map(t => timer(tripIcon, tripLine(t), t)), ...eggs.map(n => timer(eggIcon, eggLine(n), n))];
     const same = list => list[list.length - 1].left - list[0].left < 60000; // all due in the same minute: no "first"
-    const more = out.length + eggs.length > 1 && (out.length > 1 || eggs.length > 1);
-    const sum = !more ? '' : `<button type="button" class="chip pfsum" data-a="pfsum" aria-expanded="${sumOpen}"><span class="pfsuml">${[
+    const sum = timers.length < (innerWidth <= 640 ? 2 : 3) ? timers.join('') : `<button type="button" class="pfsum" data-a="pfsum" aria-expanded="${sumOpen}"><span class="pfsuml">${[
       out.length > 1 ? `<span>${tripIcon}${same(out) ? L(`${cnt(out.length, 'party', 'parties')} out · back in ${wait(out[0].left)}`, `${cnt(out.length, '', '', 'wyprawa', 'wyprawy', 'wypraw')} · powrót za ${wait(out[0].left)}`) : L(`${cnt(out.length, 'party', 'parties')} out · first back in ${wait(out[0].left)}`, `${cnt(out.length, '', '', 'wyprawa', 'wyprawy', 'wypraw')} · pierwsza wraca za ${wait(out[0].left)}`)}</span>` : out.length ? `<span>${tripIcon}${tripLine(out[0])}</span>` : '',
       eggs.length > 1 ? `<span>${eggIcon}${L(`${cnt(eggs.length, 'egg')} · first in ${wait(eggs[0].left)}`, `${cnt(eggs.length, '', '', 'jajko', 'jajka', 'jajek')} · pierwsze za ${wait(eggs[0].left)}`)}</span>` : eggs.length ? `<span>${eggIcon}${eggLine(eggs[0])}</span>` : ''].filter(Boolean).join('')}</span><i class="pfcaret" aria-hidden="true"></i></button>`
-      + (sumOpen ? `<div class="pfsumlist">${out.map(t => `<span class="chip">${tripLine(t)}</span>`).join('')}${eggs.map(n => `<span class="chip">${eggLine(n)}</span>`).join('')}</div>` : '');
-    const stat = (!countOf(F, 'gate') ? '<span class="chip">' + L('Build an Expedition Gate to send pets exploring', 'Zbuduj Bramę wypraw, żeby wysyłać zwierzaki na wyprawy') + '</span>' : '')
-      + (home.length ? `<button type="button" class="btn m" data-a="collect" data-id="${home[0].id}">${home.length > 1 ? L(`Welcome the parties back (${home.length})`, `Przywitaj drużyny (${home.length})`) : L(`Welcome them back${F.trips.length > 1 ? ` from ${ZONES[home[0].zone].name}` : ''}`, `Przywitaj drużynę${F.trips.length > 1 ? ` (${ZONES[home[0].zone].name})` : ''}`)}</button>` : '')
-      + (hatch.length ? `<button type="button" class="btn m" data-a="hatch" data-slot="${hatch[0].slot}">${hatch.length > 1 ? L(`Hatch the eggs (${hatch.length})`, `Wykluj jajka (${hatch.length})`) : L(`Hatch the egg`, `Wykluj jajko`)}</button>` : '')
-      + (F.wild ? `<button type="button" class="btn m" data-a="wildfight">${L(`Battle the wild ${SPECIES[F.wild.sp].name}`, `Walcz z dzikim zwierzakiem: ${SPECIES[F.wild.sp].name}`)}</button>` : '')
-      + (orderList().some(o => !o.done && canDeliver(o)) ? `<button type="button" class="btn m" data-a="ordersopen">${L('Deliver an order', 'Dostarcz zamówienie')}</button>` : '')
-      + (F.garden.ripe ? `<button type="button" class="btn m" data-a="berries">${pickTxt()}</button>` : '')
-      + (more ? sum : (out.length ? `<span class="chip">${tripLine(out[0])}</span>` : '') + (eggs.length ? `<span class="chip">${eggLine(eggs[0])}</span>` : ''))
-      + (countOf(F, 'gate') && F.trips.length < F.partyMax ? `<button type="button" class="btn m" data-a="explore">${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '');
-    const mails = F.mail.length + F.trades.filter(t => t.dir === 'in').length;
-    el.innerHTML = `${journalCard()}${stat ? `<div class="pfstat">${stat}</div>` : ''}<div class="pfrow"><button type="button" class="btn big" data-a="edit">${L(`Edit farm`, `Urządź farmę`)}</button>
-      <button type="button" class="btn w pfmenu" data-a="pfmenu" aria-expanded="${navOpen}">${I.menu}${L('Menu', 'Menu')}${mails ? `<span class="pfbadge">${mails}</span>` : ''}</button>
-      <div class="pfnav${navOpen ? ' open' : ''}">
-      <button type="button" class="btn w" data-a="map">${L(`World map`, `Mapa świata`)}</button>
-      <button type="button" class="btn w" data-a="friends">${L(`Friends`, `Znajomi`)}</button>
-      <button type="button" class="btn w" data-a="ranks">${L(`Ranking`, `Ranking`)}</button>
-      <button type="button" class="btn w" data-a="pets">${L(`My pets`, `Moje zwierzaki`)} ${F.pets.length}</button>
-      <button type="button" class="btn w" data-a="album">${L(`Pet Album`, `Album zwierzaków`)}</button>
-      <button type="button" class="btn w" data-a="journal">${L(`Farm Journal`, `Dziennik farmy`)}${F.jn && pinned(F.jn)?.claim ? '<span class="pfbadge">!</span>' : ''}</button>
-      ${F.mail.length + F.trades.length ? `<button type="button" class="btn w" data-a="mail">${L('Mail', 'Poczta')} ${mails || ''}</button>` : ''}</div></div>`;
+      + (sumOpen ? `<div class="pfsumlist">${timers.join('')}</div>` : '');
+    const ready = (home.length ? `<button type="button" class="btn m pfready" data-a="collect" data-id="${home[0].id}">${tripIcon}${home.length > 1 ? L(`Welcome the parties back (${home.length})`, `Przywitaj drużyny (${home.length})`) : L(`Welcome them back${F.trips.length > 1 ? ` from ${ZONES[home[0].zone].name}` : ''}`, `Przywitaj drużynę${F.trips.length > 1 ? ` (${ZONES[home[0].zone].name})` : ''}`)}</button>` : '')
+      + (hatch.length ? `<button type="button" class="btn m pfready" data-a="hatch" data-slot="${hatch[0].slot}">${eggIcon}${hatch.length > 1 ? L(`Hatch the eggs (${hatch.length})`, `Wykluj jajka (${hatch.length})`) : L(`Hatch the egg`, `Wykluj jajko`)}</button>` : '')
+      + (F.wild ? `<button type="button" class="btn m pfready" data-a="wildfight">${L(`Battle the wild ${SPECIES[F.wild.sp].name}`, `Walcz z dzikim zwierzakiem: ${SPECIES[F.wild.sp].name}`)}</button>` : '')
+      + (orderList().some(o => !o.done && canDeliver(o)) ? `<button type="button" class="btn m pfready" data-a="ordersopen">${orderIcon}${L('Deliver an order', 'Dostarcz zamówienie')}</button>` : '')
+      + (F.garden.ripe ? `<button type="button" class="btn m pfready" data-a="berries">${matIcon('berries')}${pickTxt()}</button>` : '');
+    const side = journalCard() + ready
+      + (!countOf(F, 'gate') ? '<span class="chip pfgatehint">' + L('Build an Expedition Gate to send pets exploring', 'Zbuduj Bramę wypraw, żeby wysyłać zwierzaki na wyprawy') + '</span>' : '')
+      + (timers.length ? `<div class="pftimers">${sum}</div>` : '')
+      + (countOf(F, 'gate') && F.trips.length < F.partyMax ? `<button type="button" class="btn w pfsend" data-a="explore">${tripIcon}${F.trips.length ? L('Send another party', 'Wyślij kolejną drużynę') : L('Send pets exploring', 'Wyślij zwierzaki na wyprawę')}</button>` : '');
+    const sd = $('pf-side'); sd.hidden = !side; sd.innerHTML = side ? `<span class="pfsideh">${L('On the farm', 'Na farmie')}</span>${side}` : '';
+    const mails = F.mail.length + F.trades.filter(t => t.dir === 'in').length, jBadge = F.jn && pinned(F.jn)?.claim;
+    const badge = n => n ? `<span class="pfbadge">${n}</span>` : '';
+    const tile = (a, icon, long, short, extra = '', cls = '') => `<button type="button" class="pftile ${cls}" data-a="${a}">${icon}<span class="tw">${long}</span><span class="tn">${short}</span>${extra}</button>`;
+    const album = tile('album', NAV.album, L('Album', 'Album'), L('Album', 'Album'), '', 'sec');
+    const rest = tile('friends', NAV.friends, L('Friends', 'Znajomi'), L('Friends', 'Znajomi'), '', 'sec')
+      + tile('ranks', NAV.rank, L('Ranking', 'Ranking'), L('Ranking', 'Ranking'), '', 'sec')
+      + (F.mail.length + F.trades.length ? tile('mail', NAV.mail, L('Mail', 'Poczta'), L('Mail', 'Poczta'), badge(mails), 'sec') : '');
+    el.innerHTML = `<div class="pfrow"><button type="button" class="btn big pfedit" data-a="edit">${NAV.edit}<span class="tw">${L('Edit farm', 'Urządź farmę')}</span><span class="tn">${L('Edit', 'Urządź')}</span></button>
+      <nav class="pfdock" aria-label="${L('Farm menu', 'Menu farmy')}">
+      ${tile('map', NAV.map, L('World map', 'Mapa świata'), L('Map', 'Mapa'))}
+      ${tile('pets', NAV.pets, L('My pets', 'Zwierzaki'), L('Pets', 'Zwierzaki'), `<span class="pfcnt">${F.pets.length}</span>`)}
+      ${album}
+      ${tile('journal', NAV.journal, L('Journal', 'Dziennik'), L('Journal', 'Dziennik'), jBadge ? '<span class="pfbadge">!</span>' : '', 'pfj')}
+      ${rest}
+      <button type="button" class="pftile pfmenu" data-a="pfmenu" aria-expanded="${navOpen}">${NAV.more}<span class="tn">${L('More', 'Więcej')}</span>${badge(mails)}</button></nav></div>
+      ${navOpen ? `<div class="pfnav open">${album}${rest}</div>` : ''}`;
   }
   // ---------- the Farm Journal (journal.js): one pinned task on the farm, the whole questline in a panel ----------
   const jCount = (i, k) => { const n = F.jn.n[i]?.[k]; return n ? ` <span class="pfjnn">${Math.min(n[0], n[1])}/${n[1]}</span>` : ''; };
@@ -1205,6 +1256,11 @@ export function mount(app, ctx) {
     if (n) m[i.dataset.mat] = n; else delete m[i.dataset.mat];
     tradeTouch(i);
   });
+  // the Pantry list and the phone's More menu fold away on a tap anywhere else (or on something picked in them)
+  root.addEventListener('click', e => {
+    if (matsOpen && (!e.target.closest('.pfmatsrow') || e.target.closest('.pfpanl [data-a]'))) { matsOpen = false; paintTop(); }
+    if (navOpen && !e.target.closest('.pfnav, .pfmenu')) { navOpen = false; paintMain(); }
+  }, true);
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a;
@@ -1444,13 +1500,13 @@ export function mount(app, ctx) {
   const timer = setInterval(() => {
     if (mode !== 'farm' || !F) return;
     const was = F.trips.filter(t => t.left > 0).length; if (!was) return;
-    for (const t of F.trips) if (t.due) t.left = Math.max(0, t.due - Date.now());
+    for (const t of [...F.trips, ...F.nests]) if (t.due) t.left = Math.max(0, t.due - Date.now());
     if (F.trips.filter(t => t.left > 0).length < was) { sfx.turn(); ctx.toast(L('Your pets are back from their expedition!', 'Twoje zwierzaki wróciły z wyprawy!')); sync(); } else paintMain();
   }, 5000);
   const liveTimer = setInterval(() => { const c = $('pf-clock'); if (c) c.textContent = Math.max(0, Math.ceil((liveAt - Date.now()) / 1000)); if (panel?.kind === 'queue' && !B && !destroyed) paintPanel(); }, 500);
   const skyTimer = setInterval(() => { // the sky follows the clock; say so when the weather turns
     if (destroyed || !scene || mode !== 'farm' || !F) return; const { hour, w } = skyNow(), key = w.kind + dayPart(hour); scene.setSky(hour, w.kind);
-    if (key !== skyKey) { if (skyKey && !skyKey.startsWith(w.kind) && !B) ctx.toast(L(`${w.name} now. ${w.bonus}`, `Teraz: ${w.name}. ${w.bonus}`)); skyKey = key; paintTop(); if (panel?.kind === 'wx') paintPanel(); }
+    if (key !== skyKey) { if (skyKey && !skyKey.startsWith(w.kind) && !B) ctx.toast(L(`${w.name} now. ${w.bonus}`, `Teraz: ${w.name}. ${w.bonus}`)); skyKey = key; paintTop(); if (panel?.kind === 'wx') paintPanel(); } else paintWx();
   }, 20000);
   const gardenTimer = setInterval(() => { if (mode === 'farm' && F && gardenAt && gardenAt - Date.now() <= 0) { gardenAt = 0; ctx.send({ t: 'open' }); } }, 5000);
   const nestTimer = setInterval(() => {
