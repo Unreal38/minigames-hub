@@ -123,7 +123,7 @@ export function mount(app, ctx) {
     scene.setMap(mapOn || Date.now() < peekUntil);
     scene.setFork?.(S.ph === 'play' && S.pend?.k === 'fork' ? S.pl[S.pend.s].pos : null, S.pend?.opts || []);
     scene.setLineup?.(lineMode());
-    { const pk = S.pend ? S.pend.k + S.pend.s + ':' + (S.pend.id ?? '') : ''; if (pk !== lastPendK) { lastPendK = pk; if (S.pend?.k === 'meet') scene.emote?.(S.pend.s, 'surprise'); } } // a wild pet: jump back in surprise
+    { const pk = S.pend ? S.pend.k + S.pend.s + ':' + (S.pend.id ?? '') : ''; if (pk !== lastPendK) { lastPendK = pk; if (S.pend?.k === 'meet') scene.emote?.(S.pend.s, 'surprise'); if (['shop', 'well', 'bench'].includes(S.pend?.k)) landFx(S.pend.k === 'shop' ? 'stall' : S.pend.k, S.pend.s, 0); } } // a wild pet: jump back in surprise
     scene.setThink?.(S.ph === 'play' && S.pend && ['card', 'fork', 'shop', 'meet', 'well', 'bench', 'lure'].includes(S.pend.k) ? S.pend.s : -1); // hand on chin while choosing
     root.classList.toggle('lineup', ['intro', 'order'].includes(lineMode())); root.classList.toggle('intro', S?.ph === 'play' && S.stage === 'intro');
   }
@@ -163,11 +163,10 @@ export function mount(app, ctx) {
     marksEl.classList.toggle('on', !!show);
     if (!show) return;
     const list = scene.marks(), seen = new Set();
-    const narrow = innerWidth < 760;
     const placed = []; // labels never sit on top of each other: wild pets first, then honey, then stones; a label that would cover another moves up, else hides
     list.sort((a, b) => (a.k === 'wild' ? 0 : a.k === 'honey' ? 1 : 2) - (b.k === 'wild' ? 0 : b.k === 'honey' ? 1 : 2));
     for (const m of list) {
-      if (narrow && m.k === 'stone' && m.kind === 'picnic') continue; // phones: fewer labels, so the rest stay readable
+      if (m.k === 'stone' && m.kind === 'picnic') continue; // picnics are many and their icon says it all: fewer labels keep the map readable (Kuba 2026-11-27)
       const k = m.k === 'wild' ? 'w' + m.w.id : m.k === 'honey' ? 'h' + m.pos : 's' + m.i; seen.add(k);
       let el = markEls.get(k);
       if (!el) {
@@ -213,7 +212,7 @@ export function mount(app, ctx) {
       const cnt = el.querySelector('.cnt'), was = cnt._h;
       setHtml(cnt, `${I.treat}${S.pl[i].treats}`); if (cnt._h !== was) el.lastElementChild._w = 0; // its width changed
       const b = bubbles.get(i);
-      setHtml(el.firstElementChild, b && b.until > now ? b.html : '');
+      const bb = el.firstElementChild, was2 = bb._h; setHtml(bb, b && b.until > now ? b.html : ''); if (bb._h !== was2 && bb._h) petPics(bb);
     });
   }
   function bubble(i, html, ms = 1800) { bubbles.set(i, { html, until: performance.now() + ms }); setTimeout(() => !destroyed && S && buildTags(), ms + 30); if (S) buildTags(); }
@@ -318,13 +317,19 @@ export function mount(app, ctx) {
   const opt = (a, ic, t, sub = '', attrs = '', cls = '', price = '') => `<button type="button" class="btn tt-opt ${cls}" data-a="${a}" ${attrs}><span class="ic">${ic}</span><span class="tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span>${price}</button>`;
   const priceTag = c => `<span class="tt-price">${I.treat}${c}</span>`;
   // a trail card in your hand: its number, and where it takes you (a wild pet's stone glows pink)
-  function cardHtml(d, i) {
-    const p = S.pl[S.me], { ends, fork } = landsOf(p.pos, d);
+  // a trail card's face: how far it goes and what it lands on, seen from stone `pos`
+  function cardFace(d, pos) {
+    const { ends, fork } = landsOf(pos, d);
     const pets = ends.map(at => S.wild.find(w => w.pos === at)).filter(Boolean);
     const at = ends[0], kind = NODES[at]?.kind;
     const where = pets.length ? L(`Wild ${esc(petName(pets[0].sp))}!`, `Dziki ${esc(petName(pets[0].sp))}!`) : fork && ends.length > 1 ? L('Fork ahead: you pick', 'Rozwidlenie: ty wybierasz') : esc(STONES[kind] || '');
-    return `<button type="button" class="btn tt-tc${pets.length ? ' hot' : kind === 'bramble' && ends.length === 1 ? ' bad' : ''}" data-a="card" data-i="${i}" aria-label="${L(`Walk ${d}`, `Idź o ${d}`)}: ${where}">
-      <b>${d}</b><small>${L(d === 1 ? 'stone' : 'stones', d === 1 ? 'kamień' : d < 5 ? 'kamienie' : 'kamieni')}</small><span>${pets.length ? pet(pets[0], 30) : fork && ends.length > 1 ? '' : stoneSvg(kind)}${where}</span></button>`;
+    return { where, cls: pets.length ? ' hot' : kind === 'bramble' && ends.length === 1 ? ' bad' : '',
+      inner: `<b>${d}</b><small>${L(d === 1 ? 'stone' : 'stones', d === 1 ? 'kamień' : d < 5 ? 'kamienie' : 'kamieni')}</small><span>${pets.length ? pet(pets[0], 30) : fork && ends.length > 1 ? '' : stoneSvg(kind)}${where}</span>` };
+  }
+  function cardHtml(d, i) {
+    const c = cardFace(d, S.pl[S.me].pos);
+    return `<button type="button" class="btn tt-tc${c.cls}" data-a="card" data-i="${i}" aria-label="${L(`Walk ${d}`, `Idź o ${d}`)}: ${c.where}">
+      ${c.inner}</button>`;
   }
   function pendHtml(P, clock) {
     const p = S.pl[S.me];
@@ -383,7 +388,10 @@ export function mount(app, ctx) {
   // ----- Tux's intro: one sentence at a time in the big banner at the bottom, while the camera is on him -----
   function introStep() {
     const lines = INTRO_LINES(S), ms = S.introMs || 29000, el = ms - Math.max(0, S.stageLeft - (Date.now() - stateAt));
-    return { lines, k: Math.max(0, Math.min(lines.length - 1, Math.floor(el / (ms - 500) * lines.length))) };
+    // each line stays up in step with how long it is to read (Kuba 2026-11-27: too fast), not an even share
+    const w = lines.map(x => 30 + x.replace(/<[^>]+>/g, '').length), tot = w.reduce((a, b) => a + b, 0), u = el / (ms - 500) * tot;
+    let k = 0, acc = w[0]; while (k < lines.length - 1 && u >= acc) acc += w[++k];
+    return { lines, k };
   }
   const INTRO_LINES = S => [
     L(`Hello, hello! I'm <b>Tux</b>, your host tonight!`, `Witam, witam! Jestem <b>Tux</b> i prowadzę dzisiejszą zabawę!`),
@@ -469,7 +477,7 @@ export function mount(app, ctx) {
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
       case 'order': scene?.peek?.(-1, 0); big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
       case 'turn': scene?.emote?.(s, 'wave'); say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); splash(s); if (isMe(s)) sfx.turn(); break;
-      case 'card': scene?.emote?.(s, 'point'); stepsLeft.set(s, e.d); sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
+      case 'card': scene?.emote?.(s, 'point'); stepsLeft.set(s, e.d); sfx.draw(); { const c = cardFace(e.d, S.pl[s].pos); bubble(s, `<span class="tt-pc${c.cls}">${c.inner}</span>`, 2200); } /* the played card rises over the player before the walk (Kuba 2026-11-27) */ say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
       case 'redraw': sfx.whoosh?.(); say(who(s, L(`Your ${esc(petName(e.sp))} swaps your cards`, `Twój ${esc(petName(e.sp))} wymienia ci karty`), L(`{n}'s ${esc(petName(e.sp))} swaps their cards`, `${esc(petName(e.sp))} wymienia karty graczowi {n}`))); break;
       case 'boost': say(who(s, L(`Fewest friends: your ${esc(petName(e.sp))} can swap your cards again`, `Najmniej przyjaciół: twój ${esc(petName(e.sp))} znów może wymienić ci karty`), L(`Fewest friends: {n}'s ${esc(petName(e.sp))} can swap cards again`, `Najmniej przyjaciół: {n} znów może wymienić karty (${esc(petName(e.sp))})`))); break;
       case 'fork': scene?.emote?.(s, 'point'); say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
@@ -478,12 +486,12 @@ export function mount(app, ctx) {
         setTimeout(hopSfx, 420); }; hopSfx(); } break;
       case 'stone': stoneEv(e); break;
       case 'slide': scene?.emote?.(s, 'slide'); say(who(s, L('Icy brambles! You slide 2 stones on', 'Oblodzone jeżyny! Ślizgasz się 2 kamienie dalej'), L('Icy brambles! {n} slides 2 stones on', 'Oblodzone jeżyny! {n} ślizga się 2 kamienie dalej'))); sfx.whoosh?.(); break;
-      case 'honey': say(L(`${isMe(s) ? 'You step' : nm(s) + ' steps'} in ${isMe(e.o) ? 'your' : nm(e.o) + "'s"} honey: ${treatsW(e.v)} to ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Wchodzisz' : nm(s) + ' wchodzi'} w miód gracza ${nm(e.o)}: ${treatsW(e.v)} dla ${isMe(e.o) ? 'ciebie' : nm(e.o)}`)); scene?.cue(s, 'lose'); floatAt(scene?.seatPx(s), '−' + e.v, 'bad'); break;
-      case 'egg': say(who(s, L('You find a Mystery Egg. It hatches in 2 turns', 'Znajdujesz tajemnicze jajo. Wykluje się za 2 tury'), L('{n} finds a Mystery Egg', '{n} znajduje tajemnicze jajo'))); scene?.cue(s, 'item'); sfx.set(); break;
+      case 'honey': landFx('honey', s, -e.v, () => { say(L(`${isMe(s) ? 'You step' : nm(s) + ' steps'} in ${isMe(e.o) ? 'your' : nm(e.o) + "'s"} honey: ${treatsW(e.v)} to ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Wchodzisz' : nm(s) + ' wchodzi'} w miód gracza ${nm(e.o)}: ${treatsW(e.v)} dla ${isMe(e.o) ? 'ciebie' : nm(e.o)}`)); scene?.cue(s, 'lose'); floatAt(scene?.seatPx(s), '−' + e.v, 'bad'); }); break;
+      case 'egg': landFx('egg', s, 0, () => { say(who(s, L('You find a Mystery Egg. It hatches in 2 turns', 'Znajdujesz tajemnicze jajo. Wykluje się za 2 tury'), L('{n} finds a Mystery Egg', '{n} znajduje tajemnicze jajo'))); scene?.cue(s, 'item'); sfx.set(); }); break;
       case 'hatch': say(L(`${isMe(s) ? 'Your' : nm(s) + "'s"} egg hatches: <b>${esc(petName(e.sp))}</b>!`, `Jajo ${isMe(s) ? 'się wykluwa' : 'gracza ' + nm(s) + ' się wykluwa'}: <b>${esc(petName(e.sp))}</b>!`)); scene?.cue(s, 'friend'); sfx.win?.(); break;
-      case 'den': say(L(`A rare <b>${esc(petName(e.sp))}</b> comes out of the den!`, `Z nory wychodzi rzadki <b>${esc(petName(e.sp))}</b>!`)); sfx.set(); break;
-      case 'called': say(L(`The Pet Whistle calls <b>${esc(petName(e.sp))}</b> over`, `Gwizdek przywołuje: <b>${esc(petName(e.sp))}</b>`)); sfx.whoosh?.(); break;
-      case 'full': say(who(s, L('Your herd is full', 'Twoje stado jest pełne'), L("{n}'s herd is full", 'Stado gracza {n} jest pełne'))); break;
+      case 'den': landFx('den', s, 0, () => { say(L(`A rare <b>${esc(petName(e.sp))}</b> comes out of the den!`, `Z nory wychodzi rzadki <b>${esc(petName(e.sp))}</b>!`)); sfx.set(); }); break;
+      case 'called': landFx('', s, 0, () => { say(L(`The Pet Whistle calls <b>${esc(petName(e.sp))}</b> over`, `Gwizdek przywołuje: <b>${esc(petName(e.sp))}</b>`)); sfx.whoosh?.(); }); break;
+      case 'full': landFx('', s, 0, () => { say(who(s, L('Your herd is full', 'Twoje stado jest pełne'), L("{n}'s herd is full", 'Stado gracza {n} jest pełne'))); }); break;
       case 'bought': say(L(`${isMe(s) ? 'You win' : nm(s) + ' wins'} <b>${esc(petName(e.sp))}</b> over with ${treatsW(e.c)}`, `${isMe(s) ? 'Przekonujesz' : nm(s) + ' przekonuje'} <b>${esc(petName(e.sp))}</b> za ${treatsW(e.c)}`)); scene?.cue(s, 'friend', SPECIES[e.sp]?.el); sfx.win?.(); bubble(s, `<span class="hot">♥</span>`); break;
       case 'showdown':
         if (e.ok) { say(L(`${esc(petName(e.sp))} wins <b>${esc(petName(e.wsp))}</b> over! It joins ${isMe(s) ? 'your' : nm(s) + "'s"} herd`, `${esc(petName(e.sp))} przekonuje: <b>${esc(petName(e.wsp))}</b>! Dołącza do stada ${isMe(s) ? 'twojego' : 'gracza ' + nm(s)}`)); scene?.cue(s, 'friend', SPECIES[e.wsp]?.el); sfx.win?.(); bubble(s, `<span class="hot">♥</span>`); if (isMe(s)) big(L('New friend!', 'Nowy przyjaciel!'), esc(petName(e.wsp)), 1300); }
@@ -496,7 +504,7 @@ export function mount(app, ctx) {
       case 'well': say(e.res === 'pet' ? L(`A wish comes true: a rare <b>${esc(petName(e.sp))}</b> appears!`, `Życzenie się spełnia: pojawia się rzadki <b>${esc(petName(e.sp))}</b>!`)
         : e.res === 'item' ? L(`The well gives ${isMe(s) ? 'you' : nm(s)} the ${esc(ITEMS[e.k].name)}`, `Studnia daje ${isMe(s) ? 'ci' : 'graczowi ' + nm(s)}: ${esc(ITEMS[e.k].name)}`)
         : e.res === 'treats' ? L(`The well gives ${isMe(s) ? 'you' : nm(s)} 8 treats`, `Studnia daje ${isMe(s) ? 'ci' : 'graczowi ' + nm(s)} 8 przysmaków`)
-        : who(s, L('You walk past the well', 'Mijasz studnię'), L('{n} walks past the well', '{n} mija studnię'))); if (e.res !== 'no') { scene?.cue(s, 'item'); sfx.set(); } break;
+        : who(s, L('You walk past the well', 'Mijasz studnię'), L('{n} walks past the well', '{n} mija studnię'))); if (e.res !== 'no') { landFx('well', s, 0); scene?.cue(s, 'item'); sfx.set(); } break;
       case 'offer': say(L(`${isMe(s) ? 'You offer' : nm(s) + ' offers'} ${isMe(e.o) ? 'you' : nm(e.o)} a buddy pact`, `${isMe(s) ? 'Proponujesz' : nm(s) + ' proponuje'} pakt: ${isMe(e.o) ? 'tobie' : nm(e.o)}`)); if (isMe(e.o)) sfx.turn(); break;
       case 'pact': say(L(`${nm(s)} and ${nm(e.o)} are buddies for ${PACT_ROUNDS} rounds`, `${nm(s)} i ${nm(e.o)} mają pakt na ${PACT_ROUNDS} rundy`)); scene?.cue(s, 'gain'); scene?.cue(e.o, 'gain'); sfx.set(); break;
       case 'nopact': say(L(`${nm(e.o)} says no thanks to the pact`, `${nm(e.o)} odmawia paktu`)); break;
@@ -515,7 +523,7 @@ export function mount(app, ctx) {
     }
   }
   function stoneEv(e) {
-    const s = e.s, px = scene?.seatPx(s);
+    const s = e.s;
     const msg = {
       treat: [L(`You get ${treatsW(e.v)}`, `Dostajesz ${treatsW(e.v)}`), L(`{n} gets ${treatsW(e.v)}`, `{n} dostaje ${treatsW(e.v)}`)],
       picnic: [L(`Picnic! You get ${treatsW(e.v)}`, `Piknik! Dostajesz ${treatsW(e.v)}`), L(`Picnic! {n} gets ${treatsW(e.v)}`, `Piknik! {n} dostaje ${treatsW(e.v)}`)],
@@ -525,10 +533,13 @@ export function mount(app, ctx) {
       nest0: [L('The nest is empty for you now', 'Gniazdo jest teraz dla ciebie puste'), L('The nest is empty for {n}', 'Gniazdo jest puste dla: {n}')],
       bench0: [L('Nobody is free for a pact', 'Nikt nie jest wolny do paktu'), L('Nobody is free for a pact with {n}', 'Nikt nie jest wolny do paktu z: {n}')],
     }[e.kind];
-    if (msg) say(who(s, msg[0], msg[1]));
-    if (e.v > 0) { floatAt(px, '+' + e.v, 'good'); scene?.cue(s, 'gain'); sfx.combo?.(1); }
-    else if (e.v < 0) { floatAt(px, '−' + -e.v, 'bad'); scene?.cue(s, 'lose'); sfx.bad?.(); }
+    const after = () => { if (destroyed) return; const px = scene?.seatPx(s); if (msg) say(who(s, msg[0], msg[1])); // Tux tells it once they stand on the stone
+      if (e.v > 0) { floatAt(px, '+' + e.v, 'good'); scene?.cue(s, 'gain'); sfx.combo?.(1); }
+      else if (e.v < 0) { floatAt(px, '−' + -e.v, 'bad'); scene?.cue(s, 'lose'); sfx.bad?.(); } };
+    landFx(e.kind, s, e.v, after);
   }
+  // the stone shows what it does once the player has hopped onto it (Kuba 2026-11-27)
+  function landFx(kind, s, v, then) { if (scene?.stoneFx) scene.stoneFx(null, kind, s, v, then); else then?.(); }
 
   function update(s) {
     if (destroyed) return;
