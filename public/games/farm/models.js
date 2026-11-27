@@ -139,7 +139,11 @@ export const ROUTES = {
     return [...head, ['sway', h.x, h.y - h.sag, h.z, 6, Math.atan2(h.x, h.z)], ['groom', ...at(T.basket), 3.5, toPost(T.basket) + Math.PI], ['peek', ...at(T.hut), 8, 0]];
   },
 };
-export const LIFT = { house: [0, 0, .9, .9, .9, .9, .9], lodge: [0, 0, .55], barn: [0, .4, .75], kitchen: [0, .5, 1.0], gate: [0, .55, .8] };
+// Where a helper works at a building, in the model's own space: [x, z] of the spot it faces. The Kitchen's fire pet blows into the hearth mouth.
+export const HEARTH = { kitchen: [.5, 1.0] };
+const FLUE = [1.0, 1.25, 1.7]; // how tall the Kitchen's flue stands above the hearth, per level
+export const flueTop = lv => [HEARTH.kitchen[0] + .2, .46 + FLUE[Math.min(3, Math.max(1, lv | 0)) - 1] + (lv >= 2 ? .13 : .07), .78]; // where its smoke comes out
+export const LIFT = { house: [0, 0, .9, .9, .9, .9, .9], lodge: [0, 0, .55], barn: [0, .4, .75], gate: [0, .55, .8] };
 const liftOf = (type, lv) => LIFT[type]?.[Math.min(LIFT[type].length, Math.max(1, lv | 0)) - 1] || 0;
 
 const BUILD = {
@@ -459,50 +463,65 @@ const BUILD = {
     }
   },
   kitchen(g, live, lv = 1) {
-    const up = liftOf('kitchen', lv);
+    const [HX, HZ] = HEARTH.kitchen, fr = lv >= 3 ? C.gold : C.iron, wall = lv >= 2 ? C.brick : C.stone, wallD = lv >= 2 ? C.brickD : C.stoneD;
     box(g, 1.8, .14, 1.5, C.stoneD, 0, 0, -.15);
     box(g, 1.7, 1.0, 1.4, '#f7d9a8', 0, 0, -.15);
     for (const x of [-.83, .83]) box(g, .1, 1.0, .1, C.woodD, x, 0, .53);
     box(g, 1.86, .12, 1.56, C.woodD, 0, 1.0, -.15); box(g, 1.6, .1, 1.3, C.wood, 0, 1.12, -.15);
-    for (let i = 0; i < 5; i++) { const o = box(g, .36, .06, .6, i % 2 ? C.white : C.red, -.72 + i * .36, .86, .78); o.rotation.x = .35; box(g, .36, .1, .03, i % 2 ? C.white : C.red, -.72 + i * .36, .7, 1.06); } // awning with a valance
-    for (const x of [-.88, .88]) box(g, .05, .78, .05, C.woodD, x, 0, 1.02);
-    const ch = .32, cz = .82, ct = ch + .05; // the counter is low and stands out to the front edge of the awning, so it shows from above
-    box(g, 1.3, ch, .3, C.wood, 0, 0, cz); box(g, 1.38, .05, .38, C.cream, 0, ch, cz); // counter with a pale top
-    for (const x of [-.43, 0, .43]) box(g, .03, ch - .04, .02, C.woodD, x, 0, cz + .155);
-    cyl(g, .16, .13, .16, 6, C.stoneD, -.4, ct, cz); cyl(g, .17, .17, .03, 6, C.iron, -.4, ct + .16, cz); ico(g, .03, C.iron, -.4, ct + .21, cz); // the pot, lid on
-    box(g, .3, .03, .2, C.woodD, .4, ct, cz); ico(g, .09, C.red, .35, ct + .09, cz); ico(g, .08, C.yellow, .5, ct + .08, cz + .04); box(g, .16, .06, .1, '#e8b877', .02, ct, cz + .02); // board, fruit, a loaf
-    if (lv < 2) { box(g, .3, .6, .3, C.stone, .5, 1.1, -.5); box(g, .38, .08, .38, C.stoneD, .5, 1.7, -.5); }
-    else { box(g, .34, .6 + up, .34, C.brick, .5, 1.1, -.5); box(g, .44, .08, .44, C.stoneD, .5, 1.7 + up, -.5); box(g, .22, .08, .22, C.iron, .5, 1.78 + up, -.5);
-      for (const y of [1.36, 1.62 + up * .5, 1.5 + up]) { box(g, .2, .08, .02, C.brickD, .46, y, -.325); box(g, .02, .08, .2, C.brickD, .675, y - .1, -.5); } }
+    // the left half is a market counter under a striped awning; the right half is the hearth, low on the ground so a fire pet can blow into it
+    for (let i = 0; i < 3; i++) { const o = box(g, .36, .06, .6, i % 2 ? C.white : C.red, -.72 + i * .36, .86, .78); o.rotation.x = .35; box(g, .36, .1, .03, i % 2 ? C.white : C.red, -.72 + i * .36, .7, 1.06); } // awning with a valance
+    for (const x of [-.88, .12]) box(g, .05, .78, .05, C.woodD, x, 0, 1.02);
+    const ch = .32, cz = .82, ct = ch + .05, cx = -.38; // the counter is low and stands out to the front edge of the awning, so it shows from above
+    box(g, .72, ch, .3, C.wood, cx, 0, cz); box(g, .8, .05, .38, C.cream, cx, ch, cz); // counter with a pale top
+    for (const x of [-.6, -.16]) box(g, .03, ch - .04, .02, C.woodD, x, 0, cz + .155);
+    box(g, .28, .2, .03, '#3d4a40', cx, .06, cz + .165); for (const [y, w] of [[.2, .18], [.14, .13], [.09, .15]]) box(g, w, .02, .01, C.white, cx, y, cz + .185); // a chalk menu on the counter front
+    box(g, .3, .03, .2, C.woodD, -.2, ct, cz); ico(g, .08, C.red, -.25, ct + .08, cz); ico(g, .07, C.yellow, -.12, ct + .07, cz + .04); box(g, .16, .06, .1, '#e8b877', -.56, ct, cz + .02); // board, fruit, a loaf
+    // the hearth: a firebox with a real mouth (jambs, lintel, a sooty back), a stone sill the fire sits on, and a flue up past the roof
+    box(g, .7, .46, .3, wall, HX, 0, .71);                                           // body, against the wall
+    for (const sd of [-1, 1]) box(g, .2, .46, .14, wall, HX + sd * .25, 0, .93);    // jambs
+    box(g, .7, .16, .14, wall, HX, .3, .93);                                         // lintel
+    box(g, .29, .06, .15, C.stoneD, HX, 0, .935);                                    // the sill, a hair proud
+    box(g, .28, .24, .02, '#2e2522', HX, .06, .87);                                  // soot at the back of the mouth
+    box(g, .36, .05, .03, fr, HX, .27, 1.015); for (const sd of [-1, 1]) box(g, .04, .27, .03, fr, HX + sd * .17, 0, 1.015); // iron mouth frame
+    for (const r of [.4, -.4]) { const l = put(g, G('Cylinder', .032, .032, .24, 6), M(C.woodD), HX, .095, .92); l.rotation.set(0, r, Math.PI / 2); } // logs, crossed
+    box(g, .5, .025, .24, C.stone, HX, 0, 1.13);                                     // a flat stone for the helper to stand on
+    const fh = FLUE[Math.min(3, lv) - 1], fx = HX + .2, fz = .78;                    // the flue
+    box(g, .26, fh, .24, wall, fx, .46, fz); box(g, .34, .07, .32, wallD, fx, .46 + fh, fz); if (lv >= 2) box(g, .2, .06, .2, C.iron, fx, .53 + fh, fz);
+    if (lv >= 2) for (const y of [.8, 1.15, .5 + fh * .85]) { box(g, .14, .07, .02, wallD, fx - .03, y, fz + .125); box(g, .02, .07, .14, wallD, fx + .135, y - .12, fz + .01); }
+    const wood = [[.93, .0, .28], [.93, .0, .1], [.93, .09, .19]]; for (const [x, y, z] of wood) { const l = cyl(g, .045, .045, .26, 6, C.wood, x, 0, z); l.rotation.x = Math.PI / 2; l.position.y = y + .05; } // firewood by the hearth
+    if (lv < 2) { box(g, .74, .04, .46, C.iron, HX, .46, .775); cyl(g, .15, .12, .16, 6, C.slate, HX - .12, .5, .8); cyl(g, .16, .16, .03, 6, C.stoneD, HX - .12, .66, .8); ico(g, .03, C.iron, HX - .12, .71, .8); } // an iron hob with the soup pot on it
+    else { // a bread oven: a brick dome over the firebox with its own little door
+      box(g, .72, .05, .46, wallD, HX, .46, .775);
+      const d = ico(g, .25, C.brick, HX - .1, .5, .76, 1); d.scale.y = .78;
+      box(g, .24, .2, .1, C.brickD, HX - .1, .48, .94); box(g, .16, .13, .03, fr, HX - .1, .5, .995); ico(g, .022, lv >= 3 ? C.white : C.gold, HX - .04, .565, 1.015);
+      const pl = box(g, .04, .62, .04, C.wood, .95, 0, 1.06); pl.rotation.z = -.12; const bl = box(g, .14, .16, .02, C.wood, .93, .02, 1.08); bl.rotation.z = -.12; // a bread peel leans by the mouth
+    }
     for (const [w, d, x, z] of [[1.9, .06, 0, .63], [1.9, .06, 0, -.93], [.06, 1.56, .93, -.15], [.06, 1.56, -.93, -.15]]) box(g, w, .16, d, lv >= 3 ? C.gold : C.cream, x, .98, z); // a pale rim round the roof
-    if (lv < 3) { box(g, .7, .14, .26, C.woodD, -.3, 1.22, -.62); for (let i = 0; i < 4; i++) ico(g, .09, i % 2 ? C.leafL : C.leaf, -.56 + i * .17, 1.4, -.62); ico(g, .04, C.red, -.3, 1.47, -.58); } // herbs growing up top
+    if (lv < 3) { box(g, .7, .14, .26, C.woodD, .3, 1.22, -.62); for (let i = 0; i < 4; i++) ico(g, .09, i % 2 ? C.leafL : C.leaf, .04 + i * .17, 1.4, -.62); ico(g, .04, C.red, .3, 1.47, -.58); } // herbs growing up top
     else { box(g, .52, .1, .12, C.woodD, -.38, 1.34, -.04); for (let i = 0; i < 4; i++) ico(g, .07, i % 2 ? C.leafL : C.leaf, -.56 + i * .12, 1.47, -.02); ico(g, .035, C.red, -.38, 1.52, .02); for (const x of [-.58, -.18]) box(g, .04, .1, .1, C.woodD, x, 1.26, -.06); } // once the upper room is built they grow in its window box
-    const pot = new THREE.Group(); pot.position.set(lv >= 3 ? -.5 : -.45, 1.22, lv >= 3 ? .36 : .1); g.add(pot);   // the big pot on the roof says what this is
+    const pot = new THREE.Group(); pot.position.set(lv >= 3 ? .45 : -.45, 1.22, lv >= 3 ? .3 : .05); g.add(pot);   // the big pot on the roof says what this is
     cyl(pot, .26, .2, .26, 8, lv >= 3 ? C.copper : C.slate); cyl(pot, .29, .29, .05, 8, lv >= 3 ? C.gold : C.stoneD, 0, .24); ico(pot, .06, C.red, 0, .34, 0);
     for (const x of [-.31, .31]) box(pot, .08, .05, .1, C.iron, x, .16);
-    box(g, .5, .04, .1, C.wood, 0, .78, .56); for (const [x, c] of [[-.16, C.red], [0, C.yellow], [.16, C.leafL]]) cyl(g, .05, .05, .12, 6, c, x, .82, .56); // jars on a shelf
-    const board = box(g, .3, .42, .03, C.iron, -.78, 0, 1.0); board.rotation.x = -.25; box(g, .22, .03, .01, C.white, -.78, .28, 1.06).rotation.x = -.25; box(g, .16, .03, .01, C.white, -.78, .2, 1.08).rotation.x = -.25; // menu board
-    crate(g, .84, .98, .24); for (const [x, z] of [[.78, .94], [.9, 1.0], [.84, 1.04]]) ico(g, .06, C.red, x, .27, z);
+    box(g, .5, .04, .1, C.wood, -.38, .78, .56); for (const [x, c] of [[-.54, C.red], [-.38, C.yellow], [-.22, C.leafL]]) cyl(g, .05, .05, .12, 6, c, x, .82, .56); // jars on a shelf
+    crate(g, -.96, .82, .24); for (const [x, z] of [[-1.0, .78], [-.92, .86]]) ico(g, .06, C.red, x, .27, z);
     if (lv < 2) return;
-    // level 2: a brick bread oven on the roof under a tall chimney, a pie on the counter, lights along the awning
-    // the oven: a brick dome with a deep mouth, the fire set back inside it. Once the upper room is built it is a little smaller, so it fits in front of the room
-    const og = grp(g, .5, 1.22, lv >= 3 ? .2 : -.02); if (lv >= 3) og.scale.setScalar(.8);
-    const ov = ico(og, .36, C.brick, 0, 0, 0, 1); ov.scale.y = .85; box(og, .38, .3, .12, C.brickD, 0, 0, .31); box(og, .26, .2, .04, C.iron, 0, .02, .36); box(og, .44, .05, .16, C.brick, 0, .28, .31);
-    put(og, G('Box', .18, .08, .03), MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), 0, .07, .385).userData.dyn = true; box(og, .3, .03, .1, C.stoneD, 0, 0, .42);
-    cyl(g, .11, .09, .05, 8, '#e8b877', .02, ct + .05, cz + .02); cyl(g, .08, .08, .025, 8, C.gold, .02, ct + .095, cz + .02);
-    for (let i = 0; i < 6; i++) ico(g, .045, [C.yellow, C.pink, C.teal][i % 3], -.75 + i * .3, .62 - (i % 2) * .03, 1.09);
-    crate(g, -.94, .5, .22); for (const [x, z] of [[-.98, .46], [-.9, .54]]) ico(g, .06, C.gold, x, .25, z);
-    for (const [x, y] of [[-.96, .0], [-1.06, .0], [-1.01, .09]]) { const l = cyl(g, .05, .05, .4, 6, C.wood, x, y, -.1); l.rotation.x = Math.PI / 2; l.position.y = y + .05; } // firewood for the oven, stacked clear of the wall
+    // level 2: the hearth becomes a brick bread oven (above), a pie on the counter, lights along the awning
+    cyl(g, .11, .09, .05, 8, '#e8b877', -.56, ct + .07, cz + .02); cyl(g, .08, .08, .025, 8, C.gold, -.56, ct + .115, cz + .02);
+    for (let i = 0; i < 4; i++) ico(g, .045, [C.yellow, C.pink, C.teal][i % 3], -.8 + i * .28, .62 - (i % 2) * .03, 1.09);
+    crate(g, -.94, .4, .22); for (const [x, z] of [[-.98, .36], [-.9, .44]]) ico(g, .06, C.gold, x, .25, z);
     if (lv < 3) return;
-    // level 3: an upper room under a tiled roof, copper pots, a gold rim and a tonic sign
+    // level 3: an upper room under a tiled roof, copper pots, a gold rim and a tonic sign, and the oven gets brass bellows
     box(g, 1.7, .62, .74, '#f7d9a8', 0, 1.22, -.48); for (const x of [-.83, .83]) for (const z of [-.83, -.13]) box(g, .08, .64, .08, C.woodD, x, 1.2, z);
     box(g, 1.76, .07, .8, C.woodD, 0, 1.8, -.48); put(g, gable(1.96, .5, .96), M(C.red), 0, 1.86, -.48); shingles(g, 1.96, .5, .96, 1.86, -.48, C.redD, 2);
     put(g, gable(1.5, .38, .04), M('#f7d9a8'), 0, 1.87, .0); box(g, .1, .06, 1.0, C.gold, 0, 2.33, -.48);
     box(g, .42, .34, .08, C.white, -.38, 1.46, -.1); box(g, .32, .26, .1, C.glass, -.38, 1.5, -.095); box(g, .03, .24, .04, C.white, -.38, 1.51, -.05); box(g, .3, .03, .04, C.white, -.38, 1.62, -.05);
     const sg = put(g, G('Cylinder', .17, .17, .08, 10), M(C.cream), 0, 2.04, .04); sg.rotation.x = Math.PI / 2; put(g, G('Torus', .17, .035, 4, 10), M(C.gold), 0, 2.04, .08);
     box(g, .1, .14, .05, C.teal, 0, 1.95, .09); box(g, .05, .07, .05, C.teal, 0, 2.09, .09); box(g, .06, .02, .055, C.woodD, 0, 2.16, .09);
-    for (const [x, c] of [[-.56, C.copper], [-.3, C.copper], [.56, C.copper]]) { cyl(g, .07, .055, .09, 6, c, x, .6, 1.0); box(g, .012, .12, .012, C.iron, x, .69, 1.0); }
-    for (let i = 0; i < 5; i++) box(g, .36, .035, .035, C.gold, -.72 + i * .36, .675, 1.075);
+    for (const x of [-.7, -.44]) { cyl(g, .07, .055, .09, 6, C.copper, x, .6, 1.0); box(g, .012, .12, .012, C.iron, x, .69, 1.0); }
+    for (let i = 0; i < 3; i++) box(g, .36, .035, .035, C.gold, -.72 + i * .36, .675, 1.075);
+    put(g, G('Torus', .245, .025, 4, 12), M(C.copper), HX - .1, .52, .76).rotation.x = Math.PI / 2; // a copper band round the dome
+    box(g, .1, .1, .04, C.gold, HX, .36, 1.015);                                     // keystone
+    const bw = grp(g, .945, .22, .56); bw.rotation.z = -.1; box(bw, .03, .18, .14, C.woodD, 0, 0, 0); box(bw, .02, .14, .1, '#c98f6a', .02, .02, 0); cone(bw, .025, .1, 5, C.brass, 0, -.1, 0).rotation.x = Math.PI; // bellows hung on the side
   },
   barn(g, live, lv = 1) {
     const up = liftOf('barn', lv), rf = grp(g, 0, up, 0), roof = lv >= 3 ? '#5d6b86' : '#7a4a3a', roofD = lv >= 3 ? '#45516b' : '#5f3a2e';
@@ -1189,7 +1208,20 @@ const FX = {
         shards.forEach((o, i) => { const a = T * 1.1 + i * Math.PI * 2 / 3; o.position.set(1.0 + Math.cos(a) * .32, gem.position.y + Math.sin(a * 2) * .04, -1.08 + Math.sin(a) * .32); }); }
     };
   },
-  kitchen(g, lv) { const smoke = puffs(g, .5, 1.75 + liftOf('kitchen', lv) + (lv >= 2 ? .1 : 0), -.5, 5, .12), steam = puffs(g, -.4, .56, .82, 3, .07); return (T, st) => { smoke(T, st.burst ? .7 : .2, true, st.burst ? 1.3 : .9); steam(T, .8, st.burst > 0, .5); }; },
+  kitchen(g, lv) { // the fire in the hearth mouth flickers, and roars up when the helper blows into it (st.blow) or a treat is cooked (st.burst)
+    const [HX, HZ] = HEARTH.kitchen, [sx, sy, sz] = flueTop(lv);
+    const smoke = puffs(g, sx, sy, sz, 5, .12), steam = lv >= 2 ? puffs(g, HX - .1, .62, 1.0, 3, .07) : puffs(g, HX - .12, .72, .8, 3, .07);
+    const hot = MX('fire', '#ff9a3c', { emissive: '#ff7a1a', emissiveIntensity: .9 }), core = MX('firecore', '#ffe07a', { emissive: '#ffc84a', emissiveIntensity: 1 });
+    const fl = [[-.07, .1, 1, hot], [.07, .09, .85, hot], [0, .085, 1.15, core]].map(([x, r, h, m]) => { const o = put(g, G('Cone', r * .6, .16, 5), m, HX + x, .1, HZ - .08); o.userData = { x, h, ph: Math.random() * 6 }; return o; });
+    const glow = put(g, G('Box', .22, .035, .08), hot, HX, .115, HZ - .08);
+    return (T, st) => {
+      const b = Math.min(1, (st.blow || 0) + (st.burst ? .35 : 0));
+      for (const o of fl) { const { x, h, ph } = o.userData, f = 1 + Math.sin(T * 9 + ph) * .14 + Math.sin(T * 23 + ph * 2) * .07, k = h * f * (1 + b * .9);
+        o.scale.set(1 + b * .35, Math.min(k, 1.25 + b * .2), 1 + b * .35); o.position.set(HX + x * (1 + b * .3), .1 + .08 * o.scale.y, HZ - .08 + b * .03); o.rotation.x = b * .35; }
+      glow.scale.set(1, 1 + b, 1);
+      smoke(T, st.burst || b > .3 ? .7 : .2, true, st.burst || b > .3 ? 1.3 : .9); steam(T, .8, st.burst > 0, .5);
+    };
+  },
   workshop(g) {
     const h = new THREE.Group(); h.position.set(.24, .5, .98); g.add(h); box(h, .05, .3, .05, C.woodD, 0, 0, 0); box(h, .16, .1, .1, C.stoneD, 0, .26, 0); h.rotation.z = -1.2;
     const sp = []; for (let i = 0; i < 5; i++) { const m = put(g, G('Octahedron', .04, 0), SPARK(), .5, .45, .98); m.visible = false; sp.push(m); }
