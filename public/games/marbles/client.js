@@ -5,7 +5,7 @@ import { L, PL, cnt, word } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { fitw } from '../../fit.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -264,12 +264,12 @@ export function mount(app, ctx) {
       <p>${line}</p>
       <ol class="score">${seats.map((i, n) => {
         const p = S.seats[i], pay = S.res.pay[i], b = pay.bet;
-        return `<li class="${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${pay.won ? 'won' : ''}" style="animation-delay:${n * 90}ms">${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${b ? L(`picked ${ball(b.m, 14)}${mName(b.m)}, which came ${ORD(pay.place)}`, `typ: ${ball(b.m, 14)}${mName(b.m)}, miejsce ${pay.place}`) : L('no pick', 'bez wyboru')}</span></div>
-          <strong>${b ? pay.place : '–'}</strong>${paidHtml(Rm, i)}</li>`;
+          <strong>${b ? pay.place : '–'}</strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Race again', 'Ścigajcie się jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   // Votes arrive with room updates: repaint just the buttons so the sheet doesn't replay its entrance.
   let votes = 0;

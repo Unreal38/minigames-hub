@@ -6,7 +6,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml } from '../../cosmetics.js';
+import { nameHtml, titleHtml, pbRowCls, pbRows, frameCls, rowBg } from '../../cosmetics.js';
 import { MM, FULL, SET_BONUS, colOf, kindName, startPull, advance, isClear } from './rules.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -160,11 +160,12 @@ export function mount(app, ctx) {
   function renderSeats() {
     setHtml($('bk-seats'), S.seats.map((p, i) => {
       const st = p.st, bars = pile ? st.got.map(id => `<u style="background:${colOf(pile[id] || { k: 'plain' })}"></u>`).join('') : '';
-      return `<div class="bk-seat${S.turn === i ? ' on' : ''}${i === S.me ? ' bk-mine' : ''}">
-        ${avatarHtml(p.color, p.av, 34)}
+      return `<div class="${pbRowCls(p.fl)} bk-seat${S.turn === i ? ' on' : ''}${i === S.me ? ' bk-mine' : ''}">
+        ${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
         <div class="bk-who"><b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><i>${S.piles > 1 ? '' : bars}</i></div>
-        ${st.hook ? `<em title="${L('Has the Hook', 'Ma Hak')}">${I.hook}</em>` : ''}<strong>${st.pts}</strong></div>`;
+        ${st.hook ? `<em title="${L('Has the Hook', 'Ma Hak')}">${I.hook}</em>` : ''}<strong>${st.pts}</strong>${rowBg(p.fl)}</div>`;
     }).join(''));
+    pbRows($('bk-seats'));
   }
 
   function renderBar() {
@@ -279,12 +280,12 @@ export function mount(app, ctx) {
       <p>${L(`${cnt(top, 'point', 'points')} took the table.`, `Zwycięski wynik: ${cnt(top, 'punkt', 'punkty', 'punktów')}.`)}</p>
       <ol class="score">${order.map((i, k) => {
         const p = S.seats[i], won = pts[i] === top; if (k === 0 || pts[i] !== pts[order[k - 1]]) pos = k + 1;
-        return `<li class="${won ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44)}
+        return `<li class="${pbRowCls(p.fl)} ${won ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${cnt(p.st.pulls, 'stick', 'sticks')} taken · ${cnt(p.st.fails, 'slip', 'slips')}`, `zebrane bierki: ${p.st.pulls} · potknięcia: ${p.st.fails}`)}</span></div>
-          <strong class="bk-pts">${pts[i]}</strong>${paidHtml(Rm, i)}</li>`;
+          <strong class="bk-pts">${pts[i]}</strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

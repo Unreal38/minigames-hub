@@ -9,7 +9,7 @@ import { REACT_COUNT, reactHtml, reactLabel, floatAt } from '../../react.js';
 import { tableArt, potLogo } from '../../art.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
-import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, cardBg, cardBgCls, pbSync, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { setGfx } from '../../frames.js';
 import { uiz } from '../../uiz.js';
 
@@ -257,13 +257,13 @@ export function mount(app, ctx) {
     el.innerHTML = `<div class="sheet">
       <h2>${L(`${S.win >= 0 ? (S.win === S.me ? 'You win, chef!' : `${nameOf(S.win)} wins!`) : 'The pot ran dry!'}`, `${S.win >= 0 ? (S.win === S.me ? 'Wygrana, szefie kuchni!' : `Wygrywa ${nameOf(S.win)}!`) : 'Garnek jest pusty!'}`)}</h2>
       <p>${L(`${S.win >= 0 ? `Three sets and a “Let's Eat!” for +90.` : 'Nobody completed three sets in 30 rounds.'} Everyone scores their sets.`, `${S.win >= 0 ? `Trzy zestawy i „Jemy!” za +90.` : 'Nikt nie zebrał trzech zestawów w 30 rund.'} Każdy dostaje punkty za swoje zestawy.`)}</p>
-      <ol class="score">${order.map(({ p, i, r }, n) => `<li class="${i === S.win ? 'won' : ''}" style="animation-delay:${n * 120}ms">
+      <ol class="score">${order.map(({ p, i, r }, n) => `<li class="${pbRowCls(p.fl)} ${i === S.win ? 'won' : ''}" style="animation-delay:${n * 120}ms">
         ${avatarHtml(p.color, p.av, 48, frameCls(p.fl))}
         <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
         <div class="msets">${r.sets.length ? r.sets.map(t => `<span>${t.map(c => cardHtml(c, { w: 34 })).join('')}</span>`).join('') : `<em>${L('no sets', 'bez zestawów')}</em>`}</div></div>
-        <strong>${r.pts}<small>${L(`${r.bonus ? ` incl. +${r.bonus}` : ''}`, `${r.bonus ? ` w tym +${r.bonus}` : ''}`)}</small></strong>${paidHtml(R, i)}</li>`).join('')}</ol>
+        <strong>${r.pts}<small>${L(`${r.bonus ? ` incl. +${r.bonus}` : ''}`, `${r.bonus ? ` w tym +${r.bonus}` : ''}`)}</small></strong>${paidHtml(R, i)}${rowBg(p.fl)}</li>`).join('')}</ol>
       <div class="againbox">${againHtml(ctx, R, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (R?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (R?.again || []).length;
   }
   // Votes arrive with room updates: repaint just the buttons so the sheet doesn't replay its entrance.
   let votes = 0;

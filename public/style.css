@@ -1638,6 +1638,14 @@ body.night :is(.ld-list .ld-me, .pw-list .pw-me).haspb { --pbs: var(--hi-tint); 
 :is(.ld-list, .ty-list, .pw-list) li.haspb.now { --pbs: var(--lantern); }
 .ld-list li.haspb.lose { --pbs: color-mix(in srgb, #e5543b 18%, var(--paper)); }
 @media (max-width: 760px) { .ty-list li.haspb { --pbr: 8px; } }
+/* Score rows and results rows in every game (pbRowCls + pbRows in cosmetics.js). pbRows sets --pbs to the colour the row
+   shows, so the wash matches any game's row (turn highlight, winner row, night panels). Text sits on the left over a
+   strong wash; scores on the right get a halo in the same colour so they stay readable over the art. */
+.pbrow.haspb > .pbg { border-radius: inherit; }
+.pbrow.haspb .pbg::after { background: linear-gradient(90deg, color-mix(in srgb, var(--pbs) 92%, transparent) 0 38%, color-mix(in srgb, var(--pbs) 70%, transparent) 70%, color-mix(in srgb, var(--pbs) 58%, transparent) 100%); }
+.pbrow.haspb { text-shadow: 0 0 3px var(--pbs), 0 0 3px var(--pbs), 0 0 6px var(--pbs); }
+.pbrow.haspb .nmfx { text-shadow: none; filter: drop-shadow(0 0 1.5px var(--pbs)) drop-shadow(0 0 1.5px var(--pbs)); }
+.pbrow.haspb :is(.paid, .ttl, button, .btn), .pbrow.haspb :is(.paid, .ttl, button, .btn) * { text-shadow: none; }
 .wdreroll { flex: none; width: 40px; height: 40px; font-size: 20px; line-height: 1; }
 /* The welcome window for someone new: one big Play button. The look editor opens only if they ask (Change my look). */
 .sheet.wdsheet:has(.wd.quick) { width: min(440px, 100%); }

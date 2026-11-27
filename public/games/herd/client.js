@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { move, turnCheck, fits, tilesOn, byNum, byPet, trayValue, check } from './rules.js';
@@ -144,8 +144,9 @@ export function mount(app, ctx) {
     el.classList.toggle('open', sbOpen); $('hd-info').setAttribute('aria-expanded', String(sbOpen));
     setHtml(el, `<li class="hd-sbh"><span>${L('Player', 'Gracz')}</span><span>${L('Tiles', 'Płytki')}</span>${pts ? `<span>${L('Points', 'Punkty')}</span>` : ''}</li>` + order.map(i => {
       const p = S.seats[i], now = S.ph === 'play' && S.turn === i;
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}"><span class="who"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b></span><span class="n">${p.n}</span>${pts ? `<span class="pt">${p.total > 0 ? '+' : ''}${p.total}</span>` : ''}</li>`;
+      return `<li class="${pbRowCls(p.fl)} ${now ? 'now' : ''}${i === S.me ? ' me' : ''}"><span class="who"><i style="background:${esc(p.color)}"></i><b>${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b></span><span class="n">${p.n}</span>${pts ? `<span class="pt">${p.total > 0 ? '+' : ''}${p.total}</span>` : ''}${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows(el);
   }
 
   // ----- labels under the groups: what the set is worth, or that it is not a set yet -----
@@ -403,14 +404,14 @@ export function mount(app, ctx) {
       ${sub ? `<p>${sub}</p>` : ''}
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, left = S.rd?.racks[i] || [];
-        return `<li class="${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${tilesWord(st.played)} played · ${st.drawn} drawn`, `zagrane: ${tilesWord(st.played)} · dobrane: ${st.drawn}`)}${st.rebuilt ? L(` · ${st.rebuilt} rebuilt`, ` · przebudowy: ${st.rebuilt}`) : ''}</span>
           ${left.length ? trayRow(left, p.fl?.ht) : ''}</div>
-          <strong><span>${ptsTxt(S.res.total[i])}</span></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${ptsTxt(S.res.total[i])}</span></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Deal again', 'Rozdaj jeszcze raz'))}</div></div>`;
     petPics(el);
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

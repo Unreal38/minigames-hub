@@ -6,7 +6,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { petImg, petPics } from '../../petpic.js';
 import { uiz } from '../../uiz.js';
 import { BW, BH, COLORS, WHITE, SIZES, OP, themeName, isLetter } from './rules.js';
@@ -342,12 +342,12 @@ export function mount(app, ctx) {
       ${mineP > 1 ? `<p>${L(`You came ${mineP}${['th', 'st', 'nd', 'rd'][mineP] || 'th'}.`, `Twoje miejsce: ${mineP}.`)}</p>` : ''}
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i];
-        return `<li class="${R.place[i] === 1 && R.pts[i] > 0 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${R.place[i] === 1 && R.pts[i] > 0 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${cnt(R.hits[i], 'word', 'words')} guessed`, `Odgadnięte hasła: ${R.hits[i]}`)}</span></div>
-          <strong><span>${R.pts[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${R.pts[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm)}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

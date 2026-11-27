@@ -7,7 +7,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { kitchen, RECIPES, CHOPPABLE, SPEED, T, move, target } from './rules.js';
 import { part, dish, tool, sticker } from './icons.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -177,8 +177,9 @@ export function mount(app, ctx) {
     const ord = S.seats.map((_, i) => i).sort((a, b) => S.seats[b].pts - S.seats[a].pts || a - b);
     setHtml($('kr-list'), ord.map(i => {
       const p = S.seats[i];
-      return `<li class="${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 28)}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span>${p.pts}</span></li>`;
+      return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'me' : ''}">${avatarHtml(p.color, p.av, 28, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${p.bot && p.human ? L(' (away)', ' (poza grą)') : ''}</b><span>${p.pts}</span>${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows($('kr-list'));
   }
   function ticket(o) {
     const r = RECIPES[o.r], parts = r.soup ? [r.soup, r.soup, r.soup] : r.has;
@@ -273,13 +274,13 @@ export function mount(app, ctx) {
       <p>${L(`The kitchen earned <b>${R.tips} tips</b> from ${R.served} dish${R.served === 1 ? '' : 'es'}${R.missed ? `, and ${R.missed} order${R.missed === 1 ? '' : 's'} ran out` : ''}.`, `Kuchnia zarobiła <b>${cnt(R.tips, 'tip', 'tips', 'napiwek', 'napiwki', 'napiwków')}</b> za ${cnt(R.served, 'dish', 'dishes', 'danie', 'dania', 'dań')}${R.missed ? `, a ${cnt(R.missed, 'order', 'orders', 'zamówienie przepadło', 'zamówienia przepadły', 'zamówień przepadło')}` : ''}.`)} ${myPlace && S.seats[S.me].pts > 0 ? (myPlace === 1 ? L('You were the star cook!', 'Jesteś gwiazdą kuchni!') : L(`You came ${ORD(myPlace)} for tips earned.`, `Twoje miejsce pod względem napiwków: ${myPlace}.`)) : ''}</p>
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], st = p.st;
-        return `<li class="${k === 0 && p.pts > 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${k === 0 && p.pts > 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.dishes} dish${st.dishes === 1 ? '' : 'es'} helped · ${st.chopped} chopped · ${st.served} served`, `udział w daniach: ${st.dishes} · posiekane: ${st.chopped} · podane: ${st.served}`)}</span></div>
-          <strong>${p.pts}<small>${L('tips', 'napiwki')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong>${p.pts}<small>${L('tips', 'napiwki')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <p class="fine">${L(`Each dish's tip is shared by everyone who had a hand in it. Coins go by those shares.`, `Napiwek za każde danie dzielą między siebie wszyscy, którzy przy nim pomagali. Monety zależą od tych udziałów.`)}</p>
       <div class="againbox">${againHtml(ctx, Rm, L('Cook again', 'Gotuj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

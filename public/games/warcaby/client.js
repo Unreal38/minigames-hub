@@ -6,7 +6,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { fromBoard, legal, count } from './rules.js';
 import { discSvg } from './glyphs.js';
 import { uiz } from '../../uiz.js';
@@ -259,12 +259,12 @@ export function mount(app, ctx) {
       <p>${why} · ${cnt(R.moves, 'move', 'moves', 'ruch', 'ruchy', 'ruchów')}</p>
       <ol class="score">${order.map((i, k) => {
         const p = S.seats[i], pos = tie ? 1 : k + 1, side = sideOf(i);
-        return `<li class="${!tie && k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${!tie && k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${pos}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${discSvg(false, side)}${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${side ? L('Black', 'Czarne') : L('White', 'Białe')} · ${L(`${cnt(S.caps[i][0] + S.caps[i][1], 'piece', 'pieces')} taken`, `zbite: ${S.caps[i][0] + S.caps[i][1]}`)} · ${L(`${cnt(left(side), 'piece', 'pieces')} left`, `zostało: ${left(side)}`)}</span></div>
-          <strong><span>${tie ? '½' : k === 0 ? '1' : '0'}</span></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${tie ? '½' : k === 0 ? '1' : '0'}</span></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Rematch', 'Rewanż'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

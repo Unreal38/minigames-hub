@@ -8,7 +8,7 @@ import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { TILES, sides, ends } from './rules.js';
 import { tileSvg, tileHtml, halfHtml, tileName, setTileLook } from './tiles.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -251,12 +251,12 @@ export function mount(app, ctx) {
       <p>${sub}</p>
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], st = p.st;
-        return `<li class="${R.places[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${R.places[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${R.places[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${R.places[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${cnt(st.rounds, 'round')} won · ${tiles(st.played)} played`, `wygrane rundy: ${st.rounds} · dołożone kostki: ${st.played}`)}</span></div>
-          <strong><span>${S.score[i]}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${S.score[i]}</span><small>${L('points', 'pkt')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length; renderCount();
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length; renderCount();
   }
   let votes = 0;
   function paintAgain() {

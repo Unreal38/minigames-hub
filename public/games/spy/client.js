@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { petPic } from '../../petpic.js';
 import { isNight } from '../../weather.js';
 import { seasonLookNow } from '../../season3d.js';
@@ -316,10 +316,10 @@ export function mount(app, ctx) {
       <h2>${I.crown}${head}</h2>
       <p>${L('Most cards wins. Equal cards: the quicker total finding time.', 'Wygrywa najwięcej kart. Przy remisie: krótszy łączny czas szukania.')}</p>
       <ol class="sy-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'sy-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong>${cnt(R.c[i], 'card', 'cards', 'karta', 'karty', 'kart')}</strong><small>${R.c[i] ? `<span class="lab">${L('found in', 'znalezione w')} </span>${secs(R.ms[i])}` : L('no cards', 'bez kart')}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'sy-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong>${cnt(R.c[i], 'card', 'cards', 'karta', 'karty', 'kart')}</strong><small>${R.c[i] ? `<span class="lab">${L('found in', 'znalezione w')} </span>${secs(R.ms[i])}` : L('no cards', 'bez kart')}</small>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me && R.c[w] > 0) confetti();
   }
   let votes = 0;
