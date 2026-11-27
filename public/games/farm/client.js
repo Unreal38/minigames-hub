@@ -1116,7 +1116,7 @@ export function mount(app, ctx) {
     root.querySelector('.pf')?.classList.toggle('editing', !el.hidden); root.classList.toggle('editing', !el.hidden);
     if (el.hidden) return;
     if (!el.querySelector('.bhead')) el.innerHTML = `<div class="bhead"><div class="pills cats" role="tablist"></div>
-        <button type="button" class="btn m bdone" data-a="done">${L(`Done`, `Gotowe`)}</button></div>
+        <button type="button" class="btn m bdone" data-a="done" aria-label="${L(`Done`, `Gotowe`)}">${I.ok}<span>${L(`Done`, `Gotowe`)}</span></button></div>
       <div class="bbody"><div class="btop"><b class="bname"></b><button type="button" class="btn sm w bfoldb" data-a="bfold"></button></div>
         <label class="bfind">${I.find}<input class="field" id="pf-bq" type="search" autocomplete="off" placeholder="${L('Find…', 'Szukaj…')}" aria-label="${L('Find a building or decoration', 'Szukaj budynku lub ozdoby')}"></label>
         <div class="bhand"></div><div class="items"></div>
