@@ -2,7 +2,7 @@
 // belongs to (a hat shows the head, shoes show the feet, things for the back are seen from behind).
 // Drawn with one hidden renderer and cached as data URLs, like the round portraits.
 import * as THREE from 'three';
-import { avatar3d, disposeAvatar, hidesBottom } from './avatar3d.js';
+import { avatar3d, disposeAvatar, hidesBottom, partBox } from './avatar3d.js';
 import { cleanAv, AV_KEYS } from './avatar.js';
 
 const SIZE = 132, cache = new Map();
@@ -39,7 +39,7 @@ export function itemPic(k, i, color, av) {
     g.rotation.y = view === 'back' ? Math.PI - .5 : -.3; scene.add(g); g.updateWorldMatrix(true, true);
     // framed on the model's real sizes: the bottom of the shoes, the hips (top of the legs), the neck and the top of the head
     const box = new THREE.Box3().setFromObject(g), foot = box.min.y, top = box.max.y, neck = Y - H * .5;
-    const lb = new THREE.Box3(); for (const l of u.legs || []) lb.expandByObject(l);
+    const lb = new THREE.Box3(); for (const l of u.legs || []) lb.union(partBox(l));
     const hip = lb.isEmpty() ? (neck + foot) / 2 : lb.max.y, legW = lb.isEmpty() ? 1 : lb.max.x - lb.min.x; // broad builds have wide legs
     // aim at y and fit a span of h (world units) into the picture, the camera raised by up
     const fit = (y, h, up = 0, x = 0) => { const d = h / 2 / Math.tan(cam.fov * Math.PI / 360); cam.position.set(x, y + up, d); cam.lookAt(x, y, 0); };
@@ -50,7 +50,7 @@ export function itemPic(k, i, color, av) {
     else if (view === 'torso') fit((neck + hip) / 2 + H * .03, Math.max((neck - hip) * 2, legW * 1.6), .1);
     else if (view === 'legs') fit((hip + foot) / 2 - .1, Math.max((hip - foot) * 2.05, legW * 1.35), .2);
     else if (view === 'hand' && u.arms?.[1]) { // the holding arm and whatever is in it (the arm and the item are one piece)
-      const hb = new THREE.Box3().setFromObject(u.arms[1]), c = hb.getCenter(new THREE.Vector3()), sz = hb.getSize(new THREE.Vector3());
+      const hb = partBox(u.arms[1]), c = hb.getCenter(new THREE.Vector3()), sz = hb.getSize(new THREE.Vector3());
       fit(c.y, Math.max(sz.y * 1.2, sz.x * 1.5, H * 1.1), .1, c.x * .7); }
     else if (view === 'feet') fit(foot + .4, Math.max(1.75, legW * 1.6), .3);
     else fit((top + foot) / 2, (top - foot) * 1.04, .3); // the whole avatar, also for things on the back

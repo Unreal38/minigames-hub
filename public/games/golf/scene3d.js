@@ -239,7 +239,7 @@ export function createScene(canvas, { onFrame, onCue, canAim, onShot, onAim } = 
       const head = new THREE.Mesh(new THREE.BoxGeometry(.36, .15, .15), putterMats[1]);
       putter.add(shaft, head); putter.userData = { shaft, head }; wrap.add(putter);
       for (const arm of av.userData.arms) { // where the hand is along the arm, from the arm's own shape
-        let lo = 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } });
+        let lo = arm.userData.bb?.min.y ?? 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } });
         arm.userData.hand = lo + .06; arm.userData.rz = arm.rotation.z;
       }
       scene.add(wrap, ball);

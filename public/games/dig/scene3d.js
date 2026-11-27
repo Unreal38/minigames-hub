@@ -187,7 +187,7 @@ export function createScene(canvas, { onFrame } = {}) {
     g.userData = { handle, tee }; scene.add(g); return g;
   }
   function handsOf(av) { // where the hand is along each arm, from the arm's own shape (as Mini Golf does for the putter)
-    for (const arm of av.userData.arms) { let lo = 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } }); arm.userData.hand = lo + .06; arm.userData.rz = arm.rotation.z; }
+    for (const arm of av.userData.arms) { let lo = arm.userData.bb?.min.y ?? 0; arm.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); lo = Math.min(lo, m.geometry.boundingBox.min.y); } }); arm.userData.hand = lo + .06; arm.userData.rz = arm.rotation.z; }
   }
   function freeSeat(s) { scene.remove(s.g, s.ring, s.shovel); disposeAvatar(s.av); s.ring.material.dispose(); }
   const ringGeo = new THREE.RingGeometry(.5, .64, 28); ringGeo.rotateX(-Math.PI / 2);
