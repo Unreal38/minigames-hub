@@ -486,7 +486,10 @@ export function tripLoot(zone, trip, pets) {
   return out;
 }
 
-export const footprint = (type, r) => { const it = ITEMS[type]; return r % 2 ? [it.h, it.w] : [it.w, it.h]; };
+// r: quarter turns (0-3). Anything may also stand half way between (r .5, 1.5, ...: turned 45 degrees, 8 steps, Kuba 2026-11-27);
+// a diagonal piece takes the square around its longer side. Fences and the Flower Arch keep to straight lines (they join up).
+export const canTilt = type => !!ITEMS[type] && type !== 'fence' && type !== 'arch';
+export const footprint = (type, r) => { const it = ITEMS[type]; if (r % 1) { const m = Math.max(it.w, it.h); return [m, m]; } return r % 2 ? [it.h, it.w] : [it.w, it.h]; };
 export const canAfford = (inv, cost) => Object.entries(cost || {}).every(([k, n]) => (inv[k] || 0) >= n);
 export const costText = cost => Object.entries(cost || {}).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') || L('Free', 'Za darmo');
 
@@ -511,7 +514,7 @@ export const stepOf = () => .5; // everything snaps to half tiles (Kuba, 2026-11
 
 // Would this item fit at (x, y)? ignore = id of the item being moved.
 export function fits(farm, type, x, y, r, ignore = null) {
-  if (!ITEMS[type] || !Number.isInteger(r) || r < 0 || r > 3) return false;
+  if (!ITEMS[type] || typeof r !== 'number' || !Number.isInteger(r * 2) || r < 0 || r > 3.5 || (r % 1 && !canTilt(type))) return false;
   const st = stepOf(type);
   if (![x, y].every(v => typeof v === 'number' && Number.isInteger(v / st))) return false;
   const [w, h] = footprint(type, r), n = farm.size;

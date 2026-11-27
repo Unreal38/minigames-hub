@@ -107,6 +107,9 @@ for (const [what, act] of [
   ['negative', { t: 'place', type: 'fence', x: -1, y: 0, r: 0 }],
   ['fraction', { t: 'place', type: 'fence', x: 5.25, y: 6, r: 0 }],
   ['bad rotation', { t: 'place', type: 'fence', x: 6, y: 6, r: 7 }],
+  ['diagonal fence', { t: 'place', type: 'fence', x: 6, y: 6, r: .5 }],
+  ['diagonal arch', { t: 'place', type: 'arch', x: 6, y: 6, r: 1.5 }],
+  ['eighth of a turn too fine', { t: 'place', type: 'bush', x: 6, y: 6, r: .25 }],
   ['second farmhouse', { t: 'place', type: 'house', x: 6, y: 6, r: 0 }],
 ]) {
   a.last = null; a.send({ t: 'farm', a: act }); await wait(120);
@@ -129,6 +132,8 @@ r = await a.farmDo({ t: 'place', type: 'fence', x: 4, y: 5, r: 0 });
 if (r.err) fail('fence beside the flowers: ' + r.err);
 r = await a.farmDo({ t: 'place', type: 'rock', x: 4.5, y: 5.5, r: 0 }); // a fence is thin (1 x .5): a small prop fits right beside it
 if (r.err) fail('rock beside the thin fence: ' + r.err);
+r = await a.farmDo({ t: 'place', type: 'bench', x: 0, y: 11, r: 3.5 }); // pieces may turn 45 degrees; a diagonal bench takes a 1 x 1 square
+if (!r.err && !r.farm.items.some(i => i.type === 'bench' && i.r === 3.5)) fail('diagonal bench not saved');
 r = { err: 1 }; // buildings snap to half tiles too
 for (const [x, y] of [[.5, 8.5], [1.5, 9.5], [6.5, 3.5], [2.5, 3.5], [8.5, 1.5]]) if (r.err) r = await a.farmDo({ t: 'place', type: 'garden', x, y, r: 0 });
 if (r.err) fail('building on half tiles: ' + r.err);
