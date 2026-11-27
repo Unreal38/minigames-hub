@@ -1336,14 +1336,16 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     if (skyLook) skyLook.tick(T, air.night, camera);
     pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
-    if (ghost && onGhostAt && ghost.box) { // the piece's outline on screen: its box's eight corners (the box moved with the bob too)
-      const b = ghost.box, dy = ghost.g.position.y - .12; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, front = true;
-      for (let i = 0; i < 8; i++) {
-        ghostAt.set(i & 1 ? b.max.x : b.min.x, (i & 2 ? b.max.y : b.min.y) + dy, i & 4 ? b.max.z : b.min.z).project(camera);
-        const sx = (ghostAt.x + 1) / 2 * W, sy = (1 - ghostAt.y) / 2 * H; if (ghostAt.z >= 1) front = false;
-        x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
+    if (ghost && onGhostAt) { // pinned to the piece's square on the floor, so turning it never moves the buttons
+      const it = ITEMS[ghost.type], w = Math.max(it.w, it.h), h = w, gx = wx(ghost.x, w), gz = wz(ghost.y, h), top = ghost.box?.max.y || 1; // the square every turn of it fits in, from its corner
+      let cx = 0, y0 = 1e9, y1 = -1e9, front = true;
+      for (let i = 0; i < 8; i++) { // the floor square's corners, and the same raised to the piece's height (for the "above" fallback)
+        ghostAt.set(gx + (i & 1 ? w : -w) / 2, i & 4 ? top : 0, gz + (i & 2 ? h : -h) / 2).project(camera);
+        const sy = (1 - ghostAt.y) / 2 * H; if (ghostAt.z >= 1) front = false;
+        y0 = Math.min(y0, sy); if (!(i & 4)) y1 = Math.max(y1, sy);
       }
-      onGhostAt((x0 + x1) / 2, y0, y1, front);
+      ghostAt.set(gx, 0, gz).project(camera); cx = (ghostAt.x + 1) / 2 * W;
+      onGhostAt(cx, y0, y1, front);
     }
     renderer.render(scene, camera); afterDraw();
   }
