@@ -396,7 +396,7 @@ export function mount(app, ctx) {
         <p class="hint">${size}${it.walk ? L(' · pets can walk over it', ' · zwierzaki mogą po tym chodzić') : ''}${most ? L(` · you have ${have} of ${most}`, ` · masz ${have} z ${most}`) : have ? L(` · you have ${have}`, ` · masz ${have}`) : ''}${up ? L(` · can be improved to level ${lvMax(type)}`, ` · można ulepszyć do poziomu ${lvMax(type)}`) : ''}</p>
         <p><b>${L(`Price`, `Cena`)}</b></p><div class="cost">${gift ? `<span class="mat">${L(`Free: a gift from a friend (${gift} to place)`, `Za darmo: prezent od znajomego (do postawienia: ${gift})`)}</span>` : costHtml(it.cost, F.inv)}</div>
         <p class="hint">${why || L('After buying, drag it to where you want it. Selling it later gives everything back.', 'Po zakupie przeciągnij to tam, gdzie chcesz. Przy sprzedaży wraca cały koszt.')}</p>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
+        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
           <button type="button" class="btn big m" data-a="buy" data-type="${type}" ${why ? 'disabled' : ''}>${gift ? L('Place it', 'Postaw') : L('Buy and place', 'Kup i postaw')}</button></div></div>`;
       return;
     }
@@ -414,7 +414,7 @@ export function mount(app, ctx) {
       const snacks = panel.mode === 'practice' || panel.mode === 'arena' ? foodRow(L('Snack before the battle', 'Przekąska przed bitwą'), SNACKS, panel.snack, 'snack', k => team.length ? L(`helps ${helps(k)} of ${team.length}`, `pomoże: ${helps(k)} z ${team.length}`) : '', L('No snack', 'Bez przekąski')) : '';
       box.innerHTML = `<div class="panel tripp"><h2>${what}</h2><p>${L(`Pick up to ${PARTY}. The first one you tap leads.`, `Wybierz najwyżej ${PARTY}. Pierwszy dotknięty prowadzi.`)}</p>
         <div class="party">${pets}</div>${snacks}<p class="hint">${note}</p>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
+        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button>
           <button type="button" class="btn big m" data-a="${panel.mode === 'defend' ? 'defend' : 'fight'}" ${panel.pets.length ? '' : 'disabled'}>${panel.mode === 'defend' ? L('Save team', 'Zapisz drużynę') : panel.mode === 'queue' ? L('Find a player', 'Szukaj gracza') : panel.mode === 'live' ? (panel.invite ? L('Join the battle', 'Dołącz do bitwy') : L('Send the invitation', 'Wyślij zaproszenie')) : panel.foe === 'auto' ? L('Find a match', 'Znajdź mecz') : 'Start'}</button></div></div>`;
       return;
     }
@@ -433,7 +433,7 @@ export function mount(app, ctx) {
         return `<button type="button" class="pickpet${full || out ? ' off' : ''}" data-a="trainpick" data-id="${p.id}" data-why="${out}" aria-pressed="${on}">${petRow(p, out ? ' · ' + out : full ? (p.lv >= MAX_LV ? L(' · fully grown', ' · w pełni dorosły') : L(' · at the level cap', ' · limit poziomu')) : L(' · level ', ' · poziom ') + p.lv)}</button>`; }).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Who trains at the yard?`, `Kto trenuje na placu?`)}</h2><p>${L(`Pick up to ${F.train.slots}. Each one earns ${TRAIN_XP} experience an hour, even while you are away. A pet that is out exploring or cuddling in the Nest cannot train, and sending a pet exploring ends its training.`, `Wybierz najwyżej ${F.train.slots}. Każdy zdobywa ${TRAIN_XP} doświadczenia na godzinę, także pod twoją nieobecność. Zwierzak na wyprawie albo w Gnieździe nie może trenować, a wysłanie go na wyprawę kończy trening.`)}</p>
         <div class="party">${pets}</div>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn big m" data-a="trainsave">${L(`Save`, `Zapisz`)}</button></div></div>`;
+        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn big m" data-a="trainsave">${L(`Save`, `Zapisz`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'compare') { // my album next to the neighbour's: who could help whom
@@ -580,7 +580,7 @@ export function mount(app, ctx) {
         <div class="zones">${rows}</div>
         <p>${L(`<b>Or a decoration.</b> You pay for it, and they can place it for free.`, `<b>Albo ozdoba.</b> Ty płacisz, a sąsiad stawia ją za darmo.`)}</p>
         <div class="zones">${Object.entries(ITEMS).filter(([, it]) => it.kind === 'd' && !it.pals && !it.wheel && !it.jn && !it.stamp && !(it.craft && Math.max(0, ...F.items.filter(i => i.type === 'workshop').map(lvOf)) < it.craft) && canAfford(F.inv, it.cost)).map(([k, it]) => `<button type="button" class="zone" data-a="gift" data-item="${k}">${thumb(k)}<b>${it.name}</b><span class="cost">${costHtml(it.cost, F.inv)}</span></button>`).join('') || '<span class="hint">' + L('You cannot afford any decoration right now.', 'Na razie nie stać cię na żadną ozdobę.') + '</span>'}</div>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
+        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'trade') { // build an offer for the farm being visited
@@ -782,7 +782,7 @@ export function mount(app, ctx) {
         <span class="faces">${r.team.map(t => thumb('pet:' + t.sp, SPECIES[t.sp]?.name)).join('')}</span><span class="rkp"><b>${r.pts}</b><small>${L(`points`, `punkty`)}</small></span></div>`).join('');
       box.innerHTML = `<div class="panel tripp"><h2>${L(`Ranking`, `Ranking`)}</h2><p>${L(`Every player's ladder points, highest first. ${countOf(F, 'flag') ? 'Win Arena matches to climb: 10 points for a win, 2 for a loss.' : 'Build an Arena Flag to fight for ladder points.'}`, `Punkty rankingowe wszystkich graczy, od najwyższych. ${countOf(F, 'flag') ? 'Wygrywaj mecze na Arenie, żeby piąć się w górę: 10 punktów za wygraną, 2 za porażkę.' : 'Zbuduj Flagę areny, żeby walczyć o punkty rankingowe.'}`)}</p>
         <div class="rks">${ranks ? rows : '<p class="hint">' + L('Counting points…', 'Liczę punkty…') + '</p>'}</div>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Close`, `Zamknij`)}</button>${countOf(F, 'flag') ? '<button type="button" class="btn m" data-a="arena">' + L('Find a match', 'Znajdź mecz') + '</button>' : ''}</div></div>`;
+        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Close`, `Zamknij`)}</button>${countOf(F, 'flag') ? '<button type="button" class="btn m" data-a="arena">' + L('Find a match', 'Znajdź mecz') + '</button>' : ''}</div></div>`;
       return;
     }
     if (panel.kind === 'foes') {
@@ -794,20 +794,20 @@ export function mount(app, ctx) {
         <p class="hint">${L('Quick match finds a farm team near your level. Live match finds a player who is online right now.', 'Szybki mecz znajdzie drużynę z farmy na twoim poziomie. Mecz na żywo znajdzie gracza, który jest teraz online.')}</p>
         <h3>${L('Or pick an opponent', 'Albo wybierz przeciwnika')}</h3>
         <div class="foes">${foes ? rows : '<p class="hint">' + L('Looking for opponents…', 'Szukam przeciwników…') + '</p>'}</div>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn w" data-a="defteam">${L(`Choose defence team`, `Wybierz drużynę obrony`)}</button></div></div>`;
+        <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button><button type="button" class="btn w" data-a="defteam">${L(`Choose defence team`, `Wybierz drużynę obrony`)}</button></div></div>`;
       return;
     }
     if (panel.kind === 'queue') { // waiting for a live opponent
       const s = Math.max(0, Math.ceil((panel.until - Date.now()) / 1000));
       box.innerHTML = `<div class="panel tripp"><h2>${L('Looking for a live opponent…', 'Szukam przeciwnika na żywo…')}</h2>
         <p>${L(`Anyone online with a team near your level can join. ${s ? `If nobody turns up in ${s} s, you fight a farm team near your level.` : 'Nobody yet: finding a farm team near your level…'}`, `Może dołączyć każdy online z drużyną na podobnym poziomie. ${s ? `Jeśli nikt się nie pojawi w ${s} s, zawalczysz z drużyną z farmy na twoim poziomie.` : 'Na razie nikogo: szukam drużyny z farmy na twoim poziomie…'}`)}</p>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="unqueue">${L('Stop looking', 'Przestań szukać')}</button></div></div>`;
+        <div class="row end"><button type="button" class="btn w" data-a="unqueue">${L('Stop looking', 'Przestań szukać')}</button></div></div>`;
       return;
     }
     if (panel.kind === 'invite') {
       box.innerHTML = `<div class="panel tripp"><h2>${L(`${esc(panel.from)} invites you to a live battle`, `${esc(panel.from)} zaprasza cię na bitwę na żywo`)}</h2>
         <p>${L(`You both pick moves at the same time, with ${TURN_S} seconds for each turn. Every pet fights at its own level, and both of you earn coins and experience.`, `Wybieracie ruchy jednocześnie i macie ${TURN_S} sekund na każdą turę. Każdy zwierzak walczy na swoim poziomie, a obie strony dostają monety i doświadczenie.`)}</p>
-        <div class="row end"><button type="button" class="btn ghost-ink" data-a="duelno">${L(`Not now`, `Nie teraz`)}</button>
+        <div class="row end"><button type="button" class="btn w" data-a="duelno">${L(`Not now`, `Nie teraz`)}</button>
           <button type="button" class="btn big m" data-a="duelpick">${L(`Pick my team`, `Wybierz drużynę`)}</button></div></div>`;
       return;
     }
@@ -846,8 +846,8 @@ export function mount(app, ctx) {
         box.innerHTML = `<div class="panel tripp sendwhere"><h2>${L(`Send pets exploring`, `Wyślij zwierzaki na wyprawę`)}</h2>
           <h3 class="tstep"><span class="tnum">1</span>${L('Where to? Tap an island.', 'Dokąd? Dotknij wyspy.')}<span class="tcount">${L('next: who goes', 'potem: kto idzie')}</span></h3>
           <div class="dests">${zones}</div>
-          ${far ? `<section class="legends"><h3 class="tstep farhead">${STAR_SVG}${L('Legendary voyages', 'Wyprawy legendarne')}<span class="tcount">${L('endgame · 12 to 24 hours', 'endgame · 12 do 24 godzin')}</span></h3><div class="dests wide">${far}</div></section>` : ''}
-          <div class="row end"><button type="button" class="btn ghost-ink" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
+          ${far ? `<section class="legends"><h3 class="tstep farhead">${STAR_SVG}${L('Legendary voyages', 'Wyprawy legendarne')}<span class="tcount">${L('12 to 24 hours', '12 do 24 godzin')}</span></h3><div class="dests wide">${far}</div></section>` : ''}
+          <div class="row end"><button type="button" class="btn w" data-a="shut">${L(`Not now`, `Nie teraz`)}</button></div></div>`;
       } else {
       // step 2 of 2: the island they picked, what it gives, then how long and who goes
       const wild = Object.entries(z.wild).sort((a, b) => b[1] - a[1]).map(([sp]) => F.album?.[sp] ? `<span class="wildpet" title="${esc(SPECIES[sp].name)}">${thumb('pet:' + sp, SPECIES[sp].name)}</span>` : `<span class="wildpet unknown" title="${L('Not met yet', 'Jeszcze nie spotkany')}">?</span>`).join('');
@@ -873,7 +873,7 @@ export function mount(app, ctx) {
           ${fuel ? `<div class="fuel${broke ? ' short' : ''}" title="${L('Fuel for the balloon and food for the way, paid when they set off', 'Paliwo do balonu i jedzenie na drogę, płacone przy wyruszeniu')}"><span class="hint">${L('Fuel:', 'Paliwo:')}</span><span class="mats">${Object.entries(fuel).map(([k, n]) => mat(k, `${n}`, (F.inv[k] || 0) < n ? 'short' : '')).join('')}</span></div>` : ''}</div>
           <div class="pseats">${seats}</div>
           <div class="est">${party.length ? `<span class="hint">${L('Should bring back', 'Powinni przynieść')}</span><div class="mats">${est}</div>` : '<span class="hint">' + L('Tap pets above to fill the party.', 'Dotknij zwierzaków powyżej, żeby skompletować drużynę.') + '</span>'}</div>
-          <button type="button" class="btn ghost-ink sback" data-a="where">${L(`Back`, `Wstecz`)}</button>
+          <button type="button" class="btn w sback" data-a="where">${L(`Back`, `Wstecz`)}</button>
           <button type="button" class="btn big m ssend" data-a="send" ${party.length && !broke ? '' : 'disabled'}${party.length ? ` aria-label="${L(`Send ${list(party.map(p => esc(p.name)))}`, `Wyślij: ${list(party.map(p => esc(p.name)))}`)}"` : ''}>${L('Send', 'Wyślij')}</button></div></div>`;
       }
     } else {
@@ -1030,7 +1030,7 @@ export function mount(app, ctx) {
       <h2>${L(`Your farm needs an account`, `Farma wymaga konta`)}</h2>
       <p>${L(`Pet Farm keeps going between visits, so it is saved to an account. It takes a username and a password, nothing else.`, `Farma zwierzaków działa także między wizytami, więc zapisuje się na koncie. Wystarczy nazwa użytkownika i hasło, nic więcej.`)}</p>
       <div class="row"><button type="button" class="btn big m" data-a="account" data-mode="register">${L(`Create account`, `Załóż konto`)}</button><button type="button" class="btn big w" data-a="account" data-mode="login">${L(`Log in`, `Zaloguj się`)}</button></div>
-      <button type="button" class="btn ghost-ink" data-a="home">${L(`Back to the hub`, `Wróć do Zatoki`)}</button></div>`;
+      <button type="button" class="btn w" data-a="home">${L(`Back to the hub`, `Wróć do Zatoki`)}</button></div>`;
     else if (mode === 'starter') el.innerHTML = `<div class="panel starter">
       <h2>${L(`Pick your first pet`, `Wybierz pierwszego zwierzaka`)}</h2>
       <p>${L(`You can find the other two later.`, `Pozostałe dwa znajdziesz później.`)}</p>
