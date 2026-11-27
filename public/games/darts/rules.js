@@ -9,8 +9,8 @@ export const ROUNDS = { 301: 15, 501: 20 }; // nobody out by then: the lowest sc
 export const MS = { fly: 340, next: 700, turn: 1500, bust: 3000, leg: 3400 };
 
 // The hand: where the dart would go wanders round your aim. Holding still steadies it for a while, then the arm tires.
-// Kuba (2026-11-27): the ring starts much wider and focuses slowly; fully steady is as tight as the old starting ring.
-export const HAND = { loose: .35, steady: .15, settle: 2200, tire: 4000, tired: .48, tireMs: 2200 };
+// Kuba (2026-11-27): the ring starts very wide and focuses slowly to the old starting ring; 1 s of steady, then the arm tires fast.
+export const HAND = { loose: .5, steady: .15, settle: 2200, tire: 3200, tired: .6, tireMs: 1200 };
 export function wobbleR(hold) {
   const H = HAND;
   if (!(hold >= 0)) return H.loose;
