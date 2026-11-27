@@ -159,7 +159,7 @@ function applyNight(scene, ph, kind = wxShown()) {
     shade(k.mix.color, k.day.color, G.cloud, C_CLOUD_N); if (W.clouds) k.mix.color.lerp(on ? GREY_NIGHT : C_CLOUD_WX, W.clouds); k.o.material = k.mix; // rain clouds
   }
   const U = scene.userData; // the layer lives on the scene, so a game that registers its scene again (kart tracks) keeps one
-  if (W.fall || W.wind || W.bow || U.wxLayer) { try { (U.wxLayer ||= weatherLayer(scene, S.wxOpts || {})).set(kind, on); } catch {} }
+  if (W.fall || W.wind || W.bow || W.aur || U.wxLayer) { try { (U.wxLayer ||= weatherLayer(scene, S.wxOpts || {})).set(kind, on); } catch {} }
   if (n > .05 && !S.sky) { // stars and moon are made the first time dusk deepens, then faded in and out
     S.sky = new THREE.Group(); S.sky.userData.nightOnly = true; scene.add(S.sky); S.fades = [];
     if (S.stars) { // a fixed dome of stars, far out past the fog
