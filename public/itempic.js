@@ -14,6 +14,10 @@ scene.add(new THREE.HemisphereLight('#ffffff', '#d8c8c0', 1.7));
 // Which framing each slot gets.
 const VIEW = { hat: 'hat', hair: 'hat', hairC: 'hat', neck: 'bust', top: 'torso', color: 'torso', body: 'full', height: 'full',
   bottom: 'legs', botC: 'legs', shoes: 'feet', shoeC: 'feet', back: 'back', hand: 'hand' }; // everything else: the face
+// Tops that pull up a hood or a mascot head when no hat is on (dino, banana, ghost, bee, bear hoodie, llama): their picture shows the head too.
+const HOODS = [23, 24, 25, 26, 28, 38];
+// Glasses that reach above the brows (a snorkel, the mask's feather) get the taller hat framing.
+const TALL_FACE = [11, 13];
 const IX = Object.fromEntries(AV_KEYS.map((k, i) => [k, i]));
 
 // A data URL of the avatar wearing entry i of slot k ('' if 3D is not available). k 'color' takes a hex in i.
@@ -30,7 +34,7 @@ export function itemPic(k, i, color, av) {
   if (k === 'shoes' || k === 'shoeC') { if (a[IX.top] === 15 || a[IX.top] === 32) a[IX.top] = 0; if (a[IX.bottom] === 6) a[IX.bottom] = 0; } // a kimono or long skirt hides the shoes
   if (k === 'neck') { if (a[IX.facial] === 4) a[IX.facial] = 0; if (a[IX.top] === 25) a[IX.top] = 0; } // a full beard or the ghost sheet hides it
   if (k === 'back' && (a[IX.hair] === 4 || a[IX.hair] === 15)) a[IX.hair] = 6; // long hair hides it, so a bob of the same colour
-  const view = VIEW[k] || 'face', key = view + c + a.join('.');
+  const view = k === 'glasses' && TALL_FACE.includes(i) ? 'hat' : VIEW[k] || 'face', key = view + c + a.join('.');
   if (cache.has(key)) return cache.get(key);
   if (dead) return '';
   try {
@@ -46,6 +50,7 @@ export function itemPic(k, i, color, av) {
     if (view === 'face') fit(Y - H * .02, H * 1.4, H * .1);
     else if (view === 'hat') fit(Y + H * .32, H * 2.2, H * .2);
     else if (view === 'bust') fit(neck + H * .05, H * 1.55, H * .1);
+    else if (view === 'torso' && a[IX.hat] === 0 && HOODS.includes(a[IX.top])) fit((top + foot) / 2, (top - foot) * 1.06, .3); // a costume with its hood or mascot head up: the whole avatar, head included
     else if (view === 'torso' && hidesBottom(a[IX.top])) fit((neck + foot) / 2 + .1, (neck - foot) * 1.2, .1); // dresses and costumes go down to the feet
     else if (view === 'torso') fit((neck + hip) / 2 + H * .03, Math.max((neck - hip) * 2, legW * 1.6), .1);
     else if (view === 'legs') fit((hip + foot) / 2 - .1, Math.max((hip - foot) * 2.05, legW * 1.35), .2);
