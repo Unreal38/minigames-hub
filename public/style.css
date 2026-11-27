@@ -628,6 +628,18 @@ body.night .gcard .pic .arttick { stroke: #fff6d8; } /* motion ticks drawn on th
 .frname { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; } .frname b { font-family: var(--fd); font-weight: 600; font-size: 18px; color: var(--on-paper); } .frname small { font-size: 13px; color: var(--soft-tx); }
 .frdot { font-size: 13px; font-weight: 700; color: #8a7468; } .frdot::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #c9b8ab; margin-right: 5px; --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); } .frdot.on { color: #2f8f4e; } .frdot.on::before { background: #3fbf68; }
 .fract { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+/* the Friends sheet: picture | name | here/away on top, the buttons under the name on the right, so every row lines up */
+.frbody .frlist li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'av name dot' 'av act act'; gap: 6px 10px; align-items: center; }
+.frbody .frlist li > :first-child { grid-area: av; align-self: start; } .frbody .frlist .frname { grid-area: name; } .frbody .frlist .frdot { grid-area: dot; align-self: start; margin-top: 3px; white-space: nowrap; }
+.frbody .frlist .fract { grid-area: act; justify-content: flex-end; margin-left: 0; }
+.frbody .frlist .frdot { padding: 2px 9px 2px 7px; border-radius: 999px; background: rgba(120, 100, 90, .12); } .frbody .frlist .frdot.on { background: rgba(63, 191, 104, .15); }
+.frbody h3 { display: flex; align-items: center; gap: 8px; } .frbody h3 .frn { font: 700 13px/1 var(--fb, inherit); padding: 4px 9px; border-radius: 999px; background: var(--mint); color: var(--ink); }
+.frbody .frsent { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; font-size: 14px; } .frbody .frsent b { padding: 2px 10px; border-radius: 999px; border: 2px dashed currentColor; font-size: 13px; }
+.frclose { justify-content: flex-end; }
+@media (max-width: 480px) { /* phones: here/away goes under the name, so the username and level keep one line */
+  .frbody .frlist li { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'av name' 'av dot' 'act act'; }
+  .frbody .frlist .frdot { justify-self: start; margin-top: 0; }
+}
 
 /* ---------- coins and the avatar shop ---------- */
 .cn { display: inline-block; width: .95em; height: .95em; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe58a, #ffc93c 55%, #d99a1e); box-shadow: inset 0 0 0 2px #b97c12; vertical-align: -.12em; margin-right: .25em; flex: none; }

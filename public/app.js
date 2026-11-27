@@ -2876,18 +2876,18 @@ let friendsSheet = null;
 const frWho = x => `${avatarHtml(x.color, x.av, 40, frameCls(x.fl))}<span class="frname"${prof(x)}><b>${nameHtml(x.name, x.fl)}</b><small>${esc(x.user)}${x.lv ? ` · ${L('level', 'poziom')} ${x.lv}` : ''}</small></span>`;
 function friendsHtml() {
   const f = st.friends, who = frWho;
-  const h2 = `<h2>${L('Friends', 'Znajomi')}</h2>`, frUser = L("A friend's username", 'Nazwa użytkownika znajomego');
+  const h2 = `<h2>${L('Friends', 'Znajomi')}</h2>`, frUser = L("A friend's username", 'Nazwa użytkownika znajomego'), frHint = L('Username', 'Nazwa użytkownika'); // the short hint fits the box on phones, the label keeps the full words
   if (!st.me?.user) return `${h2}<p>${L('Friends are kept with your account, so you find each other again on any device. Create one first: it only takes a username and a password.', 'Znajomi są zapisani na twoim koncie, więc odnajdziecie się na każdym urządzeniu. Najpierw załóż konto: wystarczy nazwa użytkownika i hasło.')}</p>
     <div class="row"><button type="button" class="btn m" data-fr="account" data-mode="register">${L('Create account', 'Załóż konto')}</button><button type="button" class="btn w" data-fr="account" data-mode="login">${L('Log in', 'Zaloguj się')}</button></div>`;
   if (!f) return `${h2}<p>${L('Loading…', 'Wczytywanie…')}</p>`;
   return `${h2}
-    <form class="fradd"><input class="field" id="fruser" maxlength="16" placeholder="${frUser}" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="${frUser}"><button class="btn m">${L('Add', 'Dodaj')}</button></form>
+    <form class="fradd"><input class="field" id="fruser" maxlength="16" placeholder="${frHint}" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="${frUser}"><button class="btn m">${L('Add', 'Dodaj')}</button></form>
     <p style="font-size:14px">${L(`Your username is <b>${esc(st.me.user)}</b>. Share it so friends can add you.`, `Twoja nazwa użytkownika to <b>${esc(st.me.user)}</b>. Podaj ją znajomym, żeby mogli cię dodać.`)}</p>
-    ${f.reqs.length ? `<h3>${L('Wants to be your friend', 'Zaproszenia do znajomych')}</h3><ul class="frlist">${f.reqs.map(x => `<li>${who(x)}<span class="fract"><button type="button" class="btn sm m" data-fr="accept" data-user="${esc(x.user)}">${L('Accept', 'Przyjmij')}</button><button type="button" class="btn sm ghost-ink" data-fr="decline" data-user="${esc(x.user)}">${L('No thanks', 'Nie, dziękuję')}</button></span></li>`).join('')}</ul>` : ''}
-    ${f.friends.length ? `<ul class="frlist">${f.friends.map(x => `<li>${who(x)}<span class="frdot ${x.online ? 'on' : ''}">${x.online ? L('Here now', 'Na stronie') : L('Away', 'Poza stroną')}</span>
-      <span class="fract">${x.farm ? `<button type="button" class="btn sm" data-fr="visit" data-farm="${esc(x.farm)}">${L('Visit farm', 'Odwiedź farmę')}</button>` : ''}<button type="button" class="btn sm ghost-ink" data-fr="remove" data-user="${esc(x.user)}" aria-label="${L('Remove', 'Usuń:')} ${esc(x.name)}">${L('Remove', 'Usuń')}</button></span></li>`).join('')}</ul>`
+    ${f.reqs.length ? `<h3>${L('Wants to be your friend', 'Zaproszenia do znajomych')}</h3><ul class="frlist">${f.reqs.map(x => `<li>${who(x)}<span class="fract"><button type="button" class="btn sm m" data-fr="accept" data-user="${esc(x.user)}">${L('Accept', 'Przyjmij')}</button><button type="button" class="btn sm w" data-fr="decline" data-user="${esc(x.user)}">${L('No thanks', 'Nie, dziękuję')}</button></span></li>`).join('')}</ul>` : ''}
+    ${f.friends.length ? `<h3>${L('Your friends', 'Twoi znajomi')} <span class="frn">${f.friends.length}</span></h3><ul class="frlist">${f.friends.map(x => `<li>${who(x)}<span class="frdot ${x.online ? 'on' : ''}">${x.online ? L('Here now', 'Na stronie') : L('Away', 'Poza stroną')}</span>
+      <span class="fract">${x.farm ? `<button type="button" class="btn sm" data-fr="visit" data-farm="${esc(x.farm)}">${L('Visit farm', 'Odwiedź farmę')}</button>` : ''}<button type="button" class="btn sm prep" data-fr="remove" data-user="${esc(x.user)}" aria-label="${L('Remove', 'Usuń:')} ${esc(x.name)}">${L('Remove', 'Usuń')}</button></span></li>`).join('')}</ul>`
       : `<p>${L('No friends yet. Add someone by their username.', 'Nie masz jeszcze znajomych. Dodaj kogoś po nazwie użytkownika.')}</p>`}
-    ${f.sent.length ? `<p style="font-size:14px">${L('Waiting for an answer from', 'Czekamy na odpowiedź od:')} ${f.sent.map(x => `<b>${esc(x.user)}</b>`).join(', ')}.</p>` : ''}`;
+    ${f.sent.length ? `<p class="frsent">${L('Waiting for an answer from', 'Czekamy na odpowiedź od:')} ${f.sent.map(x => `<b>${esc(x.user)}</b>`).join(' ')}</p>` : ''}`;
 }
 function paintFriends() {
   for (const b of document.querySelectorAll('.frbadge')) { const n = st.friends?.reqs.length || 0; b.hidden = !n; b.textContent = n || ''; }
@@ -2899,7 +2899,7 @@ function paintFriends() {
 }
 function openFriends() {
   if (friendsSheet) return;
-  friendsSheet = modal(`<div class="frbody"></div><button type="button" class="btn ghost-ink" data-fr="close">${L('Close', 'Zamknij')}</button>`);
+  friendsSheet = modal(`<div class="frbody"></div><div class="row frclose"><button type="button" class="btn w" data-fr="close">${L('Close', 'Zamknij')}</button></div>`);
   friendsSheet.onClose = () => { friendsSheet = null; };
   const el = friendsSheet.el;
   paintFriends(); if (st.me?.user) send({ t: 'friends' });
