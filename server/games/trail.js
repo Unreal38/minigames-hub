@@ -22,7 +22,7 @@ const BOT_NAMES = ['Biscuit', 'Pepper', 'Mochi', 'Captain', 'Waffles', 'Clover',
 const BOT_COLS = ['#ff8fab', '#ffb547', '#7ed3b2', '#9aa8ff', '#e8a0e0', '#7fd1e8', '#ff7a59', '#c8e66b'];
 // how long things take on screen: the intro, one hop, the wheel before a minigame, the minigame results, the Pet Show
 // A calm pace (Kuba 2026-11-27: the first version raced through 8 rounds in a few minutes and was hard to follow).
-export const MS = { intro: 29000, hop: 420, say: 1500, dice: 2000, card: 1300, turn: 1400, wheel: 5500, res: 8000, show: 13000, cheer: 14000 };
+export const MS = { intro: 29000, hop: 420, say: 1500, dice: 2000, card: 1300, turn: 1400, wheel: 5500, res: 8000, show: 21000, cheer: 14000 };
 // Bots wait a moment before each choice, so they look like they're thinking (Kuba, 2026-11-26). Sharp bots are quicker.
 export const THINK = { chill: [1400, 2600], sharp: [1100, 2000] };
 export const TIMERS = [20, 30, 45, 0];

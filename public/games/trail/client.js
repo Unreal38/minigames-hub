@@ -121,10 +121,10 @@ export function mount(app, ctx) {
     scene.setLineup?.(lineMode());
     { const pk = S.pend ? S.pend.k + S.pend.s + ':' + (S.pend.id ?? '') : ''; if (pk !== lastPendK) { lastPendK = pk; if (S.pend?.k === 'meet') scene.emote?.(S.pend.s, 'surprise'); } } // a wild pet: jump back in surprise
     scene.setThink?.(S.ph === 'play' && S.pend && ['card', 'fork', 'shop', 'meet', 'well', 'bench', 'lure'].includes(S.pend.k) ? S.pend.s : -1); // hand on chin while choosing
-    root.classList.toggle('lineup', !!lineMode()); root.classList.toggle('intro', S?.ph === 'play' && S.stage === 'intro');
+    root.classList.toggle('lineup', ['intro', 'order'].includes(lineMode())); root.classList.toggle('intro', S?.ph === 'play' && S.stage === 'intro');
   }
   // the start line-up: the intro, the roll for the first turn, and the moment the order is announced
-  const lineMode = () => (!S || S.ph !== 'play' ? null : S.stage === 'intro' ? 'intro' : S.stage === 'order' || (S.stage === 'next' && S.turn < 0 && S.round === 1) ? 'order' : null);
+  const lineMode = () => (!S ? null : S.show && (S.stage === 'show' || S.ph === 'end') ? 'show' : S.ph !== 'play' ? null : S.stage === 'intro' ? 'intro' : S.stage === 'order' || (S.stage === 'next' && S.turn < 0 && S.round === 1) ? 'order' : null);
   function paintMapBtn() {
     const b = root.querySelector('.tt-mapbtn');
     b.setAttribute('aria-pressed', mapOn ? 'true' : 'false');
@@ -423,7 +423,7 @@ export function mount(app, ctx) {
   function renderOv() {
     const el = $('tt-ov');
     if (!S || S.ph !== 'play') { ovHide(el); return; }
-    let key = S.stage, html = '';
+    let key = S.stage === 'mini' ? 'wheel' : S.stage, html = ''; // wheel -> mini is the same card: no slide-out and pop-in again as the curtain shuts
     if (S.stage === 'wheel' || S.stage === 'mini') {
       key += S.mini?.game;
       const pool = POOL.filter(g => g.max >= S.seats.length), pick = S.mini?.game;
@@ -434,11 +434,6 @@ export function mount(app, ctx) {
         return `<li class="${pbRowCls(S.seats[i].fl)} profrow" style="animation-delay:${k * 120}ms"><i class="pos">${k + 1}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32, frameCls(S.seats[i].fl))}<b>${nameHtml(S.seats[i].name, S.seats[i].fl)}</b>${ch ? `<span class="tt-cheer">${pet({ sp: ch.sp }, 22)}${L('cheered up a place', 'awans dzięki kibicowi')}</span>` : ''}<strong>+${R.pay[k]} ${I.treat}</strong>${rowBg(S.seats[i].fl)}</li>`; }).join('')}</ol>
         ${standingsHtml()}
         ${R.pact ? `<p class="tt-sub">${L(`Buddy pact bonus: ${nm(R.pact[0])} and ${nm(R.pact[1])} get +3 each`, `Premia paktu: ${nm(R.pact[0])} i ${nm(R.pact[1])} dostają po +3`)}</p>` : ''}</div>`;
-    } else if (S.stage === 'show' && S.show) {
-      const { rib, pts } = S.show, order = S.seats.map((_, i) => i).sort((a, b) => pts[b] - pts[a]);
-      html = `<div class="tt-card wide"><h2>${L('The Pet Show', 'Pokaz zwierzaków')}</h2><p class="tt-sub">${L('A rosette for every friend in your herd, and 2 points for every ribbon', 'Rozeta za każdego przyjaciela w stadzie i 2 punkty za każdą wstęgę')}</p>
-        <div class="tt-ribs">${Object.entries(RIBBONS).map(([k, n], j) => `<div class="tt-rib" style="animation-delay:${300 + j * 450}ms"><span class="rib">${esc(n)}</span><span>${rib[k].length ? rib[k].map(nm).join(', ') : L('nobody', 'nikt')}</span></div>`).join('')}</div>
-        <ol class="tt-mres">${order.map(i => `<li class="${pbRowCls(S.seats[i].fl)} profrow"><i class="pos">${ptsW(pts[i])}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32, frameCls(S.seats[i].fl))}<b>${nameHtml(S.seats[i].name, S.seats[i].fl)}</b><span class="tt-herd">${S.pl[i].herd.map(f => pet(f, 24)).join('')}</span>${rowBg(S.seats[i].fl)}</li>`).join('')}</ol></div>`;
     } else { ovHide(el); return; }
     if (key !== ovKey) {
       // a new card: the old one (if any) slides away first, then the new one rises in over a soft dimmed backdrop
@@ -466,9 +461,9 @@ export function mount(app, ctx) {
       case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}: the wild pets wait on the glowing stones`, `Runda ${e.r} z ${S.rounds}: dzikie zwierzaki czekają na świecących kamieniach`));
         peekUntil = Date.now() + 3200; camFocus(); setTimeout(() => !destroyed && camFocus(), 3250); break;
       case 'firstgo': big(L('Who goes first?', 'Kto zaczyna?'), L('Everyone rolls a die', 'Każdy rzuca kością'), 1800); say(L('Everyone rolls a die. The highest roll goes first.', 'Każdy rzuca kością. Zaczyna najwyższy wynik.')); break;
-      case 'first': scene?.peek?.(s, 1900); throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
+      case 'first': scene?.peek?.(s, 1900); scene?.emote?.(s, 'throw'); throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
-      case 'order': big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
+      case 'order': scene?.peek?.(-1, 0); big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
       case 'turn': scene?.emote?.(s, 'wave'); say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); splash(s); if (isMe(s)) sfx.turn(); break;
       case 'card': scene?.emote?.(s, 'point'); stepsLeft.set(s, e.d); sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
       case 'redraw': sfx.whoosh?.(); say(who(s, L(`Your ${esc(petName(e.sp))} swaps your cards`, `Twój ${esc(petName(e.sp))} wymienia ci karty`), L(`{n}'s ${esc(petName(e.sp))} swaps their cards`, `${esc(petName(e.sp))} wymienia karty graczowi {n}`))); break;
@@ -506,7 +501,7 @@ export function mount(app, ctx) {
       case 'cheerask': say(L('Pick a friend to cheer you on in the minigame', 'Wybierz przyjaciela, który pokibicuje ci w minigrze')); if (S.cheer && !S.cheer.done) sfx.turn(); break;
       case 'wheel': say(L('The minigame wheel spins…', 'Koło minigier się kręci…')); break;
       case 'minires': { const k = e.order.indexOf(S.me); if (k === 0) sfx.win(); say(L(`${esc(gameName(e.game))}: ${nm(e.order[0])} wins`, `${esc(gameName(e.game))}: wygrywa ${nm(e.order[0])}`)); break; }
-      case 'show': say(L('The Pet Show!', 'Pokaz zwierzaków!')); sfx.set(); break;
+      case 'show': runShow(0); break;
       case 'late': if (isMe(s)) big(L('Out of time!', 'Koniec czasu!'), L('The safe choice was made for you', 'Wybrano za ciebie bezpieczną opcję'), 1400); else bubble(s, `<span>${L('Too slow!', 'Za wolno!')}</span>`); break;
       case 'end': {
         const won = S.res?.place[S.me] === 1; if (won) { sfx.win(); confetti(); } else sfx.lose?.(); scene?.cue(S.win, 'win');
@@ -538,7 +533,9 @@ export function mount(app, ctx) {
     if (fresh) {
       gid = s.gid; hideResults(); clearTimeout(resultsTimer); lastTick = -1; sent = 0; bubbles.clear(); LOG.length = 0;
       lastEv = s.ev?.length ? s.ev[s.ev.length - 1].n : 0;
-      if (s.ph === 'end') showResults();
+      showRan = false; showTimers.forEach(clearTimeout); showTimers = []; scene?.setPodium?.(null); scene?.stepOut?.([]);
+      if (s.ph === 'end') { if (s.show) scene?.setPodium?.(showPlaces()); showResults(); }
+      else if (s.stage === 'show') runShow(Math.max(0, SHOW_MS - s.stageLeft));
       else say(s.stage === 'intro' ? L('Welcome to the Friendship Trail!', 'Witaj na Szlaku przyjaźni!') : s.turn >= 0 ? who(s.turn, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}')) : L('Back on the trail', 'Z powrotem na szlaku'));
     } else for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); } // hops go to the scene before the new positions
     render(); scene?.setState(s); camFocus();
@@ -550,6 +547,32 @@ export function mount(app, ctx) {
     buildTags(); renderSide(); renderDock(); renderOv();
   }
 
+  // ----- the Pet Show: back in the meadow, Tux hands out the ribbons one by one, then a 1-2-3 podium (Kuba 2026-11-27) -----
+  const SHOW_MS = 21000, RIB_AT = 2600, RIB_EACH = 2500;
+  let showTimers = [], showRan = false;
+  const showPlaces = () => { const { pts } = S.show, T = S.pl.map(p => p.treats);
+    return S.seats.map((_, i) => 1 + S.seats.filter((__, j) => pts[j] > pts[i] || (pts[j] === pts[i] && T[j] > T[i])).length); };
+  function runShow(from) {
+    if (!S?.show || showRan) return; showRan = true;
+    showTimers.forEach(clearTimeout); showTimers = [];
+    const at = (ms, fn) => { if (ms >= from) showTimers.push(setTimeout(() => { if (!destroyed && S?.show) fn(); }, ms - from)); };
+    at(0, () => { say(L('The Pet Show! Everyone back to the meadow', 'Pokaz zwierzaków! Wszyscy wracają na łąkę')); big(L('The Pet Show', 'Pokaz zwierzaków'), L('Ribbons for the best herds', 'Wstęgi dla najlepszych stad'), 2200); sfx.set(); });
+    const keys = Object.keys(RIBBONS);
+    keys.forEach((k, j) => at(RIB_AT + j * RIB_EACH, () => {
+      const who = S.show.rib[k] || [];
+      scene?.stepOut?.(who);
+      say(`<b>${esc(RIBBONS[k])}</b>: ${who.length ? who.map(nm).join(', ') : L('nobody this time', 'tym razem nikt')}`);
+      big(esc(RIBBONS[k]), who.length ? who.map(nm).join(', ') : L('nobody', 'nikt'), RIB_EACH - 200);
+      who.forEach(i => scene?.cue(i, 'friend')); if (who.includes(S.me)) sfx.win(); else sfx.set();
+    }));
+    const podAt = RIB_AT + keys.length * RIB_EACH + 300;
+    at(podAt, () => {
+      scene?.stepOut?.([]); const pl = showPlaces(); scene?.setPodium?.(pl);
+      const top = S.seats.map((_, i) => i).filter(i => pl[i] === 1);
+      say(L(`The winner of the Pet Show: <b>${top.map(nm).join(', ')}</b>!`, `Zwycięzca Pokazu: <b>${top.map(nm).join(', ')}</b>!`));
+      top.forEach(i => scene?.cue(i, 'win')); S.seats.forEach((_, i) => { if (pl[i] === 2 || pl[i] === 3) scene?.emote?.(i, 'cheer'); else if (pl[i] > 3) scene?.emote?.(i, 'wave'); });
+    });
+  }
   // ----- results -----
   function showResults() {
     if (!S || S.ph !== 'end' || !S.res) return;
@@ -650,7 +673,7 @@ export function mount(app, ctx) {
     react,
     destroy() {
       destroyed = true; document.body.classList.remove('in-game'); removeEventListener('resize', onResize); removeEventListener('keydown', onKey);
-      clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); clearTimeout(dieTimer); scene?.dispose();
+      clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); clearTimeout(dieTimer); showTimers.forEach(clearTimeout); scene?.dispose();
     },
   };
 }

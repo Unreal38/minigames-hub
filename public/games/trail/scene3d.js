@@ -261,12 +261,37 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the line-up in the start meadow (Kuba 2026-11-27) ----------
   // During the intro everyone stands in a row facing the camera and waves, with Puff the host beside them; during the
   // roll for the first turn they stay in the row and the camera stays on them. mode: 'intro', 'order' or null.
-  let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0;
-  function peek(s, ms) { peekS = s; peekT = performance.now() + ms; } // keep the camera on someone for a moment (their die landing)
+  let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0, holdT = 0;
+  function peek(s, ms) { peekS = s; peekT = performance.now() + ms; if (s < 0) holdT = 0; } // keep the camera on someone for a moment (their die landing)
   const LSP = .74;
   function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
-  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25, START.z + .2];
+  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25 + (lineup === 'show' ? .55 : 0), START.z + .2];
+  // ---------- the Pet Show at the end (Kuba 2026-11-27: "Pet Show podium") ----------
+  // everyone pops back to the meadow; ribbon winners step forward; then a 1-2-3 podium (place per seat, 1 = first)
+  let stepped = new Set(), podium = null, podBlocks = null;
+  const POD_X = [0, -.82, .82], POD_Y = [.46, .3, .16];
+  function showSpot(i) {
+    if (podium) { const order = folk.map(f => f.i).sort((a, b) => podium[a] - podium[b] || a - b), r = order.indexOf(i);
+      if (r < 3) return [START.x + POD_X[r], START.z + .35, POD_Y[r]];
+      const back = order.length - 3, k = r - 3; return [START.x + (k - (back - 1) / 2) * .7, START.z - .45, 0]; }
+    const [x, z] = lineSpot(i); return [x, z + (stepped.has(i) ? .55 : 0), 0];
+  }
+  function stepOut(list) { stepped = new Set(list || []); }
+  function setPodium(places) {
+    podium = places || null;
+    if (podium && !podBlocks) {
+      podBlocks = new THREE.Group(); scene.add(podBlocks);
+      ['#ffd34d', '#dfe6ee', '#e9a873'].forEach((c, r) => { if (r >= folk.length) return;
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(.36, .4, POD_Y[r], 8), flat(c)); m.position.set(START.x + POD_X[r], SY + POD_Y[r] / 2, START.z + .35); m.scale.y = .01; m.userData.k = r; podBlocks.add(m); shell(m, 1.06); });
+    }
+    if (podBlocks) podBlocks.visible = !!podium;
+  }
   function setLineup(mode) {
+    if (mode === 'show' && lineup !== 'show') for (const f of folk) { // a puff, and everyone is back in the meadow
+      if (f.node != null && f.node >= 0) fx.puff(at(f.x, f.z, .4), { n: 10, color: ['#ffffff', '#ffd6ec'], size: .45, speed: 1.8 });
+      f.q.length = 0; f.hop = null; f.node = -1; const [x, z] = showSpot(f.i); f.x = x; f.z = z + .4; f.steps.length = 0;
+      fx.puff(at(f.x, f.z, .4), { n: 10, color: ['#ffffff', '#ffd6ec'], size: .45, speed: 1.8 });
+    }
     lineup = mode || null;
     if (lineup && !host) { const g = petOf('tuxpurr', null, 1.15), [x, z] = hostSpot(); g.position.set(x + 2.2, SY, z); scene.add(g); host = { g, x: x + 2.2, z, seed: 7.3 }; }
   }
@@ -378,7 +403,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const at = (x, z, y = 0) => new THREE.Vector3(x, y, z);
   function seatAt(s) { const f = folk[s]; return f ? at(f.x, f.z, .9) : at(0, 0, 1); }
   // little acted moments for the avatars (Kuba 2026-11-27): each one blends in, holds and blends out over d seconds
-  const EMOTE_S = { cheer: 1.1, win: 2.6, sad: 1.5, spin: 1.1, item: 1.1, point: .9, wave: 1.3, surprise: 1.1, slide: 1.6 };
+  const EMOTE_S = { throw: 1.2, cheer: 1.1, win: 2.6, sad: 1.5, spin: 1.1, item: 1.1, point: .9, wave: 1.3, surprise: 1.1, slide: 1.6 };
   function emote(s, k) { const f = folk[s]; if (f && EMOTE_S[k]) f.em = { k, t: 0, d: EMOTE_S[k] }; }
   let thinker = -1;
   function setThink(s) { thinker = s ?? -1; }
@@ -413,6 +438,7 @@ export function createScene(canvas, { onFrame } = {}) {
     else if (k === 'point') { const a = arms[1] || arms[0]; if (a) { mix(a, 'x', -1.55); mix(a, 'z', sgOf(a) * .15); } if (hd) hd.rotation.x += .1 * e; }
     else if (k === 'wave') { const a = arms[f.i % 2]; if (a) { mix(a, 'z', sgOf(a) * (2.55 + Math.sin(T * 8 + f.i) * .35)); mix(a, 'x', -.15); } }
     else if (k === 'think') { const a = arms[1] || arms[0], wob = Math.sin(T * 2 + f.i) * .05; if (a) { mix(a, 'x', -2.05 + wob); mix(a, 'z', -sgOf(a) * .55); } if (hd) { hd.rotation.z += .16 * e; hd.rotation.x -= .08 * e; } }
+    else if (k === 'throw') { const a = arms[1] || arms[0]; if (a) { const w = u < .25 ? u / .25 : 1; mix(a, 'x', lerp(1.1, -1.9, ease(w))); mix(a, 'z', sgOf(a) * .25); } if (hd) hd.rotation.x += (u < .25 ? .1 : -.12) * e; }
     else if (k === 'spin') { arms.forEach(a => { mix(a, 'z', sgOf(a) * 1.9); }); return ease(Math.min(1, u * 1.25)) * Math.PI * 2; }
     return 0;
   }
@@ -434,10 +460,10 @@ export function createScene(canvas, { onFrame } = {}) {
         f.x = lerp(h.fx, h.x, e); f.z = lerp(h.fz, h.z, e); f.y = Math.sin(h.t * Math.PI) * .45; f.tr = Math.atan2(h.x - h.fx, h.z - h.fz); f.amt = 1;
         if (h.t >= 1) { f.node = h.to; f.hop = null; f.y = 0; if (!few) fx.puff(at(f.x, f.z, .2), { n: 3, color: ['#ffffff', DIRT], size: .2, speed: .8, life: .4 }); } }
       else if (f.node == null || f.node < 0) { // in the meadow: walk to the line-up spot, or back to a meadow spot
-        const [tx, tz] = lineup ? lineSpot(f.i) : spotOf(f.i, -1), dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
+        const [tx, tz, ty = 0] = lineup === 'show' ? showSpot(f.i) : lineup ? lineSpot(f.i) : spotOf(f.i, -1), dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
         if (d > .03) { const st = Math.min(d, dt * 2.4); f.x += dx / d * st; f.z += dz / d * st; f.tr = Math.atan2(dx, dz); f.amt += (1 - f.amt) * Math.min(1, dt * 8); }
         else { f.amt += (0 - f.amt) * Math.min(1, dt * 8); if (lineup) f.tr = Math.atan2(camera.position.x - f.x, camera.position.z - f.z); }
-        f.y = 0;
+        f.y += (ty - f.y) * Math.min(1, dt * 6); // onto the podium
       }
       else { f.amt += (0 - f.amt) * Math.min(1, dt * 8); f.y = 0; }
       f.ry += wrapA(f.tr - f.ry) * Math.min(1, dt * 12); f.ph += dt * 12 * Math.max(f.amt, .001);
@@ -490,6 +516,7 @@ export function createScene(canvas, { onFrame } = {}) {
       host.g.rotation.y = run ? Math.atan2(dx, dz) : Math.atan2(camera.position.x - host.x, camera.position.z - host.z) + Math.sin(T * 1.1) * .25;
       host.g.children[0] && wiggle(host.g.children[0], T, host.seed, .6);
       if (host.g.visible) blob(host.x, host.z, .4); }
+    if (podBlocks?.visible) for (const m of podBlocks.children) if (m.scale) m.scale.y += (1 - m.scale.y) * Math.min(1, dt * 5);
     stepDice(performance.now(), blob);
     { const yaw = Math.atan2(camera.position.x - camL.x, camera.position.z - camL.z); if (Math.abs(yaw - iconYaw) > .01) { iconYaw = yaw; for (const ic of icons.children) ic.rotation.z = yaw; } } // icons stay upright for the camera
     for (const a of forkArrows) { a.position.y = .55 + Math.sin(T * 4 + a.userData.k) * .09; }
@@ -500,8 +527,9 @@ export function createScene(canvas, { onFrame } = {}) {
     hz0 += ((lineup === 'intro' && host && !mapView ? 1 : 0) - hz0) * (1 - Math.pow(.05, dt)); // the intro: Tux talking on the right, the players beside him (Kuba: show the contestants)
     // the roll for the first turn: close on each roller (and hold on them while their die lands), then back to the row (Kuba 2026-11-27)
     const ps = performance.now() < peekT ? peekS : focus, pf = lineup === 'order' && !mapView && ps >= 0 ? folk[ps] : null;
-    if (pf) { pcx = pf.x; pcz = pf.z; }
-    pz0 += ((pf ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
+    if (pf) { pcx = pf.x; pcz = pf.z; holdT = performance.now() + 1500; } // between rollers the camera stays close and glides on, it doesn't pull back to the row
+    const close = lineup === 'order' && !mapView && (pf || performance.now() < holdT);
+    pz0 += ((close ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
     const lx = lerp(lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), pcx + .25, pz0), lzz = lerp(lerp(START.z + .3, host ? host.z : START.z, hz0), pcz + .3, pz0);
     const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
     const kk = 1 - Math.pow(pz0 > .05 ? .008 : .04, dt);
@@ -566,7 +594,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   return {
-    setState, walk, cue, emote, setThink, peek, roll, setFork,
+    setState, walk, cue, emote, setThink, peek, stepOut, setPodium, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,
