@@ -1,10 +1,10 @@
-// The profile isle and its variants: the ground theme, the rock underneath, the sky, and up to three decorations from
+// The profile isle and its variants: the ground theme, the rock underneath, and up to three decorations from
 // the player's Pet Farm. What a player picked rides in their flair (cosmetics.js kinds ig, ib, ik, and the list ip);
 // the indexes here match those lists, so only ever append.
 //
 //   buildIsle(look)        look = { ig, ib, ip: ['windmill', ..] }  ->  { root, tick(T), air, dispose() }
 //   pieceModel(id)         one of the game pieces that float round the isle
-//   buildSky(ik, opts)     the backdrop                 ->  { root, tick(T), mood, dispose() }   mood: '' (follows the site's day/night switch), 'day', 'night' or 'sunset'
+//   (the sky friends, kind ik, are in skyfriends.js; the sky itself is always the real one)
 //
 // Still parts are merged (bake) and outlined once; anything that moves sits in a group flagged dyn with its own outline.
 import * as THREE from 'three';
@@ -211,98 +211,6 @@ export function buildIsle(look = {}) {
   const types = (Array.isArray(look.ip) ? look.ip : []).filter(t => typeof t === 'string').slice(0, SLOTS.length), st = { dead: false, holds: [], free: null };
   if (types.length) farmDecor(root, types, ticks, st);
   return { root, land, air: th.air, tick: T => { for (const f of ticks) f(T); }, dispose: () => { st.dead = true; st.free?.(); disposeToon(root); } };
-}
-
-// ---------- skies (COS.ik) ----------
-// Colours of each sky, top to bottom: the page paints them behind the canvas (style.css .isk1..), or with disc: true
-// they are drawn as a soft round window behind the isle (the hub, where there is no frame to fill).
-export const SKY_COLORS = [null, ['#4b3a8f', '#ff7a6a', '#ffc27a'], ['#0c1236', '#2d2b63', '#4a3f8a'], ['#06142e', '#123a55', '#2b2856'], ['#6ec0f5', '#bfe6ff', '#eaf8ff'], ['#1a1440', '#3a2a5e', '#8a4a58'],
-  ['#7d93b8', '#b9c9e0', '#e8eef6'], ['#1d2238', '#33395a', '#5a5878'], ['#a9c4f0', '#f3c6dc', '#ffe6c8']]; // 6 snowfall, 7 thunderstorm, 8 pastel dawn
-const MOOD = ['', 'sunset', 'night', 'night', 'day', 'night', 'day', 'night', 'sunset'];
-function discTex(cols) {
-  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d');
-  const lin = c.createLinearGradient(0, 20, 0, 236); cols.forEach((x, i) => lin.addColorStop(i / (cols.length - 1), x)); c.fillStyle = lin; c.fillRect(0, 0, 256, 256);
-  c.globalCompositeOperation = 'destination-in'; const rad = c.createRadialGradient(128, 128, 60, 128, 128, 126); rad.addColorStop(0, '#000'); rad.addColorStop(.7, 'rgba(0,0,0,.9)'); rad.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = rad; c.fillRect(0, 0, 256, 256);
-  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
-}
-const basic = (c, o) => new THREE.MeshBasicMaterial({ color: c, depthWrite: false, fog: false, ...o });
-function stars(root, n, ticks, disc) {
-  const sets = [0, 1].map(k => { const pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = hash(i, 11 + k) * 6.283, r = Math.sqrt(hash(i, 13 + k)) * 8;
-    pos.set(disc ? [Math.cos(a) * r, -2.6 + Math.sin(a) * r, -12] : [(hash(i, 11 + k) - .5) * 20, -6 + hash(i, 13 + k) * 15, -11 - hash(i, 17) * 2], i * 3); }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const p = new THREE.Points(g, new THREE.PointsMaterial({ color: k ? '#fff6d8' : '#ffffff', size: k ? 3 : 2.2, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false })); p.renderOrder = -4; root.add(p); return p; });
-  ticks.push(T => { sets[0].material.opacity = .65 + Math.sin(T * 1.7) * .3; sets[1].material.opacity = .65 + Math.cos(T * 1.3) * .3; });
-}
-export function buildSky(ik, { disc = false } = {}) {
-  ik = SKY_COLORS[ik | 0] ? ik | 0 : 0;
-  const root = new THREE.Group(), ticks = [], add = (geo, mat, x, y, z, ro = -3) => { const m = put(root, geo, mat, x, y, z); m.renderOrder = ro; return m; };
-  if (ik && disc) add(new THREE.CircleGeometry(9.5, 40), new THREE.MeshBasicMaterial({ map: discTex(SKY_COLORS[ik]), transparent: true, depthWrite: false, fog: false }), 0, -2.6, -13, -6); // centred on the middle of the view at that depth, so no edge of the canvas cuts it
-  if (ik === 1) { // sunset: a low sun and long clouds
-    add(new THREE.CircleGeometry(3.3, 28), basic('#ffe9a8', { transparent: true, opacity: .35 }), 2.3, .2, -11.5, -5);
-    add(new THREE.CircleGeometry(2.3, 28), basic('#fff1b8'), 2.3, .2, -11.4, -4);
-    const cl = [[-3.5, 2.6, 3.4], [3.8, 4.6, 2.6], [-1, -2.4, 4.2], [4.6, -1.2, 2.2]].map(([x, y, w], i) => { const g = new THREE.Group(); root.add(g); g.position.set(x, y, -11);
-      for (const [dx, dy, k] of [[0, 0, 1], [.25, .22, .55], [-.3, -.2, .7]]) { const m = put(g, new THREE.CircleGeometry(.5, 16), basic(i % 2 ? '#ffb39a' : '#ff9a8a', { transparent: true, opacity: .9 }), dx * w, dy, 0); m.scale.set(w * k, .42, 1); m.renderOrder = -3; } return [g, x, i]; });
-    ticks.push(T => { for (const [g, x, i] of cl) g.position.x = x + Math.sin(T * .12 + i * 2) * .7; });
-  } else if (ik === 2 || ik === 3) {
-    stars(root, ik === 2 ? 70 : 40, ticks, disc);
-    if (ik === 2) { // a crescent moon and now and then a shooting star
-      const s = new THREE.Shape(), cx = .5, cy = .3, r2 = .84, d = Math.hypot(cx, cy), ph = Math.atan2(cy, cx), al = Math.acos((d * d + 1 - r2 * r2) / (2 * d)), be = Math.acos((1 - d * d - r2 * r2) / (2 * d * r2));
-      s.absarc(0, 0, 1, ph + al, ph - al + 2 * PI, false); s.absarc(cx, cy, r2, ph - be + 2 * PI, ph + be, true); // a full disc with a bite out of its upper right
-      add(new THREE.ShapeGeometry(s, 24), basic('#fff3c4'), -3.3, 4.7, -11, -3).scale.setScalar(1.25);
-      add(new THREE.CircleGeometry(2, 24), basic('#fff3c4', { transparent: true, opacity: .1 }), -3.3, 4.7, -11.1, -4);
-      const sh = add(new THREE.PlaneGeometry(1.5, .05), basic('#ffffff', { transparent: true }), 0, 0, -10.8, -3); sh.rotation.z = -.5;
-      ticks.push(T => { const u = (T % 7) / .9; sh.visible = u < 1; if (u < 1) { sh.position.set(5 - u * 7, 7 - u * 3.8, -10.8); sh.material.opacity = Math.sin(u * PI); } });
-    } else { // aurora: three slow curtains of light
-      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'), gr = c.createLinearGradient(0, 0, 0, 64);
-      gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.35, 'rgba(255,255,255,.55)'); gr.addColorStop(.85, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, 64, 64);
-      c.globalCompositeOperation = 'destination-in'; const side = c.createLinearGradient(0, 0, 64, 0); side.addColorStop(0, 'rgba(0,0,0,0)'); side.addColorStop(.25, '#000'); side.addColorStop(.75, '#000'); side.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = side; c.fillRect(0, 0, 64, 64);
-      const tex = new THREE.CanvasTexture(cv), bands = [['#5dffb0', 3.4, 3.4, 0], ['#58e0ff', 5.2, 2.6, 2], ['#b48cff', 1.4, 2.8, 4]].map(([col, y, h, ph], k) => {
-        const geo = new THREE.PlaneGeometry(disc ? 15 : 19, h, 38, 1), m = add(geo, new THREE.MeshBasicMaterial({ color: col, map: tex, transparent: true, opacity: .62, depthWrite: false, fog: false, side: THREE.DoubleSide }), 0, y, -11.6 - k * .2, -5 + k);
-        return [geo.attributes.position, h, ph]; });
-      ticks.push(T => { for (const [p, h, ph] of bands) { for (let i = 0; i <= 38; i++) { const x = p.getX(i), w = Math.sin(x * .45 + T * .5 + ph) * .55 + Math.sin(x * 1.1 - T * .35 + ph) * .22; p.setY(i, h / 2 + w + Math.sin(x * .8 + T * .9 + ph) * .25); p.setY(i + 39, -h / 2 + w); } p.needsUpdate = true; } });
-    }
-  } else if (ik === 4) { // a rainbow arching over the isle, with a cloud at each foot
-    ['#ff6f61', '#ffa64a', '#ffd84a', '#7ed36a', '#6ec6f5', '#9b7bff'].forEach((c, i) => add(new THREE.RingGeometry(5.6 - i * .28, 5.88 - i * .28, 28, 1, 0, PI), basic(c, { transparent: true, opacity: .9 }), 0, -2.6, -9.5, -4));
-    const cl = new THREE.Group(); for (const d of [-1, 1]) for (const [x, y, r] of [[0, 0, .9], [.8, -.15, .65], [-.75, -.1, .7], [.2, .45, .6]]) ico(cl, r, '#ffffff', d * 4.9 + x, -2.7 + y, -9.3).scale.set(1.2, .7, .8);
-    cl.traverse(o => { if (o.isMesh) o.userData.noInk = true; }); root.add(toonify(cl));
-    ticks.push(T => { cl.position.y = Math.sin(T * .6) * .08; });
-  } else if (ik === 5) { // lantern night: paper lanterns drifting up past a few stars (Lantern Night)
-    stars(root, 30, ticks, disc);
-    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d'), gl = c.createRadialGradient(32, 32, 4, 32, 32, 32);
-    gl.addColorStop(0, 'rgba(255,214,122,.85)'); gl.addColorStop(.4, 'rgba(255,176,74,.3)'); gl.addColorStop(1, 'rgba(255,176,74,0)'); c.fillStyle = gl; c.fillRect(0, 0, 64, 64);
-    const glowTex = new THREE.CanvasTexture(cv), glowMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false, fog: false });
-    const body = new THREE.BoxGeometry(.34, .44, .34), cols = ['#ff9a3c', '#ffc24a', '#ff6f61', '#ffb05a'], H = 14;
-    const lan = Array.from({ length: 9 }, (_, i) => { const g = new THREE.Group(); root.add(g);
-      const m = put(g, body, basic(cols[i % 4]), 0, 0, 0); m.renderOrder = -3;
-      const top = put(g, new THREE.BoxGeometry(.36, .06, .36), basic('#5a3a2a'), 0, .25, 0); top.renderOrder = -3;
-      const gm = put(g, new THREE.PlaneGeometry(1.5, 1.5), glowMat, 0, 0, -.2); gm.renderOrder = -4;
-      const x = (hash(i, 31) - .5) * (disc ? 13 : 17), k = 1.1 + hash(i, 37) * .8; g.scale.setScalar(k);
-      return [g, x, hash(i, 41) * H, .25 + hash(i, 43) * .2, i]; });
-    ticks.push(T => { for (const [g, x, y0, v, i] of lan) { const y = (y0 + T * v) % H; g.position.set(x + Math.sin(T * .5 + i) * .25, -8.5 + y, -10.5 - (i % 3) * .3); g.rotation.y = T * .3 + i; } });
-  } else if (ik === 6) { // snowfall: big soft flakes drifting down past the isle
-    const flakes = Array.from({ length: 70 }, (_, i) => { const m = add(new THREE.CircleGeometry(.13 + hash(i, 51) * .12, 6), basic('#ffffff', { transparent: true, opacity: .9 }), 0, 0, -9.5 - hash(i, 53) * 2, -3);
-      return [m, (hash(i, 55) - .5) * (disc ? 14 : 19), hash(i, 57) * 16, .5 + hash(i, 59) * .5, i]; });
-    ticks.push(T => { for (const [m, x, y0, v, i] of flakes) m.position.set(x + Math.sin(T * .7 + i) * .4, 8 - (y0 + T * v) % 16, m.position.z); });
-  } else if (ik === 7) { // thunderstorm: dark clouds along the top, rain streaks and a bolt now and then that lights the sky
-    const fl = add(new THREE.PlaneGeometry(40, 30), basic('#e8ecff', { transparent: true, opacity: 0 }), 0, 0, -12.5, -5);
-    const cl = new THREE.Group(); for (const [x, y, r] of [[-5, 5.4, 1.6], [-2.6, 6, 1.9], [0, 5.5, 1.7], [2.7, 6.1, 2], [5.2, 5.3, 1.5], [-4, 4.6, 1.1], [3.8, 4.5, 1.2]]) ico(cl, r, '#5a5f84', x, y, -10.5).scale.set(1.4, .6, .5);
-    cl.traverse(o => { if (o.isMesh) o.userData.noInk = true; }); root.add(toonify(cl));
-    const bolt = new THREE.Shape(); bolt.moveTo(0, 0); bolt.lineTo(.5, -1.4); bolt.lineTo(.15, -1.4); bolt.lineTo(.6, -3); bolt.lineTo(-.25, -1.1); bolt.lineTo(.12, -1.1); bolt.lineTo(-.3, 0); bolt.closePath();
-    const bm = add(new THREE.ShapeGeometry(bolt), basic('#fff3a0', { transparent: true }), 3, 4.4, -10.2, -2);
-    const rain = Array.from({ length: 40 }, (_, i) => [add(new THREE.PlaneGeometry(.03, .5), basic('#a9b8e8', { transparent: true, opacity: .6 }), 0, 0, -10, -3), (hash(i, 61) - .5) * (disc ? 14 : 19), hash(i, 63) * 14]);
-    ticks.push(T => { const u = T % 5.5, on = u < .12 || (u > .22 && u < .3); fl.material.opacity = on ? .35 : 0; bm.visible = on; bm.position.x = hash(Math.floor(T / 5.5), 7) * 8 - 4;
-      for (const [m, x, y0] of rain) { m.position.set(x - .3, 5 - (y0 + T * 9) % 14, -10); m.rotation.z = .15; } });
-  } else if (ik === 8) { // pastel dawn: a pale sun coming up behind the isle, and two hot-air balloons drifting by
-    add(new THREE.CircleGeometry(3, 28), basic('#fff6d8', { transparent: true, opacity: .4 }), -1.6, -1.6, -11.5, -5);
-    add(new THREE.CircleGeometry(2, 28), basic('#fff1c8'), -1.6, -1.6, -11.4, -4);
-    const balloons = [['#ff8fab', '#ffd84a', -4.5, 3.4, 1.6], ['#7fc8ee', '#ffffff', 4.2, 2.2, 1.25]].map(([a, b, x, y, k], i) => { const g = new THREE.Group(); g.position.set(x, y, -9.8); g.scale.setScalar(k); root.add(g);
-      ico(g, .7, a, 0, 0, 0).scale.set(1, 1.15, 1); for (const sx of [-.35, .35]) ico(g, .18, b, sx, .05, .62).scale.set(.6, 2.6, .3);
-      const bk = put(g, new THREE.BoxGeometry(.3, .24, .3), flat('#a86a42'), 0, -1.15, 0); for (const sx of [-.12, .12]) put(g, new THREE.BoxGeometry(.02, .34, .02), flat('#5a3a2a'), sx, -.85, 0);
-      toonify(g); return [g, x, y, i]; });
-    ticks.push(T => { for (const [g, x, y, i] of balloons) { g.position.x = x + Math.sin(T * .15 + i * 3) * 1.2; g.position.y = y + Math.sin(T * .5 + i) * .25; } });
-  }
-  // fit(aspect): on a narrow canvas the round window shrinks to stay inside it
-  return { root, mood: MOOD[ik], fit: a => { const k = disc ? Math.min(.84, a * .82) : 1; root.scale.set(k, k, 1); }, tick: T => { for (const f of ticks) f(T); }, dispose: () => { root.traverse(o => { o.material?.map?.dispose(); }); disposeToon(root); } };
 }
 
 // ---------- the game pieces that float round the isle (cosmetics.js PIECES) ----------

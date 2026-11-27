@@ -5,7 +5,8 @@
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar } from './avatar3d.js';
 import { birds, petals, createFx, disposeToon, CONF } from './scenery3d.js';
-import { buildIsle, buildSky, pieceModel } from './isle3d.js';
+import { buildIsle, pieceModel } from './isle3d.js';
+import { skyFriend } from './skyfriends.js';
 import { piecesOf } from './cosmetics.js';
 import { frameLoop, autoResolution, AA } from './frames.js';
 import { WX_LOOK, GLOW } from './weather.js';
@@ -27,16 +28,16 @@ function build() {
   key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 40 }); key.shadow.normalBias = .03; scene.add(key);
 
   const world = new THREE.Group(); scene.add(world);
-  // The isle itself, as the player dressed it (isle3d.js): ground, rock base, decor and sky. Rebuilt only when the look changes.
-  let isle = null, sky = null, air = null, airG = null, isleKey = null, skyNo = 0;
+  // The isle itself, as the player dressed it (isle3d.js): ground, rock base, decor and sky friend. Rebuilt only when the look changes.
+  let isle = null, sky = null, air = null, airG = null, isleKey = null;
   function setIsle(fl) {
     setBits(fl?.fp);
     const look = { ig: fl?.ig | 0, ib: fl?.ib | 0, ik: fl?.ik | 0, ip: Array.isArray(fl?.ip) ? fl.ip.slice(0, 3) : [] }, k = JSON.stringify(look);
     if (k === isleKey) return; isleKey = k;
-    if (isle) { world.remove(isle.root); isle.dispose(); } if (sky) { scene.remove(sky.root); sky.dispose(); }
+    if (isle) { world.remove(isle.root); isle.dispose(); } if (sky) { sky.dispose(); sky = null; }
     if (airG) { scene.remove(airG); airG.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
     isle = buildIsle(look); world.add(isle.root);
-    sky = buildSky(look.ik); scene.add(sky.root); skyNo = look.ik; sky.fit(camera.aspect);
+    sky = skyFriend(look.ik); if (sky) world.add(sky.root); // flies round the isle; the sky behind it is always the real one
     airG = new THREE.Group(); scene.add(airG); air = petals(airG, 9, 2.8, { ...isle.air, season: null }); // the owner's isle look, not the season
     setNight(night);
   }
@@ -90,7 +91,7 @@ function build() {
   new IntersectionObserver(es => { seen = es[es.length - 1].isIntersecting; }).observe(canvas);
   const loop = dt => {
     if (!canvas.isConnected || !seen) return;
-    if (rw !== W || rh !== Hh) { W = rw; Hh = rh; renderer.setSize(W, Hh, false); camera.aspect = W / Math.max(1, Hh); camera.updateProjectionMatrix(); sky?.fit(camera.aspect); }
+    if (rw !== W || rh !== Hh) { W = rw; Hh = rh; renderer.setSize(W, Hh, false); camera.aspect = W / Math.max(1, Hh); camera.updateProjectionMatrix(); }
     if (!W || !Hh) return;
     if (!reduced) T += dt;
     world.position.y = Math.sin(T * .8) * .12; world.rotation.y = Math.sin(T * .15) * .25;
@@ -102,20 +103,20 @@ function build() {
     for (const g of pals) { const u = (T * .55 + g.userData.i * .37) % 1, j = u < .22 ? Math.sin(u / .22 * Math.PI) : 0; // a little hop now and then, and one with you when poked
       g.position.y = j * .22 + Math.sin(Math.min(1, (1 - hop) * 1.6) * Math.PI) * (hop > 0 ? .5 : 0); g.rotation.z = Math.sin(T * 1.7 + g.userData.i * 2) * .04; }
     camera.position.copy(camAt); camera.position.x += Math.sin(T * .2) * .4; camera.lookAt(target);
-    flyBirds(T); air?.(T); isle?.tick(T); sky?.tick(T); fx.update(dt, camera, Hh);
+    flyBirds(T); air?.(T); isle?.tick(T); sky?.tick(T, night.n, camera); fx.update(dt, camera, Hh);
     renderer.render(scene, camera);
   };
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
   const cD = new THREE.Color(), cG = new THREE.Color(), cN = new THREE.Color();
   const blend = (o, day, glow, nite, g, n) => o.copy(cD.set(day)).lerp(cG.set(glow), g).lerp(cN.set(nite), n);
-  function setNight(ph) { // moonlight: cooler and dimmer, lamps glowing. A night or day sky decides for itself; a sunset warms the light.
+  function setNight(ph) { // moonlight: cooler and dimmer, lamps glowing. Always the real sky's hour and weather (a sky friend never changes it).
     if (typeof ph === 'boolean') ph = { n: ph ? 1 : 0, g: 0, dawn: false };
-    const mood = sky?.mood || '', warm = mood === 'sunset', W = WX_LOOK[wxShown()] || WX_LOOK.sunny; // under cloud the sun is softer
-    // a bought sky keeps its own hour; the plain one passes through dusk and dawn with the clock
-    const n = mood === 'night' ? 1 : mood === 'day' || warm ? 0 : ph.n, g = mood ? 0 : ph.g * (1 - (1 - W.sky) * .7), G = GLOW[ph.dawn ? 'dawn' : 'dusk'], on = n >= .5;
-    blend(hemi.color, warm ? '#ffd9c0' : '#ffffff', G.hemi, '#9aa6ff', g * .8, n); blend(hemi.groundColor, warm ? '#ff9a8a' : '#ffe9c9', '#ffb8a0', '#5a3a6a', g * .7, n);
-    hemi.intensity = ((warm ? 1.7 : 2) * (1 - .1 * g) * (1 - n) + 1.35 * n) * W.hemi;
-    blend(key.color, warm ? '#ffc08a' : '#ffffff', G.sun, '#c8d0ff', g * .85, n); key.intensity = (1.5 * (1 - .12 * g) * (1 - n) + .9 * n) * W.sun;
+    const W = WX_LOOK[wxShown()] || WX_LOOK.sunny; // under cloud the sun is softer
+    // the light passes through dusk and dawn with the clock
+    const n = ph.n, g = ph.g * (1 - (1 - W.sky) * .7), G = GLOW[ph.dawn ? 'dawn' : 'dusk'], on = n >= .5;
+    blend(hemi.color, '#ffffff', G.hemi, '#9aa6ff', g * .8, n); blend(hemi.groundColor, '#ffe9c9', '#ffb8a0', '#5a3a6a', g * .7, n);
+    hemi.intensity = (2 * (1 - .1 * g) * (1 - n) + 1.35 * n) * W.hemi;
+    blend(key.color, '#ffffff', G.sun, '#c8d0ff', g * .85, n); key.intensity = (1.5 * (1 - .12 * g) * (1 - n) + .9 * n) * W.sun;
     wx.set(wxShown(), on);
     isle?.root.traverse(o => { if (o.userData.nightOnly) o.visible = on; }); // lamp posts
   }
@@ -125,19 +126,18 @@ function build() {
   // Hands the WebGL context back. Phones keep only a few: a profile card's isle left alive next to a game's 3D scene
   // made the browser drop the game's context, and the match turned plain sky blue (Kuba, Dominoes, 2026-11-26).
   const release = () => { ticker.stop(); canvas.remove(); renderer.dispose(); renderer.forceContextLoss(); };
-  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, release, skyNo: () => skyNo, lost: () => renderer.getContext().isContextLost() };
+  return { canvas, setAvatar, setPets, setIsle, setNight, setZoom, ticker, release, lost: () => renderer.getContext().isContextLost() };
 }
 
 // fl: the player's flair; its isle kinds (ig ground, ib rock base, ip decor, ik sky) dress the isle.
 // The browser can take a WebGL context away (a phone asleep, a GPU reset): that canvas stays blank forever, so build anew.
 const fresh = v => { if (!v?.lost()) return v; v.ticker.stop(); v.canvas.remove(); return null; };
-const skyCls = (box, n) => { for (const c of [...box.classList]) if (/^isk\d/.test(c)) box.classList.remove(c); if (n) box.classList.add('isk' + n); };
-// frame: the hub's sky banner (it gets a class isk1.. for a bought sky); zoom brings the camera closer so the isle fills it.
+// frame: the hub's sky banner (kept for callers; the banner always shows the real sky); zoom brings the camera closer so the isle fills it.
 export function mountHero(box, color, av, pets = [], fl = null, { frame = null, zoom = 1 } = {}) {
   if (!box) return false;
   H = fresh(H);
   try { H ||= build(); } catch { return false; }
-  H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl); H.setZoom(zoom); if (frame) skyCls(frame, H.skyNo());
+  H.setAvatar(color, av); H.setPets(pets); H.setIsle(fl); H.setZoom(zoom);
   if (H.canvas.parentNode !== box) box.replaceChildren(H.canvas);
   return true;
 }
@@ -145,12 +145,12 @@ export function mountHero(box, color, av, pets = [], fl = null, { frame = null, 
 export function releaseHero() { if (!H) return; const v = H; H = null; try { v.release(); } catch {} } // a game is open: the hub's isle is out of sight
 export function releaseIsle() { if (!P) return; const v = P; P = null; try { v.release(); } catch {} }
 // The same isle for someone else: their avatar and the pets they show off, in a profile card.
-// frame: the element whose background is the sky (it gets a class isk1.. for a bought sky; see style.css).
+// frame: the element whose background is the sky (always the real sky, see style.css).
 export function mountIsle(box, color, av, pets = [], fl = null, frame = box) {
   if (!box) return false;
   P = fresh(P);
   try { P ||= build(); } catch { return false; }
-  P.setAvatar(color, av); P.setPets(pets); P.setIsle(fl); skyCls(frame, P.skyNo());
+  P.setAvatar(color, av); P.setPets(pets); P.setIsle(fl);
   if (P.canvas.parentNode !== box) box.replaceChildren(P.canvas);
   return true;
 }

@@ -126,8 +126,10 @@ export const COS = {
     { n: 'Golden isle', earn: { lv: 20 } }, { n: 'Champion’s isle', earn: { any: 50 } }, { n: 'Bakery Bluff', p: 200 }, { n: 'Coral Reef', p: 200 }, { n: 'Starfall Isle', p: 220 }, { n: 'Thunder Meadow', p: 220 }, { n: 'Legend Isle', earn: { pf: 'far', n: 1 } }] },
   ib: { label: 'Rock base', where: 'What hangs under your isle and your Pet Farm island.', items: [{ n: 'Classic' }, { n: 'Crystal cluster', p: 200 }, { n: 'Floating chunks', p: 150 }, { n: 'Waterfall', p: 250 }, { n: 'Hanging roots', p: 150 },
     { n: 'Cloud bed', p: 200 }, { n: 'Icicles', p: 160, s: 'winter' }, { n: 'Magma drips', p: 220 }] },
-  ik: { label: 'Sky', where: 'The sky behind your isle and your Pet Farm island.', items: [{ n: 'Clear' }, { n: 'Sunset', p: 120 }, { n: 'Starry night', p: 150 }, { n: 'Aurora', p: 220 }, { n: 'Rainbow', p: 150 }, { n: 'Lantern night', p: 200 },
-    { n: 'Snowfall', p: 160, s: 'winter' }, { n: 'Thunderstorm', p: 220 }, { n: 'Pastel dawn', p: 180, s: 'spring' }] },
+  // Sky friends replaced the bought skies on 2026-11-27 (Kuba): the sky itself always follows the real time and weather.
+  // Same indexes as the old skies, so each owner kept the friend in their sky's place (Sunset > Kite, Starry night > Paper planes...).
+  ik: { label: 'Sky friend', where: 'Flies round your isle and your Pet Farm island. The sky behind it is always the real one, with its weather.', items: [{ n: 'None' }, { n: 'Kite', p: 120 }, { n: 'Paper planes', p: 150 }, { n: 'Airship', p: 220 }, { n: 'Bubbles', p: 150 }, { n: 'Sky lanterns', p: 200 },
+    { n: 'Toy sleigh', p: 160, s: 'winter' }, { n: 'Wattbat', p: 220 }, { n: 'Hot-air balloons', p: 180, s: 'spring' }] },
 };
 export const COS_KEYS = Object.keys(COS);
 // Kinds where one entry is worn at a time (sticker packs are simply all usable once bought).

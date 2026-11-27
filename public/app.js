@@ -3119,7 +3119,7 @@ function openWardrobe({ first = false, sec: startSec = 'av0', sub: startSub = ''
     : k === 'wn' ? (winPic(i) ? `<span class="wdemo"><img alt="" src="${winPic(i)}"></span>` : `<span class="wdemo">${WIN_ICO[i] || '✨'}</span>`)
     : k === 'em' ? `<span class="wdemo">${EMOTE_ICO[i] || '✨'}</span>`
     : k === 'sp' ? `<span class="wdemo sm">${(it.e.length ? it.e : EMOJI).slice(0, 6).join('')}</span>`
-    : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic${k === 'ik' ? ' isk' + i : ''}" data-isle="${k}:${i}">`
+    : ISLE_KINDS.includes(k) ? `<img alt="" class="islepic" data-isle="${k}:${i}">`
     : `<img alt="" data-kit="${k}:${i}"${skinPicNow(k, i, color, av) ? ` src="${skinPicNow(k, i, color, av)}"` : ''}>`;
   const cosState = (k, i) => { const it = cosItem(k, i), own = has(k, i), pr = !own && earnProgress(it, me()); return { it, own, pr, off: !own && !pr && !cosOnSale(k, i, today()) }; };
   const cosTile = (k, i) => {
