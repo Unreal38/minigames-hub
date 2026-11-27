@@ -638,7 +638,10 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
 
   // torso: a soft bean. Hips take the bottom colour.
   const y0 = hipY - .05 * H, t = shY - y0, wy = y0 + .42 * t, yT = shY + .015 * H;
-  const TP = [[0, y0], [hi * .55, y0 + .01 * t], [hi * .9, y0 + .07 * t], [hi, y0 + .18 * t], [wa, y0 + .45 * t], [ch, y0 + .72 * t], [sh * .97, y0 + .86 * t], [sh * .8, y0 + .95 * t], [sh * .45, yT], [0, yT]];
+  // The legs hang at legX; on builds with thick legs and narrow hips (Athletic, Broad) the hips are filled out at the
+  // bottom so the tops of the thighs (narrowed a little, see the leg tube) stay inside them instead of sticking out.
+  const legX = Math.max(hi * .5, lb * 1.3), hL = Math.max(hi, (legX + lb * 1.55 * .86) / .95 + .004);
+  const TP = [[0, y0], [hL * .55, y0 + .01 * t], [hL * .9, y0 + .07 * t], [Math.max(hi, hL * .97), y0 + .18 * t], [wa, y0 + .45 * t], [ch, y0 + .72 * t], [sh * .97, y0 + .86 * t], [sh * .8, y0 + .95 * t], [sh * .45, yT], [0, yT]];
   // depth is its own gentle profile, so a wide build gets wider and never sticks out in front
   const dhi = Math.min(hi, wa * 1.06) * dz, dch = Math.min(ch, wa * 1.12) * dz, DP = [[0, y0], [dhi * .55, y0 + .01 * t], [dhi * .9, y0 + .07 * t], [dhi, y0 + .18 * t], [wa * dz, y0 + .45 * t], [dch, y0 + .72 * t], [dch * .93, y0 + .86 * t], [dch * .78, y0 + .95 * t], [sh * .45 * dz, yT], [0, yT]];
   const zk = { key: 'z' + DP.map(q => f3(q[0])).join(), f: y => { const r = rAt(TP, y); return r > 1e-4 ? rAt(DP, y) / r : dz; } };
@@ -876,12 +879,12 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   // legs and big rounded shoes. Seated, the legs dangle forward off the seat.
   const tl = legLen * .5, shoeH = H * .05, sl = legLen - tl - shoeH, shortLeg = (bot === 2 || bot === 13) && !dress;
   for (const s of [-1, 1]) {
-    const leg = new THREE.Group(); leg.position.set(s * Math.max(hi * .5, lb * 1.45), hipY, 0); g.add(leg);
+    const leg = new THREE.Group(); leg.position.set(s * legX, hipY, 0); g.add(leg);
     const wide = bot === 8 && !skirt, slim = bot === 7 && !suit && !skirt, plain = !skirt && !suit, cuffd = bot === 9 && plain, cargo = bot === 10 && plain, flare = bot === 14 && plain, track = bot === 16 && plain, kT = wide ? 1.7 : slim ? 1.36 : cargo ? 1.66 : flare ? 1.45 : 1.55, kK = wide ? 1.6 : slim ? 1.12 : cuffd ? 1.36 : cargo ? 1.44 : flare ? 1.08 : 1.3, kA = wide ? 2.05 : flare ? 2.35 : slim ? .92 : bot === 4 && plain ? .96 : track ? 1.16 : cuffd ? 1.24 : cargo ? 1.08 : 1.05;
     const kn = new THREE.Group(); kn.position.y = -tl; kn.userData.sub = true; leg.add(kn);
     // thigh, knee and shin are one tube that bends at the knee; shorts change to skin under their hem
     const lc = skirt || shortLeg ? skin : botC, rH = lb * (kT + (kK - kT) * .9);
-    tube(leg, rings([[0, lb * .15, 0], [lb * kT * .75, lb * .1, 0], [lb * kT, 0, 0], [rH, -tl * .9, 0], [rH, -tl * .9, 1], [lb * kK, -tl, 1], [lb * kA, -tl - sl, 1],
+    tube(leg, rings([[0, lb * .15, 0], [lb * kT * .65, lb * .1, 0], [lb * kT * .86, 0, 0], [lb * kT, -tl * .35, 0], [rH, -tl * .9, 0], [rH, -tl * .9, 1], [lb * kK, -tl, 1], [lb * kA, -tl - sl, 1],
       [lb * kA * .7, -tl - sl - shoeH * .3, 1], [0, -tl - sl - shoeH * .45, 1]], -tl + lb * 1.2, -tl - lb * 1.4, lb * .3), [skirt ? skin : botC, lc], kn, -tl, lb * .5, lb * 1.0);
     if (top === 29) { box(leg, lb * .7, tl * .7, .02, '#f4f1ea', 0, -tl * .5, lb * 1.52); box(kn, lb * .6, sl * .7, .02, '#f4f1ea', 0, -sl * .5, lb * 1.22); }
     if (shortLeg && bot === 2) cyl(leg, lb * 1.42, lb * 1.46, tl * .14, shade(botC, .8), 0, -tl * .9, 0);
@@ -970,7 +973,7 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     // The skirt's top must hold the thighs (same place and size as the leg loop above, plus a little room for the outline):
     // on a build with thick legs and narrow hips (Athletic) hi * 1.12 is too tight, so the skirt is made wider there and
     // deep enough that the round thigh fits in its oval, and the hem grows by the same amount so the shape stays the same.
-    const lx = Math.max(hi * .5, lb * 1.45), lr = lb * 1.55 + .014, rH = Math.max(hi * 1.12, lx + lr + .01), rE = rE0 * rH / (hi * 1.12);
+    const lx = legX, lr = lb * 1.55 + .014, rH = Math.max(hi * 1.12, lx + lr + .01), rE = rE0 * rH / (hi * 1.12);
     let kz = Math.max(dz * Math.min(1, wa * 1.25 / hi), lb * 2 / (hi * 1.12));
     for (let i = 0; i <= 24; i++) { const an = i / 24 * PI, px = lx + lr * Math.cos(an), pz = lr * Math.sin(an); if (px < rH * .995) kz = Math.max(kz, pz / (rH * Math.sqrt(1 - (px / rH) ** 2))); }
     if (seated) { const R = Math.max(hi * 1.35, (lx + lr) * 1.1); sph(g, R, c, 0, hipY + lb * .5, tl * .36).scale.set(1, Math.max(.32, (lr - lb * .5 + .016) / R), 1.1); if (sLen > 1) { const dr = cyl(g, hi * 1.15, hi * 1.25, sl * .9, c, 0, hipY - sl * .15, tl * 1.0); dr.scale.z = .5; dr.rotation.x = -.5; } }
