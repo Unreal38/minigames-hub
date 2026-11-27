@@ -1182,7 +1182,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       const pulse = kind === 'pick' ? 1 + Math.sin(T * 4) * .04 : 1, sq = Math.max(m.size[0], m.size[1]), rnd = m.t.pet || Math.abs(m.size[0] - m.size[1]) < .01;
       m.ring.visible = !(kind === 'hover' && marks.pick.key === m.key) && m.root.visible;
       m.ring.position.set(m.root.position.x, .03 + (kind === 'pick' ? .005 : 0), m.root.position.z);
-      m.ring.scale.set((rnd ? sq : m.size[0]) * 1.2 * pulse, (rnd ? sq : m.size[1]) * 1.2 * pulse, 1); m.ring.rotation.z = kind === 'pick' ? T * .8 : 0;
+      m.ring.scale.set((rnd ? sq : m.size[0]) * 1.2 * pulse, (rnd ? sq : m.size[1]) * 1.2 * pulse, 1); m.ring.rotation.z = kind === 'pick' && rnd ? T * .8 : 0; // an oval under a long piece stays put: spinning it would swing the oval round
       if (m.glow) m.glow.visible = !(kind === 'hover' && marks.pick.key === m.key);
     }
   }
