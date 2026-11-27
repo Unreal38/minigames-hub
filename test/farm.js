@@ -239,6 +239,16 @@ if (!r.err) fail('a Voyage went to a near island');
 r = await a.farmDo({ t: 'send', zone: 'legend', trip: 'voyage', pets: [me.id] });
 if (!r.err || r.farm.trip) fail('a Voyage set off without fuel');
 if (countOf(a.farm, 'kitchen')) { await a.farmDo({ t: 'open', test: { give: { berries: 8, fiber: 10, coal: 4 } } }); r = await a.farmDo({ t: 'cook', what: 'pack' }); if (r.err || !(r.farm.inv.pack >= 1)) fail('Trail Pack ' + r.err); }
+// the Kitchen cooks several at once (the ×5 button), at most COOK_MAX, and only when all of them can be paid for
+if (countOf(a.farm, 'kitchen')) {
+  await a.farmDo({ t: 'open', test: { give: { berries: 20 - (a.farm.inv.berries || 0) } } });
+  const c0 = a.farm.inv.cookie || 0; r = await a.farmDo({ t: 'cook', what: 'cookie', n: 5 });
+  if (r.err || r.farm.inv.berries !== 0 || r.farm.inv.cookie - c0 !== r.made || r.made < 5) fail('cook five ' + JSON.stringify([r.err, r.made, r.farm?.inv.berries]));
+  await a.farmDo({ t: 'open', test: { give: { berries: 12 } } }); r = await a.farmDo({ t: 'cook', what: 'cookie', n: 5 });
+  if (!r.err || r.farm.inv.berries !== 12) fail('cooked five without the berries for them');
+  await a.farmDo({ t: 'open', test: { give: { berries: 100 } } }); r = await a.farmDo({ t: 'cook', what: 'cookie', n: 99 });
+  if (r.err || r.farm.inv.berries !== 112 - 40) fail('cook should stop at ten ' + r.farm?.inv.berries);
+}
 await a.farmDo({ t: 'open', test: { give: { crystal: TRIPS.voyage.fuel.crystal, pack: TRIPS.voyage.fuel.pack } } });
 await wait(1100);
 const fuel0 = { ...a.farm.inv };

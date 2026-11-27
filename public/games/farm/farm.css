@@ -670,3 +670,46 @@ body.night .pf .pfnew { background: #ffcf3a; color: #241400; border-color: #2414
 .pf .pre.charms { gap: 8px; } .pf .pre.charms > .btn { align-self: flex-start; }
 .pf .chms { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; }
 .pf .swmat.chm { padding: 6px 4px 5px; } .pf .swmat.chm b { text-wrap: balance; }
+/* The Kitchen (2026-11-27): recipes grouped by what they are for, one row each with Cook / ×5 / Give… buttons */
+.pf .pfkit { gap: 12px; }
+.pf .kithead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pf .kithead h2 { margin: 0; }
+.pf .kitlv { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border: 2px solid var(--ink); border-radius: 999px; background: var(--pf-chip, var(--card)); font-family: var(--fd); font-weight: 600; font-size: 14px; }
+.pf .kithelp { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; min-height: 44px; border: 2px solid var(--ink); border-radius: 14px; background: rgba(240, 140, 80, .18); color: var(--pf-tx, var(--ink)); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.pf .kithelp.none { padding-left: 10px; border-style: dashed; background: transparent; }
+.pf .kithelp img { width: 40px; height: 40px; flex: none; }
+.pf .kithelp span { text-wrap: pretty; }
+.pf .kitpantry { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 10px; border-radius: 12px; background: var(--pf-soft, #efe2d2); }
+.pf .kitpantry .hint { font-size: 13px; margin-right: 2px; }
+.pf .kitgrp { display: flex; flex-direction: column; gap: 6px; }
+.pf .kitgrp h3 { margin: 4px 0 0; font-family: var(--fd); font-size: 18px; }
+.pf .kitgrp > .hint { margin: 0 0 2px; font-size: 13px; }
+.pf .kitrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 8px 10px; background: var(--pf-chip, var(--card)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 14px; }
+.pf .kitrow.lock { background: var(--pf-soft, #efe2d2); border-style: dashed; } .pf .kitrow.lock .kitpic, .pf .kitrow.lock b { opacity: .6; }
+.pf .kitpic { position: relative; display: grid; place-items: center; width: 48px; height: 48px; }
+.pf .kitpic em { position: absolute; right: -6px; bottom: -4px; min-width: 22px; padding: 0 5px; border: 2px solid var(--ink); border-radius: 999px; background: var(--lantern); color: var(--ink); font: 700 12px/18px var(--fd); font-style: normal; text-align: center; }
+.pf .kitinfo { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.pf .kitinfo b { font-family: var(--fd); font-weight: 600; font-size: 16px; }
+.pf .kitgain { padding: 0 8px; border-radius: 999px; background: #d8f0c4; color: #2c5a1e; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.pf .kitinfo .cost { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.pf .kitlocked { font-size: 13px; font-weight: 700; color: var(--pf-muted, #6b4a3c); }
+.pf .kitlocked::before { content: '🔒 '; }
+.pf .kitbtns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.pf .kitbtns .btn.off { opacity: .55; }
+.pf .xp.mini { height: 10px; border-width: 2px; margin-top: 2px; }
+body.night .pf .kitgain { background: #2d4a2a; color: #c6f0b0; }
+body.night .pf .kithelp { background: rgba(240, 140, 80, .16); }
+body.night .pf .kithelp.none { background: transparent; }
+body.night .pf .mat.short { color: #ff8f7a; }
+@media (max-width: 640px) {
+  .pf .kitrow { grid-template-columns: auto minmax(0, 1fr); padding: 8px; }
+  .pf .kitbtns { grid-column: 1 / -1; justify-content: stretch; } .pf .kitbtns .btn { flex: 1 1 auto; }
+  .pf .kitrow.lock .kitbtns { display: none; }
+  .pf .kitgrp > .hint { font-size: 12px; }
+}
+@media (max-width: 640px) {
+  .pf .pfkit .party { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: visible; }
+  .pf .pfkit .party .pickpet { width: auto; }
+  .pf .kitpantry .mat { font-size: 14px; }
+  .pf .kitpic { width: 40px; height: 40px; }
+}

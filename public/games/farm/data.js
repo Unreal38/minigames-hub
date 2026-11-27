@@ -352,6 +352,8 @@ export const GIFTS = { wood: 10, stone: 10, fiber: 10, shells: 5, coal: 5, cryst
 export const TRADE_MATS = Object.keys(MATS).filter(k => k !== 'coins' && k !== 'stamps');
 // Gardens, kitchen, barn and workshop.
 export const GROW_MIN = 60, BERRIES = 3; // each Garden Plot gives 3 berries an hour
+// COOK_MAX: the most of one recipe the Kitchen cooks in one go (the ×5 button).
+export const COOK_MAX = 10;
 export const RECIPES = {
   cookie: { name: 'Berry Cookie', cost: { berries: 4 }, xp: 30, desc: 'Feed it to a pet for 30 experience.' },
   cake:   { name: 'Honey Cake', cost: { berries: 10, fiber: 5 }, xp: 90, desc: 'Feed it to a pet for 90 experience.' },
