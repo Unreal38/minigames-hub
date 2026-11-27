@@ -161,7 +161,8 @@ const inkOf = ch => {
 // averaged over vertices that share a spot, so the hull closes at the corners instead of splitting into loose flaps.
 // Other shapes keep their own normals: hair and hat-pressed hair turn some normals inward on purpose to hide the line.
 const HARD = new Set(['BoxGeometry', 'CylinderGeometry', 'ConeGeometry']);
-const hullOf = (p, nn, w, out, at, hard) => {
+const hullOf = (p, nn, w, out, at, hard, wf) => { // wf: an optional width factor per point
+  if (wf) { for (let i = 0; i < p.length; i++) out[at + i] = p[i] + nn[i] * w * wf[i / 3 | 0]; return; }
   if (!hard) { for (let i = 0; i < p.length; i++) out[at + i] = p[i] + nn[i] * w; return; }
   const sum = new Map(), key = i => (Math.round(p[i] * 2000) + 8192) + (Math.round(p[i + 1] * 2000) + 8192) * 16384 + (Math.round(p[i + 2] * 2000) + 8192) * 268435456, keys = [];
   for (let i = 0; i < p.length; i += 3) { const k = key(i); keys.push(k); let v = sum.get(k); if (!v) sum.set(k, v = [0, 0, 0]); v[0] += nn[i]; v[1] += nn[i + 1]; v[2] += nn[i + 2]; }
@@ -183,7 +184,10 @@ function merge(root, bones, mat, extra = []) {
     if (ch.isMesh && ch.material === stub) {
       const ink = inkOf(ch);
       const g = ch.geometry.index ? ch.geometry.toNonIndexed() : ch.geometry.clone(), jw = g.attributes.jw, cnt = g.attributes.position.count;
+      let wf = null; const fd = ch.userData.fade; // [y0, y1]: the outline fades out from y1 down to y0 (in the part's own space)
+      if (fd) { wf = new Float32Array(cnt); for (let v = 0; v < cnt; v++) { const u = Math.min(1, Math.max(0, (g.attributes.position.getY(v) - fd[0]) / (fd[1] - fd[0]))); wf[v] = u * u * (3 - 2 * u); } }
       const sk = new Uint8Array(cnt * 2), w = new Float32Array(cnt); sk.fill(cb);
+      const hw = ch.userData.hb && g.attributes.hw ? [bi.get(ch.userData.hb), g.attributes.hw.array] : null; // a thigh's top stays with the hips
       if (jw && ch.userData.jb) { // a limb tube: straight in its own bone's space; the far end follows the next bone
         const jb = ch.userData.jb, k2 = bi.get(jb), P = g.attributes.position, N = g.attributes.normal;
         _m.multiplyMatrices(_i, ch.matrixWorld); _jb.multiplyMatrices(_i, jb.matrixWorld).multiply(_bl.makeTranslation(-jb.position.x, -jb.position.y, -jb.position.z));
@@ -193,7 +197,7 @@ function merge(root, bones, mat, extra = []) {
           _jn.fromBufferAttribute(N, v); _jm.copy(_jn).transformDirection(_jb); _jn.transformDirection(_m).lerp(_jm, t).normalize(); N.setXYZ(v, _jn.x, _jn.y, _jn.z);
         }
       } else g.applyMatrix4(_m.multiplyMatrices(_i, ch.matrixWorld));
-      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone(), ink, ch.userData.cs && g.attributes.tone ? [g.attributes.tone.array, ch.userData.cs.map(c => new THREE.Color(c))] : null, sk, w]); n += cnt; g.dispose(); gone.push(ch);
+      parts.push([g.attributes.position.array, g.attributes.normal.array, _c.set(ch.userData.c).clone(), ink, ch.userData.cs && g.attributes.tone ? [g.attributes.tone.array, ch.userData.cs.map(c => new THREE.Color(c))] : null, sk, w, wf, hw]); n += cnt; g.dispose(); gone.push(ch);
     } else walk(ch, cb);
   } };
   walk(root, 0);
@@ -202,10 +206,11 @@ function merge(root, bones, mat, extra = []) {
   let ln = n; for (const e of extra) ln += e.pos.length / 3;
   const lpos = new Float32Array(ln * 3), lcol = new Float32Array(ln * 3), lsi = new Uint8Array(ln * 4), lsw = new Float32Array(ln * 4); let o = 0;
   const skinAt = (sI, sW, v, a, b, t) => { sI[v * 4] = a; sI[v * 4 + 1] = b; sW[v * 4] = 1 - t; sW[v * 4 + 1] = t; };
-  for (const [p, nn, c, ink, tn, sk, w] of parts) {
+  for (const [p, nn, c, ink, tn, sk, w, wf, hw] of parts) {
     pos.set(p, o); nor.set(nn, o); for (let i = 0; i < p.length; i += 3) { const k = tn ? tn[1][Math.round(tn[0][i / 3])] : c; col[o + i] = k.r; col[o + i + 1] = k.g; col[o + i + 2] = k.b; } // hair carries a tone per point (see hair3d.js)
-    hullOf(p, nn, ink.w, lpos, o, ink.hard); for (let i = 0; i < p.length; i += 3) { lcol[o + i] = ink.col.r; lcol[o + i + 1] = ink.col.g; lcol[o + i + 2] = ink.col.b; }
-    for (let v = 0, q = o / 3 * 4; v < p.length / 3; v++, q += 4) { si[q] = sk[v * 2]; si[q + 1] = sk[v * 2 + 1]; sw[q] = 1 - w[v]; sw[q + 1] = w[v]; }
+    hullOf(p, nn, ink.w, lpos, o, ink.hard, wf); for (let i = 0; i < p.length; i += 3) { lcol[o + i] = ink.col.r; lcol[o + i + 1] = ink.col.g; lcol[o + i + 2] = ink.col.b; }
+    for (let v = 0, q = o / 3 * 4; v < p.length / 3; v++, q += 4) { si[q] = sk[v * 2]; si[q + 1] = sk[v * 2 + 1]; sw[q] = 1 - w[v]; sw[q + 1] = w[v];
+      if (hw && hw[1][v] > 0) { const h = hw[1][v]; si[q + 2] = hw[0]; sw[q] *= 1 - h; sw[q + 1] *= 1 - h; sw[q + 2] = h; } }
     o += p.length;
   }
   lsi.set(si); lsw.set(sw); // the outline's first n points are the model's own, in the same order
@@ -251,7 +256,7 @@ export function partBox(o, out = new THREE.Box3()) {
 // One limb as a single tube round its bone's y axis, so arm or leg, joint and outline are all one smooth piece.
 // prof: [[r, y, tone], ...] from the top down (r 0 at an end closes it); tones index cs (the colours along it).
 // Points below the joint at y = jy follow the bone jb, blended over (jy + up) .. (jy - down) so it bends round.
-const tube = (p, prof, cs, jb, jy, up, down) => {
+const tube = (p, prof, cs, jb, jy, up, down, hip) => { // hip: { bone, y0, y1 } points above y1 stay with bone, fading out by y0
   const S = SEG, pos = [], nor = [], tone = [], jw = [], idx = [], L = prof.length;
   const at = j => { let a = j, b = j; while (a > 0 && prof[a - 1][0] === prof[j][0] && prof[a - 1][1] === prof[j][1]) a--; while (b < L - 1 && prof[b + 1][0] === prof[j][0] && prof[b + 1][1] === prof[j][1]) b++; return [prof[Math.max(0, a - 1)], prof[Math.min(L - 1, b + 1)]]; };
   for (let j = 0; j < L; j++) {
@@ -263,7 +268,8 @@ const tube = (p, prof, cs, jb, jy, up, down) => {
   for (let j = 0; j < L - 1; j++) for (let i = 0; i < S; i++) { const a = j * (S + 1) + i, b = a + S + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   g.setAttribute('tone', new THREE.Float32BufferAttribute(tone, 1)); g.setAttribute('jw', new THREE.Float32BufferAttribute(jw, 1)); g.setIndex(idx);
-  const o = put(p, g, cs[0]); o.userData.cs = cs; o.userData.jb = jb; return o;
+  if (hip) { const P = g.attributes.position, hw = new Float32Array(P.count); for (let v = 0; v < P.count; v++) { const u = Math.min(1, Math.max(0, (P.getY(v) - hip.y0) / (hip.y1 - hip.y0))); hw[v] = u * u * (3 - 2 * u); } g.setAttribute('hw', new THREE.BufferAttribute(hw, 1)); }
+  const o = put(p, g, cs[0]); o.userData.cs = cs; o.userData.jb = jb; if (hip) o.userData.hb = hip.bone; return o;
 };
 // a profile point list with extra rings every d between y0 and y1 (so a bend has rings to bend with)
 const rings = (pr, y0, y1, d) => { const out = []; for (let j = 0; j < pr.length; j++) { out.push(pr[j]); const b = pr[j + 1]; if (!b) break; const a = pr[j];
@@ -668,12 +674,15 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   // The legs hang at legX; on builds with thick legs and narrow hips (Athletic, Broad) the hips are filled out at the
   // bottom so the tops of the thighs (narrowed a little, see the leg tube) stay inside them instead of sticking out.
   const legX = Math.max(hi * .5, lb * 1.3), hL = Math.max(hi, (legX + lb * 1.55 * .86) / .95 + .004);
-  const TP = [[0, y0], [hL * .55, y0 + .01 * t], [hL * .9, y0 + .07 * t], [Math.max(hi, hL * .97), y0 + .18 * t], [wa, y0 + .45 * t], [ch, y0 + .72 * t], [sh * .97, y0 + .86 * t], [sh * .8, y0 + .95 * t], [sh * .45, yT], [0, yT]];
+  // The seat is flat-bottomed, just under the tops of the legs (no round ball between the legs), and its outline fades
+  // out where it meets the legs (fade below), so the trousers run from the hips into the legs without a line across.
+  const yb = hipY - .015 * H, BT = [[0, yb], [.75, yb + .005 * t], [.95, hipY + .01 * t]];
+  const TP = [...BT.map(([k, y]) => [hL * k, y]), [Math.max(hi, hL * .97), y0 + .18 * t], [wa, y0 + .45 * t], [ch, y0 + .72 * t], [sh * .97, y0 + .86 * t], [sh * .8, y0 + .95 * t], [sh * .45, yT], [0, yT]];
   // depth is its own gentle profile, so a wide build gets wider and never sticks out in front
-  const dhi = Math.min(hi, wa * 1.06) * dz, dch = Math.min(ch, wa * 1.12) * dz, DP = [[0, y0], [dhi * .55, y0 + .01 * t], [dhi * .9, y0 + .07 * t], [dhi, y0 + .18 * t], [wa * dz, y0 + .45 * t], [dch, y0 + .72 * t], [dch * .93, y0 + .86 * t], [dch * .78, y0 + .95 * t], [sh * .45 * dz, yT], [0, yT]];
+  const dhi = Math.min(hi, wa * 1.06) * dz, dch = Math.min(ch, wa * 1.12) * dz, DP = [...BT.map(([k, y]) => [dhi * k, y]), [dhi, y0 + .18 * t], [wa * dz, y0 + .45 * t], [dch, y0 + .72 * t], [dch * .93, y0 + .86 * t], [dch * .78, y0 + .95 * t], [sh * .45 * dz, yT], [0, yT]];
   const zk = { key: 'z' + DP.map(q => f3(q[0])).join(), f: y => { const r = rAt(TP, y); return r > 1e-4 ? rAt(DP, y) / r : dz; } };
   const tg = new THREE.Group(); g.add(tg);
-  lathe(tg, slice(TP, y0, wy, 0), lowC, -PI, PI * 2, SEG, zk);
+  const lowB = lathe(tg, slice(TP, y0, wy, 0), lowC, -PI, PI * 2, SEG, zk); lowB.userData.fade = [hipY - .01 * H, hipY + .03 * t];
   lathe(tg, [...slice(TP, wy - .01, yT, .004), [0, yT]], bodyC, -PI, PI * 2, SEG, zk);
   const tz = y => rAt(DP, y) + .008, chestY = y0 + .72 * t;
   // a point on the front of the torso, x across and y up (tz is the same at x = 0)
@@ -911,8 +920,11 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     const kn = new THREE.Group(); kn.position.y = -tl; kn.userData.sub = true; leg.add(kn);
     // thigh, knee and shin are one tube that bends at the knee; shorts change to skin under their hem
     const lc = skirt || shortLeg ? skin : botC, rH = lb * (kT + (kK - kT) * .9);
-    tube(leg, rings([[0, lb * .15, 0], [lb * kT * .65, lb * .1, 0], [lb * kT * .86, 0, 0], [lb * kT, -tl * .35, 0], [rH, -tl * .9, 0], [rH, -tl * .9, 1], [lb * kK, -tl, 1], [lb * kA, -tl - sl, 1],
-      [lb * kA * .7, -tl - sl - shoeH * .3, 1], [0, -tl - sl - shoeH * .45, 1]], -tl + lb * 1.2, -tl - lb * 1.4, lb * .3), [skirt ? skin : botC, lc], kn, -tl, lb * .5, lb * 1.0);
+    // the top of the thigh is as wide as the hip there, so the outer line runs smoothly from the hip down the leg
+    const rr = Math.max(lb * kT * .86, rAt(TP, hipY) - legX - .004);
+    tube(leg, rings([[0, .07 * t, 0], [rr * .8, .06 * t, 0], [rr, .03 * t, 0], [rr, 0, 0], ...[.33, .66].map(f => [rr + (lb * kT - rr) * f, -tl * .35 * f, 0]), [lb * kT, -tl * .35, 0], [rH, -tl * .9, 0], [rH, -tl * .9, 1], [lb * kK, -tl, 1], [lb * kA, -tl - sl, 1],
+      [lb * kA * .7, -tl - sl - shoeH * .3, 1], [0, -tl - sl - shoeH * .45, 1]], -tl + lb * 1.2, -tl - lb * 1.4, lb * .3), [skirt ? skin : botC, lc], kn, -tl, lb * .5, lb * 1.0,
+      seated ? null : { bone: g, y0: -tl * .3, y1: .02 * t }); // standing, the top of the thigh bends with the hips as the leg swings
     if (top === 29) { box(leg, lb * .7, tl * .7, .02, '#f4f1ea', 0, -tl * .5, lb * 1.52); box(kn, lb * .6, sl * .7, .02, '#f4f1ea', 0, -sl * .5, lb * 1.22); }
     if (shortLeg && bot === 2) cyl(leg, lb * 1.42, lb * 1.46, tl * .14, shade(botC, .8), 0, -tl * .9, 0);
     if (shortLeg && bot === 13) { cyl(leg, lb * 1.6, lb * 1.66, tl * .3, botC, 0, -tl * .82, 0); hibiscus(leg, s * lb * 1.62, -tl * .55, lb * .3, s * PI / 2 - s * .3); hibiscus(leg, s * lb * .4, -tl * .8, lb * 1.6, 0, .028); }
