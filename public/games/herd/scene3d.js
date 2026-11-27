@@ -362,15 +362,15 @@ export function createScene(canvas, { onFrame } = {}) {
       pileG.position.set(D.TX - .75, .02, D.TZ - .66);
       if (S) { const st = S; seatKey = ''; me = -2; gid = ''; S = null; setState(st); }
     }
-    const DIR = new THREE.Vector3(0, portrait ? 2.4 : 2.0, 1).normalize();
+    const DIR = new THREE.Vector3(0, portrait ? 1.8 : 2.0, 1).normalize();
     const place = dist => { camera.position.copy(DIR).multiplyScalar(dist); camera.lookAt(camLook); camera.updateMatrixWorld(); };
     camera.aspect = w / h; camera.fov = portrait ? 46 : 36; camera.clearViewOffset(); camera.updateProjectionMatrix();
     const top = hudTop; let bottom = Math.max(top + 120, h - hudBottom);
     // portrait phones fit the cloth (the rivals are chips in the HUD); wide screens fit the whole table and its seats.
     // "close" fits just the part of the cloth the groups use: the camera eases towards it as a full table shrinks the tiles
-    const side = D.TX + (portrait ? .25 : n >= 4 ? 2.0 : .8), xMax = D.TX - (n >= 4 ? 1.0 : .35);
+    const side = D.TX + (portrait ? .1 : n >= 4 ? 2.0 : .8), xMax = D.TX - (n >= 4 ? 1.0 : .35);
     const wide = portrait
-      ? [new THREE.Vector3(0, .6, -D.TZ - .2), new THREE.Vector3(0, .1, D.TZ + .3), new THREE.Vector3(-side, .2, 0), new THREE.Vector3(side, .2, 0)]
+      ? [new THREE.Vector3(0, .1, -D.TZ + .1), new THREE.Vector3(0, .1, D.TZ + .15), new THREE.Vector3(-side, .2, 0), new THREE.Vector3(side, .2, 0)]
       : [new THREE.Vector3(0, 2.4, -D.TZ - 1.3), new THREE.Vector3(0, .1, D.TZ + .45), new THREE.Vector3(-side, .6, 0), new THREE.Vector3(side, .6, 0)];
     const A = area || { x0: -xMax, x1: xMax, z0: -D.TZ + 1.15, z1: D.TZ - 1.35 }, cx = Math.max(-A.x0, A.x1) + .25, cz0 = A.z0 - .3, cz1 = A.z1 + .3;
     const close = [new THREE.Vector3(0, .1, cz0), new THREE.Vector3(0, .1, cz1), new THREE.Vector3(-cx, .1, cz1), new THREE.Vector3(cx, .1, cz1)];
@@ -384,7 +384,7 @@ export function createScene(canvas, { onFrame } = {}) {
       place(hi); const [, ty] = toPx(FIT[0]), [, fy] = toPx(FIT[1]);
       return { dist: hi, off: (ty + fy) / 2 - (top + bottom) / 2 };
     };
-    const f = fit(wide); bottom -= 56; const c = fit(close); bottom += 56; // close up, the hint line above the tray stays clear of the last row
+    const f = fit(wide), pad = Math.min(56, (bottom - top) * .1); bottom -= pad; const c = fit(close); bottom += pad; // close up, a little room above the dock for the last row's label (small phones can't spare 56 px)
     if (c.dist > f.dist) { c.dist = f.dist; c.off = f.off; } // the close view never sits further out than the wide one
     view.wide = f; view.close = c; view.dir.copy(DIR);
     scene.fog.near = f.dist + 20; scene.fog.far = f.dist + 130;
@@ -477,7 +477,10 @@ export function createScene(canvas, { onFrame } = {}) {
     setMarks(m) { marks = { sel: m.sel || new Set(), fit: m.fit || new Set(), drop: m.drop ?? null }; paintMarks(); },
     tilePx(id) { const o = tiles.get(id); if (!o) return null; tv.copy(o.m.position).add(board.position).project(camera); return { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H }; },
     groupPx(id) { const G = groups.get(id); if (!G) return null; tv.set(G.x, .1, G.z).add(board.position).project(camera); return { x: (tv.x + 1) / 2 * W, y: (1 - tv.y) / 2 * H }; },
-    setHud(bottomPx, topPx = hudTop) { if ((Math.abs(bottomPx - hudBottom) > 6 || Math.abs(topPx - hudTop) > 6) && hudFitOk(canvas)) { hudBottom = bottomPx; hudTop = topPx; resize(true); } },
+    setHud(bottomPx, topPx = hudTop) { // snaps while settling; later the camera eases to a new tray size (rows come and go with draws and plays), never jumps
+      if (Math.abs(bottomPx - hudBottom) <= 6 && Math.abs(topPx - hudTop) <= 6) return;
+      hudBottom = bottomPx; hudTop = topPx; resize(hudFitOk(canvas) ? true : 'refit');
+    },
     dispose() {
       dead = true; ticker.stop();
       for (const s of seats) disposeAvatar(s.av), s.ring.material.dispose();
