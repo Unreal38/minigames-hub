@@ -15,6 +15,7 @@ import { ITEMS, STARTERS, canTilt, footprint, fits, blockedTiles, stepOf, formOf
 import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
 import { fenceSnap, isDiag } from './fence.js';
+import { PATHS, pathLink, pathSnap } from './paths.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
@@ -191,7 +192,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   // A building's level decides how it looks. The farmhouse keeps its level on the farm itself.
   const levelOf = (it, f = farm) => it.type === 'house' ? f?.house || 1 : lvOf(it);
   // A fence's joins, or the Pet Museum's medallions (from the album when the farm has one, else what the server sent).
-  const linkOf = (it, f = farm, skip) => it.type === 'arch' ? (isDiag(it.r) ? 1 : 0) : it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
+  const linkOf = (it, f = farm, skip) => PATHS[it.type] ? pathLink(f?.items, it.type, it.x, it.y, it.r, skip) : it.type === 'arch' ? (isDiag(it.r) ? 1 : 0) : it.type === 'garden' ? (it.crop || 'berries') : it.type === 'museum' ? (f?.album ? museumFill(f.album) : it.mu || '00000') : LINKS[it.type] ? fenceLink(f?.items, it.x, it.y, it.r, skip) : 0;
   function syncItems() {
     const seen = new Set();
     for (const it of farm?.items || []) {
@@ -1093,7 +1094,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     if (!ghost) return;
     ghost.ok = !!farm && fits(farm, ghost.type, ghost.x, ghost.y, ghost.r, ghost.id);
     const [w, h] = footprint(ghost.type, ghost.r);
-    if (LINKS[ghost.type] || ghost.type === 'arch') { const link = ghost.type === 'arch' ? linkOf(ghost) : fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
+    if (LINKS[ghost.type] || ghost.type === 'arch' || PATHS[ghost.type]) { const link = ghost.type === 'arch' || PATHS[ghost.type] ? linkOf(ghost, farm, ghost.id) : fenceLink(farm?.items, ghost.x, ghost.y, ghost.r, ghost.id); if (link !== ghost.link) { scene.remove(ghost.g); disposeModel(ghost.g); ghost.g = ghostModel(ghost.type, ghost.id, link); scene.add(ghost.g); ghost.link = link; } } // shows how it will join
     placeModel(ghost.g, ghost.type, ghost.x, ghost.y, ghost.r); ghost.g.position.y = .12;
     ghost.box = new THREE.Box3().setFromObject(ghost.g); // the floating buttons keep clear of it
     ghost.pad.scale.set(w, h, 1); ghost.pad.position.set(wx(ghost.x, w), .03, wz(ghost.y, h));
@@ -1101,7 +1102,8 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     onGhost?.(ghostInfo());
   }
   // a fence dropped half a tile off a line falls into it (fence.js fenceSnap)
-  const snapGhost = (x, y) => LINKS[ghost.type] && farm ? fenceSnap(farm.items, x, y, ghost.r, ghost.id, (a, b) => fits(farm, ghost.type, a, b, ghost.r, ghost.id)) : [x, y];
+  const snapGhost = (x, y) => !farm ? [x, y] : LINKS[ghost.type] ? fenceSnap(farm.items, x, y, ghost.r, ghost.id, (a, b) => fits(farm, ghost.type, a, b, ghost.r, ghost.id))
+    : PATHS[ghost.type] ? pathSnap(farm.items, ghost.type, x, y, ghost.r, ghost.id, (a, b) => fits(farm, ghost.type, a, b, ghost.r, ghost.id)) : [x, y]; // a path tile slides in line with its kind too
   const ghostInfo = () => ghost && { type: ghost.type, id: ghost.id, x: ghost.x, y: ghost.y, r: ghost.r, ok: ghost.ok };
   function ghostModel(type, id, link) {
     const g = itemModel(type, false, false, id ? levelOf(farm.items.find(i => i.id === id) || { type }) : 1, link);
@@ -1114,14 +1116,14 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const pad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), padMat); pad.rotation.x = -Math.PI / 2;
     scene.add(g, pad);
     ghost = { type, id, x, y, r, g, pad, ok: false, link: 0 };
-    if (id && LINKS[type]) syncItems(); // the fences next to the one picked up let go of it
+    if (id && (LINKS[type] || PATHS[type])) syncItems(); // the fences next to the one picked up let go of it
     for (const [iid, e] of items) e.g.visible = iid !== id;
     renderer.shadowMap.needsUpdate = true;
     gridVis(); ghostCheck();
   }
   function ghostCancel(quiet) {
     if (!ghost) return;
-    const relink = ghost.id && LINKS[ghost.type];
+    const relink = ghost.id && (LINKS[ghost.type] || PATHS[ghost.type]);
     scene.remove(ghost.g, ghost.pad); disposeModel(ghost.g); ghost.pad.geometry.dispose(); ghost = null;
     if (relink) syncItems();
     for (const e of items.values()) e.g.visible = true;
