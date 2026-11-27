@@ -16,7 +16,7 @@ import { L, PL, cnt, word } from '../../i18n.js';
 import { srvText, addServerText } from '../../lang/server.js';
 if (PL) { const pl = await import('../../lang/farm-pl.js'); addServerText(pl.SRV_TEXT, pl.SRV_FORMS); }
 import { WEATHER, weatherAt } from './data.js';
-import { wxIcon } from '../../weather.js';
+import { wxIcon, sunHour } from '../../weather.js';
 import { flairOf, piecesOf } from '../../cosmetics.js';
 import { islePic, isleCached } from '../../islepic.js';
 import { uiz } from '../../uiz.js';
@@ -158,8 +158,8 @@ export function mount(app, ctx) {
   const SNACKS = Object.keys(RECIPES).filter(k => RECIPES[k].atk), TRIP_FOOD = Object.keys(RECIPES).filter(k => RECIPES[k].use === 'trip' && !RECIPES[k].fuel);
   const nestTxt = n => n.stage === 'cuddle' ? L(`An egg will appear in ${wait(n.left)}.`, `Jajko pojawi się za ${wait(n.left)}.`) : n.stage === 'egg' ? L(`The egg hatches in ${wait(n.left)}.`, `Jajko wykluje się za ${wait(n.left)}.`) : L('The egg is ready to hatch!', 'Jajko jest gotowe do wyklucia!');
   const cannotPair = p => wheelOnly(p.sp) ? L('A Lucky Wheel pet cannot have eggs', 'Zwierzak z Koła szczęścia nie składa jajek') : p.lv < BREED_LV ? L(`Needs level ${BREED_LV}`, `Wymaga poziomu ${BREED_LV}`) : p.rest > 0 ? L(`Resting for ${wait(p.rest)}`, `Odpoczywa jeszcze ${wait(p.rest)}`) : outNow().includes(p.id) ? L('Away exploring', 'Na wyprawie') : inNest(p.id) ? L('Already in the Nest', 'Już w Gnieździe') : F.train.ids.includes(p.id) ? L('Training at the yard', 'Trenuje na placu') : '';
-  // The hour is the player's own clock; the weather is the same for everyone (a test or the pf_sky setting can pin both).
-  const skyNow = () => { const d = new Date(); let hour = d.getHours() + d.getMinutes() / 60, w = { ...weatherAt(), ...(WEATHER[F?.weather] ? { kind: F.weather, ...WEATHER[F.weather] } : {}) };
+  // The hour is the player's own clock turned to the sky clock (today's real sunrise and sunset, weather.js sunHour); the weather is the same for everyone (a test or the pf_sky setting can pin both).
+  const skyNow = () => { let hour = sunHour(), w = { ...weatherAt(), ...(WEATHER[F?.weather] ? { kind: F.weather, ...WEATHER[F.weather] } : {}) };
     try { const [h, k] = (localStorage.getItem('pf_sky') || '').split(','); if (h !== '' && !isNaN(+h)) hour = +h; if (WEATHER[k]) w = { ...w, kind: k, ...WEATHER[k] }; } catch { /* no storage */ }
     return { hour, w }; };
   let skyKey = '';

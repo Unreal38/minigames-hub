@@ -28,7 +28,7 @@ import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek,
 import { initNotice, onNotice } from './notice.js';
 import { initAdmin, openAdmin, openModerate, openReport, onMod, onModMe, muteNote, openCount as modOpenCount } from './admin.js';
 import { L, PL, LANG, LOCALE, cnt, word, num, ord, setLang, onLangSwitch, picked } from './i18n.js';
-import { weatherAt, weatherNext, wxIcon, isNight as wxNight, skyPhase, WX_LOOK } from './weather.js';
+import { weatherAt, weatherNext, wxIcon, isNight as wxNight, skyPhase, WX_LOOK, sunHour } from './weather.js';
 import { avatarHtml, cleanAv, randomAv, OPT, AV_KEYS, AV_COLOR_KEYS, AV_TABS, priceOf, packOf, packIds, needsOwning, wearable, lockedIn, OUTFITS, SEASON, SEASONS, seasonOn, seasonNow, seasonOf, onSale } from './avatar.js';
 
 export const SITE = 'Zatoka Gier';
@@ -1775,7 +1775,7 @@ function seasonHtml() {
 // The weather card under the season: the world's weather right now (the same for everyone, public/weather.js),
 // what it gives in Pet Farm, and what comes next. Sunny after dark on the player's own clock is a clear night, as on the farm.
 function weatherHtml(ms = Date.now()) {
-  const w = weatherAt(ms), nx = weatherNext(ms), d = new Date(ms), night = wxNight(d.getHours() + d.getMinutes() / 60), moon = night && w.kind === 'sunny', nmoon = night && nx.kind === 'sunny';
+  const w = weatherAt(ms), nx = weatherNext(ms), d = new Date(ms), night = wxNight(sunHour(d)), moon = night && w.kind === 'sunny', nmoon = night && nx.kind === 'sunny';
   const name = moon ? L('Clear night', 'Pogodna noc') : w.name, m = Math.max(1, Math.ceil(w.left / 60000));
   const nname = nmoon ? L('Clear night', 'Pogodna noc') : nx.name, inm = cnt(m, 'minute', 'minutes', 'minutę', 'minuty', 'minut');
   const tip = esc(`${name}. ${L('Pet Farm', 'Farma')}: ${w.bonus} ${L(`Then ${nname} in ${inm}.`, `Potem: ${nname} za ${inm}.`)}`);
