@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
-import { ITEMS, STARTERS, canTilt, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
+import { ITEMS, STARTERS, canTilt, footprint, fits, cellsOf, stepOf, formOf, lvOf, museumFill } from './data.js';
 import { pinned } from './journal.js';
 import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW, HEARTH, flueTop } from './models.js';
 import { fenceSnap, isDiag } from './fence.js';
@@ -409,7 +409,57 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   // ---------- pets ----------
   const pets = new Map(); // id -> { g, x, z, path, wait, hop, seed, blob }
   const blobGeo = new THREE.CircleGeometry(.3, 10), blobMat = new THREE.MeshBasicMaterial({ color: '#23401c', transparent: true, opacity: .28, depthWrite: false });
-  let walkGrid = new Uint8Array(100);
+  // Where pets may walk. Pets step between the middles of half tiles (M = 2 N a side), so they can squeeze past half-tile
+  // fences and buildings; a half tile with anything solid on any part of it is out (walkGrid). occ keeps, for every quarter
+  // tile, which item stands there (its index in occItems + 1), so helpers' spots and hops can be checked against the real shapes.
+  let walkGrid = new Uint8Array(400), M = 20, occ = new Int32Array(1600), occItems = [];
+  const QT = 4; // quarter tiles a tile (C in data.js)
+  function buildGrids() {
+    const m = N * QT; occ = new Int32Array(m * m); occItems = farm.items; M = N * 2; walkGrid = new Uint8Array(M * M);
+    occItems.forEach((it, k) => {
+      if (!ITEMS[it.type] || ITEMS[it.type].walk) return;
+      const c = cellsOf(it.type, it.x, it.y, it.r);
+      for (let i = 0; i < c.length; i += 2) { const x = c[i], y = c[i + 1]; if (x >= 0 && y >= 0 && x < m && y < m) { occ[y * m + x] = k + 1; walkGrid[(y >> 1) * M + (x >> 1)] = 1; } }
+    });
+  }
+  const hx = i => (i + .5) / 2 - N / 2; // the middle of half tile i, in the world
+  const cellAt = (x, z) => [Math.max(0, Math.min(M - 1, Math.floor((x + N / 2) * 2))), Math.max(0, Math.min(M - 1, Math.floor((z + N / 2) * 2)))];
+  // Is the ground at (x, z) taken by something solid (other than the item with id skip), or off the island?
+  const solidAt = (x, z, skip = null) => { const m = N * QT, i = Math.floor((x + N / 2) * QT), j = Math.floor((z + N / 2) * QT); if (i < 0 || j < 0 || i >= m || j >= m) return true; const v = occ[j * m + i]; return !!v && occItems[v - 1]?.id !== skip; };
+  // Room for a pet's body round (x, z): the point itself and a ring round it.
+  const roomAt = (x, z, r = .21, skip = null) => { if (solidAt(x, z, skip)) return false; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (solidAt(x + Math.cos(a) * r, z + Math.sin(a) * r, skip)) return false; } return true; };
+  // A straight line on the ground with nothing in the way (skip: the thing it leads to).
+  const lineClear = (x0, z0, x1, z1, skip = null) => { const d = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(d / .08); for (let k = 1; k < n; k++) if (solidAt(x0 + (x1 - x0) * k / n, z0 + (z1 - z0) * k / n, skip)) return false; return true; };
+  // Breadth-first over free half tiles from where a pet is: prev links (for paths) and the list of cells reached, nearest first.
+  function reachFrom(p, max = 255) {
+    const [sx, sy] = cellAt(p.x, p.z), start = sy * M + sx, prev = new Int32Array(M * M).fill(-1), dist = new Uint16Array(M * M), q = [start];
+    prev[start] = start;
+    for (let i = 0; i < q.length; i++) {
+      const c = q[i], cx = c % M, cy = c / M | 0;
+      if (dist[c] >= max) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const x = cx + dx, y = cy + dy, n = y * M + x;
+        if (x < 0 || y < 0 || x >= M || y >= M || prev[n] >= 0 || walkGrid[n]) continue;
+        prev[n] = c; dist[n] = dist[c] + 1; q.push(n);
+      }
+    }
+    return { start, prev, dist, q };
+  }
+  const pathTo = (R, c) => { const path = []; while (c !== R.start && c >= 0) { path.unshift([c % M, c / M | 0]); c = R.prev[c]; } return path; };
+  // The way to a spot that is not on the walking grid (a helper's place, a spot in the Nest or the Training Yard): along free half
+  // tiles to the one nearest it that has a clear line to it (skip: the item the spot is on). If none has, the pet leaps the last bit.
+  function routeTo(p, x, z, skip = null) {
+    const R = reachFrom(p); let best = -1, bd = 1e9, clear = false;
+    for (const c of R.q) { const cx = hx(c % M), cz = hx(c / M | 0), d = Math.hypot(cx - x, cz - z) + R.dist[c] * .01, ok = d < 1.6 && lineClear(cx, cz, x, z, skip);
+      if ((ok && !clear) || (ok === clear && d < bd)) { best = c; bd = d; clear = ok; } }
+    return { via: best >= 0 ? pathTo(R, best) : [], leap: !clear };
+  }
+  // Sets where a pet is headed (p.train or p.nest) and works out the way there, keeping the old way if the spot is the same.
+  function headTo(p, t, old, skip = null) {
+    if (old && Math.abs(old.x - t.x) < .01 && Math.abs(old.z - t.z) < .01 && old.via && !old.via.some(([x, y]) => walkGrid[y * M + x])) { t.via = old.via; t.leap = old.leap; t.l0 = old.l0; return t; }
+    const near = Math.hypot(p.x - t.x, p.z - t.z) < .06; if (near) { t.via = []; return t; }
+    Object.assign(t, routeTo(p, t.x, t.z, skip)); return t;
+  }
   const heartGeo = new THREE.OctahedronGeometry(.12, 0), heartMat = toonMat(new THREE.MeshStandardMaterial({ color: '#ff6f91', emissive: '#ff6f91', emissiveIntensity: .45 }));
   const PET_SIZE = .42;
   // Pictures of single models are drawn by the island's own renderer into a small off-screen target and read back. A second
@@ -468,15 +518,16 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     pets.set(id, p); return p;
   }
   function dropPet(id) { const p = pets.get(id); if (!p) return; endUse(p); if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
-  const tileOf = p => [Math.max(0, Math.min(N - 1, Math.floor(p.x + N / 2))), Math.max(0, Math.min(N - 1, Math.floor(p.z + N / 2)))];
-  function freeTileNear(tx, ty) {
+  const tileOf = p => cellAt(p.x, p.z);
+  // The free half tile nearest a point in the world (its middle, in the world), or null.
+  function freeSpotNear(px, pz) {
     let best = null, bd = 1e9;
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!walkGrid[y * N + x]) { const d = (x - tx) ** 2 + (y - ty) ** 2 + Math.random() * .5; if (d < bd) { bd = d; best = [x, y]; } }
+    for (let y = 0; y < M; y++) for (let x = 0; x < M; x++) if (!walkGrid[y * M + x]) { const d = (hx(x) - px) ** 2 + (hx(y) - pz) ** 2 + Math.random() * .1; if (d < bd) { bd = d; best = [hx(x), hx(y)]; } }
     return best;
   }
   function syncPets() {
     if (!farm) { for (const id of [...pets.keys()]) if (!String(id).startsWith('starter:')) dropPet(id); return; }
-    walkGrid = blockedTiles(farm);
+    buildGrids();
     const seen = new Set();
     const house = farm.items.find(i => i.type === 'house'), yard = farm.items.find(i => i.type === 'yard');
     const nestItem = farm.items.find(i => i.type === 'nest'), nestsNow = (farm.nests || (farm.nest ? [farm.nest] : [])).filter(Boolean);
@@ -488,68 +539,56 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       let p = pets.get(pet.id);
       if (p && p.key !== pet.sp + form + lookKey(pet.look)) { dropPet(pet.id); p = null; }
       if (!p) {
-        const [hx, hy] = house ? [house.x + 1, house.y + 3] : [N / 2 | 0, N / 2 | 0];
-        const t = freeTileNear(hx, hy) || [0, 0];
-        p = addPet(pet.id, pet.sp, form, wx(t[0]), wz(t[1]), pet.look);
+        const t = freeSpotNear(house ? wx(house.x + 1) : 0, house ? wz(house.y + 3) : 0) || [0, 0];
+        p = addPet(pet.id, pet.sp, form, t[0], t[1], pet.look);
       }
       p.open = !!pet.open;
       // in training: it has a spot of its own at the Training Yard and stays there
       const ti = yard ? (farm.train?.ids || []).indexOf(pet.id) : -1;
       if (ti >= 0) {
         const [lx, lz, f] = [[-.15, -.2, -Math.PI / 2], [.7, .62, Math.PI], [.35, -.55, -Math.PI / 2]][ti % 3], [w, h] = footprint('yard', yard.r), a = -yard.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a);
-        p.train = { x: wx(yard.x, w) + lx * c + lz * sn, z: wz(yard.y, h) - lx * sn + lz * c, face: f + a, k: ti }; p.path = []; continue;
+        p.train = headTo(p, { x: wx(yard.x, w) + lx * c + lz * sn, z: wz(yard.y, h) - lx * sn + lz * c, face: f + a, k: ti }, p.train, yard.id); p.path = []; continue;
       }
       // a helper stands in front of the building it works at and keeps busy there
       const wk = Object.keys(farm.work || {}).find(k => farm.work[k] === pet.id), wi = wk && farm.items.find(i => i.type === wk);
       if (wi) { // the Garden helper goes from plot to plot; everyone else stays at the one building
         const all = wk === 'garden' ? farm.items.filter(i => i.type === 'garden') : [wi], at = all[(p.wi || 0) % all.length], [w, h] = footprint(wk, at.r), bx = wx(at.x, w), bz = wz(at.y, h);
         if (p.train?.job !== wk) p.wt = 0;
-        p.train = { ...(hearthBy(at, w, h, wk, p.reach) || standBy(at, w, h)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }; p.path = []; continue;
+        p.train = headTo(p, { ...(hearthBy(at, w, h, wk, p.reach) || standBy(at, w, h, p)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }, p.train); p.path = []; continue;
       }
       p.train = null;
       // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
       const ni = nestItem ? nestsNow.findIndex(n => (n.a === pet.id || n.b === pet.id) && (n.stage === 'cuddle' || n.a === pet.id)) : -1;
       if (ni >= 0) {
         const n = nestsNow[ni], [w, h] = footprint('nest', nestItem.r), cx = wx(nestItem.x, w), cz = wz(nestItem.y, h), sd = n.a === pet.id ? -1 : 1, egg = n.stage !== 'cuddle', off = ni ? .32 : 0;
-        p.nest = egg ? { x: cx + .46, z: cz + .1 + off, y: .16, face: -Math.PI / 2, egg: true, sd: 0 } : { x: cx + sd * .21, z: cz + .05 + (ni ? -.3 : nestsNow.length > 1 ? .22 : 0), y: .16, face: sd * -.35, sd };
+        p.nest = headTo(p, egg ? { x: cx + .46, z: cz + .1 + off, y: .16, face: -Math.PI / 2, egg: true, sd: 0 } : { x: cx + sd * .21, z: cz + .05 + (ni ? -.3 : nestsNow.length > 1 ? .22 : 0), y: .16, face: sd * -.35, sd }, p.nest, nestItem.id);
         p.path = []; endUse(p); p.act = null; continue;
       }
       p.nest = null;
       // standing where something was just built: step aside
       const [tx, ty] = tileOf(p);
-      if (walkGrid[ty * N + tx]) { const t = freeTileNear(tx, ty); if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = []; }
-      else { const cut = p.path.findIndex(([x, y]) => walkGrid[y * N + x]); if (cut >= 0) p.path.length = cut; }
+      if (walkGrid[ty * M + tx] && !roomAt(p.x, p.z)) { const t = freeSpotNear(p.x, p.z); if (t) { p.x = t[0]; p.z = t[1]; } p.path = []; }
+      else { const cut = p.path.findIndex(([x, y]) => walkGrid[y * M + x]); if (cut >= 0) p.path.length = cut; }
     }
     for (const id of [...pets.keys()]) if (!seen.has(id)) dropPet(id);
   }
   // A short stroll: breadth-first over free tiles, then walk to a random one nearby.
   // want: the id of something it has been called over to (friends joining a carousel ride).
   function stroll(p, want = null) {
-    const [sx, sy] = tileOf(p), start = sy * N + sx, prev = new Int16Array(N * N).fill(-1), dist = new Uint8Array(N * N), q = [start], reach = [];
-    prev[start] = start;
-    for (let i = 0; i < q.length; i++) {
-      const c = q[i], cx = c % N, cy = c / N | 0;
-      if (dist[c] >= 11) continue;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const x = cx + dx, y = cy + dy, n = y * N + x;
-        if (x < 0 || y < 0 || x >= N || y >= N || prev[n] >= 0 || walkGrid[n]) continue;
-        prev[n] = c; dist[n] = dist[c] + 1; q.push(n); if (dist[n] >= 2 && dist[n] <= 7) reach.push(n);
-      }
-    }
+    const R = reachFrom(p, 22), { start, q } = R, reach = q.filter(n => R.dist[n] >= 4 && R.dist[n] <= 14); // half tiles: 2 to 7 tiles away
     if (!reach.length) return;
-    let c = reach[Math.random() * reach.length | 0]; const path = [];
+    let c = reach[Math.random() * reach.length | 0];
     p.goal = null;
     if (farm && !starters && (want !== null || Math.random() < .55)) { // pick a building or decoration that is free, and the closest tile to it that can be walked to
       const list = farm.items.filter(it => USE[it.type] && items.get(it.id) && !taken(items.get(it.id)) && (want === null || it.id === want)).flatMap(it => ROUTES[it.type] ? Array(lvOf(it)).fill(it) : [it]); // an improved toy is picked more often
       for (let tries = 0; tries < 4 && list.length && !p.goal; tries++) {
         const it = list[Math.random() * list.length | 0], e = items.get(it.id), [w, h] = footprint(it.type, it.r), gx = e.g.position.x, gz = e.g.position.z, lim = Math.max(w, h) / 2 + 1.05;
         let best = -1, bd = 1e9;
-        for (const n of q) { if (n === start) continue; const d = Math.hypot(wx(n % N) - gx, wz(n / N | 0) - gz); if (d < bd) { bd = d; best = n; } }
+        for (const n of q) { if (n === start) continue; const nx = hx(n % M), nz = hx(n / M | 0), d = Math.hypot(nx - gx, nz - gz); if (d < bd && d <= lim && lineClear(nx, nz, gx, gz, it.id)) { bd = d; best = n; } } // with nothing (a fence) between it and the thing
         if (best >= 0 && bd <= lim) { c = best; p.goal = { id: it.id, type: it.type, key: e.key }; }
       }
     }
-    while (c !== start) { path.unshift([c % N, c / N | 0]); c = prev[c]; }
-    p.path = path;
+    p.path = pathTo(R, c);
   }
   // What a pet does at each building or decoration, and for about how many seconds.
   const USE = { house: ['nap', 9], hut: ['nap', 9], treehouse: ['nap', 9], tree: ['nap', 8], pine: ['nap', 8], cherry: ['nap', 8], gazebo: ['nap', 8],
@@ -575,17 +614,29 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   }
   // Helpers at work: each job has its own little routine and its own particles.
   const BMW = { leaf: new THREE.MeshBasicMaterial({ color: '#6cc24f' }), leaf2: new THREE.MeshBasicMaterial({ color: '#a6e06a' }), pebble: tflat('#9a9088'), spark: new THREE.MeshBasicMaterial({ color: '#ffe14a' }), ember: new THREE.MeshBasicMaterial({ color: '#ff8a3c' }), ember2: new THREE.MeshBasicMaterial({ color: '#ffd35a' }), sprout: new THREE.MeshBasicMaterial({ color: '#b6f08a' }) };
-  // Where a helper stands: the first free spot in front of, beside or behind the building, never off the island's edge.
-  const standBy = (at, w, h) => { const bx = wx(at.x, w), bz = wz(at.y, h), mx = at.x + (w >> 1), my = at.y + (h >> 1);
-    const spots = [[mx, at.y + h, { x: bx, z: bz + h / 2 + .35, face: Math.PI }], [at.x + w, my, { x: bx + w / 2 + .35, z: bz, face: -Math.PI / 2 }], [at.x - 1, my, { x: bx - w / 2 - .35, z: bz, face: Math.PI / 2 }], [mx, at.y - 1, { x: bx, z: bz - h / 2 - .35, face: 0 }]];
-    for (const s of spots) { s[0] = Math.floor(s[0]); s[1] = Math.floor(s[1]); } // buildings may sit on half tiles: check the whole tile the spot is on
-    const ok = spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N && !walkGrid[y * N + x]) || spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N) || spots[0]; return ok[2]; };
+  // Where a helper stands: next to the building, with room for its body (nothing solid under or round it: other buildings,
+  // decorations, fences), tried from the building's front round to its back, close in first. A spot the pet can walk to wins;
+  // with none, one it can leap to over a fence; with no room anywhere round it, the free half tile nearest the front.
+  const standBy = (at, w, h, p = null) => { const bx = wx(at.x, w), bz = wz(at.y, h), a = -(at.r || 0) * Math.PI / 2, R = p && reachFrom(p);
+    const fromEdge = th => { const s = Math.abs(Math.sin(th)), c = Math.abs(Math.cos(th)); return Math.min(s > 1e-6 ? w / 2 / s : 1e9, c > 1e-6 ? h / 2 / c : 1e9); };
+    let leap = null;
+    const d0 = Math.max(.3, (p?.reach || .25) + .08); // its nose stays short of the wall, whatever its size
+    for (const d of [d0, d0 + .18, d0 + .4, d0 + .65]) for (const k of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8]) {
+      const th = a + k * Math.PI / 8, r = fromEdge(th) + d, x = bx + Math.sin(th) * r, z = bz + Math.cos(th) * r;
+      if (!roomAt(x, z)) continue;
+      const s = { x, z, face: Math.atan2(bx - x, bz - z) }, [cx, cy] = cellAt(x, z);
+      if (!R || R.prev[cy * M + cx] >= 0) return s;
+      leap ||= s;
+    }
+    if (leap) return leap;
+    const f = freeSpotNear(bx + Math.sin(a) * (h / 2 + .4), bz + Math.cos(a) * (h / 2 + .4)) || [bx, bz + h / 2 + .35];
+    return { x: f[0], z: f[1], face: Math.atan2(bx - f[0], bz - f[1]) }; };
   // A building with a hearth (the Kitchen): the helper stands on the flat stone in front of the fire's mouth, its nose a little short of it whatever its size, and faces it,
   // turned with the building. If something blocks that tile it falls back to the usual spot (and fans from there).
   const hearthBy = (at, w, h, type, reach = .3) => { const hp = HEARTH[type]; if (!hp) return null;
     const a = -at.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), bx = wx(at.x, w), bz = wz(at.y, h), to = (lx, lz) => [bx + lx * c + lz * sn, bz - lx * sn + lz * c];
-    const [x, z] = to(hp[0], hp[1] + .1 + reach), [mx, mz] = to(hp[0], hp[1] - .08), tx = Math.floor(x + N / 2), ty = Math.floor(z + N / 2);
-    if (tx < 0 || ty < 0 || tx >= N || ty >= N || walkGrid[ty * N + tx]) return null;
+    const [x, z] = to(hp[0], hp[1] + .1 + reach), [mx, mz] = to(hp[0], hp[1] - .08);
+    if (!roomAt(x, z)) return null;
     return { x, z, face: Math.PI + a, mx, mz }; };
   function workPose(p, t, dt, o) {
     const u = (p.wt = (p.wt || 0) + dt), R = Math.random, every = (key, sec) => (p[key] = (p[key] ?? R() * sec) - dt) <= 0 && ((p[key] = sec), true);
@@ -598,7 +649,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
         if (every('w2', .45)) splash(t.bx + (R() - .5) * .4, .1, t.bz + (R() - .5) * .4, 2);
         if (every('w3', 1.3)) floatUp(BIT.star, BMW.sprout, t.bx + (R() - .5) * .5, .2, t.bz + (R() - .5) * .5, .05, 1.2);
       }
-      if (once('w4', c, 5.6)) { if (t.n > 1) { p.wi = (p.wi || 0) + 1; const g = farm?.items.filter(i => i.type === 'garden') || [], at = g[p.wi % g.length]; if (at) Object.assign(t, standBy(at, 1, 1), { bx: wx(at.x, 1), bz: wz(at.y, 1) }); } else p.hop = .6; }
+      if (once('w4', c, 5.6)) { if (t.n > 1) { p.wi = (p.wi || 0) + 1; const g = farm?.items.filter(i => i.type === 'garden') || [], at = g[p.wi % g.length]; if (at) { const [w, h] = footprint('garden', at.r); Object.assign(t, standBy(at, w, h, p), { bx: wx(at.x, w), bz: wz(at.y, h), id: at.id }); Object.assign(t, routeTo(p, t.x, t.z), { l0: 0 }); } } else p.hop = .6; }
     } else if (t.job === 'nest') { // rocks from side to side like a lullaby: leaves spiral up round the Nest, and a heart now and then
       o.tilt = Math.sin(u * 1.7) * .17; o.up = Math.abs(Math.sin(u * 1.7)) * .04; o.turn = Math.sin(u * .85) * .15;
       if (every('w1', .4)) { const a0 = R() * 6.283, r0 = .7 + R() * .3, mat = R() < .5 ? BMW.leaf : BMW.leaf2; bit(BIT.ball, mat, 2.4, (m, v, tt) => { const a = a0 + tt * 1.7, r = r0 * (1 - v * .35); m.position.set(t.bx + Math.cos(a) * r, .2 + v * 1.15 + Math.sin(tt * 5 + a0) * .04, t.bz + Math.sin(a) * r); m.rotation.set(tt * 3, a, tt * 2); const k = Math.min(1, v * 8, (1 - v) * 4); m.scale.set(.12 * k, .022 * k, .07 * k); }); }
@@ -717,24 +768,32 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     }
     return o;
   }
+  // Walking along a worked-out way (t.via) to a helper's, trainee's or nesting pet's spot.
+  const goVia = (p, t, dt, speed) => { const [tx, ty] = t.via[0], gx = hx(tx), gz = hx(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = speed * dt;
+    if (d <= step) { p.x = gx; p.z = gz; t.via.shift(); } else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); } };
+  // The last bit to a spot with a fence in the way (a pen with no gate) is a leap over it: how high it is now.
+  const leapOf = (t, d) => { if (!t.leap) return 0; t.l0 = Math.max(t.l0 || 0, d); return t.l0 > .2 ? Math.sin((1 - d / t.l0) * Math.PI) * Math.min(.55, .25 + t.l0 * .25) : 0; };
   function movePets(dt, T) {
     for (const p of pets.values()) {
       let moving = false;
-      let drill = 0, wpose = null;
+      let drill = 0, wpose = null, leapUp = 0;
       if (p.fixed) { /* starter on show */ }
-      else if (p.nest) { // walks to its place in the Nest and stays there
-        const t = p.nest, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
-        if (d > .04) { const step = Math.min(d, 1.8 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = d > .5; }
-        else p.face = t.face;
+      else if (p.nest) { // walks to its place in the Nest (round anything in the way) and stays there
+        const t = p.nest;
+        if (t.via?.length) { goVia(p, t, dt, 1.6); moving = true; }
+        else { const dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
+          if (d > .04) { const step = Math.min(d, 1.8 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = d > .5; leapUp = leapOf(t, d); }
+          else { p.face = t.face; t.l0 = 0; } }
       }
       else if (p.train) { // drills on the spot: a run-up hop at the dummy, a jump over the hurdle, or quick hops
         const t = p.train, dx = t.x - p.x, dz = t.z - p.z, d = Math.hypot(dx, dz);
-        if (d > .05) { const step = Math.min(d, 2.5 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = true; }
+        if (t.via?.length) { goVia(p, t, dt, 1.6); moving = true; }
+        else if (d > .05) { const step = Math.min(d, 2.5 * dt); p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); moving = true; leapUp = leapOf(t, d); }
         else if (t.job) { p.face = t.face; workPose(p, t, dt, wpose = { sit: 0, tilt: 0, turn: 0, up: 0, pitch: 0 }); }
         else { const u = (T * (t.k === 1 ? .9 : 1.3) + p.seed) % 1; p.face = t.face; drill = Math.sin(u * Math.PI) * (t.k === 1 ? .45 : .22); if (t.k !== 1) { const lunge = Math.sin(u * Math.PI) * .22; p.lx = Math.sin(t.face) * lunge; p.lz = Math.cos(t.face) * lunge; } }
       }
       else if (p.path.length) {
-        const [tx, ty] = p.path[0], gx = wx(tx), gz = wz(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = (p.run ? 2.3 : 1.25) * dt;
+        const [tx, ty] = p.path[0], gx = hx(tx), gz = hx(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = (p.run ? 2.3 : 1.25) * dt;
         if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) rest(p); }
         else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
         moving = true;
@@ -792,7 +851,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
         if (p.act && A.t >= A.dur) { endUse(p); p.act = null; }
       }
       const breathe = (1 + Math.sin(T * (asleep ? 1.3 : 2.2) + p.seed) * (asleep ? .045 : .025)) * (1 - sit) * (moving ? 1 + (Math.abs(stepPh) - .6) * .12 : 1), b = p.g.userData.base;
-      p.g.position.set(p.x + (drill ? p.lx || 0 : 0) + ox, bounce + cheer + drill + up, p.z + (drill ? p.lz || 0 : 0) + oz);
+      p.g.position.set(p.x + (drill ? p.lx || 0 : 0) + ox, bounce + cheer + drill + up + leapUp, p.z + (drill ? p.lz || 0 : 0) + oz);
       let da = p.face - (p.yaw ?? p.face); da = Math.atan2(Math.sin(da), Math.cos(da)); p.yaw = (p.yaw ?? p.face) + da * Math.min(1, dt * 8);
       p.g.rotation.set((moving ? (p.run ? .16 : .06) : 0) + pitch, p.yaw + turn, tilt + (moving ? stepPh * .07 : 0), 'YXZ');
       p.g.scale.set(b / Math.sqrt(breathe), b * breathe, b / Math.sqrt(breathe));
@@ -802,6 +861,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
       if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
       p.blob.position.set(p.x + ox, .015, p.z + oz); p.blob.visible = up < .3; p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
+      p.g.visible = !edit || !!p.fixed; if (edit && !p.fixed) { p.blob.visible = false; if (p.heart) p.heart.visible = false; } // out of the way while building (Kuba)
     }
   }
 
@@ -823,18 +883,18 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       if (!key) continue;
       if (!p) { try { const g = avatar3d(o.color || '#ff8fab', o.av, { pose: 'stand' }); g.scale.setScalar(.5); scene.add(g); p = { g, key, x: 1e9, z: 0, path: [], wait: 2 + Math.random() * 3, face: .4, seed: Math.random() * 10 }; people.set(who, p); } catch (e) { console.warn('no avatar', e); continue; } }
       const [tx, ty] = p.x > 1e8 ? [-1, -1] : tileOf(p);
-      if (tx < 0 || walkGrid[ty * N + tx]) { // new here, or something was built where they stood
+      if (tx < 0 || walkGrid[ty * M + tx]) { // new here, or something was built where they stood
         const [w, d] = by ? footprint(by.type, by.r) : [1, 1];
-        const t = freeTileNear(Math.min(N - 1, by ? by.x + (w >> 1) + (who === 'owner' ? 0 : 1 + +who[5]) : N >> 1), Math.min(N - 1, by ? by.y + d : N >> 1));
-        p.g.visible = !!t; if (t) { p.x = wx(t[0]); p.z = wz(t[1]); } p.path = [];
-      } else { const cut = p.path.findIndex(([x, y]) => walkGrid[y * N + x]); if (cut >= 0) p.path.length = cut; }
+        const t = freeSpotNear(wx(Math.min(N - 1, by ? by.x + (w >> 1) + (who === 'owner' ? 0 : 1 + +who[5]) : N >> 1)), wz(Math.min(N - 1, by ? by.y + d : N >> 1)));
+        p.shown = !!t; if (t) { p.x = t[0]; p.z = t[1]; } p.path = [];
+      } else { const cut = p.path.findIndex(([x, y]) => walkGrid[y * M + x]); if (cut >= 0) p.path.length = cut; }
     }
   }
   function movePeople(dt, T) {
     for (const p of people.values()) {
-      if (!p.g.visible) continue; let moving = false;
+      p.g.visible = !!p.shown && !edit; if (!p.shown) continue; let moving = false; // hidden while building (Kuba), and still walking about
       if (p.path.length) {
-        const [tx, ty] = p.path[0], gx = wx(tx), gz = wz(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = .95 * dt;
+        const [tx, ty] = p.path[0], gx = hx(tx), gz = hx(ty), dx = gx - p.x, dz = gz - p.z, d = Math.hypot(dx, dz), step = .95 * dt;
         if (d <= step) { p.x = gx; p.z = gz; p.path.shift(); if (!p.path.length) p.wait = 3 + Math.random() * 6; }
         else { p.x += dx / d * step; p.z += dz / d * step; p.face = Math.atan2(dx, dz); }
         moving = true;
@@ -1168,6 +1228,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   const inGhost = (tx, ty) => { if (!ghost) return false; const [w, h] = footprint(ghost.type, ghost.r); return tx >= ghost.x && ty >= ghost.y && tx < ghost.x + w && ty < ghost.y + h; };
   const itemAt = (tx, ty) => farm?.items.find(it => { const [w, h] = footprint(it.type, it.r); return tx >= it.x && ty >= it.y && tx < it.x + w && ty < it.y + h; });
   function petAt() {
+    if (edit) return null; // hidden while building
     let best = null, bd = .6;
     for (const [id, p] of pets) { const c = p.g.position.clone(); c.y += .3 * (p.g.userData.base / PET_SIZE); const d = ray.ray.distanceToPoint(c); if (d < bd * (p.fixed ? 1.6 : 1)) { bd = d; best = id; } }
     return best;
