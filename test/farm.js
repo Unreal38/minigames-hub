@@ -105,7 +105,7 @@ for (const [what, act] of [
   ['on the farmhouse', { t: 'place', type: 'fence', x: 4, y: 2, r: 0 }],
   ['off the edge', { t: 'place', type: 'hut', x: 9, y: 0, r: 0 }],
   ['negative', { t: 'place', type: 'fence', x: -1, y: 0, r: 0 }],
-  ['fraction', { t: 'place', type: 'fence', x: 5.5, y: 6, r: 0 }],
+  ['fraction', { t: 'place', type: 'fence', x: 5.25, y: 6, r: 0 }],
   ['bad rotation', { t: 'place', type: 'fence', x: 6, y: 6, r: 7 }],
   ['second farmhouse', { t: 'place', type: 'house', x: 6, y: 6, r: 0 }],
 ]) {
@@ -127,6 +127,8 @@ r = await a.farmDo({ t: 'place', type: 'rock', x: 5.5, y: 5.5, r: 0 });
 if (!r.err) fail('rock placed on top of flowers');
 r = await a.farmDo({ t: 'place', type: 'fence', x: 4, y: 5, r: 0 });
 if (r.err) fail('fence beside the flowers: ' + r.err);
+r = await a.farmDo({ t: 'place', type: 'rock', x: 4.5, y: 5.5, r: 0 }); // a fence is thin (1 x .5): a small prop fits right beside it
+if (r.err) fail('rock beside the thin fence: ' + r.err);
 r = await a.farmDo({ t: 'place', type: 'bench', x: 3.5, y: 6.5, r: 1 }); // a bench is 1 x .5, turned it is .5 x 1
 if (r.err) fail('turned bench on half tiles: ' + r.err);
 r = await a.farmDo({ t: 'place', type: 'rock', x: 3.5, y: 7, r: 0 });
@@ -135,7 +137,7 @@ r = await a.farmDo({ t: 'place', type: 'rock', x: 4, y: 7, r: 0 });
 if (r.err) fail('rock right beside the bench: ' + r.err);
 const small = a.farm.items.length;
 for (const [what, act] of [
-  ['fence on a half tile', { t: 'place', type: 'fence', x: 6.5, y: 6, r: 0 }],
+  ['fence on a quarter tile', { t: 'place', type: 'fence', x: 6.5, y: 6.25, r: 0 }],
   ['quarter tile', { t: 'place', type: 'rock', x: 6.25, y: 6, r: 0 }],
   ['text coordinate', { t: 'place', type: 'rock', x: '6', y: 6, r: 0 }],
   ['half off the edge', { t: 'place', type: 'bench', x: 9.5, y: 0, r: 0 }],

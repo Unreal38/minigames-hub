@@ -4,6 +4,7 @@
 // Every surface is flat shaded. Static models are merged into a few meshes with bake().
 import * as THREE from 'three';
 import { bake, hullGeo, hullMat } from '../../avatar3d.js';
+import { fenceShape } from './fence.js';
 
 const mats = new Map();
 export const M = (c, o) => {
@@ -658,18 +659,11 @@ const BUILD = {
     box(g, .08, .72, .08, C.woodD, -.74, 1.14, .34); box(g, .07, .07, .9, C.woodD, -.74, 1.84, .7); const br = box(g, .05, .44, .05, C.woodD, -.74, 1.5, .5); br.rotation.x = -.75;
     box(g, .02, .44, .02, C.cream, -.74, 1.4, 1.1); crate(g, -.74, 1.1, .24, 1.16, .3);
   },
-  fence(g, live, lv, link = 0) { // link: which sides join a neighbour, see fenceLink below
-    const nb = link & 15, own = link >> 4 & 15, arch = link >> 8 & 15, ones = [0, 1, 2, 3].filter(d => nb >> d & 1).length;
-    const arms = ones === 0 ? 5 : ones === 1 ? nb | (nb << 2 | nb >> 2) & 15 : nb; // a lone piece runs along its own x; an end piece carries its neighbour's line on
-    const post = (x, z) => { box(g, .12, .5, .12, C.wood, x, 0, z); cone(g, .09, .1, 4, C.wood, x, .5, z); box(g, .14, .04, .14, C.woodD, x, .44, z); };
-    for (let d = 0; d < 4; d++) {
-      if (!(arms >> d & 1)) continue;
-      const dx = [1, 0, -1, 0][d], dz = [0, 1, 0, -1][d], len = arch >> d & 1 ? .56 : .5, along = d % 2 === 0; // into an arch the rails reach its post
-      for (const y of [.34, .14]) box(g, along ? len : .06, .08, along ? .06 : len, C.cream, dx * len / 2, y, dz * len / 2);
-      for (const t of [.125, .325]) { const x = dx * t + (along ? 0 : .03), z = dz * t + (along ? .03 : 0); box(g, along ? .08 : .04, .42, along ? .04 : .08, C.cream, x, .04, z); cone(g, .056, .07, 4, C.cream, x, .46, z).rotation.y = Math.PI / 4; }
-      if (!(nb >> d & 1) || own >> d & 1) post(dx * .5, dz * .5); // an open end gets a post; a post shared with a neighbour is drawn by one of the two
-    }
-    if (arms !== 5 && arms !== 10) post(0, 0); // corners, T and cross pieces stand on a post of their own
+  fence(g, live, lv, link = 0) { // a thin piece along its own x; link: how it joins its neighbours, see fence.js
+    const { lo, hi, posts, pickets } = fenceShape(link);
+    for (const y of [.34, .14]) box(g, hi - lo, .08, .06, C.cream, (lo + hi) / 2, y, 0);
+    for (const x of pickets) { box(g, .08, .42, .04, C.cream, x, .04, .03); cone(g, .056, .07, 4, C.cream, x, .46, .03).rotation.y = Math.PI / 4; }
+    for (const x of posts) { box(g, .12, .5, .12, C.wood, x, 0, 0); cone(g, .09, .1, 4, C.wood, x, .5, 0); box(g, .14, .04, .14, C.woodD, x, .44, 0); }
   },
   path(g) {
     for (const [x, z, r] of [[-.2, -.18, .3], [.24, -.22, .22], [-.24, .24, .22], [.2, .2, .3], [0, 0, .16]]) cyl(g, r, r * 1.05, .05, 6, C.stone, x, 0, z).rotation.y = x * 5;
@@ -1298,21 +1292,7 @@ export function balloonModel() {
   return g;
 }
 
-// Which sides of a fence at (x, y) turned r join something, in the piece's own directions (0 +x, 1 +z, 2 -x, 3 -z):
-//   bits 0-3 a fence or a lined-up Flower Arch next door, bits 4-7 the shared post on that side is this piece's to draw
-//   (the piece to the west or north draws it), bits 8-11 the neighbour is an arch. skip: an item id to leave out (one being moved).
-export const LINKS = { fence: true };
-export function fenceLink(items, x, y, r = 0, skip) {
-  let link = 0;
-  for (let w = 0; w < 4; w++) {
-    const nx = x + [1, 0, -1, 0][w], ny = y + [0, 1, 0, -1][w];
-    const o = items?.find(i => i.id !== skip && (i.type === 'fence' || i.type === 'arch') && i.x === nx && i.y === ny);
-    if (!o || o.type === 'arch' && (o.r | 0) % 2 !== w % 2) continue; // an arch joins only along its own line
-    const d = (w - (r | 0) + 4) % 4;
-    link |= 1 << d; if (o.type === 'arch') link |= 256 << d; else if (w < 2) link |= 16 << d;
-  }
-  return link;
-}
+export { LINKS, fenceLink } from './fence.js';
 
 // Frees what a model owns. Shared geometries and the cached plain materials stay.
 export function disposeModel(g) {
