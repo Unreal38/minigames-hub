@@ -99,6 +99,7 @@ export function mount(app, ctx) {
   const setHtml = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
   const me = () => (S && S.me >= 0 ? S.seats[S.me] : null);
   const nm = i => esc(S.seats[i]?.name);
+  const nowSeat = () => (S.stage === 'order' ? S.pend?.s ?? -1 : S.stage === 'intro' ? -1 : S.turn); // whose go it is (the roll for the first turn too)
   const isMe = i => i === S?.me && S.me >= 0;
   const busyLeft = () => (S ? Math.max(0, S.busy - (Date.now() - stateAt)) : 0);
   const myPend = () => !!(S && S.ph === 'play' && S.pend && isMe(S.pend.s) && !me()?.bot);
@@ -176,7 +177,7 @@ export function mount(app, ctx) {
     const now = performance.now();
     S.seats.forEach((p, i) => {
       const el = tagEls[i]; if (!el) return;
-      el.classList.toggle('now', S.ph === 'play' && (S.turn === i));
+      el.classList.toggle('now', S.ph === 'play' && (nowSeat() === i));
       setHtml(el.querySelector('.cnt'), `${I.treat}${S.pl[i].treats}`);
       const b = bubbles.get(i);
       setHtml(el.firstElementChild, b && b.until > now ? b.html : '');
@@ -192,14 +193,15 @@ export function mount(app, ctx) {
   // ----- the players down the side: treats, herd, items, pact -----
   function renderSide() {
     const rib = ribbonsOf(S.pl), pts = showPts(S.pl, rib), top = Math.max(...pts);
-    const rows = S.seats.map((p, i) => {
+    const firstChip = i => { const k = S.first?.key?.[i]; return S.stage === 'order' && k?.length ? `<span class="tt-fr" title="${L('Roll for the first turn', 'Rzut o pierwszeństwo')}">${k.join(' · ')}</span>` : ''; };
+    const rows = (S.order?.length === S.seats.length ? S.order : S.seats.map((_, i) => i)).map(i => { const p = S.seats[i];
       const q = S.pl[i], egg = q.egg ? `<span class="tt-egg" title="${L(`Mystery Egg: hatches in ${q.egg} turn${q.egg > 1 ? 's' : ''}`, `Tajemnicze jajo: wykluje się za ${q.egg} tur${q.egg > 1 ? 'y' : 'ę'}`)}"></span>` : '';
       const items = q.items.map(k => `<span class="tt-it" title="${esc(ITEMS[k].name)}">${itemIc(k, 'tt-iis')}</span>`).join('');
       const pact = q.pact ? `<span class="tt-pact" title="${L(`Buddy pact with ${nm(q.pact.w)}`, `Pakt z: ${nm(q.pact.w)}`)}">♥ ${nm(q.pact.w)}</span>` : '';
       const held = Object.keys(RIBBONS).filter(k => rib[k].includes(i)).map(k => RIBBONS[k]);
       const ptsTip = L(`Pet Show points if it ended now: ${q.herd.length} for friends + ${held.length * 2} for ribbons${held.length ? ' (' + held.join(', ') + ')' : ''}`, `Punkty na Pokazie, gdyby był teraz: ${q.herd.length} za przyjaciół + ${held.length * 2} za wstęgi${held.length ? ' (' + held.join(', ') + ')' : ''}`);
-      return `<div class="profrow tt-row${S.turn === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
-        <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span></div>
+      return `<div class="profrow tt-row${nowSeat() === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
+        <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span>${firstChip(i)}</div>
         <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}">${pet(f, 24)}</span>`).join('')}${egg}</div>
         ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div></div>`;
     }).join('');
@@ -247,7 +249,7 @@ export function mount(app, ctx) {
     else if (myPend()) html = pendHtml(S.pend, clock);
     else if (S.pend && S.ph === 'play') {
       const w = S.seats[S.pend.s];
-      const what = { roll: L('is about to roll', 'zaraz rzuca'), reroll: L('is deciding on a reroll', 'myśli o przerzucie'), fork: L('is picking a route', 'wybiera trasę'), shop: L('is at the stall', 'jest przy straganie'),
+      const what = { first: L('rolls to see who goes first', 'rzuca, kto zaczyna'), roll: L('is about to roll', 'zaraz rzuca'), reroll: L('is deciding on a reroll', 'myśli o przerzucie'), fork: L('is picking a route', 'wybiera trasę'), shop: L('is at the stall', 'jest przy straganie'),
         meet: L('meets a wild pet', 'spotyka dzikiego zwierzaka'), well: L('is at the Wishing Well', 'stoi przy studni życzeń'), bench: L('is on the Pact Bench', 'siedzi na ławce paktu'),
         pact: L('is thinking about a pact', 'myśli o pakcie'), lure: L('eyes a pet to lure', 'chce zwabić zwierzaka') }[S.pend.k] || L('is thinking', 'myśli');
       html = `<div class="tt-wait">${avatarHtml(w.color, w.av, 30)}<span>${isMe(S.pend.s) ? L('A bot plays for you', 'Bot gra za ciebie') : `${nm(S.pend.s)} ${what}…`}</span></div>`;
@@ -262,6 +264,11 @@ export function mount(app, ctx) {
   function pendHtml(P, clock) {
     const p = S.pl[S.me];
     const head = (h, sub = '') => `<div class="tt-q"><b>${h}</b>${clock}${sub ? `<span>${sub}</span>` : ''}</div>`;
+    if (P.k === 'first') {
+      const tie = S.first?.tie?.includes(S.me);
+      return `${head(tie ? L('A tie! Roll again', 'Remis! Rzuć jeszcze raz') : L('Who goes first?', 'Kto zaczyna?'), tie ? L('Only the tied players roll again', 'Rzucają tylko gracze z remisem') : L('Everyone rolls once. The highest roll starts, then the rest in order of their rolls.', 'Każdy rzuca raz. Zaczyna najwyższy wynik, potem reszta według rzutów.'))}
+        <div class="tt-acts">${btn('roll', L('Roll the die', 'Rzuć kością'), '', '', 'big')}</div>`;
+    }
     if (P.k === 'roll') {
       const armed = [p.spy && ITEMS.spy.name, p.berry && ITEMS.berry.name, p.whistle && ITEMS.whistle.name, p.charm && ITEMS.charm.name].filter(Boolean);
       const items = p.items.map((k, i) => opt('item', itemIc(k), `${L('Use', 'Użyj')}: ${esc(ITEMS[k].name)}`, k === 'honey' && p.pos < 0 ? L('Not in the start meadow', 'Nie na łące startowej') : esc(ITEMS[k].tx), `data-k="${k}" data-n="${i}"${k === 'honey' && p.pos < 0 ? ' disabled' : ''}`)).join('');
@@ -315,7 +322,7 @@ export function mount(app, ctx) {
       html = `<div class="tt-card wide tt-intro"><div class="tt-hostbig">${petImg(HOST, 84, 'tt-hpi')}<p class="tt-say">${L(`Hi, I'm <b>Puff</b>, your host! Welcome to the <b>Friendship Trail</b>. Here's how it works:`, `Cześć, jestem <b>Puff</b> i prowadzę dzisiejszą zabawę! Witaj na <b>Szlaku przyjaźni</b>. Oto zasady:`)}</p></div>
         <div class="tt-goal">${I.star || '★'} ${L(`Goal: the most <b>Pet Show points</b> after ${S.rounds} rounds. Every friend in your herd is 1 point, every ribbon is 2.`, `Cel: najwięcej <b>punktów na Pokazie zwierzaków</b> po ${S.rounds} rundach. Każdy przyjaciel w stadzie to 1 punkt, każda wstęga to 2.`)}</div>
         <ol class="tt-steps">
-          ${step(1, L('Roll and walk', 'Rzuć i idź'), L('Everyone starts in the meadow. Roll the die and walk the trail; at a fork you pick the way.', 'Wszyscy startują na łące. Rzuć kością i idź szlakiem; na rozwidleniu wybierasz drogę.'))}
+          ${step(1, L('Roll and walk', 'Rzuć i idź'), L('Everyone starts in the meadow, and a first roll decides who goes first. Roll the die and walk the trail; at a fork you pick the way.', 'Wszyscy startują na łące, a pierwszy rzut decyduje, kto zaczyna. Rzuć kością i idź szlakiem; na rozwidleniu wybierasz drogę.'))}
           ${step(2, L('Make friends', 'Zdobywaj przyjaciół'), L('A glowing stone has a wild pet. Stop exactly on it, then win a showdown with one of your pets or give treats.', 'Świecący kamień ma dzikiego zwierzaka. Zatrzymaj się dokładnie na nim i wygraj starcie swoim zwierzakiem albo daj przysmaki.'))}
           ${step(3, L('Friends help you', 'Przyjaciele pomagają'), L('Each friend can reroll your die once and cheer you on in a minigame.', 'Każdy przyjaciel raz przerzuci twoją kość i pokibicuje ci w minigrze.'))}
           ${step(4, L('Minigame after every round', 'Minigra po każdej rundzie'), L('Everyone plays a quick game. Better places win more treats for friends and items.', 'Wszyscy grają w szybką grę. Lepsze miejsca dają więcej przysmaków na przyjaciół i przedmioty.'))}
@@ -355,6 +362,10 @@ export function mount(app, ctx) {
     const s = e.s, P = e.s != null ? S.seats[s] : null; void P;
     switch (e.t) {
       case 'round': big(L(`Round ${e.r}`, `Runda ${e.r}`), L(`of ${S.rounds}`, `z ${S.rounds}`), 1500); say(L(`Round ${e.r} of ${S.rounds}`, `Runda ${e.r} z ${S.rounds}`)); break;
+      case 'firstgo': big(L('Who goes first?', 'Kto zaczyna?'), L('Everyone rolls a die', 'Każdy rzuca kością'), 1800); say(L('Everyone rolls a die. The highest roll goes first.', 'Każdy rzuca kością. Zaczyna najwyższy wynik.')); break;
+      case 'first': throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
+      case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
+      case 'order': big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
       case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); if (isMe(s)) sfx.turn(); break;
       case 'roll': throwDice(s, e.b ? [e.a, e.b] : [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.b ? L(' with the Spyglass', ' z Lunetą') : '')); break;
       case 'reroll': throwDice(s, [e.d], e.d, pet({ sp: e.sp }, 34, 'tt-dpi'), e.was); sfx.whoosh?.(); say(L(`${esc(petName(e.sp))} rerolls for ${isMe(s) ? 'you' : nm(s)}: <s>${e.was}</s> → <b>${e.d}</b>. The new roll replaces the old one`, `${esc(petName(e.sp))} przerzuca dla ${isMe(s) ? 'ciebie' : nm(s)}: <s>${e.was}</s> → <b>${e.d}</b>. Nowy rzut zastępuje stary`)); petPics($('tt-die')); break;

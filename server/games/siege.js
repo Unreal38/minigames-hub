@@ -31,7 +31,7 @@ export function cleanOpts(o = {}) {
   return {
     seats: cleanSeats(meta, o.seats),
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
-    pets: R.TEAM_PETS.includes(+o.pets) ? +o.pets : 3,
+    pets: R.TEAM_PETS.includes(+o.pets) || +o.pets === 1 ? +o.pets : 3, // 1 = the Friendship Trail cut
     timer: R.TIMERS.includes(+o.timer) ? +o.timer : 30,
     arc: R.ARCS.includes(o.arc) ? o.arc : 'short',
   };

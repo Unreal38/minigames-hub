@@ -192,7 +192,7 @@ export function mount(app, ctx) {
   function renderClock() {
     if (!S) return;
     const t = now(), over = S.ph === 'end';
-    setHtml($('bl-time'), S.stage === 'count' ? L('Get ready', 'Przygotuj się') : over ? clock(S.res?.ms || 0) : L(`${clock(t)} · new row in <b>${Math.ceil(nextRowIn(S.speed, t) / 1000)}</b> s`, `${clock(t)} · nowy rząd za <b>${Math.ceil(nextRowIn(S.speed, t) / 1000)}</b> s`));
+    setHtml($('bl-time'), S.stage === 'count' ? L('Get ready', 'Przygotuj się') : over ? clock(S.res?.ms || 0) : S.lim ? L(`<b>${clock(Math.max(0, S.lim - t))}</b> left · new row in <b>${Math.ceil(nextRowIn(S.speed, t) / 1000)}</b> s`, `Zostało <b>${clock(Math.max(0, S.lim - t))}</b> · nowy rząd za <b>${Math.ceil(nextRowIn(S.speed, t) / 1000)}</b> s`) : L(`${clock(t)} · new row in <b>${Math.ceil(nextRowIn(S.speed, t) / 1000)}</b> s`, `${clock(t)} · nowy rząd za <b>${Math.ceil(nextRowIn(S.speed, t) / 1000)}</b> s`));
     if (S.stage === 'count') {
       const n = Math.ceil(-t / 1000);
       if (n !== lastCount && n <= 3 && n > 0) { lastCount = n; sfx.warn(); big(String(n), '', 800); }

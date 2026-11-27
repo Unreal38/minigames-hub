@@ -265,3 +265,5 @@ body.night .tt-steps i { background: var(--lantern); color: var(--ink); }
   .tt-hostbig .tt-hpi { width: 60px; height: 60px; }
   .tt-say { font-size: 14px; } .tt-goal { font-size: 14px; }
 }
+/* the roll for the first turn, beside each name while the order is being decided */
+.tt-fr { flex: none; font-family: var(--fd); font-weight: 700; font-size: 12px; padding: 0 7px; border-radius: 999px; background: #ffe27a; color: #3b2219; border: 1.5px solid #3b2219; white-space: nowrap; }

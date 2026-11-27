@@ -207,7 +207,7 @@ export function mount(app, ctx) {
   function renderClock() {
     if (!S) return;
     const t = now();
-    setHtml($('sb-lvl'), S.stage === 'count' ? L('Get ready', 'Przygotuj się') : L(`Level <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`, `Poziom <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`));
+    setHtml($('sb-lvl'), S.stage === 'count' ? L('Get ready', 'Przygotuj się') : S.lim && S.ph !== 'end' ? L(`Level <b>${levelAt(t)}</b> · <b>${clock(Math.max(0, S.lim - t))}</b> left`, `Poziom <b>${levelAt(t)}</b> · zostało <b>${clock(Math.max(0, S.lim - t))}</b>`) : L(`Level <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`, `Poziom <b>${levelAt(S.ph === 'end' ? S.res?.ms || 0 : t)}</b> · ${clock(S.ph === 'end' ? S.res?.ms || 0 : t)}`));
     if (S.stage === 'count') {
       const n = Math.ceil(-t / 1000);
       if (n !== lastCount && n <= 3 && n > 0) { lastCount = n; sfx.warn(); big(String(n), '', 800); }

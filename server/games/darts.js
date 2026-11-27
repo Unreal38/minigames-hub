@@ -18,6 +18,7 @@ export function cleanOpts(o = {}) {
     start: +o.start === 501 ? 501 : 301,
     out: o.out === 'any' ? 'any' : 'double',
     legs: [1, 3].includes(+o.legs) ? +o.legs : 1,
+    rounds: +o.rounds === 3 ? 3 : 0, // 3 = the Friendship Trail cut: three turns each, the lowest score left wins
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
     timer: [0, 15, 30].includes(+o.timer) ? +o.timer : 15,
   };
@@ -35,7 +36,7 @@ export function create(players, optsIn = {}) {
   const n = seats.length;
   const G = {
     game: 'darts', ph: 'play', stage: 'aim', gid: Math.random().toString(36).slice(2, 8), seats, opts,
-    leg: 1, legFirst: Math.random() * n | 0, turn: 0, round: 1, rounds: ROUNDS[opts.start],
+    leg: 1, legFirst: Math.random() * n | 0, turn: 0, round: 1, rounds: opts.rounds || ROUNDS[opts.start],
     rem: seats.map(() => opts.start), legs: seats.map(() => 0),
     st: seats.map(() => ({ darts: 0, scored: 0, best: 0, tons: 0, t180: 0, busts: 0, outs: 0, hi: 0 })),
     darts: [], turnFrom: opts.start, dartN: 0, seed: 0, aimAt: 0, stageEnd: 0, botAt: -1, bot: null,
