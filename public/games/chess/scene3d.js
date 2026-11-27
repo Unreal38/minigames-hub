@@ -3,7 +3,7 @@
 // its player's own colour. Purely visual: it draws what the server sends and tells the HUD which square is under the pointer.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
+import { toonify, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 
@@ -83,9 +83,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const put = (geo, mat, x = 0, y = 0, z = 0, parent = room) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
   { // a round wooden deck, a square table with chunky legs, and a few things lying about
     const R = 9.4;
-    const deck = put(new THREE.CylinderGeometry(R, R, .16, 28), M('#e9d3a7'), 0, -2.42, 0); deck.receiveShadow = true;
-    for (let i = -7; i <= 7; i++) { const w = Math.sqrt(Math.max(0, (R - .1) ** 2 - (i * 1.18 + .59) ** 2)) * 2; if (w > .2) put(new THREE.BoxGeometry(w, .02, .1), M('#d6bb88'), 0, -2.33, i * 1.18 + .59); }
-    const rim = new THREE.TorusGeometry(R, .14, 6, 28); rim.rotateX(Math.PI / 2); put(rim, M('#c9a26b'), 0, -2.36, 0);
+    room.add(roundDeck(R, { wood: '#e9d3a7', seam: '#d6bb88', rim: '#c9a26b', pitch: 1.18, off: .59 }));
     const W = B + EDGE * 2 + 1.1;
     const top = put(new THREE.BoxGeometry(W, .34, W), M('#b9794a'), 0, -.19, 0); top.castShadow = top.receiveShadow = true;
     put(new THREE.BoxGeometry(W - .4, .04, W - .4), M('#cf9460'), 0, -.01, 0).receiveShadow = true;

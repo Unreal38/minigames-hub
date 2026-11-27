@@ -4,7 +4,7 @@
 // the backs of their tiles). Purely visual: it draws what the server sends and the tiles you are laying.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, toonMat, skyDome, clouds, island, birds, createFx, shaker, nightScene } from '../../scenery3d.js';
+import { toonify, toonMat, skyDome, clouds, island, birds, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { petModel } from '../farm/pets3d.js';
@@ -54,8 +54,7 @@ export function createScene(canvas, { onFrame } = {}) {
   // ---------- the deck and the round table (built once, sized for the bigger board) ----------
   const TS = 5.75; // half the table: the big island fits with room for the tile stands along the edges
   { const room = new THREE.Group(); scene.add(room);
-    const deck = put(new THREE.CylinderGeometry(10.5, 10.5, .16, 30), M('#e9d3a7'), 0, -2.42, 0, room); deck.receiveShadow = true;
-    for (let i = -7; i <= 7; i++) { const w = Math.sqrt(Math.max(0, 10.4 * 10.4 - (i * 1.4) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .1), M('#d6bb8a'), 0, -2.33, i * 1.4 + .7, room); }
+    room.add(roundDeck(10.5, { wood: '#e9d3a7', seam: '#d6bb8a', rim: null, seg: 30, pitch: 1.4, off: .7 }));
     const top = put(new THREE.BoxGeometry(TS * 2, .3, TS * 2), M('#b9794a'), 0, -.15, 0, room); top.castShadow = top.receiveShadow = true;
     for (const s of [-1, 1]) {
       put(new THREE.BoxGeometry(TS * 2 + .12, .08, .14), M('#ffc94d'), 0, .01, s * TS, room);

@@ -3,7 +3,7 @@
 // the easel's paper (onLayout tells it where that is on screen). Purely visual: it shows what the server says.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, skyDome, clouds, island, birds, petals, createFx, nightScene } from '../../scenery3d.js';
+import { toonify, skyDome, clouds, island, birds, petals, createFx, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { petModel, wiggle } from '../farm/pets3d.js';
 import { BW, BH } from './rules.js';
@@ -52,9 +52,7 @@ export function createScene(canvas, { onFrame, onLayout } = {}) {
     // bunting along the top rail
     for (let i = 0; i < 13; i++) { const t = (i + .5) / 13, f = put(new THREE.ConeGeometry(.3, .52, 3), M(['#ff8fab', '#ffd84a', '#7ed3b2', '#9aa8ff', '#ff9440'][i % 5]), -PW / 2 + t * PW, PY + PH + F + .12 - Math.sin(t * Math.PI) * .0, .2); f.rotation.x = Math.PI; f.scale.z = .25; }
     // the stage: a round wooden deck, and the long bench
-    const deck = put(new THREE.CylinderGeometry(9.6, 9.6, .14, 30), M('#d9a066'), 0, -.02, .6); deck.receiveShadow = true;
-    for (let i = -7; i <= 7; i++) { const w = Math.sqrt(Math.max(0, 9.5 * 9.5 - (i * 1.2) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .05), M('#b97f4c'), 0, .06, .6 + i * 1.2); }
-    const rimG = new THREE.TorusGeometry(9.6, .15, 6, 30); rimG.rotateX(Math.PI / 2); put(rimG, M('#a86a42'), 0, .03, .6);
+    { const d = roundDeck(9.6, { wood: '#d9a066', seam: '#b97f4c', rim: '#a86a42', y: -.02, h: .14, seg: 30, tube: .15, pitch: 1.2 }); d.position.z = .6; room.add(d); }
     const bench = put(new THREE.BoxGeometry(ROW_W + .6, .2, 1.05), M(WOOD), 0, SEAT_Y - .1, ROW_Z - .1); bench.castShadow = bench.receiveShadow = true;
     for (const x of [-5.4, -1.8, 1.8, 5.4]) put(new THREE.BoxGeometry(.3, SEAT_Y - .2, .9), M(DARK), x, (SEAT_Y - .2) / 2, ROW_Z - .1);
     // lanterns either side

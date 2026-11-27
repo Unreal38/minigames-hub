@@ -3,7 +3,7 @@
 // spare tiles on the edge nearest you. Purely visual: it draws what the server sends.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
+import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { TILES, layout, footprint } from './rules.js';
@@ -41,9 +41,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const D0 = dims(false);
   const room = new THREE.Group(); scene.add(room);
   { // a wooden deck with a rug under the table
-    const deck = put(new THREE.CylinderGeometry(8.6, 8.6, .16, 28), M('#e9d3a7'), 0, -2.42, 0, room); deck.receiveShadow = true;
-    for (let i = -6; i <= 6; i++) { const w = Math.sqrt(Math.max(0, 8.5 * 8.5 - (i * 1.3) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .1), M('#d6bb8a'), 0, -2.33, i * 1.3 + .65, room); }
-    const rim = new THREE.TorusGeometry(8.6, .14, 6, 28); rim.rotateX(Math.PI / 2); put(rim, M('#c9a26b'), 0, -2.36, 0, room);
+    room.add(roundDeck(8.6, { wood: '#e9d3a7', seam: '#d6bb8a', rim: '#c9a26b', off: .65 }));
     bake(room); toonify(room, .04);
   }
   // the table is built for a wide screen and stretched to a tall one on phones held upright

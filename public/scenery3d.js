@@ -14,6 +14,8 @@
 //   petals(parent, span, y)   petals and leaves drifting past (snow in winter); returns update(T).
 //   createFx(scene)           particles in one draw call: burst, puff, confetti, sparkle, rise; call update(dt, camera, H).
 //   shaker()                  camera shake: kick(strength) and apply(camera, dt) after lookAt.
+//   roundDeck(R, opts)        the round wooden floor under the game tables: planks (or painted stripes) cut to the
+//                             floor's own outline, so nothing pokes past the edge, and a rounded rim that matches it.
 //   rim(color)                a hover or selection rim: show(root) wraps root's outline hull in a glowing copy.
 import * as THREE from 'three';
 import { bake, hullGeo, hullMat } from './avatar3d.js';
@@ -222,6 +224,59 @@ export const PROPS = {
   lamp(g, s = 1) { put(g, new THREE.CylinderGeometry(.04 * s, .06 * s, 1.1 * s, 6), flat('#5b4636'), 0, .55 * s); put(g, new THREE.BoxGeometry(.2 * s, .05 * s, .2 * s), flat('#5b4636'), 0, 1.24 * s); const l = put(g, new THREE.BoxGeometry(.16 * s, .2 * s, .16 * s), flat('#ffe27a', { emissive: '#ffb547', emissiveIntensity: .8 }), 0, 1.11 * s); l.userData.noInk = true; put(g, new THREE.BoxGeometry(.2 * s, .04 * s, .2 * s), flat('#5b4636'), 0, 1 * s); },
 };
 // w, d: the clear middle. opts.round: a round island; grass: top colour; props: how many things round the rim.
+// ---------- the round deck under the game tables ----------
+// A floor of planks on a many-sided disc (radius R, top at y + h / 2) with a rounded rim. Every plank is cut to the
+// disc's own outline (not a circle), a little inside the rim, so no plank end ever pokes past the edge. The darker
+// floor shows through thin gaps between the planks and at a butt joint in each long plank (staggered row to row).
+//   wood, seam   plank colour and the colour in the gaps (and the disc's side); rim: the rim's colour (null for none)
+//   pitch, off   plank width and where the rows start (a row centre sits at off + i * pitch)
+//   stripes      { w, colors: [a, b] }: painted stripes on a plain disc instead of planks (Pan, Piotruś)
+//   seg          the disc's sides; tube: the rim's thickness
+// Returns a group of plain meshes: add it to the room before bake() + toonify() like any other part.
+export function roundDeck(R, { y = -2.42, h = .16, seg = 28, wood = '#e9d3a7', seam = null, rim = '#c9a26b', tube = .14, pitch = 1.3, off = 0, stripes = null, seed = 3 } = {}) {
+  const g = new THREE.Group(), A = 2 * Math.PI / seg, top = y + h / 2;
+  const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: .9, flatShading: true });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(R, R, h, seg), mat(stripes ? wood : seam || deckShade(wood, -.12)));
+  base.position.y = y; base.receiveShadow = true; g.add(base);
+  const inR = R - (rim ? tube * .7 : .06), poly = []; // the disc's outline (same corners as the cylinder), pulled in
+  for (let j = 0; j < seg; j++) poly.push([inR * Math.sin(j * A), inR * Math.cos(j * A)]);
+  const slab = (x0, x1, z0, z1, t, c) => { // the part of the rectangle inside the outline, as a flat-topped slab t thick
+    let pts = poly;
+    for (const [k, v, s] of [[0, x0, 1], [0, x1, -1], [1, z0, 1], [1, z1, -1]]) pts = clip(pts, k, v, s);
+    if (pts.length < 3) return;
+    const sh = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)));
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false, curveSegments: 1 }); geo.rotateX(-Math.PI / 2);
+    const m = new THREE.Mesh(geo, mat(c)); m.position.y = top - .005; m.receiveShadow = true; g.add(m);
+  };
+  const n = Math.ceil((inR + Math.abs(off)) / pitch) + 1;
+  for (let i = -n; i <= n; i++) {
+    const zc = off + i * pitch;
+    if (stripes) { slab(-inR, inR, zc - stripes.w / 2, zc + stripes.w / 2, .025, stripes.colors[(i % 2 + 2) % 2]); continue; }
+    const z0 = zc - pitch / 2 + .035, z1 = zc + pitch / 2 - .035, c = deckShade(wood, (hash(i, seed) - .5) * .07);
+    const half = Math.sqrt(Math.max(0, inR * inR - zc * zc));
+    if (half > 2.6) { // a butt joint somewhere along the plank, never near its ends, staggered from the row next to it
+      const jx = (i % 2 ? -1 : 1) * half * (.15 + hash(i, seed + 7) * .3);
+      slab(-inR, jx - .03, z0, z1, .035, c); slab(jx + .03, inR, z0, z1, .035, deckShade(c, .03));
+    } else slab(-inR, inR, z0, z1, .035, c);
+  }
+  if (rim) {
+    const tg = new THREE.TorusGeometry(R, tube, 6, seg); tg.rotateX(Math.PI / 2);
+    tg.rotateY(-(Math.PI / 2 % A)); // turn its corners onto the disc's corners (a torus starts its sides at +x, a cylinder at +z)
+    const r = new THREE.Mesh(tg, mat(rim)); r.position.y = top - .02; r.receiveShadow = true; g.add(r);
+  }
+  return g;
+}
+function clip(pts, k, v, s) { // keeps the side of the line (coordinate k = v) where s * (p[k] - v) >= 0
+  const out = [], inside = p => s * (p[k] - v) >= 0;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], ia = inside(a), ib = inside(b);
+    if (ia) out.push(a);
+    if (ia !== ib) { const t = (v - a[k]) / (b[k] - a[k]); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+  }
+  return out;
+}
+const deckShade = (c, d) => { const x = new THREE.Color(c), hsl = {}; x.getHSL(hsl); return '#' + x.setHSL(hsl.h, hsl.s, Math.min(1, Math.max(0, hsl.l + d))).getHexString(); };
+
 export function island(w, d, { round = false, grass = '#8bca60', patch = '#7fbf56', earth = '#c98a5a', rock = '#857a72', props = 14, seed = 1, rim = 1.6, depth = 1, flowers = 40, lamps = 0, size = 1, open = 0, kinds = null, petals = null, under = true, clear = 0, season = seasonLookNow() } = {}) { // open: 0..1, how much of the front (towards +z) is kept free of props; clear: radius of a round floor in the middle that patches and flowers stay off
   // kinds: which props stand round the rim (names from PROPS, or functions (group, size)); petals: flower colours; under: false leaves the rock underneath to the caller
   // season: the time of year the island dresses for (season3d.js; default today's). Its look replaces the colours,

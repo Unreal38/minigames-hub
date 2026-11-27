@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { cardGeometry } from '../../cardgeo.js';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
+import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { cardTexture } from '../poker/scene3d.js';
@@ -40,9 +40,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const room = new THREE.Group(); scene.add(room);
   const put = (geo, mat, x = 0, y = 0, z = 0, parent = room) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
   { // a striped play mat under a table with a green cloth, and pet toys lying about
-    const deck = put(new THREE.CylinderGeometry(7.6, 7.6, .16, 28), M('#f3e2bd'), 0, -2.42, 0); deck.receiveShadow = true;
-    for (let i = -6; i <= 6; i++) { const w = Math.sqrt(Math.max(0, 7.5 * 7.5 - (i * 1.15) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .34), M(i % 2 ? '#9fd8c0' : '#c9ecd9'), 0, -2.33, i * 1.15); }
-    const rim = new THREE.TorusGeometry(7.6, .14, 6, 28); rim.rotateX(Math.PI / 2); put(rim, M('#c9a26b'), 0, -2.36, 0);
+    room.add(roundDeck(7.6, { wood: '#f3e2bd', rim: '#c9a26b', stripes: { w: .34, colors: ['#c9ecd9', '#9fd8c0'] } }));
     const top = put(new THREE.CylinderGeometry(R + .45, R + .3, .3, 28), M('#b9794a'), 0, -.15, 0); top.castShadow = top.receiveShadow = true;
     const cloth = put(new THREE.CylinderGeometry(R, R, .04, 28), M('#3f9a7a'), 0, .0, 0); cloth.receiveShadow = true;
     const ring = new THREE.TorusGeometry(1.75, .03, 5, 28); ring.rotateX(Math.PI / 2); put(ring, M('#7fd1b0'), 0, .02, 0);

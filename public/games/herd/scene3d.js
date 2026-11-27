@@ -4,7 +4,7 @@
 // stay bright at night. Purely visual: it draws what the server sends and tells the HUD where things are.
 import * as THREE from 'three';
 import { avatar3d, animateAvatar, disposeAvatar, bake } from '../../avatar3d.js';
-import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene } from '../../scenery3d.js';
+import { toonify, toonMat, skyDome, clouds, island, birds, petals, createFx, shaker, nightScene, roundDeck } from '../../scenery3d.js';
 import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { hudFitOk } from '../../camfit.js';
 import { PETS, check, isEgg, elOf, numOf } from './rules.js';
@@ -51,9 +51,7 @@ export function createScene(canvas, { onFrame } = {}) {
   const D0 = dims(false);
   const room = new THREE.Group(); scene.add(room);
   {
-    const deck = put(new THREE.CylinderGeometry(9.2, 9.2, .16, 28), M('#e9d3a7'), 0, -2.42, 0, room); deck.receiveShadow = true;
-    for (let i = -6; i <= 6; i++) { const w = Math.sqrt(Math.max(0, 9.1 * 9.1 - (i * 1.3) ** 2)) * 2; put(new THREE.BoxGeometry(w, .02, .1), M('#d6bb8a'), 0, -2.33, i * 1.3 + .65, room); }
-    const rim = new THREE.TorusGeometry(9.2, .14, 6, 28); rim.rotateX(Math.PI / 2); put(rim, M('#c9a26b'), 0, -2.36, 0, room);
+    room.add(roundDeck(9.2, { wood: '#e9d3a7', seam: '#d6bb8a', rim: '#c9a26b', off: .65 }));
     bake(room); toonify(room, .04);
   }
   const table = new THREE.Group(); scene.add(table);
