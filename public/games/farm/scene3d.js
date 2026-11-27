@@ -461,7 +461,9 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     Object.assign(t, routeTo(p, t.x, t.z, skip)); return t;
   }
   const heartGeo = new THREE.OctahedronGeometry(.12, 0), heartMat = toonMat(new THREE.MeshStandardMaterial({ color: '#ff6f91', emissive: '#ff6f91', emissiveIntensity: .45 }));
-  const PET_SIZE = .42;
+  // How big pets and people are on the island, against its tiles and buildings (Kuba, 2026-11-27: they were a little too big).
+  // Helper spots, the Kitchen hearth spacing and pet paths are measured from each pet's own size, so they follow this.
+  const FARM_SCALE = .75, PET_SIZE = .42 * FARM_SCALE, AV_SIZE = .5 * FARM_SCALE;
   // Pictures of single models are drawn by the island's own renderer into a small off-screen target and read back. A second
   // renderer (as before) has its own GL context, so it had to build every shader again, which on browsers without background
   // compiling (Firefox) stuttered the first seconds after the island showed. The little scene is set up like the island
@@ -864,7 +866,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       if (!asleep) wiggle(p.g, T, p.seed, moving ? .5 : 0);
       if (p.open && !p.heart) { p.heart = new THREE.Mesh(heartGeo, heartMat); p.top = new THREE.Box3().setFromObject(p.g).max.y - p.g.position.y; scene.add(p.heart); }
       if (p.heart) { p.heart.visible = p.open; p.heart.position.set(p.x, p.top + .22 + bounce + cheer + Math.sin(T * 3 + p.seed) * .05, p.z); p.heart.rotation.y = T * 1.5; p.heart.scale.set(1.2, 1, .5).multiplyScalar(1 + Math.sin(T * 6 + p.seed) * .08); }
-      p.blob.position.set(p.x + ox, .015, p.z + oz); p.blob.visible = up < .3; p.blob.scale.setScalar((p.big || 1) * (1 - (bounce + cheer) * .8));
+      p.blob.position.set(p.x + ox, .015, p.z + oz); p.blob.visible = up < .3; p.blob.scale.setScalar((p.big || 1) * FARM_SCALE * (1 - (bounce + cheer) * .8));
       p.g.visible = !edit || !!p.fixed; if (edit && !p.fixed) { p.blob.visible = false; if (p.heart) p.heart.visible = false; } // out of the way while building (Kuba)
     }
   }
@@ -885,7 +887,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       const key = farm && o && !starters ? JSON.stringify([o.color, o.av]) : ''; let p = people.get(who);
       if (p && p.key !== key) { scene.remove(p.g); disposeAvatar(p.g); people.delete(who); p = null; }
       if (!key) continue;
-      if (!p) { try { const g = avatar3d(o.color || '#ff8fab', o.av, { pose: 'stand' }); g.scale.setScalar(.5); scene.add(g); p = { g, key, x: 1e9, z: 0, path: [], wait: 2 + Math.random() * 3, face: .4, seed: Math.random() * 10 }; people.set(who, p); } catch (e) { console.warn('no avatar', e); continue; } }
+      if (!p) { try { const g = avatar3d(o.color || '#ff8fab', o.av, { pose: 'stand' }); g.scale.setScalar(AV_SIZE); scene.add(g); p = { g, key, x: 1e9, z: 0, path: [], wait: 2 + Math.random() * 3, face: .4, seed: Math.random() * 10 }; people.set(who, p); } catch (e) { console.warn('no avatar', e); continue; } }
       const [tx, ty] = p.x > 1e8 ? [-1, -1] : tileOf(p);
       if (tx < 0 || walkGrid[ty * M + tx]) { // new here, or something was built where they stood
         const [w, d] = by ? footprint(by.type, by.r) : [1, 1];
@@ -908,8 +910,8 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       const w = p.walk * p.walk * (3 - 2 * p.walk);
       animateAvatar(p.g, T, { seed: p.seed }); walkAvatar(p.g, p.ph, w);
       if (moving && Math.sin(p.ph) * (p.stepWas || 0) < 0) dustAt(p.x, p.z, 1); p.stepWas = Math.sin(p.ph);
-      p.g.scale.setScalar(.5);
-      p.g.position.set(p.x, .38 + Math.abs(Math.cos(p.ph)) * .035 * w, p.z);
+      p.g.scale.setScalar(AV_SIZE);
+      p.g.position.set(p.x, .76 * AV_SIZE + Math.abs(Math.cos(p.ph)) * .07 * AV_SIZE * w, p.z);
       let da = p.face - p.g.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); p.g.rotation.y += da * Math.min(1, dt * 7);
       p.g.rotation.z = Math.sin(p.ph) * .045 * w; p.g.rotation.x = .09 * w;
     }
@@ -1162,7 +1164,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     }
     if (!starters) {
       starters = true;
-      STARTERS.forEach((sp, i) => { const p = addPet('starter:' + sp, sp, 0, (i - 1) * 2.6, 0); p.fixed = true; p.g.scale.multiplyScalar(2.2); p.g.userData.base = p.g.scale.x; p.big = 2.2; });
+      STARTERS.forEach((sp, i) => { const p = addPet('starter:' + sp, sp, 0, (i - 1) * 2.6, 0); p.fixed = true; p.g.scale.multiplyScalar(2.2 / FARM_SCALE); p.g.userData.base = p.g.scale.x; p.big = 2.2 / FARM_SCALE; });
       cam.az = 0; cam.el = .4; cam.dist = 11; cam.tx = cam.tz = cam.gx = cam.gz = 0; cam.follow = cam.back = null; cam.zoom = 0;
     }
     starSel = sel || null;
@@ -1234,7 +1236,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   function petAt() {
     if (edit) return null; // hidden while building
     let best = null, bd = .6;
-    for (const [id, p] of pets) { const c = p.g.position.clone(); c.y += .3 * (p.g.userData.base / PET_SIZE); const d = ray.ray.distanceToPoint(c); if (d < bd * (p.fixed ? 1.6 : 1)) { bd = d; best = id; } }
+    for (const [id, p] of pets) { const c = p.g.position.clone(); c.y += .3 * FARM_SCALE * (p.g.userData.base / PET_SIZE); const d = ray.ray.distanceToPoint(c); if (d < bd * (p.fixed ? 1.6 : 1)) { bd = d; best = id; } }
     return best;
   }
   // ---------- highlights ----------
@@ -1258,7 +1260,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     let hull = null; root.traverse(o => { if (!hull && o.userData.ink && o !== marks.hover.glow && o !== marks.pick.glow) hull = o; });
     if (hull) { m.glow = new THREE.Mesh(hull.geometry, m.rim); m.glow.scale.copy(hull.scale); m.uT.value = (kind === 'pick' ? .085 : .06) / (hull.getWorldScale(new THREE.Vector3()).x || 1); m.glow.position.copy(hull.position); m.glow.quaternion.copy(hull.quaternion); m.glow.userData.noInk = true; hull.parent.add(m.glow); }
     const it = e && farm?.items.find(i => i.id === t.item), [w, h] = it ? footprint(it.type, it.r) : [0, 0];
-    m.size = p ? [.42 * p.g.userData.base / PET_SIZE, .42 * p.g.userData.base / PET_SIZE] : [w / 2 + .12, h / 2 + .12];
+    m.size = p ? [.42 * FARM_SCALE * p.g.userData.base / PET_SIZE, .42 * FARM_SCALE * p.g.userData.base / PET_SIZE] : [w / 2 + .12, h / 2 + .12];
     m.alive = p ? () => pets.get(t.pet) === p : () => items.get(t.item) === e; m.root = root; m.ring.visible = true;
   }
   function moveMarks(T) {
