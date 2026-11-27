@@ -111,7 +111,11 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   if (st(b, 1) !== 2 || b >> 5 & 1) fail('fence by the arch post (inside) should reach its line without a post ' + b);
   if (archLink(out, 2, 2, 0, 9) !== 2) fail('arch should run a rail out to the fence past its + end ' + archLink(out, 2, 2, 0, 9));
   if (archLink(inn, 2, 2, 0, 9) !== 8) fail('arch should run a rail to the fence by its post ' + archLink(inn, 2, 2, 0, 9));
-  if (archLink([A], 2, 2, .5, 9) !== 1) fail('a diagonal arch keeps link 1'); }
+  if (archLink([A], 2, 2, .5, 9) !== 1) fail('a diagonal arch keeps link 1');
+  // a fence running past the arch's end, across its line: a clean corner there, and the arch's rails reach it
+  const by = [A, F(3, 3, 2, 1)], c = fenceLink(by, 3, 2, 1, 3); // line x 3.25, y 2..3; the arch line y 2.25 meets it a quarter from its end
+  if (!(c >> 7 & 1) || !(c >> 9 & 1)) fail('fence passing the arch end should get a corner post and stop there ' + c);
+  if (archLink(by, 2, 2, 0, 9) !== 2) fail('arch should reach the fence passing its end ' + archLink(by, 2, 2, 0, 9)); }
 
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');

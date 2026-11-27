@@ -67,7 +67,7 @@ export function fenceLink(items, x, y, r = 0, skip) {
   for (const dir of [1, -1]) {
     const E = dir > 0 ? P.b : P.a, p = E + dir * Q, [px, py] = toXY(P.o, p, P.c);
     let st = 0, own = false;
-    const metAt = u => { const [mx, my] = toXY(P.o, u, P.c); return others.some(O => O.o !== P.o && reachXY(O, mx, my) === 'ext'); };
+    const metAt = u => { const [mx, my] = toXY(P.o, u, P.c); return others.some(O => O.o !== P.o && reachXY(O, mx, my) === 'ext') || arches.some(A => A.o !== P.o && reachXY(A, mx, my) === 'ext'); }; // an arch's end reaches on too (archLink)
     // in line: the piece to the west or north draws the shared post, unless a side post stands a quarter from it anyway
     if (arches.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) st = 3;
     else if (others.some(O => O.o === P.o && O.c === P.c && (dir > 0 ? O.a === P.b : O.b === P.a))) { st = 1; own = dir > 0 && !metAt(E - Q) && !metAt(E + Q); }
@@ -95,11 +95,11 @@ export function archLink(items, x, y, r = 0, skip) {
   if (isDiag(r)) return 1;
   const A = fenceLine(x, y, r), sgn = (r | 0) < 2 ? 1 : -1;
   const fences = (items || []).filter(i => isFence(i) && i.id !== skip && !isDiag(i.r)).map(i => fenceLine(i.x, i.y, i.r)).filter(F => F.o !== A.o);
-  const hits = u => fences.some(F => (F.a - Q === A.c || F.b + Q === A.c) && F.c === u); // a fence end a quarter short of the arch's line, right across from u
+  const hits = (u, pass) => fences.some(F => F.c === u && (F.a - Q === A.c || F.b + Q === A.c || (pass && F.a < A.c && F.b > A.c))); // a fence end a quarter short of the arch's line right across from u (or, pass, a fence running across it there)
   let l = 0;
   for (const [k, end, dir] of [[0, A.b, 1], [1, A.a, -1]]) {
     const side = sgn > 0 ? k : 1 - k; // local + end is the world b end when sgn > 0
-    if (hits(end + dir * Q)) l |= 2 << side; else if (hits(end - dir * Q)) l |= 8 << side;
+    if (hits(end + dir * Q, true)) l |= 2 << side; else if (hits(end - dir * Q)) l |= 8 << side;
   }
   return l;
 }
