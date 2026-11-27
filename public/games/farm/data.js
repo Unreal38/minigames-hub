@@ -493,24 +493,41 @@ export const footprint = (type, r) => { const it = ITEMS[type]; if (r % 1) { con
 export const canAfford = (inv, cost) => Object.entries(cost || {}).every(([k, n]) => (inv[k] || 0) >= n);
 export const costText = cost => Object.entries(cost || {}).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') || L('Free', 'Za darmo');
 
-// Placement is checked on a grid of half tiles, so small props can share a tile.
-// Returns that grid (2n x 2n). With walkable = true, items pets can cross count as free.
+// Placement is checked on a grid of quarter tiles (C cells a side per tile), so small props can share a tile.
+const C = 4;
+// The quarter-tile cells a piece covers. A straight piece covers its rectangle. A diagonal one (r .5, 1.5 ...) covers only the
+// cells under its turned shape, inside the square it is placed by: a diagonal fence or arch the cells along its corner-to-corner
+// line, anything else its turned rectangle. So fences and props fit right up to a turned building.
+export function cellsOf(type, x, y, r) {
+  const [w, h] = footprint(type, r), i0 = Math.round(x * C), j0 = Math.round(y * C), out = [];
+  if (!(r % 1)) { for (let j = j0; j < j0 + h * C; j++) for (let i = i0; i < i0 + w * C; i++) out.push(i, j); return out; }
+  const it = ITEMS[type], t = r * Math.PI / 2, dx = Math.cos(t), dz = Math.sin(t), cx = x + w / 2, cz = y + h / 2;
+  const line = type === 'fence' || type === 'arch', hu = line ? Math.SQRT2 / 2 : it.w / 2 + .01, hv = line ? .15 : it.h / 2 + .01;
+  for (let j = j0; j < j0 + h * C; j++) for (let i = i0; i < i0 + w * C; i++) {
+    const px = (i + .5) / C - cx, pz = (j + .5) / C - cz, u = px * dx + pz * dz, v = -px * dz + pz * dx;
+    if (Math.abs(u) <= hu && Math.abs(v) <= hv) out.push(i, j);
+  }
+  return out;
+}
+// Returns that grid (C n x C n). With walkable = true, items pets can cross count as free.
 export function occupied(farm, { ignore = null, walkable = false } = {}) {
-  const n = farm.size * 2, g = new Uint8Array(n * n);
+  const n = farm.size * C, g = new Uint8Array(n * n);
   for (const it of farm.items) {
     if (it.id === ignore || !ITEMS[it.type] || (walkable && ITEMS[it.type].walk)) continue;
-    const [w, h] = footprint(it.type, it.r), x0 = Math.round(it.x * 2), y0 = Math.round(it.y * 2);
-    for (let y = y0; y < y0 + h * 2; y++) for (let x = x0; x < x0 + w * 2; x++) if (x >= 0 && y >= 0 && x < n && y < n) g[y * n + x] = 1;
+    const c = cellsOf(it.type, it.x, it.y, it.r);
+    for (let k = 0; k < c.length; k += 2) { const x = c[k], y = c[k + 1]; if (x >= 0 && y >= 0 && x < n && y < n) g[y * n + x] = 1; }
   }
   return g;
 }
 // Whole tiles a pet cannot walk on: any tile with something solid on part of it.
 export function blockedTiles(farm) {
-  const n = farm.size, h = occupied(farm, { walkable: true }), g = new Uint8Array(n * n);
-  for (let y = 0; y < n * 2; y++) for (let x = 0; x < n * 2; x++) if (h[y * n * 2 + x]) g[(y >> 1) * n + (x >> 1)] = 1;
+  const n = farm.size, h = occupied(farm, { walkable: true }), g = new Uint8Array(n * n), m = n * C;
+  for (let y = 0; y < m; y++) for (let x = 0; x < m; x++) if (h[y * m + x]) g[Math.floor(y / C) * n + Math.floor(x / C)] = 1;
   return g;
 }
-export const stepOf = () => .5; // everything snaps to half tiles (Kuba, 2026-11-27), so pieces line up with thin fences and each other
+// Everything snaps to half tiles (Kuba, 2026-11-27), so pieces line up with thin fences and each other; small props
+// (fine) to quarter tiles, so a campfire can stand in the middle of a tile.
+export const stepOf = type => ITEMS[type]?.fine && type !== 'fence' ? .25 : .5; // fences keep to half tiles: their joins are worked out on them
 
 // Would this item fit at (x, y)? ignore = id of the item being moved.
 export function fits(farm, type, x, y, r, ignore = null) {
@@ -519,8 +536,8 @@ export function fits(farm, type, x, y, r, ignore = null) {
   if (![x, y].every(v => typeof v === 'number' && Number.isInteger(v / st))) return false;
   const [w, h] = footprint(type, r), n = farm.size;
   if (x < 0 || y < 0 || x + w > n || y + h > n) return false;
-  const g = occupied(farm, { ignore }), n2 = n * 2;
-  for (let j = y * 2; j < (y + h) * 2; j++) for (let i = x * 2; i < (x + w) * 2; i++) if (g[j * n2 + i]) return false;
+  const g = occupied(farm, { ignore }), m = n * C, c = cellsOf(type, x, y, r);
+  for (let k = 0; k < c.length; k += 2) if (g[c[k + 1] * m + c[k]]) return false;
   return true;
 }
 export const countOf = (farm, type) => farm.items.filter(i => i.type === type).length;

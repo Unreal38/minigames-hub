@@ -147,7 +147,7 @@ if (r.err) fail('rock right beside the bench: ' + r.err);
 const small = a.farm.items.length;
 for (const [what, act] of [
   ['fence on a quarter tile', { t: 'place', type: 'fence', x: 6.5, y: 6.25, r: 0 }],
-  ['quarter tile', { t: 'place', type: 'rock', x: 6.25, y: 6, r: 0 }],
+  ['eighth of a tile', { t: 'place', type: 'rock', x: 6.125, y: 6, r: 0 }],
   ['text coordinate', { t: 'place', type: 'rock', x: '6', y: 6, r: 0 }],
   ['half off the edge', { t: 'place', type: 'bench', x: 9.5, y: 0, r: 0 }],
 ]) {
