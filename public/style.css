@@ -2272,30 +2272,26 @@ body.in-party .results .againbox, body.in-party .results .paid, body.in-party .r
 .party-back { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; background: var(--lantern); color: var(--ink); border: 3px solid var(--ink); border-radius: 999px; padding: 8px 20px; font-family: var(--fd); font-weight: 600; font-size: 17px; box-shadow: 0 4px 0 var(--ink); pointer-events: none; }
 .party-back[hidden] { display: none; }
 
-/* ---- party banner above the games (Friendship Trail, Kuba 2026-11-27) ---- */
-.partyban { position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(250px, max-content); grid-template-areas: 'art body side' 'art minis minis'; gap: 10px 18px; align-items: center; margin: 22px 0 0; padding: 14px 18px 14px 14px;
-  background: linear-gradient(120deg, #ffe7a8, #ffd0e4 55%, #d6ecff); color: #3b2219; border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 5px 0 var(--ink); overflow: hidden; }
+/* ---- party banner above the games (Friendship Trail, Kuba 2026-11-27; re-laid out the same day) ----
+   One row: the trail art, the title and pitch, the Host button with the open parties. Under it, the minigames as an even
+   grid: picture tiles in one row of 14 on narrower banners, picture + name chips in two rows of 7 on wide ones.
+   Sizes follow the banner's own width (container queries), so the hub's columns don't matter. */
+.partyban { position: relative; container: pban / inline-size; margin: 22px 0 0; background: linear-gradient(120deg, #ffe7a8, #ffd0e4 55%, #d6ecff); color: #3b2219;
+  border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 5px 0 var(--ink); overflow: hidden; }
 body.night .partyban { background: linear-gradient(120deg, #4a2f6e, #2b2856 55%, #1d3a5c); color: #f5f2ff; }
-.partyban::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 12% 20%, #fff7 0 3px, transparent 4px) 0 0/46px 46px, radial-gradient(circle at 60% 70%, #fff5 0 2px, transparent 3px) 0 0/38px 38px; pointer-events: none;
-  -webkit-mask-image: linear-gradient(90deg, #000 0, #0003 22%, #0000 30%, #0000 72%, #000 100%); mask-image: linear-gradient(90deg, #000 0, #0003 22%, #0000 30%, #0000 72%, #000 100%); } /* confetti dots at the edges only, never behind the text */
-body.night .partyban::before { opacity: .55; }
-.partyban > * { position: relative; min-width: 0; }
-.pb-art { grid-area: art; align-self: center; width: 100%; aspect-ratio: 32 / 15; /* the art's own shape, so none of it is cut off */ border-radius: 16px; overflow: hidden; border: 3px solid var(--ink); }
+.pb-in { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) 240px; grid-template-areas: 'art body side' 'minis minis minis'; gap: 14px 18px; align-items: center; padding: 14px 16px 16px; }
+.pb-art { grid-area: art; width: 100%; aspect-ratio: 32 / 15; border-radius: 14px; overflow: hidden; border: 3px solid var(--ink); box-sizing: border-box; }
 .pb-art > .pic { height: 100%; } .pb-art svg { width: 100%; height: 100%; display: block; }
-.pb-kick { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #ffe27a; font-family: var(--fd); font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 12px; }
+.pb-body { grid-area: body; min-width: 0; }
+.pb-kick { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #ffe27a; font-family: var(--fd); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 11px; }
 body.night .pb-kick { background: #ffe27a; color: #2b2856; }
-.pb-title { display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; }
-.pb-body h2 { font-family: var(--fd); font-size: 30px; margin: 0; line-height: 1.1; }
-.pb-title .ghelp { width: 28px; height: 28px; opacity: 1; } /* the same ? as on the game cards */
-.pb-body p { margin: 0 0 8px; font-size: 15.5px; font-weight: 500; line-height: 1.4; max-width: 60ch; }
-body.night .pb-body p { color: #fff; text-shadow: 0 1px 2px #1a103099; }
-.pb-body { grid-area: body; } .pb-side { grid-area: side; }
-.pb-minis { grid-area: minis; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.pb-minis span { display: inline-flex; align-items: center; gap: 6px; background: #fff9; border: 2px solid #3b221933; border-radius: 999px; padding: 2px 10px 2px 2px; font-family: var(--fd); font-weight: 600; font-size: 13px; white-space: nowrap; }
-body.night .pb-minis span { background: #ffffff24; border-color: #ffffff4d; color: #fff; }
-.pb-minis img { width: 34px; height: 22px; object-fit: cover; border-radius: 999px; border: 1.5px solid var(--ink); }
-.pb-side { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-.pb-side .btn { font-size: 20px; min-height: 56px; white-space: nowrap; }
+.pb-title { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; }
+.partyban .pb-title h2, body.sky:not(.in-game) .partyban .pb-title h2 { font-family: var(--fd); font-size: 28px; line-height: 1.1; margin: 0; color: inherit; -webkit-text-stroke: 0; text-shadow: none; letter-spacing: 0; }
+.pb-title .ghelp { width: 28px; height: 28px; opacity: 1; }
+.pb-body p { margin: 0; font-size: 15px; font-weight: 500; line-height: 1.4; max-width: 62ch; }
+body.night .pb-body p { color: #fff; }
+.pb-side { grid-area: side; display: flex; flex-direction: column; gap: 8px; }
+.pb-side .btn { font-size: 19px; min-height: 52px; white-space: nowrap; }
 .pb-open { background: var(--paper); color: var(--on-paper); border: 2.5px solid var(--ink); border-radius: 14px; padding: 6px 8px; font-size: 14px; display: flex; flex-direction: column; gap: 2px; }
 .pb-open > b { font-family: var(--fd); padding: 0 2px; }
 .pb-open > div { display: flex; flex-direction: column; gap: 2px; }
@@ -2306,16 +2302,37 @@ body.night .pb-row:hover, body.night .pb-row:focus-visible { background: #ffffff
 .pb-row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pb-row small { color: var(--soft-tx); }
 .pb-row em { font-style: normal; font-family: var(--fd); font-weight: 700; letter-spacing: 2px; }
-@media (min-width: 1100px) and (max-width: 1499px) { .partyban { grid-template-columns: 170px minmax(0, 1fr); grid-template-areas: 'art body' 'minis minis' 'side side'; } .pb-side { flex-direction: row; } .pb-side .btn { flex: none; min-width: 220px; } .pb-open { flex: 1; } }
-@media (max-width: 1099px) { .partyban { grid-template-columns: 1fr; grid-template-areas: 'art' 'body' 'minis' 'side'; padding: 12px; gap: 10px; margin-top: 14px; } .pb-art { width: min(100%, 320px); justify-self: center; } .pb-body h2 { font-size: 25px; } }
-/* phones: a short art strip, one scrolling row of minigames, the button and parties side by side when there is room */
-@media (max-width: 600px) {
-  .partyban { grid-template-columns: 112px minmax(0, 1fr); grid-template-areas: 'art body' 'minis minis' 'side side'; gap: 8px 12px; border-radius: 20px; }
-  .pb-art { width: 100%; border-radius: 12px; border-width: 2.5px; }
-  .pb-body h2 { font-size: 22px; } .pb-title { gap: 6px; }
-  .pb-body p { display: none; } /* the title, the chips and the How to play button say it; keeps the banner short */
-  .pb-minis { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px 2px; mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent); }
-  .pb-minis::-webkit-scrollbar { display: none; }
-  .pb-minis span { flex: none; }
-  .pb-side .btn { min-height: 50px; font-size: 18px; }
+/* the minigames: a label, then an even grid */
+.pb-minis { grid-area: minis; display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 2px dashed #3b221933; }
+body.night .pb-minis { border-top-color: #ffffff2e; }
+.pb-mh { font-family: var(--fd); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
+.pb-grid { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; }
+.pb-grid > span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pb-grid img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 9px; border: 2px solid var(--ink); display: block; background: #fff; box-sizing: border-box; }
+.pb-grid b { display: none; }
+/* wide banners: picture + name, two rows of seven */
+@container pban (min-width: 1150px) {
+  .pb-in { grid-template-columns: 250px minmax(0, 1fr) 270px; }
+  .pb-title h2, body.sky:not(.in-game) .partyban .pb-title h2 { font-size: 32px; }
+  .pb-grid { grid-template-columns: repeat(7, max-content); justify-content: space-between; gap: 6px 8px; } /* whole names; the spare room goes between the columns */
+  .pb-grid > span { gap: 5px; background: #fff9; border: 2px solid #3b221933; border-radius: 999px; padding: 2px 8px 2px 2px; }
+  body.night .pb-grid > span { background: #ffffff1f; border-color: #ffffff40; }
+  .pb-grid img { width: 32px; flex: none; border-radius: 999px; border-width: 1.5px; }
+  .pb-grid b { display: block; font-family: var(--fd); font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+/* medium banners (a narrow hub column, tablets): the button and parties go to their own row */
+@container pban (max-width: 760px) {
+  .pb-in { grid-template-columns: 170px minmax(0, 1fr); grid-template-areas: 'art body' 'minis minis' 'side side'; }
+  .pb-side { flex-direction: row; align-items: stretch; } .pb-side .btn { flex: none; min-width: 210px; } .pb-open { flex: 1; min-width: 0; }
+}
+/* phones: smaller art beside the title, no pitch, two rows of seven pictures, button over the parties */
+@container pban (max-width: 520px) {
+  .pb-in { grid-template-columns: 104px minmax(0, 1fr); gap: 10px 12px; padding: 12px; }
+  .pb-art { border-width: 2.5px; border-radius: 11px; }
+  .pb-title { margin: 4px 0 0; gap: 6px; } .pb-title h2, body.sky:not(.in-game) .partyban .pb-title h2 { font-size: 21px; }
+  .pb-body p { display: none; }
+  .pb-minis { padding-top: 10px; }
+  .pb-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; } .pb-grid img { border-radius: 7px; border-width: 1.5px; }
+  .pb-side { flex-direction: column; } .pb-side .btn { min-width: 0; min-height: 48px; font-size: 18px; }
+}
+@media (max-width: 1099px) { .partyban { margin-top: 14px; } }

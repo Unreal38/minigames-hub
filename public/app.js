@@ -2223,15 +2223,16 @@ const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcar
 // The party banner above the games (Kuba 2026-11-27): Friendship Trail has its own spot because it plays the other
 // minigames. The chips are its minigame pool; the open parties list is filled by renderTables (paintParties).
 const PARTY_GAME = 'trail', PARTY_SHORT = 3;
-const partyBanHtml = () => !GAMES[PARTY_GAME] ? '' : `<section class="partyban" id="partyban" aria-label="${L('Party mode', 'Tryb imprezowy')}">
+const partyBanHtml = () => !GAMES[PARTY_GAME] ? '' : `<section class="partyban" id="partyban" aria-label="${L('Party mode', 'Tryb imprezowy')}"><div class="pb-in">
   <div class="pb-art"><div class="pic trailpic">${trailArt()}</div></div>
   <div class="pb-body"><span class="pb-kick">🎉 ${L('Party mode', 'Tryb imprezowy')}</span>
     <div class="pb-title"><h2>${esc(GAMES[PARTY_GAME].name)}</h2><button type="button" class="ghelp" data-act="rules" data-game="${PARTY_GAME}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[PARTY_GAME].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
     <p>${L('A party tournament for 1–6: walk the island trail with your own pet, befriend wild pets, and play a quick minigame after every round.', 'Turniej imprezowy dla 1–6 osób: idź szlakiem po wyspie z własnym zwierzakiem, zaprzyjaźniaj dzikie zwierzaki i zagraj szybką minigrę po każdej rundzie.')}</p></div>
-  <div class="pb-minis" aria-label="${L('Minigames on the trail', 'Minigry na szlaku')}">${PARTY_POOL.map(g => `<span title="${esc(g.name)} · ${esc(g.cut)}"><img src="/gamepics/${g.id}-s.jpg" alt="" loading="lazy" decoding="async">${esc(g.name)}</span>`).join('')}</div>
   <div class="pb-side"><button type="button" class="btn big" data-act="host" data-game="${PARTY_GAME}">${L('Host a party', 'Zorganizuj imprezę')}</button>
     <div class="pb-open"><b>${L('Open parties', 'Otwarte imprezy')}</b><div id="party-open">${partyRowsHtml()}</div></div></div>
-</section>`;
+  <div class="pb-minis"><span class="pb-mh">${L(`Minigames on the trail · ${PARTY_POOL.length}`, `Minigry na szlaku · ${PARTY_POOL.length}`)}</span>
+    <div class="pb-grid">${PARTY_POOL.map(g => `<span title="${esc(g.name)} · ${esc(g.cut)}"><img src="/gamepics/${g.id}-s.jpg" alt="${esc(g.name)}" loading="lazy" decoding="async"><b>${esc(g.name)}</b></span>`).join('')}</div></div>
+</div></section>`;
 const partyRowsHtml = () => {
   const rooms = (st.rooms || []).filter(r => r.game === PARTY_GAME).sort((a, b) => tableOpen(b) - tableOpen(a)).slice(0, PARTY_SHORT);
   if (!rooms.length) return `<span class="pb-none">${L('None yet. Host one and share the code.', 'Jeszcze żadnej. Zorganizuj i podaj kod.')}</span>`;
