@@ -21,7 +21,7 @@ import { stoneSvgFile } from './icons.js';
 
 const K = .42;                 // avatars are drawn at this size, on a wrapper (the standing avatar sits .76 up inside it)
 const HOP = 420;               // ms per stone, as the server counts it (MS.hop)
-const SR = .62, SY = .18;      // stone radius and the height of a stone's top
+const SR = .62, SY = .18, MR = 3.2; // MR: the start meadow's radius      // stone radius and the height of a stone's top
 const ISLE = { x: 1.5, z: -1, rx: 23, rz: 16.5 };
 const POND = { x: -1, z: 0, rx: 4.2, rz: 3 };
 const STREAM_Z = .95;
@@ -154,20 +154,26 @@ export function createScene(canvas, { onFrame } = {}) {
     cyl(s, .06, .07, 1.3, '#8a5a32', 0, .65, 0, 6);
     n.next.forEach((j, k) => { const b = NODES[j], a = Math.atan2(b.x - n.x, b.z - n.z), bd = box(s, .7, .2, .07, k ? '#ffc93c' : '#ffffff', Math.sin(a) * .3, 1.1 - k * .27, Math.cos(a) * .3); bd.rotation.y = a + Math.PI / 2; }); });
   // the start meadow off the trail beside the first stone: everyone waits here before their first roll (Kuba 2026-11-27)
-  { const [ox, oz] = sideOf(0); START.set(NODES[0].x + ox * 3.2, SY, NODES[0].z + oz * 3.2);
+  // big enough for six players in a row plus Tux (Kuba 2026-11-27: too small for 4 + the cat), pushed off the trail as far as it needs
+  { let [ox, oz] = sideOf(0), d = MR + SR + .55;
+    const fits = d => { const x = NODES[0].x + ox * d, z = NODES[0].z + oz * d; return NODES.every((n, i) => !i || Math.hypot(n.x - x, n.z - z) > MR + SR + .3) && [0, 1, 2, 3, 4, 5, 6, 7].every(k => inIsle(x + Math.cos(k * .785) * (MR + .3), z + Math.sin(k * .785) * (MR + .3), .96)); };
+    while (d < MR + 5 && !fits(d)) d += .25;
+    if (!fits(d)) { ox = -ox; oz = -oz; d = MR + SR + .55; while (d < MR + 5 && !fits(d)) d += .25; if (!fits(d)) { ox = -ox; oz = -oz; d = MR + SR + .55; } }
+    START.set(NODES[0].x + ox * d, SY, NODES[0].z + oz * d);
     const g = new THREE.Group(); g.position.set(START.x, 0, START.z); g.rotation.y = Math.atan2(ox, oz); world.add(g);
-    cyl(g, 1.7, 1.8, .14, snowy ? '#9aa6b6' : '#8d867e', 0, .06, 0, 14); cyl(g, 1.65, 1.65, .05, '#fff6e2', 0, .135, 0, 14); cyl(g, 1.55, 1.57, .08, '#ff9fc8', 0, .14, 0, 14);
-    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; cyl(g, .07, .07, .05, k % 2 ? '#ffffff' : '#ffd36b', Math.cos(a) * 1.3, .2, Math.sin(a) * 1.3, 6); }
-    // an arch on the side facing the first stone, with a striped banner
-    for (const sx of [-1.05, 1.05]) cyl(g, .08, .09, 1.6, '#c98a52', sx, .8, -1.6, 6);
-    box(g, 2.3, .34, .1, '#ff6f9a', 0, 1.55, -1.6); for (let k = 0; k < 5; k++) box(g, .3, .36, .11, '#ffffff', -.8 + k * .4, 1.55, -1.6);
-    for (const sx of [-1.05, 1.05]) put(g, new THREE.ConeGeometry(.13, .3, 6), M('#ffd36b'), sx, 1.75, -1.6);
+    cyl(g, MR + .15, MR + .25, .14, snowy ? '#9aa6b6' : '#8d867e', 0, .06, 0, 18); cyl(g, MR + .1, MR + .1, .05, '#fff6e2', 0, .135, 0, 18); cyl(g, MR, MR + .02, .08, '#ff9fc8', 0, .14, 0, 18);
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; cyl(g, .07, .07, .05, k % 2 ? '#ffffff' : '#ffd36b', Math.cos(a) * (MR - .25), .2, Math.sin(a) * (MR - .25), 6); }
+    // an arch with a striped banner at the back (away from the camera, so it never stands in front of the line-up)
+    const ag = new THREE.Group(); ag.position.set(START.x, 0, START.z - MR - .05); world.add(ag);
+    for (const sx of [-1.05, 1.05]) cyl(ag, .08, .09, 1.6, '#c98a52', sx, .8, 0, 6);
+    box(ag, 2.3, .34, .1, '#ff6f9a', 0, 1.55, 0); for (let k = 0; k < 5; k++) box(ag, .3, .36, .11, '#ffffff', -.8 + k * .4, 1.55, 0);
+    for (const sx of [-1.05, 1.05]) put(ag, new THREE.ConeGeometry(.13, .3, 6), M('#ffd36b'), sx, 1.75, 0);
     // dirt path from the meadow to the first stone
-    const dx = NODES[0].x - START.x, dz = NODES[0].z - START.z, l = Math.hypot(dx, dz), a = Math.atan2(dx, dz), len = l - 1.75 - SR - .1;
-    if (len > .05) { const mx = START.x + dx / l * (1.75 + len / 2), mz = START.z + dz / l * (1.75 + len / 2);
+    const dx = NODES[0].x - START.x, dz = NODES[0].z - START.z, l = Math.hypot(dx, dz), a = Math.atan2(dx, dz), e0 = MR + .2, len = l - e0 - SR - .1;
+    if (len > .05) { const mx = START.x + dx / l * (e0 + len / 2), mz = START.z + dz / l * (e0 + len / 2);
       box(world, .74, .03, len, DIRT_EDGE, mx, .02, mz).rotation.y = a; box(world, .5, .035, len, DIRT, mx, .03, mz).rotation.y = a; } }
   // the lawn's flowers and season props, never on the trail or the water
-  const clearOf = (x, z, r) => P.every(p => Math.hypot(p.x - x, p.z - z) > r) && Math.hypot(START.x - x, START.z - z) > r + 1.7 && ((x - POND.x) / (POND.rx + .8)) ** 2 + ((z - POND.z) / (POND.rz + .8)) ** 2 > 1
+  const clearOf = (x, z, r) => P.every(p => Math.hypot(p.x - x, p.z - z) > r) && Math.hypot(START.x - x, START.z - z) > r + MR + .2 && ((x - POND.x) / (POND.rx + .8)) ** 2 + ((z - POND.z) / (POND.rz + .8)) ** 2 > 1
     && Math.abs(z - STREAM_Z) > .9 + (x < POND.x ? 99 : 0) * 0 && Math.hypot((x - HILL.x) / (HILL.r + 1), (z - HILL.z) / (HILL.r + 1)) > 1 && inIsle(x, z, .9) && !(Math.abs(x) < 10 && z < -11.5) && !(x > 18 && z < 0 && z > -6);
   const notStream = (x, z) => x < POND.x + POND.rx - .5 || Math.abs(z - STREAM_Z) > .9;
   const fl = SL.petals || ['#ff8fab', '#ffffff', '#ffd84a', '#b994f0'];
@@ -263,9 +269,9 @@ export function createScene(canvas, { onFrame } = {}) {
   // roll for the first turn they stay in the row and the camera stays on them. mode: 'intro', 'order' or null.
   let lineup = null, lz = 0, hz0 = 0, host = null, pz0 = 0, pcx = 0, pcz = 0, peekS = -1, peekT = 0, holdT = 0;
   function peek(s, ms) { peekS = s; peekT = performance.now() + ms; if (s < 0) holdT = 0; } // keep the camera on someone for a moment (their die landing)
-  const LSP = .74;
-  function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
-  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25 + (lineup === 'show' ? .55 : 0), START.z + .2];
+  const LSP = .9;
+  function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .1]; }
+  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25 + (lineup === 'show' ? .55 : 0), START.z];
   // ---------- the Pet Show at the end (Kuba 2026-11-27: "Pet Show podium") ----------
   // everyone pops back to the meadow; ribbon winners step forward; then a 1-2-3 podium (place per seat, 1 = first)
   let stepped = new Set(), podium = null, podBlocks = null;
@@ -299,7 +305,7 @@ export function createScene(canvas, { onFrame } = {}) {
   function spotOf(i, node) {
     const same = folk.filter(f => (f.q.length ? f.q[f.q.length - 1] : f.node) === node), j = same.findIndex(f => f.i === i), n = same.length, p = nodeP(node);
     if (n <= 1 || j < 0) return [p.x, p.z];
-    const a = j / n * Math.PI * 2 + .6, r = node < 0 ? 1 : .36; return [p.x + Math.cos(a) * r, p.z + Math.sin(a) * r];
+    const a = j / n * Math.PI * 2 + .6, r = node < 0 ? MR * .62 : .36; return [p.x + Math.cos(a) * r, p.z + Math.sin(a) * r];
   }
   function setHerd(f, herd) {
     const k = herd.map(h => h.sp + (h.look ? JSON.stringify(h.look) : '')).join('|'); if (k === f.herdKey) return; f.herdKey = k;
@@ -606,7 +612,7 @@ export function createScene(canvas, { onFrame } = {}) {
     if (pf) { pcx = pf.x; pcz = pf.z; holdT = performance.now() + 1500; } // between rollers the camera stays close and glides on, it doesn't pull back to the row
     const close = lineup === 'order' && !mapView && (pf || performance.now() < holdT);
     pz0 += ((close ? 1 : 0) - pz0) * (1 - Math.pow(.006, dt));
-    const lx = lerp(lerp(START.x + .35, host ? host.x - (ch > cw * 1.05 ? .35 : 1.9) : START.x, hz0), pcx + .25, pz0), lzz = lerp(lerp(START.z + .3, host ? host.z : START.z, hz0), pcz + .3, pz0);
+    const lx = lerp(lerp(START.x + .35, host ? (ch > cw * 1.05 ? host.x - .35 : (lineSpot(0)[0] + host.x) / 2) : START.x, hz0), pcx + .25, pz0), lzz = lerp(lerp(START.z + .3, host ? host.z : START.z, hz0), pcz + .3, pz0);
     const tx = lineup && !mapView ? lx : f ? f.x : ISLE.x, tz = lineup && !mapView ? lzz : f ? f.z : ISLE.z - .5;
     const kk = 1 - Math.pow(pz0 > .05 ? .008 : .04, dt);
     camL.x = lerp(camL.x, tx, kk); camL.z = lerp(camL.z, tz, kk);
