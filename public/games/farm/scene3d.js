@@ -464,6 +464,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const blob = new THREE.Mesh(blobGeo, blobMat); blob.rotation.x = -Math.PI / 2; blob.position.y = .015;
     scene.add(g, blob);
     const p = { g, blob, x, z, path: [], wait: 1 + Math.random() * 2, hop: 0, seed: Math.random() * 10, key: sp + form + lookKey(look), face: 0 };
+    const bb = new THREE.Box3().setFromObject(g); p.reach = Math.max(.15, bb.max.z); // how far its nose (or drill, or beak) sticks out in front of its middle
     pets.set(id, p); return p;
   }
   function dropPet(id) { const p = pets.get(id); if (!p) return; endUse(p); if (p.heart) scene.remove(p.heart); scene.remove(p.g, p.blob); disposeModel(p.g); pets.delete(id); }
@@ -503,7 +504,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       if (wi) { // the Garden helper goes from plot to plot; everyone else stays at the one building
         const all = wk === 'garden' ? farm.items.filter(i => i.type === 'garden') : [wi], at = all[(p.wi || 0) % all.length], [w, h] = footprint(wk, at.r), bx = wx(at.x, w), bz = wz(at.y, h);
         if (p.train?.job !== wk) p.wt = 0;
-        p.train = { ...(hearthBy(at, w, h, wk) || standBy(at, w, h)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }; p.path = []; continue;
+        p.train = { ...(hearthBy(at, w, h, wk, p.reach) || standBy(at, w, h)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }; p.path = []; continue;
       }
       p.train = null;
       // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
@@ -579,11 +580,11 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const spots = [[mx, at.y + h, { x: bx, z: bz + h / 2 + .35, face: Math.PI }], [at.x + w, my, { x: bx + w / 2 + .35, z: bz, face: -Math.PI / 2 }], [at.x - 1, my, { x: bx - w / 2 - .35, z: bz, face: Math.PI / 2 }], [mx, at.y - 1, { x: bx, z: bz - h / 2 - .35, face: 0 }]];
     for (const s of spots) { s[0] = Math.floor(s[0]); s[1] = Math.floor(s[1]); } // buildings may sit on half tiles: check the whole tile the spot is on
     const ok = spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N && !walkGrid[y * N + x]) || spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N) || spots[0]; return ok[2]; };
-  // A building with a hearth (the Kitchen): the helper stands on the flat stone right in front of the fire's mouth and faces it,
+  // A building with a hearth (the Kitchen): the helper stands on the flat stone in front of the fire's mouth, its nose a little short of it whatever its size, and faces it,
   // turned with the building. If something blocks that tile it falls back to the usual spot (and fans from there).
-  const hearthBy = (at, w, h, type) => { const hp = HEARTH[type]; if (!hp) return null;
+  const hearthBy = (at, w, h, type, reach = .3) => { const hp = HEARTH[type]; if (!hp) return null;
     const a = -at.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), bx = wx(at.x, w), bz = wz(at.y, h), to = (lx, lz) => [bx + lx * c + lz * sn, bz - lx * sn + lz * c];
-    const [x, z] = to(hp[0], hp[1] + .34), [mx, mz] = to(hp[0], hp[1] - .08), tx = Math.floor(x + N / 2), ty = Math.floor(z + N / 2);
+    const [x, z] = to(hp[0], hp[1] + .1 + reach), [mx, mz] = to(hp[0], hp[1] - .08), tx = Math.floor(x + N / 2), ty = Math.floor(z + N / 2);
     if (tx < 0 || ty < 0 || tx >= N || ty >= N || walkGrid[ty * N + tx]) return null;
     return { x, z, face: Math.PI + a, mx, mz }; };
   function workPose(p, t, dt, o) {
@@ -619,7 +620,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       const c = u % 3.6, e = items.get(t.id), sx = Math.sin(t.face), sz = Math.cos(t.face), hy = (p.topY || .5) * .55;
       if (c < 1.1) { const q = Math.sin(c / 1.1 * Math.PI / 2); o.pitch = -.22 * q; o.up = .05 * q; o.sit = 0; } // breathes in, leaning back and swelling up a little
       else if (c < 2.1) { const q = (c - 1.1) / 1; o.pitch = .3 - Math.sin(q * Math.PI) * .04; o.sit = .06; o.tilt = Math.sin(q * 30) * .02; // and blows
-        if (every('w1', .05)) { const x0 = p.x + sx * .22, z0 = p.z + sz * .22, jx = (R() - .5) * .08, k = .04 + R() * .025; bit(BIT.ball, BM2.steam, .32, (m, v) => { m.position.set(x0 + (t.mx - x0) * v + jx * v, hy + (.14 - hy) * v, z0 + (t.mz - z0) * v); m.scale.setScalar(k * (1 + v * 1.4) * (1 - v * v)); }); }
+        if (every('w1', .05)) { const x0 = p.x + sx * (p.reach || .25) * .9, z0 = p.z + sz * (p.reach || .25) * .9, jx = (R() - .5) * .08, k = .04 + R() * .025; bit(BIT.ball, BM2.steam, .32, (m, v) => { m.position.set(x0 + (t.mx - x0) * v + jx * v, hy + (.14 - hy) * v, z0 + (t.mz - z0) * v); m.scale.setScalar(k * (1 + v * 1.4) * (1 - v * v)); }); }
         if (e) e.st.blow = Math.max(e.st.blow || 0, Math.min(1, q * 2.5));
         if (every('w2', .07)) { const a0 = R() * 6.283, v0 = .25 + R() * .35, mat = R() < .5 ? BMW.ember : BMW.ember2, k = .03 + R() * .02; bit(BIT.ball, mat, .8, (m, v, tt) => { m.position.set(t.mx - sx * tt * .35 + Math.cos(a0) * tt * v0 * .5, .18 + tt * 1.1 - tt * tt * .6, t.mz - sz * tt * .35 + Math.sin(a0) * tt * v0 * .5); m.scale.setScalar(k * (1 - v)); }); }
       } else { const q = c - 2.1; o.pitch = .3 * Math.max(0, 1 - q * 3) + Math.sin(q * 3) * .03; o.up = Math.abs(Math.sin(q * 6)) * .03 * Math.max(0, 1 - q); } // then watches the fire, pleased
