@@ -1,7 +1,9 @@
 // Small pictures of the isle variants for the wardrobe tiles: a ground theme seen from above, a rock base from the
-// side, one Pet Farm decoration on a patch of lawn, a sky behind a tiny isle. One hidden renderer, cached as data URLs.
+// side, one Pet Farm decoration on a patch of lawn, a sky friend on its own. One hidden renderer, cached as data URLs.
 import * as THREE from 'three';
-import { buildIsle, buildSky, pieceModel } from './isle3d.js';
+import { buildIsle, pieceModel } from './isle3d.js';
+import { skyFriend } from './skyfriends.js';
+import { petModel, wiggle } from './games/farm/pets3d.js';
 import { disposeToon } from './scenery3d.js';
 import { itemModel, disposeModel, toonify } from './games/farm/models.js';
 
@@ -33,7 +35,9 @@ export function islePic(k, i) {
     let night = false;
     if (k === 'fp') { const g = pieceModel(i); g.rotation.set(.35, .6, 0); parts.push({ root: g, tick() {}, dispose: () => disposeToon(g) }); at(0, .3, 2.6, 0, 0, 0); }
     else if (k === 'ip') { parts.push(decorOnly(i)); at(2.2, 2.3, 5.6, 0, .55, 0); }
-    else if (k === 'ik') { const sky = buildSky(i); parts.push(buildIsle({}), sky); night = sky.mood === 'night'; at(0, 2.5, 46, 0, 0, 0); }
+    else if (k === 'ik') { const f = skyFriend(i, { pet: { petModel, wiggle, disposeModel }, pic: true }); if (f) { f.tick(2.2); parts.push({ root: f.root, tick() {}, dispose: f.dispose }); // the friend on its own against the tile's sky, framed to fill it
+      const bx = new THREE.Box3().setFromObject(f.root), c = bx.getCenter(new THREE.Vector3()), sz = bx.getSize(new THREE.Vector3()), d = Math.max(sz.x, sz.y, 1.2) * 1.25 / (2 * Math.tan(12 * Math.PI / 180)) + sz.z / 2;
+      at(c.x, c.y + d * .08, c.z + d, c.x, c.y, c.z); } }
     else if (k === 'ib') { parts.push(buildIsle({ ib: i })); at(-8, 0, 23, 0, -2.6, 0); }
     else if (k === 'zn') { parts.push(buildIsle({ ig: i })); at(0, 4.2, 15.6, 0, -1.45, 0); } // a whole island, rock base and all
     else { parts.push(buildIsle({ ig: i })); at(0, 6.4, 12.6, 0, -.3, 0); }

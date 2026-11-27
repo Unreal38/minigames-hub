@@ -18,7 +18,7 @@ import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
 import { groundOf, R as RIMS, BASE, finish, pieceModel } from '../../isle3d.js';
-import { worldSky } from './sky3d.js';
+import { skyFriend } from '../../skyfriends.js';
 import { skyBow } from '../../weather3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
@@ -375,7 +375,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       rain.geometry.attributes.position.needsUpdate = true;
       if (farm && !starters && Math.random() < dt * 14 * air.rain) { const x = (Math.random() - .5) * N, z = (Math.random() - .5) * N; bit(BIT.ball, BM2.drop, .35, (m, v) => { m.position.set(x, .04, z); m.scale.set(.05 + v * .16, .012, .05 + v * .16); }); }
     }
-    bow.visible = air.bow > .02 && !starters && look.ik !== 4; /* with the Rainbow sky, that one glows brighter instead */ if (bow.visible) bow.place(camera, air.bow * .7 * (1 - air.night * .65)); // fixed in the sky, carried along as the camera moves
+    bow.visible = air.bow > .02 && !starters; if (bow.visible) bow.place(camera, air.bow * .7 * (1 - air.night * .65)); // fixed in the sky, carried along as the camera moves
     WINDOW.emissiveIntensity = Math.min(1, air.night * 1.4) * (.92 + Math.sin(T * 2.3) * .05);
     let n = 0; const lit = air.night > .08 && farm && !starters;
     if (lit) for (const e of items.values()) { const r = GLOWS[e.type]; if (!r || n >= 28) continue; _tm.compose(_tv.set(e.g.position.x, .03, e.g.position.z), _tq.identity(), _ts.set(r, 1, r).multiplyScalar(1 + Math.sin(T * 3 + n) * .03)); glows.setMatrixAt(n++, _tm); }
@@ -1329,7 +1329,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     for (const d of drift) d.position.y = d.userData.y + Math.sin(T * .7 + d.userData.ph) * .25;
     for (const [f, z, i] of falls) { if (z != null) f.position.z = z + Math.sin(T * 9) * .14; else { const u = (T * .7 + i / 3) % 1; f.scale.setScalar(.5 + u); f.material.opacity = .55 * (1 - u); } }
     for (const f of landTicks) f(T);
-    if (skyLook) skyLook.tick(T, camera, { night: air.night, dusk: air.dusk, clear: air.dim, wind: air.wind, bow: air.bow });
+    if (skyLook) skyLook.tick(T, air.night, camera);
     pieceBits.forEach((b, i) => { const a = b.a + T * .08; b.g.position.set(Math.cos(a) * b.r, b.y + Math.sin(T * 1.1 + i) * .3, Math.sin(a) * b.r); b.g.rotation.set(Math.sin(T * .7 + i) * .4, T * b.spin, 0); });
     if (ghost) ghost.g.position.y = .12 + Math.sin(T * 4) * .04;
     renderer.render(scene, camera); afterDraw();
@@ -1338,16 +1338,16 @@ export function createScene(canvas, { onPick, onGhost }) {
   const ticker = frameLoop(loop, { onSlow: () => res.lower() });
   renderer.shadowMap.needsUpdate = true;
 
-  // the bought sky (sky3d.js): pinned to the world round the island, blending with the clock and the weather
+  // the owner's sky friend (skyfriends.js): flies round the island; the sky, light and weather stay the farm's own
   let skyLook = null, pieceBits = [], isleKey = '';
   function lookSky() {
     if (skyLook) { scene.remove(skyLook.root); skyLook.dispose(); skyLook = null; }
-    skyLook = worldSky(look.ik, N); if (skyLook) scene.add(skyLook.root);
+    skyLook = skyFriend(look.ik, { s: (N / 2 + 5) / 3.4 }); if (skyLook) scene.add(skyLook.root);
     for (const b of pieceBits) { scene.remove(b.g); disposeModel(b.g); } pieceBits = [];
     (look.fp || []).forEach((id, i, all) => { const g = pieceModel(id); g.scale.setScalar(2.2); scene.add(g); pieceBits.push({ g, r: N / 2 + 5 + (i % 2) * 1.2, a: i / all.length * 6.283, y: 1.5 + (i * 7 % 5) * .5, spin: [0, 1, .4, .7, .2, .9][i % 6] }); });
   }
   return {
-    // the owner's isle look: { ig ground, ib rock base, ik sky, fp floating pieces }; rebuilt only when it changes
+    // the owner's isle look: { ig ground, ib rock base, ik sky friend, fp floating pieces }; rebuilt only when it changes
     setLook(lk) { const next = { ...look, ...lk }, k = JSON.stringify(next); if (k === isleKey) return; isleKey = k; look = next; buildLand(); lookSky(); renderer.shadowMap.needsUpdate = true; },
     setFarm(f) {
       const size = f?.size || 10;
