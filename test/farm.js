@@ -107,7 +107,6 @@ for (const [what, act] of [
   ['negative', { t: 'place', type: 'fence', x: -1, y: 0, r: 0 }],
   ['fraction', { t: 'place', type: 'fence', x: 5.25, y: 6, r: 0 }],
   ['bad rotation', { t: 'place', type: 'fence', x: 6, y: 6, r: 7 }],
-  ['diagonal fence', { t: 'place', type: 'fence', x: 6, y: 6, r: .5 }],
   ['diagonal arch', { t: 'place', type: 'arch', x: 6, y: 6, r: 1.5 }],
   ['eighth of a turn too fine', { t: 'place', type: 'bush', x: 6, y: 6, r: .25 }],
   ['second farmhouse', { t: 'place', type: 'house', x: 6, y: 6, r: 0 }],

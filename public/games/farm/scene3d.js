@@ -1390,7 +1390,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     pan(dx, dy) { if (!starters && !fighting && !mapOn) panBy(dx, dy); },
     ghostRotate() {
       if (!ghost) return;
-      ghost.r = (ghost.r + (canTilt(ghost.type) ? .5 : 1)) % 4; // eight steps; fences and arches four
+      ghost.r = (ghost.r + (canTilt(ghost.type) ? .5 : 1)) % 4; // eight steps; the Flower Arch four
       const [w, h] = footprint(ghost.type, ghost.r); ghost.x = Math.max(0, Math.min(N - w, ghost.x)); ghost.y = Math.max(0, Math.min(N - h, ghost.y));
       ghostCheck();
     },

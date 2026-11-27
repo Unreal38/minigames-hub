@@ -487,8 +487,9 @@ export function tripLoot(zone, trip, pets) {
 }
 
 // r: quarter turns (0-3). Anything may also stand half way between (r .5, 1.5, ...: turned 45 degrees, 8 steps, Kuba 2026-11-27);
-// a diagonal piece takes the square around its longer side. Fences and the Flower Arch keep to straight lines (they join up).
-export const canTilt = type => !!ITEMS[type] && type !== 'fence' && type !== 'arch';
+// a diagonal piece takes the square around its longer side (a diagonal fence runs corner to corner of its square, fence.js).
+// The Flower Arch keeps to straight lines: it is a gate in a straight fence.
+export const canTilt = type => !!ITEMS[type] && type !== 'arch';
 export const footprint = (type, r) => { const it = ITEMS[type]; if (r % 1) { const m = Math.max(it.w, it.h); return [m, m]; } return r % 2 ? [it.h, it.w] : [it.w, it.h]; };
 export const canAfford = (inv, cost) => Object.entries(cost || {}).every(([k, n]) => (inv[k] || 0) >= n);
 export const costText = cost => Object.entries(cost || {}).map(([k, n]) => `${n} ${MATS[k].toLowerCase()}`).join(', ') || L('Free', 'Za darmo');
