@@ -1376,8 +1376,10 @@ function onMsg(m) {
     if (!m.s) { unmountGame(); watchPaint(); if (st.room) go('lobby'); return; }
     // Friendship Trail opens behind the party curtain too, like its minigames (Kuba 2026-11-27)
     const opening = !st.game && !st.gameLoading && st.room?.game === PARTY_GAME && !st.room.party && st.lastState?.ph !== 'end';
-    const shutAt = Date.now(); if (opening) curtainShut('start');
-    mountGame().then(g => { g?.update(st.lastState); watchPaint(); if (opening) curtainOpen(Math.max(700, 1800 - (Date.now() - shutAt))); });
+    if (curtWaitT) return; // still shutting: the newest state is picked up when it has closed
+    const go2 = () => { curtWaitT = 0; if (!st.room || !st.lastState) return; const shutAt = Date.now(); mountGame().then(g => { g?.update(st.lastState); watchPaint(); if (opening) curtainOpen(Math.max(700, 1100 - (Date.now() - shutAt))); }); };
+    // the page stays as it is until the curtain has fully closed over it, then the trail loads behind it (Kuba 2026-11-27)
+    if (opening) { curtainShut('start'); curtWaitT = setTimeout(go2, CURT_SHUT_MS); } else go2();
   } else if (m.t === 'react') {
     if (st.game) st.game.react(m); else floatAt(document.querySelector(`.seat[data-pid="${CSS.escape(String(m.id))}"]`), m.k);
     sfx.pop();
@@ -1479,7 +1481,8 @@ function partyPaint(room) {
 // match starts too fast"). Two halves slide shut over the trail with a "Next up" card (picture, name, cut, how to win and a
 // countdown: the server waits room.pre.left before it creates the minigame), the game is swapped behind them, and they
 // open once the new game has drawn. On the way back they shut just before the trail returns, with a "Back to the trail" card.
-let curtEl = null, curtTimer = 0, curtOpenT = 0, curtBackT = 0, curtKind = '';
+let curtEl = null, curtTimer = 0, curtOpenT = 0, curtBackT = 0, curtKind = '', curtWaitT = 0;
+const CURT_SHUT_MS = 760; // the halves take .55 s to meet (style.css .pc-h), plus a beat
 function curtainEl() {
   if (curtEl) return curtEl;
   curtEl = document.createElement('div'); curtEl.className = 'pcurt'; curtEl.setAttribute('aria-live', 'polite');

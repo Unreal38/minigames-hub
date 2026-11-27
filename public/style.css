@@ -2294,7 +2294,7 @@ body.night .pc-h { background: radial-gradient(#ffffff22 1.6px, transparent 2px)
 .pc-card { position: relative; width: min(440px, 100%); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
   background: var(--paper); color: var(--on-paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 0 6px 0 var(--ink); padding: 16px 20px 18px;
   opacity: 0; transform: translateY(18px) scale(.94); transition: opacity .22s ease, transform .22s ease; }
-.pcurt.shut .pc-card { opacity: 1; transform: none; transition: opacity .3s ease .45s, transform .45s cubic-bezier(.3, 1.5, .5, 1) .45s; }
+.pcurt.shut .pc-card { opacity: 1; transform: none; transition: opacity .3s ease .55s, transform .45s cubic-bezier(.3, 1.5, .5, 1) .55s; }
 .pc-card:empty { display: none; }
 .pc-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 3px solid var(--ink); border-radius: 16px; box-sizing: border-box; margin-bottom: 4px; background: var(--ph-bg); }
 .pc-card small { font: 700 13px/1 var(--fd); letter-spacing: .08em; text-transform: uppercase; color: var(--acc-tx); }
