@@ -76,6 +76,7 @@ export function mount(app, ctx) {
       <div class="tt-side" id="tt-side"></div>
       <div class="tt-die" id="tt-die" hidden></div>
       <div class="shout" id="tt-big" aria-live="assertive"></div>
+      <div class="tt-splash" id="tt-splash" aria-hidden="true"></div>
       <div class="tt-dock" id="tt-dock"></div>
       <div class="tt-ov" id="tt-ov" hidden></div>
     </div>
@@ -210,7 +211,7 @@ export function mount(app, ctx) {
 
   // ----- the players down the side: treats, herd, items, pact -----
   function renderSide() {
-    const rib = ribbonsOf(S.pl), pts = showPts(S.pl, rib), top = Math.max(...pts);
+    const rib = ribbonsOf(S.pl), pts = showPts(S.pl, rib), top = Math.max(...pts); const plc = placesOf();
     const firstChip = i => { const k = S.first?.key?.[i]; return S.stage === 'order' && k?.length ? `<span class="tt-fr" title="${L('Roll for the first turn', 'Rzut o pierwszeństwo')}">${k.join(' · ')}</span>` : ''; };
     const rows = (S.order?.length === S.seats.length ? S.order : S.seats.map((_, i) => i)).map(i => { const p = S.seats[i];
       const q = S.pl[i], egg = q.egg ? `<span class="tt-egg" title="${L(`Mystery Egg: hatches in ${q.egg} turn${q.egg > 1 ? 's' : ''}`, `Tajemnicze jajo: wykluje się za ${q.egg} tur${q.egg > 1 ? 'y' : 'ę'}`)}"></span>` : '';
@@ -219,7 +220,7 @@ export function mount(app, ctx) {
       const held = Object.keys(RIBBONS).filter(k => rib[k].includes(i)).map(k => RIBBONS[k]);
       const ptsTip = L(`Pet Show points if it ended now: ${q.herd.length} for friends + ${held.length * 2} for ribbons${held.length ? ' (' + held.join(', ') + ')' : ''}`, `Punkty na Pokazie, gdyby był teraz: ${q.herd.length} za przyjaciół + ${held.length * 2} za wstęgi${held.length ? ' (' + held.join(', ') + ')' : ''}`);
       return `<div class="${pbRowCls(p.fl)} profrow tt-row${nowSeat() === i && S.ph === 'play' ? ' now' : ''}${isMe(i) ? ' mine' : ''}">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}
-        <div class="tt-rw"><div class="tt-rn"><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span>${firstChip(i)}</div>
+        <div class="tt-rw"><div class="tt-rn"><span class="tt-rk p${plc[i]}" title="${ordW(plc[i])} ${L('place', 'miejsce')}">${plc[i]}</span><b>${nameHtml(p.name, p.fl)}</b><span class="tt-sp${pts[i] === top ? ' lead' : ''}" title="${esc(ptsTip)}">★${pts[i]}</span><span class="tt-tr">${I.treat}${q.treats}</span>${firstChip(i)}</div>
         <div class="tt-herd">${q.herd.map(f => `<span class="tt-pet${f.start ? ' st' : ''}${f.cheer ? '' : ' used'}" style="--el:${EL_COL[f.el]}" title="${esc(`${f.name || petName(f.sp)} · ${EL_NAME[f.el]}${f.cheer ? '' : L(' · has cheered', ' · już kibicował')}`)}">${pet(f, 24)}</span>`).join('')}${egg}</div>
         ${items || pact ? `<div class="tt-extra">${items}${pact}</div>` : ''}</div>${rowBg(p.fl)}</div>`;
     }).join('') + `<div class="tt-key"><span class="tt-sp">★</span>${L('Pet Show points', 'punkty na Pokazie')}<span class="tt-tr">${I.treat}</span>${L('treats', 'przysmaki')}</div>`;
@@ -235,6 +236,23 @@ export function mount(app, ctx) {
     $('tt-log').innerHTML = LOG.slice(1).map((x, i) => `<div style="opacity:${(.92 - i * .2).toFixed(2)}">${x}</div>`).join('');
     layout();
   }
+  // places by Pet Show points, then treats (ties share a place), like the end of the game
+  function placesOf() {
+    const pts = showPts(S.pl), key = i => pts[i] * 1000 + S.pl[i].treats;
+    return S.seats.map((_, i) => 1 + S.seats.filter((_, j) => key(j) > key(i)).length);
+  }
+  const ordW = n => L(['1st', '2nd', '3rd'][n - 1] || n + 'th', n + '.');
+  // whose turn, as a band across the screen in their colour (the Mario Party lesson: a turn change you can't miss)
+  let splashT = 0;
+  function splash(s) {
+    const el = $('tt-splash'), p = S.seats[s]; if (!el || !p) return;
+    el.style.setProperty('--pc', p.color);
+    el.innerHTML = `<div class="in">${avatarHtml(p.color, p.av, 54, frameCls(p.fl))}<div><b>${isMe(s) ? L('Your turn!', 'Twoja kolej!') : L(`${nm(s)}'s turn`, `Kolej: ${nm(s)}`)}</b><small>${L(`Round ${S.round} of ${S.rounds}`, `Runda ${S.round} z ${S.rounds}`)} · ${ordW(placesOf()[s])} ${L('place', 'miejsce')}</small></div></div>`;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    clearTimeout(splashT); splashT = setTimeout(() => el.classList.remove('show'), 1500);
+  }
+  // the steps left, counting down over the walker's head stone by stone
+  const stepsLeft = new Map();
   function big(text, sub = '', ms = 1600) {
     const el = $('tt-big'); el.innerHTML = `<b>${text}</b>${sub ? `<span>${sub}</span>` : ''}`;
     el.classList.remove('show'); void el.offsetWidth; el.style.setProperty('--ms', ms + 'ms'); el.classList.add('show');
@@ -381,6 +399,11 @@ export function mount(app, ctx) {
     if (el.hidden) return;
     el.classList.add('out'); ovTimer = setTimeout(() => { if (!ovKey && !destroyed) { el.hidden = true; el.classList.remove('out', 'in'); } }, 300);
   }
+  // the standings so far, under each minigame's results (Mario Party shows them between turns): place, points, treats
+  function standingsHtml() {
+    const plc = placesOf(), pts = showPts(S.pl), order = S.seats.map((_, i) => i).sort((a, b) => plc[a] - plc[b]);
+    return `<div class="tt-stand"><b>${L(`Standings after round ${S.round} of ${S.rounds}`, `Stan po rundzie ${S.round} z ${S.rounds}`)}</b>${order.map(i => `<div class="r${isMe(i) ? ' mine' : ''}"><span class="tt-rk p${plc[i]}">${plc[i]}</span>${avatarHtml(S.seats[i].color, S.seats[i].av, 24)}<span class="nm">${nm(i)}</span><span class="tt-sp">★${pts[i]}</span><span class="tt-tr">${I.treat}${S.pl[i].treats}</span></div>`).join('')}</div>`;
+  }
   // ----- the big overlays: the minigame wheel, minigame results, the Pet Show (the intro is the 3D line-up) -----
   function renderOv() {
     const el = $('tt-ov');
@@ -394,6 +417,7 @@ export function mount(app, ctx) {
       const R = S.miniRes; key += R.game;
       html = `<div class="tt-card"><h2>${esc(gameName(R.game))}</h2><ol class="tt-mres">${R.order.map((i, k) => { const ch = R.cheered.find(c => c.s === i);
         return `<li style="animation-delay:${k * 120}ms"><i class="pos">${k + 1}</i>${avatarHtml(S.seats[i].color, S.seats[i].av, 32)}<b>${nm(i)}</b>${ch ? `<span class="tt-cheer">${pet({ sp: ch.sp }, 22)}${L('cheered up a place', 'awans dzięki kibicowi')}</span>` : ''}<strong>+${R.pay[k]} ${I.treat}</strong></li>`; }).join('')}</ol>
+        ${standingsHtml()}
         ${R.pact ? `<p class="tt-sub">${L(`Buddy pact bonus: ${nm(R.pact[0])} and ${nm(R.pact[1])} get +3 each`, `Premia paktu: ${nm(R.pact[0])} i ${nm(R.pact[1])} dostają po +3`)}</p>` : ''}</div>`;
     } else if (S.stage === 'show' && S.show) {
       const { rib, pts } = S.show, order = S.seats.map((_, i) => i).sort((a, b) => pts[b] - pts[a]);
@@ -429,12 +453,14 @@ export function mount(app, ctx) {
       case 'first': throwDice(s, [e.d], e.d); sfx.draw(); say(who(s, L(`You roll <b>${e.d}</b>`, `Wyrzucasz <b>${e.d}</b>`), L(`{n} rolls <b>${e.d}</b>`, `{n} wyrzuca <b>${e.d}</b>`)) + (e.tie ? L(' in the tie-break', ' w dogrywce') : '')); break;
       case 'firsttie': say(L(`A tie! ${e.who.map(nm).join(', ')} roll again.`, `Remis! ${e.who.map(nm).join(', ')} rzucają jeszcze raz.`)); break;
       case 'order': big(L(`${nm(e.order[0])} goes first`, `Zaczyna: ${nm(e.order[0])}`), e.order.map((i, k) => `${k + 1}. ${nm(i)}`).join(' · '), 2600); say(L(`Turn order: ${e.order.map(nm).join(', ')}`, `Kolejność: ${e.order.map(nm).join(', ')}`)); break;
-      case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); if (isMe(s)) sfx.turn(); break;
-      case 'card': sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
+      case 'turn': say(who(s, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}'))); splash(s); if (isMe(s)) sfx.turn(); break;
+      case 'card': stepsLeft.set(s, e.d); sfx.draw(); bubble(s, `<span class="tt-cb">${e.d}</span>`, 2200); say(who(s, L(`You play a <b>${e.d}</b>`, `Zagrywasz <b>${e.d}</b>`), L(`{n} plays a <b>${e.d}</b>`, `{n} zagrywa <b>${e.d}</b>`))); break;
       case 'redraw': sfx.whoosh?.(); say(who(s, L(`Your ${esc(petName(e.sp))} swaps your cards`, `Twój ${esc(petName(e.sp))} wymienia ci karty`), L(`{n}'s ${esc(petName(e.sp))} swaps their cards`, `${esc(petName(e.sp))} wymienia karty graczowi {n}`))); break;
       case 'boost': say(who(s, L(`Fewest friends: your ${esc(petName(e.sp))} can swap your cards again`, `Najmniej przyjaciół: twój ${esc(petName(e.sp))} znów może wymienić ci karty`), L(`Fewest friends: {n}'s ${esc(petName(e.sp))} can swap cards again`, `Najmniej przyjaciół: {n} znów może wymienić karty (${esc(petName(e.sp))})`))); break;
       case 'fork': say(who(s, L(`You take the ${esc(routeName(e.j))}`, `Wybierasz: ${esc(routeName(e.j))}`), L(`{n} takes the ${esc(routeName(e.j))}`, `{n} wybiera: ${esc(routeName(e.j))}`))); break;
-      case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.(); setTimeout(hopSfx, 420); }; hopSfx(); } break;
+      case 'hop': scene?.walk(s, e.path); { let k = 0; const hopSfx = () => { if (destroyed || k++ >= e.path.length) return; sfx.plop?.();
+        const n = stepsLeft.get(s); if (n > 0) { stepsLeft.set(s, n - 1); if (n - 1 > 0) bubble(s, `<span class="tt-stp">${n - 1}</span>`, 520); }
+        setTimeout(hopSfx, 420); }; hopSfx(); } break;
       case 'stone': stoneEv(e); break;
       case 'slide': say(who(s, L('Icy brambles! You slide 2 stones on', 'Oblodzone jeżyny! Ślizgasz się 2 kamienie dalej'), L('Icy brambles! {n} slides 2 stones on', 'Oblodzone jeżyny! {n} ślizga się 2 kamienie dalej'))); sfx.whoosh?.(); break;
       case 'honey': say(L(`${isMe(s) ? 'You step' : nm(s) + ' steps'} in ${isMe(e.o) ? 'your' : nm(e.o) + "'s"} honey: ${treatsW(e.v)} to ${isMe(e.o) ? 'you' : nm(e.o)}`, `${isMe(s) ? 'Wchodzisz' : nm(s) + ' wchodzi'} w miód gracza ${nm(e.o)}: ${treatsW(e.v)} dla ${isMe(e.o) ? 'ciebie' : nm(e.o)}`)); scene?.cue(s, 'lose'); floatAt(scene?.seatPx(s), '−' + e.v, 'bad'); break;

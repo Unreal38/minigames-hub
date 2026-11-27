@@ -339,3 +339,24 @@ body.night .tt-idots i.on { background: var(--lantern); }
   .tt-tc > span { font-size: 11.5px; }
 }
 @media (prefers-reduced-motion: reduce) { .tt .btn.tt-tc { animation: none; transition: none; } }
+/* readability pass (Kuba 2026-11-27, lessons from Mario Party): a turn band you can't miss, a step counter over the
+   walker, place badges, and the standings under every minigame's results */
+.tt-splash { position: absolute; left: 0; right: 0; top: 40%; height: 0; pointer-events: none; z-index: 4; }
+.tt-splash .in { position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 14px; padding: 10px 40px 10px 14px;
+  background: linear-gradient(90deg, transparent, var(--pc) 12%, var(--pc) 88%, transparent); color: #fff; min-width: min(560px, 92vw); justify-content: center; box-sizing: border-box; opacity: 0; }
+.tt-splash .in b { display: block; font: 700 clamp(28px, 4vw, 42px)/1 var(--fd); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--ink); white-space: nowrap; }
+.tt-splash .in small { display: inline-block; margin-top: 6px; font: 600 14px/1 var(--fd); background: var(--ink); color: var(--cream); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.tt-splash .in .avatar { border: 3px solid var(--ink); border-radius: 50%; background-color: #fff; flex: none; }
+.tt-splash.show .in { animation: ttsplash 1.5s cubic-bezier(.3, 1.1, .4, 1) both; }
+@keyframes ttsplash { 0% { opacity: 0; transform: translate(-90%, -50%); } 16%, 80% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-10%, -50%); } }
+@media (prefers-reduced-motion: reduce) { @keyframes ttsplash { 0%, 100% { opacity: 0; transform: translate(-50%, -50%); } 15%, 80% { opacity: 1; transform: translate(-50%, -50%); } } }
+.tt-stp { display: inline-grid; place-items: center; min-width: 34px; height: 34px; border-radius: 50%; background: var(--lantern); color: var(--ink); border: 3px solid var(--ink); font: 700 20px/1 var(--fd); box-shadow: 0 3px 0 var(--ink); }
+.tt-tag .bub > span.tt-stp { padding: 0; border-radius: 50%; background: var(--lantern); color: var(--ink); font-size: 20px; animation-duration: .2s; }
+.tt-rk { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font: 700 12px/1 var(--fd); background: var(--card); color: var(--on-paper); border: 1.5px solid var(--card-edge); }
+.tt-rk.p1 { background: #ffd34d; color: #3b2219; border-color: #3b2219; } .tt-rk.p2 { background: #dfe6ee; color: #3b2219; border-color: #3b2219; } .tt-rk.p3 { background: #e9a873; color: #3b2219; border-color: #3b2219; }
+.tt-stand { margin-top: 12px; padding-top: 10px; border-top: 2px dashed var(--card-edge); display: flex; flex-direction: column; gap: 4px; }
+.tt-stand > b { font: 700 14px/1.2 var(--fd); color: var(--soft-tx); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.tt-stand .r { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: 10px; }
+.tt-stand .r.mine { background: var(--hi-tint, #fff1c9); }
+.tt-stand .nm { flex: 1; min-width: 0; font: 600 15px/1.2 var(--fd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) { .tt-splash .in { padding: 8px 20px 8px 10px; gap: 10px; } .tt-splash .in .avatar { width: 42px !important; height: 42px !important; } .tt-side .tt-rk { display: none; } }
