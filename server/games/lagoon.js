@@ -18,6 +18,7 @@ export function cleanOpts(o = {}) {
   return {
     seats: cleanSeats(meta, o.seats),
     speed: ['calm', 'normal', 'fast'].includes(o.speed) ? o.speed : 'normal',
+    time: +o.time === 90 ? 90 : 0, // seconds; 90 = the Friendship Trail cut: whoever is afloat when time runs out is placed by bubbles left
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };
 }
@@ -107,7 +108,7 @@ export function fast(G, now = Date.now()) {
     else if (now - G.x[s].lockAt > HURRY + 6200) forceShot(G, s, now);
   }
   const left = alive(G);
-  if (left.length <= (G.seats.length > 1 ? 1 : 0) || !left.some(s => playing(G, s))) finish(G, now);
+  if (left.length <= (G.seats.length > 1 ? 1 : 0) || !left.some(s => playing(G, s)) || (G.opts.time && now - G.goAt >= G.opts.time * 1000)) finish(G, now);
   return flush(G);
 }
 function flush(G) { const d = G.dirty; G.dirty = false; return d; }
@@ -161,7 +162,7 @@ export function setAway(G, s, away) {
 export function view(G, s) {
   const now = Date.now();
   const out = {
-    game: 'lagoon', ph: G.ph, stage: G.stage, gid: G.gid, me: s, seed: G.seed, speed: G.opts.speed, t: now - G.goAt,
+    game: 'lagoon', ph: G.ph, stage: G.stage, gid: G.gid, me: s, seed: G.seed, speed: G.opts.speed, t: now - G.goAt, lim: (G.opts.time || 0) * 1000,
     seats: G.seats.map(x => ({ name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id })),
     b: G.x.map(x => x.bs),
     x: G.st.map((st, i) => [st.dead ? 1 : 0, st.freed, st.sent, st.pend.length, G.x[i].place, G.x[i].n, st.rows]),

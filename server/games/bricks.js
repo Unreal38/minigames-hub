@@ -17,6 +17,7 @@ export function cleanOpts(o = {}) {
   return {
     seats: cleanSeats(meta, o.seats),
     speed: ['chill', 'normal', 'fast'].includes(o.speed) ? o.speed : 'normal',
+    time: +o.time === 90 ? 90 : 0, // seconds; 90 = the Friendship Trail cut: whoever stands when time runs out is placed by stack height
     bots: o.bots === 'sharp' ? 'sharp' : 'chill',
   };
 }
@@ -125,7 +126,7 @@ export function fast(G, now = Date.now()) {
     pushEv(G, { t: 'tide', k: G.tideN }); G.dirty = true;
   }
   const left = alive(G);
-  if (left.length <= (G.seats.length > 1 ? 1 : 0) || !left.some(s => playing(G, s))) finish(G, now);
+  if (left.length <= (G.seats.length > 1 ? 1 : 0) || !left.some(s => playing(G, s)) || (G.opts.time && t >= G.opts.time * 1000)) finish(G, now);
   return flush(G);
 }
 function flush(G) { const d = G.dirty; G.dirty = false; return d; }
@@ -190,7 +191,7 @@ export function setAway(G, s, away) {
 export function view(G, s) {
   const now = Date.now();
   const out = {
-    game: 'bricks', ph: G.ph, stage: G.stage, gid: G.gid, me: s, seed: G.seed, speed: G.opts.speed, t: now - G.goAt, tide: TIDE_AT[G.opts.speed],
+    game: 'bricks', ph: G.ph, stage: G.stage, gid: G.gid, me: s, seed: G.seed, speed: G.opts.speed, t: now - G.goAt, lim: (G.opts.time || 0) * 1000, tide: TIDE_AT[G.opts.speed],
     seats: G.seats.map(x => ({ name: x.name, color: x.color, av: x.av, bot: x.bot, human: x.human, id: x.id })),
     b: G.x.map(x => x.bs),
     x: G.st.map((st, i) => [st.dead ? 1 : 0, st.lines, st.sent, st.pend.length, G.x[i].place, st.combo]),

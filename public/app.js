@@ -17,6 +17,7 @@ import { srvText } from './lang/server.js';
 import { rankIcon } from './rankicons.js';
 import { CONS, SETS, conOf, conArt, conTile, conGlyph, isDone, doneIds, inProgress } from './constellations.js';
 import { DAILY as HAY_DAILY } from './games/hay/rules.js';
+import { POOL as PARTY_POOL } from './games/trail/rules.js';
 import { DAILY as POP_DAILY } from './games/pop/rules.js';
 import { DAILY as MJ_DAILY } from './games/mahj/rules.js';
 import { randomName } from './names.js';
@@ -345,10 +346,10 @@ const GAMES = {
       <div class="opt"><b>Turn timer</b><div class="pills">${pill('timer', 20, '20s')}${pill('timer', 30, '30s')}${pill('timer', 45, '45s')}${pill('timer', 0, 'Off')}</div></div>`,
     howto: `A party tournament on a big island trail. Roll the die, walk with your own Pet Farm pet, make friends with wild pets along the way, and play a quick hub minigame after every round. The Pet Show at the end hands out the ribbons.`,
     rules: `<ol>
-      <li>Everyone starts with <b>their own isle pet</b> (or a starter pet) and <b>6 treats</b>. Empty seats are played by bots, and bots take a moment to think before each choice.</li>
-      <li>On your turn <b>roll the die</b> and walk that many stones. Every friend in your herd can <b>reroll</b> your die once (a <b>Spark</b> friend every round). At a <b>fork</b> you pick the route: the Forest shortcut, the Beach detour, the Hill and bridge or the Cliff path.</li>
+      <li>Everyone starts in the <b>start meadow</b> with <b>their own isle pet</b> (or a starter pet) and <b>6 treats</b>. Empty seats are played by bots, and bots take a moment to think before each choice.</li>
+      <li>At the start everyone <b>rolls once</b>: the highest roll goes first, and that order holds all game (ties roll again). On your turn <b>roll the die</b> and walk that many stones. Every friend in your herd can <b>reroll</b> your die once (a <b>Spark</b> friend every round). At a <b>fork</b> you pick the route: the Forest shortcut, the Beach detour, the Hill and bridge or the Cliff path.</li>
       <li>Stones: <b>Treats</b> +3, <b>Picnic</b> +5, <b>Brambles</b> −3. Special stones: the <b>Stall</b> (shop as you pass), the <b>Egg Nest</b> (a Mystery Egg that hatches in 2 turns), the <b>Pact Bench</b>, the <b>Wishing Well</b> (5 treats for a wish), the <b>Hot Spring</b> (friends rest, +2) and the <b>Rare Den</b> (a rare pet comes out).</li>
-      <li><b>Wild pets</b> wait beside the stones. Stop on or next to one and win it over: an <b>element showdown</b> with one of your friends (Tide beats Ember, Ember beats Leaf, Leaf beats Stone, Stone beats Spark, Spark beats Tide), or <b>treats</b>, which always work. A herd holds up to 6.</li>
+      <li><b>Wild pets</b> wait on glowing stones. Stop exactly on a glowing stone and win its pet over: an <b>element showdown</b> with one of your friends (Tide beats Ember, Ember beats Leaf, Leaf beats Stone, Stone beats Spark, Spark beats Tide), or <b>treats</b>, which always work. A herd holds up to 6.</li>
       <li>Stop on another player's stone and you can <b>lure</b> their newest friend for 6 treats (never their starter pet, and not while a Nest Charm guards them).</li>
       <li><b>Items</b> (hold 3, used before you roll): Pet Whistle, Berry Bundle, Spyglass, Honey Pot, Nest Charm and Snack Pouch.</li>
       <li><b>Buddy pacts</b> last 3 rounds: +3 treats when your buddy makes a friend, no luring each other, and +3 each when you both finish a minigame in the top two.</li>
@@ -2194,6 +2195,25 @@ const gameCard = ([id, pic, art, cat, seats, pitch], i) => `<article class="gcar
     <button type="button" class="ghelp" data-act="rules" data-game="${id}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[id].name)}" title="${L('How to play', 'Jak grać')}">?</button></div>
     <button type="button" class="btn sm" data-act="host" data-game="${id}">${L('Host a table', 'Załóż stół')}</button></div>
 </article>`;
+// The party banner above the games (Kuba 2026-11-27): Friendship Trail has its own spot because it plays the other
+// minigames. The chips are its minigame pool; the open parties list is filled by renderTables (paintParties).
+const PARTY_GAME = 'trail', PARTY_SHORT = 3;
+const partyBanHtml = () => !GAMES[PARTY_GAME] ? '' : `<section class="partyban" id="partyban" aria-label="${L('Party mode', 'Tryb imprezowy')}">
+  <div class="pb-art"><div class="pic trailpic">${trailArt()}</div></div>
+  <div class="pb-body"><span class="pb-kick">🎉 ${L('Party mode', 'Tryb imprezowy')}</span>
+    <h2>${esc(GAMES[PARTY_GAME].name)}<button type="button" class="ghelp" data-act="rules" data-game="${PARTY_GAME}" aria-label="${L('How to play', 'Jak grać:')} ${esc(GAMES[PARTY_GAME].name)}" title="${L('How to play', 'Jak grać')}">?</button></h2>
+    <p>${L('A party tournament for 1–6: walk the island trail with your own pet, befriend wild pets, and play a quick minigame after every round.', 'Turniej imprezowy dla 1–6 osób: idź szlakiem po wyspie z własnym zwierzakiem, zaprzyjaźniaj dzikie zwierzaki i zagraj szybką minigrę po każdej rundzie.')}</p></div>
+  <div class="pb-minis" aria-label="${L('Minigames on the trail', 'Minigry na szlaku')}">${PARTY_POOL.map(g => `<span title="${esc(g.name)} · ${esc(g.cut)}"><img src="/gamepics/${g.id}-s.jpg" alt="" loading="lazy" decoding="async">${esc(g.name)}</span>`).join('')}</div>
+  <div class="pb-side"><button type="button" class="btn big" data-act="host" data-game="${PARTY_GAME}">${L('Host a party', 'Zorganizuj imprezę')}</button>
+    <div class="pb-open"><b>${L('Open parties', 'Otwarte imprezy')}</b><div id="party-open">${partyRowsHtml()}</div></div></div>
+</section>`;
+const partyRowsHtml = () => {
+  const rooms = (st.rooms || []).filter(r => r.game === PARTY_GAME).sort((a, b) => tableOpen(b) - tableOpen(a)).slice(0, PARTY_SHORT);
+  if (!rooms.length) return `<span class="pb-none">${L('None yet. Host one and share the code.', 'Jeszcze żadnej. Zorganizuj i podaj kod.')}</span>`;
+  return rooms.map(r => `<button type="button" class="pb-row" data-act="join" data-code="${esc(r.code)}" title="${tableOpen(r) ? L('Join', 'Dołącz') : L('Watch', 'Oglądaj')}">
+    <span class="nm">${esc(r.host)}</span><small>${r.n}/${tableSeats(r)}${tableOpen(r) ? '' : ` · ${L('playing', 'gra trwa')}`}</small><em>${esc(r.code)}</em></button>`).join('');
+};
+const paintParties = () => { const el = document.getElementById('party-open'); if (el) morph(el, partyRowsHtml()); };
 // The Game wheel (Koło gier) pop-up: spins the games the player put on it. It pays nothing; see public/gamewheel.js.
 function openWheelPicker() {
   const games = HUB_GAMES.map(([id, pic, art, cat, seats]) => ({ id, pic, art, cat, seats, seatsText: PLX ? PLX.SEATS_PL(seats) : seats, name: GAMES[id].name, mins: GAMES[id].mins }));
@@ -2235,7 +2255,8 @@ function setHubTab(tab) {
 // The short line under the hero heading (shown on wide screens only). Outside renderHub, whose own cnt() counts games per filter.
 const heroSub = () => L(`${cnt(HUB_GAMES.length, 'game')} for you and your friends. Host a table and share its code, or join your friends.`, `${cnt(HUB_GAMES.length, '', '', 'gra', 'gry', 'gier')} dla ciebie i znajomych. Załóż stół i podaj kod albo dołącz do znajomych.`);
 function renderHub() {
-  const cnt = c => c === 'all' ? HUB_GAMES.length : HUB_GAMES.filter(g => g[3].split(' ').includes(c)).length;
+  const cards = HUB_GAMES.filter(g => g[0] !== PARTY_GAME); // the party game has its own banner above the cards
+  const cnt = c => c === 'all' ? cards.length : cards.filter(g => g[3].split(' ').includes(c)).length;
   const tab = (id, ico, label, extra = '') => `<button type="button" data-act="htab" data-tab="${id}" aria-selected="${id === st.htab}"><span aria-hidden="true">${ico}</span>${label}${extra}</button>`;
   $app.innerHTML = `${topbar()}
   <main class="wrap hubgrid" data-tab="${st.htab}">
@@ -2257,6 +2278,7 @@ function renderHub() {
     </section>
     <div class="hubmid">
     <section id="games">
+      ${partyBanHtml()}
       <div class="ghead">
         <h2>${L('Games', 'Gry')}</h2>
         <div class="gfilt" role="group" aria-label="${L('Kind of game', 'Rodzaj gry')}">${HUB_CATS.map(([id, n]) => `<button type="button" data-act="gfilt" data-cat="${id}" aria-pressed="${id === st.gFilt}">${n} <i>${cnt(id)}</i></button>`).join('')}</div>
@@ -2264,7 +2286,7 @@ function renderHub() {
         <input id="gfind" class="field gfind" type="search" placeholder="${L('Find a game', 'Szukaj gry')}" aria-label="${L('Find a game', 'Szukaj gry')}" autocomplete="off" spellcheck="false">
         <select id="gsort" class="field gsort" aria-label="${L('Sort games', 'Sortuj gry')}">${G_SORTS.map(([id, n]) => `<option value="${id}"${id === st.gSort ? ' selected' : ''}>${n}</option>`).join('')}</select>
       </div>
-      <div class="games mini">${HUB_GAMES.map(gameCard).join('')}</div>
+      <div class="games mini">${HUB_GAMES.map((g, i) => g[0] === PARTY_GAME ? '' : gameCard(g, i)).join('')}</div>
       <div class="empty" id="gnone" hidden>${L('No game with that name. Try another word, or pick “All”.', 'Nie ma gry o takiej nazwie. Spróbuj innego słowa albo wybierz „Wszystkie”.')}</div>
     </section>
     </div>
@@ -2503,6 +2525,7 @@ let tablesSheet = null;
 function renderTables() {
   const rooms = [...st.rooms].sort((a, b) => tableOpen(b) - tableOpen(a));
   for (const id of ['tables-count', 'tabs-count']) { const cnt = document.getElementById(id); if (cnt) cnt.textContent = rooms.length || ''; }
+  paintParties();
   document.querySelectorAll('.gopen').forEach(b => { const n = rooms.filter(r => r.game === b.dataset.g && tableOpen(r)).length; b.hidden = !n; b.textContent = n ? L(`${n} open`, `otwarte: ${n}`) : ''; });
   const all = document.getElementById('tables-all');
   if (all) { if (rooms.length) tablePage(all, document.getElementById('tables-all-pager'), rooms); else tablesSheet?.close(); }

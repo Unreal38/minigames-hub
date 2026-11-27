@@ -103,6 +103,13 @@ export const POOL = [
   { id: 'golf', name: L('Mini Golf Party', 'Imprezowy minigolf'), cut: L('one hole', 'jeden dołek'), max: 6, opts: { holes: 1, course: 'random' } },
   { id: 'kitchen', name: L('Cozy Kitchen Rush', 'Gorączka w kuchni'), cut: L('one minute shift', 'minutowa zmiana'), max: 4, opts: { time: 60, map: 'diner' } },
   { id: 'bean', name: L('Beanstalk Bounce', 'Fasolowe skoki'), cut: L('one climb', 'jedna wspinaczka'), max: 6, opts: { pace: 'normal' } },
+  { id: 'bingo', name: L('Sky Bingo', 'Podniebne bingo'), cut: L('quick card', 'szybka karta'), max: 8, opts: { game: 'quick', speed: 'fast', daub: 'hand' } },
+  { id: 'dig', name: L('Treasure Dig', 'Poszukiwacze skarbów'), cut: L('small field', 'małe pole'), max: 6, opts: { size: 'small', timer: 15 } },
+  { id: 'pairs', name: L('Pet Pairs', 'Zwierzakowe Pary'), cut: L('small board', 'mała plansza'), max: 6, opts: { board: 'small', timer: 10, twists: 'on', streak: 3 } },
+  { id: 'darts', name: L('Sky Darts', 'Podniebne rzutki'), cut: L('three turns', 'trzy kolejki'), max: 6, opts: { start: 301, out: 'any', legs: 1, rounds: 3, timer: 15 } },
+  { id: 'lagoon', name: L('Bubble Lagoon', 'Bąbelkowa laguna'), cut: L('90 seconds', '90 sekund'), max: 4, opts: { speed: 'normal', time: 90 } },
+  { id: 'bricks', name: L('Sky Bricks', 'Podniebne klocki'), cut: L('90 seconds', '90 sekund'), max: 6, opts: { speed: 'normal', time: 90 } },
+  { id: 'siege', name: L('Sugar Siege', 'Słodkie Oblężenie'), cut: L('one pet each', 'jeden zwierzak na gracza'), max: 4, opts: { pets: 1, timer: 20, arc: 'short' } },
 ];
 export const poolFor = n => POOL.filter(g => g.max >= n);
 

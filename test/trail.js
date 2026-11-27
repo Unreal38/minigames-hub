@@ -21,6 +21,12 @@ const clock = () => { const realNow = Date.now; let now = realNow(); Date.now = 
   if (seen.size !== N) fail('some stones cannot be reached');
   for (let i = 0; i < MAIN; i++) if (!near(i, NODES[i].next[0]) && NODES[i].next[0] < MAIN) fail('main stones ' + i + ' too far apart');
   if (poolFor(6).some(g => g.max < 6) || poolFor(2).length !== POOL.length) fail('pool should fit the table size');
+  // every pool game is a real hub game that keeps its quick preset (the short modes live in each game's cleanOpts)
+  for (const g of POOL) {
+    const mod = await import(`../server/games/${g.id}.js`), o = mod.cleanOpts ? mod.cleanOpts({ ...g.opts, seats: 2 }) : g.opts;
+    if (mod.meta.maxPlayers < g.max) fail(g.id + ' seats fewer than the pool says');
+    for (const [k, v] of Object.entries(g.opts)) if (o[k] !== v) fail(`${g.id}: the trail preset ${k}=${v} is lost (${o[k]})`);
+  }
   if (oddsOf('Tide', 'Ember') <= oddsOf('Ember', 'Tide') || oddsOf('Ember', 'Tide', true) <= oddsOf('Ember', 'Tide')) fail('element odds wrong');
 }
 
@@ -94,10 +100,40 @@ function playOut(G, T, { onMini, onStep } = {}) {
   T.done();
 }
 
+// Past the intro and the roll for the first turn, with seat `lead` rolling 6 and everyone else 1, so `lead` goes first.
+function pastOrder(G, T, lead = 0) {
+  T.add(tg.MS.intro + 10); tg.tick(G, T.now);
+  if (G.stage !== 'order') fail('after the intro everyone should roll for the first turn');
+  const real = Math.random; let guard = 0;
+  while (G.stage === 'order' && guard++ < 400) {
+    T.add(200);
+    Math.random = () => (G.pend?.s === lead ? .99 : 0);
+    if (G.pend?.k === 'first' && !G.seats[G.pend.s].bot && T.now >= G.busy) tg.act(G, G.pend.s, { t: 'roll' }); else tg.tick(G, T.now);
+    Math.random = real;
+  }
+  guard = 0; while (G.stage === 'next' && guard++ < 100) { T.add(200); tg.tick(G, T.now); }
+  if (G.order[0] !== lead || G.turn !== lead) fail('the highest first roll should go first');
+}
+
+{ // the roll for the first turn: ties roll again, and the order holds every round
+  const T = clock();
+  const G = tg.create(ppl(1), { seats: 3, rounds: 5 });
+  T.add(tg.MS.intro + 10); tg.tick(G, T.now);
+  const real = Math.random, seq = [.5, .5, .1, .9, .2]; let k = 0, guard = 0; // 4, 4, 1, then the tie: 6 and 2
+  while (G.stage === 'order' && guard++ < 400) {
+    T.add(200);
+    if (G.pend?.k === 'first' && T.now >= G.busy && (!G.seats[G.pend.s].bot || T.now >= G.botAt)) { Math.random = () => seq[k] ?? 0; const ok = G.seats[G.pend.s].bot ? tg.tick(G, T.now) : tg.act(G, G.pend.s, { t: 'roll' }); Math.random = real; if (ok) k++; }
+    else tg.tick(G, T.now);
+  }
+  if (!G.ev.some(e => e.t === 'firsttie')) fail('a tie should roll again');
+  if (JSON.stringify(G.order) !== '[0,1,2]') fail('wrong turn order ' + JSON.stringify(G.order));
+  T.done();
+}
+
 { // bots think before they act, people's choices and the timer
   const T = clock();
   const G = tg.create(ppl(1), { seats: 2, rounds: 5, timer: 20 });
-  T.add(tg.MS.intro + 10); tg.tick(G, T.now);
+  pastOrder(G, T);
   if (G.turn !== 0 || G.pend?.k !== 'roll' || G.pend.s !== 0) fail('the first player should be asked to roll');
   if (tg.act(G, 1, { t: 'roll' })) fail('rolled out of turn');
   if (!tg.act(G, 0, { t: 'roll' })) fail('could not roll');
@@ -122,7 +158,7 @@ function playOut(G, T, { onMini, onStep } = {}) {
 { // a person who sits still: the timer picks the safe choice for them
   const T = clock();
   const G = tg.create(ppl(1), { seats: 2, rounds: 5, timer: 20 });
-  T.add(tg.MS.intro + 10); tg.tick(G, T.now);
+  pastOrder(G, T);
   T.add(21000); tg.tick(G, T.now);
   if (G.die == null) fail('the timer should roll for you');
   T.done();
@@ -187,7 +223,7 @@ console.log('trail rules ok');
   const srv = spawn(process.execPath, ['server/server.js'], { env: { BOT_PAY: 'full', ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR: `/tmp/ct-test-${PORT}` }, stdio: ['ignore', 'pipe', 'pipe'] });
   let out = ''; srv.stdout.on('data', d => { out += d; }); srv.stderr.on('data', d => { out += d; });
   const stop = code => { srv.kill(); process.exit(code); };
-  const timer = setTimeout(() => { console.error('FAIL timeout\n' + out.slice(-3000)); stop(1); }, 170000);
+  const timer = setTimeout(() => { console.error('FAIL timeout\n' + out.slice(-3000)); stop(1); }, 400000);
   await new Promise(r => setTimeout(r, 900));
   const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
   const msgs = []; let room = null, state = null, stateAt = 0;
@@ -206,18 +242,25 @@ console.log('trail rules ok');
   const drive = setInterval(() => {
     // Tower Stack waits up to 10 s on a person each turn, so a tower could outlast the wait below: drop straight away
     if (room?.game === 'stack' && state?.stage === 'aim' && state.turn === state.me && Date.now() - stateAt > 300) { send({ t: 'act', a: { t: 'drop' } }); return; }
+    // the turn-based pool games wait out the whole turn timer on an idle person, so take our turns at once
+    if (room?.game !== 'trail' && state?.game === room?.game && state.turn === state.me && Date.now() - stateAt > 300) {
+      const n = (state.w || 5) * (state.h || 4), i = Math.random() * n | 0;
+      const a = { darts: { t: 'throw', x: 0, y: 0, ms: 600 }, dig: { t: 'dig', i }, pairs: { t: 'flip', i }, siege: { t: 'throw', k: 'pie', a: .8, p: .7 } }[room.game];
+      if (a) send({ t: 'act', a });
+      return;
+    }
     if (room?.game !== 'trail' || !state || state.game !== 'trail') return;
     const P = state.pend;
     if (state.stage === 'cheer' && state.cheer && !state.cheer.done) send({ t: 'act', a: { t: 'cheer', i: -1 } });
     if (!P || P.s !== me() || Date.now() - stateAt < state.busy) return;
-    const a = { roll: { t: 'roll' }, reroll: { t: 'reroll', i: -1 }, fork: { t: 'fork', j: P.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[P.k];
+    const a = { first: { t: 'roll' }, roll: { t: 'roll' }, reroll: { t: 'reroll', i: -1 }, fork: { t: 'fork', j: P.opts?.[0] }, shop: { t: 'shop', k: null }, meet: { t: 'meet', skip: true }, well: { t: 'well', yes: false }, bench: { t: 'bench', o: -1 }, lure: { t: 'lure', yes: false }, pact: { t: 'pact', yes: false } }[P.k];
     if (a) send({ t: 'act', a });
   }, 250);
   await until(() => room?.game !== 'trail' && room?.party?.game === 'trail', 90000, 'the first minigame');
   const mini = room.game;
   if (!POOL.some(g => g.id === mini)) { console.error('FAIL minigame not from the pool: ' + mini); stop(1); }
   console.log('trail: playing', mini);
-  await until(() => room?.game === 'trail' && state?.game === 'trail' && (state.stage === 'minires' || state.round > 1), 140000, 'back on the trail after ' + mini);
+  await until(() => room?.game === 'trail' && state?.game === 'trail' && (state.stage === 'minires' || state.round > 1), 320000, 'back on the trail after ' + mini);
   clearInterval(drive);
   if (!state.miniRes && state.round < 2) { console.error('FAIL no minigame result'); stop(1); }
   clearTimeout(timer); console.log('trail table ok'); stop(0);

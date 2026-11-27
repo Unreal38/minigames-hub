@@ -66,12 +66,20 @@ export function create(players, optsIn = {}) {
   });
   const now = Date.now(), wx = weatherAt(now).kind;
   const G = {
-    game: 'trail', ph: 'play', stage: 'intro', gid: Math.random().toString(36).slice(2, 8), seats, opts, pl,
+    game: 'trail', ph: 'play', stage: 'intro', gid: Math.random().toString(36).slice(2, 8), seats, opts, pl, order: seats.map((_, i) => i), first: null,
     season: seasonNow(), wx, round: 1, turn: 0, wild: [], wildN: 0, honey: {}, pend: null, die: null,
     walk: null, mini: null, cheer: seats.map(() => -1), res: null, show: null, win: -1,
     stageEnd: now + MS.intro, busy: 0, tEnd: 0, botAt: 0, ev: [], evN: 0, endAt: 0,
   };
-  for (let i = 0; i < WILD_MAX; i++) spawnWild(G);
+  // lay the wild pets out a few times and keep the most spread-out map (one greedy pass sometimes boxes itself in)
+  const ev0 = [...G.ev], evN0 = G.evN, spread = () => Math.min(99, ...G.wild.flatMap(a => G.wild.filter(b => b !== a).map(b => dist(a.pos, b.pos))));
+  let best = null;
+  for (let k = 0; k < 40 && !(best?.m >= 8); k++) {
+    G.wild = []; G.wildN = 0; G.ev = [...ev0]; G.evN = evN0;
+    for (let i = 0; i < WILD_MAX; i++) spawnWild(G);
+    const m = spread(); if (!best || m > best.m) best = { m, wild: G.wild, ev: G.ev, evN: G.evN, wildN: G.wildN };
+  }
+  Object.assign(G, { wild: best.wild, ev: best.ev, evN: best.evN, wildN: best.wildN });
   return G;
 }
 
@@ -84,8 +92,11 @@ const think = G => rnd(...(THINK[G.opts.bots] || THINK.chill));
 
 // ---------- wild pets ----------
 function spawnWild(G, at = null, rareOnly = false) {
-  const free = at != null ? [at] : [...Array(N).keys()].filter(i => !G.wild.some(w => dist(w.pos, i) < 8) && !G.pl.some(p => dist(at0(p.pos), i) < 5));
-  const pos = at ?? (free.length ? pickOf(free) : Math.random() * N | 0);
+  // a stone at least 8 from every other wild pet and 5 from every player; when none is left, the one farthest from the pets
+  const gap = i => Math.min(99, ...G.wild.map(w => dist(w.pos, i))), clear = i => !G.pl.some(p => dist(at0(p.pos), i) < 5);
+  const all = [...Array(N).keys()], free = all.filter(i => gap(i) >= 8 && clear(i));
+  const far = () => { const ok = all.filter(clear).length ? all.filter(clear) : all, m = Math.max(...ok.map(gap)); return pickOf(ok.filter(i => gap(i) === m)); };
+  const pos = at ?? (free.length ? pickOf(free) : far());
   const wxEl = WX_EL[G.wx], rainbow = G.wx === 'rainbow';
   let pool = rareOnly ? WILD.filter(w => w.rare === 2) : WILD;
   if (!rareOnly) { const roll = Math.random(); pool = pool.filter(w => w.rare === (roll < (rainbow ? .45 : .6) ? 0 : roll < (rainbow ? .75 : .88) ? 1 : 2)); if (wxEl && Math.random() < .4) pool = pool.filter(w => w.el === wxEl); }
@@ -122,8 +133,38 @@ function startTurn(G, s, now) {
 }
 function nextTurn(G, now) {
   G.pend = null;
-  if (G.turn + 1 < G.seats.length) return startTurn(G, G.turn + 1, now);
+  const k = G.order.indexOf(G.turn);
+  if (k + 1 < G.order.length) return startTurn(G, G.order[k + 1], now);
   return startCheer(G, now);
+}
+
+// ---------- who goes first (Kuba 2026-11-27) ----------
+// After the intro everyone rolls a die in seat order; the highest goes first. Seats that tie roll again among themselves
+// (their earlier rolls still count first), until every place is settled. G.order is then the turn order for every round.
+function startOrder(G, now) {
+  G.stage = 'order'; G.first = { key: G.seats.map(() => []), todo: G.seats.map((_, i) => i), tie: [] };
+  pushEv(G, { t: 'firstgo' });
+  G.stageEnd = now + MS.say; G.pend = null;
+  return true;
+}
+function orderNext(G, now) {
+  const F = G.first;
+  if (F.todo.length) return ask(G, F.todo.shift(), 'first', {}, now);
+  const cmp = (a, b) => { const x = F.key[a], y = F.key[b]; for (let k = 0; k < Math.max(x.length, y.length); k++) if ((y[k] || 0) !== (x[k] || 0)) return (y[k] || 0) - (x[k] || 0); return 0; };
+  const tied = G.seats.map((_, i) => i).filter(i => G.seats.some((_, j) => j !== i && cmp(i, j) === 0));
+  if (tied.length) { F.todo = tied; F.tie = tied; pushEv(G, { t: 'firsttie', who: tied }); G.stageEnd = now + MS.say; return true; }
+  G.order = G.seats.map((_, i) => i).sort(cmp); G.first = null;
+  pushEv(G, { t: 'order', order: [...G.order] });
+  G.stage = 'next'; G.turn = -1; G.stageEnd = now + MS.say * 2;
+  G.startRound = true;
+  return true;
+}
+function firstRoll(G, s, now) {
+  const d = 1 + (Math.random() * 6 | 0);
+  G.first.key[s].push(d); G.pend = null;
+  pushEv(G, { t: 'first', s, d, tie: G.first.tie.includes(s) });
+  G.busy = now + MS.dice; G.stageEnd = now + MS.dice + 300;
+  return true;
 }
 function roll(G, s, now) {
   const p = G.pl[s], two = p.spy; p.spy = false;
@@ -320,9 +361,10 @@ function setCheer(G, s, i) {
   return true;
 }
 function startWheel(G, now) {
-  const pool = poolFor(G.seats.length), last = G.lastMini;
-  const pick = pickOf(pool.filter(g => g.id !== last).length ? pool.filter(g => g.id !== last) : pool);
-  G.lastMini = pick.id;
+  // none of the last few minigames again, so a tournament shows plenty of different games
+  const pool = poolFor(G.seats.length), recent = (G.recentMini ||= []).slice(-Math.min(4, pool.length - 1));
+  const fresh = pool.filter(g => !recent.includes(g.id)), pick = pickOf(fresh.length ? fresh : pool);
+  G.lastMini = pick.id; G.recentMini.push(pick.id);
   G.stage = 'wheel'; G.mini = { game: pick.id, opts: { ...pick.opts, bots: G.opts.bots, seats: G.seats.length }, started: false };
   G.stageEnd = now + MS.wheel;
   pushEv(G, { t: 'wheel', game: pick.id });
@@ -356,7 +398,7 @@ function endRound(G, now) {
   G.wx = weatherAt(now).kind;
   if (G.round > G.opts.rounds) return petShow(G, now);
   pushEv(G, { t: 'round', r: G.round });
-  return startTurn(G, 0, now);
+  return startTurn(G, G.order[0], now);
 }
 
 // ---------- the Pet Show ----------
@@ -395,6 +437,7 @@ function answer(G, s, a, now) {
   const P = G.pend;
   switch (P.k) {
     case 'roll': return a.t === 'roll' && roll(G, s, now);
+    case 'first': return a.t === 'roll' && firstRoll(G, s, now);
     case 'reroll': if (a.t !== 'reroll') return false; if (a.i == null || a.i < 0) return startWalk(G, s, G.die, now); return P.f.includes(a.i) && reroll(G, s, a.i, now);
     case 'fork': if (a.t !== 'fork' || !P.opts.includes(a.j)) return false; G.walk.fork = a.j; G.pend = null; pushEv(G, { t: 'fork', s, j: a.j }); return advance(G, s, now);
     case 'shop': return a.t === 'shop' && (a.k == null || ITEMS[a.k] != null) && shop(G, s, a.k, now);
@@ -414,6 +457,7 @@ function answer(G, s, a, now) {
 export function botChoice(G, s) {
   const P = G.pend, p = G.pl[s];
   switch (P.k) {
+    case 'first': return { t: 'roll' };
     case 'roll': {
       const use = p.items.find(k => k === 'spy' || k === 'berry' || k === 'whistle' || (k === 'charm' && p.herd.length > 2) || (k === 'pouch' && !p.herd.some(f => f.rr || f.cheer)) || (k === 'honey' && Math.random() < .5));
       return use ? { t: 'item', k: use } : { t: 'roll' };
@@ -443,7 +487,7 @@ export function botChoice(G, s) {
 function lateChoice(G, s) {
   const P = G.pend;
   switch (P.k) {
-    case 'roll': return { t: 'roll' };
+    case 'roll': case 'first': return { t: 'roll' };
     case 'reroll': return { t: 'reroll', i: -1 };
     case 'fork': return { t: 'fork', j: P.opts[0] };
     case 'shop': return { t: 'shop', k: null };
@@ -460,8 +504,9 @@ function botCheer(G, s) { const p = G.pl[s], k = p.herd.findIndex(f => f.cheer);
 // ---------- loop ----------
 export function tick(G, now = Date.now()) {
   if (G.ph !== 'play') return false;
-  if (G.stage === 'intro') { if (now < G.stageEnd) return false; pushEv(G, { t: 'round', r: 1 }); return startTurn(G, 0, now); }
-  if (G.stage === 'next') { if (now < G.stageEnd) return false; return nextTurn(G, now); }
+  if (G.stage === 'intro') { if (now < G.stageEnd) return false; return startOrder(G, now); }
+  if (G.stage === 'order' && !G.pend) { if (now < G.stageEnd) return false; return orderNext(G, now); }
+  if (G.stage === 'next') { if (now < G.stageEnd) return false; if (G.startRound) { G.startRound = false; pushEv(G, { t: 'round', r: 1 }); } return nextTurn(G, now); }
   if (G.stage === 'rolled') { if (now < G.stageEnd) return false; return startWalk(G, G.turn, G.die, now); }
   if (G.stage === 'cheer') {
     let ch = false;
@@ -492,7 +537,7 @@ export function setAway(G, s, away) {
 export function view(G, s) {
   const now = Date.now();
   return {
-    game: 'trail', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, rounds: G.opts.rounds, turn: G.turn,
+    game: 'trail', ph: G.ph, stage: G.stage, gid: G.gid, me: s, round: G.round, rounds: G.opts.rounds, turn: G.turn, order: G.order, first: G.first ? { key: G.first.key, tie: G.first.tie } : null,
     season: G.season, wx: G.wx, die: G.die, botsLevel: G.opts.bots, timer: G.opts.timer,
     pend: G.pend ? { ...G.pend } : null, busy: Math.max(0, G.busy - now),
     tLeft: G.pend && G.tEnd ? Math.max(0, G.tEnd - now) : G.stage === 'cheer' ? Math.max(0, G.stageEnd - now) : -1,
