@@ -601,52 +601,128 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
   .pf .pseat { width: 44px; height: 44px; } .pf .pseat img, .pf .pseat .nothumb { width: 38px; height: 38px; }
 }
 
-/* Home HUD for big farms: a status row (parties, eggs, things to collect) over a button row. Several parties or
-   eggs fold into one summary chip that opens their list, and on phones the menu folds into one Menu button and the
-   materials become one scrolling strip, so the farm stays in view. */
+/* Home HUD (Kuba's pick A, 2026-11-27): top left the farm's name, money, one bar of building materials with the
+   Pantry (every crop and treat) at its end, and the weather card under them. The "On the farm" column on the right
+   holds the journal task, things ready now, timers and Send pets. Bottom left: Edit farm beside one dock of picture
+   buttons, both the same height. Phones: the dock is a tab bar (Map, Pets, Edit, Journal, More) with the column
+   over it. Gaps between HUD pieces let touches reach the farm, so the island can be turned anywhere. */
 .pf .bl { flex-direction: column; align-items: flex-start; gap: 8px; }
-.pf .bl > .pfstat, .pf .bl > .pfrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: 100%; }
-.pf .pfnav { display: contents; }
-.pf .pfmenu { display: none; }
-.pf .pfmenu svg { flex: none; }
-.pf .pfbadge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #e2604e; color: #fff; font-size: 13px; font-weight: 700; border: 2px solid var(--ink); }
-.pf .pfsum { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-family: var(--fd); font-weight: 600; font-size: 15px; text-align: left; }
-.pf .pfsuml { display: flex; flex-direction: column; gap: 2px; }
+.pf .bl:not(.pfhome) { flex-direction: row; align-items: center; flex-wrap: wrap; } /* the map and a friend's farm: one row of buttons */
+.pf .hud > .tl { display: grid; grid-template-columns: max-content max-content minmax(0, max-content); grid-template-areas: "title coins mats" "wx wx wx"; align-items: start; justify-items: start; gap: 8px; }
+.pf .hud > .tl > #pf-title { grid-area: title; }
+.pf .pfcoins { grid-area: coins; display: flex; gap: 6px; }
+.pf .pfmatsrow { grid-area: mats; }
+.pf .pfwx { grid-area: wx; }
+.pf .pfcoins[hidden], .pf .pfwx[hidden], .pf .pfmatsrow[hidden], .pf .pfside[hidden] { display: none; }
+.pf .tl .matbtn { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 2px 1px; font-family: var(--fd); font-weight: 600; font-size: 16px; color: var(--pf-tx, var(--ink)); cursor: pointer; white-space: nowrap; border-radius: 8px; }
+.pf .tl .matbtn .mi { flex: none; }
+.pf .tl .matbtn small { font-family: var(--ft, inherit); font-size: 12px; font-weight: 600; color: var(--pf-muted, var(--soft-tx)); }
+.pf .tl .pfpill { background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 999px; padding: 5px 13px 5px 8px; box-shadow: 0 3px 0 #23401c55; font-size: 17px; }
+@media (hover: hover) { .pf .tl .matbtn:hover { transform: translateY(-1px); } }
+.pf .tl .matbtn:focus-visible, .pf .pftile:focus-visible, .pf .pfwxb:focus-visible { outline: 3px solid var(--lantern); outline-offset: 2px; }
+.pf .pfmatsrow { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 5px 4px 12px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; }
+.pf .pfmatsrow .mats { display: flex; flex-wrap: wrap; gap: 4px 13px; min-width: 0; }
+.pf .pfpantry { flex: none; display: flex; align-items: center; padding-left: 9px; border-left: 2px solid var(--card-edge); }
+.pf .pfpanb { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 3px 11px 3px 8px; font-size: 15px; white-space: nowrap; }
+.pf .pfpanb b { font-family: var(--fd); font-weight: 700; }
+.pf .pfpanb:disabled { opacity: .6; }
+.pf .pfmatsrow.open .pfpanb .pfcaret { transform: translateY(2px) rotate(-135deg); }
+.pf .pfpanl { position: absolute; top: calc(100% + 8px); right: -3px; z-index: 3; width: max-content; max-width: min(440px, calc(100vw / var(--vz, 1) - 28px)); display: flex; flex-direction: column; gap: 6px; padding: 10px 14px 12px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 #23401c66; }
+.pf .pfpanh, .pf .pfsideh { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-muted, var(--soft-tx)); }
+.pf .pfpang { display: grid; grid-template-columns: repeat(2, minmax(0, max-content)); gap: 4px 18px; }
+.pf .pfpang .matbtn { font-size: 15px; }
+/* the weather card: its bonus is the reason to send a party now */
+.pf .pfwxb { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 7px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 #23401c55; cursor: pointer; text-align: left; font: inherit; }
+.pf .pfwxi { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; border: 2px solid var(--ink); background: #fff0b8; }
+.pf .pfwxi svg { width: 30px; height: 30px; }
+.pf .wx-cloudy .pfwxi { background: #e1e8f2; } .pf .wx-rain .pfwxi { background: #c4e3ff; } .pf .wx-wind .pfwxi { background: #d4f2e4; }
+.pf .wx-rainbow .pfwxi { background: linear-gradient(160deg, #ffd6d2, #fff2b8 45%, #cfeaff); }
+.pf .pfwxt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pf .pfwxt b { font-family: var(--fd); font-weight: 600; font-size: 17px; line-height: 1.15; }
+.pf .pfwxt small { font-size: 13px; font-weight: 700; color: var(--pf-muted, var(--soft-tx)); }
+@media (hover: hover) { .pf .pfwxb:hover { transform: translateY(-1px); } }
+
+/* "On the farm": what to do now and what is on its way */
+.pf .pfside { position: absolute; right: 8px; top: calc(max(14px, env(safe-area-inset-top)) + 58px); width: 352px; max-height: calc(100% - 96px - max(14px, env(safe-area-inset-top))); overflow-y: auto; scrollbar-width: thin; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 6px 6px 10px; pointer-events: none; }
+.pf .pfside > * { pointer-events: auto; }
+.pf .hud:has(#pf-card:not([hidden])) .pfside, .pf .hud:has(.pfnav.open) .pfside { display: none; } /* an open pet or building card takes the right side */
+.pf .pfsideh { align-self: flex-end; padding: 2px 10px; border-radius: 999px; background: var(--pf-bg, var(--paper)); border: 2px solid var(--ink); }
+.pf .pfside .pfjn { max-width: none; }
+.pf .pfside .btn { justify-content: center; gap: 8px; min-height: 46px; padding: 7px 14px; font-size: 16px; white-space: normal; text-wrap: balance; }
+.pf .pfside .btn svg { flex: none; }
+.pf .pfready { box-shadow: 0 0 0 4px var(--lantern), 0 4px 0 #23401c77; animation: pfReady 1.8s ease-in-out infinite; }
+@keyframes pfReady { 50% { box-shadow: 0 0 0 6px #ffd25c, 0 4px 0 #23401c77; } }
+@media (prefers-reduced-motion: reduce) { .pf .pfready { animation: none; } }
+.pf .pfgatehint { white-space: normal; font-size: 15px; }
+.pf .pftimers { display: flex; flex-direction: column; gap: 8px; }
+.pf .pftimer, .pf .pfsum { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 10px; background: var(--pf-bg, var(--paper)); color: var(--pf-tx, var(--ink)); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 #23401c55; }
+.pf .pftt { display: flex; align-items: center; gap: 7px; font-family: var(--fd); font-weight: 600; font-size: 15px; line-height: 1.2; }
+.pf .pfbar { display: block; height: 9px; border-radius: 6px; background: var(--card); border: 2px solid var(--card-edge); overflow: hidden; }
+.pf .pfbar i { display: block; height: 100%; background: #52b08f; border-radius: 4px; transition: width .6s; }
+.pf .pfsum { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; font: inherit; font-family: var(--fd); font-weight: 600; font-size: 15px; text-align: left; }
+.pf .pfsuml { display: flex; flex-direction: column; gap: 4px; }
 .pf .pfsuml > span { display: inline-flex; align-items: center; gap: 6px; }
+.pf .pfsumlist { display: flex; flex-direction: column; gap: 6px; }
 .pf .pfsi { flex: none; }
 .pf .pfcaret { flex: none; width: 8px; height: 8px; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
-.pf .pfsum[aria-expanded=true] .pfcaret, .pf .pfmatsrow.open .pfcaret { transform: translateY(2px) rotate(-135deg); }
-.pf .pfsumlist { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; flex-basis: 100%; }
-.pf .pfmatsrow { display: flex; gap: 6px; align-items: flex-start; min-width: 0; }
-.pf .pfmatsrow[hidden] { display: none; }
-.pf .pfmatsmore { display: none; }
-@media (hover: hover) { .pf .pfsum:hover { transform: translateY(-1px); } }
+.pf .pfsum[aria-expanded=true] .pfcaret { transform: translateY(2px) rotate(-135deg); }
+.pf .pfbadge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #e2604e; color: #fff; font-size: 13px; font-weight: 700; border: 2px solid var(--ink); }
+
+/* bottom: Edit farm and the dock, the same height */
+.pf .bl.pfhome > .pfrow { display: flex; align-items: stretch; gap: 10px; }
+.pf .pfedit { display: inline-flex; align-items: center; gap: 10px; padding: 8px 24px 8px 18px; font-size: 22px; border-radius: 20px; }
+.pf .pfedit .pfni { width: 34px; height: 34px; }
+.pf .pfdock { display: flex; align-items: stretch; gap: 2px; padding: 5px; background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 4px 0 #23401c55; }
+.pf .pftile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 78px; padding: 6px 8px 5px; border: 0; border-radius: 14px; background: none; color: var(--pf-tx, var(--ink)); font-family: var(--ft, inherit); font-weight: 800; font-size: 13px; line-height: 1.1; text-align: center; cursor: pointer; }
+.pf .pftile .pfni { flex: none; }
+@media (hover: hover) { .pf .pftile:hover { background: var(--card); } .pf .pftile:hover .pfni { transform: translateY(-2px); } }
+.pf .pftile .pfni { transition: transform .15s; }
+.pf .pftile > .pfbadge { position: absolute; top: 1px; right: 8px; min-width: 20px; height: 20px; font-size: 12px; padding: 0 5px; }
+.pf .pfcnt { position: absolute; top: 2px; right: 8px; padding: 0 6px; border-radius: 999px; background: var(--card); border: 2px solid var(--card-edge); font-family: var(--fd); font-weight: 700; font-size: 12px; line-height: 16px; }
+.pf .tn, .pf .pfmenu, .pf .pfnav { display: none; }
 
 @media (max-width: 640px) {
-  /* top: the farm's name on the round buttons' row (one line), the materials as one strip under it across the screen */
-  body.in-game .pf .hud .tl { max-width: none; width: calc(100vw / var(--vz, 1) - 28px); gap: 8px; }
+  /* top: name (beside the round buttons), then weather + money, then the materials bar across the screen */
+  body.in-game .pf .hud > .tl { max-width: none; width: calc(100vw / var(--vz, 1) - 28px); grid-template-columns: minmax(0, max-content) minmax(0, 1fr); grid-template-areas: "title title" "wx coins" "mats mats"; gap: 6px; }
   body.in-game .pf .hud .tl #pf-title { max-width: var(--tlw, 60vw); height: 46px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 40px; padding-top: 0; padding-bottom: 0; font-size: 16px; }
-  .pf .pfmatsrow { flex-basis: 100%; }
-  .pf .pfmatsrow .mats { flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 0 2px 5px; margin-bottom: -5px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
+  .pf .pfcoins { align-self: center; }
+  .pf .tl .pfpill { font-size: 15px; padding: 3px 10px 3px 6px; }
+  .pf .pfwxb { gap: 7px; padding: 3px 10px 3px 4px; border-radius: 16px; }
+  .pf .pfwxi { width: 32px; height: 32px; border-radius: 10px; } .pf .pfwxi svg { width: 24px; height: 24px; }
+  .pf .pfwxt b { font-size: 14px; } .pf .pfwxt small { font-size: 11.5px; }
+  .pf .pfmatsrow { justify-self: stretch; padding: 3px 4px 3px 9px; border-radius: 16px; gap: 6px; }
+  .pf .pfmatsrow .mats { flex: 1; flex-wrap: nowrap; gap: 9px; overflow-x: auto; scrollbar-width: none; }
   .pf .pfmatsrow .mats::-webkit-scrollbar { display: none; }
-  .pf .pfmatsrow .matbtn { flex: none; }
-  .pf .pfmatsrow .mats .mat { font-size: 14px; padding: 2px 10px 2px 6px; }
-  .pf .pfmatsrow.open .mats { flex-wrap: wrap; overflow: visible; -webkit-mask-image: none; mask-image: none; }
-  .pf .pfmatsmore { display: grid; place-items: center; flex: none; width: 34px; height: 34px; min-width: 0; min-height: 0; padding: 0; }
-  /* bottom: one row of Edit farm + Menu; the menu opens above it as a 2-column grid */
-  .pf .bl { gap: 6px; }
-  .pf .pfrow { gap: 8px; }
-  .pf .pfrow .btn.big { min-height: 50px; padding: 8px 20px; font-size: 19px; }
-  .pf .pfmenu { display: inline-flex; align-items: center; gap: 8px; min-height: 50px; }
-  .pf .pfnav { display: none; }
-  .pf .pfnav.open { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; order: -1; flex-basis: 100%; padding: 10px; background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 #23401c55; }
-  .pf .pfnav.open .btn { width: 100%; min-height: 46px; padding: 6px 8px; font-size: 15px; }
-  .pf .pfsum { font-size: 14px; }
+  .pf .tl .matbtn { font-size: 14px; gap: 3px; } .pf .tl .matbtn .mi { width: 17px; height: 17px; }
+  .pf .pfpantry { padding-left: 6px; }
+  .pf .pfpant, .pf .pfpanb .pfcaret { display: none; }
+  .pf .pfpanb { min-height: 32px; padding: 2px 8px 2px 5px; font-size: 14px; gap: 4px; }
+  .pf .pfpang .matbtn { font-size: 14px; }
+  /* bottom: the tab bar, with the column over it */
+  .pf .bl.pfhome { left: 0; right: 0; bottom: 0; max-width: none; align-items: stretch; gap: 0; }
+  .pf .bl.pfhome > .pfrow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end; gap: 2px; padding: 4px 6px max(6px, env(safe-area-inset-bottom)); background: var(--pf-bg, var(--paper)); border-top: 3px solid var(--ink); border-radius: 22px 22px 0 0; box-shadow: 0 -3px 0 #23401c22; }
+  .pf .pfdock { display: contents; }
+  .pf .pftile { min-width: 0; padding: 5px 2px 3px; font-size: 12px; }
+  .pf .pftile .pfni { width: 27px; height: 27px; }
+  .pf .tw, .pf .pfdock .sec { display: none; }
+  .pf .tn { display: inline; }
+  .pf .pfmenu { display: flex; }
+  .pf .pftile[data-a=map] { order: 1; } .pf .pftile[data-a=pets] { order: 2; } .pf .pfedit { order: 3; } .pf .pftile.pfj { order: 4; } .pf .pfmenu { order: 5; }
+  .pf .pfedit { flex-direction: column; justify-content: center; gap: 2px; padding: 6px 2px 5px; margin-top: -18px; font-size: 13px; border-radius: 18px; min-height: 0; }
+  .pf .pfedit .pfni { width: 28px; height: 28px; }
+  .pf .pfnav.open { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; position: absolute; right: 8px; bottom: calc(100% + 8px); width: min(260px, calc(100vw / var(--vz, 1) - 16px)); padding: 8px; background: var(--pf-bg, var(--paper)); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 #23401c55; }
+  .pf .pfnav.open .pftile { flex-direction: row; justify-content: flex-start; gap: 8px; padding: 8px; background: var(--card); border: 2px solid var(--card-edge); font-size: 14px; }
+  .pf .pfnav.open .pftile > .pfbadge { position: static; }
+  .pf .pfside { left: 4px; right: 4px; top: auto; width: auto; bottom: calc(74px + env(safe-area-inset-bottom)); max-height: 42%; gap: 6px; padding: 6px; }
+  .pf .pfsideh { display: none; }
+  .pf .pfside .btn { min-height: 42px; padding: 5px 12px; font-size: 15px; }
+  .pf .pftimer { padding: 6px 10px 8px; gap: 4px; } .pf .pftt, .pf .pfsum { font-size: 14px; }
 }
-/* the gaps between the HUD's chips and buttons let touches through to the farm, so it can be turned anywhere */
-.pf .hud > .tl, .pf .hud > .bl, .pf .bl > .pfstat, .pf .bl > .pfrow, .pf .pfmatsrow, .pf .pfsumlist { pointer-events: none; }
-.pf .hud > .tl > *, .pf .pfmatsrow > *, .pf .bl > :not(.pfstat):not(.pfrow), .pf .pfstat > *, .pf .pfrow > *, .pf .pfsumlist > *, .pf .pfnav > * { pointer-events: auto; }
-.pf .hud > .tl > .pfmatsrow { pointer-events: none; }
+/* the gaps between the HUD's pieces let touches through to the farm, so it can be turned anywhere */
+.pf .hud > .tl, .pf .hud > .bl, .pf .bl > .pfstat, .pf .bl > .pfrow, .pf .pfsumlist, .pf .pfcoins, .pf .pfwx { pointer-events: none; }
+.pf .hud > .tl > *, .pf .bl > :not(.pfstat):not(.pfrow), .pf .pfstat > *, .pf .pfrow > *, .pf .pfsumlist > *, .pf .pfnav > *, .pf .pfcoins > *, .pf .pfwx > * { pointer-events: auto; }
+.pf .hud > .tl > .pfcoins, .pf .hud > .tl > .pfwx { pointer-events: none; }
+@media (max-width: 640px) { .pf .bl.pfhome > .pfrow { pointer-events: auto; } }
 
 /* island orders at the Order Board (client.js orderCard) */
 .pf .ords h3 { font-family: var(--fd); font-size: 17px; margin: 12px 0 6px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }

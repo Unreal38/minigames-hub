@@ -125,7 +125,7 @@ function settle(f, q) {
   const isle = f.pets.filter(x => x !== q && !x.lodge).length, lodge = f.pets.filter(x => x !== q && x.lodge).length;
   if (isle >= petRoom(f) && lodge < lodgeRoom(f)) q.lodge = true;
 }
-const tripView = t => ({ id: t.id, zone: t.zone, trip: t.trip, pets: t.pets, left: Math.max(0, t.until - Date.now()) });
+const tripView = t => ({ id: t.id, zone: t.zone, trip: t.trip, pets: t.pets, left: Math.max(0, t.until - Date.now()), total: t.at ? t.until - t.at : 0 }); // total: for the progress bar
 // The Nest: two pets cuddle, then an egg sits until it hatches. Times are worked out from when it started.
 // Each Nest level adds an egg slot: level 2 keeps the second egg in f.nest2, level 3 the third in f.nest3.
 const SLOTS = ['nest', 'nest2', 'nest3'];
@@ -133,7 +133,7 @@ const nestMax = f => Math.min(SLOTS.length, Math.max(1, topLv(f, 'nest')));
 function nestView(f, slot = 'nest') {
   const n = f[slot]; if (!n) return null;
   const now = Date.now(), egg = n.at + CUDDLE_H * HOUR, done = egg + n.hours * HOUR;
-  return { slot, a: n.a, b: n.b, friend: n.friend || null, shell: n.shell, stage: now < egg ? 'cuddle' : now < done ? 'egg' : 'ready', left: Math.max(0, (now < egg ? egg : done) - now), cheers: n.cheers || 0 };
+  return { slot, a: n.a, b: n.b, friend: n.friend || null, shell: n.shell, stage: now < egg ? 'cuddle' : now < done ? 'egg' : 'ready', left: Math.max(0, (now < egg ? egg : done) - now), total: (now < egg ? CUDDLE_H : n.hours) * HOUR, cheers: n.cheers || 0 };
 }
 
 // Adds experience. Returns { id, lv, form } if the pet went up a level (form is set when it grew into a new one).
@@ -1240,6 +1240,7 @@ export function testHook(pid, a) {
   if (a.liveUsed !== undefined) { if (f.fights?.day !== today()) f.fights = { day: today() }; f.fights.live = a.liveUsed; }
   if (a.give) for (const [k, n] of Object.entries(a.give)) f.inv[k] = (f.inv[k] || 0) + n;
   if (a.trips !== undefined) f.trips = a.trips;
+  if (a.parties !== undefined) f.parties = a.parties; // parties out right now (screenshots of a busy farm)
   if (a.orders === 'new') delete f.orders; // fresh island orders, as if a new day and week had begun
   if (a.jn !== undefined) { if (a.jn) f.jn = a.jn; else delete f.jn; } // null: a farm from before the Farm Journal
   if (a.album) for (const sp of a.album) if (own(SPECIES, sp)) (f.album ||= {})[sp] = [1, 0, 0];
