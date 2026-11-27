@@ -66,10 +66,13 @@ export const XP = { play: 15, win: 35, perPt: 0.1, maxPts: 20 };
 // evenly and rounded. 2 players: 10 / 1. 3: 10 / 6 / 1. 4: 10 / 7 / 4 / 1. 6: 10 / 8 / 6 / 5 / 3 / 1.
 // Bots take up places but never get coins (they have no profile). Shared places (ties) pay the same.
 export const COINS = { top: 10, last: 1 };
-export const placeCoins = (place, n) => {
-  if (!(n > 1)) return COINS.top;
+// top: what 1st place pays. A game can pay more through its meta.coins (Friendship Trail pays 50, Kuba 2026-11-27);
+// last place then gets the same share of it as usual (a tenth), and the places between step down evenly.
+export const placeCoins = (place, n, top = COINS.top) => {
+  const last = Math.max(1, Math.round(top * COINS.last / COINS.top));
+  if (!(n > 1)) return top;
   const p = Math.min(n, Math.max(1, Math.round(place) || n));
-  return Math.round(COINS.last + (COINS.top - COINS.last) * (n - p) / (n - 1));
+  return Math.round(last + (top - last) * (n - p) / (n - 1));
 };
 // Fills in a 1-based place for every seat of a game's results() that did not say one: the winner(s) first, then by
 // points, higher first. Seats with the same win and points share a place. Every game goes through this, so a new
