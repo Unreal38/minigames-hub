@@ -97,7 +97,7 @@ function spawnWild(G, at = null, rareOnly = false) {
   const all = [...Array(N).keys()], free = all.filter(i => gap(i) >= 8 && clear(i));
   const far = () => { const ok = all.filter(clear).length ? all.filter(clear) : all, m = Math.max(...ok.map(gap)); return pickOf(ok.filter(i => gap(i) === m)); };
   const pos = at ?? (free.length ? pickOf(free) : far());
-  const wxEl = WX_EL[G.wx], rainbow = G.wx === 'rainbow';
+  const wxEl = WX_EL[G.wx], rainbow = G.wx === 'rainbow' || G.wx === 'aurora'; // the aurora brings out rare pets like the rainbow
   let pool = rareOnly ? WILD.filter(w => w.rare === 2) : WILD;
   if (!rareOnly) { const roll = Math.random(); pool = pool.filter(w => w.rare === (roll < (rainbow ? .45 : .6) ? 0 : roll < (rainbow ? .75 : .88) ? 1 : 2)); if (wxEl && Math.random() < .4) pool = pool.filter(w => w.el === wxEl); }
   const pick = pickOf(pool.length ? pool : WILD);

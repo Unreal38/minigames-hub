@@ -797,7 +797,7 @@ export function handle(p, a, reply) {
     const want = [...new Set(Array.isArray(a.charms) ? a.charms.filter(k => own(CHARMS, k)) : [])], can = charmsFor(A, Bp);
     if (want.some(k => !can[k])) return no('That charm would not change anything for these two.');
     if (want.some(k => !(f.charms?.[k] > 0))) return no('You do not have that charm.');
-    const kid = makeBaby(A, Bp, Math.random, Object.fromEntries(want.map(k => [k, true])));
+    const kid = makeBaby(A, Bp, Math.random, { ...Object.fromEntries(want.map(k => [k, true])), aur: wx() === 'aurora' }); // eggs laid under an aurora: twice the element variants
     const muffin = !!a.muffin; if (muffin && !(f.inv.muffin > 0)) return no('You have no Love Muffins left.');
     if (muffin) f.inv.muffin--;
     if (want.length) { for (const k of want) f.charms[k]--; f.charmsUsed = (f.charmsUsed || 0) + want.length; kid.charms = want; }

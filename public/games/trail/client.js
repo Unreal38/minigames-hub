@@ -51,7 +51,7 @@ const STONE_NAME = {
   spring: L('Hot Spring', 'Gorące źródło'), den: L('Rare Den', 'Nora rzadkich'), picnic: L('Picnic', 'Piknik'),
 };
 const SEASON_NAME = { winter: L('Winter', 'Zima'), spring: L('Spring', 'Wiosna'), summer: L('Summer', 'Lato'), autumn: L('Autumn', 'Jesień') };
-const WX_NAME = { sunny: L('Sunny', 'Słonecznie'), cloudy: L('Cloudy', 'Pochmurno'), rain: L('Rain', 'Deszcz'), wind: L('Windy', 'Wietrznie'), rainbow: L('Rainbow', 'Tęcza') };
+const WX_NAME = { sunny: L('Sunny', 'Słonecznie'), cloudy: L('Cloudy', 'Pochmurno'), rain: L('Rain', 'Deszcz'), wind: L('Windy', 'Wietrznie'), rainbow: L('Rainbow', 'Tęcza'), aurora: L('Aurora', 'Zorza') };
 const MATCH = { strong: L('strong', 'silny'), even: L('even', 'równy'), weak: L('weak', 'słaby') };
 const gameName = id => POOL.find(g => g.id === id)?.name || id;
 const treatsW = n => L(`${n} treat${n === 1 ? '' : 's'}`, `${n} ${n === 1 ? 'przysmak' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'przysmaki' : 'przysmaków'}`);

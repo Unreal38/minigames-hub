@@ -205,7 +205,7 @@ function paintPlayers(body) {
 function paintLooks(body) {
   const SEA = { auto: L('auto (today’s)', 'automatyczna (dzisiejsza)'), winter: L('winter', 'zima'), spring: L('spring', 'wiosna'), summer: L('summer', 'lato'), autumn: L('autumn', 'jesień'), halloween: 'Halloween' };
   const SKY = { auto: L('auto (your clock)', 'automatyczna (twój zegar)'), dawn: L('dawn', 'świt'), day: L('midday', 'południe'), dusk: L('dusk', 'zmierzch'), night: L('night', 'noc') };
-  const WX = { auto: L('auto (Pet Farm’s)', 'automatyczna (jak na Farmie)'), sunny: L('sunny', 'słonecznie'), cloudy: L('cloudy', 'pochmurno'), rain: L('rain', 'deszcz'), wind: L('windy', 'wietrznie'), rainbow: L('rainbow', 'tęcza') };
+  const WX = { auto: L('auto (Pet Farm’s)', 'automatyczna (jak na Farmie)'), sunny: L('sunny', 'słonecznie'), cloudy: L('cloudy', 'pochmurno'), rain: L('rain', 'deszcz'), wind: L('windy', 'wietrznie'), rainbow: L('rainbow', 'tęcza'), aurora: L('aurora', 'zorza') };
   body.innerHTML = `<p class="rknote">${L('Only you see these, on this computer. Players keep the real season and weather.', 'Widzisz to tylko ty, na tym komputerze. Gracze mają prawdziwą porę roku i pogodę.')}</p>
     <section class="ntsec"><h3>❄️ ${L('Island season', 'Pora roku wysp')}</h3><p class="nthint">${L('Games opened from now on use it.', 'Obowiązuje w grach otwartych od teraz.')}</p>
       <div class="pills" role="group">${['auto', ...PEEKS].map(k => `<button type="button" data-sea="${k}" aria-pressed="${peekPick() === k}">${esc(SEA[k] || k)}</button>`).join('')}</div></section>

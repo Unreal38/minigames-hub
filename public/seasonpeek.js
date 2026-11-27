@@ -12,7 +12,7 @@ export const peekSeason = () => host ? (peekPick() === 'auto' ? null : peekPick(
 export const setPeek = v => { try { PEEKS.includes(v) ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch {} };
 
 // Hosts only, the same way: look at the world weather (weather.js) as another kind on the hub and in games.
-export const WX_PEEKS = ['sunny', 'cloudy', 'rain', 'wind', 'rainbow'];
+export const WX_PEEKS = ['sunny', 'cloudy', 'rain', 'wind', 'rainbow', 'aurora'];
 const WKEY = 'ct_wx_peek';
 const wget = () => { try { return localStorage.getItem(WKEY); } catch { return null; } };
 export const wxPeekPick = () => { const v = wget(); return WX_PEEKS.includes(v) ? v : 'auto'; };

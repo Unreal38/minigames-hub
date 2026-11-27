@@ -95,13 +95,14 @@ export const SEASON_RULE = {
 };
 export const ruleSeason = s => (s === 'halloween' ? 'autumn' : SEASON_RULE[s] ? s : 'autumn');
 // The weather (weather.js, the same for everyone) brings one element out more often; a rainbow brings rare pets.
-export const WX_EL = { sunny: 'Ember', cloudy: 'Stone', rain: 'Tide', wind: 'Spark', rainbow: null };
+export const WX_EL = { sunny: 'Ember', cloudy: 'Stone', rain: 'Tide', wind: 'Spark', rainbow: null, aurora: null };
 export const WX_RULE = {
   sunny: L('Sunny: Ember pets are out more.', 'Słonecznie: częściej spotkasz zwierzaki Żaru.'),
   cloudy: L('Cloudy: Stone pets are out more.', 'Pochmurno: częściej spotkasz zwierzaki Kamienia.'),
   rain: L('Rain: Tide pets are out more.', 'Deszcz: częściej spotkasz zwierzaki Fali.'),
   wind: L('Windy: Spark pets are out more.', 'Wietrznie: częściej spotkasz zwierzaki Iskry.'),
   rainbow: L('Rainbow: rare pets are out more.', 'Tęcza: częściej spotkasz rzadkie zwierzaki.'),
+  aurora: L('Aurora: rare pets are out more.', 'Zorza: częściej spotkasz rzadkie zwierzaki.'),
 };
 
 // The hub minigames played after each round, each as a quick preset of the real game. min/max: who it seats.

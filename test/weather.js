@@ -33,5 +33,18 @@ if (/setPixelRatio|setSize/.test(fs.readFileSync(path.join(pub, 'weather3d.js'),
   for (const day of ['2026-11-27', '2026-03-29', '2026-06-21', '2026-10-25']) { let prev, worst = 0;
     for (let m = 0; m <= 1440; m++) { const p = skyPhase(sunHour(new Date(at(day, '00:00').getTime() + m * 6e4))); if (prev) worst = Math.max(worst, Math.abs(p.n - prev.n), Math.abs(p.g - prev.g)); prev = p; }
     if (worst > .035) fail(`the real-sun sky jumps ${worst.toFixed(3)} in a minute on ${day}`); } }
+// the aurora (Kuba, 2026-11-27): only on winter nights in Poland, a couple of spells a night, never by day or in summer;
+// eggs laid under it are twice as likely to be element variants
+{ const { darkAt } = await import('../public/weather.js'), W = 40 * 60_000, at = (s, t) => new Date(`${s}T${t}`); let win = 0, nights = 0;
+  for (let ms = Date.UTC(2026, 10, 16); ms < Date.UTC(2027, 1, 28); ms += W) { const k = weatherAt(ms).kind; if (k !== 'aurora') continue; win++;
+    if (!darkAt(ms + W / 2)) fail('an aurora spell came in daylight at ' + new Date(ms).toISOString()); }
+  for (let ms = Date.UTC(2027, 3, 1); ms < Date.UTC(2027, 10, 14); ms += W) if (weatherAt(ms).kind === 'aurora') nights++;
+  if (nights) fail(`${nights} aurora spells outside winter`);
+  const per = win / 104; if (per < 1 || per > 4.5) fail(`about ${per.toFixed(1)} aurora spells a winter night, want 1 to 4.5`);
+  for (const h of [12, 13]) if (darkAt(at('2026-12-21', h + ':00').getTime())) fail('darkAt says it is dark at ' + h + ':00 in December');
+  if (!darkAt(at('2026-12-21', '23:00').getTime())) fail('darkAt says it is light at 23:00 in December');
+  const { variantOdds } = await import('../public/games/farm/breed.js'), a = { sp: 'mossbun' }, b = { sp: 'cindercub' };
+  const o0 = variantOdds('mossbun', a, b), o1 = variantOdds('mossbun', a, b, { aur: true });
+  if (!o0.length || o1.some(([, c], i) => Math.abs(c - o0[i][1] * 2) > 1e-9)) fail('an aurora must double the element variant chance'); }
 if (bad) process.exit(1);
 console.log('weather ok');

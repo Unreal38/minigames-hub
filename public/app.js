@@ -2125,7 +2125,7 @@ function acctHtml() {
 const PEEK_NAME = { auto: ['auto (today’s)', 'automatyczna (dzisiejsza)'], winter: ['winter', 'zima'], spring: ['spring', 'wiosna'], summer: ['summer', 'lato'], autumn: ['autumn', 'jesień'], halloween: ['Halloween', 'Halloween'] };
 const peekLabel = () => L(...PEEK_NAME[peekPick()]) + ' · ' + L('only you see it', 'widzisz tylko ty');
 // Hosts: which weather the hub sky and the games show on this computer (Pet Farm keeps the real one).
-const WXPEEK_NAME = { auto: ['auto (Pet Farm’s)', 'automatyczna (jak na Farmie)'], sunny: ['sunny', 'słonecznie'], cloudy: ['cloudy', 'pochmurno'], rain: ['rain', 'deszcz'], wind: ['windy', 'wietrznie'], rainbow: ['rainbow', 'tęcza'] };
+const WXPEEK_NAME = { auto: ['auto (Pet Farm’s)', 'automatyczna (jak na Farmie)'], sunny: ['sunny', 'słonecznie'], cloudy: ['cloudy', 'pochmurno'], rain: ['rain', 'deszcz'], wind: ['windy', 'wietrznie'], rainbow: ['rainbow', 'tęcza'], aurora: ['aurora', 'zorza'] };
 const wxPeekLabel = () => L(...WXPEEK_NAME[wxPeekPick()]) + ' · ' + L('only you see it', 'widzisz tylko ty');
 // The site-wide graphics level (frames.js): Auto picks by device, Low is lightest, High is the full look.
 const GFX_NEXT = { auto: 'low', low: 'high', high: 'auto' };

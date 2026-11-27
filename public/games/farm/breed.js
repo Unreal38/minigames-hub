@@ -89,7 +89,7 @@ export function hybridOf(a, b) {
   return null;
 }
 // The species a pair can have, with chances that add up to 1.
-// ch: the Nest charms put into this pairing, as { el, hyb, pat } (any of them true).
+// ch: the Nest charms put into this pairing, as { el, hyb, pat } (any of them true), and aur: an aurora is out (doubles the variant chance).
 export function speciesOdds(a, b, ch = {}) {
   if (a === b) return [{ sp: a, p: 1 }];
   const h = hybridOf(a, b), hc = ch.hyb ? CHARMED.hyb : HYBRID_CHANCE, rest = h ? 1 - hc : 1;
@@ -98,7 +98,7 @@ export function speciesOdds(a, b, ch = {}) {
 // The other elements a baby of this species could hatch with, and the chance each parent gives it.
 export function variantOdds(sp, a, b, ch = {}) {
   const d = SPECIES[sp]; if (d.el2) return [];
-  const [keep, chance] = ch.el ? [CHARMED.keep, CHARMED.el] : [VARIANT_KEEP, VARIANT_CHANCE];
+  const [keep, base] = ch.el ? [CHARMED.keep, CHARMED.el] : [VARIANT_KEEP, VARIANT_CHANCE], chance = ch.aur ? Math.min(.8, base * 2) : base; // an aurora (weather.js) doubles it
   return [a, b].flatMap(p => (SPECIES[p.sp].el2 ? els(p.sp) : [elOf(p)]).filter(e => e !== d.el).map(e => [e, variantOf(p) === e ? keep : chance]));
 }
 // Which Nest charms can change anything for this pair (a charm that cannot is not offered and not taken).
