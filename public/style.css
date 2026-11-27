@@ -2005,15 +2005,10 @@ body.sky.wx-rainbow:not(.in-game) .wxfall { display: block; top: 0; opacity: .62
   background: radial-gradient(circle var(--bowr) at 50% 100%, transparent 76%, #b79cf0 76% 80%, #6fb7e8 80% 84%, #7fd08a 84% 88%, #ffe066 88% 92%, #ffb547 92% 96%, #e8615a 96% 100%, transparent 100%) no-repeat;
   -webkit-mask: linear-gradient(#000 55%, transparent 100%); mask: linear-gradient(#000 55%, transparent 100%); }
 body.sky.skynight.wx-rainbow:not(.in-game) .wxfall { opacity: .26; }
-/* the aurora (a winter-night weather), like the real thing: oxygen green with a bright, almost white lower hem and a pink
-   fringe under it, tops fading through violet to dim red, in two folded curtains of vertical rays, swaying slowly */
-body.sky.wx-aurora:not(.in-game) .wxfall { display: block; top: 0; bottom: auto; left: -10%; right: -10%; height: 80vh; opacity: .4; will-change: transform; animation: wxaur 18s ease-in-out infinite alternate;
-  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 500' preserveAspectRatio='none'><defs><linearGradient id='a' x1='0' y1='1' x2='0' y2='0'><stop offset='0' stop-color='%23ff5fa8' stop-opacity='0'/><stop offset='.05' stop-color='%23ff5fa8' stop-opacity='0.55'/><stop offset='.1' stop-color='%23e6fff0' stop-opacity='1.00'/><stop offset='.2' stop-color='%234dff9a' stop-opacity='0.95'/><stop offset='.5' stop-color='%232fd98a' stop-opacity='0.50'/><stop offset='.78' stop-color='%237a5cff' stop-opacity='0.25'/><stop offset='1' stop-color='%23c0406a' stop-opacity='0'/></linearGradient><linearGradient id='b' x1='0' y1='1' x2='0' y2='0'><stop offset='0' stop-color='%23ff5fa8' stop-opacity='0'/><stop offset='.05' stop-color='%23ff5fa8' stop-opacity='0.33'/><stop offset='.1' stop-color='%23e6fff0' stop-opacity='0.60'/><stop offset='.2' stop-color='%234dff9a' stop-opacity='0.57'/><stop offset='.5' stop-color='%232fd98a' stop-opacity='0.30'/><stop offset='.78' stop-color='%237a5cff' stop-opacity='0.15'/><stop offset='1' stop-color='%23c0406a' stop-opacity='0'/></linearGradient><filter id='f' x='-5%' y='-20%' width='110%' height='140%'><feGaussianBlur stdDeviation='5'/></filter></defs><path filter='url(%23f)' fill='url(%23b)' d='M-30 250C120 210 260 290 430 240S760 170 930 215S1150 270 1230 230L1230 20C1000 40 820 0 600 30S180 10-30 40Z'/><path filter='url(%23f)' fill='url(%23a)' d='M-30 360C110 300 250 410 420 350S700 250 860 310S1080 400 1230 330L1230 90C1060 120 880 60 680 100S260 70-30 120Z'/></svg>") center / 100% 100% no-repeat;
-  -webkit-mask: repeating-linear-gradient(92deg, rgba(0, 0, 0, .4) 0 5px, #000 9px, rgba(0, 0, 0, .65) 14px, #000 19px, rgba(0, 0, 0, .3) 27px, #000 33px, rgba(0, 0, 0, .55) 40px);
-  mask: repeating-linear-gradient(92deg, rgba(0, 0, 0, .4) 0 5px, #000 9px, rgba(0, 0, 0, .65) 14px, #000 19px, rgba(0, 0, 0, .3) 27px, #000 33px, rgba(0, 0, 0, .55) 40px); }
-body.sky.skynight.wx-aurora:not(.in-game) .wxfall { opacity: 1; }
-@keyframes wxaur { from { transform: translateX(-3%) skewX(-4deg); } to { transform: translateX(3%) skewX(4deg); } }
-@media (prefers-reduced-motion: reduce) { body.sky.wx-aurora .wxfall { animation: none; } }
+/* the aurora (a winter-night weather): app.js paints the same curtains as the 3D isles (aurora.js) on a canvas behind the panels */
+.wxaur { display: none; position: fixed; left: 0; top: 0; width: 100%; height: 82vh; z-index: -1; pointer-events: none; }
+body.sky.wx-aurora:not(.in-game) .wxaur { display: block; opacity: .4; }
+body.sky.skynight.wx-aurora:not(.in-game) .wxaur { opacity: 1; }
 html.gfx-low body.sky.wx-rain .wxfall { display: none; }
 @media (prefers-reduced-motion: reduce) { body.sky.wx-rain .wxfall { display: none; } }
 /* the hero banner, the profile isle and the Wardrobe isle preview grey with the weather */

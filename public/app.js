@@ -24,6 +24,7 @@ import { randomName } from './names.js';
 import { fitw } from './fit.js';
 import { morph } from './morph.js';
 import { gfx, gfxPick, setGfx, onGfxTip, SOFT } from './frames.js';
+import { auroraSky } from './aurora.js';
 import { PEEKS, peekPick, setPeek, setPeekHost, WX_PEEKS, wxPeekPick, setWxPeek, peekWeather, skyHour } from './seasonpeek.js';
 import { initNotice, onNotice } from './notice.js';
 import { initAdmin, openAdmin, openModerate, openReport, onMod, onModMe, muteNote, openCount as modOpenCount } from './admin.js';
@@ -1797,6 +1798,15 @@ function paintSkyWx() {
   const ph = skyPhase(skyHour());
   b.classList.toggle('skynight', ph.n >= .5); // the page's sky follows the real clock; the switch (body.night) is only the UI
   paintTwilight(b, k, ph);
+  paintAurora(k === 'aurora');
+}
+// The aurora on the page sky: the same curtains as the 3D isles (aurora.js), on a canvas behind the panels, drawn only while it is out.
+let aurSky = null;
+function paintAurora(on) {
+  if (!on && !aurSky) return;
+  if (!aurSky) { const cv = document.createElement('canvas'); cv.className = 'wxaur'; cv.setAttribute('aria-hidden', 'true'); document.body.prepend(cv);
+    aurSky = auroraSky(cv, { low: gfx() === 'low', still: matchMedia('(prefers-reduced-motion: reduce)').matches, skip: () => document.body.classList.contains('in-game') }); }
+  aurSky.on(on);
 }
 // Dusk and dawn on the page's sky (Kuba, 2026-11-26): between day and night the sky colours are blended here, from the
 // day look (greyer for the weather) through a warm glow into the night look, and written on the body as --sky1..3 (the
