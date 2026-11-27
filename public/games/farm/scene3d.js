@@ -554,7 +554,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       if (wi) { // the Garden helper goes from plot to plot; everyone else stays at the one building
         const all = wk === 'garden' ? farm.items.filter(i => i.type === 'garden') : [wi], at = all[(p.wi || 0) % all.length], [w, h] = footprint(wk, at.r), bx = wx(at.x, w), bz = wz(at.y, h);
         if (p.train?.job !== wk) p.wt = 0;
-        p.train = headTo(p, { ...(hearthBy(at, w, h, wk, p.reach) || standBy(at, w, h, p)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }, p.train); p.path = []; continue;
+        p.train = headTo(p, { ...((wk === 'yard' && coachBy(at, w, h)) || hearthBy(at, w, h, wk, p.reach) || standBy(at, w, h, p)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }, p.train, wk === 'yard' ? at.id : null); p.path = []; continue;
       }
       p.train = null;
       // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
@@ -638,6 +638,10 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const [x, z] = to(hp[0], hp[1] + .1 + reach), [mx, mz] = to(hp[0], hp[1] - .08);
     if (!roomAt(x, z)) return null;
     return { x, z, face: Math.PI + a, mx, mz }; };
+  // The Training Yard's coach stands inside the yard (Kuba), on the open sand at the way in between the hurdle and the
+  // target and bucket, facing the pets in training; turned with the yard.
+  const coachBy = (at, w, h) => { const a = -at.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), lx = 1.08, lz = .04;
+    return { x: wx(at.x, w) + lx * c + lz * sn, z: wz(at.y, h) - lx * sn + lz * c, face: -Math.PI / 2 + a }; };
   function workPose(p, t, dt, o) {
     const u = (p.wt = (p.wt || 0) + dt), R = Math.random, every = (key, sec) => (p[key] = (p[key] ?? R() * sec) - dt) <= 0 && ((p[key] = sec), true);
     const once = (key, c, at) => { if (c < at) p[key] = false; else if (!p[key]) return (p[key] = true); return false; };
