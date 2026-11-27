@@ -232,7 +232,7 @@ export function createScene(canvas, { onFrame, onCue }) {
       balloon.visible = false; guide.visible = false; shadowFor = 90;
     }
     // a crash that already played out (joined late, or motion is reduced): only the stump is left standing
-    const crashed = d?.res === 'crash' && S.stage === 'drop' && (drLanded || !(dr && dr.n === d.n)) ? d.at : Infinity;
+    const crashed = d?.res === 'crash' && (S.stage === 'drop' || S.stage === 'end') && (drLanded || !(dr && dr.n === d.n)) ? d.at : Infinity;
     for (let i = 0; i < S.tower.length && i < crashed; i++) {
       if (blocks[i]) continue;
       const b = S.tower[i], m = blockMesh(b, colorOf(b.s)); towerG.add(m); blocks[i] = { m, b }; shadowFor = 8;
