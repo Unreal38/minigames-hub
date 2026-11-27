@@ -77,5 +77,15 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   const [x, y] = fenceSnap(it, 1, .5, 0, null, fit); if (x !== 1 || y !== 0) fail(`snap into line: ${x},${y}`);
   const [a, b] = fenceSnap(it, 5, 5, 0, null, fit); if (a !== 5 || b !== 5) fail('a lone spot should not move'); }
 
+// quarter-tile cells: a small prop may stand in the middle of a tile; a turned piece blocks only the cells under it
+{ const { fits, cellsOf } = await import('../public/games/farm/data.js'); const farm = { size: 6, items: [] };
+  if (!fits(farm, 'campfire', 1.25, 1.25, 0)) fail('a campfire should fit in the middle of a tile');
+  if (fits(farm, 'hut', 1.25, 1, 0)) fail('a building must stay on half tiles');
+  const d = cellsOf('fence', 2, 2, .5); if (d.length / 2 !== 4) fail('a diagonal fence should cover 4 cells, got ' + d.length / 2);
+  farm.items.push({ id: 1, type: 'fence', x: 2, y: 2, r: .5 }); // corner to corner (2,2)-(3,3): the far corners stay free
+  if (!fits(farm, 'bush', 2.5, 2, 0) || !fits(farm, 'bush', 2, 2.5, 0)) fail('a bush should fit beside a diagonal fence in its square');
+  farm.items.push({ id: 2, type: 'barn', x: 0, y: 3, r: .5 }); // 2 x 3 turned: its 3 x 3 square's corners are free
+  if (!fits(farm, 'rock', 0, 3, 0)) fail('a corner of a turned barn\'s square should be free'); }
+
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');
