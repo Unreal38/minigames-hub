@@ -139,8 +139,11 @@ body.in-game { overflow: hidden; }
 .hd .score li.won { border-color: var(--ink); background: var(--lantern); box-shadow: 0 4px 0 var(--ink); --on-paper: var(--ink); --soft-tx: var(--soft-on-acc); --soft-tx2: var(--soft2-on-acc); --body-tx: var(--body-on-acc); }
 .hd .score .pos { font-style: normal; font-family: var(--fd); font-weight: 700; width: 22px; text-align: center; flex: none; }
 .hd .score .who { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.hd .score .who b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hd .score .who > span { font-size: 13px; color: var(--soft-tx2); }
+.hd .score .who > b { font-family: var(--fd); font-weight: 600; font-size: 18px; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hd .score .who > span:not(.hd-mini) { font-size: 13px; color: var(--soft-tx2); }
+/* leftover trays on the score sheets: a little bigger than the mini tiles elsewhere, and only the player's name rule above styles the name, never the tiles */
+.hd .score .hd-mini { gap: 3px; margin-top: 4px; }
+.hd .score .hd-t.mini { width: 30px; height: 42px; } .hd .score .hd-t.mini b { font-size: 15px; } .hd .score .hd-t.mini .hd-pi { width: 19px; height: 19px; } .hd .score .hd-t.mini.egg b { font-size: 8px; margin-top: 5px; } .hd .score .hd-t.mini .hd-egg { width: 17px; height: 18px; }
 .hd .score strong { font-family: var(--fd); font-weight: 700; font-size: 20px; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; white-space: nowrap; }
 .hd .score strong small { font-size: 12px; font-weight: 600; color: var(--soft-tx2); }
 .hd .score strong .up { color: #2f8a43; } .hd .score strong .down { color: var(--bad-tx, #b13a25); }
