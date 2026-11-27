@@ -665,9 +665,13 @@ const BUILD = {
     for (const x of pickets) { box(g, .08, .42, .04, C.cream, x, .04, .03); cone(g, .056, .07, 4, C.cream, x, .46, .03).rotation.y = Math.PI / 4; }
     for (const x of posts) { box(g, .12, .5, .12, C.wood, x, 0, 0); cone(g, .09, .1, 4, C.wood, x, .5, 0); box(g, .14, .04, .14, C.woodD, x, .44, 0); }
   },
-  path(g) {
-    for (const [x, z, r] of [[-.2, -.18, .3], [.24, -.22, .22], [-.24, .24, .22], [.2, .2, .3], [0, 0, .16]]) cyl(g, r, r * 1.05, .05, 6, C.stone, x, 0, z).rotation.y = x * 5;
-  },
+  // Path tiles (paths.js): a bed that reaches the edge where a tile of the same kind joins, so a path reads as one strip,
+  // and pieces jittered from the tile's own seed, so no two tiles look copy-pasted. All of it stays inside its tile.
+  path(g, live, lv, link = 0) { pathTile(g, link, 'path'); },
+  gravel(g, live, lv, link = 0) { pathTile(g, link, 'gravel'); },
+  plank(g, live, lv, link = 0) { pathTile(g, link, 'plank'); },
+  brick(g, live, lv, link = 0) { pathTile(g, link, 'brick'); },
+  moss(g, live, lv, link = 0) { pathTile(g, link, 'moss'); },
   tree(g) {
     cyl(g, .12, .18, .7, 5, C.wood);
     ico(g, .52, C.leaf, 0, 1.05, 0).rotation.set(.4, .3, 0); ico(g, .34, C.leafL, .26, .82, .16); ico(g, .3, C.leafD, -.24, .8, -.1);
@@ -1271,6 +1275,32 @@ export function signModel(kind) {
 
 // live: for the farm itself, where the moving parts stay loose. g.userData.tick(T, st, g) moves them.
 // lv: the building's level (1 to 3, the farmhouse to 4). Each level has its own look.
+// One path tile: see BUILD.path.
+const PATH_LOOK = { path: { bed: '#cdb991', bits: ['#a9a6b0', '#b9b6bf', '#9c99a4', '#c2bfc6'] }, gravel: { bed: '#d9cfb9', bits: ['#a9a6b0', '#c7bfae', '#8f8c96', '#e2dccd'] },
+  plank: { bed: '#6e4c33', bits: ['#c08a5a', '#b07a4f', '#cf9a68', '#a8744a'] }, brick: { bed: '#bdb2a4', bits: ['#c9674f', '#b85a45', '#d47a5c', '#ad5541'] },
+  moss: { bed: '#5f9e4c', bits: ['#b4b1ba', '#a3a0aa', '#c6c3cb', '#9895a0'] } };
+function pathTile(g, link, kind) {
+  const nb = link & 15; let s = (link >> 4) * 9301 + 49297; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  const L = PATH_LOOK[kind], pick = () => L.bits[rnd() * L.bits.length | 0], e = d => nb >> d & 1 ? .5 : .42;
+  const x0 = -e(2), x1 = e(0), z0 = -e(3), z1 = e(1);
+  box(g, x1 - x0, .02, z1 - z0, L.bed, (x0 + x1) / 2, 0, (z0 + z1) / 2);
+  if (kind === 'path') for (const [x, z, r] of [[-.2, -.18, .17], [.2, -.2, .14], [-.2, .2, .14], [.19, .19, .17], [0, 0, .1]]) {
+    const k = .85 + rnd() * .3, m = cyl(g, r, r * 1.05, .05, 6, pick(), x + (rnd() - .5) * .06, .01, z + (rnd() - .5) * .06); m.scale.set(k, 1 + rnd() * .4, k); m.rotation.y = rnd() * 6;
+  }
+  else if (kind === 'gravel') for (let i = 0; i < 14; i++) { const m = ico(g, .035 + rnd() * .03, pick(), (rnd() - .5) * .76, .03, (rnd() - .5) * .76); m.scale.y = .6; }
+  else if (kind === 'plank') { const across = nb & 10 && !(nb & 5); // a walk running along z gets boards lying across it
+    for (let i = 0; i < 4; i++) { const a = -.36 + i * .24 + (rnd() - .5) * .02, len = (across ? x1 - x0 : z1 - z0) - .04 - rnd() * .06, mid = across ? (x0 + x1) / 2 : (z0 + z1) / 2, jig = (rnd() - .5) * .04, hy = .04 + rnd() * .015;
+      if (across) box(g, len, hy, .18, pick(), mid + jig, .01, a); else box(g, .18, hy, len, pick(), a, .01, mid + jig); } }
+  else if (kind === 'brick') for (let row = 0; row < 4; row++) for (let i = 0; i < 3; i++) {
+    const z = -.3 + row * .2, x = -.27 + i * .27 + (row % 2 ? .135 : 0); if (x > .38) continue;
+    box(g, .24, .04 + rnd() * .012, .16, pick(), x, .01, z);
+  }
+  else if (kind === 'moss') for (const [x, z, r] of [[-.17, -.15, .16], [.18, .02, .14], [-.08, .22, .12]]) {
+    const k = .85 + rnd() * .3, m = cyl(g, r, r, .06, 8, pick(), x + (rnd() - .5) * .08, .01, z + (rnd() - .5) * .08); m.scale.set(k, 1, k * (.85 + rnd() * .3));
+    ico(g, .03, '#86cc5a', x + .12, .03, z - .08 + rnd() * .1);
+  }
+}
+
 // link: for pieces that join their neighbours (fences), the number fenceLink gives.
 export function itemModel(type, live = false, raw = false, lv = 1, link = 0) {
   const g = new THREE.Group();

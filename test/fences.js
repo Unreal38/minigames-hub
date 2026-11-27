@@ -87,5 +87,13 @@ if (ring.at(-1).r !== 1 || ring.at(-1).x !== 8) fail('a lone turned fence should
   farm.items.push({ id: 2, type: 'barn', x: 0, y: 3, r: .5 }); // 2 x 3 turned: its 3 x 3 square's corners are free
   if (!fits(farm, 'rock', 0, 3, 0)) fail('a corner of a turned barn\'s square should be free'); }
 
+// path tiles (Kuba, 2026-11-27): same-kind neighbours join, every tile gets its own seed, a tile dropped half off slides in line
+{ const { pathLink, pathSnap } = await import('../public/games/farm/paths.js');
+  const it = [{ id: 1, type: 'path', x: 1, y: 1 }, { id: 2, type: 'path', x: 2, y: 1 }, { id: 3, type: 'gravel', x: 1, y: 2 }];
+  if ((pathLink(it, 'path', 1, 1, 0, 1) & 15) !== 1) fail('a path should join the one east of it only');
+  if ((pathLink(it, 'path', 1, 1, 1, 1) & 15) !== 8) fail('a turned path joins in its own directions');
+  if (pathLink(it, 'path', 1, 1, 0, 1) >> 4 === pathLink(it, 'path', 2, 1, 0, 2) >> 4) fail('neighbouring tiles should not look the same');
+  const [x, y] = pathSnap(it, 'path', 3, 1.5, 0, null, () => true); if (x !== 3 || y !== 1) fail(`path snap: ${x},${y}`); }
+
 if (bad) { console.error(`fences: ${bad} problem(s)`); process.exit(1); }
 console.log('fences ok');

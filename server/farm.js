@@ -15,6 +15,7 @@ import { flairOf } from '../public/cosmetics.js';
 import { lookOf, makeBaby, charmsFor, snapshot, shellOf, hatchHours, BREED_LV, CUDDLE_H, REST_H, PATTERNS, TALENTS } from '../public/games/farm/breed.js';
 import { dayOf } from './day.js';
 import { thinFences, thinArches } from '../public/games/farm/fence.js';
+import { PATHS } from '../public/games/farm/paths.js';
 import { ordersView, orderAction } from './farmorders.js';
 import { journalOf, chapterDone, rewardOf } from '../public/games/farm/journal.js';
 
@@ -402,7 +403,7 @@ export function brief(pid) {
     fights: countOf(f, 'flag') ? { arena: Math.max(0, DAILY.arena - used(f, 'arena')), of: DAILY.arena, xp: Math.max(0, XP_DAILY.arena - used(f, 'arena')), first: !(f.fights?.day === today() && f.fights.won) } : null };
 }
 // Decorations standing on a farm, by type: what its owner may show off on their profile isle. Fences and paths stay home.
-export const decorOf = pid => [...new Set((farms.get(pid)?.items || []).map(i => i.type))].filter(t => ITEMS[t]?.kind === 'd' && t !== 'fence' && t !== 'path');
+export const decorOf = pid => [...new Set((farms.get(pid)?.items || []).map(i => i.type))].filter(t => ITEMS[t]?.kind === 'd' && t !== 'fence' && !PATHS[t]);
 export const decorList = pid => decorOf(pid).map(t => ({ t, n: ITEMS[t].name })); // with names, for the wardrobe
 export const petOf = (pid, id) => (id && tiny(farms.get(pid)?.pets.find(x => x.id === id))) || null;
 function tradesView(pid, f) {
