@@ -388,7 +388,7 @@ function fitHat(hg, hH, hT, hat, hr) {
     if (L < .2) return { d: up, over: dd => dd.y > .25 && Math.abs(dd.z) < .14, sk: skullT(hr, up), near: br - .05 };
     const d = c.divideScalar(L), cos = Math.cos(Math.max(.3, Math.min(.5, Math.atan2(br, L)))), p = o.geometry.attributes.position; o.updateMatrix(); let near = Infinity;
     for (let i = 0; i < p.count; i++) near = Math.min(near, v.fromBufferAttribute(p, i).applyMatrix4(o.matrix).sub(HC).dot(d));
-    return { d, over: dd => dd.dot(d) > cos, sk: skullT(hr, d), near: Math.max(.1, near) };
+    return { d, cos, over: dd => dd.dot(d) > cos, sk: skullT(hr, d), near: Math.max(.1, near) };
   });
   // How much thicker than usual the hair is over the top of the head: the outer surface of the hair (the farthest
   // point in each of a set of directions) in the middle direction. Only hair that is big all over (an afro, curls)
@@ -401,7 +401,14 @@ function fitHat(hg, hH, hT, hat, hr) {
   }
   const x = [...far].sort((a, b) => a - b)[18];
   let s = 1;
-  for (const p of pieces) s = Math.max(s, 1 + Math.max(0, x - SHELL) * p.sk / p.near);
+  // On hair that is big all over (an afro, curls) a piece set off to one side (horns, a candle, the veil's flowers) also looks at
+  // how far the hair reaches round its own direction, which is often further than over the very top; otherwise it sank into
+  // a bulge of hair (Kuba, 2026-11-27).
+  if (x > SHELL + .03) for (const p of pieces) { if (p.cos == null) continue; let reach = 0;
+    for (const h of hair) for (let i = 0; i < h.pts.length; i += 3) { v.set(h.pts[i], h.pts[i + 1], h.pts[i + 2]).sub(HC); const L = v.length(); if (L < 1e-4) continue; d.copy(v).divideScalar(L);
+      if (d.dot(p.d) > p.cos) reach = Math.max(reach, L / skullT(hr, d)); }
+    p.reach = reach; }
+  for (const p of pieces) s = Math.max(s, 1 + Math.max(0, Math.max(x, p.reach || 0) - SHELL) * p.sk / p.near);
   s = Math.max(1, Math.min(s, 1.9));
   // a headband on big hair: the cups stay on the ears and only the band is stretched, into a taller arch that clears the hair
   const bandM = HAT_BAND.includes(hat) && hT.children.find(o => o.isMesh && o.geometry.parameters?.arc);
@@ -993,9 +1000,9 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
   const fz = (x, y, o = 0) => Math.sqrt(Math.max(0, hr(y) * hr(y) - x * x)) + o;
   for (const s of [-1, 1]) sph(hg, .085, skin, s * hr(.4) * .97, .4, -.02).scale.set(.6, 1, .8);
   // hair: a shell over the skull plus chunky clumps and pointed bangs
-  // An afro is too big to tuck under a covering hat (or inside a flower crown), so it shows as curls there.
+  // An afro is too big to tuck under a covering hat (or inside a flower crown, veil or sweatband), so it shows as curls there.
   // Hair goes in hH and the hat in hT, so fitHat() can squash the hair under a hat or lift a small topper onto big hair.
-  const hat = a.hat, hatKey = mascot ? 'mascot' : hoodC ? 'hood' : hat, hs = a.hair === 13 && (HAT_BRIM[hatKey] != null || hat === 23 || hat === 48) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
+  const hat = a.hat, hatKey = mascot ? 'mascot' : hoodC ? 'hood' : hat, hs = a.hair === 13 && (HAT_BRIM[hatKey] != null || hat === 23 || hat === 47 || hat === 48) ? 8 : a.hair, A = 1.3, hH = new THREE.Group(), hT = new THREE.Group(); hg.add(hH, hT);
   // rings get closer together towards the crown, where the skull curves fastest, so the shell never dips below it
   const shellPts = (ya, yb, off) => { const p = []; for (let j = 0; j <= 14; j++) { const y = ya + (yb - ya) * Math.sin(j / 14 * PI / 2); p.push([hr(Math.min(y, 1)) + off, y]); } if (yb >= 1) p.push([0, 1 + off]); return p; };
   // one sculpted piece per style (hair3d.js), in three tones of the hair colour
@@ -1124,9 +1131,10 @@ export function avatar3d(color, avIn, { pose = 'sit', hand = true } = {}) { // h
     for (let i = 0; i <= 13; i++) { const k = i / 13, an = 3.5 - k * 3.9, r = .15 - k * .105, o = sph(hT, r, '#2f86cc', -.06 + Math.cos(an) * .23, 1.2 + Math.sin(an) * .23, -.02); o.scale.z = 1.9 - k * .5;
       if (i > 2 && i < 12) sph(hT, r * .7, '#8fd0f5', -.06 + Math.cos(an) * (.23 - r * .5), 1.2 + Math.sin(an) * (.23 - r * .5), -.02).scale.z = 2.1 - k * .5; }
     for (const [fx, fy2, fz2, r] of [[.19, 1.1, .07, .05], [.2, 1.08, -.03, .06], [.19, 1.1, -.12, .05], [.36, 1.0, .08, .05], [.38, .99, -.1, .045], [-.36, 1.02, 0, .045]]) sph(hT, r, '#ffffff', fx, fy2, fz2); }
-  if (hat === 45) { for (const [cx, cy, cz, r] of [[-.2, 1.42, -.02, .17], [0, 1.5, -.02, .21], [.21, 1.43, -.02, .16], [.02, 1.4, .1, .15], [-.04, 1.4, -.14, .15]]) sph(hT, r, cz > 0 ? '#aab2c2' : '#8f98ab', cx, cy, cz).scale.y = .85;
-    for (const [bx, by, rz, w] of [[.04, 1.27, .5, .16], [-.02, 1.19, -.6, .14], [.03, 1.1, .5, .13]]) box(hT, .05, w, .035, '#ffd23f', bx, by, .04).rotation.z = rz;
-    for (const [dx, dy] of [[-.24, 1.2], [.26, 1.22]]) sph(hT, .035, '#7fc8ee', dx, dy, 0).scale.y = 1.6; }
+  if (hat === 45) { // storm cloud: sits low over the head (Kuba, 2026-11-27: it used to float with a gap), a short bolt and two drops under it
+    const D = .13; for (const [cx, cy, cz, r] of [[-.2, 1.42, -.02, .17], [0, 1.5, -.02, .21], [.21, 1.43, -.02, .16], [.02, 1.4, .1, .15], [-.04, 1.4, -.14, .15]]) sph(hT, r, cz > 0 ? '#aab2c2' : '#8f98ab', cx, cy - D, cz).scale.y = .85;
+    for (const [bx, by, rz, w] of [[.04, 1.27, .5, .16], [-.02, 1.19, -.6, .14]]) box(hT, .05, w, .035, '#ffd23f', bx, by - D + .02, .2).rotation.z = rz;
+    for (const [dx, dy] of [[-.3, 1.2], [.32, 1.22]]) sph(hT, .035, '#7fc8ee', dx, dy - D, 0).scale.y = 1.6; }
   if (hat === 13) { cone(hT, .38, .8, '#4b3a6b', 0, 1.36, -.02); cyl(hT, .74, .78, .06, '#3d2f58', 0, .905, -.02); cyl(hT, .345, .375, .07, gold, 0, .98, -.02); }
   // a helmet or hood: a shell over the top and round the back and sides of the head, open at the face
   const wrapShell = (c, off = .1, hf = .76, hb = .1) => { part(hT, shellPts(hf, 1, off), c, 0, A); part(hT, shellPts(hb, 1, off), c, PI, PI - A); };
