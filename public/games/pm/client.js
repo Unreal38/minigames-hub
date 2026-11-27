@@ -6,7 +6,7 @@ import { L, ord } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { catName, clean, starts, MAXLEN } from './rules.js';
 import { uiz } from '../../uiz.js';
 
@@ -132,8 +132,9 @@ export function mount(app, ctx) {
     el.hidden = !S.seats.length;
     setHtml(el, order.map(i => {
       const p = S.seats[i];
-      return `<div class="pm-sc${i === S.me ? ' mine' : ''}" role="listitem"><i class="dot" style="background:${esc(p.color)}"></i><b class="who">${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b>${pend && pend[i] > 0 ? `<em>+${pend[i]}</em>` : ''}<span class="tot">${sum(i)}</span></div>`;
+      return `<div class="${pbRowCls(p.fl)} pm-sc${i === S.me ? ' mine' : ''}" role="listitem"><i class="dot" style="background:${esc(p.color)}"></i><b class="who">${i === S.me ? L('You', 'Ty') : nameHtml(p.name, p.fl)}</b>${pend && pend[i] > 0 ? `<em>+${pend[i]}</em>` : ''}<span class="tot">${sum(i)}</span>${rowBg(p.fl)}</div>`;
     }).join(''));
+    pbRows(el);
   }
 
   // ----- the head of the panel: the letter, what is going on and the clock -----
@@ -331,12 +332,12 @@ export function mount(app, ctx) {
       <ol class="score">${R.order.map((i, k) => {
         const p = S.seats[i], best = R.hist.reduce((b, h) => (h.pts[i] > (b?.pts[i] ?? -1) ? h : b), null);
         const note = best && best.pts[i] > 0 ? L(`Best letter: ${best.l} +${best.pts[i]}`, `Najlepsza litera: ${best.l} +${best.pts[i]}`) : L('No points this time', 'Tym razem bez punktów');
-        return `<li class="${R.place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${R.place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 80}ms"><i class="pos">${R.place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${note}</span></div>
-          <strong><span>${R.tot[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${R.tot[i]}</span><small>${L('pts', 'pkt')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm)}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

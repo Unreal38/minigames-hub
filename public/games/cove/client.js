@@ -6,7 +6,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { boardName, cellsOf, fits, randomFleet, SEA } from './rules.js';
 import { uiz } from '../../uiz.js';
 
@@ -223,12 +223,12 @@ export function mount(app, ctx) {
       <p>${sub}</p>
       <ol class="score">${order.map((i, k) => {
         const p = S.seats[i], sunk = S.lens.length - R.left[1 - i];
-        return `<li class="${k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${k === 0 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${k + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${p.st.hits} of ${total} squares hit · ${cnt(p.st.shots, 'shot', 'shots')}`, `trafione pola: ${p.st.hits} z ${total} · strzały: ${p.st.shots}`)}</span></div>
-          <strong><span>${sunk}</span><small>${L(sunk === 1 ? 'boat sunk' : 'boats sunk', 'zatopione łódki')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${sunk}</span><small>${L(sunk === 1 ? 'boat sunk' : 'boats sunk', 'zatopione łódki')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Rematch', 'Rewanż'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

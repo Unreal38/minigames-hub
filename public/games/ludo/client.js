@@ -6,7 +6,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { HOME, LAST, ringIndex, safeIndex } from './board.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const I = {
@@ -132,8 +132,9 @@ export function mount(app, ctx) {
     setHtml($('lu-list'), S.seats.map((p, i) => {
       const now = i === S.turn && S.ph === 'play', home = p.toks.filter(t => t === HOME).length, yard = p.toks.filter(t => t < 0).length;
       const dots = p.toks.map(t => `<u class="${t === HOME ? 'h' : t < 0 ? 'y' : 'b'}" style="--c:${esc(p.col)}"></u>`).sort().join('');
-      return `<li class="${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${L(`${home} home, ${yard} in the yard`, `w domku: ${home}, w bazie: ${yard}`)}">${avatarHtml(p.color, p.av, 30)}<i class="sw" style="background:${esc(p.col)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="dots">${dots}</span></li>`;
+      return `<li class="${pbRowCls(p.fl)} ${now ? 'now' : ''}${i === S.me ? ' me' : ''}" title="${L(`${home} home, ${yard} in the yard`, `w domku: ${home}, w bazie: ${yard}`)}">${avatarHtml(p.color, p.av, 30, frameCls(p.fl))}<i class="sw" style="background:${esc(p.col)}"></i><b>${nameHtml(p.name, p.fl)}</b><span class="dots">${dots}</span>${rowBg(p.fl)}</li>`;
     }).join(''));
+    pbRows($('lu-list'));
   }
 
   function renderRoll() {
@@ -222,12 +223,12 @@ export function mount(app, ctx) {
       <p>${myPlace ? (myPlace === 1 ? L('First one home. ', 'Pierwsze miejsce. ') : L(`You came ${ORD(myPlace)}. `, `Twoje miejsce: ${myPlace}. `)) : ''}${L('That took', 'Gra trwała')} ${cnt(S.res.rounds, 'round', 'rounds', 'rundę', 'rundy', 'rund')}.</p>
       <ol class="score">${S.res.order.map((i, n) => {
         const p = S.seats[i], st = p.st, home = p.toks.filter(t => t === HOME).length;
-        return `<li class="${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${n === 0 ? 'won' : ''}" style="animation-delay:${n * 90}ms"><i class="pos">${n + 1}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${L(`${st.caps} capture${st.caps === 1 ? '' : 's'} · sent back ${st.lost} time${st.lost === 1 ? '' : 's'}`, `${cnt(st.caps, 'capture', 'captures', 'zbicie', 'zbicia', 'zbić')} · powroty do bazy: ${st.lost}`)} · ${cnt(st.sixes, 'six', 'sixes', 'szóstka', 'szóstki', 'szóstek')}</span></div>
-          <strong>${home}/${p.toks.length}<small>${L('home', 'w domku')}</small></strong>${paidHtml(Rm, i)}</li>`;
+          <strong>${home}/${p.toks.length}<small>${L('home', 'w domku')}</small></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

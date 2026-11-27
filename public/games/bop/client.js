@@ -8,7 +8,7 @@ import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
 import { LIVES, TOTAL, SLEEP, GOLD, HEART, schedule, newPlayer, resolve } from './rules.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { uiz } from '../../uiz.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -264,10 +264,10 @@ export function mount(app, ctx) {
       <h2>${I.crown}${solo ? L(`${R.sc[0]} points!`, `Punkty: ${R.sc[0]}!`) : w === S.me ? L('You win!', 'Wygrana!') : L(`${nameOf(w)} wins!`, `Wygrywa ${nameOf(w)}!`)}</h2>
       <p>${sub}</p>
       <ol class="bb-podium">${R.order.map((i, n) => { const p = info[i];
-        return `<li class="${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong title="${L('Score', 'Wynik')}">${cnt(R.sc[i], 'point', 'points', 'punkt', 'punkty', 'punktów')}</strong><small>${cnt(R.bops[i], 'bop', 'bops', 'pacnięcie', 'pacnięcia', 'pacnięć')}<span class="best">${L(` · best run ${R.best[i]}`, ` · najdłuższa seria ${R.best[i]}`)}</span>${R.time[i] ? ' · ' + clock(R.time[i]) : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${i === S.me ? 'bb-me' : ''}${n === 0 ? ' won' : ''}" style="animation-delay:${n * 90}ms"><em>${n + 1}</em>${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong title="${L('Score', 'Wynik')}">${cnt(R.sc[i], 'point', 'points', 'punkt', 'punkty', 'punktów')}</strong><small>${cnt(R.bops[i], 'bop', 'bops', 'pacnięcie', 'pacnięcia', 'pacnięć')}<span class="best">${L(` · best run ${R.best[i]}`, ` · najdłuższa seria ${R.best[i]}`)}</span>${R.time[i] ? ' · ' + clock(R.time[i]) : ''}</small>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
     if (w === S.me) confetti();
   }
   let votes = 0;

@@ -6,7 +6,7 @@ import { L } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { petImg, petPics } from '../../petpic.js';
 import { twIcon, petName, warmAll } from './cards.js';
 import { uiz } from '../../uiz.js';
@@ -214,14 +214,14 @@ export function mount(app, ctx) {
       ${sub ? `<p>${sub}</p>` : ''}
       <ol class="score">${S.res.order.map((i, k) => {
         const p = S.seats[i], st = p.st, list = won(i);
-        return `<li class="${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
+        return `<li class="${pbRowCls(p.fl)} ${place[i] === 1 ? 'won' : ''}" style="animation-delay:${k * 90}ms"><i class="pos">${place[i]}</i>${avatarHtml(p.color, p.av, 44, frameCls(p.fl))}
           <div class="who"><b>${nameHtml(p.name, p.fl)}${i === S.me ? L(' (you)', ' (ty)') : ''}</b><span>${pairsWord(st.pairs)}${st.best > 1 ? L(` · best streak ${st.best}`, ` · najlepsza seria ${st.best}`) : ''}</span>
           ${list.length ? `<span class="pr-got">${list.slice(0, 10).map(f => `<span class="pr-pet${f[1] === 'gold' ? ' g' : ''}">${petImg({ sp: f[0], lv: 14 }, 30, 'pr-pi')}</span>`).join('')}${list.length > 10 ? `<small>+${list.length - 10}</small>` : ''}</span>` : ''}</div>
-          <strong><span>${pts(p.score)}</span></strong>${paidHtml(Rm, i)}</li>`;
+          <strong><span>${pts(p.score)}</span></strong>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`;
       }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Shuffle again', 'Potasuj jeszcze raz'))}</div></div>`;
     petPics(el);
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
   }
   let votes = 0;
   function paintAgain() {

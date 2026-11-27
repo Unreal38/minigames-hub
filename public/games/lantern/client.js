@@ -7,7 +7,7 @@ import { L, cnt } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
 import { reactHtml } from '../../react.js';
-import { nameHtml, titleHtml, frameCls } from '../../cosmetics.js';
+import { nameHtml, titleHtml, frameCls, pbRowCls, pbRows, rowBg } from '../../cosmetics.js';
 import { myBurst } from '../../winfx.js';
 import { uiz } from '../../uiz.js';
 import { SPECIES } from '../farm/data.js';
@@ -402,10 +402,10 @@ export function mount(app, ctx) {
     const order = info.map((_, i) => i).sort((a, b) => (S.role[b] === R.side) - (S.role[a] === R.side) || (R.out[a] > 0) - (R.out[b] > 0));
     el.innerHTML = `<div class="sheet"><h2>${I.lantern} ${R.side ? L(`${SIDE[R.side]()} win!`, `Wygrywają ${SIDE[R.side]()}!`) : L('Game over', 'Koniec gry')}</h2><p>${WHY[R.why]?.() || ''}</p>
       <ol class="ln-podium">${order.map((i, n) => { const p = info[i], w = S.role[i] === R.side;
-        return `<li class="${i === me ? 'ln-me' : ''}${w ? ' won' : ''}" style="animation-delay:${n * 80}ms">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === me ? L(' (you)', ' (ty)') : ''}</b>
-          <strong class="ln-r ${S.role[i]}">${ROLE[S.role[i]]()}</strong><small>${R.out[i] === 1 ? L('lulled to sleep', 'uśpiony') : R.out[i] === 2 ? L('left on the ferry', 'odpłynął promem') : R.out[i] === 3 ? L('left the table', 'odszedł od stołu') : L('awake to the end', 'do końca na nogach')}${S.role[i] === 'isle' ? ` · ${cnt(R.chores[i], 'chore', 'chores', 'praca', 'prace', 'prac')}` : ''}</small>${paidHtml(Rm, i)}</li>`; }).join('')}</ol>
+        return `<li class="${pbRowCls(p.fl)} ${i === me ? 'ln-me' : ''}${w ? ' won' : ''}" style="animation-delay:${n * 80}ms">${avatarHtml(p.color, p.av, 34, frameCls(p.fl))}<b>${nameHtml(p.name, p.fl)}${i === me ? L(' (you)', ' (ty)') : ''}</b>
+          <strong class="ln-r ${S.role[i]}">${ROLE[S.role[i]]()}</strong><small>${R.out[i] === 1 ? L('lulled to sleep', 'uśpiony') : R.out[i] === 2 ? L('left on the ferry', 'odpłynął promem') : R.out[i] === 3 ? L('left the table', 'odszedł od stołu') : L('awake to the end', 'do końca na nogach')}${S.role[i] === 'isle' ? ` · ${cnt(R.chores[i], 'chore', 'chores', 'praca', 'prace', 'prac')}` : ''}</small>${paidHtml(Rm, i)}${rowBg(p.fl)}</li>`; }).join('')}</ol>
       <div class="againbox">${againHtml(ctx, Rm, L('Play again', 'Zagraj jeszcze raz'))}</div></div>`;
-    el.hidden = false; votes = (Rm?.again || []).length;
+    pbRows(el); el.hidden = false; votes = (Rm?.again || []).length;
     if (won) { if (!myBurst()) scene?.shower('me'); }
   }
   function paintAgain() {

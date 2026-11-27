@@ -218,3 +218,41 @@ export const cardBgCls = (fl, light) => { const i = idx(fl, 'pb'); return i ? ` 
 // Card art redrawn by a re-render would restart its animation; this starts new pictures in step with the page clock.
 export const pbSync = el => { if (!el) return; const t = `${(-performance.now() / 1000).toFixed(2)}s`; for (const b of el.querySelectorAll('.pbg:not([style])')) b.style.setProperty('--pbt', t); };
 export const frameCls = fl => { const i = idx(fl, 'fr'); return i ? `frm fr${i}` : ''; };
+
+// Score rows and results rows wear the player's card too: put pbRowCls(fl) on the row, cardBg(fl) inside it as the first
+// child, and call pbRows(list) after each render. The wash takes the row's own colour as drawn (see washRow), so any
+// game's rows stay readable in day and night without per-game CSS; the light/dark switch repaints them.
+// Rows use a tag of their own so game CSS written for <i>/<span> in a row never touches the art.
+export const rowBg = fl => { const i = idx(fl, 'pb'); return i ? `<pb-art class="pbg pb${i}" aria-hidden="true"></pb-art>` : ''; };
+export const pbRowCls = fl => { const c = cardBgCls(fl, 1); return c ? `${c} pbrow` : ''; };
+const rgbaOf = s => {
+  const m = /^(rgba?|color)\(\s*(?:srgb\s+)?([^)]*)\)/.exec(s || ''); if (!m) return null;
+  const v = m[2].split(/[\s,/]+/).filter(Boolean).map(parseFloat); if (v.length < 3 || v.some(Number.isNaN)) return null;
+  const k = m[1] === 'color' ? 255 : 1;
+  return [v[0] * k, v[1] * k, v[2] * k, v.length > 3 ? v[3] : 1];
+};
+// The colour a row shows: its background over its parents' backgrounds, up to the first solid one.
+function shownColor(el) {
+  const layers = [];
+  for (let e = el; e && e.nodeType === 1 && layers.length < 12; e = e.parentElement) {
+    const c = rgbaOf(getComputedStyle(e).backgroundColor);
+    if (c && c[3] > 0.01) { layers.push(c); if (c[3] > 0.97) break; }
+  }
+  if (!layers.length) return '';
+  let [r, g, b, a] = layers.pop();
+  while (layers.length) { const [r2, g2, b2, a2] = layers.pop(); r = r2 * a2 + r * (1 - a2); g = g2 * a2 + g * (1 - a2); b = b2 * a2 + b * (1 - a2); a = a2 + a * (1 - a2); }
+  return `rgb(${r | 0} ${g | 0} ${b | 0} / ${Math.max(a, 0.9).toFixed(2)})`;
+}
+const washRow = el => { const c = shownColor(el); if (c && el.style.getPropertyValue('--pbs') !== c) el.style.setProperty('--pbs', c); };
+export function pbRows(root) {
+  if (!root || typeof getComputedStyle !== 'function') return;
+  pbSync(root);
+  const rows = root.matches?.('.pbrow') ? [root] : root.querySelectorAll('.pbrow');
+  for (const r of rows) washRow(r);
+}
+if (typeof document !== 'undefined' && typeof MutationObserver === 'function') {
+  let t = 0;
+  const again = () => { clearTimeout(t); t = setTimeout(() => pbRows(document.body), 350); };
+  const watch = () => new MutationObserver(again).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  if (document.body) watch(); else addEventListener('DOMContentLoaded', watch);
+}
