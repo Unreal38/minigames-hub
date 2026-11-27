@@ -13,7 +13,7 @@ import { frameLoop, autoResolution, AA } from '../../frames.js';
 import { bake, avatar3d, animateAvatar, walkAvatar, disposeAvatar } from '../../avatar3d.js';
 import { ITEMS, STARTERS, canTilt, footprint, fits, blockedTiles, stepOf, formOf, lvOf, museumFill } from './data.js';
 import { pinned } from './journal.js';
-import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW } from './models.js';
+import { itemModel, fenceLink, LINKS, ROUTES, hammockSway, balloonModel, disposeModel, signModel, toonMat, toonify, WINDOW, HEARTH, flueTop } from './models.js';
 import { fenceSnap, isDiag } from './fence.js';
 import { petModel, eggModel, wiggle } from './pets3d.js';
 import { createBattleFx } from './battlefx.js';
@@ -249,6 +249,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
   function moveItems(dt, T) {
     for (const e of items.values()) {
       if (e.burst > 0) e.burst = Math.max(0, e.burst - dt); e.st.burst = e.burst;
+      if (e.st.blow) e.st.blow = Math.max(0, e.st.blow - dt * 1.4); // the helper's puff fades unless it keeps blowing
       e.m.userData.tick?.(T, e.st, e.m);
       if (e.pop > 0) { e.pop = Math.max(0, e.pop - dt * 2.4); const u = 1 - e.pop, s = 1 + Math.sin(u * Math.PI * 2.2) * .22 * e.pop; e.g.scale.set(2 - s, s, 2 - s); if (!e.pop) { e.g.scale.setScalar(1); renderer.shadowMap.needsUpdate = true; } } // shadows are drawn once: redo them now it has settled
       if (e.sign) { const s = e.sign.g; s.position.y = e.top + .55 + Math.abs(Math.sin(T * 3)) * .16; s.rotation.y = cam.az - e.g.rotation.y; s.scale.setScalar(1 + Math.sin(T * 6) * .06); }
@@ -501,7 +502,7 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       if (wi) { // the Garden helper goes from plot to plot; everyone else stays at the one building
         const all = wk === 'garden' ? farm.items.filter(i => i.type === 'garden') : [wi], at = all[(p.wi || 0) % all.length], [w, h] = footprint(wk, at.r), bx = wx(at.x, w), bz = wz(at.y, h);
         if (p.train?.job !== wk) p.wt = 0;
-        p.train = { ...standBy(at, w, h), k: 2, job: wk, bx, bz, n: all.length }; p.path = []; continue;
+        p.train = { ...(hearthBy(at, w, h, wk) || standBy(at, w, h)), k: 2, job: wk, bx, bz, n: all.length, id: at.id }; p.path = []; continue;
       }
       p.train = null;
       // at the Nest: the pair cuddle up inside it; once the egg is there, one of them keeps it warm
@@ -577,6 +578,13 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
     const spots = [[mx, at.y + h, { x: bx, z: bz + h / 2 + .35, face: Math.PI }], [at.x + w, my, { x: bx + w / 2 + .35, z: bz, face: -Math.PI / 2 }], [at.x - 1, my, { x: bx - w / 2 - .35, z: bz, face: Math.PI / 2 }], [mx, at.y - 1, { x: bx, z: bz - h / 2 - .35, face: 0 }]];
     for (const s of spots) { s[0] = Math.floor(s[0]); s[1] = Math.floor(s[1]); } // buildings may sit on half tiles: check the whole tile the spot is on
     const ok = spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N && !walkGrid[y * N + x]) || spots.find(([x, y]) => x >= 0 && y >= 0 && x < N && y < N) || spots[0]; return ok[2]; };
+  // A building with a hearth (the Kitchen): the helper stands on the flat stone right in front of the fire's mouth and faces it,
+  // turned with the building. If something blocks that tile it falls back to the usual spot (and fans from there).
+  const hearthBy = (at, w, h, type) => { const hp = HEARTH[type]; if (!hp) return null;
+    const a = -at.r * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), bx = wx(at.x, w), bz = wz(at.y, h), to = (lx, lz) => [bx + lx * c + lz * sn, bz - lx * sn + lz * c];
+    const [x, z] = to(hp[0], hp[1] + .34), [mx, mz] = to(hp[0], hp[1] - .08), tx = Math.floor(x + N / 2), ty = Math.floor(z + N / 2);
+    if (tx < 0 || ty < 0 || tx >= N || ty >= N || walkGrid[ty * N + tx]) return null;
+    return { x, z, face: Math.PI + a, mx, mz }; };
   function workPose(p, t, dt, o) {
     const u = (p.wt = (p.wt || 0) + dt), R = Math.random, every = (key, sec) => (p[key] = (p[key] ?? R() * sec) - dt) <= 0 && ((p[key] = sec), true);
     const once = (key, c, at) => { if (c < at) p[key] = false; else if (!p[key]) return (p[key] = true); return false; };
@@ -606,7 +614,17 @@ export function createScene(canvas, { onPick, onGhost, onGhostAt }) {
       else if (c < 2.25) { const j = (c - 1.8) / .45; o.up = Math.sin(j * Math.PI) * .26; o.pitch = -.2 * Math.sin(j * Math.PI); }
       if (once('w2', c, 1.8)) { const N2 = 9, tx = t.bx, ty = 1.75, tz = t.bz, x0 = p.x, z0 = p.z; for (let i = 0; i < N2; i++) { const f = (i + 1) / N2, jx = (i % 2 ? .14 : -.14) * (1 - f), d0 = i * .035; bit(BIT.star, BMW.spark, .5 + d0, (m, v, tt) => { const on = tt > d0; m.position.set(x0 + (tx - x0) * f + jx, .5 + (ty - .5) * f, z0 + (tz - z0) * f); m.rotation.set(0, cam.az, tt * 8 + i); m.scale.setScalar(on ? .11 * (1 - v) * (1 + Math.sin(tt * 40) * .3) : 0); }); }
         for (let i = 0; i < 7; i++) { const a = R() * 6.283, v = .5 + R() * .6; bit(BIT.star, BMW.spark, .55, (m, w, tt) => { const q = Math.max(0, tt - .3); m.position.set(tx + Math.cos(a) * q * v, ty + q * .8 - q * q * 3, tz + Math.sin(a) * q * v); m.rotation.set(0, cam.az, tt * 9); m.scale.setScalar(tt > .3 ? .06 * (1 - w) : 0); }); } }
-    } else if (t.job === 'kitchen') { // fans the oven: embers and a little smoke rise, and every so often the fire whooshes
+    } else if (t.job === 'kitchen' && t.mx !== undefined) { // at the hearth: a deep breath in, then a long puff into the fire's mouth; the fire roars up and sparks fly up the flue
+      const c = u % 3.6, e = items.get(t.id), sx = Math.sin(t.face), sz = Math.cos(t.face), hy = (p.topY || .5) * .55;
+      if (c < 1.1) { const q = Math.sin(c / 1.1 * Math.PI / 2); o.pitch = -.22 * q; o.up = .05 * q; o.sit = 0; } // breathes in, leaning back and swelling up a little
+      else if (c < 2.1) { const q = (c - 1.1) / 1; o.pitch = .3 - Math.sin(q * Math.PI) * .04; o.sit = .06; o.tilt = Math.sin(q * 30) * .02; // and blows
+        if (every('w1', .05)) { const x0 = p.x + sx * .22, z0 = p.z + sz * .22, jx = (R() - .5) * .08, k = .04 + R() * .025; bit(BIT.ball, BM2.steam, .32, (m, v) => { m.position.set(x0 + (t.mx - x0) * v + jx * v, hy + (.14 - hy) * v, z0 + (t.mz - z0) * v); m.scale.setScalar(k * (1 + v * 1.4) * (1 - v * v)); }); }
+        if (e) e.st.blow = Math.max(e.st.blow || 0, Math.min(1, q * 2.5));
+        if (every('w2', .07)) { const a0 = R() * 6.283, v0 = .25 + R() * .35, mat = R() < .5 ? BMW.ember : BMW.ember2, k = .03 + R() * .02; bit(BIT.ball, mat, .8, (m, v, tt) => { m.position.set(t.mx - sx * tt * .35 + Math.cos(a0) * tt * v0 * .5, .18 + tt * 1.1 - tt * tt * .6, t.mz - sz * tt * .35 + Math.sin(a0) * tt * v0 * .5); m.scale.setScalar(k * (1 - v)); }); }
+      } else { const q = c - 2.1; o.pitch = .3 * Math.max(0, 1 - q * 3) + Math.sin(q * 3) * .03; o.up = Math.abs(Math.sin(q * 6)) * .03 * Math.max(0, 1 - q); } // then watches the fire, pleased
+      if (once('w3', c, 2.1) && e) { const ft = e.g.localToWorld(new THREE.Vector3(...flueTop(e.lv))), top = ft.y; // a puff of sparks out of the flue
+        for (let i = 0; i < 7; i++) { const a = R() * 6.283, v = .2 + R() * .3; bit(BIT.star, BMW.spark, .9, (m, w, tt) => { m.position.set(ft.x + Math.cos(a) * tt * v, top + tt * 1.2 - tt * tt * .5, ft.z + Math.sin(a) * tt * v); m.rotation.set(0, cam.az, tt * 6); m.scale.setScalar(.06 * (1 - w)); }); } }
+    } else if (t.job === 'kitchen') { // no room at the hearth: fans the oven from beside the building, embers and a little smoke rise, and every so often the fire whooshes
       const c = u % 3.2, whoosh = c > 2.7 ? Math.sin((c - 2.7) / .5 * Math.PI) : 0;
       o.pitch = .12 + Math.sin(u * 8) * .1 * (1 - whoosh) - whoosh * .3; o.tilt = Math.sin(u * 4) * .05; o.up = whoosh * .14;
       const ember = fast => { const sx = Math.abs(Math.cos(t.face)), x0 = p.x + Math.sin(t.face) * .42 + (R() - .5) * .5 * sx, z0 = p.z + Math.cos(t.face) * .42 + (R() - .5) * .5 * (1 - sx), ph = R() * 6, h = fast ? 1.5 : .95, k = .045 + R() * .025, mat = R() < .5 ? BMW.ember : BMW.ember2; bit(BIT.ball, mat, fast ? .7 : 1.15, (m, v, tt) => { m.position.set(x0 + Math.sin(tt * 6 + ph) * .07, .25 + v * h, z0 + Math.cos(tt * 5 + ph) * .05); m.scale.setScalar(k * (1 - v) * (1 + Math.sin(tt * 25 + ph) * .25)); }); };
