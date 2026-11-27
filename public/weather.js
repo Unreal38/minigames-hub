@@ -8,6 +8,7 @@ export const WEATHER = {
   cloudy:  { name: L('Cloudy', 'Pochmurno'), bonus: L('Cool air: battles give 25% more experience.', 'Chłodne powietrze: bitwy dają 25% więcej doświadczenia.'), short: L('+25% battle XP', '+25% XP z bitew') },
   rain:    { name: L('Rain', 'Deszcz'), bonus: L('Each garden plot you pick gives one extra berry.', 'Każda zebrana grządka daje jedną jagodę więcej.'), short: L('+1 berry per plot', '+1 jagoda z grządki') },
   wind:    { name: L('Windy', 'Wietrznie'), bonus: L('A tailwind: parties that set off now are back 20% sooner.', 'Wiatr w plecy: drużyny, które wyruszą teraz, wrócą 20% szybciej.'), short: L('Trips back 20% sooner', 'Wyprawy wracają 20% szybciej') },
+  aurora:  { name: L('Aurora', 'Zorza'), bonus: L('Magic in the air: eggs laid at the Nest now are twice as likely to hatch in another element.', 'Magia w powietrzu: jajka złożone teraz w Gnieździe dwa razy częściej wyklują się z innym żywiołem.'), short: L('2× element variants', '2× inny żywioł') },
   rainbow: { name: L('Rainbow', 'Tęcza'), bonus: L('Lucky: parties that set off now are far more likely to meet a wild pet.', 'Szczęście: drużyny, które wyruszą teraz, o wiele łatwiej spotkają dzikiego zwierzaka.'), short: L('More wild pets on trips', 'Więcej dzikich zwierzaków') },
 };
 export const WEATHER_MS = 40 * 60_000;
@@ -15,8 +16,23 @@ const wHash = n => { let x = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); x ^= x >>> 1
 const wRaw = n => { const r = wHash(n); return r < .42 ? 'sunny' : r < .62 ? 'cloudy' : r < .8 ? 'rain' : 'wind'; };
 /** The weather at a moment: { kind, left (ms until it changes), name, bonus }. */
 export function weatherAt(ms = Date.now()) {
-  const n = Math.floor(ms / WEATHER_MS), raw = wRaw(n), kind = raw !== 'rain' && wRaw(n - 1) === 'rain' ? 'rainbow' : raw;
+  const n = Math.floor(ms / WEATHER_MS), raw = wRaw(n); let kind = raw !== 'rain' && wRaw(n - 1) === 'rain' ? 'rainbow' : raw;
+  if ((kind === 'sunny' || kind === 'cloudy') && auroraSpell(n)) kind = 'aurora';
   return { kind, left: (n + 1) * WEATHER_MS - ms, ...WEATHER[kind] };
+}
+// Aurora (Kuba, 2026-11-27): in winter (the winter drop's dates, 15 November to 28 February) a clear or cloudy spell in the
+// dark of night may light up with an aurora instead, about one spell in four. Worked out from the clock alone like the
+// rest: the date in Poland (always UTC+1 in winter) and central Poland's sun in UTC, so the server and every device agree.
+const AURORA = .25;
+export function auroraSpell(n) {
+  const mid = (n + .5) * WEATHER_MS, pl = new Date(mid + 3600e3), md = (pl.getUTCMonth() + 1) * 100 + pl.getUTCDate();
+  if (md < 1115 && md > 228) return false;
+  return darkAt(mid) && wHash(n * 31 + 7) < AURORA;
+}
+/** Is it properly dark in central Poland at this moment: more than 70 minutes after sunset, or 70 before sunrise? */
+export function darkAt(ms) {
+  const d = new Date(ms), day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), { mid, ha } = sunUTC(day0), m = (ms - day0) / 6e4;
+  return m < mid - ha * 4 - 70 || m > mid + ha * 4 + 70;
 }
 /** The next spell: { kind, name } (it starts when the current one's `left` runs out). */
 export const weatherNext = (ms = Date.now()) => { const w = weatherAt(ms); return weatherAt(ms + w.left + 1); };
@@ -28,6 +44,7 @@ export const WX_ICON = {
   rain: '<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1A4.5 4.5 0 0 1 17 14z" fill="#cfe0f0" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/><path d="M8 17l-1 4M12 17l-1 4M16 17l-1 4" stroke="#4f9df0" stroke-width="2" stroke-linecap="round"/>',
   wind: '<path d="M3 9h10a3 3 0 1 0-3-3M3 14h15a3 3 0 1 1-3 3M3 19h6" fill="none" stroke="#5a3a2e" stroke-width="2" stroke-linecap="round"/>',
   rainbow: '<path d="M3 18a9 9 0 0 1 18 0" fill="none" stroke="#e8615a" stroke-width="2.4"/><path d="M6 18a6 6 0 0 1 12 0" fill="none" stroke="#ffc94d" stroke-width="2.4"/><path d="M9 18a3 3 0 0 1 6 0" fill="none" stroke="#6fb7e8" stroke-width="2.4"/>',
+  aurora: '<path d="M2 9c3-4 6 2 10-2s7 1 10-3" fill="none" stroke="#5dd6a0" stroke-width="2.6" stroke-linecap="round"/><path d="M2 14c3-3 6 2 10-1s7 1 10-2" fill="none" stroke="#58c8f0" stroke-width="2.4" stroke-linecap="round"/><path d="M3 19c3-2 6 1 9-1s6 0 9-1" fill="none" stroke="#a98cf0" stroke-width="2.2" stroke-linecap="round"/>',
   moon: '<path d="M16 3a9 9 0 1 0 5 13A7.5 7.5 0 0 1 16 3z" fill="#fff3b8" stroke="#5a3a2e" stroke-width="2" stroke-linejoin="round"/>',
 };
 export const wxIcon = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${WX_ICON[k] || ''}</svg>`;
@@ -50,16 +67,21 @@ export function skyPhase(h) {
 export const SUN_AT = { lat: 52.07, lon: 19.48 };      // the middle of Poland
 export const SKY_RISE = 6.1, SKY_SET = 19.8;           // where sunrise and sunset sit on the sky clock
 const sunCache = new Map();
-/** Today's sunrise and sunset as hours on this device's clock (DST included). */
-export function sunTimes(d = new Date(), at = SUN_AT) {
-  const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; let c = sunCache.get(key); if (c) return c;
-  const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12), rad = Math.PI / 180;
-  const day = (Date.UTC(noon.getFullYear(), noon.getMonth(), noon.getDate()) - Date.UTC(noon.getFullYear(), 0, 0)) / 864e5;
+// NOAA's sun for one day (day0: that day's UTC midnight in ms): mid = solar noon in minutes after midnight UTC, ha = the
+// half-day arc in degrees (sunrise is mid - ha * 4 minutes, sunset mid + ha * 4).
+function sunUTC(day0, at = SUN_AT) {
+  const rad = Math.PI / 180, dt = new Date(day0), day = (day0 - Date.UTC(dt.getUTCFullYear(), 0, 0)) / 864e5;
   const y = 2 * Math.PI / 365 * (day - 1);               // NOAA's fractional year
   const eqt = 229.18 * (.000075 + .001868 * Math.cos(y) - .032077 * Math.sin(y) - .014615 * Math.cos(2 * y) - .040849 * Math.sin(2 * y));
   const dec = .006918 - .399912 * Math.cos(y) + .070257 * Math.sin(y) - .006758 * Math.cos(2 * y) + .000907 * Math.sin(2 * y) - .002697 * Math.cos(3 * y) + .00148 * Math.sin(3 * y);
   const cosH = (Math.cos(90.833 * rad) - Math.sin(at.lat * rad) * Math.sin(dec)) / (Math.cos(at.lat * rad) * Math.cos(dec));
-  const ha = Math.acos(Math.min(1, Math.max(-1, cosH))) / rad, mid = 720 - 4 * at.lon - eqt; // minutes after midnight UTC
+  return { ha: Math.acos(Math.min(1, Math.max(-1, cosH))) / rad, mid: 720 - 4 * at.lon - eqt };
+}
+/** Today's sunrise and sunset as hours on this device's clock (DST included). */
+export function sunTimes(d = new Date(), at = SUN_AT) {
+  const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; let c = sunCache.get(key); if (c) return c;
+  const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+  const { ha, mid } = sunUTC(Date.UTC(noon.getFullYear(), noon.getMonth(), noon.getDate()), at);
   const local = m => { const t = new Date(Date.UTC(noon.getUTCFullYear(), noon.getUTCMonth(), noon.getUTCDate()) + m * 6e4); return t.getHours() + t.getMinutes() / 60 + t.getSeconds() / 3600; };
   c = { rise: local(mid - ha * 4), set: local(mid + ha * 4) };
   if (sunCache.size > 8) sunCache.clear(); sunCache.set(key, c); return c;
@@ -86,4 +108,5 @@ export const WX_LOOK = {
   rain:    { sky: .62, hemi: .93, sun: .66, fall: 1, wind: 0, bow: 0, clouds: .7 },
   wind:    { sky: .94, hemi: 1,   sun: .96, fall: 0, wind: 1, bow: 0, clouds: .1 },
   rainbow: { sky: 1,   hemi: 1,   sun: 1,   fall: 0, wind: 0, bow: 1, clouds: 0 },
+  aurora:  { sky: 1,   hemi: 1,   sun: 1,   fall: 0, wind: 0, bow: 0, clouds: 0, aur: 1 }, // aur: the curtains of light (weather3d.js skyAurora)
 };

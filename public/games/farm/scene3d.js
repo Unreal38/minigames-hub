@@ -19,7 +19,7 @@ import { createBattleFx } from './battlefx.js';
 import { L } from '../../i18n.js';
 import { groundOf, R as RIMS, BASE, finish, pieceModel } from '../../isle3d.js';
 import { skyFriend } from '../../skyfriends.js';
-import { skyBow } from '../../weather3d.js';
+import { skyBow, skyAurora } from '../../weather3d.js';
 
 const SKY_TOP = '#5fb8f5', SKY_LOW = '#cfeeff';
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -332,8 +332,8 @@ export function createScene(canvas, { onPick, onGhost }) {
   const NIGHT = ['#141b4d', '#27306a', '#a3b3ff', 1.05, '#b4c2ff', .6, 1], DAY = [SKY_TOP, SKY_LOW, '#ffffff', 1.9, '#ffffff', 1.6, 0];
   const SKYKEYS = [[0, ...NIGHT], [4.6, ...NIGHT], [6.2, '#7fb2ee', '#ffd9c0', '#ffe6d6', 1.6, '#ffc392', 1.3, .2], [8, ...DAY], [17, ...DAY],
     [19, '#6f8ee0', '#ffcfa8', '#ffe0cc', 1.65, '#ffa468', 1.35, .15], [20.6, '#2a2f72', '#5a4f96', '#b9bdf5', 1.2, '#c0c4ff', .75, .8], [21.6, ...NIGHT], [24, ...NIGHT]];
-  const WX = { sunny: [1, 1, 1, 0, 0, 0], cloudy: [.8, .92, .62, 0, 0, 0], rain: [.6, .86, .42, 1, .25, 0], wind: [.95, 1, 1, 0, 1, 0], rainbow: [1, 1, 1, 0, 0, 1] }; // sky dim, light dim, sun dim, rain, wind, rainbow
-  const airTo = { hour: 12, w: 'sunny' }, air = { set: false, tint: new THREE.Color('#ffffff'), low: new THREE.Color(SKY_LOW), hc: new THREE.Color('#ffffff'), hi: 1.9, sc: new THREE.Color('#ffffff'), si: 1.6, night: 0, rain: 0, wind: 0, windT: 0, bow: 0, shade: -1, dim: 1, dusk: 0 };
+  const WX = { sunny: [1, 1, 1, 0, 0, 0], cloudy: [.8, .92, .62, 0, 0, 0], rain: [.6, .86, .42, 1, .25, 0], wind: [.95, 1, 1, 0, 1, 0], rainbow: [1, 1, 1, 0, 0, 1], aurora: [1, 1, 1, 0, 0, 0, 1] }; // sky dim, light dim, sun dim, rain, wind, rainbow, aurora
+  const airTo = { hour: 12, w: 'sunny' }, air = { set: false, tint: new THREE.Color('#ffffff'), low: new THREE.Color(SKY_LOW), hc: new THREE.Color('#ffffff'), hi: 1.9, sc: new THREE.Color('#ffffff'), si: 1.6, night: 0, rain: 0, wind: 0, windT: 0, bow: 0, aur: 0, shade: -1, dim: 1, dusk: 0 };
   const _k1 = new THREE.Color(), _k2 = new THREE.Color(), _grey = new THREE.Color('#8f9bb3');
   const stars = (() => { const n = 240, pos = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const a = hash(i, 91) * 6.283, e = .12 + hash(i, 92) * 1.35, r = 280; pos[i * 3] = Math.cos(a) * Math.cos(e) * r; pos[i * 3 + 1] = Math.sin(e) * r; pos[i * 3 + 2] = Math.sin(a) * Math.cos(e) * r; }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -343,12 +343,12 @@ export function createScene(canvas, { onPick, onGhost }) {
     grp.visible = false; return grp; })();
   const DROPS = 280, rainPos = new Float32Array(DROPS * 6), rainAt = Array.from({ length: DROPS }, (_, i) => [hash(i, 93), hash(i, 94), hash(i, 95), .8 + hash(i, 96) * .5]);
   const rain = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: '#d6ecff', transparent: true, opacity: 0, fog: false, depthWrite: false })); rain.geometry.setAttribute('position', new THREE.BufferAttribute(rainPos, 3)); rain.frustumCulled = false; rain.visible = false;
-  const bow = skyBow(); // part of the sky, the same rainbow as the hub and the minigames (weather3d.js)
+  const bow = skyBow(), aurora = skyAurora(); // part of the sky, the same rainbow as the hub and the minigames (weather3d.js)
   // a warm pool of light on the grass round anything that glows, once it gets dark
   const GLOWS = { lamp: 1.5, campfire: 1.7, glow: 1.2, lighthouse: 1.6 }; // buildings light their windows instead (WINDOW in models.js)
   const glowGeo = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2); { const p = glowGeo.attributes.position, c = []; for (let i = 0; i < p.count; i++) { const v = Math.pow(Math.max(0, 1 - Math.hypot(p.getX(i), p.getZ(i))), 1) ; c.push(v, v, v); } glowGeo.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); } // bright in the middle, fading to nothing
   const glows = new THREE.InstancedMesh(glowGeo, new THREE.MeshBasicMaterial({ color: '#ffb85a', vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }), 28);
-  glows.frustumCulled = false; glows.count = 0; glows.renderOrder = 2; scene.add(stars, rain, bow, glows);
+  glows.frustumCulled = false; glows.count = 0; glows.renderOrder = 2; scene.add(stars, rain, bow, aurora, glows);
   dims(tufts.material);
   function moveAir(dt, T, map = false) {
     // where the sky should be for this hour and weather
@@ -359,7 +359,7 @@ export function createScene(canvas, { onPick, onGhost }) {
     _k1.set(A[2]).lerp(_k2.set(B[2]), u); _k1.lerp(_k2.copy(_grey).lerp(_k1, .45), 1 - wx[0]); air.low.lerp(_k1, k);
     _k1.set(A[3]).lerp(_k2.set(B[3]), u); air.hc.lerp(_k1, k); air.hi += (mix(A[4], B[4]) * wx[1] - air.hi) * k;
     _k1.set(A[5]).lerp(_k2.set(B[5]), u); air.sc.lerp(_k1, k); air.si += (mix(A[6], B[6]) * wx[2] - air.si) * k;
-    air.night += (mix(A[7], B[7]) - air.night) * k; air.dim += (wx[0] - air.dim) * k; air.dusk += (Math.max(0, 1 - Math.min(Math.abs(h - 19.6), Math.abs(h - 5.8)) / 1.6) - air.dusk) * k; air.rain += (wx[3] - air.rain) * k; air.bow += (wx[5] - air.bow) * k;
+    air.night += (mix(A[7], B[7]) - air.night) * k; air.dim += (wx[0] - air.dim) * k; air.dusk += (Math.max(0, 1 - Math.min(Math.abs(h - 19.6), Math.abs(h - 5.8)) / 1.6) - air.dusk) * k; air.rain += (wx[3] - air.rain) * k; air.bow += (wx[5] - air.bow) * k; air.aur += ((wx[6] || 0) - air.aur) * k;
     const gust = wx[4] * (.75 + Math.sin(T * .7) * .25 + Math.sin(T * 2.3) * .12); air.wind += (gust - air.wind) * Math.min(1, dt * 2); air.windT += (wx[4] - air.windT) * k;
     for (const [sc, hm, sn] of [[scene, hemi, sun], [world, whemi, wsun]]) { sc.background.copy(air.low); sc.fog.color.copy(air.low); hm.color.copy(air.hc); hm.intensity = air.hi; sn.color.copy(air.sc); sn.intensity = air.si; }
     const sk = air.tint.getHex() * 7 + air.low.getHex(); if (sk !== air.sk) { air.sk = sk; const p = skyGeo.attributes.position, c = skyGeo.attributes.color; for (let v = 0; v < p.count; v++) { _k1.copy(air.low).lerp(air.tint, Math.min(1, Math.max(0, p.getY(v) / 300 * 1.6 + .25))); c.setXYZ(v, _k1.r, _k1.g, _k1.b); } c.needsUpdate = true; }
@@ -376,6 +376,7 @@ export function createScene(canvas, { onPick, onGhost }) {
       if (farm && !starters && Math.random() < dt * 14 * air.rain) { const x = (Math.random() - .5) * N, z = (Math.random() - .5) * N; bit(BIT.ball, BM2.drop, .35, (m, v) => { m.position.set(x, .04, z); m.scale.set(.05 + v * .16, .012, .05 + v * .16); }); }
     }
     bow.visible = air.bow > .02 && !starters; if (bow.visible) bow.place(camera, air.bow * .7 * (1 - air.night * .65)); // fixed in the sky, carried along as the camera moves
+    aurora.visible = air.aur > .02 && !starters; if (aurora.visible) aurora.place(camera, air.aur * (.3 + .6 * air.night), T); // the winter-night aurora (weather.js), the same as everywhere
     WINDOW.emissiveIntensity = Math.min(1, air.night * 1.4) * (.92 + Math.sin(T * 2.3) * .05);
     let n = 0; const lit = air.night > .08 && farm && !starters;
     if (lit) for (const e of items.values()) { const r = GLOWS[e.type]; if (!r || n >= 28) continue; _tm.compose(_tv.set(e.g.position.x, .03, e.g.position.z), _tq.identity(), _ts.set(r, 1, r).multiplyScalar(1 + Math.sin(T * 3 + n) * .03)); glows.setMatrixAt(n++, _tm); }

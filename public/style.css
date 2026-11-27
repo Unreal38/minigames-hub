@@ -1372,7 +1372,7 @@ body.sky:not(.in-game) .gmini::after { display: none; }
 .wxstrip .wxpic { flex: none; width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--ink); display: grid; place-items: center; background: linear-gradient(160deg, #bfe8ff, #e9f8ff); }
 .wxstrip.wx-sunny .wxpic { background: linear-gradient(160deg, #9fd8ff, #fff1b8); } .wxstrip.wx-cloudy .wxpic { background: linear-gradient(160deg, #c9d6e6, #eef3f8); }
 .wxstrip.wx-rain .wxpic { background: linear-gradient(160deg, #9fb7d1, #d6e4f0); } .wxstrip.wx-wind .wxpic { background: linear-gradient(160deg, #bfe9e0, #e9f8ff); }
-.wxstrip.wx-rainbow .wxpic { background: linear-gradient(160deg, #bfe8ff, #ffe3ef); } .wxstrip.wx-night .wxpic { background: linear-gradient(160deg, #2c2a5e, #5b5196); }
+.wxstrip.wx-rainbow .wxpic { background: linear-gradient(160deg, #bfe8ff, #ffe3ef); } .wxstrip.wx-aurora .wxpic, .wxstrip.wx-aurora.wx-night .wxpic { background: linear-gradient(160deg, #16204a, #2b3f6e 55%, #3a2f6e); } .wxstrip.wx-night .wxpic { background: linear-gradient(160deg, #2c2a5e, #5b5196); }
 .wxstrip .wxnow { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 7px; line-height: 1.2; }
 .wxstrip .wxnow b { font-family: var(--fd); font-weight: 600; font-size: 15px; white-space: nowrap; }
 .wxstrip .wxnow small { font-size: 12.5px; font-weight: 700; color: var(--muted2, var(--muted)); }
@@ -1993,6 +1993,14 @@ body.sky.wx-rainbow:not(.in-game) .wxfall { display: block; top: 0; opacity: .62
   background: radial-gradient(circle var(--bowr) at 50% 100%, transparent 76%, #b79cf0 76% 80%, #6fb7e8 80% 84%, #7fd08a 84% 88%, #ffe066 88% 92%, #ffb547 92% 96%, #e8615a 96% 100%, transparent 100%) no-repeat;
   -webkit-mask: linear-gradient(#000 55%, transparent 100%); mask: linear-gradient(#000 55%, transparent 100%); }
 body.sky.skynight.wx-rainbow:not(.in-game) .wxfall { opacity: .26; }
+/* the aurora (a winter-night weather): soft curtains of green, teal and violet across the top of the page sky, swaying slowly */
+body.sky.wx-aurora:not(.in-game) .wxfall { display: block; top: 0; bottom: auto; left: -8%; right: -8%; height: 70vh; opacity: .3; will-change: transform; animation: wxaur 16s ease-in-out infinite alternate;
+  background: radial-gradient(55% 30% at 20% 34%, #5dffb0 0, transparent 72%), radial-gradient(45% 26% at 52% 26%, #58e0ff 0, transparent 72%), radial-gradient(40% 24% at 82% 38%, #b48cff 0, transparent 72%);
+  -webkit-mask: repeating-linear-gradient(94deg, rgba(0, 0, 0, .55) 0 9px, #000 15px, rgba(0, 0, 0, .7) 23px, #000 31px, rgba(0, 0, 0, .5) 44px), linear-gradient(transparent, #000 22%, #000 55%, transparent 90%);
+  -webkit-mask-composite: source-in; mask: repeating-linear-gradient(94deg, rgba(0, 0, 0, .55) 0 9px, #000 15px, rgba(0, 0, 0, .7) 23px, #000 31px, rgba(0, 0, 0, .5) 44px) intersect, linear-gradient(transparent, #000 22%, #000 55%, transparent 90%); }
+body.sky.skynight.wx-aurora:not(.in-game) .wxfall { opacity: .7; }
+@keyframes wxaur { from { transform: translateX(-3%) skewX(-4deg); } to { transform: translateX(3%) skewX(4deg); } }
+@media (prefers-reduced-motion: reduce) { body.sky.wx-aurora .wxfall { animation: none; } }
 html.gfx-low body.sky.wx-rain .wxfall { display: none; }
 @media (prefers-reduced-motion: reduce) { body.sky.wx-rain .wxfall { display: none; } }
 /* the hero banner, the profile isle and the Wardrobe isle preview grey with the weather */

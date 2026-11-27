@@ -1,10 +1,10 @@
 // The world weather in the 3D scenes: the hub's hero isle and every minigame island show the same weather as Pet Farm
 // (weather.js: one clock-based spell for everyone, changing every 40 minutes).
 //
-//   wxShown()            the kind to show now ('sunny' | 'cloudy' | 'rain' | 'wind' | 'rainbow'); a host can preview another
+//   wxShown()            the kind to show now ('sunny' | 'cloudy' | 'rain' | 'wind' | 'rainbow' | 'aurora'); a host can preview another
 //                        kind from the Account menu (seasonpeek.js, own view only).
 //   onWeather(fn)        fn(kind) whenever the shown kind changes (checked every 15 s, and at once after wxRecheck()).
-//   weatherLayer(scene)  rain, wind streaks and the rainbow for one scene, added to it. set(kind, night) switches it.
+//   weatherLayer(scene)  rain, wind streaks, the rainbow and the aurora for one scene, added to it. set(kind, night) switches it.
 //                        The drops move on the graphics card (a shader works out each one from the time), so it costs one
 //                        draw call per kind and nothing on the main thread; it sizes itself from the camera's distance on
 //                        the first frame, or from opts.size (the width of the box of air round the view, in scene units).
@@ -118,6 +118,44 @@ export function skyBow({ fit = false } = {}) {
   return bow;
 }
 
+// The aurora (a winter-night weather since 2026-11-27, Kuba): three curtains of light low over the horizon, drawn on the
+// inside of a ball round the camera like the rainbow, so they stay in one compass direction (where the camera first looks)
+// and only travel with it. Each frame the curtains ripple and their hems wave. fit: like skyBow, for a camera that never
+// moves and shows little sky (the hub's hero isle): the curtains are lowered into its view. place(camera, opacity, T).
+const AUR = [['#5dffb0', .06, .3, 0, 1], ['#58e0ff', .15, .24, 2, .7], ['#b48cff', .27, .2, 4, .55]]; // colour, hem height, curtain height (radians), phase, strength
+export function skyAurora({ fit = false } = {}) {
+  const g = new THREE.Group(), at = new WeakMap(), SEG = 120, W = .95, R = 3, n = AUR.length * (SEG + 1) * R; // per column: under the hem, the hem, the top
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 4), idx = [], c = new THREE.Color();
+  AUR.forEach(([hex], b) => { c.set(hex);
+    for (let j = 0; j <= SEG; j++) { const v = (b * (SEG + 1) + j) * R;
+      col.set([c.r, c.g, c.b, 0], v * 4); col.set([c.r, c.g, c.b, 0], v * 4 + 4); col.set([c.r * .6, c.g * .7, c.b, 0], v * 4 + 8);
+      if (j) for (const r of [0, 1]) { const q = v - R + r; idx.push(q, q + 1, q + R, q + 1, q + R + 1, q + R); } } });
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 4)); geo.setIndex(idx);
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, fog: false, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+  const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = -7; mesh.frustumCulled = false; g.add(mesh); g.visible = false;
+  const put = (v, f, e) => { const ce = Math.cos(e); pos[v * 3] = Math.sin(f) * ce; pos[v * 3 + 1] = Math.sin(e); pos[v * 3 + 2] = Math.cos(f) * ce; };
+  g.place = (camera, opacity, T) => {
+    let a = at.get(camera);
+    if (!a) {
+      camera.getWorldDirection(_f); const pitch = Math.asin(Math.max(-1, Math.min(1, _f.y))), half = camera.fov * Math.PI / 360;
+      _f.y = 0; if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1); _f.normalize();
+      a = { yaw: Math.atan2(_f.x, _f.z), el: fit ? Math.min(0, pitch + half - .52) : 0 }; at.set(camera, a);
+    }
+    AUR.forEach(([, base, h, ph, k], b) => { for (let j = 0; j <= SEG; j++) {
+      const u = j / SEG, f = -W + 2 * W * u + Math.sin(T * .4 + j * .13 + ph) * .01, hem = base + Math.sin(f * 4 + T * .3 + ph) * .045 + Math.sin(f * 9 - T * .23 + ph) * .018;
+      const top = hem + h * (.7 + .3 * Math.sin(f * 6 + T * .5 + ph)), v = (b * (SEG + 1) + j) * R;
+      put(v, f, hem - .025); put(v + 1, f, hem); put(v + 2, f, top);
+      // rays: thin brighter streaks drifting along the curtain, fading out at both ends of it
+      const ray = .35 + .65 * Math.pow(.5 + .5 * Math.sin(j * 1.7 + T * .9 + ph) * Math.sin(j * .61 - T * .4 + ph * 2), 2);
+      col[(v + 1) * 4 + 3] = .6 * k * ray * Math.pow(Math.sin(Math.PI * u), .7); } });
+    geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+    g.position.copy(camera.position); g.rotation.set(-a.el, a.yaw, 0, 'YXZ'); g.scale.setScalar(Math.min(230, camera.far * .8)); g.updateMatrixWorld(true);
+    mat.opacity = opacity;
+  };
+  g.dispose = () => { geo.dispose(); mat.dispose(); };
+  return g;
+}
+
 export function weatherLayer(scene, { size = 0, bowFit = false } = {}) {
   const root = new THREE.Group(); root.name = 'weather'; scene.add(root);
   const share = SHARE[gfx()] || 1;
@@ -125,11 +163,11 @@ export function weatherLayer(scene, { size = 0, bowFit = false } = {}) {
   const R = { ...common(), uLen: { value: .6 }, uFall: { value: 11 }, uDrift: { value: -1.2 }, uWave: { value: 0 }, uCol: { value: new THREE.Color('#a8c4e4') } };
   const W = { ...common(), uLen: { value: 2.4 }, uFall: { value: .25 }, uDrift: { value: 9 }, uWave: { value: .25 }, uCol: { value: new THREE.Color('#ffffff') } };
   const rain = streaks(Math.round(1300 * share), R), wind = streaks(Math.round(70 * share), W);
-  const bow = skyBow({ fit: bowFit });
-  root.add(rain, wind, bow);
+  const bow = skyBow({ fit: bowFit }), aur = skyAurora({ fit: bowFit });
+  root.add(rain, wind, bow, aur);
   rain.visible = wind.visible = false;
 
-  let want = { rain: 0, wind: 0, bow: 0 }, now = { rain: 0, wind: 0, bow: 0 }, S = size, D = size / 1.3, lastT = -1, nextLook = 0;
+  let want = { rain: 0, wind: 0, bow: 0, aur: 0 }, now = { rain: 0, wind: 0, bow: 0, aur: 0 }, S = size, D = size / 1.3, lastT = -1, nextLook = 0;
   const ray = new THREE.Raycaster(), mid = new THREE.Vector2();
   const solid = o => o.isMesh && o.visible && !o.userData.sky && !o.userData.cloud && !o.material?.transparent;
   function focus(camera) {
@@ -154,20 +192,22 @@ export function weatherLayer(scene, { size = 0, bowFit = false } = {}) {
     const T = t % 3600; R.uT.value = W.uT.value = T;
     R.uC.value.copy(camera.position).addScaledVector(_f, D * .55); W.uC.value.copy(R.uC.value);
     const k = Math.min(1, dt * .8);
-    for (const key of ['rain', 'wind', 'bow']) now[key] += (want[key] - now[key]) * k;
+    for (const key of ['rain', 'wind', 'bow', 'aur']) now[key] += (want[key] - now[key]) * k;
     R.uA.value = now.rain * .5; W.uA.value = now.wind * (.34 + Math.sin(T * .7) * .08 + Math.sin(T * 2.3) * .04);
     rain.visible = now.rain > .01 && !reduced; wind.visible = now.wind > .01 && !reduced;
     bow.visible = now.bow > .01;
     if (bow.visible) bow.place(camera, now.bow * want.bowA);
+    aur.visible = now.aur > .01;
+    if (aur.visible) aur.place(camera, now.aur * want.aurA, reduced ? 0 : T);
   }
-  for (const o of [rain, wind, ...bow.children]) o.onBeforeRender = step;
+  for (const o of [rain, wind, ...bow.children, ...aur.children]) o.onBeforeRender = step;
   // An empty, always drawn point keeps step() running while every part is hidden (so a spell can fade in).
   const tick = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3)), new THREE.PointsMaterial({ size: 0, transparent: true, opacity: 0, depthWrite: false }));
   tick.frustumCulled = false; tick.onBeforeRender = step; root.add(tick);
 
   function set(kind, night = false) {
     const L = WX_LOOK[kind] || WX_LOOK.sunny;
-    want = { rain: L.fall, wind: L.wind, bow: L.bow, bowA: night ? .22 : .55 };
+    want = { rain: L.fall, wind: L.wind, bow: L.bow, bowA: night ? .22 : .55, aur: L.aur || 0, aurA: night ? .9 : .3 }; // an aurora seen by day is only a host's preview
     R.uCol.value.set(night ? '#a9b6e8' : '#a8c4e4'); W.uCol.value.set(night ? '#c8d0ff' : '#ffffff');
   }
   set(wxShown());

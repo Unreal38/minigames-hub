@@ -641,6 +641,7 @@ body.night .pf .zsum .zbig .zsky { background: linear-gradient(180deg, color-mix
 .pf .pfwxi svg { width: 30px; height: 30px; }
 .pf .wx-cloudy .pfwxi { background: #e1e8f2; } .pf .wx-rain .pfwxi { background: #c4e3ff; } .pf .wx-wind .pfwxi { background: #d4f2e4; }
 .pf .wx-rainbow .pfwxi { background: linear-gradient(160deg, #ffd6d2, #fff2b8 45%, #cfeaff); }
+.pf .wx-aurora .pfwxi { background: linear-gradient(160deg, #16204a, #2b3f6e 55%, #3a2f6e); }
 .pf .pfwxt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .pf .pfwxt b { font-family: var(--fd); font-weight: 600; font-size: 17px; line-height: 1.15; }
 .pf .pfwxt small { font-size: 13px; font-weight: 700; color: var(--pf-muted, var(--soft-tx)); }
