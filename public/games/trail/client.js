@@ -4,6 +4,7 @@
 // the island, with labels and outlines on the wild pets, stalls and special stones.
 import { myBurst } from '../../winfx.js';
 import { sfx } from '../../sfx.js';
+import { music } from '../../music.js';
 import { L } from '../../i18n.js';
 import { avatarHtml } from '../../avatar.js';
 import { againHtml, paidHtml, paintPaid } from '../../again.js';
@@ -26,6 +27,8 @@ const I = {
   door: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h5v16h-5"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
   map: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',
   me: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
+  note: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>',
+  noteOff: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13" opacity=".45"/><circle cx="6.5" cy="18" r="2.5" opacity=".45"/><circle cx="17.5" cy="16" r="2.5" opacity=".45"/><path d="M3 3l18 18"/></svg>',
   treat: TREAT_SVG, // Pawperty's bone: the site's one treat icon
 };
 // little sticker pictures of the stall's items (ink outlines, their own colours, so they read on day and night panels)
@@ -71,6 +74,7 @@ export function mount(app, ctx) {
       <div class="tl"><span class="chip" id="tt-info"></span>
         <button type="button" class="chip tt-mapbtn" data-a="map" aria-pressed="false"></button></div>
       <div class="tr"><span class="tcode" id="tt-code"></span>
+        <button type="button" class="round" data-a="music" aria-pressed="${music.on}" aria-label="${L('Toggle music', 'Włącz lub wyłącz muzykę')}" title="${L('Music', 'Muzyka')}">${music.on ? I.note : I.noteOff}</button>
         <button type="button" class="round" data-a="mute" aria-label="${L('Toggle sound', 'Włącz lub wyłącz dźwięk')}">${sfx.muted ? I.mute : I.sound}</button>
         <button type="button" class="round" data-a="rules" aria-label="${L('How to play', 'Jak grać')}">?</button>
         <button type="button" class="round" data-a="leave" aria-label="${L('Leave table', 'Odejdź od stołu')}">${I.door}</button></div>
@@ -448,7 +452,7 @@ export function mount(app, ctx) {
     const total = Math.max(0, S.stageLeft - 900), steps = items.length * 2 + (end >= 0 ? end : 0); let k = 0;
     const step = () => { if (destroyed || !box.isConnected) return;
       items.forEach((x, j) => x.classList.toggle('on', j === k % items.length)); sfx.tick();
-      if (k >= steps) { items[k % items.length].classList.add('won'); sfx.set(); say(L(`Minigame: <b>${esc(gameName(pick))}</b>`, `Minigra: <b>${esc(gameName(pick))}</b>`)); return; }
+      if (k >= steps) { items[k % items.length].classList.add('won'); sfx.set(); wheelDone = true; music.sting(); say(L(`Minigame: <b>${esc(gameName(pick))}</b>`, `Minigra: <b>${esc(gameName(pick))}</b>`)); return; }
       k++; const u = k / steps; setTimeout(step, 50 + (total / steps) * 2 * u * u); };
     step();
   }
@@ -538,7 +542,14 @@ export function mount(app, ctx) {
       else if (s.stage === 'show') runShow(Math.max(0, SHOW_MS - s.stageLeft));
       else say(s.stage === 'intro' ? L('Welcome to the Friendship Trail!', 'Witaj na Szlaku przyjaźni!') : s.turn >= 0 ? who(s.turn, L('Your turn', 'Twoja kolej'), L("{n}'s turn", 'Kolej: {n}')) : L('Back on the trail', 'Z powrotem na szlaku'));
     } else for (const e of s.ev || []) if (e.n > lastEv) { lastEv = e.n; playEv(e); } // hops go to the scene before the new positions
-    render(); scene?.setState(s); camFocus();
+    render(); scene?.setState(s); camFocus(); tune();
+  }
+  // the music follows the stage (music.js). Once the wheel has landed its flourish plays and then nothing, so the minigame starts in quiet
+  let wheelDone = false;
+  function tune() {
+    if (S.ph !== 'end' && (S.stage === 'wheel' || S.stage === 'mini')) { if (S.stage === 'wheel' && !wheelDone) music.cue('wheel'); else if (!wheelDone) music.stop(); return; }
+    wheelDone = false;
+    music.cue(S.ph === 'end' ? 'podium' : S.stage === 'intro' ? 'intro' : S.stage === 'show' ? 'show' : 'trail');
   }
   function render() {
     if (!S) return;
@@ -637,6 +648,7 @@ export function mount(app, ctx) {
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
     const a = b.dataset.a, d = b.dataset;
+    if (a === 'music') { const on = music.toggle(); b.innerHTML = on ? I.note : I.noteOff; b.setAttribute('aria-pressed', on); sfx.click(); return; }
     if (a === 'mute') { const m = sfx.toggle(); b.innerHTML = m ? I.mute : I.sound; return; }
     if (a === 'rules') { sfx.click(); ctx.rules(); return; }
     if (a === 'leave') { sfx.click(); ctx.leave(); return; }
@@ -672,7 +684,7 @@ export function mount(app, ctx) {
     room(r) { Rm = r; if (S) render(); paintAgain(); },
     react,
     destroy() {
-      destroyed = true; document.body.classList.remove('in-game'); removeEventListener('resize', onResize); removeEventListener('keydown', onKey);
+      destroyed = true; music.stop(); document.body.classList.remove('in-game'); removeEventListener('resize', onResize); removeEventListener('keydown', onKey);
       clearInterval(timer); clearTimeout(resultsTimer); clearTimeout(bigTimer); clearTimeout(dieTimer); showTimers.forEach(clearTimeout); scene?.dispose();
     },
   };
