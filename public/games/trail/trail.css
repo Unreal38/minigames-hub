@@ -371,14 +371,10 @@ body.night .tt-idots i.on { background: var(--lantern); }
 .tt.lineup .tt-side .tt-rk { display: none; } /* everyone is 1st before the first turn; the roll chips need the room */
 .tt.lineup .tt-side .tt-sp, .tt.lineup .tt-side .tt-tr, .tt.lineup .tt-side .tt-key { display: none; }
 
-/* Kuba 2026-11-27: the top middle was too busy. On desktop Tux's news sits in the bottom-left corner (phones keep it
-   under the player strip). The cheer question sits in the middle of the screen and says what happens next. */
-@media (min-width: 761px) {
-  .tt-news { top: auto; left: max(16px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); transform: none; align-items: flex-start;
-    max-width: min(460px, calc(50vw / var(--vz, 1) - 250px)); min-width: 260px; }
-  .tt-news .banner { font-size: 16px; }
-}
-@media (max-width: 760px) { .tt-log { display: none; } }
+/* Kuba 2026-11-27: the top middle was too busy, then the bottom-left corner felt wrong too: Tux's bubble is back at the
+   top centre, on its own (the older lines under it are gone). The cheer question sits in the middle of the screen. */
+.tt-log { display: none; }
+
 .tt-dock:has(.tt-cheerq) { bottom: auto; top: 50%; transform: translate(-50%, -50%); width: min(620px, calc(100vw / var(--vz, 1) - 16px)); }
 .tt-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .tt-steps li { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; background: var(--card); border: 2px solid var(--card-edge); border-radius: 14px; padding: 8px 8px 9px; font: 600 14px/1.25 var(--fd); color: var(--on-paper); }
@@ -391,3 +387,6 @@ body.night .tt-idots i.on { background: var(--lantern); }
 .tt-mark.stone b { display: inline-flex; align-items: center; }
 @media (max-width: 760px) { .tt-si { width: 24px; height: 24px; } }
 @media (max-width: 760px) { .tt-wheel { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } .tt-wheel span { border-width: 2px; border-radius: 12px; box-shadow: 0 2px 0 var(--ink); } .tt-wheel span b { font-size: 12px; padding: 4px 5px 0; } .tt-wheel span small { display: none; } .tt-wheel span img { border-bottom-width: 2px; } }
+/* a wild pet's card stays pink at night too, so its number and name read (Kuba 2026-11-27: the 3 was ink on navy) */
+.tt .btn.tt-tc.hot, body.night .tt .btn.tt-tc.hot { background: radial-gradient(#ffffff55 1.2px, transparent 1.6px) 0 0 / 12px 12px, #ffd0e4; color: #3b2219; --soft-tx: #6b3b50; }
+.tt .btn.tt-tc.hot > b { color: #3b2219; }

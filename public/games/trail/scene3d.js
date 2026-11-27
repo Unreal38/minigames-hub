@@ -265,8 +265,33 @@ export function createScene(canvas, { onFrame } = {}) {
   function peek(s, ms) { peekS = s; peekT = performance.now() + ms; if (s < 0) holdT = 0; } // keep the camera on someone for a moment (their die landing)
   const LSP = .74;
   function lineSpot(i) { const n = folk.length, x0 = START.x - n * LSP / 2 - .2; return [x0 + i * LSP, START.z + .35]; }
-  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25, START.z + .2];
+  const hostSpot = () => [START.x - folk.length * LSP / 2 - .2 + folk.length * LSP + .25 + (lineup === 'show' ? .55 : 0), START.z + .2];
+  // ---------- the Pet Show at the end (Kuba 2026-11-27: "Pet Show podium") ----------
+  // everyone pops back to the meadow; ribbon winners step forward; then a 1-2-3 podium (place per seat, 1 = first)
+  let stepped = new Set(), podium = null, podBlocks = null;
+  const POD_X = [0, -.82, .82], POD_Y = [.46, .3, .16];
+  function showSpot(i) {
+    if (podium) { const order = folk.map(f => f.i).sort((a, b) => podium[a] - podium[b] || a - b), r = order.indexOf(i);
+      if (r < 3) return [START.x + POD_X[r], START.z + .35, POD_Y[r]];
+      const back = order.length - 3, k = r - 3; return [START.x + (k - (back - 1) / 2) * .7, START.z - .45, 0]; }
+    const [x, z] = lineSpot(i); return [x, z + (stepped.has(i) ? .55 : 0), 0];
+  }
+  function stepOut(list) { stepped = new Set(list || []); }
+  function setPodium(places) {
+    podium = places || null;
+    if (podium && !podBlocks) {
+      podBlocks = new THREE.Group(); scene.add(podBlocks);
+      ['#ffd34d', '#dfe6ee', '#e9a873'].forEach((c, r) => { if (r >= folk.length) return;
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(.36, .4, POD_Y[r], 8), flat(c)); m.position.set(START.x + POD_X[r], SY + POD_Y[r] / 2, START.z + .35); m.scale.y = .01; m.userData.k = r; podBlocks.add(m); shell(m, 1.06); });
+    }
+    if (podBlocks) podBlocks.visible = !!podium;
+  }
   function setLineup(mode) {
+    if (mode === 'show' && lineup !== 'show') for (const f of folk) { // a puff, and everyone is back in the meadow
+      if (f.node != null && f.node >= 0) fx.puff(at(f.x, f.z, .4), { n: 10, color: ['#ffffff', '#ffd6ec'], size: .45, speed: 1.8 });
+      f.q.length = 0; f.hop = null; f.node = -1; const [x, z] = showSpot(f.i); f.x = x; f.z = z + .4; f.steps.length = 0;
+      fx.puff(at(f.x, f.z, .4), { n: 10, color: ['#ffffff', '#ffd6ec'], size: .45, speed: 1.8 });
+    }
     lineup = mode || null;
     if (lineup && !host) { const g = petOf('tuxpurr', null, 1.15), [x, z] = hostSpot(); g.position.set(x + 2.2, SY, z); scene.add(g); host = { g, x: x + 2.2, z, seed: 7.3 }; }
   }
@@ -435,10 +460,10 @@ export function createScene(canvas, { onFrame } = {}) {
         f.x = lerp(h.fx, h.x, e); f.z = lerp(h.fz, h.z, e); f.y = Math.sin(h.t * Math.PI) * .45; f.tr = Math.atan2(h.x - h.fx, h.z - h.fz); f.amt = 1;
         if (h.t >= 1) { f.node = h.to; f.hop = null; f.y = 0; if (!few) fx.puff(at(f.x, f.z, .2), { n: 3, color: ['#ffffff', DIRT], size: .2, speed: .8, life: .4 }); } }
       else if (f.node == null || f.node < 0) { // in the meadow: walk to the line-up spot, or back to a meadow spot
-        const [tx, tz] = lineup ? lineSpot(f.i) : spotOf(f.i, -1), dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
+        const [tx, tz, ty = 0] = lineup === 'show' ? showSpot(f.i) : lineup ? lineSpot(f.i) : spotOf(f.i, -1), dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
         if (d > .03) { const st = Math.min(d, dt * 2.4); f.x += dx / d * st; f.z += dz / d * st; f.tr = Math.atan2(dx, dz); f.amt += (1 - f.amt) * Math.min(1, dt * 8); }
         else { f.amt += (0 - f.amt) * Math.min(1, dt * 8); if (lineup) f.tr = Math.atan2(camera.position.x - f.x, camera.position.z - f.z); }
-        f.y = 0;
+        f.y += (ty - f.y) * Math.min(1, dt * 6); // onto the podium
       }
       else { f.amt += (0 - f.amt) * Math.min(1, dt * 8); f.y = 0; }
       f.ry += wrapA(f.tr - f.ry) * Math.min(1, dt * 12); f.ph += dt * 12 * Math.max(f.amt, .001);
@@ -491,6 +516,7 @@ export function createScene(canvas, { onFrame } = {}) {
       host.g.rotation.y = run ? Math.atan2(dx, dz) : Math.atan2(camera.position.x - host.x, camera.position.z - host.z) + Math.sin(T * 1.1) * .25;
       host.g.children[0] && wiggle(host.g.children[0], T, host.seed, .6);
       if (host.g.visible) blob(host.x, host.z, .4); }
+    if (podBlocks?.visible) for (const m of podBlocks.children) if (m.scale) m.scale.y += (1 - m.scale.y) * Math.min(1, dt * 5);
     stepDice(performance.now(), blob);
     { const yaw = Math.atan2(camera.position.x - camL.x, camera.position.z - camL.z); if (Math.abs(yaw - iconYaw) > .01) { iconYaw = yaw; for (const ic of icons.children) ic.rotation.z = yaw; } } // icons stay upright for the camera
     for (const a of forkArrows) { a.position.y = .55 + Math.sin(T * 4 + a.userData.k) * .09; }
@@ -568,7 +594,7 @@ export function createScene(canvas, { onFrame } = {}) {
   }
 
   return {
-    setState, walk, cue, emote, setThink, peek, roll, setFork,
+    setState, walk, cue, emote, setThink, peek, stepOut, setPodium, roll, setFork,
     rolling: () => thrown.length > 0,
     focus(s) { focus = s; },
     setLineup,
